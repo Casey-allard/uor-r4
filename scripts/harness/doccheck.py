@@ -40,17 +40,70 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 HARNESS_DIR = Path(__file__).resolve().parent
 
-#: Docs that give labs commands to run. AGENTS.md is first because it is the one file every lab
-#: reads before anything else, so a wrong command there costs the most.
-DOCS = (
-    "AGENTS.md",
-    "docs/harness/README.md",
-    "docs/harness/BOOTSTRAP.md",
-    "docs/harness/ONBOARD-PROMPT.md",
-    "docs/harness/CONTRACT.md",
-    "docs/harness/STATE-FORMATS.md",
-    "docs/labs/session-goal.md",
+#: Docs that give labs commands to run, discovered rather than listed.
+#:
+#: A static list was the first version and it was already incomplete when written: `CONTRIBUTING.md`
+#: carries nine `cli.py` commands and was never checked, and any new doc would have been invisible
+#: until someone remembered to add it. Discovery means a command cannot go unchecked by omission.
+#:
+#: Excluded, with reasons:
+#:   * `docs/history/` — archived documents, kept verbatim as evidence
+#:   * `docs/labs/<topic>-<date>/` — dated records of work already done; their commands describe
+#:     what was run at the time, and rewriting them would falsify the record
+#:   * `research/` — imported external material
+#:   * `.harness/`, `local/`, `target/`, `.worktrees/` — scratch and build space, not documentation
+DOC_EXCLUDE_PREFIXES = (
+    "docs/history/", "research/", ".harness/", "local/", "target/", ".worktrees/", ".git/",
 )
+
+#: Append-only logs that RECORD commands rather than instructing anyone to run them.
+#:
+#: `current-state.md` is the clearest case: entries there describe what changed, which necessarily
+#: includes naming the broken command that was fixed ("a top-level `install-hooks` that is a `git`
+#: subcommand"). Checking a changelog against the parser flags the description as if it were
+#: guidance, and a check that cries wolf on the project's own log is one people turn off.
+DOC_EXCLUDE_FILES = ("docs/integration/current-state.md",)
+DOC_EXCLUDE_PARTS = ("/node_modules/",)
+
+#: A dated record directory: `docs/labs/<topic>-<YYYY-MM-DD>/`.
+_DATED_RECORD = re.compile(r"^docs/labs/[^/]+-\d{4}-\d{2}-\d{2}/")
+
+
+def discover_docs(repo: Path = REPO) -> list[str]:
+    """Every tracked Markdown file that could give a lab a command, newest concerns first."""
+    listing: list[str] = []
+    try:
+        import subprocess
+
+        out = subprocess.run(
+            ["git", "-C", str(repo), "ls-files", "-z", "*.md"],
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+        if out.returncode == 0:
+            listing = [p for p in out.stdout.split("\0") if p]
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - git is present in practice
+        listing = []
+    if not listing:
+        # Outside a git checkout, fall back to walking; the exclusions still apply.
+        listing = [str(p.relative_to(repo)) for p in repo.rglob("*.md")]
+    keep: list[str] = []
+    for rel in sorted(listing):
+        if any(rel.startswith(pre) for pre in DOC_EXCLUDE_PREFIXES):
+            continue
+        if any(part in f"/{rel}/" for part in DOC_EXCLUDE_PARTS):
+            continue
+        if _DATED_RECORD.match(rel) or rel in DOC_EXCLUDE_FILES:
+            continue
+        if "/" in rel and not rel.startswith("docs/"):
+            continue  # only repo-root files and docs/ are documentation
+        keep.append(rel)
+    # AGENTS.md first: it is the one file every lab reads, so a wrong command there costs the most.
+    keep.sort(key=lambda r: (r != "AGENTS.md", r))
+    return keep
+
+
+#: Kept as a named constant for the tests and for anyone reading this expecting a list.
+DOCS = ("AGENTS.md",)  # superseded by discover_docs(); see the docstring above
 
 #: `cli.py` followed by the first token (a command word, or a flag with its value) and the rest of
 #: the line, which the tokeniser walks.
@@ -206,7 +259,7 @@ def documented_commands(repo: Path = REPO, parser: argparse.ArgumentParser | Non
     parser = parser or _build_parser()
     found: list[dict] = []
     seen: set[tuple[str, str]] = set()
-    for rel in DOCS:
+    for rel in discover_docs(repo):
         path = repo / rel
         if not path.is_file():
             continue

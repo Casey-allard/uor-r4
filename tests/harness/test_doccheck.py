@@ -121,8 +121,55 @@ class TestTheRealDocs(unittest.TestCase):
         self.assertIn("AGENTS.md", docs)
         self.assertIn("docs/harness/ONBOARD-PROMPT.md", docs)
 
-    def test_it_returns_a_nonzero_exit_when_a_command_is_missing(self) -> None:
-        self.assertEqual(doccheck.check(json_out=True, repo=REPO), 0)
+    def test_the_real_docs_pass_the_checker(self) -> None:
+        import contextlib
+        import io
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = doccheck.check(json_out=True, repo=REPO)
+        self.assertEqual(code, 0, buf.getvalue())
+
+
+class TestDiscovery(unittest.TestCase):
+    """Which docs get checked. A static list was the first version and was already incomplete when
+    written: CONTRIBUTING.md carries commands and was never checked.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.docs = doccheck.discover_docs(REPO)
+
+    def test_it_finds_far_more_than_a_hand_written_list_would(self) -> None:
+        self.assertGreater(len(self.docs), 100, f"only {len(self.docs)} docs discovered")
+
+    def test_it_includes_the_files_a_lab_or_contributor_actually_reads(self) -> None:
+        for rel in ("AGENTS.md", "CONTRIBUTING.md", "docs/harness/BOOTSTRAP.md",
+                    "docs/harness/ONBOARD-PROMPT.md", "docs/harness/README.md"):
+            with self.subTest(rel=rel):
+                self.assertIn(rel, self.docs)
+
+    def test_agents_md_is_checked_first(self) -> None:
+        """It is the one file every lab reads, so a wrong command there costs the most."""
+        self.assertEqual(self.docs[0], "AGENTS.md")
+
+    def test_archived_and_scratch_documentation_is_not_checked(self) -> None:
+        """Dated records describe work already done; rewriting them to satisfy a parser would
+        falsify the record. Scratch and build dirs are not documentation at all."""
+        for rel in self.docs:
+            with self.subTest(rel=rel):
+                self.assertFalse(rel.startswith("docs/history/"), rel)
+                self.assertFalse(rel.startswith("research/"), rel)
+                self.assertFalse(rel.startswith(".harness/"), rel)
+                self.assertFalse(rel.startswith("local/"), rel)
+                self.assertFalse(rel.startswith("target/"), rel)
+                self.assertFalse(rel.startswith(".worktrees/"), rel)
+                self.assertNotRegex(rel, r"^docs/labs/[^/]+-\d{4}-\d{2}-\d{2}/")
+
+    def test_append_only_logs_are_not_checked(self) -> None:
+        """`current-state.md` names the broken command it is reporting fixed. That is a record, not
+        guidance, and flagging it would make this check cry wolf on the project's own log."""
+        self.assertNotIn("docs/integration/current-state.md", self.docs)
 
 
 if __name__ == "__main__":

@@ -97,3 +97,42 @@ python3 scripts/harness/doccheck.py                  -> 40 commands, all exist
 - The `prep` receipt now points at a sheet that no longer exists. That is correct for this run, but a
   reader following the pointer later gets nothing. Whether a withdrawn registration should leave a
   receipt at all is a design question this unit did not settle.
+
+## Follow-up: the doc list was the real weakness
+
+The first version read a **hand-written list of seven documents**. It was already incomplete when
+written: `CONTRIBUTING.md` alone carries nine `cli.py` commands and was never checked, and any new
+document would have been invisible until somebody remembered to add it.
+
+Discovery is now automatic — every tracked Markdown file under `docs/` and the repository root:
+
+```
+before:  documented commands: 40 checked
+after:   documented commands: 96 checked      (across 913 documents)
+```
+
+**56 commands were unchecked**, and the fix found one immediately: `docs/integration/current-state.md`
+naming the broken `install-hooks` from the previous unit. That turned out to be a **false positive**
+and produced the more interesting rule.
+
+### What is deliberately excluded, and why
+
+| excluded | reason |
+|---|---|
+| `docs/history/` | archived documents, kept verbatim as evidence |
+| `docs/labs/<topic>-<date>/` | dated records of work already done — rewriting them to satisfy a parser would falsify the record |
+| `research/` | imported external material |
+| `.harness/`, `local/`, `target/`, `.worktrees/` | scratch and build space, not documentation |
+| `docs/integration/current-state.md` | **an append-only log that records commands rather than instructing anyone to run them** |
+
+That last one is the interesting case. A changelog entry necessarily names the thing it is reporting
+fixed — *"a top-level `install-hooks` that is a `git` subcommand"* — and checking a changelog against
+the parser flags the description as if it were guidance. **A check that cries wolf on the project's
+own log is one people learn to turn off**, which would cost far more than the coverage is worth.
+
+The distinction the exclusions draw is **prescriptive versus descriptive**: a document that tells a
+lab what to run is checked; a document that records what was run is not.
+
+Five tests pin the discovery rules, including that `AGENTS.md` is checked first (it is the one file
+every lab reads, so a wrong command there costs the most) and that archived, scratch and append-only
+material stays out.
