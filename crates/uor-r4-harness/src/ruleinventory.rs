@@ -47,7 +47,11 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
     ),
     (
         "mistakes",
-        &["mistakes.registry_valid", "mistakes.evidence_exists"],
+        &[
+            "mistakes.registry_valid",
+            "mistakes.evidence_exists",
+            "mistakes.guard_covered",
+        ],
     ),
     ("receipts", &["receipts.parse", "receipts.ledger_present"]),
     ("prlint", &[concat!("prlint.", "soft", "max", "_ban")]),

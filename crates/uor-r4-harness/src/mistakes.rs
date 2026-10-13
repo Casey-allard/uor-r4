@@ -279,26 +279,88 @@ pub fn evidence_exists(paths: &StatePaths) -> Vec<Finding> {
     out
 }
 
-/// `mistakes.guard_covered` — NOT ported, and the reason is a bug I found by comparing.
+/// Every rule id the engine registers, read from `rules/registered-rules.json`.
 ///
-/// **The Python checks a guard against the ids the ENGINE registers (40). `ruleinventory` is the ids
-/// the PORT has implemented (16).** My first version used the inventory, so **a lesson guarding on
-/// `multilab.claim_not_merged` — a rule that exists and runs — was reported as "not a rule this engine
-/// registers".** Rust said **4**; Python said **0**.
+/// **This is the file that fixes the bug my first attempt had.** The first implementation resolved a
+/// guard against `ruleinventory::all_ids()` — the rules the **port** has implemented — while the rule
+/// must resolve against the rules the **engine** registers. A lesson guarding on a rule that exists
+/// and is enforced was reported as *"not a rule this engine registers"*: **Rust said 4, Python said
+/// 0.**
 ///
-/// The two sets are different questions with the same shape, and I reached for the wrong one because it
-/// was the one I had just built. **A guard check against an incomplete port is not a weaker check, it is
-/// a wrong one** — it would tell authors to delete guards on real rules, and it would stop being wrong
-/// only when the port finished, which is exactly when the check stops mattering.
+/// **A guard check against an incomplete port is not a weaker check, it is a wrong one** — it would
+/// tell authors to delete guards on real rules, and it would stop being wrong only when the port
+/// finished, **which is exactly when the check stops mattering.**
 ///
-/// Porting it needs **the full registered-id set**, which means either enumerating the rules in Rust
-/// (including the ones not yet ported) or embedding the id list as data beside the patterns file. That
-/// is its own small unit, and shipping the wrong check now would be worse than shipping none.
+/// The set lives as data because **the check engine is Python and the port is not**: the port cannot
+/// enumerate the engine's rules, so it reads them.
+pub fn registered_rules(paths: &StatePaths) -> Vec<String> {
+    let file = paths
+        .repo
+        .join("crates/uor-r4-harness/rules/registered-rules.json");
+    let Ok(text) = std::fs::read_to_string(&file) else {
+        return Vec::new();
+    };
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) else {
+        return Vec::new();
+    };
+    v.get("rules")
+        .and_then(|r| r.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str())
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// `mistakes.guard_covered` — every **block**-severity lesson names a guard rule that exists.
 ///
-/// **This function is deliberately absent rather than approximate.** A caller that needs it must not
-/// find a stub that returns nothing — that is the silent-clean failure this line keeps producing.
+/// **Only `block` severity.** A `warn` lesson is advice and may legitimately have no machine behind
+/// it; a `block` lesson is a stopping condition, and **a stopping condition with no rule is a
+/// preference** — it will be forgotten, which is the whole reason the registry exists.
 ///
-/// `^\d{4}-\d{2}-\d{2}$`.
+/// `none: <reason>` is accepted **only with a reason of at least four characters**, because `none:`
+/// alone is the escape hatch used without saying why, and that is indistinguishable from forgetting.
+pub fn guard_covered(paths: &StatePaths) -> Vec<Finding> {
+    let known = registered_rules(paths);
+    let mut out = Vec::new();
+    for lesson in load(paths) {
+        if lesson.severity != "block" || !lesson.errors.is_empty() {
+            continue;
+        }
+        let guard = lesson.guard.trim();
+        let problem = if guard.is_empty() {
+            Some(format!("{} is severity block with no guard", lesson.id))
+        } else if let Some(rest) = guard.strip_prefix("none") {
+            let reason = rest.trim_start_matches(':').trim();
+            if reason.chars().count() < 4 {
+                Some(format!("{} guard {guard:?} gives no reason", lesson.id))
+            } else {
+                None
+            }
+        } else if !known.iter().any(|k| k == guard) {
+            Some(format!(
+                "{} guard {guard:?} is not a rule this engine registers",
+                lesson.id
+            ))
+        } else {
+            None
+        };
+        if let Some(message) = problem {
+            out.push(Finding {
+                rule_id: "mistakes.guard_covered",
+                severity: "warn",
+                message,
+                path: lesson.path.display().to_string(),
+                fix: "name a rule id, or 'none: <reason why no machine can decide it>'".into(),
+            });
+        }
+    }
+    out
+}
+
+/// `^\d{4}-\d{2}-\d{2}$`./// `^\d{4}-\d{2}-\d{2}$`.
 fn is_ymd(date: &str) -> bool {
     let b = date.as_bytes();
     b.len() == 10
@@ -791,5 +853,100 @@ mod rule_tests {
         )
         .expect("write");
         assert!(evidence_exists(&p).is_empty(), "{:?}", evidence_exists(&p));
+    }
+}
+
+#[cfg(test)]
+mod guard_rule_tests {
+    use super::*;
+    use crate::state::StatePaths;
+    use std::path::Path;
+
+    fn repo() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    fn fixture(body: &str) -> (tempfile::TempDir, StatePaths) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let d = dir.path().join("docs/harness/mistakes");
+        std::fs::create_dir_all(&d).expect("mkdir");
+        std::fs::write(d.join("probe-lesson.md"), body).expect("write");
+        let p = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        (dir, p)
+    }
+
+    fn lesson(severity: &str, guard: &str) -> String {
+        format!(
+            "---\nid: probe-lesson\ntitle: t\ndate: 2026-10-13\nseverity: {severity}\nclass: process\n\
+             status: active\nguard: {guard}\ntrigger: [one, two]\npaths: [\"crates/*.rs\"]\n\
+             evidence: [Cargo.toml]\n---\n\nbody\n"
+        )
+    }
+
+    /// **The file the bug produced.** 53 ids, not 40: the engine resolves guards from three sources,
+    /// and taking only `checkrules.rules()` reported four real lessons as unregistered — **the same
+    /// false positive, in a new place.**
+    #[test]
+    fn the_data_file_holds_every_id_the_engine_registers() {
+        let ids = registered_rules(&paths());
+        assert_eq!(
+            ids.len(),
+            53,
+            "the engine's set is 53 ids across three sources"
+        );
+        assert!(
+            ids.iter().any(|i| i == "prlint.no_cpu_model_compute"),
+            "prlint GATE_RULES are part of the set - omitting them was the false positive"
+        );
+        assert!(
+            ids.iter().any(|i| i.starts_with("arena.")),
+            "checkrules ids too"
+        );
+    }
+
+    fn paths() -> StatePaths {
+        StatePaths::resolve(repo(), None, Some("/nonexistent-live"))
+    }
+
+    /// **The real registry passes**, which is the property that matters: four real lessons guard on
+    /// `prlint.*` gates, and reporting those as unregistered would tell authors to delete them.
+    #[test]
+    fn the_real_lessons_all_resolve() {
+        let f = guard_covered(&paths());
+        assert!(f.is_empty(), "a real guard failed to resolve: {f:?}");
+    }
+
+    /// A guard naming something that genuinely is not a rule is still reported.
+    #[test]
+    fn an_invented_guard_is_still_reported() {
+        let (_d, p) = fixture(&lesson("block", "made.up.nonsense"));
+        let f = guard_covered(&p);
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert!(
+            f[0].message.contains("not a rule this engine registers"),
+            "{}",
+            f[0].message
+        );
+    }
+
+    /// `none:` with no reason is the escape used without saying why.
+    #[test]
+    fn none_needs_a_reason() {
+        let (_d, p) = fixture(&lesson("block", "none:"));
+        assert!(guard_covered(&p)
+            .iter()
+            .any(|x| x.message.contains("gives no reason")));
+        let (_d2, p2) = fixture(&lesson("block", "none: no machine can decide this"));
+        assert!(
+            guard_covered(&p2).is_empty(),
+            "a reasoned none: is accepted"
+        );
+    }
+
+    /// **Only `block` severity.** A `warn` lesson is advice and may have no machine behind it.
+    #[test]
+    fn a_warn_lesson_needs_no_guard() {
+        let (_d, p) = fixture(&lesson("warn", "made.up.nonsense"));
+        assert!(guard_covered(&p).is_empty(), "warn lessons are advice");
     }
 }
