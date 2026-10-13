@@ -195,6 +195,33 @@ memory 20/40, reply 37/232).
 needs a prospective kernel card and TEST FITNESS first, and training stays held.
 
 
+## 2026-10-13 — The harness state formats are frozen before the Rust port (lead, tooling)
+
+D27 makes Rust the default for all new code including tooling and grandfathers the existing
+`scripts/harness/` Python - but nearly everything the harness gained on 12 October (presence,
+committed claims, sharded receipts, the touch primitive) is new Python in that directory, so it
+contradicted D27 as written. The owner resolved it directly: port the harness to Rust, and
+[freeze the state formats](../labs/harness-rust-port-2026-10-13/README.md) as the interface first,
+because a port without a frozen contract is a rewrite with a new schema and the shared record
+becomes readable by only one implementation. `docs/harness/state-formats.json` is the
+machine-readable contract, generated from the real files so it cannot describe a shape that does not
+exist: eight formats, 43 ledger rows, 8 panels. `docs/harness/STATE-FORMATS.md` is the readable half
+and `scripts/harness/statecheck.py` is the enforcement, wired into `check` as
+`harness.state_formats`. Deriving the contract found three real defects a hand-written schema would
+have missed: required-versus-optional keys (766 ledger rows failed, because a receipt's shape depends
+on its kind and only `kind`/`lab`/`schema`/`ts` are always present); absence inventing a `mixed`
+type; and `count` being genuinely polymorphic, a string in heartbeat receipts and a number in team
+receipts, which a Rust `count: String` would have failed on at runtime. The freeze guarantees a
+reader can read the state and that both implementations agree what it means - it does not guarantee
+the state is truthful, since a fabricated presence record matches the format perfectly.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** a Rust crate reading the frozen state, with round-trip tests proving it reads what Python
+wrote, then behaviour ported against the Python suite as the conformance oracle, then a cutover once
+the Rust binary matches on the rules the labs depend on. The grandfather keeps Python working until
+then, so nothing freezes in the meantime.
+
 ## 2026-10-12 — The harness becomes multi-lab: committed presence and claims, sharded ledger, and a CI reconciliation gate (lead, tooling)
 
 The [record](../labs/multilab-harness-2026-10-12/README.md) fixes the three things that break when four labs
