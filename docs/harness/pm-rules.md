@@ -154,3 +154,75 @@ come from the owner through the PM.
 - **Why.** 13 October: rule text and harness behavior were drifting in from two directions at once,
   and labs were polling GitHub ad hoc until the API rate limit tripped mid-scan. One rule-writer and
   one standard client keep the plane legible.
+
+## R12 — No test bar rules out a mechanism; instrument first, solvability before authority
+
+- **Rule.** No numeric check, tolerance or acceptance bar may rule out, close or redirect a
+  mechanism or a work line — ever. A failed check suspends that run's claims only; what the failure
+  *means* is decided by analysis with full project context, never by the bar itself. Stopping a
+  mechanism remains the owner's decision alone (D22), and a tooling, instrument or numerical failure
+  is a blocker to repair, not evidence about the mechanism.
+
+- **Before a check is given authority**, the pre-registration author and the TEST FITNESS reviewer
+  must each answer four questions, on the sheet:
+  1. What quantity does this test actually measure?
+  2. Is that quantity computable at all at the current mechanism stage?
+  3. Can the instrument beat the bar in principle? A bar the instrument cannot reach (precision,
+     resolution, sample size, dtype noise floor) makes the test invalid, not the mechanism failed.
+  4. Should this test run at this stage at all?
+  A FIT verdict without these four answers is incomplete; labs may ask them of any sheet at review.
+
+- **Failure attribution order.** Instrument, then fixture, then bar, then mechanism — examined in
+  that order, each with evidence. A precision failure is repaired as instrumentation (for example an
+  F64 oracle grading an F32 secant check, production path untouched); it never licenses editing the
+  mechanism to please the test.
+
+- **Build-first.** While a mechanism is under construction, its checks verify construction
+  correctness — exact laws, causality, refusal behavior, interface integrity. Optimization and
+  performance bars apply only after the mechanism exists and is wired. Do not let a tuning gate
+  block a construction gate.
+
+- **Why.** Owner direction, 13 October 2026: the project has repeatedly been derailed by arbitrary
+  test values acquiring veto power — including waking to find entire work lines reverted over bars
+  nobody had questioned. The same day, control 11 (`murm_backward_secants`) stopped a 33-control
+  qualification line on a 0.002 relative-error bar that an F32 finite-difference secant at h=1e-3
+  may be unable to beat in principle. A test whose meaning, solvability and stage-appropriateness
+  have not been established has no authority. Every failure gets an external full-context review
+  before it counts — and the first question that review answers is whether the test should have been
+  run at all.
+
+## R12 — No test bar rules out a mechanism; instrument first, solvability before authority
+
+- **Rule.** No numeric check, tolerance or acceptance bar may rule out, close or redirect a
+  mechanism or a work line — ever. A failed check suspends that run's claims only; what the failure
+  *means* is decided by analysis with full project context, never by the bar itself. Stopping a
+  mechanism remains the owner's decision alone (D22), and a tooling, instrument or numerical failure
+  is a blocker to repair, not evidence about the mechanism.
+
+- **Before a check is given authority**, the pre-registration author and the TEST FITNESS reviewer
+  must each answer four questions, on the sheet:
+  1. What quantity does this test actually measure?
+  2. Is that quantity computable at all at the current mechanism stage?
+  3. Can the instrument beat the bar in principle? A bar the instrument cannot reach (precision,
+     resolution, sample size, dtype noise floor) makes the test invalid, not the mechanism failed.
+  4. Should this test run at this stage at all?
+  A FIT verdict without these four answers is incomplete; labs may ask them of any sheet at review.
+
+- **Failure attribution order.** Instrument, then fixture, then bar, then mechanism — examined in
+  that order, each with evidence. A precision failure is repaired as instrumentation (for example an
+  F64 oracle grading an F32 secant check, production path untouched); it never licenses editing the
+  mechanism to please the test.
+
+- **Build-first.** While a mechanism is under construction, its checks verify construction
+  correctness — exact laws, causality, refusal behavior, interface integrity. Optimization and
+  performance bars apply only after the mechanism exists and is wired. Do not let a tuning gate
+  block a construction gate.
+
+- **Why.** Owner direction, 13 October 2026: the project has repeatedly been derailed by arbitrary
+  test values acquiring veto power — including waking to find entire work lines reverted over bars
+  nobody had questioned. The same day, control 11 (`murm_backward_secants`) stopped a 33-control
+  qualification line on a 0.002 relative-error bar that an F32 finite-difference secant at h=1e-3
+  may be unable to beat in principle. A test whose meaning, solvability and stage-appropriateness
+  have not been established has no authority. Every failure gets an external full-context review
+  before it counts — and the first question that review answers is whether the test should have been
+  run at all.
