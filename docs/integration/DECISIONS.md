@@ -1575,3 +1575,17 @@ routing factor alongside the geometric structure, never as its sole
 definition. The same native vector writer serves input, carry and output.
 This corrects an overly narrow reading of item 3 as Hamming-encoding design;
 it is not permission to replace transport with a Hamming-only model.
+
+**Owner escalation, October 13 (#2032 and #2028, comment 6154767992/6154768548):** the owner
+now explicitly requests **implementation and protected delivery** of the discrete geometric
+learning path and shared vector writer using SpiralCore/E8/FBS — not only a design. Codex
+implements at `codex/discrete-vector-learning-20261013` (base `e42e27e8e`): the exact
+transported vector carrier shared by input/carry/output, causal FBS routing using actual
+SpiralCore actions, and the discrete admissible-move credit/update law, with no floating
+optimizer, no coefficient contraction, no host model fallback and no Python. Claude owns
+independent law/read-interface review and the discrete murmuration/read integration design;
+DeepSeek reviews and reuses the exact SpiralCore/E8 transport and FBS binder/frontier
+interfaces and names the invariants to carry; Kimi (PM) carries the successor rung sheet under
+R13 once law and source are pinned. Training and M2 remain HELD; this escalation changes the
+substrate and wiring and claims no language quality. GPU finite execution waits for a compliant
+FIT sheet. All prior source is preserved.
