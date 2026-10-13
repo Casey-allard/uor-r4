@@ -276,7 +276,7 @@
     },
     {
       "id": "D23",
-      "rule": "No softmax anywhere in the active project: training, serving, sampling, objectives, auxiliary losses, teachers, comparators. No table/renamed equivalent. Interlock scripts/check_no_softmax.py.",
+      "rule": "No softmax anywhere in the active project: training, serving, sampling, objectives, auxiliary losses, teachers, comparators. No table/renamed equivalent. Interlock: `uor-harness ratchet d23|d25` (Rust, #2346) - `scripts/check_no_softmax.py` is retired and kept only as dated evidence; a pre-registration sheet that names the Python script sends a lab to a file that no longer enforces anything.",
       "scope": "all",
       "source": "docs/integration/DECISIONS.md"
     },
@@ -327,6 +327,18 @@
       "rule": "Ternary/XOR is an owner-suggested candidate replacement arithmetic, not an adopted mechanism and not yet shown to be geometric. It enters as a proposal under the D25 rule freeze; it is unimplemented, unmeasured and must pass a prospective TEST FITNESS review before any compute. See docs/mechanisms/ternary-xor-arithmetic.md.",
       "scope": "all",
       "source": "Owner ruling, 12 October 2026 (harness session); DECISIONS.md D25"
+    },
+    {
+      "id": "D28",
+      "rule": "No transformer or neural-network comparisons of ANY kind - comparators, controls, baselines, teachers, neural graders - until the owner declares the native model works end to end; that declaration is the owner's, not a lab's. Panels are scored with DETERMINISTIC checks only (membership checks, exact-answer oracles); a bar scorable only by a neural grader is recorded BLOCKED and is NOT RUN. This includes the v5 reply panel's grade-replies qwen2.5:7b grader.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D29",
+      "rule": "No banned mechanism may exist in any compiled or loaded module - presence counts, not only execution. NVRTC (runtime compilation) is banned project-wide; all CUDA kernels compile ahead of time via nvcc into named PTX/cubin modules. Interlock: `uor-harness ratchet d25` and the d29_compiled_modules test.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
     }
   ],
   "constraint_freeze": {

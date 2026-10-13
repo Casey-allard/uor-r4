@@ -6,7 +6,7 @@
       "title": "M1 language base: the open reply panel plus the v5 multi-turn memory panel",
       "milestone": "m1",
       "frozen": true,
-      "grader": "chat-grade (graded by qwen2.5:7b, grade-replies, temperature 0, seed 1)",
+      "grader": "BLOCKED (D28) - chat-grade by qwen2.5:7b is a NEURAL grader and D28 prohibits neural graders until the owner declares the native model works end to end. D28 names this grader specifically: \"This includes the v5 reply panel's grade-replies qwen2.5:7b grader.\" The panel is scored with DETERMINISTIC checks only (membership checks, exact-answer oracles); a bar that can only be scored by a neural grader is recorded BLOCKED and is NOT RUN.",
       "source": "issue #2029 acceptance 1 and current state; docs/harness/milestones.json; docs/labs/session-goal.md DeepSeek DIRECTION",
       "noise": "unstated for the reply panel; on the 40-row memory panel +/-3 rows is the noise seen (docs/labs/handoff-deepseek-2026-10-12.md: 'Bars are never narrower than the panel's noise (+/-3 rows on the 40-row memory panel)'). A bar must not be narrower than its panel's noise.",
       "seeds": ">= 2 for a decisive run (D22 section 3)",
@@ -31,7 +31,9 @@
           "direction": "open",
           "noise": "+/-3 rows (bench noise; not a stated panel sigma)"
         }
-      ]
+      ],
+      "grader_blocked_by": "D28",
+      "grader_deterministic_alternative": "docs/integration/DECISIONS.md D28 - panels are scored with deterministic checks only"
     }
   }
 }

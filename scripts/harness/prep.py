@@ -45,8 +45,19 @@ VERDICTS = ("FIT", "NOT_FIT")
 MIN_SEEDS = 2
 MIN_ROWS = 200
 
-#: owner rules that apply to every pre-registration (docs/harness/milestones.json).
-APPLICABLE_RULES = ("D21", "D22", "D23", "D24")
+#: owner rules that apply to every pre-registration.
+#:
+#: **This list drifted and the drift was invisible.** It named D21-D24 while the owner had added D25
+#: (no softmax family, no dense matmul, GPU-only), **D28** (no neural graders - which is the rule that
+#: BLOCKS the v5 reply panel's grader) and **D29** (banned mechanisms must not exist in a compiled
+#: module). Antigravity read a sheet generated from this list and reported the panel defect; the rule
+#: that makes the panel BLOCKED was **not on the sheet at all**, so a lab following it would not have
+#: known why.
+#:
+#: A rule list maintained in code will keep drifting from the decisions file. The honest short-term
+#: fix is to include the current set and to say so on the sheet, so a reader can check DECISIONS.md
+#: rather than trusting this tuple.
+APPLICABLE_RULES = ("D21", "D22", "D23", "D24", "D25", "D28", "D29")
 
 #: the cost a run must charge, in the session-goal contract's own breakdown.
 COST_BUCKETS = ("preparation", "run", "controls", "evaluation", "retries", "storage")

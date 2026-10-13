@@ -416,7 +416,17 @@ pub const COST_BUCKETS: [&str; 6] = [
 ];
 
 /// Owner rules that apply to every pre-registration.
-pub const APPLICABLE_RULES: [&str; 4] = ["D21", "D22", "D23", "D24"];
+///
+/// **A copy of Python's `prep.APPLICABLE_RULES`, and it drifted — which `parity.py` caught the moment
+/// the Python list was corrected.** The Rust port carried `D21..D24` from before the port began while
+/// the owner had added **D28** (the rule that blocks the v5 reply panel's neural grader) and **D29**.
+/// A sheet rendered by Rust therefore **omitted the rule that explains why its own panel is
+/// blocked** — the same defect Antigravity reported, surviving in the other implementation.
+///
+/// **Two lists of one rule is the defect class this whole line keeps producing.** The durable fix is
+/// to render from the registry rather than a constant, so there is one list; until then, this one is
+/// kept equal to Python's by `parity.render_agreement`, which is why the drift was found at all.
+pub const APPLICABLE_RULES: [&str; 7] = ["D21", "D22", "D23", "D24", "D25", "D28", "D29"];
 
 /// D22 section 3: the minimum test power a decisive run must state.
 pub const MIN_SEEDS: u32 = 2;
