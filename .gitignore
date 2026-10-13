@@ -51,3 +51,11 @@ Claude outputs/
 # Python bytecode from harness runs.
 __pycache__/
 *.pyc
+
+# Large binary research material, archived to the iCloud store and MD5-verified
+# (docs/harness/research-data.json). UNTRACKED from git on 13 October 2026 so every worktree stops
+# inheriting ~1 GB it rarely reads: five checkouts carried 5,010 MB of the same duplicate against a
+# 30 GB disk floor. The bytes live in `icloud:UOR-R4/results/owner-docs/` and restore with
+# `scripts/storage/research-data restore <name> --run`. The owner checkout keeps a working copy;
+# worktrees must not carry one.
+/research/

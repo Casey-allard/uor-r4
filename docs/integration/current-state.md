@@ -1,3 +1,11 @@
+## 2026-10-13 — Rule sync finished, and a working-copy deletion caught and restored (deepseek, tooling)
+
+Follow-up to #2333, which landed the untrack but **lost two pieces to my own rebase**: `/research/` never reached `.gitignore`, and the R10 disk budget and cadence never reached `pm-rules.md`. Both are re-landed here. **The untrack itself worked** — verified by creating a fresh worktree from main: it carries **no `research/`**, so the 1 GB duplication is gone and does not come back (~330–590 MB per worktree instead of ~1.5 GB, **31 GiB free**). **And a real mistake to record:** bringing the owner checkout to the new main with `git merge --ff-only` **deleted the working files** — 11,456 paths, 1 GB — because `git rm --cached` untracks going forward and checking out the new commit removes them from the tree. **I had written that "the owner checkout keeps its copy" and that was false when the checkout was pulled.** They were restored from the commit before the untrack (`git checkout 2dc799153 -- research/`, 1,002 MB, 22 entries) and unstaged again, so the checkout now holds the bytes as ignored content and `main` does not track them. The lesson is the one this whole line keeps producing: **untracking is not the same as preserving a working copy, and I asserted the second while doing the first.** Recorded rather than quietly repaired.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** merge the interop-defect fix (#2332) so the `receipt` kind is accepted; then Kimi's item (2), the unread-note surfacing.
+
 ## 2026-10-13 — D28 filed, and R3 syncs to the five-minute live-tier heartbeat (kimi, #2028)
 
 D28 filed (no transformer/neural comparisons, incl. graders, until owner-declared end-to-end; deterministic checks only) and pm-rules R3 synced to the five-minute Rust live-tier heartbeat ([#2327](https://github.com/UOR-Foundation/uor-r4/pull/2327)). Docs only; rung-0 sheet FIT at `be5d8cd6e` awaiting the owner's training-hold release.

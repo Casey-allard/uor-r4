@@ -87,24 +87,48 @@ come from the owner through the PM.
 - **Harness surface.** The roster block in `docs/labs/README.md`, cross-checked with AGENTS.md;
   `team roster` lists the dispatchable roles (a separate axis).
 
-## R10 — Exclusive workspaces: the shared checkout is read-only
+## R10 — Exclusive workspaces, and the disk budget that pays for them
 
 - **Rule.** `/Users/casey.allard/uor-r4` (the owner checkout) stays on clean `origin/main`. No lab
-  edits, builds, commits, or runs mutating tools in it. Every lab works in its **own isolated
+  edits, builds, commits, or runs mutating tools in it. **Every lab works in its own isolated
   worktree** — one per active task, claimed under R1 (for example `.worktrees/<lab>-<task>/`).
-  Read-only inspection (`git fetch`, `git log`, `git grep`, harness reads like `multilab claims`)
-  in the shared checkout is fine. Builds use a per-worktree target dir (`CARGO_TARGET_DIR`) so
-  caches never carry another worktree's paths. Harness writes (`heartbeat`, `team claim`,
-  `prep new`) run from your own worktree so their receipts ride your delivery PR; coordination
-  state is authoritative only once merged to main. This tightens the older "a worktree is
-  optional" language: with more than one lab active, concurrent ownership is the permanent
-  condition, so the isolated worktree is required.
-- **Why.** 13 October showed the failure mode repeatedly: heartbeat/presence writes landing in
-  another session's working checkout, the claims store clobbered three times by concurrent
-  writers, and a ledger shard silently losing receipts in a merge (#2305). One checkout cannot
-  serve four labs; git already gives each lab its own worktree for free.
-- **Harness surface.** `multilab claims` and `multilab presence` show who is where. The live
-  coordination tier (`~/.local/share/uor-r4/harness`) is the sanctioned out-of-tree store;
-  DeepSeek's Rust harness port owns making it append-only (a ledger shard may never shrink —
-  flagged on #2028). Until that lands: write receipts from your own worktree, include them in
-  your delivery PR, and re-read `multilab claims` after every merge.
+  Concurrent editing is the permanent condition, so worktrees are required; this is not the
+  "a worktree is optional" language of 9 October.
+
+- **Coordination writes never need a checkout.** Since [#2326](https://github.com/UOR-Foundation/uor-r4/pull/2326)
+  and [#2327](https://github.com/UOR-Foundation/uor-r4/pull/2327), `heartbeat` publishes presence and
+  appends its receipt to the **live tier** (`~/.local/share/uor-r4/harness/`), which every lab on this
+  machine shares. `cli.py heartbeat` delegates to `uor-harness heartbeat`, the only implementation.
+  `uor-harness ledger-sync` appends your live receipts into the committed shard before you open a PR,
+  so the record still reaches review. A check-in therefore dirties nothing, which is the property R10
+  exists to protect.
+
+- **The disk budget is part of the rule, not an afterthought.** Each worktree is a full source
+  checkout. Measured 13 October: six worktrees cost **6.4 GB** against a **30 GB** floor, and the
+  largest driver was **`research/` at 1,002 MB in every checkout — 5,010 MB of the same duplicate** —
+  because it was archived to iCloud on 12 October but never untracked. It is now untracked and
+  `/research/` is ignored ([#2333](https://github.com/UOR-Foundation/uor-r4/pull/2333)), so a fresh
+  worktree carries **no `research/` at all**: ~330–590 MB each instead of ~1.5 GB. **Do not restore it
+  inside a worktree.**
+
+- **Cadence, because a rule without one is what filled the disk:**
+  - **At merge time** — verify the merge commit on fresh `origin/main`, delete the branch on both
+    sides, and **remove your own worktree immediately.** Not "when hygiene next happens".
+  - **Before removing it** — anything local-only goes to the archive first: `cloud-store put <lab>
+    <dir>` (MD5 round-trip + index), then clear the local copy. Never keep a second local copy of
+    archived material.
+  - **After each merge** — run `scripts/storage/uor-hygiene --apply` **from the owner checkout**.
+  - **`df -h /` after your next delivery**, not on a schedule. Below 30 GB is a stop condition.
+  - **Per-worktree build caches are the second sink** (~150–260 MB each): remove the cache with the
+    worktree rather than leaving either behind.
+
+- **Why.** 13 October showed the write failure repeatedly — heartbeat/presence landing in another
+  session's checkout, the claims store clobbered three times, a ledger shard losing receipts in a
+  merge (#2305) — and then the **space** failure: the fix for the first (a worktree per lab) quietly
+  multiplied a 1 GB archive nobody had finished untracking. Both are the same mistake in different
+  clothes: **a rule written without measuring what it costs.**
+
+- **Harness surface.** `multilab claims` and `multilab presence` show who is where and answer from
+  the live tier. `uor-harness shard-check` refuses a ledger shard that loses lines; `ledger-sync`
+  carries live receipts into the committed record. `scripts/storage/uor-hygiene --apply` reclaims
+  merged worktrees and idle caches.
