@@ -202,6 +202,12 @@ pub fn disk_floor(paths: &StatePaths) -> Vec<Finding> {
 pub fn all(paths: &StatePaths) -> Vec<Finding> {
     let mut out = receipts_parse(paths);
     out.extend(disk_floor(paths));
+    // **`no_new_spending_class` was written, tested and NEVER CALLED.** It is the rule that prints the
+    // owner's caps, and the dispatcher reported it as an `ok` record because nothing produced a
+    // finding - **a rule that looks like a pass because it produces no result at all**, which is the
+    // failure mode this port exists to catch. Caught by comparing the dispatcher's output against
+    // Python's, not by reading this function.
+    out.extend(no_new_spending_class());
     out
 }
 

@@ -104,7 +104,71 @@ pub fn all(paths: &StatePaths, regs: &Registries) -> Vec<Finding> {
     let mut out = milestones_present(regs);
     out.extend(skills_nonempty(paths));
     out.extend(mistakes_have_guards(paths));
+    // **`state_formats` was in the dispatch table and NOTHING EMITTED IT.** The rule existed as part
+    // of the format contract, which `check` ran separately, so **the dispatcher reported it as an `ok`
+    // record while it was never evaluated as a rule** - and a lab comparing the two implementations
+    // saw Python report drift where Rust reported a pass. **Found by diffing the two outputs.**
+    out.extend(state_formats(paths));
     out
+}
+
+/// `harness.state_formats` — the persisted state against the frozen contract.
+///
+/// **This is the rule the whole `check` command is named for**, and it was the one missing from the
+/// dispatch path.
+///
+/// **Python's own rule shells out to the Rust binary** (`stateformats.check_contract` runs
+/// `uor-harness check-formats --json`) and reads `PROBLEM` lines out of stdout. **The Rust rule calls
+/// the checker directly**, which removes the subprocess and the string parsing between them — **so
+/// the two are the same check without the round trip, and this one cannot disagree with itself.**
+///
+/// **The three outcomes are kept distinct**, which is the distinction the Python comment argues for:
+/// * the contract is clean → no finding;
+/// * the contract reports drift → `error`, naming the first three problems;
+/// * the contract cannot be read → `error`, because **a check that cannot run is not a check that
+///   passed.**
+pub fn state_formats(paths: &StatePaths) -> Vec<Finding> {
+    use crate::contract::Contract;
+    let contract = match Contract::load(&paths.repo) {
+        Ok(c) => c,
+        Err(e) => {
+            return vec![Finding {
+                rule_id: "harness.state_formats",
+                severity: "error",
+                message: format!("the frozen contract could not be read: {e}"),
+                path: "docs/harness/state-formats.json".into(),
+                fix: "restore docs/harness/state-formats.json from main".into(),
+            }]
+        }
+    };
+    let report = contract.check(&paths.repo);
+    if report.ok() {
+        return Vec::new();
+    }
+    let mut problems: Vec<String> = Vec::new();
+    for f in report.formats.iter() {
+        for v in f.violations.iter() {
+            problems.push(format!("{}: {v}", f.format));
+            if problems.len() == 3 {
+                break;
+            }
+        }
+        if problems.len() == 3 {
+            break;
+        }
+    }
+    let detail = if problems.is_empty() {
+        "state format drift".to_string()
+    } else {
+        problems.join("; ")
+    };
+    vec![Finding {
+        rule_id: "harness.state_formats",
+        severity: "error",
+        message: detail,
+        path: "docs/harness/state-formats.json".into(),
+        fix: "make the file match the contract, or re-freeze it deliberately and commit both (see docs/harness/STATE-FORMATS.md)".into(),
+    }]
 }
 
 #[cfg(test)]

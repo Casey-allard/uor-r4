@@ -201,7 +201,7 @@ pub fn run(paths: &StatePaths, regs: &Registries, only: &[String], now: i64) -> 
         ("prep", crate::preprules::all(paths, regs)),
         ("prlint", crate::prlintrules::all(paths, &[])),
         ("receipts", crate::receiptsrules::all(paths)),
-        ("status", crate::statusrules::all(paths)),
+        ("status", crate::statusrules::all(paths, regs, now)),
     ];
 
     let mut out: Vec<Finding> = Vec::new();

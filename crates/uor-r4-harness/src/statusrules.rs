@@ -29,6 +29,7 @@
 //! **orphan branch** (a merged branch that was never deleted).
 
 use crate::githelp;
+use crate::registries::Registries;
 use crate::state::StatePaths;
 use crate::team;
 
@@ -108,12 +109,126 @@ pub fn no_orphan_branches(paths: &StatePaths) -> Vec<Finding> {
 }
 
 /// Every `status` rule ported in this unit.
-pub fn all(paths: &StatePaths) -> Vec<Finding> {
+pub fn all(paths: &StatePaths, regs: &Registries, now: i64) -> Vec<Finding> {
+    // **The ledger spans two months**, because a heartbeat at 00:05 on the 1st belongs to the month
+    // that just ended as much as to the one that started - `status` reads both, and a rule that read
+    // one would report a missing heartbeat that exists in the other file. **Computed here rather than
+    // passed in**, so the aggregator's signature stays the shape the dispatcher already calls.
+    let month = crate::receipt::month_for(now);
+    let previous = crate::status::previous_month(&month);
+    let rows = crate::status::receipt_rows(paths, &month, &previous);
     let mut out = branch_claimed(paths);
     out.extend(no_orphan_branches(paths));
+    // **`heartbeat_receipts` was registered with NO IMPLEMENTATION AT ALL**, and
+    // **`registry_vs_github` was ported and never dispatched.** Both reported `ok` on every run
+    // because nothing produced a finding. **Found by diffing the dispatcher's output against
+    // Python's**, which is the only way this shape shows up: a rule that is absent and a rule that
+    // passes look identical in the output.
+    out.extend(heartbeat_receipts(regs, &rows, now));
+    out.extend(registry_vs_github(paths, regs, now, false));
     out
 }
 
+// ---------------------------------------------------------------------------------------------
+// The two status rules that were registered and NOT dispatched.
+// ---------------------------------------------------------------------------------------------
+
+/// How long an in-progress milestone may go without a heartbeat receipt.
+pub const STALE_HOURS: f64 = 24.0;
+
+/// `status._milestone_matches` — does a receipt belong to this milestone?
+///
+/// **Three spellings, because labs write all three**: the key, the id, and the issue number.
+/// **A receipt with no `milestone` matches NOTHING** — it is not a heartbeat for anything, and
+/// treating an empty field as a match would let any unattributed receipt satisfy the rule.
+fn milestone_matches(receipt: &serde_json::Value, m: &crate::registries::Milestone) -> bool {
+    let raw = receipt
+        .get("milestone")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_lowercase();
+    if raw.is_empty() {
+        return false;
+    }
+    raw == m.key.to_lowercase() || raw == m.id.to_lowercase() || raw == m.issue.to_string()
+}
+
+/// `status._rule_heartbeat_receipts` — no heartbeat in 24h for an in-progress milestone.
+///
+/// **The rule that was registered, counted in the inventory, and had no Rust implementation at all.**
+/// The dispatcher reported it as an `ok` record on every run because nothing produced a finding —
+/// **a rule that looks like a pass because it does not exist**, which is the failure this port exists
+/// to catch and the third instance of it in two units.
+///
+/// **Only `in-progress` milestones are checked.** A completed or paused milestone with no recent
+/// heartbeat is not a problem, and firing on one would train readers to ignore the rule.
+pub fn heartbeat_receipts(regs: &Registries, rows: &[serde_json::Value], now: i64) -> Vec<Finding> {
+    let mut out = Vec::new();
+    for m in regs.milestones.iter() {
+        if m.status != "in-progress" {
+            continue;
+        }
+        let last = rows
+            .iter()
+            .filter(|r| milestone_matches(r, m))
+            .filter(|r| r.get("kind").and_then(|k| k.as_str()) == Some("heartbeat"))
+            .filter_map(|r| r.get("ts").and_then(|t| t.as_str()))
+            .max()
+            .unwrap_or("");
+        let age = if last.is_empty() {
+            None
+        } else {
+            crate::status::age_hours(&serde_json::Value::String(last.to_string()), now)
+        };
+        if age.is_some_and(|a| a <= STALE_HOURS) {
+            continue;
+        }
+        let seen = match age {
+            Some(a) => format!("last heartbeat {} ago", crate::status::hours_text(Some(a))),
+            None => "no heartbeat receipt on record".to_string(),
+        };
+        out.push(Finding {
+            rule_id: "status.heartbeat_receipts",
+            severity: "warn",
+            message: format!(
+                "{} #{} is in-progress and {seen} (docs/labs/session-goal.md 5: a card every 90 minutes or 3 merged PRs)",
+                m.id, m.issue
+            ),
+            path: "docs/harness/milestones.json".into(),
+            fix: format!("uor-harness heartbeat --milestone {}", m.key),
+        });
+    }
+    out
+}
+
+/// `status.registry_vs_github` — the registry headline against the newest card on the issue.
+///
+/// **Ported earlier and never dispatched**, so Python reported drift where Rust reported a pass.
+/// The decision itself lives in `githubcards`; this is the adapter that gives it the ledger's
+/// milestone list and the current instant.
+///
+/// **`refresh=false`**, because a rule must not make a network call whose result it cannot report:
+/// the snapshot may be unavailable, and `registry_vs_github` already has a `warn` for that case which
+/// says the registry was **not** cross-checked.
+pub fn registry_vs_github(
+    paths: &StatePaths,
+    regs: &Registries,
+    now: i64,
+    refresh: bool,
+) -> Vec<Finding> {
+    crate::githubcards::registry_vs_github(paths, regs.milestones.as_slice(), refresh, now)
+        .into_iter()
+        .filter(|f| !f.ok)
+        .map(|f| Finding {
+            rule_id: "status.registry_vs_github",
+            severity: "warn",
+            message: f.message,
+            path: f.path,
+            fix: f.fix,
+        })
+        .collect()
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,7 +369,12 @@ mod tests {
     /// The real repo runs without panicking on real data.
     #[test]
     fn the_real_repo_is_processed() {
-        let _ = all(&paths_of_repo());
+        let p = paths_of_repo();
+        // **The registry is loaded the same way  loads it**, so this test exercises the real
+        // path rather than a stub. A stub here would have hidden exactly the wiring defect these
+        // three units were about.
+        let regs = Registries::load(&p).expect("registry");
+        let _ = all(&p, &regs, 1_800_000_000);
     }
 
     fn paths_of_repo() -> StatePaths {
