@@ -22,6 +22,7 @@
 //! **one flag with one meaning**, cleared in every refusing path. [`BranchState::removable`] is that
 //! flag, and every guard clears it rather than setting a separate reason.
 
+use crate::state::StatePaths;
 use std::path::Path;
 use std::process::Command;
 
@@ -406,5 +407,200 @@ mod tests {
         assert!(!s.removable);
         let (deleted, _) = apply(f.repo(), std::slice::from_ref(&s));
         assert!(deleted.is_empty(), "apply must not delete a refused branch");
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// `git switch` - and the guard that makes it safe.
+// ---------------------------------------------------------------------------------------------
+
+/// `git -C <repo> <args>`, with stdout and stderr combined, as Python's `_git_raw` returns them.
+fn git_raw(repo: &Path, args: &[&str]) -> (i32, String) {
+    match std::process::Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .output()
+    {
+        Ok(o) => {
+            let mut s = String::from_utf8_lossy(&o.stdout).to_string();
+            s.push_str(&String::from_utf8_lossy(&o.stderr));
+            (o.status.code().unwrap_or(1), s.trim().to_string())
+        }
+        Err(e) => (1, format!("{e}")),
+    }
+}
+
+/// `githelp.checkout_preserving_claims` — switch branches without losing an uncommitted claim.
+///
+/// # Why this is a command and not a `git checkout`
+///
+/// **`claims.json` is TRACKED, because a claim has to reach the other labs, and it is APPENDED to by
+/// every `team claim` and `team release`.** So the ordinary sequence — claim a branch, then check
+/// something out — fails with *"Your local changes to the following files would be overwritten by
+/// checkout: docs/harness/claims.json"*.
+///
+/// **The wrong workaround is the easy one**: `git checkout -f` or `git checkout --
+/// docs/harness/claims.json` **discards the claim — and a claim nobody has committed is still a lab
+/// saying "I am working here"**. Silently dropping it is exactly the collision this plane exists to
+/// prevent, which is why the guard is part of the command rather than advice beside it.
+///
+/// # The mechanism
+///
+/// Read the modified claims, check out, write them back — **so the claim survives on the new branch,
+/// still uncommitted, exactly as the caller left it.**
+///
+/// **A checkout that FAILS restores nothing**, because the working tree was not changed — writing the
+/// preserved text back would be harmless but reporting `claims_preserved: true` would be a lie about
+/// work the command did not do.
+pub fn checkout_preserving_claims(
+    paths: &StatePaths,
+    target: &str,
+    create: bool,
+) -> serde_json::Value {
+    let claims = paths.claims_file();
+    let mut preserved: Option<String> = None;
+    if claims.is_file() {
+        let (rc, dirty) = git_raw(
+            &paths.repo,
+            &["status", "--porcelain", "--", &claims.display().to_string()],
+        );
+        if rc == 0 && !dirty.trim().is_empty() {
+            preserved = std::fs::read_to_string(&claims).ok();
+        }
+    }
+
+    let mut args: Vec<&str> = vec!["checkout"];
+    if create {
+        args.push("-b");
+    }
+    args.push(target);
+    let (rc, out) = git_raw(&paths.repo, &args);
+    if rc != 0 {
+        return serde_json::json!({
+            "target": target,
+            "switched": false,
+            "claims_preserved": false,
+            "error": out.trim(),
+        });
+    }
+
+    let mut restored = false;
+    if let Some(text) = preserved {
+        if std::fs::write(&claims, text).is_ok() {
+            restored = true;
+        }
+    }
+    serde_json::json!({
+        "target": target,
+        "switched": true,
+        "claims_preserved": restored,
+        "note": if restored {
+            "an uncommitted claim was carried across the checkout"
+        } else {
+            "no uncommitted claim to carry"
+        },
+    })
+}
+
+#[cfg(test)]
+mod checkout_tests {
+    use super::*;
+
+    fn scratch() -> (tempfile::TempDir, StatePaths) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path().to_path_buf();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@t"],
+            vec!["config", "user.name", "t"],
+        ] {
+            let _ = std::process::Command::new("git")
+                .current_dir(&repo)
+                .args(&args)
+                .output();
+        }
+        std::fs::write(repo.join("README.md"), "x\n").expect("write");
+        std::fs::create_dir_all(repo.join("docs/harness")).expect("mkdir");
+        std::fs::write(repo.join("docs/harness/claims.json"), "{}\n").expect("write");
+        let _ = std::process::Command::new("git")
+            .current_dir(&repo)
+            .args(["add", "-A"])
+            .output();
+        let _ = std::process::Command::new("git")
+            .current_dir(&repo)
+            .args(["commit", "-qm", "init"])
+            .output();
+        let paths = StatePaths {
+            repo: repo.clone(),
+            live: dir.path().join("live"),
+        };
+        (dir, paths)
+    }
+
+    /// **An uncommitted claim SURVIVES the checkout.** This is the whole command: `git checkout -f`
+    /// would discard it, and a claim nobody has committed is still a lab saying "I am working here".
+    #[test]
+    fn an_uncommitted_claim_is_carried_across_the_checkout() {
+        let (_d, paths) = scratch();
+        let _ = std::process::Command::new("git")
+            .current_dir(&paths.repo)
+            .args(["branch", "other"])
+            .output();
+        // Make the claim dirty, exactly as `team claim` does.
+        let claim = paths.claims_file();
+        std::fs::write(&claim, "{\"lab-branch\": {\"lab\": \"probe\"}}\n").expect("write");
+
+        let out = checkout_preserving_claims(&paths, "other", false);
+        assert_eq!(out["switched"], serde_json::json!(true), "{out}");
+        assert_eq!(out["claims_preserved"], serde_json::json!(true), "{out}");
+        let text = std::fs::read_to_string(&claim).expect("read");
+        assert!(
+            text.contains("probe"),
+            "the claim survived on the new branch: {text}"
+        );
+    }
+
+    /// **A clean claim leaves nothing to carry**, and the command says so rather than claiming credit.
+    #[test]
+    fn a_clean_claim_is_reported_as_nothing_to_carry() {
+        let (_d, paths) = scratch();
+        let _ = std::process::Command::new("git")
+            .current_dir(&paths.repo)
+            .args(["branch", "other"])
+            .output();
+        let out = checkout_preserving_claims(&paths, "other", false);
+        assert_eq!(out["switched"], serde_json::json!(true), "{out}");
+        assert_eq!(out["claims_preserved"], serde_json::json!(false), "{out}");
+        assert!(out["note"]
+            .as_str()
+            .unwrap_or("")
+            .contains("no uncommitted"));
+    }
+
+    /// **A FAILED checkout does not report the claim as preserved.** The working tree was not
+    /// changed, so `claims_preserved: true` would claim work the command did not do.
+    #[test]
+    fn a_failed_checkout_does_not_claim_to_have_preserved_anything() {
+        let (_d, paths) = scratch();
+        std::fs::write(paths.claims_file(), "{\"x\": 1}\n").expect("write");
+        let out = checkout_preserving_claims(&paths, "no-such-branch-anywhere", false);
+        assert_eq!(out["switched"], serde_json::json!(false), "{out}");
+        assert_eq!(out["claims_preserved"], serde_json::json!(false), "{out}");
+        assert!(
+            !out["error"].as_str().unwrap_or("").is_empty(),
+            "the reason is reported"
+        );
+    }
+
+    /// **`create` makes a new branch**, which is the `-b` path.
+    #[test]
+    fn create_makes_the_branch() {
+        let (_d, paths) = scratch();
+        let out = checkout_preserving_claims(&paths, "brand-new", true);
+        assert_eq!(out["switched"], serde_json::json!(true), "{out}");
+        let (rc, name) = git_raw(&paths.repo, &["rev-parse", "--abbrev-ref", "HEAD"]);
+        assert_eq!(rc, 0);
+        assert_eq!(name.trim(), "brand-new");
     }
 }

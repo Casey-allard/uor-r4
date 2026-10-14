@@ -1042,9 +1042,53 @@ fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        "install-hooks" | "status" | "switch" | "delete-merged" => {
-            delegate_to_python(repo, "git", args)
+        // **`switch` is ported WITH ITS GUARD, which is the only reason it is worth having here.**
+        // `git checkout -f` would discard an uncommitted claim, and a claim nobody has committed is
+        // still a lab saying "I am working here" - so the guard is the command, not advice beside it.
+        "switch" => {
+            let target = args
+                .iter()
+                .find(|a| !a.starts_with('-') && *a != "switch")
+                .cloned()
+                .unwrap_or_default();
+            if target.is_empty() {
+                eprintln!("uor-harness git switch: which branch?");
+                return ExitCode::from(2);
+            }
+            let create = args.iter().any(|a| a == "-b" || a == "--create");
+            let paths = StatePaths::from_env(repo);
+            let result = githelp::checkout_preserving_claims(&paths, &target, create);
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&result).unwrap_or_default()
+                );
+            } else if result["switched"] == serde_json::json!(true) {
+                println!(
+                    "on {}: {}",
+                    result["target"].as_str().unwrap_or(""),
+                    result["note"].as_str().unwrap_or("")
+                );
+            } else {
+                println!(
+                    "could not switch to {}: {}",
+                    result["target"].as_str().unwrap_or(""),
+                    result["error"].as_str().unwrap_or("")
+                );
+            }
+            if result["switched"] == serde_json::json!(true) {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
         }
+        // **`delete-merged` is NOT ported yet, and its guard is why.** Deleting a branch without
+        // proving its merge removed the only remote copy of unmerged work once already; the guard
+        // chain is a live claim, then a merged PR whose merge commit is on `origin/main`, then
+        // `git cherry` to prove the branch introduces nothing upstream lacks. **A port that skipped
+        // any of those would be a weaker check wearing the command's name**, so it stays delegated
+        // until the whole chain lands.
+        "install-hooks" | "status" | "delete-merged" => delegate_to_python(repo, "git", args),
         "" => {
             eprintln!("uor-harness git: which action? install-hooks, status, clean-merged, switch, delete-merged");
             ExitCode::from(2)
