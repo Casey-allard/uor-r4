@@ -6,6 +6,13 @@
     "lab": "antigravity",
     "note": ""
   },
+  "kimi/completion-release-plan": {
+    "branch": "kimi/completion-release-plan",
+    "claimed_at": "2026-10-14T04:46:10-04:00",
+    "head": "eddc1cce1",
+    "lab": "kimi",
+    "note": ""
+  },
   "kimi/d29-nvrtc-amendment": {
     "branch": "kimi/d29-nvrtc-amendment",
     "claimed_at": "2026-10-13T11:31:25-04:00",
@@ -17,13 +24,6 @@
     "branch": "kimi/discrete-rung0-amendment1-20261014",
     "claimed_at": "2026-10-13T20:59:24-04:00",
     "head": "6ba08ab3f",
-    "lab": "kimi",
-    "note": ""
-  },
-  "kimi/rung0-completion-sheet-amend3": {
-    "branch": "kimi/rung0-completion-sheet-amend3",
-    "claimed_at": "2026-10-14T04:27:52-04:00",
-    "head": "f56db3b32",
     "lab": "kimi",
     "note": ""
   }
