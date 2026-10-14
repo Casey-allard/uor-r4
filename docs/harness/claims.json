@@ -19,19 +19,5 @@
     "head": "eddc1cce1",
     "lab": "kimi",
     "note": ""
-  },
-  "kimi/d29-nvrtc-amendment": {
-    "branch": "kimi/d29-nvrtc-amendment",
-    "claimed_at": "2026-10-13T11:31:25-04:00",
-    "head": "0497528e2",
-    "lab": "kimi",
-    "note": ""
-  },
-  "kimi/discrete-rung0-amendment1-20261014": {
-    "branch": "kimi/discrete-rung0-amendment1-20261014",
-    "claimed_at": "2026-10-13T20:59:24-04:00",
-    "head": "6ba08ab3f",
-    "lab": "kimi",
-    "note": ""
   }
 }

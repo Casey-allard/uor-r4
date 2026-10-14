@@ -1639,3 +1639,30 @@ go run something manually too").
    Future releases return to R15's owner-personal rule unless the owner delegates again
    explicitly. A delegated record created outside this scope, or by any other lab, is void;
    compute started from one is unauthorized.
+## D34 — Revised attention/memory sequence accepted: reranker-first relational read plus a separate D19 object-store crate
+
+**Authority, October 14:** owner decision delivered in Kimi's session via a persistent
+decision dialog (the record is #2028 comment 6176107062; the question text offered
+Accept / Need detail / Hold).
+
+1. **Accepted direction.** The owner accepts the revised sequence from Claude's
+   independent adversarial review (#2482, verdict REVISE, per-item): **reranker-first**
+   — a bounded exact-relation reranker as a third `ReadSpec` sharing Flock's node
+   construction, one ternary trit per (edge type, level) on the existing Gate kind,
+   relation-off ≡ Flock as the rollback identity, capability target the copy-successor
+   read (3,847/14,287 = 26.9% of pinned DEV targets, a capability Route and Flock
+   provably cannot express, `discrete.cu:56-71`, `167-189`) — **plus a separate Rust
+   object-store crate for exact compressed reads on the D19 durable-memory line**
+   (not attention; benefit is warm/edit reuse, unique content expands 2.17× in
+   records). The energy-controller class of machinery is dropped as the first
+   artifact; C6-vs-G64 stays unselected because neither is needed for the reranker
+   test; the ≤16K Flock shortlist is not the head's pool (pool = all eligible C192
+   BinderPlan nodes); the writer is untouched and admission is reported separately.
+2. **Prerequisites unchanged.** This is a direction decision only. No compute,
+   adoption or hold release follows from it: every artifact still needs its own
+   pre-registration, TEST FITNESS: FIT, and explicit owner release. A trained-in
+   comparison additionally needs a declared interleaved schedule on both arms
+   (registered learner change) and waits for seed-1's Route rows at cursor 16,404.
+3. **Companion record.** The same dialog authorized removal of the dead `target/`
+   symlink in the owner checkout (Sep-29 debris pointing at a retired archive
+   volume; no content held by the link). Removal executed 2026-10-14 ~19:05Z.
