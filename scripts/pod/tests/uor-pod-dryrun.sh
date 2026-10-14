@@ -731,7 +731,7 @@ if grep -q FAIL "$CB/BUILD.json" && grep -q "RESULT BIN=$CB.private-podx-" "$W/o
 # ---- the HF store backs the binary cache for pods without the shared volume
 # (Vast): a parity-PASS store build with matching checksums is a cache hit, any
 # other store copy is ignored, and a build made here is uploaded
-STOREBINS="geometric-stack m-world mqar-bench chat-grade dialogue-recall-corpus mix-chat-corpus"
+STOREBINS="geometric-stack chat-grade"
 mkstoretar() {  # PARITY [corrupt|subset|wrongcap|symlink] -> $W/store.tar (a build of $SHA40 for sm120)
   local d=$W/storebuild b cap=120; rm -rf "$d"; mkdir -p "$d"
   for b in $STOREBINS; do echo "binary $b" > "$d/$b"; done
@@ -741,7 +741,7 @@ mkstoretar() {  # PARITY [corrupt|subset|wrongcap|symlink] -> $W/store.tar (a bu
     corrupt) echo tampered > "$d/geometric-stack";;
     subset) (cd "$d" && sha256sum geometric-stack > SHA256SUMS);;
     wrongcap) cap=89;;
-    symlink) rm "$d/m-world"; ln -s /etc/passwd "$d/m-world";;
+    symlink) rm "$d/chat-grade"; ln -s /etc/passwd "$d/chat-grade";;
   esac
   printf '{"parity": "%s", "sha": "%s", "compute_cap": %s, "built_on_pod": "storepod"}\n' "$1" "$SHA40" "$cap" > "$d/BUILD.json"
   tar -C "$d" -cf "$W/store.tar" .

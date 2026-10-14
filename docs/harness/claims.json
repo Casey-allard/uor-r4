@@ -6,6 +6,13 @@
     "lab": "antigravity",
     "note": ""
   },
+  "claude/bootstrap-declared-bins": {
+    "branch": "claude/bootstrap-declared-bins",
+    "claimed_at": "2026-10-14T10:19:11-04:00",
+    "head": "3e2534eac",
+    "lab": "claude",
+    "note": ""
+  },
   "kimi/completion-release-plan": {
     "branch": "kimi/completion-release-plan",
     "claimed_at": "2026-10-14T04:46:10-04:00",

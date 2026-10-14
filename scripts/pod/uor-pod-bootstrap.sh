@@ -50,8 +50,8 @@ if [ "$CHECK_ARGS" = 1 ]; then echo "bootstrap arguments OK"; exit 0; fi
 
 RUST_VERSION=1.97.1
 REPO_URL=${ARG_REPO_URL:-https://github.com/UOR-Foundation/uor-r4.git}
-BINS_EXAMPLES="geometric-stack m-world mqar-bench"
-BINS_BINS="chat-grade dialogue-recall-corpus mix-chat-corpus"
+BINS_EXAMPLES="geometric-stack"
+BINS_BINS="chat-grade"
 T0=$(date +%s)
 log() { echo "[bootstrap $(date -u +%T) +$(( $(date +%s) - T0 ))s] $*"; }
 # ---- the HF store (functions; best effort). The token is the copy uor-pod writes
