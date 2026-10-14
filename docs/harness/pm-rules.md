@@ -300,3 +300,17 @@ legal under the harness; the owner is not to be asked to pick numbers off such c
   authored by the owner.
 - A release record not created by the owner personally is void; any compute started from one
   is unauthorized.
+
+**Amendment (D33, October 14):** for the pinned rung-0 A2 seed-1 diagnostic pilot only,
+the owner delegated *execution* of `owner-release` to the Claude lab, conditional on Claude's
+completed exact-head review and posted recommendation (satisfied by [#2421 comment
+6160178151](https://github.com/UOR-Foundation/uor-r4/pull/2421#issuecomment-6160178151)).
+The release *decision* remains Casey's; the delegate is named (`UOR_LAB=claude`), scoped to
+the one pinned plan, and still bound by the typed confirmation phrase and every pin. The
+record format is unchanged (`owner: Casey`, `owner-terminal:` receipt channel); the
+delegation is attested by this amendment, D33, and the GitHub receipt chain, so the pinned
+admission path and the qualified binary are untouched. The delegated run uses a tooling
+build of the discrete crate whose only delta from the pinned driver is the actor guard; it
+authors metadata only and starts no model computation. No other lab may create the record,
+and this sets no precedent: every other hold stays owner-personal unless the owner
+delegates again explicitly.

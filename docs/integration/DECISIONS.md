@@ -1612,3 +1612,30 @@ scoped exception:
 3. **Instrument status.** Any use of the exception inside a qualification or training path is
    declared on its pre-registration sheet with the exact map, its inputs/outputs and its
    integer boundary, so reviewers can verify the exception's scope was not exceeded.
+
+## D33 — Delegated D4 execution for the rung-0 A2 pilot: Claude runs owner-release after his posted review
+
+**Authority, October 14:** owner direction in Kimi's session ("can you allow me to have
+claude release it after he finished his review and recommendation? that way I dont have to
+go run something manually too").
+
+1. **Scope.** For the rung-0 A2 seed-1 diagnostic pilot only (scope
+   `m1-a2-seed1-vector0..1639-diagnostic-pilot`, plan pinned in
+   `docs/labs/rung0-pilot-release-2026-10-14/` at merge `f410a77c`), Casey delegates
+   execution of `discrete-stack owner-release` to the Claude lab, conditional on Claude's
+   completed exact-head review and posted recommendation — satisfied by #2421 comment
+   6160178151 and carried in the plan's pinned `review.json`.
+2. **R15 amended, not repealed.** No other lab may write, edit, copy or generate
+   `owner.json` or any stand-in. The delegate is named (`UOR_LAB=claude`), the release
+   remains bound to every pinned identity in the plan, and the typed confirmation phrase
+   is still required. The record format is unchanged (`owner: Casey`,
+   `owner-terminal:` receipt channel — the decision is the owner's either way); the
+   delegation is attested by this decision, the amended R15, and the GitHub receipt
+   chain. The pinned admission path (`validate_release`) and the qualified pilot binary
+   `d12877b6d8adc6a60445a014be682ab82459a781f760ac99a226b07335cbfcac` are untouched; the
+   delegated run uses a tooling build of the discrete crate whose only delta from the
+   pinned driver source is the actor guard, and it authors metadata only.
+3. **No precedent.** M2 and every other training hold remain HELD and owner-personal.
+   Future releases return to R15's owner-personal rule unless the owner delegates again
+   explicitly. A delegated record created outside this scope, or by any other lab, is void;
+   compute started from one is unauthorized.

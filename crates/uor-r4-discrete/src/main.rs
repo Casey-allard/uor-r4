@@ -142,7 +142,7 @@ fn run() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("--help") | Some("help") => {
-            println!("owner-release PILOT_PLAN.json NEW_RELEASE_DIR — CASEY ONLY, live terminal and typed confirmation; no lab may invoke this or create/copy/edit owner-release files.
+            println!("owner-release PILOT_PLAN.json NEW_RELEASE_DIR — Casey at a live terminal (UOR_LAB unset) with typed confirmation, or the D33-named delegate UOR_LAB=claude for the pinned A2 pilot only; no other lab may invoke this or create/copy/edit owner-release files.
 pilot-unlock RUN_STATE EXPECTED_LOCK_SHA256 NEW_RECEIPT_DIR — metadata-only recovery, refuses live/foreign/ambiguous holders and preserves the old lock.
 pilot|pilot-resume|eval-pilot CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only, explicit owner release required; training remains HELD by default.
 build-identity [CONFIG] — compiled/executable/config pins without a CUDA context.");

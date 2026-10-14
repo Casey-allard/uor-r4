@@ -755,6 +755,17 @@ mod tests {
         assert!(!valid_receipt_url("https://example.org/#issuecomment-1"));
     }
     #[test]
+    fn release_actor_is_owner_terminal_or_d33_delegate_only() {
+        assert!(release_actor_permitted(None, true));
+        assert!(!release_actor_permitted(None, false));
+        assert!(release_actor_permitted(Some("claude"), true));
+        assert!(release_actor_permitted(Some("claude"), false));
+        for lab in ["kimi", "codex", "deepseek", "antigravity", ""] {
+            assert!(!release_actor_permitted(Some(lab), true), "{lab}");
+            assert!(!release_actor_permitted(Some(lab), false), "{lab}");
+        }
+    }
+    #[test]
     fn pilot_configuration_rejects_unregistered_seed_dose_or_data() -> Result<()> {
         let c = config()?;
         validate_pilot_config(&c)?;
@@ -986,16 +997,36 @@ pub struct OwnerReleasePlan {
     pub claude_review: FilePin,
     pub run_state_directory: PathBuf,
 }
-/// Casey alone may invoke this from his own terminal. Labs must never invoke or automate it.
-/// The TTY/phrase is an operational safeguard, not authentication against the shared OS account.
+/// Casey alone may invoke this from his own terminal, or — for the pinned A2
+/// pilot only — the D33-named delegate `claude` executes it after Claude's
+/// posted exact-head review. Every other lab must never invoke or automate it.
+/// The TTY/phrase is an operational safeguard, not authentication against the
+/// shared OS account; the delegated path keeps the typed phrase and every pin.
+/// The record format is unchanged (`owner: Casey`, `owner-terminal:` channel —
+/// the decision is the owner's either way); the delegation itself is attested
+/// by D33, the amended R15, and the GitHub receipt chain, so the pinned pilot
+/// admission path (`validate_release`) is untouched and the qualified binary
+/// remains exactly what was reviewed. A delegated run uses a tooling build of
+/// this crate that differs from the pinned driver only in this actor guard; it
+/// authors metadata only and starts no model computation.
+fn release_actor_permitted(uor_lab: Option<&str>, interactive: bool) -> bool {
+    match uor_lab {
+        // R15: owner-personal release at a live terminal.
+        None => interactive,
+        // D33: named delegated execution of this pinned pilot plan only.
+        Some("claude") => true,
+        _ => false,
+    }
+}
 pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
     use std::io::IsTerminal;
-    if std::env::var_os("UOR_LAB").is_some()
-        || !std::io::stdin().is_terminal()
-        || !std::io::stdout().is_terminal()
-    {
-        return Err(invalid("OWNER ONLY: Casey must run owner-release personally at a terminal with UOR_LAB unset; labs must never create an owner-release record"));
+    let uor_lab = std::env::var_os("UOR_LAB");
+    let uor_lab = uor_lab.as_deref().and_then(|v| v.to_str());
+    let interactive = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
+    if !release_actor_permitted(uor_lab, interactive) {
+        return Err(invalid("OWNER RELEASE: Casey runs personally at a terminal with UOR_LAB unset, or the D33-named delegate (UOR_LAB=claude) executes this pinned pilot plan after Claude's posted review; no other lab may create an owner-release record"));
     }
+    let delegated = uor_lab == Some("claude");
     let plan: OwnerReleasePlan = read_json(plan_path)?;
     validate_pilot_config(&plan.config)?;
     for hash in [
@@ -1048,7 +1079,7 @@ pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
     if output.exists() {
         return Err(invalid("owner release output must be a fresh directory"));
     }
-    println!("Casey only: this releases D4 solely for seed 1, 1640 diagnostic VectorBlock batches. M2 and every other training hold remain HELD.\nPinned plan:\n{}",serde_json::to_string_pretty(&plan).map_err(|e|invalid(e.to_string()))?);
+    println!("{}: this releases D4 solely for seed 1, 1640 diagnostic VectorBlock batches. M2 and every other training hold remain HELD.\nPinned plan:\n{}", if delegated { "D33 delegated execution (claude); the release decision is Casey's" } else { "Casey only" },serde_json::to_string_pretty(&plan).map_err(|e|invalid(e.to_string()))?);
     println!("Type exactly: I am Casey; release D4 for the 1640-batch diagnostic pilot only");
     std::io::stdout()
         .flush()

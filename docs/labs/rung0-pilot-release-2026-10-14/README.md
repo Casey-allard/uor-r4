@@ -4,9 +4,10 @@ Date: 2026-10-14. Milestone: M1 #2029. PM: Kimi (kimi/pm1).
 
 This directory is the non-authorizing release packet for the A2 pilot. It
 contains no owner decision. Under **R15** (`docs/harness/pm-rules.md`), no lab
-writes, edits, copies or generates `owner.json` or any stand-in; Casey alone
-creates the release record, from his own terminal, when and only when he
-chooses to release the pilot.
+writes, edits, copies or generates `owner.json` or any stand-in; the release
+record is created only under R15's owner-personal path or its **D33**
+amendment (named delegate `claude`, this pinned plan only, after Claude's
+posted review).
 
 ## Contents
 
@@ -65,26 +66,38 @@ two-seed run is a separate later owner decision. Known-component cost subtotal
 (#2029 comment 6159198070). P1/P2 reports are produced (slice TRAIN-count share
 and init collision metadata).
 
-## How D4 is released (Casey only)
+## How D4 is released (D33: delegated to Claude)
 
-From his own terminal, with the owner checkout on a main that contains this
-directory (`git -C ~/uor-r4 pull --ff-only` first), and a fresh empty output
-path, e.g. `~/uor-r4-r4-release-20261014` — or any path that does not exist:
+**D33** (`docs/integration/DECISIONS.md`, amending R15 for this pilot only):
+the owner delegated execution of `owner-release` to the Claude lab, conditional
+on Claude's completed exact-head review and posted recommendation — satisfied by
+#2421 comment 6160178151, pinned in `review.json`. The release *decision*
+remains Casey's; every other hold stays owner-personal.
+
+Once Codex's `build-identity` cross-confirm of the seed-1
+`config_sha256`/`lineage_sha256` is posted on #2029, Claude executes, from a
+checkout on a main that contains this directory, with a fresh empty output path:
 
 ```sh
-cd ~/uor-r4
-env -u UOR_LAB ./<path-to>/discrete-stack owner-release \
+UOR_LAB=claude ./<path-to>/discrete-stack owner-release \
   docs/labs/rung0-pilot-release-2026-10-14/PILOT_PLAN.json \
   NEW_RELEASE_DIR
 ```
 
 (The binary path is the one Codex's pod build produced; Codex confirms the
-exact on-pod path when the pilot pod is staged. Casey runs this on his own
-machine; it starts no model computation.)
+exact on-pod path when the pilot pod is staged. This command starts no model
+computation.)
 
 The command prints the pinned plan and requires typing exactly:
 `I am Casey; release D4 for the 1640-batch diagnostic pilot only`
 
 It writes `owner.json` and the admission manifest into `NEW_RELEASE_DIR` and
-nothing else. Training and M2 remain HELD in every other respect; this releases
-D4 for the A2 pilot only.
+nothing else. The record format is unchanged (`owner: Casey`, `owner-terminal:`
+receipt channel — the decision is Casey's either way); the delegation is
+attested by D33, the amended R15, and the GitHub receipt chain. The delegated
+run uses a tooling build of the discrete crate whose only delta from the pinned
+driver is the actor guard — the pinned admission path and the qualified pilot
+binary `d12877b6…` are untouched, and no model computation is started. Training
+and M2 remain HELD in every other respect; this releases D4 for the A2 pilot
+only. The owner-personal path (`env -u UOR_LAB`, live terminal) remains
+available to Casey unchanged.
