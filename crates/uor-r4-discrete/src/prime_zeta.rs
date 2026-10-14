@@ -213,7 +213,11 @@ fn sha256_i32_slice(values: &[i32]) -> String {
     for &v in values {
         hasher.update(v.to_le_bytes());
     }
-    hasher.finalize().iter().map(|b| format!("{b:02x}")).collect()
+    hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// Deterministic xorshift64* permutation of prime atoms for the Normal Null.
@@ -221,9 +225,8 @@ fn sha256_i32_slice(values: &[i32]) -> String {
 /// bit-exact reproducible and distinct.
 fn permute_primes_for_normal_null(primes: &[u32], seed: u32) -> Vec<u32> {
     let mut out = primes.to_vec();
-    let mut state: u64 = (u64::from(seed) ^ 0x9e37_79b9_7f4a_7c15u64)
-        .wrapping_mul(0xbf58_476d_1ce4_e5b9u64)
-        | 1;
+    let mut state: u64 =
+        (u64::from(seed) ^ 0x9e37_79b9_7f4a_7c15u64).wrapping_mul(0xbf58_476d_1ce4_e5b9u64) | 1;
     let n = out.len();
     for i in (1..n).rev() {
         state ^= state >> 12;
@@ -333,18 +336,10 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
             }
 
             // Canonical realification C^4 -> R^4 x R^4 and immediate Q1.30 integer quantization:
-            let left_s3 = UnitS3Q30::from_r4([
-                complex_re[0],
-                complex_im[0],
-                complex_re[1],
-                complex_im[1],
-            ])?;
-            let right_s3 = UnitS3Q30::from_r4([
-                complex_re[2],
-                complex_im[2],
-                complex_re[3],
-                complex_im[3],
-            ])?;
+            let left_s3 =
+                UnitS3Q30::from_r4([complex_re[0], complex_im[0], complex_re[1], complex_im[1]])?;
+            let right_s3 =
+                UnitS3Q30::from_r4([complex_re[2], complex_im[2], complex_re[3], complex_im[3]])?;
             spinors_s3_q30.push(left_s3.raw());
             spinors_s3_q30.push(right_s3.raw());
 
@@ -401,8 +396,8 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
             let mut pairs = Vec::with_capacity(256);
             for &r1 in &interior_sorted[0] {
                 for &r2 in &interior_sorted[1] {
-                    let s = token_alignments[1][usize::from(r1)]
-                        + token_alignments[2][usize::from(r2)];
+                    let s =
+                        token_alignments[1][usize::from(r1)] + token_alignments[2][usize::from(r2)];
                     pairs.push((s, r1, r2));
                 }
             }
@@ -457,7 +452,9 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
         }
 
         let selected = chosen.ok_or_else(|| {
-            invalid("failed to assign non-aliasing E8 multi-block root vector within orbit capacity")
+            invalid(
+                "failed to assign non-aliasing E8 multi-block root vector within orbit capacity",
+            )
         })?;
         let cell = usize::from(selected[0]) * 16 + usize::from(selected[blocks - 1]);
         cell_counts[cell] += 1;
@@ -662,7 +659,9 @@ pub fn verify_zero_float_ptx(ptx: &str) -> Result<usize> {
     }
     let expected: BTreeSet<_> = ENTRIES.iter().map(|e| (*e).to_owned()).collect();
     if entries != expected {
-        return Err(invalid("PTX entry inventory differs from expected 11 kernels"));
+        return Err(invalid(
+            "PTX entry inventory differs from expected 11 kernels",
+        ));
     }
     Ok(entries.len())
 }
