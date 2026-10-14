@@ -79,6 +79,11 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "prlint.prereg_before_compute",
             "prlint.no_cpu_model_compute",
             "prlint.current_state_entry",
+            // The last two reachable gates. `prlint.parse` is deliberately NOT here - see the
+            // module docstring in `prgates.rs`: it fires only when the parser RAISES, and the Rust
+            // parser returns no Result, so the state is unrepresentable rather than unimplemented.
+            "prlint.checks_at_head",
+            "prlint.org_rules",
         ],
     ),
     (

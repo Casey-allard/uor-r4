@@ -11,6 +11,31 @@
 //! against Python's own output for the same bodies.** Three to begin with; the rest follow the same
 //! shape once they are read rather than assumed.
 //!
+//! # `prlint.parse` is deliberately NOT here, and it is not an omission
+//!
+//! Thirteen of the fourteen gates are ported. The fourteenth, **`prlint.parse`**, fires only when
+//! `parse_pr_body` **raises**:
+//!
+//! ```python
+//! try:
+//!     fields = parse_pr_body(body)
+//! except Exception as exc:
+//!     return {"ok": False, "problems": [Problem("prlint.parse", "error", ...)]}
+//! ```
+//!
+//! **The Rust parser returns no `Result`** - it is total, and a malformed body yields empty fields
+//! rather than an error. So **there is no state in which this gate could fire**, and writing it would
+//! mean either a function nothing can reach or a `Result` added to the parser for the sole purpose
+//! of having somewhere to put the error.
+//!
+//! **That is a deliberate divergence, and it is the safe direction**: Python reports *"body could not
+//! be parsed"* and skips every gate; Rust parses what it can and **runs every gate on the result.**
+//! A body Python would refuse outright is one Rust checks normally.
+//!
+//! **Recorded rather than left as a silent gap**, because a gate that is missing and a gate that
+//! cannot exist look identical from the coverage report - and `parity` reports `prlint.parse` as
+//! still in Python, which is true and is not a port that was forgotten.
+//!
 //! # What is deliberately NOT here
 //!
 //! * `record_path` **also stats the filesystem** for the named path, so it is not field-only.
@@ -1104,5 +1129,159 @@ mod body_gate_tests {
         assert!(body_gates(&fields(body))
             .iter()
             .all(|p| p.rule != "prlint.current_state_entry"));
+    }
+}
+
+/// `prlint.checks_at_head` — the exact-head-checks box is ticked **or** the body lists commands.
+///
+/// **This is the gate that guards the verification claim itself**, which makes it the one worth
+/// getting exactly right: a lab that neither ticks the box nor pastes a command has offered no
+/// evidence that anything ran at the head it is merging.
+///
+/// **Either satisfies it**, and accepting the weaker is deliberate rather than an oversight: a
+/// pasted command is evidence unticked, a ticked box is a claim, and **the gate asks whether a
+/// reader can see *something* — both answers are visible.**
+pub fn checks_at_head(f: &crate::prbody::Fields) -> Vec<Problem> {
+    // `(?i)exact head|checks? run` — "exact head", "check run" or "checks run".
+    let ticked = f.checklist.iter().any(|c| {
+        if !c.checked {
+            return false;
+        }
+        let l = c.label.to_lowercase();
+        l.contains("exact head") || l.contains("check run") || l.contains("checks run")
+    });
+    if ticked || f.command_hits > 0 {
+        return Vec::new();
+    }
+    vec![Problem::new(
+        "prlint.checks_at_head",
+        "warn",
+        "the exact-head-checks box is not ticked and the body lists no commands",
+        "tick `Checks run at this exact head` and paste the commands with their outcomes",
+    )]
+}
+
+/// `prlint.org_rules` — the PR is linked to its issue by `References #N` or `Closes #N`.
+///
+/// **`info`, not `warn`, and that is the only gate here at that severity.** An unlinked PR is a
+/// housekeeping gap rather than a claim problem, **and the severity is part of the ported behaviour
+/// rather than a judgement this file makes.**
+pub fn org_rules(f: &crate::prbody::Fields) -> Vec<Problem> {
+    if !f.references.is_empty() || !f.closes.is_empty() {
+        return Vec::new();
+    }
+    vec![Problem::new(
+        "prlint.org_rules",
+        "info",
+        "no `References #N` or `Closes #N` line, so the PR is not linked to its issue",
+        "end the body with `References #<issue>` (or `Closes #<issue>` only when the acceptance is complete)",
+    )]
+}
+
+/// The two gates that read only parsed fields and the checklist.
+pub fn linking_gates(f: &crate::prbody::Fields) -> Vec<Problem> {
+    let mut out = Vec::new();
+    out.extend(checks_at_head(f));
+    out.extend(org_rules(f));
+    out
+}
+
+#[cfg(test)]
+mod linking_gate_tests {
+    use super::*;
+
+    fn fields(body: &str) -> crate::prbody::Fields {
+        crate::prbody::parse_pr_body(body)
+    }
+
+    const HEAD: &str =
+        "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\n";
+
+    /// **Neither evidence nor a link**: both gates fire, at Python's severities - and the severity
+    /// difference is part of the ported behaviour, not a judgement this file makes. A missing link is
+    /// `info`; a missing verification claim is `warn`.
+    #[test]
+    fn an_empty_of_evidence_body_raises_both_with_pythons_text() {
+        let p = linking_gates(&fields(HEAD));
+        assert_eq!(p.len(), 2, "{p:?}");
+        assert_eq!(p[0].rule, "prlint.checks_at_head");
+        assert_eq!(p[0].severity, "warn");
+        assert_eq!(
+            p[0].message,
+            "the exact-head-checks box is not ticked and the body lists no commands"
+        );
+        assert_eq!(p[1].rule, "prlint.org_rules");
+        assert_eq!(
+            p[1].severity, "info",
+            "a missing link is info, not a warning"
+        );
+        assert_eq!(
+            p[1].message,
+            "no `References #N` or `Closes #N` line, so the PR is not linked to its issue"
+        );
+    }
+
+    /// **Either evidence satisfies the check** — this is the property worth pinning, because the
+    /// gate accepting the weaker of the two is deliberate. Pasted commands, and a ticked box, both
+    /// silence it.
+    #[test]
+    fn commands_or_a_ticked_box_each_satisfy_the_check_gate() {
+        let commands = format!(
+            "{HEAD}```\ncargo test -p uor-r4-harness   -> 351 passed\n```\nReferences #2029\n"
+        );
+        assert!(
+            checks_at_head(&fields(&commands)).is_empty(),
+            "pasted commands are evidence"
+        );
+        assert!(
+            org_rules(&fields(&commands)).is_empty(),
+            "and References links the PR"
+        );
+
+        let boxed = format!("{HEAD}- [x] Checks run at this exact head\nReferences #2029\n");
+        assert!(
+            checks_at_head(&fields(&boxed)).is_empty(),
+            "a ticked box is a claim"
+        );
+    }
+
+    /// **An UNTICKED box is not evidence**, and neither is a box about something else: the gate
+    /// matches `exact head` or `check(s) run`, so a ticked unrelated item does not satisfy it.
+    #[test]
+    fn an_unticked_or_unrelated_box_does_not_satisfy_it() {
+        let unticked = format!("{HEAD}- [ ] Checks run at this exact head\nReferences #2029\n");
+        assert_eq!(
+            checks_at_head(&fields(&unticked)).len(),
+            1,
+            "unticked is not evidence"
+        );
+
+        let unrelated = format!("{HEAD}- [x] Record carried\nReferences #2029\n");
+        assert_eq!(
+            checks_at_head(&fields(&unrelated)).len(),
+            1,
+            "an unrelated tick is not the box"
+        );
+    }
+
+    /// `Closes` links the PR just as `References` does.
+    #[test]
+    fn closes_also_links_the_pr() {
+        let body = format!("{HEAD}- [x] Checks run at this exact head\nCloses #2029\n");
+        assert!(org_rules(&fields(&body)).is_empty());
+    }
+
+    /// **A body that satisfies everything raises nothing.** The property that matters most: these
+    /// gates must not nag a well-formed PR.
+    #[test]
+    fn a_complete_body_raises_neither() {
+        let body = format!(
+            "{HEAD}- [x] Checks run at this exact head\n```\ncargo test\n```\nReferences #2029\n"
+        );
+        assert!(
+            linking_gates(&fields(&body)).is_empty(),
+            "{:?}",
+            linking_gates(&fields(&body))
+        );
     }
 }
