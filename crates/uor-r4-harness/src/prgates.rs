@@ -50,6 +50,15 @@ use regex::Regex;
 use serde_json::{json, Value};
 use std::sync::OnceLock;
 
+/// , exposed for the cache write path.
+///
+/// **Redaction has to happen where a value is PERSISTED, not only where it is displayed.** GitHub
+/// comments are written into the live-tier cache by a read, so a token pasted into an issue would be
+/// stored by anyone who ran `status` — and `redact` already exists for exactly this.
+pub fn redact_public(text: &str) -> String {
+    redact(text)
+}
+
 /// One raised problem, in the shape `check_pr` returns.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Problem {
