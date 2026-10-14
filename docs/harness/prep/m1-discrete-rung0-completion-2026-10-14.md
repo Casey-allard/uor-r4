@@ -26,6 +26,13 @@
   not the rarest), registers the schedule-first attribution step and its named Iterate
   change (B2), and fixes the batch-range off-by-one. No bar, guard, law, data, evaluator or
   dose change.
+- amendment 2 (2026-10-14): registers the admission ceiling on the rank bars per Claude's
+  conditional FIT
+  [#2029 6163704400](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6163704400)
+  (item B3) — top-1/top-8 hits bounded by target-cell admitted rows, per-checkpoint reporting
+  of the measure with checkpoint-0 baselines, and writer-admission-first attribution on an
+  admission-limited bar miss. Sheet text only; no bar, guard, law, data, evaluator or dose
+  change.
 
 Training remains HELD by the owner; a FIT verdict on this sheet lifts no hold. The M1
 reply-quality headline remains SUSPENDED under R14. D32 governs: no floating point anywhere
@@ -115,6 +122,15 @@ with the receipt audit PASS. Its readings bound what the completion must and mus
 - **Guard (Amendment 2 form):** strict distance-win rate >= max(1%, min(5u, u+5pp)) on both
   seeds, u per seed at checkpoint 0 (seed 1: measured, 105/14,287 ≈ 0.735% → threshold
   ≈ 3.67%). u > 95% → INSTRUMENT-INVALID and bars decide alone; never a negative.
+- **Admission ceiling on the rank bars (B3, registered):** `discrete_evaluate` ranks top-1/top-8
+  only over identities in admitted cells, so top-1 and top-8 hits ≤ target-cell admitted rows,
+  where target-cell admitted rows = admitted_cell_count_sum − address_rival_count_sum (every
+  admitted cell except the target's counts as an address rival). Pilot receipts: baseline
+  114,296 − 108,616 = 5,680; pilot end 114,296 − 112,116 = 2,180 — below bar (ii)'s 4,775 and
+  only just above bar (i)'s 1,941. The bars remain attainable in principle because admission
+  changes as the codebook moves. Target-cell admitted rows are reported at every checkpoint
+  alongside top-1/top-8, with each seed's checkpoint-0 value as its baseline; the receipts
+  already emit both sums, so this needs no code change.
 - **Noise:** Wilson 95% half-width < 0.83 points at n = 14,287; bars wider than noise.
 - **Fresh transfer: UNAVAILABLE / NOT_RUN** (parent Amendment 2 item 2). A KEEP-with-transfer
   claim needs a prospective amendment binding source, sha256, token count and scored count
@@ -152,7 +168,9 @@ as listed in the parent (D21/D22/D23/D24/D26/D28/D29/D31/D32, R12/R13/R14).
    scored decisively.
 7. P1/P2-style reports at every checkpoint: per-kind sensitivity (attempted / any-candidate /
    accepted), distinct full-vector patterns and occupied writer cells, token/address hinge
-   sums and the aggregate numerator, count-reference recomputation check.
+   sums and the aggregate numerator, count-reference recomputation check, and target-cell
+   admitted rows (admitted_cell_count_sum − address_rival_count_sum) with each seed's
+   checkpoint-0 value as its baseline.
 
 ## Minimum test power (D22 §3)
 
@@ -212,7 +230,13 @@ owner decides whether seed 2 proceeds on the seed-1 record.
   The matching Iterate change is named now: a **second coordinate pass** or a
   **frequency-ordered revisit of the top-mass tokens**, as a same-configuration
   dose/schedule change — so a below-bar result is not read as a configuration verdict when
-  the schedule left 59.4% of the target mass on a single early move.
+  the schedule left 59.4% of the target mass on a single early move. **Registered attribution
+  order on an admission-limited bar miss (B3):** if bar (i) or (ii) is missed while target-cell
+  admitted rows at 100% are below that bar's count, the FIRST attribution — alongside B2's
+  schedule step — is writer admission — the address-objective trade-off — an
+  instrument/configuration step before any mechanism language. The matching named successor is
+  an admission/address-objective configuration for Codex's analysis to specify, NOT adopted
+  here.
 - **Blocker:** instrument or arithmetic fault → repair and re-run (D31); never a negative.
 - **No automatic closure:** R12 attribution order governs; a below-bar result closes this
   configuration only after the attribution chain, and stopping the mechanism needs the owner
@@ -244,8 +268,7 @@ owner decides whether seed 2 proceeds on the seed-1 record.
 
 ## Verdict
 
-TEST FITNESS: PENDING — Amendment 1 (2026-10-14) answers Claude's NOT_FIT
-([#2029 6163425765](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6163425765)):
-B1 pilot-slice reading corrected, B2 schedule-first attribution registered, batch-range
-off-by-one fixed. Re-confirmation requested from Claude lab, with Codex source check on D5
-when posted.
+TEST FITNESS: FIT (design) — conditional FIT from Claude (#2029 comment 6163704400) with its
+B3 condition registered here as Amendment 2; Claude's one-line confirmation requested. Codex
+source check on D5 when posted. A FIT releases nothing: training remains HELD until D5,
+Claude's exact-source review of it, Kimi's OwnerReleasePlan and the owner's release.
