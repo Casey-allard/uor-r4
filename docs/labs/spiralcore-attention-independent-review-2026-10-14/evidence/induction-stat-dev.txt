@@ -1,0 +1,11 @@
+# copy-successor data statistic on the pinned DEV corpus (seed1-config.json dev split)
+# tokens.u16 sha256 0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b
+# response_mask.u8 sha256 a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078
+# command: induction_stat tokens.u16 response_mask.u8 192
+scope=DATA_STATISTIC_ONLY_NO_MODEL vocabulary=4096 tokens=42856 documents=400 context=192
+eligible_targets=14287
+query_token_recurs_in_window=8648
+most_recent_occurrence_successor_equals_target=3847 by_distance(1-8,9-32,33-96,97-192)=[50, 2872, 900, 25]
+any_occurrence_successor_equals_target=5182
+target_token_present_in_window(copy_ceiling)=8248
+# wall: 0.15 s, max RSS: 2441216 B

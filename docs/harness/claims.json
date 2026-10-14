@@ -6,6 +6,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/spiralcore-attention-review-20261014": {
+    "branch": "claude/spiralcore-attention-review-20261014",
+    "claimed_at": "2026-10-14T14:08:30-04:00",
+    "head": "ae3aa4dc3",
+    "lab": "claude",
+    "note": ""
+  },
   "kimi/completion-release-plan": {
     "branch": "kimi/completion-release-plan",
     "claimed_at": "2026-10-14T04:46:10-04:00",
