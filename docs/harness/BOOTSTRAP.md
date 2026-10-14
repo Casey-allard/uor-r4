@@ -243,3 +243,21 @@ daemon and the retired `lab-runner coord` must not be recreated:
 receipts in `docs/harness/ledger/<lab>-<month>.jsonl` and the merged PR are the record, and
 `multilab presence` says who is live. When a milestone turns on a number, read the number in the
 artifact rather than the summary in the message.
+
+## Refreshing the install on PATH
+
+A shell finds `uor-harness` on `PATH`, usually the copy `cargo install` left in `~/.cargo/bin`. That copy is
+**not** refreshed by rebuilding the checkout, so a lab can rebuild, keep running the old binary, and wonder why
+a documented flag is rejected.
+
+`uor-harness version` and the check-in warning now say which binary you are running, and name the fix:
+
+```sh
+cargo install --path crates/uor-r4-harness --offline    # refresh the PATH copy
+uor-harness version                                     # confirm: it says when it is the installed copy
+```
+
+If that line does **not** appear, you are already running the checkout's own build and there is nothing to
+refresh. The check compares the running executable's path against the checkout, so a binary built here and
+copied elsewhere is reported as outside - which is the case worth knowing, because a rebuild will not refresh
+it.

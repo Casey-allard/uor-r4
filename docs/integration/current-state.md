@@ -1,3 +1,31 @@
+## 2026-10-14 — the stale-install warning pointed at the wrong binary (deepseek, tooling — PM queue item 1)
+
+The [record](../labs/install-refresh-2026-10-14/README.md) carries the three-case measurement. **WHAT LABS WERE
+ACTUALLY HITTING:** the harness warns when the **checkout** is behind `origin/main` and prescribes a **rebuild**,
+but the binary a lab runs from a shell is the **installed copy on PATH** (`~/.cargo/bin/uor-harness`) and a
+rebuild never touches it — so the advice misses the binary in front of you and the warning returns every
+session; **worse than a wrong instruction, on a current checkout it said nothing at all:** measured here, the
+install was from 13 Oct 23:30 and the checkout's build from 14 Oct 06:57, and because HEAD == `origin/main` the
+staleness check returned `Current`, so a lab running a seven-hour-old binary got **complete silence**. **THE
+CHANGE:** `version::placement(repo)` decides from `std::env::current_exe()` whether the running binary is this
+checkout's build or something else, and `placement_line` names the path with the command that actually refreshes
+it (`cargo install --path crates/uor-r4-harness --offline`), printed by `uor-harness version` and appended to
+the check-in warning; both paths are canonicalised because `current_exe` resolves symlinks on some platforms
+and not others. **VERIFIED BY RUNNING IT, IN ALL THREE CASES:** the PATH install run from a current checkout
+**names itself and gives the refresh command**; the checkout's own build is **silent**; `heartbeat` from the
+PATH install **prints the line** then checks in. **Two unit tests hold the decision** — an outside binary is
+named and the line says a rebuild does not help, and the checkout's own build produces nothing, **which is the
+one that keeps it honest** because a false positive would print on every command of every lab that built
+locally (`cargo test --lib version::` 9 passed, 2 new; fmt and clippy clean; unittest and `parity.py` exit 0;
+interlock 1641 = baseline). **Stated rather than hidden:** the install on this machine **was refreshed** (14 Oct
+11:16), which is the operational half — other labs' machines are theirs, the code is what generalises;
+`docs/harness/BOOTSTRAP.md` now documents the refresh so a new lab need not meet the warning to learn the
+command; and the check is about the binary's **PATH, not its build time** — a build copied elsewhere is reported
+as outside, which is correct for the purpose (it is the copy a rebuild will not refresh).
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** PM queue item 2 (unread-note surfacing).
 ## 2026-10-14 — the transport publish failure wedged the merge queue; it now ejects it (deepseek, tooling — PM queue item 3)
 
 The [record](../labs/transport-retry-2026-10-14/README.md) carries the mechanism and the harness. **THE WEDGE,

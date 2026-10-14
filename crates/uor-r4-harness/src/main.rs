@@ -2045,6 +2045,11 @@ fn cmd_version(repo: &Path) -> ExitCode {
         }
         uor_r4_harness::version::Staleness::Unknown { why } => println!("  cannot tell: {why}"),
     }
+    // The checkout can be current while the binary in your hand is not. Those are different problems
+    // with different fixes, so they get different lines.
+    if let Some(line) = uor_r4_harness::version::placement_line(repo) {
+        println!("  {line}");
+    }
     ExitCode::SUCCESS
 }
 
@@ -2308,6 +2313,11 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
     // A stale binary is worth one line at check-in: it is the moment a lab is already reading output,
     // and a build that predates a flag fails with "unknown option" rather than anything useful.
     if let Some(line) = uor_r4_harness::version::stale(repo).line() {
+        eprintln!("uor-harness: {line}");
+    }
+    // And the other stale case: the binary itself is not this checkout's build, so the advice above
+    // would send a lab to rebuild something they are not running.
+    if let Some(line) = uor_r4_harness::version::placement_line(repo) {
         eprintln!("uor-harness: {line}");
     }
     // Surface unread notes as part of the check-in: presence without awareness is half the plane.

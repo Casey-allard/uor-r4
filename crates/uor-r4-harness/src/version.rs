@@ -76,6 +76,53 @@ impl Staleness {
     }
 }
 
+/// Where the RUNNING binary came from. This is the fact the "rebuild" advice misses.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Placement {
+    /// Running this checkout's own build. The normal development case, and not worth a line.
+    InCheckout,
+    /// Running a binary from outside the checkout - typically the `~/.cargo/bin` install on PATH.
+    Outside { exe: std::path::PathBuf },
+    /// Cannot tell. **Not a warning**: a missing `current_exe` is not a lab's problem.
+    Unknown,
+}
+
+/// Decide, from the path of the running executable, whether it is this checkout's build.
+///
+/// **The warning every lab hits says "rebuild", but a rebuild does not touch the installed copy they
+/// are actually running.** So a lab rebuilds, keeps running `~/.cargo/bin/uor-harness`, and meets the
+/// same warning next session - with no way to tell that the advice missed the binary in front of it.
+/// This separates the two cases from the one fact that already distinguishes them.
+pub fn placement(repo: &Path) -> Placement {
+    let Ok(exe) = std::env::current_exe() else {
+        return Placement::Unknown;
+    };
+    // Both sides canonicalised: `current_exe` resolves symlinks on some platforms and not others,
+    // and the repo path may itself be reached through a symlink (`/tmp` on macOS).
+    let exe = exe.canonicalize().unwrap_or(exe);
+    let root = repo.canonicalize().unwrap_or_else(|_| repo.to_path_buf());
+    if exe.starts_with(&root) {
+        Placement::InCheckout
+    } else {
+        Placement::Outside { exe }
+    }
+}
+
+/// The refresh instruction when this binary is NOT the checkout's build, or `None` when it is.
+///
+/// Names the path it is actually running, because "some binary somewhere is stale" is not actionable
+/// and this is.
+pub fn placement_line(repo: &Path) -> Option<String> {
+    match placement(repo) {
+        Placement::Outside { exe } => Some(format!(
+            "this is {}, not this checkout's build, so rebuilding will NOT refresh it - install the \
+             current one with: cargo install --path crates/uor-r4-harness --offline",
+            exe.display()
+        )),
+        _ => None,
+    }
+}
+
 /// Compare the checkout's HEAD against `origin/main`.
 pub fn stale(repo: &Path) -> Staleness {
     let head = match git(repo, &["rev-parse", "HEAD"]) {
@@ -274,5 +321,38 @@ mod tests {
             Staleness::Unknown { why } => assert!(why.contains("origin/main"), "{why}"),
             other => panic!("expected Unknown, got {other:?}"),
         }
+    }
+
+    /// A binary outside the checkout must be reported - this is the case the old advice missed.
+    #[test]
+    fn a_binary_outside_the_checkout_is_named() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        match placement(dir.path()) {
+            Placement::Outside { exe } => assert!(exe.is_absolute(), "{exe:?}"),
+            other => panic!("a temp repo does not contain this test binary: {other:?}"),
+        }
+        let line = placement_line(dir.path()).expect("a line for an outside binary");
+        assert!(
+            line.contains("cargo install"),
+            "it must say how to fix it: {line}"
+        );
+        assert!(
+            line.contains("NOT refresh"),
+            "it must say a rebuild does not help: {line}"
+        );
+    }
+
+    /// The converse, and the one that keeps the line honest: a repo CONTAINING the running binary is
+    /// the checkout's own build and must produce nothing. A false positive here would print on every
+    /// command of every lab that built locally.
+    #[test]
+    fn the_checkouts_own_build_is_not_reported() {
+        let exe = std::env::current_exe().expect("current_exe");
+        let profile = exe.parent().expect("deps").parent().expect("profile dir");
+        assert_eq!(placement(profile), Placement::InCheckout);
+        assert!(
+            placement_line(profile).is_none(),
+            "the checkout's own build must produce no line"
+        );
     }
 }
