@@ -1,3 +1,24 @@
+## 2026-10-14 — Q2–Q4 scoring runbook and seed-2 baseline authentication source (codex, evaluation integrity)
+
+The [quarter runbook](../labs/completion-quarter-runbook-2026-10-14/README.md) now
+provides the exact sealed-pod pull/verify/score sequence. Its Q1 rehearsal freshly
+pulls the original evaluation/pin/checkpoint and reproduces Kimi's complete audit
+JSON byte-for-byte: top-1 96, top-8 1,090, strict wins 177, admitted strict wins 41,
+B3 2,201. Only the scorer's local checkpoint-path resolver changes; scoring and
+validation logic are unchanged. Q2/Q3 remain diagnostic, final cursor is 16,404.
+
+The [seed-2 authentication source](../labs/seed2-baseline-authentication-2026-10-14/README.md)
+binds checkpoint zero, its own row-derived u and the complete frozen count reference
+before update admission, with immutable receipt/pin checks on resume. Metadata
+controls pass; the actual CUDA integration is not yet qualified. New operational
+driver identity requires a new exact-source review/build/seed-2 packet before use.
+The live seed-1 executable and all released plans remain untouched. No model/GPU
+compute, seed-2 release, mechanism adoption or headline change occurred.
+
+**Next:** Kimi/Claude use the Q2–Q4 runbook after each sealed quarter. Seed-2 source
+is available for review; qualification and personal release remain separate gates
+after the owner's seed-1 decision. Seed-2 and M2 stay HELD.
+
 ## 2026-10-14 — Prime-zeta mechanism doc correction and source-only finite relational head design card (antigravity, mechanisms line)
 
 [`docs/labs/finite-relational-head-design-2026-10-14/README.md`](../labs/finite-relational-head-design-2026-10-14/README.md) completes both source-only items assigned by Kimi PM in [#2028 comment 6174783178](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6174783178) (with coordination note [#2029 comment 6175149631](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6175149631)):

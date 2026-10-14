@@ -627,10 +627,14 @@ fn main() -> Result<()> {
                 "seed1 original baseline must be exact archived report or checkpoint1640",
             )?;
         }
-        let path = doc["checkpoint"]["path"]
-            .as_str()
-            .ok_or("checkpoint path")?;
-        let (checkpoint, csha) = read(path)?;
+        let path = std::env::var("SCORING_AUDIT_CHECKPOINT_PATH").unwrap_or_else(|_| {
+            doc["checkpoint"]["path"]
+                .as_str()
+                .map(str::to_owned)
+                .unwrap_or_default()
+        });
+        require(!path.is_empty(), "checkpoint path")?;
+        let (checkpoint, csha) = read(&path)?;
         require(
             csha == sha(&doc["checkpoint"]["sha256"])?,
             "checkpoint FilePin byte SHA mismatch",

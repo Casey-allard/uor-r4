@@ -4,6 +4,9 @@
 //! is migrated, from the single archived pilot artifact, with an explicit receipt.
 use super::*;
 
+#[path = "completion_baseline.rs"]
+mod baseline_authentication;
+
 pub const COMPLETION_BATCHES: u64 = 16_404;
 pub const CHECKPOINTS: [u64; 4] = [4_101, 8_202, 12_303, 16_404];
 pub const PARENT_SHA256: &str = "46e8ed5ea0a282bcd8373922d6fa2c8e773b52efce9fe8c1ba2c4b5698ee0440";
@@ -670,6 +673,7 @@ pub fn run(config: DriverConfig, a: CompletionAdmission, out: &Path, resume: boo
                 n,
             )?;
         }
+        baseline_authentication::require_before_apply(&driver, &release, &a.plan, &p)?;
         let admission = training::issue_corpus_update_admission(&driver, &release)?;
         let mut receipts = OpenOptions::new()
             .write(true)

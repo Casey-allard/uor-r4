@@ -22,6 +22,7 @@ pub fn driver_source_sha256() -> String {
     bytes.extend_from_slice(include_bytes!("training.rs"));
     bytes.extend_from_slice(include_bytes!("controller.rs"));
     bytes.extend_from_slice(include_bytes!("completion.rs"));
+    bytes.extend_from_slice(include_bytes!("completion_baseline.rs"));
     bytes.extend_from_slice(include_bytes!("main.rs"));
     corpus::sha256(&bytes)
 }

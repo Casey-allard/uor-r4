@@ -265,3 +265,11 @@
 {"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:14:25Z"}
 {"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:21:30Z"}
 {"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:23:23Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:27:03Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-review-complete-2480", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:32:44Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "independent-spiralcore-review-handoff", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:58:07Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "independent-spiralcore-review-handoff", "milestone": "m1", "schema": 1, "ts": "2026-10-14T18:33:48Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "independent-spiralcore-review-handoff", "milestone": "m1", "schema": 1, "ts": "2026-10-14T18:36:35Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "independent-spiralcore-review-handoff", "milestone": "m1", "schema": 1, "ts": "2026-10-14T18:40:58Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "independent-spiralcore-review-handoff", "milestone": "m1", "schema": 1, "ts": "2026-10-14T18:43:42Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "independent-spiralcore-review-handoff", "milestone": "m1", "schema": 1, "ts": "2026-10-14T18:46:37Z"}

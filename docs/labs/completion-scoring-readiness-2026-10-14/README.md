@@ -1,5 +1,10 @@
 # Completion scoring readiness — 14 October 2026
 
+**Operational follow-up:** the [Q2–Q4 runbook](../completion-quarter-runbook-2026-10-14/README.md)
+now provides the exact sealed-pod pull/verify/score sequence, rehearsed on Q1.
+`SCORING_AUDIT_CHECKPOINT_PATH` may relocate a copied checkpoint; its original
+FilePin SHA remains mandatory. Scoring/validation logic is unchanged.
+
 This is a receipt-only rehearsal against the preserved A2 pilot, plus source review
 of frozen D5. No model initialization, carry, forward, evaluation, training, GPU
 context, pod, owner record or release is performed. No model source, numeric
@@ -161,7 +166,7 @@ seed's original baseline. `CANONICAL_SEED_PLAN_JSON` is the corresponding
 The scorer checks the canonical numerical plan and permits its build identity to
 be bound separately; it neither authenticates nor creates an owner release.
 Run it where the evaluation's referenced checkpoint FilePin path is available.
-Use `evaluation-4101.json`, `evaluation-8202.json`, `evaluation-12303.json`, then
+Use `evaluation-04101.json`, `evaluation-08202.json`, `evaluation-12303.json`, then
 `evaluation-16404.json`; do not substitute a prior quarter for the final result.
 
 The scorer verifies the referenced checkpoint's byte digest and metadata, model

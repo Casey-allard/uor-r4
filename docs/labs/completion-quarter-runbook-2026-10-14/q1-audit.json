@@ -1,0 +1,217 @@
+{
+  "admission_transitions": {
+    "gained": {
+      "baseline_top1_correct": 0,
+      "baseline_top8_correct": 0,
+      "final_top1_correct": 70,
+      "final_top8_correct": 858,
+      "loss_decreased_rows": 1484,
+      "loss_increased_rows": 32,
+      "loss_unchanged_rows": 36,
+      "rows": 1552,
+      "total_loss_numerator_delta": -581248,
+      "weighted_address_delta": -455680,
+      "weighted_token_delta": -125568
+    },
+    "lost": {
+      "baseline_top1_correct": 13,
+      "baseline_top8_correct": 135,
+      "final_top1_correct": 0,
+      "final_top8_correct": 0,
+      "loss_decreased_rows": 1123,
+      "loss_increased_rows": 3542,
+      "loss_unchanged_rows": 366,
+      "rows": 5031,
+      "total_loss_numerator_delta": 880160,
+      "weighted_address_delta": 730752,
+      "weighted_token_delta": 149408
+    },
+    "never": {
+      "baseline_top1_correct": 0,
+      "baseline_top8_correct": 0,
+      "final_top1_correct": 0,
+      "final_top8_correct": 0,
+      "loss_decreased_rows": 3723,
+      "loss_increased_rows": 2802,
+      "loss_unchanged_rows": 530,
+      "rows": 7055,
+      "total_loss_numerator_delta": -432576,
+      "weighted_address_delta": -297472,
+      "weighted_token_delta": -135104
+    },
+    "retained": {
+      "baseline_top1_correct": 4,
+      "baseline_top8_correct": 38,
+      "final_top1_correct": 26,
+      "final_top8_correct": 232,
+      "loss_decreased_rows": 297,
+      "loss_increased_rows": 319,
+      "loss_unchanged_rows": 33,
+      "rows": 649,
+      "total_loss_numerator_delta": -2752,
+      "weighted_address_delta": 7040,
+      "weighted_token_delta": -9792
+    }
+  },
+  "authorization": "none",
+  "authorizes_model_compute": false,
+  "completed_batches": 4101,
+  "inputs": {
+    "baseline_document_sha256": "e4bcf43859fa0645db2ca0d5fe620f18620990cbb7efb4f28e6873f5a57f90c3",
+    "plan_sha256": "5dc0243caf50ab33edb7c02c075eb288e570d6315e1df8a88ce3fea82167f4be",
+    "receipt_sha256": "cc1e584ea0e42ca8be0cda3374a0e35532acc3007011738488c2536b97900c36",
+    "referenced_checkpoint_sha256": "a5a22dce8a174bbfe368cd8d166170a6c34bf59137b1418943a9d0422cae4cdd"
+  },
+  "limitations": [
+    "row pairing uses pinned fixed DEV ordinal; row receipts lack explicit target IDs",
+    "batch epoch and binding are not serialized; only overall epoch and completion cursor checked",
+    "completion checkpoint FilePin bytes and metadata are checked; typed inner DriverCheckpoint hash and typed evaluation snapshot hash remain production-validator scope",
+    "owner-release files are not read or authenticated; this is not release admission",
+    "seed2 baseline is checked against the completion checkpoint and fixed panel; independent original checkpoint-zero FilePin authentication remains production-validator scope",
+    "reference tables are checked as stored metadata; no CPU predictor or model forward is run",
+    "two-seed verdict and fresh transfer are not inferred from a single receipt"
+  ],
+  "lineage": {
+    "baseline": "6db5ecf5d6e1b334b6f788a28b741b7ff2e012e7bf451e5f89ed29f89ef82a12",
+    "canonical_plan_execution": {
+      "base_source": "e7d926fbe38537f4faa90b817705c61a780778d6",
+      "config_sha256": "6252b613c6bf84efeb0dbdcfde69877eb75da1ec6d868eaac3461d93d75a3d04",
+      "driver_source_sha256": "cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4",
+      "executable_sha256": "d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b",
+      "lineage_sha256": "94330d90f764c9245a7e9f4acabdd580c19d4e518a8a339a0bf772c0899da402",
+      "reviewed_source_commit": "33564b75e02e945ec5d5c94740c5741362289236",
+      "sheet_sha256": "4c317f1eb344d60de520d9f82786af99b2353ca14a08c690fa568e6c59d6f8a3",
+      "source_sha256": "e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a"
+    },
+    "current": "94330d90f764c9245a7e9f4acabdd580c19d4e518a8a339a0bf772c0899da402",
+    "driver_migration": true
+  },
+  "metrics": {
+    "baseline": {
+      "admitted_strict_wins": 0,
+      "omitted_strict_wins": 105,
+      "strict_wins": 105,
+      "target_admitted_rows": 5680,
+      "top1_correct": 17,
+      "top8_correct": 173
+    },
+    "current": {
+      "admitted_strict_wins": 41,
+      "omitted_strict_wins": 136,
+      "strict_wins": 177,
+      "target_admitted_rows": 2201,
+      "top1_correct": 96,
+      "top8_correct": 1090
+    }
+  },
+  "observation": "INTERMEDIATE_CHECKPOINT_DIAGNOSTIC",
+  "overall": {
+    "baseline_top1_correct": 17,
+    "baseline_top8_correct": 173,
+    "final_top1_correct": 96,
+    "final_top8_correct": 1090,
+    "loss_decreased_rows": 6627,
+    "loss_increased_rows": 6695,
+    "loss_unchanged_rows": 965,
+    "rows": 14287,
+    "total_loss_numerator_delta": -136416,
+    "weighted_address_delta": -15360,
+    "weighted_token_delta": -121056
+  },
+  "registered_comparisons": {
+    "guard": {
+      "baseline_strict_wins": 105,
+      "current_strict_wins": 177,
+      "definition": "token_rivals>0 && token_hinge<32; admission not required",
+      "instrument_invalid": false,
+      "meets_threshold": false,
+      "minimum_integer_count": 525
+    },
+    "interpretation": "per-seed receipt comparisons only; no two-seed verdict or transfer claim",
+    "rank_bar_comparisons": {
+      "top1": false,
+      "top8": false
+    },
+    "rank_bar_minimum_counts": {
+      "top1": 1941,
+      "top8": 4775
+    }
+  },
+  "schema": "uor-r4.completion-scoring-audit/1",
+  "scope": "stored CUDA receipts only; no model computation or authorization",
+  "seed": 1,
+  "sensitivity": {
+    "route": {
+      "accepted_updates": 0,
+      "any_candidate_cost_differs_from_identity": 0,
+      "attempted": 0
+    },
+    "vector_block": {
+      "accepted_updates": 315,
+      "any_candidate_cost_differs_from_identity": 2332,
+      "attempted": 4101
+    }
+  },
+  "snapshot_metadata": {
+    "distinct_full_vector_patterns": 206,
+    "occupied_writer_cells": 150,
+    "source": "exact stored full vectors and endpoint block pairs; host metadata only",
+    "vocabulary": 4096
+  },
+  "top8_transitions": {
+    "gained": {
+      "baseline_top1_correct": 0,
+      "baseline_top8_correct": 0,
+      "final_top1_correct": 90,
+      "final_top8_correct": 1065,
+      "loss_decreased_rows": 916,
+      "loss_increased_rows": 129,
+      "loss_unchanged_rows": 20,
+      "rows": 1065,
+      "total_loss_numerator_delta": -346752,
+      "weighted_address_delta": -260864,
+      "weighted_token_delta": -85888
+    },
+    "lost": {
+      "baseline_top1_correct": 15,
+      "baseline_top8_correct": 148,
+      "final_top1_correct": 0,
+      "final_top8_correct": 0,
+      "loss_decreased_rows": 4,
+      "loss_increased_rows": 143,
+      "loss_unchanged_rows": 1,
+      "rows": 148,
+      "total_loss_numerator_delta": 62304,
+      "weighted_address_delta": 47488,
+      "weighted_token_delta": 14816
+    },
+    "never": {
+      "baseline_top1_correct": 0,
+      "baseline_top8_correct": 0,
+      "final_top1_correct": 0,
+      "final_top8_correct": 0,
+      "loss_decreased_rows": 5705,
+      "loss_increased_rows": 6401,
+      "loss_unchanged_rows": 943,
+      "rows": 13049,
+      "total_loss_numerator_delta": 143264,
+      "weighted_address_delta": 194304,
+      "weighted_token_delta": -51040
+    },
+    "retained": {
+      "baseline_top1_correct": 2,
+      "baseline_top8_correct": 25,
+      "final_top1_correct": 6,
+      "final_top8_correct": 25,
+      "loss_decreased_rows": 2,
+      "loss_increased_rows": 22,
+      "loss_unchanged_rows": 1,
+      "rows": 25,
+      "total_loss_numerator_delta": 4768,
+      "weighted_address_delta": 3712,
+      "weighted_token_delta": 1056
+    }
+  }
+}

@@ -1,0 +1,130 @@
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-completion-scoring-seed2-20261014/crates/uor-r4-discrete)
+warning: field `max_batches` is never read
+   --> crates/uor-r4-discrete/src/controller.rs:128:5
+    |
+125 | pub struct ValidatedRelease {
+    |            ---------------- field in this struct
+...
+128 |     max_batches: u64,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ValidatedRelease` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `max_batches` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:134:19
+    |
+130 | impl ValidatedRelease {
+    | --------------------- method in this implementation
+...
+134 |     pub(crate) fn max_batches(&self) -> u64 {
+    |                   ^^^^^^^^^^^
+
+warning: function `validate_release` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:179:4
+    |
+179 | fn validate_release(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `validate_resume` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:308:4
+    |
+308 | fn validate_resume(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `validate_initial_baseline` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:352:4
+    |
+352 | fn validate_initial_baseline(release: &ValidatedRelease, resumed: &PilotCheckpoint) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `lock_run` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:489:4
+    |
+489 | fn lock_run(release: &ValidatedRelease, resume: bool) -> Result<RunLock> {
+    |    ^^^^^^^^
+
+warning: function `release` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:252:4
+    |
+252 | fn release(
+    |    ^^^^^^^
+
+warning: function `validate_progress` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:327:4
+    |
+327 | fn validate_progress(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `read_evaluation` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:478:4
+    |
+478 | fn read_evaluation(
+    |    ^^^^^^^^^^^^^^^
+
+warning: fields `lineage_sha256` and `max_completed_batches` are never read
+   --> crates/uor-r4-discrete/src/training.rs:614:5
+    |
+613 | pub struct CorpusUpdateAdmission {
+    |            --------------------- fields in this struct
+614 |     lineage_sha256: String,
+    |     ^^^^^^^^^^^^^^
+615 |     max_completed_batches: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `issue_corpus_update_admission` is never used
+   --> crates/uor-r4-discrete/src/training.rs:690:15
+    |
+690 | pub(crate) fn issue_corpus_update_admission(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib test) generated 11 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.86s
+     Running unittests src/lib.rs (local/seed2-auth-target/debug/deps/uor_r4_discrete-f4ffbd163da53c8b)
+
+running 5 tests
+test controller::completion::baseline_authentication::metadata_controls::typed_and_value_serialization_are_distinct_digest_domains ... ok
+test controller::completion::baseline_authentication::tests::authentication_publication_is_immutable_and_resume_fails_closed ... ok
+test controller::completion::baseline_authentication::metadata_controls::reference_pin_matches_authenticated_pilot_when_supplied ... ok
+test controller::completion::baseline_authentication::metadata_controls::high_u_is_authenticated_but_instrument_invalid_not_a_model_negative ... ok
+test controller::completion::baseline_authentication::metadata_controls::zero_baseline_binds_model_rows_reference_and_seed_without_execution ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 25 filtered out; finished in 9.29s
