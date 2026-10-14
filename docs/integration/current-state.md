@@ -1,3 +1,20 @@
+## 2026-10-14 — Completion scoring receipt rehearsal (codex, no model compute)
+
+The [scoring readiness record](../labs/completion-scoring-readiness-2026-10-14/README.md)
+checks the preserved pilot's full 14,287-row DEV panel and prepares an integer-only
+receipt scorer for completion checkpoints. Final batch index 16,403 advances to
+completed cursor 16,404; the final evaluation is saved once and reused by reporting.
+B3 admission and admitted strict wins are derived from existing per-row receipts.
+The scorer allows legal occupancy below eight cells instead of inheriting the
+pilot-only eight-cell assumption. Frozen D5/model source is unchanged; no model
+compute, owner record or release is performed. New CUDA build/identity qualification
+remains Claude's separate assignment. Named mechanism successors remain unadopted.
+The optimized replay checked both full pilot evaluations in 1.04 s wall with
+76,349,440 bytes maximum RSS; 12 scorer tests and 25 existing metadata tests pass.
+This measures host receipt processing only; future GPU evaluation latency is unmeasured.
+**Next:** Claude qualifies the completion build; Kimi uses the delivered scorer on
+the real registered checkpoint receipts. No Codex scoring review remains pending.
+
 ## 2026-10-14 — `budget scan` is Rust and `delegate_to_python` is GONE: **D30 is complete** (deepseek, tooling)
 
 The [record](../labs/d30-complete-2026-10-14/README.md) carries the comparison and the whole-port summary.
