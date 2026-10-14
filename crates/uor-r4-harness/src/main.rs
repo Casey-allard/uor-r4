@@ -86,7 +86,7 @@ const SUBCOMMAND_FLAGS: [&str; 33] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 35] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 38] = [
     "--kind",
     "--milestone",
     "-m",
@@ -122,6 +122,9 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 35] = [
     "--body-file",
     "--body",
     "--action",
+    "--task",
+    "--state",
+    "--scope",
 ];
 
 const USAGE: &str = "\
@@ -758,6 +761,32 @@ fn action_word_after(args: &[String], markers: &[&str]) -> String {
         return a.clone();
     }
     String::new()
+}
+
+/// Every value of a flag that takes several (`--scope a b c`), stopping at the next flag.
+///
+/// `flag_values` cannot be used for this: it pairs a flag with exactly one value, and Python's
+/// `--scope` is `nargs="*"`. The top-level parser consumes the first value and the rest arrive as
+/// bare words, so they have to be collected here rather than lost.
+fn flag_all_values(args: &[String], name: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == name {
+            let mut j = i + 1;
+            while let Some(v) = args.get(j) {
+                if v.starts_with('-') {
+                    break;
+                }
+                out.push(v.clone());
+                j += 1;
+            }
+            i = j;
+            continue;
+        }
+        i += 1;
+    }
+    out
 }
 
 /// Every value given to a repeatable flag.
@@ -1593,7 +1622,127 @@ fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 ExitCode::from(1)
             }
         },
-        "dispatch" => delegate_to_python(repo, "team", args),
+        // dispatch records a real dispatch: it resolves the role, writes ONE receipt through
+        // receipts.record and prints what landed. The write half is the point of the command, so
+        // it is why this stayed delegated until record existed.
+        "dispatch" => {
+            let roles = match uor_r4_harness::registries::load_roles(&paths) {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("uor-harness team dispatch: {e}");
+                    return ExitCode::from(1);
+                }
+            };
+            // role is positional and optional. Python prints None when it is absent, because the
+            // message renders the parsed value with !r rather than naming a missing argument.
+            let key = action_word_after(args, &["dispatch"]);
+            let role = if key.is_empty() {
+                None
+            } else {
+                uor_r4_harness::registries::find_role(&roles, &key)
+            };
+            let Some(role) = role else {
+                let shown = if key.is_empty() {
+                    "None".to_string()
+                } else {
+                    uor_r4_harness::prgates::py_repr_public(&key)
+                };
+                eprintln!("unknown role {shown}; try: uor-harness team roster");
+                return ExitCode::from(2);
+            };
+            let milestone = flag_value(args, "--milestone")
+                .or_else(|| flag_value(args, "-m"))
+                .unwrap_or_default();
+            let task = flag_value(args, "--task").unwrap_or_default();
+            let scope = flag_all_values(args, "--scope");
+            // Python's args.count or 1: a count of ZERO becomes one, because it tests truthiness.
+            let count = match flag_value(args, "--count") {
+                None => 1i64,
+                Some(v) => match v.trim().parse::<i64>() {
+                    Ok(0) => 1,
+                    Ok(n) => n,
+                    Err(_) => {
+                        eprintln!("uor-harness: argument --count: invalid int value: {v:?}");
+                        return ExitCode::from(2);
+                    }
+                },
+            };
+            let state = flag_value(args, "--state").unwrap_or_else(|| "dispatched".to_string());
+            if !["dispatched", "running", "returned", "failed"].contains(&state.as_str()) {
+                eprintln!(
+                    "uor-harness: argument --state: invalid choice: {state:?} (choose from \
+                     'dispatched', 'running', 'returned', 'failed')"
+                );
+                return ExitCode::from(2);
+            }
+            let route = role.route();
+            let fields: Vec<(&str, serde_json::Value)> = vec![
+                ("role", serde_json::Value::String(role.id.clone())),
+                ("route", serde_json::Value::String(route.clone())),
+                ("milestone", serde_json::Value::String(milestone)),
+                ("task", serde_json::Value::String(task)),
+                (
+                    "scope",
+                    serde_json::Value::Array(
+                        scope.into_iter().map(serde_json::Value::String).collect(),
+                    ),
+                ),
+                ("count", serde_json::Value::from(count)),
+                ("state", serde_json::Value::String(state)),
+            ];
+            let recorded = match uor_r4_harness::receipt::record(
+                &paths,
+                "team",
+                fields,
+                std::env::var("UOR_LAB").ok().as_deref(),
+            ) {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("uor-harness: {e}");
+                    return ExitCode::from(1);
+                }
+            };
+            if recorded.unattributed {
+                // Python warns and PRESERVES the receipt; refusing would lose the record rather than
+                // surface the gap, which is the whole point of the warning.
+                eprintln!(
+                    "uor-harness: WARNING - no lab identity, so this record is attributed to nobody and no\n\
+                     \x20            other lab can see who did it. Fix it for this session with:\n\
+                     \x20            export UOR_LAB=<kimi|claude|codex|deepseek>"
+                );
+            }
+            let ts = recorded.get_str("ts");
+            if json {
+                println!("{}", recorded.to_pretty());
+            } else {
+                println!(
+                    "dispatched {} -> {route} (count {}) at {ts}",
+                    role.id,
+                    recorded
+                        .get("count")
+                        .and_then(serde_json::Value::as_i64)
+                        .unwrap_or(count)
+                );
+                let task = recorded.get_str("task");
+                if !task.is_empty() {
+                    println!("  task: {task}");
+                }
+                if let Some(items) = recorded.get("scope").and_then(serde_json::Value::as_array) {
+                    let rendered: Vec<&str> =
+                        items.iter().filter_map(serde_json::Value::as_str).collect();
+                    if !rendered.is_empty() {
+                        println!("  write scope: {}", rendered.join(", "));
+                    }
+                }
+                // Python prints the UNSHARDED month file here: the shard a line lands in is named
+                // after the lab, while this is the path a reader opens.
+                println!(
+                    "  receipt: docs/harness/ledger/{}.jsonl",
+                    &ts[..7.min(ts.len())]
+                );
+            }
+            ExitCode::SUCCESS
+        }
         "" => {
             eprintln!("uor-harness team: which action? claim, release, claims, roster, dispatch");
             ExitCode::from(2)

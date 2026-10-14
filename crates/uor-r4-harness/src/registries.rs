@@ -994,7 +994,11 @@ pub fn roster_json(roles: &[Role]) -> String {
 /// escape and no parser is needed to find them.
 ///
 /// Astral characters become a surrogate PAIR, as Python writes them.
-fn ensure_ascii(json: &str) -> String {
+///
+/// **Shared with `receipt::Recorded::to_pretty`**, which renders `json.dumps(record, indent=2)` for
+/// `team dispatch --json`: both are Python-JSON renderers and both needed the same fix, so there is
+/// one implementation rather than two that could drift.
+pub fn ensure_ascii(json: &str) -> String {
     let mut out = String::with_capacity(json.len());
     for ch in json.chars() {
         let cp = ch as u32;

@@ -1,3 +1,45 @@
+## 2026-10-14 — `team dispatch` is Rust, and diffing the written line found the ledger was the wrong shape (deepseek, tooling)
+
+The [record](../labs/team-dispatch-port-2026-10-14/README.md) carries the comparison table and the
+behaviour copied rather than corrected. **`uor-harness team dispatch` IS RUST AND THE `team`
+DELEGATION SITE IS GONE: `delegate_to_python` SITES 5 → 4.** The command resolves the role, writes ONE
+receipt through `receipts.record` and prints what landed — **the write half is why it stayed delegated:
+`team roster` could be ported by reading, a command that WRITES the shared ledger cannot be.** So
+`receipt::record` came with it: the `event` mapping, the `_NEVER` key list, the empty-value rule,
+redaction, lab attribution, the unattributed warning, and the `unknown-<month>` shard for a record with
+no lab. **THE DEFECT THE COMPARISON FOUND: `Receipt::to_line` DOCUMENTED ITSELF AS "matching
+`json.dumps(record, ensure_ascii=False, sort_keys=True)`" AND WROTE COMPACT JSON** — `{"count":2}`
+where Python writes `{"count": 2}`. **Every reader parses, so nothing failed, and this module's own
+header says two implementations writing one file differently "would make every ledger change
+unreadable": it took the first comparison of a WRITTEN line against Python's to see it, because
+reading a line back is not comparing it.** Fixed with `py_dumps_sorted` (Python's default separators,
+sorted keys, `ensure_ascii=False` for the ledger), while `--json` keeps the OTHER Python default
+(`ensure_ascii=True`, insertion order) through `Recorded::to_pretty`, which reuses the `ensure_ascii`
+the roster unit built. **AND THE TEST THAT SHOULD HAVE CAUGHT IT COULD NOT FAIL:**
+`a_receipt_line_is_sorted_json` split the line on `","` — which the compact form happened to produce and
+which Python's separators do not — so after the fix it would have passed on an empty key list; it now
+asserts the EXACT LINE. **Verified by running BOTH implementations against scratch checkouts and
+comparing stdout, stderr, exit code AND the written shard line on six cases** (full flags, minimal,
+`--count 0`, `--json`, no `UOR_LAB`, whitespace task): **all MATCH**, and the error paths agree (unknown
+role is byte-identical on both sides, exit 2; `--count xyz`/`--state bogus` refuse on both, exit 2).
+**ONE DIVERGENCE REMAINS AND IT IS DELIBERATE: a receipt's `ts` is `…Z` in Rust and a local offset in
+Python — the same instant, and `now_rfc3339`'s own comment already records the decision that both are
+valid RFC3339 and the reader parses either.** It is stated here because this unit is the first to
+compare the written bytes; the comparison asserts the two forms as instants rather than assuming it.
+**Behaviour copied rather than corrected:** `--count 0` becomes 1 (Python's `args.count or 1`); a string
+is redacted but a LIST is not redacted element by element (Python tests `isinstance(value, str)`); no lab
+identity WARNS and preserves the receipt rather than refusing it; `--scope` takes several values, so only
+its first is consumed by the flag parser. **Verified:** fmt and clippy `-D warnings` clean; **438 Rust
+tests passed, 6 ignored** (was 432); `python3 -m unittest discover -s tests/harness -t .` exit 0;
+**`parity.py` exit 0** including *Rust-written receipt read back by Python: ok*; interlock OK — 1641,
+baseline 1641.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** the four remaining sites — `mistakes show|capture`, `multilab sync-live|migrate-ledger`, and
+`arena`/`budget`/`panel` behind the general fallback — plus the recorded `check` defects
+(`status.no_orphan_branches` reports `ok` where Python warns).
+
 ## 2026-10-14 — `check` read its arguments as a rule filter, so `--repo` ran ZERO rules (deepseek, tooling)
 
 The [record](../labs/check-flags-2026-10-14/README.md) carries the matrix and the two further findings.

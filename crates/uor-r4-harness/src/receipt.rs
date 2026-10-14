@@ -59,8 +59,14 @@ impl Receipt {
         self
     }
 
-    /// The line this receipt becomes. Keys sorted, matching
-    /// `json.dumps(record, ensure_ascii=False, sort_keys=True)`.
+    /// The line this receipt becomes: `json.dumps(record, ensure_ascii=False, sort_keys=True)`.
+    ///
+    /// **The claim in this comment was false until the `team dispatch` unit diffed a written line
+    /// against Python's.** `Value::to_string()` is COMPACT - `{"count":2}` - while Python's
+    /// `json.dumps` writes the default separators, `{"count": 2}`. Both parse to the same record and
+    /// every reader in this crate parses, so nothing failed; **the module header says two
+    /// implementations writing one file differently "would make every ledger change unreadable", and
+    /// that is what was happening.** Reading a line back is not comparing it.
     pub fn to_line(&self) -> String {
         // serde_json::Map preserves insertion order by default, so the keys are inserted sorted
         // rather than relying on a feature flag.
@@ -78,7 +84,7 @@ impl Receipt {
         for (k, v) in all {
             obj.insert(k.to_string(), v);
         }
-        Value::Object(obj).to_string()
+        py_dumps_sorted(&Value::Object(obj))
     }
 
     /// A malformed receipt is rejected before it can reach the record: the four required keys are
@@ -94,6 +100,46 @@ impl Receipt {
             return Err("a receipt needs a timestamp".into());
         }
         Ok(())
+    }
+}
+
+/// `json.dumps(value, ensure_ascii=False, sort_keys=True)` - Python's DEFAULT separators.
+///
+/// `serde_json`'s compact form is `{"a":1,"b":[1,2]}` and Python's is `{"a": 1, "b": [1, 2]}`.
+/// The difference is invisible to every reader and obvious in a diff, and the ledger is a file labs
+/// read as a diff.
+///
+/// `ensure_ascii` is off here (Python's ledger call passes `ensure_ascii=False`), which is why this
+/// is not the same renderer as `registries::ensure_ascii`: the ledger keeps UTF-8, `--json` escapes
+/// it. Two call sites, two Python defaults, stated rather than shared by accident.
+fn py_dumps_sorted(v: &Value) -> String {
+    match v {
+        Value::Null => "null".to_string(),
+        Value::Bool(b) => b.to_string(),
+        Value::Number(n) => n.to_string(),
+        // serde_json's string escaping already matches Python's for a lone string: the same short
+        // escapes for control characters, no escaping of `/`, and raw UTF-8.
+        Value::String(s) => Value::String(s.clone()).to_string(),
+        Value::Array(items) => {
+            let parts: Vec<String> = items.iter().map(py_dumps_sorted).collect();
+            format!("[{}]", parts.join(", "))
+        }
+        Value::Object(map) => {
+            // UTF-8 byte order IS code-point order, so Rust's sort is Python's `sort_keys=True`.
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let parts: Vec<String> = keys
+                .iter()
+                .map(|k| {
+                    format!(
+                        "{}: {}",
+                        Value::String((*k).clone()),
+                        py_dumps_sorted(&map[*k])
+                    )
+                })
+                .collect();
+            format!("{{{}}}", parts.join(", "))
+        }
     }
 }
 
@@ -114,6 +160,16 @@ pub fn shard_path(paths: &StatePaths, lab: &str, month: &str) -> PathBuf {
 /// atomic for the line sizes involved.
 pub fn append(paths: &StatePaths, receipt: &Receipt, month: &str) -> Result<PathBuf, String> {
     receipt.validate()?;
+    write_line(paths, receipt, month)
+}
+
+/// The write half, without the lab check.
+///
+/// `record` needs it: **Python's `append_receipt` writes an unattributed receipt to the
+/// `unknown-<month>` shard while KEEPING `"lab": ""` in the line**, and `Receipt::validate`
+/// refuses an empty lab. Refusing here would be a divergence in the wrong direction - the port
+/// would error where Python records the receipt, warns, and moves on.
+fn write_line(paths: &StatePaths, receipt: &Receipt, month: &str) -> Result<PathBuf, String> {
     let shard = shard_path(paths, &receipt.lab, month);
     if let Some(parent) = shard.parent() {
         std::fs::create_dir_all(parent)
@@ -127,6 +183,178 @@ pub fn append(paths: &StatePaths, receipt: &Receipt, month: &str) -> Result<Path
     writeln!(file, "{}", receipt.to_line())
         .map_err(|e| format!("cannot write {}: {e}", shard.display()))?;
     Ok(shard)
+}
+
+// ----------------------------------------------------------------------------------- record
+
+/// The event a receipt kind carries, when the kind has one. `receipts.EVENT_TYPES`.
+pub fn event_type(kind: &str) -> Option<&'static str> {
+    match kind {
+        "skill" => Some("harness_skill_used"),
+        "team" => Some("harness_team_dispatched"),
+        "heartbeat" => Some("harness_heartbeat"),
+        _ => None,
+    }
+}
+
+/// Field names a receipt never carries - and must never carry if they look secret.
+const NEVER_FIELDS: [&str; 5] = ["token", "api_key", "apikey", "secret", "password"];
+
+/// One recorded receipt: Python's insertion-ordered pairs, and where the line landed.
+#[derive(Debug, Clone)]
+pub struct Recorded {
+    /// In Python's insertion order, which is what `--json` prints. **Not a `serde_json::Map`:**
+    /// the default map is a `BTreeMap` and would sort them, and the ledger's sorted order and the
+    /// JSON the caller sees are two different requirements on the same record.
+    pub pairs: Vec<(String, Value)>,
+    /// The shard the line was appended to (`unknown-<month>` when nothing identified the lab).
+    pub shard: PathBuf,
+    /// True when no lab identity was available: the line keeps `"lab": ""`, as Python's does.
+    pub unattributed: bool,
+}
+
+impl Recorded {
+    /// A field's value.
+    pub fn get(&self, key: &str) -> Option<&Value> {
+        self.pairs.iter().find(|(k, _)| k == key).map(|(_, v)| v)
+    }
+
+    /// A field as text, empty when it is not a string (Python's `rec.get(key, "")`).
+    pub fn get_str(&self, key: &str) -> String {
+        self.get(key)
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string()
+    }
+
+    fn to_receipt(&self) -> Receipt {
+        let mut r = Receipt {
+            kind: self.get_str("kind"),
+            lab: self.get_str("lab"),
+            ts: self.get_str("ts"),
+            fields: Map::new(),
+        };
+        for (k, v) in &self.pairs {
+            if !matches!(k.as_str(), "kind" | "lab" | "ts" | "schema") {
+                r.fields.insert(k.clone(), v.clone());
+            }
+        }
+        r
+    }
+
+    /// The line written to the shard: `json.dumps(record, ensure_ascii=False, sort_keys=True)`.
+    pub fn line(&self) -> String {
+        self.to_receipt().to_line()
+    }
+
+    /// `json.dumps(record, indent=2)` - Python's KEY ORDER and Python's non-ASCII escaping.
+    ///
+    /// A `serde_json::Value` would sort the keys and emit raw UTF-8, so the record is rendered
+    /// from the ordered pairs instead: **the two implementations are compared as bytes here, which
+    /// is what found the escaping difference in the `team roster` unit.**
+    pub fn to_pretty(&self) -> String {
+        let mut out = String::from("{\n");
+        let last = self.pairs.len().saturating_sub(1);
+        for (i, (k, v)) in self.pairs.iter().enumerate() {
+            let comma = if i == last { "" } else { "," };
+            let value = crate::registries::ensure_ascii(
+                &serde_json::to_string_pretty(v).unwrap_or_default(),
+            );
+            // Python indents a nested container relative to its key, so every line after the
+            // first moves over by the key's own indent.
+            let value = value.replace('\n', "\n  ");
+            out.push_str(&format!("  {}: {value}{comma}\n", Value::String(k.clone())));
+        }
+        out.push('}');
+        out
+    }
+}
+
+/// Python's `value in (None, "", [], {})`: the values a receipt does NOT store.
+///
+/// Note what it is not: `0` and `false` are stored, because Python compares with `==` against
+/// those four values and neither equals any of them. A "falsy" test would drop them.
+fn py_empty(v: &Value) -> bool {
+    match v {
+        Value::Null => true,
+        Value::String(s) => s.is_empty(),
+        Value::Array(a) => a.is_empty(),
+        Value::Object(o) => o.is_empty(),
+        _ => false,
+    }
+}
+
+/// `receipts.record`: one receipt, appended to its lab's shard and returned.
+///
+/// The fields arrive as ordered pairs because **Python's `record` builds a dict and `--json`
+/// prints it in insertion order** - `ts`, `kind`, `schema`, `event`, then the caller's fields,
+/// then `lab`.
+///
+/// Two behaviours are copied rather than corrected, both visible in the ledger:
+///
+/// * **A string is redacted; anything else is stored as given.** Python tests `isinstance(value,
+///   str)`, so a list is NOT redacted element by element.
+/// * **No lab identity is a warning, not a refusal.** The line keeps `"lab": ""` and lands in
+///   `unknown-<month>`, which is why the shard is named for a gap rather than shared.
+pub fn record(
+    paths: &StatePaths,
+    kind: &str,
+    fields: Vec<(&str, Value)>,
+    lab_env: Option<&str>,
+) -> Result<Recorded, String> {
+    if !crate::receiptsrules::KINDS.contains(&kind) {
+        return Err(format!(
+            "unknown receipt kind {}; expected one of {}",
+            crate::prgates::py_repr_public(kind),
+            python_tuple(&crate::receiptsrules::KINDS)
+        ));
+    }
+    let mut pairs: Vec<(String, Value)> = vec![
+        ("ts".to_string(), Value::String(now_rfc3339())),
+        ("kind".to_string(), Value::String(kind.to_string())),
+        ("schema".to_string(), Value::from(RECEIPT_SCHEMA)),
+    ];
+    if let Some(event) = event_type(kind) {
+        pairs.push(("event".to_string(), Value::String(event.to_string())));
+    }
+    for (key, value) in fields {
+        if NEVER_FIELDS.contains(&key.to_ascii_lowercase().as_str()) {
+            continue;
+        }
+        if py_empty(&value) {
+            continue;
+        }
+        let value = match &value {
+            Value::String(s) => Value::String(crate::prgates::redact_public(s)),
+            other => other.clone(),
+        };
+        pairs.push((key.to_string(), value));
+    }
+    let mut lab = pairs
+        .iter()
+        .find(|(k, _)| k == "lab")
+        .and_then(|(_, v)| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    if lab.is_empty() {
+        lab = lab_env.unwrap_or("").trim().to_string();
+        pairs.push(("lab".to_string(), Value::String(lab.clone())));
+    }
+    let unattributed = lab.is_empty();
+    let month = current_month();
+    let recorded = Recorded {
+        pairs,
+        shard: shard_path(paths, &lab, &month),
+        unattributed,
+    };
+    let shard = write_line(paths, &recorded.to_receipt(), &month)?;
+    Ok(Recorded { shard, ..recorded })
+}
+
+/// Python's tuple repr, for the one error message that quotes the kind list.
+fn python_tuple(items: &[&str]) -> String {
+    let body: Vec<String> = items.iter().map(|s| format!("'{s}'")).collect();
+    format!("({})", body.join(", "))
 }
 
 /// `YYYY-MM` for a Unix second count, in UTC — the month a shard belongs to.
@@ -208,21 +436,184 @@ mod tests {
         let mut r = Receipt::new("heartbeat", "kimi");
         r.ts = "2026-10-13T00:00:00-04:00".into();
         r = r.with("milestone", "m1").with("count", "2/3");
-        let line = r.to_line();
-        // sorted: count, kind, lab, milestone, schema, ts
-        let keys: Vec<&str> = line
-            .trim_matches(|c| c == '{' || c == '}')
-            .split("\",")
-            .filter_map(|p| p.split('"').nth(1))
-            .collect();
-        let mut sorted = keys.clone();
-        sorted.sort_unstable();
+        // **Asserted as the exact line, not as a key list.** The previous version split on `","`,
+        // which the PORT's compact form happened to produce - so when the separators were corrected
+        // to Python's `", "` the split found nothing and the test would have passed on an empty key
+        // list. A test that cannot fail is worse than no test, so this pins the whole line: sorted
+        // keys, Python's separators, and Python's `ensure_ascii=False`.
         assert_eq!(
-            keys, sorted,
-            "keys must be sorted for a readable ledger diff: {line}"
+            r.to_line(),
+            "{\"count\": \"2/3\", \"kind\": \"heartbeat\", \"lab\": \"kimi\", \"milestone\": \"m1\", \"schema\": 1, \"ts\": \"2026-10-13T00:00:00-04:00\"}"
         );
     }
 
+    /// **Python's line, captured from a scratch repository by the unit's comparison script.** The
+    /// timestamp is replaced by a fixed value so the fixture asserts FORMAT rather than the moment
+    /// it was captured - the trap this port has fallen into three times.
+    #[test]
+    fn a_recorded_line_is_byte_for_byte_pythons() {
+        let r = Recorded {
+            pairs: vec![
+                (
+                    "ts".into(),
+                    Value::String("2026-10-14T04:31:43-04:00".into()),
+                ),
+                ("kind".into(), Value::String("team".into())),
+                ("schema".into(), Value::from(1)),
+                (
+                    "event".into(),
+                    Value::String("harness_team_dispatched".into()),
+                ),
+                ("role".into(), Value::String("architecture-reviewer".into())),
+                (
+                    "route".into(),
+                    Value::String("deepseek-account/deepseek-v4-pro".into()),
+                ),
+                ("count".into(), Value::from(2)),
+                ("state".into(), Value::String("running".into())),
+                (
+                    "scope".into(),
+                    Value::Array(vec![
+                        Value::String("src/a.rs".into()),
+                        Value::String("src/b.rs".into()),
+                    ]),
+                ),
+                ("lab".into(), Value::String("deepseek".into())),
+            ],
+            shard: PathBuf::from("unused"),
+            unattributed: false,
+        };
+        assert_eq!(
+            r.line(),
+            r#"{"count": 2, "event": "harness_team_dispatched", "kind": "team", "lab": "deepseek", "role": "architecture-reviewer", "route": "deepseek-account/deepseek-v4-pro", "schema": 1, "scope": ["src/a.rs", "src/b.rs"], "state": "running", "ts": "2026-10-14T04:31:43-04:00"}"#
+        );
+    }
+
+    /// The `--json` form is Python's `json.dumps(rec, indent=2)`: insertion order, and `ensure_ascii`
+    /// ON, which is the opposite of the ledger's.
+    #[test]
+    fn the_pretty_form_is_pythons_insertion_order_with_escaped_non_ascii() {
+        let r = Recorded {
+            pairs: vec![
+                ("ts".into(), Value::String("T".into())),
+                ("kind".into(), Value::String("team".into())),
+                ("task".into(), Value::String("a\u{2014}b".into())),
+                (
+                    "scope".into(),
+                    Value::Array(vec![Value::String("x".into())]),
+                ),
+            ],
+            shard: PathBuf::from("unused"),
+            unattributed: false,
+        };
+        assert_eq!(
+            r.to_pretty(),
+            concat!(
+                "{\n",
+                "  \"ts\": \"T\",\n",
+                "  \"kind\": \"team\",\n",
+                "  \"task\": \"a\\u2014b\",\n",
+                "  \"scope\": [\n    \"x\"\n  ]\n",
+                "}"
+            )
+        );
+    }
+
+    fn scratch() -> (tempfile::TempDir, StatePaths) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let ledger = dir.path().join("docs").join("harness").join("ledger");
+        std::fs::create_dir_all(&ledger).expect("mkdir");
+        let paths = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        (dir, paths)
+    }
+
+    /// Python's `value in (None, "", [], {})` and the `_NEVER` key list, and the asymmetry that a
+    /// string is redacted while a list is stored as given.
+    #[test]
+    fn record_skips_what_python_skips_and_redacts_what_python_redacts() {
+        let (_d, paths) = scratch();
+        let r = record(
+            &paths,
+            "team",
+            vec![
+                ("role", Value::String("claude".into())),
+                ("milestone", Value::String("".into())),
+                ("task", Value::Null),
+                ("scope", Value::Array(vec![])),
+                ("count", Value::from(0)),
+                ("note", Value::String("ghp_abcdefghijkl".into())),
+                ("secret", Value::String("leak".into())),
+                (
+                    "scope2",
+                    Value::Array(vec![Value::String("sk-abcdefghij".into())]),
+                ),
+            ],
+            Some("deepseek"),
+        )
+        .expect("recorded");
+        assert_eq!(r.get_str("milestone"), "");
+        assert!(r.get("task").is_none(), "an empty value is not stored");
+        assert!(
+            r.get("note").is_some(),
+            "a non-empty, non-secret field is stored"
+        );
+        assert_eq!(r.get_str("note"), "<redacted>");
+        assert!(
+            r.get("secret").is_none(),
+            "a secret-named field is never stored"
+        );
+        assert_eq!(r.get_str("count"), "");
+        assert_eq!(
+            r.get("count").and_then(Value::as_i64),
+            Some(0),
+            "zero is stored"
+        );
+        assert_eq!(
+            r.get("scope2").and_then(Value::as_array).map(|a| a.len()),
+            Some(1),
+            "a list is stored as given, NOT redacted element by element"
+        );
+    }
+
+    /// The order `--json` prints: Python builds `ts`, `kind`, `schema`, `event`, the caller's
+    /// fields, then `lab`.
+    #[test]
+    fn record_keeps_pythons_insertion_order() {
+        let (_d, paths) = scratch();
+        let r = record(
+            &paths,
+            "team",
+            vec![("role", Value::String("claude".into()))],
+            Some("kimi"),
+        )
+        .expect("recorded");
+        let keys: Vec<&str> = r.pairs.iter().map(|(k, _)| k.as_str()).collect();
+        assert_eq!(keys, vec!["ts", "kind", "schema", "event", "role", "lab"]);
+    }
+
+    /// No lab identity is a warning, not a refusal: `"lab": ""` is written, to the shard named for
+    /// the gap.
+    #[test]
+    fn an_unattributed_record_keeps_an_empty_lab_and_lands_in_unknown() {
+        let (_d, paths) = scratch();
+        let r = record(&paths, "team", vec![], None).expect("recorded");
+        assert!(r.unattributed);
+        assert_eq!(r.get_str("lab"), "");
+        assert!(
+            r.shard
+                .ends_with(format!("unknown-{}.jsonl", current_month())),
+            "{}",
+            r.shard.display()
+        );
+        assert!(r.line().contains("\"lab\": \"\""));
+    }
+
+    #[test]
+    fn an_unknown_kind_is_refused() {
+        let (_d, paths) = scratch();
+        let err = record(&paths, "nonsense", vec![], Some("kimi")).expect_err("refused");
+        assert!(err.contains("unknown receipt kind 'nonsense'"), "{err}");
+    }
     /// The contract's `required_always` for the ledger format. A row missing any of these fails
     /// `statecheck`, so the writer must never emit one.
     #[test]
