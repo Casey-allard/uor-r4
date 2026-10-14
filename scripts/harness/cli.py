@@ -444,6 +444,10 @@ def cmd_heartbeat(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) 
         ("--line", getattr(args, "line", None)),
         ("--count", getattr(args, "count", None)),
         ("--next", getattr(args, "next_step", None)),
+        # Forwarded so the two entry points accept the same flags: the flag list lives in the
+        # Rust harness, and a flag missing here would make `cli.py heartbeat --session S` fail
+        # while `uor-harness heartbeat --session S` works.
+        ("--session", getattr(args, "session", None)),
     ):
         if value:
             argv += [flag, str(value)]
@@ -735,6 +739,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--line", default=None)
     sp.add_argument("--count", default=None)
     sp.add_argument("--next", dest="next_step", default=None)
+    sp.add_argument("--session", default=None)
     sp.add_argument("--print", dest="print_card", action="store_true")
     sp.set_defaults(fn=cmd_heartbeat)
 

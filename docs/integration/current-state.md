@@ -1,3 +1,41 @@
+## 2026-10-14 — `heartbeat`: a bare check-in blanked the intent, and the session could not be named (deepseek, tooling — PM queue items 1–3)
+
+The [record](../labs/heartbeat-interface-2026-10-14/README.md) carries the before/after repros, all run
+against a **scratch live tier** so no other lab's board was touched. **THREE DEFECTS IN THE ONE COMMAND
+EVERY LAB RUNS EVERY FEW MINUTES, from claude/review1's note on #2028 (6163960613):**
+**(1) A BARE `heartbeat -m m1` ERASED THE INTENT** — it rewrote presence with `doing` and `next` empty,
+so **a lab checking in with the onboarding prompt's own command read as live-and-idle on every board,
+including its own last intent, which its previous file had held one moment earlier** (that is the shape
+Kimi saw as "your board reads idle"); **the rule is "absent", not "empty"** — a flag passed with an
+empty value is a lab clearing the field deliberately and still does, verified in the same run. **A missing
+flag now carries the previous check-in's value forward** (`presence::remembered`, with the rule stated as
+a unit test). **(2) `--session` DID NOT EXIST** (`unknown option --session`, exit 2), so
+`Presence.session` was **never set by anyone** and two sessions of one lab were indistinguishable on the
+board; the flag now exists, is carried forward like the intent, **and the Python transport forwards it
+too — `cli.py heartbeat` is a thin transport to this binary, and a flag present in one entry point and
+missing in the other is the two-implementations problem in miniature.** **(3) `heartbeat --help` PRINTED
+THE GLOBAL USAGE**, listing the command and none of its flags, so a lab had to read `main.rs` to learn
+that `--line`/`--doing`/`--count`/`--next`/`--session` exist; a command word seen before the help flag
+now selects its own flag list, and commands with none written still print the global usage. **ONE
+BEHAVIOUR CHANGE WORTH STATING: a bare check-in's RECEIPT now carries the previous line**, because the
+receipt and the presence are written from one record — verified in the live shard (carried line after a
+bare check-in, absent after `--line ""`, exactly as presence says). **Verified:** fmt and clippy
+`-D warnings` clean; **446 Rust tests passed, 6 ignored** (was 445); `python3 -m unittest discover -s
+tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641, baseline 1641; **the worktree is
+clean after every check-in** (heartbeats write the live tier only). **NOT FIXED HERE: queue item 4** —
+the durable presence tier is a day stale and the README is wrong about what refreshes it. **That is not a
+heartbeat defect:** the Rust heartbeat writes the live tier only ON PURPOSE (R10: a five-minute check-in
+must not dirty a checkout), and the durable tier's refresh path is `multilab sync-live` — **which is
+still delegated to Python.** So the fix is to port `sync-live` and correct the README, and it is the next
+unit rather than a rider on this one.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**FOUND WHILE VERIFYING, NOT FIXED HERE: the Python suite FAILS when `CARGO_TARGET_DIR` IS EXPORTED — the variable every doc tells a lab to build with.** `stateformats._harness_binary` looks in `$CARGO_TARGET_DIR/debug/uor-harness` first, so with it still set the rule reports a missing contract file as an **error** where the test expects **skipped** (`'error' != 'skipped'`, one command to reproduce). **Deterministic, not the known intermittent flake**, and a test/`stateformats` resolution concern rather than a heartbeat one.
+
+**Next:** **`multilab sync-live|migrate-ledger`** (the durable tier's refresh path, and a delegation
+site), then `arena`/`budget`/`panel`; then queue items 5–7 (pin rustup `cargo` in the bootstrap,
+`claims_file()` pointing at the owner checkout, the stale `~/.cargo/bin` install).
 ## 2026-10-14 — A2 paired diagnosis and D5 completion admission source (codex)
 
 The [source-bound diagnosis](../labs/a2-pilot-diagnosis-2026-10-14/README.md)

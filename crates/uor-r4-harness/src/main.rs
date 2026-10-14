@@ -19,6 +19,7 @@ use uor_r4_harness::notes;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
 use uor_r4_harness::prep;
 use uor_r4_harness::prep::{check_all, SheetReport};
+use uor_r4_harness::presence;
 use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{
     append, append_live, current_month, sync_live_to_committed, Receipt as NewReceipt,
@@ -86,7 +87,7 @@ const SUBCOMMAND_FLAGS: [&str; 33] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 49] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 50] = [
     "--kind",
     "--milestone",
     "-m",
@@ -138,7 +139,55 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 49] = [
     "--evidence",
     "--symptom",
     "--lesson",
+    // `heartbeat --session`: which session of a lab is checking in.
+    "--session",
 ];
+
+/// Per-command help, for the commands whose flags are not guessable from the global usage.
+///
+/// **`heartbeat --help` used to print the global usage**, which lists the command and none of its
+/// flags: a lab had to read `main.rs` to discover `--line`/`--doing`/`--count`/`--next`/`--session`,
+/// on the one command every lab runs every few minutes. Commands not listed here still print the
+/// global usage, which is honest about how much is written down.
+fn command_help(command: &str) -> Option<&'static str> {
+    match command {
+        "heartbeat" => Some(HEARTBEAT_HELP),
+        _ => None,
+    }
+}
+
+const HEARTBEAT_HELP: &str = "\
+uor-harness heartbeat - the required check-in (at least every 5 minutes)
+
+USAGE:
+    uor-harness heartbeat -m <milestone> [flags]
+
+FLAGS:
+    -m, --milestone M   the milestone this work belongs to (m1..m8)
+        --line L        the session contract's line (e.g. \"no model line - tooling\")
+        --doing D       the older spelling of --line; both are accepted
+        --count C       the D21 count, e.g. 0/3
+        --headline H    the D21 headline, e.g. \"37/232 -> 37/232\"
+        --next N        what happens next
+        --session S     which session of this lab is checking in
+        --lab L         the lab identity (default: $UOR_LAB)
+        --dry-run       print the record instead of publishing it
+        --no-notes      do not read the unread-notes cache
+
+WHAT IT WRITES:
+    The live presence tier, immediately visible to every lab on this machine, and one
+    heartbeat receipt in the live ledger shard. Both come from ONE record, so they cannot
+    disagree about what this lab is doing.
+
+    A flag that is ABSENT carries the previous check-in's value forward; a flag passed with
+    an empty value clears the field. `--line` and `--next` are not required, and leaving them
+    out no longer blanks them.
+
+    The committed presence tier is NOT written here: R10 keeps a check-in from dirtying a
+    checkout. `uor-harness multilab sync-live` copies the live tier into it deliberately.
+
+See docs/harness/README.md and docs/labs/session-goal.md.
+";
 
 const USAGE: &str = "\
 uor-harness - the multi-lab research harness (Rust side of the port)
@@ -254,6 +303,16 @@ fn main() -> ExitCode {
                 }
             }
             "-h" | "--help" | "help" => {
+                // **`heartbeat --help` printed the global usage**, so a lab could not learn that
+                // `--line`, `--doing`, `--count`, `--next` or `--session` exist and had to read
+                // this file to find out (claude/review1, #2028 6163960613 item 3). A command word
+                // seen BEFORE the help flag selects its own flag list.
+                if let Some(cmd) = command.as_deref() {
+                    if let Some(block) = command_help(cmd) {
+                        print!("{block}");
+                        return ExitCode::SUCCESS;
+                    }
+                }
                 print!("{USAGE}");
                 return ExitCode::SUCCESS;
             }
@@ -2170,19 +2229,40 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         );
         return ExitCode::from(2);
     }
-    let milestone = flag_value(args, "--milestone")
-        .or_else(|| flag_value(args, "-m"))
-        .unwrap_or_default();
+    // **A check-in must not ERASE what the lab already said.** `heartbeat -m m1` with no `--line`
+    // and no `--next` used to rewrite presence with both fields empty, so a lab checking in with
+    // the documented command read as live-and-idle on every board - including its own last intent,
+    // which its previous file had held one moment earlier. Reported by claude/review1 on #2028
+    // (6163960613) with the repro, and visible on the board as "live" with an empty `doing`.
+    //
+    // **Absent is not the same as empty.** A flag passed with an empty value is a lab clearing the
+    // field deliberately and still works; only a flag that was never passed falls back.
+    let previous = multilab::read_row(&paths, &lab);
+    let prev_milestone = previous.as_ref().map(|r| r.milestone.clone());
+    let prev_doing = previous.as_ref().map(|r| r.doing.clone());
+    let prev_next = previous.as_ref().map(|r| r.next.clone());
+    let prev_session = previous.as_ref().map(|r| r.session.clone());
+    let milestone = presence::remembered(
+        flag_value(args, "--milestone").or_else(|| flag_value(args, "-m")),
+        prev_milestone.as_deref(),
+    );
     let mut p = Presence::new(&paths, &lab, &milestone);
     // `--line` is the session contract's name (every PR declares its line and count); `--doing` is
     // the older spelling. Both are accepted so a lab following the contract does not hit an unknown
     // option on the command it must run every few minutes.
-    if let Some(v) = flag_value(args, "--line").or_else(|| flag_value(args, "--doing")) {
-        p = p.with_doing(v);
-    }
-    if let Some(v) = flag_value(args, "--next") {
-        p = p.with_next(v);
-    }
+    p = p.with_doing(presence::remembered(
+        flag_value(args, "--line").or_else(|| flag_value(args, "--doing")),
+        prev_doing.as_deref(),
+    ));
+    p = p.with_next(presence::remembered(
+        flag_value(args, "--next"),
+        prev_next.as_deref(),
+    ));
+    // `--session` names WHICH session of this lab is checking in; a lab may run several. It was
+    // never settable, so every presence file carried `"session":""` and two sessions of one lab
+    // were indistinguishable on the board (claude/review1, #2028 6163960613 item 2). Carried
+    // forward like the intent, for the same reason.
+    p.session = presence::remembered(flag_value(args, "--session"), prev_session.as_deref());
     if args.iter().any(|a| a == "--dry-run") {
         println!("{}", p.line());
         return ExitCode::SUCCESS;

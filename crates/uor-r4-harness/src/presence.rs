@@ -111,6 +111,22 @@ impl Presence {
     }
 }
 
+/// What a check-in records for one field: the flag when it was given, else what the lab last said.
+///
+/// **The rule is "absent", not "empty".** `heartbeat -m m1` with no `--line` used to rewrite
+/// presence with `doing` and `next` empty, so **a lab that checked in with the documented command
+/// read as live-and-idle on every board - including its own last intent, which its previous file had
+/// held one moment earlier.** Reported by claude/review1 with the repro on #2028 (6163960613).
+///
+/// A flag passed with an EMPTY value is a lab clearing the field on purpose, and that must still
+/// work: this function is only reached when the caller saw no flag at all.
+pub fn remembered(flag: Option<String>, previous: Option<&str>) -> String {
+    match flag {
+        Some(v) => v,
+        None => previous.unwrap_or("").to_string(),
+    }
+}
+
 /// Write one lab's presence to the live tier, atomically.
 pub fn publish_live(paths: &StatePaths, presence: &Presence) -> Result<(), String> {
     publish(&paths.live_presence(&presence.lab), presence)
@@ -187,6 +203,23 @@ fn hostname() -> String {
 mod tests {
     use super::*;
     use std::path::PathBuf;
+
+    /// **The defect, as a test.** A bare `heartbeat -m m1` blanked `doing`/`next`, so a lab read as
+    /// live-and-idle while its previous file still held the intent one moment earlier.
+    #[test]
+    fn a_missing_flag_carries_forward_and_an_empty_one_clears() {
+        assert_eq!(
+            remembered(None, Some("shipping the port")),
+            "shipping the port"
+        );
+        assert_eq!(remembered(None, Some("next step")), "next step");
+        // A lab that clears its next step on purpose still can.
+        assert_eq!(remembered(Some(String::new()), Some("old")), "");
+        // A first check-in has nothing to carry, and that is not an error.
+        assert_eq!(remembered(None, None), "");
+        // A given flag always wins, carried value or not.
+        assert_eq!(remembered(Some("new".into()), Some("old")), "new");
+    }
 
     fn tmp_paths(tag: &str) -> (StatePaths, PathBuf) {
         let dir =
