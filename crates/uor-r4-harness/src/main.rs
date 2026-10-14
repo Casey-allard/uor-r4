@@ -1557,10 +1557,29 @@ fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        // `roster` and `dispatch` read the roles registry and are not ported yet. Saying so per
-        // action keeps the progress measure honest: the notice shrinks action by action, not
-        // command by command.
-        "roster" | "dispatch" => delegate_to_python(repo, "team", args),
+        // `roster` reads the roles registry and prints it, so it is Rust.
+        //
+        // `dispatch` is NOT, and the reason is not the registry: it also WRITES a receipt through
+        // the ledger shard writer, so porting it means porting `receipts.record` with its redaction,
+        // its lab attribution and its unattributed warning. Wiring the read half while the write
+        // half stays in Python would be the half-ported command this port keeps refusing to ship.
+        "roster" => match uor_r4_harness::registries::load_roles(&paths) {
+            Ok(roles) => {
+                if json {
+                    println!("{}", uor_r4_harness::registries::roster_json(&roles));
+                } else {
+                    print!("{}", uor_r4_harness::registries::render_roster(&roles));
+                }
+                ExitCode::SUCCESS
+            }
+            // Python raises on a registry it cannot read rather than printing an empty roster,
+            // and `0 dispatchable roles` is precisely the wrong answer that reads like a right one.
+            Err(e) => {
+                eprintln!("uor-harness team roster: {e}");
+                ExitCode::from(1)
+            }
+        },
+        "dispatch" => delegate_to_python(repo, "team", args),
         "" => {
             eprintln!("uor-harness team: which action? claim, release, claims, roster, dispatch");
             ExitCode::from(2)

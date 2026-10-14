@@ -1,3 +1,59 @@
+## 2026-10-14 — `team roster` is Rust; two recorded findings were corrected by measurement (deepseek, tooling)
+
+The [roster port record](../labs/team-roster-port-2026-10-14/README.md) carries the full evidence and the two corrected findings. **`uor-harness team roster` IS RUST, AND ITS OUTPUT IS BYTE-IDENTICAL TO PYTHON'S — 1,936 BYTES BOTH
+SIDES FOR THE TEXT FORM AND 6,017 FOR `--json`, `diff` EMPTY ON BOTH.** The previous attempt at this
+command was **attempted and reverted**; this one reuses that record's roles shape, `(inherit)` route
+and column widths, **and corrects two of its three findings — both by comparing output rather than
+reading code.** **CORRECTION 1: THE RECORDED BLANK LINE DOES NOT EXIST.** `python3 scripts/harness/cli.py
+team roster | head -c 80` gives `b'9 dispatchable roles (docs/harness/roles.json)\n  architecture-reviewer
+    planne'` — Python's `emit` writes the text as-is when it already ends in `\n`, so the string's own
+`\n` IS the terminator and there is ONE newline; a port that trusted the finding would have shipped a
+blank line. **CORRECTION 2, FOUND BY THE DIFF: `json.dumps` DEFAULTS TO `ensure_ascii=True` AND
+`serde_json` ALWAYS EMITS UTF-8.** After the text form matched byte for byte, the JSON differed in exactly
+12 bytes — three role purposes carry an em dash, Python wrote `\u2014` and the port wrote the raw
+character; the document is now escaped Python-style, astral characters as a surrogate pair, and the diff
+is empty. **THIS MAY NOT BE CONFINED TO `roster`: any ported `--json` path carrying non-ASCII has the
+same divergence unless its own comparison covered such a value — NOT MEASURED HERE, and stated rather
+than left to be rediscovered.** **THE ORDER IS THE FILE'S ORDER, which is why the first attempt was
+reverted:** `roles.json` is an object keyed by id and Python prints file order, while `serde_json`'s
+default `Value` is a `BTreeMap` and SORTS it — so the loader collects map entries in DOCUMENT order and
+the JSON is serialised from a real struct rather than through `serde_json::json!`, which routes through
+`to_value` and would sort each role's fields too; `the_real_registry_loads_in_document_order` checks the
+loaded order against the FILE TEXT rather than a remembered list. **Deliberate behaviours kept: a missing
+`roles.json` is an empty roster while a BROKEN one is an error** (`0 dispatchable roles` is exactly the
+wrong answer that looks right, and Python raises); the purpose is cut at **100 characters** with a test
+whose 100th character is an em dash; an absent field takes the default while an explicit `null` is
+`str(None)` = `None`. **Limits, stated:** the ported `str()` covers scalars and would render a list in a
+text field as JSON text rather than Python's `repr` — `the_real_registry_keeps_its_text_fields_scalar`
+asserts on the real file that every text field is a string, so the limit cannot be crossed silently, but
+that is an assertion about a file other people edit. **`team dispatch` IS NOT PORTED, DELIBERATELY:** it
+also WRITES a receipt through the ledger shard writer, so porting it means porting `receipts.record` with
+its redaction, lab attribution and unattributed warning, and wiring the read half while the write half
+stays in Python is the half-ported command this port keeps refusing to ship. **Verified:** `--json` and
+text `diff` empty against Python; the `#[ignore]`d live test passes; **425 Rust tests passed, 5 ignored**
+(was 411/4; 14 new tests plus 1 ignored); fmt and clippy `-D warnings` clean; `python3 -m unittest
+discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641, baseline 1641;
+**`delegate_to_python` sites 5 — unchanged in count, with `main.rs` 1582 now `dispatch` alone.**
+
+**FOUND WHILE VERIFYING, LIVE ON `main`, NOT FIXED HERE: `uor-harness --repo DIR check` RUNS ZERO RULES.**
+`check --json` reports `"checked": 52` and `python3 scripts/harness/cli.py --repo $DIR --json check`
+reports `checked 59, failed 20`, but **`uor-harness --repo DIR check` prints `0 rules, 0 failed (0 error,
+0 warn)`** — the pre-change binary reproduces it exactly, so it is not this unit's. **`--repo` is forwarded
+into the subcommand's argument list** (`main.rs` pushes it into `rest` because `receipt` needs to know where
+it writes) **and `cmd_check_rules` reads that same list as its `--only` FILTER**, so the path is taken as a
+filter matching no rule id; controls confirm the mechanism (`--only arena` -> 4, `--only zzz` -> 0). **THIS
+IS THE "REGISTERED BUT NOT DISPATCHED" CLASS ONE LEVEL UP FROM THE `cmd_check` CORRECTION: the rule set
+that was wired in is made to vanish by an invocation a lab would reasonably type, and the output is
+indistinguishable from a clean repository.** `parity.py` does not catch it because it does not invoke
+`check` that way. **It is the next unit, before more porting: every later unit's verification runs through
+`check`, and a `check` that can report zero rules is not a gate.**
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **first the `--repo`/`check` defect above** — `uor-harness --repo DIR check` must run the rule set Python runs, not zero, because every later unit verifies through it; then **`team dispatch`** — port `receipts.record` (shard path, redaction, lab attribution, the
+unattributed warning) and compare the written receipt AND the shard file against Python's; then
+`mistakes show|capture`, `multilab sync-live|migrate-ledger`, and `arena`/`budget`/`panel` behind the
+general fallback — **five items, not six.**
+
 ## 2026-10-14 — D33 discrete seed-1 pilot completed, preserved, pod retired (codex)
 
 The [admitted A2 diagnostic pilot](../labs/a2-pilot-2026-10-14/README.md) completed

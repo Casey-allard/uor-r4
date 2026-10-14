@@ -12,6 +12,8 @@
 
 use std::path::PathBuf;
 
+use serde::de::{MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::state::StatePaths;
@@ -812,5 +814,598 @@ impl Registries {
             }
         }
         out
+    }
+}
+
+// ------------------------------------------------------------------------------------- roles
+
+/// One dispatchable role from `docs/harness/roles.json`.
+///
+/// **The field order is not a style choice.** `team roster --json` serialises Python's
+/// `r.__dict__`, whose order is the dataclass declaration order, so these fields are declared in
+/// that order and `Serialize` is derived: a struct that declared them differently would emit the
+/// same JSON with its keys rearranged. `route` is a method rather than a field for the same
+/// reason - Python's `route` is a property and does not appear in `__dict__` at all.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Role {
+    pub id: String,
+    pub title: String,
+    pub seat: String,
+    pub provider: String,
+    pub model: String,
+    pub reasoning: String,
+    pub purpose: String,
+    pub skills: Vec<String>,
+    pub when: Vec<String>,
+    pub read_only: bool,
+}
+
+impl Role {
+    /// `provider/model`, or `(inherit)` when the role names no provider.
+    ///
+    /// The fallback is a decision rather than a blank column: a role with no route takes the
+    /// caller's, and an empty cell would read as a missing value instead of a choice.
+    pub fn route(&self) -> String {
+        if self.provider.is_empty() {
+            "(inherit)".to_string()
+        } else {
+            format!("{}/{}", self.provider, self.model)
+        }
+    }
+}
+
+/// A JSON object with its key order intact.
+///
+/// **This exists because `serde_json`'s default `Value` is a `BTreeMap`.** Reading `roles.json`
+/// into a `Value` sorts the roles by id - which is what the previous attempt at this command
+/// shipped and then reverted: it printed `delivery-reviewer` before `experiment-designer` where
+/// Python prints the file's order, and an alphabetical roster looks entirely plausible. A map
+/// visitor is handed the entries in document order, which is the order a Python `dict` keeps, so
+/// this collects them instead of sorting them.
+struct OrderedObject(Vec<(String, Value)>);
+
+impl<'de> Deserialize<'de> for OrderedObject {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Collect;
+
+        impl<'de> Visitor<'de> for Collect {
+            type Value = OrderedObject;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("a JSON object")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<OrderedObject, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut out = Vec::new();
+                while let Some((key, value)) = map.next_entry::<String, Value>()? {
+                    out.push((key, value));
+                }
+                Ok(OrderedObject(out))
+            }
+        }
+
+        deserializer.deserialize_map(Collect)
+    }
+}
+
+/// `docs/harness/roles.json` for a repository.
+pub fn roles_path(paths: &StatePaths) -> PathBuf {
+    paths.repo.join("docs").join("harness").join("roles.json")
+}
+
+#[derive(Deserialize)]
+struct RolesFile {
+    /// `None` when the file has no `roles` key or writes it as `null`; Python's
+    /// `data.get("roles") or {}` treats both as an empty registry.
+    roles: Option<OrderedObject>,
+}
+
+/// Every dispatchable role, **in the file's own order**.
+///
+/// A missing file is an empty roster, as Python's `if not paths.roles_json.exists(): return []`.
+/// A file that exists but cannot be read is an **error** rather than an empty roster: `0
+/// dispatchable roles` is a wrong answer that reads like a right one, and Python raises rather
+/// than printing it.
+pub fn load_roles(paths: &StatePaths) -> Result<Vec<Role>, String> {
+    let path = roles_path(paths);
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let text = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let doc: RolesFile =
+        serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok(doc
+        .roles
+        .map(|ordered| {
+            ordered
+                .0
+                .into_iter()
+                .map(|(id, raw)| role_from(&id, &raw))
+                .collect()
+        })
+        .unwrap_or_default())
+}
+
+/// Python's `find_role`: an exact id first, then the first prefix match.
+pub fn find_role<'a>(roles: &'a [Role], key: &str) -> Option<&'a Role> {
+    roles
+        .iter()
+        .find(|r| r.id == key)
+        .or_else(|| roles.iter().find(|r| r.id.starts_with(key)))
+}
+
+/// `team roster`, as Python prints it.
+///
+/// **One newline after the header, and the bytes are the reason.** The previous attempt's record
+/// says Python's header is followed by a blank line; `od -c` on the live command says the header
+/// string already ends in `\n` and Python's `emit` only appends one when it is missing, so the
+/// correct output is a single newline. The record was wrong and the measurement is what a lab
+/// diffs against.
+pub fn render_roster(roles: &[Role]) -> String {
+    let mut out = format!(
+        "{} dispatchable roles (docs/harness/roles.json)\n",
+        roles.len()
+    );
+    for r in roles {
+        let ro = if r.read_only { " [read-only]" } else { "" };
+        out.push_str(&format!(
+            "  {:<24} {:<11} {:<32} {}{ro}\n",
+            r.id,
+            r.seat,
+            r.route(),
+            r.title
+        ));
+        out.push_str(&format!("      {}\n", py_slice(&r.purpose, 100)));
+    }
+    out
+}
+
+#[derive(Serialize)]
+struct RosterDoc<'a> {
+    roles: &'a [Role],
+}
+
+/// `team roster --json`: `{"roles": [r.__dict__ for r in roles]}` at `indent=2`.
+///
+/// Serialised from a real struct rather than through `serde_json::json!`: the macro routes values
+/// through `to_value`, which is the same `BTreeMap` as above and would sort every role's keys -
+/// the loader's order trap, one layer down.
+pub fn roster_json(roles: &[Role]) -> String {
+    ensure_ascii(&serde_json::to_string_pretty(&RosterDoc { roles }).unwrap_or_default())
+}
+
+/// Python's `json.dumps(..., ensure_ascii=True)`, which is the DEFAULT and which `serde_json` does
+/// not do.
+///
+/// **Found by diffing, not by reading.** The pretty output matched Python byte for byte except for
+/// 12 bytes: three role purposes contain an em dash, Python wrote `\u2014` and this wrote the raw
+/// character. `ensure_ascii` is on by default in `json.dumps`, so every non-ASCII character in the
+/// registry is escaped on Python's side, and a port that emitted valid UTF-8 instead would be
+/// producing different bytes for the same value - which is what a lab diffs.
+///
+/// Applying it to the whole document is safe because **JSON's structure is ASCII**: every
+/// non-ASCII character in the output is inside a string literal, so there is nothing else to
+/// escape and no parser is needed to find them.
+///
+/// Astral characters become a surrogate PAIR, as Python writes them.
+fn ensure_ascii(json: &str) -> String {
+    let mut out = String::with_capacity(json.len());
+    for ch in json.chars() {
+        let cp = ch as u32;
+        if cp < 0x80 {
+            out.push(ch);
+        } else if cp <= 0xFFFF {
+            out.push_str(&format!("\\u{cp:04x}"));
+        } else {
+            let v = cp - 0x1_0000;
+            out.push_str(&format!(
+                "\\u{:04x}\\u{:04x}",
+                0xD800 + (v >> 10),
+                0xDC00 + (v & 0x3FF)
+            ));
+        }
+    }
+    out
+}
+
+fn role_from(id: &str, raw: &Value) -> Role {
+    // Python: `route = raw.get("route") or {}`. A route that is present but falsy (null, "", 0,
+    // an empty object) is the same as no route at all.
+    let route = raw.get("route").filter(|v| truthy(v));
+    let route_field = |key: &str| {
+        route
+            .and_then(|r| r.get(key))
+            .map(py_str)
+            .unwrap_or_default()
+    };
+    Role {
+        id: id.to_string(),
+        title: field(raw, "title", id),
+        seat: field(raw, "seat", "specialist"),
+        provider: route_field("provider"),
+        model: route_field("model"),
+        reasoning: route_field("reasoning"),
+        purpose: field(raw, "purpose", ""),
+        skills: as_list(raw.get("skills")),
+        when: as_list(raw.get("when")),
+        read_only: raw.get("read_only").is_some_and(truthy),
+    }
+}
+
+/// Python's `str(raw.get(key, default))`: the default only when the key is **absent**, so an
+/// explicit `null` renders `None` rather than falling back.
+fn field(raw: &Value, key: &str, default: &str) -> String {
+    match raw.get(key) {
+        Some(v) => py_str(v),
+        None => default.to_string(),
+    }
+}
+
+/// Python's `str()` for the scalar JSON types.
+///
+/// **Limit, stated rather than hidden:** a list or object in a text field would render as Python's
+/// `repr`, and this returns JSON text instead. Every text field in the real registry is a string,
+/// and `role_text_fields_are_scalars` asserts that on the file itself, so the limit cannot be
+/// crossed without a failure.
+fn py_str(v: &Value) -> String {
+    match v {
+        Value::String(s) => s.clone(),
+        Value::Null => "None".to_string(),
+        Value::Bool(true) => "True".to_string(),
+        Value::Bool(false) => "False".to_string(),
+        Value::Number(n) => py_number(n),
+        other => other.to_string(),
+    }
+}
+
+/// `str()` of a JSON number. Not `fmt_num`: the milestone table trims a trailing `.0` because a
+/// target written `116.0` is a different claim from `116`, and Python's `str` does not trim it.
+fn py_number(n: &serde_json::Number) -> String {
+    if let Some(i) = n.as_i64() {
+        return i.to_string();
+    }
+    if let Some(u) = n.as_u64() {
+        return u.to_string();
+    }
+    match n.as_f64() {
+        Some(f) if f.is_finite() && f.fract() == 0.0 => format!("{f:.1}"),
+        Some(f) => format!("{f}"),
+        None => n.to_string(),
+    }
+}
+
+/// `_as_list`: `None` and `""` are the empty list, a list is mapped through `str()`, and anything
+/// else becomes a one-element list - so a bare string still renders as one entry.
+fn as_list(v: Option<&Value>) -> Vec<String> {
+    match v {
+        None | Some(Value::Null) => Vec::new(),
+        Some(Value::String(s)) if s.is_empty() => Vec::new(),
+        Some(Value::Array(items)) => items.iter().map(py_str).collect(),
+        Some(other) => vec![py_str(other)],
+    }
+}
+
+/// Python's truthiness, as `bool(raw.get(...))` reads it.
+fn truthy(v: &Value) -> bool {
+    match v {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(a) => !a.is_empty(),
+        Value::Object(o) => !o.is_empty(),
+    }
+}
+
+/// Python's `s[:n]`, which counts **characters**: a byte slice would panic or split a role's
+/// purpose mid-character the moment one carried non-ASCII.
+fn py_slice(s: &str, n: usize) -> String {
+    s.chars().take(n).collect()
+}
+
+#[cfg(test)]
+mod role_tests {
+    use super::*;
+    use std::path::Path;
+
+    fn repo() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    fn paths_for(dir: &Path) -> StatePaths {
+        StatePaths::resolve(dir, None, Some("/nonexistent-live"))
+    }
+
+    /// A throwaway checkout holding one `docs/harness/roles.json`.
+    fn with_roles(json: &str) -> (tempfile::TempDir, Vec<Role>) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let harness = dir.path().join("docs").join("harness");
+        std::fs::create_dir_all(&harness).expect("mkdir");
+        std::fs::write(harness.join("roles.json"), json).expect("write");
+        let roles = load_roles(&paths_for(dir.path())).expect("roles load");
+        (dir, roles)
+    }
+
+    /// **The order is the file order, and this fixture is deliberately not alphabetical.**
+    ///
+    /// The previous attempt read `roles.json` as a `serde_json::Value`, which is a `BTreeMap`, and
+    /// printed the roles sorted by id. That is a wrong answer that reads like a right one, so the
+    /// assertion is not only "these three in this order" but "and that order is not sorted".
+    #[test]
+    fn roles_keep_the_files_order_rather_than_sorting_by_id() {
+        let (_d, roles) = with_roles(
+            r#"{"schema": 1, "note": "n", "roles": {
+                 "zulu-role": {"title": "Z", "route": {"provider": "p", "model": "m"}, "read_only": true},
+                 "alpha-role": {"title": "A"},
+                 "mike-role": {}}}"#,
+        );
+        let ids: Vec<&str> = roles.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(ids, vec!["zulu-role", "alpha-role", "mike-role"]);
+        let mut sorted = ids.clone();
+        sorted.sort_unstable();
+        assert_ne!(ids, sorted, "the fixture must not be alphabetical");
+    }
+
+    #[test]
+    fn role_defaults_and_route_match_python() {
+        let (_d, roles) = with_roles(
+            r#"{"roles": {
+                 "zulu-role": {"title": "Z", "seat": "planner", "route": {"provider": "p", "model": "m"}, "skills": ["a"], "when": ["b"], "read_only": true},
+                 "alpha-role": {"title": "A"},
+                 "mike-role": {}}}"#,
+        );
+        let zulu = &roles[0];
+        assert_eq!(zulu.route(), "p/m");
+        assert!(zulu.read_only);
+        assert_eq!(zulu.skills, vec!["a"]);
+        assert_eq!(zulu.when, vec!["b"]);
+        // No route at all is `(inherit)`, not a blank column.
+        assert_eq!(roles[1].route(), "(inherit)");
+        // `title` falls back to the id and `seat` to `specialist`.
+        assert_eq!(roles[2].title, "mike-role");
+        assert_eq!(roles[2].seat, "specialist");
+        assert_eq!(roles[2].purpose, "");
+        assert!(roles[2].skills.is_empty());
+        assert!(!roles[2].read_only);
+    }
+
+    /// An ABSENT key takes the default; an explicit `null` is `str(None)`, which is `None`.
+    #[test]
+    fn an_absent_field_and_a_null_field_are_different() {
+        let (_d, roles) = with_roles(r#"{"roles": {"r": {"title": null}}}"#);
+        assert_eq!(roles[0].title, "None");
+        assert_eq!(roles[0].seat, "specialist");
+    }
+
+    #[test]
+    fn a_role_with_no_route_field_is_inherit() {
+        let (_d, roles) = with_roles(r#"{"roles": {"r": {"route": null}}}"#);
+        assert_eq!(roles[0].route(), "(inherit)");
+        assert_eq!(roles[0].provider, "");
+    }
+
+    #[test]
+    fn skills_and_when_follow_as_list() {
+        let (_d, roles) = with_roles(
+            r#"{"roles": {
+                 "a": {"skills": "", "when": null},
+                 "b": {"skills": "one", "when": 3},
+                 "c": {"skills": ["x", "y"]}}}"#,
+        );
+        assert!(roles[0].skills.is_empty());
+        assert!(roles[0].when.is_empty());
+        assert_eq!(roles[1].skills, vec!["one"]);
+        assert_eq!(roles[1].when, vec!["3"]);
+        assert_eq!(roles[2].skills, vec!["x", "y"]);
+    }
+
+    #[test]
+    fn a_missing_registry_is_empty_and_an_unreadable_one_is_an_error() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let paths = paths_for(dir.path());
+        assert!(load_roles(&paths).expect("missing is empty").is_empty());
+        let harness = dir.path().join("docs").join("harness");
+        std::fs::create_dir_all(&harness).expect("mkdir");
+        std::fs::write(harness.join("roles.json"), "{not json").expect("write");
+        assert!(
+            load_roles(&paths).is_err(),
+            "a broken registry must not read as empty"
+        );
+    }
+
+    #[test]
+    fn find_role_takes_an_exact_id_then_a_prefix() {
+        let (_d, roles) =
+            with_roles(r#"{"roles": {"architecture-reviewer": {}, "archivist": {}}}"#);
+        assert_eq!(
+            find_role(&roles, "archivist").expect("exact").id,
+            "archivist"
+        );
+        assert_eq!(
+            find_role(&roles, "arch").expect("prefix").id,
+            "architecture-reviewer"
+        );
+        assert!(find_role(&roles, "nope").is_none());
+    }
+
+    fn one_role() -> Vec<Role> {
+        vec![Role {
+            id: "b-role".to_string(),
+            title: "B".to_string(),
+            seat: "x".to_string(),
+            provider: "p".to_string(),
+            model: "m".to_string(),
+            reasoning: String::new(),
+            purpose: "pp".to_string(),
+            skills: Vec::new(),
+            when: Vec::new(),
+            read_only: false,
+        }]
+    }
+
+    /// The columns and the ONE newline after the header, spelled out rather than reusing the
+    /// format string under test.
+    #[test]
+    fn the_roster_renders_pythons_columns() {
+        let expected = format!(
+            "1 dispatchable roles (docs/harness/roles.json)\n  {}{} {}{} {}{} B\n      pp\n",
+            "b-role",
+            " ".repeat(18),
+            "x",
+            " ".repeat(10),
+            "p/m",
+            " ".repeat(29)
+        );
+        assert_eq!(render_roster(&one_role()), expected);
+        assert!(
+            !render_roster(&one_role()).contains("\n\n"),
+            "the header is followed by one newline, not a blank line"
+        );
+    }
+
+    #[test]
+    fn read_only_appends_the_marker() {
+        let mut roles = one_role();
+        roles[0].read_only = true;
+        assert!(render_roster(&roles).contains("B [read-only]"));
+    }
+
+    /// 100 CHARACTERS, not 100 bytes: the real purposes carry em dashes, and a byte slice would
+    /// panic or cut one in half.
+    #[test]
+    fn the_purpose_is_cut_at_one_hundred_characters() {
+        let mut roles = one_role();
+        roles[0].purpose = format!("{}—tail", "x".repeat(99));
+        let text = render_roster(&roles);
+        let purpose_line = text.lines().nth(2).expect("a purpose line");
+        assert_eq!(purpose_line, format!("      {}—", "x".repeat(99)));
+        assert_eq!(purpose_line.trim_start().chars().count(), 100);
+    }
+
+    /// Python's `json.dumps(indent=2)` shape, keys in `Role.__dict__` order.
+    #[test]
+    fn the_json_is_pythons_shape_and_key_order() {
+        let expected = [
+            "{",
+            "  \"roles\": [",
+            "    {",
+            "      \"id\": \"b-role\",",
+            "      \"title\": \"B\",",
+            "      \"seat\": \"x\",",
+            "      \"provider\": \"p\",",
+            "      \"model\": \"m\",",
+            "      \"reasoning\": \"\",",
+            "      \"purpose\": \"pp\",",
+            "      \"skills\": [],",
+            "      \"when\": [],",
+            "      \"read_only\": false",
+            "    }",
+            "  ]",
+            "}",
+        ]
+        .join("\n");
+        assert_eq!(roster_json(&one_role()), expected);
+    }
+
+    /// `json.dumps` escapes non-ASCII by default and `serde_json` does not. Found by diffing, not
+    /// by reading: three real purposes carry an em dash.
+    #[test]
+    fn the_json_escapes_non_ascii_as_python_does() {
+        let mut roles = one_role();
+        roles[0].purpose = "a—b😀".to_string();
+        let json = roster_json(&roles);
+        assert!(json.contains(r#""a\u2014b\ud83d\ude00""#), "{json}");
+        assert!(!json.contains('—'), "the raw character must not survive");
+    }
+
+    /// The real file's order, checked against the file itself rather than against a remembered
+    /// list: the ids must appear in the document in the order the loader returned them.
+    #[test]
+    fn the_real_registry_loads_in_document_order() {
+        let repo = repo();
+        let paths = paths_for(&repo);
+        let text = std::fs::read_to_string(roles_path(&paths)).expect("roles.json reads");
+        let roles = load_roles(&paths).expect("roles load");
+        assert!(!roles.is_empty(), "the registry has roles");
+        let mut last = 0usize;
+        for r in &roles {
+            let needle = format!("\"{}\":", r.id);
+            let at = text
+                .find(&needle)
+                .unwrap_or_else(|| panic!("{needle} is not in the file"));
+            assert!(at >= last, "{} is out of document order", r.id);
+            last = at;
+        }
+    }
+
+    /// The ported `str()` covers scalars, and this is what keeps that limit from being crossed
+    /// silently: every text field in the real registry is a string.
+    #[test]
+    fn the_real_registry_keeps_its_text_fields_scalar() {
+        let repo = repo();
+        let text =
+            std::fs::read_to_string(roles_path(&paths_for(&repo))).expect("roles.json reads");
+        let doc: RolesFile = serde_json::from_str(&text).expect("roles.json parses");
+        let roles = doc.roles.expect("roles object").0;
+        assert!(!roles.is_empty(), "the registry has roles");
+        for (id, raw) in &roles {
+            for key in ["title", "seat", "purpose"] {
+                assert!(
+                    raw.get(key).is_none_or(Value::is_string),
+                    "{id}.{key} is not a string"
+                );
+            }
+            if let Some(route) = raw.get("route").filter(|v| truthy(v)) {
+                for key in ["provider", "model", "reasoning"] {
+                    assert!(
+                        route.get(key).is_none_or(Value::is_string),
+                        "{id}.route.{key} is not a string"
+                    );
+                }
+            }
+            assert!(
+                raw.get("read_only").is_none_or(Value::is_boolean),
+                "{id}.read_only is not a bool"
+            );
+        }
+    }
+
+    /// Live, `#[ignore]`d: it runs the Python harness, so CI does not depend on one. Run it with
+    /// `cargo test -p uor-r4-harness -- --ignored roster_matches_python`.
+    #[test]
+    #[ignore = "runs the Python harness; compare explicitly, not on every CI run"]
+    fn roster_matches_python_byte_for_byte() {
+        let repo = repo();
+        let roles = load_roles(&paths_for(&repo)).expect("roles load");
+        assert!(!roles.is_empty(), "the registry has roles");
+        let cases: [(Vec<&str>, String); 2] = [
+            (vec!["team", "roster"], render_roster(&roles)),
+            (
+                vec!["--json", "team", "roster"],
+                format!("{}\n", roster_json(&roles)),
+            ),
+        ];
+        for (args, rust) in cases {
+            let out = std::process::Command::new("python3")
+                .arg(repo.join("scripts").join("harness").join("cli.py"))
+                .arg("--repo")
+                .arg(&repo)
+                .args(&args)
+                .output()
+                .expect("python3 runs");
+            assert!(
+                out.status.success(),
+                "python exited {} for {args:?}",
+                out.status
+            );
+            let python = String::from_utf8_lossy(&out.stdout).to_string();
+            assert_eq!(python, rust, "python and rust disagree for {args:?}");
+        }
     }
 }

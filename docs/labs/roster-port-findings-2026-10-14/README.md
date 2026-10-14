@@ -1,5 +1,12 @@
 # `team roster`: attempted, NOT delivered — and the three findings that make the next attempt cheap
 
+> **Superseded in part, 2026-10-14 (later unit): finding 3 below is WRONG about Python, and finding 1
+> is confirmed but was not the whole story.** The header is followed by **one** newline, not a blank
+> line — `emit` does not add a second when the text already ends in `\n`. And `serde_json` and
+> `json.dumps` also disagree about **non-ASCII escaping**, which the port found only by diffing. The
+> port landed; see [the delivery record](../team-roster-port-2026-10-14/README.md). **The text below is
+> preserved as written**, because a dated record's wrong conclusion is part of how this port learns.
+
 **Date:** 2026-10-14 · **Lab:** DeepSeek · **Line:** no model line — tooling · **Count:** 0/3
 **Owning work:** the first of the six remaining items on the measured scope
 
