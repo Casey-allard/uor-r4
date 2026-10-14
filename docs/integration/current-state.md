@@ -1,3 +1,45 @@
+## 2026-10-14 — The objective's remaining scope, measured rather than estimated (deepseek, tooling)
+
+**Recorded because it is the exact answer to the objective's own condition, and it is four call sites, not
+a judgement call.**
+
+`uor-harness` runs through Rust except for **four `delegate_to_python` sites** in
+`crates/uor-r4-harness/src/main.rs`:
+
+| line | what reaches it | status |
+|---|---|---|
+| 374 | `Some(other) => …` — **the general fallback** | any top-level command not in `PORTED_COMMANDS` |
+| 560 | `mistakes show` \| `capture` | unported subcommands |
+| 1425 | `multilab sync-live` \| `migrate-ledger` | unported subcommands |
+| 1563 | `team roster` \| `dispatch` | unported subcommands |
+
+**And the fallback's scope, measured by differencing the two command sets** — Python's argparse
+top-level choices (14) against `PORTED_COMMANDS` (25):
+
+```
+IN PYTHON, NOT PORTED:  arena, budget, panel
+```
+
+**So the objective is 6 items from done**: three unported top-level commands (`arena`, `budget`,
+`panel`) and three unported subcommand groups (`mistakes show|capture`,
+`multilab sync-live|migrate-ledger`, `team roster|dispatch`).
+
+**Worth stating plainly, because the counts have been misread before in this port**: the rule
+inventory reports `53 of 54` and `0 of check's own rules still in Python`, and **both are about the
+`check` rule set, not about commands.** A lab reading those numbers would conclude the port is nearly
+finished; **the command surface says six things are left**, and the two measures answer different
+questions — the same distinction that produced the `cmd_check` correction four units ago.
+
+**No code changed in this entry.** It exists so the next unit starts from the measured scope rather
+than re-deriving it, and so a reader comparing the two metrics finds the reconciliation instead of
+inferring that one of them is stale.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** `team roster|dispatch` (needs the roles registry and a receipt writer), `mistakes show|capture`,
+`multilab sync-live|migrate-ledger`, then `arena`/`budget`/`panel` — and each removes one line from the
+table above.
+
 ## 2026-10-14 — `git status` ported whole; the three `reason` strings took four attempts (deepseek, tooling)
 
 **`uor-harness git status` IS RUST — worktree facts, the PR, the delivery state and the next command — AND ITS `--json` MATCHES PYTHON'S ON EVERY FIELD: 30 KEYS BOTH SIDES, ZERO DIFFERENCES, state `dirty-worktree` on the same tree. DELEGATION SITES 6 -> 5, AND THE `git` GROUP IS NOW FULLY RUST.** **FOUR ATTEMPTS TO GET THREE STRINGS RIGHT — THE STRUCTURE WAS RIGHT ON THE FIRST ATTEMPT AND THE RENDERING WAS NOT, AND EVERY ROUND OF THE COMPARISON FOUND ONE MORE THING, WHICH IS THE CASE FOR COMPARING OUTPUT RATHER THAN READING CODE: (1) Python wraps failures as `` `cmd` exited N: … `` and I passed raw stderr; (2) `fetch.reason` — A BLANK LINE BECOMES TWO SPACES, because Python STRIPS THEN REPLACES `\n` WITH `" "` rather than joining non-empty lines, which is what I had done; (3) `origin_main.reason` — STDERR FIRST, THEN STDOUT, THE REVERSE OF THE OBVIOUS ORDER, and for `git rev-parse origin/main` on an ambiguous ref STDOUT HOLDS THE REF WHILE STDERR HOLDS THE REASON, so the wrong order prints `origin/main` IN FRONT OF THE SENTENCE EXPLAINING IT; (4) `origin_main.reason` again — `git_raw` CONCATENATES STDOUT-THEN-STDERR, which is right for READING AN ANSWER and wrong for RENDERING A FAILURE, so `git_run` WAS ADDED RATHER THAN CHANGING A DOZEN CALLERS; (5) ZERO DIFFERENCES.** **`run_failure` NOW REPRODUCES PYTHON'S `_run` CHARACTER FOR CHARACTER: strip the combined text, replace newlines with spaces, REDACT, TRUNCATE TO 240, and say `no output` when there is none. AND `gh_json` HAD THE SAME DEFECT — it returned trimmed stderr — so the fix was applied there too, which is why a `gh` failure now reads `` `gh pr view …` exited 1: no git remotes found ``.** **The delivery state table, and the order that is the logic: A DIRTY WORKTREE OUTRANKS EVERYTHING, because a lab with uncommitted changes has a next action that does not depend on any PR — ASKING GITHUB FIRST ANSWERS THE WRONG QUESTION. AND THERE ARE THREE MERGED STATES, NOT TWO: `merged-verified`, `merged-unverified`, and `merged-unknown` FOR WHEN `origin/main` COULD NOT BE RESOLVED — COLLAPSING THE THIRD INTO EITHER OF THE OTHERS IS HOW A LAB IS TOLD TO DELETE A BRANCH WHOSE MERGE WAS NEVER VERIFIED.** **Two command tables that tell a lab NOT to act are kept, because they are the two a port is most tempted to simplify into a command: `merged-unverified` -> "keep the branch and worktree until that is explained; DO NOT DELETE ANYTHING YET", AND IT IS THE ONE STATE WHERE `git status` EXITS 1; and an unrecognised state -> "report this output RATHER THAN ACTING ON IT".** **Five tests**, including that the two merged states meaning finished share a cleanup command while `merged-unverified` does not, and that an empty branch name renders `<branch>` rather than `git branch -D ` with nothing after it. **Limits, stated:** **THE TEXT OUTPUT IS NOT COMPARED AGAINST PYTHON'S, ONLY THE JSON — the text form is the port's own in places, and A LAB READING `git status` SEES THE PORT'S RENDERING, recorded rather than claimed identical**; **`git_run` AND `git_raw` NOW BOTH EXIST AND DIFFER ONLY IN OUTPUT ORDER — deliberate and documented, BUT A FOOTGUN FOR THE NEXT CALLER: picking the wrong one produces a correct answer with a wrong failure message, WHICH IS EXACTLY THE CLASS OF BUG THIS UNIT SPENT FOUR ATTEMPTS ON**; **`pr_facts` CALLS `gh pr view` WITH NO BRANCH ARGUMENT, so it reports the PR for the checked-out branch, and ON A DETACHED HEAD IT REPORTS WHATEVER `gh` DECIDES — Python's behaviour, and NOT VERIFIED, because the comparison ran on an attached branch**; **`git status` STILL FETCHES `origin` ON EVERY INVOCATION, so A SLOW OR UNREACHABLE REMOTE MAKES THE COMMAND SLOW — Python does the same and the failure is reported rather than fatal**; and **THE `git` GROUP IS NOW FULLY RUST, and the remaining five sites are `mistakes show|capture`, `multilab sync-live|migrate-ledger`, and `team roster|dispatch`.**
