@@ -84,7 +84,7 @@ mod fixture_tests {
     #[test]
     fn the_fixtures_load_and_are_not_empty() {
         let cases = load(&repo());
-        assert_eq!(cases.len(), 5, "the captured case count");
+        assert_eq!(cases.len(), 6, "the captured case count");
         assert!(
             cases.iter().all(|c| !c.expected.is_null()),
             "every case must carry an expectation"

@@ -106,7 +106,16 @@ fn phrase(key: &str) -> String {
 }
 
 const MILESTONE_LOW: i64 = 2029;
-const MILESTONE_HIGH: i64 = 2036;
+/// **The last milestone issue, INCLUSIVE.**
+///
+/// Python's set is `range(2029, 2037)`, which contains 2036. The first version of this file wrote
+/// `(MILESTONE_LOW..MILESTONE_HIGH)` with `HIGH = 2036`, and **a half-open Rust range ends one
+/// short - so #2036, the NEWEST milestone, was silently dropped.**
+///
+/// **No fixture caught it, because none of the five captured bodies cites #2036.** The fixtures
+/// record what the parser RETURNS; they do not enumerate what it could be asked. **That is the limit
+/// of a behaviour capture**, and it is why a case citing #2036 now exists.
+const MILESTONE_HIGH: i64 = 2037;
 
 /// `util.truncate` — collapse whitespace, cut at `limit`, ellipsis when cut.
 pub fn truncate(text: &str, limit: usize) -> String {
@@ -606,7 +615,7 @@ mod tests {
     #[test]
     fn every_field_of_every_case_matches_python() {
         let cases = prlintfixtures::load(&repo());
-        assert_eq!(cases.len(), 5, "the fixtures must be present");
+        assert_eq!(cases.len(), 6, "the fixtures must be present - six, the sixth added for the #2036 boundary the first five missed");
         let mut problems = Vec::new();
         for case in &cases {
             let got = parse_pr_body(&case.body).to_json();

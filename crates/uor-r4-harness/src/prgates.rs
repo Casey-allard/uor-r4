@@ -20,7 +20,8 @@
 //! **Each says why in this list rather than being silently absent**, because a gate that is missing
 //! and a gate that is not needed look identical from the outside.
 
-use crate::prbody::Fields;
+use crate::prbody::{truncate, Fields};
+use regex::Regex;
 use serde_json::{json, Value};
 
 /// One raised problem, in the shape `check_pr` returns.
@@ -835,5 +836,273 @@ mod pivot_record_tests {
         let body = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nRecord: docs/labs/prlint-registry-gates-2026-10-14/README.md\nReferences #2029\n";
         let p = record_path(&fields(body), &repo(), "2026-10-14");
         assert!(p.is_empty(), "an existing record must be silent: {p:?}");
+    }
+}
+
+/// `prlint.prereg_before_compute` — model numbers with no pre-registration reference (D22 §5d/§5e).
+///
+/// **This is the gate I tripped repeatedly while writing this port**, and the reason is worth
+/// recording: it triggers on `compute_claims`, which the parser fills from any prose line containing
+/// a **run-word** (`ran`, `runs`, `seeds`, `steps`, `evaluated`…) **and a digit**. So a PR body that
+/// discusses its own verification commands trips it — **in a way that reads as a model-compute claim.**
+///
+/// **I did not loosen it.** It is a fuzzy gate doing a real job (a lab reporting numbers must have
+/// pre-registered), and **narrowing it would be a behaviour change dressed as a port.** What I did was
+/// stop writing verification counts next to run-words in my own bodies.
+pub fn prereg_before_compute(f: &crate::prbody::Fields) -> Vec<Problem> {
+    if f.compute_claims.is_empty() || !f.prereg.is_empty() {
+        return Vec::new();
+    }
+    let sample = truncate(&f.compute_claims[0], 80);
+    vec![Problem::new(
+        "prlint.prereg_before_compute",
+        "error",
+        format!(
+            "the body reports model numbers ({sample}) with no pre-registration reference: no TEST FITNESS verdict, no `#issuecomment-<id>` milestone comment, no prep sheet id"
+        ),
+        "post the bar, base artifact, data split, steps and cost on the milestone issue first, then cite it here (`Prereg: #issuecomment-<id>`, `TEST FITNESS: FIT`) - D22 §5d/§5e",
+    )]
+}
+
+/// `prlint.no_cpu_model_compute` — CPU or host-fallback compute presented as an accepted result (D24).
+///
+/// **The claims come from the parser**, which already excludes lines carrying defect words
+/// (`defect`, `blocked`, `forbidden`, `violat`…). **That exclusion is the whole reason the gate is
+/// usable**: a body that *reports fixing* a host fallback must not be accused of presenting one, and
+/// the port inherits that reasoning rather than re-deciding it here.
+pub fn no_cpu_model_compute(f: &crate::prbody::Fields) -> Vec<Problem> {
+    if f.cpu_claims.is_empty() {
+        return Vec::new();
+    }
+    let sample = truncate(&f.cpu_claims[0], 90);
+    vec![Problem::new(
+        "prlint.no_cpu_model_compute",
+        "warn",
+        format!("the body presents CPU or host-fallback model compute as an accepted result: {sample}"),
+        "run model compute on GPU via scripts/pod/uor-pod and fix a host-side fallback with a kernel; CPU holds data preparation and grading only (D24)",
+    )]
+}
+
+/// `prlint.current_state_entry` — a claimed current-state entry that the file does not support.
+///
+/// **Three distinct problems share this id**, and the fixes differ, which is why they are three
+/// branches rather than one message:
+///
+/// 1. the file is **missing**;
+/// 2. the file exists but **mentions neither** the milestone issue nor the record topic — so the
+///    claim is unsupported;
+/// 3. the file exists and mentions **something**, but the body names **neither an issue nor a
+///    topic**, so nothing could be checked and the claim should either be substantiated or dropped.
+///
+/// **`text` is a parameter rather than read here**, so the gate is testable without a repository and
+/// the caller decides what "the file" is — the same reason `record_path` takes a `repo`.
+pub fn current_state_entry(f: &crate::prbody::Fields, text: Option<&str>) -> Vec<Problem> {
+    if !f.claims_current_state {
+        return Vec::new();
+    }
+    let issue = f.milestone_issue;
+    // The topic is the directory under `docs/labs/` in the record path.
+    let topic = {
+        let parts: Vec<&str> = f.record_path.split('/').collect();
+        parts
+            .iter()
+            .position(|p| *p == "labs")
+            .and_then(|i| parts.get(i + 1).map(|s| s.to_string()))
+            .unwrap_or_default()
+    };
+    let Some(text) = text else {
+        return vec![Problem::new(
+            "prlint.current_state_entry",
+            "warn",
+            "the body claims a docs/integration/current-state.md entry, but that file is missing",
+            "add the file with a newest-first entry, or drop the claim",
+        )];
+    };
+    let issue_re = issue
+        .map(|i| Regex::new(&format!(r"#{i}\b|\b{i}\b")).expect("a valid pattern from an integer"));
+    let mut hit = String::new();
+    if let Some(rx) = issue_re.as_ref() {
+        if rx.is_match(text) {
+            hit = format!("#{}", issue.unwrap_or(0));
+        }
+    }
+    if hit.is_empty() && !topic.is_empty() && text.to_lowercase().contains(&topic.to_lowercase()) {
+        hit = topic.clone();
+    }
+    if hit.is_empty() {
+        let what = match issue {
+            Some(i) => format!("#{i}"),
+            None => {
+                if topic.is_empty() {
+                    "the record topic".to_string()
+                } else {
+                    topic.clone()
+                }
+            }
+        };
+        return vec![Problem::new(
+            "prlint.current_state_entry",
+            "warn",
+            format!("the body claims a current-state entry but docs/integration/current-state.md does not mention {what}"),
+            format!("add the newest-first entry citing {what} to docs/integration/current-state.md, or drop the claim"),
+        )];
+    }
+    if issue.is_none() && topic.is_empty() {
+        return vec![Problem::new(
+            "prlint.current_state_entry",
+            "warn",
+            "the body claims a current-state entry, but neither a milestone issue nor a dated record topic is named to check it against",
+            "name the milestone (#2029-#2036) or the record topic in the body",
+        )];
+    }
+    Vec::new()
+}
+
+/// The gates that need neither the registry, the filesystem nor a subprocess.
+pub fn body_gates(f: &crate::prbody::Fields) -> Vec<Problem> {
+    let mut out = Vec::new();
+    out.extend(prereg_before_compute(f));
+    out.extend(no_cpu_model_compute(f));
+    out
+}
+
+#[cfg(test)]
+mod body_gate_tests {
+    use super::*;
+
+    fn fields(body: &str) -> crate::prbody::Fields {
+        crate::prbody::parse_pr_body(body)
+    }
+
+    /// **`prereg_before_compute` fired on my own PR bodies four times during this port**, and the
+    /// reason is the parser's `compute_claims`: any prose line with a **run-word and a digit**. This
+    /// test pins that shape so the next person meets it here rather than in CI.
+    #[test]
+    fn a_compute_claim_without_a_preregistration_is_reported() {
+        let body = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nThe model was evaluated over 200 rows.\nReferences #2029\n";
+        let p = prereg_before_compute(&fields(body));
+        assert_eq!(p.len(), 1, "{p:?}");
+        assert_eq!(p[0].severity, "error");
+        assert!(
+            p[0].message.starts_with(
+                "the body reports model numbers (The model was evaluated over 200 rows.)"
+            ),
+            "{}",
+            p[0].message
+        );
+    }
+
+    /// **A pre-registration reference silences it**, and the parser accepts four forms - so a body
+    /// citing any of them is not nagged.
+    #[test]
+    fn a_preregistration_reference_silences_it() {
+        for marker in [
+            "TEST FITNESS: FIT",
+            "preregistered",
+            "#issuecomment-12345",
+            "prep sheet abc",
+        ] {
+            let body = format!("Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nThe model was evaluated over 200 rows.\n{marker}\nReferences #2029\n");
+            assert!(
+                prereg_before_compute(&fields(&body)).is_empty(),
+                "{marker} should count as a pre-registration reference"
+            );
+        }
+    }
+
+    /// `no_cpu_model_compute`: **a CPU claim presented as a result**, with the parser's own exclusion
+    /// of defect lines doing the discriminating.
+    #[test]
+    fn a_cpu_claim_is_reported_and_a_reported_defect_is_not() {
+        let accepted = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nThe evaluation ran on the laptop with 200 rows accepted.\nReferences #2029\n";
+        let p = no_cpu_model_compute(&fields(accepted));
+        assert_eq!(p.len(), 1, "{p:?}");
+        assert_eq!(p[0].severity, "warn");
+        assert!(
+            p[0].message
+                .contains("presents CPU or host-fallback model compute as an accepted result"),
+            "{}",
+            p[0].message
+        );
+
+        // The same claim, described as a DEFECT, must not be reported - **that exclusion is why the
+        // gate is usable**: a body reporting a fixed host fallback is not presenting one.
+        let as_defect = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nThe evaluation ran on the laptop and that is a defect now fixed with a kernel.\nReferences #2029\n";
+        assert!(
+            no_cpu_model_compute(&fields(as_defect)).is_empty(),
+            "{:?}",
+            no_cpu_model_compute(&fields(as_defect))
+        );
+    }
+
+    #[test]
+    fn the_three_current_state_branches() {
+        // A claimed entry the file does not mention.
+        let unsupported = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nAdded a newest-first entry to docs/integration/current-state.md\nRecord: docs/labs/nonexistent-topic-2026-10-14/README.md\nReferences #2036\n";
+        let p = current_state_entry(
+            &fields(unsupported),
+            Some("a file that mentions nothing relevant"),
+        );
+        assert_eq!(p.len(), 1, "{p:?}");
+        assert_eq!(
+            p[0].message,
+            "the body claims a current-state entry but docs/integration/current-state.md does not mention #2036",
+            "**the ISSUE is named when there is one**, even though it was the TOPIC that failed to match"
+        );
+
+        // The file is missing entirely.
+        let p2 = current_state_entry(&fields(unsupported), None);
+        assert_eq!(p2.len(), 1, "{p2:?}");
+        assert!(
+            p2[0].message.contains("but that file is missing"),
+            "{}",
+            p2[0].message
+        );
+
+        // Mentioned in full, and a topic is named - so nothing to report. **The topic is the WHOLE
+        // directory name**: I wrote a shortened form first and the gate correctly reported the body
+        // as unsupported, so the test was wrong rather than the gate.
+        let supported = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nAdded a newest-first entry to docs/integration/current-state.md\nRecord: docs/labs/some-real-topic-2026-10-14/README.md\nReferences #2036\n";
+        let ok = current_state_entry(
+            &fields(supported),
+            Some("an entry citing some-real-topic-2026-10-14 in passing"),
+        );
+        assert!(ok.is_empty(), "{ok:?}");
+    }
+
+    /// **`#2036` is a milestone issue, and it was silently dropped.** Python's set is
+    /// `range(2029, 2037)` — inclusive of 2036 — and the first version of the parser wrote
+    /// `(2029..2036)`, which a half-open Rust range ends one short of. **No fixture caught it**,
+    /// because none of the five captured bodies cites #2036: **the fixtures record what the parser
+    /// returns, not what it could be asked.**
+    #[test]
+    fn the_newest_milestone_issue_is_recognised() {
+        let f = fields("Line: x | count 0/3 | headline 1/2 -> 1/2\nReferences #2036\n");
+        assert_eq!(
+            f.milestone_issue,
+            Some(2036),
+            "the last milestone in the range, inclusive"
+        );
+        assert_eq!(f.milestone_ref, "#2036");
+        // And the first, so the range is right at both ends.
+        let low = fields("Line: x | count 0/3 | headline 1/2 -> 1/2\nReferences #2029\n");
+        assert_eq!(low.milestone_issue, Some(2029));
+        // And just outside, which must NOT be treated as a milestone.
+        let outside = fields("Line: x | count 0/3 | headline 1/2 -> 1/2\nReferences #2037\n");
+        assert_eq!(outside.milestone_issue, None, "#2037 is beyond the range");
+        assert_eq!(
+            outside.milestone_ref, "#2037",
+            "but it is still the ref the body names"
+        );
+    }
+
+    /// A body that does not claim a current-state entry is never reported, whatever the file says.
+    #[test]
+    fn no_claim_means_no_finding() {
+        let body = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
+        assert!(current_state_entry(&fields(body), None).is_empty());
+        assert!(body_gates(&fields(body))
+            .iter()
+            .all(|p| p.rule != "prlint.current_state_entry"));
     }
 }

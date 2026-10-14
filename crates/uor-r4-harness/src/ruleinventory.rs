@@ -74,6 +74,11 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             // date as parameters rather than reaching for either.
             "prlint.pivot_at_three",
             "prlint.record_path",
+            // `prereg_before_compute` and `no_cpu_model_compute` read only parsed fields, and
+            // `current_state_entry` takes the file's text as a parameter rather than reading it.
+            "prlint.prereg_before_compute",
+            "prlint.no_cpu_model_compute",
+            "prlint.current_state_entry",
         ],
     ),
     (

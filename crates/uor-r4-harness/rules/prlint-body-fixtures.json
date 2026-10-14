@@ -17,7 +17,8 @@
     "until someone decides to change the behaviour deliberately.",
     "",
     "Regenerate: run the capture in docs/labs/prlint-fixtures-2026-10-14/README.md against Python.",
-    "`body_text` AND `raw` ARE RECORDED NOW, and they are not decoration: `_find_milestone` scores candidate milestones partly on `body_text`, so without it the milestone the body is ABOUT cannot be identified and the registry-dependent gates cannot be ported at all. THEY LOOKED LIKE PARSER INTERNALS until a gate needed them - which is why the fixtures record what the PARSER RETURNS rather than the fields that seemed interesting at the time."
+    "`body_text` AND `raw` ARE RECORDED NOW, and they are not decoration: `_find_milestone` scores candidate milestones partly on `body_text`, so without it the milestone the body is ABOUT cannot be identified and the registry-dependent gates cannot be ported at all. THEY LOOKED LIKE PARSER INTERNALS until a gate needed them - which is why the fixtures record what the PARSER RETURNS rather than the fields that seemed interesting at the time.",
+    "CASE 6 EXISTS BECAUSE OF A REAL BUG THE FIRST FIVE MISSED: Python's milestone set is `range(2029, 2037)`, inclusive of 2036, and the first Rust parser wrote `(2029..2036)` - a half-open range that ENDS ONE SHORT, so #2036, the NEWEST milestone, was silently dropped. NONE OF THE FIRST FIVE BODIES CITES #2036, SO NONE COULD CATCH IT. The fixtures record what the parser RETURNS; THEY DO NOT ENUMERATE WHAT IT COULD BE ASKED - which is the limit of a behaviour capture, and the reason a boundary case has to be added deliberately."
   ],
   "parser": "prlint.parse_pr_body",
   "cases": [
@@ -253,6 +254,53 @@
         "softmax_claims": [],
         "body_text": "## Line and headline\n\nLine: a name that wraps\ncount 2/3 across the rungs\n\nDecision: KEEP\nReferences #2028, #2029\n",
         "raw": "## Line and headline\n\nLine: a name that wraps\ncount 2/3 across the rungs\n\nDecision: KEEP\nReferences #2028, #2029\n"
+      }
+    },
+    {
+      "name": "newest-milestone-issue",
+      "body": "Line: a line the registry does not have | count 0/3 | headline 1/2 -> 1/2\nDecision: KEEP\nReferences #2036\n",
+      "expected": {
+        "body_text": "Line: a line the registry does not have | count 0/3 | headline 1/2 -> 1/2\nDecision: KEEP\nReferences #2036\n",
+        "checked": 0,
+        "checklist": [],
+        "claims_current_state": false,
+        "closes": [],
+        "command_hits": 0,
+        "compute_claims": [],
+        "count_text": "0/3",
+        "cpu_claims": [],
+        "decision": "KEEP",
+        "has_pivot": false,
+        "headline_after": {
+          "label": "",
+          "of": 2,
+          "text": "1/2",
+          "value": 1
+        },
+        "headline_before": {
+          "label": "",
+          "of": 2,
+          "text": "1/2",
+          "value": 1
+        },
+        "headline_label": "",
+        "line_count": 0,
+        "line_name": "a line the registry does not have",
+        "line_of": 3,
+        "milestone_issue": 2036,
+        "milestone_issues": [
+          2036
+        ],
+        "milestone_ref": "#2036",
+        "prereg": "",
+        "raw": "Line: a line the registry does not have | count 0/3 | headline 1/2 -> 1/2\nDecision: KEEP\nReferences #2036\n",
+        "record_path": "",
+        "record_paths": [],
+        "references": [
+          2036
+        ],
+        "serials": [],
+        "softmax_claims": []
       }
     }
   ]
