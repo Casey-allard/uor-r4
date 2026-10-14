@@ -283,3 +283,20 @@ legal under the harness; the owner is not to be asked to pick numbers off such c
 - **Process:** labs never ask the owner to choose between arbitrary test numbers. A lab that
   wants a target proposes the instrument fix first; the PM rules on vacuity with evidence; the
   owner's role is limited to releasing holds and stopping mechanisms (D22).
+
+## R15 — The D4 owner-release record is authored by the owner personally
+
+**Authority, October 14:** owner decision in Claude's session, resolving C1 on PR #2421
+(recorded at [#2421 comment 6159895665](https://github.com/UOR-Foundation/uor-r4/pull/2421#issuecomment-6159895665)).
+
+- **No lab ever writes, edits, copies or generates `owner.json` (the D4 release record), or
+  any file that stands in for it.** Casey creates it himself, from his own terminal, when and
+  only when he decides to release the pilot.
+- The gate is operator-attested by this rule, not cryptographically authenticated; the owner
+  accepts that because all labs share his GitHub account and machine.
+- The release tooling fills in every pinned identity from the sheet and takes only the owner's
+  release decision as input; the exact single command is documented in the controller's
+  `--help` and module docs (Codex, #2421), which also state that the owner record must be
+  authored by the owner.
+- A release record not created by the owner personally is void; any compute started from one
+  is unauthorized.
