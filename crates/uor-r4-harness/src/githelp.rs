@@ -1176,3 +1176,227 @@ mod install_hooks_tests {
         assert_eq!(std::fs::read_to_string(&hook).expect("read"), HOOK_SCRIPT);
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// `git status` - the worktree half, ported whole.
+// ---------------------------------------------------------------------------------------------
+
+/// What `git status --porcelain` says about the tree, in `_worktree_facts`'s shape.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WorktreeFacts {
+    /// **False means the question could not be asked** — which is not the same as a clean tree.
+    pub available: bool,
+    pub reason: String,
+    /// **`None` when unavailable, not `false`.** A tree that cannot be read is not a dirty one, and
+    /// `Option` is what keeps a caller from printing "dirty" for a failed `git status`.
+    pub clean: Option<bool>,
+    pub lines: Vec<String>,
+    pub total: usize,
+    pub staged: usize,
+    pub unstaged: usize,
+    pub untracked: usize,
+}
+
+/// `githelp._worktree_facts` — the working tree's counts, from porcelain output.
+///
+/// # The three counts, and why each column is read the way it is
+///
+/// Porcelain v1 is two columns then a space: **`XY path`**. The port keeps Python's exact rules,
+/// including the ones that look like they could be simpler:
+///
+/// * **staged** — `l[:1] not in (" ", "?", "!")`: **the FIRST column is the index.** A `?` there means
+///   untracked, and `!` means ignored, **so neither is a staged change.** Reading the first column
+///   without those two exclusions would count every untracked file as staged.
+/// * **unstaged** — `l[1:2] not in (" ", "?")`: **the SECOND column is the worktree.** **`!` is NOT
+///   excluded here**, which is a real asymmetry with the first column — **an ignored file cannot be
+///   staged, but the worktree column of an ignored entry is not a modification either** — and it is
+///   copied as-is rather than corrected, because `check` and the delivered reports quote these counts
+///   and **"fixing" it would change numbers labs have already read.**
+/// * **untracked** — `startswith("??")`, which is both columns at once.
+///
+/// **A count can therefore exceed the total's meaning**: a file staged *and* modified appears in both
+/// `staged` and `unstaged`, so the three do not sum to `total`. **That is Python's behaviour and the
+/// port keeps it** — the counts answer "how many files are in this state", not "how many files are
+/// there".
+///
+/// **`lines` is capped at 20 and each is truncated to 120**, so a lab with a thousand changes gets a
+/// readable report rather than a wall — **and `total` still says how many there really were.**
+pub fn worktree_facts(repo: &Path) -> WorktreeFacts {
+    let (rc, out) = git_raw(repo, &["status", "--porcelain"]);
+    if rc != 0 {
+        return WorktreeFacts {
+            available: false,
+            reason: if out.trim().is_empty() {
+                "`git status --porcelain` failed".to_string()
+            } else {
+                out.trim().to_string()
+            },
+            clean: None,
+            lines: Vec::new(),
+            total: 0,
+            staged: 0,
+            unstaged: 0,
+            untracked: 0,
+        };
+    }
+    let all: Vec<&str> = out.lines().filter(|l| !l.trim().is_empty()).collect();
+    let first_col = |l: &str| l.chars().next().unwrap_or(' ');
+    let second_col = |l: &str| l.chars().nth(1).unwrap_or(' ');
+    let staged = all
+        .iter()
+        .filter(|l| !matches!(first_col(l), ' ' | '?' | '!'))
+        .count();
+    let unstaged = all
+        .iter()
+        .filter(|l| l.chars().count() > 1 && !matches!(second_col(l), ' ' | '?'))
+        .count();
+    let untracked = all.iter().filter(|l| l.starts_with("??")).count();
+    WorktreeFacts {
+        available: true,
+        reason: String::new(),
+        clean: Some(all.is_empty()),
+        lines: all
+            .iter()
+            .take(20)
+            .map(|l| crate::prbody::truncate(l, 120))
+            .collect(),
+        total: all.len(),
+        staged,
+        unstaged,
+        untracked,
+    }
+}
+
+#[cfg(test)]
+mod worktree_facts_tests {
+    use super::*;
+
+    /// A repo whose `git status --porcelain` covers every column: staged-add, unstaged-modify,
+    /// staged-delete, and untracked.
+    fn mixed_repo() -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path().to_path_buf();
+        let git = |args: &[&str]| {
+            let _ = std::process::Command::new("git")
+                .current_dir(&repo)
+                .args(args)
+                .output();
+        };
+        git(&["init", "-q", "-b", "main"]);
+        git(&["config", "user.email", "t@t"]);
+        git(&["config", "user.name", "t"]);
+        std::fs::write(repo.join("a.txt"), "a\n").expect("write");
+        std::fs::write(repo.join("b.txt"), "b\n").expect("write");
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "init"]);
+        git(&["rm", "-q", "--cached", "b.txt"]);
+        std::fs::write(repo.join("a.txt"), "a\nchanged\n").expect("write");
+        std::fs::write(repo.join("untracked.txt"), "new\n").expect("write");
+        std::fs::write(repo.join(".gitignore"), "ignored.txt\n").expect("write");
+        git(&["add", ".gitignore"]);
+        (dir, repo)
+    }
+
+    /// **The counts match Python's on the same tree** — `{'total': 5, 'staged': 2, 'unstaged': 1,
+    /// 'untracked': 2}` for the porcelain lines `A .gitignore`, ` M a.txt`, `D  b.txt`, `?? b.txt`,
+    /// `?? untracked.txt`.
+    ///
+    /// **The three counts do not sum to `total`**, and the fixture shows why: `b.txt` is both a staged
+    /// delete and an untracked file, so it is counted in two columns. **That is Python's behaviour and
+    /// the port keeps it** — the counts answer *"how many files are in this state"*, not *"how many
+    /// files are there"*.
+    #[test]
+    fn the_counts_match_python_on_a_mixed_tree() {
+        let (_d, repo) = mixed_repo();
+        let f = worktree_facts(&repo);
+        assert!(f.available, "{}", f.reason);
+        assert_eq!(f.clean, Some(false));
+        assert_eq!(f.total, 5, "five porcelain lines");
+        assert_eq!(f.staged, 2, "A .gitignore and the staged delete of b.txt");
+        assert_eq!(f.unstaged, 1, "a.txt only");
+        assert_eq!(f.untracked, 2, "b.txt and untracked.txt");
+        assert_eq!(
+            f.lines.len(),
+            5,
+            "all five are listed when there are fewer than 20"
+        );
+    }
+
+    /// **A clean tree is `clean: Some(true)` with zero counts**, so a caller can tell it from a tree
+    /// that could not be read.
+    #[test]
+    fn a_clean_tree_says_so() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path().to_path_buf();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@t"],
+            vec!["config", "user.name", "t"],
+        ] {
+            let _ = std::process::Command::new("git")
+                .current_dir(&repo)
+                .args(&args)
+                .output();
+        }
+        std::fs::write(repo.join("a.txt"), "a\n").expect("write");
+        let _ = std::process::Command::new("git")
+            .current_dir(&repo)
+            .args(["add", "-A"])
+            .output();
+        let _ = std::process::Command::new("git")
+            .current_dir(&repo)
+            .args(["commit", "-qm", "x"])
+            .output();
+        let f = worktree_facts(&repo);
+        assert_eq!(f.clean, Some(true), "{f:?}");
+        assert_eq!((f.total, f.staged, f.unstaged, f.untracked), (0, 0, 0, 0));
+        assert!(f.lines.is_empty());
+    }
+
+    /// **A repo that cannot be read is `available: false` with `clean: None`** — **not `clean: false`,
+    /// which would report a broken checkout as a dirty one.** The `Option` is what makes that
+    /// distinction representable, and this test is why it is not a `bool`.
+    #[test]
+    fn an_unreadable_repo_is_unavailable_rather_than_dirty() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let not_a_repo = dir.path().to_path_buf();
+        let f = worktree_facts(&not_a_repo);
+        assert!(!f.available, "a bare directory is not a repository: {f:?}");
+        assert_eq!(f.clean, None, "and it is NOT reported as dirty");
+        assert!(!f.reason.is_empty(), "the reason is carried");
+        assert_eq!((f.total, f.staged, f.unstaged, f.untracked), (0, 0, 0, 0));
+    }
+
+    /// **`lines` is capped at 20 and each line is truncated to 120 characters.** A lab with a thousand
+    /// changes gets a readable report **and `total` still says how many there really were** — which is
+    /// the part that matters, because **a cap without the true count is a report that lies by
+    /// omission.**
+    #[test]
+    fn the_line_list_is_capped_but_the_total_is_not() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path().to_path_buf();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@t"],
+            vec!["config", "user.name", "t"],
+        ] {
+            let _ = std::process::Command::new("git")
+                .current_dir(&repo)
+                .args(&args)
+                .output();
+        }
+        // A long filename, to exercise the 120-character truncation.
+        let long = "a".repeat(200);
+        for i in 0..25 {
+            std::fs::write(repo.join(format!("{long}-{i}.txt")), "x\n").expect("write");
+        }
+        let f = worktree_facts(&repo);
+        assert_eq!(f.total, 25, "the true count survives the cap");
+        assert_eq!(f.lines.len(), 20, "the list is capped at 20");
+        assert!(
+            f.lines.iter().all(|l| l.chars().count() <= 120),
+            "each line is truncated: {:?}",
+            f.lines.iter().map(|l| l.chars().count()).max()
+        );
+    }
+}
