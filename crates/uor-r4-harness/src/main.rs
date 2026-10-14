@@ -47,7 +47,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
 use uor_r4_harness::ruleinventory::PORTED_COMMANDS;
 
-const SUBCOMMAND_FLAGS: [&str; 32] = [
+const SUBCOMMAND_FLAGS: [&str; 33] = [
     "--kind",
     "--milestone",
     "-m",
@@ -80,6 +80,9 @@ const SUBCOMMAND_FLAGS: [&str; 32] = [
     "--list",
     "--quiet",
     "--apply",
+    // `check --staged` selects the staged rule SET. It was missing from this list, so the top-level
+    // parser rejected it as an unknown option before `check` could see it.
+    "--staged",
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
@@ -321,7 +324,18 @@ fn main() -> ExitCode {
         // cases caught as `said ok=false, expected True`. **Two commands with two bodies cannot
         // drift that way; a flag can.**
         Some("check-formats") => cmd_check(&repo, json),
-        Some("check") => cmd_check_rules(&repo, &rest, json),
+        // **`check`'s own flags are parsed, not passed through as a filter.** The argument list
+        // used to BE the `--only` prefix set, so `--repo <path>` - which the top-level parser
+        // forwards here on purpose - narrowed the run to nothing and printed `0 rules, 0 failed`.
+        Some("check") => match uor_r4_harness::checkdispatch::parse_args(&rest) {
+            Ok(parsed) => cmd_check_rules(&repo, &parsed, json),
+            // argparse exits 2 on an argument it does not know, and so does this: an unknown
+            // token must never be read as a rule prefix that happens to match nothing.
+            Err(e) => {
+                eprintln!("uor-harness: {e}");
+                ExitCode::from(2)
+            }
+        },
         Some("presence") => cmd_presence(&repo, json),
         Some("ledger") => cmd_ledger(&repo, json),
         Some("receipt") => cmd_receipt(&repo, &rest, json),
@@ -2273,7 +2287,11 @@ fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
 /// **The rules are computed once and printed into the same object as the formats**, because a second
 /// object after the first is `Extra data` to any JSON reader - which is how the first attempt at this
 /// was caught.
-fn cmd_check_rules(repo: &Path, only: &[String], json: bool) -> ExitCode {
+fn cmd_check_rules(
+    repo: &Path,
+    args: &uor_r4_harness::checkdispatch::CheckArgs,
+    json: bool,
+) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     let regs = match Registries::load(&paths) {
         Ok(r) => r,
@@ -2285,7 +2303,13 @@ fn cmd_check_rules(repo: &Path, only: &[String], json: bool) -> ExitCode {
     let now =
         uor_r4_harness::multilabrules::parse_claimed_at(&uor_r4_harness::receipt::now_rfc3339())
             .unwrap_or(0);
-    let findings = uor_r4_harness::checkdispatch::run(&paths, &regs, only, now);
+    // `--staged` swaps the rule SET, as Python's `scope=` does; it is not a filter over results.
+    let scope = if args.staged {
+        uor_r4_harness::checkdispatch::Scope::Staged
+    } else {
+        uor_r4_harness::checkdispatch::Scope::Repo
+    };
+    let findings = uor_r4_harness::checkdispatch::run_scoped(&paths, &regs, &args.only, scope, now);
     let (checked, failed, errors, warnings) = uor_r4_harness::checkdispatch::summarize(&findings);
 
     // The frozen formats, in the same shape `check-formats` prints.

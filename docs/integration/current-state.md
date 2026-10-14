@@ -1,3 +1,46 @@
+## 2026-10-14 — `check` read its arguments as a rule filter, so `--repo` ran ZERO rules (deepseek, tooling)
+
+The [record](../labs/check-flags-2026-10-14/README.md) carries the matrix and the two further findings.
+**`uor-harness --repo DIR check` CHECKED NOTHING AND PRINTED `0 rules, 0 failed (0 error, 0 warn)`.**
+`check --json` reports `"checked": 52`; adding `--repo` reported `"checked": 0`, and **the pre-change
+binary reproduces it, so it was live on `main`.** **`--repo` is forwarded into the subcommand argument
+list on purpose** (`main.rs` pushes it into `rest` because `receipt` needs to know where it writes) **and
+`cmd_check_rules` handed that same list to `checkdispatch::run` as the `--only` PREFIX SET** — every token
+was a filter, and no rule id starts with `--repo`, so **a path silently disabled the entire rule set and
+the output was indistinguishable from a clean repository.** Controls: `--only arena` checks 4, `--only zzz`
+checks 0. **This is the third time this port has found the same shape** — a command reporting success
+having checked nothing — after `cmd_check` running only the format contract and three rules that were
+registered and never dispatched; **it is the first time the trigger was an invocation a lab would type by
+habit.** **What changed: `checkdispatch::parse_args` parses `check`'s own flags** (`--only` with Python's
+`append`/`nargs="+"` flattening, `--staged`), consumes the forwarded `--repo`/`--lab`, and makes anything
+else a **usage error at exit 2**, because an unknown token must never be a prefix that happens to match
+nothing; **`Scope`/`run_scoped` make `--staged` what Python makes it — a rule SET, not a filter over
+results — with `STAGED_RULES` empty today because every rule declares the default `repo` scope, and an
+`#[ignore]`d live test comparing that table against `checkrules.rules(scope="staged")` so a staged rule
+added in Python fails the test instead of being skipped silently;** and **`--staged` was missing from
+`SUBCOMMAND_FLAGS` entirely**, so the top-level parser rejected it before `check` saw it. **Verified by
+running BOTH implementations on seven invocations: the rule-id sets match on every one** (`check` 41=41,
+`--repo` 41=41 where it used to be 0, `--staged` 0=0, `--only arena` 4=4, `--only prep budget` 8=8,
+`--only prep --only budget` 8=8, and `--bogus`/bare-token refused at exit 2 by both). **The one
+disagreement, 51 vs 58 records on the unfiltered run, predates this unit: Python counts PR-body gates a
+`check` with no body cannot answer.** **FOUND WHILE FIXING, NOT FIXED HERE: `status.no_orphan_branches`
+FIRES IN PYTHON AND REPORTS `ok` IN RUST** — Python warns `local branch bpb-split still exists but PR #2081
+merged 2026-10-09`; the ported rule covers the local half only, while Python reads `branch_pr_check` (a
+merged-PR lookup: `bpb-split` was squash-merged, leaving no ancestry link) and remote branches with no PR,
+**so the rule is ABSENT where Python's fires — the same sentence this port wrote when it fixed
+`heartbeat_receipts` and `registry_vs_github`.** Also stated: **the Rust form accepts `check --repo DIR`,
+which Python rejects — a divergence in the port's favour.** **Verified:** fmt and clippy `-D warnings`
+clean; **432 Rust tests passed, 6 ignored** (was 425/5); the `#[ignore]`d staged-set test passes;
+`python3 -m unittest discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641,
+baseline 1641; **`delegate_to_python` sites 5 — unchanged; this unit ports no command.**
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`status.no_orphan_branches` as its own unit** — the `gh` merged-PR chain and the remote-branch
+list, compared against Python on the same tree — then **`team dispatch`** (port `receipts.record`; compare
+the written receipt AND the shard file), `mistakes show|capture`, `multilab sync-live|migrate-ledger`, and
+`arena`/`budget`/`panel` behind the general fallback.
+
 ## 2026-10-14 — `team roster` is Rust; two recorded findings were corrected by measurement (deepseek, tooling)
 
 The [roster port record](../labs/team-roster-port-2026-10-14/README.md) carries the full evidence and the two corrected findings. **`uor-harness team roster` IS RUST, AND ITS OUTPUT IS BYTE-IDENTICAL TO PYTHON'S — 1,936 BYTES BOTH
