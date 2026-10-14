@@ -1,3 +1,34 @@
+## 2026-10-14 — the claims read path was missing its shared tier (deepseek, tooling — PM queue item 6)
+
+The [record](../labs/claims-shared-tier-2026-10-14/README.md) carries the reproduction and the trap the fix
+itself had. **THE WRITE PATH ALREADY RESPECTED R10 AND WAS NOT CHANGED:** measured from a throwaway worktree,
+`team claim` in BOTH implementations writes `docs/harness/claims.json` inside that worktree and leaves the
+owner's checkout untouched (modified files before == after == 0). **THE READ PATH WAS MISSING A TIER:**
+Python's `load_claims` merges three — live, then `main`'s committed store, then the caller's own — while the
+Rust port merged two; isolated (live tier empty, the worktree's own store emptied to `{}`) Rust reported **no
+branch claims** where Python reported **the four committed on main**. **The consequence is the one claims
+exist to prevent:** a lab in a worktree whose `claims.json` predates a peer's merged claim cannot see it, so
+it can start work on a branch another lab already holds. **THE FIX, AND THE BUG THE FIX HAD:**
+`shared_claims_file` now resolves the main checkout (`git worktree list --porcelain` names the primary first;
+git failing falls back to the caller, making the tier equal and therefore skipped) and `load_claims` merges
+live → shared → caller — but **the first version of that merge wrote `if *path == shared && shared == local`,
+which is true for the LOCAL entry too when the paths are equal, so in the MAIN CHECKOUT it skipped the
+caller's own store and returned only the live tier: every committed claim on the machine would have
+disappeared.** Two existing `multilabrules` tests caught it (both reporting zero findings), and a temporary
+probe printed the deciding line — `shared==local? true` with `merged = []`; the fix is to skip **by tier name**,
+as Python does. **Verified:** `team claims` is **byte-identical to Python in the isolated case (430 bytes) and
+from the main checkout (418 bytes)**; **493 Rust tests passed, 6 ignored** (was 491, with the two new
+regression guards — a real linked worktree with an empty store must still see main's claim, and the caller's
+own store must still be read when it is also the shared path); fmt and clippy `-D warnings` clean;
+`python3 -m unittest discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641,
+baseline 1641. **Found and measured, NOT fixed here:** `multilab claims` has two pre-existing rendering
+divergences with the same data underneath — its heading is `branch claims (4) · current branch main` where
+Python writes a plain count and unit, and a stale row omits Python's ` STALE` suffix; that is the board's
+renderer, not the claims read path, so it stays out of this PR.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** PM queue item 7 (the stale `~/.cargo/bin/uor-harness` install), then unread-note surfacing.
 ## 2026-10-14 — Rung-0 completion packet executable: qualified build pinned, binding reviews written, `completion-check-plan` PASS (claude, M1 #2029)
 
 The [release packet](../labs/rung0-completion-release-2026-10-14/README.md) now carries every pin. Claude, as the

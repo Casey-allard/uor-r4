@@ -97,14 +97,42 @@ pub fn claims_file(paths: &StatePaths) -> PathBuf {
     paths.repo.join("docs").join("harness").join("claims.json")
 }
 
-/// The committed store on `main`, which is a different file ONLY when the caller is not the main
-/// checkout. Reading one path twice would be harmless but would double-count a tier, so callers skip
-/// it when the two are equal.
+/// The main checkout `git worktree list` names first - the owner's, where `main` is checked out.
+///
+/// **Not `budget::main_worktree`, deliberately.** That one SKIPS the caller and returns `None` when the
+/// caller is the main checkout, because it is looking for the pod tool. This one must return the caller's
+/// own path in that case, so `load_claims` can compare and skip a duplicate read.
+///
+/// **This is not a write path.** R10 forbids writing into the owner's checkout; nothing here ever writes
+/// to what this returns. It is read-only, and it is the tier that makes a peer's merged claim visible to a
+/// lab whose own `claims.json` predates it.
+fn main_checkout(paths: &StatePaths) -> PathBuf {
+    let out = std::process::Command::new("git")
+        .args(["worktree", "list", "--porcelain"])
+        .current_dir(&paths.repo)
+        .output();
+    if let Ok(o) = out {
+        if o.status.success() {
+            for line in String::from_utf8_lossy(&o.stdout).lines() {
+                if let Some(rest) = line.strip_prefix("worktree ") {
+                    let candidate = PathBuf::from(rest.trim());
+                    // `git worktree list` names the primary checkout FIRST.
+                    if candidate.is_dir() {
+                        return candidate;
+                    }
+                }
+            }
+        }
+    }
+    paths.repo.clone()
+}
+
+/// The committed store on `main`: the fallback for a lab that has never written its own.
 pub fn shared_claims_file(paths: &StatePaths) -> PathBuf {
-    // In a linked worktree, git records the main checkout's git dir; `main`'s working tree is not
-    // reachable from here without a fetch, so the shared tier is the same path when the caller IS the
-    // main checkout and otherwise absent. Kept as a function so the rule has one home.
-    claims_file(paths)
+    main_checkout(paths)
+        .join("docs")
+        .join("harness")
+        .join("claims.json")
 }
 
 /// The live tier overlay: real time, uncommitted, advisory.
@@ -146,12 +174,25 @@ pub fn load_committed(paths: &StatePaths) -> BTreeMap<String, Claim> {
     read_tier(&claims_file(paths))
 }
 
-/// Every claim, committed authoritative and live filling gaps.
+/// Every claim: live filling gaps, `main` as the shared fallback, the caller's store the authority.
 pub fn load_claims(paths: &StatePaths) -> BTreeMap<String, Claim> {
     let mut merged = BTreeMap::new();
+    let live = live_claims_file(paths);
+    let shared = shared_claims_file(paths);
+    let local = claims_file(paths);
     // Weakest first, strongest last: the caller's committed store overwrites everything it names.
-    for path in [live_claims_file(paths), claims_file(paths)] {
-        for (k, v) in read_tier(&path) {
+    //
+    // **The tier is skipped BY NAME, not by comparing paths.** The first version of this wrote
+    // `if *path == shared && shared == local { continue; }`, which is true for the LOCAL entry as well
+    // when the two paths are equal - so in the main checkout it skipped the caller's own store and
+    // `load_claims` returned only the live tier. Two `multilabrules` tests caught it, and the probe
+    // that printed `shared==local? true` with `merged = []` is what explained it.
+    for (tier, path) in [("live", &live), ("shared", &shared), ("local", &local)] {
+        // The caller IS the main checkout: do not read one file twice as two tiers.
+        if tier == "shared" && shared == local {
+            continue;
+        }
+        for (k, v) in read_tier(path) {
             merged.insert(k, v);
         }
     }
@@ -629,5 +670,80 @@ mod tests {
     fn current_branch_is_read_from_git() {
         let f = Fixture::new();
         assert_eq!(current_branch(f.dir.path()), "main");
+    }
+
+    /// **The shared tier was missing, and this is the test that catches it.**
+    ///
+    /// A real repository with a real linked worktree: the claim is committed on the main checkout, the
+    /// worktree's own `claims.json` is EMPTY, and the live tier points at an empty directory. Before the
+    /// fix `load_claims` returned nothing here, where Python returned the committed claim - so a lab in
+    /// that position could start work on a branch another lab already holds.
+    #[test]
+    fn a_stale_worktree_still_sees_the_claim_committed_on_main() {
+        let dir = std::env::temp_dir().join(format!("harness-claims-tier-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("docs").join("harness")).expect("scratch");
+        let live = dir.join("live");
+        std::fs::create_dir_all(&live).expect("live");
+        let git = |args: &[&str], cwd: &std::path::Path| {
+            std::process::Command::new("git")
+                .args(args)
+                .current_dir(cwd)
+                .output()
+                .expect("git")
+        };
+        git(&["init", "-q"], &dir);
+        git(&["config", "user.email", "t@example.com"], &dir);
+        git(&["config", "user.name", "t"], &dir);
+        let claim = concat!(
+            "{\"peer/branch\": {\"branch\": \"peer/branch\", \"lab\": \"claude\", ",
+            "\"claimed_at\": \"2026-10-14T09:00:00-04:00\", \"head\": \"abc\", \"note\": \"\"}}\n"
+        );
+        std::fs::write(dir.join("docs").join("harness").join("claims.json"), claim).expect("write");
+        git(&["add", "-A"], &dir);
+        git(&["commit", "-qm", "claim"], &dir);
+        // A linked worktree with its own EMPTY store - the stale case.
+        let wt = dir.join("wt");
+        git(&["worktree", "add", "-q", wt.to_str().unwrap()], &dir);
+        std::fs::write(wt.join("docs").join("harness").join("claims.json"), "{}\n").expect("write");
+        let paths = StatePaths::resolve(&wt, None, Some(live.to_str().unwrap()));
+        // If the two paths were equal this test would prove nothing - and it also guards the naming bug
+        // the first attempt had, where an equal pair skipped the caller's own tier.
+        assert_ne!(
+            shared_claims_file(&paths),
+            claims_file(&paths),
+            "the worktree's store and main's must be different files"
+        );
+        let merged = load_claims(&paths);
+        assert!(
+            merged.contains_key("peer/branch"),
+            "a claim committed on main must be visible from a stale worktree: {:?}",
+            merged.keys().collect::<Vec<_>>()
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The converse: when the caller IS the main checkout, its own store is still read as the authority.
+    ///
+    /// This is the case the naming bug broke: `shared == local` skipped BOTH the shared and the local
+    /// entry, so every committed claim disappeared in the main checkout.
+    #[test]
+    fn the_caller_is_the_authority_when_it_is_the_main_checkout() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::create_dir_all(root.join("docs").join("harness")).expect("mkdir");
+        let claim = concat!(
+            "{\"mine/branch\": {\"branch\": \"mine/branch\", \"lab\": \"deepseek\", ",
+            "\"claimed_at\": \"2026-10-14T09:00:00-04:00\", \"head\": \"abc\", \"note\": \"\"}}\n"
+        );
+        std::fs::write(root.join("docs").join("harness").join("claims.json"), claim)
+            .expect("write");
+        let paths = StatePaths::resolve(root, None, Some("/nonexistent-live"));
+        // No git repo here, so the main-checkout resolution falls back to the caller: the two are equal.
+        assert_eq!(shared_claims_file(&paths), claims_file(&paths));
+        assert!(
+            load_claims(&paths).contains_key("mine/branch"),
+            "the caller's own store must still be read when it is also the shared path"
+        );
     }
 }
