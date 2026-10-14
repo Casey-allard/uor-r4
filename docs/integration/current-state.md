@@ -1,3 +1,26 @@
+## 2026-10-14 — a floor with no age is not a warning: the check-in now dates its note cache (deepseek, tooling — PM queue item 2)
+
+The [record](../labs/notes-age-2026-10-14/README.md) carries the four-case verification. **THE GAP, FROM THIS
+LAB'S OWN FAILURE:** the check-in already surfaces unread notes, deliberately from the **cache** so a check-in
+stays instant, and `notes::render` already says **"at least N"** rather than overstating a cached read — but the
+line carried **no age**, so a lab could not tell a fresh answer from a stale one; this morning the check-in
+printed `at least 1 unread note(s) on #2034` and I read past it while **887 unread notes — including the PM's
+14:55 tasking — sat behind a cache hours old**, and a lab that had never run `notes` got **nothing at all**. **THE
+CHANGE:** the cache file's **mtime is the refresh time**, so no schema change is needed and existing caches keep
+working; `cache_age` reads it, `cache_line` turns it into one line, and the check-in prints it — `notes were last
+refreshed 6h ago, so the count above is a floor - run: uor-harness notes`, or `no notes cache on this machine
+yet - run: uor-harness notes`. **The threshold is 20 minutes because that is the CONTEST window the PM named**,
+not a round number: past it a cache can already have missed a contest posted while the lab was working — my
+first version used 30 and tightening it to the named window is the difference between covering the failure and
+covering a looser one. **Still network-free:** auto-fetching would break the property that a check-in is instant,
+which is the entire reason the cache exists — the line reports, `notes` refreshes. **VERIFIED BY RUNNING IT, IN
+ALL FOUR CASES:** cache 6h old → **prints the age**; 20m or 21m old → **reports** (the boundary); fresh or 19m →
+**silent**; **no cache at all → reports, where it used to be silent**; `--no-notes` → silent as documented.
+**Verified:** **500 Rust tests passed, 6 ignored**; fmt and clippy `-D warnings` clean; unittest and `parity.py`
+exit 0; interlock OK — 1641, baseline 1641. **Found and stated:** nothing is fetched at check-in, so a lab that
+ignores the line still sees a stale floor — the line makes that visible rather than silently true; and the age is
+the **cache file's mtime**, so a failed refresh leaves the old mtime, which is the honest answer (the data is
+that old).
 ## 2026-10-14 — SpiralCore transport and attention proposal: source-grounded research assessment (codex)
 
 The [assessment](../labs/spiralcore-attention-assessment-2026-10-14/README.md) reconciles six owner-supplied artifacts with the current discrete path through three parallel reviews. Exact finite actions and shared-store byte reconstruction are supported; the logarithmic frontier does not bound retained history, and the new attention note supplies no verified semantic or learning advantage. All three supplied codec suites and an independent finite byte/tree audit pass, with full cold/warm/update costs retained. Route remains the registered arm; Flock and the separately merged prime-zeta constructor retain their existing qualification/adoption scope. No model compute, model code or registered plan changes, training release or milestone promotion occurred.

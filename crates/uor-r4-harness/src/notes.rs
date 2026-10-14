@@ -554,3 +554,96 @@ mod tests {
         assert!(l.contains("CONTEST is answered"), "{l}");
     }
 }
+
+/// Past this, a cached note list is worth a line.
+///
+/// **Twenty minutes is the CONTEST window the PM named**, not a round number: past it, a cache can
+/// already have missed a contest posted while the lab was working, which is the failure this closes.
+pub const CACHE_FRESH_MINUTES: u64 = 20;
+
+/// How long ago the cache was refreshed, or `None` when it has never been written.
+///
+/// The cache file's mtime IS the refresh time, so no schema change is needed and older caches keep
+/// working. Reporting stays network-free on purpose: a check-in must be instant, which is why the
+/// cache exists at all.
+pub fn cache_age(paths: &StatePaths, lab: &str) -> Option<std::time::Duration> {
+    let meta = std::fs::metadata(cache_path(paths, lab)).ok()?;
+    std::time::SystemTime::now()
+        .duration_since(meta.modified().ok()?)
+        .ok()
+}
+
+/// `6h`, `45m`, `2d` - coarse on purpose: the question is whether this is stale, not exactly when.
+fn human_age(d: std::time::Duration) -> String {
+    let mins = d.as_secs() / 60;
+    if mins < 60 {
+        format!("{mins}m")
+    } else if mins < 48 * 60 {
+        format!("{}h", mins / 60)
+    } else {
+        format!("{}d", mins / (24 * 60))
+    }
+}
+
+/// The line a check-in should print about its note cache, or `None` when the cache is fresh.
+///
+/// **A floor count with no age is not a warning - it is noise a lab learns to read past.** That is
+/// how this lab missed a tasking: the check-in printed a floor from a cache hours old while 887
+/// notes sat behind it, and nothing in the line said the data was stale.
+///
+/// Pure, so the thresholds are testable without a clock or a filesystem.
+pub fn cache_line(age: Option<std::time::Duration>) -> Option<String> {
+    match age {
+        None => Some(NO_CACHE.to_string()),
+        Some(d) if d.as_secs() < CACHE_FRESH_MINUTES * 60 => None,
+        Some(d) => Some(format!(
+            "notes were last refreshed {} ago, so the count above is a floor - run: uor-harness notes",
+            human_age(d)
+        )),
+    }
+}
+
+/// No cache at all used to print NOTHING, so a lab that never ran `notes` could not know there was
+/// anything to run. That silence is the failure this closes.
+pub const NO_CACHE: &str = "no notes cache on this machine yet - run: uor-harness notes";
+
+#[cfg(test)]
+mod cache_line_tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn a_fresh_cache_says_nothing() {
+        assert!(cache_line(Some(Duration::from_secs(60))).is_none());
+        assert!(cache_line(Some(Duration::from_secs(19 * 60))).is_none());
+    }
+
+    /// The boundary matters: past the CONTEST window, silence is what lets a lab miss one.
+    #[test]
+    fn the_contest_boundary_is_where_it_reports() {
+        assert!(cache_line(Some(Duration::from_secs(20 * 60))).is_some());
+        assert!(cache_line(Some(Duration::from_secs(21 * 60))).is_some());
+    }
+
+    #[test]
+    fn a_stale_cache_names_its_age() {
+        let line = cache_line(Some(Duration::from_secs(6 * 3600))).expect("a line");
+        assert!(line.contains("6h"), "{line}");
+        assert!(line.contains("floor"), "{line}");
+        assert!(line.contains("uor-harness notes"), "{line}");
+    }
+
+    #[test]
+    fn no_cache_at_all_is_reported() {
+        assert!(cache_line(None)
+            .expect("a line")
+            .contains("uor-harness notes"));
+    }
+
+    #[test]
+    fn ages_are_coarse() {
+        assert_eq!(human_age(Duration::from_secs(45 * 60)), "45m");
+        assert_eq!(human_age(Duration::from_secs(6 * 3600)), "6h");
+        assert_eq!(human_age(Duration::from_secs(50 * 3600)), "2d");
+    }
+}

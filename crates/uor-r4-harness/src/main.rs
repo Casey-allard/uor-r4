@@ -2333,6 +2333,12 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 eprintln!("{line}");
             }
         }
+        // **And how old that floor is.** The count above comes from the cache, so without its age a lab
+        // cannot tell a fresh answer from a stale one - which is exactly how this lab missed a tasking
+        // sitting behind a six-hour-old cache. One line, still network-free, so a check-in stays instant.
+        if let Some(line) = notes::cache_line(notes::cache_age(&paths, &lab)) {
+            eprintln!("uor-harness: {line}");
+        }
     }
     let (live_ok, durable) = match heartbeat(&paths, &p) {
         Ok(v) => v,
