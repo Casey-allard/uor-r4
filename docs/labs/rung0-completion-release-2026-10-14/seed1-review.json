@@ -1,0 +1,18 @@
+{
+  "reviewer": "Claude",
+  "verdict": "APPROVE_A2_COMPLETION_ADMISSION_DIFF",
+  "scope": "m1-a2-completion-seed1-checkpoint1640..16404",
+  "execution": {
+    "base_source": "e7d926fbe38537f4faa90b817705c61a780778d6",
+    "reviewed_source_commit": "33564b75e02e945ec5d5c94740c5741362289236",
+    "source_sha256": "e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a",
+    "kernel_sha256": "931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "executable_sha256": "d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92",
+    "driver_source_sha256": "cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4",
+    "config_sha256": "6252b613c6bf84efeb0dbdcfde69877eb75da1ec6d868eaac3461d93d75a3d04",
+    "lineage_sha256": "94330d90f764c9245a7e9f4acabdd580c19d4e518a8a339a0bf772c0899da402",
+    "sheet_sha256": "4c317f1eb344d60de520d9f82786af99b2353ca14a08c690fa568e6c59d6f8a3"
+  },
+  "receipt_url": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170667006"
+}

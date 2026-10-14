@@ -1,0 +1,35 @@
+# uor-pod job by=claude/claude-completion-20261014 pod=vast-55939635 gpu=0 queued 2026-10-14T14:24:58Z
+# cmd: /workspace/uor-r4/completion-stage/qualify.sh
+# start 2026-10-14T14:24:58Z (holding /root/gpu0.lock)
+QUALIFY_START 2026-10-14T14:24:58Z exe=d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92
+NVIDIA GeForce RTX 5090, 580.178.04, 12.0
+{"index":1,"name":"exact_writer","status":"PASS"}
+{"index":2,"name":"virtual_proposals","status":"PASS"}
+{"index":3,"name":"context_transport","status":"PASS"}
+{"index":4,"name":"isolated_windows","status":"PASS"}
+{"index":5,"name":"collision_and_omitted_target","status":"PASS"}
+{"index":6,"name":"nonvacuity","status":"PASS"}
+{"index":7,"name":"artifact_and_identity","status":"PASS"}
+{"index":8,"name":"inventory_bounds","status":"PASS"}
+{"index":9,"name":"variable_length_prefixes","status":"PASS"}
+{"index":10,"name":"target_independent_admission","status":"PASS"}
+{"index":11,"name":"token_relabelling_preserves_geometry","status":"PASS"}
+qualify exit=0 elapsed_ns=5502052694
+{"index":1,"name":"flock_identity_read","status":"PASS"}
+{"index":2,"name":"flock_gate_counterfactual","status":"PASS"}
+{"index":3,"name":"flock_transport_witnesses","status":"PASS"}
+{"index":4,"name":"flock_payload_witness","status":"PASS"}
+{"index":5,"name":"flock_selection_and_eligibility","status":"PASS"}
+{"index":6,"name":"flock_refusals_and_noop","status":"PASS"}
+qualify-flock exit=0 elapsed_ns=2536515660
+{"index":1,"name":"isolated_apply_boundary","status":"PASS"}
+{"index":2,"name":"route_apply_reality","status":"PASS"}
+{"index":3,"name":"gate_apply_reality","status":"PASS"}
+{"index":4,"name":"fixture_loop_resume","status":"PASS"}
+{"index":5,"name":"native_top8_ties","status":"PASS"}
+{"index":6,"name":"count_reference_excludes_dev","status":"PASS"}
+{"index":7,"name":"seeded_initialization","status":"PASS"}
+{"index":8,"name":"corpus_schedule_resume","status":"PASS"}
+qualify-driver exit=0 elapsed_ns=2692626175
+QUALIFY_DONE 2026-10-14T14:25:09Z rc=0
+# exit=0 end=2026-10-14T14:25:09Z

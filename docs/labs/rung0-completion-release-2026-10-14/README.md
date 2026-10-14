@@ -31,17 +31,20 @@ release.
 - `sheet.md` — byte copy of the completion sheet at merge `4efd3f95b` (#2456;
   FIT (design), Amendments 1–3), sha256
   `4c317f1eb344d60de520d9f82786af99b2353ca14a08c690fa568e6c59d6f8a3`.
-- `seed1-review.json` / `seed2-review.json` — **not yet present**: Claude's
-  binding `APPROVE_A2_COMPLETION_ADMISSION_DIFF` records, written against the
-  final pinned identities after the qualified build (§ Open items b/c).
-  Until then the plans' `claude_review` pins carry an explicit placeholder.
+- `seed1-review.json` / `seed2-review.json` — Claude's binding
+  `APPROVE_A2_COMPLETION_ADMISSION_DIFF` records, written against the filled
+  execution identity after the qualified build (§ Open items b/c); receipt
+  [#2029 6170667006](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170667006).
+- `receipts/` — qualified-build, staging, identity, finite-control and
+  `completion-check-plan` receipts from pod `vast-55939635`, with `SHA256SUMS`
+  (`stage-build.log` has compiler progress lines removed).
 
-Each plan carries exactly two placeholder fields — `execution.executable_sha256`
-(`PENDING_QUALIFIED_COMPLETION_BUILD`) and `claude_review.sha256`
-(`PENDING_CLAUDE_BINDING_REVIEW`). Both are filled only from the qualified build
-and Claude's binding review (§ Open items b/c); every other pin is final in this
-draft. `completion-check-plan` fails closed on any placeholder, so the packet is
-deliberately not executable in this state.
+Both former placeholder fields are filled (§ Open items b/c):
+`execution.executable_sha256` from the qualified build and `claude_review.sha256`
+from Claude's binding records. `completion-check-plan` returns
+`PLAN_METADATA_VALID` on both plans (seed 1 plan `81128da9…`, seed 2 plan
+`05fa32cc…`; `receipts/completion-check-plan-seed*.json`), with
+`owner_release: STILL_REQUIRED`. The packet still releases nothing.
 
 ## Execution identity (pinned)
 
@@ -53,7 +56,7 @@ deliberately not executable in this state.
 | source_sha256 (CUDA) | `e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a` | same |
 | kernel_sha256 (PTX) | `931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b` | same |
 | geometry_sha256 | `46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327` | same |
-| executable_sha256 | *pending qualified build (b)* | *pending qualified build (b)* |
+| executable_sha256 | `d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92` | same |
 | driver_source_sha256 | `cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4` | same |
 | config_sha256 | `6252b613c6bf84efeb0dbdcfde69877eb75da1ec6d868eaac3461d93d75a3d04` | `029965ae487cf1b869ec38ee406929c765f650edc445d4b0935d833be5dbfd4d` |
 | lineage_sha256 | `94330d90f764c9245a7e9f4acabdd580c19d4e518a8a339a0bf772c0899da402` | `36bd0c03bfb40121366320c1c81b656705f56de5258f1c20161a0c56080799bc` |
@@ -210,8 +213,10 @@ completion-owner-release docs/labs/rung0-completion-release-2026-10-14/SEED2_PLA
 On the host that runs the release and launch, the pinned `sheet.md` and
 `seedN-review.json` absolute paths must resolve byte-identically (pilot
 discipline: the pod mirrored the absolute paths without changing the plan);
-the release refuses on any content-hash difference. The binary path is the one
-Codex's pod build produces and confirms when the completion pod is staged.
+the release refuses on any content-hash difference. The binary is the qualified
+`/workspace/uor-r4/completion-stage/bin/discrete-completion` (`d4fbe26c…`) on pod
+`vast-55939635`, run from `/workspace/uor-r4/completion-stage` (where the plan, configs
+and data sit at their relative paths; the absolute sheet/review paths are mirrored).
 
 It prints the pinned plan and requires typing exactly:
 
@@ -285,28 +290,22 @@ only the pre-run baseline and is noted, not required (Claude residual edge).
 
 ## Open items (before any release)
 
-- **(a) #2454 merge sha.** The D5 admission diff PR #2454 is APPROVED
-  (Claude, comment 6164246420) but still OPEN; Codex merges it. Record its
-  merge sha at delivery on #2029 and confirm the discrete crate stays
-  byte-identical to `33564b75e` (this packet binds the frozen source bytes, so
-  the merge sha is a provenance record, not a re-pin).
-- **(b) Qualified build pins (Claude N3).** The executing build must compile
-  the exact frozen source, unmodified (any source edit voids the D5 review and
-  this packet's identity fields). From that build: fill
-  `executable_sha256` in both plans; cross-confirm `driver_source_sha256`,
-  `config_sha256` and `lineage_sha256` for **both seeds** and the retained
-  source/kernel/geometry pins via `completion-build-identity` (the pilot's
-  build-identity discipline, #2029 comment 6160885825: seven
-  executable/driver/source/PTX/geometry/config/lineage comparisons, no CUDA
-  context). New CUDA compilation/runtime is **UNVERIFIED** until then. Record
-  the emitted pins, the binary path and the cross-confirmation on #2029.
-- **(c) Claude's binding review records (N4).** `validate_plan` requires
-  `claude_review.execution == plan.execution`, including the build-supplied
-  `executable_sha256`, so the binding `APPROVE_A2_COMPLETION_ADMISSION_DIFF`
-  records can only be written after (b). Two records, one per seed scope, with
-  a receipt URL on #2029; their sha256s become the plans' `claude_review` pins.
-  Claude's source-level APPROVE is already posted; this is the
-  executable-bound record.
+- **(a) #2454 merge sha — CLOSED.** Merged as `d0c97e500582466f3bf90186660ee5516ab54da2`
+  (2026-10-14 08:55:09Z); `git diff 33564b75e d0c97e500 -- crates/uor-r4-discrete` is empty.
+- **(b) Qualified build pins (Claude N3) — CLOSED.** Pod `vast-55939635` (1×RTX 5090,
+  driver 580.178.04, cc 12.0, Ubuntu 24.04.3; nvcc 12.8.93, Rust 1.97.1). Source fetched by
+  sha `33564b75e…`, clean tree; `cargo build --release --locked -p uor-r4-discrete --features
+  cuda`, `UOR_NVCC_ARCH=compute_120`, 24 s. Executable
+  `d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92` at
+  `/workspace/uor-r4/completion-stage/bin/discrete-completion`. `completion-build-identity`
+  (no CUDA context) matches all six plan pins for **both** seeds; every staged data, sheet and
+  parent hash verifies; no owner record on the pod. The 25 admitted finite controls pass on
+  this executable and host (Route 11, flock 6, driver 8; ~10.7 s; fixtures only) — run because
+  the host driver differs from the pilot's (580 vs 595).
+- **(c) Claude's binding review records (N4) — CLOSED.** `seed1-review.json`
+  (sha256 `e7acb4c9…`) and `seed2-review.json` (`f5f6e890…`), each with `execution` equal to
+  its plan's filled execution; receipt
+  [#2029 6170667006](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170667006).
 - **(d) Owner's two release decisions (D6).** Two separate owner-personal
   releases, one per seed; a seed-1 release cannot chain seed 2. After the
   seed-1 100% record, the owner decides whether seed 2 proceeds (the sheet's
@@ -314,7 +313,5 @@ only the pre-run baseline and is noted, not required (Claude residual edge).
   evidence, never a stop or a negative by itself), and at release time the
   owner also decides the dose-sequencing question (continuous two-seed vs
   seed-1-then-decide). This packet releases nothing.
-- **(e) Claude's one-line re-confirmation of sheet Amendment 3** is still
-  outstanding on #2029 ("I'll confirm Amendment 3 in one line when it
-  merges"; Amendment 3 merged as #2456). Not a code or build gate; recorded
-  here so the sheet's FIT trail is complete before the owner releases.
+- **(e) Claude's Amendment 3 re-confirmation — CLOSED.**
+  [#2029 6164615906](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6164615906).

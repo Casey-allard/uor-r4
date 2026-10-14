@@ -6,9 +6,9 @@
     "lab": "antigravity",
     "note": ""
   },
-  "claude/bootstrap-declared-bins": {
-    "branch": "claude/bootstrap-declared-bins",
-    "claimed_at": "2026-10-14T10:19:11-04:00",
+  "claude/completion-pins": {
+    "branch": "claude/completion-pins",
+    "claimed_at": "2026-10-14T10:08:12-04:00",
     "head": "3e2534eac",
     "lab": "claude",
     "note": ""

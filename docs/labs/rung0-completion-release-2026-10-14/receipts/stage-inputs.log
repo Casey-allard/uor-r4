@@ -1,0 +1,16 @@
+STAGE_INPUTS_START 2026-10-14T14:24:25Z
+local/driver/data/ft/dev/tokens.u16: OK
+local/driver/data/mw-balp/train/tokens.u16: OK
+local/driver/data/ft/dev/response_mask.u8: OK
+local/driver/data/mw-balp/train/response_mask.u8: OK
+local/driver/data/tokenizer.json: OK
+/Users/casey.allard/uor-r4/docs/labs/rung0-completion-release-2026-10-14/sheet.md: OK
+/workspace/uor-r4/rung0-completion-20261014/seed1-parent/rung0-pilot-20261014/pilot-attempt-1/checkpoint-1640.json: OK
+RUN_STATE_DIRS_ABSENT yes
+{"compiled":{"geometry_sha256":"46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327","kernel_sha256":"931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b","source_sha256":"e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a"},"config_sha256":"6252b613c6bf84efeb0dbdcfde69877eb75da1ec6d868eaac3461d93d75a3d04","cuda_context_created":false,"driver_source_sha256":"cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4","executable_sha256":"d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92","lineage_sha256":"94330d90f764c9245a7e9f4acabdd580c19d4e518a8a339a0bf772c0899da402","training":"HELD"}
+
+SEED1_IDENTITY_MATCH six pins + no CUDA context
+{"compiled":{"geometry_sha256":"46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327","kernel_sha256":"931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b","source_sha256":"e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a"},"config_sha256":"029965ae487cf1b869ec38ee406929c765f650edc445d4b0935d833be5dbfd4d","cuda_context_created":false,"driver_source_sha256":"cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4","executable_sha256":"d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92","lineage_sha256":"36bd0c03bfb40121366320c1c81b656705f56de5258f1c20161a0c56080799bc","training":"HELD"}
+
+SEED2_IDENTITY_MATCH six pins + no CUDA context
+STAGE_INPUTS_DONE 2026-10-14T14:24:25Z

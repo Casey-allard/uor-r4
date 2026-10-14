@@ -1,0 +1,15 @@
+STAGE_BUILD_START 2026-10-14T14:22:59Z
+PRETTY_NAME="Ubuntu 24.04.3 LTS"
+NVIDIA GeForce RTX 5090, 580.178.04, 12.0
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+SOURCE 33564b75e02e945ec5d5c94740c5741362289236
+SOURCE_CLEAN yes
+    Finished `release` profile [optimized] target(s) in 24.00s
+BUILD_SECONDS 24
+d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92  /workspace/uor-r4/completion-stage/bin/discrete-completion
+931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b  /workspace/uor-r4/completion-stage/target/release/build/uor-r4-discrete-4df26b603e66f47b/out/discrete.ptx
+345e846a62347715b2aeee11b060b18e3a321d6bfcf9669da27db06dbf5f54e9  /workspace/uor-r4/completion-stage/src-33564b75e02e945ec5d5c94740c5741362289236/crates/uor-r4-discrete/src/discrete.cu
+{"compiled":{"geometry_sha256":"46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327","kernel_sha256":"931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b","source_sha256":"e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a"},"cuda_context_created":false,"driver_source_sha256":"cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4","executable_sha256":"d4fbe26cd29f40d0feefe390180207c0c7f665761440efdf9e6bbff44461ac92","training":"HELD"}
+STAGE_BUILD_DONE 2026-10-14T14:23:30Z

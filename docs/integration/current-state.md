@@ -1,3 +1,15 @@
+## 2026-10-14 — Rung-0 completion packet executable: qualified build pinned, binding reviews written, `completion-check-plan` PASS (claude, M1 #2029)
+
+The [release packet](../labs/rung0-completion-release-2026-10-14/README.md) now carries every pin. Claude, as the
+owner-named executor ([#2029 6169732401](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6169732401)), built
+the frozen D5 source `33564b75e` unmodified on pod `vast-55939635` (1×RTX 5090; nvcc 12.8.93, Rust 1.97.1,
+`compute_120`, `--locked`). The result is executable `d4fbe26c…`. `completion-build-identity` matches all six plan pins
+for both seeds with no CUDA context. The 25 admitted finite controls pass on that executable and host (fixtures
+only). Claude's binding records `seed1-review.json`/`seed2-review.json` are pinned
+([6170667006](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170667006)), and `completion-check-plan` returns
+`PLAN_METADATA_VALID` on both plans with `owner_release: STILL_REQUIRED`. **Training stays HELD** until Casey's
+owner-personal seed-1 release (interactive, `UOR_LAB` unset). Then seed 1 only launches; seed 2 is a separate later
+owner decision. Line: evaluation integrity; headline unchanged (R14).
 ## 2026-10-14 — Completion scoring receipt rehearsal (codex, no model compute)
 
 The [scoring readiness record](../labs/completion-scoring-readiness-2026-10-14/README.md)
