@@ -97,6 +97,10 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             // parser returns no Result, so the state is unrepresentable rather than unimplemented.
             "prlint.checks_at_head",
             "prlint.org_rules",
+            // **The declared-gate reconciliation, exercised rather than introspected.** Python AST-walks
+            // `prlint.py` to see what `check_pr()` raises; this asserts that the ids `check_pr`
+            // ACTUALLY EMITS are within `DECLARED_GATES` - which also catches an id built at runtime.
+            "prlint.gates_declared",
         ],
     ),
     (
