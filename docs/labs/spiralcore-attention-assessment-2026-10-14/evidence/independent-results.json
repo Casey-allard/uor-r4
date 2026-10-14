@@ -1,0 +1,98 @@
+{
+  "scope": "finite byte codec and tree accounting only; no model compute",
+  "node": "v26.4.0",
+  "tests": [
+    "Exact carry and base-3 frontier identities for N=1..1000000; radix capacity inequality",
+    "8192 direct Tier-3 round trips; malformed frame length, zero length tag and reserved digit rejected",
+    "Frontier occurrence count differs from connected components of deduplicated DAG: six identical atoms",
+    "Novel-byte cold/warm, overwrite, and prefix-insertion endpoint reconstructions and full byte accounting"
+  ],
+  "runs": [
+    {
+      "name": "novel-128KiB.bin",
+      "inputBytes": 131072,
+      "rootBytes": 182,
+      "metadataBytes": 132,
+      "requestBytes": 130,
+      "seedBytes": 230213,
+      "receiptBytes": 48,
+      "totalBytes": 230705,
+      "newNodes": 6139,
+      "retainedNodes": 6139,
+      "retainedRecordBytes": 284427,
+      "rounds": 1,
+      "verified": true
+    },
+    {
+      "name": "novel-128KiB.bin",
+      "inputBytes": 131072,
+      "rootBytes": 182,
+      "metadataBytes": 132,
+      "requestBytes": 5,
+      "seedBytes": 0,
+      "receiptBytes": 48,
+      "totalBytes": 367,
+      "newNodes": 0,
+      "retainedNodes": 6139,
+      "retainedRecordBytes": 284427,
+      "rounds": 0,
+      "verified": true
+    },
+    {
+      "name": "one-byte-overwrite.bin",
+      "inputBytes": 131072,
+      "rootBytes": 182,
+      "metadataBytes": 144,
+      "requestBytes": 141,
+      "seedBytes": 568,
+      "receiptBytes": 48,
+      "totalBytes": 1083,
+      "newNodes": 8,
+      "retainedNodes": 6147,
+      "retainedRecordBytes": 284815,
+      "rounds": 8,
+      "verified": true
+    },
+    {
+      "name": "one-byte-prefix.bin",
+      "inputBytes": 131073,
+      "rootBytes": 194,
+      "metadataBytes": 138,
+      "requestBytes": 142,
+      "seedBytes": 230246,
+      "receiptBytes": 48,
+      "totalBytes": 230768,
+      "newNodes": 6140,
+      "retainedNodes": 12279,
+      "retainedRecordBytes": 568899,
+      "rounds": 1,
+      "verified": true
+    }
+  ],
+  "radix": {
+    "pow63_42": "3735107253208426854890677539053540390278853997836851167913009474475553834369",
+    "pow2_256": "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+    "pow63_43": "235311756952130891858112684960373044587567801863721623578519596891959891565247",
+    "digits": 43,
+    "packedBits": 258,
+    "frameBytes": 33
+  },
+  "frontier": {
+    "throughN": 1000000,
+    "roots": 14,
+    "carries": 499993,
+    "maxRoots": 24
+  },
+  "occurrenceVsDedup": {
+    "atoms": 6,
+    "frontierReferences": 2,
+    "uniqueFrontierIDs": 1,
+    "uniqueStoredNodes": 2,
+    "uniqueGraphConnectedComponents": 1
+  },
+  "rawDeflateComparison": {
+    "inputBytes": 131072,
+    "deflateBytes": 131118,
+    "tier3FramedDeflateBytes": 135239
+  }
+}

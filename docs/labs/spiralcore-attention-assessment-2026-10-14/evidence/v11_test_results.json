@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "checks": [
+    "8 binary-v2 round trips, including empty files, partial leaves and Unicode names",
+    "Repeated-subtree memoization preserves a partial final leaf",
+    "Wrong signature, truncated data, trailing bytes and negative node count are rejected",
+    "Actual store function restores a stale-cache missing node and skips a genuinely existing node"
+  ],
+  "storage_test": "Controlled transaction adapter, not an actual browser IndexedDB test",
+  "browser_ui_tested": false
+}

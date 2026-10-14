@@ -1,0 +1,584 @@
+{
+  "scope": "Showcase transfer engine, embedded worker RPC and byte reconstruction",
+  "checks": [
+    "All 32 Tier 3 frame lengths match independent Python encoder bytes",
+    "Pure JavaScript SHA-256 fallback matches standard SHA-256 at padding boundaries and 1 MiB",
+    "Cold, repeat and one-byte edit: all exact; warm seed zero; edited receiver gains ten nodes",
+    "Guided demo uses the original reference fixture and fingerprint",
+    "Real 50-byte invariant header is embedded in the 254-byte V4P packet; malformed lengths rejected",
+    "Receiver detects a missing descendant and repairs it without resending the full file",
+    "Empty and partial-final-block files transfer with exact length and bytes",
+    "Corrupt seed records cannot alter the committed receiver store",
+    "Application engine retains receiver state independently, supports download, and resets it explicitly",
+    "Embedded worker code: transferred input buffer, isolated receiver state, verified output, warm repeat"
+  ],
+  "runs": [
+    {
+      "fileId": "Cold start.bin",
+      "name": "Cold start.bin",
+      "inputBytes": 1048576,
+      "n": 32768,
+      "carries": 16376,
+      "roots": [
+        "5a6c502550d8a07adea31541",
+        "9b46b2f98fe4a8484be8c53c",
+        "79db74e65f1cfd746cb20277",
+        "f85f095d369636d283be0c98",
+        "6a207922b03351d38e7cba46",
+        "bf4d1c40230be7143c4cff26",
+        "8ee8e9c57fdfb9832ac7c6aa",
+        "ab69842c42531d9a425fed1f",
+        "48f3183974095aefefda757d",
+        "3607e810382b5d15caa6e5ff",
+        "22dbf490d302c3ffc75c31e3",
+        "38c2f72522c2cc6024da7e8f",
+        "012710b286f1ca86ea7be889",
+        "725e16e29e7670590a0728a4",
+        "d82f094eed5ffe9344abcec0",
+        "a146e35db9f231224eb634dd"
+      ],
+      "rootScales": [
+        9,
+        8,
+        7,
+        7,
+        6,
+        6,
+        5,
+        5,
+        4,
+        4,
+        3,
+        2,
+        1,
+        1,
+        0,
+        0
+      ],
+      "rootPacketBytes": 254,
+      "frontierBytes": 242,
+      "metadataBytes": 129,
+      "requestBytes": 202,
+      "seedBytes": 61946,
+      "seedFrameBytes": 61941,
+      "receiptBytes": 48,
+      "totalBytes": 62579,
+      "rounds": 1,
+      "newNodes": 2245,
+      "receiverNodesBefore": 0,
+      "receiver": {
+        "nodes": 2245,
+        "recordBytes": 107957,
+        "levels": {
+          "0": 512,
+          "1": 512,
+          "2": 512,
+          "3": 256,
+          "4": 256,
+          "5": 134,
+          "6": 44,
+          "7": 14,
+          "8": 4,
+          "9": 1
+        },
+        "files": [
+          {
+            "id": "Cold start.bin",
+            "name": "Cold start.bin",
+            "type": "application/octet-stream",
+            "size": 1048576,
+            "created": 1,
+            "modified": 1,
+            "n": 32768,
+            "carries": 16376,
+            "sha256": "b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+            "roots": [
+              "5a6c502550d8a07adea31541",
+              "9b46b2f98fe4a8484be8c53c",
+              "79db74e65f1cfd746cb20277",
+              "f85f095d369636d283be0c98",
+              "6a207922b03351d38e7cba46",
+              "bf4d1c40230be7143c4cff26",
+              "8ee8e9c57fdfb9832ac7c6aa",
+              "ab69842c42531d9a425fed1f",
+              "48f3183974095aefefda757d",
+              "3607e810382b5d15caa6e5ff",
+              "22dbf490d302c3ffc75c31e3",
+              "38c2f72522c2cc6024da7e8f",
+              "012710b286f1ca86ea7be889",
+              "725e16e29e7670590a0728a4",
+              "d82f094eed5ffe9344abcec0",
+              "a146e35db9f231224eb634dd"
+            ]
+          }
+        ]
+      },
+      "source": {
+        "nodes": 2245,
+        "recordBytes": 107957,
+        "levels": {
+          "0": 512,
+          "1": 512,
+          "2": 512,
+          "3": 256,
+          "4": 256,
+          "5": 134,
+          "6": 44,
+          "7": 14,
+          "8": 4,
+          "9": 1
+        }
+      },
+      "verified": true,
+      "sha256": "b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+      "rootPacketHex": "56345056015000f200000001000000000000800000103fcf1bbd00003ff8b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce35a6c502550d8a07adea315419b46b2f98fe4a8484be8c53c79db74e65f1cfd746cb20277f85f095d369636d283be0c986a207922b03351d38e7cba46bf4d1c40230be7143c4cff268ee8e9c57fdfb9832ac7c6aaab69842c42531d9a425fed1f48f3183974095aefefda757d3607e810382b5d15caa6e5ff22dbf490d302c3ffc75c31e338c2f72522c2cc6024da7e8f012710b286f1ca86ea7be889725e16e29e7670590a0728a4d82f094eed5ffe9344abcec0a146e35db9f231224eb634dd",
+      "invariantHex": "000000000000800000103fcf1bbd00003ff8b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+      "strategy": "subtree batch",
+      "seedEncoding": "deflate + Tier 3",
+      "ms": 178.21333299999992,
+      "trace": [
+        {
+          "phase": "packet",
+          "message": "Packed 254 root bytes and 129 metadata bytes."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 1: 16 missing nodes · subtree batch."
+        },
+        {
+          "phase": "rebuild",
+          "message": "Receiver is rebuilding from its own complete ancestry."
+        },
+        {
+          "phase": "verified",
+          "message": "Verified 1,048,576 bytes. 2,245 new stored nodes."
+        }
+      ],
+      "reference": {
+        "totalBytes": 62579,
+        "seedBytes": 61946,
+        "rounds": 1
+      },
+      "savedBytes": 0
+    },
+    {
+      "fileId": "Warm repeat.bin",
+      "name": "Warm repeat.bin",
+      "inputBytes": 1048576,
+      "n": 32768,
+      "carries": 16376,
+      "roots": [
+        "5a6c502550d8a07adea31541",
+        "9b46b2f98fe4a8484be8c53c",
+        "79db74e65f1cfd746cb20277",
+        "f85f095d369636d283be0c98",
+        "6a207922b03351d38e7cba46",
+        "bf4d1c40230be7143c4cff26",
+        "8ee8e9c57fdfb9832ac7c6aa",
+        "ab69842c42531d9a425fed1f",
+        "48f3183974095aefefda757d",
+        "3607e810382b5d15caa6e5ff",
+        "22dbf490d302c3ffc75c31e3",
+        "38c2f72522c2cc6024da7e8f",
+        "012710b286f1ca86ea7be889",
+        "725e16e29e7670590a0728a4",
+        "d82f094eed5ffe9344abcec0",
+        "a146e35db9f231224eb634dd"
+      ],
+      "rootScales": [
+        9,
+        8,
+        7,
+        7,
+        6,
+        6,
+        5,
+        5,
+        4,
+        4,
+        3,
+        2,
+        1,
+        1,
+        0,
+        0
+      ],
+      "rootPacketBytes": 254,
+      "frontierBytes": 242,
+      "metadataBytes": 131,
+      "requestBytes": 5,
+      "seedBytes": 0,
+      "seedFrameBytes": 0,
+      "receiptBytes": 48,
+      "totalBytes": 438,
+      "rounds": 0,
+      "newNodes": 0,
+      "receiverNodesBefore": 2245,
+      "receiver": {
+        "nodes": 2245,
+        "recordBytes": 107957,
+        "levels": {
+          "0": 512,
+          "1": 512,
+          "2": 512,
+          "3": 256,
+          "4": 256,
+          "5": 134,
+          "6": 44,
+          "7": 14,
+          "8": 4,
+          "9": 1
+        },
+        "files": [
+          {
+            "id": "Cold start.bin",
+            "name": "Cold start.bin",
+            "type": "application/octet-stream",
+            "size": 1048576,
+            "created": 1,
+            "modified": 1,
+            "n": 32768,
+            "carries": 16376,
+            "sha256": "b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+            "roots": [
+              "5a6c502550d8a07adea31541",
+              "9b46b2f98fe4a8484be8c53c",
+              "79db74e65f1cfd746cb20277",
+              "f85f095d369636d283be0c98",
+              "6a207922b03351d38e7cba46",
+              "bf4d1c40230be7143c4cff26",
+              "8ee8e9c57fdfb9832ac7c6aa",
+              "ab69842c42531d9a425fed1f",
+              "48f3183974095aefefda757d",
+              "3607e810382b5d15caa6e5ff",
+              "22dbf490d302c3ffc75c31e3",
+              "38c2f72522c2cc6024da7e8f",
+              "012710b286f1ca86ea7be889",
+              "725e16e29e7670590a0728a4",
+              "d82f094eed5ffe9344abcec0",
+              "a146e35db9f231224eb634dd"
+            ]
+          },
+          {
+            "id": "Warm repeat.bin",
+            "name": "Warm repeat.bin",
+            "type": "application/octet-stream",
+            "size": 1048576,
+            "created": 1,
+            "modified": 1,
+            "n": 32768,
+            "carries": 16376,
+            "sha256": "b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+            "roots": [
+              "5a6c502550d8a07adea31541",
+              "9b46b2f98fe4a8484be8c53c",
+              "79db74e65f1cfd746cb20277",
+              "f85f095d369636d283be0c98",
+              "6a207922b03351d38e7cba46",
+              "bf4d1c40230be7143c4cff26",
+              "8ee8e9c57fdfb9832ac7c6aa",
+              "ab69842c42531d9a425fed1f",
+              "48f3183974095aefefda757d",
+              "3607e810382b5d15caa6e5ff",
+              "22dbf490d302c3ffc75c31e3",
+              "38c2f72522c2cc6024da7e8f",
+              "012710b286f1ca86ea7be889",
+              "725e16e29e7670590a0728a4",
+              "d82f094eed5ffe9344abcec0",
+              "a146e35db9f231224eb634dd"
+            ]
+          }
+        ]
+      },
+      "source": {
+        "nodes": 2245,
+        "recordBytes": 107957,
+        "levels": {
+          "0": 512,
+          "1": 512,
+          "2": 512,
+          "3": 256,
+          "4": 256,
+          "5": 134,
+          "6": 44,
+          "7": 14,
+          "8": 4,
+          "9": 1
+        }
+      },
+      "verified": true,
+      "sha256": "b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+      "rootPacketHex": "56345056015000f200000001000000000000800000103fcf1bbd00003ff8b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce35a6c502550d8a07adea315419b46b2f98fe4a8484be8c53c79db74e65f1cfd746cb20277f85f095d369636d283be0c986a207922b03351d38e7cba46bf4d1c40230be7143c4cff268ee8e9c57fdfb9832ac7c6aaab69842c42531d9a425fed1f48f3183974095aefefda757d3607e810382b5d15caa6e5ff22dbf490d302c3ffc75c31e338c2f72522c2cc6024da7e8f012710b286f1ca86ea7be889725e16e29e7670590a0728a4d82f094eed5ffe9344abcec0a146e35db9f231224eb634dd",
+      "invariantHex": "000000000000800000103fcf1bbd00003ff8b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+      "strategy": "subtree batch",
+      "seedEncoding": "no seed",
+      "ms": 89.87695799999983,
+      "trace": [
+        {
+          "phase": "packet",
+          "message": "Packed 254 root bytes and 131 metadata bytes."
+        },
+        {
+          "phase": "rebuild",
+          "message": "Receiver is rebuilding from its own complete ancestry."
+        },
+        {
+          "phase": "verified",
+          "message": "Verified 1,048,576 bytes. 0 new stored nodes."
+        }
+      ],
+      "reference": {
+        "totalBytes": 438,
+        "seedBytes": 0,
+        "rounds": 0
+      },
+      "savedBytes": 0
+    },
+    {
+      "fileId": "One-byte edit.bin",
+      "name": "One-byte edit.bin",
+      "inputBytes": 1048576,
+      "n": 32768,
+      "carries": 16376,
+      "roots": [
+        "34e29b5d1496e15de4c852a8",
+        "9b46b2f98fe4a8484be8c53c",
+        "79db74e65f1cfd746cb20277",
+        "f85f095d369636d283be0c98",
+        "6a207922b03351d38e7cba46",
+        "bf4d1c40230be7143c4cff26",
+        "8ee8e9c57fdfb9832ac7c6aa",
+        "ab69842c42531d9a425fed1f",
+        "48f3183974095aefefda757d",
+        "3607e810382b5d15caa6e5ff",
+        "22dbf490d302c3ffc75c31e3",
+        "38c2f72522c2cc6024da7e8f",
+        "012710b286f1ca86ea7be889",
+        "725e16e29e7670590a0728a4",
+        "d82f094eed5ffe9344abcec0",
+        "a146e35db9f231224eb634dd"
+      ],
+      "rootScales": [
+        9,
+        8,
+        7,
+        7,
+        6,
+        6,
+        5,
+        5,
+        4,
+        4,
+        3,
+        2,
+        1,
+        1,
+        0,
+        0
+      ],
+      "rootPacketBytes": 254,
+      "frontierBytes": 242,
+      "metadataBytes": 135,
+      "requestBytes": 175,
+      "seedBytes": 710,
+      "seedFrameBytes": 660,
+      "receiptBytes": 48,
+      "totalBytes": 1322,
+      "rounds": 10,
+      "newNodes": 10,
+      "receiverNodesBefore": 2245,
+      "receiver": {
+        "nodes": 2255,
+        "recordBytes": 108443,
+        "levels": {
+          "0": 513,
+          "1": 513,
+          "2": 513,
+          "3": 257,
+          "4": 257,
+          "5": 135,
+          "6": 45,
+          "7": 15,
+          "8": 5,
+          "9": 2
+        },
+        "files": [
+          {
+            "id": "Cold start.bin",
+            "name": "Cold start.bin",
+            "type": "application/octet-stream",
+            "size": 1048576,
+            "created": 1,
+            "modified": 1,
+            "n": 32768,
+            "carries": 16376,
+            "sha256": "b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+            "roots": [
+              "5a6c502550d8a07adea31541",
+              "9b46b2f98fe4a8484be8c53c",
+              "79db74e65f1cfd746cb20277",
+              "f85f095d369636d283be0c98",
+              "6a207922b03351d38e7cba46",
+              "bf4d1c40230be7143c4cff26",
+              "8ee8e9c57fdfb9832ac7c6aa",
+              "ab69842c42531d9a425fed1f",
+              "48f3183974095aefefda757d",
+              "3607e810382b5d15caa6e5ff",
+              "22dbf490d302c3ffc75c31e3",
+              "38c2f72522c2cc6024da7e8f",
+              "012710b286f1ca86ea7be889",
+              "725e16e29e7670590a0728a4",
+              "d82f094eed5ffe9344abcec0",
+              "a146e35db9f231224eb634dd"
+            ]
+          },
+          {
+            "id": "Warm repeat.bin",
+            "name": "Warm repeat.bin",
+            "type": "application/octet-stream",
+            "size": 1048576,
+            "created": 1,
+            "modified": 1,
+            "n": 32768,
+            "carries": 16376,
+            "sha256": "b726fcd2e71193875a9b1f8f2b5ad168af7075b6adc75a74b6ee836567e3fce3",
+            "roots": [
+              "5a6c502550d8a07adea31541",
+              "9b46b2f98fe4a8484be8c53c",
+              "79db74e65f1cfd746cb20277",
+              "f85f095d369636d283be0c98",
+              "6a207922b03351d38e7cba46",
+              "bf4d1c40230be7143c4cff26",
+              "8ee8e9c57fdfb9832ac7c6aa",
+              "ab69842c42531d9a425fed1f",
+              "48f3183974095aefefda757d",
+              "3607e810382b5d15caa6e5ff",
+              "22dbf490d302c3ffc75c31e3",
+              "38c2f72522c2cc6024da7e8f",
+              "012710b286f1ca86ea7be889",
+              "725e16e29e7670590a0728a4",
+              "d82f094eed5ffe9344abcec0",
+              "a146e35db9f231224eb634dd"
+            ]
+          },
+          {
+            "id": "One-byte edit.bin",
+            "name": "One-byte edit.bin",
+            "type": "application/octet-stream",
+            "size": 1048576,
+            "created": 1,
+            "modified": 1,
+            "n": 32768,
+            "carries": 16376,
+            "sha256": "fd6d4a88cc8336e4ea02b54fc5235b4dc0857389d3d989754203ba717a3f592c",
+            "roots": [
+              "34e29b5d1496e15de4c852a8",
+              "9b46b2f98fe4a8484be8c53c",
+              "79db74e65f1cfd746cb20277",
+              "f85f095d369636d283be0c98",
+              "6a207922b03351d38e7cba46",
+              "bf4d1c40230be7143c4cff26",
+              "8ee8e9c57fdfb9832ac7c6aa",
+              "ab69842c42531d9a425fed1f",
+              "48f3183974095aefefda757d",
+              "3607e810382b5d15caa6e5ff",
+              "22dbf490d302c3ffc75c31e3",
+              "38c2f72522c2cc6024da7e8f",
+              "012710b286f1ca86ea7be889",
+              "725e16e29e7670590a0728a4",
+              "d82f094eed5ffe9344abcec0",
+              "a146e35db9f231224eb634dd"
+            ]
+          }
+        ]
+      },
+      "source": {
+        "nodes": 2249,
+        "recordBytes": 108149,
+        "levels": {
+          "0": 513,
+          "1": 513,
+          "2": 513,
+          "3": 257,
+          "4": 256,
+          "5": 134,
+          "6": 44,
+          "7": 14,
+          "8": 4,
+          "9": 1
+        }
+      },
+      "verified": true,
+      "sha256": "fd6d4a88cc8336e4ea02b54fc5235b4dc0857389d3d989754203ba717a3f592c",
+      "rootPacketHex": "56345056015000f200000001000000000000800000103fcf1bbd00003ff8fd6d4a88cc8336e4ea02b54fc5235b4dc0857389d3d989754203ba717a3f592c34e29b5d1496e15de4c852a89b46b2f98fe4a8484be8c53c79db74e65f1cfd746cb20277f85f095d369636d283be0c986a207922b03351d38e7cba46bf4d1c40230be7143c4cff268ee8e9c57fdfb9832ac7c6aaab69842c42531d9a425fed1f48f3183974095aefefda757d3607e810382b5d15caa6e5ff22dbf490d302c3ffc75c31e338c2f72522c2cc6024da7e8f012710b286f1ca86ea7be889725e16e29e7670590a0728a4d82f094eed5ffe9344abcec0a146e35db9f231224eb634dd",
+      "invariantHex": "000000000000800000103fcf1bbd00003ff8fd6d4a88cc8336e4ea02b54fc5235b4dc0857389d3d989754203ba717a3f592c",
+      "strategy": "exact nodes",
+      "seedEncoding": "deflate + Tier 3",
+      "ms": 297.72083399999974,
+      "trace": [
+        {
+          "phase": "packet",
+          "message": "Packed 254 root bytes and 135 metadata bytes."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 1: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 2: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 3: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 4: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 5: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 6: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 7: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 8: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 9: 1 missing node · exact records."
+        },
+        {
+          "phase": "sync",
+          "message": "Round 10: 1 missing node · exact records."
+        },
+        {
+          "phase": "rebuild",
+          "message": "Receiver is rebuilding from its own complete ancestry."
+        },
+        {
+          "phase": "verified",
+          "message": "Verified 1,048,576 bytes. 10 new stored nodes."
+        }
+      ],
+      "reference": {
+        "totalBytes": 60359,
+        "seedBytes": 59900,
+        "rounds": 1
+      },
+      "savedBytes": 59037
+    }
+  ],
+  "browser_ui_tested": false,
+  "passed": true,
+  "groups": 10,
+  "limit": "No browser-control plugin available: visual rendering and actual browser IndexedDB/download interactions are not browser-tested."
+}
