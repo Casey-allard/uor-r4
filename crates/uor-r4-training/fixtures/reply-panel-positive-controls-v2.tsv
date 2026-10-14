@@ -32,4 +32,5 @@ heldout-077	Please describe the process of how a star is born and what factors c
 heldout-092	Answer with one of the following options: [response_options] My answer is yes. My answer is no. My answer is maybe. Is the sky blue?	My answer is yes.
 heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	f(x) - g(x) = 8x^2 + x - 10.
 heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	The roots are x = (3 + sqrt(33)) / 2 and (3 - sqrt(33)) / 2.
+heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	The roots are 4.37 and −1.37
 heldout-173	Create a story using only six words.	For sale: baby shoes, never worn.

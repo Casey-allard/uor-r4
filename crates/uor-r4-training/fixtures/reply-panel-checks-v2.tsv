@@ -62,7 +62,7 @@ heldout-117	clarify	none	which words|what topic|which topic|what subject|what sh
 heldout-118	abstain_exact	none	-	-	-
 heldout-122	exact_text	none	8x^2+x-10|8x2+x-10	-8x^2|-8x2|8x^2-x|8x2-x|+x+10|6x^2|6x2|17x	-
 heldout-124	abstain_exact	none	-	-	-
-heldout-125	exact_text	none	(3+sqrt(33))/2|(3-sqrt(33))/2|(3±sqrt(33))/2|(3+-sqrt(33))/2|(3+sqrt33)/2|(3-sqrt33)/2|(3±sqrt33)/2|x=4.37|x≈4.37|is4.37|x=-1.37|x≈-1.37|is-1.37	x=sqrt(33)|x=sqrt33|x=1.37|x≈1.37|is1.37|-4.37|x=11|x=1|equals11	-
+heldout-125	exact_text	none	(3+sqrt(33))/2|(3-sqrt(33))/2|(3±sqrt(33))/2|(3+-sqrt(33))/2|(3+sqrt33)/2|(3-sqrt33)/2|(3±sqrt33)/2|x=4.37|x≈4.37|is4.37|4.37|x=-1.37|x≈-1.37|is-1.37|-1.37	x=sqrt(33)|x=sqrt33|x=1.37|x≈1.37|is1.37|1.37|-4.37|x=11|x=1|equals11	-
 heldout-126	reply_exact	none	printf|stdio|include|main(	cout|System.out|console.log|print	java|javascript|python|cpp
 heldout-128	abstain_exact	none	-	-	-
 heldout-131	salutation	none	-	remember that	-

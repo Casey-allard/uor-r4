@@ -5,6 +5,8 @@ heldout-092	Answer with one of the following options: [response_options] My answ
 heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	f(x) - g(x) = 8x^2 - x + 10.
 heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	f(x) - g(x) = -8x^2 + x + 10.
 heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	f(x) - g(x) = -8x^2 + x - 10.
+heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	18x² + x − 10
+heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	8x² + x − 100
 heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	x = sqrt(33)
 heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	x = 1.37
 heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	33/2 is the answer

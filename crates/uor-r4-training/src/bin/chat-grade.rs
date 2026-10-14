@@ -114,6 +114,7 @@
 //! differ from the CPU's where float reduction order changes an argmax.
 
 #![forbid(unsafe_code)]
+#![deny(warnings)]
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -703,6 +704,63 @@ fn compact_math_text(text: &str) -> String {
     out
 }
 
+/// Whether `haystack` contains `needle` respecting numeric and digit boundaries.
+///
+/// If `needle` begins with an ASCII digit, the preceding character in `haystack`
+/// cannot be an ASCII digit, a decimal point following a digit (e.g. `0.8`), or
+/// a minus sign `'-'` (which would negate a positive coefficient).
+///
+/// If `needle` begins with `'-'` followed by an ASCII digit, the preceding character
+/// in `haystack` cannot be an ASCII digit, a minus sign `'-'`, or a decimal point
+/// following a digit.
+///
+/// If `needle` ends with an ASCII digit, the following character in `haystack`
+/// cannot be an ASCII digit, or a decimal point followed by a digit (e.g. `10.5`).
+fn contains_exact_math_term(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return false;
+    }
+    haystack.match_indices(needle).any(|(start, matched)| {
+        let end = start + matched.len();
+
+        let mut chars = needle.chars();
+        let first = chars.next();
+        let starts_with_digit = first.is_some_and(|c| c.is_ascii_digit());
+        let starts_with_neg_digit =
+            first == Some('-') && chars.next().is_some_and(|c| c.is_ascii_digit());
+
+        if (starts_with_digit || starts_with_neg_digit) && start > 0 {
+            let prev = haystack[..start].chars().next_back().unwrap();
+            if prev.is_ascii_digit() || prev == '-' {
+                return false;
+            }
+            if prev == '.' {
+                let before_dot = &haystack[..start - prev.len_utf8()];
+                if before_dot.chars().next_back().is_some_and(|c| c.is_ascii_digit()) {
+                    return false;
+                }
+            }
+        }
+
+        if let Some(last) = needle.chars().next_back() {
+            if last.is_ascii_digit() && end < haystack.len() {
+                let next = haystack[end..].chars().next().unwrap();
+                if next.is_ascii_digit() {
+                    return false;
+                }
+                if next == '.' {
+                    let after_dot = &haystack[end + next.len_utf8()..];
+                    if after_dot.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    })
+}
+
 /// The frozen phrases an `abstain` check accepts: the reply says it does not
 /// know, cannot, or was not told.
 const ABSTAIN_PHRASES: &[&str] = &[
@@ -1162,8 +1220,8 @@ impl RowCheck {
             }
             CheckKind::ExactText { terms, forbid } => {
                 let compact = compact_math_text(reply);
-                !forbid.iter().any(|f| compact.contains(f.as_str()))
-                    && terms.iter().any(|t| compact.contains(t.as_str()))
+                !forbid.iter().any(|f| contains_exact_math_term(&compact, f))
+                    && terms.iter().any(|t| contains_exact_math_term(&compact, t))
             }
             CheckKind::Clarify(terms) => {
                 let asks_or_invites =
@@ -1217,7 +1275,7 @@ impl RowCheck {
             }
             CheckKind::ExactText { forbid, .. } => {
                 let compact = compact_math_text(reply);
-                if forbid.iter().any(|f| compact.contains(f.as_str())) {
+                if forbid.iter().any(|f| contains_exact_math_term(&compact, f)) {
                     "contains_forbidden_term"
                 } else {
                     "missing_expected_value"
@@ -1759,7 +1817,10 @@ fn validate_checks(checks: &Checks, requests: &[Request]) -> Result<Vec<String>,
                     .map(|t| compact_math_text(t))
                     .collect();
                 if let Some(last_compact) = compact_turns.last() {
-                    if let Some(t) = terms.iter().find(|t| last_compact.contains(t.as_str())) {
+                    if let Some(t) = terms
+                        .iter()
+                        .find(|t| contains_exact_math_term(last_compact, t))
+                    {
                         return Err(format!(
                             "row {}: exact_text term '{t}' is in the last user turn",
                             request.id
@@ -1767,10 +1828,11 @@ fn validate_checks(checks: &Checks, requests: &[Request]) -> Result<Vec<String>,
                         .into());
                     }
                 }
-                if let Some(f) = forbid
-                    .iter()
-                    .find(|f| compact_turns.iter().any(|u| u.contains(f.as_str())))
-                {
+                if let Some(f) = forbid.iter().find(|f| {
+                    compact_turns
+                        .iter()
+                        .any(|u| contains_exact_math_term(u, f))
+                }) {
                     return Err(format!(
                         "row {}: exact_text forbidden term '{f}' is in a user turn",
                         request.id
@@ -2057,6 +2119,7 @@ fn reply(_arguments: &[String]) -> Result<(), Error> {
 
 /// Each panel row's id, category and conversation as (user, reply) pairs,
 /// from a `reply_panel` record (`rows[].turns[].{user, reply}`).
+#[allow(clippy::type_complexity)]
 fn panel_conversations(
     panel: &Value,
 ) -> Result<Vec<(String, String, Vec<(String, String)>)>, Error> {
@@ -5723,7 +5786,7 @@ mod tests {
         ));
         assert!(validate_checks(&checks_v2, &v5_all).is_ok());
 
-        // 2. Frozen must-pass positive controls (`F5` + `F6`, 34 rows: id \t user_turn \t reply).
+        // 2. Frozen must-pass positive controls (`F5` + `F6` + `F9`, 35 rows: id \t user_turn \t reply).
         let pos_text = include_str!("../../fixtures/reply-panel-positive-controls-v2.tsv");
         let mut pos_count = 0usize;
         for (line_no, line) in pos_text.lines().enumerate() {
@@ -5741,7 +5804,7 @@ mod tests {
             );
             pos_count += 1;
         }
-        assert_eq!(pos_count, 34);
+        assert_eq!(pos_count, 35);
 
         // Also verify the widened `F5` abstention positive controls pass every
         // `unknowable_or_impossible` row of conversational-v5 under `v2`.
@@ -5766,7 +5829,7 @@ mod tests {
             }
         }
 
-        // 3. Frozen must-fail negative controls (`F7`, 15 rows: id \t user_turn \t reply),
+        // 3. Frozen must-fail negative controls (`F7` + `F9`, 17 rows: id \t user_turn \t reply),
         // including the 6 wrong answers on `heldout-092`, `heldout-122`, and `heldout-125`.
         let neg_text = include_str!("../../fixtures/reply-panel-negative-controls-v2.tsv");
         let mut neg_count = 0usize;
@@ -5784,7 +5847,7 @@ mod tests {
             );
             neg_count += 1;
         }
-        assert_eq!(neg_count, 15);
+        assert_eq!(neg_count, 17);
 
         // Adversarial abstentions still fail every `abstain_exact` row;
         // non-salutation rows score 0 across all canned/control constants;
@@ -5904,6 +5967,104 @@ mod tests {
         assert_eq!(
             mem["best_control_or_copy"]["model_beats_best_control_or_copy"],
             false
+        );
+    }
+
+    #[test]
+    fn exact_text_number_boundary_semantics() {
+        let checks_v2 = embedded_checks_v2().expect("embedded_checks_v2");
+
+        // 1. Direct low-level helper tests on `contains_exact_math_term`:
+        // Basic match
+        assert!(contains_exact_math_term("8x^2+x-10", "8x^2+x-10"));
+        // Boundary with punctuation
+        assert!(contains_exact_math_term("f(x)-g(x)=8x^2+x-10.", "8x^2+x-10"));
+        assert!(contains_exact_math_term("(8x^2+x-10)", "8x^2+x-10"));
+        // Leading digit superstring: must fail
+        assert!(!contains_exact_math_term("18x^2+x-10", "8x^2+x-10"));
+        // Trailing digit superstring: must fail
+        assert!(!contains_exact_math_term("8x^2+x-100", "8x^2+x-10"));
+        // Preceding minus on positive number: must fail
+        assert!(!contains_exact_math_term("-8x^2+x-10", "8x^2+x-10"));
+        assert!(!contains_exact_math_term("-4.37", "4.37"));
+        // Trailing decimal float on integer: must fail
+        assert!(!contains_exact_math_term("8x^2+x-10.5", "8x^2+x-10"));
+        // Leading decimal float on integer: must fail
+        assert!(!contains_exact_math_term("0.8x^2+x-10", "8x^2+x-10"));
+        // Decimal float matching
+        assert!(contains_exact_math_term("therootsare4.37and-1.37", "4.37"));
+        assert!(contains_exact_math_term("therootsare4.37and-1.37", "-1.37"));
+        assert!(!contains_exact_math_term("therootsare4.375and-1.37", "4.37"));
+        assert!(!contains_exact_math_term("therootsare0.4.37", "4.37"));
+
+        // 2. High-level checks verdict on heldout-122:
+        let h122_turn = "Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).";
+        // Positive passes
+        assert_eq!(
+            checks_v2.verdict("heldout-122", &[h122_turn], "f(x) - g(x) = 8x^2 + x - 10.").status,
+            "PASS"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-122", &[h122_turn], "8x2 + x - 10").status,
+            "PASS"
+        );
+        // Negative superstrings fail
+        assert_eq!(
+            checks_v2.verdict("heldout-122", &[h122_turn], "18x² + x − 10").status,
+            "FAIL"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-122", &[h122_turn], "8x² + x − 100").status,
+            "FAIL"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-122", &[h122_turn], "f(x) - g(x) = 8x^2 - x + 10.").status,
+            "FAIL"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-122", &[h122_turn], "-8x^2 + x + 10").status,
+            "FAIL"
+        );
+
+        // 3. High-level checks verdict on heldout-125:
+        let h125_turn = "Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.";
+        // Positive roots without "x =" prefix pass
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "The roots are 4.37 and −1.37").status,
+            "PASS"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "x = 4.37").status,
+            "PASS"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "The roots are x = (3 + sqrt(33)) / 2 and (3 - sqrt(33)) / 2.").status,
+            "PASS"
+        );
+        // Negative controls must fail
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "x = 1.37").status,
+            "FAIL"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "x = -4.37").status,
+            "FAIL"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "x = sqrt(33)").status,
+            "FAIL"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "33/2 is the answer").status,
+            "FAIL"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "The root is 4.375").status,
+            "FAIL"
+        );
+        assert_eq!(
+            checks_v2.verdict("heldout-125", &[h125_turn], "The roots are 4.37 and 1.37").status,
+            "FAIL"
         );
     }
 }
