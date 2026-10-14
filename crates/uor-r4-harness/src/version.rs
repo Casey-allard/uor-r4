@@ -108,19 +108,63 @@ pub fn placement(repo: &Path) -> Placement {
     }
 }
 
-/// The refresh instruction when this binary is NOT the checkout's build, or `None` when it is.
+/// Whether a running copy is stale relative to the newest build in this checkout.
 ///
-/// Names the path it is actually running, because "some binary somewhere is stale" is not actionable
+/// **Age, not location.** A freshly installed copy on PATH is not stale just because it is not the
+/// checkout's build - reporting that was a permanent nag for every lab using `uor-harness` on PATH,
+/// which is worse than the silence it replaced. A location is not a staleness; a comparison is.
+///
+/// `false` when either time is unknown: with nothing to compare, silence beats a guess.
+pub fn is_stale_install(
+    exe_time: Option<std::time::SystemTime>,
+    built: Option<std::time::SystemTime>,
+) -> bool {
+    match (exe_time, built) {
+        (Some(e), Some(b)) => e < b,
+        _ => false,
+    }
+}
+
+/// The newest binary this checkout has built, if any.
+///
+/// `local/harness-target` is the project's documented `CARGO_TARGET_DIR`; plain `target` is checked
+/// too because a lab may not have set it.
+fn newest_build(repo: &Path) -> Option<(std::path::PathBuf, std::time::SystemTime)> {
+    let mut best: Option<(std::path::PathBuf, std::time::SystemTime)> = None;
+    for dir in ["local/harness-target", "target"] {
+        for profile in ["debug", "release"] {
+            let p = repo.join(dir).join(profile).join("uor-harness");
+            let Ok(t) = std::fs::metadata(&p).and_then(|m| m.modified()) else {
+                continue;
+            };
+            if best.as_ref().is_none_or(|(_, bt)| t > *bt) {
+                best = Some((p, t));
+            }
+        }
+    }
+    best
+}
+
+/// The refresh instruction when this binary is STALE relative to this checkout, or `None`.
+///
+/// Names the copy it is actually running, because "some binary somewhere is stale" is not actionable
 /// and this is.
 pub fn placement_line(repo: &Path) -> Option<String> {
-    match placement(repo) {
-        Placement::Outside { exe } => Some(format!(
-            "this is {}, not this checkout's build, so rebuilding will NOT refresh it - install the \
-             current one with: cargo install --path crates/uor-r4-harness --offline",
-            exe.display()
-        )),
-        _ => None,
+    let Placement::Outside { exe } = placement(repo) else {
+        return None;
+    };
+    let built = newest_build(repo)?;
+    let exe_time = std::fs::metadata(&exe).and_then(|m| m.modified()).ok();
+    if !is_stale_install(exe_time, Some(built.1)) {
+        return None;
     }
+    Some(format!(
+        "this is {} and it is older than the build at {} - rebuilding will NOT refresh the copy \
+         you are running; install the current one with: cargo install --path crates/uor-r4-harness \
+         --offline --target-dir local/harness-target",
+        exe.display(),
+        built.0.display()
+    ))
 }
 
 /// Compare the checkout's HEAD against `origin/main`.
@@ -331,15 +375,9 @@ mod tests {
             Placement::Outside { exe } => assert!(exe.is_absolute(), "{exe:?}"),
             other => panic!("a temp repo does not contain this test binary: {other:?}"),
         }
-        let line = placement_line(dir.path()).expect("a line for an outside binary");
-        assert!(
-            line.contains("cargo install"),
-            "it must say how to fix it: {line}"
-        );
-        assert!(
-            line.contains("NOT refresh"),
-            "it must say a rebuild does not help: {line}"
-        );
+        // Nothing is built in this temp repo, so there is nothing to compare against: silence
+        // rather than a guess. The comparison itself is the pure case below.
+        assert!(placement_line(dir.path()).is_none());
     }
 
     /// The converse, and the one that keeps the line honest: a repo CONTAINING the running binary is
@@ -354,5 +392,27 @@ mod tests {
             placement_line(profile).is_none(),
             "the checkout's own build must produce no line"
         );
+    }
+
+    /// The comparison that decides it, with synthetic times.
+    #[test]
+    fn staleness_is_a_comparison_not_a_location() {
+        use std::time::{Duration, UNIX_EPOCH};
+        let t = UNIX_EPOCH;
+        let later = t + Duration::from_secs(3600);
+        assert!(
+            is_stale_install(Some(t), Some(later)),
+            "older than the build is stale"
+        );
+        // **This is the case that made the location-based version a nag.**
+        assert!(
+            !is_stale_install(Some(later), Some(t)),
+            "a fresh install is not stale"
+        );
+        assert!(
+            !is_stale_install(Some(t), None),
+            "nothing built means nothing to compare"
+        );
+        assert!(!is_stale_install(None, Some(later)));
     }
 }
