@@ -209,8 +209,18 @@ def write_interop(binary: Path) -> list[str]:
             module_counts = ", ".join(
                 f"{m} {len(ids)}" for m, ids in sorted(inventory.get("ported", {}).items())
             )
+            # **Two denominators, because they answer different questions and collapsing them hides
+            # the one the goal is measured against.** `check`'s own rules are what `delegate_to_python`
+            # is waiting on; the PR-body gates are real check logic that lives in `prlint` and would
+            # otherwise be counted as already done. Reporting one number made the port look further
+            # along than it was when a gate moved into the inventory.
+            checkrules_only = {
+                i for i in registered if not i.startswith("prlint.")
+            }
+            checkrules_left = sorted(checkrules_only - declared)
             print(f"rule inventory: {len(declared)} implemented ({module_counts}); "
-                  f"{len(unimplemented)} Python rule(s) still in Python")
+                  f"{len(checkrules_left)} of check's own {len(checkrules_only)} rule(s) still in Python, "
+                  f"{len(unimplemented)} of {len(registered)} including prlint's PR-body gates")
             if phantom:
                 findings.append(
                     "the Rust rule inventory declares rules Python does not register: "
@@ -784,14 +794,28 @@ def rust_inventory(binary: Path) -> dict[str, object] | None:
 
 
 def python_registered_rules() -> set[str] | None:
-    """Every rule id the Python `check` registers, or None if it cannot be imported."""
+    """Every rule id the Python side can register, or None if it cannot be imported.
+
+    **`checkrules.rules()` is not the whole set, and this function said it was.** `prlint` declares
+    its gates in `prlint.GATE_RULES` - they are raised against a **PR body**, which the engine never
+    has, so they are data rather than registered checks - and the Rust inventory covers them.
+
+    **This is the third time in this port that "the registered set" turned out to have more than one
+    source**, after `mistakes._known_rule_ids` (which resolves from three) and my own data file that
+    took one of them and stopped. The first two produced a check that was **wrong rather than
+    missing**; this one did too, reporting three genuinely-ported rules as *"a declared rule that does
+    not exist"* and calling the port inflated.
+
+    Delegating to `mistakes._known_rule_ids()` rather than re-listing the sources: **it already
+    answers this question, and re-listing is how the previous two went wrong.**
+    """
     sys.path.insert(0, str(REPO / "scripts" / "harness"))
     try:
-        import checkrules  # type: ignore import-not-found
+        import mistakes  # type: ignore import-not-found
     except ImportError:
         return None
     try:
-        return {r.id for r in checkrules.rules()}
+        return set(mistakes._known_rule_ids())
     except Exception:  # a registry that will not load is another rule's problem
         return None
 
