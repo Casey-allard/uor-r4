@@ -1,4 +1,8 @@
-# `harness.documented_commands` — the last rule, and four bugs the comparison found
+# `harness.documented_commands` — the last RULE, and four bugs the comparison found
+
+> **Correction added after verification:** registering the last rule did **not** complete the objective.
+> `uor-harness check` runs the **format contract**, not the rule set. See the section at the end — that
+> correction is the most important thing in this record.
 
 **Date:** 2026-10-14 · **Lab:** DeepSeek · **Line:** no model line — tooling · **Count:** 0/3
 **Owning work:** the rule I twice declined to approximate
@@ -88,3 +92,54 @@ rather than reporting the one that looks finished.
   it and none by CI.**
 - **`FLAGS` and `GROUPS` are kept but not consulted by `resolve`** — that is Python's behaviour, and
   they are annotated `dead_code` as the record of what the table came from rather than removed.
+
+---
+
+## 2026-10-14 — `check` runs the format contract, NOT the rule set — the objective is not met
+
+**Found while verifying rather than while porting, at the moment the rule count reached 100%.** Attaching it to
+`docs/labs/documented-commands-port-2026-10-14/README.md` rather than a new record, because it corrects the
+claim that unit makes about what registering the last rule achieved.
+
+### What the numbers say, and what they do not
+
+`parity.py` now reports **`0 of check's own 39 rule(s) still in Python`** and **53 implemented**. That is a
+statement about **the rule inventory** — every rule in `check`'s set has a Rust implementation and is registered.
+
+**It is not a statement that `uor-harness check` runs them.**
+
+`cmd_check` (`crates/uor-r4-harness/src/main.rs:1990`) calls **`Contract::load(repo)` and `contract.check(repo)`**,
+which reports the state-format contract: formats, files, rows, violations. **The 53 registered rules are not
+invoked by it.** They exist, they are tested, and `cmd_check` does not call them.
+
+**So `uor-harness check` is WEAKER than `python3 scripts/harness/cli.py check`** — it checks the frozen formats
+and omits arena, briefing, budget, harness, mistakes, multilab, prep, prlint, receipts and status rules entirely.
+
+### This is the failure mode I have been guarding against, one level up
+
+Every unit in this port has refused to ship a weaker check wearing a real rule's name. **`cmd_check` is that
+failure at the command level**: the rule count says complete, the registered ids say complete, and the command
+a lab actually runs checks a fraction of what Python's does. **The parity metric I have been reporting measures
+registration, not dispatch — and I read it as dispatch.**
+
+### It also means the delegation question is not the blocker
+
+I had been treating `prlint.parse` as the last obstacle, since it cannot exist in Rust (the parser is total). It
+is not the obstacle. **The obstacle is that `cmd_check` must call the rule set before `check` can stop
+delegating**, and then the dispatch table is what needs the parity evidence.
+
+### What is actually done
+
+- **53 of 54 rules implemented and registered.** Every rule in `check`'s own set.
+- **`prlint.parse` is the 54th** and is unreachable in Rust by construction — a policy question, not a port.
+- **Five real `delegate_to_python` sites remain** (`main.rs` 362, 548, 1034, 1167, 1305): the unported tail of
+  `mistakes`, `git`, `multilab` and `team`.
+
+### The next unit, precisely
+
+**Wire `cmd_check` to the 53 rules** — a dispatcher plus a parity comparison of `check`'s *output* against
+Python's, not its inventory. **Until that lands, `check` must stay delegated**, because a `check` that returned
+the format contract's verdict while a lab believed it had run every rule **is exactly the silent downgrade this
+port exists to prevent.**
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
