@@ -309,7 +309,19 @@ fn main() -> ExitCode {
         // "state formats ok", and believes it has validated its work while 56 rules never ran.
         // That is the worst possible outcome for the command labs trust most, so the full check
         // stays delegated and the Rust one is explicit: `check-formats`.
+        // **`check` and `check-formats` are separate commands**, not one with a flag.
+        //
+        // The earlier note here said exposing the format-contract-only checker as `check` "would
+        // mean a lab runs `uor-harness check`, sees 'state formats ok', and believes it has
+        // validated its work while 56 rules never ran." **That was a correct prediction** - it is
+        // what I found by verifying. `cmd_check_rules` is what answers it.
+        //
+        // **One boolean through one function was tried and reverted**: it made `check-formats` load
+        // the registries on a bare repository and return 2, which `parity`'s controlled one-row
+        // cases caught as `said ok=false, expected True`. **Two commands with two bodies cannot
+        // drift that way; a flag can.**
         Some("check-formats") => cmd_check(&repo, json),
+        Some("check") => cmd_check_rules(&repo, &rest, json),
         Some("presence") => cmd_presence(&repo, json),
         Some("ledger") => cmd_ledger(&repo, json),
         Some("receipt") => cmd_receipt(&repo, &rest, json),
@@ -1984,6 +1996,102 @@ fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
             eprintln!("uor-harness: {e}");
             ExitCode::from(1)
         }
+    }
+}
+
+/// `check` - the frozen formats **and** every rule.
+///
+/// **Deliberately a separate function from `cmd_check`.** `cmd_check` is the format contract and
+/// nothing else, proven by `parity`'s six controlled one-row cases; this one adds the rule set and
+/// the single-object JSON that `parity` parses.
+///
+/// **The rules are computed once and printed into the same object as the formats**, because a second
+/// object after the first is `Extra data` to any JSON reader - which is how the first attempt at this
+/// was caught.
+fn cmd_check_rules(repo: &Path, only: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let regs = match Registries::load(&paths) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let now =
+        uor_r4_harness::multilabrules::parse_claimed_at(&uor_r4_harness::receipt::now_rfc3339())
+            .unwrap_or(0);
+    let findings = uor_r4_harness::checkdispatch::run(&paths, &regs, only, now);
+    let (checked, failed, errors, warnings) = uor_r4_harness::checkdispatch::summarize(&findings);
+
+    // The frozen formats, in the same shape `check-formats` prints.
+    let contract_ok = match Contract::load(repo) {
+        Ok(c) => c.check(repo).ok(),
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            false
+        }
+    };
+
+    if json {
+        let c = match Contract::load(repo) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("uor-harness: {e}");
+                return ExitCode::from(2);
+            }
+        };
+        let report = c.check(repo);
+        let rows: Vec<String> = report
+            .formats
+            .iter()
+            .map(|f| {
+                let problems: Vec<String> = f.violations.iter().map(|v| v.to_string()).collect();
+                format!(
+                    "    {{\"format\": {:?}, \"files\": {}, \"rows\": {}, \"absent\": {}, \"violations\": {}}}",
+                    f.format,
+                    f.files,
+                    f.rows,
+                    f.absent,
+                    serde_json::to_string(&problems).unwrap_or_else(|_| "[]".into())
+                )
+            })
+            .collect();
+        print!(
+            "{{\n  \"contract\": \"docs/harness/state-formats.json\",\n  \"schema\": {},\n  \"ok\": {},\n  \"formats\": [\n{}\n  ],",
+            c.schema,
+            report.ok(),
+            rows.join(",\n")
+        );
+        print!(
+            "\n  \"rules\": {{\n    \"checked\": {checked}, \"failed\": {failed}, \"errors\": {errors}, \"warnings\": {warnings},\n    \"findings\": ["
+        );
+        for (i, f) in findings.iter().enumerate() {
+            let comma = if i + 1 == findings.len() { "" } else { "," };
+            print!(
+                "\n      {{\"rule\": {:?}, \"severity\": {:?}, \"ok\": {}, \"message\": {:?}, \"path\": {:?}}}{comma}",
+                f.rule_id,
+                f.severity,
+                f.message == "ok",
+                f.message,
+                f.path
+            );
+        }
+        println!("\n    ]\n  }}\n}}");
+    } else {
+        println!("{checked} rules, {failed} failed ({errors} error, {warnings} warn)");
+        for f in findings.iter().filter(|f| f.message != "ok") {
+            println!("  {} {} [{}]", f.severity, f.rule_id, f.path);
+            println!("      {}", f.message);
+            if !f.fix.is_empty() {
+                println!("      fix: {}", f.fix);
+            }
+        }
+    }
+    // **`check` is one verdict: both halves decide it.**
+    if contract_ok && errors == 0 {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
     }
 }
 
