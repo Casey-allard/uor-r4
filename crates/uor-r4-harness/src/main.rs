@@ -471,7 +471,14 @@ fn main() -> ExitCode {
         // The notice goes to stderr and is not suppressible, deliberately: a lab should know when it
         // is still on the old path, and a silent delegation would make the remaining work invisible
         // again - which is exactly how it stayed unfinished.
-        Some(other) => delegate_to_python(&repo, other, &rest),
+        // **D30: no command reaches Python.** Every subcommand has an arm above, so an
+        // unrecognised one is a plain usage error. This arm used to forward to
+        // scripts/harness/cli.py, which was the last live Python path in the harness.
+        Some(other) => {
+            eprintln!("uor-harness: unknown command {other:?}");
+            eprint!("{USAGE}");
+            ExitCode::from(2)
+        }
 
         None => {
             eprint!("{USAGE}");
@@ -2041,57 +2048,6 @@ fn cmd_version(repo: &Path) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// Run an unported command through the Python harness, announcing that it is unported.
-///
-/// The Rust binary is the entry point; Python is a fallback implementation. A command that is missing
-/// from the Rust match above is forwarded verbatim, so every documented invocation works while the
-/// port continues - and each one prints which path it took.
-fn delegate_to_python(repo: &Path, command: &str, rest: &[String]) -> ExitCode {
-    let script = repo.join("scripts").join("harness").join("cli.py");
-    if !script.is_file() {
-        eprintln!(
-            "uor-harness: {command:?} is not ported yet, and {} is not present to run it.\n\
-             \x20            This binary is the entry point; the remaining commands run through the \
-             Python harness until they are ported.",
-            script.display()
-        );
-        return ExitCode::from(2);
-    }
-    eprintln!(
-        "uor-harness: note - {command:?} is not ported to Rust yet; running {} {command}",
-        script.display()
-    );
-    // `--repo` is added here, so a copy forwarded into `rest` must be dropped rather than passed
-    // twice: argparse rejects the duplicate and the delegation fails with "unrecognized arguments".
-    let mut forwarded: Vec<&String> = Vec::new();
-    let mut skip_next = false;
-    for a in rest {
-        if skip_next {
-            skip_next = false;
-            continue;
-        }
-        if a == "--repo" {
-            skip_next = true;
-            continue;
-        }
-        forwarded.push(a);
-    }
-    let status = std::process::Command::new("python3")
-        .arg(&script)
-        .arg("--repo")
-        .arg(repo)
-        .arg(command)
-        .args(forwarded)
-        .status();
-    match status {
-        Ok(s) => ExitCode::from(s.code().unwrap_or(1) as u8),
-        Err(e) => {
-            eprintln!("uor-harness: cannot run python3: {e}");
-            ExitCode::from(2)
-        }
-    }
-}
-
 /// `notes [--lab L] [--cached|--mark-seen]` - what other labs said that this lab has not seen.
 ///
 /// **Presence without awareness is half the plane.** The board says who is working; it does not say
@@ -3143,7 +3099,17 @@ fn cmd_budget(repo: &Path, args: &[String], json: bool) -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        "scan" => delegate_to_python(repo, "budget", args),
+        "scan" => {
+            // **Read-only, and it says so**: only `status` and `gpus` are ever run, and every branch
+            // that cannot produce a number prints UNAVAILABLE with the attempts that led there.
+            let payload = budget::scan_payload(&paths.repo);
+            if json {
+                println!("{}", budget::scan_json(&payload));
+            } else {
+                print!("{}", budget::render_scan(&payload));
+            }
+            ExitCode::SUCCESS
+        }
         other => {
             eprintln!("uor-harness budget: unknown action {other:?}; try show, scan");
             ExitCode::from(2)

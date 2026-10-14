@@ -1601,3 +1601,511 @@ mod tests {
         assert_eq!(parse_ts("not a time"), None);
     }
 }
+
+// ------------------------------------------------------------------------------ pod scan
+
+/// The pod tool's status subcommands are read-only; the timeout is Python's.
+pub const POD_TIMEOUT_S: u64 = 25;
+
+/// `core.run`: run a command, **never raising**, returning `(returncode, stdout+stderr)`.
+///
+/// Rust's std has no subprocess timeout, so this polls `try_wait` against a deadline and kills the child
+/// on expiry - the alternative is a harness that hangs because a pod tool did, which is what Python's
+/// `timeout=` exists to prevent.
+fn run_capture(cmd: &[&str], cwd: &Path, timeout_s: u64) -> (i32, String) {
+    use std::process::{Command, Stdio};
+    let Some((program, rest)) = cmd.split_first() else {
+        return (127, "empty command".to_string());
+    };
+    let Ok(mut child) = Command::new(program)
+        .args(rest)
+        .current_dir(cwd)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+    else {
+        return (127, "could not run the command".to_string());
+    };
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_s);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return (127, format!("timed out after {timeout_s}s"));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            Err(e) => return (127, e.to_string()),
+        }
+    }
+    match child.wait_with_output() {
+        Ok(out) => {
+            let mut text = String::from_utf8_lossy(&out.stdout).to_string();
+            text.push_str(&String::from_utf8_lossy(&out.stderr));
+            (out.status.code().unwrap_or(127), text)
+        }
+        Err(e) => (127, e.to_string()),
+    }
+}
+
+/// `main_worktree`: the owner's checkout, when `root` is a worktree of it.
+///
+/// `scripts/pod/uor-pod` is gitignored, so a fresh worktree does not carry it. Read-only git queries only.
+pub fn main_worktree(root: &Path) -> Option<std::path::PathBuf> {
+    let (rc, out) = run_capture(&["git", "worktree", "list", "--porcelain"], root, 10);
+    if rc == 0 {
+        for line in out.lines() {
+            if let Some(rest) = line.strip_prefix("worktree ") {
+                let candidate = std::path::PathBuf::from(rest.trim());
+                if candidate != root {
+                    return Some(candidate);
+                }
+            }
+        }
+    }
+    let (rc, out) = run_capture(
+        &[
+            "git",
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-common-dir",
+        ],
+        root,
+        10,
+    );
+    if rc == 0 && !out.trim().is_empty() {
+        let common = std::path::PathBuf::from(out.trim().lines().next().unwrap_or(""));
+        if common.file_name().is_some_and(|n| n == ".git") {
+            return common.parent().map(|p| p.to_path_buf());
+        }
+    }
+    None
+}
+
+/// `pod_candidates`: every place `uor-pod` may live, in resolution order.
+pub fn pod_candidates(root: &Path) -> Vec<(String, std::path::PathBuf)> {
+    let mut out = vec![("repo".to_string(), root.join(POD_SCRIPT_REL))];
+    if let Some(main) = main_worktree(root) {
+        if main != root {
+            out.push(("main checkout".to_string(), main.join(POD_SCRIPT_REL)));
+        }
+    }
+    if let Ok(env) = std::env::var("UOR_POD") {
+        if !env.is_empty() {
+            out.push(("$UOR_POD".to_string(), std::path::PathBuf::from(env)));
+        }
+    }
+    out
+}
+
+/// `resolve_pod_script`: which path, why, and **what was checked** - without running anything.
+#[derive(Debug, Clone, Default)]
+pub struct PodScript {
+    pub path: Option<std::path::PathBuf>,
+    pub source: String,
+    pub checked: Vec<String>,
+}
+
+pub fn resolve_pod_script(root: &Path) -> PodScript {
+    let mut checked = Vec::new();
+    for (source, path) in pod_candidates(root) {
+        checked.push(format!("{source}: {}", path.display()));
+        if path.is_file() {
+            return PodScript {
+                path: Some(path),
+                source,
+                checked,
+            };
+        }
+    }
+    PodScript {
+        path: None,
+        source: String::new(),
+        checked,
+    }
+}
+
+/// `parse_pod_status`: the headline numbers, **without trusting the layout**.
+#[derive(Debug, Clone, Default)]
+pub struct PodStatus {
+    pub running: Option<i64>,
+    pub usd_per_h: Option<f64>,
+    pub free_summary: String,
+    pub raw_lines: usize,
+}
+
+pub fn parse_pod_status(text: &str) -> PodStatus {
+    static RUNNING: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    static RATE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    static FREE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    let running_rx =
+        RUNNING.get_or_init(|| Regex::new(r"Running:\s*(\d+)\s*pod").expect("a valid pattern"));
+    let rate_rx = RATE.get_or_init(|| {
+        Regex::new(r"\$([0-9]+(?:\.[0-9]+)?)\s*/\s*h\s+of\s+\$([0-9]+(?:\.[0-9]+)?)\s*/\s*h")
+            .expect("a valid pattern")
+    });
+    let free_rx = FREE.get_or_init(|| {
+        Regex::new(r"Free GPUs you can lease now:\s*(.+)").expect("a valid pattern")
+    });
+    let mut out = PodStatus {
+        raw_lines: text.lines().count(),
+        ..PodStatus::default()
+    };
+    if let Some(c) = running_rx.captures(text) {
+        out.running = c.get(1).and_then(|m| m.as_str().parse::<i64>().ok());
+    }
+    if let Some(c) = rate_rx.captures(text) {
+        out.usd_per_h = c.get(1).and_then(|m| m.as_str().parse::<f64>().ok());
+    }
+    if let Some(c) = free_rx.captures(text) {
+        out.free_summary = c
+            .get(1)
+            .map(|m| m.as_str().trim().to_string())
+            .unwrap_or_default();
+    }
+    out
+}
+
+/// `parse_gpu_costs`: the secure $/GPU/h table, as an ordered map.
+pub fn parse_gpu_costs(text: &str) -> Vec<(String, f64)> {
+    static COST: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    let rx = COST.get_or_init(|| {
+        Regex::new(r"(?m)^\s{2}([a-z0-9]+)\s+\$([0-9]+(?:\.[0-9]+)?)\s*:").expect("a valid pattern")
+    });
+    let mut out: Vec<(String, f64)> = Vec::new();
+    for c in rx.captures_iter(text) {
+        let Some(name) = c.get(1).map(|m| m.as_str().to_string()) else {
+            continue;
+        };
+        let Some(value) = c.get(2).and_then(|m| m.as_str().parse::<f64>().ok()) else {
+            continue;
+        };
+        match out.iter_mut().find(|(k, _)| *k == name) {
+            Some((_, v)) => *v = value,
+            None => out.push((name, value)),
+        }
+    }
+    out
+}
+
+/// One `uor-pod` invocation this command made, recorded so the output can show what it ran.
+#[derive(Debug, Clone, Default)]
+pub struct ScanAttempt {
+    pub command: String,
+    pub returncode: i32,
+    /// `len()` of the output in Python, i.e. CHARACTERS, not bytes.
+    pub chars: usize,
+}
+
+/// The shape of the scan payload - **the branches carry different keys**, which is why this is not one
+/// struct serialised one way.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ScanKind {
+    /// The tool was not found anywhere: `checked` is the list of places looked in.
+    Missing,
+    /// Found but not executable, or both read-only subcommands failed.
+    Unavailable,
+    Available,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ScanPayload {
+    pub kind: String,
+    pub checked: Vec<String>,
+    pub script_source: String,
+    pub detail: String,
+    pub attempts: Vec<ScanAttempt>,
+    pub status_tail: String,
+    pub running_pods: Option<i64>,
+    pub usd_per_h: Option<f64>,
+    pub free_gpus: String,
+    pub gpu_costs_usd_per_h: Vec<(String, f64)>,
+    pub status_lines: usize,
+}
+
+/// `util.truncate`: collapse the whitespace, then cut to `limit` characters on an ellipsis.
+fn truncate(text: &str, limit: usize) -> String {
+    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.chars().count() <= limit {
+        return collapsed;
+    }
+    let head: String = collapsed.chars().take(limit.saturating_sub(1)).collect();
+    format!("{}…", head.trim_end())
+}
+
+/// `scan`: resolve the pod tool, run its two read-only subcommands, and report what came back.
+///
+/// **Nothing is fabricated here and no pod state is touched.** The tool is only ever run with `status`
+/// and `gpus`, both of which print; a missing tool, a non-executable one, and a failing pair each produce
+/// an explicit `UNAVAILABLE` with the attempts that led there, rather than a zero.
+pub fn scan_payload(repo: &Path) -> ScanPayload {
+    let resolved = resolve_pod_script(repo);
+    let Some(script) = resolved.path.clone() else {
+        return ScanPayload {
+            kind: "missing".to_string(),
+            checked: if resolved.checked.is_empty() {
+                vec![POD_SCRIPT_REL.to_string()]
+            } else {
+                resolved.checked.clone()
+            },
+            detail: "scripts/pod/uor-pod was not found in this repo, the main checkout or $UOR_POD (it is gitignored, so a fresh worktree does not carry it)".to_string(),
+            ..ScanPayload::default()
+        };
+    };
+    let script_str = script.display().to_string();
+    if !is_executable(&script) {
+        return ScanPayload {
+            kind: "unavailable".to_string(),
+            checked: vec![script_str],
+            script_source: resolved.source.clone(),
+            detail: "uor-pod exists but is not executable; refusing to guess pod state".to_string(),
+            ..ScanPayload::default()
+        };
+    }
+    let bash = "bash";
+    let (status_rc, status_out) = run_capture(&[bash, &script_str, "status"], repo, POD_TIMEOUT_S);
+    let mut attempts = vec![ScanAttempt {
+        command: format!("bash {script_str} status"),
+        returncode: status_rc,
+        chars: status_out.chars().count(),
+    }];
+    let (gpus_rc, gpus_out) = run_capture(&[bash, &script_str, "gpus"], repo, POD_TIMEOUT_S);
+    attempts.push(ScanAttempt {
+        command: format!("bash {script_str} gpus"),
+        returncode: gpus_rc,
+        chars: gpus_out.chars().count(),
+    });
+    if status_rc != 0 && gpus_rc != 0 {
+        return ScanPayload {
+            kind: "unavailable".to_string(),
+            checked: vec![script_str],
+            script_source: resolved.source.clone(),
+            detail: "uor-pod status and gpus both failed; no pod numbers are reported".to_string(),
+            attempts,
+            status_tail: truncate(&status_out, 200),
+            ..ScanPayload::default()
+        };
+    }
+    let status = parse_pod_status(&status_out);
+    let mut gpu_costs = parse_gpu_costs(&gpus_out);
+    if gpu_costs.is_empty() {
+        gpu_costs = parse_gpu_costs(&status_out);
+    }
+    ScanPayload {
+        kind: "available".to_string(),
+        checked: vec![script_str],
+        script_source: resolved.source,
+        detail: String::new(),
+        attempts,
+        status_tail: String::new(),
+        running_pods: status.running,
+        usd_per_h: status.usd_per_h,
+        free_gpus: if status.free_summary.is_empty() {
+            "not stated in the status output".to_string()
+        } else {
+            status.free_summary
+        },
+        gpu_costs_usd_per_h: gpu_costs,
+        status_lines: status.raw_lines,
+    }
+}
+
+/// `os.access(script, os.X_OK)`: the mode bits, without running it.
+fn is_executable(path: &Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::metadata(path)
+        .map(|m| m.permissions().mode() & 0o111 != 0)
+        .unwrap_or(false)
+}
+
+/// `util.MISSING` - the word printed where a figure is absent from a status output.
+pub const MISSING: &str = "MISSING";
+
+/// `_emit_scan`, as Python prints it.
+pub fn render_scan(p: &ScanPayload) -> String {
+    let mut out = String::new();
+    let mut emit = |line: String| {
+        out.push_str(&line);
+        out.push('\n');
+    };
+    if p.kind != "available" {
+        let detail = if p.detail.is_empty() {
+            "no detail".to_string()
+        } else {
+            p.detail.clone()
+        };
+        emit(format!("pod scan: UNAVAILABLE ({detail})"));
+        if p.kind == "missing" {
+            // `checked` is a LIST when nothing was found, so every place looked in is printed.
+            for entry in &p.checked {
+                emit(format!("  checked {entry}"));
+            }
+        } else {
+            emit(format!(
+                "  checked: {}",
+                p.checked.first().cloned().unwrap_or_default()
+            ));
+        }
+        for a in &p.attempts {
+            emit(format!("  ran: {} -> exit {}", a.command, a.returncode));
+        }
+        emit(
+            "  nothing is fabricated here and no pod state was touched; run the command yourself if you need live state."
+                .to_string(),
+        );
+        return out;
+    }
+    emit("live compute (read-only via scripts/pod/uor-pod)".to_string());
+    if !p.script_source.is_empty() && p.script_source != "repo" {
+        emit(format!(
+            "  tool: {} (from the {}; scripts/pod/ is gitignored)",
+            p.checked.first().cloned().unwrap_or_default(),
+            p.script_source
+        ));
+    }
+    let running = p
+        .running_pods
+        .map(|r| r.to_string())
+        .unwrap_or_else(|| MISSING.to_string());
+    emit(format!("  running pods: {running} of {POD_CAP} allowed"));
+    match p.usd_per_h {
+        Some(rate) => emit(format!("  cost: ${rate:.2}/h")),
+        None => emit("  cost: MISSING from the status output".to_string()),
+    }
+    if let Some(rate) = p.usd_per_h {
+        emit(format!(
+            "  cap: ${RATE_CAP_USD_PER_H:.2}/h across all labs, all sessions"
+        ));
+        let over_pods = p.running_pods.is_some_and(|r| r > POD_CAP);
+        let over_rate = rate > RATE_CAP_USD_PER_H;
+        if over_pods {
+            emit(format!(
+                "  OVER CAP: {} running pods > {POD_CAP}",
+                p.running_pods.unwrap_or(0)
+            ));
+        }
+        if over_rate {
+            emit(format!(
+                "  OVER CAP: ${rate:.2}/h > ${RATE_CAP_USD_PER_H:.2}/h"
+            ));
+        }
+    }
+    emit(format!("  free GPUs you can lease now: {}", p.free_gpus));
+    if !p.gpu_costs_usd_per_h.is_empty() {
+        let mut rows = p.gpu_costs_usd_per_h.clone();
+        rows.sort_by(|a, b| a.0.cmp(&b.0));
+        let table = rows
+            .iter()
+            .map(|(k, v)| format!("{k} ${v:.2}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        emit(format!("  secure $/GPU/h: {table}"));
+    }
+    for a in &p.attempts {
+        emit(format!("  ran: {} -> exit {}", a.command, a.returncode));
+    }
+    out
+}
+
+/// `_emit_scan --json`: `json.dumps(payload, indent=2, ensure_ascii=False)`.
+///
+/// **Four shapes.** The absent ones differ from each other - the not-found case carries the LIST of places
+/// checked and no `script_source`, the both-failed case adds `status_tail` - and the available one carries
+/// `caps`, `over_cap` and the cost table. One struct serialised one way would invent keys Python never
+/// writes.
+pub fn scan_json(p: &ScanPayload) -> String {
+    let attempts = Ordered::Arr(
+        p.attempts
+            .iter()
+            .map(|a| {
+                Ordered::Obj(vec![
+                    ("command".to_string(), s(&a.command)),
+                    ("returncode".to_string(), i(a.returncode as i64)),
+                    ("bytes".to_string(), i(a.chars as i64)),
+                ])
+            })
+            .collect(),
+    );
+    let doc = match p.kind.as_str() {
+        "missing" => Ordered::Obj(vec![
+            ("available".to_string(), Ordered::Bool(false)),
+            ("reason".to_string(), s("UNAVAILABLE")),
+            (
+                "checked".to_string(),
+                Ordered::Arr(p.checked.iter().map(|c| s(c)).collect()),
+            ),
+            ("detail".to_string(), s(&p.detail)),
+            ("attempts".to_string(), Ordered::Arr(Vec::new())),
+        ]),
+        "unavailable" if p.attempts.is_empty() => Ordered::Obj(vec![
+            ("available".to_string(), Ordered::Bool(false)),
+            ("reason".to_string(), s("UNAVAILABLE")),
+            (
+                "checked".to_string(),
+                s(&p.checked.first().cloned().unwrap_or_default()),
+            ),
+            ("script_source".to_string(), s(&p.script_source)),
+            ("detail".to_string(), s(&p.detail)),
+            ("attempts".to_string(), Ordered::Arr(Vec::new())),
+        ]),
+        "unavailable" => Ordered::Obj(vec![
+            ("available".to_string(), Ordered::Bool(false)),
+            ("reason".to_string(), s("UNAVAILABLE")),
+            (
+                "checked".to_string(),
+                s(&p.checked.first().cloned().unwrap_or_default()),
+            ),
+            ("script_source".to_string(), s(&p.script_source)),
+            ("detail".to_string(), s(&p.detail)),
+            ("attempts".to_string(), attempts),
+            ("status_tail".to_string(), s(&p.status_tail)),
+        ]),
+        _ => Ordered::Obj(vec![
+            ("available".to_string(), Ordered::Bool(true)),
+            (
+                "checked".to_string(),
+                s(&p.checked.first().cloned().unwrap_or_default()),
+            ),
+            ("script_source".to_string(), s(&p.script_source)),
+            ("attempts".to_string(), attempts),
+            (
+                "running_pods".to_string(),
+                p.running_pods.map(i).unwrap_or(Ordered::Null),
+            ),
+            (
+                "usd_per_h".to_string(),
+                p.usd_per_h.map(num).unwrap_or(Ordered::Null),
+            ),
+            (
+                "caps".to_string(),
+                Ordered::Obj(vec![
+                    ("pods".to_string(), i(POD_CAP)),
+                    ("usd_per_h".to_string(), num(RATE_CAP_USD_PER_H)),
+                ]),
+            ),
+            (
+                "over_cap".to_string(),
+                Ordered::Obj(vec![
+                    (
+                        "pods".to_string(),
+                        Ordered::Bool(p.running_pods.is_some_and(|r| r > POD_CAP)),
+                    ),
+                    (
+                        "rate".to_string(),
+                        Ordered::Bool(p.usd_per_h.is_some_and(|r| r > RATE_CAP_USD_PER_H)),
+                    ),
+                ]),
+            ),
+            ("free_gpus".to_string(), s(&p.free_gpus)),
+            (
+                "gpu_costs_usd_per_h".to_string(),
+                map_ordered(&p.gpu_costs_usd_per_h),
+            ),
+            ("status_lines".to_string(), i(p.status_lines as i64)),
+        ]),
+    };
+    doc.to_pretty()
+}

@@ -1,3 +1,40 @@
+## 2026-10-14 — `budget scan` is Rust and `delegate_to_python` is GONE: **D30 is complete** (deepseek, tooling)
+
+The [record](../labs/d30-complete-2026-10-14/README.md) carries the comparison and the whole-port summary.
+**`uor-harness budget scan` RUNS IN RUST, AND `delegate_to_python` NO LONGER EXISTS IN THE CRATE** — the
+general fallback arm became a plain usage error and the function was deleted; `grep -c delegate_to_python
+crates/uor-r4-harness/src/main.rs` is **0**. **D30's CONDITION IS MET: `uor-harness` runs with no
+`delegate_to_python` fallback for live commands, because there is no `delegate_to_python` at all — all 14
+top-level commands run Rust end to end.** **THE LAST UNIT:** `budget scan` needed `resolve_pod_script` (repo
+→ main checkout → `$UOR_POD`, reporting **what was checked** as well as what was found), the two status
+parsers, and `_emit_scan`'s **four genuinely different payload shapes** (the not-found case carries the LIST
+of places checked and no `script_source`; the not-executable case carries `script_source` and no attempts;
+the both-failed case adds `status_tail`; only the available case has `caps`, `over_cap` and the cost table —
+one struct serialised one way would invent keys Python never writes). **Nothing is fabricated and no pod
+state is touched:** only `status` and `gpus` are ever run, and a missing tool, a non-executable one and a
+failing pair each produce `UNAVAILABLE` with the attempts that led there rather than a zero. **`run_capture`
+implements Python's subprocess timeout by hand** — Rust's std has none, so it polls `try_wait` against a
+deadline and kills the child, because a hung pod tool must not hang the harness. **Verified by running BOTH
+implementations: `budget scan` 588/588 bytes and `budget scan --json` 935/935, both MATCH** against the live
+`scripts/pod/uor-pod`; the first comparison showed `bytes` 13 apart and **that was not a defect** — `uor-pod
+status` prints live pod state, so the raw output length moves between invocations, the same lesson as the
+disk figure. **Verified:** fmt and clippy `-D warnings` clean; **491 Rust tests passed, 6 ignored**;
+`python3 -m unittest discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641,
+baseline 1641. **What D30 was, end to end:** 5 delegation sites covering 6 items at the start (the general
+fallback over `arena`/`budget`/`panel`, `mistakes show|capture`, `multilab sync-live|migrate-ledger`, `team
+roster|dispatch`), each ported as its own protected PR with its own record, by the same method — **run both
+implementations on the same inputs and compare bytes**, which found a real defect in almost every unit: a
+missing D22 sentence, a quoted id, an ordering bug, raw bar objects, a sorted `scores` map, an int-vs-float
+band, and Python's decimal rounding against Rust's. Stated rather than hidden: **an unrecognised command is
+now a usage error**, not a delegation (`budgett` exits 2 either way, with this binary's text); and
+**`scripts/harness/cli.py` still exists and still runs standalone** — it is simply no longer reachable from
+`uor-harness`, while the five `python3` calls left in the crate are all inside `#[cfg(test)]`, the
+live-parity tests that compare the port against the Python it came from.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**D30 IS COMPLETE.** The next unit on this line is the PM queue's items 5–7 (cargo pinning, `claims_file()`,
+and the stale PATH install).
 ## 2026-10-14 — `budget show` is Rust; the last delegation site is down to `budget scan` (deepseek, tooling)
 
 The [record](../labs/budget-show-port-2026-10-14/README.md) carries the comparison and the three defects it
