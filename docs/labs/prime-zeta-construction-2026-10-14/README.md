@@ -5,12 +5,13 @@
 - **Pre-registration sheet:** [`docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md`](../../harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md) (`sha256: 26b585e59758f736f6ed066b1bb8b6a445d66a2245957903293c0b6e4cb917f7`, `TEST FITNESS: FIT`)
 - **Mechanism brief:** [`docs/mechanisms/prime-zeta-complex-routing.md`](../../mechanisms/prime-zeta-complex-routing.md)
 - **Owner release:** [#2029 comment 6170312990](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170312990) — cleared for finite construction and verification qualification after exact-head review, pinned strictly to the `TEST FITNESS: FIT` sheet (zero training, zero corpus dose, zero `.apply(` calls, `f64` confined to one-time host-side offline codebook generation).
+- **Implementation PR:** [#2473](https://github.com/UOR-Foundation/uor-r4/pull/2473) (merged into `origin/main` at `912a8a0690d0427fac0e4abed4bdc9636841ea05`).
 
 ---
 
 ## 1. Summary
 
-This unit implements the **Prime-Rank Indexing + Complex-Plane Zeta-Phase ($\mathbb{C}^4 \to \mathbb{R}^4$ and $\mathbb{C}^8 \to \mathbb{R}^8$) construction qualification** registered in [`docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md`](../../harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md):
+This unit implements and executes the **Prime-Rank Indexing + Complex-Plane Zeta-Phase ($\mathbb{C}^4 \to \mathbb{R}^4$ and $\mathbb{C}^8 \to \mathbb{R}^8$) construction qualification** registered in [`docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md`](../../harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md):
 
 1. **Host-side one-time offline codebook generator (`crates/uor-r4-discrete/src/prime_zeta.rs`):**
    - Bijective prime atom assignment $r(v) = p_{\text{id}(v)+1}$ (`first_n_primes` up to $V=8192$; $p_1 = 2, p_{256} = 1619, p_{4096} = 38873$).
@@ -32,12 +33,7 @@ This unit implements the **Prime-Rank Indexing + Complex-Plane Zeta-Phase ($\mat
 
 ## 2. Host Codebook Qualification Receipts (`V4096` & `V256`)
 
-Generated via:
-
-```sh
-CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-discrete --bin prime-zeta-qualify
-./local/harness-target/debug/prime-zeta-qualify host-verify docs/labs/prime-zeta-construction-2026-10-14/receipts
-```
+Generated identically across both `aarch64-apple-darwin` and `x86_64-unknown-linux-gnu` (`host-codebook-qualification.json` `sha256: 41e828872cb9ef7b3b9cc921481cd916b9258153e9d381210258eb2ec0d3a52c` and `v4096-witnesses.json` `sha256: e7f4c63667e14873b6d03d370d231c353724618bb5d17d5a61c444fc789f1d0d` are **bit-exact across both architectures**):
 
 | Codebook | Vocabulary $V$ | Blocks $B$ | Unique `PhaseQ29` | Unique `UnitS3Q30` | Unique `Snapshot.table` | Occupied Writer Cells | `table_sha256` |
 |---|---:|---:|---:|---:|---:|---:|---|
@@ -63,10 +59,42 @@ CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-discrete --bin prime
 
 ---
 
-## 3. Verification & Guardrail Checks
+## 3. Bounded CUDA Construction Qualification (`device=cuda`, Pod `vast-55945260`)
 
-- `cargo fmt --check`: clean.
-- `CARGO_TARGET_DIR=local/harness-target cargo clippy -p uor-r4-discrete --bin prime-zeta-qualify --tests -- -D warnings`: clean (`0` warnings in `prime_zeta.rs` and `prime-zeta-qualify.rs`).
-- `CARGO_TARGET_DIR=local/harness-target cargo test -p uor-r4-discrete`: **30/30 tests pass** (`25` library tests including `apply_calls_are_confined_to_bounded_fixture_and_admitted_transition` + `5` `prime_zeta` tests).
-- `uor-harness ratchet d23` & `uor-harness ratchet d25`: pass.
-- **Limits, stated:** This PR delivers the complete implementation, unit tests, and host codebook verification receipts (`host-codebook-qualification.json` and `v4096-witnesses.json`) with **zero GPU execution**. Following exact-head review of this implementation PR, the bounded CUDA construction qualification (`prime-zeta-qualify qualify --features cuda`) is cleared to run under owner release [#2029 comment 6170312990](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170312990). Training and M2 rental holds remain `HELD`.
+Executed on merged `origin/main` head `912a8a0690d0427fac0e4abed4bdc9636841ea05` per owner release [#2029 comment 6170312990](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170312990):
+
+- **Pod:** `vast-55945260` (`1×NVIDIA GeForce RTX 5090`, driver `580.95.05`, compute capability `12.0`, `32,607 MiB` VRAM, Ubuntu 24.04).
+- **Toolchain:** `nvcc 12.8.93` (`V12.8.93`, `UOR_NVCC_ARCH=compute_120`), `rustc 1.97.1 (8bab26f4f 2026-07-14)`.
+- **Executable:** `/root/build/target-sm120/release/prime-zeta-qualify` (`sha256: 953f8f085743aab68e9613c1acbbc6d41774bc71be50178fe75b40b05e0655f5`).
+- **Compiled Identity (matching frozen D5 completion pins):**
+  - `source_sha256`: `e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a`
+  - `kernel_sha256`: `931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b`
+  - `geometry_sha256`: `46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327`
+  - `driver_source_sha256`: `cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4`
+- **PTX Admission (`admit_ptx`):** `verified_entries: 11`, `zero_float_instructions: true`.
+- **Base CUDA Controls (`17/17 PASS`):**
+  - Route controls (`11/11 PASS`): [`receipts/route-controls/controls.json`](receipts/route-controls/controls.json) (`sha256: c42c722b58ed7271be76f04430396bb93e816c2b34e3c5cb923ebe51ba6da25e`).
+  - Flock controls (`6/6 PASS`): [`receipts/flock-controls/flock-controls.json`](receipts/flock-controls/flock-controls.json) (`sha256: cd4322d4d9a1082297e5f9a6c754c234caa33c0b9aba929801484deff9359932`).
+- **Prime-Zeta CUDA Controls (`6/6 PASS`, [`receipts/prime-zeta-qualification.json`](receipts/prime-zeta-qualification.json) `sha256: 082ed664c60000aa842d479f579f4a0a431eda821970cfd243a2df99965e5951`):**
+  - `C18` (`prime_zeta_v4096_b4_cuda_snapshot_validation_and_zero_collision`): **`PASS`** (`unique_table_vectors: 4096`, `occupied_writer_cells: 256`, `epoch: 0`).
+  - `C19` (`prime_zeta_v4096_b2_cuda_snapshot_validation`): **`PASS`** (`losses: [640, 640, 544, 640]`, `predictions: [0, 2, 210, 13]`, `epoch: 0`).
+  - `C20` (`prime_zeta_seed_reproducibility_0_1_2_cuda`): **`PASS`** (`losses: [1280, 1216, 1248, 896]`, `predictions: [3641, 2, 1689, 13]`, `total_loss_numerator_sum: 4640` bit-exact across seeds `0, 1, 2`).
+  - `C21` (`prime_zeta_tangent_and_normal_null_cuda_separation`): **`PASS`** (`prime_zeta_losses: [1280, 1216, 1248, 896]`, `tangent_null_losses: [1248, 1088, 1248, 1280]`, `normal_null_seed0_losses: [1248, 1248, 1248, 1216]`, `normal_null_seed1_losses: [1088, 1280, 1248, 1184]`, `normal_null_seed2_losses: [1248, 1280, 896, 1184]`).
+  - `C22` (`prime_zeta_route_counterfactual_nonvacuity_v4096`): **`PASS`** (`vector_block0_proposal`: `4640 -> 4288`, `candidate: 1`, `sensitive: true`; `route0_proposal`: `4640 -> 4448`, `candidate: 2`, `sensitive: true`; `epoch: 0`).
+  - `C23` (`prime_zeta_flock_read_and_gate_counterfactual_v4096`): **`PASS`** (`flock_predictions: [4095, 97, 1023, 113]`, `gate0_proposal`: `5120 -> 4992`, `candidate: 2`, `sensitive: true`; `epoch: 0`).
+- **Training & Corpus Dose:** `applied_updates: 0`, `corpus_rows_consumed: 0`, `training: "HELD"`.
+- **Pod Cost & Lifecycle Receipt:**
+  - Lease released (`2026-10-14T15:16:09Z`), results archived (`144 KB`), and pod `vast-55945260` destroyed (`2026-10-14T15:16:28Z`, `uptime_s: 829` at `$0.563/h` = **`$0.1297` total spend**).
+
+---
+
+## 4. Receipt Manifest ([`receipts/SHA256SUMS`](receipts/SHA256SUMS))
+
+```text
+41e828872cb9ef7b3b9cc921481cd916b9258153e9d381210258eb2ec0d3a52c  host-codebook-qualification.json
+e7f4c63667e14873b6d03d370d231c353724618bb5d17d5a61c444fc789f1d0d  v4096-witnesses.json
+082ed664c60000aa842d479f579f4a0a431eda821970cfd243a2df99965e5951  prime-zeta-qualification.json
+c42c722b58ed7271be76f04430396bb93e816c2b34e3c5cb923ebe51ba6da25e  route-controls/controls.json
+cd4322d4d9a1082297e5f9a6c754c234caa33c0b9aba929801484deff9359932  flock-controls/flock-controls.json
+04eaa4f81c2ba366ea494c49d3a492b065588f00fc69de416ad4182d6424ead6  cuda-qualify-job.log
+```

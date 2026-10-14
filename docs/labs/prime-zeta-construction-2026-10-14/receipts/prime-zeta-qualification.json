@@ -1,0 +1,160 @@
+{
+  "admit_ptx": {
+    "verified_entries": 11,
+    "zero_float_instructions": true
+  },
+  "applied_updates": 0,
+  "base_controls": {
+    "flock_controls": "6/6 PASS",
+    "route_controls": "11/11 PASS",
+    "total_base_controls": "17/17 PASS"
+  },
+  "compiled_identity": {
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "kernel_sha256": "931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b",
+    "source_sha256": "e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a"
+  },
+  "corpus_rows_consumed": 0,
+  "device_resources": {
+    "counterfactual_local_bytes": 17136,
+    "evaluation_local_bytes": 16784,
+    "forward_local_bytes": 16624,
+    "memory": {
+      "free_bytes": 28888203264,
+      "ordinal": 0,
+      "total_bytes": 33668988928
+    }
+  },
+  "driver_source_sha256": "cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4",
+  "executable_sha256": "953f8f085743aab68e9613c1acbbc6d41774bc71be50178fe75b40b05e0655f5",
+  "mechanism": "prime-zeta-complex-routing",
+  "owner_release_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170312990",
+  "prime_zeta_cuda_controls": {
+    "controls": [
+      {
+        "index": 18,
+        "name": "prime_zeta_v4096_b4_cuda_snapshot_validation_and_zero_collision",
+        "occupied_writer_cells": 256,
+        "status": "PASS",
+        "unique_table_vectors": 4096
+      },
+      {
+        "index": 19,
+        "losses": [
+          640,
+          640,
+          544,
+          640
+        ],
+        "name": "prime_zeta_v4096_b2_cuda_snapshot_validation",
+        "predictions": [
+          0,
+          2,
+          210,
+          13
+        ],
+        "status": "PASS"
+      },
+      {
+        "index": 20,
+        "losses": [
+          1280,
+          1216,
+          1248,
+          896
+        ],
+        "name": "prime_zeta_seed_reproducibility_0_1_2_cuda",
+        "predictions": [
+          3641,
+          2,
+          1689,
+          13
+        ],
+        "status": "PASS",
+        "total_loss_numerator_sum": 4640
+      },
+      {
+        "index": 21,
+        "name": "prime_zeta_tangent_and_normal_null_cuda_separation",
+        "normal_null_seed0_losses": [
+          1248,
+          1248,
+          1248,
+          1216
+        ],
+        "normal_null_seed1_losses": [
+          1088,
+          1280,
+          1248,
+          1184
+        ],
+        "normal_null_seed2_losses": [
+          1248,
+          1280,
+          896,
+          1184
+        ],
+        "prime_zeta_losses": [
+          1280,
+          1216,
+          1248,
+          896
+        ],
+        "status": "PASS",
+        "tangent_null_losses": [
+          1248,
+          1088,
+          1248,
+          1280
+        ]
+      },
+      {
+        "index": 22,
+        "name": "prime_zeta_route_counterfactual_nonvacuity_v4096",
+        "route0_proposal": {
+          "after": 4448,
+          "before": 4640,
+          "candidate": 2,
+          "sensitive": true
+        },
+        "status": "PASS",
+        "vector_block0_proposal": {
+          "after": 4288,
+          "before": 4640,
+          "candidate": 1,
+          "sensitive": true
+        }
+      },
+      {
+        "flock_losses": [
+          1280,
+          1280,
+          1280,
+          1280
+        ],
+        "flock_predictions": [
+          4095,
+          97,
+          1023,
+          113
+        ],
+        "gate0_proposal": {
+          "after": 4992,
+          "before": 5120,
+          "candidate": 2,
+          "sensitive": true
+        },
+        "index": 23,
+        "name": "prime_zeta_flock_read_and_gate_counterfactual_v4096",
+        "status": "PASS"
+      }
+    ],
+    "passed": 6,
+    "registered": 6
+  },
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "sheet_path": "docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md",
+  "sheet_sha256": "26b585e59758f736f6ed066b1bb8b6a445d66a2245957903293c0b6e4cb917f7",
+  "status": "PASS",
+  "training": "HELD"
+}

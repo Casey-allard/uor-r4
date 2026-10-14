@@ -84,3 +84,7 @@
 {"kind": "heartbeat", "lab": "antigravity", "milestone": "m1", "next": "awaiting exact-head review on PR #2473 (597026c92) before CUDA construction run", "schema": 1, "ts": "2026-10-14T14:37:10Z"}
 {"kind": "heartbeat", "lab": "antigravity", "milestone": "m1", "next": "awaiting exact-head review on PR #2473 (422e57da4) before CUDA construction run", "schema": 1, "ts": "2026-10-14T14:42:11Z"}
 {"kind": "heartbeat", "lab": "antigravity", "milestone": "m1", "next": "awaiting exact-head review on PR #2473 (422e57da4) before CUDA construction run", "schema": 1, "ts": "2026-10-14T14:45:45Z"}
+{"kind": "heartbeat", "lab": "antigravity", "milestone": "m1", "next": "PR #2473 queued for merge (831b8901b); next: CUDA construction qualification", "schema": 1, "ts": "2026-10-14T14:55:54Z"}
+{"kind": "heartbeat", "lab": "antigravity", "milestone": "m1", "next": "running prime-zeta-qualify qualify (--features cuda) per #2029 comment 6170312990", "schema": 1, "ts": "2026-10-14T14:58:08Z"}
+{"kind": "heartbeat", "lab": "antigravity", "milestone": "m1", "next": "executing prime-zeta-qualify qualify on vast-55945260 GPU 0", "schema": 1, "ts": "2026-10-14T15:06:36Z"}
+{"kind": "heartbeat", "lab": "antigravity", "milestone": "m1", "next": "delivering CUDA construction qualification receipts PR and #2029 report", "schema": 1, "ts": "2026-10-14T15:22:16Z"}

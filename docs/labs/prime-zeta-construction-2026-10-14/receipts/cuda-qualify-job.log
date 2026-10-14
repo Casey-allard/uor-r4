@@ -1,0 +1,246 @@
+# uor-pod job by=antigravity/ag1 pod=vast-55945260 gpu=0 queued 2026-10-14T15:14:59Z
+# cmd: bash /workspace/uor-r4/evals/run-prime-zeta-qualify.sh
+# start 2026-10-14T15:14:59Z (holding /root/gpu0.lock)
+GIT_HEAD=912a8a0690d0427fac0e4abed4bdc9636841ea05
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+0, NVIDIA GeForce RTX 5090, 580.95.05, 12.0, 32607 MiB
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/root/build/src-912a8a0690d0427fac0e4abed4bdc9636841ea05/crates/uor-r4-discrete)
+warning: constant `FRAME_REACHABILITY` is never used
+  --> /root/build/target-sm120/release/build/uor-r4-discrete-4df26b603e66f47b/out/geometry.rs:10:11
+   |
+10 | pub const FRAME_REACHABILITY: [u8; 64] = [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64...
+   |           ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ROOT_REACHABILITY` is never used
+  --> /root/build/target-sm120/release/build/uor-r4-discrete-4df26b603e66f47b/out/geometry.rs:11:11
+   |
+11 | pub const ROOT_REACHABILITY: [u8; 16] = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16];
+   |           ^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 11.01s
+953f8f085743aab68e9613c1acbbc6d41774bc71be50178fe75b40b05e0655f5  /root/build/target-sm120/release/prime-zeta-qualify
+{"index":1,"name":"exact_writer","status":"PASS"}
+{"index":2,"name":"virtual_proposals","status":"PASS"}
+{"index":3,"name":"context_transport","status":"PASS"}
+{"index":4,"name":"isolated_windows","status":"PASS"}
+{"index":5,"name":"collision_and_omitted_target","status":"PASS"}
+{"index":6,"name":"nonvacuity","status":"PASS"}
+{"index":7,"name":"artifact_and_identity","status":"PASS"}
+{"index":8,"name":"inventory_bounds","status":"PASS"}
+{"index":9,"name":"variable_length_prefixes","status":"PASS"}
+{"index":10,"name":"target_independent_admission","status":"PASS"}
+{"index":11,"name":"token_relabelling_preserves_geometry","status":"PASS"}
+{"index":1,"name":"flock_identity_read","status":"PASS"}
+{"index":2,"name":"flock_gate_counterfactual","status":"PASS"}
+{"index":3,"name":"flock_transport_witnesses","status":"PASS"}
+{"index":4,"name":"flock_payload_witness","status":"PASS"}
+{"index":5,"name":"flock_selection_and_eligibility","status":"PASS"}
+{"index":6,"name":"flock_refusals_and_noop","status":"PASS"}
+{
+  "admit_ptx": {
+    "verified_entries": 11,
+    "zero_float_instructions": true
+  },
+  "applied_updates": 0,
+  "base_controls": {
+    "flock_controls": "6/6 PASS",
+    "route_controls": "11/11 PASS",
+    "total_base_controls": "17/17 PASS"
+  },
+  "compiled_identity": {
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "kernel_sha256": "931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b",
+    "source_sha256": "e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a"
+  },
+  "corpus_rows_consumed": 0,
+  "device_resources": {
+    "counterfactual_local_bytes": 17136,
+    "evaluation_local_bytes": 16784,
+    "forward_local_bytes": 16624,
+    "memory": {
+      "free_bytes": 28888203264,
+      "ordinal": 0,
+      "total_bytes": 33668988928
+    }
+  },
+  "driver_source_sha256": "cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4",
+  "executable_sha256": "953f8f085743aab68e9613c1acbbc6d41774bc71be50178fe75b40b05e0655f5",
+  "mechanism": "prime-zeta-complex-routing",
+  "owner_release_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6170312990",
+  "prime_zeta_cuda_controls": {
+    "controls": [
+      {
+        "index": 18,
+        "name": "prime_zeta_v4096_b4_cuda_snapshot_validation_and_zero_collision",
+        "occupied_writer_cells": 256,
+        "status": "PASS",
+        "unique_table_vectors": 4096
+      },
+      {
+        "index": 19,
+        "losses": [
+          640,
+          640,
+          544,
+          640
+        ],
+        "name": "prime_zeta_v4096_b2_cuda_snapshot_validation",
+        "predictions": [
+          0,
+          2,
+          210,
+          13
+        ],
+        "status": "PASS"
+      },
+      {
+        "index": 20,
+        "losses": [
+          1280,
+          1216,
+          1248,
+          896
+        ],
+        "name": "prime_zeta_seed_reproducibility_0_1_2_cuda",
+        "predictions": [
+          3641,
+          2,
+          1689,
+          13
+        ],
+        "status": "PASS",
+        "total_loss_numerator_sum": 4640
+      },
+      {
+        "index": 21,
+        "name": "prime_zeta_tangent_and_normal_null_cuda_separation",
+        "normal_null_seed0_losses": [
+          1248,
+          1248,
+          1248,
+          1216
+        ],
+        "normal_null_seed1_losses": [
+          1088,
+          1280,
+          1248,
+          1184
+        ],
+        "normal_null_seed2_losses": [
+          1248,
+          1280,
+          896,
+          1184
+        ],
+        "prime_zeta_losses": [
+          1280,
+          1216,
+          1248,
+          896
+        ],
+        "status": "PASS",
+        "tangent_null_losses": [
+          1248,
+          1088,
+          1248,
+          1280
+        ]
+      },
+      {
+        "index": 22,
+        "name": "prime_zeta_route_counterfactual_nonvacuity_v4096",
+        "route0_proposal": {
+          "after": 4448,
+          "before": 4640,
+          "candidate": 2,
+          "sensitive": true
+        },
+        "status": "PASS",
+        "vector_block0_proposal": {
+          "after": 4288,
+          "before": 4640,
+          "candidate": 1,
+          "sensitive": true
+        }
+      },
+      {
+        "flock_losses": [
+          1280,
+          1280,
+          1280,
+          1280
+        ],
+        "flock_predictions": [
+          4095,
+          97,
+          1023,
+          113
+        ],
+        "gate0_proposal": {
+          "after": 4992,
+          "before": 5120,
+          "candidate": 2,
+          "sensitive": true
+        },
+        "index": 23,
+        "name": "prime_zeta_flock_read_and_gate_counterfactual_v4096",
+        "status": "PASS"
+      }
+    ],
+    "passed": 6,
+    "registered": 6
+  },
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "sheet_path": "docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md",
+  "sheet_sha256": "26b585e59758f736f6ed066b1bb8b6a445d66a2245957903293c0b6e4cb917f7",
+  "status": "PASS",
+  "training": "HELD"
+}
+sha256sum: /workspace/uor-r4/evals/prime-zeta-qualify-20261014/flock-controls: Is a directory
+sha256sum: /workspace/uor-r4/evals/prime-zeta-qualify-20261014/route-controls: Is a directory
+# exit=1 end=2026-10-14T15:15:18Z
