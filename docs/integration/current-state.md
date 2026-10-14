@@ -1,3 +1,33 @@
+## 2026-10-14 — `budget show` is Rust; the last delegation site is down to `budget scan` (deepseek, tooling)
+
+The [record](../labs/budget-show-port-2026-10-14/README.md) carries the comparison and the three defects it
+found. **`uor-harness budget show` RUNS IN RUST**, text and `--json`, over a faithful port of `collect()` and
+its eight helpers; **UNPORTED COMMANDS 2 → 1: only `budget scan` still delegates.** **THE COMPARISON FOUND
+THREE DEFECTS, AND THE THIRD WAS ARITHMETIC:** (1) **the owner's band is a tuple of INTEGERS** — Rust printed
+`owner band 30.0-70.0 GB` and `"band_gb": [30.0, 70.0]` where Python writes `30-70` and `[30, 70]`; (2) **an
+empty cost ledger sums to the INTEGER `0`** — Python's `round(sum([]), 4)` is an int, so the JSON prints `0`
+and not `0.0`; (3) **Python's `round()` is not Rust's `round()`, and on this ledger that is worth 0.0011** —
+the pod total came out `371.9637` against Python's `371.9626`, because 211 down-events are each rounded to
+four decimals *as they accumulate* and Rust rounds a tie away from zero while Python rounds to even;
+`round_ties_even` gave `371.9625` (still one tie off, since multiplying by 10^4 introduces binary error
+before the tie is seen) and **rounding the DECIMAL — `format!("{:.4}", x).parse()` — lands on `371.9626`.**
+**A fourth `DIFF` in the first bar run was not a defect:** free disk space moves while a build writes
+artifacts, so comparing a live `df` figure is only valid on a quiet tree — there the comparison is clean.
+**Verified by running BOTH implementations on three case groups: `budget show` 1417/1417 bytes, `budget show
+--json` 3164/3164, and bare `budget` (which is `show`) 1417/1417 — all MATCH against the real repo** (352
+ledger records, 12 resource ledgers, a 2396-record pod ledger, the real disk figure). **Verified:** fmt and
+clippy `-D warnings` clean; **491 Rust tests passed, 6 ignored** (was 481); `python3 -m unittest discover -s
+tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641, baseline 1641. Stated rather than
+hidden: **`disk_free` uses `df -k`** (Rust's std has no `disk_usage` and this crate has only
+`regex`/`serde`/`serde_json`), with the band comparisons on the **unrounded** figure; **`parse_ts` assumes UTC
+for a naive timestamp**, as Python does, because the pod durations were computed with that assumption; and a
+**rate is never summed as spend** — a down event with no rate and no remembered rate is skipped rather than
+charged at zero.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`budget scan`** — **the last live command** — and then the general fallback can be deleted and
+**D30 closed**.
 ## 2026-10-14 — `arena compare` is Rust; the whole `arena` command is ported (deepseek, tooling)
 
 The [record](../labs/arena-compare-port-2026-10-14/README.md) carries the fourteen comparison cases. **`uor-harness

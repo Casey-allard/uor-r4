@@ -14,6 +14,7 @@ use std::process::ExitCode;
 use uor_r4_harness::arena;
 use uor_r4_harness::arenacompare;
 use uor_r4_harness::briefing;
+use uor_r4_harness::budget;
 use uor_r4_harness::githelp;
 use uor_r4_harness::mistakes;
 use uor_r4_harness::multilab;
@@ -408,6 +409,7 @@ fn main() -> ExitCode {
         Some("check-formats") => cmd_check(&repo, json),
         Some("panel") => cmd_panel(&repo, &rest, json),
         Some("arena") => cmd_arena(&repo, &rest, json),
+        Some("budget") => cmd_budget(&repo, &rest, json),
         // **`check`'s own flags are parsed, not passed through as a filter.** The argument list
         // used to BE the `--only` prefix set, so `--repo <path>` - which the top-level parser
         // forwards here on purpose - narrowed the run to nothing and printed `0 rules, 0 failed`.
@@ -3116,6 +3118,34 @@ fn cmd_arena(repo: &Path, args: &[String], json: bool) -> ExitCode {
         }
         other => {
             eprintln!("uor-harness arena: unknown action {other:?}; try board, compare, lineage");
+            ExitCode::from(2)
+        }
+    }
+}
+
+/// `budget show|scan` — cumulative cost and live compute.
+///
+/// **`show` is Rust; `scan` is not yet and says so** (it shells out to `scripts/pod/uor-pod`, which needs
+/// its own unit). `budget` with no action is `show`, as Python's `set_defaults(action="show")` does.
+///
+/// The whole point of this view is that it **understates rather than flatters**: a rate is never summed as
+/// spend, an absent ledger prints `ABSENT` instead of a zero, and a figure that cannot be read is reported
+/// as unreadable rather than guessed at.
+fn cmd_budget(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    match action_word(args) {
+        "show" | "" => {
+            let data = budget::collect(&paths.repo, &paths.ledger_dir());
+            if json {
+                println!("{}", budget::show_json(&data));
+            } else {
+                print!("{}", budget::show_text(&data));
+            }
+            ExitCode::SUCCESS
+        }
+        "scan" => delegate_to_python(repo, "budget", args),
+        other => {
+            eprintln!("uor-harness budget: unknown action {other:?}; try show, scan");
             ExitCode::from(2)
         }
     }

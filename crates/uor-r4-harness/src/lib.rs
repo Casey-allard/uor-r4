@@ -25,6 +25,7 @@ pub mod arenacompare;
 pub mod arenarules;
 pub mod briefing;
 pub mod briefingrules;
+pub mod budget;
 pub mod budgetrules;
 pub mod checkdispatch;
 pub mod contract;
