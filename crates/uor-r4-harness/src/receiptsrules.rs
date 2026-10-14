@@ -328,3 +328,40 @@ mod tests {
         }
     }
 }
+
+/// `receipts.skill_usage_recorded` — **a rule that cannot fail, ported as one that cannot fail.**
+///
+/// Python:
+///
+/// ```python
+/// recs = read(paths, kinds=("skill",))
+/// if recs:
+///     return []
+/// return []  # informational only: the engine prints "ok" for an empty list
+/// ```
+///
+/// **Both branches return empty, so no input produces a finding.** The rule is declared, registered
+/// and reported as passing, and it asserts nothing.
+///
+/// **Ported rather than skipped, and ported as an explicit empty list rather than as a plausible
+/// check.** Writing it as "report when skills were used but no skill receipt exists" would be
+/// **inventing a rule the engine does not have** — and it would fire on every repository state where
+/// the two disagree, which is a behaviour change dressed as a port.
+///
+/// **The reason it is worth a function is the reason it is worth a comment**: a reader who finds
+/// `receipts.skill_usage_recorded` in `check`'s output should know it is a placeholder passing
+/// silently, not a verification that succeeded.
+pub fn skill_usage_recorded() -> Vec<crate::preprules::Finding> {
+    Vec::new()
+}
+
+#[cfg(test)]
+mod skill_usage_tests {
+    /// **The rule cannot fail, and that is asserted rather than assumed.** If a future change makes
+    /// it produce a finding, this test fails and the change is visible as a behaviour change -
+    /// **which is exactly what a silently-passing check would otherwise hide.**
+    #[test]
+    fn the_rule_produces_nothing_for_any_state() {
+        assert!(super::skill_usage_recorded().is_empty());
+    }
+}

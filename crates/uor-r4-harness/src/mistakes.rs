@@ -950,3 +950,271 @@ mod guard_rule_tests {
         assert!(guard_covered(&p).is_empty(), "warn lessons are advice");
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// `mistakes.stale_check` - every lesson's paths still match a file in the repo.
+// ---------------------------------------------------------------------------------------------
+
+/// The repo's file index, from **`git ls-files` rather than a filesystem walk**.
+///
+/// Python's original walked ~11k files and ran three `fnmatch` calls per (file, pattern) pair for
+/// every lesson, which took **~46 seconds and dominated the whole `check`**. `git ls-files` is the
+/// already-built index of exactly the files that matter, and it excludes ignored build output and
+/// scratch state for free.
+///
+/// **`-z` because paths can contain newlines**, which the newline-separated form splits incorrectly.
+fn file_index(repo: &std::path::Path) -> Vec<String> {
+    let out = std::process::Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args([
+            "ls-files",
+            "-z",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+        ])
+        .output();
+    let Ok(out) = out else { return Vec::new() };
+    if !out.status.success() {
+        return Vec::new();
+    }
+    String::from_utf8_lossy(&out.stdout)
+        .split('\0')
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+/// `mistakes._patterns_match_index` - does any pattern match any indexed path?
+///
+/// **Ported for its semantics rather than its optimisation.** Python splits the patterns into
+/// literals (resolved with `in`/`startswith`) and wildcards (resolved with `fnmatch`) because the
+/// hot path was tens of millions of calls; **Rust does the same in one pass with the same outcomes**,
+/// and the split is kept because the literal branch has *different* matching rules, not merely
+/// faster ones: a literal matches by suffix or substring, a glob only by `fnmatch`.
+fn patterns_match_index(index: &[String], patterns: &[String]) -> bool {
+    let mut literals: Vec<(String, Option<String>)> = Vec::new();
+    let mut globs: Vec<String> = Vec::new();
+    for raw in patterns {
+        let pat = raw.trim().trim_start_matches("./").to_string();
+        if pat.is_empty() {
+            continue;
+        }
+        if pat.contains('*') || pat.contains('?') || pat.contains('[') {
+            if let Some(base) = pat.strip_suffix("/**") {
+                literals.push((
+                    pat.clone(),
+                    Some(format!("{}/", base.trim_end_matches('/'))),
+                ));
+            } else {
+                globs.push(pat);
+            }
+        } else {
+            literals.push((pat, None));
+        }
+    }
+    // **An empty pattern list is not a staleness finding**, and that is a deliberate early return
+    // rather than a vacuous truth that happens to agree.
+    if literals.is_empty() && globs.is_empty() {
+        return true;
+    }
+    for (pat, prefix) in &literals {
+        for rel in index {
+            if rel == pat
+                || rel.ends_with(&format!("/{pat}"))
+                || prefix.as_ref().is_some_and(|p| rel.starts_with(p))
+                || rel.contains(pat.as_str())
+            {
+                return true;
+            }
+        }
+    }
+    for glob in &globs {
+        for rel in index {
+            if fnmatch(glob, rel) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// `mistakes.stale_check` - **an `info` finding, because a stale glob is not a fault.**
+///
+/// **A lesson whose paths match nothing has stopped being recallable**, and that is the failure the
+/// rule exists for: **a stale glob silently stops firing, which is indistinguishable from a guard
+/// that passes.** The severity is Python's.
+pub fn stale_check(paths: &StatePaths) -> Vec<Finding> {
+    let index = file_index(&paths.repo);
+    if index.is_empty() {
+        // **No index means nothing to compare, and reporting every lesson as stale would be a
+        // finding that is wrong rather than missing.** Python's `git ls-files` on a real repo always
+        // returns paths; an empty list means git is unavailable, which is not a lesson's fault.
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    for lesson in load(paths) {
+        if !lesson.errors.is_empty() || lesson.paths.is_empty() {
+            continue;
+        }
+        if !patterns_match_index(&index, &lesson.paths) {
+            out.push(Finding {
+                rule_id: "mistakes.stale_check",
+                severity: "info",
+                message: format!(
+                    "{}: paths {:?} match no file in the repo",
+                    lesson.id, lesson.paths
+                ),
+                path: lesson.path.display().to_string(),
+                fix: "update or delete the lesson: a pattern that matches nothing never recalls it"
+                    .into(),
+            });
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod stale_check_tests {
+    use super::*;
+    use std::path::Path;
+
+    fn repo() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    fn idx() -> Vec<String> {
+        file_index(&repo())
+    }
+
+    /// **The matcher's two branches have DIFFERENT rules, not merely different speeds.** A literal
+    /// matches by exact path, suffix **or substring**; a glob matches only by `fnmatch`. Porting only
+    /// the fast path would have made a lesson written as a bare filename stop firing.
+    #[test]
+    fn literals_and_globs_match_by_their_own_rules() {
+        let index = idx();
+        assert!(!index.is_empty(), "the real repo has a file index");
+        assert!(
+            patterns_match_index(&index, &["Cargo.toml".into()]),
+            "a literal that exists"
+        );
+        assert!(
+            patterns_match_index(&index, &["crates/*.rs".into()]),
+            "a glob that matches"
+        );
+        // A literal matches as a SUBSTRING, which a glob would not.
+        assert!(
+            patterns_match_index(&index, &["crates/uor-r4-harness/src/team".into()]),
+            "a literal matches by substring"
+        );
+        assert!(
+            !patterns_match_index(&index, &["nothing/here/**".into()]),
+            "a pattern matching nothing"
+        );
+        assert!(!patterns_match_index(
+            &index,
+            &["zzz-no-such-file.zzz".into()]
+        ));
+    }
+
+    /// **`<dir>/**` does not become a glob**: Python rewrites it to a literal directory prefix, so it
+    /// matches by `startswith`. Asserted because the rewrite is easy to drop and the glob it would
+    /// otherwise become matches differently.
+    #[test]
+    fn a_double_star_suffix_becomes_a_prefix_literal() {
+        let index = idx();
+        assert!(patterns_match_index(&index, &["crates/**".into()]));
+        assert!(patterns_match_index(&index, &["docs/harness/**".into()]));
+        assert!(!patterns_match_index(&index, &["no-such-dir/**".into()]));
+    }
+
+    /// **An empty pattern list is not a staleness finding** - a deliberate early return, not a
+    /// vacuous truth that happens to agree.
+    #[test]
+    fn an_empty_pattern_list_is_not_stale() {
+        assert!(patterns_match_index(&idx(), &[]));
+        assert!(
+            patterns_match_index(&idx(), &["".into(), "  ".into()]),
+            "blank patterns are skipped"
+        );
+    }
+
+    /// **The real repo has no stale lessons**, which is Python's own answer - so this asserts the
+    /// port agrees on real data rather than only on constructed cases.
+    #[test]
+    fn the_real_repo_has_no_stale_lessons() {
+        let paths = StatePaths::resolve(repo(), None, Some("/nonexistent-live"));
+        let f = stale_check(&paths);
+        assert!(
+            f.is_empty(),
+            "python reports 0 on this repo; rust found: {f:?}"
+        );
+    }
+
+    /// **A stale lesson IS reported, with Python's message and severity.** Constructed rather than
+    /// found, because the real repo has none - **and a check that has only ever been green is a check
+    /// nobody has tested.**
+    #[test]
+    fn a_lesson_matching_nothing_is_reported() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let d = dir.path().join("docs/harness/mistakes");
+        std::fs::create_dir_all(&d).expect("mkdir");
+        std::fs::write(
+            d.join("stale-lesson.md"),
+            "---\nid: stale-lesson\ntitle: t\ndate: 2026-10-14\nseverity: info\nclass: process\n\
+             status: active\nguard: none: no machine can decide this\ntrigger: [one, two]\n\
+             paths: [\"no/such/path/anywhere/**\"]\nevidence: [Cargo.toml]\n---\n\nbody\n",
+        )
+        .expect("write");
+        // **A git repo with something in it, because the index comes from `git ls-files`** - an empty
+        // index means "no evidence", and the check deliberately reports nothing in that case rather
+        // than reporting every lesson. I hit that here first: the fixture reported 0 findings and the
+        // check was right.
+        for args in [
+            vec!["init", "-q"],
+            vec!["config", "user.email", "t@t"],
+            vec!["config", "user.name", "t"],
+            vec!["add", "docs/harness/mistakes/stale-lesson.md"],
+        ] {
+            let _ = std::process::Command::new("git")
+                .arg("-C")
+                .arg(dir.path())
+                .args(&args)
+                .output();
+        }
+        let paths = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        let f = stale_check(&paths);
+        assert_eq!(f.len(), 1, "one stale lesson: {f:?}");
+        assert_eq!(f[0].rule_id, "mistakes.stale_check");
+        assert_eq!(f[0].severity, "info", "a stale glob is not a fault");
+        assert!(f[0].message.contains("stale-lesson"), "{}", f[0].message);
+        assert!(
+            f[0].message.contains("match no file in the repo"),
+            "{}",
+            f[0].message
+        );
+    }
+
+    /// **No file index means no findings**, because reporting every lesson as stale would be a
+    /// finding that is WRONG rather than missing - and git being unavailable is not a lesson's fault.
+    #[test]
+    fn no_index_reports_nothing_rather_than_everything() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let d = dir.path().join("docs/harness/mistakes");
+        std::fs::create_dir_all(&d).expect("mkdir");
+        std::fs::write(
+            d.join("a-lesson.md"),
+            "---\nid: a-lesson\ntitle: t\ndate: 2026-10-14\nseverity: info\nclass: process\n\
+             status: active\nguard: none: no machine can decide this\ntrigger: [one, two]\n\
+             paths: [\"**/*.rs\"]\nevidence: [Cargo.toml]\n---\n\nbody\n",
+        )
+        .expect("write");
+        // A directory that is not a git repository, so `git ls-files` fails.
+        let paths = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        assert!(
+            stale_check(&paths).is_empty(),
+            "no index must not read as every lesson being stale"
+        );
+    }
+}

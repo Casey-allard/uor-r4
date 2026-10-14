@@ -51,9 +51,22 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "mistakes.registry_valid",
             "mistakes.evidence_exists",
             "mistakes.guard_covered",
+            // Reads the repo through `git ls-files`, because a stale glob silently stops recalling
+            // a lesson - indistinguishable from a guard that passes.
+            "mistakes.stale_check",
         ],
     ),
-    ("receipts", &["receipts.parse", "receipts.ledger_present"]),
+    (
+        "receipts",
+        &[
+            "receipts.parse",
+            "receipts.ledger_present",
+            // **Ported as an explicit no-op because that is what it is.** Both of Python's branches
+            // return empty, so no input produces a finding - and writing it as a plausible check
+            // would be inventing a rule the engine does not have.
+            "receipts.skill_usage_recorded",
+        ],
+    ),
     (
         "prlint",
         &[
