@@ -121,18 +121,51 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
-          set -euo pipefail
-          publish() {
+          # NOT `set -e`: one transient API failure must not abort the loop. The required statuses
+          # that were never published are exactly what WEDGE a merge-queue entry - it waits for a
+          # context that will never arrive. Every outcome is handled explicitly below instead.
+          set -uo pipefail
+
+          # One publish attempt: non-zero on any failure, including the `gh api` transport error
+          # seen twice in production (`unexpected end of JSON input`).
+          publish_once() {
             gh api "repos/${GITHUB_REPOSITORY}/check-runs" \
-              -f name="$1" -f head_sha="${HEAD_SHA}" -f status=completed -f conclusion=success \
+              -f name="$1" -f head_sha="${HEAD_SHA}" -f status=completed -f conclusion="$3" \
               -f "output[title]=Ruleset transport only" -f "output[summary]=$2" > /dev/null
-            echo "published: $1"
+          }
+
+          # Bounded retry with backoff, then FAIL SAFE.
+          #
+          # If the success publish cannot be delivered after the retries, an explicit FAILURE check
+          # run is published for the same name. The entry is then ejected and a re-run is visibly
+          # needed, instead of sitting AWAITING_CHECKS for ever.
+          FAILED=0
+          publish() {
+            local name="$1" summary="$2" attempt delay=3
+            for attempt in 1 2 3; do
+              if publish_once "$name" "$summary" success; then
+                echo "published: ${name} (attempt ${attempt})"
+                return 0
+              fi
+              echo "::warning::publish failed for \"${name}\" (attempt ${attempt}/3); retrying in ${delay}s"
+              sleep "$delay"
+              delay=$((delay * 2))
+            done
+            echo "::error::could not publish \"${name}\" after 3 attempts; publishing a failure so the merge-queue entry is ejected rather than wedged"
+            publish_once "$name" "Transport publish failed after 3 attempts; this acknowledgement did not run. Re-run the job." failure \
+              || echo "::error::the failure check run for \"${name}\" could not be published either"
+            FAILED=1
+            return 1
           }
           publish "fmt / clippy / tests / no_std / κ" "Ruleset transport only; no formatting, Clippy, native tests, no_std, kappa or architecture-policy checks ran. Use workflow_dispatch qa_scope=native_checks for the native suite."
           publish "cargo audit" "Ruleset transport only; no dependency audit ran."
           publish "fuzz smoke (nightly libfuzzer)" "Ruleset transport only; no fuzzing ran."
           publish "wasm-pack build (dashboard facade, deploy.yml parity)" "Ruleset transport only; no WASM build ran."
           publish "Gate C trend alarm" "Ruleset transport only; no Gate C or model evaluation ran."
+
+          # Both signals: the published failure context ejects a wedged entry, and a red job makes the
+          # transport failure visible in the workflow list as well.
+          exit "$FAILED"
 
   native-checks:
     name: manual native architecture and runtime checks
