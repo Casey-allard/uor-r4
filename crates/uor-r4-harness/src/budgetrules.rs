@@ -332,3 +332,86 @@ mod tests {
         );
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// `budget.no_new_spending_class` - the caps, printed on every run.
+// ---------------------------------------------------------------------------------------------
+
+/// The owner's pod cap: **at most four running pods, counted across both providers**.
+pub const POD_CAP: u32 = 4;
+
+/// The owner's rate cap: **at most $8/h across all labs and sessions.**
+pub const RATE_CAP_USD_PER_H: f64 = 8.00;
+
+/// `budget.no_new_spending_class` — **a rule that always fires, and that is its job.**
+///
+/// `_check_caps` returns one `RuleResult` unconditionally, with `ok=False` and severity `info`:
+///
+/// ```python
+/// def _check_caps(paths, reg):
+///     return [RuleResult(rule_id="budget.no_new_spending_class", severity="info", ok=False, ...)]
+/// ```
+///
+/// **So it does not test anything — it PRINTS the caps on every `check`, and the `ok=False` is what
+/// makes them visible.** The rule's description says so: *"the owner caps are printed so a session
+/// cannot silently exceed them"*.
+///
+/// **Ported with `ok=False` faithful to that**, rather than as a rule that "passes when within caps":
+/// there is no spend reading here to compare against, and **inventing a comparison would be inventing
+/// a check the engine does not have** — the same reasoning as `receipts.skill_usage_recorded`, in the
+/// opposite direction: that rule never fires, this one always does.
+///
+/// **A reader who sees `ok=False` and severity `info` together should read it as "reported, not
+/// failed"** — which is exactly what the pair means, and why changing the severity would change the
+/// run's summary counts for every lab.
+pub fn no_new_spending_class() -> Vec<Finding> {
+    vec![Finding {
+        rule_id: "budget.no_new_spending_class",
+        severity: "info",
+        message: format!(
+            "owner caps in force: <= {POD_CAP} running pods and <= ${RATE_CAP_USD_PER_H:.2}/h \
+             across all labs and sessions, all external compute through scripts/pod/uor-pod; \
+             a new spending class needs an owner decision"
+        ),
+        path: "AGENTS.md".into(),
+        fix: "if a run would exceed a cap or need a new spending class, stop that line and ask the owner on the milestone".into(),
+    }]
+}
+
+#[cfg(test)]
+mod spending_tests {
+    /// **The rule always fires and never reports an error.** Asserted so a future change that made it
+    /// conditional - reporting only when a cap was exceeded, say - would be **visible as a behaviour
+    /// change rather than passing silently with a different meaning.**
+    #[test]
+    fn the_caps_rule_always_reports_and_is_info_not_error() {
+        let f = super::no_new_spending_class();
+        assert_eq!(f.len(), 1, "it fires unconditionally");
+        assert_eq!(f[0].rule_id, "budget.no_new_spending_class");
+        assert_eq!(
+            f[0].severity, "info",
+            "info, so it does not count as a warning"
+        );
+        assert_eq!(
+            f[0].path, "AGENTS.md",
+            "the caps live in AGENTS.md, and the path says so"
+        );
+    }
+
+    /// **The message carries both caps, formatted as Python formats them** - `$8.00/h` with two
+    /// decimals, because the value is a float and Python's `:.2f` is what a reader compares against.
+    #[test]
+    fn the_message_names_both_caps_with_pythons_formatting() {
+        let m = &super::no_new_spending_class()[0].message;
+        assert!(m.contains("<= 4 running pods"), "{m}");
+        assert!(
+            m.contains("<= $8.00/h"),
+            "Python's `:.2f` gives two decimals: {m}"
+        );
+        assert!(m.contains("all labs and sessions"), "{m}");
+        assert!(
+            m.contains("a new spending class needs an owner decision"),
+            "{m}"
+        );
+    }
+}

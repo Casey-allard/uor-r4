@@ -124,7 +124,17 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "briefing.lines_agree_with_prompts",
         ],
     ),
-    ("budget", &["budget.receipts_parse", "budget.disk_floor"]),
+    (
+        "budget",
+        &[
+            "budget.receipts_parse",
+            "budget.disk_floor",
+            // **A rule that fires on every run by design.** It prints the owner's caps rather than
+            // testing anything - `ok=False` with `severity="info"` is the pair that makes them
+            // visible without counting as a failure.
+            "budget.no_new_spending_class",
+        ],
+    ),
     (
         "harness",
         &[
