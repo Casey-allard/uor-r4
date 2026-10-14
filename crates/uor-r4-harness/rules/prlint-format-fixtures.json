@@ -1,0 +1,36 @@
+{
+  "_": [
+    "GOLDEN FIXTURES for prlint.format_pr_body, captured from PYTHON on 2026-10-14.",
+    "",
+    "THE FORMATTER IS THE INVERSE OF THE PARSER, so the strongest test is NOT a hand-written",
+    "expectation - it is that a body formatted from a parsed body PARSES BACK to the same headline,",
+    "decision and line name. Both are asserted: the byte-for-byte capture against Python, and the",
+    "round trip against this port's own parser.",
+    "",
+    "WHY BYTE-FOR-BYTE TOO: `lint format` output is what a lab pastes into a PR. A formatter that",
+    "differs in a separator or a trailing newline produces a body that lints differently, and the",
+    "difference would show up in a lab's PR rather than in a test."
+  ],
+  "cases": [
+    {
+      "body": "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n",
+      "expected": "## Line and headline (D21, docs/labs/session-goal.md)\n\nLine: exact addressed memory · count 0/3 · headline 37/232 → 37/232\n\n## What and why\n\n<the change, the question it answers, the milestone (#2029)>\n\n## Result\n\nDecision: KEEP\n\n## Checklist\n\n- [ ] Checks run at this exact head (commands and outcomes posted on this PR)\n- [ ] Research record: `docs/labs/<topic>-<YYYY-MM-DD>/README.md`\n- [ ] New entry at the top of docs/integration/current-state.md, with **Next:**\n- [ ] Every document this change makes stale is updated\n- [ ] STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged\n- [ ] README updated in its existing sections, or nothing a reader relies on changed\n- [ ] python3 scripts/check_claim_wording.py passes\n- [ ] After merge: verify on fresh origin/main, delete the branch and worktree, uor-hygiene --apply\n\nReferences #2029\n",
+      "name": "minimal"
+    },
+    {
+      "body": "Line: nope not a line | count 0/3 | headline 37/232\nDecision: REJECT\nReferences #2029 #2030\n",
+      "expected": "## Line and headline (D21, docs/labs/session-goal.md)\n\nLine: nope not a line · count 0/3 · headline 37/232 → <number/of>\n\n## What and why\n\n<the change, the question it answers, the milestone (#2029)>\n\n## Result\n\nDecision: REJECT\n\n## Checklist\n\n- [ ] Checks run at this exact head (commands and outcomes posted on this PR)\n- [ ] Research record: `docs/labs/<topic>-<YYYY-MM-DD>/README.md`\n- [ ] New entry at the top of docs/integration/current-state.md, with **Next:**\n- [ ] Every document this change makes stale is updated\n- [ ] STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged\n- [ ] README updated in its existing sections, or nothing a reader relies on changed\n- [ ] python3 scripts/check_claim_wording.py passes\n- [ ] After merge: verify on fresh origin/main, delete the branch and worktree, uor-hygiene --apply\n\nReferences #2029\n",
+      "name": "unknown-line"
+    },
+    {
+      "body": "",
+      "expected": "## Line and headline (D21, docs/labs/session-goal.md)\n\nLine: <line name> · count <n>/3 · headline <number/of> → <number/of>\n\n## What and why\n\n<the change, the question it answers>\n\n## Result\n\nDecision: NOT YET PROMOTED\n\n## Checklist\n\n- [ ] Checks run at this exact head (commands and outcomes posted on this PR)\n- [ ] Research record: `docs/labs/<topic>-<YYYY-MM-DD>/README.md`\n- [ ] New entry at the top of docs/integration/current-state.md, with **Next:**\n- [ ] Every document this change makes stale is updated\n- [ ] STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged\n- [ ] README updated in its existing sections, or nothing a reader relies on changed\n- [ ] python3 scripts/check_claim_wording.py passes\n- [ ] After merge: verify on fresh origin/main, delete the branch and worktree, uor-hygiene --apply\n\nReferences #<issue>\n",
+      "name": "empty"
+    },
+    {
+      "body": "Line: evaluation integrity | count 1/3 | headline 5/232 -> 6/232\nDecision: KEEP\nTEST FITNESS: FIT\nRecord: docs/labs/x-2026-10-14/README.md\nReferences #2029\n",
+      "expected": "## Line and headline (D21, docs/labs/session-goal.md)\n\nLine: evaluation integrity · count 1/3 · headline 5/232 → 6/232\n\n## What and why\n\n<the change, the question it answers, the milestone (#2029)>\n\n## Result\n\nDecision: KEEP\n\nPre-registration: TEST FITNESS: FIT\n\n## Checklist\n\n- [ ] Checks run at this exact head (commands and outcomes posted on this PR)\n- [ ] Research record: `docs/labs/x-2026-10-14/README.md`\n- [ ] New entry at the top of docs/integration/current-state.md, with **Next:**\n- [ ] Every document this change makes stale is updated\n- [ ] STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged\n- [ ] README updated in its existing sections, or nothing a reader relies on changed\n- [ ] python3 scripts/check_claim_wording.py passes\n- [ ] After merge: verify on fresh origin/main, delete the branch and worktree, uor-hygiene --apply\n\nReferences #2029\n",
+      "name": "with-prereg"
+    }
+  ]
+}

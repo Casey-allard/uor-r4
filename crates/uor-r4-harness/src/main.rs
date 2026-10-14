@@ -45,7 +45,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 23] = [
+const PORTED_COMMANDS: [&str; 24] = [
     "onboard",
     "check-formats",
     "presence",
@@ -69,6 +69,7 @@ const PORTED_COMMANDS: [&str; 23] = [
     "status",
     "ratchet",
     "check-rules",
+    "lint",
 ];
 
 const SUBCOMMAND_FLAGS: [&str; 32] = [
@@ -107,7 +108,7 @@ const SUBCOMMAND_FLAGS: [&str; 32] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 32] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 35] = [
     "--kind",
     "--milestone",
     "-m",
@@ -140,6 +141,9 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 32] = [
     "--verdict",
     "--reviewer",
     "--sheet",
+    "--body-file",
+    "--body",
+    "--action",
 ];
 
 const USAGE: &str = "\
@@ -351,6 +355,7 @@ fn main() -> ExitCode {
         Some("shard-check") => cmd_shard_check(&repo, &rest, json),
         Some("status") => cmd_status(&repo, &rest),
         Some("ratchet") => cmd_ratchet(&repo, &rest),
+        Some("lint") => cmd_lint(&repo, &rest, json),
         Some("check-rules") => {
             // The port's coverage record. `parity.py` compares this against Python's registered
             // rules, because `check`'s rule set changes while the port is in progress and a module
@@ -2230,6 +2235,99 @@ fn cmd_ledger(repo: &Path, json: bool) -> ExitCode {
 }
 
 /// `ratchet d23|d25`: the D23/D25 interlocks, same scan and baselines as the Python scripts.
+/// `lint check` / `lint format` — the D22/D23/D24 gate over a PR body.
+///
+/// **This is the command that makes the thirteen ported gates reachable.** Everything it needs is
+/// now Rust: `check_pr` runs the gates, `format_pr_body` renders a compliant body, and the D23 scan
+/// is the ratchet rather than the retired Python script.
+///
+/// **The two inputs `check_pr` takes as parameters are resolved HERE**, at the edge, so the gates
+/// stay testable: `state_text` is read from the repo and `now` is the local date.
+fn cmd_lint(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    use uor_r4_harness::prgates;
+    use uor_r4_harness::state::StatePaths;
+
+    // **An empty `--body ""` is not a body.** Python's `elif getattr(args, "body", None):` is a
+    // FALSY check, so an empty string falls through to the "provide --body" error and exit 2. The
+    // first version here treated the empty string as the body and linted it, which made the two
+    // implementations disagree on the one input where "no body" and "an empty body" are the same
+    // thing to a reader.
+    let body = if let Some(file) = flag_value(args, "--body-file") {
+        match std::fs::read_to_string(&file) {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("uor-harness: cannot read {file}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    } else if let Some(inline) = flag_value(args, "--body").filter(|s| !s.is_empty()) {
+        inline
+    } else {
+        // Python prints this bare, with no `uor-harness:` prefix - and a diff of the two
+        // implementations is how this was found.
+        eprintln!("provide --body or --body-file");
+        return ExitCode::from(2);
+    };
+
+    let paths = StatePaths::resolve(repo, None, None);
+    let regs = match uor_r4_harness::registries::Registries::load(&paths) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("uor-harness: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    // `lint format` renders a compliant body and returns zero; it never gates.
+    // **`format` is a SUBCOMMAND word, not a flag.** The dispatcher leaves it in `args` because
+    // `lint` already claimed the command slot, so it arrives as `args[0]` - and the first version
+    // only looked for `--action`, so `lint format` silently ran `check` and printed a summary where
+    // Python printed a body. Caught by diffing the two commands rather than by reading either.
+    let action = if args.iter().any(|a| a == "format") {
+        "format".to_string()
+    } else {
+        "check".to_string()
+    };
+    if action == "format" {
+        let f = uor_r4_harness::prbody::parse_pr_body(&body);
+        // `print!`, not `println!`: `format_pr_body` already ends with a newline, exactly as Python's
+        // does, and `println!` added a second - a blank line at the end of every rendered body, which
+        // is invisible in a terminal and not invisible in a diff.
+        print!("{}", prgates::format_pr_body(&f));
+        return ExitCode::SUCCESS;
+    }
+
+    // The current-state entry is read here rather than inside the gate, so the gate is testable.
+    let state_text = std::fs::read_to_string(repo.join("docs/integration/current-state.md")).ok();
+    let now = uor_r4_harness::prep::today();
+    let result = prgates::check_pr(&body, &paths, &regs, state_text.as_deref(), &now);
+
+    if json {
+        let problems: Vec<serde_json::Value> =
+            result.problems.iter().map(|p| p.to_json()).collect();
+        let doc = serde_json::json!({
+            "ok": result.ok,
+            "problems": problems,
+            "summary": result.summary,
+            "fields": result.fields,
+        });
+        println!("{}", serde_json::to_string_pretty(&doc).unwrap_or_default());
+    } else {
+        println!("{}", result.summary);
+        for p in &result.problems {
+            println!("  [{}] {}: {}", p.severity, p.rule, p.message);
+            if !p.fix.is_empty() {
+                println!("      fix: {}", p.fix);
+            }
+        }
+    }
+    if result.ok {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
+    }
+}
+
 fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
     use uor_r4_harness::ratchet::{self, Kind, Update};
     let Some(kind) = args.iter().find_map(|a| Kind::parse(a)) else {

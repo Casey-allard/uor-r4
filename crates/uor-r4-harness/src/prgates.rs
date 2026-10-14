@@ -48,6 +48,7 @@
 use crate::prbody::{truncate, Fields};
 use regex::Regex;
 use serde_json::{json, Value};
+use std::sync::OnceLock;
 
 /// One raised problem, in the shape `check_pr` returns.
 #[derive(Debug, Clone, PartialEq)]
@@ -110,12 +111,14 @@ pub fn headline_present(f: &Fields) -> Vec<Problem> {
     if f.headline_after.value.is_some() {
         return Vec::new();
     }
+    // **`before.render()`, not `before.value`.** Python's hint is
+    // `before.render() if before.numeric else "<number/of>"`, and `render` includes the denominator -
+    // so a body whose before value is `5/232` is told `headline 5/232 → <number/of>`.
+    // I used the raw value and produced `headline 5 → <number/of>`, which drops the denominator the
+    // reader needs to state the move. **Found by diffing the two commands across six bodies**, after
+    // the single body I had been testing with happened to have a before value with no denominator.
     let hint = if f.headline_before.value.is_some() {
-        f.headline_before
-            .value
-            .as_ref()
-            .map(|v| v.to_string())
-            .unwrap_or_else(|| "<number/of>".into())
+        render_headline(&f.headline_before)
     } else {
         "<number/of>".to_string()
     };
@@ -235,9 +238,12 @@ mod tests {
         let f = fields("Line: exact addressed memory | count 0/3 | headline 37/232\n");
         let p = headline_present(&f);
         assert_eq!(p.len(), 1, "{p:?}");
+        // **The denominator is part of the hint.** This test asserted `headline 37` and passed while
+        // the code was wrong, because `37/232` and `37` differ only in a part the old expectation
+        // did not carry - so the assertion was strengthened rather than left as it was.
         assert_eq!(
-            p[0].fix, "headline 37 → <number/of>",
-            "the before value is offered"
+            p[0].fix, "headline 37/232 → <number/of>",
+            "the whole before headline is offered, denominator included"
         );
     }
 
@@ -1536,5 +1542,287 @@ mod check_pr_tests {
             "info is not counted as a warning"
         );
         let _ = regs;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// `lint format` - the formatter, and the checklist it renders.
+// ---------------------------------------------------------------------------------------------
+
+/// `prlint._CHECKLIST` — **the template's own checklist, in order.**
+///
+/// **The first entry is the one `checks_at_head` looks for**, so these two must not drift: a
+/// reworded label would stop satisfying the gate it exists to satisfy. That is asserted below rather
+/// than left to a reader to notice.
+const CHECKLIST: [&str; 8] = [
+    "Checks run at this exact head (commands and outcomes posted on this PR)",
+    "Research record: docs/labs/<topic>-<YYYY-MM-DD>/README.md (or docs/evidence/…)",
+    "New entry at the top of docs/integration/current-state.md, with **Next:**",
+    "Every document this change makes stale is updated",
+    "STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged",
+    "README updated in its existing sections, or nothing a reader relies on changed",
+    "python3 scripts/check_claim_wording.py passes",
+    "After merge: verify on fresh origin/main, delete the branch and worktree, uor-hygiene --apply",
+];
+
+/// `core.redact` — token-shaped strings never reach a transcript.
+///
+/// **Ported with the formatter because the formatter prints a body**, and a body can contain a
+/// token a lab pasted. The pattern is Python's, kept identical: `gh[pousr]_…`, `sk-…`, `rpa_…`.
+fn redact(text: &str) -> String {
+    static CELL: OnceLock<Regex> = OnceLock::new();
+    let rx = CELL.get_or_init(|| {
+        Regex::new(r"(?i)\b(gh[pousr]_[A-Za-z0-9]{8,}|sk-[A-Za-z0-9_\-]{8,}|rpa_[A-Za-z0-9]{8,})\b")
+            .expect("a valid pattern")
+    });
+    rx.replace_all(text, "<redacted>").into_owned()
+}
+
+/// `prlint._headline_from` — a headline rendered for the template, or its raw text.
+fn headline_from(h: &crate::prbody::Headline) -> String {
+    if h.value.is_some() {
+        render_headline(h)
+    } else {
+        h.text.trim().to_string()
+    }
+}
+
+/// `prlint.format_pr_body` — render a compliant PR body from parsed fields.
+///
+/// **The formatter is the inverse of the parser, so it is tested against the parser rather than
+/// against a hand-written expectation**: a body formatted from a parsed body must parse back to the
+/// same headline, decision and line name. **A formatter checked only by eye is one that drifts from
+/// the parser silently.**
+pub fn format_pr_body(f: &crate::prbody::Fields) -> String {
+    let before = headline_from(&f.headline_before);
+    let after = headline_from(&f.headline_after);
+    let of = f.line_of.unwrap_or(3);
+    let line_name = if f.line_name.is_empty() {
+        "<line name>".to_string()
+    } else {
+        f.line_name.clone()
+    };
+    let count_text = match f.line_count {
+        Some(n) => format!("{n}/{of}"),
+        None => format!("<n>/{of}"),
+    };
+    let headline = format!(
+        "{} → {}",
+        if before.is_empty() {
+            "<number/of>"
+        } else {
+            &before
+        },
+        if after.is_empty() {
+            "<number/of>"
+        } else {
+            &after
+        }
+    );
+    let milestone = f.milestone_ref.clone();
+    let decision = if f.decision.is_empty() {
+        "NOT YET PROMOTED".to_string()
+    } else {
+        f.decision.clone()
+    };
+    let record = if f.record_path.is_empty() {
+        "docs/labs/<topic>-<YYYY-MM-DD>/README.md".to_string()
+    } else {
+        f.record_path.clone()
+    };
+    let mut issues: Vec<i64> = f.references.clone();
+    issues.extend(f.closes.iter().copied());
+    let ref_line = match issues.first() {
+        Some(i) => format!("References #{i}"),
+        None => "References #<issue>".to_string(),
+    };
+
+    let what = if milestone.is_empty() {
+        "<the change, the question it answers>".to_string()
+    } else {
+        format!("<the change, the question it answers, the milestone ({milestone})>")
+    };
+
+    let mut lines: Vec<String> = vec![
+        "## Line and headline (D21, docs/labs/session-goal.md)".into(),
+        String::new(),
+        format!("Line: {line_name} · count {count_text} · headline {headline}"),
+        String::new(),
+        "## What and why".into(),
+        String::new(),
+        what,
+        String::new(),
+        "## Result".into(),
+        String::new(),
+        format!("Decision: {decision}"),
+        String::new(),
+    ];
+    if !f.prereg.is_empty() {
+        lines.push(format!("Pre-registration: {}", f.prereg));
+        lines.push(String::new());
+    }
+    lines.push("## Checklist".into());
+    lines.push(String::new());
+    for label in CHECKLIST {
+        let rendered = if label.contains("Research record") {
+            format!("Research record: `{record}`")
+        } else {
+            label.to_string()
+        };
+        lines.push(format!("- [ ] {rendered}"));
+    }
+    lines.push(String::new());
+    lines.push(ref_line);
+    lines.push(String::new());
+    // **The trailing newline is KEPT**, because Python's `format_pr_body` keeps it and the byte-for-
+    // byte fixture is this function's contract. The CLI's print then has to avoid adding a second
+    // one - which is where the two implementations first differed, and the fix belongs at the print
+    // rather than in the string this function returns.
+    redact(&lines.join("\n"))
+}
+
+#[cfg(test)]
+mod format_tests {
+    use super::*;
+    use std::path::Path;
+
+    fn repo() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    fn fixtures() -> Vec<(String, String, String)> {
+        let text = std::fs::read_to_string(
+            repo().join("crates/uor-r4-harness/rules/prlint-format-fixtures.json"),
+        )
+        .expect("the fixtures are committed");
+        let doc: serde_json::Value = serde_json::from_str(&text).expect("valid json");
+        doc.get("cases")
+            .and_then(|c| c.as_array())
+            .expect("cases")
+            .iter()
+            .filter_map(|c| {
+                Some((
+                    c.get("name")?.as_str()?.to_string(),
+                    c.get("body")?.as_str()?.to_string(),
+                    c.get("expected")?.as_str()?.to_string(),
+                ))
+            })
+            .collect()
+    }
+
+    /// **Byte for byte against Python.** `lint format` output is what a lab pastes into a PR, so a
+    /// difference in a separator or a trailing newline produces a body that lints differently - and
+    /// **would show up in a lab's PR rather than in a test.**
+    #[test]
+    fn the_formatter_matches_python_byte_for_byte() {
+        let cases = fixtures();
+        assert_eq!(cases.len(), 4, "the fixtures are present");
+        let mut problems = Vec::new();
+        for (name, body, want) in &cases {
+            let got = format_pr_body(&crate::prbody::parse_pr_body(body));
+            if &got != want {
+                // Report the first differing line rather than two 850-character walls.
+                let g: Vec<&str> = got.lines().collect();
+                let w: Vec<&str> = want.lines().collect();
+                let at = g.iter().zip(w.iter()).position(|(a, b)| a != b);
+                problems.push(format!(
+                    "{name}: differs at line {:?}\n  rust:   {:?}\n  python: {:?}",
+                    at.map(|i| i + 1),
+                    at.map(|i| g.get(i).copied().unwrap_or("<past end>")),
+                    at.map(|i| w.get(i).copied().unwrap_or("<past end>"))
+                ));
+            }
+        }
+        assert!(problems.is_empty(), "{}", problems.join("\n"));
+    }
+
+    /// **The round trip, which is the test that catches a formatter drifting from the parser.** A
+    /// body formatted from parsed fields must parse back to the same line name, decision and
+    /// headline. **A formatter checked only by eye is one that drifts silently** - and the byte
+    /// comparison above would not catch a drift the captured cases do not exercise.
+    #[test]
+    fn a_formatted_body_parses_back_to_what_it_came_from() {
+        for (name, body, _) in fixtures() {
+            let first = crate::prbody::parse_pr_body(&body);
+            let rendered = format_pr_body(&first);
+            let second = crate::prbody::parse_pr_body(&rendered);
+            // **The formatter SUBSTITUTES a valid decision when the body has none**, so the round
+            // trip is not the identity there - it is the formatter doing its job. Asserted both ways
+            // rather than assumed: a decision that was present survives, and one that was absent
+            // comes back as the template's default.
+            if first.decision.is_empty() {
+                assert_eq!(
+                    second.decision, "NOT YET PROMOTED",
+                    "{name}: the formatter supplies the default decision"
+                );
+            } else {
+                assert_eq!(second.decision, first.decision, "{name}: decision survives");
+            }
+            // **A body with NO line name formats to the template placeholder, and the placeholder
+            // parses back as a name.** That is not a defect in either direction - the template is a
+            // template - so the round trip is asserted on the values that carry meaning and the
+            // no-name case is pinned as the explicit exception it is.
+            if first.line_name.is_empty() {
+                assert_eq!(
+                    second.line_name, "<line name>",
+                    "{name}: the placeholder is what comes back"
+                );
+            } else {
+                assert_eq!(
+                    second.line_name, first.line_name,
+                    "{name}: the line name survives"
+                );
+                assert_eq!(
+                    second.headline_before.value, first.headline_before.value,
+                    "{name}: the before value survives"
+                );
+                assert_eq!(
+                    second.headline_after.value, first.headline_after.value,
+                    "{name}: the after value survives"
+                );
+            }
+        }
+    }
+
+    /// **The checklist's first entry is what `checks_at_head` matches on.** These two must not drift:
+    /// a reworded label would stop satisfying the gate it exists to satisfy, and **the gate would
+    /// report every formatted body as having no verification claim.**
+    #[test]
+    fn the_checklists_first_entry_still_satisfies_the_gate_it_feeds() {
+        let rendered = format_pr_body(&crate::prbody::parse_pr_body(""));
+        assert!(
+            rendered.contains(CHECKLIST[0]),
+            "the template renders the checklist's first entry"
+        );
+        // Tick it, and the gate must be satisfied - which is what makes `lint format` useful.
+        let ticked = rendered.replace(
+            &format!("- [ ] {}", CHECKLIST[0]),
+            &format!("- [x] {}", CHECKLIST[0]),
+        );
+        let f = crate::prbody::parse_pr_body(&ticked);
+        assert!(
+            checks_at_head(&f).is_empty(),
+            "ticking the formatted checklist's first box must satisfy checks_at_head: {:?}",
+            checks_at_head(&f)
+        );
+    }
+
+    /// `redact` removes token-shaped strings, **because the formatter prints a body and a body can
+    /// contain a token a lab pasted.**
+    #[test]
+    fn token_shaped_strings_are_redacted() {
+        let secret = "ghp_ABCDEFGHIJKLMNOP";
+        assert!(
+            !redact(secret).contains(secret),
+            "a GitHub token must not survive"
+        );
+        assert!(redact(secret).contains("<redacted>"));
+        assert!(!redact("sk-abcdefghijklmnop").contains("sk-abcdefghijklmnop"));
+        assert!(!redact("rpa_abcdefghijklmnop").contains("rpa_abcdefghijklmnop"));
+        // And ordinary prose is untouched.
+        assert_eq!(
+            redact("cargo test -p uor-r4-harness"),
+            "cargo test -p uor-r4-harness"
+        );
     }
 }
