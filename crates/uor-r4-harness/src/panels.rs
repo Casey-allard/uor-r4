@@ -404,6 +404,131 @@ pub fn score_json(s: &BarScore) -> String {
     format!("{{\n{}\n}}", lines.join(",\n"))
 }
 
+// ------------------------------------------------------------------------------------ panel show
+
+/// `MISSING` when a field is empty - Python's `value or MISSING`.
+fn or_missing(s: &str) -> String {
+    if s.is_empty() {
+        MISSING.to_string()
+    } else {
+        s.to_string()
+    }
+}
+
+/// `panel show`, as Python prints it.
+pub fn render_panels(panels: &[Panel]) -> String {
+    let mut out = String::new();
+    for p in panels {
+        out.push_str(&format!("{} - {}\n", p.id, p.title));
+        out.push_str(&format!(
+            "  milestone {}  frozen: {}  grader: {}\n",
+            or_missing(&p.milestone),
+            if p.frozen { "yes" } else { "NO" },
+            or_missing(&p.grader)
+        ));
+        out.push_str(&format!(
+            "  source: {}\n",
+            p.source.clone().unwrap_or_else(|| MISSING.to_string())
+        ));
+        out.push_str(&format!("  noise: {}\n", or_missing(&p.noise)));
+        out.push_str(&format!(
+            "  decisive run: {}; {}\n",
+            or_missing(&p.seeds),
+            or_missing(&p.rows)
+        ));
+        if p.bars.is_empty() {
+            out.push_str(&format!("  bars: {MISSING}\n"));
+        }
+        for bar in &p.bars {
+            // Python: `suffix = f"/{of}" if of not in (None, "") else ""`.
+            let suffix = if bar.of.is_null() || bar.of.as_str().is_some_and(str::is_empty) {
+                String::new()
+            } else {
+                format!("/{}", py_str_of(&bar.of))
+            };
+            // **No `rstrip` on this line**, unlike the score line: a bar with no unit prints two
+            // spaces before the bracket, and that is what Python emits.
+            out.push_str(&format!(
+                "  bar {}: {} {}{suffix} -> {}{suffix} {} [{} is better]\n",
+                bar.id,
+                bar.label,
+                py_str_of(&bar.current),
+                py_str_of(&bar.target),
+                bar.unit,
+                bar_direction(bar)
+            ));
+        }
+        out.push('\n');
+    }
+    out
+}
+
+/// `panel show --json`.
+///
+/// **The bars come from the FILE, not from the struct.** Python's `panel.bars` IS the raw list of bar
+/// dicts, so `json.dumps` prints each bar with the keys in the order the file wrote them
+/// (`id, label, current, target, of, unit, direction, note`) - including a `note` this crate's `Bar`
+/// has no field for. Re-serialising the struct would drop `note` and re-order the rest, so the raw
+/// objects are read back through `Ordered`, which is the whole reason that type exists.
+pub fn panels_json(panels: &[Panel], dir: &std::path::Path) -> String {
+    use crate::ordered::Ordered;
+    let mut raws: Vec<(String, Ordered)> = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        let mut files: Vec<std::path::PathBuf> = entries
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.extension().is_some_and(|x| x == "json"))
+            .collect();
+        files.sort();
+        for f in files {
+            let Ok(text) = std::fs::read_to_string(&f) else {
+                continue;
+            };
+            let Ok(data) = Ordered::parse(&text) else {
+                continue;
+            };
+            if let Some(map) = data.get("panels").and_then(Ordered::as_object) {
+                for (pid, raw) in map {
+                    raws.push((pid.clone(), raw.clone()));
+                }
+            }
+        }
+    }
+    let items: Vec<Ordered> = panels
+        .iter()
+        .map(|p| {
+            let bars = raws
+                .iter()
+                .find(|(id, _)| id == &p.id)
+                .and_then(|(_, r)| r.get("bars").cloned())
+                .unwrap_or(Ordered::Arr(Vec::new()));
+            let band = match noise_band(&p.noise) {
+                Some(b) => serde_json::Number::from_f64(b)
+                    .map(Ordered::Num)
+                    .unwrap_or(Ordered::Null),
+                None => Ordered::Null,
+            };
+            Ordered::Obj(vec![
+                ("id".to_string(), Ordered::Str(p.id.clone())),
+                ("title".to_string(), Ordered::Str(p.title.clone())),
+                ("milestone".to_string(), Ordered::Str(p.milestone.clone())),
+                ("frozen".to_string(), Ordered::Bool(p.frozen)),
+                ("grader".to_string(), Ordered::Str(p.grader.clone())),
+                (
+                    "source".to_string(),
+                    Ordered::Str(p.source.clone().unwrap_or_default()),
+                ),
+                ("noise".to_string(), Ordered::Str(p.noise.clone())),
+                ("noise_band".to_string(), band),
+                ("seeds".to_string(), Ordered::Str(p.seeds.clone())),
+                ("rows".to_string(), Ordered::Str(p.rows.clone())),
+                ("bars".to_string(), bars),
+            ])
+        })
+        .collect();
+    Ordered::Obj(vec![("panels".to_string(), Ordered::Arr(items))]).to_pretty()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -654,5 +779,89 @@ mod tests {
             Some("m2-reply512".to_string())
         );
         assert!(find_panel(&panels, "nope").is_none());
+    }
+
+    fn two_bar_panel() -> Panel {
+        Panel {
+            id: "p".to_string(),
+            title: "a panel".to_string(),
+            milestone: "m2".to_string(),
+            frozen: true,
+            grader: "g".to_string(),
+            source: Some("src".to_string()),
+            noise: "+-3 rows".to_string(),
+            seeds: "2".to_string(),
+            rows: "512".to_string(),
+            bars: vec![
+                Bar {
+                    id: "rows".to_string(),
+                    label: "correct".to_string(),
+                    current: json!(100),
+                    target: json!(150),
+                    of: json!(200),
+                    unit: "rows".to_string(),
+                    direction: "open".to_string(),
+                    noise: String::new(),
+                },
+                Bar {
+                    id: "errors".to_string(),
+                    label: "errors".to_string(),
+                    current: json!(0),
+                    target: json!(0),
+                    of: Value::Null,
+                    unit: String::new(),
+                    direction: "must be 0".to_string(),
+                    noise: String::new(),
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn the_show_lines_are_what_python_prints() {
+        let text = render_panels(&[two_bar_panel()]);
+        assert_eq!(
+            text,
+            concat!(
+                "p - a panel\n",
+                "  milestone m2  frozen: yes  grader: g\n",
+                "  source: src\n",
+                "  noise: +-3 rows\n",
+                "  decisive run: 2; 512\n",
+                "  bar rows: correct 100/200 -> 150/200 rows [higher is better]\n",
+                // No `of`, no unit: the double space before the bracket is Python's, and this line
+                // has no `rstrip` to hide it.
+                "  bar errors: errors 0 -> 0  [lower is better]\n",
+                "\n"
+            )
+        );
+    }
+
+    /// **The bars come from the file.** This panel file writes its bar keys in an order no `BTreeMap`
+    /// would produce and carries a `note` the `Bar` struct has no field for; both must survive.
+    #[test]
+    fn the_json_prints_the_files_own_bar_objects() {
+        let dir = std::env::temp_dir().join(format!("harness-panels-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("scratch");
+        std::fs::write(
+            dir.join("p.json"),
+            r#"{"panels": {"p": {"bars": [{"id": "rows", "label": "c", "current": 1, "note": "keep me"}]}}}"#,
+        )
+        .expect("write");
+        let text = panels_json(&[two_bar_panel()], &dir);
+        assert!(text.contains("\"note\": \"keep me\""), "{text}");
+        let id_at = text.find("\"id\": \"rows\"").expect("bar id");
+        let label_at = text.find("\"label\": \"c\"").expect("bar label");
+        let note_at = text.find("\"note\"").expect("bar note");
+        assert!(
+            id_at < label_at && label_at < note_at,
+            "file order, not sorted: {text}"
+        );
+        // And the panel's own keys are Python's literal order, whatever the struct holds.
+        let first = text.find("\"id\": \"p\"").expect("panel id");
+        let title = text.find("\"title\"").expect("panel title");
+        assert!(first < title, "{text}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

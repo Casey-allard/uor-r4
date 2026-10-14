@@ -36,6 +36,7 @@ pub mod multilab;
 pub mod multilabrules;
 pub mod notes;
 pub mod onboard;
+pub mod ordered;
 pub mod panels;
 pub mod prbody;
 pub mod prep;

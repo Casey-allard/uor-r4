@@ -1,3 +1,31 @@
+## 2026-10-14 — `panel show` is Rust; the last site is back to ONE delegation call site (deepseek, tooling)
+
+The [record](../labs/panel-show-port-2026-10-14/README.md) carries the nine comparison cases. **`uor-harness
+panel show` RUNS IN RUST, AND THE `delegate_to_python` CALL-SITE COUNT WENT 2 → 1**: the general fallback
+is the only one left, carrying `arena` x3 and `budget` x2; **unported commands 6 → 5.** **WHY `show` NEEDED
+A NEW TYPE AND `score` DID NOT:** `panel show --json` does not print a shape this crate invented — for
+each panel its **`bars` value IS the panel file's own list of bar objects**, keys in the order the file
+wrote them (`id, label, current, target, of, unit, direction, note`), **`note` included.** Three things
+made that impossible with `serde_json::Value`: **its object is a `BTreeMap`, so parsing sorts the keys
+away**; **`registries::Bar` has no `note` field at all**, so re-serialising the struct would drop it; and
+re-serialising would reorder the keys it does have — **the output would look right and diff wrong.** So
+**`ordered.rs` adds an `Ordered` JSON value that keeps every object's key order at every depth**, with
+Python's two renderings (compact `", "`/`": "` and `indent=2`); **the scope is deliberate**, because
+turning on `serde_json`'s `preserve_order` feature would change every `Value` in the crate, including the
+paths that rely on the sorting to match Python's `sort_keys=True` writers. **Verified by running BOTH
+implementations on nine case groups: all MATCH**, including **`--json` at 11,943 bytes a side** — a nested
+document with the bars' `note` keys and file order intact — and the milestone text forms at 1352/1128/1119
+bytes. **Verified:** fmt and clippy `-D warnings` clean; **468 Rust tests passed, 6 ignored** (was 461);
+`python3 -m unittest discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641,
+baseline 1641; **`delegate_to_python` call sites: 1 — the general fallback only.** Stated rather than
+hidden: the `no panels found ... in docs/harness/panels/` line hard-codes the relative path Python
+computes with `_rel`; `no --milestone` selects every panel in file order; and a bar whose `of` is a
+number prints through Python's `str()`.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`arena`** (`board`, `compare` 91 lines, `lineage`) then **`budget`** (`show`, `scan`) — five
+subcommands, and `ordered.rs` is now available for both if their `--json` prints a raw document.
 ## 2026-10-14 — `panel score` is Rust; one command ported, six left at the last site (deepseek, tooling)
 
 The [record](../labs/panel-score-port-2026-10-14/README.md) carries the twenty comparison cases and the

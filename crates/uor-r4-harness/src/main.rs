@@ -3142,7 +3142,63 @@ fn cmd_panel(repo: &Path, args: &[String], json: bool) -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        "show" => delegate_to_python(repo, "panel", args),
+        // **`show` is the reason `ordered.rs` exists.** Its `--json` prints each bar as the panel
+        // file's own object, in the file's key order, `note` included - and `note` is not a field on
+        // `Bar` at all. Delegating it was the alternative; re-serialising the struct would have been
+        // the quiet lie, because the output would look right and diff wrong.
+        "show" => {
+            let regs = match Registries::load(&paths) {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!(
+                        "the milestone registry did not load; panels cannot be resolved: {e}"
+                    );
+                    return ExitCode::from(1);
+                }
+            };
+            let key = flag_value(args, "--milestone").unwrap_or_default();
+            let milestone = if key.is_empty() {
+                None
+            } else {
+                regs.milestones.iter().find(|m| m.key == key)
+            };
+            if !key.is_empty() && milestone.is_none() {
+                let mut known: Vec<String> =
+                    regs.milestones.iter().map(|m| m.key.clone()).collect();
+                known.sort();
+                eprintln!(
+                    "unknown milestone {}; known: {}",
+                    uor_r4_harness::prgates::py_repr_public(&key),
+                    known.join(", ")
+                );
+                return ExitCode::from(2);
+            }
+            // A milestone selects the panels that name it as their milestone, or the one panel it
+            // names by id; no milestone selects every panel.
+            let selected: Vec<uor_r4_harness::registries::Panel> = match milestone {
+                Some(m) => regs
+                    .panels
+                    .iter()
+                    .filter(|p| p.milestone.to_lowercase() == m.key || p.id == m.panel)
+                    .cloned()
+                    .collect(),
+                None => regs.panels.clone(),
+            };
+            if selected.is_empty() {
+                let where_ = milestone
+                    .map(|m| format!(" for {}", m.id))
+                    .unwrap_or_default();
+                println!("no panels found{where_} in docs/harness/panels/");
+                return ExitCode::SUCCESS;
+            }
+            if json {
+                let dir = paths.repo.join("docs").join("harness").join("panels");
+                println!("{}", panels::panels_json(&selected, &dir));
+            } else {
+                print!("{}", panels::render_panels(&selected));
+            }
+            ExitCode::SUCCESS
+        }
         "" => {
             eprintln!("uor-harness panel: which action? show, score");
             ExitCode::from(2)
