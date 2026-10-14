@@ -1,0 +1,248 @@
+{
+  "_": [
+    "GOLDEN FIXTURES for prlint.parse_pr_body, captured from the PYTHON implementation on 2026-10-14.",
+    "",
+    "WHY THEY EXIST: `prlint` is 1,133 lines with 22 problem sites in ONE function, and its body",
+    "parser is the shared input to every gate. `parity.py` - the most valuable verification in this",
+    "port - DIES WITH PYTHON, so capturing behaviour as data is the only safety net that survives it.",
+    "A port checked against these cannot silently drift while claiming agreement.",
+    "",
+    "WHAT THE CAPTURE ALREADY EXPOSED, which reading the parser did not: `line_of` is set on the RAW",
+    "TEMPLATE, where `line_count` is not; `milestone_ref` is set in cases that name no milestone; and",
+    "`empty` still produces `headline_before`/`headline_after` objects rather than nothing. THOSE ARE",
+    "THE CASES A PORT WRITTEN FROM THE DOCSTRING WOULD GET WRONG.",
+    "",
+    "`expected` was produced by calling the Python parser; it is a RECORD OF BEHAVIOUR, not a",
+    "specification. Where a value looks wrong, the fixture is still right and the PORT must match it",
+    "until someone decides to change the behaviour deliberately.",
+    "",
+    "Regenerate: run the capture in docs/labs/prlint-fixtures-2026-10-14/README.md against Python."
+  ],
+  "parser": "prlint.parse_pr_body",
+  "cases": [
+    {
+      "name": "empty",
+      "body": "",
+      "expected": {
+        "checked": 0,
+        "checklist": [],
+        "claims_current_state": false,
+        "closes": [],
+        "command_hits": 0,
+        "compute_claims": [],
+        "count_text": "",
+        "cpu_claims": [],
+        "decision": "",
+        "has_pivot": false,
+        "headline_after": {
+          "label": "",
+          "of": null,
+          "text": "",
+          "value": null
+        },
+        "headline_before": {
+          "label": "",
+          "of": null,
+          "text": "",
+          "value": null
+        },
+        "headline_label": "",
+        "line_count": null,
+        "line_name": "",
+        "line_of": null,
+        "milestone_issue": null,
+        "milestone_issues": [],
+        "milestone_ref": "",
+        "prereg": "",
+        "record_path": "",
+        "record_paths": [],
+        "references": [],
+        "serials": [],
+        "softmax_claims": []
+      }
+    },
+    {
+      "name": "template-raw",
+      "body": "<!-- fill this in -->\n\n## Line and headline (D21, docs/labs/session-goal.md)\n\nLine: <line name> · count 0/3 · headline 37/232 → target 116/232\n\nDecision: KEEP\n\n- [ ] Checks run at this exact head\n",
+      "expected": {
+        "checked": 0,
+        "checklist": [
+          {
+            "checked": false,
+            "label": "Checks run at this exact head"
+          }
+        ],
+        "claims_current_state": false,
+        "closes": [],
+        "command_hits": 0,
+        "compute_claims": [],
+        "count_text": "0/3",
+        "cpu_claims": [],
+        "decision": "KEEP",
+        "has_pivot": false,
+        "headline_after": {
+          "label": "target",
+          "of": 232,
+          "text": "target 116/232",
+          "value": 116
+        },
+        "headline_before": {
+          "label": "target",
+          "of": 232,
+          "text": "37/232",
+          "value": 37
+        },
+        "headline_label": "target",
+        "line_count": 0,
+        "line_name": "<line name>",
+        "line_of": 3,
+        "milestone_issue": null,
+        "milestone_issues": [],
+        "milestone_ref": "",
+        "prereg": "",
+        "record_path": "",
+        "record_paths": [],
+        "references": [],
+        "serials": [],
+        "softmax_claims": []
+      }
+    },
+    {
+      "name": "filled-basic",
+      "body": "## Line and headline (D21)\n\nLine: exact addressed memory · count 0/3 · headline 37/232 → 37/232\n\nDecision: KEEP (tooling)\n\n```\ncargo test -p uor-r4-harness   -> 323 passed\n```\n\nRecord: docs/labs/x-2026-10-13/README.md\n\nReferences #2028\n",
+      "expected": {
+        "checked": 0,
+        "checklist": [],
+        "claims_current_state": false,
+        "closes": [],
+        "command_hits": 1,
+        "compute_claims": [],
+        "count_text": "0/3",
+        "cpu_claims": [],
+        "decision": "KEEP",
+        "has_pivot": false,
+        "headline_after": {
+          "label": "",
+          "of": 232,
+          "text": "37/232",
+          "value": 37
+        },
+        "headline_before": {
+          "label": "",
+          "of": 232,
+          "text": "37/232",
+          "value": 37
+        },
+        "headline_label": "",
+        "line_count": 0,
+        "line_name": "exact addressed memory",
+        "line_of": 3,
+        "milestone_issue": null,
+        "milestone_issues": [],
+        "milestone_ref": "#2028",
+        "prereg": "",
+        "record_path": "docs/labs/x-2026-10-13/README.md",
+        "record_paths": [
+          "docs/labs/x-2026-10-13/README.md"
+        ],
+        "references": [
+          2028
+        ],
+        "serials": [],
+        "softmax_claims": []
+      }
+    },
+    {
+      "name": "pipe-separators",
+      "body": "Line: evaluation integrity | count 1/3 | headline 5/232 → 116/232\nDecision: PIVOT\nRecord: `docs/labs/quoting-2026-10-13/README.md`\nCloses #2028\n",
+      "expected": {
+        "checked": 0,
+        "checklist": [],
+        "claims_current_state": false,
+        "closes": [
+          2028
+        ],
+        "command_hits": 0,
+        "compute_claims": [
+          "Line: evaluation integrity | count 1/3 | headline 5/232 → 116/232"
+        ],
+        "count_text": "1/3",
+        "cpu_claims": [],
+        "decision": "",
+        "has_pivot": false,
+        "headline_after": {
+          "label": "",
+          "of": 232,
+          "text": "116/232",
+          "value": 116
+        },
+        "headline_before": {
+          "label": "",
+          "of": 232,
+          "text": "5/232",
+          "value": 5
+        },
+        "headline_label": "",
+        "line_count": 1,
+        "line_name": "evaluation integrity",
+        "line_of": 3,
+        "milestone_issue": null,
+        "milestone_issues": [],
+        "milestone_ref": "#2028",
+        "prereg": "",
+        "record_path": "docs/labs/quoting-2026-10-13/README.md",
+        "record_paths": [
+          "docs/labs/quoting-2026-10-13/README.md"
+        ],
+        "references": [],
+        "serials": [],
+        "softmax_claims": []
+      }
+    },
+    {
+      "name": "wrapped-line",
+      "body": "## Line and headline\n\nLine: a name that wraps\ncount 2/3 across the rungs\n\nDecision: KEEP\nReferences #2028, #2029\n",
+      "expected": {
+        "checked": 0,
+        "checklist": [],
+        "claims_current_state": false,
+        "closes": [],
+        "command_hits": 0,
+        "compute_claims": [],
+        "count_text": "2/3",
+        "cpu_claims": [],
+        "decision": "KEEP",
+        "has_pivot": false,
+        "headline_after": {
+          "label": "",
+          "of": null,
+          "text": "",
+          "value": null
+        },
+        "headline_before": {
+          "label": "",
+          "of": 3,
+          "text": "count 2/3 across the rungs",
+          "value": 2
+        },
+        "headline_label": "",
+        "line_count": 2,
+        "line_name": "a",
+        "line_of": 3,
+        "milestone_issue": 2029,
+        "milestone_issues": [
+          2029
+        ],
+        "milestone_ref": "#2029",
+        "prereg": "",
+        "record_path": "",
+        "record_paths": [],
+        "references": [
+          2028
+        ],
+        "serials": [],
+        "softmax_claims": []
+      }
+    }
+  ]
+}
