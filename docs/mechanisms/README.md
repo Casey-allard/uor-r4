@@ -19,12 +19,13 @@ remains SUSPENDED pending its separate successor sheet.
 No learned-language result follows. Older float trunk/results remain preserved
 inactive through [#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370).
 
-**Current discrete source.**
+**Current discrete source and design cards.**
 
 | Mechanism | Milestone | Status | Brief |
 |---|---|---|---|
 | Exact SpiralCore/FBS moves and shared integer vector writer | M1 #2029 / M4 #2032 | source a2a5b89c;11 admitted CUDA controls PASS after Claude FIT; delivery #2379, training held; M1 quality target SUSPENDED | [discrete-geometric-learning.md](discrete-geometric-learning.md) |
-| Prime-rank indexing and complex-plane zeta-phase routing | M1 #2029 / M4 #2032 | D32 addendum #2398; brief authored; pre-registration pending FIT review | [prime-zeta-complex-routing.md](prime-zeta-complex-routing.md) |
+| Prime-rank indexing and complex-plane zeta-phase routing | M1 #2029 / M4 #2032 | standalone offline constructor (#2473/#2477); 17+6 finite CUDA controls PASS after FIT (#2433) and owner release; frozen D5 xorshift unchanged; learned attribution held | [prime-zeta-complex-routing.md](prime-zeta-complex-routing.md) |
+| Finite relational head over native geometric descriptors | M1 #2029 / M4 #2032 | source-only design card (#2480); C6 vs G64 explicitly unselected; ≤16K Flock shortlist excluded as pool; no head adoption, NOT_RUN / held | [finite-relational-head.md](finite-relational-head.md) |
 
 **Pre-D32 operator phase — preserved inactive float source scopes.**
 
