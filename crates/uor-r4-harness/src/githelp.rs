@@ -883,3 +883,296 @@ mod delete_merged_tests {
         );
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// `git install-hooks` - the managed pre-commit hook, and the conflicts it refuses.
+// ---------------------------------------------------------------------------------------------
+
+/// The marker that proves the harness wrote an existing hook.
+pub const HOOK_START: &str =
+    "# >>> uor-harness pre-commit v1 (managed by scripts/harness/githelp.py) >>>";
+
+/// The hook body, **carried as a data file rather than a Rust literal**.
+///
+/// # Why a data file
+///
+/// **This is 1983 bytes of `/bin/sh` with an embedded Python heredoc**, and it is the one artifact in
+/// the port that a *different language* has to read correctly. Three reasons it lives in
+/// `rules/precommit-hook.sh`:
+///
+/// * **A raw string with a Python heredoc inside it is exactly the kind of literal a Rust edit
+///   mangles** — this port has already corrupted source twice by writing a backtick-bearing string
+///   through a shell.
+/// * **The file is diffable as what it is.** A reviewer reads shell, not an escaped Rust literal.
+/// * **The D23 interlock reads `.rs` files**, and **a hook is not model code** — keeping it out of the
+///   source tree's Rust files keeps that scan about what it is for.
+///
+/// **`include_str!` means it is still compiled in**: there is no runtime file read, and **a missing
+/// file is a build error rather than a silently empty hook.**
+pub const HOOK_SCRIPT: &str = include_str!("../rules/precommit-hook.sh");
+
+/// `githelp._hooks_dir` — the directory git actually reads hooks from.
+///
+/// **`git rev-parse --git-path hooks`, not `.git/hooks`**, because **in a linked worktree the hooks
+/// live in the COMMON dir** — writing to `.git/hooks` there would install a hook that never runs.
+fn hooks_dir(paths: &StatePaths) -> Result<std::path::PathBuf, String> {
+    let (rc, out) = git_raw(&paths.repo, &["rev-parse", "--git-path", "hooks"]);
+    // **A non-zero exit is the failure**, and git's own stderr is the better reason when it has one.
+    if rc != 0 {
+        return Err(if out.trim().is_empty() {
+            "`git rev-parse --git-path hooks` failed".to_string()
+        } else {
+            out.trim().to_string()
+        });
+    }
+    let raw = out.trim();
+    if raw.is_empty() {
+        return Err("`git rev-parse --git-path hooks` returned nothing".into());
+    }
+    let p = std::path::PathBuf::from(raw);
+    // A relative answer is relative to the repo, which is how git prints it from a worktree.
+    Ok(if p.is_absolute() {
+        p
+    } else {
+        paths.repo.join(p)
+    })
+}
+
+/// `githelp.install_hooks` — install or refresh the marked pre-commit hook.
+///
+/// # It never clobbers a foreign hook, and that is three separate refusals
+///
+/// * **A SYMLINK is refused outright.** A symlinked `pre-commit` is somebody's deliberate wiring —
+///   often a shared hook manager — and `write_text` through it would **write to the target**.
+/// * **An existing file with no marker is refused**, with the marker it looked for and the first line
+///   of what it found, **because those two lines are what a reader needs to decide whether to merge by
+///   hand or delete it.**
+/// * **An unreadable file is refused** rather than replaced: not being able to see what is there is
+///   not permission to overwrite it.
+///
+/// **Every refusal returns 2 and names the command to re-run**, so the reader is not left to guess.
+/// **`unchanged` is reported when the bytes are already right**, which is what makes a re-run safe.
+pub fn install_hooks(paths: &StatePaths) -> (i32, Vec<String>, Vec<String>) {
+    let mut out: Vec<String> = Vec::new();
+    let mut err: Vec<String> = Vec::new();
+    let dir = match hooks_dir(paths) {
+        Ok(d) => d,
+        Err(e) => {
+            err.push(format!("cannot locate the hooks directory: {e}"));
+            return (1, out, err);
+        }
+    };
+    let hook = dir.join("pre-commit");
+    let symlink = std::fs::symlink_metadata(&hook).is_ok_and(|m| m.file_type().is_symlink());
+    let existed = hook.exists() || symlink;
+    let mut previous = String::new();
+
+    if symlink {
+        err.push(format!(
+            "CONFLICT: {} is a symlink; refusing to replace it.",
+            hook.display()
+        ));
+        err.push(
+            "  resolve it yourself, or remove it and re-run: uor-harness git install-hooks".into(),
+        );
+        return (2, out, err);
+    }
+    if existed {
+        match std::fs::read_to_string(&hook) {
+            Ok(t) => previous = t,
+            Err(e) => {
+                err.push(format!(
+                    "CONFLICT: cannot read the existing pre-commit hook {}: {e}",
+                    hook.display()
+                ));
+                return (2, out, err);
+            }
+        }
+        if !previous.contains(HOOK_START) {
+            let first = previous.lines().next().unwrap_or("(empty file)");
+            err.push(format!(
+                "CONFLICT: {} already exists and was not written by the harness (no marker line).",
+                hook.display()
+            ));
+            err.push(format!("  marker looked for: {HOOK_START}"));
+            err.push(format!(
+                "  existing file starts: {}",
+                crate::prbody::truncate(first, 120)
+            ));
+            err.push(
+                "  merge it by hand, or remove it and re-run: uor-harness git install-hooks".into(),
+            );
+            return (2, out, err);
+        }
+    }
+
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        err.push(format!("cannot write {}: {e}", hook.display()));
+        return (1, out, err);
+    }
+    if let Err(e) = std::fs::write(&hook, HOOK_SCRIPT) {
+        err.push(format!("cannot write {}: {e}", hook.display()));
+        return (1, out, err);
+    }
+    // **The executable bit is part of the artifact** - a hook that is not executable is a file git
+    // silently ignores, and reporting "installed" for one would be the worst outcome here.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755));
+    }
+
+    let action = if existed && previous != HOOK_SCRIPT {
+        "updated"
+    } else if existed {
+        "unchanged"
+    } else {
+        "installed"
+    };
+    out.push(format!("{action}: {}", hook.display()));
+    out.push("  runs: uor-harness check --staged".into());
+    out.push("  blocks: error severity only (warn/info print and pass); exits 0 without python3 or the harness".into());
+    if existed && action == "unchanged" {
+        out.push("  already up to date; nothing was appended".into());
+    }
+    (0, out, err)
+}
+
+#[cfg(test)]
+mod install_hooks_tests {
+    use super::*;
+
+    fn scratch() -> (tempfile::TempDir, StatePaths) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path().to_path_buf();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@t"],
+            vec!["config", "user.name", "t"],
+        ] {
+            let _ = std::process::Command::new("git")
+                .current_dir(&repo)
+                .args(&args)
+                .output();
+        }
+        std::fs::write(repo.join("README.md"), "x\n").expect("write");
+        let paths = StatePaths {
+            repo: repo.clone(),
+            live: dir.path().join("live"),
+        };
+        (dir, paths)
+    }
+
+    fn hook_of(paths: &StatePaths) -> std::path::PathBuf {
+        hooks_dir(paths).expect("hooks dir").join("pre-commit")
+    }
+
+    /// **It installs, is executable, and a re-run says `unchanged`** — which is what makes the command
+    /// safe to run repeatedly.
+    ///
+    /// **The executable bit is asserted**, because **a hook that is not executable is a file git
+    /// silently ignores** — and reporting "installed" for one would be the worst outcome this command
+    /// can produce.
+    #[test]
+    fn it_installs_executable_and_a_rerun_is_unchanged() {
+        let (_d, paths) = scratch();
+        let (code, out, err) = install_hooks(&paths);
+        assert_eq!(code, 0, "{out:?} {err:?}");
+        assert!(out[0].starts_with("installed:"), "{out:?}");
+        let hook = hook_of(&paths);
+        let body = std::fs::read_to_string(&hook).expect("read");
+        assert_eq!(
+            body, HOOK_SCRIPT,
+            "the hook is byte-identical to the reference"
+        );
+        assert!(body.contains(HOOK_START), "and carries its marker");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(&hook).expect("meta").permissions().mode();
+            assert_eq!(
+                mode & 0o111,
+                0o111,
+                "the hook must be executable, mode {mode:o}"
+            );
+        }
+        let (code2, out2, _) = install_hooks(&paths);
+        assert_eq!(code2, 0);
+        assert!(out2[0].starts_with("unchanged:"), "{out2:?}");
+    }
+
+    /// **A foreign hook is REFUSED, not clobbered**, and the refusal names the marker and the first
+    /// line it found — **those two lines are what a reader needs to decide whether to merge or delete.**
+    #[test]
+    fn a_foreign_hook_is_refused_and_its_content_is_left_alone() {
+        let (_d, paths) = scratch();
+        let hook = hook_of(&paths);
+        std::fs::create_dir_all(hook.parent().expect("parent")).expect("mkdir");
+        std::fs::write(&hook, "#!/bin/sh\n# somebody else's hook\necho hi\n").expect("write");
+
+        let (code, _out, err) = install_hooks(&paths);
+        assert_eq!(code, 2, "a conflict is a refusal, not a success: {err:?}");
+        assert!(
+            err.iter()
+                .any(|l| l.contains("was not written by the harness")),
+            "{err:?}"
+        );
+        assert!(
+            err.iter().any(|l| l.contains("marker looked for")),
+            "{err:?}"
+        );
+        // **The FIRST line, which is the shebang** — not the comment below it. **My first assertion
+        // looked for the comment and failed**, and the difference is the point: a reader deciding
+        // whether to merge by hand needs to RECOGNISE the file, and `#!/bin/sh` is what every hook
+        // starts with. Python truncates the same line to 120 characters.
+        assert!(
+            err.iter()
+                .any(|l| l.contains("existing file starts: #!/bin/sh")),
+            "{err:?}"
+        );
+        // **The original is untouched** — the whole point of refusing.
+        let after = std::fs::read_to_string(&hook).expect("read");
+        assert!(
+            after.contains("somebody else's hook"),
+            "not clobbered: {after}"
+        );
+    }
+
+    /// **A SYMLINK is refused outright**, because writing through it would **write to the target**.
+    #[cfg(unix)]
+    #[test]
+    fn a_symlinked_hook_is_refused_and_the_target_is_not_touched() {
+        let (_d, paths) = scratch();
+        let hook = hook_of(&paths);
+        std::fs::create_dir_all(hook.parent().expect("parent")).expect("mkdir");
+        let target = paths.repo.join("elsewhere.sh");
+        std::fs::write(&target, "#!/bin/sh\necho target\n").expect("write");
+        std::os::unix::fs::symlink(&target, &hook).expect("symlink");
+
+        let (code, _out, err) = install_hooks(&paths);
+        assert_eq!(code, 2, "{err:?}");
+        assert!(err.iter().any(|l| l.contains("is a symlink")), "{err:?}");
+        // **The target is byte-identical** — this is the assertion that makes the symlink guard real.
+        assert_eq!(
+            std::fs::read_to_string(&target).expect("read"),
+            "#!/bin/sh\necho target\n",
+            "the symlink target must not be written through"
+        );
+    }
+
+    /// **A harness-written hook IS refreshed**, so a lab that installed an older version gets the new
+    /// one rather than a refusal — **the marker is what distinguishes "mine, update it" from
+    /// "somebody else's, leave it".**
+    #[test]
+    fn a_previous_harness_hook_is_updated_rather_than_refused() {
+        let (_d, paths) = scratch();
+        let hook = hook_of(&paths);
+        std::fs::create_dir_all(hook.parent().expect("parent")).expect("mkdir");
+        std::fs::write(&hook, format!("#!/bin/sh\n{HOOK_START}\n# an older body\n"))
+            .expect("write");
+        let (code, out, err) = install_hooks(&paths);
+        assert_eq!(code, 0, "{err:?}");
+        assert!(out[0].starts_with("updated:"), "{out:?}");
+        assert_eq!(std::fs::read_to_string(&hook).expect("read"), HOOK_SCRIPT);
+    }
+}

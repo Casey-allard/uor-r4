@@ -1156,7 +1156,27 @@ fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 ExitCode::from(1)
             }
         }
-        "install-hooks" | "status" => delegate_to_python(repo, "git", args),
+        // **`install-hooks` is ported because its refusals are the point**: it never clobbers a
+        // foreign hook, and each refusal names what it found and how to proceed.
+        "install-hooks" => {
+            let paths = StatePaths::from_env(repo);
+            let (code, out, err) = githelp::install_hooks(&paths);
+            for l in &out {
+                println!("{l}");
+            }
+            for l in &err {
+                eprintln!("{l}");
+            }
+            if code == 0 {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(code as u8)
+            }
+        }
+        // **`git status` is the last git action still delegated** — it assembles worktree facts, PR
+        // facts and stale-branch advice, and a partial port of it would report fewer facts than the
+        // Python one while looking complete.
+        "status" => delegate_to_python(repo, "git", args),
         "" => {
             eprintln!("uor-harness git: which action? install-hooks, status, clean-merged, switch, delete-merged");
             ExitCode::from(2)
