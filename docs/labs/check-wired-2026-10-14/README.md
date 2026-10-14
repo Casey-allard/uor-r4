@@ -76,3 +76,26 @@ is kept in the source, with the correction that the objection is now answered.
 - **`check`'s non-JSON output is not byte-identical to Python's.** The shape is the port's own:
   `N rules, M failed (E error, W warn)` then the findings. **`parity` compares the JSON, not the text**,
   so the text form is unverified against Python and is stated as such.
+
+---
+
+## Correction to the verification method, found while confirming the merge
+
+**The first check I ran after merging tested the WRONG BINARY.**
+
+`uor-harness` on `PATH` resolves to **`~/.cargo/bin/uor-harness`**, dated **Oct 13 23:30** — an install
+predating this work. It delegated, and it ran **55 rules over Python**. **The worktree build**
+(`local/harness-target/debug/uor-harness`, **Oct 14 00:39**) runs **47 rules over Rust with zero
+delegation notices.**
+
+**So the merged code is correct and my confirmation of it was not.** The port's own rule — *verify the
+artifact you shipped, not the one you remember building* — applies to the **binary**, not only to the
+source.
+
+**This is worth stating as a residual risk rather than a footnote**: **anyone running
+`uor-harness check` from `PATH` today gets the python-delegating binary**, because nothing in this
+merge reinstalls it. `docs/harness/BOOTSTRAP.md` says to build with
+`CARGO_TARGET_DIR=local/harness-target`; **it does not say to install, and the install is stale.**
+
+**Not fixed here** — a build-and-install step is a delivery question, not part of wiring `check`, and
+inventing one silently would be the kind of change this port refuses to make without saying so.
