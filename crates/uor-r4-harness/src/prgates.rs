@@ -351,7 +351,34 @@ pub fn same_number(a: Option<f64>, b: Option<f64>) -> bool {
 /// a port that emits `"name"` where Python emits `'name'` differs from the tool it replaces - and
 /// the difference would show up in every lab's terminal, not in a test that only checks the rule id.
 fn py_repr(s: &str) -> String {
-    format!("'{s}'")
+    // **Python's `repr` chooses its quote character.** It uses `'` unless the string contains a `'`
+    // and no `"`, in which case it uses `"` - so `"Codex's delivery"` renders with double quotes and
+    // `plain text` with single.
+    //
+    // **The first version of this always used `'`, and the live comparison caught it on M2**, whose
+    // card text contains an apostrophe. A message compared character-for-character is behaviour, so
+    // *"usually the same quote"* is a port bug that shows up only in the messages that happen to
+    // contain an apostrophe - which is most prose a lab writes.
+    let has_single = s.contains('\'');
+    let has_double = s.contains('"');
+    let quote = if has_single && !has_double { '"' } else { '\'' };
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push(quote);
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c == quote => {
+                out.push('\\');
+                out.push(c);
+            }
+            c => out.push(c),
+        }
+    }
+    out.push(quote);
+    out
 }
 
 /// `prlint._fmt_num` — an integral float prints without its `.0`.
@@ -1585,6 +1612,15 @@ fn redact(text: &str) -> String {
             .expect("a valid pattern")
     });
     rx.replace_all(text, "<redacted>").into_owned()
+}
+
+/// Python's `!r`, exposed for the messages that quote a card's text.
+///
+/// **The port has now needed this twice**, and both times the cause was the same: Python's `!r`
+/// renders a string with SINGLE quotes and Rust's `{:?}` with double. **A message compared
+/// character-for-character is part of the behaviour**, so the two must agree.
+pub fn py_repr_public(text: &str) -> String {
+    py_repr(text)
 }
 
 /// `prlint._headline_from` — a headline rendered for the template, or its raw text.

@@ -15,6 +15,7 @@
 //! stays in Python until someone ports the `gh` chain, **and `status.registry_vs_github` remains in
 //! the Python set until then** — a half-ported rule cannot be claimed as coverage.
 
+use crate::prgates::fmt_num;
 use regex::Regex;
 use serde_json::Value;
 use std::sync::OnceLock;
@@ -890,5 +891,271 @@ mod live_chain_tests {
             cache_load(&paths).get("issues").is_some(),
             "the fetch was written to the cache"
         );
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// The decision after the reading - all that separates the rule from registration.
+// ---------------------------------------------------------------------------------------------
+
+/// One finding from the rule, in Python's shape.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RegistryFinding {
+    pub severity: String,
+    pub ok: bool,
+    pub message: String,
+    pub path: String,
+    pub fix: String,
+}
+
+/// `status._rule_registry_vs_github` — the registry headline against the newest card.
+///
+/// # The decision tree, ported branch for branch
+///
+/// **Six outcomes, and three of them are "did not compare" rather than agreement** — which is the
+/// distinction this port exists to preserve:
+///
+/// | condition | outcome |
+/// |---|---|
+/// | GitHub unavailable | **warn, ok=false** — *not* a pass |
+/// | no comments cached | info, ok=true — not compared |
+/// | no card in the comments | info, ok=true — not compared |
+/// | qualitative card, text contains the word | **silence** — the card agrees |
+/// | qualitative card, registry holds a number | warn, ok=false |
+/// | no `current`, registry holds nothing | info, ok=true — not compared |
+/// | `(current, of)` in the registry's pairs | silence |
+/// | otherwise | warn, ok=false |
+///
+/// **The `reg_repr` string is built even when nothing is wrong**, because two of the messages quote
+/// it — **and it renders a missing `current` as `?` rather than as nothing**, which is how a reader
+/// tells "the registry has no number" from "the registry has a number of zero".
+pub fn registry_vs_github(
+    paths: &crate::state::StatePaths,
+    milestones: &[crate::registries::Milestone],
+    refresh: bool,
+    now: i64,
+) -> Vec<RegistryFinding> {
+    let numbers: Vec<i64> = milestones.iter().map(|m| m.issue).collect();
+    let snap = github_issues(paths, &numbers, true, now, refresh);
+    if !snap.available {
+        return vec![RegistryFinding {
+            severity: "warn".into(),
+            ok: false,
+            message: format!(
+                "the registry was NOT cross-checked against GitHub (unavailable): {}",
+                snap.reason
+            ),
+            path: paths
+                .repo
+                .join("docs/harness/milestones.json")
+                .display()
+                .to_string(),
+            fix: String::new(),
+        }];
+    }
+
+    let mut out = Vec::new();
+    for m in milestones {
+        let item = snap
+            .issues
+            .get(m.issue.to_string())
+            .cloned()
+            .unwrap_or(Value::Null);
+        let Some(comments) = item.get("comments") else {
+            out.push(RegistryFinding {
+                severity: "info".into(),
+                ok: true,
+                message: format!(
+                    "{} #{}: no comments cached for this issue; not compared",
+                    m.id, m.issue
+                ),
+                path: paths
+                    .repo
+                    .join("docs/harness/milestones.json")
+                    .display()
+                    .to_string(),
+                fix: String::new(),
+            });
+            continue;
+        };
+
+        let reading = card_reading(comments.as_array().map(Vec::as_slice).unwrap_or(&[]), &m.id);
+        let head = &m.headline;
+        let reg_cur = head.get("current").and_then(Value::as_f64);
+        let reg_of = head.get("of").and_then(Value::as_f64);
+        let reg_text = head
+            .get("text")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_lowercase();
+        let label = head
+            .get("label")
+            .and_then(Value::as_str)
+            .unwrap_or("headline");
+        let reg_repr = format!(
+            "{label} {}{}",
+            match reg_cur {
+                Some(c) => fmt_num(c),
+                None => "?".into(),
+            },
+            match reg_of {
+                Some(o) => format!("/{}", fmt_num(o)),
+                None => String::new(),
+            }
+        );
+        let ms_path = paths
+            .repo
+            .join("docs/harness/milestones.json")
+            .display()
+            .to_string();
+        let registry_pairs = registry_numbers(m);
+
+        if reading.kind == "no_card" {
+            out.push(RegistryFinding {
+                severity: "info".into(),
+                ok: true,
+                message: format!(
+                    "{} #{}: no status card found in the last {} comments; nothing to compare",
+                    m.id,
+                    m.issue,
+                    comments.as_array().map(Vec::len).unwrap_or(0)
+                ),
+                path: ms_path,
+                fix: String::new(),
+            });
+            continue;
+        }
+
+        if reading.current.is_none() {
+            // **A qualitative card agrees when the registry records the same answer** - the word is
+            // matched against the registry's own text, not parsed, which is why it is a substring test.
+            if !reading.yes_no.is_empty() && reg_text.contains(&reading.yes_no) {
+                continue;
+            }
+            if !reading.yes_no.is_empty() && (reg_of.is_some() || reg_cur.is_some()) {
+                out.push(RegistryFinding {
+                    severity: "warn".into(),
+                    ok: false,
+                    message: format!(
+                        "{} #{}: registry states a number ({reg_repr}), the newest card ({}) answers {}: {}",
+                        m.id, m.issue, reading.ts, crate::prgates::py_repr_public(&reading.yes_no), crate::prgates::py_repr_public(&reading.text)
+                    ),
+                    path: ms_path,
+                    fix: format!(
+                        "reconcile docs/harness/milestones.json with issue #{} (or make the card state `{}: n/n`)",
+                        m.issue, m.id
+                    ),
+                });
+                continue;
+            }
+            out.push(RegistryFinding {
+                severity: "info".into(),
+                ok: true,
+                message: format!(
+                    "{} #{}: newest card ({}) has no machine-readable number; registry says {reg_repr}; card text: {}",
+                    m.id, m.issue, reading.ts, crate::prgates::py_repr_public(&reading.text)
+                ),
+                path: ms_path,
+                fix: String::new(),
+            });
+            continue;
+        }
+
+        if matches!((reading.current, reading.of), (Some(c), Some(o)) if registry_pairs.contains(&(c, o)))
+        {
+            continue;
+        }
+        out.push(RegistryFinding {
+            severity: "warn".into(),
+            ok: false,
+            message: format!(
+                "{} #{}: registry says {reg_repr}, newest card ({}) says {}/{} ({} in {})",
+                m.id,
+                m.issue,
+                reading.ts,
+                reading.current.map(|c| c.to_string()).unwrap_or_default(),
+                reading.of.map(|o| o.to_string()).unwrap_or_default(),
+                reading.kind,
+                crate::prgates::py_repr_public(&reading.text)
+            ),
+            path: ms_path,
+            fix: format!(
+                "reconcile docs/harness/milestones.json with issue #{}, then re-run `uor-harness status --refresh`",
+                m.issue
+            ),
+        });
+    }
+    out
+}
+
+#[cfg(test)]
+mod decision_tests {
+    use super::*;
+
+    /// **The decision against Python on the SAME live data** — the only comparison that tests the
+    /// branches rather than the helpers they call.
+    ///
+    /// **Ignored by default** because it fetches from GitHub, and because an issue's comments change:
+    /// **it asserts what the two implementations AGREE, not what the findings say**, since the latter
+    /// would be the "true of the tree when written" mistake this port has made three times.
+    #[test]
+    #[ignore = "needs gh and a network"]
+    fn the_decision_matches_python_on_live_data() {
+        let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let state = crate::state::StatePaths {
+            repo: repo.clone(),
+            live: dir.path().join("live"),
+        };
+        let a = crate::state::StatePaths {
+            repo: repo.clone(),
+            live: dir.path().join("live-python"),
+        };
+        let regs = crate::registries::Registries::load(&state).expect("registry");
+        let now =
+            crate::multilabrules::parse_claimed_at(&crate::receipt::now_rfc3339()).expect("now");
+
+        let rust = registry_vs_github(&state, &regs.milestones, true, now);
+        // The Python side runs the same rule against the same repository, so a disagreement is a
+        // branch difference rather than a data difference.
+        let script = repo.join("scripts/.parity-registry-vs-github.py");
+        std::fs::write(
+            &script,
+            r#"
+import sys, pathlib, json, tempfile
+sys.path.insert(0, "scripts/harness")
+import status, core, registries
+repo = pathlib.Path(".").resolve()
+tmp = pathlib.Path(tempfile.mkdtemp())
+paths = core.HarnessPaths(repo=repo, harness=repo / "docs/harness", state=tmp)
+reg = registries.Registry.load(paths)
+out = status._rule_registry_vs_github(paths, reg)
+print(json.dumps([[r.severity, bool(r.ok), r.message, r.fix] for r in out]))
+"#,
+        )
+        .expect("write the probe");
+        let out = std::process::Command::new("python3")
+            .arg(&script)
+            .current_dir(&repo)
+            .output()
+            .expect("run python");
+        let _ = std::fs::remove_file(&script);
+        let text = String::from_utf8_lossy(&out.stdout);
+        let py: Vec<Value> = serde_json::from_str(text.trim()).expect("python printed json");
+        let _ = a;
+
+        assert_eq!(
+            rust.len(),
+            py.len(),
+            "finding count: rust {} vs python {}",
+            rust.len(),
+            py.len()
+        );
+        for (i, (r, p)) in rust.iter().zip(py.iter()).enumerate() {
+            let p = p.as_array().expect("a row");
+            assert_eq!(r.severity, p[0].as_str().unwrap_or(""), "[{i}] severity");
+            assert_eq!(r.ok, p[1].as_bool().unwrap_or(false), "[{i}] ok");
+            assert_eq!(r.message, p[2].as_str().unwrap_or(""), "[{i}] message");
+        }
     }
 }
