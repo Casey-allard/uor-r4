@@ -139,42 +139,83 @@ pub fn validation_errors(stem: &str, text: &str, fm: &[(String, String)]) -> Vec
     }
     let id = get("id");
     if !id.is_empty() && id.to_lowercase() != stem.to_lowercase() {
-        errors.push(format!("id {id:?} must equal the file stem {stem:?}"));
+        errors.push(format!(
+            "id {} must equal the file stem {}",
+            crate::prgates::py_repr_public(&id),
+            crate::prgates::py_repr_public(stem)
+        ));
     }
     if !id.is_empty() && !kebab_case_id(&id) {
-        errors.push(format!("id {id:?} is not a kebab-case id"));
+        errors.push(format!(
+            "id {} is not a kebab-case id",
+            crate::prgates::py_repr_public(&id)
+        ));
     }
     let sev = get("severity");
     if !sev.is_empty() && !SEVERITIES.contains(&sev.as_str()) {
         errors.push(format!(
-            "severity must be one of {SEVERITIES:?}, got {sev:?}"
+            "severity must be one of {}, got {}",
+            py_tuple(&SEVERITIES),
+            crate::prgates::py_repr_public(&sev)
         ));
     }
     let class = get("class");
     if !class.is_empty() && !CLASSES.contains(&class.as_str()) {
-        errors.push(format!("class must be one of {CLASSES:?}, got {class:?}"));
+        errors.push(format!(
+            "class must be one of {}, got {}",
+            py_tuple(&CLASSES),
+            crate::prgates::py_repr_public(&class)
+        ));
     }
     let status = get("status");
     if !status.is_empty() && !STATUSES.contains(&status.as_str()) {
         errors.push(format!(
-            "status must be one of {STATUSES:?}, got {status:?}"
+            "status must be one of {}, got {}",
+            py_tuple(&STATUSES),
+            crate::prgates::py_repr_public(&status)
         ));
     }
     let date = get("date");
     if !date.is_empty() && !is_ymd(&date) {
-        errors.push(format!("date must be YYYY-MM-DD, got {date:?}"));
+        errors.push(format!(
+            "date must be YYYY-MM-DD, got {}",
+            crate::prgates::py_repr_public(&date)
+        ));
     }
     let guard = get("guard");
     if !guard.is_empty() && !guard.starts_with("none") && !guard.contains('.') {
         errors.push(format!(
-            "guard {guard:?} must be a dotted rule id or 'none: <reason>'"
+            "guard {} must be a dotted rule id or 'none: <reason>'",
+            crate::prgates::py_repr_public(&guard)
         ));
+    }
+    // **Three checks Python has and this port did not.** They were invisible until `capture`
+    // started validating its own drafts: a lesson with one trigger is retrievable by nothing, and
+    // the port was accepting lessons the registry rejects.
+    for key in ["trigger", "paths", "evidence"] {
+        let raw = get(key);
+        let trimmed = raw.trim();
+        // An inline list is the only list form this reader parses; an empty value is how a block
+        // list arrives here, and Python accepts a block list, so neither is an error.
+        if !trimmed.is_empty() && !(trimmed.starts_with('[') && trimmed.ends_with(']')) {
+            errors.push(format!("'{key}' must be an inline or block list"));
+        }
+    }
+    let trigger = get("trigger");
+    if trigger.trim().starts_with('[') && list(&trigger).len() < 2 {
+        errors.push(
+            "'trigger' needs at least two phrases, or the lesson is not retrievable".to_string(),
+        );
+    }
+    let paths = get("paths");
+    if paths.trim().starts_with('[') && list(&paths).is_empty() {
+        errors.push("'paths' is empty: name a glob so the lesson is recalled".to_string());
     }
     errors
 }
 
 /// `^[a-z0-9][a-z0-9-]{2,63}$` — at least three characters, kebab-case.
-fn kebab_case_id(id: &str) -> bool {
+pub fn kebab_case_id(id: &str) -> bool {
     let b = id.as_bytes();
     if b.len() < 3 || b.len() > 64 {
         return false;
@@ -434,10 +475,41 @@ fn frontmatter(text: &str) -> Vec<(String, String)> {
             break;
         }
         if let Some((k, v)) = line.split_once(':') {
-            out.push((k.trim().to_string(), v.trim().to_string()));
+            out.push((k.trim().to_string(), coerce(v)));
         }
     }
     out
+}
+
+/// `core._coerce`, for the one case this reader needs: **a quoted scalar loses its quotes.**
+///
+/// **Without it, `capture` refused its own output.** `build_lesson_text` writes the default guard
+/// as `"none: captured by hand on …"` — quoted because it contains a colon — and Python's YAML
+/// subset strips those quotes while this reader kept them. The guard then began with a quote
+/// instead of `none`, failed the guard rule, and every capture with an auto-generated guard was
+/// refused. Found by running the command, not by reading either parser.
+///
+/// Python's `_coerce` also turns `true`/`null` into non-strings and an inline list into a real
+/// list; this returns the raw text for those and leaves the list to [`list`], because the
+/// callers here compare text. **Block lists are not parsed at all** — nothing in the corpus uses
+/// one, and the gap is stated rather than hidden.
+fn coerce(raw: &str) -> String {
+    let s = raw.trim();
+    let bytes = s.as_bytes();
+    if bytes.len() >= 2 {
+        let (first, last) = (bytes[0], bytes[bytes.len() - 1]);
+        // Both quotes are ASCII, so the slice boundaries are character boundaries.
+        if first == last && (first == b'"' || first == b'\'') {
+            return s[1..s.len() - 1].to_string();
+        }
+    }
+    s.to_string()
+}
+
+/// Python's tuple repr, for every message that quotes a closed list.
+pub fn py_tuple(items: &[&str]) -> String {
+    let body: Vec<String> = items.iter().map(|s| format!("'{s}'")).collect();
+    format!("({})", body.join(", "))
 }
 
 fn list(raw: &str) -> Vec<String> {
@@ -1217,4 +1289,421 @@ mod stale_check_tests {
             "no index must not read as every lesson being stale"
         );
     }
+}
+
+// ------------------------------------------------------------------------------- show, capture
+
+/// `registries.find_mistake`: an exact id first, then the first prefix match.
+pub fn find_mistake<'a>(lessons: &'a [Mistake], key: &str) -> Option<&'a Mistake> {
+    lessons
+        .iter()
+        .find(|m| m.id == key)
+        .or_else(|| lessons.iter().find(|m| m.id.starts_with(key)))
+}
+
+/// The four body sections a lesson is read for. `mistakes.SECTIONS`.
+pub const SECTIONS: [&str; 4] = ["What happened", "Symptom", "Lesson", "How to apply"];
+
+/// One lesson's fields, as `mistakes capture` assembles them.
+#[derive(Debug, Clone)]
+pub struct LessonDraft {
+    pub id: String,
+    pub title: String,
+    pub severity: String,
+    pub class: String,
+    pub status: String,
+    pub trigger: Vec<String>,
+    pub paths: Vec<String>,
+    pub milestones: Vec<String>,
+    pub mechanism: String,
+    pub guard: String,
+    pub evidence: Vec<String>,
+    pub date: String,
+    pub what: String,
+    pub symptom: String,
+    pub lesson: String,
+    pub apply: String,
+}
+
+impl Default for LessonDraft {
+    /// Python's defaults, which are also the CLI's: `warn`, `process`, `active`.
+    fn default() -> Self {
+        LessonDraft {
+            id: String::new(),
+            title: String::new(),
+            severity: "warn".to_string(),
+            class: "process".to_string(),
+            status: "active".to_string(),
+            trigger: Vec::new(),
+            paths: Vec::new(),
+            milestones: Vec::new(),
+            mechanism: String::new(),
+            guard: String::new(),
+            evidence: Vec::new(),
+            date: String::new(),
+            what: String::new(),
+            symptom: String::new(),
+            lesson: String::new(),
+            apply: String::new(),
+        }
+    }
+}
+
+/// `util.truncate`: collapse whitespace, then cut at `limit` CHARACTERS with an ellipsis.
+pub fn truncate(text: &str, limit: usize) -> String {
+    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.chars().count() <= limit {
+        return collapsed;
+    }
+    let cut: String = collapsed.chars().take(limit.saturating_sub(1)).collect();
+    format!("{}…", cut.trim_end())
+}
+
+fn non_blank(items: &[String]) -> Vec<String> {
+    items
+        .iter()
+        .filter(|s| !s.trim().is_empty())
+        .cloned()
+        .collect()
+}
+
+/// `_scalar`: a plain YAML scalar when it is safe, quoted otherwise.
+///
+/// The plain set is Python's own regex `[A-Za-z0-9_./*<>#-]+`, which is why `docs/harness/**` is
+/// written bare and `none: captured by hand on …` is not: **the colon would end the scalar.**
+fn yaml_scalar(value: &str) -> String {
+    if value.is_empty() {
+        return "\"\"".to_string();
+    }
+    let plain = !value.contains(':')
+        && !value.starts_with('-')
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "_./*<>#-".contains(c));
+    if plain {
+        value.to_string()
+    } else {
+        format!("\"{}\"", value.replace('\\', "\\\\").replace('\"', "\\\""))
+    }
+}
+
+fn yaml_list(items: &[String]) -> String {
+    if items.is_empty() {
+        return "[]".to_string();
+    }
+    let parts: Vec<String> = items.iter().map(|s| yaml_scalar(s)).collect();
+    format!("[{}]", parts.join(", "))
+}
+
+/// `build_lesson_text`: render a lesson that is registry-valid and honest about what is missing.
+///
+/// **The placeholders are the point.** A capture with no `--symptom` still produces a lesson whose
+/// `## Symptom` section says it was not recorded, so `registry_valid` reads a complete file and a
+/// reader sees a gap rather than an empty heading.
+pub fn build_lesson_text(d: &LessonDraft) -> String {
+    let date = if d.date.trim().is_empty() {
+        crate::prep::today()
+    } else {
+        d.date.clone()
+    };
+    let mut triggers = non_blank(&d.trigger);
+    let mut path_globs = non_blank(&d.paths);
+    let mut evidence = non_blank(&d.evidence);
+    if triggers.is_empty() {
+        // The id with spaces, and the title cut to 40 characters: enough for `find` to match on
+        // without inventing a trigger nobody wrote.
+        triggers = vec![d.id.replace('-', " "), truncate(&d.title, 40)];
+    }
+    if path_globs.is_empty() {
+        path_globs = vec!["docs/harness/**".to_string()];
+    }
+    if evidence.is_empty() {
+        evidence = vec!["docs/labs/README.md".to_string()];
+    }
+    let guard = if d.guard.trim().is_empty() {
+        // A capture with no guard says so, in the field a reader looks at to find out what stops it.
+        format!("none: captured by hand on {date}; no rule decides it yet")
+    } else {
+        d.guard.clone()
+    };
+    let milestones = non_blank(&d.milestones);
+    // **Every value goes through the YAML renderer, not only the ones with punctuation in them.**
+    // Python writes `f"{key}: {_yaml(fm[key])}"` for all twelve, and skipping it for `title` meant a
+    // title with a space was written bare while Python quoted it - a one-character difference in
+    // every captured lesson, found by diffing the written file.
+    let fm: Vec<(&str, String)> = vec![
+        ("id", yaml_scalar(&d.id)),
+        ("title", yaml_scalar(&d.title)),
+        ("date", yaml_scalar(&date)),
+        ("severity", yaml_scalar(&d.severity)),
+        ("class", yaml_scalar(&d.class)),
+        ("trigger", yaml_list(&triggers)),
+        ("paths", yaml_list(&path_globs)),
+        ("milestones", yaml_list(&milestones)),
+        ("mechanism", yaml_scalar(&d.mechanism)),
+        ("guard", yaml_scalar(&guard)),
+        ("evidence", yaml_list(&evidence)),
+        ("status", yaml_scalar(&d.status)),
+    ];
+    let front_matter: String = fm.iter().map(|(k, v)| format!("{k}: {v}\n")).collect();
+    let what = placeholder(
+        &d.what,
+        "(not recorded yet: what the run or delivery actually did)",
+    );
+    let symptom = placeholder(
+        &d.symptom,
+        "(not recorded yet: what someone would see that made them look this up)",
+    );
+    let lesson = placeholder(
+        &d.lesson,
+        "(not recorded yet: the transferable rule this lesson teaches)",
+    );
+    let apply = placeholder(
+        &d.apply,
+        "(not recorded yet: what to do differently, with the exact command or check)",
+    );
+    // One `format!` rather than chained `replace` calls: a substituted value containing `{what}`
+    // must not be substituted again, which is what Python's single `.format()` does.
+    format!(
+        "---\n{front_matter}---\n\n## What happened\n\n{what}\n\n## Symptom\n\n{symptom}\n\n## Lesson\n\n{lesson}\n\n## How to apply\n\n{apply}\n"
+    )
+}
+
+fn placeholder(value: &str, fallback: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        fallback.to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+#[cfg(test)]
+mod show_capture_tests {
+    use super::*;
+
+    /// **Python's own bytes**, from `mistakes.build_lesson_text` with a fixed date. A fixture that
+    /// encoded the moment it was captured would be the trap this port has hit three times, so the
+    /// date is passed in and the test asserts FORMAT.
+    #[test]
+    fn the_generated_lesson_is_pythons_bytes() {
+        let draft = LessonDraft {
+            id: "fixture-lesson".into(),
+            title: "A fixture lesson".into(),
+            severity: "block".into(),
+            class: "delivery".into(),
+            trigger: vec!["alpha".into(), "beta".into()],
+            paths: vec!["src/**".into()],
+            milestones: vec!["m1".into()],
+            mechanism: "zeta".into(),
+            guard: "check.rule".into(),
+            evidence: vec!["docs/labs/README.md".into()],
+            date: "2026-10-14".into(),
+            symptom: "it broke".into(),
+            lesson: "do not do it".into(),
+            ..Default::default()
+        };
+        assert_eq!(
+            build_lesson_text(&draft),
+            concat!(
+                "---\n",
+                "id: fixture-lesson\n",
+                "title: \"A fixture lesson\"\n",
+                "date: 2026-10-14\n",
+                "severity: block\n",
+                "class: delivery\n",
+                "trigger: [alpha, beta]\n",
+                "paths: [src/**]\n",
+                "milestones: [m1]\n",
+                "mechanism: zeta\n",
+                "guard: check.rule\n",
+                "evidence: [docs/labs/README.md]\n",
+                "status: active\n",
+                "---\n\n## What happened\n\n",
+                "(not recorded yet: what the run or delivery actually did)\n\n",
+                "## Symptom\n\nit broke\n\n",
+                "## Lesson\n\ndo not do it\n\n",
+                "## How to apply\n\n",
+                "(not recorded yet: what to do differently, with the exact command or check)\n"
+            )
+        );
+    }
+
+    /// **The defect `capture` found: a quoted front-matter value kept its quotes**, so the lesson the
+    /// command had just written failed the guard rule and the write was refused.
+    #[test]
+    fn a_quoted_front_matter_value_loses_its_quotes() {
+        let text =
+            "---\nid: x\nguard: \"none: captured by hand on 2026-10-14\"\n---\n\n## Lesson\n\nz\n";
+        let m = parse("x", text, Path::new("x.md"));
+        assert_eq!(m.guard, "none: captured by hand on 2026-10-14");
+        assert!(
+            !m.errors.iter().any(|e| e.contains("dotted rule id")),
+            "a quoted `none:` guard must not be read as a rule id: {:?}",
+            m.errors
+        );
+    }
+
+    /// Every message here was compared against Python on the same lesson file; the tuple and `!r`
+    /// forms are Python's, not Rust's debug formatting.
+    #[test]
+    fn the_validation_messages_are_pythons() {
+        let text = concat!(
+            "---\n",
+            "id: bad-lesson\ntitle: bad lesson\ndate: 14-10-2026\nseverity: warn\nclass: nope\n",
+            "trigger: [only-one]\npaths: []\nevidence: docs/labs/README.md\nstatus: nope\n",
+            "guard: \"some guard\"\n---\n\n## Lesson\n\nz\n"
+        );
+        let fm = frontmatter(text);
+        let errors = validation_errors("bad-lesson", text, &fm);
+        assert_eq!(
+            errors,
+            vec![
+                "front matter is missing 'paths'",
+                "class must be one of ('process', 'evidence', 'compute', 'measurement', 'delivery', 'coordination', 'assumption'), got 'nope'",
+                "status must be one of ('active', 'resolved', 'superseded'), got 'nope'",
+                "date must be YYYY-MM-DD, got '14-10-2026'",
+                "guard 'some guard' must be a dotted rule id or 'none: <reason>'",
+                "'evidence' must be an inline or block list",
+                "'trigger' needs at least two phrases, or the lesson is not retrievable",
+                "'paths' is empty: name a glob so the lesson is recalled",
+            ]
+        );
+    }
+
+    #[test]
+    fn find_mistake_takes_an_exact_id_then_a_prefix() {
+        let mut a = Mistake {
+            id: "alpha-one".into(),
+            ..Default::default()
+        };
+        a.path = PathBuf::from("alpha-one.md");
+        let mut b = Mistake {
+            id: "alphabet".into(),
+            ..Default::default()
+        };
+        b.path = PathBuf::from("alphabet.md");
+        let lessons = vec![a, b];
+        assert_eq!(
+            find_mistake(&lessons, "alphabet").expect("exact").id,
+            "alphabet"
+        );
+        assert_eq!(
+            find_mistake(&lessons, "alph").expect("prefix").id,
+            "alpha-one"
+        );
+        assert!(find_mistake(&lessons, "nope").is_none());
+    }
+
+    /// The warning that every capture without `--mechanism` produces, plus the evidence problem.
+    #[test]
+    fn draft_problems_reports_pythons_warning_and_evidence_problem() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir_all(dir.path().join("docs").join("harness")).expect("mkdir");
+        let paths = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        let target = dir
+            .path()
+            .join("docs")
+            .join("harness")
+            .join("mistakes")
+            .join("x.md");
+        let draft = LessonDraft {
+            id: "x".into(),
+            title: "X".into(),
+            date: "2026-10-14".into(),
+            ..Default::default()
+        };
+        let text = build_lesson_text(&draft);
+        let (problems, warnings) = draft_problems(&paths, &target, &text);
+        assert!(
+            warnings.iter().any(|w| w.contains("'mechanism' is empty")),
+            "{warnings:?}"
+        );
+        assert!(
+            problems.iter().any(|p| p.contains("evidence path")),
+            "the scratch repo has no docs/labs: {problems:?}"
+        );
+    }
+
+    #[test]
+    fn py_tuple_and_yaml_quoting_are_pythons() {
+        assert_eq!(py_tuple(&["a", "b"]), "('a', 'b')");
+        assert_eq!(yaml_scalar("plain"), "plain");
+        assert_eq!(yaml_scalar("has space"), "\"has space\"");
+        assert_eq!(yaml_scalar("has: colon"), "\"has: colon\"");
+        assert_eq!(yaml_scalar(""), "\"\"");
+        assert_eq!(yaml_scalar("docs/harness/**"), "docs/harness/**");
+    }
+
+    /// The assumption behind `draft_problems` implementing only one warning source: every draft the
+    /// command writes carries all four sections with text in them, so Python's body warnings cannot
+    /// fire. If the template changes, this fails rather than the warning going missing.
+    #[test]
+    fn the_template_carries_every_section_with_text() {
+        let draft = LessonDraft {
+            id: "x".into(),
+            title: "X".into(),
+            date: "2026-10-14".into(),
+            ..Default::default()
+        };
+        let text = build_lesson_text(&draft);
+        for section in SECTIONS {
+            let heading = format!("## {section}");
+            let at = text
+                .find(&heading)
+                .unwrap_or_else(|| panic!("missing {heading}"));
+            let body = &text[at + heading.len()..];
+            let first = body.trim_start().lines().next().unwrap_or_default();
+            assert!(!first.trim().is_empty(), "{heading} is empty");
+        }
+    }
+}
+
+/// `_draft_problems`: what the registry rules would say about a draft BEFORE it is written.
+///
+/// Errors refuse the write; warnings are reported and allowed - a captured lesson with no mechanism
+/// is honest, just less useful. **The check exists so `capture` cannot write a file that
+/// `mistakes.registry_valid` rejects**, which would turn a lab's own record into a failing `check`.
+///
+/// **One warning source is implemented and the others cannot fire here.** Python's reader also warns
+/// about a missing or empty body section; every draft this module writes comes from
+/// `build_lesson_text`, which always emits all four [`SECTIONS`] with non-empty placeholders, and
+/// `the_template_carries_every_section_with_text` asserts exactly that - so the assumption is
+/// checked rather than assumed.
+pub fn draft_problems(paths: &StatePaths, target: &Path, text: &str) -> (Vec<String>, Vec<String>) {
+    let name = target
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let stem = target
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let lesson = parse(&stem, text, target);
+    let mut problems: Vec<String> = lesson
+        .errors
+        .iter()
+        .map(|e| format!("{name}: {e}"))
+        .collect();
+    let mut warnings: Vec<String> = Vec::new();
+    if lesson.mechanism.trim().is_empty() {
+        warnings.push(format!(
+            "{name}: 'mechanism' is empty: the lesson is not recalled by mechanism name"
+        ));
+    }
+    for value in &lesson.evidence {
+        if resolve_path(paths, value).is_none() {
+            problems.push(format!("{name}: evidence path {value} does not exist"));
+        }
+    }
+    if load(paths)
+        .iter()
+        .any(|m| m.path != target && m.id == lesson.id)
+    {
+        problems.push(format!(
+            "{name}: id {} is already used by another lesson",
+            crate::prgates::py_repr_public(&lesson.id)
+        ));
+    }
+    (problems, warnings)
 }

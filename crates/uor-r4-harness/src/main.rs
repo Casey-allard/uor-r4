@@ -86,7 +86,7 @@ const SUBCOMMAND_FLAGS: [&str; 33] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 38] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 49] = [
     "--kind",
     "--milestone",
     "-m",
@@ -125,6 +125,19 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 38] = [
     "--task",
     "--state",
     "--scope",
+    // `mistakes capture`. The four `nargs="*"` flags take several values; only the first is
+    // consumed here and `flag_all_values` collects the rest from the argument list.
+    "--id",
+    "--title",
+    "--severity",
+    "--class",
+    "--trigger",
+    "--paths",
+    "--milestones",
+    "--guard",
+    "--evidence",
+    "--symptom",
+    "--lesson",
 ];
 
 const USAGE: &str = "\
@@ -572,9 +585,150 @@ fn cmd_mistakes(repo: &Path, args: &[String], json: bool) -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        // `capture` writes a lesson file plus a guard; `show` reads one body. Both are a bigger
-        // surface than the query path and say so individually.
-        "show" | "capture" => delegate_to_python(repo, "mistakes", args),
+        // `show` reads one lesson body; `capture` writes one. **`capture` is the writer, and the
+        // reason this pair stayed delegated: it must never write a file that
+        // `mistakes.registry_valid` would reject**, so the draft is validated before the write and
+        // the written file is read back and removed if it somehow fails.
+        "show" => {
+            let key = action_word_after(args, &["show"]);
+            let lessons = mistakes::load(&paths);
+            let found = if key.is_empty() {
+                None
+            } else {
+                mistakes::find_mistake(&lessons, &key)
+            };
+            // `args.id` is `None` when absent, and the message renders it - so a missing id says
+            // `unknown mistake None` rather than naming an argument, exactly as Python does.
+            let Some(m) = found else {
+                let shown = if key.is_empty() {
+                    "None".to_string()
+                } else {
+                    uor_r4_harness::prgates::py_repr_public(&key)
+                };
+                eprintln!("unknown mistake {shown}");
+                return ExitCode::from(2);
+            };
+            match std::fs::read_to_string(&m.path) {
+                Ok(text) => {
+                    // Python writes through `emit`, which adds the newline only when it is missing.
+                    if text.ends_with('\n') {
+                        print!("{text}");
+                    } else {
+                        println!("{text}");
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("uor-harness mistakes show: {e}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        "capture" => {
+            let id = flag_value(args, "--id")
+                .unwrap_or_default()
+                .trim()
+                .to_string();
+            let title = flag_value(args, "--title")
+                .unwrap_or_default()
+                .trim()
+                .to_string();
+            // argparse also requires both, so this is reachable only through the Rust parser,
+            // which is lenient; the refusal and the exit code are Python's either way.
+            if id.is_empty() || title.is_empty() {
+                eprintln!("mistakes capture needs --id and --title");
+                return ExitCode::from(2);
+            }
+            if !mistakes::kebab_case_id(&id) {
+                eprintln!(
+                    "--id {} must be kebab-case (a-z, 0-9, '-')",
+                    uor_r4_harness::prgates::py_repr_public(&id)
+                );
+                return ExitCode::from(2);
+            }
+            let severity = flag_value(args, "--severity").unwrap_or_else(|| "warn".to_string());
+            let class = flag_value(args, "--class").unwrap_or_else(|| "process".to_string());
+            if !mistakes::SEVERITIES.contains(&severity.as_str()) {
+                eprintln!(
+                    "--severity must be one of {}",
+                    mistakes::py_tuple(&mistakes::SEVERITIES)
+                );
+                return ExitCode::from(2);
+            }
+            if !mistakes::CLASSES.contains(&class.as_str()) {
+                eprintln!(
+                    "--class must be one of {}",
+                    mistakes::py_tuple(&mistakes::CLASSES)
+                );
+                return ExitCode::from(2);
+            }
+            let target = mistakes::dir(&paths).join(format!("{id}.md"));
+            if target.exists() && !args.iter().any(|a| a == "--force") {
+                eprintln!("{} exists; pass --force to overwrite it", target.display());
+                return ExitCode::from(1);
+            }
+            let draft = mistakes::LessonDraft {
+                id: id.clone(),
+                title,
+                severity: severity.clone(),
+                class: class.clone(),
+                trigger: flag_all_values(args, "--trigger"),
+                paths: flag_all_values(args, "--paths"),
+                milestones: flag_all_values(args, "--milestones"),
+                mechanism: flag_value(args, "--mechanism").unwrap_or_default(),
+                guard: flag_value(args, "--guard").unwrap_or_default(),
+                evidence: flag_all_values(args, "--evidence"),
+                symptom: flag_value(args, "--symptom").unwrap_or_default(),
+                lesson: flag_value(args, "--lesson").unwrap_or_default(),
+                ..Default::default()
+            };
+            let text = uor_r4_harness::prgates::redact_public(&mistakes::build_lesson_text(&draft));
+            let (problems, warnings) = mistakes::draft_problems(&paths, &target, &text);
+            if !problems.is_empty() {
+                eprintln!(
+                    "refusing to write {}: the draft is not a valid lesson",
+                    target.display()
+                );
+                for problem in &problems {
+                    eprintln!("  {problem}");
+                }
+                return ExitCode::from(1);
+            }
+            for warning in &warnings {
+                eprintln!("note: {warning}");
+            }
+            let existed = target.exists();
+            if let Some(parent) = target.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            if let Err(e) = std::fs::write(&target, &text) {
+                eprintln!("uor-harness mistakes capture: {e}");
+                return ExitCode::from(1);
+            }
+            // Read back what was written: a capture must not leave behind a file the registry
+            // rejects, and if it somehow did, the file is removed rather than left as evidence.
+            let check = mistakes::parse(&id, &text, &target);
+            if let Some(first) = check.errors.first() {
+                let _ = std::fs::remove_file(&target);
+                eprintln!("wrote and removed {}: {first}", target.display());
+                return ExitCode::from(1);
+            }
+            println!(
+                "{} {}",
+                if existed { "overwrote" } else { "wrote" },
+                target.display()
+            );
+            // **Three more lines, and they are the command's own guidance.** They were missed on
+            // the first pass because the function was read only as far as the write; the
+            // comparison of stdout is what showed the difference.
+            println!(
+                "  severity {severity}, class {class}, guard {}",
+                check.guard
+            );
+            println!("  read it back: python3 scripts/harness/cli.py mistakes show {id}");
+            println!("  check: python3 scripts/harness/cli.py check --only mistakes");
+            ExitCode::SUCCESS
+        }
         "" => {
             eprintln!("uor-harness mistakes: which action? list, find, show, capture");
             ExitCode::from(2)

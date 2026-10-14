@@ -1,3 +1,48 @@
+## 2026-10-14 — `mistakes show|capture` are Rust; `capture` was refusing its own output (deepseek, tooling)
+
+The [record](../labs/mistakes-write-port-2026-10-14/README.md) carries the twelve comparison cases.
+**`uor-harness mistakes show` AND `uor-harness mistakes capture` ARE RUST, AND THE `mistakes`
+DELEGATION SITE IS GONE: LIVE `delegate_to_python` CALL SITES 3 → 2** (the general fallback and
+`multilab sync-live|migrate-ledger`). `show` reads one lesson body; **`capture` is the writer** — it
+validates the draft against the same rules `mistakes.registry_valid` applies, refuses to overwrite
+without `--force`, writes, reads the file back and removes it if it somehow fails, **so a capture can
+never leave behind a lesson that turns the lab's own `check` red.** **THREE DEFECTS THE COMPARISON
+FOUND, NONE VISIBLE BY READING: (1) `capture` REFUSED EVERY LESSON WITH AN AUTO-GENERATED GUARD** —
+Rust's front-matter reader did not strip quotes, and `build_lesson_text` writes the default guard
+quoted because it contains a colon, **so the guard began with a `"` instead of `none`, failed the guard
+rule, and the command could not write the lesson it had just generated** (fixed by porting
+`core._coerce`'s one relevant case); **(2) the success message was three lines short** — Python also
+prints the severity/class/guard summary, the `read it back` command and the `check --only mistakes`
+line, and the port printed only the write line **because `capture` had been read as far as the write —
+the stdout comparison is what showed it**; **(3) EVERY front-matter value goes through the YAML
+renderer, not only the awkward ones** — wrapping only the punctuated fields meant a title with a space
+was written bare where Python quotes it, a difference in every captured lesson. **AND TWO DEFECTS IN
+THE RULE THE DRAFT IS VALIDATED AGAINST: `mistakes.registry_valid` was missing three checks Python has**
+(`'trigger' needs at least two phrases`, `'paths' is empty`, `'<key>' must be an inline or block
+list`) **and used Rust's debug formatting where Python uses `!r` and tuple reprs**
+(`severity must be one of ('block', 'warn', 'info'), got 'nope'`). **They were invisible because
+Python's registry loader refuses a lesson with a bad id or severity BEFORE the rule runs**, so the
+only way to compare was a lesson that loads and is still wrong: with one, **both implementations now
+report the same eight findings, in the same order, with the same messages.** **Verified on scratch
+checkouts across twelve case groups, comparing stdout, stderr, exit code AND every file in the mistakes
+directory: all match except one message** — with a required flag absent, Python's argparse prints a
+usage block and this port prints `mistakes capture needs --id and --title`, both refusing with exit 2.
+**FOUND WHILE COMPARING, NOT FIXED HERE: `check`'s TEXT RENDERING IS NOT PYTHON'S** — same verdicts,
+different layout (`harness check: …` + `FAIL <rule> [<path>]: <message>` + a trailing hint line there;
+a bare count + `  error <rule> [<path>]` with the message on its own line here), **surfaced only
+because comparing the rule messages required reading both renderings side by side, and the same class
+as the ledger line: identical verdicts, different bytes, invisible to every JSON comparison.**
+**Verified:** fmt and clippy `-D warnings` clean; **445 Rust tests passed, 6 ignored** (was 438);
+`python3 -m unittest discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK —
+1641, baseline 1641; **`check`'s rule-id set on the real tree is 41 = 41 with no new findings from the
+added checks.**
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`multilab sync-live|migrate-ledger`**, then **`arena`/`budget`/`panel`** (which removes the
+general fallback), plus the recorded follow-ups: `check`'s text rendering, `status.no_orphan_branches`
+reporting `ok` where Python warns, and the receipt `ts` rendering.
+
 ## 2026-10-14 — `team dispatch` is Rust, and diffing the written line found the ledger was the wrong shape (deepseek, tooling)
 
 The [record](../labs/team-dispatch-port-2026-10-14/README.md) carries the comparison table and the
