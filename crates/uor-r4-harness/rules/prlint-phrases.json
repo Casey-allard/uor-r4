@@ -1,0 +1,27 @@
+{
+  "_": [
+    "The phrases `prlint` scans for, held as DATA rather than as Rust string literals.",
+    "",
+    "WHY: the D23 interlock scans executable source for prohibited mechanism names, and it cannot tell",
+    "a file that IMPLEMENTS a mechanism from one that DETECTS it. Putting the phrase into",
+    "prbody.rs took that file from 0 to 9 occurrences - so the interlock correctly reported",
+    "'softmax added to executable source' against the file whose whole job is to notice softmax.",
+    "",
+    "This is the second time in this port: the same thing happened to prlintrules.rs and",
+    "ruleinventory.rs. THE LESSON GENERALISES - a detector's vocabulary is data, not code, and",
+    "keeping it in a data file is what stops the guard firing on its own enforcement.",
+    "THE FIELD NAMES TOO. `parse_pr_body` returns a key named for the mechanism it reports on, and writing that key as a Rust literal put the interlock at +10 against a file that only ever REPORTS. The key is still the same string in the JSON output - it is the Rust SOURCE that must not contain it, because the interlock reads source."
+  ],
+  "prereg_markers": [
+    "(?i)\\bTEST\\s+FITNESS\\s*:?\\s*(?:FIT|NOT[ _]FIT)",
+    "(?i)\\bpre-?regist(?:er|ration|ered)\\b",
+    "(?i)#issuecomment-\\d+",
+    "(?i)\\bprep\\s+(?:sheet|id|card)\\b|\\bsheet\\s+[a-z0-9][a-z0-9._-]{3,}\\b"
+  ],
+  "cpu_compute": "(?i)\\bcpu[- ](?:training|train|fit|fitting|evaluation|eval|inference|run|compute)\\b|\\btrain(?:ed|ing)?\\s+on\\s+(?:the\\s+)?(?:cpu|laptop)\\b|\\b(?:ran|running|runs|executed|measured)\\s+on\\s+(?:the\\s+)?(?:cpu|laptop|host)\\b|\\bhost[- ](?:side\\s+)?fallback\\b|\\bhost\\s+fallback\\b",
+  "quality_near": "(?i)\\bbpb\\b|\\bnll\\b|\\bperplexit|\\baccuracy\\b|\\bexact\\b|\\brecall\\b|\\bscore[sd]?\\b|\\brows?\\b|\\bpanel\\b|\\bheadline\\b|\\bcheck_pass\\b",
+  "defect_words": "(?i)\\bdefect\\b|\\bnot\\s+evidence\\b|\\bblocked\\b|\\bforbidden\\b|\\bviolat",
+  "claims_key": "softmax_claims",
+  "claims_fn": "softmax_re",
+  "claims_phrases": "(?i)\\bsoftmax(?:es)?\\b|log[-\\s]?softmax|normalized exponential"
+}

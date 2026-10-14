@@ -33,6 +33,7 @@ pub mod multilab;
 pub mod multilabrules;
 pub mod notes;
 pub mod onboard;
+pub mod prbody;
 pub mod prep;
 pub mod preprules;
 pub mod presence;
