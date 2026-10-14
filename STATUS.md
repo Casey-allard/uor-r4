@@ -10,6 +10,13 @@ artifacts are preserved and the pod is deleted. The pilot release is consumed;
 all further training, seed 2 and M2 remain HELD pending a prospective sheet and
 scoped release. [Result, scope, costs and next action](docs/labs/a2-pilot-2026-10-14/README.md).
 
+**Completion preparation:** [D5 and the paired diagnosis](docs/labs/a2-pilot-diagnosis-2026-10-14/README.md)
+preserve the pilot while adding separate owner-release scopes, driver-only lineage
+migration and checked quarter-evaluation recovery. Local Rust metadata controls
+pass; the new CUDA build/runtime remains UNVERIFIED. Kimi's completion-sheet
+amendment and Claude's FIT/exact-source review precede a fresh owner decision.
+No initialization, objective, schedule or model compute changed in this preparation.
+
 **Construction/cost baseline before that pilot:** the discrete shared-codebook SpiralCore/FBS path
 with the discrete flock read and D1 driver passes all twenty-five admitted CUDA
 construction controls at `e7d926fbe38537f4faa90b817705c61a780778d6`, after fresh

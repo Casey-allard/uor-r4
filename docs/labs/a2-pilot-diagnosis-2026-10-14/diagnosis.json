@@ -1,0 +1,166 @@
+{
+  "admission_transitions": {
+    "gained": {
+      "baseline_top1_correct": 0,
+      "baseline_top8_correct": 0,
+      "final_top1_correct": 58,
+      "final_top8_correct": 983,
+      "loss_decreased_rows": 1550,
+      "loss_increased_rows": 27,
+      "loss_unchanged_rows": 23,
+      "rows": 1600,
+      "total_loss_numerator_delta": -588768,
+      "weighted_address_delta": -465280,
+      "weighted_token_delta": -123488
+    },
+    "lost": {
+      "baseline_top1_correct": 11,
+      "baseline_top8_correct": 124,
+      "final_top1_correct": 0,
+      "final_top8_correct": 0,
+      "loss_decreased_rows": 1031,
+      "loss_increased_rows": 3602,
+      "loss_unchanged_rows": 467,
+      "rows": 5100,
+      "total_loss_numerator_delta": 961056,
+      "weighted_address_delta": 790144,
+      "weighted_token_delta": 170912
+    },
+    "never": {
+      "baseline_top1_correct": 0,
+      "baseline_top8_correct": 0,
+      "final_top1_correct": 0,
+      "final_top8_correct": 0,
+      "loss_decreased_rows": 3446,
+      "loss_increased_rows": 2823,
+      "loss_unchanged_rows": 738,
+      "rows": 7007,
+      "total_loss_numerator_delta": -297568,
+      "weighted_address_delta": -193792,
+      "weighted_token_delta": -103776
+    },
+    "retained": {
+      "baseline_top1_correct": 6,
+      "baseline_top8_correct": 49,
+      "final_top1_correct": 24,
+      "final_top8_correct": 186,
+      "loss_decreased_rows": 252,
+      "loss_increased_rows": 291,
+      "loss_unchanged_rows": 37,
+      "rows": 580,
+      "total_loss_numerator_delta": -6720,
+      "weighted_address_delta": 896,
+      "weighted_token_delta": -7616
+    }
+  },
+  "coordinate_count_cohorts": {
+    "nonzero_masked_train_target_count": {
+      "accepted": 146,
+      "attempted": 696,
+      "sensitive": 500
+    },
+    "zero_masked_train_target_count": {
+      "accepted": 90,
+      "attempted": 944,
+      "sensitive": 679
+    }
+  },
+  "evaluation_lineage_sha256": "6db5ecf5d6e1b334b6f788a28b741b7ff2e012e7bf451e5f89ed29f89ef82a12",
+  "limitations": [
+    "stored rows have no explicit target ID; pairing relies on pinned source and identical lineage/order",
+    "transition associations do not isolate causal effects of individual updates",
+    "zero target count does not mean zero context/rival influence"
+  ],
+  "overall": {
+    "baseline_top1_correct": 17,
+    "baseline_top8_correct": 173,
+    "final_top1_correct": 82,
+    "final_top8_correct": 1169,
+    "loss_decreased_rows": 6279,
+    "loss_increased_rows": 6743,
+    "loss_unchanged_rows": 1265,
+    "rows": 14287,
+    "total_loss_numerator_delta": 68000,
+    "weighted_address_delta": 131968,
+    "weighted_token_delta": -63968
+  },
+  "paired_rows": 14287,
+  "pairing": "ordinal within identical frozen DEV order; 223 batches of 64 plus 15; source training.rs evaluate iterates first=0 then batch.next_target; no explicit target IDs in row receipts",
+  "report_sha256": "e4bcf43859fa0645db2ca0d5fe620f18620990cbb7efb4f28e6873f5a57f90c3",
+  "schema": "uor-r4.pilot-diagnosis-metadata/1",
+  "scope": "arithmetic over stored GPU receipts; no model computation",
+  "steps_sha256": "76dda96a16aec709f4d1dc4d12d412307e5c79174d9aa8b9be5444aaef443efc",
+  "strict_win_definition": "stored GPU predicate token_rivals > 0 && token_hinge < width (32); target admission is separate, unchanged guard semantics",
+  "strict_wins_by_admission": {
+    "baseline": {
+      "strict_wins": 105,
+      "target_admitted": 0,
+      "target_omitted": 105,
+      "top1_correct": 0,
+      "top8_correct": 0
+    },
+    "final": {
+      "strict_wins": 149,
+      "target_admitted": 36,
+      "target_omitted": 113,
+      "top1_correct": 36,
+      "top8_correct": 36
+    }
+  },
+  "top8_transitions": {
+    "gained": {
+      "baseline_top1_correct": 0,
+      "baseline_top8_correct": 0,
+      "final_top1_correct": 75,
+      "final_top8_correct": 1134,
+      "loss_decreased_rows": 1039,
+      "loss_increased_rows": 72,
+      "loss_unchanged_rows": 23,
+      "rows": 1134,
+      "total_loss_numerator_delta": -415936,
+      "weighted_address_delta": -321664,
+      "weighted_token_delta": -94272
+    },
+    "lost": {
+      "baseline_top1_correct": 14,
+      "baseline_top8_correct": 138,
+      "final_top1_correct": 0,
+      "final_top8_correct": 0,
+      "loss_decreased_rows": 3,
+      "loss_increased_rows": 135,
+      "loss_unchanged_rows": 0,
+      "rows": 138,
+      "total_loss_numerator_delta": 57472,
+      "weighted_address_delta": 44288,
+      "weighted_token_delta": 13184
+    },
+    "never": {
+      "baseline_top1_correct": 0,
+      "baseline_top8_correct": 0,
+      "final_top1_correct": 0,
+      "final_top8_correct": 0,
+      "loss_decreased_rows": 5234,
+      "loss_increased_rows": 6506,
+      "loss_unchanged_rows": 1240,
+      "rows": 12980,
+      "total_loss_numerator_delta": 420448,
+      "weighted_address_delta": 404608,
+      "weighted_token_delta": 15840
+    },
+    "retained": {
+      "baseline_top1_correct": 3,
+      "baseline_top8_correct": 35,
+      "final_top1_correct": 7,
+      "final_top8_correct": 35,
+      "loss_decreased_rows": 3,
+      "loss_increased_rows": 30,
+      "loss_unchanged_rows": 2,
+      "rows": 35,
+      "total_loss_numerator_delta": 6016,
+      "weighted_address_delta": 4736,
+      "weighted_token_delta": 1280
+    }
+  },
+  "training": "HELD",
+  "verification": "all row/batch/evaluation sums and weighted numerator identities matched"
+}

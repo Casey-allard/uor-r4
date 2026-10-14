@@ -23,6 +23,11 @@ remains SUSPENDED pending a discriminating reply grader under R14.
 It recorded 1,640 corpus batches and 236 accepted vector updates. Earlier construction
 controls recorded eleven isolated fixture apply calls and eight disposable updates;
 those retain their pre-pilot scope. [Pilot measurements and preserved artifacts](docs/labs/a2-pilot-2026-10-14/README.md).
+The [paired pilot diagnosis and D5 completion controller](docs/labs/a2-pilot-diagnosis-2026-10-14/README.md)
+separate writer admission loss from improved within-list ranks. Completion has
+separate per-seed release scopes and preserves the pilot checkpoint; its metadata
+controls pass, while its new CUDA build and execution remain unverified. This
+source does not release training or change the initializer, schedule or evaluator.
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 The D1 Rust corpus/schedule/checkpoint driver and integer GPU evaluator are now
 implemented at source `e7d926fbe38537f4faa90b817705c61a780778d6` ([#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)).

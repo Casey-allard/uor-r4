@@ -18,6 +18,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[path = "completion.rs"]
+pub mod completion;
+
 pub const PILOT_BATCHES: u64 = 1_640;
 pub const BASE_SOURCE: &str = "e7d926fbe38537f4faa90b817705c61a780778d6";
 pub const PILOT_SCOPE: &str = "m1-a2-seed1-vector0..1639-diagnostic-pilot";
@@ -122,13 +125,14 @@ struct OwnerRecord {
 pub struct ValidatedRelease {
     manifest: ReleaseManifest,
     manifest_sha256: String,
+    max_batches: u64,
 }
 impl ValidatedRelease {
     pub(crate) fn lineage_sha256(&self) -> &str {
         &self.manifest.execution.lineage_sha256
     }
     pub(crate) fn max_batches(&self) -> u64 {
-        PILOT_BATCHES
+        self.max_batches
     }
     pub fn manifest_sha256(&self) -> &str {
         &self.manifest_sha256
@@ -280,6 +284,7 @@ fn validate_release_with_owner(
     Ok(ValidatedRelease {
         manifest_sha256: corpus::sha256(&encode(&manifest)?),
         manifest,
+        max_batches: PILOT_BATCHES,
     })
 }
 
@@ -512,7 +517,7 @@ fn lock_run(release: &ValidatedRelease, resume: bool) -> Result<RunLock> {
     } else {
         write_new(
             &registration,
-            &json!({"manifest_sha256":release.manifest_sha256,"scope":PILOT_SCOPE}),
+            &json!({"manifest_sha256":release.manifest_sha256,"scope":release.manifest.scope}),
         )?;
     }
     Ok(guard)

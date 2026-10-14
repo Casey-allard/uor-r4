@@ -21,6 +21,7 @@ pub fn driver_source_sha256() -> String {
     bytes.extend_from_slice(include_bytes!("corpus.rs"));
     bytes.extend_from_slice(include_bytes!("training.rs"));
     bytes.extend_from_slice(include_bytes!("controller.rs"));
+    bytes.extend_from_slice(include_bytes!("completion.rs"));
     bytes.extend_from_slice(include_bytes!("main.rs"));
     corpus::sha256(&bytes)
 }
@@ -690,7 +691,8 @@ pub(crate) fn issue_corpus_update_admission(
     release: &crate::controller::ValidatedRelease,
 ) -> Result<CorpusUpdateAdmission> {
     let lineage_sha256 = driver.lineage_sha256()?;
-    if release.lineage_sha256() != lineage_sha256 || release.max_batches() != 1640 {
+    if release.lineage_sha256() != lineage_sha256 || !matches!(release.max_batches(), 1640 | 16404)
+    {
         return Err(invalid(
             "release differs from the admitted pilot lineage/dose",
         ));

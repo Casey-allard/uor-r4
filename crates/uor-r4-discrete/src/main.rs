@@ -35,6 +35,11 @@ fn device_command(args: &[String]) -> Result<()> {
     };
     let read = |p: &str| std::fs::read(p).map_err(|e| invalid(e.to_string()));
     match args.first().map(String::as_str) {
+        Some("completion") | Some("completion-resume") if args.len()==4=>{
+            let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
+            let admission=read_json::<uor_r4_discrete::controller::completion::CompletionAdmission>(&args[2])?;
+            uor_r4_discrete::controller::completion::run(config,admission,Path::new(&args[3]),args[0]=="completion-resume")
+        }
         Some("pilot") | Some("pilot-resume") if args.len()==4=>{
             let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
             let admission=read_json::<uor_r4_discrete::controller::ReleaseManifest>(&args[2])?;
@@ -45,12 +50,12 @@ fn device_command(args: &[String]) -> Result<()> {
             let admission=read_json::<uor_r4_discrete::controller::ReleaseManifest>(&args[2])?;
             uor_r4_discrete::controller::evaluate_pilot(config,admission,Path::new(&args[3]))
         }
-        Some("build-identity") if args.len()==1 || args.len()==2=>{
+        Some("build-identity") | Some("completion-build-identity") if args.len()==1 || args.len()==2=>{
             let executable=std::env::current_exe().map_err(|e|invalid(e.to_string()))?;
             let mut identity=serde_json::json!({"compiled":uor_r4_discrete::device::compiled_identity(),"driver_source_sha256":uor_r4_discrete::training::driver_source_sha256(),"executable_sha256":uor_r4_discrete::corpus::sha256(&std::fs::read(executable).map_err(|e|invalid(e.to_string()))?),"cuda_context_created":false,"training":"HELD"});
             if args.len()==2 {
                 let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
-                uor_r4_discrete::controller::validate_pilot_config(&config)?;
+                if args[0]=="completion-build-identity" {uor_r4_discrete::controller::completion::validate_config(&config)?;} else {uor_r4_discrete::controller::validate_pilot_config(&config)?;}
                 let driver=uor_r4_discrete::training::PreparedDriver::load(config)?;
                 identity["config_sha256"]=serde_json::json!(uor_r4_discrete::corpus::sha256(&serde_json::to_vec(driver.config()).map_err(|e|invalid(e.to_string()))?));
                 identity["lineage_sha256"]=serde_json::json!(driver.lineage_sha256()?);
@@ -145,8 +150,27 @@ fn run() -> Result<()> {
             println!("owner-release PILOT_PLAN.json NEW_RELEASE_DIR — Casey at a live terminal (UOR_LAB unset) with typed confirmation, or the D33-named delegate UOR_LAB=claude for the pinned A2 pilot only; no other lab may invoke this or create/copy/edit owner-release files.
 pilot-unlock RUN_STATE EXPECTED_LOCK_SHA256 NEW_RECEIPT_DIR — metadata-only recovery, refuses live/foreign/ambiguous holders and preserves the old lock.
 pilot|pilot-resume|eval-pilot CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only, explicit owner release required; training remains HELD by default.
-build-identity [CONFIG] — compiled/executable/config pins without a CUDA context.");
+build-identity [CONFIG] — compiled/executable/config pins without a CUDA context.
+completion-build-identity [CONFIG] — compiled completion identity without CUDA context.
+completion-check-plan PLAN — read-only plan metadata validation, no release.
+completion-owner-release PLAN NEW_RELEASE_DIR — Casey personally, separate seed scope; no D33 delegation.
+completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately released seed, cap16404; never chains seeds.");
             Ok(())
+        }
+        Some("completion-check-plan") if args.len() == 2 => {
+            let plan =
+                read_json::<uor_r4_discrete::controller::completion::CompletionPlan>(&args[1])?;
+            println!(
+                "{}",
+                uor_r4_discrete::controller::completion::check_plan(&plan)?
+            );
+            Ok(())
+        }
+        Some("completion-owner-release") if args.len() == 3 => {
+            uor_r4_discrete::controller::completion::owner_release(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+            )
         }
         Some("owner-release") if args.len() == 3 => uor_r4_discrete::controller::owner_release(
             std::path::Path::new(&args[1]),
