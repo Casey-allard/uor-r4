@@ -1,0 +1,459 @@
+{
+  "P1": "pilot_slice_bias in baseline_evaluation and final_evaluation; ascending token IDs 0..409 only; no frequency reordering",
+  "P2": {
+    "checkpoint_0": {
+      "distinct_full_vector_patterns": 16,
+      "occupied_writer_cells": 16,
+      "source": "exact stored full vectors and endpoint block pairs; host metadata only",
+      "vocabulary": 4096
+    },
+    "pilot_end": {
+      "distinct_full_vector_patterns": 155,
+      "occupied_writer_cells": 124,
+      "source": "exact stored full vectors and endpoint block pairs; host metadata only",
+      "vocabulary": 4096
+    }
+  },
+  "attempt_elapsed_ns": "6143011024199",
+  "attempt_resume": false,
+  "bars": "NOT_DECIDED_PILOT",
+  "baseline_evaluation": {
+    "accepted_updates_in_model": 0,
+    "aggregate": {
+      "address_eligible_rows": 14287,
+      "address_hinge_sum": 261824,
+      "address_rival_count_sum": 108616,
+      "address_unviolated_eligible_rows": 331,
+      "admitted_cell_count_sum": 114296,
+      "eligible_any_rows": 14287,
+      "eligible_unviolated_rows": 0,
+      "loss_denominator_per_row": 256,
+      "scored_rows": 14287,
+      "token_eligible_rows": 14287,
+      "token_hinge_sum": 679708,
+      "token_rival_count_sum": 29254096,
+      "token_strict_win_eligible_rows": 105,
+      "token_unviolated_eligible_rows": 0,
+      "top1_correct": 17,
+      "top8_correct": 173,
+      "total_loss_numerator_sum": 13816032
+    },
+    "count_reference": {
+      "dev_oracle_diagnostic_only": true,
+      "dev_response_oracle": {
+        "nonzero_tokens": 674,
+        "scored_rows": 14287,
+        "source_targets": 14287,
+        "top1_correct": 1226,
+        "top8": [
+          1,
+          16,
+          14,
+          435,
+          340,
+          351,
+          3,
+          223
+        ],
+        "top8_correct": 4134,
+        "zero_count_targets": 0
+      },
+      "train_masked_reference": {
+        "nonzero_tokens": 1372,
+        "scored_rows": 14287,
+        "source_targets": 2425925,
+        "top1_correct": 1226,
+        "top8": [
+          1,
+          16,
+          14,
+          435,
+          340,
+          351,
+          3,
+          302
+        ],
+        "top8_correct": 4060,
+        "zero_count_targets": 0
+      }
+    },
+    "evaluation_lineage": {
+      "config": {
+        "batch_rows": 64,
+        "bos": {
+          "id": 0,
+          "token": "<|bos|>"
+        },
+        "dev": {
+          "expected_eligible_targets": 14287,
+          "expected_payload_tokens": 42856,
+          "mask": {
+            "path": "local/driver/data/ft/dev/response_mask.u8",
+            "sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
+          },
+          "split": "dev",
+          "tokens": {
+            "path": "local/driver/data/ft/dev/tokens.u16",
+            "sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+          }
+        },
+        "read_spec": {
+          "kind": "route"
+        },
+        "schedule": "canonical_vector_then_read_v1",
+        "schema": "uor-r4.discrete-corpus-driver/1",
+        "seed": 1,
+        "spec": {
+          "blocks": 4,
+          "context": 192,
+          "kept_cells": 8,
+          "vocabulary": 4096
+        },
+        "tokenizer": {
+          "path": "local/driver/data/tokenizer.json",
+          "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+        },
+        "train": {
+          "expected_eligible_targets": 2425925,
+          "expected_payload_tokens": 7512797,
+          "mask": {
+            "path": "local/driver/data/mw-balp/train/response_mask.u8",
+            "sha256": "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3"
+          },
+          "split": "train",
+          "tokens": {
+            "path": "local/driver/data/mw-balp/train/tokens.u16",
+            "sha256": "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8"
+          }
+        }
+      },
+      "dev": {
+        "bos": {
+          "id": 0,
+          "token": "<|bos|>"
+        },
+        "documents": 400,
+        "eligible_targets": 14287,
+        "identity_policy": "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1",
+        "mask_bytes": 42856,
+        "mask_selected_positions": 14287,
+        "payload_tokens": 42856,
+        "source": {
+          "expected_eligible_targets": 14287,
+          "expected_payload_tokens": 42856,
+          "mask": {
+            "path": "local/driver/data/ft/dev/response_mask.u8",
+            "sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
+          },
+          "split": "dev",
+          "tokens": {
+            "path": "local/driver/data/ft/dev/tokens.u16",
+            "sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+          }
+        },
+        "vocabulary": 4096,
+        "window_policy": "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1"
+      },
+      "driver_source_sha256": "236e7fb6e5269e3bd4fed21d391d1ce82f7d9bd31275f1a0d97dd0c4ce9d9806",
+      "schema": "uor-r4.discrete-corpus-driver/1",
+      "train": {
+        "bos": {
+          "id": 0,
+          "token": "<|bos|>"
+        },
+        "documents": 60000,
+        "eligible_targets": 2425925,
+        "identity_policy": "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1",
+        "mask_bytes": 7512797,
+        "mask_selected_positions": 2425925,
+        "payload_tokens": 7512797,
+        "source": {
+          "expected_eligible_targets": 2425925,
+          "expected_payload_tokens": 7512797,
+          "mask": {
+            "path": "local/driver/data/mw-balp/train/response_mask.u8",
+            "sha256": "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3"
+          },
+          "split": "train",
+          "tokens": {
+            "path": "local/driver/data/mw-balp/train/tokens.u16",
+            "sha256": "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8"
+          }
+        },
+        "vocabulary": 4096,
+        "window_policy": "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1"
+      }
+    },
+    "evaluation_lineage_sha256": "6db5ecf5d6e1b334b6f788a28b741b7ff2e012e7bf451e5f89ed29f89ef82a12",
+    "evaluation_mutates_model": false,
+    "model_bindings": {
+      "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b",
+      "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+      "read_spec": {
+        "kind": "route"
+      },
+      "schema": "uor-r4.discrete-spiralcore-fbs/2",
+      "seed": 1,
+      "source_sha256": "e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a",
+      "spec": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 8,
+        "vocabulary": 4096
+      }
+    },
+    "model_epoch": 0,
+    "model_snapshot_sha256": "2d03fd55a9504935ea8e5827c9bf64673ed7630a2c367ae0d2a2bd4c7216ccdd",
+    "pilot_slice_bias": {
+      "combined_share": {
+        "denominator": 2425925,
+        "numerator": 1440407
+      },
+      "masked_train_target_sum": 1440407,
+      "policy": "ascending VectorBlock 0..1639; token IDs 0..409 at blocks=4",
+      "source": "completed GPU response-masked TRAIN count reference; DEV excluded",
+      "status": "OBSERVED",
+      "visited_token_count": 410,
+      "zero_count_tokens": 236
+    },
+    "schema": "uor-r4.discrete-corpus-driver/1",
+    "scored_set_policy": "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1",
+    "training_provenance": "DriverCheckpoint restore required by eval-corpus CLI; this evaluator's lineage identifies its evaluation inputs",
+    "updates_applied_by_evaluation": 0
+  },
+  "completed_batches": 1640,
+  "eligible_train_target_exposures": 104960,
+  "final_evaluation": {
+    "accepted_updates_in_model": 236,
+    "aggregate": {
+      "address_eligible_rows": 14287,
+      "address_hinge_sum": 265948,
+      "address_rival_count_sum": 112116,
+      "address_unviolated_eligible_rows": 3,
+      "admitted_cell_count_sum": 114296,
+      "eligible_any_rows": 14287,
+      "eligible_unviolated_rows": 0,
+      "loss_denominator_per_row": 256,
+      "scored_rows": 14287,
+      "token_eligible_rows": 14287,
+      "token_hinge_sum": 671712,
+      "token_rival_count_sum": 3631257,
+      "token_strict_win_eligible_rows": 149,
+      "token_unviolated_eligible_rows": 0,
+      "top1_correct": 82,
+      "top8_correct": 1169,
+      "total_loss_numerator_sum": 13884032
+    },
+    "count_reference": {
+      "dev_oracle_diagnostic_only": true,
+      "dev_response_oracle": {
+        "nonzero_tokens": 674,
+        "scored_rows": 14287,
+        "source_targets": 14287,
+        "top1_correct": 1226,
+        "top8": [
+          1,
+          16,
+          14,
+          435,
+          340,
+          351,
+          3,
+          223
+        ],
+        "top8_correct": 4134,
+        "zero_count_targets": 0
+      },
+      "train_masked_reference": {
+        "nonzero_tokens": 1372,
+        "scored_rows": 14287,
+        "source_targets": 2425925,
+        "top1_correct": 1226,
+        "top8": [
+          1,
+          16,
+          14,
+          435,
+          340,
+          351,
+          3,
+          302
+        ],
+        "top8_correct": 4060,
+        "zero_count_targets": 0
+      }
+    },
+    "evaluation_lineage": {
+      "config": {
+        "batch_rows": 64,
+        "bos": {
+          "id": 0,
+          "token": "<|bos|>"
+        },
+        "dev": {
+          "expected_eligible_targets": 14287,
+          "expected_payload_tokens": 42856,
+          "mask": {
+            "path": "local/driver/data/ft/dev/response_mask.u8",
+            "sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
+          },
+          "split": "dev",
+          "tokens": {
+            "path": "local/driver/data/ft/dev/tokens.u16",
+            "sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+          }
+        },
+        "read_spec": {
+          "kind": "route"
+        },
+        "schedule": "canonical_vector_then_read_v1",
+        "schema": "uor-r4.discrete-corpus-driver/1",
+        "seed": 1,
+        "spec": {
+          "blocks": 4,
+          "context": 192,
+          "kept_cells": 8,
+          "vocabulary": 4096
+        },
+        "tokenizer": {
+          "path": "local/driver/data/tokenizer.json",
+          "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+        },
+        "train": {
+          "expected_eligible_targets": 2425925,
+          "expected_payload_tokens": 7512797,
+          "mask": {
+            "path": "local/driver/data/mw-balp/train/response_mask.u8",
+            "sha256": "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3"
+          },
+          "split": "train",
+          "tokens": {
+            "path": "local/driver/data/mw-balp/train/tokens.u16",
+            "sha256": "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8"
+          }
+        }
+      },
+      "dev": {
+        "bos": {
+          "id": 0,
+          "token": "<|bos|>"
+        },
+        "documents": 400,
+        "eligible_targets": 14287,
+        "identity_policy": "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1",
+        "mask_bytes": 42856,
+        "mask_selected_positions": 14287,
+        "payload_tokens": 42856,
+        "source": {
+          "expected_eligible_targets": 14287,
+          "expected_payload_tokens": 42856,
+          "mask": {
+            "path": "local/driver/data/ft/dev/response_mask.u8",
+            "sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
+          },
+          "split": "dev",
+          "tokens": {
+            "path": "local/driver/data/ft/dev/tokens.u16",
+            "sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+          }
+        },
+        "vocabulary": 4096,
+        "window_policy": "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1"
+      },
+      "driver_source_sha256": "236e7fb6e5269e3bd4fed21d391d1ce82f7d9bd31275f1a0d97dd0c4ce9d9806",
+      "schema": "uor-r4.discrete-corpus-driver/1",
+      "train": {
+        "bos": {
+          "id": 0,
+          "token": "<|bos|>"
+        },
+        "documents": 60000,
+        "eligible_targets": 2425925,
+        "identity_policy": "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1",
+        "mask_bytes": 7512797,
+        "mask_selected_positions": 2425925,
+        "payload_tokens": 7512797,
+        "source": {
+          "expected_eligible_targets": 2425925,
+          "expected_payload_tokens": 7512797,
+          "mask": {
+            "path": "local/driver/data/mw-balp/train/response_mask.u8",
+            "sha256": "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3"
+          },
+          "split": "train",
+          "tokens": {
+            "path": "local/driver/data/mw-balp/train/tokens.u16",
+            "sha256": "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8"
+          }
+        },
+        "vocabulary": 4096,
+        "window_policy": "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1"
+      }
+    },
+    "evaluation_lineage_sha256": "6db5ecf5d6e1b334b6f788a28b741b7ff2e012e7bf451e5f89ed29f89ef82a12",
+    "evaluation_mutates_model": false,
+    "model_bindings": {
+      "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b",
+      "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+      "read_spec": {
+        "kind": "route"
+      },
+      "schema": "uor-r4.discrete-spiralcore-fbs/2",
+      "seed": 1,
+      "source_sha256": "e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a",
+      "spec": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 8,
+        "vocabulary": 4096
+      }
+    },
+    "model_epoch": 236,
+    "model_snapshot_sha256": "70e738c362cca86cc7ff1c227956a2bfab90e896b847d7a0bf98f54fd3405924",
+    "pilot_slice_bias": {
+      "combined_share": {
+        "denominator": 2425925,
+        "numerator": 1440407
+      },
+      "masked_train_target_sum": 1440407,
+      "policy": "ascending VectorBlock 0..1639; token IDs 0..409 at blocks=4",
+      "source": "completed GPU response-masked TRAIN count reference; DEV excluded",
+      "status": "OBSERVED",
+      "visited_token_count": 410,
+      "zero_count_tokens": 236
+    },
+    "schema": "uor-r4.discrete-corpus-driver/1",
+    "scored_set_policy": "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1",
+    "training_provenance": "DriverCheckpoint restore required by eval-corpus CLI; this evaluator's lineage identifies its evaluation inputs",
+    "updates_applied_by_evaluation": 0
+  },
+  "fresh_transfer": "UNAVAILABLE_NOT_RUN",
+  "full_run": "NOT_AUTHORIZED_BY_THIS_PILOT",
+  "guard": "NOT_DECIDED_PILOT",
+  "interpretation": "insensitivity is a dose/schedule finding, never a configuration negative; collision-free integer init is a named successor requiring amendment",
+  "m2": "HELD",
+  "manifest_sha256": "be866c7e646e469997dbeb9ffcf8dad92ed46c1f70fd8242f0982d6d47bc9391",
+  "mechanism_verdict": "NOT_ASSIGNED",
+  "nominal_candidate_slots": 26240,
+  "schema": "uor-r4.a2-pilot-report/1",
+  "scope": "m1-a2-seed1-vector0..1639-diagnostic-pilot",
+  "seed": 1,
+  "sensitivity": {
+    "route": {
+      "accepted_updates": 0,
+      "any_candidate_cost_differs_from_identity": "NOT_RUN",
+      "attempted": 0
+    },
+    "vector_block": {
+      "accepted_updates": 236,
+      "any_candidate_cost_differs_from_identity": 1179,
+      "attempted": 1640
+    }
+  },
+  "status": "COMPLETE_DIAGNOSTIC_ONLY",
+  "timing_scope": "current controller invocation only, includes admission and I/O; earlier failed/resumed attempts remain separately charged"
+}

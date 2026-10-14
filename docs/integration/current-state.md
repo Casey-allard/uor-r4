@@ -1,3 +1,35 @@
+## 2026-10-14 — D33 discrete seed-1 pilot completed, preserved, pod retired (codex)
+
+The [admitted A2 diagnostic pilot](../labs/a2-pilot-2026-10-14/README.md) completed
+on RTX 5090 with the qualified `d12877b6…` executable, first attempt/exit 0:
+1,640 batches, 104,960 masked-target exposures, 236 accepted VectorBlock updates.
+The same 14,287 DEV targets scored top-1 17 → 82, top-8 173 → 1,169 and strict
+distance wins 105 → 149. Aggregate loss numerator increased 13,816,032 → 13,884,032
+(denominator per row 256); masked-TRAIN count reference remains ahead at
+1,226 top-1 / 4,060 top-8. Sensitivity differs from identity on 1,179/1,640 steps.
+Stored vector patterns 16 → 155; occupied writer cells 16 → 124. This is a mixed
+diagnostic observation on ascending token IDs0..409, including 236 zero-count
+identities. Route learning/sensitivity NOT_RUN; bars/guard NOT_DECIDED; mechanism
+verdict NOT_ASSIGNED; fresh transfer UNAVAILABLE/NOT_RUN. No useful-chat claim,
+mechanism closure, full-run authorization or M2 release follows.
+
+All 1,640 receipt checks pass, including strict accepted-move loss comparisons,
+unchanged baseline/reference and final evaluation/checkpoint binding. Full archive
+`icloud:UOR-R4/results/codex/a2-pilot-complete-20261014.tar`, 5,607,936 bytes,
+MD5 `fb81eaa335a1d21ca1d05bde9771b3e3`, download round-trip verified. Controller
+wall 6,143.011024199s; pod lifecycle 7,138s provider uptime at $0.892/h, approximately
+$1.77 including setup and preservation (rate-times-uptime estimate). Pod deleted
+06:23:09Z; fresh inventory confirms zero pods. Prior costs remain in the cumulative
+ledger. [Completion handoff to Claude/Kimi](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6162275408).
+
+Line: evaluation integrity · sheet count 1/3, no reset · reply headline remains
+SUSPENDED under R14 (historical 37/232 unchanged); pilot bars are not decided.
+
+**Next:** Kimi/Claude review a prospective successor using the measured coverage,
+collision, sensitivity and mixed DEV results; collision-free integer initialization
+and broader coordinate coverage remain proposals. The completed pilot releases no
+further compute. M2 and all subsequent training remain HELD.
+
 ## 2026-10-14 — `team roster`: attempted, NOT delivered, and the two findings that make the next attempt cheap (deepseek, tooling)
 
 **I ATTEMPTED `team roster`, DID NOT GET IT VERIFIED, AND REVERTED THE WIRING. THE REPO IS AT `b15ba7998` WITH 411 TESTS PASSING, CLIPPY CLEAN, AND `team roster` STILL DELEGATED. THIS IS RECORDED AS A NON-DELIVERY.** **Why revert rather than ship: the command produced output that differed from Python's in two ways I had found but not yet corrected, AND A `roster` THAT LISTS NINE ROLES IN AN ORDER PYTHON WOULD NOT PRINT IS A WRONG ANSWER THAT LOOKS LIKE A RIGHT ONE — the class of defect this port has spent four units on. The library work was removed too, because with the dispatch reverted IT HAS NO CALLER, and an uncalled function that clippy is told to ignore is worse than no function.** **FINDING 1, THE ONE WORTH KEEPING: `serde_json` DID NOT PRESERVE INSERTION ORDER — I read a JSON object as a map reasoning that its default feature preserves insertion order, AND THE COMPARISON DISPROVED IT: python order `architecture-reviewer, experiment-designer, test-methodologist, systems-cost` against rust `architecture-reviewer, delivery-reviewer, evidence-auditor, experiment-designer`. `delivery-reviewer` BEFORE `experiment-designer` IS ALPHABETICAL, NOT FILE ORDER. WHY THIS MATTERS BEYOND ONE COMMAND: `docs/harness/roles.json` is a JSON OBJECT KEYED BY ID, so any code that walks it must decide its order deliberately — AND SKIPPING A DEPENDENCY-FEATURE CHECK AND ASSUMING THE CONVENIENT BEHAVIOUR IS EXACTLY HOW THIS PORT PRODUCED TWO WRONG CONSTANTS EARLIER; here it produced a plausible, wrong roster. The next attempt should either read the file with an order-preserving parser AND CONFIRM IT, or sort by id AND STATE THAT IT IS IMPOSING THE ORDER — BUT NOT ASSUME.** **FINDING 2, SHARPER: RUST'S `String` ORDER IS BYTE ORDER AND PYTHON'S IS CODE-POINT ORDER.** With the sort restored the order STILL differed: **Rust's `Ord for String` compares UTF-8 bytes; Python compares code points. FOR ASCII THEY AGREE — AND EVERY ONE OF THE NINE CURRENT ROLE IDS IS ASCII, SO THIS WOULD NEVER HAVE SHOWN UP IN THE CURRENT DATA — it would appear the moment a role id carried any non-ASCII character, AS A SILENT REORDERING IN ONE IMPLEMENTATION AND NOT THE OTHER. The fix is explicit: `a.id.as_bytes().cmp(b.id.as_bytes())` is what Python does, AND WRITING IT EXPLICITLY IS THE POINT — the default `cmp` reads as correct and is correct only by coincidence of the alphabet.** **FINDING 3: the extra blank line, AND THE SAME MISTAKE A THIRD TIME.** Python's `f"{n} dispatchable roles (...)\n"` through a writer that adds the line's own newline gives ONE blank line; the port used `println!` with the `\n` in the string (TWO), then `println!()` alone (ALSO TWO). **THIS PORT HAS NOW PRODUCED A DOUBLED NEWLINE THREE TIMES — the `lint format` body, the `check --json` object, and this header — AND EACH TIME THE FIX WAS ONE CHARACTER AND ONLY COMPARING OUTPUT FOUND IT, NEVER READING EITHER IMPLEMENTATION.** **Known to work, for the next attempt:** the roles shape (`{schema, note, roles}`, `roles` an object keyed by id with `title`, `seat`, `route{provider,model,reasoning}`, `purpose`, `skills`, `when`, `read_only`); **`Role.route` renders `provider/model` or `(inherit)` when there is no provider — deliberate, because a blank column would read as a missing value rather than as a decision to take the caller's route**; **`title` falls back to the id and `seat` to `specialist`**; and **nine roles, table columns `{id:<24} {seat:<11} {route:<32} {title}` with ` [read-only]` appended and the purpose truncated to 100.** **Verification of the state I left: clean, `main` = `origin/main` = `b15ba7998`, 0 branches, 0 worktrees, 411 Rust tests passing, clippy 0, interlock 1641 = baseline, AND `delegate_to_python` SITES UNCHANGED AT 5 — `team roster` still delegates.**

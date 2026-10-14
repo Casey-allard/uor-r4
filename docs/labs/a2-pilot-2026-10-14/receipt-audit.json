@@ -1,0 +1,12 @@
+{
+  "accepted_updates": 236,
+  "baseline_unchanged": true,
+  "completed_batches": 1640,
+  "count_reference_unchanged": true,
+  "dev_scored_rows": 14287,
+  "final_evaluation_matches_saved_checkpoint": true,
+  "masked_target_exposures": 104960,
+  "scope": "recorded GPU receipt consistency only; no model execution",
+  "sensitive_steps": 1179,
+  "status": "PASS"
+}

@@ -2,17 +2,22 @@
 
 **Current learning permission — D32:** discrete/exact GPU model computation and
 instruments only; no floating-point forward, gradient, optimizer or matrix product.
-The shared-writer FBS path with the discrete flock read passes seventeen admitted
-CUDA construction controls at `76198c3b5` after Claude FIT (#2395). D1 seeded driver/
-evaluator and D2 measured enumeration cost remain Codex's next dependencies; Kimi's
-separate learning sheet stays PENDING. M1's quality target remains SUSPENDED pending
+The shared-writer FBS path and discrete flock/driver construction pass 25 admitted
+CUDA controls at `e7d926fbe` (#2400). D1/D2 and the A2 admission controller (#2421)
+landed; the D33-released seed-1 pilot completed 1,640 batches and 236 accepted
+vector updates. DEV top-1/top-8 counts increased 17/173 → 82/1,169 over 14,287
+targets, while aggregate loss increased. This is diagnostic only; the next
+dependency is Kimi/Claude's prospective successor-sheet review, not another
+launch. [Result and preserved artifacts](docs/labs/a2-pilot-2026-10-14/README.md).
+M1's quality target remains SUSPENDED pending
 a discriminating grader. Earlier operator/31/18-control float entries
 are preserved historical source scopes, not executable training permissions
-(preservation #2370). Training and separate M2 holds remain HELD. Kimi owns the
+(preservation #2370). The completed pilot's release is consumed; further training
+and separate M2 holds remain HELD. Kimi owns the
 discrete successor sheet; a FIT review releases no hold.
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
-Updated 13 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
+Updated 14 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
 capability and lower complete-path energy are not established.
 
 Milestones M1-M8 below, with the standing serving rules in section 0. Live status and claims:
@@ -22,7 +27,7 @@ tracker [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028); each mile
 [canonical plan](docs/integration/project-track.md). The 29 September roadmap is preserved in
 [docs/history/roadmap-2026-09-29-snapshot.md](docs/history/roadmap-2026-09-29-snapshot.md).
 
-## Current dependency and holds
+## Earlier operator qualification (pre-D32, inactive)
 
 **D29 compiled-source dependency:** corrected native-only source `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c` passes the CUDA build and all 31 exact finite controls on RTX4090, nvcc12.8.93, compute_89, Rust1.97.1. The registered `geometric-stack` example uses the new native train/evaluate path. Historical core/integer model executors, model-source/GEMM, retired LUT engines and exporter/teacher modules are excluded. Static vendor PTX/dependency/import checks and all five project interlocks pass; exactly three project PTX modules remain. Failed driver, registration/controller and clipping attempts are preserved as corrected blockers. Earlier qualification receipts below remain source-scoped history. Independent Amendment6 FIT is recorded; protected delivery and explicit owner hold release remain. No optimizer update, corpus/training/CPU model execution or S1 read activation occurred. [Record](docs/labs/d29-vendor-boundary-2026-10-13/README.md).
 
@@ -64,7 +69,7 @@ closes only when its acceptance is met on the saved model.
 
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
-| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | in progress; training held | Reply headline SUSPENDED/no target under R14 pending discriminating v2; D32 discrete construction and new training sheet precede owner hold release | D32 discrete source/record: [PR2379](https://github.com/UOR-Foundation/uor-r4/pull/2379), assigned-review qualification pending. The following are preserved pre-D32 scopes, not current execution permission: historical memory20/40, reply37/232; historical19.9M served0.886838 BPB at512 windows; OP1 local Hamilton gate retained; OP2 dense quaternion contraction replaced by SpiralCore/FBS geometry (#2279); OP3a/shared writer finite CUDA-qualified and delivered #2301 (merge d41dc422f); composed rung-0 source/18 finite controls pass (11 CUDA,7 metadata), protected #2318 merge5b22739 verified; masked TRAIN-reference repair2fd6358bb implemented, 11 new controls PASS (9 metadata,2 CUDA); Amendment5 independentClaudeCONFIRMFIT6146716704; Amendment6 sheetFIT, bars unchanged; repaired compiled boundary 31 controls PASS at `1f1547bfd`; protected delivery pending; DEV oracle diagnostic only; recurrence geometric gates #2293 landed and integrated, squash-free by source sweep; complete declared recurrence-only forward/backward/output qualifies at its fixed scope; optimizer update not executed; no new quality result |
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi, DeepSeek; Claude read source) | diagnostic pilot complete; further training held | Reply headline SUSPENDED/no target under R14; successor learning needs a prospective sheet and scoped release | [D33 pilot](docs/labs/a2-pilot-2026-10-14/README.md): 1,640 batches, 236 accepted vector updates; DEV top-1/top-8 17/173 → 82/1,169 over 14,287 targets, aggregate loss increased, count reference still ahead. Mixed diagnostic observation; no mechanism verdict or useful-language qualification. Route sensitivity NOT_RUN; fresh transfer UNAVAILABLE/NOT_RUN. Earlier operator/F32 and historical memory20/40, reply37/232 results retain their dated records and inactive scope. |
 | M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law refuses; shared vector infrastructure finite CUDA-qualified, full M2 unqualified, count12/3 after masked TRAIN-reference #2328 delivery (prior11/3 retained; closeout is the same unit), no reset; new evaluator qualification11 controls PASS (9 metadata,2 CUDA) and Amendment5 independentCONFIRMFIT; Amendment6 sheetFIT; repaired compiled boundary 31 controls PASS at `1f1547bfd`; protected delivery pending |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | in progress; compute blocked | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained inactive; model/stack executors are excluded from the selected integer facade. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |

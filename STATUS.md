@@ -1,6 +1,16 @@
 # Status
 
-**Current dependency — D32:** the discrete shared-codebook SpiralCore/FBS path
+**Current result — D32/D33, 14 October:** the admitted seed-1 discrete pilot
+completed all 1,640 batches on CUDA, with 236 accepted shared-vector updates.
+On 14,287 pinned DEV targets, top-1 correct moved 17 → 82 and top-8 173 → 1,169;
+the aggregate loss numerator increased 13,816,032 → 13,884,032. The masked-TRAIN
+count reference remains ahead at 1,226 / 4,060. This is a mixed diagnostic
+observation, not useful-language qualification or a mechanism verdict. Complete
+artifacts are preserved and the pod is deleted. The pilot release is consumed;
+all further training, seed 2 and M2 remain HELD pending a prospective sheet and
+scoped release. [Result, scope, costs and next action](docs/labs/a2-pilot-2026-10-14/README.md).
+
+**Construction/cost baseline before that pilot:** the discrete shared-codebook SpiralCore/FBS path
 with the discrete flock read and D1 driver passes all twenty-five admitted CUDA
 construction controls at `e7d926fbe38537f4faa90b817705c61a780778d6`, after fresh
 non-author Codex FIT (#2400): eleven Route, six flock and eight driver controls.
@@ -13,15 +23,15 @@ median Route/Flock forward takes37.84/40.58ms; vector proposals take3.90/4.21s.
 Counterfactual serial replay is the cost bottleneck; fixed-batch parameter-pass
 projections of17.8/19.2hours remain **UNVERIFIED**, not corpus-training throughput.
 [Raw cost receipt](docs/labs/discrete-driver-cost-2026-10-13/receipts/measurement.json).
-Corpus updates stay behind an unissued opaque
-capability; the training CLI returns `TrainingHeld`. Kimi's separate learning sheet
-and explicit owner release remain dependencies. M1's quality target remains SUSPENDED. No floating-point model, gradient/optimizer or numerical
+Before admission delivery #2421, corpus updates stayed behind an unissued opaque
+capability. The generic training CLI still returns `TrainingHeld`; D33 admitted
+only the now-completed pilot. M1's quality target remains SUSPENDED. No floating-point model, gradient/optimizer or numerical
 qualification instrument may execute. Earlier 31/18-control float results below
 remain historical source-scoped evidence, preserved inactive through #2370.
-Both training holds remain HELD; no optimizer, corpus-learning or chat result is claimed.
+Outside the completed pilot, training holds remain HELD; no chat-quality result is claimed.
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
-Updated 13 October 2026. **Pre-alpha: no model holds a useful conversation yet.**
+Updated 14 October 2026. **Pre-alpha: no model holds a useful conversation yet.**
 Broad reasoning, coding, frontier capability and complete-path energy savings
 remain unestablished. Results/artifact identities are in [current state](docs/integration/current-state.md);
 [ROADMAP](ROADMAP.md) owns milestones and [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028)

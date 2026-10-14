@@ -1,0 +1,93 @@
+[
+  {
+    "ts": "2026-10-14T04:24:08Z",
+    "event": "up",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro",
+    "gpu": "5090",
+    "count": 1,
+    "dc": "Vast Czechia, CZ",
+    "volume": "",
+    "canonical": false,
+    "usd_per_h": 0.892,
+    "purpose": "D33 pinned A2 pilot staging; launch1640 only after Claude delegated receipt; M2 HELD",
+    "card": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6160820928",
+    "gpu_choice": "explicit"
+  },
+  {
+    "ts": "2026-10-14T04:24:42Z",
+    "event": "ssh-ready",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro",
+    "create_to_ssh_s": 35
+  },
+  {
+    "ts": "2026-10-14T04:38:17Z",
+    "event": "run",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro",
+    "gpu": "0",
+    "cmd": "bash /workspace/uor-r4/a2-stage/pilot-launch.sh",
+    "log": "/workspace/uor-r4/jobs/codex/20261014T043817Z-a2-pilot-20261014-gpu0.log"
+  },
+  {
+    "ts": "2026-10-14T04:44:37Z",
+    "event": "renew",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro",
+    "hours": 4
+  },
+  {
+    "ts": "2026-10-14T05:08:41Z",
+    "event": "renew",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro",
+    "hours": 4
+  },
+  {
+    "ts": "2026-10-14T05:33:48Z",
+    "event": "renew",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro",
+    "hours": 4
+  },
+  {
+    "ts": "2026-10-14T05:58:04Z",
+    "event": "renew",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro",
+    "hours": 4
+  },
+  {
+    "ts": "2026-10-14T06:23:02Z",
+    "event": "release",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro"
+  },
+  {
+    "ts": "2026-10-14T06:23:09Z",
+    "event": "down",
+    "lab": "codex",
+    "session": "a2-pilot-20261014",
+    "pod": "vast-55864069",
+    "by": "casey.allard@Caseys-MacBook-Pro",
+    "usd_per_h": 0.892,
+    "uptime_s": 7138
+  }
+]

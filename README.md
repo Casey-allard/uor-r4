@@ -10,7 +10,7 @@ model that runs on a laptop?*
 [![Last commit](https://img.shields.io/github/last-commit/UOR-Foundation/uor-r4/main)](https://github.com/UOR-Foundation/uor-r4/commits/main)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-ffcc4d)](https://huggingface.co/caseyallard/uor-r4-geometric-214m)
 
-**Status, 13 October 2026: pre-alpha.** No model in this repository holds a useful conversation yet.
+**Status, 14 October 2026: pre-alpha.** No model in this repository holds a useful conversation yet.
 Under D32 the model and its learning/qualification instruments are discrete: no
 floating-point forward, gradients, optimizer or matrix multiplication. The new
 SpiralCore/FBS shared-vector path, flock read and new D1 driver pass **all twenty-five
@@ -19,8 +19,10 @@ non-author Codex FIT. Eleven Route, six flock and eight driver controls cover th
 shared writer, read, evaluator/reference, seeded schedule/resume and update boundaries.
 Both reads use the same integer input/carry/output codebook and writer. M1's quality target
 remains SUSPENDED pending a discriminating reply grader under R14.
-**Training and the separate M2 holds remain held**; exactly eleven isolated authored
-fixture apply calls produced eight updates, with zero corpus updates and no useful-chat result.
+**The scoped D33 seed-1 diagnostic pilot is complete; further training and M2 remain held.**
+It recorded 1,640 corpus batches and 236 accepted vector updates. Earlier construction
+controls recorded eleven isolated fixture apply calls and eight disposable updates;
+those retain their pre-pilot scope. [Pilot measurements and preserved artifacts](docs/labs/a2-pilot-2026-10-14/README.md).
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 The D1 Rust corpus/schedule/checkpoint driver and integer GPU evaluator are now
 implemented at source `e7d926fbe38537f4faa90b817705c61a780778d6` ([#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)).
@@ -34,7 +36,8 @@ Earlier seventeen-control evidence at
 `76198c3b5` retains its prior source scope and Claude FIT attribution.
 The driver validates pinned tokens/masks/tokenizer, constructs document-bounded
 next-token windows, and cycles one vector/read coordinate per batch. Its corpus
-update capability remains unissued; the training CLI still returns `TrainingHeld`.
+update capability was issued only for the completed D33 pilot; the generic training
+CLI still returns `TrainingHeld` and this release authorizes no successor run.
 Earlier 31/18-control float receipts retain their exact historical scope;
 [PR #2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) preserves that evidence.
 
@@ -84,7 +87,7 @@ Live tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 
 | Milestone | Issue | Status | Headline now → target |
 |---|---|---|---|
-| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress; training held | reply headline SUSPENDED/no target under R14 pending a discriminating v2 grader; prior memory20/40 remains historical |
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | discrete diagnostic pilot complete; further training held | reply headline SUSPENDED/no target under R14; [pilot measurements](docs/labs/a2-pilot-2026-10-14/README.md) do not qualify useful conversation |
 | M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | held | 437/512 development replies (above 256), but 0/128 on fresh transfer |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | paused | evaluator and session built; waits on an M1 or M2 model |
 | M4 One served model (D11 and a CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | softmax at runtime: yes → must be no (D23) |
@@ -98,12 +101,34 @@ Live tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 Per-lab measured position: [STATUS.md](STATUS.md). Plan of record: [ROADMAP.md](ROADMAP.md) and
 [project-track.md](docs/integration/project-track.md).
 
-## The current path: one lawful model, then training
+## The current path: discrete geometric learning
 
-The owner's rules of 12 October ([D23–D25](#rules-the-project-works-under)) prohibit softmax, sigmoid,
+The active D32 model uses integer E8 carriers, SpiralCore signed transport,
+ordered ternary FBS and one shared input/carry/output vector writer. Learning
+enumerates exact geometric moves and accepts a move only when its fixed-batch
+integer objective improves. No floating-point model computation, gradient,
+softmax or hidden matrix product is admitted.
+
+The first scoped D33 pilot completed 1,640 batches with 236 accepted vector
+updates on one RTX 5090. On the pinned 14,287-target development set, top-1
+correct moved 17 → 82 and top-8 173 → 1,169; the aggregate loss increased.
+The count reference remains ahead, and this partial pilot does not establish
+useful language quality. Its artifacts are preserved and the pod is deleted.
+Further training and M2 remain held. [Measurements, limitations and next step](docs/labs/a2-pilot-2026-10-14/README.md).
+
+| Active component | Delivered scope | Record |
+|---|---|---|
+| Discrete carrier, shared writer and flock read | 25 admitted CUDA construction controls; the pilot uses Route read and does not train flock gates | [integration](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md), [driver](docs/labs/discrete-driver-cost-2026-10-13/README.md) |
+| Pinned admission, checkpoints and diagnostics | Exact binary/config/data/review/release binding, recovery snapshots, sensitivity and coverage/collision counters | [admission](docs/labs/discrete-admission-2026-10-14/README.md) |
+| Seed-1 diagnostic learning pilot | Complete; mixed DEV measurements; bars/guard undecided and fresh transfer unavailable | [result](docs/labs/a2-pilot-2026-10-14/README.md) |
+
+<details>
+<summary>Earlier operator phase — historical source scopes, superseded by D32</summary>
+
+The owner's rules of 12 October ([D23–D25](#rules-the-project-works-under)) prohibited softmax, sigmoid,
 tanh, softplus and dense matrix products anywhere a model executes, in training as well as serving.
-No earlier training configuration satisfies them, so the project is rebuilding the language base's
-operators geometrically (the **operator phase**, led by Kimi) before training again.
+The following table and figures retain that earlier operator-phase snapshot;
+they do not authorize its floating-point training path under D32.
 
 <img src="docs/figures/geometry/compliant-path.svg" alt="The compliant next-token path: embedding, recurrence with geometric gates, geometric feed-forward with the SpiralCore/FBS projection and the G2 Hamilton gate, a geometric head, raw scores, a rank-margin hinge in training and greedy argmax in serving" width="100%">
 
@@ -118,9 +143,10 @@ operators geometrically (the **operator phase**, led by Kimi) before training ag
 | Rung 0: the first lawful training run (2 arms × 2 seeds, ≤ $4) | — | Amendment6 independent FIT; **held**, finite source qualification recorded; protected delivery and owner release required | [sheet](docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md) |
 | Rung 0b: starling / rank-table reads with a rank-consistent gradient | softmax attention | after rung 0 | [brief](docs/mechanisms/starling-read.md) |
 
-The diagrams retain the earlier operator snapshot; the table above is current. The selected native API now excludes historical core/integer model executors, teachers, LUT engines and exporters from compilation. Source/checkpoint lineage binds the masked TRAIN count reference separately from the DEV diagnostic oracle. "Source, tested" labels retain their named source/control scope. The repaired dependency graph separately passes the 31 finite controls at `1f1547bfd`; that result establishes neither trained language quality nor D11 serving. None of these operators has been trained
-yet, and none is a capability claim. Pictures of the three new operators:
+The diagrams and table retain the earlier operator snapshot. The selected native API excludes historical core/integer model executors, teachers, LUT engines and exporters from compilation. Source/checkpoint lineage binds the masked TRAIN count reference separately from the DEV diagnostic oracle. "Source, tested" labels retain their named source/control scope. The repaired dependency graph separately passed the 31 finite controls at `1f1547bfd`; that historical result establishes neither trained language quality nor D11 serving. Pictures of the earlier operators:
 [the geometry page](docs/geometry.md#the-operators-of-the-compliant-trunk).
+
+</details>
 
 ## Rules the project works under
 
