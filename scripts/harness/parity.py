@@ -554,8 +554,14 @@ def status_receipts_agreement(binary: Path) -> list[str]:
     if code != 0:
         findings.append(f"status receipts: the Rust status exited {code}: {err[:200]}")
         return findings
+    # **The same instant as Rust.** Passing `--at` to Rust alone made this compare *Rust at an
+    # injected instant* against *Python at the wall clock*, so it agreed only while the machine's
+    # local date happened to equal the injected date: `main` passed in the late UTC evening and the
+    # very next attempt failed once the UTC date rolled over. **A check that fails on a schedule is
+    # one people learn to ignore**, so both sides now take the same clock.
     proc = subprocess.run(
-        [sys.executable, str(REPO / "scripts" / "harness" / "cli.py"), "status"],
+        [sys.executable, str(REPO / "scripts" / "harness" / "cli.py"),
+         "--lab", "parity", "status", "--at", "2026-10-13T02:52:00-04:00"],
         cwd=REPO, capture_output=True, text=True, timeout=600,
     )
     if proc.returncode != 0:

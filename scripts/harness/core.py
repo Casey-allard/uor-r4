@@ -114,12 +114,41 @@ def run(cmd: list[str], cwd: Path | None = None, timeout: int = 20) -> tuple[int
 # ----------------------------------------------------------------------------- time
 
 
+#: An injected instant, `YYYY-MM-DDTHH:MM:SS+HH:MM`, or `None` for the real clock.
+#:
+#: **Rust's `status --at` already accepts this, and `parity` passes it to Rust only** - so
+#: `status_receipts_agreement` compared **Rust at an injected instant** against **Python at the wall
+#: clock**. It could only agree while the machine's local date happened to equal the injected date,
+#: which made it **fail for roughly six hours of every US evening**: `main` passed at `23:57Z` and the
+#: next run failed at `00:19Z` when the UTC date rolled over.
+#:
+#: **A verification that fails on a schedule is one people learn to ignore.** This makes the Python
+#: side take the same injection so both are compared at one instant.
+_CLOCK: str | None = None
+
+
+def set_clock(instant: str | None) -> None:
+    """Inject an instant for `today()`/`month()`, or `None` to use the real clock."""
+    global _CLOCK
+    _CLOCK = instant or None
+
+
+def _now() -> datetime:
+    """The current instant, or the injected one."""
+    if _CLOCK:
+        try:
+            return datetime.fromisoformat(_CLOCK)
+        except ValueError:
+            return datetime.now(timezone.utc).astimezone()
+    return datetime.now(timezone.utc).astimezone()
+
+
 def today() -> str:
-    return datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+    return _now().strftime("%Y-%m-%d")
 
 
 def month() -> str:
-    return datetime.now(timezone.utc).astimezone().strftime("%Y-%m")
+    return _now().strftime("%Y-%m")
 
 
 def now_iso() -> str:

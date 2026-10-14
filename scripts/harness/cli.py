@@ -39,6 +39,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
+import core  # noqa: E402
 from core import HarnessPaths, emit  # noqa: E402
 from registries import Registry  # noqa: E402
 
@@ -93,6 +94,10 @@ def _resolve_milestone(reg: Registry, key: str | None, *, required: bool = False
 def cmd_status(args: argparse.Namespace, paths: HarnessPaths, reg: Registry) -> int:
     from status import build_status, render_status
 
+    # **Injected before anything reads the clock**, so every `today()`/`month()` in this render -
+    # the receipts buckets, the 24-hour clauses, the month shard - uses the same instant. Setting it
+    # after `build_status` would inject the clock for nothing.
+    core.set_clock(getattr(args, "at", None))
     data = build_status(paths, reg, refresh=getattr(args, "refresh", False))
     if args.json:
         emit(json.dumps(data, indent=2, ensure_ascii=False))
@@ -557,6 +562,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("status", help="what is true now")
     sp.add_argument("--refresh", action="store_true", help="re-read GitHub issues (needs gh)")
+    # **The same injection Rust's `status --at` takes.** `parity` passed it to Rust only, so the
+    # receipts comparison ran Rust at an injected instant against Python at the wall clock and could
+    # only agree while the local date matched - **failing for ~6 hours of every US evening.**
+    sp.add_argument("--at", default=None, help="the instant to render for, ISO-8601 (testing/injection)")
     sp.set_defaults(fn=cmd_status)
 
     sp = sub.add_parser("brief", help="assemble the context pack for a task")

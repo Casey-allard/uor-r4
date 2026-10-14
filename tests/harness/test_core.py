@@ -203,3 +203,42 @@ class TestRealRegistries(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestClockInjection(unittest.TestCase):
+    """`--at` gives Python the same clock injection Rust's `status --at` already had.
+
+    `parity.status_receipts_agreement` passed the instant to Rust alone, so it compared **Rust at an
+    injected instant** against **Python at the wall clock**. It agreed only while the machine's local
+    date happened to equal the injected date: `main` passed at `23:57Z`, the next run failed at
+    `00:19Z` when the UTC date rolled over. Measured directly: at different instants the two sides
+    render `2026-10-13: 188 receipts …` against `2026-10-14: 0 receipts …`.
+    """
+
+    def tearDown(self) -> None:
+        core.set_clock(None)
+
+    def test_an_injected_instant_controls_today_and_month(self) -> None:
+        core.set_clock("2026-10-13T02:52:00-04:00")
+        self.assertEqual(core.today(), "2026-10-13")
+        self.assertEqual(core.month(), "2026-10")
+
+    def test_a_different_instant_changes_the_buckets(self) -> None:
+        """**This is the sensitivity the parity check needs.** With the clock injected, asking for a
+        later date must move the day bucket - which is what the old wall-clock comparison could not
+        do, and why it disagreed near midnight."""
+        core.set_clock("2026-10-13T02:52:00-04:00")
+        first = core.today()
+        core.set_clock("2026-10-14T02:52:00-04:00")
+        self.assertNotEqual(core.today(), first)
+        self.assertEqual(core.today(), "2026-10-14")
+
+    def test_no_injection_uses_the_real_clock(self) -> None:
+        core.set_clock(None)
+        self.assertEqual(core.today(), core.datetime.now(core.timezone.utc)
+                         .astimezone().strftime("%Y-%m-%d"))
+
+    def test_a_malformed_instant_falls_back_rather_than_raising(self) -> None:
+        core.set_clock("not-a-date")
+        self.assertEqual(len(core.today()), 10, "a bad injection must not break the render")
+        self.assertEqual(len(core.month()), 7)
