@@ -1,0 +1,48 @@
+{
+  "scope": "BYTE_DAG_FIXTURE_CONSTRUCTION_ONLY",
+  "node": "v26.4.0",
+  "sourceSha256": "7ca3dcfb552ca6ff3fc8696734265bcd9b993aa8b8e6242984060ace8b35bc22",
+  "transportSha256": "1d254a75dfe497f91b302ada0d581eab3407c7ea8f3994920a58d9a2652dc0fe",
+  "cases": [
+    {
+      "name": "unique",
+      "inputBytes": 32768,
+      "uniqueNodes": 1532,
+      "recordBytes": 70972,
+      "rootOccurrences": 8,
+      "constructionNanoseconds": "33344500",
+      "inputSha256": "8d2791644fd2ae279fca2163c4866b4228f40a4881201928f9a17b4f8c95af58",
+      "recordSha256": "fc17b3ca7e4f55fdab0a6bf8ca186fd9ff1f6c131b3c2a4ac1b004baabcec354"
+    },
+    {
+      "name": "repeated",
+      "inputBytes": 7776,
+      "uniqueNodes": 8,
+      "recordBytes": 380,
+      "rootOccurrences": 1,
+      "constructionNanoseconds": "4722792",
+      "inputSha256": "6b147ee2354189f0918fb4d2764d20720c81cecb0ee69332d48337fc79529810",
+      "recordSha256": "208da620e502d69c090b2fe955f3048482120e984a1f20f070bc4d70efe34821"
+    },
+    {
+      "name": "utf8",
+      "inputBytes": 605,
+      "uniqueNodes": 9,
+      "recordBytes": 421,
+      "rootOccurrences": 3,
+      "constructionNanoseconds": "1739292",
+      "inputSha256": "f8e731b5a8530aad332bc0052e7e7feebb6c07872f72892766dfed4740b97aaf",
+      "recordSha256": "67b6a6595cddcadfaec007342ad5e105445ff960e69c3ba5f6995f4f5242df82"
+    },
+    {
+      "name": "empty",
+      "inputBytes": 0,
+      "uniqueNodes": 0,
+      "recordBytes": 0,
+      "rootOccurrences": 0,
+      "constructionNanoseconds": "65209",
+      "inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "recordSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

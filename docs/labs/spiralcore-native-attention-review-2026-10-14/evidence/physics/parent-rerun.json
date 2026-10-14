@@ -1,0 +1,28 @@
+{
+  "scope": "CURRENT_GOLDEN_SCORE_PACK_UNPACK_AND_ORDERED_FBS_BYTE_PRIMITIVES_ONLY",
+  "node": "v26.4.0",
+  "sourceSHA256": "770142b4f343842cd0693d362d49f95272a5ded029d9682211a5215d64810fd8",
+  "extractedGoldenPrefixSHA256": "63bd5c1a080ca946b46dd760acf7f5aa2be3e4079f277bc186ae8aeb6195410d",
+  "extractedFbsFunctionsSHA256": "de14cc65b6eb9e5334b5839da146994d58c82782f65bd2363dfe186cc8bca5db",
+  "roundTrips": 353,
+  "structuralChecks": 5460,
+  "cardinalityChecks": 256,
+  "routeAlphabetCases": 63,
+  "malformedRefusals": 7,
+  "full32ByteCell": {
+    "sourceBytes": 32,
+    "routeChoices": 43,
+    "packedBytes": 33,
+    "promotions": 19,
+    "frontierRoots": 5
+  },
+  "full4096BytePage": {
+    "sourceBytes": 4096,
+    "routeChoices": 5504,
+    "packedBytes": 4128
+  },
+  "waveformExecuted": false,
+  "oscillatorExecuted": false,
+  "attentionExecuted": false,
+  "result": "PASS"
+}

@@ -2,6 +2,8 @@
 
 Research assessment for Casey · Codex / Sol · 14 October 2026
 
+**Owner-requested follow-up:** the [native reconstruction/attention review](../spiralcore-native-attention-review-2026-10-14/README.md) develops the compatibility-loop question that this first report underemphasized: attention over exact reconstruction descriptions, compression before tokenization, the full HTML's current geometric score path, and six specialist perspectives with fresh byte/data-structure evidence. This report's measurements remain preserved at their original scope.
+
 **Disposition: retain the demonstrated transport and finite geometry; keep the new attention mechanism as an unqualified proposal. No model replacement is justified by the supplied evidence.** This is a completed source, mathematics and byte-codec review, not a model experiment or a TEST FITNESS verdict. Training remains subject to the existing owner-personal release gates. No model, optimizer, initialization, registered configuration or acceptance bar was changed.
 
 The owner asked whether the six supplied artifacts form a coherent mechanism, how they connect to UOR-R4, whether their inexpensive transport and attention can work, and what adoption would require. The owner clarified that the attention note should be evaluated **as a proposal**. Its lack of an executable head is therefore an evidence boundary, not a reason to refuse the review.

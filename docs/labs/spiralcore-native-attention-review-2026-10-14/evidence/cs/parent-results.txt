@@ -1,0 +1,7 @@
+scope=BYTE_DAG_SELECTIVE_RECONSTRUCTION_ONLY
+unique_range=16379..16402 output_bytes=23 node_visits=8 leaf_occurrences=2 unique_authenticated_nodes=8 serialized_node_bytes=384 total_stored_nodes=1532
+case=unique bytes=32768 stored_nodes=1532 range_cases=270 full_leaf_occurrences=1024 unique_records_authenticated=1532
+case=repeated bytes=7776 stored_nodes=8 range_cases=270 full_leaf_occurrences=243 unique_records_authenticated=8
+case=utf8 bytes=605 stored_nodes=9 range_cases=270 full_leaf_occurrences=19 unique_records_authenticated=9
+case=empty bytes=0 stored_nodes=0 range_cases=3 full_leaf_occurrences=0 unique_records_authenticated=0
+checks=2374 result=PASS whole_object_sha256_in_rust=NOT_CHECKED tokenizer=NOT_RUN model=NOT_RUN

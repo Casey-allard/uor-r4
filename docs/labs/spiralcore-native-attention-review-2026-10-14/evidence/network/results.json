@@ -1,0 +1,23 @@
+{
+  "scope": "SOURCE_EXTRACTED_ADDRESS_AND_BASE63_CODEC_ONLY_NOT_MODEL",
+  "node": "v26.4.0",
+  "htmlSha256": "770142b4f343842cd0693d362d49f95272a5ded029d9682211a5215d64810fd8",
+  "addressCases": 10000,
+  "prefixCases": 65536,
+  "rfc5952Examples": 4,
+  "scoreCases": 291,
+  "malformedRefusals": 10,
+  "result": "PASS",
+  "extraction": {
+    "address": {
+      "startInclusive": "function ipv4ShapeToIPv6Documentation(",
+      "endExclusive": "function nodeAddrV6(",
+      "sha256": "c1b6a17bdd9b5ae30f1f758340ec84eff558353b2486ea859beb01733f231902"
+    },
+    "score": {
+      "startInclusive": "const V00_SCORE_ALPHABET='",
+      "endExclusive": "function v00ScoreB64(",
+      "sha256": "fc0617ac65c72ade913fb10bae2809c6426cc1503b720022ce65cd2ab9568bf9"
+    }
+  }
+}

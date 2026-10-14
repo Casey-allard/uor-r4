@@ -250,3 +250,18 @@
 {"kind": "heartbeat", "lab": "codex", "line": "Three independent research reviews: supplied attention mathematics, codec transport, current integration; no model compute", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:07:18Z"}
 {"kind": "heartbeat", "lab": "codex", "line": "Three independent research reviews: supplied attention mathematics, codec transport, current integration; no model compute", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:10:04Z"}
 {"kind": "heartbeat", "lab": "codex", "line": "Three independent research reviews: supplied attention mathematics, codec transport, current integration; no model compute", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:16:22Z"}
+{"count": 1, "event": "harness_team_dispatched", "kind": "team", "lab": "codex", "role": "architecture-reviewer", "route": "deepseek-account/deepseek-v4-pro", "schema": 1, "state": "dispatched", "ts": "2026-10-14T16:59:02Z"}
+{"count": 1, "event": "harness_team_dispatched", "kind": "team", "lab": "codex", "role": "source-falsifier", "route": "deepseek-account/deepseek-v4-pro", "schema": 1, "state": "dispatched", "ts": "2026-10-14T16:59:02Z"}
+{"count": 1, "event": "harness_team_dispatched", "kind": "team", "lab": "codex", "role": "systems-cost", "route": "deepseek-account/deepseek-flash", "schema": 1, "state": "dispatched", "ts": "2026-10-14T16:59:02Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "Three independent research reviews: supplied attention mathematics, codec transport, current integration; no model compute", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:23:12Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "SpiralCore research assessment complete; PR 2478 delivery, no model compute or training release", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:27:44Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "SpiralCore assessment delivered in merged PR 2478; no model compute, no training release, no pending review dependency", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:35:57Z"}
+{"kind": "heartbeat", "lab": "codex", "line": "SpiralCore assessment delivered: PR 2478 merged and verified; no pending review dependency; no model compute or training release", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:42:36Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T16:56:00Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T16:58:48Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:02:08Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:05:49Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:08:28Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:14:25Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:21:30Z"}
+{"count": "0", "kind": "heartbeat", "lab": "codex", "line": "spiralcore-compressed-native-attention", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:23:23Z"}
