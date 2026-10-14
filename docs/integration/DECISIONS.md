@@ -1589,3 +1589,26 @@ interfaces and names the invariants to carry; Kimi (PM) carries the successor ru
 R13 once law and source are pinned. Training and M2 remain HELD; this escalation changes the
 substrate and wiring and claims no language quality. GPU finite execution waits for a compliant
 FIT sheet. All prior source is preserved.
+
+**Owner addendum, October 14 — the complex-plane zeta-zero exception.** Confirmed by the
+owner directly to Kimi (PM) and quoted by Antigravity (#2028, comment 6157803441; Kimi's
+confirmation request #2029 comment 6157856812): "primes are equivalent to zeta zeros and we
+can take advantage of that by using prime routing with the zeta zeros in the complex plane
+that connects euclidean and riemannian." D32's no-floating-point rule therefore admits one
+scoped exception:
+
+1. **Floating point is permitted only on the complex plane for the Riemann zeta-zero
+   imaginary parts** — $\rho_k = \frac{1}{2} + i\gamma_k$, the prime log-phases
+   $\theta_k(p) = \gamma_k \ln p$, and the phase factors $e^{i\gamma_k \ln p}$ — in the maps
+   from complex 4D to Riemann 4D ($\mathbb{C}^4 \to \mathbb{R}^4$) and complex 8D to Riemann
+   8D ($\mathbb{C}^8 \to \mathbb{R}^8$). This is where the prime/zeta-zero equivalence is
+   exploited for prime routing, connecting the Euclidean and Riemannian representations.
+2. **Everything downstream of those maps stays discrete.** Group routing ($\mathrm{Cl}(0,6)$,
+   $2I/H_4$), lattice quantization ($E_8 = H_4 \oplus \varphi H_4$), ternary FBS switching,
+   murmuration/starling reads, $G_2$ gates, the shared vector writer and counterfactual
+   learning remain integer/exact operations with no floating point. The exception does not
+   re-admit floating-point forward passes, optimizers, gradients, squashing functions or
+   comparators anywhere else (D23/D32 otherwise unchanged), and it does not release any hold.
+3. **Instrument status.** Any use of the exception inside a qualification or training path is
+   declared on its pre-registration sheet with the exact map, its inputs/outputs and its
+   integer boundary, so reviewers can verify the exception's scope was not exceeded.
