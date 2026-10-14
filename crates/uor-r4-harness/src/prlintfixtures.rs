@@ -91,12 +91,18 @@ mod fixture_tests {
         );
     }
 
-    /// **25 fields.** Asserted so a field silently dropped from the capture is a failing test rather
-    /// than a port that agrees on a smaller surface.
+    /// **27 fields, including `raw` and `body_text`.** Asserted so a field silently dropped from the
+    /// capture is a failing test rather than a port that agrees on a smaller surface. **`body_text`
+    /// is in the set because `_find_milestone` consumes it** - it looked like a parser internal until
+    /// a gate needed it, which is the argument for recording what the parser RETURNS.
     #[test]
     fn the_fixtures_record_every_field_the_parser_returns() {
         let names = field_names(&load(&repo()));
-        assert_eq!(names.len(), 25, "the parser's field count: {names:?}");
+        assert_eq!(
+            names.len(),
+            27,
+            "the parser's field count, including raw and body_text: {names:?}"
+        );
         for expected in [
             "line_name",
             "line_count",
@@ -109,6 +115,8 @@ mod fixture_tests {
             "record_paths",
             "references",
             "closes",
+            "body_text",
+            "raw",
         ] {
             assert!(names.iter().any(|n| n == expected), "{expected} missing");
         }

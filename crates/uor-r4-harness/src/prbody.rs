@@ -161,6 +161,15 @@ pub struct ChecklistItem {
 /// The parser's output, in the shape the fixtures record.
 #[derive(Debug, Clone, Default)]
 pub struct Fields {
+    /// The body **after** comment-stripping and newline normalisation.
+    ///
+    /// **This is not decoration: `_find_milestone` scores candidate milestones partly on
+    /// `body_text`**, so without it the milestone the body is *about* cannot be identified and the
+    /// registry-dependent gates cannot be ported at all. **It looked like an internal of the parser
+    /// until a gate needed it** - which is why the fields are recorded rather than the ones that
+    /// seemed interesting.
+    pub body_text: String,
+    pub raw: String,
     pub line_name: String,
     pub line_count: Option<i64>,
     pub line_of: Option<i64>,
@@ -198,9 +207,14 @@ impl Fields {
         self.checklist.iter().filter(|c| c.checked).count() as i64
     }
 
-    /// The fixture's field set, exactly: 25 keys.
+    /// The fixture's field set, exactly: **27 keys** - the 25 the gates read, plus `raw` and
+    /// `body_text`, which `_find_milestone` needs.
     pub fn to_json(&self) -> Value {
         let mut m = Map::new();
+        // Python returns `raw` and `body_text` too, and **a gate consumes `body_text`**, so both are
+        // part of the contract rather than parser internals.
+        m.insert("raw".into(), json!(self.raw));
+        m.insert("body_text".into(), json!(self.body_text));
         m.insert("line_name".into(), json!(self.line_name));
         m.insert("line_count".into(), json!(self.line_count));
         m.insert("line_of".into(), json!(self.line_of));
@@ -376,7 +390,11 @@ pub fn parse_pr_body(body: &str) -> Fields {
         .replace("\r\n", "\n")
         .replace('\r', "\n");
     let prose = prose(&clean);
-    let mut f = Fields::default();
+    let mut f = Fields {
+        body_text: clean.clone(),
+        raw: raw.to_string(),
+        ..Default::default()
+    };
 
     // --- the Line: declaration (session-goal §3)
     let mut line_value = String::new();

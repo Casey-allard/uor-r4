@@ -16,7 +16,8 @@
     "specification. Where a value looks wrong, the fixture is still right and the PORT must match it",
     "until someone decides to change the behaviour deliberately.",
     "",
-    "Regenerate: run the capture in docs/labs/prlint-fixtures-2026-10-14/README.md against Python."
+    "Regenerate: run the capture in docs/labs/prlint-fixtures-2026-10-14/README.md against Python.",
+    "`body_text` AND `raw` ARE RECORDED NOW, and they are not decoration: `_find_milestone` scores candidate milestones partly on `body_text`, so without it the milestone the body is ABOUT cannot be identified and the registry-dependent gates cannot be ported at all. THEY LOOKED LIKE PARSER INTERNALS until a gate needed them - which is why the fixtures record what the PARSER RETURNS rather than the fields that seemed interesting at the time."
   ],
   "parser": "prlint.parse_pr_body",
   "cases": [
@@ -58,7 +59,9 @@
         "record_paths": [],
         "references": [],
         "serials": [],
-        "softmax_claims": []
+        "softmax_claims": [],
+        "body_text": "",
+        "raw": ""
       }
     },
     {
@@ -104,7 +107,9 @@
         "record_paths": [],
         "references": [],
         "serials": [],
-        "softmax_claims": []
+        "softmax_claims": [],
+        "body_text": " \n\n## Line and headline (D21, docs/labs/session-goal.md)\n\nLine: <line name> · count 0/3 · headline 37/232 → target 116/232\n\nDecision: KEEP\n\n- [ ] Checks run at this exact head\n",
+        "raw": "<!-- fill this in -->\n\n## Line and headline (D21, docs/labs/session-goal.md)\n\nLine: <line name> · count 0/3 · headline 37/232 → target 116/232\n\nDecision: KEEP\n\n- [ ] Checks run at this exact head\n"
       }
     },
     {
@@ -149,7 +154,9 @@
           2028
         ],
         "serials": [],
-        "softmax_claims": []
+        "softmax_claims": [],
+        "body_text": "## Line and headline (D21)\n\nLine: exact addressed memory · count 0/3 · headline 37/232 → 37/232\n\nDecision: KEEP (tooling)\n\n```\ncargo test -p uor-r4-harness   -> 323 passed\n```\n\nRecord: docs/labs/x-2026-10-13/README.md\n\nReferences #2028\n",
+        "raw": "## Line and headline (D21)\n\nLine: exact addressed memory · count 0/3 · headline 37/232 → 37/232\n\nDecision: KEEP (tooling)\n\n```\ncargo test -p uor-r4-harness   -> 323 passed\n```\n\nRecord: docs/labs/x-2026-10-13/README.md\n\nReferences #2028\n"
       }
     },
     {
@@ -196,7 +203,9 @@
         ],
         "references": [],
         "serials": [],
-        "softmax_claims": []
+        "softmax_claims": [],
+        "body_text": "Line: evaluation integrity | count 1/3 | headline 5/232 → 116/232\nDecision: PIVOT\nRecord: `docs/labs/quoting-2026-10-13/README.md`\nCloses #2028\n",
+        "raw": "Line: evaluation integrity | count 1/3 | headline 5/232 → 116/232\nDecision: PIVOT\nRecord: `docs/labs/quoting-2026-10-13/README.md`\nCloses #2028\n"
       }
     },
     {
@@ -241,7 +250,9 @@
           2028
         ],
         "serials": [],
-        "softmax_claims": []
+        "softmax_claims": [],
+        "body_text": "## Line and headline\n\nLine: a name that wraps\ncount 2/3 across the rungs\n\nDecision: KEEP\nReferences #2028, #2029\n",
+        "raw": "## Line and headline\n\nLine: a name that wraps\ncount 2/3 across the rungs\n\nDecision: KEEP\nReferences #2028, #2029\n"
       }
     }
   ]
