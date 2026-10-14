@@ -1400,3 +1400,551 @@ mod worktree_facts_tests {
         );
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// `git status` - the PR facts, the delivery state, and the next command.
+// ---------------------------------------------------------------------------------------------
+
+/// `githelp._pr_facts` — the current branch's PR, and whether its merge is on `origin/main`.
+///
+/// # The containment check, and which commit it checks
+///
+/// **The merge commit is preferred; the PR HEAD is the fallback.** That order matters: **after a
+/// squash merge the PR HEAD is not an ancestor of main**, so checking it first would report every
+/// squash-merged PR as uncontained — **and squash is the merge this project uses.**
+///
+/// **`contained_in_origin_main` is `None` when it could not be checked**, and the three states are
+/// kept distinct all the way to `_delivery_state`: *contained*, *not contained*, and *could not tell*.
+/// **Collapsing the third into either of the others is how a lab is told to delete a branch whose
+/// merge was never verified.**
+pub fn pr_facts(repo: &Path, branch: &str, fresh_main: Option<&str>) -> serde_json::Value {
+    let fields = "number,title,state,url,mergeCommit,headRefName,headRefOid,baseRefName,isDraft";
+    let (ok, data, err) = crate::githubcards::gh_json(&["pr", "view", "--json", fields], repo);
+    if !ok || !data.is_object() {
+        return serde_json::json!({
+            "available": false,
+            "reason": if err.is_empty() { "`gh pr view` returned no pull request".to_string() } else { err },
+            "number": serde_json::Value::Null,
+            "state": "",
+            "contained_in_origin_main": serde_json::Value::Null,
+            "checked_ref": "",
+        });
+    }
+    let sha = data
+        .get("mergeCommit")
+        .and_then(|m| m.get("oid"))
+        .and_then(|o| o.as_str())
+        .unwrap_or("")
+        .to_string();
+    let head_oid = data
+        .get("headRefOid")
+        .and_then(|o| o.as_str())
+        .unwrap_or("");
+    // **Merge commit first, PR head second** - see the note above.
+    let (checked_ref, checked_sha) = if !sha.is_empty() {
+        ("merge commit", sha.clone())
+    } else if !head_oid.is_empty() {
+        ("PR head", head_oid.to_string())
+    } else {
+        ("", String::new())
+    };
+    let mut contained = serde_json::Value::Null;
+    // **Both conditions must hold before asking git**, and clippy is right to want them joined: a
+    // containment answer needs both a commit to look for and a ref to look in.
+    if !checked_sha.is_empty() && fresh_main.is_some() {
+        let (rc, _) = git_raw(
+            repo,
+            &["merge-base", "--is-ancestor", &checked_sha, "origin/main"],
+        );
+        contained = serde_json::json!(rc == 0);
+    }
+    let s = |k: &str| {
+        data.get(k)
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    };
+    // **`headRefName` falls back to the branch we asked about**, so a PR whose field is missing still
+    // names the branch rather than the empty string.
+    let head_ref = {
+        let h = s("headRefName");
+        if h.is_empty() {
+            branch.to_string()
+        } else {
+            h
+        }
+    };
+    serde_json::json!({
+        "available": true,
+        "reason": "",
+        "number": data.get("number").cloned().unwrap_or(serde_json::Value::Null),
+        "title": s("title"),
+        "state": s("state"),
+        "is_draft": data.get("isDraft").and_then(|v| v.as_bool()).unwrap_or(false),
+        "url": s("url"),
+        "branch": head_ref,
+        "base": s("baseRefName"),
+        "merge_commit": sha,
+        "checked_ref": checked_ref,
+        "checked_sha": checked_sha,
+        "contained_in_origin_main": contained,
+    })
+}
+
+/// `githelp._delivery_state` — the one word that says where this branch is.
+///
+/// # The order is the logic
+///
+/// **A dirty worktree outranks everything.** A lab with uncommitted changes has a next action that
+/// does not depend on any PR, **so asking GitHub first would produce a correct answer to the wrong
+/// question** — and Python checks it first for that reason.
+///
+/// Then: no PR → `no-pr`; merged → one of **three** states depending on whether the merge commit is
+/// contained; closed → `pr-closed`; open → `pr-open`; anything else → `unknown`.
+///
+/// **`merged-unknown` is a real state and not a bug**: `contained_in_origin_main` is `None` when
+/// `origin/main` could not be resolved, **and a lab must not be told to delete a branch whose merge
+/// was never verified** — which is what the state name is for.
+pub fn delivery_state(facts: &WorktreeFacts, pr: &serde_json::Value) -> String {
+    if facts.available && facts.clean == Some(false) {
+        return "dirty-worktree".into();
+    }
+    if pr.get("available").and_then(|v| v.as_bool()) != Some(true) {
+        return "no-pr".into();
+    }
+    let state = pr
+        .get("state")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_uppercase();
+    if state == "MERGED" {
+        return match pr.get("contained_in_origin_main").and_then(|v| v.as_bool()) {
+            Some(true) => "merged-verified".into(),
+            Some(false) => "merged-unverified".into(),
+            None => "merged-unknown".into(),
+        };
+    }
+    if state == "CLOSED" {
+        return "pr-closed".into();
+    }
+    if state == "OPEN" {
+        return "pr-open".into();
+    }
+    "unknown".into()
+}
+
+/// `githelp._next_command` — the exact next delivery command, plus the rest of the chain.
+///
+/// **This is the part of `git status` with judgement in it**: it is what a lab reads and then does.
+/// **Two of its returns tell a lab NOT to act** — `merged-unverified` says *"do not delete anything
+/// yet"*, and the unrecognised state says *"report this output rather than acting on it"* — **and
+/// those are the returns a port is most tempted to simplify into a command.**
+///
+/// **`merged-verified` and `merged-unknown` share a branch**, because both mean the work is on main;
+/// **`merged-unverified` does not**, because it means the opposite was observed.
+pub fn next_command(
+    branch: &str,
+    state: &str,
+    pr: &serde_json::Value,
+    worktree: &str,
+) -> (String, Vec<String>) {
+    let number = pr.get("number").and_then(|n| n.as_i64());
+    match state {
+        "dirty-worktree" => (
+            "git add <the paths you changed> && git commit -m \"<message>\"".to_string(),
+            vec![
+                "AGENTS.md: stage named paths, not `git add -A`.".to_string(),
+                "then follow the state below.".to_string(),
+            ],
+        ),
+        "no-pr" => (
+            format!("git push -u origin {branch}"),
+            vec![
+                "gh pr create --fill --base main".to_string(),
+                "then wait for the required check and merge through the queue.".to_string(),
+            ],
+        ),
+        "pr-open" => {
+            let checks = match number {
+                Some(n) => format!("gh pr checks {n} --watch"),
+                None => "gh pr checks --watch".to_string(),
+            };
+            let merge = match number {
+                Some(n) => format!("gh pr merge {n} --squash --auto"),
+                None => "gh pr merge --squash --auto".to_string(),
+            };
+            (
+                checks,
+                vec![merge, "then verify the merge commit on fresh origin/main.".to_string()],
+            )
+        }
+        "pr-closed" => {
+            let view = match number {
+                Some(n) => format!("gh pr view {n} --json state,closedAt,url"),
+                None => "gh pr view --json state,closedAt,url".to_string(),
+            };
+            (
+                view,
+                vec![
+                    "the PR was closed without merging: reopen it, or preserve the source as a patch + INDEX row in docs/history/branch-archive/.".to_string(),
+                    "do not delete the branch until that is decided.".to_string(),
+                ],
+            )
+        }
+        "merged-verified" | "merged-unknown" => {
+            let branch_delete = if branch.is_empty() {
+                "git branch -D <branch>".to_string()
+            } else {
+                format!("git branch -D {branch}")
+            };
+            let remote_delete = if branch.is_empty() {
+                "git push origin --delete <branch>".to_string()
+            } else {
+                format!("git push origin --delete {branch}")
+            };
+            (
+                format!(
+                    "git worktree remove {worktree} && {branch_delete} && {remote_delete} && scripts/storage/uor-hygiene --apply"
+                ),
+                vec!["run it from another checkout (this command removes the worktree it is run in).".to_string()],
+            )
+        }
+        "merged-unverified" => (
+            "git fetch --prune origin && git log -1 --format='%H %s' origin/main".to_string(),
+            vec![
+                "the PR is merged but its merge commit is NOT contained in the fetched origin/main.".to_string(),
+                "keep the branch and worktree until that is explained; do not delete anything yet.".to_string(),
+            ],
+        ),
+        _ => (
+            "git status".to_string(),
+            vec!["state not recognised; report this output rather than acting on it.".to_string()],
+        ),
+    }
+}
+
+/// `githelp.status` — the delivery state of the current branch, as JSON.
+///
+/// **Returns the JSON and the state**, so the caller decides the exit code: **`merged-unverified`
+/// exits 1**, because it is the one state that means *"the PR is merged and its commit is NOT on the
+/// origin/main I can see"* — **a lab that treats that as success deletes a branch whose work it never
+/// found.**
+///
+/// **The fetch is attempted and its failure is REPORTED, not fatal.** *"origin/main may be stale: the
+/// fetch failed, so containment uses the last fetched ref"* — **and a containment answer computed
+/// against a stale ref is exactly when `merged-unknown` and `merged-unverified` matter most.**
+pub fn git_status(repo: &Path) -> (serde_json::Value, String) {
+    let rev = |args: &[&str]| {
+        let (rc, out) = git_raw(repo, args);
+        if rc == 0 {
+            out.trim().to_string()
+        } else {
+            String::new()
+        }
+    };
+    let branch = rev(&["rev-parse", "--abbrev-ref", "HEAD"]);
+    let head = rev(&["rev-parse", "--short", "HEAD"]);
+    let worktree = {
+        let w = rev(&["rev-parse", "--show-toplevel"]);
+        if w.is_empty() {
+            repo.display().to_string()
+        } else {
+            w
+        }
+    };
+    let facts = worktree_facts(repo);
+
+    let (fetch_ok, fetch_out, fetch_cmd) = git_run(repo, &["fetch", "--prune", "origin"]);
+    let fresh_main_raw = rev(&["rev-parse", "origin/main"]);
+    let fresh_main = if fresh_main_raw.is_empty() {
+        None
+    } else {
+        Some(fresh_main_raw.clone())
+    };
+    let (_main_ok, main_out, main_cmd) = git_run(repo, &["rev-parse", "origin/main"]);
+    let subject = if fresh_main.is_some() {
+        crate::prbody::truncate(&rev(&["log", "-1", "--format=%h %s", "origin/main"]), 100)
+    } else {
+        String::new()
+    };
+
+    let upstream = rev(&[
+        "rev-parse",
+        "--abbrev-ref",
+        "--symbolic-full-name",
+        "@{upstream}",
+    ]);
+    let mut ahead: Option<i64> = None;
+    let mut behind: Option<i64> = None;
+    if fresh_main.is_some() {
+        let (rc, lr) = git_raw(
+            repo,
+            &["rev-list", "--left-right", "--count", "origin/main...HEAD"],
+        );
+        if rc == 0 {
+            let parts: Vec<&str> = lr.split_whitespace().collect();
+            if parts.len() == 2 {
+                behind = parts[0].parse().ok();
+                ahead = parts[1].parse().ok();
+            }
+        }
+    }
+
+    let pr = pr_facts(repo, &branch, fresh_main.as_deref());
+    let state = delivery_state(&facts, &pr);
+    let (next_command, next_steps) = next_command(&branch, &state, &pr, &worktree);
+
+    let mut notes: Vec<String> = Vec::new();
+    if fetch_ok != 0 {
+        notes.push(
+            "origin/main may be stale: the fetch failed, so containment uses the last fetched ref"
+                .to_string(),
+        );
+    }
+
+    let data = serde_json::json!({
+        "branch": branch,
+        "head": head,
+        "worktree": worktree,
+        "clean": facts.clean,
+        "changes": {
+            "total": facts.total,
+            "staged": facts.staged,
+            "unstaged": facts.unstaged,
+            "untracked": facts.untracked,
+        },
+        "changes_available": facts.available,
+        "changes_reason": facts.reason,
+        "fetch": { "command": "git fetch --prune origin", "ok": fetch_ok == 0, "reason": if fetch_ok == 0 { String::new() } else { run_failure(&fetch_cmd, fetch_ok, &fetch_out) } },
+        "origin_main": {
+            "available": fresh_main.is_some(),
+            "reason": if fresh_main.is_none() { run_failure(&main_cmd, _main_ok, &main_out) } else { String::new() },
+            "commit": fresh_main.unwrap_or_default(),
+            "subject": subject,
+        },
+        "upstream": upstream,
+        "ahead": ahead,
+        "behind": behind,
+        "pr": pr,
+        "state": state,
+        "next_command": next_command,
+        "next_steps": next_steps,
+        "notes": notes,
+    });
+    (data, state)
+}
+
+/// Python's `_run` failure text, character for character.
+///
+/// # The four things it does, and the first version did three of them differently
+///
+/// ```python
+/// err = redact(((proc.stderr or "") + (proc.stdout or "")).strip().replace("\n", " "))[:240]
+/// return False, stdout, f"`{cmd}` exited {rc}: {err or 'no output'}"
+/// ```
+///
+/// * **STDERR FIRST, then stdout.** The obvious reading is the reverse, and the reverse is wrong —
+///   for `git rev-parse origin/main` on an ambiguous ref, stdout holds the ref name and stderr holds
+///   the explanation, **so the wrong order puts `origin/main` in front of the sentence explaining it.**
+/// * **Strip the COMBINED text, then replace every newline with a space.** That turns a blank line
+///   into two spaces, **which is why the real fetch failure reads `…remote repository.  Please make
+///   sure…` with two spaces in the middle.** Joining non-empty lines with single spaces — what the
+///   first version did — loses exactly that.
+/// * **Truncate to 240 characters**, so a chatty failure cannot flood a report.
+/// * **`redact`**, because a command that echoes a URL with a token in it would otherwise write it
+///   into a JSON file that gets committed.
+///
+/// **`git status --json` agreed on twenty-seven fields and differed on three `reason` strings**, which
+/// is how each of these was found: **the structure was right and the rendering was not.**
+pub fn run_failure(command: &str, exit: i32, output: &str) -> String {
+    let collapsed = crate::prgates::redact_public(output.trim()).replace('\n', " ");
+    let err: String = collapsed.chars().take(240).collect();
+    let shown = if err.is_empty() {
+        "no output".to_string()
+    } else {
+        err
+    };
+    format!("`{command}` exited {exit}: {shown}")
+}
+
+/// `git -C <repo> <args>`, with stderr and stdout kept **separate and in Python's order**.
+///
+/// **`git_raw` returns them concatenated with stdout first**, which is right for reading an answer and
+/// **wrong for rendering a failure**: Python's `_run` builds `stderr + stdout`. `git rev-parse
+/// origin/main` on an ambiguous ref writes the ref to stdout and the explanation to stderr, **so the
+/// wrong order prints `origin/main` in front of the sentence that says why it is ambiguous.**
+///
+/// **This is a second function rather than a change to `git_raw`** because a dozen callers already
+/// depend on that one's shape, **and a caller that reads an answer does not care about the order.**
+pub fn git_run(repo: &Path, args: &[&str]) -> (i32, String, String) {
+    match std::process::Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .output()
+    {
+        Ok(o) => {
+            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+            let stdout = String::from_utf8_lossy(&o.stdout).to_string();
+            (
+                o.status.code().unwrap_or(1),
+                format!("{stderr}{stdout}"),
+                format!("git {}", args.join(" ")),
+            )
+        }
+        Err(e) => (1, format!("{e}"), format!("git {}", args.join(" "))),
+    }
+}
+
+#[cfg(test)]
+mod status_tests {
+    use super::*;
+
+    /// **The delivery state table, asserted on its own** — it is nine lines of branches, and a port
+    /// that got the order wrong would still compile and still print a plausible word.
+    ///
+    /// **The order is the logic**: a dirty worktree outranks the PR, **because a lab with uncommitted
+    /// changes has a next action that does not depend on any PR** — asking GitHub first answers the
+    /// wrong question.
+    #[test]
+    fn the_delivery_state_table_matches_python() {
+        let clean = WorktreeFacts {
+            available: true,
+            reason: String::new(),
+            clean: Some(true),
+            lines: vec![],
+            total: 0,
+            staged: 0,
+            unstaged: 0,
+            untracked: 0,
+        };
+        let dirty = WorktreeFacts {
+            clean: Some(false),
+            ..clean.clone()
+        };
+        let unknowable = WorktreeFacts {
+            available: false,
+            clean: None,
+            ..clean.clone()
+        };
+        let pr = |state: &str, contained: serde_json::Value| serde_json::json!({ "available": true, "state": state, "contained_in_origin_main": contained });
+        // **A dirty worktree wins even with a merged PR.**
+        assert_eq!(
+            delivery_state(&dirty, &pr("MERGED", serde_json::json!(true))),
+            "dirty-worktree"
+        );
+        // **A tree that could not be read is NOT dirty**, so the PR decides.
+        assert_eq!(
+            delivery_state(&unknowable, &pr("OPEN", serde_json::Value::Null)),
+            "pr-open"
+        );
+        assert_eq!(
+            delivery_state(&clean, &serde_json::json!({"available": false})),
+            "no-pr"
+        );
+        assert_eq!(
+            delivery_state(&clean, &pr("MERGED", serde_json::json!(true))),
+            "merged-verified"
+        );
+        assert_eq!(
+            delivery_state(&clean, &pr("MERGED", serde_json::json!(false))),
+            "merged-unverified"
+        );
+        // **The third merged state is real**: `origin/main` could not be resolved.
+        assert_eq!(
+            delivery_state(&clean, &pr("MERGED", serde_json::Value::Null)),
+            "merged-unknown"
+        );
+        assert_eq!(
+            delivery_state(&clean, &pr("closed", serde_json::Value::Null)),
+            "pr-closed"
+        );
+        assert_eq!(
+            delivery_state(&clean, &pr("OPEN", serde_json::Value::Null)),
+            "pr-open"
+        );
+        assert_eq!(
+            delivery_state(&clean, &pr("WEIRD", serde_json::Value::Null)),
+            "unknown"
+        );
+    }
+
+    /// **`merged-unverified` tells a lab NOT to act, and the port keeps that.**
+    ///
+    /// It is the one state where `git status` exits 1, **and the temptation in a port is to give it a
+    /// command like the other states have.** Python deliberately does not: *"keep the branch and
+    /// worktree until that is explained; do not delete anything yet."*
+    #[test]
+    fn merged_unverified_says_do_not_delete_anything() {
+        let (cmd, steps) = next_command("b", "merged-unverified", &serde_json::json!({}), "/w");
+        assert!(cmd.contains("git fetch --prune origin"), "{cmd}");
+        assert!(
+            steps
+                .iter()
+                .any(|s| s.contains("do not delete anything yet")),
+            "{steps:?}"
+        );
+        // And the unrecognised state says not to act either.
+        let (cmd2, steps2) = next_command("b", "something-new", &serde_json::json!({}), "/w");
+        assert_eq!(cmd2, "git status");
+        assert!(
+            steps2
+                .iter()
+                .any(|s| s.contains("rather than acting on it")),
+            "{steps2:?}"
+        );
+    }
+
+    /// **`merged-verified` and `merged-unknown` share the cleanup command**, because both mean the
+    /// work is on main — **only `merged-unverified` means the opposite was observed.**
+    #[test]
+    fn the_two_merged_states_that_mean_finished_share_a_command() {
+        let (a, _) = next_command("br", "merged-verified", &serde_json::json!({}), "/w");
+        let (b, _) = next_command("br", "merged-unknown", &serde_json::json!({}), "/w");
+        assert_eq!(a, b, "both mean the work is on main");
+        assert!(a.contains("git worktree remove /w"), "{a}");
+        assert!(a.contains("git branch -D br"), "{a}");
+        assert!(a.contains("git push origin --delete br"), "{a}");
+        assert!(a.contains("uor-hygiene --apply"), "{a}");
+    }
+
+    /// **An empty branch name renders a placeholder rather than an empty command** — `git branch -D `
+    /// with nothing after it is not a command a lab can run.
+    #[test]
+    fn an_unknown_branch_gets_a_placeholder_not_an_empty_command() {
+        let (cmd, _) = next_command("", "merged-verified", &serde_json::json!({}), "/w");
+        assert!(cmd.contains("git branch -D <branch>"), "{cmd}");
+        assert!(cmd.contains("git push origin --delete <branch>"), "{cmd}");
+    }
+
+    /// **`run_failure` renders Python's text**, including the three things the first version got
+    /// wrong: **stderr before stdout is the caller's job, but the blank line becomes TWO SPACES, and
+    /// the whole thing is truncated to 240.**
+    #[test]
+    fn run_failure_renders_pythons_text() {
+        let out = run_failure(
+            "git fetch --prune origin",
+            128,
+            "fatal: no remote\n\nPlease check\n",
+        );
+        assert_eq!(
+            out,
+            "`git fetch --prune origin` exited 128: fatal: no remote  Please check"
+        );
+        // A blank line becomes two spaces - **stripping and replacing, not joining non-empty lines**,
+        // which is what the first version did and why the real fetch message differed.
+        assert!(
+            out.contains("remote  Please"),
+            "two spaces where the blank line was: {out:?}"
+        );
+        // Truncated to 240 characters after the prefix is added.
+        let long = "x".repeat(400);
+        let t = run_failure("cmd", 1, &long);
+        assert!(
+            t.ends_with(&"x".repeat(240)),
+            "240 characters of output, not 400"
+        );
+        // Empty output is named rather than left blank.
+        assert!(run_failure("cmd", 1, "   ").ends_with("no output"));
+    }
+}

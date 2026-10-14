@@ -1173,10 +1173,124 @@ fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 ExitCode::from(code as u8)
             }
         }
-        // **`git status` is the last git action still delegated** — it assembles worktree facts, PR
-        // facts and stale-branch advice, and a partial port of it would report fewer facts than the
-        // Python one while looking complete.
-        "status" => delegate_to_python(repo, "git", args),
+        // **`git status` is Rust**, and it is the whole thing: worktree facts, the PR, the delivery
+        // state and the next command. **`merged-unverified` exits 1**, because that state means the PR
+        // is merged and its commit is NOT on the origin/main we can see — **a lab that treats it as
+        // success deletes a branch whose work it never found.**
+        "status" => {
+            let (data, state) = githelp::git_status(repo);
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&data).unwrap_or_default()
+                );
+            } else {
+                let f = &data;
+                println!(
+                    "uor-harness git status - branch {} @ {}",
+                    f["branch"].as_str().unwrap_or("?"),
+                    f["head"].as_str().unwrap_or("?")
+                );
+                if f["changes_available"].as_bool() == Some(true) {
+                    let c = &f["changes"];
+                    let cleanliness = if f["clean"].as_bool() == Some(true) {
+                        "clean".to_string()
+                    } else {
+                        format!(
+                            "{} uncommitted change(s) ({} staged, {} unstaged, {} untracked)",
+                            c["total"], c["staged"], c["unstaged"], c["untracked"]
+                        )
+                    };
+                    println!(
+                        "1. worktree {} - {cleanliness}",
+                        f["worktree"].as_str().unwrap_or("")
+                    );
+                } else {
+                    println!(
+                        "1. worktree {} - UNAVAILABLE: {}",
+                        f["worktree"].as_str().unwrap_or(""),
+                        f["changes_reason"].as_str().unwrap_or("")
+                    );
+                }
+                if f["origin_main"]["available"].as_bool() == Some(true) {
+                    let commit = f["origin_main"]["commit"].as_str().unwrap_or("");
+                    let short = &commit[..commit.len().min(8)];
+                    let fetched = if f["fetch"]["ok"].as_bool() == Some(true) {
+                        "just fetched".to_string()
+                    } else {
+                        format!(
+                            "last fetch FAILED: {}",
+                            f["fetch"]["reason"].as_str().unwrap_or("")
+                        )
+                    };
+                    println!(
+                        "2. origin/main {short} ({}) - {fetched}",
+                        f["origin_main"]["subject"].as_str().unwrap_or("")
+                    );
+                } else {
+                    println!(
+                        "2. origin/main - UNAVAILABLE: {}",
+                        f["origin_main"]["reason"]
+                            .as_str()
+                            .unwrap_or("cannot resolve origin/main")
+                    );
+                }
+                let pr = &f["pr"];
+                if pr["available"].as_bool() == Some(true) {
+                    let draft = if pr["is_draft"].as_bool() == Some(true) {
+                        " (draft)"
+                    } else {
+                        ""
+                    };
+                    let contained = match pr["contained_in_origin_main"].as_bool() {
+                        Some(true) => "contained in origin/main",
+                        Some(false) => "NOT contained in origin/main",
+                        None => "containment unknown",
+                    };
+                    println!(
+                        "3. PR #{} {}{draft}: {}",
+                        pr["number"],
+                        pr["state"].as_str().unwrap_or(""),
+                        uor_r4_harness::prbody::truncate(pr["title"].as_str().unwrap_or(""), 80)
+                    );
+                    let sha = pr["checked_sha"].as_str().unwrap_or("");
+                    let refname = if pr["checked_ref"].as_str().unwrap_or("").is_empty() {
+                        "no merge ref".to_string()
+                    } else {
+                        pr["checked_ref"].as_str().unwrap_or("").to_string()
+                    };
+                    println!("   {refname} {} - {contained}", &sha[..sha.len().min(8)]);
+                } else {
+                    println!(
+                        "3. PR - none for this branch ({})",
+                        pr["reason"].as_str().unwrap_or("gh unavailable")
+                    );
+                }
+                if f["upstream"].as_str().unwrap_or("").is_empty() {
+                    println!("4. upstream - none (branch is not pushed)");
+                } else {
+                    println!(
+                        "4. upstream {} - ahead {} / behind {} of origin/main",
+                        f["upstream"].as_str().unwrap_or(""),
+                        f["ahead"],
+                        f["behind"]
+                    );
+                }
+                println!("5. state: {state}");
+                println!("6. next: {}", f["next_command"].as_str().unwrap_or(""));
+                for step in f["next_steps"].as_array().into_iter().flatten() {
+                    println!("   then: {}", step.as_str().unwrap_or(""));
+                }
+                for note in f["notes"].as_array().into_iter().flatten() {
+                    println!("   note: {}", note.as_str().unwrap_or(""));
+                }
+            }
+            if state == "merged-unverified" {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            }
+        }
         "" => {
             eprintln!("uor-harness git: which action? install-hooks, status, clean-merged, switch, delete-merged");
             ExitCode::from(2)

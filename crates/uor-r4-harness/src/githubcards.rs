@@ -586,10 +586,21 @@ pub fn gh_json(subargs: &[&str], repo: &std::path::Path) -> (bool, Value, String
         return (false, Value::Null, "gh timed out".into());
     };
     if !status.success() {
+        // **Python's `gh_json` renders the failure the same way `_run` does**, so a caller comparing
+        // the two implementations sees one string: the command text, the exit code, and the output
+        // lines joined by spaces. **`git status --json` differed in exactly these three `reason`
+        // fields and agreed on the other twenty-seven** - which is how the rendering was found.
+        // **STDERR FIRST, then stdout** — Python's order, and the reverse of the obvious one.
+        let combined = format!(
+            "{}{}",
+            String::from_utf8_lossy(&stderr),
+            String::from_utf8_lossy(&stdout)
+        );
+        let command = format!("gh {}", subargs.join(" "));
         return (
             false,
             Value::Null,
-            String::from_utf8_lossy(&stderr).trim().to_string(),
+            crate::githelp::run_failure(&command, status.code().unwrap_or(1), &combined),
         );
     }
     let text = String::from_utf8_lossy(&stdout).to_string();
