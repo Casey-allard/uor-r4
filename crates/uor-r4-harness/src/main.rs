@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use uor_r4_harness::arena;
+use uor_r4_harness::arenacompare;
 use uor_r4_harness::briefing;
 use uor_r4_harness::githelp;
 use uor_r4_harness::mistakes;
@@ -3088,7 +3089,27 @@ fn cmd_arena(repo: &Path, args: &[String], json: bool) -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        "compare" => delegate_to_python(repo, "arena", args),
+        "compare" => {
+            let id = action_word_after(args, &["compare"]);
+            if id.is_empty() {
+                eprintln!("uor-harness: the following arguments are required: id");
+                return ExitCode::from(2);
+            }
+            let meta = arenacompare::bar_meta(&paths.repo);
+            let result = arenacompare::compare(&arena, &meta, &id);
+            if json {
+                println!("{}", arenacompare::json(&result));
+            } else {
+                println!("{}", arenacompare::render(&result));
+            }
+            // `exit 0 if result["ok"] else 1` - a root row or a panel change is still `ok`,
+            // at exit 0, with `comparable: false`.
+            if result.ok {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
         "" => {
             eprintln!("uor-harness arena: which action? board, compare, lineage");
             ExitCode::from(2)

@@ -1,3 +1,32 @@
+## 2026-10-14 — `arena compare` is Rust; the whole `arena` command is ported (deepseek, tooling)
+
+The [record](../labs/arena-compare-port-2026-10-14/README.md) carries the fourteen comparison cases. **`uor-harness
+arena compare <id>` RUNS IN RUST**, text and `--json`, and **THE `arena` COMMAND IS COMPLETE: `board`,
+`compare` AND `lineage` are all Rust. THE ONLY LIVE `delegate_to_python` CALL SITE LEFT IS THE GENERAL
+FALLBACK, CARRYING `budget show|scan` — unported commands 3 → 2.** **THE COMPARISON IS THE REPORT THE ARENA
+EXISTS FOR:** it is a regression check, not a leaderboard, so nothing is collapsed into one number; **direction
+comes from the file's `bars` map and is never guessed** (an undeclared bar is reported as `undeclared` and
+**cannot be called a gain or a regression** — a 92% increase in candidates scored per query would otherwise
+read as an improvement), and **a KEEP must report fresh transfer as EVIDENCE rather than as the word**, because
+*"no transfer reported"* contains the word `transfer`; the rule is a `transfer` key in `scores` or the regex
+`(?:fresh\s+)?transfer\s*[:=]?\s*[0-9]` over `scope`/`notes`. **Verified by running BOTH implementations on
+fourteen case groups: all MATCH** — all five rows text and `--json`, the unknown candidate (exit 1/1), and the
+missing id (the recorded argparse usage text) — and the rows cover a **root row** (`comparable: false` at exit
+**0**, because it is still `ok`), a KEEP with a transfer bar, a panel change, an undeclared bar and integer
+deltas. **Two details would have diverged quietly: `delta = round(b - a, 6)` KEEPS INT-NESS when both sides
+are ints** (Python's `round(13, 6)` is the int `13` and prints `13`; a float-only port prints `13.0` on every
+integer bar in this file), and **the bars compared are the UNION of both `scores` maps, sorted**, so a bar only
+one side reports becomes an `UNAVAILABLE` row naming that side rather than a silent delta. **Verified:** fmt and
+clippy `-D warnings` clean; **481 Rust tests passed, 6 ignored** (was 475); `python3 -m unittest discover -s
+tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641, baseline 1641. Stated rather than
+hidden: a non-numeric `seeds`/`rows` reads as 0 where Python would raise; the `--json` key order is
+load-bearing with `ensure_ascii` ON (unlike `arena board`); and `budget show` still sits behind `collect()`,
+~400 lines including the resource-ledger pointer-chain walk.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`budget show`**, then **`budget scan`** — **two subcommands left before the general fallback can be
+deleted and D30 is done.**
 ## 2026-10-14 — Claude's F9 number-boundary fix on v2 reply grader and prime-zeta complex routing brief (antigravity, evaluation tooling & mechanism specification)
 
 [`docs/labs/f9-reply-grader-and-prime-zeta-complex-routing-2026-10-14/README.md`](../labs/f9-reply-grader-and-prime-zeta-complex-routing-2026-10-14/README.md) delivers the two remaining Antigravity (`antigravity/ag1`) deliverables: (1) closing Claude's `F9` number-boundary follow-up (`#2412` comment `6159546797`) on the versioned `v2` deterministic reply grader (`#2029`), and (2) authoring the Prime-Rank Indexing + Complex-Plane Zeta-Phase ($\mathbb{C}^4 \to \mathbb{R}^4$ / $\mathbb{C}^8 \to \mathbb{R}^8$) mechanism brief and pre-registration sheet (`#2029` / `#2032`) under Decision D32 October 14 Addendum ([#2398](https://github.com/UOR-Foundation/uor-r4/pull/2398)). **In `crates/uor-r4-training/src/bin/chat-grade.rs`, `contains_exact_math_term` enforces sign-aware ASCII digit and decimal boundary checks on `exact_text` matches, preventing numerical superstrings like `"18x² + x − 10"` and `"8x² + x − 100"` from falsely matching interior substrings of `"8x^2+x-10"` on `heldout-122`.** In `crates/uor-r4-training/fixtures/reply-panel-checks-v2.tsv` (`sha256: 8dbc9e5a…`), `heldout-125` terms are updated to accept `"The roots are 4.37 and −1.37"` without requiring an `"x ="` prefix while continuing to reject `"x = 1.37"`, `"The roots are 4.37 and 1.37"`, `"x = -4.37"`, `"x = sqrt(33)"`, and `"33/2 is the answer"`. **All 25/25 unit tests pass, with 35 positive controls (`crates/uor-r4-training/fixtures/reply-panel-positive-controls-v2.tsv`, `sha256: afb7b412…`) and 17 negative controls (`crates/uor-r4-training/fixtures/reply-panel-negative-controls-v2.tsv`, `sha256: e581e95e…`) pinned.** Re-scoring the four historical open-panel reply sets (`mixture-dose-2026-10-10.tar` and `reply-panel-open-2026-10-09.tar`) via `chat-grade grade-replies checks=v2` and `jq` reproduces all baseline scores with **zero delta: `29m` `11/96`, `rp-D0` `11/96`, `rp-D10` `15/96`, `rp-D25` `10/96`.** Frozen panel manifest `data/panels/MANIFEST.sha256` passes `30/30 OK` byte-identical (`data/panels/reply-panel-checks.tsv` remains untouched at `aba96550…`). **The mechanism brief `docs/mechanisms/prime-zeta-complex-routing.md` is authored and indexed in `docs/mechanisms/README.md`, deriving the bijective prime atom map $r(v) = p_{\text{id}(v)+1}$, Riemann zeta-zero ordinates $\gamma_k$ (`crates/uor-r4-core/src/zeta_zeros.rs`), log-prime phasors $e^{i\gamma_k \ln p} \in \mathbb{C}$, canonical realification $\mathbb{C}^4 \to \mathbb{R}^4 / \mathbb{C}^8 \to \mathbb{R}^8$, and the exact integer quantization boundary into `PhaseQ29`, `UnitS3Q30`, and $E_8$ anchor roots (`ROOTS: [[i8; 8]; 16]`) so that 100% of downstream model compute remains discrete.** The pre-registration sheet `docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md` incorporates Kimi PM's (`kimi/pm1`) N1–N3 registration amendments (`#2029` comment `6163842973`), declares D32 Addendum Item 3 host-side offline pre-quantization compliance, and passes `uor-harness prep-check` at `TEST FITNESS: FIT`. **Zero Python used:** all grading, fixtures, and checks executed exclusively in Rust (`cargo`, `uor-harness`), `jq`, and standard POSIX tools inside isolated worktree `.worktrees/antigravity-ag1` on branch `antigravity/ag1-f9-complex-zeta`. Root checkout `/Users/casey.allard/uor-r4` remains 100% clean. **Limits, stated:** `TEST FITNESS: FIT` clears registration only and lifts neither hold; training and M2 rental holds remain `HELD`; no GPU compute or pod lease was initiated.

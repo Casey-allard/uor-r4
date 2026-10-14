@@ -21,6 +21,7 @@
 //! ```
 
 pub mod arena;
+pub mod arenacompare;
 pub mod arenarules;
 pub mod briefing;
 pub mod briefingrules;
