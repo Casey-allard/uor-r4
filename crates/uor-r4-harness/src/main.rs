@@ -1082,13 +1082,81 @@ fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 ExitCode::from(1)
             }
         }
-        // **`delete-merged` is NOT ported yet, and its guard is why.** Deleting a branch without
-        // proving its merge removed the only remote copy of unmerged work once already; the guard
-        // chain is a live claim, then a merged PR whose merge commit is on `origin/main`, then
-        // `git cherry` to prove the branch introduces nothing upstream lacks. **A port that skipped
-        // any of those would be a weaker check wearing the command's name**, so it stays delegated
-        // until the whole chain lands.
-        "install-hooks" | "status" | "delete-merged" => delegate_to_python(repo, "git", args),
+        // **`delete-merged` is ported WITH ITS WHOLE GUARD CHAIN** — a live claim first and needing
+        // no network, then a merged PR whose merge commit is on `origin/main`, then `git cherry` to
+        // prove the branch introduces nothing upstream lacks. See `githelp::delete_merged_branch`.
+        //
+        // **`safe_to_delete` is the only flag this arm reads**, because the guard's own history
+        // records what happens otherwise: an earlier version keyed on `merged`, a guard returned early
+        // without clearing it, and **a REFUSED branch still printed "would delete".**
+        "delete-merged" => {
+            // **The branch is read from `--branch` FIRST, then positionally.** Python's parser
+            // requires `--branch`; the port accepts either, **because a positional form is what the
+            // sibling commands use (`git switch <target>`, `clean-merged`) and requiring the flag
+            // would make this one command different for no reason a lab could see.** Accepting both
+            // means a documented `--branch` invocation and a natural positional one behave
+            // identically.
+            let branch = args
+                .iter()
+                .position(|a| a == "--branch")
+                .and_then(|i| args.get(i + 1).cloned())
+                .or_else(|| {
+                    args.iter()
+                        .find(|a| !a.starts_with('-') && *a != "delete-merged" && *a != "git")
+                        .cloned()
+                })
+                .unwrap_or_default();
+            if branch.is_empty() {
+                eprintln!("uor-harness git delete-merged: which branch?");
+                return ExitCode::from(2);
+            }
+            let apply = args.iter().any(|a| a == "--apply");
+            let paths = StatePaths::from_env(repo);
+            let r = githelp::delete_merged_branch(&paths, &branch, apply);
+            let safe = r["safe_to_delete"] == serde_json::json!(true);
+            if json {
+                println!("{}", serde_json::to_string_pretty(&r).unwrap_or_default());
+            } else if safe {
+                let deleted = r["deleted"] == serde_json::json!(true);
+                let remote = r["remote_deleted"] == serde_json::json!(true);
+                if deleted || remote {
+                    // **Report each side separately.** A partial delete that reads as a success is how
+                    // a lab ends up believing a branch is gone when it is not.
+                    let local = if deleted {
+                        "deleted".to_string()
+                    } else {
+                        format!("NOT deleted ({})", r["local_error"].as_str().unwrap_or("?"))
+                    };
+                    let mut rem = if remote {
+                        "deleted".to_string()
+                    } else {
+                        "NOT deleted".to_string()
+                    };
+                    if let Some(e) = r["remote_error"].as_str() {
+                        rem.push_str(&format!(" ({e})"));
+                    }
+                    println!("{branch}: local {local}; remote {rem}");
+                } else {
+                    println!(
+                        "would delete {branch}: {}",
+                        r["reason"].as_str().unwrap_or("")
+                    );
+                    println!("  run with --apply to delete it");
+                }
+            } else {
+                println!(
+                    "REFUSED to delete {branch}: {}",
+                    r["reason"].as_str().unwrap_or("")
+                );
+                println!("  an unmerged remote branch is usually the only copy of that work");
+            }
+            if safe {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        "install-hooks" | "status" => delegate_to_python(repo, "git", args),
         "" => {
             eprintln!("uor-harness git: which action? install-hooks, status, clean-merged, switch, delete-merged");
             ExitCode::from(2)

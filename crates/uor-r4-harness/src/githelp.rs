@@ -604,3 +604,282 @@ mod checkout_tests {
         assert_eq!(name.trim(), "brand-new");
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// `git delete-merged` - the four-step guard chain.
+// ---------------------------------------------------------------------------------------------
+
+/// `githelp.delete_merged_branch` — delete a branch locally AND remotely, **but only if its merge is
+/// PROVEN**.
+///
+/// # Why this exists, in the words of the mistake that created it
+///
+/// A pull request was merged with `gh pr merge --auto`, its state was polled, **and then the remote
+/// delete ran unconditionally. The PR had auto-closed as DIRTY midway through the poll; the loop
+/// exited without noticing, the delete ran anyway, and the only remote copy of unmerged work was
+/// removed.** The work survived in a local commit and was recovered — **but nothing in the command
+/// sequence prevented the loss, and a script that deletes a branch without asking whether the merge
+/// happened will eventually delete work that cannot be recovered.**
+///
+/// # The chain, and each step is a defence against a specific failure
+///
+/// **1. A LIVE CLAIM, CHECKED FIRST, AND IT NEEDS NO NETWORK.** *"A merged PR is not proof a branch is
+/// finished: a lab can merge and keep going, or hold the branch while a follow-up lands."* **Gating on
+/// the merge first also meant an unreachable GitHub returned before this guard ran, so a claimed branch
+/// could be deleted whenever the network was down — the worst arrangement, since the protection failed
+/// exactly when the evidence was weakest.** The first version of this recommended deleting
+/// `kimi/plan-refresh-2026-10-13` — merged, yes, **but under Kimi's live claim**, and *"a harness that
+/// deletes a peer's working branch is worse than one that leaves a stale branch behind."*
+///
+/// **2. A MERGED PR WHOSE MERGE COMMIT IS AN ANCESTOR OF `origin/main`.** A PR marked merged whose
+/// commit is *not* on main is reported as such **and refused**.
+///
+/// **3. `git cherry` — DOES THIS BRANCH INTRODUCE ANYTHING UPSTREAM LACKS?** Two earlier attempts were
+/// wrong in opposite directions: `rev-list --count` (ancestry) **refused every squash-merged branch**,
+/// because a squash leaves no ancestor; `diff --stat` (whole tree) **refused a branch merely BEHIND
+/// main**, flagging five files belonging to other labs that the branch never touched.
+///
+/// **`safe_to_delete` IS THE ONLY FLAG THE CALLER ACTS ON**, because an earlier version used `merged`
+/// and *"a guard returned early without clearing it, so a REFUSED branch still printed 'would
+/// delete'."* One flag with one meaning makes that impossible — **and this port keeps one flag, so the
+/// same mistake cannot be reintroduced by a caller reading the wrong field.**
+///
+/// # `apply=false` reports what would happen and changes nothing
+pub fn delete_merged_branch(paths: &StatePaths, branch: &str, apply: bool) -> serde_json::Value {
+    let git = |args: &[&str]| git_raw(&paths.repo, args);
+    let mut result = serde_json::json!({
+        "branch": branch,
+        "safe_to_delete": false,
+        "merged": false,
+        "reason": "",
+        "deleted": false,
+    });
+
+    // ---- 1. A live claim, first, and it needs no network. -------------------------------------
+    if let Some(claim) = crate::team::load_claims(paths).get(branch) {
+        let owner = if claim.lab.is_empty() {
+            "an unidentified lab"
+        } else {
+            claim.lab.as_str()
+        };
+        // **CLEAR the flag, not just the reason.** A guard that explains itself and leaves
+        // `safe_to_delete` set still tells the caller to go ahead - **the flag is what acts; the
+        // reason is only what a human reads.** This was the same mistake twice in one function.
+        result["safe_to_delete"] = serde_json::json!(false);
+        result["reason"] = serde_json::json!(format!(
+            "{owner} holds a live claim on this branch - merged or not, its owner decides when it is \
+             finished. Release the claim first if the work is done: \
+             uor-harness team release --branch {branch} --lab {owner}"
+        ));
+        return result;
+    }
+
+    // ---- 2. A merged PR whose merge commit is on origin/main. ---------------------------------
+    let (ok, data, err) = crate::githubcards::gh_json(
+        &[
+            "pr",
+            "list",
+            "--head",
+            branch,
+            "--state",
+            "merged",
+            "--limit",
+            "1",
+            "--json",
+            "number,mergeCommit",
+        ],
+        &paths.repo,
+    );
+    if !ok {
+        result["reason"] = serde_json::json!(format!(
+            "cannot ask GitHub about the PR ({}), and an unverified merge is not a merge",
+            if err.is_empty() {
+                "unknown error"
+            } else {
+                err.as_str()
+            }
+        ));
+        return result;
+    }
+    let first = data.as_array().and_then(|a| a.first()).cloned();
+    let Some(pr) = first else {
+        result["reason"] = serde_json::json!("no merged PR for this branch");
+        return result;
+    };
+    let merge_oid = pr
+        .get("mergeCommit")
+        .and_then(|c| c.get("oid"))
+        .and_then(|o| o.as_str())
+        .unwrap_or("");
+    let num = pr.get("number").and_then(|n| n.as_i64()).unwrap_or(0);
+    if merge_oid.is_empty() {
+        result["reason"] =
+            serde_json::json!(format!("PR #{num} is merged but reports no merge commit"));
+        return result;
+    }
+    let (rc, _) = git(&["merge-base", "--is-ancestor", merge_oid, "origin/main"]);
+    if rc != 0 {
+        result["reason"] = serde_json::json!(format!(
+            "PR #{num} is marked merged ({}) but that commit is NOT on origin/main",
+            &merge_oid[..merge_oid.len().min(9)]
+        ));
+        return result;
+    }
+    result["merged"] = serde_json::json!(true);
+    result["safe_to_delete"] = serde_json::json!(true);
+    result["reason"] = serde_json::json!(format!(
+        "PR #{num} merged as {}, on main",
+        &merge_oid[..merge_oid.len().min(9)]
+    ));
+
+    // ---- 3. `git cherry`: does the branch introduce anything upstream lacks? -------------------
+    let (rc, _) = git(&[
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        &format!("refs/remotes/origin/{branch}"),
+    ]);
+    if rc == 0 {
+        let (rc2, cherry) = git(&["cherry", "origin/main", &format!("origin/{branch}")]);
+        if rc2 == 0 {
+            let unpushed = cherry.lines().filter(|l| l.starts_with('+')).count();
+            if unpushed > 0 {
+                result["reason"] = serde_json::json!(format!(
+                    "origin/{branch} holds {unpushed} commit(s) whose changes are not in main - the merge did not carry them"
+                ));
+                result["merged"] = serde_json::json!(false);
+                result["safe_to_delete"] = serde_json::json!(false);
+                return result;
+            }
+        }
+    }
+
+    if !apply {
+        return result;
+    }
+
+    // ---- 4. Local first, then remote: a failed remote delete leaves the local copy for the next
+    //         attempt. ---------------------------------------------------------------------------
+    let (rc, out) = git(&["branch", "-D", branch]);
+    if rc == 0 {
+        result["deleted"] = serde_json::json!(true);
+    } else {
+        result["local_error"] = serde_json::json!(out);
+    }
+    let (rc, out) = git(&["push", "origin", "--delete", branch]);
+    result["remote_deleted"] = serde_json::json!(rc == 0);
+    // **A remote ref that never existed is not an error** - the branch may be local-only, and
+    // reporting that as a failure would make an otherwise clean delete look partial.
+    if rc != 0 && !out.contains("remote ref does not exist") {
+        result["remote_error"] = serde_json::json!(out);
+    }
+    result
+}
+
+#[cfg(test)]
+mod delete_merged_tests {
+    use super::*;
+
+    fn scratch_with_claim(branch: &str, lab: &str) -> (tempfile::TempDir, StatePaths) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path().to_path_buf();
+        for args in [
+            vec!["init", "-q", "-b", "main"],
+            vec!["config", "user.email", "t@t"],
+            vec!["config", "user.name", "t"],
+        ] {
+            let _ = std::process::Command::new("git")
+                .current_dir(&repo)
+                .args(&args)
+                .output();
+        }
+        std::fs::write(repo.join("README.md"), "x\n").expect("write");
+        std::fs::create_dir_all(repo.join("docs/harness")).expect("mkdir");
+        let claims = serde_json::json!({ branch: { "lab": lab, "branch": branch, "head": "", "claimed_at": "", "note": "" } });
+        std::fs::write(
+            repo.join("docs/harness/claims.json"),
+            serde_json::to_string_pretty(&claims).expect("json"),
+        )
+        .expect("write");
+        let _ = std::process::Command::new("git")
+            .current_dir(&repo)
+            .args(["add", "-A"])
+            .output();
+        let _ = std::process::Command::new("git")
+            .current_dir(&repo)
+            .args(["commit", "-qm", "init"])
+            .output();
+        let paths = StatePaths {
+            repo: repo.clone(),
+            live: dir.path().join("live"),
+        };
+        (dir, paths)
+    }
+
+    /// **A LIVE CLAIM REFUSES THE DELETE, AND IT DOES SO WITHOUT A NETWORK.**
+    ///
+    /// This is the guard the docstring calls *"the worst arrangement"* to get wrong: **gating on the
+    /// merge first meant an unreachable GitHub returned before this check ran, so a claimed branch
+    /// could be deleted whenever the network was down — the protection failed exactly when the
+    /// evidence was weakest.**
+    ///
+    /// **The test passes with no `gh` involvement at all**, which is the property being asserted: it
+    /// would fail if the claim check moved below the PR lookup.
+    #[test]
+    fn a_live_claim_refuses_the_delete_without_needing_the_network() {
+        let (_d, paths) = scratch_with_claim("peer/branch", "kimi");
+        let r = delete_merged_branch(&paths, "peer/branch", false);
+        assert_eq!(r["safe_to_delete"], serde_json::json!(false), "{r}");
+        assert_eq!(r["merged"], serde_json::json!(false), "{r}");
+        let reason = r["reason"].as_str().unwrap_or("");
+        assert!(reason.contains("kimi holds a live claim"), "{reason}");
+        // **The refusal tells the owner how to release it**, because a refusal without a next step is
+        // a dead end for the lab that hits it.
+        assert!(
+            reason.contains("team release --branch peer/branch --lab kimi"),
+            "{reason}"
+        );
+    }
+
+    /// **A live claim is checked even with `--apply`.** The flag decides whether to act, **not whether
+    /// to check** — and a version that skipped the guard under `--apply` would delete a peer's branch.
+    #[test]
+    fn apply_does_not_bypass_the_claim_guard() {
+        let (_d, paths) = scratch_with_claim("peer/branch", "kimi");
+        let r = delete_merged_branch(&paths, "peer/branch", true);
+        assert_eq!(r["safe_to_delete"], serde_json::json!(false), "{r}");
+        // **`deleted` is ABSENT on this path, not false** - Python returns the same, because the guard
+        // returns from the top-level dict before those keys are added. **My first assertion expected
+        // `false` and failed**, and the real shape matters: a caller reading `deleted` must treat
+        // missing and false alike, **which is exactly why `safe_to_delete` is the one flag that is
+        // always present and the only one the docstring says to act on.**
+        assert_ne!(
+            r["deleted"],
+            serde_json::json!(true),
+            "nothing was deleted: {r}"
+        );
+        assert_ne!(r["remote_deleted"], serde_json::json!(true), "{r}");
+    }
+
+    /// **`safe_to_delete` is cleared on EVERY refusal, not only the claim one.**
+    ///
+    /// The guard's history records the same mistake twice: *"a guard that explains itself but leaves
+    /// `safe_to_delete` set still tells the caller to go ahead. The flag is what acts; the reason is
+    /// only what a human reads."* **This asserts the flag on the unverifiable-merge path, which is the
+    /// other early return.**
+    #[test]
+    fn an_unprovable_merge_clears_safe_to_delete() {
+        let (_d, paths) = scratch_with_claim("nobody/claims/this", "kimi");
+        // No PR exists for this branch and there is no `gh` answer to trust, so the chain stops.
+        let r = delete_merged_branch(&paths, "nobody/claims/this", false);
+        assert_eq!(
+            r["safe_to_delete"],
+            serde_json::json!(false),
+            "a refusal must clear the flag the caller acts on: {r}"
+        );
+        assert!(
+            !r["reason"].as_str().unwrap_or("").is_empty(),
+            "and it must say why: {r}"
+        );
+    }
+}

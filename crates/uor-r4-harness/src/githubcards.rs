@@ -523,7 +523,11 @@ pub fn trim_comments(comments: Option<&Value>) -> Vec<Value> {
 /// **Python's `subprocess.run(timeout=…)` reads stdout and stderr concurrently**, which is why the
 /// original never had this. The port now does the same: **two reader threads, then poll for exit.**
 /// The threads are joined before returning, so no reader outlives the call.
-fn gh_json(subargs: &[&str], repo: &std::path::Path) -> (bool, Value, String) {
+/// The single `gh` entry point, exposed so `git delete-merged` proves a merge the same way.
+///
+/// **It drains the pipes and enforces the timeout** - the fix for the deadlock the live chain test
+/// caught - **so every caller gets that behaviour rather than re-implementing the spawn.**
+pub fn gh_json(subargs: &[&str], repo: &std::path::Path) -> (bool, Value, String) {
     use std::io::Read;
     use std::process::{Command, Stdio};
 
