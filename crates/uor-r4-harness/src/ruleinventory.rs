@@ -132,6 +132,15 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "harness.skills.nonempty",
             "harness.mistakes.have_guards",
             "harness.state_formats",
+            // **The rule that guards every future owner rule from being silently omitted**, added
+            // when it was written and never registered here - so coverage UNDER-REPORTED by one
+            // while `parity` reported the rule as still in Python and was believed.
+            "harness.owner_rules_applied",
+            // `harness.entry_point` is ported; **`harness.documented_commands` deliberately is NOT**
+            // and stays in Python, because Python resolves a documented command through the live
+            // `argparse` parser and a Rust version without that introspection could only check the
+            // command word - **a weaker check wearing the name of the real one.** See `doccheck.rs`.
+            "harness.entry_point",
         ],
     ),
 ];

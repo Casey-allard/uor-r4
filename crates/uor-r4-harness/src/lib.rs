@@ -25,6 +25,7 @@ pub mod briefing;
 pub mod briefingrules;
 pub mod budgetrules;
 pub mod contract;
+pub mod doccheck;
 pub mod githelp;
 pub mod harnessrules;
 pub mod harnessrules_stateformats;
