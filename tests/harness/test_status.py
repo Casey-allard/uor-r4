@@ -16,6 +16,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import pathlib
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -557,14 +558,22 @@ class RuleTest(StatusTestBase):
         results = rule.check(self.paths, self.reg)
         self.assertNotIn("m1", {r.meta.get("milestone") for r in results})
 
-    def test_registry_vs_github_degrades_to_info_without_gh(self) -> None:
+    def test_registry_vs_github_warns_and_does_not_pass_without_gh(self) -> None:
+        """**A check that cannot run is not a check that passed.**
+
+        This asserted `ok=True` and `severity="info"` - so a lab without GitHub access got a green
+        `check` on the rule whose entire job is to notice that `milestones.json` and the milestone
+        issue have drifted apart. **The test named the defect and pinned it as intended behaviour.**
+        `warn`/`ok=False` now, because a permanently-red check gets ignored and a silent green one
+        is worse.
+        """
         rule = [r for r in status.register_rules() if r.id == "status.registry_vs_github"][0]
         with mock.patch.object(status, "gh_json", FakeGh(fail="offline")):
             results = rule.check(self.paths, self.reg)
         self.assertEqual(len(results), 1)
-        self.assertTrue(results[0].ok)
-        self.assertEqual(results[0].severity, "info")
-        self.assertIn("GitHub unavailable", results[0].message)
+        self.assertFalse(results[0].ok, "a check that could not run is not ok")
+        self.assertEqual(results[0].severity, "warn")
+        self.assertIn("NOT cross-checked", results[0].message)
 
     def test_registry_vs_github_compares_the_newest_card(self) -> None:
         rule = [r for r in status.register_rules() if r.id == "status.registry_vs_github"][0]
@@ -1004,3 +1013,54 @@ class TestClaimsPreservingCheckout(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class TestRegistryVsGithubCannotRun(unittest.TestCase):
+    """A check that cannot run must not report as a pass.
+
+    **Both unavailability paths returned `info` with `ok=True`**, so a lab without GitHub access got
+    a green `check` on the rule whose entire job is to notice that `milestones.json` and the
+    milestone issue have drifted apart. Same defect as `harness.state_formats`, same fix.
+    """
+
+    def _paths_and_reg(self):
+        import core
+        import registries
+
+        repo = pathlib.Path(__file__).resolve().parents[2]
+        paths = core.HarnessPaths(
+            repo=repo, harness=repo / "docs" / "harness", state=repo / ".harness"
+        )
+        return paths, registries.Registry.load(paths)
+
+    def test_a_raising_lookup_reports_a_warning_not_a_pass(self):
+        import status
+
+        paths, reg = self._paths_and_reg()
+        original = status.github_issues
+        try:
+            status.github_issues = lambda *a, **k: (_ for _ in ()).throw(
+                RuntimeError("gh exploded")
+            )
+            results = status._rule_registry_vs_github(paths, reg)
+        finally:
+            status.github_issues = original
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0].ok, "a lookup that raised is not a pass")
+        self.assertEqual(results[0].severity, "warn")
+        self.assertIn("NOT cross-checked", results[0].message)
+
+    def test_github_reported_unavailable_reports_a_warning_not_a_pass(self):
+        import status
+
+        paths, reg = self._paths_and_reg()
+        original = status.github_issues
+        try:
+            status.github_issues = lambda *a, **k: {"available": False, "reason": "rate limited"}
+            results = status._rule_registry_vs_github(paths, reg)
+        finally:
+            status.github_issues = original
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0].ok, "GitHub being unavailable is not a pass")
+        self.assertEqual(results[0].severity, "warn")
+        self.assertIn("NOT cross-checked", results[0].message)

@@ -812,8 +812,31 @@ fn mechanism_path(paths: &StatePaths, mechanism: &str) -> String {
 /// UTC rather than local time, matching the shard-month rule: the sheet's date is part of its
 /// filename and its identity, and two labs on different offsets must not disagree about which day a
 /// pre-registration belongs to. The receipt keeps the local offset for readability.
+/// The **LOCAL** date, `YYYY-MM-DD` — the date a human would write on the sheet.
+///
+/// **This was the UTC date and that was a real defect.** It sliced `now_rfc3339()[..10]`, while
+/// Python's `core.today()` is `datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")` —
+/// **UTC converted to local.** In a US evening the two differ by a day, so **`parity` failed on a
+/// schedule for roughly the last five hours of every US working day**: the sheet Rust rendered said
+/// `2026-10-14` and the sheet Python rendered said `2026-10-13`.
+///
+/// **A verification that fails on a schedule is one people learn to ignore**, and this one had been
+/// failing in CI as well as locally. The recorded date is the one a reader would write, so local is
+/// the correct answer and UTC was the bug.
+///
+/// `date` is asked rather than the offset computed because **the crate has no timezone dependency
+/// upgrade to make here**: `team.rs` already shells out for `%z` and `budgetrules.rs` for `df`, and
+/// these are system facts rather than model data. The UTC slice remains as the fallback, so a host
+/// without `date` behaves exactly as before rather than failing.
 pub fn today() -> String {
-    crate::receipt::now_rfc3339()[..10].to_string()
+    std::process::Command::new("date")
+        .arg("+%Y-%m-%d")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .filter(|s| s.len() == 10 && s.as_bytes()[4] == b'-' && s.as_bytes()[7] == b'-')
+        .unwrap_or_else(|| crate::receipt::now_rfc3339()[..10].to_string())
 }
 
 #[cfg(test)]
@@ -861,5 +884,43 @@ mod applicable_rules_tests {
                 "{rid} is cited but has no text in the registry"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod today_tests {
+    use super::*;
+
+    /// **The local date, not the UTC date.** This was `now_rfc3339()[..10]`, which differs from the
+    /// local date by a day in a US evening — so `parity` failed on a schedule and the sheet Rust
+    /// rendered disagreed with the sheet Python rendered.
+    #[test]
+    fn today_is_the_local_date() {
+        let local = std::process::Command::new("date")
+            .arg("+%Y-%m-%d")
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .expect("`date` is available on this host");
+        assert_eq!(
+            today(),
+            local,
+            "today() must be the LOCAL date, as Python's is"
+        );
+        assert_eq!(today().len(), 10);
+    }
+
+    /// The shape is asserted because a malformed date would flow into a sheet's front matter and a
+    /// file name without failing anything here.
+    #[test]
+    fn today_has_the_expected_shape() {
+        let t = today();
+        let b = t.as_bytes();
+        assert_eq!(b[4], b'-', "{t}");
+        assert_eq!(b[7], b'-', "{t}");
+        assert!(t[..4].chars().all(|c| c.is_ascii_digit()), "{t}");
+        assert!(t[5..7].chars().all(|c| c.is_ascii_digit()), "{t}");
+        assert!(t[8..].chars().all(|c| c.is_ascii_digit()), "{t}");
     }
 }

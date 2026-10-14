@@ -1595,7 +1595,20 @@ def _rule_heartbeat_receipts(paths: HarnessPaths, reg: Registry) -> list[RuleRes
 
 
 def _rule_registry_vs_github(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
-    """The registry headline must agree with the newest card on the milestone issue."""
+    """The registry headline must agree with the newest card on the milestone issue.
+
+    **A check that cannot run is not a check that passed.** Both unavailability paths below
+    returned `info` with `ok=True`, so a lab without GitHub access got a **green `check`** on the
+    rule whose entire job is to notice that `milestones.json` and the milestone issue have drifted
+    apart. **This is the same defect `harness.state_formats` had**, and the same fix: `warn` with
+    `ok=False`.
+
+    **`error` would be wrong, and the argument is stronger here than for a missing binary.** GitHub
+    rate-limits, and a lab working offline is not violating anything - **a permanently-red check
+    gets ignored.** But the two unavailability cases are not the same: *"GitHub is rate-limiting me
+    right now"* and *"this registry has disagreed with its issue for a week"* both produced one green
+    info line. **They still share a severity, and what changes is that neither is silent.**
+    """
     numbers = [m.issue for m in reg.milestones.all()]
     try:
         snap = github_issues(paths, numbers, with_comments=True)
@@ -1603,9 +1616,12 @@ def _rule_registry_vs_github(paths: HarnessPaths, reg: Registry) -> list[RuleRes
         return [
             RuleResult(
                 rule_id="status.registry_vs_github",
-                severity="info",
-                ok=True,
-                message=f"GitHub not checked: {type(exc).__name__}: {exc}",
+                severity="warn",
+                ok=False,
+                message=(
+                    "the registry was NOT cross-checked against GitHub: "
+                    f"{type(exc).__name__}: {exc}"
+                ),
                 path=str(paths.milestones_json),
             )
         ]
@@ -1613,9 +1629,12 @@ def _rule_registry_vs_github(paths: HarnessPaths, reg: Registry) -> list[RuleRes
         return [
             RuleResult(
                 rule_id="status.registry_vs_github",
-                severity="info",
-                ok=True,
-                message=f"GitHub unavailable, registry not cross-checked: {snap.get('reason', '')}",
+                severity="warn",
+                ok=False,
+                message=(
+                    "the registry was NOT cross-checked against GitHub (unavailable): "
+                    f"{snap.get('reason', '')}"
+                ),
                 path=str(paths.milestones_json),
                 meta={"github": False},
             )
