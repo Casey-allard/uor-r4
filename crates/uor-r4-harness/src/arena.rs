@@ -143,6 +143,166 @@ pub fn render_lineage(chain: &[&Candidate]) -> String {
     out
 }
 
+// --------------------------------------------------------------------------------- arena board
+
+/// Python's `str()` for a JSON scalar, which is how `limits` is read before it is trimmed.
+fn py_str_of(v: &Value) -> String {
+    match v {
+        Value::String(s) => s.clone(),
+        Value::Null => "None".to_string(),
+        Value::Bool(b) => if *b { "True" } else { "False" }.to_string(),
+        Value::Number(n) => n.to_string(),
+        other => other.to_string(),
+    }
+}
+
+/// `util.truncate`: collapse the whitespace, then cut to `limit` code points on an ellipsis.
+fn truncate(text: &str, limit: usize) -> String {
+    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.chars().count() <= limit {
+        return collapsed;
+    }
+    let head: String = collapsed.chars().take(limit.saturating_sub(1)).collect();
+    format!("{}…", head.trim_end())
+}
+
+/// A `serde_json::Value` as an `Ordered` node - for the scalar fields `board --json` copies through.
+fn ord(v: &Value) -> crate::ordered::Ordered {
+    use crate::ordered::Ordered;
+    match v {
+        Value::Null => Ordered::Null,
+        Value::Bool(b) => Ordered::Bool(*b),
+        Value::Number(n) => Ordered::Num(n.clone()),
+        Value::String(s) => Ordered::Str(s.clone()),
+        Value::Array(items) => Ordered::Arr(items.iter().map(ord).collect()),
+        Value::Object(map) => Ordered::Obj(map.iter().map(|(k, v)| (k.clone(), ord(v))).collect()),
+    }
+}
+
+/// `arena board`, as Python prints it.
+///
+/// **The rows are sorted by `date` and by nothing else, stably.** That is the whole point of the
+/// table: it is a lineage in the order things were measured, not a ranking.
+pub fn render_board(arena: &Arena) -> String {
+    let mut out = String::new();
+    if arena.rows.is_empty() {
+        out.push_str(&format!("arena: no rows recorded yet ({HISTORY})\n"));
+        out.push_str(
+            "  a row is one evaluated geometric configuration; add them as they are measured\n",
+        );
+        return out;
+    }
+    out.push_str(&format!(
+        "the regression arena - {} evaluated configuration(s)\n",
+        arena.rows.len()
+    ));
+    out.push_str(&format!(
+        "{:<26} {:<10} {:<16} {:<16} parent\n",
+        "id", "milestone", "verdict", "confidence"
+    ));
+    out.push_str(&format!("{}\n", "-".repeat(90)));
+    let mut rows: Vec<&Candidate> = arena.rows.iter().collect();
+    // `sort_by` is stable, as Python's `sorted` is: rows sharing a date keep file order.
+    rows.sort_by(|a, b| a.date.cmp(&b.date));
+    for c in rows {
+        out.push_str(&format!(
+            "{:<26} {:<10} {:<16} {:<16} {}\n",
+            c.id,
+            c.milestone,
+            c.verdict,
+            c.confidence,
+            c.parent.clone().unwrap_or_else(|| "-".to_string())
+        ));
+    }
+    // Python: `str(arena.raw.get("limits", "")).strip()` - absent is empty, present-null is `None`.
+    let limits = arena
+        .raw
+        .get("limits")
+        .map(py_str_of)
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    out.push('\n');
+    out.push_str(&format!(
+        "limits: {}\n",
+        if limits.is_empty() {
+            "NOT STATED".to_string()
+        } else {
+            truncate(&limits, 300)
+        }
+    ));
+    out.push('\n');
+    out.push_str("compare one against its parent:  cli.py arena compare <id>\n");
+    out
+}
+
+/// `arena board --json`.
+///
+/// **`scores` keeps the FILE's key order**, because the real data needs it: `addressed-read` writes
+/// `wrong_value_failures` before `memory`, and `serde_json::Value` would sort that away. Everything
+/// else is Python's `c.__dict__` — the dataclass declaration order, with absent fields normalised to
+/// `""`/`null`/`{}`.
+///
+/// **`ensure_ascii` is ON here**, unlike `panel show`: this call is plain `json.dumps(..., indent=2)`,
+/// whose default escapes non-ASCII.
+pub fn board_json(arena: &Arena, repo: &Path) -> String {
+    use crate::ordered::Ordered;
+    let mut scores_by_id: Vec<(String, Ordered)> = Vec::new();
+    if let Ok(text) = std::fs::read_to_string(repo.join(HISTORY)) {
+        if let Ok(doc) = Ordered::parse(&text) {
+            if let Some(list) = doc.get("candidates").and_then(Ordered::as_array) {
+                for c in list {
+                    if let Some(id) = c.get("id").and_then(Ordered::as_str) {
+                        scores_by_id.push((
+                            id.to_string(),
+                            c.get("scores").cloned().unwrap_or(Ordered::Obj(Vec::new())),
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    let items: Vec<Ordered> = arena
+        .rows
+        .iter()
+        .map(|c| {
+            let scores = scores_by_id
+                .iter()
+                .find(|(id, _)| id == &c.id)
+                .map(|(_, s)| s.clone())
+                .unwrap_or(Ordered::Obj(Vec::new()));
+            let parent = c.parent.clone().map(Ordered::Str).unwrap_or(Ordered::Null);
+            Ordered::Obj(vec![
+                ("id".to_string(), Ordered::Str(c.id.clone())),
+                ("artifact".to_string(), Ordered::Str(c.artifact.clone())),
+                ("milestone".to_string(), Ordered::Str(c.milestone.clone())),
+                ("date".to_string(), Ordered::Str(c.date.clone())),
+                ("parent".to_string(), parent),
+                ("verdict".to_string(), Ordered::Str(c.verdict.clone())),
+                ("confidence".to_string(), Ordered::Str(c.confidence.clone())),
+                ("mechanism".to_string(), Ordered::Str(c.mechanism.clone())),
+                ("panel".to_string(), Ordered::Str(c.panel.clone())),
+                ("seeds".to_string(), ord(&c.seeds)),
+                ("rows".to_string(), ord(&c.rows)),
+                ("scope".to_string(), Ordered::Str(c.scope.clone())),
+                ("scores".to_string(), scores),
+                ("notes".to_string(), Ordered::Str(c.notes.clone())),
+                ("record".to_string(), Ordered::Str(c.record.clone())),
+            ])
+        })
+        .collect();
+    let limits = arena
+        .raw
+        .get("limits")
+        .cloned()
+        .unwrap_or_else(|| Value::String(String::new()));
+    let doc = Ordered::Obj(vec![
+        ("candidates".to_string(), Ordered::Arr(items)),
+        ("limits".to_string(), ord(&limits)),
+    ]);
+    crate::registries::ensure_ascii(&doc.to_pretty())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -214,6 +374,97 @@ mod tests {
         std::fs::create_dir_all(dir.join("docs").join("harness")).expect("dirs");
         std::fs::write(dir.join(HISTORY), "{ not json").expect("write");
         assert!(load(&dir).rows.is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn board_row(
+        id: &str,
+        date: &str,
+        milestone: &str,
+        verdict: &str,
+        confidence: &str,
+        parent: Option<&str>,
+    ) -> Candidate {
+        Candidate {
+            id: id.to_string(),
+            date: date.to_string(),
+            milestone: milestone.to_string(),
+            verdict: verdict.to_string(),
+            confidence: confidence.to_string(),
+            parent: parent.map(str::to_string),
+            ..Candidate::default()
+        }
+    }
+
+    #[test]
+    fn the_board_lists_rows_by_date_not_by_rank() {
+        let arena = Arena {
+            rows: vec![
+                board_row(
+                    "later",
+                    "2026-10-12",
+                    "m2",
+                    "REJECT",
+                    "provisional",
+                    Some("earlier"),
+                ),
+                board_row("earlier", "2026-10-10", "m1", "KEEP", "decisive", None),
+            ],
+            raw: serde_json::json!({"limits": "  a   stated   limit  "}),
+        };
+        let text = render_board(&arena);
+        let first = text.find("earlier").expect("first row");
+        let second = text.find("later").expect("second row");
+        assert!(first < second, "date order, not file order: {text}");
+        assert!(
+            text.contains("the regression arena - 2 evaluated configuration(s)"),
+            "{text}"
+        );
+        // `limits` collapses whitespace before it is printed.
+        assert!(text.contains("limits: a stated limit"), "{text}");
+        assert!(
+            text.trim_end()
+                .ends_with("compare one against its parent:  cli.py arena compare <id>"),
+            "{text}"
+        );
+        // A root row prints `-` where its parent would be, in the last column.
+        assert!(text.contains("decisive         -\n"), "{text}");
+    }
+
+    #[test]
+    fn an_empty_arena_says_so_rather_than_printing_nothing() {
+        let text = render_board(&Arena::default());
+        assert_eq!(
+            text,
+            concat!(
+                "arena: no rows recorded yet (docs/harness/arena.json)\n",
+                "  a row is one evaluated geometric configuration; add them as they are measured\n"
+            )
+        );
+    }
+
+    /// **`scores` keeps the file's key order**, which is the reason `Ordered` exists: the real arena
+    /// writes `wrong_value_failures` before `memory`, and a `BTreeMap` would print `memory` first.
+    #[test]
+    fn the_board_json_keeps_the_files_score_order() {
+        let dir = std::env::temp_dir().join(format!("harness-arena-board-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("docs").join("harness")).expect("dirs");
+        std::fs::write(
+            dir.join(HISTORY),
+            r#"{"limits": "L", "candidates": [{"id": "a-row", "date": "2026-10-10", "scores": {"z_metric": 1, "a_metric": 2}}]}"#,
+        )
+        .expect("write");
+        let arena = load(&dir);
+        let text = board_json(&arena, &dir);
+        let z = text.find("z_metric").expect("z");
+        let a = text.find("a_metric").expect("a");
+        assert!(z < a, "file order, not sorted: {text}");
+        assert!(
+            text.contains("\"parent\": null"),
+            "absent parent is null: {text}"
+        );
+        assert!(text.contains("\"limits\": \"L\""), "{text}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

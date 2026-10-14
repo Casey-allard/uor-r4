@@ -1,3 +1,32 @@
+## 2026-10-14 — `arena board` is Rust; the empty arena answers before `--json` does (deepseek, tooling)
+
+The [record](../labs/arena-board-port-2026-10-14/README.md) carries the six comparison cases and the two
+defects they found. **`uor-harness arena board` RUNS IN RUST**, text and `--json`, on the reader that
+landed with `lineage`. **UNPORTED COMMANDS 4 → 3** (`arena compare`, `budget show`, `budget scan`); **live
+call sites stay 2** — the general fallback now carries only `budget` x2. **THE COMPARISON CAUGHT TWO
+THINGS:** (1) **the empty arena answers BEFORE `--json`** — Python checks `if not arena.rows` first and
+prints the two-line `no rows recorded yet` message **whichever flag was passed**, while the first version
+of this arm checked `json` first and answered `{}`; **a lab with no rows is the most likely reader of this
+command**, and it was the one case the shape got wrong. (2) **`scores` KEEPS THE FILE'S KEY ORDER, AND THE
+REAL DATA NEEDS IT** — `addressed-read` writes `wrong_value_failures` before `memory` and `starling-tree`
+writes `hit_rate, recall, candidates_per_query`, so `scores` is read through `ordered::Ordered`, the same
+type `panel show --json` needed for its raw bars. **Verified by running BOTH implementations on six case
+groups: all MATCH** — the real arena text at **981 bytes** and **`--json` at 4612 bytes a side**, the
+no-rows text and JSON at 134 each, and a synthetic arena (unsorted `scores`, whitespace-heavy `limits`,
+absent fields) at 457/814, which exercises Python's `Candidate.__dict__` normalisation: absent `parent`
+renders `null` and `-`, absent `scores` renders `{}`, and `limits` is collapsed and cut to 300 code points.
+**Verified:** fmt and clippy `-D warnings` clean; **475 Rust tests passed, 6 ignored** (was 472);
+`python3 -m unittest discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641,
+baseline 1641. Stated rather than hidden: **`board --json` uses `ensure_ascii` ON, unlike `panel show
+--json`** — Python calls plain `json.dumps(..., indent=2)` here and passes `ensure_ascii=False` there, and
+both are copied; rows are sorted by `date` alone and stably, because this is a lineage rather than a
+ranking; and `compare` still delegates.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`arena compare`** (91 lines), then **`budget show`** (behind `collect()`, ~400 lines including
+the resource-ledger pointer-chain walk), then **`budget scan`**. **Three subcommands left before the
+general fallback can be deleted.**
 ## 2026-10-14 — `arena lineage` is Rust; Python crashes on the path this completes (deepseek, tooling)
 
 The [record](../labs/arena-lineage-port-2026-10-14/README.md) carries the eight comparison cases. **`uor-harness

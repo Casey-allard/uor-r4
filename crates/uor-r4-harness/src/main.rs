@@ -3048,8 +3048,8 @@ fn cmd_ledger(repo: &Path, json: bool) -> ExitCode {
 /// **regression** arena: the report is row by row against the parent, never an aggregate, because a
 /// candidate that gains 0.02 BPB while losing three memory rows is a regression with a headline.
 // The `--json` flag is deliberately unused here: Python's `lineage` action ignores it, because the
-// chain is already a list of ids, and the two actions that DO honour it are still delegated.
-fn cmd_arena(repo: &Path, args: &[String], _json: bool) -> ExitCode {
+// chain is already a list of ids); `board` honours it; `compare` is still delegated.
+fn cmd_arena(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     let arena = arena::load(&paths.repo);
     match action_word(args) {
@@ -3072,7 +3072,23 @@ fn cmd_arena(repo: &Path, args: &[String], _json: bool) -> ExitCode {
             print!("{}", arena::render_lineage(&chain));
             ExitCode::SUCCESS
         }
-        "board" | "compare" => delegate_to_python(repo, "arena", args),
+        "board" => {
+            // **The empty arena answers BEFORE the `--json` branch**, which is what Python does: a lab
+            // with no rows gets "no rows recorded yet" whichever flag it passed, not an empty document.
+            // The first version of this arm checked `json` first and answered `{}` where Python answers
+            // with the sentence.
+            if arena.rows.is_empty() {
+                print!("{}", arena::render_board(&arena));
+                return ExitCode::SUCCESS;
+            }
+            if json {
+                println!("{}", arena::board_json(&arena, &paths.repo));
+            } else {
+                print!("{}", arena::render_board(&arena));
+            }
+            ExitCode::SUCCESS
+        }
+        "compare" => delegate_to_python(repo, "arena", args),
         "" => {
             eprintln!("uor-harness arena: which action? board, compare, lineage");
             ExitCode::from(2)
