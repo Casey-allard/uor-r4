@@ -6,7 +6,7 @@
 - mechanism brief: docs/mechanisms/discrete-geometric-learning.md
 - run: Rung 0 on the DISCRETE stack — train the merged discrete SpiralCore/FBS model (`crates/uor-r4-discrete`, merged at `5cb36188e`, construction-qualified source `a2a5b89cdddd1b32bf32f0e3c18d6b21e994e523`, 11/11 exact controls PASS in the admitted attempt3) on mw-balp with the integer margin objective and the enumerated bivector-move learning law; 2 paired seeds; GPU-only on one admitted pod (D24/D26)
 - line: evaluation integrity - count 1/3 (D21/D22 count is owned by the milestone, not this sheet; no count is reset by this sheet)
-- amendments: none yet
+- amendments: **Amendment 1** (kimi/pm1, 2026-10-14) - D1/D2 landed and merged (PR #2400, `6ba08ab3f`); spec/dose/cost pins completed from measured values; anti-vacuity guard redefined as strict distance-win rate (PM decision [#2029 comment 6157957610](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6157957610), corrected [6158076739](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6158076739)); Codex sheet feedback ([6156858784](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6156858784), disposition [6156948254](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6156948254)) and adjudicated audit items ([#2028 6157852969](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6157852969), Codex source check [6157905825](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6157905825)) incorporated
 - supersedes: `m1-rank-margin-rung0-2026-10-13.md` (F32 optimizer law, FIT at Amendment 6, FROZEN by Amendment 7 under D32 — retained as the design record; its lawful pins carry over here as marked)
 
 This sheet registers a TRAINING run on the discrete learning law. It succeeds the frozen F32
@@ -184,8 +184,74 @@ Decisive bars are the scale-invariant rank measures carried over from the frozen
    uncertainty is whether the discrete law learns anything at all on real data. This is the
    cheapest decisive check of exactly that question, and it gates any larger campaign.
 
+## Amendment 1 (2026-10-14) — D1/D2/D3 landed; pins completed from measured values
+
+**Landed inputs.** Codex's D1/D2 driver merged as PR #2400 (`6ba08ab3f`), executable source
+`e7d926fbe38537f4faa90b817705c61a780778d6`: 25/25 finite controls PASS (11 Route + 6 flock +
+8 driver) with 11 bounded fixture apply calls / 8 accepted authored updates / zero corpus
+updates; prospective FIT by an independent non-author Codex reviewer under the owner standing
+exact-head review allowance ([#2029 6158278165](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6158278165);
+Claude's original conditional FIT [6158018177](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6158018177)
+and its A1 conditions are preserved unchanged). D2 measured cost posted at
+[6158385671](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6158385671).
+Claude's prospective test-design pins ([6157700698](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6157700698))
+are implemented in the driver and bind this sheet's corpus/mask/apply semantics.
+
+1. **Spec pinned (D3 resolved).** vocabulary 4096, **blocks 4**, **context 192**, batch 64
+   with final tail, writer kept K 8, stages 5, coordinate inventory 16,384 VectorBlock + 20
+   read = **16,404 coordinates**. blocks = 4 lifts the forced full-vector alias bound that
+   held at blocks = 2 (256 cells; audit item 1.3 / Codex item 1); residual within-cell ties
+   break by smallest token identity and are reported through rival eligibility counts. The
+   capacity question stays open as an instrument matter: if bars fail, inspect representation
+   capacity before assigning a model negative (D22/D31).
+2. **Schedule pinned.** One ascending coordinate per batch (VectorBlock coordinates, then
+   active read/Route coordinates), integer seeded schedule, common schedule and corpus order
+   across both seeds, checkpointed with exact resume. Do NOT multiply the whole inventory by
+   every batch — the schedule attempts one coordinate per batch.
+3. **Seeds.** 1 and 2, paired — unchanged.
+4. **Anti-vacuity guard redefined (supersedes the "zero hinge violation" guard above).** The
+   guard is the **strict distance-win rate** — the fraction of eligible scored dev positions
+   with `td < rival_distance` under the pinned tie order — at **>= max(5x the same-seed
+   untrained zero-move strict-win rate, 1% absolute)** on both seeds. It is compared only
+   against its own untrained constant; no new frequency baseline is invented, and the count
+   reference keeps its raw top-1/recall@8 semantics for bars (i)/(ii). Zero-hinge (margin)
+   rate and the exact hinge distribution are **reported diagnostics only**. Ineligible or
+   zero-comparison rows never count as successes. The evaluator emits per-row token/address
+   hinges, rival eligibility counts and aggregate strict wins; no raw (td, rival_distance)
+   histogram is claimed to exist. Exact integer reference counts are recomputed in-run by the
+   qualified evaluator and reported; a mismatch against expectation is reported, not absorbed.
+5. **Steps unblocked.** `init --seed` → in-run masked-TRAIN count-reference construction
+   (GPU, exact integer counting, DEV excluded) → coordinate schedule over train windows
+   (BOS-segmented; no window crosses BOS; masked positions contribute no target and no
+   eligibility; a wholly masked batch refuses, not scores zero) → propose/choose/apply →
+   dev scoring at 25% / 50% / 75% / 100% of the pass (each ~9 s at the measured forward
+   rate). `apply` executes under this sheet only after D4; the train/admission path refused
+   until then.
+6. **Dose and cost pinned from D2 measurements** (median of 3 warmed repetitions, RTX 5090,
+   integer ns, PTX JIT excluded and reported separately): forward 37.8 ms per 64-row batch
+   (1,691 target rows/s — rows, NOT decode tokens); proposal 3.90 s (VectorBlock) / 3.96 s
+   (Route/Gate). **Dose: one complete coordinate pass per seed** = 16,404 batches ≈
+   1.05M row exposures (train has 2,425,925 targets — one pass covers ~43% once). Projection:
+   ~17.8 h and ~$16.2 per seed at the quoted $0.908/h; ~35.6 h / ~$32.3 total for both seeds
+   on one GPU — **UNVERIFIED projection** from measured per-proposal cost, inside the owner
+   caps (1 pod, $0.908/h <= $8/h). Dev evaluations add ~1 min total. Checkpoints, retries and
+   lease renewals ride the same lease per the stop rule.
+7. **Outcome decisions.** KEEP = bars (i)/(ii) and the strict-win guard on both seeds →
+   report fresh transfer (D22 §4) and open the successor-dose question. Iterate = movement
+   above untrained but below bar → same-configuration dose/schedule change only. Blocker =
+   instrument or arithmetic fault → repair the instrument and re-run (D31); never a negative.
+   A below-guard result closes THIS configuration only (D22); named successor configurations
+   — stage-indexed BRANCH generators (audit 1.2, pending Codex/Claude's exact check) and
+   orbit-indexed counterfactual candidates (audit 1.4) — are recorded, not adopted pre-run.
+8. **Scope unchanged:** Route/VectorBlock parameters only; Gate (kind 3) and the flock read
+   remain reserved for a separately declared arm after their own finite qualification. No
+   floating point anywhere in the run (D32; the zeta-complex-plane addendum is not used by
+   this sheet). Training stays HELD until the owner releases D4.
+
 ## Verdict
 
-TEST FITNESS: PENDING — dependencies D1–D3 unlanded; review requested from the assigned
-milestone reviewer only when Codex posts D1/D2 heads. This sheet registers intent and pins
-everything that is pinnable today; nothing executes.
+TEST FITNESS: PENDING — review requested from the Claude lab on Amendment 1 (items 1–8 above,
+against merged source `e7d926fbe` at `6ba08ab3f`). If Claude is unreachable within one working
+cycle, the documented independent non-author review path under the owner standing allowance
+applies and is recorded with explicit provenance. Dependencies D1–D3 are LANDED; D4 (owner
+hold release) remains an execution gate, not a FIT gate. Nothing executes.

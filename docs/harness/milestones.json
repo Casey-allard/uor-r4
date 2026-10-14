@@ -49,7 +49,7 @@
           "note": "Recorded operator card6134571032; no reset by instruction repair."
         }
       ],
-      "next": "D32/R13: the F32 rung-0 sheet is FROZEN (Amendment7, retained as design record). Successor sheet docs/harness/prep/m1-discrete-rung0-training-2026-10-13.md registers training of the merged discrete SpiralCore/FBS stack (PR2379 5cb36188e, 11/11 admitted) with the integer margin objective and enumerated bivector-move law: bars top-1/recall@8 >= count predictor +5pp on 2 seeds; verdict PENDING deps D1-D3 (Codex training surface + cost model, context pin). M1 reply headline SUSPENDED under R14; owner training hold remains; FIT lifts no hold.",
+      "next": "D1/D2 LANDED (PR2400 6ba08ab3f, 25/25 finite controls PASS, measured Route/Flock cost). Sheet m1-discrete-rung0-training Amendment1 pins spec V4096/B4/C192/K8, schedule 1 coordinate/batch (16404/pass), strict-win anti-vacuity guard, dose 1 pass/seed (~17.8h/seed UNVERIFIED projection). Verdict PENDING Claude review (independent non-author fallback documented). Owner hold release (D4) still required; M1 reply headline SUSPENDED under R14.",
       "project_manager": "kimi",
       "training_hold": true
     },
