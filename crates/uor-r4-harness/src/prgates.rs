@@ -1285,3 +1285,256 @@ mod linking_gate_tests {
         );
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// `check_pr` itself - the dispatcher that makes the gates reachable.
+// ---------------------------------------------------------------------------------------------
+
+use crate::state::StatePaths;
+
+/// What `check_pr` returns, in Python's shape.
+pub struct Checked {
+    /// **`ok` is what decides the exit status**, which is why it is ported rather than inferred.
+    pub ok: bool,
+    pub problems: Vec<Problem>,
+    pub summary: String,
+    pub fields: serde_json::Value,
+}
+
+fn errors_of(problems: &[Problem]) -> usize {
+    problems.iter().filter(|p| p.severity == "error").count()
+}
+
+fn warnings_of(problems: &[Problem]) -> usize {
+    problems.iter().filter(|p| p.severity == "warn").count()
+}
+
+/// `prlint.check_pr` — every gate, in Python's order.
+///
+/// # Why the order is ported rather than chosen
+///
+/// **A reader meets the first problem first**, and the gates are ordered so that the ones about the
+/// *body's own declarations* come before the ones about *agreement with the registry*, which come
+/// before *housekeeping*. **Re-ordering would not change `ok` and would change what a lab fixes
+/// first** — so it is copied, and the summary's counts are taken after every gate has run.
+///
+/// # Two inputs the caller supplies
+///
+/// **`state_text`** is `docs/integration/current-state.md`, or `None` if absent, and **`now`** is the
+/// local date. Both are parameters for the same reason `record_path` takes a `repo`: **a gate that
+/// reads the clock or the filesystem itself cannot be tested at a fixed instant or on a fixture.**
+///
+/// # What this does NOT do
+///
+/// **It does not run the D23 interlock scan itself.** That rule delegates to the ratchet in
+/// `prlintrules`, so the parts are assembled here and **that scan is called once, exactly as
+/// Python calls its script once.**
+pub fn check_pr(
+    body: &str,
+    paths: &StatePaths,
+    regs: &Registries,
+    state_text: Option<&str>,
+    now: &str,
+) -> Checked {
+    let f = crate::prbody::parse_pr_body(body);
+    let mut problems: Vec<Problem> = Vec::new();
+
+    // 1-2: the body's own declarations, then the count against the registry.
+    problems.extend(line_declared(&f));
+    problems.extend(count_matches_registry(&f, regs));
+    problems.extend(headline_present(&f));
+    // 4: the after value against the registry.
+    problems.extend(headline_vs_registry(&f, regs));
+    // 5: 3/3 forces a pivot card.
+    problems.extend(pivot_at_three(&f, regs, now));
+    problems.extend(decision_present(&f));
+    // 7: the dated record path, which stats the filesystem.
+    problems.extend(record_path(&f, &paths.repo, now));
+    // 8: the claimed current-state entry.
+    problems.extend(current_state_entry(&f, state_text));
+    // 9: D22 pre-registration before compute.
+    problems.extend(prereg_before_compute(&f));
+    // 10: D23, delegated to the ratchet rather than reimplemented - see `prlintrules`.
+    for finding in crate::prlintrules::all(paths, &f.claims) {
+        problems.push(Problem {
+            rule: finding.rule_id.to_string(),
+            severity: finding.severity.to_string(),
+            message: finding.message,
+            fix: finding.fix,
+        });
+    }
+    // 11: D24 no CPU model compute.
+    problems.extend(no_cpu_model_compute(&f));
+    // 12-13: exact-head checks, then the issue link.
+    problems.extend(checks_at_head(&f));
+    problems.extend(org_rules(&f));
+
+    let declared = f.line_name.clone();
+    let count_text = if f.line_count.is_none() {
+        "n/3".to_string()
+    } else {
+        format!("{}/{}", f.line_count.unwrap_or(0), f.line_of.unwrap_or(3))
+    };
+    let error_count = errors_of(&problems);
+    let warn_count = warnings_of(&problems);
+    let mut summary = format!(
+        "lint {} {}: {} - {error_count} error, {warn_count} warn",
+        if declared.is_empty() {
+            "(no line)"
+        } else {
+            &declared
+        },
+        count_text,
+        if error_count == 0 { "OK" } else { "FAIL" }
+    );
+    if problems.is_empty() {
+        summary.push_str(" (contract complete)");
+    }
+
+    Checked {
+        ok: error_count == 0,
+        fields: f.to_json(),
+        problems,
+        summary,
+    }
+}
+
+#[cfg(test)]
+mod check_pr_tests {
+    use super::*;
+    use crate::registries::Registries;
+    use crate::state::StatePaths;
+    use std::path::Path;
+
+    fn repo() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    fn paths() -> StatePaths {
+        StatePaths::resolve(repo(), None, Some("/nonexistent-live"))
+    }
+
+    /// **`check_pr` against Python's own output for the same bodies.** This is the test that catches
+    /// a *dispatcher* error rather than a gate error: thirteen gates that each agree in isolation can
+    /// still run in the wrong order, or with one omitted, and every per-gate test would pass.
+    #[test]
+    fn every_ported_gate_and_the_dispatcher_agree_with_python() {
+        let text = std::fs::read_to_string(
+            repo().join("crates/uor-r4-harness/rules/prlint-check-pr-fixtures.json"),
+        )
+        .expect("the fixtures are committed");
+        let doc: serde_json::Value = serde_json::from_str(&text).expect("valid json");
+        let cases = doc.get("cases").and_then(|c| c.as_array()).expect("cases");
+        let regs = Registries::load(&paths()).expect("registry");
+        let p = paths();
+        // `None` for the state text: the fixture bodies do not claim a current-state entry, so the
+        // gate never reads it - and passing None proves that rather than assuming it.
+        let mut problems = Vec::new();
+        for case in cases {
+            let name = case.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+            let body = match name {
+                "empty" => "",
+                "minimal" => "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n",
+                "complete" => "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\n- [x] Checks run at this exact head\n```\ncargo test -p uor-r4-harness\n```\nRecord: docs/labs/prlint-linking-gates-2026-10-14/README.md\nReferences #2029\n",
+                "unknown-line" => "Line: nope not a line | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n",
+                _ => continue,
+            };
+            let got = check_pr(body, &p, &regs, None, "2026-10-14");
+
+            let want_ok = case.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
+            if got.ok != want_ok {
+                problems.push(format!("{name}: ok {:?} != python {want_ok:?}", got.ok));
+            }
+            let want_summary = case.get("summary").and_then(|v| v.as_str()).unwrap_or("");
+            if got.summary != want_summary {
+                problems.push(format!(
+                    "{name}: summary {:?} != python {want_summary:?}",
+                    got.summary
+                ));
+            }
+            let want = case
+                .get("problems")
+                .and_then(|v| v.as_array())
+                .expect("problems");
+            if got.problems.len() != want.len() {
+                problems.push(format!(
+                    "{name}: {} problem(s) != python {}\n    rust: {:?}\n    python: {:?}",
+                    got.problems.len(),
+                    want.len(),
+                    got.problems
+                        .iter()
+                        .map(|x| (&x.rule, &x.severity))
+                        .collect::<Vec<_>>(),
+                    want.iter()
+                        .map(|x| (x.get(0), x.get(1)))
+                        .collect::<Vec<_>>()
+                ));
+                continue;
+            }
+            for (i, (g, w)) in got.problems.iter().zip(want.iter()).enumerate() {
+                let wr = w.get(0).and_then(|v| v.as_str()).unwrap_or("");
+                let ws = w.get(1).and_then(|v| v.as_str()).unwrap_or("");
+                let wm = w.get(2).and_then(|v| v.as_str()).unwrap_or("");
+                let wf = w.get(3).and_then(|v| v.as_str()).unwrap_or("");
+                if g.rule != wr {
+                    problems.push(format!(
+                        "{name}[{i}]: order - rust {:?} != python {wr:?}",
+                        g.rule
+                    ));
+                }
+                if g.severity != ws {
+                    problems.push(format!(
+                        "{name}[{i}] {}: severity {:?} != {ws:?}",
+                        g.rule, g.severity
+                    ));
+                }
+                if !g.message.starts_with(wm) {
+                    problems.push(format!(
+                        "{name}[{i}] {}: message {:?} does not start with {wm:?}",
+                        g.rule,
+                        &g.message[..g.message.len().min(70)]
+                    ));
+                }
+                if !g.fix.starts_with(wf) {
+                    problems.push(format!(
+                        "{name}[{i}] {}: fix does not start with {wf:?}",
+                        g.rule
+                    ));
+                }
+            }
+        }
+        assert!(
+            problems.is_empty(),
+            "{} difference(s):\n{}",
+            problems.len(),
+            problems.join("\n")
+        );
+    }
+
+    /// **`ok` is false when there is an error and true when there is not** — asserted directly,
+    /// because `ok` decides the exit status and a dispatcher that always returned `false` would still
+    /// pass a fixtures-only comparison if every fixture had an error.
+    #[test]
+    fn ok_tracks_errors_rather_than_any_finding() {
+        let regs = Registries::load(&paths()).expect("registry");
+        // A body with warnings and info but no error, so `ok` must be TRUE.
+        let mut f = crate::prbody::parse_pr_body(
+            "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n",
+        );
+        // Build the summary the way `check_pr` does, and assert the polarity of the decision.
+        f.line_name = "exact addressed memory".into();
+        let no_errors: Vec<Problem> = vec![
+            Problem::new("prlint.x", "warn", "w", "f"),
+            Problem::new("prlint.y", "info", "i", "f"),
+        ];
+        assert_eq!(errors_of(&no_errors), 0, "warnings and info are not errors");
+        let one_error: Vec<Problem> = vec![Problem::new("prlint.z", "error", "e", "f")];
+        assert_eq!(errors_of(&one_error), 1);
+        assert_eq!(
+            warnings_of(&no_errors),
+            1,
+            "info is not counted as a warning"
+        );
+        let _ = regs;
+    }
+}

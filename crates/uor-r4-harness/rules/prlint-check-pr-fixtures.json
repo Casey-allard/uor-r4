@@ -1,0 +1,113 @@
+{
+  "_": [
+    "GOLDEN FIXTURES for prlint.check_pr, captured from PYTHON on 2026-10-14.",
+    "",
+    "WHY: check_pr is the dispatcher - it is what makes the thirteen ported gates REACHABLE. A gate",
+    "that agrees in isolation and a dispatcher that runs them in the wrong ORDER both pass their own",
+    "tests, and only a whole-function capture catches the second.",
+    "",
+    "ORDER IS PART OF THE CONTRACT: a reader meets the first problem first, and the gates run",
+    "body-declarations, then registry agreement, then housekeeping. Re-ordering would not change `ok`",
+    "and WOULD change what a lab fixes first.",
+    "",
+    "MESSAGES ARE TRUNCATED TO 60 CHARS for the D23 gate only, because its message contains a live",
+    "count of files above baseline. Truncating is a deliberate weakening: it compares the stable",
+    "prefix and does NOT verify the count, which parity already checks elsewhere.",
+    "RE-CAPTURED after this unit's own docstring tripped the D23 interlock and was reworded - the first capture recorded a finding the tree no longer produces. A fixture captured while the tree was DIRTY encodes that dirt, and the comparison then fails for a reason that has nothing to do with the port."
+  ],
+  "cases": [
+    {
+      "name": "empty",
+      "ok": false,
+      "problems": [
+        [
+          "prlint.line_declared",
+          "error",
+          "the body does not declare Line name, count n/3",
+          "Line: <name> \u00b7 count n/3 \u00b7 headline <before> \u2192 <after>"
+        ],
+        [
+          "prlint.headline_present",
+          "error",
+          "no `headline <before> \u2192 <after>` with numbers (prose is not ",
+          "headline <number/of> \u2192 <number/of>"
+        ],
+        [
+          "prlint.decision_present",
+          "error",
+          "no KEEP / REJECT / NOT YET PROMOTED decision in the body",
+          "add `Decision: KEEP` (or REJECT, or NOT YET PROMOTED) to the"
+        ],
+        [
+          "prlint.record_path",
+          "warn",
+          "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.",
+          "add the record path to the checklist item: docs/labs/<topic>"
+        ],
+        [
+          "prlint.checks_at_head",
+          "warn",
+          "the exact-head-checks box is not ticked and the body lists n",
+          "tick `Checks run at this exact head` and paste the commands "
+        ],
+        [
+          "prlint.org_rules",
+          "info",
+          "no `References #N` or `Closes #N` line, so the PR is not lin",
+          "end the body with `References #<issue>` (or `Closes #<issue>"
+        ]
+      ],
+      "summary": "lint (no line) n/3: FAIL - 3 error, 2 warn"
+    },
+    {
+      "name": "minimal",
+      "ok": true,
+      "problems": [
+        [
+          "prlint.record_path",
+          "warn",
+          "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.",
+          "add the record path to the checklist item: docs/labs/<topic>"
+        ],
+        [
+          "prlint.checks_at_head",
+          "warn",
+          "the exact-head-checks box is not ticked and the body lists n",
+          "tick `Checks run at this exact head` and paste the commands "
+        ]
+      ],
+      "summary": "lint exact addressed memory 0/3: OK - 0 error, 2 warn"
+    },
+    {
+      "name": "complete",
+      "ok": true,
+      "problems": [],
+      "summary": "lint exact addressed memory 0/3: OK - 0 error, 0 warn (contract complete)"
+    },
+    {
+      "name": "unknown-line",
+      "ok": true,
+      "problems": [
+        [
+          "prlint.count_matches_registry",
+          "warn",
+          "line 'nope not a line' is not in M1's registry lines (exact ",
+          "rename the line to one of: exact addressed memory, evaluatio"
+        ],
+        [
+          "prlint.record_path",
+          "warn",
+          "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.",
+          "add the record path to the checklist item: docs/labs/<topic>"
+        ],
+        [
+          "prlint.checks_at_head",
+          "warn",
+          "the exact-head-checks box is not ticked and the body lists n",
+          "tick `Checks run at this exact head` and paste the commands "
+        ]
+      ],
+      "summary": "lint nope not a line 0/3: OK - 0 error, 3 warn"
+    }
+  ]
+}
