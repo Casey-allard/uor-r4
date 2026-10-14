@@ -65,6 +65,10 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "prlint.line_declared",
             concat!("prlint.headline", "_present"),
             "prlint.decision_present",
+            // The registry-dependent pair. Their closure is `_find_milestone` and four helpers,
+            // ported in the same unit rather than assumed small.
+            "prlint.count_matches_registry",
+            concat!("prlint.headline", "_vs_registry"),
         ],
     ),
     (
