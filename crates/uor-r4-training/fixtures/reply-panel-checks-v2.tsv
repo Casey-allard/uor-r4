@@ -1,0 +1,97 @@
+# id	kind	history	terms	forbid	keys -- versioned v2 deterministic row checks for the open reply panel (#2029, F5/F6 under R14). Preserves data/panels/reply-panel-checks.tsv (aba96550...) byte-identical.
+ask-01	any	none	chlorophyll|pigment|sunlight|carotenoid	-	-
+ask-02	any	none	honey	-	-
+ask-03	any	none	hydrat|water helps|fluid|energy|temperature	-	-
+ask-05	any	none	caffeine|relax|breathing|routine|schedule|screen	-	-
+ask-06	reply_exact	none	cow|chicken|pig|horse|sheep|goat|duck|animal	lion|tiger|elephant|penguin|shark|dolphin	-
+ask-07	any	none	fusion|nuclear|hydrogen|energy|pressure|gravity	-	-
+ask-08	any	none	breathe|breathing|relax|exercise|talk|slow	-	-
+heldout-001	clarify	none	which recipe|what recipe|share the recipe|provide the recipe|the recipe first|see the recipe	-	-
+heldout-002	clarify	none	which words|what topic|which topic|what subject|what should i write	-	-
+heldout-006	salutation	none	-	remember that	-
+heldout-008	abstain_exact	none	-	-	-
+heldout-009	salutation	none	-	remember that	-
+heldout-012	clarify	none	which query|what query|what is the query|share the query|provide the query	-	-
+heldout-013	clarify	none	which city|what city|name of the city|specify the city	-	-
+heldout-014	abstain_exact	none	-	-	-
+heldout-015	clarify	none	which city|what city|name of the city|specify the city	-	-
+heldout-016	abstain_exact	none	-	-	-
+heldout-019	salutation	none	-	remember that	-
+heldout-020	any	none	pollen|stamen|pistil|anther|stigma|nectar|wind|insect|bees|pollinator|fruit	-	-
+heldout-022	reply_exact	none	heapq|heapify|heappush|heappop|push	max heap|maxheap	-
+heldout-030	abstain_exact	none	-	-	-
+heldout-033	any	none	mandela|prison|apartheid|jailed|imprisoned|political prisoner|unesco	-	-
+heldout-035	abstain_exact	none	-	-	-
+heldout-037	clarify	none	which article|what article|share the article|provide the article|the specific article|for the article|of the article	-	-
+heldout-038	clarify	none	which figures|what figures|share the figures|provide the figures|share the sales|provide the data	-	-
+heldout-039	clarify	none	which passage|what passage|share the passage|provide the passage|include the passage	-	-
+heldout-043	reply_exact	none	96	48	-
+heldout-046	abstain_exact	none	-	-	-
+heldout-049	clarify	none	which city|what city|name of the city|specify the city	-	-
+heldout-051	clarify	none	which query|what question|which question|share the question|provide the question	-	-
+heldout-056	abstain_exact	none	-	-	-
+heldout-059	clarify	none	which model|what model|type of model|share the modeling|share the model|splitting models|which methods	-	-
+heldout-063	clarify	none	which code|what code|share the code|provide the code|paste the code	-	-
+heldout-064	any	none	itself|calls itself|function calls|repeat	-	-
+heldout-066	abstain_exact	none	-	-	-
+heldout-067	clarify	none	which passage|what passage|share the passage|provide the passage|include the passage	-	-
+heldout-068	abstain_exact	none	-	-	-
+heldout-069	clarify	none	which essay|what essay|share the essay|provide the essay|paste the essay	revised version of the|here is a revised|here's a revised	-
+heldout-070	abstain_exact	none	-	-	-
+heldout-073	clarify	none	which description|what description|share the description|share the text|provide the description|provide the text	revised version of the|here is a revised|here's a revised	-
+heldout-074	abstain_exact	none	-	-	-
+heldout-077	any	none	nebula|gravity|gravitational|hydrogen|fusion|supernova|white dwarf|red giant|nuclear|gas and dust	-	-
+heldout-078	abstain_exact	none	-	-	-
+heldout-079	clarify	none	which text|what text|share the text|provide the text|share the bio|paste the bio	revised version of the|here is a revised|here's a revised	-
+heldout-080	clarify	none	which beverage|what beverage|which drink|what drink|type of beverage	-	-
+heldout-081	any	none	antibod|immune|nutrient|first milk|colostrum is	-	-
+heldout-083	abstain_exact	none	-	-	-
+heldout-085	clarify	none	which sport|what sport|name of the sport|specify the sport	-	-
+heldout-086	clarify	none	which region|what region|name of the region|specify the region	-	-
+heldout-091	abstain_exact	none	-	-	-
+heldout-092	one_of	none	my answer is yes	-	-
+heldout-095	clarify	none	which code|what code|share the code|provide the code|paste the code|share the snippet	-	-
+heldout-102	salutation	none	-	remember that	-
+heldout-103	reply_exact	none	28	17|55	-
+heldout-105	abstain_exact	none	-	-	-
+heldout-107	clarify	none	which text|what text|share the text|provide the text|what would you like me to edit	revised version of the|here is a revised|here's a revised	-
+heldout-110	abstain_exact	none	-	-	-
+heldout-112	clarify	none	which data|what data|share the data|provide the data|specific data|more context or data|what is your question	-	-
+heldout-114	abstain_exact	none	-	-	-
+heldout-117	clarify	none	which words|what topic|which topic|what subject|what should i write	-	-
+heldout-118	abstain_exact	none	-	-	-
+heldout-122	exact_text	none	8x^2+x-10|8x2+x-10	-8x^2|-8x2|8x^2-x|8x2-x|+x+10|6x^2|6x2|17x	-
+heldout-124	abstain_exact	none	-	-	-
+heldout-125	exact_text	none	(3+sqrt(33))/2|(3-sqrt(33))/2|(3±sqrt(33))/2|(3+-sqrt(33))/2|(3+sqrt33)/2|(3-sqrt33)/2|(3±sqrt33)/2|x=4.37|x≈4.37|is4.37|x=-1.37|x≈-1.37|is-1.37	x=sqrt(33)|x=sqrt33|x=1.37|x≈1.37|is1.37|-4.37|x=11|x=1|equals11	-
+heldout-126	reply_exact	none	printf|stdio|include|main(	cout|System.out|console.log|print	java|javascript|python|cpp
+heldout-128	abstain_exact	none	-	-	-
+heldout-131	salutation	none	-	remember that	-
+heldout-132	any	none	curdl|strain|acid|separate	-	-
+heldout-135	abstain_exact	none	-	-	-
+heldout-139	abstain_exact	none	-	-	-
+heldout-144	clarify	none	which words|what topic|which topic|what subject|what should i write	-	-
+heldout-145	any	none	extract|website|html|requests|beautifulsoup|automat	-	-
+heldout-147	clarify	none	which argument|what argument	-	-
+heldout-150	abstain_exact	none	-	-	-
+heldout-153	any	none	smell|touch|grip|dust|water|trumpet	-	-
+heldout-154	clarify	none	which text|what text|share the text|provide the text|paste the text	revised version of the|here is a revised|here's a revised	-
+heldout-155	any	none	reverse|reversed|string|def 	-	-
+heldout-156	abstain_exact	none	-	-	-
+heldout-162	clarify	none	which supplies|what supplies|name of the supplies|list of supplies|share the supplies|provide the supplies|more context or details	-	-
+heldout-163	abstain_exact	none	-	-	-
+heldout-166	abstain_exact	none	-	-	-
+heldout-172	any	none	bitwise|log2|binary|divide|while	-	-
+heldout-173	word_count_6	none	-	remember that|dr thompson|helpful assistant	-
+heldout-174	abstain_exact	none	-	-	-
+heldout-176	abstain_exact	none	-	-	-
+heldout-179	abstain_exact	none	-	-	-
+heldout-180	abstain_exact	none	-	-	-
+heldout-182	clarify	none	which event|what event|type of event|how many guests	-	-
+heldout-186	any	none	listdir|glob|os.walk|import os|scandir	-	-
+heldout-188	any	none	water|spine|stem|root|store|stomata	-	-
+heldout-189	abstain_exact	none	-	-	-
+heldout-190	clarify	none	which introduction|what introduction|share the introduction|share the text|provide the introduction|provide the text	revised version of the|here is a revised|here's a revised	-
+heldout-191	clarify	none	which essay|what essay|share the essay|provide the essay|paste the essay|provide me with the	-	-
+heldout-194	any	none	seen|dictionary|enumerate|visited|duplicate is	-	-
+heldout-195	abstain_exact	none	-	-	-
+heldout-196	salutation	none	-	remember that	-

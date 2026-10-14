@@ -1,0 +1,16 @@
+# id	user_turn	reply -- frozen must-fail negative controls for v2 deterministic checks (#2029 F5/F6/F7)
+heldout-092	Answer with one of the following options: [response_options] My answer is yes. My answer is no. My answer is maybe. Is the sky blue?	My answer is no.
+heldout-092	Answer with one of the following options: [response_options] My answer is yes. My answer is no. My answer is maybe. Is the sky blue?	My answer is maybe.
+heldout-092	Answer with one of the following options: [response_options] My answer is yes. My answer is no. My answer is maybe. Is the sky blue?	Yes, the sky is blue.
+heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	f(x) - g(x) = 8x^2 - x + 10.
+heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	f(x) - g(x) = -8x^2 + x + 10.
+heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	f(x) - g(x) = -8x^2 + x - 10.
+heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	x = sqrt(33)
+heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	x = 1.37
+heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	33/2 is the answer
+heldout-173	Create a story using only six words.	Once upon a time a girl played.
+heldout-173	Create a story using only six words.	I will definitely remember that now.
+heldout-006	Hi Dr. Smith,	I'll remember that. What would you like to talk about?
+heldout-006	Hi Dr. Smith,	Thank you for your email regarding the budget proposal from Monday.
+heldout-069	I'd written the following essay for class and I was hoping you might be able to edit it.	Here is a revised version of the essay you shared.
+heldout-008	Dear Dr. Sullivan,	I don't know, but they are under the bed.

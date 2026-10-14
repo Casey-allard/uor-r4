@@ -1,4 +1,11 @@
 {
+  "antigravity/m1-grader-v2-checks-20261014": {
+    "branch": "antigravity/m1-grader-v2-checks-20261014",
+    "claimed_at": "2026-10-13T21:56:00-04:00",
+    "head": "3e38881a2",
+    "lab": "antigravity",
+    "note": ""
+  },
   "kimi/d29-nvrtc-amendment": {
     "branch": "kimi/d29-nvrtc-amendment",
     "claimed_at": "2026-10-13T11:31:25-04:00",

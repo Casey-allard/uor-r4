@@ -683,6 +683,26 @@ fn contains_phrase(text: &[String], phrase: &[String]) -> bool {
     !phrase.is_empty() && text.windows(phrase.len()).any(|w| w == phrase)
 }
 
+/// Compact, sign-preserving text normalization for algebraic/numeric checks (`exact_text`):
+/// lowercased, unicode minus/dashes normalized to `-`, superscript `²`/`³` normalized to
+/// `^2`/`^3`, `√` normalized to `sqrt`, and all whitespace removed.
+fn compact_math_text(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for c in text.to_lowercase().chars() {
+        if c.is_whitespace() {
+            continue;
+        }
+        match c {
+            '\u{2212}' | '\u{2013}' | '\u{2014}' => out.push('-'),
+            '\u{00b2}' => out.push_str("^2"),
+            '\u{00b3}' => out.push_str("^3"),
+            '\u{221a}' => out.push_str("sqrt"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 /// The frozen phrases an `abstain` check accepts: the reply says it does not
 /// know, cannot, or was not told.
 const ABSTAIN_PHRASES: &[&str] = &[
@@ -709,6 +729,30 @@ const ABSTAIN_PHRASES: &[&str] = &[
     "impossible",
 ];
 
+/// Additional legitimate abstention phrases accepted in `v2` (`F5`) so polite
+/// knowledge-boundary phrasings ("I'm sorry, I don't have that information.")
+/// pass without loosening the fabricated-specific or answer-class checks.
+const ABSTAIN_PHRASES_V2_EXTRA: &[&str] = &[
+    "don't have that information",
+    "dont have that information",
+    "do not have that information",
+    "don't have that",
+    "dont have that",
+    "do not have that",
+    "don't have access",
+    "dont have access",
+    "do not have access",
+    "haven't been told",
+    "have not been told",
+    "wasn't told",
+    "was not told",
+    "weren't told",
+    "were not told",
+    "not provided",
+    "not specified",
+    "not mentioned",
+];
+
 #[derive(Clone, Debug, PartialEq)]
 enum CheckKind {
     /// The reply contains at least one of these words or phrases.
@@ -731,12 +775,20 @@ enum CheckKind {
     /// required content and not the wrong one" — presence *and* discrimination
     /// on a row whose request states neither.
     ReplyExact(Vec<Vec<String>>),
-    /// A clarification of an ill-posed request: the reply asks a question
-    /// **about the material the request refers to but does not contain**, named
-    /// by a row-specific phrase (`which city`, `what text`, `which words`).
-    /// Asking a question is not enough — that would make a canned greeting pass
-    /// every ill-posed row — and naming the missing material is the whole
-    /// behaviour, so the terms are required and the reply must also ask.
+    /// Sign- and punctuation-preserving single-turn exact check (`v2` `F7` for
+    /// algebraic/numeric rows such as `heldout-122` and `heldout-125`): matches
+    /// [`compact_math_text`] substrings so `+`, `-`, `/`, `.` and `(` / `)` are
+    /// preserved rather than stripped by [`words`].
+    ExactText {
+        terms: Vec<String>,
+        forbid: Vec<String>,
+    },
+    /// A clarification of an ill-posed request: the reply asks a question (or,
+    /// in `v2`, makes a polite imperative request) **about the material the
+    /// request refers to but does not contain**, named by a row-specific phrase
+    /// (`which city`, `what text`, `which words`). Asking a generic question is
+    /// not enough — that would make a canned greeting pass every ill-posed row —
+    /// and naming the missing material is the whole behaviour.
     Clarify(Vec<Vec<String>>),
     /// Abstention without a fabricated specific or agreement (panel v3
     /// unknowable rows): see [`abstention_fault`]; additionally none of the
@@ -744,6 +796,19 @@ enum CheckKind {
     /// for "what colour is my shirt", or words that perform an impossible
     /// action, e.g. "here's a hug").
     AbstainExact,
+    /// `v2` (`F5`) bare-salutation check (`Hi Dr. X,`): the user sent only a
+    /// greeting/salutation with no body. A reply that greets/offers help or
+    /// asks what the user needs, without fabricating specifics (`names a
+    /// specific`) and without any forbidden continuation word, passes.
+    Salutation,
+    /// `v2` (`F6`) exact whole-reply choice (`heldout-092`: "Answer with one of
+    /// the following options"): the reply's entire word sequence matches one of
+    /// the listed options and contains no extra words.
+    OneOf(Vec<Vec<String>>),
+    /// `v2` (`F6`) exact word-count format check (`heldout-173`: "Create a story
+    /// using only six words"): the reply has exactly `n` words, none of the
+    /// row's `forbid` words, and at least one of the row's `keys` (if any).
+    WordCount(usize),
 }
 
 impl CheckKind {
@@ -754,8 +819,13 @@ impl CheckKind {
             CheckKind::Question => "question",
             CheckKind::Exact(_) => "exact",
             CheckKind::ReplyExact(_) => "reply_exact",
+            CheckKind::ExactText { .. } => "exact_text",
             CheckKind::Clarify(_) => "clarify",
             CheckKind::AbstainExact => "abstain_exact",
+            CheckKind::Salutation => "salutation",
+            CheckKind::OneOf(_) => "one_of",
+            CheckKind::WordCount(6) => "word_count_6",
+            CheckKind::WordCount(_) => "word_count",
         }
     }
 }
@@ -779,13 +849,14 @@ enum History {
 struct RowCheck {
     kind: CheckKind,
     history: History,
-    /// Words or phrases whose presence fails the check (`exact` and
-    /// `abstain_exact` only; empty otherwise). For `exact` these are values.
+    /// Words or phrases whose presence fails the check (`exact`, `reply_exact`,
+    /// `clarify`, `abstain_exact`, `salutation` and `word_count`; empty
+    /// otherwise). For `exact` these are values.
     forbid: Vec<Vec<String>>,
-    /// `exact` only: words of the distractor's *key* (the goldfish when the
-    /// turtle is asked): a reply naming one binds the asked value to the wrong
-    /// key ("The goldfish is Shelby") and fails. Kept apart from `forbid` so
-    /// the copy controls still copy values only.
+    /// `exact` / `reply_exact` / `clarify`: words of the distractor's *key*
+    /// (the goldfish when the turtle is asked): a reply naming one binds the
+    /// asked value to the wrong key ("The goldfish is Shelby") and fails.
+    /// For `word_count`, `keys` holds the required story-anchor words.
     keys: Vec<Vec<String>>,
 }
 
@@ -811,6 +882,27 @@ const SENTENCE_OPENERS: &[&str] = &[
     "try", "uh", "um", "unfortunately", "was", "we", "we're", "well", "what", "what's", "when",
     "where", "which", "who", "why", "will", "with", "without", "would", "wow", "yeah", "yes",
     "you", "you're", "your",
+];
+
+/// Additional sentence openers accepted in `v2` (`F5`) so legitimate sentence-initial
+/// words ("Don't know, sorry.", "Nope, I don't know.", "Honestly, I don't know.") are
+/// not misclassified as fabricated proper nouns. Kept in a separate slice so the
+/// novelty scripts' parser on `SENTENCE_OPENERS` sees the exact `v1` block.
+const SENTENCE_OPENERS_V2_EXTRA: &[&str] = &[
+    "alas",
+    "apologies",
+    "don't",
+    "dont",
+    "forgive",
+    "frankly",
+    "honestly",
+    "i'm",
+    "im",
+    "nope",
+    "pardon",
+    "regrettably",
+    "truthfully",
+    "uh-oh",
 ];
 
 /// After one of these words an inability phrase is eagerness, not inability
@@ -863,23 +955,71 @@ const GUESS_MARKERS: &[&str] = &[
 /// Phrases that hand the question back to the user.
 const INVITE_PHRASES: &[&str] = &["tell me", "ask", "let me know", "show me"];
 
-/// Whether `reply` contains one of [`ABSTAIN_PHRASES`].
-fn abstains(reply: &[String]) -> bool {
-    has_any(reply, ABSTAIN_PHRASES)
+/// Additional invitation/suggestion phrases accepted in `v2` (`F5`) so helpful
+/// follow-ups after "but" ("I don't know, but you could check your coat.") and
+/// polite imperative clarifications ("Please share the text you want edited.")
+/// pass without allowing fabricated assertions ("I don't know, but they are under
+/// the bed." still fails).
+const INVITE_PHRASES_V2_EXTRA: &[&str] = &[
+    "you could",
+    "you can",
+    "you might",
+    "you may",
+    "check",
+    "look",
+    "provide",
+    "share",
+    "give me",
+    "send",
+    "paste",
+    "specify",
+    "clarify",
+];
+
+/// Greeting and help-offer phrases accepted by `CheckKind::Salutation` (`v2` `F5`).
+const SALUTATION_WORDS_V2: &[&str] = &[
+    "hello",
+    "hi",
+    "hey",
+    "greetings",
+    "welcome",
+    "good morning",
+    "good afternoon",
+    "good evening",
+    "how can i help",
+    "how may i help",
+    "what can i help",
+    "what would you like",
+    "please share",
+    "please provide",
+    "go ahead",
+    "tell me",
+];
+
+/// Whether `reply` contains one of [`ABSTAIN_PHRASES`] (plus [`ABSTAIN_PHRASES_V2_EXTRA`] in `v2`).
+fn abstains_mode(reply: &[String], v2: bool) -> bool {
+    has_any(reply, ABSTAIN_PHRASES) || (v2 && has_any(reply, ABSTAIN_PHRASES_V2_EXTRA))
 }
 
-/// Whether `reply` contains one of [`ABSTAIN_PHRASES`] not followed by a word
-/// of [`NOT_INABILITY_AFTER`] ("can't wait" is not an abstention).
-fn abstains_strictly(reply: &[String]) -> bool {
-    ABSTAIN_PHRASES.iter().any(|p| {
-        let phrase = words(p);
-        reply.windows(phrase.len()).enumerate().any(|(i, w)| {
-            w == phrase.as_slice()
-                && !reply
-                    .get(i + phrase.len())
-                    .is_some_and(|next| NOT_INABILITY_AFTER.contains(&next.as_str()))
+/// Whether `reply` contains one of [`ABSTAIN_PHRASES`] (plus [`ABSTAIN_PHRASES_V2_EXTRA`] in `v2`)
+/// not followed by a word of [`NOT_INABILITY_AFTER`] ("can't wait" is not an abstention).
+fn abstains_strictly_mode(reply: &[String], v2: bool) -> bool {
+    let check_slice = |phrases: &[&str]| {
+        phrases.iter().any(|p| {
+            let phrase = words(p);
+            reply.windows(phrase.len()).enumerate().any(|(i, w)| {
+                w == phrase.as_slice()
+                    && !reply
+                        .get(i + phrase.len())
+                        .is_some_and(|next| NOT_INABILITY_AFTER.contains(&next.as_str()))
+            })
         })
-    })
+    };
+    check_slice(ABSTAIN_PHRASES) || (v2 && check_slice(ABSTAIN_PHRASES_V2_EXTRA))
+}
+
+fn invites_mode(text: &[String], v2: bool) -> bool {
+    has_any(text, INVITE_PHRASES) || (v2 && has_any(text, INVITE_PHRASES_V2_EXTRA))
 }
 
 /// Whether one of `phrases` occurs in `text` (as words).
@@ -917,11 +1057,11 @@ fn reply_sentences(reply: &str) -> Vec<(Vec<String>, bool)> {
 /// invitation; in each sentence, nothing after "but" unless that clause
 /// abstains again, invites the user or is a question ("I don't know, but they
 /// are under the bed." fails); and no made-up specific
-/// ([`fabricated_specifics`]). A plain assertion outside these patterns and
+/// ([`fabricated_specifics_mode`]). A plain assertion outside these patterns and
 /// outside the row's answer-class list still passes.
-fn abstention_fault(users: &[&str], reply: &str) -> Option<&'static str> {
+fn abstention_fault_mode(users: &[&str], reply: &str, v2: bool) -> Option<&'static str> {
     let reply_words = words(reply);
-    if !abstains_strictly(&reply_words) {
+    if !abstains_strictly_mode(&reply_words, v2) {
         return Some("no abstain phrase");
     }
     let sure_agrees = reply_words
@@ -932,35 +1072,44 @@ fn abstention_fault(users: &[&str], reply: &str) -> Option<&'static str> {
         return Some("agrees");
     }
     for (sentence, question) in reply_sentences(reply) {
-        let invites = question || has_any(&sentence, INVITE_PHRASES);
+        let invites = question || invites_mode(&sentence, v2);
         if !invites && has_any(&sentence, GUESS_MARKERS) {
             return Some("guesses");
         }
         if let Some(at) = sentence.iter().position(|w| w == "but") {
             let rest = &sentence[at + 1..];
-            if !(question || abstains_strictly(rest) || has_any(rest, INVITE_PHRASES)) {
+            if !(question || abstains_strictly_mode(rest, v2) || invites_mode(rest, v2)) {
                 return Some("asserts after but");
             }
         }
     }
-    if !fabricated_specifics(users, reply).is_empty() {
+    if !fabricated_specifics_mode(users, reply, v2).is_empty() {
         return Some("names a specific");
     }
     None
+}
+
+#[allow(dead_code)]
+fn abstention_fault(users: &[&str], reply: &str) -> Option<&'static str> {
+    abstention_fault_mode(users, reply, false)
 }
 
 /// The specifics a reply asserts that its user turns did not supply: digits,
 /// and capitalised words other than a form of "I" or "OK" that are inside a
 /// sentence, or begin one (the start of the reply or after `.`, `!`, `?`, a
 /// newline, `:` or an opening quote) without being one of
-/// [`SENTENCE_OPENERS`]. Words of the user turns (compared lowercased) are
-/// exempt. An empty result means the reply names no made-up name or number.
-fn fabricated_specifics(users: &[&str], reply: &str) -> Vec<String> {
+/// [`SENTENCE_OPENERS`] (plus [`SENTENCE_OPENERS_V2_EXTRA`] in `v2`). Words of
+/// the user turns (compared lowercased) are exempt. An empty result means the
+/// reply names no made-up name or number.
+fn fabricated_specifics_mode(users: &[&str], reply: &str, v2: bool) -> Vec<String> {
     let user_words: BTreeSet<String> = users.iter().flat_map(|u| words(u)).collect();
     let text = reply.replace('\u{2019}', "'");
     let mut out = Vec::new();
     let mut sentence_start = true;
     let mut current = String::new();
+    let is_opener = |lower: &str| {
+        SENTENCE_OPENERS.contains(&lower) || (v2 && SENTENCE_OPENERS_V2_EXTRA.contains(&lower))
+    };
     let flush = |word: &mut String, start: &mut bool, out: &mut Vec<String>| {
         let trimmed = word.trim_matches('\'');
         if !trimmed.is_empty() {
@@ -970,7 +1119,7 @@ fn fabricated_specifics(users: &[&str], reply: &str) -> Vec<String> {
             let told = user_words.contains(&lower);
             let named = capital
                 && !NOT_SPECIFIC.contains(&lower.as_str())
-                && (!*start || !SENTENCE_OPENERS.contains(&lower.as_str()));
+                && (!*start || !is_opener(&lower));
             if !told && (digit || named) {
                 out.push(trimmed.to_owned());
             }
@@ -992,33 +1141,64 @@ fn fabricated_specifics(users: &[&str], reply: &str) -> Vec<String> {
     out
 }
 
+#[allow(dead_code)]
+fn fabricated_specifics(users: &[&str], reply: &str) -> Vec<String> {
+    fabricated_specifics_mode(users, reply, false)
+}
+
 impl RowCheck {
-    /// Whether `reply` passes, given the row's user turns (`abstain_exact`
-    /// exempts words the user wrote; the other kinds read the reply only).
-    fn passes(&self, users: &[&str], reply: &str) -> bool {
+    /// Whether `reply` passes under `v1` (`v2 = false`) or `v2` (`v2 = true`).
+    fn passes_mode(&self, users: &[&str], reply: &str, v2: bool) -> bool {
         let reply_words = words(reply);
         let forbidden = self.forbid.iter().any(|t| contains_phrase(&reply_words, t));
         match &self.kind {
             CheckKind::Any(terms) => terms.iter().any(|t| contains_phrase(&reply_words, t)),
-            CheckKind::Abstain => abstains(&reply_words),
+            CheckKind::Abstain => abstains_mode(&reply_words, v2),
             CheckKind::Question => reply.contains('?'),
             CheckKind::Exact(terms) | CheckKind::ReplyExact(terms) => {
                 !forbidden
                     && !self.keys.iter().any(|t| contains_phrase(&reply_words, t))
                     && terms.iter().any(|t| contains_phrase(&reply_words, t))
             }
+            CheckKind::ExactText { terms, forbid } => {
+                let compact = compact_math_text(reply);
+                !forbid.iter().any(|f| compact.contains(f.as_str()))
+                    && terms.iter().any(|t| compact.contains(t.as_str()))
+            }
             CheckKind::Clarify(terms) => {
-                reply.contains('?')
+                let asks_or_invites =
+                    reply.contains('?') || (v2 && invites_mode(&reply_words, true));
+                asks_or_invites
                     && !forbidden
                     && !self.keys.iter().any(|t| contains_phrase(&reply_words, t))
                     && terms.iter().any(|t| contains_phrase(&reply_words, t))
             }
-            CheckKind::AbstainExact => !forbidden && abstention_fault(users, reply).is_none(),
+            CheckKind::AbstainExact => {
+                !forbidden && abstention_fault_mode(users, reply, v2).is_none()
+            }
+            CheckKind::Salutation => {
+                !reply_words.is_empty()
+                    && !forbidden
+                    && (reply.contains('?') || has_any(&reply_words, SALUTATION_WORDS_V2))
+                    && fabricated_specifics_mode(users, reply, true).is_empty()
+            }
+            CheckKind::OneOf(choices) => choices.iter().any(|c| &reply_words == c),
+            CheckKind::WordCount(n) => {
+                reply_words.len() == *n
+                    && !forbidden
+                    && (self.keys.is_empty()
+                        || self.keys.iter().any(|t| contains_phrase(&reply_words, t)))
+            }
         }
     }
 
+    /// Whether `reply` passes under the default (`v1`) rule.
+    fn passes(&self, users: &[&str], reply: &str) -> bool {
+        self.passes_mode(users, reply, false)
+    }
+
     /// Why a reply failed this deterministic check.
-    fn fail_reason(&self, users: &[&str], reply: &str) -> &'static str {
+    fn fail_reason_mode(&self, users: &[&str], reply: &str, v2: bool) -> &'static str {
         let reply_words = words(reply);
         let forbidden = self.forbid.iter().any(|t| contains_phrase(&reply_words, t));
         let has_key = self.keys.iter().any(|t| contains_phrase(&reply_words, t));
@@ -1035,8 +1215,18 @@ impl RowCheck {
                     "missing_expected_value"
                 }
             }
+            CheckKind::ExactText { forbid, .. } => {
+                let compact = compact_math_text(reply);
+                if forbid.iter().any(|f| compact.contains(f.as_str())) {
+                    "contains_forbidden_term"
+                } else {
+                    "missing_expected_value"
+                }
+            }
             CheckKind::Clarify(_) => {
-                if !reply.contains('?') {
+                let asks_or_invites =
+                    reply.contains('?') || (v2 && invites_mode(&reply_words, true));
+                if !asks_or_invites {
                     "missing_question_mark"
                 } else if forbidden {
                     "contains_forbidden_term"
@@ -1050,7 +1240,26 @@ impl RowCheck {
                 if forbidden {
                     "contains_forbidden_term"
                 } else {
-                    abstention_fault(users, reply).unwrap_or("failed_abstain_exact")
+                    abstention_fault_mode(users, reply, v2).unwrap_or("failed_abstain_exact")
+                }
+            }
+            CheckKind::Salutation => {
+                if forbidden {
+                    "contains_forbidden_term"
+                } else if !fabricated_specifics_mode(users, reply, true).is_empty() {
+                    "names a specific"
+                } else {
+                    "missing_salutation_or_question"
+                }
+            }
+            CheckKind::OneOf(_) => "not_exact_one_of_choice",
+            CheckKind::WordCount(_) => {
+                if forbidden {
+                    "contains_forbidden_term"
+                } else if !self.keys.is_empty() && !has_key {
+                    "missing_story_anchor"
+                } else {
+                    "wrong_word_count"
                 }
             }
         }
@@ -1086,14 +1295,20 @@ struct Checks {
 }
 
 impl Checks {
+    fn is_v2(&self) -> bool {
+        self.source.get("version").and_then(Value::as_str) == Some("v2")
+    }
+
     /// The check result of `reply` on row `id` (whose user turns are
     /// `users`), or `None` for an unchecked (`BLOCKED`) row.
     fn of(&self, id: &str, users: &[&str], reply: &str) -> Option<bool> {
-        self.rows.get(id).map(|c| c.passes(users, reply))
+        let v2 = self.is_v2();
+        self.rows.get(id).map(|c| c.passes_mode(users, reply, v2))
     }
 
     /// Deterministic verdict (`PASS`, `FAIL`, or `BLOCKED`) for `reply` on row `id`.
     fn verdict(&self, id: &str, users: &[&str], reply: &str) -> RowVerdict {
+        let v2 = self.is_v2();
         match self.rows.get(id) {
             None => RowVerdict {
                 status: "BLOCKED",
@@ -1102,7 +1317,7 @@ impl Checks {
                 reason: BLOCKED_REASON,
             },
             Some(check) => {
-                if check.passes(users, reply) {
+                if check.passes_mode(users, reply, v2) {
                     RowVerdict {
                         status: "PASS",
                         check_kind: Some(check.kind.name()),
@@ -1114,7 +1329,7 @@ impl Checks {
                         status: "FAIL",
                         check_kind: Some(check.kind.name()),
                         check_pass: Some(false),
-                        reason: check.fail_reason(users, reply),
+                        reason: check.fail_reason_mode(users, reply, v2),
                     }
                 }
             }
@@ -1124,13 +1339,15 @@ impl Checks {
 
 /// A checks file: tab-separated `id kind history terms [forbid [keys]]` per line
 /// (`#` comments and blank lines ignored). `kind` is `any`, `abstain`,
-/// `question`, `exact`, `reply_exact`, `clarify` or `abstain_exact`; `history`
-/// is `none`, `recall`, `derived` or `topic`; `terms` is `|`-separated words or
-/// phrases for `any`, `exact`, `reply_exact` and `clarify` and `-` otherwise;
-/// `forbid` (default `-`) is `|`-separated words or phrases that fail an
-/// `exact`, `reply_exact`, `clarify` or `abstain_exact` check and must be `-`
-/// for the other kinds; `keys` (default `-`) is `|`-separated words of the
-/// distractor's key, which also fail an `exact`, `reply_exact` or `clarify` check.
+/// `question`, `exact`, `reply_exact`, `exact_text`, `clarify`, `abstain_exact`,
+/// `salutation`, `one_of` or `word_count_6`; `history` is `none`, `recall`,
+/// `derived` or `topic`; `terms` is `|`-separated words or phrases for `any`,
+/// `exact`, `reply_exact`, `exact_text`, `clarify` and `one_of` and `-`
+/// otherwise; `forbid` (default `-`) is `|`-separated words or phrases that fail
+/// an `exact`, `reply_exact`, `exact_text`, `clarify`, `abstain_exact`,
+/// `salutation` or `word_count_6` check and must be `-` for the other kinds;
+/// `keys` (default `-`) is `|`-separated words of the distractor's key (or story
+/// anchors for `word_count_6`).
 fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
     let mut rows = BTreeMap::new();
     for (number, line) in text.lines().enumerate() {
@@ -1157,6 +1374,13 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
             }
             Ok(terms)
         };
+        let compact_list = |terms: &str| -> Result<Vec<String>, Error> {
+            let terms: Vec<String> = terms.split('|').map(compact_math_text).collect();
+            if terms.iter().any(String::is_empty) {
+                return Err(format!("checks line {}: an empty exact_text term", number + 1).into());
+            }
+            Ok(terms)
+        };
         let history = match history {
             "none" => History::None,
             "recall" => History::Recall,
@@ -1168,9 +1392,34 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
             ("any", terms) => CheckKind::Any(term_list(terms)?),
             ("exact", terms) if terms != "-" => CheckKind::Exact(term_list(terms)?),
             ("reply_exact", terms) if terms != "-" => CheckKind::ReplyExact(term_list(terms)?),
+            ("exact_text", terms) if terms != "-" => {
+                if forbid == "-" {
+                    return Err(format!(
+                        "checks line {}: an exact_text check needs a forbidden (distractor) value",
+                        number + 1
+                    )
+                    .into());
+                }
+                let terms_c = compact_list(terms)?;
+                let forbid_c = compact_list(forbid)?;
+                if let Some(t) = terms_c.iter().find(|t| forbid_c.contains(t)) {
+                    return Err(format!(
+                        "checks line {}: '{t}' is both expected and forbidden",
+                        number + 1
+                    )
+                    .into());
+                }
+                CheckKind::ExactText {
+                    terms: terms_c,
+                    forbid: forbid_c,
+                }
+            }
             ("clarify", terms) if terms != "-" => CheckKind::Clarify(term_list(terms)?),
+            ("one_of", terms) if terms != "-" => CheckKind::OneOf(term_list(terms)?),
             ("abstain", "-") => CheckKind::Abstain,
             ("abstain_exact", "-") => CheckKind::AbstainExact,
+            ("salutation", "-") => CheckKind::Salutation,
+            ("word_count_6", "-") => CheckKind::WordCount(6),
             ("question", "-") => CheckKind::Question,
             _ => {
                 return Err(
@@ -1179,12 +1428,14 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
             }
         };
         let forbid = match (&kind, forbid) {
-            (_, "-") => Vec::new(),
+            (_, "-") | (CheckKind::ExactText { .. }, _) => Vec::new(),
             (
                 CheckKind::Exact(_)
                 | CheckKind::ReplyExact(_)
                 | CheckKind::AbstainExact
-                | CheckKind::Clarify(_),
+                | CheckKind::Clarify(_)
+                | CheckKind::Salutation
+                | CheckKind::WordCount(_),
                 forbid,
             ) => term_list(forbid)?,
             _ => {
@@ -1197,12 +1448,16 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
         };
         let keys = match (&kind, keys) {
             (_, "-") => Vec::new(),
-            (CheckKind::Exact(_) | CheckKind::ReplyExact(_) | CheckKind::Clarify(_), keys) => {
-                term_list(keys)?
-            }
+            (
+                CheckKind::Exact(_)
+                | CheckKind::ReplyExact(_)
+                | CheckKind::Clarify(_)
+                | CheckKind::WordCount(_),
+                keys,
+            ) => term_list(keys)?,
             _ => {
                 return Err(format!(
-                    "checks line {}: only exact and reply_exact take distractor keys",
+                    "checks line {}: only exact, reply_exact, clarify and word_count take keys",
                     number + 1
                 )
                 .into())
@@ -1268,7 +1523,7 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
 }
 
 /// The frozen deterministic row checks of the conversational and open reply
-/// panels, embedded so a graded report is bound to them unless `checks=`
+/// panels (`v1`), embedded so a graded report is bound to them unless `checks=`
 /// overrides. The panels' ids are disjoint (`conv-*` in v2, `conv-v3-*` in v3,
 /// `conv-v4-*` in v4, `conv-v5-*` in v5, and `talk-*`/`ask-*`/`do-*`/`follow-*`/`heldout-*`
 /// in `reply-panel-checks.tsv`), so the default is their union.
@@ -1295,11 +1550,37 @@ const EMBEDDED_CHECKS: [(&str, &str); 5] = [
     ),
 ];
 
-/// The union of the embedded checks files; an id in two files is an error.
-fn embedded_checks() -> Result<Checks, Error> {
+/// The `v2` (`F5`/`F6`) check set: pairs the frozen conversational-v2/v3/v4/v5
+/// checks with `crates/uor-r4-training/fixtures/reply-panel-checks-v2.tsv` (96
+/// checked rows on the 232-row open panel) and enables the widened `v2`
+/// positive-control rules.
+const EMBEDDED_CHECKS_V2: [(&str, &str); 5] = [
+    (
+        "data/panels/conversational-v2-checks.tsv",
+        include_str!("../../../../data/panels/conversational-v2-checks.tsv"),
+    ),
+    (
+        "data/panels/conversational-v3-checks.tsv",
+        include_str!("../../../../data/panels/conversational-v3-checks.tsv"),
+    ),
+    (
+        "data/panels/conversational-v4-checks.tsv",
+        include_str!("../../../../data/panels/conversational-v4-checks.tsv"),
+    ),
+    (
+        "data/panels/conversational-v5-checks.tsv",
+        include_str!("../../../../data/panels/conversational-v5-checks.tsv"),
+    ),
+    (
+        "crates/uor-r4-training/fixtures/reply-panel-checks-v2.tsv",
+        include_str!("../../fixtures/reply-panel-checks-v2.tsv"),
+    ),
+];
+
+fn embedded_checks_from(files: &[(&str, &str)], v2: bool) -> Result<Checks, Error> {
     let mut rows = BTreeMap::new();
     let mut sources = Vec::new();
-    for (path, text) in EMBEDDED_CHECKS {
+    for &(path, text) in files {
         let file = parse_checks(text)?;
         sources.push(json!({
             "embedded": path,
@@ -1313,27 +1594,50 @@ fn embedded_checks() -> Result<Checks, Error> {
         }
     }
     Ok(Checks {
-        source: json!({"embedded": sources, "rows": rows.len()}),
+        source: json!({
+            "version": if v2 { "v2" } else { "v1" },
+            "embedded": sources,
+            "rows": rows.len(),
+        }),
         rows,
     })
 }
 
-/// `checks=` if given (`checks=none` for no checks), else the embedded files.
+/// The union of the default (`v1`) embedded checks files; an id in two files is an error.
+fn embedded_checks() -> Result<Checks, Error> {
+    embedded_checks_from(&EMBEDDED_CHECKS, false)
+}
+
+/// The union of the `v2` (`F5`/`F6`) embedded checks files.
+fn embedded_checks_v2() -> Result<Checks, Error> {
+    embedded_checks_from(&EMBEDDED_CHECKS_V2, true)
+}
+
+/// `checks=` if given (`checks=none` for no checks, `checks=v1` for default
+/// embedded v1, `checks=v2` for embedded v2 with widened `F5`/`F6` rules, or a
+/// file path), else the default embedded `v1` files.
 fn load_checks(args: &Args) -> Result<Checks, Error> {
     match args.0.get("checks").map(String::as_str) {
         Some("none") => Ok(Checks {
             rows: BTreeMap::new(),
             source: json!("none"),
         }),
+        None | Some("v1") => embedded_checks(),
+        Some("v2") => embedded_checks_v2(),
         Some(path) => {
             let bytes = fs::read(path)?;
             let rows = parse_checks(std::str::from_utf8(&bytes)?)?;
+            let v2 = path.contains("v2");
             Ok(Checks {
-                source: json!({"path": path, "sha256": uor_r4_training::sha256_bytes(&bytes), "rows": rows.len()}),
+                source: json!({
+                    "version": if v2 { "v2" } else { "v1" },
+                    "path": path,
+                    "sha256": uor_r4_training::sha256_bytes(&bytes),
+                    "rows": rows.len(),
+                }),
                 rows,
             })
         }
-        None => embedded_checks(),
     }
 }
 
@@ -1344,27 +1648,38 @@ const CHECK_RULE: &str = "words are lowercased and split at anything not a lette
      forbidden values (the conversation's distractor values and, for a closed class, its other \
      members) and none of the distractor's key words: a wrong value, both values, the value \
      bound to the distractor's key, or no value fails; reply_exact = exact without the multi-turn \
-     recall precondition; clarify = the reply contains '?', one of the row's clarify phrases \
-     naming the missing material, and none of the forbidden/key words; abstain_exact = the reply \
-     contains an abstain phrase not followed by 'wait', no agreement phrase (or 'sure' not after \
-     'not'), no guess marker in a sentence that is neither a question nor contains an invitation \
-     phrase, nothing after 'but' in a sentence unless that clause abstains, invites or is a \
-     question, none of the row's forbidden words, no digit, and no capitalised word that is not a \
-     word of the user turns, I or OK, or a listed sentence opener at the start of a sentence; \
-     rows with no deterministic check are classified BLOCKED (open_ended_no_exact_anchor)";
+     recall precondition; exact_text (v2) = sign-preserving substring match on lowercased \
+     whitespace-stripped text (with unicode minus/superscripts normalized) containing at least one \
+     expected term and no forbidden term; clarify = the reply asks (or in v2 politely requests via \
+     an invitation phrase) about the missing material named by one of the row's clarify phrases, \
+     and contains none of the forbidden/key words; abstain_exact = the reply contains an abstain \
+     phrase not followed by 'wait', no agreement phrase (or 'sure' not after 'not'), no guess \
+     marker in a sentence that is neither a question nor contains an invitation phrase, nothing \
+     after 'but' in a sentence unless that clause abstains, invites or is a question, none of the \
+     row's forbidden words, no digit, and no capitalised word that is not a word of the user \
+     turns, I or OK, or a listed sentence opener at the start of a sentence; salutation (v2) = the \
+     reply greets/offers help or asks a question without fabricated specifics or forbidden words; \
+     one_of (v2) = the reply's full word sequence matches one listed option; word_count_6 (v2) = \
+     format-only check that the reply has exactly 6 words and no forbidden words; rows with no \
+     deterministic check are classified BLOCKED (open_ended_no_exact_anchor)";
 
 fn checks_record(checks: &Checks) -> Value {
+    let v2 = checks.is_v2();
     json!({
+        "version": if v2 { "v2" } else { "v1" },
         "source": checks.source,
         "rule": CHECK_RULE,
         "blocked_reason": BLOCKED_REASON,
         "abstain_phrases": ABSTAIN_PHRASES,
+        "abstain_phrases_v2_extra": v2.then_some(ABSTAIN_PHRASES_V2_EXTRA),
         "abstain_exact": {
             "not_inability_after": NOT_INABILITY_AFTER,
             "affirm_phrases": AFFIRM_PHRASES,
             "guess_markers": GUESS_MARKERS,
             "invite_phrases": INVITE_PHRASES,
+            "invite_phrases_v2_extra": v2.then_some(INVITE_PHRASES_V2_EXTRA),
             "sentence_openers": SENTENCE_OPENERS,
+            "sentence_openers_v2_extra": v2.then_some(SENTENCE_OPENERS_V2_EXTRA),
         },
     })
 }
@@ -1427,10 +1742,37 @@ fn validate_checks(checks: &Checks, requests: &[Request]) -> Result<Vec<String>,
                     .into());
                 }
             }
-            CheckKind::AbstainExact => {
+            CheckKind::AbstainExact | CheckKind::Salutation | CheckKind::WordCount(_) => {
                 if let Some(t) = any_in(&check.forbid, &turns) {
                     return Err(format!(
                         "row {}: forbidden word '{t}' is in a user turn",
+                        request.id
+                    )
+                    .into());
+                }
+            }
+            CheckKind::OneOf(_) => {}
+            CheckKind::ExactText { terms, forbid } => {
+                let compact_turns: Vec<String> = request
+                    .user_turns
+                    .iter()
+                    .map(|t| compact_math_text(t))
+                    .collect();
+                if let Some(last_compact) = compact_turns.last() {
+                    if let Some(t) = terms.iter().find(|t| last_compact.contains(t.as_str())) {
+                        return Err(format!(
+                            "row {}: exact_text term '{t}' is in the last user turn",
+                            request.id
+                        )
+                        .into());
+                    }
+                }
+                if let Some(f) = forbid
+                    .iter()
+                    .find(|f| compact_turns.iter().any(|u| u.contains(f.as_str())))
+                {
+                    return Err(format!(
+                        "row {}: exact_text forbidden term '{f}' is in a user turn",
                         request.id
                     )
                     .into());
@@ -1468,9 +1810,7 @@ fn validate_checks(checks: &Checks, requests: &[Request]) -> Result<Vec<String>,
             CheckKind::Clarify(terms) => {
                 // Same rule as `any` for the terms — a phrase the request already
                 // contains is not the model's own work — plus the same distractor
-                // exclusions as `reply_exact`. The kind's whole content is that the
-                // reply ASKS about the missing material, which is why the question
-                // mark is required at evaluation and never here.
+                // exclusions as `reply_exact`.
                 if let Some(t) = any_in(terms, last) {
                     return Err(format!(
                         "row {}: clarify term '{t}' is in the last user turn",
@@ -1583,7 +1923,9 @@ impl Judging<'_> {
             "control_derangement",
             "paired_against_control",
             "control_constants",
+            "best_constant",
             "check_only_controls",
+            "best_control_or_copy",
         ] {
             fields.insert(key.into(), overall[key].clone());
         }
@@ -1614,26 +1956,30 @@ impl Judging<'_> {
 }
 
 /// The report headline: per tier, the categories where the model beats that
-/// category's best constant (see [`BEST_CONSTANT_RULE`]).
+/// category's best constant (see [`BEST_CONSTANT_RULE`]) and where it beats
+/// `max(best_constant, copy_first_stated, copy_last_stated)` (`F3`/`F4`).
 fn headline_of(per_tier: &Value) -> Value {
-    let tiers: serde_json::Map<String, Value> = per_tier
-        .as_object()
-        .map(|tiers| {
-            tiers
-                .iter()
-                .map(|(tier, record)| {
-                    let headline = &record["headline"];
-                    let value = match headline.get("categories_model_beats_best_constant") {
-                        Some(beats) => beats.clone(),
-                        None => headline.clone(),
-                    };
-                    (tier.clone(), value)
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+    let extract = |field: &str| -> serde_json::Map<String, Value> {
+        per_tier
+            .as_object()
+            .map(|tiers| {
+                tiers
+                    .iter()
+                    .map(|(tier, record)| {
+                        let headline = &record["headline"];
+                        let value = match headline.get(field) {
+                            Some(beats) => beats.clone(),
+                            None => headline.clone(),
+                        };
+                        (tier.clone(), value)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
     json!({
-        "categories_model_beats_best_constant": tiers,
+        "categories_model_beats_best_constant": extract("categories_model_beats_best_constant"),
+        "categories_model_beats_best_control_or_copy": extract("categories_model_beats_best_control_or_copy"),
         "rule": BEST_CONSTANT_RULE,
         "detail": "per_tier.<tier>.headline.per_category",
     })
@@ -2116,23 +2462,37 @@ fn copy_replies(check: &RowCheck, users: &[&str]) -> Option<[String; 2]> {
     Some([first, last])
 }
 
-/// Check-only tallies of the copy controls over checked rows.
+/// Check-only tallies of the copy controls over checked rows, plus row-by-row
+/// paired McNemar counts against the model (`F4`).
 #[derive(Default)]
 struct CopyTally {
     first: CheckTally,
     last: CheckTally,
+    first_paired: Paired,
+    last_paired: Paired,
 }
 
 impl CopyTally {
     fn add(&mut self, checks: &Checks, id: &str, users: &[&str]) {
+        self.add_with_actual(checks, id, users, None);
+    }
+
+    fn add_with_actual(&mut self, checks: &Checks, id: &str, users: &[&str], actual: Option<bool>) {
         let replies = checks
             .rows
             .get(id)
             .and_then(|c| copy_replies(c, users).map(|r| (c, r)));
         match replies {
             Some((check, [first, last])) => {
-                self.first.add(Some(check.passes(users, &first)));
-                self.last.add(Some(check.passes(users, &last)));
+                let v2 = checks.is_v2();
+                let first_pass = check.passes_mode(users, &first, v2);
+                let last_pass = check.passes_mode(users, &last, v2);
+                self.first.add(Some(first_pass));
+                self.last.add(Some(last_pass));
+                if let Some(model_ok) = actual {
+                    self.first_paired.add(model_ok, first_pass);
+                    self.last_paired.add(model_ok, last_pass);
+                }
             }
             None => {
                 self.first.add(None);
@@ -2142,7 +2502,20 @@ impl CopyTally {
     }
 
     fn record(&self) -> Value {
-        json!({"copy_first_stated": self.first.record(), "copy_last_stated": self.last.record()})
+        let has_paired = (self.first_paired.actual_only
+            + self.first_paired.control_only
+            + self.first_paired.both
+            + self.first_paired.neither)
+            > 0;
+        let mut out = json!({
+            "copy_first_stated": self.first.record(),
+            "copy_last_stated": self.last.record(),
+        });
+        if has_paired {
+            out["paired_first_stated"] = self.first_paired.record();
+            out["paired_last_stated"] = self.last_paired.record();
+        }
+        out
     }
 }
 
@@ -2472,7 +2845,8 @@ impl Accumulator {
         ));
         self.echo_history
             .add(checks.of(view.id, &view.users, &view.users.join(" ")));
-        self.copy.add(checks, view.id, &view.users);
+        self.copy
+            .add_with_actual(checks, view.id, &view.users, Some(ok));
     }
 
     /// The best constant of these rows (most acceptable, ties to the lower
@@ -2510,6 +2884,61 @@ impl Accumulator {
         }))
     }
 
+    /// The strongest baseline across both constant replies and (for `exact`
+    /// memory rows) `copy_first_stated` and `copy_last_stated` (`F3`/`F4`).
+    fn best_control_or_copy(&self, constants: &[String]) -> Option<Value> {
+        struct Candidate<'a> {
+            kind: &'static str,
+            label: String,
+            acceptable: usize,
+            paired: &'a Paired,
+        }
+        let mut candidates: Vec<Candidate<'_>> = self
+            .constants
+            .iter()
+            .enumerate()
+            .map(|(i, c)| Candidate {
+                kind: "constant",
+                label: constants.get(i).cloned().unwrap_or_default(),
+                acceptable: c.tally.acceptable,
+                paired: &c.acceptable,
+            })
+            .collect();
+        if self.copy.first.checked > 0 {
+            candidates.push(Candidate {
+                kind: "copy_first_stated",
+                label: "copy_first_stated".to_owned(),
+                acceptable: self.copy.first.pass,
+                paired: &self.copy.first_paired,
+            });
+            candidates.push(Candidate {
+                kind: "copy_last_stated",
+                label: "copy_last_stated".to_owned(),
+                acceptable: self.copy.last.pass,
+                paired: &self.copy.last_paired,
+            });
+        }
+        let best = candidates
+            .iter()
+            .rev()
+            .max_by_key(|c| (c.acceptable, c.paired.both))?;
+        let p = mcnemar_exact(best.paired.actual_only, best.paired.control_only);
+        Some(json!({
+            "kind": best.kind,
+            "control": best.label,
+            "rows": self.actual.replies,
+            "model_acceptable": self.actual.acceptable,
+            "control_acceptable": best.acceptable,
+            "model_minus_control": self.actual.acceptable as i64 - best.acceptable as i64,
+            "model_only": best.paired.actual_only,
+            "control_only": best.paired.control_only,
+            "both": best.paired.both,
+            "neither": best.paired.neither,
+            "mcnemar_exact_p": p,
+            "model_beats_best_control_or_copy": best.paired.actual_only > best.paired.control_only && p < 0.05,
+        }))
+    }
+
     fn record(&self, constants: &[String]) -> Value {
         json!({
             "actual": self.actual.record(),
@@ -2527,6 +2956,7 @@ impl Accumulator {
                 "paired_check": c.check.record(),
             })).collect::<Vec<_>>(),
             "best_constant": self.best_constant(constants),
+            "best_control_or_copy": self.best_control_or_copy(constants),
             "check_only_controls": {
                 "echo_last": self.echo_last.record(),
                 "echo_history": self.echo_history.record(),
@@ -2557,13 +2987,16 @@ impl Group {
     }
 
     /// Per category: the model against that category's best constant, and the
-    /// categories where the model beats it. Never a total.
+    /// categories where the model beats it (plus `best_control_or_copy` under
+    /// `F3`/`F4`). Never a total.
     fn headline(&self, constants: &[String]) -> Value {
         if constants.is_empty() {
             return json!({"unavailable": "graded without constant controls", "rule": BEST_CONSTANT_RULE});
         }
         let mut categories = serde_json::Map::new();
+        let mut categories_control_or_copy = serde_json::Map::new();
         let mut beats = Vec::new();
+        let mut beats_control_or_copy = Vec::new();
         for (name, accumulator) in &self.per_category {
             let Some(best) = accumulator.best_constant(constants) else {
                 continue;
@@ -2572,11 +3005,19 @@ impl Group {
                 beats.push(name.clone());
             }
             categories.insert(name.clone(), best);
+            if let Some(best_cc) = accumulator.best_control_or_copy(constants) {
+                if best_cc["model_beats_best_control_or_copy"] == true {
+                    beats_control_or_copy.push(name.clone());
+                }
+                categories_control_or_copy.insert(name.clone(), best_cc);
+            }
         }
         json!({
             "rule": BEST_CONSTANT_RULE,
             "per_category": categories,
+            "per_category_vs_control_or_copy": categories_control_or_copy,
             "categories_model_beats_best_constant": beats,
+            "categories_model_beats_best_control_or_copy": beats_control_or_copy,
         })
     }
 }
@@ -5246,5 +5687,223 @@ mod tests {
         assert_eq!(v5_mem["binding_swap"]["check_pass"], 0);
         assert_eq!(v5_mem["expected_value"]["checked_rows"], 40);
         assert_eq!(v5_mem["expected_value"]["check_pass"], 40);
+    }
+
+    #[test]
+    fn panel_v2_positive_and_negative_controls_and_f4_copy_pairing() {
+        let parse = |text: &str| serde_json::from_str::<Vec<Request>>(text).unwrap();
+        let checks_v2 = embedded_checks_v2().unwrap();
+        assert!(checks_v2.is_v2());
+
+        // 1. Open reply panel v2 checks: 96 checked rows out of 232 total (136 BLOCKED).
+        let reply_checks_v2 =
+            parse_checks(include_str!("../../fixtures/reply-panel-checks-v2.tsv")).unwrap();
+        assert_eq!(reply_checks_v2.len(), 96);
+
+        let mut checked_by_kind: BTreeMap<&str, usize> = BTreeMap::new();
+        for check in reply_checks_v2.values() {
+            *checked_by_kind.entry(check.kind.name()).or_default() += 1;
+        }
+        assert_eq!(
+            checked_by_kind,
+            BTreeMap::from([
+                ("abstain_exact", 32),
+                ("any", 19),
+                ("clarify", 30),
+                ("exact_text", 2),
+                ("one_of", 1),
+                ("reply_exact", 5),
+                ("salutation", 6),
+                ("word_count_6", 1),
+            ])
+        );
+
+        let v5_all = parse(include_str!(
+            "../../../../data/panels/conversational-v5.json"
+        ));
+        assert!(validate_checks(&checks_v2, &v5_all).is_ok());
+
+        // 2. Frozen must-pass positive controls (`F5` + `F6`, 34 rows: id \t user_turn \t reply).
+        let pos_text = include_str!("../../fixtures/reply-panel-positive-controls-v2.tsv");
+        let mut pos_count = 0usize;
+        for (line_no, line) in pos_text.lines().enumerate() {
+            if line.trim().is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let fields: Vec<&str> = line.split('\t').collect();
+            assert_eq!(fields.len(), 3, "positive control line {}", line_no + 1);
+            let (id, user_turn, reply) = (fields[0], fields[1], fields[2]);
+            let verdict = checks_v2.verdict(id, &[user_turn], reply);
+            assert_eq!(
+                verdict.status, "PASS",
+                "positive control failed on {id}: {reply} -> {}",
+                verdict.reason
+            );
+            pos_count += 1;
+        }
+        assert_eq!(pos_count, 34);
+
+        // Also verify the widened `F5` abstention positive controls pass every
+        // `unknowable_or_impossible` row of conversational-v5 under `v2`.
+        for reply in [
+            "Don't know, sorry.",
+            "Nope, I don't know.",
+            "Honestly, I don't know.",
+            "I'm sorry, I don't have that information.",
+            "I don't know, but you could check your coat.",
+        ] {
+            for row in v5_all
+                .iter()
+                .filter(|r| r.category == "unknowable_or_impossible")
+            {
+                let users: Vec<&str> = row.user_turns.iter().map(String::as_str).collect();
+                assert_eq!(
+                    checks_v2.of(&row.id, &users, reply),
+                    Some(true),
+                    "v5 {id} failed positive control: {reply}",
+                    id = row.id
+                );
+            }
+        }
+
+        // 3. Frozen must-fail negative controls (`F7`, 15 rows: id \t user_turn \t reply),
+        // including the 6 wrong answers on `heldout-092`, `heldout-122`, and `heldout-125`.
+        let neg_text = include_str!("../../fixtures/reply-panel-negative-controls-v2.tsv");
+        let mut neg_count = 0usize;
+        for (line_no, line) in neg_text.lines().enumerate() {
+            if line.trim().is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let fields: Vec<&str> = line.split('\t').collect();
+            assert_eq!(fields.len(), 3, "negative control line {}", line_no + 1);
+            let (id, user_turn, reply) = (fields[0], fields[1], fields[2]);
+            let verdict = checks_v2.verdict(id, &[user_turn], reply);
+            assert_eq!(
+                verdict.status, "FAIL",
+                "negative control unexpectedly passed on {id}: {reply}"
+            );
+            neg_count += 1;
+        }
+        assert_eq!(neg_count, 15);
+
+        // Adversarial abstentions still fail every `abstain_exact` row;
+        // non-salutation rows score 0 across all canned/control constants;
+        // 12 of 13 canned replies score 0/96, while the 1 canned greeting
+        // ("Hello! How can I help you today?") scores 6/96 (only the 6 `salutation` rows).
+        for adv in ADVERSARIAL_ABSTENTIONS {
+            for (id, check) in &reply_checks_v2 {
+                if check.kind == CheckKind::AbstainExact {
+                    assert_eq!(
+                        checks_v2.of(id, &[], adv),
+                        Some(false),
+                        "adversarial abstention should fail {id}: {adv}"
+                    );
+                }
+            }
+        }
+
+        let parse_lines = |text: &str| -> Vec<String> {
+            text.lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty() && !l.starts_with('#'))
+                .map(str::to_owned)
+                .collect()
+        };
+        let canned = parse_lines(include_str!(
+            "../../../../data/panels/reply-panel-canned.txt"
+        ));
+        let controls = parse_lines(include_str!(
+            "../../../../data/panels/reply-panel-controls.txt"
+        ));
+        assert_eq!(canned.len(), 13);
+        let mut canned_zero = 0usize;
+        let mut canned_six = 0usize;
+        for constant in &canned {
+            let mut total_pass = 0usize;
+            for id in reply_checks_v2.keys() {
+                if checks_v2.of(id, &[], constant) == Some(true) {
+                    total_pass += 1;
+                }
+            }
+            if total_pass == 0 {
+                canned_zero += 1;
+            } else if total_pass == 6 && constant == "Hello! How can I help you today?" {
+                canned_six += 1;
+            } else {
+                panic!("unexpected canned score {total_pass}/96 for {constant}");
+            }
+        }
+        assert_eq!(canned_zero, 12);
+        assert_eq!(canned_six, 1);
+
+        for constant in canned.iter().chain(&controls) {
+            let mut non_salutation_pass = 0usize;
+            for (id, check) in &reply_checks_v2 {
+                if check.kind == CheckKind::Salutation {
+                    continue;
+                }
+                if checks_v2.of(id, &[], constant) == Some(true) {
+                    non_salutation_pass += 1;
+                }
+            }
+            assert_eq!(
+                non_salutation_pass, 0,
+                "constant should score 0/90 on non-salutation v2 rows: {constant}"
+            );
+        }
+
+        // 4. `F4` paired copy-control discrimination on conversational-v5:
+        // a model that always emits the last-stated value scores 20/40 on
+        // `multi_turn_memory` and ties `copy_last_stated` (20/40, 0 discordant rows,
+        // p = 1.0, `model_beats_best_control_or_copy = false`), whereas it beats
+        // `best_constant` (0/40).
+        let last_copy_rows: Vec<Value> = v5_all
+            .iter()
+            .map(|r| {
+                let users: Vec<&str> = r.user_turns.iter().map(String::as_str).collect();
+                let check = &checks_v2.rows[&r.id];
+                let reply = copy_replies(check, &users)
+                    .map(|[_, last]| last)
+                    .unwrap_or_else(|| "I don't know.".to_owned());
+                let turns: Vec<Value> = r
+                    .user_turns
+                    .iter()
+                    .enumerate()
+                    .map(|(i, u)| {
+                        json!({
+                            "user": u,
+                            "reply": if i + 1 == r.user_turns.len() { reply.as_str() } else { "Okay." }
+                        })
+                    })
+                    .collect();
+                json!({"id": r.id, "category": r.category, "turns": turns})
+            })
+            .collect();
+        let ill = IdList {
+            ids: BTreeSet::new(),
+            source: json!("none"),
+        };
+        let default_constants = Constants {
+            replies: DEFAULT_CONSTANTS.iter().map(|s| (*s).to_owned()).collect(),
+            source: json!("default"),
+        };
+        let judging = Judging {
+            ill: &ill,
+            checks: &checks_v2,
+            constants: &default_constants,
+        };
+        let report = Value::Object(judging.judge(&json!({"rows": last_copy_rows})).unwrap());
+        let mem = &report["per_tier"]["C"]["per_category"]["multi_turn_memory"];
+        assert_eq!(mem["actual"]["acceptable"], 20);
+        assert_eq!(mem["best_constant"]["model_beats_constant"], true);
+        assert_eq!(mem["best_control_or_copy"]["kind"], "copy_last_stated");
+        assert_eq!(mem["best_control_or_copy"]["control_acceptable"], 20);
+        assert_eq!(mem["best_control_or_copy"]["model_minus_control"], 0);
+        assert_eq!(mem["best_control_or_copy"]["model_only"], 0);
+        assert_eq!(mem["best_control_or_copy"]["control_only"], 0);
+        assert_eq!(
+            mem["best_control_or_copy"]["model_beats_best_control_or_copy"],
+            false
+        );
     }
 }

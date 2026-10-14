@@ -141,17 +141,17 @@ Under **D31**, zeros caused by the instrument are never reported as model incapa
 
 ---
 
-## 6. Follow-Up Work: Versioned `v2` Check Table (`F5`, `F6`, `R14`)
+## 6. Follow-Up Work: Versioned `v2` Check Table (`F5`–`F8`, `R14`) — Completed in `m1-grader-v2-checks-2026-10-14`
 
-Per **R14** (`#2029` comment `6154755982`) and PM routing (`#2029` comment `6154614848`), after `#2365` merges, Antigravity will draft (and Claude will review) a separate follow-up PR introducing a versioned `v2` check table while keeping `data/panels/reply-panel-checks.tsv` (`sha256: aba96550fb89cbb063b68bae409421b03d2c248e53874e3168d6d7ef40b7ed0c`) byte-identical:
-1. **Frozen must-pass positive-control set (`F5`):** Legitimate abstentions (e.g., `"Don't know, sorry."`, `"Nope, I don't know."`, `"Honestly, I don't know."`, `"I'm sorry, I don't have that information."`), imperative requests for missing material (`heldout-037`, `-059`, `-069`, `-073`, `-162`, `-190`, `-191`), bare-salutation greetings (`heldout-006`, `-009`, `-019`, `-102`, `-131`, `-196`), and natural clarifications (`"What recipe do you mean?"`, `"Could you share the recipe first?"`), mirroring the must-fail adversarial set.
-2. **Wider accepted behaviour class (`F5`):** Expand `clarify` and `abstain_exact` in the `v2` table to pass the frozen positive-control set while continuing to reject the adversarial and canned controls.
-3. **`F6` row-classification corrections in `v2`:**
-   - `heldout-122`: exact algebraic answer ($f - g = 8x^2 + x - 10$).
-   - `heldout-125`: exact quadratic roots ($x = (3 \pm \sqrt{33})/2$).
-   - `heldout-092`: exact membership in one of three fixed strings.
-   - `heldout-173`: exact six-word length check.
-   - `heldout-112`: no data given (ill-posed; reclassify from `BLOCKED` to clarify/abstain).
+Completed in [`docs/labs/m1-grader-v2-checks-2026-10-14/README.md`](../m1-grader-v2-checks-2026-10-14/README.md) (`crates/uor-r4-training/fixtures/reply-panel-checks-v2.tsv`, `crates/uor-r4-training/fixtures/reply-panel-positive-controls-v2.tsv`, `crates/uor-r4-training/fixtures/reply-panel-negative-controls-v2.tsv`, and `chat-grade` `checks=v2` + paired copy-control comparisons under `F3`–`F8` and `R14`) while keeping `data/panels/reply-panel-checks.tsv` (`sha256: aba96550fb89cbb063b68bae409421b03d2c248e53874e3168d6d7ef40b7ed0c`) byte-identical:
+1. **Frozen must-pass positive-control set (`F5`) & must-fail negative-control set (`F7`):** Legitimate abstentions (e.g., `"Don't know, sorry."`, `"Nope, I don't know."`, `"Honestly, I don't know."`, `"I'm sorry, I don't have that information."`), imperative requests for missing material (`heldout-037`, `-059`, `-069`, `-073`, `-162`, `-190`, `-191`), bare-salutation greetings (`heldout-006`, `-009`, `-019`, `-102`, `-131`, `-196`), and natural clarifications (`"What recipe do you mean?"`, `"Could you share the recipe first?"`), mirroring the must-fail adversarial and negative-control sets (`34/34` positive controls pass; `15/15` negative controls fail).
+2. **Wider accepted behaviour class (`F5`, `F8`):** Expand `clarify` and `abstain_exact` in the `v2` table to pass the frozen positive-control set while continuing to reject the adversarial and canned controls (12/13 canned replies in `reply-panel-canned.txt` score `0/96`; the 1 canned greeting scores `6/96` on the 6 `salutation` rows by design).
+3. **`F6`, `F7`, & `F8` row-classification corrections in `v2`:**
+   - `heldout-122`: sign-preserving `exact_text` algebraic answer ($f - g = 8x^2 + x - 10$).
+   - `heldout-125`: sign-preserving `exact_text` quadratic roots ($x = (3 \pm \sqrt{33})/2 \approx 4.37, -1.37$).
+   - `heldout-092`: exact `one_of` membership in `my answer is yes` (`"Is the sky blue?"`).
+   - `heldout-173`: format-only `word_count_6` six-word length check.
+   - `heldout-112`: no data given (ill-posed; reclassified from `BLOCKED` to `clarify`).
    - Consistent factual anchoring across `heldout-020` (pollination), `heldout-033` (Robben Island), and `heldout-077` (star formation) relative to checked `ask-07` (sun) and `heldout-153` (elephant trunks).
 4. **Non-vacuous headline rule (`F3`, `F4`, `R14`):** Score per category against the best of **both the constant controls AND the copy controls** (`copy_last_stated`, `copy_first_stated`), with abstention scored as **discrimination** (abstaining on ill-posed rows AND answering well-posed ones), and re-run every constant and copy control against the `v2` table.
 

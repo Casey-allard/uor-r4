@@ -1,0 +1,35 @@
+# id	user_turn	reply -- frozen must-pass positive controls for v2 deterministic checks (#2029 F5/F6)
+heldout-008	Dear Dr. Sullivan,	Don't know, sorry.
+heldout-008	Dear Dr. Sullivan,	Nope, I don't know.
+heldout-008	Dear Dr. Sullivan,	Honestly, I don't know.
+heldout-008	Dear Dr. Sullivan,	I'm sorry, I don't have that information.
+heldout-014	How many values does x have?	I don't know, but you could check the equation.
+conv-v5-unk-001	What color is my coat?	I don't know, sorry.
+conv-v5-unk-001	What color is my coat?	Nope, I don't know.
+conv-v5-unk-001	What color is my coat?	Honestly, I don't know.
+conv-v5-unk-001	What color is my coat?	I'm sorry, I don't have that information.
+conv-v5-unk-002	Where did I leave my keys?	I don't know, but you could check your coat.
+heldout-001	Can I make adjustments to the spiciness level by modifying the amount of chiles used in the recipe?	What recipe do you mean?
+heldout-001	Can I make adjustments to the spiciness level by modifying the amount of chiles used in the recipe?	Could you share the recipe first?
+heldout-037	*This article was first published on Microsoft’s Manufacturing Industry Blog on July 17, 2018.	I do not have access to the specific requirements or information provided for the article. Please provide me with more specific information.
+heldout-059	Great, I like your suggestion for splitting up the methods section. I'll start working on the mathematical modeling aspects.	I'd be happy to help you with the mathematical modeling aspects. Please go ahead and share the modeling aspects.
+heldout-059	Great, I like your suggestion for splitting up the methods section. I'll start working on the mathematical modeling aspects.	I can help you with that. What type of model are you working with?
+heldout-069	I'd written the following essay for class and I was hoping you might be able to edit it.	I'd be happy to help you edit it. Please go ahead and share the essay you'd like me to work on.
+heldout-073	I've written a business description for a new creative studio. Can you review it and offer suggestions for improvement?	I'd be happy to help you refine your business description for a new creative studio. Please go ahead and share the text you'd like me to work on.
+heldout-112	The local health department has collected data on the number of reported cases of a new strain of flu for 8 weeks.	I do not have access to the specific data or information you are referring to. Please provide me with more context or data.
+heldout-162	Create online quizzes related to your supplies.	I do not have access to the latest information. Please provide me with the name of the supplies you are looking for.
+heldout-190	Write an introduction to edit a poorly constructed introduction below.	I'd be happy to help you refine your introduction below. Please go ahead and share the text you'd like me to work on.
+heldout-191	I wrote an essay on digital technology that needs some editing. The essay is as follows:	I'd be happy to help you with your essay. Please go ahead and share the essay.
+heldout-006	Hi Dr. Smith,	Hello! How can I help you today?
+heldout-009	Hi Dr. Patel,	Hello! How can I help you today?
+heldout-019	Hi Dr. Lee,	Hello! How can I help you today?
+heldout-102	Hi Dr. Chen,	Hello! How can I help you today?
+heldout-131	Hi Dr. Harper,	Hello! How can I help you today?
+heldout-196	Hi Dr. Thompson,	Hello! How can I help you today?
+heldout-020	Can you explain the process of pollination and seed dispersal in flowering plants, and how different species coexist in an ecosystem?	Bees and wind transfer pollen from the stamen to the stigma.
+heldout-033	What is the significance of Robben Island, and why is it an important landmark in Cape Town's history?	Robben Island is where Nelson Mandela was imprisoned during apartheid.
+heldout-077	Please describe the process of how a star is born and what factors contribute to its eventual death.	A star is born inside a nebula when gravity pulls hydrogen gas together to ignite nuclear fusion.
+heldout-092	Answer with one of the following options: [response_options] My answer is yes. My answer is no. My answer is maybe. Is the sky blue?	My answer is yes.
+heldout-122	Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).	f(x) - g(x) = 8x^2 + x - 10.
+heldout-125	Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.	The roots are x = (3 + sqrt(33)) / 2 and (3 - sqrt(33)) / 2.
+heldout-173	Create a story using only six words.	For sale: baby shoes, never worn.
