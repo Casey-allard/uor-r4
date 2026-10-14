@@ -49,7 +49,7 @@
           "note": "Recorded operator card6134571032; no reset by instruction repair."
         }
       ],
-      "next": "D1/D2 LANDED (PR2400 6ba08ab3f, 25/25 finite controls PASS, measured Route/Flock cost). Sheet m1-discrete-rung0-training Amendment1 pins spec V4096/B4/C192/K8, schedule 1 coordinate/batch (16404/pass), strict-win anti-vacuity guard, dose 1 pass/seed (~17.8h/seed UNVERIFIED projection). Verdict PENDING Claude review (independent non-author fallback documented). Owner hold release (D4) still required; M1 reply headline SUSPENDED under R14.",
+      "next": "Sheet m1-discrete-rung0-training Amendment2 posted for confirmation: guard re-based on measured per-seed untrained strict-win rate max(1%,min(5u,u+5pp)) with INSTRUMENT-INVALID escape, fresh transfer UNAVAILABLE/NOT_RUN, decisive checkpoint at 100% only (0/4101/8202/12303/16404), execution at e7d926fbe + owner-authorized admission diff only (any other change voids FIT), per-kind sensitivity diagnostics, owner pilot 1640 batches seed1 diagnostic-only (~1.78h ~$1.62 UNVERIFIED), full-run known-component subtotal 35.611540400h ~$32.34 UNVERIFIED. Awaiting Claude one-cycle confirmation + Codex confirmation; execution then needs D4 owner release + admission-diff review. M1 reply headline SUSPENDED under R14.",
       "project_manager": "kimi",
       "training_hold": true
     },
