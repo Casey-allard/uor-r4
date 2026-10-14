@@ -69,6 +69,11 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             // ported in the same unit rather than assumed small.
             "prlint.count_matches_registry",
             concat!("prlint.headline", "_vs_registry"),
+            // `record_path` is the first gate that stats the filesystem, and `pivot_at_three` reads
+            // the registry count - both are in `filesystem_gates`, which takes the repo root and the
+            // date as parameters rather than reaching for either.
+            "prlint.pivot_at_three",
+            "prlint.record_path",
         ],
     ),
     (

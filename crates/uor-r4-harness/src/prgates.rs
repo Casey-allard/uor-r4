@@ -131,6 +131,20 @@ pub fn registry_gates(f: &Fields, regs: &Registries) -> Vec<Problem> {
     out
 }
 
+/// The gates that need the filesystem as well as the body, so the caller supplies the repo root and
+/// the date rather than this module reaching for either.
+pub fn filesystem_gates(
+    f: &Fields,
+    regs: &Registries,
+    repo: &std::path::Path,
+    today: &str,
+) -> Vec<Problem> {
+    let mut out = Vec::new();
+    out.extend(pivot_at_three(f, regs, today));
+    out.extend(record_path(f, repo, today));
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -644,5 +658,182 @@ mod registry_gate_tests {
             find_milestone(&r, &fields(body4)).map(|m| m.id),
             Some("M4".into())
         );
+    }
+}
+
+/// `prlint.pivot_at_three` — a line at 3/3 with no pivot announced (D21 §1).
+///
+/// **Either side can put the line at three**: the count the body declares, or the registry's count
+/// for that line. **The `where` clause says which**, because the two send a reader to different
+/// places — one to fix the body, the other to check whether the line really moved.
+///
+/// **A line at three is not a failure; it is the point at which a decision is owed.** So the fix
+/// offers both ways out: archive the line, or name the one decisive run.
+pub fn pivot_at_three(f: &crate::prbody::Fields, regs: &Registries, today: &str) -> Vec<Problem> {
+    let milestone = find_milestone(regs, f);
+    let declared = f.line_name.clone();
+    let line = if declared.is_empty() {
+        None
+    } else {
+        find_line(milestone.as_ref(), &declared)
+    };
+    let count = f.line_count;
+    let reg_count = line.and_then(|l| l.count.as_i64());
+    let declared_three = count.is_some_and(|c| c >= 3);
+    let registry_three = reg_count.is_some_and(|c| c >= 3);
+    if !(declared_three || registry_three) || f.has_pivot {
+        return Vec::new();
+    }
+    let where_ = if declared_three {
+        format!("{}/3 declared", count.unwrap_or(0))
+    } else {
+        format!("registry count {}/3", reg_count.unwrap_or(0))
+    };
+    let issue = milestone
+        .as_ref()
+        .map(|m| format!("#{}", m.issue))
+        .unwrap_or_else(|| "<milestone issue>".to_string());
+    let _ = today;
+    vec![Problem::new(
+        "prlint.pivot_at_three",
+        "error",
+        format!(
+            "line '{}' is at {where_} and the body announces no pivot",
+            if declared.is_empty() { "?" } else { &declared }
+        ),
+        format!(
+            "this PR is a pivot card on {issue}: stop and archive the line, or name the one decisive run (D21); then set count 0/3"
+        ),
+    )]
+}
+
+/// `prlint.record_path` — a dated record path is named, and **it exists on disk**.
+///
+/// **This is the first gate that reads the filesystem rather than only the body and the registry**,
+/// and that is why it was not ported with the field-only group. Two different problems share the id:
+/// **no path named**, and **a path named that does not exist** — the second is the one worth having,
+/// because it catches a PR that describes a record it never wrote.
+pub fn record_path(f: &crate::prbody::Fields, repo: &std::path::Path, today: &str) -> Vec<Problem> {
+    let record = f.record_path.clone();
+    if record.is_empty() {
+        return vec![Problem::new(
+            "prlint.record_path",
+            "warn",
+            "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.md or docs/evidence/…) is named",
+            format!("add the record path to the checklist item: docs/labs/<topic>-{today}/README.md"),
+        )];
+    }
+    if !repo.join(&record).exists() {
+        return vec![Problem::new(
+            "prlint.record_path",
+            "warn",
+            format!("record path {record} is named but does not exist on disk"),
+            format!("write {record} in this PR (delivery cadence) or correct the path"),
+        )];
+    }
+    Vec::new()
+}
+
+#[cfg(test)]
+mod pivot_record_tests {
+    use super::*;
+    use crate::registries::Registries;
+    use crate::state::StatePaths;
+    use std::path::Path;
+
+    fn repo() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    fn regs() -> Registries {
+        Registries::load(&StatePaths::resolve(
+            repo(),
+            None,
+            Some("/nonexistent-live"),
+        ))
+        .expect("registry")
+    }
+
+    fn fields(body: &str) -> crate::prbody::Fields {
+        crate::prbody::parse_pr_body(body)
+    }
+
+    /// **Either side can put the line at three, and the `where` clause says which.** Both branches
+    /// asserted, because the two send a reader to different places: one to fix the body, the other to
+    /// check whether the line really moved.
+    #[test]
+    fn both_branches_of_the_pivot_gate_are_reported_with_pythons_text() {
+        let registry_side = "Line: starling read | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2032\n";
+        let p = pivot_at_three(&fields(registry_side), &regs(), "2026-10-14");
+        assert_eq!(p.len(), 1, "{p:?}");
+        assert_eq!(p[0].severity, "error");
+        assert_eq!(
+            p[0].message,
+            "line 'starling read' is at registry count 3/3 and the body announces no pivot"
+        );
+        assert!(
+            p[0].fix.contains("this PR is a pivot card on #2032"),
+            "{}",
+            p[0].fix
+        );
+
+        let declared_side = "Line: exact addressed memory | count 3/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
+        let p2 = pivot_at_three(&fields(declared_side), &regs(), "2026-10-14");
+        assert_eq!(p2.len(), 1, "{p2:?}");
+        assert_eq!(
+            p2[0].message,
+            "line 'exact addressed memory' is at 3/3 declared and the body announces no pivot"
+        );
+    }
+
+    /// **Announcing a pivot silences it** — the gate asks for a decision, not for the line to stop.
+    #[test]
+    fn an_announced_pivot_silences_the_gate() {
+        let body = "Line: starling read | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\npivot card\nReferences #2032\n";
+        assert!(pivot_at_three(&fields(body), &regs(), "2026-10-14").is_empty());
+    }
+
+    /// A line below three raises nothing, so the gate does not nag every ordinary PR.
+    #[test]
+    fn a_line_below_three_is_silent() {
+        let body = "Line: evaluation integrity | count 1/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
+        assert!(pivot_at_three(&fields(body), &regs(), "2026-10-14").is_empty());
+    }
+
+    /// **Both `record_path` branches**, and the second is the one worth having: it catches a PR
+    /// describing a record it never wrote.
+    #[test]
+    fn both_record_path_branches_are_reported_with_pythons_text() {
+        let none = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nReferences #2029\n";
+        let p = record_path(&fields(none), &repo(), "2026-10-14");
+        assert_eq!(p.len(), 1, "{p:?}");
+        assert_eq!(p[0].severity, "warn");
+        assert!(
+            p[0].message.starts_with("no dated record path"),
+            "{}",
+            p[0].message
+        );
+        assert_eq!(
+            p[0].fix,
+            "add the record path to the checklist item: docs/labs/<topic>-2026-10-14/README.md",
+            "the fix names TODAY, which is why the date is a parameter"
+        );
+
+        let missing = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nRecord: docs/labs/nope-2026-01-01/README.md\nReferences #2029\n";
+        let p2 = record_path(&fields(missing), &repo(), "2026-10-14");
+        assert_eq!(p2.len(), 1, "{p2:?}");
+        assert_eq!(
+            p2[0].message,
+            "record path docs/labs/nope-2026-01-01/README.md is named but does not exist on disk"
+        );
+    }
+
+    /// **A named record that DOES exist is silent**, which is the property that keeps the gate
+    /// usable: it must not report a lab that wrote its record.
+    #[test]
+    fn an_existing_record_is_silent() {
+        let body = "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\nRecord: docs/labs/prlint-registry-gates-2026-10-14/README.md\nReferences #2029\n";
+        let p = record_path(&fields(body), &repo(), "2026-10-14");
+        assert!(p.is_empty(), "an existing record must be silent: {p:?}");
     }
 }
