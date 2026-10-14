@@ -27,6 +27,7 @@ pub mod budgetrules;
 pub mod contract;
 pub mod doccheck;
 pub mod githelp;
+pub mod githubcards;
 pub mod harnessrules;
 pub mod harnessrules_stateformats;
 pub mod mistakes;
