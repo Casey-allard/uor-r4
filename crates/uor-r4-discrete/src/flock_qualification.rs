@@ -340,8 +340,9 @@ fn flock_refusals_and_noop() -> Result<()> {
             && losses[1] == losses[2]
             && losses[3..].iter().all(|&l| l == MAX)
             && observed.candidate == 0
-            && observed.before == observed.after,
-        "a gate with no eligible candidate must tie all ordinals and keep CURRENT",
+            && observed.before == observed.after
+            && !observed.any_candidate_cost_differs_from_identity,
+        "a gate with no eligible candidate must tie active ordinals and keep CURRENT; MAX padding must not manufacture sensitivity",
     )
 }
 

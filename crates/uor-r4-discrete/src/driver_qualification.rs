@@ -94,8 +94,26 @@ fn isolated_apply_boundary(context: &mut Context<'_>) -> Result<()> {
         selected.candidate == 7
             && selected.before == 640
             && selected.after == 544
-            && selected.epoch == 0,
+            && selected.epoch == 0
+            && selected.any_candidate_cost_differs_from_identity,
         "isolated update proposal differs from pinned640->544/ordinal7",
+    )?;
+    // One additional read-only proposal. The query/target is token0; token1
+    // starts at the opposite root in both blocks, so CURRENT has zero cost.
+    // Moving its first block can reduce separation and increase the hinge.
+    // CURRENT must stay selected, yet the GPU sensitivity flag must be true.
+    // No host recomputation/ranking and no additional apply call occurs here.
+    let at_target = model.carry(&[id(0, 0)])?;
+    let worse_only = model
+        .propose(&at_target, &[0], Parameter::VectorBlock(2))?
+        .observation()?;
+    require(
+        worse_only.candidate == 0
+            && worse_only.before == 0
+            && worse_only.after == 0
+            && worse_only.epoch == 0
+            && worse_only.any_candidate_cost_differs_from_identity,
+        "all-nonimproving proposal with worse candidates must retain CURRENT and report sensitivity",
     )?;
     expect_invalid(
         apply(context, &mut foreign, &proposal),
@@ -155,7 +173,10 @@ fn isolated_apply_boundary(context: &mut Context<'_>) -> Result<()> {
     let noop = model.propose(&recarried, &[0], Parameter::Route(0))?;
     let noop_observed = noop.observation()?;
     require(
-        noop_observed.candidate == 0 && noop_observed.before == 544 && noop_observed.after == 544,
+        noop_observed.candidate == 0
+            && noop_observed.before == 544
+            && noop_observed.after == 544
+            && !noop_observed.any_candidate_cost_differs_from_identity,
         "one-leaf route no-improvement did not select CURRENT",
     )?;
     let losses = noop.candidate_losses()?;
@@ -184,7 +205,10 @@ fn route_apply_reality(context: &mut Context<'_>) -> Result<()> {
     let proposal = model.propose(&input, &[1], Parameter::Route(0))?;
     let observed = proposal.observation()?;
     require(
-        observed.candidate == 1 && observed.before == 640 && observed.after == 256,
+        observed.candidate == 1
+            && observed.before == 640
+            && observed.after == 256
+            && observed.any_candidate_cost_differs_from_identity,
         "Route B12 proposal must be frame1/640->256",
     )?;
     require(
@@ -222,7 +246,10 @@ fn gate_apply_reality(context: &mut Context<'_>) -> Result<()> {
     let proposal = model.propose(&input, &[1], Parameter::Gate(1))?;
     let observed = proposal.observation()?;
     require(
-        observed.candidate == 2 && observed.before == 448 && observed.after == 64,
+        observed.candidate == 2
+            && observed.before == 448
+            && observed.after == 64
+            && observed.any_candidate_cost_differs_from_identity,
         "Gate sibling+1 proposal differs",
     )?;
     require(

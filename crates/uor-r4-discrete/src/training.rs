@@ -1,4 +1,4 @@
-//! Deterministic corpus/coordinate driver. Corpus commits require an unissued capability.
+//! Deterministic corpus/coordinate driver. Corpus commits require explicit pilot admission.
 //! Receipt/cursor arithmetic is metadata; every model evaluation and proposal is CUDA.
 #![forbid(unsafe_code)]
 use crate::{
@@ -20,6 +20,8 @@ pub fn driver_source_sha256() -> String {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(include_bytes!("corpus.rs"));
     bytes.extend_from_slice(include_bytes!("training.rs"));
+    bytes.extend_from_slice(include_bytes!("controller.rs"));
+    bytes.extend_from_slice(include_bytes!("main.rs"));
     corpus::sha256(&bytes)
 }
 
@@ -345,6 +347,46 @@ impl PreparedDriver {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn pilot_slice_reports_masked_reference_share_without_reordering() -> Result<()> {
+        let mut counts = vec![0; 4096];
+        counts[0] = 2;
+        counts[409] = 3;
+        counts[410] = 100;
+        let report = pilot_slice_metadata(&counts, 105)?;
+        assert_eq!(report["masked_train_target_sum"], 5);
+        assert_eq!(report["zero_count_tokens"], 408);
+        assert_eq!(
+            report["combined_share"],
+            json!({"numerator":5,"denominator":105})
+        );
+        assert_eq!(report["target_counts_by_token_id"][409], 3);
+        assert!(pilot_slice_metadata(&counts, 5).is_err());
+        assert!(pilot_slice_metadata(&[u64::MAX, 1], 0).is_err());
+        assert_eq!(pilot_slice_metadata(&[0; 410], 0)?["status"], "UNAVAILABLE");
+        Ok(())
+    }
+    #[test]
+    fn snapshot_metadata_distinguishes_interior_patterns_from_writer_cells() -> Result<()> {
+        // Literal storage fixture, not model initialization or a host forward.
+        let a = [2, 2, 0, 0, 0, 0, 0, 0];
+        let b = [-2, -2, 0, 0, 0, 0, 0, 0];
+        let table: Vec<i32> = [a, a, a, a, a, b, a, a, b, b, a, a]
+            .into_iter()
+            .flatten()
+            .collect();
+        let mut snapshot =
+            json!({"spec":{"vocabulary":3,"blocks":4,"context":1,"kept_cells":2},"table":table});
+        let report = snapshot_metadata(&snapshot)?;
+        assert_eq!(report["distinct_full_vector_patterns"], 3);
+        assert_eq!(report["occupied_writer_cells"], 2);
+        snapshot["table"]
+            .as_array_mut()
+            .ok_or_else(|| invalid("fixture table"))?
+            .pop();
+        assert!(snapshot_metadata(&snapshot).is_err());
+        Ok(())
+    }
     fn metadata_fixture(seed: u32, read_spec: ReadSpec) -> Result<PreparedDriver> {
         fn corpus(split: Split, ids: &[u16], mask: &[u8], eligible: u64) -> Result<PreparedCorpus> {
             let mut bytes = vec![0; 64];
@@ -563,13 +605,100 @@ mod tests {
     }
 }
 
-/// An owner-release capability cannot be deserialized, copied from configuration,
-/// or constructed by callers. Issuance remains deliberately held, not unimplemented.
+/// A capability cannot be deserialized or constructed by external callers.
+/// The default request remains held; the pilot controller validates explicit
+/// release evidence and records its admission before requesting this capability.
 pub struct CorpusUpdateAdmission {
     lineage_sha256: String,
+    max_completed_batches: u64,
 }
 pub fn request_corpus_update_admission(_driver: &PreparedDriver) -> Result<CorpusUpdateAdmission> {
     Err(Error::TrainingHeld)
+}
+
+/// P1 is a summary of the completed GPU count table, not a host predictor.
+/// The ascending pilot visits the first 410 tokens; no frequency reordering.
+pub fn pilot_slice_metadata(counts: &[u64], source_targets: u64) -> Result<Value> {
+    let total = counts.iter().try_fold(0u64, |sum, count| {
+        sum.checked_add(*count)
+            .ok_or_else(|| invalid("count receipt overflow"))
+    })?;
+    if total != source_targets {
+        return Err(invalid(
+            "GPU count receipt total differs from masked TRAIN targets",
+        ));
+    }
+    let visited = &counts[..counts.len().min(410)];
+    let sum = visited.iter().try_fold(0u64, |sum, count| {
+        sum.checked_add(*count)
+            .ok_or_else(|| invalid("slice count receipt overflow"))
+    })?;
+    let zero_ids: Vec<usize> = visited
+        .iter()
+        .enumerate()
+        .filter_map(|(id, count)| (*count == 0).then_some(id))
+        .collect();
+    Ok(json!({
+        "policy":"ascending VectorBlock 0..1639; token IDs 0..409 at blocks=4",
+        "source":"completed GPU response-masked TRAIN count reference; DEV excluded",
+        "visited_token_count":visited.len(), "target_counts_by_token_id":visited,
+        "masked_train_target_sum":sum, "zero_count_tokens":zero_ids.len(),
+        "zero_count_token_ids":zero_ids,
+        "combined_share":{"numerator":sum,"denominator":source_targets},
+        "status":if source_targets == 0 { "UNAVAILABLE" } else { "OBSERVED" }
+    }))
+}
+
+/// P2 counts byte-identical storage patterns in a completed GPU snapshot.
+/// Writer cells are exactly ordered (first root, last root) pairs. Equality of
+/// those stored blocks counts occupied cells without routing/scoring on host.
+/// The CUDA loader remains responsible for admitting geometric root values.
+pub fn snapshot_metadata(snapshot: &Value) -> Result<Value> {
+    use std::collections::BTreeSet;
+    let spec: Spec = serde_json::from_value(
+        snapshot
+            .get("spec")
+            .cloned()
+            .ok_or_else(|| invalid("snapshot metadata missing spec"))?,
+    )
+    .map_err(|e| invalid(e.to_string()))?;
+    spec.validate()?;
+    let table: Vec<i32> = serde_json::from_value(
+        snapshot
+            .get("table")
+            .cloned()
+            .ok_or_else(|| invalid("snapshot metadata missing table"))?,
+    )
+    .map_err(|e| invalid(e.to_string()))?;
+    let width = spec.blocks as usize * 8;
+    if table.len() != spec.vocabulary as usize * width {
+        return Err(invalid("snapshot metadata table shape mismatch"));
+    }
+    let mut patterns = BTreeSet::new();
+    let mut cells = BTreeSet::new();
+    for vector in table.chunks_exact(width) {
+        patterns.insert(vector);
+        cells.insert((&vector[..8], &vector[width - 8..]));
+    }
+    Ok(json!({"distinct_full_vector_patterns":patterns.len(),
+        "occupied_writer_cells":cells.len(),"vocabulary":spec.vocabulary,
+        "source":"exact stored full vectors and endpoint block pairs; host metadata only"}))
+}
+
+pub(crate) fn issue_corpus_update_admission(
+    driver: &PreparedDriver,
+    release: &crate::controller::ValidatedRelease,
+) -> Result<CorpusUpdateAdmission> {
+    let lineage_sha256 = driver.lineage_sha256()?;
+    if release.lineage_sha256() != lineage_sha256 || release.max_batches() != 1640 {
+        return Err(invalid(
+            "release differs from the admitted pilot lineage/dose",
+        ));
+    }
+    Ok(CorpusUpdateAdmission {
+        lineage_sha256,
+        max_completed_batches: release.max_batches(),
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -585,6 +714,9 @@ pub struct StepReceipt {
     pub loss_after: u64,
     pub model_epoch: u64,
     pub applied: bool,
+    /// Device comparison of every active candidate against CURRENT, including
+    /// worse candidates. No accepted update is not the same as no sensitivity.
+    pub any_candidate_cost_differs_from_identity: bool,
 }
 
 #[cfg(feature = "cuda")]
@@ -669,6 +801,8 @@ impl PreparedDriver {
             loss_after: observation.after,
             model_epoch: observation.epoch,
             applied: false,
+            any_candidate_cost_differs_from_identity: observation
+                .any_candidate_cost_differs_from_identity,
         })
     }
     /// Complete transition path, inaccessible without a genuinely issued owner capability.
@@ -680,6 +814,9 @@ impl PreparedDriver {
     ) -> Result<StepReceipt> {
         if admission.lineage_sha256 != self.lineage_sha256()? {
             return Err(invalid("owner admission belongs to another driver lineage"));
+        }
+        if cursor.completed_batches >= admission.max_completed_batches {
+            return Err(invalid("admitted diagnostic pilot dose exhausted"));
         }
         self.admit_model(model, cursor)?;
         // Refuse cursor overflow before apply can change the model epoch/state.
@@ -704,6 +841,8 @@ impl PreparedDriver {
             loss_after: observation.after,
             model_epoch: model.epoch()?,
             applied,
+            any_candidate_cost_differs_from_identity: observation
+                .any_candidate_cost_differs_from_identity,
         })
     }
     pub fn run_transitions(
@@ -751,11 +890,15 @@ impl PreparedDriver {
             &self.dev.eligible_targets(),
             model.ordinal(),
         )?;
+        let pilot_slice_bias = pilot_slice_metadata(
+            &reference.train_masked_reference.token_counts,
+            reference.train_masked_reference.source_targets,
+        )?;
         if model.epoch()? != epoch {
             return Err(invalid("evaluation changed model epoch"));
         }
         Ok(
-            json!({"schema":DRIVER_SCHEMA,"evaluation_lineage":self.lineage,"evaluation_lineage_sha256":self.lineage_sha256()?,"model_epoch":epoch,"model_snapshot_sha256":snapshot_sha256,"model_bindings":{"schema":snapshot.schema,"spec":snapshot.spec,"read_spec":snapshot.read_spec,"seed":snapshot.seed,"source_sha256":snapshot.source_sha256,"kernel_sha256":snapshot.kernel_sha256,"geometry_sha256":snapshot.geometry_sha256,"operator_kappa":snapshot.operator_kappa,"composition_kappa":snapshot.composition_kappa},"training_provenance":"DriverCheckpoint restore required by eval-corpus CLI; this evaluator's lineage identifies its evaluation inputs","scored_set_policy":corpus::WINDOW_POLICY,"aggregate":aggregate,"batches":receipts,"count_reference":reference,"training":"HELD","applied_updates":0}),
+            json!({"schema":DRIVER_SCHEMA,"evaluation_lineage":self.lineage,"evaluation_lineage_sha256":self.lineage_sha256()?,"model_epoch":epoch,"model_snapshot_sha256":snapshot_sha256,"model_bindings":{"schema":snapshot.schema,"spec":snapshot.spec,"read_spec":snapshot.read_spec,"seed":snapshot.seed,"source_sha256":snapshot.source_sha256,"kernel_sha256":snapshot.kernel_sha256,"geometry_sha256":snapshot.geometry_sha256,"operator_kappa":snapshot.operator_kappa,"composition_kappa":snapshot.composition_kappa},"training_provenance":"DriverCheckpoint restore required by eval-corpus CLI; this evaluator's lineage identifies its evaluation inputs","scored_set_policy":corpus::WINDOW_POLICY,"aggregate":aggregate,"batches":receipts,"count_reference":reference,"pilot_slice_bias":pilot_slice_bias,"evaluation_mutates_model":false,"accepted_updates_in_model":epoch,"updates_applied_by_evaluation":0}),
         )
     }
 }

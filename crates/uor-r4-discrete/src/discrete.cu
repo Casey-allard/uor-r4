@@ -307,6 +307,11 @@ __device__ U resulting_port(const int* table,const U* routes,const U* g,const U*
 }
 extern "C" __global__ void discrete_choose(const W* losses,const W* epoch,const int* table,const U* routes,const int* gates,const U* g,const U* s,U kind,U index,W* proposal) {
     if(blockIdx.x || threadIdx.x)return;U best=0;
+    // Report objective sensitivity independently of improvement. All-worse
+    // proposals are sensitive; all-tied proposals are not. Gate MAX padding
+    // is outside the active inventory and must never manufacture sensitivity.
+    W sensitive=0;U active=kind==GATE_KIND?3u:16u;
+    for(U i=1;i<active;++i)if(losses[i]!=losses[0])sensitive=1;
     if(kind==GATE_KIND) {
         // Strict improvement only; ties keep the lower ordinal (CURRENT, then 0, -1, +1).
         for(U i=1;i<3;++i)if(losses[i]<losses[best])best=i;
@@ -316,7 +321,7 @@ extern "C" __global__ void discrete_choose(const W* losses,const W* epoch,const 
             if(losses[i]<losses[best] || tie)best=i;
         }
     }
-    proposal[0]=best;proposal[1]=losses[0];proposal[2]=losses[best];proposal[3]=*epoch;
+    proposal[0]=best;proposal[1]=losses[0];proposal[2]=losses[best];proposal[3]=*epoch;proposal[4]=sensitive;
 }
 extern "C" __global__ void discrete_apply(int* table,U* routes,int* gates,const U* g,const U* s,const W* proposal,U kind,U index,W* epoch,U* status) {
     if(blockIdx.x || threadIdx.x)return;

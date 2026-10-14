@@ -258,6 +258,10 @@ pub struct ProposalObservation {
     pub before: u64,
     pub after: u64,
     pub epoch: u64,
+    /// CUDA compares every active candidate cost with CURRENT, including
+    /// candidates worse than CURRENT. False therefore means all active costs
+    /// tied, not merely that no update was accepted. Gate padding is excluded.
+    pub any_candidate_cost_differs_from_identity: bool,
 }
 
 /// Artifact storage only. Values are admitted on the GPU when loaded; no
@@ -305,6 +309,16 @@ fn hex_digest(digest: &[u8; 32]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Compiled artifact identity only; no CUDA context, model initialization or
+/// numerical model operation is needed to validate an admission binding.
+pub fn compiled_identity() -> serde_json::Value {
+    serde_json::json!({
+        "source_sha256": hex_digest(&source_sha256()),
+        "kernel_sha256": kernel_sha256(),
+        "geometry_sha256": hex_digest(&geometry_digest(&packed_geometry())),
+    })
+}
+
 /// Device-chosen proposal. Private buffers prevent a host-authored update.
 pub struct Proposal {
     data: CudaSlice<u64>,
@@ -326,14 +340,20 @@ impl Proposal {
     }
     pub fn observation(&self) -> Result<ProposalObservation> {
         let words = self.stream.clone_dtoh(&self.data).map_err(cuda)?;
-        let words: [u64; 4] = words
+        let words: [u64; 5] = words
             .try_into()
-            .map_err(|_| invalid("proposal receipt must contain four words"))?;
+            .map_err(|_| invalid("proposal receipt must contain five words"))?;
+        let any_candidate_cost_differs_from_identity = match words[4] {
+            0 => false,
+            1 => true,
+            _ => return Err(invalid("proposal sensitivity receipt must be a boolean")),
+        };
         Ok(ProposalObservation {
             candidate: words[0],
             before: words[1],
             after: words[2],
             epoch: words[3],
+            any_candidate_cost_differs_from_identity,
         })
     }
 }
@@ -1153,7 +1173,7 @@ impl Device {
         // admitted; sixteen loss slots are scored/padded on CUDA as above.
         unsafe { launch.launch(launch_config(16)) }.map_err(cuda)?;
         check_status(&self.stream, &status, "counterfactual")?;
-        let mut proposal = self.stream.alloc_zeros::<u64>(4).map_err(cuda)?;
+        let mut proposal = self.stream.alloc_zeros::<u64>(5).map_err(cuda)?;
         let mut launch = self.stream.launch_builder(&self.kernels.choose);
         launch
             .arg(&losses)
@@ -1168,7 +1188,8 @@ impl Device {
             .arg(&mut proposal);
         // SAFETY: fixed sixteen losses with a kind-bound active count, current
         // parameter/table/routes/gates,
-        // geometry/spec and epoch, with four writable proposal words.
+        // geometry/spec and epoch, with five writable proposal words. Word4
+        // is a device-computed sensitivity observation, never an apply input.
         unsafe { launch.launch(launch_config(1)) }.map_err(cuda)?;
         self.stream.synchronize().map_err(cuda)?;
         Ok(Proposal {

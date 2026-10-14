@@ -75,9 +75,17 @@ tokenizer, roles, cursor and model storage. Evaluation uses CUDA top8/margin/eli
 and TRAIN-masked count reference, with DEV oracle diagnostic only; zero-rival zero
 loss is not eligible learning. Reports distinguish evaluation lineage and actual
 snapshot identity. The complete transition loop accepts an opaque owner-admission
-capability whose issuer currently returns `TrainingHeld`. It is not enabled by a
-CLI flag. `prepare-plan` is metadata only; `init-corpus`/`eval-corpus` are CUDA entry
-points, with the CLI limited to lineage-bound epoch0 checkpoints under the hold.
+capability; default requests return `TrainingHeld`. The
+[A2 admission controller](../labs/discrete-admission-2026-10-14/README.md) adds an
+explicitly released seed1/1640-batch diagnostic pilot and trained-checkpoint
+evaluation, gated by pinned source/artifact/data, Claude review and Casey D4
+release records. Its changed receipt ABI passed all25 finite CUDA controls
+at `35a48f586`, with11 fixture apply calls/8 disposable updates and0 corpus
+updates;18 host metadata tests cover admission/persistence. Corpus controller
+execution remains NOT_RUN; source delivery lifts no hold. `prepare-plan` is metadata only;
+`init-corpus`/`eval-corpus` are CUDA entry points, with the latter still limited to
+lineage-bound epoch0 checkpoints. The new `eval-pilot` retains the pilot release
+and registered recovery-checkpoint provenance.
 
 **What is not implemented or established:** full 240-root E8 coverage, the complete marked external FBS object, a migrated old floating-point trunk, a corpus learning result or measured D2 cost, a trained intent compiler, full M2 or D11 qualification, useful chat, language advantage or energy savings. Static geometric construction is build-time metadata; model initialization/reads/scoring/proposals execute only through the integer CUDA module, with no CPU model/reference fallback. [Prior floating-point evidence remains preserved](https://github.com/UOR-Foundation/uor-r4/pull/2370).
 
