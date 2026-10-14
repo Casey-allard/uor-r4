@@ -31,3 +31,4 @@
 {"branch": "kimi/rung0-sheet-amend6-20261013", "kind": "claim", "lab": "kimi", "schema": 1, "ts": "2026-10-13T09:46:17-04:00"}
 {"branch": "kimi/d29-compiled-module-compliance", "kind": "claim", "lab": "kimi", "schema": 1, "ts": "2026-10-13T11:01:11-04:00"}
 {"branch": "kimi/d29-nvrtc-amendment", "kind": "claim", "lab": "kimi", "schema": 1, "ts": "2026-10-13T11:31:25-04:00"}
+{"kind":"prep","lab":"kimi","milestone":"M1","reviewer":"Claude 6159328025 confirmed 6159394631; Codex 6159308818 exact-head 6159343268","schema":1,"sheet":"docs/harness/prep/m1-discrete-rung0-training-2026-10-13.md","ts":"2026-10-14T02:19:49Z","verdict":"FIT"}

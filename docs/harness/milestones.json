@@ -49,7 +49,7 @@
           "note": "Recorded operator card6134571032; no reset by instruction repair."
         }
       ],
-      "next": "Sheet m1-discrete-rung0-training Amendment2 posted for confirmation: guard re-based on measured per-seed untrained strict-win rate max(1%,min(5u,u+5pp)) with INSTRUMENT-INVALID escape, fresh transfer UNAVAILABLE/NOT_RUN, decisive checkpoint at 100% only (0/4101/8202/12303/16404), execution at e7d926fbe + owner-authorized admission diff only (any other change voids FIT), per-kind sensitivity diagnostics, owner pilot 1640 batches seed1 diagnostic-only (~1.78h ~$1.62 UNVERIFIED), full-run known-component subtotal 35.611540400h ~$32.34 UNVERIFIED. Awaiting Claude one-cycle confirmation + Codex confirmation; execution then needs D4 owner release + admission-diff review. M1 reply headline SUSPENDED under R14.",
+      "next": "Rung-0 sheet Amendment2 TEST FITNESS: FIT (design) — Claude 6159328025 confirmed on merged blob 6159394631, Codex 6159308818 exact-head 6159343268 (PR2415 5c189cf59). FIT lifts no hold. Execution gates in order: Codex implements+qualifies the admission diff (controller wiring, trained-checkpoint eval, per-kind sensitivity counters, P1/P2 pilot reporting) at e7d926fbe+only-that-diff; Claude reviews that exact diff; Kimi binds final executable/PTX/source identities + resource admission; owner alone releases D4. Pilot scope preserved: seed1, 1640 batches, VectorBlock 0..1639 only, Route NOT_RUN, ~1.784h/$1.62 UNVERIFIED known-component subtotal; fresh transfer UNAVAILABLE/NOT_RUN; full two-seed run is a later owner decision. M1 reply headline SUSPENDED under R14.",
       "project_manager": "kimi",
       "training_hold": true
     },
