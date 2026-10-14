@@ -1677,8 +1677,48 @@ fn cmd_multilab(repo: &Path, args: &[String], json: bool) -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        // Not ported yet, and each says so individually.
-        "sync-live" | "migrate-ledger" => delegate_to_python(repo, "multilab", args),
+        // **`sync-live` is the committed presence tier's only refresh path**, and `migrate-ledger`
+        // moves pre-sharding ledgers into per-lab shards. Both are WRITERS, and both preserve what
+        // they read: the sync copies the RECORDED timestamp and intent rather than stamping a new
+        // one, and the migration quarantines an unreadable line instead of dropping it.
+        "sync-live" => match multilab::sync_live_to_durable(&paths) {
+            Ok(r) => {
+                if json {
+                    println!("{}", r.to_pretty());
+                } else if r.synced.is_empty() {
+                    println!("no live presence to sync (looked in {})", r.live_dir);
+                } else {
+                    println!(
+                        "copied live presence for {} into the committed tier",
+                        r.synced.join(", ")
+                    );
+                }
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("uor-harness: {e}");
+                ExitCode::from(1)
+            }
+        },
+        "migrate-ledger" => match multilab::migrate_ledger(&paths) {
+            Ok(r) => {
+                if json {
+                    println!("{}", r.to_pretty());
+                } else {
+                    println!("migrated {} receipt(s) into per-lab shards", r.total);
+                    let mut sorted = r.moved.clone();
+                    sorted.sort();
+                    for (shard, n) in sorted {
+                        println!("  {shard}: {n}");
+                    }
+                }
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("uor-harness: {e}");
+                ExitCode::from(1)
+            }
+        },
         "" => {
             eprintln!("uor-harness multilab: which action? presence, claims, touch, sync-live, migrate-ledger");
             ExitCode::from(2)

@@ -127,24 +127,51 @@ pub fn remembered(flag: Option<String>, previous: Option<&str>) -> String {
     }
 }
 
+/// **The two tiers are written in two different shapes, and Python is why.**
+///
+/// The live tier is `json.dumps(record, ensure_ascii=False, sort_keys=True)` — compact with
+/// Python's default separators, `{"a": 1}`. The committed tier is `core._save`'s
+/// `json.dumps(record, indent=2, ensure_ascii=False, sort_keys=True)` — pretty, because **it is
+/// read in a git diff**: `sync_live_to_durable` writing compact JSON over a file Python wrote
+/// pretty would show every line of every lab's row as changed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Style {
+    Live,
+    Durable,
+}
+
+impl Style {
+    fn render(self, presence: &Presence) -> String {
+        let json = presence.to_json();
+        match self {
+            Style::Live => crate::receipt::py_dumps_sorted(&json),
+            Style::Durable => serde_json::to_string_pretty(&json).unwrap_or_default(),
+        }
+    }
+}
+
 /// Write one lab's presence to the live tier, atomically.
 pub fn publish_live(paths: &StatePaths, presence: &Presence) -> Result<(), String> {
-    publish(&paths.live_presence(&presence.lab), presence)
+    publish(&paths.live_presence(&presence.lab), presence, Style::Live)
 }
 
 /// Write one lab's presence to the committed record.
 pub fn publish_durable(paths: &StatePaths, presence: &Presence) -> Result<(), String> {
-    publish(&paths.durable_presence(&presence.lab), presence)
+    publish(
+        &paths.durable_presence(&presence.lab),
+        presence,
+        Style::Durable,
+    )
 }
 
 /// Write a presence file via a temporary and a rename, so a reader never sees a partial file.
-fn publish(target: &Path, presence: &Presence) -> Result<(), String> {
+fn publish(target: &Path, presence: &Presence, style: Style) -> Result<(), String> {
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
     }
     let tmp = target.with_extension("tmp");
-    fs::write(&tmp, format!("{}\n", presence.line()))
+    fs::write(&tmp, format!("{}\n", style.render(presence)))
         .map_err(|e| format!("cannot write {}: {e}", tmp.display()))?;
     fs::rename(&tmp, target).map_err(|e| format!("cannot replace {}: {e}", target.display()))?;
     Ok(())

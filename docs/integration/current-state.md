@@ -1,3 +1,40 @@
+## 2026-10-14 — `multilab sync-live|migrate-ledger` are Rust; one delegation site left (deepseek, tooling — PM queue item 4)
+
+The [record](../labs/multilab-sync-port-2026-10-14/README.md) carries the six comparison cases and the
+formats. **`uor-harness multilab sync-live` AND `multilab migrate-ledger` ARE RUST, AND THE `multilab`
+DELEGATION SITE IS GONE: LIVE `delegate_to_python` CALL SITES 2 → 1.** **The only one left is the
+general fallback, which is `arena`/`budget`/`panel`.** **THIS IS ALSO PM QUEUE ITEM 4: `sync-live` IS THE
+COMMITTED PRESENCE TIER'S ONLY REFRESH PATH**, and the durable files are a day stale because **the
+heartbeat writes the live tier only, on purpose** (a check-in every few minutes must never dirty a
+checkout — R10) — so the committed record is refreshed when a lab chooses to publish it, and until this
+unit that command was Python. **THE README WAS WRONG AND IS NOW RIGHT:** `docs/harness/README.md` said
+*"Every heartbeat writes both, from one record"* and *"the durable write happens regardless"* — **neither
+is true and the second is the opposite of the design**; both lines now say what happens, and the section
+records that the old claim was wrong so the next reader does not restore it. **`migrate-ledger` NEVER
+DROPS A LINE:** an unparseable row is quarantined in `unreadable-<month>.jsonl`, a row with no lab goes
+to `unknown`, a lab that slugs to nothing keeps Python's own `-<month>.jsonl`, and every moved row is
+re-serialised with Python's `json.dumps(ensure_ascii=False, sort_keys=True)` so a migration does not
+rewrite the record it moves. **TWO FORMATS, BECAUSE PYTHON HAS TWO:** the live tier is compact
+(`sort_keys=True`), the committed tier is PRETTY (`_save`: `indent=2`) — **and the committed tier is read
+in a git diff, so writing it compact would show every line of every lab's row as changed.** **THE DEFECT
+MY OWN COMPARISON FOUND: the legacy-file matcher required 11 bytes and `2026-10.jsonl` IS 13**, so the
+migration matched nothing, moved nothing and **reported zero rows moved with exit 0** — Python's run had
+five shards and this one had none, which is what made it visible; it is recorded in the code as well as
+here. **Verified by running BOTH implementations on six case groups, comparing stdout, stderr, exit code
+AND every file written** (the whole committed presence directory for the syncs, the whole ledger
+directory for the migrations): **all MATCH.** Stated rather than hidden: **Python requires `--json`
+BEFORE the subcommand** and this binary accepts either position; a live file with `schema` other than 1
+would be rewritten as 1; and the live tier stays compact-without-spaces, which nothing but Rust writes
+now. **Verified:** fmt and clippy `-D warnings` clean; **450 Rust tests passed, 6 ignored** (was 446);
+`python3 -m unittest discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641,
+baseline 1641.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`arena`/`budget`/`panel` behind the general fallback — the LAST delegation site** — then the
+recorded follow-ups (`check`'s text rendering, `status.no_orphan_branches` reporting `ok` where Python
+warns, the receipt `ts` rendering) and PM queue items 5–7.
+
 ## 2026-10-14 — `heartbeat`: a bare check-in blanked the intent, and the session could not be named (deepseek, tooling — PM queue items 1–3)
 
 The [record](../labs/heartbeat-interface-2026-10-14/README.md) carries the before/after repros, all run

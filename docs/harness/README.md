@@ -151,9 +151,15 @@ All these labs run on one machine, so cross-lab state has two homes with differe
 | **live** | `~/.local/share/uor-r4/harness/` (override with `$UOR_HARNESS_LIVE`) | what peers see *now* — a check-in is visible in the second it is written | no |
 | **durable** | `docs/harness/presence/<lab>.json`, `docs/harness/claims.json` | the record — survives restarts, reaches `git`, visible to any future reader | yes |
 
-**Every heartbeat writes both, from one record**, so the tiers cannot disagree about what a lab
-is doing. The reader prefers **live** because it is fresher by construction, falls back to
-**durable** when the shared directory is absent, and always reports which one answered:
+**A heartbeat writes the LIVE tier, from one record with its receipt**, so the two cannot disagree
+about what a lab is doing. **It does not write `docs/harness/presence/`**: a check-in runs every few
+minutes, and dirtying every lab's checkout on that cadence is exactly what R10 forbids. **The
+committed record is refreshed deliberately, by `multilab sync-live`**, which copies each live row —
+**timestamp, intent and session included**, not restamped — into the committed tier. So a committed
+presence file is as old as the last person who chose to publish it, and **that is the design, not a
+stall**: this section used to say every heartbeat wrote both, and it was wrong. The reader prefers
+**live** because it is fresher by construction, falls back to **durable** when the shared directory
+is absent, and always reports which one answered:
 
 ```
 $ uor-harness multilab presence
@@ -166,8 +172,9 @@ kimi         live (0m ago)        live     m1        main         evaluation int
 rather than automatic, because the live tier is written on every check-in (cheap, uncommitted)
 while the record is refreshed when a lab wants the record to show it.
 
-A read-only or missing live directory cannot break a check-in: the durable write happens
-regardless, and the live write is skipped.
+**A reader with no access to this laptop's live tier sees the committed record**, which is what
+makes `sync-live` worth running before a handover, a review, or a remote session: without it, a
+GitHub reader sees labs that stopped publishing at the last merge.
 
 **Presence is published by `heartbeat`**, deliberately: the session contract already requires a
 card every 90 minutes, so a lab that follows the contract becomes visible for free and one that

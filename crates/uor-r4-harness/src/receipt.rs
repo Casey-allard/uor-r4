@@ -112,7 +112,11 @@ impl Receipt {
 /// `ensure_ascii` is off here (Python's ledger call passes `ensure_ascii=False`), which is why this
 /// is not the same renderer as `registries::ensure_ascii`: the ledger keeps UTF-8, `--json` escapes
 /// it. Two call sites, two Python defaults, stated rather than shared by accident.
-fn py_dumps_sorted(v: &Value) -> String {
+///
+/// Shared beyond the ledger: `presence::publish_live` writes the same shape, and `migrate_ledger`
+/// re-serialises every row it moves with it — a migrated row must be byte-identical to the row
+/// Python would have written, or the migration itself changes the record.
+pub fn py_dumps_sorted(v: &Value) -> String {
     match v {
         Value::Null => "null".to_string(),
         Value::Bool(b) => b.to_string(),
@@ -253,21 +257,38 @@ impl Recorded {
     /// from the ordered pairs instead: **the two implementations are compared as bytes here, which
     /// is what found the escaping difference in the `team roster` unit.**
     pub fn to_pretty(&self) -> String {
-        let mut out = String::from("{\n");
-        let last = self.pairs.len().saturating_sub(1);
-        for (i, (k, v)) in self.pairs.iter().enumerate() {
-            let comma = if i == last { "" } else { "," };
-            let value = crate::registries::ensure_ascii(
-                &serde_json::to_string_pretty(v).unwrap_or_default(),
-            );
-            // Python indents a nested container relative to its key, so every line after the
-            // first moves over by the key's own indent.
-            let value = value.replace('\n', "\n  ");
-            out.push_str(&format!("  {}: {value}{comma}\n", Value::String(k.clone())));
-        }
-        out.push('}');
-        out
+        pretty_ordered(&self.pairs)
     }
+}
+
+/// `json.dumps(dict(pairs), indent=2)` — Python's KEY ORDER and Python's non-ASCII escaping.
+///
+/// A `serde_json::Value` would sort the keys, so the document is rendered from an ordered list
+/// instead. **The key order is the caller's insertion order, which is what Python prints**, and
+/// the escaping is `ensure_ascii=True`, which is Python's default and the opposite of the ledger's.
+pub fn pretty_ordered(pairs: &[(String, Value)]) -> String {
+    let mut out = String::from("{\n");
+
+    let last = pairs.len().saturating_sub(1);
+
+    for (i, (k, v)) in pairs.iter().enumerate() {
+        let comma = if i == last { "" } else { "," };
+
+        let value =
+            crate::registries::ensure_ascii(&serde_json::to_string_pretty(v).unwrap_or_default());
+
+        // Python indents a nested container relative to its key, so every line after the first
+
+        // moves over by the key's own indent.
+
+        let value = value.replace('\n', "\n  ");
+
+        out.push_str(&format!("  {}: {value}{comma}\n", Value::String(k.clone())));
+    }
+
+    out.push('}');
+
+    out
 }
 
 /// Python's `value in (None, "", [], {})`: the values a receipt does NOT store.

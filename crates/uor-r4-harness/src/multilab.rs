@@ -413,3 +413,365 @@ mod tests {
         assert_eq!(claims[0].1.lab, "claude");
     }
 }
+
+// ------------------------------------------------------------------ sync-live, migrate-ledger
+
+/// `sync_live_to_durable`: every live presence row copied into the committed tier.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SyncLive {
+    /// The labs copied, in the order the live files were read.
+    pub synced: Vec<String>,
+    /// **The live ROOT, not the presence directory.** That is what Python reports and what a reader
+    /// would go and look in.
+    pub live_dir: String,
+}
+
+/// `migrate_ledger`: unsharded `<YYYY-MM>.jsonl` files moved into per-lab shards.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LedgerMigration {
+    /// `"<lab>-<month>" -> rows`, **in the order the shards were first written**, because that is the
+    /// order Python's `--json` prints and the text form sorts.
+    pub moved: Vec<(String, usize)>,
+    pub total: usize,
+}
+
+/// Unsharded ledgers from before sharding: `<YYYY-MM>.jsonl`, with no lab prefix.
+pub fn legacy_ledgers(paths: &StatePaths) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(paths.ledger_dir()) else {
+        return Vec::new();
+    };
+    let mut out: Vec<PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name()
+                .map(|n| is_legacy_ledger(&n.to_string_lossy()))
+                .unwrap_or(false)
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+/// `^\d{4}-\d{2}\.jsonl$`, by the same rule Python matches the file NAME with.
+fn is_legacy_ledger(name: &str) -> bool {
+    let b = name.as_bytes();
+    // `2026-10.jsonl` is THIRTEEN bytes: 4 + 1 + 2 + 6. The first version of this said eleven and
+    // matched nothing, which the comparison against Python caught immediately - the migration did
+    // nothing at all and reported zero rows moved.
+    b.len() == 13
+        && b[4] == b'-'
+        && name.ends_with(".jsonl")
+        && b[..4].iter().all(u8::is_ascii_digit)
+        && b[5..7].iter().all(u8::is_ascii_digit)
+}
+
+/// A presence record rebuilt from a row, field for field.
+///
+/// **Not `Presence::new`**: that stamps a new timestamp and reads the current branch, and the whole
+/// point of the sync is to carry the RECORDED one. The two tiers must agree about when a lab checked
+/// in and what it said, or the committed copy is a second, quieter opinion.
+fn presence_from_row(row: &PresenceRow) -> Presence {
+    Presence {
+        lab: row.lab.clone(),
+        updated: row.updated.clone(),
+        milestone: row.milestone.clone(),
+        branch: row.branch.clone(),
+        worktree: row.worktree.clone(),
+        doing: row.doing.clone(),
+        next: row.next.clone(),
+        host: row.host.clone(),
+        session: row.session.clone(),
+    }
+}
+
+/// `sync_live_to_durable`: copy the live tier into the committed record.
+///
+/// **This is the durable tier's only refresh path, and it is deliberately explicit.** The heartbeat
+/// writes the live tier only, because a check-in every few minutes must never dirty a checkout (R10);
+/// a lab that wants the committed record to show it runs this. That is why the committed presence
+/// files can be a day stale without anything being broken — and why the README must say so.
+pub fn sync_live_to_durable(paths: &StatePaths) -> Result<SyncLive, String> {
+    let dir = live_dir(paths);
+    let mut files: Vec<PathBuf> = std::fs::read_dir(&dir)
+        .map(|e| e.flatten().map(|x| x.path()).collect())
+        .unwrap_or_default();
+    files.sort();
+    files.retain(|p| p.extension().and_then(|e| e.to_str()) == Some("json"));
+    let mut synced = Vec::new();
+    for path in files {
+        // An unreadable or empty file is skipped rather than fatal: Python's `all_live` drops it,
+        // and one lab's broken presence file must not stop every other lab's from reaching the
+        // committed record.
+        let Some(row) = PresenceRow::read(&path, "live") else {
+            continue;
+        };
+        crate::presence::publish_durable(paths, &presence_from_row(&row))?;
+        synced.push(row.lab.clone());
+    }
+    Ok(SyncLive {
+        synced,
+        live_dir: paths.live.display().to_string(),
+    })
+}
+
+/// `migrate_ledger`: move unsharded receipts into per-lab shards, preserving every line and its order.
+///
+/// **A line that cannot be parsed is quarantined, never dropped.** Python buckets it under
+/// `unreadable` and keeps the original text, so a migration cannot silently lose the one row that
+/// would have explained what went wrong.
+pub fn migrate_ledger(paths: &StatePaths) -> Result<LedgerMigration, String> {
+    let mut moved: Vec<(String, usize)> = Vec::new();
+    for file in legacy_ledgers(paths) {
+        let month = file
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let text = std::fs::read_to_string(&file)
+            .map_err(|e| format!("cannot read {}: {e}", file.display()))?;
+        // Insertion order, because that is the order `moved` is printed in by `--json`.
+        let mut buckets: Vec<(String, Vec<String>)> = Vec::new();
+        for line in text.lines().filter(|l| !l.trim().is_empty()) {
+            let (lab, rendered) = match serde_json::from_str::<serde_json::Value>(line) {
+                Ok(mut rec) => {
+                    let raw = rec
+                        .get("lab")
+                        .and_then(serde_json::Value::as_str)
+                        .filter(|s| !s.is_empty())
+                        .or_else(|| {
+                            rec.get("actor")
+                                .and_then(serde_json::Value::as_str)
+                                .filter(|s| !s.is_empty())
+                        })
+                        .unwrap_or("unknown");
+                    let lab = crate::state::slug(raw);
+                    // `shapecase` the lab so a shard name and the row agree.
+                    if rec.get("lab").and_then(serde_json::Value::as_str) != Some(lab.as_str()) {
+                        if let serde_json::Value::Object(map) = &mut rec {
+                            map.insert("lab".to_string(), serde_json::Value::String(lab.clone()));
+                        }
+                    }
+                    (lab, crate::receipt::py_dumps_sorted(&rec))
+                }
+                Err(_) => ("unreadable".to_string(), line.to_string()),
+            };
+            match buckets.iter_mut().find(|(l, _)| *l == lab) {
+                Some((_, rows)) => rows.push(rendered),
+                None => buckets.push((lab, vec![rendered])),
+            }
+        }
+        for (lab, rows) in buckets {
+            // **Not `receipt::shard_path`**, which maps an empty lab to `unknown`: Python builds the
+            // name here from the already-slugged lab, so a lab that slugs to nothing lands in
+            // `-<month>.jsonl`. That file name is ugly and it is what the reader expects.
+            let target = paths.ledger_dir().join(format!("{lab}-{month}.jsonl"));
+            let mut merged: Vec<String> = std::fs::read_to_string(&target)
+                .map(|t| {
+                    t.lines()
+                        .filter(|l| !l.trim().is_empty())
+                        .map(|l| l.to_string())
+                        .collect()
+                })
+                .unwrap_or_default();
+            let count = rows.len();
+            merged.extend(rows);
+            // `sort_by_key` is stable, so rows with no readable `ts` keep the order they arrived in
+            // — which is how Python's `sorted` behaves.
+            merged.sort_by_key(|l| ts_of(l));
+            std::fs::write(&target, format!("{}\n", merged.join("\n")))
+                .map_err(|e| format!("cannot write {}: {e}", target.display()))?;
+            let key = format!("{lab}-{month}");
+            match moved.iter_mut().find(|(k, _)| *k == key) {
+                Some((_, n)) => *n += count,
+                None => moved.push((key, count)),
+            }
+        }
+        std::fs::remove_file(&file)
+            .map_err(|e| format!("cannot remove {}: {e}", file.display()))?;
+    }
+    let total = moved.iter().map(|(_, n)| *n).sum();
+    Ok(LedgerMigration { moved, total })
+}
+
+/// Python's `json.dumps` for a single string, with `ensure_ascii` on — the default for `--json`.
+fn py_str(s: &str) -> String {
+    crate::registries::ensure_ascii(
+        &serde_json::to_string(&serde_json::Value::String(s.to_string())).unwrap_or_default(),
+    )
+}
+
+impl SyncLive {
+    /// `json.dumps({"synced": [...], "live_dir": "..."}, indent=2)`, key order and all.
+    ///
+    /// Rendered by hand because a `serde_json::Value` is a `BTreeMap`: it would sort the keys and
+    /// print the list on one line, and **this output is compared byte for byte with Python's**.
+    pub fn to_pretty(&self) -> String {
+        let mut out = String::from("{\n");
+        if self.synced.is_empty() {
+            out.push_str("  \"synced\": [],\n");
+        } else {
+            out.push_str("  \"synced\": [\n");
+            for (i, lab) in self.synced.iter().enumerate() {
+                let comma = if i + 1 == self.synced.len() { "" } else { "," };
+                out.push_str(&format!("    {}{comma}\n", py_str(lab)));
+            }
+            out.push_str("  ],\n");
+        }
+        out.push_str(&format!("  \"live_dir\": {}\n", py_str(&self.live_dir)));
+        out.push('}');
+        out
+    }
+}
+
+impl LedgerMigration {
+    /// `json.dumps({"moved": {...}, "total": n}, indent=2)`, in Python's insertion order.
+    pub fn to_pretty(&self) -> String {
+        let mut out = String::from("{\n");
+        if self.moved.is_empty() {
+            out.push_str("  \"moved\": {},\n");
+        } else {
+            out.push_str("  \"moved\": {\n");
+            for (i, (shard, n)) in self.moved.iter().enumerate() {
+                let comma = if i + 1 == self.moved.len() { "" } else { "," };
+                out.push_str(&format!("    {}: {n}{comma}\n", py_str(shard)));
+            }
+            out.push_str("  },\n");
+        }
+        out.push_str(&format!("  \"total\": {}\n", self.total));
+        out.push('}');
+        out
+    }
+}
+
+/// The `ts` a row sorts by, as text. An unreadable row sorts first, as Python's `""` does.
+fn ts_of(line: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(line)
+        .ok()
+        .and_then(|v| {
+            v.get("ts")
+                .and_then(serde_json::Value::as_str)
+                .map(String::from)
+        })
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod sync_tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn scratch(tag: &str) -> (PathBuf, StatePaths) {
+        let dir =
+            std::env::temp_dir().join(format!("harness-multilab-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("docs").join("harness").join("ledger")).expect("scratch");
+        let live = dir.join("live");
+        std::fs::create_dir_all(live.join("presence")).expect("live");
+        let paths = StatePaths::resolve(&dir, None, Some(live.to_str().unwrap()));
+        (dir, paths)
+    }
+
+    /// `2026-10.jsonl` is THIRTEEN bytes. The first version of the matcher said eleven and matched
+    /// nothing, which the comparison against Python caught as "the migration did nothing at all".
+    #[test]
+    fn only_unsharded_month_files_are_legacy() {
+        assert!(is_legacy_ledger("2026-10.jsonl"));
+        assert!(is_legacy_ledger("1999-01.jsonl"));
+        assert!(!is_legacy_ledger("kimi-2026-10.jsonl"));
+        assert!(!is_legacy_ledger("2026-10.json"));
+        assert!(!is_legacy_ledger("notes.txt"));
+        assert!(!is_legacy_ledger("20x6-10.jsonl"));
+    }
+
+    #[test]
+    fn sync_live_copies_every_row_and_skips_a_broken_file() {
+        let (dir, paths) = scratch("sync");
+        let live = paths.live.join("presence");
+        std::fs::write(
+            live.join("claude.json"),
+            r#"{"lab": "claude", "updated": "2026-10-14T04:00:00-04:00", "doing": "reviewing"}"#,
+        )
+        .expect("write");
+        // A file that is not JSON is skipped rather than fatal: one lab's broken presence file must
+        // not stop every other lab's from reaching the committed record.
+        std::fs::write(live.join("broken.json"), "{not json").expect("write");
+        let report = sync_live_to_durable(&paths).expect("sync");
+        assert_eq!(report.synced, vec!["claude"]);
+        // The live ROOT is what Python reports, not the presence subdirectory.
+        assert_eq!(report.live_dir, paths.live.display().to_string());
+        let text =
+            std::fs::read_to_string(paths.durable_presence("claude")).expect("durable written");
+        // The RECORDED timestamp survives: the sync must not restamp the row it copies.
+        assert!(text.contains("2026-10-14T04:00:00-04:00"), "{text}");
+        assert!(text.contains("reviewing"), "{text}");
+        assert!(
+            text.starts_with("{\n  \"branch\""),
+            "pretty, as Python writes it: {text}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn migrate_ledger_buckets_by_lab_sorts_by_ts_and_quarantines() {
+        let (dir, paths) = scratch("migrate");
+        let ledger = paths.ledger_dir();
+        std::fs::write(
+            ledger.join("2026-10.jsonl"),
+            concat!(
+                "{\"ts\": \"2026-10-05T00:00:00Z\", \"lab\": \"Kimi\", \"kind\": \"heartbeat\"}\n",
+                "{\"ts\": \"2026-10-01T00:00:00Z\", \"lab\": \"Kimi\", \"kind\": \"skill\"}\n",
+                "{\"ts\": \"2026-10-03T00:00:00Z\", \"actor\": \"codex\", \"kind\": \"pr\"}\n",
+                "{not json\n"
+            ),
+        )
+        .expect("write");
+        std::fs::write(
+            ledger.join("kimi-2026-10.jsonl"),
+            "{\"kind\": \"prep\", \"lab\": \"kimi\", \"ts\": \"2026-10-02T12:00:00Z\"}\n",
+        )
+        .expect("write");
+        let report = migrate_ledger(&paths).expect("migrate");
+        assert_eq!(report.total, 4);
+        assert!(
+            !ledger.join("2026-10.jsonl").exists(),
+            "the legacy file is removed"
+        );
+        let kimi = std::fs::read_to_string(ledger.join("kimi-2026-10.jsonl")).expect("shard");
+        let ts: Vec<String> = kimi.lines().map(ts_of).collect();
+        let mut sorted = ts.clone();
+        sorted.sort();
+        assert_eq!(ts, sorted, "rows are ordered by ts: {kimi}");
+        assert_eq!(kimi.lines().count(), 3, "the existing row is kept: {kimi}");
+        // A lab is slugged on the way in, so the shard name and the row agree.
+        let codex = std::fs::read_to_string(ledger.join("codex-2026-10.jsonl")).expect("shard");
+        assert!(codex.contains("\"lab\": \"codex\""), "{codex}");
+        // The line that could not be parsed is quarantined, never dropped.
+        let bad = std::fs::read_to_string(ledger.join("unreadable-2026-10.jsonl")).expect("shard");
+        assert_eq!(bad.trim(), "{not json");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn the_reports_are_pythons_json() {
+        let sync = SyncLive {
+            synced: vec!["claude".into(), "kimi".into()],
+            live_dir: "/tmp/live".into(),
+        };
+        assert_eq!(
+            sync.to_pretty(),
+            "{\n  \"synced\": [\n    \"claude\",\n    \"kimi\"\n  ],\n  \"live_dir\": \"/tmp/live\"\n}"
+        );
+        assert_eq!(
+            SyncLive::default().to_pretty(),
+            "{\n  \"synced\": [],\n  \"live_dir\": \"\"\n}"
+        );
+        let migration = LedgerMigration {
+            moved: vec![("kimi-2026-10".into(), 2), ("codex-2026-10".into(), 1)],
+            total: 3,
+        };
+        assert_eq!(
+            migration.to_pretty(),
+            "{\n  \"moved\": {\n    \"kimi-2026-10\": 2,\n    \"codex-2026-10\": 1\n  },\n  \"total\": 3\n}"
+        );
+    }
+}
