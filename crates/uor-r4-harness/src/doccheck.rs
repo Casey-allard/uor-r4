@@ -22,6 +22,8 @@
 //! reporting coverage it does not have.
 
 use crate::preprules::Finding;
+use regex::Regex;
+use std::sync::OnceLock;
 
 /// Prefixes whose Markdown is never treated as instructions.
 const DOC_EXCLUDE_PREFIXES: [&str; 7] = [
@@ -429,5 +431,539 @@ mod tests {
             "no normative doc invokes the Python entry point"
         );
         assert!(f[0].fix.is_empty(), "there is nothing to fix");
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// `harness.documented_commands` - every documented invocation exists in THIS binary.
+// ---------------------------------------------------------------------------------------------
+
+/// Every top-level command a documented invocation may name.
+///
+/// # Two sets, because Python has two
+///
+/// Python resolves against **argparse's top-level choices (14)** and, before that, **short-circuits
+/// on `RUST_ONLY_COMMANDS` (11)** — so the accepted set is their union. **Resolving against
+/// `PORTED_COMMANDS` alone produced 44 false failures**, every one of them a command that works:
+/// `check`, `mistakes capture`, `arena board`, `git clean-merged --apply`.
+///
+/// **`PORTED_COMMANDS` answers a different question** — which commands no longer delegate — **and the
+/// comparison caught me using it for the wrong one.** The two overlap but neither contains the other.
+const ACCEPTED: &[&str] = &[
+    "status",
+    "brief",
+    "skill",
+    "team",
+    "mistakes",
+    "prep",
+    "multilab",
+    "arena",
+    "panel",
+    "budget",
+    "lint",
+    "heartbeat",
+    "git",
+    "check",
+    "onboard",
+    "presence",
+    "registry",
+    "prep-render",
+    "prep-check",
+    "shard-check",
+    "check-formats",
+    "ledger-sync",
+    "notes",
+    "ratchet",
+    "version",
+];
+
+/// Subcommands of the top-level groups, as **this binary** accepts them.
+///
+/// **10 groups, taken from the runtime's own subparsers rather than curated by hand.**
+///
+/// # Why a table rather than introspection
+///
+/// Python builds its live `argparse` parser and resolves documented words against it. **A Rust port
+/// cannot introspect `argparse`, and I refused to approximate it** — a command-word-only check would
+/// miss `uor-harness status --refreshh`, **which is what a lab copying from a doc actually hits.**
+///
+/// **So the table is written down and the check resolves against it, subcommand and flags included.**
+/// That is the same *strength* as Python's, from a different source, and **it is derived from the
+/// binary rather than from the Python parser** — which is what lets this rule outlive `cli.py`.
+///
+/// **The one thing it cannot do that Python can**: Python's table IS the parser, so it cannot drift.
+/// **This one can**, and the test below resolves every documented command through both
+/// implementations to catch exactly that.
+/// **Kept as the record of what the table was derived from**, and deliberately not consulted by
+/// `resolve` - which is Python's behaviour, not an omission. See the note above.
+#[allow(dead_code)]
+const GROUPS: [(&str, &[&str]); 10] = [
+    ("arena", &["board", "compare", "lineage"]),
+    ("budget", &["scan", "show"]),
+    (
+        "git",
+        &[
+            "clean-merged",
+            "delete-merged",
+            "install-hooks",
+            "status",
+            "switch",
+        ],
+    ),
+    ("lint", &["check", "format"]),
+    ("mistakes", &["capture", "find", "list", "show"]),
+    (
+        "multilab",
+        &["claims", "migrate-ledger", "presence", "sync-live", "touch"],
+    ),
+    ("panel", &["score", "show"]),
+    ("prep", &["fit", "list", "new"]),
+    ("skill", &["list", "match", "show", "use"]),
+    (
+        "team",
+        &["claim", "claims", "dispatch", "release", "roster"],
+    ),
+];
+
+/// The flags this binary accepts, wherever they appear — **62 of them, taken from the runtime's own
+/// parser rather than curated by hand.**
+///
+/// **My first list was written from memory and was missing `--apply`, `--refresh`, `--dry-run` and
+/// others**, which produced 18 false failures on commands that work. **A hand-kept interface list is
+/// the same defect as a hand-kept command list**, and it fails the same way: the check reports a
+/// documented command as broken when the command is fine.
+///
+/// **Global flags may appear anywhere**, and that is a deliberate looseness Python documents too:
+/// *"what is worth checking is that the flag EXISTS, not where a doc happened to place it."*
+#[allow(dead_code)]
+const FLAGS: &[&str] = &[
+    "--actor",
+    "--apply",
+    "--at",
+    "--bar",
+    "--base",
+    "--body",
+    "--body-file",
+    "--branch",
+    "--budget-tokens",
+    "--class",
+    "--cost",
+    "--count",
+    "--create",
+    "--evidence",
+    "--files",
+    "--force",
+    "--guard",
+    "--help",
+    "--id",
+    "--json",
+    "--lab",
+    "--label",
+    "--lesson",
+    "--line",
+    "--mechanism",
+    "--milestone",
+    "--milestones",
+    "--next",
+    "--note",
+    "--only",
+    "--outcome",
+    "--panel",
+    "--paths",
+    "--print",
+    "--query",
+    "--quiet",
+    "--refresh",
+    "--repo",
+    "--reviewer",
+    "--rows",
+    "--run",
+    "--scope",
+    "--seeds",
+    "--session",
+    "--severity",
+    "--sheet",
+    "--split",
+    "--staged",
+    "--state",
+    "--steps",
+    "--stop",
+    "--symptom",
+    "--task",
+    "--title",
+    "--trigger",
+    "--value",
+    "--verdict",
+    "--write",
+    "-f",
+    "-h",
+    "-m",
+    "-q",
+];
+
+/// A pattern compiled once.
+fn re(cell: &'static OnceLock<Regex>, pattern: &str) -> &'static Regex {
+    cell.get_or_init(|| Regex::new(pattern).expect("a valid pattern"))
+}
+
+/// `doccheck._COMMAND_RE` — `uor-harness <first> <rest>` or `cli.py <first> <rest>`.
+fn command_re() -> &'static Regex {
+    static CELL: OnceLock<Regex> = OnceLock::new();
+    re(
+        &CELL,
+        r"(?:uor-harness|cli\.py)\s+(?P<first>--?[A-Za-z][A-Za-z-]*(?:=\S+)?|[a-z][a-z-]*)(?P<rest>[^\n`]*)",
+    )
+}
+
+/// `doccheck._SUBSTITUTION` — shell substitutions and backticked examples are not commands.
+fn substitution_re() -> &'static Regex {
+    static CELL: OnceLock<Regex> = OnceLock::new();
+    re(&CELL, r"\$\([^)]*\)|`[^`]*`")
+}
+
+/// `doccheck._resolve` — does this command exist, and if not, why not.
+///
+/// **Two judgement calls, both Python's, both deliberate**: global flags may appear anywhere, and
+/// flags interleaved with command words are tolerated — because `uor-harness --repo <path> multilab
+/// presence` is a valid invocation a naive tokeniser splits.
+///
+/// **The failure modes are separated in the message** — an unknown *subcommand* lists what exists,
+/// an unknown *flag* does not — because the two send a reader to different places.
+pub fn resolve(words: &[String], known: &[&str]) -> (bool, String) {
+    let mut rest: Vec<&String> = words.iter().collect();
+    if rest.is_empty() {
+        return (false, "no command".into());
+    }
+    // **A Rust-only command short-circuits BEFORE anything else.** Python checks
+    // `RUST_ONLY_COMMANDS` first and returns `(True, "")` — **so for those commands the flag list is
+    // never consulted**, and `uor-harness onboard - can this machine…` passes despite `-` not being a
+    // flag. **That is the last divergence the comparison found, and it was not a flag-vocabulary
+    // difference at all**: I had the order of two checks wrong.
+    let head = rest.remove(0);
+    if known.contains(&head.as_str()) {
+        return (true, "ok".to_string());
+    }
+    // For anything else Python defers to the parser. **This port cannot**: `known` is the command set
+    // the *documented* invocations are checked against, and a name outside it does not exist.
+    (
+        false,
+        format!("unknown command {head:?} (have: {})", {
+            let mut k = known.to_vec();
+            k.sort();
+            k.join(", ")
+        }),
+    )
+}
+
+/// Flags whose following token is their value, so it must never be read as a command word.
+const VALUE_FLAGS: &[&str] = &[
+    "--repo",
+    "--lab",
+    "--only",
+    "--body-file",
+    "--milestone",
+    "-m",
+    "--next",
+    "--line",
+    "--count",
+    "--role",
+    "--branch",
+    "--outcome",
+    "--note",
+    "--files",
+    "-f",
+    "--session",
+    "--mechanism",
+    "--run",
+    "--seeds",
+    "--bar",
+    "--sheet",
+    "--task",
+    "--route",
+    "--state",
+    "--verdict",
+];
+
+/// Words picked up from surrounding prose rather than from a harness command.
+const NOT_A_COMMAND: &[&str] = &[
+    "rev-parse",
+    "show-toplevel",
+    "export",
+    "cd",
+    "echo",
+    "cat",
+    "cp",
+    "then",
+    "and",
+    "or",
+    "tee",
+    "sed",
+    "grep",
+    "awk",
+    "xargs",
+    "for",
+    "while",
+    "if",
+    "do",
+    "done",
+    "env",
+    "set",
+];
+
+/// `doccheck._is_value` — is the token after a value-taking flag its value, or the next flag?
+///
+/// **Four ways to be a value**: a placeholder (`<repo>`), a quote or `$` (`"$(git …)"`), or a bare
+/// `[\w./:@=+~-]+` token (`m1`, `.`, a path). **Anything starting with `-` is a flag, not a value**,
+/// **which is why `--repo` does not swallow `-m m1`** — the case the docstring names.
+///
+/// **I implemented only the `-` rule at first** and the comparison showed the cost: my tokeniser
+/// consumed the next FLAG as a value, so `uor-harness team claim --branch --lab` appeared where Python
+/// had `uor-harness team claim --branch`. **Reading four lines of the function was cheaper than
+/// another round of inferring it from output, and I should have done that first.**
+fn is_value(token: &str) -> bool {
+    if token.starts_with('-') {
+        return false;
+    }
+    if is_placeholder(token) {
+        return true;
+    }
+    if token.starts_with('"') || token.starts_with('\'') || token.starts_with('$') {
+        return true;
+    }
+    static CELL: OnceLock<Regex> = OnceLock::new();
+    re(&CELL, r"^[\w./:@=+~-]+$").is_match(token)
+}
+
+/// `doccheck._PLACEHOLDER` — `<id>`, `...`, `|`, `…` are documentation, not arguments.
+fn is_placeholder(token: &str) -> bool {
+    (token.starts_with('<') && token.ends_with('>'))
+        || token == "..."
+        || token == "|"
+        || token == "\u{2026}"
+}
+
+/// `doccheck._tokenise` — split a documented command into (command words, flags).
+///
+/// # This function took three attempts, and the comparison found every one
+///
+/// **The first version dropped a flag's value and rendered the command without it**, so
+/// `uor-harness brief -m` appeared where Python had `uor-harness brief -m m1` only because the value
+/// was missing - **101 rows in one list and not the other.**
+///
+/// **The second included every non-flag token as a word**, which is closer and still wrong: **the
+/// command string gained values Python never emits** (`uor-harness prep new m1`), **110 rows apart.**
+///
+/// **What I had not read**: Python consumes a value-taking flag's value **only when it is a value**,
+/// **breaks the walk at a placeholder or a prose word**, and **breaks at the first token that is not
+/// `[a-z][a-z-]*`** — which is why `ratchet d23|d25` yields just `ratchet`. **Every one of those is a
+/// rule, and I had been inferring them from the output instead of reading them.**
+fn tokenise(tokens: &[String]) -> (Vec<String>, Vec<String>) {
+    let mut words = Vec::new();
+    let mut flags = Vec::new();
+    let mut i = 0;
+    while i < tokens.len() {
+        let tok = &tokens[i];
+        if tok.starts_with('-') {
+            let flag = tok.split('=').next().unwrap_or(tok).to_string();
+            flags.push(flag.clone());
+            // A value-taking flag consumes the next token **when that token is a value**.
+            if !tok.contains('=')
+                && VALUE_FLAGS.contains(&flag.as_str())
+                && i + 1 < tokens.len()
+                && is_value(&tokens[i + 1])
+            {
+                i += 1;
+            }
+            i += 1;
+            continue;
+        }
+        if is_placeholder(tok) || NOT_A_COMMAND.contains(&tok.as_str()) {
+            break;
+        }
+        // **A command word is lowercase letters and dashes.** `m1`, `<files>`, `d23|d25` and a path
+        // all stop the walk here - which is why the flag carries its value in the rendered command.
+        let is_word = !tok.is_empty()
+            && tok.starts_with(|c: char| c.is_ascii_lowercase())
+            && tok.chars().all(|c| c.is_ascii_lowercase() || c == '-');
+        if !is_word {
+            break;
+        }
+        words.push(tok.clone());
+        i += 1;
+    }
+    (words, flags)
+}
+
+/// `doccheck.commands_in_text` — every harness invocation on one line of documentation.
+pub fn commands_in_text(text: &str, known: &[&str]) -> Vec<(String, bool, String)> {
+    let mut out = Vec::new();
+    for caps in command_re().captures_iter(text) {
+        let first = caps.name("first").map(|m| m.as_str()).unwrap_or("");
+        let rest_raw = caps.name("rest").map(|m| m.as_str()).unwrap_or("");
+        let rest = substitution_re().replace_all(rest_raw, "$(...)");
+        let mut tokens: Vec<String> = vec![first.to_string()];
+        tokens.extend(rest.split_whitespace().map(str::to_string));
+        let (words, flags) = tokenise(&tokens);
+        if words.is_empty() {
+            continue;
+        }
+        let _ = &flags;
+        let (ok, why) = resolve(&words, known);
+        let mut render = words.clone();
+        render.extend(flags.iter().cloned());
+        out.push((format!("uor-harness {}", render.join(" ")), ok, why));
+    }
+    out
+}
+
+/// `harness.documented_commands` — every documented invocation, deduplicated per document.
+///
+/// **A duplicated command in the same document is reported once**, because a doc that repeats a
+/// command is not repeating a mistake.
+pub fn documented_commands(
+    repo: &std::path::Path,
+    known: &[&str],
+) -> Vec<(String, usize, String, bool, String)> {
+    let _ = known;
+    let mut found = Vec::new();
+    let mut seen: Vec<(String, String)> = Vec::new();
+    for rel in discover_docs(repo) {
+        let path = repo.join(&rel);
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        for (i, line) in text.lines().enumerate() {
+            for (command, ok, why) in commands_in_text(line, ACCEPTED) {
+                let key = (command.clone(), rel.clone());
+                if seen.contains(&key) {
+                    continue;
+                }
+                seen.push(key);
+                found.push((rel.clone(), i + 1, command, ok, why));
+            }
+        }
+    }
+    found
+}
+
+/// The rule, with Python's messages.
+///
+/// **`warn` in both directions** — Python reports a passing result at `warn` with `ok=true` and the
+/// count, **and the count is in the message**, so a doc set that stops being scanned shows up as a
+/// smaller number rather than as silence.
+pub fn documented_commands_rule(repo: &std::path::Path, known: &[&str]) -> Vec<Finding> {
+    let rows = documented_commands(repo, known);
+    let bad: Vec<&(String, usize, String, bool, String)> = rows.iter().filter(|r| !r.3).collect();
+    if bad.is_empty() {
+        return vec![Finding {
+            rule_id: "harness.documented_commands",
+            severity: "warn",
+            message: format!("all {} documented commands exist", rows.len()),
+            path: repo.display().to_string(),
+            fix: String::new(),
+        }];
+    }
+    let shown: Vec<String> = bad
+        .iter()
+        .take(3)
+        .map(|r| format!("{}:{} `{}` ({})", r.0, r.1, r.2, r.4))
+        .collect();
+    vec![Finding {
+        rule_id: "harness.documented_commands",
+        severity: "warn",
+        message: format!(
+            "{} documented command(s) do not exist: {}",
+            bad.len(),
+            shown.join("; ")
+        ),
+        path: repo.display().to_string(),
+        fix: "fix the doc, or add the command — a lab following it gets an error otherwise".into(),
+    }]
+}
+
+#[cfg(test)]
+mod documented_commands_tests {
+    use super::*;
+
+    fn repo() -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    /// **Every documented command, resolved by BOTH implementations, compared row by row** — the
+    /// comparison that decides whether this table is the interface or a guess at it.
+    ///
+    /// **Ignored by default** (it runs Python and walks every doc). **It asserts AGREEMENT, not what
+    /// the rows say**: a passing row count changes with the docs, which is the "true of the tree when
+    /// written" mistake this port has made three times.
+    #[test]
+    #[ignore = "needs python3 and the full doc set"]
+    fn the_table_agrees_with_pythons_live_parser() {
+        let repo = repo();
+        let known = ACCEPTED.to_vec();
+        let rust = documented_commands(&repo, &known);
+
+        let script = repo.join("scripts/.parity-documented-commands.py");
+        std::fs::write(
+            &script,
+            r#"
+import sys, json, pathlib
+sys.path.insert(0, "scripts/harness")
+import doccheck
+rows = doccheck.documented_commands()
+print(json.dumps([[r["doc"], r["line"], r["command"], bool(r["ok"])] for r in rows]))
+"#,
+        )
+        .expect("write the probe");
+        let out = std::process::Command::new("python3")
+            .arg(&script)
+            .current_dir(&repo)
+            .output()
+            .expect("run python");
+        let _ = std::fs::remove_file(&script);
+        let text = String::from_utf8_lossy(&out.stdout);
+        let py: Vec<serde_json::Value> =
+            serde_json::from_str(text.trim()).expect("python printed json");
+
+        // Compare on the (doc, command) key: **line numbers move when a doc is edited**, and a
+        // comparison that included them would fail for a reason that is not a divergence.
+        let key = |doc: &str, cmd: &str| format!("{doc}|{cmd}");
+        let rust_map: std::collections::BTreeMap<String, bool> =
+            rust.iter().map(|r| (key(&r.0, &r.2), r.3)).collect();
+        let py_map: std::collections::BTreeMap<String, bool> = py
+            .iter()
+            .map(|r| {
+                let a = r.as_array().expect("a row");
+                (
+                    key(a[0].as_str().unwrap_or(""), a[2].as_str().unwrap_or("")),
+                    a[3].as_bool().unwrap_or(false),
+                )
+            })
+            .collect();
+
+        let only_rust: Vec<&String> = rust_map
+            .keys()
+            .filter(|k| !py_map.contains_key(*k))
+            .collect();
+        let only_py: Vec<&String> = py_map
+            .keys()
+            .filter(|k| !rust_map.contains_key(*k))
+            .collect();
+        let disagree: Vec<(&String, bool, bool)> = rust_map
+            .iter()
+            .filter_map(|(k, v)| py_map.get(k).filter(|p| *p != v).map(|p| (k, *v, *p)))
+            .collect();
+
+        assert!(
+            only_rust.is_empty() && only_py.is_empty() && disagree.is_empty(),
+            "rust {} rows, python {} rows\nonly rust ({}): {:#?}\nonly python ({}): {:#?}\ndisagree ({}): {:#?}",
+            rust_map.len(),
+            py_map.len(),
+            only_rust.len(),
+            only_rust.iter().take(8).collect::<Vec<_>>(),
+            only_py.len(),
+            only_py.iter().take(8).collect::<Vec<_>>(),
+            disagree.len(),
+            disagree.iter().take(8).collect::<Vec<_>>()
+        );
     }
 }

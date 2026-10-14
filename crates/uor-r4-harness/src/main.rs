@@ -45,32 +45,7 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
 /// meant delegation only worked for commands whose flags happened to be in the lists - `check --only`
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
-const PORTED_COMMANDS: [&str; 24] = [
-    "onboard",
-    "check-formats",
-    "presence",
-    "ledger",
-    "receipt",
-    "heartbeat",
-    "ledger-sync",
-    "notes",
-    "version",
-    "team",
-    "skill",
-    "mistakes",
-    "multilab",
-    "git",
-    "prep",
-    "prep-check",
-    "registry",
-    "prep-render",
-    "brief",
-    "shard-check",
-    "status",
-    "ratchet",
-    "check-rules",
-    "lint",
-];
+use uor_r4_harness::ruleinventory::PORTED_COMMANDS;
 
 const SUBCOMMAND_FLAGS: [&str; 32] = [
     "--kind",

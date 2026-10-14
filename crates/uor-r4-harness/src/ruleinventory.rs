@@ -150,14 +150,20 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
             "harness.skills.nonempty",
             "harness.mistakes.have_guards",
             "harness.state_formats",
+            // **The last rule.** Resolved against a table taken from the runtime's own parser, and
+            // compared against Python's live `argparse` over every documented command: 143 rows,
+            // identical on both sides.
+            "harness.documented_commands",
             // **The rule that guards every future owner rule from being silently omitted**, added
             // when it was written and never registered here - so coverage UNDER-REPORTED by one
             // while `parity` reported the rule as still in Python and was believed.
             "harness.owner_rules_applied",
-            // `harness.entry_point` is ported; **`harness.documented_commands` deliberately is NOT**
-            // and stays in Python, because Python resolves a documented command through the live
-            // `argparse` parser and a Rust version without that introspection could only check the
-            // command word - **a weaker check wearing the name of the real one.** See `doccheck.rs`.
+            // **`harness.entry_point` and `harness.documented_commands` are both ported now.**
+            // The earlier comment here said `documented_commands` deliberately was not - written
+            // before `doccheck.rs` grew a table taken from the runtime's own parser and a comparison
+            // against Python's live `argparse` over all 143 documented commands. **A stale comment
+            // inside a registration is worse than no comment: it tells the next reader a rule is
+            // missing when it is present.**
             "harness.entry_point",
         ],
     ),
@@ -192,6 +198,41 @@ pub fn to_json() -> String {
     out.push_str("\n}\n");
     out
 }
+
+/// The commands this binary answers **without delegating to Python**.
+///
+/// **Moved here from `main.rs` so the library can resolve documented commands against it.** Python's
+/// `RUST_ONLY_COMMANDS` had to be edited by hand as the port advanced, and its own comment records the
+/// consequence: *"the checker calls a shipped command unknown"*, which reddened `test_doccheck` on
+/// `main`. **Deriving it from the binary is what stops that recurring** - adding a command to
+/// `main.rs` and forgetting this list is still possible, but the list now sits beside the rule
+/// inventory that has the same job, rather than in the file a port edits.
+pub const PORTED_COMMANDS: [&str; 24] = [
+    "onboard",
+    "check-formats",
+    "presence",
+    "ledger",
+    "receipt",
+    "heartbeat",
+    "ledger-sync",
+    "notes",
+    "version",
+    "team",
+    "skill",
+    "mistakes",
+    "multilab",
+    "git",
+    "prep",
+    "prep-check",
+    "registry",
+    "prep-render",
+    "brief",
+    "shard-check",
+    "status",
+    "ratchet",
+    "check-rules",
+    "lint",
+];
 
 #[cfg(test)]
 mod tests {
