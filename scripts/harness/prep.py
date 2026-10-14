@@ -372,6 +372,19 @@ def new_sheet(args: Any, paths: HarnessPaths, reg: Registry) -> int:
     target = Path(write) if write else _default_sheet_path(paths, milestone, mechanism)
     if not target.is_absolute():
         target = paths.repo / target
+    # **A pre-registration sheet is the D22 gate's own record, and this overwrote one silently.**
+    # Re-running `prep new` for a milestone that already has a sheet replaced the bar, the panel and
+    # the cost that were pre-registered before the work - which is exactly the evidence D22 exists to
+    # preserve. Refusing is the safe default; overwriting is available and explicit.
+    if target.exists() and not getattr(args, "force", False):
+        emit(
+            f"{_rel(target, paths.repo)} already exists and was NOT overwritten.\n"
+            f"  It is the pre-registered bar, panel and cost for this milestone; replacing it\n"
+            f"  discards the record that D22 scores the work against.\n"
+            f"  Re-run with --force to replace it, or read it with `uor-harness prep show`.",
+            sys.stderr,
+        )
+        return 1
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")

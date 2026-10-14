@@ -643,3 +643,65 @@ class TestOwnerRulesApplied(unittest.TestCase):
             self.assertTrue(any("D32" in r.message for r in found), found)
         finally:
             checkrules._applicable_rules_from_source = original
+
+
+class TestSheetIsNotSilentlyOverwritten(unittest.TestCase):
+    """`prep new` overwrote an existing sheet with no check.
+
+    **A pre-registration sheet is the D22 gate's own record.** Re-running `prep new` for a milestone
+    that already has one replaced the bar, the panel and the cost that were pre-registered *before*
+    the work - exactly the evidence D22 exists to preserve. Refusing is the safe default; replacing is
+    explicit via `--force`.
+    """
+
+    def _repo_with_ledger(self):
+        root = Path(tempfile.mkdtemp())
+        paths = make_paths(root)
+        write_milestones(paths)
+        return root, paths
+
+    def _args(self, root, **kw):
+        base = {
+            "action": "new",
+            "milestone": "m1",
+            "mechanism": None,
+            "run": None,
+            "bar": None,
+            "seeds": None,
+            "rows": None,
+            "base": None,
+            "split": None,
+            "steps": None,
+            "stop": None,
+            "cost": None,
+            "write": str(root / "sheet.md"),
+            "json": False,
+            "force": False,
+        }
+        base.update(kw)
+        return argparse.Namespace(**base)
+
+    def test_a_second_write_is_refused_and_the_sheet_is_unchanged(self):
+        root, paths = self._repo_with_ledger()
+        args = self._args(root)
+        self.assertEqual(prep.new_sheet(args, paths, registries.Registry.load(paths)), 0)
+        target = root / "sheet.md"
+        before = target.read_text(encoding="utf-8")
+
+        self.assertEqual(
+            prep.new_sheet(args, paths, registries.Registry.load(paths)),
+            1,
+            "the second write must be refused",
+        )
+        self.assertEqual(target.read_text(encoding="utf-8"), before, "the sheet must be untouched")
+
+    def test_force_replaces_it(self):
+        root, paths = self._repo_with_ledger()
+        prep.new_sheet(self._args(root), paths, registries.Registry.load(paths))
+        self.assertEqual(
+            prep.new_sheet(
+                self._args(root, force=True), paths, registries.Registry.load(paths)
+            ),
+            0,
+            "--force must replace it",
+        )

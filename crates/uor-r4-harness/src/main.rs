@@ -71,7 +71,7 @@ const PORTED_COMMANDS: [&str; 23] = [
     "check-rules",
 ];
 
-const SUBCOMMAND_FLAGS: [&str; 31] = [
+const SUBCOMMAND_FLAGS: [&str; 32] = [
     "--kind",
     "--milestone",
     "-m",
@@ -89,6 +89,7 @@ const SUBCOMMAND_FLAGS: [&str; 31] = [
     "--date",
     "--mechanism",
     "--bar",
+    "--force",
     "--base",
     "--split",
     "--steps",
@@ -915,6 +916,20 @@ fn cmd_prep(repo: &Path, args: &[String], json: bool) -> ExitCode {
             let name = prep::sheet_name(&m.key, &mech, &date);
             let target = prep_dir_of(&paths).join(&name);
 
+            // **A pre-registration sheet is the D22 gate's own record, and this overwrote one
+            // silently.** Re-running `prep new` for a milestone that already has a sheet replaced the
+            // bar, the panel and the cost pre-registered BEFORE the work - exactly the evidence D22
+            // exists to preserve. Refusing is the safe default; replacing is explicit.
+            if target.exists() && !args.iter().any(|a| a == "--force") {
+                eprintln!(
+                    "uor-harness: {} already exists and was NOT overwritten.\n\
+                     It is the pre-registered bar, panel and cost for this milestone; replacing it\n\
+                     discards the record that D22 scores the work against.\n\
+                     Re-run with --force to replace it.",
+                    target.display()
+                );
+                return ExitCode::from(1);
+            }
             if let Some(parent) = target.parent() {
                 if let Err(e) = std::fs::create_dir_all(parent) {
                     eprintln!("uor-harness: cannot create {}: {e}", parent.display());

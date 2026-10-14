@@ -649,6 +649,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("prep", help="pre-registration before compute")
     sub2 = sp.add_subparsers(dest="action", required=True)
     s = sub2.add_parser("new")
+    s.add_argument(
+        "--force",
+        action="store_true",
+        help="replace an existing sheet (it is the pre-registered bar; replacing discards it)",
+    )
     s.add_argument("--milestone", "-m", required=True)
     s.add_argument("--mechanism", default=None)
     s.add_argument("--run", default=None, help="what the run is")
