@@ -13,14 +13,28 @@ model that runs on a laptop?*
 **Status, 13 October 2026: pre-alpha.** No model in this repository holds a useful conversation yet.
 Under D32 the model and its learning/qualification instruments are discrete: no
 floating-point forward, gradients, optimizer or matrix multiplication. The new
-SpiralCore/FBS shared-vector path with the discrete flock read passes **all seventeen
-admitted CUDA construction controls** after Claude FIT at source `76198c3b5` (#2395).
-Eleven Route controls preserve #2379's construction laws; six flock controls cover
-content-based frame selection, transported payloads and exact three-way gate proposals.
+SpiralCore/FBS shared-vector path, flock read and new D1 driver pass **all twenty-five
+admitted CUDA construction controls** at source `e7d926fbe` (#2400), after a fresh
+non-author Codex FIT. Eleven Route, six flock and eight driver controls cover the
+shared writer, read, evaluator/reference, seeded schedule/resume and update boundaries.
 Both reads use the same integer input/carry/output codebook and writer. M1's quality target
 remains SUSPENDED pending a discriminating reply grader under R14.
-**Training and the separate M2 holds remain held**; no update or useful-chat result.
+**Training and the separate M2 holds remain held**; exactly eleven isolated authored
+fixture apply calls produced eight updates, with zero corpus updates and no useful-chat result.
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
+The D1 Rust corpus/schedule/checkpoint driver and integer GPU evaluator are now
+implemented at source `e7d926fbe38537f4faa90b817705c61a780778d6` ([#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)).
+The A1 release build, new driver qualification and D2 operation-cost measurement
+pass. At V4096/width32/context192/64 rows, median Route/Flock forward costs are
+37.84/40.58ms; virtual vector proposals cost3.90/4.21s. Serial counterfactual replay
+is the measured cost bottleneck. The roughly17.8/19.2-hour parameter-pass estimates
+are **UNVERIFIED fixed-batch projections**, not training throughput or geometric-law
+negatives. [Raw measurement](docs/labs/discrete-driver-cost-2026-10-13/receipts/measurement.json).
+Earlier seventeen-control evidence at
+`76198c3b5` retains its prior source scope and Claude FIT attribution.
+The driver validates pinned tokens/masks/tokenizer, constructs document-bounded
+next-token windows, and cycles one vector/read coordinate per batch. Its corpus
+update capability remains unissued; the training CLI still returns `TrainingHeld`.
 Earlier 31/18-control float receipts retain their exact historical scope;
 [PR #2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) preserves that evidence.
 
@@ -131,7 +145,7 @@ Index: [docs/mechanisms/](docs/mechanisms/README.md).
 
 | Mechanism | Milestone | Where it stands |
 |---|---|---|
-| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | source76198c3b5; seventeen admitted CUDA construction controls PASS after Claude FIT, including flock/Gate; #2395, training held |
+| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | sourcee7d926fbe: twenty-five controls/D2 measurement PASS; eight isolated fixture updates, corpus0; serial proposal replay is the cost bottleneck; #2400, training held |
 | [SpiralCore/FBS projection](docs/mechanisms/spiralcore-fbs-projection.md) | M1, M2 | prior floating form preserved inactive under D32 |
 | [Rank-margin objective](docs/mechanisms/rank-margin-objective.md) | M1 | prior floating objective preserved; discrete successor is separately registered |
 | [Starling read](docs/mechanisms/starling-read.md) (~7 neighbours on the 600-cell) | M4 | served softmax-free; its gradient is rung 0b |

@@ -481,14 +481,17 @@ def status_agreement(binary: Path) -> list[str]:
     import subprocess
 
     findings: list[str] = []
+    # Compare today's status in both implementations, not a historical
+    # October 13 snapshot against the Python command's live local date.
+    at = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
     code, rust_out, err = run([str(binary), "status", "--repo", str(REPO), "--at",
-                               "2026-10-13T02:52:00-04:00", "--lab", "parity"])
+                               at, "--lab", "parity"])
     if code != 0:
         findings.append(f"status agreement: the Rust status exited {code}: {err[:200]}")
         return findings
 
     proc = subprocess.run(
-        [sys.executable, str(REPO / "scripts" / "harness" / "cli.py"), "status"],
+        [sys.executable, str(REPO / "scripts" / "harness" / "cli.py"), "--lab", "parity", "status", "--at", at],
         cwd=REPO, capture_output=True, text=True, timeout=600,
     )
     if proc.returncode != 0:
@@ -549,8 +552,10 @@ def status_receipts_agreement(binary: Path) -> list[str]:
     import subprocess
 
     findings: list[str] = []
+    # The Python status command uses the current local date for its receipts.
+    at = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
     code, rust_out, err = run([str(binary), "status", "--repo", str(REPO), "--at",
-                               "2026-10-13T02:52:00-04:00", "--lab", "parity"])
+                               at, "--lab", "parity"])
     if code != 0:
         findings.append(f"status receipts: the Rust status exited {code}: {err[:200]}")
         return findings
@@ -561,7 +566,7 @@ def status_receipts_agreement(binary: Path) -> list[str]:
     # one people learn to ignore**, so both sides now take the same clock.
     proc = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "harness" / "cli.py"),
-         "--lab", "parity", "status", "--at", "2026-10-13T02:52:00-04:00"],
+         "--lab", "parity", "status", "--at", at],
         cwd=REPO, capture_output=True, text=True, timeout=600,
     )
     if proc.returncode != 0:

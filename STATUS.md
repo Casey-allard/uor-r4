@@ -1,14 +1,24 @@
 # Status
 
 **Current dependency — D32:** the discrete shared-codebook SpiralCore/FBS path
-with the discrete flock read passes all seventeen admitted CUDA construction controls
-at `76198c3b5` after Claude FIT (eleven Route plus six flock, #2395). #2379's earlier
-observations retain their source/review-order scope. D1 seeded corpus/evaluation driver
-and D2 measured enumeration cost remain Codex's next dependencies for Kimi's separate
-learning sheet. M1's quality target remains SUSPENDED. No floating-point model, gradient/optimizer or numerical
+with the discrete flock read and D1 driver passes all twenty-five admitted CUDA
+construction controls at `e7d926fbe38537f4faa90b817705c61a780778d6`, after fresh
+non-author Codex FIT (#2400): eleven Route, six flock and eight driver controls.
+The previous seventeen-control result at `76198c3b5` keeps its source scope and
+Claude FIT attribution; #2379's earlier observations keep their review-order labels.
+Exactly eleven authored fixture apply calls produced eight disposable updates,
+with zero corpus updates. D2 operation-cost measurement **PASS**, with30/30 timed
+API calls and12/12 proposal samples, no applied update. At V4096/B4/C192/64 rows,
+median Route/Flock forward takes37.84/40.58ms; vector proposals take3.90/4.21s.
+Counterfactual serial replay is the cost bottleneck; fixed-batch parameter-pass
+projections of17.8/19.2hours remain **UNVERIFIED**, not corpus-training throughput.
+[Raw cost receipt](docs/labs/discrete-driver-cost-2026-10-13/receipts/measurement.json).
+Corpus updates stay behind an unissued opaque
+capability; the training CLI returns `TrainingHeld`. Kimi's separate learning sheet
+and explicit owner release remain dependencies. M1's quality target remains SUSPENDED. No floating-point model, gradient/optimizer or numerical
 qualification instrument may execute. Earlier 31/18-control float results below
 remain historical source-scoped evidence, preserved inactive through #2370.
-Both training holds remain HELD; no optimizer/update or chat result is claimed.
+Both training holds remain HELD; no optimizer, corpus-learning or chat result is claimed.
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
 Updated 13 October 2026. **Pre-alpha: no model holds a useful conversation yet.**

@@ -1,0 +1,76 @@
+{
+  "applied_updates": 8,
+  "apply_calls": 11,
+  "apply_dose_matches": true,
+  "attempted": 8,
+  "controls": [
+    {
+      "index": 1,
+      "name": "isolated_apply_boundary",
+      "status": "PASS"
+    },
+    {
+      "index": 2,
+      "name": "route_apply_reality",
+      "status": "PASS"
+    },
+    {
+      "index": 3,
+      "name": "gate_apply_reality",
+      "status": "PASS"
+    },
+    {
+      "index": 4,
+      "name": "fixture_loop_resume",
+      "status": "PASS"
+    },
+    {
+      "index": 5,
+      "name": "native_top8_ties",
+      "status": "PASS"
+    },
+    {
+      "index": 6,
+      "name": "count_reference_excludes_dev",
+      "status": "PASS"
+    },
+    {
+      "index": 7,
+      "name": "seeded_initialization",
+      "status": "PASS"
+    },
+    {
+      "index": 8,
+      "name": "corpus_schedule_resume",
+      "status": "PASS"
+    }
+  ],
+  "corpus_updates": 0,
+  "expected_applied_updates_on_complete_pass": 8,
+  "expected_apply_calls_on_complete_pass": 11,
+  "failed": 0,
+  "not_run": 0,
+  "passed": 8,
+  "registered": 8,
+  "schema": "uor-r4.discrete-driver-finite/1",
+  "status": "PASS",
+  "timing_scope": "V2 B2 C1 only; not production apply throughput",
+  "tiny_fixture_timings": [
+    {
+      "elapsed_ns": 47772,
+      "error": null,
+      "operation": "tiny_fixture_apply",
+      "repetition": 1,
+      "status": "PASS"
+    },
+    {
+      "elapsed_ns": 36457,
+      "error": null,
+      "operation": "tiny_fixture_recarry",
+      "repetition": 1,
+      "status": "PASS"
+    }
+  ],
+  "training": "HELD",
+  "update_count_complete": true
+}

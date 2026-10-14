@@ -2,6 +2,30 @@ use uor_r4_discrete::{Error, Result};
 fn invalid(s: impl Into<String>) -> Error {
     Error::Invalid(s.into())
 }
+fn read_json<T: serde::de::DeserializeOwned>(path: &str) -> Result<T> {
+    serde_json::from_slice(&std::fs::read(path).map_err(|e| invalid(e.to_string()))?)
+        .map_err(|e| invalid(e.to_string()))
+}
+fn report_command(path: &str, action: impl FnOnce() -> Result<serde_json::Value>) -> Result<()> {
+    let directory = std::path::Path::new(path);
+    std::fs::create_dir(directory).map_err(|e| invalid(format!("exclusive report: {e}")))?;
+    let result = action();
+    let payload = match &result {
+        Ok(value) => value.clone(),
+        Err(error) => {
+            serde_json::json!({"status":"FAILED","error":error.to_string(),"training":"HELD"})
+        }
+    };
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(directory.join("report.json"))
+        .map_err(|e| invalid(e.to_string()))?;
+    serde_json::to_writer_pretty(&file, &payload).map_err(|e| invalid(e.to_string()))?;
+    file.sync_all().map_err(|e| invalid(e.to_string()))?;
+    println!("{}", directory.join("report.json").display());
+    result.map(|_| ())
+}
 #[cfg(feature = "cuda")]
 fn device_command(args: &[String]) -> Result<()> {
     use std::path::Path;
@@ -13,19 +37,46 @@ fn device_command(args: &[String]) -> Result<()> {
     match args.first().map(String::as_str) {
         Some("qualify") if args.len()==2=>uor_r4_discrete::qualification::run(Path::new(&args[1])),
         Some("qualify-flock") if args.len()==2=>uor_r4_discrete::flock_qualification::run(Path::new(&args[1])),
-        Some("init") if args.len()==3=>{
+        Some("qualify-driver") if args.len()==2=>uor_r4_discrete::driver_qualification::run(Path::new(&args[1])),
+        Some("measure-cost") if args.len()==2=>uor_r4_discrete::measurement::run(Path::new(&args[1])),
+        Some("init-corpus") if args.len()==3=>{
+            let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
+            config.validate()?;
+            report_command(&args[2],|| {
+                let driver=uor_r4_discrete::training::PreparedDriver::load(config)?;
+                let model=driver.new_model(0)?;
+                serde_json::to_value(driver.checkpoint(&model,uor_r4_discrete::training::Cursor::initial())?)
+                    .map_err(|e|invalid(e.to_string()))
+            })
+        }
+        Some("eval-corpus") if args.len()==4=>{
+            let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
+            config.validate()?;
+            report_command(&args[3],|| {
+                let driver=uor_r4_discrete::training::PreparedDriver::load(config)?;
+                let checkpoint=read_json::<uor_r4_discrete::training::DriverCheckpoint>(&args[2])?;
+                if checkpoint.cursor.accepted_updates!=0 {
+                    return Err(Error::TrainingHeld);
+                }
+                let (model,_cursor)=driver.restore(checkpoint,0)?;
+                driver.evaluate(&model)
+            })
+        }
+        Some("init") if args.len()==4=>{
+            let seed:u32=args[3].parse().map_err(|_|invalid("seed must be an explicit unsigned32 integer"))?;
             let spec:Spec=serde_json::from_slice(&read(&args[1])?).map_err(|e|invalid(e.to_string()))?;
             spec.validate()?;
             // Exclusive output is reserved before model initialization.
             let output=std::fs::OpenOptions::new().write(true).create_new(true).open(&args[2]).map_err(|e|invalid(e.to_string()))?;
-            let model=Device::new(spec,7,0)?;
+            let model=Device::new(spec,seed,0)?;
             serde_json::to_writer(output,&model.snapshot()?).map_err(|e|invalid(e.to_string()))
         }
-        Some("init-read") if args.len()==3=>{
+        Some("init-read") if args.len()==4=>{
+            let seed:u32=args[3].parse().map_err(|_|invalid("seed must be an explicit unsigned32 integer"))?;
             let config:InitConfig=serde_json::from_slice(&read(&args[1])?).map_err(|e|invalid(e.to_string()))?;
             config.read_spec.validate(config.spec)?;
             let output=std::fs::OpenOptions::new().write(true).create_new(true).open(&args[2]).map_err(|e|invalid(e.to_string()))?;
-            let model=Device::new_with_read(config.spec,config.read_spec,7,0)?;
+            let model=Device::new_with_read(config.spec,config.read_spec,seed,0)?;
             serde_json::to_writer(output,&model.snapshot()?).map_err(|e|invalid(e.to_string()))
         }
         Some("infer")|Some("propose") if args.len()>=3=>{
@@ -61,13 +112,20 @@ fn device_command(args: &[String]) -> Result<()> {
             if let Some(parameter)=parameter {let p=model.propose(&input,&request.targets,parameter)?.observation()?;println!("{}",serde_json::json!({"candidate":p.candidate,"candidate_is_ordinal":true,"read_spec":model.read_spec(),"before":p.before,"after":p.after,"epoch":p.epoch,"valid_lengths":input.valid_lengths(),"applied":false}));Ok(())}
             else {let result=model.forward(&input,&request.targets)?;println!("{}",serde_json::json!({"tokens":result.predictions,"read_spec":model.read_spec(),"loss_numerators":result.losses,"token_rivals":result.token_rivals,"address_rivals":result.address_rivals,"admitted_cells":result.admitted_cells,"vectors":result.vectors()?,"epoch":result.epoch(),"valid_lengths":input.valid_lengths(),"training":"HELD"}));Ok(())}
         }
-        _=>Err(invalid("CUDA commands: init SPEC.json NEW_ARTIFACT.json | init-read CONFIG.json NEW_ARTIFACT.json | infer ARTIFACT REQUEST | propose ARTIFACT REQUEST route|vector|gate INDEX | qualify NEW_REPORT_DIR")),
+        _=>Err(invalid("CUDA commands: init SPEC.json NEW_ARTIFACT.json SEED | init-read CONFIG.json NEW_ARTIFACT.json SEED | infer ARTIFACT REQUEST | propose ARTIFACT REQUEST route|vector|gate INDEX | init-corpus CONFIG NEW_REPORT_DIR | eval-corpus CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR | qualify NEW_REPORT_DIR | qualify-flock NEW_REPORT_DIR | qualify-driver NEW_REPORT_DIR | measure-cost NEW_REPORT_DIR")),
     }
 }
 fn run() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("train") => uor_r4_discrete::training_admission(),
+        Some("prepare-plan") if args.len() == 3 => {
+            let config = read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
+            config.validate()?;
+            report_command(&args[2], || {
+                uor_r4_discrete::training::PreparedDriver::load(config)?.plan()
+            })
+        }
         Some("schema") => {
             println!(
                 "{}; integer CUDA only; training HELD",
@@ -99,6 +157,19 @@ fn run() -> Result<()> {
             #[cfg(not(feature = "cuda"))]
             Err(invalid(
                 "CUDA flock inventory is not compiled in this metadata-only build",
+            ))
+        }
+        Some("list-driver-controls") => {
+            #[cfg(feature = "cuda")]
+            {
+                for name in uor_r4_discrete::driver_qualification::NAMES {
+                    println!("{name}");
+                }
+                Ok(())
+            }
+            #[cfg(not(feature = "cuda"))]
+            Err(invalid(
+                "CUDA driver inventory is not compiled in this metadata-only build",
             ))
         }
         _ => {

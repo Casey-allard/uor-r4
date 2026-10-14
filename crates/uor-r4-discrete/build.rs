@@ -6,7 +6,7 @@ use uor_r4_core::spiralcore_operator::{
     cl06_bivectors, cl06_finite_composition_table, SignedMatrix8,
 };
 
-const ENTRIES: [&str; 7] = [
+const ENTRIES: [&str; 11] = [
     "discrete_init",
     "discrete_encode",
     "discrete_forward",
@@ -14,6 +14,10 @@ const ENTRIES: [&str; 7] = [
     "discrete_choose",
     "discrete_apply",
     "discrete_validate",
+    "discrete_evaluate",
+    "discrete_evaluation_aggregate",
+    "discrete_count",
+    "discrete_count_score",
 ];
 
 /// Inspect the emitted module, rather than treating CUDA source spelling as

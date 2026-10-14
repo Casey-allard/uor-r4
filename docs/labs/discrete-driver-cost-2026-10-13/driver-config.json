@@ -1,0 +1,22 @@
+{
+  "schema":"uor-r4.discrete-corpus-driver/1",
+  "spec":{"vocabulary":4096,"blocks":4,"context":192,"kept_cells":8},
+  "read_spec":{"kind":"route"},
+  "seed":7,
+  "batch_rows":64,
+  "schedule":"canonical_vector_then_read_v1",
+  "bos":{"token":"<|bos|>","id":0},
+  "tokenizer":{"path":"local/driver/data/tokenizer.json","sha256":"d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"},
+  "train":{
+    "split":"train",
+    "tokens":{"path":"local/driver/data/mw-balp/train/tokens.u16","sha256":"3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8"},
+    "mask":{"path":"local/driver/data/mw-balp/train/response_mask.u8","sha256":"b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3"},
+    "expected_payload_tokens":7512797,"expected_eligible_targets":2425925
+  },
+  "dev":{
+    "split":"dev",
+    "tokens":{"path":"local/driver/data/ft/dev/tokens.u16","sha256":"0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"},
+    "mask":{"path":"local/driver/data/ft/dev/response_mask.u8","sha256":"a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"},
+    "expected_payload_tokens":42856,"expected_eligible_targets":14287
+  }
+}

@@ -1,9 +1,15 @@
 //! Discrete geometric model substrate. Model operations have no host implementation.
 //! Static geometry compilation is a build dependency, excluded from the runtime graph.
 //! The routing atlas is one sixteen-root E8 orbit; this is not full-orbit learnability.
+pub mod corpus;
 #[cfg(feature = "cuda")]
 pub mod device;
+#[cfg(feature = "cuda")]
+pub mod driver_qualification;
+#[cfg(feature = "cuda")]
+pub mod measurement;
 pub mod metadata;
+pub mod training;
 
 pub const SCHEMA: &str = "uor-r4.discrete-spiralcore-fbs/2";
 #[derive(Debug)]
@@ -132,6 +138,97 @@ pub fn training_admission() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn apply_calls_are_confined_to_bounded_fixture_and_admitted_transition() -> Result<()> {
+        use std::{collections::BTreeMap, fs, path::Path};
+        fn inventory(
+            root: &Path,
+            directory: &Path,
+            found: &mut BTreeMap<(String, String), usize>,
+        ) -> Result<()> {
+            let needle = [".", "apply", "("].concat();
+            for entry in fs::read_dir(directory).map_err(|e| Error::Invalid(e.to_string()))? {
+                let entry = entry.map_err(|e| Error::Invalid(e.to_string()))?;
+                let path = entry.path();
+                let kind = entry
+                    .file_type()
+                    .map_err(|e| Error::Invalid(e.to_string()))?;
+                if kind.is_dir() {
+                    inventory(root, &path, found)?;
+                } else if path
+                    .extension()
+                    .is_some_and(|extension| extension == "rs" || extension == "cu")
+                {
+                    let text =
+                        fs::read_to_string(&path).map_err(|e| Error::Invalid(e.to_string()))?;
+                    let relative = path
+                        .strip_prefix(root)
+                        .map_err(|e| Error::Invalid(e.to_string()))?
+                        .to_string_lossy()
+                        .replace('\\', "/");
+                    for line in text.lines() {
+                        let count = line.matches(&needle).count();
+                        if count != 0 {
+                            *found
+                                .entry((relative.clone(), line.trim().to_owned()))
+                                .or_default() += count;
+                        }
+                    }
+                }
+            }
+            Ok(())
+        }
+        // Read source bytes only, including CUDA-gated modules. No context,
+        // model, fixture forward or kernel is instantiated by this test.
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut observed = BTreeMap::new();
+        inventory(&root, &root, &mut observed)?;
+        let expected = BTreeMap::from([
+            (
+                (
+                    "driver_qualification.rs".into(),
+                    ["let applied = model", ".", "apply", "(proposal)?;"].concat(),
+                ),
+                1,
+            ),
+            (
+                (
+                    "training.rs".into(),
+                    ["let applied = model", ".", "apply", "(&proposal)?;"].concat(),
+                ),
+                1,
+            ),
+        ]);
+        assert_eq!(
+            observed, expected,
+            "update reach changed; preserve the owner hold and fixture admission"
+        );
+        let main =
+            fs::read_to_string(root.join("main.rs")).map_err(|e| Error::Invalid(e.to_string()))?;
+        assert!(!main.contains(&[".", "apply", "("].concat()));
+        let device = fs::read_to_string(root.join("device.rs"))
+            .map_err(|e| Error::Invalid(e.to_string()))?;
+        assert!(device.contains("pub(crate) fn apply("));
+        let fixture = fs::read_to_string(root.join("driver_qualification.rs"))
+            .map_err(|e| Error::Invalid(e.to_string()))?;
+        let helper = fixture
+            .split("fn apply(context:")
+            .nth(1)
+            .and_then(|text| text.split("fn isolated_apply_boundary(").next())
+            .ok_or_else(|| Error::Invalid("bounded fixture helper source absent".into()))?;
+        assert!(helper.contains("if context.apply_calls >= 11"));
+        assert_eq!(helper.matches(&[".", "apply", "("].concat()).count(), 1);
+        let training = fs::read_to_string(root.join("training.rs"))
+            .map_err(|e| Error::Invalid(e.to_string()))?;
+        let transition = training
+            .split("pub fn transition(")
+            .nth(1)
+            .and_then(|text| text.split("pub fn run_transitions(").next())
+            .ok_or_else(|| Error::Invalid("admission-gated transition source absent".into()))?;
+        assert!(transition.contains("admission: &CorpusUpdateAdmission"));
+        assert!(transition.contains("if admission.lineage_sha256 != self.lineage_sha256()?"));
+        Ok(())
+    }
     #[test]
     fn configuration_and_hold_are_metadata_only() {
         assert!(Spec {

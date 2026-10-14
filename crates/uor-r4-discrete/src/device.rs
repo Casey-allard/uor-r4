@@ -29,6 +29,122 @@ static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 pub const FLOCK_TRACE_HEADER_WORDS: usize = 4;
 pub const FLOCK_TRACE_LEVEL_WORDS: usize = 28;
 pub const FLOCK_TRACE_KEPT_CAPACITY: usize = 8;
+pub const EVALUATION_AGGREGATE_WORDS: usize = 17;
+
+/// Exact integer observations of the same production read and shared writer.
+#[derive(Debug, serde::Serialize)]
+pub struct EvaluationRow {
+    /// Global distance/token-ID order across all admitted tokens. ABSENT pads
+    /// slots when fewer than eight identities are admitted.
+    pub top8: [u32; 8],
+    pub token_hinge: u64,
+    pub address_hinge: u64,
+    pub total_loss_numerator: u64,
+    pub token_rivals: u64,
+    pub address_rivals: u64,
+    pub top1_correct: u64,
+    pub top8_correct: u64,
+    pub admitted_cells: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct EvaluationAggregate {
+    pub scored_rows: u64,
+    pub top1_correct: u64,
+    pub top8_correct: u64,
+    pub token_hinge_sum: u64,
+    pub address_hinge_sum: u64,
+    pub total_loss_numerator_sum: u64,
+    pub token_eligible_rows: u64,
+    pub address_eligible_rows: u64,
+    pub token_rival_count_sum: u64,
+    pub address_rival_count_sum: u64,
+    pub admitted_cell_count_sum: u64,
+    pub eligible_any_rows: u64,
+    pub eligible_unviolated_rows: u64,
+    pub token_unviolated_eligible_rows: u64,
+    pub address_unviolated_eligible_rows: u64,
+    /// Strict target distance advantage over an admitted nonself rival. This
+    /// diagnostic uses T<width; it does not change the margin objective/bar.
+    pub token_strict_win_eligible_rows: u64,
+    /// Exact common rational denominator for each row, not a floating mean.
+    pub loss_denominator_per_row: u64,
+}
+impl EvaluationAggregate {
+    fn from_words(words: &[u64]) -> Result<Self> {
+        let words: &[u64; EVALUATION_AGGREGATE_WORDS] = words
+            .try_into()
+            .map_err(|_| invalid("evaluation aggregate must contain seventeen words"))?;
+        Ok(Self {
+            scored_rows: words[0],
+            top1_correct: words[1],
+            top8_correct: words[2],
+            token_hinge_sum: words[3],
+            address_hinge_sum: words[4],
+            total_loss_numerator_sum: words[5],
+            token_eligible_rows: words[6],
+            address_eligible_rows: words[7],
+            token_rival_count_sum: words[8],
+            address_rival_count_sum: words[9],
+            admitted_cell_count_sum: words[10],
+            eligible_any_rows: words[11],
+            eligible_unviolated_rows: words[12],
+            token_unviolated_eligible_rows: words[13],
+            address_unviolated_eligible_rows: words[14],
+            token_strict_win_eligible_rows: words[15],
+            loss_denominator_per_row: words[16],
+        })
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct Evaluation {
+    pub aggregate: EvaluationAggregate,
+    pub rows: Vec<EvaluationRow>,
+    #[serde(skip_serializing)]
+    summary_words: Vec<u64>,
+    #[serde(skip_serializing)]
+    binding: Binding,
+    #[serde(skip_serializing)]
+    epoch: u64,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct CountMetrics {
+    pub token_counts: Vec<u64>,
+    pub top8: [u32; 8],
+    pub scored_rows: u64,
+    pub top1_correct: u64,
+    pub top8_correct: u64,
+    pub zero_count_targets: u64,
+    pub source_targets: u64,
+    pub nonzero_tokens: u64,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct CountEvaluation {
+    /// Caller supplies TRAIN mask/document-eligible target IDs. This API admits
+    /// identities, not split lineage; the corpus packet owns TRAIN provenance.
+    pub train_masked_reference: CountMetrics,
+    /// Built from DEV targets in its own table, never the primary reference.
+    pub dev_response_oracle: CountMetrics,
+    pub dev_oracle_diagnostic_only: bool,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct GpuMemory {
+    pub ordinal: usize,
+    pub free_bytes: usize,
+    pub total_bytes: usize,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct DeviceResources {
+    pub memory: GpuMemory,
+    pub forward_local_bytes: u64,
+    pub counterfactual_local_bytes: u64,
+    pub evaluation_local_bytes: u64,
+}
 
 fn invalid(message: impl Into<String>) -> Error {
     Error::Invalid(message.into())
@@ -230,6 +346,8 @@ struct Kernels {
     choose: CudaFunction,
     apply: CudaFunction,
     validate: CudaFunction,
+    evaluate: CudaFunction,
+    evaluation_aggregate: CudaFunction,
 }
 
 pub struct Device {
@@ -318,6 +436,10 @@ impl Device {
             choose: module.load_function("discrete_choose").map_err(cuda)?,
             apply: module.load_function("discrete_apply").map_err(cuda)?,
             validate: module.load_function("discrete_validate").map_err(cuda)?,
+            evaluate: module.load_function("discrete_evaluate").map_err(cuda)?,
+            evaluation_aggregate: module
+                .load_function("discrete_evaluation_aggregate")
+                .map_err(cuda)?,
         };
         let geometry = stream.clone_htod(&packed).map_err(cuda)?;
         let width = spec.blocks as usize * 8;
@@ -383,6 +505,41 @@ impl Device {
     }
     pub fn read_spec(&self) -> ReadSpec {
         self.binding.read_spec
+    }
+    pub fn ordinal(&self) -> usize {
+        self.context.ordinal()
+    }
+    /// Driver metadata only, for resource observations before constructing a
+    /// model. Context initialization itself is included in the observed state.
+    pub fn memory_info(ordinal: usize) -> Result<GpuMemory> {
+        let context = CudaContext::new(ordinal).map_err(cuda)?;
+        let (free_bytes, total_bytes) = context.mem_get_info().map_err(cuda)?;
+        Ok(GpuMemory {
+            ordinal,
+            free_bytes,
+            total_bytes,
+        })
+    }
+    /// Synchronize completed work before reporting memory and compiled local
+    /// storage. This is driver/kernel metadata, not model arithmetic or a peak
+    /// memory measurement; callers must label the before/after sampling points.
+    pub fn resource_metadata(&self) -> Result<DeviceResources> {
+        self.synchronize()?;
+        let (free_bytes, total_bytes) = self.context.mem_get_info().map_err(cuda)?;
+        let local = |kernel: &CudaFunction| -> Result<u64> {
+            let bytes = kernel.get_attribute(cudarc::driver::sys::CUfunction_attribute_enum::CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES).map_err(cuda)?;
+            u64::try_from(bytes).map_err(|_| invalid("CUDA reported negative kernel local storage"))
+        };
+        Ok(DeviceResources {
+            memory: GpuMemory {
+                ordinal: self.ordinal(),
+                free_bytes,
+                total_bytes,
+            },
+            forward_local_bytes: local(&self.kernels.forward)?,
+            counterfactual_local_bytes: local(&self.kernels.counterfactual)?,
+            evaluation_local_bytes: local(&self.kernels.evaluate)?,
+        })
     }
     pub fn epoch(&self) -> Result<u64> {
         read_epoch(&self.stream, &self.epoch)
@@ -757,6 +914,185 @@ impl Device {
         })
     }
 
+    /// Evaluate exact hits, component hinges and eligibility on CUDA. Top-eight
+    /// ranking is global over admitted identities; the target is never inserted.
+    pub fn evaluate(&self, batch: &CarriedBatch, targets: &[u32]) -> Result<Evaluation> {
+        let epoch = self.admit_batch(batch, targets)?;
+        let targets = self.stream.clone_htod(targets).map_err(cuda)?;
+        let spec = self.gpu_spec(batch.rows)?;
+        let mut top8 = self
+            .stream
+            .alloc_zeros::<u32>(batch.rows as usize * 8)
+            .map_err(cuda)?;
+        let mut metrics = self
+            .stream
+            .alloc_zeros::<u64>(batch.rows as usize * 8)
+            .map_err(cuda)?;
+        let mut status = self.stream.alloc_zeros::<u32>(1).map_err(cuda)?;
+        let mut launch = self.stream.launch_builder(&self.kernels.evaluate);
+        launch
+            .arg(&self.table)
+            .arg(&self.routes)
+            .arg(&self.gates)
+            .arg(&batch.ids)
+            .arg(&batch.vectors)
+            .arg(&targets)
+            .arg(
+                batch
+                    .plan
+                    .as_ref()
+                    .ok_or_else(|| invalid("missing admitted row plans"))?,
+            )
+            .arg(&self.geometry)
+            .arg(&spec)
+            .arg(&mut top8)
+            .arg(&mut metrics)
+            .arg(&mut status);
+        // SAFETY: same immutable model/input ABI as forward; bounded rows and
+        // per-row eight-word result allocations. The read/writer runs on CUDA.
+        unsafe { launch.launch(launch_config(batch.rows)) }.map_err(cuda)?;
+        check_status(&self.stream, &status, "evaluation")?;
+        let summary_words = aggregate_gpu(
+            &self.stream,
+            &self.kernels.evaluation_aggregate,
+            &metrics,
+            batch.rows,
+            self.spec().blocks * 8,
+            false,
+        )?;
+        let aggregate = EvaluationAggregate::from_words(&summary_words)?;
+        let top8 = self.stream.clone_dtoh(&top8).map_err(cuda)?;
+        let metrics = self.stream.clone_dtoh(&metrics).map_err(cuda)?;
+        // Storage decoding only. Scores, ranks, eligibility and all sums above
+        // were completed on CUDA; no numerical reductions occur in this loop.
+        let rows = top8
+            .chunks_exact(8)
+            .zip(metrics.chunks_exact(8))
+            .map(|(top, p)| {
+                let top8 = top
+                    .try_into()
+                    .map_err(|_| invalid("top8 row must contain eight IDs"))?;
+                Ok(EvaluationRow {
+                    top8,
+                    token_hinge: p[0],
+                    address_hinge: p[1],
+                    total_loss_numerator: p[2],
+                    token_rivals: p[3],
+                    address_rivals: p[4],
+                    top1_correct: p[5],
+                    top8_correct: p[6],
+                    admitted_cells: p[7],
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Evaluation {
+            aggregate,
+            rows,
+            summary_words,
+            binding: self.binding.clone(),
+            epoch,
+        })
+    }
+
+    /// CUDA aggregation of completed batch receipts at one model/epoch. Private
+    /// words are re-uploaded unchanged; public report-field edits cannot author
+    /// an aggregate. No host score/count/rank/reduction is performed.
+    pub fn aggregate_evaluations(&self, evaluations: &[Evaluation]) -> Result<EvaluationAggregate> {
+        if evaluations.is_empty() {
+            return Err(invalid(
+                "evaluation aggregation requires nonempty completed receipts",
+            ));
+        }
+        let count = u32::try_from(evaluations.len())
+            .map_err(|_| invalid("evaluation receipt inventory exceeds CUDA index bound"))?;
+        let epoch = self.epoch()?;
+        let capacity = evaluations
+            .len()
+            .checked_mul(EVALUATION_AGGREGATE_WORDS)
+            .ok_or_else(|| invalid("evaluation receipt allocation exceeds storage index bound"))?;
+        let mut words = Vec::new();
+        words
+            .try_reserve_exact(capacity)
+            .map_err(|e| invalid(format!("evaluation receipt allocation: {e}")))?;
+        for evaluation in evaluations {
+            if evaluation.binding != self.binding || evaluation.epoch != epoch {
+                return Err(invalid(
+                    "evaluation receipt belongs to another model/source/epoch",
+                ));
+            }
+            if evaluation.summary_words.len() != EVALUATION_AGGREGATE_WORDS {
+                return Err(invalid(
+                    "evaluation receipt must contain seventeen completed words",
+                ));
+            }
+            words.extend_from_slice(&evaluation.summary_words);
+        }
+        let metrics = self.stream.clone_htod(&words).map_err(cuda)?;
+        EvaluationAggregate::from_words(&aggregate_gpu(
+            &self.stream,
+            &self.kernels.evaluation_aggregate,
+            &metrics,
+            count,
+            self.spec().blocks * 8,
+            true,
+        )?)
+    }
+
+    /// Raw-frequency reference from caller-prepared masked TRAIN target IDs.
+    /// Host admission checks identities/lengths only. Both histograms, global
+    /// top8 rankings and hit counters are computed on CUDA. The separate DEV
+    /// response oracle is diagnostic and cannot affect the TRAIN reference.
+    pub fn count_reference(
+        vocabulary: u32,
+        training_targets: &[u32],
+        eval_targets: &[u32],
+        ordinal: usize,
+    ) -> Result<CountEvaluation> {
+        if !(2..=8192).contains(&vocabulary)
+            || training_targets.is_empty()
+            || eval_targets.is_empty()
+            || training_targets
+                .iter()
+                .chain(eval_targets)
+                .any(|&id| id >= vocabulary)
+        {
+            return Err(invalid("count reference requires vocabulary2..8192 and nonempty valid TRAIN/DEV target IDs"));
+        }
+        let _training_count = u32::try_from(training_targets.len())
+            .map_err(|_| invalid("TRAIN count inventory exceeds CUDA index bound"))?;
+        let eval_count = u32::try_from(eval_targets.len())
+            .map_err(|_| invalid("DEV count inventory exceeds CUDA index bound"))?;
+        let context = CudaContext::new(ordinal).map_err(cuda)?;
+        let stream = context.default_stream();
+        let module = context.load_module(Ptx::from_src(PTX)).map_err(cuda)?;
+        let histogram = module.load_function("discrete_count").map_err(cuda)?;
+        let score = module.load_function("discrete_count_score").map_err(cuda)?;
+        let targets = stream.clone_htod(eval_targets).map_err(cuda)?;
+        let train_masked_reference = count_metrics(
+            &stream,
+            &histogram,
+            &score,
+            vocabulary,
+            training_targets,
+            &targets,
+            eval_count,
+        )?;
+        let dev_response_oracle = count_metrics(
+            &stream,
+            &histogram,
+            &score,
+            vocabulary,
+            eval_targets,
+            &targets,
+            eval_count,
+        )?;
+        Ok(CountEvaluation {
+            train_masked_reference,
+            dev_response_oracle,
+            dev_oracle_diagnostic_only: true,
+        })
+    }
+
     fn parameter(&self, parameter: Parameter) -> Result<(u32, u32)> {
         match parameter {
             Parameter::Route(_) if matches!(self.read_spec(), ReadSpec::Flock { .. }) => {
@@ -847,7 +1183,7 @@ impl Device {
 
     /// Future authorized commit path. Corpus-training CLI remains held;
     /// finite proposal qualification must not call this method.
-    pub fn apply(&mut self, proposal: &Proposal) -> Result<bool> {
+    pub(crate) fn apply(&mut self, proposal: &Proposal) -> Result<bool> {
         let (kind, index) = self.parameter(proposal.parameter)?;
         if proposal.binding != self.binding {
             return Err(invalid("proposal belongs to another model/source/geometry"));
@@ -877,6 +1213,97 @@ impl Device {
         check_status(&self.stream, &status, "apply")?;
         Ok(self.epoch()? != before)
     }
+}
+
+fn aggregate_gpu(
+    stream: &Arc<CudaStream>,
+    kernel: &CudaFunction,
+    metrics: &CudaSlice<u64>,
+    count: u32,
+    width: u32,
+    summaries: bool,
+) -> Result<Vec<u64>> {
+    let summaries = u32::from(summaries);
+    let mut out = stream
+        .alloc_zeros::<u64>(EVALUATION_AGGREGATE_WORDS)
+        .map_err(cuda)?;
+    let mut status = stream.alloc_zeros::<u32>(1).map_err(cuda)?;
+    let mut launch = stream.launch_builder(kernel);
+    launch
+        .arg(metrics)
+        .arg(&count)
+        .arg(&width)
+        .arg(&summaries)
+        .arg(&mut out)
+        .arg(&mut status);
+    // SAFETY: aggregate's exact six-argument ABI; count*8/count*17 immutable
+    // receipt words and seventeen writable outputs, owned by this CUDA context.
+    unsafe { launch.launch(launch_config(1)) }.map_err(cuda)?;
+    check_status(stream, &status, "evaluation aggregation")?;
+    stream.clone_dtoh(&out).map_err(cuda)
+}
+
+fn count_metrics(
+    stream: &Arc<CudaStream>,
+    histogram: &CudaFunction,
+    score: &CudaFunction,
+    vocabulary: u32,
+    source: &[u32],
+    targets: &CudaSlice<u32>,
+    eval_count: u32,
+) -> Result<CountMetrics> {
+    let count = u32::try_from(source.len())
+        .map_err(|_| invalid("count inventory exceeds CUDA index bound"))?;
+    let source = stream.clone_htod(source).map_err(cuda)?;
+    let mut counts = stream
+        .alloc_zeros::<u64>(vocabulary as usize)
+        .map_err(cuda)?;
+    let mut status = stream.alloc_zeros::<u32>(1).map_err(cuda)?;
+    let mut launch = stream.launch_builder(histogram);
+    launch
+        .arg(&source)
+        .arg(&count)
+        .arg(&vocabulary)
+        .arg(&mut counts)
+        .arg(&mut status);
+    // SAFETY: count valid IDs; zeroed vocabulary-sized u64 histogram, immutable
+    // IDs and disjoint status. Each CUDA thread increments its admitted token.
+    unsafe { launch.launch(launch_config(count)) }.map_err(cuda)?;
+    check_status(stream, &status, "count histogram")?;
+    let mut top8 = stream.alloc_zeros::<u32>(8).map_err(cuda)?;
+    let mut metrics = stream.alloc_zeros::<u64>(6).map_err(cuda)?;
+    let mut launch = stream.launch_builder(score);
+    launch
+        .arg(&counts)
+        .arg(&vocabulary)
+        .arg(targets)
+        .arg(&eval_count)
+        .arg(&mut top8)
+        .arg(&mut metrics)
+        .arg(&mut status);
+    // SAFETY: same context/checked inventories, eight IDs and six exact metric
+    // outputs. Count sorting and scored-target reductions run only on CUDA.
+    unsafe { launch.launch(launch_config(1)) }.map_err(cuda)?;
+    check_status(stream, &status, "count scoring")?;
+    let metrics = stream.clone_dtoh(&metrics).map_err(cuda)?;
+    let metrics: [u64; 6] = metrics
+        .try_into()
+        .map_err(|_| invalid("count receipt must contain six words"))?;
+    let top8 = stream
+        .clone_dtoh(&top8)
+        .map_err(cuda)?
+        .try_into()
+        .map_err(|_| invalid("count top8 must contain eight IDs"))?;
+    Ok(CountMetrics {
+        token_counts: stream.clone_dtoh(&counts).map_err(cuda)?,
+        top8,
+        scored_rows: metrics[0],
+        top1_correct: metrics[1],
+        top8_correct: metrics[2],
+        zero_count_targets: metrics[3],
+        source_targets: metrics[4],
+        nonzero_tokens: metrics[5],
+    })
 }
 
 fn read_epoch(stream: &Arc<CudaStream>, epoch: &CudaSlice<u64>) -> Result<u64> {

@@ -226,7 +226,7 @@ __device__ W scaled_add(W value,U times) { W total=0;while(times){if(times&1)tot
 // Product addresses derive from current codebook geometry, including virtual
 // moves. Full bounded vocabulary scans retain every crowded-cell identity.
 // An absent comparison has zero hinge and an explicit eligibility count.
-__device__ W writer(const int* q,const int* table,const U* g,const U* s,U target,U kind,U index,U candidate,U* prediction,U* token_rivals,U* address_rivals,U* admitted) {
+__device__ W writer(const int* q,const int* table,const U* g,const U* s,U target,U kind,U index,U candidate,U* prediction,U* token_rivals,U* address_rivals,U* admitted,W* token_hinge=0,W* address_hinge=0) {
     bool occupied[256],used[256];for(U i=0;i<256;++i){occupied[i]=false;used[i]=false;}
     for(U token=0;token<s[0];++token){U c=token_cell(table,g,s,token,kind,index,candidate);if(c==ABSENT)return ~(W)0;occupied[c]=true;}
     U best_token=ABSENT,best_distance=ABSENT,rival_distance=ABSENT,rival_address=ABSENT;
@@ -248,6 +248,7 @@ __device__ W writer(const int* q,const int* table,const U* g,const U* s,U target
     U width=s[1]*8,td=token_distance(q,table,g,s,target,kind,index,candidate),ad=address_distance(q,g,s,target_cell);
     W tm=rival_distance==ABSENT || width+td<=rival_distance ? 0 : width+td-rival_distance;
     W am=rival_address==ABSENT || 8+ad<=rival_address ? 0 : 8+ad-rival_address;
+    if(token_hinge)*token_hinge=tm;if(address_hinge)*address_hinge=am;
     return (tm<<3)+scaled_add(am,width);
 }
 // Statuses added with the flock read: 9 = read-mode/proposal-kind mismatch
@@ -347,4 +348,91 @@ extern "C" __global__ void discrete_validate(const int* table,const U* routes,co
     if(i<s[1]*s[5] && routes[i]>=64)atomicExch(status,7u);
     if(i<s[1]*s[5] && (gates[i]<-1 || gates[i]>1))atomicExch(status,10u);
     if(i==0 && (s[8]>MODE_FLOCK || (s[8]==MODE_FLOCK && (s[9]==0 || s[9]>MAX_KEPT || s[1]<2))))atomicExch(status,10u);
+}
+
+// Exact model evaluation. Same read/writer as forward; top8 is a GLOBAL order
+// over all admitted identities, never concatenated independent per-cell ranks.
+// Row metric words: T,A,total,token_rivals,address_rivals,hit1,hit8,admitted_cells.
+extern "C" __global__ void discrete_evaluate(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,U* top8,W* metrics,U* status) {
+    U row=blockIdx.x*blockDim.x+threadIdx.x;if(row>=s[4])return;
+    int q[MAX_WIDTH];
+    if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,q,0)){atomicExch(status,2u);return;}
+    U cells[16],prediction,tr,ar;W tm,am;
+    W total=writer(q,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,cells,&tm,&am);
+    if(total==~(W)0){atomicExch(status,8u);return;}
+    U ranked[8],distance[8],found=0,cell_count=0;
+    for(U i=0;i<8;++i){ranked[i]=ABSENT;distance[i]=ABSENT;}
+    for(U i=0;i<16;++i)if(cells[i]!=ABSENT)++cell_count;
+    for(U token=0;token<s[0];++token){
+        U cell=token_cell(table,g,s,token,2,0,0);bool admitted=false;
+        for(U i=0;i<16;++i)if(cells[i]==cell){admitted=true;break;}
+        if(!admitted)continue;
+        U d=token_distance(q,table,g,s,token,2,0,0),at=found;
+        while(at>0){U prev=at-1;
+            if(!(d<distance[prev] || (d==distance[prev] && token<ranked[prev])))break;
+            if(at<8){ranked[at]=ranked[prev];distance[at]=distance[prev];}--at;
+        }
+        if(at<8){ranked[at]=token;distance[at]=d;if(found<8)++found;}
+    }
+    if(found==0 || ranked[0]!=prediction){atomicExch(status,11u);return;}
+    W hit8=0;for(U i=0;i<8;++i){top8[row*8+i]=ranked[i];if(ranked[i]==targets[row])hit8=1;}
+    W* out=metrics+row*8;
+    out[0]=tm;out[1]=am;out[2]=total;out[3]=tr;out[4]=ar;
+    out[5]=ranked[0]==targets[row];out[6]=hit8;out[7]=cell_count;
+}
+__device__ bool metric_add(W* value,W add,U* status) {
+    if(~(W)0-*value<add){atomicExch(status,12u);return false;}*value+=add;return true;
+}
+// Output words: rows,hit1,hit8,sumT,sumA,sumtotal,token_eligible_rows,
+// address_eligible_rows,sum_token_rivals,sum_address_rivals,sum_cells,
+// eligible_any_rows,eligible_total_zero_rows,eligible_token_zero_rows,
+// eligible_address_zero_rows,eligible_strict_token_wins,8*width.
+// Absent-comparison zeros are never successes; strict T<width does not alter loss.
+// summaries=0 reduces row metrics; summaries=1 combines unchanged completed
+// batch receipts. In both cases all arithmetic and denominator checks are CUDA.
+extern "C" __global__ void discrete_evaluation_aggregate(const W* metrics,U count,U width,U summaries,W* out,U* status) {
+    if(blockIdx.x || threadIdx.x)return;
+    if(count==0 || width<16 || width>MAX_WIDTH || summaries>1){*status=12u;return;}
+    for(U i=0;i<17;++i)out[i]=0;out[16]=(W)width<<3;
+    for(U row=0;row<count;++row){
+        if(summaries){const W* p=metrics+(W)row*17;if(p[16]!=out[16]){*status=12u;return;}
+            for(U i=0;i<16;++i)if(!metric_add(out+i,p[i],status))return;
+        } else {const W* p=metrics+(W)row*8;
+            W values[16]={1,p[5],p[6],p[0],p[1],p[2],p[3]>0,p[4]>0,p[3],p[4],p[7],
+                p[3]>0 || p[4]>0,p[2]==0 && (p[3]>0 || p[4]>0),
+                p[3]>0 && p[0]==0,p[4]>0 && p[1]==0,p[3]>0 && p[0]<width};
+            for(U i=0;i<16;++i)if(!metric_add(out+i,values[i],status))return;
+        }
+    }
+}
+// Caller supplies masked-target identities only. Frequency accumulation is
+// CUDA; TRAIN and diagnostic DEV always use different zero-initialized tables.
+extern "C" __global__ void discrete_count(const U* targets,U count,U vocabulary,W* counts,U* status) {
+    U i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=count)return;
+    U token=targets[i];if(token>=vocabulary){atomicExch(status,1u);return;}
+    atomicAdd(counts+token,(W)1);
+}
+// Raw count ranking: count descending, token ID ascending, including zero
+// frequency tokens. Metrics: eval_rows,hit1,hit8,zero_count_targets,source_count,
+// nonzero_tokens. This does not normalize counts or inspect model parameters.
+extern "C" __global__ void discrete_count_score(const W* counts,U vocabulary,const U* targets,U count,U* top8,W* metrics,U* status) {
+    if(blockIdx.x || threadIdx.x)return;
+    if(vocabulary<2 || vocabulary>8192 || count==0){*status=12u;return;}
+    U ranked[8],found=0;W frequency[8];
+    for(U i=0;i<8;++i){ranked[i]=ABSENT;frequency[i]=0;}
+    for(U i=0;i<6;++i)metrics[i]=0;
+    for(U token=0;token<vocabulary;++token){W f=counts[token];
+        if(!metric_add(metrics+4,f,status))return;if(f)++metrics[5];
+        U at=found;while(at>0){U prev=at-1;
+            if(!(f>frequency[prev] || (f==frequency[prev] && token<ranked[prev])))break;
+            if(at<8){ranked[at]=ranked[prev];frequency[at]=frequency[prev];}--at;
+        }
+        if(at<8){ranked[at]=token;frequency[at]=f;if(found<8)++found;}
+    }
+    for(U i=0;i<8;++i)top8[i]=ranked[i];
+    for(U i=0;i<count;++i){U target=targets[i];if(target>=vocabulary){*status=1u;return;}
+        ++metrics[0];if(target==ranked[0])++metrics[1];
+        for(U j=0;j<found;++j)if(target==ranked[j]){++metrics[2];break;}
+        if(counts[target]==0)++metrics[3];
+    }
 }

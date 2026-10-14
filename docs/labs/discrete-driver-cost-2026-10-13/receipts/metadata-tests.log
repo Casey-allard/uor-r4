@@ -1,0 +1,67 @@
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-discrete-driver-20261013/crates/uor-r4-discrete)
+warning: field `lineage_sha256` is never read
+   --> crates/uor-r4-discrete/src/training.rs:569:5
+    |
+568 | pub struct CorpusUpdateAdmission {
+    |            --------------------- field in this struct
+569 |     lineage_sha256: String,
+    |     ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-discrete` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.83s
+     Running unittests src/lib.rs (local/driver-target/debug/deps/uor_r4_discrete-f4ffbd163da53c8b)
+
+running 10 tests
+test tests::configuration_and_hold_are_metadata_only ... ok
+test metadata::tests::triple_and_nine_atom_closure_retain_exact_child_indices ... ok
+test corpus::tests::tokenizer_bos_is_explicit_metadata ... ok
+test tests::read_configuration_is_explicit_bounded_metadata ... ok
+test corpus::tests::corpus_header_masks_documents_and_tail_are_metadata ... ok
+test corpus::tests::corpus_refuses_hash_mask_header_and_missing_bos ... ok
+test tests::apply_calls_are_confined_to_bounded_fixture_and_admitted_transition ... ok
+test training::tests::checkpoint_metadata_refuses_swapped_config_data_and_cursor ... ok
+test training::tests::complete_coordinate_cycle_and_resume_are_metadata ... ok
+test metadata::tests::every_admitted_context_preserves_ordered_atom_coverage ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

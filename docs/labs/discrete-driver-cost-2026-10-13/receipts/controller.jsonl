@@ -1,0 +1,4 @@
+{"index":1,"command":"qualify","status":"PASS","command_exit":0,"contract_exit":0,"start_utc":"2026-10-14T00:42:39Z","end_utc":"2026-10-14T00:42:45Z","elapsed_ns":5989098677,"expected_controls":11,"expected_applied_updates":0}
+{"index":2,"command":"qualify-flock","status":"PASS","command_exit":0,"contract_exit":0,"start_utc":"2026-10-14T00:42:45Z","end_utc":"2026-10-14T00:42:48Z","elapsed_ns":2833462330,"expected_controls":6,"expected_applied_updates":0}
+{"index":3,"command":"qualify-driver","status":"PASS","command_exit":0,"contract_exit":0,"start_utc":"2026-10-14T00:42:48Z","end_utc":"2026-10-14T00:42:51Z","elapsed_ns":2948602761,"expected_controls":8,"expected_applied_updates":8}
+{"index":4,"command":"measure-cost","status":"PASS","command_exit":0,"contract_exit":0,"start_utc":"2026-10-14T00:42:51Z","end_utc":"2026-10-14T00:43:57Z","elapsed_ns":66633432500,"expected_controls":0,"expected_applied_updates":0}
