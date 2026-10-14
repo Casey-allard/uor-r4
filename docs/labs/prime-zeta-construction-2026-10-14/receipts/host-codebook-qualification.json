@@ -1,0 +1,154 @@
+{
+  "applied_updates": 0,
+  "codebooks": {
+    "v256_b2_prime_zeta": {
+      "full_vector_collisions": 0,
+      "occupied_writer_cells": 256,
+      "table_sha256": "bdbe94993d7f27b9a367374df966a007cea699639ac8aae85b3a9a09bce8a4fc",
+      "unique_table_vectors": 256
+    },
+    "v4096_b2_prime_zeta": {
+      "note": "At B=2, discrete_validate restricts each 8D block to the 16-root orbit so ROOTS^2 has 256 total vectors; all 256/256 cells are populated with exact quota 16, while PhaseQ29 and UnitS3Q30 have 4096/4096 unique vectors (0 collisions).",
+      "occupied_writer_cells": 256,
+      "phases_sha256": "816a81e2e86855ff6e5af09bc57c48b45fc762d549faeb7f9a7700dff51f8ec6",
+      "spinors_sha256": "2834cbefcb27f8b71dc3ae18750e752045f70524824706dc80d91594697655b4",
+      "table_sha256": "41dcb6be3962b1e723c4d819eb93b2502fc3ef6135a735bf55ae3fe8a0efd023",
+      "unique_phase_vectors": 4096,
+      "unique_spinor_vectors": 4096,
+      "unique_table_vectors": 256
+    },
+    "v4096_b4_normal_null_seed_0": {
+      "occupied_writer_cells": 256,
+      "phases_sha256": "2e0f7418ae8e41328022c78d590d75488e3aefd3a3078d19c72bb0a104bae818",
+      "spinors_sha256": "565af0253ef276c866501203075f2763c5edd161950e2673318df70b2743bde7",
+      "table_sha256": "a1031b64712a0a944921d92971deac44039dc6fa08986c141a47bb3568e6f10e",
+      "unique_table_vectors": 4096
+    },
+    "v4096_b4_normal_null_seed_1": {
+      "table_sha256": "7c35797e2c64792cad0145b30a955f3f8ffd8d0191213df8a9a645f191fad0fa",
+      "unique_table_vectors": 4096
+    },
+    "v4096_b4_normal_null_seed_2": {
+      "table_sha256": "8d3e69332bf2974b7748b79d8ddd2541d726ee86d505ed98961e6ae6dd473346",
+      "unique_table_vectors": 4096
+    },
+    "v4096_b4_prime_zeta": {
+      "full_vector_collisions": 0,
+      "occupied_writer_cells": 256,
+      "phases_sha256": "b85aa0d6c37f78d411c44280cfa0164e28d6d82e9a26301d8da0ee66db82810e",
+      "spinors_sha256": "9c648d470e049d25aa82670afa431765ce43dfaeb0df94c0aee63bd438390685",
+      "table_sha256": "e9e03bcd95b78632a7f18d1b27c07d37f0ba82c52eee692c37da011eadac8804",
+      "unique_phase_vectors": 4096,
+      "unique_spinor_vectors": 4096,
+      "unique_table_vectors": 4096
+    },
+    "v4096_b4_tangent_null_delta_1_0": {
+      "occupied_writer_cells": 256,
+      "phases_sha256": "b5d638d49708fc533b22c227382e643c720bbd9caea772324c765928114f59eb",
+      "spinors_sha256": "95af5dc2c352229dfb335d3f36607cb42f98a9cc808cb9a21fcabe9be89f3a79",
+      "table_sha256": "bae145fe4a348ee27f846dbc90075e80559f59a7c4d7931dfc6c58c178c524e1",
+      "unique_table_vectors": 4096
+    }
+  },
+  "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+  "driver_source_sha256": "cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4",
+  "float_scope": "host_only_one_time_offline_pre_quantization",
+  "mechanism": "prime-zeta-complex-routing",
+  "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "seed_reproducibility_0_1_2": {
+    "normal_null_across_seeds_distinct": true,
+    "normal_null_per_seed_bit_exact": true,
+    "v4096_b2_bit_exact": true,
+    "v4096_b4_bit_exact": true
+  },
+  "sheet_path": "docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md",
+  "sheet_sha256": "26b585e59758f736f6ed066b1bb8b6a445d66a2245957903293c0b6e4cb917f7",
+  "structural_separation": {
+    "v4096_b2_prime_zeta_vs_normal_null_seed0": {
+      "blocks": 2,
+      "coordinate_hamming_distance": 26522,
+      "coordinate_l1_distance": 57080,
+      "differing_root_blocks": 7658,
+      "differing_tokens": 4073,
+      "differing_writer_cells": 4073,
+      "left_mode": "prime_zeta",
+      "phase_q29_l1_distance": 36894911530592,
+      "right_mode": "normal_null_seed_0",
+      "vocabulary": 4096
+    },
+    "v4096_b2_prime_zeta_vs_tangent_null": {
+      "blocks": 2,
+      "coordinate_hamming_distance": 27730,
+      "coordinate_l1_distance": 62448,
+      "differing_root_blocks": 8088,
+      "differing_tokens": 4079,
+      "differing_writer_cells": 4079,
+      "left_mode": "prime_zeta",
+      "phase_q29_l1_distance": 50129650481152,
+      "right_mode": "tangent_null_delta_1.0",
+      "vocabulary": 4096
+    },
+    "v4096_b4_prime_zeta_vs_normal_null_seed0": {
+      "blocks": 4,
+      "coordinate_hamming_distance": 53551,
+      "coordinate_l1_distance": 115100,
+      "differing_root_blocks": 15397,
+      "differing_tokens": 4096,
+      "differing_writer_cells": 4088,
+      "left_mode": "prime_zeta",
+      "phase_q29_l1_distance": 73886416590056,
+      "right_mode": "normal_null_seed_0",
+      "vocabulary": 4096
+    },
+    "v4096_b4_prime_zeta_vs_normal_null_seed1": {
+      "blocks": 4,
+      "coordinate_hamming_distance": 53390,
+      "coordinate_l1_distance": 114600,
+      "differing_root_blocks": 15312,
+      "differing_tokens": 4096,
+      "differing_writer_cells": 4081,
+      "left_mode": "prime_zeta",
+      "phase_q29_l1_distance": 74250046110314,
+      "right_mode": "normal_null_seed_1",
+      "vocabulary": 4096
+    },
+    "v4096_b4_prime_zeta_vs_normal_null_seed2": {
+      "blocks": 4,
+      "coordinate_hamming_distance": 53122,
+      "coordinate_l1_distance": 114312,
+      "differing_root_blocks": 15334,
+      "differing_tokens": 4096,
+      "differing_writer_cells": 4084,
+      "left_mode": "prime_zeta",
+      "phase_q29_l1_distance": 74132089128052,
+      "right_mode": "normal_null_seed_2",
+      "vocabulary": 4096
+    },
+    "v4096_b4_prime_zeta_vs_tangent_null": {
+      "blocks": 4,
+      "coordinate_hamming_distance": 55088,
+      "coordinate_l1_distance": 123960,
+      "differing_root_blocks": 16221,
+      "differing_tokens": 4090,
+      "differing_writer_cells": 4074,
+      "left_mode": "prime_zeta",
+      "phase_q29_l1_distance": 100257380429905,
+      "right_mode": "tangent_null_delta_1.0",
+      "vocabulary": 4096
+    },
+    "v4096_b4_tangent_null_vs_normal_null_seed0": {
+      "blocks": 4,
+      "coordinate_hamming_distance": 53269,
+      "coordinate_l1_distance": 114836,
+      "differing_root_blocks": 15408,
+      "differing_tokens": 4096,
+      "differing_writer_cells": 4082,
+      "left_mode": "tangent_null_delta_1.0",
+      "phase_q29_l1_distance": 73693850981021,
+      "right_mode": "normal_null_seed_0",
+      "vocabulary": 4096
+    }
+  },
+  "training": "HELD"
+}

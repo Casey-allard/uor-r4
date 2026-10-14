@@ -21,3 +21,7 @@ uor-r4-core = { path = "../uor-r4-core" }
 [[bin]]
 name = "discrete-stack"
 path = "src/main.rs"
+
+[[bin]]
+name = "prime-zeta-qualify"
+path = "src/bin/prime-zeta-qualify.rs"

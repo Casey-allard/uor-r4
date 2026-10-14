@@ -1,11 +1,4 @@
 {
-  "antigravity/m1-grader-v2-checks-20261014": {
-    "branch": "antigravity/m1-grader-v2-checks-20261014",
-    "claimed_at": "2026-10-13T21:56:00-04:00",
-    "head": "3e38881a2",
-    "lab": "antigravity",
-    "note": ""
-  },
   "claude/completion-pins": {
     "branch": "claude/completion-pins",
     "claimed_at": "2026-10-14T10:08:12-04:00",
