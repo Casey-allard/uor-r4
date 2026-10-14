@@ -17,6 +17,7 @@ use uor_r4_harness::mistakes;
 use uor_r4_harness::multilab;
 use uor_r4_harness::notes;
 use uor_r4_harness::onboard::{detect_runtime, onboard};
+use uor_r4_harness::panels;
 use uor_r4_harness::prep;
 use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence;
@@ -87,7 +88,7 @@ const SUBCOMMAND_FLAGS: [&str; 33] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 50] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 53] = [
     "--kind",
     "--milestone",
     "-m",
@@ -141,6 +142,10 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 50] = [
     "--lesson",
     // `heartbeat --session`: which session of a lab is checking in.
     "--session",
+    // `panel score`: the panel, the measured value, and an optional label for it.
+    "--panel",
+    "--value",
+    "--label",
 ];
 
 /// Per-command help, for the commands whose flags are not guessable from the global usage.
@@ -399,6 +404,7 @@ fn main() -> ExitCode {
         // cases caught as `said ok=false, expected True`. **Two commands with two bodies cannot
         // drift that way; a flag can.**
         Some("check-formats") => cmd_check(&repo, json),
+        Some("panel") => cmd_panel(&repo, &rest, json),
         // **`check`'s own flags are parsed, not passed through as a filter.** The argument list
         // used to BE the `--only` prefix set, so `--repo <path>` - which the top-level parser
         // forwards here on purpose - narrowed the run to nothing and printed `0 rules, 0 failed`.
@@ -3033,6 +3039,121 @@ fn cmd_ledger(repo: &Path, json: bool) -> ExitCode {
 /// `lint check` / `lint format` — the D22/D23/D24 gate over a PR body.
 ///
 /// **This is the command that makes the thirteen ported gates reachable.** Everything it needs is
+/// `panel show|score` — the frozen acceptance panels.
+///
+/// **`score` is Rust; `show` is not yet and says so.** `show --json` prints each bar as the panel
+/// file's OWN object, in the file's key order (`id, label, current, target, of, unit, direction,
+/// note`) - and **`note` has no field on `registries::Bar` at all**, while `serde_json`'s `Value` is a
+/// `BTreeMap` that would re-order the rest. Matching those bytes needs the order-preserving parse this
+/// crate so far has only for `roles.json`. **A `show` that answered with the keys re-ordered would
+/// look right and diff wrong**, so it delegates and announces itself rather than growing a quieter
+/// second implementation.
+fn cmd_panel(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    match action_word(args) {
+        "score" => {
+            let regs = match Registries::load(&paths) {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("the panel registry did not load; nothing can be scored: {e}");
+                    return ExitCode::from(1);
+                }
+            };
+            // **The required flags are validated FIRST, as argparse does.** They used to be checked
+            // after the bar was chosen, so a command with no `--value` still printed the `--bar`
+            // note and then failed — output Python never produces, because its parser refuses
+            // before any of this runs.
+            let key = flag_value(args, "--panel").unwrap_or_default();
+            if key.is_empty() {
+                // `--panel` is required. An empty key would otherwise match the FIRST panel by
+                // containment, which is a plausible-looking wrong answer.
+                eprintln!("uor-harness: argument --panel is required");
+                return ExitCode::from(2);
+            }
+            let Some(raw) = flag_value(args, "--value") else {
+                eprintln!("uor-harness: argument --value is required");
+                return ExitCode::from(2);
+            };
+            let Ok(value) = raw.trim().parse::<f64>() else {
+                eprintln!("uor-harness: argument --value: invalid float value: {raw:?}");
+                return ExitCode::from(2);
+            };
+            let Some(panel) = panels::find_panel(&regs.panels, &key) else {
+                let known: Vec<String> = regs.panels.iter().map(|p| p.id.clone()).collect();
+                let known = if known.is_empty() {
+                    "none".to_string()
+                } else {
+                    known.join(", ")
+                };
+                eprintln!(
+                    "unknown panel {}; known: {known}",
+                    uor_r4_harness::prgates::py_repr_public(&key)
+                );
+                return ExitCode::from(2);
+            };
+            if panel.bars.is_empty() {
+                eprintln!(
+                    "panel {} has no bars, so there is nothing to score against",
+                    panel.id
+                );
+                return ExitCode::from(1);
+            }
+            let bar_key = flag_value(args, "--bar").unwrap_or_default();
+            let bar = if bar_key.is_empty() {
+                let first = &panel.bars[0];
+                if panel.bars.len() > 1 {
+                    // The first bar is the panel's headline bar, so a score without --bar is not
+                    // ambiguous - but the others are named rather than left to be discovered.
+                    // Python joins the RAW ids here, with no `!r` — unlike the headline id, which
+                    // is quoted. The comparison caught the difference: the alternatives printed as
+                    // `'fresh-transfer'` where Python prints `fresh-transfer`.
+                    let rest: Vec<String> = panel.bars[1..].iter().map(|b| b.id.clone()).collect();
+                    eprintln!(
+                        "no --bar given: scoring the headline bar {} (also available: {})",
+                        uor_r4_harness::prgates::py_repr_public(&first.id),
+                        rest.join(", ")
+                    );
+                }
+                first
+            } else {
+                match panel.bars.iter().find(|b| b.id == bar_key) {
+                    Some(b) => b,
+                    None => {
+                        // Raw ids, not quoted: Python joins `str(b.get("id", "?"))`.
+                        let known: Vec<String> = panel.bars.iter().map(|b| b.id.clone()).collect();
+                        eprintln!(
+                            "panel {} has no bar {}; bars: {}",
+                            panel.id,
+                            uor_r4_harness::prgates::py_repr_public(&bar_key),
+                            known.join(", ")
+                        );
+                        return ExitCode::from(2);
+                    }
+                }
+            };
+            let mut score = panels::classify(panel, bar, value);
+            if let Some(label) = flag_value(args, "--label") {
+                score.label = Some(label);
+            }
+            if json {
+                println!("{}", panels::score_json(&score));
+            } else {
+                print!("{}", panels::render_score(panel, bar, &score, value));
+            }
+            ExitCode::SUCCESS
+        }
+        "show" => delegate_to_python(repo, "panel", args),
+        "" => {
+            eprintln!("uor-harness panel: which action? show, score");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!("uor-harness panel: unknown action {other:?}; try show, score");
+            ExitCode::from(2)
+        }
+    }
+}
+
 /// now Rust: `check_pr` runs the gates, `format_pr_body` renders a compliant body, and the D23 scan
 /// is the ratchet rather than the retired Python script.
 ///

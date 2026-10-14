@@ -1,3 +1,34 @@
+## 2026-10-14 — `panel score` is Rust; one command ported, six left at the last site (deepseek, tooling)
+
+The [record](../labs/panel-score-port-2026-10-14/README.md) carries the twenty comparison cases and the
+three defects it found. **`uor-harness panel score` RUNS IN RUST** — the D22 acceptance-panel check: one
+measured value against one frozen bar, answering **`PASS` / `FAIL` / `AT NOISE`**, where **AT NOISE means
+the movement is inside the panel's stated noise band and must not be reported as a real difference.**
+**THE UNPORTED-COMMAND COUNT WENT 7 → 6; THE DELEGATION-SITE COUNT WENT 1 → 2**, and only one of those is
+progress, so both are stated: the general fallback used to carry all seven subcommands and now carries
+five (`arena` x3, `budget` x2), while **`panel show` is delegated by its own named line** because its
+`--json` prints each bar as the panel file's own object in the file's key order and **`serde_json` is a
+`BTreeMap` with no `note` field on `registries::Bar` at all** — **a `show` that re-ordered those keys
+would look right and diff wrong.** **THE COMPARISON CAUGHT THREE THINGS I HAD WRONG:** (1) **I had read
+only HALF of `classify`** — Python appends *" - noise is unstated for this bar, so this cannot be called
+a real difference (D22 section 3)"* whenever the band is unstated, which is most panels, and the first
+port printed the shorter sentence; (2) **Python quotes the headline bar id and NOT the alternatives**
+(`'complete-correct-512'` vs `fresh-transfer`); (3) **the `--bar` note was printed BEFORE `--value` was
+validated**, so a command that then failed still printed a note about the headline bar — argparse refuses
+first, and now so does this. **Three formats had to be written out by hand:** `%g`/`%+g` (`150` must not
+print as `150.0`), the `--json` dict order with `improvement`/`needed` present only on the numeric path,
+and `noise_band`, because **an unreadable band is `None` and never `0` — a band of zero turns every
+movement into a real difference.** **Verified by running BOTH implementations on 18 cases against the
+repo's real panels, text and `--json`: stdout, stderr and exit code MATCH on all except two argparse
+usage blocks**, which are this binary's message with the same exit 2. **Verified:** fmt and clippy
+`-D warnings` clean; **461 Rust tests passed, 6 ignored** (was 450); `python3 -m unittest discover -s
+tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641, baseline 1641.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`panel show`** (needs the order-preserving JSON parse), then `arena` (3 subcommands,
+`compare` is 91 lines), then `budget` (2 subcommands, 908 lines). **The D30 condition is met only when
+all six are done and the general fallback can be deleted.**
 ## 2026-10-14 — `multilab sync-live|migrate-ledger` are Rust; one delegation site left (deepseek, tooling — PM queue item 4)
 
 The [record](../labs/multilab-sync-port-2026-10-14/README.md) carries the six comparison cases and the

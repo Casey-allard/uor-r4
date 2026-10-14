@@ -158,6 +158,9 @@ pub struct Bar {
     pub of: Value,
     pub unit: String,
     pub direction: String,
+    /// A bar may state its OWN noise, which then beats the panel's. Python keeps the raw dict and
+    /// reads it in `classify`; the field is here because `panel score` needs it.
+    pub noise: String,
 }
 
 /// A frozen acceptance panel.
@@ -172,6 +175,12 @@ pub struct Panel {
     pub noise: String,
     pub seeds: String,
     pub rows: String,
+    /// `raw["source"]` — the provenance line `panel show` prints.
+    ///
+    /// **`Option`, because Python's `raw.get("source", MISSING)` distinguishes ABSENT from EMPTY**:
+    /// a panel with no `source` key prints `MISSING`, and one with `"source": ""` prints nothing.
+    /// A `String` would collapse the two and print `MISSING` for both.
+    pub source: Option<String>,
 }
 
 impl Panel {
@@ -468,6 +477,11 @@ fn load_panels(paths: &StatePaths) -> Vec<Panel> {
                                     .and_then(Value::as_str)
                                     .unwrap_or("")
                                     .to_string(),
+                                noise: b
+                                    .get("noise")
+                                    .and_then(Value::as_str)
+                                    .unwrap_or("")
+                                    .to_string(),
                             })
                             .collect()
                     })
@@ -487,6 +501,10 @@ fn load_panels(paths: &StatePaths) -> Vec<Panel> {
                     .and_then(Value::as_str)
                     .unwrap_or("")
                     .to_string(),
+                source: raw
+                    .get("source")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
             });
         }
     }
