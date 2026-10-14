@@ -1,0 +1,18 @@
+{
+  "reviewer": "Claude",
+  "verdict": "APPROVE_A2_ADMISSION_DIFF",
+  "scope": "m1-a2-seed1-vector0..1639-diagnostic-pilot",
+  "execution": {
+    "base_source": "e7d926fbe38537f4faa90b817705c61a780778d6",
+    "reviewed_source_commit": "cbeeee084d5563dd87cd0e8e4850b65d2ea540c0",
+    "source_sha256": "e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a",
+    "kernel_sha256": "931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "executable_sha256": "d12877b6d8adc6a60445a014be682ab82459a781f760ac99a226b07335cbfcac",
+    "driver_source_sha256": "236e7fb6e5269e3bd4fed21d391d1ce82f7d9bd31275f1a0d97dd0c4ce9d9806",
+    "config_sha256": "6252b613c6bf84efeb0dbdcfde69877eb75da1ec6d868eaac3461d93d75a3d04",
+    "lineage_sha256": "6db5ecf5d6e1b334b6f788a28b741b7ff2e012e7bf451e5f89ed29f89ef82a12",
+    "sheet_sha256": "1029c3b92771e0938d2ec393ce419db81cdc17125dad4814243c235cfb7463d5"
+  },
+  "receipt_url": "https://github.com/UOR-Foundation/uor-r4/pull/2421#issuecomment-6160178151"
+}
