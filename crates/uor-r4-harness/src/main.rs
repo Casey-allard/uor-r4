@@ -11,6 +11,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use uor_r4_harness::arena;
 use uor_r4_harness::briefing;
 use uor_r4_harness::githelp;
 use uor_r4_harness::mistakes;
@@ -405,6 +406,7 @@ fn main() -> ExitCode {
         // drift that way; a flag can.**
         Some("check-formats") => cmd_check(&repo, json),
         Some("panel") => cmd_panel(&repo, &rest, json),
+        Some("arena") => cmd_arena(&repo, &rest, json),
         // **`check`'s own flags are parsed, not passed through as a filter.** The argument list
         // used to BE the `--only` prefix set, so `--repo <path>` - which the top-level parser
         // forwards here on purpose - narrowed the run to nothing and printed `0 rules, 0 failed`.
@@ -3039,6 +3041,49 @@ fn cmd_ledger(repo: &Path, json: bool) -> ExitCode {
 /// `lint check` / `lint format` — the D22/D23/D24 gate over a PR body.
 ///
 /// **This is the command that makes the thirteen ported gates reachable.** Everything it needs is
+/// `arena board|compare|lineage` — the regression arena.
+///
+/// **`lineage` is Rust; `board` and `compare` are not yet and say so.** They share `arena::load`, which
+/// landed with this one, so the next unit is the rendering rather than the reading. This is a
+/// **regression** arena: the report is row by row against the parent, never an aggregate, because a
+/// candidate that gains 0.02 BPB while losing three memory rows is a regression with a headline.
+// The `--json` flag is deliberately unused here: Python's `lineage` action ignores it, because the
+// chain is already a list of ids, and the two actions that DO honour it are still delegated.
+fn cmd_arena(repo: &Path, args: &[String], _json: bool) -> ExitCode {
+    let paths = StatePaths::from_env(repo);
+    let arena = arena::load(&paths.repo);
+    match action_word(args) {
+        "lineage" => {
+            let id = action_word_after(args, &["lineage"]);
+            if id.is_empty() {
+                eprintln!("uor-harness: the following arguments are required: id");
+                return ExitCode::from(2);
+            }
+            // **No `--json` branch here, deliberately**: Python's lineage action ignores the flag,
+            // because the chain is already a list of ids.
+            let chain = arena.lineage(&id);
+            if chain.is_empty() {
+                eprintln!(
+                    "arena: no lineage for {}",
+                    uor_r4_harness::prgates::py_repr_public(&id)
+                );
+                return ExitCode::from(1);
+            }
+            print!("{}", arena::render_lineage(&chain));
+            ExitCode::SUCCESS
+        }
+        "board" | "compare" => delegate_to_python(repo, "arena", args),
+        "" => {
+            eprintln!("uor-harness arena: which action? board, compare, lineage");
+            ExitCode::from(2)
+        }
+        other => {
+            eprintln!("uor-harness arena: unknown action {other:?}; try board, compare, lineage");
+            ExitCode::from(2)
+        }
+    }
+}
+
 /// `panel show|score` — the frozen acceptance panels.
 ///
 /// **`score` is Rust; `show` is not yet and says so.** `show --json` prints each bar as the panel

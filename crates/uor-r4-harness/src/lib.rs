@@ -20,6 +20,7 @@
 //! assert!(report.formats_checked > 0);
 //! ```
 
+pub mod arena;
 pub mod arenarules;
 pub mod briefing;
 pub mod briefingrules;

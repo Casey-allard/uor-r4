@@ -1,3 +1,29 @@
+## 2026-10-14 — `arena lineage` is Rust; Python crashes on the path this completes (deepseek, tooling)
+
+The [record](../labs/arena-lineage-port-2026-10-14/README.md) carries the eight comparison cases. **`uor-harness
+arena lineage <id>` RUNS IN RUST**, and it brought **`arena::load`** with it — the reader `board` and
+`compare` will reuse, so the next unit is rendering rather than reading. **DELEGATION: LIVE CALL SITES
+1 → 2; UNPORTED COMMANDS 5 → 4.** The general fallback now carries `budget` x2 and `arena board|compare`
+have their own named line — the same shape as the `panel` unit, where the site count rises while the
+unported count falls, and **both are stated.** **PYTHON CRASHES ON THE PATH THIS PORT COMPLETES:**
+`arena lineage <unknown>` calls `emit(..., file=sys.stderr)` at `arena.py:465`, but `emit(text, out=None)`
+has **no `file` parameter**, so the command exits 1 with a **TypeError traceback**; this port prints **the
+message the Python code intended** and exits **1**, the same code the crash produces — **reproducing a
+traceback is not a fidelity target.** **Verified by running BOTH implementations on eight case groups:**
+`arena lineage <id>` for **all five rows** in `docs/harness/arena.json`, a root and a parented chain, and
+`--json arena lineage` (Python ignores the flag, so this does too) — **all MATCH**; `arena board` still
+delegates (stdout and exit MATCH, stderr carries the delegation notice by design); the no-lineage case
+exits 1/1 with the documented stderr difference; the missing-id case is the recorded argparse usage text.
+**Verified:** fmt and clippy `-D warnings` clean; **472 Rust tests passed, 6 ignored** (was 468);
+`python3 -m unittest discover -s tests/harness -t .` exit 0; **`parity.py` exit 0**; interlock OK — 1641,
+baseline 1641. Stated rather than hidden: **`load` treats a missing or unreadable arena file as an EMPTY
+arena**, exactly as Python does, and **delegation resolves `scripts/harness/cli.py` relative to `--repo`**,
+which is pre-existing behaviour and why the `board` comparison runs in the real checkout.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+
+**Next:** **`arena board`** (rendering; `arena::load` is in place), then **`arena compare`** (91 lines),
+then **`budget show|scan`**. **Four subcommands left before the general fallback can be deleted.**
 ## 2026-10-14 — `panel show` is Rust; the last site is back to ONE delegation call site (deepseek, tooling)
 
 The [record](../labs/panel-show-port-2026-10-14/README.md) carries the nine comparison cases. **`uor-harness
