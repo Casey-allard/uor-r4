@@ -33,6 +33,20 @@
   of the measure with checkpoint-0 baselines, and writer-admission-first attribution on an
   admission-limited bar miss. Sheet text only; no bar, guard, law, data, evaluator or dose
   change.
+- amendment 3 (2026-10-14): registration only, per Codex's receipt facts
+  [#2029 6163817784](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6163817784)
+  and storage correction
+  [6163933502](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6163933502),
+  Claude's item N1
+  [6164028158](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6164028158)
+  and the guard meaning
+  [6164092169](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6164092169)
+  — (A) permits the pinned parent's operational driver-lineage migration, (B) replaces Step 4
+  with owner-personal per-seed releases, (C) registers the exact pilot-receipt diagnosis,
+  (D) corrects Amendment 1's coverage wording to four VectorBlock proposals per visited
+  token, (E) registers the strict-win guard's exact meaning and the admitted-strict-win
+  per-checkpoint diagnostic, and (F) corrects the working-storage figure to ~0.8 GB per seed.
+  No bar, guard, law, data, evaluator, dose, schedule or initializer change.
 
 Training remains HELD by the owner; a FIT verdict on this sheet lifts no hold. The M1
 reply-quality headline remains SUSPENDED under R14. D32 governs: no floating point anywhere
@@ -55,11 +69,13 @@ with the receipt audit PASS. Its readings bound what the completion must and mus
    lie inside the visited slice. The remaining 14,764 seed-1 batches cover tokens 410..4095
    (~40.6% of masked-target mass) plus the 20 Route coordinates. Under the registered
    one-coordinate-per-batch schedule the frequent-token vectors are NOT revisited in this
-   pass: each received its single proposal early, while the rest of the codebook was still
-   at initialization. The bars remain attainable — they are scored on all 14,287 targets,
-   and later moves of other tokens and Routes change the competition around the frozen
-   frequent tokens — but the pilot's rank gains did not come from a rare-token slice, and
-   the expected-gain argument is correspondingly weaker. No schedule reorder is made here —
+   pass: each received its four VectorBlock proposals (one per block) early, while the rest
+   of the codebook was still at initialization, and no visited block is revisited in the
+   registered pass (Amendment 3 item D corrects Amendment 1's "single proposal" wording).
+   The bars remain attainable — they are scored on all 14,287 targets, and later moves of
+   other tokens and Routes change the competition around the frozen frequent tokens — but
+   the pilot's rank gains did not come from a rare-token slice, and the expected-gain
+   argument is correspondingly weaker. No schedule reorder is made here —
    the parent's frequency-order recommendation stays a named successor, because changing
    the schedule now would break comparability with the pilot's 236 accepted updates and
    confound attribution.
@@ -80,6 +96,32 @@ with the receipt audit PASS. Its readings bound what the completion must and mus
    configuration change, its own sheet) and is NOT adopted here — adopting it now would
    discard the pilot's measured trajectory and restart attribution from zero.
 
+### Exact pilot-receipt diagnosis (registered)
+
+Codex's per-row CUDA receipt audit
+[#2029 6163817784](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6163817784)
+supplies the exact figures behind items 1 and 3 above. They are registered here as the
+completion's attribution baseline; no per-parameter causal claim is read from them
+(Amendment 3 item C).
+
+- **Loss accounting.** Weighted token contribution −63,968; weighted address +131,968; total
+  +68,000. The aggregate numerator rose entirely through the address term.
+- **Admission cohorts (per-row CUDA receipts, fixed order):** retained 580 / lost 5,100 /
+  gained 1,600 / absent-both 7,007; total numerator deltas −6,720 / +961,056 / −588,768 /
+  −297,568. Gained-admission rows supply 983 of the 1,169 final top-8 hits. This is how
+  aggregate loss can rise while the rank measures improve, without a per-parameter causal
+  claim.
+- **Initialization coupling (symbolic-source-confirmed).** The four roots all depend on one
+  low-4 xorshift value → 16 full patterns × 256 token identities at V4096/B4 for any fixed
+  seed, and seed 2 cannot resolve that structural collision partition. The collision-free
+  initializer stays a named successor; no unreviewed initializer change enters D5.
+- **Parameter pass ≠ corpus pass.** 16,404 × 64 = 1,049,856 masked target exposures of
+  2,425,925 (1,376,069 unvisited), no wrap; both seeds traverse the same prefix, so unique
+  target coverage does not double.
+- **Zero-count coordinates are NOT inactive.** Zero-count coordinates: 944 attempted / 679
+  sensitive / 90 accepted; nonzero-count: 696 / 500 / 146. Context/rival use remains
+  possible, so a zero count is not by itself evidence of inactivity.
+
 ## Scope (carried over and narrowed)
 
 - **Seed 1: resume from checkpoint 1,640** (SHA256
@@ -99,6 +141,21 @@ with the receipt audit PASS. Its readings bound what the completion must and mus
   item 3); bars, guard and any transfer decided at 16,404 only. Seed 1's checkpoint 1,640 is
   an extra diagnostic point already measured; intermediate checkpoints are never selected
   post hoc.
+
+## Execution-scope permissions (Amendment 3, registered)
+
+- **Operational driver-lineage migration (A; Claude's item N1).** The completion's D5
+  admission diff necessarily changes the operational driver, so the new driver hash includes
+  the new controller. This sheet explicitly permits that driver-lineage migration: the change
+  is operational, while the model, cursor, baseline and configuration are unchanged, so the
+  resumed trajectory stays the registered one. **Seed 1 keeps its old-lineage baseline** —
+  its checkpoint-0 and `u` constants stay exactly as measured under the parent lineage
+  (105/14,287 ≈ 0.735% → seed-1 guard ≈ 3.67%, §4), and the pilot's checkpoint 1,640 (SHA256
+  `46e8ed5e…`) remains the resume base. No bar, guard, baseline or dose is re-derived under
+  the new driver.
+- **Owner-personal per-seed release (B).** D33's delegated pilot authority does NOT extend to
+  the completion. Each seed needs its own owner-personal release, and a seed-1 release cannot
+  chain seed 2; step 4 and D6 restate this.
 
 ## Base artifact
 
@@ -122,6 +179,14 @@ with the receipt audit PASS. Its readings bound what the completion must and mus
 - **Guard (Amendment 2 form):** strict distance-win rate >= max(1%, min(5u, u+5pp)) on both
   seeds, u per seed at checkpoint 0 (seed 1: measured, 105/14,287 ≈ 0.735% → threshold
   ≈ 3.67%). u > 95% → INSTRUMENT-INVALID and bars decide alone; never a negative.
+- **Guard meaning (Amendment 3, E; registered):** the registered strict-distance-win guard is
+  `token_rivals > 0 && token_hinge < width` and does NOT require the target cell to be
+  admitted. At width 32: baseline 105 strict wins = 0 admitted; pilot end 149 = 36 admitted /
+  113 omitted. The guard therefore measures strict distance advantage against admitted rivals
+  including unadmitted targets — it is not a count of executable writer successes. The
+  admitted-strict-win intersection (strict wins whose target cell is admitted) is registered
+  as a per-checkpoint diagnostic. The guard form and both bars are UNCHANGED; any change to
+  them needs a prospective amendment.
 - **Admission ceiling on the rank bars (B3, registered):** `discrete_evaluate` ranks top-1/top-8
   only over identities in admitted cells, so top-1 and top-8 hits ≤ target-cell admitted rows,
   where target-cell admitted rows = admitted_cell_count_sum − address_rival_count_sum (every
@@ -161,7 +226,11 @@ as listed in the parent (D21/D22/D23/D24/D26/D28/D29/D31/D32, R12/R13/R14).
 3. Kimi binds the final executable/PTX/source/config/lineage identities in a completion
    OwnerReleasePlan (same packet discipline as
    `docs/labs/rung0-pilot-release-2026-10-14/`).
-4. Owner release (D4 or its delegated equivalent, owner decision) for the completion scope.
+4. Owner-personal release, one per seed (Amendment 3 item B): D33's delegated pilot authority
+   does NOT extend to the completion, so each seed gets its own owner-personal release and a
+   seed-1 release cannot chain seed 2. Each release follows Kimi's OwnerReleasePlan packet for
+   that seed's scope (step 3) and is recorded separately; no other form of release authorizes
+   execution.
 5. Seed 1 resumes on the admitted pod; checkpoints at 4,101/8,202/12,303 scored; 16,404
    scored decisively; seed-1 outcome recorded.
 6. Seed 2 runs the full pass on the same pod/lease discipline; checkpoints likewise; 16,404
@@ -194,10 +263,15 @@ still marked estimate, not invoice):
 - controls: none separate — count predictor and untrained constants are in-run (parent).
 - combined: ≈ **32.4 h GPU ≈ $29**, one RTX 5090 pod, one job per GPU, lease discipline with
   renewals per the stop rule; inside owner caps (<= 4 pods, <= $8/h). Setup/build,
-  preservation (~6 MB archives), iCloud round-trips and the release round ride the same
-  lease; retries inside the same lease.
-- preparation: laptop source/sheet work only; no GPU. storage: checkpoints/reports ~ MB;
-  iCloud `cloud-store put` with MD5 round-trip; 128 MiB stop margin.
+  preservation (working storage per the corrected line below), iCloud round-trips and the
+  release round ride the same lease; retries inside the same lease.
+- preparation: laptop source/sheet work only; no GPU. **storage (Amendment 3 item F,
+  corrected):** the measured pilot checkpoint is **3,138,466 bytes uncompressed**, so at ~260
+  checkpoints the completion budget is **~0.8 GB per full seed** before eval/log overhead.
+  The pilot's ~6 MB compressed archive is NOT the completion's working storage. Preservation
+  keeps the run-state evaluation files plus every attempt directory and the original parent
+  together; never copy an owner record. iCloud `cloud-store put` with MD5 round-trip; 128 MiB
+  stop margin.
 
 ## Stop rule
 
@@ -214,8 +288,11 @@ owner decides whether seed 2 proceeds on the seed-1 record.
   from checkpoint 1,640, seed-2 initialization path under the same schedule, new release
   scope. Reviewed by Claude against this sheet; identities recorded before the first apply.
 - **D6 — owner release decision for the completion scope.** Not a sheet dependency for FIT;
-  required for execution only. The owner also decides the dose-sequencing question in the
-  Stop rule (two-seed continuous vs seed-1-then-decide) at release time.
+  required for execution only. Under Amendment 3 item B the release is owner-personal and per
+  seed: two separate releases, each after that seed's OwnerReleasePlan packet, with no
+  seed-1→seed-2 chain. The seed-1-first option is preserved (separate per-seed plans). The
+  owner also decides the dose-sequencing question in the Stop rule (two-seed continuous vs
+  seed-1-then-decide) at release time.
 
 ## Outcome decisions (carried over, restated for the completion)
 
@@ -225,8 +302,9 @@ owner decides whether seed 2 proceeds on the seed-1 record.
 - **Iterate:** movement above untrained but below bar → same-configuration dose/schedule
   change only; the pilot's sensitivity and coverage readings guide which. **Registered
   attribution order on any below-bar or below-guard result (B2):** the FIRST attribution
-  step is the schedule, before mechanism — the frequent-token coordinates received one
-  proposal each, early, against an uninitialized codebook, and were never revisited (§2).
+  step is the schedule, before mechanism — the frequent-token coordinates received four
+  proposals each (one per VectorBlock), early, against an uninitialized codebook, and were
+  never revisited (§2; Amendment 3 item D).
   The matching Iterate change is named now: a **second coordinate pass** or a
   **frequency-ordered revisit of the top-mass tokens**, as a same-configuration
   dose/schedule change — so a below-bar result is not read as a configuration verdict when
@@ -269,6 +347,8 @@ owner decides whether seed 2 proceeds on the seed-1 record.
 ## Verdict
 
 TEST FITNESS: FIT (design) — conditional FIT from Claude (#2029 comment 6163704400) with its
-B3 condition registered here as Amendment 2; Claude's one-line confirmation requested. Codex
-source check on D5 when posted. A FIT releases nothing: training remains HELD until D5,
+B3 condition registered here as Amendment 2; Claude's one-line confirmation requested.
+Amendment 3 registers execution-scope permissions (driver-lineage migration, owner-personal
+per-seed release) and receipt-exact diagnostics; Claude's one-line re-confirmation requested.
+Codex source check on D5 when posted. A FIT releases nothing: training remains HELD until D5,
 Claude's exact-source review of it, Kimi's OwnerReleasePlan and the owner's release.
