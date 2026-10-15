@@ -6,7 +6,7 @@ use crate::{
         self, BosIdentity, CorpusBatch, CorpusBinding, CorpusSource, FilePin, PreparedCorpus, Split,
     },
     metadata::BinderPlan,
-    Error, ReadSpec, Result, Spec,
+    Error, ObjectivePolicy, ReadSpec, Result, Spec,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -38,6 +38,11 @@ pub struct DriverConfig {
     pub schema: String,
     pub spec: Spec,
     pub read_spec: ReadSpec,
+    #[serde(
+        default,
+        skip_serializing_if = "ObjectivePolicy::is_nearest_address_margin"
+    )]
+    pub objective_policy: ObjectivePolicy,
     pub seed: u32,
     pub batch_rows: u32,
     pub train: CorpusSource,
@@ -323,7 +328,16 @@ impl PreparedDriver {
                 .ok_or_else(|| invalid("checkpoint missing read mode"))?,
         )
         .map_err(|e| invalid(e.to_string()))?;
+        let objective: ObjectivePolicy = serde_json::from_value(
+            checkpoint
+                .model
+                .get("objective_policy")
+                .cloned()
+                .unwrap_or_else(|| json!(ObjectivePolicy::default())),
+        )
+        .map_err(|error| invalid(error.to_string()))?;
         if spec != self.config.spec
+            || objective != self.config.objective_policy
             || mode != self.config.read_spec
             || checkpoint.model.get("seed").and_then(Value::as_u64)
                 != Some(u64::from(self.config.seed))
@@ -433,6 +447,7 @@ mod tests {
         )?;
         let dev = corpus(Split::Dev, &[0, 3, 4], &[0, 1, 1], 2)?;
         let config = DriverConfig {
+            objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             schema: DRIVER_SCHEMA.into(),
             spec: Spec {
                 vocabulary: 10,
@@ -583,6 +598,25 @@ mod tests {
             model,
         };
         driver.validate_checkpoint(&checkpoint)?;
+        let encoded_legacy =
+            serde_json::to_value(&driver.config).map_err(|error| invalid(error.to_string()))?;
+        assert!(encoded_legacy.get("objective_policy").is_none());
+        let mut rank_config = driver.config.clone();
+        rank_config.objective_policy = ObjectivePolicy::OccupiedCellRankHingeV1;
+        let encoded_rank =
+            serde_json::to_value(&rank_config).map_err(|error| invalid(error.to_string()))?;
+        assert_eq!(
+            encoded_rank["objective_policy"],
+            "occupied_cell_rank_hinge_v1"
+        );
+        assert_ne!(encoded_legacy, encoded_rank);
+        let mut wrong_objective = checkpoint.clone();
+        wrong_objective.model["objective_policy"] = json!(ObjectivePolicy::OccupiedCellRankHingeV1);
+        wrong_objective.model_sha256 = corpus::sha256(
+            &serde_json::to_vec(&wrong_objective.model)
+                .map_err(|error| invalid(error.to_string()))?,
+        );
+        assert!(driver.validate_checkpoint(&wrong_objective).is_err());
         let mut wrong = checkpoint.clone();
         wrong.cursor.next_coordinate = 1;
         assert!(driver.validate_checkpoint(&wrong).is_err());
@@ -738,6 +772,7 @@ impl PreparedDriver {
         self.validate_cursor(cursor)?;
         if model.spec() != self.config.spec
             || model.read_spec() != self.config.read_spec
+            || model.objective_policy() != self.config.objective_policy
             || model.binding().seed != self.config.seed
             || model.epoch()? != cursor.accepted_updates
         {
@@ -748,9 +783,10 @@ impl PreparedDriver {
         Ok(())
     }
     pub fn new_model(&self, ordinal: usize) -> Result<crate::device::Device> {
-        crate::device::Device::new_with_read(
+        crate::device::Device::new_with_objective(
             self.config.spec,
             self.config.read_spec,
+            self.config.objective_policy,
             self.config.seed,
             ordinal,
         )
@@ -876,6 +912,7 @@ impl PreparedDriver {
     pub fn evaluate(&self, model: &crate::device::Device) -> Result<Value> {
         if model.spec() != self.config.spec
             || model.read_spec() != self.config.read_spec
+            || model.objective_policy() != self.config.objective_policy
             || model.binding().seed != self.config.seed
         {
             return Err(invalid(
@@ -893,7 +930,17 @@ impl PreparedDriver {
                 .dev
                 .batch(first, self.config.spec.context, self.config.batch_rows)?;
             let carried = model.carry_windows(&batch.windows)?;
-            receipts.push(model.evaluate(&carried, &batch.targets)?);
+            let mut evaluation = model.evaluate(&carried, &batch.targets)?;
+            for ((row, position), target) in evaluation
+                .rows
+                .iter_mut()
+                .zip(&batch.target_positions)
+                .zip(&batch.targets)
+            {
+                row.target_position = Some(*position);
+                row.target_token = Some(*target);
+            }
+            receipts.push(evaluation);
             first = batch.next_target;
         }
         let aggregate = model.aggregate_evaluations(&receipts)?;
@@ -911,7 +958,7 @@ impl PreparedDriver {
             return Err(invalid("evaluation changed model epoch"));
         }
         Ok(
-            json!({"schema":DRIVER_SCHEMA,"evaluation_lineage":self.lineage,"evaluation_lineage_sha256":self.lineage_sha256()?,"model_epoch":epoch,"model_snapshot_sha256":snapshot_sha256,"model_bindings":{"schema":snapshot.schema,"spec":snapshot.spec,"read_spec":snapshot.read_spec,"seed":snapshot.seed,"source_sha256":snapshot.source_sha256,"kernel_sha256":snapshot.kernel_sha256,"geometry_sha256":snapshot.geometry_sha256,"operator_kappa":snapshot.operator_kappa,"composition_kappa":snapshot.composition_kappa},"training_provenance":"DriverCheckpoint restore required by eval-corpus CLI; this evaluator's lineage identifies its evaluation inputs","scored_set_policy":corpus::WINDOW_POLICY,"aggregate":aggregate,"batches":receipts,"count_reference":reference,"pilot_slice_bias":pilot_slice_bias,"evaluation_mutates_model":false,"accepted_updates_in_model":epoch,"updates_applied_by_evaluation":0}),
+            json!({"schema":DRIVER_SCHEMA,"objective_evaluation_schema":crate::objective::EVALUATION_SCHEMA,"objective_policy":snapshot.objective_policy,"legacy_total_loss_numerator_semantics":"8T_plus_widthA","evaluation_lineage":self.lineage,"evaluation_lineage_sha256":self.lineage_sha256()?,"model_epoch":epoch,"model_snapshot_sha256":snapshot_sha256,"model_bindings":{"schema":snapshot.schema,"spec":snapshot.spec,"read_spec":snapshot.read_spec,"objective_policy":snapshot.objective_policy,"seed":snapshot.seed,"source_sha256":snapshot.source_sha256,"kernel_sha256":snapshot.kernel_sha256,"geometry_sha256":snapshot.geometry_sha256,"operator_kappa":snapshot.operator_kappa,"composition_kappa":snapshot.composition_kappa},"training_provenance":"DriverCheckpoint restore required by eval-corpus CLI; this evaluator's lineage identifies its evaluation inputs","scored_set_policy":corpus::WINDOW_POLICY,"aggregate":aggregate,"batches":receipts,"count_reference":reference,"pilot_slice_bias":pilot_slice_bias,"evaluation_mutates_model":false,"accepted_updates_in_model":epoch,"updates_applied_by_evaluation":0}),
         )
     }
 }

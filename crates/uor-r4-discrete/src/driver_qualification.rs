@@ -548,6 +548,7 @@ fn corpus_schedule_resume(context: &mut Context<'_>) -> Result<()> {
         let train = corpus_fixture(Split::Train, &[0, 9, 9, 3, 3, 4, 0, 9, 4], &mask, 4)?;
         let dev = corpus_fixture(Split::Dev, &[0, 3, 4], &[0, 1, 1], 2)?;
         let config = DriverConfig {
+            objective_policy: crate::ObjectivePolicy::NearestAddressMarginV1,
             schema: DRIVER_SCHEMA.into(),
             spec: Spec {
                 vocabulary: 10,

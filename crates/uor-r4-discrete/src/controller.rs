@@ -149,6 +149,7 @@ pub fn validate_pilot_config(config: &DriverConfig) -> Result<()> {
             kept_cells: 8,
         })
         || config.read_spec != ReadSpec::Route
+        || config.objective_policy != crate::ObjectivePolicy::NearestAddressMarginV1
         || config.seed != 1
         || config.batch_rows != 64
         || config.train.expected_payload_tokens != 7_512_797

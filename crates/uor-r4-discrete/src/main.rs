@@ -105,7 +105,7 @@ fn device_command(args: &[String]) -> Result<()> {
             let config:InitConfig=serde_json::from_slice(&read(&args[1])?).map_err(|e|invalid(e.to_string()))?;
             config.read_spec.validate(config.spec)?;
             let output=std::fs::OpenOptions::new().write(true).create_new(true).open(&args[2]).map_err(|e|invalid(e.to_string()))?;
-            let model=Device::new_with_read(config.spec,config.read_spec,seed,0)?;
+            let model=Device::new_with_objective(config.spec,config.read_spec,config.objective_policy,seed,0)?;
             serde_json::to_writer(output,&model.snapshot()?).map_err(|e|invalid(e.to_string()))
         }
         Some("infer")|Some("propose") if args.len()>=3=>{
@@ -223,6 +223,10 @@ completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately rele
             Err(invalid(
                 "CUDA flock inventory is not compiled in this metadata-only build",
             ))
+        }
+        Some("list-admission-rank-controls") => {
+            println!("{}", uor_r4_discrete::objective::control_scaffold());
+            Ok(())
         }
         Some("list-relation-controls") => {
             #[cfg(feature = "cuda")]

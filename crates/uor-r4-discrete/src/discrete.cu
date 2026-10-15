@@ -289,10 +289,22 @@ __device__ U token_cell(const int* table,const U* g,const U* s,U token,U kind,U 
     U a=root_id(first,g),b=root_id(last,g);return a==ABSENT || b==ABSENT?ABSENT:a*16+b;
 }
 __device__ W scaled_add(W value,U times) { W total=0;while(times){if(times&1)total+=value;value<<=1;times>>=1;}return total; }
+__device__ W checked_scaled_add(W value,U times) {
+    W total=0;
+    while(times){
+        if(times&1){if(~(W)0-total<value)return ~(W)0;total+=value;}
+        times>>=1;
+        if(times){if(value>(~(W)0>>1))return ~(W)0;value<<=1;}
+    }
+    return total;
+}
+__device__ bool cell_precedes(U distance,U cell,U other_distance,U other_cell) {
+    return distance<other_distance || (distance==other_distance && cell<other_cell);
+}
 // Product addresses derive from current codebook geometry, including virtual
 // moves. Full bounded vocabulary scans retain every crowded-cell identity.
 // An absent comparison has zero hinge and an explicit eligibility count.
-__device__ W writer(const int* q,const int* table,const U* g,const U* s,U target,U kind,U index,U candidate,U* prediction,U* token_rivals,U* address_rivals,U* admitted,W* token_hinge=0,W* address_hinge=0) {
+__device__ W writer(const int* q,const int* table,const U* g,const U* s,U target,U kind,U index,U candidate,U* prediction,U* token_rivals,U* address_rivals,U* admitted,W* token_hinge=0,W* address_hinge=0,W* telemetry=0,U* arithmetic_status=0) {
     bool occupied[256],used[256];for(U i=0;i<256;++i){occupied[i]=false;used[i]=false;}
     for(U token=0;token<s[0];++token){U c=token_cell(table,g,s,token,kind,index,candidate);if(c==ABSENT)return ~(W)0;occupied[c]=true;}
     U best_token=ABSENT,best_distance=ABSENT,rival_distance=ABSENT,rival_address=ABSENT;
@@ -300,7 +312,7 @@ __device__ W writer(const int* q,const int* table,const U* g,const U* s,U target
     *token_rivals=0;*address_rivals=0;if(admitted)for(U i=0;i<16;++i)admitted[i]=ABSENT;
     for(U k=0;k<s[3];++k) {
         U cell=ABSENT,cost=ABSENT;
-        for(U c=0;c<256;++c)if(occupied[c] && !used[c]){U d=address_distance(q,g,s,c);if(d<cost){cell=c;cost=d;}}
+        for(U c=0;c<256;++c)if(occupied[c] && !used[c]){U d=address_distance(q,g,s,c);if(cell_precedes(d,c,cost,cell)){cell=c;cost=d;}}
         if(cell==ABSENT)break;
         used[cell]=true;if(admitted)admitted[k]=cell;
         if(cell!=target_cell){++*address_rivals;if(cost<rival_address)rival_address=cost;}
@@ -314,8 +326,22 @@ __device__ W writer(const int* q,const int* table,const U* g,const U* s,U target
     U width=s[1]*8,td=token_distance(q,table,g,s,target,kind,index,candidate),ad=address_distance(q,g,s,target_cell);
     W tm=rival_distance==ABSENT || width+td<=rival_distance ? 0 : width+td-rival_distance;
     W am=rival_address==ABSENT || 8+ad<=rival_address ? 0 : 8+ad-rival_address;
+    U rank=1,occupancy=0;
+    if(s[11]==1 || telemetry)for(U cell=0;cell<256;++cell)if(occupied[cell]){
+        ++occupancy;U distance=address_distance(q,g,s,cell);
+        if(cell_precedes(distance,cell,ad,target_cell))++rank;
+    }
+    W rm=rank>s[3]?rank-s[3]:0;
+    W weighted_token=checked_scaled_add(tm,8),weighted_address=checked_scaled_add(am,width),weighted_rank=checked_scaled_add(rm,width);
+    if(weighted_token==~(W)0 || weighted_address==~(W)0 || weighted_rank==~(W)0
+        || ~(W)0-weighted_token<weighted_address || ~(W)0-weighted_token<weighted_rank){
+        if(arithmetic_status)*arithmetic_status=12;return ~(W)0;
+    }
+    W loss_ta=weighted_token+weighted_address,loss_tr=weighted_token+weighted_rank;
+    if(telemetry){telemetry[0]=rm;telemetry[1]=rank;telemetry[2]=occupancy;
+        telemetry[3]=*token_rivals+used[target_cell];telemetry[4]=loss_tr;telemetry[5]=s[11]==1?loss_tr:loss_ta;}
     if(token_hinge)*token_hinge=tm;if(address_hinge)*address_hinge=am;
-    return (tm<<3)+scaled_add(am,width);
+    return s[11]==1?loss_tr:loss_ta;
 }
 // Statuses added with the flock/relation read: 9 = read-mode/proposal-kind mismatch
 // (Gate in Route mode, Route in Flock/Relation mode); 10 = gate trit outside {-1,0,1}
@@ -342,8 +368,9 @@ extern "C" __global__ void discrete_forward(const int* table,const U* routes,con
     U row=blockIdx.x*blockDim.x+threadIdx.x;if(row>=s[4])return;
     int q[MAX_WIDTH];if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,q,(s[8]==MODE_FLOCK || s[8]==MODE_RELATION)?trace:0)){atomicExch(status,2u);return;}
     for(U d=0;d<s[1]*8;++d)out[row*s[1]*8+d]=q[d];
-    losses[row]=writer(q,table,g,s,targets[row],2,0,0,predictions+row,token_rivals+row,address_rivals+row,admitted+row*16);
-    if(losses[row]==~(W)0)atomicExch(status,8u);
+    U arithmetic_status=0;
+    losses[row]=writer(q,table,g,s,targets[row],2,0,0,predictions+row,token_rivals+row,address_rivals+row,admitted+row*16,0,0,0,&arithmetic_status);
+    if(losses[row]==~(W)0)atomicExch(status,arithmetic_status?arithmetic_status:8u);
 }
 // Sixteen fixed lanes. Gate (kind 3) uses ordinals 0..2 only; lanes 3..15 stay MAX.
 extern "C" __global__ void discrete_counterfactual(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,U kind,U index,W* losses,U* status) {
@@ -355,15 +382,17 @@ extern "C" __global__ void discrete_counterfactual(const int* table,const U* rou
     if(kind==GATE_KIND && candidate>=3)return;
     for(U row=0;row<s[4];++row){int q[MAX_WIDTH],baseline[MAX_WIDTH];U prediction,tr,ar;
         if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,baseline,0)){atomicExch(status,2u);return;}
-        W base=writer(baseline,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,0);
-        if(base==~(W)0){atomicExch(status,8u);return;}
+        U arithmetic_status=0;
+        W base=writer(baseline,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
+        if(base==~(W)0){atomicExch(status,arithmetic_status?arithmetic_status:8u);return;}
         // The baseline fixes eligible rows. A virtual move cannot improve by
         // removing its supervised competitor; absent baseline comparisons skip.
         if(tr==0)continue;++eligible;
         if(!read_vector(input,ids,routes,gates,plan,g,s,row,kind,index,candidate,q,0)){atomicExch(status,2u);return;}
-        W cost=writer(q,table,g,s,targets[row],kind,index,candidate,&prediction,&tr,&ar,0);
+        W cost=writer(q,table,g,s,targets[row],kind,index,candidate,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
+        if(arithmetic_status){atomicExch(status,arithmetic_status);return;}
         if(cost==~(W)0 || tr==0){sum=~(W)0;break;}
-        sum+=cost;
+        if(~(W)0-sum<cost){atomicExch(status,12u);return;}sum+=cost;
     }
     if(eligible==0){atomicExch(status,8u);return;}
     losses[candidate]=sum;
@@ -421,7 +450,7 @@ extern "C" __global__ void discrete_validate(const int* table,const U* routes,co
     }
     if(i<s[1]*s[5] && routes[i]>=64)atomicExch(status,7u);
     if(i<gate_count(s) && (gates[i]<-1 || gates[i]>1))atomicExch(status,10u);
-    if(i==0 && (s[8]>MODE_RELATION
+    if(i==0 && (s[11]>1 || s[8]>MODE_RELATION
         || (s[8]==MODE_FLOCK && (s[9]==0 || s[9]>MAX_KEPT || s[10]!=0 || s[1]<2))
         || (s[8]==MODE_RELATION && (s[9]==0 || s[9]>MAX_KEPT || s[10]==0 || s[10]>MAX_SWEEPS || s[1]<2))))atomicExch(status,10u);
 }
@@ -433,9 +462,9 @@ extern "C" __global__ void discrete_evaluate(const int* table,const U* routes,co
     U row=blockIdx.x*blockDim.x+threadIdx.x;if(row>=s[4])return;
     int q[MAX_WIDTH];
     if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,q,0)){atomicExch(status,2u);return;}
-    U cells[16],prediction,tr,ar;W tm,am;
-    W total=writer(q,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,cells,&tm,&am);
-    if(total==~(W)0){atomicExch(status,8u);return;}
+    U cells[16],prediction,tr,ar,arithmetic_status=0;W tm,am,telemetry[6];
+    W total=writer(q,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,cells,&tm,&am,telemetry,&arithmetic_status);
+    if(total==~(W)0){atomicExch(status,arithmetic_status?arithmetic_status:8u);return;}
     U ranked[8],distance[8],found=0,cell_count=0;
     for(U i=0;i<8;++i){ranked[i]=ABSENT;distance[i]=ABSENT;}
     for(U i=0;i<16;++i)if(cells[i]!=ABSENT)++cell_count;
@@ -452,9 +481,10 @@ extern "C" __global__ void discrete_evaluate(const int* table,const U* routes,co
     }
     if(found==0 || ranked[0]!=prediction){atomicExch(status,11u);return;}
     W hit8=0;for(U i=0;i<8;++i){top8[row*8+i]=ranked[i];if(ranked[i]==targets[row])hit8=1;}
-    W* out=metrics+row*8;
-    out[0]=tm;out[1]=am;out[2]=total;out[3]=tr;out[4]=ar;
+    W* out=metrics+row*14;
+    out[0]=tm;out[1]=am;out[2]=(tm<<3)+scaled_add(am,s[1]*8);out[3]=tr;out[4]=ar;
     out[5]=ranked[0]==targets[row];out[6]=hit8;out[7]=cell_count;
+    for(U field=0;field<6;++field)out[8+field]=telemetry[field];
 }
 __device__ bool metric_add(W* value,W add,U* status) {
     if(~(W)0-*value<add){atomicExch(status,12u);return false;}*value+=add;return true;
@@ -469,15 +499,40 @@ __device__ bool metric_add(W* value,W add,U* status) {
 extern "C" __global__ void discrete_evaluation_aggregate(const W* metrics,U count,U width,U summaries,W* out,U* status) {
     if(blockIdx.x || threadIdx.x)return;
     if(count==0 || width<16 || width>MAX_WIDTH || summaries>1){*status=12u;return;}
-    for(U i=0;i<17;++i)out[i]=0;out[16]=(W)width<<3;
+    for(U i=0;i<1020;++i)out[i]=0;out[16]=(W)width<<3;
     for(U row=0;row<count;++row){
-        if(summaries){const W* p=metrics+(W)row*17;if(p[16]!=out[16]){*status=12u;return;}
-            for(U i=0;i<16;++i)if(!metric_add(out+i,p[i],status))return;
-        } else {const W* p=metrics+(W)row*8;
+        if(summaries){const W* p=metrics+(W)row*1020;if(p[16]!=out[16] || (row && p[23]!=out[23])){*status=12u;return;}
+            out[23]=p[23];
+            for(U i=0;i<999;++i)if(i!=16 && i!=23 && !metric_add(out+i,p[i],status))return;
+        } else {const W* p=metrics+(W)row*14;
+            if(p[0]>640 || p[1]>72 || p[8]>255 || p[9]<1 || p[9]>256 || p[10]<1 || p[10]>256 || p[7]<1 || p[7]>16 || p[4]>p[7] || p[7]-p[4]>1 || (row && p[10]!=out[23])){*status=12u;return;}
             W values[16]={1,p[5],p[6],p[0],p[1],p[2],p[3]>0,p[4]>0,p[3],p[4],p[7],
                 p[3]>0 || p[4]>0,p[2]==0 && (p[3]>0 || p[4]>0),
                 p[3]>0 && p[0]==0,p[4]>0 && p[1]==0,p[3]>0 && p[0]<width};
             for(U i=0;i<16;++i)if(!metric_add(out+i,values[i],status))return;
+            W weighted_token=checked_scaled_add(p[0],8),weighted_address=checked_scaled_add(p[1],width),weighted_rank=checked_scaled_add(p[8],width);
+            if(weighted_token==~(W)0 || weighted_address==~(W)0 || weighted_rank==~(W)0 || ~(W)0-weighted_token<weighted_address || ~(W)0-weighted_token<weighted_rank){*status=12u;return;}
+            if(p[2]!=weighted_token+weighted_address || p[12]!=weighted_token+weighted_rank || p[11]!=p[3]+p[7]-p[4] || (p[13]!=p[2] && p[13]!=p[12]) || p[9]>p[10] || p[7]>p[10] || p[11]<p[7] || ((p[8]==0)!=(p[7]>p[4])) || p[8]!=(p[9]>p[7]?p[9]-p[7]:0)){*status=12u;return;}
+            W extra[12]={p[8],weighted_token,weighted_address,weighted_rank,p[2],p[12],0,p[11],p[7]-p[4],p[3]>0 && p[0]<width && p[7]>p[4],p[8]==0,p[13]};
+            out[23]=p[10];
+            for(U i=0;i<12;++i)if(i!=6 && !metric_add(out+17+i,extra[i],status))return;
+            if(!metric_add(out+29+p[0],1,status) || !metric_add(out+670+p[1],1,status) || !metric_add(out+743+p[8],1,status))return;
+        }
+    }
+    U starts[3]={29,670,743},bins[3]={641,73,256},percent[7]={0,25,50,75,90,99,100};
+    if(out[0]==0){*status=12u;return;}
+    for(U hinge=0;hinge<3;++hinge){
+        W histogram_count=0;
+        for(U value=0;value<bins[hinge];++value)if(!metric_add(&histogram_count,out[starts[hinge]+value],status))return;
+        if(histogram_count!=out[0]){*status=12u;return;}
+        for(U quantile=0;quantile<7;++quantile){
+            W product=checked_scaled_add(out[0],percent[quantile]);
+            if(product==~(W)0 || product>~(W)0-99){*status=12u;return;}
+            W threshold=percent[quantile]?(product+99)/100:1,cumulative=0;
+            for(U value=0;value<bins[hinge];++value){
+                if(!metric_add(&cumulative,out[starts[hinge]+value],status))return;
+                if(cumulative>=threshold){out[999+hinge*7+quantile]=value;break;}
+            }
         }
     }
 }

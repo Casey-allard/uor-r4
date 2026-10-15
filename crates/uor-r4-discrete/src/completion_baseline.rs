@@ -67,7 +67,7 @@ fn receipt_counts(e: &Value) -> Result<(u64, u64)> {
                 .checked_sub(ar)
                 .ok_or_else(|| invalid("baseline address rival underflow"))?;
             require(
-                (1..=8).contains(&cells) && target_admitted <= 1 && tr <= 4095,
+                (1..=16).contains(&cells) && target_admitted <= 1 && tr <= 4095,
                 "admission bounds",
             )?;
             require(h1 <= h8 && h8 <= target_admitted, "rank/admission nesting")?;
@@ -513,6 +513,38 @@ mod metadata_controls {
         let receipt = check(&p, &plan, &pin, &reference)?;
         assert_eq!(receipt["u"]["numerator"], json!(14287));
         assert_eq!(receipt["u"]["instrument_invalid"], json!(true));
+        Ok(())
+    }
+    #[test]
+    fn stored_k16_baseline_rows_are_admitted_without_model_execution() -> Result<()> {
+        let (checkpoint, _, _, _) = fixture(false)?;
+        let mut evaluation = checkpoint.baseline_evaluation;
+        let update_aggregate = |aggregate: &mut Value, rows: u64| {
+            aggregate["token_rival_count_sum"] = json!(31 * rows);
+            aggregate["address_rival_count_sum"] = json!(15 * rows);
+            aggregate["admitted_cell_count_sum"] = json!(16 * rows);
+            aggregate["address_eligible_rows"] = json!(rows);
+            aggregate["address_unviolated_eligible_rows"] = json!(rows);
+        };
+        for batch in evaluation["batches"]
+            .as_array_mut()
+            .ok_or_else(|| invalid("fixture batches"))?
+        {
+            let rows = batch["rows"]
+                .as_array_mut()
+                .ok_or_else(|| invalid("fixture rows"))?;
+            for row in rows.iter_mut() {
+                row["token_rivals"] = json!(31);
+                row["address_rivals"] = json!(15);
+                row["admitted_cells"] = json!(16);
+            }
+            let count = rows.len() as u64;
+            update_aggregate(&mut batch["aggregate"], count);
+        }
+        update_aggregate(&mut evaluation["aggregate"], PANEL_ROWS);
+        assert!(receipt_counts(&evaluation).is_ok());
+        evaluation["batches"][0]["rows"][0]["admitted_cells"] = json!(17);
+        assert!(receipt_counts(&evaluation).is_err());
         Ok(())
     }
     #[test]

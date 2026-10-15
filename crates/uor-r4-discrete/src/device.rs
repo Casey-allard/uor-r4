@@ -5,7 +5,8 @@
 
 use crate::{
     metadata::{BinderPlan, ABSENT},
-    Error, Identity, Parameter, ReadSpec, Result, Spec, SCHEMA,
+    objective::{self, ExactRatio, HingeDistribution},
+    Error, Identity, ObjectivePolicy, Parameter, ReadSpec, Result, Spec, SCHEMA,
 };
 use cudarc::driver::{
     CudaContext, CudaFunction, CudaSlice, CudaStream, LaunchConfig, Ptx, PushKernelArg,
@@ -29,16 +30,27 @@ static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 pub const FLOCK_TRACE_HEADER_WORDS: usize = 4;
 pub const FLOCK_TRACE_LEVEL_WORDS: usize = 28;
 pub const FLOCK_TRACE_KEPT_CAPACITY: usize = 8;
-pub const EVALUATION_AGGREGATE_WORDS: usize = 17;
+pub const EVALUATION_AGGREGATE_WORDS: usize = objective::AGGREGATE_WORDS;
 
 /// Exact integer observations of the same production read and shared writer.
 #[derive(Debug, serde::Serialize)]
 pub struct EvaluationRow {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_position: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_token: Option<u32>,
     /// Global distance/token-ID order across all admitted tokens. ABSENT pads
     /// slots when fewer than eight identities are admitted.
     pub top8: [u32; 8],
     pub token_hinge: u64,
     pub address_hinge: u64,
+    pub cell_rank_hinge: u64,
+    pub target_cell_rank: u64,
+    pub occupied_cells: u64,
+    pub admitted_token_count: u64,
+    pub loss_ta_numerator: u64,
+    pub loss_tr_numerator: u64,
+    pub objective_loss_numerator: u64,
     pub total_loss_numerator: u64,
     pub token_rivals: u64,
     pub address_rivals: u64,
@@ -69,12 +81,46 @@ pub struct EvaluationAggregate {
     pub token_strict_win_eligible_rows: u64,
     /// Exact common rational denominator for each row, not a floating mean.
     pub loss_denominator_per_row: u64,
+    pub cell_rank_hinge_sum: u64,
+    pub weighted_token_hinge_sum: u64,
+    pub weighted_address_hinge_sum: u64,
+    pub weighted_cell_rank_hinge_sum: u64,
+    pub loss_ta_numerator_sum: u64,
+    pub loss_tr_numerator_sum: u64,
+    pub occupied_cells: u64,
+    pub admitted_token_count_sum: u64,
+    pub mean_admitted_token_count: ExactRatio,
+    pub target_admitted_rows: u64,
+    pub admitted_strict_win_rows: u64,
+    pub cell_rank_zero_rows: u64,
+    pub objective_loss_numerator_sum: u64,
+    pub address_loss_share_ta: ExactRatio,
+    pub rank_loss_share_tr: ExactRatio,
+    pub token_hinge_distribution: HingeDistribution,
+    pub address_hinge_distribution: HingeDistribution,
+    pub cell_rank_hinge_distribution: HingeDistribution,
 }
 impl EvaluationAggregate {
     fn from_words(words: &[u64]) -> Result<Self> {
         let words: &[u64; EVALUATION_AGGREGATE_WORDS] = words
             .try_into()
-            .map_err(|_| invalid("evaluation aggregate must contain seventeen words"))?;
+            .map_err(|_| invalid("evaluation aggregate inventory differs from objective ABI"))?;
+        let distribution =
+            |start: usize, bins: usize, quantile: usize, sum: u64| HingeDistribution {
+                min: words[quantile],
+                p25: words[quantile + 1],
+                p50: words[quantile + 2],
+                p75: words[quantile + 3],
+                p90: words[quantile + 4],
+                p99: words[quantile + 5],
+                max: words[quantile + 6],
+                mean: ExactRatio {
+                    numerator: sum,
+                    denominator: words[0],
+                },
+                zero_rows: words[start],
+                histogram: words[start..start + bins].to_vec(),
+            };
         Ok(Self {
             scored_rows: words[0],
             top1_correct: words[1],
@@ -93,12 +139,41 @@ impl EvaluationAggregate {
             address_unviolated_eligible_rows: words[14],
             token_strict_win_eligible_rows: words[15],
             loss_denominator_per_row: words[16],
+            cell_rank_hinge_sum: words[17],
+            weighted_token_hinge_sum: words[18],
+            weighted_address_hinge_sum: words[19],
+            weighted_cell_rank_hinge_sum: words[20],
+            loss_ta_numerator_sum: words[21],
+            loss_tr_numerator_sum: words[22],
+            occupied_cells: words[23],
+            admitted_token_count_sum: words[24],
+            mean_admitted_token_count: ExactRatio {
+                numerator: words[24],
+                denominator: words[0],
+            },
+            target_admitted_rows: words[25],
+            admitted_strict_win_rows: words[26],
+            cell_rank_zero_rows: words[27],
+            objective_loss_numerator_sum: words[28],
+            address_loss_share_ta: ExactRatio {
+                numerator: words[19],
+                denominator: words[21],
+            },
+            rank_loss_share_tr: ExactRatio {
+                numerator: words[20],
+                denominator: words[22],
+            },
+            token_hinge_distribution: distribution(29, 641, 999, words[3]),
+            address_hinge_distribution: distribution(670, 73, 1006, words[4]),
+            cell_rank_hinge_distribution: distribution(743, 256, 1013, words[17]),
         })
     }
 }
 
 #[derive(Debug, serde::Serialize)]
 pub struct Evaluation {
+    pub schema: &'static str,
+    pub objective_policy: ObjectivePolicy,
     pub aggregate: EvaluationAggregate,
     pub rows: Vec<EvaluationRow>,
     #[serde(skip_serializing)]
@@ -169,6 +244,7 @@ pub struct Binding {
     pub model: u64,
     pub spec: Spec,
     pub read_spec: ReadSpec,
+    pub objective_policy: ObjectivePolicy,
     pub seed: u32,
     pub geometry_sha256: [u8; 32],
     pub source_sha256: [u8; 32],
@@ -293,6 +369,11 @@ pub struct Snapshot {
     pub schema: String,
     pub spec: Spec,
     pub read_spec: ReadSpec,
+    #[serde(
+        default,
+        skip_serializing_if = "ObjectivePolicy::is_nearest_address_margin"
+    )]
+    pub objective_policy: ObjectivePolicy,
     pub seed: u32,
     pub epoch: u64,
     pub table: Vec<i32>,
@@ -321,6 +402,7 @@ fn source_sha256() -> [u8; 32] {
     source.update(include_bytes!("discrete.cu"));
     source.update(include_bytes!("metadata.rs"));
     source.update(include_bytes!("lib.rs"));
+    source.update(include_bytes!("objective.rs"));
     source.update(include_bytes!("../build.rs"));
     source.update(PTX.as_bytes());
     source.finalize().into()
@@ -422,7 +504,13 @@ fn packed_geometry() -> Vec<u32> {
     words
 }
 
-fn make_binding(spec: Spec, read_spec: ReadSpec, seed: u32, geometry: &[u32]) -> Result<Binding> {
+fn make_binding(
+    spec: Spec,
+    read_spec: ReadSpec,
+    objective_policy: ObjectivePolicy,
+    seed: u32,
+    geometry: &[u32],
+) -> Result<Binding> {
     let model = NEXT_MODEL
         .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |x| x.checked_add(1))
         .map_err(|_| invalid("process model identity exhausted"))?;
@@ -430,6 +518,7 @@ fn make_binding(spec: Spec, read_spec: ReadSpec, seed: u32, geometry: &[u32]) ->
         model,
         spec,
         read_spec,
+        objective_policy,
         seed,
         geometry_sha256: geometry_digest(geometry),
         source_sha256: source_sha256(),
@@ -457,13 +546,29 @@ impl Device {
         seed: u32,
         ordinal: usize,
     ) -> Result<Self> {
+        Self::new_with_objective(
+            spec,
+            read_spec,
+            ObjectivePolicy::NearestAddressMarginV1,
+            seed,
+            ordinal,
+        )
+    }
+
+    pub fn new_with_objective(
+        spec: Spec,
+        read_spec: ReadSpec,
+        objective_policy: ObjectivePolicy,
+        seed: u32,
+        ordinal: usize,
+    ) -> Result<Self> {
         read_spec.validate(spec)?;
         let metadata = BinderPlan::new(spec.context as usize)?;
         let packed = packed_geometry();
         if packed.len() != 5120 {
             return Err(invalid("generated geometry ABI inventory differs"));
         }
-        let binding = make_binding(spec, read_spec, seed, &packed)?;
+        let binding = make_binding(spec, read_spec, objective_policy, seed, &packed)?;
         let context = CudaContext::new(ordinal).map_err(cuda)?;
         let stream = context.default_stream();
         let module = context.load_module(Ptx::from_src(PTX)).map_err(cuda)?;
@@ -507,6 +612,7 @@ impl Device {
                 words[0],
                 words[1],
                 words[2],
+                objective_policy.word(),
             ])
             .map_err(cuda)?;
         let mut status = stream.alloc_zeros::<u32>(1).map_err(cuda)?;
@@ -547,6 +653,9 @@ impl Device {
     }
     pub fn read_spec(&self) -> ReadSpec {
         self.binding.read_spec
+    }
+    pub fn objective_policy(&self) -> ObjectivePolicy {
+        self.binding.objective_policy
     }
     pub fn ordinal(&self) -> usize {
         self.context.ordinal()
@@ -596,6 +705,7 @@ impl Device {
             schema: SCHEMA.to_owned(),
             spec: self.spec(),
             read_spec: self.read_spec(),
+            objective_policy: self.objective_policy(),
             seed: self.binding.seed,
             epoch: self.epoch()?,
             table: self.stream.clone_dtoh(&self.table).map_err(cuda)?,
@@ -638,8 +748,13 @@ impl Device {
         }
         // Fresh process identity even for byte-identical reloads. No carried
         // batch/proposal from another model instance becomes valid by loading.
-        let mut model =
-            Self::new_with_read(snapshot.spec, snapshot.read_spec, snapshot.seed, ordinal)?;
+        let mut model = Self::new_with_objective(
+            snapshot.spec,
+            snapshot.read_spec,
+            snapshot.objective_policy,
+            snapshot.seed,
+            ordinal,
+        )?;
         model.table = model.stream.clone_htod(&snapshot.table).map_err(cuda)?;
         model.routes = model.stream.clone_htod(&snapshot.routes).map_err(cuda)?;
         model.gates = model.stream.clone_htod(&snapshot.gates).map_err(cuda)?;
@@ -684,6 +799,7 @@ impl Device {
                 words[0],
                 words[1],
                 words[2],
+                self.objective_policy().word(),
             ])
             .map_err(cuda)
     }
@@ -901,17 +1017,19 @@ impl Device {
                     .ok_or_else(|| invalid("flock trace inventory exceeds storage index bound"))
             })
             .transpose()?;
-        let relation_score_words = if traced && matches!(self.read_spec(), ReadSpec::Relation { .. })
-        {
-            Some(
-                (batch.rows as usize)
-                    .checked_mul(self.spec().blocks as usize)
-                    .and_then(|blocks| blocks.checked_mul(self.metadata.nodes_count()))
-                    .ok_or_else(|| invalid("relation trace inventory exceeds storage index bound"))?,
-            )
-        } else {
-            None
-        };
+        let relation_score_words =
+            if traced && matches!(self.read_spec(), ReadSpec::Relation { .. }) {
+                Some(
+                    (batch.rows as usize)
+                        .checked_mul(self.spec().blocks as usize)
+                        .and_then(|blocks| blocks.checked_mul(self.metadata.nodes_count()))
+                        .ok_or_else(|| {
+                            invalid("relation trace inventory exceeds storage index bound")
+                        })?,
+                )
+            } else {
+                None
+            };
         let mut trace = if let Some(base_words) = flock_trace_words {
             let words = base_words
                 .checked_add(relation_score_words.unwrap_or(0))
@@ -994,7 +1112,7 @@ impl Device {
             .map_err(cuda)?;
         let mut metrics = self
             .stream
-            .alloc_zeros::<u64>(batch.rows as usize * 8)
+            .alloc_zeros::<u64>(batch.rows as usize * objective::ROW_WORDS)
             .map_err(cuda)?;
         let mut status = self.stream.alloc_zeros::<u32>(1).map_err(cuda)?;
         let mut launch = self.stream.launch_builder(&self.kernels.evaluate);
@@ -1035,15 +1153,24 @@ impl Device {
         // were completed on CUDA; no numerical reductions occur in this loop.
         let rows = top8
             .chunks_exact(8)
-            .zip(metrics.chunks_exact(8))
+            .zip(metrics.chunks_exact(objective::ROW_WORDS))
             .map(|(top, p)| {
                 let top8 = top
                     .try_into()
                     .map_err(|_| invalid("top8 row must contain eight IDs"))?;
                 Ok(EvaluationRow {
+                    target_position: None,
+                    target_token: None,
                     top8,
                     token_hinge: p[0],
                     address_hinge: p[1],
+                    cell_rank_hinge: p[8],
+                    target_cell_rank: p[9],
+                    occupied_cells: p[10],
+                    admitted_token_count: p[11],
+                    loss_ta_numerator: p[2],
+                    loss_tr_numerator: p[12],
+                    objective_loss_numerator: p[13],
                     total_loss_numerator: p[2],
                     token_rivals: p[3],
                     address_rivals: p[4],
@@ -1054,6 +1181,8 @@ impl Device {
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(Evaluation {
+            schema: objective::EVALUATION_SCHEMA,
+            objective_policy: self.objective_policy(),
             aggregate,
             rows,
             summary_words,
@@ -1090,7 +1219,7 @@ impl Device {
             }
             if evaluation.summary_words.len() != EVALUATION_AGGREGATE_WORDS {
                 return Err(invalid(
-                    "evaluation receipt must contain seventeen completed words",
+                    "evaluation receipt inventory differs from objective ABI",
                 ));
             }
             words.extend_from_slice(&evaluation.summary_words);
@@ -1308,8 +1437,8 @@ fn aggregate_gpu(
         .arg(&summaries)
         .arg(&mut out)
         .arg(&mut status);
-    // SAFETY: aggregate's exact six-argument ABI; count*8/count*17 immutable
-    // receipt words and seventeen writable outputs, owned by this CUDA context.
+    // SAFETY: aggregate's exact six-argument ABI; count*14/count*1020 immutable
+    // receipt words and 1020 writable outputs, owned by this CUDA context.
     unsafe { launch.launch(launch_config(1)) }.map_err(cuda)?;
     check_status(stream, &status, "evaluation aggregation")?;
     stream.clone_dtoh(&out).map_err(cuda)

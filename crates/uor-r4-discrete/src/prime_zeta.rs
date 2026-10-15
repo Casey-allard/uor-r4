@@ -819,12 +819,10 @@ mod tests {
     }
 
     #[test]
-    fn frozen_d5_driver_source_hash_is_preserved_untouched() {
-        // Re-pinned from cb090e85… -> 70b45863… (#2484/#2490) -> e1022068… after Stage M1
-        // ReadSpec::Relation added relation gate inventory and CLI subcommands in training.rs/main.rs.
+    fn driver_source_identity_changes_with_rank_objective_metadata() {
         assert_eq!(
             uor_r4_discrete::training::driver_source_sha256(),
-            "e1022068eb45febf9d54204cbf003ae40fde8e040e2fc259cf57d2fd090f546d"
+            "3487506d0d6b9197e8b99963dfe92e91b5c3e33e0801d9116bf525cdc9b17fb7"
         );
     }
 }

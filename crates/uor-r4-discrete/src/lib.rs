@@ -10,6 +10,8 @@ pub mod driver_qualification;
 #[cfg(feature = "cuda")]
 pub mod measurement;
 pub mod metadata;
+pub mod objective;
+pub use objective::ObjectivePolicy;
 pub mod training;
 
 pub const SCHEMA: &str = "uor-r4.discrete-spiralcore-fbs/2";
@@ -106,7 +108,9 @@ impl ReadSpec {
             }
             Self::Relation { kept, sweeps } => {
                 if !(1..=8).contains(kept) {
-                    return Err(Error::Invalid("relation kept count must be in 1..=8".into()));
+                    return Err(Error::Invalid(
+                        "relation kept count must be in 1..=8".into(),
+                    ));
                 }
                 if !(1..=5).contains(sweeps) {
                     return Err(Error::Invalid(
@@ -149,6 +153,11 @@ impl ReadSpec {
 pub struct InitConfig {
     pub spec: Spec,
     pub read_spec: ReadSpec,
+    #[serde(
+        default,
+        skip_serializing_if = "ObjectivePolicy::is_nearest_address_margin"
+    )]
+    pub objective_policy: ObjectivePolicy,
 }
 /// Record version and occurrence are identities, not a geometric metric or model epoch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -300,12 +309,24 @@ mod tests {
         assert!(ReadSpec::Flock { kept: 0 }.validate(spec).is_err());
         assert!(ReadSpec::Flock { kept: 8 }.validate(spec).is_ok());
         assert!(ReadSpec::Flock { kept: 9 }.validate(spec).is_err());
-        assert!(ReadSpec::Relation { kept: 1, sweeps: 1 }.validate(spec).is_ok());
-        assert!(ReadSpec::Relation { kept: 8, sweeps: 5 }.validate(spec).is_ok());
-        assert!(ReadSpec::Relation { kept: 0, sweeps: 1 }.validate(spec).is_err());
-        assert!(ReadSpec::Relation { kept: 9, sweeps: 1 }.validate(spec).is_err());
-        assert!(ReadSpec::Relation { kept: 2, sweeps: 0 }.validate(spec).is_err());
-        assert!(ReadSpec::Relation { kept: 2, sweeps: 6 }.validate(spec).is_err());
+        assert!(ReadSpec::Relation { kept: 1, sweeps: 1 }
+            .validate(spec)
+            .is_ok());
+        assert!(ReadSpec::Relation { kept: 8, sweeps: 5 }
+            .validate(spec)
+            .is_ok());
+        assert!(ReadSpec::Relation { kept: 0, sweeps: 1 }
+            .validate(spec)
+            .is_err());
+        assert!(ReadSpec::Relation { kept: 9, sweeps: 1 }
+            .validate(spec)
+            .is_err());
+        assert!(ReadSpec::Relation { kept: 2, sweeps: 0 }
+            .validate(spec)
+            .is_err());
+        assert!(ReadSpec::Relation { kept: 2, sweeps: 6 }
+            .validate(spec)
+            .is_err());
         assert_eq!(ReadSpec::Route.words(), [0, 0, 0]);
         assert_eq!(ReadSpec::Flock { kept: 2 }.words(), [1, 2, 0]);
         assert_eq!(ReadSpec::Relation { kept: 2, sweeps: 1 }.words(), [2, 2, 1]);
@@ -318,6 +339,7 @@ mod tests {
             45
         );
         let packet = InitConfig {
+            objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             spec,
             read_spec: ReadSpec::Flock { kept: 2 },
         };
@@ -325,6 +347,7 @@ mod tests {
         let restored: InitConfig = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(restored, packet);
         let rel_packet = InitConfig {
+            objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             spec,
             read_spec: ReadSpec::Relation { kept: 2, sweeps: 1 },
         };
@@ -336,8 +359,7 @@ mod tests {
             ReadSpec::Route
         );
         assert_eq!(
-            serde_json::from_str::<ReadSpec>(r#"{"kind":"relation","kept":2,"sweeps":1}"#)
-                .unwrap(),
+            serde_json::from_str::<ReadSpec>(r#"{"kind":"relation","kept":2,"sweeps":1}"#).unwrap(),
             ReadSpec::Relation { kept: 2, sweeps: 1 }
         );
         assert!(serde_json::from_str::<ReadSpec>(r#"{"kind":"route","kept":2}"#).is_err());
