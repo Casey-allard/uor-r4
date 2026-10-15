@@ -349,3 +349,27 @@ build of the discrete crate whose only delta from the pinned driver is the actor
 authors metadata only and starts no model computation. No other lab may create the record,
 and this sets no precedent: every other hold stays owner-personal unless the owner
 delegates again explicitly.
+
+## R-queue — One PR in the queue at a time
+
+- **Rule.** The merge queue is serialized by the PM, not by whoever happens to be green. A PR enters
+  the queue only when the PM calls it as next on its thread; everything else waits for its call. One
+  PR in the queue at a time.
+- **Merge-forward only when called.** Do not speculatively merge a PR forward while it is not next: it
+  races the queue and burns a shared CI slot. When your PR is called next: `git merge origin/main`,
+  resolve `docs/harness/claims.json` by union and `docs/integration/current-state.md` newest-first,
+  plain `git push` (no force, no lease), then post the head. The PM verifies the delivered-paths diff
+  is byte-identical to the reviewed head and enqueues it.
+- **This is the general case, not an edge case.** Every PR touches `docs/harness/claims.json` and
+  `docs/integration/current-state.md`, so **every merge invalidates every queued sibling**. Evidence:
+  PR #2527 was admitted to the queue at 22:16:24Z and ejected 62 seconds later at 22:17:26Z because
+  main moved under it. See #2028 comments 6203500744 and 6203507894.
+- **If ejected anyway.** Re-queue once the checks are green on the rebased head, and **verify the
+  entry through GraphQL** — `pullRequest { isInMergeQueue mergeQueueEntry { state position } }` — not
+  through the exit text of `gh pr merge --auto`, which prints "the merge strategy for main is set by
+  the merge queue" whether or not the entry was taken. A `null` `mergeQueueEntry` right after that
+  message is an ejection, not a position.
+- **Approvals survive merge-forwards**, exactly as the exact-head rule requires: approval stands on
+  content identity, so serialization costs latency and nothing else.
+- **While waiting, do not idle-spin.** Watch the queue state and your own checks; if main moves under
+  a queued PR, report the ejection rather than silently re-pushing.

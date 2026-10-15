@@ -20,7 +20,13 @@
     "lab": "codex",
     "note": ""
   },
-
+  "deepseek/r-queue": {
+    "branch": "deepseek/r-queue",
+    "claimed_at": "2026-10-15T19:08:15-04:00",
+    "head": "eb4c349a1",
+    "lab": "deepseek",
+    "note": "R-queue rule in pm-rules.md"
+  },
   "deepseek/unread-notes": {
     "branch": "deepseek/unread-notes",
     "claimed_at": "2026-10-15T17:33:48-04:00",
