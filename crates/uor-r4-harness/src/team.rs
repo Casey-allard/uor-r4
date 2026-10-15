@@ -418,6 +418,88 @@ pub fn release_branch(paths: &StatePaths, branch: &str, lab: &str) -> Result<Cla
     Ok(existing)
 }
 
+/// Release every claim whose branch is PROVEN MERGED, in the caller's own committed store.
+///
+/// **The stale-claim mechanical conflict class.** A claim outlives the branch it names: the PR
+/// merges, the branch is deleted, and the entry stays in `docs/harness/claims.json` until somebody
+/// notices. The next lab that wants that branch name then collides with a claim on work that is
+/// already in main - a conflict in the FILE rather than in the work, resolved by hand every time.
+/// Measured while this was written: `deepseek/harness-write-path` merged as `b72f904c4` and its
+/// branch was deleted, while the claim stayed in main's store and woke `multilab.claim_not_merged`
+/// on every `check`.
+///
+/// `merged` is a PROOF list, not a guess: `githelp::branch_states` establishes mergedness by
+/// CONTENT, because a squash merge leaves no ancestry link and `merge-base --is-ancestor` would call
+/// merged work unmerged. A branch that is not in that list is never touched - an open PR keeps its
+/// claim, and an `Unknown` state keeps it too, because "cannot prove it" is not "dead".
+///
+/// The release is a claims write like any other: it lands in the caller's own committed store (R10
+/// refuses the shared checkout through `save_claims`), and the live mirror is REPUBLISHED, because a
+/// mirror that is only ever added to resurrects released claims.
+pub fn stale_claims(paths: &StatePaths, merged: &[String]) -> Vec<Claim> {
+    let claims = load_committed(paths);
+    let mut out: Vec<Claim> = merged
+        .iter()
+        .filter_map(|branch| claims.get(branch).cloned())
+        .collect();
+    out.sort_by(|a, b| a.branch.cmp(&b.branch));
+    out
+}
+
+/// [`stale_claims`], released: the write half, with the mirror republished.
+pub fn release_merged_claims(paths: &StatePaths, merged: &[String]) -> Result<Vec<Claim>, String> {
+    let mut claims = load_committed(paths);
+    let mut released: Vec<Claim> = Vec::new();
+    for branch in merged {
+        if let Some(claim) = claims.remove(branch) {
+            released.push(claim);
+        }
+    }
+    if released.is_empty() {
+        // Nothing to say and nothing to write: a clean run must not touch the store at all.
+        return Ok(released);
+    }
+    save_claims(paths, &claims)?;
+    // **The mirror is republished from the MERGED VIEW minus the released branches, not from the
+    // caller's committed store.** Publishing the committed store wipes every claim that exists only
+    // in the live tier - which is the tier's entire purpose: a peer's claim is visible before its PR
+    // lands, and one lab's cleanup must not delete it. Kimi PM measured exactly that during review
+    // (`peer/live-only` vanished from the mirror and from `multilab claims`).
+    //
+    // The released branches are removed explicitly as well, because `origin/main` still names them
+    // until this delivery PR lands: reading the view without that removal would write them back.
+    let mut view = load_claims(paths);
+    for claim in &released {
+        view.remove(&claim.branch);
+    }
+    publish_claims_live(paths, &view);
+    released.sort_by(|a, b| a.branch.cmp(&b.branch));
+    Ok(released)
+}
+
+/// Claims whose branch exists NEITHER locally nor on the remote - the residue a release cannot
+/// prove and therefore must not touch.
+///
+/// **"Gone" is not "merged".** A deleted branch cannot be proved merged by content (there is no tree
+/// to compare against) and, after a squash merge, not by ancestry either. So the release refuses to
+/// guess - and this function exists so the residue is at least VISIBLE: the caller prints it with the
+/// one command that clears it. Without it the motivating case (a claim whose branch was merged and
+/// deleted) sat in `origin/main`'s store forever, waking `multilab.claim_not_merged` on every check.
+/// Kimi PM's review R2 on #2513: the mechanism covered only the case where the local branch still
+/// exists.
+///
+/// `local` and `remote` are branch-name lists. `remote` must be the REAL list: an empty one means
+/// "nothing on the remote", so a caller that could not reach the remote must not call this at all.
+pub fn orphan_claims(paths: &StatePaths, local: &[String], remote: &[String]) -> Vec<Claim> {
+    let mut out: Vec<Claim> = load_claims(paths)
+        .into_iter()
+        .filter(|(branch, _)| !local.contains(branch) && !remote.contains(branch))
+        .map(|(_, claim)| claim)
+        .collect();
+    out.sort_by(|a, b| a.branch.cmp(&b.branch));
+    out
+}
+
 /// The refusal text, in one place so the CLI and the tests cannot drift.
 pub fn held_message(c: &Claim) -> String {
     format!(
@@ -576,6 +658,117 @@ mod tests {
         save_claims(&own, &claims).expect("the lab's own worktree is writable");
         assert!(load_claims(&own).contains_key("lab/branch"));
         assert!(!load_claims(&shared.paths(&shared.primary)).contains_key("lab/branch"));
+    }
+
+    /// **The stale-claim release, and what it must NOT touch.** A claim whose branch is proven merged
+    /// is dead weight: it blocks the next lab that wants the name, and it wakes
+    /// `multilab.claim_not_merged` on every `check` (measured on `deepseek/harness-write-path`, whose
+    /// branch merged as `b72f904c4` and was deleted while the claim stayed in main's store).
+    ///
+    /// The proof is the caller's list - `clean-merged` establishes mergedness by CONTENT, which is
+    /// why `release_merged_claims` never guesses: a branch that is not in the list keeps its claim, and
+    /// an empty list must not touch the store at all.
+    #[test]
+    fn a_claim_on_a_merged_branch_is_released_and_the_others_are_kept() {
+        let shared = Shared::new("{}");
+        let own = shared.paths(&shared.linked);
+        let mut claims = load_committed(&own);
+        claims.insert(
+            "lab/merged".into(),
+            Claim {
+                branch: "lab/merged".into(),
+                lab: "lab".into(),
+                head: "abc".into(),
+                claimed_at: "2026-10-15T00:00:00-04:00".into(),
+                note: String::new(),
+            },
+        );
+        claims.insert(
+            "lab/open".into(),
+            Claim {
+                branch: "lab/open".into(),
+                lab: "lab".into(),
+                head: "def".into(),
+                claimed_at: "2026-10-15T00:00:00-04:00".into(),
+                note: String::new(),
+            },
+        );
+        save_claims(&own, &claims).expect("seed");
+        // **The mirror is seeded too**, because that is what a real claim leaves behind:
+        // `publish_claims_live` is called by `claim`/`release`, and a release that forgot to
+        // republish would let the LIVE copy resurrect the claim on the very next read.
+        //
+        // It also carries a claim that exists NOWHERE ELSE - a peer's live-only entry. That is the
+        // tier's whole purpose (a peer's claim is visible before its PR lands) and the thing Kimi
+        // PM caught in review R1: republishing from the committed store deleted it.
+        let mut mirror = claims.clone();
+        mirror.insert(
+            "peer/live-only".into(),
+            Claim {
+                branch: "peer/live-only".into(),
+                lab: "peer".into(),
+                head: "999".into(),
+                claimed_at: "2026-10-15T00:00:00-04:00".into(),
+                note: String::new(),
+            },
+        );
+        assert!(publish_claims_live(&own, &mirror));
+        assert!(load_claims(&own).contains_key("lab/merged"));
+        assert!(load_claims(&own).contains_key("peer/live-only"));
+
+        // Nothing proven merged: nothing is stale, and the release is a no-op.
+        assert!(stale_claims(&own, &[]).is_empty());
+        assert!(release_merged_claims(&own, &[]).expect("no-op").is_empty());
+        assert_eq!(
+            load_committed(&own).len(),
+            2,
+            "an empty proof list writes nothing"
+        );
+
+        let preview = stale_claims(&own, &["lab/merged".to_string(), "lab/ghost".to_string()]);
+        assert_eq!(preview.len(), 1, "only a branch that HAS a claim is stale");
+        assert_eq!(preview[0].branch, "lab/merged");
+
+        let released = release_merged_claims(&own, &["lab/merged".to_string()])
+            .expect("the lab's own worktree is writable");
+        assert_eq!(released.len(), 1);
+        assert_eq!(released[0].lab, "lab");
+        let after = load_committed(&own);
+        assert!(
+            !after.contains_key("lab/merged"),
+            "the merged claim is gone"
+        );
+        assert!(after.contains_key("lab/open"), "an unmerged claim survives");
+        // The mirror is republished, or the release resurrects on the next read - the same rule
+        // `release` follows.
+        let merged_view = load_claims(&own);
+        assert!(!merged_view.contains_key("lab/merged"));
+        assert!(merged_view.contains_key("lab/open"));
+        // **R1:** the peer's live-only claim survives the release, and it is NOT imported into the
+        // committed store - the read view is not a write source.
+        assert!(
+            merged_view.contains_key("peer/live-only"),
+            "a peer's live-only claim must survive another lab's cleanup"
+        );
+        assert!(
+            !load_committed(&own).contains_key("peer/live-only"),
+            "the committed store must not absorb a peer's transient claim"
+        );
+        // **R2:** a branch that exists nowhere local is a residue, not a release. `orphan_claims`
+        // names it (with an empty `local`/`remote`, everything not committed-or-live is one).
+        let orphans = orphan_claims(&own, &[], &[]);
+        let named: Vec<&str> = orphans.iter().map(|c| c.branch.as_str()).collect();
+        assert!(named.contains(&"lab/open"), "{named:?}");
+        assert!(
+            !named.contains(&"lab/merged"),
+            "a released claim is not a residue"
+        );
+        let with_local = orphan_claims(&own, &["lab/open".to_string()], &[]);
+        let named: Vec<&str> = with_local.iter().map(|c| c.branch.as_str()).collect();
+        assert!(
+            !named.contains(&"lab/open"),
+            "a branch that exists locally is not a residue: {named:?}"
+        );
     }
 
     /// R10, on the one write that carries a claim into review.

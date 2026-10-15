@@ -1,10 +1,10 @@
 {
-  "deepseek/harness-write-path": {
-    "branch": "deepseek/harness-write-path",
-    "claimed_at": "2026-10-15T09:39:04-04:00",
-    "head": "fd01c98cf",
+  "deepseek/merged-claim-release": {
+    "branch": "deepseek/merged-claim-release",
+    "claimed_at": "2026-10-15T11:50:53-04:00",
+    "head": "c17271e82",
     "lab": "deepseek",
-    "note": "R10 write-path fix + lab fallback + claims tiers"
+    "note": "auto-release claims on merged branches"
   },
   "deepseek/receipt-kind": {
     "branch": "deepseek/receipt-kind",

@@ -136,6 +136,11 @@ come from the owner through the PM.
 - **Cadence, because a rule without one is what filled the disk:**
   - **At merge time** — verify the merge commit on fresh `origin/main`, delete the branch on both
     sides, and **remove your own worktree immediately.** Not "when hygiene next happens".
+    `uor-harness git clean-merged --apply` also **releases the claims on the branches it proves
+    merged** (in your own checkout and the live mirror), so a dead claim does not sit in
+    `claims.json` until the next lab collides with it. That reaches claims whose branch still exists
+    locally; a claim whose branch is already gone is **reported** by the same command — never released
+    on a guess — with the `team release` line that clears it.
   - **Before removing it** — anything local-only goes to the archive first: `cloud-store put <lab>
     <dir>` (MD5 round-trip + index), then clear the local copy. Never keep a second local copy of
     archived material.

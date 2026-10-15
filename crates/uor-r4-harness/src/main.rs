@@ -559,6 +559,28 @@ fn cmd_onboard(repo: &Path, json: bool) -> ExitCode {
     }
 }
 
+/// Every branch name on `origin`, or `None` when the remote could not be read.
+///
+/// **`None` and "empty" are different answers**, and the difference is the whole point: an empty list
+/// means "the remote has no branches", which would make every claim look like a residue, so a caller
+/// that could not reach the remote gets `None` and reports nothing.
+fn remote_branches(repo: &Path) -> Option<Vec<String>> {
+    let out = std::process::Command::new("git")
+        .args(["ls-remote", "--heads", "origin"])
+        .current_dir(repo)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .filter_map(|line| line.rsplit_once("refs/heads/").map(|(_, b)| b.to_string()))
+            .collect(),
+    )
+}
+
 fn flag_value(args: &[String], name: &str) -> Option<String> {
     let mut i = 0;
     while i < args.len() {
@@ -1291,6 +1313,27 @@ fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 .iter()
                 .filter(|s| s.state == githelp::MergeState::Unmerged)
                 .count();
+            // **Claims on merged branches go in the same pass.** The proof this needs is already
+            // here: `branch_states` establishes mergedness by CONTENT, which is exactly what the
+            // release must not guess. Doing it here means the post-merge step every lab already runs
+            // also clears the stale claim, instead of leaving the next lab to collide with a claim
+            // on work that is already in main (the mechanical conflict class reported on #2028).
+            let paths = StatePaths::from_env(repo);
+            let merged_branches: Vec<String> = states
+                .iter()
+                .filter(|s| s.state == githelp::MergeState::Merged)
+                .map(|s| s.branch.clone())
+                .collect();
+            let stale = team::stale_claims(&paths, &merged_branches);
+            // **R2 of Kimi PM's review:** a claim whose branch is already deleted cannot be proved
+            // merged (no tree to compare, and no ancestry after a squash), so it is REPORTED with the
+            // command that clears it rather than released on a guess. `None` from `remote_branches`
+            // means the remote could not be read, and then nothing is reported: an offline checkout
+            // must not turn every peer claim into a residue.
+            let local_branches: Vec<String> = states.iter().map(|s| s.branch.clone()).collect();
+            let orphans = remote_branches(repo)
+                .map(|remote| team::orphan_claims(&paths, &local_branches, &remote))
+                .unwrap_or_default();
 
             if json {
                 let rows: Vec<String> = states
@@ -1333,10 +1376,31 @@ fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
                     println!("  {:<44} {}", s.branch, s.reason);
                 }
             }
+            if !stale.is_empty() {
+                println!();
+                println!("claims on merged branches ({}):", stale.len());
+                for c in &stale {
+                    println!("  {:<44} lab={} since {}", c.branch, c.lab, c.claimed_at);
+                }
+            }
+            if !orphans.is_empty() {
+                println!();
+                println!("claims whose branch is gone ({}):", orphans.len());
+                for c in &orphans {
+                    println!("  {:<44} lab={} since {}", c.branch, c.lab, c.claimed_at);
+                }
+                println!("  gone is not merged, so these are reported, never released:");
+                for c in &orphans {
+                    println!(
+                        "    fix: uor-harness team release --branch {} --lab {}",
+                        c.branch, c.lab
+                    );
+                }
+            }
             if !apply {
-                if !removable.is_empty() {
+                if !removable.is_empty() || !stale.is_empty() {
                     println!();
-                    println!("delete them with:  uor-harness git clean-merged --apply");
+                    println!("apply them with:  uor-harness git clean-merged --apply");
                 }
                 return ExitCode::SUCCESS;
             }
@@ -1347,6 +1411,19 @@ fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
             println!("deleted {} branch(es)", deleted.len());
             for (b, why) in refused {
                 eprintln!("  refused {b}: {why}");
+            }
+            if !stale.is_empty() {
+                match team::release_merged_claims(&paths, &merged_branches) {
+                    Ok(released) => {
+                        println!("released {} claim(s) on merged branches", released.len());
+                        for c in released {
+                            println!("  {} (was {})", c.branch, c.lab);
+                        }
+                    }
+                    // A refusal here is R10 or an unwritable store: the branch deletion already
+                    // happened and stands, so this is reported rather than fatal.
+                    Err(e) => eprintln!("uor-harness: claims not released: {e}"),
+                }
             }
             ExitCode::SUCCESS
         }

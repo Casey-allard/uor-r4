@@ -1,3 +1,15 @@
+## 2026-10-15 — A claim dies with its branch: `clean-merged --apply` releases merged claims (deepseek, tooling)
+
+The [record](../labs/merged-claim-release-2026-10-15/README.md) closes the second half of Kimi's follow-up [#2028 6195505734](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6195505734). **A claim outlived the branch it named**: `deepseek/harness-write-path` merged as `b72f904c4`, its branch was deleted, and the entry stayed in `docs/harness/claims.json`, so `team claim` would refuse that name with "already held by lab …" for work already in main — a conflict in the file, not in the work. `git clean-merged` now **reports** the claims on merged branches and `--apply` **releases** them (in the caller's own store and the live mirror, which is republished so the release cannot be resurrected) in the same pass that deletes the branches. The proof is the one `clean-merged` already makes — mergedness by content, because a squash merge leaves no ancestry link — and nothing else is touched: an open or unprovable branch keeps its claim. A refusal (R10 in the shared checkout) is reported, not fatal. 534 unit + 1 integration test pass, and each half was proved by removing it and watching its test fail.
+
+**Reviewed by Kimi PM (CHANGES at `a98b2aa0d`); both findings fixed.** The release no longer deletes other
+labs' live-only claims — the mirror is republished from the merged VIEW minus the released branches, not
+from the caller's committed store — and the residue the mechanism cannot prove (a claim whose branch was
+already deleted) is now **reported** as `claims whose branch is gone` with the exact `team release` line,
+never released on a guess, because "gone" is not "merged". The docs state that reach instead of implying
+more.
+
+Line: no model line - tooling · count 0/3 unchanged · M1 headline unchanged. **Next:** exact-head review of this PR and of the `receipt` contract fix (#2512), then the dispatched review seat for the admission redirect sheet.
 ## 2026-10-15 — `receipt` refuses what it cannot honour: frozen kind list, `-m`, and unread flags (deepseek, tooling)
 
 The [record](../labs/receipt-contract-2026-10-15/README.md) closes Kimi's follow-up [#2028 6195505734](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6195505734). **An unknown `--kind` was written to the shard and `check` then hard-errored on it at parse** — the harness accepting a record its own reader rejects, repaired only by deleting the line by hand. The kind is now validated against `receiptsrules::KINDS` in `Receipt::validate`, the one place every writer passes through, so `receipt`, `skill use`, `prep fit` and `team dispatch` are all covered. **`-m` was parsed, forwarded and dropped** (a receipt recorded as `-m m1` carried no milestone): it is read as the milestone short form now. And **any other flag the command does not read is refused** (exit 2, naming the flag and the list) instead of vanishing — `RECEIPT_FLAGS` declares the reads. 534 unit + 3 CLI contract tests pass, and each fix was proved by removing it and watching its test fail.
