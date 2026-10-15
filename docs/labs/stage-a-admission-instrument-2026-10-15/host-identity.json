@@ -1,0 +1,13 @@
+{
+  "cuda_context_created": false,
+  "cuda_enabled": false,
+  "driver_source_sha256": "70b45863860c25cf3579e76367b785ea4830edbc50e3902ef4a5ca2335bf7676",
+  "executable_sha256": "60c87660254099278e39aac81d78c3653a03146d64a116aa215d6d0f6138b872",
+  "instrument_lock_sha256": "72276998293683e471cdce1529f5ba799759731967eea66d41b292022fc0d6ae",
+  "instrument_manifest_sha256": "6cfc87a9d736c3767ba39a82730d0fef580959e81ea86672980459078b8c23c1",
+  "instrument_source_sha256": "719f38d990ffad9053ee5d1b2c6bbfafabdb7cd3274943099395d3ffdf58bb84",
+  "model_updates": 0,
+  "report_output_source_sha256": "cda30f9ba4ef8ff3e245ae352cd28932f9a24ab78598f683607e6996598fa810",
+  "schema": "uor-r4.stage-a-instrument/1",
+  "training": "HELD"
+}

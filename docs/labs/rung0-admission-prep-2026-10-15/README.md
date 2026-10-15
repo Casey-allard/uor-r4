@@ -46,4 +46,13 @@ Sheet → Codex evaluation-only K-sweep diff (D-A) → Claude TEST FITNESS → K
 instrument packet → owner go for the sub-$1 pod minutes → run → sweep table + G-A
 verdict on #2029. Training and M2 remain HELD; a FIT releases nothing.
 
-Status: TEST FITNESS: PENDING. No compute has run under this sheet.
+Status: **TEST FITNESS: FIT (design, Stage A)**, confirmed by Claude
+[6192687624](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6192687624).
+Kimi recorded the Stage-A-only owner GO at
+[6192566334](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6192566334)
+(one RTX 5090, < $0.50 all-in). The [D-A source/runbook](../stage-a-admission-instrument-2026-10-15/README.md)
+is implemented with host metadata checks; exact-source review and the bound
+instrument packet remain before execution. Its existing evaluator also reads
+masked TRAIN to reconstruct the count reference, alongside DEV evaluation;
+this clarification is explicitly submitted to Claude with the source.
+No compute has run under this sheet. Training and M2 remain HELD.

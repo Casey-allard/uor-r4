@@ -1,0 +1,267 @@
+warning: function `invalid` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+warning: method `words` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/lib.rs:101:19
+    |
+ 87 | impl ReadSpec {
+    | ------------- method in this implementation
+...
+101 |     pub(crate) fn words(self) -> [u32; 2] {
+    |                   ^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `manifest` and `max_batches` are never read
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:126:5
+    |
+125 | pub struct ValidatedRelease {
+    |            ---------------- fields in this struct
+126 |     manifest: ReleaseManifest,
+    |     ^^^^^^^^
+127 |     manifest_sha256: String,
+128 |     max_batches: u64,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ValidatedRelease` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: methods `lineage_sha256` and `max_batches` are never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:131:19
+    |
+130 | impl ValidatedRelease {
+    | --------------------- methods in this implementation
+131 |     pub(crate) fn lineage_sha256(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^
+...
+134 |     pub(crate) fn max_batches(&self) -> u64 {
+    |                   ^^^^^^^^^^^
+
+warning: function `validate_release` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:179:4
+    |
+179 | fn validate_release(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_metadata` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:193:4
+    |
+193 | fn validate_release_metadata(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_with_owner` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:211:4
+    |
+211 | fn validate_release_with_owner(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_resume` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:308:4
+    |
+308 | fn validate_resume(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `validate_resume_metadata` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:316:4
+    |
+316 | fn validate_resume_metadata(release: &ValidatedRelease, p: &PilotCheckpoint) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_baseline_pair` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:340:4
+    |
+340 | fn validate_baseline_pair(initial: &PilotCheckpoint, resumed: &PilotCheckpoint) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_initial_baseline` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:352:4
+    |
+352 | fn validate_initial_baseline(release: &ValidatedRelease, resumed: &PilotCheckpoint) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `lock_run` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/controller.rs:489:4
+    |
+489 | fn lock_run(release: &ValidatedRelease, resume: bool) -> Result<RunLock> {
+    |    ^^^^^^^^
+
+warning: function `validate_owner` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion.rs:176:4
+    |
+176 | fn validate_owner(plan: &CompletionPlan, pin: &FilePin, owner: &CompletionOwner) -> Result<()> {
+    |    ^^^^^^^^^^^^^^
+
+warning: function `release` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion.rs:252:4
+    |
+252 | fn release(
+    |    ^^^^^^^
+
+warning: function `migrate_parent` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion.rs:294:4
+    |
+294 | fn migrate_parent(
+    |    ^^^^^^^^^^^^^^
+
+warning: struct `CompletionCheckpoint` is never constructed
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion.rs:317:8
+    |
+317 | struct CompletionCheckpoint {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_progress` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion.rs:327:4
+    |
+327 | fn validate_progress(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `publish_state_json` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion.rs:374:4
+    |
+374 | fn publish_state_json<T: Serialize>(path: &Path, value: &T, replace_latest: bool) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_evaluation` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion.rs:454:4
+    |
+454 | fn validate_evaluation(
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `read_evaluation` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion.rs:478:4
+    |
+478 | fn read_evaluation(
+    |    ^^^^^^^^^^^^^^^
+
+warning: constant `REFERENCE_SHA256` is never used
+ --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:6:7
+  |
+6 | const REFERENCE_SHA256: &str = "b92da0bf1ccda1c9de56a33de41d4698dc214bd71c588a6938a87443b9aca0b9";
+  |       ^^^^^^^^^^^^^^^^
+
+warning: constant `PANEL_ROWS` is never used
+ --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:7:7
+  |
+7 | const PANEL_ROWS: u64 = 14_287;
+  |       ^^^^^^^^^^
+
+warning: function `require` is never used
+ --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:8:4
+  |
+8 | fn require(ok: bool, message: &str) -> Result<()> {
+  |    ^^^^^^^
+
+warning: function `number` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:15:4
+   |
+15 | fn number(v: &Value, key: &str) -> Result<u64> {
+   |    ^^^^^^
+
+warning: function `digest` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:20:4
+   |
+20 | fn digest(v: &impl Serialize) -> Result<String> {
+   |    ^^^^^^
+
+warning: function `sum_into` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:23:4
+   |
+23 | fn sum_into(sums: &mut BTreeMap<&'static str, u64>, key: &'static str, value: u64) -> Result<()> {
+   |    ^^^^^^^^
+
+warning: function `aggregate` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:30:4
+   |
+30 | fn aggregate(sums: &BTreeMap<&str, u64>, actual: &Value) -> Result<()> {
+   |    ^^^^^^^^^
+
+warning: function `receipt_counts` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:41:4
+   |
+41 | fn receipt_counts(e: &Value) -> Result<(u64, u64)> {
+   |    ^^^^^^^^^^^^^^
+
+warning: function `authenticate` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:148:15
+    |
+148 | pub(super) fn authenticate(
+    |               ^^^^^^^^^^^^
+
+warning: function `authenticate_with_reference` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:164:4
+    |
+164 | fn authenticate_with_reference(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `publish_or_verify` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/completion_baseline.rs:286:4
+    |
+286 | fn publish_or_verify(path: &Path, expected: &Value, completed: u64) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: fields `lineage_sha256` and `max_completed_batches` are never read
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/training.rs:614:5
+    |
+613 | pub struct CorpusUpdateAdmission {
+    |            --------------------- fields in this struct
+614 |     lineage_sha256: String,
+    |     ^^^^^^^^^^^^^^
+615 |     max_completed_batches: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `issue_corpus_update_admission` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/crates/uor-r4-discrete/src/training.rs:690:15
+    |
+690 | pub(crate) fn issue_corpus_update_admission(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 32 warnings
+   Compiling stage-a-admission v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-stage-a-eval-kept/docs/labs/stage-a-admission-instrument-2026-10-15/instrument)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.15s
+     Running unittests src/main.rs (local/stage-a-target/debug/deps/stage_a_admission-06fed61897ae87ad)
+
+running 8 tests
+test tests::each_k8_gate_requires_exact_registered_counts ... ok
+test tests::only_exact_registered_checkpoint_hashes_are_accepted ... ok
+test tests::output_refuses_checkpoint_ancestors_and_sealed_report_ancestors ... ok
+test report_output::tests::report_output_existing_report_fails_before_work_and_stays_byte_identical ... ok
+test report_output::tests::report_output_new_path_is_claimed_and_sealed_normally ... ok
+test tests::derivation_preserves_original_parameters_cursor_and_pins ... ok
+test tests::compact_receipts_retain_every_column_and_fit_budget ... ok
+test tests::receipt_accounting_checks_nesting_bounds_and_zero_rivals ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
