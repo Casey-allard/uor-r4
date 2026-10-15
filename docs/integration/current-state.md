@@ -66,6 +66,10 @@ The [implementation record](../labs/d19-object-store-2026-10-15/README.md) deliv
 
 Line: D19 durable-memory infrastructure · count0/3 unchanged · headline unchanged. **Next:** protected implementation delivery, DeepSeek seam confirmation, and separately scoped durable-session integration.
 
+## 2026-10-14 — D19 exact object-store prototype contract (Codex, design only)
+
+The [design note](../labs/d19-object-store-design-2026-10-14/README.md) specifies `uor-r4-object-store`: Showcase-compatible ternary records, bounded exact fold/rebuild/range/missing operations, distinct partial-path and whole-object integrity types, persistence, and pinned occurrence-to-byte-span bindings. It names the durable-memory consumer seams without connecting model code or changing attention; no implementation or measured capability is claimed. Source-only review; no model/GPU compute or hold release. **Next:** protected delivery of this contract, then the Rust implementation and byte-only controls. Seed-2 authentication stays queued for the owner's decision; training/M2 remain HELD.
+
 ## 2026-10-14 — `ReadSpec::Relation` bounded exact-relation reranker design card revised per D34 (antigravity, mechanisms line)
 
 [`docs/mechanisms/finite-relational-head.md`](../mechanisms/finite-relational-head.md) (and [`docs/labs/finite-relational-head-design-2026-10-14/README.md`](../labs/finite-relational-head-design-2026-10-14/README.md) §3) is revised in place per Owner Decision [D34](DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate) (`4cef409fc`), Claude's independent adversarial review ([#2482](https://github.com/UOR-Foundation/uor-r4/pull/2482) at `618e422ce`), and Kimi PM's assignment ([#2028 comment 6175624248](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6175624248), [`6175886770`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6175886770), [`6178356343`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6178356343)):
