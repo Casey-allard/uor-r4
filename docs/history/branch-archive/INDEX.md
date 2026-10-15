@@ -1,5 +1,20 @@
 # Branch archive
 
+## October 15 — stale Codex worktrees, retained inactive
+
+| Worktree | Patch | Base commit | Restored tracked tree | Disposition |
+|---|---|---|---|---|
+| `codex-geometric-path-repair` | [12-file source patch](codex-geometric-path-repair-inactive-20261015.patch) | `01b2ba506e36fee3e338fd1e9151caa286ae9d75` | `3b5f64bd468a4ff89f5bf505ff3ce33ba53db75c` | Unfinished pre-D32 source; superseded execution permission, not a mechanism negative |
+| `codex-learning-sheet-review-20261014` | [stale claim patch](codex-learning-sheet-review-claim-inactive-20261015.patch) | `bcd2d8192545c78c43c0152db4ad27e9d549157a` | `bd61ab38d79936225789b33298c8af48c2c10dbf` | Historical review ownership only; do not restore into the live claims store |
+
+Patch SHA256 values are respectively
+`e95cfc6dc3d4b9b63f1d5285bab15087dce878f793e27bcd79e3ef19e875de41` and
+`a1cc44061d8879906d60448acb4caf784c3caa10d5b52bda81ab8780d5876563`.
+Isolated-index application reproduces both complete dirty tracked trees exactly.
+The [preservation record](../../labs/codex-worktree-preservation-2026-10-15/README.md)
+binds full base-source archives and local-only notes, including the original pause
+record. No archived code is activated or executed; no hold is released.
+
 ## October 13 — S1/S2 floating-point qualification and writer repair (Codex)
 
 [Inactive source patch](s1-s2-float-inactive-20261013.patch), SHA256

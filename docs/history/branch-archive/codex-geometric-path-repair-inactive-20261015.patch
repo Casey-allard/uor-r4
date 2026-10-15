@@ -1,0 +1,983 @@
+diff --git a/crates/uor-r4-core/src/native_geometric/learner/native_bank_generate.rs b/crates/uor-r4-core/src/native_geometric/learner/native_bank_generate.rs
+index acb0425f262a5763485e2e2424881714cad315b7..2a551665948cca74f3a8ae7e686a2398316e5008 100644
+--- a/crates/uor-r4-core/src/native_geometric/learner/native_bank_generate.rs
++++ b/crates/uor-r4-core/src/native_geometric/learner/native_bank_generate.rs
+@@ -232,6 +232,7 @@ pub struct NativeBankGenerator {
+     cue: CueAngularQ4,
+     prefix: PrefixAngularQ4,
+     pool: NativeVocabularyActions,
++    linear_emission: bool,
+     generate_sha256: String,
+     bridge_sha256: Option<String>,
+     continuation: Option<NativeContinuationField>,
+@@ -425,6 +426,12 @@ fn summed_copy_scores(
+ }
+ impl NativeBankGenerator {
+     pub fn load(a: NativeBankArtifacts<'_>) -> Result<Self> {
++        Self::load_with_law(a, false)
++    }
++    pub fn load_linear(a: NativeBankArtifacts<'_>) -> Result<Self> {
++        Self::load_with_law(a, true)
++    }
++    fn load_with_law(a: NativeBankArtifacts<'_>, linear_emission: bool) -> Result<Self> {
+         verify_bytes(a.generate.bytes, a.generate.sha256)?;
+         verify_bytes(a.exp.bytes, a.exp.sha256)?;
+         let model = NativeSourceRealizer::load_native(a.native_directory, a.source_binding)
+@@ -474,8 +481,8 @@ impl NativeBankGenerator {
+         if cc.metadata() != a.cue_metadata || pp.metadata() != a.prefix_metadata {
+             return Err(artifact("cue/prefix exact native metadata differs"));
+         }
+-        let pool =
+-            NativeVocabularyActions::new(model.binding().clone(), a.exp.bytes).map_err(artifact)?;
++        let pool = if linear_emission { NativeVocabularyActions::new_linear(model.binding().clone()) }
++            else { NativeVocabularyActions::new(model.binding().clone(), a.exp.bytes) }.map_err(artifact)?;
+         let query_metric = Metric::historical(model.context_encoder_parts().1).map_err(artifact)?;
+         Ok(Self {
+             choice_control: None,
+@@ -486,6 +493,7 @@ impl NativeBankGenerator {
+             cue,
+             prefix,
+             pool,
++            linear_emission,
+             generate_sha256: a.generate.sha256.into(),
+             bridge_sha256,
+             continuation: None,
+@@ -699,15 +707,16 @@ impl NativeBankGenerator {
+                         .map_err(execution)?,
+                 )
+                 .map_err(execution)?;
+-            let trace = self
+-                .model
+-                .read_bank_with_prefix_transport(
+-                    &bank.borrowed_segments()?,
++            let segments = bank.borrowed_segments()?;
++            let trace = if self.linear_emission {
++                self.model.read_bank_with_prefix_transport_linear(&segments, &bank.query_ids, actual_prefix, &cue, &prefix)
++            } else { self.model.read_bank_with_prefix_transport(
++                    &segments,
+                     &bank.query_ids,
+                     actual_prefix,
+                     &cue,
+                     &prefix,
+-                )
++                ) }
+                 .map_err(execution)?;
+             let b = &trace.cue_bank.bank;
+             let codes = b
+diff --git a/crates/uor-r4-integer/src/geometric_occurrence_read.rs b/crates/uor-r4-integer/src/geometric_occurrence_read.rs
+index 3896886907968b1f87f3517c7d99c36eb7bb7be3..6a273ec3b8108751d3c117fc5f5344be2c827a7b 100644
+--- a/crates/uor-r4-integer/src/geometric_occurrence_read.rs
++++ b/crates/uor-r4-integer/src/geometric_occurrence_read.rs
+@@ -724,6 +724,7 @@ impl<'a> PreparedOccurrenceContext<'a> {
+ pub struct NativeOccurrenceReader<'a> {
+     components: OccurrenceComponents<'a>,
+     reducers: Vec<NativeGeometricRead>,
++    linear_weights: bool,
+     #[allow(dead_code)]
+     addresses: [[AddressLane; MAX_LANES]; MAX_SEQUENCE],
+     scratch_scores: [[i64; MAX_SEQUENCE]; MAX_HEADS],
+@@ -736,6 +737,10 @@ pub struct NativeOccurrenceReader<'a> {
+ }
+ 
+ impl<'a> NativeOccurrenceReader<'a> {
++    pub(crate) fn with_linear_weights(mut self) -> Self {
++        self.linear_weights = true;
++        self
++    }
+     pub fn new(components: OccurrenceComponents<'a>) -> OccurrenceReadResult<Self> {
+         let c = components.context;
+         let n = components.no_read.config();
+@@ -759,6 +764,7 @@ impl<'a> NativeOccurrenceReader<'a> {
+         Ok(Self {
+             components,
+             reducers,
++            linear_weights: false,
+             addresses: [[absent; MAX_LANES]; MAX_SEQUENCE],
+             scratch_scores: [[0; MAX_SEQUENCE]; MAX_HEADS],
+             scratch_weights: [[0; MAX_SEQUENCE]; MAX_HEADS],
+@@ -1128,13 +1134,16 @@ impl<'a> NativeOccurrenceReader<'a> {
+                     }
+                 }
+             }
+-            let r = self.reducers[h]
+-                .reduce(
++            let r = if self.linear_weights {
++                self.reducers[h].reduce_linear(
++                    &self.scratch_scores[h][..count], &ages[..count], null[h], &zeros[..count],
++                )
++            } else { self.reducers[h].reduce(
+                     &self.scratch_scores[h][..count],
+                     &ages[..count],
+                     null[h],
+                     &zeros[..count],
+-                )
++                ) }
+                 .map_err(OccurrenceReadError::Reduction)?;
+             self.scratch_weights[h][..count].copy_from_slice(r.occurrence_weights_q31);
+             summaries[h] = HeadSummary {
+diff --git a/crates/uor-r4-integer/src/geometric_read.rs b/crates/uor-r4-integer/src/geometric_read.rs
+index 701415d420e6eab2820e100f10bc98720a3cecbb..6bd0d475ac4c14d6467a3c34f2ac0a4c86eb7d5a 100644
+--- a/crates/uor-r4-integer/src/geometric_read.rs
++++ b/crates/uor-r4-integer/src/geometric_read.rs
+@@ -41,6 +41,12 @@ pub const EXP_TABLE_LEN: usize = (32 << 8) + 2;
+ /// it before the helper's usize cast also preserves tail semantics on wasm32.
+ pub const EXP_TAIL_Q24: i64 = ((EXP_TABLE_LEN - 1) as i64) << 16;
+ 
++/// Positive fixed-gauge integer mass; add/shift only, independent of a maximum.
++pub fn linear_weight_q24(score: i64) -> u64 {
++    const CLIP: i64 = 8 << 24;
++    (1 + ((score.clamp(-CLIP, CLIP) + CLIP) >> 16)) as u64
++}
++
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+ pub enum ReadError {
+     InvalidContext(usize),
+@@ -260,6 +266,16 @@ impl NativeGeometricRead {
+         age_q24: &[i64],
+         no_read_q24: i64,
+         values_q16: &[i32],
++    ) -> ReadResult<ReadReduction<'_>> {
++        self.reduce_with_law(potential_q24, age_q24, no_read_q24, values_q16, false)
++    }
++    pub fn reduce_linear(
++        &mut self, potential_q24: &[i64], age_q24: &[i64], no_read_q24: i64, values_q16: &[i32],
++    ) -> ReadResult<ReadReduction<'_>> {
++        self.reduce_with_law(potential_q24, age_q24, no_read_q24, values_q16, true)
++    }
++    fn reduce_with_law(
++        &mut self, potential_q24: &[i64], age_q24: &[i64], no_read_q24: i64, values_q16: &[i32], linear: bool,
+     ) -> ReadResult<ReadReduction<'_>> {
+         let count = potential_q24.len();
+         if count > self.max_context {
+@@ -302,10 +318,10 @@ impl NativeGeometricRead {
+         // Every recoverable failure precedes this point. The bounds below
+         // also establish that the reused wrapping product/sum helpers are
+         // exact here rather than relying on their general wrapping behavior.
+-        let null_weight = self.exp_weight(null_difference);
++        let null_weight = if linear { linear_weight_q24(no_read_q24) } else { self.exp_weight(null_difference) };
+         let mut total = null_weight;
+         for index in 0..count {
+-            let weight = self.exp_weight(maximum - self.scores[index]);
++            let weight = if linear { linear_weight_q24(self.scores[index]) } else { self.exp_weight(maximum - self.scores[index]) };
+             self.weights[index] = weight;
+             total += weight;
+         }
+diff --git a/crates/uor-r4-integer/src/geometric_source_actions.rs b/crates/uor-r4-integer/src/geometric_source_actions.rs
+index 8a6a0e944a4fd06c23652c6a89cd971e82465183..6e19ab4f273f47882a4252dcd59e66381e9ecb10 100644
+--- a/crates/uor-r4-integer/src/geometric_source_actions.rs
++++ b/crates/uor-r4-integer/src/geometric_source_actions.rs
+@@ -167,6 +167,7 @@ pub struct NativeSourceActions {
+     binding: SourceActionBinding,
+     heads: usize,
+     reducer: NativeGeometricRead,
++    linear_weights: bool,
+     score_scratch: [i64; MAX_OCCURRENCE_ROWS],
+     zero_age: [i64; MAX_OCCURRENCE_ROWS],
+     zero_values: [i32; MAX_OCCURRENCE_ROWS],
+@@ -183,6 +184,7 @@ impl NativeSourceActions {
+             binding,
+             heads,
+             reducer,
++            linear_weights: false,
+             score_scratch: [0; MAX_OCCURRENCE_ROWS],
+             zero_age: [0; MAX_OCCURRENCE_ROWS],
+             zero_values: [0; MAX_OCCURRENCE_ROWS],
+@@ -192,6 +194,10 @@ impl NativeSourceActions {
+     pub fn binding(&self) -> &SourceActionBinding {
+         &self.binding
+     }
++    pub(crate) fn with_linear_weights(mut self) -> Self {
++        self.linear_weights = true;
++        self
++    }
+     pub fn heads(&self) -> usize {
+         self.heads
+     }
+@@ -242,14 +248,14 @@ impl NativeSourceActions {
+         }
+         self.score_scratch[count] = period;
+         let rows = count + 1;
+-        let reduction = self
+-            .reducer
+-            .reduce(
++        let reduction = if self.linear_weights {
++            self.reducer.reduce_linear(&self.score_scratch[..rows], &self.zero_age[..rows], stop, &self.zero_values[..rows])
++        } else { self.reducer.reduce(
+                 &self.score_scratch[..rows],
+                 &self.zero_age[..rows],
+                 stop,
+                 &self.zero_values[..rows],
+-            )
++            ) }
+             .map_err(|e| invalid(format!("source action reduction: {e}")))?;
+         let mut actions = Vec::with_capacity(rows + 1);
+         for (offset, &token_id) in source_ids.iter().enumerate() {
+@@ -296,7 +302,7 @@ impl NativeSourceActions {
+         let chosen_token_id = chosen.token_id;
+         let chosen_weight_q31 = chosen.weight_q31;
+         Ok(ActionTrace {
+-            policy: POLICY,
++            policy: if self.linear_weights { "source-copy-period-stop/2;D23;positive-linear-Q24-shift-mass;exact-alias-sum" } else { POLICY },
+             tokenizer_sha256: self.binding.tokenizer_sha256.clone(),
+             protocol: self.binding.protocol.clone(),
+             period_token_id: self.binding.period_token_id(),
+diff --git a/crates/uor-r4-integer/src/geometric_source_realizer.rs b/crates/uor-r4-integer/src/geometric_source_realizer.rs
+index ad4a7aa387355b470c770837b8c13d345c495dcf..bf0e660d32acd99abcef67d139a6995da955e4d9 100644
+--- a/crates/uor-r4-integer/src/geometric_source_realizer.rs
++++ b/crates/uor-r4-integer/src/geometric_source_realizer.rs
+@@ -394,6 +394,18 @@ impl<'a> RealizerExecution<'a> {
+         parent: &NativeArtifactBinding,
+         cue: &NativeCueCarrier<'_>,
+         transport: &NativePrefixTransport<'_>,
++    ) -> Result<PrefixBankRealizerTrace> {
++        self.read_bank_prefix_law(segments, query, prefix, parent, cue, transport, false)
++    }
++    pub fn read_bank_with_prefix_transport_linear(
++        &self, segments: &[SourceBankSegment<'_>], query: &[u32], prefix: &[u32],
++        parent: &NativeArtifactBinding, cue: &NativeCueCarrier<'_>, transport: &NativePrefixTransport<'_>,
++    ) -> Result<PrefixBankRealizerTrace> {
++        self.read_bank_prefix_law(segments, query, prefix, parent, cue, transport, true)
++    }
++    fn read_bank_prefix_law(
++        &self, segments: &[SourceBankSegment<'_>], query: &[u32], prefix: &[u32],
++        parent: &NativeArtifactBinding, cue: &NativeCueCarrier<'_>, transport: &NativePrefixTransport<'_>, linear: bool,
+     ) -> Result<PrefixBankRealizerTrace> {
+         cue.validate_execution(parent, self.context, self.geometry)?;
+         transport.validate_execution(parent, self.context, self.geometry, cue.metadata())?;
+@@ -401,7 +413,7 @@ impl<'a> RealizerExecution<'a> {
+             return Err(invalid("prefix transport tokenizer parent differs"));
+         }
+         let (bank, carrier, ordered) =
+-            self.read_bank_impl(segments, query, prefix, Some(cue), Some(transport))?;
++            self.read_bank_impl_law(segments, query, prefix, Some(cue), Some(transport), linear)?;
+         let combined_score_payload_bytes = bank.heads.len() * bank.candidates.len() * 8;
+         let combined_score_vec_containers = 1 + bank.heads.len();
+         Ok(PrefixBankRealizerTrace {
+@@ -482,6 +494,12 @@ impl<'a> RealizerExecution<'a> {
+         prefix: &[u32],
+         carrier: Option<&NativeCueCarrier<'_>>,
+         ordered: Option<&NativePrefixTransport<'_>>,
++    ) -> Result<(BankRealizerTrace, Option<CueCarrierTrace>, Option<PrefixTransportTrace>)> {
++        self.read_bank_impl_law(segments, query, prefix, carrier, ordered, false)
++    }
++    fn read_bank_impl_law(
++        &self, segments: &[SourceBankSegment<'_>], query: &[u32], prefix: &[u32],
++        carrier: Option<&NativeCueCarrier<'_>>, ordered: Option<&NativePrefixTransport<'_>>, linear: bool,
+     ) -> Result<(
+         BankRealizerTrace,
+         Option<CueCarrierTrace>,
+@@ -564,6 +582,7 @@ impl<'a> RealizerExecution<'a> {
+             exp_q31: self.exp,
+         })
+         .map_err(|e| invalid(e.to_string()))?;
++        if linear { reader = reader.with_linear_weights(); }
+         let prepared = reader
+             .prepare_bank(&derived, query, prefix)
+             .map_err(|e| invalid(e.to_string()))?;
+@@ -673,8 +692,9 @@ impl<'a> RealizerExecution<'a> {
+             .iter()
+             .map(|o| o.token_id)
+             .collect::<Vec<_>>();
+-        let actions = NativeSourceActions::new(self.binding.clone(), c.heads, self.exp)?
+-            .reduce(&ids, &head_scores)?;
++        let mut reducer = NativeSourceActions::new(self.binding.clone(), c.heads, self.exp)?;
++        if linear { reducer = reducer.with_linear_weights(); }
++        let actions = reducer.reduce(&ids, &head_scores)?;
+         let candidates = output
+             .occurrences()
+             .iter()
+@@ -1232,6 +1252,15 @@ pub struct NativeSourceRealizer {
+     artifact_binding: NativeArtifactBinding,
+ }
+ impl NativeSourceRealizer {
++    pub fn read_bank_with_prefix_transport_linear(
++        &self, segments: &[SourceBankSegment<'_>], query: &[u32], prefix: &[u32],
++        cue: &NativeCueCarrier<'_>, transport: &NativePrefixTransport<'_>,
++    ) -> Result<PrefixBankRealizerTrace> {
++        RealizerExecution {
++            context: &self.context, potential_tables: &self.potential_tables, no_read: &self.no_read,
++            geometry: &self.geometry, exp: &self.exp, period: &self.period, binding: &self.binding,
++        }.read_bank_with_prefix_transport_linear(segments, query, prefix, &self.artifact_binding, cue, transport)
++    }
+     pub fn load_native(path: &Path, expected: &NativeArtifactBinding) -> Result<Self> {
+         expected.identity.validate()?;
+         require_digest(&expected.metadata_sha256)?;
+diff --git a/crates/uor-r4-integer/src/geometric_vocabulary_actions.rs b/crates/uor-r4-integer/src/geometric_vocabulary_actions.rs
+index 6840a9f646316b5c73233e04c1ad226d132acc41..4b43b265c9a3a9781be1ef8e4f438cc9e9fb8267 100644
+--- a/crates/uor-r4-integer/src/geometric_vocabulary_actions.rs
++++ b/crates/uor-r4-integer/src/geometric_vocabulary_actions.rs
+@@ -18,6 +18,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
+ pub const MAX_VOCAB: usize = 4096;
+ pub const SCORE_CLIP_Q24: i64 = 8 << 24;
+ pub const POLICY: &str = "full-legal-vocabulary-Generate+occurrence-Copy/1;sum-head-inputs;common-final-clip+/-8Q24;canonical-positive-gap16-exp;exact-u64-unnormalized-token-aliases;smallest-token-ID-ties;no-extra-terminal-or-null";
++pub const LINEAR_POLICY: &str = "full-legal-vocabulary-Generate+occurrence-Copy/2;D23;absolute-Q24-gauge;clip8;positive-linear-shift-count1to4097;exact-alias-sum;smallest-token-ID-ties;raw-diagnostic-disabled";
+ #[derive(Debug, Clone, PartialEq, Eq)]
+ pub enum VocabularyActionError {
+     InvalidVocabulary(usize),
+@@ -34,6 +35,7 @@ pub enum VocabularyActionError {
+     DuplicatePatchToken(u32),
+     InvalidPatchPosition(usize),
+     StalePatch,
++    UnsupportedWeightLaw,
+     Overflow,
+     NonpositiveWeight,
+ }
+@@ -235,6 +237,9 @@ pub struct NativeVocabularyActions {
+     trace_masses: Box<[u64]>,
+ }
+ impl NativeVocabularyActions {
++    pub fn new_linear(binding: SourceActionBinding) -> Result<Self> {
++        Self::from_admitted(binding, Vec::new())
++    }
+     /// Authenticates the complete pinned table bytes, not only shape or order.
+     pub fn new(binding: SourceActionBinding, exp_bytes: &[u8]) -> Result<Self> {
+         let exp = canonical_exp(exp_bytes)
+@@ -265,7 +270,7 @@ impl NativeVocabularyActions {
+         {
+             return Err(VocabularyActionError::MissingLegalTerminal);
+         }
+-        if stack_exp_neg(SCORE_CLIP_Q24 + SCORE_CLIP_Q24, -24, &exp, EXP_STEP_LOG2) == 0 {
++        if !exp.is_empty() && stack_exp_neg(SCORE_CLIP_Q24 + SCORE_CLIP_Q24, -24, &exp, EXP_STEP_LOG2) == 0 {
+             return Err(VocabularyActionError::NonpositiveWeight);
+         }
+         let capacity = legal_ids.len() + MAX_SOURCE_TOKENS;
+@@ -298,6 +303,7 @@ impl NativeVocabularyActions {
+     /// common reference. Uses this admitted reducer's authenticated exp table;
+     /// it does not select actions or change any reducer/cache state.
+     pub fn atom_weight_at_reference(&self, raw_score_q24: i64, reference_q24: i64) -> Result<u64> {
++        if self.exp.is_empty() { return Ok(crate::geometric_read::linear_weight_q24(raw_score_q24)); }
+         let score = raw_score_q24.clamp(-SCORE_CLIP_Q24, SCORE_CLIP_Q24);
+         if !(-SCORE_CLIP_Q24..=SCORE_CLIP_Q24).contains(&reference_q24) || reference_q24 < score {
+             return Err(VocabularyActionError::InvalidReference {
+@@ -378,6 +384,7 @@ impl NativeVocabularyActions {
+         selected_token: u32,
+         gold_token: u32,
+     ) -> Result<GenerateSubstitutionCache> {
++        if self.exp.is_empty() { return Err(VocabularyActionError::UnsupportedWeightLaw); }
+         if !self
+             .legal_mask
+             .get(selected_token as usize)
+@@ -454,6 +461,7 @@ impl NativeVocabularyActions {
+         cache: &mut GenerateSubstitutionCache,
+         new_raw_score_q24: i64,
+     ) -> Result<GenerateSubstitutionMass> {
++        if self.exp.is_empty() { return Err(VocabularyActionError::UnsupportedWeightLaw); }
+         if cache.tokenizer_sha256 != self.binding.tokenizer_sha256()
+             || cache.exp_sha256 != self.exp_sha256
+         {
+@@ -522,6 +530,7 @@ impl NativeVocabularyActions {
+         copy_ids: Vec<u32>,
+         copy_scores: Vec<i64>,
+     ) -> Result<GeneratePatchCache> {
++        if self.exp.is_empty() { return Err(VocabularyActionError::UnsupportedWeightLaw); }
+         let count = self.action_count(copy_ids.len())?;
+         let mut weights = vec![0; count];
+         let mut masses = vec![0; self.vocab_size()];
+@@ -576,6 +585,7 @@ impl NativeVocabularyActions {
+         cache: &GeneratePatchCache,
+         changes: &[(u32, i64)],
+     ) -> Result<PendingGeneratePatch> {
++        if self.exp.is_empty() { return Err(VocabularyActionError::UnsupportedWeightLaw); }
+         self.validate_patch_cache(cache)?;
+         let next_revision = cache
+             .revision
+@@ -763,6 +773,7 @@ impl NativeVocabularyActions {
+         caches: &mut [GeneratePatchCache],
+         patches: Vec<(usize, PendingGeneratePatch)>,
+     ) -> Result<()> {
++        if self.exp.is_empty() { return Err(VocabularyActionError::UnsupportedWeightLaw); }
+         let mut positions = patches.iter().map(|v| v.0).collect::<Vec<_>>();
+         positions.sort_unstable();
+         if let Some(pair) = positions.windows(2).find(|p| p[0] == p[1]) {
+@@ -841,7 +852,8 @@ impl NativeVocabularyActions {
+             let score = raw.clamp(-SCORE_CLIP_Q24, SCORE_CLIP_Q24);
+             low += usize::from(raw < -SCORE_CLIP_Q24);
+             high += usize::from(raw > SCORE_CLIP_Q24);
+-            let weight = stack_exp_neg(max - score, -24, &self.exp, EXP_STEP_LOG2);
++            let weight = if self.exp.is_empty() { crate::geometric_read::linear_weight_q24(score) }
++                else { stack_exp_neg(max - score, -24, &self.exp, EXP_STEP_LOG2) };
+             if weight == 0 {
+                 return Err(VocabularyActionError::NonpositiveWeight);
+             }
+@@ -863,7 +875,9 @@ impl NativeVocabularyActions {
+                     .ok_or(VocabularyActionError::Overflow)?;
+             }
+             let gap = raw_max.saturating_sub(raw);
+-            let raw_weight = if gap >= EXP_TAIL_Q24 {
++            let raw_weight = if self.exp.is_empty() {
++                weight
++            } else if gap >= EXP_TAIL_Q24 {
+                 0
+             } else {
+                 stack_exp_neg(gap, -24, &self.exp, EXP_STEP_LOG2)
+@@ -965,7 +979,7 @@ impl NativeVocabularyActions {
+                 })
+                 .collect();
+             VocabularyActionTrace {
+-                policy: POLICY,
++                policy: if self.exp.is_empty() { LINEAR_POLICY } else { POLICY },
+                 tokenizer_sha256: self.binding.tokenizer_sha256().into(),
+                 period_token_id: self.binding.period_token_id(),
+                 eos_token_id: self.binding.eos_token_id(),
+diff --git a/crates/uor-r4-training/src/geometric_generate_learning.rs b/crates/uor-r4-training/src/geometric_generate_learning.rs
+index 67f07fbe8f53dd21fb6e36a0413ad6ad1016b20c..12386051107ee7e8ec941be66ec0992f9c04412b 100644
+--- a/crates/uor-r4-training/src/geometric_generate_learning.rs
++++ b/crates/uor-r4-training/src/geometric_generate_learning.rs
+@@ -502,6 +502,7 @@ impl GenerateLearningWeights {
+         } else {
+             None
+         };
++        let forced = forced_prototypes.is_some();
+         Ok(PreparedGenerateLearning {
+             forced_prototypes,
+             native,
+@@ -519,7 +520,11 @@ impl GenerateLearningWeights {
+                 index_multiplier: Tensor::new(ROOT_COUNT as u32, self.device())?,
+                 prototypes,
+                 state_relatives,
+-                code_probability: candle_nn::ops::softmax(self.prototype_choices.as_tensor(), 2)?,
++                code_probability: if forced {
++                    // Whole-path hard prototype choices own their policy credit.
++                    // This unused compatibility cache must not execute a second law.
++                    Tensor::zeros((v, self.lanes, ROOT_COUNT), DType::F32, self.device())?
++                } else { candle_nn::ops::softmax(self.prototype_choices.as_tensor(), 2)? },
+                 staged_bytes: 4 * (ROOT_COUNT * ROOT_COUNT + v * self.lanes + 1),
+                 device_index_bytes: 4
+                     * (ROOT_COUNT * ROOT_COUNT + v * self.lanes + v * self.lanes * ROOT_COUNT + 1),
+diff --git a/crates/uor-r4-training/src/native_geometric_cuda_kernels.rs b/crates/uor-r4-training/src/native_geometric_cuda_kernels.rs
+index bb6a483efca1f3eacb8df3cd9b933aef10bbacc8..aa3f9f5d97cef2638df7a3bf336208abb370ff55 100644
+--- a/crates/uor-r4-training/src/native_geometric_cuda_kernels.rs
++++ b/crates/uor-r4-training/src/native_geometric_cuda_kernels.rs
+@@ -87,12 +87,10 @@ extern "C" __global__ void whole_path_alias_sum(const double*x,const unsigned*of
+  unsigned token=blockIdx.x*blockDim.x+threadIdx.x;if(token>=n)return;
+  double sum=0;for(unsigned j=offsets[token];j<offsets[token+1];j++)sum=__dadd_rn(sum,x[indices[j]]);out[token]=sum;
+ }
+-extern "C" __global__ void whole_path_alias_log(const float*x,const unsigned*offsets,const unsigned*indices,float*out,unsigned n){
++extern "C" __global__ void whole_path_alias_float_sum(const float*x,const unsigned*offsets,const unsigned*indices,float*out,unsigned n){
+  unsigned token=blockIdx.x*blockDim.x+threadIdx.x;if(token>=n)return;
+- double m=(double)x[indices[offsets[token]]];
+- for(unsigned j=offsets[token]+1;j<offsets[token+1];j++)m=fmax(m,(double)x[indices[j]]);
+- double sum=0;for(unsigned j=offsets[token];j<offsets[token+1];j++)sum=__dadd_rn(sum,exp((double)x[indices[j]]-m));
+- out[token]=(float)(m+log(sum));
++ double sum=0;for(unsigned j=offsets[token];j<offsets[token+1];j++)sum=__dadd_rn(sum,(double)x[indices[j]]);
++ out[token]=(float)sum;
+ }
+ // Exact native Generate Q24 factors are immutable admitted snapshot data.
+ // Relative rows encode inv(state)*prototype; identity is table-defined (1).
+diff --git a/crates/uor-r4-training/src/whole_path_device.rs b/crates/uor-r4-training/src/whole_path_device.rs
+index f89b1125623216177a2f3657cdb48831734d8b32..4130f2a8ba8af864f8d428fd8368941f88e8b172 100644
+--- a/crates/uor-r4-training/src/whole_path_device.rs
++++ b/crates/uor-r4-training/src/whole_path_device.rs
+@@ -791,7 +791,6 @@ pub struct WholePathCudaProducer {
+     choices: Vec<Tensor>,
+     decisions: usize,
+     pub(super) greedy: bool,
+-    exp: Tensor,
+ }
+ 
+ fn u32_indices(device: &Device, values: Vec<u32>) -> Result<Tensor> {
+@@ -857,7 +856,6 @@ impl WholePathCudaProducer {
+             choices: vec![],
+             decisions: 0,
+             greedy: self.greedy,
+-            exp: self.exp.clone(),
+         }
+     }
+     /// All masters must already reside on CUDA and belong to this exact bound
+@@ -1008,12 +1006,6 @@ impl WholePathCudaProducer {
+         let continuation_scale = (1u64 << native_u.score_shift()) as f64 / Q24;
+         let continuation_hard = hard_f64(u, continuation_scale)?;
+         let signal_hard = hard_f64(var("memory.signal")?, 1. / 4.)?;
+-        let exp_bytes = std::fs::read(revision.root.join("native/consumer/exp-q31.bin"))?;
+-        let exp_values = exp_bytes
+-            .chunks_exact(4)
+-            .map(|v| u32::from_le_bytes([v[0], v[1], v[2], v[3]]) as f64)
+-            .collect::<Vec<_>>();
+-        let exp = Tensor::from_vec(exp_values.clone(), exp_values.len(), &device)?;
+         let group = uor_r4_core::spiralcore_operator::cl06_finite_composition_table()
+             .map_err(|e| invalid(e.to_string()))?;
+         let mut images = Vec::new();
+@@ -1142,7 +1134,6 @@ impl WholePathCudaProducer {
+             choices: vec![],
+             decisions: 0,
+             greedy: false,
+-            exp,
+         })
+     }
+     pub fn revision_sha256(&self) -> &str {
+@@ -1224,23 +1215,14 @@ impl WholePathCudaProducer {
+         {
+             return Err(invalid("device decision admission differs"));
+         }
+-        let n = logits.elem_count();
+         if self.greedy {
+             return Ok(DeviceChoice {
+                 index: logits.argmax(0)?.reshape(1)?,
+                 log_probability: Tensor::new(0f32, &self.device)?,
+             });
+         }
+-        let scale = if temperature {
+-            1. / f64::from(self.sampling.temperature)
+-        } else {
+-            1.
+-        };
+-        let centered = logits.broadcast_sub(&logits.max(0)?.detach())?;
+-        let p = candle_nn::ops::softmax(&centered.affine(scale, 0.)?, 0)?.affine(
+-            1. - f64::from(self.sampling.exploration),
+-            f64::from(self.sampling.exploration) / n as f64,
+-        )?;
++        let weights = if temperature { super::law::choice_weights(logits, self.sampling.temperature)? } else { logits.clone() };
++        let p = super::law::probabilities(&weights, self.sampling.exploration)?;
+         self.rng = self.rng.wrapping_add(0x9e3779b97f4a7c15);
+         let mut z = self.rng;
+         z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+@@ -1888,8 +1870,7 @@ impl WholePathCudaProducer {
+             false,
+         )
+     }
+-    /// Pool every physical alias. This is the preregistered smooth offline
+-    /// law, not a replacement for native integer Q31 served token selection.
++    /// Pool every physical alias under the bound positive linear mass law.
+     pub fn pooled_token(
+         &mut self,
+         generated: &Tensor,
+@@ -1902,26 +1883,16 @@ impl WholePathCudaProducer {
+         {
+             return Err(invalid("device alias pool inventory"));
+         }
+-        let raw = Tensor::cat(&[generated, copy], 0)?
+-            .clamp(-8f32, 8f32)?
+-            .affine(1. / f64::from(self.sampling.temperature), 0.)?;
+-        self.choose(&ops::log_masses(&raw, self.vocab, copy_ids)?, false)
++        let raw = Tensor::cat(&[generated, copy], 0)?;
++        let shadow = super::law::emission_weights(&raw)?;
++        let hard = shadow.floor()?;
++        let weights = (&hard + (&shadow - shadow.detach())?)?;
++        self.choose(&ops::learned_masses(&weights, self.vocab, copy_ids)?, false)
+     }
+     fn native_pool(&self, step: &DeviceEmissionStep) -> Result<(Tensor, Tensor)> {
+         let scores = Tensor::cat(&[&step.generated_native_q24, &step.copied_native_q24], 0)?
+             .clamp(-8. * Q24, 8. * Q24)?;
+-        let reference = scores.max(0)?;
+-        let gap = scores.broadcast_sub(&reference)?.neg()?;
+-        let at = gap.affine(1. / 65536., 0.)?.floor()?.to_dtype(DType::U32)?;
+-        let frac = (&gap - at.to_dtype(DType::F64)?.affine(65536., 0.)?)?;
+-        let a = self.exp.index_select(&at, 0)?;
+-        let b = self.exp.index_select(
+-            &(&at + Tensor::ones(at.shape(), DType::U32, &self.device)?)?,
+-            0,
+-        )?;
+-        // Canonical integer interpolation. All operands/products/sums are
+-        // exact F64 integers below2^53, with floor implementing the shift.
+-        let weights = (&a - ((&a - &b)? * &frac)?.affine(1. / 65536., 0.)?.floor()?)?;
++        let weights = scores.affine(1. / 65536., 2048.)?.floor()?.affine(1., 1.)?;
+         let masses = ops::native_masses(&weights, self.vocab, &step.copy_ids)?;
+         Ok((weights, masses))
+     }
+@@ -1929,14 +1900,14 @@ impl WholePathCudaProducer {
+         if target as usize >= self.vocab {
+             return Err(invalid("device target outside vocabulary"));
+         }
+-        let (weights, masses) = self.native_pool(step)?;
++        let (_, masses) = self.native_pool(step)?;
+         let ids = u32_indices(&self.device, (0..self.vocab as u32).collect())?;
+         let mask = ids.ne(target)?;
+         let rivals = mask.where_cond(&masses, &Tensor::full(-1f64, self.vocab, &self.device)?)?;
+         let rival = rivals.argmax(0)?.reshape(1)?;
+         let target_mass = masses.i(target as usize)?;
+         let rival_mass = masses.index_select(&rival, 0)?.sum_all()?;
+-        let hard = (&target_mass.log()? - rival_mass.log()?)?.to_dtype(DType::F32)?;
++        let hard = (&target_mass - &rival_mass)?.affine(1. / 4096., 0.)?.to_dtype(DType::F32)?;
+         let raw = Tensor::cat(&[&step.generated, &step.copied], 0)?.clamp(-8f32, 8f32)?;
+         let action_ids = u32_indices(
+             &self.device,
+@@ -1947,25 +1918,12 @@ impl WholePathCudaProducer {
+         let target_mask = action_ids.eq(target)?.to_dtype(DType::F64)?;
+         let rival_id = rival.broadcast_as(action_ids.shape())?;
+         let rival_mask = action_ids.eq(&rival_id)?.to_dtype(DType::F64)?;
+-        let coeff = ((&weights * &target_mask)?.broadcast_div(&target_mass)?
+-            - (&weights * &rival_mask)?.broadcast_div(&rival_mass)?)?
++        let coeff = (&target_mask - &rival_mask)?.affine(1. / 16., 0.)?
+         .to_dtype(DType::F32)?
+         .detach();
+         let partial = (&raw * &coeff)?.sum_all()?;
+         let margin = (&hard + (&partial - partial.detach())?)?;
+-        // Stable softplus(-margin), preserving the hard native value and the
+-        // existing clipped-score pooled target/strongest-rival partial.
+-        let zero = Tensor::new(0f32, &self.device)?;
+-        let value = (margin.neg()?.maximum(&zero)?
+-            + margin.abs()?.neg()?.exp()?.affine(1., 1.)?.log()?)?
+-        .detach();
+-        let e = margin.abs()?.neg()?.exp()?;
+-        let den = e.affine(1., 1.)?;
+-        let positive = (&e / &den)?.neg()?;
+-        let negative = den.recip()?.neg()?;
+-        let slope = margin.ge(0f32)?.where_cond(&positive, &negative)?.detach();
+-        let partial = (&margin * &slope)?;
+-        Ok((&value + (&partial - partial.detach())?)?)
++        super::law::ranking_loss(&margin)
+     }
+     pub fn teacher_objective(
+         &mut self,
+@@ -1989,8 +1947,7 @@ impl WholePathCudaProducer {
+             losses.push(self.ranking_loss(&step, target)?);
+         }
+         let all = Tensor::stack(&losses, 0)?;
+-        let shift = all.max(0)?.detach();
+-        let rank = (all.broadcast_sub(&shift)?.exp()?.mean_all()?.log()? + shift)?;
++        let rank = all.max(0)?;
+         if self.greedy {
+             self.validate_masters()?;
+             return Ok(rank);
+diff --git a/crates/uor-r4-training/src/whole_path_device_ops.rs b/crates/uor-r4-training/src/whole_path_device_ops.rs
+index fa7b6ad542b2ed79fb2595329428c7e00338d478..68c7e850599ef36cbf8a9b480b889d6cdfd4f95c 100644
+--- a/crates/uor-r4-training/src/whole_path_device_ops.rs
++++ b/crates/uor-r4-training/src/whole_path_device_ops.rs
+@@ -132,20 +132,16 @@ impl CustomOp1 for Aliases {
+             Ok((CpuStorage::F64(out), Shape::from(self.vocab)))
+         } else {
+             let CpuStorage::F32(v) = s else {
+-                candle_core::bail!("alias logsumexp expects F32");
++                candle_core::bail!("learned alias sum expects F32");
+             };
+             let mut out = Vec::new();
+             for pair in self.offsets.windows(2) {
+                 let indices = &self.indices[pair[0] as usize..pair[1] as usize];
+-                let max = indices
+-                    .iter()
+-                    .map(|&i| f64::from(v[start + i as usize]))
+-                    .fold(f64::NEG_INFINITY, f64::max);
+                 let mut sum = 0.;
+                 for &i in indices {
+-                    sum += (f64::from(v[start + i as usize]) - max).exp();
++                    sum += f64::from(v[start + i as usize]);
+                 }
+-                out.push((max + sum.ln()) as f32);
++                out.push(sum as f32);
+             }
+             Ok((CpuStorage::F32(out), Shape::from(self.vocab)))
+         }
+@@ -199,7 +195,7 @@ impl CustomOp1 for Aliases {
+             let output = d.alloc_zeros::<f32>(self.vocab)?;
+             launch(
+                 d,
+-                "whole_path_alias_log",
++                "whole_path_alias_float_sum",
+                 self.vocab,
+                 &[
+                     Arg::F(input),
+@@ -213,16 +209,15 @@ impl CustomOp1 for Aliases {
+         };
+         Ok((result, Shape::from(self.vocab)))
+     }
+-    fn bwd(&self, x: &Tensor, y: &Tensor, dy: &Tensor) -> candle_core::Result<Option<Tensor>> {
++    fn bwd(&self, x: &Tensor, _y: &Tensor, dy: &Tensor) -> candle_core::Result<Option<Tensor>> {
+         if self.sum {
+             return Ok(None);
+         }
+         let ids = Tensor::from_vec(self.ids.clone(), self.ids.len(), x.device())?;
+-        let p = (x - y.index_select(&ids, 0)?)?.exp()?;
+-        Ok(Some((&p * dy.index_select(&ids, 0)?)?))
++        Ok(Some(dy.index_select(&ids, 0)?))
+     }
+ }
+-pub(super) fn log_masses(scores: &Tensor, vocab: usize, copy_ids: &[u32]) -> Result<Tensor> {
++pub(super) fn learned_masses(scores: &Tensor, vocab: usize, copy_ids: &[u32]) -> Result<Tensor> {
+     let op = Aliases::new(vocab, copy_ids, false)?;
+     Ok(scores.contiguous()?.apply_op1(op)?)
+ }
+@@ -237,18 +232,16 @@ mod tests {
+     use candle_core::{Device, Var};
+     #[test]
+     fn whole_path_linear_pool_preserves_every_alias_and_gradient() -> Result<()> {
+-        let x = Var::from_vec(vec![0f32, -1000., 3., 3., -1000.], 5, &Device::Cpu)?;
+-        let pooled = log_masses(x.as_tensor(), 3, &[2, 1])?;
++        let x = Var::from_vec(vec![1f32, 7., 11., 13., 17.], 5, &Device::Cpu)?;
++        let pooled = learned_masses(x.as_tensor(), 3, &[2, 1])?;
+         let values = pooled.to_vec1::<f32>()?;
+-        assert_eq!(values[0], 0.);
+-        assert!((values[1] - (-1000. + 2f32.ln())).abs() < 1e-4);
+-        assert!((values[2] - (3. + 2f32.ln())).abs() < 1e-6);
++        assert_eq!(values, vec![1., 24., 24.]);
+         let gradient = pooled.sum_all()?.backward()?;
+         let got = gradient
+             .get(x.as_tensor())
+             .ok_or_else(|| invalid("alias gradient missing"))?
+             .to_vec1::<f32>()?;
+-        for (actual, expected) in got.iter().zip([1., 0.5, 0.5, 0.5, 0.5]) {
++        for (actual, expected) in got.iter().zip([1., 1., 1., 1., 1.]) {
+             assert!((actual - expected).abs() < 2e-5);
+         }
+         let weights = Tensor::from_vec(vec![1f64, 7., 11., 13., 17.], 5, &Device::Cpu)?;
+diff --git a/crates/uor-r4-training/src/whole_path_law.rs b/crates/uor-r4-training/src/whole_path_law.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..1beb814e5c2c2fd324b5a1aaf545099a85585840
+--- /dev/null
++++ b/crates/uor-r4-training/src/whole_path_law.rs
+@@ -0,0 +1,35 @@
++//! Non-exponential laws for the bound geometric decision graph.
++use candle_core::{DType, Tensor};
++use crate::{invalid, Result};
++
++/// Squared nonnegative score slack with a positive floor. The minimum remains
++/// in the graph: its derivative belongs to this law, rather than a detached
++/// exponential surrogate. Temperature controls the floor, not a second pooling.
++pub(super) fn choice_weights(scores: &Tensor, temperature: f32) -> Result<Tensor> {
++    if scores.dtype() != DType::F32 || scores.dims().len() != 1
++        || scores.elem_count() == 0 || !temperature.is_finite() || temperature <= 0. {
++        return Err(invalid("geometric choice score/floor admission"));
++    }
++    let slack = scores.broadcast_sub(&scores.min(0)?)?.affine(1., f64::from(temperature))?;
++    let scaled = slack.broadcast_div(&slack.max(0)?)?;
++    Ok(scaled.sqr()?)
++}
++
++pub(super) fn probabilities(weights: &Tensor, exploration: f32) -> Result<Tensor> {
++    if !(0. ..1.).contains(&exploration) || exploration == 0. {
++        return Err(invalid("geometric exploration admission"));
++    }
++    Ok(weights.broadcast_div(&weights.sum_all()?)?.affine(
++        1. - f64::from(exploration), f64::from(exploration) / weights.elem_count() as f64,
++    )?)
++}
++
++/// Same fixed absolute score gauge as the integer shift/add emission reducer.
++/// Packing uses floor; this continuous shadow supplies the declared local STE.
++pub(super) fn emission_weights(scores: &Tensor) -> Result<Tensor> {
++    Ok(scores.clamp(-8f32, 8f32)?.affine(256., 2049.)?)
++}
++
++pub(super) fn ranking_loss(margin: &Tensor) -> Result<Tensor> {
++    Ok(margin.affine(-1., 1.)?.relu()?.sqr()?)
++}
+diff --git a/crates/uor-r4-training/src/whole_path_learning.rs b/crates/uor-r4-training/src/whole_path_learning.rs
+index 9888128dca1e2cb85cc7a5257665db55dffae0be..185d550685e452259d7b5ffaf6fc286d4036a1af 100644
+--- a/crates/uor-r4-training/src/whole_path_learning.rs
++++ b/crates/uor-r4-training/src/whole_path_learning.rs
+@@ -46,7 +46,10 @@ use crate::{invalid, sha256_bytes, Result};
+ #[path = "whole_path_device.rs"]
+ pub mod device;
+ 
+-pub const SCHEMA: &str = "uor-r4.whole-path/1";
++#[path = "whole_path_law.rs"]
++mod law;
++
++pub const SCHEMA: &str = "uor-r4.whole-path/2;D23;squared-slack-choice;linear-alias-mass;worst-squared-margin";
+ const Q24: f64 = 16777216.;
+ 
+ fn route_geometry_sha256() -> Result<String> {
+@@ -170,10 +173,6 @@ fn anchor(hard: &[f32], graph: Tensor) -> Result<Tensor> {
+             + (&graph - graph.detach())?)?,
+     )
+ }
+-fn log_sum_exp(values: &Tensor) -> Result<Tensor> {
+-    let shift = values.max(0)?.detach();
+-    Ok((values.broadcast_sub(&shift)?.exp()?.sum_all()?.log()? + shift)?)
+-}
+ fn quarter_scale(coefficient: i8, value: i32) -> Result<i64> {
+     if !(-7..=7).contains(&coefficient) {
+         return Err(invalid("profile coefficient outside signed-q4"));
+@@ -965,7 +964,7 @@ impl WholePathRevision {
+             None
+         };
+         let exp = std::fs::read(self.root.join("native/consumer/exp-q31.bin"))?;
+-        let mut g = NativeBankGenerator::load(NativeBankArtifacts {
++        let mut g = NativeBankGenerator::load_linear(NativeBankArtifacts {
+             native_directory: &self.root.join("native"),
+             source_binding: &self.manifest.source,
+             generate: BoundNativeBytes {
+@@ -1749,7 +1748,7 @@ impl WholePathSession<'_> {
+             .objective(terminal_cost, baseline)
+     }
+     /// Canonical teacher-prefix objective, not an own-prefix next-token label.
+-    /// Log-mean-exp of pooled winner/rival softplus losses across the whole
++    /// Maximum pooled winner/rival squared-margin loss across the whole
+     /// answer including EOS. Coefficients and ancestors share one backward.
+     /// A teacher trajectory is separate from a free-rollout trajectory.
+     pub fn teacher_ranking_objective(
+@@ -1835,37 +1834,26 @@ impl WholePathSession<'_> {
+                 })
+                 .ok_or_else(|| invalid("teacher ranking has no wrong rival"))?
+                 .token_id;
+-            margins.push(
+-                crate::geometric_generate_learning::vocabulary_log_mass_margin(
+-                    &step.actions,
+-                    &generated,
+-                    if copied.elem_count() == 0 {
+-                        None
+-                    } else {
+-                        Some(&copied)
+-                    },
+-                    target,
+-                    rival,
+-                )?,
+-            );
++            let raw = Tensor::stack(&step.actions.actions.iter().map(|a| {
++                match a.action {
++                    uor_r4_integer::geometric_vocabulary_actions::VocabularyAction::Generate { token_id } => Ok(generated.i(token_id as usize)?),
++                    uor_r4_integer::geometric_vocabulary_actions::VocabularyAction::Copy { source_offset } => Ok(copied.i(source_offset)?),
++                }
++            }).collect::<Result<Vec<_>>>()?, 0)?;
++            let shadow = law::emission_weights(&raw)?;
++            let hard = step.actions.actions.iter().map(|a| a.weight_q31 as f32).collect::<Vec<_>>();
++            let weights = anchor(&hard, shadow)?;
++            let select = |token| -> Result<Tensor> {
++                let ids = step.actions.actions.iter().enumerate()
++                    .filter(|(_, a)| a.token_id == token).map(|(i, _)| i as u32).collect::<Vec<_>>();
++                if ids.is_empty() { return Err(invalid("ranking token has no admitted alias")); }
++                Ok(weights.index_select(&Tensor::from_vec(ids.clone(), ids.len(), weights.device())?, 0)?.sum_all()?)
++            };
++            margins.push((select(target)? - select(rival)?)?.affine(1. / 4096., 0.)?);
+         }
+-        let losses = margins
+-            .iter()
+-            .map(|margin| {
+-                let m = f64::from(margin.to_scalar::<f32>()?);
+-                let value = ((-m).max(0.) + (-m.abs()).exp().ln_1p()) as f32;
+-                let slope = if m >= 0. {
+-                    -(-m).exp() / (1. + (-m).exp())
+-                } else {
+-                    -1. / (1. + m.exp())
+-                };
+-                let partial = margin.affine(slope, 0.)?;
+-                Ok((Tensor::new(value, margin.device())? + (&partial - partial.detach())?)?)
+-            })
+-            .collect::<Result<Vec<_>>>()?;
++        let losses = margins.iter().map(law::ranking_loss).collect::<Result<Vec<_>>>()?;
+         let all = Tensor::stack(&losses, 0)?;
+-        let shift = all.max(0)?.detach();
+-        let rank = (all.broadcast_sub(&shift)?.exp()?.mean_all()?.log()? + &shift)?;
++        let rank = all.max(0)?;
+         let value = rank.to_scalar::<f32>()?;
+         // No token-sampling term in this teacher trajectory. All recorded hard
+         // ancestors, including shared prototypes, receive this episode cost.
+@@ -2315,16 +2303,8 @@ impl CreditTape {
+         let Mode::Sampled(config) = &self.mode else {
+             return Err(invalid("no sampling mode"));
+         };
+-        let scale = if temperature {
+-            1. / f64::from(config.temperature)
+-        } else {
+-            1.
+-        };
+-        let centered = logits.broadcast_sub(&logits.max(0)?.detach())?;
+-        let probability = candle_nn::ops::softmax(&centered.affine(scale, 0.)?, 0)?.affine(
+-            1. - f64::from(config.exploration),
+-            f64::from(config.exploration) / logits.elem_count() as f64,
+-        )?;
++        let weights = if temperature { law::choice_weights(&logits, config.temperature)? } else { logits.clone() };
++        let probability = law::probabilities(&weights, config.exploration)?;
+         let p = probability.to_vec1::<f32>()?;
+         if p.iter().any(|p| !p.is_finite() || *p <= 0.) {
+             return Err(invalid("whole-path choice has no finite full support"));
+@@ -2567,13 +2547,12 @@ impl CreditTape {
+         }
+         let graph = Tensor::stack(&raw, 0)?.clamp(-8f32, 8f32)?;
+         let logits = anchor(&hard, graph)?;
+-        let temperature = match &self.mode {
+-            Mode::Sampled(s) => s.temperature,
+-            Mode::Greedy => 1.,
+-        };
+-        let scaled = logits.affine(1. / f64::from(temperature), 0.)?;
++        let weights = anchor(
++            &step.actions.actions.iter().map(|a| a.weight_q31 as f32).collect::<Vec<_>>(),
++            law::emission_weights(&logits)?,
++        )?;
+         let masses = &step.actions.token_masses;
+-        let mut token_log = Vec::new();
++        let mut token_weights = Vec::new();
+         for mass in masses {
+             let index = step
+                 .actions
+@@ -2583,10 +2562,10 @@ impl CreditTape {
+                 .filter(|(_, a)| a.token_id == mass.token_id)
+                 .map(|(i, _)| i as u32)
+                 .collect::<Vec<_>>();
+-            token_log.push(log_sum_exp(&scaled.index_select(
++            token_weights.push(weights.index_select(
+                 &Tensor::from_vec(index.clone(), index.len(), &Device::Cpu)?,
+                 0,
+-            )?)?);
++            )?.sum_all()?);
+         }
+         let greedy = masses
+             .iter()
+@@ -2594,7 +2573,7 @@ impl CreditTape {
+             .ok_or_else(|| invalid("native winner has no token mass"))?;
+         let chosen = self.choose_scaled(
+             "emitter.token",
+-            Tensor::stack(&token_log, 0)?,
++            Tensor::stack(&token_weights, 0)?,
+             greedy,
+             false,
+         )?;
+@@ -3085,7 +3064,7 @@ mod tests {
+     fn sampled() -> Mode {
+         Mode::Sampled(Sampling {
+             seed: 1001,
+-            temperature: 0.02,
++            temperature: 0.000001,
+             exploration: 0.00001,
+             maximum_decisions: 4096,
+         })
+@@ -3844,7 +3823,7 @@ mod tests {
+     #[test]
+     fn whole_path_sampling_score_function_matches_exact_tiny_expectation() -> Result<()> {
+         let variable = Var::from_vec(vec![0.2f32, -0.1], 2, &Device::Cpu)?;
+-        let p = candle_nn::ops::softmax(variable.as_tensor(), 0)?.affine(0.9, 0.05)?;
++        let p = law::probabilities(&law::choice_weights(variable.as_tensor(), 0.5)?, 0.1)?;
+         let probabilities = p.to_vec1::<f32>()?;
+         let costs = [2f32, -1.];
+         let mut expected = vec![0f32; 2];
+@@ -4127,15 +4106,15 @@ mod tests {
+             }),
+             1,
+         )?;
+-        let physical = candle_nn::ops::softmax(&var.affine(2., 0.)?, 0)?;
++        let physical = law::emission_weights(var.as_tensor())?;
+         let aliases = (physical.i(0)? + physical.i(1)?)?;
+-        let token_logits = Tensor::stack(&[aliases.log()?, physical.i(2)?.log()?], 0)?;
++        let token_logits = Tensor::stack(&[aliases.clone(), physical.i(2)?], 0)?;
+         let chosen = tape.choose_scaled("emitter.token", token_logits, 0, false)?;
+         let expected = if chosen == 0 {
+             aliases.to_scalar::<f32>()?
+         } else {
+             physical.i(2)?.to_scalar::<f32>()?
+-        } * 0.9
++        } / physical.sum_all()?.to_scalar::<f32>()? * 0.9
+             + 0.05;
+         let receipt = tape.receipts()?;
+         assert_eq!(receipt.len(), 1);
+@@ -4197,7 +4176,7 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn whole_path_alias_logsumexp_keeps_underflowed_alternatives_finite() -> Result<()> {
++    fn whole_path_linear_aliases_keep_extreme_alternatives_positive() -> Result<()> {
+         let var = Var::from_vec(vec![8f32, -8., -8.], 3, &Device::Cpu)?;
+         let tape = CreditTape::new(
+             BTreeMap::from([("fixture.extreme".into(), var.clone())]),
+@@ -4209,18 +4188,19 @@ mod tests {
+             }),
+             1,
+         )?;
+-        let scaled = var.affine(50., 0.)?;
++        let scaled = law::emission_weights(var.as_tensor())?;
+         let law = Tensor::stack(
+             &[
+-                log_sum_exp(&scaled.narrow(0, 0, 1)?)?,
+-                log_sum_exp(&scaled.narrow(0, 1, 2)?)?,
++                scaled.narrow(0, 0, 1)?.sum_all()?,
++                scaled.narrow(0, 1, 2)?.sum_all()?,
+             ],
+             0,
+         )?;
+         assert!(law.to_vec1::<f32>()?.iter().all(|x| x.is_finite()));
+         let chosen = tape.choose_scaled("emitter.token", law, 0, false)?;
+         let p = tape.receipts()?[0].probability;
+-        assert!((p - if chosen == 0 { 0.95 } else { 0.05 }).abs() < 1e-6);
++        let expected = if chosen == 0 { 4097. / 4099. } else { 2. / 4099. } * 0.9 + 0.05;
++        assert!((p - expected).abs() < 1e-6);
+         let gradients = tape.objective(1., 0.)?.backward()?;
+         assert!(gradients
+             .get(var.as_tensor())

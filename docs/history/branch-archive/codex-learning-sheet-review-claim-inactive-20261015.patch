@@ -1,0 +1,16 @@
+diff --git a/docs/harness/claims.json b/docs/harness/claims.json
+index 986dea9dcf362fdc895ea8797e2406e49680594e..de8797f250ad48ea1c6d54aa786ea053f0ba705b 100644
+--- a/docs/harness/claims.json
++++ b/docs/harness/claims.json
+@@ -1,4 +1,11 @@
+ {
++  "codex/learning-sheet-review-20261014": {
++    "branch": "codex/learning-sheet-review-20261014",
++    "claimed_at": "2026-10-13T21:52:08-04:00",
++    "head": "3e38881a2",
++    "lab": "codex",
++    "note": ""
++  },
+   "kimi/d29-nvrtc-amendment": {
+     "branch": "kimi/d29-nvrtc-amendment",
+     "claimed_at": "2026-10-13T11:31:25-04:00",
