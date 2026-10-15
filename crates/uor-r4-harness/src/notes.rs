@@ -99,6 +99,11 @@ impl Markers {
                 return false;
             }
         }
+        std::fs::write(&path, self.body()).is_ok()
+    }
+
+    /// The marker file's contents.
+    fn body(&self) -> String {
         let seen: serde_json::Map<String, serde_json::Value> = self
             .seen
             .iter()
@@ -108,7 +113,7 @@ impl Markers {
             "lab": self.lab,
             "seen": serde_json::Value::Object(seen),
         });
-        std::fs::write(&path, format!("{body}\n")).is_ok()
+        format!("{body}\n")
     }
 
     /// Notes newer than the marker for their issue.
@@ -371,6 +376,65 @@ pub fn watched_issues(regs: Option<&crate::registries::Registries>) -> Vec<i64> 
     }
 }
 
+/// One open pull request, as much of it as seat detection reads.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PrRow {
+    pub number: i64,
+    pub head: String,
+    pub title: String,
+    pub body: String,
+}
+
+fn is_word_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_'
+}
+
+/// Whether `lab` appears in `text` as a whole word, case-insensitively.
+fn mentions_word(text: &str, lab: &str) -> bool {
+    let (text, lab) = (text.to_ascii_lowercase(), lab.to_ascii_lowercase());
+    if lab.is_empty() {
+        return false;
+    }
+    text.match_indices(&lab).any(|(i, m)| {
+        let before = text[..i].chars().next_back();
+        let after = text[i + m.len()..].chars().next();
+        !before.is_some_and(is_word_char) && !after.is_some_and(is_word_char)
+    })
+}
+
+/// Open PRs where `lab` has a seat: its branch prefix `<lab>/`, or its name as a whole word in the
+/// title or body. Ascending and deduplicated. PR comments are issue comments, so these numbers can
+/// join the watched-issue list unchanged.
+pub fn seat_prs(lab: &str, rows: &[PrRow]) -> Vec<i64> {
+    let prefix = format!("{}/", lab.to_ascii_lowercase());
+    let mut out: Vec<i64> = rows
+        .iter()
+        .filter(|r| {
+            r.head.to_ascii_lowercase().starts_with(&prefix)
+                || mentions_word(&r.title, lab)
+                || mentions_word(&r.body, lab)
+        })
+        .map(|r| r.number)
+        .collect();
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
+/// Notes still unread per `markers` that are at least `minutes` old at `now_unix`.
+///
+/// A note whose time will not parse is not counted: an age we cannot compute is not evidence of one.
+pub fn unread_older_than(notes: &[Note], markers: &Markers, now_unix: i64, minutes: i64) -> usize {
+    markers
+        .unread(notes)
+        .iter()
+        .filter(|n| {
+            crate::state::parse_iso_unix(&n.created_at)
+                .is_some_and(|t| now_unix - t >= minutes * 60)
+        })
+        .count()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -561,13 +625,26 @@ mod tests {
 /// already have missed a contest posted while the lab was working, which is the failure this closes.
 pub const CACHE_FRESH_MINUTES: u64 = 20;
 
-/// How long ago the cache was refreshed, or `None` when it has never been written.
+/// Where a COMPLETE refresh is recorded: `notes/<lab>-notes.refreshed`, beside the cache.
 ///
-/// The cache file's mtime IS the refresh time, so no schema change is needed and older caches keep
-/// working. Reporting stays network-free on purpose: a check-in must be instant, which is why the
-/// cache exists at all.
-pub fn cache_age(paths: &StatePaths, lab: &str) -> Option<std::time::Duration> {
-    let meta = std::fs::metadata(cache_path(paths, lab)).ok()?;
+/// **Not the cache's own mtime.** `cache_append` writes whenever any issue returns a new note, so a
+/// refresh that read #2028 and then timed out on #2029 used to leave a seconds-old cache that every
+/// check-in for the next twenty minutes trusted as fresh. The stamp is written only when every
+/// watched issue and the PR list were read, so a partial refresh stays stale and is retried.
+pub fn refreshed_path(paths: &StatePaths, lab: &str) -> PathBuf {
+    paths
+        .live
+        .join("notes")
+        .join(format!("{}-notes.refreshed", crate::state::slug(lab)))
+}
+
+/// How long ago the lab last COMPLETED a refresh, or `None` when it never has on this machine.
+///
+/// Reads the stamp, never the cache: a cache file that exists (created empty by `ensure_state`, or
+/// appended to by a partial refresh) says nothing about whether the lab has seen everything. An
+/// older cache with no stamp therefore just triggers one refresh. Network-free on purpose.
+pub fn refresh_age(paths: &StatePaths, lab: &str) -> Option<std::time::Duration> {
+    let meta = std::fs::metadata(refreshed_path(paths, lab)).ok()?;
     std::time::SystemTime::now()
         .duration_since(meta.modified().ok()?)
         .ok()
@@ -603,9 +680,220 @@ pub fn cache_line(age: Option<std::time::Duration>) -> Option<String> {
     }
 }
 
+/// Whether a check-in should refresh the cache from GitHub before reporting.
+///
+/// **A lab that only ever runs `heartbeat` used to never refresh**, so its cache aged forever and it
+/// never saw a new comment - the CONTEST it most needed was exactly the one it could not see. Absent
+/// or older than the CONTEST window refreshes; anything younger is served from the cache with no
+/// network call, so the five-minute cadence costs one fetch per twenty minutes, not one per check-in.
+///
+/// Pure, so the boundary is testable without a clock or a network.
+pub fn needs_refresh(age: Option<std::time::Duration>) -> bool {
+    match age {
+        None => true,
+        Some(d) => d.as_secs() >= CACHE_FRESH_MINUTES * 60,
+    }
+}
+
+/// Make sure the lab's cache and marker files exist, without changing what either says.
+///
+/// A lab that has run `notes` or `heartbeat` must leave state behind even when nothing was fetched,
+/// or the next run cannot tell "never looked" from "looked, nothing there", and the board cannot
+/// count for it. The marker is created with `create_new`, so a concurrent `--mark-seen` that wrote
+/// it first is never overwritten and cannot move backwards. Creating the cache does NOT make it
+/// fresh: freshness is the refresh stamp (`refresh_age`). Best-effort: an unwritable live tier must
+/// not fail a check-in.
+pub fn ensure_state(paths: &StatePaths, lab: &str) {
+    let cache = cache_path(paths, lab);
+    if let Some(parent) = cache.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if !cache.exists() {
+        let _ = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&cache);
+    }
+    let marker = marker_path(paths, lab);
+    if let Some(parent) = marker.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    // AlreadyExists is the expected case and means "leave it alone"; any other error is best-effort.
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&marker)
+    {
+        use std::io::Write;
+        let _ = f.write_all(Markers::new(lab).body().as_bytes());
+    }
+}
+
+/// Record that a COMPLETE refresh finished now, by writing the refresh stamp.
+///
+/// Called only when every watched issue and the PR list were read: a partial or failed refresh must
+/// stay stale so the next check-in tries again.
+pub fn mark_refreshed(paths: &StatePaths, lab: &str) {
+    let path = refreshed_path(paths, lab);
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let _ = std::fs::write(&path, format!("{now}\n"));
+}
+
+/// What one bounded `gh` call produced.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Fetch<T> {
+    /// Exited successfully within its time; the parsed output.
+    Got(T),
+    /// Ran but failed: non-zero exit (404, rate limit, jq error), unparseable output, or timed out.
+    Failed,
+    /// Could not be started at all (`gh` missing). Every later call would fail the same way.
+    NotSpawned,
+}
+
+/// The whole-refresh budget across the PR list and every issue.
+///
+/// One call is bounded by `GH_TIMEOUT` in the binary; this bounds their SUM, so a slow network
+/// cannot turn a check-in into minutes of 20-second waits.
+pub const REFRESH_BUDGET: std::time::Duration = std::time::Duration::from_secs(45);
+
+/// Read every watched issue into the cache: `(new notes appended, whether the read was complete)`.
+///
+/// **A failure on one issue does not blind the lab to the rest**: a 404'd registry issue, a jq
+/// error or a slow #2029 used to stop the loop, so every later issue and every seat PR went unread
+/// for good. Now a failed issue is skipped and makes the read partial. Two things stop it early,
+/// each with one stderr line: `gh` cannot be started (every call would fail the same way), or the
+/// overall `deadline` passed. `prs_listed` is whether the PR list was read; without it the read is
+/// partial too. Only a complete read writes the refresh stamp.
+///
+/// `fetch` is injected so the policy is testable without a network.
+pub fn refresh_with(
+    paths: &StatePaths,
+    lab: &str,
+    issues: &[i64],
+    prs_listed: bool,
+    deadline: std::time::Instant,
+    mut fetch: impl FnMut(i64) -> Fetch<Vec<Note>>,
+) -> (usize, bool) {
+    ensure_state(paths, lab);
+    let mut fetched = 0usize;
+    let mut complete = prs_listed;
+    for (i, issue) in issues.iter().enumerate() {
+        if std::time::Instant::now() >= deadline {
+            eprintln!(
+                "uor-harness: notes refresh ran out of time - skipped {} issue(s); using the cached notes",
+                issues.len() - i
+            );
+            complete = false;
+            break;
+        }
+        match fetch(*issue) {
+            Fetch::Got(found) => match cache_append(paths, lab, &found) {
+                Ok(n) => fetched += n,
+                Err(e) => {
+                    eprintln!("uor-harness: notes cache: {e}");
+                    complete = false;
+                }
+            },
+            Fetch::Failed => {
+                eprintln!(
+                    "uor-harness: could not read #{issue} (failed or timed out) - continuing; using the cached notes for it"
+                );
+                complete = false;
+            }
+            Fetch::NotSpawned => {
+                eprintln!(
+                    "uor-harness: could not run gh - skipped {} issue(s); using the cached notes",
+                    issues.len() - i
+                );
+                complete = false;
+                break;
+            }
+        }
+    }
+    if complete {
+        mark_refreshed(paths, lab);
+    }
+    (fetched, complete)
+}
+
+/// Run a command, returning its stdout only if it exits successfully within `timeout`.
+///
+/// **A check-in must never be blocked by GitHub**, and `Command::output` waits forever on a hung
+/// `gh`. So the child is spawned, its stdout drained on a thread (a full pipe would otherwise stall
+/// the child and look like a timeout), and it is killed and reaped at the deadline. On a timeout the
+/// reader thread is NOT joined: `kill` reaches only the direct child, and a grandchild (a `gh`
+/// wrapper or shim) that inherited stdout would keep the pipe open and the join waiting. The thread
+/// is left to finish on its own when that pipe closes. No new dependency: std only.
+pub fn run_bounded(
+    cmd: &mut std::process::Command,
+    timeout: std::time::Duration,
+) -> Fetch<Vec<u8>> {
+    use std::io::Read;
+    use std::process::Stdio;
+    let Ok(mut child) = cmd
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+    else {
+        return Fetch::NotSpawned;
+    };
+    let Some(mut pipe) = child.stdout.take() else {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Fetch::Failed;
+    };
+    let reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = pipe.read_to_end(&mut buf);
+        buf
+    });
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => {
+                return match reader.join() {
+                    Ok(out) => Fetch::Got(out),
+                    Err(_) => Fetch::Failed,
+                };
+            }
+            // Exited non-zero: no need to wait for the reader either.
+            Ok(Some(_)) => return Fetch::Failed,
+            Ok(None) if std::time::Instant::now() < deadline => {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Fetch::Failed;
+            }
+        }
+    }
+}
+
 /// No cache at all used to print NOTHING, so a lab that never ran `notes` could not know there was
 /// anything to run. That silence is the failure this closes.
 pub const NO_CACHE: &str = "no notes cache on this machine yet - run: uor-harness notes";
+
+/// Notes are cached, but no refresh has ever read EVERY watched source (an issue or the PR list
+/// keeps failing). Saying "no notes cache" here was false - the cache is full - and sent the lab to a
+/// command that is partial for the same reason, so it fixed nothing.
+pub const NEVER_COMPLETE: &str = "notes are cached but no refresh has read every watched issue and PR yet, so the count above is a floor - see the \"could not\" line above";
+
+/// The line a check-in prints about its notes: [`cache_line`], except that a lab holding cached
+/// notes with no complete refresh is told THAT, not that it has no cache. Pure, so testable.
+pub fn check_in_line(age: Option<std::time::Duration>, cached_notes: usize) -> Option<String> {
+    match age {
+        None if cached_notes > 0 => Some(NEVER_COMPLETE.to_string()),
+        _ => cache_line(age),
+    }
+}
 
 #[cfg(test)]
 mod cache_line_tests {
@@ -634,10 +922,46 @@ mod cache_line_tests {
     }
 
     #[test]
+    fn cached_notes_without_a_complete_refresh_are_not_called_no_cache() {
+        let line = check_in_line(None, 12).expect("a line");
+        assert!(!line.contains("no notes cache"), "{line}");
+        assert!(line.contains("floor"), "{line}");
+        assert_eq!(check_in_line(None, 0).as_deref(), Some(NO_CACHE));
+        assert_eq!(check_in_line(Some(Duration::from_secs(60)), 12), None);
+    }
+
+    #[test]
     fn no_cache_at_all_is_reported() {
         assert!(cache_line(None)
             .expect("a line")
             .contains("uor-harness notes"));
+    }
+
+    /// Absent or past the CONTEST window refreshes; younger is served from the cache, offline.
+    #[test]
+    fn a_check_in_refreshes_only_an_absent_or_stale_cache() {
+        assert!(needs_refresh(None), "no cache: first use must fetch");
+        assert!(!needs_refresh(Some(Duration::from_secs(0))));
+        assert!(!needs_refresh(Some(Duration::from_secs(19 * 60 + 59))));
+        assert!(needs_refresh(Some(Duration::from_secs(20 * 60))));
+        assert!(needs_refresh(Some(Duration::from_secs(6 * 3600))));
+    }
+
+    /// First use leaves both files behind; an existing marker is never rewritten backwards.
+    #[test]
+    fn ensure_state_creates_files_and_never_rewinds_a_marker() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let live = dir.path().join("live");
+        let p = StatePaths::resolve(dir.path(), None, Some(live.to_str().expect("utf8")));
+        ensure_state(&p, "antigravity");
+        assert!(cache_path(&p, "antigravity").exists(), "cache created");
+        assert!(marker_path(&p, "antigravity").exists(), "marker created");
+        assert!(read_cache(&p, "antigravity").is_empty());
+        let mut m = Markers::new("claude");
+        m.seen.insert(2029, 500);
+        assert!(m.save(&p));
+        ensure_state(&p, "claude");
+        assert_eq!(Markers::load(&p, "claude").seen.get(&2029), Some(&500));
     }
 
     #[test]
@@ -645,5 +969,232 @@ mod cache_line_tests {
         assert_eq!(human_age(Duration::from_secs(45 * 60)), "45m");
         assert_eq!(human_age(Duration::from_secs(6 * 3600)), "6h");
         assert_eq!(human_age(Duration::from_secs(50 * 3600)), "2d");
+    }
+}
+
+#[cfg(test)]
+mod seat_and_age_tests {
+    use super::*;
+
+    fn pr(number: i64, head: &str, title: &str, body: &str) -> PrRow {
+        PrRow {
+            number,
+            head: head.into(),
+            title: title.into(),
+            body: body.into(),
+        }
+    }
+
+    #[test]
+    fn branch_prefix_matches_case_insensitively() {
+        let rows = [pr(7, "Claude/x", "t", ""), pr(8, "codex/y", "t", "")];
+        assert_eq!(seat_prs("claude", &rows), vec![7]);
+        assert_eq!(seat_prs("CLAUDE", &rows), vec![7]);
+    }
+
+    #[test]
+    fn whole_word_in_title_or_body() {
+        let rows = [
+            pr(1, "o/a", "Review by Claude's lab", ""),
+            pr(2, "o/b", "t", "cc (claude)"),
+            pr(3, "o/c", "t", "see claude/foo"),
+            pr(4, "o/d", "t", "ping @claude please"),
+        ];
+        assert_eq!(seat_prs("claude", &rows), vec![1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn longer_words_do_not_match() {
+        let rows = [
+            pr(1, "o/a", "claudette work", ""),
+            pr(2, "o/b", "t", "claude_x and xclaude and claude2"),
+        ];
+        assert!(seat_prs("claude", &rows).is_empty());
+    }
+
+    #[test]
+    fn ascending_deduped_and_other_labs_excluded() {
+        let rows = [
+            pr(9, "claude/a", "claude", "claude"),
+            pr(3, "claude/b", "", ""),
+            pr(5, "deepseek/z", "t", "b"),
+            pr(3, "claude/b", "", ""),
+        ];
+        assert_eq!(seat_prs("claude", &rows), vec![3, 9]);
+    }
+
+    fn note(id: i64, created_at: &str) -> Note {
+        Note {
+            id,
+            issue: 2029,
+            author: "a".into(),
+            created_at: created_at.into(),
+            first_line: String::new(),
+        }
+    }
+
+    #[test]
+    fn unread_age_threshold() {
+        let now = crate::state::parse_iso_unix("2026-10-14T12:16:00Z").expect("parse");
+        let m = Markers::new("claude");
+        let notes = [
+            note(1, "2026-10-14T12:00:00Z"), // 16 min
+            note(2, "2026-10-14T12:02:00Z"), // 14 min
+            note(3, "garbage"),
+        ];
+        assert_eq!(unread_older_than(&notes, &m, now, 15), 1);
+        assert_eq!(unread_older_than(&notes[1..], &m, now, 15), 0);
+    }
+
+    #[test]
+    fn a_seen_note_is_not_counted() {
+        let now = crate::state::parse_iso_unix("2026-10-14T12:16:00Z").expect("parse");
+        let mut m = Markers::new("claude");
+        m.seen.insert(2029, 1);
+        assert_eq!(
+            unread_older_than(&[note(1, "2026-10-14T12:00:00Z")], &m, now, 15),
+            0
+        );
+    }
+}
+
+#[cfg(test)]
+mod refresh_tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    fn paths(dir: &tempfile::TempDir) -> StatePaths {
+        let live = dir.path().join("live");
+        StatePaths::resolve(dir.path(), None, Some(live.to_str().expect("utf8")))
+    }
+
+    fn note(id: i64, issue: i64) -> Note {
+        Note {
+            id,
+            issue,
+            author: "kimi".into(),
+            created_at: "2026-10-14T00:00:00Z".into(),
+            first_line: "x".into(),
+        }
+    }
+
+    /// F1: appending notes does not make the cache fresh; only a complete refresh's stamp does.
+    #[test]
+    fn a_partial_append_is_not_a_refresh() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let p = paths(&dir);
+        ensure_state(&p, "antigravity");
+        assert_eq!(cache_append(&p, "antigravity", &[note(1, 2028)]), Ok(1));
+        assert!(
+            needs_refresh(refresh_age(&p, "antigravity")),
+            "append alone is not fresh"
+        );
+        assert_eq!(
+            cache_line(refresh_age(&p, "antigravity")).as_deref(),
+            Some(NO_CACHE),
+            "never completed a refresh: NO_CACHE even though the cache file exists"
+        );
+        mark_refreshed(&p, "antigravity");
+        assert!(!needs_refresh(refresh_age(&p, "antigravity")));
+        assert!(cache_line(refresh_age(&p, "antigravity")).is_none());
+    }
+
+    /// F2: one failing issue in the middle does not stop later issues; the read is partial, unstamped.
+    #[test]
+    fn a_failed_issue_does_not_blind_the_rest() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let p = paths(&dir);
+        let mut asked = Vec::new();
+        let (n, exact) = refresh_with(
+            &p,
+            "claude",
+            &[2028, 2029, 2030],
+            true,
+            Instant::now() + Duration::from_secs(60),
+            |i| {
+                asked.push(i);
+                if i == 2029 {
+                    Fetch::Failed
+                } else {
+                    Fetch::Got(vec![note(i * 10, i)])
+                }
+            },
+        );
+        assert_eq!(asked, vec![2028, 2029, 2030], "later issues still fetched");
+        assert_eq!(n, 2);
+        assert!(!exact);
+        assert!(
+            refresh_age(&p, "claude").is_none(),
+            "a partial read writes no stamp"
+        );
+    }
+
+    /// F2: missing gh stops early; a complete read stamps; F5: an unread PR list is partial.
+    #[test]
+    fn missing_gh_stops_and_only_a_complete_read_stamps() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let p = paths(&dir);
+        let far = Instant::now() + Duration::from_secs(60);
+        let mut asked = 0;
+        let (_, exact) = refresh_with(&p, "claude", &[1, 2, 3], true, far, |_| {
+            asked += 1;
+            Fetch::NotSpawned
+        });
+        assert_eq!(asked, 1, "no gh: one try, then skip the rest");
+        assert!(!exact);
+        let (_, exact) = refresh_with(&p, "claude", &[1, 2], false, far, |_| Fetch::Got(vec![]));
+        assert!(!exact, "PR list not read: partial");
+        assert!(refresh_age(&p, "claude").is_none());
+        let (_, exact) = refresh_with(&p, "claude", &[1, 2], true, far, |_| Fetch::Got(vec![]));
+        assert!(exact);
+        assert!(refresh_age(&p, "claude").is_some(), "complete read stamps");
+    }
+
+    /// F2: past the overall deadline the remaining issues are skipped and the read is partial.
+    #[test]
+    fn the_overall_deadline_skips_the_rest() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let p = paths(&dir);
+        let mut asked = 0;
+        let (_, exact) = refresh_with(&p, "claude", &[1, 2], true, Instant::now(), |_| {
+            asked += 1;
+            Fetch::Got(vec![])
+        });
+        assert_eq!(asked, 0);
+        assert!(!exact);
+    }
+
+    /// F3: a grandchild holding stdout open cannot hold the bounded call past its timeout.
+    #[cfg(unix)]
+    #[test]
+    fn a_grandchild_holding_the_pipe_does_not_hang_the_call() {
+        let start = Instant::now();
+        let mut cmd = std::process::Command::new("sh");
+        cmd.args(["-c", "sleep 5 & sleep 30"]);
+        let got = run_bounded(&mut cmd, Duration::from_secs(1));
+        let took = start.elapsed();
+        assert_eq!(got, Fetch::Failed);
+        assert!(took < Duration::from_secs(3), "took {took:?}");
+    }
+
+    #[test]
+    fn a_missing_program_is_not_spawned() {
+        let mut cmd = std::process::Command::new("uor-harness-no-such-program-xyz");
+        assert_eq!(
+            run_bounded(&mut cmd, Duration::from_secs(1)),
+            Fetch::NotSpawned
+        );
+    }
+
+    /// F6: ensure_state never overwrites an existing marker, even one written after a check.
+    #[test]
+    fn ensure_state_does_not_overwrite_a_marker() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let p = paths(&dir);
+        let mut m = Markers::new("claude");
+        m.seen.insert(2029, 900);
+        assert!(m.save(&p));
+        ensure_state(&p, "claude");
+        assert_eq!(Markers::load(&p, "claude").seen.get(&2029), Some(&900));
     }
 }

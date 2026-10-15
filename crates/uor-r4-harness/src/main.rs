@@ -1614,13 +1614,27 @@ fn cmd_multilab(repo: &Path, args: &[String], json: bool) -> ExitCode {
         "presence" => {
             let now = now_unix();
             let rows = multilab::board(&paths, now);
+            // Unread-but-live: notes unread for 15+ minutes, for labs with a cache on this machine.
+            let unread_old = |lab: &str| -> Option<usize> {
+                notes::cache_path(&paths, lab).exists().then(|| {
+                    notes::unread_older_than(
+                        &notes::read_cache(&paths, lab),
+                        &notes::Markers::load(&paths, lab),
+                        now,
+                        15,
+                    )
+                })
+            };
             if json {
                 let mut items: Vec<String> = Vec::new();
                 for e in &rows {
+                    let unread =
+                        unread_old(&e.row.lab).map_or("null".to_string(), |n| n.to_string());
                     items.push(format!(
-                        "    {{\"lab\": {:?}, \"updated\": {:?}, \"milestone\": {:?}, \"branch\": {:?}, \"worktree\": {:?}, \"doing\": {:?}, \"next\": {:?}, \"host\": {:?}, \"session\": {:?}, \"source\": {:?}, \"state\": {:?}}}",
+                        "    {{\"lab\": {:?}, \"updated\": {:?}, \"milestone\": {:?}, \"branch\": {:?}, \"worktree\": {:?}, \"doing\": {:?}, \"next\": {:?}, \"host\": {:?}, \"session\": {:?}, \"source\": {:?}, \"state\": {:?}, \"unread_over_15m\": {}}}",
                         e.row.lab, e.row.updated, e.row.milestone, e.row.branch, e.row.worktree,
-                        e.row.doing, e.row.next, e.row.host, e.row.session, e.source, e.state()
+                        e.row.doing, e.row.next, e.row.host, e.row.session, e.source, e.state(),
+                        unread
                     ));
                 }
                 println!("[\n{}\n]", items.join(",\n"));
@@ -1645,14 +1659,13 @@ fn cmd_multilab(repo: &Path, args: &[String], json: bool) -> ExitCode {
                     } else {
                         &e.row.branch
                     };
+                    let mut state = e.state();
+                    if let Some(n) = unread_old(&e.row.lab).filter(|n| *n > 0) {
+                        state.push_str(&format!(" · {n} unread >15m"));
+                    }
                     println!(
                         "  {:<12} {:<20} {:<8} {:<9} {:<20} {}",
-                        e.row.lab,
-                        e.state(),
-                        e.source,
-                        e.row.milestone,
-                        branch,
-                        e.row.doing
+                        e.row.lab, state, e.source, e.row.milestone, branch, e.row.doing
                     );
                 }
             }
@@ -2074,34 +2087,15 @@ fn cmd_notes(repo: &Path, args: &[String], json: bool) -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let regs = Registries::load(&paths).ok();
-    let issues = notes::watched_issues(regs.as_ref());
 
-    let mut fetched = 0usize;
     // Whether the read covered everything. A `--cached` call or a failed fetch does not know what it
     // missed, and the report says "at least" rather than presenting a floor as the truth.
-    let mut exact = true;
-    if !args.iter().any(|a| a == "--cached") {
-        for issue in &issues {
-            match fetch_issue_notes(*issue) {
-                Some(found) => match notes::cache_append(&paths, &lab, &found) {
-                    Ok(n) => fetched += n,
-                    Err(e) => {
-                        exact = false;
-                        eprintln!("uor-harness: notes cache: {e}");
-                    }
-                },
-                // A fetch failure is reported but NOT fatal: a lab with no network must still be able
-                // to read what it already knows, and a check-in must never be blocked by GitHub.
-                None => {
-                    exact = false;
-                    eprintln!("uor-harness: could not read #{issue} (no network or no gh)");
-                }
-            }
-        }
+    let (fetched, exact) = if args.iter().any(|a| a == "--cached") {
+        notes::ensure_state(&paths, &lab);
+        (0, false)
     } else {
-        exact = false;
-    }
+        refresh_notes(&paths, &lab)
+    };
 
     let cached = notes::read_cache(&paths, &lab);
     let mut markers = notes::Markers::load(&paths, &lab);
@@ -2156,33 +2150,114 @@ fn cmd_notes(repo: &Path, args: &[String], json: bool) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// How long one `gh` call may take before a check-in gives up on it.
+///
+/// A paginated read of the largest milestone issue completes in a few seconds; twenty leaves room for
+/// a slow network while keeping a check-in that hits a dead one from hanging. The sum over the whole
+/// refresh is bounded separately by `notes::REFRESH_BUDGET`.
+const GH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+
+/// One call's timeout: `GH_TIMEOUT`, cut short by what is left of the refresh budget.
+fn call_timeout(deadline: std::time::Instant) -> std::time::Duration {
+    GH_TIMEOUT.min(deadline.saturating_duration_since(std::time::Instant::now()))
+}
+
+/// Refresh a lab's note cache from GitHub: `(new notes appended, whether the read was complete)`.
+///
+/// Shared by `notes` and `heartbeat` so the two cannot drift into fetching differently. The PR list
+/// and every issue share one `notes::REFRESH_BUDGET`; the per-issue policy (continue past a failed
+/// issue, stop on missing `gh` or the deadline, stamp only a complete read) is `notes::refresh_with`.
+fn refresh_notes(paths: &StatePaths, lab: &str) -> (usize, bool) {
+    let deadline = std::time::Instant::now() + notes::REFRESH_BUDGET;
+    let regs = Registries::load(paths).ok();
+    let (issues, prs_listed) = watch_list(lab, regs.as_ref(), deadline);
+    notes::refresh_with(paths, lab, &issues, prs_listed, deadline, |issue| {
+        fetch_issue_notes(issue, call_timeout(deadline))
+    })
+}
+
 /// Fetch one issue's comments as `id<TAB>author<TAB>created_at<TAB>body-first-line`.
 ///
 /// `gh` does the authentication and the JSON; this reads four tab-separated fields rather than take a
-/// dependency on walking a dynamic tree. `None` means the call failed, which the caller reports and
-/// survives - **a check-in must never be blocked by GitHub.**
-fn fetch_issue_notes(issue: i64) -> Option<Vec<notes::Note>> {
-    let out = std::process::Command::new("gh")
-        .args([
-            "api",
-            // `--paginate`, because ONE PAGE IS NOT THE ISSUE. Without it this read only the first
-            // 100 comments, so on #2029 (231 comments) it reported an old note as "latest" and missed
-            // every recent one - the exact failure the command exists to prevent, in the command
-            // itself. Claude reported it after #2029/#2030/#2032 all showed stale "latest" ids.
-            "--paginate",
-            &format!("repos/UOR-Foundation/uor-r4/issues/{issue}/comments?per_page=100"),
-            "--jq",
-            ".[] | [(.id|tostring), .user.login, .created_at, (.body|split(\"\\n\")|.[0])] | @tsv",
-        ])
-        .output()
-        .ok()?;
-    if !out.status.success() {
-        return None;
+/// dependency on walking a dynamic tree. A failure is reported by the caller and survived - **a
+/// check-in must never be blocked by GitHub.**
+fn fetch_issue_notes(issue: i64, timeout: std::time::Duration) -> notes::Fetch<Vec<notes::Note>> {
+    let mut cmd = std::process::Command::new("gh");
+    cmd.args([
+        "api",
+        // `--paginate`, because ONE PAGE IS NOT THE ISSUE. Without it this read only the first
+        // 100 comments, so on #2029 (231 comments) it reported an old note as "latest" and missed
+        // every recent one - the exact failure the command exists to prevent, in the command
+        // itself. Claude reported it after #2029/#2030/#2032 all showed stale "latest" ids.
+        "--paginate",
+        &format!("repos/UOR-Foundation/uor-r4/issues/{issue}/comments?per_page=100"),
+        "--jq",
+        ".[] | [(.id|tostring), .user.login, .created_at, (.body|split(\"\\n\")|.[0])] | @tsv",
+    ]);
+    match notes::run_bounded(&mut cmd, timeout) {
+        notes::Fetch::Got(stdout) => {
+            notes::Fetch::Got(notes::parse_tsv(issue, &String::from_utf8_lossy(&stdout)))
+        }
+        notes::Fetch::Failed => notes::Fetch::Failed,
+        notes::Fetch::NotSpawned => notes::Fetch::NotSpawned,
     }
-    Some(notes::parse_tsv(
-        issue,
-        &String::from_utf8_lossy(&out.stdout),
-    ))
+}
+
+/// Open PRs where `lab` has a seat, from ONE bounded `gh pr list`; `None` when the list could not be
+/// read. Non-fatal: on failure, say so on one stderr line, so only the milestone issues are watched
+/// (and a refresh that depended on it is partial).
+fn seat_pr_numbers(lab: &str, timeout: std::time::Duration) -> Option<Vec<i64>> {
+    let mut cmd = std::process::Command::new("gh");
+    cmd.args([
+        "pr",
+        "list",
+        "--repo",
+        "UOR-Foundation/uor-r4",
+        "--state",
+        "open",
+        "--limit",
+        "100",
+        "--json",
+        "number,headRefName,title,body",
+    ]);
+    let rows = match notes::run_bounded(&mut cmd, timeout) {
+        notes::Fetch::Got(out) => serde_json::from_slice::<Vec<serde_json::Value>>(&out).ok(),
+        _ => None,
+    };
+    let Some(rows) = rows else {
+        eprintln!("uor-harness: could not list open PRs - watching milestone issues only");
+        return None;
+    };
+    let rows: Vec<notes::PrRow> = rows
+        .iter()
+        .filter_map(|v| {
+            let text = |k: &str| v.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
+            Some(notes::PrRow {
+                number: v.get("number")?.as_i64()?,
+                head: text("headRefName"),
+                title: text("title"),
+                body: text("body"),
+            })
+        })
+        .collect();
+    Some(notes::seat_prs(lab, &rows))
+}
+
+/// Milestone issues first, then the lab's PRs, deduplicated; and whether the PR list was read.
+fn watch_list(
+    lab: &str,
+    regs: Option<&Registries>,
+    deadline: std::time::Instant,
+) -> (Vec<i64>, bool) {
+    let mut issues = notes::watched_issues(regs);
+    let prs = seat_pr_numbers(lab, call_timeout(deadline));
+    let listed = prs.is_some();
+    for n in prs.unwrap_or_default() {
+        if !issues.contains(&n) {
+            issues.push(n);
+        }
+    }
+    (issues, listed)
 }
 
 /// `ledger sync [--lab L] [--month M]` - append live receipts into the committed shard.
@@ -2320,26 +2395,8 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
     if let Some(line) = uor_r4_harness::version::placement_line(repo) {
         eprintln!("uor-harness: {line}");
     }
-    // Surface unread notes as part of the check-in: presence without awareness is half the plane.
-    // Read from the CACHE, not the network - a check-in must stay instant, and `notes` refreshes.
-    if !args.iter().any(|a| a == "--no-notes") {
-        let cached = notes::read_cache(&paths, &lab);
-        if !cached.is_empty() {
-            let markers = notes::Markers::load(&paths, &lab);
-            let items = notes::summarise(&markers.unread(&cached));
-            // The heartbeat reads the CACHE, so it cannot know what a failed refresh missed: the
-            // count it prints is a floor and says so.
-            for line in notes::render(&items, false) {
-                eprintln!("{line}");
-            }
-        }
-        // **And how old that floor is.** The count above comes from the cache, so without its age a lab
-        // cannot tell a fresh answer from a stale one - which is exactly how this lab missed a tasking
-        // sitting behind a six-hour-old cache. One line, still network-free, so a check-in stays instant.
-        if let Some(line) = notes::cache_line(notes::cache_age(&paths, &lab)) {
-            eprintln!("uor-harness: {line}");
-        }
-    }
+    // Presence first: the check-in itself must never wait on, or be lost to, a slow network. The notes
+    // refresh below runs only after it is written.
     let (live_ok, durable) = match heartbeat(&paths, &p) {
         Ok(v) => v,
         Err(e) => {
@@ -2347,6 +2404,39 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
             return ExitCode::from(1);
         }
     };
+    // Surface unread notes as part of the check-in: presence without awareness is half the plane.
+    // Served from the cache while it is fresh (no network, so the check-in stays instant); refreshed
+    // from GitHub, bounded, when it is absent or past the CONTEST window - a lab that only ever runs
+    // `heartbeat` used to never see a new comment. `--cached` keeps the old network-free behaviour.
+    if !args.iter().any(|a| a == "--no-notes") {
+        let exact = if !args.iter().any(|a| a == "--cached")
+            && notes::needs_refresh(notes::refresh_age(&paths, &lab))
+        {
+            refresh_notes(&paths, &lab).1
+        } else {
+            notes::ensure_state(&paths, &lab);
+            false
+        };
+        let cached = notes::read_cache(&paths, &lab);
+        if !cached.is_empty() {
+            let markers = notes::Markers::load(&paths, &lab);
+            let items = notes::summarise(&markers.unread(&cached));
+            // A cache read cannot know what it missed, so its count is a floor and says so; a
+            // complete refresh just now states the count as a fact.
+            for line in notes::render(&items, exact) {
+                eprintln!("{line}");
+            }
+        }
+        // **And how old that floor is.** The count above comes from the cache, so without its age a lab
+        // cannot tell a fresh answer from a stale one - which is exactly how this lab missed a tasking
+        // sitting behind a six-hour-old cache. One line, still network-free, so a check-in stays instant.
+        if let Some(line) = notes::check_in_line(
+            notes::refresh_age(&paths, &lab),
+            notes::read_cache(&paths, &lab).len(),
+        ) {
+            eprintln!("uor-harness: {line}");
+        }
+    }
     if json {
         println!(
             "{{\"lab\": {:?}, \"presence\": {:?}, \"receipt\": {:?}, \"live_tier\": {}}}",

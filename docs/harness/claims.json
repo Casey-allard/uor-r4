@@ -6,6 +6,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/harness-notes-surfacing": {
+    "branch": "claude/harness-notes-surfacing",
+    "claimed_at": "2026-10-14T22:45:48-04:00",
+    "head": "28625109f",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/spiralcore-attention-review-20261014": {
     "branch": "claude/spiralcore-attention-review-20261014",
     "claimed_at": "2026-10-14T14:08:30-04:00",
