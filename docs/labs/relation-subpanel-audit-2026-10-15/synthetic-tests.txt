@@ -1,0 +1,11 @@
+
+running 6 tests
+test tests::s1_interleaved_schedule_24_step_fixture_and_cursor_round_trip ... ok
+test tests::s2_interleaved_schedule_c192_counts_frequencies_and_wrap ... ok
+test tests::s3_and_s4_schedule_refusals_and_split_family_counters ... ok
+test tests::e3_zero_trit_attribution_snapshot_invariance_and_b1_b2_b3_bars ... ok
+test tests::e1_and_e2_copy_successor_subpanel_partition_and_additive_aggregates ... ok
+test tests::filesystem_cli_round_trip_no_clobber_and_oversized_refusal ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
