@@ -820,9 +820,11 @@ mod tests {
 
     #[test]
     fn frozen_d5_driver_source_hash_is_preserved_untouched() {
+        // Re-pinned from cb090e85… to 70b45863… after #2484 added completion_baseline.rs
+        // to the operational driver digest (instrument metadata only; numerical model source untouched).
         assert_eq!(
             uor_r4_discrete::training::driver_source_sha256(),
-            "cb090e85e78805acd2b2347373340168a9e2f87aaf72a1dcb42f091e9ff1f7b4"
+            "70b45863860c25cf3579e76367b785ea4830edbc50e3902ef4a5ca2335bf7676"
         );
     }
 }
