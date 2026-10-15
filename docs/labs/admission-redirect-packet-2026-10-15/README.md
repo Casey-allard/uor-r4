@@ -87,7 +87,7 @@ and round-trip took 28.11 seconds. These are data/metadata timings, not K16 rate
 `mw-balp/train` / `ft/dev` contrast. The source was historically used by pre-D32
 models; it is not globally unseen project data. It is a different chat-source
 distribution, not a fresh draw of the M-world generator. The 2,000 targets are
-token rows across at least 200 documents, not 2,000 independent conversations.
+token rows across exactly 200 documents, not 2,000 independent conversations.
 This per-document cap avoids satisfying the target count with two long responses.
 PM/reviewer acceptance of this
 scope is required; its measured result cannot broaden the dev acceptance bars.
@@ -139,6 +139,15 @@ config and lineage identities. These source hashes alone are not runtime admissi
 Historical pilot/completion release controllers remain K8-scoped; this packet does
 not widen them or fabricate `owner.json`, review receipts or capability tokens.
 
+The [separate K16 validator source deliverable](../k16-admission-validators-2026-10-15/README.md)
+adds explicit fresh-start arm/seed scopes without extending historical K8 release
+authority. Its qualification receipts, exact-head review and owner-transport
+resolution remain prerequisites, not completed execution. **Codex/Sol owns the
+fresh-scoring eval-only path**, separately reviewed before KEEP promotion;
+AGY owns qualification fixtures/G-Pre and DeepSeek owns timing. Fresh scoring
+is not a prerequisite for starting training, but is mandatory before a KEEP
+is promoted to a capability claim.
+
 ## Cost model and actual spending
 
 `cost-model.json` separates planned quantities from actual receipts. All K16 rates
@@ -166,7 +175,8 @@ fixed the environment. A subsequent admitted status check listed **0 pods/$0 per
 hour**, no free GPUs, and live 5090 offers starting at $0.96/GPU/h. This was an
 unbooked point-in-time quote. No lease was acquired, so this packet has **0 GPU
 seconds, $0 GPU rental, no pod storage or teardown**. The owner qualification
-stage cap is <$2; global limits remain <=4 pods and <=$8/hour. Preparation/archive
+stage envelope is approximately 30 minutes and <$2, superseding the sheet's
+historical 15-minute/$0.35 estimate; global limits remain <=4 pods and <=$8/hour. Preparation/archive
 wall time, local and archived bytes are disclosed with their receipts, not
 charged as model execution. Cloud subscription charges are not measured here.
 

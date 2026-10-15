@@ -1,11 +1,15 @@
 //! D5 operational dose completion. No numerical implementation lives in this module.
-//! Separate seed scopes require separate owner-personal releases. D33 pilot delegation
+//! Separate arm/seed scopes require separate owner-personal releases. D33 pilot delegation
 //! does not apply. Imported model bytes and baseline are retained; only driver lineage
 //! is migrated, from the single archived pilot artifact, with an explicit receipt.
 use super::*;
 
 #[path = "completion_baseline.rs"]
 mod baseline_authentication;
+
+#[path = "redirect_admission.rs"]
+mod redirect;
+pub use redirect::RedirectEvidence;
 
 pub const COMPLETION_BATCHES: u64 = 16_404;
 pub const CHECKPOINTS: [u64; 4] = [4_101, 8_202, 12_303, 16_404];
@@ -32,8 +36,10 @@ pub struct CompletionPlan {
     pub sheet: FilePin,
     pub claude_review: FilePin,
     pub run_state_directory: PathBuf,
-    /// Seed 1 requires the exact archived pilot checkpoint. Seed 2 must have no parent.
+    /// K8 seed 1 requires the archived pilot. K8 seed 2 and both K16 seeds are fresh.
     pub pilot_parent: Option<FilePin>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redirect: Option<RedirectEvidence>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -59,6 +65,9 @@ fn pilot_config() -> Result<DriverConfig> {
     Ok(plan.config)
 }
 pub fn validate_config(config: &DriverConfig) -> Result<()> {
+    if config.spec.kept_cells == 16 {
+        return validate_redirect_config(config);
+    }
     scope(config.seed)?;
     let mut expected = pilot_config()?;
     expected.seed = config.seed;
@@ -68,6 +77,14 @@ pub fn validate_config(config: &DriverConfig) -> Result<()> {
     config.validate()
 }
 fn parent(plan: &CompletionPlan) -> Result<Option<PilotCheckpoint>> {
+    if plan.config.spec.kept_cells == 16 {
+        if plan.pilot_parent.is_some() {
+            return Err(invalid(
+                "K16 redirect requires fresh initialization for both seeds",
+            ));
+        }
+        return Ok(None);
+    }
     match (plan.config.seed, &plan.pilot_parent) {
         (1, Some(pin)) if pin.sha256 == PARENT_SHA256 => {
             let p: PilotCheckpoint = serde_json::from_slice(&pin.read()?).map_err(|e| invalid(e.to_string()))?;
@@ -94,6 +111,12 @@ fn parent(plan: &CompletionPlan) -> Result<Option<PilotCheckpoint>> {
 }
 fn validate_plan(plan: &CompletionPlan) -> Result<()> {
     validate_config(&plan.config)?;
+    if plan.config.spec.kept_cells == 16 {
+        return redirect::validate_plan(plan);
+    }
+    if plan.redirect.is_some() {
+        return Err(invalid("K8 completion cannot import redirect evidence"));
+    }
     let e = &plan.execution;
     let original: OwnerReleasePlan = serde_json::from_str(include_str!(
         "../../../docs/labs/rung0-pilot-release-2026-10-14/PILOT_PLAN.json"
@@ -175,7 +198,7 @@ pub fn check_plan(plan: &CompletionPlan) -> Result<Value> {
 }
 fn validate_owner(plan: &CompletionPlan, pin: &FilePin, owner: &CompletionOwner) -> Result<()> {
     if owner.owner != "Casey"
-        || owner.decision != "RELEASE_D4_FOR_THIS_COMPLETION_SEED_ONLY"
+        || owner.decision != owner_decision(plan)
         || owner.scope != plan.scope
         || owner.plan_sha256 != corpus::sha256(&encode(plan)?)
         || owner.receipt_url != format!("owner-terminal:{}", pin.path.display())
@@ -183,6 +206,23 @@ fn validate_owner(plan: &CompletionPlan, pin: &FilePin, owner: &CompletionOwner)
         return Err(Error::TrainingHeld);
     }
     Ok(())
+}
+fn owner_decision(plan: &CompletionPlan) -> &'static str {
+    if plan.config.spec.kept_cells == 16 {
+        "RELEASE_D4_FOR_THIS_K16_REDIRECT_ARM_SEED_ONLY"
+    } else {
+        "RELEASE_D4_FOR_THIS_COMPLETION_SEED_ONLY"
+    }
+}
+fn admission_schema(plan: &CompletionPlan) -> &'static str {
+    if plan.config.spec.kept_cells == 16 {
+        "uor-r4.redirect-owner-admission/1"
+    } else {
+        "uor-r4.completion-owner-admission/1"
+    }
+}
+fn imports_pilot(config: &DriverConfig) -> bool {
+    config.spec.kept_cells == 8 && config.seed == 1
 }
 /// Casey personally at a live terminal only. No pilot delegation is inherited.
 pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
@@ -209,10 +249,17 @@ pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
             "completion release and run-state directories must be fresh",
         ));
     }
-    let phrase = format!(
-        "I am Casey; release D4 for completion seed {} only through batch 16404",
-        plan.config.seed
-    );
+    let phrase = if plan.config.spec.kept_cells == 16 {
+        format!(
+            "I am Casey; release D4 for {} only through batch 16404",
+            plan.scope
+        )
+    } else {
+        format!(
+            "I am Casey; release D4 for completion seed {} only through batch 16404",
+            plan.config.seed
+        )
+    };
     println!(
         "{}\nType exactly: {phrase}\nEvery other training scope and M2 remain HELD.",
         serde_json::to_string_pretty(&plan).map_err(|e| invalid(e.to_string()))?
@@ -232,14 +279,14 @@ pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
     let path = output.join("owner.json");
     let owner = CompletionOwner {
         owner: "Casey".into(),
-        decision: "RELEASE_D4_FOR_THIS_COMPLETION_SEED_ONLY".into(),
+        decision: owner_decision(&plan).into(),
         scope: plan.scope.clone(),
         plan_sha256: corpus::sha256(&encode(&plan)?),
         receipt_url: format!("owner-terminal:{}", path.display()),
     };
     write_new(&path, &owner)?;
     let admission = CompletionAdmission {
-        schema: "uor-r4.completion-owner-admission/1".into(),
+        schema: admission_schema(&plan).into(),
         plan,
         owner_release: FilePin {
             path,
@@ -256,7 +303,7 @@ fn release(
     executable: &str,
 ) -> Result<ValidatedRelease> {
     validate_plan(&a.plan)?;
-    if a.schema != "uor-r4.completion-owner-admission/1"
+    if a.schema != admission_schema(&a.plan)
         || a.plan.config != *driver.config()
         || a.plan.execution.lineage_sha256 != driver.lineage_sha256()?
         || a.plan.execution.executable_sha256 != executable
@@ -331,18 +378,18 @@ fn validate_progress(
 ) -> Result<()> {
     driver.validate_checkpoint(&p.checkpoint)?;
     let n = p.checkpoint.cursor.completed_batches;
-    let seed = driver.config().seed;
+    let imports_pilot = imports_pilot(driver.config());
     if p.schema != "uor-r4.completion-checkpoint/1"
         || p.admission_sha256 != release.manifest_sha256
         || n > COMPLETION_BATCHES
-        || (seed == 1 && n < 1640)
+        || (imports_pilot && n < 1640)
         || p.vector.attempted != n.min(16384)
         || p.route.attempted != n.saturating_sub(16384)
         || p.vector.accepted_updates + p.route.accepted_updates
             != p.checkpoint.cursor.accepted_updates
         || p.baseline_evaluation["model_epoch"] != json!(0)
         || p.baseline_evaluation["evaluation_lineage_sha256"]
-            != json!(if seed == 1 {
+            != json!(if imports_pilot {
                 OLD_LINEAGE.to_owned()
             } else {
                 driver.lineage_sha256()?
@@ -359,12 +406,12 @@ fn validate_progress(
             return Err(invalid("completion sensitivity counter ordering invalid"));
         }
     }
-    if seed == 1 {
+    if imports_pilot {
         if p.pilot_parent.as_ref().map(|p| p.sha256.as_str()) != Some(PARENT_SHA256) {
             return Err(invalid("completion lost exact pilot parent"));
         }
     } else if p.pilot_parent.is_some() {
-        return Err(invalid("seed 2 cannot import seed 1"));
+        return Err(invalid("fresh completion cannot import a pilot parent"));
     }
     Ok(())
 }
@@ -602,7 +649,11 @@ pub fn run(config: DriverConfig, a: CompletionAdmission, out: &Path, resume: boo
                 || initial.baseline_snapshot_metadata != p.baseline_snapshot_metadata
                 || initial.pilot_parent != p.pilot_parent
                 || initial.checkpoint.cursor.completed_batches
-                    != if driver.config().seed == 1 { 1640 } else { 0 }
+                    != if imports_pilot(driver.config()) {
+                        1640
+                    } else {
+                        0
+                    }
             {
                 return Err(invalid(
                     "completion resume baseline/parent differs from immutable initial",
@@ -674,6 +725,9 @@ pub fn run(config: DriverConfig, a: CompletionAdmission, out: &Path, resume: boo
             )?;
         }
         baseline_authentication::require_before_apply(&driver, &release, &a.plan, &p)?;
+        if a.plan.redirect.is_some() {
+            redirect::require_initial(&driver, &release, &a.plan, &p)?;
+        }
         let admission = training::issue_corpus_update_admission(&driver, &release)?;
         let mut receipts = OpenOptions::new()
             .write(true)
@@ -848,6 +902,7 @@ mod tests {
             claude_review: original.claude_review,
             run_state_directory: PathBuf::from("/no-owner-record-is-written"),
             pilot_parent: None,
+            redirect: None,
         };
         let pin = FilePin {
             path: PathBuf::from("/never-created-owner-record"),

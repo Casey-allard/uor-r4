@@ -1,4 +1,4 @@
-//! Seed-2 baseline provenance and stored-receipt consistency only. No model arithmetic.
+//! Fresh baseline provenance and stored-receipt consistency only. No model arithmetic.
 //! Authentication binds artifacts; it is not proof that GPU execution occurred.
 use super::*;
 use std::collections::BTreeMap;
@@ -38,7 +38,7 @@ fn aggregate(sums: &BTreeMap<&str, u64>, actual: &Value) -> Result<()> {
     Ok(())
 }
 /// Recounts already measured row observations; never evaluates a model or predictor.
-fn receipt_counts(e: &Value) -> Result<(u64, u64)> {
+pub(super) fn receipt_counts(e: &Value) -> Result<(u64, u64)> {
     let batches = e["batches"]
         .as_array()
         .ok_or_else(|| invalid("baseline batches missing"))?;
@@ -172,8 +172,10 @@ fn authenticate_with_reference(
     let c = &p.checkpoint;
     let e = &p.baseline_evaluation;
     require(
-        plan.config.seed == 2 && plan.pilot_parent.is_none() && p.pilot_parent.is_none(),
-        "fresh seed 2 only",
+        (plan.config.seed == 2 || plan.config.spec.kept_cells == 16)
+            && plan.pilot_parent.is_none()
+            && p.pilot_parent.is_none(),
+        "fresh seed 2 or registered K16 redirect only",
     )?;
     require(
         p.schema == "uor-r4.completion-checkpoint/1" && c.schema == training::CHECKPOINT_SCHEMA,
@@ -255,7 +257,7 @@ fn authenticate_with_reference(
         )?;
     }
     require(
-        c.model["seed"] == json!(2)
+        c.model["seed"] == json!(plan.config.seed)
             && c.model["spec"] == json!(plan.config.spec)
             && c.model["read_spec"] == json!(plan.config.read_spec),
         "seed/spec/read binding",
@@ -270,8 +272,8 @@ fn authenticate_with_reference(
     )?;
     let (u, b3) = receipt_counts(e)?;
     Ok(
-        json!({"schema":"uor-r4.completion-seed2-baseline-authentication/1",
-        "status":"AUTHENTICATED_METADATA_BEFORE_APPLY", "seed":2,
+        json!({"schema":if plan.config.spec.kept_cells == 16 {"uor-r4.redirect-baseline-authentication/1"} else {"uor-r4.completion-seed2-baseline-authentication/1"},
+        "status":"AUTHENTICATED_METADATA_BEFORE_APPLY", "seed":plan.config.seed,
         "scope":plan.scope,"plan_sha256":digest(plan)?,"admission_sha256":admission_sha256,
         "initial_checkpoint":initial_pin,"driver_checkpoint_sha256":digest(c)?,
         "lineage_sha256":plan.execution.lineage_sha256,"baseline_evaluation_sha256":digest(e)?,
@@ -325,7 +327,7 @@ pub(super) fn require_before_apply(
     plan: &CompletionPlan,
     current: &CompletionCheckpoint,
 ) -> Result<()> {
-    if driver.config().seed != 2 {
+    if driver.config().seed != 2 && driver.config().spec.kept_cells != 16 {
         return Ok(());
     }
     let state = &release.manifest.run_state_directory;
@@ -385,9 +387,11 @@ mod tests {
 }
 
 #[cfg(test)]
-mod metadata_controls {
+pub(crate) mod metadata_controls {
     use super::*;
-    fn fixture(strict: bool) -> Result<(CompletionCheckpoint, CompletionPlan, FilePin, String)> {
+    pub(crate) fn fixture(
+        strict: bool,
+    ) -> Result<(CompletionCheckpoint, CompletionPlan, FilePin, String)> {
         // Synthetic stored observations and storage bytes, not a CPU reference or model.
         let mut plan: CompletionPlan = serde_json::from_str(include_str!(
             "../../../docs/labs/rung0-completion-release-2026-10-14/SEED2_PLAN.json"

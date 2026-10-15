@@ -153,10 +153,10 @@ fn run() -> Result<()> {
 pilot-unlock RUN_STATE EXPECTED_LOCK_SHA256 NEW_RECEIPT_DIR — metadata-only recovery, refuses live/foreign/ambiguous holders and preserves the old lock.
 pilot|pilot-resume|eval-pilot CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only, explicit owner release required; training remains HELD by default.
 build-identity [CONFIG] — compiled/executable/config pins without a CUDA context.
-completion-build-identity [CONFIG] — compiled completion identity without CUDA context.
+completion-build-identity [CONFIG] — compiled K8 completion or K16 redirect identity without CUDA context.
 completion-check-plan PLAN — read-only plan metadata validation, no release.
-completion-owner-release PLAN NEW_RELEASE_DIR — Casey personally, separate seed scope; no D33 delegation.
-completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately released seed, cap16404; never chains seeds.");
+completion-owner-release PLAN NEW_RELEASE_DIR — Casey personally, separate arm/seed scope; no D33 delegation.
+completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately released arm/seed, cap16404; never chains scopes.");
             Ok(())
         }
         Some("completion-check-plan") if args.len() == 2 => {

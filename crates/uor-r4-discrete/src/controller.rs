@@ -140,17 +140,27 @@ impl ValidatedRelease {
 }
 
 pub fn validate_pilot_config(config: &DriverConfig) -> Result<()> {
+    validate_registered_data(config)?;
+    if config.spec.kept_cells != 8
+        || config.objective_policy != crate::ObjectivePolicy::NearestAddressMarginV1
+        || config.seed != 1
+    {
+        return Err(invalid(
+            "only the registered A2 seed-1 K8 pilot is admitted",
+        ));
+    }
+    Ok(())
+}
+fn validate_registered_data(config: &DriverConfig) -> Result<()> {
     config.validate()?;
     if config.spec
         != (Spec {
             vocabulary: 4096,
             blocks: 4,
             context: 192,
-            kept_cells: 8,
+            kept_cells: config.spec.kept_cells,
         })
         || config.read_spec != ReadSpec::Route
-        || config.objective_policy != crate::ObjectivePolicy::NearestAddressMarginV1
-        || config.seed != 1
         || config.batch_rows != 64
         || config.train.expected_payload_tokens != 7_512_797
         || config.train.expected_eligible_targets != 2_425_925
@@ -170,6 +180,15 @@ pub fn validate_pilot_config(config: &DriverConfig) -> Result<()> {
         || config.bos.id != 0
     {
         return Err(invalid("only the registered A2 seed-1 ascending VectorBlock pilot is admitted; configuration/data change requires a reviewed amendment"));
+    }
+    Ok(())
+}
+pub fn validate_redirect_config(config: &DriverConfig) -> Result<()> {
+    validate_registered_data(config)?;
+    if config.spec.kept_cells != 16 || ![1, 2].contains(&config.seed) {
+        return Err(invalid(
+            "redirect requires registered K16 Route seed 1 or 2",
+        ));
     }
     Ok(())
 }

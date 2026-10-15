@@ -1,8 +1,21 @@
+## 2026-10-15 — K16-scoped admission source and fresh-scoring owner; no execution
+
+Codex/Sol's [separate validator record](../labs/k16-admission-validators-2026-10-15/README.md)
+implements four explicit K16-A/R seed1/2 scopes, fresh checkpoint-zero admission,
+qualified source/config/lineage/receipt bindings, and fail-closed cross-scope resume.
+Historical K8 pilot/completion releases remain unchanged. Qualification, pod-side
+CUDA build/clippy, packet acceptance and R15 owner-release transport resolution
+remain open gates; no training/GPU/model execution occurred. Codex owns the
+fresh-scoring eval-only path before KEEP promotion, a separate deliverable.
+The packet now says exactly 200 documents and the owner's ~30-minute/<$2
+qualification envelope. M1 37/232 and D21/D22 count unchanged; M2/Stage B HELD.
+
 ## 2026-10-15 — K16 synchronized 100-batch timing instrument, source only (deepseek, tooling/M1 qualification)
 
 The [record](../labs/k16-timing-2026-10-15/README.md) delivers the runner Codex delegated ([#2029 6201508191](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201508191)) under the PM ruling ([6201569519](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201569519)): a **standalone dated-record crate** that times the carry + propose + observe path over a frozen snapshot at V4096/B4/C192/**K16**, Route, 64 rows, **100 distinct batches**, both objective policies, one excluded warmup per cell, **zero apply** — each cell asserts an identical snapshot digest and epoch before and after. `measurement.rs` and every production kernel are untouched (`git diff --stat origin/main -- crates/` is empty). It **fails closed** on absent/malformed fixture pins, a shape that is not K16, a read policy that is not Route, a resume dressed as an evaluation-only rebind, or a missing policy arm; it reports target-rows/s and, separately, physical padded-context-tokens/s (64 x 192 = 12,288 per batch), with per-batch receipts and the zero-apply exclusion in every record; and a fault **preserves the partial receipts** rather than discarding the measurement. **14 host tests pass** and the plan command runs on any host. **No pod was leased: G-Pre and the timing benchmark stay NOT_RUN/UNMEASURED until this source is reviewed, merged and executed at the qualification stage.**
 
 Line: M1 qualification instrumentation · count 0/3 unchanged · M1 headline unchanged. **Next:** PM-dispatched exact-head review, then the qualification lease (not mine to take until merged).
+
 ## 2026-10-15 — Admission redirect D-Packet data/config draft; qualification blocked on missing executors (codex)
 
 The [packet](../labs/admission-redirect-packet-2026-10-15/README.md) binds four K16
