@@ -65,6 +65,7 @@ fn device_command(args: &[String]) -> Result<()> {
         }
         Some("qualify") if args.len()==2=>uor_r4_discrete::qualification::run(Path::new(&args[1])),
         Some("qualify-flock") if args.len()==2=>uor_r4_discrete::flock_qualification::run(Path::new(&args[1])),
+        Some("qualify-relation") if args.len()==2=>uor_r4_discrete::relation_qualification::run(Path::new(&args[1])),
         Some("qualify-driver") if args.len()==2=>uor_r4_discrete::driver_qualification::run(Path::new(&args[1])),
         Some("measure-cost") if args.len()==2=>uor_r4_discrete::measurement::run(Path::new(&args[1])),
         Some("init-corpus") if args.len()==3=>{
@@ -129,6 +130,7 @@ fn device_command(args: &[String]) -> Result<()> {
             match (snapshot.read_spec,parameter) {
                 (ReadSpec::Route,Some(Parameter::Gate(index)))=>return Err(Error::UnimplementedParameter {kind:3,index}),
                 (ReadSpec::Flock{..},Some(Parameter::Route(_)))=>return Err(invalid("route parameters are inactive in a flock model")),
+                (ReadSpec::Relation{..},Some(Parameter::Route(_)))=>return Err(invalid("route parameters are inactive in a relation model")),
                 _=>{}
             }
             if request.windows.is_empty() || request.windows.len()>64 || request.windows.iter().any(|w|w.is_empty() || w.len()>snapshot.spec.context as usize || w.iter().any(|id| id.token>=snapshot.spec.vocabulary)){
@@ -140,7 +142,7 @@ fn device_command(args: &[String]) -> Result<()> {
             if let Some(parameter)=parameter {let p=model.propose(&input,&request.targets,parameter)?.observation()?;println!("{}",serde_json::json!({"candidate":p.candidate,"candidate_is_ordinal":true,"read_spec":model.read_spec(),"before":p.before,"after":p.after,"epoch":p.epoch,"valid_lengths":input.valid_lengths(),"applied":false}));Ok(())}
             else {let result=model.forward(&input,&request.targets)?;println!("{}",serde_json::json!({"tokens":result.predictions,"read_spec":model.read_spec(),"loss_numerators":result.losses,"token_rivals":result.token_rivals,"address_rivals":result.address_rivals,"admitted_cells":result.admitted_cells,"vectors":result.vectors()?,"epoch":result.epoch(),"valid_lengths":input.valid_lengths(),"training":"HELD"}));Ok(())}
         }
-        _=>Err(invalid("CUDA commands: pilot|pilot-resume|eval-pilot CONFIG ADMISSION NEW_REPORT_DIR | init SPEC.json NEW_ARTIFACT.json SEED | init-read CONFIG.json NEW_ARTIFACT.json SEED | infer ARTIFACT REQUEST | propose ARTIFACT REQUEST route|vector|gate INDEX | init-corpus CONFIG NEW_REPORT_DIR | eval-corpus CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR | qualify NEW_REPORT_DIR | qualify-flock NEW_REPORT_DIR | qualify-driver NEW_REPORT_DIR | measure-cost NEW_REPORT_DIR")),
+        _=>Err(invalid("CUDA commands: pilot|pilot-resume|eval-pilot CONFIG ADMISSION NEW_REPORT_DIR | init SPEC.json NEW_ARTIFACT.json SEED | init-read CONFIG.json NEW_ARTIFACT.json SEED | infer ARTIFACT REQUEST | propose ARTIFACT REQUEST route|vector|gate INDEX | init-corpus CONFIG NEW_REPORT_DIR | eval-corpus CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR | qualify NEW_REPORT_DIR | qualify-flock NEW_REPORT_DIR | qualify-relation NEW_REPORT_DIR | qualify-driver NEW_REPORT_DIR | measure-cost NEW_REPORT_DIR")),
     }
 }
 fn run() -> Result<()> {
@@ -220,6 +222,19 @@ completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately rele
             #[cfg(not(feature = "cuda"))]
             Err(invalid(
                 "CUDA flock inventory is not compiled in this metadata-only build",
+            ))
+        }
+        Some("list-relation-controls") => {
+            #[cfg(feature = "cuda")]
+            {
+                for name in uor_r4_discrete::relation_qualification::NAMES {
+                    println!("{name}");
+                }
+                Ok(())
+            }
+            #[cfg(not(feature = "cuda"))]
+            Err(invalid(
+                "CUDA relation inventory is not compiled in this metadata-only build",
             ))
         }
         Some("list-driver-controls") => {

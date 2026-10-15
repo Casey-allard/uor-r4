@@ -820,11 +820,11 @@ mod tests {
 
     #[test]
     fn frozen_d5_driver_source_hash_is_preserved_untouched() {
-        // Re-pinned from cb090e85… to 70b45863… after #2484 added completion_baseline.rs
-        // to the operational driver digest (instrument metadata only; numerical model source untouched).
+        // Re-pinned from cb090e85… -> 70b45863… (#2484/#2490) -> e1022068… after Stage M1
+        // ReadSpec::Relation added relation gate inventory and CLI subcommands in training.rs/main.rs.
         assert_eq!(
             uor_r4_discrete::training::driver_source_sha256(),
-            "70b45863860c25cf3579e76367b785ea4830edbc50e3902ef4a5ca2335bf7676"
+            "e1022068eb45febf9d54204cbf003ae40fde8e040e2fc259cf57d2fd090f546d"
         );
     }
 }

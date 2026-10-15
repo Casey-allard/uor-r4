@@ -176,16 +176,14 @@ impl PreparedDriver {
             ));
         }
         let stages = BinderPlan::new(config.spec.context as usize)?.stages() as u32;
-        let coordinates = config
+        let vectors = config
             .spec
             .blocks
-            .checked_mul(
-                config
-                    .spec
-                    .vocabulary
-                    .checked_add(stages)
-                    .ok_or_else(|| invalid("coordinate inventory overflow"))?,
-            )
+            .checked_mul(config.spec.vocabulary)
+            .ok_or_else(|| invalid("coordinate inventory overflow"))?;
+        let read_parameters = config.read_spec.gate_count(config.spec.blocks, stages)?;
+        let coordinates = vectors
+            .checked_add(read_parameters)
             .ok_or_else(|| invalid("coordinate inventory overflow"))?;
         let lineage = Lineage {
             schema: DRIVER_SCHEMA.into(),
@@ -236,7 +234,7 @@ impl PreparedDriver {
             Coordinate {
                 kind: match self.config.read_spec {
                     ReadSpec::Route => CoordinateKind::Route,
-                    ReadSpec::Flock { .. } => CoordinateKind::Gate,
+                    ReadSpec::Flock { .. } | ReadSpec::Relation { .. } => CoordinateKind::Gate,
                 },
                 index: index - vectors,
             }
@@ -287,8 +285,12 @@ impl PreparedDriver {
     }
     pub fn plan(&self) -> Result<Value> {
         let plan = BinderPlan::new(self.config.spec.context as usize)?;
+        let read_parameters = self
+            .config
+            .read_spec
+            .gate_count(self.config.spec.blocks, plan.stages() as u32)?;
         Ok(
-            json!({"schema":DRIVER_SCHEMA,"lineage":self.lineage,"lineage_sha256":self.lineage_sha256()?,"seed":self.config.seed,"schedule":{"policy":self.config.schedule,"parameters":self.coordinates,"vector_parameters":self.config.spec.vocabulary*self.config.spec.blocks,"read_parameters":self.config.spec.blocks*plan.stages() as u32,"one_coordinate_per_batch":true,"corpus_order":"ascending response-masked target positions; wraps after complete coverage; common across seeds","initial_cursor":Cursor::initial()},"train_batches_per_pass":(self.train.eligible_len() as u64).div_ceil(u64::from(self.config.batch_rows)),"dev_batches":(self.dev.eligible_len() as u64).div_ceil(u64::from(self.config.batch_rows)),"training":"HELD","applied_updates":0,"throughput":"UNMEASURED"}),
+            json!({"schema":DRIVER_SCHEMA,"lineage":self.lineage,"lineage_sha256":self.lineage_sha256()?,"seed":self.config.seed,"schedule":{"policy":self.config.schedule,"parameters":self.coordinates,"vector_parameters":self.config.spec.vocabulary*self.config.spec.blocks,"read_parameters":read_parameters,"one_coordinate_per_batch":true,"corpus_order":"ascending response-masked target positions; wraps after complete coverage; common across seeds","initial_cursor":Cursor::initial()},"train_batches_per_pass":(self.train.eligible_len() as u64).div_ceil(u64::from(self.config.batch_rows)),"dev_batches":(self.dev.eligible_len() as u64).div_ceil(u64::from(self.config.batch_rows)),"training":"HELD","applied_updates":0,"throughput":"UNMEASURED"}),
         )
     }
     pub fn validate_checkpoint(&self, checkpoint: &DriverCheckpoint) -> Result<()> {
@@ -455,6 +457,7 @@ mod tests {
         };
         // Inline, already admitted metadata fixture; no file/model initialization.
         config.validate()?;
+        let coordinates = 20 + read_spec.gate_count(2, 2)?;
         let lineage = Lineage {
             schema: DRIVER_SCHEMA.into(),
             driver_source_sha256: driver_source_sha256(),
@@ -467,17 +470,24 @@ mod tests {
             train,
             dev,
             lineage,
-            coordinates: 24,
+            coordinates,
         })
     }
     #[test]
     fn complete_coordinate_cycle_and_resume_are_metadata() -> Result<()> {
-        for mode in [ReadSpec::Route, ReadSpec::Flock { kept: 2 }] {
+        for mode in [
+            ReadSpec::Route,
+            ReadSpec::Flock { kept: 2 },
+            ReadSpec::Relation { kept: 2, sweeps: 1 },
+        ] {
             let driver = metadata_fixture(1, mode)?;
             let paired = metadata_fixture(2, mode)?;
+            let read_count = mode.gate_count(2, 2)?;
+            let total = 20 + read_count;
+            assert_eq!(driver.coordinate_count(), total);
             let mut cursor = Cursor::initial();
             let mut coordinates = Vec::new();
-            for step in 0..24 {
+            for step in 0..total {
                 let coordinate = driver.coordinate(cursor.next_coordinate)?;
                 coordinates.push(coordinate);
                 let batch = driver.batch(&cursor)?;
@@ -511,7 +521,7 @@ mod tests {
             );
             assert_eq!(
                 coordinates[20..],
-                (0..4)
+                (0..read_count)
                     .map(|index| Coordinate {
                         kind: if mode == ReadSpec::Route {
                             CoordinateKind::Route
@@ -525,9 +535,9 @@ mod tests {
             assert_eq!(
                 cursor,
                 Cursor {
-                    completed_batches: 24,
+                    completed_batches: u64::from(total),
                     accepted_updates: 0,
-                    corpus_pass: 12,
+                    corpus_pass: u64::from(total) / 2,
                     next_target: 0,
                     next_coordinate: 0
                 }

@@ -55,14 +55,19 @@ impl Spec {
         Ok(())
     }
 }
+pub const RELATION_EDGE_TYPES: u32 = 5;
+
 /// Read configuration is an artifact identity, not an inference-time override.
 /// Flock's frame pairing and rank order are fixed by this schema: frame L1,
 /// coordinate Hamming, then recency/position, on caller-bounded valid prefixes.
+/// Relation extends Flock with bounded S-sweep exact-relation reranking over
+/// all causally eligible BinderPlan nodes using existing Gate-kind trits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ReadSpec {
     Route,
     Flock { kept: u32 },
+    Relation { kept: u32, sweeps: u32 },
 }
 impl<'de> serde::Deserialize<'de> for ReadSpec {
     fn deserialize<D: serde::Deserializer<'de>>(
@@ -75,11 +80,13 @@ impl<'de> serde::Deserialize<'de> for ReadSpec {
         enum Wire {
             Route {},
             Flock { kept: u32 },
+            Relation { kept: u32, sweeps: u32 },
         }
         Ok(
             match <Wire as serde::Deserialize>::deserialize(deserializer)? {
                 Wire::Route {} => Self::Route,
                 Wire::Flock { kept } => Self::Flock { kept },
+                Wire::Relation { kept, sweeps } => Self::Relation { kept, sweeps },
             },
         )
     }
@@ -87,21 +94,51 @@ impl<'de> serde::Deserialize<'de> for ReadSpec {
 impl ReadSpec {
     pub fn validate(&self, spec: Spec) -> Result<()> {
         spec.validate()?;
-        if let Self::Flock { kept } = self {
-            if !(1..=8).contains(kept) {
-                return Err(Error::Invalid(
-                    "flock kept count requires 1..8; selection uses the actual eligible count"
-                        .into(),
-                ));
+        match self {
+            Self::Route => {}
+            Self::Flock { kept } => {
+                if !(1..=8).contains(kept) {
+                    return Err(Error::Invalid(
+                        "flock kept count requires 1..8; selection uses the actual eligible count"
+                            .into(),
+                    ));
+                }
+            }
+            Self::Relation { kept, sweeps } => {
+                if !(1..=8).contains(kept) {
+                    return Err(Error::Invalid("relation kept count must be in 1..=8".into()));
+                }
+                if !(1..=5).contains(sweeps) {
+                    return Err(Error::Invalid(
+                        "relation sweep count must be in 1..=5".into(),
+                    ));
+                }
             }
         }
         Ok(())
     }
-    /// Fixed kernel metadata: mode 0 is route, mode 1 is flock.
-    pub(crate) fn words(self) -> [u32; 2] {
+    /// Fixed kernel metadata: mode 0 is route, mode 1 is flock, mode 2 is relation.
+    pub(crate) fn words(self) -> [u32; 3] {
         match self {
-            Self::Route => [0, 0],
-            Self::Flock { kept } => [1, kept],
+            Self::Route => [0, 0, 0],
+            Self::Flock { kept } => [1, kept, 0],
+            Self::Relation { kept, sweeps } => [2, kept, sweeps],
+        }
+    }
+    /// Gate trit inventory for the given block count and binder stage count.
+    pub fn gate_count(self, blocks: u32, stages: u32) -> Result<u32> {
+        let base = blocks
+            .checked_mul(stages)
+            .ok_or_else(|| Error::Invalid("gate inventory overflow".into()))?;
+        match self {
+            Self::Route | Self::Flock { .. } => Ok(base),
+            Self::Relation { .. } => {
+                let relation = RELATION_EDGE_TYPES
+                    .checked_mul(stages)
+                    .ok_or_else(|| Error::Invalid("gate inventory overflow".into()))?;
+                base.checked_add(relation)
+                    .ok_or_else(|| Error::Invalid("gate inventory overflow".into()))
+            }
         }
     }
 }
@@ -263,8 +300,23 @@ mod tests {
         assert!(ReadSpec::Flock { kept: 0 }.validate(spec).is_err());
         assert!(ReadSpec::Flock { kept: 8 }.validate(spec).is_ok());
         assert!(ReadSpec::Flock { kept: 9 }.validate(spec).is_err());
-        assert_eq!(ReadSpec::Route.words(), [0, 0]);
-        assert_eq!(ReadSpec::Flock { kept: 2 }.words(), [1, 2]);
+        assert!(ReadSpec::Relation { kept: 1, sweeps: 1 }.validate(spec).is_ok());
+        assert!(ReadSpec::Relation { kept: 8, sweeps: 5 }.validate(spec).is_ok());
+        assert!(ReadSpec::Relation { kept: 0, sweeps: 1 }.validate(spec).is_err());
+        assert!(ReadSpec::Relation { kept: 9, sweeps: 1 }.validate(spec).is_err());
+        assert!(ReadSpec::Relation { kept: 2, sweeps: 0 }.validate(spec).is_err());
+        assert!(ReadSpec::Relation { kept: 2, sweeps: 6 }.validate(spec).is_err());
+        assert_eq!(ReadSpec::Route.words(), [0, 0, 0]);
+        assert_eq!(ReadSpec::Flock { kept: 2 }.words(), [1, 2, 0]);
+        assert_eq!(ReadSpec::Relation { kept: 2, sweeps: 1 }.words(), [2, 2, 1]);
+        assert_eq!(ReadSpec::Route.gate_count(4, 5).unwrap(), 20);
+        assert_eq!(ReadSpec::Flock { kept: 8 }.gate_count(4, 5).unwrap(), 20);
+        assert_eq!(
+            ReadSpec::Relation { kept: 8, sweeps: 1 }
+                .gate_count(4, 5)
+                .unwrap(),
+            45
+        );
         let packet = InitConfig {
             spec,
             read_spec: ReadSpec::Flock { kept: 2 },
@@ -272,12 +324,25 @@ mod tests {
         let bytes = serde_json::to_vec(&packet).unwrap();
         let restored: InitConfig = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(restored, packet);
+        let rel_packet = InitConfig {
+            spec,
+            read_spec: ReadSpec::Relation { kept: 2, sweeps: 1 },
+        };
+        let rel_bytes = serde_json::to_vec(&rel_packet).unwrap();
+        let rel_restored: InitConfig = serde_json::from_slice(&rel_bytes).unwrap();
+        assert_eq!(rel_restored, rel_packet);
         assert_eq!(
             serde_json::from_str::<ReadSpec>(r#"{"kind":"route"}"#).unwrap(),
             ReadSpec::Route
         );
+        assert_eq!(
+            serde_json::from_str::<ReadSpec>(r#"{"kind":"relation","kept":2,"sweeps":1}"#)
+                .unwrap(),
+            ReadSpec::Relation { kept: 2, sweeps: 1 }
+        );
         assert!(serde_json::from_str::<ReadSpec>(r#"{"kind":"route","kept":2}"#).is_err());
         assert!(serde_json::from_str::<ReadSpec>(r#"{"kind":"flock"}"#).is_err());
+        assert!(serde_json::from_str::<ReadSpec>(r#"{"kind":"relation","kept":2}"#).is_err());
         assert!(serde_json::from_str::<InitConfig>(
             r#"{"spec":{"vocabulary":4,"blocks":2,"context":3,"kept_cells":2}}"#
         )
@@ -289,3 +354,5 @@ mod tests {
 pub mod flock_qualification;
 #[cfg(feature = "cuda")]
 pub mod qualification;
+#[cfg(feature = "cuda")]
+pub mod relation_qualification;

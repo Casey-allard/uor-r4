@@ -220,6 +220,7 @@ pub struct Forward {
     vectors: CudaSlice<i32>,
     trace: Option<CudaSlice<u32>>,
     trace_stride: Option<usize>,
+    flock_trace_words: Option<usize>,
     binding: Binding,
     epoch: u64,
     stream: Arc<CudaStream>,
@@ -239,10 +240,30 @@ impl Forward {
     /// not reconstruct, score, select or transport any model values on the host.
     /// Normal `forward` results return None and retain no trace allocation.
     pub fn flock_trace(&self) -> Result<Option<Vec<u32>>> {
-        self.trace
-            .as_ref()
-            .map(|trace| self.stream.clone_dtoh(trace).map_err(cuda))
-            .transpose()
+        let Some(trace) = self.trace.as_ref() else {
+            return Ok(None);
+        };
+        let mut words = self.stream.clone_dtoh(trace).map_err(cuda)?;
+        if let Some(count) = self.flock_trace_words {
+            words.truncate(count);
+        }
+        Ok(Some(words))
+    }
+    /// Optional completed device per-node relation scores (`rows * blocks * nodes_count`)
+    /// written by `discrete_forward` in `ReadSpec::Relation` mode. Storage readback only;
+    /// no host recurrence or score computation.
+    pub fn relation_scores(&self) -> Result<Option<Vec<i32>>> {
+        if !matches!(self.binding.read_spec, ReadSpec::Relation { .. }) {
+            return Ok(None);
+        }
+        let (Some(trace), Some(offset)) = (self.trace.as_ref(), self.flock_trace_words) else {
+            return Ok(None);
+        };
+        let words = self.stream.clone_dtoh(trace).map_err(cuda)?;
+        let tail = words
+            .get(offset..)
+            .ok_or_else(|| invalid("relation trace buffer truncated"))?;
+        Ok(Some(tail.iter().map(|&w| w as i32).collect()))
     }
     /// Words per (row, block), including its header and all model levels.
     pub fn trace_stride(&self) -> Option<usize> {
@@ -469,10 +490,10 @@ impl Device {
         let mut routes = stream
             .alloc_zeros::<u32>(spec.blocks as usize * metadata.stages())
             .map_err(cuda)?;
-        let mut gates = stream
-            .alloc_zeros::<i32>(spec.blocks as usize * metadata.stages())
-            .map_err(cuda)?;
+        let gate_count = read_spec.gate_count(spec.blocks, metadata.stages() as u32)? as usize;
+        let mut gates = stream.alloc_zeros::<i32>(gate_count).map_err(cuda)?;
         let epoch = stream.alloc_zeros::<u64>(1).map_err(cuda)?;
+        let words = read_spec.words();
         let spec_gpu = stream
             .clone_htod(&[
                 spec.vocabulary,
@@ -483,8 +504,9 @@ impl Device {
                 metadata.stages() as u32,
                 metadata.nodes_count() as u32,
                 metadata.frontier().len() as u32,
-                read_spec.words()[0],
-                read_spec.words()[1],
+                words[0],
+                words[1],
+                words[2],
             ])
             .map_err(cuda)?;
         let mut status = stream.alloc_zeros::<u32>(1).map_err(cuda)?;
@@ -601,10 +623,14 @@ impl Device {
                 "snapshot schema/geometry/AOT kernel/compiler source binding differs",
             ));
         }
+        let gate_count = snapshot
+            .read_spec
+            .gate_count(snapshot.spec.blocks, metadata.stages() as u32)?
+            as usize;
         if snapshot.table.len()
             != snapshot.spec.vocabulary as usize * snapshot.spec.blocks as usize * 8
             || snapshot.routes.len() != snapshot.spec.blocks as usize * metadata.stages()
-            || snapshot.gates.len() != snapshot.spec.blocks as usize * metadata.stages()
+            || snapshot.gates.len() != gate_count
         {
             return Err(invalid(
                 "snapshot codebook/route/gate allocation inventory differs",
@@ -644,6 +670,7 @@ impl Device {
 
     fn gpu_spec(&self, rows: u32) -> Result<CudaSlice<u32>> {
         let spec = self.spec();
+        let words = self.read_spec().words();
         self.stream
             .clone_htod(&[
                 spec.vocabulary,
@@ -654,8 +681,9 @@ impl Device {
                 self.metadata.stages() as u32,
                 self.metadata.nodes_count() as u32,
                 self.metadata.frontier().len() as u32,
-                self.read_spec().words()[0],
-                self.read_spec().words()[1],
+                words[0],
+                words[1],
+                words[2],
             ])
             .map_err(cuda)
     }
@@ -865,10 +893,28 @@ impl Device {
             .map_err(cuda)?;
         let trace_stride = traced
             .then_some(FLOCK_TRACE_HEADER_WORDS + self.metadata.stages() * FLOCK_TRACE_LEVEL_WORDS);
-        let mut trace = if let Some(stride) = trace_stride {
-            let words = (batch.rows as usize)
-                .checked_mul(self.spec().blocks as usize)
-                .and_then(|blocks| blocks.checked_mul(stride))
+        let flock_trace_words = trace_stride
+            .map(|stride| {
+                (batch.rows as usize)
+                    .checked_mul(self.spec().blocks as usize)
+                    .and_then(|blocks| blocks.checked_mul(stride))
+                    .ok_or_else(|| invalid("flock trace inventory exceeds storage index bound"))
+            })
+            .transpose()?;
+        let relation_score_words = if traced && matches!(self.read_spec(), ReadSpec::Relation { .. })
+        {
+            Some(
+                (batch.rows as usize)
+                    .checked_mul(self.spec().blocks as usize)
+                    .and_then(|blocks| blocks.checked_mul(self.metadata.nodes_count()))
+                    .ok_or_else(|| invalid("relation trace inventory exceeds storage index bound"))?,
+            )
+        } else {
+            None
+        };
+        let mut trace = if let Some(base_words) = flock_trace_words {
+            let words = base_words
+                .checked_add(relation_score_words.unwrap_or(0))
                 .ok_or_else(|| invalid("flock trace inventory exceeds storage index bound"))?;
             Some(self.stream.alloc_zeros::<u32>(words).map_err(cuda)?)
         } else {
@@ -909,7 +955,8 @@ impl Device {
         launch.arg(&mut status);
         // SAFETY: discrete_forward ABI and bounded rows/width/context checked
         // before launch; immutable inputs, disjoint owned result buffers. Trace
-        // is either the exact rows*blocks*(4+stages*28) allocation or a null
+        // is either the exact rows*blocks*(4+stages*28) allocation (plus
+        // rows*blocks*nodes_count in Relation mode) or a null
         // CUdeviceptr, which the kernel never dereferences. Its U* argument is
         // immediately before status in the explicit 64-bit driver ABI.
         unsafe { launch.launch(launch_config(batch.rows)) }.map_err(cuda)?;
@@ -928,6 +975,7 @@ impl Device {
             vectors: out,
             trace,
             trace_stride,
+            flock_trace_words,
             binding: self.binding.clone(),
             epoch,
             stream: Arc::clone(&self.stream),
@@ -1117,6 +1165,9 @@ impl Device {
         match parameter {
             Parameter::Route(_) if matches!(self.read_spec(), ReadSpec::Flock { .. }) => {
                 Err(invalid("route parameters are inactive in a flock model"))
+            }
+            Parameter::Route(_) if matches!(self.read_spec(), ReadSpec::Relation { .. }) => {
+                Err(invalid("route parameters are inactive in a relation model"))
             }
             Parameter::Route(index) if (index as usize) < self.routes.len() => Ok((0, index)),
             Parameter::VectorBlock(index)
