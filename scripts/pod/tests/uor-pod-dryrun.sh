@@ -455,6 +455,7 @@ ts_at() { jq -rn --argjson d "$1" --arg z "$2" --argjson o "${3:-0}" '(now + $d 
 mkdir -p "$UOR_POD_STATE/leases/podb"
 hand_lease podb codex-frac "\"$(ts_at -3600 .875296+00:00)\""
 expect "expired fractional +00:00 lease is EXPIRED (not stuck live)" 0 "lease codex/frac gpus=0 until .* EXPIRED" -- status
+hasnt "status does not warn when no lease is malformed" "MALFORMED LEASE FILE"
 expect "expired fractional lease can be taken over" 0 "Leased podb gpus 0 to deepseek/d2" -- lease podb "${D2[@]}" --gpus 0 --purpose ts --hours 1
 expect "release after fractional takeover" 0 "Released deepseek/d2" -- release podb "${D2[@]}"
 # now+1h written in -05:00 local time: ignoring the offset would read it as expired

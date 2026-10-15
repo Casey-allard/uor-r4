@@ -750,7 +750,7 @@ cmd_status() {
   local strays
   strays=$(find "$STATE" \( -name '*.tmp*' -o -name '*.new' \) -mmin +2 2>/dev/null | head -5)
   [ -z "$strays" ] || echo "WARNING: stray temporary files in the state directory (interrupted writes; leases must be written only by uor-pod): $strays"
-  if [ -n "$badlines" ]; then
+  if [ -n "$(printf %s "$badlines" | tr -d "[:space:]")" ]; then  # a blank per-pod separator is not a bad lease
     echo "WARNING: MALFORMED LEASE FILE(S) — each is treated as LIVE (fail safe), so its GPUs stay blocked until it is fixed."
     echo "  The holder fixes it with 'uor-pod renew POD --lab L --session S' (rewrites the canonical form); leases are written only by uor-pod:"
     printf '%s\n' "$badlines" | sed '/^$/d'
