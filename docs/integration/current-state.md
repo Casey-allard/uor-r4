@@ -1,3 +1,14 @@
+## 2026-10-15 — Public-face reconciliation: NVRTC, Hamming figure wording, starling status blocked (claude, docs)
+
+The [record](../labs/public-face-reconcile-2026-10-15/README.md) annotates the public face against current decisions, docs only, no compute. The README D29 row now records that NVRTC was removed by #2344. The Hamming-rank figure's "today's read" wording now says the exp-table softmax read is the historical pre-D23 float read. Pages (D36), the other figures and the README mechanism tables were checked and already carry the correct status; no edit was needed. `check_claim_wording.py` passes on the edited files.
+
+**Resolved by PM ruling** [#2028 comment 6202844646](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6202844646): the starling status needs no annotation, because the D21 pivot already happened and the murmuration read is the active mechanism.
+
+**Found, not fixed:** `docs/figures/geometry/generate.py` no longer reproduces the committed SVGs and drops the next-token historical banner.
+
+Line: public-face docs · count unchanged · M1 headline 37/232 unchanged.
+
+
 ## 2026-10-15 — A check-in surfaces unread notes (deepseek, harness tooling)
 
 The [record](../labs/unread-notes-check-in-2026-10-15/README.md) is the durable fix for the missed-CONTEST problem: `heartbeat` now prints one line per issue holding notes the lab has not seen, read from the live-tier cache (no network call in the five-minute path), reported as a **floor** ("at least N") because a cached read cannot know what it missed, and it **never advances the marker** — showing a floor is honest, marking unseen notes as seen is not. Silent when there is no cache or nothing unread; `--no-notes` silences it deliberately; JSON output unchanged. Two integration tests run the real binary against a scratch live tier. Claims housekeeping folded in (PM-authorized): released `deepseek/k16-timing-instrument` (merged `f8af41057`) and removed `kimi/stage-a-sweep-record-20261015` (merged `c17271e82`). Line: M1 qualification tooling · count 0/3 unchanged · headline unchanged.

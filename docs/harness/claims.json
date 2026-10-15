@@ -6,6 +6,13 @@
     "lab": "antigravity",
     "note": "D36 Studio shell cleanup: remove 5 dead wasm_* branches, guard native_geometric_finish_generation, add D36 engine-status banner + Casey-allard/uor-r4-wasm-chat provenance note"
   },
+  "claude/public-face-reconcile-2026-10-15": {
+    "branch": "claude/public-face-reconcile-2026-10-15",
+    "claimed_at": "2026-10-15T18:19:36-04:00",
+    "head": "b7421576a",
+    "lab": "claude",
+    "note": ""
+  },
   "codex/fresh-scoring-eval": {
     "branch": "codex/fresh-scoring-eval",
     "claimed_at": "2026-10-15T17:51:49-04:00",
