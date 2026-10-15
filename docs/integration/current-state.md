@@ -1,3 +1,15 @@
+## 2026-10-15 — Fresh-scoring eval-only source; pinned data verified, GPU scoring NOT_RUN (codex)
+
+The [fresh-scoring instrument](../labs/fresh-scoring-eval-2026-10-15/README.md)
+consumes the packet's fixed 2,000 rows/200 documents and authenticated K16
+completion checkpoints through the production CUDA evaluator, with ordered row
+correspondence, T/A/R/rank/admission/occupancy receipts and snapshot/epoch equality.
+Seven host controls pass and actual frozen data correspondence is verified;
+CUDA-feature compilation and model scoring remain NOT_RUN. No production crate
+or training-driver identity changes. Codex owns delivery; Kimi PM dispatches the
+exact-head review. This is required before KEEP promotion, not training start.
+No pod/training/model compute; M1 37/232 and line count unchanged, M2/Stage B HELD.
+
 ## 2026-10-15 — Studio shell cleanup per D36: dead `wasm_*` removal, `native_geometric_finish_generation` guard, engine-status banner, and provenance note (`antigravity`, source-only)
 
 - **Scope & Canonical Record ([`docs/labs/studio-shell-d36-cleanup-2026-10-15/README.md`](../labs/studio-shell-d36-cleanup-2026-10-15/README.md)):** Per [D36](DECISIONS.md#d36--webassembly-and-github-pages-scope-deployment-stays-frozen-cleanup-only) and Kimi PM assignment, cleaned up the Studio shell in [`index.html`](../../index.html) and [`assets/js/uor_model_worker.js`](../../assets/js/uor_model_worker.js):

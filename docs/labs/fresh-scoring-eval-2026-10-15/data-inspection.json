@@ -1,0 +1,35 @@
+{
+  "documents_sha256": "6da8d07d5c6edddbf15c4d31c2d4d1c855bb727bcbd41684e1aca7f492f3f616",
+  "fresh_binding": {
+    "bos": {
+      "id": 0,
+      "token": "<|bos|>"
+    },
+    "documents": 200,
+    "eligible_targets": 2000,
+    "identity_policy": "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1",
+    "mask_bytes": 505085,
+    "mask_selected_positions": 2000,
+    "payload_tokens": 505085,
+    "source": {
+      "expected_eligible_targets": 2000,
+      "expected_payload_tokens": 505085,
+      "mask": {
+        "path": "local/admission-redirect-transfer-20261015-codex-v2/fresh/response_mask.u8",
+        "sha256": "8287d20d2c76d388ab7ed9becda6f209d224574a933fa2d14c7bdda3663f5ce4"
+      },
+      "split": "fresh",
+      "tokens": {
+        "path": "local/admission-redirect-transfer-20261015-codex-v2/fresh/tokens.u16",
+        "sha256": "82ead8db9584544a4cc461c394aaf9b00fa6c9fd8fdbf82e316392a71ecabd7b"
+      }
+    },
+    "vocabulary": 4096,
+    "window_policy": "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1"
+  },
+  "model_operations": 0,
+  "ordered_correspondence_sha256": "c3a85f250e84017410859621234c48bf6beaae0bab202d913eb201639a57124e",
+  "rows": 2000,
+  "rows_sha256": "086443039e52cf5057fe81f3fa3d1bf938083936080b7cdff378ec7d547440a2",
+  "status": "DATA_VALID_NOT_MODEL_EVALUATED"
+}

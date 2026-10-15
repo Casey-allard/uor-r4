@@ -1,0 +1,35 @@
+2026-10-15; base origin/main 7b26da89d
+Scope: standalone source/metadata/storage tests and fixed corpus inspection only.
+CUDA-feature compilation NOT_RUN. Model evaluation NOT_RUN. Pods: 0. GPU cost: $0.
+
+cargo test --locked --offline --manifest-path docs/labs/fresh-scoring-eval-2026-10-15/instrument/Cargo.toml
+7 passed; 0 failed; 0 ignored.
+  changed_state_is_an_instrument_fault
+  ordered_rows_bind_tokens_context_occurrences_and_fresh_namespace
+  evaluator_source_has_no_update_proposal_or_initializer_calls
+  receipt_publication_never_overwrites_or_discards_a_failure
+  frozen_packet_pins_are_not_user_overridable
+  metadata_checkpoint_and_admission_are_bound_without_model_execution
+  quarter_cursor_and_full_route_tail_cannot_be_truncated
+
+cargo clippy --locked --offline --manifest-path docs/labs/fresh-scoring-eval-2026-10-15/instrument/Cargo.toml --all-targets
+Completed. Production dependency dead-code warnings in feature-disabled build;
+not a warning-free or CUDA compilation claim.
+
+cargo run --locked --offline --manifest-path docs/labs/fresh-scoring-eval-2026-10-15/instrument/Cargo.toml -- inspect-data local/admission-redirect-transfer-20261015-codex-v2
+DATA_VALID_NOT_MODEL_EVALUATED; 2,000 rows; 200 documents; model_operations 0.
+Ordered correspondence SHA256: c3a85f250e84017410859621234c48bf6beaae0bab202d913eb201639a57124e
+Full metadata receipt: data-inspection.json. No private corpus tokens copied into Git.
+
+cargo fmt --manifest-path docs/labs/fresh-scoring-eval-2026-10-15/instrument/Cargo.toml -- --check
+Passed.
+git diff --check
+Passed.
+uor-harness check-formats; uor-harness shard-check
+Passed; 8 state formats, no lost shard receipts.
+uor-harness ratchet d23 --quiet; uor-harness ratchet d25 --quiet
+Passed.
+python3 scripts/check_claim_wording.py
+Passed (existing repository checker; no new Python).
+git diff --quiet origin/main -- crates/
+Passed: no production crate or training-driver source change.

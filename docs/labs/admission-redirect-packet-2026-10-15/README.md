@@ -148,6 +148,15 @@ AGY owns qualification fixtures/G-Pre and DeepSeek owns timing. Fresh scoring
 is not a prerequisite for starting training, but is mandatory before a KEEP
 is promoted to a capability claim.
 
+The [fresh-scoring source deliverable](../fresh-scoring-eval-2026-10-15/README.md)
+now supplies a standalone CUDA consumer for the pinned 2,000-row population:
+authenticated completion/admission/config/lineage/cursor, ordered row binding,
+production T/A/R/rank/occupancy metrics, and zero-apply snapshot/epoch invariance.
+Host metadata/data inspection passes; CUDA compilation and model scoring remain
+NOT_RUN pending independent exact-head review and authorized execution. Production
+training sources are unchanged. This remains a before-KEEP dependency, not a
+training-start gate.
+
 ## Cost model and actual spending
 
 `cost-model.json` separates planned quantities from actual receipts. All K16 rates

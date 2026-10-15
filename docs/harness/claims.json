@@ -6,10 +6,10 @@
     "lab": "antigravity",
     "note": "D36 Studio shell cleanup: remove 5 dead wasm_* branches, guard native_geometric_finish_generation, add D36 engine-status banner + Casey-allard/uor-r4-wasm-chat provenance note"
   },
-  "codex/k16-admission-validators": {
-    "branch": "codex/k16-admission-validators",
-    "claimed_at": "2026-10-15T17:18:58-04:00",
-    "head": "27c82c0c8",
+  "codex/fresh-scoring-eval": {
+    "branch": "codex/fresh-scoring-eval",
+    "claimed_at": "2026-10-15T17:51:49-04:00",
+    "head": "7b26da89d",
     "lab": "codex",
     "note": ""
   },
