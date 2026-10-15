@@ -10,7 +10,6 @@ uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format", defa
 [dev-dependencies]
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
-uor-r4-router = { version = "0.1.0", path = "../uor-r4-router" }
 
 [[bench]]
 name = "vp_tree"

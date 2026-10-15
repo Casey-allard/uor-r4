@@ -36,7 +36,6 @@ libm = "0.2"
 # recorded corpus (teacher argmax) and drives the deployed engine directly.
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
-uor-r4-router = { version = "0.1.0", path = "../uor-r4-router" }
 
 [[bin]]
 name = "r4-learned-reference-1102"

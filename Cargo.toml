@@ -52,6 +52,9 @@ name = "r4"
 path = "src/main.rs"
 
 [features]
+# Historical UorR4Router engine on retired core APIs; does not build against
+# the current core (#2345); preserved as evidence. Never a default.
+legacy-engine = ["uor-r4-router/legacy-engine"]
 # CPU-native Apple Accelerate path for fast local source-backed inference on
 # macOS. This is an honest product/developer alias for the older #804 feature;
 # exact uor-matmul remains the portable default.

@@ -202,11 +202,13 @@ pub const MULTI_TURN_FIXTURE: [[&str; 4]; 6] = [
 /// Deterministic evolution gamma for the fixture. The server derives gamma
 /// dynamically from kappa (src/server.rs); the fixture pins the midpoint so
 /// the measurement is reproducible.
+#[cfg(feature = "legacy-engine")]
 const FIXTURE_GAMMA: f64 = 0.5;
 
 /// Session signatures from the pinned fixture through the SHIPPED path:
 /// `UorR4Router::new` -> `index_corpus` -> `evolve_state` per turn ->
 /// `session_signature_from_state`. One signature per turn per transcript.
+#[cfg(feature = "legacy-engine")]
 pub fn fixture_session_signatures() -> Vec<[u8; SESSION_SIGNATURE_BYTES]> {
     let mut router = crate::UorR4Router::new(0.85);
     let mut signatures = Vec::with_capacity(MULTI_TURN_FIXTURE.len() * 4);
@@ -222,7 +224,7 @@ pub fn fixture_session_signatures() -> Vec<[u8; SESSION_SIGNATURE_BYTES]> {
     signatures
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "legacy-engine"))]
 mod fixture_tests {
     use super::*;
 

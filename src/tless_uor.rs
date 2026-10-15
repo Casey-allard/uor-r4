@@ -1178,10 +1178,15 @@ impl TlessAxis for TlessAxisImpl {
             let mut rt = runtime::Runtime::new(&st.art);
             let (code, by_depth) = rt.assign_window_memberships(&window);
 
+            #[cfg_attr(not(feature = "legacy-engine"), allow(unused_mut))]
             let mut priors = std::collections::HashMap::new();
-            let mut query_text = String::new();
 
+            // Retired-engine priors (#2345): only the `legacy-engine` build has
+            // a router to bind. Without it no router is ever active, which is
+            // the existing empty-priors path below.
+            #[cfg(feature = "legacy-engine")]
             uor_r4_router::ACTIVE_ROUTER.with(|r| {
+                let mut query_text = String::new();
                 if let Some(ptr) = *r.borrow() {
                     let router = unsafe { &mut *ptr };
                     for &tok_id in &window {

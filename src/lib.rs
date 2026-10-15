@@ -169,9 +169,15 @@ pub fn set_r4g1_production_bundle(
 pub mod prelude {
     pub use crate::tless_uor;
     pub use uor_r4_core::transformerless::runtime::OpKernel;
+    pub use uor_r4_router::R4HostBounds;
+    // #2345 retired `uor_r4_core::{R4Vector, ALPHA_4, ALPHA_5}`; the historical
+    // router engine built on them is preserved behind `legacy-engine`, which
+    // does not build against the current core.
+    #[cfg(feature = "legacy-engine")]
     pub use uor_r4_core::{R4Vector, ALPHA_4, ALPHA_5};
+    #[cfg(feature = "legacy-engine")]
     pub use uor_r4_router::{
-        GeometricResponse, R4HostBounds, R4RoutingInput, R4RoutingOutput, RoutingData, UorR4Router,
+        GeometricResponse, R4RoutingInput, R4RoutingOutput, RoutingData, UorR4Router,
         UorR4RouterModel, ACTIVE_ROUTER,
     };
 }
@@ -205,6 +211,15 @@ pub fn cd_space_fold(text: &str) -> [i16; 256] {
 mod facade_smoke_tests {
     #[test]
     fn reexport_paths_resolve() {
+        let _ = core::any::type_name::<crate::R4HostBounds>();
+        let _ = core::any::type_name::<crate::TokenHistorySignature>();
+        let _ = core::any::type_name::<crate::prelude::R4HostBounds>();
+        let _ = core::any::type_name::<crate::tless_uor::UorTlessModel>();
+    }
+
+    #[cfg(feature = "legacy-engine")]
+    #[test]
+    fn legacy_engine_reexport_paths_resolve() {
         let _ = core::any::type_name::<crate::UorR4Router>();
         let _ = core::any::type_name::<crate::RoutingData>();
         let _ = core::any::type_name::<crate::R4Vector>();

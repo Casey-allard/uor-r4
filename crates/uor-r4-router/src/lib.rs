@@ -1,6 +1,11 @@
 //! The R⁴ Tangent Space Router engine: `UorR4Router` state, manifold
 //! indexing, geometric Markov generation, thought streams. The wasm-bindgen
 //! surface travels with the struct; the cdylib link stays at the facade.
+//!
+//! Historical engine on retired core APIs; does not build against the current
+//! core (#2345); preserved as evidence. This file is not the crate root: it is
+//! compiled only under the non-default `legacy-engine` feature, as the
+//! `legacy_engine` module of `facade.rs`.
 
 use crate::geometry::SemanticGeometry;
 use serde::{Deserialize, Serialize};
@@ -12,18 +17,9 @@ use wasm_bindgen::prelude::*;
 
 pub mod benchmark;
 pub mod decoder_memory;
-pub mod fallback;
 pub mod geometry;
-pub mod session_signature;
-
-pub use session_signature::{
-    fixture_session_signatures, from_state as session_signature_from_state,
-    from_tokens as session_signature_from_tokens, TokenHistorySignature, MULTI_TURN_FIXTURE,
-};
-
-// #790 item 4: only the live cascade surface is exported — the dead
-// FallbackRouter pipeline and its satellite types were removed.
-pub use fallback::{run_cascade, CascadeOutcome, EngineStatus, TierFn, TierOutcome, TierResult};
+// `session_signature` and `fallback` (and their re-exports) are declared at
+// the engine-free crate root (facade.rs).
 
 /// A content-addressed identifier derived via the 3/8 Resonance Hashing Law.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -3439,29 +3435,9 @@ thread_local! {
     pub static ACTIVE_ROUTER: RefCell<Option<*mut UorR4Router>> = const { RefCell::new(None) };
 }
 
-// Custom R4 Host Bounds
-#[derive(Clone, Copy)]
-pub struct R4HostBounds;
-
-impl HostBounds for R4HostBounds {
-    const FINGERPRINT_MIN_BYTES: usize = 16;
-    const FINGERPRINT_MAX_BYTES: usize = 32;
-    const TRACE_MAX_EVENTS: usize = 256;
-    const WITT_LEVEL_MAX_BITS: u32 = 64;
-    const FOLD_UNROLL_THRESHOLD: usize = 8;
-    const BETTI_DIMENSION_MAX: usize = 8;
-    const NERVE_CONSTRAINTS_MAX: usize = 8;
-    const NERVE_SITES_MAX: usize = 8;
-    const JACOBIAN_SITES_MAX: usize = 8;
-    const RECURSION_TRACE_DEPTH_MAX: usize = 16;
-    const OP_CHAIN_DEPTH_MAX: usize = 8;
-    const AFFINE_COEFFS_MAX: usize = 8;
-    const CONJUNCTION_TERMS_MAX: usize = 8;
-    const UNFOLD_ITERATIONS_MAX: usize = 256;
-}
-
-pub const R4_INLINE_BYTES: usize = uor_foundation::pipeline::carrier_inline_bytes::<R4HostBounds>();
-pub const R4_FP_MAX: usize = 32;
+// R4HostBounds, R4_INLINE_BYTES and R4_FP_MAX moved verbatim to the
+// engine-free `host_bounds` module at the crate root (facade.rs).
+use crate::host_bounds::{R4HostBounds, R4_FP_MAX, R4_INLINE_BYTES};
 
 // Custom Axis trait using uor_foundation_sdk::axis!
 uor_foundation_sdk::axis! {

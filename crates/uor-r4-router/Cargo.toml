@@ -3,7 +3,23 @@ name = "uor-r4-router"
 license = "MIT"
 version = "0.1.0"
 edition = "2021"
-description = "The R4 Tangent Space Router engine: UorR4Router state, manifold indexing, geometric Markov generation, thought streams (wasm-bindgen surface included)"
+description = "R4 router support: token-history session signatures, the tier cascade and the R4 UOR host bounds; the historical UorR4Router engine is preserved behind the non-default legacy-engine feature"
+
+# #2345 retired the floating-point `uor-r4-core` surface (`semantic`,
+# `zeta_projection`, `R4Vector`, `get_word_vector`, ...). The historical
+# `UorR4Router` engine in `src/lib.rs` (plus `geometry`, `decoder_memory`,
+# `benchmark`) is built on those retired APIs, so it does not build against the
+# current core; it is preserved in place as evidence. The crate root is the
+# small engine-free facade in `src/facade.rs` (same pattern as uor-r4-core's
+# `[lib] path`), which builds natively and on wasm32.
+[lib]
+path = "src/facade.rs"
+
+[features]
+# Historical engine on retired core APIs; does not build against the current
+# core (#2345); preserved as evidence. Never a default; D23/D25/D32 forbid
+# re-enabling the retired floating-point core modules it needs.
+legacy-engine = []
 
 [dependencies]
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }

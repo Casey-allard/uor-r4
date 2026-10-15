@@ -124,6 +124,20 @@ allocation-free runtime contracts.
 
 ## API surface
 
+**Default build (since 15 October 2026, #2503):** the crate root is `src/facade.rs`. It compiles only the
+engine-free pieces that the current core supports, re-exported at their historical paths:
+`session_signature` (`TokenHistorySignature`, `SESSION_SIGNATURE_BYTES`, `session_signature_from_*`),
+`fallback`, and `host_bounds` (`R4HostBounds`, `R4_INLINE_BYTES`, `R4_FP_MAX`). It builds natively and
+for `wasm32-unknown-unknown`.
+
+**Historical engine (non-default `legacy-engine` feature):** everything below (`UorR4Router`, its
+wasm-bindgen and native-mirror APIs, the UOR witness layer, `ACTIVE_ROUTER`) is preserved in place in
+`src/lib.rs`, `geometry.rs`, `decoder_memory.rs` and `benchmark.rs`, but it does **not** build against
+the current core. #2345 retired the core surface it is built on (`semantic`, `zeta_projection`,
+`R4Vector`, `get_word_vector`, `transformerless::compiler`, ...). The 18 integration tests in `tests/`
+exercise that engine and do not compile under default features. They are historical evidence, as are
+the GitHub Pages engines it served (the Pages deploy is skipped until a D11 served wasm engine exists, D36).
+
 - **wasm-bindgen API** (`#[wasm_bindgen]`, for the dashboard): `new`,
   `index_default_corpus`, `calculate_resonance`, `route_query_to_manifold`,
   `index_sentence`/`index_corpus`, `generate_geometric_response`,

@@ -11,6 +11,14 @@ permissions:
 
 jobs:
   build-and-deploy:
+    # PAUSED (owner decision, Casey, 15 October 2026): skip, do not fail. #2345 retired the core
+    # modules both browser engines were built on (the legacy R4G1/router engine and the old
+    # native-geometric model), so no current engine can be built for wasm32; and serving a model in
+    # the browser is CPU model compute, which D24 forbids until a D11-compliant served model exists
+    # (M4 #2032). Every deploy replaces gh-pages wholesale (`clean: true`, `single-commit`), so this
+    # job stays skipped to keep the last good site (13 October 18:28Z, pre-#2345) live. Re-enable by
+    # removing this `if` in the PR that lands a D11 served wasm engine.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
