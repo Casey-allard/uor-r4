@@ -1,0 +1,50 @@
+{
+  "schema": "uor-r4.admission-redirect-cost-model/1",
+  "status": "UNMEASURED_QUALIFICATION_EXECUTORS_PENDING",
+  "qualification": {
+    "owner_release_comment": 6201365250,
+    "expected_wall_minutes": 30,
+    "rental_cap_usd_exclusive": 2,
+    "lease_hours_initial": 1,
+    "corpus_apply_calls_allowed": 0,
+    "booked_pods": 0,
+    "actual_gpu_seconds": 0,
+    "actual_gpu_rental_usd": 0
+  },
+  "benchmark": {
+    "samples_per_policy_fixture": 100,
+    "vector_samples": 80,
+    "route_samples": 20,
+    "coordinate_sampling": "VectorBlock coordinates 0..80 and Route coordinates 0..20 (canonical indices 16384..16404); not 100 consecutive canonical coordinates; exact row/cursor bindings required from reviewed runner",
+    "candidate_ordinals_per_proposal": 16,
+    "warmup_batches_excluded": 1,
+    "policies": ["nearest_address_margin_v1", "occupied_cell_rank_hinge_v1"],
+    "fixtures": ["checkpoint0", "sealed_seed1_q4_evaluation_only_rebind"],
+    "shape": {"vocabulary": 4096, "blocks": 4, "context": 192, "kept_cells": 16, "batch_rows": 64},
+    "dtype": "i32 geometric vectors and gate storage, u32 routes/indices, u64 losses/counters",
+    "k16_target_rows_per_second": "UNMEASURED",
+    "k16_physical_context_tokens_per_second": "UNMEASURED",
+    "k16_per_batch_elapsed_ns": "UNMEASURED",
+    "synchronization": "Device::synchronize before clock start and after carry/propose/observation",
+    "exclusions": ["corpus apply", "full dev/transfer evaluation", "checkpoint and archive I/O", "provisioning"],
+    "timing_executor_review": "PENDING_DEEPSEEK"
+  },
+  "planned_training": {
+    "arms": 2,
+    "seeds": [1, 2],
+    "batches_per_run": 16404,
+    "vector_batches_per_run": 16384,
+    "route_batches_per_run": 20,
+    "target_rows_per_run": 1049856,
+    "total_batches": 65616,
+    "total_target_presentations": 4199424,
+    "dev_evaluation_cursors": [0, 4101, 8202, 12303, 16404],
+    "dev_rows_per_evaluation": 14287,
+    "fresh_rows_per_qualifying_run": 2000,
+    "all_in_gpu_hours": "UNMEASURED",
+    "all_in_rental_usd": "UNMEASURED",
+    "cost_formula": "sum over arms/seeds of (16384 * vector_batch_seconds + 20 * route_batch_seconds + accepted_apply_seconds + 5 * full_dev_seconds + qualifying_fresh_seconds + initialization_checkpoint_archive_retry_seconds) / 3600 * booked_GPU_hourly_rate",
+    "rate_selection": "measure both checkpoint0 and Q4 for each objective; disclose scenario and occupancy, do not substitute historical K8 rate",
+    "execution_status": "BLOCKED_ON_REVIEWED_EXECUTORS_QUALIFICATION_AND_COMPLETE_PACKET"
+  }
+}

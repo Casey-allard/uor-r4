@@ -1,0 +1,50 @@
+{
+  "schema": "uor-r4.admission-redirect-packet-archive/1",
+  "scope": "data-only packet preparation; not GPU qualification",
+  "archive": {
+    "uri": "icloud:UOR-R4/results/codex/admission-redirect-transfer-20261015-codex-v2.tar",
+    "bytes": 3276288,
+    "md5": "8fb6a9e0d9282ef9ac869a595ce8ff33",
+    "round_trip": "PASS: cloud-store put uploaded and streamed the stored object back through MD5",
+    "sha256sums_sha256": "044b2e444e809890037763c09ef60d22ad13b9c507ff7ce783c089068eccdeaa",
+    "binding_json_sha256": "4bd108ad4b1ee4673f87e3b87ef89a01a563a556330fa577d06e675f6be7f460",
+    "contents": ["binding.json", "configs/", "fresh/tokens.u16", "fresh/response_mask.u8", "fresh/rows.json", "fresh/documents.json", "instrument/Cargo.toml", "instrument/Cargo.lock", "instrument/src/", "instrument/admission-redirect-packet", "receipts/", "SHA256SUMS"],
+    "upload_and_round_trip_wall_seconds": "28.11"
+  },
+  "source_archives": {
+    "dataset": "caseyallard/uor-r4-store",
+    "revision": "7e0a52a70165d01ee5f37d1b28740f53c49ca3f2",
+    "files": [
+      {"path": "data/ft-balp.tar", "bytes": 326860800, "sha256": "b1d2211377a2e99d5977cc95d46875027023b08867488b1372185b3f62a1473f"},
+      {"path": "data/ft-dev.tar", "bytes": 143360, "sha256": "45e93e32918f8ad5c977ad3a98926b561173049aacd8bfce2b6e2e49a0390b5c"},
+      {"path": "data/tokenizer.json.tar", "bytes": 112640, "sha256": "2893ab5ce68aaae1624e12aa6f8b5c0b117529fc2388058645a6af018bd3d8bb"}
+    ]
+  },
+  "data_preparation": {
+    "model_operations": 0,
+    "corpus_apply_calls": 0,
+    "gpu_seconds": 0,
+    "gpu_rental_usd": 0,
+    "canonical_preparation_wall_seconds": "4.64",
+    "canonical_preparation_user_cpu_seconds": "4.25",
+    "canonical_preparation_system_cpu_seconds": "0.21",
+    "canonical_preparation_peak_rss_bytes": 614744064,
+    "repeat_preparation_wall_seconds": "4.26",
+    "repeat_comparison": "PASS: binding.json, all fresh files, all four configs byte-identical",
+    "earlier_development_attempt": "A debug preparation selected 2000 targets from 2 documents; not adopted. Replaced prospectively before any model scoring by at-most-10 evenly-spaced targets per document (200 documents). Earlier preparation wall time was not instrumented; it remains local and is not qualification evidence.",
+    "input_download_and_discovery_wall_seconds": "UNMEASURED",
+    "source_test_build_wall_seconds_initial": "13.90",
+    "release_build_wall_seconds_initial": "14.15",
+    "release_build_wall_seconds_final": "1.44",
+    "provider_cli_build_wall_seconds": "4.38",
+    "local_inputs_and_extracted_files_allocated_kib": 639504,
+    "local_canonical_output_allocated_kib": 2020,
+    "local_repeat_output_allocated_kib": 2020,
+    "local_nonadopted_debug_output_allocated_kib": 508,
+    "local_archive_staging_allocated_kib": 3176,
+    "reused_review_build_target_total_allocated_kib": 841232,
+    "provider_build_target_allocated_kib": 43852,
+    "build_storage_scope": "target totals include pre-existing reusable build material; not claimed as incremental new bytes",
+    "cloud_subscription_or_egress_charge_usd": "UNMEASURED; no GPU rental or paid pod storage acquired"
+  }
+}

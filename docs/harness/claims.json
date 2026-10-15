@@ -1,8 +1,8 @@
 {
-  "codex/admission-rank-hinge": {
-    "branch": "codex/admission-rank-hinge",
-    "claimed_at": "2026-10-15T14:17:03-04:00",
-    "head": "18b5ea475",
+  "codex/admission-redirect-packet": {
+    "branch": "codex/admission-redirect-packet",
+    "claimed_at": "2026-10-15T16:13:42-04:00",
+    "head": "2fa663b54",
     "lab": "codex",
     "note": ""
   },

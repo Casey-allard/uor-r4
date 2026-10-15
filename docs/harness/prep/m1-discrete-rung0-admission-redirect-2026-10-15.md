@@ -1,5 +1,12 @@
 # Pre-registration - M1 (discrete-rung0-admission-redirect)
 
+**Execution update (2026-10-15):** the [D-Packet draft](../../labs/admission-redirect-packet-2026-10-15/README.md)
+binds transfer/configuration pins and records the [scoped owner release](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201365250).
+Qualification is still pending the [PM-dispatched executable dependencies](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201569519);
+metadata scaffolding is not a PASS, timing is UNMEASURED, and training cannot start
+before qualification plus the completed packet are green. The technical contract
+below is unchanged; M2 and Stage B remain HELD.
+
 - date: 2026-10-15
 - milestone: M1 #2029 - Language base: a geometric stack language model good enough to carry chat
 - mechanism: discrete-geometric-learning (writer-admission objective/policy redirect: trained-in K=16 cell-rank boundary hinge `8*T + 32*R` vs matched K=16 nearest-rival margin control `8*T + 32*A`; the G-A FAIL successor of `m1-discrete-rung0-admission-2026-10-15.md`)
