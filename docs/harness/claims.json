@@ -6,10 +6,10 @@
     "lab": "antigravity",
     "note": ""
   },
-  "codex/d19-object-store-design": {
-    "branch": "codex/d19-object-store-design",
-    "claimed_at": "2026-10-15T09:21:47-04:00",
-    "head": "0b281337e",
+  "codex/comment-guard-takeover": {
+    "branch": "codex/comment-guard-takeover",
+    "claimed_at": "2026-10-15T09:27:53-04:00",
+    "head": "4bb87a8b3",
     "lab": "codex",
     "note": ""
   },

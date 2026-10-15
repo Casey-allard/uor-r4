@@ -230,6 +230,9 @@ COMMANDS:
                 saying a skill was actually loaded and deployed.
     team        Branch claims: claim, release, claims, roster.
                 `team claim --branch B --lab L` before you start work.
+    comment     Edit one comment, BY ID: `comment edit --id <id> --body-file <f>`.
+                There is no `--edit-last`: it edits the last comment on the issue, not
+                the last one you wrote, and every lab here posts as one account.
     version     The commit this binary was built from, and whether it is
                 behind origin/main - answers why a flag was rejected.
     notes       Unread notes: comments on the milestone issues this lab has
@@ -428,6 +431,7 @@ fn main() -> ExitCode {
         Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
         Some("ledger-sync") => cmd_ledger_sync(&repo, &rest, json),
         Some("notes") => cmd_notes(&repo, &rest, json),
+        Some("comment") => cmd_comment(&repo, &rest, json),
         Some("version") => cmd_version(&repo),
         Some("team") => cmd_team(&repo, &rest, json),
         Some("skill") => cmd_skill(&repo, &rest, json),
@@ -3588,4 +3592,49 @@ fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
         }
     }
     ExitCode::SUCCESS
+}
+
+/// `comment edit --id <id> --body-file <path>` - edit one comment, addressed by id.
+///
+/// **There is no `--edit-last`, and that is the point.** The flag edits the LAST comment on the issue
+/// rather than the last one this lab wrote; every lab posts through one shared account, so there is no
+/// author filter to save you. On 14 October it replaced the whole body of someone else's comment and the
+/// text was unrecoverable, because GitHub keeps no edit history for issue comments.
+///
+/// **A warning would not have prevented that.** The harness offered no way to edit a comment at all, so
+/// `gh` was the only path and the flag was one keystroke away. This is that path, and it cannot express
+/// the word last.
+fn cmd_comment(repo: &Path, args: &[String], _json: bool) -> ExitCode {
+    if action_word(args) != "edit" {
+        eprintln!("uor-harness comment: expected `edit --id <id> --body-file <path>`");
+        return ExitCode::from(2);
+    }
+    let Some(id) = flag_value(args, "--id").and_then(|s| s.parse::<i64>().ok()) else {
+        eprintln!(
+            "uor-harness comment edit: --id <comment-id> is required, and there is no last-comment form:"
+        );
+        eprintln!(
+            "  `gh --edit-last` edits the last comment on the ISSUE, not the last one you wrote, and every"
+        );
+        eprintln!(
+            "  lab here posts as one account. It cost the project a comment's text on 14 October."
+        );
+        return ExitCode::from(2);
+    };
+    let Some(file) = flag_value(args, "--body-file") else {
+        eprintln!(
+            "uor-harness comment edit: --body-file <path> is required; the body replaces the whole comment"
+        );
+        return ExitCode::from(2);
+    };
+    match notes::edit_comment(repo, id, Path::new(&file)) {
+        Ok(url) => {
+            println!("edited comment {id}: {url}");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("uor-harness comment edit: {e}");
+            ExitCode::from(1)
+        }
+    }
 }

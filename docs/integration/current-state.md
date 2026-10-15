@@ -50,6 +50,23 @@ Line: exact addressed memory · count 0/3 unchanged (finite construction pre-reg
 
 Line: starling read / exact addressed memory · count 3/3 unchanged (M4) / 0/3 unchanged (M1) · headline unchanged. **Next:** Claude `TEST FITNESS` review on `#2032`; await Stage M1 construction `PASS` (`#2494`), seed-1 cursor `16,404` `Route` rows (`#2492`), and explicit owner release before any Stage M2 GPU execution.
 
+## 2026-10-15 — Parked comment-guard continuation: accurate scan scope and source provenance (codex, tooling)
+
+The [continuation record](../labs/comment-guard-2026-10-14/README.md#codex-continuation--15-october-2026)
+preserves DeepSeek's #2488 source (`2b4256d6e` and `c0f03685d`) through attributed
+cherry-picks `3c5a25e32` and `5c12dfa9f` on fresh main `5fd44f578`.
+Owner-authorized Codex continuation addresses PM's four remaining text nits:
+the scan covers `scripts/harness/**` and `.github/workflows/**`, the historical
+re-review passed 504 Rust unit tests plus 2 integration tests, the footer has its
+blank line, and the docstring explicitly distinguishes full-line from inline comments.
+Fresh local checks pass: 504 Rust unit tests (6 ignored), 2 integration tests and
+1 doc-test; the explicitly selected ignored Rust/Python doccheck parity test also
+passes. Doccheck resolves 146 commands with 0 problems, its 14 Python tests pass,
+and formatting/Clippy are clean. These are current observations, separate from the historical review.
+No runtime behavior changes, live comment editing, model/GPU work or hold release.
+
+Line: no model line — tooling · count 0/3 unchanged · headline unchanged. **Next:** protected replacement delivery; preserve the parked original source.
+
 ## 2026-10-15 — Complete GitHub issue/PR/comment corpus archived into the repository (kimi PM, owner-requested insurance)
 
 [`docs/history/github-archive-2026-10-15/`](../history/github-archive-2026-10-15/INDEX.md) preserves the full public GitHub evidence trail inside git, where no permission change can remove it: 462 issues, 2,033 PRs, 7,878 conversation comments, 311 inline review comments on 62 PRs, 185 PR reviews, 30 labels, 21 milestones — snapshot 2026-10-15T02:31:23Z, reconciliation 2,495/2,495 exact against live counters (every row "match" in INDEX.md), five high-citation comments (6181921625, 6181460874, 6174007797, 6174496690, 6159308818) spot-verified byte-identical to the live API. Every comment keeps its GitHub-global numeric id as a markdown heading (`### comment <id> — <created_at> — <login>`), so citations in DECISIONS.md, prep sheets, and this file resolve with grep. `export.sh` in the archive is re-runnable (`--fresh`) for future snapshots. Motivation: the owner holds org-member push-only access to UOR-Foundation/uor-r4; this is insurance, not a migration — work continues on the canonical repo. Docs-only, no compute.
@@ -69,6 +86,33 @@ Line: D19 durable-memory infrastructure · count0/3 unchanged · headline unchan
 ## 2026-10-14 — D19 exact object-store prototype contract (Codex, design only)
 
 The [design note](../labs/d19-object-store-design-2026-10-14/README.md) specifies `uor-r4-object-store`: Showcase-compatible ternary records, bounded exact fold/rebuild/range/missing operations, distinct partial-path and whole-object integrity types, persistence, and pinned occurrence-to-byte-span bindings. It names the durable-memory consumer seams without connecting model code or changing attention; no implementation or measured capability is claimed. Source-only review; no model/GPU compute or hold release. **Next:** protected delivery of this contract, then the Rust implementation and byte-only controls. Seed-2 authentication stays queued for the owner's decision; training/M2 remain HELD.
+
+## 2026-10-14 — a comment-edit guard, because the safe path did not exist (deepseek, tooling)
+
+The [record](../labs/comment-guard-2026-10-14/README.md) carries the three parts and the live verification.
+**THE INCIDENT IT ANSWERS:** fixing a typo in my own status comment on #2028, I ran `gh issue comment 2028
+--edit-last --body-file ...` — which edits the **last comment on the issue**, not the last comment *by me*, and
+every lab posts through one shared account, so there is no author filter; it replaced the entire body of
+**comment `6145450989` (13 Oct 12:23Z)**, `--body-file` replaces the whole body, GitHub keeps no comment edit
+history, and the text was unrecoverable. **THE GUARD, IN THREE PARTS:** (1) **the safe path exists** — the
+harness had **no command that edits a comment at all**, so `gh` was the only path and the hazardous flag was one
+keystroke away; a warning would not have prevented what happened, so `uor-harness comment edit --id
+<comment-id> --body-file <path>` now edits exactly the comment named and **cannot express "last"**; (2) **the
+lesson surfaces one step before the mistake** —
+`docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md`, severity `block`, with the trigger words a
+lab would be typing, so `mistakes find -f` raises it before the command; (3) **a machine check on the executable
+workflow roots covered by CI** — the `no_position_based_edits` test scans `scripts/harness/**` and `.github/workflows/**` and fails with the file,
+line and the id-addressed replacement, and states its own limit: **it cannot intercept a hand-typed `gh`**, which
+is exactly why part 1 had to be built. **VERIFIED:** the refusal names the hazard and why; an empty body file is
+refused **before** `gh` runs; **a real edit by id against the live tracker succeeded** (`edited comment
+6173738543`); the lesson's four required sections are present and it loads in the registry, which the
+mistakes-registry tests confirm. **Historical PM re-review at `c0f03685d`: 504 Rust unit tests passed,
+plus 2 integration tests**; fmt and clippy `-D warnings`
+clean; `unittest` exit 0 with 0 failure lines; `parity.py` exit 0; interlock OK — 1641, baseline 1641. **Stated
+rather than hidden:** the overwritten comment's text is gone — this prevents the next one and cannot restore
+that one; and **the machine check is narrow on purpose**, guarding what executes rather than what a lab types.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
 ## 2026-10-14 — `ReadSpec::Relation` bounded exact-relation reranker design card revised per D34 (antigravity, mechanisms line)
 

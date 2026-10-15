@@ -1198,3 +1198,142 @@ mod refresh_tests {
         assert_eq!(Markers::load(&p, "claude").seen.get(&2029), Some(&900));
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Editing a comment: BY ID, and there is deliberately no `--edit-last`.
+//
+// `gh issue comment --edit-last` edits the LAST comment on the issue - not the last one YOU wrote. Every
+// lab on this tracker posts through one shared account, so there is no author filter to save you. On
+// 14 October that flag replaced the entire body of someone else's comment; `--body-file` replaces the
+// whole body, GitHub keeps no edit history, and the text was unrecoverable. The lesson is at
+// `docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md`.
+//
+// **The guard is that the safe path exists.** Warning a lab about `gh` does not help when the harness
+// offers no way to edit a comment at all - the dangerous call was the only call. This takes an id,
+// because position is meaningful only to the writer, and on this tracker the writer is three labs.
+// ---------------------------------------------------------------------------------------------
+
+/// The line printed before a patch: who wrote the comment, when, and the first line of its body.
+///
+/// **This is the owner rule's second clause** - verify the id and its timestamp before patching. Pure, so
+/// the pre-patch echo has automated coverage without touching the network.
+pub fn target_line(comment_id: i64, comment: &serde_json::Value) -> String {
+    let who = comment
+        .get("user")
+        .and_then(|u| u.get("login"))
+        .and_then(|s| s.as_str())
+        .unwrap_or("<unknown author>");
+    let when = comment
+        .get("created_at")
+        .and_then(|s| s.as_str())
+        .unwrap_or("<unknown time>");
+    let first: String = comment
+        .get("body")
+        .and_then(|s| s.as_str())
+        .unwrap_or("")
+        .lines()
+        .next()
+        .unwrap_or("")
+        .chars()
+        .take(80)
+        .collect();
+    format!("About to edit comment {comment_id} by {who} at {when}:\n  {first}")
+}
+
+/// Edit exactly the comment named by `comment_id`, replacing its body with `body_file`.
+///
+/// Returns the comment's URL. Refuses an empty body, because a silent blanking is the same failure as
+/// an overwrite with less noise.
+pub fn edit_comment(
+    repo: &std::path::Path,
+    comment_id: i64,
+    body_file: &std::path::Path,
+) -> Result<String, String> {
+    let body = std::fs::read_to_string(body_file)
+        .map_err(|e| format!("cannot read {}: {e}", body_file.display()))?;
+    if body.trim().is_empty() {
+        return Err(format!(
+            "refusing to replace comment {comment_id} with an empty body ({} is empty)",
+            body_file.display()
+        ));
+    }
+    // **Verify the target before patching it.** A mistyped id would otherwise silently overwrite
+    // whatever comment that id names - the `--edit-last` failure one keystroke slower. So: read it
+    // first, refuse if it cannot be read, and say who wrote it and when before replacing anything.
+    let (seen_ok, seen, seen_err) = crate::githubcards::gh_json(
+        &[
+            "api",
+            &format!("repos/UOR-Foundation/uor-r4/issues/comments/{comment_id}"),
+        ],
+        repo,
+    );
+    if !seen_ok {
+        return Err(format!(
+            "comment {comment_id} cannot be read, so it will not be patched: {seen_err}"
+        ));
+    }
+    eprintln!("{}", target_line(comment_id, &seen));
+    let (ok, v, err) = crate::githubcards::gh_json(
+        &[
+            "api",
+            "-X",
+            "PATCH",
+            &format!("repos/UOR-Foundation/uor-r4/issues/comments/{comment_id}"),
+            "-F",
+            &format!("body=@{}", body_file.display()),
+        ],
+        repo,
+    );
+    if !ok {
+        return Err(format!("gh api PATCH comment {comment_id} failed: {err}"));
+    }
+    Ok(v.get("html_url")
+        .and_then(|u| u.as_str())
+        .unwrap_or("<no url in the response>")
+        .to_string())
+}
+
+#[cfg(test)]
+mod edit_comment_tests {
+    use super::*;
+
+    /// An empty body is refused BEFORE gh runs: a blank comment is the same loss as an overwrite.
+    #[test]
+    fn an_empty_body_is_refused() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let f = dir.path().join("empty.md");
+        std::fs::write(&f, "\n   \n").expect("write");
+        let err = edit_comment(std::path::Path::new("."), 1, &f).expect_err("must refuse");
+        assert!(err.contains("empty"), "{err}");
+    }
+
+    /// A missing file is a clear error, not a panic and not a silent no-op.
+    #[test]
+    fn a_missing_body_file_is_an_error() {
+        let err = edit_comment(
+            std::path::Path::new("."),
+            1,
+            std::path::Path::new("/nonexistent/body.md"),
+        )
+        .expect_err("must refuse");
+        assert!(err.contains("cannot read"), "{err}");
+    }
+
+    /// **The owner rule's second clause, with coverage.** Reading the target before patching is the
+    /// difference between "this id exists" and "this id is the comment I meant" - so the echo names the
+    /// author, the time and the first line, and says nothing about the rest of the body.
+    #[test]
+    fn the_pre_patch_echo_names_author_time_and_first_line() {
+        let v: serde_json::Value = serde_json::json!({
+            "user": { "login": "kimi" },
+            "created_at": "2026-10-14T12:23:07Z",
+            "body": "PM note: the first line matters most here\nsecond line"
+        });
+        let line = target_line(6173738543, &v);
+        assert!(line.contains("6173738543"), "{line}");
+        assert!(line.contains("kimi"), "{line}");
+        assert!(line.contains("2026-10-14T12:23:07Z"), "{line}");
+        assert!(line.contains("first line matters most"), "{line}");
+        assert!(!line.contains("second line"), "only the first line: {line}");
+    }
+}

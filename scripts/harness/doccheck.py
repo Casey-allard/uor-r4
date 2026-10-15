@@ -206,6 +206,12 @@ RUST_ONLY_COMMANDS = frozenset(
         # test_doccheck on main. Keeping it current is part of porting, not an afterthought.
         "ratchet",
         "version",
+        # The lesson at docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md names
+        # `uor-harness comment edit`, and docs/harness/mistakes/** is inside this checker's discovery
+        # scope - so without this entry the resolver calls a shipped command unknown and reddens
+        # test_doccheck, exactly as `ratchet` did (#2346). A command is not ported until BOTH this set
+        # and the Rust ACCEPTED table know it.
+        "comment",
     }
 )
 

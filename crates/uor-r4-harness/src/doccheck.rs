@@ -475,6 +475,9 @@ const ACCEPTED: &[&str] = &[
     "notes",
     "ratchet",
     "version",
+    // `comment edit` edits a note by id. It moved with the lesson that names it: the two tables have to
+    // move together, and only one side updated diverges the #[ignore]d cross-check.
+    "comment",
 ];
 
 /// Subcommands of the top-level groups, as **this binary** accepts them.
