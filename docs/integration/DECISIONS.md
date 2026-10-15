@@ -1666,3 +1666,71 @@ Accept / Need detail / Hold).
 3. **Companion record.** The same dialog authorized removal of the dead `target/`
    symlink in the owner checkout (Sep-29 debris pointing at a retired archive
    volume; no content held by the link). Removal executed 2026-10-14 ~19:05Z.
+
+## D35 — Seed-2 packet re-issue required before any seed-2 GO; registered seed-2 held for the admission iteration
+
+**Authority, October 15:** owner decision delivered in Kimi's session via Claude relay
+(the verbatim relay is #2028 comment 6181407533; the PM record is #2028 comment
+6181460874), after the seed-2 packet review at #2029 comment 6181236311 found the
+packet predated the checkpoint-zero guard. Section 4 records the later same-day
+owner decision that holds the registered seed-2 in favour of the admission-objective
+iteration.
+
+1. **Required before any seed-2 GO.** The seed-2 packet is re-issued so the
+   checkpoint-zero guard (`completion_baseline.rs`, #2484) is in the binary that
+   runs seed 2: (a) a newly qualified CUDA build from a named `main` commit on the
+   pod (`admit_ptx` zero-float plus the 25 admitted controls); (b) new
+   `executable_sha256` / `driver_source_sha256` / `lineage_sha256` pins in
+   `SEED2_PLAN.json` and a fresh `seed2-review.json`;
+   (c) `completion-check-plan` re-run to `PLAN_METADATA_VALID` with new receipts;
+   (d) the quarter scorer rebuilt against that packet; (e) the owner's personal
+   seed-2 release on the pod (interactive TTY, `UOR_LAB` unset, release and state
+   directories initially absent). Prerequisite: the crate test suite green on
+   `main` before a build commit is named.
+2. **What this does not decide.** No compute follows from the re-issue itself —
+   the build and controls need their own pre-registration sheet and TEST FITNESS:
+   FIT. No seed-2 GO is implied: that remains the owner's explicit decision. No
+   change to the completed seed-1, its pinned binary `d4fbe26c…`, its packet, or
+   its archived artifacts. M2 and training remain HELD.
+3. **Ownership.** Claude holds the executor seat for the re-issue build; Codex
+   authored the guard. Sequencing is assigned by the PM.
+4. **Same-day supersession of sequencing (owner decision, ~07:55Z, recorded at
+   #2029 comment 6187197075).** After the verified seed-1 closeout (#2029 comment
+   6186067850: top-1 149, top-8 747, target-admitted rows 1,920 vs bars
+   1,941/4,775 — arithmetically unreachable under the seed-1 admission
+   configuration, iteration evidence under D22) the owner chose to HOLD seed-2 as
+   registered and iterate the admission objective first: **the admitted-row
+   ceiling must exceed the decisive bar counts before any run is released.**
+   Sections 1–3 therefore apply only if the owner later GOs the registered
+   seed-2; the active line is the admission-objective successor
+   (`docs/harness/prep/m1-discrete-rung0-admission-2026-10-15.md`, Stage A
+   ceiling instrument first, Stage-B training amendment only on a gate pass with
+   its own FIT and owner release).
+
+## D36 — GitHub Pages: keep the last good deploy live; deploy job skipped until a D11 served wasm engine lands
+
+**Authority, October 15:** owner decision delivered in Claude's session (the
+verbatim record is #2028 comment 6185876280). It **supersedes** the same-morning
+"drop R4G1 from wasm" relay (#2028 comment 6184702464), which deeper scoping
+overtook.
+
+1. **Decision.** The live Pages site stays as the last good deploy (13 Oct
+   18:28Z, pre-#2345): every deploy replaces `gh-pages` wholesale, and #2345
+   retired **both** browser engines (the R4G1/router engine and the old
+   native-geometric model API), so a new deploy would ship a broken or
+   CPU-served site — and browser serving is CPU model compute (D24). The deploy
+   job is therefore skipped (`if: ${{ false }}` with the reason and re-enable
+   condition in-file, `.github/workflows/deploy.yml`), not failing, until M4
+   lands a D11-compliant served wasm engine. R4G1 source remains preserved in
+   place; the router engine is preserved behind the non-default `legacy-engine`
+   feature; `r4_worker.js` `typeof`-guards the absent exports.
+2. **What this does not decide.** No wasm engine is adopted or rejected here;
+   the re-enable condition is a D11 served wasm engine, delivered through the
+   normal pre-registration / TEST FITNESS / owner-release chain. The retired
+   `transformerless::{compiler, runtime}` modules stay retired (their
+   floating-point/softmax content is D23/D32-banned; restoring them is not
+   authorized by this decision).
+3. **Known out-of-scope breakage (filed separately).** Native `graph-compiler`,
+   `graph-certify`, `api`, `proof-model` and the root crate remain broken on
+   the retired core modules; repair or retirement of that surface needs its own
+   owner decision, flagged for the PM queue by Claude (6185876280).
