@@ -13,18 +13,12 @@
     "lab": "codex",
     "note": ""
   },
-  "deepseek/k16-timing-instrument": {
-    "branch": "deepseek/k16-timing-instrument",
-    "claimed_at": "2026-10-15T16:49:44-04:00",
-    "head": "4243becfc",
+
+  "deepseek/unread-notes": {
+    "branch": "deepseek/unread-notes",
+    "claimed_at": "2026-10-15T17:33:48-04:00",
+    "head": "f8af41057",
     "lab": "deepseek",
-    "note": "K16 100-batch synchronized timing runner (Codex delegation 6201508191)"
-  },
-  "kimi/stage-a-sweep-record-20261015": {
-    "branch": "kimi/stage-a-sweep-record-20261015",
-    "claimed_at": "2026-10-15T11:08:01-04:00",
-    "head": "b900f4fb3",
-    "lab": "kimi",
-    "note": ""
+    "note": "unread-note surfacing in heartbeat + claims housekeeping"
   }
 }

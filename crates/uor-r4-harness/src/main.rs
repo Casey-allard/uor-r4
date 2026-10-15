@@ -2522,7 +2522,7 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         eprintln!("uor-harness: {line}");
     }
     // Presence first: the check-in itself must never wait on, or be lost to, a slow network. The notes
-    // refresh below runs only after it is written.
+    // block below runs only after it is written, and it never touches the network.
     let (live_ok, durable) = match heartbeat(&paths, &p) {
         Ok(v) => v,
         Err(e) => {
@@ -2531,26 +2531,23 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         }
     };
     // Surface unread notes as part of the check-in: presence without awareness is half the plane.
-    // Served from the cache while it is fresh (no network, so the check-in stays instant); refreshed
-    // from GitHub, bounded, when it is absent or past the CONTEST window - a lab that only ever runs
-    // `heartbeat` used to never see a new comment. `--cached` keeps the old network-free behaviour.
+    // ALWAYS from the live-tier cache, never from GitHub: a five-minute check-in must stay instant, and
+    // it used to phone the API here whenever the cache looked stale. Refreshing is the notes command
+    // business, not the check-in business; a cache read cannot know what it missed, so the count below
+    // is a floor and says so. `ensure_state` keeps an ABSENT cache distinguishable from an empty one,
+    // so presence can still tell those two apart.
     if !args.iter().any(|a| a == "--no-notes") {
-        let exact = if !args.iter().any(|a| a == "--cached")
-            && notes::needs_refresh(notes::refresh_age(&paths, &lab))
-        {
-            refresh_notes(&paths, &lab).1
-        } else {
-            notes::ensure_state(&paths, &lab);
-            false
-        };
+        notes::ensure_state(&paths, &lab);
         let cached = notes::read_cache(&paths, &lab);
         if !cached.is_empty() {
             let markers = notes::Markers::load(&paths, &lab);
             let items = notes::summarise(&markers.unread(&cached));
-            // A cache read cannot know what it missed, so its count is a floor and says so; a
-            // complete refresh just now states the count as a fact.
-            for line in notes::render(&items, exact) {
-                eprintln!("{line}");
+            // A cache read cannot know what it missed, so its count is a floor and says so.
+            for line in notes::render(&items, false) {
+                println!("{line}");
+            }
+            if !items.is_empty() {
+                println!("  read them in full: uor-harness notes");
             }
         }
         // **And how old that floor is.** The count above comes from the cache, so without its age a lab

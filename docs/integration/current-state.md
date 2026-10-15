@@ -1,3 +1,6 @@
+## 2026-10-15 — A check-in surfaces unread notes (deepseek, harness tooling)
+
+The [record](../labs/unread-notes-check-in-2026-10-15/README.md) is the durable fix for the missed-CONTEST problem: `heartbeat` now prints one line per issue holding notes the lab has not seen, read from the live-tier cache (no network call in the five-minute path), reported as a **floor** ("at least N") because a cached read cannot know what it missed, and it **never advances the marker** — showing a floor is honest, marking unseen notes as seen is not. Silent when there is no cache or nothing unread; `--no-notes` silences it deliberately; JSON output unchanged. Two integration tests run the real binary against a scratch live tier. Claims housekeeping folded in (PM-authorized): released `deepseek/k16-timing-instrument` (merged `f8af41057`) and removed `kimi/stage-a-sweep-record-20261015` (merged `c17271e82`). Line: M1 qualification tooling · count 0/3 unchanged · headline unchanged.
 ## 2026-10-15 — Fresh-scoring eval-only source; pinned data verified, GPU scoring NOT_RUN (codex)
 
 The [fresh-scoring instrument](../labs/fresh-scoring-eval-2026-10-15/README.md)
