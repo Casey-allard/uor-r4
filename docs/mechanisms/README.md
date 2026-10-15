@@ -25,7 +25,7 @@ inactive through [#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370).
 |---|---|---|---|
 | Exact SpiralCore/FBS moves and shared integer vector writer | M1 #2029 / M4 #2032 | source a2a5b89c;11 admitted CUDA controls PASS after Claude FIT; delivery #2379, training held; M1 quality target SUSPENDED | [discrete-geometric-learning.md](discrete-geometric-learning.md) |
 | Prime-rank indexing and complex-plane zeta-phase routing | M1 #2029 / M4 #2032 | standalone offline constructor (#2473/#2477); 17+6 finite CUDA controls PASS after FIT (#2433) and owner release; frozen D5 xorshift unchanged; learned attribution held | [prime-zeta-complex-routing.md](prime-zeta-complex-routing.md) |
-| Finite relational head over native geometric descriptors | M1 #2029 / M4 #2032 | source-only design card (#2480); C6 vs G64 explicitly unselected; ≤16K Flock shortlist excluded as pool; no head adoption, NOT_RUN / held | [finite-relational-head.md](finite-relational-head.md) |
+| Finite relational head (`ReadSpec::Relation` bounded exact-relation reranker) | M1 #2029 / M4 #2032 | source-only design card revised per D34 (#2482/#2485); relation-off ≡ Flock; copy-successor target (3,847/14,287 = 26.9% DEV); C6-vs-G64 demoted to contingent unselected arm; ≤16K shortlist excluded; NOT_RUN / held | [finite-relational-head.md](finite-relational-head.md) |
 
 **Pre-D32 operator phase — preserved inactive float source scopes.**
 
