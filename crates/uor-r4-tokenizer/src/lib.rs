@@ -326,6 +326,32 @@ impl ByteBpeTokenizer {
         self.vocab.len()
     }
 
+    /// Raw decoded byte length without allocation. Unassigned, empty and
+    /// out-of-range IDs return `None`, unlike the permissive batch decoder.
+    /// Consumers can enforce byte budgets before calling `decode_bytes`.
+    pub fn token_byte_len(&self, id: u32) -> Option<usize> {
+        let token = self.vocab.get(id as usize)?;
+        if token.is_empty() {
+            return None;
+        }
+        if self.added_ids.contains(&id) {
+            return Some(token.len());
+        }
+        token.chars().try_fold(0usize, |length, ch| {
+            length.checked_add(if self.byte_decoder.contains_key(&ch) {
+                1
+            } else {
+                ch.len_utf8()
+            })
+        })
+    }
+
+    /// Whether encoding can insert spaces absent from the source bytes.
+    /// Exact byte-span consumers must reject this normalization policy.
+    pub fn adds_prefix_space(&self) -> bool {
+        self.add_prefix_space
+    }
+
     /// Number of contiguous ids in `model.vocab`, excluding appended added
     /// tokens. Historical runtime decode tables use exactly this prefix.
     pub fn model_vocab_size(&self) -> usize {

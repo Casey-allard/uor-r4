@@ -8,6 +8,7 @@ members = [
     "crates/uor-r4-lut",
     "crates/uor-r4-simd",
     "crates/uor-r4-tokenizer",
+    "crates/uor-r4-object-store",
     "crates/uor-r4-graph-format",
     "crates/uor-r4-router",
     "crates/uor-r4-proof-model",

@@ -352,6 +352,7 @@ never on a serving path, and no new comparator runs are permitted (D23).
 | [`crates/uor-r4-harness`](crates/uor-r4-harness) | the Rust research harness (`uor-harness onboard`) |
 | [`crates/uor-r4-api`](crates/uor-r4-api) | typed compile and engine APIs; the `r4-native-chat` CLI |
 | [`crates/uor-r4-tokenizer`](crates/uor-r4-tokenizer) | byte-level BPE engine and tokenizer identity |
+| [`crates/uor-r4-object-store`](crates/uor-r4-object-store) | D19 exact byte storage prototype: Showcase-compatible records, bounded reconstruction and token occurrence bindings; no model integration |
 | [`crates/uor-r4-lut`](crates/uor-r4-lut), [`crates/uor-r4-simd`](crates/uor-r4-simd) | LUT selected format/grid metadata facade (**`active`**); historical comparator/SIMD model source preserved **`dormant`** outside the native training graph |
 | [`crates/uor-r4-router`](crates/uor-r4-router) | reusable routing plus historical paths |
 | `crates/uor-r4-graph-*` | the frozen R4G1 graph format, compiler, runtime, certifier and CLI |

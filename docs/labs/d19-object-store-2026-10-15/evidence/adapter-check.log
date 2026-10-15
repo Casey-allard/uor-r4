@@ -1,0 +1,24 @@
+     Locking 31 packages to latest compatible versions
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling libc v0.2.190
+   Compiling serde_core v1.0.229
+   Compiling find-msvc-tools v0.1.14
+   Compiling cfg-if v1.0.5
+   Compiling serde_json v1.0.154
+   Compiling serde v1.0.229
+   Compiling arrayref v0.3.9
+   Compiling cc v1.6.0
+   Compiling syn v3.0.9
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling blake3 v1.5.0
+   Compiling uor-r4-recon-dag v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-d19-object-store-impl/local/dag-seam/reader)
+   Compiling serde_derive v1.0.229
+   Compiling uor-r4-tokenizer v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-d19-object-store-impl/crates/uor-r4-tokenizer)
+   Compiling uor-r4-object-store v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-d19-object-store-impl/crates/uor-r4-object-store)
+   Compiling object-store-reader-seam-check v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/codex-d19-object-store-impl/local/dag-seam/check)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.73s
+     Running `local/object-store-target/debug/object-store-reader-seam-check`
+PASS: actual reader Backend::node/stored adapter; exact whole/range bytes; missing mapping; integrity types

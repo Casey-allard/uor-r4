@@ -6,10 +6,10 @@
     "lab": "antigravity",
     "note": ""
   },
-  "codex/route-learning-slot-20261015": {
-    "branch": "codex/route-learning-slot-20261015",
-    "claimed_at": "2026-10-15T08:46:51-04:00",
-    "head": "3405d2c41",
+  "codex/d19-object-store-impl": {
+    "branch": "codex/d19-object-store-impl",
+    "claimed_at": "2026-10-15T09:01:10-04:00",
+    "head": "c8441c0c6",
     "lab": "codex",
     "note": ""
   },
