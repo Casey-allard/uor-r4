@@ -27,7 +27,11 @@ pub enum Error {
     LimitExceeded(&'static str),
     BindingMismatch,
     Utf8,
-    Io(String),
+    /// Classifiable I/O failure; OS detail is retained without parsing prose.
+    Io {
+        kind: std::io::ErrorKind,
+        raw_os_error: Option<i32>,
+    },
 }
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -37,7 +41,10 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {}
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
-        Self::Io(e.to_string())
+        Self::Io {
+            kind: e.kind(),
+            raw_os_error: e.raw_os_error(),
+        }
     }
 }
 

@@ -6,10 +6,10 @@
     "lab": "antigravity",
     "note": ""
   },
-  "codex/d19-object-store-impl": {
-    "branch": "codex/d19-object-store-impl",
-    "claimed_at": "2026-10-15T09:01:10-04:00",
-    "head": "c8441c0c6",
+  "codex/d19-nits-seed2-appendix": {
+    "branch": "codex/d19-nits-seed2-appendix",
+    "claimed_at": "2026-10-15T09:06:10-04:00",
+    "head": "6af7df75f",
     "lab": "codex",
     "note": ""
   },

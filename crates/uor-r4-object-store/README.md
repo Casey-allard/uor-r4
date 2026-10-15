@@ -35,3 +35,8 @@ Default numeric limits and all executed checks are recorded in the implementatio
 record. Raw source bytes, retained record bytes and new record bytes are separate
 accounts; none includes caller tokenizer memory, manifest/binding bytes or a
 claim of measured transport speed.
+
+I/O failures expose typed `ErrorKind` and an optional raw OS code. Ingestion uses
+the object-size ceiling; occurrence reads use the receiving store's returned-byte
+ceiling. A token valid for storage can therefore exceed a reader's quotation
+budget. This preserves independent storage and response-size policies.

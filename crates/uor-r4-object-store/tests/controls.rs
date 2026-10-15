@@ -271,3 +271,25 @@ fn bounded_restart_and_failed_load_preserve_existing_store() -> Result {
     std::fs::remove_dir_all(&dir)?;
     result
 }
+
+#[test]
+fn io_failure_retains_machine_readable_kind_and_os_code() {
+    let missing = Error::from(std::io::Error::from(std::io::ErrorKind::NotFound));
+    assert!(matches!(
+        missing,
+        Error::Io {
+            kind: std::io::ErrorKind::NotFound,
+            raw_os_error: None
+        }
+    ));
+    let original = std::io::Error::from_raw_os_error(13);
+    let expected_kind = original.kind();
+    let converted = Error::from(original);
+    assert_eq!(
+        converted,
+        Error::Io {
+            kind: expected_kind,
+            raw_os_error: Some(13)
+        }
+    );
+}

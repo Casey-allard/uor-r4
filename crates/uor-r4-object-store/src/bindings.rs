@@ -176,6 +176,8 @@ impl Bindings {
 
     /// Authenticate the requested path, object version and exact token bytes.
     /// Does not re-tokenize or assert whole-object SHA verification.
+    /// A reader's `max_returned_bytes` bounds each decoded token and result,
+    /// independently of the ingestion object's `max_object_bytes` budget.
     pub fn read_occurrence(
         &self,
         store: &Store,
@@ -235,6 +237,9 @@ pub struct Ingested {
 /// original, then fold. Tokenizer changes cannot silently alter original bytes.
 /// The source byte count is a conservative token-count bound before encode;
 /// larger objects may use raw Store::fold without token occurrence metadata.
+/// `max_object_bytes` bounds ingestion and token decoding. A later quotation
+/// uses the reading store's `max_returned_bytes` instead: storing a large token
+/// is allowed even if that reader cannot return it in one bounded response.
 pub fn ingest(store: &mut Store, tokenizer: &PinnedTokenizer, bytes: &[u8]) -> Result<Ingested> {
     let limits = store.limits();
     if bytes.len() as u64 > limits.max_object_bytes {

@@ -226,3 +226,30 @@ fn unassigned_out_of_range_wrong_and_oversized_token_reads_are_refused() -> Test
     ));
     Ok(())
 }
+
+#[test]
+fn ingestion_budget_and_quotation_budget_are_intentionally_independent() -> TestResult {
+    let tokenizer = tokenizer()?;
+    let pinned = PinnedTokenizer::new(&tokenizer)?;
+    let mut store = Store::new(Limits {
+        max_object_bytes: 5,
+        max_returned_bytes: 4,
+        ..Limits::default()
+    });
+    // A five-byte token is valid storage even if this reader returns at most four bytes.
+    let stored = ingest(&mut store, &pinned, b"<end>")?;
+    assert_eq!(store.range(&stored.manifest, 0..4)?.bytes(), b"<end");
+    assert!(matches!(
+        stored
+            .bindings
+            .read_occurrence(&store, &stored.manifest, &pinned, 0),
+        Err(StoreError::LimitExceeded("decoded token bytes"))
+    ));
+    let before = store.export_records()?;
+    assert!(matches!(
+        ingest(&mut store, &pinned, b"<end>a"),
+        Err(StoreError::LimitExceeded("object bytes"))
+    ));
+    assert_eq!(store.export_records()?, before);
+    Ok(())
+}
