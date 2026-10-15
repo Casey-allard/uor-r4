@@ -1,0 +1,63 @@
+# #1105 — Freeze the native service API and artifact-ownership contract
+
+- **Type:** Issue
+- **State:** closed (completed)
+- **Author:** @Casey-allard
+- **Created:** 2026-09-03T16:49:09Z
+- **Updated:** 2026-09-03T17:18:36Z
+- **Closed:** 2026-09-03T17:17:55Z
+- **Assignees:** Casey-allard
+- **URL:** https://github.com/UOR-Foundation/uor-r4/issues/1105
+- **Archived:** 2026-10-15T02:31:04Z · UOR-Foundation/uor-r4
+
+## Body
+
+## Decision and ownership
+
+This is the single active specification child of #1084, selected after #1102 closed through protected PR #1104 at `85d9eb8beca2a59ccda47e290afd483f7838982c`. #1084 also owns later service/browser implementation and must remain open when this child closes.
+
+Freeze the first local Rust service boundary for `answer_four_fact_raw_text/v1`: one native owner of artifact identity, qualification, model/request lifecycle and same-origin web assets, exposed through a typed NativeProvider. The exact accepted reader/core, known vocabulary/query forms, four-fact context and native reference artifact remain fixed. The browser must report actual capability and availability, including unqualified/unavailable states, without a fallback or synthetic answer.
+
+## Deliverable and definition of done
+
+1. An ADR compares the real ownership options and chooses the Rust host/worker boundary, trusted artifact/qualification intake, actual executable/runtime identity, asset root and first supported user flow. It identifies exact existing source seams and the work that still requires implementation.
+2. A machine-readable companion freezes capability, lifecycle, request/result/error and cancellation/progress semantics, limits, version/identity rules, and a small set of illustrative wire/state scenarios. These are specification examples, not model or browser outcomes.
+3. Make new-host qualification explicit: #1102's measured CLI digest/receipt cannot qualify a newly linked service by substitution. Define the separate admission and verification obligations before any new build/model or HTTP/browser behavior measurement. Neither consumed #1102 envelope nor #1094's resealed envelope is reusable.
+4. Inspect the original donor UI and relevant NEMESIS/W33/UOR sources, pin their provenance and licenses, and state their actual support and limits. Preserve mathematical proof, source inspection, measured model behavior and unverified service hypotheses as separate evidence categories.
+5. Independent review accepts the exact contract and named source/metadata checks. Deliver through a protected PR, update current roadmap and claim/evidence records, GitHub parent/child handoff and the knowledge index, and review storage without deleting unique evidence or user material.
+
+## Allowed work and named checks
+
+Source and metadata inspection, ADR/contract/examples/source-audit authoring, duplicate-key JSON parsing and cross-reference/identity consistency, source digest verification, `python3 scripts/check_claim_wording.py`, `git diff --check`, and independent specification review. Each local metadata check is bounded to 60 seconds; new contract/audit outputs are bounded to 2 MiB, excluding the required isolated source checkout and local knowledge snapshots.
+
+No service/worker implementation, dependency upgrade, Cargo build/test, server/browser launch, model or corpus deserialization, fitting, model forward, export, replay, qualification API call, benchmark, sealed input access or dormant QA is activated. Protected queue acknowledgements are transport only.
+
+## Decision branches
+
+- If the contract is complete, internally consistent and independently accepted, record `SERVICE_API_CONTRACT_SPECIFIED`, close only this child after protected merge, and hand #1084 one concrete implementation/actual-host qualification step.
+- If ownership, truthful capability or identity/qualification remains contradictory, record the unresolved boundary, keep this child open and revise the specification. Do not conceal the gap with a ready UI or borrowed binary identity.
+
+The #1102 result remains `NATIVE_REFERENCE_PRESERVED` on its exact authoring stratum, artifact/binary/runtime only. Ordinary qualify()/serving behavior remains NOT_RUN. #1079's weak-control result, #1082's descriptive limits, #973 open and #954 blocked remain unchanged. No general language, context expansion, generation, coding, mathematical equivalence, geometry advantage or final integer/table-kernel qualification follows.
+
+Next action: complete and independently review this specification against current source, then deliver it through the protected path. Stop after this child task.
+
+
+## Comments (1)
+
+### comment 5529427336 — 2026-09-03T17:18:36Z — Casey-allard
+
+Delivered **SERVICE_API_CONTRACT_SPECIFIED** through protected [PR #1106](https://github.com/UOR-Foundation/uor-r4/pull/1106), merge `8ba5887e067e4cc33a1a3c9a6459fcc4b4077a11`. The merged tree matches independently reviewed head `b991dff95a9abf5ec4edbe3dddc512f787764f93`.
+
+[ADR-0006](https://github.com/UOR-Foundation/uor-r4/blob/8ba5887e067e4cc33a1a3c9a6459fcc4b4077a11/docs/adr/0006-native-four-fact-workbench-service.md) and the [machine contract](https://github.com/UOR-Foundation/uor-r4/blob/8ba5887e067e4cc33a1a3c9a6459fcc4b4077a11/docs/r4_service_contract_1105.json) freeze one opt-in `r4-workbench` host, one private same-executable worker, the first four-fact research-reference shell, seven API routes and exact identity/lifecycle/error/cancel/progress/intake rules. The exact final executable must include its private comparison mode before build freeze. Fresh execution permission and original export provenance remain separate; numerical qualification and service behavior acceptance are separate gates.
+
+[Independent review](https://github.com/UOR-Foundation/uor-r4/blob/8ba5887e067e4cc33a1a3c9a6459fcc4b4077a11/docs/r4_service_contract_1105_review.md) accepts the specification only. The [metadata receipt](https://github.com/UOR-Foundation/uor-r4/blob/8ba5887e067e4cc33a1a3c9a6459fcc4b4077a11/docs/r4_service_contract_1105_checks.json) verifies 28 rows / 27 unique pinned originals, 29 definitions, seven routes, five illustrative objects and 16 scenario IDs in 0.277 seconds. Named claim-wording and diff checks are clean. All 13 prior claim records retain their statements, observations and limits; current handoff pointers advance. The [source audit](https://github.com/UOR-Foundation/uor-r4/blob/8ba5887e067e4cc33a1a3c9a6459fcc4b4077a11/docs/r4_service_contract_1105_sources.md) follows donor/NEMESIS/W33/UOR originals and license boundaries.
+
+No host/worker/shell implementation, build, test suite, server/browser launch, model load, qualification API call, fit, forward, export or replay ran. Implementation guarantees remain Unproven. Required GitHub jobs were transport acknowledgements, not runtime QA. #1102 remains bounded NATIVE_REFERENCE_PRESERVED; no old receipt qualifies a new executable and neither consumed campaign may be rerun. Negative/unavailable/descriptive results remain. Storage was reviewed with no deletion of evidence or user material.
+
+This completes only #1105. #1084 remains open and unassigned. **One next action:** activate a separate #1084 implementation child for the contracted host/private worker/first shell, independently accepting concrete source/build/environment admission before a build and a fresh actual-host qualification release before model work. #1083/#1087 stay separate; #973 stays open and #954 blocked. Stop after this child.
+
+
+
+---
+_Comment/review ids in this file: 5529427336_
+

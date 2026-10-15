@@ -1,0 +1,260 @@
+# #1792 — Learn native H4 vocabulary prediction with a CUDA joint-update path
+
+- **Type:** Pull request
+- **State:** closed
+- **Author:** @Casey-allard
+- **Created:** 2026-10-06T04:49:13Z
+- **Updated:** 2026-10-09T13:17:41Z
+- **Closed:** 2026-10-07T00:07:41Z
+- **URL:** https://github.com/UOR-Foundation/uor-r4/pull/1792
+- **Merged:** not merged
+- **Merge commit:** 4d44d8ff6282c3aebc09975a1b84c473984f1c93
+- **Base / Head:** codex/native-geometric-cuda-learning-20261006 / UOR-Foundation:codex/native-geometric-generate-20261006
+- **Reviews / inline review comments:** 0 / 0
+- **Archived:** 2026-10-15T02:31:04Z · UOR-Foundation/uor-r4
+
+## Body
+
+The native source-realizer could copy context and emit a small terminal set, but lacked learned ordinary-token prediction from its actual causal memory-bank state. This change adds shared signed-H4 token-code unary/pair fields and one native Generate/Copy vocabulary pool, including absent-source tokens and EOS. Serving uses integer geometric operators; offline learning uses Rust/CUDA. Generate consumes all admitted bank tokens, the query and the actual generated prefix.
+
+The learning graph retains all 120 signed H4 state choices through exact action permutations and labels its local surrogate explicitly. It includes an opt-in label-free balanced token initializer, jointly trainable existing geometric potential, and an opt-in phase-balanced native token loss. Phase labels affect only offline loss weights after target-free forward; they do not select a serving record or add a runtime gate. The wall-time estimate records an overrun and lets a healthy run finish under owner direction #1802. Prefix temporal credit remains separately scoped and default-off.
+
+An opt-in native read-state bridge now selects the earliest maximum physical occurrence from all raw Copy scores, authenticates its provenance and transports its retained signed-H4 state into Generate through exact group tables and packed Q4 fields. Identity initialization preserves the query. Offline prediction credit uses detached native alternative poststates to supply local decoder-state sensitivity to read scores; it is not a derivative of hard argmax, an oracle or exact candidate-loss difference. Serving uses no softmax. No-source and default paths remain unchanged.
+
+Native margin, state/field, checkpoint-cross and source-contrast instruments retain physical occurrence and alias identity. A separate frozen contextual-target auditor uses the actual retained native encoder and preserves sealed inputs/outputs. Its authored-pair distinctions are information-retention evidence, not a JEPA learner or semantic qualification.
+
+Validation is bound to the actual tested source, not inferred from queue checks:
+
+- Existing Generate/full120/context and initializer CPU/CUDA parity, native reload and model diagnostics remain recorded with exact revisions in current-state. No blanket whole-binary D11/allocation or energy qualification is claimed.
+- Phase-loss admission at b2dfe4df: 2 focused checks and release build pass; both zero-update CUDA arms reproduce native hard pools. Initial source/master/native payloads match the original seed1001 checkpoint. At ef8c0494: the same 2 phase checks, 1 wall-overrun check and release build pass. The matched 128-update phase-balanced CUDA fit completes exit0 with selected step128,0/512 complete answers and CE5.586792452; wrapper3761.374s. Independent saved-evidence review authenticates1024rows and512initial records match. All512 entry Copy maxima still exceed Generate’s legal91/16 bound. The sealed fit/config/source/receipt and actual tests/build/job log are MD5-verified in iCloud.
+- Frozen contextual audit at c917e7e4: 5 focused release checks pass (3 authored, 2 imported preservation checks), release build and both native audits exit zero. Total wrapper cost 142.361 seconds; no GPU or optimizer work. At checkpoint0 and old checkpoint128 all34 pairs have distinct endpoints, triples and trajectories; triples add no distinction beyond endpoints. Independent review checks actual inputs, signed states, counts and inventories. Sealed reports and receipts are MD5-verified in iCloud and retained on canonical /workspace.
+- Read-state bridge at d6abb7bc: core2, learning-wrapper2, bank3 tests and fitter check pass on Linux x86_64. At a5e132b3: bank3 and selector-difference1 checks pass; CUDA fitter and parity test build. Actual RTX5090 bridge parity passes1/1,0 ignored. Zero-update actual-bank admission completes exit0 in79.865s: identical selector-on/off native forward hash/loss, selector contextual radius/unary deltaL2 .063403/.064087 versus common-shift residual2.107e-8, allGenerate and factualbridge deltasexact0. Identity-init bridge has nonzero parameter gradients. Algebraic diagnostic only; baseline0/8 complete, no fresh evaluation/learning result. Complete sealed attempt and GPU logs are MD5-verified in iCloud, canonical originals retained.
+- Latest documentation-only head: claim-wording and diff checks pass. Source changes retain their actual compile/test identities above.
+
+Measured model outcomes remain bounded negatives. Original joint-potential seed1001 completes128 updates, native equal-episode CE8.223477354→5.618457004, but0/512 complete answers. Covered teacher-forced tokens improve while entry and later Generate-only NLL worsen. Four completed potential controls and physical-source contrasts do not qualify selective attention. Earlier fits and negative artifacts are retained.
+
+Adversarial review finds only48 accepted reply strings in the512 construction rows (two fixed forms,24 shared literal values; training/development are the same inputs). It also rules out a state-only bridge with the old final Copy ranker frozen: every absent-Copy entry target faces a Copy competitor above Generate's legal91/16 score bound. Phase balancing reduces high-clipped entry Copy atoms750→541 but leaves every entry structurally blocked against any frozen Generate state. No unchanged-dose repeat or frozen-ranker bridge-only fit is justified. Authenticated saved states are512distinct at entry and literal-byte intersection, so no deterministic state collision is observed on this construction panel. All-bank predicted-read→retained-state→Generate is implemented and its local learning path admitted; a matched joint bridge fit from the original feasible checkpoint is the next experiment. Contextual JEPA and source-anchored SpiralCore transport remain retained, separately testable candidates. No learned bridge, selective attention or language improvement is yet qualified.
+
+References #820. Stacked on #1781; OPEN and unmerged. Pod5j908ccd585p4s released/deleted after terminal execution and preservation. Detailed source/artifact/cost identities, failure receipts and limitations are in docs/integration/current-state.md and docs/research/joint-potential-reply-diagnosis-2026-10-06.md. Useful general chat/reasoning, fresh transfer and laptop energy remain outstanding.
+
+
+## Timeline (27 entries; chronological: conversation comments, reviews, review comments)
+
+### comment 6016395265 — 2026-10-06T12:36:33Z — Casey-allard
+
+Codex native checkpoint attribution at source a6a407beac3d127aebbdb3493916218fda2f663a (source SHA0ce096f8…, binary e26b3389…; PR#1792 unmerged). Release build and all3 focused tests PASS. Retained initial attempt built successfully but2 fixture tests rejected a tokenizer lacking its required period token; fixture-only repair passed, cumulative276.159s build/check work within300s. No model operator/data change.
+
+Actual frozen-context balanced output-only control: exit0,11.922s,RSS121692KiB. All512 initial/final native factual first-token diagonals match saved score SHA, complete pool summary, chosen token and target mass. At fixed Generate, every context/state/Copy mediator swap is identical across512rows, as required. Report SHA249c2f911900a9718758aa4b8325055a474f10ecdc9e73bdad8ddd887251ab51, canonical root `/workspace/uor-r4/codex/native-geometric-generate/checkpoint-cross-balanced-control-attempt1`. Compressed local evidence224281bytes, report SHA verified. All arms still0/512 first-correct; initial→final first NLL8.343483→7.900658 is an unweighted512-first-position mean, distinct from answer-length-weighted phase-credit means. This validates the instrument, not improved language. Source/wrapper independent review approves; independent saved-result review pending.
+
+Joint fit remains live (PID6326,99/128 updates at12:34Z); no final result claimed. Conditional same-binary joint audit is queued behind its GPU0 lock (queue PID8037, waitingflock8042; log `/workspace/uor-r4/jobs/codex/20261006T123245Z-native-geometric-generate-gpu0.log`). It requires a normally completed/sealed fit and successful512row control;90s ceiling,2CPU/1GiB, no model updates. These are exact integer-pool arithmetic audits, not D19/chat-grade CPU sessions. The watcher waits for durable fit plus terminal audit receipts before release/down. Failed audit is execution evidence, not a model negative. Paid endpoint13:29:27Z unchanged; no new fit/seed/normalizer/gate authorized.
+
+Adversarial source synthesis: joint context can already lower Copy competitor scores through the original flat alias objective. Correct source ranking alone need not let an absent-Copy framing token win. Existing Copy potential/cue/prefix coefficients are frozen in this arm. Only final persistent integer Copy obstruction would justify a declared intervention to learn selected EXISTING shared Copy-potential coefficients; if Generate still loses inside its own field, investigate coupled state/field/code instead. Do not suppress Copy globally or infer cross complete replies from later saved states.
+
+Storage: own root1805MiB, shared target1576MiB, durable evidence3894MiB; laptop36GiB free. New transient source allowance1→2GiB was recorded before archive expansion crossed1GiB; no large model download. Foreign stopped pod untouched. Current-state docs committed862a96d1; code unchanged from actually tested a6a407be.
+
+
+### comment 6017188247 — 2026-10-06T13:21:13Z — Casey-allard
+
+Codex native H4 utility instrument implemented at495ca9876a021ae95609d035ddc5ae79ee3af4f9, exact-source adversarial approval including absent-Copy guard. Rust/CUDA release build153.512s + all6 focusedCPUchecks13.331s PASS (166.9995s, RSS3608784KiB). BinarySHA2562e754c1520cd1a0a7dd05ca0256998130d02e3d16ee0a6aa1b09603a00021306. CUDA loss backward vs960native alternatives is NOT_RUN: no5090 stock atcanonicalDC; standardtoolfallbackEU-RO-1 own cachedtoolchain/targetavailable, exactjointcheckpointabsent. No substitutedmodel or qualityverdict.
+
+Compiledprobe downloaded andSHAverified; complete4,801,024-byte binary/log/receipt archive MD5verifiedthroughcloud-store: icloud:UOR-R4/results/codex/state-utility-build-preserved.tar, MD5bf24fe2396c4436989043351621bec56. Ownpodlj16su2obv14uj released/deleted13:19:06Z,627s at$0.99/h (~$0.1724); ownroot1260MiBbeforedeletion. NoGPU/modelrun. Source/currentplan/state pushed throughb50fa4a1 onPR1792, stillunmerged. Resource/claimcheckpointretainscumulativepaid14.6025 ceiling andcompletewall45150s; noadditionalfit. Nextmeasureusesexistingbinary+exactcanonicaljointartifact whenavailable. Canonical-onlyplacement prevents repeatingfallbackwithmissingdata; canread/transferartifact fromsharedcanonicalpodwhen one islive withouttakinganotherlabGPU. Laptopfree36GiB, localcompressedbinary4.8MBretainedfornextday; foreignstoppedpoduntouched.
+
+
+### comment 6017658781 — 2026-10-06T13:47:01Z — Casey-allard
+
+Completed native geometric diagnostics on canonical-volume pod vxf2pvetpo2k69, exact instrument495ca987 / binarySHA2e754c1520cd1a0a7dd05ca0256998130d02e3d16ee0a6aa1b09603a00021306, final joint128 GenerateSHA5e69a9a6534fe0315317e0040d91fb7572bdff65d30666a778d0108304ea3284.
+
+1. Actual CUDA state-gradient vs960 native lane0 alternatives: exit0,19.269s,RSS626524KiB,updates0. Native/surrogate best agree8/8,zero selectedregret,all8 admit lower nativeNLL (0.1242–0.5021nats),0/960firstwins. Independent review reproduces every candidate loss and counter. 1286/57120 pair-order reversals and70 tangent-rewarded adverse alternatives do not change bestchoice. No justification for terminal-estimator replacement. ReportSHAa66cb3c4e3f0f2671a3233f9bb0f25b4d9da1472a9930d697a02a779e1315ee2.
+2. Distinct full-state maxgold witness, same learned fields/factualCopy: exit0,6.331s,RSS284220KiB,updates0. 53/512firstwins versus0parent. ReportSHA2f0755df14dcb5fd42bc3e372cb6fe6f20b46d810e472155d96e90e7919ce8e1. Label-conditioned state witnesses establish readout feasibility on53rows, not learned attention/replies. Losing459 are NOT impossibility. Independent review notes only2firsttargetIDs, with one identical maxgold state pertarget, so do not treat512rows as512distinct lexical feasibility cases.
+
+Next inspect actual recurrence/action credit and sharedparameter realizability against feasible witnesses; additionally derive final-joint-field/factualCopy optimistic certificates from actual originalCopy vectors before calling unresolvedrows structurallyblocked. The old outputonly146/328finding does not apply to jointfields. No unchanged fit, gate, normalizer or newsoftmax.
+
+Preservation fixed: complete jointcheckpoint+boundinputs/config/tokenizer/native tables,1128members SHAverified, portable compressed53.8MB. cloud-store MD5verified icloud:UOR-R4/results/codex/portable-joint-checkpoint-preserved.tar (54,094,336bytes,MD5 9983e735bdda4825ec0f71bdad4ce04b). Both reports/receipts/review archived icloud:UOR-R4/results/codex/state-utility-and-ceiling-preserved.tar (1,123,840bytes,MD5 40ad6f0154b7855f338abbe28dd693bf). Source/currentstate/plan5bf3f3e5 on PR1792,unmerged; docs claimwording and diffchecksPASS. Originalartifact/rowbytes andBLAKE3 not independently rehashed in savedreportreview; nosecondCUDAexecution.
+
+Ownpodreleased/deleted13:44:46Z,401srental,~$0.1103;foreignpoduntouched. Cumulative paidreservedmax15.0975USD, completewallceiling47190s retains priorcharges. Laptop32GiBfree; no local session/grade/modelbuild. Goal remains active.
+
+
+### comment 6018217042 — 2026-10-06T14:15:41Z — Casey-allard
+
+Executed geometric Copy potential coefficient checks at exact source `054387b791a960bf38be5b6747856f5d6b49a13e`, clean committed archive, Linux x86_64 RTX5090 pod `xyh8m9ao3nlz6l` (EU-RO-1). Five CPU tests PASS; explicit CUDA parity test PASS (1 passed, 0 ignored). All seven coefficient families checked against CPU with native hard-score anchoring; 222.187s total commands, child peak RSS 3,690,456 KiB. Independent exact-source review found no arithmetic blocker. Test executable SHA256 `a2d9689c6ab7d9e38f3842c086fedc99d77e5a8adca2aa5c8033e8ee9f3c6f3a`.
+
+Evidence MD5-verified in iCloud: `icloud:UOR-R4/results/codex/copy-potential-cuda-checks-preserved.tar`, 25,600 bytes, MD5 `257205889f234401452ee2eb9d5b343d`. Implementation and current-state/plan updates pushed to PR #1792 (documentation head `13cdd1c0`); not merged to main.
+
+This is coefficient-adjoint component validation, not a trained model or attention/chat result. Fixed endpoints, native packing/hard-score anchoring remain on the host. Next: attribute frozen cue/prefix/contextual contributions and legal potential range, then explicit context+potential+Generate coadaptation with finite gradient checks and honest export/rebind. Preserve source-covered Copy behavior alongside absent-Copy Generate targets. No new gate, normalization or serving math. Pod being released/deleted after evidence preservation.
+
+
+### comment 6019312270 — 2026-10-06T15:13:02Z — Casey-allard
+
+Owner-requested SpiralCore revisit: inspected the actual v68 JavaScript, retained v63 Rust adapter, and live browser output with two specialist source/math and adversarial reviews. Real geometric substrate exists: labeled Cl(0,6) actions, distinct E8 operator routing, and anchor-fixed two-sided H4 frame transport. The strongest attention candidate is a retained learned query-centered frame, implemented through existing composition/inverse tables. Counterargument: the current signed-relative-H4 scorer may already contain its information; identify a concrete failure collision before adding an arm. Browser `cat`/`act` produced identical seven waypoints and 18-hop routes, demonstrating the fixed sum encoder's order loss, not failure of the geometric substrate. Full source/render/learning distinctions and prospective discriminator: docs/research/spiralcore-attention-revisit-2026-10-06.md. No SpiralCore training or fixture-wide reproduction claimed.
+
+Real CUDA joint-potential admission PASS: model source 9410c92b9104afa97be96d47a970b8647a346745, executable cec4dc6b5ed9945aae790f0ca1f1e128e9a4a81c92e6f1d366b2ce8da735e1e3, Linux x86_64 RTX4090 EU-RO-1. Scoped tests 2 library + 1 example PASS, release build PASS. Eight H2/L4 episodes, 103 target positions, zero updates; independent native hard-pool parity; finite positive gradients into contextual angular/radius/presence and content presence, absent content angular/radius/pair correctly zero. Initial 0/8 own-prefix completion is retained; this is learning connectivity, not language improvement. Next remains actual coadaptation fit and matched potential attribution to separate source ranking from uniform Copy suppression.
+
+Portable bundle omitted historical enclosing seals. Fresh Rust importer source 4c24b34423384931bb96d2e28402797c32f444f7 authenticated SHA-bound bytes into a new verified seal without fabricating old seals or weakening fitter checks; earlier failures are instrument defects. Final import/build/admission exit 0, 110.38 s total, model admission 29.42 s. Evidence MD5 verified: icloud:UOR-R4/results/codex/joint-potential-validation-preserved.tar (6,432,256 bytes, e58c440ab1cf7887a51b0d43943bd147). Pod tnsy3jb6wm4wa7 released/deleted; uptime 2567 s, $0.74/h, computed rental $0.528. Last observed /root/codex 2.6 GiB before deletion. No laptop training and no GPU left leased. Code remains open PR #1792; no main merge claim.
+
+
+### comment 6019503359 — 2026-10-06T15:22:18Z — Casey-allard
+
+Exact-head source a762f63a442d335a64db6381cf7382b2d2f68652, attribution file27ace214afeccdc8a0553783b479457a33816ed24a8b1ff252469bba48b77004: independent source/API review READY, no blockers; previous arithmetic review retained. Not a compile result yet. Default strict frozenpotential mode unchanged; explicitmode requirescompleted128fit, full512initial/final stages, exact nativeP1/Generate reproduction and independently loadedcontrols. Controls isolate contentpresencecell0 only, preservecontextpresence, and correctrecordidentity is NOT_MEASURED. Canonicalprefix comparisons hold states matched; laterownprefix paths intentionallydiverge.
+
+Own1×5090pod3rvghnscxzfbvn oncanonicalEUR-NO-1 underdeclared10800s/$2.97reserve. Exactcommittedfullsourcearchive transferring; one existing Codex sharedtarget and cachedRust1.97.1 reused. No laptop fit, no foreignleases touched. Nextactualchecks: two new potential_attribution tests, releasefit/cross compile; then firstjointpotential128fit +four nativecontrols iffit completes. Source reviewdoesnotqualifyattention.
+
+
+### comment 6019925999 — 2026-10-06T15:44:14Z — Casey-allard
+
+Exact head `a762f63a442d335a64db6381cf7382b2d2f68652`: actual Linux x86_64 RTX5090 EUR-NO-1 pod validation PASS. `cargo test --release -p uor-r4-training --features cuda --example geometric-generate-checkpoint-cross potential_attribution::tests:: -- --test-threads=1`: 2 passed, 0 failed, 0 ignored (263.39 s including compilation). `cargo build --release -p uor-r4-training --features cuda --example geometric-bank-generate-fit --example geometric-generate-checkpoint-cross`: exit 0, 13.86 s. Exact committed Cargo source inventory verified before execution. The two tests cover isolation of shared content-presence cells and preservation of context-presence/other cells; they do not qualify attention.
+
+First joint-potential128 fitter process is live, preparing baseline/native evaluation before optimizer admission. Training/development are the same 512-row construction panel. No optimizer result, attribution result, source-identity or transfer claim yet. Wrapper/log `/workspace/uor-r4/jobs/codex/20261006T153737Z-native-geometric-generate-gpu0.log`, with incremental execution receipt on canonical volume. Earlier missing-source and fresh-config guard failures happened before compilation/model work and are preserved as transport/orchestration defects. No GPU allocation changes; own lease renewed.
+
+
+### comment 6021014157 — 2026-10-06T16:44:48Z — Casey-allard
+
+Actual reference-only validation at source22d3e05e3766ac6fe966e237b26df63407019a99 on pod5j908ccd585p4s, Linux x86_64: release example tests exit0, release build exit0, fresh512-row derivation exit0; total363.895s, twoCPU threads, GPU not used. Executable SHA25603987d98bf97cc9ac5f81c1986ee81d3bce9538353bc31a0da0dc47e3da2b8ab. The recovered original canonical reference agrees on all512 identity/target rows (8fields each); historical SHA25654489a02b0b49fe17efc99c514667bac553628b9dee8eea564a3c49a0bfbf594. Receipt retained on canonical volume and compact local work folder.
+
+Documentation-only head3abfed59 records these checks and corrects the earlier portable-bundle absence statement. Numerical source remains unchanged from tested22d3e05e; claim-wording and git diff checks pass. This validates the reference instrument, not learned retrieval. The live fitter remains bound to b2e18d5c and has completed45updates; no live source/binary change. Offline source contrasts are the next scoped change, under existing issue820 work card.
+
+
+### comment 6021050106 — 2026-10-06T16:46:53Z — Casey-allard
+
+Exact-head documentation review at3abfed597af2e3c6be82f249d99106ea5da4119f: independent expert joint_scorer_builder returned READY (source/document inspection only). The only change after tested22d3e05e is the reference validation document; numerical source and tested executable remain unchanged. Review confirms instrument-consistency scope, construction exposure, exact receipt identities and no attention/language claim. Tests are the actual22d3e05e results above, not new executions at3abfed59.
+
+
+### comment 6021194566 — 2026-10-06T16:55:30Z — Casey-allard
+
+Source-contrast implementation head ecddf3391c6023facc880d277e6ea6046769a660 pushed. Independent expert joint_scorer_builder reviewed exact fileSHA25609d3974ae62fcfcd94013c257ff279c70c3d73046fce8fffa2a2d8751765fbcf: READY for focused test validation, source-only. Review corrected identical-token causal-position aliasing by requiring reconstructed chronology and exact physical segment-start + emitted offset. Added per-component shared-offset invariance and frozen cue/prefix invariance. Rustfmt/diffcheck pass. Actual CPU-only cargo tests launched on pod at exact committed source, maximum600s/2threads; no standalone rebuild while the original b2e18d5c control executable is still needed by the live fit. Tests and actual derived512-row contrasts are pending, not claimed PASS. Fit observed80/128 updates and remains source/binary unchanged.
+
+
+### comment 6021243410 — 2026-10-06T16:58:20Z — Casey-allard
+
+Actual validation at exact ecddf3391c6023facc880d277e6ea6046769a660 on pod5j908ccd585p4s/Linux x86_64: cargo test --release -p uor-r4-training --features cuda --example geometric-generate-checkpoint-cross -- --test-threads=1 returned exit0;13passed/0failed/0ignored (including5source-contrast tests). Complete compile+test120.322830s; CPU2threads, GPU not used, peak childRSS2,093,884KiB. The normal live control executable SHA2563467a5b1afb9d0d2012a598616623ae5ca15dcaa1dfa495edcb84fa2d1404fd2 remained unchanged before/after. Exact reviewed source SHA25609d3974ae62fcfcd94013c257ff279c70c3d73046fce8fffa2a2d8751765fbcf.
+
+Actual source-contrast execution over the512saved four-control rows is still pending completion of the live fit/controls. This PASS is focused arithmetic/provenance/instrument validation, not model quality or language qualification. Livefit89/128updates at latest verified PID8624. Receipt retained canonically and compact local copy.
+
+
+### comment 6021508756 — 2026-10-06T17:13:33Z — Casey-allard
+
+Exact-source grouping correction f4d3946fa520c87cddf916086eb8e82c7df974e6 pushed. Independent joint_scorer_builder READY at fileSHA2567e977b2e35593f4686f93c249fee87e1da981f9f85d85740f7fd5d845c09d29d, source-only: allunorderedpairs perexactbank; distinctquery/oppositephysicalSource+role; explicit exclusions, perrowuse counts, bankstatisticalunit/nonindependentcontrasts. Checked source-mean arithmetic and fixed physical/control guards unchanged. Newfour-row test asserts6total/4eligible/2sameSource/everyrow2uses. Rustfmt/diffcheck pass.
+
+Earlier33cc6092 actual15testsPASS128.543s/controlbinaryunchanged is retained but doesnot validate this newgrouping source. Exactf4d3946f CPU-only tests nowlaunched with240s bound on existingpod; actualresult pending. Full512row mode execution remains pending livefit/controlcompletion. Source metadata audit finds128banks x4distinctquestions; expected512oppositecontrasts across128banks is coverage, not512independentobservations or attention success. No newmodelrun.
+
+
+### comment 6021579049 — 2026-10-06T17:17:45Z — Casey-allard
+
+Actual release validation at f4d3946fa520c87cddf916086eb8e82c7df974e6:16passed/0failed/0ignored; cargo test returned0; completecompile+test124.125270s on pod5j908ccd585p4s/Linux x86_64, CPU2threads/noGPU, peakRSS2,101,464KiB. Exact reviewed sourceSHA2567e977b2e35593f4686f93c249fee87e1da981f9f85d85740f7fd5d845c09d29d. Original control binary unchanged before/after (3467a5b1...fd2). Receipt preserved canonically and compactlocally. Allthree actual analysis test attempts total372.991s; declared780s cumulative CPUceiling retains407.009s forstandalonebuild/derivedexecution.
+
+The grouping and source contrast instruments now compile/test at the corrected source. Actual512row saved-control analysis is still pending; expected512contrasts across128banks remains inputcoverage, not measuredmodelselectivity. Fit latest121/128updates andlivePID8624, sourceb2e18d5c unchanged. Documentation records the two-rowinstrument defect separately from model evidence.
+
+
+### comment 6024117022 — 2026-10-06T19:42:48Z — Casey-allard
+
+Codex read-to-state attention implementation is pushed at 7d47e30a1cccd4a532bfc9d7c515fff6d9a1480b (PR #1792 branch; not merged). Core signed-H4 transport, offline learning wrapper and optional actual-bank integration are written. Native relative direction is inverse(query) * selected source; poststate is query * chosen action. Zero coefficients choose identity. Packed coefficients: 7,740 bytes/lane. Hard read uses checked native i64 scores and first-ordinal ties; occurrence provenance is authenticated. Only the factual selected bridge gets parameter/context adjoints; detached centered alternative poststates provide local selector sensitivity. No-source/default paths bypass it.
+
+Independent exact-head source review: READY, no arithmetic/adjoint blocker found; compile/tests/model behavior NOT_RUN. Added zero-init bridge parameter escape and nonfinal source-position checks. Rustfmt, diff and wording checks pass. Fitter wiring is underway; no new fit or language claim. Prior 0/512 retained; no frozen-final-ranker fit.
+
+Compute coordination: the current uor-pod status handle reports four running Claude pods with live leases (flashread, step9, cap8q, cap8p); its final SSH probe remains pending. Codex has no GPU lease or new allocation. Please release a GPU when its work finishes so Codex can run the declared exact-source bridge build/admission, or flag already-released capacity. Codex will not take leased GPUs, fall back to laptop CPU or exceed owner caps. Admission projection: one GPU, CPU4, RAM8 GiB, 2 GiB incremental remote storage, 128 MiB reports, estimated 1,800 seconds including preparation/checks/preservation; healthy work extends its estimate. Cumulative ledger projection recorded before execution.
+
+
+### comment 6024202433 — 2026-10-06T19:49:47Z — Casey-allard
+
+Codex source integration is now pushed at d6abb7bc0f41ff35a55aa91c28b48a5a12a968cc; PR #1792 remains OPEN/unmerged. Independent exact-head source review is READY. Scope repair records that the auxiliary Generate diagnostic detaches direct Copy emission while retaining bridge-selector Copy-score credit.
+
+CPU-only checks are RUNNING on shared pod 90urpspe50zr8u, own /workspace/uor-r4/codex area, PID 24375, four threads, CUDA_VISIBLE_DEVICES empty. No GPU or other lease/KEEP_ALIVE used. Commands: release core bridge tests, training bridge tests, training bank tests, then release fitter check. Durable log/status/results at /workspace/uor-r4/codex/read-state-checks-d6abb7bc/. Source is committed archive plus the exact one-file committed delta; fitter remote SHA matches600b359023da945a51a791a27c6b14d0ad3433910ccdd5be761941190017067e. Tests remain NOT_RUN/ongoing until their exit receipts exist.
+
+Allocated archive size1.4GiB on the network filesystem led to a pre-build remote storage estimate extension from2GiB to4GiB including compiler delta. Complete time estimate remains1,800seconds, cumulative90,570; healthy job will not be cancelled at an estimate. No new allocation, fit or model claim. CUDA admission awaits a free leasedGPU.
+
+
+### comment 6024348250 — 2026-10-06T19:58:03Z — Casey-allard
+
+Codex exact-source CPU checks at d6abb7bc COMPLETED: core bridge2/2, learning bridge2/2, bank3/3, release fitter check all exit0; command wall212+237+2+76=527seconds. Terminal status COMPLETED and CPU job record removed; no GPU used or lease changed. Existing warnings retained, no unrelated cleanup. CUDA admission and actual-bank language behavior remain NOT_RUN. Two admission-only actual-bank controls are being added to close the declared nonidentity and selector-vs-emission adjoint gaps before any fit. Parent initialization/fit default remains untouched; controlled q-to-selected-source table is explicitly diagnostic. Resource projection extended before execution by900seconds for two B8 passes, completecard2700seconds, cumulative91470seconds; no fit/new allocation. Durable receipts: /workspace/uor-r4/codex/read-state-checks-d6abb7bc/{output.log,results.jsonl,status}. All4observedGPUleases remain foreign; no takeover.
+
+### comment 6024517630 — 2026-10-06T20:08:23Z — Casey-allard
+
+Codex follow-through: actual-bank controlled admission gaps implemented and source-reviewed, pushed a5e132b3203d019c7501db7225480567cd20cd9a (PR #1792 OPEN/unmerged). Only admission constructs declared T[a,d]=7 iff a=d diagnostic and tests q-to-selected-source state transport, native on/off forward parity and device selector-gradient subtraction. Original zero bridge and fit initialization unchanged. No language/attention result from these controls.
+
+Prior d6 source CPU checks:7 tests pass + fitter check; full receipts MD5-verified at icloud:UOR-R4/results/codex/read-state-checks-d6abb7bc-receipts.tar (10,240 bytes, e5c9f3084e7c20bd7ad9305877ec0e54); local transfer removed through dedicated Trash, canonical originals retained.
+
+New CPU-only exact-source prepare on shared90urpspe50zr8u is PID26373, own /workspace/uor-r4/codex/read-state-prepare-a5e132b3/, four threads, CUDA_VISIBLE_DEVICES empty. It reruns changed bank and selector-difference helper checks, builds the CUDA fitter with12.8/sm120 and compiles CUDA parity tests without executing them. No GPU/foreign lease/KEEP_ALIVE modified. CUDA admission still NOT_RUN. Projection includes two extraB8passes, total2700seconds/cumulative91470; remote compiler/source allowance6GiB recorded before build. New GPU allocation remains zero. Healthy build continues at estimates.
+
+### comment 6024680828 — 2026-10-06T20:18:23Z — Casey-allard
+
+Codex a5e132b3 preparation COMPLETED: updated bank3/3 tests, selector-difference helper1/1, CUDA12.8/sm120 fitter build and CUDA parity-test compilation all exit0. Command wall104+81+105+107=397seconds, in addition to prior d6 checks527seconds. CUDA parity test was COMPILED NOT EXECUTED. Binary /workspace/uor-r4/codex/native-geometric-generate/bin-a5e132b3203d019c7501db7225480567cd20cd9a/geometric-bank-generate-fit SHA c6181567450a9040e36a68f20ad611e824f9db1e7ce18a7d480e8323eeff08b4. Admission configuration SHA b260c1810747d440458049df5b3792dc67a316c0b5d566e109ab1a9081d6282f, original donor/data retained, zero optimizer updates. Logs/results/status: /workspace/uor-r4/codex/read-state-prepare-a5e132b3/.
+
+No own GPU lease or new pod. All four foreignGPUleases verified unexpired at20:17Z; pending owner UI question for a temporary fifth1x5090 exception (estimated45minutes~0.75USD, total~4.95USD/h,8USD/h cap retained), otherwise wait for an existingGPU. Source/runtime parity and actual-bank controls still NOT_RUN; no model-quality verdict. PR1792 OPEN/unmerged; local tree clean, no laptop build/model downloads.
+
+### comment 6024885050 — 2026-10-06T20:30:51Z — Casey-allard
+
+Geometric read-state CUDA admission completed at exact code head a5e132b3203d019c7501db7225480567cd20cd9a on owner-approved temporary fifth RTX 5090 pod saxbn10ji35im0 (Linux x86_64, CUDA12.8, SM120). Bridge-specific CPU/CUDA carrier + adjoint parity passed1/1,0 ignored, exit0. Actual-bank admission completed exit0,79.865s,zero optimizer updates.
+
+The source-state algebraic diagnostic and selector-adjoint enabled/disabled controls have identical native-forward SHA256 `3a6a58c99033f612fc3aa5cf0c56375e3afa7b52afe22659ec302c49573fa364` and identical CE8.203994359225833. Selector deltaL2: contextual radius0.06340272, contextual unary0.06408719, contextual presence0.00674347; common content-presence residual2.107e-8, othercontent/pair0; all4Generate and both factual bridge differencesexact0. Identity-initialized bridge bias/relative gradientL2 .00108346/.00111245. Reviewer interpretation: real local prediction-derived selector credit, far above existing null-direction residuals; no optimizer/native-action improvement follows.
+
+Baseline actual own-prefix completion0/8, no fresh evaluation. This is detached local decoder-state sensitivity under an algebraic diagnostic, not learned attention or a chat result. Earlier0/512 retained. Next causal experiment: matched joint bridge fit from feasible checkpoint0, retain phase-balanced comparison and responsive emission potential. Inspect native coefficient crossings/nonidentity actions, query-dependent physical-source selection, first-token correctness and complete replies. Identity/query-surface/query-blind controls remain necessary for an attention claim. No fit launched as part of this admission card.
+
+Report SHA256 `3e97f1372e98c1555fe1c986dc18252620be5f7eed7c2af21b80044f80a29507`; manifest SHA256 `400b098886a7e5f6b8bc15a7e6312562a9bbc87f22ca6787129422d2e856ae81`. Rust seal/verify completed; independent archived inventory/size checks52files and all8row SHA256s passed. Source/executable/config remain bound in the complete preserved attempt. Archive `icloud:UOR-R4/results/codex/read-state-admission-a5e132b3-archive.tar`,6484992bytes,MD5 `83b7685a4c2898b9ff3496a88ef3e39a`, round-trip verified. CPU preparation receipts separately preserved in iCloud MD5 `66f0e78c11a0252395dc8962335bb911`. Canonical originals retained.
+
+Pod released and deleted through main uor-pod, uptime547s, estimated compute$0.15 (not invoice). No foreign lab work touched. Local transfer copies moved to dedicated Trash then emptied after cloud verification, ~6.5MB reclaimed; current free31.1GB decimal. PR1792 remains open atop PR1781; no main/merge claim.
+
+
+### comment 6025200541 — 2026-10-06T20:50:24Z — Casey-allard
+
+Read-only mathematical audit completed with no new conversion/clamp/projection inconsistency warranting a fit-config change. Potential native coefficient n/4 versus bridge/Generate n/16 is intentional and correctly differentiated. Common native-anchored token loss has the same positive soft/native gold-mass ratio factor for all Copy/Generate atoms. Retain the matched rates.
+
+Important unresolved effects: Copy sums heads/lanes with larger quantum; emission clip outside[-8,8] removes raw-score credit, selector uses unbounded raw scores; localfirstorder credit does not establish improved hard actions. The bridge alone is left-equivariant under common signed-H4 frame change for fixed selected occurrence; no full selector/encoder/decoder or predictive-advantage claim. Preserved at documentation-only b7562ada, docs/research/read-state-learning-unit-audit-2026-10-06.md. Claim-wording/diff checks pass, numerical code remains exact reviewed/testeda5e132b3; no rebuild needed.
+
+Pod cyubn82zm5hf6z remains in the same live main-tool provisioning operation41699, waiting for SSH; no model job/optimizer update or second allocation. Owner-approved fit exception/cost card unchanged. Local cleanups verified against existing cloud-store MD5 archives and every contained localfile:54validationfiles and3portableparentfiles; ~119MB freed, no negative evidence lost, no laptop build/model work.
+
+
+### comment 6025555429 — 2026-10-06T21:13:09Z — Casey-allard
+
+Documentation-only head915330ff61eb6694f51a8ca5b18caf446d74d70d: interpretation diff independently reviewed READY and exact committed diff self-reviewed. `python3 scripts/check_claim_wording.py` and `git diff --check` PASS. Numerical source remains a5e132b3; earlier Rust/CUDA checks retain their exact scope, no rebuild claimed for prose. The live matched fit is incomplete; no final attention/chat or merge claim.
+
+
+### comment 6025699162 — 2026-10-06T21:22:27Z — Casey-allard
+
+Exact head215d7a39d94295eacdce46ea6bb71656bca75cef adds only six explicitly synchronized staging timings and conditional construction of independent diagnostics in the fitter. Independent source review READY at fileSHA eadf404666afb2e2d2ae2e5573d7389eda8cf6b1666a30482b7ead24d9f3af6f; rustfmt and diff check PASS. Compile and behavioral checks PENDING. No measured speedup or numerical-equivalence claim.
+
+Current matched128 fit remains on immutable a5e132b3 binary/config; this new code does not replace it. Source is being shipped from clean committedHEAD to owned /root/codex/staging-215d7a39 for a podCPU4 compile, own shared /root/codex/target-cuda. No laptop compile, extra GPU allocation, or livefit cancellation. Work/resource card on#820 comment6025598439; complete cumulative charges retained.
+
+
+### comment 6025922736 — 2026-10-06T21:37:40Z — Casey-allard
+
+Documentation update at exact head `239f0774040c19df2e80871790fc92e8e8588c4a`: independently reviewed contextual-target note now explicitly acknowledges the existing exported Rust JEPA learner and separates its next-token S2/fiber objective from the proposed current full-bank reply-span auxiliary. Claim-wording gate and diff whitespace check passed.
+
+The numerical staging change remains bound to `215d7a39d94295eacdce46ea6bb71656bca75cef`; its source review is READY, but its pod compilation/helper tests are still pending the complete source transfer. The live 128-update bridge fit continues with the already admitted `a5e132b3` executable, without replacement or mid-run numerical changes. No new capability or runtime result is claimed.
+
+
+### comment 6026137417 — 2026-10-06T21:53:05Z — Casey-allard
+
+Exact-head source review at `4e660c15a05f94e630e3ca57ff21f75d362ffa9d`: independently READY for the compile repair. The only change after239f0774 is `#![recursion_limit = "256"]` in the fit example, matching geometric-generate-update. It raises macro expansion depth for the expanded JSON receipt, with no numerical/runtime change. rustfmt and diff checks passed.
+
+Pod compile attempt at215d7a39 exited101 at the JSON macro limit before tests or model execution; its log is preserved. Corrected exact-head build/test retry is running on Linux x86_64, RTX5090 pod `oa6iydatmy7da3`, four CPU threads, `CUDA_VISIBLE_DEVICES=""`, own shared Cargo target. Full committed source archive17128 files plus the two and only changed HEAD files have been transferred; numerical source/document SHA256 are checked before compile. No compile/test PASS is claimed until terminal output.
+
+The healthy numerical fit continues separately with its original admitted a5e132b3 binary; its GPU and parameters were not replaced.
+
+
+### comment 6026184595 — 2026-10-06T21:56:27Z — Casey-allard
+
+Actual exact-head validation at `4e660c15a05f94e630e3ca57ff21f75d362ffa9d`: on Linux x86_64 pod oa6iydatmy7da3, Rust1.97.1 / CUDA12.8 / cap120, own Cargo target and four compile threads:
+
+- `cargo build --release --locked --offline -p uor-r4-training --features cuda --example geometric-bank-generate-fit`: exit0.
+- `cargo test --release --locked --offline -p uor-r4-training --features cuda --example geometric-bank-generate-fit -- --test-threads=1`: exit0;13 passed,0 failed,0 ignored.
+- Build wrapper final exit0 at21:52:48Z. Binary SHA256 `31035c72e6a862eaf645e1cac6c353a91f9de80cce496c03bf62f068ddc95fc3`.
+
+GPU was masked for these helper tests. This is compile/helper validation, not CUDA/native model parity or a measured speedup. Numerical model execution remains the separate live a5e132b3 fit. Earlier macro-limit compile failure is preserved at staging-215d7a39-build-attempt1; successful fresh report is staging-4e660c15-build-attempt2. /root/codex occupies2.2GiB, below the10GiB ceiling; no laptop Cargo build.
+
+
+### comment 6026569066 — 2026-10-06T22:25:10Z — Casey-allard
+
+Exact numerical probe head 49660e7536858b645353b604c3e5926367f8d998; file SHA256 48c4b390d606b4ca95b6aaec7f6321e64a2a6a4c168b9e06a6ce02d73ac6046a. Independent source review accepted numeric design; output ancestor-seal blocker corrected, self-reviewed. Actual Linux x86_64 Rust1.97.1/CUDA12.8-sm120 build exit0 (56.21s) with GPU masked; four focused tests PASS (including output-boundary tests). Probe exit0, sealed and verified; executable aef67f4c1920fa080054c55bd1992720e5b8996521d7c0297c2c3aa16ad031ba. Embedded build ID is short49660e75, bound here to full head.
+
+Fixed gain4 retained masters reproduce original artifact at gain1 byte for byte; derived independently reloaded artifact SHA0b6fda2ce6d7ac5adb32a381736684a5a3b37467c2cd3bf67f01c5e558c7b6c4. Relative coefficients 0→19702; all8lanes become key-dependent. Master winner agreement 0/960→305/960. All960 master maxima unique; no winner gaps exceed1/8 protection threshold, so zero bound violations is not protected coverage. This is export-loss evidence only, not language/attention qualification or parent hard-forward parity.
+
+Documentation head 56856714 records completed matched fit (0/512 entry and complete replies) and this discriminator in existing current-state/audit, claim-wording and diff checks PASS. No main merge is claimed; PR parent chain remains open. Next proposed compiler change: exact categorical h(d) encoding through the existing signed-H4 bridge, then frozen native source-key utility interventions. Copy-vs-Generate entry-score ceiling is separate and remains unresolved.
+
+
+### comment 6027855612 — 2026-10-07T00:07:41Z — Casey-allard
+
+Superseded by #1810, #1812 and #1813, all now merged through the protected queue. The selected active native runtime/CUDA/learning dependency closure is on main. Historical experiment drivers and unused API variants remain on this pushed branch as retained evidence; no branch is deleted and no mechanism-family verdict follows. Exact-head checks and preservation receipts: #1813 and #820 (triage issuecomment-6026806242).
+
+
+---
+_Comment/review ids in this file: 6016395265, 6017188247, 6017658781, 6018217042, 6019312270, 6019503359, 6019925999, 6021014157, 6021050106, 6021194566, 6021243410, 6021508756, 6021579049, 6024117022, 6024202433, 6024348250, 6024517630, 6024680828, 6024885050, 6025200541, 6025555429, 6025699162, 6025922736, 6026137417, 6026184595, 6026569066, 6027855612_
+

@@ -1,0 +1,181 @@
+# #653 — gnaf: merge WASM-GEMM-GNAF into r4 and wire applicable mechanisms into active pipelines
+
+- **Type:** Issue
+- **State:** closed (completed)
+- **Author:** @Casey-allard
+- **Created:** 2026-08-13T00:26:59Z
+- **Updated:** 2026-08-17T18:50:01Z
+- **Closed:** 2026-08-17T18:50:01Z
+- **Assignees:** Casey-allard
+- **URL:** https://github.com/UOR-Foundation/uor-r4/issues/653
+- **Archived:** 2026-10-15T02:31:04Z · UOR-Foundation/uor-r4
+
+## Body
+
+# Context
+
+#623 / PR #631 adopted the UOR-NAF `core + integer + tensor + address` slice and the UOR-GNAF claim/status vocabulary into `uor-r4-naf`. That work was based on the GNAF specification and deliberately did not integrate a GNAF implementation.
+
+[`afflom/WASM-GEMM-GNAF`](https://github.com/afflom/WASM-GEMM-GNAF) now provides a concrete Lean implementation built specifically around the GNAF plan/compiler, exact cost, Atlas, proof-integrity, and conformance disciplines. This issue owns merging that repository into r4 and connecting the parts that materially strengthen the active model-source → graph-compiler → graph-format/runtime → graph-certify/proof-model/API pipelines.
+
+# Current evidence
+
+- Inspected upstream pin: `171652cd95c0b8e8620f76151b7e0c485e30ccfc`; UOR-GNAF authority `UOR-GNAF-v1-draft.2.md`, SHA-256 `5c342373b2ff809bfd607c413cafd0582d32bb097544c6597ff7d674fe99200a`; Lean `v4.30.0`; dual MIT/Apache-2.0 licensing. Upstream is active and has no release tag, so any different revision requires a fresh audit.
+- The repository is formal infrastructure, not a drop-in LLM engine. Its useful surfaces include typed plan/typing/resource/normalization/lowering semantics, independent execution and optimization statuses, exact cost vectors with canonical tie-breaking, Atlas least-closure/update/rebuild discipline, staged manifests, a spec-derived obligation inventory, axiom/root and dependency-firewall checks, and planted falsifiers.
+- At the inspected pin the repository truthfully reports `WorkloadIncomplete`: the requested Wasm GEMM global-optimality theorem is absent and the release gate intentionally stops red. Open obligations include full pinned Wasm Core semantics, full arithmetic-mode coverage, concrete evaluable/correct artifact exhibition, and universal coverage/lower-bound work. That state must not be green-washed.
+- r4 already has overlapping owners: `uor-r4-naf::claims`, `model/ids.toml`, `model/ledger.toml`, generated `CONFORMANCE.md`, repo-conformance/xtask checks, the #602–#606 operator/trace/fit/certificate line, deterministic artifact identities, and typed absent/blocked/unavailable result states.
+
+# Problem
+
+The GNAF implementation and its strongest general mechanisms are outside r4, so they cannot protect or inform active compilation, certification, or API results. A raw source dump would create duplicate registries and dead code; treating the Wasm GEMM proof target as an r4 LLM proof would be a scope error. We need a provenance-preserving merge plus explicit bridges into current owners, with every imported layer classified and every inherited open claim kept honest.
+
+# Goal
+
+Merge the pinned WASM-GEMM-GNAF repository into r4, retain its source and proof provenance, and adopt the mechanisms that improve r4's live plan, compiler, certificate, update, and conformance pipelines. Anything not currently applicable remains an explicit formal reference, registered dormant lane, bounded deferral, or rejection—not unowned code.
+
+# Scope
+
+- Import the pinned upstream source and licenses under an owned non-serving path (for example `proofs/wasm-gemm-gnaf/`) using a documented repository-integration method that preserves upstream commit identity and allows a fresh r4 clone to verify without an extra checkout.
+- Produce `docs/gnaf_integration_<issue>.md` with a complete integration matrix. Classify every top-level GNAF layer and claim as `adopt-active`, `retain-formal-reference`, `defer-open`, or `reject`; record the r4 destination/owner, reason, evidence, and activation condition.
+- Wire the already-adopted GNAF claim vocabulary into actual graph-certify/target-operator certificate and API result records. Execution status and optimization status remain independent; an unscoped `optimal` result is unrepresentable or rejected.
+- Apply the typed plan/scope/resource/cost/witness pattern to at least one active pipeline seam. The #602–#606 source-operator → trace → fit → packed operator → composed certificate path is the initial candidate; it must carry canonical plan/scope IDs, resource/cost data, reference semantics, lowering identity, and witness linkage end to end.
+- Adapt generic proof-integrity mechanisms into existing repo-conformance/xtask ownership rather than creating parallel r4 registries: authority/tool pins, spec-derived required-declaration inventory, compiled-root/axiom audit, dependency firewall, acyclic staged manifests, and deterministic generated conformance records.
+- Port relevant falsifiers so each adopted checker is demonstrated to fail: proof-level promotion without a proof, an open release claim made green, stale compiled proof root, forbidden source/target-layer import, and cyclic/self-referential manifest identity.
+- Apply the Atlas update/rebuild discipline to a current incremental seam (patch/epoch or resumable compile): canonical semantic update, explicit invalidation of derived optimizer/certificate state, and equality with a clean rebuild on a pinned fixture.
+- Integrate upstream verification without falsifying its status. CI should pass when all discharged claims build/audit and the exact known-open set yields `WorkloadIncomplete`; it must fail on unexpected build/proof faults or on a silently promoted global claim. Slow Lean verification belongs in the queue-side gate with the matching PR-side stub required by AGENTS.md.
+- Update README, RESEARCH, MODEL_LIFECYCLE, conformance, and ledger records only for mechanisms actually wired into r4.
+
+# Non-goals
+
+- Do not treat WASM-GEMM-GNAF as an LLM runtime, change the serving default, or place Lean in the deployed dependency graph.
+- Do not claim that its Wasm GEMM results prove r4 model correctness, quality, equivalence, or optimality.
+- Do not weaken either repository's proof/claim gates to obtain a green check.
+- Do not duplicate #623's NAF wire/address implementation or create a second owner for ids, ledgers, certificates, or conformance records.
+- Do not activate a retained mechanism merely because its source was imported.
+- Do not weaken P-4, no-std, zero-allocation, determinism, or κ/era rules.
+
+# Dependencies and blockers
+
+- Follow-up to #623 and its merged implementation record; preserve its NAF/GNAF layering and dual-status decisions.
+- Reuse the #602–#606 operator and certificate owners and #515's dormant-lane/activation conventions.
+- Coordinate exact-accumulation ownership with #622; GNAF proof machinery does not silently replace `uor-matmul` or the deployed table-native kernels.
+- The upstream pin is fast-moving. A bump is a separate reviewed change that re-runs the integration matrix, authority/toolchain/license checks, proof inventory, and mutation suite.
+- Any change to κ-bearing artifact bytes follows the explicit era/re-pin process; provenance-only additions should remain additive where possible.
+
+# Proposed implementation shape
+
+Land the source/provenance merge first, then a small r4 adapter layer that translates GNAF scope/status/cost concepts into existing certificate and ledger schemas. Keep the Lean project independently checkable at its exact pin. Add active bridges one at a time, each with an owner, replay fixture, falsifier, and compatibility record; register everything else dormant or deferred.
+
+# Acceptance criteria
+
+- [ ] The exact upstream SHA, GNAF authority digest, Lean toolchain, licenses, import method, and update policy are recorded and reproducible from a clean clone.
+- [ ] The integration matrix covers every imported top-level layer and claim; no imported mechanism is unclassified, silently duplicated, or left as unregistered dead code.
+- [ ] At least one active source/compile/certify pipeline emits typed GNAF-derived plan/scope, execution status, optimization status, resource/cost, and witness identity and replays it end to end.
+- [ ] No result can state global/optimal without the exact profile, problem, objective, competitor universe, and certificate; inherited open obligations produce the truthful `WorkloadIncomplete`/incomplete status.
+- [ ] Authority/root/axiom audit, spec-derived declaration inventory, dependency firewall, acyclic-manifest check, generated-doc determinism, and the adopted mutation falsifiers run under the pinned toolchain.
+- [ ] Incremental update and clean rebuild are identical on the pinned fixture, and any affected optimizer/certificate output is invalidated when its semantic inputs change.
+- [ ] Existing ids, ledgers, certificates, NAF labels, artifact bytes, and κs remain stable unless a separately documented migration/re-pin is approved.
+- [ ] No serving path, runtime operation vocabulary, or default engine changes as a side effect of the merge.
+
+# Verification
+
+- Run the pinned Lean build, compiled-root/axiom audit, declaration inventory, firewall, manifest, generated-doc, and mutation checks with expected-open assertions.
+- Add Rust unit/schema/replay tests for the adapter records, including accepted, incomplete, unsupported, tampered, stale-root, and forbidden-claim cases.
+- Add an incremental-vs-clean rebuild fixture with deterministic byte/identity comparison and invalidation tests.
+- Run repo-conformance/xtask, workspace fmt/clippy/tests, graph-format no-std checks, claim-wording, deterministic rebuild/κ gates, and wasm/P-4/allocation checks for every touched runtime-adjacent crate.
+
+# Compatibility and migration
+
+The source merge and formal-reference records are additive. Any active schema bridge gets an explicit version and typed legacy absence; historical artifacts and reports are not relabeled. Upstream changes never float: they enter through a pinned, audited bump. If a bridge changes container bytes, it requires the repository's normal era note and maintainer-approved re-pin.
+
+# Claim status
+
+Repository integration, implementation, and proof-obligation linkage. Imported formal proofs retain their exact upstream scope; r4 adoption does not broaden them. The upstream global-optimality release claim remains incomplete until its own required theorem and evidence exist.
+
+## Comments (3)
+
+### comment 5309407407 — 2026-08-16T20:02:48Z — Casey-allard
+
+## Orientation pass (per Casey's steer: scope this as the next dedicated session)
+
+Checked the upstream repo directly before proposing a decomposition.
+
+**Confirmed facts:**
+- Repo size: ~4.9 MB at the API level — small, a full vendor-in is genuinely cheap on disk/clone-time, not a repo-bloat concern by itself.
+- License: dual `LICENSE-APACHE` + `LICENSE-MIT` at the root, matching the issue's "dual MIT/Apache-2.0" claim.
+- Toolchain: `lean-toolchain` pins `leanprover/lean4:v4.30.0`, matching the issue text.
+- Structure at the issue's audited pin (`171652cd95c0b8e8620f76151b7e0c485e30ccfc`): `WasmGemmGnaf.lean` + `WasmGemmGnaf/` (the Lean sources), `lakefile.lean`/`lake-manifest.json` (Lake build), `authority/`, `model/`, `fixtures/`, `artifacts/`, `Tests/`, `Tools/`, `vendor/`, plus its own `AGENTS.md`/`CONFORMANCE.md`/`CERTIFICATION.md`/`MANIFEST.json`/`SPEC.md` — i.e. it already has its own conformance/manifest discipline mirroring conventions this repo also uses, which is presumably why the issue calls it "built specifically around the GNAF plan/compiler... discipline."
+- Upstream CI: three workflows (`mutation.yml`, `reproducible.yml`, `verify.yml`) — none of which this repo's CI runs today (no Lean toolchain anywhere in `.github/workflows/` here).
+- **Upstream has moved since the issue's audited pin.** Current `main` HEAD is `917306fd2b5a397ab02c5d38918fb8620fcc5ae0`; the issue's evidence (`WorkloadIncomplete` status, the specific open obligations listed) was recorded against `171652cd`. Per the issue's own dependencies section ("The upstream pin is fast-moving. A bump is a separate reviewed change that re-runs the integration matrix...") — I'd import at the **already-audited** `171652cd` pin, not current HEAD, and treat any bump as explicitly separate future work, not something to fold into phase 1.
+
+**What this confirms about scope, not yet resolved:**
+1. **Import mechanism.** The issue requires "a fresh r4 clone to verify without an extra checkout" — this rules out a git submodule (needs `git submodule update --init`). A `git subtree` merge (rewrites upstream history into this repo's history, no second checkout) or a plain vendored copy + recorded pin/license/audit trail (simpler, loses native history but the issue's own record already carries the authority digest and pin) both fit; subtree is closer to "preserve upstream commit identity" literally. Worth a decision before writing the import script.
+2. **CI cost/policy for Lean verification.** The issue names the right pattern already ("Slow Lean verification belongs in the queue-side gate with the matching PR-side stub required by AGENTS.md") — this repo's CI already has that exact split (`gates-pr` fast / `merge_group` full ladder, documented in `AGENTS.md`'s "CI split" section) so the mechanism exists; it still needs a real decision on whether every merge-queue run pays a Lean-toolchain-install + build cost indefinitely, or whether Lean verification runs on a slower/separate cadence (e.g. only when `proofs/wasm-gemm-gnaf/**` changes).
+3. **Everything past phase 1** (the adapter layer wiring GNAF claim vocabulary into graph-certify/target-operator records, the #602-#606 pipeline seam, falsifiers, Atlas update discipline) depends on phase 1 landing first and is a substantial effort in its own right — consistent with treating this as a multi-slice issue like #655, not a single PR.
+
+Not starting implementation this session, per your steer — this comment is the scoping deliverable. Proposed next action when picked back up: phase 1 only — vendor the pinned `171652cd` source+licenses under `proofs/wasm-gemm-gnaf/` with the recorded authority digest, no adapter/CI wiring yet, so it lands as an inert, reviewable, zero-behavior-change addition first (mirroring how #515's dormant-lane convention and #655-C0's schema-only slice both landed before anything consumed them).
+
+### comment 5309623697 — 2026-08-16T20:55:03Z — Casey-allard
+
+**Phase 1 (source vendor-in) merged.**
+
+PR #742 landed at `0b8654c0` (squash-merged through the merge queue), on top
+of the prior subtree-merge commit `9b0f2fee` and follow-up provenance commit
+`f1fa65e9`.
+
+What's in main now:
+- `proofs/wasm-gemm-gnaf/` -- vendored via `git subtree add` (no squash) at
+  pinned upstream commit `171652cd95c0b8e8620f76151b7e0c485e30ccfc`, with the
+  5 real upstream commits preserved as parents in this repo's DAG.
+- `.gitattributes` marks the tree `linguist-vendored`.
+- `docs/gnaf_import_provenance.md` records the independently-verified
+  provenance: authority-document SHA-256
+  `5c342373b2ff809bfd607c413cafd0582d32bb097544c6597ff7d674fe99200a` (matches
+  this issue's own text), Lean toolchain `leanprover/lean4:v4.30.0`, dual
+  MIT/Apache-2.0 licenses, import method, size, and update policy.
+
+Verified clean: `check_claim_wording.py`, `cargo fmt --check`,
+`cargo clippy --all-targets -- -D warnings`, `xtask audit-limits` (R5),
+`xtask check-model` (CM-01, 29 ids), and `cargo metadata --no-deps`
+(workspace package count unchanged at 15 -- no `Cargo.toml` anywhere in the
+vendored Lean tree, so it isn't picked up by Cargo).
+
+Deliberately dead weight from r4's own build/serve perspective today --
+this phase is source and provenance only.
+
+**Deferred to future phases, still open:**
+- The full integration matrix (`docs/gnaf_integration_653.md`)
+- Adapter wiring into the #602-#606 pipeline seam
+- CI Lean toolchain wiring
+- Atlas discipline
+- Falsifiers
+
+Per the maintainer's latest direction, this track (helping the
+transformerless engines produce coherent, syntactically correct text
+generation) is now the priority over further OpenAI-API-surface work
+(tracked separately in #740/#741, both left open/unworked). Next up: scoping
+what an adapter-wiring phase 2 actually looks like, before starting
+implementation.
+
+
+### comment 5316905234 — 2026-08-17T13:59:18Z — Casey-allard
+
+**Phase 2 (integration matrix) landed.** PR #765.
+
+`docs/gnaf_integration_653.md` classifies every top-level layer under `proofs/wasm-gemm-gnaf/` as `adopt-active`, `retain-formal-reference`, `defer-open`, or `reject`, per this issue's own scope. Read the vendored tree directly (`README.md`/`CERTIFICATION.md`/`model/claims.json`) rather than assuming the issue text's summary still holds -- it does: 45 claims, 28 `formalProof` / 2 `authority` / 3 `buildEvidence` / 12 `open`, release status genuinely `WorkloadIncomplete` by design.
+
+Decision summary (full reasoning + evidence in the doc):
+- **adopt-active (partial):** the GNAF claim/status vocabulary in `uor-r4-naf` (already landed via #623). Confirmed nothing in `uor-r4-graph-certify` or `src/server.rs` consumes it yet -- that wiring is real, still-open work, not silently done.
+- **defer-open**, each independently scoped: the `#602`-`#606` cost/witness seam, the Atlas incremental-rebuild discipline on a real compile seam, porting `Tools/*.py`'s proof-integrity disciplines into `xtask` as Rust checks, CI wiring for Lean verification (confirmed: no `lean-toolchain` step exists anywhere in this repo's own CI today), and the `model/` registry cross-reference.
+- **reject** (for correctness transfer only): `WasmGemmGnaf/Gemm/` proves properties of a reference GEMM module under GNAF's abstract cost objective -- not `uor-matmul` or any kernel this repo ships. Citing it as evidence about this repo's own model correctness would be exactly the green-washing this issue's Problem section warns against.
+- **retain-formal-reference:** everything else (the remaining Lean namespaces, `authority/`, `vendor/wasm-spec`).
+
+**Not closing this issue.** It's a legitimate multi-phase epic (structurally the same shape as #655) with real, evidenced work still open -- the `defer-open` items above, each requiring either genuine Rust engineering (the `xtask` tooling port, the Atlas discipline on a real seam) or a CI-cost policy decision (Lean toolchain in the merge queue vs. a narrower trigger) that deserves its own scoped pickup rather than being rushed through in this pass. Closing it here would misrepresent that work as done, which is exactly the kind of bookkeeping error this session was asked to stop making.
+
+**What's next, if picked up:** each `defer-open` row in the matrix is sized to become its own follow-up issue -- the most tractable next slice is probably the `Tools/*.py` → `xtask` port (pure Rust engineering, no Lean expertise required, existing `repo-conformance`/`xtask` conventions to extend) or the CI-cost decision (a scoping question, not an implementation one). The #602-#606 cost/witness wiring and the Atlas discipline both require deeper familiarity with those pipeline seams than this pass had budget for.
+
+
+
+---
+_Comment/review ids in this file: 5309407407, 5309623697, 5316905234_
+

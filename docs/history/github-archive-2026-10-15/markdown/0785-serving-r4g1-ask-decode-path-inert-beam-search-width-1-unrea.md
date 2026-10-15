@@ -1,0 +1,103 @@
+# #785 — serving: R4G1 ask decode path — inert beam search (width-1), unreachable #762 sampler, no depth witness; then the decode-policy experiment
+
+- **Type:** Issue
+- **State:** closed (completed)
+- **Author:** @Casey-allard
+- **Created:** 2026-08-18T14:51:28Z
+- **Updated:** 2026-08-18T21:15:56Z
+- **Closed:** 2026-08-18T21:15:55Z
+- **URL:** https://github.com/UOR-Foundation/uor-r4/issues/785
+- **Archived:** 2026-10-15T02:31:04Z · UOR-Foundation/uor-r4
+
+## Body
+
+## Problem
+
+Two serving-correctness defects on the R4G1 `ask`/`chat` decode path, plus the experiment that decides the decode policy. Found by the 2026-08-18 baseline audit (findings AUD-QUAL-001/-003/-006; line refs at `aea30bae`).
+
+1. **The beam search is inert (width-1 greedy).** `hologram_answer` allocates `node_scores` as all-`ScoreQ::MIN` and never writes it (`src/chat.rs:354-355`); `predict_distribution_with_signature_lanes` ignores the parameter (`crates/uor-r4-graph-runtime/src/engine.rs:489`); the candidate expansion in `predict_candidates_with_signature_lanes` skips every node whose score is `MIN` (`engine.rs:855-858`) — i.e. every node, every call. Each beam therefore expands to at most one child: `truncate(4)` never truncates, the `repeat_count * 3000` penalty (`chat.rs:415-419`) can never change a selection, and any conclusion drawn about "beam-search quality" on this path actually measured greedy.
+2. **The #762 sampler is unreachable exactly where it matters.** The R4G1 branch returns before the `sample_rng` dispatch (`chat.rs:470` vs `:480`), so on any bundle with a `compiled.r4g1` — the configuration the project treats as production — `--sample` silently changes nothing. Verified empirically: `--sample 42` produced **byte-identical** output to greedy on `smollm2-135m-instruct`.
+3. **No decode observability.** `Prediction.depth` (the resolution-tier witness) is computed and discarded (`chat.rs:500`); `ChatAnswer` has no field for it — a user cannot distinguish a d=4 resolution from the d=0 unigram row or the Node-0/EMIT-constant terminal defaults (`engine.rs:661-664`, `:783-800`; `runtime.rs:1368-1369`, `:1694`), which are signature-blind and bound the worst case.
+
+## Scope
+
+- **C1** — make the beam honest: either populate `node_scores` from the engine's real node scores, or delete the dead beam scaffolding and call the path what it is (greedy). Either restores truthfulness; the PR must say which and why.
+- **C2** — decide and implement whether `--sample` reaches the R4G1 path (design note first; this changes serving semantics for the preferred path, so it gets its own small PR per AGENTS convention).
+- **C3** — surface the depth/fallback-tier witness in `ask`/`chat` output (the #759 scoping's observability ask; the data already exists in `Prediction`/`ResolutionStatus`).
+- **C4** — **decode-policy experiment** (pre-declared; depends on #783): default-vs-sampled on refreshed bundles, #758 15-prompt protocol. **Exit rule:** PASS iff sampled ≥ 14/15 distinct AND no regression on the Gate C repetition metric (`repetition_rate_rule12`, currently 0.2219 on the fixture census). If positive → decide the default (maintainer call). If negative → keep greedy default and record.
+
+## DoD
+
+C1–C3 landed with tests; C4's result recorded here with the pre-declared verdict; no silent behavior change — every semantic change named in its PR.
+
+**Next action:** C1 design note (populate vs remove), independent of #783.
+
+
+## Comments (3)
+
+### comment 5332204955 — 2026-08-18T18:11:37Z — Casey-allard
+
+## C1 family landed (PRs #792 + #793) — the ask path now decodes from real evidence
+
+**Root cause, fully characterized.** The byte-identical `regarding regarding …` output on the default `r4 ask` R4G1 path was three compounding defects, none of them the n-gram tier the earlier diagnosis pointed at:
+
+1. **Wrong artifact.** The CLI chat loader read only `compiled.r4g1` — the converter carryover, which has **zero per-node emission entries across all 1,025 nodes** (hardcoded `emission_len=0` in `convert_r4g1.rs`) and carries the raw TLS1 store as its EXCT section ("EXCT: descriptor + the raw TLS1 carryover"). The scored graph `graph/score.r4g1` (36/37 nodes with real emissions, real context rows, RX1 residual EXCT) sat unused beside it — the HTTP server (`primary_graph`) and release packager (`GRAPH_RELATIVE_PATH`) already prefer it; the CLI never did. This is the audit's three-loader disconnect with its quality consequence now measured.
+2. **Container bytes scored as evidence.** The engine's node-0 fallback preferred EXCT and pair-scanned it; `check_node_emits` (the suffix-DFA oracle) whole-scanned it too. No writer emits a pair-list EXCT, so on the canonical bundle this read 3.9M pseudo-pairs of TLS1 container bytes, ~20% passing the token filter, several at near-i32::MAX raw — instrumented live: every beam step received exactly one candidate at ~2,147,3xx,xxx raw, decaying by exactly the 350× recency step. Garbage drowned every real tier and cost ~35 s per ask (the 31 MB linear scans).
+3. **Candidate starvation.** A context-row hit returned one winner; the candidate walk had nothing to expand, so beam search was greedy in effect (C1's node-score publication fixed the node tier in #792; #793's C1b surfaces the winning row's alternatives).
+
+**Fixes (#793):** loader prefers `graph/score.r4g1` with `compiled.r4g1` fallback; EXCT is no longer read anywhere in the runtime engine; whole-EMIT-remainder fallbacks gated to the converter flavor (where that remainder really is the root-prior table); row alternatives enter the candidate walk. Seeded-violation tests poison EXCT/EMIT with valid-looking near-MAX pseudo-pairs and fail against the old engine by emitting the poison (falsifiers verified: `4242`/`49000` surfaced pre-fix, cannot surface post-fix).
+
+**Measured effect** (canonical refreshed 135m bundle, default ask path, #758 15-prompt protocol, deterministic double pass 30/30):
+
+| | pre-fix | post-fix |
+|---|---|---|
+| distinct outputs | 1/15 (all byte-identical `regarding` loop) | 5/15 |
+| form | garbage token repetition | grammatical prompt-form openers ("What is the capital of France?" → "It is the capital of the 19…"; "hello" → "What is known as the 19…") |
+| latency | ~35 s/ask | ~1 s/ask |
+| terminal behavior | `regarding`/whitespace alternation | all trajectories converge into a "the 19…" digit/comma attractor |
+
+**What this does NOT claim:** quality is still far from a valid assistant completion. The remaining collapse is the #759-corrected attractor-basin behavior now operating on *real* evidence (year/number n-grams dominating continuations) — #784's instrument target and this issue's C4 decode-policy experiment. One concrete C4 observation recorded: the beam's repeat penalty is consecutive-token-only, and the digit/comma cycle (`…0000,0000…`) evades it exactly the way the old whitespace alternation did.
+
+**New decision point surfaced (maintainer):** the gated loader in `src/r4g1.rs` refuses this scored graph on its quality gate ("graph runtime top-1 25.65% is below TLA baseline 30.12%") and BDD graph scenarios skip accordingly — while the CLI chat loader has no quality gate and serves it. Should `ask`/`chat` adopt the gated loader with an explicit TLA-plain-path fallback when the graph fails its baseline (the plain path measured better today: 8/15 distinct grammatical, #783-A1)? That is C1e-adjacent loader unification with a real quality consequence either way; not done unilaterally here.
+
+**Remaining on this issue:** C2 (sampler on the R4G1 path — maintainer decision, unchanged), C3 (depth/fallback witness in ask/chat output), C4 (decode-policy experiment, now unblocked: the path finally runs on real scores).
+
+
+### comment 5332599924 — 2026-08-18T18:49:11Z — Casey-allard
+
+## C3 landed; C4 run with the pre-declared verdict: PASS — the default decision is now a maintainer call
+
+**C3** (decode witness): PR #797 (in the merge queue at time of writing). `ChatAnswer` carries the serving engine, the node/non-node candidate-query split (classified by the C1 buffer contract), and the plain path's per-token resolution depths; a present-but-unparsable graph now warn-logs its downgrade (#790 item 7's log half). Live on the canonical bundle: `engine=r4g1-beam, non_node_queries=381, node_path_queries=0` — the digit attractor is attributably a row-tier trajectory.
+
+**C4** (decode-policy experiment, pre-registered on this issue; #783's refresh satisfied its dependency):
+
+- Setup: canonical refreshed `smollm2-135m-instruct` artifacts/store/tokenizer served through the plain path (the sampler's documented scope — it is unreachable on the R4G1 path pending C2); `--sample 1`; #758 15-prompt protocol; distinctness by byte-exact grouping.
+- **Default greedy: 8/15 distinct** (cross-validates #783-A1's plain-path read).
+- **Sampled (seed 1): 15/15 distinct** — clears the pre-declared PASS bar (≥ 14/15). Two identical-seed passes are byte-identical (reproducibility holds).
+- **Gate C repetition metric (`repetition_rate_rule12` 0.2219): unchanged by construction** — the flag is opt-in and decode-time only; no compiled artifact or greedy output byte moved. (Contract satisfied without a re-census; the greedy outputs above are the census-relevant behavior and are unchanged.)
+- **Pre-declared verdict: PASS → "decide the default (maintainer call)."** Honest caveat for that call: sampled outputs are *distinct* but not *coherent* — e.g. "Describe the water cycle." → "Water is the most abundant of a bill engineer who played in formed using various Linux-g…" vs greedy's "The term \"MacGyver, and the 4th of July…". Distinctness was the contract's metric and it passes; coherence is a different bar that neither mode clears yet.
+
+## Open maintainer decisions on this issue (all measurement-ready, nothing decided unilaterally)
+
+1. **C2 — sampler on the R4G1 path**: C4's PASS is evidence *for* wiring `--sample` into the beam path (or beyond: making sampling the default per C4's own follow-on). The #784 instrument sharpens the case: the collapse mechanism is argmax over converging marginals (full-depth code collisions measured 0.0%), which sampling directly perturbs. Options: (a) wire `--sample` into the R4G1 beam (opt-in parity), (b) default-on sampling on the plain path only, (c) both, (d) neither pending coherence work. Any wiring change is serving semantics → its own PR after the call.
+2. **Loader quality-gate asymmetry** (from the C1 comment): `src/r4g1.rs`'s gated loader refuses the current scored graph (25.65% < TLA baseline 30.12%) while the CLI chat loader serves it ungated. Should ask/chat adopt the gated loader with explicit TLA fallback? (C1e-adjacent; the plain path currently reads better on the protocol: 8/15 vs 5/15 distinct, both attractor-bound.)
+
+**DoD state**: C1 ✅ (#792), C1b/C1c ✅ (#793), C3 ✅ (#797), C4 ✅ recorded with its pre-declared verdict. C2 is the remaining item and is a decision, not a measurement — this issue stays open, parked on the two calls above.
+
+
+### comment 5334163148 — 2026-08-18T21:15:55Z — Casey-allard
+
+Closing with records — every item landed:
+
+- **C1** (PR #792): node-scores published by the distribution pass; per-step buffer reset in the beam.
+- **C1b/C1c** (PR #793): row alternatives enter the candidate walk; the CLI loader prefers `graph/score.r4g1` (aligning with the server/packager); the engine no longer misreads EXCT container bytes as scores. The `regarding` loop root cause — fully characterized in issuecomment-5332204955 — is fixed; latency ~35 s → ~1 s.
+- **C3** (PR #797): DecodeWitness on every answer (engine + node/non-node query split + plain-path depths); ask-time downgrade warn-logged (#790-7).
+- **C4** (run + pre-declared verdict, issuecomment-5332599924): **PASS** — greedy 8/15 → sampled 15/15 distinct on the plain path, deterministic, repetition metric untouched by construction; coherence caveat recorded.
+- **C2** (maintainer decision 2026-08-18: opt-in parity; PR #800): `--sample <SEED>` now reaches the R4G1 path — one seeded trajectory over the beam's candidate queries with the #762 weighting scheme; greedy default byte-identical; witness tags `r4g1-sampled`. Measured: sampled R4G1 6/15 vs greedy 5/15 distinct — the bounded gain is exactly #784's marginal-convergence finding (narrow row-candidate lists), vs the plain path's full distributions (15/15).
+
+Residual observations handed to their owners: the digit/comma attractor and decode policy (#784 record, closed), the loader quality-gate asymmetry (posted in the C1 comment — r4g1.rs's gated loader refuses the scored graph at 25.65% < TLA 30.12% while chat serves it ungated; C1e-adjacent, flagged for the epic). Unassigning.
+
+
+---
+_Comment/review ids in this file: 5332204955, 5332599924, 5334163148_
+
