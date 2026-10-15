@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/bin/route-learning-slot.rs (local/route-audit-target/debug/deps/route_learning_slot-c922517e6b3b8129)
+
+running 4 tests
+test tests::impossible_or_missing_counters_refused ... ok
+test tests::three_distinct_route_observations_and_gate_not_tested ... ok
+test tests::filesystem_round_trip_tamper_and_no_clobber ... ok
+test tests::refusals_finality_pins_inventory_epochs_and_lineage ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s

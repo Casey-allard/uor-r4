@@ -17,6 +17,10 @@ provider=${UOR_POD_VAST_BIN:-$root/local/pod-provider-target/debug/uor-r4-pod-pr
 [[ -x "$provider" ]] || { echo 'Build the Rust pod provider or set UOR_POD_VAST_BIN to an existing Rust adapter' >&2; exit 2; }
 scorer=${SCORING_AUDIT_BIN:-$root/local/scoring-target/release/completion-scoring-audit}
 [[ -x "$scorer" ]] || { echo 'Build the audited scorer first' >&2; exit 2; }
+route_rows=${ROUTE_ROWS_BIN:-$root/local/scoring-target/release/route-learning-slot}
+if [[ "$cursor" == 16404 ]]; then
+  [[ -x "$route_rows" ]] || { echo 'Build route-learning-slot before pulling the final quarter' >&2; exit 2; }
+fi
 [[ $(shasum -a 256 "$pilot" | cut -d ' ' -f1) == e4bcf43859fa0645db2ca0d5fe620f18620990cbb7efb4f28e6873f5a57f90c3 ]] || { echo 'Pilot baseline hash mismatch' >&2; exit 1; }
 # Exclusive output; failures leave evidence intact. Retry in a fresh directory.
 mkdir "$out"
@@ -46,5 +50,13 @@ SCORING_AUDIT_CHECKPOINT_PATH="$out/$checkpoint" "$scorer" completion \
   "$out/$evaluation" "$pilot" "$plan" "$out/audit.json" \
   > "$out/scorer.stdout" 2> "$out/scorer.stderr"
 cat "$out/scorer.stdout"
+if [[ "$cursor" == 16404 ]]; then
+  shasum -a 256 "$route_rows" >> "$out/SHA256SUMS"
+  "$route_rows" "$out" "$out/route-learning-slot.json" \
+    > "$out/route-learning-slot.stdout" 2> "$out/route-learning-slot.stderr"
+  shasum -a 256 "$out/audit.json" "$out/route-learning-slot.json" >> "$out/SHA256SUMS"
+  cat "$out/route-learning-slot.stdout"
+  jq '{read_parameter_observation, per_kind, learning_slot_evidence, limitations}' "$out/route-learning-slot.json"
+fi
 jq '{observation, completed_batches, inputs, metrics, overall, sensitivity, snapshot_metadata, registered_comparisons, authorizes_model_compute}' "$out/audit.json"
 echo 'Q1-Q3 are diagnostics only. Q4 is single-seed evidence, not a two-seed verdict or seed-2 release.'

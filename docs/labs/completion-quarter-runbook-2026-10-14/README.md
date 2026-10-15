@@ -23,6 +23,7 @@ CARGO_TARGET_DIR=local/pod-provider-target cargo build --locked --offline -p uor
 CARGO_TARGET_DIR=local/scoring-target cargo build --release --locked --offline \
   --manifest-path docs/labs/completion-scoring-readiness-2026-10-14/scoring-audit/Cargo.toml
 export SCORING_AUDIT_BIN="$PWD/local/scoring-target/release/completion-scoring-audit"
+export ROUTE_ROWS_BIN="$PWD/local/scoring-target/release/route-learning-slot"
 export UOR_POD_VAST_BIN="$PWD/local/pod-provider-target/debug/uor-r4-pod-provider"
 ```
 
@@ -81,6 +82,30 @@ guard strict wins with checkpoint-zero baseline, admitted strict wins, B3
 admitted-target rows, loss contributions and per-kind attempted/differs/accepted
 counters, plus writer occupancy. Retain `SHA256SUMS`, `audit.json`, stdout/stderr
 and the transferred receipts together. Link the canonical plan and source.
+
+For Q4, the script now also invokes `route-learning-slot` **after the audited scorer
+succeeds**, saving `route-learning-slot.json` and its stdout/stderr. The standalone
+Rust binary is built by the same Cargo build above; Q1–Q3 do not invoke it. It checks
+the exact seed-1 final cursor, evaluation pin, checkpoint hash, registered admission,
+plan/baseline pins, model binding, epochs and matching per-kind counters. It records
+the observed VectorBlock/Route attempts, cost-difference and accepted counts. Gate is
+explicitly **excluded by the registered Route executor**, with no serialized counter
+and no Gate efficacy claim. See the [source-only tooling record](../route-learning-slot-2026-10-15/README.md).
+
+To generate the sidecar from an already successfully audited, sealed Q4 directory:
+
+```sh
+"$ROUTE_ROWS_BIN" "$PWD/local/seed1-q4-audit" \
+  "$PWD/local/seed1-q4-audit/route-learning-slot.json"
+```
+
+Output must be new; a previous output is never replaced. The tool consumes no
+`steps.jsonl`, so coordinate indices are schedule-derived, not an observed trace.
+It cannot identify which coordinates were accepted or isolate a Route-only quality
+delta from Q3→Q4 (that interval also contains VectorBlock updates). This sidecar
+provides the learning-slot evidence for the later Relation sheet; it adopts no
+interleaving ratio and grants no compute or seed-2 release. Do not run it before the
+final receipts are sealed; its development controls use synthetic metadata only.
 
 Q2/Q3 are **INTERMEDIATE_CHECKPOINT_DIAGNOSTIC**. Boolean comparisons in
 `registered_comparisons` are arithmetic diagnostics; they are not an interim bar
