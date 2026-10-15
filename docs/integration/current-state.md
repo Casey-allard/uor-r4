@@ -67,6 +67,21 @@ No runtime behavior changes, live comment editing, model/GPU work or hold releas
 
 Line: no model line — tooling · count 0/3 unchanged · headline unchanged. **Next:** protected replacement delivery; preserve the parked original source.
 
+## 2026-10-15 — Parked reconstruction reader continuation: deterministic records and authenticated fetches (codex, D19 tooling)
+
+The [continuation record](../labs/recon-dag-reader-2026-10-14/README.md#codex-continuation--15-october-2026)
+preserves DeepSeek #2489 source `b32651b82` as attributed cherry-pick `8b6dae504` on main
+`5fd44f578`. DFS-post first-insertion serialization reproduces all four retained Showcase
+source/record SHA-256 pairs. Corruption is explicitly outside the [0,64) fetched-ID set,
+replacing the random last-record assumption (700 independent-process checks passed).
+Malformed public payloads and non-ASCII IDs refuse without slicing panics; every fetch is
+hashed, including repeated IDs. The helper `id_for` is now fallible; Backend::node/stored and
+record bytes remain unchanged. Thirteen reader tests and formatting/Clippy pass; impossible output capacity returns a typed error. The record
+states transient whole-file indexing and actual HashMap overhead, and links the provisional
+object-store adapter settlement. Source-data checks only; training/M2 HELD.
+
+Line: no model line — tooling · count 0/3 unchanged · headline unchanged. **Next:** protected replacement PR referencing #2489; exact-head review.
+
 ## 2026-10-15 — Complete GitHub issue/PR/comment corpus archived into the repository (kimi PM, owner-requested insurance)
 
 [`docs/history/github-archive-2026-10-15/`](../history/github-archive-2026-10-15/INDEX.md) preserves the full public GitHub evidence trail inside git, where no permission change can remove it: 462 issues, 2,033 PRs, 7,878 conversation comments, 311 inline review comments on 62 PRs, 185 PR reviews, 30 labels, 21 milestones — snapshot 2026-10-15T02:31:23Z, reconciliation 2,495/2,495 exact against live counters (every row "match" in INDEX.md), five high-citation comments (6181921625, 6181460874, 6174007797, 6174496690, 6159308818) spot-verified byte-identical to the live API. Every comment keeps its GitHub-global numeric id as a markdown heading (`### comment <id> — <created_at> — <login>`), so citations in DECISIONS.md, prep sheets, and this file resolve with grep. `export.sh` in the archive is re-runnable (`--fresh`) for future snapshots. Motivation: the owner holds org-member push-only access to UOR-Foundation/uor-r4; this is insurance, not a migration — work continues on the canonical repo. Docs-only, no compute.
@@ -123,6 +138,38 @@ Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/2
 3. **Contingent arms and later learning-slot prerequisite:** Demotes `C6`-vs-`G64` to a contingent arm (explicitly unselected, not needed for the first test); specifies all 10 M1 construction controls from `#2482` §9 (with exact orbit-root $d_{\text{L1}} \in \{0, 4, 8\}$, unclamped `i32`-safe match scores $m_i^{(0)} = 8 - d_{\text{L1}} \in \{0, 4, 8\}$, and conflicting-successor recency tie condition under equal `(d_L1, d_Hamming)`); and records that any trained-in `Relation`-vs-`Route` comparison **waits for seed-1's `Route` rows at cursor `16,404`** (`training.rs:224-243`) and requires a **declared interleaved coordinate schedule on both arms** as a later sheet (not pre-registered now). Docs-only, zero compute, zero GPU, zero head adoption, training and M2 `HELD`.
 
 Line: mechanisms design / documentation · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged). **Next:** await Kimi PM review of the revised `ReadSpec::Relation` card; M0/M1 prototype and construction qualification require their own pre-registration sheet, `TEST FITNESS: FIT`, and owner release, while any trained-in comparison waits for seed-1 cursor `16,404`.
+
+
+## 2026-10-14 — the reconstruction-DAG production reader: on-demand backend, and RangeVerified vs WholeObject (deepseek, instrument)
+
+The [record](../labs/recon-dag-reader-2026-10-14/README.md) carries the tests and the two claims. **WHAT IT
+REPLACES:** the byte-DAG experiment at
+`docs/labs/spiralcore-native-attention-review-2026-10-14/evidence/cs/range_reader.rs` loads **every** record into a
+`HashMap<Id, Node>` before answering any range query — its own README says *"the experiment is not an end-to-end
+low-memory reader"* — and its final line is the other half of the gap: **`whole_object_sha256_in_rust=NOT_CHECKED`**. **THE
+TWO HALVES:** (1) **an on-demand backend** — the records file is a fixed-stride sequence of `1-byte scale ||
+12-byte id || 32-or-36-byte data`. `IndexedBackend::open` transiently reads the whole file and retains
+a header-derived `id -> offset` HashMap (13-byte on-disk headers, plus resident keys/offsets/bucket overhead);
+traversal fetches and authenticates visited records, with the experiment's
+`EagerBackend` kept as the reference; (2) **two digest claims kept apart** — a node id authenticates **the nodes a
+range touched** and says nothing about the nodes outside it or about the object, so `RangeVerified { nodes,
+unverified_nodes }` **reports its unverified remainder** instead of letting the weaker claim pass as the stronger,
+while `WholeObject { digest }` is the only variant carrying object integrity. **THE OWNER'S RULE SHAPES THE API:**
+*on the main track a read must always be verified*, so the strong claim is a **separate entry point**
+(`read_whole_object`) rather than a flag on the range read — a caller cannot reach integrity by forgetting to ask,
+and `Read::whole_object_verified` is the single question a main-track consumer asks. **Historical initial observation (6 tests passing in one run; isolation later found flaky by PM):** 203 ranges produce **byte-identical** output from both backends and equal the source; **the original last-record corruption check was not reliable because record order was randomized**
+(corrected in the Codex continuation linked above); and the decisive one, **two DAGs differing in a single bit are both internally
+consistent, so node ids cannot tell them apart and only the declared whole-object digest refuses the wrong one**
+(while it verifies against its own). Fixtures are **built in Rust by the test file** because the experiment's
+fixtures come from a JS generator over pinned sources and are not committed. **Stated rather than hidden:**
+**nothing consumes this crate yet** — it is the reader, delivered with its tests, and wiring it into a
+reconstruction path is a separate step; it is **shaped to consume Codex's D19 object store rather than compete
+with it** (the `Backend` trait is the seam, flagged on #2028 so the digest distinction can be settled once in that
+store's read contract); the whole-object digest is **SHA-256** while node ids are the crate's own 12-byte digest
+over `scale || data`; and `IndexedBackend` currently **reopens the file per node** — correct and simple, with mmap
+or a held handle the obvious next optimisation and not claimed here.
+
+Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
 
 ## 2026-10-14 — D34: owner accepts the revised attention/memory sequence; dead target symlink removed (kimi PM, owner decision)
 

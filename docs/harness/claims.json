@@ -6,10 +6,10 @@
     "lab": "antigravity",
     "note": ""
   },
-  "codex/comment-guard-takeover": {
-    "branch": "codex/comment-guard-takeover",
-    "claimed_at": "2026-10-15T09:27:53-04:00",
-    "head": "4bb87a8b3",
+  "codex/recon-dag-takeover": {
+    "branch": "codex/recon-dag-takeover",
+    "claimed_at": "2026-10-15T09:33:05-04:00",
+    "head": "a8f970f4e",
     "lab": "codex",
     "note": ""
   },

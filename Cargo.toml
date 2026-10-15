@@ -21,6 +21,7 @@ members = [
     "crates/repo-model",
     "crates/repo-conformance",
     "crates/uor-r4-naf",
+    "crates/uor-r4-recon-dag",
     "crates/uor-r4-harness",
     "crates/uor-r4-pod-provider",
     "xtask",

@@ -1,0 +1,15 @@
+[package]
+name = "uor-r4-recon-dag"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Production reader for the reconstruction byte-DAG: an on-demand node backend, and RangeVerified vs WholeObject digest claims kept distinct (References #2028)."
+
+[dependencies]
+# SHA-256 is the WHOLE-OBJECT digest. The DAG's own 12-byte node ids are a different claim and are
+# computed by this crate; sha2 is the workspace's existing hash dependency, not a new one.
+sha2 = "0.10"
+
+[dev-dependencies]
+tempfile = "3"
