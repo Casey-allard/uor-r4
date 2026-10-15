@@ -141,6 +141,13 @@ come from the owner through the PM.
     `claims.json` until the next lab collides with it. That reaches claims whose branch still exists
     locally; a claim whose branch is already gone is **reported** by the same command — never released
     on a guess — with the `team release` line that clears it.
+  - **Base moved under your PR? Merge forward, do not rebase.** `git merge origin/main` into your
+    delivery branch, resolve the shared append files by their own rules — `docs/harness/claims.json`
+    union, `docs/integration/current-state.md` newest-first — and `git push` plainly: no force, no
+    lease, and no dependence on a pre-command hook's approval path. The merge queue **squashes**, so
+    the merge commit never reaches `main`'s history, and exact-head review stays exact:
+    `git diff origin/main..<new-head> -- <delivered paths>` must equal the reviewed diff. Rebase only
+    when a force push is genuinely needed (a stacked child branch); see #2519 for that path.
   - **Before removing it** — anything local-only goes to the archive first: `cloud-store put <lab>
     <dir>` (MD5 round-trip + index), then clear the local copy. Never keep a second local copy of
     archived material.

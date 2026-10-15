@@ -260,6 +260,12 @@ branch name collides with a claim on work already in main. A claim whose branch 
 be proved merged, so it is **reported** by the same command — never released on a guess — with the
 `uor-harness team release --branch <branch> --lab <lab>` line that clears it.
 
+**A PR whose base moved is merged forward, not rebased.** `git merge origin/main` in your delivery
+branch, resolve `docs/harness/claims.json` by union and `docs/integration/current-state.md` newest-first,
+then `git push` — no force and no lease, which is also why no pre-command hook has to approve anything.
+The merge queue squashes, so the merge commit never reaches `main`. Rebase when a force push is genuinely
+needed (a stacked child branch); the hook's missing approval path for that case is filed as #2519.
+
 **Why this matters: the repository should hold minimum state.** A merged branch is not a research
 authority — `main` is. `check` reports every orphan as `status.no_orphan_branches` with the exact
 command, so a forgotten branch shows up on the next run rather than accumulating. Two are currently
