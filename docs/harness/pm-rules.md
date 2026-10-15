@@ -143,7 +143,8 @@ come from the owner through the PM.
     on a guess — with the `team release` line that clears it.
   - **Base moved under your PR? Merge forward, do not rebase.** `git merge origin/main` into your
     delivery branch, resolve the shared append files by their own rules — `docs/harness/claims.json`
-    union, `docs/integration/current-state.md` newest-first — and `git push` plainly: no force, no
+    union, `docs/integration/current-state.md` newest-first — your own entry first, remembering that in a
+    merge `HEAD` is *your* branch and the incoming side is `origin/main` — and `git push` plainly: no force, no
     lease, and no dependence on a pre-command hook's approval path. The merge queue **squashes**, so
     the merge commit never reaches `main`'s history, and exact-head review stays exact:
     `git diff origin/main..<new-head> -- <delivered paths>` must equal the reviewed diff. Rebase only

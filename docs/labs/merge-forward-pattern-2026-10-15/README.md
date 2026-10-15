@@ -32,6 +32,15 @@ Both point at [#2519](https://github.com/UOR-Foundation/uor-r4/issues/2519) for 
 does not cover — a stacked child branch whose parent was rewritten — where a lease-protected force push is
 the safe operation and the hook has no approval path.
 
+## One detail worth writing down (added after the first merge-forward)
+
+**In a `git merge`, `HEAD` is *your* branch and the incoming side is `origin/main`.** The conflict markers
+therefore read the opposite way round from a rebase, and the first pass of the PR that documented this pattern
+put main's newest entry above its own - the inversion is silent, because both sides are valid Markdown and the
+file still parses. Newest-first means **your entry lands first** in the resolved file, since your PR is the one
+landing now. The doc says so explicitly for the same reason this record does: the mistake costs nothing to make
+and is invisible in review.
+
 ## Why document rather than only code
 
 The hook lives in the agent-side command screening layer, not in this repository: `.git/hooks/pre-push` in
