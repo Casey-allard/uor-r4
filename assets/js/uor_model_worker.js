@@ -1,4 +1,6 @@
 // Native model worker. Every emitted byte comes from the explicitly loaded artifact.
+// Provenance: Studio source is an import of companion repo Casey-allard/uor-r4-wasm-chat.
+// Engine status (D36): no D11 served wasm engine exists yet; deploy is frozen per D36, and the live site is the last good deploy.
 let wasmModule;
 let wasmInitPromise;
 let capabilities;
@@ -32,7 +34,9 @@ function sessionFor(conversationId) {
 function cancelActive() {
     if (activeJob) {
         activeJob.cancelled = true;
-        wasmModule.native_geometric_cancel(activeJob.handle);
+        if (typeof wasmModule?.native_geometric_cancel === 'function') {
+            wasmModule.native_geometric_cancel(activeJob.handle);
+        }
     }
 }
 function closeSession(conversationId) {
@@ -112,13 +116,23 @@ self.onmessage = async ({ data }) => {
                 // Yield between actual native token batches so cancellation can be received.
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
+            let finishStatus = 'not_required';
             if (job.cancelled || stoppedBy === 'length') {
-                const finished = JSON.parse(wasmModule.native_geometric_finish_generation(handle));
-                fullText += finished.text || '';
+                if (typeof wasmModule?.native_geometric_finish_generation === 'function') {
+                    const finished = JSON.parse(wasmModule.native_geometric_finish_generation(handle));
+                    fullText += finished.text || '';
+                    finishStatus = 'completed';
+                } else {
+                    finishStatus = 'native_geometric_finish_generation absent in shipped wasm bundle (D36: no D11 served wasm engine yet; deploy frozen)';
+                }
                 if (job.cancelled) stoppedBy = 'cancelled';
             }
             const durationSec = (performance.now() - started) / 1000;
-            self.postMessage({ action: 'generate_complete', id, fullText, tokenCount, durationSec, tps: durationSec > 0 ? tokenCount / durationSec : null, stoppedBy: job.cancelled ? 'cancelled' : stoppedBy });
+            const effectiveStoppedBy = job.cancelled ? 'cancelled' : stoppedBy;
+            const reportedStoppedBy = finishStatus !== 'not_required' && finishStatus !== 'completed'
+                ? `${effectiveStoppedBy} — ${finishStatus}`
+                : effectiveStoppedBy;
+            self.postMessage({ action: 'generate_complete', id, fullText, tokenCount, durationSec, tps: durationSec > 0 ? tokenCount / durationSec : null, stoppedBy: reportedStoppedBy, finishStatus });
         } finally {
             if (activeJob === job) activeJob = null;
         }
