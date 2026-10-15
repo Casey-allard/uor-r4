@@ -16,9 +16,15 @@ What they are not:
   captures show a Studio/IDE product surface from that earlier direction. No current mission path
   depends on them.
 - The geometry tour in [docs/geometry.md](../../docs/geometry.md) carries its own
-  **historical float form (pre-D23)** banner where it describes the pre-ban path; these images are
-  the same class of material.
+  **historical float form (pre-D23)** banner where it describes the pre-ban path (archived at
+  [docs/history/geometry-float-form-2026-10.md](../../docs/history/geometry-float-form-2026-10.md))
+  and explicit post-D30/D32/D34 mechanism labels (`active` / `dormant` / `archived-negative (D22 scope)`)
+  matching [README.md](../../README.md#mechanisms-under-test) and
+  [docs/mechanisms/README.md](../../docs/mechanisms/README.md); these images are
+  the same class of historical material (`dormant` / `archived-negative (D22 scope)` product and
+  pre-geometric concept art, preserved as evidence).
 
 Nothing here is deleted: the repository keeps superseded material as evidence, with a dated note
 rather than removal. For the live rules see [AGENTS.md](../../AGENTS.md) and
-[docs/integration/DECISIONS.md](../../docs/integration/DECISIONS.md).
+[docs/integration/DECISIONS.md](../../docs/integration/DECISIONS.md) (through
+[D30](../../docs/integration/DECISIONS.md#d30--hard-substrate-rules-no-matmul-or-softmax-anywhere-no-wrapper-laundering-rust-only-gpu-only-heavy-compute-pod-kernel-builds)–[D34](../../docs/integration/DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate)).

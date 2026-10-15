@@ -72,18 +72,18 @@ below preserve the prior architecture snapshot, not an executable float trunk.
 
 <img src="docs/figures/architecture.svg" alt="Architecture: line A, the geometric stack language base, shows the earlier operator status; the native head now exists, the revised compiled boundary passes finite controls at its declared source scope, and training is held; line B, the native learner, completes 437 of 512 development replies but 0 of 128 on fresh transfer; both join as one model served under D11 at M4" width="100%">
 
-- **Line A, the language base (M1).** A geometric stack language model: recurrence layers that carry a
-  quaternion state by rotation, geometric feed-forward blocks and a geometric head.
-  Code: [`crates/uor-r4-training`](crates/uor-r4-training).
-- **Line B, grounded reply from exact memory (M2, M3).** A learned compiler writes facts into an exact,
+- **Line A, the language base (M1) — `active` (discrete SpiralCore/FBS trunk) / `dormant` (pre-D32 float operator source) / `archived-negative (D22 scope: pre-D23/D25 softmax/SwiGLU/dense-matmul stack configurations)`.** A geometric stack language model: recurrence layers that carry a
+  quaternion state by rotation, geometric feed-forward blocks and a geometric head. The post-D30/D32 **active** discrete implementation lives in [`crates/uor-r4-discrete`](crates/uor-r4-discrete) ([brief](docs/mechanisms/discrete-geometric-learning.md), [pilot record](docs/labs/a2-pilot-2026-10-14/README.md)); the pre-D32 floating-point operator-phase source in [`crates/uor-r4-training`](crates/uor-r4-training) is **dormant** (preserved inactive at [#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) and [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md)); pre-D23/D25 softmax and dense-projection configurations are **archived-negative (D22 scope)** ([historical float form](docs/history/geometry-float-form-2026-10.md)).
+  Code: [`crates/uor-r4-discrete`](crates/uor-r4-discrete), [`crates/uor-r4-training`](crates/uor-r4-training).
+- **Line B, grounded reply from exact memory (M2, M3) — `active` (fixed geometry and separate D19 `uor-r4-object-store` line) / `dormant` (held M2 native compiler/emitter learner) / `archived-negative (D22 scope: 437/512 dev / 0/128 fresh-transfer frozen-adapter panel-fitting and 128-update 0/512 endpoints)`.** A learned compiler writes facts into an exact,
   versioned, addressed store; a learned emitter writes the reply. That historical compiler/emitter
-  source is preserved; the selected core build now exposes fixed geometry and exact-storage support.
+  source is preserved (**dormant**, M2 training/rental held: [pooled-rank record](docs/labs/m2-pooled-rank-2026-10-10/README.md), [carrier-credit brief](docs/mechanisms/unified-geometric-carrier-credit.md), [integration audit](docs/labs/unified-geometric-integration-2026-10-11/AUDIT.md)); the selected core build now exposes **active** fixed geometry and exact-storage support, alongside the separate **active** D19 exact compressed object-store line ([D34](docs/integration/DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate)).
   Code: [`crates/uor-r4-core/src/native_geometric`](crates/uor-r4-core/src/native_geometric).
-- **Serving (M4 target).** One model under D11 remains unqualified. The selected
-  [`crates/uor-r4-integer`](crates/uor-r4-integer) build exposes fixed geometry and metadata;
-  historical model-serving executors are excluded.
+- **Serving (M4 target) — `active` (D11/D5 contract and fixed geometry) / `dormant` (pre-D29/D32 exported stack executors) / `archived-negative (D22 scope: superseded D10 converted-transformer track #1518)`.** One model under D11 remains unqualified. The selected
+  [`crates/uor-r4-integer`](crates/uor-r4-integer) build exposes **active** fixed geometry and metadata;
+  historical model-serving executors are **dormant** (excluded from the selected native build; preserved at [D11 serving record](docs/labs/d11-serving-2026-10-10/README.md)), and the converted-transformer comparator path is **archived-negative (D22 scope)** ([D11](docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded)).
 
-The geometry is explained, with pictures, in **[The geometry, illustrated](docs/geometry.md)**.
+The geometry is explained, with pictures and post-D30 `active` / `dormant` / `archived-negative (D22 scope)` mechanism labels, in **[The geometry, illustrated](docs/geometry.md)** (pre-D23 float-form tour preserved at **[geometry-float-form-2026-10.md](docs/history/geometry-float-form-2026-10.md)**).
 
 ## Where we are
 
@@ -128,25 +128,25 @@ Further training and M2 remain held. [Measurements, limitations and next step](d
 | Seed-1 diagnostic learning pilot | Complete; mixed DEV measurements; bars/guard undecided and fresh transfer unavailable | [result](docs/labs/a2-pilot-2026-10-14/README.md) |
 
 <details>
-<summary>Earlier operator phase — historical source scopes, superseded by D32</summary>
+<summary>Earlier operator phase — historical source scopes, superseded by D32 (`dormant` float source)</summary>
 
 The owner's rules of 12 October ([D23–D25](#rules-the-project-works-under)) prohibited softmax, sigmoid,
 tanh, softplus and dense matrix products anywhere a model executes, in training as well as serving.
-The following table and figures retain that earlier operator-phase snapshot;
+The following table and figures retain that earlier operator-phase snapshot (**`dormant`** pre-D32 floating-point source preserved inactive under [D32](docs/integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning) §4–§5, not a mechanism negative under [D22](docs/integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened));
 they do not authorize its floating-point training path under D32.
 
 <img src="docs/figures/geometry/compliant-path.svg" alt="The compliant next-token path: embedding, recurrence with geometric gates, geometric feed-forward with the SpiralCore/FBS projection and the G2 Hamilton gate, a geometric head, raw scores, a rank-margin hinge in training and greedy argmax in serving" width="100%">
 
 | Step | Replaces | Status | Record |
 |---|---|---|---|
-| G2 Hamilton gate: the gate rotates the value, `q(g) ⊗ u` | the SwiGLU sigmoid | source, tested | [#2260](https://github.com/UOR-Foundation/uor-r4/pull/2260) |
-| SpiralCore/FBS projection: select one carrier, transport by signed BFS | dense projections | source, tested | [#2279](https://github.com/UOR-Foundation/uor-r4/pull/2279), [brief](docs/mechanisms/spiralcore-fbs-projection.md) |
-| Geometric recurrence gates: clamped opening, exact rate table, Hamilton output gate | sigmoid, `exp`, softplus, GELU | source, tested | [#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293) |
-| Rank-margin objective: a hinge over declared rivals on raw scores | softmax cross-entropy | source, tested | [#2255](https://github.com/UOR-Foundation/uor-r4/pull/2255), [brief](docs/mechanisms/rank-margin-objective.md) |
-| Geometric head (OP3a): addressed raw-distance scoring through the shared token table | the dense tied head | implemented; earlier source receipts retained; repaired compiled boundary passes 31 finite controls at `1f1547bfd` | [head/writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md), [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md) |
-| Device qualification: stored or analytic expected values, no CPU reference | the CPU-referenced parity gate | repaired D29 source's **31 mandatory controls PASS** at `1f1547bfd` on RTX4090; failed setup attempts retained, protected merge pending | [finite FIT sheet](docs/harness/prep/m1-d29-vendor-finite-2026-10-13.md) |
-| Rung 0: the first lawful training run (2 arms × 2 seeds, ≤ $4) | — | Amendment6 independent FIT; **held**, finite source qualification recorded; protected delivery and owner release required | [sheet](docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md) |
-| Rung 0b: starling / rank-table reads with a rank-consistent gradient | softmax attention | after rung 0 | [brief](docs/mechanisms/starling-read.md) |
+| G2 Hamilton gate: the gate rotates the value, `q(g) ⊗ u` | the SwiGLU sigmoid | **`dormant`** (source, tested in F32/BF16; preserved inactive under D32; `G1` rectified-square gate is **`archived-negative (D22 scope: withdrawn non-geometric gate under D25)`**) | [#2260](https://github.com/UOR-Foundation/uor-r4/pull/2260), [gate ops](docs/labs/gate-ops-2026-10-12/README.md) |
+| SpiralCore/FBS projection: select one carrier, transport by signed BFS | dense projections | **`dormant`** in F32/BF16 form (source, tested; preserved inactive under D32; discrete integer form is **`active`** in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)) | [#2279](https://github.com/UOR-Foundation/uor-r4/pull/2279), [record](docs/labs/spiralcore-fbs-projection-2026-10-12/README.md), [brief](docs/mechanisms/spiralcore-fbs-projection.md) |
+| Geometric recurrence gates: clamped opening, exact rate table, Hamilton output gate | sigmoid, `exp`, softplus, GELU | **`dormant`** (source, tested in F32/BF16; preserved inactive under D32) | [#2293](https://github.com/UOR-Foundation/uor-r4/pull/2293), [record](docs/labs/recurrence-geometric-gates-2026-10-13/README.md) |
+| Rank-margin objective: a hinge over declared rivals on raw scores | softmax cross-entropy | **`dormant`** in F32 form (source, tested; preserved inactive under D32; discrete integer token+address hinge is **`active`** in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)) | [#2255](https://github.com/UOR-Foundation/uor-r4/pull/2255), [record](docs/labs/d23-learning-law-design-2026-10-12/README.md), [brief](docs/mechanisms/rank-margin-objective.md) |
+| Geometric head (OP3a): addressed raw-distance scoring through the shared token table | the dense tied head | **`dormant`** in F32 form (implemented; earlier source receipts retained; repaired compiled boundary passes 31 finite controls at `1f1547bfd`, preserved inactive under [#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) / D32; discrete integer writer is **`active`**) | [head/writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md), [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md) |
+| Device qualification: stored or analytic expected values, no CPU reference | the CPU-referenced parity gate | **`dormant`** float scope (repaired D29 source's **31 mandatory controls PASS** at `1f1547bfd` on RTX4090; failed setup attempts retained, preserved inactive under [#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370); discrete 25-control qualification is **`active`** at [#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)) | [finite FIT sheet](docs/harness/prep/m1-d29-vendor-finite-2026-10-13.md), [#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) |
+| Rung 0: the first lawful training run (2 arms × 2 seeds, ≤ $4) | — | **`dormant`** float sheet (Amendment6 independent FIT; **held**/frozen under D32 §5, finite source qualification recorded; superseded on the active path by the discrete D33/D5 sheets) | [sheet](docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md), [discrete pilot](docs/labs/a2-pilot-2026-10-14/README.md) |
+| Rung 0b: starling / rank-table reads with a rank-consistent gradient | softmax attention | **`dormant`** in F32/F64 form (after rung 0; preserved inactive under D32; discrete `ReadSpec::Flock` is **`active`** in [#2395](https://github.com/UOR-Foundation/uor-r4/pull/2395)/[#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)) | [brief](docs/mechanisms/starling-read.md), [rung0b source](docs/labs/starling-rung0b-source-2026-10-13/README.md) |
 
 The diagrams and table retain the earlier operator snapshot. The selected native API excludes historical core/integer model executors, teachers, LUT engines and exporters from compilation. Source/checkpoint lineage binds the masked TRAIN count reference separately from the DEV diagnostic oracle. "Source, tested" labels retain their named source/control scope. The repaired dependency graph separately passed the 31 finite controls at `1f1547bfd`; that historical result establishes neither trained language quality nor D11 serving. Pictures of the earlier operators:
 [the geometry page](docs/geometry.md#the-operators-of-the-compliant-trunk).
@@ -164,6 +164,13 @@ The diagrams and table retain the earlier operator snapshot. The selected native
 | [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) | No softplus, sigmoid or tanh, and no dense matrix multiplication, in training or serving. The constraint set is frozen until the first lawful run reports. |
 | [D26](docs/integration/DECISIONS.md#d26---vastai-is-the-default-provider-for-new-pods) | GPU pods are rented on Vast.ai through `scripts/pod/uor-pod`, within ≤ 4 pods and ≤ $8/h; Runpod is an emergency backup only. |
 | [D27](docs/integration/DECISIONS.md#d27---rust-first-and-the-uor-foundation-ecosystem-as-the-shared-floor) | Rust is the default for all new code, tooling included; the uor-foundation crates are the shared floor. |
+| [D28](docs/integration/DECISIONS.md#d28---no-transformer-comparisons-until-the-native-system-works-end-to-end) | No transformer or neural-network comparisons, baselines, teachers or graders until the owner declares the native system works end to end. |
+| [D29](docs/integration/DECISIONS.md#d29--no-banned-mechanism-in-any-compiled-or-loaded-module-vendor-runtime-content-counts) | No banned mechanism in any compiled or loaded module (cuBLAS/cuDNN/NVRTC banned; prebuilt `nvcc` modules only; historical kernels quarantined as source evidence). |
+| [D30](docs/integration/DECISIONS.md#d30--hard-substrate-rules-no-matmul-or-softmax-anywhere-no-wrapper-laundering-rust-only-gpu-only-heavy-compute-pod-kernel-builds) | Hard substrate rules: no matmul or softmax anywhere (no wrapper laundering), Rust only, GPU-only heavy compute, pod kernel builds; retired mechanisms archived as evidence, never deleted, never active. |
+| [D31](docs/integration/DECISIONS.md#d31--no-result-is-ruled-out-on-an-instrument-technicality) | No result is ruled out on an instrument technicality; qualifications run all registered controls in one pass. |
+| [D32](docs/integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning) | Discrete geometric substrate: ternary/Hamming/quaternion computation on SpiralCore/E8/FBS, no floating point in model computation including learning (with the October 14 offline complex-plane zeta-zero exception for `Snapshot.table` construction). |
+| [D33](docs/integration/DECISIONS.md#d33--delegated-d4-execution-for-the-rung-0-a2-pilot-claude-runs-owner-release-after-his-posted-review) | Scoped delegation for the completed rung-0 A2 seed-1 diagnostic pilot only; all other training and M2 holds remain owner-personal and HELD. |
+| [D34](docs/integration/DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate) | Reranker-first relational read (`ReadSpec::Relation`, `relation-off ≡ Flock`, copy-successor target) plus a separate D19 exact object-store crate (`uor-r4-object-store`); `C6`/`G64` energy controller unselected. |
 
 Rust interlocks `uor-harness ratchet d23` and `uor-harness ratchet d25` ratchet the source tree.
 The D29 selected dependency/PTX checks additionally inspect the compiled boundary; lexical ratchets
@@ -172,67 +179,72 @@ alone do not certify that a scalar loop is geometric. All decisions: [DECISIONS.
 ## Mechanisms under test
 
 One page per novel mechanism: the idea, where it lives, what has been tried and what a fair test needs.
-Index: [docs/mechanisms/](docs/mechanisms/README.md).
+Index: [docs/mechanisms/](docs/mechanisms/README.md). Post-D30/D32 status labels distinguish:
+- **`active`** — on the current D32 discrete geometric substrate (`crates/uor-r4-discrete`), D32 Oct 14 offline Prime-Zeta constructor, D34 `ReadSpec::Relation` design card, or separate D19 `uor-r4-object-store` line;
+- **`dormant`** — open geometric mechanisms under [D12](docs/integration/DECISIONS.md#d12--gates-promote-never-kill-reopen-geometric-candidates-port-the-native-engines-mechanisms-keep-a-geometric-toolbox)/[D22](docs/integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened) or pre-D32 floating-point / held M2 source preserved inactive as evidence under [D29](docs/integration/DECISIONS.md#d29--no-banned-mechanism-in-any-compiled-or-loaded-module-vendor-runtime-content-counts)/[D30](docs/integration/DECISIONS.md#d30--hard-substrate-rules-no-matmul-or-softmax-anywhere-no-wrapper-laundering-rust-only-gpu-only-heavy-compute-pod-kernel-builds)/[D32](docs/integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning);
+- **`archived-negative (D22 scope)`** — specific tested configurations (recipe, key, softmax/matmul/host coupling, or solver encoding) closed or prohibited under D18/D21/D22/D23/D24/D25/D30, which close only the tested configuration and never the underlying geometric mechanism.
 
 | Mechanism | Milestone | Where it stands |
 |---|---|---|
-| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | sourcee7d926fbe: twenty-five controls/D2 measurement PASS; eight isolated fixture updates, corpus0; serial proposal replay is the cost bottleneck; #2400, training held |
-| [SpiralCore/FBS projection](docs/mechanisms/spiralcore-fbs-projection.md) | M1, M2 | prior floating form preserved inactive under D32 |
-| [Rank-margin objective](docs/mechanisms/rank-margin-objective.md) | M1 | prior floating objective preserved; discrete successor is separately registered |
-| [Starling read](docs/mechanisms/starling-read.md) (~7 neighbours on the 600-cell) | M4 | served softmax-free; its gradient is rung 0b |
-| [Flock / rank-table reads](docs/mechanisms/flock-rank-reads.md) | M4 | served; earlier measurements from a softmax-trained stack |
-| [E8 orbit memory](docs/mechanisms/e8-orbit-memory.md) | M4 | source; rung 1 KEEP and iterate (historical) |
-| [Exact addressed memory](docs/mechanisms/exact-addressed-memory.md) | M1, M3 | built; product-key memory trained in historically |
-| [Invariant-addressed read](docs/mechanisms/invariant-addressed-read.md) | M1 | source; its router campaign was cancelled under D23/D24 |
-| [Read binding](docs/mechanisms/read-binding.md) | M1 | KEEP in the historical float form |
-| [Pointer with an identity key](docs/mechanisms/pointer-identity-key.md) | M1 | historical evidence |
-| [Spin-native weights](docs/mechanisms/spin-native-weights.md) | M4 | quaternion weights and 2-bit norms KEEP (historical) |
-| [Unified geometric carrier credit](docs/mechanisms/unified-geometric-carrier-credit.md) | M2 | source; training held |
-| [Protected legal construction](docs/mechanisms/protected-legal-construction.md) | M2 | reopened by D22; not active |
-| [Ternary / XOR arithmetic](docs/mechanisms/ternary-xor-arithmetic.md) and its [evidence sheet](docs/mechanisms/ternary-xor-evidence-factsheet.md) | M4, M5 | assessed, not adopted |
+| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | **`active`** — source `e7d926fbe`: twenty-five controls/D2 measurement PASS; eight isolated fixture updates, corpus0; serial proposal replay is the cost bottleneck; #2400, scoped D33 pilot complete, D5 seed-1 completion running, further training held. Evidence: [learning](docs/labs/discrete-geometric-learning-2026-10-13/README.md), [flock/writer](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md), [driver cost](docs/labs/discrete-driver-cost-2026-10-13/README.md), [pilot](docs/labs/a2-pilot-2026-10-14/README.md), [diagnosis](docs/labs/a2-pilot-diagnosis-2026-10-14/README.md) |
+| [Prime-rank indexing and complex-plane zeta-phase routing](docs/mechanisms/prime-zeta-complex-routing.md) | M1, M4 | **`active`** (standalone offline `Snapshot.table` constructor under D32 Oct 14 addendum; 17+6 CUDA construction controls PASS at `912a8a069` after FIT #2433 and owner release; frozen D5 `discrete_init` xorshift default unchanged; learned attribution **`dormant`**/held) / **`archived-negative (D22 scope: retired continuous float `get_word_vector` baseline superseded by D30/D32)`**. Evidence: [construction record](docs/labs/prime-zeta-construction-2026-10-14/README.md), [prep sheet](docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md) |
+| [Finite relational head (`ReadSpec::Relation` reranker)](docs/mechanisms/finite-relational-head.md) | M1, M4 | **`active`** (source-only design card revised per D34, #2482/#2486; `relation-off ≡ Flock`; copy-successor target 3,847/14,287 = 26.9% DEV; ≤16K shortlist excluded; M1 qualification sheet [`m1-finite-relational-head-2026-10-14.md`](docs/harness/prep/m1-finite-relational-head-2026-10-14.md) [#2494](https://github.com/UOR-Foundation/uor-r4/pull/2494) `TEST FITNESS: FIT`; Stage M2 discriminator sheet [`m4-finite-relational-head-2026-10-15.md`](docs/harness/prep/m4-finite-relational-head-2026-10-15.md) [#2502](https://github.com/UOR-Foundation/uor-r4/pull/2502) `PENDING FIT`; NOT_RUN / held) / **`dormant`** (`C6`-vs-`G64` energy controller demoted to unselected contingent arm). Evidence: [design record](docs/labs/finite-relational-head-design-2026-10-14/README.md), [independent review](docs/labs/spiralcore-attention-independent-review-2026-10-14/README.md), [native review](docs/labs/spiralcore-native-attention-review-2026-10-14/README.md) |
+| [SpiralCore/FBS projection](docs/mechanisms/spiralcore-fbs-projection.md) | M1, M2 | **`dormant`** in pre-D32 F32/BF16 form (prior floating form preserved inactive under D32; discrete integer SpiralCore/FBS transport is **`active`** in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)). Evidence: [projection record](docs/labs/spiralcore-fbs-projection-2026-10-12/README.md), [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md) ([#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370)) |
+| [Rank-margin objective](docs/mechanisms/rank-margin-objective.md) | M1 | **`dormant`** in pre-D32 F32 form (prior floating objective preserved; discrete integer `8*token_hinge + width*address_hinge` successor is **`active`** in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)). Evidence: [law design](docs/labs/d23-learning-law-design-2026-10-12/README.md), [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md), [float sheet](docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md) |
+| [Starling read](docs/mechanisms/starling-read.md) (~7 neighbours on the 600-cell) | M4 | **`dormant`** in pre-D32 float/rung-0b `starling_native` form (served softmax-free; its float gradient is rung 0b, preserved inactive under D32; discrete `ReadSpec::Flock` is **`active`** in [#2395](https://github.com/UOR-Foundation/uor-r4/pull/2395)/[#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)) / **`archived-negative (D22 scope: pre-D23 Rungs 1–3, pivot and softmax-surrogate configurations #2222–#2249)`**. Evidence: [rung0b source](docs/labs/starling-rung0b-source-2026-10-13/README.md), [murmuration design](docs/labs/murmuration-design-2026-10-13/README.md), [rung 1](docs/labs/starling-read-2026-10-11/README.md), [rung 2](docs/labs/starling-anneal-2026-10-11/README.md), [rung 3](docs/labs/starling-content-2026-10-11/README.md), [pivot](docs/labs/starling-pivot-2026-10-11/README.md), [surrogate](docs/labs/starling-surrogate-2026-10-12/README.md), [branch archive](docs/history/branch-archive/INDEX.md) |
+| [Flock / rank-table reads](docs/mechanisms/flock-rank-reads.md) | M4 | **`dormant`** in pre-D32 stack/LUT form (reopened by D22 §5; discrete `ReadSpec::Flock` is **`active`** in [#2395](https://github.com/UOR-Foundation/uor-r4/pull/2395)/[#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)) / **`archived-negative (D22 scope: earlier M4 measurements #2140/#2144/#2153/#2160 from a softmax-trained host stack)`**. Evidence: [softmax-free read](docs/labs/softmax-free-read-2026-10-10/README.md), [discrete flock](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md) |
+| [E8 orbit memory](docs/mechanisms/e8-orbit-memory.md) | M4 | **`dormant`** (source; rung 1 half-MLP KEEP and iterate in historical pre-D30/D32 float form; no discrete/D11 served form yet) / **`archived-negative (D22 scope: full-MLP replacement configuration at +0.116 BPB)`**. Evidence: [E8 orbit memory](docs/labs/e8-orbit-memory-2026-10-11/README.md) |
+| [Exact addressed memory](docs/mechanisms/exact-addressed-memory.md) | M1, M3 | **`dormant`** in model/read path (reopened by D22 §5(c); `stack_memory.rs` product-key memory trained in historically in pre-D30/D32 float form; separate D19 `uor-r4-object-store` crate is **`active`** per D34 outside attention). Evidence: [addressed memory](docs/labs/addressed-memory-2026-10-10/README.md), [addressed read](docs/labs/addressed-read-2026-10-11/README.md) |
+| [Invariant-addressed read](docs/mechanisms/invariant-addressed-read.md) | M1 | **`dormant`** on spanning-tree router line (source; discrete query-addressed `ReadSpec::Route` is **`active`** in [#2379](https://github.com/UOR-Foundation/uor-r4/pull/2379)/[#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)) / **`archived-negative (D22 scope: `read_lineage` scorer configurations and M1 router campaign cancelled at 2/3 seeds under D23/D24 for softmax/host fallback)`**. Evidence: [geometric read](docs/labs/geometric-read-2026-10-11/README.md), [D24 archive note](docs/integration/DECISIONS.md#d24---no-cpu-model-compute-and-no-gpu-on-non-decisive-work) |
+| [Read binding](docs/mechanisms/read-binding.md) | M1 | **`dormant`** (KEEP in the historical pre-D23 float form across 3 seeds; preserved inactive under D30/D32; reopened by D22 §5(e)) / **`archived-negative (D22 scope: single-seed late bolt-on configuration #2155)`**. Evidence: [powered record](docs/labs/read-binding-powered-2026-10-11/README.md), [bolt-on record](docs/labs/read-binding-2026-10-10/README.md) |
+| [Pointer with an identity key](docs/mechanisms/pointer-identity-key.md) | M1 | **`archived-negative (D22 scope: 6-token preceding-context soft pointer / sigmoid+softmax mixture in #2123/#2128/#2133/#2145/#2161, banned in executed paths by D23/D25/D30)`** / **`dormant`** as a true entity-address key (reopened by D22 §5(d), untested; discrete copy-successor targeted by **`active`** D34 [`finite-relational-head.md`](docs/mechanisms/finite-relational-head.md)). Evidence: [pointer identity](docs/labs/pointer-identity-2026-10-10/README.md), [frozen route](docs/evidence/routed_pointer_frozen_2026-10-09.txt) |
+| [Spin-native weights](docs/mechanisms/spin-native-weights.md) | M4 | **`dormant`** (quaternion weights and 2-bit-mantissa residual icosian pairs KEEP in historical float/matmul form; dense contraction inactive under D25/D30/D32) / **`archived-negative (D22 scope: coarse single-icosian post-hoc/STE snap configurations)`**. Evidence: [quaternion weights](docs/labs/quaternion-weights-2026-10-11/README.md), [icosian QAT](docs/labs/icosian-qat-2026-10-11/README.md), [icosian pair](docs/labs/icosian-pair-2026-10-11/README.md), [2-bit mantissa](docs/labs/icosian-mantissa-2026-10-11/README.md), [activation snap](docs/labs/activation-snap-2026-10-11/README.md) |
+| [Unified geometric carrier credit](docs/mechanisms/unified-geometric-carrier-credit.md) | M2 | **`dormant`** (source; M2 training/rental held; pre-D32 float shared-writer boundary passes 31 controls at `1f1547bfd` and is preserved inactive under D32; discrete shared writer is **`active`** in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)) / **`archived-negative (D22 scope: fixed 128-update 0/512 endpoints OFF1001/ON1001/OFF2001 and blocked #2246 softmax sampled-choice producer)`**. Evidence: [audit](docs/labs/unified-geometric-integration-2026-10-11/AUDIT.md), [bound content](docs/labs/native-bound-content-2026-10-11/README.md), [whole-path impl](docs/labs/whole-path-implementation-2026-10-12/README.md), [recovery](docs/labs/whole-path-recovery-2026-10-12/README.md), [head/writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md), [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md) |
+| [Protected legal construction](docs/mechanisms/protected-legal-construction.md) | M2 | **`dormant`** (reopened by D22 §5(a), deferred by 11 Oct owner pivot; not active on M2; discrete counterfactual move selection is **`active`** on M1 in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)) / **`archived-negative (D22 scope: residual-feedback #2079–#2121 and float-LU singular-pivot MIP encodings #2125/#2132/#2134)`**. Evidence: [direct legal construction](docs/labs/direct-legal-construction-2026-10-09/README.md), [branch archive](docs/history/branch-archive/INDEX.md#deferred-numerical-sources-11-october) |
+| [Ternary / XOR arithmetic](docs/mechanisms/ternary-xor-arithmetic.md) and its [evidence sheet](docs/mechanisms/ternary-xor-evidence-factsheet.md) | M4, M5 | **`dormant`** as a dense contraction proposal (assessed, not adopted under D25/D30 because a dense ternary sum still touches every weight per token; ternary FBS/gates and Hamming popcount are **`active`** routing/gate components in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)). Evidence: [brief](docs/mechanisms/ternary-xor-arithmetic.md), [fact sheet](docs/mechanisms/ternary-xor-evidence-factsheet.md), [D11 serving](docs/labs/d11-serving-2026-10-10/README.md) |
 
 ## Results so far
 
 Every number holds only at its exact artifact, data, operator and budget. Rows marked **historical**
-come from the pre-D23 float form (softmax reads and head, dense products): they are evidence of what
+come from the pre-D23 float form (softmax reads and head, dense products): they are preserved **`dormant`** or **`archived-negative (D22 scope)`** evidence of what
 was measured, not a path that runs today.
 
 | Result | Value | Scope |
 |---|---|---|
-| M1 memory and replies (29M chat line, frozen panels) | v5 memory **20/40**; open reply panel **37/232** acceptable | historical; [mixture dose](docs/labs/mixture-dose-2026-10-10/README.md) |
-| Read binding, powered (3 seeds against matched controls) | wrong-value failures **47 → 30** of 120; **KEEP** | historical; [record](docs/labs/read-binding-powered-2026-10-11/README.md) |
-| Native grounded learner | **437/512** development replies (from 177); **0/128** on fresh transfer: panel fitting | training held; [record](docs/labs/m2-pooled-rank-2026-10-10/README.md) |
-| 19.9M chat stack | 0.877550 BPB float / 0.886838 served multiplier-free (11.9 MB) | historical; 512 windows |
-| D11 integer engine | bit-exact with its float reference on 3,072 targets | engine property, not model quality |
-| 214M Plan A base | FineWeb dev NLL 2.90 → 2.073 | historical; rewrite and summarize usable, code and arithmetic wrong |
+| M1 memory and replies (29M chat line, frozen panels) | v5 memory **20/40**; open reply panel **37/232** acceptable | historical (**`dormant`** pre-D23/D30 float base); [mixture dose](docs/labs/mixture-dose-2026-10-10/README.md) |
+| Read binding, powered (3 seeds against matched controls) | wrong-value failures **47 → 30** of 120; **KEEP** | historical (**`dormant`** pre-D23/D30 float form); [record](docs/labs/read-binding-powered-2026-10-11/README.md) |
+| Native grounded learner | **437/512** development replies (from 177); **0/128** on fresh transfer: panel fitting | training held (**`dormant`** Line-B learner; **`archived-negative (D22 scope: frozen-upstream adapter panel-fitting configuration)`**); [record](docs/labs/m2-pooled-rank-2026-10-10/README.md) |
+| 19.9M chat stack | 0.877550 BPB float / 0.886838 served multiplier-free (11.9 MB) | historical (**`dormant`** pre-D23/D30 float/LUT stack; 512 windows); [record](docs/labs/d11-serving-2026-10-10/README.md) |
+| D11 integer engine | bit-exact with its float reference on 3,072 targets | engine property, not model quality (**`dormant`** pre-D29 exported stack executor; [record](docs/labs/d11-serving-2026-10-10/README.md)) |
+| 214M Plan A base | FineWeb dev NLL 2.90 → 2.073 | historical (**`dormant`** pre-D23/D30 float checkpoint; rewrite and summarize usable, code and arithmetic wrong) |
 
 <details>
 <summary><b>All results, negatives and retractions</b></summary>
 
 | Result | Value | Scope |
 |---|---|---|
-| Sealed 8M stack | 1.1199 BPB (Kneser-Ney 5-gram: 1.2803) | historical sealed report |
-| Product-key memory trained into the M1 stack (`memory_layers=`) | layer 4, 64 sub-keys 19/40 (2 seeds); layer 8 (a read layer) 20/40 with wrong-value failures 17 → 10 | historical; [record](docs/labs/addressed-memory-2026-10-10/README.md) |
-| Addressed read (product-key at the answer layer) | wrong-value 47 → 34 of 120, headline flat; −90 % per-token compute on that layer, +36.9 M parameters | historical; [record](docs/labs/addressed-read-2026-10-11/README.md) |
-| Criterion 2, 29M M1 artifacts served under D11 | 1.20138 BPB against a ≤ 0.90 target; engine bit-exact | historical |
-| v4 memory panel (`exact` check) | 31/40 at 214M, 26/40 at 96M | historical; one seed each |
-| Softmax-free flock reads (2 seeds each) | Δ BPB against softmax: learned rank tables +0.0172 to +0.0185; fixed rank +0.040; Hamming rank +0.259 | historical; reads trained beside a softmax stack |
-| Trained VSA codes in the native learner | held-out BPB improves 0.014–0.023; icosian-root-only codes collapse token identity | [record](docs/labs/vsa-native-test-2026-10-09/README.md) |
-| MQAR toy (1.37M) | 0.99919 in-class vs 0.2534 control | synthetic; advantage confined to a learning-rate band |
+| Sealed 8M stack | 1.1199 BPB (Kneser-Ney 5-gram: 1.2803) | historical sealed report (**`dormant`** pre-D23 float form) |
+| Product-key memory trained into the M1 stack (`memory_layers=`) | layer 4, 64 sub-keys 19/40 (2 seeds); layer 8 (a read layer) 20/40 with wrong-value failures 17 → 10 | historical (**`dormant`** pre-D23 float form); [record](docs/labs/addressed-memory-2026-10-10/README.md) |
+| Addressed read (product-key at the answer layer) | wrong-value 47 → 34 of 120, headline flat; −90 % per-token compute on that layer, +36.9 M parameters | historical (**`dormant`** pre-D23 float form); [record](docs/labs/addressed-read-2026-10-11/README.md) |
+| Criterion 2, 29M M1 artifacts served under D11 | 1.20138 BPB against a ≤ 0.90 target; engine bit-exact | historical (**`archived-negative (D22 scope: 29M M1 Criterion-2 configuration)`**) |
+| v4 memory panel (`exact` check) | 31/40 at 214M, 26/40 at 96M | historical (**`dormant`** pre-D23 float form; one seed each) |
+| Softmax-free flock reads (2 seeds each) | Δ BPB against softmax: learned rank tables +0.0172 to +0.0185; fixed rank +0.040; Hamming rank +0.259 | historical (**`archived-negative (D22 scope: reads trained beside a softmax stack on host)`**; mechanism **`dormant`**/reopened by D22 §5); [record](docs/labs/softmax-free-read-2026-10-10/README.md) |
+| Trained VSA codes in the native learner | held-out BPB improves 0.014–0.023; icosian-root-only codes collapse token identity | **`dormant`** (trained Mode 1/2 VSA in held Line-B learner) / **`archived-negative (D22 scope: Mode 0 disconnected hash and icosian-root-only code configurations)`**; [record](docs/labs/vsa-native-test-2026-10-09/README.md) |
+| MQAR toy (1.37M) | 0.99919 in-class vs 0.2534 control | synthetic (**`dormant`** pre-D23 float probe; advantage confined to a learning-rate band) |
 
-**Negatives and retractions, kept as evidence.**
+**Negatives and retractions, kept as evidence (`archived-negative (D22 scope)` configurations).**
 
-- D0 stack against a matched transformer control: 1.998 vs 2.011 NLL, parity. No tested geometric
+- D0 stack against a matched transformer control: 1.998 vs 2.011 NLL, parity (**`archived-negative (D22 scope: D0 configuration)`**). No tested geometric
   mechanism has yet beaten a matched ordinary control.
 - Larger is not always better: a 214M SmolTalk-mixture stack scored 1.0966 BPB against 0.9607 for a
-  7.16M chat-only stack on the same panel.
+  7.16M chat-only stack on the same panel (**`archived-negative (D22 scope: 214M SmolTalk-mixture recipe)`**).
 - Fine-tune levers of Steps 5–12 (knowledge corpus, dialogue recall, gate supervision, phase binding,
-  constant learning rate, abstention) were null or rejected.
-- The native learner's 437/512 is panel fitting: 0/128 on fresh literal-bank transfer.
-- Track A1 stopped (D18); the transformer-conversion track is parked after its parity failure (#1518);
+  constant learning rate, abstention) were null or rejected (**`archived-negative (D22 scope: bolted-on fine-tune configurations)`**).
+- The native learner's 437/512 is panel fitting: 0/128 on fresh literal-bank transfer (**`archived-negative (D22 scope: frozen-upstream adapter configuration)`**; [record](docs/labs/m2-pooled-rank-2026-10-10/README.md)).
+- Track A1 stopped (D18, **`archived-negative (D22 scope: single reusable-state recursive attention configuration)`**); the transformer-conversion track is parked after its parity failure (#1518, **`archived-negative (D22 scope: D10 converted-backbone track)`**);
   complete-roadmap claims of 8 September were retracted by audit.
 - The starling ladder's recall results (#2222–#2249) learned through softmax teachers and are inactive
-  evidence under D23 ([archived branches](docs/history/branch-archive/INDEX.md)).
+  evidence under D23 (**`archived-negative (D22 scope: softmax-teacher/surrogate starling configurations)`**; [archived branches](docs/history/branch-archive/INDEX.md)).
 
 Sources: [current state](docs/integration/current-state.md), [evidence index](docs/integration/EVIDENCE.md),
 [mechanism admissibility](docs/integration/mechanism-admissibility-2026-10.md).
@@ -244,7 +256,7 @@ Sources: [current state](docs/integration/current-state.md), [evidence index](do
 | What | Where |
 |---|---|
 | What is true now, newest first | [docs/integration/current-state.md](docs/integration/current-state.md) |
-| Owner decisions D0–D27 | [docs/integration/DECISIONS.md](docs/integration/DECISIONS.md) |
+| Owner decisions D0–D34 | [docs/integration/DECISIONS.md](docs/integration/DECISIONS.md) |
 | Live tracker and milestone issues | [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028), #2029–#2036 |
 | One dated record per completed unit | `docs/labs/<topic>-<date>/README.md` |
 | Pre-registrations and their `TEST FITNESS` verdicts | [docs/harness/prep/](docs/harness/prep/) and the milestone issue |
@@ -340,7 +352,7 @@ never on a serving path, and no new comparator runs are permitted (D23).
 | [`crates/uor-r4-harness`](crates/uor-r4-harness) | the Rust research harness (`uor-harness onboard`) |
 | [`crates/uor-r4-api`](crates/uor-r4-api) | typed compile and engine APIs; the `r4-native-chat` CLI |
 | [`crates/uor-r4-tokenizer`](crates/uor-r4-tokenizer) | byte-level BPE engine and tokenizer identity |
-| [`crates/uor-r4-lut`](crates/uor-r4-lut), [`crates/uor-r4-simd`](crates/uor-r4-simd) | LUT selected format/grid metadata facade; historical comparator/SIMD model source outside the native training graph |
+| [`crates/uor-r4-lut`](crates/uor-r4-lut), [`crates/uor-r4-simd`](crates/uor-r4-simd) | LUT selected format/grid metadata facade (**`active`**); historical comparator/SIMD model source preserved **`dormant`** outside the native training graph |
 | [`crates/uor-r4-router`](crates/uor-r4-router) | reusable routing plus historical paths |
 | `crates/uor-r4-graph-*` | the frozen R4G1 graph format, compiler, runtime, certifier and CLI |
 | [`crates/uor-r4-proof-model`](crates/uor-r4-proof-model), [`crates/uor-r4-naf`](crates/uor-r4-naf), [`crates/uor-r4-workbench`](crates/uor-r4-workbench) | proof specification, the UOR-NAF slice, the bounded research reference |
