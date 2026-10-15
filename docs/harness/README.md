@@ -138,9 +138,9 @@ doing between merges.
 
 | question | command | where it reads from |
 |---|---|---|
-| what is each lab doing? | `multilab presence` | `docs/harness/presence/<lab>.json`, **committed** |
-| who holds this branch? | `multilab claims` | `docs/harness/claims.json`, **committed** |
-| what actually ran? | `status` (section 2) | `docs/harness/ledger/<lab>-<month>.jsonl`, sharded |
+| what is each lab doing? | `multilab presence` | the **live** tier first, committed `docs/harness/presence/<lab>.json` as the fallback |
+| who holds this branch? | `multilab claims` | the live mirror, then `origin/main`'s committed `docs/harness/claims.json`, then the caller's own checkout |
+| what actually ran? | `status` (section 2) | `docs/harness/ledger/<lab>-<month>.jsonl`, **committed shards only** — a receipt written to the live tier appears here once `ledger-sync` has carried it in |
 
 ### Two tiers: live and durable
 
@@ -163,7 +163,7 @@ is absent, and always reports which one answered:
 
 ```
 $ uor-harness multilab presence
-2 lab(s) known (stale after 30m) · live tier: /Users/casey.allard/.local/share/uor-r4/harness
+2 lab(s) known (stale after 5m) · live tier: /Users/casey.allard/.local/share/uor-r4/harness
 lab          state                via      milestone branch       doing
 kimi         live (0m ago)        live     m1        main         evaluation integrity 1/3
 ```
@@ -176,9 +176,51 @@ while the record is refreshed when a lab wants the record to show it.
 makes `sync-live` worth running before a handover, a review, or a remote session: without it, a
 GitHub reader sees labs that stopped publishing at the last merge.
 
+### Where a write lands (R10)
+
+The owner checkout (`~/uor-r4`) stays on clean `origin/main`; no lab edits, builds or runs mutating
+tools in it — that is R10. **The harness enforces the rule on itself**, because it used to break it:
+every write resolved its target from the working directory, so a lab whose shell sat in the owner
+checkout dirtied it with a claim, a receipt or a presence row, and another lab had to hand-move the
+entries out before the checkout could be reset.
+
+| command | writes | where |
+|---|---|---|
+| `heartbeat` | presence + one receipt | **live tier only** |
+| `receipt`, `skill use`, `prep fit`, `team dispatch` | one receipt | **live tier only** |
+| `ledger-sync` | the committed shard | the caller's own checkout |
+| `team claim` / `team release` | `docs/harness/claims.json` | the caller's own checkout |
+| `multilab sync-live` | the committed `presence/<lab>.json` | the caller's own checkout |
+| `prep new`, `mistakes capture` | a record file | the caller's own checkout |
+
+So a coordination write never needs a checkout: the check-in, the receipts and the live claims mirror
+land in `~/.local/share/uor-r4/harness/`, and `ledger-sync` carries the receipts into the committed
+shard from the lab's own worktree before the PR.
+
+**`status` reads the committed shards, and only those.** That is the record, and it is why
+`ledger-sync` exists: a receipt is written to the live tier and reaches the `status` roll-up once it has
+been carried into the committed shard and merged. Readers of the live tier (`multilab presence`, the
+unread-note report, `multilab claims`' mirror) see it immediately.
+
+**A committed write refuses the shared checkout.** When the resolved repository is the primary
+worktree of a repository that has linked worktrees — the shared checkout — the write stops with the
+rule and the fix:
+
+```
+uor-harness: refusing to write the claims store into the shared checkout /Users/casey.allard/uor-r4
+(R10): the owner checkout stays on clean origin/main, and no lab edits or runs mutating tools in it.
+Run this from your own worktree (.worktrees/<lab>-<task>) or pass --repo <that worktree>; a
+coordination write that needs no checkout at all goes to the live tier.
+```
+
+The identification is the *shape* of the clone, not a hard-coded path: a single-checkout clone, a
+scratch directory and an unreadable git state are never refused, because refusing there would break
+a lab that simply cloned the repository. Reads are never refused — reading claims, presence and the
+ledger from the shared checkout is exactly what R10 permits.
+
 **Presence is published by `heartbeat`**, deliberately: the session contract already requires a
 card every 90 minutes, so a lab that follows the contract becomes visible for free and one that
-never checks in is *visibly absent* rather than silently unknown. A file older than 30 minutes
+never checks in is *visibly absent* rather than silently unknown. A file older than five minutes
 reads `STALE`, and STALE is not "idle" — it means the lab may be working without checking in,
 which is what the contract forbids.
 
@@ -198,7 +240,10 @@ receipts across without losing a line.
 
 **Why claims moved into the committed tree.** They used to live in a gitignored
 `.harness/claims.json`, which is right for one checkout and useless for four: a claim nobody else
-can read cannot prevent the collision it exists to prevent. The committed store still cannot
+can read cannot prevent the collision it exists to prevent. **The shared tier is read through git**
+— `git show origin/main:docs/harness/claims.json` — and not from the shared checkout's working copy:
+that checkout is frozen by R10 and falls behind, and reading it reported a released claim as held
+long after main had dropped it. The committed store still cannot
 *lock* anything — a filesystem cannot stop another vendor's CLI — so what enforces it is
 `status.branch_claimed` on every `check`, the pre-commit hook, and the one-checkout policy in
 [docs/labs/working-in-one-checkout.md](../labs/working-in-one-checkout.md).

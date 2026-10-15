@@ -128,11 +128,40 @@ fn main_checkout(paths: &StatePaths) -> PathBuf {
 }
 
 /// The committed store on `main`: the fallback for a lab that has never written its own.
+///
+/// **The path, not the answer.** A path can only point at a FILE IN A CHECKOUT, and the shared
+/// checkout is the one working tree R10 keeps frozen - whatever it happens to have checked out,
+/// which is not the same thing as what main says. [load_claims] therefore asks GIT for main's
+/// committed store and uses this path only when git cannot answer.
 pub fn shared_claims_file(paths: &StatePaths) -> PathBuf {
     main_checkout(paths)
         .join("docs")
         .join("harness")
         .join("claims.json")
+}
+
+/// The shared claims store as `origin/main` COMMITS it, read through git.
+///
+/// **This is the fix for the split brain reported on the milestone.** The shared tier used to be the
+/// primary worktree's working copy, so `multilab claims` reported whatever the owner checkout
+/// happened to have on its disk - which is behind `origin/main` whenever a cleanup PR has merged and
+/// the checkout has not been reset. A released claim stayed "held" in that tier while the repo file
+/// on main no longer named it, and no amount of reading the file could tell which answer was newer.
+/// `git show origin/main:...` answers the question the tier is actually asking: what has main
+/// COMMITTED, which is the shared record every lab merges into.
+///
+/// `None` when the repository has no `origin/main` or the file is not committed there; the caller
+/// falls back to the working copy rather than reporting no claims at all.
+fn main_committed_claims(paths: &StatePaths) -> Option<String> {
+    let out = std::process::Command::new("git")
+        .args(["show", "origin/main:docs/harness/claims.json"])
+        .current_dir(&paths.repo)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&out.stdout).to_string())
 }
 
 /// The live tier overlay: real time, uncommitted, advisory.
@@ -149,7 +178,12 @@ fn read_tier(path: &Path) -> BTreeMap<String, Claim> {
     let Ok(text) = std::fs::read_to_string(path) else {
         return BTreeMap::new();
     };
-    let Ok(v) = serde_json::from_str::<Value>(&text) else {
+    read_tier_text(&text)
+}
+
+/// The same read from text already in hand - the shared tier arrives from git, not from a file.
+fn read_tier_text(text: &str) -> BTreeMap<String, Claim> {
+    let Ok(v) = serde_json::from_str::<Value>(text) else {
         return BTreeMap::new();
     };
     let Some(obj) = v.as_object() else {
@@ -175,24 +209,41 @@ pub fn load_committed(paths: &StatePaths) -> BTreeMap<String, Claim> {
 }
 
 /// Every claim: live filling gaps, `main` as the shared fallback, the caller's store the authority.
+///
+/// **Three tiers, weakest first, and the caller's own committed store is the arbiter.**
+///
+/// 1. **live** - real time, uncommitted, advisory: a peer's claim is visible before its PR lands.
+/// 2. **main** - `origin/main`'s committed store, read through git: what every lab has merged, and
+///    the tier that answers for a branch the caller's own store does not name.
+/// 3. **the caller's own checkout** - the authority for every branch it names, because that is the
+///    file its delivery PR carries.
+///
+/// **The shared checkout does not supply tier 3.** Its working tree is frozen by R10 and can be
+/// arbitrarily behind `origin/main`; treating a stale copy as "the caller's own store" is how a
+/// released claim came back to life. A lab reading from a worktree keeps its own store, which is the
+/// point.
+///
+/// The first version skipped a tier by comparing the shared and local paths - which is true for the
+/// LOCAL entry as well when the two are equal, so in the main checkout it skipped the caller's own
+/// store and returned only the live tier. Two `multilabrules` tests caught it. The tiers are named
+/// explicitly below and nothing depends on two paths being unequal.
 pub fn load_claims(paths: &StatePaths) -> BTreeMap<String, Claim> {
     let mut merged = BTreeMap::new();
-    let live = live_claims_file(paths);
-    let shared = shared_claims_file(paths);
-    let local = claims_file(paths);
-    // Weakest first, strongest last: the caller's committed store overwrites everything it names.
-    //
-    // **The tier is skipped BY NAME, not by comparing paths.** The first version of this wrote
-    // `if *path == shared && shared == local { continue; }`, which is true for the LOCAL entry as well
-    // when the two paths are equal - so in the main checkout it skipped the caller's own store and
-    // `load_claims` returned only the live tier. Two `multilabrules` tests caught it, and the probe
-    // that printed `shared==local? true` with `merged = []` is what explained it.
-    for (tier, path) in [("live", &live), ("shared", &shared), ("local", &local)] {
-        // The caller IS the main checkout: do not read one file twice as two tiers.
-        if tier == "shared" && shared == local {
-            continue;
-        }
-        for (k, v) in read_tier(path) {
+    // Tier 1: the live overlay.
+    for (k, v) in read_tier(&live_claims_file(paths)) {
+        merged.insert(k, v);
+    }
+    // Tier 2: main's committed store, through git when it can answer.
+    let shared = main_committed_claims(paths)
+        .map(|text| read_tier_text(&text))
+        .unwrap_or_else(|| read_tier(&shared_claims_file(paths)));
+    for (k, v) in shared {
+        merged.insert(k, v);
+    }
+    // Tier 3: the caller's own committed store - unless the caller is the shared checkout itself,
+    // whose working copy is not any lab's own record.
+    if crate::state::shared_primary_checkout(&paths.repo).is_none() {
+        for (k, v) in read_tier(&claims_file(paths)) {
             merged.insert(k, v);
         }
     }
@@ -218,7 +269,11 @@ fn render(claims: &BTreeMap<String, Claim>) -> String {
 }
 
 /// Save the committed store. The authority, so a failure here IS a failure.
+///
+/// **R10 first:** a claim rides the caller's delivery PR, so it is written into the caller's own
+/// checkout - never into the shared checkout, which stays on clean `origin/main` for every lab.
 pub fn save_claims(paths: &StatePaths, claims: &BTreeMap<String, Claim>) -> Result<(), String> {
+    crate::state::refuse_shared_checkout(paths, "the claims store")?;
     let path = claims_file(paths);
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
@@ -416,7 +471,124 @@ mod tests {
         }
     }
 
-    /// The whole point: a second lab cannot take a held branch.
+    /// A primary checkout with a linked worktree AND an `origin/main` that has claims committed -
+    /// the real multi-lab shape, which the single-checkout `Fixture` cannot express.
+    struct Shared {
+        dir: tempfile::TempDir,
+        primary: PathBuf,
+        linked: PathBuf,
+    }
+
+    impl Shared {
+        fn new(committed: &str) -> Shared {
+            let dir = tempfile::tempdir().expect("tempdir");
+            let primary = dir.path().join("owner");
+            std::fs::create_dir_all(primary.join("docs/harness")).expect("dirs");
+            let run = |args: &[&str], cwd: &Path| {
+                Command::new("git")
+                    .args(args)
+                    .current_dir(cwd)
+                    .output()
+                    .expect("git")
+            };
+            run(&["init", "-q", "-b", "main"], &primary);
+            run(&["config", "user.email", "t@t"], &primary);
+            run(&["config", "user.name", "t"], &primary);
+            std::fs::write(primary.join("docs/harness/claims.json"), committed).expect("claims");
+            std::fs::write(primary.join("f"), "1").expect("f");
+            run(&["add", "-A"], &primary);
+            run(&["commit", "-qm", "one"], &primary);
+            let bare = dir.path().join("origin.git");
+            std::fs::create_dir_all(&bare).expect("bare");
+            run(&["init", "-q", "--bare", "-b", "main"], &bare);
+            let bare_arg = bare.to_str().expect("utf8").to_string();
+            run(&["remote", "add", "origin", &bare_arg], &primary);
+            run(&["push", "-q", "-u", "origin", "main"], &primary);
+            let linked = dir.path().join("lab");
+            let linked_arg = linked.to_str().expect("utf8").to_string();
+            run(
+                &["worktree", "add", "-q", "-b", "lab/task", &linked_arg],
+                &primary,
+            );
+            Shared {
+                dir,
+                primary,
+                linked,
+            }
+        }
+
+        fn paths(&self, root: &Path) -> StatePaths {
+            let live = self.dir.path().join("live");
+            StatePaths::resolve(root, None, Some(live.to_str().expect("utf8")))
+        }
+    }
+
+    /// A claims STORE holding one branch, in the shape the committed file has.
+    fn store(branch: &str, lab: &str) -> String {
+        format!(
+            "{{{branch:?}: {{\"branch\": {branch:?}, \"lab\": {lab:?}, \"head\": \"abc\", \"claimed_at\": \"2026-10-14T00:00:00-04:00\", \"note\": \"\"}}}}\n"
+        )
+    }
+
+    /// **The split brain reported on the milestone.** The shared checkout WORKING COPY is not the
+    /// shared record: R10 keeps that checkout frozen, so it falls behind main, and reading it as a
+    /// tier is how a released claim came back to life in `multilab claims` while the repo file on
+    /// main no longer named it.
+    #[test]
+    fn the_shared_tier_is_mains_commit_not_the_checkouts_working_copy() {
+        let shared = Shared::new(&store("peer/branch", "peer"));
+        // The checkout is behind: main no longer names `gone/branch`, the working copy still does.
+        std::fs::write(
+            shared.primary.join("docs/harness/claims.json"),
+            store("gone/branch", "codex"),
+        )
+        .expect("write");
+        for root in [&shared.primary, &shared.linked] {
+            let claims = load_claims(&shared.paths(root));
+            assert!(
+                claims.contains_key("peer/branch"),
+                "main still names it: {claims:?}"
+            );
+            assert!(
+                !claims.contains_key("gone/branch"),
+                "the working copy is not the record"
+            );
+        }
+    }
+
+    /// The caller's own store is still the authority for what it names - that is how a claim is
+    /// visible from the moment it is written rather than only after its PR merges.
+    #[test]
+    fn a_claim_in_the_labs_own_checkout_is_visible_to_it_alone_until_it_lands() {
+        let shared = Shared::new("{}");
+        let own = shared.paths(&shared.linked);
+        let mut claims = load_committed(&own);
+        claims.insert(
+            "lab/branch".into(),
+            Claim {
+                branch: "lab/branch".into(),
+                lab: "lab".into(),
+                head: "abc".into(),
+                claimed_at: "2026-10-15T00:00:00-04:00".into(),
+                note: String::new(),
+            },
+        );
+        save_claims(&own, &claims).expect("the lab's own worktree is writable");
+        assert!(load_claims(&own).contains_key("lab/branch"));
+        assert!(!load_claims(&shared.paths(&shared.primary)).contains_key("lab/branch"));
+    }
+
+    /// R10, on the one write that carries a claim into review.
+    #[test]
+    fn a_claim_write_into_the_shared_checkout_is_refused() {
+        let shared = Shared::new("{}");
+        let err = save_claims(&shared.paths(&shared.primary), &BTreeMap::new())
+            .expect_err("the shared checkout is read-only");
+        assert!(err.contains("R10"), "{err}");
+        save_claims(&shared.paths(&shared.linked), &BTreeMap::new())
+            .expect("the lab's own worktree is the write target");
+    }
+    /// The whole point: a second lab cannot claim a held branch.
     #[test]
     fn another_lab_cannot_claim_a_held_branch() {
         let f = Fixture::new();

@@ -261,3 +261,26 @@ If that line does **not** appear, you are already running the checkout's own bui
 refresh. The check compares the running executable's path against the checkout, so a binary built here and
 copied elsewhere is reported as outside - which is the case worth knowing, because a rebuild will not refresh
 it.
+
+### The second copy, and why it goes stale
+
+`~/.local/share/uor-r4/bin/uor-harness` is a **symlink**, and on this machine it points into the owner
+checkout:
+
+```
+~/.local/share/uor-r4/bin/uor-harness -> ~/uor-r4/local/harness-target/release/uor-harness
+```
+
+Measured 15 October: the PATH copy was built `2026-10-15T13:38:00Z`, **after** every harness commit on
+`origin/main` (the newest, #2500, landed `13:31:05Z`); the symlinked copy was built
+`2026-10-14T16:59:30Z` — a day older, predating #2479, #2481 and #2497. **A lab cannot refresh that one**:
+rebuilding its target means building inside the owner checkout, which R10 forbids. So:
+
+- `uor-harness version` answers all three questions at once — the build time, whether the checkout is
+  behind `origin/main`, and which binary you are actually running;
+- the copy labs actually run is the one `which uor-harness` finds, normally `~/.cargo/bin/uor-harness`;
+  refresh it from **your own worktree** with
+  `cargo install --path crates/uor-r4-harness --offline --target-dir local/harness-target`;
+- if the documented `bin/` path has to be current too, point it at the installed copy rather than at the
+  owner checkout's build, which no lab may refresh:
+  `ln -sfn ~/.cargo/bin/uor-harness ~/.local/share/uor-r4/bin/uor-harness`.

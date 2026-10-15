@@ -82,6 +82,9 @@ impl Scan {
 pub enum RatchetError {
     Io(PathBuf, std::io::Error),
     Baseline(PathBuf, String),
+    /// R10: a baseline is a tracked file, so it is written in a lab's own checkout and never in the
+    /// shared one. Carries the refusal text, which names the rule and the fix.
+    Refused(String),
 }
 
 impl fmt::Display for RatchetError {
@@ -89,6 +92,7 @@ impl fmt::Display for RatchetError {
         match self {
             RatchetError::Io(p, e) => write!(f, "{}: {e}", p.display()),
             RatchetError::Baseline(p, e) => write!(f, "{}: unreadable baseline: {e}", p.display()),
+            RatchetError::Refused(m) => write!(f, "{m}"),
         }
     }
 }
@@ -427,6 +431,11 @@ pub fn update_baseline(
     kind: Kind,
     current: &BTreeMap<String, u64>,
 ) -> Result<Update, RatchetError> {
+    // R10 first: `scripts/no-*-baseline.json` is a TRACKED file, so this is a checkout write like any
+    // other. It was the one that falsified "every remaining committed write refuses the shared
+    // checkout" (review finding D2: it wrote from a shared primary, exit 0).
+    crate::state::refuse_shared_checkout_at(repo, "the ratchet baseline")
+        .map_err(RatchetError::Refused)?;
     let old = load_baseline(repo, kind)?;
     let first = match (&old, kind) {
         (None, _) => true,

@@ -69,8 +69,10 @@ def build(binary_dir: Path) -> Path | None:
     return binary_dir / "debug" / RUST_BIN_NAME
 
 
-def run(cmd: list[str]) -> tuple[int, str, str]:
-    proc = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True, timeout=300)
+def run(cmd: list[str], env: dict[str, str] | None = None) -> tuple[int, str, str]:
+    """Run a probe. `env=None` inherits this process' environment, as every caller but the
+    write-interop probe (which points `UOR_HARNESS_LIVE` at a scratch directory) wants."""
+    proc = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True, timeout=300, env=env)
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -179,8 +181,15 @@ def write_interop(binary: Path) -> list[str]:
     can read the shared record and says nothing about whether Rust can add to it. A writer that is
     subtly wrong is worse than no writer: it corrupts the record the labs coordinate through.
 
-    Runs in a temporary directory, never the real ledger. The month is fixed so the shard name is
-    predictable, and the receipt carries a marker so a leak into real state would be obvious.
+    **The write path has two steps since 15 October, and the probe follows both.** A receipt goes to
+    the LIVE tier first - a coordination write must not dirty a checkout (R10) - and the committed
+    shard is refreshed by `ledger-sync`, which is the step that carries the record into review. The
+    probe therefore points `UOR_HARNESS_LIVE` at the scratch directory, asserts nothing was written
+    into the checkout by `receipt`, and only then reads the committed shard back through Python.
+
+    Runs in a temporary directory, never the real ledger or the real live tier. The month is fixed so
+    the shard names are predictable, and the receipt carries a marker so a leak into real state would
+    be obvious.
     """
     import tempfile
 
@@ -233,17 +242,42 @@ def write_interop(binary: Path) -> list[str]:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         (root / "docs" / "harness").mkdir(parents=True)
+        # The live tier is where a receipt goes FIRST. Pointed at the scratch directory so the probe
+        # cannot touch the real shared tier (which is what an unset UOR_HARNESS_LIVE would do).
+        live = root / "live"
+        live.mkdir()
+        env = dict(os.environ, UOR_HARNESS_LIVE=str(live))
+        month = f"{datetime.now(timezone.utc):%Y-%m}"
         code, out, err = run([
             str(binary), "receipt", "--repo", str(root), "--lab", "parityprobe",
             "--kind", "skill", "--skill", "interop", "--note", marker,
-        ])
+        ], env=env)
         if code != 0:
             findings.append(f"write interop: the Rust writer exited {code}: {err[:200]}")
             return findings
 
-        shard = root / "docs" / "harness" / "ledger" / f"parityprobe-{datetime.now(timezone.utc):%Y-%m}.jsonl"
+        live_shard = live / "ledger" / f"parityprobe-{month}.jsonl"
+        if not live_shard.is_file():
+            findings.append(f"write interop: Rust reported success but no live shard at {live_shard.name}")
+            return findings
+        shard = root / "docs" / "harness" / "ledger" / f"parityprobe-{month}.jsonl"
+        if shard.exists():
+            findings.append(
+                "write interop: `receipt` wrote into a checkout; a receipt goes to the live tier "
+                "first and `ledger-sync` carries it into the committed shard (R10)"
+            )
+            return findings
+
+        # The delivery step, and the second half of the contract: the lab's own ledger-sync appends
+        # the live line to the committed shard. Python then reads THAT, through its own reader.
+        code, out, err = run([
+            str(binary), "ledger-sync", "--repo", str(root), "--lab", "parityprobe",
+        ], env=env)
+        if code != 0:
+            findings.append(f"write interop: ledger-sync exited {code}: {err[:200]}")
+            return findings
         if not shard.is_file():
-            findings.append(f"write interop: Rust reported success but no shard at {shard.name}")
+            findings.append(f"write interop: ledger-sync reported success but no shard at {shard.name}")
             return findings
 
         # Read it back through the PYTHON implementation's own reader, not by parsing the file here.

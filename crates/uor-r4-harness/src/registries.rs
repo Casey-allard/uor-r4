@@ -279,6 +279,15 @@ impl Registries {
         })
     }
 
+    /// The TRACKER issue — the roadmap issue itself, where the PM posts assignments and CONTESTs.
+    ///
+    /// It is not a milestone: it carries no headline and no panel, so it is absent from the
+    /// milestone table. It is still the busiest issue in the project, and a watcher that reads only
+    /// `milestones` misses exactly the comments that task a lab.
+    pub fn tracker_issue(&self) -> Option<i64> {
+        self.tracker.get("issue").and_then(Value::as_i64)
+    }
+
     /// A milestone by key, id, issue number or `#issue` — the same aliases a lab types.
     pub fn milestone(&self, key: &str) -> Option<&Milestone> {
         let k = key.trim().to_ascii_lowercase();

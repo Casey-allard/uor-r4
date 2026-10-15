@@ -25,7 +25,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
-use crate::state::{slug, StatePaths};
+use crate::state::{slug, slug_stem, StatePaths};
 
 /// Bumped when the receipt shape changes. Must match what the Python implementation writes.
 pub const RECEIPT_SCHEMA: u32 = 1;
@@ -89,19 +89,34 @@ impl Receipt {
 
     /// A malformed receipt is rejected before it can reach the record: the four required keys are
     /// the contract's `required_always`, and a row without them fails `statecheck`.
+    ///
+    /// **An unnamed lab is NOT malformed.** Python warns loudly, keeps `"lab": ""` in the line and
+    /// records it in the `unknown-<month>` shard: a receipt that cannot say who wrote it still says
+    /// what happened, and refusing to write it would lose the record where the warning does not.
+    /// Thirteen receipts accumulated unattributed before that warning existed. [unattributed] tells
+    /// the caller to print it.
     pub fn validate(&self) -> Result<(), String> {
         if self.kind.trim().is_empty() {
             return Err("a receipt needs a kind".into());
-        }
-        if slug(&self.lab).is_empty() {
-            return Err(format!("{:?} does not slug to a usable lab name", self.lab));
         }
         if self.ts.trim().is_empty() {
             return Err("a receipt needs a timestamp".into());
         }
         Ok(())
     }
+
+    /// True when no lab named itself, so this line lands in the `unknown` shard.
+    pub fn unattributed(&self) -> bool {
+        slug_stem(&self.lab).is_empty()
+    }
 }
+
+/// The warning a writer prints when it records an unattributed receipt.
+///
+/// Once per process, on stderr, in Python's words - the wording is the fix instruction, and two
+/// implementations telling a lab different things about the same mistake is a divergence in the
+/// only place it matters.
+pub const UNATTRIBUTED_WARNING: &str = "uor-harness: WARNING - no lab identity, so this record is attributed to nobody and no\n             other lab can see who did it. Fix it for this session with:\n             export UOR_LAB=<kimi|claude|codex|deepseek>";
 
 /// `json.dumps(value, ensure_ascii=False, sort_keys=True)` - Python's DEFAULT separators.
 ///
@@ -149,12 +164,10 @@ pub fn py_dumps_sorted(v: &Value) -> String {
 
 /// Where a lab's shard for a month lives.
 pub fn shard_path(paths: &StatePaths, lab: &str, month: &str) -> PathBuf {
-    let name = if slug(lab).is_empty() {
-        "unknown".to_string()
-    } else {
-        slug(lab)
-    };
-    paths.ledger_dir().join(format!("{name}-{month}.jsonl"))
+    // `slug` already falls back to `unknown`, which is what an unattributed row is filed under.
+    paths
+        .ledger_dir()
+        .join(format!("{}-{month}.jsonl", slug(lab)))
 }
 
 /// Append one receipt to its lab's shard. Returns the shard written.
@@ -174,6 +187,8 @@ pub fn append(paths: &StatePaths, receipt: &Receipt, month: &str) -> Result<Path
 /// refuses an empty lab. Refusing here would be a divergence in the wrong direction - the port
 /// would error where Python records the receipt, warns, and moves on.
 fn write_line(paths: &StatePaths, receipt: &Receipt, month: &str) -> Result<PathBuf, String> {
+    // R10: a committed line goes into the caller's own checkout, never the shared one.
+    crate::state::refuse_shared_checkout(paths, "a ledger receipt")?;
     let shard = shard_path(paths, &receipt.lab, month);
     if let Some(parent) = shard.parent() {
         std::fs::create_dir_all(parent)
@@ -368,7 +383,10 @@ pub fn record(
         shard: shard_path(paths, &lab, &month),
         unattributed,
     };
-    let shard = write_line(paths, &recorded.to_receipt(), &month)?;
+    // LIVE shard, like the check-in and the other coordination receipts: `team dispatch` records that
+    // a role was deployed, which every lab should see immediately and which must not dirty a checkout
+    // (R10). `ledger-sync` carries the line into the committed shard before the PR.
+    let shard = write_live_line(paths, &recorded.to_receipt(), &month)?;
     Ok(Recorded { shard, ..recorded })
 }
 
@@ -540,11 +558,16 @@ mod tests {
         );
     }
 
+    /// A scratch repo AND a writable scratch live tier: `record` writes the live shard (R10), so a
+    /// fixture with the live tier pointed at nothing would now fail on the write rather than on the
+    /// behaviour under test.
     fn scratch() -> (tempfile::TempDir, StatePaths) {
         let dir = tempfile::tempdir().expect("tempdir");
         let ledger = dir.path().join("docs").join("harness").join("ledger");
         std::fs::create_dir_all(&ledger).expect("mkdir");
-        let paths = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        let live = dir.path().join("live");
+        std::fs::create_dir_all(&live).expect("mkdir");
+        let paths = StatePaths::resolve(dir.path(), None, Some(live.to_str().expect("utf8")));
         (dir, paths)
     }
 
@@ -626,6 +649,13 @@ mod tests {
             "{}",
             r.shard.display()
         );
+        // LIVE tier, like the check-in: `team dispatch` records coordination, and coordination does
+        // not dirty a checkout (R10). `ledger-sync` carries the line into the committed shard.
+        assert!(
+            r.shard.starts_with(live_ledger_dir(&paths)),
+            "recorded into {} rather than the live tier",
+            r.shard.display()
+        );
         assert!(r.line().contains("\"lab\": \"\""));
     }
 
@@ -661,10 +691,34 @@ mod tests {
     }
 
     #[test]
-    fn a_receipt_without_a_kind_or_lab_is_rejected_before_it_reaches_the_record() {
+    fn a_receipt_without_a_kind_or_timestamp_is_rejected_before_it_reaches_the_record() {
         assert!(Receipt::new("", "kimi").validate().is_err());
-        assert!(Receipt::new("heartbeat", "  ").validate().is_err());
+        let mut no_ts = Receipt::new("heartbeat", "kimi");
+        no_ts.ts = String::new();
+        assert!(no_ts.validate().is_err());
         assert!(Receipt::new("heartbeat", "kimi").validate().is_ok());
+    }
+
+    /// **An unnamed lab is warned about, not refused.** Python keeps `"lab": ""` in the line and
+    /// files it under `unknown-<month>`: the record survives and the gap is visible, where a refusal
+    /// would have lost it. The shard name is the fallback this task list called for.
+    #[test]
+    fn an_unnamed_lab_is_recorded_under_unknown_rather_than_refused() {
+        let unattributed = Receipt::new("heartbeat", "");
+        assert!(unattributed.validate().is_ok(), "the record must survive");
+        assert!(unattributed.unattributed(), "and the caller must be told");
+        assert!(
+            unattributed.to_line().contains("\"lab\": \"\""),
+            "{}",
+            unattributed.to_line()
+        );
+        // A whitespace name cannot name a lab either; like Python, the line keeps what it was given.
+        assert!(Receipt::new("heartbeat", "  ").unattributed());
+        let named = Receipt::new("heartbeat", "kimi");
+        assert!(!named.unattributed());
+        // The file it lands in, through the same path a write uses.
+        let p = live_shard_path(&paths(), "", "2026-10");
+        assert!(p.ends_with("unknown-2026-10.jsonl"), "{}", p.display());
     }
 
     #[test]
@@ -741,12 +795,7 @@ pub fn live_ledger_dir(paths: &StatePaths) -> PathBuf {
 
 /// The live shard for a lab and month.
 pub fn live_shard_path(paths: &StatePaths, lab: &str, month: &str) -> PathBuf {
-    let name = if slug(lab).is_empty() {
-        "unknown".to_string()
-    } else {
-        slug(lab)
-    };
-    live_ledger_dir(paths).join(format!("{name}-{month}.jsonl"))
+    live_ledger_dir(paths).join(format!("{}-{month}.jsonl", slug(lab)))
 }
 
 /// Append a receipt to the LIVE shard.
@@ -754,6 +803,12 @@ pub fn live_shard_path(paths: &StatePaths, lab: &str, month: &str) -> PathBuf {
 /// Appends rather than rewriting, so two labs checking in at once cannot clobber each other's lines.
 pub fn append_live(paths: &StatePaths, receipt: &Receipt, month: &str) -> Result<PathBuf, String> {
     receipt.validate()?;
+    write_live_line(paths, receipt, month)
+}
+
+/// The live write, without the lab check - `record` needs it for the same reason `write_line` exists:
+/// an unattributed receipt is WARNED about and preserved, never refused.
+fn write_live_line(paths: &StatePaths, receipt: &Receipt, month: &str) -> Result<PathBuf, String> {
     let shard = live_shard_path(paths, &receipt.lab, month);
     if let Some(parent) = shard.parent() {
         std::fs::create_dir_all(parent)
@@ -796,6 +851,51 @@ pub fn sync_live_to_committed(
     lab: &str,
     month: &str,
 ) -> Result<SyncReport, String> {
+    // R10: the sync is a deliberate write into a checkout, and it is the caller's own checkout that
+    // carries the lines into review. The shared checkout stays clean; the live tier is where a
+    // receipt goes when there is no checkout to write.
+    //
+    // Refused BEFORE any work, so a dry run and a real sync agree about permission: a no-op sync
+    // from the shared checkout is still the wrong checkout to have run it in.
+    crate::state::refuse_shared_checkout(paths, "the committed ledger shard")?;
+    let (mut report, add) = plan_sync(paths, lab, month)?;
+    if add.is_empty() {
+        return Ok(report);
+    }
+    let committed = std::path::PathBuf::from(&report.shard);
+    if let Some(parent) = committed.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
+    }
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&committed)
+        .map_err(|e| format!("cannot open {}: {e}", committed.display()))?;
+    use std::io::Write;
+    for line in &add {
+        writeln!(file, "{line}").map_err(|e| format!("cannot append: {e}"))?;
+    }
+    report.added = add.len();
+    report.wrote = true;
+    Ok(report)
+}
+
+/// What a sync WOULD append, and the lines themselves - **writing nothing**.
+///
+/// **This exists because `--dry-run` used to write.** The flag was documented on `ledger-sync` and
+/// never read: the command went straight to `sync_live_to_committed`, so a lab asking what the sync
+/// would do got the effect instead of the answer, and a checkout that should have stayed clean was
+/// appended to. Measured on 15 October, on the delivery run for this very change. A read-only flag
+/// that writes is worse than a missing flag: it teaches a lab the wrong thing about R10.
+///
+/// The refusal is deliberately NOT here: planning reads, and reading the shared checkout is exactly
+/// what R10 permits. The write half asks `refuse_shared_checkout` before it touches anything.
+pub fn plan_sync(
+    paths: &StatePaths,
+    lab: &str,
+    month: &str,
+) -> Result<(SyncReport, Vec<String>), String> {
     let live = live_shard_path(paths, lab, month);
     let committed = shard_path(paths, lab, month);
     let mut report = SyncReport {
@@ -803,7 +903,7 @@ pub fn sync_live_to_committed(
         ..Default::default()
     };
     let Ok(live_text) = std::fs::read_to_string(&live) else {
-        return Ok(report); // nothing live: not an error, just nothing to carry
+        return Ok((report, Vec::new())); // nothing live: not an error, just nothing to carry
     };
     let committed_text = std::fs::read_to_string(&committed).unwrap_or_default();
     let have: std::collections::BTreeSet<String> = committed_text
@@ -829,25 +929,8 @@ pub fn sync_live_to_committed(
             add.push(line.trim().to_string());
         }
     }
-    if add.is_empty() {
-        return Ok(report);
-    }
-    if let Some(parent) = committed.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
-    }
-    let mut file = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&committed)
-        .map_err(|e| format!("cannot open {}: {e}", committed.display()))?;
-    use std::io::Write;
-    for line in &add {
-        writeln!(file, "{line}").map_err(|e| format!("cannot append: {e}"))?;
-    }
     report.added = add.len();
-    report.wrote = true;
-    Ok(report)
+    Ok((report, add))
 }
 
 fn key_of(v: &serde_json::Value, field: &str) -> String {
@@ -916,6 +999,35 @@ mod live_tier_tests {
         let text = std::fs::read_to_string(live_shard_path(&f.paths, "deepseek", "2026-10"))
             .expect("read");
         assert_eq!(text.lines().filter(|l| !l.trim().is_empty()).count(), 2);
+    }
+
+    /// **A `--dry-run` must not write.** The flag was documented on `ledger-sync` and never read, so
+    /// asking what the sync would do created and appended to the committed shard - measured on the
+    /// delivery run for this very change, when the dry run added 101 lines.
+    #[test]
+    fn planning_a_sync_writes_nothing() {
+        let f = Fixture::new();
+        append_live(
+            &f.paths,
+            &receipt("deepseek", "heartbeat", "2026-10-13T09:00:00-04:00"),
+            "2026-10",
+        )
+        .expect("append");
+        let committed = shard_path(&f.paths, "deepseek", "2026-10");
+        let (report, add) = plan_sync(&f.paths, "deepseek", "2026-10").expect("plan");
+        assert_eq!(add.len(), 1, "the plan names the line it would carry");
+        assert_eq!(report.added, 1);
+        assert!(!report.wrote, "a plan is not a write");
+        assert!(
+            !committed.exists(),
+            "a dry run must not create the committed shard: {} exists",
+            committed.display()
+        );
+        // And the real sync then writes exactly what the plan promised.
+        let done = sync_live_to_committed(&f.paths, "deepseek", "2026-10").expect("sync");
+        assert!(done.wrote);
+        assert_eq!(done.added, add.len());
+        assert!(committed.is_file());
     }
 
     /// The delivery step: live receipts reach the committed shard that review sees.

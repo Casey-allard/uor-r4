@@ -33,7 +33,9 @@ for the status card (clause 5); `lint check --body-file <body>` and `check` befo
 export UOR_LAB=<kimi|claude|codex|deepseek>
 ```
 
-`skill use <id>` and `team dispatch <role>` write one line to `docs/harness/ledger/<lab>-<month>.jsonl`.
+`skill use <id>` and `team dispatch <role>` write one line to `docs/harness/ledger/<lab>-<month>.jsonl`
+- the live tier first, with `uor-harness ledger-sync` carrying it into the committed shard before the
+PR, so a receipt never dirties a checkout (R10).
 Claim your branch with `team claim --branch <name> --lab <lab>`, and see who holds what with
 `multilab claims`. `heartbeat` also publishes your presence, so `multilab presence` answers "what is
 each lab doing right now" — live tier first, committed record as the fallback. A skill loaded, an

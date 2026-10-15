@@ -53,7 +53,10 @@ impl Presence {
     /// is, and a wrong branch is worse than an empty one because peers would act on it.
     pub fn new(paths: &StatePaths, lab: &str, milestone: &str) -> Self {
         Presence {
-            lab: slug(lab),
+            // The RAW name is kept here so `validate` can still refuse a check-in that names nobody:
+            // `slug` now falls back to `unknown` for FILE NAMES, and a record must not be silently
+            // attributed to that fallback. The record and every path carry the slug.
+            lab: lab.to_string(),
             updated: crate::receipt::now_rfc3339(),
             milestone: milestone.to_string(),
             branch: current_branch(&paths.repo),
@@ -85,7 +88,7 @@ impl Presence {
         m.insert("branch".into(), Value::String(self.branch.clone()));
         m.insert("doing".into(), Value::String(self.doing.clone()));
         m.insert("host".into(), Value::String(self.host.clone()));
-        m.insert("lab".into(), Value::String(self.lab.clone()));
+        m.insert("lab".into(), Value::String(slug(&self.lab)));
         m.insert("milestone".into(), Value::String(self.milestone.clone()));
         m.insert("next".into(), Value::String(self.next.clone()));
         m.insert("schema".into(), Value::from(1));
@@ -101,7 +104,9 @@ impl Presence {
     }
 
     pub fn validate(&self) -> Result<(), String> {
-        if self.lab.is_empty() {
+        // `slug_stem`, not `slug`: the fallback is a file name, and a check-in attributed to nobody
+        // is exactly what Python's `write_presence` refuses.
+        if crate::state::slug_stem(&self.lab).is_empty() {
             return Err("presence needs a lab; without one it is invisible to every peer".into());
         }
         if crate::state::parse_iso_unix(&self.updated).is_none() {
@@ -156,7 +161,12 @@ pub fn publish_live(paths: &StatePaths, presence: &Presence) -> Result<(), Strin
 }
 
 /// Write one lab's presence to the committed record.
+///
+/// **A checkout write, and the only presence write that is.** The check-in itself publishes to the
+/// live tier; this is the deliberate "put me in the record" step, so it lands in the caller's own
+/// worktree and R10 refuses the shared checkout.
 pub fn publish_durable(paths: &StatePaths, presence: &Presence) -> Result<(), String> {
+    crate::state::refuse_shared_checkout(paths, "presence")?;
     publish(
         &paths.durable_presence(&presence.lab),
         presence,

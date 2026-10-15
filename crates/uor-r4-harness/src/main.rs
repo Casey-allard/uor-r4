@@ -26,7 +26,8 @@ use uor_r4_harness::prep::{check_all, SheetReport};
 use uor_r4_harness::presence;
 use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{
-    append, append_live, current_month, sync_live_to_committed, Receipt as NewReceipt,
+    append_live, current_month, plan_sync, sync_live_to_committed, Receipt as NewReceipt,
+    UNATTRIBUTED_WARNING,
 };
 use uor_r4_harness::registries::Registries;
 use uor_r4_harness::shards;
@@ -215,8 +216,10 @@ COMMANDS:
     presence    What each lab is doing now. Live tier first, durable as the
                 fallback, reporting which answered.
     ledger      Receipt counts by lab and kind.
-    receipt     Append one receipt to this lab's shard. The first WRITE on the
-                Rust side; use --dry-run to see the line without recording it.
+    receipt     Append one receipt to this lab's LIVE shard, like a check-in: a
+                coordination write never dirties a checkout (R10). ledger-sync
+                carries it into the committed shard before the PR; --dry-run
+                shows the line without recording it.
     heartbeat   Check in: publish presence and append a receipt, both to the LIVE
                 tier, so a check-in never dirties a working checkout (R10).
     git         Branch hygiene: clean-merged lists local branches already
@@ -235,12 +238,14 @@ COMMANDS:
                 the last one you wrote, and every lab here posts as one account.
     version     The commit this binary was built from, and whether it is
                 behind origin/main - answers why a flag was rejected.
-    notes       Unread notes: comments on the milestone issues this lab has
-                not seen. Refreshes from GitHub by default; --cached skips the
-                network. A marker per lab lives in the live tier (R10-clean).
-    ledger-sync Append this lab's live receipts into the committed shard. Run
-                before opening a PR so the record reaches review. Append-only.
-                Use --dry-run to see what would be written.
+    notes       Unread notes: comments on the tracker and milestone issues this
+                lab has not seen. Refreshes from GitHub by default; --cached
+                skips the network. A marker per lab lives in the live tier
+                (R10-clean); the check-in surfaces the same report.
+    ledger-sync Append this lab's live receipts into the committed shard of THIS
+                checkout. Run from your own worktree before opening a PR so the
+                record reaches review; the shared checkout is refused (R10).
+                Append-only; --dry-run shows what would be written.
     prep        The D22 gate: `new` writes a pre-registration sheet, `fit`
                 records a TEST FITNESS review, `list` shows the sheets. Get a
                 sheet to FIT on the milestone before any compute.
@@ -390,6 +395,10 @@ fn main() -> ExitCode {
             }
         },
     };
+    // The PR-body parser reads its phrase table from this checkout when it can, and from the copy
+    // embedded in the binary otherwise. Point it here, once, before any command runs: a build
+    // worktree that has been cleaned up must not be able to change what the linter means.
+    uor_r4_harness::prbody::use_registry(&repo);
 
     match command.as_deref() {
         Some("onboard") => cmd_onboard(&repo, json),
@@ -714,6 +723,13 @@ fn cmd_mistakes(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 .unwrap_or_default()
                 .trim()
                 .to_string();
+            // R10 FIRST: a lesson is a record file that rides the delivery PR, so it is written in the
+            // caller's own checkout. Refusing before the draft is built keeps the refusal the only
+            // answer in the shared checkout, whatever else the draft might be missing.
+            if let Err(e) = uor_r4_harness::state::refuse_shared_checkout(&paths, "the lesson") {
+                eprintln!("uor-harness: {e}");
+                return ExitCode::from(1);
+            }
             // argparse also requires both, so this is reachable only through the Rust parser,
             // which is lenient; the refusal and the exit code are Python's either way.
             if id.is_empty() || title.is_empty() {
@@ -920,10 +936,7 @@ fn cmd_skill(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 // The Python harness warns loudly rather than refusing, and the receipt is still
                 // written - an unattributed record is worse than an absent one, but refusing here
                 // would lose the record entirely.
-                eprintln!(
-                    "uor-harness: no lab identity. Pass --lab <lab> or export UOR_LAB; the receipt \
-                     is recorded but attributed to nobody, and no other lab can see who did the work."
-                );
+                eprintln!("{UNATTRIBUTED_WARNING}");
             }
             let mut r = NewReceipt::new("skill", lab.clone());
             r = r.with("skill", skill.id.clone());
@@ -938,7 +951,9 @@ fn cmd_skill(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 eprintln!("uor-harness: {e}");
                 return ExitCode::from(2);
             }
-            match append(&paths, &r, &current_month()) {
+            // LIVE shard, like the check-in: a skill receipt is coordination, and coordination
+            // needs no checkout. It reaches the record through `ledger-sync` at delivery (R10).
+            match append_live(&paths, &r, &current_month()) {
                 Ok(shard) => {
                     if json {
                         println!(
@@ -1132,7 +1147,13 @@ fn cmd_prep(repo: &Path, args: &[String], json: bool) -> ExitCode {
             }
             // The receipt is best-effort on purpose: **the sheet matters more than its receipt**, and
             // a broken ledger must not lose the review.
-            let shard = append(&paths, &r, &current_month());
+            //
+            // LIVE shard, like the check-in: a FIT receipt must not dirty a checkout, and the sheet
+            // itself is the record that rides the PR. `ledger-sync` carries the line in at delivery.
+            if r.unattributed() {
+                eprintln!("{UNATTRIBUTED_WARNING}");
+            }
+            let shard = append_live(&paths, &r, &current_month());
             if json {
                 println!(
                     "{{\"verdict\": {:?}, \"milestone\": {:?}, \"receipt\": {:?}}}",
@@ -1150,6 +1171,15 @@ fn cmd_prep(repo: &Path, args: &[String], json: bool) -> ExitCode {
             ExitCode::SUCCESS
         }
         "new" => {
+            // R10 FIRST, before the registry is read or a sheet is rendered: this is a checkout write,
+            // and the only useful answer in the shared checkout is the refusal. Refusing early also
+            // means a fixture that has no registry cannot mask the refusal with a different error.
+            if let Err(e) =
+                uor_r4_harness::state::refuse_shared_checkout(&paths, "the pre-registration sheet")
+            {
+                eprintln!("uor-harness: {e}");
+                return ExitCode::from(1);
+            }
             let Some(m) = regs.milestone(&key) else {
                 eprintln!("uor-harness prep new: no milestone {key:?}; try `uor-harness registry`");
                 return ExitCode::from(2);
@@ -1993,11 +2023,7 @@ fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
             if recorded.unattributed {
                 // Python warns and PRESERVES the receipt; refusing would lose the record rather than
                 // surface the gap, which is the whole point of the warning.
-                eprintln!(
-                    "uor-harness: WARNING - no lab identity, so this record is attributed to nobody and no\n\
-                     \x20            other lab can see who did it. Fix it for this session with:\n\
-                     \x20            export UOR_LAB=<kimi|claude|codex|deepseek>"
-                );
+                eprintln!("{UNATTRIBUTED_WARNING}");
             }
             let ts = recorded.get_str("ts");
             if json {
@@ -2022,12 +2048,11 @@ fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
                         println!("  write scope: {}", rendered.join(", "));
                     }
                 }
-                // Python prints the UNSHARDED month file here: the shard a line lands in is named
-                // after the lab, while this is the path a reader opens.
-                println!(
-                    "  receipt: docs/harness/ledger/{}.jsonl",
-                    &ts[..7.min(ts.len())]
-                );
+                // The path the line ACTUALLY landed in. Python prints the UNSHARDED month file here,
+                // which was never the shard a lab's line goes to, and since the write is live-tier
+                // first (R10) that would now be doubly misleading: a lab looking where it was told
+                // would find nothing, in a checkout it must not write.
+                println!("  receipt: {} (live tier)", recorded.shard.display());
             }
             ExitCode::SUCCESS
         }
@@ -2281,14 +2306,34 @@ fn cmd_ledger_sync(repo: &Path, args: &[String], json: bool) -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    match sync_live_to_committed(&paths, &lab, &month) {
-        Ok(r) => {
+    // `--dry-run` is READ-ONLY. It was documented and ignored: the command went straight to the
+    // write, so a lab asking what the sync would do got the effect instead of the answer and an
+    // appended-to checkout it never asked for. `plan_sync` is the read half of the same code.
+    let dry_run = args.iter().any(|a| a == "--dry-run");
+    let planned = if dry_run {
+        plan_sync(&paths, &lab, &month).map(|(r, add)| {
+            let n = add.len();
+            (r, n)
+        })
+    } else {
+        sync_live_to_committed(&paths, &lab, &month).map(|r| {
+            let n = r.added;
+            (r, n)
+        })
+    };
+    match planned {
+        Ok((r, added)) => {
             if json {
                 println!(
-                    "{{\"shard\": {:?}, \"added\": {}, \"already_committed\": {}, \"wrote\": {}}}",
-                    r.shard, r.added, r.already_committed, r.wrote
+                    "{{\"shard\": {:?}, \"added\": {}, \"already_committed\": {}, \"wrote\": {}, \"dry_run\": {}}}",
+                    r.shard, added, r.already_committed, r.wrote, dry_run
                 );
-            } else if r.added == 0 {
+            } else if dry_run {
+                println!(
+                    "ledger sync --dry-run: would append {} receipt(s) to {} ({} already committed); nothing written",
+                    added, r.shard, r.already_committed
+                );
+            } else if added == 0 {
                 println!(
                     "ledger sync: nothing to add for {lab} in {month} ({} live receipt(s) already committed)",
                     r.already_committed
@@ -2296,7 +2341,7 @@ fn cmd_ledger_sync(repo: &Path, args: &[String], json: bool) -> ExitCode {
             } else {
                 println!(
                     "ledger sync: appended {} receipt(s) to {} ({} already committed)",
-                    r.added, r.shard, r.already_committed
+                    added, r.shard, r.already_committed
                 );
             }
             ExitCode::SUCCESS
@@ -2721,12 +2766,11 @@ fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let lab = flag_value(args, "--lab")
         .or_else(|| std::env::var("UOR_LAB").ok())
         .unwrap_or_default();
+    // An unnamed lab is WARNED about, never refused: Python records the receipt in the `unknown`
+    // shard and says so, because a record that cannot name its author still says what happened.
+    // Refusing lost the record entirely, which is the opposite of what the warning is for.
     if lab.trim().is_empty() {
-        eprintln!(
-            "uor-harness: no lab identity. Pass --lab <lab> or export UOR_LAB; a receipt with no \
-             lab is preserved but attributed to nobody."
-        );
-        return ExitCode::from(2);
+        eprintln!("{UNATTRIBUTED_WARNING}");
     }
     let kind = flag_value(args, "--kind").unwrap_or_else(|| "receipt".to_string());
     let dry_run = args.iter().any(|a| a == "--dry-run");
@@ -2756,7 +2800,10 @@ fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
         println!("{}", r.to_line());
         return ExitCode::SUCCESS;
     }
-    match append(&paths, &r, &current_month()) {
+    // LIVE shard. This command used to append straight into the checkout named by the working
+    // directory, so a lab whose shell sat in the shared checkout dirtied it with a receipt - the
+    // defect R10 exists to prevent, produced by the tool that enforces R10.
+    match append_live(&paths, &r, &current_month()) {
         Ok(shard) => {
             if json {
                 println!(
@@ -2768,6 +2815,10 @@ fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 );
             } else {
                 println!("receipt recorded: {} in {}", shard.display(), r.ts);
+                println!(
+                    "  live tier - `uor-harness ledger-sync` carries it into the committed shard \
+from your own worktree"
+                );
             }
             ExitCode::SUCCESS
         }

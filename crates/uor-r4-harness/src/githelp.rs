@@ -955,6 +955,13 @@ fn hooks_dir(paths: &StatePaths) -> Result<std::path::PathBuf, String> {
 pub fn install_hooks(paths: &StatePaths) -> (i32, Vec<String>, Vec<String>) {
     let mut out: Vec<String> = Vec::new();
     let mut err: Vec<String> = Vec::new();
+    // R10: this writes `pre-commit` into the repository, so it is a checkout write. A lab running it
+    // from its OWN worktree still installs into the shared hooks directory - that is how every
+    // worktree is guarded - but the shared checkout itself is not a place a lab mutates.
+    if let Err(e) = crate::state::refuse_shared_checkout(paths, "the git hooks") {
+        err.push(e);
+        return (2, out, err);
+    }
     let dir = match hooks_dir(paths) {
         Ok(d) => d,
         Err(e) => {

@@ -300,7 +300,9 @@ re-derived each session. Read [docs/harness/README.md](docs/harness/README.md) o
 - `uor-harness check` — every machine-checkable rule, with the fix for each.
 - `uor-harness skill use <id>` / `team dispatch <role>` — one receipt line in
   `docs/harness/ledger/<lab>-<month>.jsonl` (sharded per lab, so concurrent PRs never conflict),
-  so the owner and the other labs can see what was actually loaded and deployed.
+  so the owner and the other labs can see what was actually loaded and deployed. It is written to the
+  **live tier** first, like a check-in, and `uor-harness ledger-sync` appends it to your checkout's
+  committed shard before the PR: a coordination write never needs a checkout (R10).
 - `uor-harness mistakes find -f <files>` — what went wrong here before.
 
 The harness is a view over the authorities named in this file, never a replacement for them: the

@@ -16,6 +16,7 @@
 
 use regex::Regex;
 use serde_json::{json, Map, Value};
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 fn re(cell: &'static OnceLock<Regex>, pattern: &str) -> &'static Regex {
@@ -85,16 +86,58 @@ r!(has_count_word_re, r"(?i)\bcount\b");
 /// executable source* — against the file whose whole job is to notice that mechanism. It counts
 /// **prose as well as code**, so the doc comment had to stop spelling it too. **Second time in this
 /// port**; the general lesson is that a detector's vocabulary is data, not code.
+/// The phrase table, COMPILED INTO the binary as well as read from the checkout.
+///
+/// **Loaded from the source tree was not enough, and the measurement is Codex's on #2508.** The first
+/// version read `env!("CARGO_MANIFEST_DIR")/rules/prlint-phrases.json` at run time and fell back to
+/// `Value::Null` when the read failed. A lab installs from a worktree and routine cleanup then deletes
+/// it, so the read failed for a correctly installed binary: every phrase became the empty string, the
+/// preregistration markers disappeared, and `lint check` reported a complete PR body as missing its
+/// pre-registration. Codex saw exactly that, and `OK - 0 error, 0 warn` from the same source rebuilt in
+/// a retained checkout. **A data file the linter depends on is behaviour, so it is embedded**, and a
+/// checkout copy is honoured only when it is readable AND parses as an object.
+const EMBEDDED_PHRASES: &str = include_str!("../rules/prlint-phrases.json");
+
+/// The registry file, relative to the repository root.
+const REGISTRY_REL: &str = "crates/uor-r4-harness/rules/prlint-phrases.json";
+
+/// The checkout this process should read the registry from, when the CLI knows it.
+static REGISTRY_REPO: OnceLock<PathBuf> = OnceLock::new();
+
+/// Point the parser at the checkout being inspected, so editing the registry takes effect without a
+/// rebuild. Called once from `main`; a process that never calls it still gets the embedded table.
+pub fn use_registry(repo: &Path) {
+    let _ = REGISTRY_REPO.set(repo.to_path_buf());
+}
+
 fn phrases() -> &'static Value {
     static CELL: OnceLock<Value> = OnceLock::new();
     CELL.get_or_init(|| {
-        let path =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("rules/prlint-phrases.json");
-        std::fs::read_to_string(path)
-            .ok()
-            .and_then(|t| serde_json::from_str(&t).ok())
-            .unwrap_or(Value::Null)
+        let mut candidates: Vec<PathBuf> = Vec::new();
+        if let Some(repo) = REGISTRY_REPO.get() {
+            candidates.push(repo.join(REGISTRY_REL));
+        }
+        // A development run from the source tree, while that tree is still there.
+        candidates.push(Path::new(env!("CARGO_MANIFEST_DIR")).join("rules/prlint-phrases.json"));
+        load_phrases(&candidates)
     })
+}
+
+/// The first candidate that parses, else the embedded table. **Never `Value::Null`.**
+///
+/// A missing file and a malformed file are both skipped rather than accepted: an empty phrase table
+/// is indistinguishable from a body that contains none of the phrases, which is the false verdict
+/// this whole path exists to avoid.
+fn load_phrases(candidates: &[PathBuf]) -> Value {
+    for path in candidates {
+        if let Ok(text) = std::fs::read_to_string(path) {
+            if let Ok(v @ Value::Object(_)) = serde_json::from_str::<Value>(&text) {
+                return v;
+            }
+        }
+    }
+    serde_json::from_str(EMBEDDED_PHRASES)
+        .expect("the embedded phrase table parses: a test reads it back from the built binary")
 }
 
 fn phrase(key: &str) -> String {
@@ -608,6 +651,64 @@ mod tests {
 
     fn repo() -> std::path::PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    /// **The defect Codex reported on #2508, as a test.** The phrase table was read only from the
+    /// path the binary was BUILT in, and a failed read became `Value::Null`: every phrase empty, the
+    /// preregistration markers gone, and a complete PR body reported as missing its pre-registration.
+    /// Labs install from a worktree and cleanup deletes it, so this waited for every lab in turn.
+    #[test]
+    fn a_cleaned_build_worktree_cannot_empty_the_phrase_table() {
+        let gone = PathBuf::from("/nonexistent/uor-r4-build-worktree/rules/prlint-phrases.json");
+        let table = load_phrases(&[gone]);
+        assert!(
+            table.is_object(),
+            "the embedded table must answer: {table:?}"
+        );
+        let markers = table
+            .get("prereg_markers")
+            .and_then(Value::as_array)
+            .expect("the preregistration markers are what the linter scans for");
+        assert!(!markers.is_empty());
+        // The KEY is data too, and must not be spelled here: the D23 interlock counts the phrase in
+        // SOURCE, and this file is the detector whose vocabulary deliberately lives in the registry.
+        let key = table.get("claims_key").and_then(Value::as_str);
+        assert!(
+            key.is_some_and(|k| !k.is_empty()),
+            "the claims key must come from the table: {key:?}"
+        );
+    }
+
+    /// A registry that exists but does not parse is SKIPPED, not read as an empty table.
+    #[test]
+    fn a_malformed_registry_is_not_an_empty_table() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let bad = dir.path().join("prlint-phrases.json");
+        std::fs::write(&bad, "{ not json at all").expect("write");
+        let table = load_phrases(&[bad]);
+        assert!(table.is_object());
+        assert!(!table.as_object().expect("object").is_empty());
+    }
+
+    /// Every key the parser reads is present and usable in the embedded table - a key that went
+    /// missing would silently disable the phrase it drives.
+    #[test]
+    fn the_embedded_table_carries_every_key_the_parser_uses() {
+        let table = load_phrases(&[]);
+        for key in [
+            "prereg_markers",
+            "cpu_compute",
+            "quality_near",
+            "defect_words",
+            "claims_key",
+            "claims_fn",
+            "claims_phrases",
+        ] {
+            let v = table.get(key).unwrap_or_else(|| panic!("{key} is missing"));
+            let usable = v.as_str().is_some_and(|s| !s.is_empty())
+                || v.as_array().is_some_and(|a| !a.is_empty());
+            assert!(usable, "{key} is not usable: {v:?}");
+        }
     }
 
     /// **The port against captured behaviour.** Every field of every case, compared to what Python

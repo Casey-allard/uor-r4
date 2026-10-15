@@ -116,7 +116,9 @@ Two habits keep it honest, and both are cheap:
 
 - **Receipt the work.** `cli.py skill use <id>` and `cli.py team dispatch <role>` write one line
   to `docs/harness/ledger/`. A skill that was loaded, or an agent that was dispatched, without a
-  receipt is invisible to the owner - which is the failure this exists to end.
+  receipt is invisible to the owner - which is the failure this exists to end. `uor-harness` writes
+  the line to the **live tier** first and `uor-harness ledger-sync` carries it into the committed
+  shard before the PR, so recording a skill never dirties a checkout (R10).
 - **Make a lesson a guard.** When something goes wrong, `cli.py mistakes capture` records the
   trigger, symptom and lesson and names the rule that will catch it next time. A lesson with no
   guard is a note that will be forgotten again.

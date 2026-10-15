@@ -365,13 +365,27 @@ pub fn read_cache(paths: &StatePaths, lab: &str) -> Vec<Note> {
     out
 }
 
-/// The milestone issues to watch, in order.
+/// The issues to watch, in order: **the tracker first, then every milestone.**
 ///
 /// From the registry when it loads, so a new milestone joins the watch list without a code change;
 /// the fallback is the four known ids so a checkout without a registry still surfaces notes.
+///
+/// **The tracker is not optional.** It is the roadmap issue, it carries no headline and no panel,
+/// and it is therefore absent from the milestone table - but it is where the PM posts lab
+/// assignments and where a CONTEST is as likely to be answered as on a milestone. Watching only
+/// `milestones` means the check-in reports every milestone and stays silent about the one issue that
+/// just tasked the lab: measured 15 October, the queue that named this work arrived as a #2028
+/// comment and the heartbeat printed eight milestones without it.
 pub fn watched_issues(regs: Option<&crate::registries::Registries>) -> Vec<i64> {
     match regs {
-        Some(r) if !r.milestones.is_empty() => r.milestones.iter().map(|m| m.issue).collect(),
+        Some(r) if !r.milestones.is_empty() => {
+            let mut out: Vec<i64> = Vec::new();
+            if let Some(tracker) = r.tracker_issue() {
+                out.push(tracker);
+            }
+            out.extend(r.milestones.iter().map(|m| m.issue));
+            out
+        }
         _ => vec![2029, 2030, 2031, 2032],
     }
 }
@@ -446,6 +460,33 @@ mod tests {
             author: author.into(),
             created_at: "2026-10-13T12:00:00Z".into(),
             first_line: format!("note {id}"),
+        }
+    }
+
+    /// **The tracker is watched.** It is not a milestone, so the milestone table alone never names
+    /// it - and it is where the PM posts the assignment a lab most needs to read.
+    #[test]
+    fn the_tracker_is_watched_alongside_the_milestones() {
+        let regs = crate::registries::Registries {
+            tracker: serde_json::json!({"issue": 2028}),
+            milestones: vec![milestone(2029), milestone(2030)],
+            ..Default::default()
+        };
+        assert_eq!(watched_issues(Some(&regs)), vec![2028, 2029, 2030]);
+        // A registry whose tracker entry is missing or malformed still watches its milestones.
+        let no_tracker = crate::registries::Registries {
+            tracker: serde_json::Value::Null,
+            ..regs.clone()
+        };
+        assert_eq!(watched_issues(Some(&no_tracker)), vec![2029, 2030]);
+        // And with no registry at all, the known ids still surface notes.
+        assert_eq!(watched_issues(None), vec![2029, 2030, 2031, 2032]);
+    }
+
+    fn milestone(issue: i64) -> crate::registries::Milestone {
+        crate::registries::Milestone {
+            issue,
+            ..Default::default()
         }
     }
 
