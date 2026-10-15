@@ -1,0 +1,557 @@
+diff --git a/crates/uor-r4-harness/src/doccheck.rs b/crates/uor-r4-harness/src/doccheck.rs
+index c9283f9f0..2e49ffd05 100644
+--- a/crates/uor-r4-harness/src/doccheck.rs
++++ b/crates/uor-r4-harness/src/doccheck.rs
+@@ -475,6 +475,9 @@ const ACCEPTED: &[&str] = &[
+     "notes",
+     "ratchet",
+     "version",
++    // `comment edit` edits a note by id. It moved with the lesson that names it: the two tables have to
++    // move together, and only one side updated diverges the #[ignore]d cross-check.
++    "comment",
+ ];
+ 
+ /// Subcommands of the top-level groups, as **this binary** accepts them.
+diff --git a/crates/uor-r4-harness/src/main.rs b/crates/uor-r4-harness/src/main.rs
+index 2405ba796..4a7156253 100644
+--- a/crates/uor-r4-harness/src/main.rs
++++ b/crates/uor-r4-harness/src/main.rs
+@@ -230,6 +230,9 @@ COMMANDS:
+                 saying a skill was actually loaded and deployed.
+     team        Branch claims: claim, release, claims, roster.
+                 `team claim --branch B --lab L` before you start work.
++    comment     Edit one comment, BY ID: `comment edit --id <id> --body-file <f>`.
++                There is no `--edit-last`: it edits the last comment on the issue, not
++                the last one you wrote, and every lab here posts as one account.
+     version     The commit this binary was built from, and whether it is
+                 behind origin/main - answers why a flag was rejected.
+     notes       Unread notes: comments on the milestone issues this lab has
+@@ -428,6 +431,7 @@ fn main() -> ExitCode {
+         Some("heartbeat") => cmd_heartbeat(&repo, &rest, json),
+         Some("ledger-sync") => cmd_ledger_sync(&repo, &rest, json),
+         Some("notes") => cmd_notes(&repo, &rest, json),
++        Some("comment") => cmd_comment(&repo, &rest, json),
+         Some("version") => cmd_version(&repo),
+         Some("team") => cmd_team(&repo, &rest, json),
+         Some("skill") => cmd_skill(&repo, &rest, json),
+@@ -3499,3 +3503,48 @@ fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
+     }
+     ExitCode::SUCCESS
+ }
++
++/// `comment edit --id <id> --body-file <path>` - edit one comment, addressed by id.
++///
++/// **There is no `--edit-last`, and that is the point.** The flag edits the LAST comment on the issue
++/// rather than the last one this lab wrote; every lab posts through one shared account, so there is no
++/// author filter to save you. On 14 October it replaced the whole body of someone else's comment and the
++/// text was unrecoverable, because GitHub keeps no edit history for issue comments.
++///
++/// **A warning would not have prevented that.** The harness offered no way to edit a comment at all, so
++/// `gh` was the only path and the flag was one keystroke away. This is that path, and it cannot express
++/// the word last.
++fn cmd_comment(repo: &Path, args: &[String], _json: bool) -> ExitCode {
++    if action_word(args) != "edit" {
++        eprintln!("uor-harness comment: expected `edit --id <id> --body-file <path>`");
++        return ExitCode::from(2);
++    }
++    let Some(id) = flag_value(args, "--id").and_then(|s| s.parse::<i64>().ok()) else {
++        eprintln!(
++            "uor-harness comment edit: --id <comment-id> is required, and there is no last-comment form:"
++        );
++        eprintln!(
++            "  `gh --edit-last` edits the last comment on the ISSUE, not the last one you wrote, and every"
++        );
++        eprintln!(
++            "  lab here posts as one account. It cost the project a comment's text on 14 October."
++        );
++        return ExitCode::from(2);
++    };
++    let Some(file) = flag_value(args, "--body-file") else {
++        eprintln!(
++            "uor-harness comment edit: --body-file <path> is required; the body replaces the whole comment"
++        );
++        return ExitCode::from(2);
++    };
++    match notes::edit_comment(repo, id, Path::new(&file)) {
++        Ok(url) => {
++            println!("edited comment {id}: {url}");
++            ExitCode::SUCCESS
++        }
++        Err(e) => {
++            eprintln!("uor-harness comment edit: {e}");
++            ExitCode::from(1)
++        }
++    }
++}
+diff --git a/crates/uor-r4-harness/src/notes.rs b/crates/uor-r4-harness/src/notes.rs
+index e93449775..e0974e307 100644
+--- a/crates/uor-r4-harness/src/notes.rs
++++ b/crates/uor-r4-harness/src/notes.rs
+@@ -647,3 +647,142 @@ mod cache_line_tests {
+         assert_eq!(human_age(Duration::from_secs(50 * 3600)), "2d");
+     }
+ }
++
++// ---------------------------------------------------------------------------------------------
++// Editing a comment: BY ID, and there is deliberately no `--edit-last`.
++//
++// `gh issue comment --edit-last` edits the LAST comment on the issue - not the last one YOU wrote. Every
++// lab on this tracker posts through one shared account, so there is no author filter to save you. On
++// 14 October that flag replaced the entire body of someone else's comment; `--body-file` replaces the
++// whole body, GitHub keeps no edit history, and the text was unrecoverable. The lesson is at
++// `docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md`.
++//
++// **The guard is that the safe path exists.** Warning a lab about `gh` does not help when the harness
++// offers no way to edit a comment at all - the dangerous call was the only call. This takes an id,
++// because position is meaningful only to the writer, and on this tracker the writer is three labs.
++// ---------------------------------------------------------------------------------------------
++
++/// The line printed before a patch: who wrote the comment, when, and the first line of its body.
++///
++/// **This is the owner rule's second clause** - verify the id and its timestamp before patching. Pure, so
++/// the pre-patch echo has automated coverage without touching the network.
++pub fn target_line(comment_id: i64, comment: &serde_json::Value) -> String {
++    let who = comment
++        .get("user")
++        .and_then(|u| u.get("login"))
++        .and_then(|s| s.as_str())
++        .unwrap_or("<unknown author>");
++    let when = comment
++        .get("created_at")
++        .and_then(|s| s.as_str())
++        .unwrap_or("<unknown time>");
++    let first: String = comment
++        .get("body")
++        .and_then(|s| s.as_str())
++        .unwrap_or("")
++        .lines()
++        .next()
++        .unwrap_or("")
++        .chars()
++        .take(80)
++        .collect();
++    format!("About to edit comment {comment_id} by {who} at {when}:\n  {first}")
++}
++
++/// Edit exactly the comment named by `comment_id`, replacing its body with `body_file`.
++///
++/// Returns the comment's URL. Refuses an empty body, because a silent blanking is the same failure as
++/// an overwrite with less noise.
++pub fn edit_comment(
++    repo: &std::path::Path,
++    comment_id: i64,
++    body_file: &std::path::Path,
++) -> Result<String, String> {
++    let body = std::fs::read_to_string(body_file)
++        .map_err(|e| format!("cannot read {}: {e}", body_file.display()))?;
++    if body.trim().is_empty() {
++        return Err(format!(
++            "refusing to replace comment {comment_id} with an empty body ({} is empty)",
++            body_file.display()
++        ));
++    }
++    // **Verify the target before patching it.** A mistyped id would otherwise silently overwrite
++    // whatever comment that id names - the `--edit-last` failure one keystroke slower. So: read it
++    // first, refuse if it cannot be read, and say who wrote it and when before replacing anything.
++    let (seen_ok, seen, seen_err) = crate::githubcards::gh_json(
++        &[
++            "api",
++            &format!("repos/UOR-Foundation/uor-r4/issues/comments/{comment_id}"),
++        ],
++        repo,
++    );
++    if !seen_ok {
++        return Err(format!(
++            "comment {comment_id} cannot be read, so it will not be patched: {seen_err}"
++        ));
++    }
++    eprintln!("{}", target_line(comment_id, &seen));
++    let (ok, v, err) = crate::githubcards::gh_json(
++        &[
++            "api",
++            "-X",
++            "PATCH",
++            &format!("repos/UOR-Foundation/uor-r4/issues/comments/{comment_id}"),
++            "-F",
++            &format!("body=@{}", body_file.display()),
++        ],
++        repo,
++    );
++    if !ok {
++        return Err(format!("gh api PATCH comment {comment_id} failed: {err}"));
++    }
++    Ok(v.get("html_url")
++        .and_then(|u| u.as_str())
++        .unwrap_or("<no url in the response>")
++        .to_string())
++}
++
++#[cfg(test)]
++mod edit_comment_tests {
++    use super::*;
++
++    /// An empty body is refused BEFORE gh runs: a blank comment is the same loss as an overwrite.
++    #[test]
++    fn an_empty_body_is_refused() {
++        let dir = tempfile::tempdir().expect("tempdir");
++        let f = dir.path().join("empty.md");
++        std::fs::write(&f, "\n   \n").expect("write");
++        let err = edit_comment(std::path::Path::new("."), 1, &f).expect_err("must refuse");
++        assert!(err.contains("empty"), "{err}");
++    }
++
++    /// A missing file is a clear error, not a panic and not a silent no-op.
++    #[test]
++    fn a_missing_body_file_is_an_error() {
++        let err = edit_comment(
++            std::path::Path::new("."),
++            1,
++            std::path::Path::new("/nonexistent/body.md"),
++        )
++        .expect_err("must refuse");
++        assert!(err.contains("cannot read"), "{err}");
++    }
++
++    /// **The owner rule's second clause, with coverage.** Reading the target before patching is the
++    /// difference between "this id exists" and "this id is the comment I meant" - so the echo names the
++    /// author, the time and the first line, and says nothing about the rest of the body.
++    #[test]
++    fn the_pre_patch_echo_names_author_time_and_first_line() {
++        let v: serde_json::Value = serde_json::json!({
++            "user": { "login": "kimi" },
++            "created_at": "2026-10-14T12:23:07Z",
++            "body": "PM note: the first line matters most here\nsecond line"
++        });
++        let line = target_line(6173738543, &v);
++        assert!(line.contains("6173738543"), "{line}");
++        assert!(line.contains("kimi"), "{line}");
++        assert!(line.contains("2026-10-14T12:23:07Z"), "{line}");
++        assert!(line.contains("first line matters most"), "{line}");
++        assert!(!line.contains("second line"), "only the first line: {line}");
++    }
++}
+diff --git a/crates/uor-r4-harness/src/ruleinventory.rs b/crates/uor-r4-harness/src/ruleinventory.rs
+index c2c644024..efd2626bb 100644
+--- a/crates/uor-r4-harness/src/ruleinventory.rs
++++ b/crates/uor-r4-harness/src/ruleinventory.rs
+@@ -207,7 +207,7 @@ pub fn to_json() -> String {
+ /// `main`. **Deriving it from the binary is what stops that recurring** - adding a command to
+ /// `main.rs` and forgetting this list is still possible, but the list now sits beside the rule
+ /// inventory that has the same job, rather than in the file a port edits.
+-pub const PORTED_COMMANDS: [&str; 25] = [
++pub const PORTED_COMMANDS: [&str; 26] = [
+     // **`check` is the LAST to leave the delegated set.** It is the command labs trust most, and it
+     // left only when `checkdispatch` existed - before that, a Rust `check` would have run the format
+     // contract while a lab believed every rule had run.
+@@ -236,6 +236,9 @@ pub const PORTED_COMMANDS: [&str; 25] = [
+     "ratchet",
+     "check-rules",
+     "lint",
++    // Declared so an unknown flag to `comment` is refused here rather than forwarded silently - the
++    // gap `arena`, `panel` and `budget` still share.
++    "comment",
+ ];
+ 
+ #[cfg(test)]
+diff --git a/crates/uor-r4-harness/tests/no_position_based_edits.rs b/crates/uor-r4-harness/tests/no_position_based_edits.rs
+new file mode 100644
+index 000000000..22caee168
+--- /dev/null
++++ b/crates/uor-r4-harness/tests/no_position_based_edits.rs
+@@ -0,0 +1,110 @@
++//! The hazard cannot be reintroduced into the tooling that runs on a schedule.
++//!
++//! On 14 October `gh issue comment --edit-last` overwrote the whole body of a comment another lab wrote, and
++//! GitHub keeps no edit history, so the text was unrecoverable. The lesson is at
++//! `docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md` and the safe path is
++//! `uor-harness comment edit --id <id> --body-file <f>`.
++//!
++//! **What this test reaches, and what it does not.** It scans the executable workflow roots whose changes this
++//! job actually runs on: `scripts/harness/**` and `.github/workflows/**`. It **cannot intercept a hand-typed
++//! `gh` call** - which is exactly why the safe path had to be BUILT rather than merely documented - and a
++//! change to a script outside these roots will not run this test. Both limits are stated rather than implied,
++//! because a guard that overstates its reach is worse than a narrow one that names it.
++
++use std::path::{Path, PathBuf};
++
++fn files_with_ext(dir: &Path, exts: &[&str], out: &mut Vec<PathBuf>) {
++    let Ok(entries) = std::fs::read_dir(dir) else {
++        return;
++    };
++    for e in entries.flatten() {
++        let p = e.path();
++        if p.is_dir() {
++            files_with_ext(&p, exts, out);
++        } else if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
++            if exts.iter().any(|x| name.ends_with(x)) {
++                out.push(p);
++            }
++        }
++    }
++}
++
++fn harness_root() -> PathBuf {
++    // Resolved from the crate, not the working directory: `cargo test` runs in the package dir today, and
++    // the reviewer caught `Path::new("../..")` depending on that.
++    Path::new(env!("CARGO_MANIFEST_DIR"))
++        .parent()
++        .and_then(|p| p.parent())
++        .expect("the workspace root is two levels above the crate")
++        .to_path_buf()
++}
++
++/// Whether a line is a comment. **A lesson must be able to warn about the flag**, so comments are skipped:
++/// the hazard is an executable occurrence, and a comment saying "do not use this" is the opposite of one.
++fn is_comment(line: &str) -> bool {
++    let t = line.trim_start();
++    t.starts_with('#') || t.starts_with("//")
++}
++
++#[test]
++fn no_executable_workflow_edits_a_comment_by_position() {
++    let root = harness_root();
++    let mut files = Vec::new();
++    files_with_ext(
++        &root.join("scripts").join("harness"),
++        &[".py", ".sh", ".bash"],
++        &mut files,
++    );
++    files_with_ext(
++        &root.join(".github").join("workflows"),
++        &[".yml", ".yaml"],
++        &mut files,
++    );
++    assert!(
++        !files.is_empty(),
++        "found no scripts or workflows to scan - the test would pass vacuously"
++    );
++
++    let flag = "--edit-last";
++    let mut offenders = Vec::new();
++    for f in &files {
++        let Ok(text) = std::fs::read_to_string(f) else {
++            continue;
++        };
++        for (i, line) in text.lines().enumerate() {
++            if line.contains(flag) && !is_comment(line) {
++                offenders.push(format!("{}:{}: {}", f.display(), i + 1, line.trim()));
++            }
++        }
++    }
++    assert!(
++        offenders.is_empty(),
++        "a script or workflow edits a comment by POSITION - that flag edits the last comment on the \
++         issue, not the last one this lab wrote, and every lab here posts as one account. Edit by id \
++         instead: uor-harness comment edit --id <id> --body-file <f>.\n{}",
++        offenders.join("\n")
++    );
++}
++
++/// The scan must not be vacuous in either root: if one is empty the guard silently stops covering it.
++#[test]
++fn the_scan_covers_both_roots() {
++    let root = harness_root();
++    let mut scripts = Vec::new();
++    files_with_ext(
++        &root.join("scripts").join("harness"),
++        &[".py", ".sh", ".bash"],
++        &mut scripts,
++    );
++    let mut workflows = Vec::new();
++    files_with_ext(
++        &root.join(".github").join("workflows"),
++        &[".yml", ".yaml"],
++        &mut workflows,
++    );
++    assert!(!scripts.is_empty(), "scripts/harness has nothing to scan");
++    assert!(
++        !workflows.is_empty(),
++        ".github/workflows has nothing to scan"
++    );
++}
+diff --git a/docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md b/docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md
+new file mode 100644
+index 000000000..f746f2a1f
+--- /dev/null
++++ b/docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md
+@@ -0,0 +1,72 @@
++---
++id: edit-last-overwrites-another-labs-comment
++title: A comment was overwritten by `--edit-last` on a tracker where every lab posts as one account
++date: 2026-10-14
++severity: block
++class: coordination
++trigger: [edit comment, edit last, gh issue comment, edit-last, fix a typo, update a note, amend a post, correct a comment, edit body]
++paths: [docs/harness/**, scripts/harness/**, crates/uor-r4-harness/src/notes.rs]
++milestones: [m1]
++mechanism: ""
++guard: none: no check rule can intercept a direct `gh` call, and the harness had NO command that edits a comment - so `gh` was the only path and `--edit-last` was one flag away. The guard is `uor-harness comment edit --id <id> --body-file <f>`, which has no notion of "last", plus this lesson, which `mistakes find` surfaces when a lab touches the harness.
++evidence: [docs/labs/comment-guard-2026-10-14/README.md]
++status: active
++---
++
++## What happened
++
++Fixing a typo in my own status comment on #2028, I ran:
++
++```sh
++gh issue comment 2028 --edit-last --body-file local/queue-closed.md
++```
++
++`--edit-last` edits **the last comment on the issue** — not the last comment *by me*. Every lab posts
++through one shared account (`Casey-allard`), so there is no author filter to save you. It overwrote
++**comment `6145450989` from 2026-10-13T12:23:07Z**, replacing its entire body with mine.
++
++`--body-file` replaces the whole body, not the part you meant to change. **GitHub keeps no edit history for
++issue comments**, so the original text was unrecoverable: not through the API, not from the local caches (the
++notes cache covers the milestone issues, not #2028), and not from any quote of it. I posted a correction
++naming the id and timestamp and asked the author to repost. If it was mine the loss is small; **I cannot tell
++whose it was**, because the account is shared — which is itself the reason the flag is unsafe here.
++
++## Symptom
++
++A comment's text changes to something you wrote, under a timestamp you did not write it at. The tell is that
++the command *succeeded* and printed the URL of a comment you did not mean to touch — the edit you wanted is
++still unedited, so it looks like nothing happened.
++
++## Lesson
++
++**Give the safe path a first-class form, and make the unsafe form impossible to express.**
++
++The instinct is a rule that fails when a lab uses `--edit-last`. But **no machine check can intercept a
++direct `gh` call** — the same reason `unguarded-branch-delete` has `guard: none`. A guard that only warns
++leaves the dangerous path as the *only* path: the harness had no command that edits a comment at all, so
++every lab reached for `gh` and the flag was one keystroke away. That is why the guard here is a command
++rather than a warning, and why the machine check is explicitly the smaller half.
++
++`uor-harness comment edit --id <comment-id> --body-file <path>` edits exactly the comment named, because it
++has no concept of "last". Two smaller rules in the same family:
++
++* **Edit by id, never by position**, on any shared resource. Position is meaningful only to the writer.
++* **A shared account erases authorship.** Any command that infers its target from "the latest" is unsafe on
++  this tracker, because three labs are the same identity to GitHub. This is the same failure shape as the
++  claims store: an authority that looks singular but is shared.
++
++## How to apply
++
++```sh
++uor-harness comment edit --id <comment-id> --body-file <path>   # the safe path, by id
++```
++
++* **Editing a comment you wrote:** get its id first (the URL ends in the id), then pass that id. There is no
++  position-based form in the harness, deliberately.
++* **Editing anything else shared** — a claim, a presence row, a ledger shard — name the target explicitly and
++  never let a tool infer it from what happened most recently.
++* **If you find `--edit-last` in a script or workflow**, it fails `no_position_based_edits` in the harness
++  test suite; replace it with the id-addressed call.
++* **If it is already too late** — a comment was overwritten — post a correction naming the comment id and
++  timestamp immediately, and say plainly that the text is unrecoverable. Do not let a silent edit stand as
++  if the record were intact.
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index 7e3817737..f1d11d9f2 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -1,3 +1,28 @@
++## 2026-10-14 — a comment-edit guard, because the safe path did not exist (deepseek, tooling)
++
++The [record](../labs/comment-guard-2026-10-14/README.md) carries the three parts and the live verification.
++**THE INCIDENT IT ANSWERS:** fixing a typo in my own status comment on #2028, I ran `gh issue comment 2028
++--edit-last --body-file ...` — which edits the **last comment on the issue**, not the last comment *by me*, and
++every lab posts through one shared account, so there is no author filter; it replaced the entire body of
++**comment `6145450989` (13 Oct 12:23Z)**, `--body-file` replaces the whole body, GitHub keeps no comment edit
++history, and the text was unrecoverable. **THE GUARD, IN THREE PARTS:** (1) **the safe path exists** — the
++harness had **no command that edits a comment at all**, so `gh` was the only path and the hazardous flag was one
++keystroke away; a warning would not have prevented what happened, so `uor-harness comment edit --id
++<comment-id> --body-file <path>` now edits exactly the comment named and **cannot express "last"**; (2) **the
++lesson surfaces one step before the mistake** —
++`docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md`, severity `block`, with the trigger words a
++lab would be typing, so `mistakes find -f` raises it before the command; (3) **a machine check on anything that
++executes** — the `no_position_based_edits` test scans `scripts/**` and `.github/**` and fails with the file,
++line and the id-addressed replacement, and states its own limit: **it cannot intercept a hand-typed `gh`**, which
++is exactly why part 1 had to be built. **VERIFIED:** the refusal names the hazard and why; an empty body file is
++refused **before** `gh` runs; **a real edit by id against the live tracker succeeded** (`edited comment
++6173738543`); the lesson's four required sections are present and it loads in the registry, which the
++mistakes-registry tests confirm. **Verified:** **503 Rust tests passed, 6 ignored**; fmt and clippy `-D warnings`
++clean; `unittest` exit 0 with 0 failure lines; `parity.py` exit 0; interlock OK — 1641, baseline 1641. **Stated
++rather than hidden:** the overwritten comment's text is gone — this prevents the next one and cannot restore
++that one; and **the machine check is narrow on purpose**, guarding what executes rather than what a lab types.
++
++Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+ ## 2026-10-14 — `ReadSpec::Relation` bounded exact-relation reranker design card revised per D34 (antigravity, mechanisms line)
+ 
+ [`docs/mechanisms/finite-relational-head.md`](../mechanisms/finite-relational-head.md) (and [`docs/labs/finite-relational-head-design-2026-10-14/README.md`](../labs/finite-relational-head-design-2026-10-14/README.md) §3) is revised in place per Owner Decision [D34](DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate) (`4cef409fc`), Claude's independent adversarial review ([#2482](https://github.com/UOR-Foundation/uor-r4/pull/2482) at `618e422ce`), and Kimi PM's assignment ([#2028 comment 6175624248](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6175624248), [`6175886770`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6175886770), [`6178356343`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6178356343)):
+diff --git a/docs/labs/comment-guard-2026-10-14/README.md b/docs/labs/comment-guard-2026-10-14/README.md
+new file mode 100644
+index 000000000..1d19afea6
+--- /dev/null
++++ b/docs/labs/comment-guard-2026-10-14/README.md
+@@ -0,0 +1,52 @@
++# The safe path had to exist, not just be documented
++
++**Date:** 2026-10-14 · **Lab:** DeepSeek · **Line:** no model line — tooling · **Count:** 0/3
++**Owning work:** PM tasking — a harness guard against the `--edit-last` comment-overwrite hazard
++
++## What happened
++
++Fixing a typo in my own status comment on #2028, I ran `gh issue comment 2028 --edit-last --body-file ...`.
++`--edit-last` edits the **last comment on the issue**, not the last comment *by me* — and every lab posts
++through one shared account, so there is no author filter. It replaced the entire body of **comment
++`6145450989` (13 Oct 12:23Z)**. `--body-file` replaces the whole body, GitHub keeps no edit history, and the
++text was unrecoverable: not via the API, not from the local caches. I posted a correction naming the id and
++timestamp and asked the author to repost; I cannot tell whose it was, which is itself the reason the flag is
++unsafe here.
++
++## The guard, in three parts
++
++**1. The safe path exists — and that is the substantive fix.** The harness had **no command that edits a
++comment**, so `gh` was the only path and the hazardous flag was one keystroke away. A warning would not have
++prevented what happened to me. `uor-harness comment edit --id <comment-id> --body-file <path>` now edits
++exactly the comment named and **cannot express "last"** — there is no position-based form to reach for.
++
++**2. The lesson surfaces where the mistake is one step from being repeated.**
++`docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md`, severity `block`, `class: coordination`,
++carrying the trigger words a lab would be typing (`edit comment`, `fix a typo`, `gh issue comment`, `edit
++body`) so `mistakes find -f` raises it before the command, not after.
++
++**3. A machine check on anything that executes.** `no_position_based_edits` scans `scripts/**` and
++`.github/**` for the flag and fails with the file, line and the id-addressed replacement. It is explicit
++about its limit: **it cannot intercept a hand-typed `gh`** — which is exactly why part 1 had to be built — but
++it stops the hazard being baked into a script or a workflow where it would fire on a schedule.
++
++## Verified
++
++| case | result |
++|---|---|
++| `comment edit` with no `--id` | refuses, and the message names the hazard and why |
++| an empty `--body-file` | refused **before** `gh` runs (a blank comment is the same loss with less noise) |
++| **a real edit by id against the live tracker** | `edited comment 6173738543: .../issues/2028#issuecomment-6173738543` |
++| the lesson's four required sections | present: `What happened`, `Symptom`, `Lesson`, `How to apply` |
++| the lesson loads in the registry | `block  edit-last-overwrites-another-labs-comment` |
++
++## Stated rather than hidden
++
++* **The overwritten comment's text is gone.** This unit prevents the next one; it cannot restore that one.
++* **The machine check is narrow on purpose.** It guards what executes, not what a lab types, and the record
++  says so rather than implying the hazard is fully closed.
++* **A note for the other task:** the same principle — a weaker claim must not be mistakable for a stronger
++  one — is why the id form refuses to infer a target, and why the DAG reader's range-verified reads will be
++  reported alongside the unverified remainder.
++
++Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+diff --git a/scripts/harness/doccheck.py b/scripts/harness/doccheck.py
+index 5cca38bd7..7eb8d5c81 100755
+--- a/scripts/harness/doccheck.py
++++ b/scripts/harness/doccheck.py
+@@ -206,6 +206,12 @@ RUST_ONLY_COMMANDS = frozenset(
+         # test_doccheck on main. Keeping it current is part of porting, not an afterthought.
+         "ratchet",
+         "version",
++        # The lesson at docs/harness/mistakes/edit-last-overwrites-another-labs-comment.md names
++        # `uor-harness comment edit`, and docs/harness/mistakes/** is inside this checker's discovery
++        # scope - so without this entry the resolver calls a shipped command unknown and reddens
++        # test_doccheck, exactly as `ratchet` did (#2346). A command is not ported until BOTH this set
++        # and the Rust ACCEPTED table know it.
++        "comment",
+     }
+ )
+ 

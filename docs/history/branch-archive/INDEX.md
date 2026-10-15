@@ -1,5 +1,21 @@
 # Branch archive
 
+## October 15 — superseded DeepSeek parked branches, retained inactive
+
+| Branch | Patch | Base commit | Restored tracked tree | Disposition |
+|---|---|---|---|---|
+| `deepseek/comment-guard` | [source patch](deepseek-comment-guard-superseded-20261015.patch) | `a6cd1d32dd866ac4a5efb7f34dddd013d675f3f4` | `da7c19a77ffa5ad7aa332af1676a208dc178ad48` | Superseded by Codex's #2500 (merged `5c4a2c86715727fa72dfe72100841937f090e944`); PR #2488 closed as superseded on 15 October |
+| `deepseek/recon-dag` | [source patch](deepseek-recon-dag-superseded-20261015.patch) | `4cef409fcd3cb780db2056182148887541b5cf3e` | `3c889b10a4f077db7560840b9544e876e12f2cb2` | Superseded by Codex's #2501 (merged `fd01c98cfc3a5bc81284053b8aef4eb007398e29`); PR #2489 closed as superseded on 15 October. **Includes the worktree's uncommitted tracked changes** (`crates/uor-r4-recon-dag/src/lib.rs`, `tests/reader.rs`) |
+
+Patch SHA256 values are respectively
+`495339fe258eff3b67f6763de43eb9f6f4ff97789f0df2c61a6be3d716ca007c` and
+`135032010d47642181345d85e4c35e2a6396d932822c7eece1da6ada03065c42`.
+Isolated-index application reproduces both complete tracked trees exactly (verified: `git read-tree <base>`,
+`git apply --cached <patch>`, `git write-tree`). Neither branch was content-merged into `main` — the successors
+continued the work rather than landing these trees — which is why they are archived before deletion rather than
+deleted as redundant. No archived code is activated or executed; no hold is released.
+The [record](../../labs/deepseek-branch-archive-2026-10-15/README.md) carries the measurements.
+
 ## October 15 — stale Codex worktrees, retained inactive
 
 | Worktree | Patch | Base commit | Restored tracked tree | Disposition |

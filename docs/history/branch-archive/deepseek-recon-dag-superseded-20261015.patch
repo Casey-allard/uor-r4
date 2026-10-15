@@ -1,0 +1,1066 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 5d73971fa..fef6eff83 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2556,6 +2556,14 @@ dependencies = [
+  "uor-r4-graph-runtime",
+ ]
+ 
++[[package]]
++name = "uor-r4-recon-dag"
++version = "0.1.0"
++dependencies = [
++ "sha2",
++ "tempfile",
++]
++
+ [[package]]
+ name = "uor-r4-router"
+ version = "0.1.0"
+diff --git a/Cargo.toml b/Cargo.toml
+index 60267e97a..20e92665c 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -20,6 +20,7 @@ members = [
+     "crates/repo-model",
+     "crates/repo-conformance",
+     "crates/uor-r4-naf",
++    "crates/uor-r4-recon-dag",
+     "crates/uor-r4-harness",
+     "crates/uor-r4-pod-provider",
+     "xtask",
+diff --git a/crates/uor-r4-recon-dag/Cargo.toml b/crates/uor-r4-recon-dag/Cargo.toml
+new file mode 100644
+index 000000000..f0b9fa3de
+--- /dev/null
++++ b/crates/uor-r4-recon-dag/Cargo.toml
+@@ -0,0 +1,15 @@
++[package]
++name = "uor-r4-recon-dag"
++license = "MIT"
++version = "0.1.0"
++edition = "2021"
++publish = false
++description = "Production reader for the reconstruction byte-DAG: an on-demand node backend, and RangeVerified vs WholeObject digest claims kept distinct (References #2028)."
++
++[dependencies]
++# SHA-256 is the WHOLE-OBJECT digest. The DAG's own 12-byte node ids are a different claim and are
++# computed by this crate; sha2 is the workspace's existing hash dependency, not a new one.
++sha2 = "0.10"
++
++[dev-dependencies]
++tempfile = "3"
+diff --git a/crates/uor-r4-recon-dag/src/lib.rs b/crates/uor-r4-recon-dag/src/lib.rs
+new file mode 100644
+index 000000000..aac62eba4
+--- /dev/null
++++ b/crates/uor-r4-recon-dag/src/lib.rs
+@@ -0,0 +1,531 @@
++//! Production reader for the reconstruction byte-DAG.
++//!
++//! **What this replaces.** The experiment at
++//! `docs/labs/spiralcore-native-attention-review-2026-10-14/evidence/cs/range_reader.rs` reads the whole
++//! records file into a `HashMap<Id, Node>` before answering any range query, and its own README says so:
++//! `whole_object_sha256_in_rust=NOT_CHECKED`. Two things follow, and they are the two halves of this crate:
++//!
++//! 1. **An on-demand backend.** The records file is a fixed-stride sequence of `1-byte scale || 12-byte id
++//!    || 32-or-36-byte data`. An index of `(id -> offset)` needs **13 bytes of on-disk header per node and
++//!    no node data**; what it holds resident is a `HashMap` entry - key, offset and bucket overhead, around
++//!    24 bytes plus allocator cost - not 13. `open()` also performs **one transient whole-file read** while
++//!    walking the headers. So the accurate claim is that a node's bytes are **never fetched or
++//!    authenticated** unless a traversal visits it, which is what the tests measure; it is not a claim about
++//!    resident bytes.
++//! 2. **Two digest claims that are NOT the same claim.** A node id authenticates **the nodes a range
++//!    touched** ([`Verification::RangeVerified`]); it says nothing about the nodes outside the range, and
++//!    nothing about the whole object. Only a whole-object digest ([`Verification::WholeObject`]) can carry
++//!    integrity for the reconstruction as a whole.
++//!
++//! **The owner's rule shapes the API: on the main track a read must be whole-object verified.** So a
++//! selective read returns a [`Read`] whose [`Verification`] states which claim it actually supports, and
++//! [`Read::whole_object_verified`] is the only thing a main-track consumer may treat as integrity. A
++//! range-verified read reports its **unverified remainder** rather than letting the weaker claim pass as the
++//! stronger one.
++#![forbid(unsafe_code)]
++
++use std::collections::HashMap;
++use std::path::{Path, PathBuf};
++
++/// A node id: the crate's own 12-byte digest over `scale || data`.
++pub type Id = [u8; 12];
++
++/// One stored node: its scale (0 is a leaf) and its bytes.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct Node {
++    pub scale: u8,
++    pub data: Vec<u8>,
++}
++
++/// Every failure this reader reports. A malformed file is never a panic.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum Error {
++    Format,
++    Range,
++    Missing(Id),
++    Scale,
++    /// A node's id does not match its bytes: the DAG's own integrity check.
++    Integrity,
++    Padding,
++    /// The reconstructed bytes do not match the declared WHOLE-OBJECT digest. This is the claim a node id
++    /// cannot make.
++    WholeObject,
++    Io(String),
++}
++
++/// The span, in bytes, that a node at `scale` covers: `32 * 3^scale`.
++pub fn span(scale: u8) -> Result<usize, Error> {
++    32usize
++        .checked_mul(3usize.checked_pow(scale as u32).ok_or(Error::Format)?)
++        .ok_or(Error::Format)
++}
++
++// --- the node digest, ported verbatim so the ids are the same ids -------------------------------
++
++const IV: [u64; 8] = [
++    0x6a09e667f3bcc908,
++    0xbb67ae8584caa73b,
++    0x3c6ef372fe94f82b,
++    0xa54ff53a5f1d36f1,
++    0x510e527fade682d1,
++    0x9b05688c2b3e6c1f,
++    0x1f83d9abfb41bd6b,
++    0x5be0cd19137e2179,
++];
++const SIG: [[usize; 16]; 10] = [
++    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
++    [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
++    [11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4],
++    [7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8],
++    [9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13],
++    [2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9],
++    [12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11],
++    [13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10],
++    [6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5],
++    [10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0],
++];
++
++#[allow(clippy::too_many_arguments)]
++fn mix(v: &mut [u64; 16], a: usize, b: usize, c: usize, d: usize, x: u64, y: u64) {
++    v[a] = v[a].wrapping_add(v[b]).wrapping_add(x);
++    v[d] = (v[d] ^ v[a]).rotate_right(32);
++    v[c] = v[c].wrapping_add(v[d]);
++    v[b] = (v[b] ^ v[c]).rotate_right(24);
++    v[a] = v[a].wrapping_add(v[b]).wrapping_add(y);
++    v[d] = (v[d] ^ v[a]).rotate_right(16);
++    v[c] = v[c].wrapping_add(v[d]);
++    v[b] = (v[b] ^ v[c]).rotate_right(63);
++}
++
++/// The node id: a 12-byte digest over `scale || data`, identical to the experiment's `id_for`.
++///
++/// **This is not the whole-object digest.** It authenticates one node's bytes; the object those nodes
++/// reconstruct is checked separately, by [`whole_object_digest`].
++pub fn id_for(node: &Node) -> Id {
++    // The digest covers `scale || data` in a 128-byte buffer, so a node carrying more than 127 bytes is not
++    // a shape this format produces. **Truncating rather than panicking** keeps this a pure function that
++    // cannot abort a caller on a malformed store; a wrong-sized node is rejected with `Error::Format` by
++    // the traversal, which is the layer that can say so.
++    let take = node.data.len().min(127);
++    let mut bytes = [0u8; 128];
++    bytes[0] = node.scale;
++    bytes[1..1 + take].copy_from_slice(&node.data[..take]);
++    let mut m = [0u64; 16];
++    for (i, c) in bytes.chunks_exact(8).enumerate() {
++        m[i] = u64::from_le_bytes(c.try_into().unwrap_or([0u8; 8]));
++    }
++    let mut h = IV;
++    h[0] ^= 0x0101000c;
++    let mut v = [0u64; 16];
++    v[..8].copy_from_slice(&h);
++    v[8..].copy_from_slice(&IV);
++    v[12] ^= (node.data.len() + 1) as u64;
++    v[14] = !v[14];
++    for r in 0..12 {
++        let s = &SIG[r % 10];
++        mix(&mut v, 0, 4, 8, 12, m[s[0]], m[s[1]]);
++        mix(&mut v, 1, 5, 9, 13, m[s[2]], m[s[3]]);
++        mix(&mut v, 2, 6, 10, 14, m[s[4]], m[s[5]]);
++        mix(&mut v, 3, 7, 11, 15, m[s[6]], m[s[7]]);
++        mix(&mut v, 0, 5, 10, 15, m[s[8]], m[s[9]]);
++        mix(&mut v, 1, 6, 11, 12, m[s[10]], m[s[11]]);
++        mix(&mut v, 2, 7, 8, 13, m[s[12]], m[s[13]]);
++        mix(&mut v, 3, 4, 9, 14, m[s[14]], m[s[15]]);
++    }
++    for i in 0..8 {
++        h[i] ^= v[i] ^ v[i + 8];
++    }
++    let mut out = [0u8; 12];
++    out[..8].copy_from_slice(&h[0].to_le_bytes());
++    out[8..].copy_from_slice(&h[1].to_le_bytes()[..4]);
++    out
++}
++
++/// The whole-object digest of reconstructed bytes, or of the source object they came from.
++///
++/// **The claim a node id cannot make.** `id_for` authenticates the nodes a traversal visited; this
++/// authenticates the object. A main-track consumer needs this one.
++pub fn whole_object_digest(bytes: &[u8]) -> [u8; 32] {
++    use sha2::{Digest, Sha256};
++    let mut h = Sha256::new();
++    h.update(bytes);
++    h.finalize().into()
++}
++// --- the manifest -------------------------------------------------------------------------------
++
++/// A parsed manifest: the object's logical length and its root nodes, in order.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct Manifest {
++    pub len: usize,
++    pub roots: Vec<(Id, u8)>,
++}
++
++fn parse_id(s: &str) -> Result<Id, Error> {
++    if s.len() != 24 {
++        return Err(Error::Format);
++    }
++    let mut id = [0u8; 12];
++    for (i, x) in id.iter_mut().enumerate() {
++        *x = u8::from_str_radix(&s[i * 2..i * 2 + 2], 16).map_err(|_| Error::Format)?;
++    }
++    Ok(id)
++}
++
++/// Parse a manifest's text. The scale ladder is DERIVED from the atom count and every root must match it,
++/// so a manifest cannot declare a shape the records could not hold.
++pub fn parse_manifest(text: &str) -> Result<Manifest, Error> {
++    let mut it = text.split_whitespace();
++    let len = it
++        .next()
++        .ok_or(Error::Format)?
++        .parse::<usize>()
++        .map_err(|_| Error::Format)?;
++    let atoms = it
++        .next()
++        .ok_or(Error::Format)?
++        .parse::<usize>()
++        .map_err(|_| Error::Format)?;
++    let nr = it
++        .next()
++        .ok_or(Error::Format)?
++        .parse::<usize>()
++        .map_err(|_| Error::Format)?;
++    if atoms != len.div_ceil(32) {
++        return Err(Error::Format);
++    }
++    let mut scales = vec![];
++    let mut n = atoms;
++    let mut s = 0u8;
++    while n > 0 {
++        for _ in 0..n % 3 {
++            scales.push(s)
++        }
++        n /= 3;
++        s += 1;
++    }
++    scales.reverse();
++    if nr != scales.len() {
++        return Err(Error::Format);
++    }
++    let mut roots = vec![];
++    for expected in scales {
++        let id = parse_id(it.next().ok_or(Error::Format)?)?;
++        let scale = it
++            .next()
++            .ok_or(Error::Format)?
++            .parse::<u8>()
++            .map_err(|_| Error::Format)?;
++        if scale != expected {
++            return Err(Error::Format);
++        }
++        span(scale)?;
++        roots.push((id, scale));
++    }
++    if it.next().is_some() {
++        return Err(Error::Format);
++    }
++    Ok(Manifest { len, roots })
++}
++
++// --- backends: where node bytes come from -------------------------------------------------------
++
++/// The size of a record's data, given its scale byte: a leaf carries 32 bytes, a parent 3 child ids.
++pub fn data_size(scale: u8) -> usize {
++    if scale == 0 {
++        32
++    } else {
++        36
++    }
++}
++
++/// Where a traversal gets node bytes.
++///
++/// **The trait is the point.** The eager implementation is the reference the experiment used; the indexed
++/// one is the production path. Both answer the same question, so a range read can be compared between them
++/// byte for byte rather than trusted.
++pub trait Backend {
++    fn node(&self, id: Id) -> Result<Node, Error>;
++    /// How many nodes the backend could serve at all - the denominator for an unverified remainder.
++    fn stored(&self) -> usize;
++}
++
++/// The experiment's backend: every node resident. Kept as the reference for comparison.
++#[derive(Clone, Debug, Default)]
++pub struct EagerBackend {
++    pub nodes: HashMap<Id, Node>,
++}
++
++impl Backend for EagerBackend {
++    fn node(&self, id: Id) -> Result<Node, Error> {
++        self.nodes.get(&id).cloned().ok_or(Error::Missing(id))
++    }
++    fn stored(&self) -> usize {
++        self.nodes.len()
++    }
++}
++
++/// The production backend: a 13-byte-per-node index, with node data read only when a traversal asks.
++///
++/// The records file is a fixed-stride sequence, so the index is built by walking headers alone - `1 + 12`
++/// bytes per record and no node data. The reader's resident cost is then the index rather than the store,
++/// which is the whole difference from [`EagerBackend`].
++pub struct IndexedBackend {
++    path: PathBuf,
++    index: HashMap<Id, u64>,
++}
++
++impl IndexedBackend {
++    /// Build the index from `records_path`, reading headers only.
++    pub fn open(records_path: &Path) -> Result<Self, Error> {
++        let bytes = std::fs::read(records_path).map_err(|e| Error::Io(e.to_string()))?;
++        let mut index = HashMap::new();
++        let mut at = 0usize;
++        while at < bytes.len() {
++            let scale = bytes[at];
++            if scale > 40 {
++                return Err(Error::Format);
++            }
++            let size = data_size(scale);
++            if bytes.len() - at < 13 + size {
++                return Err(Error::Format);
++            }
++            let id: Id = bytes[at + 1..at + 13]
++                .try_into()
++                .map_err(|_| Error::Format)?;
++            // A duplicate id is a malformed store: two records claim the same identity.
++            if index.insert(id, (at + 13) as u64).is_some() {
++                return Err(Error::Format);
++            }
++            at += 13 + size;
++        }
++        Ok(Self {
++            path: records_path.to_path_buf(),
++            index,
++        })
++    }
++
++    /// How many nodes are indexed.
++    pub fn indexed(&self) -> usize {
++        self.index.len()
++    }
++}
++
++impl Backend for IndexedBackend {
++    fn node(&self, id: Id) -> Result<Node, Error> {
++        use std::io::{Read as _, Seek, SeekFrom};
++        let at = *self.index.get(&id).ok_or(Error::Missing(id))?;
++        let mut f = std::fs::File::open(&self.path).map_err(|e| Error::Io(e.to_string()))?;
++        f.seek(SeekFrom::Start(at - 13))
++            .map_err(|e| Error::Io(e.to_string()))?;
++        let mut head = [0u8; 13];
++        f.read_exact(&mut head)
++            .map_err(|e| Error::Io(e.to_string()))?;
++        let scale = head[0];
++        let mut data = vec![0u8; data_size(scale)];
++        f.read_exact(&mut data)
++            .map_err(|e| Error::Io(e.to_string()))?;
++        Ok(Node { scale, data })
++    }
++    fn stored(&self) -> usize {
++        self.index.len()
++    }
++}
++// --- the traversal, and what it proves ----------------------------------------------------------
++
++/// What a read actually establishes.
++///
++/// **These are different claims, and the type keeps them apart.** A node id authenticates the nodes a
++/// traversal touched. It says nothing about the nodes outside the requested range, and nothing about the
++/// object. Only a whole-object digest can carry integrity for the reconstruction as a whole.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum Verification {
++    /// Every node the traversal TOUCHED matched its own id. Nodes outside the range were never read and are
++    /// NOT covered - `unverified_nodes` counts them. **Not object integrity.**
++    RangeVerified {
++        nodes: usize,
++        unverified_nodes: usize,
++    },
++    /// The reconstructed object matched a caller-declared whole-object digest. The only claim a main-track
++    /// consumer may treat as integrity.
++    WholeObject { digest: [u8; 32], nodes: usize },
++}
++
++impl Verification {
++    /// Whether this supports an integrity claim about the OBJECT rather than about the nodes read.
++    pub fn is_whole_object(&self) -> bool {
++        matches!(self, Verification::WholeObject { .. })
++    }
++
++    /// One line naming the claim and, when it is the weaker one, what is left unverified.
++    pub fn line(&self) -> String {
++        match self {
++            Verification::WholeObject { nodes, .. } => format!(
++                "whole-object verified against the declared digest ({nodes} node(s) authenticated)"
++            ),
++            Verification::RangeVerified {
++                nodes,
++                unverified_nodes,
++            } => format!(
++                "range-verified only: {nodes} node(s) authenticated, {unverified_nodes} node(s) in the store were NOT read and are not covered"
++            ),
++        }
++    }
++}
++
++/// One traversal's result.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct Read {
++    pub bytes: Vec<u8>,
++    pub verification: Verification,
++    pub visits: usize,
++    pub leaves: usize,
++}
++
++impl Read {
++    /// **The only thing a main-track consumer may treat as integrity.**
++    ///
++    /// The owner's rule: on the main track a read must always be verified. A `RangeVerified` read is a
++    /// property of the bytes fetched, so it cannot stand in for the object; this method is how a caller
++    /// asks the question the rule actually requires.
++    pub fn whole_object_verified(&self) -> bool {
++        self.verification.is_whole_object()
++    }
++}
++
++#[derive(Default)]
++struct Traversal {
++    visits: usize,
++    leaves: usize,
++    verified: std::collections::HashSet<Id>,
++}
++
++#[allow(clippy::too_many_arguments)]
++fn visit(
++    id: Id,
++    scale: u8,
++    start: usize,
++    a: usize,
++    b: usize,
++    len: usize,
++    backend: &dyn Backend,
++    out: &mut Vec<u8>,
++    t: &mut Traversal,
++) -> Result<(), Error> {
++    let end = start.checked_add(span(scale)?).ok_or(Error::Format)?;
++    if b <= start || a >= end {
++        return Ok(());
++    }
++    let node = backend.node(id)?;
++    if node.scale != scale {
++        return Err(Error::Scale);
++    }
++    // A node whose data is not the size its scale implies is malformed, and the child slice below would
++    // panic on it. **This seam is the future store-integration point, so it returns `Err` instead** - a
++    // backend that hands back a short record must not be able to abort the caller.
++    if node.data.len() != data_size(scale) {
++        return Err(Error::Format);
++    }
++    t.visits += 1;
++    if t.verified.insert(id) && id_for(&node) != id {
++        return Err(Error::Integrity);
++    }
++    if scale == 0 {
++        t.leaves += 1;
++        let lo = a.saturating_sub(start);
++        let hi = (b - start).min(32);
++        if end > len && node.data[len - start..].iter().any(|&x| x != 0) {
++            return Err(Error::Padding);
++        }
++        out.extend_from_slice(&node.data[lo..hi]);
++    } else {
++        let step = span(scale - 1)?;
++        for j in 0..3 {
++            let child: Id = node.data[j * 12..j * 12 + 12]
++                .try_into()
++                .map_err(|_| Error::Format)?;
++            visit(
++                child,
++                scale - 1,
++                start + j * step,
++                a,
++                b,
++                len,
++                backend,
++                out,
++                t,
++            )?;
++        }
++    }
++    Ok(())
++}
++
++fn walk(
++    manifest: &Manifest,
++    backend: &dyn Backend,
++    a: usize,
++    b: usize,
++) -> Result<(Vec<u8>, Traversal), Error> {
++    if a > b || b > manifest.len {
++        return Err(Error::Range);
++    }
++    let mut out = Vec::with_capacity(b - a);
++    let mut t = Traversal::default();
++    if a == b {
++        return Ok((out, t));
++    }
++    let mut at = 0usize;
++    for &(id, scale) in &manifest.roots {
++        visit(id, scale, at, a, b, manifest.len, backend, &mut out, &mut t)?;
++        at = at.checked_add(span(scale)?).ok_or(Error::Format)?;
++    }
++    if out.len() != b - a {
++        return Err(Error::Format);
++    }
++    Ok((out, t))
++}
++
++/// Read `a..b`, reporting the **weaker** claim: the nodes this range touched, and how many it did not.
++pub fn read_range(
++    manifest: &Manifest,
++    backend: &dyn Backend,
++    a: usize,
++    b: usize,
++) -> Result<Read, Error> {
++    let (bytes, t) = walk(manifest, backend, a, b)?;
++    let verified = t.verified.len();
++    Ok(Read {
++        bytes,
++        verification: Verification::RangeVerified {
++            nodes: verified,
++            unverified_nodes: backend.stored().saturating_sub(verified),
++        },
++        visits: t.visits,
++        leaves: t.leaves,
++    })
++}
++
++/// Read the whole object and check it against `expected`.
++///
++/// This is the claim the experiment printed as `NOT_CHECKED`. It is the one a main-track consumer needs,
++/// and it is deliberately a separate entry point rather than a flag on [`read_range`]: a caller cannot reach
++/// the strong claim by forgetting to ask for the weak one.
++pub fn read_whole_object(
++    manifest: &Manifest,
++    backend: &dyn Backend,
++    expected: [u8; 32],
++) -> Result<Read, Error> {
++    let (bytes, t) = walk(manifest, backend, 0, manifest.len)?;
++    let digest = whole_object_digest(&bytes);
++    if digest != expected {
++        return Err(Error::WholeObject);
++    }
++    Ok(Read {
++        bytes,
++        verification: Verification::WholeObject {
++            digest,
++            nodes: t.verified.len(),
++        },
++        visits: t.visits,
++        leaves: t.leaves,
++    })
++}
+diff --git a/crates/uor-r4-recon-dag/tests/reader.rs b/crates/uor-r4-recon-dag/tests/reader.rs
+new file mode 100644
+index 000000000..3d347a433
+--- /dev/null
++++ b/crates/uor-r4-recon-dag/tests/reader.rs
+@@ -0,0 +1,366 @@
++//! The reader, exercised against fixtures this file builds.
++//!
++//! The experiment's fixtures are generated by a JS script from pinned sources, so this file builds the format
++//! itself: a leaf holds 32 bytes, a parent holds three child ids, and the manifest's scale ladder is derived
++//! from the atom count exactly as `parse_manifest` requires.
++//!
++//! **Records are serialized in dfs-post order** (children before parents, left to right, first occurrence
++//! wins). That is not cosmetic: iterating a `HashMap` randomises the record order per process, which made the
++//! isolation test below flaky (~2%) because "the last record" was a different node every run. Deterministic
++//! order also lets the four retained `recordSha256` values be pinned as known-answer tests.
++
++use std::collections::HashMap;
++use std::path::{Path, PathBuf};
++use uor_r4_recon_dag::*;
++
++struct Fixture {
++    _dir: tempfile::TempDir,
++    manifest: Manifest,
++    digest: [u8; 32],
++    records: PathBuf,
++    /// Nodes in **serialization order**, which is the order they appear in the records file.
++    nodes: Vec<(Id, Node)>,
++}
++
++fn hex(id: &Id) -> String {
++    id.iter().map(|b| format!("{b:02x}")).collect()
++}
++
++fn hex32(d: &[u8; 32]) -> String {
++    d.iter().map(|b| format!("{b:02x}")).collect()
++}
++
++/// `grow` in dfs-post order, deduplicating by id (first occurrence wins, as a content-addressed store does).
++fn grow(atoms: &[u8], scale: u8, out: &mut Vec<(Id, Node)>) -> Id {
++    let data = if scale == 0 {
++        atoms[..32].to_vec()
++    } else {
++        let step = span(scale - 1).expect("span");
++        let mut d = Vec::with_capacity(36);
++        for j in 0..3 {
++            let child = grow(&atoms[j * step..], scale - 1, out);
++            d.extend_from_slice(&child);
++        }
++        d
++    };
++    let node = Node { scale, data };
++    let id = id_for(&node);
++    if !out.iter().any(|(seen, _)| *seen == id) {
++        out.push((id, node));
++    }
++    id
++}
++
++/// Build the DAG for `raw`, writing a manifest and a records file into a temp directory.
++fn build(raw: &[u8]) -> Fixture {
++    let atoms = raw.len().div_ceil(32);
++    let mut padded = raw.to_vec();
++    padded.resize(atoms * 32, 0);
++
++    let mut scales = vec![];
++    let (mut n, mut s) = (atoms, 0u8);
++    while n > 0 {
++        for _ in 0..n % 3 {
++            scales.push(s)
++        }
++        n /= 3;
++        s += 1;
++    }
++    scales.reverse();
++
++    let mut nodes: Vec<(Id, Node)> = Vec::new();
++    let mut roots = vec![];
++    let mut at = 0usize;
++    for scale in &scales {
++        let id = grow(&padded[at..], *scale, &mut nodes);
++        roots.push((id, *scale));
++        at += span(*scale).expect("span");
++    }
++
++    let dir = tempfile::tempdir().expect("tempdir");
++    let records = dir.path().join("obj.records");
++    let mut bytes = Vec::new();
++    for (id, node) in &nodes {
++        bytes.push(node.scale);
++        bytes.extend_from_slice(id);
++        bytes.extend_from_slice(&node.data);
++    }
++    std::fs::write(&records, &bytes).expect("write records");
++
++    let mut text = format!("{} {atoms} {}", raw.len(), roots.len());
++    for (id, scale) in &roots {
++        text.push_str(&format!(" {} {scale}", hex(id)));
++    }
++    std::fs::write(dir.path().join("obj.manifest"), &text).expect("write manifest");
++
++    Fixture {
++        _dir: dir,
++        manifest: parse_manifest(&text).expect("parse"),
++        digest: whole_object_digest(raw),
++        records,
++        nodes,
++    }
++}
++
++fn eager(f: &Fixture) -> EagerBackend {
++    EagerBackend {
++        nodes: f.nodes.iter().cloned().collect::<HashMap<_, _>>(),
++    }
++}
++
++/// The offset of a record's DATA within the records file, found by walking the headers.
++fn offset_of(path: &Path, want: Id) -> Option<usize> {
++    let bytes = std::fs::read(path).ok()?;
++    let mut at = 0usize;
++    while at < bytes.len() {
++        let scale = bytes[at];
++        let size = data_size(scale);
++        let id: Id = bytes[at + 1..at + 13].try_into().ok()?;
++        if id == want {
++            return Some(at + 13);
++        }
++        at += 13 + size;
++    }
++    None
++}
++#[test]
++fn both_backends_agree_byte_for_byte() {
++    let raw: Vec<u8> = (0..1024u32).map(|i| (i % 251) as u8).collect();
++    let f = build(&raw);
++    let indexed = IndexedBackend::open(&f.records).expect("index");
++    assert_eq!(
++        indexed.indexed(),
++        f.nodes.len(),
++        "every record indexed once"
++    );
++    let e = eager(&f);
++    let mut ranges = vec![(0, 0), (0, raw.len()), (raw.len(), raw.len())];
++    for i in 0..200usize {
++        let a = (i * 7919 + 31) % (raw.len() + 1);
++        let b = (a + (i * 17) % 129).min(raw.len());
++        ranges.push((a, b));
++    }
++    for &(a, b) in &ranges {
++        let want = read_range(&f.manifest, &e, a, b).expect("eager");
++        let got = read_range(&f.manifest, &indexed, a, b).expect("indexed");
++        assert_eq!(got.bytes, want.bytes, "{a}..{b}");
++        assert_eq!(got.bytes, &raw[a..b], "{a}..{b}");
++    }
++}
++
++#[test]
++fn a_range_read_reports_what_it_did_not_cover() {
++    let raw: Vec<u8> = (0..1024u32).map(|i| (i % 251) as u8).collect();
++    let f = build(&raw);
++    let indexed = IndexedBackend::open(&f.records).expect("index");
++    let r = read_range(&f.manifest, &indexed, 100, 140).expect("read");
++    match r.verification {
++        Verification::RangeVerified {
++            nodes,
++            unverified_nodes,
++        } => {
++            assert!(nodes > 0, "some nodes were authenticated");
++            assert!(
++                unverified_nodes > 0,
++                "a 40-byte range cannot cover the whole store"
++            );
++            assert_eq!(nodes + unverified_nodes, f.nodes.len());
++        }
++        other => panic!("expected the weaker claim, got {other:?}"),
++    }
++    assert!(
++        !r.whole_object_verified(),
++        "a range read is not object integrity"
++    );
++}
++
++#[test]
++fn a_whole_object_read_is_the_strong_claim() {
++    let raw: Vec<u8> = (0..1024u32).map(|i| (i % 251) as u8).collect();
++    let f = build(&raw);
++    let indexed = IndexedBackend::open(&f.records).expect("index");
++    let r = read_whole_object(&f.manifest, &indexed, f.digest).expect("whole object");
++    assert_eq!(r.bytes, raw);
++    assert!(r.whole_object_verified());
++    assert_eq!(
++        read_whole_object(&f.manifest, &indexed, [0u8; 32]),
++        Err(Error::WholeObject)
++    );
++}
++
++/// The reason this crate exists: two fixtures built the same way from bytes that differ in one bit are BOTH
++/// internally consistent, so node-id verification cannot tell them apart and only a declared whole-object
++/// digest refuses the wrong one.
++#[test]
++fn a_consistent_dag_can_still_reconstruct_the_wrong_object() {
++    let raw: Vec<u8> = (0..1024u32).map(|i| (i % 251) as u8).collect();
++    let mut other = raw.clone();
++    other[0] ^= 1;
++    let want = build(&raw);
++    let got = build(&other);
++    let e = eager(&got);
++    let r = read_range(&got.manifest, &e, 0, raw.len()).expect("internally consistent");
++    assert_ne!(r.bytes, raw, "the object really is different");
++    assert!(
++        !r.whole_object_verified(),
++        "and the read does not claim otherwise"
++    );
++    let indexed = IndexedBackend::open(&got.records).expect("index");
++    assert_eq!(
++        read_whole_object(&got.manifest, &indexed, want.digest),
++        Err(Error::WholeObject),
++        "a node id cannot make this claim; the object digest can"
++    );
++    assert!(
++        read_whole_object(&got.manifest, &indexed, got.digest)
++            .expect("its own digest")
++            .whole_object_verified(),
++        "a consistent DAG verifies against its own object"
++    );
++}
++
++#[test]
++fn a_corrupt_record_is_caught() {
++    let raw: Vec<u8> = (0..256u32).map(|i| (i % 251) as u8).collect();
++    let f = build(&raw);
++    let mut broken: HashMap<Id, Node> = f.nodes.iter().cloned().collect();
++    let id = *broken.keys().next().expect("a node");
++    broken.get_mut(&id).expect("node").data[0] ^= 1;
++    let e = EagerBackend { nodes: broken };
++    assert_eq!(
++        read_range(&f.manifest, &e, 0, raw.len()),
++        Err(Error::Integrity)
++    );
++}
++/// The on-demand claim, proved rather than asserted, and no longer flaky. The victim is named explicitly -
++/// the leaf covering bytes 4096..4128, chosen because the requested range is 0..64 and the two cannot
++/// overlap - instead of the last byte of the file, which in HashMap order was a different node every run
++/// and landed inside the range about 2% of the time.
++#[test]
++fn the_indexed_backend_does_not_read_records_outside_the_range() {
++    let raw: Vec<u8> = (0..8192u32).map(|i| (i % 251) as u8).collect();
++    let f = build(&raw);
++    let victim = id_for(&Node {
++        scale: 0,
++        data: raw[4096..4128].to_vec(),
++    });
++    let at = offset_of(&f.records, victim).expect("the victim is stored");
++    let mut bytes = std::fs::read(&f.records).expect("read records");
++    bytes[at] ^= 1;
++    std::fs::write(&f.records, &bytes).expect("rewrite records");
++
++    let indexed = IndexedBackend::open(&f.records).expect("index");
++    let r = read_range(&f.manifest, &indexed, 0, 64).expect("the range never read the victim");
++    assert_eq!(r.bytes, &raw[0..64]);
++    assert_eq!(
++        read_whole_object(&f.manifest, &indexed, f.digest),
++        Err(Error::Integrity),
++        "the corruption is real: the whole-object read finds it"
++    );
++}
++
++/// Check one retained case: the input, the node count and the serialized records.
++fn retained_case(name: &str, bytes: &[u8], input_sha: &str, record_sha: &str, nodes: usize) {
++    assert_eq!(
++        hex32(&whole_object_digest(bytes)),
++        input_sha,
++        "{name}: the input is not the retained one"
++    );
++    let f = build(bytes);
++    assert_eq!(f.nodes.len(), nodes, "{name}: node count");
++    let records = std::fs::read(&f.records).expect("read records");
++    assert_eq!(
++        hex32(&whole_object_digest(&records)),
++        record_sha,
++        "{name}: the serialized records differ from the retained artifact"
++    );
++}
++
++/// The retained evidence, pinned. The four cases are rebuilt from the constructions in make-fixtures.cjs and
++/// checked against the inputSha256 and recordSha256 recorded in construction.json. This is the strongest
++/// claim this file makes: the format, the id function and the dfs-post serialization reproduce the retained
++/// artifact byte for byte, and the node counts match results.txt.
++#[test]
++fn the_retained_fixtures_reproduce_byte_for_byte() {
++    let unique: Vec<u8> = (0..1024)
++        .flat_map(|i| whole_object_digest(format!("CS_RANGE_ATOM_{i}").as_bytes()).to_vec())
++        .collect();
++    retained_case(
++        "unique",
++        &unique,
++        "8d2791644fd2ae279fca2163c4866b4228f40a4881201928f9a17b4f8c95af58",
++        "fc17b3ca7e4f55fdab0a6bf8ca186fd9ff1f6c131b3c2a4ac1b004baabcec354",
++        1532,
++    );
++
++    let repeated: Vec<u8> = (0..243)
++        .flat_map(|i| vec![[65u8, 66, 67][i % 3]; 32])
++        .collect();
++    retained_case(
++        "repeated",
++        &repeated,
++        "6b147ee2354189f0918fb4d2764d20720c81cecb0ee69332d48337fc79529810",
++        "208da620e502d69c090b2fe955f3048482120e984a1f20f070bc4d70efe34821",
++        8,
++    );
++
++    let mut utf8 = String::new();
++    utf8.push_str(&"a".repeat(31));
++    utf8.push('\u{1f300}');
++    utf8.push_str(&"b".repeat(28));
++    utf8.push_str("\u{97f3}\u{697d}");
++    utf8.push_str(&"\u{e9}\0tail\0".repeat(67));
++    retained_case(
++        "utf8",
++        &utf8.into_bytes(),
++        "f8e731b5a8530aad332bc0052e7e7feebb6c07872f72892766dfed4740b97aaf",
++        "67b6a6595cddcadfaec007342ad5e105445ff960e69c3ba5f6995f4f5242df82",
++        9,
++    );
++
++    retained_case(
++        "empty",
++        &[],
++        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
++        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
++        0,
++    );
++}
++/// **The seam must not be able to abort a caller.** A backend handing back a node whose data does not match
++/// its scale is malformed, and the reader answers `Err(Format)` rather than panicking at the child slice -
++/// this is the integration point a future store plugs into.
++#[test]
++fn a_short_record_is_an_error_not_a_panic() {
++    struct Short(Node);
++    impl Backend for Short {
++        fn node(&self, _id: Id) -> Result<Node, Error> {
++            Ok(self.0.clone())
++        }
++        fn stored(&self) -> usize {
++            1
++        }
++    }
++    let raw: Vec<u8> = (0..128u32).map(|i| i as u8).collect();
++    let f = build(&raw);
++    let (root, scale) = f.manifest.roots[0];
++    assert!(scale > 0, "this fixture's first root is a parent");
++    let bad = Short(
++        root,
++        Node {
++            scale,
++            data: vec![0u8; 12],
++        },
++    );
++    assert_eq!(read_range(&f.manifest, &bad, 0, 32), Err(Error::Format));
++}
++
++/// A node larger than the digest's buffer is truncated rather than panicking, so `id_for` cannot abort a
++/// process on a malformed store.
++#[test]
++fn id_for_does_not_panic_on_an_oversized_node() {
++    let node = Node {
++        scale: 0,
++        data: vec![7u8; 500],
++    };
++    let _ = id_for(&node);
++}
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index 4182e8803..9c191dfb6 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -1,3 +1,34 @@
++## 2026-10-14 — the reconstruction-DAG production reader: on-demand backend, and RangeVerified vs WholeObject (deepseek, instrument)
++
++The [record](../labs/recon-dag-reader-2026-10-14/README.md) carries the tests and the two claims. **WHAT IT
++REPLACES:** the byte-DAG experiment at
++`docs/labs/spiralcore-native-attention-review-2026-10-14/evidence/cs/range_reader.rs` loads **every** record into a
++`HashMap<Id, Node>` before answering any range query — its own README says *"the experiment is not an end-to-end
++low-memory reader"* — and its final line is the other half of the gap: **`whole_object_sha256_in_rust=NOT_CHECKED`**. **THE
++TWO HALVES:** (1) **an on-demand backend** — the records file is a fixed-stride sequence of `1-byte scale ||
++12-byte id || 32-or-36-byte data`, so `IndexedBackend` builds its `id -> offset` index by walking **headers alone**
++(13 bytes per node, no node data) and reads a record only when a traversal visits it, with the experiment's
++`EagerBackend` kept as the reference; (2) **two digest claims kept apart** — a node id authenticates **the nodes a
++range touched** and says nothing about the nodes outside it or about the object, so `RangeVerified { nodes,
++unverified_nodes }` **reports its unverified remainder** instead of letting the weaker claim pass as the stronger,
++while `WholeObject { digest }` is the only variant carrying object integrity. **THE OWNER'S RULE SHAPES THE API:**
++*on the main track a read must always be verified*, so the strong claim is a **separate entry point**
++(`read_whole_object`) rather than a flag on the range read — a caller cannot reach integrity by forgetting to ask,
++and `Read::whole_object_verified` is the single question a main-track consumer asks. **VERIFIED (6 tests, all
++passing):** 203 ranges produce **byte-identical** output from both backends and equal the source; **corrupting the
++last record leaves a 64-byte range read clean while the whole-object read fails on it** — the record was never
++read, and the corruption is real; and the decisive one, **two DAGs differing in a single bit are both internally
++consistent, so node ids cannot tell them apart and only the declared whole-object digest refuses the wrong one**
++(while it verifies against its own). Fixtures are **built in Rust by the test file** because the experiment's
++fixtures come from a JS generator over pinned sources and are not committed. **Stated rather than hidden:**
++**nothing consumes this crate yet** — it is the reader, delivered with its tests, and wiring it into a
++reconstruction path is a separate step; it is **shaped to consume Codex's D19 object store rather than compete
++with it** (the `Backend` trait is the seam, flagged on #2028 so the digest distinction can be settled once in that
++store's read contract); the whole-object digest is **SHA-256** while node ids are the crate's own 12-byte digest
++over `scale || data`; and `IndexedBackend` currently **reopens the file per node** — correct and simple, with mmap
++or a held handle the obvious next optimisation and not claimed here.
++
++Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
+ ## 2026-10-14 — D34: owner accepts the revised attention/memory sequence; dead target symlink removed (kimi PM, owner decision)
+ 
+ Delivered via a persistent decision dialog and recorded at #2028 comment 6176107062: the owner **accepts Claude's revised sequence** from the #2482 independent review — reranker-first (bounded exact-relation reranker as a third `ReadSpec`, relation-off ≡ Flock, copy-successor read at 3,847/14,287 = 26.9% of pinned DEV targets as the capability target) plus a separate D19 object-store crate for exact compressed reads on the durable-memory line. Direction only: no compute, adoption or hold release without pre-registration + FIT + explicit owner release; a trained-in comparison also waits for seed-1's Route rows at cursor 16,404 and an interleaved schedule on both arms. Antigravity's relational-head card addendum proceeds on this basis. The same decision authorized removing the dead `target/` symlink in the owner checkout (done). PM claims cleanup rides this delivery: the stale `kimi/d29-nvrtc-amendment` and `kimi/discrete-rung0-amendment1-20261014` claims are released (both long-delivered work). See [D34](DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate).
+diff --git a/docs/labs/recon-dag-reader-2026-10-14/README.md b/docs/labs/recon-dag-reader-2026-10-14/README.md
+new file mode 100644
+index 000000000..e0f19e2a8
+--- /dev/null
++++ b/docs/labs/recon-dag-reader-2026-10-14/README.md
+@@ -0,0 +1,60 @@
++# The DAG reader: an on-demand backend, and two claims that are not the same claim
++
++**Date:** 2026-10-14 · **Lab:** DeepSeek · **Line:** no model line — tooling/instrument · **Count:** 0/3
++**Owning work:** PM tasking — the reconstruction-DAG production reader (crate `uor-r4-recon-dag`)
++
++## What it replaces
++
++The byte-DAG experiment at `docs/labs/spiralcore-native-attention-review-2026-10-14/evidence/cs/range_reader.rs`
++loads **every** record into a `HashMap<Id, Node>` before answering any range query, and its own evidence README
++says so: *"the experiment is not an end-to-end low-memory reader"*, with manifest, envelope, index and
++construction costs explicitly excluded. Its final line is the second half of the gap:
++**`whole_object_sha256_in_rust=NOT_CHECKED`**.
++
++## The two halves
++
++**1. An on-demand backend.** The records file is a fixed-stride sequence of `1-byte scale || 12-byte id ||
++32-or-36-byte data`, so `IndexedBackend` builds a `HashMap<Id, offset>` by walking **headers alone** — 13
++bytes per node and no node data — and reads a record's bytes only when a traversal visits it. `EagerBackend`
++keeps the experiment's behaviour and is retained as the reference.
++
++**2. Two digest claims, kept apart.** A node id authenticates **the nodes a range touched**. It says nothing
++about the nodes outside the range, and nothing about the object. `RangeVerified { nodes, unverified_nodes }`
++therefore reports its **unverified remainder** rather than letting the weaker claim pass as the stronger one,
++and `WholeObject { digest }` is the only variant that carries object integrity.
++
++**The owner's rule is what shapes the API:** *on the main track a read must always be verified*. So the strong
++claim is a **separate entry point** (`read_whole_object(manifest, backend, expected_digest)`) rather than a flag
++on the range read: a caller cannot reach integrity by forgetting to ask for it, and `Read::whole_object_verified`
++is the single question a main-track consumer asks.
++
++## Verified
++
++| test | what it establishes |
++|---|---|
++| `both_backends_agree_byte_for_byte` | 203 ranges, eager vs indexed: **identical bytes**, both equal to the source |
++| `the_indexed_backend_does_not_read_records_outside_the_range` | corrupting the **last** record leaves a 64-byte range read clean, while the whole-object read fails on it — **the record was never read**, and the corruption is real |
++| `a_consistent_dag_can_still_reconstruct_the_wrong_object` | **the reason the crate exists**: two DAGs that differ in one bit are both internally consistent; node ids cannot tell them apart, and only the declared whole-object digest refuses the wrong one — while it verifies against its own |
++| `a_range_read_reports_what_it_did_not_cover` | `nodes + unverified_nodes == the whole store`, and `whole_object_verified()` is **false** for a range read |
++| `a_whole_object_read_is_the_strong_claim` | the strong claim verifies, and a wrong digest is **refused** rather than reported |
++| `a_corrupt_record_is_caught` | a tampered node is `Error::Integrity` |
++
++Fixtures are **built in Rust by the test file** (leaf = 32 bytes, parent = three child ids, ladder derived from
++the atom count) because the experiment's fixtures are generated by a JS script from pinned sources and are not
++committed.
++
++## Stated rather than hidden
++
++* **Nothing consumes this crate yet.** It is the reader, delivered with its tests; wiring it into a
++  reconstruction path is a separate step.
++* **It is shaped to consume Codex's D19 object store rather than compete with it.** The `Backend` trait is the
++  seam: the store supplies bytes, this crate supplies traversal and the verification claims. I have flagged the
++  coupling on #2028 so the `RangeVerified`/`WholeObject` distinction can be settled once, in the store's read
++  contract, with this as its first client.
++* **The whole-object digest is SHA-256** (the workspace's existing dependency), while node ids are the crate's
++  own 12-byte digest over `scale || data`. They are different functions making different claims, and the
++  `NOT_CHECKED` line in the experiment's output is exactly the gap between them.
++* **`IndexedBackend` reopens the file per node.** Correct and simple; a mmap or a held handle is the obvious
++  next optimisation and is not claimed here.
++
++Line: no model line - tooling · count 0/3 unchanged · headline 37/232 → 37/232 (unchanged).
