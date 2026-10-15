@@ -487,7 +487,12 @@ pub fn checkout_preserving_claims(
 
     let mut restored = false;
     if let Some(text) = preserved {
-        if std::fs::write(&claims, text).is_ok() {
+        // **The same atomic write as the claims commands.** This was the one committed-store write left
+        // on plain `fs::write`, which made the harness README false: it says the committed store is
+        // written by a temporary file plus a rename. The claim is the caller's own, restored in the
+        // caller's own checkout, and a truncate here could still be read as "no claims" by anything
+        // watching the file. Kimi PM's #2514 review F1.
+        if crate::team::write_atomic(&claims, &text).is_ok() {
             restored = true;
         }
     }

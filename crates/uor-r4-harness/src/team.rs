@@ -268,6 +268,36 @@ fn render(claims: &BTreeMap<String, Claim>) -> String {
     out
 }
 
+/// Write `text` to `path` atomically: a temporary file beside it, then a rename.
+///
+/// **Every claims write is a read-modify-write over a file several labs share**, and `fs::write`
+/// truncates before it writes. A peer publishing inside that window does not merely lose the race -
+/// the file is observably EMPTY first, so a concurrent reader can see no claims at all; and a crash
+/// mid-write leaves a half-file that parses as nothing, which for the live mirror means every lab
+/// loses sight of every claim until somebody rewrites it. A rename within one filesystem is atomic,
+/// so a reader sees the old file or the new one and never a torn one. Kimi PM's follow-up on #2513.
+pub(crate) fn write_atomic(path: &Path, text: &str) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    // Same directory, so the rename cannot cross a filesystem boundary (which is not atomic).
+    let tmp = path.with_extension(format!("tmp-{}", std::process::id()));
+    // **A failure must take its temp file with it.** A successful write that reported failure would be
+    // bad enough, but a LEAKED temp is worse than untidy: on the committed-store path it is an
+    // untracked `claims.tmp-<pid>` sitting in the delivery PR, and in the live tier it is litter every
+    // lab can see. Both steps remove it. Kimi PM reproduced the leak on an un-renameable target
+    // (#2514 F2).
+    if let Err(e) = std::fs::write(&tmp, text) {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e);
+    }
+    if let Err(e) = std::fs::rename(&tmp, path) {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e);
+    }
+    Ok(())
+}
+
 /// Save the committed store. The authority, so a failure here IS a failure.
 ///
 /// **R10 first:** a claim rides the caller's delivery PR, so it is written into the caller's own
@@ -275,11 +305,7 @@ fn render(claims: &BTreeMap<String, Claim>) -> String {
 pub fn save_claims(paths: &StatePaths, claims: &BTreeMap<String, Claim>) -> Result<(), String> {
     crate::state::refuse_shared_checkout(paths, "the claims store")?;
     let path = claims_file(paths);
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
-    }
-    std::fs::write(&path, render(claims))
+    write_atomic(&path, &render(claims))
         .map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
 
@@ -289,13 +315,7 @@ pub fn save_claims(paths: &StatePaths, claims: &BTreeMap<String, Claim>) -> Resu
 /// the one that survives review and cleanup. Returns whether it landed, for reporting rather than for
 /// gating.
 pub fn publish_claims_live(paths: &StatePaths, claims: &BTreeMap<String, Claim>) -> bool {
-    let path = live_claims_file(paths);
-    if let Some(parent) = path.parent() {
-        if std::fs::create_dir_all(parent).is_err() {
-            return false;
-        }
-    }
-    std::fs::write(&path, render(claims)).is_ok()
+    write_atomic(&live_claims_file(paths), &render(claims)).is_ok()
 }
 
 /// The current branch, or empty when detached.
@@ -391,7 +411,10 @@ pub fn claim_branch(
     };
     claims.insert(branch.to_string(), entry.clone());
     save_claims(paths, &claims).map_err(ClaimError::Usage)?;
-    publish_claims_live(paths, &claims);
+    // **The merged view, not the committed store.** Publishing the committed store deletes every
+    // claim that lives only in the live tier - a peer's claim, which is the tier's whole purpose.
+    // The new claim is already in the local store, so the view has it. Kimi PM's #2513 review (R1).
+    publish_claims_live(paths, &load_claims(paths));
     Ok(entry)
 }
 
@@ -406,15 +429,19 @@ pub fn release_branch(paths: &StatePaths, branch: &str, lab: &str) -> Result<Cla
     let Some(existing) = load_claims(paths).get(branch).cloned() else {
         return Err(ClaimError::NotHeld(branch.to_string()));
     };
-    // Releasing a claim that exists only in the live tier must still remove it there, so the
-    // committed store keeps whatever it had and the mirror is republished from it below.
+    // Releasing a claim that exists only in the live tier must still remove it there.
     claims.remove(branch);
     if !lab.is_empty() && !existing.lab.is_empty() && existing.lab != lab {
         return Err(ClaimError::Held(existing));
     }
     claims.remove(branch);
     save_claims(paths, &claims).map_err(ClaimError::Usage)?;
-    publish_claims_live(paths, &claims);
+    // **The merged view minus the released branch.** Publishing the committed store dropped every
+    // live-only peer claim (R1 on #2513); publishing the view alone would write the released branch
+    // straight back, because `origin/main` still names it until this delivery lands.
+    let mut view = load_claims(paths);
+    view.remove(branch);
+    publish_claims_live(paths, &view);
     Ok(existing)
 }
 
@@ -798,6 +825,103 @@ mod tests {
             }
             other => panic!("expected Held, got {other:?}"),
         }
+    }
+
+    /// **Atomic writes, observed the only way they can be.** Every claims write is a
+    /// read-modify-write over a file several labs share, and `fs::write` truncates first: a peer
+    /// publishing inside that window sees an EMPTY file, not merely a stale one. The observable
+    /// difference between a rename and a truncate is the inode - a rename replaces it, a truncate
+    /// keeps it - so that is what this pins, together with the absence of a leftover temp file.
+    #[test]
+    fn a_claims_write_replaces_the_file_instead_of_truncating_it() {
+        use std::os::unix::fs::MetadataExt;
+        let f = Fixture::new();
+        let p = f.paths();
+        claim_branch(&p, "probe/one", "claude", "").expect("claim");
+        let mirror = live_claims_file(&p);
+        let first = std::fs::metadata(&mirror).expect("mirror").ino();
+        claim_branch(&p, "probe/two", "claude", "").expect("claim");
+        let second = std::fs::metadata(&mirror).expect("mirror").ino();
+        assert_ne!(
+            first, second,
+            "the mirror must be renamed into place, not truncated in place"
+        );
+        let leftovers: Vec<String> = std::fs::read_dir(mirror.parent().expect("parent"))
+            .expect("read_dir")
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.contains(".tmp-"))
+            .collect();
+        assert!(
+            leftovers.is_empty(),
+            "temp files left behind: {leftovers:?}"
+        );
+        assert!(load_claims(&p).contains_key("probe/two"));
+    }
+
+    /// **A failed atomic write takes its temp file with it.** The reviewer reproduced the leak on an
+    /// un-renameable target: the call reported failure and left `claims.tmp-<pid>` behind - an untracked
+    /// file in a delivery PR, or litter in the live tier. Renaming a file onto a DIRECTORY fails, which
+    /// is how this reaches the rename branch.
+    #[test]
+    fn a_failed_atomic_write_leaves_no_temp_file() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let target = dir.path().join("claims.json");
+        std::fs::create_dir(&target).expect("a directory where the file belongs");
+        let err = write_atomic(&target, "{}").expect_err("renaming onto a directory must fail");
+        assert!(!err.to_string().is_empty());
+        let leftovers: Vec<String> = std::fs::read_dir(dir.path())
+            .expect("read_dir")
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.contains(".tmp-"))
+            .collect();
+        assert!(
+            leftovers.is_empty(),
+            "a failed write left its temp behind: {leftovers:?}"
+        );
+    }
+
+    /// **A live-only peer claim survives a claim and a release.** `claim_branch` and
+    /// `release_branch` published the COMMITTED store, which deletes every claim that lives only in
+    /// the live tier - the tier whose entire purpose is to show a peer claim before its PR lands.
+    /// Kimi PM found it in `release_merged_claims` (#2513 R1) and recorded these two call sites as the
+    /// follow-up.
+    #[test]
+    fn a_claim_and_a_release_keep_a_peers_live_only_claim() {
+        let f = Fixture::new();
+        let p = f.paths();
+        let mut mirror = BTreeMap::new();
+        mirror.insert(
+            "peer/live-only".to_string(),
+            Claim {
+                branch: "peer/live-only".into(),
+                lab: "peer".into(),
+                head: "999".into(),
+                claimed_at: "2026-10-15T00:00:00-04:00".into(),
+                note: String::new(),
+            },
+        );
+        assert!(publish_claims_live(&p, &mirror));
+
+        claim_branch(&p, "probe/mine", "claude", "").expect("claim");
+        let after_claim = load_claims(&p);
+        assert!(
+            after_claim.contains_key("peer/live-only"),
+            "the claim dropped the live-only peer entry: {after_claim:?}"
+        );
+        assert!(after_claim.contains_key("probe/mine"));
+
+        release_branch(&p, "probe/mine", "claude").expect("release");
+        let after_release = load_claims(&p);
+        assert!(
+            after_release.contains_key("peer/live-only"),
+            "the release dropped the live-only peer entry: {after_release:?}"
+        );
+        assert!(
+            !after_release.contains_key("probe/mine"),
+            "and the release still takes effect"
+        );
     }
 
     /// A lab renewing its own claim is not a conflict - that is how a claim is refreshed after a

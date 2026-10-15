@@ -264,6 +264,13 @@ cannot be proved merged — there is no tree to compare, and after a squash merg
 is also what `status.branch_claimed` flags on every `check`; this report says which branches they are
 without going to the tracker.
 
+**Writes are atomic, and a release lands for everyone when the PR does.** The committed store and the
+live mirror are both written by a temporary file plus a rename, so a peer reading while you publish sees
+the old file or the new one and never a half-written one — every claims write is a read-modify-write over
+a file several labs share. A release is immediate in the mirror *for the caller*; for everyone else it
+takes effect when the delivery PR lands, because `origin/main` still names the branch until then. That is
+why a release rides a PR rather than sitting in a mirror nobody reviews.
+
 **What this cannot do, stated plainly:**
 
 - It is not real-time. Presence is as fresh as the last check-in.
