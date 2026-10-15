@@ -51,8 +51,11 @@ Status: **TEST FITNESS: FIT (design, Stage A)**, confirmed by Claude
 Kimi recorded the Stage-A-only owner GO at
 [6192566334](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6192566334)
 (one RTX 5090, < $0.50 all-in). The [D-A source/runbook](../stage-a-admission-instrument-2026-10-15/README.md)
-is implemented with host metadata checks; exact-source review and the bound
-instrument packet remain before execution. Its existing evaluator also reads
+was implemented with host metadata checks; exact-source review and the bound
+instrument packet preceded the executed run. Its existing evaluator also reads
 masked TRAIN to reconstruct the count reference, alongside DEV evaluation;
 this clarification is explicitly submitted to Claude with the source.
-No compute has run under this sheet. Training and M2 remain HELD.
+No compute had run under this sheet at registration; the Stage-A evaluation-only
+sweep has since executed (2026-10-15, pod vast-56109378) and returned
+**G-A FAIL** — see the [sweep record](../rung0-stage-a-sweep-2026-10-15/README.md).
+No training has run under this sheet. Training and M2 remain HELD.

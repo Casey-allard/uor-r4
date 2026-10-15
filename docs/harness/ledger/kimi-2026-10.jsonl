@@ -34,3 +34,328 @@
 {"kind":"prep","lab":"kimi","milestone":"M1","reviewer":"Claude 6159328025 confirmed 6159394631; Codex 6159308818 exact-head 6159343268","schema":1,"sheet":"docs/harness/prep/m1-discrete-rung0-training-2026-10-13.md","ts":"2026-10-14T02:19:49Z","verdict":"FIT"}
 {"branch": "kimi/d29-nvrtc-amendment", "kind": "release", "lab": "kimi", "schema": 1, "ts": "2026-10-14T13:38:24-04:00"}
 {"branch": "kimi/discrete-rung0-amendment1-20261014", "kind": "release", "lab": "kimi", "schema": 1, "ts": "2026-10-14T13:38:24-04:00"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T13:31:07Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T13:33:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T13:38:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T13:43:41Z"}
+{"count":"1/3","kind":"heartbeat","lab":"kimi","line":"evaluation integrity","milestone":"m1","next":"Amendment 6: mechanical CLI pins (train_mask/expected_train_targets/train-mask sha256) from Claude's CONFIRM; dep 6 landed; verdict restored to FIT","schema":1,"ts":"2026-10-13T13:46:18Z"}
+{"count":"1/3","kind":"heartbeat","lab":"kimi","line":"evaluation integrity","milestone":"m1","next":"Amendment 6 edits applied; verifying, then PR","schema":1,"ts":"2026-10-13T13:46:57Z"}
+{"count":"1/3","kind":"heartbeat","lab":"kimi","line":"evaluation integrity","milestone":"m1","next":"Amendment 6 PR #2330 open; watching CI (pre-existing receipts.parse error may trip the harness job)","schema":1,"ts":"2026-10-13T13:48:45Z"}
+{"count":"1/3","kind":"heartbeat","lab":"kimi","line":"evaluation integrity","milestone":"m1","next":"A6 merged latest main; watching CI for the pre-existing receipts.parse error; PR #2330","schema":1,"ts":"2026-10-13T13:52:12Z"}
+{"count":"1/3","kind":"heartbeat","lab":"kimi","line":"evaluation integrity","milestone":"m1","next":"Amendment 6 merged as be5d8cd6e; sheet now FIT; cleaning up","schema":1,"ts":"2026-10-13T13:54:59Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T13:56:34Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T13:58:36Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"file D28 (no transformer/neural comparisons until owner-declared end-to-end) and sync pm-rules R3 to the five-minute Rust live-tier heartbeat","schema":1,"ts":"2026-10-13T14:00:56Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"D28 + R3 edits applied; verifying via stash comparison, then PR","schema":1,"ts":"2026-10-13T14:01:53Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"D28 + R3 merged as 2dc799153; cleaning up","schema":1,"ts":"2026-10-13T14:04:01Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:06:36Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:08:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:13:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:18:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:23:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:28:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:33:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:35:44Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:38:34Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:43:33Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T14:48:33Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"file D29 (compiled-module compliance) + sync the remaining 90-minute status texts in audit.md/session-goal.md to the five-minute live-tier heartbeat","schema":1,"ts":"2026-10-13T15:01:11Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"D29 + cadence-sync edits applied; verifying, then PR","schema":1,"ts":"2026-10-13T15:02:18Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"D29 + cadence sync merged as 674db38bc; cleanup per R10","schema":1,"ts":"2026-10-13T15:04:19Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T15:12:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T15:14:09Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T15:29:01Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"Amend D29: NVRTC banned project-wide; prebuilt AOT modules are the compliant path; current-state entry","schema":1,"ts":"2026-10-13T15:31:25Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"D29 NVRTC amendment edits applied; verifying then PR","schema":1,"ts":"2026-10-13T15:32:04Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T15:33:25Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"PR #2339 open; waiting for the GraphQL rate-limit reset to enqueue","schema":1,"ts":"2026-10-13T15:33:59Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"PR #2339 waiting on GraphQL reset","schema":1,"ts":"2026-10-13T15:38:43Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T15:43:40Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"PR #2339 waiting on GraphQL reset","schema":1,"ts":"2026-10-13T15:48:19Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T15:48:32Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T15:54:25Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"GraphQL reset imminent; enqueueing PR #2339","schema":1,"ts":"2026-10-13T15:57:53Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T15:59:23Z"}
+{"count":"0","kind":"heartbeat","lab":"kimi","line":"no model line — governance","milestone":"m1","next":"D29 NVRTC amendment merged as 2bc8513d9; cleaning up","schema":1,"ts":"2026-10-13T16:04:07Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:04:28Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:09:52Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:14:24Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:19:26Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:24:33Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:29:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:34:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:39:32Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:44:41Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:52:53Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:54:34Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T16:59:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:00:00Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:04:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:09:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:14:33Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:19:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:24:30Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:29:30Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:34:30Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:39:31Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:46:10Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:49:45Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:54:55Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T17:59:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:04:28Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:09:28Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:14:28Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:19:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:24:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:29:33Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:34:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:39:27Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:44:27Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:49:30Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:54:28Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T18:59:28Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:04:28Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:09:31Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:14:29Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:19:27Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:24:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:29:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:40:52Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:44:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:49:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T19:59:17Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:00:34Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:04:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:09:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:14:41Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:19:44Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:28:03Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:29:27Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:31:03Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:44:27Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:49:33Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:54:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T20:59:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:04:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:09:43Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:14:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:19:36Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:24:36Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:29:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:34:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:39:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:44:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:49:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:54:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T21:59:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:04:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:09:41Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:14:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:19:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:24:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:29:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:34:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:49:55Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:55:04Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T22:59:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:04:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:09:46Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:14:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:19:50Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:24:46Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:29:49Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:34:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:39:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:44:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:49:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:54:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-13T23:59:47Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:04:48Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:09:43Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:14:52Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:19:54Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:24:44Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:29:40Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:34:43Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:39:41Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:45:14Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:49:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T00:54:44Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:03:00Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:09:51Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:14:48Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:19:46Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:24:45Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:29:46Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:34:47Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:39:51Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:44:50Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:49:50Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:54:48Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T01:59:51Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:15:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:27:04Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:29:31Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:34:30Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:39:33Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:44:34Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:49:36Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:54:35Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T02:59:38Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T03:11:46Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T03:16:05Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T03:19:44Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T03:24:25Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T03:52:26Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T04:14:44Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T04:21:28Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T04:28:17Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T04:35:39Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T04:49:31Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T05:00:48Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T05:11:02Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T05:21:11Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T05:30:54Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T05:40:25Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T05:50:29Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T06:00:33Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T06:10:32Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T06:20:36Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T06:30:36Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T06:40:47Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T07:00:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T07:14:02Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T07:24:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T07:37:15Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T07:52:53Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T08:09:21Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T08:12:06Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T08:24:22Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T08:37:21Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T08:48:59Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T08:53:11Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T09:01:20Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T09:12:57Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T09:25:14Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T09:36:19Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T09:48:37Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T10:01:17Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T10:05:52Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T10:26:05Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T10:37:02Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T10:49:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T11:01:31Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T11:12:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T11:24:57Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T11:36:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T11:48:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T12:00:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T12:12:56Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T12:24:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T12:36:56Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T12:48:58Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T13:01:01Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T13:12:56Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T13:24:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T13:36:57Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T13:49:21Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T14:01:21Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T14:13:22Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T14:39:01Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T14:53:14Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:03:38Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:14:43Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:25:08Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:40:33Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T15:51:06Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T16:01:13Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T16:13:12Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T16:25:16Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T16:37:16Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T16:49:18Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:12:34Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:24:31Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:36:48Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T17:52:56Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T18:00:42Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T18:13:00Z"}
+{"kind":"heartbeat","lab":"kimi","milestone":"m1","schema":1,"ts":"2026-10-14T18:24:36Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T18:37:27Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T18:49:20Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T19:12:34Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T19:24:31Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T19:36:40Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T19:49:01Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T20:00:56Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T20:13:01Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T20:24:58Z"}
+{"kind": "heartbeat", "lab": "kimi", "milestone": "m1", "schema": 1, "ts": "2026-10-14T20:36:57Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T20:58:37Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T21:00:56Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T21:12:27Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T21:24:30Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T21:49:11Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T22:01:09Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T22:13:09Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T22:25:09Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T22:37:07Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T22:49:09Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T23:01:10Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T23:13:09Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T23:25:09Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: seed-1 Q2 verification pending (~21:24Z); Codex tasked D19 object store; Antigravity addendum due", "milestone": "m1", "schema": 1, "ts": "2026-10-14T23:37:07Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-14T23:45:40Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-14T23:49:08Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T00:01:12Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T00:28:12Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T00:37:48Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T00:49:11Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T01:01:51Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T01:03:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T01:13:06Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T01:24:23Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T01:36:24Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T02:04:48Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T02:12:39Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T02:25:25Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T02:37:27Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T02:48:31Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T03:03:36Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T03:06:43Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T03:13:34Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T03:24:29Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T03:37:16Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T03:49:14Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T04:01:11Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T04:13:00Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T04:25:01Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T04:36:45Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T04:48:43Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T05:00:48Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T05:12:54Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T05:25:47Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T05:37:49Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T05:54:23Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "PM: Q1+Q2 verified EXACT; #2486 REQUEST-CHANGES posted, awaiting Antigravity fix; Q3 verify ~01:47Z", "milestone": "m1", "schema": 1, "ts": "2026-10-15T06:22:13Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "merge-backlog babysitting: shepherding 9 approved queued PRs (#2491,#2492,#2494,#2495,#2496,#2487,#2497,#2500,#2501)", "milestone": "m1", "next": "poll merge queue every ~5min for 4h; post-merge hygiene on merge", "schema": 1, "ts": "2026-10-15T06:57:00Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "merge-backlog babysitting: shepherding 9 approved queued PRs (#2491,#2492,#2494,#2495,#2496,#2487,#2497,#2500,#2501)", "milestone": "m1", "next": "poll merge queue every ~5min for 4h; post-merge hygiene on merge", "schema": 1, "ts": "2026-10-15T06:58:02Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "merge-backlog babysitting: shepherding 9 approved queued PRs (#2491,#2492,#2494,#2495,#2496,#2487,#2497,#2500,#2501)", "milestone": "m1", "next": "poll merge queue every ~5min for 4h; post-merge hygiene on merge", "schema": 1, "ts": "2026-10-15T07:40:41Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "merge-backlog babysitting: shepherding 9 approved queued PRs (#2491,#2492,#2494,#2495,#2496,#2487,#2497,#2500,#2501)", "milestone": "m1", "next": "poll merge queue every ~5min for 4h; post-merge hygiene on merge", "schema": 1, "ts": "2026-10-15T08:25:26Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "merge-backlog babysitting: shepherding 9 approved queued PRs (#2491,#2492,#2494,#2495,#2496,#2487,#2497,#2500,#2501)", "milestone": "m1", "next": "poll merge queue every ~5min for 4h; post-merge hygiene on merge", "schema": 1, "ts": "2026-10-15T08:36:55Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "merge-backlog babysitting: shepherding 9 approved queued PRs (#2491,#2492,#2494,#2495,#2496,#2487,#2497,#2500,#2501)", "milestone": "m1", "next": "poll merge queue every ~5min for 4h; post-merge hygiene on merge", "schema": 1, "ts": "2026-10-15T09:01:28Z"}
+{"kind": "heartbeat", "lab": "kimi", "line": "merge-backlog babysitting: shepherding 9 approved queued PRs (#2491,#2492,#2494,#2495,#2496,#2487,#2497,#2500,#2501)", "milestone": "m1", "next": "poll merge queue every ~5min for 4h; post-merge hygiene on merge", "schema": 1, "ts": "2026-10-15T12:44:32Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: rung-0 admission Stage A sheet #2504 awaiting Claude FIT; D35/D36 filed", "milestone": "m1", "next": "Claude FIT on #2504 -> owner go for sub-$1 K-sweep instrument; Codex D-A diff after FIT", "schema": 1, "ts": "2026-10-15T12:45:34Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: rung-0 admission Stage A #2504 awaiting Claude FIT; D35/D36 filed", "milestone": "m1", "next": "Claude FIT on #2504 -> owner go for K-sweep instrument; Codex D-A after FIT", "schema": 1, "ts": "2026-10-15T12:49:01Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: Stage-A K-sweep authorized; #2504 awaiting Claude re-confirm; D-A released to Codex", "milestone": "m1", "next": "Claude re-confirm -> merge #2504 -> Codex D-A -> packet -> pod run", "schema": 1, "ts": "2026-10-15T13:01:09Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: #2504 FIT (design, Stage A) confirmed by Claude 6192687624; verdict recorded; merge queued @ 878c53c2f", "milestone": "m1", "next": "merge #2504 -> Codex D-A eval-only K-sweep diff -> Claude exact-source review -> instrument packet -> pod run", "schema": 1, "ts": "2026-10-15T13:10:01Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: #2504 merge queued, blocked only on org runner starvation (LexLean just-vv hung 3h+, PrismPM conformance 45m+); cancelled one stale uor-r4 run", "milestone": "m1", "next": "verify #2504 merge -> Codex D-A diff -> Claude review -> packet -> pod sweep", "schema": 1, "ts": "2026-10-15T13:15:09Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: #2504 rebased onto 57ca5a96d (shard-guard fail was #2499's codex receipts, now included), MERGEABLE, auto-merge armed @ d5f384197; #2499+#2487 landed (Codex train)", "milestone": "m1", "next": "verify #2504 merge -> Codex D-A diff -> Claude review -> packet -> pod sweep", "schema": 1, "ts": "2026-10-15T13:31:38Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: #2504 rebased onto fd01c98cf (3rd; #2501 landed mid-queue), checks green, auto-merge armed @ 54d6b24e5; #2489 closed superseded; AGY+DeepSeek assignments posted (6193334352)", "milestone": "m1", "next": "verify #2504 merge -> Codex D-A diff -> Claude review -> packet -> pod sweep", "schema": 1, "ts": "2026-10-15T13:38:57Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: #2504 DELIVERED as 837306f53 (verified tip of main); board = #2506 only; chain live: Codex D-A diff next", "milestone": "m1", "next": "Codex D-A K-sweep diff -> Claude exact-source review -> instrument packet -> pod sweep", "schema": 1, "ts": "2026-10-15T13:50:33Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: #2504 DELIVERED (837306f53). #2507 (DeepSeek R10 harness fix) reviewed: CHANGES REQUESTED, 2 narrow fixes (D1 README row, D2 ratchet guard); all 5 claims independently verified. Codex building D-A on codex/stage-a-eval-kept", "milestone": "m1", "next": "DeepSeek D1+D2 -> re-review -> merge #2507; Codex D-A diff -> Claude review -> pod sweep", "schema": 1, "ts": "2026-10-15T14:14:50Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: Codex D-A instrument posted as #2508 (zero crates/ changes, scope-exact); AGY #2509 sidecar scope-compliant; Claude is critical path for #2506/#2508/#2509 reviews; DeepSeek on D1+D2", "milestone": "m1", "next": "Claude reviews #2508 -> instrument packet -> pod sweep; DeepSeek fixes -> #2507 merge", "schema": 1, "ts": "2026-10-15T14:16:44Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: #2508 merged as abdf431ed; Stage-A pod sweep DISPATCHED (subagent, 1x5090 --hours 1, owner GO 6192566334); Claude reviewing #2506/#2509; DeepSeek on #2507 fixes", "milestone": "m1", "next": "sweep results -> G-A verdict on #2029", "schema": 1, "ts": "2026-10-15T14:29:58Z"}
+{"count": "0/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: Claude verdicts in — #2508 APPROVED+merged; #2506 CHANGES (SameToken/SameFrame most-recent-prior kernel fix + 3-occurrence pin); #2509 CHANGES (record integrity). AGY active (rebased #2506 CLEAN). Pod sweep in flight", "milestone": "m1", "next": "sweep results -> G-A verdict; AGY fixes -> Claude re-review", "schema": 1, "ts": "2026-10-15T14:37:46Z"}
+{"count": "1/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: STAGE-A SWEEP COMPLETE — G-A FAIL, K16 ceiling 2400 vs gate 4894, K8 controls EXACT, $0.343/15min; closes eval-time K8 widening only (R1); redirect sheet commissioned to AGY+Codex; #2507 merged; record PR in flight", "milestone": "m1", "next": "record PR merge; redirect sheet draft -> Claude FIT", "schema": 1, "ts": "2026-10-15T15:05:35Z"}
+{"count": "1/3", "headline": "M1: reply acceptable 37/232 -> target 116/232 (blocked D28 neural grader)", "kind": "heartbeat", "lab": "kimi", "line": "PM: quiet post-sweep. Codex closed D-A fault standby. AGY fixing #2506/#2509 per Claude verdicts. Sweep record PR in flight (subagent). Awaiting redirect sheet draft", "milestone": "m1", "next": "record PR merge; AGY fixes -> Claude re-review; redirect sheet -> Claude FIT", "schema": 1, "ts": "2026-10-15T15:06:36Z"}
+{"branch": "kimi/stage-a-sweep-record-20261015", "kind": "pr", "lab": "kimi", "milestone": "m1", "note": "PR 2511 — Stage-A K-sweep canonical record: G-A FAIL, K=8 eval-widening closed, redirect commissioned", "schema": 1, "ts": "2026-10-15T15:13:15Z"}

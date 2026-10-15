@@ -6,10 +6,10 @@
     "lab": "deepseek",
     "note": "R10 write-path fix + lab fallback + claims tiers"
   },
-  "kimi/rung0-admission-prep-20261015": {
-    "branch": "kimi/rung0-admission-prep-20261015",
-    "claimed_at": "2026-10-15T04:18:30-04:00",
-    "head": "977da4ff9",
+  "kimi/stage-a-sweep-record-20261015": {
+    "branch": "kimi/stage-a-sweep-record-20261015",
+    "claimed_at": "2026-10-15T11:08:01-04:00",
+    "head": "b900f4fb3",
     "lab": "kimi",
     "note": ""
   }

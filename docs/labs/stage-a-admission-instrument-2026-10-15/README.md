@@ -4,6 +4,8 @@ This delivers the evaluation-only dependency in the [admitted sheet](../../harne
 
 **Delivery update, October 15:** Claude [approved exact source `8ec3bd7c8`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6194120363), including the masked-TRAIN reference clarification. #2508 merged as `abdf431ed`; approved instrument/discrete source identity is verified. [Kimi owns the Stage-A packet and evaluation](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6194496873); no completed sweep or CUDA result is asserted by this source record. [Post-merge cleanup and receipt preservation](../codex-worktree-preservation-2026-10-15/README.md) are recorded. Claude's [design FIT](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6192687624) and the [Stage-A-only owner GO](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6192566334) retain their scope.
 
+**Delivery update, October 15 (sweep complete):** the reviewed instrument was built and executed on pod vast-56109378 — CUDA compilation, compiled-identity/PTX admission and the full-panel 36-point sweep are no longer NOT_RUN, and the real derived-record size is measured (33,627,092 bytes, < 49 MiB cap). All four K=8 controls reproduced the sealed quarter counts exactly; gate **G-A FAIL** (`FAIL_EVAL_TIME_WIDENING_ONLY`, `smallest_passing_k: null`, no instrument fault). Table, identities and archive: [rung0-stage-a-sweep-2026-10-15](../rung0-stage-a-sweep-2026-10-15/README.md). K>8-trained lineages and all training remain open/HELD.
+
 Line: starling read / exact addressed memory; count 0/3 unchanged; headline unchanged.
 
 ## Contract and identity
@@ -67,4 +69,4 @@ Preserve/upload the whole sealed output and identity record before pod cleanup. 
 - Offline locked build and instrument Clippy with `-D warnings` passed. The existing non-CUDA dependency emits 32 dead-code warnings; this is not a warning-free workspace claim.
 - The retained Q4 file was read-only authenticated locally: SHA `4477eb5c2480b0b85cc94036a2e15b0d22b654e25deee9c8717aa6e30f8ef7bf`, cursor 16,404, 407 accepted updates, `cuda_context_created: false`. This verifies artifact metadata, not its evaluation result.
 - D23 and D25 source ratchets passed: 1641 historical softmax sites and 93 dense-product sites respectively, no increase. Neither is a whole-runtime qualification.
-- A parallel source review found no blocking defect; its unknown-batch-schema nit was fixed. CUDA-specific compilation, PTX admission and the full-panel sweep remain **NOT_RUN**, pending the explicit review/build chain above.
+- A parallel source review found no blocking defect; its unknown-batch-schema nit was fixed. CUDA-specific compilation, PTX admission and the full-panel sweep were **NOT_RUN at this source delivery**; all three executed on 2026-10-15 — see the sweep-complete delivery update above and the [sweep record](../rung0-stage-a-sweep-2026-10-15/README.md).
