@@ -6,6 +6,13 @@
     "lab": "deepseek",
     "note": "R10 write-path fix + lab fallback + claims tiers"
   },
+  "deepseek/receipt-kind": {
+    "branch": "deepseek/receipt-kind",
+    "claimed_at": "2026-10-15T11:44:47-04:00",
+    "head": "c17271e82",
+    "lab": "deepseek",
+    "note": "receipt --kind validation + loud ignored flags"
+  },
   "kimi/stage-a-sweep-record-20261015": {
     "branch": "kimi/stage-a-sweep-record-20261015",
     "claimed_at": "2026-10-15T11:08:01-04:00",

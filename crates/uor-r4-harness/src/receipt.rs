@@ -95,9 +95,23 @@ impl Receipt {
     /// what happened, and refusing to write it would lose the record where the warning does not.
     /// Thirteen receipts accumulated unattributed before that warning existed. [unattributed] tells
     /// the caller to print it.
+    ///
+    /// **The kind IS checked, against the frozen list, and this is the only place that can do it for
+    /// every writer.** It was not checked at all: `receipt --kind <anything>` wrote the line, and
+    /// `check` then hard-errored on it at parse (`receipts.parse`) - so the harness accepted a record
+    /// its own reader rejects, and the only way to fix it was to find and delete the line by hand.
+    /// Reported by the Stage-A sweep-record agent on #2028. A writer that emits what its reader
+    /// refuses is worse than a writer that refuses.
     pub fn validate(&self) -> Result<(), String> {
         if self.kind.trim().is_empty() {
             return Err("a receipt needs a kind".into());
+        }
+        if !crate::receiptsrules::KINDS.contains(&self.kind.as_str()) {
+            return Err(format!(
+                "unknown receipt kind {:?}; the frozen list is {}",
+                self.kind,
+                python_tuple(&crate::receiptsrules::KINDS)
+            ));
         }
         if self.ts.trim().is_empty() {
             return Err("a receipt needs a timestamp".into());
@@ -688,6 +702,29 @@ mod tests {
             "{}",
             u.display()
         );
+    }
+
+    /// **The frozen kind list is enforced at WRITE time.** `receipt --kind <anything>` used to write
+    /// the line and `check` then hard-errored on it at parse (`receipts.parse`), so the harness
+    /// accepted a record its own reader rejects and the only fix was to find the line and delete it
+    /// (reported on #2028). The check lives here because every writer passes through `validate`.
+    #[test]
+    fn an_unknown_kind_is_refused_before_it_reaches_the_record() {
+        let err = Receipt::new("nonsense_kind", "kimi")
+            .validate()
+            .expect_err("an unknown kind must be refused");
+        assert!(err.contains("unknown receipt kind"), "{err}");
+        assert!(
+            err.contains("heartbeat"),
+            "the refusal must name the frozen list: {err}"
+        );
+        // And every kind the contract carries IS accepted, so this check cannot drift from it.
+        for kind in crate::receiptsrules::KINDS {
+            assert!(
+                Receipt::new(kind, "kimi").validate().is_ok(),
+                "{kind} is in the frozen list and must be accepted"
+            );
+        }
     }
 
     #[test]

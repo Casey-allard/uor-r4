@@ -2761,7 +2761,56 @@ fn sheet_json(s: &SheetReport) -> String {
     )
 }
 
+/// The flags `receipt` READS, and whether each takes a value.
+///
+/// A flag a command does not read must be refused, because the global parser forwards every flag in
+/// its lists to the command and the command silently ignores what it does not know: the short
+/// milestone form recorded no milestone at all, and `--count 1/3` would have been dropped the same
+/// way on a command whose whole purpose is to record what happened. Reported on #2028.
+const RECEIPT_FLAGS: [(&str, bool); 13] = [
+    ("--repo", true),
+    ("--lab", true),
+    ("--kind", true),
+    ("--milestone", true),
+    ("-m", true),
+    ("--skill", true),
+    ("--role", true),
+    ("--branch", true),
+    ("--note", true),
+    ("--outcome", true),
+    ("--mechanism", true),
+    ("--run", true),
+    ("--dry-run", false),
+];
+
+/// The first argument `receipt` does not read, if any.
+fn receipt_unread_flag(args: &[String]) -> Option<String> {
+    let mut i = 0;
+    while i < args.len() {
+        let arg = args[i].as_str();
+        match RECEIPT_FLAGS.iter().find(|(flag, _)| *flag == arg) {
+            Some((_, true)) => i += 2, // the flag and its value
+            Some((_, false)) => i += 1,
+            None => return Some(arg.to_string()),
+        }
+    }
+    None
+}
+
 fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
+    if let Some(unread) = receipt_unread_flag(args) {
+        eprintln!(
+            "uor-harness receipt: {unread} is not read by this command, so it would be dropped"
+        );
+        eprintln!(
+            "  silently - which is how the short milestone form recorded a receipt without one."
+        );
+        eprintln!(
+            "  reads: --kind --milestone|-m --skill --role --branch --note --outcome --mechanism"
+        );
+        eprintln!("         --run --dry-run, plus the globals --repo and --lab");
+        return ExitCode::from(2);
+    }
     let paths = StatePaths::from_env(repo);
     let lab = flag_value(args, "--lab")
         .or_else(|| std::env::var("UOR_LAB").ok())
@@ -2786,7 +2835,14 @@ fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
         "mechanism",
         "run",
     ] {
-        if let Some(v) = flag_value(args, &format!("--{key}")) {
+        // `-m` is the documented short form of `--milestone` (heartbeat takes it too). This command
+        // read only the long form, so the short form was parsed, forwarded and dropped.
+        let value = if key == "milestone" {
+            flag_value(args, "--milestone").or_else(|| flag_value(args, "-m"))
+        } else {
+            flag_value(args, &format!("--{key}"))
+        };
+        if let Some(v) = value {
             r = r.with(key, v);
         }
     }
