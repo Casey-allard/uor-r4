@@ -248,10 +248,13 @@ uor-harness git clean-merged --apply  # deletes proven-merged local branches
 git push origin --delete <branch>                        # the remote copy is yours to remove
 ```
 
-`clean-merged` proves a branch is merged by **content** — comparing the merged PR's merge-commit
-tree against the branch tree — because a squash merge leaves no ancestry link and
-`merge-base --is-ancestor` would wrongly call it unmerged. A branch that is not proven merged is kept
-and its owner decides. **`--apply` also releases the claims on the branches it proves merged**, in your
+`clean-merged` proves a branch is merged in three steps, cheapest first: ancestry (`merge-base`,
+which covers a real merge commit), then `git cherry` as a fast lane (no `+` line means every commit is
+already upstream), then — when `cherry` does report `+` — the branch's **cumulative patch-id** against
+the patch-ids of the commits `origin/main` gained since the merge base. That last step is the one that
+matters: a squash merge lands the branch as ONE commit, so no individual commit of the branch matches
+it, and a per-commit comparison alone calls merged work unmerged forever. A branch that is not proven
+merged is kept and its owner decides; a proof that cannot run is `Unknown`, never `Unmerged`. **`--apply` also releases the claims on the branches it proves merged**, in your
 own checkout and the live mirror: a claim outlives its branch otherwise, and the next lab to want that
 branch name collides with a claim on work already in main. A claim whose branch is already deleted cannot
 be proved merged, so it is **reported** by the same command — never released on a guess — with the

@@ -1,4 +1,11 @@
 {
+  "deepseek/merge-proof": {
+    "branch": "deepseek/merge-proof",
+    "claimed_at": "2026-10-15T12:58:15-04:00",
+    "head": "d65cc2375",
+    "lab": "deepseek",
+    "note": "merge_state: cumulative patch-id proof"
+  },
   "kimi/stage-a-sweep-record-20261015": {
     "branch": "kimi/stage-a-sweep-record-20261015",
     "claimed_at": "2026-10-15T11:08:01-04:00",

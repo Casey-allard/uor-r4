@@ -119,18 +119,94 @@ pub fn merge_state(repo: &Path, branch: &str) -> MergeState {
     {
         return MergeState::Merged;
     }
-    // Then `git cherry`, which understands a squash merge. `-` means the change is already upstream;
-    // `+` means it is NOT. Any `+` line means the branch carries work main does not have.
+    // Then `git cherry` as a FAST LANE: no `+` line settles it without computing a patch-id at all.
+    // `-` means the commit is already upstream, and an empty result means the branch has no commits of
+    // its own - both are safe, and both are Merged.
     let Some(cherry) = git(repo, &["cherry", "origin/main", branch]) else {
         return MergeState::Unknown;
     };
-    if cherry.lines().any(|l| l.starts_with('+')) {
-        MergeState::Unmerged
-    } else {
-        // No `+` lines. Either every change is upstream, or the branch has no commits of its own -
-        // both are safe, and an empty result is the second.
-        MergeState::Merged
+    if !cherry.lines().any(|l| l.starts_with('+')) {
+        return MergeState::Merged;
     }
+    // **A `+` line does NOT mean unmerged, and believing it did was the defect.** `cherry` compares
+    // PER-COMMIT patch ids, and a squash merge lands the branch as ONE commit: none of the branch's
+    // own commits ever match it, so every multi-commit branch read "unmerged" forever. `clean-merged`
+    // therefore kept the branch ("its owner decides") and, since the claims release landed, never
+    // released its claim either. Measured on `deepseek/merged-claim-release`: five `+` lines, a branch
+    // tree byte-identical to the merge commit, and a cumulative patch-id equal to the squash commit's
+    // (`122650e7...`). Kimi PM ruled the replacement (#2028 comment 6197423733).
+    //
+    // So compare the WHOLE branch against what main gained since the merge base. One cumulative
+    // patch-id against the upstream commit ids: a match proves the branch content is in main even
+    // though no single commit of the branch matches. If it cannot be computed the answer is Unknown,
+    // never Unmerged - "could not prove it" must not become "keep it forever" OR "delete it".
+    let Some(base) = git(repo, &["merge-base", "origin/main", branch]) else {
+        return MergeState::Unknown;
+    };
+    let Some(branch_id) = cumulative_patch_id(repo, &base, branch) else {
+        return MergeState::Unknown;
+    };
+    if branch_id.is_empty() {
+        // No diff of its own to land: the branch is at (or behind) the merge base.
+        return MergeState::Merged;
+    }
+    let Some(upstream) = upstream_patch_ids(repo, &base) else {
+        return MergeState::Unknown;
+    };
+    if upstream.contains(&branch_id) {
+        MergeState::Merged
+    } else {
+        MergeState::Unmerged
+    }
+}
+
+/// The patch-id of everything `branch` changes relative to `base`; empty when it changes nothing.
+///
+/// A squash merge reproduces the branch's WHOLE diff as one commit, which is why the cumulative id is
+/// the right instrument and the per-commit id is not.
+fn cumulative_patch_id(repo: &Path, base: &str, branch: &str) -> Option<String> {
+    let diff = git(repo, &["diff", base, branch])?;
+    if diff.trim().is_empty() {
+        return Some(String::new());
+    }
+    patch_ids(repo, &diff)?.into_iter().next()
+}
+
+/// The patch-ids of the commits `origin/main` gained since `base`.
+///
+/// `--no-merges` keeps the stream small; `git patch-id` ignores merge commits anyway.
+fn upstream_patch_ids(repo: &Path, base: &str) -> Option<Vec<String>> {
+    let range = format!("{base}..origin/main");
+    let log = git(repo, &["log", "--no-merges", "-p", &range])?;
+    if log.trim().is_empty() {
+        return Some(Vec::new());
+    }
+    patch_ids(repo, &log)
+}
+
+/// `git patch-id --stable` over a diff (or a `git log -p` stream): the ids that identify the same change
+/// after a rebase, a cherry-pick or a squash.
+fn patch_ids(repo: &Path, text: &str) -> Option<Vec<String>> {
+    use std::io::Write as _;
+    let mut child = Command::new("git")
+        .args(["patch-id", "--stable"])
+        .current_dir(repo)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .ok()?;
+    child.stdin.as_mut()?.write_all(text.as_bytes()).ok()?;
+    let out = child.wait_with_output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .filter_map(|line| line.split_whitespace().next().map(str::to_string))
+            .collect(),
+    )
 }
 
 /// Branches checked out in any worktree, including the main checkout.
@@ -236,6 +312,66 @@ mod tests {
                 .expect("git");
             String::from_utf8_lossy(&out.stdout).trim().to_string()
         }
+    }
+
+    /// **The defect this replaced.** A squash merge lands a multi-commit branch as ONE commit, so every
+    /// one of the branch's own commits is a `+` line to `git cherry` - which is why `clean-merged`
+    /// called merged work "not merged - its owner decides" forever, kept the branch, and (once the
+    /// claims release landed) never released its claim. The cumulative patch-id matches, so the proof
+    /// existed all along; the instrument was wrong. Kimi PM's ruling, #2028 comment 6197423733.
+    #[test]
+    fn a_multi_commit_branch_that_was_squash_merged_is_merged() {
+        let f = Fixture::new();
+        f.run(&["checkout", "-qb", "multi"]);
+        std::fs::write(f.repo().join("a"), "1").expect("write");
+        f.run(&["add", "a"]);
+        f.run(&["commit", "-qm", "a"]);
+        std::fs::write(f.repo().join("b"), "2").expect("write");
+        f.run(&["add", "b"]);
+        f.run(&["commit", "-qm", "b"]);
+        // The fast lane is exactly what fails here: two commits, two `+` lines.
+        let cherry = f.run(&["cherry", "origin/main", "multi"]);
+        assert_eq!(cherry.lines().count(), 2, "{cherry}");
+        assert!(
+            cherry.lines().all(|l| l.starts_with('+')),
+            "the fast lane must report unmerged here: {cherry}"
+        );
+
+        f.run(&["checkout", "-q", "main"]);
+        f.run(&["merge", "-q", "--squash", "multi"]);
+        f.run(&["commit", "-qm", "squash multi"]);
+        f.run(&["update-ref", "refs/remotes/origin/main", "HEAD"]);
+
+        assert_eq!(
+            merge_state(f.repo(), "multi"),
+            MergeState::Merged,
+            "the cumulative patch-id proves what no per-commit id could"
+        );
+        let s = classify(f.repo(), "multi", &[]);
+        assert!(s.removable, "{}", s.reason);
+    }
+
+    /// **The case that must never regress: work main does NOT have still refuses.** This one reaches the
+    /// new path - a `+` line, then a cumulative id that matches nothing upstream - so it pins the
+    /// direction of the change, not just the happy path.
+    #[test]
+    fn a_genuinely_unmerged_branch_is_still_not_removable() {
+        let f = Fixture::new();
+        f.run(&["checkout", "-qb", "wip"]);
+        std::fs::write(f.repo().join("w"), "x").expect("write");
+        f.run(&["add", "w"]);
+        f.run(&["commit", "-qm", "work"]);
+        f.run(&["checkout", "-q", "main"]);
+        // Main gains something else entirely, so no upstream cumulative id can match the branch.
+        std::fs::write(f.repo().join("other"), "y").expect("write");
+        f.run(&["add", "other"]);
+        f.run(&["commit", "-qm", "other"]);
+        f.run(&["update-ref", "refs/remotes/origin/main", "HEAD"]);
+
+        assert_eq!(merge_state(f.repo(), "wip"), MergeState::Unmerged);
+        let s = classify(f.repo(), "wip", &[]);
+        assert!(!s.removable, "{}", s.reason);
+        assert!(s.reason.contains("not merged"), "{}", s.reason);
     }
 
     /// A branch with no commits of its own is merged, not "unknown": an empty `cherry` is the answer.
