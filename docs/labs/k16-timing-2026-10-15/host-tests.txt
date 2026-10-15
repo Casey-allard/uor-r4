@@ -1,0 +1,16 @@
+test tests::a_read_policy_that_is_not_route_fails_closed ... ok
+test tests::a_shape_that_is_not_k16_fails_closed ... ok
+test tests::a_duplicate_cell_and_an_unknown_policy_are_refused ... ok
+test tests::an_absent_or_malformed_fixture_pin_fails_closed ... ok
+test tests::a_resume_dressed_as_a_rebind_fails_closed ... ok
+test tests::an_unknown_field_is_rejected_by_the_parser ... ok
+test tests::both_objective_policies_are_required ... ok
+test tests::rates_are_integer_floors_over_the_measured_nanoseconds ... ok
+test tests::the_plan_names_every_timed_operation_and_the_synchronization ... ok
+test tests::the_pinned_pin_validates_and_names_four_cells ... ok
+test tests::the_rate_basis_is_the_full_unit_and_carry_only_is_named_secondary ... ok
+test tests::a_fault_preserves_the_partial_receipts ... ok
+test tests::an_atomic_write_leaves_no_temp_behind_on_a_failed_rename ... ok
+test tests::a_complete_record_states_the_zero_apply_exclusion ... ok
+test tests::the_hundred_batches_are_distinct_and_canonical ... ok
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s

@@ -1,0 +1,80 @@
+# K16 synchronized 100-batch timing instrument (2026-10-15)
+
+Source-only delivery of the runner Codex delegated ([#2029 6201508191](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201508191)) under
+the PM ruling ([#2029 6201569519](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201569519)). The instrument is a **standalone dated-record crate**: `measurement.rs`
+and every production kernel are untouched, and nothing under `crates/` changes.
+
+**Execution has not happened.** G-Pre and the timing benchmark stay NOT_RUN / UNMEASURED until this source is reviewed, merged,
+and run on a pod at the qualification stage. No pod was leased for this delivery.
+
+## What it measures
+
+The carry + propose + observe path over a **frozen** snapshot at the K16 shape: V4096 / B4 / C192 / K16, Route read policy,
+64 rows, **100 distinct batches**, **both objective policies**, **one excluded warmup per cell**, four cells (checkpoint0 and the
+sealed seed-1 Q4 fixture, occupancy 189, crossed with the two policies).
+
+- Every timed step is bracketed by `Device::synchronize()` — before and after `carry_windows`, and before and after each
+  `propose` + `observation`. The numbers are integer host nanoseconds of a synchronized native API.
+- **Zero apply.** Each cell asserts an identical snapshot digest and epoch before and after; a change is a fault, not a footnote.
+- **Two rates, on purpose, over the FULL timed unit** (carry + propose + observation for both parameters, named in the plan as
+  `rates_basis`): target-rows/s (acceptance-facing) and, separately, physical **padded-context-tokens/s**
+  (64 rows x 192 positions = 12,288 per full batch). **Carry-only nanoseconds are reported as a separately named secondary**
+  (`carry_only`), never as the headline: a carry-only divisor understates per-batch cost in the expensive direction, and this number fills the D-Packet tokens/s slot that sizes training wall time. Per-family floors (carry, route propose/observation, vector propose/observation) are reported alongside, and the record states its dtype: integer nanoseconds over an integer-only discrete stack, no floating point.
+- **Per-batch receipts** carry the carry nanoseconds, both proposals (candidate, before/after epoch, whether any active candidate
+  cost differs from identity, active candidate count) and the epoch, with `applied: false` on every record.
+- **Identities** retained: the pinned fixture pins (snapshot SHA256, seed, epoch, occupancy, original K8 SHA, evaluation-only
+  rebind), the objective policy, the shape, and the compiled/device identity from the crate.
+
+## Fail closed
+
+`validate` refuses the run, before any device is touched, on: an absent or malformed fixture checksum (snapshot or the retained
+original), a shape that is not K16, a read policy that is not Route, a rows/batches/warmup mismatch, `evaluation_only_rebind:
+false`, `training_resume: true`, an empty cell list, a missing objective-policy arm, a duplicate cell, or a pin whose schema is
+wrong. `Pin` is `deny_unknown_fields`, so a typo in a pin is an error rather than a silently ignored field. At run time the
+fixture file is checksummed against the pin before it is admitted, and a changed snapshot or epoch after a cell is a fault.
+
+## Faults preserve evidence
+
+A timing run that faults on batch 60 is still evidence about batches 1..59: the ledger writes the **partial** record (status
+`partial`, with the fault stage and the preserved record count) before the error propagates. The record is written atomically
+(temp file plus rename), so a reader never sees a half-written receipt and a failed write leaves nothing behind.
+
+## The exclusion, in every record
+
+```
+no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are
+forward-only carry+propose+observe batches and NOT a training dose
+```
+
+Any use of these numbers as a training-dose estimate must quote it. A route-family timing arm, if anyone adds one, needs its own
+label; this instrument reports the four pinned cells and nothing else.
+
+## Host verification (no device)
+
+14 host tests, all passing, and a plan command that prints exactly what a run would do without a GPU:
+
+```
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+```
+
+They cover: the fail-closed set above (shape, read policy, absent/short fixture pins, resume-as-rebind, missing policy arm,
+duplicate cell, unknown policy, unknown field), batch distinctness and canonicity (100 x 64 x 192 identities, tokens inside the
+vocabulary), the integer rate arithmetic including the 12,288 padded-token identity and the zero-nanosecond guard, partial-receipt
+preservation on a fault, the record carrying the exclusion and `apply: false`, the plan naming every timed operation, and the
+atomic write leaving no temp file on a failed rename. `cargo clippy --all-targets` reports nothing for this crate
+(the warnings in the output come from pre-existing dead code in workspace dependencies).
+
+Full transcript: [host-tests.txt](host-tests.txt). The example pin a reviewer can validate on any host:
+[pin.example.json](pin.example.json).
+
+## What a reviewer should check
+
+1. **The timed set matches the delegation**: carry, propose and observation only — no apply, no forward, no evaluation.
+2. **The K16 rebind is evaluation-only**: `original_k: 8` and `original_sha256` are required pins and `training_resume` must be false.
+3. **The zero-apply assertion is a fault, not a note** — see the `zero_apply` branch in `run_cell`.
+4. **The exclusion cannot be lost**: it is a constant in the header and in every cell record.
+5. **Nothing production changed**: `git diff --stat origin/main -- crates/` is empty for this branch.
+
+## Cost
+
+Laptop CPU only: source, one host build, one test run. No pod, no GPU, no corpus write, no model compute, no lease.

@@ -1,0 +1,57 @@
+{
+  "apply": false,
+  "batches_per_cell": 100,
+  "cells": [
+    {
+      "policy": "nearest_address_margin_v1",
+      "source": "checkpoint0"
+    },
+    {
+      "policy": "occupied_cell_rank_hinge_v1",
+      "source": "checkpoint0"
+    },
+    {
+      "policy": "nearest_address_margin_v1",
+      "source": "sealed_seed1_q4"
+    },
+    {
+      "policy": "occupied_cell_rank_hinge_v1",
+      "source": "sealed_seed1_q4"
+    }
+  ],
+  "dtype": "integer nanoseconds (host wall clock, u128) over an integer-only discrete stack; no floating point",
+  "excluded_warmups_per_cell": 1,
+  "exclusion": "no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are forward-only carry+propose+observe batches and NOT a training dose",
+  "fixture": {
+    "epoch": 0,
+    "evaluation_only_rebind": true,
+    "occupied_cells": 189,
+    "original_k": 8,
+    "original_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "seed": 1,
+    "snapshot_path": "/workspace/uor-r4/runs/seed1-q4-k16-rebind/snapshot.json",
+    "snapshot_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "training_resume": false
+  },
+  "rates_basis": "full timed unit: carry_windows + propose(route) + observation + propose(vector_block) + observation",
+  "rates_secondary": "carry_only rows_per_s and padded_context_tokens_per_s are reported separately and are NOT the headline basis",
+  "read_spec": "route",
+  "schema": "k16-timing-plan/v1",
+  "shape": {
+    "blocks": 4,
+    "context": 192,
+    "kept_cells": 16,
+    "padded_context_tokens_per_batch": 12288,
+    "rows": 64,
+    "vocabulary": 4096
+  },
+  "synchronization": "Device::synchronize before and after every timed operation",
+  "timed_operations": [
+    "carry_windows",
+    "propose(route)",
+    "observation",
+    "propose(vector_block)",
+    "observation"
+  ],
+  "zero_apply_assertion": "snapshot digest and epoch identical before and after each cell"
+}
