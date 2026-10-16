@@ -1,5 +1,12 @@
 # Counterfactual execution readiness — 16 October 2026
 
+**Latest follow-up:** #2556's protected image binding and separate
+release6225352371 produced the [full Stage1 pass](../counterfactual-controls-pass-2026-10-16/README.md):
+40 proposals,128 endpoints,16 typed refusals, exact runtime/AOT resources,
+apply0. Stage2 remains NOT_RELEASED; it now needs the original checkpoint's
+version2 pins, independent readiness and distinct release. Earlier blocked
+states and version1 pins below remain dated evidence.
+
 **Image-binding follow-up:** the [compiled-image repair](../counterfactual-image-binding-2026-10-16/README.md)
 supersedes the prospective version1 pin below for current source. Current
 decomposition pins require version2 with exact loaded cubin/report/target

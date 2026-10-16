@@ -1,5 +1,10 @@
 # Counterfactual U/D finite controls — 16 October 2026
 
+**Execution follow-up:** the [repaired-image Stage1 receipt](../counterfactual-controls-pass-2026-10-16/README.md)
+records the complete fixed40/128/16 inventory PASS, runtime/AOT resource
+equality and apply0 under distinct release6225352371. Earlier source-only
+status below is dated provenance; Stage2 remains NOT_RELEASED.
+
 **Image-binding follow-up:** the [source repair](../counterfactual-image-binding-2026-10-16/README.md)
 assembles admitted PTX into the actual loaded cubins and advances execution
 pins to version2 with image/report/target hashes. The version1 source template

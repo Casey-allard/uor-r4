@@ -1,5 +1,10 @@
 # Counterfactual finite-control execution — 16 October 2026
 
+**Later follow-up:** protected image binding #2556 and a distinct reviewed
+release produced the [full Stage1 control pass](../counterfactual-controls-pass-2026-10-16/README.md).
+This original blocked attempt and its raw bytes remain unchanged. Stage2 still
+needs separate pins, independent readiness and release.
+
 **BLOCKED_INSTRUMENT_OR_FIXTURE: runtime/AOT register mismatch.** The single
 Stage 1 invocation authorized by [release6224573422](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6224573422)
 stopped before the finite-control dose. GPU initialization and snapshot validation

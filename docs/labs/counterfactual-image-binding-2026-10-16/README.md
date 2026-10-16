@@ -1,5 +1,11 @@
 # Counterfactual compiled-image/resource binding — 16 October 2026
 
+**Execution follow-up:** after protected #2556 delivery and distinct release,
+the [Stage1 receipt](../counterfactual-controls-pass-2026-10-16/README.md) records
+runtime/AOT equality and the complete40/128/16 finite-control pass, apply0.
+The construction-era NOT_RUN boundary below is dated provenance; Stage2
+remains separately gated and NOT_RELEASED.
+
 **Source repair; runtime parity NOT_RUN; execution NOT_RELEASED.** The
 [sealed Stage1 attempt](../counterfactual-controls-run-2026-10-16/README.md)
 stopped at resource admission: runtime/AOT registers U90/88 and D122/126,

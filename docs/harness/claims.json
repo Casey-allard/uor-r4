@@ -34,6 +34,13 @@
     "lab": "claude",
     "note": ""
   },
+  "codex/counterfactual-controls-pass": {
+    "branch": "codex/counterfactual-controls-pass",
+    "claimed_at": "2026-10-16T17:58:18-04:00",
+    "head": "afd6f721a",
+    "lab": "codex",
+    "note": "Docs-only Stage1 pass receipt, docs/labs/counterfactual-controls-pass-2026-10-16/ and prior counterfactual status notices, current-state, STATUS/ROADMAP M1 readiness only; claims and own ledger. No code changes"
+  },
   "codex/counterfactual-decomposition": {
     "branch": "codex/counterfactual-decomposition",
     "claimed_at": "2026-10-16T11:11:43-04:00",
