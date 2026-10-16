@@ -1,6 +1,15 @@
 # K16 synchronized 100-batch timing instrument (2026-10-15)
 
-**16 October qualification update:** the timing CUDA release build passed on
+**Latest qualification update, 16 October:** [restart 5 at `812459c7f`](../k16-qualification-restart5-2026-10-16/README.md)
+passes all step-0 gates, G-Pre and C-R1..C-R6. This timing runner then executes
+both checkpoint-0 cells, but generates 100 windows and skips one warmup, emitting
+only 99 timed batches per cell. Its process exits 0; the separate 100-batch
+receipt check fails and stops the attempt. Diagnostic-only padded-context rates
+are A=846 and R=845 tokens/s, not qualified 100-batch rates. Zero apply and
+unchanged epoch/snapshot checks pass. No patch/retry; Q4 stays NOT_EXECUTABLE.
+Source repair/review/merge and PM disposition precede further execution.
+
+**Earlier 16 October qualification update:** the timing CUDA release build passed on
 RTX 5090 at `3c651df97`, but [step 0 halted on the separate fixture runner's
 build](../k16-qualification-2026-10-16/README.md) before clippy or model execution.
 The timing instrument has not run: K16 rates remain UNMEASURED, and the Q4 leg
@@ -10,7 +19,7 @@ Source-only delivery of the runner Codex delegated ([#2029 6201508191](https://g
 the PM ruling ([#2029 6201569519](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201569519)). The instrument is a **standalone dated-record crate**: `measurement.rs`
 and every production kernel are untouched, and nothing under `crates/` changes.
 
-**Execution has not happened.** G-Pre and the timing benchmark stay NOT_RUN / UNMEASURED until this source is reviewed, merged,
+**Original source-only delivery status (superseded by the execution update above):** G-Pre and the timing benchmark stay NOT_RUN / UNMEASURED until this source is reviewed, merged,
 and run on a pod at the qualification stage. No pod was leased for this delivery.
 
 ## What it measures

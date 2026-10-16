@@ -1,0 +1,167 @@
+{
+  "status": "complete",
+  "header": {
+    "apply": false,
+    "batches_per_cell": 100,
+    "cells": [
+      {
+        "policy": "nearest_address_margin_v1",
+        "source": "checkpoint0"
+      },
+      {
+        "policy": "occupied_cell_rank_hinge_v1",
+        "source": "checkpoint0"
+      }
+    ],
+    "checkpoint0": {
+      "epoch": 0,
+      "label": "source-pinned zero-update G-Pre K16-A seed1 checkpoint0; Q4 NOT_EXECUTABLE",
+      "seed": 1,
+      "snapshot_path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/checkpoint0-timing-snapshot.json",
+      "snapshot_sha256": "9a76743e401759b7d3aabc708ab0a26a9470ea474dc140f328c7b1aab59e49e4"
+    },
+    "dtype": "integer nanoseconds (host wall clock, u128) over an integer-only discrete stack; no floating point",
+    "excluded_warmups_per_cell": 1,
+    "exclusion": "no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are forward-only carry+propose+observe batches and NOT a training dose",
+    "fixture": {
+      "epoch": 0,
+      "evaluation_only_rebind": true,
+      "occupied_cells": 189,
+      "original_k": 8,
+      "original_sha256": "",
+      "seed": 1,
+      "snapshot_path": "",
+      "snapshot_sha256": "",
+      "training_resume": false
+    },
+    "rates_basis": "full timed unit: carry_windows + propose(route) + observation + propose(vector_block) + observation",
+    "rates_secondary": "carry_only rows_per_s and padded_context_tokens_per_s are reported separately and are NOT the headline basis",
+    "read_spec": "route",
+    "schema": "k16-timing-plan/v1",
+    "shape": {
+      "blocks": 4,
+      "context": 192,
+      "kept_cells": 16,
+      "padded_context_tokens_per_batch": 12288,
+      "rows": 64,
+      "vocabulary": 4096
+    },
+    "synchronization": "Device::synchronize before and after every timed operation",
+    "timed_operations": [
+      "carry_windows",
+      "propose(route)",
+      "observation",
+      "propose(vector_block)",
+      "observation"
+    ],
+    "zero_apply_assertion": "snapshot digest and epoch identical before and after each cell"
+  },
+  "faults": [],
+  "records": [
+    {
+      "applied": false,
+      "carry_only": {
+        "note": "carry phase only; not the headline basis",
+        "ns": 80566845,
+        "padded_context_tokens_per_s": 15099412,
+        "rows_per_s": 78642
+      },
+      "cell": {
+        "policy": "nearest_address_margin_v1",
+        "source": "checkpoint0"
+      },
+      "dtype": "integer nanoseconds (host wall clock, u128) over an integer-only discrete stack; no floating point",
+      "epoch_after": 0,
+      "epoch_before": 0,
+      "excluded_warmups": 1,
+      "exclusion": "no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are forward-only carry+propose+observe batches and NOT a training dose",
+      "identities": {
+        "compiled": {
+          "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+          "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+          "source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7"
+        },
+        "device": {
+          "counterfactual_local_bytes": 21536,
+          "evaluation_local_bytes": 21184,
+          "forward_local_bytes": 21056,
+          "memory": {
+            "free_bytes": 27747090432,
+            "ordinal": 0,
+            "total_bytes": 33670758400
+          }
+        }
+      },
+      "per_family_ns_per_batch_floor": {
+        "carry": 813806,
+        "route_observation": 30303,
+        "route_propose": 7282177237,
+        "vector_observation": 29182,
+        "vector_propose": 7239042017
+      },
+      "rates": {
+        "basis": "full timed unit: carry_windows + propose(route) + observation + propose(vector_block) + observation",
+        "padded_context_tokens_per_s": 846,
+        "rows_per_s": 4
+      },
+      "record_kind": "cell",
+      "snapshot_digest_after": "47bd1870fea1d9e91ee15869a8467770541f79707f51938382d0dfe0f37a5c4f",
+      "snapshot_digest_before": "47bd1870fea1d9e91ee15869a8467770541f79707f51938382d0dfe0f37a5c4f",
+      "timed_batches": 99,
+      "unit_ns": 1437687162188
+    },
+    {
+      "applied": false,
+      "carry_only": {
+        "note": "carry phase only; not the headline basis",
+        "ns": 85695311,
+        "padded_context_tokens_per_s": 14195782,
+        "rows_per_s": 73936
+      },
+      "cell": {
+        "policy": "occupied_cell_rank_hinge_v1",
+        "source": "checkpoint0"
+      },
+      "dtype": "integer nanoseconds (host wall clock, u128) over an integer-only discrete stack; no floating point",
+      "epoch_after": 0,
+      "epoch_before": 0,
+      "excluded_warmups": 1,
+      "exclusion": "no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are forward-only carry+propose+observe batches and NOT a training dose",
+      "identities": {
+        "compiled": {
+          "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+          "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+          "source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7"
+        },
+        "device": {
+          "counterfactual_local_bytes": 21536,
+          "evaluation_local_bytes": 21184,
+          "forward_local_bytes": 21056,
+          "memory": {
+            "free_bytes": 27747090432,
+            "ordinal": 0,
+            "total_bytes": 33670758400
+          }
+        }
+      },
+      "per_family_ns_per_batch_floor": {
+        "carry": 865609,
+        "route_observation": 29511,
+        "route_propose": 7284142664,
+        "vector_observation": 30351,
+        "vector_propose": 7240965718
+      },
+      "rates": {
+        "basis": "full timed unit: carry_windows + propose(route) + observation + propose(vector_block) + observation",
+        "padded_context_tokens_per_s": 845,
+        "rows_per_s": 4
+      },
+      "record_kind": "cell",
+      "snapshot_digest_after": "481c00fbe9a3f5363d9b5761f6cb105ce4b64f325975164f37c038de5dcac03f",
+      "snapshot_digest_before": "481c00fbe9a3f5363d9b5761f6cb105ce4b64f325975164f37c038de5dcac03f",
+      "timed_batches": 99,
+      "unit_ns": 1438077351561
+    }
+  ],
+  "batch_record_count": 198
+}

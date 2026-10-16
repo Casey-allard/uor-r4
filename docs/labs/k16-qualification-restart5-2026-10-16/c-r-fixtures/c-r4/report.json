@@ -1,0 +1,29 @@
+{
+  "absent_rival_checks": {
+    "mixed_batch_skips_tr_zero_identically": true,
+    "policies_verified": [
+      "nearest_address_margin_v1",
+      "occupied_cell_rank_hinge_v1"
+    ],
+    "wholly_ineligible_refusal_status": 8
+  },
+  "apply_calls": 0,
+  "cpu_model_reference_used": false,
+  "id": "C-R4",
+  "name": "absent_rival_and_occupancy_under_k_bounds",
+  "occupancy_under_k": {
+    "m16_at_k16": {
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "target_admitted_rows": 16
+    },
+    "m1_at_k16": {
+      "cell_rank_hinge": 0,
+      "occupied_cells": 1,
+      "target_admitted": true,
+      "target_cell_rank": 1
+    }
+  },
+  "schema": "uor-r4.admission-rank-control-report/1",
+  "status": "PASS"
+}

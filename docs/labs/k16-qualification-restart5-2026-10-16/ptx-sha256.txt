@@ -1,0 +1,4 @@
+1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28  target/release/build/uor-r4-discrete-4df26b603e66f47b/out/discrete.ptx
+1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28  docs/labs/k16-timing-2026-10-15/instrument/target/release/build/uor-r4-discrete-07f94cfaa101289b/out/discrete.ptx
+1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28  docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/target/release/build/admission-rank-fixture-runner-2e6576dd5dbacf5a/out/discrete.ptx
+1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28  docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/target/release/build/uor-r4-discrete-07f94cfaa101289b/out/discrete.ptx

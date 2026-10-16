@@ -27,10 +27,10 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/k16-qualification-restart4": {
-    "branch": "codex/k16-qualification-restart4",
-    "claimed_at": "2026-10-16T00:27:33-04:00",
-    "head": "5fc68a9a6",
+  "codex/k16-qualification-restart5": {
+    "branch": "codex/k16-qualification-restart5",
+    "claimed_at": "2026-10-16T01:05:17-04:00",
+    "head": "812459c7f",
     "lab": "codex",
     "note": ""
   },

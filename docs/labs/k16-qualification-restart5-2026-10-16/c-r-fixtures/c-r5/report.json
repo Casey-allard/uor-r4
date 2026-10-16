@@ -1,0 +1,160 @@
+{
+  "aggregate_words": 1020,
+  "apply_calls": 0,
+  "cpu_model_reference_used": false,
+  "dual_loss_and_summary_aggregation_verified": true,
+  "evaluation_schema": "uor-r4.discrete-objective-evaluation/1",
+  "histogram_bins": [
+    641,
+    73,
+    256
+  ],
+  "id": "C-R5",
+  "name": "bounded_integer_arithmetic_dual_loss_and_distribution_schema",
+  "row_words": 14,
+  "schema": "uor-r4.admission-rank-control-report/1",
+  "status": "PASS",
+  "status12_overflow_checks": {
+    "all_passed": true,
+    "baseline_valid_row_status": 0,
+    "cases": [
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "raw_row_bounds_T_gt_640",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "raw_row_bounds_A_gt_72",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "raw_row_bounds_R_gt_255",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "target_cell_rank_zero",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "target_cell_rank_gt_256",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "occupied_cells_zero",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "occupied_cells_gt_256",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "admitted_cells_zero",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "admitted_cells_gt_16",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "loss_ta_formula_mismatch",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "loss_tr_formula_mismatch",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 2,
+        "expected_status": 12,
+        "name": "cross_row_occupied_cells_mismatch",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 0,
+        "width": 32
+      },
+      {
+        "count": 2,
+        "expected_status": 12,
+        "name": "u64::MAX plus 1",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 1,
+        "width": 32
+      },
+      {
+        "count": 2,
+        "expected_status": 12,
+        "name": "weighted R overflow",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 1,
+        "width": 32
+      },
+      {
+        "count": 1,
+        "expected_status": 12,
+        "name": "quantile threshold overflow",
+        "observed_status": 12,
+        "passed": true,
+        "summaries_mode": 1,
+        "width": 32
+      }
+    ],
+    "matches_device_compiled_kernel_sha256": true,
+    "ptx_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28"
+  }
+}

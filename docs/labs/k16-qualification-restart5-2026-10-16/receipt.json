@@ -1,0 +1,592 @@
+{
+  "schema": "uor-r4.k16-qualification-attempt/1",
+  "source_commit": "812459c7f30510db23f585c724fe70f7f1f98a99",
+  "approved_instrument_head": "3e3a5892ea23410d50478956ca04eb1c45c99dcc",
+  "instrument_byte_identity": true,
+  "session": "codex-k16-qual-20261016-5",
+  "pod": "vast-56202766",
+  "disposition": "TIMING_BLOCKER_TO_FIX",
+  "failed_gate": "timing-status",
+  "exit_code": 1,
+  "diagnostic": "Each checkpoint0 timing cell emits 99 timed batches instead of 100: batches(pin.batches) followed by skip(pin.warmups).",
+  "step0": [
+    {
+      "phase": "discrete-build",
+      "exit": 0,
+      "started_unix": 1792127342,
+      "ended_unix": 1792127382,
+      "duration_seconds": 40
+    },
+    {
+      "phase": "timing-build",
+      "exit": 0,
+      "started_unix": 1792127382,
+      "ended_unix": 1792127411,
+      "duration_seconds": 29
+    },
+    {
+      "phase": "fixtures-build",
+      "exit": 0,
+      "started_unix": 1792127411,
+      "ended_unix": 1792127440,
+      "duration_seconds": 29
+    },
+    {
+      "phase": "discrete-clippy",
+      "exit": 0,
+      "started_unix": 1792127440,
+      "ended_unix": 1792127467,
+      "duration_seconds": 27
+    },
+    {
+      "phase": "timing-clippy",
+      "exit": 0,
+      "started_unix": 1792127467,
+      "ended_unix": 1792127491,
+      "duration_seconds": 24
+    },
+    {
+      "phase": "fixtures-clippy",
+      "exit": 0,
+      "started_unix": 1792127491,
+      "ended_unix": 1792127516,
+      "duration_seconds": 25
+    }
+  ],
+  "gate_commands": [
+    {
+      "phase": "k16-A-seed1-build-identity",
+      "exit": 0,
+      "started_unix": 1792127527,
+      "ended_unix": 1792127527,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k16-A-seed2-build-identity",
+      "exit": 0,
+      "started_unix": 1792127527,
+      "ended_unix": 1792127528,
+      "duration_seconds": 1
+    },
+    {
+      "phase": "k16-R-seed1-build-identity",
+      "exit": 0,
+      "started_unix": 1792127528,
+      "ended_unix": 1792127528,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k16-R-seed2-build-identity",
+      "exit": 0,
+      "started_unix": 1792127528,
+      "ended_unix": 1792127528,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k8-A-seed1-init",
+      "exit": 0,
+      "started_unix": 1792127528,
+      "ended_unix": 1792127532,
+      "duration_seconds": 4
+    },
+    {
+      "phase": "k8-A-seed1-eval",
+      "exit": 0,
+      "started_unix": 1792127532,
+      "ended_unix": 1792127553,
+      "duration_seconds": 21
+    },
+    {
+      "phase": "k8-A-seed1-zero-update",
+      "exit": 0,
+      "started_unix": 1792127553,
+      "ended_unix": 1792127553,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k8-A-seed1-reproduction",
+      "exit": 0,
+      "started_unix": 1792127553,
+      "ended_unix": 1792127553,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k8-A-seed1-ceiling",
+      "exit": 0,
+      "started_unix": 1792127553,
+      "ended_unix": 1792127554,
+      "duration_seconds": 1
+    },
+    {
+      "phase": "k16-A-seed1-init",
+      "exit": 0,
+      "started_unix": 1792127554,
+      "ended_unix": 1792127556,
+      "duration_seconds": 2
+    },
+    {
+      "phase": "k16-A-seed1-eval",
+      "exit": 0,
+      "started_unix": 1792127556,
+      "ended_unix": 1792127583,
+      "duration_seconds": 27
+    },
+    {
+      "phase": "k16-A-seed1-zero-update",
+      "exit": 0,
+      "started_unix": 1792127583,
+      "ended_unix": 1792127583,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k16-A-seed1-ceiling",
+      "exit": 0,
+      "started_unix": 1792127583,
+      "ended_unix": 1792127584,
+      "duration_seconds": 1
+    },
+    {
+      "phase": "k16-R-seed1-init",
+      "exit": 0,
+      "started_unix": 1792127584,
+      "ended_unix": 1792127586,
+      "duration_seconds": 2
+    },
+    {
+      "phase": "k16-R-seed1-eval",
+      "exit": 0,
+      "started_unix": 1792127586,
+      "ended_unix": 1792127612,
+      "duration_seconds": 26
+    },
+    {
+      "phase": "k16-R-seed1-zero-update",
+      "exit": 0,
+      "started_unix": 1792127612,
+      "ended_unix": 1792127613,
+      "duration_seconds": 1
+    },
+    {
+      "phase": "k16-R-seed1-ceiling",
+      "exit": 0,
+      "started_unix": 1792127613,
+      "ended_unix": 1792127613,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k8-A-seed2-init",
+      "exit": 0,
+      "started_unix": 1792127613,
+      "ended_unix": 1792127615,
+      "duration_seconds": 2
+    },
+    {
+      "phase": "k8-A-seed2-eval",
+      "exit": 0,
+      "started_unix": 1792127615,
+      "ended_unix": 1792127635,
+      "duration_seconds": 20
+    },
+    {
+      "phase": "k8-A-seed2-zero-update",
+      "exit": 0,
+      "started_unix": 1792127635,
+      "ended_unix": 1792127636,
+      "duration_seconds": 1
+    },
+    {
+      "phase": "k8-A-seed2-ceiling",
+      "exit": 0,
+      "started_unix": 1792127636,
+      "ended_unix": 1792127636,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k16-A-seed2-init",
+      "exit": 0,
+      "started_unix": 1792127636,
+      "ended_unix": 1792127638,
+      "duration_seconds": 2
+    },
+    {
+      "phase": "k16-A-seed2-eval",
+      "exit": 0,
+      "started_unix": 1792127638,
+      "ended_unix": 1792127664,
+      "duration_seconds": 26
+    },
+    {
+      "phase": "k16-A-seed2-zero-update",
+      "exit": 0,
+      "started_unix": 1792127664,
+      "ended_unix": 1792127665,
+      "duration_seconds": 1
+    },
+    {
+      "phase": "k16-A-seed2-ceiling",
+      "exit": 0,
+      "started_unix": 1792127665,
+      "ended_unix": 1792127665,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k16-R-seed2-init",
+      "exit": 0,
+      "started_unix": 1792127665,
+      "ended_unix": 1792127667,
+      "duration_seconds": 2
+    },
+    {
+      "phase": "k16-R-seed2-eval",
+      "exit": 0,
+      "started_unix": 1792127667,
+      "ended_unix": 1792127693,
+      "duration_seconds": 26
+    },
+    {
+      "phase": "k16-R-seed2-zero-update",
+      "exit": 0,
+      "started_unix": 1792127694,
+      "ended_unix": 1792127694,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "k16-R-seed2-ceiling",
+      "exit": 0,
+      "started_unix": 1792127694,
+      "ended_unix": 1792127694,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "cr-suite",
+      "exit": 0,
+      "started_unix": 1792127694,
+      "ended_unix": 1792127717,
+      "duration_seconds": 23
+    },
+    {
+      "phase": "cr-suite-status",
+      "exit": 0,
+      "started_unix": 1792127717,
+      "ended_unix": 1792127717,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "timing-plan",
+      "exit": 0,
+      "started_unix": 1792127717,
+      "ended_unix": 1792127717,
+      "duration_seconds": 0
+    },
+    {
+      "phase": "timing-run",
+      "exit": 0,
+      "started_unix": 1792127717,
+      "ended_unix": 1792130622,
+      "duration_seconds": 2905
+    },
+    {
+      "phase": "timing-status",
+      "exit": 1,
+      "started_unix": 1792130622,
+      "ended_unix": 1792130622,
+      "duration_seconds": 0
+    }
+  ],
+  "g_pre": "PASS",
+  "g_pre_scope": "Untrained admission ceiling; K16 admits all 16 occupied cells, not a discrimination result.",
+  "g_pre_raw_receipts": [
+    {
+      "path": "g-pre-k16-A-seed1-eval/report.json",
+      "sha256": "776ad5d80080293c723bf6059b170fc2dde5859c8134d0201b87bc132964f291"
+    },
+    {
+      "path": "g-pre-k16-A-seed1-init/report.json",
+      "sha256": "0eea17d5aeffe5effa7fdaf82b66f904b612426d570a12d159fbb93fe53ad2c6"
+    },
+    {
+      "path": "g-pre-k16-A-seed2-eval/report.json",
+      "sha256": "6b023a1e444ca5b9cb6ae4c8c8d99f21604232120282c11aa0d06f6f8c45d492"
+    },
+    {
+      "path": "g-pre-k16-A-seed2-init/report.json",
+      "sha256": "4d80fce181ca63b517b988764a1c119466fe37c6f3dfffe3f2e83fbcf88bea27"
+    },
+    {
+      "path": "g-pre-k16-R-seed1-eval/report.json",
+      "sha256": "48c4e53c13833816811647dad48df8db9122ea2af2100fe5f6bf86d779baaa13"
+    },
+    {
+      "path": "g-pre-k16-R-seed1-init/report.json",
+      "sha256": "a208432e6141d610429737cf9b7fad4199197a664e851b08f7a6ae255dea1c1d"
+    },
+    {
+      "path": "g-pre-k16-R-seed2-eval/report.json",
+      "sha256": "b597e6d6a5a679881f9d27845b1486644369b0bba0c4df323383c20737b8b2fa"
+    },
+    {
+      "path": "g-pre-k16-R-seed2-init/report.json",
+      "sha256": "224f17ef3a672434250f5e196baca24d47077e14d49926a5edb09322424f0d70"
+    },
+    {
+      "path": "g-pre-k8-A-seed1-eval/report.json",
+      "sha256": "fd84bfe05018de16bbc30a8c171da1afeec40b44b3cb89b7e0ac179d9f4fff96"
+    },
+    {
+      "path": "g-pre-k8-A-seed1-init/report.json",
+      "sha256": "6b86f811640efb38b802088ee7c8ca43206c4b1a2438e287e74c1d42c589b7e0"
+    },
+    {
+      "path": "g-pre-k8-A-seed2-eval/report.json",
+      "sha256": "d0ca3eb1cf2fa58982c81940b54d91f5cee7e6b487abfbff9840bc91bfe58667"
+    },
+    {
+      "path": "g-pre-k8-A-seed2-init/report.json",
+      "sha256": "e3acae7ca408208e6d3348ab44a366d512ad5b05b8cadb84eec8b3ecd6261577"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C-R1",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r1/report.json",
+        "sha256": "066bd987c52767c9f35615a8416112ac19d1eff37a91be7580f6381631bf1117"
+      }
+    },
+    {
+      "id": "C-R2",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r2/report.json",
+        "sha256": "bb11e47fb47b507c54564fc26b69d6a35de88c4b19ef72adb2497ce6221091c6"
+      }
+    },
+    {
+      "id": "C-R3",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r3/report.json",
+        "sha256": "c327f4f0c6e1bceeea7472aa3f88c2d5479fcb4288c14c65a7040b3628e5d2e9"
+      }
+    },
+    {
+      "id": "C-R4",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r4/report.json",
+        "sha256": "8682f2b7253f5eb78279af8afc4a6f8c37476e2eed5d50d16561c30af000812c"
+      }
+    },
+    {
+      "id": "C-R5",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r5/report.json",
+        "sha256": "9411eea07071f652cf37b42e81947a8b030f520830eb587194ae38a4bed87d00"
+      }
+    },
+    {
+      "id": "C-R6",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r6/report.json",
+        "sha256": "096f752e7fbb59d5cdeb8fd92b236232c265a8ca999f8635d4ba0d0a97946cae"
+      }
+    }
+  ],
+  "timing_checkpoint0": "NOT_QUALIFIED_100_BATCH_REQUIREMENT",
+  "timing_process_exit": 0,
+  "timing_record_status": "complete",
+  "timing_required_batches_per_cell": 100,
+  "timing_observed_batches_per_cell": 99,
+  "timing_observed_batch_records": 198,
+  "timing_record_sha256": "d2d34db2a15112c339796149587e2e11c5b47b6aa34852b2642ceccfa031ff07",
+  "timing_q4": "NOT_EXECUTABLE",
+  "timing_diagnostic_rates": [
+    {
+      "policy": "nearest_address_margin_v1",
+      "timed_batches": 99,
+      "unit_ns": 1437687162188,
+      "rates": {
+        "basis": "full timed unit: carry_windows + propose(route) + observation + propose(vector_block) + observation",
+        "padded_context_tokens_per_s": 846,
+        "rows_per_s": 4
+      },
+      "epoch_before": 0,
+      "epoch_after": 0,
+      "snapshot_digest_before": "47bd1870fea1d9e91ee15869a8467770541f79707f51938382d0dfe0f37a5c4f",
+      "snapshot_digest_after": "47bd1870fea1d9e91ee15869a8467770541f79707f51938382d0dfe0f37a5c4f"
+    },
+    {
+      "policy": "occupied_cell_rank_hinge_v1",
+      "timed_batches": 99,
+      "unit_ns": 1438077351561,
+      "rates": {
+        "basis": "full timed unit: carry_windows + propose(route) + observation + propose(vector_block) + observation",
+        "padded_context_tokens_per_s": 845,
+        "rows_per_s": 4
+      },
+      "epoch_before": 0,
+      "epoch_after": 0,
+      "snapshot_digest_before": "481c00fbe9a3f5363d9b5761f6cb105ce4b64f325975164f37c038de5dcac03f",
+      "snapshot_digest_after": "481c00fbe9a3f5363d9b5761f6cb105ce4b64f325975164f37c038de5dcac03f"
+    }
+  ],
+  "model_compute_executed": true,
+  "cpu_model_reference_used": false,
+  "apply_calls": 0,
+  "training_executed": false,
+  "persistent_model_updated": false,
+  "authored_fixture_candidates_restored": true,
+  "patch_or_retry": false,
+  "archive": {
+    "path": "icloud:UOR-R4/results/codex/codex-k16-qualification-20261016-5.tar",
+    "bytes": 109805056,
+    "md5": "21a4633d605289bbede3f19c4581b3dc",
+    "sha256_manifest": "4b127c40c55419f3c7accdcd4953a593ad8addc4b4049b8ca90374b6d529db46",
+    "verified_files": 133,
+    "download_roundtrip_verified_before_teardown": true,
+    "contains_executables_and_ptx": true
+  },
+  "created_at": "2026-10-16T05:05:41Z",
+  "released_at": "2026-10-16T06:06:22Z",
+  "deleted_at": "2026-10-16T06:06:47Z",
+  "wall_seconds": 3666,
+  "wall_rate_estimate_usd": 0.8574366666666666,
+  "pod_deleted": true,
+  "fleet_running_after_teardown": 0,
+  "rental_cost_basis": "reported hourly rate times provider uptime / 3600; not invoice",
+  "leases": [
+    {
+      "pod": "vast-56182561",
+      "lab": "codex",
+      "session": "codex-k16-qual-20261016",
+      "deleted_at": "2026-10-16T01:50:22Z",
+      "usd_per_h": 0.815,
+      "uptime_s": 447,
+      "estimate_usd": 0.10119583333333332
+    },
+    {
+      "pod": "vast-56184953",
+      "lab": "deepseek",
+      "session": "k16cuda",
+      "deleted_at": "2026-10-16T02:10:05Z",
+      "usd_per_h": 1.775,
+      "uptime_s": 136,
+      "estimate_usd": 0.06705555555555555
+    },
+    {
+      "pod": "vast-56185442",
+      "lab": "deepseek",
+      "session": "k16cuda2",
+      "deleted_at": "2026-10-16T02:14:50Z",
+      "usd_per_h": 1.775,
+      "uptime_s": 121,
+      "estimate_usd": 0.05965972222222222
+    },
+    {
+      "pod": "vast-56186258",
+      "lab": "deepseek",
+      "session": "k16cuda3",
+      "deleted_at": "2026-10-16T02:20:11Z",
+      "usd_per_h": 4.696,
+      "uptime_s": 144,
+      "estimate_usd": 0.18783999999999998
+    },
+    {
+      "pod": "vast-56187939",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck",
+      "deleted_at": "2026-10-16T02:37:00Z",
+      "usd_per_h": 0.908,
+      "uptime_s": 303,
+      "estimate_usd": 0.07642333333333334
+    },
+    {
+      "pod": "vast-56189413",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-2",
+      "deleted_at": "2026-10-16T02:49:20Z",
+      "usd_per_h": 0.908,
+      "uptime_s": 183,
+      "estimate_usd": 0.04615666666666667
+    },
+    {
+      "pod": "vast-56190701",
+      "lab": "codex",
+      "session": "codex-k16-qual-20261016-3",
+      "deleted_at": "2026-10-16T03:02:53Z",
+      "usd_per_h": 0.603,
+      "uptime_s": 177,
+      "estimate_usd": 0.029647499999999997
+    },
+    {
+      "pod": "vast-56194344",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-3",
+      "deleted_at": "2026-10-16T03:40:15Z",
+      "usd_per_h": 0.603,
+      "uptime_s": 515,
+      "estimate_usd": 0.0862625
+    },
+    {
+      "pod": "vast-56196329",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-4",
+      "deleted_at": "2026-10-16T03:55:19Z",
+      "usd_per_h": 0.708,
+      "uptime_s": 154,
+      "estimate_usd": 0.030286666666666667
+    },
+    {
+      "pod": "vast-56197212",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-4",
+      "deleted_at": "2026-10-16T04:04:56Z",
+      "usd_per_h": 0.708,
+      "uptime_s": 170,
+      "estimate_usd": 0.033433333333333336
+    },
+    {
+      "pod": "vast-56199663",
+      "lab": "codex",
+      "session": "codex-k16-qual-20261016-4",
+      "deleted_at": "2026-10-16T04:35:14Z",
+      "usd_per_h": 0.563,
+      "uptime_s": 414,
+      "estimate_usd": 0.064745
+    },
+    {
+      "pod": "vast-56201620",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-5",
+      "deleted_at": "2026-10-16T04:56:13Z",
+      "usd_per_h": 2.042,
+      "uptime_s": 244,
+      "estimate_usd": 0.1384022222222222
+    },
+    {
+      "pod": "vast-56202766",
+      "lab": "codex",
+      "session": "codex-k16-qual-20261016-5",
+      "deleted_at": "2026-10-16T06:06:47Z",
+      "usd_per_h": 0.842,
+      "uptime_s": 3644,
+      "estimate_usd": 0.8522911111111111
+    }
+  ],
+  "prior_provider_uptime_estimate_usd": 0.9211083333333333,
+  "this_lease_provider_uptime_estimate_usd": 0.8522911111111111,
+  "qualification_chain_estimate_usd": 1.7733994444444443,
+  "storage_transfer_invoice": "UNMEASURED",
+  "retained_paid_pod_storage": false,
+  "codex_archived_bytes": 110516736,
+  "latest_premerge_archive": {
+    "path": "icloud:UOR-R4/results/codex/codex-k16-cudacheck-20261016-5.tar",
+    "bytes": 71168,
+    "md5": "172723b7c9810b840cc5a23ae1e9d32f",
+    "transcript_comment": 6208395910,
+    "verdict_comment": 6208406531
+  }
+}

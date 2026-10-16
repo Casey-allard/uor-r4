@@ -1,0 +1,42 @@
+{
+  "batches": 100,
+  "cells": [
+    {
+      "policy": "nearest_address_margin_v1",
+      "source": "checkpoint0"
+    },
+    {
+      "policy": "occupied_cell_rank_hinge_v1",
+      "source": "checkpoint0"
+    }
+  ],
+  "checkpoint0": {
+    "snapshot_path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/checkpoint0-timing-snapshot.json",
+    "snapshot_sha256": "9a76743e401759b7d3aabc708ab0a26a9470ea474dc140f328c7b1aab59e49e4",
+    "seed": 1,
+    "epoch": 0,
+    "label": "source-pinned zero-update G-Pre K16-A seed1 checkpoint0; Q4 NOT_EXECUTABLE"
+  },
+  "fixture": {
+    "epoch": 0,
+    "evaluation_only_rebind": true,
+    "occupied_cells": 189,
+    "original_k": 8,
+    "original_sha256": "",
+    "seed": 1,
+    "snapshot_path": "",
+    "snapshot_sha256": "",
+    "training_resume": false
+  },
+  "out_dir": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/timing",
+  "read_spec": "route",
+  "rows": 64,
+  "schema": "k16-timing-pin/v1",
+  "spec": {
+    "blocks": 4,
+    "context": 192,
+    "kept_cells": 16,
+    "vocabulary": 4096
+  },
+  "warmups": 1
+}

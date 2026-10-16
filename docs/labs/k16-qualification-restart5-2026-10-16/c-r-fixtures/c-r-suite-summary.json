@@ -1,0 +1,57 @@
+{
+  "schema": "uor-r4.admission-rank-fixture-runner/1",
+  "status": "PASS",
+  "model_compute_executed": true,
+  "apply_calls": 0,
+  "cpu_model_reference_used": false,
+  "controls": [
+    {
+      "id": "C-R1",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r1/report.json",
+        "sha256": "066bd987c52767c9f35615a8416112ac19d1eff37a91be7580f6381631bf1117"
+      }
+    },
+    {
+      "id": "C-R2",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r2/report.json",
+        "sha256": "bb11e47fb47b507c54564fc26b69d6a35de88c4b19ef72adb2497ce6221091c6"
+      }
+    },
+    {
+      "id": "C-R3",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r3/report.json",
+        "sha256": "c327f4f0c6e1bceeea7472aa3f88c2d5479fcb4288c14c65a7040b3628e5d2e9"
+      }
+    },
+    {
+      "id": "C-R4",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r4/report.json",
+        "sha256": "8682f2b7253f5eb78279af8afc4a6f8c37476e2eed5d50d16561c30af000812c"
+      }
+    },
+    {
+      "id": "C-R5",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r5/report.json",
+        "sha256": "9411eea07071f652cf37b42e81947a8b030f520830eb587194ae38a4bed87d00"
+      }
+    },
+    {
+      "id": "C-R6",
+      "status": "PASS",
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/c-r-fixtures/c-r6/report.json",
+        "sha256": "096f752e7fbb59d5cdeb8fd92b236232c265a8ca999f8635d4ba0d0a97946cae"
+      }
+    }
+  ]
+}

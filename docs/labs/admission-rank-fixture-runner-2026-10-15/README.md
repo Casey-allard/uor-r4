@@ -1,6 +1,13 @@
 # Standalone `C-R1..C-R6` GPU Fixture Runner (`uor-r4.admission-rank-fixture-runner/1`)
 
-**Latest restart (4), 16 October:** [merged `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
+**Latest restart (5), 16 October:** [merged `812459c7f`](../k16-qualification-restart5-2026-10-16/README.md)
+passes the fixture CUDA build/clippy gates and all six actual GPU C-R controls,
+consuming the same attempt's passing G-Pre receipts. No corpus apply occurs.
+Overall qualification later halts at the separate timing receipt gate: 99 timed
+batches per cell instead of 100. The completed C-R receipts remain preserved;
+no timing waiver, training release or mechanism conclusion follows.
+
+**Earlier restart (4), 16 October:** [merged `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
 includes the approved C-R6 consumer repair and passes the fixture CUDA release
 build. Its mandatory clippy gate fails at `src/main.rs:564` on `3 * 4 + 0`
 (`clippy::identity_op`, `-D warnings`). Execution halted with no patch/retry;

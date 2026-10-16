@@ -1,0 +1,174 @@
+{
+  "schema": "uor-r4.qualification-timing-cost-attribution/1",
+  "evidence_scope": "Diagnostic 99-batch cells only, not qualified 100-batch rates; metadata analysis of sealed receipts, no model execution",
+  "source_head": "812459c7f30510db23f585c724fe70f7f1f98a99",
+  "raw_record": "timing/k16-timing-record.json",
+  "archive_md5": "21a4633d605289bbede3f19c4581b3dc",
+  "quantile_method": "Nearest-rank p95; median averages the two central values for even sample counts",
+  "combined": {
+    "batch_count": 198,
+    "phases": {
+      "carry": {
+        "total_ns": 166262156,
+        "mean_ns": 839707.8585858586,
+        "min_ns": 573730,
+        "median_ns": 886840.5,
+        "p95_ns": 1022171,
+        "max_ns": 1512943,
+        "share_percent": 0.0057814941107000375
+      },
+      "route_propose": {
+        "total_ns": 1442065670315,
+        "mean_ns": 7283159951.085858,
+        "min_ns": 7261725280,
+        "median_ns": 7283269601.5,
+        "p95_ns": 7285437588,
+        "max_ns": 7286105797,
+        "share_percent": 50.14547134928813
+      },
+      "route_observation": {
+        "total_ns": 5921684,
+        "mean_ns": 29907.49494949495,
+        "min_ns": 14910,
+        "median_ns": 28830,
+        "p95_ns": 38230,
+        "max_ns": 50610,
+        "share_percent": 0.00020591686042749645
+      },
+      "vector_block_propose": {
+        "total_ns": 1433520765784,
+        "mean_ns": 7240003867.59596,
+        "min_ns": 7237609389,
+        "median_ns": 7239918166,
+        "p95_ns": 7242359004,
+        "max_ns": 7242861880,
+        "share_percent": 49.848336292153
+      },
+      "vector_block_observation": {
+        "total_ns": 5893810,
+        "mean_ns": 29766.717171717173,
+        "min_ns": 14180,
+        "median_ns": 28320.5,
+        "p95_ns": 38190,
+        "max_ns": 71380,
+        "share_percent": 0.00020494758773959956
+      }
+    },
+    "total_ns": 2875764513749
+  },
+  "cells": [
+    {
+      "policy": "nearest_address_margin_v1",
+      "batch_count": 99,
+      "phases": {
+        "carry": {
+          "total_ns": 80566845,
+          "mean_ns": 813806.5151515151,
+          "min_ns": 573730,
+          "median_ns": 883001,
+          "p95_ns": 1007701,
+          "max_ns": 1444862,
+          "share_percent": 0.005603920457729219
+        },
+        "route_propose": {
+          "total_ns": 720935546523,
+          "mean_ns": 7282177237.606061,
+          "min_ns": 7261725280,
+          "median_ns": 7282297706,
+          "p95_ns": 7283675917,
+          "max_ns": 7284021201,
+          "share_percent": 50.14550908459224
+        },
+        "route_observation": {
+          "total_ns": 3000072,
+          "mean_ns": 30303.757575757576,
+          "min_ns": 15410,
+          "median_ns": 28540,
+          "p95_ns": 39390,
+          "max_ns": 50610,
+          "share_percent": 0.0002086734916262467
+        },
+        "vector_block_propose": {
+          "total_ns": 716665159687,
+          "mean_ns": 7239042017.040404,
+          "min_ns": 7237609389,
+          "median_ns": 7239011108,
+          "p95_ns": 7240384611,
+          "max_ns": 7240695867,
+          "share_percent": 49.84847736946578
+        },
+        "vector_block_observation": {
+          "total_ns": 2889061,
+          "mean_ns": 29182.434343434343,
+          "min_ns": 16520,
+          "median_ns": 27640,
+          "p95_ns": 38300,
+          "max_ns": 71380,
+          "share_percent": 0.00020095199261591583
+        }
+      },
+      "total_ns": 1437687162188
+    },
+    {
+      "policy": "occupied_cell_rank_hinge_v1",
+      "batch_count": 99,
+      "phases": {
+        "carry": {
+          "total_ns": 85695311,
+          "mean_ns": 865609.2020202021,
+          "min_ns": 585761,
+          "median_ns": 889982,
+          "p95_ns": 1090082,
+          "max_ns": 1512943,
+          "share_percent": 0.005959019583124628
+        },
+        "route_propose": {
+          "total_ns": 721130123792,
+          "mean_ns": 7284142664.565657,
+          "min_ns": 7281778887,
+          "median_ns": 7284130804,
+          "p95_ns": 7285573516,
+          "max_ns": 7286105797,
+          "share_percent": 50.14543362422263
+        },
+        "route_observation": {
+          "total_ns": 2921612,
+          "mean_ns": 29511.23232323232,
+          "min_ns": 14910,
+          "median_ns": 29060,
+          "p95_ns": 36800,
+          "max_ns": 48630,
+          "share_percent": 0.00020316097717752504
+        },
+        "vector_block_propose": {
+          "total_ns": 716855606097,
+          "mean_ns": 7240965718.151515,
+          "min_ns": 7238841690,
+          "median_ns": 7240940385,
+          "p95_ns": 7242514045,
+          "max_ns": 7242861880,
+          "share_percent": 49.84819525311831
+        },
+        "vector_block_observation": {
+          "total_ns": 3004749,
+          "mean_ns": 30351,
+          "min_ns": 14180,
+          "median_ns": 30020,
+          "p95_ns": 38150,
+          "max_ns": 66530,
+          "share_percent": 0.00020894209875000212
+        }
+      },
+      "total_ns": 1438077351561
+    }
+  ],
+  "process_wall_seconds": 2905,
+  "unattributed_wall_seconds": 29.23548625100011,
+  "interpretation": {
+    "carry_hypothesis": "Not supported at this scope: carry totals 0.166262156 seconds, 0.00578149 percent of measured units.",
+    "proposal_share_percent": 99.99380764144112,
+    "outer_overhead": "Measured units account for 2875.764513749 of 2905 process-wall seconds. The 29.235486251-second residual also contains two excluded warmups; coarse timestamps and no warmup timers prevent exact outer-loop attribution.",
+    "limits": "Host elapsed timers bracket synchronized Device::propose calls. They include admission/epoch checks, allocation and transfers, counterfactual/choose kernels, status reads and synchronization. They do not isolate device kernel time from in-call overhead.",
+    "needed_instrumentation": "Source-reviewed nested phase accounting: CUDA events for counterfactual and choose; separate host wall intervals for admission/epoch/status reads, allocation/zeroing, H2D/DtoH and synchronization; explicit warmup and outside-phase timings. Preserve existing synchronized full-unit denominator and zero-apply contract."
+  }
+}

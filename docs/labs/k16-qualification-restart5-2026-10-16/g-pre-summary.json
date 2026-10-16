@@ -1,0 +1,278 @@
+[
+  {
+    "schema": "uor-r4.discrete-corpus-driver/1",
+    "objective_evaluation_schema": "uor-r4.discrete-objective-evaluation/1",
+    "model_bindings": {
+      "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "objective_policy": "nearest_address_margin_v1",
+      "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+      "read_spec": {
+        "kind": "route"
+      },
+      "schema": "uor-r4.discrete-spiralcore-fbs/2",
+      "seed": 1,
+      "source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+      "spec": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 16,
+        "vocabulary": 4096
+      }
+    },
+    "model_epoch": 0,
+    "model_snapshot_sha256": "47bd1870fea1d9e91ee15869a8467770541f79707f51938382d0dfe0f37a5c4f",
+    "evaluation_lineage_sha256": "f1e6d7add2945a1a7371a9dd2a66a97cdcee25dc111e57bfad319a721c256d28",
+    "updates_applied_by_evaluation": 0,
+    "accepted_updates_in_model": 0,
+    "evaluation_mutates_model": false,
+    "aggregate": {
+      "scored_rows": 14287,
+      "target_admitted_rows": 14287,
+      "top1_correct": 19,
+      "top8_correct": 151,
+      "token_strict_win_eligible_rows": 0,
+      "admitted_strict_win_rows": 0,
+      "address_hinge_sum": 261824,
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "weighted_token_hinge_sum": 5497888,
+      "weighted_address_hinge_sum": 8378368,
+      "weighted_cell_rank_hinge_sum": 0,
+      "loss_ta_numerator_sum": 13876256,
+      "loss_tr_numerator_sum": 5497888,
+      "objective_loss_numerator_sum": 13876256
+    }
+  },
+  {
+    "schema": "uor-r4.discrete-corpus-driver/1",
+    "objective_evaluation_schema": "uor-r4.discrete-objective-evaluation/1",
+    "model_bindings": {
+      "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "objective_policy": "nearest_address_margin_v1",
+      "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+      "read_spec": {
+        "kind": "route"
+      },
+      "schema": "uor-r4.discrete-spiralcore-fbs/2",
+      "seed": 2,
+      "source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+      "spec": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 16,
+        "vocabulary": 4096
+      }
+    },
+    "model_epoch": 0,
+    "model_snapshot_sha256": "39b909adb5a02a900af50c52daa559df2cbe7b90cb3800309756bf668942a947",
+    "evaluation_lineage_sha256": "df04fcc3fcf226d91412178eb65e40061e999563976a69237ecc0bb49d270a51",
+    "updates_applied_by_evaluation": 0,
+    "accepted_updates_in_model": 0,
+    "evaluation_mutates_model": false,
+    "aggregate": {
+      "scored_rows": 14287,
+      "target_admitted_rows": 14287,
+      "top1_correct": 19,
+      "top8_correct": 151,
+      "token_strict_win_eligible_rows": 0,
+      "admitted_strict_win_rows": 0,
+      "address_hinge_sum": 261824,
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "weighted_token_hinge_sum": 5497888,
+      "weighted_address_hinge_sum": 8378368,
+      "weighted_cell_rank_hinge_sum": 0,
+      "loss_ta_numerator_sum": 13876256,
+      "loss_tr_numerator_sum": 5497888,
+      "objective_loss_numerator_sum": 13876256
+    }
+  },
+  {
+    "schema": "uor-r4.discrete-corpus-driver/1",
+    "objective_evaluation_schema": "uor-r4.discrete-objective-evaluation/1",
+    "model_bindings": {
+      "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "objective_policy": "occupied_cell_rank_hinge_v1",
+      "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+      "read_spec": {
+        "kind": "route"
+      },
+      "schema": "uor-r4.discrete-spiralcore-fbs/2",
+      "seed": 1,
+      "source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+      "spec": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 16,
+        "vocabulary": 4096
+      }
+    },
+    "model_epoch": 0,
+    "model_snapshot_sha256": "481c00fbe9a3f5363d9b5761f6cb105ce4b64f325975164f37c038de5dcac03f",
+    "evaluation_lineage_sha256": "5bfc8a472647095d7003c3e1def9a37eb60d26c4931bc76e65e79687412f8e54",
+    "updates_applied_by_evaluation": 0,
+    "accepted_updates_in_model": 0,
+    "evaluation_mutates_model": false,
+    "aggregate": {
+      "scored_rows": 14287,
+      "target_admitted_rows": 14287,
+      "top1_correct": 19,
+      "top8_correct": 151,
+      "token_strict_win_eligible_rows": 0,
+      "admitted_strict_win_rows": 0,
+      "address_hinge_sum": 261824,
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "weighted_token_hinge_sum": 5497888,
+      "weighted_address_hinge_sum": 8378368,
+      "weighted_cell_rank_hinge_sum": 0,
+      "loss_ta_numerator_sum": 13876256,
+      "loss_tr_numerator_sum": 5497888,
+      "objective_loss_numerator_sum": 5497888
+    }
+  },
+  {
+    "schema": "uor-r4.discrete-corpus-driver/1",
+    "objective_evaluation_schema": "uor-r4.discrete-objective-evaluation/1",
+    "model_bindings": {
+      "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "objective_policy": "occupied_cell_rank_hinge_v1",
+      "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+      "read_spec": {
+        "kind": "route"
+      },
+      "schema": "uor-r4.discrete-spiralcore-fbs/2",
+      "seed": 2,
+      "source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+      "spec": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 16,
+        "vocabulary": 4096
+      }
+    },
+    "model_epoch": 0,
+    "model_snapshot_sha256": "d79316f8c8e527dc8c1d79bc1c7cd5c7bacf369d5cf3fd9f84f9b902fab6f16d",
+    "evaluation_lineage_sha256": "5ae08cd0ef9a983d725da76259d8fb15a80644ad68ad9d76ecd2fc6d738288df",
+    "updates_applied_by_evaluation": 0,
+    "accepted_updates_in_model": 0,
+    "evaluation_mutates_model": false,
+    "aggregate": {
+      "scored_rows": 14287,
+      "target_admitted_rows": 14287,
+      "top1_correct": 19,
+      "top8_correct": 151,
+      "token_strict_win_eligible_rows": 0,
+      "admitted_strict_win_rows": 0,
+      "address_hinge_sum": 261824,
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "weighted_token_hinge_sum": 5497888,
+      "weighted_address_hinge_sum": 8378368,
+      "weighted_cell_rank_hinge_sum": 0,
+      "loss_ta_numerator_sum": 13876256,
+      "loss_tr_numerator_sum": 5497888,
+      "objective_loss_numerator_sum": 5497888
+    }
+  },
+  {
+    "schema": "uor-r4.discrete-corpus-driver/1",
+    "objective_evaluation_schema": "uor-r4.discrete-objective-evaluation/1",
+    "model_bindings": {
+      "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "objective_policy": "nearest_address_margin_v1",
+      "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+      "read_spec": {
+        "kind": "route"
+      },
+      "schema": "uor-r4.discrete-spiralcore-fbs/2",
+      "seed": 1,
+      "source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+      "spec": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 8,
+        "vocabulary": 4096
+      }
+    },
+    "model_epoch": 0,
+    "model_snapshot_sha256": "b43512d9aba162bba79f8b3661a6ba993972ecb56ce0651c59aa14bf10181239",
+    "evaluation_lineage_sha256": "e8d935d3e7ffd1672a0eb23535b776169c1a04253fa3349797501d2d0518591d",
+    "updates_applied_by_evaluation": 0,
+    "accepted_updates_in_model": 0,
+    "evaluation_mutates_model": false,
+    "aggregate": {
+      "scored_rows": 14287,
+      "target_admitted_rows": 5680,
+      "top1_correct": 17,
+      "top8_correct": 173,
+      "token_strict_win_eligible_rows": 105,
+      "admitted_strict_win_rows": 0,
+      "address_hinge_sum": 261824,
+      "cell_rank_hinge_sum": 38820,
+      "occupied_cells": 16,
+      "weighted_token_hinge_sum": 5437664,
+      "weighted_address_hinge_sum": 8378368,
+      "weighted_cell_rank_hinge_sum": 1242240,
+      "loss_ta_numerator_sum": 13816032,
+      "loss_tr_numerator_sum": 6679904,
+      "objective_loss_numerator_sum": 13816032
+    }
+  },
+  {
+    "schema": "uor-r4.discrete-corpus-driver/1",
+    "objective_evaluation_schema": "uor-r4.discrete-objective-evaluation/1",
+    "model_bindings": {
+      "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "objective_policy": "nearest_address_margin_v1",
+      "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+      "read_spec": {
+        "kind": "route"
+      },
+      "schema": "uor-r4.discrete-spiralcore-fbs/2",
+      "seed": 2,
+      "source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+      "spec": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 8,
+        "vocabulary": 4096
+      }
+    },
+    "model_epoch": 0,
+    "model_snapshot_sha256": "6a76a8268687a30bfef15b0a026fc6538041c62cb7288d8c672582cb5151961d",
+    "evaluation_lineage_sha256": "4fbe7c7fde395dae9dafc03692cc4e56add328be58fefce978e7e59bace067a0",
+    "updates_applied_by_evaluation": 0,
+    "accepted_updates_in_model": 0,
+    "evaluation_mutates_model": false,
+    "aggregate": {
+      "scored_rows": 14287,
+      "target_admitted_rows": 6205,
+      "top1_correct": 20,
+      "top8_correct": 173,
+      "token_strict_win_eligible_rows": 102,
+      "admitted_strict_win_rows": 0,
+      "address_hinge_sum": 261824,
+      "cell_rank_hinge_sum": 42960,
+      "occupied_cells": 16,
+      "weighted_token_hinge_sum": 5436384,
+      "weighted_address_hinge_sum": 8378368,
+      "weighted_cell_rank_hinge_sum": 1374720,
+      "loss_ta_numerator_sum": 13814752,
+      "loss_tr_numerator_sum": 6811104,
+      "objective_loss_numerator_sum": 13814752
+    }
+  }
+]

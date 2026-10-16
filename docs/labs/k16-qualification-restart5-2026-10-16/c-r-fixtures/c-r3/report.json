@@ -1,0 +1,56 @@
+{
+  "apply_calls": 0,
+  "cpu_model_reference_used": false,
+  "id": "C-R3",
+  "mutations": [
+    {
+      "candidates_verified_per_policy": 16,
+      "mutation": "create_cell",
+      "passed": true,
+      "policies_verified": [
+        "nearest_address_margin_v1",
+        "occupied_cell_rank_hinge_v1"
+      ]
+    },
+    {
+      "candidates_verified_per_policy": 16,
+      "mutation": "empty_cell",
+      "passed": true,
+      "policies_verified": [
+        "nearest_address_margin_v1",
+        "occupied_cell_rank_hinge_v1"
+      ]
+    },
+    {
+      "candidates_verified_per_policy": 16,
+      "mutation": "move_target_cell",
+      "passed": true,
+      "policies_verified": [
+        "nearest_address_margin_v1",
+        "occupied_cell_rank_hinge_v1"
+      ]
+    },
+    {
+      "candidates_verified_per_policy": 16,
+      "mutation": "interior_block_only",
+      "passed": true,
+      "policies_verified": [
+        "nearest_address_margin_v1",
+        "occupied_cell_rank_hinge_v1"
+      ]
+    },
+    {
+      "candidates_verified_per_policy": 16,
+      "mutation": "identity_candidate",
+      "passed": true,
+      "policies_verified": [
+        "nearest_address_margin_v1",
+        "occupied_cell_rank_hinge_v1"
+      ]
+    }
+  ],
+  "name": "virtual_vs_applied_candidate_identity_on_rank_and_occupancy",
+  "schema": "uor-r4.admission-rank-control-report/1",
+  "status": "PASS",
+  "total_candidate_evaluations_verified": 160
+}

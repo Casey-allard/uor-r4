@@ -1,6 +1,14 @@
 # D-R Qualification Runbook — Step-0 CUDA Build/Clippy Gate, `C-R1..C-R6`, `G-Pre` (`K=16` Checkpoint-0 Ceiling), and 100-Batch `K=16` Synchronized Timing (`NOT_TRAINING`, 15 October 2026)
 
-**Latest blocker:** [restart 4 at `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
+**Latest blocker:** [restart 5 at `812459c7f`](../k16-qualification-restart5-2026-10-16/README.md)
+passes all six step-0 commands, G-Pre and C-R1..C-R6. The timing binary exits 0,
+but emits only 99 timed batches per checkpoint-0 cell after skipping its warmup;
+the declared 100-batch receipt check fails and execution stops. Preserve the
+99-batch observations as diagnostics, not qualified throughput. No patch/retry,
+training or corpus apply; Q4 remains NOT_EXECUTABLE. Repair/review/merge and
+PM disposition precede any further execution.
+
+**Earlier blocker, repaired by #2537:** [restart 4 at `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
 passed all CUDA builds but halted at fixture clippy: `Parameter::VectorBlock(3 * 4 + 0)`
 triggers `clippy::identity_op` under the declared `-D warnings` gate. No model
 commands ran. Do not waive, patch or retry silently; repair/review/merge precede

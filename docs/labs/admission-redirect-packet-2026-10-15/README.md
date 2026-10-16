@@ -13,7 +13,16 @@ relative to this scoped release; its technical gates still apply unchanged.
 
 ## Qualification blocker and division of work
 
-**Latest restart (4):** the [attempt at merged `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
+**Latest restart (5):** the [attempt at merged `812459c7f`](../k16-qualification-restart5-2026-10-16/README.md)
+passes all six CUDA build/clippy gates, G-Pre and each GPU C-R control. All four
+K16 arms admit 14,287/14,287 rows (16 occupied cells <= K16; capacity/pass-through,
+not discrimination). Timing then emits only 99 timed batches per cell, so the
+required 100-batch gate fails. No patch/retry. The 846/845 padded-context tokens/s
+observations are diagnostic-only and do not populate the qualified timing slot.
+Full receipts and binaries are MD5-archived before teardown; this lease estimate
+is $0.852291, full 13-lease episode $1.773399. Q4 NOT_EXECUTABLE; training held.
+
+**Earlier restart (4):** the [attempt at merged `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
 passed all three CUDA builds and driver/timing clippy, then halted at fixture
 clippy (`identity_op`, denied by `-D warnings`). No model command ran; G-Pre,
 C-R1..C-R6 and checkpoint-0 timing remain NOT_RUN/UNMEASURED. Q4 remains
@@ -51,15 +60,15 @@ requires immutable before/after snapshots and zero corpus apply calls.
 | Required receipt | Current disposition |
 | --- | --- |
 | Existing 25 finite controls, newly compiled PTX admission | NOT_RUN on the future qualification executable |
-| C-R1 rank/admission equivalence | NOT_RUN — GPU executor pending |
-| C-R2 occupied-cell multiplicity | NOT_RUN — GPU executor pending |
-| C-R3 virtual/applied authored-candidate parity | NOT_RUN — GPU executor pending |
-| C-R4 absent rivals / occupancy below K | NOT_RUN — GPU executor pending |
-| C-R5 bounded integer arithmetic / dual loss / distributions | NOT_RUN — GPU executor pending |
-| C-R6 stored guard and untrained ceiling | NOT_RUN — GPU executor pending |
-| G-Pre seeds 1/2, K8/K16; K16 admission >= 4,894 | NOT_RUN; no measured ceiling or strict-win baseline `u` |
-| 100-batch K16 timing, both policies, checkpoint 0 and Q4 | UNMEASURED |
-| Qualified executable / PTX / geometry / execution-lineage pins | UNAVAILABLE until qualified build; never reuse historical K8 executable pins |
+| C-R1 rank/admission equivalence | PASS in restart 5; independent receipt review pending |
+| C-R2 occupied-cell multiplicity | PASS in restart 5; independent receipt review pending |
+| C-R3 virtual/applied authored-candidate parity | PASS in restart 5; independent receipt review pending |
+| C-R4 absent rivals / occupancy below K | PASS in restart 5; independent receipt review pending |
+| C-R5 bounded integer arithmetic / dual loss / distributions | PASS in restart 5; independent receipt review pending |
+| C-R6 stored guard and untrained ceiling | PASS in restart 5; independent receipt review pending |
+| G-Pre seeds 1/2, K8/K16; K16 admission >= 4,894 | PASS: K8 5,680/6,205; K16 14,287 each; K16 `u=0/14287` |
+| 100-batch K16 timing, both policies, checkpoint 0 and Q4 | BLOCKED: checkpoint0 only 99 timed batches; Q4 NOT_EXECUTABLE |
+| Executable / PTX / geometry / execution-lineage pins | Built and archived in restart 5; overall qualification not accepted |
 
 Qualification executes finite authored fixtures only where the reviewed fixture
 contract calls for them. Corpus evaluation/timing performs **zero `.apply` calls**.
@@ -182,18 +191,23 @@ training-start gate.
 
 ## Cost model and actual spending
 
-`cost-model.json` separates planned quantities from actual receipts. All K16 rates
-remain **UNMEASURED**, never populated with the old K8 3.393 s/batch estimate.
+`cost-model.json` separates planned quantities from actual receipts. Required
+100-batch K16 rates remain **UNMEASURED/NOT_QUALIFIED**: restart 5 retains actual
+99-batch diagnostic rates separately, never substituted for the missing sample
+or populated with the old K8 3.393 s/batch estimate.
 For each policy and occupancy fixture, report 100 synchronized elapsed-ns samples,
 target rows/s, physical padded context tokens/s, actual context lengths, candidate
 work, warmup, transfers/allocation, and the zero-apply exclusion. The denominator
 for rows/s is not the denominator for context tokens/s. D32 model arithmetic is
 integer; host wall-clock and monetary accounting are not model arithmetic.
 The [interface follow-up](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201694881)
-aligns sampling with AGY's runbook: 80 VectorBlock and 20 Route batches, reporting
-per-family rates separately. Both families evaluate 16 ordinals including CURRENT.
-This is not 100 consecutive canonical coordinates and its 80:20 mix is not the
-training dose's 16,384:20 mix; only the separately weighted rates price that dose.
+proposed 80 VectorBlock and 20 Route batches. The reviewed runner actually
+executes BOTH `Route(0)` and `VectorBlock(0)` on every timed batch, over distinct
+synthetic windows; restart 5 confirms 99 measured batches per cell after warmup.
+Both families evaluate 16 ordinals including CURRENT. This is neither an 80:20
+coordinate sample nor the training dose's 16,384:20 mix. Rates describe only the
+named full carry + both proposals + observations unit; no coordinate-sweep or
+accepted-update throughput claim is supported.
 
 Full-run budgeting must include vector and route proposals, accepted-update
 costs (not measured by zero-apply qualification), dev/transfer evaluation,
@@ -202,7 +216,7 @@ at checkpoint 0 alone cannot price Q4 occupancy. A proposed compute-only estimat
 is not an all-in budget or release. Retain the sheet's historical estimate only
 as historical, not as a current quote.
 
-The local Vast adapter was absent; building the existing `uor-r4-pod-provider`
+**Original packet-authoring cost (historical):** the local Vast adapter was absent; building the existing `uor-r4-pod-provider`
 fixed the environment. A subsequent admitted status check listed **0 pods/$0 per
 hour**, no free GPUs, and live 5090 offers starting at $0.96/GPU/h. This was an
 unbooked point-in-time quote. No lease was acquired, so this packet has **0 GPU

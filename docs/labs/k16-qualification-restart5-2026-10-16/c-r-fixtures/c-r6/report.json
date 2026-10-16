@@ -1,0 +1,94 @@
+{
+  "apply_calls": 0,
+  "baseline_admitted_cells_guard_range": [
+    1,
+    16
+  ],
+  "cpu_model_reference_used": false,
+  "g_pre_k16_minimum": 4894,
+  "g_pre_k16_receipts": [
+    {
+      "admitted_cells": null,
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/g-pre-k16-A-seed1-eval/report.json",
+        "sha256": "776ad5d80080293c723bf6059b170fc2dde5859c8134d0201b87bc132964f291"
+      },
+      "target_admitted_rows": 14287
+    },
+    {
+      "admitted_cells": null,
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/g-pre-k16-R-seed1-eval/report.json",
+        "sha256": "48c4e53c13833816811647dad48df8db9122ea2af2100fe5f6bf86d779baaa13"
+      },
+      "target_admitted_rows": 14287
+    },
+    {
+      "admitted_cells": null,
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/g-pre-k16-A-seed2-eval/report.json",
+        "sha256": "6b023a1e444ca5b9cb6ae4c8c8d99f21604232120282c11aa0d06f6f8c45d492"
+      },
+      "target_admitted_rows": 14287
+    },
+    {
+      "admitted_cells": null,
+      "cell_rank_hinge_sum": 0,
+      "occupied_cells": 16,
+      "receipt": {
+        "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/g-pre-k16-R-seed2-eval/report.json",
+        "sha256": "b597e6d6a5a679881f9d27845b1486644369b0bba0c4df323383c20737b8b2fa"
+      },
+      "target_admitted_rows": 14287
+    }
+  ],
+  "g_pre_k8_seed1_receipt": {
+    "path": "/workspace/uor-r4/evals/codex-k16-qualification-20261016-5/g-pre-k8-A-seed1-eval/report.json",
+    "sha256": "fd84bfe05018de16bbc30a8c171da1afeec40b44b3cb89b7e0ac179d9f4fff96"
+  },
+  "id": "C-R6",
+  "name": "k16_baseline_guard_and_untrained_ceiling_check",
+  "schema": "uor-r4.admission-rank-control-report/1",
+  "stage_a_sweep_sha256": "cc81ca6f76f3a38ac61ffe1d4665a1442d1e42961f4451691327b91b438f472c",
+  "status": "PASS",
+  "v4096_checkpoint0_device_checks": [
+    {
+      "admitted_cells": 8,
+      "cell_rank_hinge_sum": 0,
+      "kept_cells": 8,
+      "occupied_cells": 16,
+      "seed": 1,
+      "target_admitted_rows": 1
+    },
+    {
+      "admitted_cells": 16,
+      "cell_rank_hinge_sum": 0,
+      "kept_cells": 16,
+      "occupied_cells": 16,
+      "seed": 1,
+      "target_admitted_rows": 1
+    },
+    {
+      "admitted_cells": 8,
+      "cell_rank_hinge_sum": 0,
+      "kept_cells": 8,
+      "occupied_cells": 16,
+      "seed": 2,
+      "target_admitted_rows": 1
+    },
+    {
+      "admitted_cells": 16,
+      "cell_rank_hinge_sum": 0,
+      "kept_cells": 16,
+      "occupied_cells": 16,
+      "seed": 2,
+      "target_admitted_rows": 1
+    }
+  ]
+}

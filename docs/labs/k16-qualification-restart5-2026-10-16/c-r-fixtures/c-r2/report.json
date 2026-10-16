@@ -1,0 +1,66 @@
+{
+  "apply_calls": 0,
+  "cpu_model_reference_used": false,
+  "id": "C-R2",
+  "name": "single_count_per_occupied_cell_invariance",
+  "part_2a_crowded_rival_cell": {
+    "admitted_token_count_k3": [
+      3,
+      4,
+      6
+    ],
+    "cell_rank_hinge_k1": [
+      2,
+      2,
+      2
+    ],
+    "cell_rank_hinge_k2": [
+      1,
+      1,
+      1
+    ],
+    "cell_rank_hinge_k3": [
+      0,
+      0,
+      0
+    ],
+    "multiplicities": [
+      1,
+      2,
+      4
+    ],
+    "rival_cell": 1,
+    "target_cell_rank": [
+      3,
+      3,
+      3
+    ]
+  },
+  "part_2b_new_preceding_cell": {
+    "cell_rank_hinge_after_k1_to_k4": [
+      3,
+      2,
+      1,
+      0
+    ],
+    "cell_rank_hinge_before_k1_to_k4": [
+      2,
+      1,
+      0,
+      0
+    ],
+    "kept_cells_swept": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "new_preceding_cell": 2,
+    "occupied_cells_after": 6,
+    "occupied_cells_before": 5,
+    "target_cell_rank_after": 4,
+    "target_cell_rank_before": 3
+  },
+  "schema": "uor-r4.admission-rank-control-report/1",
+  "status": "PASS"
+}
