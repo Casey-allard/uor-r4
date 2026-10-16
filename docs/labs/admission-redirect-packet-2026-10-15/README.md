@@ -13,6 +13,12 @@ relative to this scoped release; its technical gates still apply unchanged.
 
 ## Qualification blocker and division of work
 
+**Latest restart:** after the compiled-identity repair merged as `bb536cf68`,
+the [restart source preflight](../k16-qualification-restart-2026-10-16/README.md)
+found that C-R6 reads `evaluation` while G-Pre emits `aggregate`. No build or
+model command ran on that lease; the pod is deleted and source evidence archived.
+All qualification gates remain unmet, K16 rate UNMEASURED, Q4 NOT_EXECUTABLE.
+
 **16 October execution update:** the reviewed executors were merged, but the
 [qualification attempt at `3c651df97`](../k16-qualification-2026-10-16/README.md)
 halted at the fixture runner's CUDA build (E0609 identity-field accesses).

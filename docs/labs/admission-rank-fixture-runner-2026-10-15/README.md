@@ -1,5 +1,12 @@
 # Standalone `C-R1..C-R6` GPU Fixture Runner (`uor-r4.admission-rank-fixture-runner/1`)
 
+**Latest restart,16October:** the identity-access repair passed a pod CUDA check
+and merged in #2533, but [source preflight](../k16-qualification-restart-2026-10-16/README.md)
+found a separate C-R6 receipt mismatch: it reads `evaluation` instead of the
+driver's top-level `aggregate`. All fixtures remain NOT_RUN; no receipts were
+transformed and no model compute occurred on the restart lease. A reviewed
+schema repair precedes the next qualification attempt.
+
 **16 October qualification attempt:** the [pod-side CUDA build](../k16-qualification-2026-10-16/README.md)
 at `3c651df97` failed with E0609 in `cuda_aggregate.rs:93/96` and
 `main.rs:168–170` (`compiled_identity()` returns JSON). Step 0 halted before

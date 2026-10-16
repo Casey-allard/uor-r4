@@ -1,5 +1,11 @@
 # D-R Qualification Runbook — Step-0 CUDA Build/Clippy Gate, `C-R1..C-R6`, `G-Pre` (`K=16` Checkpoint-0 Ceiling), and 100-Batch `K=16` Synchronized Timing (`NOT_TRAINING`, 15 October 2026)
 
+**Latest blocker:** the [restart at merged `bb536cf68`](../k16-qualification-restart-2026-10-16/README.md)
+stopped before execution: C-R6 expects an `evaluation` key absent from the
+driver's `aggregate`-shaped G-Pre receipts. Do not rename sealed receipt fields
+to bypass this defect. Schema repair/review/merge precede another full step0
+restart; no qualification gate is claimed passed by this source finding.
+
 **Execution update, 16 October:** [PM order 6205684341](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6205684341)
 sets step 0 → **G-Pre → C-R1..C-R6** → checkpoint-0-only timing (C-R6 consumes
 G-Pre receipts), superseding the earlier numbered ordering below. The
