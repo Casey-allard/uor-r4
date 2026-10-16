@@ -1,31 +1,10 @@
 {
-  "antigravity/ag1-cr1-cr6-fixture-runner": {
-    "branch": "antigravity/ag1-cr1-cr6-fixture-runner",
-    "claimed_at": "2026-10-15T19:40:36-04:00",
-    "head": "eec2d1ca2",
+  "antigravity/d29-vendor-discrete-interlock-hardening": {
+    "branch": "antigravity/d29-vendor-discrete-interlock-hardening",
+    "claimed_at": "2026-10-16T17:25:35-04:00",
+    "head": "575645a26",
     "lab": "antigravity",
-    "note": "Standalone C-R1..C-R6 GPU fixture runner on objective.rs scaffolding (source-only, NOT_RUN)"
-  },
-  "antigravity/ag1-dr-qualification-runbook": {
-    "branch": "antigravity/ag1-dr-qualification-runbook",
-    "claimed_at": "2026-10-15T16:29:16-04:00",
-    "head": "4243becfc",
-    "lab": "antigravity",
-    "note": "M1 D-R qualification runbook (C-R1..C-R6, G-Pre, 100-batch K16 timing, pod discipline, NOT_TRAINING)"
-  },
-  "antigravity/ag1-studio-shell-d36": {
-    "branch": "antigravity/ag1-studio-shell-d36",
-    "claimed_at": "2026-10-15T17:57:00-04:00",
-    "head": "7b26da89d",
-    "lab": "antigravity",
-    "note": "D36 Studio shell cleanup (remove dead wasm_* branches, guard native_geometric_finish_generation, add D36 status banner & provenance note)"
-  },
-  "antigravity/interlock-ratchet-hardening": {
-    "branch": "antigravity/interlock-ratchet-hardening",
-    "claimed_at": "2026-10-16T14:51:37-04:00",
-    "head": "69cb1f59d",
-    "lab": "antigravity",
-    "note": ""
+    "note": "Host-only interlock hardening for Audit Ranks 2, 3, and 5 in scripts/check_native_cuda_vendor.rs"
   },
   "claude/public-face-reconcile-2026-10-15": {
     "branch": "claude/public-face-reconcile-2026-10-15",
