@@ -4,6 +4,7 @@
 - Authority: [PM commission 6217437395](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6217437395), [post-merge disposition 6218096172](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6218096172), [source cost card 6209851483](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6209851483).
 - Line: M1 qualification instrumentation; count **0/3**, suspended headline **37/232**, unchanged. No mechanism negative, KEEP, acceptance or count reset.
 - Delivery: **docs only**. No instrument, kernel, launch, allocator or model change in this PR. All new measurements below are **NOT_RUN**; this is the design submitted for PM-seat review.
+- Subsequent state: design merged in #2545 (`98ac653c4`), with [PM-seat FIT6219037898](https://github.com/UOR-Foundation/uor-r4/pull/2545#issuecomment-6219037898). The original prospective design below is retained; the [instrument execution packet](../../labs/counterfactual-instrument-2026-10-16/execution-packet.md) operationalizes its six binding review requirements. No execution release follows.
 - Review: Kimi PM owns TEST FITNESS and dispatches the independent PM-seat DeepSeek subagent review; the former standalone DeepSeek lab is shut down. Codex does not self-award FIT or dispatch that seat.
 - Scope: **diagnostic, not qualification / not a p95 estimate / not a training rate**. Training/M2/Stage B **HELD**; Q4 **NOT_EXECUTABLE**. FIT releases none of these holds.
 
@@ -256,7 +257,7 @@ or training on this sheet's present authority.
 
 ## TEST FITNESS and next dependency
 
-TEST FITNESS: PENDING
+TEST FITNESS: FIT — Kimi PM, #2545 comment6219037898, exact head09ad85bb4 (design only; no compute release).
 
 Kimi PM rules on this exact design with PM-seat independent review. A design
 FIT permits the commissioned next source work only within its reviewed scope;

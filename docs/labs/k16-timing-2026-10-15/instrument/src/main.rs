@@ -26,6 +26,7 @@ use std::time::Instant;
 use uor_r4_discrete::{Identity, ObjectivePolicy, Spec};
 
 mod checkpoint_bridge;
+mod counterfactual_decomposition;
 
 /// The pinned shape. K16 is the evaluation-only rebind: the sealed fixture was
 /// authored at K8 and is re-read at K16 without any training resume.
@@ -533,7 +534,7 @@ impl Ledger {
     /// status is "partial" when the run faulted and "complete" otherwise.
     pub fn flush(&self, status: &str) -> std::result::Result<(), String> {
         let document = json!({
-            "schema": if self.header["diagnostic"].is_object() { "k16-propose-subphase-record/v1" } else { "k16-timing-record/v1" },
+            "schema": if self.header["decomposition"].is_object() { "m1-counterfactual-decomposition-record/1" } else if self.header["diagnostic"].is_object() { "k16-propose-subphase-record/v1" } else { "k16-timing-record/v1" },
             "status": status,
             "exclusion": EXCLUSION,
             "header": self.header,
@@ -939,6 +940,9 @@ fn usage() -> String {
         "k16-timing check|plan --pin FILE   (host; no device)",
         "k16-timing run --pin FILE          (needs --features cuda and a pod)",
         "k16-timing diagnose --pin FILE     (three-batch subphase diagnostic only; separate pending FIT)",
+        "k16-timing decompose-check|decompose-plan --pin FILE (host metadata only)",
+        "k16-timing decompose-identity (CUDA compiled identities only; no context)",
+        "k16-timing decompose --pin FILE (separate PM execution release required)",
     ]
     .join(&String::from(char::from(10)))
 }
@@ -946,6 +950,13 @@ fn usage() -> String {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let command = args.first().cloned().unwrap_or_default();
+    if command.starts_with("decompose") {
+        if let Err(error) = counterfactual_decomposition::entry(&args) {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+        return;
+    }
     let pin_path = args
         .iter()
         .position(|a| a == "--pin")

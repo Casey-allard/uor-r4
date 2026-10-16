@@ -5,6 +5,8 @@ use std::{env, fs, path::PathBuf, process::Command};
 use uor_r4_core::spiralcore_operator::{
     cl06_bivectors, cl06_finite_composition_table, SignedMatrix8,
 };
+#[path = "src/decomposition_source.rs"]
+mod decomposition_source;
 
 const ENTRIES: [&str; 11] = [
     "discrete_init",
@@ -22,7 +24,7 @@ const ENTRIES: [&str; 11] = [
 
 /// Inspect the emitted module, rather than treating CUDA source spelling as
 /// evidence of its instructions. Integer index products are not prohibited.
-fn admit_ptx(ptx: &str) -> Result<(), String> {
+fn admit_ptx_inventory(ptx: &str, inventory: &[&str]) -> Result<(), String> {
     let mut entries = BTreeSet::new();
     let mut expect_entry = false;
     for (line_number, line) in ptx.lines().enumerate() {
@@ -71,7 +73,7 @@ fn admit_ptx(ptx: &str) -> Result<(), String> {
     if expect_entry {
         return Err("unterminated PTX entry declaration".into());
     }
-    let expected: BTreeSet<_> = ENTRIES.iter().map(|entry| entry.to_string()).collect();
+    let expected: BTreeSet<_> = inventory.iter().map(|entry| entry.to_string()).collect();
     if entries != expected {
         return Err(format!(
             "integer PTX entry inventory differs: missing {:?}, unexpected {:?}",
@@ -80,6 +82,10 @@ fn admit_ptx(ptx: &str) -> Result<(), String> {
         ));
     }
     Ok(())
+}
+
+fn admit_ptx(ptx: &str) -> Result<(), String> {
+    admit_ptx_inventory(ptx, &ENTRIES)
 }
 
 // Host metadata lexer controls only; these strings are never loaded or run.
@@ -334,6 +340,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../uor-r4-core/src/spiralcore_operator.rs");
     println!("cargo:rerun-if-changed=src/discrete.cu");
+    println!("cargo:rerun-if-changed=src/decomposition_source.rs");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
     let out = PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not supply OUT_DIR")?);
@@ -361,5 +368,56 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("ahead-of-time nvcc discrete build failed: {status}").into());
     }
     admit_ptx(&fs::read_to_string(out.join("discrete.ptx"))?)?;
+    // An independent module: the ordinary source, nvcc invocation and PTX stay
+    // untouched. Only this diagnostic entry carries internal clocks/counters.
+    let diagnostic = decomposition_source::generate(&fs::read_to_string("src/discrete.cu")?)?;
+    fs::write(out.join("decomposition.cu"), diagnostic)?;
+    let nvcc = env::var("NVCC").unwrap_or_else(|_| "nvcc".into());
+    let status = Command::new(&nvcc)
+        // Uncapped D per PM amendment6222308938; zero spills and runtime/AOT
+        // consistency are checked before dose. Ordinary compilation unchanged.
+        .args(["-ptx", "-std=c++17"])
+        .arg(format!("-arch={arch}"))
+        .arg("-o")
+        .arg(out.join("decomposition.ptx"))
+        .arg(out.join("decomposition.cu"))
+        .status()?;
+    if !status.success() {
+        return Err(format!("diagnostic PTX build failed: {status}").into());
+    }
+    admit_ptx_inventory(
+        &fs::read_to_string(out.join("decomposition.ptx"))?,
+        &["discrete_counterfactual_decomposition"],
+    )?;
+    // Compile-only ptxas resource reports; no CUDA context or model executes.
+    for (label, source) in [
+        ("ordinary", PathBuf::from("src/discrete.cu")),
+        ("decomposition", out.join("decomposition.cu")),
+    ] {
+        let mut resource_command = Command::new(&nvcc);
+        resource_command.args(["-cubin", "-std=c++17", "--ptxas-options=-v"]);
+        let report = resource_command
+            .arg(format!("-arch={arch}"))
+            // PTX preprocessing retains the virtual architecture, while cubin
+            // assembly requires the corresponding real GPU code target.
+            .arg(format!(
+                "--gpu-code={}",
+                arch.replacen("compute_", "sm_", 1)
+            ))
+            .arg("-o")
+            .arg(out.join(format!("{label}.cubin")))
+            .arg(source)
+            .output()?;
+        let mut log = report.stdout;
+        log.extend(report.stderr);
+        fs::write(out.join(format!("{label}-resources.txt")), &log)?;
+        if !report.status.success() {
+            return Err(format!(
+                "{label} resource build failed: {}",
+                String::from_utf8_lossy(&log)
+            )
+            .into());
+        }
+    }
     Ok(())
 }

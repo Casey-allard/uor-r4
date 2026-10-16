@@ -3,7 +3,7 @@
 Codex/Sol submits the [pre-registration sheet](../../harness/prep/m1-counterfactual-decomposition-2026-10-16.md)
 commissioned on [M1 #2029](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6217437395).
 Authoring base is fresh `90c2d2b9d14a0edc1b4728b811415bddf3b5fc4d`.
-**NOT YET PROMOTED; TEST FITNESS: PENDING.** No new instrument/kernel source,
+**Design FIT and merged:** [PM-seat review6219037898](https://github.com/UOR-Foundation/uor-r4/pull/2545#issuecomment-6219037898), #2545 merge `98ac653c4`. The six review requirements are carried in the [instrument packet](../counterfactual-instrument-2026-10-16/execution-packet.md). Original design-delivery scope follows: no new instrument/kernel source,
 lease, model computation, optimization, apply or measurement in this delivery.
 
 The source basis is [cost card 6209851483](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6209851483)
@@ -33,6 +33,5 @@ $2.230435278, not invoiced, storage/transfer charges UNMEASURED. No measured
 position or acceptance changes: M1 qualification instrumentation count0/3,
 suspended headline37/232; training/M2/Stage B HELD; Q4 NOT_EXECUTABLE.
 
-**Next:** PM-seat TEST FITNESS on the sheet, then PM calls separately reviewed
-source work. No compute without FIT and the later explicit execution gates;
+**Next:** separately reviewed instrument source and compile-only gates under PM commission6220832102. No diagnostic compute without the later explicit execution gates;
 no 100-batch rerun, training sizing or hold release in this delivery.

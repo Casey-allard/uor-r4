@@ -3,6 +3,9 @@
 //! The routing atlas is one sixteen-root E8 orbit; this is not full-orbit learnability.
 pub mod controller;
 pub mod corpus;
+pub mod decomposition;
+#[cfg(test)]
+mod decomposition_source;
 #[cfg(feature = "cuda")]
 pub mod device;
 #[cfg(feature = "cuda")]

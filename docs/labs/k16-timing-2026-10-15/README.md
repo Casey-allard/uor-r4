@@ -1,12 +1,12 @@
 # K16 synchronized 100-batch timing instrument (2026-10-15)
 
-**Current direction, 16 October:** #2539 fixes the warmup window count. The
+**Current direction, 16 October:** the [sealed sub-phase diagnostic](../propose-subphase-diagnostic-run-2026-10-16/README.md) completed after its reviewed bridge: the counterfactual kernel occupies 99.995770–99.998097% of propose wall. The [decomposition instrument](../counterfactual-instrument-2026-10-16/README.md) adds separate `decompose-check`, `decompose-plan`, CUDA metadata-only `decompose-identity`, and gated `decompose` commands under #2545's design FIT; model execution is NOT_RUN, and all six execution requirements remain explicit. No qualified rate or p95 follows. #2539 fixes the warmup window count. The
 [owner instrument+optimize-first decision](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6210107580)
 defers 100-batch qualification timing to the optimized stack. The separate
 [`diagnose` mode](../propose-subphase-diagnostic-2026-10-16/README.md) adds
-checkpoint0 proposal sub-phase clocks under a PENDING sheet, never a qualified
-rate or p95. This instrumentation changes production host source, not CUDA
-kernels. Its checkpoint identity bridge is still required; no diagnostic run.
+checkpoint0 proposal sub-phase clocks under its separately reviewed sheet, never a qualified
+rate or p95. The enclosing instrument changed production host source, not the
+ordinary CUDA kernels; the new D module has a distinct source/PTX-pair bridge.
 
 **Latest qualification update, 16 October:** [restart 5 at `812459c7f`](../k16-qualification-restart5-2026-10-16/README.md)
 passes all step-0 gates, G-Pre and C-R1..C-R6. This timing runner then executes

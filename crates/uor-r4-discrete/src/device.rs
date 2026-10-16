@@ -23,6 +23,9 @@ mod geometry {
     include!(concat!(env!("OUT_DIR"), "/geometry.rs"));
 }
 const PTX: &str = include_str!(concat!(env!("OUT_DIR"), "/discrete.ptx"));
+#[path = "decomposition_device.rs"]
+mod decomposition_device;
+pub use decomposition_device::DecompositionProfiler;
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 
 /// Trace ABI from the production flock read, ordered by row then payload block:
@@ -407,6 +410,10 @@ fn source_sha256() -> [u8; 32] {
     source.update(include_bytes!("objective.rs"));
     source.update(include_bytes!("proposal_timing.rs"));
     source.update(include_bytes!("../build.rs"));
+    source.update(include_bytes!("decomposition_source.rs"));
+    source.update(include_bytes!("decomposition.rs"));
+    source.update(include_bytes!("decomposition_device.rs"));
+    source.update(decomposition_device::DIAGNOSTIC_PTX.as_bytes());
     source.update(PTX.as_bytes());
     source.finalize().into()
 }
@@ -422,6 +429,7 @@ pub fn compiled_identity() -> serde_json::Value {
         "source_sha256": hex_digest(&source_sha256()),
         "kernel_sha256": kernel_sha256(),
         "geometry_sha256": hex_digest(&geometry_digest(&packed_geometry())),
+        "decomposition_kernel_sha256": format!("{:x}",Sha256::digest(decomposition_device::DIAGNOSTIC_PTX.as_bytes())),
     })
 }
 
@@ -433,12 +441,16 @@ pub struct ProposeProfiler {
     started: Option<Instant>,
     boundary: Option<Instant>,
     host: HostTimings,
+    counterfactual_status: Option<u32>,
+    fault_losses: Option<Vec<u64>>,
 }
 
 impl ProposeProfiler {
     fn begin(&mut self) {
         self.host = HostTimings::default();
         self.recorded = [false; 4];
+        self.counterfactual_status = None;
+        self.fault_losses = None;
         let now = Instant::now();
         self.started = Some(now);
         self.boundary = Some(now);
@@ -461,6 +473,13 @@ impl ProposeProfiler {
 
     pub fn host_timings(&self) -> &HostTimings {
         &self.host
+    }
+
+    pub fn counterfactual_status(&self) -> Option<u32> {
+        self.counterfactual_status
+    }
+    pub fn fault_losses(&self) -> Option<&[u64]> {
+        self.fault_losses.as_deref()
     }
 
     pub fn timings(&self) -> Result<ProposalTimings> {
@@ -1401,6 +1420,8 @@ impl Device {
             started: None,
             boundary: None,
             host: HostTimings::default(),
+            counterfactual_status: None,
+            fault_losses: None,
         })
     }
 
@@ -1411,11 +1432,11 @@ impl Device {
         parameter: Parameter,
         profiler: &mut ProposeProfiler,
     ) -> Result<Proposal> {
+        profiler.begin();
         if profiler.model != self.binding.model || !Arc::ptr_eq(&profiler.stream, &self.stream) {
             return Err(invalid("proposal profiler belongs to another model/stream"));
         }
-        profiler.begin();
-        let result = self.propose_inner(batch, targets, parameter, Some(profiler));
+        let result = self.propose_inner(batch, targets, parameter, Some(profiler), None);
         if result.is_ok() {
             profiler.mark(8);
         }
@@ -1438,7 +1459,7 @@ impl Device {
         targets: &[u32],
         parameter: Parameter,
     ) -> Result<Proposal> {
-        self.propose_inner(batch, targets, parameter, None)
+        self.propose_inner(batch, targets, parameter, None, None)
     }
 
     fn propose_inner(
@@ -1447,6 +1468,7 @@ impl Device {
         targets: &[u32],
         parameter: Parameter,
         mut profiler: Option<&mut ProposeProfiler>,
+        mut decomposition: Option<&mut DecompositionProfiler>,
     ) -> Result<Proposal> {
         let (kind, index) = self.parameter(parameter)?;
         let epoch = self.admit_batch(batch, targets)?;
@@ -1466,7 +1488,12 @@ impl Device {
         if let Some(profile) = profiler.as_deref_mut() {
             profile.mark(2);
         }
-        let mut launch = self.stream.launch_builder(&self.kernels.counterfactual);
+        let diagnostic_kernel = decomposition.as_ref().map(|probe| probe.kernel.clone());
+        let mut launch = self.stream.launch_builder(
+            diagnostic_kernel
+                .as_ref()
+                .unwrap_or(&self.kernels.counterfactual),
+        );
         launch
             .arg(&self.table)
             .arg(&self.routes)
@@ -1486,8 +1513,13 @@ impl Device {
             .arg(&index)
             .arg(&mut losses)
             .arg(&mut status);
-        // SAFETY: exact counterfactual ABI; parameter and input inventories
-        // admitted; sixteen loss slots are scored/padded on CUDA as above.
+        if let Some(probe) = decomposition.as_deref_mut() {
+            launch.arg(&mut probe.records);
+            probe.submitted = true;
+        }
+        // SAFETY: ordinary ABI, or the separately admitted diagnostic ABI with
+        // one additional 16*40-word buffer from decomposition_profiler. Input
+        // inventories are admitted; launch/score inventory stays sixteen.
         if let Some(profile) = profiler.as_deref_mut() {
             profile.event(0)?;
         }
@@ -1496,7 +1528,21 @@ impl Device {
             profile.event(1)?;
             profile.mark(3);
         }
-        check_status(&self.stream, &status, "counterfactual")?;
+        if let Some(profile) = profiler.as_deref_mut() {
+            let words = self.stream.clone_dtoh(&status).map_err(cuda)?;
+            let code = *words
+                .first()
+                .ok_or_else(|| invalid("missing CUDA status metadata"))?;
+            profile.counterfactual_status = Some(code);
+            if code != 0 {
+                profile.fault_losses = Some(self.stream.clone_dtoh(&losses).map_err(cuda)?);
+                return Err(invalid(format!(
+                    "discrete CUDA counterfactual refused with status {code}"
+                )));
+            }
+        } else {
+            check_status(&self.stream, &status, "counterfactual")?;
+        }
         if let Some(profile) = profiler.as_deref_mut() {
             profile.mark(4);
         }
