@@ -34,34 +34,6 @@
     "lab": "codex",
     "note": ""
   },
-  "deepseek/cr6-clippy": {
-    "branch": "deepseek/cr6-clippy",
-    "claimed_at": "2026-10-16T00:37:57-04:00",
-    "head": "5fc68a9a6",
-    "lab": "deepseek",
-    "note": "clippy identity_op at fixture main.rs:564 + crate-wide lint sweep (PM ruling 6208146828)"
-  },
-  "deepseek/cr6-raw-receipts": {
-    "branch": "deepseek/cr6-raw-receipts",
-    "claimed_at": "2026-10-15T23:12:51-04:00",
-    "head": "bb536cf68",
-    "lab": "deepseek",
-    "note": "C-R6 consumer-side repair: read raw driver receipts (top-level aggregate) with producer-shaped + malformed-refusal tests"
-  },
-  "deepseek/cuda-check-repair": {
-    "branch": "deepseek/cuda-check-repair",
-    "claimed_at": "2026-10-15T21:53:05-04:00",
-    "head": "3c651df97",
-    "lab": "deepseek",
-    "note": "E0609 cuda-gated repair (PM 6206222931) + pod cargo check transcript"
-  },
-  "deepseek/k16-cell-dispatch": {
-    "branch": "deepseek/k16-cell-dispatch",
-    "claimed_at": "2026-10-15T21:07:50-04:00",
-    "head": "c155308e0",
-    "lab": "deepseek",
-    "note": "fix: K16 instrument cells must execute source+policy, not label them (Codex PRELEASE_SOURCE_BLOCKER)"
-  },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",
     "claimed_at": "2026-10-16T02:08:02-04:00",
