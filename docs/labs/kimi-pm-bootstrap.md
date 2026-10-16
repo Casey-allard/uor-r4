@@ -58,8 +58,11 @@ GraphQL.
   needs pod-side `cargo check --features cuda` AND
   `cargo clippy --features cuda --all-targets -- -D warnings` transcripts at
   the exact head. Pod recipe: `scripts/pod/uor-cuda-check-remote` +
-  `docs/labs/compute.md` (any lab can run it now; DeepSeek's by-use
-  verification of the doc is still owed).
+  `docs/labs/compute.md` (any lab can run it; by-use verified 2026-10-16 by
+  the PM seat, ~$0.086, archive MD5 round-trip before teardown). The recipe
+  admits the two instrument manifests (strict clippy) and
+  `crates/uor-r4-training/Cargo.toml` (check `--all-targets`; clippy advisory
+  with `--cap-lints warn`; lease `--hours 0.5`).
 - No compute without pre-reg + TEST FITNESS (PM seat: dispatch independent
   reviewer subagent + verify myself). FIT releases design only.
 - Pods only via `scripts/pod/uor-pod`, caps ≤4 pods / ≤$8/h, trap teardown,
@@ -70,18 +73,28 @@ GraphQL.
   values never veto mechanisms; no softmax/sigmoid/tanh/softplus/GELU/matmul
   anywhere.
 
-## Lane state (2026-10-16 ~15:15Z)
+## Lane state (2026-10-16 ~17:15Z)
 
-- origin/main `90c2d2b9d`; board clean.
+- origin/main `6725e0ea9`; board empty (no open PRs).
 - Sealed: propose = 99.99% of batch (#2540); counterfactual kernel =
   99.9958–99.9981% of propose (#2543). Root cause: single 16-thread block,
   64 serial row revisits/lane, per-row baseline recompute, per-call allocs.
-- In flight: Codex drafts counterfactual-kernel decomposition pre-reg
-  (PM commission 6217437395) → PM-seat FIT → kernel optimization → 100-batch
-  timing re-run → owner D-Release decision.
-- AGY: RoPE interlock hardening (5 files, PM ruling 6218323961 on #2028).
-- F2 closed by evidence (AGY audit 6206702939): RoPE excluded pre-merge,
-  pinned by entry allowlist.
+  No geometry/CUDA redesign indicated — parallelize + reuse, same exact
+  computation (owner told).
+- Decomposition pre-reg MERGED and FIT'd (#2545 `98ac653c4`; FIT comment
+  6219037898 carries six binding execution-packet nits). Next: Codex builds
+  the instrument PR (go-ahead prompt handed to owner, copy in the PM
+  worktree `local/codex-cf1-prompt.md`) → gates → diagnostic run (~$0.303
+  worst case) → optimization pre-reg → kernel work → 100-batch timing re-run
+  → owner D-Release decision. Sizing of record: ~132 GPU-h (~$111) at
+  current speed; ~24 GPU-h (~$20) at ≤1 s/proposal.
+- F2 FULLY CLOSED: RoPE excluded pre-merge (#2345), AGY census 6206702939,
+  interlocks merged (#2547 `6725e0ea9`) — vendor PTX scan, workspace vendor
+  checker, and D29 compiled-modules test all refuse rope/ropei/rotary.
+- Pod-gate recipe extended (#2548 `07505e82e`) and by-use verified.
+- PM bootstrap doc itself merged (#2546 `67b5f2ba3`).
+- Episode cost: ~$2.23 (Codex, carried) + ~$0.086 (PM transcript lease);
+  storage/transfer UNMEASURED (standing caveat).
 - Episode cost: ~$2.23 + receipts; storage/transfer UNMEASURED.
 
 ## Key references
