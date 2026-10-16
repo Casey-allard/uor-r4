@@ -25,9 +25,14 @@ Outside the project's Runpod account? See [pods-quickstart.md](../compute/pods-q
 The [PM-commissioned recipe](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6214841716)
 is implemented by [`scripts/pod/uor-cuda-check-remote`](../../scripts/pod/uor-cuda-check-remote).
 It is **compile/lint only**, not bootstrap parity, model execution or qualification.
-Use a fresh single RTX5090 Vast lease with an explicitly authorized 15-minute
-cap. No laptop CUDA fallback. Do not replace the declared standalone manifest
-with root-workspace strict clippy: that checks additional sibling dependencies.
+Use a fresh single RTX5090 Vast lease within the per-manifest allowance:
+**15 minutes** for the admitted instrument manifests (the explicitly
+authorized cap) and **30 minutes** for `crates/uor-r4-training/Cargo.toml`
+(cold training-crate plus vendored candle CUDA builds; the standing owner
+rule treats self-set budgets as extendable estimates within the ≤ 4 pods /
+≤ $8/h caps). No laptop CUDA fallback. Do not replace the declared standalone
+manifest with root-workspace strict clippy: that checks additional sibling
+dependencies.
 
 On the pod the exact known-working layout is Rust/Cargo **1.97.1** under
 `/root/.cargo/bin`, rustup state `/root/.rustup`, `CARGO_HOME=/root/.cargo`,
@@ -47,6 +52,15 @@ From an owned worktree use **bash**, with the following variables set to your
 lab, unique session, exact pushed head, branch, PR URL and local archive path.
 `MANIFEST=docs/labs/k16-timing-2026-10-15/instrument/Cargo.toml` for the timing
 instrument; the fixture instrument path is also explicitly admitted by the script.
+`crates/uor-r4-training/Cargo.toml` is admitted for compile-gate coverage of the
+training crate's cuda-gated targets (the D29 source-scan tests are
+`required-features = ["cuda"]`, so only `--all-targets` reaches them on a pod).
+For that manifest the check gate adds `--all-targets` and clippy runs advisory
+with lints capped at `warn` (the crate carries pre-existing lint debt —
+71 strict lints plus a deny-level `redundant_clone` in `bin/chat-grade.rs`,
+all present at base — so the transcript records the lint list; compile errors
+still fail the gate). Set `HOURS=0.5` for that manifest (30 minutes, cold
+training-crate plus vendored candle CUDA builds) and `HOURS=0.25` otherwise.
 Do not reuse a session or another lab's pod. Check status/caps before `up`.
 The laptop needs `gh`, `jq`, `tar`, `shasum` and the configured `cloud-store`;
 the latter lives at `$HOME/.local/share/uor-r4/bin/cloud-store` on the owner host.
@@ -60,7 +74,7 @@ REMOTE_SCRIPT="$PWD/scripts/pod/uor-cuda-check-remote"
 "$POD_TOOL" status
 "$POD_TOOL" up --provider vast --gpu 5090 --count 1 --lab "$LAB" \
   --session "$SESSION" --purpose "exact-head CUDA compile gates only" \
-  --hours 0.25 --no-bootstrap --ref "$HEAD" --card "$PR"
+  --hours "$HOURS" --no-bootstrap --ref "$HEAD" --card "$PR"
 ```
 
 Set `POD` to the **new pod ID printed by this successful up**, never a peer ID.
@@ -97,7 +111,7 @@ cleanup() {
 }
 trap cleanup EXIT
 "$POD_TOOL" lease "$POD" --lab "$LAB" --session "$SESSION" --gpus 0 \
-  --purpose "exact-head CUDA compile gates only" --hours 0.25 --card "$PR"
+  --purpose "exact-head CUDA compile gates only" --hours "$HOURS" --card "$PR"
 "$POD_TOOL" ssh "$POD" 'cat > /workspace/cuda-check-remote' < "$REMOTE_SCRIPT"
 "$POD_TOOL" ssh "$POD" "bash /workspace/cuda-check-remote setup '$HEAD' '$BRANCH'"
 "$POD_TOOL" run "$POD" --lab "$LAB" --session "$SESSION" --gpu 0 -- \
