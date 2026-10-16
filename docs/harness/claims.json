@@ -34,6 +34,13 @@
     "lab": "codex",
     "note": ""
   },
+  "deepseek/cr6-raw-receipts": {
+    "branch": "deepseek/cr6-raw-receipts",
+    "claimed_at": "2026-10-15T23:12:51-04:00",
+    "head": "bb536cf68",
+    "lab": "deepseek",
+    "note": "C-R6 consumer-side repair: read raw driver receipts (top-level aggregate) with producer-shaped + malformed-refusal tests"
+  },
   "deepseek/cuda-check-repair": {
     "branch": "deepseek/cuda-check-repair",
     "claimed_at": "2026-10-15T21:53:05-04:00",
