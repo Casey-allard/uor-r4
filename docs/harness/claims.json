@@ -34,10 +34,10 @@
     "lab": "codex",
     "note": ""
   },
-  "codex/counterfactual-instrument": {
-    "branch": "codex/counterfactual-instrument",
-    "claimed_at": "2026-10-16T14:42:00-04:00",
-    "head": "0d0ca6c11",
+  "codex/counterfactual-execution-readiness": {
+    "branch": "codex/counterfactual-execution-readiness",
+    "claimed_at": "2026-10-16T15:30:50-04:00",
+    "head": "98f29796f",
     "lab": "codex",
     "note": ""
   },

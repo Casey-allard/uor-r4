@@ -4,7 +4,7 @@ Codex/Sol cf1 implements [PM commission6220832102](https://github.com/UOR-Founda
 on `69cb1f59d5d95950b766826453dbbfb2f843b219`, following the merged
 [design sheet](../../harness/prep/m1-counterfactual-decomposition-2026-10-16.md)
 and [PM-seat design FIT6219037898](https://github.com/UOR-Foundation/uor-r4/pull/2545#issuecomment-6219037898).
-**NOT YET PROMOTED.** This is source and host metadata evidence; GPU behavior,
+**CONSTRUCTION MERGED in #2550 (`98f29796f`).** Source/host checks and exact-head CUDA compile/strict-clippy gates passed; GPU behavior,
 resource parity, diagnostic dose and all new measurements remain **NOT_RUN**.
 Training/M2/Stage B HELD; Q4 NOT_EXECUTABLE.
 
@@ -52,10 +52,11 @@ receipt will be posted with its transcript, not inferred from this source.
 Line: M1 qualification instrumentation, count0/3, suspended headline37/232,
 all unchanged; no mechanism acceptance or count reset.
 
-**Next:** exact-head compile-only pod transcript, PM-seat independent review,
-protected delivery; then a separately accepted final pin/parity/execution
-packet. No diagnostic/optimization/100-batch timing/training on this authority.
+**Next:** a separately accepted final pin/control/parity/execution packet after
+protected source delivery. No diagnostic/optimization/100-batch timing/training on this authority.
 
 PM [resource amendment6222308938](https://github.com/UOR-Foundation/uor-r4/pull/2550#issuecomment-6222308938) approves removing all D register caps for source + compile gates only. The superseded U+16 ceiling and all194→126→103 calibration receipts remain visible. New metadata tests cover exact runtime/AOT register and local/stack consistency, zero spills, launchability, shared equality and the local allowance. A fresh exact-head gate regenerates identities for PM delta review; no diagnostic or model/parity execution is released.
 
 Amendment host validation: seven focused decomposition/source tests PASS; standalone instrument30 PASS/one pre-existing ignored; strict host clippy, claim wording, D23/D25 and whitespace PASS. New test exercises the recorded126-register/+560-byte zero-spill metadata and fail-closed bounds; this is not a CUDA runtime-resource observation.
+
+Post-merge exact pins, accepted final gate/cleanup/cost receipts and outstanding execution prerequisites are consolidated in the [execution-readiness record](../counterfactual-execution-readiness-2026-10-16/README.md). Its prospective pin grants no diagnostic release.
