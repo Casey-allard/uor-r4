@@ -27,10 +27,10 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/propose-subphase-receipts": {
-    "branch": "codex/propose-subphase-receipts",
-    "claimed_at": "2026-10-16T09:52:28-04:00",
-    "head": "8199af007",
+  "codex/counterfactual-decomposition": {
+    "branch": "codex/counterfactual-decomposition",
+    "claimed_at": "2026-10-16T11:11:43-04:00",
+    "head": "90c2d2b9d",
     "lab": "codex",
     "note": ""
   },
