@@ -41,12 +41,12 @@
     "lab": "codex",
     "note": ""
   },
-  "codex/counterfactual-execution-readiness": {
-    "branch": "codex/counterfactual-execution-readiness",
-    "claimed_at": "2026-10-16T15:30:50-04:00",
-    "head": "98f29796f",
+  "codex/counterfactual-finite-controls": {
+    "branch": "codex/counterfactual-finite-controls",
+    "claimed_at": "2026-10-16T16:23:07-04:00",
+    "head": "c46135005",
     "lab": "codex",
-    "note": ""
+    "note": "Finite U/D control implementation + pinned packet; instrument CLI only unless separate claim; no ordinary CUDA/kernel edits; no compute release."
   },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",

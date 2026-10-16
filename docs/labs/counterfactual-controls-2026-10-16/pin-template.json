@@ -1,0 +1,18 @@
+{
+  "schema": "m1-counterfactual-controls-pin/1",
+  "stage": "source_template",
+  "source_commit": "PENDING",
+  "standalone_source_sha256": "871639c3c9f38acaf617a84fc218f9bdf263e34f3d1fef58a06c3ffefcc6892b",
+  "binary_sha256": "PENDING",
+  "source_sha256": "PENDING",
+  "ordinary_kernel_sha256": "PENDING",
+  "decomposition_kernel_sha256": "PENDING",
+  "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+  "fixture_inventory_sha256": "53d61d6c6e0942a274baa907df8a4a8e08a207290b6812fce35234807331c465",
+  "seed": 1,
+  "evaluation_only": true,
+  "training_resume": false,
+  "test_fitness_reference": null,
+  "execution_release_reference": null,
+  "out_dir": "/workspace/counterfactual-controls-records"
+}

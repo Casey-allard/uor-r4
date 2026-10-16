@@ -26,6 +26,7 @@ use std::time::Instant;
 use uor_r4_discrete::{Identity, ObjectivePolicy, Spec};
 
 mod checkpoint_bridge;
+mod counterfactual_controls;
 mod counterfactual_decomposition;
 
 /// The pinned shape. K16 is the evaluation-only rebind: the sealed fixture was
@@ -943,6 +944,9 @@ fn usage() -> String {
         "k16-timing decompose-check|decompose-plan --pin FILE (host metadata only)",
         "k16-timing decompose-identity (CUDA compiled identities only; no context)",
         "k16-timing decompose --pin FILE (separate PM execution release required)",
+        "k16-timing decompose-controls-check|decompose-controls-plan --pin FILE (host metadata only)",
+        "k16-timing decompose-controls-identity (standalone/binary/compiled identities; no context)",
+        "k16-timing decompose-controls --pin FILE (finite controls; separate FIT and execution release required)",
     ]
     .join(&String::from(char::from(10)))
 }
@@ -950,6 +954,13 @@ fn usage() -> String {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let command = args.first().cloned().unwrap_or_default();
+    if command.starts_with("decompose-controls") {
+        if let Err(error) = counterfactual_controls::entry(&args) {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+        return;
+    }
     if command.starts_with("decompose") {
         if let Err(error) = counterfactual_decomposition::entry(&args) {
             eprintln!("{error}");
