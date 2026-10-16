@@ -1,5 +1,13 @@
 # D-R Qualification Runbook — Step-0 CUDA Build/Clippy Gate, `C-R1..C-R6`, `G-Pre` (`K=16` Checkpoint-0 Ceiling), and 100-Batch `K=16` Synchronized Timing (`NOT_TRAINING`, 15 October 2026)
 
+**Current execution dependency — 16 October:**
+The [owner instrument+optimize-first decision](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6210107580)
+defers 100-batch qualification timing to the optimized stack. The
+[pending proposal diagnostic](../propose-subphase-diagnostic-2026-10-16/README.md)
+does not discharge any qualification or training gate; its checkpoint-0
+identity bridge remains a reviewed prerequisite. Historical execution steps
+below do not authorize a restart. Training/M2/Stage B HELD; Q4 NOT_EXECUTABLE.
+
 **Latest blocker:** [restart 5 at `812459c7f`](../k16-qualification-restart5-2026-10-16/README.md)
 passes all six step-0 commands, G-Pre and C-R1..C-R6. The timing binary exits 0,
 but emits only 99 timed batches per checkpoint-0 cell after skipping its warmup;

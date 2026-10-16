@@ -34,6 +34,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/propose-subphase-instrument": {
+    "branch": "codex/propose-subphase-instrument",
+    "claimed_at": "2026-10-16T03:23:58-04:00",
+    "head": "bb87d56ec",
+    "lab": "codex",
+    "note": ""
+  },
   "deepseek/cr6-clippy": {
     "branch": "deepseek/cr6-clippy",
     "claimed_at": "2026-10-16T00:37:57-04:00",

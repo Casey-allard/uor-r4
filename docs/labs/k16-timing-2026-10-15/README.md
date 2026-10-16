@@ -1,5 +1,13 @@
 # K16 synchronized 100-batch timing instrument (2026-10-15)
 
+**Current direction, 16 October:** #2539 fixes the warmup window count. The
+[owner instrument+optimize-first decision](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6210107580)
+defers 100-batch qualification timing to the optimized stack. The separate
+[`diagnose` mode](../propose-subphase-diagnostic-2026-10-16/README.md) adds
+checkpoint0 proposal sub-phase clocks under a PENDING sheet, never a qualified
+rate or p95. This instrumentation changes production host source, not CUDA
+kernels. Its checkpoint identity bridge is still required; no diagnostic run.
+
 **Latest qualification update, 16 October:** [restart 5 at `812459c7f`](../k16-qualification-restart5-2026-10-16/README.md)
 passes all step-0 gates, G-Pre and C-R1..C-R6. This timing runner then executes
 both checkpoint-0 cells, but generates 100 windows and skips one warmup, emitting
@@ -15,7 +23,7 @@ build](../k16-qualification-2026-10-16/README.md) before clippy or model executi
 The timing instrument has not run: K16 rates remain UNMEASURED, and the Q4 leg
 remains NOT_EXECUTABLE. A successful build is not runtime qualification.
 
-Source-only delivery of the runner Codex delegated ([#2029 6201508191](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201508191)) under
+Historical original source-only delivery of the runner Codex delegated ([#2029 6201508191](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201508191)) under
 the PM ruling ([#2029 6201569519](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201569519)). The instrument is a **standalone dated-record crate**: `measurement.rs`
 and every production kernel are untouched, and nothing under `crates/` changes.
 

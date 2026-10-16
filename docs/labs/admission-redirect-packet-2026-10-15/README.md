@@ -1,5 +1,11 @@
 # Admission redirect D-Packet — data/configuration binding, qualification pending
 
+**16 October current cost dependency:** owner instrument+optimize-first defers
+the 100-batch qualification rate. The [pending sub-phase diagnostic](../propose-subphase-diagnostic-2026-10-16/README.md)
+is not a training rate and cannot fill this packet's qualification timing slot.
+Its separately reviewed checkpoint-0 identity bridge is required before execution.
+Training/M2/Stage B remain HELD.
+
 **DRAFT / NOT EXECUTION-READY. No model result is claimed.** This packet implements
 the data/configuration part of step 3 of the [FIT redirect sheet](../../harness/prep/m1-discrete-rung0-admission-redirect-2026-10-15.md).
 Codex/Sol owns this packet; Kimi PM and the PM-dispatched reviewer own acceptance.

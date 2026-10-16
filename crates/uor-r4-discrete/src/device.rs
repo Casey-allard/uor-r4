@@ -3,19 +3,21 @@
 //! Initialization, encoding, routing, scoring and proposal choice run on CUDA.
 //! Module loading consumes AOT PTX; there is no runtime compiler or CPU model.
 
+use crate::proposal_timing::{EventDuration, HostTimings, ProposalTimings, HOST_SPANS};
 use crate::{
     metadata::{BinderPlan, ABSENT},
     objective::{self, ExactRatio, HingeDistribution},
     Error, Identity, ObjectivePolicy, Parameter, ReadSpec, Result, Spec, SCHEMA,
 };
 use cudarc::driver::{
-    CudaContext, CudaFunction, CudaSlice, CudaStream, LaunchConfig, Ptx, PushKernelArg,
+    CudaContext, CudaEvent, CudaFunction, CudaSlice, CudaStream, LaunchConfig, Ptx, PushKernelArg,
 };
 use sha2::{Digest, Sha256};
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
+use std::time::Instant;
 
 mod geometry {
     include!(concat!(env!("OUT_DIR"), "/geometry.rs"));
@@ -403,6 +405,7 @@ fn source_sha256() -> [u8; 32] {
     source.update(include_bytes!("metadata.rs"));
     source.update(include_bytes!("lib.rs"));
     source.update(include_bytes!("objective.rs"));
+    source.update(include_bytes!("proposal_timing.rs"));
     source.update(include_bytes!("../build.rs"));
     source.update(PTX.as_bytes());
     source.finalize().into()
@@ -420,6 +423,76 @@ pub fn compiled_identity() -> serde_json::Value {
         "kernel_sha256": kernel_sha256(),
         "geometry_sha256": hex_digest(&geometry_digest(&packed_geometry())),
     })
+}
+
+pub struct ProposeProfiler {
+    model: u64,
+    stream: Arc<CudaStream>,
+    events: [CudaEvent; 4],
+    recorded: [bool; 4],
+    started: Option<Instant>,
+    boundary: Option<Instant>,
+    host: HostTimings,
+}
+
+impl ProposeProfiler {
+    fn begin(&mut self) {
+        self.host = HostTimings::default();
+        self.recorded = [false; 4];
+        let now = Instant::now();
+        self.started = Some(now);
+        self.boundary = Some(now);
+    }
+
+    fn mark(&mut self, span: usize) {
+        let now = Instant::now();
+        if let Some(boundary) = self.boundary {
+            self.host.spans_ns[span] = now.duration_since(boundary).as_nanos();
+            self.host.completed[span] = true;
+        }
+        self.boundary = Some(now);
+    }
+
+    fn event(&mut self, index: usize) -> Result<()> {
+        self.events[index].record(&self.stream).map_err(cuda)?;
+        self.recorded[index] = true;
+        Ok(())
+    }
+
+    pub fn host_timings(&self) -> &HostTimings {
+        &self.host
+    }
+
+    pub fn timings(&self) -> Result<ProposalTimings> {
+        self.host.validate_complete()?;
+        if !self.recorded.iter().all(|recorded| *recorded)
+            || !self.host.completed.iter().all(|completed| *completed)
+        {
+            return Err(invalid("proposal profile is incomplete"));
+        }
+        let started = Instant::now();
+        let counterfactual = EventDuration::from_milliseconds_bits(
+            self.events[0]
+                .elapsed_ms(&self.events[1])
+                .map_err(cuda)?
+                .to_bits(),
+        )?;
+        let chooser = EventDuration::from_milliseconds_bits(
+            self.events[2]
+                .elapsed_ms(&self.events[3])
+                .map_err(cuda)?
+                .to_bits(),
+        )?;
+        Ok(ProposalTimings {
+            schema: "uor-r4.proposal-subphase-timing/1",
+            host_span_names: HOST_SPANS,
+            host: self.host.clone(),
+            counterfactual,
+            chooser,
+            event_readback_ns: started.elapsed().as_nanos(),
+            accounting: "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+        })
+    }
 }
 
 /// Device-chosen proposal. Private buffers prevent a host-authored update.
@@ -1314,21 +1387,85 @@ impl Device {
         }
     }
 
+    pub fn proposal_profiler(&self) -> Result<ProposeProfiler> {
+        let event = || {
+            self.context
+                .new_event(Some(cudarc::driver::sys::CUevent_flags::CU_EVENT_DEFAULT))
+                .map_err(cuda)
+        };
+        Ok(ProposeProfiler {
+            model: self.binding.model,
+            stream: Arc::clone(&self.stream),
+            events: [event()?, event()?, event()?, event()?],
+            recorded: [false; 4],
+            started: None,
+            boundary: None,
+            host: HostTimings::default(),
+        })
+    }
+
+    pub fn propose_profiled(
+        &self,
+        batch: &CarriedBatch,
+        targets: &[u32],
+        parameter: Parameter,
+        profiler: &mut ProposeProfiler,
+    ) -> Result<Proposal> {
+        if profiler.model != self.binding.model || !Arc::ptr_eq(&profiler.stream, &self.stream) {
+            return Err(invalid("proposal profiler belongs to another model/stream"));
+        }
+        profiler.begin();
+        let result = self.propose_inner(batch, targets, parameter, Some(profiler));
+        if result.is_ok() {
+            profiler.mark(8);
+        }
+        if let Some(started) = profiler.started {
+            profiler.host.call_ns = if result.is_ok() {
+                profiler
+                    .boundary
+                    .map(|end| end.duration_since(started).as_nanos())
+                    .unwrap_or(0)
+            } else {
+                started.elapsed().as_nanos()
+            };
+        }
+        result
+    }
+
     pub fn propose(
         &self,
         batch: &CarriedBatch,
         targets: &[u32],
         parameter: Parameter,
     ) -> Result<Proposal> {
+        self.propose_inner(batch, targets, parameter, None)
+    }
+
+    fn propose_inner(
+        &self,
+        batch: &CarriedBatch,
+        targets: &[u32],
+        parameter: Parameter,
+        mut profiler: Option<&mut ProposeProfiler>,
+    ) -> Result<Proposal> {
         let (kind, index) = self.parameter(parameter)?;
         let epoch = self.admit_batch(batch, targets)?;
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.mark(0);
+        }
         let targets = self.stream.clone_htod(targets).map_err(cuda)?;
         let spec = self.gpu_spec(batch.rows)?;
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.mark(1);
+        }
         // Fixed sixteen-word ABI: Gate3 writes active ordinals0..2 and pads
         // 3..15 with MAX. Its chooser inspects only the three active entries;
         // geometric parameter kinds use all sixteen. Every slot is written.
         let mut losses = self.stream.alloc_zeros::<u64>(16).map_err(cuda)?;
         let mut status = self.stream.alloc_zeros::<u32>(1).map_err(cuda)?;
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.mark(2);
+        }
         let mut launch = self.stream.launch_builder(&self.kernels.counterfactual);
         launch
             .arg(&self.table)
@@ -1351,9 +1488,22 @@ impl Device {
             .arg(&mut status);
         // SAFETY: exact counterfactual ABI; parameter and input inventories
         // admitted; sixteen loss slots are scored/padded on CUDA as above.
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.event(0)?;
+        }
         unsafe { launch.launch(launch_config(16)) }.map_err(cuda)?;
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.event(1)?;
+            profile.mark(3);
+        }
         check_status(&self.stream, &status, "counterfactual")?;
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.mark(4);
+        }
         let mut proposal = self.stream.alloc_zeros::<u64>(5).map_err(cuda)?;
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.mark(5);
+        }
         let mut launch = self.stream.launch_builder(&self.kernels.choose);
         launch
             .arg(&losses)
@@ -1370,8 +1520,18 @@ impl Device {
         // parameter/table/routes/gates,
         // geometry/spec and epoch, with five writable proposal words. Word4
         // is a device-computed sensitivity observation, never an apply input.
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.event(2)?;
+        }
         unsafe { launch.launch(launch_config(1)) }.map_err(cuda)?;
+        if let Some(profile) = profiler.as_deref_mut() {
+            profile.event(3)?;
+            profile.mark(6);
+        }
         self.stream.synchronize().map_err(cuda)?;
+        if let Some(profile) = profiler {
+            profile.mark(7);
+        }
         Ok(Proposal {
             data: proposal,
             losses,

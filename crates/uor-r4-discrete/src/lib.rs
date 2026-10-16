@@ -11,6 +11,7 @@ pub mod driver_qualification;
 pub mod measurement;
 pub mod metadata;
 pub mod objective;
+pub mod proposal_timing;
 pub use objective::ObjectivePolicy;
 pub mod training;
 

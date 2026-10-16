@@ -38,6 +38,8 @@ pub const PADDED_CONTEXT_TOKENS_PER_ROW: u128 = 192;
 pub const BATCHES: usize = 100;
 pub const WARMUPS: usize = 1;
 pub const PIN_SCHEMA: &str = "k16-timing-pin/v1";
+pub const DIAGNOSTIC_SCHEMA: &str = "k16-propose-subphase-pin/v1";
+pub const DIAGNOSTIC_SCOPE: &str = "diagnostic only; not qualification, not a p95 estimate, not a training rate; GPU event durations MUST NOT be added to host wall/wait durations";
 
 /// The headline rate basis, named in the plan and in every cell record so no
 /// reader has to infer which phases the divisor covers.
@@ -96,12 +98,61 @@ pub struct Pin {
     pub rows: usize,
     pub batches: usize,
     pub warmups: usize,
+    #[serde(default)]
+    pub diagnostic: Option<DiagnosticPin>,
     pub fixture: FixturePin,
     /// Pinned checkpoint-0 artifact. Absent is legal only when no checkpoint0 cell is selected.
     #[serde(default)]
     pub checkpoint0: Option<CheckpointPin>,
     pub cells: Vec<CellPin>,
     pub out_dir: PathBuf,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DiagnosticPin {
+    pub source_sha256: String,
+    pub kernel_sha256: String,
+    pub geometry_sha256: String,
+    pub config_path: PathBuf,
+    pub config_file_sha256: String,
+}
+
+pub fn validate_diagnostic_identity(
+    pin: &Pin,
+    compiled: &Value,
+    config_bytes: &[u8],
+) -> std::result::Result<(), String> {
+    use sha2::{Digest, Sha256};
+    let diagnostic = pin.diagnostic.as_ref().ok_or("missing diagnostic pins")?;
+    for (name, expected) in [
+        ("source_sha256", &diagnostic.source_sha256),
+        ("kernel_sha256", &diagnostic.kernel_sha256),
+        ("geometry_sha256", &diagnostic.geometry_sha256),
+    ] {
+        if compiled.get(name).and_then(Value::as_str) != Some(expected.as_str()) {
+            return Err(format!("diagnostic {name} differs from compiled identity; sealed checkpoint rebind must be separately reviewed"));
+        }
+    }
+    let actual = format!("{:x}", Sha256::digest(config_bytes));
+    if actual != diagnostic.config_file_sha256 {
+        return Err("diagnostic config file checksum mismatch".into());
+    }
+    let config: uor_r4_discrete::training::DriverConfig = serde_json::from_slice(config_bytes)
+        .map_err(|error| format!("diagnostic config: {error}"))?;
+    config.validate().map_err(|error| error.to_string())?;
+    if config.spec != K16
+        || config.read_spec != uor_r4_discrete::ReadSpec::Route
+        || config.seed != 1
+        || config.batch_rows != ROWS as u32
+        || config.objective_policy != ObjectivePolicy::NearestAddressMarginV1
+    {
+        return Err(
+            "diagnostic config must be the seed1 K16-A checkpoint-zero initialization config"
+                .into(),
+        );
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -157,9 +208,14 @@ fn is_hex64(text: &str) -> bool {
 /// without: an absent fixture pin, a shape that is not K16, a read policy that
 /// is not Route, a resume dressed as a rebind, or a missing policy arm.
 pub fn validate(pin: &Pin) -> std::result::Result<Vec<Cell>, String> {
-    if pin.schema != PIN_SCHEMA {
+    let expected_schema = if pin.diagnostic.is_some() {
+        DIAGNOSTIC_SCHEMA
+    } else {
+        PIN_SCHEMA
+    };
+    if pin.schema != expected_schema {
         return Err(format!(
-            "pin schema is {:?}, expected {PIN_SCHEMA:?}",
+            "pin schema is {:?}, expected {expected_schema:?}",
             pin.schema
         ));
     }
@@ -185,8 +241,12 @@ pub fn validate(pin: &Pin) -> std::result::Result<Vec<Cell>, String> {
     if pin.rows != ROWS {
         return Err(format!("rows is {}, expected {ROWS}", pin.rows));
     }
-    if pin.batches != BATCHES {
-        return Err(format!("batches is {}, expected {BATCHES}", pin.batches));
+    let expected_batches = if pin.diagnostic.is_some() { 3 } else { BATCHES };
+    if pin.batches != expected_batches {
+        return Err(format!(
+            "batches is {}, expected {expected_batches}",
+            pin.batches
+        ));
     }
     if pin.warmups != WARMUPS {
         return Err(format!("warmups is {}, expected {WARMUPS}", pin.warmups));
@@ -197,6 +257,29 @@ pub fn validate(pin: &Pin) -> std::result::Result<Vec<Cell>, String> {
     // (Codex PRELEASE_SOURCE_BLOCKER, #2029).
     // Read from the pin, not the parsed cells: this check runs before the cells are built.
     let wants_q4 = pin.cells.iter().any(|c| c.source == "sealed_seed1_q4");
+    if let Some(diagnostic) = &pin.diagnostic {
+        if wants_q4 || pin.cells.len() != 2 {
+            return Err(
+                "diagnostic requires exactly the two checkpoint0 A/R cells; Q4 NOT_EXECUTABLE"
+                    .into(),
+            );
+        }
+        if pin.checkpoint0.as_ref().map(|checkpoint| checkpoint.seed) != Some(1) {
+            return Err("diagnostic requires the sealed seed1 checkpoint0".into());
+        }
+        if diagnostic.config_path.as_os_str().is_empty()
+            || [
+                &diagnostic.source_sha256,
+                &diagnostic.kernel_sha256,
+                &diagnostic.geometry_sha256,
+                &diagnostic.config_file_sha256,
+            ]
+            .iter()
+            .any(|hash| !is_hex64(hash))
+        {
+            return Err("diagnostic requires source/PTX/geometry/config file hash pins".into());
+        }
+    }
     let wants_checkpoint0 = pin.cells.iter().any(|c| c.source == "checkpoint0");
     if wants_q4 {
         if !is_hex64(&pin.fixture.snapshot_sha256) {
@@ -443,7 +526,7 @@ impl Ledger {
     /// status is "partial" when the run faulted and "complete" otherwise.
     pub fn flush(&self, status: &str) -> std::result::Result<(), String> {
         let document = json!({
-            "schema": "k16-timing-record/v1",
+            "schema": if self.header["diagnostic"].is_object() { "k16-propose-subphase-record/v1" } else { "k16-timing-record/v1" },
             "status": status,
             "exclusion": EXCLUSION,
             "header": self.header,
@@ -461,7 +544,9 @@ impl Ledger {
 /// a pod. Printed by check/plan and embedded in every record.
 pub fn plan(pin: &Pin, cells: &[Cell]) -> Value {
     json!({
-        "schema": "k16-timing-plan/v1",
+        "schema": if pin.diagnostic.is_some() { "k16-propose-subphase-plan/v1" } else { "k16-timing-plan/v1" },
+        "diagnostic": pin.diagnostic,
+        "diagnostic_scope": if pin.diagnostic.is_some() { Some(DIAGNOSTIC_SCOPE) } else { None },
         "shape": {
             "vocabulary": K16.vocabulary,
             "blocks": K16.blocks,
@@ -474,9 +559,9 @@ pub fn plan(pin: &Pin, cells: &[Cell]) -> Value {
         "batches_per_cell": pin.batches,
         "excluded_warmups_per_cell": pin.warmups,
         "timed_operations": ["carry_windows", "propose(route)", "observation", "propose(vector_block)", "observation"],
-        "rates_basis": RATE_BASIS,
-        "rates_secondary": "carry_only rows_per_s and padded_context_tokens_per_s are reported separately and are NOT the headline basis",
-        "dtype": DTYPE,
+        "rates_basis": if pin.diagnostic.is_some() { DIAGNOSTIC_SCOPE } else { RATE_BASIS },
+        "rates_secondary": if pin.diagnostic.is_some() { "no diagnostic throughput rate emitted" } else { "carry_only rows_per_s and padded_context_tokens_per_s are reported separately and are NOT the headline basis" },
+        "dtype": if pin.diagnostic.is_some() { "integer host nanoseconds; raw vendor CUDA clock bits and integer-decoded ns; no floating-point model arithmetic" } else { DTYPE },
         "synchronization": "Device::synchronize before and after every timed operation",
         "apply": false,
         "zero_apply_assertion": "snapshot digest and epoch identical before and after each cell",
@@ -510,6 +595,11 @@ mod driver {
         source: Source,
         policy: ObjectivePolicy,
     ) -> std::result::Result<Device, String> {
+        if let Some(diagnostic) = &pin.diagnostic {
+            let config = std::fs::read(&diagnostic.config_path)
+                .map_err(|error| format!("diagnostic config read: {error}"))?;
+            validate_diagnostic_identity(pin, &compiled_identity(), &config)?;
+        }
         let (path, sha, seed, epoch) = match source {
             Source::Checkpoint0 => {
                 let c0 = pin.checkpoint0.as_ref().ok_or_else(|| {
@@ -574,6 +664,15 @@ mod driver {
         ledger: &mut Ledger,
     ) -> std::result::Result<Value, String> {
         let windows = batches(windows_for(pin));
+        let mut profiler = if pin.diagnostic.is_some() {
+            Some(
+                device
+                    .proposal_profiler()
+                    .map_err(|error| ledger.fault("profile_setup", &error.to_string()))?,
+            )
+        } else {
+            None
+        };
         let targets = targets();
         let before = device
             .snapshot()
@@ -610,19 +709,34 @@ mod driver {
         device
             .synchronize()
             .map_err(|e| format!("warmup synchronize: {e}"))?;
+        let warmup_started = pin.diagnostic.as_ref().map(|_| Instant::now());
+        let mut warmup_profiles = Vec::new();
         let warmup_batch = device
             .carry_windows(&windows[0])
             .map_err(|e| format!("warmup carry: {e}"))?;
-        for (_, parameter) in proposals {
-            let _ = device
-                .propose(&warmup_batch, &targets, parameter)
-                .map_err(|e| format!("warmup propose: {e}"))?;
+        for (operation, parameter) in proposals {
+            let result = if let Some(profile) = profiler.as_mut() {
+                device.propose_profiled(&warmup_batch, &targets, parameter, profile)
+            } else {
+                device.propose(&warmup_batch, &targets, parameter)
+            };
+            result.map_err(|error| ledger.fault("warmup_propose", &error.to_string()))?;
+            if let Some(profile) = &profiler {
+                let timings = profile
+                    .timings()
+                    .map_err(|error| ledger.fault("warmup_profile", &error.to_string()))?;
+                warmup_profiles.push(json!({"operation":operation,"subphases":timings}));
+            }
         }
         device
             .synchronize()
             .map_err(|e| format!("warmup final synchronize: {e}"))?;
+        if let Some(started) = warmup_started {
+            ledger.push(json!({"record_kind":"excluded_warmup","cell":{"source":cell.source,"policy":policy_name(cell.policy)},"elapsed_ns":started.elapsed().as_nanos(),"profiles":warmup_profiles,"applied":false}));
+        }
 
         for (index, window) in windows.iter().enumerate().skip(pin.warmups) {
+            let batch_started = pin.diagnostic.as_ref().map(|_| Instant::now());
             if let Err(e) = device.synchronize() {
                 return Err(ledger.fault("sync_before_carry", &e.to_string()));
             }
@@ -641,17 +755,37 @@ mod driver {
                 if let Err(e) = device.synchronize() {
                     return Err(ledger.fault("sync_before_propose", &e.to_string()));
                 }
+                let mut extra_context_sync_ns = None;
                 let (proposal, propose_ns) = timed(|| {
-                    let proposal = device
-                        .propose(&carried, &targets, parameter)
-                        .map_err(|e| e.to_string())?;
-                    device.synchronize().map_err(|e| e.to_string())?;
+                    let proposal = if let Some(profile) = profiler.as_mut() {
+                        device.propose_profiled(&carried, &targets, parameter, profile)
+                    } else {
+                        device.propose(&carried, &targets, parameter)
+                    }
+                    .map_err(|error| error.to_string())?;
+                    if profiler.is_some() {
+                        let started = Instant::now();
+                        device.synchronize().map_err(|error| error.to_string())?;
+                        extra_context_sync_ns = Some(started.elapsed().as_nanos());
+                    } else {
+                        device.synchronize().map_err(|error| error.to_string())?;
+                    }
                     Ok(proposal)
                 });
                 let proposal = match proposal {
                     Ok(proposal) => proposal,
-                    Err(e) => return Err(ledger.fault("propose", &e)),
+                    Err(error) => {
+                        if let Some(profile) = &profiler {
+                            ledger.push(json!({"record_kind":"partial_proposal_profile", "cell":{"source":cell.source,"policy":policy_name(cell.policy)}, "batch":index, "operation":operation, "host":profile.host_timings(), "propose_ns":propose_ns}));
+                        }
+                        return Err(ledger.fault("propose", &error));
+                    }
                 };
+                let subphases = profiler
+                    .as_ref()
+                    .map(|profile| profile.timings())
+                    .transpose()
+                    .map_err(|error| ledger.fault("profile_readback", &error.to_string()))?;
                 let (observation, observation_ns) = timed(|| {
                     let observed = proposal.observation().map_err(|e| e.to_string())?;
                     device.synchronize().map_err(|e| e.to_string())?;
@@ -675,6 +809,8 @@ mod driver {
                     "operation": operation,
                     "parameter": format!("{parameter:?}"),
                     "propose_ns": propose_ns,
+                    "subphases": subphases,
+                    "extra_context_sync_ns": extra_context_sync_ns,
                     "observation_ns": observation_ns,
                     "candidate": observed.candidate,
                     "before": observed.before,
@@ -698,6 +834,7 @@ mod driver {
                 "batch": index,
                 "rows": ROWS,
                 "carry_ns": carry_ns,
+                "diagnostic_batch_wall_ns": batch_started.map(|started| started.elapsed().as_nanos()),
                 "proposals": proposal_records,
                 "epoch": epoch,
                 "applied": false,
@@ -740,15 +877,16 @@ mod driver {
             "timed_batches": timed_batches,
             "excluded_warmups": pin.warmups,
             "unit_ns": unit_ns,
-            "rates": {
+            "rates": if pin.diagnostic.is_some() { Value::Null } else { json!({
                 "basis": RATE_BASIS,
                 "rows_per_s": unit_rates.rows_per_s,
                 "padded_context_tokens_per_s": unit_rates.padded_context_tokens_per_s,
-            },
+            }) },
+            "diagnostic_scope": if pin.diagnostic.is_some() { Some(DIAGNOSTIC_SCOPE) } else { None },
             "carry_only": {
                 "ns": carry_ns_total,
-                "rows_per_s": carry_only.rows_per_s,
-                "padded_context_tokens_per_s": carry_only.padded_context_tokens_per_s,
+                "rows_per_s": if pin.diagnostic.is_some() { None } else { Some(carry_only.rows_per_s) },
+                "padded_context_tokens_per_s": if pin.diagnostic.is_some() { None } else { Some(carry_only.padded_context_tokens_per_s) },
                 "note": "carry phase only; not the headline basis",
             },
             "per_family_ns_per_batch_floor": {
@@ -758,7 +896,7 @@ mod driver {
                 "vector_propose": per_batch(vector_propose_ns),
                 "vector_observation": per_batch(vector_observation_ns),
             },
-            "dtype": DTYPE,
+            "dtype": if pin.diagnostic.is_some() { "integer host nanoseconds; vendor CUDA clock IEEE754 bits decoded to integer ns, never model arithmetic" } else { DTYPE },
             "snapshot_digest_before": before_digest,
             "snapshot_digest_after": after_digest,
             "epoch_before": epoch_before,
@@ -783,6 +921,7 @@ fn usage() -> String {
     [
         "k16-timing check|plan --pin FILE   (host; no device)",
         "k16-timing run --pin FILE          (needs --features cuda and a pod)",
+        "k16-timing diagnose --pin FILE     (three-batch subphase diagnostic only; separate pending FIT)",
     ]
     .join(&String::from(char::from(10)))
 }
@@ -821,7 +960,11 @@ fn main() {
                 serde_json::to_string_pretty(&plan(&pin, &cells)).unwrap_or_default()
             );
         }
-        "run" => {
+        "run" | "diagnose" => {
+            if (command == "diagnose") != pin.diagnostic.is_some() {
+                eprintln!("diagnose requires diagnostic pins; run requires qualification pins");
+                std::process::exit(2);
+            }
             #[cfg(feature = "cuda")]
             run_all(&pin, &cells);
             #[cfg(not(feature = "cuda"))]
@@ -840,7 +983,11 @@ fn main() {
 
 #[cfg(feature = "cuda")]
 fn run_all(pin: &Pin, cells: &[Cell]) {
-    let path = pin.out_dir.join("k16-timing-record.json");
+    let path = pin.out_dir.join(if pin.diagnostic.is_some() {
+        "k16-propose-subphase-record.json"
+    } else {
+        "k16-timing-record.json"
+    });
     let mut ledger = Ledger::new(path, plan(pin, cells));
     for cell in cells {
         // One device per cell: the artifact and the policy are the cell, not a label on it.
@@ -905,6 +1052,96 @@ mod tests {
             },
             "out_dir": "/tmp/k16-timing"
         })
+    }
+
+    fn diagnostic_pin() -> Pin {
+        let mut pin = pin();
+        pin.schema = DIAGNOSTIC_SCHEMA.into();
+        pin.batches = 3;
+        pin.cells.retain(|cell| cell.source == "checkpoint0");
+        pin.checkpoint0.as_mut().expect("checkpoint").seed = 1;
+        pin.diagnostic = Some(DiagnosticPin {
+            source_sha256: "1".repeat(64),
+            kernel_sha256: "2".repeat(64),
+            geometry_sha256: "3".repeat(64),
+            config_path: "config.json".into(),
+            config_file_sha256: "4".repeat(64),
+        });
+        pin
+    }
+
+    #[test]
+    fn diagnostic_count_and_scope_cannot_be_qualification_or_q4() {
+        let pin = diagnostic_pin();
+        assert_eq!(validate(&pin).expect("diagnostic").len(), 2);
+        assert_eq!(windows_for(&pin) - pin.warmups, 3);
+        for batches in [0, 2, 4, 99, 100] {
+            let mut bad = pin.clone();
+            bad.batches = batches;
+            assert!(validate(&bad).is_err());
+        }
+        let mut bad = pin.clone();
+        bad.schema = PIN_SCHEMA.into();
+        assert!(validate(&bad).is_err());
+        let mut bad = pin.clone();
+        bad.cells[0].source = "sealed_seed1_q4".into();
+        assert!(validate(&bad).is_err());
+        let mut bad = pin.clone();
+        bad.diagnostic
+            .as_mut()
+            .expect("diagnostic")
+            .source_sha256
+            .clear();
+        assert!(validate(&bad).is_err());
+        let mut bad = pin;
+        bad.warmups = 2;
+        assert!(validate(&bad).is_err());
+    }
+
+    #[test]
+    fn diagnostic_identity_and_configuration_mismatch_are_refused() {
+        use sha2::{Digest, Sha256};
+        let config = include_bytes!(
+            "../../../admission-redirect-packet-2026-10-15/configs/k16-A-seed1.json"
+        );
+        let mut pin = diagnostic_pin();
+        pin.diagnostic
+            .as_mut()
+            .expect("diagnostic")
+            .config_file_sha256 = format!("{:x}", Sha256::digest(config));
+        let compiled = json!({"source_sha256":"1".repeat(64),"kernel_sha256":"2".repeat(64),"geometry_sha256":"3".repeat(64)});
+        assert!(validate_diagnostic_identity(&pin, &compiled, config).is_ok());
+        for field in ["source_sha256", "kernel_sha256", "geometry_sha256"] {
+            let mut wrong = compiled.clone();
+            wrong[field] = json!("5".repeat(64));
+            assert!(validate_diagnostic_identity(&pin, &wrong, config).is_err());
+        }
+        assert!(validate_diagnostic_identity(&pin, &compiled, b"{}").is_err());
+        let mut config: Value = serde_json::from_slice(config).expect("config");
+        config["seed"] = json!(2);
+        let bytes = serde_json::to_vec(&config).expect("serialize");
+        pin.diagnostic
+            .as_mut()
+            .expect("diagnostic")
+            .config_file_sha256 = format!("{:x}", Sha256::digest(&bytes));
+        assert!(validate_diagnostic_identity(&pin, &compiled, &bytes).is_err());
+    }
+
+    #[test]
+    fn diagnostic_records_are_distinct_from_qualification() {
+        let pin = diagnostic_pin();
+        let cells = validate(&pin).expect("valid");
+        let header = plan(&pin, &cells);
+        assert_eq!(header["schema"], "k16-propose-subphase-plan/v1");
+        assert_eq!(header["batches_per_cell"], 3);
+        assert_eq!(header["diagnostic_scope"], DIAGNOSTIC_SCOPE);
+        let directory = tempfile::tempdir().expect("metadata temporary directory");
+        let path = directory.path().join("record.json");
+        let ledger = Ledger::new(path.clone(), header);
+        ledger.flush("partial").expect("write metadata");
+        let document: Value =
+            serde_json::from_slice(&std::fs::read(path).expect("read")).expect("json");
+        assert_eq!(document["schema"], "k16-propose-subphase-record/v1");
     }
 
     fn pin() -> Pin {
