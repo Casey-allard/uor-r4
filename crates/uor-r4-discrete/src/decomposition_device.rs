@@ -4,6 +4,10 @@ use super::*;
 use crate::decomposition::{self, KernelResources};
 pub(super) const DIAGNOSTIC_PTX: &str =
     include_str!(concat!(env!("OUT_DIR"), "/decomposition.ptx"));
+pub(super) const DIAGNOSTIC_CUBIN: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/decomposition.cubin"));
+pub(super) const DIAGNOSTIC_RESOURCE_REPORT: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/decomposition-resources.txt"));
 
 pub struct DecompositionProfiler {
     pub(super) kernel: CudaFunction,
@@ -25,7 +29,7 @@ impl DecompositionProfiler {
     pub fn resources(&self) -> Result<KernelResources> {
         resources(
             &self.kernel,
-            include_str!(concat!(env!("OUT_DIR"), "/decomposition-resources.txt")),
+            DIAGNOSTIC_RESOURCE_REPORT,
             "discrete_counterfactual_decomposition",
         )
     }
@@ -49,9 +53,10 @@ impl Device {
         if self.read_spec() != ReadSpec::Route {
             return Err(invalid("decomposition requires Route read"));
         }
+        admit_cuda_target(&self.context)?;
         let module = self
             .context
-            .load_module(Ptx::from_src(DIAGNOSTIC_PTX))
+            .load_module(Ptx::from_binary(DIAGNOSTIC_CUBIN.to_vec()))
             .map_err(cuda)?;
         Ok(DecompositionProfiler {
             kernel: module
@@ -68,7 +73,7 @@ impl Device {
     pub fn ordinary_counterfactual_resources(&self) -> Result<KernelResources> {
         resources(
             &self.kernels.counterfactual,
-            include_str!(concat!(env!("OUT_DIR"), "/ordinary-resources.txt")),
+            ORDINARY_RESOURCE_REPORT,
             "discrete_counterfactual",
         )
     }

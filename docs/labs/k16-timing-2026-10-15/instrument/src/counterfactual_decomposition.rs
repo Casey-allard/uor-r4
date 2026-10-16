@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(any(feature = "cuda", test))]
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
-use uor_r4_discrete::decomposition::{DENOMINATOR, LIMITATION};
+use uor_r4_discrete::decomposition::{CudaImages, DENOMINATOR, LIMITATION};
 
-const SCHEMA: &str = "m1-counterfactual-decomposition-pin/1";
+const SCHEMA: &str = "m1-counterfactual-decomposition-pin/2";
 const ARTIFACT: &str = super::checkpoint_bridge::ORIGINAL_ARTIFACT;
 const SOURCE: &str = super::checkpoint_bridge::ORIGINAL_SOURCE;
 const KERNEL: &str = super::checkpoint_bridge::KERNEL;
@@ -24,6 +24,7 @@ pub struct Pin {
     pub target_source_sha256: String,
     pub ordinary_kernel_sha256: String,
     pub decomposition_kernel_sha256: String,
+    pub cuda_images: CudaImages,
     pub geometry_sha256: String,
     pub config_path: PathBuf,
     pub config_file_sha256: String,
@@ -42,6 +43,7 @@ fn valid_hash(h: &str) -> bool {
         && h != "0".repeat(64)
 }
 fn validate(pin: &Pin) -> Result<(), String> {
+    pin.cuda_images.validate()?;
     if pin.schema != SCHEMA
         || pin.original_snapshot_sha256 != ARTIFACT
         || pin.original_source_sha256 != SOURCE
@@ -65,6 +67,12 @@ fn validate(pin: &Pin) -> Result<(), String> {
 }
 #[cfg(any(feature = "cuda", test))]
 fn compiled_matches(pin: &Pin, compiled: &Value) -> Result<(), String> {
+    pin.cuda_images.validate()?;
+    if compiled["cuda_images"] != json!(pin.cuda_images) {
+        return Err(
+            "decomposition loaded image/report/target binding differs before CUDA context".into(),
+        );
+    }
     for (key, value) in [
         ("source_sha256", &pin.target_source_sha256),
         ("kernel_sha256", &pin.ordinary_kernel_sha256),
@@ -135,7 +143,7 @@ fn map_bytes(
     let object = v.as_object_mut().ok_or("snapshot must be an object")?;
     object.remove("source_sha256");
     let payload = serde_json::to_vec(&v).map_err(|e| e.to_string())?;
-    let receipt = json!({"schema":"uor-r4.checkpoint0-decomposition-bridge/1","record_kind":"checkpoint0_source_ptx_bridge","original_snapshot_sha256":digest(bytes),"in_memory_snapshot_sha256":digest(&mapped),"pre_source_sha256":SOURCE,"post_source_sha256":pin.target_source_sha256,"pre_kernel_sha256":KERNEL,"ordinary_kernel_sha256":pin.ordinary_kernel_sha256,"decomposition_kernel_sha256":pin.decomposition_kernel_sha256,"geometry_sha256":GEOMETRY,"config_file_sha256":CONFIG,"unchanged_non_source_payload_sha256":digest(&payload),"changed_fields":["source_sha256"],"evaluation_only":true,"training_resume":false,"rebound_checkpoint_written":false,"device_admission":"separately required through unchanged production loader"});
+    let receipt = json!({"schema":"uor-r4.checkpoint0-decomposition-bridge/2","record_kind":"checkpoint0_source_ptx_image_bridge","original_snapshot_sha256":digest(bytes),"in_memory_snapshot_sha256":digest(&mapped),"pre_source_sha256":SOURCE,"post_source_sha256":pin.target_source_sha256,"pre_kernel_sha256":KERNEL,"ordinary_kernel_sha256":pin.ordinary_kernel_sha256,"decomposition_kernel_sha256":pin.decomposition_kernel_sha256,"cuda_images":pin.cuda_images,"geometry_sha256":GEOMETRY,"config_file_sha256":CONFIG,"unchanged_non_source_payload_sha256":digest(&payload),"changed_fields":["source_sha256"],"evaluation_only":true,"training_resume":false,"rebound_checkpoint_written":false,"device_admission":"separately required through strict production snapshot and compiled-image admission"});
     Ok((mapped, receipt))
 }
 #[cfg(any(feature = "cuda", test))]
@@ -259,7 +267,7 @@ mod cuda {
                 .map_err(|e| e.to_string())?;
             let d_resources = probe.resources().map_err(|e| e.to_string())?;
             let resource_match = meta::resource_parity(&u_resources, &d_resources);
-            ledger.push(json!({"record_kind":"resource_parity","policy":policy,"U":u_resources,"D":d_resources,"within_allowance":resource_match,"share_denominator":DENOMINATOR}));
+            ledger.push(json!({"record_kind":"resource_parity","policy":policy,"U":u_resources,"D":d_resources,"cuda_images":pin.cuda_images,"within_allowance":resource_match,"share_denominator":DENOMINATOR}));
             if !resource_match {
                 return Err("UNRESOLVED: resource parity outside prospective allowance; no diagnostic dose executed".into());
             }
@@ -401,6 +409,17 @@ mod cuda {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn images() -> CudaImages {
+        CudaImages {
+            schema: "uor-r4.cuda-images/1".into(),
+            format: "cubin".into(),
+            target: "sm_120".into(),
+            ordinary_sha256: "1".repeat(64),
+            decomposition_sha256: "2".repeat(64),
+            ordinary_report_sha256: "3".repeat(64),
+            decomposition_report_sha256: "4".repeat(64),
+        }
+    }
     fn pin() -> Pin {
         Pin {
             schema: SCHEMA.into(),
@@ -411,6 +430,7 @@ mod tests {
             target_source_sha256: "a".repeat(64),
             ordinary_kernel_sha256: KERNEL.into(),
             decomposition_kernel_sha256: "b".repeat(64),
+            cuda_images: images(),
             geometry_sha256: GEOMETRY.into(),
             config_path: "config.json".into(),
             config_file_sha256: CONFIG.into(),
@@ -420,7 +440,7 @@ mod tests {
         }
     }
     fn compiled(p: &Pin) -> Value {
-        json!({"source_sha256":p.target_source_sha256,"kernel_sha256":p.ordinary_kernel_sha256,"decomposition_kernel_sha256":p.decomposition_kernel_sha256,"geometry_sha256":p.geometry_sha256})
+        json!({"source_sha256":p.target_source_sha256,"kernel_sha256":p.ordinary_kernel_sha256,"decomposition_kernel_sha256":p.decomposition_kernel_sha256,"geometry_sha256":p.geometry_sha256,"cuda_images":p.cuda_images})
     }
     fn envelope() -> Value {
         json!({"schema":"uor-r4.discrete-spiralcore-fbs/2","spec":super::super::K16,"read_spec":{"kind":"route"},"seed":1,"epoch":0,"table":[2,2,0,0,0,0,0,0],"routes":[0],"gates":[0],"operator_kappa":"fixture-metadata","composition_kappa":"fixture-metadata","source_sha256":SOURCE,"kernel_sha256":KERNEL,"geometry_sha256":GEOMETRY})
@@ -465,6 +485,8 @@ mod tests {
             p.decomposition_kernel_sha256
         );
         assert_eq!(receipt["training_resume"], false);
+        assert_eq!(receipt["cuda_images"], json!(p.cuda_images));
+        assert_eq!(receipt["changed_fields"], json!(["source_sha256"]));
         let mut stale = original;
         stale["epoch"] = json!(1);
         let stale = serde_json::to_vec(&stale).unwrap();
@@ -491,5 +513,33 @@ mod tests {
         );
         assert!(config_matches(&p, bytes).is_ok());
         assert!(config_matches(&p, b"{}").is_err());
+    }
+    #[test]
+    fn image_binding_refuses_omission_old_pins_and_each_compiled_drift() {
+        let p = pin();
+        assert!(compiled_matches(&p, &compiled(&p)).is_ok());
+        let mut omitted = serde_json::to_value(&p).unwrap();
+        omitted.as_object_mut().unwrap().remove("cuda_images");
+        assert!(serde_json::from_value::<Pin>(omitted).is_err());
+        let mut old = p.clone();
+        old.schema = "m1-counterfactual-decomposition-pin/1".into();
+        assert!(validate(&old).is_err());
+        let c = compiled(&p);
+        for (field, value) in [
+            ("schema", "uor-r4.cuda-images/2".into()),
+            ("format", "ptx".into()),
+            ("target", "sm_100".into()),
+            ("ordinary_sha256", "2".repeat(64)),
+            ("decomposition_sha256", "1".repeat(64)),
+            ("ordinary_report_sha256", "4".repeat(64)),
+            ("decomposition_report_sha256", "3".repeat(64)),
+        ] {
+            let mut altered = c.clone();
+            altered["cuda_images"][field] = json!(value);
+            assert!(compiled_matches(&p, &altered).is_err(), "{field}");
+        }
+        let mut missing = c;
+        missing.as_object_mut().unwrap().remove("cuda_images");
+        assert!(compiled_matches(&p, &missing).is_err());
     }
 }

@@ -27,6 +27,58 @@ impl From<InstrumentError> for String {
 }
 pub type InstrumentResult<T> = Result<T, InstrumentError>;
 
+/// Exact embedded AOT images and the resource reports from their assembly.
+/// Validation checks host metadata only; it performs no CUDA/model operation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CudaImages {
+    pub schema: String,
+    pub format: String,
+    pub target: String,
+    pub ordinary_sha256: String,
+    pub decomposition_sha256: String,
+    pub ordinary_report_sha256: String,
+    pub decomposition_report_sha256: String,
+}
+impl CudaImages {
+    pub fn validate(&self) -> Result<(), String> {
+        let target = self.target.strip_prefix("sm_");
+        let valid_target = target.is_some_and(|digits| {
+            !digits.is_empty()
+                && digits.bytes().all(|b| b.is_ascii_digit())
+                && digits
+                    .parse::<u32>()
+                    .is_ok_and(|n| n > 0 && n.to_string() == digits)
+        });
+        if self.schema != "uor-r4.cuda-images/1" || self.format != "cubin" || !valid_target {
+            return Err(
+                "CUDA image schema/format/target differs from an exact AOT cubin binding".into(),
+            );
+        }
+        for (name, hash) in [
+            ("ordinary_sha256", &self.ordinary_sha256),
+            ("decomposition_sha256", &self.decomposition_sha256),
+            ("ordinary_report_sha256", &self.ordinary_report_sha256),
+            (
+                "decomposition_report_sha256",
+                &self.decomposition_report_sha256,
+            ),
+        ] {
+            if hash.len() != 64
+                || !hash
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                || !hash.bytes().any(|b| b != b'0')
+            {
+                return Err(format!(
+                    "CUDA image {name} requires a nonzero lowercase SHA256"
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
 pub const LANES: usize = 16;
 pub const WORDS: usize = 40;
 pub const MAGIC: u64 = 0x434631;
@@ -384,6 +436,65 @@ fn decide_cell(
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn images() -> CudaImages {
+        CudaImages {
+            schema: "uor-r4.cuda-images/1".into(),
+            format: "cubin".into(),
+            target: "sm_120".into(),
+            ordinary_sha256: "1".repeat(64),
+            decomposition_sha256: "2".repeat(64),
+            ordinary_report_sha256: "3".repeat(64),
+            decomposition_report_sha256: "4".repeat(64),
+        }
+    }
+    #[test]
+    fn cuda_image_metadata_requires_exact_format_and_canonical_target() {
+        let binding = images();
+        assert!(binding.validate().is_ok());
+        for target in [
+            "",
+            "compute_120",
+            "sm_0",
+            "sm_0120",
+            "sm_120a",
+            "sm_4294967296",
+        ] {
+            let mut wrong = binding.clone();
+            wrong.target = target.into();
+            assert!(wrong.validate().is_err(), "accepted target {target}");
+        }
+        let mut wrong = binding.clone();
+        wrong.format = "ptx".into();
+        assert!(wrong.validate().is_err());
+        let mut wrong = binding;
+        wrong.schema = "uor-r4.cuda-images/2".into();
+        assert!(wrong.validate().is_err());
+    }
+    #[test]
+    fn cuda_image_metadata_refuses_pending_malformed_hashes_and_unknown_fields() {
+        let value = serde_json::to_value(images()).unwrap();
+        for field in [
+            "ordinary_sha256",
+            "decomposition_sha256",
+            "ordinary_report_sha256",
+            "decomposition_report_sha256",
+        ] {
+            for malformed in [
+                "PENDING".into(),
+                "0".repeat(64),
+                "A".repeat(64),
+                "1".repeat(63),
+            ] {
+                let mut wrong = value.clone();
+                wrong[field] = serde_json::json!(malformed);
+                let binding: CudaImages = serde_json::from_value(wrong).unwrap();
+                assert!(binding.validate().is_err(), "accepted malformed {field}");
+            }
+        }
+        let mut unknown = value;
+        unknown["fallback"] = serde_json::json!("ptx");
+        assert!(serde_json::from_value::<CudaImages>(unknown).is_err());
+    }
     fn words() -> Vec<u64> {
         let mut out = vec![0; LANES * WORDS];
         for (i, t) in out.chunks_exact_mut(WORDS).enumerate() {

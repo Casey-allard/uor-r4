@@ -130,7 +130,12 @@ receipts. A prospective source/PTX pin is not an executable checksum. Refusing
 templates and a host plan are NOT_RUN; run admission must reject placeholders,
 identity mismatch, seed2 or training scope before model execution.
 
-The refusing source-template schema is `m1-counterfactual-controls-pin/1`.
+The original refusing source-template schema was `m1-counterfactual-controls-pin/1`.
+The [image-binding repair](../counterfactual-image-binding-2026-10-16/README.md)
+requires version2 and an exact `cuda_images` object (cubin format, target,
+both loaded image hashes and both resource-report hashes). Only a
+nonexecutable source template may use null. Retained version1 files describe
+the original source and cannot authorize the repaired executable.
 Execution requires stage `execution_pinned`, exact source commit, standalone
 source SHA256, running executable SHA256, composite source/U/D PTX/geometry,
 fixture-inventory hash, seed1/evaluation-only/non-training scope, a new output

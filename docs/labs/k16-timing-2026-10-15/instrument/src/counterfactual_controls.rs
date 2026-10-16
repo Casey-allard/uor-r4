@@ -10,8 +10,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
+use uor_r4_discrete::decomposition::CudaImages;
 
-const SCHEMA: &str = "m1-counterfactual-controls-pin/1";
+const SCHEMA: &str = "m1-counterfactual-controls-pin/2";
 const PENDING: &str = "PENDING";
 const PROVENANCE: &str =
     "c461350058e6ea1b188a60944da964982f272b60:C-R3/C-R4 literal fixture recipes";
@@ -60,6 +61,9 @@ pub struct Pin {
     pub source_sha256: String,
     pub ordinary_kernel_sha256: String,
     pub decomposition_kernel_sha256: String,
+    /// Null only in a nonexecutable source template. PTX hashes above retain
+    /// their historical meaning; these hashes bind the actual loaded images.
+    pub cuda_images: Option<CudaImages>,
     pub geometry_sha256: String,
     pub fixture_inventory_sha256: String,
     pub seed: u32,
@@ -153,6 +157,11 @@ fn validate(pin: &Pin, execution: bool) -> Result<(), String> {
         );
     }
     let template = pin.stage == "source_template";
+    match &pin.cuda_images {
+        Some(images) => images.validate()?,
+        None if template => (),
+        None => return Err("controls pin missing exact CUDA image binding".into()),
+    }
     for (name, value, size) in [
         ("source_commit", &pin.source_commit, 40),
         (
@@ -195,8 +204,33 @@ fn validate(pin: &Pin, execution: bool) -> Result<(), String> {
     }
     Ok(())
 }
+#[cfg(any(feature = "cuda", test))]
+fn compiled_matches(pin: &Pin, compiled: &Value) -> Result<(), String> {
+    let images = pin
+        .cuda_images
+        .as_ref()
+        .ok_or("controls require CUDA image binding")?;
+    images.validate()?;
+    if compiled["cuda_images"] != json!(images) {
+        return Err("compiled CUDA image/report/target binding differs before CUDA context".into());
+    }
+    for (key, expected) in [
+        ("source_sha256", &pin.source_sha256),
+        ("kernel_sha256", &pin.ordinary_kernel_sha256),
+        (
+            "decomposition_kernel_sha256",
+            &pin.decomposition_kernel_sha256,
+        ),
+        ("geometry_sha256", &pin.geometry_sha256),
+    ] {
+        if compiled[key].as_str() != Some(expected.as_str()) {
+            return Err(format!("compiled {key} differs before CUDA context"));
+        }
+    }
+    Ok(())
+}
 fn plan(pin: &Pin) -> Value {
-    json!({"schema":"m1-counterfactual-controls-plan/1","status":"NOT_RUN","execution":"NOT_RELEASED_BY_THIS_PLAN",
+    json!({"schema":"m1-counterfactual-controls-plan/2","status":"NOT_RUN","execution":"NOT_RELEASED_BY_THIS_PLAN",
         "pin":pin,"standalone_source_sha256":standalone_source_hash(),"fixture_inventory_sha256":pin.fixture_inventory_sha256,
         "inventory":inventory(),"model_compute_executed":false,"cuda_context_created":false,"apply_calls":0,
         "diagnostic_dose":"unchanged separate32-proposal diagnostic; not executed by controls",
@@ -220,6 +254,7 @@ fn template(out_dir: PathBuf) -> Result<Pin, String> {
         source_sha256: PENDING.into(),
         ordinary_kernel_sha256: PENDING.into(),
         decomposition_kernel_sha256: PENDING.into(),
+        cuda_images: None,
         geometry_sha256: GEOMETRY.into(),
         fixture_inventory_sha256: inventory_hash()?,
         seed: 1,
@@ -548,7 +583,7 @@ mod cuda {
             .map_err(|e| e.to_string())?;
         let d = probe.resources().map_err(|e| e.to_string())?;
         let pass = meta::resource_parity(&u, &d);
-        log.push(json!({"kind":"resources","fixture":id,"U":u,"D":d,"within_allowance":pass}))?;
+        log.push(json!({"kind":"resources","fixture":id,"U":u,"D":d,"cuda_images":uor_r4_discrete::device::compiled_cuda_images(),"within_allowance":pass}))?;
         if !pass {
             return Err("BLOCKED: runtime/AOT resource mismatch before control proposals".into());
         }
@@ -863,21 +898,9 @@ mod cuda {
     }
     fn execute(pin: &Pin, log: &mut Log) -> Result<(), String> {
         let compiled = compiled_identity();
-        for (key, expected) in [
-            ("source_sha256", &pin.source_sha256),
-            ("kernel_sha256", &pin.ordinary_kernel_sha256),
-            (
-                "decomposition_kernel_sha256",
-                &pin.decomposition_kernel_sha256,
-            ),
-            ("geometry_sha256", &pin.geometry_sha256),
-        ] {
-            if field(&compiled, key)? != *expected {
-                return Err(format!("compiled {key} differs before CUDA context"));
-            }
-        }
+        compiled_matches(pin, &compiled)?;
         log.push(json!({"kind":"compiled_identity","compiled":compiled,"source_commit":pin.source_commit,
-            "commit_binding":"external protected source/build receipt; embedded standalone and PTX identities checked here"}))?;
+            "commit_binding":"external protected source/build receipt; embedded standalone, PTX, loaded cubin and report identities checked here"}))?;
         for policy in [
             ObjectivePolicy::NearestAddressMarginV1,
             ObjectivePolicy::OccupiedCellRankHingeV1,
@@ -1004,7 +1027,7 @@ mod cuda {
         let mut log = Log {
             path: pin.out_dir.join("counterfactual-controls-record.json"),
             value: json!({
-            "schema":"m1-counterfactual-controls-record/1","status":"STARTED","execution_contract":runtime_plan,"records":[],
+            "schema":"m1-counterfactual-controls-record/2","status":"STARTED","execution_contract":runtime_plan,"records":[],
             "apply_calls":0,"training":"HELD","m2":"HELD","stage_b":"HELD","q4":"NOT_EXECUTABLE"}),
         };
         log.save()?;
@@ -1038,6 +1061,7 @@ mod tests {
             source_sha256: PENDING.into(),
             ordinary_kernel_sha256: PENDING.into(),
             decomposition_kernel_sha256: PENDING.into(),
+            cuda_images: None,
             geometry_sha256: GEOMETRY.into(),
             fixture_inventory_sha256: inventory_hash().expect("metadata"),
             seed: 1,
@@ -1068,6 +1092,54 @@ mod tests {
         let mut v = serde_json::to_value(template()).expect("pin");
         v["extra"] = json!(true);
         assert!(serde_json::from_value::<Pin>(v).is_err());
+    }
+    #[test]
+    fn execution_pin_requires_complete_images_and_old_version_refuses() {
+        let mut p = template();
+        p.stage = "execution_pinned".into();
+        p.source_commit = "1".repeat(40);
+        p.standalone_source_sha256 = "1".repeat(64);
+        p.binary_sha256 = "2".repeat(64);
+        p.source_sha256 = "3".repeat(64);
+        p.ordinary_kernel_sha256 = "4".repeat(64);
+        p.decomposition_kernel_sha256 = "5".repeat(64);
+        assert!(validate(&p, false).is_err());
+        p.cuda_images = Some(CudaImages {
+            schema: "uor-r4.cuda-images/1".into(),
+            format: "cubin".into(),
+            target: "sm_120".into(),
+            ordinary_sha256: "6".repeat(64),
+            decomposition_sha256: "7".repeat(64),
+            ordinary_report_sha256: "8".repeat(64),
+            decomposition_report_sha256: "9".repeat(64),
+        });
+        assert!(validate(&p, false).is_ok());
+        let compiled = json!({"source_sha256":p.source_sha256,"kernel_sha256":p.ordinary_kernel_sha256,
+            "decomposition_kernel_sha256":p.decomposition_kernel_sha256,"geometry_sha256":p.geometry_sha256,"cuda_images":p.cuda_images});
+        assert!(compiled_matches(&p, &compiled).is_ok());
+        for (field, value) in [
+            ("schema", "uor-r4.cuda-images/2".into()),
+            ("format", "ptx".into()),
+            ("target", "sm_100".into()),
+            ("ordinary_sha256", "7".repeat(64)),
+            ("decomposition_sha256", "6".repeat(64)),
+            ("ordinary_report_sha256", "9".repeat(64)),
+            ("decomposition_report_sha256", "8".repeat(64)),
+        ] {
+            let mut changed = compiled.clone();
+            changed["cuda_images"][field] = json!(value);
+            assert!(compiled_matches(&p, &changed).is_err(), "{field}");
+        }
+        let mut missing = compiled;
+        missing.as_object_mut().unwrap().remove("cuda_images");
+        assert!(compiled_matches(&p, &missing).is_err());
+        let mut omitted = serde_json::to_value(&p).unwrap();
+        omitted.as_object_mut().unwrap().remove("cuda_images");
+        assert!(validate(&serde_json::from_value(omitted).unwrap(), false).is_err());
+        p.schema = "m1-counterfactual-controls-pin/1".into();
+        assert!(validate(&p, false).is_err());
+        p.schema = SCHEMA.into();
+        assert!(validate(&p, true).is_err()); // no separate execution authority
     }
     #[test]
     fn fault_receipt_requires_all_losses_and_current_d_trace() {

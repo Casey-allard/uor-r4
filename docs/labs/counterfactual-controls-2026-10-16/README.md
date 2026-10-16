@@ -1,5 +1,12 @@
 # Counterfactual U/D finite controls — 16 October 2026
 
+**Image-binding follow-up:** the [source repair](../counterfactual-image-binding-2026-10-16/README.md)
+assembles admitted PTX into the actual loaded cubins and advances execution
+pins to version2 with image/report/target hashes. The version1 source template
+and preparation text below remain historical; regenerate a current template
+with the repaired executable and obtain a new reviewed release. No finite
+control pass follows from the repair.
+
 **Follow-up, 21:05Z:** source #2554 merged7bdfe7aa5; independent design FIT,
 AGY source/packet approval and CUDA construction gates passed. A separately
 released Stage1 invocation reached GPU initialization/validation but stopped

@@ -1,7 +1,8 @@
 //! CUDA driver boundary for the integer SpiralCore/FBS path.
 //! Host work admits dimensions/identities and handles storage/observations.
 //! Initialization, encoding, routing, scoring and proposal choice run on CUDA.
-//! Module loading consumes AOT PTX; there is no runtime compiler or CPU model.
+//! Module loading consumes exact AOT cubins assembled from admitted PTX; there
+//! is no PTX-JIT fallback, runtime source compiler, or CPU model.
 
 use crate::proposal_timing::{EventDuration, HostTimings, ProposalTimings, HOST_SPANS};
 use crate::{
@@ -23,6 +24,10 @@ mod geometry {
     include!(concat!(env!("OUT_DIR"), "/geometry.rs"));
 }
 const PTX: &str = include_str!(concat!(env!("OUT_DIR"), "/discrete.ptx"));
+const ORDINARY_CUBIN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ordinary.cubin"));
+const ORDINARY_RESOURCE_REPORT: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/ordinary-resources.txt"));
+const CUDA_IMAGE_TARGET: &str = include_str!(concat!(env!("OUT_DIR"), "/cuda-image-target.txt"));
 #[path = "decomposition_device.rs"]
 mod decomposition_device;
 pub use decomposition_device::DecompositionProfiler;
@@ -415,11 +420,69 @@ fn source_sha256() -> [u8; 32] {
     source.update(include_bytes!("decomposition_device.rs"));
     source.update(decomposition_device::DIAGNOSTIC_PTX.as_bytes());
     source.update(PTX.as_bytes());
+    // Preserve the PTX provenance hashes while also binding the actual loaded
+    // objects, exact target and the reports describing those same objects.
+    source.update(b"uor-r4.cuda-images/1");
+    for (name, bytes) in [
+        ("format", b"cubin".as_slice()),
+        ("target", CUDA_IMAGE_TARGET.as_bytes()),
+        ("ordinary.cubin", ORDINARY_CUBIN),
+        (
+            "decomposition.cubin",
+            decomposition_device::DIAGNOSTIC_CUBIN,
+        ),
+        (
+            "ordinary-resources.txt",
+            ORDINARY_RESOURCE_REPORT.as_bytes(),
+        ),
+        (
+            "decomposition-resources.txt",
+            decomposition_device::DIAGNOSTIC_RESOURCE_REPORT.as_bytes(),
+        ),
+    ] {
+        source.update((name.len() as u64).to_le_bytes());
+        source.update(name.as_bytes());
+        source.update((bytes.len() as u64).to_le_bytes());
+        source.update(bytes);
+    }
     source.finalize().into()
 }
 
 fn hex_digest(digest: &[u8; 32]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// Identity of the exact embedded cubins/reports, without a CUDA context.
+pub fn compiled_cuda_images() -> crate::decomposition::CudaImages {
+    crate::decomposition::CudaImages {
+        schema: "uor-r4.cuda-images/1".into(),
+        format: "cubin".into(),
+        target: CUDA_IMAGE_TARGET.into(),
+        ordinary_sha256: format!("{:x}", Sha256::digest(ORDINARY_CUBIN)),
+        decomposition_sha256: format!(
+            "{:x}",
+            Sha256::digest(decomposition_device::DIAGNOSTIC_CUBIN)
+        ),
+        ordinary_report_sha256: format!(
+            "{:x}",
+            Sha256::digest(ORDINARY_RESOURCE_REPORT.as_bytes())
+        ),
+        decomposition_report_sha256: format!(
+            "{:x}",
+            Sha256::digest(decomposition_device::DIAGNOSTIC_RESOURCE_REPORT.as_bytes())
+        ),
+    }
+}
+
+fn admit_cuda_target(context: &CudaContext) -> Result<()> {
+    compiled_cuda_images().validate().map_err(invalid)?;
+    let (major, minor) = context.compute_capability().map_err(cuda)?;
+    if major < 1 || !(0..=9).contains(&minor) || CUDA_IMAGE_TARGET != format!("sm_{major}{minor}") {
+        return Err(invalid(format!(
+            "AOT cubin target {CUDA_IMAGE_TARGET} differs from device capability {major}.{minor}; no PTX fallback"
+        )));
+    }
+    Ok(())
 }
 
 /// Compiled artifact identity only; no CUDA context, model initialization or
@@ -430,6 +493,7 @@ pub fn compiled_identity() -> serde_json::Value {
         "kernel_sha256": kernel_sha256(),
         "geometry_sha256": hex_digest(&geometry_digest(&packed_geometry())),
         "decomposition_kernel_sha256": format!("{:x}",Sha256::digest(decomposition_device::DIAGNOSTIC_PTX.as_bytes())),
+        "cuda_images": compiled_cuda_images(),
     })
 }
 
@@ -662,8 +726,11 @@ impl Device {
         }
         let binding = make_binding(spec, read_spec, objective_policy, seed, &packed)?;
         let context = CudaContext::new(ordinal).map_err(cuda)?;
+        admit_cuda_target(&context)?;
         let stream = context.default_stream();
-        let module = context.load_module(Ptx::from_src(PTX)).map_err(cuda)?;
+        let module = context
+            .load_module(Ptx::from_binary(ORDINARY_CUBIN.to_vec()))
+            .map_err(cuda)?;
         let kernels = Kernels {
             init: module.load_function("discrete_init").map_err(cuda)?,
             encode: module.load_function("discrete_encode").map_err(cuda)?,
@@ -1352,8 +1419,11 @@ impl Device {
         let eval_count = u32::try_from(eval_targets.len())
             .map_err(|_| invalid("DEV count inventory exceeds CUDA index bound"))?;
         let context = CudaContext::new(ordinal).map_err(cuda)?;
+        admit_cuda_target(&context)?;
         let stream = context.default_stream();
-        let module = context.load_module(Ptx::from_src(PTX)).map_err(cuda)?;
+        let module = context
+            .load_module(Ptx::from_binary(ORDINARY_CUBIN.to_vec()))
+            .map_err(cuda)?;
         let histogram = module.load_function("discrete_count").map_err(cuda)?;
         let score = module.load_function("discrete_count_score").map_err(cuda)?;
         let targets = stream.clone_htod(eval_targets).map_err(cuda)?;

@@ -389,21 +389,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &fs::read_to_string(out.join("decomposition.ptx"))?,
         &["discrete_counterfactual_decomposition"],
     )?;
-    // Compile-only ptxas resource reports; no CUDA context or model executes.
+    // Assemble the exact PTX admitted above, rather than compiling the CUDA
+    // source a second time. These same cubins and their assembly reports are
+    // embedded by the driver; no CUDA context or model executes during build.
+    let image_target = arch.replacen("compute_", "sm_", 1);
     for (label, source) in [
-        ("ordinary", PathBuf::from("src/discrete.cu")),
-        ("decomposition", out.join("decomposition.cu")),
+        ("ordinary", out.join("discrete.ptx")),
+        ("decomposition", out.join("decomposition.ptx")),
     ] {
         let mut resource_command = Command::new(&nvcc);
-        resource_command.args(["-cubin", "-std=c++17", "--ptxas-options=-v"]);
+        // PTX input needs assembly, not C++ preprocessing or a new resource cap.
+        resource_command.args(["-cubin", "--ptxas-options=-v"]);
         let report = resource_command
             .arg(format!("-arch={arch}"))
             // PTX preprocessing retains the virtual architecture, while cubin
             // assembly requires the corresponding real GPU code target.
-            .arg(format!(
-                "--gpu-code={}",
-                arch.replacen("compute_", "sm_", 1)
-            ))
+            .arg(format!("--gpu-code={image_target}"))
             .arg("-o")
             .arg(out.join(format!("{label}.cubin")))
             .arg(source)
@@ -418,6 +419,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )
             .into());
         }
+        let image = fs::read(out.join(format!("{label}.cubin")))?;
+        if image.len() < 64 || !image.starts_with(b"\x7fELF") {
+            return Err(format!("{label} assembly did not emit a nonempty ELF cubin").into());
+        }
+        if log.is_empty() {
+            return Err(format!("{label} assembly emitted no resource report").into());
+        }
     }
+    fs::write(out.join("cuda-image-target.txt"), image_target)?;
     Ok(())
 }

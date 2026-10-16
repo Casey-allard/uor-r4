@@ -1,5 +1,14 @@
 # Counterfactual execution readiness — 16 October 2026
 
+**Image-binding follow-up:** the [compiled-image repair](../counterfactual-image-binding-2026-10-16/README.md)
+supersedes the prospective version1 pin below for current source. Current
+decomposition pins require version2 with exact loaded cubin/report/target
+binding and a newly reviewed composite identity. The original artifact,
+payload-preserving evaluation-only bridge, six FIT conditions and separate
+execution-release requirement remain. Stage1 remains incomplete; Stage2
+remains NOT_RELEASED. The prior readiness record and pin are retained as
+historical provenance.
+
 **Follow-up, 21:05Z:** #2554 supplied the concrete controls, independent FIT and
 construction-verified executable. AGY packet review and a separate exact-pin
 Stage1 release followed. The [retained invocation](../counterfactual-controls-run-2026-10-16/README.md)
