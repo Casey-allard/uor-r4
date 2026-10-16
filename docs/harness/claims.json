@@ -34,26 +34,12 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/counterfactual-controls-pass": {
-    "branch": "codex/counterfactual-controls-pass",
-    "claimed_at": "2026-10-16T17:58:18-04:00",
-    "head": "afd6f721a",
+  "codex/counterfactual-decomposition-result": {
+    "branch": "codex/counterfactual-decomposition-result",
+    "claimed_at": "2026-10-16T18:25:48-04:00",
+    "head": "223eb0a5f",
     "lab": "codex",
-    "note": "Docs-only Stage1 pass receipt, docs/labs/counterfactual-controls-pass-2026-10-16/ and prior counterfactual status notices, current-state, STATUS/ROADMAP M1 readiness only; claims and own ledger. No code changes"
-  },
-  "codex/counterfactual-decomposition": {
-    "branch": "codex/counterfactual-decomposition",
-    "claimed_at": "2026-10-16T11:11:43-04:00",
-    "head": "90c2d2b9d",
-    "lab": "codex",
-    "note": ""
-  },
-  "codex/counterfactual-image-binding": {
-    "branch": "codex/counterfactual-image-binding",
-    "claimed_at": "2026-10-16T17:21:37-04:00",
-    "head": "575645a26",
-    "lab": "codex",
-    "note": "M1 resource provenance repair: discrete build.rs target/image construction hunks only (AGY owns scanner), device/decomposition_device loaders and image metadata, standalone controls/decompose pins, dated docs/current-state; no math/launch/gate changes"
+    "note": "Docs-only Stage2 result: docs/labs/counterfactual-decomposition-run-2026-10-16, related counterfactual status/prep notices, current-state.md, STATUS.md, ROADMAP.md, README.md measured-cost paragraph, docs/mechanisms/discrete-geometric-learning.md latest diagnostic, own claims/ledger; no kernel changes."
   },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",

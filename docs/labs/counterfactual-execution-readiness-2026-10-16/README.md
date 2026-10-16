@@ -1,5 +1,13 @@
 # Counterfactual execution readiness — 16 October 2026
 
+**Later result, 16 October:** the separately released [Stage2 decomposition](../counterfactual-decomposition-run-2026-10-16/README.md)
+completed all 32 proposals with exact U/D parity and zero apply. All four cells
+resolve material baseline repetition (46.92–47.22% of lane cycles) and writer
+dominance (~99.979%); incremental-clock perturbation is below 0.77%. Independent
+outcome review approved the complete record. The earlier preparation/NOT_RUN
+states below retain their dated scope. Baseline-reuse pre-registration is next;
+no optimization speedup or training release follows.
+
 **Latest follow-up:** #2556's protected image binding and separate
 release6225352371 produced the [full Stage1 pass](../counterfactual-controls-pass-2026-10-16/README.md):
 40 proposals,128 endpoints,16 typed refusals, exact runtime/AOT resources,

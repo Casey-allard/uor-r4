@@ -1,5 +1,16 @@
 # Discrete geometric learning through exact SpiralCore/FBS moves
 
+**Latest cost diagnosis, 16 October:** the [original-checkpoint K16 decomposition](../labs/counterfactual-decomposition-run-2026-10-16/README.md)
+completed 32 matched U/D proposals, zero apply. Across all four policy/operation
+cells, writer phases occupy 99.979269–99.979452% of lane cycles; repeated baseline
+read/writer/eligibility occupies 46.921799–47.220974%. Every retained lane passes
+the prospective H2/H3 routing bars, with incremental-clock E/S bounds below
+0.77%. This supports pre-registering exact per-row GPU baseline reuse while
+retaining the same geometric writer, eligibility, virtual moves and ties.
+Selected-cell/member replay is also a material later target; no causal speedup,
+launch benefit or language result has been measured. Training/M2/Stage B HELD;
+Q4 NOT_EXECUTABLE. Earlier D1/D2 records below retain their original shapes.
+
 **Current D1/D2 status:** the native Rust corpus/schedule/checkpoint driver and
 integer GPU evaluator are implemented at `e7d926fbe38537f4faa90b817705c61a780778d6`
 ([PR #2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)). The A1 release build

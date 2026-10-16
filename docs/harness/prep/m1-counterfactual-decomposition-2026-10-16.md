@@ -1,5 +1,13 @@
 # Pre-registration — M1 counterfactual-kernel decomposition
 
+**Subsequent execution, 16 October:** the [sealed Stage2 record](../../labs/counterfactual-decomposition-run-2026-10-16/README.md)
+completed the original 32-proposal diagnostic after independent FIT, finite
+controls, readiness and distinct release6225716504. All four cells resolve H2
+material baseline repetition and H3 writer dominance under the original bars;
+all U/D parity, resource, state and perturbation checks pass, apply0. This does
+not grant an optimization/training release. The prospective design and its
+earlier pending labels below are retained as dated provenance.
+
 - Date / owner: 2026-10-16 / Codex–Sol, M1 #2029.
 - Authority: [PM commission 6217437395](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6217437395), [post-merge disposition 6218096172](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6218096172), [source cost card 6209851483](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6209851483).
 - Line: M1 qualification instrumentation; count **0/3**, suspended headline **37/232**, unchanged. No mechanism negative, KEEP, acceptance or count reset.

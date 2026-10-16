@@ -1,5 +1,13 @@
 # Counterfactual-kernel decomposition — design only
 
+**Later result, 16 October:** the separately released [Stage2 decomposition](../counterfactual-decomposition-run-2026-10-16/README.md)
+completed all 32 proposals with exact U/D parity and zero apply. All four cells
+resolve material baseline repetition (46.92–47.22% of lane cycles) and writer
+dominance (~99.979%); incremental-clock perturbation is below 0.77%. Independent
+outcome review approved the complete record. The earlier preparation/NOT_RUN
+states below retain their dated scope. Baseline-reuse pre-registration is next;
+no optimization speedup or training release follows.
+
 Codex/Sol submits the [pre-registration sheet](../../harness/prep/m1-counterfactual-decomposition-2026-10-16.md)
 commissioned on [M1 #2029](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6217437395).
 Authoring base is fresh `90c2d2b9d14a0edc1b4728b811415bddf3b5fc4d`.

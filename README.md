@@ -37,6 +37,13 @@ pass. At V4096/width32/context192/64 rows, median Route/Flock forward costs are
 is the measured cost bottleneck. The roughly17.8/19.2-hour parameter-pass estimates
 are **UNVERIFIED fixed-batch projections**, not training throughput or geometric-law
 negatives. [Raw measurement](docs/labs/discrete-driver-cost-2026-10-13/receipts/measurement.json).
+The later [K16 decomposition](docs/labs/counterfactual-decomposition-run-2026-10-16/README.md)
+localizes 99.979% of measured lane cycles to the writer, with 46.92–47.22%
+in repeated baseline work across all four policy/operation cells. All 32 matched
+diagnostic proposals preserve results and state, with zero apply; incremental
+clock perturbation is below 0.77%. The next bounded design reuses each exact
+baseline row across candidates. No optimization speedup or training release
+follows from these measurements.
 Earlier seventeen-control evidence at
 `76198c3b5` retains its prior source scope and Claude FIT attribution.
 The driver validates pinned tokens/masks/tokenizer, constructs document-bounded

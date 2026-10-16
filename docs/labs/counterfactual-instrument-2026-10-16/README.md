@@ -1,5 +1,13 @@
 # Counterfactual decomposition instrument — source delivery
 
+**Later result, 16 October:** the separately released [Stage2 decomposition](../counterfactual-decomposition-run-2026-10-16/README.md)
+completed all 32 proposals with exact U/D parity and zero apply. All four cells
+resolve material baseline repetition (46.92–47.22% of lane cycles) and writer
+dominance (~99.979%); incremental-clock perturbation is below 0.77%. Independent
+outcome review approved the complete record. The earlier preparation/NOT_RUN
+states below retain their dated scope. Baseline-reuse pre-registration is next;
+no optimization speedup or training release follows.
+
 Codex/Sol cf1 implements [PM commission6220832102](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6220832102)
 on `69cb1f59d5d95950b766826453dbbfb2f843b219`, following the merged
 [design sheet](../../harness/prep/m1-counterfactual-decomposition-2026-10-16.md)
