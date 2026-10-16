@@ -1,6 +1,9 @@
 //! Discrete geometric model substrate. Model operations have no host implementation.
 //! Static geometry compilation is a build dependency, excluded from the runtime graph.
 //! The routing atlas is one sixteen-root E8 orbit; this is not full-orbit learnability.
+pub mod baseline_reuse;
+#[cfg(test)]
+mod baseline_reuse_source;
 pub mod controller;
 pub mod corpus;
 pub mod decomposition;

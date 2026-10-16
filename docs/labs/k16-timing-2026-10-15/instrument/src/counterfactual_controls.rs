@@ -116,7 +116,7 @@ fn standalone_source_hash() -> String {
     format!("{:x}", hash.finalize())
 }
 
-fn inventory() -> Value {
+pub(super) fn inventory() -> Value {
     json!({"schema":"m1-counterfactual-controls-fixtures/1","provenance":PROVENANCE,
         "roots":ROOTS,"root0_candidate_images":ROOT0_IMAGES,
         "policies":["nearest_address_margin_v1","occupied_cell_rank_hinge_v1"],
@@ -327,25 +327,25 @@ pub fn entry(args: &[String]) -> Result<(), String> {
 
 #[cfg(any(feature = "cuda", test))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-struct Receipt {
-    status: Option<u32>,
-    losses: Option<Vec<u64>>,
-    proposal: Option<[u64; 5]>,
-    error: Option<ErrorDetail>,
-    readback_errors: Vec<ErrorDetail>,
-    submission_evidence: String,
-    raw_trace: Option<Vec<u64>>,
-    trace_error: Option<ErrorDetail>,
+pub(super) struct Receipt {
+    pub(super) status: Option<u32>,
+    pub(super) losses: Option<Vec<u64>>,
+    pub(super) proposal: Option<[u64; 5]>,
+    pub(super) error: Option<ErrorDetail>,
+    pub(super) readback_errors: Vec<ErrorDetail>,
+    pub(super) submission_evidence: String,
+    pub(super) raw_trace: Option<Vec<u64>>,
+    pub(super) trace_error: Option<ErrorDetail>,
 }
 #[cfg(any(feature = "cuda", test))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-struct ErrorDetail {
-    class: String,
-    message: String,
-    site: String,
+pub(super) struct ErrorDetail {
+    pub(super) class: String,
+    pub(super) message: String,
+    pub(super) site: String,
 }
 #[cfg(any(feature = "cuda", test))]
-fn error_detail(error: &uor_r4_discrete::Error, site: &str) -> ErrorDetail {
+pub(super) fn error_detail(error: &uor_r4_discrete::Error, site: &str) -> ErrorDetail {
     use uor_r4_discrete::Error;
     ErrorDetail {
         class: match error {
@@ -396,7 +396,7 @@ fn host_refusal_check(receipt: &Receipt, id: &str) -> Result<(), String> {
     Ok(())
 }
 #[cfg(any(feature = "cuda", test))]
-fn receipt_parity(u: &Receipt, d: &Receipt, status: u32) -> Result<(), String> {
+pub(super) fn receipt_parity(u: &Receipt, d: &Receipt, status: u32) -> Result<(), String> {
     if u.status != Some(status)
         || d.status != Some(status)
         || u.losses != d.losses
@@ -454,7 +454,7 @@ fn receipt_parity(u: &Receipt, d: &Receipt, status: u32) -> Result<(), String> {
 }
 
 #[cfg(feature = "cuda")]
-mod cuda {
+pub(super) mod cuda {
     use super::*;
     use uor_r4_discrete::{
         decomposition as meta,
@@ -495,7 +495,7 @@ mod cuda {
             .map(str::to_owned)
             .ok_or_else(|| format!("missing compiled {key}"))
     }
-    fn snapshot(id: &str, policy: ObjectivePolicy) -> Result<Snapshot, String> {
+    pub(crate) fn snapshot(id: &str, policy: ObjectivePolicy) -> Result<Snapshot, String> {
         let (blocks, context, k, roots) = if id == "route_endpoint" {
             (2, 2, 2, vec![vec![3, 0], vec![2, 0]])
         } else if id == "tie" {
@@ -533,7 +533,7 @@ mod cuda {
             geometry_sha256: field(&compiled, "geometry_sha256")?,
         })
     }
-    fn inputs(id: &str) -> (Vec<Vec<Identity>>, Vec<u32>) {
+    pub(crate) fn inputs(id: &str) -> (Vec<Vec<Identity>>, Vec<u32>) {
         let tokens = match id {
             "mixed" | "virtual_ineligible" => vec![vec![0], vec![0]],
             "tie" => vec![vec![1]],
@@ -565,7 +565,7 @@ mod cuda {
             targets,
         )
     }
-    fn state(device: &Device) -> Result<Value, String> {
+    pub(crate) fn state(device: &Device) -> Result<Value, String> {
         let bytes = serde_json::to_vec(&device.snapshot().map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?;
         Ok(
@@ -759,7 +759,7 @@ mod cuda {
         }
         Ok(())
     }
-    fn predicted_ties(
+    pub(crate) fn predicted_ties(
         receipt: &Receipt,
         parameter: Parameter,
         policy: ObjectivePolicy,

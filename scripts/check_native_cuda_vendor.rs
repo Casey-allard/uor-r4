@@ -12,6 +12,8 @@ use std::{
     process,
 };
 
+#[path = "../crates/uor-r4-discrete/src/baseline_reuse_source.rs"]
+mod baseline_reuse_source;
 #[path = "../crates/uor-r4-discrete/src/decomposition_source.rs"]
 mod decomposition_source;
 #[path = "../third_party/candle-kernels-0.9.2/entry_allowlist.rs"]
@@ -904,6 +906,22 @@ fn global_entries(cleaned_code: &str, require_extern_c: bool) -> Result<Vec<Stri
     Ok(entries)
 }
 
+fn check_baseline_reuse_source(source: &str) -> Result<(), String> {
+    let bad = forbidden_discrete_cuda(source);
+    if !bad.is_empty() {
+        return Err(format!(
+            "generated discrete_counterfactual_baseline_reuse.cu forbidden discrete/D32 CUDA tokens: {bad:?}"
+        ));
+    }
+    let entries = global_entries(&code_cuda(source), true)?;
+    if entries != ["discrete_counterfactual_baseline_reuse"] {
+        return Err(format!(
+            "generated discrete_counterfactual_baseline_reuse.cu global entry list differs: {entries:?}"
+        ));
+    }
+    Ok(())
+}
+
 fn quoted(text: &str) -> Result<Vec<String>, String> {
     let mut parts = text.split('"');
     let mut out = Vec::new();
@@ -1203,8 +1221,10 @@ fn verify(
             "generated discrete_counterfactual_decomposition.cu global entry list differs: {decomp_entries:?}"
         ));
     }
+    let reuse_cu = baseline_reuse_source::generate(&discrete_cu)?;
+    check_baseline_reuse_source(&reuse_cu)?;
     checked.push(
-        "discrete CUDA kernel sources (discrete.cu + generated decomposition module) D23/D25/D32 integer-only token and 11+1 entry census"
+        "discrete CUDA kernel sources (discrete.cu + generated decomposition and baseline-reuse modules) D23/D25/D32 integer-only token and 11+1+1 entry census"
             .into(),
     );
     check_standalone_instrument_inventory(repo)?;
@@ -1616,6 +1636,30 @@ fn main() {
         assert_ne!(
             mutated_entries, DISCRETE_ENTRIES,
             "multiline extra kernel must fail exact 11-entry census"
+        );
+        let reuse = baseline_reuse_source::generate(include_str!(
+            "../crates/uor-r4-discrete/src/discrete.cu"
+        ))
+        .expect("admitted ordinary source for separate R module");
+        check_baseline_reuse_source(&reuse).expect("generated R integer entry");
+        assert!(
+            check_baseline_reuse_source(&format!(
+                "{reuse}\n__device__ auto injected() {{ return 1.0f; }}"
+            ))
+            .is_err(),
+            "floating literal injected into generated R must fail"
+        );
+        assert!(
+            check_baseline_reuse_source(&format!("{reuse}\n{multiline_decl}")).is_err(),
+            "extra generated R entry must fail"
+        );
+        assert!(
+            check_baseline_reuse_source(&reuse.replace(
+                "void discrete_counterfactual_baseline_reuse(",
+                "void renamed_reuse("
+            ))
+            .is_err(),
+            "renamed generated R entry must fail"
         );
         println!("PASS: missing, renamed-extra, duplicate and architecture-conditioned PTX exports rejected by frozen source inventory; planted exponential, squash and tensor-core tokens rejected; comments excluded. Static checker only.");
         return;

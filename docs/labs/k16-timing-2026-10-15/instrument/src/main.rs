@@ -28,6 +28,8 @@ use uor_r4_discrete::{Identity, ObjectivePolicy, Spec};
 mod checkpoint_bridge;
 mod counterfactual_controls;
 mod counterfactual_decomposition;
+mod counterfactual_reuse;
+mod counterfactual_reuse_controls;
 
 /// The pinned shape. K16 is the evaluation-only rebind: the sealed fixture was
 /// authored at K8 and is re-read at K16 without any training resume.
@@ -535,7 +537,7 @@ impl Ledger {
     /// status is "partial" when the run faulted and "complete" otherwise.
     pub fn flush(&self, status: &str) -> std::result::Result<(), String> {
         let document = json!({
-            "schema": if self.header["decomposition"].is_object() { "m1-counterfactual-decomposition-record/1" } else if self.header["diagnostic"].is_object() { "k16-propose-subphase-record/v1" } else { "k16-timing-record/v1" },
+            "schema": if self.header["baseline_reuse"].is_object() { "m1-counterfactual-reuse-record/1" } else if self.header["decomposition"].is_object() { "m1-counterfactual-decomposition-record/1" } else if self.header["diagnostic"].is_object() { "k16-propose-subphase-record/v1" } else { "k16-timing-record/v1" },
             "status": status,
             "exclusion": EXCLUSION,
             "header": self.header,
@@ -947,6 +949,9 @@ fn usage() -> String {
         "k16-timing decompose-controls-check|decompose-controls-plan --pin FILE (host metadata only)",
         "k16-timing decompose-controls-identity (standalone/binary/compiled identities; no context)",
         "k16-timing decompose-controls --pin FILE (finite controls; separate FIT and execution release required)",
+        "k16-timing reuse-template --phase finite|timing --out-dir NEW_DIR (host source template)",
+        "k16-timing reuse-check|reuse-plan --pin FILE; reuse-identity (host identities only)",
+        "k16-timing reuse-controls|reuse-timing --pin FILE (distinct pinned releases required)",
     ]
     .join(&String::from(char::from(10)))
 }
@@ -954,6 +959,13 @@ fn usage() -> String {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let command = args.first().cloned().unwrap_or_default();
+    if command.starts_with("reuse-") {
+        if let Err(error) = counterfactual_reuse::entry(&args) {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+        return;
+    }
     if command.starts_with("decompose-controls") {
         if let Err(error) = counterfactual_controls::entry(&args) {
             eprintln!("{error}");

@@ -31,6 +31,9 @@ const CUDA_IMAGE_TARGET: &str = include_str!(concat!(env!("OUT_DIR"), "/cuda-ima
 #[path = "decomposition_device.rs"]
 mod decomposition_device;
 pub use decomposition_device::DecompositionProfiler;
+#[path = "baseline_reuse_device.rs"]
+mod baseline_reuse_device;
+pub use baseline_reuse_device::BaselineReuseProfiler;
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 
 /// Trace ABI from the production flock read, ordered by row then payload block:
@@ -418,6 +421,9 @@ fn source_sha256() -> [u8; 32] {
     source.update(include_bytes!("decomposition_source.rs"));
     source.update(include_bytes!("decomposition.rs"));
     source.update(include_bytes!("decomposition_device.rs"));
+    source.update(include_bytes!("baseline_reuse_source.rs"));
+    source.update(include_bytes!("baseline_reuse.rs"));
+    source.update(include_bytes!("baseline_reuse_device.rs"));
     source.update(decomposition_device::DIAGNOSTIC_PTX.as_bytes());
     source.update(PTX.as_bytes());
     // Preserve the PTX provenance hashes while also binding the actual loaded
@@ -438,6 +444,29 @@ fn source_sha256() -> [u8; 32] {
         (
             "decomposition-resources.txt",
             decomposition_device::DIAGNOSTIC_RESOURCE_REPORT.as_bytes(),
+        ),
+    ] {
+        source.update((name.len() as u64).to_le_bytes());
+        source.update(name.as_bytes());
+        source.update((bytes.len() as u64).to_le_bytes());
+        source.update(bytes);
+    }
+    // A separate versioned binding leaves the old U/D image record's meaning
+    // intact while admitting every byte of the opt-in R image and provenance.
+    source.update(b"uor-r4.baseline-reuse-image/1");
+    for (name, bytes) in [
+        (
+            "baseline-reuse.cu",
+            baseline_reuse_device::REUSE_SOURCE.as_bytes(),
+        ),
+        (
+            "baseline-reuse.ptx",
+            baseline_reuse_device::REUSE_PTX.as_bytes(),
+        ),
+        ("baseline-reuse.cubin", baseline_reuse_device::REUSE_CUBIN),
+        (
+            "baseline-reuse-resources.txt",
+            baseline_reuse_device::REUSE_RESOURCE_REPORT.as_bytes(),
         ),
     ] {
         source.update((name.len() as u64).to_le_bytes());
@@ -474,6 +503,28 @@ pub fn compiled_cuda_images() -> crate::decomposition::CudaImages {
     }
 }
 
+/// Independent identity of the exact opt-in R source/PTX/cubin/report.
+pub fn compiled_baseline_reuse_image() -> crate::baseline_reuse::BaselineReuseImage {
+    crate::baseline_reuse::BaselineReuseImage {
+        schema: "uor-r4.baseline-reuse-image/1".into(),
+        format: "cubin".into(),
+        target: CUDA_IMAGE_TARGET.into(),
+        source_sha256: format!(
+            "{:x}",
+            Sha256::digest(baseline_reuse_device::REUSE_SOURCE.as_bytes())
+        ),
+        ptx_sha256: format!(
+            "{:x}",
+            Sha256::digest(baseline_reuse_device::REUSE_PTX.as_bytes())
+        ),
+        cubin_sha256: format!("{:x}", Sha256::digest(baseline_reuse_device::REUSE_CUBIN)),
+        report_sha256: format!(
+            "{:x}",
+            Sha256::digest(baseline_reuse_device::REUSE_RESOURCE_REPORT.as_bytes())
+        ),
+    }
+}
+
 fn admit_cuda_target(context: &CudaContext) -> Result<()> {
     compiled_cuda_images().validate().map_err(invalid)?;
     let (major, minor) = context.compute_capability().map_err(cuda)?;
@@ -494,6 +545,7 @@ pub fn compiled_identity() -> serde_json::Value {
         "geometry_sha256": hex_digest(&geometry_digest(&packed_geometry())),
         "decomposition_kernel_sha256": format!("{:x}",Sha256::digest(decomposition_device::DIAGNOSTIC_PTX.as_bytes())),
         "cuda_images": compiled_cuda_images(),
+        "baseline_reuse_image": compiled_baseline_reuse_image(),
     })
 }
 
@@ -1537,8 +1589,20 @@ impl Device {
         batch: &CarriedBatch,
         targets: &[u32],
         parameter: Parameter,
+        profiler: Option<&mut ProposeProfiler>,
+        decomposition: Option<&mut DecompositionProfiler>,
+    ) -> Result<Proposal> {
+        self.propose_inner_with_reuse(batch, targets, parameter, profiler, decomposition, None)
+    }
+
+    fn propose_inner_with_reuse(
+        &self,
+        batch: &CarriedBatch,
+        targets: &[u32],
+        parameter: Parameter,
         mut profiler: Option<&mut ProposeProfiler>,
         mut decomposition: Option<&mut DecompositionProfiler>,
+        mut reuse: Option<&mut BaselineReuseProfiler>,
     ) -> Result<Proposal> {
         let (kind, index) = self.parameter(parameter)?;
         let epoch = self.admit_batch(batch, targets)?;
@@ -1559,9 +1623,19 @@ impl Device {
             profile.mark(2);
         }
         let diagnostic_kernel = decomposition.as_ref().map(|probe| probe.kernel.clone());
+        let reuse_kernel = reuse.as_ref().map(|probe| probe.kernel.clone());
+        if let Some(probe) = reuse.as_deref_mut() {
+            // Reset cost is inside both the enclosing call and R event span.
+            // The same audit buffer/image is used in controls and timing.
+            if let Some(profile) = profiler.as_deref_mut() {
+                profile.event(0)?;
+            }
+            self.stream.memset_zeros(&mut probe.records).map_err(cuda)?;
+        }
         let mut launch = self.stream.launch_builder(
             diagnostic_kernel
                 .as_ref()
+                .or(reuse_kernel.as_ref())
                 .unwrap_or(&self.kernels.counterfactual),
         );
         launch
@@ -1587,13 +1661,22 @@ impl Device {
             launch.arg(&mut probe.records);
             probe.submitted = true;
         }
-        // SAFETY: ordinary ABI, or the separately admitted diagnostic ABI with
-        // one additional 16*40-word buffer from decomposition_profiler. Input
-        // inventories are admitted; launch/score inventory stays sixteen.
-        if let Some(profile) = profiler.as_deref_mut() {
-            profile.event(0)?;
+        if let Some(probe) = reuse.as_deref_mut() {
+            launch.arg(&mut probe.records);
+        }
+        // SAFETY: ordinary ABI, diagnostic ABI with 16*40 extra words, or
+        // opt-in reuse ABI with 160 extra audit words and static shared512.
+        // Same-model admission binds every input and the exact one-block,
+        // sixteen-thread launch; no dynamic shared memory is requested.
+        if reuse_kernel.is_none() {
+            if let Some(profile) = profiler.as_deref_mut() {
+                profile.event(0)?;
+            }
         }
         unsafe { launch.launch(launch_config(16)) }.map_err(cuda)?;
+        if let Some(probe) = reuse.as_deref_mut() {
+            probe.submitted = true;
+        }
         if let Some(profile) = profiler.as_deref_mut() {
             profile.event(1)?;
             profile.mark(3);
