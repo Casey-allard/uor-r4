@@ -62,6 +62,13 @@
     "lab": "deepseek",
     "note": "fix: K16 instrument cells must execute source+policy, not label them (Codex PRELEASE_SOURCE_BLOCKER)"
   },
+  "deepseek/k16-warmup-count": {
+    "branch": "deepseek/k16-warmup-count",
+    "claimed_at": "2026-10-16T02:08:02-04:00",
+    "head": "812459c7f",
+    "lab": "deepseek",
+    "note": "fix: K16 instrument emitted 99/100 batches (warmup consumed a timed slot); PM halt 6209193..."
+  },
   "deepseek/r-queue": {
     "branch": "deepseek/r-queue",
     "claimed_at": "2026-10-15T19:08:15-04:00",

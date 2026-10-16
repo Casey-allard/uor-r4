@@ -304,6 +304,41 @@ pub fn batches(count: usize) -> Vec<Vec<Vec<Identity>>> {
 }
 
 /// Canonical targets: the next coordinate after the row window start.
+/// The windows ONE CELL needs: the pinned TIMED batches plus the excluded warmup(s).
+///
+/// The warmup consumes a window of its own. Building only `batches` windows and then skipping the
+/// warmup emitted 99 timed receipts for a pin declaring 100 — the `timing-status` gate caught it at
+/// restart-5 (Codex, #2029). The count is a function so it can be asserted on a host.
+pub fn windows_for(pin: &Pin) -> usize {
+    windows_for_counts(pin.batches, pin.warmups)
+}
+
+/// The same arithmetic, without a Pin, so the count can be asserted in a two-line test.
+pub fn windows_for_counts(batches: usize, warmups: usize) -> usize {
+    batches + warmups
+}
+
+#[cfg(test)]
+mod warmup_count_tests {
+    use super::windows_for_counts;
+
+    #[test]
+    fn the_timed_batches_survive_the_excluded_warmup() {
+        // A pinned cell declares `batches` TIMED batches plus excluded warmups. Building only
+        // `batches` windows and then skipping the warmup leaves 99 to time for a pin declaring 100,
+        // which is what the `timing-status` gate caught at restart-5 (Codex, #2029).
+        let windows = windows_for_counts(100, 1);
+        assert_eq!(windows, 101);
+        assert_eq!(
+            windows - 1,
+            100,
+            "exactly the pinned batches remain to time"
+        );
+        assert_eq!(windows_for_counts(100, 0), 100);
+        assert_eq!(windows_for_counts(100, 2) - 2, 100);
+    }
+}
+
 pub fn targets() -> Vec<u32> {
     (0..ROWS)
         .map(|row| (row as u32 + K16.context) % K16.vocabulary)
@@ -538,7 +573,7 @@ mod driver {
         pin: &Pin,
         ledger: &mut Ledger,
     ) -> std::result::Result<Value, String> {
-        let windows = batches(pin.batches);
+        let windows = batches(windows_for(pin));
         let targets = targets();
         let before = device
             .snapshot()
@@ -564,7 +599,6 @@ mod driver {
         // divides by all of it. Carry-only is kept as a separately named number:
         // a carry-only headline understates per-batch cost in the expensive
         // direction, and this rate sizes the D-Packet training budget.
-        let mut unit_ns: u128 = 0;
         let mut carry_ns_total: u128 = 0;
         let mut route_propose_ns: u128 = 0;
         let mut route_observation_ns: u128 = 0;
@@ -686,7 +720,7 @@ mod driver {
             ));
         }
 
-        unit_ns = carry_ns_total
+        let unit_ns = carry_ns_total
             + route_propose_ns
             + route_observation_ns
             + vector_propose_ns
@@ -779,10 +813,7 @@ fn main() {
             std::process::exit(2);
         }
     };
-    let refused = || {
-        eprintln!("run needs --features cuda and a pod; this build is host-only");
-        std::process::exit(2);
-    };
+
     match command.as_str() {
         "check" | "plan" => {
             println!(
@@ -795,8 +826,8 @@ fn main() {
             run_all(&pin, &cells);
             #[cfg(not(feature = "cuda"))]
             {
-                let _ = &refused;
-                refused();
+                eprintln!("run needs --features cuda and a pod; this build is host-only");
+                std::process::exit(2);
             }
         }
         other => {
