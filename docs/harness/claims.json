@@ -34,6 +34,13 @@
     "lab": "codex",
     "note": ""
   },
+  "deepseek/k16-cell-dispatch": {
+    "branch": "deepseek/k16-cell-dispatch",
+    "claimed_at": "2026-10-15T21:07:50-04:00",
+    "head": "c155308e0",
+    "lab": "deepseek",
+    "note": "fix: K16 instrument cells must execute source+policy, not label them (Codex PRELEASE_SOURCE_BLOCKER)"
+  },
   "deepseek/r-queue": {
     "branch": "deepseek/r-queue",
     "claimed_at": "2026-10-15T19:08:15-04:00",

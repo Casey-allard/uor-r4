@@ -1,43 +1,50 @@
 {
-  "schema": "k16-timing-pin/v1",
-  "spec": {
-    "vocabulary": 4096,
-    "blocks": 4,
-    "context": 192,
-    "kept_cells": 16
-  },
-  "read_spec": "route",
-  "rows": 64,
   "batches": 100,
-  "warmups": 1,
-  "fixture": {
-    "snapshot_path": "/workspace/uor-r4/runs/seed1-q4-k16-rebind/snapshot.json",
-    "snapshot_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "seed": 1,
-    "epoch": 0,
-    "occupied_cells": 189,
-    "evaluation_only_rebind": true,
-    "original_k": 8,
-    "original_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-    "training_resume": false
-  },
   "cells": [
     {
-      "source": "checkpoint0",
-      "policy": "nearest_address_margin_v1"
+      "policy": "nearest_address_margin_v1",
+      "source": "checkpoint0"
     },
     {
-      "source": "checkpoint0",
-      "policy": "occupied_cell_rank_hinge_v1"
+      "policy": "occupied_cell_rank_hinge_v1",
+      "source": "checkpoint0"
     },
     {
-      "source": "sealed_seed1_q4",
-      "policy": "nearest_address_margin_v1"
+      "policy": "nearest_address_margin_v1",
+      "source": "sealed_seed1_q4"
     },
     {
-      "source": "sealed_seed1_q4",
-      "policy": "occupied_cell_rank_hinge_v1"
+      "policy": "occupied_cell_rank_hinge_v1",
+      "source": "sealed_seed1_q4"
     }
   ],
-  "out_dir": "/workspace/uor-r4/runs/k16-timing-2026-10-15"
+  "checkpoint0": {
+    "epoch": 0,
+    "label": "checkpoint-0 (untrained, K16)",
+    "seed": 0,
+    "snapshot_path": "/workspace/uor-r4/runs/checkpoint0-k16/snapshot.json",
+    "snapshot_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "fixture": {
+    "epoch": 0,
+    "evaluation_only_rebind": true,
+    "occupied_cells": 189,
+    "original_k": 8,
+    "original_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "seed": 1,
+    "snapshot_path": "/workspace/uor-r4/runs/seed1-q4-k16-rebind/snapshot.json",
+    "snapshot_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "training_resume": false
+  },
+  "out_dir": "/workspace/uor-r4/runs/k16-timing-2026-10-15",
+  "read_spec": "route",
+  "rows": 64,
+  "schema": "k16-timing-pin/v1",
+  "spec": {
+    "blocks": 4,
+    "context": 192,
+    "kept_cells": 16,
+    "vocabulary": 4096
+  },
+  "warmups": 1
 }

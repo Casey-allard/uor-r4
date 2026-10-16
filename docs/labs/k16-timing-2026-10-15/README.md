@@ -78,3 +78,19 @@ Full transcript: [host-tests.txt](host-tests.txt). The example pin a reviewer ca
 ## Cost
 
 Laptop CPU only: source, one host build, one test run. No pod, no GPU, no corpus write, no model compute, no lease.
+
+## Repair, 2026-10-16 - cells now execute their source and policy
+
+Codex found a real defect in the first delivery (PRELEASE_SOURCE_BLOCKER, #2029 6205684341) and refused to
+work around it, correctly: the executor called load_fixture unconditionally, validate demanded the Q4 pins
+whatever the selected cells were, and - the serious one - every cell reused one loaded device and one
+objective policy, with source and policy printed as labels. A four-cell record would have measured one arm.
+
+The repair: one device per cell, built from that cell artifact (a pinned checkpoint0 artifact or the sealed
+Q4 fixture), with the cell objective policy applied to the snapshot before admission and asserted after
+admission (cell_policy fault if it disagrees). Pin requirements now follow the selected cells: a
+checkpoint0-only panel needs no Q4 fixture, and Q4 cells are still refused without the sealed pins.
+
+Until this repair lands, the previously merged instrument must be read as plan-only for the multi-cell
+cross product. Three tests pin the boundary: a checkpoint0-only panel validating with blank Q4 pins, a Q4
+cell still refusing without them, and the four-arm cross product being distinct rather than relabelled.

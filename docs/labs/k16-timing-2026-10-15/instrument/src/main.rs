@@ -97,6 +97,9 @@ pub struct Pin {
     pub batches: usize,
     pub warmups: usize,
     pub fixture: FixturePin,
+    /// Pinned checkpoint-0 artifact. Absent is legal only when no checkpoint0 cell is selected.
+    #[serde(default)]
+    pub checkpoint0: Option<CheckpointPin>,
     pub cells: Vec<CellPin>,
     pub out_dir: PathBuf,
 }
@@ -116,6 +119,19 @@ pub struct FixturePin {
     pub original_k: u32,
     pub original_sha256: String,
     pub training_resume: bool,
+}
+
+/// The untrained ceiling source (G-Pre). Required iff a checkpoint0 cell is selected: an absent
+/// pin is a fault for that cell, never a default that silently substitutes another artifact.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckpointPin {
+    pub snapshot_path: PathBuf,
+    pub snapshot_sha256: String,
+    pub seed: u32,
+    pub epoch: u64,
+    /// Human label for the receipt, e.g. checkpoint-0 (untrained, K16).
+    pub label: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -175,26 +191,55 @@ pub fn validate(pin: &Pin) -> std::result::Result<Vec<Cell>, String> {
     if pin.warmups != WARMUPS {
         return Err(format!("warmups is {}, expected {WARMUPS}", pin.warmups));
     }
-    if !is_hex64(&pin.fixture.snapshot_sha256) {
-        return Err("absent or malformed fixture snapshot_sha256: the sealed Q4 pin is required before any timing".into());
+    // Pin requirements follow the SELECTED cells. A checkpoint0-only panel must not be forced to
+    // import a sealed Q4 fixture it never reads, and a Q4 panel must not run without its pins.
+    // Requiring everything always is how one loaded artifact ended up serving every labelled arm
+    // (Codex PRELEASE_SOURCE_BLOCKER, #2029).
+    // Read from the pin, not the parsed cells: this check runs before the cells are built.
+    let wants_q4 = pin.cells.iter().any(|c| c.source == "sealed_seed1_q4");
+    let wants_checkpoint0 = pin.cells.iter().any(|c| c.source == "checkpoint0");
+    if wants_q4 {
+        if !is_hex64(&pin.fixture.snapshot_sha256) {
+            return Err(
+                "sealed_seed1_q4 cell selected but fixture snapshot_sha256 is absent or malformed"
+                    .into(),
+            );
+        }
+        if !is_hex64(&pin.fixture.original_sha256) {
+            return Err("sealed_seed1_q4 cell selected but the pre-rebind original_sha256 is absent or malformed".into());
+        }
+        if pin.fixture.snapshot_path.as_os_str().is_empty() {
+            return Err("sealed_seed1_q4 cell selected but fixture snapshot_path is absent".into());
+        }
     }
-    if !is_hex64(&pin.fixture.original_sha256) {
-        return Err(
-            "absent or malformed fixture original_sha256: the pre-rebind identity must be retained"
-                .into(),
-        );
+    if wants_checkpoint0 {
+        let Some(c0) = pin.checkpoint0.as_ref() else {
+            return Err("checkpoint0 cell selected but no checkpoint0 pin: name the untrained artifact explicitly".into());
+        };
+        if !is_hex64(&c0.snapshot_sha256) {
+            return Err("checkpoint0 snapshot_sha256 is absent or malformed".into());
+        }
+        if c0.epoch != 0 {
+            return Err(
+                "checkpoint0 epoch must be 0: the ceiling source is the untrained checkpoint"
+                    .into(),
+            );
+        }
+        if c0.snapshot_path.as_os_str().is_empty() {
+            return Err("checkpoint0 snapshot_path is absent".into());
+        }
     }
-    if pin.fixture.snapshot_path.as_os_str().is_empty() {
-        return Err("absent fixture snapshot_path".into());
-    }
-    if !pin.fixture.evaluation_only_rebind {
-        return Err(
-            "evaluation_only_rebind is false: this instrument may only read a sealed fixture"
-                .into(),
-        );
-    }
-    if pin.fixture.training_resume {
-        return Err("training_resume is true: a resume is not authorized and is not what this instrument measures".into());
+    // Whenever the sealed fixture is pinned, the rebind guards still apply.
+    if wants_q4 {
+        if !pin.fixture.evaluation_only_rebind {
+            return Err(
+                "evaluation_only_rebind is false: this instrument may only read a sealed fixture"
+                    .into(),
+            );
+        }
+        if pin.fixture.training_resume {
+            return Err("training_resume is true: a resume is not authorized and is not what this instrument measures".into());
+        }
     }
     if pin.out_dir.as_os_str().is_empty() {
         return Err("absent out_dir".into());
@@ -401,6 +446,7 @@ pub fn plan(pin: &Pin, cells: &[Cell]) -> Value {
         "apply": false,
         "zero_apply_assertion": "snapshot digest and epoch identical before and after each cell",
         "fixture": pin.fixture,
+        "checkpoint0": pin.checkpoint0,
         "cells": cells.iter().map(|c| json!({"source": c.source, "policy": policy_name(c.policy)})).collect::<Vec<_>>(),
         "exclusion": EXCLUSION,
     })
@@ -420,42 +466,68 @@ mod driver {
             .collect()
     }
 
-    /// Load the sealed fixture, fail closed on a checksum that does not match the
-    /// pin: a fixture that is not the sealed one is not the thing under test.
-    pub fn load_fixture(pin: &Pin) -> std::result::Result<Device, String> {
-        let bytes = std::fs::read(&pin.fixture.snapshot_path)
-            .map_err(|e| format!("cannot read {}: {e}", pin.fixture.snapshot_path.display()))?;
+    /// Build the device for ONE cell: that cell artifact, admitted with that cell objective
+    /// policy APPLIED before admission. This is the fix for the blocker Codex found: the previous
+    /// executor loaded a single artifact and a single policy and merely labelled every cell with
+    /// them, so a four-cell record measured one arm.
+    pub fn load_source(
+        pin: &Pin,
+        source: Source,
+        policy: ObjectivePolicy,
+    ) -> std::result::Result<Device, String> {
+        let (path, sha, seed, epoch) = match source {
+            Source::Checkpoint0 => {
+                let c0 = pin.checkpoint0.as_ref().ok_or_else(|| {
+                    "checkpoint0 cell selected without a checkpoint0 pin".to_string()
+                })?;
+                (
+                    c0.snapshot_path.clone(),
+                    c0.snapshot_sha256.clone(),
+                    c0.seed,
+                    c0.epoch,
+                )
+            }
+            Source::SealedSeed1Q4 => (
+                pin.fixture.snapshot_path.clone(),
+                pin.fixture.snapshot_sha256.clone(),
+                pin.fixture.seed,
+                pin.fixture.epoch,
+            ),
+        };
+        let bytes =
+            std::fs::read(&path).map_err(|e| format!("cannot read {}: {e}", path.display()))?;
         let actual = digest(&bytes);
-        if actual != pin.fixture.snapshot_sha256 {
+        if actual != sha {
             return Err(format!(
-                "fixture checksum mismatch: file is {actual}, pin says {}",
-                pin.fixture.snapshot_sha256
+                "artifact checksum mismatch: file is {actual}, pin says {sha}"
             ));
         }
-        let snapshot: Snapshot = serde_json::from_slice(&bytes)
-            .map_err(|e| format!("cannot parse fixture snapshot: {e}"))?;
+        let mut snapshot: Snapshot =
+            serde_json::from_slice(&bytes).map_err(|e| format!("cannot parse artifact: {e}"))?;
         if snapshot.spec != K16 {
             return Err(format!(
-                "fixture spec is {:?}, expected the K16 rebind",
+                "artifact spec is {:?}, expected the K16 rebind",
                 snapshot.spec
             ));
         }
         if snapshot.read_spec != ReadSpec::Route {
-            return Err("fixture read spec is not Route".into());
+            return Err("artifact read spec is not Route".into());
         }
-        if snapshot.seed != pin.fixture.seed {
+        if snapshot.seed != seed {
             return Err(format!(
-                "fixture seed is {}, pin says {}",
-                snapshot.seed, pin.fixture.seed
+                "artifact seed is {}, pin says {seed}",
+                snapshot.seed
             ));
         }
-        if snapshot.epoch != pin.fixture.epoch {
+        if snapshot.epoch != epoch {
             return Err(format!(
-                "fixture epoch is {}, pin says {}",
-                snapshot.epoch, pin.fixture.epoch
+                "artifact epoch is {}, pin says {epoch}",
+                snapshot.epoch
             ));
         }
-        Device::from_snapshot(snapshot, 0).map_err(|e| format!("cannot admit fixture: {e}"))
+        // The arm is selected HERE, on the artifact, before admission.
+        snapshot.objective_policy = policy;
+        Device::from_snapshot(snapshot, 0).map_err(|e| format!("cannot admit artifact: {e}"))
     }
 
     /// One cell: one excluded warmup, then the pinned batches, each timed as
@@ -472,6 +544,13 @@ mod driver {
             .snapshot()
             .map_err(|e| format!("snapshot before: {e}"))?;
         let epoch_before = device.epoch().map_err(|e| format!("epoch before: {e}"))?;
+        let device_policy = device.objective_policy();
+        if device_policy != cell.policy {
+            return Err(ledger.fault(
+                "cell_policy",
+                "the admitted device does not carry the cell objective policy",
+            ));
+        }
         let before_digest = serde_json::to_string(&before)
             .map(|text| digest(text.as_bytes()))
             .map_err(|e| format!("snapshot digest: {e}"))?;
@@ -612,7 +691,7 @@ mod driver {
             + route_observation_ns
             + vector_propose_ns
             + vector_observation_ns;
-        let rates = rates(timed_batches, unit_ns);
+        let unit_rates = rates(timed_batches, unit_ns);
         let carry_only = rates(timed_batches, carry_ns_total);
         let per_batch = |total: u128| -> u128 {
             if timed_batches == 0 {
@@ -629,8 +708,8 @@ mod driver {
             "unit_ns": unit_ns,
             "rates": {
                 "basis": RATE_BASIS,
-                "rows_per_s": rates.rows_per_s,
-                "padded_context_tokens_per_s": rates.padded_context_tokens_per_s,
+                "rows_per_s": unit_rates.rows_per_s,
+                "padded_context_tokens_per_s": unit_rates.padded_context_tokens_per_s,
             },
             "carry_only": {
                 "ns": carry_ns_total,
@@ -732,15 +811,16 @@ fn main() {
 fn run_all(pin: &Pin, cells: &[Cell]) {
     let path = pin.out_dir.join("k16-timing-record.json");
     let mut ledger = Ledger::new(path, plan(pin, cells));
-    let device = match driver::load_fixture(pin) {
-        Ok(device) => device,
-        Err(e) => {
-            let message = ledger.fault("load_fixture", &e);
-            eprintln!("{message}");
-            std::process::exit(1);
-        }
-    };
     for cell in cells {
+        // One device per cell: the artifact and the policy are the cell, not a label on it.
+        let device = match driver::load_source(pin, cell.source, cell.policy) {
+            Ok(device) => device,
+            Err(e) => {
+                let message = ledger.fault("load_source", &e);
+                eprintln!("{message}");
+                std::process::exit(1);
+            }
+        };
         match driver::run_cell(&device, cell, pin, &mut ledger) {
             Ok(record) => ledger.push(record),
             Err(e) => {
@@ -785,6 +865,13 @@ mod tests {
                 {"source": "sealed_seed1_q4", "policy": "nearest_address_margin_v1"},
                 {"source": "sealed_seed1_q4", "policy": "occupied_cell_rank_hinge_v1"}
             ],
+            "checkpoint0": {
+                "snapshot_path": "/tmp/checkpoint0-k16.json",
+                "snapshot_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "seed": 0,
+                "epoch": 0,
+                "label": "checkpoint-0 (untrained, K16)"
+            },
             "out_dir": "/tmp/k16-timing"
         })
     }
@@ -1009,5 +1096,76 @@ mod tests {
             .filter(|n| n.contains(".tmp-"))
             .collect();
         assert!(leftovers.is_empty(), "left {leftovers:?}");
+    }
+    #[test]
+    fn a_checkpoint0_only_panel_needs_no_q4_fixture() {
+        let mut value = pin_value();
+        value["cells"] = json!([
+            {"source": "checkpoint0", "policy": "nearest_address_margin_v1"},
+            {"source": "checkpoint0", "policy": "occupied_cell_rank_hinge_v1"}
+        ]);
+        // Blank sealed-fixture pins must not matter: no Q4 cell is selected.
+        value["fixture"]["snapshot_sha256"] = json!("");
+        value["fixture"]["original_sha256"] = json!("");
+        value.as_object_mut().expect("object").remove("checkpoint0");
+        let err = validate(&serde_json::from_value(value.clone()).expect("parses"))
+            .expect_err("no checkpoint0 pin yet");
+        assert!(err.contains("checkpoint0"), "names the missing pin: {err}");
+        value["checkpoint0"] = json!({
+            "snapshot_path": "/tmp/checkpoint0.json",
+            "snapshot_sha256": "c".repeat(64),
+            "seed": 0,
+            "epoch": 0,
+            "label": "checkpoint-0 (untrained, K16)"
+        });
+        let cells = validate(&serde_json::from_value(value).expect("parses"))
+            .expect("checkpoint0-only validates without Q4 pins");
+        assert_eq!(cells.len(), 2);
+        assert!(cells.iter().all(|c| c.source == Source::Checkpoint0));
+    }
+
+    #[test]
+    fn a_q4_cell_still_refuses_without_the_sealed_fixture_pins() {
+        let mut value = pin_value();
+        value["fixture"]["snapshot_sha256"] = json!("");
+        let err = validate(&serde_json::from_value(value).expect("parses")).expect_err("refused");
+        assert!(err.contains("sealed_seed1_q4"), "{err}");
+    }
+
+    #[test]
+    fn the_panel_is_a_cross_product_of_arms_not_a_relabelled_one() {
+        let cells = validate(&pin()).expect("valid");
+        let arms: Vec<(Source, &str)> = cells
+            .iter()
+            .map(|c| (c.source, policy_name(c.policy)))
+            .collect();
+        assert_eq!(arms.len(), 4);
+        for arm in &arms {
+            assert_eq!(
+                arms.iter().filter(|other| *other == arm).count(),
+                1,
+                "each (source, policy) arm appears once: {arms:?}"
+            );
+        }
+        assert!(arms.contains(&(Source::Checkpoint0, "nearest_address_margin_v1")));
+        assert!(arms.contains(&(Source::SealedSeed1Q4, "occupied_cell_rank_hinge_v1")));
+    }
+    #[test]
+    fn a_checkpoint0_pin_must_be_the_untrained_epoch_zero_artifact() {
+        let mut value = pin_value();
+        value["cells"] = json!([
+            {"source": "checkpoint0", "policy": "nearest_address_margin_v1"},
+            {"source": "checkpoint0", "policy": "occupied_cell_rank_hinge_v1"}
+        ]);
+        value["fixture"]["snapshot_sha256"] = json!("");
+        value["fixture"]["original_sha256"] = json!("");
+        value["checkpoint0"]["epoch"] = json!(17);
+        let err =
+            validate(&serde_json::from_value(value.clone()).expect("parses")).expect_err("refused");
+        assert!(err.contains("epoch must be 0"), "{err}");
+        value["checkpoint0"]["epoch"] = json!(0);
+        let cells =
+            validate(&serde_json::from_value(value).expect("parses")).expect("epoch 0 accepted");
+        assert_eq!(cells.len(), 2);
     }
 }
