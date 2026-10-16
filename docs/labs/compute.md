@@ -20,6 +20,106 @@ Outside the project's Runpod account? See [pods-quickstart.md](../compute/pods-q
 
 ## Identity: lab + session
 
+### Reproducible fresh-pod CUDA compile gates (16 October)
+
+The [PM-commissioned recipe](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6214841716)
+is implemented by [`scripts/pod/uor-cuda-check-remote`](../../scripts/pod/uor-cuda-check-remote).
+It is **compile/lint only**, not bootstrap parity, model execution or qualification.
+Use a fresh single RTX5090 Vast lease with an explicitly authorized 15-minute
+cap. No laptop CUDA fallback. Do not replace the declared standalone manifest
+with root-workspace strict clippy: that checks additional sibling dependencies.
+
+On the pod the exact known-working layout is Rust/Cargo **1.97.1** under
+`/root/.cargo/bin`, rustup state `/root/.rustup`, `CARGO_HOME=/root/.cargo`,
+CUDA **12.8** under `/usr/local/cuda/bin`, and `UOR_NVCC_ARCH=compute_120`.
+Every invocation exports PATH explicitly; SSH/login shells need not source
+`.bashrc`. Setup clones GitHub into `/workspace/uor-r4` (not a plain copied
+workspace), checks the exact SHA before installing tools, installs minimal
+Rust plus clippy, and starts the standard reaper. Both gates use `cargo
++1.97.1`, `--locked`, a shared `/workspace/cuda-check-target`, and the same
+manifest. `check.exit`, `clippy.exit`, `run.exit` and full logs are durable
+under `/workspace/uor-r4/evals/SESSION`. A failed check stops before clippy;
+never report the unrun gate as PASS. No source repair/retry on that lease.
+
+#### Operator invocation and teardown
+
+From an owned worktree use **bash**, with the following variables set to your
+lab, unique session, exact pushed head, branch, PR URL and local archive path.
+`MANIFEST=docs/labs/k16-timing-2026-10-15/instrument/Cargo.toml` for the timing
+instrument; the fixture instrument path is also explicitly admitted by the script.
+Do not reuse a session or another lab's pod. Check status/caps before `up`.
+The laptop needs `gh`, `jq`, `tar`, `shasum` and the configured `cloud-store`;
+the latter lives at `$HOME/.local/share/uor-r4/bin/cloud-store` on the owner host.
+No secret is printed or copied by this recipe.
+
+```bash
+export UOR_LAB="$LAB" PATH="$HOME/.cargo/bin:$HOME/.local/share/uor-r4/bin:$PATH"
+set -euo pipefail
+POD_TOOL="$PWD/scripts/pod/uor-pod"
+REMOTE_SCRIPT="$PWD/scripts/pod/uor-cuda-check-remote"
+"$POD_TOOL" status
+"$POD_TOOL" up --provider vast --gpu 5090 --count 1 --lab "$LAB" \
+  --session "$SESSION" --purpose "exact-head CUDA compile gates only" \
+  --hours 0.25 --no-bootstrap --ref "$HEAD" --card "$PR"
+```
+
+Set `POD` to the **new pod ID printed by this successful up**, never a peer ID.
+Install the following EXIT trap before lease/setup. It archives even a failed
+build, verifies SHA256 locally and cloud MD5 round-trip, then releases/deletes
+only that pod. If archival fails it deliberately does **not** destroy the sole
+remote evidence: repair storage immediately, retain the lease, and alert PM;
+do not mark it archived. On normal paths there must be no live pod afterwards.
+
+```bash
+cleanup() {
+  result=$?
+  trap - EXIT
+  set +e
+  "$POD_TOOL" ssh "$POD" "mkdir -p /workspace/uor-r4/evals/$SESSION; \
+    cp /workspace/cuda-check-setup.log /workspace/uor-r4/evals/$SESSION/setup.log; \
+    cp /workspace/cuda-check-remote /workspace/uor-r4/evals/$SESSION/recipe.sh; \
+    cd /workspace/uor-r4/evals/$SESSION; \
+    find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS"
+  mkdir -p "$ARCHIVE"
+  set -o pipefail
+  "$POD_TOOL" ssh "$POD" "tar -C /workspace/uor-r4/evals/$SESSION -cf - ." | tar -C "$ARCHIVE" -xf -
+  copied=$?
+  if [ "$copied" -eq 0 ] && (cd "$ARCHIVE" && shasum -a 256 -c SHA256SUMS) && \
+     cloud-store put "$LAB" "$ARCHIVE"; then
+    "$POD_TOOL" release "$POD" --lab "$LAB" --session "$SESSION"
+    "$POD_TOOL" down "$POD" --lab "$LAB" --session "$SESSION" --confirm-archived
+    "$POD_TOOL" status
+  else
+    printf 'ARCHIVE FAILURE: retain %s; repair storage and notify PM now\n' "$POD" >&2
+    result=1
+  fi
+  exit "$result"
+}
+trap cleanup EXIT
+"$POD_TOOL" lease "$POD" --lab "$LAB" --session "$SESSION" --gpus 0 \
+  --purpose "exact-head CUDA compile gates only" --hours 0.25 --card "$PR"
+"$POD_TOOL" ssh "$POD" 'cat > /workspace/cuda-check-remote' < "$REMOTE_SCRIPT"
+"$POD_TOOL" ssh "$POD" "bash /workspace/cuda-check-remote setup '$HEAD' '$BRANCH'"
+"$POD_TOOL" run "$POD" --lab "$LAB" --session "$SESSION" --gpu 0 -- \
+  bash /workspace/cuda-check-remote gates "$HEAD" "$SESSION" "$MANIFEST"
+```
+
+`run` is detached: **do not exit the local shell while the gate job is live**.
+Read the printed job log through `uor-pod ssh`; completion is its `# exit=N`
+footer, not the successful submission command. Confirm `run.exit` and both
+declared gate statuses, then exit the local shell with that status so the trap
+archives and tears down. Preserve partial logs and stop on a gate failure; do
+not run clippy manually after a failed check. Enforce the authorized cap from
+provider creation (including setup); if setup cannot finish in time, halt the
+owned job, seal failure and tear down, rather than leaving a paid pod.
+
+Paste full check/clippy output plus explicit exits and exact SHA on the PR.
+Report provider uptime times actual quoted hourly rate (estimate, not invoice),
+archive bytes/MD5, any unmeasured storage/transfer charges, and final fleet state.
+The original gate evidence is [#2541 6210697053](https://github.com/UOR-Foundation/uor-r4/pull/2541#issuecomment-6210697053);
+DeepSeek's next authorized gate lease is the independent recipe-portability
+check. Successful source delivery alone does not claim that check occurred.
+
 Every mutating command takes `--lab L --session S` (or `UOR_POD_SESSION=S`).
 Leases are files `leases/<pod>/<lab>-<session>.json`; every ledger line and
 board post carries both. Sessions of the same lab are separate holders: they

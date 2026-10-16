@@ -25,6 +25,8 @@ use std::time::Instant;
 
 use uor_r4_discrete::{Identity, ObjectivePolicy, Spec};
 
+mod checkpoint_bridge;
+
 /// The pinned shape. K16 is the evaluation-only rebind: the sealed fixture was
 /// authored at K8 and is re-read at K16 without any training resume.
 pub const K16: Spec = Spec {
@@ -116,6 +118,8 @@ pub struct DiagnosticPin {
     pub geometry_sha256: String,
     pub config_path: PathBuf,
     pub config_file_sha256: String,
+    #[serde(default)]
+    pub checkpoint0_identity_bridge: Option<checkpoint_bridge::BridgePin>,
 }
 
 pub fn validate_diagnostic_identity(
@@ -258,6 +262,9 @@ pub fn validate(pin: &Pin) -> std::result::Result<Vec<Cell>, String> {
     // Read from the pin, not the parsed cells: this check runs before the cells are built.
     let wants_q4 = pin.cells.iter().any(|c| c.source == "sealed_seed1_q4");
     if let Some(diagnostic) = &pin.diagnostic {
+        if let Some(bridge) = &diagnostic.checkpoint0_identity_bridge {
+            checkpoint_bridge::validate_pin(pin, diagnostic, bridge)?;
+        }
         if wants_q4 || pin.cells.len() != 2 {
             return Err(
                 "diagnostic requires exactly the two checkpoint0 A/R cells; Q4 NOT_EXECUTABLE"
@@ -594,11 +601,14 @@ mod driver {
         pin: &Pin,
         source: Source,
         policy: ObjectivePolicy,
+        ledger: &mut Ledger,
     ) -> std::result::Result<Device, String> {
         if let Some(diagnostic) = &pin.diagnostic {
-            let config = std::fs::read(&diagnostic.config_path)
-                .map_err(|error| format!("diagnostic config read: {error}"))?;
-            validate_diagnostic_identity(pin, &compiled_identity(), &config)?;
+            let config = std::fs::read(&diagnostic.config_path).map_err(|error| {
+                checkpoint_bridge::contextualize(pin, &format!("diagnostic config read: {error}"))
+            })?;
+            validate_diagnostic_identity(pin, &compiled_identity(), &config)
+                .map_err(|error| checkpoint_bridge::contextualize(pin, &error))?;
         }
         let (path, sha, seed, epoch) = match source {
             Source::Checkpoint0 => {
@@ -619,16 +629,23 @@ mod driver {
                 pin.fixture.epoch,
             ),
         };
-        let bytes =
-            std::fs::read(&path).map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+        let bytes = std::fs::read(&path).map_err(|e| {
+            checkpoint_bridge::contextualize(pin, &format!("cannot read {}: {e}", path.display()))
+        })?;
+        let (admitted_bytes, bridge_receipt) =
+            checkpoint_bridge::prepare(pin, source, &bytes, &compiled_identity())?;
         let actual = digest(&bytes);
         if actual != sha {
             return Err(format!(
                 "artifact checksum mismatch: file is {actual}, pin says {sha}"
             ));
         }
-        let mut snapshot: Snapshot =
-            serde_json::from_slice(&bytes).map_err(|e| format!("cannot parse artifact: {e}"))?;
+        if let Some(mut receipt) = bridge_receipt {
+            receipt["cell_policy"] = json!(policy_name(policy));
+            ledger.push(receipt);
+        }
+        let mut snapshot: Snapshot = serde_json::from_slice(&admitted_bytes)
+            .map_err(|e| format!("cannot parse artifact: {e}"))?;
         if snapshot.spec != K16 {
             return Err(format!(
                 "artifact spec is {:?}, expected the K16 rebind",
@@ -991,7 +1008,7 @@ fn run_all(pin: &Pin, cells: &[Cell]) {
     let mut ledger = Ledger::new(path, plan(pin, cells));
     for cell in cells {
         // One device per cell: the artifact and the policy are the cell, not a label on it.
-        let device = match driver::load_source(pin, cell.source, cell.policy) {
+        let device = match driver::load_source(pin, cell.source, cell.policy, &mut ledger) {
             Ok(device) => device,
             Err(e) => {
                 let message = ledger.fault("load_source", &e);
@@ -1066,6 +1083,7 @@ mod tests {
             geometry_sha256: "3".repeat(64),
             config_path: "config.json".into(),
             config_file_sha256: "4".repeat(64),
+            checkpoint0_identity_bridge: None,
         });
         pin
     }

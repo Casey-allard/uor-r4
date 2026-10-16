@@ -1,6 +1,6 @@
 # Proposal sub-phase diagnostic — source-only instrumentation
 
-Codex/Sol implements the [pending pre-registration](../../harness/prep/m1-propose-subphase-diagnostic-2026-10-16.md)
+Codex/Sol implements the [FIT-design pre-registration](../../harness/prep/m1-propose-subphase-diagnostic-2026-10-16.md)
 under [owner instrument+optimize-first](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6210107580).
 Diagnostic execution is NOT_RUN. Qualification/training/M2/Stage B remain HELD;
 Q4 NOT_EXECUTABLE. Line M1 qualification instrumentation, count 0/3 unchanged,
@@ -28,10 +28,12 @@ suspended headline 37/232 unchanged. No new model or performance result.
 
 Production source hashing includes `device.rs`, `lib.rs` and the added timing
 module. Thus the original sealed checkpoint cannot load under this new source.
-The [pin template](diagnostic-pin.json) intentionally retains the original
-source/PTX/config/checkpoint pins and is **NOT_EXECUTABLE**. No source hash is
-silently rewritten; `Device::from_snapshot` is unchanged. A separately reviewed
-evaluation-only checkpoint-0 identity bridge is a mandatory execution dependency,
+The [pin template](diagnostic-pin.json) now declares the exact original/new
+source mapping while retaining original PTX/config/checkpoint-file pins.
+The [in-memory bridge](../checkpoint0-identity-bridge-2026-10-16/README.md) must
+be separately reviewed and merged before execution. No source hash is
+silently rewritten; `Device::from_snapshot` is unchanged. The evaluation-only
+checkpoint-0 identity bridge remains a mandatory execution dependency,
 as reported to PM in [6210356978](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6210356978).
 
 ## Verification and delivery

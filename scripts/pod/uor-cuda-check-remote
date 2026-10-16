@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export HOME=/root CARGO_HOME=/root/.cargo RUSTUP_HOME=/root/.rustup
+export PATH=/root/.cargo/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MODE=${1:?setup or gates}
+HEAD=${2:?exact 40-character Git head}
+[[ "$HEAD" =~ ^[0-9a-f]{40}$ ]] || { echo 'exact Git SHA required' >&2; exit 2; }
+mkdir -p /workspace
+case "$MODE" in
+  setup)
+    BRANCH=${3:?remote branch}
+    exec > >(tee /workspace/cuda-check-setup.log) 2>&1
+    date -u +%FT%TZ
+    if [ ! -d /workspace/uor-r4/.git ]; then
+      git clone --depth 1 --branch "$BRANCH" https://github.com/UOR-Foundation/uor-r4.git /workspace/uor-r4
+    fi
+    cd /workspace/uor-r4
+    test "$(git rev-parse HEAD)" = "$HEAD"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /workspace/rustup-init.sh
+    bash /workspace/rustup-init.sh -y --profile minimal --default-toolchain 1.97.1
+    rustup component add --toolchain 1.97.1 clippy
+    rustc +1.97.1 --version
+    cargo +1.97.1 --version
+    /usr/local/cuda/bin/nvcc --version
+    cp scripts/pod/uor-reaper.sh /root/uor-reaper.sh
+    chmod +x /root/uor-reaper.sh
+    nohup /root/uor-reaper.sh --loop > /workspace/reaper-start.log 2>&1 < /dev/null &
+    date -u +%FT%TZ
+    ;;
+  gates)
+    SESSION=${3:?unique session}
+    MANIFEST=${4:?repository-relative Cargo.toml}
+    [[ "$SESSION" =~ ^[a-z0-9][a-z0-9-]+$ ]] || exit 2
+    case "$MANIFEST" in
+      docs/labs/k16-timing-2026-10-15/instrument/Cargo.toml|docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/Cargo.toml) ;;
+      *) echo 'manifest is not an admitted compile-gate instrument' >&2; exit 2;;
+    esac
+    OUT=/workspace/uor-r4/evals/$SESSION
+    mkdir -p "$OUT"
+    exec > >(tee "$OUT/transcript.log") 2>&1
+    trap 'code=$?; printf "%s\n" "$code" > "$OUT/run.exit"; date -u +%FT%TZ; exit "$code"' EXIT
+    export UOR_NVCC_ARCH=compute_120 CARGO_TARGET_DIR=/workspace/cuda-check-target
+    cd /workspace/uor-r4
+    test "$(git rev-parse HEAD)" = "$HEAD"
+    git rev-parse HEAD
+    git status --porcelain
+    command -v cargo
+    rustc +1.97.1 --version
+    cargo +1.97.1 --version
+    nvcc --version
+    nvidia-smi --query-gpu=name,uuid,driver_version,memory.total --format=csv
+    printf 'UOR_NVCC_ARCH=%s\n' "$UOR_NVCC_ARCH"
+    cd "$(dirname "$MANIFEST")"
+    gate() {
+      local name=$1 code
+      shift
+      printf 'COMMAND: '; printf '%q ' "$@"; printf '\nPWD: %s\n' "$PWD"
+      date -u +%FT%TZ
+      if "$@" > "$OUT/$name.log" 2>&1; then code=0; else code=$?; fi
+      cat "$OUT/$name.log"
+      printf '%s\n' "$code" > "$OUT/$name.exit"
+      printf '%s_EXIT=%s\n' "$name" "$code"
+      test "$code" -eq 0 || exit "$code"
+    }
+    gate check cargo +1.97.1 check --locked --features cuda
+    gate clippy cargo +1.97.1 clippy --locked --features cuda --all-targets -- -D warnings
+    git diff --exit-code
+    ;;
+  *) echo 'expected setup or gates' >&2; exit 2;;
+esac

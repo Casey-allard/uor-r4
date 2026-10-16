@@ -27,17 +27,10 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/k16-qualification-restart5": {
-    "branch": "codex/k16-qualification-restart5",
-    "claimed_at": "2026-10-16T01:05:17-04:00",
-    "head": "812459c7f",
-    "lab": "codex",
-    "note": ""
-  },
-  "codex/propose-subphase-instrument": {
-    "branch": "codex/propose-subphase-instrument",
-    "claimed_at": "2026-10-16T03:23:58-04:00",
-    "head": "bb87d56ec",
+  "codex/checkpoint0-identity-bridge": {
+    "branch": "codex/checkpoint0-identity-bridge",
+    "claimed_at": "2026-10-16T08:41:38-04:00",
+    "head": "4bf154c3e",
     "lab": "codex",
     "note": ""
   },

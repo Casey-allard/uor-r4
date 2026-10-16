@@ -37,7 +37,10 @@ policy selection occurs before each cell's before-snapshot.
 The archive is `icloud:UOR-R4/results/codex/codex-k16-qualification-20261016-5.tar`,
 MD5 `21a4633d605289bbede3f19c4581b3dc`. Preserve the original snapshot bytes.
 The [pin template](../../labs/propose-subphase-diagnostic-2026-10-16/diagnostic-pin.json)
-retains these identities; paths may be relocated with hashes unchanged.
+retains the original artifact/PTX/config identities and explicitly declares the
+fixed old/new source mapping in the [separate bridge](../../labs/checkpoint0-identity-bridge-2026-10-16/README.md).
+Paths may be relocated with file hashes unchanged. The bridge does not change
+this sheet's diagnostic dose, timing accounting or outcome decisions.
 
 ## Data split
 
@@ -168,4 +171,4 @@ any diagnostic run. Owner instrument+optimize-first defers the 100-batch
 qualification rate to the optimized stack; this three-batch diagnostic cannot
 fill that D-Packet slot.
 
-TEST FITNESS: PENDING
+TEST FITNESS: FIT (design) — Kimi PM, [#2541 review at 5a2b16f0a](https://github.com/UOR-Foundation/uor-r4/pull/2541#issuecomment-6210781684). Execution still requires the separately reviewed identity bridge, merge identity and final pinned execution packet.
