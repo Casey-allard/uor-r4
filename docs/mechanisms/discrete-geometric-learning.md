@@ -7,6 +7,10 @@ read/writer/eligibility occupies 46.921799–47.220974%. Every retained lane pas
 the prospective H2/H3 routing bars, with incremental-clock E/S bounds below
 0.77%. This supports pre-registering exact per-row GPU baseline reuse while
 retaining the same geometric writer, eligibility, virtual moves and ties.
+The [baseline-reuse sheet](../harness/prep/m1-counterfactual-baseline-reuse-2026-10-16.md)
+now specifies that bounded change and its exact controls; [design FIT is recorded](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6226136376),
+implementation and new measurements NOT_RUN. It includes the SIMT/locality risk
+and deferred-error requirement rather than presuming a speedup from work counts.
 Selected-cell/member replay is also a material later target; no causal speedup,
 launch benefit or language result has been measured. Training/M2/Stage B HELD;
 Q4 NOT_EXECUTABLE. Earlier D1/D2 records below retain their original shapes.
