@@ -1,0 +1,465 @@
+$ cargo test --manifest-path docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/Cargo.toml --locked --offline
+warning: function `invalid` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+warning: method `words` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/lib.rs:125:19
+    |
+ 96 | impl ReadSpec {
+    | ------------- method in this implementation
+...
+125 |     pub(crate) fn words(self) -> [u32; 3] {
+    |                   ^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `manifest` and `max_batches` are never read
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:126:5
+    |
+125 | pub struct ValidatedRelease {
+    |            ---------------- fields in this struct
+126 |     manifest: ReleaseManifest,
+    |     ^^^^^^^^
+127 |     manifest_sha256: String,
+128 |     max_batches: u64,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ValidatedRelease` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: methods `lineage_sha256` and `max_batches` are never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:131:19
+    |
+130 | impl ValidatedRelease {
+    | --------------------- methods in this implementation
+131 |     pub(crate) fn lineage_sha256(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^
+...
+134 |     pub(crate) fn max_batches(&self) -> u64 {
+    |                   ^^^^^^^^^^^
+
+warning: function `validate_release` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:199:4
+    |
+199 | fn validate_release(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_metadata` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:213:4
+    |
+213 | fn validate_release_metadata(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_with_owner` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:231:4
+    |
+231 | fn validate_release_with_owner(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_resume` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:328:4
+    |
+328 | fn validate_resume(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `validate_resume_metadata` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:336:4
+    |
+336 | fn validate_resume_metadata(release: &ValidatedRelease, p: &PilotCheckp...
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_baseline_pair` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:360:4
+    |
+360 | fn validate_baseline_pair(initial: &PilotCheckpoint, resumed: &PilotChe...
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_initial_baseline` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:372:4
+    |
+372 | fn validate_initial_baseline(release: &ValidatedRelease, resumed: &Pilo...
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `lock_run` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:509:4
+    |
+509 | fn lock_run(release: &ValidatedRelease, resume: bool) -> Result<RunLock> {
+    |    ^^^^^^^^
+
+warning: function `validate_owner` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:199:4
+    |
+199 | fn validate_owner(plan: &CompletionPlan, pin: &FilePin, owner: &Complet...
+    |    ^^^^^^^^^^^^^^
+
+warning: function `imports_pilot` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:224:4
+    |
+224 | fn imports_pilot(config: &DriverConfig) -> bool {
+    |    ^^^^^^^^^^^^^
+
+warning: function `release` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:299:4
+    |
+299 | fn release(
+    |    ^^^^^^^
+
+warning: function `migrate_parent` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:341:4
+    |
+341 | fn migrate_parent(
+    |    ^^^^^^^^^^^^^^
+
+warning: struct `CompletionCheckpoint` is never constructed
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:364:8
+    |
+364 | struct CompletionCheckpoint {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_progress` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:374:4
+    |
+374 | fn validate_progress(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `publish_state_json` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:421:4
+    |
+421 | fn publish_state_json<T: Serialize>(path: &Path, value: &T, replace_lat...
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_evaluation` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:501:4
+    |
+501 | fn validate_evaluation(
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `read_evaluation` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:525:4
+    |
+525 | fn read_evaluation(
+    |    ^^^^^^^^^^^^^^^
+
+warning: constant `REFERENCE_SHA256` is never used
+ --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:6:7
+  |
+6 | const REFERENCE_SHA256: &str = "b92da0bf1ccda1c9de56a33de41d4698dc214bd71...
+  |       ^^^^^^^^^^^^^^^^
+
+warning: function `digest` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:20:4
+   |
+20 | fn digest(v: &impl Serialize) -> Result<String> {
+   |    ^^^^^^
+
+warning: function `authenticate` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:148:15
+    |
+148 | pub(super) fn authenticate(
+    |               ^^^^^^^^^^^^
+
+warning: function `authenticate_with_reference` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:164:4
+    |
+164 | fn authenticate_with_reference(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `publish_or_verify` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:288:4
+    |
+288 | fn publish_or_verify(path: &Path, expected: &Value, completed: u64) -> ...
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: fields `lineage_sha256` and `max_completed_batches` are never read
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/training.rs:659:5
+    |
+658 | pub struct CorpusUpdateAdmission {
+    |            --------------------- fields in this struct
+659 |     lineage_sha256: String,
+    |     ^^^^^^^^^^^^^^
+660 |     max_completed_batches: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `issue_corpus_update_admission` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/training.rs:735:15
+    |
+735 | pub(crate) fn issue_corpus_update_admission(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 27 warnings
+   Compiling admission-rank-fixture-runner v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/docs/labs/admission-rank-fixture-runner-2026-10-15/instrument)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.41s
+     Running unittests src/main.rs (/Users/casey.allard/uor-r4/local/cr-fixture-runner-target/debug/deps/admission_rank_fixture_runner-adc504378a33debf)
+
+running 8 tests
+test tests::c_r5_hinge_distribution_verifier_checks_bins_zero_rows_mean_and_nearest_rank_quantiles ... ok
+test tests::c_r3_candidate_root_images_cover_create_empty_move_interior_and_identity ... ok
+test tests::suite_plan_matches_objective_control_scaffold_and_reports_not_run ... ok
+test tests::c_r4_fixture_tables_cover_single_cell_sixteen_cells_and_absent_rival ... ok
+test tests::c_r1_and_c_r2_fixture_tables_place_all_tokens_on_valid_e8_orbit_roots ... ok
+test tests::host_checks_verify_specs_geometry_and_stage_a_sweep_without_cuda ... ok
+test tests::cli_rejects_unknown_subcommands_and_refuses_gpu_run_without_cuda_feature ... ok
+test tests::atomic_json_writer_rejects_existing_target_and_computes_exact_sha256 ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+$ cargo clippy --manifest-path docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/Cargo.toml --locked --offline --all-targets -- -D warnings
+warning: function `invalid` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+warning: method `words` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/lib.rs:125:19
+    |
+ 96 | impl ReadSpec {
+    | ------------- method in this implementation
+...
+125 |     pub(crate) fn words(self) -> [u32; 3] {
+    |                   ^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `manifest` and `max_batches` are never read
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:126:5
+    |
+125 | pub struct ValidatedRelease {
+    |            ---------------- fields in this struct
+126 |     manifest: ReleaseManifest,
+    |     ^^^^^^^^
+127 |     manifest_sha256: String,
+128 |     max_batches: u64,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ValidatedRelease` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: methods `lineage_sha256` and `max_batches` are never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:131:19
+    |
+130 | impl ValidatedRelease {
+    | --------------------- methods in this implementation
+131 |     pub(crate) fn lineage_sha256(&self) -> &str {
+    |                   ^^^^^^^^^^^^^^
+...
+134 |     pub(crate) fn max_batches(&self) -> u64 {
+    |                   ^^^^^^^^^^^
+
+warning: function `validate_release` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:199:4
+    |
+199 | fn validate_release(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_metadata` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:213:4
+    |
+213 | fn validate_release_metadata(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_release_with_owner` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:231:4
+    |
+231 | fn validate_release_with_owner(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_resume` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:328:4
+    |
+328 | fn validate_resume(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `validate_resume_metadata` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:336:4
+    |
+336 | fn validate_resume_metadata(release: &ValidatedRelease, p: &PilotCheckp...
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_baseline_pair` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:360:4
+    |
+360 | fn validate_baseline_pair(initial: &PilotCheckpoint, resumed: &PilotChe...
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_initial_baseline` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:372:4
+    |
+372 | fn validate_initial_baseline(release: &ValidatedRelease, resumed: &Pilo...
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `lock_run` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/controller.rs:509:4
+    |
+509 | fn lock_run(release: &ValidatedRelease, resume: bool) -> Result<RunLock> {
+    |    ^^^^^^^^
+
+warning: function `validate_owner` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:199:4
+    |
+199 | fn validate_owner(plan: &CompletionPlan, pin: &FilePin, owner: &Complet...
+    |    ^^^^^^^^^^^^^^
+
+warning: function `imports_pilot` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:224:4
+    |
+224 | fn imports_pilot(config: &DriverConfig) -> bool {
+    |    ^^^^^^^^^^^^^
+
+warning: function `release` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:299:4
+    |
+299 | fn release(
+    |    ^^^^^^^
+
+warning: function `migrate_parent` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:341:4
+    |
+341 | fn migrate_parent(
+    |    ^^^^^^^^^^^^^^
+
+warning: struct `CompletionCheckpoint` is never constructed
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:364:8
+    |
+364 | struct CompletionCheckpoint {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_progress` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:374:4
+    |
+374 | fn validate_progress(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `publish_state_json` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:421:4
+    |
+421 | fn publish_state_json<T: Serialize>(path: &Path, value: &T, replace_lat...
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_evaluation` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:501:4
+    |
+501 | fn validate_evaluation(
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `read_evaluation` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion.rs:525:4
+    |
+525 | fn read_evaluation(
+    |    ^^^^^^^^^^^^^^^
+
+warning: constant `REFERENCE_SHA256` is never used
+ --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:6:7
+  |
+6 | const REFERENCE_SHA256: &str = "b92da0bf1ccda1c9de56a33de41d4698dc214bd71...
+  |       ^^^^^^^^^^^^^^^^
+
+warning: function `digest` is never used
+  --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:20:4
+   |
+20 | fn digest(v: &impl Serialize) -> Result<String> {
+   |    ^^^^^^
+
+warning: function `authenticate` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:148:15
+    |
+148 | pub(super) fn authenticate(
+    |               ^^^^^^^^^^^^
+
+warning: function `authenticate_with_reference` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:164:4
+    |
+164 | fn authenticate_with_reference(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `publish_or_verify` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/completion_baseline.rs:288:4
+    |
+288 | fn publish_or_verify(path: &Path, expected: &Value, completed: u64) -> ...
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: fields `lineage_sha256` and `max_completed_batches` are never read
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/training.rs:659:5
+    |
+658 | pub struct CorpusUpdateAdmission {
+    |            --------------------- fields in this struct
+659 |     lineage_sha256: String,
+    |     ^^^^^^^^^^^^^^
+660 |     max_completed_batches: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `issue_corpus_update_admission` is never used
+   --> /Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/crates/uor-r4-discrete/src/training.rs:735:15
+    |
+735 | pub(crate) fn issue_corpus_update_admission(
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 27 warnings
+    Checking admission-rank-fixture-runner v0.1.0 (/Users/casey.allard/uor-r4/.worktrees/antigravity-cr1-cr6-fixture-runner/docs/labs/admission-rank-fixture-runner-2026-10-15/instrument)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.35s

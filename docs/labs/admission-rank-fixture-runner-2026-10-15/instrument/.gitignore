@@ -1,0 +1,3 @@
+# The instrument's own build output: a local cache, never evidence.
+/local/
+/target/

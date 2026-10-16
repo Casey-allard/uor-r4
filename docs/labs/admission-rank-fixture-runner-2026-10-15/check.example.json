@@ -1,0 +1,19 @@
+{
+  "schema": "uor-r4.admission-rank-fixture-runner/1",
+  "status": "HOST_CONTRACT_VERIFIED_GPU_NOT_RUN",
+  "cuda_context_created": false,
+  "model_compute_executed": false,
+  "apply_calls": 0,
+  "scaffold_controls_verified": 6,
+  "fixture_specs_validated": 19,
+  "stage_a_sweep_verified": true,
+  "stage_a_sweep_sha256": "cc81ca6f76f3a38ac61ffe1d4665a1442d1e42961f4451691327b91b438f472c",
+  "baseline_admitted_cells_guard_verified": true,
+  "checks": [
+    "objective::control_scaffold() matches 6 ordered C-R1..C-R6 controls",
+    "objective ABI constants (ROW_WORDS=14, AGGREGATE_WORDS=1020, HISTOGRAM_BINS=[641,73,256]) verified",
+    "validated 19 fixture Spec/ReadSpec configurations against Spec::validate",
+    "static E8 orbit roots and 16-candidate generator root-image tables verified",
+    "C-R6 stored baseline guard (1..=16), data-binding.json, and 4 K16 DriverConfigs verified"
+  ]
+}

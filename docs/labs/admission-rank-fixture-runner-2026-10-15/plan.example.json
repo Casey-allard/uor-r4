@@ -1,0 +1,106 @@
+{
+  "schema": "uor-r4.admission-rank-fixture-runner/1",
+  "status": "NOT_RUN",
+  "qualification": "HELD_PENDING_EXACT_HEAD_REVIEW_AND_OWNER_RELEASE",
+  "model_compute_executed": false,
+  "apply_calls": 0,
+  "discrete_schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "evaluation_schema": "uor-r4.discrete-objective-evaluation/1",
+  "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+  "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+  "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+  "controls": [
+    {
+      "id": "C-R1",
+      "name": "rank_hinge_exact_admission_equivalence",
+      "status": "NOT_RUN",
+      "relative_report_path": "c-r1/report.json",
+      "gpu_fixtures": [
+        "1A-i: 5-cell mixed-distance sweep across K=1..=16 (cells {0,2,15,32,255}, target=15, rank=3)",
+        "1A-ii: 5-cell equal-distance tie sweep across K=1..=16 (cells {0,1,15,16,255} at d=16, target=15, rank=3)",
+        "1B: 256-cell full-occupancy boundary at K=16 (target=255, rank=256, R=240)"
+      ],
+      "pass_criteria": [
+        "R == 0 iff target_cell in admitted[0..K] across K=1..=16",
+        "expected_hinge_for_k_1_through_16 == [2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0]",
+        "256-cell boundary yields target_cell_rank == 256 and cell_rank_hinge == 240 at K=16"
+      ]
+    },
+    {
+      "id": "C-R2",
+      "name": "single_count_per_occupied_cell_invariance",
+      "status": "NOT_RUN",
+      "relative_report_path": "c-r2/report.json",
+      "gpu_fixtures": [
+        "2A: crowd preceding rival cell 1 with m in {1,2,4} tokens at K in {1,2,3}",
+        "2B: move one spare token from cell 255 into newly occupied preceding cell 2 at K in {1,2,3,4}"
+      ],
+      "pass_criteria": [
+        "target_cell_rank == [3,3,3] and cell_rank_hinge invariant across m in {1,2,4}",
+        "new preceding cell 2 increases occupied_cells 5->6 and target_cell_rank 3->4"
+      ]
+    },
+    {
+      "id": "C-R3",
+      "name": "virtual_vs_applied_candidate_identity_on_rank_and_occupancy",
+      "status": "NOT_RUN",
+      "relative_report_path": "c-r3/report.json",
+      "gpu_fixtures": [
+        "create_cell: VectorBlock(token 4, block 3) moves shared-cell token into fresh cell (5->6 occupied cells)",
+        "empty_cell: VectorBlock(token 3, block 0) moves singleton cell 31 token into cell 255 (5->4 occupied cells)",
+        "move_target_cell: VectorBlock(target token 2, block 3) moves target cell and rank",
+        "interior_block_only: VectorBlock(target token 2, block 1) leaves endpoints/occupancy/rank/address_hinge invariant",
+        "identity_candidate: candidate 0 on VectorBlock and Route matches baseline Evaluation"
+      ],
+      "pass_criteria": [
+        "proposal.candidate_losses()[c] == independent candidate Device::evaluate objective_loss_numerator_sum across all 16 candidates and both policies",
+        "all 8 compare_fields match policy-invariant row telemetry on GPU with zero .apply calls"
+      ]
+    },
+    {
+      "id": "C-R4",
+      "name": "absent_rival_and_occupancy_under_k_bounds",
+      "status": "NOT_RUN",
+      "relative_report_path": "c-r4/report.json",
+      "gpu_fixtures": [
+        "4A: occupied_cells in {1, 16} at K=16, V=16 (cell_rank_hinge == 0, target_admitted == true)",
+        "4B-i: 2-row mixed batch (row 0 tr==0, row 1 tr==1) skips tr==0 identically under both policies",
+        "4B-ii: 1-row wholly ineligible batch (tr==0) refuses with CUDA status 8 under both policies"
+      ],
+      "pass_criteria": [
+        "occupied_cells <= K implies target_cell_rank <= occupied_cells <= K and cell_rank_hinge == 0",
+        "tr == 0 rows contribute 0 to candidate_losses()[0..16] and all-ineligible batch refuses with status 8"
+      ]
+    },
+    {
+      "id": "C-R5",
+      "name": "bounded_integer_arithmetic_dual_loss_and_distribution_schema",
+      "status": "NOT_RUN",
+      "relative_report_path": "c-r5/report.json",
+      "gpu_fixtures": [
+        "5A: multi-row GPU Device::evaluate + Device::aggregate_evaluations dual-loss, exact ratios, and [641,73,256] histograms/quantiles",
+        "5B: 11 synthetic row/summary bound & overflow inputs to discrete_evaluation_aggregate on GPU (status 12)"
+      ],
+      "pass_criteria": [
+        "all dual-loss sums, ExactRatio shares/means, and nearest-rank quantiles match exact integer identities on GPU",
+        "all 11 out-of-bounds and u64 overflow inputs refuse with CUDA status 12"
+      ]
+    },
+    {
+      "id": "C-R6",
+      "name": "k16_baseline_guard_and_untrained_ceiling_check",
+      "status": "NOT_RUN",
+      "relative_report_path": "c-r6/report.json",
+      "gpu_fixtures": [
+        "6A: stored baseline guard (admitted_cells in 1..=16) and sealed 36-point Stage-A K-sweep verification",
+        "6B: GPU V4096/B4/C192 checkpoint-0 Device::new_with_objective across seed in {1,2}, K in {8,16}",
+        "6C: G-Pre zero-update corpus evaluation receipt verification (seed 1 K=8 == 5680; seed 1,2 K=16 >= 4894; 0 updates)"
+      ],
+      "pass_criteria": [
+        "admitted_cells guard accepts 1..=16 and rejects 0 and >=17",
+        "checkpoint-0 V4096/B4/C192 has occupied_cells == 16 and 100% admission at K=16",
+        "G-Pre corpus receipts satisfy seed 1 K=8 == 5680 and seed 1,2 K=16 >= 4894 with 0 .apply updates"
+      ]
+    }
+  ]
+}
