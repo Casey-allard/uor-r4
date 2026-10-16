@@ -2,9 +2,12 @@
 
 Codex/Sol implements the [FIT-design pre-registration](../../harness/prep/m1-propose-subphase-diagnostic-2026-10-16.md)
 under [owner instrument+optimize-first](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6210107580).
-Diagnostic execution is NOT_RUN. Qualification/training/M2/Stage B remain HELD;
+The later [sealed diagnostic](../propose-subphase-diagnostic-run-2026-10-16/README.md)
+completed under PM's separate release after #2541/#2542 merged. All four cells
+are counterfactual-dominated; the source-delivery details below remain historical
+scope, not a repeat authorization. Qualification/training/M2/Stage B remain HELD;
 Q4 NOT_EXECUTABLE. Line M1 qualification instrumentation, count 0/3 unchanged,
-suspended headline 37/232 unchanged. No new model or performance result.
+suspended headline 37/232 unchanged. No learned-capability or qualification claim.
 
 ## Delivered boundary
 

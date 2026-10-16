@@ -4,7 +4,7 @@
 - Authority: [owner instrument+optimize-first decision](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6210107580), [source analysis §3](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6209851483).
 - Line: M1 qualification instrumentation; count 0/3 and suspended headline 37/232 unchanged. No mechanism negative or learning claim.
 - Scope: **diagnostic, not qualification / not a p95 estimate / not a training rate**. No training, fixtures, corpus apply or model-state update. Q4 NOT_EXECUTABLE; training/M2/Stage B HELD.
-- State: source-only registration; diagnostic execution NOT_RUN and NOT_EXECUTABLE pending the identity bridge below. This PR authorizes only its separately accounted pre-merge CUDA compile/lint lease, not this diagnostic.
+- State: the one bounded diagnostic was completed after [PM execution release](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6216273515), instrument/bridge merges and identity verification. See the [sealed receipt](../../labs/propose-subphase-diagnostic-run-2026-10-16/README.md). The prospective contract below is retained; this completion does not authorize a repeat, qualification or training.
 
 ## Question and bar
 
@@ -48,7 +48,9 @@ Only the existing deterministic synthetic timing windows and targets are used.
 No train/dev/fresh-transfer corpus rows are consumed; this is not a language
 evaluation or a replacement for the D-Packet fresh-transfer requirement.
 
-### Required identity bridge — NOT_EXECUTABLE until reviewed
+### Required identity bridge — satisfied for the sealed execution
+
+The dependency below was satisfied by merged #2542 at `8199af0076d861bade607b7aa2fc29bfaecb81ae`, tree-identical to approved `38c081603`. Its two executed mapping receipts and unchanged source/PTX/config/artifact pins are preserved in the [run record](../../labs/propose-subphase-diagnostic-run-2026-10-16/README.md). The original prospective requirements follow unchanged.
 
 `device.rs` and `lib.rs` participate in the composite source identity; adding
 profiling changes that identity even with byte-identical CUDA kernels. The

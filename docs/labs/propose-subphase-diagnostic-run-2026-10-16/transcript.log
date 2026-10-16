@@ -1,0 +1,189 @@
++ cd /workspace/uor-r4
+++ git rev-parse HEAD
++ test 8199af0076d861bade607b7aa2fc29bfaecb81ae = 8199af0076d861bade607b7aa2fc29bfaecb81ae
++ git diff --exit-code
++ git rev-parse HEAD
++ date -u +%FT%TZ
+2026-10-16T13:58:41Z
++ rustc +1.97.1 --version
+rustc 1.97.1 (8bab26f4f 2026-07-14)
++ cargo +1.97.1 --version
+cargo 1.97.1 (c980f4866 2026-06-30)
++ nvcc --version
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
++ nvidia-smi -q
++ PIN=docs/labs/propose-subphase-diagnostic-2026-10-16/diagnostic-pin.json
++ cp docs/labs/propose-subphase-diagnostic-2026-10-16/diagnostic-pin.json /workspace/uor-r4/evals/propose-subphase-diagnostic/diagnostic-pin.json
++ cp docs/labs/admission-redirect-packet-2026-10-15/configs/k16-A-seed1.json /workspace/uor-r4/evals/propose-subphase-diagnostic/init-config.json
++ printf '%s  %s\n' 9a76743e401759b7d3aabc708ab0a26a9470ea474dc140f328c7b1aab59e49e4 /workspace/sealed-restart5/checkpoint0-timing-snapshot.json eff7a77e1c3c8454324c9ddf31a6c08bdbe1b213d3324fe7b7889c0fe7665ae4 /workspace/uor-r4/evals/propose-subphase-diagnostic/init-config.json
++ sha256sum -c -
+/workspace/sealed-restart5/checkpoint0-timing-snapshot.json: OK
+/workspace/uor-r4/evals/propose-subphase-diagnostic/init-config.json: OK
++ sha256sum docs/labs/propose-subphase-diagnostic-2026-10-16/diagnostic-pin.json /workspace/sealed-restart5/checkpoint0-timing-snapshot.json
++ cargo +1.97.1 build --locked --release --features cuda --manifest-path docs/labs/k16-timing-2026-10-15/instrument/Cargo.toml
++ code=0
++ cat /workspace/uor-r4/evals/propose-subphase-diagnostic/build.log
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded block-buffer v0.10.4
+  Downloaded cfg-if v1.0.5
+  Downloaded constant_time_eq v0.3.1
+  Downloaded itoa v1.0.18
+  Downloaded cpufeatures v0.2.17
+  Downloaded cc v1.6.0
+  Downloaded version_check v0.9.5
+  Downloaded safetensors v0.6.2
+  Downloaded zmij v1.0.23
+  Downloaded sha2 v0.10.9
+  Downloaded arrayvec v0.7.8
+  Downloaded crypto-common v0.1.7
+  Downloaded hex v0.4.3
+  Downloaded generic-array v0.14.7
+  Downloaded quote v1.0.47
+  Downloaded shlex v2.0.1
+  Downloaded find-msvc-tools v0.1.14
+  Downloaded digest v0.10.7
+  Downloaded memmap2 v0.9.11
+  Downloaded serde_core v1.0.229
+  Downloaded unicode-ident v1.0.27
+  Downloaded libloading v0.9.0
+  Downloaded proc-macro2 v1.0.107
+  Downloaded serde_derive v1.0.229
+  Downloaded ryu v1.0.23
+  Downloaded serde v1.0.229
+  Downloaded blake3 v1.5.0
+  Downloaded memchr v2.8.3
+  Downloaded typenum v1.20.1
+  Downloaded serde_json v1.0.154
+  Downloaded libm v0.2.16
+  Downloaded syn v3.0.9
+  Downloaded libc v0.2.190
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.229
+   Compiling proc-macro2 v1.0.107
+   Compiling zmij v1.0.23
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling serde v1.0.229
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling typenum v1.20.1
+   Compiling serde_json v1.0.154
+   Compiling cfg-if v1.0.5
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling constant_time_eq v0.3.1
+   Compiling arrayref v0.3.9 (/workspace/uor-r4/third_party/arrayref)
+   Compiling arrayvec v0.7.8
+   Compiling libc v0.2.190
+   Compiling libm v0.2.16
+   Compiling cpufeatures v0.2.17
+   Compiling ryu v1.0.23
+   Compiling hex v0.4.3
+   Compiling cudarc v0.19.10 (/workspace/uor-r4/third_party/cudarc-0.19.10)
+   Compiling libloading v0.9.0
+   Compiling cc v1.6.0
+   Compiling generic-array v0.14.7
+   Compiling syn v3.0.9
+   Compiling blake3 v1.5.0
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling memmap2 v0.9.11
+   Compiling uor-addr v0.2.0 (/workspace/uor-r4/third_party/uor-addr-0.2.0)
+   Compiling serde_derive v1.0.229
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-integer v0.1.0 (/workspace/uor-r4/crates/uor-r4-integer)
+   Compiling uor-r4-tokenizer v0.1.0 (/workspace/uor-r4/crates/uor-r4-tokenizer)
+   Compiling uor-r4-source-interface v0.1.0 (/workspace/uor-r4/crates/uor-r4-source-interface)
+warning: function `invalid` is never used
+  --> /workspace/uor-r4/crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-core v0.1.0 (/workspace/uor-r4/crates/uor-r4-core)
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> /workspace/uor-r4/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> /workspace/uor-r4/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> /workspace/uor-r4/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> /workspace/uor-r4/crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/workspace/uor-r4/crates/uor-r4-discrete)
+warning: constant `FRAME_REACHABILITY` is never used
+  --> /workspace/cuda-check-target/release/build/uor-r4-discrete-07f94cfaa101289b/out/geometry.rs:10:11
+   |
+10 | pub const FRAME_REACHABILITY: [u8; 64] = [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64...
+   |           ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ROOT_REACHABILITY` is never used
+  --> /workspace/cuda-check-target/release/build/uor-r4-discrete-07f94cfaa101289b/out/geometry.rs:11:11
+   |
+11 | pub const ROOT_REACHABILITY: [u8; 16] = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16];
+   |           ^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 2 warnings
+   Compiling k16-timing v0.1.0 (/workspace/uor-r4/docs/labs/k16-timing-2026-10-15/instrument)
+    Finished `release` profile [optimized] target(s) in 27.97s
++ printf '%s\n' 0
++ test 0 -eq 0
++ cp /workspace/cuda-check-target/release/k16-timing /workspace/uor-r4/evals/propose-subphase-diagnostic/k16-timing
++ sha256sum /workspace/uor-r4/evals/propose-subphase-diagnostic/k16-timing
++ find /workspace/cuda-check-target -name discrete.ptx -exec sha256sum '{}' ';'
+++ wc -l
++ test 1 -eq 1
+++ cut -d ' ' -f 1 /workspace/uor-r4/evals/propose-subphase-diagnostic/ptx-sha256.txt
++ test 1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28 = 1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28
+++ find /workspace/cuda-check-target -name discrete.ptx
++ cp /workspace/cuda-check-target/release/build/uor-r4-discrete-07f94cfaa101289b/out/discrete.ptx /workspace/uor-r4/evals/propose-subphase-diagnostic/discrete.ptx
++ date -u +%FT%TZ
++ /workspace/uor-r4/evals/propose-subphase-diagnostic/k16-timing diagnose --pin docs/labs/propose-subphase-diagnostic-2026-10-16/diagnostic-pin.json
++ code=0
++ date -u +%FT%TZ
++ cat /workspace/uor-r4/evals/propose-subphase-diagnostic/diagnose.log
+record: /workspace/uor-r4/evals/propose-subphase-diagnostic/k16-propose-subphase-record.json
++ printf '%s\n' 0
++ test 0 -eq 0
++ sha256sum -c /workspace/uor-r4/evals/propose-subphase-diagnostic/input-sha256.txt
+docs/labs/propose-subphase-diagnostic-2026-10-16/diagnostic-pin.json: OK
+/workspace/sealed-restart5/checkpoint0-timing-snapshot.json: OK
++ git diff --exit-code
++ nvidia-smi -q
++ code=0
++ printf '%s\n' 0
++ date -u +%FT%TZ
+2026-10-16T14:01:10Z
++ exit 0

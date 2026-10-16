@@ -1,0 +1,249 @@
+{
+  "schema": "uor-r4.propose-subphase-receipt-analysis/1",
+  "scope": "diagnostic only; not qualification, not a p95 estimate, not a training rate; GPU event durations MUST NOT be added to host wall/wait durations",
+  "validation": {
+    "status": "PASS",
+    "failures": [],
+    "timed_batches": 6,
+    "timed_proposals": 12,
+    "excluded_warmups": 2,
+    "warmup_proposals": 4,
+    "bridge_receipts": 2,
+    "complete_partitioned_profiles": 16,
+    "clock_check": "IEEE754 bits independently decoded with integer arithmetic; every event pair within enclosing wall + max(1ms,1% wall)",
+    "zero_apply": true,
+    "epochs": [
+      0,
+      0
+    ],
+    "snapshot_before_equals_after": true
+  },
+  "groups": [
+    {
+      "policy": "nearest_address_margin_v1",
+      "operation": "route",
+      "samples": 3,
+      "decision": "counterfactual_dominated",
+      "propose_ns": {
+        "min": 7364025160,
+        "mean": 7364527806.333333,
+        "max": 7364789649
+      },
+      "counterfactual_ns": {
+        "min": 7363875000,
+        "mean": 7364325032.333333,
+        "max": 7364603027
+      },
+      "counterfactual_wall_fraction": {
+        "min": 0.9999631298667508,
+        "mean": 0.9999724663616382,
+        "max": 0.9999796089778704
+      },
+      "chooser_ns": {
+        "min": 15744,
+        "mean": 27392,
+        "max": 38688
+      },
+      "event_wall_residual_ns": {
+        "min": 134416,
+        "mean": 175382,
+        "max": 232852
+      },
+      "extra_context_sync_ns": {
+        "min": 5089,
+        "mean": 8302,
+        "max": 13305
+      },
+      "event_readback_ns": {
+        "min": 3947,
+        "mean": 5851,
+        "max": 8446
+      },
+      "host_spans_mean_ns": {
+        "admission_epoch_read": 7397,
+        "targets_spec_alloc_upload": 12407,
+        "losses_status_alloc_zero": 6131.666666666667,
+        "counterfactual_submission": 9734.666666666666,
+        "status_read_check": 7364376191,
+        "proposal_alloc": 53297,
+        "chooser_submission": 35179.666666666664,
+        "final_sync": 7180.333333333333,
+        "cleanup": 11187.666666666666
+      }
+    },
+    {
+      "policy": "nearest_address_margin_v1",
+      "operation": "vector_block",
+      "samples": 3,
+      "decision": "counterfactual_dominated",
+      "propose_ns": {
+        "min": 7319780301,
+        "mean": 7320290775,
+        "max": 7320579393
+      },
+      "counterfactual_ns": {
+        "min": 7319574707,
+        "mean": 7320091145.666667,
+        "max": 7320383789
+      },
+      "counterfactual_wall_fraction": {
+        "min": 0.9999719125449746,
+        "mean": 0.9999727292875235,
+        "max": 0.9999732802569989
+      },
+      "chooser_ns": {
+        "min": 33472,
+        "mean": 34986.333333333336,
+        "max": 37631
+      },
+      "event_wall_residual_ns": {
+        "min": 161748,
+        "mean": 164643,
+        "max": 167963
+      },
+      "extra_context_sync_ns": {
+        "min": 5029,
+        "mean": 5754,
+        "max": 6302
+      },
+      "event_readback_ns": {
+        "min": 4298,
+        "mean": 4588.666666666667,
+        "max": 5149
+      },
+      "host_spans_mean_ns": {
+        "admission_epoch_read": 9581,
+        "targets_spec_alloc_upload": 14861.333333333334,
+        "losses_status_alloc_zero": 6482.333333333333,
+        "counterfactual_submission": 10727,
+        "status_read_check": 7320142412.333333,
+        "proposal_alloc": 41685,
+        "chooser_submission": 33810.333333333336,
+        "final_sync": 13155,
+        "cleanup": 11268
+      }
+    },
+    {
+      "policy": "occupied_cell_rank_hinge_v1",
+      "operation": "route",
+      "samples": 3,
+      "decision": "counterfactual_dominated",
+      "propose_ns": {
+        "min": 7366520855,
+        "mean": 7366709870,
+        "max": 7367009562
+      },
+      "counterfactual_ns": {
+        "min": 7366356445,
+        "mean": 7366554036,
+        "max": 7366846679
+      },
+      "counterfactual_wall_fraction": {
+        "min": 0.9999776814586918,
+        "mean": 0.9999788462010321,
+        "max": 0.9999809669297424
+      },
+      "chooser_ns": {
+        "min": 13344,
+        "mean": 19775.666666666668,
+        "max": 24992
+      },
+      "event_wall_residual_ns": {
+        "min": 126865,
+        "mean": 136058.33333333334,
+        "max": 143419
+      },
+      "extra_context_sync_ns": {
+        "min": 4328,
+        "mean": 4682.333333333333,
+        "max": 5150
+      },
+      "event_readback_ns": {
+        "min": 3867,
+        "mean": 4248,
+        "max": 4569
+      },
+      "host_spans_mean_ns": {
+        "admission_epoch_read": 7243.333333333333,
+        "targets_spec_alloc_upload": 11271,
+        "losses_status_alloc_zero": 6152,
+        "counterfactual_submission": 9988.333333333334,
+        "status_read_check": 7366600995,
+        "proposal_alloc": 30016.666666666668,
+        "chooser_submission": 25534.333333333332,
+        "final_sync": 4836,
+        "cleanup": 8379
+      }
+    },
+    {
+      "policy": "occupied_cell_rank_hinge_v1",
+      "operation": "vector_block",
+      "samples": 3,
+      "decision": "counterfactual_dominated",
+      "propose_ns": {
+        "min": 7322778886,
+        "mean": 7323034944.666667,
+        "max": 7323533908
+      },
+      "counterfactual_ns": {
+        "min": 7322611328,
+        "mean": 7322821288.666667,
+        "max": 7323224121
+      },
+      "counterfactual_wall_fraction": {
+        "min": 0.9999576997930382,
+        "mean": 0.99997082456684,
+        "max": 0.9999794519263325
+      },
+      "chooser_ns": {
+        "min": 14047,
+        "mean": 27284.666666666668,
+        "max": 42495
+      },
+      "event_wall_residual_ns": {
+        "min": 136422,
+        "mean": 186371.33333333334,
+        "max": 267292
+      },
+      "extra_context_sync_ns": {
+        "min": 5470,
+        "mean": 8135,
+        "max": 12674
+      },
+      "event_readback_ns": {
+        "min": 4158,
+        "mean": 5350,
+        "max": 7564
+      },
+      "host_spans_mean_ns": {
+        "admission_epoch_read": 8062,
+        "targets_spec_alloc_upload": 10583,
+        "losses_status_alloc_zero": 6111.333333333333,
+        "counterfactual_submission": 9174,
+        "status_read_check": 7322876843.666667,
+        "proposal_alloc": 62721.333333333336,
+        "chooser_submission": 33877.333333333336,
+        "final_sync": 6956.333333333333,
+        "cleanup": 11364.333333333334
+      }
+    }
+  ],
+  "cells": [
+    {
+      "policy": "nearest_address_margin_v1",
+      "unit_ns": 44056677681,
+      "diagnostic_batch_wall_sum_ns": 44056850697,
+      "batch_wall_minus_unit_ns": 173016,
+      "event_readback_sum_ns": 31319,
+      "snapshot_sha256": "0327ceaa81a580182757ea699f356f6584d9308d5e5f186ee9b3da209919a599"
+    },
+    {
+      "policy": "occupied_cell_rank_hinge_v1",
+      "unit_ns": 44071248951,
+      "diagnostic_batch_wall_sum_ns": 44071408759,
+      "batch_wall_minus_unit_ns": 159808,
+      "event_readback_sum_ns": 28794,
+      "snapshot_sha256": "a6e2674ec9c2ce495e5c6e8199c58f80176f5b68be6c7c74ae5d4476f095dd74"
+    }
+  ]
+}

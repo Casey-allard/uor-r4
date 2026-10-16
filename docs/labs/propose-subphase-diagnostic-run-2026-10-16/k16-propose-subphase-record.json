@@ -1,0 +1,1304 @@
+{
+  "exclusion": "no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are forward-only carry+propose+observe batches and NOT a training dose",
+  "faults": [],
+  "header": {
+    "apply": false,
+    "batches_per_cell": 3,
+    "cells": [
+      {
+        "policy": "nearest_address_margin_v1",
+        "source": "checkpoint0"
+      },
+      {
+        "policy": "occupied_cell_rank_hinge_v1",
+        "source": "checkpoint0"
+      }
+    ],
+    "checkpoint0": {
+      "epoch": 0,
+      "label": "Original sealed seed1 checkpoint0; explicit in-memory bridge requires exact-head review and protected merge before execution",
+      "seed": 1,
+      "snapshot_path": "/workspace/sealed-restart5/checkpoint0-timing-snapshot.json",
+      "snapshot_sha256": "9a76743e401759b7d3aabc708ab0a26a9470ea474dc140f328c7b1aab59e49e4"
+    },
+    "diagnostic": {
+      "checkpoint0_identity_bridge": {
+        "evaluation_only": true,
+        "original_snapshot_sha256": "9a76743e401759b7d3aabc708ab0a26a9470ea474dc140f328c7b1aab59e49e4",
+        "original_source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+        "schema": "uor-r4.checkpoint0-source-bridge-pin/1",
+        "target_source_sha256": "4c0bf3ab97a82c3fed5187eb448b5d007a7dbe7271908b4f491e66d27697ea45",
+        "training_resume": false
+      },
+      "config_file_sha256": "eff7a77e1c3c8454324c9ddf31a6c08bdbe1b213d3324fe7b7889c0fe7665ae4",
+      "config_path": "docs/labs/admission-redirect-packet-2026-10-15/configs/k16-A-seed1.json",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "source_sha256": "4c0bf3ab97a82c3fed5187eb448b5d007a7dbe7271908b4f491e66d27697ea45"
+    },
+    "diagnostic_scope": "diagnostic only; not qualification, not a p95 estimate, not a training rate; GPU event durations MUST NOT be added to host wall/wait durations",
+    "dtype": "integer host nanoseconds; raw vendor CUDA clock bits and integer-decoded ns; no floating-point model arithmetic",
+    "excluded_warmups_per_cell": 1,
+    "exclusion": "no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are forward-only carry+propose+observe batches and NOT a training dose",
+    "fixture": {
+      "epoch": 0,
+      "evaluation_only_rebind": true,
+      "occupied_cells": 189,
+      "original_k": 8,
+      "original_sha256": "",
+      "seed": 1,
+      "snapshot_path": "",
+      "snapshot_sha256": "",
+      "training_resume": false
+    },
+    "rates_basis": "diagnostic only; not qualification, not a p95 estimate, not a training rate; GPU event durations MUST NOT be added to host wall/wait durations",
+    "rates_secondary": "no diagnostic throughput rate emitted",
+    "read_spec": "route",
+    "schema": "k16-propose-subphase-plan/v1",
+    "shape": {
+      "blocks": 4,
+      "context": 192,
+      "kept_cells": 16,
+      "padded_context_tokens_per_batch": 12288,
+      "rows": 64,
+      "vocabulary": 4096
+    },
+    "synchronization": "Device::synchronize before and after every timed operation",
+    "timed_operations": [
+      "carry_windows",
+      "propose(route)",
+      "observation",
+      "propose(vector_block)",
+      "observation"
+    ],
+    "zero_apply_assertion": "snapshot digest and epoch identical before and after each cell"
+  },
+  "records": [
+    {
+      "bridge_used": true,
+      "cell_policy": "nearest_address_margin_v1",
+      "changed_fields": [
+        "source_sha256"
+      ],
+      "config_file_sha256": "eff7a77e1c3c8454324c9ddf31a6c08bdbe1b213d3324fe7b7889c0fe7665ae4",
+      "epoch": 0,
+      "evaluation_only": true,
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "in_memory_snapshot_sha256": "d70ec39b97613de568050ffac4eba2293c9900753fdbb8146229578dd40d0ddd",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "original_snapshot_path": "/workspace/sealed-restart5/checkpoint0-timing-snapshot.json",
+      "original_snapshot_sha256": "9a76743e401759b7d3aabc708ab0a26a9470ea474dc140f328c7b1aab59e49e4",
+      "post_source_sha256": "4c0bf3ab97a82c3fed5187eb448b5d007a7dbe7271908b4f491e66d27697ea45",
+      "pre_source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+      "reason": "Kernel unchanged; source-set identity moved because profiling sources are part of the module source.",
+      "rebound_checkpoint_written": false,
+      "record_kind": "checkpoint0_identity_bridge",
+      "schema": "uor-r4.checkpoint0-source-bridge-receipt/1",
+      "seed": 1,
+      "status": "mapping_prepared; device admission and zero-update checks recorded separately",
+      "training_resume": false,
+      "unchanged_non_source_payload_sha256": "2c2490a00545fc58c35fb5c3756382b7eb2fc14586e43ae85103019ca6aeaab9"
+    },
+    {
+      "applied": false,
+      "cell": {
+        "policy": "nearest_address_margin_v1",
+        "source": "checkpoint0"
+      },
+      "elapsed_ns": 14694918160,
+      "profiles": [
+        {
+          "operation": "route",
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1026317332,
+              "nanoseconds_floor": 42080
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172715785,
+              "nanoseconds_floor": 7367129394
+            },
+            "event_readback_ns": 14518,
+            "host": {
+              "call_ns": 7367415964,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                6573,
+                6562,
+                4950,
+                1301872,
+                7365907592,
+                109336,
+                54182,
+                9078,
+                15819
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        },
+        {
+          "operation": "vector_block",
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1026695289,
+              "nanoseconds_floor": 43487
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172632991,
+              "nanoseconds_floor": 7326702636
+            },
+            "event_readback_ns": 10029,
+            "host": {
+              "call_ns": 7327021771,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                27091,
+                21761,
+                6111,
+                10730,
+                7326770028,
+                109215,
+                53892,
+                10039,
+                12904
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        }
+      ],
+      "record_kind": "excluded_warmup"
+    },
+    {
+      "applied": false,
+      "batch": 1,
+      "carry_ns": 868526,
+      "cell": {
+        "policy": "nearest_address_margin_v1",
+        "source": "checkpoint0"
+      },
+      "diagnostic_batch_wall_ns": 14686257751,
+      "epoch": 0,
+      "proposals": [
+        {
+          "active_candidates": 16,
+          "after": 64192,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 70880,
+          "candidate": 4,
+          "epoch": 0,
+          "extra_context_sync_ns": 13305,
+          "observation_ns": 25959,
+          "operation": "route",
+          "parameter": "Route(0)",
+          "propose_ns": 7364768610,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1025406799,
+              "nanoseconds_floor": 38688
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172710394,
+              "nanoseconds_floor": 7364497070
+            },
+            "event_readback_ns": 8446,
+            "host": {
+              "call_ns": 7364754744,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                7554,
+                19517,
+                7164,
+                11120,
+                7364556381,
+                82114,
+                47590,
+                12233,
+                11071
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        },
+        {
+          "active_candidates": 16,
+          "after": 70816,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 70880,
+          "candidate": 12,
+          "epoch": 0,
+          "extra_context_sync_ns": 5029,
+          "observation_ns": 18686,
+          "operation": "vector_block",
+          "parameter": "VectorBlock(0)",
+          "propose_ns": 7320512631,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1024006640,
+              "nanoseconds_floor": 33472
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172619909,
+              "nanoseconds_floor": 7320314941
+            },
+            "event_readback_ns": 4298,
+            "host": {
+              "call_ns": 7320506680,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                10960,
+                21721,
+                6803,
+                13055,
+                7320362528,
+                37571,
+                31479,
+                13185,
+                9378
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        }
+      ],
+      "record_kind": "batch",
+      "rows": 64
+    },
+    {
+      "applied": false,
+      "batch": 2,
+      "carry_ns": 776733,
+      "cell": {
+        "policy": "nearest_address_margin_v1",
+        "source": "checkpoint0"
+      },
+      "diagnostic_batch_wall_ns": 14684670411,
+      "epoch": 0,
+      "proposals": [
+        {
+          "active_candidates": 16,
+          "after": 58656,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 67008,
+          "candidate": 4,
+          "epoch": 0,
+          "extra_context_sync_ns": 5089,
+          "observation_ns": 14117,
+          "operation": "route",
+          "parameter": "Route(0)",
+          "propose_ns": 7364025160,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1015085456,
+              "nanoseconds_floor": 15744
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172709120,
+              "nanoseconds_floor": 7363875000
+            },
+            "event_readback_ns": 3947,
+            "host": {
+              "call_ns": 7364019200,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                7174,
+                8716,
+                5601,
+                9157,
+                7363920724,
+                31960,
+                22142,
+                4659,
+                9067
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        },
+        {
+          "active_candidates": 16,
+          "after": 66944,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 67008,
+          "candidate": 12,
+          "epoch": 0,
+          "extra_context_sync_ns": 6302,
+          "observation_ns": 18154,
+          "operation": "vector_block",
+          "parameter": "VectorBlock(0)",
+          "propose_ns": 7319780301,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1025123331,
+              "nanoseconds_floor": 37631
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172618393,
+              "nanoseconds_floor": 7319574707
+            },
+            "event_readback_ns": 5149,
+            "host": {
+              "call_ns": 7319772757,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                8766,
+                11081,
+                6442,
+                9057,
+                7319628987,
+                45675,
+                36690,
+                13325,
+                12734
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        }
+      ],
+      "record_kind": "batch",
+      "rows": 64
+    },
+    {
+      "applied": false,
+      "batch": 3,
+      "carry_ns": 464024,
+      "cell": {
+        "policy": "nearest_address_margin_v1",
+        "source": "checkpoint0"
+      },
+      "diagnostic_batch_wall_ns": 14685922535,
+      "epoch": 0,
+      "proposals": [
+        {
+          "active_candidates": 16,
+          "after": 63776,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 70944,
+          "candidate": 4,
+          "epoch": 0,
+          "extra_context_sync_ns": 6512,
+          "observation_ns": 17904,
+          "operation": "route",
+          "parameter": "Route(0)",
+          "propose_ns": 7364789649,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1021527907,
+              "nanoseconds_floor": 27744
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172710611,
+              "nanoseconds_floor": 7364603027
+            },
+            "event_readback_ns": 5160,
+            "host": {
+              "call_ns": 7364782174,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                7463,
+                8988,
+                5630,
+                8927,
+                7364651468,
+                45817,
+                35807,
+                4649,
+                13425
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        },
+        {
+          "active_candidates": 16,
+          "after": 70880,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 70944,
+          "candidate": 12,
+          "epoch": 0,
+          "extra_context_sync_ns": 5931,
+          "observation_ns": 17834,
+          "operation": "vector_block",
+          "parameter": "VectorBlock(0)",
+          "propose_ns": 7320579393,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1024109719,
+              "nanoseconds_floor": 33856
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172620050,
+              "nanoseconds_floor": 7320383789
+            },
+            "event_readback_ns": 4319,
+            "host": {
+              "call_ns": 7320572510,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                9017,
+                11782,
+                6202,
+                10069,
+                7320435722,
+                41809,
+                33262,
+                12955,
+                11692
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        }
+      ],
+      "record_kind": "batch",
+      "rows": 64
+    },
+    {
+      "applied": false,
+      "carry_only": {
+        "note": "carry phase only; not the headline basis",
+        "ns": 2109283,
+        "padded_context_tokens_per_s": null,
+        "rows_per_s": null
+      },
+      "cell": {
+        "policy": "nearest_address_margin_v1",
+        "source": "checkpoint0"
+      },
+      "diagnostic_scope": "diagnostic only; not qualification, not a p95 estimate, not a training rate; GPU event durations MUST NOT be added to host wall/wait durations",
+      "dtype": "integer host nanoseconds; vendor CUDA clock IEEE754 bits decoded to integer ns, never model arithmetic",
+      "epoch_after": 0,
+      "epoch_before": 0,
+      "excluded_warmups": 1,
+      "exclusion": "no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are forward-only carry+propose+observe batches and NOT a training dose",
+      "identities": {
+        "compiled": {
+          "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+          "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+          "source_sha256": "4c0bf3ab97a82c3fed5187eb448b5d007a7dbe7271908b4f491e66d27697ea45"
+        },
+        "device": {
+          "counterfactual_local_bytes": 21536,
+          "evaluation_local_bytes": 21184,
+          "forward_local_bytes": 21056,
+          "memory": {
+            "free_bytes": 27747090432,
+            "ordinal": 0,
+            "total_bytes": 33670758400
+          }
+        }
+      },
+      "per_family_ns_per_batch_floor": {
+        "carry": 703094,
+        "route_observation": 19326,
+        "route_propose": 7364527806,
+        "vector_observation": 18224,
+        "vector_propose": 7320290775
+      },
+      "rates": null,
+      "record_kind": "cell",
+      "snapshot_digest_after": "0327ceaa81a580182757ea699f356f6584d9308d5e5f186ee9b3da209919a599",
+      "snapshot_digest_before": "0327ceaa81a580182757ea699f356f6584d9308d5e5f186ee9b3da209919a599",
+      "timed_batches": 3,
+      "unit_ns": 44056677681
+    },
+    {
+      "bridge_used": true,
+      "cell_policy": "occupied_cell_rank_hinge_v1",
+      "changed_fields": [
+        "source_sha256"
+      ],
+      "config_file_sha256": "eff7a77e1c3c8454324c9ddf31a6c08bdbe1b213d3324fe7b7889c0fe7665ae4",
+      "epoch": 0,
+      "evaluation_only": true,
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "in_memory_snapshot_sha256": "d70ec39b97613de568050ffac4eba2293c9900753fdbb8146229578dd40d0ddd",
+      "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "original_snapshot_path": "/workspace/sealed-restart5/checkpoint0-timing-snapshot.json",
+      "original_snapshot_sha256": "9a76743e401759b7d3aabc708ab0a26a9470ea474dc140f328c7b1aab59e49e4",
+      "post_source_sha256": "4c0bf3ab97a82c3fed5187eb448b5d007a7dbe7271908b4f491e66d27697ea45",
+      "pre_source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+      "reason": "Kernel unchanged; source-set identity moved because profiling sources are part of the module source.",
+      "rebound_checkpoint_written": false,
+      "record_kind": "checkpoint0_identity_bridge",
+      "schema": "uor-r4.checkpoint0-source-bridge-receipt/1",
+      "seed": 1,
+      "status": "mapping_prepared; device admission and zero-update checks recorded separately",
+      "training_resume": false,
+      "unchanged_non_source_payload_sha256": "2c2490a00545fc58c35fb5c3756382b7eb2fc14586e43ae85103019ca6aeaab9"
+    },
+    {
+      "applied": false,
+      "cell": {
+        "policy": "occupied_cell_rank_hinge_v1",
+        "source": "checkpoint0"
+      },
+      "elapsed_ns": 14700249498,
+      "profiles": [
+        {
+          "operation": "route",
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1019552222,
+              "nanoseconds_floor": 24064
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172720940,
+              "nanoseconds_floor": 7369646484
+            },
+            "event_readback_ns": 4449,
+            "host": {
+              "call_ns": 7369818751,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                6753,
+                6402,
+                5069,
+                1211052,
+                7368503713,
+                39765,
+                30187,
+                7344,
+                8466
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        },
+        {
+          "operation": "vector_block",
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1021682525,
+              "nanoseconds_floor": 28031
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172639409,
+              "nanoseconds_floor": 7329836425
+            },
+            "event_readback_ns": 5019,
+            "host": {
+              "call_ns": 7330019874,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                15560,
+                10319,
+                5711,
+                9137,
+                7329886883,
+                41258,
+                34555,
+                5650,
+                10801
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        }
+      ],
+      "record_kind": "excluded_warmup"
+    },
+    {
+      "applied": false,
+      "batch": 1,
+      "carry_ns": 432214,
+      "cell": {
+        "policy": "occupied_cell_rank_hinge_v1",
+        "source": "checkpoint0"
+      },
+      "diagnostic_batch_wall_ns": 14691087856,
+      "epoch": 0,
+      "proposals": [
+        {
+          "active_candidates": 16,
+          "after": 26464,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 27360,
+          "candidate": 8,
+          "epoch": 0,
+          "extra_context_sync_ns": 5150,
+          "observation_ns": 16983,
+          "operation": "route",
+          "parameter": "Route(0)",
+          "propose_ns": 7367009562,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1020050438,
+              "nanoseconds_floor": 24992
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172715206,
+              "nanoseconds_floor": 7366846679
+            },
+            "event_readback_ns": 4569,
+            "host": {
+              "call_ns": 7367003581,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                7584,
+                9017,
+                5430,
+                9127,
+                7366895388,
+                33463,
+                30938,
+                4649,
+                7985
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        },
+        {
+          "active_candidates": 16,
+          "after": 27360,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 27360,
+          "candidate": 0,
+          "epoch": 0,
+          "extra_context_sync_ns": 12674,
+          "observation_ns": 38262,
+          "operation": "vector_block",
+          "parameter": "VectorBlock(0)",
+          "propose_ns": 7323533908,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1026429001,
+              "nanoseconds_floor": 42495
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172625867,
+              "nanoseconds_floor": 7323224121
+            },
+            "event_readback_ns": 7564,
+            "host": {
+              "call_ns": 7323520051,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                8476,
+                10660,
+                6542,
+                9738,
+                7323295539,
+                116610,
+                48852,
+                10890,
+                12744
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        }
+      ],
+      "record_kind": "batch",
+      "rows": 64
+    },
+    {
+      "applied": false,
+      "batch": 2,
+      "carry_ns": 851464,
+      "cell": {
+        "policy": "occupied_cell_rank_hinge_v1",
+        "source": "checkpoint0"
+      },
+      "diagnostic_batch_wall_ns": 14690235002,
+      "epoch": 0,
+      "proposals": [
+        {
+          "active_candidates": 16,
+          "after": 25632,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 26816,
+          "candidate": 4,
+          "epoch": 0,
+          "extra_context_sync_ns": 4328,
+          "observation_ns": 15980,
+          "operation": "route",
+          "parameter": "Route(0)",
+          "propose_ns": 7366520855,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1017902954,
+              "nanoseconds_floor": 20991
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172714202,
+              "nanoseconds_floor": 7366356445
+            },
+            "event_readback_ns": 3867,
+            "host": {
+              "call_ns": 7366515885,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                6733,
+                15769,
+                6944,
+                11711,
+                7366403584,
+                31169,
+                27842,
+                4619,
+                7514
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        },
+        {
+          "active_candidates": 16,
+          "after": 26816,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 26816,
+          "candidate": 0,
+          "epoch": 0,
+          "extra_context_sync_ns": 5470,
+          "observation_ns": 16612,
+          "operation": "vector_block",
+          "parameter": "VectorBlock(0)",
+          "propose_ns": 7322778886,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1013328277,
+              "nanoseconds_floor": 14047
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172624647,
+              "nanoseconds_floor": 7322628417
+            },
+            "event_readback_ns": 4158,
+            "host": {
+              "call_ns": 7322772284,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                7695,
+                9738,
+                5791,
+                8326,
+                7322675101,
+                29776,
+                20298,
+                4639,
+                10920
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        }
+      ],
+      "record_kind": "batch",
+      "rows": 64
+    },
+    {
+      "applied": false,
+      "batch": 3,
+      "carry_ns": 609659,
+      "cell": {
+        "policy": "occupied_cell_rank_hinge_v1",
+        "source": "checkpoint0"
+      },
+      "diagnostic_batch_wall_ns": 14690085901,
+      "epoch": 0,
+      "proposals": [
+        {
+          "active_candidates": 16,
+          "after": 26464,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 27424,
+          "candidate": 8,
+          "epoch": 0,
+          "extra_context_sync_ns": 4569,
+          "observation_ns": 14017,
+          "operation": "route",
+          "parameter": "Route(0)",
+          "propose_ns": 7366599193,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1012572363,
+              "nanoseconds_floor": 13344
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172714412,
+              "nanoseconds_floor": 7366458984
+            },
+            "event_readback_ns": 4308,
+            "host": {
+              "call_ns": 7366593781,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                7413,
+                9027,
+                6082,
+                9127,
+                7366504013,
+                25418,
+                17823,
+                5240,
+                9638
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        },
+        {
+          "active_candidates": 16,
+          "after": 27424,
+          "any_candidate_cost_differs_from_identity": true,
+          "applied": false,
+          "before": 27424,
+          "candidate": 0,
+          "epoch": 0,
+          "extra_context_sync_ns": 6261,
+          "observation_ns": 19316,
+          "operation": "vector_block",
+          "parameter": "VectorBlock(0)",
+          "propose_ns": 7322792040,
+          "subphases": {
+            "accounting": "host spans partition the API call; GPU event durations overlap host waits and MUST NOT be added to host durations",
+            "chooser": {
+              "milliseconds_ieee754_bits": 1020222237,
+              "nanoseconds_floor": 25312
+            },
+            "counterfactual": {
+              "milliseconds_ieee754_bits": 1172624612,
+              "nanoseconds_floor": 7322611328
+            },
+            "event_readback_ns": 4328,
+            "host": {
+              "call_ns": 7322784745,
+              "completed": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "spans_ns": [
+                8015,
+                11351,
+                6001,
+                9458,
+                7322659891,
+                41778,
+                32482,
+                5340,
+                10429
+              ]
+            },
+            "host_span_names": [
+              "admission_epoch_read",
+              "targets_spec_alloc_upload",
+              "losses_status_alloc_zero",
+              "counterfactual_submission",
+              "status_read_check",
+              "proposal_alloc",
+              "chooser_submission",
+              "final_sync",
+              "cleanup"
+            ],
+            "schema": "uor-r4.proposal-subphase-timing/1"
+          }
+        }
+      ],
+      "record_kind": "batch",
+      "rows": 64
+    },
+    {
+      "applied": false,
+      "carry_only": {
+        "note": "carry phase only; not the headline basis",
+        "ns": 1893337,
+        "padded_context_tokens_per_s": null,
+        "rows_per_s": null
+      },
+      "cell": {
+        "policy": "occupied_cell_rank_hinge_v1",
+        "source": "checkpoint0"
+      },
+      "diagnostic_scope": "diagnostic only; not qualification, not a p95 estimate, not a training rate; GPU event durations MUST NOT be added to host wall/wait durations",
+      "dtype": "integer host nanoseconds; vendor CUDA clock IEEE754 bits decoded to integer ns, never model arithmetic",
+      "epoch_after": 0,
+      "epoch_before": 0,
+      "excluded_warmups": 1,
+      "exclusion": "no apply/update is timed: every cell asserts an unchanged snapshot digest and epoch, so these are forward-only carry+propose+observe batches and NOT a training dose",
+      "identities": {
+        "compiled": {
+          "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+          "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+          "source_sha256": "4c0bf3ab97a82c3fed5187eb448b5d007a7dbe7271908b4f491e66d27697ea45"
+        },
+        "device": {
+          "counterfactual_local_bytes": 21536,
+          "evaluation_local_bytes": 21184,
+          "forward_local_bytes": 21056,
+          "memory": {
+            "free_bytes": 27747090432,
+            "ordinal": 0,
+            "total_bytes": 33670758400
+          }
+        }
+      },
+      "per_family_ns_per_batch_floor": {
+        "carry": 631112,
+        "route_observation": 15660,
+        "route_propose": 7366709870,
+        "vector_observation": 24730,
+        "vector_propose": 7323034944
+      },
+      "rates": null,
+      "record_kind": "cell",
+      "snapshot_digest_after": "a6e2674ec9c2ce495e5c6e8199c58f80176f5b68be6c7c74ae5d4476f095dd74",
+      "snapshot_digest_before": "a6e2674ec9c2ce495e5c6e8199c58f80176f5b68be6c7c74ae5d4476f095dd74",
+      "timed_batches": 3,
+      "unit_ns": 44071248951
+    }
+  ],
+  "schema": "k16-propose-subphase-record/v1",
+  "status": "complete"
+}

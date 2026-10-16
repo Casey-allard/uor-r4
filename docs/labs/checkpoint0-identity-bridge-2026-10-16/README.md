@@ -1,6 +1,6 @@
 # Checkpoint-0 source-identity bridge — diagnostic only
 
-**Source delivery; diagnostic NOT_RUN.** DeepSeek owns independent exact-head
+**Source delivery, subsequently merged as #2542.** The [separate sealed diagnostic](../propose-subphase-diagnostic-run-2026-10-16/README.md) records actual bridge use under PM's later execution release, with original bytes unchanged and zero apply. The source-delivery contract below is retained. DeepSeek owns independent exact-head
 review under [the four prospective criteria](https://github.com/UOR-Foundation/uor-r4/pull/2541#issuecomment-6212970029).
 The [sheet](../../harness/prep/m1-propose-subphase-diagnostic-2026-10-16.md)
 records [Kimi's FIT (design)](https://github.com/UOR-Foundation/uor-r4/pull/2541#issuecomment-6210781684)

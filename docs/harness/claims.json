@@ -27,10 +27,10 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/checkpoint0-identity-bridge": {
-    "branch": "codex/checkpoint0-identity-bridge",
-    "claimed_at": "2026-10-16T08:41:38-04:00",
-    "head": "4bf154c3e",
+  "codex/propose-subphase-receipts": {
+    "branch": "codex/propose-subphase-receipts",
+    "claimed_at": "2026-10-16T09:52:28-04:00",
+    "head": "8199af007",
     "lab": "codex",
     "note": ""
   },

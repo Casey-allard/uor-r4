@@ -1,0 +1,103 @@
+{
+  "schema": "uor-r4.diagnostic-cost-receipt/1",
+  "session": "codex-propose-subphase-20261016",
+  "pod": "vast-56253645",
+  "provider": "vast",
+  "gpu": "1 x RTX 5090",
+  "price_usd_per_hour": 0.908,
+  "provider_uptime_seconds": 468,
+  "ledger_up_to_down_wall_seconds": 470,
+  "create_to_ssh_seconds": 250,
+  "release_build_seconds": 27.97,
+  "diagnose_command_wall_seconds": 121,
+  "diagnose_started_utc": "2026-10-16T13:59:09Z",
+  "diagnose_ended_utc": "2026-10-16T14:01:10Z",
+  "lease_estimate_usd": 0.11804,
+  "cumulative_prior_17_leases_estimate_usd": 2.1123952777777775,
+  "cumulative_18_leases_estimate_usd": 2.2304352777777776,
+  "cost_basis": "provider uptime times quoted hourly price; estimates, not invoices; storage/transfer USD unmeasured",
+  "prior_cost_receipt": "https://github.com/UOR-Foundation/uor-r4/pull/2542#issuecomment-6215981349",
+  "storage_transfer_usd": "UNMEASURED",
+  "archive": {
+    "path": "icloud:UOR-R4/results/codex/codex-propose-subphase-20261016.tar",
+    "bytes": 5202432,
+    "md5": "a088932f8b921630a127198b0dac8984",
+    "sha256_manifest_entries": 26,
+    "round_trip_verified_before_release_and_down": true
+  },
+  "fleet_after": {
+    "pods": 0,
+    "usd_per_hour": 0
+  },
+  "events": [
+    {
+      "ts": "2026-10-16T13:54:03Z",
+      "event": "up",
+      "lab": "codex",
+      "session": "codex-propose-subphase-20261016",
+      "pod": "vast-56253645",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "gpu": "5090",
+      "count": 1,
+      "dc": "Vast Alberta, CA",
+      "volume": "",
+      "canonical": false,
+      "usd_per_h": 0.908,
+      "purpose": "FIT checkpoint0 subphase diagnostic: A/R one warmup plus three timed batches, zero apply",
+      "card": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6216273515",
+      "gpu_choice": "explicit"
+    },
+    {
+      "ts": "2026-10-16T13:58:12Z",
+      "event": "ssh-ready",
+      "lab": "codex",
+      "session": "codex-propose-subphase-20261016",
+      "pod": "vast-56253645",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "create_to_ssh_s": 250
+    },
+    {
+      "ts": "2026-10-16T13:58:13Z",
+      "event": "lease",
+      "lab": "codex",
+      "session": "codex-propose-subphase-20261016",
+      "pod": "vast-56253645",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "gpus": [
+        0
+      ],
+      "purpose": "FIT diagnostic only; no qualification or training",
+      "card": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6216273515",
+      "hours": 0.25
+    },
+    {
+      "ts": "2026-10-16T13:58:41Z",
+      "event": "run",
+      "lab": "codex",
+      "session": "codex-propose-subphase-20261016",
+      "pod": "vast-56253645",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "gpu": "0",
+      "cmd": "bash /workspace/subphase-remote.sh",
+      "log": "/workspace/uor-r4/jobs/codex/20261016T135841Z-codex-propose-subphase-20261016-gpu0.log"
+    },
+    {
+      "ts": "2026-10-16T14:01:49Z",
+      "event": "release",
+      "lab": "codex",
+      "session": "codex-propose-subphase-20261016",
+      "pod": "vast-56253645",
+      "by": "casey.allard@Caseys-MacBook-Pro"
+    },
+    {
+      "ts": "2026-10-16T14:01:53Z",
+      "event": "down",
+      "lab": "codex",
+      "session": "codex-propose-subphase-20261016",
+      "pod": "vast-56253645",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "usd_per_h": 0.908,
+      "uptime_s": 468
+    }
+  ]
+}
