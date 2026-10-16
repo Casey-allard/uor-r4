@@ -1,0 +1,6 @@
+{"phase":"discrete-build","exit":0,"started_unix":1792125084,"ended_unix":1792125108}
+{"phase":"timing-build","exit":0,"started_unix":1792125108,"ended_unix":1792125126}
+{"phase":"fixtures-build","exit":0,"started_unix":1792125126,"ended_unix":1792125143}
+{"phase":"discrete-clippy","exit":0,"started_unix":1792125143,"ended_unix":1792125158}
+{"phase":"timing-clippy","exit":0,"started_unix":1792125158,"ended_unix":1792125173}
+{"phase":"fixtures-clippy","exit":101,"started_unix":1792125173,"ended_unix":1792125187}

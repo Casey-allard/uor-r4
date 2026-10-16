@@ -1,6 +1,13 @@
 # Standalone `C-R1..C-R6` GPU Fixture Runner (`uor-r4.admission-rank-fixture-runner/1`)
 
-**Latest restart,16October:** the identity-access repair passed a pod CUDA check
+**Latest restart (4), 16 October:** [merged `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
+includes the approved C-R6 consumer repair and passes the fixture CUDA release
+build. Its mandatory clippy gate fails at `src/main.rs:564` on `3 * 4 + 0`
+(`clippy::identity_op`, `-D warnings`). Execution halted with no patch/retry;
+all six GPU controls remain NOT_RUN. Repair/review/merge is required before
+another full step-0 qualification attempt, not a mechanism rejection.
+
+**Earlier restart, 16 October:** the identity-access repair passed a pod CUDA check
 and merged in #2533, but [source preflight](../k16-qualification-restart-2026-10-16/README.md)
 found a separate C-R6 receipt mismatch: it reads `evaluation` instead of the
 driver's top-level `aggregate`. All fixtures remain NOT_RUN; no receipts were

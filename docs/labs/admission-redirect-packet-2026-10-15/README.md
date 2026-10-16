@@ -13,7 +13,14 @@ relative to this scoped release; its technical gates still apply unchanged.
 
 ## Qualification blocker and division of work
 
-**Latest restart:** after the compiled-identity repair merged as `bb536cf68`,
+**Latest restart (4):** the [attempt at merged `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
+passed all three CUDA builds and driver/timing clippy, then halted at fixture
+clippy (`identity_op`, denied by `-D warnings`). No model command ran; G-Pre,
+C-R1..C-R6 and checkpoint-0 timing remain NOT_RUN/UNMEASURED. Q4 remains
+NOT_EXECUTABLE. The reviewed C-R6 receipt repair is merged; this new step-0
+blocker requires repair/review/merge before another qualification attempt.
+
+**Earlier restart:** after the compiled-identity repair merged as `bb536cf68`,
 the [restart source preflight](../k16-qualification-restart-2026-10-16/README.md)
 found that C-R6 reads `evaluation` while G-Pre emits `aggregate`. No build or
 model command ran on that lease; the pod is deleted and source evidence archived.

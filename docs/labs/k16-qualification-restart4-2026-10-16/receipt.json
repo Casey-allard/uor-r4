@@ -1,0 +1,212 @@
+{
+  "schema": "uor-r4.k16-qualification-attempt/1",
+  "source_commit": "5fc68a9a6a4f2c1dcff3f73790865e5978e907a5",
+  "approved_instrument_head": "11e662a812f2e19c249a816346cb2a4f2828b3ee",
+  "instrument_byte_identity": true,
+  "session": "codex-k16-qual-20261016-4",
+  "pod": "vast-56199663",
+  "disposition": "STEP0_BLOCKER_TO_FIX",
+  "failed_gate": "fixtures-clippy",
+  "exit_code": 101,
+  "diagnostic": "clippy::identity_op at instrument/src/main.rs:564: Parameter::VectorBlock(3 * 4 + 0), denied by -D warnings",
+  "g_pre": "NOT_RUN",
+  "controls": [
+    {
+      "id": "C-R1",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "C-R2",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "C-R3",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "C-R4",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "C-R5",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "C-R6",
+      "status": "NOT_RUN"
+    }
+  ],
+  "timing_checkpoint0": "UNMEASURED",
+  "timing_q4": "NOT_EXECUTABLE",
+  "model_compute_executed": false,
+  "apply_calls": 0,
+  "training_executed": false,
+  "model_state_mutated": false,
+  "patch_or_retry": false,
+  "prior_provider_uptime_estimate_usd": 0.7179611111111112,
+  "step0": [
+    {
+      "phase": "discrete-build",
+      "exit": 0,
+      "started_unix": 1792125084,
+      "ended_unix": 1792125108,
+      "duration_seconds": 24
+    },
+    {
+      "phase": "timing-build",
+      "exit": 0,
+      "started_unix": 1792125108,
+      "ended_unix": 1792125126,
+      "duration_seconds": 18
+    },
+    {
+      "phase": "fixtures-build",
+      "exit": 0,
+      "started_unix": 1792125126,
+      "ended_unix": 1792125143,
+      "duration_seconds": 17
+    },
+    {
+      "phase": "discrete-clippy",
+      "exit": 0,
+      "started_unix": 1792125143,
+      "ended_unix": 1792125158,
+      "duration_seconds": 15
+    },
+    {
+      "phase": "timing-clippy",
+      "exit": 0,
+      "started_unix": 1792125158,
+      "ended_unix": 1792125173,
+      "duration_seconds": 15
+    },
+    {
+      "phase": "fixtures-clippy",
+      "exit": 101,
+      "started_unix": 1792125173,
+      "ended_unix": 1792125187,
+      "duration_seconds": 14
+    }
+  ],
+  "archive": {
+    "path": "icloud:UOR-R4/results/codex/codex-k16-qualification-20261016-4.tar",
+    "bytes": 162304,
+    "md5": "3f2ec85f8ff9963697c6a02991736ed5",
+    "sha256_manifest": "2c0dbbb970c5c3c2379d65a563bebbfa15bfa8ee549258c92aac40cf3928568c",
+    "verified_files": 26,
+    "download_roundtrip_verified_before_teardown": true
+  },
+  "created_at": "2026-10-16T04:28:07Z",
+  "released_at": "2026-10-16T04:34:57Z",
+  "deleted_at": "2026-10-16T04:35:14Z",
+  "wall_seconds": 427,
+  "wall_rate_estimate_usd": 0.06677805555555555,
+  "pod_deleted": true,
+  "fleet_running_after_teardown": 0,
+  "rental_cost_basis": "reported hourly rate times provider uptime / 3600; not invoice",
+  "leases": [
+    {
+      "pod": "vast-56182561",
+      "lab": "codex",
+      "session": "codex-k16-qual-20261016",
+      "deleted_at": "2026-10-16T01:50:22Z",
+      "usd_per_h": 0.815,
+      "uptime_s": 447,
+      "estimate_usd": 0.10119583333333332
+    },
+    {
+      "pod": "vast-56184953",
+      "lab": "deepseek",
+      "session": "k16cuda",
+      "deleted_at": "2026-10-16T02:10:05Z",
+      "usd_per_h": 1.775,
+      "uptime_s": 136,
+      "estimate_usd": 0.06705555555555555
+    },
+    {
+      "pod": "vast-56185442",
+      "lab": "deepseek",
+      "session": "k16cuda2",
+      "deleted_at": "2026-10-16T02:14:50Z",
+      "usd_per_h": 1.775,
+      "uptime_s": 121,
+      "estimate_usd": 0.05965972222222222
+    },
+    {
+      "pod": "vast-56186258",
+      "lab": "deepseek",
+      "session": "k16cuda3",
+      "deleted_at": "2026-10-16T02:20:11Z",
+      "usd_per_h": 4.696,
+      "uptime_s": 144,
+      "estimate_usd": 0.18783999999999998
+    },
+    {
+      "pod": "vast-56187939",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck",
+      "deleted_at": "2026-10-16T02:37:00Z",
+      "usd_per_h": 0.908,
+      "uptime_s": 303,
+      "estimate_usd": 0.07642333333333334
+    },
+    {
+      "pod": "vast-56189413",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-2",
+      "deleted_at": "2026-10-16T02:49:20Z",
+      "usd_per_h": 0.908,
+      "uptime_s": 183,
+      "estimate_usd": 0.04615666666666667
+    },
+    {
+      "pod": "vast-56190701",
+      "lab": "codex",
+      "session": "codex-k16-qual-20261016-3",
+      "deleted_at": "2026-10-16T03:02:53Z",
+      "usd_per_h": 0.603,
+      "uptime_s": 177,
+      "estimate_usd": 0.029647499999999997
+    },
+    {
+      "pod": "vast-56194344",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-3",
+      "deleted_at": "2026-10-16T03:40:15Z",
+      "usd_per_h": 0.603,
+      "uptime_s": 515,
+      "estimate_usd": 0.0862625
+    },
+    {
+      "pod": "vast-56196329",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-4",
+      "deleted_at": "2026-10-16T03:55:19Z",
+      "usd_per_h": 0.708,
+      "uptime_s": 154,
+      "estimate_usd": 0.030286666666666667
+    },
+    {
+      "pod": "vast-56197212",
+      "lab": "codex",
+      "session": "codex-k16-cudacheck-4",
+      "deleted_at": "2026-10-16T04:04:56Z",
+      "usd_per_h": 0.708,
+      "uptime_s": 170,
+      "estimate_usd": 0.033433333333333336
+    },
+    {
+      "pod": "vast-56199663",
+      "lab": "codex",
+      "session": "codex-k16-qual-20261016-4",
+      "deleted_at": "2026-10-16T04:35:14Z",
+      "usd_per_h": 0.563,
+      "uptime_s": 414,
+      "estimate_usd": 0.064745
+    }
+  ],
+  "qualification_chain_estimate_usd": 0.7827061111111111,
+  "storage_transfer_invoice": "UNMEASURED",
+  "retained_paid_pod_storage": false,
+  "codex_archived_bytes": 640512
+}

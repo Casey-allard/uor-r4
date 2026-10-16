@@ -1,6 +1,12 @@
 # D-R Qualification Runbook — Step-0 CUDA Build/Clippy Gate, `C-R1..C-R6`, `G-Pre` (`K=16` Checkpoint-0 Ceiling), and 100-Batch `K=16` Synchronized Timing (`NOT_TRAINING`, 15 October 2026)
 
-**Latest blocker:** the [restart at merged `bb536cf68`](../k16-qualification-restart-2026-10-16/README.md)
+**Latest blocker:** [restart 4 at `5fc68a9a6`](../k16-qualification-restart4-2026-10-16/README.md)
+passed all CUDA builds but halted at fixture clippy: `Parameter::VectorBlock(3 * 4 + 0)`
+triggers `clippy::identity_op` under the declared `-D warnings` gate. No model
+commands ran. Do not waive, patch or retry silently; repair/review/merge precede
+full step-0 re-entry. G-Pre and all runtime gates remain unmet.
+
+**Earlier blocker, repaired by #2536:** the [restart at merged `bb536cf68`](../k16-qualification-restart-2026-10-16/README.md)
 stopped before execution: C-R6 expects an `evaluation` key absent from the
 driver's `aggregate`-shaped G-Pre receipts. Do not rename sealed receipt fields
 to bypass this defect. Schema repair/review/merge precede another full step0
