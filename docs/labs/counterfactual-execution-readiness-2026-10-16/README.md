@@ -1,5 +1,15 @@
 # Counterfactual execution readiness — 16 October 2026
 
+**Follow-up, 21:05Z:** #2554 supplied the concrete controls, independent FIT and
+construction-verified executable. AGY packet review and a separate exact-pin
+Stage1 release followed. The [retained invocation](../counterfactual-controls-run-2026-10-16/README.md)
+stopped before finite controls on runtime/AOT register mismatch: U90/88,
+D122/126. GPU initialization/validation executed; proposal/endpoint/refusal
+counts0, apply0. The next dependency is source-only alignment of loaded image
+and resource-report provenance, keeping the zero-delta gate. Stage2 remains
+NOT_RELEASED. The earlier readiness record and its original prerequisites
+are retained below as dated context.
+
 **BLOCKED / NOT_RELEASED.** This packet seals the accepted construction and
 prospective source/PTX pins after #2550; it authorizes no model computation.
 The next decision is whether a concrete finite-control and execution packet

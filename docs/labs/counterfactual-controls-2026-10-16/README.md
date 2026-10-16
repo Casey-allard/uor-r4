@@ -1,5 +1,15 @@
 # Counterfactual U/D finite controls — 16 October 2026
 
+**Follow-up, 21:05Z:** source #2554 merged7bdfe7aa5; independent design FIT,
+AGY source/packet approval and CUDA construction gates passed. A separately
+released Stage1 invocation reached GPU initialization/validation but stopped
+at runtime/AOT register admission before all proposals/endpoints/refusals.
+The [sealed blocked receipt](../counterfactual-controls-run-2026-10-16/README.md)
+records U90/88 and D122/126 register mismatches and the PTX-versus-AOT provenance
+dependency. The finite controls remain NOT_RUN; diagnostic NOT_RELEASED.
+Repair that binding under review while preserving the gate before another
+execution release. The original source-preparation record follows.
+
 **SOURCE PREPARATION / NOT_RUN / NOT_RELEASED.** This is the next prerequisite
 after [instrument #2550](https://github.com/UOR-Foundation/uor-r4/pull/2550)
 and [readiness #2552](https://github.com/UOR-Foundation/uor-r4/pull/2552).

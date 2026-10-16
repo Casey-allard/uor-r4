@@ -1,0 +1,538 @@
+{
+  "apply_calls": 0,
+  "error": "BLOCKED: runtime/AOT resource mismatch before control proposals",
+  "execution_contract": {
+    "apply_calls": 0,
+    "claims": "finite exact-pair qualification only; no H1/H2/H3, rate, language, training or mechanism result",
+    "diagnostic_dose": "unchanged separate32-proposal diagnostic; not executed by controls",
+    "fixture_inventory_sha256": "53d61d6c6e0942a274baa907df8a4a8e08a207290b6812fce35234807331c465",
+    "inventory": {
+      "apply_calls": 0,
+      "cases": [
+        {
+          "expected_status": 8,
+          "id": "ineligible",
+          "parameters": [
+            "Route(0)",
+            "VectorBlock(0)"
+          ],
+          "shape": [
+            2,
+            2,
+            1,
+            1
+          ],
+          "targets": [
+            0
+          ],
+          "tokens": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              15
+            ]
+          ],
+          "windows": [
+            [
+              0
+            ]
+          ]
+        },
+        {
+          "expected_status": 0,
+          "id": "eligible",
+          "parameters": [
+            "Route(0)",
+            "VectorBlock(0)"
+          ],
+          "shape": [
+            2,
+            2,
+            1,
+            1
+          ],
+          "targets": [
+            1
+          ],
+          "tokens": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              15
+            ]
+          ],
+          "windows": [
+            [
+              0
+            ]
+          ]
+        },
+        {
+          "expected_status": 0,
+          "id": "mixed",
+          "parameters": [
+            "Route(0)",
+            "VectorBlock(0)"
+          ],
+          "shape": [
+            2,
+            2,
+            1,
+            1
+          ],
+          "targets": [
+            0,
+            1
+          ],
+          "tokens": [
+            [
+              0,
+              0
+            ],
+            [
+              15,
+              15
+            ]
+          ],
+          "windows": [
+            [
+              0
+            ],
+            [
+              0
+            ]
+          ]
+        },
+        {
+          "expected_status": 0,
+          "id": "tie",
+          "parameters": [
+            "Route(0)",
+            "VectorBlock(0)"
+          ],
+          "shape": [
+            2,
+            2,
+            1,
+            2
+          ],
+          "targets": [
+            0
+          ],
+          "tokens": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "windows": [
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "expected_status": 0,
+          "id": "virtual_ineligible",
+          "parameters": [
+            "VectorBlock(0)"
+          ],
+          "shape": [
+            2,
+            2,
+            1,
+            1
+          ],
+          "targets": [
+            0,
+            0
+          ],
+          "tokens": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "windows": [
+            [
+              0
+            ],
+            [
+              0
+            ]
+          ]
+        },
+        {
+          "expected_status": 0,
+          "frontier_entries": 2,
+          "id": "route_endpoint",
+          "parameters": [
+            "Route(0)"
+          ],
+          "routes": [
+            0,
+            0
+          ],
+          "shape": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "targets": [
+            0
+          ],
+          "tokens": [
+            [
+              3,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ],
+          "windows": [
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      ],
+      "endpoint_candidates": 16,
+      "endpoint_evaluations": 128,
+      "endpoints": [
+        [
+          "eligible",
+          "VectorBlock(0)"
+        ],
+        [
+          "tie",
+          "VectorBlock(0)"
+        ],
+        [
+          "virtual_ineligible",
+          "VectorBlock(0)"
+        ],
+        [
+          "route_endpoint",
+          "Route(0)"
+        ]
+      ],
+      "expected_cuda_status8": 8,
+      "host_refusal_attempts": 16,
+      "host_refusals_per_policy": [
+        "route_index_U",
+        "vector_index_U",
+        "gate_in_route_U",
+        "wrong_batch_U",
+        "wrong_batch_D",
+        "wrong_profiler_U",
+        "wrong_profiler_D",
+        "wrong_probe_D"
+      ],
+      "identities": {
+        "occurrence": "one-based position within window",
+        "record": 1,
+        "version": 1
+      },
+      "manual_predictions": {
+        "not_measured": true,
+        "tie_route_winner": 0,
+        "tie_vector_equal_best": [
+          3,
+          12
+        ],
+        "tie_vector_winner": 3,
+        "virtual_ineligible_identity_one_row_loss": 128,
+        "virtual_ineligible_identity_two_row_loss": 256,
+        "virtual_ineligible_nonidentity_loss": "MAX; virtual token_rivals0; not an arithmetic fault"
+      },
+      "policies": [
+        "nearest_address_margin_v1",
+        "occupied_cell_rank_hinge_v1"
+      ],
+      "proposal_attempts": 40,
+      "provenance": "c461350058e6ea1b188a60944da964982f272b60:C-R3/C-R4 literal fixture recipes",
+      "root0_candidate_images": [
+        0,
+        14,
+        12,
+        4,
+        10,
+        8,
+        10,
+        2,
+        5,
+        6,
+        8,
+        14,
+        13,
+        6,
+        12,
+        2
+      ],
+      "roots": [
+        [
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          -2,
+          -2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          -2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -2,
+          0,
+          -2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -2,
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          -2,
+          0,
+          0,
+          0,
+          -2
+        ],
+        [
+          0,
+          0,
+          0,
+          -2,
+          0,
+          0,
+          0,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          -2,
+          -2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          -2,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          -2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          2,
+          0,
+          0,
+          0,
+          -2
+        ],
+        [
+          0,
+          0,
+          0,
+          2,
+          0,
+          0,
+          0,
+          2
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          -2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          -2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "schema": "m1-counterfactual-controls-fixtures/1",
+      "seed": 1,
+      "seed2": false,
+      "successful_proposals": 32
+    },
+    "m2": "HELD",
+    "pin": {
+      "binary_sha256": "4b3d8413a7ae19de98397c65b6eb80086ef877c3bc54e8e004ea48ccbb2f4ff7",
+      "decomposition_kernel_sha256": "29615646becefc333c697f685157a4c124847b5022e070ab00d7b9c749bc8506",
+      "evaluation_only": true,
+      "execution_release_reference": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6224573422",
+      "fixture_inventory_sha256": "53d61d6c6e0942a274baa907df8a4a8e08a207290b6812fce35234807331c465",
+      "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+      "ordinary_kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+      "out_dir": "/workspace/codex-cf1-controls-run1/records",
+      "schema": "m1-counterfactual-controls-pin/1",
+      "seed": 1,
+      "source_commit": "7bdfe7aa52cb80ff4d3db1c93e08a3e2e31806a8",
+      "source_sha256": "a071bc4e21a18c78d1c44c3ca60f88e436ff6b200320f470b4ae9387c880c6b9",
+      "stage": "execution_pinned",
+      "standalone_source_sha256": "871639c3c9f38acaf617a84fc218f9bdf263e34f3d1fef58a06c3ffefcc6892b",
+      "test_fitness_reference": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6224276470",
+      "training_resume": false
+    },
+    "q4": "NOT_EXECUTABLE",
+    "schema": "m1-counterfactual-controls-plan/1",
+    "stage_b": "HELD",
+    "standalone_source_sha256": "871639c3c9f38acaf617a84fc218f9bdf263e34f3d1fef58a06c3ffefcc6892b",
+    "training": "HELD",
+    "unreachable": {
+      "cuda12": "admitted exact root/dimension bounds: lossTR<=37760,row sum<=2416640; unrelated aggregate overflow is not U/D parity",
+      "cuda2": "opaque admitted BinderPlan and device-validated routes; not injected",
+      "cuda4": "counterfactual Gate index branch excluded by admitted Route/VectorBlock parameter API",
+      "cuda9": "mode/parameter mismatch refused before counterfactual submission",
+      "stale_epoch": "opaque same-model batch epoch cannot become stale with zeroapply; NOT_EXECUTED",
+      "stale_proposal_cuda3": "apply-only branch; NOT_EXECUTED"
+    }
+  },
+  "m2": "HELD",
+  "q4": "NOT_EXECUTABLE",
+  "records": [
+    {
+      "commit_binding": "external protected source/build receipt; embedded standalone and PTX identities checked here",
+      "compiled": {
+        "decomposition_kernel_sha256": "29615646becefc333c697f685157a4c124847b5022e070ab00d7b9c749bc8506",
+        "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+        "kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+        "source_sha256": "a071bc4e21a18c78d1c44c3ca60f88e436ff6b200320f470b4ae9387c880c6b9"
+      },
+      "kind": "compiled_identity",
+      "source_commit": "7bdfe7aa52cb80ff4d3db1c93e08a3e2e31806a8"
+    },
+    {
+      "D": {
+        "local_bytes": 22096,
+        "max_threads_per_block": 512,
+        "ptxas": {
+          "registers": 126,
+          "spill_loads": 0,
+          "spill_stores": 0,
+          "stack_bytes": 22096
+        },
+        "registers": 122,
+        "shared_bytes": 0
+      },
+      "U": {
+        "local_bytes": 21536,
+        "max_threads_per_block": 640,
+        "ptxas": {
+          "registers": 88,
+          "spill_loads": 0,
+          "spill_stores": 0,
+          "stack_bytes": 21536
+        },
+        "registers": 90,
+        "shared_bytes": 0
+      },
+      "fixture": "ineligible",
+      "kind": "resources",
+      "within_allowance": false
+    }
+  ],
+  "schema": "m1-counterfactual-controls-record/1",
+  "stage_b": "HELD",
+  "status": "BLOCKED_INSTRUMENT_OR_FIXTURE",
+  "training": "HELD"
+}

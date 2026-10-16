@@ -1,9 +1,15 @@
 # Prospective finite-control execution packet
 
-**TEST FITNESS: PENDING. Execution: NOT_RELEASED. Results: NOT_RUN.**
-This packet is a proposed clarification of the failure/overflow/stale-epoch
+**TEST FITNESS: FIT (design only), #2029 comments6224276470 and6224487571.**
+The separate Stage1 release6224573422 was consumed by one invocation that
+[stopped on runtime/AOT resource mismatch](../counterfactual-controls-run-2026-10-16/README.md)
+before finite controls. Controls NOT_RUN; Stage2 NOT_RELEASED; no retry is
+authorized. Source/artifact binding repair and new review/pins/release remain.
+The fixed prospective packet below is retained unchanged in its outcome bars.
+
+This packet is the reviewed clarification of the failure/overflow/stale-epoch
 coverage named in the existing decomposition pre-registration. An independent
-FIT must accept or reject this precise scope before any model execution.
+FIT accepted this precise scope before the bounded Stage1 invocation.
 Source construction checks do not release finite controls or the diagnostic.
 
 ## One question and fixed conditions

@@ -1,0 +1,18 @@
+{
+  "schema": "m1-counterfactual-controls-pin/1",
+  "stage": "execution_pinned",
+  "source_commit": "7bdfe7aa52cb80ff4d3db1c93e08a3e2e31806a8",
+  "standalone_source_sha256": "871639c3c9f38acaf617a84fc218f9bdf263e34f3d1fef58a06c3ffefcc6892b",
+  "binary_sha256": "4b3d8413a7ae19de98397c65b6eb80086ef877c3bc54e8e004ea48ccbb2f4ff7",
+  "source_sha256": "a071bc4e21a18c78d1c44c3ca60f88e436ff6b200320f470b4ae9387c880c6b9",
+  "ordinary_kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+  "decomposition_kernel_sha256": "29615646becefc333c697f685157a4c124847b5022e070ab00d7b9c749bc8506",
+  "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+  "fixture_inventory_sha256": "53d61d6c6e0942a274baa907df8a4a8e08a207290b6812fce35234807331c465",
+  "seed": 1,
+  "evaluation_only": true,
+  "training_resume": false,
+  "test_fitness_reference": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6224276470",
+  "execution_release_reference": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6224573422",
+  "out_dir": "/workspace/codex-cf1-controls-run1/records"
+}
