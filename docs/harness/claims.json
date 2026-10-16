@@ -34,6 +34,13 @@
     "lab": "codex",
     "note": ""
   },
+  "deepseek/cr6-clippy": {
+    "branch": "deepseek/cr6-clippy",
+    "claimed_at": "2026-10-16T00:37:57-04:00",
+    "head": "5fc68a9a6",
+    "lab": "deepseek",
+    "note": "clippy identity_op at fixture main.rs:564 + crate-wide lint sweep (PM ruling 6208146828)"
+  },
   "deepseek/cr6-raw-receipts": {
     "branch": "deepseek/cr6-raw-receipts",
     "claimed_at": "2026-10-15T23:12:51-04:00",

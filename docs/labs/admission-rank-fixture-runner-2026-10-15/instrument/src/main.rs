@@ -561,7 +561,8 @@ mod gpu_runner {
                 name: "empty_cell",
                 base_table: c_r3_empty_cell_base_table(),
                 base_routes: routes.clone(),
-                parameter: Parameter::VectorBlock(3 * 4 + 0),
+                // Block 3, cell 0 -> index 12. Written without the identity `+ 0` the lint gate denied.
+                parameter: Parameter::VectorBlock(3 * 4),
                 token_block_root: Some((3, 0, 1)),
                 route_index: None,
             },
