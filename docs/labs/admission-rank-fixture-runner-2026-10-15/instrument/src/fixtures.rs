@@ -56,13 +56,11 @@ pub const ROOT1_CANDIDATE_ROOTS: [usize; 16] =
     [1, 3, 5, 13, 7, 9, 7, 15, 12, 11, 9, 3, 4, 11, 5, 15];
 pub const ROOT2_CANDIDATE_ROOTS: [usize; 16] =
     [2, 13, 11, 14, 9, 10, 8, 1, 11, 5, 7, 4, 14, 5, 6, 1];
-pub const ROOT3_CANDIDATE_ROOTS: [usize; 16] =
-    [3, 0, 10, 2, 5, 6, 5, 13, 7, 9, 11, 0, 2, 8, 7, 4];
+pub const ROOT3_CANDIDATE_ROOTS: [usize; 16] = [3, 0, 10, 2, 5, 6, 5, 13, 7, 9, 11, 0, 2, 8, 7, 4];
 pub const ROOT15_CANDIDATE_ROOTS: [usize; 16] =
     [15, 4, 6, 3, 8, 7, 9, 0, 6, 12, 10, 13, 3, 12, 11, 0];
 
-pub const EXPECTED_C_R1_HINGE_BY_K: [u64; 16] =
-    [2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+pub const EXPECTED_C_R1_HINGE_BY_K: [u64; 16] = [2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 pub const EXPECTED_C_R1_ADMITTED_BY_K: [bool; 16] = [
     false, false, true, true, true, true, true, true, true, true, true, true, true, true, true,
     true,
@@ -450,9 +448,7 @@ pub fn run_host_checks(repo_root: &std::path::Path) -> Result<HostCheckReport, S
             kept_cells: k,
         };
         spec.validate().map_err(|e| e.to_string())?;
-        ReadSpec::Route
-            .validate(spec)
-            .map_err(|e| e.to_string())?;
+        ReadSpec::Route.validate(spec).map_err(|e| e.to_string())?;
         validated_specs += 1;
     }
     let spec_256 = Spec {
@@ -519,9 +515,7 @@ pub fn run_host_checks(repo_root: &std::path::Path) -> Result<HostCheckReport, S
     }
     for base in [0usize, 1, 2, 3, 15] {
         if candidate_root_image(base, 0) != Some(base) {
-            return Err(format!(
-                "identity candidate 0 must preserve root {base}"
-            ));
+            return Err(format!("identity candidate 0 must preserve root {base}"));
         }
         for c in 0..16usize {
             let img = candidate_root_image(base, c).ok_or("missing candidate root image")?;
@@ -530,7 +524,8 @@ pub fn run_host_checks(repo_root: &std::path::Path) -> Result<HostCheckReport, S
             }
         }
     }
-    checks.push("static E8 orbit roots and 16-candidate generator root-image tables verified".into());
+    checks
+        .push("static E8 orbit roots and 16-candidate generator root-image tables verified".into());
 
     // C-R6 Part 6A: verify stored baseline guard (1..=16), data-binding.json, and all 4 K16 DriverConfigs
     let check_admitted_guard = |admitted: u64| -> bool { (1..=16).contains(&admitted) };
@@ -588,7 +583,9 @@ pub fn run_host_checks(repo_root: &std::path::Path) -> Result<HostCheckReport, S
         let typed_bytes = serde_json::to_vec(&cfg).map_err(|e| e.to_string())?;
         let typed_sha = sha256_hex(&typed_bytes);
         if typed_sha != expected_typed_sha {
-            return Err(format!("{file_name} typed config_sha256 mismatch: {typed_sha}"));
+            return Err(format!(
+                "{file_name} typed config_sha256 mismatch: {typed_sha}"
+            ));
         }
         if !check_admitted_guard(u64::from(cfg.spec.kept_cells)) {
             return Err(format!("{file_name} kept_cells failed 1..=16 guard"));

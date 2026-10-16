@@ -87,13 +87,26 @@ fn launch_aggregate(
     Ok((code, out_words))
 }
 
+/// The compiled artifact identity as typed strings.
+///
+/// compiled_identity() returns a serde_json::Value. Accessing it as a struct was an E0609 that no host
+/// ever compiled because it sits behind the cuda feature (#2531 / #2029). A missing key is an ERROR,
+/// never an empty string: an empty identity in a Snapshot would be a false receipt.
+pub fn identity_field(compiled: &serde_json::Value, key: &str) -> Result<String, String> {
+    compiled
+        .get(key)
+        .and_then(|v| v.as_str())
+        .map(str::to_owned)
+        .ok_or_else(|| format!("compiled identity is missing {key}"))
+}
 pub fn run_status12_overflow_checks() -> Result<CudaAggregateOverflowReport, String> {
     let ptx_sha256 = sha256_hex(PTX.as_bytes());
     let compiled = uor_r4_discrete::device::compiled_identity();
-    if ptx_sha256 != compiled.kernel_sha256 {
+    let compiled_kernel = identity_field(&compiled, "kernel_sha256")?;
+    if ptx_sha256 != compiled_kernel {
         return Err(format!(
             "PTX SHA-256 mismatch between runner ({ptx_sha256}) and uor-r4-discrete ({})",
-            compiled.kernel_sha256
+            compiled_kernel
         ));
     }
 

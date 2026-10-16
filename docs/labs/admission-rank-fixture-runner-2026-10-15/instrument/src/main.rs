@@ -1,6 +1,6 @@
-mod fixtures;
 #[cfg(feature = "cuda")]
 mod cuda_aggregate;
+mod fixtures;
 
 use fixtures::{build_suite_plan, run_host_checks, sha256_hex};
 use serde::{Deserialize, Serialize};
@@ -32,15 +32,19 @@ pub fn write_new_json<T: Serialize>(path: &Path, value: &T) -> Result<FilePin, S
         fs::create_dir_all(parent)
             .map_err(|e| format!("failed to create directory {}: {e}", parent.display()))?;
     }
-    let mut bytes =
-        serde_json::to_vec_pretty(value).map_err(|e| format!("serialize JSON: {e}"))?;
+    let mut bytes = serde_json::to_vec_pretty(value).map_err(|e| format!("serialize JSON: {e}"))?;
     bytes.push(b'\n');
     let sha256 = sha256_hex(&bytes);
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(path)
-        .map_err(|e| format!("refusing to overwrite or failed to create {}: {e}", path.display()))?;
+        .map_err(|e| {
+            format!(
+                "refusing to overwrite or failed to create {}: {e}",
+                path.display()
+            )
+        })?;
     file.write_all(&bytes)
         .map_err(|e| format!("failed to write {}: {e}", path.display()))?;
     file.sync_all()
@@ -127,7 +131,7 @@ pub fn verify_hinge_distribution(
 #[cfg(feature = "cuda")]
 mod gpu_runner {
     use super::*;
-    use crate::cuda_aggregate::run_status12_overflow_checks;
+    use crate::cuda_aggregate::{identity_field, run_status12_overflow_checks};
     use crate::fixtures::{
         c_r1_all_256_cells_table, c_r1_equal_distance_routes, c_r1_equal_distance_tie_table,
         c_r1_mixed_distance_table, c_r2_crowded_rival_cell_table, c_r2_new_preceding_cell_table,
@@ -150,10 +154,10 @@ mod gpu_runner {
         objective_policy: ObjectivePolicy,
         table: Vec<i32>,
         routes: Vec<u32>,
-    ) -> Snapshot {
+    ) -> Result<Snapshot, String> {
         let compiled = compiled_identity();
         let stages = routes.len() / (spec.blocks as usize);
-        Snapshot {
+        Ok(Snapshot {
             schema: SCHEMA.into(),
             spec,
             read_spec: ReadSpec::Route,
@@ -165,10 +169,10 @@ mod gpu_runner {
             gates: vec![0i32; (spec.blocks as usize) * stages],
             operator_kappa: OPERATOR_KAPPA.into(),
             composition_kappa: COMPOSITION_KAPPA.into(),
-            source_sha256: compiled.source_sha256,
-            kernel_sha256: compiled.kernel_sha256,
-            geometry_sha256: compiled.geometry_sha256,
-        }
+            source_sha256: identity_field(&compiled, "source_sha256")?,
+            kernel_sha256: identity_field(&compiled, "kernel_sha256")?,
+            geometry_sha256: identity_field(&compiled, "geometry_sha256")?,
+        })
     }
 
     fn eval_single_window(
@@ -179,7 +183,7 @@ mod gpu_runner {
         window: &[Identity],
         target: u32,
     ) -> Result<(Device, Evaluation), String> {
-        let snap = make_route_snapshot(spec, policy, table, routes);
+        let snap = make_route_snapshot(spec, policy, table, routes)?;
         let device = Device::from_snapshot(snap, 0).map_err(|e| format!("from_snapshot: {e}"))?;
         let batch = device
             .carry(window)
@@ -276,10 +280,7 @@ mod gpu_runner {
             || row_256.cell_rank_hinge != 240
             || eval_256.aggregate.weighted_cell_rank_hinge_sum != 7680
         {
-            return Err(format!(
-                "C-R1 1B 256-cell boundary mismatch: {:?}",
-                row_256
-            ));
+            return Err(format!("C-R1 1B 256-cell boundary mismatch: {:?}", row_256));
         }
 
         let report = serde_json::json!({
@@ -330,7 +331,11 @@ mod gpu_runner {
 
         for m in [1usize, 2, 4] {
             let table = c_r2_crowded_rival_cell_table(m);
-            for (k, bucket) in [(1u32, &mut hinges_k1), (2u32, &mut hinges_k2), (3u32, &mut hinges_k3)] {
+            for (k, bucket) in [
+                (1u32, &mut hinges_k1),
+                (2u32, &mut hinges_k2),
+                (3u32, &mut hinges_k3),
+            ] {
                 let spec = Spec {
                     vocabulary: 16,
                     blocks: 4,
@@ -521,9 +526,7 @@ mod gpu_runner {
                     &win3,
                     2,
                 )?;
-                let base_batch = base_dev
-                    .carry(&win3)
-                    .map_err(|e| format!("carry: {e}"))?;
+                let base_batch = base_dev.carry(&win3).map_err(|e| format!("carry: {e}"))?;
                 let proposal = base_dev
                     .propose(&base_batch, &[2], case.parameter)
                     .map_err(|e| format!("propose {}: {e}", case.name))?;
@@ -556,14 +559,8 @@ mod gpu_runner {
                     if let Some(r_idx) = case.route_index {
                         cand_routes[r_idx] = c as u32;
                     }
-                    let (_, cand_eval) = eval_single_window(
-                        spec,
-                        policy,
-                        cand_table,
-                        cand_routes,
-                        &win3,
-                        2,
-                    )?;
+                    let (_, cand_eval) =
+                        eval_single_window(spec, policy, cand_table, cand_routes, &win3, 2)?;
                     let crow = &cand_eval.rows[0];
                     if virtual_loss != cand_eval.aggregate.objective_loss_numerator_sum {
                         return Err(format!(
@@ -680,7 +677,7 @@ mod gpu_runner {
             ObjectivePolicy::OccupiedCellRankHingeV1,
             c_r4_sixteen_occupied_cells_table(),
             vec![0u32; 4],
-        );
+        )?;
         let dev_m16 = Device::from_snapshot(snap_m16, 0).map_err(|e| e.to_string())?;
         let windows_16 = vec![vec![win1[0]]; 16];
         let batch_16 = dev_m16
@@ -712,12 +709,8 @@ mod gpu_runner {
             ObjectivePolicy::NearestAddressMarginV1,
             ObjectivePolicy::OccupiedCellRankHingeV1,
         ] {
-            let snap = make_route_snapshot(
-                spec_k1,
-                policy,
-                c_r4_absent_rival_table(),
-                vec![0u32; 4],
-            );
+            let snap =
+                make_route_snapshot(spec_k1, policy, c_r4_absent_rival_table(), vec![0u32; 4])?;
             let dev = Device::from_snapshot(snap, 0).map_err(|e| e.to_string())?;
             let batch_ineligible = dev.carry(&win1).map_err(|e| e.to_string())?;
             let Err(err) = dev.propose(&batch_ineligible, &[0], Parameter::VectorBlock(0)) else {
@@ -825,12 +818,16 @@ mod gpu_runner {
             ObjectivePolicy::NearestAddressMarginV1,
             ObjectivePolicy::OccupiedCellRankHingeV1,
         ] {
-            let snap = make_route_snapshot(spec_256, policy, table_256.clone(), vec![0u32; 4]);
+            let snap = make_route_snapshot(spec_256, policy, table_256.clone(), vec![0u32; 4])?;
             let dev = Device::from_snapshot(snap, 0).map_err(|e| e.to_string())?;
             let batch_a = dev.carry_windows(&win_a).map_err(|e| e.to_string())?;
             let batch_b = dev.carry_windows(&win_b).map_err(|e| e.to_string())?;
-            let eval_a = dev.evaluate(&batch_a, &targets_a).map_err(|e| e.to_string())?;
-            let eval_b = dev.evaluate(&batch_b, &targets_b).map_err(|e| e.to_string())?;
+            let eval_a = dev
+                .evaluate(&batch_a, &targets_a)
+                .map_err(|e| e.to_string())?;
+            let eval_b = dev
+                .evaluate(&batch_b, &targets_b)
+                .map_err(|e| e.to_string())?;
             let combined = dev
                 .aggregate_evaluations(&[eval_a, eval_b])
                 .map_err(|e| e.to_string())?;
@@ -851,7 +848,9 @@ mod gpu_runner {
                 || serde_json::to_value(&combined).map_err(|e| e.to_string())?
                     != serde_json::to_value(agg).map_err(|e| e.to_string())?
             {
-                return Err("C-R5 5A combined aggregate_evaluations != single-pass aggregate".into());
+                return Err(
+                    "C-R5 5A combined aggregate_evaluations != single-pass aggregate".into(),
+                );
             }
 
             if agg.weighted_token_hinge_sum != 8 * agg.token_hinge_sum
@@ -989,9 +988,9 @@ mod gpu_runner {
                     || eval.aggregate.target_admitted_rows != 1
                     || eval.aggregate.cell_rank_hinge_sum != 0)
             {
-                return Err(
-                    format!("C-R6 seed={seed} K=16 checkpoint-0 failed 100% admission"),
-                );
+                return Err(format!(
+                    "C-R6 seed={seed} K=16 checkpoint-0 failed 100% admission"
+                ));
             }
             device_checks.push(serde_json::json!({
                 "seed": seed,
@@ -1040,7 +1039,9 @@ mod gpu_runner {
                 != Some(G_PRE_K8_SEED1_EXPECTED_ADDRESS_HINGE_SUM)
             || k8_eval["occupied_cells"].as_u64() != Some(16)
         {
-            return Err("C-R6 G-Pre seed=1 K=8 failed to match sealed pilot checkpoint-0 counts".into());
+            return Err(
+                "C-R6 G-Pre seed=1 K=8 failed to match sealed pilot checkpoint-0 counts".into(),
+            );
         }
 
         let mut k16_receipts = Vec::new();
@@ -1168,8 +1169,7 @@ fn run_cli(args: &[String]) -> Result<String, String> {
                     }
                     "--repo-root" => {
                         i += 1;
-                        repo_root =
-                            PathBuf::from(args.get(i).ok_or_else(|| usage().to_string())?);
+                        repo_root = PathBuf::from(args.get(i).ok_or_else(|| usage().to_string())?);
                     }
                     _ => return Err(usage().into()),
                 }
