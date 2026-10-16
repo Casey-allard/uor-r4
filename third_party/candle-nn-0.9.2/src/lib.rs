@@ -40,6 +40,7 @@ pub mod moe;
 pub mod ops;
 pub mod optim;
 pub mod rnn;
+#[cfg(any())] // Quarantined; historical/src/rotary_emb.rs preserves the upstream source.
 pub mod rotary_emb;
 pub mod sampling;
 pub mod sequential;

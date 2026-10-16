@@ -62,6 +62,8 @@ fn main() {
             "tanh",
             "gelu",
             "silu",
+            "rope",
+            "ropei",
             "uexp_",
             "mma.sync",
             "wmma.",

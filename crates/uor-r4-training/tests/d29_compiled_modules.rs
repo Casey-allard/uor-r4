@@ -86,6 +86,9 @@ fn banned_words() -> Vec<String> {
         ["wm", "ma"],
         ["mma", "_sync"],
         ["nvc", "uda"],
+        ["ro", "pe"],
+        ["ro", "pei"],
+        ["rot", "ary"],
     ]
     .iter()
     .map(|parts| parts.concat())

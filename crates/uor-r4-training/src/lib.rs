@@ -314,6 +314,7 @@ pub fn sha256_bytes(bytes: &[u8]) -> String {
     hex::encode(digest.finalize())
 }
 
+#[cfg(any())] // Retained dense teacher configuration; no compiled reference model.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ReferenceConfig {
     pub vocab_size: usize,
@@ -331,6 +332,7 @@ pub struct ReferenceConfig {
     pub mlp_bias: bool,
     pub hidden_act: String,
 }
+#[cfg(any())]
 impl ReferenceConfig {
     fn validate(&self) -> Result<()> {
         if self.vocab_size != 4096
@@ -632,6 +634,7 @@ impl ReferenceModel {
     }
 }
 
+#[cfg(any())]
 #[derive(Clone, Debug)]
 pub struct IntegrityRequest {
     pub snapshot: PathBuf,
@@ -639,6 +642,7 @@ pub struct IntegrityRequest {
     pub device: String,
     pub window: usize,
 }
+#[cfg(any())]
 impl IntegrityRequest {
     pub fn validate(&self) -> Result<()> {
         if !(8..=MAX_INTEGRITY_TOKENS).contains(&self.window) {
@@ -653,12 +657,14 @@ impl IntegrityRequest {
     }
 }
 
+#[cfg(any())]
 #[derive(Debug, Serialize)]
 pub struct InputIdentity {
     pub path: PathBuf,
     pub bytes: u64,
     pub sha256: String,
 }
+#[cfg(any())]
 fn identity(path: &Path) -> Result<InputIdentity> {
     Ok(InputIdentity {
         path: path.to_path_buf(),
@@ -667,6 +673,7 @@ fn identity(path: &Path) -> Result<InputIdentity> {
     })
 }
 
+#[cfg(any())]
 #[derive(Debug, Serialize)]
 pub struct GradientSummary {
     pub tensor: String,
@@ -678,6 +685,7 @@ pub struct GradientSummary {
     pub max_abs: f64,
 }
 
+#[cfg(any())]
 #[derive(Debug, Serialize)]
 pub struct FiniteDifference {
     pub tensor: String,
@@ -692,6 +700,7 @@ pub struct FiniteDifference {
     pub passes: bool,
 }
 
+#[cfg(any())]
 #[derive(Debug, Serialize)]
 pub struct Parity {
     pub positions: usize,
@@ -705,6 +714,7 @@ pub struct Parity {
     pub passes: bool,
 }
 
+#[cfg(any())]
 #[derive(Debug, Serialize)]
 pub struct PositionParity {
     pub position: usize,

@@ -96,8 +96,8 @@ fn forbidden(text: &str) -> Vec<String> {
     let mut found = BTreeSet::new();
     for word in c.split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_') {
         for family in [
-            "softmax", "softplus", "sigmoid", "tanh", "gelu", "silu", "cublas", "cudnn", "nvrtc",
-            "matmul", "gemm", "wmma", "mma_sync", "uexp_", "__nv_exp",
+            "softmax", "softplus", "sigmoid", "tanh", "gelu", "silu", "rope", "ropei", "rotary",
+            "cublas", "cudnn", "nvrtc", "matmul", "gemm", "wmma", "mma_sync", "uexp_", "__nv_exp",
         ] {
             if word.contains(family) {
                 found.insert(word.to_string());
@@ -375,6 +375,7 @@ fn main() {
             "mma.sync.aligned.m16n8k16;",
             "asm(\"mma.sync.aligned.m16n8k16;\");",
             "void uexp_f32(){}",
+            "void rope_f32(){}",
             "float sigmoid(float x){}",
         ] {
             assert!(!forbidden(bad).is_empty(), "missed {bad}");
