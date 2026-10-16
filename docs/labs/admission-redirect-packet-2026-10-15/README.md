@@ -13,6 +13,16 @@ relative to this scoped release; its technical gates still apply unchanged.
 
 ## Qualification blocker and division of work
 
+**16 October execution update:** the reviewed executors were merged, but the
+[qualification attempt at `3c651df97`](../k16-qualification-2026-10-16/README.md)
+halted at the fixture runner's CUDA build (E0609 identity-field accesses).
+Discrete and timing builds passed; clippy, G-Pre and all six controls were
+NOT_RUN. The K16 timing slot remains **UNMEASURED**, Q4 **NOT_EXECUTABLE**.
+Receipts were cloud-verified before pod deletion; no training gate is satisfied
+by this build-only attempt. The dependency account below retains the packet's
+original pre-delivery diagnosis; its GPU-executor-pending rows now mean a
+reviewed repair and successful qualification are pending, not absent source.
+
 The [readiness report](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201479931)
 found that `list-admission-rank-controls` prints metadata, not GPU test results.
 `objective.rs` explicitly marks the C-R3 executor and C-R6 corpus qualification

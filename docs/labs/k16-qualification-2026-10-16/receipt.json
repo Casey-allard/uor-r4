@@ -1,0 +1,53 @@
+{
+  "schema": "uor-r4.k16-qualification-attempt/1",
+  "source_commit": "3c651df97293ed4da4aa8f800c407ee351bbffff",
+  "lab": "codex",
+  "session": "codex-k16-qual-20261016",
+  "pod": "vast-56182561",
+  "disposition": "BLOCKER_TO_FIX",
+  "blocker": "fixture-runner CUDA build E0609: struct-field access on serde_json::Value",
+  "model_compute_executed": false,
+  "apply_calls": 0,
+  "builds": [
+    {"phase": "discrete-build", "exit": 0, "started_unix": 1792115151, "ended_unix": 1792115195},
+    {"phase": "timing-build", "exit": 0, "started_unix": 1792115195, "ended_unix": 1792115230},
+    {"phase": "fixtures-build", "exit": 101, "started_unix": 1792115230, "ended_unix": 1792115262}
+  ],
+  "clippy": "NOT_RUN",
+  "g_pre": {"status": "NOT_RUN", "admission_ceiling": null},
+  "controls": [
+    {"id": "C-R1", "status": "NOT_RUN"},
+    {"id": "C-R2", "status": "NOT_RUN"},
+    {"id": "C-R3", "status": "NOT_RUN"},
+    {"id": "C-R4", "status": "NOT_RUN"},
+    {"id": "C-R5", "status": "NOT_RUN"},
+    {"id": "C-R6", "status": "NOT_RUN"}
+  ],
+  "timing_checkpoint0": {"status": "NOT_RUN", "k16_rate_status": "UNMEASURED", "tokens_per_second": null},
+  "timing_q4": "NOT_EXECUTABLE",
+  "archive": {
+    "path": "icloud:UOR-R4/results/codex/codex-k16-qualification-20261016.tar",
+    "bytes": 97280,
+    "md5": "b199182f3df546841b7942d8ae986f92",
+    "download_roundtrip_md5_verified_before_teardown": true,
+    "sha256_manifest": "7daea68551073c820d63ffed4d2c9fc5dd6bcd38812305044116a9d7adc36c0e",
+    "verified_files": 18,
+    "sealed_at": "2026-10-16T01:49:17Z"
+  },
+  "resources": {
+    "created_at": "2026-10-16T01:42:46Z",
+    "released_at": "2026-10-16T01:50:07Z",
+    "deleted_at": "2026-10-16T01:50:22Z",
+    "pod_deleted": true,
+    "wall_seconds": 456,
+    "provider_uptime_seconds": 447,
+    "reported_usd_per_hour": "0.815",
+    "uptime_cost_estimate_usd": "0.101196",
+    "wall_cost_estimate_usd": "0.103233",
+    "invoice_verified": false,
+    "ephemeral_disk_gb": 150,
+    "storage_transfer_invoice": "UNMEASURED",
+    "new_storage_plan_purchased": false,
+    "retained_paid_pod_storage": false
+  }
+}

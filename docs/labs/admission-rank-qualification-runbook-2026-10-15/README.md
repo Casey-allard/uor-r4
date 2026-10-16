@@ -1,5 +1,13 @@
 # D-R Qualification Runbook — Step-0 CUDA Build/Clippy Gate, `C-R1..C-R6`, `G-Pre` (`K=16` Checkpoint-0 Ceiling), and 100-Batch `K=16` Synchronized Timing (`NOT_TRAINING`, 15 October 2026)
 
+**Execution update, 16 October:** [PM order 6205684341](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6205684341)
+sets step 0 → **G-Pre → C-R1..C-R6** → checkpoint-0-only timing (C-R6 consumes
+G-Pre receipts), superseding the earlier numbered ordering below. The
+[first attempt](../k16-qualification-2026-10-16/README.md) at `3c651df97` halted
+at the fixture CUDA build, before clippy or model execution; all later gates
+remain NOT_RUN. Q4 remains NOT_EXECUTABLE. Repair/review/merge precede a new
+full step-0 attempt; no failed gate may be skipped.
+
 - **Lab:** `antigravity`
 - **Date:** `2026-10-15`
 - **Line:** `starling read / exact addressed memory` — `count 1/3` (unchanged; runbook specification only)

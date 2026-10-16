@@ -1,5 +1,11 @@
 # K16 synchronized 100-batch timing instrument (2026-10-15)
 
+**16 October qualification update:** the timing CUDA release build passed on
+RTX 5090 at `3c651df97`, but [step 0 halted on the separate fixture runner's
+build](../k16-qualification-2026-10-16/README.md) before clippy or model execution.
+The timing instrument has not run: K16 rates remain UNMEASURED, and the Q4 leg
+remains NOT_EXECUTABLE. A successful build is not runtime qualification.
+
 Source-only delivery of the runner Codex delegated ([#2029 6201508191](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201508191)) under
 the PM ruling ([#2029 6201569519](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201569519)). The instrument is a **standalone dated-record crate**: `measurement.rs`
 and every production kernel are untouched, and nothing under `crates/` changes.

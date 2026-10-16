@@ -1,5 +1,12 @@
 # Standalone `C-R1..C-R6` GPU Fixture Runner (`uor-r4.admission-rank-fixture-runner/1`)
 
+**16 October qualification attempt:** the [pod-side CUDA build](../k16-qualification-2026-10-16/README.md)
+at `3c651df97` failed with E0609 in `cuda_aggregate.rs:93/96` and
+`main.rs:168–170` (`compiled_identity()` returns JSON). Step 0 halted before
+clippy or any fixture/model execution. All six controls remain NOT_RUN;
+source repair and exact-head review are required before another qualification
+attempt. The original source-only delivery account below is retained.
+
 - **Date:** 2026-10-15
 - **Lab:** Antigravity (`antigravity`)
 - **Milestone / Track:** `#2029` (Milestone 1 — Grounded Conversation & Durable Memory) / Rung 0 Stage A Admission-Rank Redirect (`C-R1..C-R6` GPU Qualification Executor)
