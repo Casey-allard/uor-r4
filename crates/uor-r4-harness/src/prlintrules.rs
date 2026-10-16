@@ -61,6 +61,8 @@ fn info(rule_id: &'static str, message: String, fix: String) -> Finding {
 
 /// D23's interlock, as the harness runs it.
 pub const INTERLOCK: &str = "uor-harness ratchet d23";
+/// D25's interlock, as the harness runs it.
+pub const INTERLOCK_D25: &str = "uor-harness ratchet d25";
 
 /// The acknowledgement stems the tests use. The real ones come from the config file; these are the
 /// same list written out, **so a test failing here means the config and the tests have diverged** -
@@ -150,9 +152,10 @@ fn acknowledges(text: &str, stems: &[String]) -> bool {
     stems.iter().any(|m| lower.contains(m.as_str()))
 }
 
-/// `prlint.d23_interlock` — the D23 interlock exists, is callable, and reports no growth.
+/// `prlint.d23_interlock` — both the D23 (`Kind::NormExp`) and D25 (`Kind::Matmul`) interlocks exist,
+/// are callable, and report no growth.
 ///
-/// **It calls the Rust ratchet**, which is the interlock's only implementation now. **It never
+/// **It calls the Rust ratchets**, which are the interlocks' only implementation now. **It never
 /// reimplements the scan** — the Python's comment says the same, and the reason holds: a second
 /// scanner would be a second answer to one question, and the whole point of an interlock is that
 /// there is one.
@@ -163,54 +166,74 @@ pub fn interlock_holds(paths: &StatePaths, claims: &[String]) -> Vec<Finding> {
     // tested; calling the code the command calls removes all three.
     use crate::ratchet::{self, Kind};
 
-    let kind = Kind::NormExp;
-    let scan = match ratchet::scan(&paths.repo, kind) {
-        Ok(s) => s,
-        Err(e) => {
-            // **An interlock that cannot run is not a passing interlock.** The honest report is that
-            // the check did not happen, which is why this is an error rather than a silence.
-            return vec![error(
-                concat!("prlint.", "soft", "max", "_ban"),
-                format!("the D23 interlock could not run: {e:?}"),
-                format!("run it directly: {INTERLOCK}"),
-            )];
-        }
-    };
-    let baseline = match ratchet::load_baseline(&paths.repo, kind) {
-        Ok(Some(b)) => b,
-        Ok(None) => {
-            return vec![error(
-                concat!("prlint.", "soft", "max", "_ban"),
-                "the D23 interlock has no baseline, so no count can be compared".into(),
-                format!("set it: {INTERLOCK} --update-baseline"),
-            )];
-        }
-        Err(e) => {
-            return vec![error(
-                concat!("prlint.", "soft", "max", "_ban"),
-                format!("the D23 baseline could not be read: {e:?}"),
-                format!("run it directly: {INTERLOCK}"),
-            )];
-        }
-    };
+    let mut errors = Vec::new();
+    for (kind, label, cmd, fix_msg) in [
+        (
+            Kind::NormExp,
+            "D23",
+            INTERLOCK,
+            "replace the site with a geometric mechanism, then lower the baseline with --update-baseline",
+        ),
+        (
+            Kind::Matmul,
+            "D25",
+            INTERLOCK_D25,
+            "replace the site with a structured geometric product, then lower the baseline with --update-baseline",
+        ),
+    ] {
+        let scan = match ratchet::scan(&paths.repo, kind) {
+            Ok(s) => s,
+            Err(e) => {
+                // **An interlock that cannot run is not a passing interlock.** The honest report is that
+                // the check did not happen, which is why this is an error rather than a silence.
+                errors.push(error(
+                    concat!("prlint.", "soft", "max", "_ban"),
+                    format!("the {label} interlock could not run: {e:?}"),
+                    format!("run it directly: {cmd}"),
+                ));
+                continue;
+            }
+        };
+        let baseline = match ratchet::load_baseline(&paths.repo, kind) {
+            Ok(Some(b)) => b,
+            Ok(None) => {
+                errors.push(error(
+                    concat!("prlint.", "soft", "max", "_ban"),
+                    format!("the {label} interlock has no baseline, so no count can be compared"),
+                    format!("set it: {cmd} --update-baseline"),
+                ));
+                continue;
+            }
+            Err(e) => {
+                errors.push(error(
+                    concat!("prlint.", "soft", "max", "_ban"),
+                    format!("the {label} baseline could not be read: {e:?}"),
+                    format!("run it directly: {cmd}"),
+                ));
+                continue;
+            }
+        };
 
-    let growth = ratchet::growth(&scan.counts, &baseline);
-    if !growth.is_empty() {
-        let listed: Vec<String> = growth
-            .iter()
-            .take(3)
-            .map(|(p, base, n)| format!("{p} ({base} -> {n})"))
-            .collect();
-        return vec![error(
-            concat!("prlint.", "soft", "max", "_ban"),
-            format!(
-                "the D23 interlock reports {} file(s) above baseline: {}",
-                growth.len(),
-                listed.join(", ")
-            ),
-            "replace the site with a geometric mechanism, then lower the baseline with              --update-baseline"
-                .into(),
-        )];
+        let growth = ratchet::growth(&scan.counts, &baseline);
+        if !growth.is_empty() {
+            let listed: Vec<String> = growth
+                .iter()
+                .take(3)
+                .map(|(p, base, n)| format!("{p} ({base} -> {n})"))
+                .collect();
+            errors.push(error(
+                concat!("prlint.", "soft", "max", "_ban"),
+                format!(
+                    "the {label} interlock reports {} file(s) above baseline: {}",
+                    growth.len(),
+                    listed.join(", ")
+                ),
+                fix_msg.into(),
+            ));
+        }
+    }
+    if !errors.is_empty() {
+        return errors;
     }
 
     // The interlock is clean. An info only when the body NAMES the mechanism without acknowledging
@@ -325,6 +348,40 @@ mod tests {
         assert!(
             f.is_empty(),
             "a correct citation must not be nagged at: {f:?}"
+        );
+    }
+
+    /// Growth in D25 (`Kind::Matmul`) is caught by `interlock_holds` as an error.
+    #[test]
+    fn d25_matmul_growth_produces_an_error() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir_all(dir.path().join("crates/x/src")).expect("mkdir");
+        std::fs::create_dir_all(dir.path().join("scripts")).expect("mkdir scripts");
+        std::fs::write(
+            dir.path().join("crates/x/src/a.rs"),
+            "fn f() { a.matmul(b); }\n",
+        )
+        .expect("write source");
+        std::fs::write(
+            crate::ratchet::Kind::NormExp.baseline_path(dir.path()),
+            "{}\n",
+        )
+        .expect("write d23 baseline");
+        std::fs::write(
+            crate::ratchet::Kind::Matmul.baseline_path(dir.path()),
+            "{}\n",
+        )
+        .expect("write d25 baseline");
+        let p = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        let f = interlock_holds(&p, &[]);
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert_eq!(f[0].severity, "error");
+        assert!(
+            f[0].message.contains(
+                "the D25 interlock reports 1 file(s) above baseline: crates/x/src/a.rs (0 -> 1)"
+            ),
+            "{}",
+            f[0].message
         );
     }
 }

@@ -20,6 +20,13 @@
     "lab": "antigravity",
     "note": "D36 Studio shell cleanup (remove dead wasm_* branches, guard native_geometric_finish_generation, add D36 status banner & provenance note)"
   },
+  "antigravity/interlock-ratchet-hardening": {
+    "branch": "antigravity/interlock-ratchet-hardening",
+    "claimed_at": "2026-10-16T14:51:37-04:00",
+    "head": "69cb1f59d",
+    "lab": "antigravity",
+    "note": ""
+  },
   "claude/public-face-reconcile-2026-10-15": {
     "branch": "claude/public-face-reconcile-2026-10-15",
     "claimed_at": "2026-10-15T18:19:36-04:00",

@@ -57,6 +57,7 @@ uor-harness arena board|compare|lineage  the lineage of evaluated configurations
 uor-harness multilab presence|claims|sync-live   what each lab published, who holds which branch
 uor-harness budget show|scan            cumulative cost, and the pod specs of running jobs
 uor-harness lint check|format           lint a PR body against the contract; render a compliant one
+uor-harness ratchet d23|d25             the D23 (norm-exp/squashing/activation/rotary) and D25 (matmul/tensor-core) ratchets
 uor-harness heartbeat --milestone m1    check in (live tier; 5-minute window)
 uor-harness git install-hooks|status    the pre-commit guard, and this branch's delivery state
 uor-harness check [--staged]            every machine-checkable rule in one pass
@@ -281,9 +282,12 @@ why a release rides a PR rather than sitting in a mirror nobody reviews.
 
 ## Rule engine
 
-`scripts/harness/checkrules.py` holds the rules; each rule has an id, a severity and a
-message that names the exact fix. `--staged` mode is used by the pre-commit hook. A rule
-added for a mistake cites that mistake's id, so a lesson becomes a guard rather than a note.
+`crates/uor-r4-harness` (and `scripts/harness/checkrules.py`) holds the rules; each rule has an id,
+a severity and a message that names the exact fix. `--staged` mode is used by the pre-commit hook.
+A rule added for a mistake cites that mistake's id, so a lesson becomes a guard rather than a note.
+`prlint.d23_interlock` runs both `uor-harness ratchet d23` (`softmax`, `softplus`, `sigmoid`, `tanh`,
+`gelu`, `silu`, `rope`, `ropei`, `rotary`) and `uor-harness ratchet d25` (`.matmul(`, `MatMul`, `cublas`,
+`gemm`, `wmma`, `mma_sync`) in process across `crates/` and `docs/labs/*/instrument/`.
 
 ## Before you install the hook
 

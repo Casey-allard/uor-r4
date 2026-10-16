@@ -3767,7 +3767,7 @@ fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
         }
         if kind == Kind::Matmul {
             println!(
-                "    informational: {} tensor-core intrinsic sites (fragment and sync intrinsics) across {} files — not gated.",
+                "    gated: {} tensor-core intrinsic sites (fragment and sync intrinsics) across {} files.",
                 current.tensor_core, current.tensor_files
             );
         }

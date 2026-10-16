@@ -45,11 +45,16 @@ come from the owner through the PM.
 
 ## R5 — Ratchets stay green on every PR
 
-- **Rule.** Every PR keeps the ratchets green: `scripts/check_no_softmax.py` (baseline 1648),
-  `scripts/check_no_matmul.py` (93 sites / 26 files), `scripts/check_claim_wording.py`.
+- **Rule.** Every PR keeps the ratchets and policy check green: `uor-harness ratchet d23` (2,253 sites /
+  154 files across `crates/` and `docs/labs/*/instrument/`, covering `softmax` plus stripped-code
+  `softplus`, `sigmoid`, `tanh`, `gelu`, `silu`, `rope`, `ropei` and `rotary`), `uor-harness ratchet d25`
+  (93 sites / 26 files across `crates/` and `docs/labs/*/instrument/`, gating `.matmul(`, `MatMul`,
+  `cublas`, `gemm` and tensor-core `wmma`/`mma_sync` intrinsics), `cargo run -p uor-r4-core --bin r4-policy-check`
+  (verifying `/schema == "uor-r4.agent-execution-policy/6"`, `training_matrix_multiplication_allowed == false`,
+  and the D25/D32 discrete/no-matmul invariants), and `scripts/check_claim_wording.py`.
 - **Why.** The bans erode one "temporary" site at a time; a baseline is a floor, not a budget.
-- **Harness surface.** `lint check` invokes the D23 interlock on any PR body that names the operation;
-  a PR that raises a baseline fails.
+- **Harness surface.** `lint check` and `uor-harness check` invoke both the D23 (`Kind::NormExp`) and D25
+  (`Kind::Matmul`) interlocks in process via `prlint.d23_interlock`; a PR that raises either baseline fails.
 
 ## R6 — Preservation
 

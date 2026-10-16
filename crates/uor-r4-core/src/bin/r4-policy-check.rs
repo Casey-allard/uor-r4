@@ -7,12 +7,32 @@ fn check(root: &Path) -> Result<(), String> {
     let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let policy: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
     for (pointer, expected) in [
-        ("/schema", Value::from("uor-r4.agent-execution-policy/5")),
+        ("/schema", Value::from("uor-r4.agent-execution-policy/6")),
         ("/mode", Value::from("native_geometric_ai")),
         ("/architecture/implementation_language", Value::from("rust")),
         (
+            "/architecture/serving_matrix_products_allowed",
+            Value::from(false),
+        ),
+        (
             "/architecture/training_matrix_multiplication_allowed",
-            Value::from(true),
+            Value::from(false),
+        ),
+        (
+            "/architecture/dense_matrix_multiplication_allowed",
+            Value::from(false),
+        ),
+        (
+            "/architecture/model_floating_point_allowed",
+            Value::from(false),
+        ),
+        (
+            "/architecture/floating_point_model_instruments_allowed",
+            Value::from(false),
+        ),
+        (
+            "/architecture/floating_point_gradients_and_optimizer_allowed",
+            Value::from(false),
         ),
         (
             "/architecture/python_model_dependency_allowed",
@@ -99,5 +119,49 @@ fn main() -> std::process::ExitCode {
             eprintln!("{error}");
             std::process::ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn repo_root() -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    #[test]
+    fn real_repo_policy_passes() {
+        assert_eq!(check(&repo_root()), Ok(()));
+    }
+
+    #[test]
+    fn stale_training_matmul_true_is_rejected() {
+        let root = repo_root();
+        let src =
+            std::fs::read_to_string(root.join("docs/integration/agent-execution-policy.json"))
+                .expect("read policy");
+        let mut val: Value = serde_json::from_str(&src).expect("parse policy");
+        val["architecture"]["training_matrix_multiplication_allowed"] = Value::from(true);
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-policy-check-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(dir.join("docs/integration")).expect("mkdir");
+        std::fs::write(
+            dir.join("docs/integration/agent-execution-policy.json"),
+            serde_json::to_string_pretty(&val).expect("serialize"),
+        )
+        .expect("write");
+        let err = check(&dir).expect_err("must reject training matmul = true");
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(
+            err.contains("/architecture/training_matrix_multiplication_allowed"),
+            "{err}"
+        );
     }
 }
