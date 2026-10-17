@@ -6,6 +6,13 @@
     "lab": "antigravity",
     "note": "Host-only D32 Rust float-type/literal ratchet (uor-harness ratchet d32), Hopper/Blackwell tensor-core ratchet (wgmma/tcgen05), and uor-r4-proof-model D23/D25/D32 inference audit expansion (#2563)"
   },
+  "antigravity/harness-d32-and-rule-dispatch": {
+    "branch": "antigravity/harness-d32-and-rule-dispatch",
+    "claimed_at": "2026-10-16T22:51:46-04:00",
+    "head": "fa62a670a",
+    "lab": "antigravity",
+    "note": "Implement and wire un-dispatched harness.owner_rules_applied, harness.entry_point, harness.documented_commands (with GROUPS/FLAGS validation), prlint.gates_declared, and receipts.skill_usage_recorded in uor-r4-harness (#2570)"
+  },
   "claude/public-face-reconcile-2026-10-15": {
     "branch": "claude/public-face-reconcile-2026-10-15",
     "claimed_at": "2026-10-15T18:19:36-04:00",

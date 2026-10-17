@@ -6,18 +6,15 @@
 //! |---|---|---|
 //! | `receipts.parse` | error | **yes** |
 //! | `receipts.ledger_present` | warn | **yes** |
-//! | `receipts.skill_usage_recorded` | info | no — it has no check |
+//! | `receipts.skill_usage_recorded` | info | **yes** (explicit no-op matching Python) |
 //!
-//! ## Why `skill_usage_recorded` is not ported
+//! ## Why `skill_usage_recorded` is an explicit no-op
 //!
-//! **Its body always returns an empty list.** It reads the skill receipts and then returns `[]` on
-//! both branches — the comment says so: *"informational only: the engine prints `ok` for an empty
-//! list."* **It is a rule that cannot fail**, and porting it would add a function whose only
-//! observable effect is to be counted.
-//!
-//! That is the same call I made for `budget.no_new_spending_class`, and the reason is the same: **a
-//! rule that cannot fail reads as coverage.** If the intent is to report that skills have or have not
-//! been used, that belongs in the `receipts` command's output, where a reader sees it.
+//! **Its Python body always returns an empty list.** It reads the skill receipts and then returns
+//! `[]` on both branches — the comment says so: *"informational only: the engine prints `ok` for an
+//! empty list."* Ported in [`skill_usage_recorded`] and wired into [`all`] so [`crate::checkdispatch`]
+//! invokes every rule registered in `checkdispatch::RULES`, while preserving Python's exact no-op
+//! behaviour rather than inventing a failure condition Python does not have.
 //!
 //! ## `receipts.parse` and `budget.receipts_parse` are two rules over one file
 //!
@@ -186,6 +183,7 @@ pub fn ledger_present(paths: &StatePaths) -> Vec<Finding> {
 pub fn all(paths: &StatePaths) -> Vec<Finding> {
     let mut out = parse(paths);
     out.extend(ledger_present(paths));
+    out.extend(skill_usage_recorded());
     out
 }
 
@@ -329,6 +327,11 @@ mod tests {
     }
 }
 
+#[cfg(test)]
+thread_local! {
+    static SKILL_USAGE_RECORDED_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 /// `receipts.skill_usage_recorded` — **a rule that cannot fail, ported as one that cannot fail.**
 ///
 /// Python:
@@ -352,6 +355,8 @@ mod tests {
 /// `receipts.skill_usage_recorded` in `check`'s output should know it is a placeholder passing
 /// silently, not a verification that succeeded.
 pub fn skill_usage_recorded() -> Vec<crate::preprules::Finding> {
+    #[cfg(test)]
+    SKILL_USAGE_RECORDED_CALLS.with(|c| c.set(c.get() + 1));
     Vec::new()
 }
 
@@ -363,5 +368,34 @@ mod skill_usage_tests {
     #[test]
     fn the_rule_produces_nothing_for_any_state() {
         assert!(super::skill_usage_recorded().is_empty());
+    }
+
+    #[test]
+    fn all_and_checkdispatch_invoke_skill_usage_recorded() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let p = crate::state::StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        let regs = crate::registries::Registries::default();
+        super::SKILL_USAGE_RECORDED_CALLS.with(|c| c.set(0));
+        let _ = super::all(&p);
+        assert_eq!(
+            super::SKILL_USAGE_RECORDED_CALLS.with(|c| c.get()),
+            1,
+            "receiptsrules::all must invoke skill_usage_recorded()"
+        );
+        let out = crate::checkdispatch::run_scoped(
+            &p,
+            &regs,
+            &["receipts.skill_usage_recorded".to_string()],
+            crate::checkdispatch::Scope::Repo,
+            0,
+        );
+        assert_eq!(
+            super::SKILL_USAGE_RECORDED_CALLS.with(|c| c.get()),
+            2,
+            "checkdispatch::run_scoped must invoke receiptsrules::all -> skill_usage_recorded()"
+        );
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].rule_id, "receipts.skill_usage_recorded");
+        assert_eq!(out[0].message, "ok");
     }
 }

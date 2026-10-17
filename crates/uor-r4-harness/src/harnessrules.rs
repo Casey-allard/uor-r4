@@ -1,6 +1,6 @@
 //! The `harness` rules, as Rust (D30 check-port step 2 of 10).
 //!
-//! # The six `harness` rules
+//! # The seven `harness` rules
 //!
 //! | rule | severity | what it catches |
 //! |---|---|---|
@@ -8,14 +8,9 @@
 //! | `harness.skills.nonempty` | error | no skill is registered |
 //! | `harness.mistakes.have_guards` | warn | an active lesson with no guard, or a guard naming no rule |
 //! | `harness.state_formats` | error | persisted state drifts from the frozen format contract |
+//! | `harness.owner_rules_applied` | warn | an `all`-scoped owner rule is absent from `APPLICABLE_RULES` |
 //! | `harness.entry_point` | error | normative docs invoke the Python entry point |
 //! | `harness.documented_commands` | warn | a documented command does not exist in the parser |
-//!
-//! **The last three are text analysis over docs and source**, and two of them read the Python parser
-//! itself. They are not in this unit: `harness.entry_point` and `harness.documented_commands` are only
-//! meaningful while both implementations exist, and porting them to Rust would mean a Rust program
-//! that reads a Python argument parser to check documentation — **a check that dies with the thing it
-//! checks.** They belong with the retirement of `cli.py`, not before it.
 
 use crate::mistakes;
 use crate::registries::Registries;
@@ -109,7 +104,67 @@ pub fn all(paths: &StatePaths, regs: &Registries) -> Vec<Finding> {
     // record while it was never evaluated as a rule** - and a lab comparing the two implementations
     // saw Python report drift where Rust reported a pass. **Found by diffing the two outputs.**
     out.extend(state_formats(paths));
+    out.extend(owner_rules_applied(regs));
+    out.extend(entry_point(paths));
+    out.extend(documented_commands(paths));
     out
+}
+
+/// `harness.owner_rules_applied` — every owner rule scoped to `all` (excluding `OWNER-*`
+/// sub-clauses) must appear in [`crate::prep::APPLICABLE_RULES`].
+pub fn owner_rules_applied(regs: &Registries) -> Vec<Finding> {
+    let mut owed: Vec<&str> = regs
+        .owner_rules
+        .iter()
+        .filter(|r| r.get("scope").and_then(|s| s.as_str()) == Some("all"))
+        .filter_map(|r| r.get("id").and_then(|s| s.as_str()))
+        .filter(|id| !id.is_empty() && !id.starts_with("OWNER-"))
+        .collect();
+    owed.sort_unstable();
+    owed.dedup();
+    let missing: Vec<&str> = owed
+        .into_iter()
+        .filter(|rid| !crate::prep::APPLICABLE_RULES.contains(rid))
+        .collect();
+    if missing.is_empty() {
+        return Vec::new();
+    }
+    vec![Finding {
+        rule_id: "harness.owner_rules_applied",
+        severity: "warn",
+        message: format!(
+            "owner rule(s) scoped to everything are absent from a pre-registration sheet: {} - the sheet a lab follows does not state them",
+            missing.join(", ")
+        ),
+        path: "crates/uor-r4-harness/src/prep.rs".into(),
+        fix: "add them to APPLICABLE_RULES in BOTH scripts/harness/prep.py and crates/uor-r4-harness/src/prep.rs, and give each text in docs/harness/milestones.json's owner_rules".into(),
+    }]
+}
+
+/// `harness.entry_point` — normative docs must invoke `uor-harness`, not `python3 scripts/harness/cli.py`.
+///
+/// [`crate::doccheck::entry_point`] returns a `warn` finding with `fix: ""` when clean to match
+/// Python's per-rule output shape; `checkdispatch::run_scoped` synthesizes `ok` when no finding is
+/// returned and treats any emitted finding with `message != "ok"` as a failure, so this dispatcher
+/// adapter forwards only the `error` findings.
+pub fn entry_point(paths: &StatePaths) -> Vec<Finding> {
+    crate::doccheck::entry_point(&paths.repo)
+        .into_iter()
+        .filter(|f| f.severity == "error")
+        .collect()
+}
+
+/// `harness.documented_commands` — every `uor-harness <subcommand> [flags]` named in normative docs
+/// resolves against [`crate::doccheck`]'s static `ACCEPTED`, `GROUPS`, and `FLAGS` tables.
+///
+/// [`crate::doccheck::documented_commands_rule`] returns a `warn` finding with `fix: ""` when all
+/// documented commands resolve; `checkdispatch::run_scoped` synthesizes `ok` when no finding is
+/// returned, so this dispatcher adapter forwards only findings with a non-empty `fix`.
+pub fn documented_commands(paths: &StatePaths) -> Vec<Finding> {
+    crate::doccheck::documented_commands_rule(&paths.repo, &[])
+        .into_iter()
+        .filter(|f| !f.fix.is_empty())
+        .collect()
 }
 
 /// `harness.state_formats` — the persisted state against the frozen contract.
@@ -189,7 +244,7 @@ mod tests {
         Registries::load(p).expect("registry")
     }
 
-    /// The three ported rules must all pass on the real repository.
+    /// All seven ported `harness.*` rules must pass on the real repository.
     #[test]
     fn the_real_repo_passes_the_ported_rules() {
         let r = repo();
@@ -326,5 +381,136 @@ mod tests {
             f.is_empty(),
             "a real active lesson has no usable guard: {f:?}"
         );
+    }
+
+    /// An `all`-scoped owner rule absent from `APPLICABLE_RULES` is reported, while `m1`-scoped and
+    /// `OWNER-*` sub-clause entries are exempt.
+    #[test]
+    fn an_unapplied_all_scoped_owner_rule_is_reported() {
+        let regs = Registries {
+            owner_rules: vec![
+                serde_json::json!({"id": "D21", "scope": "all", "rule": "ok"}),
+                serde_json::json!({"id": "D99", "scope": "all", "rule": "missing from sheet"}),
+                serde_json::json!({"id": "D98", "scope": "m1", "rule": "milestone-scoped"}),
+                serde_json::json!({"id": "OWNER-2026-10-12-X", "scope": "all", "rule": "sub-clause"}),
+            ],
+            ..Default::default()
+        };
+        let f = owner_rules_applied(&regs);
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert_eq!(f[0].rule_id, "harness.owner_rules_applied");
+        assert_eq!(f[0].severity, "warn");
+        assert!(f[0].message.contains("D99"), "{}", f[0].message);
+        assert!(!f[0].message.contains("D98"), "{}", f[0].message);
+        assert!(!f[0].message.contains("OWNER-"), "{}", f[0].message);
+    }
+
+    /// `entry_point` emits an `error` finding when a normative doc invokes `python3 scripts/harness/cli.py`
+    /// and is silent when clean.
+    #[test]
+    fn entry_point_reports_stale_cli_and_stays_silent_when_clean() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::write(root.join("README.md"), "Run `uor-harness status`.\n").expect("write clean");
+        assert!(entry_point(&paths_of(root)).is_empty());
+
+        std::fs::write(
+            root.join("README.md"),
+            "Run `python3 scripts/harness/cli.py status`.\n",
+        )
+        .expect("write stale");
+        let f = entry_point(&paths_of(root));
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert_eq!(f[0].rule_id, "harness.entry_point");
+        assert_eq!(f[0].severity, "error");
+        assert!(f[0].message.contains("README.md:1"), "{}", f[0].message);
+    }
+
+    /// `documented_commands` emits a `warn` finding when a normative doc names an unknown subcommand
+    /// or flag and is silent when all documented commands exist.
+    #[test]
+    fn documented_commands_reports_unknown_command_and_stays_silent_when_clean() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::write(
+            root.join("README.md"),
+            "Run `uor-harness status --refresh`.\n",
+        )
+        .expect("write clean");
+        assert!(documented_commands(&paths_of(root)).is_empty());
+
+        std::fs::write(
+            root.join("README.md"),
+            "Run `uor-harness nonexistent-subcommand` and `uor-harness status --refreshh`.\n",
+        )
+        .expect("write unknown");
+        let f = documented_commands(&paths_of(root));
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert_eq!(f[0].rule_id, "harness.documented_commands");
+        assert_eq!(f[0].severity, "warn");
+        assert!(
+            f[0].message.contains("nonexistent-subcommand"),
+            "{}",
+            f[0].message
+        );
+        assert!(f[0].message.contains("--refreshh"), "{}", f[0].message);
+    }
+
+    /// `harnessrules::all` and `checkdispatch::run_scoped` must actually dispatch
+    /// `owner_rules_applied`, `entry_point`, and `documented_commands` so removing any `out.extend`
+    /// call in `all` fails the suite.
+    #[test]
+    fn all_and_checkdispatch_surface_owner_rules_entry_point_and_documented_commands() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::write(
+            root.join("README.md"),
+            "Run `python3 scripts/harness/cli.py status`, `uor-harness nonexistent-subcommand`, and `uor-harness status --refreshh`.\n",
+        )
+        .expect("write violating doc");
+        let p = paths_of(root);
+        let regs = Registries {
+            owner_rules: vec![serde_json::json!({
+                "id": "D99",
+                "scope": "all",
+                "rule": "missing from APPLICABLE_RULES"
+            })],
+            ..Default::default()
+        };
+
+        let direct = all(&p, &regs);
+        for expected in [
+            "harness.owner_rules_applied",
+            "harness.entry_point",
+            "harness.documented_commands",
+        ] {
+            assert!(
+                direct.iter().any(|f| f.rule_id == expected),
+                "harnessrules::all must emit {expected}: {direct:?}"
+            );
+        }
+
+        let dispatched = crate::checkdispatch::run_scoped(
+            &p,
+            &regs,
+            &["harness.".to_string()],
+            crate::checkdispatch::Scope::Repo,
+            0,
+        );
+        for (expected_id, expected_substr) in [
+            ("harness.owner_rules_applied", "D99"),
+            ("harness.entry_point", "README.md:1"),
+            ("harness.documented_commands", "--refreshh"),
+        ] {
+            let hit = dispatched
+                .iter()
+                .find(|f| f.rule_id == expected_id)
+                .unwrap_or_else(|| panic!("missing {expected_id} in {dispatched:?}"));
+            assert!(
+                hit.message.contains(expected_substr),
+                "{expected_id} should contain {expected_substr:?}, got: {}",
+                hit.message
+            );
+        }
     }
 }

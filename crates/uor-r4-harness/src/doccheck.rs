@@ -1,4 +1,4 @@
-//! `harness.entry_point` — normative docs must not send a lab back to the Python entry point.
+//! `harness.entry_point` and `harness.documented_commands` — normative documentation checks.
 //!
 //! # Why this is one of the two rules I had been calling unportable
 //!
@@ -6,20 +6,17 @@
 //! nature — their subject is the file they live in."* **I had never opened `doccheck.py`.** The
 //! subject is **the documentation**, which is an ordinary input; see #2028 (comment 6159759343).
 //!
-//! # What is ported here, and what is not
+//! # What is ported here, and how the two implementations differ
 //!
-//! **`stale_cli_invocations` is ported whole**, because it is a line scan over discovered docs and
-//! there is nothing to weaken.
-//!
-//! **`harness.documented_commands` is NOT ported here, deliberately.** Python validates a documented
-//! command by **building the live `argparse` parser and resolving the documented words against it** -
-//! so it checks the command, its subcommand and its flags. A Rust version written without that
-//! introspection could only check the **command word**, and **shipping that under the same rule id
-//! would be a weaker check wearing the name of the real one** — the silent downgrade this port
-//! refuses everywhere else. It stays in Python until someone ports the introspection.
-//!
-//! **So this module ports one rule and says why it is not two**, rather than half-porting a rule and
-//! reporting coverage it does not have.
+//! * **`stale_cli_invocations` (`harness.entry_point`) is ported whole**, because it is a line scan
+//!   over discovered docs and there is nothing to weaken.
+//! * **`documented_commands` (`harness.documented_commands`) resolves against explicit static tables
+//!   ([`ACCEPTED`], [`GROUPS`], and [`FLAGS`])** rather than introspecting Python's live `argparse`
+//!   tree. It checks the top-level command word against [`ACCEPTED`], the subcommand word for the 11
+//!   grouped commands against [`GROUPS`], and every option token against the global [`FLAGS`] union
+//!   (mirroring Python's `_all_options(parser, deep=True)`, while exempting bare prose `"-"` after
+//!   [`RUST_ONLY_COMMANDS`] so `the_table_agrees_with_pythons_live_parser` stays in 1-to-1 agreement
+//!   with `scripts/harness/doccheck.py`).
 
 use crate::preprules::Finding;
 use regex::Regex;
@@ -480,9 +477,29 @@ const ACCEPTED: &[&str] = &[
     "comment",
 ];
 
+/// Top-level commands implemented only by the Rust entry point (`scripts/harness/doccheck.py:192-216`).
+///
+/// Python's `_resolve` short-circuits on this set before checking flags, so a prose hyphen after a
+/// Rust-only command (`uor-harness onboard - can this machine…`) is tolerated while genuine `--`/`-x`
+/// flags are still validated against [`FLAGS`].
+const RUST_ONLY_COMMANDS: &[&str] = &[
+    "onboard",
+    "presence",
+    "registry",
+    "prep-render",
+    "prep-check",
+    "shard-check",
+    "check-formats",
+    "ledger-sync",
+    "notes",
+    "ratchet",
+    "version",
+    "comment",
+];
+
 /// Subcommands of the top-level groups, as **this binary** accepts them.
 ///
-/// **10 groups, taken from the runtime's own subparsers rather than curated by hand.**
+/// **11 groups, taken from the runtime's own subparsers rather than curated by hand.**
 ///
 /// # Why a table rather than introspection
 ///
@@ -497,12 +514,10 @@ const ACCEPTED: &[&str] = &[
 /// **The one thing it cannot do that Python can**: Python's table IS the parser, so it cannot drift.
 /// **This one can**, and the test below resolves every documented command through both
 /// implementations to catch exactly that.
-/// **Kept as the record of what the table was derived from**, and deliberately not consulted by
-/// `resolve` - which is Python's behaviour, not an omission. See the note above.
-#[allow(dead_code)]
-const GROUPS: [(&str, &[&str]); 10] = [
+const GROUPS: [(&str, &[&str]); 11] = [
     ("arena", &["board", "compare", "lineage"]),
     ("budget", &["scan", "show"]),
+    ("comment", &["edit"]),
     (
         "git",
         &[
@@ -528,8 +543,8 @@ const GROUPS: [(&str, &[&str]); 10] = [
     ),
 ];
 
-/// The flags this binary accepts, wherever they appear — **62 of them, taken from the runtime's own
-/// parser rather than curated by hand.**
+/// The flags this binary accepts, wherever they appear — **76 of them, taken from Python's parser
+/// and `main.rs`'s `SUBCOMMAND_FLAGS` / `SUBCOMMAND_VALUE_FLAGS` rather than curated by hand.**
 ///
 /// **My first list was written from memory and was missing `--apply`, `--refresh`, `--dry-run` and
 /// others**, which produced 18 false failures on commands that work. **A hand-kept interface list is
@@ -538,8 +553,8 @@ const GROUPS: [(&str, &[&str]); 10] = [
 ///
 /// **Global flags may appear anywhere**, and that is a deliberate looseness Python documents too:
 /// *"what is worth checking is that the flag EXISTS, not where a doc happened to place it."*
-#[allow(dead_code)]
 const FLAGS: &[&str] = &[
+    "--action",
     "--actor",
     "--apply",
     "--at",
@@ -549,25 +564,34 @@ const FLAGS: &[&str] = &[
     "--body-file",
     "--branch",
     "--budget-tokens",
+    "--cached",
     "--class",
     "--cost",
     "--count",
     "--create",
+    "--date",
+    "--doing",
+    "--dry-run",
     "--evidence",
     "--files",
     "--force",
     "--guard",
+    "--headline",
     "--help",
     "--id",
     "--json",
+    "--kind",
     "--lab",
     "--label",
     "--lesson",
     "--line",
+    "--list",
+    "--mark-seen",
     "--mechanism",
     "--milestone",
     "--milestones",
     "--next",
+    "--no-notes",
     "--note",
     "--only",
     "--outcome",
@@ -579,6 +603,8 @@ const FLAGS: &[&str] = &[
     "--refresh",
     "--repo",
     "--reviewer",
+    "--role",
+    "--route",
     "--rows",
     "--run",
     "--scope",
@@ -586,6 +612,7 @@ const FLAGS: &[&str] = &[
     "--session",
     "--severity",
     "--sheet",
+    "--skill",
     "--split",
     "--staged",
     "--state",
@@ -595,6 +622,7 @@ const FLAGS: &[&str] = &[
     "--task",
     "--title",
     "--trigger",
+    "--update-baseline",
     "--value",
     "--verdict",
     "--write",
@@ -624,38 +652,56 @@ fn substitution_re() -> &'static Regex {
     re(&CELL, r"\$\([^)]*\)|`[^`]*`")
 }
 
-/// `doccheck._resolve` — does this command exist, and if not, why not.
+/// `doccheck._resolve` — does this command exist, and if not, why not (command and subcommand words).
+pub fn resolve(words: &[String], known: &[&str]) -> (bool, String) {
+    resolve_with_flags(words, &[], known)
+}
+
+/// `doccheck._resolve` — validate top-level command against `known`, subcommand against [`GROUPS`],
+/// and option tokens against [`FLAGS`].
 ///
 /// **Two judgement calls, both Python's, both deliberate**: global flags may appear anywhere, and
 /// flags interleaved with command words are tolerated — because `uor-harness --repo <path> multilab
 /// presence` is a valid invocation a naive tokeniser splits.
 ///
-/// **The failure modes are separated in the message** — an unknown *subcommand* lists what exists,
-/// an unknown *flag* does not — because the two send a reader to different places.
-pub fn resolve(words: &[String], known: &[&str]) -> (bool, String) {
-    let mut rest: Vec<&String> = words.iter().collect();
-    if rest.is_empty() {
+/// **The failure modes are separated in the message** — an unknown *command* or *subcommand* lists
+/// what exists, an unknown *flag* does not — because the two send a reader to different places.
+pub fn resolve_with_flags(words: &[String], flags: &[String], known: &[&str]) -> (bool, String) {
+    if words.is_empty() {
         return (false, "no command".into());
     }
-    // **A Rust-only command short-circuits BEFORE anything else.** Python checks
-    // `RUST_ONLY_COMMANDS` first and returns `(True, "")` — **so for those commands the flag list is
-    // never consulted**, and `uor-harness onboard - can this machine…` passes despite `-` not being a
-    // flag. **That is the last divergence the comparison found, and it was not a flag-vocabulary
-    // difference at all**: I had the order of two checks wrong.
-    let head = rest.remove(0);
-    if known.contains(&head.as_str()) {
-        return (true, "ok".to_string());
+    let head = words[0].as_str();
+    if !known.contains(&head) {
+        return (
+            false,
+            format!("unknown command {head:?} (have: {})", {
+                let mut k = known.to_vec();
+                k.sort();
+                k.join(", ")
+            }),
+        );
     }
-    // For anything else Python defers to the parser. **This port cannot**: `known` is the command set
-    // the *documented* invocations are checked against, and a name outside it does not exist.
-    (
-        false,
-        format!("unknown command {head:?} (have: {})", {
-            let mut k = known.to_vec();
-            k.sort();
-            k.join(", ")
-        }),
-    )
+    if let Some((_, subs)) = GROUPS.iter().find(|(g, _)| *g == head) {
+        if let Some(sub) = words.get(1).map(String::as_str) {
+            if !subs.contains(&sub) {
+                return (
+                    false,
+                    format!("unknown subcommand {sub:?} (have: {})", subs.join(", ")),
+                );
+            }
+        }
+    }
+    for flag in flags {
+        // A bare `-` after a Rust-only command (`uor-harness onboard - can this machine…`) is
+        // prose punctuation that Python skips by short-circuiting on `RUST_ONLY_COMMANDS`.
+        if flag == "-" && RUST_ONLY_COMMANDS.contains(&head) {
+            continue;
+        }
+        if !FLAGS.contains(&flag.as_str()) {
+            return (false, format!("unknown flag {flag:?}"));
+        }
+    }
+    (true, "ok".to_string())
 }
 
 /// Flags whose following token is their value, so it must never be read as a command word.
@@ -810,8 +856,7 @@ pub fn commands_in_text(text: &str, known: &[&str]) -> Vec<(String, bool, String
         if words.is_empty() {
             continue;
         }
-        let _ = &flags;
-        let (ok, why) = resolve(&words, known);
+        let (ok, why) = resolve_with_flags(&words, &flags, known);
         let mut render = words.clone();
         render.extend(flags.iter().cloned());
         out.push((format!("uor-harness {}", render.join(" ")), ok, why));
@@ -890,6 +935,45 @@ mod documented_commands_tests {
 
     fn repo() -> std::path::PathBuf {
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    #[test]
+    fn subcommands_and_flags_are_validated_against_groups_and_flags() {
+        // Valid top-level command + valid flag
+        let r1 = commands_in_text("Run `uor-harness status --refresh`", ACCEPTED);
+        assert_eq!(r1.len(), 1);
+        assert!(r1[0].1, "{r1:?}");
+
+        // Typo in flag (`--refreshh`) must fail
+        let r2 = commands_in_text("Run `uor-harness status --refreshh`", ACCEPTED);
+        assert_eq!(r2.len(), 1);
+        assert!(!r2[0].1, "unknown flag --refreshh must be rejected: {r2:?}");
+        assert!(r2[0].2.contains("unknown flag \"--refreshh\""), "{r2:?}");
+
+        // Invalid subcommand (`team list` instead of `team roster`) must fail
+        let r3 = commands_in_text("Run `uor-harness team list`", ACCEPTED);
+        assert_eq!(r3.len(), 1);
+        assert!(
+            !r3[0].1,
+            "unknown subcommand `team list` must be rejected: {r3:?}"
+        );
+        assert!(r3[0].2.contains("unknown subcommand \"list\""), "{r3:?}");
+
+        // Valid subcommand (`team roster`) passes
+        let r4 = commands_in_text("Run `uor-harness team roster`", ACCEPTED);
+        assert_eq!(r4.len(), 1);
+        assert!(r4[0].1, "{r4:?}");
+
+        // Prose dash after a Rust-only command is tolerated, while an invalid flag on a
+        // Rust-only command is rejected
+        let r5 = commands_in_text("uor-harness onboard - can this machine use it", ACCEPTED);
+        assert_eq!(r5.len(), 1);
+        assert!(r5[0].1, "{r5:?}");
+
+        let r6 = commands_in_text("Run `uor-harness onboard --bad-flag`", ACCEPTED);
+        assert_eq!(r6.len(), 1);
+        assert!(!r6[0].1, "{r6:?}");
+        assert!(r6[0].2.contains("unknown flag \"--bad-flag\""), "{r6:?}");
     }
 
     /// **Every documented command, resolved by BOTH implementations, compared row by row** — the
