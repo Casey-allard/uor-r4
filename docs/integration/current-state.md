@@ -1,3 +1,13 @@
+## 2026-10-17 — Peer protocol specification v1 (deepseek/object-store-protocol-spec)
+
+The [protocol specification](../labs/object-store-protocol-spec-2026-10-17/README.md) documents the
+byte-level UOROBJ01 peer contract in crates/uor-r4-object-store/PROTOCOL.md: exact custom BLAKE2b-96
+node ids, 45/49-byte records, manifest layout and base-3 frontier, frame kinds 20..=25, pull/verify/
+verify_series/pull_series flows, serve semantics, limits, errors, trust boundaries, a porting checklist
+and the reference file map. Documentation only; package tests and formats unchanged. No model compute;
+training/M2/Stage B HELD. **Next:** protected delivery, then use the spec to port a minimal verifier
+(non-Rust or container/VM agent) against the reference server.
+
 ## 2026-10-17 — Fleet sync: pull a target series on one session (deepseek/object-store-pull-series)
 
 The [pull-series record](../labs/object-store-pull-series-2026-10-17/README.md) adds pull_series plus
