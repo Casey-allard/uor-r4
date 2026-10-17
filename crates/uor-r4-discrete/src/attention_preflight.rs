@@ -1,0 +1,374 @@
+//! Attention preflight preparation/readback and a distinct actual GPU cell-ID
+//! capture. Metadata entry points never construct a model; capture_dev performs
+//! one explicitly additional zero-apply forward pass and issues no capability.
+use super::*;
+
+fn input<T: serde::de::DeserializeOwned>(path: &Path) -> Result<(T, FilePin)> {
+    let bytes = fs::read(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+    let value = serde_json::from_slice(&bytes).map_err(|e| invalid(e.to_string()))?;
+    Ok((
+        value,
+        FilePin {
+            path: fs::canonicalize(path).map_err(|e| invalid(e.to_string()))?,
+            sha256: corpus::sha256(&bytes),
+        },
+    ))
+}
+
+fn probe_indices(rows: &[(u64, u32, bool)]) -> Result<Vec<usize>> {
+    if rows.windows(2).any(|pair| pair[0].0 >= pair[1].0) {
+        return Err(invalid(
+            "preflight rows must be unique and in canonical position order",
+        ));
+    }
+    let selected = rows
+        .iter()
+        .enumerate()
+        .filter_map(|(index, row)| row.2.then_some(index))
+        .take(64)
+        .collect::<Vec<_>>();
+    if selected.len() != 64 {
+        return Err(invalid(
+            "preflight requires64 copy-successor rows for the fixed probe",
+        ));
+    }
+    Ok(selected)
+}
+
+fn validate_window(window: &[crate::Identity], target_position: u64, context: u32) -> Result<()> {
+    let first = window
+        .first()
+        .ok_or_else(|| invalid("probe causal window is empty"))?;
+    let last = window
+        .last()
+        .ok_or_else(|| invalid("probe causal window is empty"))?;
+    if window.len() > context as usize
+        || last.occurrence.checked_add(1) != Some(target_position)
+        || window.iter().any(|identity| {
+            identity.occurrence >= target_position
+                || identity.token >= 4096
+                || identity.record != first.record
+                || identity.version != 0
+        })
+        || window
+            .windows(2)
+            .any(|pair| pair[0].occurrence.checked_add(1) != Some(pair[1].occurrence))
+    {
+        return Err(invalid(
+            "probe must contain only the bounded contiguous in-document prefix before its target",
+        ));
+    }
+    Ok(())
+}
+
+/// Prepare the canonical panel and the first64 P_succ causal windows before any
+/// model outcomes. Labels classify the registered panel, never choose a model.
+pub fn panel(config_path: &Path) -> Result<Value> {
+    let (config, config_file): (DriverConfig, _) = input(config_path)?;
+    validate_config(&config)?;
+    let driver = PreparedDriver::load(config.clone())?;
+    let rows = dev_row_identities(&config)?;
+    let selected = probe_indices(&rows)?;
+    let source = corpus::PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)?;
+    let mut windows = Vec::with_capacity(64);
+    let mut targets = Vec::with_capacity(64);
+    for &ordinal in &selected {
+        let batch = source.batch(ordinal as u64, config.spec.context, 1)?;
+        let (position, target, _) = rows[ordinal];
+        if batch.target_positions != [position]
+            || batch.targets != [target]
+            || batch.windows.len() != 1
+        {
+            return Err(invalid("probe request differs from the canonical DEV row"));
+        }
+        let window = batch
+            .windows
+            .into_iter()
+            .next()
+            .ok_or_else(|| invalid("probe window missing"))?;
+        validate_window(&window, position, config.spec.context)?;
+        if !evidence::is_copy_successor(&window, target) {
+            return Err(invalid(
+                "selected probe is not a registered copy-successor row",
+            ));
+        }
+        windows.push(window);
+        targets.push(target);
+    }
+    let canonical_rows = rows.iter().enumerate().map(|(ordinal, &(position, token, psucc))| {
+        json!({"row_ordinal":ordinal,"target_position":position,"target_token":token,"is_psucc":psucc})
+    }).collect::<Vec<_>>();
+    Ok(json!({"schema":"uor-r4.attention-preflight-panel/1",
+        "status":"PINNED_PANEL_AND_PROBE_METADATA_ONLY",
+        "config_file":config_file,"config_sha256":corpus::sha256(&encode(&config)?),
+        "lineage_sha256":driver.lineage_sha256()?,"dev_binding":source.binding(),
+        "rows":canonical_rows,"row_count":rows.len(),"psucc_count":rows.iter().filter(|row|row.2).count(),
+        "probe_selection_policy":"first64_P_succ_rows_in_canonical_ascending_eligible_DEV_order_before_model_outcomes",
+        "probe_row_ordinals":selected,"probe_request":{"windows":windows,"targets":targets},
+        "scoring_performed":false,"cuda_context_created":false,"model_constructed":false,
+        "updates_applied":0,"release":"STILL_REQUIRED","training":"HELD","q4":"NOT_EXECUTABLE"}))
+}
+
+#[cfg(not(feature = "cuda"))]
+pub fn dev_b3(
+    _config_path: &Path,
+    _checkpoint_path: &Path,
+    _evaluation_path: &Path,
+) -> Result<Value> {
+    Err(invalid("DEV B3 readback needs the CUDA build's typed Snapshot metadata; no model or CUDA context was created"))
+}
+
+/// Validate an existing raw eval-corpus report against its DriverCheckpoint and
+/// canonical DEV rows. This only decodes stored CUDA observations and identities.
+#[cfg(feature = "cuda")]
+pub fn dev_b3(config_path: &Path, checkpoint_path: &Path, evaluation_path: &Path) -> Result<Value> {
+    let inputs = dev_inputs(config_path, checkpoint_path, evaluation_path)?;
+    let DevInputs {
+        config,
+        config_file,
+        driver,
+        checkpoint,
+        checkpoint_file,
+        evaluation_file,
+        b3,
+        ..
+    } = inputs;
+    Ok(json!({"schema":"uor-r4.attention-preflight-dev-b3/1",
+        "status":"VALIDATED_RETAINED_DEV_OBSERVATIONS",
+        "config_file":config_file,"config_sha256":corpus::sha256(&encode(&config)?),
+        "lineage_sha256":driver.lineage_sha256()?,"checkpoint_file":checkpoint_file,
+        "driver_checkpoint_sha256":corpus::sha256(&encode(&checkpoint)?),"evaluation_file":evaluation_file,
+        "compiled_identity_checked":true,"model_epoch":checkpoint.cursor.accepted_updates,
+        "completed_batches":checkpoint.cursor.completed_batches,"b3":b3,
+        "admission_contract":"checked EvaluationRow.admitted_cells minus address_rivals in {0,1}",
+        "actual_admitted_slot_ids":{"status":"UNAVAILABLE","reason":"eval-corpus reports counts; slot IDs are not derived from those counts"},
+        "evaluation_mutates_model":false,"updates_applied":0,"scoring_performed_by_this_command":false,
+        "model_constructed":false,"cuda_context_created":false,"release":"STILL_REQUIRED",
+        "training":"HELD","q4":"NOT_EXECUTABLE"}))
+}
+
+#[cfg(feature = "cuda")]
+struct DevInputs {
+    config: DriverConfig,
+    config_file: FilePin,
+    driver: PreparedDriver,
+    checkpoint: training::DriverCheckpoint,
+    checkpoint_file: FilePin,
+    evaluation_file: FilePin,
+    rows: Vec<(u64, u32, bool)>,
+    b3: evidence::B3Summary,
+}
+
+#[cfg(feature = "cuda")]
+fn dev_inputs(
+    config_path: &Path,
+    checkpoint_path: &Path,
+    evaluation_path: &Path,
+) -> Result<DevInputs> {
+    let (config, config_file): (DriverConfig, _) = input(config_path)?;
+    validate_config(&config)?;
+    let driver = PreparedDriver::load(config.clone())?;
+    let (checkpoint, checkpoint_file): (training::DriverCheckpoint, _) = input(checkpoint_path)?;
+    driver.validate_checkpoint(&checkpoint)?;
+    let (evaluation, evaluation_file): (Value, _) = input(evaluation_path)?;
+    if evaluation["schema"] != json!(training::DRIVER_SCHEMA)
+        || evaluation["evaluation_lineage"] != json!(driver.lineage())
+        || evaluation.get("transfer_corpus").is_some()
+        || evaluation.get("evaluation").is_some()
+    {
+        return Err(invalid("DEV B3 requires the raw registered DEV eval-corpus report, not transfer/enveloped evidence"));
+    }
+    // Compiled identity is metadata; no Device/context is constructed and no
+    // bridge can silently promote a report from another numerical source.
+    let compiled = crate::device::compiled_identity();
+    for key in ["source_sha256", "kernel_sha256", "geometry_sha256"] {
+        if checkpoint.model[key] != compiled[key] {
+            return Err(invalid(format!(
+                "DEV B3 checkpoint {key} differs from the current compiled identity"
+            )));
+        }
+    }
+    verify_evaluation(&evaluation, &checkpoint)?;
+    let rows = dev_row_identities(&config)?;
+    let b3 = evidence::summarize(&evaluation, &rows)?;
+    Ok(DevInputs {
+        config,
+        config_file,
+        driver,
+        checkpoint,
+        checkpoint_file,
+        evaluation_file,
+        rows,
+        b3,
+    })
+}
+
+#[cfg(not(feature = "cuda"))]
+pub fn capture_dev(
+    _config_path: &Path,
+    _checkpoint_path: &Path,
+    _evaluation_path: &Path,
+) -> Result<Value> {
+    Err(invalid("actual DEV cell-ID capture requires a separately admitted CUDA forward pass; no host reconstruction is available"))
+}
+
+/// Actual production GPU Forward cell-ID capture for same-cell controls. Source
+/// availability grants no execution permission: a prospective packet must price
+/// and release this additional full-DEV zero-apply forward pass explicitly.
+#[cfg(feature = "cuda")]
+pub fn capture_dev(
+    config_path: &Path,
+    checkpoint_path: &Path,
+    evaluation_path: &Path,
+) -> Result<Value> {
+    // All checkpoint, raw evaluation, compiled source and canonical ordered DEV
+    // identities are validated before restore creates the first CUDA context.
+    let inputs = dev_inputs(config_path, checkpoint_path, evaluation_path)?;
+    let config = &inputs.config;
+    let source = corpus::PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)?;
+    if source.eligible_len() != inputs.rows.len() {
+        return Err(invalid(
+            "capture DEV source inventory differs from the bound evaluation",
+        ));
+    }
+    let epoch = inputs.checkpoint.cursor.accepted_updates;
+    let (model, cursor) = inputs.driver.restore(inputs.checkpoint.clone(), 0)?;
+    if cursor != inputs.checkpoint.cursor
+        || model.epoch()? != epoch
+        || serde_json::to_value(model.snapshot()?).map_err(|e| invalid(e.to_string()))?
+            != inputs.checkpoint.model
+    {
+        return Err(invalid(
+            "capture restore differs from the exact admitted checkpoint",
+        ));
+    }
+    let mut rows = Vec::with_capacity(inputs.rows.len());
+    let mut first = 0;
+    let mut forward_calls = 0u64;
+    while first < source.eligible_len() as u64 {
+        let batch = source.batch(first, config.spec.context, config.batch_rows)?;
+        let count = batch.targets.len();
+        if batch.windows.len() != count
+            || batch.target_positions.len() != count
+            || count == 0
+            || count > 64
+        {
+            return Err(invalid(
+                "capture batch shape differs from the canonical DEV pass",
+            ));
+        }
+        // Corpus identities are metadata. No target cell, eligibility, score,
+        // ranking or writer output is reconstructed from them on the host.
+        for (index, ((window, &position), &target)) in batch
+            .windows
+            .iter()
+            .zip(&batch.target_positions)
+            .zip(&batch.targets)
+            .enumerate()
+        {
+            let ordinal = rows.len() + index;
+            let &(expected_position, expected_target, _) = inputs
+                .rows
+                .get(ordinal)
+                .ok_or_else(|| invalid("capture DEV has an extra row"))?;
+            if position != expected_position || target != expected_target {
+                return Err(invalid("capture DEV row differs from the bound evaluation"));
+            }
+            validate_window(window, position, config.spec.context)?;
+        }
+        let carried = model.carry_windows(&batch.windows)?;
+        if carried.rows() as usize != count
+            || carried.valid_lengths().len() != count
+            || carried.epoch() != epoch
+            || carried
+                .valid_lengths()
+                .iter()
+                .zip(&batch.windows)
+                .any(|(&length, window)| length as usize != window.len())
+        {
+            return Err(invalid("capture carry shape/valid length/epoch differs"));
+        }
+        let forward = model.forward(&carried, &batch.targets)?;
+        if forward.admitted_cells.len() != count * 16
+            || forward.epoch() != epoch
+            || model.epoch()? != epoch
+        {
+            return Err(invalid(
+                "capture Forward physical16-cell inventory/epoch differs",
+            ));
+        }
+        for (index, cells) in forward.admitted_cells.chunks_exact(16).enumerate() {
+            let ordinal = rows.len();
+            let (position, target, psucc) = inputs.rows[ordinal];
+            rows.push(json!({"row_ordinal":ordinal,"target_position":position,
+                "target_token":target,"is_psucc":psucc,
+                "eval_target_admitted":inputs.b3.rows[ordinal].target_admitted,
+                "valid_length":carried.valid_lengths()[index],"model_epoch":epoch,
+                "admitted_cells":cells}));
+        }
+        forward_calls += 1;
+        first = batch.next_target;
+    }
+    if rows.len() != inputs.rows.len()
+        || forward_calls != (rows.len() as u64).div_ceil(64)
+        || model.epoch()? != epoch
+        || serde_json::to_value(model.snapshot()?).map_err(|e| invalid(e.to_string()))?
+            != inputs.checkpoint.model
+    {
+        return Err(invalid(
+            "capture complete inventory or unchanged snapshot check failed",
+        ));
+    }
+    Ok(json!({"schema":"uor-r4.attention-preflight-dev-capture/1",
+        "status":"ACTUAL_GPU_FORWARD_CELL_IDS_CAPTURED_ZERO_APPLY",
+        "config_file":inputs.config_file,"config_sha256":corpus::sha256(&encode(config)?),
+        "lineage_sha256":inputs.driver.lineage_sha256()?,"checkpoint_file":inputs.checkpoint_file,
+        "driver_checkpoint_sha256":corpus::sha256(&encode(&inputs.checkpoint)?),
+        "evaluation_file":inputs.evaluation_file,"dev_binding":source.binding(),
+        "model_epoch":epoch,"completed_batches":inputs.checkpoint.cursor.completed_batches,
+        "rows":rows,"b3":inputs.b3,"row_count":inputs.rows.len(),
+        "physical_cell_words_per_row":16,"unused_slot_marker":u32::MAX,
+        "cell_ids_source":"existing production Device::forward; physical16-cell words copied without host reconstruction",
+        "b3_source":"separately pinned eval-corpus EvaluationRow counts, not reconstructed from captured cell IDs",
+        "additional_zero_apply_gpu_forward_passes":1,"gpu_forward_calls":forward_calls,"model_restores":1,
+        "snapshot_unchanged":true,"updates_applied":0,"proposals":0,"training_capability_issued":false,
+        "execution_scope":"additional full DEV CUDA forward pass; prospective packet/FIT/PM release and cost disposition required",
+        "training":"HELD","m2":"HELD","stage_b":"HELD","q4":"NOT_EXECUTABLE"}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn probe_uses_first64_declared_successors_without_outcome_selection() -> Result<()> {
+        let rows = (0..200).map(|i| (i, 0, i % 2 == 1)).collect::<Vec<_>>();
+        assert_eq!(
+            probe_indices(&rows)?,
+            (0..64).map(|i| 2 * i + 1).collect::<Vec<_>>()
+        );
+        assert!(probe_indices(&rows[..126]).is_err());
+        let mut duplicate = rows;
+        duplicate[1].0 = 0;
+        assert!(probe_indices(&duplicate).is_err());
+        Ok(())
+    }
+    #[test]
+    fn probe_window_excludes_target_and_future_occurrences() -> Result<()> {
+        let window = (10..13)
+            .map(|occurrence| crate::Identity {
+                token: 0,
+                occurrence,
+                record: 1,
+                version: 0,
+            })
+            .collect::<Vec<_>>();
+        validate_window(&window, 13, 192)?;
+        assert!(validate_window(&window, 12, 192).is_err());
+        assert!(validate_window(&window, 14, 192).is_err());
+        let mut crossed_document = window.clone();
+        crossed_document[1].record = 2;
+        assert!(validate_window(&crossed_document, 13, 192).is_err());
+        assert!(validate_window(&window, 13, 2).is_err());
+        Ok(())
+    }
+}

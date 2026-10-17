@@ -4,22 +4,29 @@
 //! No lab may create a release record or inherit the earlier pilot delegation.
 use super::*;
 use crate::ReadInitialization;
+#[path = "attention_evidence.rs"]
+pub mod evidence;
+#[path = "attention_preflight.rs"]
+pub mod preflight;
+#[path = "attention_transfer.rs"]
+pub mod transfer;
 #[cfg(any(feature = "cuda", test))]
 use crate::{metadata::BinderPlan, training::CoordinateKind};
 
 pub const ATTENTION_BATCHES: u64 = 16_404;
-pub const ATTENTION_BASE_SOURCE: &str = "fa62a670a4caefa439eb11c88ecdfe25e60a1e7c";
-/// Canonical design accepted in PR2574/mainfb4519226. Scope and the selected
+pub const ATTENTION_BASE_SOURCE: &str = "ef9d30999700be11e103f96590e9e3b83b6807c7";
+/// Canonical Unit2b and paired-fresh clarification through PR2583/mainc7b2b1cb.
+/// Scope and the selected
 /// arm/seed remain independently pinned by the review payload and owner plan.
 pub const ATTENTION_SHEET_SHA256: &str =
-    "9e74331701aba3e124f85a34dcd677b25a4290f9d233cd465579e55ad9141f46";
-const PLAN_SCHEMA: &str = "uor-r4.attention-learning-owner-plan/1";
+    "844814009ecc7368c0a3ecabf62434bae7d72850363e19f67c0126810fee7ffc";
+const PLAN_SCHEMA: &str = "uor-r4.attention-learning-owner-plan/2";
 #[cfg(feature = "cuda")]
-const ADMISSION_SCHEMA: &str = "uor-r4.attention-learning-owner-admission/1";
+const ADMISSION_SCHEMA: &str = "uor-r4.attention-learning-owner-admission/2";
 #[cfg(any(feature = "cuda", test))]
 const OWNER_DECISION: &str = "RELEASE_D4_FOR_THIS_ATTENTION_LEARNING_ARM_SEED_ONLY";
 #[cfg(feature = "cuda")]
-const PROGRESS_SCHEMA: &str = "uor-r4.attention-learning-checkpoint/1";
+const PROGRESS_SCHEMA: &str = "uor-r4.attention-learning-checkpoint/2";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -27,6 +34,7 @@ pub struct AttentionCostContract {
     pub max_batches: u64,
     pub checkpoint_every_batches: u64,
     pub baseline_dev_evaluations: u32,
+    pub q1_dev_evaluations: u32,
     pub final_dev_evaluations: u32,
     pub relation_off_dev_evaluations: u32,
     pub final_transfer_evaluations: u32,
@@ -40,10 +48,14 @@ impl AttentionCostContract {
             max_batches: ATTENTION_BATCHES,
             checkpoint_every_batches: 64,
             baseline_dev_evaluations: 1,
+            q1_dev_evaluations: 1,
             final_dev_evaluations: 1,
             relation_off_dev_evaluations: u32::from(ablation),
-            final_transfer_evaluations: 1,
-            relation_off_transfer_evaluations: u32::from(ablation),
+            final_transfer_evaluations: u32::from(matches!(
+                config.read_spec,
+                ReadSpec::Relation { .. }
+            )),
+            relation_off_transfer_evaluations: 0,
         }
     }
 }
@@ -266,20 +278,15 @@ pub fn check_plan(plan_path: &Path) -> Result<Value> {
     let plan: AttentionPlan = read_json(plan_path)?;
     validate_plan(&plan)?;
     let driver = PreparedDriver::load(plan.config.clone())?;
-    let transfer = corpus::PreparedCorpus::load(
-        &plan.transfer,
-        plan.config.spec.vocabulary,
-        &plan.config.bos,
-    )?;
     validate_execution(&plan, &driver, &executable_sha256()?)?;
     #[cfg(feature = "cuda")]
     validate_compiled(&plan, &crate::device::compiled_identity())?;
     Ok(json!({"status":"PLAN_METADATA_VALID","scope":plan.scope,
         "plan_sha256":corpus::sha256(&encode(&plan)?),"cost_contract":plan.cost_contract,
         "compiled_identity_checked":cfg!(feature="cuda"),"cuda_context_created":false,
-        "transfer_binding":transfer.binding(),
+        "transfer_source_seal":plan.transfer,"fresh_content_read":false,
         "owner_release":"STILL_REQUIRED","training":"HELD",
-        "evaluation_scope":"baseline DEV; fixed final DEV and transfer; same-final-checkpoint relation-off DEV and transfer for Relation only",
+        "evaluation_scope":"baseline/Q1/final DEV; Relation ablation DEV; separate paired fresh command only after sealed DEV H_geom decision",
         "learned_attention_result":"NOT_YET_SCORED"}))
 }
 #[cfg(any(feature = "cuda", test))]
@@ -519,6 +526,184 @@ struct AttentionCheckpoint {
     baseline_evaluation: Value,
     baseline_snapshot_metadata: Value,
     counters: Counters,
+    q1: Option<FilePin>,
+}
+#[cfg(feature = "cuda")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Q1Record {
+    admission_sha256: String,
+    baseline_evaluation_sha256: String,
+    checkpoint: training::DriverCheckpoint,
+    counters: Counters,
+    evaluation: FilePin,
+    init_b3: evidence::B3Summary,
+    q1_b3: evidence::B3Summary,
+    decision: evidence::Q1Decision,
+}
+fn dev_row_identities(config: &DriverConfig) -> Result<Vec<(u64, u32, bool)>> {
+    // Corpus/window partition metadata only. No scoring or forward computation.
+    let source = corpus::PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)?;
+    let mut rows = Vec::with_capacity(source.eligible_len());
+    let mut first = 0;
+    while first < source.eligible_len() as u64 {
+        let batch = source.batch(first, config.spec.context, config.batch_rows)?;
+        for ((window, &position), &target) in batch
+            .windows
+            .iter()
+            .zip(&batch.target_positions)
+            .zip(&batch.targets)
+        {
+            rows.push((
+                position,
+                target,
+                evidence::is_copy_successor(window, target),
+            ));
+        }
+        first = batch.next_target;
+    }
+    if rows.len() != 14_287 || rows.iter().filter(|row| row.2).count() != 3_847 {
+        return Err(invalid(
+            "attention DEV partition must reproduce 14287/3847 registered rows",
+        ));
+    }
+    Ok(rows)
+}
+#[cfg(feature = "cuda")]
+fn validate_q1(
+    driver: &PreparedDriver,
+    release: &ValidatedRelease,
+    p: &AttentionCheckpoint,
+) -> Result<Option<Q1Record>> {
+    if p.checkpoint.cursor.completed_batches < 4096 {
+        if p.q1.is_some() {
+            return Err(invalid("attention Q1 evidence precedes checkpoint4096"));
+        }
+        return Ok(None);
+    }
+    let pin =
+        p.q1.as_ref()
+            .ok_or_else(|| invalid("attention progress cannot bypass Q1"))?;
+    let expected_path = release.manifest.run_state_directory.join("q1.json");
+    if pin.path != fs::canonicalize(expected_path).map_err(|e| invalid(e.to_string()))? {
+        return Err(invalid(
+            "attention Q1 must use the canonical durable record",
+        ));
+    }
+    let q: Q1Record = serde_json::from_slice(&pin.read()?).map_err(|e| invalid(e.to_string()))?;
+    driver.validate_checkpoint(&q.checkpoint)?;
+    q.counters
+        .validate(driver.config(), 4096, q.checkpoint.cursor.accepted_updates)?;
+    if q.checkpoint.cursor.completed_batches != 4096
+        || q.admission_sha256 != release.manifest_sha256
+        || q.baseline_evaluation_sha256 != corpus::sha256(&encode(&p.baseline_evaluation)?)
+        || q.counters.vector.attempted != 3584
+        || (matches!(driver.config().read_spec, ReadSpec::Relation { .. })
+            && (q.counters.gate_combine.attempted != 237
+                || q.counters.gate_relation.attempted != 275))
+        || q.init_b3.full.rows != 14_287
+        || q.init_b3.psucc.rows != 3_847
+        || q.evaluation.path
+            != fs::canonicalize(
+                release
+                    .manifest
+                    .run_state_directory
+                    .join("q1-evaluation.json"),
+            )
+            .map_err(|e| invalid(e.to_string()))?
+    {
+        return Err(invalid(
+            "attention Q1 admission/baseline/prefix identity mismatch",
+        ));
+    }
+    let observed: Value =
+        serde_json::from_slice(&q.evaluation.read()?).map_err(|e| invalid(e.to_string()))?;
+    if observed["schema"] != json!("uor-r4.attention-learning-evaluation/1")
+        || observed["admission_sha256"] != json!(release.manifest_sha256)
+        || observed["driver_checkpoint_sha256"] != json!(corpus::sha256(&encode(&q.checkpoint)?))
+        || observed["transfer"] != Value::Null
+    {
+        return Err(invalid("attention Q1 evaluation envelope differs"));
+    }
+    verify_evaluation(&observed["evaluation"], &q.checkpoint)?;
+    let rows = dev_row_identities(driver.config())?;
+    if evidence::summarize(&p.baseline_evaluation, &rows)? != q.init_b3
+        || evidence::summarize(&observed["evaluation"], &rows)? != q.q1_b3
+        || evidence::q1_decision(
+            &q.init_b3,
+            &q.q1_b3,
+            q.counters
+                .gate_combine
+                .any_candidate_cost_differs_from_identity,
+            q.counters
+                .gate_relation
+                .any_candidate_cost_differs_from_identity,
+        )? != q.decision
+        || (p.checkpoint.cursor.completed_batches == 4096
+            && (encode(&p.checkpoint)? != encode(&q.checkpoint)? || p.counters != q.counters))
+        || (p.checkpoint.cursor.completed_batches > 4096 && q.decision.diagnostic_stop)
+    {
+        return Err(invalid(
+            "attention Q1 rows/decision/current progress disagree",
+        ));
+    }
+    Ok(Some(q))
+}
+#[cfg(feature = "cuda")]
+fn capture_q1(
+    driver: &PreparedDriver,
+    release: &ValidatedRelease,
+    p: &mut AttentionCheckpoint,
+    model: &crate::device::Device,
+) -> Result<()> {
+    let rows = dev_row_identities(driver.config())?;
+    let init_b3 = evidence::summarize(&p.baseline_evaluation, &rows)?;
+    let evaluation = evaluate_once(
+        driver,
+        release,
+        "q1-evaluation.json",
+        &p.checkpoint,
+        model,
+        None,
+    )?;
+    let value: Value =
+        serde_json::from_slice(&evaluation.read()?).map_err(|e| invalid(e.to_string()))?;
+    let q1_b3 = evidence::summarize(&value["evaluation"], &rows)?;
+    let decision = evidence::q1_decision(
+        &init_b3,
+        &q1_b3,
+        p.counters
+            .gate_combine
+            .any_candidate_cost_differs_from_identity,
+        p.counters
+            .gate_relation
+            .any_candidate_cost_differs_from_identity,
+    )?;
+    let record = Q1Record {
+        admission_sha256: release.manifest_sha256.clone(),
+        baseline_evaluation_sha256: corpus::sha256(&encode(&p.baseline_evaluation)?),
+        checkpoint: p.checkpoint.clone(),
+        counters: p.counters.clone(),
+        evaluation,
+        init_b3,
+        q1_b3,
+        decision,
+    };
+    let path = release.manifest.run_state_directory.join("q1.json");
+    if !path.exists() {
+        write_new(&path, &record)?;
+        sync_directory(&release.manifest.run_state_directory)?;
+    }
+    let bytes = fs::read(&path).map_err(|e| invalid(e.to_string()))?;
+    if bytes != encode(&record)? {
+        return Err(invalid("attention existing Q1 record differs"));
+    }
+    p.q1 = Some(FilePin {
+        path: fs::canonicalize(path).map_err(|e| invalid(e.to_string()))?,
+        sha256: corpus::sha256(&bytes),
+    });
+    validate_q1(driver, release, p)?;
+    Ok(())
 }
 #[cfg(any(feature = "cuda", test))]
 fn checkpoint_boundary(n: u64) -> Result<()> {
@@ -591,6 +776,7 @@ fn validate_progress(
     if c.completed_batches == 0 {
         validate_initial_storage(driver.config(), &p.checkpoint.model)?;
     }
+    validate_q1(driver, release, p)?;
     Ok(())
 }
 #[cfg(feature = "cuda")]
@@ -708,7 +894,6 @@ fn relation_off(
     driver: &PreparedDriver,
     release: &ValidatedRelease,
     p: &AttentionCheckpoint,
-    transfer: &corpus::PreparedCorpus,
 ) -> Result<Value> {
     if matches!(driver.config().read_spec, ReadSpec::Flock { .. }) {
         return Ok(json!({"status":"NOT_APPLICABLE_FLOCK_RELATION_ALREADY_OFF"}));
@@ -755,17 +940,15 @@ fn relation_off(
         &model,
         None,
     )?;
-    let transfer_evaluation = evaluate_once(
-        driver,
-        release,
-        "relation-off-transfer-evaluation.json",
-        &ablated,
-        &model,
-        Some(transfer),
+    let evaluated: Value =
+        serde_json::from_slice(&evaluation.read()?).map_err(|e| invalid(e.to_string()))?;
+    let b3 = evidence::summarize(
+        &evaluated["evaluation"],
+        &dev_row_identities(driver.config())?,
     )?;
     Ok(
-        json!({"status":"OBSERVED_PENDING_REGISTERED_DISCRIMINATOR","checkpoint":checkpoint_pin,
-        "evaluation":evaluation,"transfer_evaluation":transfer_evaluation,"parent_model_sha256":p.checkpoint.model_sha256,
+        json!({"status":"OBSERVED_PENDING_REGISTERED_DISCRIMINATOR","checkpoint":checkpoint_pin,"b3":b3,
+        "evaluation":evaluation,"transfer_evaluations":0,"parent_model_sha256":p.checkpoint.model_sha256,
         "ablated_model_sha256":ablated.model_sha256,"learned_attention_result":"NOT_YET_SCORED"}),
     )
 }
@@ -785,11 +968,6 @@ pub fn run(
         &admission,
         &crate::device::compiled_identity(),
         &executable_sha256()?,
-    )?;
-    let transfer = corpus::PreparedCorpus::load(
-        &admission.plan.transfer,
-        driver.config().spec.vocabulary,
-        &driver.config().bos,
     )?;
     require_disjoint_directories(out, &release.manifest.run_state_directory)?;
     fs::create_dir(out).map_err(|e| invalid(format!("exclusive attention output: {e}")))?;
@@ -817,6 +995,11 @@ pub fn run(
                 ));
             }
             verify_evaluation(&initial.baseline_evaluation, &initial.checkpoint)?;
+            if validate_q1(&driver, &release, &p)?.is_some_and(|q| q.decision.diagnostic_stop) {
+                return Err(invalid(
+                    "Q1 stopped for diagnosis; resume cannot bypass registered stop",
+                ));
+            }
             write_new(&out.join("resume-parent.json"), &latest)?;
             let (model, _) = driver.restore(p.checkpoint.clone(), 0)?;
             (model, p)
@@ -836,6 +1019,7 @@ pub fn run(
                     baseline_evaluation,
                     baseline_snapshot_metadata,
                     counters: Counters::default(),
+                    q1: None,
                 },
             )
         };
@@ -885,7 +1069,23 @@ pub fn run(
             let completed = receipt.cursor_after.completed_batches;
             if completed.is_multiple_of(64) || completed == ATTENTION_BATCHES {
                 progress.checkpoint = driver.checkpoint(&model, receipt.cursor_after)?;
+                if completed == 4096 {
+                    capture_q1(&driver, &release, &mut progress, &model)?;
+                }
                 final_pin = save(&driver, &release, out, &progress)?;
+                if completed == 4096
+                    && validate_q1(&driver, &release, &progress)?
+                        .is_some_and(|q| q.decision.diagnostic_stop)
+                {
+                    write_new(
+                        &out.join("report.json"),
+                        &json!({"status":"Q1_STOP_FOR_DIAGNOSIS",
+                        "mechanism_negative":false,"learned_attention_result":"NOT_YET_SCORED",
+                        "admission_sha256":release.manifest_sha256,"checkpoint":final_pin,"q1":progress.q1,
+                        "completed_batches":4096,"fresh_transfer_evaluations":0}),
+                    )?;
+                    return sync_directory(out);
+                }
             }
         }
         let final_evaluation = evaluate_once(
@@ -896,15 +1096,13 @@ pub fn run(
             &model,
             None,
         )?;
-        let final_transfer = evaluate_once(
-            &driver,
-            &release,
-            "final-transfer-evaluation.json",
-            &progress.checkpoint,
-            &model,
-            Some(&transfer),
+        let final_value: Value = serde_json::from_slice(&final_evaluation.read()?)
+            .map_err(|e| invalid(e.to_string()))?;
+        let final_b3 = evidence::summarize(
+            &final_value["evaluation"],
+            &dev_row_identities(driver.config())?,
         )?;
-        let ablation = relation_off(&driver, &release, &progress, &transfer)?;
+        let ablation = relation_off(&driver, &release, &progress)?;
         write_new(
             &out.join("report.json"),
             &json!({"schema":"uor-r4.attention-learning-report/1",
@@ -913,9 +1111,10 @@ pub fn run(
             "cost_contract":admission.plan.cost_contract,"completed_batches":ATTENTION_BATCHES,
             "eligible_train_target_exposures":ATTENTION_BATCHES*64,"sensitivity":progress.counters,
             "baseline_evaluation":progress.baseline_evaluation,"baseline_snapshot_metadata":progress.baseline_snapshot_metadata,
-            "final_checkpoint":final_pin,"final_evaluation":final_evaluation,"relation_off":ablation,
+            "final_checkpoint":final_pin,"final_evaluation":final_evaluation,"final_b3":final_b3,"relation_off":ablation,
             "attempt_elapsed_ns":started.elapsed().as_nanos().to_string(),
-            "fresh_transfer":{"status":"OBSERVED_PENDING_REGISTERED_DISCRIMINATOR","source":transfer.binding(),"evaluation":final_transfer},
+            "fresh_transfer":{"status":"SEALED_PENDING_PAIRED_DEV_DECISION","source":admission.plan.transfer,"evaluations":0},
+            "q1":progress.q1,
             "other_arm_seed":"SEPARATE_OWNER_RELEASE_REQUIRED",
             "training_other_scopes":"HELD","m2":"HELD","stage_b":"HELD","q4":"NOT_EXECUTABLE"}),
         )?;
@@ -1136,7 +1335,19 @@ mod tests {
     #[test]
     fn transfer_and_evaluation_cost_are_prospectively_fixed() -> Result<()> {
         let p = plan()?;
+        assert_eq!(p.cost_contract.q1_dev_evaluations, 1);
+        assert_eq!(p.cost_contract.final_transfer_evaluations, 1);
+        assert_eq!(p.cost_contract.relation_off_transfer_evaluations, 0);
+        let mut control = p.config.clone();
+        control.relation_learning_policy = training::RelationLearningPolicy::FrozenZeroV1;
+        assert_eq!(
+            AttentionCostContract::expected(&control).final_transfer_evaluations,
+            1
+        );
         let mut wrong = p.clone();
+        wrong.cost_contract.q1_dev_evaluations = 0;
+        assert!(validate_plan_header(&wrong).is_err());
+        wrong = p.clone();
         wrong.transfer.tokens.sha256 = p.config.dev.tokens.sha256.clone();
         assert!(validate_transfer_source(&wrong).is_err());
         wrong = p.clone();
@@ -1149,7 +1360,7 @@ mod tests {
         wrong.transfer.split = corpus::Split::Train;
         assert!(validate_transfer_source(&wrong).is_err());
         wrong = p.clone();
-        wrong.cost_contract.relation_off_transfer_evaluations = 0;
+        wrong.cost_contract.relation_off_transfer_evaluations = 1;
         assert!(validate_plan_header(&wrong).is_err());
         wrong = p;
         wrong.cost_contract.max_batches = ATTENTION_BATCHES + 1;
@@ -1213,10 +1424,12 @@ mod tests {
             (8, 7, 1, 0),
             (160, 140, 20, 0),
             (168, 147, 20, 1),
+            (4096, 3584, 237, 275),
             (16404, 14354, 920, 1130),
         ] {
             counts(v, c, r).validate(&relation, n, 0)?;
         }
+        counts(3584, 512, 0).validate(&config(ReadSpec::Flock { kept: 8 }), 4096, 0)?;
         counts(14354, 2050, 0).validate(&config(ReadSpec::Flock { kept: 8 }), 16404, 0)?;
         let valid = counts(14354, 920, 1130);
         for family in 0..4 {

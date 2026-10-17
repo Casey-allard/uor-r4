@@ -27,6 +27,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/cf1-attention-unit2b": {
+    "branch": "codex/cf1-attention-unit2b",
+    "claimed_at": "2026-10-17T14:35:08-04:00",
+    "head": "9e6217046",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/cf1-reuse-timing-uuid-blocker": {
     "branch": "codex/cf1-reuse-timing-uuid-blocker",
     "claimed_at": "2026-10-16T22:35:15-04:00",

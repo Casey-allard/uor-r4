@@ -146,7 +146,7 @@ fn device_command(args: &[String]) -> Result<()> {
             if request.targets.len()!=request.windows.len() || request.targets.iter().any(|&id| id>=snapshot.spec.vocabulary){return Err(invalid("one valid next-token target is required per window"));}
             let model=Device::from_snapshot(snapshot,0)?;
             let input=model.carry_windows(&request.windows)?;
-            if let Some(parameter)=parameter {let p=model.propose(&input,&request.targets,parameter)?.observation()?;println!("{}",serde_json::json!({"candidate":p.candidate,"candidate_is_ordinal":true,"read_spec":model.read_spec(),"before":p.before,"after":p.after,"epoch":p.epoch,"valid_lengths":input.valid_lengths(),"applied":false}));Ok(())}
+            if let Some(parameter)=parameter {let proposal=model.propose(&input,&request.targets,parameter)?;let p=proposal.observation()?;let candidate_losses=proposal.candidate_losses()?;println!("{}",serde_json::json!({"candidate":p.candidate,"candidate_is_ordinal":true,"read_spec":model.read_spec(),"before":p.before,"after":p.after,"any_candidate_cost_differs_from_identity":p.any_candidate_cost_differs_from_identity,"candidate_losses":candidate_losses,"epoch":p.epoch,"valid_lengths":input.valid_lengths(),"applied":false}));Ok(())}
             else {let result=model.forward(&input,&request.targets)?;println!("{}",serde_json::json!({"tokens":result.predictions,"read_spec":model.read_spec(),"loss_numerators":result.losses,"token_rivals":result.token_rivals,"address_rivals":result.address_rivals,"admitted_cells":result.admitted_cells,"vectors":result.vectors()?,"epoch":result.epoch(),"valid_lengths":input.valid_lengths(),"training":"HELD"}));Ok(())}
         }
         _=>Err(invalid("CUDA commands: pilot|pilot-resume|eval-pilot CONFIG ADMISSION NEW_REPORT_DIR | init SPEC.json NEW_ARTIFACT.json SEED | init-read CONFIG.json NEW_ARTIFACT.json SEED | infer ARTIFACT REQUEST | propose ARTIFACT REQUEST route|vector|gate INDEX | init-corpus CONFIG NEW_REPORT_DIR | eval-corpus CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR | qualify NEW_REPORT_DIR | qualify-flock NEW_REPORT_DIR | qualify-relation NEW_REPORT_DIR | qualify-driver NEW_REPORT_DIR | measure-cost NEW_REPORT_DIR")),
@@ -167,6 +167,10 @@ completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately rele
             println!("attention-build-identity [CONFIG] — compiled/config/lineage identity without a CUDA context.
 attention-check-plan PLAN — metadata validation only; no release.
 attention-owner-release PLAN NEW_RELEASE_DIR — Casey personally at a terminal, UOR_LAB unset; separate attention arm/seed scope, no D33 delegation.
+attention-panel CONFIG NEW_REPORT_DIR — canonical DEV row metadata and first64 successor probe request, no model.
+attention-capture-dev CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — separately released zero-apply GPU Forward slot capture.
+attention-dev-b3 CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — exact immutable DEV B3 metadata, no model.
+attention-transfer PAIRED_DEV_DECISION NEW_REPORT_DIR — CUDA-only once-only paired fresh evaluation after sealed DEV H_geom.
 attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched active-leaf Flock/Relation learning, cap16404, separately released; training remains HELD by default.");
             Ok(())
         }
@@ -187,6 +191,31 @@ attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched
                 ))?
             );
             Ok(())
+        }
+        Some("attention-panel") if args.len() == 3 => report_command(&args[2], || {
+            uor_r4_discrete::controller::attention_learning::preflight::panel(std::path::Path::new(
+                &args[1],
+            ))
+        }),
+        Some("attention-capture-dev") if args.len() == 5 => report_command(&args[4], || {
+            uor_r4_discrete::controller::attention_learning::preflight::capture_dev(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+                std::path::Path::new(&args[3]),
+            )
+        }),
+        Some("attention-dev-b3") if args.len() == 5 => report_command(&args[4], || {
+            uor_r4_discrete::controller::attention_learning::preflight::dev_b3(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+                std::path::Path::new(&args[3]),
+            )
+        }),
+        Some("attention-transfer") if args.len() == 3 => {
+            uor_r4_discrete::controller::attention_learning::transfer::run(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+            )
         }
         Some("attention-owner-release") if args.len() == 3 => {
             uor_r4_discrete::controller::attention_learning::owner_release(
