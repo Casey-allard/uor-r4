@@ -263,10 +263,10 @@ COMMANDS:
                 working tree against --base (default origin/main).
     status      What is true now. Sections 1 (milestones) and 2 (receipts) are
                 ported; section 3 (delivery) says so rather than rendering blank.
-    ratchet     d23|d25   (or the banned word each one counts) [--update-baseline] [--list] [--quiet]
-                The D23/D25 ratchets (Rust port of the scripts/check_no_*.py pair,
-                same baselines). Exits 1 when a count grew; --update-baseline
-                may only lower counts.
+    ratchet     d23|d25|d32   (or the banned word each one counts) [--update-baseline] [--list] [--quiet]
+                The D23/D25/D32 ratchets (Rust port of the scripts/check_no_*.py pair
+                plus the D32 discrete-float gate). Exits 1 when a count grew;
+                --update-baseline may only lower counts.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -3672,7 +3672,7 @@ fn cmd_lint(repo: &Path, args: &[String], json: bool) -> ExitCode {
 fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
     use uor_r4_harness::ratchet::{self, Kind, Update};
     let Some(kind) = args.iter().find_map(|a| Kind::parse(a)) else {
-        eprintln!("uor-harness: ratchet needs `d23` or `d25`");
+        eprintln!("uor-harness: ratchet needs `d23`, `d25` or `d32`");
         return ExitCode::from(2);
     };
     let flag = |f: &str| args.iter().any(|a| a == f);
@@ -3687,6 +3687,11 @@ fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
             "D25",
             "Replace it with a structured geometric\nproduct, or get an owner decision; do not raise the baseline.",
         ),
+        Kind::DiscreteFloat => (
+            "discrete-path floating-point sites",
+            "D32",
+            "Replace it with discrete integer/ternary\ngeometry, or get an owner decision; do not raise the baseline.",
+        ),
     };
     let current = match ratchet::scan(repo, kind) {
         Ok(s) => s,
@@ -3696,8 +3701,8 @@ fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
         }
     };
     let total = current.total();
-    if flag("--list") && kind == Kind::Matmul {
-        println!("dense matrix product call sites in code (D25):");
+    if flag("--list") && (kind == Kind::Matmul || kind == Kind::DiscreteFloat) {
+        println!("{what} in code ({rule}):");
         for (path, sites) in &current.detail {
             for s in sites {
                 println!("  {path}:{}: [{}] {}", s.line, s.kind, s.text);
@@ -3728,15 +3733,19 @@ fn cmd_ratchet(repo: &Path, args: &[String]) -> ExitCode {
             }
             Err(e) => {
                 eprintln!("uor-harness: {e}");
-                ExitCode::from(2)
+                return ExitCode::from(2);
             }
         };
     }
     let baseline = match ratchet::load_baseline(repo, kind) {
         Ok(Some(b)) if !(kind == Kind::NormExp && b.is_empty()) => b,
         Ok(_) => {
-            eprintln!("FAIL: no baseline. Run `uor-harness ratchet {} --update-baseline` once to set the ratchet.",
-                if kind == Kind::NormExp { "d23" } else { "d25" });
+            let arg_name = match kind {
+                Kind::NormExp => "d23",
+                Kind::Matmul => "d25",
+                Kind::DiscreteFloat => "d32",
+            };
+            eprintln!("FAIL: no baseline. Run `uor-harness ratchet {arg_name} --update-baseline` once to set the ratchet.");
             return ExitCode::from(1);
         }
         Err(e) => {

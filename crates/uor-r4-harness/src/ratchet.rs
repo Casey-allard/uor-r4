@@ -1,9 +1,9 @@
-//! The D23 (normalised exponential, squashing, activation and rotary) and D25 (dense product and
-//! tensor-core) ratchets, in Rust (D30: Rust only).
+//! The D23 (normalised exponential, squashing, activation and rotary), D25 (dense product and
+//! tensor-core), and D32 (discrete floating-point type and literal) ratchets, in Rust (D30: Rust only).
 //!
 //! A ratchet cannot prove the tree is clean. It stops a count from growing, so removal can proceed
 //! without new violations landing underneath it. Each one keeps a per-file baseline
-//! (the two `scripts/no-*-baseline.json` files): a file above its baseline,
+//! (the `scripts/no-*-baseline.json` files): a file above its baseline,
 //! or a file absent from it with any hit, fails. `--update-baseline` may only lower counts, so it
 //! cannot bless a new site.
 //!
@@ -35,9 +35,25 @@ pub const D23_IDENT_FAMILIES: [&str; 8] = [
     concat!("ro", "pei"),
     concat!("rot", "ary"),
 ];
-/// Tensor-core fragment and sync intrinsics, gated by the D25 ratchet on stripped code.
+/// Tensor-core fragment, sync, Hopper warpgroup, and Blackwell 5th-gen intrinsics, gated by the D25 ratchet on stripped code.
 const TC_FRAGMENT: &str = concat!("w", "mma");
 const TC_SYNC: &str = concat!("mma", "_sync");
+const TC_WARPGROUP: &str = concat!("wg", "mma");
+const TC_FIFTH_GEN: &str = concat!("tcgen", "05");
+
+/// Prohibited floating-point type tokens gated by the D32 ratchet across discrete-model and
+/// standalone-instrument sources (`crates/uor-r4-discrete/` and `docs/labs/*/instrument/`).
+pub const D32_FLOAT_TYPES: [&str; 9] = [
+    "f16",
+    "bf16",
+    "f32",
+    "f64",
+    "tf32",
+    "float",
+    "double",
+    "__half",
+    "__nv_bfloat16",
+];
 
 /// Which ratchet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,6 +63,9 @@ pub enum Kind {
     NormExp,
     /// D25: dense-product and tensor-core call sites in code (comments and plain strings removed, raw strings kept).
     Matmul,
+    /// D32: floating-point type identifiers and floating-point literals in discrete-model and
+    /// standalone-instrument code (`crates/uor-r4-discrete/` and `docs/labs/*/instrument/`).
+    DiscreteFloat,
 }
 
 impl Kind {
@@ -54,6 +73,7 @@ impl Kind {
         match word {
             w if w == D23_WORD || w == "d23" => Some(Kind::NormExp),
             "matmul" | "d25" => Some(Kind::Matmul),
+            "discrete-float" | "d32" => Some(Kind::DiscreteFloat),
             _ => None,
         }
     }
@@ -62,11 +82,12 @@ impl Kind {
         repo.join("scripts").join(match self {
             Kind::NormExp => concat!("no-", "soft", "max", "-baseline.json"),
             Kind::Matmul => "no-matmul-baseline.json",
+            Kind::DiscreteFloat => "no-discrete-float-baseline.json",
         })
     }
 }
 
-/// One counted site (no-matmul only keeps detail).
+/// One counted site (`Matmul` and `DiscreteFloat` keep detail for `--list`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Site {
     pub line: usize,
@@ -282,6 +303,17 @@ fn push_blanked(out: &mut String, slice: &str) {
 /// line number in the result is its own. Raw strings (`r"..."`, `r#"..."#`) are kept: the CUDA
 /// kernel sources lived in one, and that text is executable. Block comments nest, as in Rust.
 pub fn strip_comments_and_strings(text: &str) -> String {
+    strip_comments_and_strings_mode(text, false)
+}
+
+/// Like [`strip_comments_and_strings`], and also blanks single-quoted character literals (`'x'`,
+/// `'"'`, `'\"'`, `'\n'`) while preserving Rust lifetimes (`'a`) and C++14 numeric separators
+/// (`1'000`) so an unescaped `'"'` character literal cannot open a string literal on the D32 path.
+pub fn strip_comments_strings_and_char_literals(text: &str) -> String {
+    strip_comments_and_strings_mode(text, true)
+}
+
+fn strip_comments_and_strings_mode(text: &str, strip_char_literals: bool) -> String {
     let b = text.as_bytes();
     let n = b.len();
     let mut out = String::with_capacity(n);
@@ -326,6 +358,15 @@ pub fn strip_comments_and_strings(text: &str) -> String {
             } else {
                 i += 1;
             }
+        } else if strip_char_literals && c == b'\'' {
+            if let Some(end) = char_literal_end_bytes(b, i) {
+                out.push_str(&text[copied_until..i]);
+                push_blanked(&mut out, &text[i..end]);
+                i = end;
+                copied_until = i;
+            } else {
+                i += 1;
+            }
         } else if c == b'"' {
             out.push_str(&text[copied_until..i]);
             let mut j = i + 1;
@@ -356,6 +397,51 @@ pub fn strip_comments_and_strings(text: &str) -> String {
     out
 }
 
+/// The byte offset just past a character literal (`'x'`, `'"'`, `'\"'`, `'\n'`, `'\x7f'`,
+/// `'\u{1234}'`) starting at `i`, or `None` when `i` starts a Rust lifetime (`'a`) or a C++14
+/// numeric separator (`1'000`).
+fn char_literal_end_bytes(b: &[u8], i: usize) -> Option<usize> {
+    if b.get(i) != Some(&b'\'') {
+        return None;
+    }
+    if i > 0 {
+        let prev = b[i - 1];
+        if prev.is_ascii_alphanumeric() || prev == b'_' {
+            let is_prefix = matches!(prev, b'b' | b'u' | b'U' | b'L')
+                && (i < 2 || !(b[i - 2].is_ascii_alphanumeric() || b[i - 2] == b'_'));
+            if !is_prefix {
+                return None;
+            }
+        }
+    }
+    let next = *b.get(i + 1)?;
+    if next == b'\'' || next == b'\n' || next == b'\r' {
+        return None;
+    }
+    if next == b'\\' {
+        let mut j = i + 2;
+        while j < b.len() && b[j] != b'\n' && b[j] != b'\r' && j - i <= 14 {
+            if b[j] == b'\\' {
+                j += 2;
+                continue;
+            }
+            if b[j] == b'\'' {
+                return Some(j + 1);
+            }
+            j += 1;
+        }
+        return None;
+    }
+    let tail = std::str::from_utf8(&b[i + 1..]).ok()?;
+    let ch = tail.chars().next()?;
+    let close = i + 1 + ch.len_utf8();
+    if b.get(close) == Some(&b'\'') {
+        Some(close + 1)
+    } else {
+        None
+    }
+}
+
 /// The byte offset just past a raw string starting at `i`, or `None` if none starts there.
 fn raw_string_end_bytes(b: &[u8], i: usize) -> Option<usize> {
     if b.get(i) != Some(&b'r') {
@@ -381,7 +467,7 @@ fn raw_string_end_bytes(b: &[u8], i: usize) -> Option<usize> {
 }
 
 /// The D25 gated sites on one line of stripped code, left to right per pattern (`.matmul(`,
-/// `MatMul`, `cublas`, word `gemm`, and tensor-core intrinsics `wmma` / `mma_sync`).
+/// `MatMul`, `cublas`, word `gemm`, and tensor-core intrinsics `wmma` / `mma_sync` / `wgmma` / `tcgen05`).
 fn matmul_sites(line: &str, number: usize, into: &mut Vec<Site>) {
     for _ in line.match_indices(".matmul(") {
         into.push(Site {
@@ -416,24 +502,24 @@ fn matmul_sites(line: &str, number: usize, into: &mut Vec<Site>) {
             });
         }
     }
-    if lower.contains(TC_FRAGMENT) || lower.contains(TC_SYNC) {
+    if lower.contains(TC_FRAGMENT)
+        || lower.contains(TC_SYNC)
+        || lower.contains(TC_WARPGROUP)
+        || lower.contains(TC_FIFTH_GEN)
+    {
         let b = lower.as_bytes();
         let mut i = 0;
         while i < b.len() {
-            if b[i..].starts_with(TC_FRAGMENT.as_bytes()) {
+            if let Some(pat) = [TC_FRAGMENT, TC_SYNC, TC_WARPGROUP, TC_FIFTH_GEN]
+                .into_iter()
+                .find(|pat| b[i..].starts_with(pat.as_bytes()))
+            {
                 into.push(Site {
                     line: number,
                     kind: "tensor-core",
-                    text: line[i..i + TC_FRAGMENT.len()].into(),
+                    text: line[i..i + pat.len()].into(),
                 });
-                i += TC_FRAGMENT.len();
-            } else if b[i..].starts_with(TC_SYNC.as_bytes()) {
-                into.push(Site {
-                    line: number,
-                    kind: "tensor-core",
-                    text: line[i..i + TC_SYNC.len()].into(),
-                });
-                i += TC_SYNC.len();
+                i += pat.len();
             } else {
                 i += 1;
             }
@@ -441,7 +527,194 @@ fn matmul_sites(line: &str, number: usize, into: &mut Vec<Site>) {
     }
 }
 
-/// Tensor-core fragment intrinsics ([`TC_FRAGMENT`] or [`TC_SYNC`], any case), non-overlapping, on stripped code.
+/// Whether `rel` belongs to the D32 discrete-model and standalone-instrument scope.
+fn is_discrete_scope(rel: &str) -> bool {
+    rel.starts_with("crates/uor-r4-discrete/") || rel.starts_with("docs/labs/")
+}
+
+/// The D32 gated floating-point type and literal sites on one line of stripped code.
+fn discrete_float_sites(line: &str, number: usize, is_cuda: bool, into: &mut Vec<Site>) {
+    let b = line.as_bytes();
+    let n = b.len();
+    let mut i = 0usize;
+    while i < n {
+        let prev_word = i > 0 && (b[i - 1].is_ascii_alphanumeric() || b[i - 1] == b'_');
+        let prev_dot = i > 0 && b[i - 1] == b'.';
+        let prev_single_dot = prev_dot && (i < 2 || b[i - 2] != b'.');
+        if (b[i].is_ascii_alphabetic() || b[i] == b'_') && !prev_word {
+            let mut k = i + 1;
+            while k < n && (b[k].is_ascii_alphanumeric() || b[k] == b'_') {
+                k += 1;
+            }
+            let word = &line[i..k];
+            if D32_FLOAT_TYPES.iter().any(|t| word.eq_ignore_ascii_case(t)) {
+                into.push(Site {
+                    line: number,
+                    kind: "float-type",
+                    text: word.to_string(),
+                });
+            }
+            i = k;
+            continue;
+        }
+        if b[i] == b'.'
+            && !prev_word
+            && !prev_dot
+            && b.get(i + 1).is_some_and(|c| c.is_ascii_digit())
+        {
+            let prev_tuple_receiver = !is_cuda;
+            let mut k = i + 2;
+            while k < n && (b[k].is_ascii_digit() || b[k] == b'_' || (is_cuda && b[k] == b'\'')) {
+                k += 1;
+            }
+            let mut has_exp = false;
+            if matches!(b.get(k), Some(b'e' | b'E')) {
+                has_exp = true;
+                k += 1;
+                if matches!(b.get(k), Some(b'+' | b'-')) {
+                    k += 1;
+                }
+                while k < n && (b[k].is_ascii_digit() || b[k] == b'_' || (is_cuda && b[k] == b'\''))
+                {
+                    k += 1;
+                }
+            }
+            let suff_start = k;
+            while k < n && (b[k].is_ascii_alphanumeric() || b[k] == b'_') {
+                k += 1;
+            }
+            let suff = &line[suff_start..k];
+            if !prev_tuple_receiver || has_exp || !suff.is_empty() {
+                into.push(Site {
+                    line: number,
+                    kind: "float-literal",
+                    text: line[i..k].to_string(),
+                });
+            }
+            i = k;
+            continue;
+        }
+        if b[i].is_ascii_digit() && !prev_word && !prev_single_dot {
+            if b[i] == b'0' && matches!(b.get(i + 1), Some(b'x' | b'X' | b'b' | b'B' | b'o' | b'O'))
+            {
+                let is_hex = matches!(b.get(i + 1), Some(b'x' | b'X'));
+                let mut k = i + 2;
+                if is_hex {
+                    while k < n
+                        && (b[k].is_ascii_hexdigit() || b[k] == b'_' || (is_cuda && b[k] == b'\''))
+                    {
+                        k += 1;
+                    }
+                    let has_hex_radix = b.get(k) == Some(&b'.')
+                        && b.get(k + 1) != Some(&b'.')
+                        && b.get(k + 1)
+                            .is_some_and(|c| c.is_ascii_hexdigit() || matches!(c, b'p' | b'P'));
+                    if has_hex_radix {
+                        k += 1;
+                        while k < n
+                            && (b[k].is_ascii_hexdigit()
+                                || b[k] == b'_'
+                                || (is_cuda && b[k] == b'\''))
+                        {
+                            k += 1;
+                        }
+                    }
+                    if matches!(b.get(k), Some(b'p' | b'P')) {
+                        k += 1;
+                        if matches!(b.get(k), Some(b'+' | b'-')) {
+                            k += 1;
+                        }
+                        while k < n
+                            && (b[k].is_ascii_digit() || b[k] == b'_' || (is_cuda && b[k] == b'\''))
+                        {
+                            k += 1;
+                        }
+                        while k < n && (b[k].is_ascii_alphanumeric() || b[k] == b'_') {
+                            k += 1;
+                        }
+                        into.push(Site {
+                            line: number,
+                            kind: "float-literal",
+                            text: line[i..k].to_string(),
+                        });
+                        i = k;
+                        continue;
+                    }
+                }
+                while k < n && (b[k].is_ascii_alphanumeric() || b[k] == b'_') {
+                    k += 1;
+                }
+                i = k;
+                continue;
+            }
+            let mut k = i + 1;
+            while k < n && (b[k].is_ascii_digit() || b[k] == b'_' || (is_cuda && b[k] == b'\'')) {
+                k += 1;
+            }
+            let mut has_dot = false;
+            if b.get(k) == Some(&b'.') {
+                let next = b.get(k + 1).copied();
+                let is_cuda_dot_suff = is_cuda
+                    && matches!(next, Some(b'f' | b'F' | b'd' | b'D'))
+                    && !b
+                        .get(k + 2)
+                        .is_some_and(|c| c.is_ascii_alphanumeric() || *c == b'_');
+                let is_cuda_dot_exp = is_cuda
+                    && matches!(next, Some(b'e' | b'E'))
+                    && (b.get(k + 2).is_some_and(|c| c.is_ascii_digit())
+                        || (matches!(b.get(k + 2), Some(b'+' | b'-'))
+                            && b.get(k + 3).is_some_and(|c| c.is_ascii_digit())));
+                let is_range_or_ident = next == Some(b'.')
+                    || (!is_cuda_dot_suff
+                        && !is_cuda_dot_exp
+                        && next.is_some_and(|c| c.is_ascii_alphabetic() || c == b'_'));
+                if !is_range_or_ident {
+                    has_dot = true;
+                    k += 1;
+                    while k < n
+                        && (b[k].is_ascii_digit() || b[k] == b'_' || (is_cuda && b[k] == b'\''))
+                    {
+                        k += 1;
+                    }
+                }
+            }
+            let mut has_exp = false;
+            if matches!(b.get(k), Some(b'e' | b'E')) {
+                has_exp = true;
+                k += 1;
+                if matches!(b.get(k), Some(b'+' | b'-')) {
+                    k += 1;
+                }
+                while k < n && (b[k].is_ascii_digit() || b[k] == b'_' || (is_cuda && b[k] == b'\''))
+                {
+                    k += 1;
+                }
+            }
+            let suff_start = k;
+            while k < n && (b[k].is_ascii_alphanumeric() || b[k] == b'_') {
+                k += 1;
+            }
+            let suff = &line[suff_start..k];
+            let has_float_suffix = ["f16", "bf16", "f32", "f64"]
+                .iter()
+                .any(|s| suff.eq_ignore_ascii_case(s))
+                || (is_cuda && matches!(suff, "f" | "F" | "d" | "D"));
+            if has_dot || has_exp || has_float_suffix {
+                into.push(Site {
+                    line: number,
+                    kind: "float-literal",
+                    text: line[i..k].to_string(),
+                });
+            }
+            i = k;
+            continue;
+        }
+        i += 1;
+    }
+}
+
+/// Tensor-core intrinsics ([`TC_FRAGMENT`], [`TC_SYNC`], [`TC_WARPGROUP`], or [`TC_FIFTH_GEN`], any case),
+/// non-overlapping, on stripped code.
 #[cfg(test)]
 fn tensor_core_sites(text: &str) -> u64 {
     let code = strip_comments_and_strings(text);
@@ -456,6 +729,9 @@ fn tensor_core_sites(text: &str) -> u64 {
 pub fn scan(repo: &Path, kind: Kind) -> Result<Scan, RatchetError> {
     let mut result = Scan::default();
     for (rel, path) in source_files(repo)? {
+        if kind == Kind::DiscreteFloat && !is_discrete_scope(&rel) {
+            continue;
+        }
         let Ok(bytes) = fs::read(&path) else {
             continue;
         };
@@ -474,6 +750,8 @@ pub fn scan(repo: &Path, kind: Kind) -> Result<Scan, RatchetError> {
                     && !lower.contains("gemm")
                     && !lower.contains(TC_FRAGMENT)
                     && !lower.contains(TC_SYNC)
+                    && !lower.contains(TC_WARPGROUP)
+                    && !lower.contains(TC_FIFTH_GEN)
                 {
                     continue;
                 }
@@ -486,6 +764,18 @@ pub fn scan(repo: &Path, kind: Kind) -> Result<Scan, RatchetError> {
                 if tc > 0 {
                     result.tensor_core += tc;
                     result.tensor_files += 1;
+                }
+                if !sites.is_empty() {
+                    result.counts.insert(rel.clone(), sites.len() as u64);
+                    result.detail.insert(rel, sites);
+                }
+            }
+            Kind::DiscreteFloat => {
+                let is_cuda = rel.ends_with(".cu") || rel.ends_with(".cuh");
+                let code = strip_comments_strings_and_char_literals(&text);
+                let mut sites = Vec::new();
+                for (k, line) in code.split('\n').enumerate() {
+                    discrete_float_sites(line, k + 1, is_cuda, &mut sites);
                 }
                 if !sites.is_empty() {
                     result.counts.insert(rel.clone(), sites.len() as u64);
@@ -568,7 +858,7 @@ pub enum Update {
 
 /// Write the current counts as the baseline, refusing any rise. An absent baseline is set at the
 /// current counts. For D23 an empty baseline also counts as absent (the Python D23 rule); for
-/// matmul an empty baseline is the ratchet at zero.
+/// matmul and discrete-float an empty baseline is the ratchet at zero.
 pub fn update_baseline(
     repo: &Path,
     kind: Kind,
@@ -583,7 +873,7 @@ pub fn update_baseline(
     let first = match (&old, kind) {
         (None, _) => true,
         (Some(m), Kind::NormExp) => m.is_empty(),
-        (Some(_), Kind::Matmul) => false,
+        (Some(_), Kind::Matmul | Kind::DiscreteFloat) => false,
     };
     if !first {
         let raised = growth(current, old.as_ref().unwrap_or(&BTreeMap::new()));
@@ -629,20 +919,22 @@ mod tests {
     #[test]
     fn tensor_core_count_is_non_overlapping_and_gated() {
         let s = format!(
-            "nvcuda::{}::{}(a) {}_sync // {} \"{}\"",
+            "nvcuda::{}::{}(a) {}_sync {}.mma_async {}.mma // {} \"{}\"",
             TC_FRAGMENT.to_uppercase(),
             TC_SYNC,
             TC_FRAGMENT,
+            TC_WARPGROUP,
+            TC_FIFTH_GEN,
             TC_SYNC,
             TC_FRAGMENT
         );
-        assert_eq!(tensor_core_sites(&s), 3);
+        assert_eq!(tensor_core_sites(&s), 5);
         let dir = repo_with(&[("crates/x/src/tc.cu", s)], None);
         let res = scan(dir.path(), Kind::Matmul).expect("scan matmul");
-        assert_eq!(res.counts.get("crates/x/src/tc.cu"), Some(&3));
-        assert_eq!(res.tensor_core, 3);
+        assert_eq!(res.counts.get("crates/x/src/tc.cu"), Some(&5));
+        assert_eq!(res.tensor_core, 5);
         assert_eq!(res.tensor_files, 1);
-        assert_eq!(res.detail["crates/x/src/tc.cu"].len(), 3);
+        assert_eq!(res.detail["crates/x/src/tc.cu"].len(), 5);
         assert!(res.detail["crates/x/src/tc.cu"]
             .iter()
             .all(|site| site.kind == "tensor-core"));
@@ -669,6 +961,85 @@ mod tests {
         let raw_kernel =
             "let k = r#\"__device__ void apply_rope_f32() { float y = tanhf(x); }\"#;\n";
         assert_eq!(d23_sites(raw_kernel), 2);
+    }
+
+    #[test]
+    fn discrete_float_ratchet_catches_types_and_literals_without_tuple_or_range_false_positives() {
+        let rust_code = "fn f<'a>(a: f32, b: f64, c: bf16, d: f16, s: &'a str) { let quote = '\"'; let esc = '\\\"'; let x = 1.0 + 2. + 1e-5 + 3f32 + 0x1.8p-2; let r = 0..1.0; let t = pair.0 + pair.0.1 + (pair).0 + arr[0].1
+            .1; for i in 0..10 { let _ = i.max(1); } // f32 1.0\nlet lit = \"f64 2.5\"; }\n";
+        let stripped = strip_comments_strings_and_char_literals(rust_code);
+        let mut sites = Vec::new();
+        for (k, line) in stripped.split('\n').enumerate() {
+            discrete_float_sites(line, k + 1, false, &mut sites);
+        }
+        let found: Vec<_> = sites.iter().map(|s| (s.kind, s.text.as_str())).collect();
+        assert_eq!(
+            found,
+            vec![
+                ("float-type", "f32"),
+                ("float-type", "f64"),
+                ("float-type", "bf16"),
+                ("float-type", "f16"),
+                ("float-literal", "1.0"),
+                ("float-literal", "2."),
+                ("float-literal", "1e-5"),
+                ("float-literal", "3f32"),
+                ("float-literal", "0x1.8p-2"),
+                ("float-literal", "1.0"),
+            ]
+        );
+
+        let cuda_code =
+            "__device__ void k() { float x = .5f + 1.f + 1.e3 + 2.e-4f + 1'000.25 + 0x1p-4; double y = 2.0; }\n";
+        let stripped_cu = strip_comments_strings_and_char_literals(cuda_code);
+        let mut cu_sites = Vec::new();
+        for (k, line) in stripped_cu.split('\n').enumerate() {
+            discrete_float_sites(line, k + 1, true, &mut cu_sites);
+        }
+        let cu_found: Vec<_> = cu_sites.iter().map(|s| (s.kind, s.text.as_str())).collect();
+        assert_eq!(
+            cu_found,
+            vec![
+                ("float-type", "float"),
+                ("float-literal", ".5f"),
+                ("float-literal", "1.f"),
+                ("float-literal", "1.e3"),
+                ("float-literal", "2.e-4f"),
+                ("float-literal", "1'000.25"),
+                ("float-literal", "0x1p-4"),
+                ("float-type", "double"),
+                ("float-literal", "2.0"),
+            ]
+        );
+
+        let dir = repo_with(
+            &[
+                (
+                    "crates/uor-r4-discrete/src/lib.rs",
+                    "pub fn f() -> f32 { let quote = '\"'; 1.0 }\n".into(),
+                ),
+                (
+                    "docs/labs/k16-timing-2026-10-15/instrument/src/main.rs",
+                    "fn main() { let x = 1e-3; }\n".into(),
+                ),
+                (
+                    "crates/uor-r4-training/src/lib.rs",
+                    "pub fn f() -> f32 { 1.0 }\n".into(),
+                ),
+            ],
+            None,
+        );
+        let res = scan(dir.path(), Kind::DiscreteFloat).expect("scan d32");
+        assert_eq!(
+            res.counts.get("crates/uor-r4-discrete/src/lib.rs"),
+            Some(&2)
+        );
+        assert_eq!(
+            res.counts
+                .get("docs/labs/k16-timing-2026-10-15/instrument/src/main.rs"),
+            Some(&1)
+        );
+        assert!(!res.counts.contains_key("crates/uor-r4-training/src/lib.rs"));
     }
 
     #[test]

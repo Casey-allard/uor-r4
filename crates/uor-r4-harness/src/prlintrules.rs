@@ -63,6 +63,8 @@ fn info(rule_id: &'static str, message: String, fix: String) -> Finding {
 pub const INTERLOCK: &str = "uor-harness ratchet d23";
 /// D25's interlock, as the harness runs it.
 pub const INTERLOCK_D25: &str = "uor-harness ratchet d25";
+/// D32's interlock, as the harness runs it.
+pub const INTERLOCK_D32: &str = "uor-harness ratchet d32";
 
 /// The acknowledgement stems the tests use. The real ones come from the config file; these are the
 /// same list written out, **so a test failing here means the config and the tests have diverged** -
@@ -152,8 +154,8 @@ fn acknowledges(text: &str, stems: &[String]) -> bool {
     stems.iter().any(|m| lower.contains(m.as_str()))
 }
 
-/// `prlint.d23_interlock` — both the D23 (`Kind::NormExp`) and D25 (`Kind::Matmul`) interlocks exist,
-/// are callable, and report no growth.
+/// `prlint.d23_interlock` — the D23 (`Kind::NormExp`), D25 (`Kind::Matmul`), and D32
+/// (`Kind::DiscreteFloat`) interlocks exist, are callable, and report no growth.
 ///
 /// **It calls the Rust ratchets**, which are the interlocks' only implementation now. **It never
 /// reimplements the scan** — the Python's comment says the same, and the reason holds: a second
@@ -179,6 +181,12 @@ pub fn interlock_holds(paths: &StatePaths, claims: &[String]) -> Vec<Finding> {
             "D25",
             INTERLOCK_D25,
             "replace the site with a structured geometric product, then lower the baseline with --update-baseline",
+        ),
+        (
+            Kind::DiscreteFloat,
+            "D32",
+            INTERLOCK_D32,
+            "replace the floating-point site with discrete integer/ternary geometry, then lower the baseline with --update-baseline",
         ),
     ] {
         let scan = match ratchet::scan(&paths.repo, kind) {
@@ -372,6 +380,11 @@ mod tests {
             "{}\n",
         )
         .expect("write d25 baseline");
+        std::fs::write(
+            crate::ratchet::Kind::DiscreteFloat.baseline_path(dir.path()),
+            "{}\n",
+        )
+        .expect("write d32 baseline");
         let p = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
         let f = interlock_holds(&p, &[]);
         assert_eq!(f.len(), 1, "{f:?}");
@@ -379,6 +392,45 @@ mod tests {
         assert!(
             f[0].message.contains(
                 "the D25 interlock reports 1 file(s) above baseline: crates/x/src/a.rs (0 -> 1)"
+            ),
+            "{}",
+            f[0].message
+        );
+    }
+
+    /// Growth in D32 (`Kind::DiscreteFloat`) is caught by `interlock_holds` as an error.
+    #[test]
+    fn d32_discrete_float_growth_produces_an_error() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        std::fs::create_dir_all(dir.path().join("crates/uor-r4-discrete/src")).expect("mkdir");
+        std::fs::create_dir_all(dir.path().join("scripts")).expect("mkdir scripts");
+        std::fs::write(
+            dir.path().join("crates/uor-r4-discrete/src/a.rs"),
+            "pub fn f(x: f32) -> f32 { x + 0.5 }\n",
+        )
+        .expect("write source");
+        std::fs::write(
+            crate::ratchet::Kind::NormExp.baseline_path(dir.path()),
+            "{}\n",
+        )
+        .expect("write d23 baseline");
+        std::fs::write(
+            crate::ratchet::Kind::Matmul.baseline_path(dir.path()),
+            "{}\n",
+        )
+        .expect("write d25 baseline");
+        std::fs::write(
+            crate::ratchet::Kind::DiscreteFloat.baseline_path(dir.path()),
+            "{}\n",
+        )
+        .expect("write d32 baseline");
+        let p = StatePaths::resolve(dir.path(), None, Some("/nonexistent-live"));
+        let f = interlock_holds(&p, &[]);
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert_eq!(f[0].severity, "error");
+        assert!(
+            f[0].message.contains(
+                "the D32 interlock reports 1 file(s) above baseline: crates/uor-r4-discrete/src/a.rs (0 -> 3)"
             ),
             "{}",
             f[0].message

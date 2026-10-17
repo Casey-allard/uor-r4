@@ -1,10 +1,10 @@
 {
-  "antigravity/d29-vendor-discrete-interlock-hardening": {
-    "branch": "antigravity/d29-vendor-discrete-interlock-hardening",
-    "claimed_at": "2026-10-16T17:25:35-04:00",
-    "head": "575645a26",
+  "antigravity/d32-ratchet-and-proof-model-audit": {
+    "branch": "antigravity/d32-ratchet-and-proof-model-audit",
+    "claimed_at": "2026-10-16T19:52:34-04:00",
+    "head": "2d6794e28",
     "lab": "antigravity",
-    "note": "Host-only interlock hardening for Audit Ranks 2, 3, and 5 in scripts/check_native_cuda_vendor.rs"
+    "note": "Host-only D32 Rust float-type/literal ratchet (uor-harness ratchet d32), Hopper/Blackwell tensor-core ratchet (wgmma/tcgen05), and uor-r4-proof-model D23/D25/D32 inference audit expansion (#2563)"
   },
   "claude/public-face-reconcile-2026-10-15": {
     "branch": "claude/public-face-reconcile-2026-10-15",

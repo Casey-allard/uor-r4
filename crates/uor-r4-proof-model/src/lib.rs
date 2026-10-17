@@ -4,7 +4,6 @@
 pub mod allocation_proof;
 #[cfg(feature = "full-model")]
 pub mod deterministic_topk_proof;
-#[cfg(feature = "full-model")]
 pub mod inference_audit;
 pub mod kani_proofs;
 #[cfg(feature = "full-model")]

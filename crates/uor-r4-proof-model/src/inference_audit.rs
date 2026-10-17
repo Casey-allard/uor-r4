@@ -60,9 +60,9 @@ pub struct InferenceAuditReport {
 pub struct InferenceAuditVerifier;
 
 impl InferenceAuditVerifier {
-    /// Forbidden instruction mnemonics for x86_64 and AArch64.
+    /// Forbidden instruction mnemonics for x86_64, AArch64, and PTX/SASS.
     pub const FORBIDDEN_MNEMONICS: &'static [&'static str] = &[
-        // Floating point
+        // Floating point (x86_64 / AArch64 / PTX)
         "fadd",
         "fsub",
         "fmul",
@@ -71,21 +71,61 @@ impl InferenceAuditVerifier {
         "vsubss",
         "vmulss",
         "vdivss",
+        "vaddps",
+        "vsubps",
+        "vmulps",
+        "vdivps",
         "fadd.s",
         "fmul.s",
+        // Fused multiply-add & float conversions (x86_64 / AArch64 / PTX)
+        "fma.",
+        "fmadd",
+        "fmsub",
+        "fnmadd",
+        "vfmadd",
+        "vfmsub",
+        "vfnmadd",
+        "cvtsi2ss",
+        "cvtsi2sd",
+        "cvtss2si",
+        "cvtsd2si",
+        "vcvt",
+        "scvtf",
+        "ucvtf",
+        "fcvtzs",
+        "fcvtzu",
+        // PTX transcendentals & reciprocal/rsqrt/sqrt approximations (D23/D25/D32)
+        "ex2.",
+        "lg2.",
+        "sin.",
+        "cos.",
+        "tanh.",
+        "rcp.",
+        "rsqrt.",
+        "sqrt.approx",
+        "sqrt.rn",
+        // Tensor-core / matrix-multiply-accumulate (PTX / SASS — D25/D32)
+        "mma.",
+        "wmma.",
+        "wgmma",
+        "tcgen05",
+        "hmma",
+        "imma",
+        "qmma",
         // Multiplication & Division
         "mul",
         "imul",
         "div",
         "idiv",
         "mul.d",
-        "div.d", // Heap Allocation
+        "div.d",
+        // Heap Allocation
         "malloc",
         "free",
         "_zn5alloc",
     ];
 
-    /// Forbidden dependency crate names.
+    /// Forbidden dependency crate names (D11/D25/D32).
     pub const FORBIDDEN_DEPENDENCIES: &'static [&'static str] = &[
         "cuda",
         "rocm",
@@ -99,7 +139,44 @@ impl InferenceAuditVerifier {
         "tensorflow",
         "blas",
         "cublas",
+        "cudnn",
+        "cutlass",
+        "cutensor",
+        "cusolver",
+        "cusparse",
+        "nvrtc",
+        "nccl",
+        "candle",
+        "burn",
+        "tch",
+        "ort",
+        "onnx",
+        "nalgebra",
+        "ndarray",
+        "faer",
+        "gemm",
+        "matrixmultiply",
     ];
+
+    fn is_forbidden_ptx_float_cvt(line_lower: &str) -> bool {
+        const PTX_FLOAT_TYPES: &[&str] =
+            &[".f16", ".bf16", ".f32", ".f64", ".tf32", ".e4m3", ".e5m2"];
+        line_lower.contains("cvt.") && PTX_FLOAT_TYPES.iter().any(|ty| line_lower.contains(ty))
+    }
+
+    fn dep_matches_forbidden(dep_lower: &str, forbidden: &str) -> bool {
+        if dep_lower == forbidden
+            || dep_lower
+                .split(|c: char| c == '-' || c == '_')
+                .any(|seg| seg == forbidden)
+        {
+            return true;
+        }
+        if matches!(forbidden, "ort" | "tch") {
+            return false;
+        }
+        dep_lower.contains(forbidden)
+    }
 
     /// Audit a disassembly snippet for forbidden instruction mnemonics. Total:
     /// returns `Some(count)` of scanned instructions when clean, or `None` when
@@ -111,6 +188,9 @@ impl InferenceAuditVerifier {
         for line in disassembly.lines() {
             count += 1;
             let lower = line.to_lowercase();
+            if Self::is_forbidden_ptx_float_cvt(&lower) {
+                return None;
+            }
             for forbidden in Self::FORBIDDEN_MNEMONICS {
                 if lower.contains(forbidden) {
                     return None;
@@ -129,7 +209,7 @@ impl InferenceAuditVerifier {
             count += 1;
             let lower = dep.to_lowercase();
             for forbidden in Self::FORBIDDEN_DEPENDENCIES {
-                if lower.contains(forbidden) {
+                if Self::dep_matches_forbidden(&lower, forbidden) {
                     return None;
                 }
             }
@@ -184,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_disassembly_audit_passes_clean_code() {
-        let clean = "mov eax, [rsp+8]\nadd eax, ebx\nxor ecx, ecx\npopcnt edx, eax\nret";
+        let clean = "mov eax, [rsp+8]\nadd eax, ebx\nxor ecx, ecx\npopcnt edx, eax\ncvt.u64.u32 %rd1, %r1;\ncvt.s32.s16 %r2, %r3;\nret";
         assert!(InferenceAuditVerifier::audit_disassembly(clean).is_some());
     }
 
@@ -195,14 +275,58 @@ mod tests {
     }
 
     #[test]
+    fn test_disassembly_audit_rejects_fma_conversions_ptx_and_tensor_core() {
+        for bad in [
+            "vfmadd213ps ymm0, ymm1, ymm2",
+            "scvtf s0, w0",
+            "cvt.rn.f32.s32 %f1, %r1;",
+            "cvt.rzi.s32.f32 %r1, %f1;",
+            "cvt.f16.f32 %h1, %f1;",
+            "ex2.approx.f32 %f2, %f1;",
+            "tanh.approx.f32 %f3, %f1;",
+            "rcp.approx.f32 %f4, %f1;",
+            "sqrt.rn.f32 %f5, %f1;",
+            "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32",
+            "wgmma.mma_async.sync.aligned.m64n64k16.f32.f16.f16",
+            "tcgen05.mma.cta_group::1.kind::f16",
+        ] {
+            assert!(
+                InferenceAuditVerifier::audit_disassembly(bad).is_none(),
+                "expected {bad:?} to be rejected"
+            );
+        }
+    }
+
+    #[test]
     fn test_disassembly_audit_rejects_multiplication() {
         let bad = "imul eax, ebx";
         assert!(InferenceAuditVerifier::audit_disassembly(bad).is_none());
     }
 
     #[test]
-    fn test_dependency_audit_rejects_gpu_deps() {
-        let bad_deps = &["uor-r4-graph-runtime", "cuda-sys"];
-        assert!(InferenceAuditVerifier::audit_dependencies(bad_deps).is_none());
+    fn test_dependency_audit_rejects_gpu_and_tensor_deps() {
+        let clean_deps = &["uor-r4-graph-runtime", "uor-r4-support", "uor-r4-transport"];
+        assert!(InferenceAuditVerifier::audit_dependencies(clean_deps).is_some());
+
+        for bad in [
+            "cuda-sys",
+            "candle-core",
+            "candle-nn",
+            "faer-core",
+            "ndarray",
+            "nalgebra",
+            "matrixmultiply",
+            "ort",
+            "ort-sys",
+            "tch",
+            "tch-sys",
+            "cudnn-sys",
+        ] {
+            let bad_deps = &["uor-r4-graph-runtime", bad];
+            assert!(
+                InferenceAuditVerifier::audit_dependencies(bad_deps).is_none(),
+                "expected dependency {bad:?} to be rejected"
+            );
+        }
     }
 }
