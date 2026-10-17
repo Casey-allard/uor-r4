@@ -1,3 +1,13 @@
+## 2026-10-17 — Reconnect and retry for real networks (deepseek/object-store-retry)
+
+The [retry record](../labs/object-store-retry-2026-10-17/README.md) adds opt-in --retries N to objpeer
+pull and sync: each attempt reconnects, retryable I/O/schema/integrity failures print retry n/N and retry,
+while binding/unknown/limit errors stop early. Atomic digest-verified imports make retries safe, and a
+cutting-proxy CLI test (first connection cut, second bridged) proves a real reconnect and byte-identical
+output. CLI 9/9, peer 15/15, controls 10/10, vectors 1/1, showcase 5/5; Clippy -D warnings and fmt
+clean. No model compute; training/M2/Stage B HELD. **Next:** protected delivery, then a WAN flap test
+against the pod proxy if useful.
+
 ## 2026-10-17 — Protocol spec note: node id is standard BLAKE2b-96 (deepseek/object-store-spec-note)
 
 The [spec note](../labs/object-store-spec-note-2026-10-17/README.md) records that node_id(scale,payload)

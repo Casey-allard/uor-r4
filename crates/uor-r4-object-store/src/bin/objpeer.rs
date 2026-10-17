@@ -11,7 +11,7 @@ use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::thread;
 
-use uor_r4_object_store::{peer, ExpectedObject, Limits, Manifest, Store};
+use uor_r4_object_store::{peer, Error, ExpectedObject, Limits, Manifest, Store};
 
 fn limits() -> Limits {
     Limits {
@@ -98,6 +98,13 @@ fn fold_file(store: &mut Store, path: &str) -> Manifest {
         .manifest
 }
 
+fn retryable(error: &Error) -> bool {
+    !matches!(
+        error,
+        Error::BindingMismatch | Error::UnknownObject | Error::LimitExceeded(_)
+    )
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
@@ -118,6 +125,7 @@ fn main() {
     let mut out_dir = String::new();
     let mut json = false;
     let mut select_shas: Vec<[u8; 32]> = Vec::new();
+    let mut retries: usize = 0;
     let mut i = 2usize;
     while i < args.len() {
         let key = args[i].clone();
@@ -142,6 +150,7 @@ fn main() {
             "--have" => have = value,
             "--targets" => targets = value,
             "--out-dir" => out_dir = value,
+            "--retries" => retries = value.parse().unwrap_or_else(|_| die("bad --retries")),
             "--bind" => bind = value,
             "--addr" => addr = value,
             "--out" => out = value,
@@ -264,19 +273,6 @@ fn main() {
             if selectors.is_empty() {
                 die("sync targets file contained no selectors");
             }
-            let stream = TcpStream::connect(&addr)
-                .unwrap_or_else(|e| die(&format!("connect {}: {}", addr, e)));
-            let reader_stream = stream
-                .try_clone()
-                .unwrap_or_else(|e| die(&format!("clone: {}", e)));
-            let mut reader = Counted {
-                inner: reader_stream,
-                bytes: 0,
-            };
-            let mut writer = Counted {
-                inner: stream,
-                bytes: 0,
-            };
             let requests: Vec<peer::PullRequest> = selectors
                 .iter()
                 .map(|selector| peer::PullRequest {
@@ -284,9 +280,33 @@ fn main() {
                     selector: Some(*selector),
                 })
                 .collect();
-            let results = peer::pull_series(&mut store, &requests, &mut reader, &mut writer)
-                .unwrap_or_else(|e| die(&format!("sync: {:?}", e)));
-            let wire_bytes = reader.bytes + writer.bytes;
+            let mut attempt = 0usize;
+            let (results, wire_bytes) = loop {
+                let outcome =
+                    (|| -> uor_r4_object_store::Result<(Vec<(Manifest, peer::PullStats)>, u64)> {
+                        let stream = TcpStream::connect(&addr)?;
+                        let reader_stream = stream.try_clone()?;
+                        let mut reader = Counted {
+                            inner: reader_stream,
+                            bytes: 0,
+                        };
+                        let mut writer = Counted {
+                            inner: stream,
+                            bytes: 0,
+                        };
+                        let results =
+                            peer::pull_series(&mut store, &requests, &mut reader, &mut writer)?;
+                        Ok((results, reader.bytes + writer.bytes))
+                    })();
+                match outcome {
+                    Ok(value) => break value,
+                    Err(error) if attempt < retries && retryable(&error) => {
+                        attempt += 1;
+                        eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+                    }
+                    Err(error) => die(&format!("sync: {:?}", error)),
+                }
+            };
             fs::create_dir_all(&out_dir)
                 .unwrap_or_else(|e| die(&format!("create {}: {}", out_dir, e)));
             let mut nodes = 0u64;
@@ -493,19 +513,6 @@ fn main() {
                 fold_file(&mut store, &have);
             }
             save_store(&store, &store_path);
-            let stream = TcpStream::connect(&addr)
-                .unwrap_or_else(|e| die(&format!("connect {}: {}", addr, e)));
-            let reader_stream = stream
-                .try_clone()
-                .unwrap_or_else(|e| die(&format!("clone: {}", e)));
-            let mut reader = Counted {
-                inner: reader_stream,
-                bytes: 0,
-            };
-            let mut writer = Counted {
-                inner: stream,
-                bytes: 0,
-            };
             let expected =
                 if expect_sha.is_none() && expect_version.is_none() && expect_bytes.is_none() {
                     None
@@ -516,15 +523,38 @@ fn main() {
                         whole_sha256: expect_sha,
                     })
                 };
-            let (manifest, stats) = peer::pull_selected(
-                &mut store,
-                expected,
-                select_shas.first().copied(),
-                &mut reader,
-                &mut writer,
-            )
-            .unwrap_or_else(|e| die(&format!("pull: {:?}", e)));
-            let wire_bytes = reader.bytes + writer.bytes;
+            let mut attempt = 0usize;
+            let (manifest, stats, wire_bytes) = loop {
+                let outcome =
+                    (|| -> uor_r4_object_store::Result<(Manifest, peer::PullStats, u64)> {
+                        let stream = TcpStream::connect(&addr)?;
+                        let reader_stream = stream.try_clone()?;
+                        let mut reader = Counted {
+                            inner: reader_stream,
+                            bytes: 0,
+                        };
+                        let mut writer = Counted {
+                            inner: stream,
+                            bytes: 0,
+                        };
+                        let (manifest, stats) = peer::pull_selected(
+                            &mut store,
+                            expected,
+                            select_shas.first().copied(),
+                            &mut reader,
+                            &mut writer,
+                        )?;
+                        Ok((manifest, stats, reader.bytes + writer.bytes))
+                    })();
+                match outcome {
+                    Ok(value) => break value,
+                    Err(error) if attempt < retries && retryable(&error) => {
+                        attempt += 1;
+                        eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+                    }
+                    Err(error) => die(&format!("pull: {:?}", error)),
+                }
+            };
             save_store(&store, &store_path);
             let verified = store
                 .rebuild(&manifest)

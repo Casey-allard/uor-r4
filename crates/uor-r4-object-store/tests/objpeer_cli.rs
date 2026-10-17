@@ -1,8 +1,12 @@
 //! The packaged objpeer CLI replicates a delta between two real processes over loopback.
 
 use std::io::{BufRead, BufReader, Read};
+use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
+use std::thread;
+
+use uor_r4_object_store::{peer, Limits, Store};
 
 fn atoms(n: usize, salt: usize) -> Vec<u8> {
     let mut out = Vec::with_capacity(n * 32);
@@ -497,4 +501,83 @@ fn packaged_cli_sync_targets_into_directory() {
     let _ = server.wait();
     let mut rest = String::new();
     reader.read_to_string(&mut rest).ok();
+}
+
+fn test_limits() -> Limits {
+    Limits {
+        max_object_bytes: 1 << 30,
+        max_records: 1_000_000,
+        max_record_bytes: 1 << 30,
+        max_returned_bytes: 1 << 30,
+        max_visits: 100_000_000,
+        max_occurrences: 10_000_000,
+    }
+}
+
+#[test]
+fn packaged_cli_retries_after_a_cut_connection() {
+    let dir = tmp_dir("retry");
+    let old = dir.join("old.bin");
+    let new = dir.join("new.bin");
+    let old_bytes = atoms(2048, 71);
+    let new_bytes = atoms(2064, 71);
+    std::fs::write(&old, &old_bytes).unwrap();
+    std::fs::write(&new, &new_bytes).unwrap();
+
+    let mut sender = Store::new(test_limits());
+    let manifest = sender.fold(&new_bytes).expect("fold").manifest;
+    let server_listener = TcpListener::bind("127.0.0.1:0").expect("bind server");
+    let server_addr = server_listener.local_addr().expect("server addr");
+    let server = thread::spawn(move || {
+        let (stream, _) = server_listener.accept().expect("accept");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        peer::serve(&sender, &manifest, &mut reader, &mut writer).expect("serve");
+    });
+
+    let proxy_listener = TcpListener::bind("127.0.0.1:0").expect("bind proxy");
+    let proxy_addr = proxy_listener.local_addr().expect("proxy addr");
+    let proxy = thread::spawn(move || {
+        // First connection: cut after receiving part of the first frame.
+        let (mut cut, _) = proxy_listener.accept().expect("accept cut");
+        let mut buffer = [0u8; 16];
+        let _ = cut.read(&mut buffer);
+        drop(cut);
+        // Second connection: bridge to the server.
+        let (client, _) = proxy_listener.accept().expect("accept bridge");
+        let upstream = TcpStream::connect(server_addr).expect("upstream");
+        let mut client_read = client.try_clone().expect("clone client");
+        let mut upstream_write = upstream.try_clone().expect("clone upstream");
+        let pump = thread::spawn(move || {
+            let _ = std::io::copy(&mut client_read, &mut upstream_write);
+        });
+        let mut upstream_read = upstream;
+        let mut client_write = client;
+        let _ = std::io::copy(&mut upstream_read, &mut client_write);
+        pump.join().ok();
+    });
+
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("pull")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--have")
+        .arg(&old)
+        .arg("--addr")
+        .arg(proxy_addr.to_string())
+        .arg("--out")
+        .arg(dir.join("out.bin"))
+        .args(["--retries", "2"])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+    assert!(out.status.success(), "retry pull failed: {}", stderr);
+    assert!(
+        stderr.contains("retry 1/2"),
+        "expected a retry line in stderr: {}",
+        stderr
+    );
+    assert_eq!(std::fs::read(dir.join("out.bin")).unwrap(), new_bytes);
+    server.join().expect("server");
+    proxy.join().expect("proxy");
 }
