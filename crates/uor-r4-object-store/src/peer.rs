@@ -37,18 +37,63 @@ pub struct PullStats {
 }
 
 /// The object identity a caller already trusts (from a registry, manifest pin or local expectation).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Any combination of pins may be supplied; at least one must be set for an anchored pull. bytes is
+/// the native object length, version is the manifest version (SHA-256 of the canonical UOROBJ01
+/// manifest), and whole_sha256 is the SHA-256 of the object payload - the digest an OCI descriptor or
+/// artifact store publishes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct ExpectedObject {
-    pub bytes: u64,
-    pub version: ObjectVersion,
+    pub bytes: Option<u64>,
+    pub version: Option<ObjectVersion>,
+    pub whole_sha256: Option<[u8; 32]>,
 }
 
 impl ExpectedObject {
     pub fn from_manifest(manifest: &Manifest) -> ExpectedObject {
         ExpectedObject {
-            bytes: manifest.byte_len(),
-            version: manifest.version(),
+            bytes: Some(manifest.byte_len()),
+            version: Some(manifest.version()),
+            whole_sha256: None,
         }
+    }
+
+    pub fn from_sha256(sha: [u8; 32]) -> ExpectedObject {
+        ExpectedObject {
+            bytes: None,
+            version: None,
+            whole_sha256: Some(sha),
+        }
+    }
+
+    pub fn with_bytes(mut self, bytes: u64) -> ExpectedObject {
+        self.bytes = Some(bytes);
+        self
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.bytes.is_none() && self.version.is_none() && self.whole_sha256.is_none()
+    }
+
+    fn matches(&self, manifest: &Manifest) -> bool {
+        if self.is_empty() {
+            return false;
+        }
+        if let Some(bytes) = self.bytes {
+            if bytes != manifest.byte_len() {
+                return false;
+            }
+        }
+        if let Some(version) = self.version {
+            if version != manifest.version() {
+                return false;
+            }
+        }
+        if let Some(sha) = self.whole_sha256 {
+            if sha != manifest.whole_sha256() {
+                return false;
+            }
+        }
+        true
     }
 }
 
@@ -209,7 +254,7 @@ pub fn pull_expected<R: Read, W: Write>(
     }
     let manifest = Manifest::decode(&body, &limits)?;
     if let Some(expected) = expected {
-        if expected.bytes != manifest.byte_len() || expected.version != manifest.version() {
+        if !expected.matches(&manifest) {
             return Err(Error::BindingMismatch);
         }
     }

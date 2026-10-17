@@ -9,7 +9,7 @@ pub mod peer;
 mod record;
 mod store;
 pub use manifest::Manifest;
-pub use peer::PullStats;
+pub use peer::{ExpectedObject, PullStats};
 pub use record::Record;
 use std::fmt;
 pub use store::{

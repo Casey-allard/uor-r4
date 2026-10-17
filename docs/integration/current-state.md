@@ -1,3 +1,15 @@
+## 2026-10-17 — Trusted object pins in the peer API and CLI (deepseek/object-store-object-pin)
+
+The [pin record](../labs/object-store-object-pin-2026-10-17/README.md) turns the audited trusted anchor
+into a usable surface: ExpectedObject accepts any combination of native length, manifest version and
+whole-object SHA-256 pins, rejects an empty anchor, and fails with BindingMismatch before fetch/import.
+The packaged objpeer CLI exposes --expect-sha256/--expect-version/--expect-bytes and prints the object
+sha256 and manifest_version so peers can be pinned out of band. Tests cover accept and reject paths in
+the library and the CLI; package suites pass, Clippy -D warnings and fmt clean. A pin proves object
+identity, not peer authenticity (no TLS/credential). No model compute; training/M2/Stage B HELD.
+**Next:** protected delivery, then record the trust model with the product packaging and check whether a
+session-level authentication layer is worth adding.
+
 ## 2026-10-17 — Packaged objpeer replication CLI in the object store (deepseek/object-store-objpeer-cli)
 
 The [packaging record](../labs/object-store-objpeer-cli-2026-10-17/README.md) adds the content-addressed

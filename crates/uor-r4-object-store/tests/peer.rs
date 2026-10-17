@@ -139,8 +139,9 @@ fn a_wrong_expected_identity_is_rejected_before_import() {
     let manifest = sender.fold(&payload).expect("fold").manifest;
     let mut receiver = Store::new(limits());
     let wrong = ExpectedObject {
-        bytes: manifest.byte_len(),
-        version: [0u8; 32],
+        bytes: Some(manifest.byte_len()),
+        version: Some([0u8; 32]),
+        whole_sha256: None,
     };
     let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
     let addr = listener.local_addr().expect("addr");
@@ -272,4 +273,46 @@ fn concurrent_sessions_share_one_read_only_store() {
     assert!(stats_a.nodes_requested > 0);
     assert_eq!(stats_a.nodes_requested, stats_b.nodes_requested);
     assert_eq!(stats_a.record_bytes, stats_b.record_bytes);
+}
+
+#[test]
+fn whole_sha256_pin_accepts_the_right_object_and_rejects_another() {
+    let payload = atoms(4096, 9);
+    let mut sender = Store::new(limits());
+    let manifest = sender.fold(&payload).expect("fold").manifest;
+    let mut receiver = Store::new(limits());
+    let expected =
+        ExpectedObject::from_sha256(manifest.whole_sha256()).with_bytes(payload.len() as u64);
+    pull_from(sender, manifest.clone(), &mut receiver, Some(expected));
+    assert_eq!(
+        receiver.rebuild(&manifest).expect("rebuild").bytes(),
+        &payload[..]
+    );
+
+    let mut sender2 = Store::new(limits());
+    let manifest2 = sender2.fold(&payload).expect("fold2").manifest;
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let addr = listener.local_addr().expect("addr");
+    let server_manifest = manifest2.clone();
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().expect("accept");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        let _ = peer::serve(&sender2, &server_manifest, &mut reader, &mut writer);
+    });
+    let mut receiver2 = Store::new(limits());
+    let stream = TcpStream::connect(addr).expect("connect");
+    let mut reader = stream.try_clone().expect("clone");
+    let mut writer = stream;
+    let wrong = ExpectedObject::from_sha256([0u8; 32]);
+    let result = peer::pull_expected(&mut receiver2, Some(wrong), &mut reader, &mut writer);
+    assert!(matches!(result, Err(Error::BindingMismatch)));
+    assert_eq!(
+        receiver2.record_count(),
+        0,
+        "no record may be imported before the pin check"
+    );
+    drop(writer);
+    drop(reader);
+    server.join().ok();
 }

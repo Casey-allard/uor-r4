@@ -11,7 +11,7 @@ use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::thread;
 
-use uor_r4_object_store::{peer, Limits, Manifest, Store};
+use uor_r4_object_store::{peer, ExpectedObject, Limits, Manifest, Store};
 
 fn limits() -> Limits {
     Limits {
@@ -31,6 +31,18 @@ fn die(msg: &str) -> ! {
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+fn hex32(value: &str) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    if value.len() != 64 {
+        die("--expect values must be 64 hex characters");
+    }
+    for index in 0..32 {
+        out[index] = u8::from_str_radix(&value[index * 2..index * 2 + 2], 16)
+            .unwrap_or_else(|_| die("--expect value is not valid hex"));
+    }
+    out
 }
 
 struct Counted<S> {
@@ -99,6 +111,9 @@ fn main() {
     let mut out = String::new();
     let mut sessions: usize = 1;
     let mut concurrent = false;
+    let mut expect_sha: Option<[u8; 32]> = None;
+    let mut expect_version: Option<[u8; 32]> = None;
+    let mut expect_bytes: Option<u64> = None;
     let mut i = 2usize;
     while i < args.len() {
         let key = args[i].clone();
@@ -120,6 +135,11 @@ fn main() {
             "--bind" => bind = value,
             "--addr" => addr = value,
             "--out" => out = value,
+            "--expect-sha256" => expect_sha = Some(hex32(&value)),
+            "--expect-version" => expect_version = Some(hex32(&value)),
+            "--expect-bytes" => {
+                expect_bytes = Some(value.parse().unwrap_or_else(|_| die("bad --expect-bytes")))
+            }
             "--sessions" => sessions = value.parse().unwrap_or_else(|_| die("bad --sessions")),
             other => die(&format!("unknown argument {}", other)),
         }
@@ -150,11 +170,13 @@ fn main() {
             let listener =
                 TcpListener::bind(&bind).unwrap_or_else(|e| die(&format!("bind {}: {}", bind, e)));
             println!(
-                "READY {} object_bytes={} roots={} records={}",
+                "READY {} object_bytes={} roots={} records={} sha256={} manifest_version={}",
                 listener.local_addr().unwrap(),
                 manifest.byte_len(),
                 manifest.roots().len(),
-                store.record_count()
+                store.record_count(),
+                hex(&manifest.whole_sha256()),
+                hex(&manifest.version())
             );
             if concurrent {
                 thread::scope(|scope| {
@@ -215,8 +237,19 @@ fn main() {
                 inner: stream,
                 bytes: 0,
             };
-            let (manifest, stats) = peer::pull(&mut store, &mut reader, &mut writer)
-                .unwrap_or_else(|e| die(&format!("pull: {:?}", e)));
+            let expected =
+                if expect_sha.is_none() && expect_version.is_none() && expect_bytes.is_none() {
+                    None
+                } else {
+                    Some(ExpectedObject {
+                        bytes: expect_bytes,
+                        version: expect_version,
+                        whole_sha256: expect_sha,
+                    })
+                };
+            let (manifest, stats) =
+                peer::pull_expected(&mut store, expected, &mut reader, &mut writer)
+                    .unwrap_or_else(|e| die(&format!("pull: {:?}", e)));
             let wire_bytes = reader.bytes + writer.bytes;
             save_store(&store, &store_path);
             let verified = store

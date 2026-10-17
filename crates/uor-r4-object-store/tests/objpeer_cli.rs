@@ -119,3 +119,77 @@ fn packaged_cli_info_folds_an_artifact() {
     assert!(stdout.contains("INFO object_bytes="), "{}", stdout);
     assert!(stdout.contains("records="), "{}", stdout);
 }
+
+#[test]
+fn packaged_cli_enforces_a_whole_sha256_pin() {
+    use sha2::{Digest, Sha256};
+
+    fn sha_hex(bytes: &[u8]) -> String {
+        Sha256::digest(bytes)
+            .iter()
+            .map(|byte| format!("{:02x}", byte))
+            .collect()
+    }
+
+    let dir = tmp_dir("pin");
+    let old = dir.join("old.bin");
+    let new = dir.join("new.bin");
+    let new_bytes = atoms(1040, 4);
+    std::fs::write(&old, atoms(1024, 4)).unwrap();
+    std::fs::write(&new, &new_bytes).unwrap();
+    let correct = sha_hex(&new_bytes);
+
+    let (mut server, mut reader, addr) = spawn_serve(&dir.join("server.store"), &new);
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("pull")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--have")
+        .arg(&old)
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--out")
+        .arg(dir.join("out.bin"))
+        .arg("--expect-sha256")
+        .arg(&correct)
+        .arg("--expect-bytes")
+        .arg(new_bytes.len().to_string())
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "pinned pull failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(std::fs::read(dir.join("out.bin")).unwrap(), new_bytes);
+    let _ = server.wait();
+    let mut rest = String::new();
+    reader.read_to_string(&mut rest).ok();
+
+    let (mut server2, mut reader2, addr2) = spawn_serve(&dir.join("server2.store"), &new);
+    let out2 = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("pull")
+        .arg("--store")
+        .arg(dir.join("client2.store"))
+        .arg("--have")
+        .arg(&old)
+        .arg("--addr")
+        .arg(&addr2)
+        .arg("--out")
+        .arg(dir.join("out2.bin"))
+        .arg("--expect-sha256")
+        .arg("00".repeat(32))
+        .arg("--expect-bytes")
+        .arg(new_bytes.len().to_string())
+        .output()
+        .unwrap();
+    assert!(!out2.status.success(), "wrong sha pin must fail");
+    assert!(
+        String::from_utf8_lossy(&out2.stderr).contains("BindingMismatch"),
+        "expected a binding failure, got: {}",
+        String::from_utf8_lossy(&out2.stderr)
+    );
+    let _ = server2.wait();
+    let mut rest2 = String::new();
+    reader2.read_to_string(&mut rest2).ok();
+}

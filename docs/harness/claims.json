@@ -48,6 +48,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-object-pin": {
+    "branch": "deepseek/object-store-object-pin",
+    "claimed_at": "2026-10-17T15:24:43-04:00",
+    "head": "baead013f",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-objpeer-cli": {
     "branch": "deepseek/object-store-objpeer-cli",
     "claimed_at": "2026-10-17T15:19:59-04:00",
