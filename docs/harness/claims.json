@@ -41,6 +41,13 @@
     "lab": "deepseek",
     "note": "fix: K16 instrument emitted 99/100 batches (warmup consumed a timed slot); PM halt 6209193..."
   },
+  "deepseek/object-store-concurrency": {
+    "branch": "deepseek/object-store-concurrency",
+    "claimed_at": "2026-10-17T15:14:57-04:00",
+    "head": "050fb4951",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-peer": {
     "branch": "deepseek/object-store-peer",
     "claimed_at": "2026-10-17T14:17:20-04:00",

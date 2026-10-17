@@ -209,3 +209,67 @@ fn deduplicated_dag_nodes_are_requested_once() {
     let rebuilt = receiver.rebuild(&manifest).expect("rebuild");
     assert_eq!(rebuilt.bytes(), &new[..]);
 }
+
+#[test]
+fn concurrent_sessions_share_one_read_only_store() {
+    // Two peers replicate the same object from one read-only Store at the same time. serve takes
+    // &Store, so callers may run sessions concurrently; each session still gets its own integrity
+    // check and the shared store is never mutated.
+    let new = atoms(4096, 7);
+    let old = atoms(4080, 7);
+    let mut sender = Store::new(limits());
+    let manifest = sender.fold(&new).expect("fold new").manifest;
+    let mut receiver_a = Store::new(limits());
+    receiver_a.fold(&old).expect("fold old a");
+    let mut receiver_b = Store::new(limits());
+    receiver_b.fold(&old).expect("fold old b");
+
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let addr = listener.local_addr().expect("addr");
+    let sender_manifest = manifest.clone();
+    let server = thread::spawn(move || {
+        std::thread::scope(|scope| {
+            for _ in 0..2 {
+                let (stream, _) = listener.accept().expect("accept");
+                let sender_ref = &sender;
+                let manifest_ref = &sender_manifest;
+                scope.spawn(move || {
+                    let mut reader = stream.try_clone().expect("clone");
+                    let mut writer = stream;
+                    peer::serve(sender_ref, manifest_ref, &mut reader, &mut writer).expect("serve");
+                });
+            }
+        });
+    });
+
+    let expected = ExpectedObject::from_manifest(&manifest);
+    let payload_a = new.clone();
+    let payload_b = new.clone();
+    fn pull_remote(
+        addr: std::net::SocketAddr,
+        expected: ExpectedObject,
+        mut receiver: Store,
+        payload: Vec<u8>,
+    ) -> peer::PullStats {
+        let stream = TcpStream::connect(addr).expect("connect");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        let (pulled, stats) =
+            peer::pull_expected(&mut receiver, Some(expected), &mut reader, &mut writer)
+                .expect("concurrent pull");
+        assert!(stats.verified);
+        assert_eq!(
+            receiver.rebuild(&pulled).expect("rebuild").bytes(),
+            &payload[..]
+        );
+        stats
+    }
+    let a = thread::spawn(move || pull_remote(addr, expected, receiver_a, payload_a));
+    let b = thread::spawn(move || pull_remote(addr, expected, receiver_b, payload_b));
+    let stats_a = a.join().expect("receiver a");
+    let stats_b = b.join().expect("receiver b");
+    server.join().expect("server");
+    assert!(stats_a.nodes_requested > 0);
+    assert_eq!(stats_a.nodes_requested, stats_b.nodes_requested);
+    assert_eq!(stats_a.record_bytes, stats_b.record_bytes);
+}

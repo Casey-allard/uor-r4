@@ -1,3 +1,13 @@
+## 2026-10-17 — Concurrent peer sessions on one read-only store (deepseek/object-store-concurrency)
+
+The [concurrency record](../labs/object-store-peer-concurrency-2026-10-17/README.md) documents and gates
+that peer::serve takes &Store, so multiple peers can replicate from one loaded store concurrently; each
+session keeps its own expected anchor, correlation checks and digest verification while the store stays
+immutable. A new test runs two simultaneous sessions and verifies identical counts and exact bytes.
+Peer suite 8/8, package 31 passed, Clippy -D warnings and fmt clean. No model compute; training/M2/Stage
+B HELD; model milestone counts unchanged. **Next:** protected delivery, then multi-object dedup accounting
+and product packaging.
+
 ## 2026-10-17 — Peer pull requests deduplicated DAG nodes once (deepseek/object-store-peer-dedupe)
 
 The [dedupe record](../labs/object-store-peer-dedupe-2026-10-17/README.md) fixes a real failure found by
