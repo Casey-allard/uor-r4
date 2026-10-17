@@ -1,0 +1,10 @@
+Command (read-only offer search; argument validation rejects before credentials/network):
+/Users/casey.allard/uor-r4-local/bin/codex-uor-r4-pod-provider search offers 'driver_version=580.95.05' --limit 1 --raw
+
+Observed exit code: 1
+Observed output:
+uor-r4-pod-provider: unsupported offer query field or missing value
+
+This transcript is retained from the existing tool result; no command was rerun
+while writing this evidence directory. Helper binary SHA256:
+4dcf49e5a7ff28fe4a27a8bcd68692f57f83268cf39b4ab0a8e94ffa57c7359d

@@ -19,7 +19,7 @@ on17 October:32 exact U/R pairs,16 typed refusals,512 R lane records and414
 producer-row outcomes, unchanged state/epoch and zero apply. Runtime R shared512
 was observed on RTX5090/driver580.95.05 without subtraction or waiver.
 Driver580.105.08 parity and original-checkpoint R timing remain NOT_RUN.
-Protected finite-record delivery precedes separate timing readiness/release;
+Finite record #2565 is protected. The separately released [timing startup](../labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md) refused actual595.71.05 before any instrument command; driver-aware offer selection and a new reviewed release precede another attempt;
 the earlier setup failure remains an operational blocker, not a mechanism negative.
 The design includes the SIMT/locality risk
 and deferred-error requirement rather than presuming a speedup from work counts.

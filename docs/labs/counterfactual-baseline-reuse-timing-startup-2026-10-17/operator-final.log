@@ -1,0 +1,129 @@
+timing-pin.review.json: OK
+expected-identity.json: OK
+run-remote.sh: OK
+lease.sh: OK
+execution-review.md: OK
+checkpoint0-timing-snapshot.json: OK
+config.json: OK
+accepted-finite-record.json: OK
+timing-pin.json: OK
+execution-release.md: OK
+Filesystem   1024-blocks      Used Available Capacity  Mounted on
+/dev/disk3s1   239362496 174099588  31962556    85%    /System/Volumes/Data
+UOR-R4 shared GPU pods — rules (docs/labs/compute.md; AGENTS.md "GPU pods")
+ 1. Only this tool touches pods. Run 'uor-pod status' before any GPU work.
+ 2. Identity = --lab L --session S (or UOR_POD_SESSION). Lease the GPUs you use:
+    uor-pod lease POD --lab L --session S --gpus 0,1 --purpose ... --hours H
+    renew every <= 30 min while working; release when done. Leases auto-expire.
+ 3. Another session's GPU is never yours, even when idle: only its holder
+    (release) or expiry frees it. An EXPIRED lease may be taken over after a
+    probe shows no live job. Never touch another session's lease or KEEP_ALIVE.
+ 4. No free GPU and caps allow (<= 4 pods, <= $8.00/h, all labs and providers together):
+    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090 on
+    Vast.ai, cheapest verified datacenter host). Never fall back to the laptop CPU.
+    Caps reached and nothing free: wait for an expiry or ask the owner.
+ 5. One job per GPU: uor-pod run POD --lab L --session S --gpu K -- CMD (device=cuda).
+ 6. Durable output only on /workspace (Runpod network volume; on a Vast pod
+    'down' archives it to the laptop). No stopped pods as storage.
+ 7. Done: release, then 'uor-pod down POD' if no other session holds it.
+    Never print API keys or ~/.runpod/config.toml.
+
+Pods (caps: <= 4 running pods, <= $8.00/h; idle reap after 20 min without a live lease)
+Running: 0 pod(s) (0 counted toward the cap of 4; uor-test-* pods are not), $0/h of $8.00/h
+Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU.
+Vast offers (verified datacenter hosts, reliability > 0.98; $/GPU/h, 1 GPU):
+  5090: 4 offers, cheapest $0.908 (Alberta, CA)
+  4090: 3 offers, cheapest $0.789 (Maryland, US)
+Creating 1 x 5090 ($0.908/h) on Vast Alberta, CA, offer 45028230, for codex/codex-cf1-reuse-timing-run1: Released fixed32 U/R timing only;8 warmup24 timed;checkpoint0 seed1;apply0
+Pod vast-56325466 created; waiting for SSH (up to 900 s)
+SSH ready after 23s: ssh -i /Users/casey.allard/.ssh/uor_compute -p 34038 root@198.53.64.194
+uor-pod: Vast pod: no hot-set seeding (the bootstrap builds the toolchain and fetches data from the HF store)
+Leased vast-56325466 gpus 0 to codex/codex-cf1-reuse-timing-run1 until 2026-10-17T01:52:22Z
+Started on vast-56325466 gpu 0 (queues behind any job holding the GPU lock). Log: /workspace/uor-r4/jobs/codex/20261017T012242Z-codex-cf1-reuse-timing-run1-gpu0.log
+Follow: uor-pod ssh vast-56325466 tail -f /workspace/uor-r4/jobs/codex/20261017T012242Z-codex-cf1-reuse-timing-run1-gpu0.log
+Filesystem     1024-blocks  Used Available Capacity Mounted on
+overlay          157286400 17648 157268752       1% /
+BLOCKED: timing admits only finite-qualified driver580.95.05; no retry
+Renewed codex/codex-cf1-reuse-timing-run1 on vast-56325466 until 2026-10-17T01:52:45Z
+./INPUT-SHA256SUMS: OK
+./accepted-finite-record.json: OK
+./checkpoint0-timing-snapshot.json: OK
+./command.exit: OK
+./command.log: OK
+./config.json: OK
+./df-preflight.log: OK
+./ended.txt: OK
+./execution-release.md: OK
+./execution-review.md: OK
+./expected-identity.json: OK
+./gpu.csv: OK
+./jobs/20261017T012242Z-codex-cf1-reuse-timing-run1-gpu0.log: OK
+./jobs/20261017T012242Z-codex-cf1-reuse-timing-run1-gpu0.sh: OK
+./k16-timing: OK
+./nvidia-smi.txt: OK
+./run-remote.sh: OK
+./started.txt: OK
+./timing-pin.json: OK
+./timing-pin.review.json: OK
+local-operator/FINAL-PIN-SHA256SUMS: OK
+local-operator/INPUT-SHA256SUMS: OK
+local-operator/REVIEW-SHA256SUMS: OK
+local-operator/accepted-finite-record.json: OK
+local-operator/checkpoint0-timing-snapshot.json: OK
+local-operator/config.json: OK
+local-operator/df-preflight.log: OK
+local-operator/execution-release.draft.md: OK
+local-operator/execution-release.md: OK
+local-operator/execution-review.md: OK
+local-operator/expected-identity.json: OK
+local-operator/final-admission-df.log: OK
+local-operator/final-admission-fleet.log: OK
+local-operator/fleet-before.log: OK
+local-operator/heartbeat-pre-release.log: OK
+local-operator/lease.log: OK
+local-operator/lease.sh: OK
+local-operator/pre-release-fleet.log: OK
+local-operator/readiness-verdict.md: OK
+local-operator/review-routing.md: OK
+local-operator/run-remote.sh: OK
+local-operator/timing-pin.json: OK
+local-operator/timing-pin.review.json: OK
+local-operator/up.log: OK
+k16-timing: OK
+expected-identity.json: OK
+timing-pin.json: OK
+timing-pin.review.json: OK
+execution-review.md: OK
+execution-release.md: OK
+run-remote.sh: OK
+checkpoint0-timing-snapshot.json: OK
+config.json: OK
+accepted-finite-record.json: OK
+stored reuse-timing-run1-archive (9547264 bytes, md5 ef4197f63542ecd58a366b80316b308d) at icloud:UOR-R4/results/codex/reuse-timing-run1-archive.tar
+Released codex/codex-cf1-reuse-timing-run1's lease on vast-56325466. If nobody else holds it, 'uor-pod down vast-56325466 --lab codex --session codex-cf1-reuse-timing-run1' now (the reaper deletes it after 20 idle min).
+Deleted vast-56325466
+UOR-R4 shared GPU pods — rules (docs/labs/compute.md; AGENTS.md "GPU pods")
+ 1. Only this tool touches pods. Run 'uor-pod status' before any GPU work.
+ 2. Identity = --lab L --session S (or UOR_POD_SESSION). Lease the GPUs you use:
+    uor-pod lease POD --lab L --session S --gpus 0,1 --purpose ... --hours H
+    renew every <= 30 min while working; release when done. Leases auto-expire.
+ 3. Another session's GPU is never yours, even when idle: only its holder
+    (release) or expiry frees it. An EXPIRED lease may be taken over after a
+    probe shows no live job. Never touch another session's lease or KEEP_ALIVE.
+ 4. No free GPU and caps allow (<= 4 pods, <= $8.00/h, all labs and providers together):
+    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090 on
+    Vast.ai, cheapest verified datacenter host). Never fall back to the laptop CPU.
+    Caps reached and nothing free: wait for an expiry or ask the owner.
+ 5. One job per GPU: uor-pod run POD --lab L --session S --gpu K -- CMD (device=cuda).
+ 6. Durable output only on /workspace (Runpod network volume; on a Vast pod
+    'down' archives it to the laptop). No stopped pods as storage.
+ 7. Done: release, then 'uor-pod down POD' if no other session holds it.
+    Never print API keys or ~/.runpod/config.toml.
+
+Pods (caps: <= 4 running pods, <= $8.00/h; idle reap after 20 min without a live lease)
+Running: 0 pod(s) (0 counted toward the cap of 4; uor-test-* pods are not), $0/h of $8.00/h
+Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU.
+Vast offers (verified datacenter hosts, reliability > 0.98; $/GPU/h, 1 GPU):
+  5090: 4 offers, cheapest $0.563 (South Korea, KR)
+  4090: 3 offers, cheapest $0.789 (Maryland, US)
+LEASE_RESULT=1 POD=vast-56325466

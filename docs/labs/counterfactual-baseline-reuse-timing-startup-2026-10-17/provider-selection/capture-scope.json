@@ -1,0 +1,22 @@
+{
+  "schema": "uor-r4.driver-selection-readonly-investigation/1",
+  "source_commit": "c754f160cf140e87fef675698e3939d2244f6c9c",
+  "endpoint": "https://console.vast.ai/api/v0/bundles/",
+  "method": "POST",
+  "operation": "read-only offer search, not instance creation",
+  "capture_kind": "selected-field tool output retained from existing transcript; not a full raw API response",
+  "search_all_projection": "{search_time:(now|todateiso8601),offer_count:(.offers|length),driver_field_present:([.offers[]|has(\"driver_version\")]|all),offers:[.offers[]|{id,machine_id,host_id,gpu_name,num_gpus,driver_version,cuda_max_good,dph_total,datacenter,verified,rentable,geolocation}]}",
+  "search_qualified_projection": "{search_time:(now|todateiso8601),offer_count:(.offers|length),offers:[.offers[]|{id,machine_id,host_id,gpu_name,num_gpus,driver_version,cuda_max_good,dph_total,geolocation}]}",
+  "timestamp_scope": "UTC jq now timestamp at response projection, not a provider-signed timestamp",
+  "null_scope": "Projected datacenter/verified null values mean absent or null in raw rows; raw key presence for those fields was not captured. They are request predicates, not independently observed true response fields.",
+  "driver_key_scope": "driver_field_present true confirms has(driver_version) for all five raw rows in the first response",
+  "transport_scope": "curl TLS; no redirects; no retries; connect timeout10s/max45s; curl --fail; only whitelisted response fields printed",
+  "credentials_headers_retained": false,
+  "new_api_calls_during_evidence_retention": 0,
+  "total_investigation_api_searches": 2,
+  "allocations": 0,
+  "model_compute_executed": false,
+  "source_mutations": 0,
+  "allowlist_changed": false,
+  "timing_retry_authorized": false
+}

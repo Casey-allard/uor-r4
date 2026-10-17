@@ -1,5 +1,10 @@
 # Baseline-reuse finite controls — 17 October 2026
 
+Follow-up: the separately released [timing startup](../counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md)
+stopped before any instrument command because the allocated driver595.71.05
+was outside the admitted580.95.05. This finite result remains accepted;
+checkpoint0 timing and speedup remain NOT_RUN.
+
 **FINITE_CONTROL_PASS, independently reviewed and accepted at the pinned artifact
 scope.** One invocation compared the ordinary U path with call-local baseline
 reuse R: **32 exact U/R pairs, 64 proposal attempts (56 successes and eight

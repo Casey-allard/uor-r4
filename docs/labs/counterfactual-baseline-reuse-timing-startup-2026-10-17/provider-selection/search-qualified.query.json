@@ -1,0 +1,1 @@
+{"verified":{"eq":true},"external":{"eq":false},"rentable":{"eq":true},"gpu_name":{"eq":"RTX 5090"},"num_gpus":{"eq":1},"datacenter":{"eq":true},"reliability":{"gt":0.98},"cuda_max_good":{"gte":12.8},"disk_space":{"gte":150},"inet_down":{"gte":200},"driver_version":{"eq":"580.95.05"},"type":"on-demand","allocated_storage":150,"order":[["dph_total","asc"]],"limit":30}

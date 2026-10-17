@@ -1,0 +1,77 @@
+{
+  "search_time": "2026-10-17T01:24:52Z",
+  "offer_count": 5,
+  "driver_field_present": true,
+  "offers": [
+    {
+      "id": 40203231,
+      "machine_id": 100721,
+      "host_id": 406325,
+      "gpu_name": "RTX 5090",
+      "num_gpus": 1,
+      "driver_version": "595.58.03",
+      "cuda_max_good": 13.2,
+      "dph_total": 0.5627777777777777,
+      "datacenter": null,
+      "verified": null,
+      "rentable": true,
+      "geolocation": "South Korea, KR"
+    },
+    {
+      "id": 29797715,
+      "machine_id": 45708,
+      "host_id": 1647,
+      "gpu_name": "RTX 5090",
+      "num_gpus": 1,
+      "driver_version": "580.173.02",
+      "cuda_max_good": 13.0,
+      "dph_total": 0.7083333333333333,
+      "datacenter": null,
+      "verified": null,
+      "rentable": true,
+      "geolocation": "Ireland, IE"
+    },
+    {
+      "id": 45028230,
+      "machine_id": 8914,
+      "host_id": 18,
+      "gpu_name": "RTX 5090",
+      "num_gpus": 1,
+      "driver_version": "595.71.05",
+      "cuda_max_good": 13.2,
+      "dph_total": 0.9083333333333333,
+      "datacenter": null,
+      "verified": null,
+      "rentable": true,
+      "geolocation": "Alberta, CA"
+    },
+    {
+      "id": 55590315,
+      "machine_id": 44336,
+      "host_id": 81036,
+      "gpu_name": "RTX 5090",
+      "num_gpus": 1,
+      "driver_version": "615.78.08",
+      "cuda_max_good": 13.4,
+      "dph_total": 2.042222222222222,
+      "datacenter": null,
+      "verified": null,
+      "rentable": true,
+      "geolocation": "Hungary, HU"
+    },
+    {
+      "id": 55590218,
+      "machine_id": 40229,
+      "host_id": 81036,
+      "gpu_name": "RTX 5090",
+      "num_gpus": 1,
+      "driver_version": "615.78.08",
+      "cuda_max_good": 13.4,
+      "dph_total": 2.375555555555555,
+      "datacenter": null,
+      "verified": null,
+      "rentable": true,
+      "geolocation": "Hungary, HU"
+    }
+  ]
+}

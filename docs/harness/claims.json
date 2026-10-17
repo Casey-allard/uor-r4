@@ -13,12 +13,12 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-reuse-finite-pass": {
-    "branch": "codex/cf1-reuse-finite-pass",
-    "claimed_at": "2026-10-16T21:05:39-04:00",
-    "head": "e916374bc",
+  "codex/cf1-reuse-timing-startup": {
+    "branch": "codex/cf1-reuse-timing-startup",
+    "claimed_at": "2026-10-16T21:24:58-04:00",
+    "head": "c754f160c",
     "lab": "codex",
-    "note": "Docs/evidence finite-pass delivery: docs/labs/counterfactual-baseline-reuse-finite-pass-2026-10-17, prior finite record follow-up, STATUS.md, ROADMAP.md, docs/mechanisms/discrete-geometric-learning.md, current-state, own claim cleanup and Codex ledger. No kernel or new compute changes."
+    "note": "Docs/evidence only: timing startup driverblocker record, prior finitepass follow-up, current-state, STATUS/ROADMAP/mechanism, own claims and ledger. No kernel/operator changes or retry."
   },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",
