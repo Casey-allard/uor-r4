@@ -1,0 +1,11 @@
+--- prior-finite-pass/audit.rs
++++ audit.rs
+@@ -16,7 +16,7 @@
+  for (key,value) in [("binary_sha256",&ident["binary_sha256"]),("standalone_source_sha256",&ident["standalone_source_sha256"]),("fixture_inventory_sha256",&ident["fixture_inventory_sha256"]),("cuda_images",&ident["compiled"]["cuda_images"]),("baseline_reuse_image",&ident["compiled"]["baseline_reuse_image"])]{assert_eq!(&pin[key],value,"{key}");}
+  assert_eq!(pin["target_source_sha256"],ident["compiled"]["source_sha256"]);
+  assert_eq!(v["execution_contract"]["pin"],pin);
+- assert_eq!(pin["execution_release_reference"],"https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6227632827");
++ assert_eq!(pin["execution_release_reference"],"https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6228335295");
+  for r in select("resources") {assert_eq!(r["within_allowance"],true);for (mode,regs,shared,max) in [("U",88,0,640),("R",115,512,512)]{assert_eq!(r[mode],json!({"registers":regs,"local_bytes":21536,"shared_bytes":shared,"max_threads_per_block":max,"ptxas":{"registers":regs,"stack_bytes":21536,"spill_loads":0,"spill_stores":0}}));}}
+  let policies=["nearest_address_margin_v1","occupied_cell_rank_hinge_v1"];
+  let cases=["ineligible","eligible","mixed","tie","virtual_ineligible","route_endpoint","boundary16","boundary17","boundary64"];

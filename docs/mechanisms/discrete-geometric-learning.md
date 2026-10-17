@@ -19,8 +19,15 @@ on17 October:32 exact U/R pairs,16 typed refusals,512 R lane records and414
 producer-row outcomes, unchanged state/epoch and zero apply. Runtime R shared512
 was observed on RTX5090/driver580.95.05 without subtraction or waiver.
 Driver580.105.08 parity and original-checkpoint R timing remain NOT_RUN.
-Finite record #2565 is protected. The separately released [timing startup](../labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md) refused actual595.71.05 before any instrument command; driver-aware offer selection and a new reviewed release precede another attempt;
-the earlier setup failure remains an operational blocker, not a mechanism negative.
+Finite record #2565 is protected. The separately released [timing startup](../labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md)
+refused actual595.71.05 before any instrument command; that zero-dose setup record
+is preserved. The [exact-driver selector](../labs/driver-aware-pod-selection-2026-10-17/README.md)
+is now protected and a separately reviewed/released [595.71.05 finite qualification](../labs/counterfactual-baseline-reuse-driver-595-2026-10-17/README.md)
+passes the unchanged32 U/R pairs,16 typed refusals and18 strict resource admissions,
+with unchanged state/epoch and apply0 on the recorded RTX5090 environment.
+After protected result delivery and cleanup, original-checkpoint timing still
+requires its own reviewed packet and distinct release. No general driver-family
+or cross-driver performance qualification follows, and no setup failure is a mechanism negative.
 The design includes the SIMT/locality risk
 and deferred-error requirement rather than presuming a speedup from work counts.
 Selected-cell/member replay is also a material later target; no causal speedup,

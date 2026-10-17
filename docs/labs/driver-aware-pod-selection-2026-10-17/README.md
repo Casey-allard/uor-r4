@@ -86,3 +86,9 @@ training-rate or energy result. M1 qualification/cost tooling count0/3 and
 suspended headline37/232 are unchanged. New GPU cost: **$0**; prior36-lease
 Codex lifecycle estimate **$3.418265556**, plus separate PM; storage/transfer
 USD **UNMEASURED**.
+Follow-up: this selector was protected in #2567, with full-tree verification,
+owned transport removal and completed hygiene. The delivered runner/helper then
+selected advertised595.71.05 before allocation for a separately reviewed and
+released [finite environment qualification](../counterfactual-baseline-reuse-driver-595-2026-10-17/README.md).
+Actual driver and unchanged finite/resource controls passed; timing remains a
+separate reviewed release. The retained selector checks below keep their scope.

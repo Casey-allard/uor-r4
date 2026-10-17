@@ -1,0 +1,9 @@
+{
+  "schema": "uor-r4.hygiene-admission/1",
+  "process_id": 75611,
+  "completed": true,
+  "exit_code": 0,
+  "evidence_reference": "https://github.com/UOR-Foundation/uor-r4/pull/2567#issuecomment-6228299802",
+  "log": "/Users/casey.allard/uor-r4-local/codex-preserved-20261016/post2567-hygiene.log",
+  "log_sha256": "c24129d5adc0d1c3bc54cba1b4091697d4758cd87465884e0078267497187d3d"
+}

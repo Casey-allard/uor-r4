@@ -13,12 +13,12 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-driver-selection": {
-    "branch": "codex/cf1-driver-selection",
-    "claimed_at": "2026-10-16T21:39:35-04:00",
-    "head": "6d3175dab",
+  "codex/cf1-reuse-driver-qualification": {
+    "branch": "codex/cf1-reuse-driver-qualification",
+    "claimed_at": "2026-10-16T22:11:13-04:00",
+    "head": "48478154e",
     "lab": "codex",
-    "note": "M1 driver selector: crates/uor-r4-pod-provider, scripts/pod runner tests/docs; parent canonical docs/status/current-state/own claims/ledger. No GPU/model changes."
+    "note": "Finite run3 driver595.71.05 actual result/evidence docs only. Parent claims/current-state/status/roadmap; review_2552 canonical new record only; no model/source change."
   },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",

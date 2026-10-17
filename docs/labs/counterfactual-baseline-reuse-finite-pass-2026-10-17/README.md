@@ -1,5 +1,11 @@
 # Baseline-reuse finite controls — 17 October 2026
 
+Subsequent environment qualification: the same retained executable passed the
+unchanged finite controls on [RTX5090/driver595.71.05](../counterfactual-baseline-reuse-driver-595-2026-10-17/README.md)
+under a new prospective review and separate release. Both finite observations
+retain their own environment and artifact scope. Timing still requires its own
+reviewed packet and distinct release; no cross-driver performance claim follows.
+
 Follow-up: the separately released [timing startup](../counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md)
 stopped before any instrument command because the allocated driver595.71.05
 was outside the admitted580.95.05. This finite result remains accepted;
