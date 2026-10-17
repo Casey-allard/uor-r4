@@ -449,3 +449,52 @@ fn packaged_cli_verify_targets_file_with_json() {
     let mut rest = String::new();
     reader.read_to_string(&mut rest).ok();
 }
+
+#[test]
+fn packaged_cli_sync_targets_into_directory() {
+    let dir = tmp_dir("sync");
+    let first = dir.join("first.bin");
+    let second = dir.join("second.bin");
+    std::fs::write(&first, atoms(64, 61)).unwrap();
+    std::fs::write(&second, atoms(64, 62)).unwrap();
+    let (mut server, mut reader, addr, lines) =
+        spawn_serve_many(&dir.join("server.store"), &[&first, &second], 1);
+    let shas: Vec<String> = lines
+        .iter()
+        .map(|line| {
+            line.split("sha256=")
+                .nth(1)
+                .unwrap()
+                .split_whitespace()
+                .next()
+                .unwrap()
+                .to_string()
+        })
+        .collect();
+    let targets = dir.join("targets.txt");
+    std::fs::write(&targets, format!("# sync set\n{}\n{}\n", shas[0], shas[1])).unwrap();
+    let out_dir = dir.join("out");
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("sync")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--out-dir")
+        .arg(&out_dir)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert!(out.status.success(), "sync failed: {}", stdout);
+    assert!(stdout.contains("\"artifacts\":2"), "{}", stdout);
+    for (index, object) in [&first, &second].iter().enumerate() {
+        let path = out_dir.join(format!("{}.bin", shas[index]));
+        assert_eq!(std::fs::read(path).unwrap(), std::fs::read(object).unwrap());
+    }
+    let _ = server.wait();
+    let mut rest = String::new();
+    reader.read_to_string(&mut rest).ok();
+}

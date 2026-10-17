@@ -1,3 +1,13 @@
+## 2026-10-17 — Fleet sync: pull a target series on one session (deepseek/object-store-pull-series)
+
+The [pull-series record](../labs/object-store-pull-series-2026-10-17/README.md) adds pull_series plus
+PullRequest: a node pulls several selected artifacts over one connection, each fetched/verified/imported
+before the next, with one DONE at the end; the store is loaded and saved once. objpeer sync --targets
+FILE --out-dir DIR writes each artifact to DIR/<sha256>.bin with optional JSON totals. Peer 15/15, CLI
+8/8, unit 7, controls 10, showcase 5; Clippy -D warnings and fmt clean. No model compute;
+training/M2/Stage B HELD. **Next:** protected delivery, then measured per-artifact savings for fleet
+sync versus connection-per-artifact pulls.
+
 ## 2026-10-17 — Fleet audit targets file and JSON output (deepseek/object-store-verify-targets)
 
 The [targets record](../labs/object-store-verify-targets-2026-10-17/README.md) gives fleet verification

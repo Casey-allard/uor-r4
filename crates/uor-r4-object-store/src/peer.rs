@@ -328,6 +328,47 @@ pub fn pull_selected<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
 ) -> Result<(Manifest, PullStats)> {
+    pull_one(store, expected, selector, true, reader, writer)
+}
+
+/// One requested artifact in a pull series.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct PullRequest {
+    pub expected: Option<ExpectedObject>,
+    pub selector: Option<[u8; 32]>,
+}
+
+/// Pull several objects on one session. Each object is fetched, verified and imported before the next;
+/// one DONE closes the session after the last object. Returns (manifest, stats) per request in order.
+pub fn pull_series<R: Read, W: Write>(
+    store: &mut Store,
+    requests: &[PullRequest],
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<Vec<(Manifest, PullStats)>> {
+    let mut results = Vec::with_capacity(requests.len());
+    for request in requests {
+        results.push(pull_one(
+            store,
+            request.expected,
+            request.selector,
+            false,
+            reader,
+            writer,
+        )?);
+    }
+    write_msg(writer, DONE, &[])?;
+    Ok(results)
+}
+
+fn pull_one<R: Read, W: Write>(
+    store: &mut Store,
+    expected: Option<ExpectedObject>,
+    selector: Option<[u8; 32]>,
+    send_done: bool,
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<(Manifest, PullStats)> {
     let limits = store.limits().clone();
     let request = selector.map(|value| value.to_vec()).unwrap_or_default();
     write_msg(writer, MANIFEST_REQUEST, &request)?;
@@ -420,7 +461,9 @@ pub fn pull_selected<R: Read, W: Write>(
         encoded.extend_from_slice(&record.encode());
     }
     store.import_records(&encoded)?;
-    write_msg(writer, DONE, &[])?;
+    if send_done {
+        write_msg(writer, DONE, &[])?;
+    }
 
     let verified = store.rebuild(&manifest)?;
     stats.verified = verified.whole_object_digest_verified();

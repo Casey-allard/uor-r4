@@ -115,6 +115,7 @@ fn main() {
     let mut expect_version: Option<[u8; 32]> = None;
     let mut expect_bytes: Option<u64> = None;
     let mut targets = String::new();
+    let mut out_dir = String::new();
     let mut json = false;
     let mut select_shas: Vec<[u8; 32]> = Vec::new();
     let mut i = 2usize;
@@ -140,6 +141,7 @@ fn main() {
             "--object" => objects.push(value),
             "--have" => have = value,
             "--targets" => targets = value,
+            "--out-dir" => out_dir = value,
             "--bind" => bind = value,
             "--addr" => addr = value,
             "--out" => out = value,
@@ -232,6 +234,102 @@ fn main() {
                         .unwrap_or_else(|e| die(&format!("serve session: {:?}", e)));
                     println!("SERVED");
                 }
+            }
+        }
+        "sync" => {
+            if addr.is_empty() || targets.is_empty() || out_dir.is_empty() {
+                die("sync requires --addr, --targets and --out-dir");
+            }
+            let mut store = load_store(&store_path);
+            if !have.is_empty() {
+                fold_file(&mut store, &have);
+            }
+            let text = fs::read_to_string(&targets)
+                .unwrap_or_else(|e| die(&format!("read {}: {}", targets, e)));
+            let mut selectors: Vec<[u8; 32]> = Vec::new();
+            for (number, line) in text.lines().enumerate() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                if line.len() != 64 {
+                    die(&format!(
+                        "{}:{}: expected 64 hex characters",
+                        targets,
+                        number + 1
+                    ));
+                }
+                selectors.push(hex32(line));
+            }
+            if selectors.is_empty() {
+                die("sync targets file contained no selectors");
+            }
+            let stream = TcpStream::connect(&addr)
+                .unwrap_or_else(|e| die(&format!("connect {}: {}", addr, e)));
+            let reader_stream = stream
+                .try_clone()
+                .unwrap_or_else(|e| die(&format!("clone: {}", e)));
+            let mut reader = Counted {
+                inner: reader_stream,
+                bytes: 0,
+            };
+            let mut writer = Counted {
+                inner: stream,
+                bytes: 0,
+            };
+            let requests: Vec<peer::PullRequest> = selectors
+                .iter()
+                .map(|selector| peer::PullRequest {
+                    expected: None,
+                    selector: Some(*selector),
+                })
+                .collect();
+            let results = peer::pull_series(&mut store, &requests, &mut reader, &mut writer)
+                .unwrap_or_else(|e| die(&format!("sync: {:?}", e)));
+            let wire_bytes = reader.bytes + writer.bytes;
+            fs::create_dir_all(&out_dir)
+                .unwrap_or_else(|e| die(&format!("create {}: {}", out_dir, e)));
+            let mut nodes = 0u64;
+            let mut record_bytes = 0u64;
+            for (index, (manifest, stats)) in results.iter().enumerate() {
+                let rebuilt = store
+                    .rebuild(manifest)
+                    .unwrap_or_else(|e| die(&format!("rebuild: {:?}", e)));
+                let name = format!("{}.bin", hex(&selectors[index]));
+                fs::write(Path::new(&out_dir).join(name), rebuilt.bytes())
+                    .unwrap_or_else(|e| die(&format!("write {}: {}", out_dir, e)));
+                nodes += stats.nodes_requested;
+                record_bytes += stats.record_bytes;
+                if !json {
+                    println!(
+                        "SYNC i={} nodes={} record_bytes={} object_bytes={} verified={} sha256={}",
+                        index,
+                        stats.nodes_requested,
+                        stats.record_bytes,
+                        manifest.byte_len(),
+                        stats.verified,
+                        hex(&manifest.whole_sha256())
+                    );
+                }
+            }
+            save_store(&store, &store_path);
+            if json {
+                println!(
+                    "{{\"artifacts\":{},\"nodes\":{},\"record_bytes\":{},\"wire_bytes\":{},\"output_dir\":\"{}\"}}",
+                    results.len(),
+                    nodes,
+                    record_bytes,
+                    wire_bytes,
+                    out_dir
+                );
+            } else {
+                println!(
+                    "SYNC_SERIES artifacts={} nodes={} record_bytes={} wire_bytes={}",
+                    results.len(),
+                    nodes,
+                    record_bytes,
+                    wire_bytes
+                );
             }
         }
         "verify" => {
