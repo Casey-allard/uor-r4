@@ -24,9 +24,12 @@ The current M1 priority is the [learned native-attention link](docs/harness/prep
 Its interleaved learning and checkpoint runner are delivered; the
 [minimal GPU token-cell export](docs/labs/attention-token-cell-export-2026-10-17/README.md)
 passes its exact-source CUDA check, strict package Clippy, host metadata suite
-and debug link in Gate9; the binary is archived without invocation. Protected
-delivery and separately released preflight/paired learning follow. The actual
-export and learned-attention result remain NOT_RUN.
+and debug link in Gate9. After protected delivery, the separately released
+[Battery3 preflight](docs/labs/attention-preflight-2026-10-17/README.md) completed
+the actual read-only4096-token export, initial admission/sensitivity gates and
+nine Relation qualification controls with zero applies. The paired learning
+dose and attributable learned-attention result remain NOT_RUN and need their
+separate release; initial admission is not learned accuracy.
 The completed D33 pilot recorded 1,640 corpus batches and 236 accepted vector updates. Earlier construction
 controls recorded eleven isolated fixture apply calls and eight disposable updates;
 those retain their pre-pilot scope. [Pilot measurements and preserved artifacts](docs/labs/a2-pilot-2026-10-14/README.md).

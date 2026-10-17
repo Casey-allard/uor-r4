@@ -1,3 +1,27 @@
+## 2026-10-17 — Attention Battery3 scoped preflight complete, zero apply (Codex/cf1)
+
+The [actual preflight record](../labs/attention-preflight-2026-10-17/README.md)
+and [outcome6243041786](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6243041786)
+record Battery3 under distinct PM6242930665/AGY6242609372 at protected runtime
+d46e/constructed96ad/executable5abe. All five staged data hashes, all26 actual
+command/contract steps and original operator41735 returned0. Initial checkpoint
+lock and read-only device export PASS; export4096cells/8192bytes preserves the
+snapshot. DEV evaluation applies0; initial B3 admits2034/3847 P_succ targets
+abovefloor500 (full7500/14287, complement5466/10440). Both fixed sensitivity
+predicates pass; Relation qualification9/9PASS/0FAIL/0NOT_RUN/0apply and final
+source/residual contracts pass. No learning dose, full same-cell scoring,
+224-forward admitted-slot capture or fresh draw ran.
+
+Main34380288bytes/MD5`d0d0d74506123c834b186ff626ec8cdb` fullSHA/cloud verified
+before own56464787 down23:22:46Z; separate late closure23552/
+`6e7392328db3eb09e93e894b78733ade` verified afterward. Native346s at$.964/h
+gives$.092651111 proxy; separate wall349s$.093454444, alternatives/not invoices.
+Carried mixed Codex$4.737258888 plusPM; storage/transfer UNMEASURED.
+[Independent actual review6243075217](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6243075217)
+APPROVES the scoped preflight (report80cae1fc). PM disposition and the separately
+pinned paired-dose packet are next. Recorded count0/3/reply37/232SUSPENDED/learned Relation NOT_RUN are
+not reset or promoted here. Training/M2/StageB HELD; Q4 NOT_EXECUTABLE.
+
 ## 2026-10-17 — Attention Battery2 staging stop before binary invocation (Codex/cf1)
 
 The [actual preflight record](../labs/attention-preflight-2026-10-17/README.md),

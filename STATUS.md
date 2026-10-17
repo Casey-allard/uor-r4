@@ -7,12 +7,16 @@ learned-attention result is still NOT_RUN. The
 [read-only CUDA token-cell export](docs/labs/attention-token-cell-export-2026-10-17/README.md)
 needed for the reference-input contract is delivered in #2601; Gate9 passes all five construction/host
 commands at96ad8a475, including82 metadata tests with0fail/1ignored and a linked
-binary archived without invocation. The actual export remains NOT_RUN.
-The separately released [Battery2 preflight](docs/labs/attention-preflight-2026-10-17/README.md)
-stopped on a staging defect before the first project executable; it provides
-no model result. Next is the bounded stdin/completeness repair and a separately
-reviewed/released preflight successor, then the separately released paired
-learning dose. Training/M2/StageB remain HELD;
+binary archived without invocation at that construction stage. The separately
+released [Battery3 preflight](docs/labs/attention-preflight-2026-10-17/README.md)
+has now completed all26 command/contract steps: actual device export, initial
+B3 admission2034/3847 P_succ targets abovefloor500, both sensitivity predicates
+and9/9 Relation qualification controls, zero applies. Its original operator
+exited0; fullSHA/cloud archive preceded own-pod teardown. Battery2's earlier
+staging failure remains preserved, with no mechanism negative inferred.
+Next is independent actual-outcome disposition and the separately reviewed,
+pinned/released paired learning dose. No learned result or fresh transfer has
+run. Training/M2/StageB remain HELD;
 Q4 NOT_EXECUTABLE. The earlier pilot below retains its measured scope.
 
 **Current result — D32/D33, 14 October:** the admitted seed-1 discrete pilot

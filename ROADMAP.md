@@ -2,16 +2,18 @@
 
 **Immediate M1 path, 17 October:** the
 [minimal device token-cell input producer](docs/labs/attention-token-cell-export-2026-10-17/README.md),
-is delivered in #2601 with reviewed Gate9 construction. The released
-[Battery2 preflight](docs/labs/attention-preflight-2026-10-17/README.md) stopped on
-data staging before any project executable. Repair that bounded transport
-contract, review/release the preflight successor, then execute the separately
-released paired Relation/frozen-zero learning test under the
+is delivered in #2601 with reviewed Gate9 construction. The separately released
+[Battery3 preflight](docs/labs/attention-preflight-2026-10-17/README.md) now passes
+its actual device export, initial admission, sensitivity and9-control
+qualification gates with zero applies; all26 steps and original operator exit0.
+After independent actual-outcome disposition, prepare/review/release the
+separately pinned paired Relation/frozen-zero learning test under the
 [learned-attention sheet](docs/harness/prep/m1-learned-attention-link-2026-10-17.md).
 Actual device admissions and the matched reference reports support attribution;
 full same-cell dose results cannot be inferred from scalar admission counts.
-The export source passes all five Gate9 construction/host commands; the binary
-is archived without invocation. The actual export and learned result remain NOT_RUN.
+The export source passes all five Gate9 construction/host commands and its
+read-only device export has now run in Battery3. The paired learning dose,
+full same-cell attribution and learned result remain NOT_RUN.
 This progression changes no scientific bar or standing training/compute hold.
 
 **Current learning permission — D32:** discrete/exact GPU model computation and

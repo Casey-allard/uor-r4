@@ -1,4 +1,86 @@
-# Attention preflight Battery2: staging stop — 17 October 2026
+# Attention preflight: Battery3 completion and retained Battery2 stop — 17 October 2026
+
+## Latest: Battery3 scoped finite preflight completed
+
+**All26 command/contract steps returned0; the original reviewed operator41735
+returned0.** This is the declared zero-apply preflight, not a learned Relation
+result or permission to execute the paired dose. The
+[actual outcome6243041786](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6243041786)
+preserves the complete boundary. The [independent actual-outcome verdict6243075217](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6243075217)
+is APPROVE/SCOPED_PREFLIGHT_PASS, report SHA
+`80cae1fc1fb5c0c1f70e9a0414dae5d2af0d80b6cf3b2a2f2dd1a2ffe8d8f08c`.
+No scope is inferred from orchestration alone.
+
+Authority is the distinct [PM Battery3 dispatch6242930665](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6242930665),
+the [actual AGY packet APPROVE6242609372](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6242609372),
+and unchanged [FIT/cost/sensitivity disposition6241890920](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6241890920).
+The Battery2 release was not reused. The bounded staging repair reads the
+manifest on FD3, gives verification SSH EOF, and requires all five data files
+to transfer and verify before further staging. All five actual hashes passed.
+There was no on-lease patch, restart, resubmission or continuation.
+
+Runtime source remains protected`d46e050f4dfe4177f599410f34e1647cc9b2fc4f`,
+constructed`96ad8a4750398a8ecbf89e711f351de1580d7991`, reviewed`ca70766067adbf58409ac5d590f84636339377ff`,
+executable SHA`5abe54c3ce64dd66006b5ff50697d0c416071ba50c473014a0053e6bd63099ed`.
+Frozen49-member manifest`921dfe6ed2bc2fa794cba843984c5c366efa554cce2e580642af062789d064a7`,
+actual readiness`a4178895d6c4e9326639ca046b72da532e821090a44d43fabcc951cbed73fb45`,
+dispatch`642b1454f0048e3f8c76735193bffb39460f4be06a676bad5484a1190bc6ea40`
+and attempt`uor-cf1-b3-5c381c69f094c908eb390c3686132ea2` bind this run.
+
+| Actual phase | Observed outcome |
+| --- | --- |
+| Immutable scope/build identity/canonical panel and metadata binding | PASS; initial/pre-model/final source guards PASS |
+| Initial DriverCheckpoint creation and INIT lock | PASS; epoch0/cursor0/zero accepted updates |
+| Device token-cell export and retained-reference contract | PASS;4096 u16LE cells/8192bytes, unchanged snapshot and zero export forwards/proposals/applies |
+| Initial DEV evaluation | Completed on14287 rows; zero evaluation applies |
+| Initial B3 admission | P_succ2034/3847 ≥ registeredfloor500; full7500/14287, complement5466/10440 |
+| Fixed Gate22 and Gate0 probes | Both any-candidate cost-difference predicates true; epoch0/appliedfalse |
+| Relation qualification/contract | 9registered/9attempted/9PASS/0FAIL/0NOT_RUN/0applied, including the registered C2/INITLOCK requirements |
+| Final residual result contract | PASS; `SCOPED_PREFLIGHT_COMPLETE_ONLY`, applies0 |
+| Paired learning /224-forward slot capture / full same-cell scorer / fresh draw | NOT_RUN |
+
+Export uses the existing typed checkpoint restore, including its temporary
+initialization/upload/validation overhead. One initial checkpoint creation is
+not a claim that this restore performs no initialization. Export records one
+restore and one export call, and checks snapshot equality before/after.
+Its raw token-map SHA is`4a430d0bf750f9956bbfd8dda187530eca20500e1c22b173171d2c3d325a87cc`.
+The raw checkpoint-file SHA`6e5bd2e8e44add2fe4d7b78b4eadae23a4cb132dd2ec68b3d29216d590ad9e14`
+is distinct from canonical DriverCheckpoint SHA`c3ce0531bc8f0a9b8194ab1487369bf2e51415671b3d88dfde78cb6f92d5bdba`
+and the export's sorted-JSON-Value model SHA`ea67bedd3b4a3c6c34d3431008fefd451a5b10895306fa6c2ccda4497ab4a7f8`.
+The evaluator's typed-Snapshot SHA`bb160787b43d3bb342e8707d6ff2d3b473f56d6524954335a77920b1e02c00da`
+encodes that same stored model in a different canonical domain; equality of these
+different encodings is not required or fabricated. Independent metadata readback
+reconstructs both encodings and verifies their own declared bindings.
+The metadata/device-map phase seals retain the actual produced bytes; no host
+model/address reconstruction or preallocation future-output pin was used.
+
+**Preservation:**271 collected,76 operator,260 original-job and49 reviewed-packet
+manifest entries pass SHA readback; inventories overlap and are not summed as
+unique files. Main archive`icloud:UOR-R4/results/codex/attention-preflight-battery3-archive.tar`,
+34380288bytes/MD5`d0d0d74506123c834b186ff626ec8cdb`, completed cloud verification
+23:22:40Z before normal own-pod down23:22:46Z. Release has the same second-resolution
+23:22:40Z timestamp; source order and completed receipt, rather than inferred
+subsecond timestamps, support archive-before-down. Own`vast-56464787` is down;
+native fleet-after reports0pods as a dated observation. Separate late closure
+`icloud:UOR-R4/results/codex/attention-preflight-battery3-closure.tar`,23552bytes/
+MD5`6e7392328db3eb09e93e894b78733ade`, has five verified member hashes and cloud
+completion23:23:19Z AFTERdown. Raw provider/CREATE/up/lease logs remain private.
+
+**Cost:**346s provider uptime at recorded rounded$.964/h gives$.092651111;
+raw quote$.9635111111111112/h gives$.092604123. Separate349s up/down wall
+proxies are$.093454444rounded/$.093407049raw. These are alternatives, not
+summed charges or invoices. Carried mixed Codex estimate$4.737258888 plusPM;
+invoices UNAVAILABLE, storage/transfer UNMEASURED.
+
+The latest recorded protected line count is0/3 under PM6242715607, with
+reply37/232 SUSPENDED and learned Relation NOT_RUN. This receipt does not edit
+that register or declare a reset/KEEP/mechanism verdict. Initial admission and
+probe sensitivity do not establish learned ranking or full same-cell attribution.
+Next is independent actual-outcome disposition and a separately reviewed,
+pinned/released paired-dose packet. Training/M2/StageB remain HELD;
+Q4 NOT_EXECUTABLE. Battery3's consumed release authorizes no successor work.
+
+## Retained Battery2 staging stop
 
 **Observed outcome: operational data-staging failure before the first project
 executable.** Battery2 exited1 with zero attempted command steps. This is an
