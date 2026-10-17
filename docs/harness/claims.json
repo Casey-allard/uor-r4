@@ -118,6 +118,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-vectors": {
+    "branch": "deepseek/object-store-vectors",
+    "claimed_at": "2026-10-17T16:13:21-04:00",
+    "head": "55e8415fd",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-verify-pipeline": {
     "branch": "deepseek/object-store-verify-pipeline",
     "claimed_at": "2026-10-17T16:00:55-04:00",

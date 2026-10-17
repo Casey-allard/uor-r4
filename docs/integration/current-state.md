@@ -1,3 +1,12 @@
+## 2026-10-17 — Protocol v1 conformance vectors (deepseek/object-store-vectors)
+
+The [vectors record](../labs/object-store-vectors-2026-10-17/README.md) freezes a deterministic 96-byte
+object's payload, SHA-256, canonical UOROBJ01 manifest, manifest version, frontier and root/leaf record
+bytes as a test, giving any port a byte-for-byte conformance gate that complements PROTOCOL.md. Vector
+test 1/1; package suites unchanged; Clippy -D warnings and fmt clean. No model compute; training/M2/
+Stage B HELD. **Next:** protected delivery, then prove portability with a non-Rust verifier against
+the reference server.
+
 ## 2026-10-17 — Peer protocol specification v1 (deepseek/object-store-protocol-spec)
 
 The [protocol specification](../labs/object-store-protocol-spec-2026-10-17/README.md) documents the
