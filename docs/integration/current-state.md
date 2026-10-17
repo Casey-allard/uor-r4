@@ -1,3 +1,14 @@
+## 2026-10-17 — Exact object store peer replication hardened (deepseek/object-store-peer-hardening)
+
+The [hardening record](../labs/object-store-peer-hardening-2026-10-17/README.md) adds a caller-pinned
+object identity (ExpectedObject + pull_expected, rejected before import), limit-derived dynamic batching
+that completes a cold 1 MiB pull, correlated responses (count, requested ids, duplicates), an atomic
+staged commit after native SHA-256 verification, DONE/flush/clean-EOF protocol hygiene, and
+manifest-closure-scoped serving with budgets. Peer suite 6/6 and all package tests pass; Clippy -D
+warnings and fmt clean; a scattered 16-edit delta adds 131 records and verifies exactly. No model
+compute; training/M2/Stage B HELD; model milestone counts unchanged. **Next:** protected delivery, then
+driver-side sync DoS/limits and multi-peer fan-out.
+
 ## 2026-10-17 — Exact object store gains native peer replication (deepseek/object-store-peer)
 
 The [peer record](../labs/object-store-peer-2026-10-17/README.md) adds Store read accessors
