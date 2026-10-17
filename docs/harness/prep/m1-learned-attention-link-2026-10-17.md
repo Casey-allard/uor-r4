@@ -218,6 +218,39 @@ Apply in order; the first matching row fires.
 - **(i)** Confirm the **fresh-transfer source and size** (≥2,000 rows / ≥500 successor rows) and seal it before training.
 - **(j)** Confirm the **`B3_I ≥ 200` / observed-power guard** as the primary paired denominator; `B3_R`/`B3_C` are reported separately, not substituted.
 
+## Base artifact
+
+- base: `origin/main = fb4519226`; the opted-in Gate-admitting entrypoint and the declared ActiveLeafV1 initialization from Unit 1 (separately reviewed) are a hard precondition; no learned Relation checkpoint exists — hash TBD at release. Q4 Route reference `4477eb5c…` (§7.9).
+
+## Data split
+
+- split: TRAIN 2,425,925 masked targets (1,049,856 consumed at 16,404 batches; 2,099,712 at the 32,808 power-up); DEV 14,287 eligible rows (`P_succ` 3,847 co-primary, `P_comp` 10,440 co-primary non-regression); fresh transfer draw ≥2,000 eligible rows with ≥500 successor rows, sealed before training (§7.2, §7.6). Training data never includes frozen panel rows; the fresh draw is disjoint from TRAIN/DEV and is not used for model selection.
+
+## Steps
+
+- steps: §7.5 sequence 1–8 — Unit 1 source review and pins; identical declared init on both arms; §7.8 causal-activation fixture before training; B = 16,404 interleaved batches per arm; checkpoints and ledger verification; zero-apply DEV scoring; within-checkpoint zero-relation ablation; sealed fresh transfer scored once; host T2/`U_succ`.
+
+## Minimum test power (D22 section 3)
+
+- seeds: 2 per arm (reproducibility-only; the design does not claim seed-noise-decisive power, §7.6); 1 seed is the reduced-power fallback.
+- fresh rows: ≥2,000 eligible / ≥500 successor, sealed before training (≥ the 200-row D22 floor).
+- trained in rather than bolted on: YES — the relation path is trained through the interleaved schedule (1,130 relation proposals per arm at 16,404), not probed post hoc.
+- decisive guard: `B3_I ≥ 200` or the exact paired observed-power guard; all bars `max(24, 2·sqrt(b+c))` or wider, never narrower than panel noise (§7.6).
+- fresh-transfer plan for a KEEP: the sealed fresh draw is scored once after DEV; a DEV win without fresh confirmation is DEV-only, not a KEEP (§7.7 row 6).
+
+## Cost (charged cumulatively, before execution)
+
+- preparation: Unit 1 source + review (no model compute); fixture runs host-side where not cuda-gated.
+- run: 7.32–7.37s/batch sealed propose-call envelope → ~33.4 h per arm at 16,404; two arms × one seed ≈ 66.9 h ≈ $61; two seeds ≈ 134 h ≈ $122 at $0.908/h (§7.9; measured throughput at the reviewed K=8 configuration binds at release).
+- controls: the matched relation-off control arm is inside the two-arm envelope; T2/`U_succ` host work is $0 GPU.
+- evaluation: DEV + ablation + fresh scoring ~1–4 h, <$4.
+- retries / storage: archive MD5 round-trip before teardown; sealed per-row records per §7.9 schema.
+- no training is authorized by this sheet; these figures are projections, not a release.
+
+## Stop rule
+
+- stop: §7.9 stop conditions — Unit 1/FIT incomplete → no training; any §7.8 instrument fault → stop and seal, diagnosis only (never a mechanism negative); `B3_I < 200` with power <80% → underpowered, no decision; owner caps and the disk floor are hard stops. A healthy admitted run is renewed, not cancelled because a planning estimate elapsed.
+
 ## 7.11 Verdict
 
 TEST FITNESS: FIT (design) — DeepSeek architecture-review seat, [PR #2574](https://github.com/UOR-Foundation/uor-r4/pull/2574), exact head `630dd61aeb8f21c8cc8e312196575faf9e59ea1f` (rounds at `a53b90007`, `839a16c6f`, `9c0891c71`); conditional on Unit 1's separately reviewed, opted-in Gate-admitting entrypoint; no training authorized; Q4 NOT_EXECUTABLE; Training/M2/Stage B HELD.

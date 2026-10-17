@@ -105,3 +105,30 @@ TEST FITNESS: FIT (design) — Kimi PM seat with independent DeepSeek architectu
 3. Whether the PM wants the host re-analysis only, or a GPU replication as a record-integrity control.
 4. Whether the H3-supported 2:1 `J(K)` weighting (or the 1:1 full-panel fallback) is the intended Stage-B K rule.
 5. Confirm the 24-row rounded floor, the paired `2·sqrt(b+c)` bar, the 39-row top-8-derived sub-panel floor, and the primary-comparison multiplicity rule.
+
+## Base artifact
+
+- base: sealed archive `icloud:UOR-R4/results/kimi/stage-a-sweep-1-20261015.tar`, MD5 `b274beb321ce9232bd3690659fee7890` verified on fetch before extraction (§5.5).
+
+## Data split
+
+- split: host re-analysis of the sealed per-row sweep records only; no new data, no new split. Primary join on `A_8` per §5.3; the sealed records are the single source of truth.
+
+## Steps
+
+- steps: §5.3/§5.5 — fetch and MD5-verify the archive; extract into a claimed scratch directory; join and re-score per the sheet's decision rule; emit `uor-r4.stage-a-rescore/1`. If the archive fails verification or is inaccessible, stop and report rather than falling back to GPU regeneration (not released).
+
+## Minimum test power (D22 section 3)
+
+- seeds: N/A (re-analysis of sealed records, no new training).
+- fresh rows: N/A; no KEEP is claimed.
+- decisive guard: the 24-row rounded floor, paired `2·sqrt(b+c)` bars, the 39-row top-8-derived sub-panel floor and the primary-comparison multiplicity rule (§5.4); bars are never narrower than the panel noise.
+
+## Cost (charged cumulatively, before execution)
+
+- preparation / run / controls / evaluation: host-only, **$0 GPU** (§5.5); local CPU-minutes only.
+- retries / storage: scratch under the PM worktree's `local/`; the sealed archive is fetched, not duplicated long-term. Any GPU replication is a separate PM release and is not authorized here.
+
+## Stop rule
+
+- stop: archive hash mismatch or inaccessibility → stop and report; missing record fields → stop and report (§5.5 assumptions); owner caps and the disk floor are hard stops. Self-set budgets are estimates, not stop rules.

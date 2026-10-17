@@ -157,3 +157,31 @@ TEST FITNESS: FIT (design) — Kimi PM seat with independent DeepSeek architectu
 5. Confirm the computed `P_succ` unigram `U_succ` as the sub-panel marginal reference, with the full-panel 1,226 retained only as a reference.
 6. Confirm the symmetric one-sided bands: `Relation ≥ T2 + floor` (H_geom), `T2 ≥ Relation + floor` (H_table), and `|T2 − Relation| < floor` (INCONCLUSIVE, no closure).
 7. Confirm that a model-free table is an acceptable ordinary comparator under D34, even though it is not a proposed serving mechanism.
+
+## Base artifact
+
+- base: the Relation arm's frozen checkpoint **does not exist** (the arm is UNAVAILABLE; §6.5, §6.7 row 1); Route interim reference Q4 `4477eb5c…`; sealed sub-panel audit [relation-subpanel-audit-2026-10-15](../../labs/relation-subpanel-audit-2026-10-15/README.md). Authoritative artifact table: §6.9.
+
+## Data split
+
+- split: T2/T3/T5 built on the model-matched 1,049,856 masked TRAIN targets; evaluation on the 3,847-row `P_succ` sub-panel with the 10,440-row complement and 1,335 conflict rows descriptive only (§6.2–§6.3). Training data never includes frozen panel rows. No fresh draw: this sheet is diagnostic, not KEEP-class.
+
+## Steps
+
+- steps: §6.5 — host T2/T3/T5/`U_succ` tables ($0 GPU); optional Route interim forward (<$0.25, separately released); Relation zero-apply forward only when a frozen Relation checkpoint exists.
+
+## Minimum test power (D22 section 3)
+
+- seeds: N/A (no training; zero-apply forwards are deterministic at a pinned checkpoint).
+- fresh rows: N/A for this diagnostic; no KEEP is claimed, so no fresh transfer draw is required.
+- decisive guard: the primary comparison requires `B3_R ≥ 200`, else the exact paired observed-power guard applies and an underpowered result fires no decision (§6.2, §6.6). The bars are never narrower than the panel noise: `max(24, 2·sqrt(b+c))` paired floors throughout.
+
+## Cost (charged cumulatively, before execution)
+
+- preparation: host table construction, $0 GPU (§6.5).
+- run: Relation arm 5–15 GPU-minutes, <$0.25; one 1-hour lease at $0.908/h = $0.908 through `scripts/pod/uor-pod` (§6.5, §6.9) — **not currently released**.
+- controls / evaluation / retries / storage: included in the same single-lease envelope; archive MD5 round-trip before teardown.
+
+## Stop rule
+
+- stop: Relation arm unavailable → the commissioned comparison cannot execute (§6.7 row 1); instrument faults (init/conservation/hash) → diagnosis, never a mechanism negative (§6.8); owner caps and the disk floor are hard stops. Self-set budgets are estimates, not stop rules.

@@ -203,3 +203,31 @@ TEST FITNESS: FIT (design) — Kimi PM seat with independent DeepSeek architectu
 6. Confirm the 24-row minimum full-panel floor, the paired `2·sqrt(b+c)` rule for each co-primary comparator, the 63-row top-8 floor, and the 39-row top-8-derived sub-panel floor.
 7. Confirm the D24 classification: host table build/scoring is post-processing of GPU-produced observations, not model forward/scoring.
 8. Confirm that the symmetry-pooled table is secondary/descriptive and cannot fire H_law/H_rep.
+
+## Base artifact
+
+- base: Q4 checkpoint `4477eb5c…` (cursor 16,404 completed batches, 407 accepted updates, epoch 407), `ReadSpec::Route`, K=8 (§4.5, §4.9).
+
+## Data split
+
+- split: read-code table built on the model-matched 1,049,856 masked TRAIN targets (first 16,404 batches × 64 in pinned corpus order), with the full 2,425,925-target table as secondary; scoring on the 14,287-row DEV panel (§4.5, §4.6). Training data never includes frozen panel rows. No fresh draw: diagnostic, not KEEP-class.
+
+## Steps
+
+- steps: §4.5 — load Q4; enumerate TRAIN in pinned corpus order capturing the 32-int read vector and target; build the exact-code table and the two co-primary ordinary controls (model-matched unigram; query-token bigram); zero-apply DEV scoring; per §4.9 the 1-hour lease follows Codex's closure lease.
+
+## Minimum test power (D22 section 3)
+
+- seeds: N/A (no training; deterministic zero-apply forward at a pinned checkpoint).
+- fresh rows: N/A; no KEEP is claimed.
+- decisive guard: coverage ≥90.00% of DEV rows (≥12,859/14,287) with a code of count ≥1; paired `b+c ≥ 100` / exact-test power rule (§4.6). Bars are never narrower than the panel noise.
+
+## Cost (charged cumulatively, before execution)
+
+- preparation: host-side table construction on captured vectors, included in the lease hour.
+- run: one 1-hour RTX 5090 lease = $0.908 (§4.9); the production-forward fallback is 1–2 GPU-hours if the PM refuses the capture source change (§4.5).
+- controls / evaluation / retries / storage: inside the same envelope; archive MD5 round-trip before teardown.
+
+## Stop rule
+
+- stop: instrument faults (count-table conservation, hash/epoch, coverage failure) stop the run for diagnosis, never a mechanism negative (§4.8); owner caps and the disk floor are hard stops. Self-set budgets are estimates, not stop rules.
