@@ -1,5 +1,7 @@
 # Baseline-reuse timing startup — 17 October 2026
 
+Follow-up: the [opt-in exact-driver selector](../driver-aware-pod-selection-2026-10-17/README.md) addresses advertised mismatches before allocation. It changes no evidence or admission in this stopped attempt and grants no replacement execution release.
+
 **BLOCKED_SETUP_DRIVER, before any instrument binary invocation.** The allocated
 RTX 5090 reported **595.71.05**, outside the prospectively admitted **580.95.05**.
 The unchanged wrapper refused it before CUDA/model initialization. Instrument

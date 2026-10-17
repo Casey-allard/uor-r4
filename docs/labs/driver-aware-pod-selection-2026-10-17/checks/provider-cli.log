@@ -1,0 +1,3 @@
+uor-r4-pod-provider 0.1.0 (Rust; curl TLS transport)
+uor-r4-pod-provider: driver_version requires exact equality to a three-part decimal version string
+unsupported predicate exit=1

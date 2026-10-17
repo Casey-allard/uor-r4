@@ -25,10 +25,14 @@ W=$(mktemp -d "${TMPDIR:-/tmp}/uor-pod-test.XXXXXX")
 trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/fake"
 export UOR_POD_STATE=$W/state UOR_POD_DRY_RUN=1 FAKE=$W/fake PATH="$W/bin:$PATH"
+# Every Vast call uses the fixture adapter, including non-dry mocked placement;
+# never inherit an owned/live Rust provider binary from the invoking session.
+export UOR_POD_VAST_BIN=$W/bin/vastai
 unset UOR_POD_SESSION UOR_POD_MAX_PODS UOR_POD_MAX_RATE
 export UOR_POD_CONFIG=$W/no-config  # a real user config never loads
 unset UOR_POD_REPO_SLUG UOR_POD_CANONICAL_DC UOR_POD_VOLUME_ID UOR_POD_NEW_VOLUME_GB UOR_POD_IMAGE UOR_POD_BOARD UOR_POD_TEMPLATE UOR_HF_STORE
 unset UOR_POD_VAST_DISK_GB UOR_POD_VAST_MIN_RELIABILITY UOR_POD_VAST_MIN_INET_MBPS UOR_POD_VAST_ARCHIVE_MAX_MB
+unset UOR_POD_VAST_DRIVER_VERSION
 # Vast.ai became the default provider for new pods on 2026-10-13. Every test
 # before the Vast section at the end exercises the Runpod path, so it is chosen
 # here; the Vast section sets its own provider. (The fake vastai below lists no
@@ -139,9 +143,14 @@ case "$1 $2" in
   "search offers")
     g=$(printf '%s' "$3" | sed -n 's/.*gpu_name=\([^ ]*\).*/\1/p'); n=$(printf '%s' "$3" | sed -n 's/.*num_gpus=\([0-9]*\).*/\1/p')
     echo "$*" > "$FAKE/vast-query"
+    if [ "${FAKE_VAST_LEDGER_BLOCK:-0}" = 1 ]; then
+      mv "$UOR_POD_STATE/ledger.jsonl" "$UOR_POD_STATE/ledger-before-block.jsonl"
+      mkdir "$UOR_POD_STATE/ledger.jsonl"
+    fi
     cat "$FAKE/vast-offers-$g-$n.json" 2>/dev/null || echo '[]';;
   "create instance")
     [ "${FAKE_ALLOW_CREATE:-0}" = 1 ] || { echo "REAL MUTATION CALLED IN DRY RUN" >&2; exit 9; }
+    if [ -f "$UOR_POD_STATE/ledger.jsonl" ]; then tail -1 "$UOR_POD_STATE/ledger.jsonl" > "$FAKE/ledger-at-create.json"; fi
     if grep -qx "$3" "$FAKE/vast-gone" 2>/dev/null; then echo "{\"success\": false, \"msg\": \"offer $3 is no longer available\"}"; exit 0; fi
     label=''; prev=''; for a in "$@"; do [ "$prev" = --label ] && label=$a; prev=$a; done
     touch "$FAKE/vast-created"
@@ -603,7 +612,9 @@ if grep -q -- "--with-ollama | tee" "$FAKE/bootcmd" || grep -q -- "--with-ollama
 # over stdin; the value never appears in the output or on a command line
 HH=$W/hfhome; mkdir -p "$HH/.cache/huggingface"; printf 'hf_FAKETOKEN123' > "$HH/.cache/huggingface/token"
 rm -rf "$UOR_POD_STATE"; fresh_pods
-HOME=$HH expect "up with an HF token on the laptop" 0 "hf token copied" -- up --lab claude --session hftok --purpose hf --hours 1 --count 2 --no-bootstrap --ref "$SHA40"
+# Token setup belongs to the bootstrap-enabled path; the bootstrap itself is
+# the fake above, and the ref resolves only against the local stand-in origin.
+HOME=$HH expect "up with an HF token on the laptop" 0 "hf token copied" -- up --lab claude --session hftok --purpose hf --hours 1 --count 2 --ref "$MAIN_SHA"
 if grep -q 'cat > /root/.cache/huggingface/token' "$FAKE/calls"; then ok "the token is copied to the pod over ssh"; else bad "the token is copied to the pod over ssh"; fi
 if ! grep -q 'HF_HOME' "$FAKE/calls"; then ok "the token is never written to the image's HF_HOME (a shared volume on Runpod)"; else bad "the token is never written to the image's HF_HOME (a shared volume on Runpod)"; fi
 # the bootstrap points hf at that private copy (the image's HF_HOME is elsewhere)
@@ -717,7 +728,7 @@ fresh_binroot; echo "gone 2026-01-01T00:00:00Z" > "$BR/.$SHA40-sm120.lock.holder
 boot "lock held by a vanished pod (stale heartbeat): build at once" "heartbeat is [0-9]+s old \\(stale" \
   FAKE_FLOCK_HELD=8 UOR_BUILD_WAIT_S=60 UOR_BUILD_HEARTBEAT_STALE_S=30
 fresh_binroot
-boot "both pods finish: the first PASS wins, the second is discarded" "another pod published $CB first \\(parity PASS\\); discarding" \
+boot "both pods finish: the first complete build wins, the second is discarded" "another pod published $CB first \\(build complete\\); discarding" \
   STUB_DURING_BUILD="mkdir -p '$CB' && printf '{\"parity\": \"PASS\", \"built_on_pod\": \"other\"}\n' > '$CB/BUILD.json'"
 if grep -q '"built_on_pod": "other"' "$CB/BUILD.json" && [ "$(find "$CB" -type f | wc -l | tr -d ' ')" = 1 ] && ! ls -d "$BR"/.*.tmp.* >/dev/null 2>&1; then
   ok "cache untouched by the losing build (no mixing, no staging left)"; else bad "cache untouched by the losing build (no mixing, no staging left)"; fi
@@ -752,13 +763,13 @@ boot "the store's parity-PASS build is a cache hit (no build)" "cache hit from t
 if [ ! -f "$BR/builds" ] && grep -q '"built_on_pod": "storepod"' "$CB/BUILD.json" && [ ! -f "$BR/puts" ] && ! ls -d "$BR"/.*store* >/dev/null 2>&1; then
   ok "store build published as the cache, nothing re-uploaded, no staging left"; else bad "store build published as the cache, nothing re-uploaded, no staging left"; fi
 fresh_binroot; mkstoretar PASS corrupt
-boot "a store build failing its checksums is ignored: build here" "not a parity-PASS build with matching checksums; building here" STUB_STORE_TAR="$W/store.tar"
+boot "a store build failing its checksums is ignored: build here" "not a complete build with matching checksums; building here" STUB_STORE_TAR="$W/store.tar"
 if [ -f "$BR/builds" ] && grep -q '"built_on_pod": "podx"' "$CB/BUILD.json"; then ok "the tampered store build never reaches the cache"; else bad "the tampered store build never reaches the cache"; fi
 fresh_binroot; mkstoretar FAIL
-boot "a store build without parity PASS is ignored: build here" "not a parity-PASS build" STUB_STORE_TAR="$W/store.tar"
+boot "a store build without parity PASS is ignored: build here" "not a complete build" STUB_STORE_TAR="$W/store.tar"
 for bad in subset wrongcap symlink; do
   fresh_binroot; mkstoretar PASS "$bad"
-  boot "a store build that is $bad is ignored: build here" "not a parity-PASS build" STUB_STORE_TAR="$W/store.tar"
+  boot "a store build that is $bad is ignored: build here" "not a complete build" STUB_STORE_TAR="$W/store.tar"
   if [ -f "$BR/builds" ] && grep -q '"built_on_pod": "podx"' "$CB/BUILD.json"; then ok "the $bad store build never reaches the cache"; else bad "the $bad store build never reaches the cache"; fi
 done
 # the real build step never talks to the store: every upload waits for the publish
@@ -892,6 +903,26 @@ cat > "$FAKE/gpus.json" <<'J'
 J
 OFF5='[{"id":7002,"dph_total":0.9,"num_gpus":1,"geolocation":"Hungary, HU","reliability2":0.995},{"id":7001,"dph_total":0.469,"num_gpus":1,"geolocation":"South Korea, KR","reliability2":0.998},{"id":7003,"dph_total":0.6,"num_gpus":1,"geolocation":"Maryland, US","reliability2":0.999}]'
 VUP=(up "${X1[@]}" --gpu 5090 --count 1 --purpose vast --hours 1 --ref "$MAIN_SHA")
+DRIVER_OFFERS='[{"id":7001,"dph_total":0.1,"num_gpus":1,"driver_version":"595.71.05"},{"id":7003,"dph_total":0.60049,"num_gpus":1,"geolocation":"Ireland, IE","reliability2":0.999,"driver_version":"580.95.05","machine_id":88,"host_id":99},{"id":7004,"dph_total":0.01,"num_gpus":1},{"id":7005,"dph_total":0.02,"num_gpus":1,"driver_version":580.9505}]'
+vfresh; VO RTX_5090 1 "$DRIVER_OFFERS"
+UOR_POD_VAST_DRIVER_VERSION=580.95.05 vexpect "exact driver excludes cheaper wrong, missing and numeric metadata" 0 "DRY-RUN: vastai create instance 7003" -- "${VUP[@]}"
+if grep -q 'driver_version=580.95.05 --storage' "$FAKE/vast-query"; then ok "exact driver is sent as an equality query"; else bad "exact driver is sent as an equality query"; fi
+if jq -e 'select(.event=="vast-offer-selected") | .offer_selection | .offer_id==7003 and .requested_driver=="580.95.05" and .driver_version=="580.95.05" and .machine_id==88 and .host_id==99 and .quoted_usd_per_h==0.60049 and (.query_started_at|test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T"))' "$UOR_POD_STATE/ledger.jsonl" >/dev/null; then ok "precreate receipt binds offer, driver, host, raw quote and query time"; else bad "precreate receipt binds offer, driver, host, raw quote and query time"; fi
+NO_DRIVER_MATCH=$(echo "$DRIVER_OFFERS" | jq 'map(select(.id!=7003))')
+vfresh; VO RTX_5090 1 "$NO_DRIVER_MATCH"
+UOR_POD_VAST_DRIVER_VERSION=580.95.05 vexpect "no driver match refuses without allocation" 1 "no Vast offer with exact driver 580.95.05; nothing allocated" -- "${VUP[@]}"
+if ! grep -q '^vastai create instance' "$FAKE/calls" && ! grep -q 'DRY-RUN: vastai create' "$W/out"; then ok "missing or wrong driver metadata causes zero create calls"; else bad "missing or wrong driver metadata causes zero create calls"; fi
+vfresh; VO RTX_5090 1 "$DRIVER_OFFERS"
+UOR_POD_VAST_DRIVER_VERSION=580.95.05 UOR_POD_MAX_RATE=0.5 vexpect "matching driver still obeys price cap" 1 "exceeds.*0.5/h" -- "${VUP[@]}"
+UOR_POD_VAST_DRIVER_VERSION='580.95.05*' vexpect "driver wildcard is refused before placement" 1 "requires an exact three-part decimal version" -- "${VUP[@]}"
+UOR_POD_VAST_DRIVER_VERSION=580.95.05 vexpect "driver constraint cannot be sent to Runpod even with override" 1 "exact driver selection requires Vast" -- "${VUP[@]}" --provider runpod --owner-approved
+vfresh; VO RTX_5090 1 "$(echo "$DRIVER_OFFERS" | jq '[.[]|select(.id==7003)] | . + .')"
+UOR_POD_VAST_DRIVER_VERSION=580.95.05 vexpect "duplicate matching offer IDs refuse at mutation boundary" 1 "requires one matching metadata object before create" -- "${VUP[@]}"
+if ! grep -q '^vastai create instance' "$FAKE/calls" && ! grep -q 'DRY-RUN: vastai create' "$W/out"; then ok "ambiguous duplicate metadata makes zero create calls"; else bad "ambiguous duplicate metadata makes zero create calls"; fi
+vfresh; VO RTX_5090 1 "$DRIVER_OFFERS"
+UOR_POD_VAST_DRIVER_VERSION=580.95.05 FAKE_VAST_LEDGER_BLOCK=1 vexpect "selection receipt append failure refuses before allocation" 1 "cannot record exact Vast offer selection; nothing allocated" -- "${VUP[@]}"
+if ! grep -q '^vastai create instance' "$FAKE/calls" && ! grep -q 'DRY-RUN: vastai create' "$W/out"; then ok "failed precreate receipt makes zero create calls"; else bad "failed precreate receipt makes zero create calls"; fi
+# Reset fixtures: the following existing tests prove unchanged unset behavior.
 vfresh; VO RTX_5090 1 "$OFF5"
 vexpect "Vast is the default provider and rents the cheapest offer" 0 "DRY-RUN: vastai create instance 7001 --image runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404 --disk 150 --ssh --direct --label uor-codex-" -- "${VUP[@]}"
 has "the offer is announced with its price and place" "Creating 1 x 5090 \\(\\\$0.469/h\\) on Vast South Korea, KR, offer 7001"
@@ -941,6 +972,18 @@ vfresh; VO RTX_5090 1 "$OFF5"; echo 7001 > "$FAKE/vast-gone"
 printf 'gpu=0, NVIDIA GeForce RTX 5090, 0, 1\nreaper=1\nprobe_ok=1\n' > "$FAKE/probe-2001"
 mkdir -p "$VH/.cache/huggingface"; printf 'hf_FAKETOKEN123' > "$VH/.cache/huggingface/token"
 export UOR_POD_DRY_RUN=0 FAKE_ALLOW_CREATE=1 UOR_POD_SSH_WAIT=30
+vfresh; VO RTX_5090 1 "$DRIVER_OFFERS"
+UOR_POD_VAST_DRIVER_VERSION=580.95.05 vexpect "mocked exact-driver create links selection to successful up" 0 "SSH ready after" -- "${VUP[@]}" --no-bootstrap
+if jq -e '.event=="vast-offer-selected" and .offer_selection.offer_id==7003' "$FAKE/ledger-at-create.json" >/dev/null &&
+   jq -e '."vast-9001".offer_selection | .offer_id==7003 and .driver_version=="580.95.05" and .quoted_usd_per_h==0.60049' "$UOR_POD_STATE/pods.json" >/dev/null &&
+   grep '"event":"up"' "$UOR_POD_STATE/ledger.jsonl" | jq -e '.offer_selection.offer_id==7003' >/dev/null; then
+  ok "selection is written before fake create and shared by up/cache receipts"
+else bad "selection is written before fake create and shared by up/cache receipts"; fi
+vfresh; VO RTX_5090 1 "$NO_DRIVER_MATCH"
+UOR_POD_VAST_DRIVER_VERSION=580.95.05 UOR_POD_WAIT_INTERVAL=1 UOR_POD_RUNPOD_FALLBACK_MIN=0 vexpect "driver-selected wait cannot fall back to Runpod" 1 "no 5090 stock after waiting" -- "${VUP[@]}" --wait --wait-hours 0.00001 --no-bootstrap
+if ! grep -Eq '^vastai create instance|^runpodctl pod create' "$FAKE/calls"; then ok "selected wait makes zero provider create calls"; else bad "selected wait makes zero provider create calls"; fi
+# Continue the existing unselected non-dry fake-provider scenarios.
+vfresh; VO RTX_5090 1 "$OFF5"; echo 7001 > "$FAKE/vast-gone"
 vexpect "Vast up: a taken offer moves on to the next cheapest" 0 "Ready: ssh -i .* -p 2001 root@10.0.0.2" -- up "${X1[@]}" --gpu 5090 --count 1 --purpose vast --hours 1 --ref "$MAIN_SHA"
 has "the taken offer is named with Vast's reason" "Vast offer 7001 was not rented \\(offer 7001 is no longer available\\); trying the next offer"
 has "the next cheapest offer (7003, not 7002) is rented" "offer 7003, for codex/x1"
@@ -988,7 +1031,7 @@ if [ -f "$UOR_POD_STATE/leases/podr/deepseek-r.json" ]; then ok "a later success
 # account names only the providers it uses
 mkdir -p "$W/novast"; for b in runpodctl ssh gh; do ln -sf "$W/bin/$b" "$W/novast/$b"; done
 NOVAST="$W/novast:$(dirname "$(command -v jq)"):/usr/bin:/bin"
-PATH=$NOVAST vexpect "up without vastai installed refuses (Vast pods would be uncounted)" 1 "Vast: vastai is not installed, so the caps cannot be checked" -- "${VUP[@]}" --provider runpod --owner-approved
+PATH=$NOVAST UOR_POD_VAST_BIN=$W/novast/no-provider vexpect "up without the Rust Vast adapter refuses (Vast pods would be uncounted)" 1 "Vast: Rust adapter missing.*caps cannot be checked" -- "${VUP[@]}" --provider runpod --owner-approved
 PATH=$NOVAST UOR_POD_PROVIDERS=runpod vexpect "a Runpod-only account (UOR_POD_PROVIDERS=runpod) needs no vastai" 0 "Pod podnew created|Creating 1 x 5090 .* in EU-RO-1" -- "${VUP[@]}" --provider runpod --no-bootstrap
 # no Vast offer for a sustained stretch: --wait falls back to Runpod (stock in
 # EU-RO-1), ledgered; before that stretch it only retries Vast

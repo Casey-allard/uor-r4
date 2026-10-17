@@ -13,12 +13,12 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-reuse-timing-startup": {
-    "branch": "codex/cf1-reuse-timing-startup",
-    "claimed_at": "2026-10-16T21:24:58-04:00",
-    "head": "c754f160c",
+  "codex/cf1-driver-selection": {
+    "branch": "codex/cf1-driver-selection",
+    "claimed_at": "2026-10-16T21:39:35-04:00",
+    "head": "6d3175dab",
     "lab": "codex",
-    "note": "Docs/evidence only: timing startup driverblocker record, prior finitepass follow-up, current-state, STATUS/ROADMAP/mechanism, own claims and ledger. No kernel/operator changes or retry."
+    "note": "M1 driver selector: crates/uor-r4-pod-provider, scripts/pod runner tests/docs; parent canonical docs/status/current-state/own claims/ledger. No GPU/model changes."
   },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",

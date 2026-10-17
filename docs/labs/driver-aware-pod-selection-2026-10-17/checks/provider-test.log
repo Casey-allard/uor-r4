@@ -1,0 +1,33 @@
+   Compiling serde_core v1.0.228
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.150
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling uor-r4-pod-provider v0.1.0 (/Users/casey.allard/uor-r4-local/codex-driver-selector-checks-20261017/provider)
+    Finished `test` profile [unoptimized] target(s) in 3.51s
+     Running unittests src/lib.rs (/Users/casey.allard/uor-r4-local/codex-driver-selector-checks-20261017/target/debug/deps/uor_r4_pod_provider-1cd49fec5d407c80)
+
+running 8 tests
+test tests::single_show_and_destroy_match_rest_and_missing_shape_refuses ... ok
+test tests::pagination_fetches_all_pages_and_refuses_partial_inventory ... ok
+test tests::offer_projection_retains_driver_and_machine_identity_without_secrets ... ok
+test tests::runner_search_matches_source_aliases_order_storage_and_limits ... ok
+test tests::credentials_and_payload_stay_in_stdin_config_with_no_retry_options ... ok
+test tests::create_keeps_native_container_flags_and_never_discloses_response_keys ... ok
+test tests::malformed_cap_fields_refuse_the_entire_instance_inventory ... ok
+test tests::exact_driver_is_a_string_and_only_equality_is_admitted ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/Users/casey.allard/uor-r4-local/codex-driver-selector-checks-20261017/target/debug/deps/uor_r4_pod_provider-4f40b8bef74f6806)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests uor_r4_pod_provider
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

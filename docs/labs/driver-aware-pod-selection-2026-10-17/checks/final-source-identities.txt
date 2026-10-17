@@ -1,0 +1,11 @@
+6d3175dabaca055785ac701736296188c83cff94
+af0ed1393bfd85331baa1054a190576ce0356ea1
+6656b5eebb40ce5bf744031f62a500ddd697ade8ccc29000120bc83db904b06c  Cargo.lock
+034f31f9ffb14c320009586010e8a0ad703a8e3a96315298408f485c81623a30  /Users/casey.allard/uor-r4-local/codex-driver-selector-checks-20261017/isolated-Cargo.lock
+9c3e4d40e515c70e667c1a2be067376790d91227b5b5e4f27965146097b2edc8  crates/uor-r4-pod-provider/Cargo.toml
+37050a2f0336be8f1864a1458aacd808ce924fc9e2c81ae71ad5a9db2e4911d6  crates/uor-r4-pod-provider/src/lib.rs
+5ffb13b3c8e74efa18147951a5c1676bf395a309a88dd645cca22b3364ddb680  crates/uor-r4-pod-provider/src/main.rs
+4fe3bb2a7a5f1a281444d8e968a01f9d804dd1618e338a16bf9c86bbf2a44d0b  crates/uor-r4-pod-provider/README.md
+1ae8e6021dc6853d2cf62571842c9d429b5d319acad8aa7d18a42ea889cc8fd9  scripts/pod/uor-pod
+f58d8f9f32574f85be8b9e18a05a5c9e105caa41fb1197621b9ee0bf281fab5c  scripts/pod/tests/uor-pod-dryrun.sh
+5e21546796ca8568ef1e445e9afa16b0c21e66dc913869701b62877bfad14e12  scripts/pod/config.example

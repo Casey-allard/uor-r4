@@ -1,0 +1,5 @@
+true
+true
+prior duplicate-object predicate exit=0
+false
+new duplicate-object predicate exit=1

@@ -58,3 +58,31 @@ CARGO_TARGET_DIR=local/pod-provider-target /Users/casey.allard/.cargo/bin/cargo 
 
 The explicit Cargo path above avoids the unrelated `cargo-ai` executable that
 currently shadows Rust Cargo on this host's default PATH.
+
+## Optional exact-driver placement
+
+`search offers` accepts `driver_version=MAJOR.MINOR.PATCH` (or `==`) as an exact
+string predicate. Three nonempty decimal components are required; zero padding
+is preserved. Ordering, ranges, wildcards and lists are refused for this field.
+Safe offer output additionally retains `driver_version`, `machine_id` and
+`host_id` when present. Missing metadata is not synthesized.
+
+For one `uor-pod up` invocation, `UOR_POD_VAST_DRIVER_VERSION` optionally supplies
+that exact predicate. There is no default project-wide driver requirement.
+The runner also filters missing/nonstring/mismatched driver metadata locally
+before price sorting, then rechecks at create. No eligible offer means no
+allocation. An active selector cannot select Runpod or automatically fall back
+to it under `--wait`; unset behavior, placement constraints and caps remain.
+`--wait` may still wait for a qualifying Vast offer until its declared deadline.
+
+Before each selected create attempt the existing ledger records
+`vast-offer-selected` with offer ID, requested/advertised driver, machine/host
+IDs (null if the provider omitted them), raw quote, rounded admission price,
+query-start and selection UTC timestamps. The successful `up` record and pod
+cache retain that same selection object. These are provider metadata receipts,
+not a guarantee that the host cannot change after search. Keep the remote
+actual-driver check before model work. This option releases no rental, timing,
+training or model compute and does not alter any experiment's allowlist.
+
+Tests use the existing Rust request/response fixtures and the runner's fake
+provider account; no real credentials, network or provider mutation is needed.

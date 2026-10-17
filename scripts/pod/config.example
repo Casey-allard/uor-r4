@@ -44,3 +44,9 @@
 # public store does not have are skipped with a warning. Download the rest in
 # your job with `hf download caseyallard/uor-r4-data --repo-type dataset ...`.
 : "${UOR_HF_STORE:=caseyallard/uor-r4-data}"
+
+# Optional Vast-only exact driver constraint for one reviewed `up` invocation:
+# UOR_POD_VAST_DRIVER_VERSION=<major.minor.patch> scripts/pod/uor-pod up ...
+# No default is set. Missing/mismatched advertised drivers cannot be allocated;
+# `--wait` stays on Vast and never falls back to Runpod while this is set.
+# This is placement metadata, not a compute release; retain the remote driver gate.

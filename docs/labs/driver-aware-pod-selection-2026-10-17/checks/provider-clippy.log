@@ -1,0 +1,7 @@
+    Checking memchr v2.8.3
+    Checking itoa v1.0.18
+    Checking serde_core v1.0.228
+    Checking zmij v1.0.23
+    Checking serde_json v1.0.150
+    Checking uor-r4-pod-provider v0.1.0 (/Users/casey.allard/uor-r4-local/codex-driver-selector-checks-20261017/provider)
+    Finished `dev` profile [unoptimized] target(s) in 3.24s

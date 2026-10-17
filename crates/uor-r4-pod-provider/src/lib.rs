@@ -182,6 +182,7 @@ fn offer_query(s: &str) -> Result<Value> {
             "reliability",
             "cuda_vers",
             "cuda_max_good",
+            "driver_version",
             "disk_space",
             "inet_down",
             "inet_up",
@@ -196,6 +197,19 @@ fn offer_query(s: &str) -> Result<Value> {
             || op.is_empty()
         {
             return Err("unsupported offer query field or missing value".into());
+        }
+        if field == "driver_version"
+            && (!matches!(op, "=" | "==")
+                || value.len() > 32
+                || value.split('.').count() != 3
+                || !value
+                    .split('.')
+                    .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit())))
+        {
+            return Err(
+                "driver_version requires exact equality to a three-part decimal version string"
+                    .into(),
+            );
         }
         let op = match op {
             "=" | "==" => "eq",
@@ -474,6 +488,9 @@ const INSTANCE_FIELDS: &[&str] = &[
 ];
 const OFFER_FIELDS: &[&str] = &[
     "id",
+    "driver_version",
+    "machine_id",
+    "host_id",
     "dph_total",
     "num_gpus",
     "geolocation",
@@ -644,6 +661,61 @@ mod tests {
         assert_eq!(q["limit"], 7);
         assert_eq!(q["allocated_storage"], 150.);
         assert_eq!(q["order"], json!([["dph_total", "asc"]]));
+        Ok(())
+    }
+    #[test]
+    fn exact_driver_is_a_string_and_only_equality_is_admitted() -> Result<()> {
+        for version in ["580.95.05", "580.105.08", "001.02.003"] {
+            let query = format!("gpu_name=RTX_5090 driver_version={version}");
+            let (_, request) = parse(&args(&["search", "offers", &query, "--raw"]))?;
+            assert_eq!(
+                request.body.ok_or("missing query")?["driver_version"],
+                json!({"eq":version})
+            );
+        }
+        for query in [
+            "driver_version>=580.95.05",
+            "driver_version!=580.95.05",
+            "driver_version=580.95",
+            "driver_version=580..05",
+            "driver_version=580.95.05*",
+            "driver_version=580.95.05,595.71.05",
+            "driver_version=NaN",
+        ] {
+            assert!(
+                parse(&args(&["search", "offers", query])).is_err(),
+                "{query}"
+            );
+        }
+        let (_, legacy) = parse(&args(&["search", "offers", "gpu_name=RTX_5090"]))?;
+        assert!(legacy
+            .body
+            .ok_or("missing query")?
+            .get("driver_version")
+            .is_none());
+        Ok(())
+    }
+    #[test]
+    fn offer_projection_retains_driver_and_machine_identity_without_secrets() -> Result<()> {
+        let normalized = normalize(
+            &Operation::Offers,
+            json!({"offers":[{
+                "id":7,"driver_version":"580.95.05","machine_id":8,"host_id":9,
+                "dph_total":0.563,"num_gpus":1,"api_key":"SENTINEL_SECRET",
+                "env":{"TOKEN":"SENTINEL_SECRET"}
+            }]}),
+        )?;
+        assert_eq!(normalized[0]["driver_version"], "580.95.05");
+        assert_eq!(normalized[0]["machine_id"], 8);
+        assert_eq!(normalized[0]["host_id"], 9);
+        assert_eq!(normalized[0]["dph_total"], 0.563);
+        assert!(!normalized.to_string().contains("SENTINEL"));
+        // Missing/malformed driver metadata is retained honestly for the
+        // runner's opt-in predicate; unconstrained legacy searches still work.
+        assert_eq!(
+            normalize(&Operation::Offers, json!({"offers":[{"id":7}]}))?,
+            json!([{"id":7}])
+        );
         Ok(())
     }
     #[test]

@@ -1,0 +1,455 @@
+ok   no arguments print the rules
+ok   lease without a session refused
+ok   bad lab refused
+ok   claude/c1 leases A gpu 0
+ok   lease file is per lab+session
+ok   deepseek/d1 leases A gpu 1 (two labs share a pod)
+ok   deepseek/d2 cannot take d1's GPU (same lab, other session)
+ok   refusal prints spin-up guidance
+ok   codex cannot take claude's idle GPU
+ok   lease out-of-range refused
+ok   renew own lease
+ok   renew without lease refused
+ok   run on own leased gpu (dry)
+ok   run on another session's gpu refused
+ok   status shows leased-but-idle as not free
+ok   status names free GPUs (B is unleased)
+ok   status: no FREE for leased A
+ok   status flags stopped pods as cleanup
+ok   status hides pod env
+ok   expired lease with a live job is not taken over
+ok   expired lease on an idle GPU is taken over
+ok   expired lease file removed on takeover
+ok   takeover is in the ledger with the session
+ok   release deepseek/d2 on B
+ok   forbidden A100 refused
+ok   up without session refused
+ok   up refuses when a free GPU of that type exists
+ok   up does not offer util GPU as free
+ok   up util has no false free claim
+ok   up does not offer app GPU as free
+ok   up app has no false free claim
+ok   up does not offer lock GPU as free
+ok   up lock has no false free claim
+ok   up does not offer unreachable GPU as free
+ok   up unreachable has no false free claim
+ok   up does not offer empty GPU as free
+ok   up empty has no false free claim
+ok   up does not offer unknown GPU as free
+ok   up unknown has no false free claim
+ok   up still offers a probed idle GPU
+ok   default caps are 4 pods / $8/h
+ok   cap reached names the free GPUs to lease
+ok   cap message lists podb gpu 0
+ok   up --test pods bypass the pod cap
+ok   up: no 5090 in EUR-NO-1 -> EU-RO-1, never 4090
+ok   up: creates uor-shared-EU-RO-1 lazily
+ok   up --gpu 4090 explicit -> EUR-NO-1 canonical
+ok   config file sets the canonical volume
+ok   environment beats the config file
+ok   UOR_POD_TEMPLATE=none creates from the public image
+ok   UOR_POD_TEMPLATE=none passes no --template-id
+ok   empty UOR_POD_TEMPLATE also creates from the public image
+ok   empty UOR_POD_TEMPLATE passes no --template-id
+ok   a loaded config file is reported
+ok   canonical DC outside UOR_POD_VOLUME_DCS warns
+ok   up refuses a bad --hf-store before any API call
+ok   up --gpu 5090: no 5090 in volume DCs refuses (no silent fallback)
+ok   refusal prints the stock table
+ok   up --wait retries every minute
+ok   up --allow-off-volume places 5090 in EU-RO-1 without volume
+ok   up over rate cap refused
+ok   up (dry) names the next datacenter to try on a stock error
+ok   ladder: no 5090 anywhere -> 4090
+ok   explicit --gpu 5090 with no stock still refuses
+ok   ladder: no 5090 or 4090 -> RTX PRO 6000
+ok   ladder: no stock on any rung refuses, naming the ladder
+ok   up refuses before creating when uor-store is missing
+ok   up refuses before creating when uor-reaper.sh is missing
+ok   up refuses before creating when hot-set.txt is empty
+ok   up refuses before creating when the bootstrap has a syntax error
+ok   --no-bootstrap needs only the seed helpers
+ok   up with every helper present proceeds (dry)
+ok   unknown short SHA refused before any API call
+ok   40-char SHA absent from origin refused
+ok   commit only in the local checkout (never pushed) refused
+ok   unknown branch refused
+ok   shell metacharacters in --ref refused
+ok   too-short SHA refused
+ok   short SHA of a pushed (non-tip) commit expands to the full commit
+ok   the expanded SHA proceeds to placement (dry)
+ok   upper-case short SHA is accepted
+ok   branch name resolves to its tip
+ok   default ref main resolves
+ok   option of another subcommand refused
+ok   stray positional argument refused
+ok   --count 0 refused
+ok   --count two refused
+ok   --hours 48 refused
+ok   unknown --gpu refused
+ok   --wait-hours out of range refused
+ok   bootstrap rejecting an argument stops up before any API call
+ok   bootstrap --check-args accepts a full SHA
+ok   bootstrap --check-args accepts --non-canonical
+ok   bootstrap --check-args rejects a short SHA
+ok   bootstrap --check-args rejects upper-case hex
+ok   bootstrap --check-args rejects an unknown argument
+ok   bootstrap --check-args rejects --sha without a value
+ok   one recent failure does not trip the breaker
+ok   two failures within 60 min trip the breaker (no API call)
+ok   breaker shows the failure reasons
+ok   breaker shows the last bootstrap output
+ok   breaker shows the log paths
+ok   breaker names --force-retry
+ok   breaker refusal recorded in the ledger
+ok   --force-retry overrides the breaker
+ok   --force-retry warns
+ok   --force-retry recorded in the ledger
+ok   another session of the same lab is not blocked
+ok   failures older than 60 min do not count
+ok   register: idle pod gets no lease
+ok   register: busy GPU leased for 1 h
+ok   register a stopped pod with --keep
+ok   down refuses a KEEP pod
+ok   down of a non-canonical pod needs --confirm-archived
+ok   down non-canonical after archiving (dry)
+ok   down refused while another session leases
+ok   release deepseek/d1
+ok   down by the last lease holder (dry)
+ok   release
+ok   release codex on C
+ok   reap: deletes idle unleased B, keeps busy C
+ok   reap keeps busy C
+ok   reap starts A's idle clock
+ok   hand-written fractional timestamp does not abort the tool
+ok   hand-written lease is listed
+ok   hand-written live lease still holds its GPU
+ok   expired fractional +00:00 lease is EXPIRED (not stuck live)
+ok   status does not warn when no lease is malformed
+ok   expired fractional lease can be taken over
+ok   release after fractional takeover
+ok   -05:00 offset applied: live lease holds its GPU
+ok   +05:30 offset applied: expired lease is taken over
+ok   release after offset takeover
+ok   epoch-number expires is understood (live)
+ok   unparseable expires is treated as LIVE (fail safe)
+ok   status still runs with malformed leases
+ok   status warns loudly about the malformed lease
+ok   status names the unparseable expires
+ok   status names the offset-less expires
+ok   status marks the lease line
+ok   status warns on stderr too
+ok   podb is not offered as free
+ok   a non-JSON lease file is LIVE on every GPU (fail safe)
+ok   status survives a non-JSON lease file
+ok   renew of a hand-written lease
+ok   renew rewrites started/expires/renewed in the canonical ...Z form
+ok   release c9
+ok   reaper: expired fractional lease is not live
+ok   reaper: future fractional lease is live
+ok   reaper: -05:00 offset applied (live)
+ok   reaper: unparseable lease is live (never delete on doubt)
+ok   reaper: expired canonical lease is not live
+ok   prune-stopped lists stopped pods
+ok   prune-stopped without --yes deletes nothing
+ok   prune-stopped --yes deletes old unprotected pods (dry)
+ok   prune-stopped skips KEEP pods
+ok   status runs
+ok   status warns about stray tmp files
+ok   log shows sessions
+ok   no real mutation in dry run
+ok   create out of stock in EUR-NO-1 -> next datacenter EU-RO-1
+ok   fallback names the stock error
+ok   fallback creates in EU-RO-1 on its volume
+ok   one create per datacenter, in policy order, stopping at the first success
+ok   the pod is recorded where it landed, under the creator's lease
+ok   every datacenter out of stock at create -> reported as no stock
+ok   the report lists the datacenters that refused
+ok   all three datacenters were tried
+ok   --wait retries the whole placement order after create-time stock errors
+ok   --wait made repeated full passes
+ok   a non-stock create error stops at once
+ok   no fallback on a non-stock error
+ok   no host with 2 free and no --count -> falls back to 1 GPU
+ok   the fallback is announced
+ok   the second attempt asks for one GPU
+ok   an explicit --count 2 never falls back
+ok   no 1-GPU create with an explicit --count
+ok   bootstrap failure: up fails and deletes the pod
+ok   the last 30 lines are printed with the log path
+ok   the tail shows the failing line
+ok   the tail shows line 40
+ok   the tail stops at 30 lines (line 11 is outside it)
+ok   the tail hides the exit-status marker
+ok   the full bootstrap log is kept on the laptop
+ok   up-failed ledger event names the logs and the last output line
+ok   the pod tees the bootstrap output onto its volume
+ok   the failed pod is deleted
+ok   bootstrap ledger event carries rc and log
+ok   second bootstrap failure
+ok   third up of the session is refused by the breaker
+ok   the refusal shows the saved log
+ok   the refusal shows the 404/tar line
+ok   the breaker made no API call and created no pod
+ok   --force-retry with a failed Ollama: pod is kept and ready
+ok   a failed Ollama is a warning, not a failure
+ok   a failed Ollama does not delete the pod
+ok   the Ollama failure is recorded in the bootstrap ledger event
+ok   --with-ollama reaches the bootstrap
+     rc=0 want=0 pattern=hf token copied
+FAIL up with an HF token on the laptop
+     | Creating 2 x 5090 (ladder) ($1.98/h) in EUR-NO-1 for claude/hftok: hf
+     | Pod podnew created; waiting for SSH (up to 30 s)
+     | SSH ready after 0s: ssh -i /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/hfhome/.ssh/uor_compute -p 1004 root@10.0.0.1
+FAIL the token is copied to the pod over ssh
+     | Creating 2 x 5090 (ladder) ($1.98/h) in EUR-NO-1 for claude/hftok: hf
+     | Pod podnew created; waiting for SSH (up to 30 s)
+     | SSH ready after 0s: ssh -i /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/hfhome/.ssh/uor_compute -p 1004 root@10.0.0.1
+ok   the token is never written to the image's HF_HOME (a shared volume on Runpod)
+ok   the bootstrap's store calls use HF_TOKEN_PATH=/root/.cache/huggingface/token
+ok   the token value is in neither the output nor any command line
+ok   no ladder stock in the volume datacenters -> placed in an extra datacenter
+ok   the extra datacenter with more stock is tried first, labelled non-canonical
+ok   one create, in CA-MTL-1; a datacenter outside the allowlist is never used
+ok   the extra-datacenter pod is cached as non-canonical
+ok   UOR_POD_VOLUME_DCS set -> extra datacenters are not used
+ok   no create anywhere with an explicit datacenter list
+ok   ladder: a rate-cap miss on 5090 continues to the cheaper 4090 rung
+ok   the cheaper rung is the one created
+ok   ladder: every rung over the cap ends with the cap message
+ok   stock error in a new extra datacenter
+ok   the volume created for CA-MTL-1 is deleted; the canonical volume is not
+ok   free lock: build, publish atomically
+ok   published build is complete, no staging left
+ok   second pod: cache hit, no build
+ok   lock held, fresh heartbeat without progress: build here after the stall limit
+ok   stalled holder costs seconds, not 45 min
+ok   lock held, progressing heartbeat: wait is bounded by UOR_BUILD_WAIT_S
+ok   bounded wait ended on time
+ok   lock held, other pod publishes during the wait: use it, no build
+ok   no duplicate build when the other pod finished
+ok   lock held by a vanished pod (stale heartbeat): build at once
+     rc=0 pattern=another pod published /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120 first \(parity PASS\); discarding
+FAIL both pods finish: the first PASS wins, the second is discarded
+     | [bootstrap 01:43:26 +0s] another pod published /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120 first (build complete); discarding this pod's build
+     | [bootstrap 01:43:26 +0s] uploaded bin/0123456789abcdef0123456789abcdef01234567-sm120.tar to the HF store caseyallard/uor-r4-store
+     | RESULT BIN=/var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120 BUILT=1 waited=0
+ok   cache untouched by the losing build (no mixing, no staging left)
+ok   a cached build without parity PASS is moved aside and replaced
+ok   failed build kept for inspection, PASS build published
+ok   publish lock unavailable and cache occupied: keep the build private
+ok   occupied cache not overwritten without the publish lock
+ok   the store's parity-PASS build is a cache hit (no build)
+ok   store build published as the cache, nothing re-uploaded, no staging left
+     rc=0 pattern=not a parity-PASS build with matching checksums; building here
+FAIL a store build failing its checksums is ignored: build here
+     | [bootstrap 01:43:27 +0s] WARNING: the store's bin/0123456789abcdef0123456789abcdef01234567-sm120.tar is not a complete build with matching checksums; building here
+     | [bootstrap 01:43:27 +0s] cached /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120
+     | [bootstrap 01:43:27 +0s] uploaded bin/0123456789abcdef0123456789abcdef01234567-sm120.tar to the HF store caseyallard/uor-r4-store
+     | RESULT BIN=/var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120 BUILT=1 waited=0
+ok   the tampered store build never reaches the cache
+     rc=0 pattern=not a parity-PASS build
+FAIL a store build without parity PASS is ignored: build here
+     | [bootstrap 01:43:27 +0s] WARNING: the store's bin/0123456789abcdef0123456789abcdef01234567-sm120.tar is not a complete build with matching checksums; building here
+     | [bootstrap 01:43:27 +0s] cached /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120
+     | [bootstrap 01:43:27 +0s] uploaded bin/0123456789abcdef0123456789abcdef01234567-sm120.tar to the HF store caseyallard/uor-r4-store
+     | RESULT BIN=/var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120 BUILT=1 waited=0
+     rc=0 pattern=not a parity-PASS build
+FAIL a store build that is subset is ignored: build here
+     | [bootstrap 01:43:28 +1s] WARNING: the store's bin/0123456789abcdef0123456789abcdef01234567-sm120.tar is not a complete build with matching checksums; building here
+     | [bootstrap 01:43:28 +1s] cached /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120
+     | [bootstrap 01:43:28 +1s] uploaded bin/0123456789abcdef0123456789abcdef01234567-sm120.tar to the HF store caseyallard/uor-r4-store
+     | RESULT BIN=/var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120 BUILT=1 waited=1
+ok   the subset store build never reaches the cache
+     rc=0 pattern=not a parity-PASS build
+FAIL a store build that is wrongcap is ignored: build here
+     | [bootstrap 01:43:28 +0s] WARNING: the store's bin/0123456789abcdef0123456789abcdef01234567-sm120.tar is not a complete build with matching checksums; building here
+     | [bootstrap 01:43:28 +0s] cached /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120
+     | [bootstrap 01:43:28 +0s] uploaded bin/0123456789abcdef0123456789abcdef01234567-sm120.tar to the HF store caseyallard/uor-r4-store
+     | RESULT BIN=/var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120 BUILT=1 waited=0
+ok   the wrongcap store build never reaches the cache
+     rc=0 pattern=not a parity-PASS build
+FAIL a store build that is symlink is ignored: build here
+     | [bootstrap 01:43:28 +0s] WARNING: the store's bin/0123456789abcdef0123456789abcdef01234567-sm120.tar is not a complete build with matching checksums; building here
+     | [bootstrap 01:43:28 +0s] cached /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120
+     | [bootstrap 01:43:28 +0s] uploaded bin/0123456789abcdef0123456789abcdef01234567-sm120.tar to the HF store caseyallard/uor-r4-store
+     | RESULT BIN=/var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/binroot/0123456789abcdef0123456789abcdef01234567-sm120 BUILT=1 waited=0
+ok   the symlink store build never reaches the cache
+ok   build_into makes no store call (uploads follow the publish)
+ok   the crate cache is uploaded after the build is published
+ok   order: publish, binaries, then the crate cache
+ok   store miss: build here, then upload it for the next pod
+ok   the uploaded tar is this build
+ok   uor-store put uploads a directory
+ok   uor-store get brings a folder back
+ok   uor-store get reports a missing path instead of a silent nothing
+ok   uor-store ls lists every page, without the token
+ok   uor-store get never reports an old local copy as downloaded
+ok   uor-store refuses a path outside the store
+ok   uor-store uses the project store as a dataset
+ok   every Ollama source 404: status FAILED, bootstrap continues
+ok   the failure is logged as a warning
+ok   tries .tar.zst, then the legacy .tgz, then install.sh
+ok   current .tar.zst asset installs Ollama
+ok   installed onto the volume dir from .tar.zst
+ok   failed model pull is a warning (pull-failed), not fatal
+ok   legacy .tgz still works when the .tar.zst is missing
+ok   default board posts a gh issue comment
+ok   UOR_POD_BOARD=none still runs
+ok   UOR_POD_BOARD=none posts no gh issue comment
+ok   empty UOR_POD_BOARD still runs
+ok   empty UOR_POD_BOARD posts no gh issue comment
+ok   UOR_POD_BOARD=none still writes the ledger
+ok   default bootstrap args carry no --hf-store/--repo-url
+ok   UOR_HF_STORE reaches the bootstrap as --hf-store
+ok   a fork URL reaches the bootstrap as --repo-url
+ok   bootstrap --check-args accepts --hf-store and --repo-url
+ok   bootstrap --check-args rejects a ; in --hf-store
+ok   bootstrap --check-args rejects a space in --repo-url
+ok   bootstrap --check-args rejects --hf-store without a value
+ok   exact driver excludes cheaper wrong, missing and numeric metadata
+ok   exact driver is sent as an equality query
+ok   precreate receipt binds offer, driver, host, raw quote and query time
+ok   no driver match refuses without allocation
+ok   missing or wrong driver metadata causes zero create calls
+ok   matching driver still obeys price cap
+ok   driver wildcard is refused before placement
+ok   driver constraint cannot be sent to Runpod even with override
+ok   Vast is the default provider and rents the cheapest offer
+ok   the offer is announced with its price and place
+ok   the search asks for verified datacenter hosts, CUDA 12.8+, disk and bandwidth, priced with our disk
+ok   a Vast up makes no Runpod placement call
+ok   on a Vast account, Runpod by hand is refused (backup only)
+ok   the refusal creates nothing
+ok   --provider runpod --owner-approved places on Runpod
+ok   UOR_POD_PROVIDER=runpod with --owner-approved places on Runpod
+ok   --provider takes vast or runpod only
+ok   a bad UOR_POD_PROVIDER is refused
+ok   a Vast pod id must be vast-<number>
+ok   ladder on Vast: no 5090 offer -> 4090
+ok   the 5090 miss is reported
+ok   pro6000 maps to Vast's RTX PRO 6000 S
+ok   no Vast offer at all names --wait and the Runpod backup after the stretch
+ok   rate cap counts a Runpod pod against a Vast offer
+ok   pod cap counts Runpod pods and Vast instances (a loading one too)
+ok   up refuses when a provider listing fails (caps unknowable)
+ok   status lists both providers
+ok   status lists the Runpod pod too
+ok   status shows a loading Vast instance as running (it bills)
+ok   status totals both providers
+ok   status shows Vast offers
+ok   status shows the cheapest Vast offer
+ok   status never shows the instance's tokens
+ok   status survives a failed Vast listing
+ok   a failed listing keeps the pod's live leases
+ok   a Vast pod that is really gone has its leases archived
+     rc=0 want=0 pattern=Ready: ssh
+FAIL mocked exact-driver create links selection to successful up
+     | Creating 1 x 5090 ($0.6/h) on Vast Ireland, IE, offer 7003, for codex/x1: vast
+     | Pod vast-9001 created; waiting for SSH (up to 30 s)
+     | SSH ready after 1s: ssh -i /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/vasthome/.ssh/uor_compute -p 2001 root@10.0.0.2
+     | uor-pod: Vast pod: no hot-set seeding (the bootstrap builds the toolchain and fetches data from the HF store)
+ok   selection is written before fake create and shared by up/cache receipts
+ok   driver-selected wait cannot fall back to Runpod
+ok   selected wait makes zero provider create calls
+ok   Vast up: a taken offer moves on to the next cheapest
+ok   the taken offer is named with Vast's reason
+ok   the next cheapest offer (7003, not 7002) is rented
+ok   Vast pods skip the hot-set relay
+ok   the HF token is copied
+ok   the bootstrap fetches from the HF store (--off-volume --non-canonical)
+ok   the Vast pod is cached as vast-9001 under the creator's lease
+ok   run on the Vast pod
+ok   down refuses when the results are too big for the laptop
+ok   the refusal says how big
+ok   nothing was destroyed
+ok   down archives the results, then destroys
+ok   the archive is reported
+ok   the results are on the laptop
+ok   destroy answered the [y/N] prompt and the instance is gone
+ok   the archive is in the ledger
+ok   a failed Vast bootstrap destroys the instance
+ok   no instance is left billing
+ok   Vast up for the bad-listing cases
+ok   down: an error object from the listing is not 'gone'
+ok   an unconfirmed destroy keeps the leases
+ok   status: an error object from the listing is a failed listing
+ok   an error-object listing keeps the leases
+ok   up: an error-object listing stops up
+ok   status survives a Runpod listing that fails once
+ok   a later successful listing does not archive the unlisted pod's leases
+     rc=0 want=1 pattern=Vast: vastai is not installed, so the caps cannot be checked
+FAIL up without vastai installed refuses (Vast pods would be uncounted)
+     | uor-pod: no 5090 stock in EUR-NO-1
+     | uor-pod: no 5090 stock in EUR-IS-1
+     | Creating 1 x 5090 ($0.99/h) in EU-RO-1 volume volnew (non-canonical) for codex/x1: vast
+     | Pod podnew created; waiting for SSH (up to 30 s)
+     | SSH ready after 0s: ssh -i /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/vasthome/.ssh/uor_compute -p 1004 root@10.0.0.1
+     | uor-pod: hf token copied
+     | Hot set already present on podnew
+     | Bootstrapping podnew at 3e5d341dc0ba5c84bbe5c7f4a6d6f2407169818e (log: /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/state-vast/logs/bootstrap-podnew-20261017T014343Z.log; pod volume: /workspace/uor-r4/pods/bootstrap-podnew-20261017T014343Z.log)
+     | bootstrap line 1
+     | bootstrap line 2
+     | bootstrap line 3
+     | bootstrap line 4
+     | bootstrap line 5
+     | bootstrap line 6
+     | bootstrap line 7
+     | bootstrap line 8
+     | bootstrap line 9
+     | bootstrap line 10
+     | bootstrap line 11
+     | bootstrap line 12
+     | bootstrap line 13
+     | bootstrap line 14
+     | bootstrap line 15
+     | bootstrap line 16
+     | bootstrap line 17
+     | bootstrap line 18
+     | bootstrap line 19
+     | bootstrap line 20
+     | bootstrap line 21
+     | bootstrap line 22
+     | bootstrap line 23
+     | bootstrap line 24
+     | bootstrap line 25
+     | bootstrap line 26
+     | bootstrap line 27
+     | bootstrap line 28
+     | bootstrap line 29
+     | bootstrap line 30
+     | bootstrap line 31
+     | bootstrap line 32
+     | bootstrap line 33
+     | bootstrap line 34
+     | bootstrap line 35
+     | bootstrap line 36
+     | bootstrap line 37
+     | bootstrap line 38
+     | bootstrap line 39
+     | bootstrap line 40
+     | BOOTSTRAP_RESULT {"pod":"podnew","parity":"PASS","ollama":"off"}
+     | UOR_POD_BOOTSTRAP_RC=0
+     | Ready: ssh -i /var/folders/29/pd94_f9169d2zr7bg7xvqg8m0000gn/T//uor-pod-test.C5dfLe/vasthome/.ssh/uor_compute -p 1004 root@10.0.0.1   lease: codex/x1 gpus 0..0 until 2026-10-17T02:43:43Z
+ok   a Runpod-only account (UOR_POD_PROVIDERS=runpod) needs no vastai
+ok   --wait: no Vast offer for the stretch -> Runpod backup
+ok   the fallback is announced as the owner's backup rule
+ok   the fallback is in the ledger and created on Runpod
+ok   --wait shorter than the stretch never touches Runpod
+ok   no Runpod pod before the stretch
+ok   an unparsed rental is found by its label, not repeated
+ok   exactly one create call
+ok   the refusal says how to destroy it
+ok   up: an empty listing stops up (caps unknowable)
+ok   an unparsed rental with an empty listing stops up
+ok   still exactly one create call
+ok   prune-stopped skips a stopped Vast pod
+ok   the stopped Vast pod is kept
+ok   Vast up for the --to-store case
+ok   up installs uor-store on the pod
+ok   down --to-store archives even above the laptop cap
+ok   the pod uploads; nothing is copied to the laptop
+ok   the ledger records the store path
+ok   the instance key and tokens never reach output, ledger, state or a command line
+ok   the HF token value is in neither the output nor a command line
+passed 351, failed 10

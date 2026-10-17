@@ -115,6 +115,8 @@ RUNPOD_FALLBACK_MIN=${UOR_POD_RUNPOD_FALLBACK_MIN:-30}
 VAST_DISK_GB=${UOR_POD_VAST_DISK_GB:-$OFF_VOLUME_DISK_GB}
 VAST_MIN_REL=${UOR_POD_VAST_MIN_RELIABILITY:-0.98}
 VAST_MIN_INET=${UOR_POD_VAST_MIN_INET_MBPS:-200}
+# Optional per-invocation placement constraint, never a project driver allowlist.
+VAST_DRIVER=${UOR_POD_VAST_DRIVER_VERSION:-}
 VAST_ARCHIVE_MAX_MB=${UOR_POD_VAST_ARCHIVE_MAX_MB:-5120}
 VAST_ARCHIVE_DIRS='uor-r4/jobs uor-r4/pods uor-r4/runs uor-r4/evals'
 VAST_POLL_S=${UOR_POD_VAST_POLL_S:-5}   # destroy confirmation: 8 listings this far apart
@@ -341,13 +343,19 @@ pod_get() {  # POD -> the pod object, or nothing when the provider does not know
 }
 gpu_stock() { if have_runpod; then runpodctl gpu list --include-unavailable -o json; else echo '[]'; fi; }
 
-# vast_offers KEY COUNT -> JSON [{id, dph, n, loc, rel}] cheapest first (machine $/h)
+# vast_offers KEY COUNT -> priced candidates; opt-in driver metadata is retained.
 vast_offers() {
-  local name out
+  local name out driver_query='' queried_at
   name=$(gpu_field "$1" 5)
   [ -n "$name" ] || { echo '[]'; return 0; }
-  out=$(vastai search offers "gpu_name=${name// /_} num_gpus=$2 datacenter=true verified=true rentable=true reliability>$VAST_MIN_REL cuda_vers>=12.8 disk_space>=$VAST_DISK_GB inet_down>=$VAST_MIN_INET" \
-    --storage "$VAST_DISK_GB" -o dph_total --raw 2>/dev/null | jq -c '[.[]? | {id, dph: (.dph_total * 1000 | round / 1000), n: .num_gpus, loc: (.geolocation // "?"), rel: .reliability2}] | sort_by(.dph)' 2>/dev/null) || out=''
+  [ -z "$VAST_DRIVER" ] || driver_query=" driver_version=$VAST_DRIVER"
+  queried_at=$(now_iso)
+  out=$(vastai search offers "gpu_name=${name// /_} num_gpus=$2 datacenter=true verified=true rentable=true reliability>$VAST_MIN_REL cuda_vers>=12.8 disk_space>=$VAST_DISK_GB inet_down>=$VAST_MIN_INET$driver_query" \
+    --storage "$VAST_DISK_GB" -o dph_total --raw 2>/dev/null | jq -c --arg driver "$VAST_DRIVER" --arg at "$queried_at" '
+      [.[]? | select($driver == "" or ((.driver_version | type) == "string" and .driver_version == $driver)) |
+        {id, dph: (.dph_total * 1000 | round / 1000), n: .num_gpus, loc: (.geolocation // "?"), rel: .reliability2}
+        + (if $driver == "" then {} else {driver_version, machine_id, host_id,
+            quoted_dph_total: .dph_total, query_started_at: $at} end)] | sort_by(.dph)' 2>/dev/null) || out=''
   echo "${out:-[]}"
 }
 print_vast_stock() {  # [KEYS] -> one line per GPU: offers and the cheapest $/GPU/h
@@ -968,9 +976,20 @@ vast_attempt() {  # REQ COUNT RUNNING-RATE
 # UP_VOL=''. The create response also carries an instance-scoped API key: only
 # the contract number is kept, nothing else is printed, logged or stored.
 vast_create() {  # COUNT NAME REQ
-  local count=$1 name=$2 req=$3 id off out c msg tried=''
+  local count=$1 name=$2 req=$3 id off out c msg receipt tried=''
   for id in $UP_CANDS; do
     off=$(echo "$UP_OFFERS" | jq -c --argjson i "$id" '.[] | select(.id == $i)')
+    if [ -n "$VAST_DRIVER" ]; then
+      # Recheck at the mutation boundary, even if a future candidate producer
+      # stops using vast_offers. No missing/mismatched metadata may reach create.
+      echo "$off" | jq -se --arg d "$VAST_DRIVER" 'length == 1 and (.[0] | type == "object" and (.driver_version | type) == "string" and .driver_version == $d)' >/dev/null || die "exact Vast driver selection requires one matching metadata object before create"
+      UP_OFFER_SELECTION=$(echo "$off" | jq -c --arg d "$VAST_DRIVER" --arg at "$(now_iso)" \
+        '{offer_id: .id, requested_driver: $d, driver_version, machine_id, host_id,
+          quoted_usd_per_h: .quoted_dph_total, admission_usd_per_h: .dph,
+          query_started_at, selected_at: $at}') || die "cannot construct exact Vast offer selection; nothing allocated"
+      receipt=$(jq -cn --argjson s "$UP_OFFER_SELECTION" '{offer_selection:$s}') || die "cannot construct exact Vast selection receipt; nothing allocated"
+      ledger vast-offer-selected "$LAB" '' "$receipt" || die "cannot record exact Vast offer selection; nothing allocated"
+    fi
     UP_DC="Vast $(echo "$off" | jq -r .loc)" UP_OFF=1 UP_VOL='' UP_ADD=$(echo "$off" | jq .dph)
     local args=(create instance "$id" --image "$IMAGE" --disk "$VAST_DISK_GB" --ssh --direct --label "$name" --raw)
     echo "Creating $count x $req$( [ "${LADDER:-0}" = 1 ] && echo ' (ladder)') (\$$UP_ADD/h) on $UP_DC, offer $id, for $WHO: $PURPOSE"
@@ -1118,6 +1137,11 @@ breaker_check() {
 
 cmd_up() {
   check_up_args
+  UP_OFFER_SELECTION=null
+  if [ -n "$VAST_DRIVER" ]; then
+    [[ "$VAST_DRIVER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "${#VAST_DRIVER}" -le 32 ] || die "UOR_POD_VAST_DRIVER_VERSION requires an exact three-part decimal version"
+    [ "$PROVIDER" = vast ] || die "exact driver selection requires Vast; Runpod cannot enforce this predicate"
+  fi
   # On a Vast account Runpod is the backup: never chosen by hand without the owner
   if [ "$PROVIDER" = runpod ] && uses vast && [ "$OWNER_OK" != 1 ]; then
     die "Runpod is the backup only (owner, 13 October 2026): 'up --wait' falls back to it after $RUNPOD_FALLBACK_MIN min with no Vast offer. To choose it by hand, add --owner-approved citing the owner's decision (nothing was created)"
@@ -1179,6 +1203,7 @@ cmd_up() {
     [ "$cap_only" = 0 ] || die "$UP_CAPMSG"
     echo "$UP_STOCK"
     if [ "$WAIT" != 1 ] && [ "$PROVIDER" = vast ]; then
+      [ -z "$VAST_DRIVER" ] || die "no Vast offer with exact driver $VAST_DRIVER; nothing allocated; no provider fallback"
       die "no Vast offer for $want (verified datacenter, reliability > $VAST_MIN_REL, CUDA 12.8+). Re-run with --wait: it retries every minute for --wait-hours (default 2) and, after $RUNPOD_FALLBACK_MIN min with no Vast offer, uses Runpod as the backup when it has stock"
     fi
     if [ "$WAIT" != 1 ]; then
@@ -1186,7 +1211,7 @@ cmd_up() {
     fi
     if is_dry; then echo "DRY-RUN: would retry every $((WAIT_INTERVAL / 60)) min until $(jq -rn --argjson t "$deadline" '$t | todate')"; return 0; fi
     # blocked on Vast for long enough: Runpod as the backup, when it is installed
-    if [ "$PROVIDER" = vast ] && [ "$waited" -ge $((RUNPOD_FALLBACK_MIN * 60)) ] && have_runpod; then
+    if [ "$PROVIDER" = vast ] && [ -z "$VAST_DRIVER" ] && [ "$waited" -ge $((RUNPOD_FALLBACK_MIN * 60)) ] && have_runpod; then
       warn "no Vast offer for $want in $((waited / 60)) min: work is blocked, so trying Runpod as the backup (owner rule of 13 October)"
       lock_acquire; ledger up-fallback-runpod "$LAB" '' "$(jq -cn --arg g "$want" --argjson w "$waited" --arg p "$PURPOSE" '{gpu: $g, waited_s: $w, purpose: $p}')"; lock_release
       board "up fallback: no Vast offer for $want in $((waited / 60)) min, trying Runpod as the backup (by=$WHO — $PURPOSE)"
@@ -1218,13 +1243,15 @@ cmd_up() {
   [ -n "$pod" ] || { lock_release; die "pod create returned no id: $(echo "$created" | head -3)"; }
   cache_put "$pod" "$(jq -cn --arg g "$req" --argjson cap "$(gpu_field "$req" 3)" --arg dc "$UP_DC" --arg v "$UP_VOL" \
     --argjson off "$( [ "$UP_OFF" = 1 ] && echo true || echo false)" --argjson canon "$canon" --arg lab "$LAB" --arg t "$(now_iso)" \
-    --arg prov "$PROVIDER" \
-    '{gpu: $g, cap: $cap, dc: $dc, volume_id: $v, volume: ($off | not), off_volume: $off, canonical: $canon, tool: true, created_by: $lab, created: $t, provider: $prov}')"
+    --arg prov "$PROVIDER" --argjson offer "$UP_OFFER_SELECTION" \
+    '{gpu: $g, cap: $cap, dc: $dc, volume_id: $v, volume: ($off | not), off_volume: $off, canonical: $canon, tool: true, created_by: $lab, created: $t, provider: $prov}
+      + (if $offer == null then {} else {offer_selection:$offer} end)')"
   mkdir -p "$STATE/leases/$pod"
   write_lease "$pod" "$ID" "$(jq -cn --argjson c "$count" '[range(0; $c)]')"
   ledger up "$LAB" "$pod" "$(jq -cn --arg g "$req" --argjson c "$count" --arg dc "$UP_DC" --argjson usd "$UP_ADD" \
-    --arg purpose "$PURPOSE" --arg card "$CARD" --arg v "$UP_VOL" --argjson canon "$canon" --arg sel "$( [ "$LADDER" = 1 ] && echo ladder || echo explicit)" \
-    '{gpu: $g, count: $c, dc: $dc, volume: $v, canonical: $canon, usd_per_h: $usd, purpose: $purpose, card: $card, gpu_choice: $sel}')"
+    --arg purpose "$PURPOSE" --arg card "$CARD" --arg v "$UP_VOL" --argjson canon "$canon" --arg sel "$( [ "$LADDER" = 1 ] && echo ladder || echo explicit)" --argjson offer "$UP_OFFER_SELECTION" \
+    '{gpu: $g, count: $c, dc: $dc, volume: $v, canonical: $canon, usd_per_h: $usd, purpose: $purpose, card: $card, gpu_choice: $sel}
+      + (if $offer == null then {} else {offer_selection:$offer} end)')"
   lock_release
   board "up $pod ($count x $req$( [ "$LADDER" = 1 ] && echo ' via ladder'), $where, \$$UP_ADD/h) by=$WHO hours=$HOURS — $PURPOSE${CARD:+ [$CARD]}"
   echo "Pod $pod created; waiting for SSH (up to $SSH_WAIT_SECONDS s)"
