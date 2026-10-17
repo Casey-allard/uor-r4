@@ -35,6 +35,11 @@ fn device_command(args: &[String]) -> Result<()> {
     };
     let read = |p: &str| std::fs::read(p).map_err(|e| invalid(e.to_string()));
     match args.first().map(String::as_str) {
+        Some("attention") | Some("attention-resume") if args.len()==4=>{
+            let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
+            let admission=read_json::<uor_r4_discrete::controller::attention_learning::AttentionAdmission>(&args[2])?;
+            uor_r4_discrete::controller::attention_learning::run(config,admission,Path::new(&args[3]),args[0]=="attention-resume")
+        }
         Some("completion") | Some("completion-resume") if args.len()==4=>{
             let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
             let admission=read_json::<uor_r4_discrete::controller::completion::CompletionAdmission>(&args[2])?;
@@ -50,12 +55,14 @@ fn device_command(args: &[String]) -> Result<()> {
             let admission=read_json::<uor_r4_discrete::controller::ReleaseManifest>(&args[2])?;
             uor_r4_discrete::controller::evaluate_pilot(config,admission,Path::new(&args[3]))
         }
-        Some("build-identity") | Some("completion-build-identity") if args.len()==1 || args.len()==2=>{
+        Some("build-identity") | Some("completion-build-identity") | Some("attention-build-identity") if args.len()==1 || args.len()==2=>{
             let executable=std::env::current_exe().map_err(|e|invalid(e.to_string()))?;
             let mut identity=serde_json::json!({"compiled":uor_r4_discrete::device::compiled_identity(),"driver_source_sha256":uor_r4_discrete::training::driver_source_sha256(),"executable_sha256":uor_r4_discrete::corpus::sha256(&std::fs::read(executable).map_err(|e|invalid(e.to_string()))?),"cuda_context_created":false,"training":"HELD"});
             if args.len()==2 {
                 let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
-                if args[0]=="completion-build-identity" {uor_r4_discrete::controller::completion::validate_config(&config)?;} else {uor_r4_discrete::controller::validate_pilot_config(&config)?;}
+                if args[0]=="completion-build-identity" {uor_r4_discrete::controller::completion::validate_config(&config)?;}
+                else if args[0]=="attention-build-identity" {uor_r4_discrete::controller::attention_learning::validate_config(&config)?;}
+                else {uor_r4_discrete::controller::validate_pilot_config(&config)?;}
                 let driver=uor_r4_discrete::training::PreparedDriver::load(config)?;
                 identity["config_sha256"]=serde_json::json!(uor_r4_discrete::corpus::sha256(&serde_json::to_vec(driver.config()).map_err(|e|invalid(e.to_string()))?));
                 identity["lineage_sha256"]=serde_json::json!(driver.lineage_sha256()?);
@@ -157,6 +164,10 @@ completion-build-identity [CONFIG] — compiled K8 completion or K16 redirect id
 completion-check-plan PLAN — read-only plan metadata validation, no release.
 completion-owner-release PLAN NEW_RELEASE_DIR — Casey personally, separate arm/seed scope; no D33 delegation.
 completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately released arm/seed, cap16404; never chains scopes.");
+            println!("attention-build-identity [CONFIG] — compiled/config/lineage identity without a CUDA context.
+attention-check-plan PLAN — metadata validation only; no release.
+attention-owner-release PLAN NEW_RELEASE_DIR — Casey personally at a terminal, UOR_LAB unset; separate attention arm/seed scope, no D33 delegation.
+attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched active-leaf Flock/Relation learning, cap16404, separately released; training remains HELD by default.");
             Ok(())
         }
         Some("completion-check-plan") if args.len() == 2 => {
@@ -167,6 +178,21 @@ completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately rele
                 uor_r4_discrete::controller::completion::check_plan(&plan)?
             );
             Ok(())
+        }
+        Some("attention-check-plan") if args.len() == 2 => {
+            println!(
+                "{}",
+                uor_r4_discrete::controller::attention_learning::check_plan(std::path::Path::new(
+                    &args[1]
+                ))?
+            );
+            Ok(())
+        }
+        Some("attention-owner-release") if args.len() == 3 => {
+            uor_r4_discrete::controller::attention_learning::owner_release(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+            )
         }
         Some("completion-owner-release") if args.len() == 3 => {
             uor_r4_discrete::controller::completion::owner_release(

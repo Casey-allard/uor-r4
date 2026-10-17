@@ -1,0 +1,118 @@
+    Updating git repository `https://github.com/UOR-Foundation/UOR-Framework.git`
+    Updating crates.io index
+    Updating git repository `https://github.com/UOR-Foundation/uor-addr.git`
+    Updating git repository `https://github.com/UOR-Foundation/uor-matmul.git`
+ Downloading crates ...
+  Downloaded block-buffer v0.10.4
+  Downloaded cfg-if v1.0.4
+  Downloaded arrayvec v0.7.8
+  Downloaded cc v1.2.67
+  Downloaded version_check v0.9.5
+  Downloaded crypto-common v0.1.7
+  Downloaded cpufeatures v0.2.17
+  Downloaded itoa v1.0.18
+  Downloaded constant_time_eq v0.3.1
+  Downloaded proc-macro2 v1.0.106
+  Downloaded quote v1.0.46
+  Downloaded serde_derive v1.0.228
+  Downloaded generic-array v0.14.7
+  Downloaded sha2 v0.10.9
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded shlex v2.0.1
+  Downloaded zmij v1.0.23
+  Downloaded memmap2 v0.9.11
+  Downloaded hex v0.4.3
+  Downloaded libloading v0.9.0
+  Downloaded digest v0.10.7
+  Downloaded ryu v1.0.23
+  Downloaded serde_core v1.0.228
+  Downloaded unicode-ident v1.0.24
+  Downloaded safetensors v0.6.2
+  Downloaded serde v1.0.228
+  Downloaded memchr v2.8.3
+  Downloaded typenum v1.20.1
+  Downloaded serde_json v1.0.150
+  Downloaded libm v0.2.16
+  Downloaded syn v2.0.119
+  Downloaded libc v0.2.186
+  Downloaded blake3 v1.5.0
+   Compiling version_check v0.9.5
+   Compiling proc-macro2 v1.0.106
+   Compiling serde_core v1.0.228
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.228
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling serde_json v1.0.150
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.4
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling arrayvec v0.7.8
+   Compiling arrayref v0.3.9 (/workspace/uor-r4/third_party/arrayref)
+   Compiling constant_time_eq v0.3.1
+   Compiling libc v0.2.186
+   Compiling cpufeatures v0.2.17
+   Compiling libm v0.2.16
+   Compiling hex v0.4.3
+   Compiling ryu v1.0.23
+   Compiling cudarc v0.19.10 (/workspace/uor-r4/third_party/cudarc-0.19.10)
+    Checking libloading v0.9.0
+   Compiling cc v1.2.67
+   Compiling generic-array v0.14.7
+    Checking block-buffer v0.10.4
+    Checking crypto-common v0.1.7
+   Compiling syn v2.0.119
+    Checking digest v0.10.7
+   Compiling memmap2 v0.9.11
+   Compiling blake3 v1.5.0
+   Compiling sha2 v0.10.9
+   Compiling uor-addr v0.2.0 (/workspace/uor-r4/third_party/uor-addr-0.2.0)
+   Compiling serde_derive v1.0.228
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-integer v0.1.0 (/workspace/uor-r4/crates/uor-r4-integer)
+   Compiling uor-r4-tokenizer v0.1.0 (/workspace/uor-r4/crates/uor-r4-tokenizer)
+   Compiling uor-r4-source-interface v0.1.0 (/workspace/uor-r4/crates/uor-r4-source-interface)
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-core v0.1.0 (/workspace/uor-r4/crates/uor-r4-core)
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/workspace/uor-r4/crates/uor-r4-discrete)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 47.91s

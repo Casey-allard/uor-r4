@@ -224,8 +224,7 @@ pub fn report_shared_bytes(report: &str, entry: &str) -> Result<u64, String> {
             let shared = if let Some((prefix, _)) = line.split_once(" bytes smem") {
                 prefix
                     .split(|c: char| !c.is_ascii_digit())
-                    .filter(|s| !s.is_empty())
-                    .next_back()
+                    .rfind(|s| !s.is_empty())
                     .ok_or("missing static shared byte count")?
                     .parse::<u64>()
                     .map_err(|_| "invalid static shared byte count")?

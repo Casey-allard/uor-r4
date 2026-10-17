@@ -1,0 +1,497 @@
+README.md: OK
+gates.sh: OK
+setup-helper.sh: OK
+lease.sh: OK
+compute-recipe-reviewed-base.md: OK
+runner/uor-pod: OK
+runner/uor-pod-bootstrap.sh: OK
+runner/uor-reaper.sh: OK
+runner/hot-set.txt: OK
+runner/uor-store: OK
+source-preflight-fixture.sh: OK
+source-preflight-fixture.log: OK
+generated-path-inventory.md: OK
+Filesystem   1024-blocks      Used Available Capacity  Mounted on
+/dev/disk3s1   239362496 171865408  32099416    85%    /System/Volumes/Data
+UOR-R4 shared GPU pods — rules (docs/labs/compute.md; AGENTS.md "GPU pods")
+ 1. Only this tool touches pods. Run 'uor-pod status' before any GPU work.
+ 2. Identity = --lab L --session S (or UOR_POD_SESSION). Lease the GPUs you use:
+    uor-pod lease POD --lab L --session S --gpus 0,1 --purpose ... --hours H
+    renew every <= 30 min while working; release when done. Leases auto-expire.
+ 3. Another session's GPU is never yours, even when idle: only its holder
+    (release) or expiry frees it. An EXPIRED lease may be taken over after a
+    probe shows no live job. Never touch another session's lease or KEEP_ALIVE.
+ 4. No free GPU and caps allow (<= 4 pods, <= $8.00/h, all labs and providers together):
+    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090 on
+    Vast.ai, cheapest verified datacenter host). Never fall back to the laptop CPU.
+    Caps reached and nothing free: wait for an expiry or ask the owner.
+ 5. One job per GPU: uor-pod run POD --lab L --session S --gpu K -- CMD (device=cuda).
+ 6. Durable output only on /workspace (Runpod network volume; on a Vast pod
+    'down' archives it to the laptop). No stopped pods as storage.
+ 7. Done: release, then 'uor-pod down POD' if no other session holds it.
+    Never print API keys or ~/.runpod/config.toml.
+
+Pods (caps: <= 4 running pods, <= $8.00/h; idle reap after 20 min without a live lease)
+Running: 0 pod(s) (0 counted toward the cap of 4; uor-test-* pods are not), $0/h of $8.00/h
+Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU.
+Vast offers (verified datacenter hosts, reliability > 0.98; $/GPU/h, 1 GPU):
+  5090: 3 offers, cheapest $0.977 (Czechia, CZ)
+  4090: 1 offers, cheapest $1.394 (Hungary, HU)
+Creating 1 x 5090 ($0.977/h) on Vast Czechia, CZ, offer 53194846, for codex/codex-attention-compile-gate3: Exact-head discrete compiler and host metadata only; no model or qualification
+Pod vast-56389498 created; waiting for SSH (up to 900 s)
+SSH ready after 34s: ssh -i /Users/casey.allard/.ssh/uor_compute -p 34138 root@194.228.55.129
+uor-pod: Vast pod: no hot-set seeding (the bootstrap builds the toolchain and fetches data from the HF store)
+Leased vast-56389498 gpus 0 to codex/codex-attention-compile-gate3 until 2026-10-17T12:16:46Z
+Started on vast-56389498 gpu 0 (queues behind any job holding the GPU lock). Log: /workspace/uor-r4/jobs/codex/20261017T114757Z-codex-attention-compile-gate3-gpu0.log
+Follow: uor-pod ssh vast-56389498 tail -f /workspace/uor-r4/jobs/codex/20261017T114757Z-codex-attention-compile-gate3-gpu0.log
+Compiler work live on vast-56389498 at 2026-10-17T11:47:58Z
+Compiler work live on vast-56389498 at 2026-10-17T11:48:10Z
+Compiler work live on vast-56389498 at 2026-10-17T11:48:22Z
+Compiler work live on vast-56389498 at 2026-10-17T11:48:34Z
+Compiler work live on vast-56389498 at 2026-10-17T11:48:46Z
+Compiler work live on vast-56389498 at 2026-10-17T11:48:58Z
+Compiler work live on vast-56389498 at 2026-10-17T11:49:09Z
+Compiler work live on vast-56389498 at 2026-10-17T11:49:22Z
+Compiler work live on vast-56389498 at 2026-10-17T11:49:33Z
+EXPECTED_SOURCE=96ecbd4389cf646274d74ac373c46293150ab81e
+ACTUAL_SOURCE=96ecbd4389cf646274d74ac373c46293150ab81e
+?? evals/codex-attention-compile-gate3/command.log
+?? evals/codex-attention-compile-gate3/source-status-all.txt
+?? jobs/codex/20261017T114757Z-codex-attention-compile-gate3-gpu0.log
+?? jobs/codex/20261017T114757Z-codex-attention-compile-gate3-gpu0.sh
+?? pods/reaper.log
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+cargo 1.97.1 (c980f4866 2026-06-30)
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+name, uuid, driver_version, memory.total [MiB]
+NVIDIA GeForce RTX 5090, GPU-606c8e3f-85be-bac7-adbd-1afacead0ae1, 595.80, 32607 MiB
+UOR_NVCC_ARCH=compute_120
+COMMAND: cargo +1.97.1 check --locked -p uor-r4-discrete --features cuda --all-targets 
+PWD: /workspace/uor-r4
+2026-10-17T11:47:57Z
+    Updating git repository `https://github.com/UOR-Foundation/UOR-Framework.git`
+    Updating crates.io index
+    Updating git repository `https://github.com/UOR-Foundation/uor-addr.git`
+    Updating git repository `https://github.com/UOR-Foundation/uor-matmul.git`
+ Downloading crates ...
+  Downloaded block-buffer v0.10.4
+  Downloaded cfg-if v1.0.4
+  Downloaded arrayvec v0.7.8
+  Downloaded cpufeatures v0.2.17
+  Downloaded cc v1.2.67
+  Downloaded constant_time_eq v0.3.1
+  Downloaded hex v0.4.3
+  Downloaded digest v0.10.7
+  Downloaded generic-array v0.14.7
+  Downloaded itoa v1.0.18
+  Downloaded crypto-common v0.1.7
+  Downloaded shlex v2.0.1
+  Downloaded version_check v0.9.5
+  Downloaded safetensors v0.6.2
+  Downloaded sha2 v0.10.9
+  Downloaded zmij v1.0.23
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded libloading v0.9.0
+  Downloaded quote v1.0.46
+  Downloaded unicode-ident v1.0.24
+  Downloaded memmap2 v0.9.11
+  Downloaded ryu v1.0.23
+  Downloaded serde_core v1.0.228
+  Downloaded serde_derive v1.0.228
+  Downloaded serde v1.0.228
+  Downloaded memchr v2.8.3
+  Downloaded proc-macro2 v1.0.106
+  Downloaded typenum v1.20.1
+  Downloaded libm v0.2.16
+  Downloaded serde_json v1.0.150
+  Downloaded blake3 v1.5.0
+  Downloaded syn v2.0.119
+  Downloaded libc v0.2.186
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.228
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling zmij v1.0.23
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling serde v1.0.228
+   Compiling serde_json v1.0.150
+   Compiling typenum v1.20.1
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling cfg-if v1.0.4
+   Compiling arrayvec v0.7.8
+   Compiling arrayref v0.3.9 (/workspace/uor-r4/third_party/arrayref)
+   Compiling constant_time_eq v0.3.1
+   Compiling cc v1.2.67
+   Compiling libc v0.2.186
+   Compiling libm v0.2.16
+   Compiling cpufeatures v0.2.17
+   Compiling ryu v1.0.23
+   Compiling generic-array v0.14.7
+   Compiling hex v0.4.3
+   Compiling cudarc v0.19.10 (/workspace/uor-r4/third_party/cudarc-0.19.10)
+    Checking libloading v0.9.0
+   Compiling syn v2.0.119
+   Compiling blake3 v1.5.0
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling memmap2 v0.9.11
+   Compiling uor-addr v0.2.0 (/workspace/uor-r4/third_party/uor-addr-0.2.0)
+   Compiling serde_derive v1.0.228
+   Compiling safetensors v0.6.2
+   Compiling uor-r4-tokenizer v0.1.0 (/workspace/uor-r4/crates/uor-r4-tokenizer)
+   Compiling uor-r4-integer v0.1.0 (/workspace/uor-r4/crates/uor-r4-integer)
+   Compiling uor-r4-source-interface v0.1.0 (/workspace/uor-r4/crates/uor-r4-source-interface)
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-core v0.1.0 (/workspace/uor-r4/crates/uor-r4-core)
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/workspace/uor-r4/crates/uor-r4-discrete)
+warning: constant `FRAME_REACHABILITY` is never used
+  --> /workspace/attention-compile-target/debug/build/uor-r4-discrete-d3494254ec631571/out/geometry.rs:10:11
+   |
+10 | pub const FRAME_REACHABILITY: [u8; 64] = [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64...
+   |           ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ROOT_REACHABILITY` is never used
+  --> /workspace/attention-compile-target/debug/build/uor-r4-discrete-d3494254ec631571/out/geometry.rs:11:11
+   |
+11 | pub const ROOT_REACHABILITY: [u8; 16] = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16];
+   |           ^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib) generated 2 warnings
+warning: `uor-r4-discrete` (lib test) generated 2 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 56.22s
+COMMAND: cargo +1.97.1 clippy --locked -p uor-r4-discrete --features cuda --all-targets --no-deps -- -D warnings 
+PWD: /workspace/uor-r4
+2026-10-17T11:48:54Z
+   Compiling uor-r4-integer v0.1.0 (/workspace/uor-r4/crates/uor-r4-integer)
+   Compiling uor-r4-tokenizer v0.1.0 (/workspace/uor-r4/crates/uor-r4-tokenizer)
+   Compiling uor-r4-source-interface v0.1.0 (/workspace/uor-r4/crates/uor-r4-source-interface)
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-core v0.1.0 (/workspace/uor-r4/crates/uor-r4-core)
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/workspace/uor-r4/crates/uor-r4-discrete)
+error: constant `FRAME_REACHABILITY` is never used
+  --> /workspace/attention-compile-target/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/geometry.rs:10:11
+   |
+10 | pub const FRAME_REACHABILITY: [u8; 64] = [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64...
+   |           ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: constant `ROOT_REACHABILITY` is never used
+  --> /workspace/attention-compile-target/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/geometry.rs:11:11
+   |
+11 | pub const ROOT_REACHABILITY: [u8; 16] = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16];
+   |           ^^^^^^^^^^^^^^^^^
+
+error: called `filter(..).next_back()` on an `DoubleEndedIterator`. This is more succinctly expressed by calling `.rfind(..)` instead
+   --> crates/uor-r4-discrete/src/baseline_reuse.rs:225:17
+    |
+225 | /                 prefix
+226 | |                     .split(|c: char| !c.is_ascii_digit())
+227 | |                     .filter(|s| !s.is_empty())
+228 | |                     .next_back()
+    | |________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#filter_next
+    = note: `-D clippy::filter-next` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::filter_next)]`
+help: try
+    |
+225 ~                 prefix
+226 +                     .split(|c: char| !c.is_ascii_digit()).rfind(|s| !s.is_empty())
+    |
+
+error: called `filter(..).next_back()` on an `DoubleEndedIterator`. This is more succinctly expressed by calling `.rfind(..)` instead
+   --> crates/uor-r4-discrete/src/decomposition.rs:286:5
+    |
+286 | /     before
+287 | |         .split(|c: char| !c.is_ascii_digit())
+288 | |         .filter(|s| !s.is_empty())
+289 | |         .next_back()?
+    | |____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#filter_next
+help: try
+    |
+286 ~     before
+287 ~         .split(|c: char| !c.is_ascii_digit()).rfind(|s| !s.is_empty())?
+    |
+
+error: items after a test module
+   --> crates/uor-r4-discrete/src/redirect_admission.rs:66:1
+    |
+ 66 |   mod tests {
+    |   ^^^^^^^^^
+...
+320 |   pub(super) fn scope(config: &DriverConfig) -> Result<String> {
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+332 |   fn qualification(plan: &CompletionPlan) -> Result<Qualification> {
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+374 | / fn validate_initial(
+375 | |     plan: &CompletionPlan,
+376 | |     initial: &training::DriverCheckpoint,
+377 | |     evaluation: &Value,
+378 | | ) -> Result<()> {
+    | |_______________^
+...
+454 |   pub(super) fn validate_plan(plan: &CompletionPlan) -> Result<()> {
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+546 | / pub(super) fn require_initial(
+547 | |     driver: &PreparedDriver,
+548 | |     release: &ValidatedRelease,
+549 | |     plan: &CompletionPlan,
+550 | |     current: &CompletionCheckpoint,
+551 | | ) -> Result<()> {
+    | |_______________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#items_after_test_module
+    = note: `-D clippy::items-after-test-module` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::items_after_test_module)]`
+    = help: move the items to before the test module was defined
+
+error: manual implementation of `.is_multiple_of()`
+    --> crates/uor-r4-discrete/src/device.rs:1122:26
+     |
+1122 |         let lengths = if identities.len() % context == 0 && identities.len() / context <= 64 {
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `identities.len().is_multiple_of(context)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+     = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: derefed type is same as origin
+    --> crates/uor-r4-discrete/src/device.rs:1727:30
+     |
+1727 |         if let Some(probe) = decomposition.as_deref_mut() {
+     |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `decomposition`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_option_as_deref
+     = note: `-D clippy::needless-option-as-deref` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::needless_option_as_deref)]`
+
+error: derefed type is same as origin
+    --> crates/uor-r4-discrete/src/device.rs:1744:30
+     |
+1744 |         if let Some(probe) = reuse.as_deref_mut() {
+     |                              ^^^^^^^^^^^^^^^^^^^^ help: try: `reuse`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_option_as_deref
+
+error: the loop variable `p` is only used to index `t`
+   --> crates/uor-r4-discrete/src/decomposition.rs:511:22
+    |
+511 |             for p in 11..15 {
+    |                      ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+    = note: `-D clippy::needless-range-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+    |
+511 -             for p in 11..15 {
+511 +             for <item> in t.iter_mut().take(15).skip(11) {
+    |
+
+error: could not compile `uor-r4-discrete` (lib) due to 7 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: this operation has no effect
+   --> crates/uor-r4-discrete/src/training.rs:810:26
+    |
+810 |             next_target: (u64::MAX % 2) * 3,
+    |                          ^^^^^^^^^^^^^^^^^^ help: consider reducing it to: `3`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#identity_op
+    = note: `-D clippy::identity-op` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::identity_op)]`
+
+error: could not compile `uor-r4-discrete` (lib test) due to 10 previous errors
+2026-10-17T11:49:39Z
+Renewed codex/codex-attention-compile-gate3 on vast-56389498 until 2026-10-17T12:19:52Z
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/baseline-reuse-resources.txt: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/baseline-reuse.cubin: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/baseline-reuse.ptx: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/cuda-image-target.txt: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/decomposition-resources.txt: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/decomposition.cubin: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/decomposition.ptx: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/discrete.ptx: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/ordinary-resources.txt: OK
+./aot/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/ordinary.cubin: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/baseline-reuse-resources.txt: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/baseline-reuse.cubin: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/baseline-reuse.ptx: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/cuda-image-target.txt: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/decomposition-resources.txt: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/decomposition.cubin: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/decomposition.ptx: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/discrete.ptx: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/ordinary-resources.txt: OK
+./aot/debug/build/uor-r4-discrete-d3494254ec631571/out/ordinary.cubin: OK
+./attention-gates.sh: OK
+./attention-setup-helper.sh: OK
+./attention-setup.exit: OK
+./command.exit: OK
+./command.log: OK
+./cuda-check-setup.log: OK
+./cuda-check.exit: OK
+./cuda-check.log: OK
+./cuda-clippy.exit: OK
+./cuda-clippy.log: OK
+./jobs/20261017T114757Z-codex-attention-compile-gate3-gpu0.log: OK
+./jobs/20261017T114757Z-codex-attention-compile-gate3-gpu0.sh: OK
+./reaper-start.log: OK
+./reaper.log: OK
+./rustup-init.sh: OK
+./source-status-all.txt: OK
+./source-status-unexpected.txt: OK
+./uor-reaper.sh: OK
+operator/source-preflight-fixture.sh: OK
+operator/df-preflight.log: OK
+operator/generated-path-inventory.md: OK
+operator/runner/uor-reaper.sh: OK
+operator/runner/uor-pod-bootstrap.sh: OK
+operator/runner/uor-pod: OK
+operator/runner/uor-store: OK
+operator/runner/hot-set.txt: OK
+operator/lease.sh: OK
+operator/source-preflight-fixture.log: OK
+operator/setup-transport.log: OK
+operator/dispatch.json: OK
+operator/README.md: OK
+operator/readiness-verdict.md: OK
+operator/compute-recipe-reviewed-base.md: OK
+operator/session-ledger.jsonl: OK
+operator/fleet-before.log: OK
+operator/REVIEW-SHA256SUMS: OK
+operator/setup-helper.sh: OK
+operator/gates.sh: OK
+operator/up.log: OK
+README.md: OK
+gates.sh: OK
+setup-helper.sh: OK
+lease.sh: OK
+compute-recipe-reviewed-base.md: OK
+runner/uor-pod: OK
+runner/uor-pod-bootstrap.sh: OK
+runner/uor-reaper.sh: OK
+runner/hot-set.txt: OK
+runner/uor-store: OK
+source-preflight-fixture.sh: OK
+source-preflight-fixture.log: OK
+generated-path-inventory.md: OK
+stored attention-compile-gate3-archive (8028672 bytes, md5 45e85311190317be14e31bbe2f707af1) at icloud:UOR-R4/results/codex/attention-compile-gate3-archive.tar
+Released codex/codex-attention-compile-gate3's lease on vast-56389498. If nobody else holds it, 'uor-pod down vast-56389498 --lab codex --session codex-attention-compile-gate3' now (the reaper deletes it after 20 idle min).
+Deleted vast-56389498
+UOR-R4 shared GPU pods — rules (docs/labs/compute.md; AGENTS.md "GPU pods")
+ 1. Only this tool touches pods. Run 'uor-pod status' before any GPU work.
+ 2. Identity = --lab L --session S (or UOR_POD_SESSION). Lease the GPUs you use:
+    uor-pod lease POD --lab L --session S --gpus 0,1 --purpose ... --hours H
+    renew every <= 30 min while working; release when done. Leases auto-expire.
+ 3. Another session's GPU is never yours, even when idle: only its holder
+    (release) or expiry frees it. An EXPIRED lease may be taken over after a
+    probe shows no live job. Never touch another session's lease or KEEP_ALIVE.
+ 4. No free GPU and caps allow (<= 4 pods, <= $8.00/h, all labs and providers together):
+    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090 on
+    Vast.ai, cheapest verified datacenter host). Never fall back to the laptop CPU.
+    Caps reached and nothing free: wait for an expiry or ask the owner.
+ 5. One job per GPU: uor-pod run POD --lab L --session S --gpu K -- CMD (device=cuda).
+ 6. Durable output only on /workspace (Runpod network volume; on a Vast pod
+    'down' archives it to the laptop). No stopped pods as storage.
+ 7. Done: release, then 'uor-pod down POD' if no other session holds it.
+    Never print API keys or ~/.runpod/config.toml.
+
+Pods (caps: <= 4 running pods, <= $8.00/h; idle reap after 20 min without a live lease)
+Running: 0 pod(s) (0 counted toward the cap of 4; uor-test-* pods are not), $0/h of $8.00/h
+Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU.
+Vast offers (verified datacenter hosts, reliability > 0.98; $/GPU/h, 1 GPU):
+  5090: 3 offers, cheapest $0.977 (Czechia, CZ)
+  4090: 1 offers, cheapest $1.394 (Hungary, HU)
+COMPILE_GATE_RESULT=101 POD=vast-56389498

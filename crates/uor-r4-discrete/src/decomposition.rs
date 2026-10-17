@@ -285,8 +285,7 @@ fn number_before(line: &str, suffix: &str) -> Option<u64> {
     let before = line.split_once(suffix)?.0;
     before
         .split(|c: char| !c.is_ascii_digit())
-        .filter(|s| !s.is_empty())
-        .next_back()?
+        .rfind(|s| !s.is_empty())?
         .parse()
         .ok()
 }
@@ -508,9 +507,7 @@ mod tests {
             t[8] = 1;
             t[9] = 1;
             t[10] = 1;
-            for p in 11..15 {
-                t[p] = 1;
-            }
+            t[11..15].fill(1);
             t[15] = 10;
             t[16] = 440;
             t[17] = 10;

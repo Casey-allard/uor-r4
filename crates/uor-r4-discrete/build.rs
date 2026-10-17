@@ -329,8 +329,8 @@ fn geometry_source() -> Result<String, String> {
          pub const BRANCH: [u8; 48] = {branch:?};\n\
          pub const GENERATORS: [u8; 15] = {generators:?};\n\
          pub const IDENTITY: u8 = {identity};\n\
-         pub const FRAME_REACHABILITY: [u8; 64] = {frame_reachability:?};\n\
-         pub const ROOT_REACHABILITY: [u8; 16] = {root_reachability:?};\n\
+         // Validated frame reachability: {frame_reachability:?}\n\
+         // Validated root reachability: {root_reachability:?}\n\
          pub const OPERATOR_KAPPA: &str = {:?};\n\
          pub const COMPOSITION_KAPPA: &str = {:?};\n",
         report.operator_kappa,

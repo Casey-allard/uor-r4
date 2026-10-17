@@ -66,6 +66,30 @@ impl Spec {
 }
 pub const RELATION_EDGE_TYPES: u32 = 5;
 
+/// Initial read connectivity is a declared experiment setting. The historical
+/// zero-gate default remains unchanged; active leaves carry no target-derived
+/// information and must be matched between Relation and its frozen-zero control.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadInitialization {
+    #[default]
+    ZeroGatesV1,
+    ActiveLeafV1,
+}
+impl ReadInitialization {
+    pub fn is_zero_gates(&self) -> bool {
+        *self == Self::ZeroGatesV1
+    }
+    pub fn validate(self, read_spec: ReadSpec) -> Result<()> {
+        if self == Self::ActiveLeafV1 && read_spec == ReadSpec::Route {
+            return Err(Error::Invalid(
+                "active leaf initialization requires Flock or Relation".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Read configuration is an artifact identity, not an inference-time override.
 /// Flock's frame pairing and rank order are fixed by this schema: frame L1,
 /// coordinate Hamming, then recency/position, on caller-bounded valid prefixes.
@@ -248,7 +272,9 @@ mod tests {
             (
                 (
                     "training.rs".into(),
-                    ["let applied = model", ".", "apply", "(&proposal)?;"].concat(),
+                    // The existing sole transition now returns the guarded
+                    // apply expression; frozen relation slots bypass it.
+                    ["model", ".", "apply", "(&proposal)?"].concat(),
                 ),
                 1,
             ),

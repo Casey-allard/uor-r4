@@ -20,6 +20,13 @@
     "lab": "claude",
     "note": ""
   },
+  "codex/cf1-attention-learning": {
+    "branch": "codex/cf1-attention-learning",
+    "claimed_at": "2026-10-17T12:06:41-04:00",
+    "head": "6ca599a53",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/cf1-reuse-timing-uuid-blocker": {
     "branch": "codex/cf1-reuse-timing-uuid-blocker",
     "claimed_at": "2026-10-16T22:35:15-04:00",

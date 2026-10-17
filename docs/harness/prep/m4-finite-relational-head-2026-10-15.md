@@ -8,6 +8,37 @@
 - run: Stage M2 trained-in discriminator of `ReadSpec::Relation { kept: 8, sweeps: 1 }` vs. `ReadSpec::Route` under a symmetric interleaved coordinate schedule (`SchedulePolicy::InterleavedReadEvery8V1`, `16,404` batches) on the pinned `C192 / B4 / V4096` corpus and the frozen `3,847`-row copy-successor DEV sub-panel (strictly `HELD` behind hard gates `G1`–`G5`: Stage M1 construction `PASS` + seed-1 cursor `16,404` `Route` learning-slot observation + schedule/sub-panel controls `S1`–`S4` & `E1`–`E3` + prospective `TEST FITNESS: FIT` + explicit owner release)
 - line: starling read - count 3/3 (D21/D22 count is owned by the milestone, not this sheet; pre-registration alone moves no count)
 
+## Owner-prioritized source amendment — 17 October 2026
+
+TEST FITNESS: PENDING (prospective initialization/comparator/executor amendment; no compute release)
+
+The owner explicitly prioritized implementation of the learned attention path
+([source ownership6229960779](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6229960779)).
+The [integrated source record](../../labs/native-relation-learning-path-2026-10-17/README.md)
+implements the registered interleaver and proposes explicit `active_leaf_v1`
+initialization: +1 only on each block's leaf-combine gate, with all relation and
+other combine gates zero. The same setting and data order apply to Relation and
+its matched relation-disabled control. Default initialization and frozen
+artifacts remain unchanged. The scientific amendment still requires prospective
+PM fitness; owner source authorization does not release training/M2/Stage B.
+
+The primary control alignment in the parallel [M1 sheet PR #2574](https://github.com/UOR-Foundation/uor-r4/pull/2574)
+uses the same 45-coordinate Relation inventory with `relation_learning_policy:
+frozen_zero_v1`: relation trits remain zero, scheduled relation proposals retain
+their genuine CUDA cost observations, and those commits are explicitly refused.
+This avoids Flock's different combine proposal frequency. Flock remains a
+secondary identity comparison. This amendment proposes that matched control,
+plus same-trained-checkpoint zero-relation ablation and separately pinned fresh
+transfer. The historical Route comparison below is retained; PM must disposition
+its role, exact primary bars and complete multi-arm/evaluation cost before any
+execution packet is executable. The source executor currently supports the
+explicitly scoped treatment, frozen-zero control and secondary Flock arms; it
+does not reinterpret a Route release or select an unreviewed execution design.
+All schedule, sensitivity, target-admission and conditional-rank observables
+remain mandatory. CUDA construction controls are source only until an exact-head
+receipt demonstrates execution. Neither test functions nor an initialization
+setting establish learned attention. No historical cost estimate is a new budget.
+
 ## Bar (pre-registered)
 - bar (two-stage gate: pre-run schedule/instrument controls `S1`–`S4` & `E1`–`E3` must pass with `0` corpus updates before any training; then Stage M2 corpus discriminator criteria `B1`, `B2`, and `B3` must all pass at cursor `16,404` for a `KEEP`):
   1. **Part A — Pre-Run Schedule & Sub-Panel Instrument Controls (`S1`–`S4`, `E1`–`E3`, `D2` timing, `applied_updates: 0`):**

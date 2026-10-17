@@ -1,0 +1,183 @@
+   Compiling uor-r4-integer v0.1.0 (/workspace/uor-r4/crates/uor-r4-integer)
+   Compiling uor-r4-tokenizer v0.1.0 (/workspace/uor-r4/crates/uor-r4-tokenizer)
+   Compiling uor-r4-source-interface v0.1.0 (/workspace/uor-r4/crates/uor-r4-source-interface)
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-core v0.1.0 (/workspace/uor-r4/crates/uor-r4-core)
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/workspace/uor-r4/crates/uor-r4-discrete)
+error: constant `FRAME_REACHABILITY` is never used
+  --> /workspace/attention-compile-target/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/geometry.rs:10:11
+   |
+10 | pub const FRAME_REACHABILITY: [u8; 64] = [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64...
+   |           ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: constant `ROOT_REACHABILITY` is never used
+  --> /workspace/attention-compile-target/debug/build/uor-r4-discrete-14c6c723af7dfb3e/out/geometry.rs:11:11
+   |
+11 | pub const ROOT_REACHABILITY: [u8; 16] = [16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16];
+   |           ^^^^^^^^^^^^^^^^^
+
+error: called `filter(..).next_back()` on an `DoubleEndedIterator`. This is more succinctly expressed by calling `.rfind(..)` instead
+   --> crates/uor-r4-discrete/src/baseline_reuse.rs:225:17
+    |
+225 | /                 prefix
+226 | |                     .split(|c: char| !c.is_ascii_digit())
+227 | |                     .filter(|s| !s.is_empty())
+228 | |                     .next_back()
+    | |________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#filter_next
+    = note: `-D clippy::filter-next` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::filter_next)]`
+help: try
+    |
+225 ~                 prefix
+226 +                     .split(|c: char| !c.is_ascii_digit()).rfind(|s| !s.is_empty())
+    |
+
+error: called `filter(..).next_back()` on an `DoubleEndedIterator`. This is more succinctly expressed by calling `.rfind(..)` instead
+   --> crates/uor-r4-discrete/src/decomposition.rs:286:5
+    |
+286 | /     before
+287 | |         .split(|c: char| !c.is_ascii_digit())
+288 | |         .filter(|s| !s.is_empty())
+289 | |         .next_back()?
+    | |____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#filter_next
+help: try
+    |
+286 ~     before
+287 ~         .split(|c: char| !c.is_ascii_digit()).rfind(|s| !s.is_empty())?
+    |
+
+error: items after a test module
+   --> crates/uor-r4-discrete/src/redirect_admission.rs:66:1
+    |
+ 66 |   mod tests {
+    |   ^^^^^^^^^
+...
+320 |   pub(super) fn scope(config: &DriverConfig) -> Result<String> {
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+332 |   fn qualification(plan: &CompletionPlan) -> Result<Qualification> {
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+374 | / fn validate_initial(
+375 | |     plan: &CompletionPlan,
+376 | |     initial: &training::DriverCheckpoint,
+377 | |     evaluation: &Value,
+378 | | ) -> Result<()> {
+    | |_______________^
+...
+454 |   pub(super) fn validate_plan(plan: &CompletionPlan) -> Result<()> {
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+546 | / pub(super) fn require_initial(
+547 | |     driver: &PreparedDriver,
+548 | |     release: &ValidatedRelease,
+549 | |     plan: &CompletionPlan,
+550 | |     current: &CompletionCheckpoint,
+551 | | ) -> Result<()> {
+    | |_______________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#items_after_test_module
+    = note: `-D clippy::items-after-test-module` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::items_after_test_module)]`
+    = help: move the items to before the test module was defined
+
+error: manual implementation of `.is_multiple_of()`
+    --> crates/uor-r4-discrete/src/device.rs:1122:26
+     |
+1122 |         let lengths = if identities.len() % context == 0 && identities.len() / context <= 64 {
+     |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `identities.len().is_multiple_of(context)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+     = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: derefed type is same as origin
+    --> crates/uor-r4-discrete/src/device.rs:1727:30
+     |
+1727 |         if let Some(probe) = decomposition.as_deref_mut() {
+     |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `decomposition`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_option_as_deref
+     = note: `-D clippy::needless-option-as-deref` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::needless_option_as_deref)]`
+
+error: derefed type is same as origin
+    --> crates/uor-r4-discrete/src/device.rs:1744:30
+     |
+1744 |         if let Some(probe) = reuse.as_deref_mut() {
+     |                              ^^^^^^^^^^^^^^^^^^^^ help: try: `reuse`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_option_as_deref
+
+error: the loop variable `p` is only used to index `t`
+   --> crates/uor-r4-discrete/src/decomposition.rs:511:22
+    |
+511 |             for p in 11..15 {
+    |                      ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+    = note: `-D clippy::needless-range-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+    |
+511 -             for p in 11..15 {
+511 +             for <item> in t.iter_mut().take(15).skip(11) {
+    |
+
+error: could not compile `uor-r4-discrete` (lib) due to 7 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: this operation has no effect
+   --> crates/uor-r4-discrete/src/training.rs:810:26
+    |
+810 |             next_target: (u64::MAX % 2) * 3,
+    |                          ^^^^^^^^^^^^^^^^^^ help: consider reducing it to: `3`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#identity_op
+    = note: `-D clippy::identity-op` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::identity_op)]`
+
+error: could not compile `uor-r4-discrete` (lib test) due to 10 previous errors

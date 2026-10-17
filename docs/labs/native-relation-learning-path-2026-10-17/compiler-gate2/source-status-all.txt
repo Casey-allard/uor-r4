@@ -1,0 +1,5 @@
+?? evals/codex-attention-compile-gate2/command.log
+?? evals/codex-attention-compile-gate2/source-status-all.txt
+?? jobs/codex/20261017T105101Z-codex-attention-compile-gate2-gpu0.log
+?? jobs/codex/20261017T105101Z-codex-attention-compile-gate2-gpu0.sh
+?? pods/reaper.log

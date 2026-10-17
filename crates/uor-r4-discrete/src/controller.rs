@@ -18,6 +18,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[path = "attention_learning.rs"]
+pub mod attention_learning;
 #[path = "completion.rs"]
 pub mod completion;
 
@@ -152,6 +154,21 @@ pub fn validate_pilot_config(config: &DriverConfig) -> Result<()> {
     Ok(())
 }
 fn validate_registered_data(config: &DriverConfig) -> Result<()> {
+    validate_registered_corpus(config)?;
+    if config.read_spec != ReadSpec::Route
+        || config.schedule != training::SchedulePolicy::CanonicalVectorThenReadV1
+        || !config.read_initialization.is_zero_gates()
+        || config.relation_learning_policy != training::RelationLearningPolicy::LearnV1
+    {
+        return Err(invalid(
+            "legacy A2 release admits only canonical Route with zero-gate initialization",
+        ));
+    }
+    Ok(())
+}
+// Shared data identity only; experiment-specific read/schedule/release scopes
+// remain separate. The attention child must not inherit an A2 permission.
+fn validate_registered_corpus(config: &DriverConfig) -> Result<()> {
     config.validate()?;
     if config.spec
         != (Spec {
@@ -160,7 +177,6 @@ fn validate_registered_data(config: &DriverConfig) -> Result<()> {
             context: 192,
             kept_cells: config.spec.kept_cells,
         })
-        || config.read_spec != ReadSpec::Route
         || config.batch_rows != 64
         || config.train.expected_payload_tokens != 7_512_797
         || config.train.expected_eligible_targets != 2_425_925
@@ -807,6 +823,21 @@ mod tests {
             };
             assert!(validate_pilot_config(&wrong).is_err(), "{field}");
         }
+        Ok(())
+    }
+    #[test]
+    fn legacy_pilot_and_redirect_cannot_inherit_attention_schedule() -> Result<()> {
+        let mut c = config()?;
+        validate_pilot_config(&c)?;
+        c.schedule = training::SchedulePolicy::InterleavedReadEvery8V1;
+        assert!(validate_pilot_config(&c).is_err());
+        c.spec.kept_cells = 16;
+        assert!(validate_redirect_config(&c).is_err());
+        c.spec.kept_cells = 8;
+        c.read_spec = ReadSpec::Flock { kept: 8 };
+        c.read_initialization = crate::ReadInitialization::ActiveLeafV1;
+        c.validate()?;
+        assert!(validate_pilot_config(&c).is_err());
         Ok(())
     }
     #[test]

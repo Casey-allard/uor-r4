@@ -62,6 +62,253 @@ fn nonempty(pin: &FilePin) -> Result<()> {
     require(!pin.read()?.is_empty(), "empty evidence file")
 }
 
+pub(super) fn scope(config: &DriverConfig) -> Result<String> {
+    validate_redirect_config(config)?;
+    let arm = match config.objective_policy {
+        crate::ObjectivePolicy::NearestAddressMarginV1 => "a",
+        crate::ObjectivePolicy::OccupiedCellRankHingeV1 => "r",
+    };
+    Ok(format!(
+        "m1-admission-redirect-k16-{arm}-seed{}-checkpoint0..16404",
+        config.seed
+    ))
+}
+
+fn qualification(plan: &CompletionPlan) -> Result<Qualification> {
+    let evidence = plan
+        .redirect
+        .as_ref()
+        .ok_or_else(|| invalid("K16 qualification missing"))?;
+    let qualification: Qualification = read_pin(&evidence.qualification)?;
+    require(
+        qualification.schema == "uor-r4.redirect-qualification/1"
+            && qualification.scope == plan.scope
+            && qualification.execution == plan.execution
+            && qualification.packet_sha256 == evidence.packet.sha256,
+        "qualification scope/build/packet mismatch",
+    )?;
+    require(
+        qualification.cuda_build_exit == 0 && qualification.cuda_clippy_exit == 0,
+        "CUDA build/clippy preflight failed",
+    )?;
+    for pin in [
+        &evidence.packet,
+        &qualification.cuda_build,
+        &qualification.cuda_clippy,
+        &qualification.timing,
+    ] {
+        nonempty(pin)?;
+    }
+    require(
+        qualification.controls.len() == 6,
+        "six GPU control receipts required",
+    )?;
+    for (index, control) in qualification.controls.iter().enumerate() {
+        require(
+            control.id == format!("C-R{}", index + 1) && control.status == "PASS",
+            "GPU control missing, duplicated or failed",
+        )?;
+        nonempty(&control.receipt)?;
+    }
+    let initial: training::DriverCheckpoint = read_pin(&qualification.initial_checkpoint)?;
+    let evaluation: Value = read_pin(&qualification.initial_evaluation)?;
+    validate_initial(plan, &initial, &evaluation)?;
+    Ok(qualification)
+}
+
+fn validate_initial(
+    plan: &CompletionPlan,
+    initial: &training::DriverCheckpoint,
+    evaluation: &Value,
+) -> Result<()> {
+    require(
+        initial.schema == training::CHECKPOINT_SCHEMA
+            && initial.cursor == training::Cursor::initial()
+            && initial.lineage.config == plan.config
+            && initial.lineage.driver_source_sha256 == plan.execution.driver_source_sha256
+            && corpus::sha256(&encode(&initial.lineage)?) == plan.execution.lineage_sha256
+            && corpus::sha256(&encode(&initial.model)?) == initial.model_sha256,
+        "qualified checkpoint must be exact checkpoint zero of this lineage",
+    )?;
+    require(
+        initial.model["epoch"] == json!(0)
+            && initial.model["schema"] == json!(crate::SCHEMA)
+            && initial.model["seed"] == json!(plan.config.seed)
+            && initial.model["spec"] == json!(plan.config.spec)
+            && initial.model["read_spec"] == json!(plan.config.read_spec),
+        "initial snapshot schema/seed/spec/read/epoch mismatch",
+    )?;
+    let objective: crate::ObjectivePolicy = initial
+        .model
+        .get("objective_policy")
+        .map(|value| {
+            serde_json::from_value(value.clone()).map_err(|error| invalid(error.to_string()))
+        })
+        .transpose()?
+        .unwrap_or_default();
+    require(
+        objective == plan.config.objective_policy,
+        "snapshot objective mismatch",
+    )?;
+    for (key, expected) in [
+        ("source_sha256", &plan.execution.source_sha256),
+        ("kernel_sha256", &plan.execution.kernel_sha256),
+        ("geometry_sha256", &plan.execution.geometry_sha256),
+    ] {
+        require(
+            initial.model[key] == json!(expected),
+            "initial build mismatch",
+        )?;
+    }
+    require(
+        evaluation["schema"] == json!(training::DRIVER_SCHEMA)
+            && evaluation["evaluation_lineage"] == json!(initial.lineage)
+            && evaluation["evaluation_lineage_sha256"] == json!(plan.execution.lineage_sha256)
+            && evaluation["model_epoch"] == json!(0)
+            && evaluation["accepted_updates_in_model"] == json!(0)
+            && evaluation["updates_applied_by_evaluation"] == json!(0)
+            && evaluation["evaluation_mutates_model"] == json!(false)
+            && evaluation["objective_policy"] == json!(objective)
+            && evaluation["model_bindings"]["objective_policy"] == json!(objective),
+        "G-Pre must be zero-update evaluation of this configuration",
+    )?;
+    for key in [
+        "schema",
+        "spec",
+        "read_spec",
+        "seed",
+        "source_sha256",
+        "kernel_sha256",
+        "geometry_sha256",
+        "operator_kappa",
+        "composition_kappa",
+    ] {
+        require(
+            initial.model.get(key).is_some()
+                && evaluation["model_bindings"][key] == initial.model[key],
+            "G-Pre model binding mismatch",
+        )?;
+    }
+    let (_, admitted) = baseline_authentication::receipt_counts(evaluation)?;
+    require(
+        admitted >= 4_894,
+        "G-Pre below 4894: instrument/release blocker, not mechanism negative",
+    )
+}
+
+pub(super) fn validate_plan(plan: &CompletionPlan) -> Result<()> {
+    require(
+        plan.schema == "uor-r4.redirect-owner-release-plan/1"
+            && plan.status == "HELD_OWNER_ACTION_REQUIRED"
+            && plan.scope == scope(&plan.config)?
+            && plan.pilot_parent.is_none()
+            && plan.run_state_directory.is_absolute(),
+        "plan schema/scope/fresh initialization/state directory mismatch",
+    )?;
+    let execution = &plan.execution;
+    for digest in [
+        &execution.source_sha256,
+        &execution.kernel_sha256,
+        &execution.geometry_sha256,
+        &execution.executable_sha256,
+        &execution.driver_source_sha256,
+        &execution.config_sha256,
+        &execution.lineage_sha256,
+        &execution.sheet_sha256,
+    ] {
+        corpus::validate_sha256(digest)?;
+    }
+    require(
+        execution.base_source == "2fa663b54"
+            && execution.reviewed_source_commit.len() == 40
+            && execution
+                .reviewed_source_commit
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit())
+            && execution.driver_source_sha256 == training::driver_source_sha256()
+            && execution.config_sha256 == corpus::sha256(&encode(&plan.config)?)
+            && execution.sheet_sha256 == plan.sheet.sha256,
+        "source/config/sheet identity mismatch",
+    )?;
+    let sheet = plan.sheet.read()?;
+    let sheet = std::str::from_utf8(&sheet).map_err(|error| invalid(error.to_string()))?;
+    require(
+        sheet
+            .lines()
+            .any(|line| line.starts_with("TEST FITNESS: FIT"))
+            && sheet.contains("discrete-rung0-admission-redirect"),
+        "redirect FIT sheet missing",
+    )?;
+    let evidence = plan
+        .redirect
+        .as_ref()
+        .ok_or_else(|| invalid("redirect evidence required"))?;
+    require(
+        plan.claude_review == evidence.pm_review,
+        "review pin must be the scoped PM qualification acceptance",
+    )?;
+    let review: QualificationReview = read_pin(&evidence.pm_review)?;
+    require(
+        review.reviewer == "Kimi"
+            && review.verdict == "APPROVE_K16_REDIRECT_QUALIFIED_ADMISSION"
+            && review.scope == plan.scope
+            && review.execution == plan.execution
+            && review.qualification_sha256 == evidence.qualification.sha256
+            && review.packet_sha256 == evidence.packet.sha256
+            && valid_receipt_url(&review.receipt_url)
+            && valid_receipt_url(&review.exact_source_review),
+        "PM must accept exact-source review, completed packet and qualification for this arm/seed",
+    )?;
+    let qualification = qualification(plan)?;
+    for pin in [
+        &evidence.packet,
+        &evidence.qualification,
+        &evidence.pm_review,
+        &plan.sheet,
+        &qualification.initial_checkpoint,
+        &qualification.initial_evaluation,
+        &qualification.cuda_build,
+        &qualification.cuda_clippy,
+        &qualification.timing,
+    ]
+    .into_iter()
+    .chain(
+        qualification
+            .controls
+            .iter()
+            .map(|control| &control.receipt),
+    ) {
+        let directory = pin
+            .path
+            .parent()
+            .ok_or_else(|| invalid("evidence directory missing"))?;
+        require_disjoint_directories(&plan.run_state_directory, directory)?;
+    }
+    Ok(())
+}
+
+#[cfg(feature = "cuda")]
+pub(super) fn require_initial(
+    driver: &PreparedDriver,
+    release: &ValidatedRelease,
+    plan: &CompletionPlan,
+    current: &CompletionCheckpoint,
+) -> Result<()> {
+    let qualification = qualification(plan)?;
+    let qualified: training::DriverCheckpoint = read_pin(&qualification.initial_checkpoint)?;
+    let evaluation: Value = read_pin(&qualification.initial_evaluation)?;
+    let initial_pin: FilePin =
+        read_json(&release.manifest.run_state_directory.join("initial.json"))?;
+    let initial: CompletionCheckpoint = read_pin(&initial_pin)?;
+    validate_progress(driver, release, &initial)?;
+    require(
+        encode(&initial.checkpoint)? == encode(&qualified)?
+            && initial.baseline_evaluation == evaluation
+            && current.baseline_evaluation == evaluation,
+        "runtime initialization/evaluation differs from qualified checkpoint zero",
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -315,251 +562,4 @@ mod tests {
         assert!(!pin.path.exists());
         Ok(())
     }
-}
-
-pub(super) fn scope(config: &DriverConfig) -> Result<String> {
-    validate_redirect_config(config)?;
-    let arm = match config.objective_policy {
-        crate::ObjectivePolicy::NearestAddressMarginV1 => "a",
-        crate::ObjectivePolicy::OccupiedCellRankHingeV1 => "r",
-    };
-    Ok(format!(
-        "m1-admission-redirect-k16-{arm}-seed{}-checkpoint0..16404",
-        config.seed
-    ))
-}
-
-fn qualification(plan: &CompletionPlan) -> Result<Qualification> {
-    let evidence = plan
-        .redirect
-        .as_ref()
-        .ok_or_else(|| invalid("K16 qualification missing"))?;
-    let qualification: Qualification = read_pin(&evidence.qualification)?;
-    require(
-        qualification.schema == "uor-r4.redirect-qualification/1"
-            && qualification.scope == plan.scope
-            && qualification.execution == plan.execution
-            && qualification.packet_sha256 == evidence.packet.sha256,
-        "qualification scope/build/packet mismatch",
-    )?;
-    require(
-        qualification.cuda_build_exit == 0 && qualification.cuda_clippy_exit == 0,
-        "CUDA build/clippy preflight failed",
-    )?;
-    for pin in [
-        &evidence.packet,
-        &qualification.cuda_build,
-        &qualification.cuda_clippy,
-        &qualification.timing,
-    ] {
-        nonempty(pin)?;
-    }
-    require(
-        qualification.controls.len() == 6,
-        "six GPU control receipts required",
-    )?;
-    for (index, control) in qualification.controls.iter().enumerate() {
-        require(
-            control.id == format!("C-R{}", index + 1) && control.status == "PASS",
-            "GPU control missing, duplicated or failed",
-        )?;
-        nonempty(&control.receipt)?;
-    }
-    let initial: training::DriverCheckpoint = read_pin(&qualification.initial_checkpoint)?;
-    let evaluation: Value = read_pin(&qualification.initial_evaluation)?;
-    validate_initial(plan, &initial, &evaluation)?;
-    Ok(qualification)
-}
-
-fn validate_initial(
-    plan: &CompletionPlan,
-    initial: &training::DriverCheckpoint,
-    evaluation: &Value,
-) -> Result<()> {
-    require(
-        initial.schema == training::CHECKPOINT_SCHEMA
-            && initial.cursor == training::Cursor::initial()
-            && initial.lineage.config == plan.config
-            && initial.lineage.driver_source_sha256 == plan.execution.driver_source_sha256
-            && corpus::sha256(&encode(&initial.lineage)?) == plan.execution.lineage_sha256
-            && corpus::sha256(&encode(&initial.model)?) == initial.model_sha256,
-        "qualified checkpoint must be exact checkpoint zero of this lineage",
-    )?;
-    require(
-        initial.model["epoch"] == json!(0)
-            && initial.model["schema"] == json!(crate::SCHEMA)
-            && initial.model["seed"] == json!(plan.config.seed)
-            && initial.model["spec"] == json!(plan.config.spec)
-            && initial.model["read_spec"] == json!(plan.config.read_spec),
-        "initial snapshot schema/seed/spec/read/epoch mismatch",
-    )?;
-    let objective: crate::ObjectivePolicy = initial
-        .model
-        .get("objective_policy")
-        .map(|value| {
-            serde_json::from_value(value.clone()).map_err(|error| invalid(error.to_string()))
-        })
-        .transpose()?
-        .unwrap_or_default();
-    require(
-        objective == plan.config.objective_policy,
-        "snapshot objective mismatch",
-    )?;
-    for (key, expected) in [
-        ("source_sha256", &plan.execution.source_sha256),
-        ("kernel_sha256", &plan.execution.kernel_sha256),
-        ("geometry_sha256", &plan.execution.geometry_sha256),
-    ] {
-        require(
-            initial.model[key] == json!(expected),
-            "initial build mismatch",
-        )?;
-    }
-    require(
-        evaluation["schema"] == json!(training::DRIVER_SCHEMA)
-            && evaluation["evaluation_lineage"] == json!(initial.lineage)
-            && evaluation["evaluation_lineage_sha256"] == json!(plan.execution.lineage_sha256)
-            && evaluation["model_epoch"] == json!(0)
-            && evaluation["accepted_updates_in_model"] == json!(0)
-            && evaluation["updates_applied_by_evaluation"] == json!(0)
-            && evaluation["evaluation_mutates_model"] == json!(false)
-            && evaluation["objective_policy"] == json!(objective)
-            && evaluation["model_bindings"]["objective_policy"] == json!(objective),
-        "G-Pre must be zero-update evaluation of this configuration",
-    )?;
-    for key in [
-        "schema",
-        "spec",
-        "read_spec",
-        "seed",
-        "source_sha256",
-        "kernel_sha256",
-        "geometry_sha256",
-        "operator_kappa",
-        "composition_kappa",
-    ] {
-        require(
-            initial.model.get(key).is_some()
-                && evaluation["model_bindings"][key] == initial.model[key],
-            "G-Pre model binding mismatch",
-        )?;
-    }
-    let (_, admitted) = baseline_authentication::receipt_counts(evaluation)?;
-    require(
-        admitted >= 4_894,
-        "G-Pre below 4894: instrument/release blocker, not mechanism negative",
-    )
-}
-
-pub(super) fn validate_plan(plan: &CompletionPlan) -> Result<()> {
-    require(
-        plan.schema == "uor-r4.redirect-owner-release-plan/1"
-            && plan.status == "HELD_OWNER_ACTION_REQUIRED"
-            && plan.scope == scope(&plan.config)?
-            && plan.pilot_parent.is_none()
-            && plan.run_state_directory.is_absolute(),
-        "plan schema/scope/fresh initialization/state directory mismatch",
-    )?;
-    let execution = &plan.execution;
-    for digest in [
-        &execution.source_sha256,
-        &execution.kernel_sha256,
-        &execution.geometry_sha256,
-        &execution.executable_sha256,
-        &execution.driver_source_sha256,
-        &execution.config_sha256,
-        &execution.lineage_sha256,
-        &execution.sheet_sha256,
-    ] {
-        corpus::validate_sha256(digest)?;
-    }
-    require(
-        execution.base_source == "2fa663b54"
-            && execution.reviewed_source_commit.len() == 40
-            && execution
-                .reviewed_source_commit
-                .bytes()
-                .all(|byte| byte.is_ascii_hexdigit())
-            && execution.driver_source_sha256 == training::driver_source_sha256()
-            && execution.config_sha256 == corpus::sha256(&encode(&plan.config)?)
-            && execution.sheet_sha256 == plan.sheet.sha256,
-        "source/config/sheet identity mismatch",
-    )?;
-    let sheet = plan.sheet.read()?;
-    let sheet = std::str::from_utf8(&sheet).map_err(|error| invalid(error.to_string()))?;
-    require(
-        sheet
-            .lines()
-            .any(|line| line.starts_with("TEST FITNESS: FIT"))
-            && sheet.contains("discrete-rung0-admission-redirect"),
-        "redirect FIT sheet missing",
-    )?;
-    let evidence = plan
-        .redirect
-        .as_ref()
-        .ok_or_else(|| invalid("redirect evidence required"))?;
-    require(
-        plan.claude_review == evidence.pm_review,
-        "review pin must be the scoped PM qualification acceptance",
-    )?;
-    let review: QualificationReview = read_pin(&evidence.pm_review)?;
-    require(
-        review.reviewer == "Kimi"
-            && review.verdict == "APPROVE_K16_REDIRECT_QUALIFIED_ADMISSION"
-            && review.scope == plan.scope
-            && review.execution == plan.execution
-            && review.qualification_sha256 == evidence.qualification.sha256
-            && review.packet_sha256 == evidence.packet.sha256
-            && valid_receipt_url(&review.receipt_url)
-            && valid_receipt_url(&review.exact_source_review),
-        "PM must accept exact-source review, completed packet and qualification for this arm/seed",
-    )?;
-    let qualification = qualification(plan)?;
-    for pin in [
-        &evidence.packet,
-        &evidence.qualification,
-        &evidence.pm_review,
-        &plan.sheet,
-        &qualification.initial_checkpoint,
-        &qualification.initial_evaluation,
-        &qualification.cuda_build,
-        &qualification.cuda_clippy,
-        &qualification.timing,
-    ]
-    .into_iter()
-    .chain(
-        qualification
-            .controls
-            .iter()
-            .map(|control| &control.receipt),
-    ) {
-        let directory = pin
-            .path
-            .parent()
-            .ok_or_else(|| invalid("evidence directory missing"))?;
-        require_disjoint_directories(&plan.run_state_directory, directory)?;
-    }
-    Ok(())
-}
-
-#[cfg(feature = "cuda")]
-pub(super) fn require_initial(
-    driver: &PreparedDriver,
-    release: &ValidatedRelease,
-    plan: &CompletionPlan,
-    current: &CompletionCheckpoint,
-) -> Result<()> {
-    let qualification = qualification(plan)?;
-    let qualified: training::DriverCheckpoint = read_pin(&qualification.initial_checkpoint)?;
-    let evaluation: Value = read_pin(&qualification.initial_evaluation)?;
-    let initial_pin: FilePin =
-        read_json(&release.manifest.run_state_directory.join("initial.json"))?;
-    let initial: CompletionCheckpoint = read_pin(&initial_pin)?;
-    validate_progress(driver, release, &initial)?;
-    require(
-        encode(&initial.checkpoint)? == encode(&qualified)?
-            && initial.baseline_evaluation == evaluation
-            && current.baseline_evaluation == evaluation,
-        "runtime initialization/evaluation differs from qualified checkpoint zero",
-    )
 }

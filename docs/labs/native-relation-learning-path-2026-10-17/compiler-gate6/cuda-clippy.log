@@ -1,0 +1,84 @@
+   Compiling uor-r4-integer v0.1.0 (/workspace/uor-r4/crates/uor-r4-integer)
+   Compiling uor-r4-tokenizer v0.1.0 (/workspace/uor-r4/crates/uor-r4-tokenizer)
+   Compiling uor-r4-source-interface v0.1.0 (/workspace/uor-r4/crates/uor-r4-source-interface)
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling uor-r4-core v0.1.0 (/workspace/uor-r4/crates/uor-r4-core)
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+   Compiling uor-r4-discrete v0.1.0 (/workspace/uor-r4/crates/uor-r4-discrete)
+error: manual implementation of `.is_multiple_of()`
+   --> crates/uor-r4-discrete/src/bin/../prime_zeta.rs:119:16
+    |
+119 |             if candidate % p == 0 {
+    |                ^^^^^^^^^^^^^^^^^^ help: replace with: `candidate.is_multiple_of(p)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_is_multiple_of
+    = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: the loop variable `r` is used to index `scores`
+   --> crates/uor-r4-discrete/src/bin/../prime_zeta.rs:349:22
+    |
+349 |             for r in 0..16 {
+    |                      ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+    = note: `-D clippy::needless-range-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+    |
+349 -             for r in 0..16 {
+349 +             for (r, <item>) in scores.iter_mut().enumerate() {
+    |
+
+error: the loop variable `b` is only used to index `token_alignments`
+   --> crates/uor-r4-discrete/src/bin/../prime_zeta.rs:382:18
+    |
+382 |         for b in 1..blocks.saturating_sub(1) {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#needless_range_loop
+help: consider using an iterator
+    |
+382 -         for b in 1..blocks.saturating_sub(1) {
+382 +         for <item> in token_alignments.iter().take(blocks.saturating_sub(1)).skip(1) {
+    |
+
+error: could not compile `uor-r4-discrete` (bin "prime-zeta-qualify" test) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `uor-r4-discrete` (bin "prime-zeta-qualify") due to 3 previous errors

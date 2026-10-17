@@ -1,0 +1,6 @@
+57f9a805f599578160aa0361f38094119a3890cbbdca8158f53e6858792bce7f  crates/uor-r4-discrete/build.rs
+56f39dfc252b5deee794d77ee06a8154d1dca835631d1c17811b8c1eef06ad73  crates/uor-r4-discrete/src/device.rs
+4c254bfd93ce757d6f4520c325441b1b2ae62e7278f7b6572c4ef3cbdccc4db4  crates/uor-r4-discrete/src/baseline_reuse.rs
+f1f2f7f093e328158075f246179a47128727e054523e6faecd38a061d9a63e60  crates/uor-r4-discrete/src/decomposition.rs
+fe09c6803567c8ac1b27f25aaeea5f4dab9597af8c157b32059c356b70da2d7e  crates/uor-r4-discrete/src/training.rs
+c2ab74ad4ee58447c7ce16b9528e420568ee03b107fdf519b6fb308d06778436  crates/uor-r4-discrete/src/redirect_admission.rs

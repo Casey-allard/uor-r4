@@ -116,7 +116,7 @@ pub fn first_n_primes(count: usize) -> Result<Vec<u32>> {
             if p * p > candidate {
                 break;
             }
-            if candidate % p == 0 {
+            if candidate.is_multiple_of(p) {
                 is_prime = false;
                 break;
             }
@@ -346,8 +346,8 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
             // Integer boundary crossed: all subsequent computations are exact integer operations.
             let q_b = embed_s3_pair_into_e8_planes(left_s3, right_s3);
             let mut scores = [0i64; 16];
-            for r in 0..16 {
-                scores[r] = exact_root_alignment(&q_b, r);
+            for (r, score) in scores.iter_mut().enumerate() {
+                *score = exact_root_alignment(&q_b, r);
             }
             token_alignments.push(scores);
         }
@@ -379,14 +379,18 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
 
         // Pre-sort the 16 roots for each interior block b in 1..blocks-1.
         let mut interior_sorted: Vec<[u8; 16]> = Vec::with_capacity(blocks.saturating_sub(2));
-        for b in 1..blocks.saturating_sub(1) {
+        for alignment in token_alignments
+            .iter()
+            .take(blocks.saturating_sub(1))
+            .skip(1)
+        {
             let mut order = [0u8; 16];
             for (idx, slot) in order.iter_mut().enumerate() {
                 *slot = idx as u8;
             }
             order.sort_by(|&ra, &rb| {
-                token_alignments[b][usize::from(rb)]
-                    .cmp(&token_alignments[b][usize::from(ra)])
+                alignment[usize::from(rb)]
+                    .cmp(&alignment[usize::from(ra)])
                     .then_with(|| ra.cmp(&rb))
             });
             interior_sorted.push(order);
