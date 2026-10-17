@@ -104,6 +104,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-verify-series": {
+    "branch": "deepseek/object-store-verify-series",
+    "claimed_at": "2026-10-17T15:51:00-04:00",
+    "head": "bf05fbdad",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/r-queue": {
     "branch": "deepseek/r-queue",
     "claimed_at": "2026-10-15T19:08:15-04:00",

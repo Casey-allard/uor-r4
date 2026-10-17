@@ -114,7 +114,7 @@ fn main() {
     let mut expect_sha: Option<[u8; 32]> = None;
     let mut expect_version: Option<[u8; 32]> = None;
     let mut expect_bytes: Option<u64> = None;
-    let mut select_sha: Option<[u8; 32]> = None;
+    let mut select_shas: Vec<[u8; 32]> = Vec::new();
     let mut i = 2usize;
     while i < args.len() {
         let key = args[i].clone();
@@ -141,7 +141,7 @@ fn main() {
             "--expect-bytes" => {
                 expect_bytes = Some(value.parse().unwrap_or_else(|_| die("bad --expect-bytes")))
             }
-            "--select-sha256" => select_sha = Some(hex32(&value)),
+            "--select-sha256" => select_shas.push(hex32(&value)),
             "--sessions" => sessions = value.parse().unwrap_or_else(|_| die("bad --sessions")),
             other => die(&format!("unknown argument {}", other)),
         }
@@ -258,14 +258,60 @@ fn main() {
                         whole_sha256: expect_sha,
                     })
                 };
-            let stats = peer::verify(&store, expected, select_sha, &mut reader, &mut writer)
+            let mut requests = Vec::new();
+            if select_shas.is_empty() {
+                requests.push(peer::VerifyRequest {
+                    expected,
+                    selector: None,
+                });
+            } else {
+                for selector in &select_shas {
+                    requests.push(peer::VerifyRequest {
+                        expected,
+                        selector: Some(*selector),
+                    });
+                }
+            }
+            let outcomes = peer::verify_series(&store, &requests, &mut reader, &mut writer)
                 .unwrap_or_else(|e| die(&format!("verify: {:?}", e)));
             let wire_bytes = reader.bytes + writer.bytes;
+            let mut verified = 0usize;
+            let mut stale = 0usize;
+            let mut unknown = 0usize;
+            let mut mismatch = 0usize;
+            for (index, outcome) in outcomes.iter().enumerate() {
+                match outcome {
+                    peer::VerifyOutcome::Verified { missing } => {
+                        verified += 1;
+                        println!("VERIFY i={} missing={} verified=true", index, missing);
+                    }
+                    peer::VerifyOutcome::Stale { missing } => {
+                        stale += 1;
+                        println!("VERIFY i={} missing={} verified=false", index, missing);
+                    }
+                    peer::VerifyOutcome::Unknown => {
+                        unknown += 1;
+                        eprintln!("VERIFY i={} UnknownObject", index);
+                    }
+                    peer::VerifyOutcome::Mismatch => {
+                        mismatch += 1;
+                        eprintln!("VERIFY i={} BindingMismatch", index);
+                    }
+                }
+            }
             println!(
-                "VERIFY missing={} verified={} wire_bytes={}",
-                stats.missing, stats.verified, wire_bytes
+                "VERIFY_SERIES checks={} verified={} stale={} unknown={} mismatch={} wire_bytes={}",
+                outcomes.len(),
+                verified,
+                stale,
+                unknown,
+                mismatch,
+                wire_bytes
             );
-            if !stats.verified {
+            if unknown > 0 {
+                std::process::exit(2);
+            }
+            if stale > 0 || mismatch > 0 {
                 std::process::exit(3);
             }
         }
@@ -301,9 +347,14 @@ fn main() {
                         whole_sha256: expect_sha,
                     })
                 };
-            let (manifest, stats) =
-                peer::pull_selected(&mut store, expected, select_sha, &mut reader, &mut writer)
-                    .unwrap_or_else(|e| die(&format!("pull: {:?}", e)));
+            let (manifest, stats) = peer::pull_selected(
+                &mut store,
+                expected,
+                select_shas.first().copied(),
+                &mut reader,
+                &mut writer,
+            )
+            .unwrap_or_else(|e| die(&format!("pull: {:?}", e)));
             let wire_bytes = reader.bytes + writer.bytes;
             save_store(&store, &store_path);
             let verified = store

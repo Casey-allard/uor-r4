@@ -323,3 +323,64 @@ fn packaged_cli_verify_reports_a_stale_store() {
     let mut rest = String::new();
     reader.read_to_string(&mut rest).ok();
 }
+
+#[test]
+fn packaged_cli_batch_verify_uses_one_session() {
+    let dir = tmp_dir("batch");
+    let first = dir.join("first.bin");
+    let second = dir.join("second.bin");
+    let third = dir.join("third.bin");
+    std::fs::write(&first, atoms(64, 31)).unwrap();
+    std::fs::write(&second, atoms(64, 32)).unwrap();
+    std::fs::write(&third, atoms(64, 33)).unwrap();
+    let (mut server, mut reader, addr, lines) =
+        spawn_serve_many(&dir.join("server.store"), &[&first, &second, &third], 1);
+    assert_eq!(lines.len(), 3);
+    let shas: Vec<String> = lines
+        .iter()
+        .map(|line| {
+            line.split("sha256=")
+                .nth(1)
+                .unwrap()
+                .split_whitespace()
+                .next()
+                .unwrap()
+                .to_string()
+        })
+        .collect();
+    let client = dir.join("client.store");
+    for object in [&first, &second] {
+        let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+            .args(["info", "--store"])
+            .arg(&client)
+            .arg("--object")
+            .arg(object)
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+    }
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("verify")
+        .arg("--store")
+        .arg(&client)
+        .arg("--addr")
+        .arg(&addr)
+        .args(["--select-sha256", &shas[0]])
+        .args(["--select-sha256", &shas[1]])
+        .args(["--select-sha256", &shas[2]])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert_eq!(
+        out.status.code(),
+        Some(3),
+        "batch stale must exit 3: {}",
+        stdout
+    );
+    assert!(stdout.contains("VERIFY i=0") && stdout.contains("verified=true"));
+    assert!(stdout.contains("VERIFY i=2") && stdout.contains("verified=false"));
+    assert!(stdout.contains("VERIFY_SERIES checks=3 verified=2 stale=1"));
+    let _ = server.wait();
+    let mut rest = String::new();
+    reader.read_to_string(&mut rest).ok();
+}

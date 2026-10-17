@@ -4,7 +4,7 @@ use std::net::{TcpListener, TcpStream};
 use std::thread;
 
 use uor_r4_object_store::peer::{self, ExpectedObject};
-use uor_r4_object_store::{Error, Limits, Manifest, Store};
+use uor_r4_object_store::{Error, Limits, Manifest, Store, VerifyOutcome, VerifyRequest};
 
 fn limits() -> Limits {
     Limits {
@@ -414,4 +414,50 @@ fn verify_reports_a_stale_store_without_fetching() {
     drop(reader);
     drop(writer);
     server.join().ok();
+}
+
+#[test]
+fn verify_series_checks_several_objects_on_one_session() {
+    let first = atoms(256, 31);
+    let second = atoms(256, 32);
+    let mut sender = Store::new(limits());
+    let first_manifest = sender.fold(&first).expect("fold first").manifest;
+    let second_manifest = sender.fold(&second).expect("fold second").manifest;
+    let mut receiver = Store::new(limits());
+    receiver.fold(&first).expect("fold first client");
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let addr = listener.local_addr().expect("addr");
+    let manifests = [first_manifest.clone(), second_manifest.clone()];
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().expect("accept");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        peer::serve_many(&sender, &manifests, &mut reader, &mut writer).expect("serve many");
+    });
+    let stream = TcpStream::connect(addr).expect("connect");
+    let mut reader = stream.try_clone().expect("clone");
+    let mut writer = stream;
+    let requests = [
+        VerifyRequest {
+            expected: None,
+            selector: Some(first_manifest.whole_sha256()),
+        },
+        VerifyRequest {
+            expected: None,
+            selector: Some(second_manifest.whole_sha256()),
+        },
+        VerifyRequest {
+            expected: None,
+            selector: Some([9u8; 32]),
+        },
+    ];
+    let outcomes =
+        peer::verify_series(&receiver, &requests, &mut reader, &mut writer).expect("series");
+    assert_eq!(outcomes.len(), 3);
+    assert_eq!(outcomes[0], VerifyOutcome::Verified { missing: 0 });
+    assert!(matches!(outcomes[1], VerifyOutcome::Stale { missing } if missing > 0));
+    assert_eq!(outcomes[2], VerifyOutcome::Unknown);
+    drop(reader);
+    drop(writer);
+    server.join().expect("server");
 }

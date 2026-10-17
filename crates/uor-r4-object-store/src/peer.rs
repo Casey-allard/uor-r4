@@ -33,6 +33,22 @@ const ERROR: u8 = 25;
 const MAX_MESSAGE: usize = 64 * 1024 * 1024;
 const DESIRED_BATCH: usize = 4096;
 
+/// The result of one verify check in a batched series.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VerifyOutcome {
+    Verified { missing: usize },
+    Stale { missing: usize },
+    Unknown,
+    Mismatch,
+}
+
+/// One requested check for verify_series.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct VerifyRequest {
+    pub expected: Option<ExpectedObject>,
+    pub selector: Option<[u8; 32]>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct VerifyStats {
     pub missing: usize,
@@ -243,7 +259,8 @@ pub fn serve_many<R: Read, W: Write>(
                 };
                 let Some(index) = selected else {
                     write_msg(writer, ERROR, b"unknown object")?;
-                    return Err(Error::UnknownObject);
+                    current = None;
+                    continue;
                 };
                 current = Some(index);
                 write_msg(writer, MANIFEST, &manifests[index].encode())?;
@@ -446,6 +463,52 @@ pub fn verify<R: Read, W: Write>(
         missing: missing.len(),
         verified: missing.is_empty(),
     })
+}
+
+/// Check several objects on one session. The connection stays open between checks; a DONE is sent once
+/// after the last request, and an unknown selector no longer terminates the session. Per-check outcomes
+/// report verified, stale (missing closure nodes), unknown selector or pin mismatch.
+pub fn verify_series<R: Read, W: Write>(
+    store: &Store,
+    requests: &[VerifyRequest],
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<Vec<VerifyOutcome>> {
+    let limits = store.limits().clone();
+    let mut outcomes = Vec::with_capacity(requests.len());
+    for request in requests {
+        let body = request
+            .selector
+            .map(|value| value.to_vec())
+            .unwrap_or_default();
+        write_msg(writer, MANIFEST_REQUEST, &body)?;
+        let (kind, message) = read_msg(reader, &limits)?;
+        if kind == ERROR {
+            outcomes.push(VerifyOutcome::Unknown);
+            continue;
+        }
+        if kind != MANIFEST {
+            return Err(Error::SchemaMismatch);
+        }
+        let manifest = Manifest::decode(&message, &limits)?;
+        if let Some(expected) = request.expected {
+            if !expected.matches(&manifest) {
+                outcomes.push(VerifyOutcome::Mismatch);
+                continue;
+            }
+        }
+        let fetched = BTreeMap::new();
+        let missing = missing_nodes(store, &manifest, &fetched)?;
+        outcomes.push(if missing.is_empty() {
+            VerifyOutcome::Verified { missing: 0 }
+        } else {
+            VerifyOutcome::Stale {
+                missing: missing.len(),
+            }
+        });
+    }
+    write_msg(writer, DONE, &[])?;
+    Ok(outcomes)
 }
 
 fn missing_nodes(

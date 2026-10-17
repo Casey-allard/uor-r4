@@ -9,7 +9,10 @@ pub mod peer;
 mod record;
 mod store;
 pub use manifest::Manifest;
-pub use peer::{pull_selected, serve_many, verify, ExpectedObject, PullStats, VerifyStats};
+pub use peer::{
+    pull_selected, serve_many, verify, verify_series, ExpectedObject, PullStats, VerifyOutcome,
+    VerifyRequest, VerifyStats,
+};
 pub use record::Record;
 use std::fmt;
 pub use store::{
