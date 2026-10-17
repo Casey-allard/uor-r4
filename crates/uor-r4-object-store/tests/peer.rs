@@ -316,3 +316,75 @@ fn whole_sha256_pin_accepts_the_right_object_and_rejects_another() {
     drop(reader);
     server.join().ok();
 }
+
+#[test]
+fn multi_object_serve_selects_by_sha_and_rejects_unknown() {
+    let first = atoms(256, 11);
+    let second = atoms(256, 12);
+    let mut sender = Store::new(limits());
+    let first_manifest = sender.fold(&first).expect("fold first").manifest;
+    let second_manifest = sender.fold(&second).expect("fold second").manifest;
+    let mut receiver = Store::new(limits());
+    receiver.fold(&first).expect("fold first client");
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let addr = listener.local_addr().expect("addr");
+    let manifests = [first_manifest.clone(), second_manifest.clone()];
+    std::thread::scope(|scope| {
+        let manifests_ref = &manifests;
+        scope.spawn(move || {
+            for _ in 0..3 {
+                let (stream, _) = listener.accept().expect("accept");
+                let mut reader = stream.try_clone().expect("clone");
+                let mut writer = stream;
+                let _ = peer::serve_many(&sender, manifests_ref, &mut reader, &mut writer);
+            }
+        });
+        // Session 1: the store already has the first object.
+        let stream = TcpStream::connect(addr).expect("connect");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        let stats = peer::verify(
+            &receiver,
+            None,
+            Some(first_manifest.whole_sha256()),
+            &mut reader,
+            &mut writer,
+        )
+        .expect("verify present");
+        assert_eq!(stats.missing, 0);
+        assert!(stats.verified);
+        drop(reader);
+        drop(writer);
+
+        // Session 2: select the second object and pull it.
+        let expected = ExpectedObject::from_sha256(second_manifest.whole_sha256())
+            .with_bytes(second.len() as u64);
+        let stream = TcpStream::connect(addr).expect("connect");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        let (pulled, _stats) = peer::pull_selected(
+            &mut receiver,
+            Some(expected),
+            Some(second_manifest.whole_sha256()),
+            &mut reader,
+            &mut writer,
+        )
+        .expect("selected pull");
+        assert_eq!(pulled.whole_sha256(), second_manifest.whole_sha256());
+        assert_eq!(
+            receiver.rebuild(&pulled).expect("rebuild").bytes(),
+            &second[..]
+        );
+        drop(reader);
+        drop(writer);
+
+        // Session 3: an unknown selector must fail without importing anything.
+        let stream = TcpStream::connect(addr).expect("connect");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        let result = peer::verify(&receiver, None, Some([9u8; 32]), &mut reader, &mut writer);
+        assert!(matches!(result, Err(Error::UnknownObject)));
+        drop(reader);
+        drop(writer);
+    });
+}

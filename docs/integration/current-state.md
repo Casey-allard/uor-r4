@@ -1,3 +1,14 @@
+## 2026-10-17 — Fleet verify and multi-object manifest selection (deepseek/object-store-fleet)
+
+The [fleet record](../labs/object-store-fleet-2026-10-17/README.md) adds a backward-compatible 32-byte
+manifest selector to MANIFEST_REQUEST: a store can serve many objects (repeated --object), clients can
+pull or verify a selected object by whole SHA-256 or manifest version, an unknown selector returns
+Error::UnknownObject, and fetch scoping stays per object. peer::verify reports missing/verified without
+fetching or rebuilding, giving a roughly 200-byte fleet current-check; the CLI exposes repeated --object,
+--select-sha256 and a verify command. Peer 10/10, CLI 4/4, controls 10/10, showcase 5/5; Clippy -D
+warnings and fmt clean. No model compute; training/M2/Stage B HELD. **Next:** protected delivery, then a
+measured fleet-verification benchmark versus full pulls.
+
 ## 2026-10-17 — Trusted object pins in the peer API and CLI (deepseek/object-store-object-pin)
 
 The [pin record](../labs/object-store-object-pin-2026-10-17/README.md) turns the audited trusted anchor

@@ -104,7 +104,7 @@ fn main() {
         die("usage: objpeer info|serve|pull [--store S] [--object F] [--have F] [--bind A] [--addr A] [--out F]");
     }
     let mut store_path = String::from("objpeer.store");
-    let mut object = String::new();
+    let mut objects: Vec<String> = Vec::new();
     let mut have = String::new();
     let mut bind = String::from("127.0.0.1:0");
     let mut addr = String::new();
@@ -114,6 +114,7 @@ fn main() {
     let mut expect_sha: Option<[u8; 32]> = None;
     let mut expect_version: Option<[u8; 32]> = None;
     let mut expect_bytes: Option<u64> = None;
+    let mut select_sha: Option<[u8; 32]> = None;
     let mut i = 2usize;
     while i < args.len() {
         let key = args[i].clone();
@@ -130,7 +131,7 @@ fn main() {
         i += 1;
         match key.as_str() {
             "--store" => store_path = value,
-            "--object" => object = value,
+            "--object" => objects.push(value),
             "--have" => have = value,
             "--bind" => bind = value,
             "--addr" => addr = value,
@@ -140,15 +141,17 @@ fn main() {
             "--expect-bytes" => {
                 expect_bytes = Some(value.parse().unwrap_or_else(|_| die("bad --expect-bytes")))
             }
+            "--select-sha256" => select_sha = Some(hex32(&value)),
             "--sessions" => sessions = value.parse().unwrap_or_else(|_| die("bad --sessions")),
             other => die(&format!("unknown argument {}", other)),
         }
     }
     match args[1].as_str() {
         "info" => {
-            if object.is_empty() {
-                die("info requires --object");
-            }
+            let object = objects
+                .first()
+                .cloned()
+                .unwrap_or_else(|| die("info requires --object"));
             let mut store = load_store(&store_path);
             let manifest = fold_file(&mut store, &object);
             save_store(&store, &store_path);
@@ -161,23 +164,32 @@ fn main() {
             );
         }
         "serve" => {
-            if object.is_empty() {
-                die("serve requires --object");
+            if objects.is_empty() {
+                die("serve requires at least one --object");
             }
             let mut store = load_store(&store_path);
-            let manifest = fold_file(&mut store, &object);
+            let mut manifests = Vec::new();
+            for path in &objects {
+                manifests.push(fold_file(&mut store, path));
+            }
             save_store(&store, &store_path);
             let listener =
                 TcpListener::bind(&bind).unwrap_or_else(|e| die(&format!("bind {}: {}", bind, e)));
             println!(
-                "READY {} object_bytes={} roots={} records={} sha256={} manifest_version={}",
+                "READY {} objects={} records={}",
                 listener.local_addr().unwrap(),
-                manifest.byte_len(),
-                manifest.roots().len(),
-                store.record_count(),
-                hex(&manifest.whole_sha256()),
-                hex(&manifest.version())
+                manifests.len(),
+                store.record_count()
             );
+            for manifest in &manifests {
+                println!(
+                    "OBJECT object_bytes={} roots={} sha256={} manifest_version={}",
+                    manifest.byte_len(),
+                    manifest.roots().len(),
+                    hex(&manifest.whole_sha256()),
+                    hex(&manifest.version())
+                );
+            }
             if concurrent {
                 thread::scope(|scope| {
                     for _ in 0..sessions {
@@ -185,14 +197,14 @@ fn main() {
                             .accept()
                             .unwrap_or_else(|e| die(&format!("accept: {}", e)));
                         let store_ref = &store;
-                        let manifest_ref = &manifest;
+                        let manifests_ref = &manifests;
                         scope.spawn(move || {
                             let mut reader = stream
                                 .try_clone()
                                 .unwrap_or_else(|e| die(&format!("clone: {}", e)));
                             let mut writer = stream;
                             if let Err(error) =
-                                peer::serve(store_ref, manifest_ref, &mut reader, &mut writer)
+                                peer::serve_many(store_ref, manifests_ref, &mut reader, &mut writer)
                             {
                                 eprintln!("session error: {:?}", error);
                             }
@@ -209,10 +221,52 @@ fn main() {
                         .try_clone()
                         .unwrap_or_else(|e| die(&format!("clone: {}", e)));
                     let mut writer = stream;
-                    peer::serve(&store, &manifest, &mut reader, &mut writer)
+                    peer::serve_many(&store, &manifests, &mut reader, &mut writer)
                         .unwrap_or_else(|e| die(&format!("serve session: {:?}", e)));
                     println!("SERVED");
                 }
+            }
+        }
+        "verify" => {
+            if addr.is_empty() {
+                die("verify requires --addr");
+            }
+            let mut store = load_store(&store_path);
+            if !have.is_empty() {
+                fold_file(&mut store, &have);
+            }
+            let stream = TcpStream::connect(&addr)
+                .unwrap_or_else(|e| die(&format!("connect {}: {}", addr, e)));
+            let reader_stream = stream
+                .try_clone()
+                .unwrap_or_else(|e| die(&format!("clone: {}", e)));
+            let mut reader = Counted {
+                inner: reader_stream,
+                bytes: 0,
+            };
+            let mut writer = Counted {
+                inner: stream,
+                bytes: 0,
+            };
+            let expected =
+                if expect_sha.is_none() && expect_version.is_none() && expect_bytes.is_none() {
+                    None
+                } else {
+                    Some(ExpectedObject {
+                        bytes: expect_bytes,
+                        version: expect_version,
+                        whole_sha256: expect_sha,
+                    })
+                };
+            let stats = peer::verify(&store, expected, select_sha, &mut reader, &mut writer)
+                .unwrap_or_else(|e| die(&format!("verify: {:?}", e)));
+            let wire_bytes = reader.bytes + writer.bytes;
+            println!(
+                "VERIFY missing={} verified={} wire_bytes={}",
+                stats.missing, stats.verified, wire_bytes
+            );
+            if !stats.verified {
+                std::process::exit(3);
             }
         }
         "pull" => {
@@ -248,7 +302,7 @@ fn main() {
                     })
                 };
             let (manifest, stats) =
-                peer::pull_expected(&mut store, expected, &mut reader, &mut writer)
+                peer::pull_selected(&mut store, expected, select_sha, &mut reader, &mut writer)
                     .unwrap_or_else(|e| die(&format!("pull: {:?}", e)));
             let wire_bytes = reader.bytes + writer.bytes;
             save_store(&store, &store_path);

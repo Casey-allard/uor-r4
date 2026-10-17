@@ -25,8 +25,15 @@ const MANIFEST: u8 = 21;
 const FETCH: u8 = 22;
 const NODES: u8 = 23;
 const DONE: u8 = 24;
+const ERROR: u8 = 25;
 const MAX_MESSAGE: usize = 64 * 1024 * 1024;
 const DESIRED_BATCH: usize = 4096;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct VerifyStats {
+    pub missing: usize,
+    pub verified: bool,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PullStats {
@@ -180,8 +187,28 @@ pub fn serve<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
 ) -> Result<()> {
+    serve_many(store, std::slice::from_ref(manifest), reader, writer)
+}
+
+/// Serve one peer session when the store holds several objects. The manifest request body selects an
+/// object by its whole-object SHA-256 or its manifest version (32 bytes); an empty body selects the
+/// first object. An unknown selector terminates the session with Error::UnknownObject. Fetch scoping
+/// is per selected object, so a session can only read that object's closure.
+pub fn serve_many<R: Read, W: Write>(
+    store: &Store,
+    manifests: &[Manifest],
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<()> {
+    if manifests.is_empty() {
+        return Err(Error::SchemaMismatch);
+    }
     let limits = store.limits().clone();
-    let allowed = allowed_ids(store, manifest)?;
+    let mut closures = Vec::with_capacity(manifests.len());
+    for manifest in manifests {
+        closures.push(allowed_ids(store, manifest)?);
+    }
+    let mut current: Option<usize> = None;
     let mut requests = 0u64;
     let mut served_bytes = 0usize;
     loop {
@@ -198,8 +225,29 @@ pub fn serve<R: Read, W: Write>(
             return Err(Error::LimitExceeded("serve requests"));
         }
         match kind {
-            MANIFEST_REQUEST => write_msg(writer, MANIFEST, &manifest.encode())?,
+            MANIFEST_REQUEST => {
+                let selected = if body.is_empty() {
+                    Some(0)
+                } else if body.len() == 32 {
+                    let mut selector = [0u8; 32];
+                    selector.copy_from_slice(&body);
+                    manifests.iter().position(|manifest| {
+                        manifest.whole_sha256() == selector || manifest.version() == selector
+                    })
+                } else {
+                    return Err(Error::SchemaMismatch);
+                };
+                let Some(index) = selected else {
+                    write_msg(writer, ERROR, b"unknown object")?;
+                    return Err(Error::UnknownObject);
+                };
+                current = Some(index);
+                write_msg(writer, MANIFEST, &manifests[index].encode())?;
+            }
             FETCH => {
+                let Some(selected) = current else {
+                    return Err(Error::SchemaMismatch);
+                };
                 if body.len() < 2 {
                     return Err(Error::SchemaMismatch);
                 }
@@ -207,6 +255,7 @@ pub fn serve<R: Read, W: Write>(
                 if body.len() != 2 + 12 * count {
                     return Err(Error::SchemaMismatch);
                 }
+                let allowed = &closures[selected];
                 let mut out = Vec::with_capacity(2 + count * 49);
                 out.extend_from_slice(&(count as u16).to_be_bytes());
                 for index in 0..count {
@@ -246,9 +295,25 @@ pub fn pull_expected<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
 ) -> Result<(Manifest, PullStats)> {
+    pull_selected(store, expected, None, reader, writer)
+}
+
+/// Pull the object selected by a 32-byte whole-object SHA-256 or manifest version. None keeps the
+/// original behavior (the peer's first/default object).
+pub fn pull_selected<R: Read, W: Write>(
+    store: &mut Store,
+    expected: Option<ExpectedObject>,
+    selector: Option<[u8; 32]>,
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<(Manifest, PullStats)> {
     let limits = store.limits().clone();
-    write_msg(writer, MANIFEST_REQUEST, &[])?;
+    let request = selector.map(|value| value.to_vec()).unwrap_or_default();
+    write_msg(writer, MANIFEST_REQUEST, &request)?;
     let (kind, body) = read_msg(reader, &limits)?;
+    if kind == ERROR {
+        return Err(Error::UnknownObject);
+    }
     if kind != MANIFEST {
         return Err(Error::SchemaMismatch);
     }
@@ -342,6 +407,41 @@ pub fn pull_expected<R: Read, W: Write>(
         return Err(Error::IntegrityFailure);
     }
     Ok((manifest, stats))
+}
+
+/// Check whether this store already holds the peer's object without fetching records or rebuilding
+/// the payload. An expected pin is checked against the peer manifest first. verified means the local
+/// store's closure for the pinned manifest is complete; a byte-level re-hash requires pull.
+pub fn verify<R: Read, W: Write>(
+    store: &Store,
+    expected: Option<ExpectedObject>,
+    selector: Option<[u8; 32]>,
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<VerifyStats> {
+    let limits = store.limits().clone();
+    let request = selector.map(|value| value.to_vec()).unwrap_or_default();
+    write_msg(writer, MANIFEST_REQUEST, &request)?;
+    let (kind, body) = read_msg(reader, &limits)?;
+    if kind == ERROR {
+        return Err(Error::UnknownObject);
+    }
+    if kind != MANIFEST {
+        return Err(Error::SchemaMismatch);
+    }
+    let manifest = Manifest::decode(&body, &limits)?;
+    if let Some(expected) = expected {
+        if !expected.matches(&manifest) {
+            return Err(Error::BindingMismatch);
+        }
+    }
+    let fetched = BTreeMap::new();
+    let missing = missing_nodes(store, &manifest, &fetched)?;
+    write_msg(writer, DONE, &[])?;
+    Ok(VerifyStats {
+        missing: missing.len(),
+        verified: missing.is_empty(),
+    })
 }
 
 fn missing_nodes(

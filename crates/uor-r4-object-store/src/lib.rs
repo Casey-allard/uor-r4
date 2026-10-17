@@ -9,7 +9,7 @@ pub mod peer;
 mod record;
 mod store;
 pub use manifest::Manifest;
-pub use peer::{ExpectedObject, PullStats};
+pub use peer::{pull_selected, serve_many, verify, ExpectedObject, PullStats, VerifyStats};
 pub use record::Record;
 use std::fmt;
 pub use store::{
@@ -28,6 +28,8 @@ pub enum Error {
     InvalidRange,
     LimitExceeded(&'static str),
     BindingMismatch,
+    /// The peer does not hold an object matching the requested selector.
+    UnknownObject,
     Utf8,
     /// Classifiable I/O failure; OS detail is retained without parsing prose.
     Io {

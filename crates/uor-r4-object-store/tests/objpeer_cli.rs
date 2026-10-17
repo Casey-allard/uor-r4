@@ -193,3 +193,107 @@ fn packaged_cli_enforces_a_whole_sha256_pin() {
     let mut rest2 = String::new();
     reader2.read_to_string(&mut rest2).ok();
 }
+
+#[allow(clippy::zombie_processes)]
+fn spawn_serve_many(
+    store: &PathBuf,
+    objects: &[&PathBuf],
+    sessions: usize,
+) -> (
+    Child,
+    BufReader<std::process::ChildStdout>,
+    String,
+    Vec<String>,
+) {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_objpeer"));
+    command.args(["serve", "--store"]).arg(store);
+    for object in objects {
+        command.arg("--object").arg(object);
+    }
+    command
+        .args(["--sessions", &sessions.to_string(), "--bind", "127.0.0.1:0"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = command.spawn().unwrap();
+    let stdout = child.stdout.take().unwrap();
+    let mut reader = BufReader::new(stdout);
+    let mut line = String::new();
+    loop {
+        line.clear();
+        assert!(
+            reader.read_line(&mut line).unwrap() > 0,
+            "serve closed before READY"
+        );
+        if let Some(addr) = line.strip_prefix("READY ") {
+            let addr = addr.split_whitespace().next().unwrap().to_string();
+            let mut object_lines = Vec::new();
+            for _ in 0..objects.len() {
+                let mut object_line = String::new();
+                assert!(reader.read_line(&mut object_line).unwrap() > 0);
+                object_lines.push(object_line.trim().to_string());
+            }
+            return (child, reader, addr, object_lines);
+        }
+    }
+}
+
+#[test]
+fn packaged_cli_fleet_verify_and_select() {
+    let dir = tmp_dir("fleet");
+    let first = dir.join("first.bin");
+    let second = dir.join("second.bin");
+    std::fs::write(&first, atoms(64, 11)).unwrap();
+    std::fs::write(&second, atoms(64, 12)).unwrap();
+    let (mut server, mut reader, addr, lines) =
+        spawn_serve_many(&dir.join("server.store"), &[&first, &second], 2);
+    assert_eq!(lines.len(), 2);
+    let sha = lines[0]
+        .split("sha256=")
+        .nth(1)
+        .unwrap()
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .to_string();
+
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("verify")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--have")
+        .arg(&first)
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--select-sha256")
+        .arg(&sha)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "fleet verify failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8_lossy(&out.stdout).contains("verified=true"));
+
+    let out2 = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("verify")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--have")
+        .arg(&first)
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--select-sha256")
+        .arg("00".repeat(32))
+        .output()
+        .unwrap();
+    assert!(!out2.status.success(), "unknown selector must fail");
+    assert!(
+        String::from_utf8_lossy(&out2.stderr).contains("UnknownObject"),
+        "expected UnknownObject, got: {}",
+        String::from_utf8_lossy(&out2.stderr)
+    );
+    let _ = server.wait();
+    let mut rest = String::new();
+    reader.read_to_string(&mut rest).ok();
+}

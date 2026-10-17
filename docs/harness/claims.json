@@ -48,6 +48,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-fleet": {
+    "branch": "deepseek/object-store-fleet",
+    "claimed_at": "2026-10-17T15:32:18-04:00",
+    "head": "93b71d9ff",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-object-pin": {
     "branch": "deepseek/object-store-object-pin",
     "claimed_at": "2026-10-17T15:24:43-04:00",
