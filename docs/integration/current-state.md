@@ -1,3 +1,13 @@
+## 2026-10-17 — Pinned cold join: objpeer join (deepseek/object-store-join)
+
+The [join record](../labs/object-store-join-2026-10-17/README.md) adds objpeer join for the supported
+cold-join path: a decompressed artifact's SHA-256 and length are checked against
+--expect-sha256/--expect-bytes before any store write, then the store is folded and saved; wrong pins
+exit 2 with nothing written. Tests cover pinned success/idempotence and fail-closed wrong pins. Package
+57 passed / 0 failed; Clippy -D warnings and fmt clean. No model compute; training/M2/Stage B HELD.
+**Next:** protected delivery, then tools/cold_join.sh measuring compressed download + join vs cold store
+pull and the first warm delta.
+
 ## 2026-10-17 — Read-only token-cell input producer for learned attention (Codex/cf1)
 
 The [source record](../labs/attention-token-cell-export-2026-10-17/README.md)

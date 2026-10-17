@@ -982,3 +982,77 @@ fn packaged_cli_repair_reports_unavailable_targets() {
     let mut sink = String::new();
     reader.read_to_string(&mut sink).ok();
 }
+
+#[test]
+fn packaged_cli_join_pins_a_local_artifact() {
+    let dir = tmp_dir("join");
+    let object = dir.join("object.bin");
+    let payload = atoms(128, 301);
+    std::fs::write(&object, &payload).unwrap();
+    let sha = sha_hex(&payload);
+    let store = dir.join("joined.store");
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("join")
+        .arg("--store")
+        .arg(&store)
+        .arg("--object")
+        .arg(&object)
+        .arg("--expect-sha256")
+        .arg(&sha)
+        .arg("--expect-bytes")
+        .arg(payload.len().to_string())
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert!(
+        out.status.success(),
+        "join failed: {} {}",
+        stdout,
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(stdout.contains("\"records\":"), "{}", stdout);
+    assert!(stdout.contains(&sha), "{}", stdout);
+    assert!(store.exists(), "joined store must exist");
+    // Idempotent second join.
+    let again = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .args(["join", "--store"])
+        .arg(&store)
+        .arg("--object")
+        .arg(&object)
+        .arg("--expect-sha256")
+        .arg(&sha)
+        .output()
+        .unwrap();
+    assert!(
+        again.status.success(),
+        "{}",
+        String::from_utf8_lossy(&again.stderr)
+    );
+}
+
+#[test]
+fn packaged_cli_join_rejects_a_wrong_pin_without_writing_the_store() {
+    let dir = tmp_dir("join-wrong");
+    let object = dir.join("object.bin");
+    let payload = atoms(64, 302);
+    std::fs::write(&object, &payload).unwrap();
+    let store = dir.join("wrong.store");
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("join")
+        .arg("--store")
+        .arg(&store)
+        .arg("--object")
+        .arg(&object)
+        .arg("--expect-sha256")
+        .arg("00".repeat(32))
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2), "wrong pin must fail closed");
+    assert!(!store.exists(), "wrong pin must not write a store");
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("BindingMismatch"),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}

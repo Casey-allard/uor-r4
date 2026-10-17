@@ -11,6 +11,7 @@ use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::thread;
 
+use sha2::{Digest, Sha256};
 use uor_r4_object_store::{peer, Error, ExpectedObject, Limits, Manifest, Store};
 
 fn limits() -> Limits {
@@ -175,6 +176,50 @@ fn main() {
     }
     let addr = addrs.first().cloned().unwrap_or_default();
     match args[1].as_str() {
+        "join" => {
+            let object = objects
+                .first()
+                .cloned()
+                .unwrap_or_else(|| die("join requires --object"));
+            let expected_sha = expect_sha.unwrap_or_else(|| die("join requires --expect-sha256"));
+            let started = std::time::Instant::now();
+            let bytes =
+                fs::read(&object).unwrap_or_else(|e| die(&format!("read {}: {}", object, e)));
+            let digest: [u8; 32] = Sha256::digest(&bytes).into();
+            if digest != expected_sha {
+                die("join: BindingMismatch (object sha256 does not match --expect-sha256)");
+            }
+            if let Some(expected) = expect_bytes {
+                if bytes.len() as u64 != expected {
+                    die("join: BindingMismatch (object length does not match --expect-bytes)");
+                }
+            }
+            let mut store = load_store(&store_path);
+            let manifest = fold_file(&mut store, &object);
+            save_store(&store, &store_path);
+            let millis = started.elapsed().as_millis();
+            if json {
+                println!(
+                    r#"{{"object_bytes":{},"roots":{},"records":{},"sha256":"{}","store":"{}","millis":{}}}"#,
+                    manifest.byte_len(),
+                    manifest.roots().len(),
+                    store.record_count(),
+                    hex(&manifest.whole_sha256()),
+                    store_path,
+                    millis
+                );
+            } else {
+                println!(
+                    "JOIN object_bytes={} roots={} records={} sha256={} store={} millis={}",
+                    manifest.byte_len(),
+                    manifest.roots().len(),
+                    store.record_count(),
+                    hex(&manifest.whole_sha256()),
+                    store_path,
+                    millis
+                );
+            }
+        }
         "info" => {
             let object = objects
                 .first()
