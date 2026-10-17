@@ -1,6 +1,6 @@
 # Exact GPU baseline reuse — implementation, 16 October 2026
 
-**Source preparation; runtime parity and speedup NOT_RUN.** This implements the
+**Source delivered in #2561; runtime parity and speedup NOT_RUN.** This implements the
 [FIT design](../../harness/prep/m1-counterfactual-baseline-reuse-2026-10-16.md)
 delivered in #2560, under [source commission6226210469](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6226210469).
 Independent exact-head source and CUDA construction review precede protected
@@ -87,6 +87,16 @@ memory, records the unchanged payload digest and preserves original file bytes.
 Production snapshot admission remains strict; no rebound checkpoint is saved.
 
 ## Verification and delivery state
+
+Protected #2561 merged6209e11ae, full reviewed-tree equality verified.
+[Exact-head construction acceptance6226780746](https://github.com/UOR-Foundation/uor-r4/pull/2561#issuecomment-6226780746)
+records all command passes, retained images, archive and cost. R's ptxas512
+and raw ELF1536/reserved-cap1024 are reported separately; runtime admission
+is still NOT_RUN. The subsequent finite-readiness review found a
+[refusal-evidence gap](../counterfactual-reuse-resource-refusal-2026-10-16/README.md)
+and an unbound driver check in its external wrapper. Repair and new exact pins
+precede any finite release. The source-freeze observations below are retained.
+
 
 Host checks at the implementation draft: standalone instrument tests **47 pass,
 one intentionally ignored archived-byte test**; focused crate baseline-reuse

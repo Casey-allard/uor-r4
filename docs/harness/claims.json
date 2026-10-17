@@ -13,12 +13,12 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/counterfactual-baseline-reuse": {
-    "branch": "codex/counterfactual-baseline-reuse",
-    "claimed_at": "2026-10-16T19:20:37-04:00",
-    "head": "d0e12077b",
+  "codex/reuse-resource-refusal-evidence": {
+    "branch": "codex/reuse-resource-refusal-evidence",
+    "claimed_at": "2026-10-16T19:53:39-04:00",
+    "head": "6209e11ae",
     "lab": "codex",
-    "note": "FIT2560 implementation/PR2561: existing crate and k16 instrument R source scope, canonical record/status/roadmap/current-state/mechanism and Codex bookkeeping. After verified2558 delivery, also scripts/check_native_cuda_vendor.rs for generated R source/entry census only; peer checkout untouched."
+    "note": "PM6226887143: baseline_reuse_device.rs refusal diagnostics only; dated repair record; implementation record/current-state/STATUS/ROADMAP/mechanism next-state reconciliation; own claims/ledger. No kernel/gate/dose changes."
   },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",

@@ -10,8 +10,9 @@ retaining the same geometric writer, eligibility, virtual moves and ties.
 The [baseline-reuse sheet](../harness/prep/m1-counterfactual-baseline-reuse-2026-10-16.md)
 now specifies that bounded change and its exact controls; [design FIT is recorded](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6226136376),
 the [opt-in source implementation](../labs/counterfactual-baseline-reuse-implementation-2026-10-16/README.md)
-is prepared with exact audit and image binding; new model measurements are NOT_RUN.
-Source/construction review and protected delivery precede separate finite and timing releases.
+is delivered with exact audit and image binding; new model measurements are NOT_RUN.
+A [resource-refusal evidence repair](../labs/counterfactual-reuse-resource-refusal-2026-10-16/README.md)
+and prospectively admitted driver precede separate finite and timing releases.
 The design includes the SIMT/locality risk
 and deferred-error requirement rather than presuming a speedup from work counts.
 Selected-cell/member replay is also a material later target; no causal speedup,

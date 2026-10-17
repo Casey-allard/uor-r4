@@ -52,9 +52,10 @@ impl BaselineReuseProfiler {
         if resources.shared_bytes != reported_shared
             || reported_shared != baseline_reuse::SHARED_BYTES
         {
-            return Err(invalid(
-                "baseline reuse runtime/AOT static shared memory differs from512 bytes",
-            ));
+            return Err(invalid(format!(
+                "baseline reuse runtime/AOT static shared memory differs from {} bytes: runtime_and_aot={resources:?}; reported_shared={reported_shared}",
+                baseline_reuse::SHARED_BYTES
+            )));
         }
         Ok(resources)
     }
