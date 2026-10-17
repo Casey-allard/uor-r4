@@ -1,5 +1,10 @@
 # Preserve baseline-reuse resource refusals — 16 October 2026
 
+**Later operational record, 17 October:** #2562 is delivered at95ee863c3;
+the [first finite startup](../counterfactual-baseline-reuse-controls-2026-10-17/README.md)
+stopped at driver admission before the instrument. Runtime parity/speedup remain
+NOT_RUN; replacement readiness and a new release are required.
+
 **Pre-lease source repair; no new model execution.** The independent readiness
 review after [#2561](https://github.com/UOR-Foundation/uor-r4/pull/2561) found
 that `BaselineReuseProfiler::resources()` discarded its queried values when

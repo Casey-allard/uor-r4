@@ -1,5 +1,10 @@
 # Exact GPU baseline reuse — implementation, 16 October 2026
 
+**Later operational record, 17 October:** #2562 is delivered at95ee863c3;
+the [first finite startup](../counterfactual-baseline-reuse-controls-2026-10-17/README.md)
+stopped at driver admission before the instrument. Runtime parity/speedup remain
+NOT_RUN; replacement readiness and a new release are required.
+
 **Source delivered in #2561; runtime parity and speedup NOT_RUN.** This implements the
 [FIT design](../../harness/prep/m1-counterfactual-baseline-reuse-2026-10-16.md)
 delivered in #2560, under [source commission6226210469](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6226210469).

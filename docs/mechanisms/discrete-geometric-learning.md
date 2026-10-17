@@ -11,8 +11,11 @@ The [baseline-reuse sheet](../harness/prep/m1-counterfactual-baseline-reuse-2026
 now specifies that bounded change and its exact controls; [design FIT is recorded](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6226136376),
 the [opt-in source implementation](../labs/counterfactual-baseline-reuse-implementation-2026-10-16/README.md)
 is delivered with exact audit and image binding; new model measurements are NOT_RUN.
-A [resource-refusal evidence repair](../labs/counterfactual-reuse-resource-refusal-2026-10-16/README.md)
-and prospectively admitted driver precede separate finite and timing releases.
+The [resource-refusal evidence repair](../labs/counterfactual-reuse-resource-refusal-2026-10-16/README.md)
+is delivered. [Finite startup](../labs/counterfactual-baseline-reuse-controls-2026-10-17/README.md)
+stopped at the exact driver gate before model initialization; a prospectively
+reviewed replacement driver packet and distinct finite release remain required.
+Timing is unreleased; this setup failure is not a mechanism negative.
 The design includes the SIMT/locality risk
 and deferred-error requirement rather than presuming a speedup from work counts.
 Selected-cell/member replay is also a material later target; no causal speedup,

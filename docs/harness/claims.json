@@ -13,12 +13,12 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/reuse-resource-refusal-evidence": {
-    "branch": "codex/reuse-resource-refusal-evidence",
-    "claimed_at": "2026-10-16T19:53:39-04:00",
-    "head": "6209e11ae",
+  "codex/baseline-reuse-finite-record": {
+    "branch": "codex/baseline-reuse-finite-record",
+    "claimed_at": "2026-10-16T20:19:32-04:00",
+    "head": "95ee863c3",
     "lab": "codex",
-    "note": "PM6226887143: baseline_reuse_device.rs refusal diagnostics only; dated repair record; implementation record/current-state/STATUS/ROADMAP/mechanism next-state reconciliation; own claims/ledger. No kernel/gate/dose changes."
+    "note": "Finite release6227215454 outcome record only: docs/labs/counterfactual-baseline-reuse-controls-2026-10-17, current-state, STATUS, ROADMAP, discrete mechanism, prior source records, claims and Codex ledger. No kernel or new compute changes."
   },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",
