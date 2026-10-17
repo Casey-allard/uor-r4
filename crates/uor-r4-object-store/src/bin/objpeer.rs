@@ -114,6 +114,8 @@ fn main() {
     let mut expect_sha: Option<[u8; 32]> = None;
     let mut expect_version: Option<[u8; 32]> = None;
     let mut expect_bytes: Option<u64> = None;
+    let mut targets = String::new();
+    let mut json = false;
     let mut select_shas: Vec<[u8; 32]> = Vec::new();
     let mut i = 2usize;
     while i < args.len() {
@@ -121,6 +123,10 @@ fn main() {
         i += 1;
         if key == "--concurrent" {
             concurrent = true;
+            continue;
+        }
+        if key == "--json" {
+            json = true;
             continue;
         }
         let value = if i < args.len() {
@@ -133,6 +139,7 @@ fn main() {
             "--store" => store_path = value,
             "--object" => objects.push(value),
             "--have" => have = value,
+            "--targets" => targets = value,
             "--bind" => bind = value,
             "--addr" => addr = value,
             "--out" => out = value,
@@ -258,14 +265,33 @@ fn main() {
                         whole_sha256: expect_sha,
                     })
                 };
+            let mut selectors: Vec<[u8; 32]> = select_shas.clone();
+            if !targets.is_empty() {
+                let text = fs::read_to_string(&targets)
+                    .unwrap_or_else(|e| die(&format!("read {}: {}", targets, e)));
+                for (number, line) in text.lines().enumerate() {
+                    let line = line.trim();
+                    if line.is_empty() || line.starts_with('#') {
+                        continue;
+                    }
+                    if line.len() != 64 {
+                        die(&format!(
+                            "{}:{}: expected 64 hex characters",
+                            targets,
+                            number + 1
+                        ));
+                    }
+                    selectors.push(hex32(line));
+                }
+            }
             let mut requests = Vec::new();
-            if select_shas.is_empty() {
+            if selectors.is_empty() {
                 requests.push(peer::VerifyRequest {
                     expected,
                     selector: None,
                 });
             } else {
-                for selector in &select_shas {
+                for selector in &selectors {
                     requests.push(peer::VerifyRequest {
                         expected,
                         selector: Some(*selector),
@@ -279,35 +305,80 @@ fn main() {
             let mut stale = 0usize;
             let mut unknown = 0usize;
             let mut mismatch = 0usize;
-            for (index, outcome) in outcomes.iter().enumerate() {
+            for outcome in &outcomes {
                 match outcome {
-                    peer::VerifyOutcome::Verified { missing } => {
-                        verified += 1;
-                        println!("VERIFY i={} missing={} verified=true", index, missing);
-                    }
-                    peer::VerifyOutcome::Stale { missing } => {
-                        stale += 1;
-                        println!("VERIFY i={} missing={} verified=false", index, missing);
-                    }
-                    peer::VerifyOutcome::Unknown => {
-                        unknown += 1;
-                        eprintln!("VERIFY i={} UnknownObject", index);
-                    }
-                    peer::VerifyOutcome::Mismatch => {
-                        mismatch += 1;
-                        eprintln!("VERIFY i={} BindingMismatch", index);
-                    }
+                    peer::VerifyOutcome::Verified { .. } => verified += 1,
+                    peer::VerifyOutcome::Stale { .. } => stale += 1,
+                    peer::VerifyOutcome::Unknown => unknown += 1,
+                    peer::VerifyOutcome::Mismatch => mismatch += 1,
                 }
             }
-            println!(
-                "VERIFY_SERIES checks={} verified={} stale={} unknown={} mismatch={} wire_bytes={}",
-                outcomes.len(),
-                verified,
-                stale,
-                unknown,
-                mismatch,
-                wire_bytes
-            );
+            if json {
+                let results: Vec<String> = outcomes
+                    .iter()
+                    .enumerate()
+                    .map(|(index, outcome)| {
+                        let selector = selectors
+                            .get(index)
+                            .map(|value| hex(value))
+                            .unwrap_or_default();
+                        match outcome {
+                            peer::VerifyOutcome::Verified { missing } => format!(
+                                "{{\"i\":{},\"status\":\"verified\",\"missing\":{},\"selector\":\"{}\"}}",
+                                index, missing, selector
+                            ),
+                            peer::VerifyOutcome::Stale { missing } => format!(
+                                "{{\"i\":{},\"status\":\"stale\",\"missing\":{},\"selector\":\"{}\"}}",
+                                index, missing, selector
+                            ),
+                            peer::VerifyOutcome::Unknown => format!(
+                                "{{\"i\":{},\"status\":\"unknown\",\"selector\":\"{}\"}}",
+                                index, selector
+                            ),
+                            peer::VerifyOutcome::Mismatch => format!(
+                                "{{\"i\":{},\"status\":\"mismatch\",\"selector\":\"{}\"}}",
+                                index, selector
+                            ),
+                        }
+                    })
+                    .collect();
+                println!(
+                    "{{\"checks\":{},\"verified\":{},\"stale\":{},\"unknown\":{},\"mismatch\":{},\"wire_bytes\":{},\"results\":[{}]}}",
+                    outcomes.len(),
+                    verified,
+                    stale,
+                    unknown,
+                    mismatch,
+                    wire_bytes,
+                    results.join(",")
+                );
+            } else {
+                for (index, outcome) in outcomes.iter().enumerate() {
+                    match outcome {
+                        peer::VerifyOutcome::Verified { missing } => {
+                            println!("VERIFY i={} missing={} verified=true", index, missing);
+                        }
+                        peer::VerifyOutcome::Stale { missing } => {
+                            println!("VERIFY i={} missing={} verified=false", index, missing);
+                        }
+                        peer::VerifyOutcome::Unknown => {
+                            eprintln!("VERIFY i={} UnknownObject", index);
+                        }
+                        peer::VerifyOutcome::Mismatch => {
+                            eprintln!("VERIFY i={} BindingMismatch", index);
+                        }
+                    }
+                }
+                println!(
+                    "VERIFY_SERIES checks={} verified={} stale={} unknown={} mismatch={} wire_bytes={}",
+                    outcomes.len(),
+                    verified,
+                    stale,
+                    unknown,
+                    mismatch,
+                    wire_bytes
+                );
+            }
             if unknown > 0 {
                 std::process::exit(2);
             }

@@ -1,3 +1,12 @@
+## 2026-10-17 — Fleet audit targets file and JSON output (deepseek/object-store-verify-targets)
+
+The [targets record](../labs/object-store-verify-targets-2026-10-17/README.md) gives fleet verification
+its CI/registry shape: objpeer verify takes --targets FILE (64-hex selector per line, comments/blanks
+ignored) and --json (one machine-readable object with per-check status/missing/selector plus totals),
+while keeping pipeline batching and exit 0/3/2 semantics. CLI 7/7, peer 14/14, controls 10/10,
+showcase 5/5; Clippy -D warnings and fmt clean. No model compute; training/M2/Stage B HELD. **Next:**
+protected delivery, then a hundreds-of-targets audit measurement and the registry service shape.
+
 ## 2026-10-17 — Pipelined manifest requests for fleet verification (deepseek/object-store-verify-pipeline)
 
 The [pipeline record](../labs/object-store-verify-pipeline-2026-10-17/README.md) pipelines verify_series

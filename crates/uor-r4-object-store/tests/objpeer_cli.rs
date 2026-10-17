@@ -384,3 +384,68 @@ fn packaged_cli_batch_verify_uses_one_session() {
     let mut rest = String::new();
     reader.read_to_string(&mut rest).ok();
 }
+
+#[test]
+fn packaged_cli_verify_targets_file_with_json() {
+    let dir = tmp_dir("targets");
+    let first = dir.join("first.bin");
+    let second = dir.join("second.bin");
+    std::fs::write(&first, atoms(64, 51)).unwrap();
+    std::fs::write(&second, atoms(64, 52)).unwrap();
+    let (mut server, mut reader, addr, lines) =
+        spawn_serve_many(&dir.join("server.store"), &[&first, &second], 1);
+    let shas: Vec<String> = lines
+        .iter()
+        .map(|line| {
+            line.split("sha256=")
+                .nth(1)
+                .unwrap()
+                .split_whitespace()
+                .next()
+                .unwrap()
+                .to_string()
+        })
+        .collect();
+    let targets = dir.join("targets.txt");
+    std::fs::write(
+        &targets,
+        format!("# fleet targets\n{}\n\n{}\n", shas[0], shas[1]),
+    )
+    .unwrap();
+    let client = dir.join("client.store");
+    for object in [&first, &second] {
+        let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+            .args(["info", "--store"])
+            .arg(&client)
+            .arg("--object")
+            .arg(object)
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+    }
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("verify")
+        .arg("--store")
+        .arg(&client)
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert!(out.status.success(), "targets verify failed: {}", stdout);
+    assert!(
+        stdout.trim_start().starts_with('{'),
+        "expected JSON: {}",
+        stdout
+    );
+    assert!(stdout.contains("\"checks\":2"), "{}", stdout);
+    assert!(stdout.contains("\"verified\":2"), "{}", stdout);
+    assert!(stdout.contains("\"status\":\"verified\""), "{}", stdout);
+    assert!(stdout.contains("\"wire_bytes\":"), "{}", stdout);
+    let _ = server.wait();
+    let mut rest = String::new();
+    reader.read_to_string(&mut rest).ok();
+}
