@@ -181,6 +181,7 @@ Per [#2482 §5](../labs/spiralcore-attention-independent-review-2026-10-14/READM
    - Reproduced byte-exact golden-route/FBS codecs and selective range reads over Showcase ternary DAGs; proved that unique content expands $2.17\times$ in records (placing the exact object store on the D19 durable-memory line under D34); proved that neither `Route` nor `Flock` can express the copy-successor read; and measured the `3,847 / 14,287` (`26.9%`) copy-successor DEV sub-panel.
 3. **`ReadSpec::Relation` implementation and execution (`NOT_RUN`):**
    - **Zero code for `ReadSpec::Relation` exists in `crates/uor-r4-discrete/` today, and zero GPU or CPU runs of this head have been executed.**
+     - Correction — the bold sentence above is stale (2026-10-17): implemented at `discrete.cu:78-267`, `device.rs:341-356`, `device.rs:1231-1246`, `device.rs:1512-1514`, `lib.rs:76-79,116-127,140-153`; qualified by `relation_qualification.rs` (C1–C8); the trained head remains unexecuted (Stage M1 NOT_RUN, owner-release-gated); see [d34-successor-table-control-2026-10-17.md](../harness/prep/d34-successor-table-control-2026-10-17.md) §6.9.
 
 ---
 
