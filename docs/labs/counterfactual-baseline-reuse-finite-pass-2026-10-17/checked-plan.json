@@ -1,0 +1,585 @@
+{
+  "apply_calls": 0,
+  "cuda_context_created": false,
+  "decision": "all four cells: min(U)-max(R) > max(range(U),range(R)) for event and propose wall; whole max(R)-min(U) <= spread",
+  "execution": "NOT_RELEASED_BY_THIS_PLAN",
+  "inventory": {
+    "apply_calls": 0,
+    "audit_bytes_R": 1280,
+    "finite": {
+      "apply_calls": 0,
+      "audit_bytes": 1280,
+      "audit_words": 160,
+      "boundary_fixtures": [
+        {
+          "id": "boundary16",
+          "repeat_fixture": "eligible",
+          "rows": 16
+        },
+        {
+          "id": "boundary17",
+          "repeat_fixture": "eligible",
+          "rows": 17
+        },
+        {
+          "id": "boundary64",
+          "repeat_fixture": "eligible",
+          "rows": 64
+        }
+      ],
+      "boundary_identity_rule": "repeat literal row and target without changing within-window identities",
+      "case_order": [
+        "ineligible",
+        "eligible",
+        "mixed",
+        "tie",
+        "virtual_ineligible",
+        "route_endpoint",
+        "boundary16",
+        "boundary17",
+        "boundary64"
+      ],
+      "endpoint_evaluations": 0,
+      "expected_cuda_status8": 8,
+      "host_refusal_attempts": 16,
+      "host_refusals_per_policy": [
+        "route_index_U",
+        "vector_index_U",
+        "gate_in_route_U",
+        "wrong_batch_U",
+        "wrong_batch_R",
+        "wrong_profiler_U",
+        "wrong_profiler_R",
+        "wrong_handle_R"
+      ],
+      "literal_base_fixtures": {
+        "apply_calls": 0,
+        "cases": [
+          {
+            "expected_status": 8,
+            "id": "ineligible",
+            "parameters": [
+              "Route(0)",
+              "VectorBlock(0)"
+            ],
+            "shape": [
+              2,
+              2,
+              1,
+              1
+            ],
+            "targets": [
+              0
+            ],
+            "tokens": [
+              [
+                0,
+                0
+              ],
+              [
+                15,
+                15
+              ]
+            ],
+            "windows": [
+              [
+                0
+              ]
+            ]
+          },
+          {
+            "expected_status": 0,
+            "id": "eligible",
+            "parameters": [
+              "Route(0)",
+              "VectorBlock(0)"
+            ],
+            "shape": [
+              2,
+              2,
+              1,
+              1
+            ],
+            "targets": [
+              1
+            ],
+            "tokens": [
+              [
+                0,
+                0
+              ],
+              [
+                15,
+                15
+              ]
+            ],
+            "windows": [
+              [
+                0
+              ]
+            ]
+          },
+          {
+            "expected_status": 0,
+            "id": "mixed",
+            "parameters": [
+              "Route(0)",
+              "VectorBlock(0)"
+            ],
+            "shape": [
+              2,
+              2,
+              1,
+              1
+            ],
+            "targets": [
+              0,
+              1
+            ],
+            "tokens": [
+              [
+                0,
+                0
+              ],
+              [
+                15,
+                15
+              ]
+            ],
+            "windows": [
+              [
+                0
+              ],
+              [
+                0
+              ]
+            ]
+          },
+          {
+            "expected_status": 0,
+            "id": "tie",
+            "parameters": [
+              "Route(0)",
+              "VectorBlock(0)"
+            ],
+            "shape": [
+              2,
+              2,
+              1,
+              2
+            ],
+            "targets": [
+              0
+            ],
+            "tokens": [
+              [
+                0,
+                0
+              ],
+              [
+                3,
+                0
+              ]
+            ],
+            "windows": [
+              [
+                1
+              ]
+            ]
+          },
+          {
+            "expected_status": 0,
+            "id": "virtual_ineligible",
+            "parameters": [
+              "VectorBlock(0)"
+            ],
+            "shape": [
+              2,
+              2,
+              1,
+              1
+            ],
+            "targets": [
+              0,
+              0
+            ],
+            "tokens": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "windows": [
+              [
+                0
+              ],
+              [
+                0
+              ]
+            ]
+          },
+          {
+            "expected_status": 0,
+            "frontier_entries": 2,
+            "id": "route_endpoint",
+            "parameters": [
+              "Route(0)"
+            ],
+            "routes": [
+              0,
+              0
+            ],
+            "shape": [
+              2,
+              2,
+              2,
+              2
+            ],
+            "targets": [
+              0
+            ],
+            "tokens": [
+              [
+                3,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "windows": [
+              [
+                0,
+                1
+              ]
+            ]
+          }
+        ],
+        "identities": {
+          "occurrence": "one-based position within window",
+          "record": 1,
+          "version": 1
+        },
+        "manual_predictions": {
+          "not_measured": true,
+          "tie_route_winner": 0,
+          "tie_vector_equal_best": [
+            3,
+            12
+          ],
+          "tie_vector_winner": 3,
+          "virtual_ineligible_identity_one_row_loss": 128,
+          "virtual_ineligible_identity_two_row_loss": 256,
+          "virtual_ineligible_nonidentity_loss": "MAX; virtual token_rivals0; not an arithmetic fault"
+        },
+        "policies": [
+          "nearest_address_margin_v1",
+          "occupied_cell_rank_hinge_v1"
+        ],
+        "provenance": "c461350058e6ea1b188a60944da964982f272b60:C-R3/C-R4 literal fixture recipes",
+        "root0_candidate_images": [
+          0,
+          14,
+          12,
+          4,
+          10,
+          8,
+          10,
+          2,
+          5,
+          6,
+          8,
+          14,
+          13,
+          6,
+          12,
+          2
+        ],
+        "roots": [
+          [
+            2,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            -2,
+            -2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            -2,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            -2,
+            0,
+            -2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            -2,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            -2,
+            0,
+            0,
+            0,
+            -2
+          ],
+          [
+            0,
+            0,
+            0,
+            -2,
+            0,
+            0,
+            0,
+            2
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            -2,
+            -2,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            -2,
+            2,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            -2,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            2,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            -2
+          ],
+          [
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            2
+          ],
+          [
+            0,
+            0,
+            2,
+            0,
+            -2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            2,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            -2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "schema": "m1-counterfactual-controls-fixtures/1",
+        "seed": 1,
+        "seed2": false
+      },
+      "modes": [
+        "U",
+        "R"
+      ],
+      "prediction_status": "prospective, not measurements",
+      "prior_endpoints": "sealed #2557 evidence, not rerun",
+      "producer_rule": "row=lane+16*k; every admitted row exactly once",
+      "proposal_attempts": 64,
+      "schema": "m1-counterfactual-reuse-controls-fixtures/1",
+      "seed": 1,
+      "seed2": false,
+      "shared_bytes": 512,
+      "successful_proposals": 56
+    },
+    "no_clock64": true,
+    "no_endpoint_rerun": true,
+    "read_mode": "route",
+    "schema": "m1-counterfactual-reuse-inventory/1",
+    "shared_bytes_R": 512,
+    "timing": {
+      "batches": 4,
+      "epoch": 0,
+      "excluded_warmups": 8,
+      "generator": "existing main.rs batches(4) and targets()",
+      "mode_order": [
+        [
+          "U",
+          "R"
+        ],
+        [
+          "U",
+          "R"
+        ],
+        [
+          "R",
+          "U"
+        ],
+        [
+          "U",
+          "R"
+        ]
+      ],
+      "nesting": "policy,batch,mode,operation; recarry identical windows before each operation",
+      "operations": [
+        "Route(0)",
+        "VectorBlock(0)"
+      ],
+      "policies": [
+        "nearest_address_margin_v1",
+        "occupied_cell_rank_hinge_v1"
+      ],
+      "proposal_attempts": 32,
+      "rows": 64,
+      "seed": 1,
+      "shape": {
+        "blocks": 4,
+        "context": 192,
+        "kept_cells": 16,
+        "vocabulary": 4096
+      },
+      "timed": 24,
+      "whole_unit": "per operation: carry + propose + full loss/proposal/audit readback + remainder; includes synchronization; excludes subsequent metadata validation and record persistence"
+    }
+  },
+  "limitations": "same enclosing profiler in U/R; no profiling-off claim, p95, training rate, language result or energy claim; no 47% or16x speedup presumed",
+  "m2": "HELD",
+  "model_compute_executed": false,
+  "pin": {
+    "baseline_reuse_image": {
+      "cubin_sha256": "6749bfe3c8dcab20c1628ce342fb654589461d442ecdc60edfb39bace401aabe",
+      "format": "cubin",
+      "ptx_sha256": "2ec171013d10f14ed4552436c0fdc33ccd8005eeba80f146f8c4c8016f71c3b0",
+      "report_sha256": "d95e6cf63d3c5adad5d3e950ab155f4d3f356b7b2822a72382e350003ab0c360",
+      "schema": "uor-r4.baseline-reuse-image/1",
+      "source_sha256": "1c0269c76729e65f6f9dcd28d7727cece5a384f5400610341fcf7b5f95ed0a75",
+      "target": "sm_120"
+    },
+    "binary_sha256": "671917acb13b541c148b6b8122b92ae613ac0cdff8577a3f72fb6c05faa06209",
+    "config_file_sha256": "eff7a77e1c3c8454324c9ddf31a6c08bdbe1b213d3324fe7b7889c0fe7665ae4",
+    "config_path": "config.json",
+    "cuda_images": {
+      "decomposition_report_sha256": "382054970ee4c22f2f5229de2a53ac4f6c8eb2856033e428de45ea5c536e4aab",
+      "decomposition_sha256": "e03d01314f0d1eddf2b5cb02cae25d9d6231316dc14ba7af4f4db0997ea2fb8b",
+      "format": "cubin",
+      "ordinary_report_sha256": "30a2030e916287717c36591294e6a668f06762838f9332d77ba01614580acecb",
+      "ordinary_sha256": "1648564346740520c125fcfb5bc407cbbca40e66e95e2e3ad89b526a321ffcee",
+      "schema": "uor-r4.cuda-images/1",
+      "target": "sm_120"
+    },
+    "evaluation_only": true,
+    "execution_release_reference": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6227632827",
+    "finite_acceptance_reference": null,
+    "finite_record_sha256": null,
+    "fixture_inventory_sha256": "e4afe3d46e82a88ceaf6ee315708af04efd30dde19f4c84f1aea7071b1f6c7c2",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "ordinary_kernel_sha256": "1a21d6c3e2773a427c14ebff9499e03386147ab41b3ce413b7b5c9123925fd28",
+    "ordinary_source_sha256": "f679f8736500925014ff721ab035f3c284446baa6af0763f27b09bc388763008",
+    "original_snapshot_sha256": "9a76743e401759b7d3aabc708ab0a26a9470ea474dc140f328c7b1aab59e49e4",
+    "original_source_sha256": "f6c4cc9f7a842ecb7a58fb569dcb7af61f84eb533cb4a059ee614be9c0f18fa7",
+    "out_dir": "/workspace/codex-cf1-reuse-finite-run2/finite-output",
+    "phase": "finite",
+    "schema": "m1-counterfactual-reuse-pin/1",
+    "snapshot_path": "checkpoint0-timing-snapshot.json",
+    "source_commit": "5f533cbfd49ecef9a4ea2b217bb31a93002b3dc2",
+    "stage": "execution_pinned",
+    "standalone_source_sha256": "d0b4c317334fe6afd3259bc3045f1d74b7c72f997a9df5f45bc18617ce97af32",
+    "target_source_sha256": "aca299c484d5434291f7f65cc9315d6b52b976952bcd68f39a45cd3341bf2825",
+    "test_fitness_reference": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6226136376",
+    "training_resume": false
+  },
+  "q4": "NOT_EXECUTABLE",
+  "resources": "U static shared0 / R512, dynamic0, each runtime matches own AOT, zero spills, launch16",
+  "schema": "m1-counterfactual-reuse-plan/1",
+  "stage_b": "HELD",
+  "status": "NOT_RUN",
+  "training": "HELD"
+}

@@ -1,0 +1,3 @@
+Route sensitivity nearest_address_margin_v1: proposal=[0,64,64,0,1]
+Route sensitivity occupied_cell_rank_hinge_v1: proposal=[0,64,64,0,1]
+PASS exact-u64 metadata audit: 32 U/R pairs, 56 success/8 status8 attempts, 512 R lanes, 414 producer rows, 16 typed refusals, 18 strict resource admissions, unchanged state/epoch/apply, zero endpoints/timing.

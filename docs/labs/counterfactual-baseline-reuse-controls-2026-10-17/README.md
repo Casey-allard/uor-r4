@@ -1,5 +1,10 @@
 # Baseline-reuse finite admission — 17 October 2026
 
+Follow-up: a separately reviewed and released replacement invocation passed the
+[finite controls](../counterfactual-baseline-reuse-finite-pass-2026-10-17/README.md)
+on driver580.95.05. This original stopped attempt remains unchanged evidence;
+its release is consumed and its dose was zero.
+
 **BLOCKED_SETUP_DRIVER, before instrument initialization.** The single wrapper
 invocation under [finite release6227215454](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6227215454)
 rejected driver **580.105.08** because the independently reviewed packet admitted
