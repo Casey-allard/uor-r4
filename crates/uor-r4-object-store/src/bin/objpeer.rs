@@ -118,7 +118,7 @@ enum RepairStatus {
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        die("usage: objpeer info|serve|pull|verify [--store S] [--object F ...] [--have F] [--bind A] [--addr A] [--out F] [--select-sha256 HEX] [--expect-sha256 HEX] [--expect-version HEX] [--expect-bytes N] [--sessions N] [--concurrent]");
+        die("usage: objpeer info|serve|pull|verify [--store S] [--object F ...] [--have F] [--bind A] [--addr A] [--out F] [--select-sha256 HEX] [--expect-sha256 HEX] [--expect-version HEX] [--expect-bytes N] [--batch N] [--sessions N] [--concurrent]");
     }
     let mut store_path = String::from("objpeer.store");
     let mut objects: Vec<String> = Vec::new();
@@ -136,6 +136,7 @@ fn main() {
     let mut json = false;
     let mut select_shas: Vec<[u8; 32]> = Vec::new();
     let mut retries: usize = 0;
+    let mut batch: Option<usize> = None;
     let mut i = 2usize;
     while i < args.len() {
         let key = args[i].clone();
@@ -171,6 +172,7 @@ fn main() {
             }
             "--select-sha256" => select_shas.push(hex32(&value)),
             "--sessions" => sessions = value.parse().unwrap_or_else(|_| die("bad --sessions")),
+            "--batch" => batch = Some(value.parse().unwrap_or_else(|_| die("bad --batch"))),
             other => die(&format!("unknown argument {}", other)),
         }
     }
@@ -965,13 +967,24 @@ fn main() {
                             inner: stream,
                             bytes: 0,
                         };
-                        let (manifest, stats) = peer::pull_selected(
-                            &mut store,
-                            expected,
-                            select_shas.first().copied(),
-                            &mut reader,
-                            &mut writer,
-                        )?;
+                        let selector = select_shas.first().copied();
+                        let (manifest, stats) = match batch {
+                            Some(size) => peer::pull_selected_with_batch(
+                                &mut store,
+                                expected,
+                                selector,
+                                size,
+                                &mut reader,
+                                &mut writer,
+                            )?,
+                            None => peer::pull_selected(
+                                &mut store,
+                                expected,
+                                selector,
+                                &mut reader,
+                                &mut writer,
+                            )?,
+                        };
                         Ok((manifest, stats, reader.bytes + writer.bytes))
                     })();
                 match outcome {

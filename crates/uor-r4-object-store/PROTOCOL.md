@@ -89,7 +89,8 @@ An unknown selector receives ERROR and the session stays open; the client report
    BindingMismatch before any record is fetched.
 3. Compute the missing frontier: walk the manifest roots, skip nodes already in the local store, stop
    at nodes that are missing locally without descending, deduplicate ids. Request missing ids in
-   FETCH batches of at most 4096 (derived from limits); every response must contain exactly the
+   FETCH batches derived from the store's limits (the reference client defaults to 4096; `objpeer
+   pull --batch N` raises it up to the frame count cap of 65535); every response must contain exactly the
    requested ids, in order, with no duplicates and no trailing bytes.
 4. Stage records in memory (do not import yet), recompute the missing frontier, repeat until none.
 5. Assemble the object from the store plus staged records, concatenate leaf payloads in frontier order,

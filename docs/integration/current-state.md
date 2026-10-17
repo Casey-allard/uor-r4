@@ -1,3 +1,12 @@
+## 2026-10-17 — FETCH batch opt-in for high-latency pulls (deepseek/object-store-batch)
+
+The [batch record](../labs/object-store-batch-2026-10-17/README.md) adds `objpeer pull --batch N` and
+`pull_selected_with_batch`: an explicit FETCH window clamped to 1..=65535 while the default stays at the
+derived 4096. On the WAN, the same 52,535,088 B artifact pulled in 236.19 s (default) vs 91.50 s
+(`--batch 32768`), a 2.58x speedup with identical wire bytes; locally the larger batch is slower, so it
+is opt-in. Package 58 passed / 0 failed; Clippy/fmt clean. No model compute; training/M2/Stage B HELD.
+**Next:** protected delivery, then rebuild the review-repo binary and re-run the acceptance gate.
+
 ## 2026-10-17 — Pinned cold join: objpeer join (deepseek/object-store-join)
 
 The [join record](../labs/object-store-join-2026-10-17/README.md) adds objpeer join for the supported

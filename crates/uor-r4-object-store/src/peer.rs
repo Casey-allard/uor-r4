@@ -328,7 +328,19 @@ pub fn pull_selected<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
 ) -> Result<(Manifest, PullStats)> {
-    pull_one(store, expected, selector, true, reader, writer)
+    pull_one(store, expected, selector, true, None, reader, writer)
+}
+
+/// Pull with an explicit FETCH batch size, clamped to 1..=65535: raise it on high-latency links.
+pub fn pull_selected_with_batch<R: Read, W: Write>(
+    store: &mut Store,
+    expected: Option<ExpectedObject>,
+    selector: Option<[u8; 32]>,
+    batch: usize,
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<(Manifest, PullStats)> {
+    pull_one(store, expected, selector, true, Some(batch), reader, writer)
 }
 
 /// One requested artifact in a pull series.
@@ -353,6 +365,7 @@ pub fn pull_series<R: Read, W: Write>(
             request.expected,
             request.selector,
             false,
+            None,
             reader,
             writer,
         )?);
@@ -366,6 +379,7 @@ fn pull_one<R: Read, W: Write>(
     expected: Option<ExpectedObject>,
     selector: Option<[u8; 32]>,
     send_done: bool,
+    batch: Option<usize>,
     reader: &mut R,
     writer: &mut W,
 ) -> Result<(Manifest, PullStats)> {
@@ -386,7 +400,9 @@ fn pull_one<R: Read, W: Write>(
         }
     }
 
-    let batch = batch_size(&limits);
+    let batch = batch
+        .unwrap_or_else(|| batch_size(&limits))
+        .clamp(1, u16::MAX as usize);
     let mut fetched: BTreeMap<NodeId, Record> = BTreeMap::new();
     let mut stats = PullStats::default();
     loop {

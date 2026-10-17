@@ -330,7 +330,7 @@ fn packaged_cli_verify_reports_a_stale_store() {
 
 #[test]
 fn packaged_cli_batch_verify_uses_one_session() {
-    let dir = tmp_dir("batch");
+    let dir = tmp_dir("pull-batch");
     let first = dir.join("first.bin");
     let second = dir.join("second.bin");
     let third = dir.join("third.bin");
@@ -1055,4 +1055,37 @@ fn packaged_cli_join_rejects_a_wrong_pin_without_writing_the_store() {
         "{}",
         String::from_utf8_lossy(&out.stderr)
     );
+}
+
+#[test]
+fn packaged_cli_pull_batch_flag_pulls_exactly() {
+    let dir = tmp_dir("batch");
+    let payload = (0..(2 * 1024 * 1024))
+        .map(|i| (i % 251) as u8)
+        .collect::<Vec<u8>>();
+    let object = dir.join("object.bin");
+    std::fs::write(&object, &payload).unwrap();
+    let sha = sha_hex(&payload);
+    let (_server, _reader, addr) = spawn_serve(&dir.join("server.store"), &object);
+    let out = dir.join("out.bin");
+    let result = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("pull")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--select-sha256")
+        .arg(&sha)
+        .arg("--batch")
+        .arg("1024")
+        .arg("--out")
+        .arg(&out)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert_eq!(std::fs::read(&out).unwrap(), payload);
 }
