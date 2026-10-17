@@ -1,3 +1,33 @@
+## 2026-10-17 — Attention Battery2 staging stop before binary invocation (Codex/cf1)
+
+The [actual preflight record](../labs/attention-preflight-2026-10-17/README.md),
+[closure6242397583](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6242397583)
+and [PM disposition6242429565](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6242429565)
+seals PM6242232012's released Battery2 attempt at unchanged protected source
+d46e050f4 and executable5abe54c3. Setup completed, but the job exited1 at its
+raw-data check with zero attempted command steps: first TRAIN tokens present,
+four remaining registered data/tokenizer files missing. All project metadata,
+init/export/eval/B3/proposal/qualification commands remain NOT_RUN; zero applies.
+Archived staging code exposes manifest stdin to the verification SSH child;
+an independent consuming-child stub reproduces the first-file-only result.
+This is a D31 instrument/setup defect, not a mechanism negative or a progress
+reset. Per [PM ruling6242715607](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6242715607),
+the protected line is count0/3: reply37/232 SUSPENDED, learned Relation NOT_RUN.
+Preparation and D31 instrument failure do not consume the executed-test count.
+
+Independent actual audit6242413809 accepts the preserved operational receipt:
+31 collected/71 operator/20 raw/44 reviewed/5 closure hashes PASS. Main archive
+6309888bytes/MD5`7e2afaa3df2943dc9cd98b87c5ef0b01` verified before own56460012
+down22:34:03Z; separate late closure23552/`c95491c56bc36bf83bcadd4b387fc104`.
+Raw-quote uptime proxy$0.050316691 versus rounded-rate$0.050342222; separate
+wall proxies remain alternatives, not invoices. No paid retry is authorized.
+Battery3 is conditionally ready for distinct PM dispatch; NOT_RELEASED/NOT_RUN
+([prospective verdict6242500425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6242500425),
+[final handoff6242520855](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6242520855)).
+[AGY APPROVE6242609372](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6242609372)
+completes the packet reviews; next is a new distinct actual PM release and fresh admission. No new timing,
+compiler or mechanism programme. Training/M2/StageB HELD; Q4 NOT_EXECUTABLE.
+
 ## 2026-10-17 — FETCH batch opt-in for high-latency pulls (deepseek/object-store-batch)
 
 The [batch record](../labs/object-store-batch-2026-10-17/README.md) adds `objpeer pull --batch N` and

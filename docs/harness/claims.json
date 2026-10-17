@@ -20,12 +20,12 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-attention-cell-export": {
-    "branch": "codex/cf1-attention-cell-export",
-    "claimed_at": "2026-10-17T17:20:56-04:00",
-    "head": "96ad8a475",
+  "codex/cf1-attention-battery2-blocker": {
+    "branch": "codex/cf1-attention-battery2-blocker",
+    "claimed_at": "2026-10-17T18:41:16-04:00",
+    "head": "f0c74b823",
     "lab": "codex",
-    "note": ""
+    "note": "Docs-only actual Battery2 staging blocker seal: new attention-preflight record/current-state, token-cell-export record, STATUS and ROADMAP current dependency pointers only. No runtime/kernel/science changes. PM queue; prospective Battery3 external independently reviewed."
   },
   "codex/cf1-reuse-timing-uuid-blocker": {
     "branch": "codex/cf1-reuse-timing-uuid-blocker",

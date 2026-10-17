@@ -10,8 +10,13 @@ exported on CUDA through the existing `token_cell`, with no host reimplementatio
 **Scope:** source implementation plus Gate9 CUDA construction at
 `96ad8a4750398a8ecbf89e711f351de1580d7991`. All five declared compiler/host/link
 commands PASS under [PM dispatch6241202400](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6241202400).
-The export, battery and learned attention remain **NOT_RUN**. The constructed
-binary was archived without invocation; no finite or learning release follows.
+The export, model battery phases and learned attention remain **NOT_RUN**.
+The constructed binary was archived without invocation; construction releases
+no finite or learning work. Source delivery is protected merge
+`d46e050f4dfe4177f599410f34e1647cc9b2fc4f`, whole-tree equal to reviewed ca707.
+The separately released [Battery2 attempt](../attention-preflight-2026-10-17/README.md)
+failed its raw-data staging check before any project binary ran; it supplies
+no runtime-export or mechanism result. Its release is consumed.
 Gate8 and its binary retain their earlier identities and evidence scopes.
 
 ## Exact interface and format

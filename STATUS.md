@@ -3,13 +3,16 @@
 **Active dependency — learned native attention, 17 October:** the interleaved
 Relation learning path and its checkpoint/preflight runner are delivered in
 #2575/#2582, with construction evidence at their recorded sources. An attributable
-learned-attention result is still NOT_RUN. The next source dependency is the
+learned-attention result is still NOT_RUN. The
 [read-only CUDA token-cell export](docs/labs/attention-token-cell-export-2026-10-17/README.md)
-needed for the reference-input contract; Gate9 passes all five construction/host
+needed for the reference-input contract is delivered in #2601; Gate9 passes all five construction/host
 commands at96ad8a475, including82 metadata tests with0fail/1ignored and a linked
 binary archived without invocation. The actual export remains NOT_RUN.
-Reviewed protected delivery precedes finite preflight, then a separately
-released paired learning dose. Training/M2/StageB remain HELD;
+The separately released [Battery2 preflight](docs/labs/attention-preflight-2026-10-17/README.md)
+stopped on a staging defect before the first project executable; it provides
+no model result. Next is the bounded stdin/completeness repair and a separately
+reviewed/released preflight successor, then the separately released paired
+learning dose. Training/M2/StageB remain HELD;
 Q4 NOT_EXECUTABLE. The earlier pilot below retains its measured scope.
 
 **Current result — D32/D33, 14 October:** the admitted seed-1 discrete pilot

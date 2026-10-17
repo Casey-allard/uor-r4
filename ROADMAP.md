@@ -1,9 +1,12 @@
 # UOR-R4 Geometric Language Model - roadmap
 
-**Immediate M1 path, 17 October:** finish the
+**Immediate M1 path, 17 October:** the
 [minimal device token-cell input producer](docs/labs/attention-token-cell-export-2026-10-17/README.md),
-deliver its reviewed Gate9-constructed source, bind the finite preflight, then execute
-the separately released paired Relation/frozen-zero learning test under the
+is delivered in #2601 with reviewed Gate9 construction. The released
+[Battery2 preflight](docs/labs/attention-preflight-2026-10-17/README.md) stopped on
+data staging before any project executable. Repair that bounded transport
+contract, review/release the preflight successor, then execute the separately
+released paired Relation/frozen-zero learning test under the
 [learned-attention sheet](docs/harness/prep/m1-learned-attention-link-2026-10-17.md).
 Actual device admissions and the matched reference reports support attribution;
 full same-cell dose results cannot be inferred from scalar admission counts.
