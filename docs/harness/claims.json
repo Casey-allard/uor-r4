@@ -48,6 +48,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-peer-dedupe": {
+    "branch": "deepseek/object-store-peer-dedupe",
+    "claimed_at": "2026-10-17T14:52:57-04:00",
+    "head": "92f22df21",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-peer-hardening": {
     "branch": "deepseek/object-store-peer-hardening",
     "claimed_at": "2026-10-17T14:49:43-04:00",

@@ -310,6 +310,10 @@ fn missing_nodes(
     for (root, _) in manifest.roots() {
         walk_missing(store, *root, fetched, &mut missing, &mut visits, limits)?;
     }
+    // Deduplicated repeated content makes the tree a DAG: the same missing node can be reached by
+    // several paths, so request each id exactly once.
+    let mut seen = HashSet::new();
+    missing.retain(|id| seen.insert(*id));
     Ok(missing)
 }
 

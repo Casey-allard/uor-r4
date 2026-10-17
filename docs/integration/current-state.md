@@ -1,3 +1,13 @@
+## 2026-10-17 — Peer pull requests deduplicated DAG nodes once (deepseek/object-store-peer-dedupe)
+
+The [dedupe record](../labs/object-store-peer-dedupe-2026-10-17/README.md) fixes a real failure found by
+the product CLI against hardened main: deduplicated repeated content makes the FBS tree a DAG, so one
+missing node could appear on several paths and the strict correlated-response check rejected a valid
+duplicate request. missing_nodes now deduplicates ids before batching; response correlation stays strict.
+Regression covers a periodic 2 MiB object with a 128-atom edited region; peer suite 7/7, package 30
+passed, Clippy -D warnings and fmt clean. No model compute; training/M2/Stage B HELD; model milestone
+counts unchanged. **Next:** protected delivery, then driver-side DoS/limits and multi-peer fan-out.
+
 ## 2026-10-17 — Exact object store peer replication hardened (deepseek/object-store-peer-hardening)
 
 The [hardening record](../labs/object-store-peer-hardening-2026-10-17/README.md) adds a caller-pinned

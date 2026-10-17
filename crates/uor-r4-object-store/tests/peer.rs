@@ -178,3 +178,34 @@ fn record_accessors_expose_native_record_bytes() {
     assert_eq!(record.id(), root);
     assert_eq!(record.scale(), scale);
 }
+
+#[test]
+fn deduplicated_dag_nodes_are_requested_once() {
+    // Repeated atom content creates identical subtrees, so the FBS tree is a DAG. A delta pull must
+    // request each missing node exactly once and complete.
+    fn periodic(n: usize, salt: u8) -> Vec<u8> {
+        let mut out = Vec::with_capacity(n * 32);
+        for i in 0..n {
+            for j in 0..32 {
+                out.push((((i % 8) * 37 + j * 11 + salt as usize) & 0xFF) as u8);
+            }
+        }
+        out
+    }
+    let old = periodic(65536, 1);
+    let mut new = old.clone();
+    for edit in 0..128usize {
+        let base = 32768 + edit * 32;
+        for j in 0..32 {
+            new[base + j] = (((edit % 8) * 53 + j * 7 + 3) & 0xFF) as u8;
+        }
+    }
+    let mut sender = Store::new(limits());
+    let manifest = sender.fold(&new).expect("fold new").manifest;
+    let mut receiver = Store::new(limits());
+    receiver.fold(&old).expect("fold old");
+    let expected = ExpectedObject::from_manifest(&manifest);
+    pull_from(sender, manifest.clone(), &mut receiver, Some(expected));
+    let rebuilt = receiver.rebuild(&manifest).expect("rebuild");
+    assert_eq!(rebuilt.bytes(), &new[..]);
+}
