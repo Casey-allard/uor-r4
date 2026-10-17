@@ -5,9 +5,11 @@
 pub mod bindings;
 mod hash;
 mod manifest;
+pub mod peer;
 mod record;
 mod store;
 pub use manifest::Manifest;
+pub use peer::PullStats;
 pub use record::Record;
 use std::fmt;
 pub use store::{

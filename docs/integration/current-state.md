@@ -1,3 +1,14 @@
+## 2026-10-17 — Exact object store gains native peer replication (deepseek/object-store-peer)
+
+The [peer record](../labs/object-store-peer-2026-10-17/README.md) adds Store read accessors
+(record_bytes/has_record) and a transport-agnostic peer module that replicates an object using the
+native manifest and record wire formats, requesting only nodes the receiver's Store reports missing
+and rebuilding with native digest verification. Package tests 25 pass (3 new peer tests: a
+1,048,576-byte object delta transfers 22 records / 1,014 bytes in 3 rounds and verifies; an identical
+store transfers 0 records), Clippy -D warnings clean, fmt clean. No model compute; training/M2/Stage B
+HELD; Q4 NOT_EXECUTABLE; model milestone counts unchanged. **Next:** protected delivery, driver
+transport adapter, then multi-peer and persisted-store restart gates.
+
 ## 2026-10-17 — Owner-prioritized native Relation learning path, source preparation (codex/cf1)
 
 The [integrated source record](../labs/native-relation-learning-path-2026-10-17/README.md) connects the missing absolute-batch interleaver, explicit post-init ActiveLeaf storage and matched45-coordinate Relation/frozen-zero control to the real CUDA transition and attribution executor. Scientific sheet #2574 remains FIT(design), with production initializer/numerical CUDA/frozen completion/timing3 unchanged and no model execution or learned-attention result. Gate6 at exact6ca599a53 passed initial provenance and CUDA all-target check (exit0/47.91s), then strict package `--no-deps --all-targets` Clippy stopped at three unchanged-main prime_zeta.rs sites; both host gates/final guard were NOT_RUN. Independent actual review04dda4b1 accepts38remote+43operator+24packet SHA and full private cloud8152576bytes/MD54d48c7556e35ecd0aafcca6558a94a52 before release/down15:52:51Z/fleet0; separate closure23552bytes/MD537190b09abfe500159891a42dccfd969. Native338s elapsed cost proxy$0.161958333, separate341s wall$0.163395833; cumulative mixed Codex estimate$4.320722222 plus PM, not invoices. Gate4 SSH/gate5 allocation operational failures remain sealed separately, not mechanism negatives. PM6236268062 accepted gate6 and approved only three equivalent prime_zeta lint idioms, explicitly preserving order/tie-break and unchanged-main lineage7b26da89d/#2525. No numerical CUDA/sheet/learning/control change or warning waiver. Repaired source changes execution identity and needs AGY confined delta, exact gate7 packet rebind and distinct PM dispatch for all four compiler/host gates. All six old releases consumed; no automatic retry. Training/M2/StageB HELD; Q4 NOT_EXECUTABLE; no headline/count change. Bounded K16/timing work remains separate and is not a new prerequisite programme.

@@ -119,6 +119,16 @@ impl Store {
     pub fn retained_record_bytes(&self) -> usize {
         self.wire_bytes
     }
+
+    /// Encoded native record bytes for one node id, for peer serving.
+    pub fn record_bytes(&self, id: NodeId) -> Option<Vec<u8>> {
+        self.records.get(&id).map(Record::encode)
+    }
+
+    /// Whether the store holds the node id.
+    pub fn has_record(&self, id: NodeId) -> bool {
+        self.records.contains_key(&id)
+    }
     fn stage(
         &self,
         pending: &mut BTreeMap<NodeId, Record>,
