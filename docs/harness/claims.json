@@ -118,6 +118,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-repair": {
+    "branch": "deepseek/object-store-repair",
+    "claimed_at": "2026-10-17T17:00:59-04:00",
+    "head": "07bb99b40",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-replica-audit": {
     "branch": "deepseek/object-store-replica-audit",
     "claimed_at": "2026-10-17T16:51:58-04:00",

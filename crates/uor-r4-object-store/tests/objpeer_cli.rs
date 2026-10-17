@@ -884,3 +884,101 @@ fn packaged_cli_sync_fails_over_when_first_replica_lacks_the_target() {
     reader1.read_to_string(&mut sink).ok();
     reader2.read_to_string(&mut sink).ok();
 }
+
+#[test]
+fn packaged_cli_repair_restores_split_targets() {
+    let dir = tmp_dir("repair");
+    let one = dir.join("one.bin");
+    let two = dir.join("two.bin");
+    let first = atoms(64, 111);
+    let second = atoms(64, 112);
+    std::fs::write(&one, &first).unwrap();
+    std::fs::write(&two, &second).unwrap();
+    let (mut server1, mut reader1, addr1, _) =
+        spawn_serve_many(&dir.join("server1.store"), &[&one], 3);
+    let (mut server2, mut reader2, addr2, _) =
+        spawn_serve_many(&dir.join("server2.store"), &[&two], 3);
+    let targets = dir.join("targets.txt");
+    std::fs::write(
+        &targets,
+        format!("{}\n{}\n", sha_hex(&first), sha_hex(&second)),
+    )
+    .unwrap();
+    let client = dir.join("client.store");
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("repair")
+        .arg("--store")
+        .arg(&client)
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--addr")
+        .arg(&addr1)
+        .arg("--addr")
+        .arg(&addr2)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+    assert!(out.status.success(), "repair failed: {} {}", stdout, stderr);
+    assert!(stdout.contains("\"repaired\":2"), "{}", stdout);
+    assert!(stdout.contains("\"unavailable\":0"), "{}", stdout);
+    // Prove the local store is now current: pulling from the same replica moves 0 records.
+    for (object, address) in [(&one, &addr1), (&two, &addr2)] {
+        let sha = sha_hex(&std::fs::read(object).unwrap());
+        let pulled = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+            .arg("pull")
+            .arg("--store")
+            .arg(&client)
+            .arg("--addr")
+            .arg(address)
+            .arg("--select-sha256")
+            .arg(&sha)
+            .arg("--out")
+            .arg(dir.join(format!("out-{}.bin", sha)))
+            .output()
+            .unwrap();
+        let pull_stdout = String::from_utf8_lossy(&pulled.stdout).to_string();
+        assert!(pulled.status.success(), "{}", pull_stdout);
+        assert!(pull_stdout.contains("nodes=0"), "{}", pull_stdout);
+    }
+    let _ = server1.wait();
+    let _ = server2.wait();
+    let mut sink = String::new();
+    reader1.read_to_string(&mut sink).ok();
+    reader2.read_to_string(&mut sink).ok();
+}
+
+#[test]
+fn packaged_cli_repair_reports_unavailable_targets() {
+    let dir = tmp_dir("repair-missing");
+    let present = dir.join("present.bin");
+    let ghost = atoms(64, 113);
+    std::fs::write(&present, atoms(64, 114)).unwrap();
+    let (mut server, mut reader, addr, _) =
+        spawn_serve_many(&dir.join("server.store"), &[&present], 2);
+    let targets = dir.join("targets.txt");
+    std::fs::write(
+        &targets,
+        format!("{}\n{}\n", sha_hex(&atoms(64, 114)), sha_hex(&ghost)),
+    )
+    .unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("repair")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert_eq!(out.status.code(), Some(3), "expected exit 3: {}", stdout);
+    assert!(stdout.contains("\"repaired\":1"), "{}", stdout);
+    assert!(stdout.contains("\"unavailable\":1"), "{}", stdout);
+    let _ = server.wait();
+    let mut sink = String::new();
+    reader.read_to_string(&mut sink).ok();
+}

@@ -107,6 +107,13 @@ fn retryable(error: &Error) -> bool {
     )
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RepairStatus {
+    Current,
+    Repaired,
+    Failed,
+    Unavailable,
+}
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
@@ -644,6 +651,239 @@ fn main() {
                 std::process::exit(2);
             }
             if stale > 0 || mismatch > 0 {
+                std::process::exit(3);
+            }
+        }
+        "repair" => {
+            if addrs.is_empty() || targets.is_empty() {
+                die("repair requires at least one --addr and --targets");
+            }
+            let mut store = load_store(&store_path);
+            if !have.is_empty() {
+                fold_file(&mut store, &have);
+            }
+            let text = fs::read_to_string(&targets)
+                .unwrap_or_else(|e| die(&format!("read {}: {}", targets, e)));
+            let mut selectors: Vec<[u8; 32]> = select_shas.clone();
+            for (number, line) in text.lines().enumerate() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                if line.len() != 64 {
+                    die(&format!(
+                        "{}:{}: expected 64 hex characters",
+                        targets,
+                        number + 1
+                    ));
+                }
+                selectors.push(hex32(line));
+            }
+            if selectors.is_empty() {
+                die("repair targets file contained no selectors");
+            }
+            let probe_requests: Vec<peer::VerifyRequest> = selectors
+                .iter()
+                .map(|selector| peer::VerifyRequest {
+                    expected: None,
+                    selector: Some(*selector),
+                })
+                .collect();
+            let mut states: Vec<Option<Vec<peer::VerifyOutcome>>> = Vec::with_capacity(addrs.len());
+            for address in &addrs {
+                let mut attempt = 0usize;
+                let outcome = loop {
+                    let result = (|| -> uor_r4_object_store::Result<Vec<peer::VerifyOutcome>> {
+                        let stream = TcpStream::connect(address)?;
+                        let reader_stream = stream.try_clone()?;
+                        let mut reader = Counted {
+                            inner: reader_stream,
+                            bytes: 0,
+                        };
+                        let mut writer = Counted {
+                            inner: stream,
+                            bytes: 0,
+                        };
+                        peer::verify_series(&store, &probe_requests, &mut reader, &mut writer)
+                    })();
+                    match result {
+                        Ok(outcomes) => break Some(outcomes),
+                        Err(error) if attempt < retries && retryable(&error) => {
+                            attempt += 1;
+                            eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+                        }
+                        Err(error) => {
+                            eprintln!("replica {} probe failed: {:?}; skipping", address, error);
+                            break None;
+                        }
+                    }
+                };
+                states.push(outcome);
+            }
+            let mut results: Vec<(RepairStatus, Option<usize>)> =
+                vec![(RepairStatus::Unavailable, None); selectors.len()];
+            let mut groups: Vec<(usize, Vec<usize>)> = Vec::new();
+            let mut current = 0usize;
+            let mut unavailable = 0usize;
+            for (index, _) in selectors.iter().enumerate() {
+                let mut chosen: Option<usize> = None;
+                let mut is_current = false;
+                for (replica, state) in states.iter().enumerate() {
+                    let Some(outcomes) = state else {
+                        continue;
+                    };
+                    let Some(outcome) = outcomes.get(index) else {
+                        continue;
+                    };
+                    match outcome {
+                        peer::VerifyOutcome::Verified { .. } => {
+                            is_current = true;
+                            chosen = Some(replica);
+                            break;
+                        }
+                        peer::VerifyOutcome::Stale { .. } => {
+                            if chosen.is_none() {
+                                chosen = Some(replica);
+                            }
+                        }
+                        peer::VerifyOutcome::Unknown | peer::VerifyOutcome::Mismatch => {}
+                    }
+                }
+                if is_current {
+                    current += 1;
+                    results[index] = (RepairStatus::Current, chosen);
+                } else if let Some(replica) = chosen {
+                    if let Some(group) = groups.iter_mut().find(|(item, _)| *item == replica) {
+                        group.1.push(index);
+                    } else {
+                        groups.push((replica, vec![index]));
+                    }
+                    results[index] = (RepairStatus::Repaired, Some(replica));
+                } else {
+                    unavailable += 1;
+                }
+            }
+            let mut failed = 0usize;
+            let mut repaired_wire = 0u64;
+            for (replica, indexes) in &groups {
+                let address = &addrs[*replica];
+                let pull_requests: Vec<peer::PullRequest> = indexes
+                    .iter()
+                    .map(|index| peer::PullRequest {
+                        expected: None,
+                        selector: Some(selectors[*index]),
+                    })
+                    .collect();
+                let mut attempt = 0usize;
+                let outcome = loop {
+                    let result =
+                        (|| -> uor_r4_object_store::Result<Vec<(Manifest, peer::PullStats)>> {
+                            let stream = TcpStream::connect(address)?;
+                            let reader_stream = stream.try_clone()?;
+                            let mut reader = Counted {
+                                inner: reader_stream,
+                                bytes: 0,
+                            };
+                            let mut writer = Counted {
+                                inner: stream,
+                                bytes: 0,
+                            };
+                            let results = peer::pull_series(
+                                &mut store,
+                                &pull_requests,
+                                &mut reader,
+                                &mut writer,
+                            )?;
+                            repaired_wire += reader.bytes + writer.bytes;
+                            Ok(results)
+                        })();
+                    match result {
+                        Ok(results) => break results,
+                        Err(error) if attempt < retries && retryable(&error) => {
+                            attempt += 1;
+                            eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+                        }
+                        Err(error) => {
+                            eprintln!("repair from {} failed: {:?}", address, error);
+                            for index in indexes {
+                                results[*index] = (RepairStatus::Failed, Some(*replica));
+                            }
+                            failed += indexes.len();
+                            break Vec::new();
+                        }
+                    }
+                };
+                if outcome.len() != pull_requests.len() && !outcome.is_empty() {
+                    failed += indexes.len();
+                }
+            }
+            save_store(&store, &store_path);
+            let repaired = results
+                .iter()
+                .filter(|(status, _)| *status == RepairStatus::Repaired)
+                .count();
+            let status_name = |status: RepairStatus| match status {
+                RepairStatus::Current => "current",
+                RepairStatus::Repaired => "repaired",
+                RepairStatus::Failed => "failed",
+                RepairStatus::Unavailable => "unavailable",
+            };
+            if json {
+                let entries: Vec<String> = results
+                    .iter()
+                    .enumerate()
+                    .map(|(index, (status, replica))| {
+                        let selector = hex(&selectors[index]);
+                        match replica {
+                            Some(replica) => format!(
+                                "{{\"selector\":\"{}\",\"status\":\"{}\",\"replica\":\"{}\"}}",
+                                selector,
+                                status_name(*status),
+                                addrs[*replica]
+                            ),
+                            None => format!(
+                                "{{\"selector\":\"{}\",\"status\":\"{}\"}}",
+                                selector,
+                                status_name(*status)
+                            ),
+                        }
+                    })
+                    .collect();
+                println!(
+                    "{{\"replicas\":{},\"checks\":{},\"current\":{},\"repaired\":{},\"unavailable\":{},\"failed\":{},\"wire_bytes\":{},\"results\":[{}]}}",
+                    addrs.len(),
+                    selectors.len(),
+                    current,
+                    repaired,
+                    unavailable,
+                    failed,
+                    repaired_wire,
+                    entries.join(",")
+                );
+            } else {
+                for (index, (status, replica)) in results.iter().enumerate() {
+                    match replica {
+                        Some(replica) => println!(
+                            "REPAIR i={} status={} replica={}",
+                            index,
+                            status_name(*status),
+                            addrs[*replica]
+                        ),
+                        None => println!("REPAIR i={} status={}", index, status_name(*status)),
+                    }
+                }
+                println!(
+                    "REPAIR_SUMMARY replicas={} checks={} current={} repaired={} unavailable={} failed={} wire_bytes={}",
+                    addrs.len(),
+                    selectors.len(),
+                    current,
+                    repaired,
+                    unavailable,
+                    failed,
+                    repaired_wire
+                );
+            }
+            if unavailable > 0 || failed > 0 {
                 std::process::exit(3);
             }
         }

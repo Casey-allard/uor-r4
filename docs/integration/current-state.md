@@ -1,3 +1,13 @@
+## 2026-10-17 — objpeer repair: audit, select, pull missing targets (deepseek/object-store-repair)
+
+The [repair record](../labs/object-store-repair-2026-10-17/README.md) adds objpeer repair: probe each
+replica, classify each target current/repaired/unavailable, group repairs by the replica that holds them
+and pull only the missing targets, with per-target status, JSON totals and exit 3 on unavailable/failed
+targets. Tests cover split targets across replicas (follow-up pull moves 0 records, proving the local
+store is current) and an unavailable target. CLI 16/16, peer 15/15, controls 10/10, vectors 1/1, showcase
+5/5; Clippy -D warnings and fmt clean. No model compute; training/M2/Stage B HELD. **Next:** protected
+delivery, then a packaged repair demo on real artifacts and INDEX update.
+
 ## 2026-10-17 — Replica-aware sync with failover (deepseek/object-store-replica-sync)
 
 The [replica-sync record](../labs/object-store-replica-sync-2026-10-17/README.md) makes objpeer sync
