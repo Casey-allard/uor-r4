@@ -297,3 +297,29 @@ fn packaged_cli_fleet_verify_and_select() {
     let mut rest = String::new();
     reader.read_to_string(&mut rest).ok();
 }
+
+#[test]
+fn packaged_cli_verify_reports_a_stale_store() {
+    let dir = tmp_dir("stale");
+    let object = dir.join("object.bin");
+    std::fs::write(&object, atoms(64, 21)).unwrap();
+    let (mut server, mut reader, addr) = spawn_serve(&dir.join("server.store"), &object);
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("verify")
+        .arg("--store")
+        .arg(dir.join("empty.store"))
+        .arg("--addr")
+        .arg(&addr)
+        .output()
+        .unwrap();
+    assert_eq!(
+        out.status.code(),
+        Some(3),
+        "stale verify must exit 3: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8_lossy(&out.stdout).contains("verified=false"));
+    let _ = server.wait();
+    let mut rest = String::new();
+    reader.read_to_string(&mut rest).ok();
+}

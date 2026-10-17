@@ -1,3 +1,12 @@
+## 2026-10-17 — Fleet protocol docs and stale-verification coverage (deepseek/object-store-fleet-docs)
+
+The [docs record](../labs/object-store-fleet-docs-2026-10-17/README.md) completes the fleet surface:
+objpeer usage documents verify, repeated --object and --select-sha256; the peer module documents the
+32-byte selector and serve_many; and stale verification is now gated in both the library (missing > 0,
+verified=false on an empty store) and the CLI (exit 3, verified=false). Peer 11/11, CLI 5/5, controls
+10/10, showcase 5/5; Clippy -D warnings and fmt clean. No model compute; training/M2/Stage B HELD.
+**Next:** protected delivery, then cross-machine fleet verification.
+
 ## 2026-10-17 — Fleet verify and multi-object manifest selection (deepseek/object-store-fleet)
 
 The [fleet record](../labs/object-store-fleet-2026-10-17/README.md) adds a backward-compatible 32-byte

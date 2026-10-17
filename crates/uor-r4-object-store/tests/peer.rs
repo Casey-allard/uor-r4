@@ -388,3 +388,30 @@ fn multi_object_serve_selects_by_sha_and_rejects_unknown() {
         drop(writer);
     });
 }
+
+#[test]
+fn verify_reports_a_stale_store_without_fetching() {
+    let payload = atoms(1024, 21);
+    let mut sender = Store::new(limits());
+    let manifest = sender.fold(&payload).expect("fold").manifest;
+    let receiver = Store::new(limits());
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let addr = listener.local_addr().expect("addr");
+    let server_manifest = manifest.clone();
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().expect("accept");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        let _ = peer::serve(&sender, &server_manifest, &mut reader, &mut writer);
+    });
+    let stream = TcpStream::connect(addr).expect("connect");
+    let mut reader = stream.try_clone().expect("clone");
+    let mut writer = stream;
+    let stats =
+        peer::verify(&receiver, None, None, &mut reader, &mut writer).expect("verify stale");
+    assert!(!stats.verified);
+    assert!(stats.missing > 0);
+    drop(reader);
+    drop(writer);
+    server.join().ok();
+}

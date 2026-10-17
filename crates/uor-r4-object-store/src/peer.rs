@@ -12,6 +12,10 @@
 //!   verified against the manifest, and only then are the records imported into the store.
 //! - Protocol hygiene: DONE is sent after commit, every message flushes, a clean EOF ends a serve
 //!   session, and serve only answers ids in the requested manifest's closure with request/byte budgets.
+//! - Fleet selection: MANIFEST_REQUEST takes an optional 32-byte selector (whole-object SHA-256 or
+//!   manifest version); serve_many serves several objects from one store, verify reports closure
+//!   completeness without fetching records or rebuilding the payload, and an unknown selector fails
+//!   with Error::UnknownObject.
 
 use std::collections::{BTreeMap, HashSet};
 use std::io::{Read, Write};

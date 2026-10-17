@@ -101,7 +101,7 @@ fn fold_file(store: &mut Store, path: &str) -> Manifest {
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        die("usage: objpeer info|serve|pull [--store S] [--object F] [--have F] [--bind A] [--addr A] [--out F]");
+        die("usage: objpeer info|serve|pull|verify [--store S] [--object F ...] [--have F] [--bind A] [--addr A] [--out F] [--select-sha256 HEX] [--expect-sha256 HEX] [--expect-version HEX] [--expect-bytes N] [--sessions N] [--concurrent]");
     }
     let mut store_path = String::from("objpeer.store");
     let mut objects: Vec<String> = Vec::new();
