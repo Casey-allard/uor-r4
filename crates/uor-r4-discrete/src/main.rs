@@ -168,6 +168,7 @@ completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately rele
 attention-check-plan PLAN — metadata validation only; no release.
 attention-owner-release PLAN NEW_RELEASE_DIR — Casey personally at a terminal, UOR_LAB unset; separate attention arm/seed scope, no D33 delegation.
 attention-panel CONFIG NEW_REPORT_DIR — canonical DEV row metadata and first64 successor probe request, no model.
+attention-export-token-cells CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR — read-only CUDA token-to-cell map from an exact checkpoint; no forward or apply.
 attention-capture-dev CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — separately released zero-apply GPU Forward slot capture.
 attention-dev-b3 CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — exact immutable DEV B3 metadata, no model.
 attention-transfer PAIRED_DEV_DECISION NEW_REPORT_DIR — CUDA-only once-only paired fresh evaluation after sealed DEV H_geom.
@@ -196,6 +197,13 @@ attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched
             uor_r4_discrete::controller::attention_learning::preflight::panel(std::path::Path::new(
                 &args[1],
             ))
+        }),
+        Some("attention-export-token-cells") if args.len() == 4 => report_command(&args[3], || {
+            uor_r4_discrete::controller::attention_learning::preflight::export_token_cells(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+                std::path::Path::new(&args[3]),
+            )
         }),
         Some("attention-capture-dev") if args.len() == 5 => report_command(&args[4], || {
             uor_r4_discrete::controller::attention_learning::preflight::capture_dev(

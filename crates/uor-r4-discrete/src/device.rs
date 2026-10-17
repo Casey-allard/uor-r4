@@ -676,6 +676,7 @@ impl Proposal {
 struct Kernels {
     init: CudaFunction,
     encode: CudaFunction,
+    export_token_cells: CudaFunction,
     forward: CudaFunction,
     counterfactual: CudaFunction,
     choose: CudaFunction,
@@ -818,6 +819,9 @@ impl Device {
         let kernels = Kernels {
             init: module.load_function("discrete_init").map_err(cuda)?,
             encode: module.load_function("discrete_encode").map_err(cuda)?,
+            export_token_cells: module
+                .load_function("discrete_export_token_cells")
+                .map_err(cuda)?,
             forward: module.load_function("discrete_forward").map_err(cuda)?,
             counterfactual: module
                 .load_function("discrete_counterfactual")
@@ -973,6 +977,39 @@ impl Device {
     /// Storage-only readback for admission checks; copies no codebook or routes.
     pub fn read_gates(&self) -> Result<Vec<i32>> {
         self.stream.clone_dtoh(&self.gates).map_err(cuda)
+    }
+
+    /// Read-only CUDA export of the current checkpoint's token cells, indexed
+    /// by token ID. Geometry is computed by the existing device token_cell
+    /// identity-candidate helper; host work only converts checked storage.
+    pub fn export_token_cells(&self) -> Result<Vec<u16>> {
+        let vocabulary = self.spec().vocabulary;
+        let spec = self.gpu_spec(0)?;
+        let mut cells = self
+            .stream
+            .alloc_zeros::<u32>(vocabulary as usize)
+            .map_err(cuda)?;
+        let mut status = self.stream.alloc_zeros::<u32>(1).map_err(cuda)?;
+        let mut launch = self.stream.launch_builder(&self.kernels.export_token_cells);
+        launch
+            .arg(&self.table)
+            .arg(&self.geometry)
+            .arg(&spec)
+            .arg(&mut cells)
+            .arg(&mut status);
+        // SAFETY: the admitted spec and geometry belong to this model; one
+        // output word exists per token. Only cells/status are writable, and
+        // no routes, gates or epoch pointer is passed to this read-only entry.
+        unsafe { launch.launch(launch_config(vocabulary)) }.map_err(cuda)?;
+        check_status(&self.stream, &status, "token-cell export")?;
+        self.stream
+            .clone_dtoh(&cells)
+            .map_err(cuda)?
+            .into_iter()
+            .map(|cell| {
+                u16::try_from(cell).map_err(|_| invalid("token-cell export exceeds u16 storage"))
+            })
+            .collect()
     }
 
     pub fn snapshot(&self) -> Result<Snapshot> {

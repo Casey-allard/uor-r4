@@ -1,5 +1,16 @@
 # UOR-R4 Geometric Language Model - roadmap
 
+**Immediate M1 path, 17 October:** finish the
+[minimal device token-cell input producer](docs/labs/attention-token-cell-export-2026-10-17/README.md),
+deliver its reviewed Gate9-constructed source, bind the finite preflight, then execute
+the separately released paired Relation/frozen-zero learning test under the
+[learned-attention sheet](docs/harness/prep/m1-learned-attention-link-2026-10-17.md).
+Actual device admissions and the matched reference reports support attribution;
+full same-cell dose results cannot be inferred from scalar admission counts.
+The export source passes all five Gate9 construction/host commands; the binary
+is archived without invocation. The actual export and learned result remain NOT_RUN.
+This progression changes no scientific bar or standing training/compute hold.
+
 **Current learning permission — D32:** discrete/exact GPU model computation and
 instruments only; no floating-point forward, gradient, optimizer or matrix product.
 The shared-writer FBS path and discrete flock/driver construction pass 25 admitted

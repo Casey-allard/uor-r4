@@ -1,6 +1,7 @@
-//! Attention preflight preparation/readback and a distinct actual GPU cell-ID
-//! capture. Metadata entry points never construct a model; capture_dev performs
-//! one explicitly additional zero-apply forward pass and issues no capability.
+//! Attention preparation/readback and explicit read-only GPU cell instruments.
+//! Metadata entry points never construct a model. Token-cell export restores an
+//! exact checkpoint; DEV capture adds a zero-apply forward pass. Neither issues
+//! a training capability or implements host admission geometry.
 use super::*;
 
 fn input<T: serde::de::DeserializeOwned>(path: &Path) -> Result<(T, FilePin)> {
@@ -13,6 +14,104 @@ fn input<T: serde::de::DeserializeOwned>(path: &Path) -> Result<(T, FilePin)> {
             sha256: corpus::sha256(&bytes),
         },
     ))
+}
+
+/// Storage encoding only. Cell identities have already been computed on CUDA;
+/// this function neither maps token vectors nor recreates model admissions.
+#[cfg(any(feature = "cuda", test))]
+fn token_cell_bytes(cells: &[u16]) -> Result<Vec<u8>> {
+    if cells.len() != 4096 || cells.iter().any(|&cell| cell >= 256) {
+        return Err(invalid(
+            "token-cell export requires4096 device cell IDs in0..255",
+        ));
+    }
+    Ok(cells.iter().flat_map(|cell| cell.to_le_bytes()).collect())
+}
+
+#[cfg(not(feature = "cuda"))]
+pub fn export_token_cells(
+    _config_path: &Path,
+    _checkpoint_path: &Path,
+    _output_directory: &Path,
+) -> Result<Value> {
+    Err(invalid(
+        "token-cell export requires CUDA; no host geometry implementation exists",
+    ))
+}
+
+/// Read-only export from one exact typed DriverCheckpoint. The caller reserves
+/// its report directory before constructing a CUDA context. Snapshot equality
+/// is storage validation, never a host recomputation of the exported geometry.
+#[cfg(feature = "cuda")]
+pub fn export_token_cells(
+    config_path: &Path,
+    checkpoint_path: &Path,
+    output_directory: &Path,
+) -> Result<Value> {
+    let (config, config_file): (DriverConfig, _) = input(config_path)?;
+    validate_config(&config)?;
+    let driver = PreparedDriver::load(config.clone())?;
+    let (checkpoint, checkpoint_file): (training::DriverCheckpoint, _) = input(checkpoint_path)?;
+    driver.validate_checkpoint(&checkpoint)?;
+    // Reserve the new output before any CUDA allocation or model restore.
+    // A later failure leaves this partial file with the caller's FAILED report.
+    let output_path = output_directory.join("token_cells.u16");
+    let mut output = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&output_path)
+        .map_err(|e| invalid(format!("exclusive {}: {e}", output_path.display())))?;
+    let checkpoint_sha256 = corpus::sha256(&encode(&checkpoint)?);
+    let epoch = checkpoint.cursor.accepted_updates;
+    let (model, cursor) = driver.restore(checkpoint.clone(), 0)?;
+    if cursor != checkpoint.cursor
+        || model.epoch()? != epoch
+        || serde_json::to_value(model.snapshot()?).map_err(|e| invalid(e.to_string()))?
+            != checkpoint.model
+    {
+        return Err(invalid(
+            "token-cell export restore differs from the exact checkpoint",
+        ));
+    }
+    let cells = model.export_token_cells()?;
+    if model.epoch()? != epoch
+        || serde_json::to_value(model.snapshot()?).map_err(|e| invalid(e.to_string()))?
+            != checkpoint.model
+    {
+        return Err(invalid("token-cell export mutated the checkpoint"));
+    }
+    let bytes = token_cell_bytes(&cells)?;
+    output
+        .write_all(&bytes)
+        .and_then(|_| output.sync_all())
+        .map_err(|e| invalid(e.to_string()))?;
+    let stored = fs::read(&output_path).map_err(|e| invalid(e.to_string()))?;
+    if stored != bytes {
+        return Err(invalid("token-cell export storage readback differs"));
+    }
+    let output_file = FilePin {
+        path: fs::canonicalize(&output_path).map_err(|e| invalid(e.to_string()))?,
+        sha256: corpus::sha256(&stored),
+    };
+    Ok(json!({"schema":"uor-r4.attention-token-cells/1",
+        "status":"DEVICE_TOKEN_CELL_MAP_EXPORTED_ZERO_APPLY",
+        "config_file":config_file,"config_sha256":corpus::sha256(&encode(&config)?),
+        "lineage_sha256":driver.lineage_sha256()?,"checkpoint_file":checkpoint_file,
+        "driver_checkpoint_sha256":checkpoint_sha256,"model_snapshot_sha256":checkpoint.model_sha256,
+        "model_bindings":{"source_sha256":checkpoint.model["source_sha256"],
+            "kernel_sha256":checkpoint.model["kernel_sha256"],"geometry_sha256":checkpoint.model["geometry_sha256"],
+            "spec":config.spec,"read_spec":config.read_spec,"objective_policy":config.objective_policy,
+            "read_initialization":config.read_initialization,"seed":config.seed},
+        "model_epoch":epoch,"completed_batches":cursor.completed_batches,
+        "token_cells_file":output_file,"token_count":cells.len(),"byte_count":bytes.len(),
+        "encoding":"raw_u16_le_no_header","ordering":"ascending_token_id_0_through4095",
+        "cell_range":{"min":0,"max":255},"absent_cells_allowed":false,
+        "cell_ids_source":"existing CUDA token_cell(table,geometry,spec,token,2,0,0); identity candidate",
+        "model_restores":1,"export_kernel_calls":1,"token_cell_evaluations":4096,
+        "gpu_forward_calls":0,"proposals":0,"updates_applied":0,"snapshot_unchanged":true,
+        "training_capability_issued":false,"host_cell_reconstruction":false,
+        "execution_scope":"read-only GPU instrument; separate applicable FIT and PM release required",
+        "training":"HELD","m2":"HELD","stage_b":"HELD","q4":"NOT_EXECUTABLE"}))
 }
 
 fn probe_indices(rows: &[(u64, u32, bool)]) -> Result<Vec<usize>> {
@@ -339,6 +438,32 @@ pub fn capture_dev(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn token_cell_encoding_preserves_device_order_and_little_endian_bytes() -> Result<()> {
+        let mut cells = vec![0u16; 4096];
+        cells[0] = 255;
+        cells[4095] = 17;
+        let bytes = token_cell_bytes(&cells)?;
+        assert_eq!(bytes.len(), 8192);
+        assert_eq!(&bytes[..4], &[255, 0, 0, 0]);
+        assert_eq!(&bytes[8190..], &[17, 0]);
+        assert!(token_cell_bytes(&cells[..4095]).is_err());
+        cells[1] = 256;
+        assert!(token_cell_bytes(&cells).is_err());
+        cells[1] = u16::MAX;
+        assert!(token_cell_bytes(&cells).is_err());
+        Ok(())
+    }
+    #[cfg(not(feature = "cuda"))]
+    #[test]
+    fn token_cell_export_has_no_cpu_fallback_or_input_reads() {
+        assert!(export_token_cells(
+            Path::new("missing-config"),
+            Path::new("missing-checkpoint"),
+            Path::new("missing-output")
+        )
+        .is_err());
+    }
     #[test]
     fn probe_uses_first64_declared_successors_without_outcome_selection() -> Result<()> {
         let rows = (0..200).map(|i| (i, 0, i % 2 == 1)).collect::<Vec<_>>();

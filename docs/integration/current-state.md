@@ -1,3 +1,26 @@
+## 2026-10-17 — Read-only token-cell input producer for learned attention (Codex/cf1)
+
+The [source record](../labs/attention-token-cell-export-2026-10-17/README.md)
+implements the minimal CUDA export required by PM6240513498: the existing
+`token_cell` maps4096 tokens from an exact DriverCheckpoint to an8192-byte
+little-endian file, with output SHA and source/checkpoint/lineage bindings.
+No host geometry, forward, proposal or apply path is introduced. Full snapshot
+equality is checked before/after the read-only export. Host all-target check
+and two focused storage/no-host-fallback controls PASS. AGY source/packet review
+APPROVE6241052759 and PM compiler dispatch6241202400 led to Gate9 **all five
+commands PASS** at96ad8a475: CUDA check/strict package Clippy, host check,
+82 metadata tests PASS/0FAIL/1ignored, and debug link without invocation.
+Both provenance guards PASS; full58+43+24 SHA/cloud-MD5 archive verified before
+own56451966 down21:19:44Z. The new binary5abe54c3 and full archive retain exact
+source identity; actual export/runtime identity remain NOT_RUN. Cost uptime
+proxy$0.075513333, separate wall proxy$0.076316667, not invoices; storage UNMEASURED.
+The old Gate8 binary and frozen Battery1 draft are preserved. Next: reviewed
+merge-forward/protected delivery → rebound finite preflight → separately
+released paired learning dose. Actual per-row admitted
+slots remain GPU observations; the map alone supplies no same-cell result.
+Headline unchanged, no progress reset or mechanism verdict. Training/M2/StageB
+HELD; Q4 NOT_EXECUTABLE.
+
 ## 2026-10-17 — objpeer repair: audit, select, pull missing targets (deepseek/object-store-repair)
 
 The [repair record](../labs/object-store-repair-2026-10-17/README.md) adds objpeer repair: probe each

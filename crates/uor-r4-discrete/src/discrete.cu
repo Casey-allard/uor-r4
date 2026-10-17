@@ -362,6 +362,14 @@ extern "C" __global__ void discrete_encode(const int* table,const U* ids,U count
     U i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=count*width)return;
     U token=ids[i/width];if(token>=vocabulary){atomicExch(status,1u);return;}out[i]=table[token*width+i%width];
 }
+// Read-only current-checkpoint token cells, in token-ID order. Only cells/status
+// are writable; the existing identity-candidate helper supplies all geometry.
+extern "C" __global__ void discrete_export_token_cells(const int* table,const U* g,const U* s,U* cells,U* status) {
+    U token=blockIdx.x*blockDim.x+threadIdx.x;if(token>=s[0])return;
+    U cell=token_cell(table,g,s,token,2,0,0);
+    if(cell==ABSENT || cell>255u){atomicExch(status,8u);return;}
+    cells[token]=cell;
+}
 // trace: Flock/Relation mode only, rows*blocks*(TRACE_ROW+stages*TRACE_LEVEL) words
 // (+ rows*blocks*nodes_count relation score words in Relation mode); ignored in Route mode.
 extern "C" __global__ void discrete_forward(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,int* out,U* predictions,W* losses,U* token_rivals,U* address_rivals,U* admitted,U* trace,U* status) {
