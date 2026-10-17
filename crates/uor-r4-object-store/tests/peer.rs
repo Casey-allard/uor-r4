@@ -461,3 +461,92 @@ fn verify_series_checks_several_objects_on_one_session() {
     drop(writer);
     server.join().expect("server");
 }
+
+#[test]
+fn verify_series_continues_after_an_unknown_selector() {
+    let first = atoms(256, 41);
+    let second = atoms(256, 42);
+    let mut sender = Store::new(limits());
+    let first_manifest = sender.fold(&first).expect("fold first").manifest;
+    let second_manifest = sender.fold(&second).expect("fold second").manifest;
+    let mut receiver = Store::new(limits());
+    receiver.fold(&first).expect("fold first client");
+    receiver.fold(&second).expect("fold second client");
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let addr = listener.local_addr().expect("addr");
+    let manifests = [first_manifest.clone(), second_manifest.clone()];
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().expect("accept");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        peer::serve_many(&sender, &manifests, &mut reader, &mut writer).expect("serve many");
+    });
+    let stream = TcpStream::connect(addr).expect("connect");
+    let mut reader = stream.try_clone().expect("clone");
+    let mut writer = stream;
+    let requests = [
+        VerifyRequest {
+            expected: None,
+            selector: Some(first_manifest.whole_sha256()),
+        },
+        VerifyRequest {
+            expected: None,
+            selector: Some([9u8; 32]),
+        },
+        VerifyRequest {
+            expected: None,
+            selector: Some(second_manifest.whole_sha256()),
+        },
+    ];
+    let outcomes =
+        peer::verify_series(&receiver, &requests, &mut reader, &mut writer).expect("series");
+    assert_eq!(outcomes.len(), 3);
+    assert_eq!(outcomes[0], VerifyOutcome::Verified { missing: 0 });
+    assert_eq!(outcomes[1], VerifyOutcome::Unknown);
+    assert_eq!(outcomes[2], VerifyOutcome::Verified { missing: 0 });
+    drop(reader);
+    drop(writer);
+    server.join().expect("server");
+}
+
+#[test]
+fn verify_series_pipelines_more_than_one_window() {
+    let payload = atoms(512, 43);
+    let mut sender = Store::new(limits());
+    let manifest = sender.fold(&payload).expect("fold").manifest;
+    let mut receiver = Store::new(limits());
+    receiver.fold(&payload).expect("fold client");
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let addr = listener.local_addr().expect("addr");
+    let server_manifest = manifest.clone();
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().expect("accept");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        peer::serve_many(
+            &sender,
+            std::slice::from_ref(&server_manifest),
+            &mut reader,
+            &mut writer,
+        )
+        .expect("serve many");
+    });
+    let stream = TcpStream::connect(addr).expect("connect");
+    let mut reader = stream.try_clone().expect("clone");
+    let mut writer = stream;
+    let requests: Vec<VerifyRequest> = (0..100)
+        .map(|_| VerifyRequest {
+            expected: None,
+            selector: Some(manifest.whole_sha256()),
+        })
+        .collect();
+    let outcomes = peer::verify_series(&receiver, &requests, &mut reader, &mut writer)
+        .expect("windowed series");
+    assert_eq!(outcomes.len(), 100);
+    assert!(outcomes
+        .iter()
+        .all(|outcome| *outcome == VerifyOutcome::Verified { missing: 0 }));
+    drop(reader);
+    drop(writer);
+    server.join().expect("server");
+}

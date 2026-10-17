@@ -1,3 +1,12 @@
+## 2026-10-17 — Pipelined manifest requests for fleet verification (deepseek/object-store-verify-pipeline)
+
+The [pipeline record](../labs/object-store-verify-pipeline-2026-10-17/README.md) pipelines verify_series
+manifest requests in bounded windows of 64, so a fleet batch costs about one round trip per window
+instead of one per check; the single DONE and per-check ordering are preserved, an unknown selector
+keeps the session open, and a two-window 100-check test covers the window boundary. Peer 14/14, CLI 6/6,
+unit 7, controls 10, showcase 5; Clippy -D warnings and fmt clean. No model compute; training/M2/Stage B
+HELD. **Next:** protected delivery, then local and cross-machine pipelined measurements.
+
 <<<<<<< HEAD
 ## 2026-10-17 — Batch verification on one session (deepseek/object-store-verify-series)
 

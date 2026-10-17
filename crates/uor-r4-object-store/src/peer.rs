@@ -465,47 +465,57 @@ pub fn verify<R: Read, W: Write>(
     })
 }
 
-/// Check several objects on one session. The connection stays open between checks; a DONE is sent once
-/// after the last request, and an unknown selector no longer terminates the session. Per-check outcomes
-/// report verified, stale (missing closure nodes), unknown selector or pin mismatch.
+/// Check several objects on one session. Requests are pipelined in bounded windows (64): the whole set
+/// of manifest requests in a window is written, then the responses are read in order, so a batch costs
+/// about one round trip per window instead of one per check. A DONE is sent once after the last window;
+/// an unknown selector writes an error frame and keeps the session open. Per-check outcomes report
+/// verified, stale (missing closure nodes), unknown selector or pin mismatch.
 pub fn verify_series<R: Read, W: Write>(
     store: &Store,
     requests: &[VerifyRequest],
     reader: &mut R,
     writer: &mut W,
 ) -> Result<Vec<VerifyOutcome>> {
+    const WINDOW: usize = 64;
     let limits = store.limits().clone();
     let mut outcomes = Vec::with_capacity(requests.len());
-    for request in requests {
-        let body = request
-            .selector
-            .map(|value| value.to_vec())
-            .unwrap_or_default();
-        write_msg(writer, MANIFEST_REQUEST, &body)?;
-        let (kind, message) = read_msg(reader, &limits)?;
-        if kind == ERROR {
-            outcomes.push(VerifyOutcome::Unknown);
-            continue;
+    let mut start = 0usize;
+    while start < requests.len() {
+        let end = (start + WINDOW).min(requests.len());
+        for request in &requests[start..end] {
+            let body = request
+                .selector
+                .map(|value| value.to_vec())
+                .unwrap_or_default();
+            write_msg(writer, MANIFEST_REQUEST, &body)?;
         }
-        if kind != MANIFEST {
-            return Err(Error::SchemaMismatch);
-        }
-        let manifest = Manifest::decode(&message, &limits)?;
-        if let Some(expected) = request.expected {
-            if !expected.matches(&manifest) {
-                outcomes.push(VerifyOutcome::Mismatch);
+        for request in &requests[start..end] {
+            let (kind, message) = read_msg(reader, &limits)?;
+            if kind == ERROR {
+                outcomes.push(VerifyOutcome::Unknown);
                 continue;
             }
-        }
-        let fetched = BTreeMap::new();
-        let missing = missing_nodes(store, &manifest, &fetched)?;
-        outcomes.push(if missing.is_empty() {
-            VerifyOutcome::Verified { missing: 0 }
-        } else {
-            VerifyOutcome::Stale {
-                missing: missing.len(),
+            if kind != MANIFEST {
+                return Err(Error::SchemaMismatch);
             }
-        });
+            let manifest = Manifest::decode(&message, &limits)?;
+            if let Some(expected) = request.expected {
+                if !expected.matches(&manifest) {
+                    outcomes.push(VerifyOutcome::Mismatch);
+                    continue;
+                }
+            }
+            let fetched = BTreeMap::new();
+            let missing = missing_nodes(store, &manifest, &fetched)?;
+            outcomes.push(if missing.is_empty() {
+                VerifyOutcome::Verified { missing: 0 }
+            } else {
+                VerifyOutcome::Stale {
+                    missing: missing.len(),
+                }
+            });
+        }
+        start = end;
     }
     write_msg(writer, DONE, &[])?;
     Ok(outcomes)

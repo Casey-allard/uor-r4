@@ -104,6 +104,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-verify-pipeline": {
+    "branch": "deepseek/object-store-verify-pipeline",
+    "claimed_at": "2026-10-17T16:00:55-04:00",
+    "head": "c0a4821cf",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-verify-series": {
     "branch": "deepseek/object-store-verify-series",
     "claimed_at": "2026-10-17T15:51:00-04:00",
