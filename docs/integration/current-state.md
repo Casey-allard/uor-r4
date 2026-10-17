@@ -1,3 +1,13 @@
+## 2026-10-17 — Replica-aware fleet audit (deepseek/object-store-replica-audit)
+
+The [replica-audit record](../labs/object-store-replica-audit-2026-10-17/README.md) lets objpeer verify
+take repeated --addr and report per-target per-replica status: JSON gains replicas/verified_all and
+per-target replica entries, human output gains REPLICA lines plus VERIFY_REPLICAS, and exit codes flag
+any unknown (2) or stale/mismatch (3) on any replica. Single-address output is unchanged. Two new CLI
+tests cover all-replicas-verified and one-replica-unknown. CLI 12/12, peer 15/15, controls 10/10,
+vectors 1/1, showcase 5/5; Clippy -D warnings and fmt clean. No model compute; training/M2/Stage B
+HELD. **Next:** protected delivery, then a two-replica local audit benchmark and INDEX update.
+
 ## 2026-10-17 — Read-only retries for verify and fleet audit (deepseek/object-store-verify-retry)
 
 The [verify-retry record](../labs/object-store-verify-retry-2026-10-17/README.md) extends reconnect/retry

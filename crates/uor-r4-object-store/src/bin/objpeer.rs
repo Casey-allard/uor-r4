@@ -114,7 +114,7 @@ fn main() {
     let mut objects: Vec<String> = Vec::new();
     let mut have = String::new();
     let mut bind = String::from("127.0.0.1:0");
-    let mut addr = String::new();
+    let mut addrs: Vec<String> = Vec::new();
     let mut out = String::new();
     let mut sessions: usize = 1;
     let mut concurrent = false;
@@ -152,7 +152,7 @@ fn main() {
             "--out-dir" => out_dir = value,
             "--retries" => retries = value.parse().unwrap_or_else(|_| die("bad --retries")),
             "--bind" => bind = value,
-            "--addr" => addr = value,
+            "--addr" => addrs.push(value),
             "--out" => out = value,
             "--expect-sha256" => expect_sha = Some(hex32(&value)),
             "--expect-version" => expect_version = Some(hex32(&value)),
@@ -164,6 +164,7 @@ fn main() {
             other => die(&format!("unknown argument {}", other)),
         }
     }
+    let addr = addrs.first().cloned().unwrap_or_default();
     match args[1].as_str() {
         "info" => {
             let object = objects
@@ -353,7 +354,7 @@ fn main() {
             }
         }
         "verify" => {
-            if addr.is_empty() {
+            if addrs.is_empty() {
                 die("verify requires --addr");
             }
             let mut store = load_store(&store_path);
@@ -403,85 +404,164 @@ fn main() {
                     });
                 }
             }
-            let mut attempt = 0usize;
-            let (outcomes, wire_bytes) = loop {
-                let outcome =
-                    (|| -> uor_r4_object_store::Result<(Vec<peer::VerifyOutcome>, u64)> {
-                        let stream = TcpStream::connect(&addr)?;
-                        let reader_stream = stream.try_clone()?;
-                        let mut reader = Counted {
-                            inner: reader_stream,
-                            bytes: 0,
-                        };
-                        let mut writer = Counted {
-                            inner: stream,
-                            bytes: 0,
-                        };
-                        let outcomes =
-                            peer::verify_series(&store, &requests, &mut reader, &mut writer)?;
-                        Ok((outcomes, reader.bytes + writer.bytes))
-                    })();
-                match outcome {
-                    Ok(value) => break value,
-                    Err(error) if attempt < retries && retryable(&error) => {
-                        attempt += 1;
-                        eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+            let mut replicas: Vec<(String, Vec<peer::VerifyOutcome>, u64)> = Vec::new();
+            for address in &addrs {
+                let mut attempt = 0usize;
+                let (outcomes, wire_bytes) = loop {
+                    let outcome =
+                        (|| -> uor_r4_object_store::Result<(Vec<peer::VerifyOutcome>, u64)> {
+                            let stream = TcpStream::connect(address)?;
+                            let reader_stream = stream.try_clone()?;
+                            let mut reader = Counted {
+                                inner: reader_stream,
+                                bytes: 0,
+                            };
+                            let mut writer = Counted {
+                                inner: stream,
+                                bytes: 0,
+                            };
+                            let outcomes =
+                                peer::verify_series(&store, &requests, &mut reader, &mut writer)?;
+                            Ok((outcomes, reader.bytes + writer.bytes))
+                        })();
+                    match outcome {
+                        Ok(value) => break value,
+                        Err(error) if attempt < retries && retryable(&error) => {
+                            attempt += 1;
+                            eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+                        }
+                        Err(error) => die(&format!("verify {}: {:?}", address, error)),
                     }
-                    Err(error) => die(&format!("verify: {:?}", error)),
-                }
-            };
-            let mut verified = 0usize;
-            let mut stale = 0usize;
-            let mut unknown = 0usize;
-            let mut mismatch = 0usize;
-            for outcome in &outcomes {
-                match outcome {
-                    peer::VerifyOutcome::Verified { .. } => verified += 1,
-                    peer::VerifyOutcome::Stale { .. } => stale += 1,
-                    peer::VerifyOutcome::Unknown => unknown += 1,
-                    peer::VerifyOutcome::Mismatch => mismatch += 1,
+                };
+                replicas.push((address.clone(), outcomes, wire_bytes));
+            }
+            let checks = replicas
+                .first()
+                .map(|(_, outcomes, _)| outcomes.len())
+                .unwrap_or(0);
+            let mut all_ok = vec![true; checks];
+            let mut stale_targets = vec![false; checks];
+            let mut unknown_targets = vec![false; checks];
+            let mut mismatch_targets = vec![false; checks];
+            let mut total_wire = 0u64;
+            for (_, outcomes, wire) in &replicas {
+                total_wire += wire;
+                for (index, outcome) in outcomes.iter().enumerate() {
+                    if index >= checks {
+                        continue;
+                    }
+                    match outcome {
+                        peer::VerifyOutcome::Verified { .. } => {}
+                        peer::VerifyOutcome::Stale { .. } => {
+                            all_ok[index] = false;
+                            stale_targets[index] = true;
+                        }
+                        peer::VerifyOutcome::Unknown => {
+                            all_ok[index] = false;
+                            unknown_targets[index] = true;
+                        }
+                        peer::VerifyOutcome::Mismatch => {
+                            all_ok[index] = false;
+                            mismatch_targets[index] = true;
+                        }
+                    }
                 }
             }
+            let verified_all = all_ok.iter().filter(|value| **value).count();
+            let stale = stale_targets.iter().filter(|value| **value).count();
+            let unknown = unknown_targets.iter().filter(|value| **value).count();
+            let mismatch = mismatch_targets.iter().filter(|value| **value).count();
+            let single = replicas.len() == 1;
             if json {
-                let results: Vec<String> = outcomes
-                    .iter()
-                    .enumerate()
-                    .map(|(index, outcome)| {
-                        let selector = selectors
-                            .get(index)
-                            .map(|value| hex(value))
-                            .unwrap_or_default();
-                        match outcome {
-                            peer::VerifyOutcome::Verified { missing } => format!(
-                                "{{\"i\":{},\"status\":\"verified\",\"missing\":{},\"selector\":\"{}\"}}",
-                                index, missing, selector
-                            ),
-                            peer::VerifyOutcome::Stale { missing } => format!(
-                                "{{\"i\":{},\"status\":\"stale\",\"missing\":{},\"selector\":\"{}\"}}",
-                                index, missing, selector
-                            ),
-                            peer::VerifyOutcome::Unknown => format!(
-                                "{{\"i\":{},\"status\":\"unknown\",\"selector\":\"{}\"}}",
-                                index, selector
-                            ),
-                            peer::VerifyOutcome::Mismatch => format!(
-                                "{{\"i\":{},\"status\":\"mismatch\",\"selector\":\"{}\"}}",
-                                index, selector
-                            ),
-                        }
-                    })
-                    .collect();
-                println!(
-                    "{{\"checks\":{},\"verified\":{},\"stale\":{},\"unknown\":{},\"mismatch\":{},\"wire_bytes\":{},\"results\":[{}]}}",
-                    outcomes.len(),
-                    verified,
-                    stale,
-                    unknown,
-                    mismatch,
-                    wire_bytes,
-                    results.join(",")
-                );
-            } else {
+                if single {
+                    let (_, outcomes, _) = &replicas[0];
+                    let results: Vec<String> = outcomes
+                        .iter()
+                        .enumerate()
+                        .map(|(index, outcome)| {
+                            let selector = selectors
+                                .get(index)
+                                .map(|value| hex(value))
+                                .unwrap_or_default();
+                            match outcome {
+                                peer::VerifyOutcome::Verified { missing } => format!(
+                                    "{{\"i\":{},\"status\":\"verified\",\"missing\":{},\"selector\":\"{}\"}}",
+                                    index, missing, selector
+                                ),
+                                peer::VerifyOutcome::Stale { missing } => format!(
+                                    "{{\"i\":{},\"status\":\"stale\",\"missing\":{},\"selector\":\"{}\"}}",
+                                    index, missing, selector
+                                ),
+                                peer::VerifyOutcome::Unknown => format!(
+                                    "{{\"i\":{},\"status\":\"unknown\",\"selector\":\"{}\"}}",
+                                    index, selector
+                                ),
+                                peer::VerifyOutcome::Mismatch => format!(
+                                    "{{\"i\":{},\"status\":\"mismatch\",\"selector\":\"{}\"}}",
+                                    index, selector
+                                ),
+                            }
+                        })
+                        .collect();
+                    println!(
+                        "{{\"checks\":{},\"verified\":{},\"stale\":{},\"unknown\":{},\"mismatch\":{},\"wire_bytes\":{},\"results\":[{}]}}",
+                        outcomes.len(),
+                        verified_all,
+                        stale,
+                        unknown,
+                        mismatch,
+                        total_wire,
+                        results.join(",")
+                    );
+                } else {
+                    let targets: Vec<String> = (0..checks)
+                        .map(|index| {
+                            let selector = selectors
+                                .get(index)
+                                .map(|value| hex(value))
+                                .unwrap_or_default();
+                            let per_replica: Vec<String> = replicas
+                                .iter()
+                                .map(|(address, outcomes, _)| match &outcomes[index] {
+                                    peer::VerifyOutcome::Verified { missing } => format!(
+                                        "{{\"addr\":\"{}\",\"status\":\"verified\",\"missing\":{}}}",
+                                        address, missing
+                                    ),
+                                    peer::VerifyOutcome::Stale { missing } => format!(
+                                        "{{\"addr\":\"{}\",\"status\":\"stale\",\"missing\":{}}}",
+                                        address, missing
+                                    ),
+                                    peer::VerifyOutcome::Unknown => format!(
+                                        "{{\"addr\":\"{}\",\"status\":\"unknown\"}}",
+                                        address
+                                    ),
+                                    peer::VerifyOutcome::Mismatch => format!(
+                                        "{{\"addr\":\"{}\",\"status\":\"mismatch\"}}",
+                                        address
+                                    ),
+                                })
+                                .collect();
+                            format!(
+                                "{{\"selector\":\"{}\",\"replicas\":[{}]}}",
+                                selector,
+                                per_replica.join(",")
+                            )
+                        })
+                        .collect();
+                    println!(
+                        "{{\"replicas\":{},\"checks\":{},\"verified_all\":{},\"stale\":{},\"unknown\":{},\"mismatch\":{},\"wire_bytes\":{},\"results\":[{}]}}",
+                        replicas.len(),
+                        checks,
+                        verified_all,
+                        stale,
+                        unknown,
+                        mismatch,
+                        total_wire,
+                        targets.join(",")
+                    );
+                }
+            } else if single {
+                let (_, outcomes, _) = &replicas[0];
                 for (index, outcome) in outcomes.iter().enumerate() {
                     match outcome {
                         peer::VerifyOutcome::Verified { missing } => {
@@ -501,11 +581,40 @@ fn main() {
                 println!(
                     "VERIFY_SERIES checks={} verified={} stale={} unknown={} mismatch={} wire_bytes={}",
                     outcomes.len(),
-                    verified,
+                    verified_all,
                     stale,
                     unknown,
                     mismatch,
-                    wire_bytes
+                    total_wire
+                );
+            } else {
+                for (address, outcomes, wire) in &replicas {
+                    let mut rep_verified = 0usize;
+                    let mut rep_stale = 0usize;
+                    let mut rep_unknown = 0usize;
+                    let mut rep_mismatch = 0usize;
+                    for outcome in outcomes {
+                        match outcome {
+                            peer::VerifyOutcome::Verified { .. } => rep_verified += 1,
+                            peer::VerifyOutcome::Stale { .. } => rep_stale += 1,
+                            peer::VerifyOutcome::Unknown => rep_unknown += 1,
+                            peer::VerifyOutcome::Mismatch => rep_mismatch += 1,
+                        }
+                    }
+                    println!(
+                        "REPLICA addr={} verified={} stale={} unknown={} mismatch={} wire_bytes={}",
+                        address, rep_verified, rep_stale, rep_unknown, rep_mismatch, wire
+                    );
+                }
+                println!(
+                    "VERIFY_REPLICAS replicas={} checks={} verified_all={} stale={} unknown={} mismatch={} wire_bytes={}",
+                    replicas.len(),
+                    checks,
+                    verified_all,
+                    stale,
+                    unknown,
+                    mismatch,
+                    total_wire
                 );
             }
             if unknown > 0 {

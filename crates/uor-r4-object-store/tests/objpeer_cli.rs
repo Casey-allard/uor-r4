@@ -655,3 +655,131 @@ fn packaged_cli_verify_retries_after_a_cut_connection() {
     server.join().expect("server");
     proxy.join().expect("proxy");
 }
+
+fn sha_hex(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{:02x}", byte))
+        .collect()
+}
+
+#[test]
+fn packaged_cli_multi_replica_audit() {
+    let dir = tmp_dir("replicas");
+    let object = dir.join("object.bin");
+    let payload = atoms(64, 91);
+    std::fs::write(&object, &payload).unwrap();
+    let (mut server1, mut reader1, addr1, _) =
+        spawn_serve_many(&dir.join("server1.store"), &[&object], 1);
+    let (mut server2, mut reader2, addr2, _) =
+        spawn_serve_many(&dir.join("server2.store"), &[&object], 1);
+    let client = dir.join("client.store");
+    assert!(Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .args(["info", "--store"])
+        .arg(&client)
+        .arg("--object")
+        .arg(&object)
+        .output()
+        .unwrap()
+        .status
+        .success());
+    let targets = dir.join("targets.txt");
+    std::fs::write(&targets, format!("{}\n", sha_hex(&payload))).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("verify")
+        .arg("--store")
+        .arg(&client)
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--addr")
+        .arg(&addr1)
+        .arg("--addr")
+        .arg(&addr2)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert!(
+        out.status.success(),
+        "multi replica audit failed: {}",
+        stdout
+    );
+    assert!(stdout.contains("\"replicas\":2"), "{}", stdout);
+    assert_eq!(
+        stdout.matches("\"status\":\"verified\"").count(),
+        2,
+        "{}",
+        stdout
+    );
+    let _ = server1.wait();
+    let _ = server2.wait();
+    let mut sink = String::new();
+    reader1.read_to_string(&mut sink).ok();
+    reader2.read_to_string(&mut sink).ok();
+}
+
+#[test]
+fn packaged_cli_multi_replica_reports_unknown_on_one_replica() {
+    let dir = tmp_dir("replicas-miss");
+    let object1 = dir.join("one.bin");
+    let object2 = dir.join("two.bin");
+    let first = atoms(64, 92);
+    let second = atoms(64, 93);
+    std::fs::write(&object1, &first).unwrap();
+    std::fs::write(&object2, &second).unwrap();
+    let (mut server1, mut reader1, addr1, _) =
+        spawn_serve_many(&dir.join("server1.store"), &[&object1], 1);
+    let (mut server2, mut reader2, addr2, _) =
+        spawn_serve_many(&dir.join("server2.store"), &[&object2], 1);
+    let client = dir.join("client.store");
+    assert!(Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .args(["info", "--store"])
+        .arg(&client)
+        .arg("--object")
+        .arg(&object1)
+        .output()
+        .unwrap()
+        .status
+        .success());
+    let targets = dir.join("targets.txt");
+    std::fs::write(&targets, format!("{}\n", sha_hex(&first))).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("verify")
+        .arg("--store")
+        .arg(&client)
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--addr")
+        .arg(&addr1)
+        .arg("--addr")
+        .arg(&addr2)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert_eq!(
+        out.status.code(),
+        Some(2),
+        "expected unknown exit: {}",
+        stdout
+    );
+    assert!(stdout.contains("\"replicas\":2"), "{}", stdout);
+    assert_eq!(
+        stdout.matches("\"status\":\"verified\"").count(),
+        1,
+        "{}",
+        stdout
+    );
+    assert_eq!(
+        stdout.matches("\"status\":\"unknown\"").count(),
+        1,
+        "{}",
+        stdout
+    );
+    let _ = server1.wait();
+    let _ = server2.wait();
+    let mut sink = String::new();
+    reader1.read_to_string(&mut sink).ok();
+    reader2.read_to_string(&mut sink).ok();
+}
