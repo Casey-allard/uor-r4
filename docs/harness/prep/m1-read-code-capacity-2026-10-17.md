@@ -190,7 +190,9 @@ Under the normal ordering (`M+F ≥ W+H`), the old design's `(173, 1,158)` and `
 
 **Claim discipline.** No capability claim. This is a diagnostic measurement on a frozen panel; it is not fresh transfer, not a language result, and not a qualification. A KEEP-style follow-up would need a fresh ≥2,000-row draw under a separate pre-reg.
 
-**FIT / execution release.** `TEST FITNESS` applies to this design only. It authorizes no compute. Actual execution requires a separate PM release, exact source/device pins, the evaluation-only bridge, and (for any D-Release-class decision) owner release. These three diagnostics are not D-Release-class.
+TEST FITNESS: FIT (design) — Kimi PM seat with independent DeepSeek architecture review, [PR #2572](https://github.com/UOR-Foundation/uor-r4/pull/2572) at `f53c5198a`, copyedits `b67567d01`. FIT authorizes no compute; execution releases are separate PM steps.
+
+**FIT / execution release.** The FIT verdict applies to this design only. It authorizes no compute. Actual execution requires a separate PM release, exact source/device pins, the evaluation-only bridge, and (for any D-Release-class decision) owner release. These three diagnostics are not D-Release-class.
 
 **Assumptions the lead must resolve.**
 1. Authorize the read-only TRAIN q-capture plus production DEV forward, or accept the production-forward fallback on the 1,049,856 rows with the bias disclosure.

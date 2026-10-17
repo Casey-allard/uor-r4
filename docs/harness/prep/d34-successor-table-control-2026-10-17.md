@@ -145,6 +145,8 @@ Apply in order; the first matching row fires. "Floor" means `max(24, 2·sqrt(b+c
 
 **Claim discipline.** No capability claim. The copy-successor sub-panel is a diagnostic panel; a win is not a general language or reasoning result, and the panel is definitionally aligned with the most-recent-successor rule. T1b and the conflict/complement splits are descriptive controls, not capability evidence.
 
+TEST FITNESS: FIT (design) — Kimi PM seat with independent DeepSeek architecture review, [PR #2572](https://github.com/UOR-Foundation/uor-r4/pull/2572) at `f53c5198a`, copyedits `b67567d01`. FIT authorizes no compute; execution releases are separate PM steps.
+
 **FIT / execution release.** Design FIT only; no compute. Q4 remains **NOT_EXECUTABLE**. The host table is non-model work; the Relation/Route forward needs a separate PM release and, for the Relation arm, the M2 artifact and its own gates. Training remains HELD.
 
 **Assumptions the lead must resolve.**

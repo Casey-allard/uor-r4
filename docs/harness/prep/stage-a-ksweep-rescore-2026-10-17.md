@@ -95,6 +95,8 @@ Rows 0–6 select the mechanism read and the admissibility of a K-widening; rows
 
 **Claim discipline.** No capability claim. H1 is a record-integrity check; H2/H3 are composition analyses of a sealed diagnostic, not fresh transfer and not a Stage-B result.
 
+TEST FITNESS: FIT (design) — Kimi PM seat with independent DeepSeek architecture review, [PR #2572](https://github.com/UOR-Foundation/uor-r4/pull/2572) at `f53c5198a`, copyedits `b67567d01`. FIT authorizes no compute; execution releases are separate PM steps.
+
 **FIT / execution release.** Design FIT only; no compute. Q4 remains **NOT_EXECUTABLE**. The host re-analysis is non-model work; the GPU fallback needs a separate PM release and exact pins. Training remains HELD.
 
 **Assumptions the lead must resolve.**
