@@ -1,3 +1,13 @@
+## 2026-10-17 — Packaged objpeer replication CLI in the object store (deepseek/object-store-objpeer-cli)
+
+The [packaging record](../labs/object-store-objpeer-cli-2026-10-17/README.md) adds the content-addressed
+artifact replication CLI (info/serve/pull) to uor-r4-object-store itself, built on the merged Store and
+peer APIs with no new dependencies, plus a two-process loopback delta test and an info test. Package 33
+passed, Clippy -D warnings and fmt clean. The same CLI source produced the review-repo measurements
+(2,504 B local / 2,509 B cross-machine for a 52.5 MB weight revision; 220 B verification; 38,508 B for
+12 warm receivers). No model compute; training/M2/Stage B HELD. **Next:** protected delivery, then an
+ExpectedObject pin flag and replacing the review-repo copy with this binary.
+
 ## 2026-10-17 — Concurrent peer sessions on one read-only store (deepseek/object-store-concurrency)
 
 The [concurrency record](../labs/object-store-peer-concurrency-2026-10-17/README.md) documents and gates
