@@ -1,0 +1,4 @@
+Filesystem     1024-blocks  Used Available Capacity Mounted on
+overlay          157286400 38912 157247488       1% /
+qualified-gpu.csv gpu.csv differ: byte 41, line 1
+BLOCKED: actual GPU identity differs from accepted finite3; no binary invocation

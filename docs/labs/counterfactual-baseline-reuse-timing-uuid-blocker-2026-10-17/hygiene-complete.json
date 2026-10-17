@@ -1,0 +1,8 @@
+{
+  "schema": "uor-r4.hygiene-admission/1",
+  "process_id": 41126,
+  "completed": true,
+  "exit_code": 0,
+  "evidence_reference": "https://github.com/UOR-Foundation/uor-r4/pull/2568#issuecomment-6228540309",
+  "log_sha256": "3fc7be11616799bfe61eda0c1f7fb143115baf9a2bfcf819dd5dc32448c5e976"
+}

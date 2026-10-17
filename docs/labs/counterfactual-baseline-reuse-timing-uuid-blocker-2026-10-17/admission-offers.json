@@ -1,0 +1,20 @@
+[
+  {
+    "id": 45028230,
+    "machine_id": 8914,
+    "host_id": 18,
+    "driver_version": "595.71.05",
+    "dph_total": 0.9083333333333332,
+    "geolocation": "Alberta, CA",
+    "num_gpus": 1
+  },
+  {
+    "id": 45508898,
+    "machine_id": 35115,
+    "host_id": 18,
+    "driver_version": "595.71.05",
+    "dph_total": 0.9083333333333332,
+    "geolocation": "Alberta, CA",
+    "num_gpus": 1
+  }
+]

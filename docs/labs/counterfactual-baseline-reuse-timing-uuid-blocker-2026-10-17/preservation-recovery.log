@@ -1,0 +1,227 @@
+./EXTERNAL-SHA256SUMS: OK
+./accepted-finite-record.json: OK
+./accepted-outcome-review.md: OK
+./checkpoint0-timing-snapshot.json: OK
+./config.json: OK
+./execution-review.md: OK
+./expected-identity.json: OK
+./expected-ldd.normalized.txt: OK
+./lease.sh: OK
+./qualified-gpu.csv: OK
+./qualified-ldd.txt: OK
+./readiness-metadata.json: OK
+./run-remote.sh: OK
+./runner/hot-set.txt: OK
+./runner/uor-pod: OK
+./runner/uor-pod-bootstrap.sh: OK
+./runner/uor-reaper.sh: OK
+./runner/uor-store: OK
+./semantic-delta.md: OK
+./timing-pin.review.json: OK
+./validation.txt: OK
+/Users/casey.allard/uor-r4-local/bin/codex-uor-r4-pod-provider-driver2567: OK
+/Users/casey.allard/uor-r4-local/codex-reuse-resource-refusal/gate1/gate2562-r1-archive/k16-timing: OK
+/Users/casey.allard/.local/share/uor-r4/bin/cloud-store: OK
+timing-pin.json: OK
+execution-release.md: OK
+readiness-verdict.md: OK
+environment-disposition.json: OK
+hygiene-complete.json: OK
+hygiene.log: OK
+Renewed codex/codex-cf1-reuse-timing-run2 on vast-56332437 until 2026-10-17T03:04:30Z
+./INPUT-SHA256SUMS: OK
+./accepted-finite-record.json: OK
+./checkpoint0-timing-snapshot.json: OK
+./command.exit: OK
+./command.log: OK
+./config.json: OK
+./df-preflight.log: OK
+./ended.txt: OK
+./environment-disposition.json: OK
+./execution-release.md: OK
+./execution-review.md: OK
+./expected-identity.json: OK
+./expected-ldd.normalized.txt: OK
+./gpu.csv: OK
+./jobs/20261017T023321Z-codex-cf1-reuse-timing-run2-gpu0.log: OK
+./jobs/20261017T023321Z-codex-cf1-reuse-timing-run2-gpu0.sh: OK
+./k16-timing: OK
+./nvidia-smi.txt: OK
+./qualified-gpu.csv: OK
+./qualified-ldd.txt: OK
+./run-remote.sh: OK
+./started.txt: OK
+./timing-pin.json: OK
+./timing-pin.review.json: OK
+k16-timing: OK
+expected-identity.json: OK
+timing-pin.json: OK
+timing-pin.review.json: OK
+execution-review.md: OK
+execution-release.md: OK
+run-remote.sh: OK
+checkpoint0-timing-snapshot.json: OK
+config.json: OK
+accepted-finite-record.json: OK
+qualified-gpu.csv: OK
+qualified-ldd.txt: OK
+expected-ldd.normalized.txt: OK
+environment-disposition.json: OK
+local-operator/INPUT-SHA256SUMS: OK
+local-operator/run-remote.sh: OK
+local-operator/admission-quoted-at.txt: OK
+local-operator/admission-disk.log: OK
+local-operator/df-preflight.log: OK
+local-operator/admission-fleet.log: OK
+local-operator/admission-offers-storage80-raw.json: OK
+local-operator/config.json: OK
+local-operator/expected-identity.json: OK
+local-operator/runner/uor-reaper.sh: OK
+local-operator/runner/uor-pod-bootstrap.sh: OK
+local-operator/runner/uor-pod: OK
+local-operator/runner/uor-store: OK
+local-operator/runner/hot-set.txt: OK
+local-operator/timing-pin.review.json: OK
+local-operator/execution-release-url.txt: OK
+local-operator/qualified-ldd.txt: OK
+local-operator/semantic-delta.md: OK
+local-operator/lease.sh: OK
+local-operator/execution-review.md: OK
+local-operator/readiness-publication.txt: OK
+local-operator/admission-storage80-quoted-at.txt: OK
+local-operator/accepted-finite-record.json: OK
+local-operator/admission-offers.json: OK
+local-operator/validation.txt: OK
+local-operator/pod-id.txt: OK
+local-operator/environment-disposition.json: OK
+local-operator/accepted-outcome-review.md: OK
+local-operator/lease.log: OK
+local-operator/hygiene-complete.json: OK
+local-operator/execution-release.md: OK
+local-operator/readiness-verdict.md: OK
+local-operator/readiness-metadata.json: OK
+local-operator/FINAL-PIN-SHA256SUMS: OK
+local-operator/session-ledger.jsonl: OK
+local-operator/expected-ldd.normalized.txt: OK
+local-operator/hygiene.log: OK
+local-operator/admission-offers-raw.json: OK
+local-operator/admission-fleet-final.log: OK
+local-operator/fleet-before.log: OK
+local-operator/REVIEW-SHA256SUMS: OK
+local-operator/execution-release.draft.md: OK
+local-operator/admission-disk-final.log: OK
+local-operator/timing-pin.json: OK
+local-operator/hygiene-closure.md: OK
+local-operator/admission-offers-storage80.json: OK
+local-operator/EXTERNAL-SHA256SUMS: OK
+local-operator/checkpoint0-timing-snapshot.json: OK
+local-operator/hygiene-closure-url.txt: OK
+local-operator/up.log: OK
+local-operator/INPUT-SHA256SUMS: OK
+local-operator/run-remote.sh: OK
+local-operator/admission-quoted-at.txt: OK
+local-operator/admission-disk.log: OK
+local-operator/df-preflight.log: OK
+local-operator/admission-fleet.log: OK
+local-operator/admission-offers-storage80-raw.json: OK
+local-operator/config.json: OK
+local-operator/expected-identity.json: OK
+local-operator/runner/uor-reaper.sh: OK
+local-operator/runner/uor-pod-bootstrap.sh: OK
+local-operator/runner/uor-pod: OK
+local-operator/runner/uor-store: OK
+local-operator/runner/hot-set.txt: OK
+local-operator/timing-pin.review.json: OK
+local-operator/execution-release-url.txt: OK
+local-operator/qualified-gpu.csv: OK
+local-operator/qualified-ldd.txt: OK
+local-operator/semantic-delta.md: OK
+local-operator/lease.sh: OK
+local-operator/execution-review.md: OK
+local-operator/readiness-publication.txt: OK
+local-operator/admission-storage80-quoted-at.txt: OK
+local-operator/accepted-finite-record.json: OK
+local-operator/admission-offers.json: OK
+local-operator/validation.txt: OK
+local-operator/pod-id.txt: OK
+local-operator/environment-disposition.json: OK
+local-operator/accepted-outcome-review.md: OK
+local-operator/lease.log: OK
+local-operator/hygiene-complete.json: OK
+local-operator/execution-release.md: OK
+local-operator/readiness-verdict.md: OK
+local-operator/readiness-metadata.json: OK
+local-operator/FINAL-PIN-SHA256SUMS: OK
+local-operator/session-ledger.jsonl: OK
+local-operator/expected-ldd.normalized.txt: OK
+local-operator/hygiene.log: OK
+local-operator/admission-offers-raw.json: OK
+local-operator/admission-fleet-final.log: OK
+local-operator/fleet-before.log: OK
+local-operator/REVIEW-SHA256SUMS: OK
+local-operator/execution-release.draft.md: OK
+local-operator/admission-disk-final.log: OK
+local-operator/timing-pin.json: OK
+local-operator/hygiene-closure.md: OK
+local-operator/admission-offers-storage80.json: OK
+local-operator/EXTERNAL-SHA256SUMS: OK
+local-operator/checkpoint0-timing-snapshot.json: OK
+local-operator/hygiene-closure-url.txt: OK
+local-operator/up.log: OK
+preservation-recovery/lease-final-failed.log: OK
+preservation-recovery/README.md: OK
+preservation-recovery/preservation-recovery.sh: OK
+preservation-recovery/session-ledger.jsonl: OK
+./EXTERNAL-SHA256SUMS: OK
+./accepted-finite-record.json: OK
+./accepted-outcome-review.md: OK
+./checkpoint0-timing-snapshot.json: OK
+./config.json: OK
+./execution-review.md: OK
+./expected-identity.json: OK
+./expected-ldd.normalized.txt: OK
+./lease.sh: OK
+./qualified-gpu.csv: OK
+./qualified-ldd.txt: OK
+./readiness-metadata.json: OK
+./run-remote.sh: OK
+./runner/hot-set.txt: OK
+./runner/uor-pod: OK
+./runner/uor-pod-bootstrap.sh: OK
+./runner/uor-reaper.sh: OK
+./runner/uor-store: OK
+./semantic-delta.md: OK
+./timing-pin.review.json: OK
+./validation.txt: OK
+stored reuse-timing-run2-archive (9870336 bytes, md5 2e882d487871ff5edc249c15f37c14cf) at icloud:UOR-R4/results/codex/reuse-timing-run2-archive.tar
+Released codex/codex-cf1-reuse-timing-run2's lease on vast-56332437. If nobody else holds it, 'uor-pod down vast-56332437 --lab codex --session codex-cf1-reuse-timing-run2' now (the reaper deletes it after 20 idle min).
+Deleted vast-56332437
+UOR-R4 shared GPU pods — rules (docs/labs/compute.md; AGENTS.md "GPU pods")
+ 1. Only this tool touches pods. Run 'uor-pod status' before any GPU work.
+ 2. Identity = --lab L --session S (or UOR_POD_SESSION). Lease the GPUs you use:
+    uor-pod lease POD --lab L --session S --gpus 0,1 --purpose ... --hours H
+    renew every <= 30 min while working; release when done. Leases auto-expire.
+ 3. Another session's GPU is never yours, even when idle: only its holder
+    (release) or expiry frees it. An EXPIRED lease may be taken over after a
+    probe shows no live job. Never touch another session's lease or KEEP_ALIVE.
+ 4. No free GPU and caps allow (<= 4 pods, <= $8.00/h, all labs and providers together):
+    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090 on
+    Vast.ai, cheapest verified datacenter host). Never fall back to the laptop CPU.
+    Caps reached and nothing free: wait for an expiry or ask the owner.
+ 5. One job per GPU: uor-pod run POD --lab L --session S --gpu K -- CMD (device=cuda).
+ 6. Durable output only on /workspace (Runpod network volume; on a Vast pod
+    'down' archives it to the laptop). No stopped pods as storage.
+ 7. Done: release, then 'uor-pod down POD' if no other session holds it.
+    Never print API keys or ~/.runpod/config.toml.
+
+Pods (caps: <= 4 running pods, <= $8.00/h; idle reap after 20 min without a live lease)
+vast-56331925 uor-deepseek-1017-0227   RUNNING  1x4090    $1.389/h up 0.1h vol=vast-disk
+    lease deepseek/spiralcore-fbs gpus=0 until 2026-10-17T04:27:10Z  — SpiralCore codebook hardware feasibility: 3.75 GiB table residency, random 8 KiB gather bandwidth, dedup stats, standard-corpus baselines
+    gpu 0 0% 461 MiB  leased by deepseek/spiralcore-fbs  BUSY
+    reaper=1 idle_since=1792204507 busy_locks=/root/gpu0.lock 
+Running: 1 pod(s) (1 counted toward the cap of 4; uor-test-* pods are not), $1.39/h of $8.00/h
+Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU.
+Vast offers (verified datacenter hosts, reliability > 0.98; $/GPU/h, 1 GPU):
+  5090: 6 offers, cheapest $0.603 (South Korea, KR)
+  4090: 2 offers, cheapest $1.389 (Hungary, HU)
+PRESERVATION_RECOVERY_COMPLETE; setup remained blocked and model dose0

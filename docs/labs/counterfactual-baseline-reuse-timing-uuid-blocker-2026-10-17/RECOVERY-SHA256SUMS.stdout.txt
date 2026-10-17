@@ -1,0 +1,4 @@
+preservation-recovery/lease-final-failed.log: OK
+preservation-recovery/README.md: OK
+preservation-recovery/preservation-recovery.sh: OK
+preservation-recovery/session-ledger.jsonl: OK

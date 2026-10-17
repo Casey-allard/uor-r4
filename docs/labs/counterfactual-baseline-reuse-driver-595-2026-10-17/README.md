@@ -1,5 +1,12 @@
 # Baseline-reuse finite environment qualification — 17 October 2026
 
+**Delivery and subsequent setup:** this record is protected in #2568 at
+`66154156dad423f5bf4c822236509f6ba659ab8f`, with full reviewed-tree equality
+and completed own cleanup/hygiene. The separately released
+[timing2 attempt](../counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md)
+stopped on a different actual GPU UUID before any binary. This finite pass
+remains valid at its recorded scope; timing is still unmeasured.
+
 **FINITE_CONTROL_PASS on RTX 5090 / driver 595.71.05, independently reviewed and
 accepted at the exact observed finite scope.** One unchanged finite-control invocation recorded **32 exact
 U/R pairs, 64 proposal attempts (56 successes and eight expected status-8

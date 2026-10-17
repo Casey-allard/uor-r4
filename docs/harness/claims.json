@@ -13,12 +13,12 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-reuse-driver-qualification": {
-    "branch": "codex/cf1-reuse-driver-qualification",
-    "claimed_at": "2026-10-16T22:11:13-04:00",
-    "head": "48478154e",
+  "codex/cf1-reuse-timing-uuid-blocker": {
+    "branch": "codex/cf1-reuse-timing-uuid-blocker",
+    "claimed_at": "2026-10-16T22:35:15-04:00",
+    "head": "66154156d",
     "lab": "codex",
-    "note": "Finite run3 driver595.71.05 actual result/evidence docs only. Parent claims/current-state/status/roadmap; review_2552 canonical new record only; no model/source change."
+    "note": ""
   },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",

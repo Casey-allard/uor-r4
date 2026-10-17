@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-10-17T02:32:11Z",
+  "deleted_at": "2026-10-17T02:35:07Z",
+  "seconds": 176,
+  "raw_quote": 0.9083333333333332,
+  "legacy_admission_quote": 0.908,
+  "lifecycle_estimate_usd": 0.0444074074074074,
+  "provider_uptime_s": 174,
+  "provider_uptime_raw_estimate_usd": 0.04390277777777777,
+  "provider_uptime_rounded_estimate_usd": 0.04388666666666667,
+  "cumulative_prior_estimate_usd": 3.446524815,
+  "cumulative_estimate_usd": 3.4909322224074075,
+  "closed_codex_leases": 38,
+  "construction_carry_usd": 0.947947500
+}

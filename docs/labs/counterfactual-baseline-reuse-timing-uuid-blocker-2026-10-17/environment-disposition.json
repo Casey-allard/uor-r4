@@ -1,0 +1,16 @@
+{
+  "schema": "uor-r4.timing-environment-disposition/1",
+  "driver": "595.71.05",
+  "gpu_uuid": "GPU-1daf8397-88e7-c3e5-e50c-0dbc1459969c",
+  "gpu_name": "NVIDIA GeForce RTX 5090",
+  "memory_mib": 32607,
+  "require_qualified_ldd_mappings": true,
+  "independent_review_reference": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6228520779",
+  "review_sha256": "b8d51e7eab2ea7648d1337dd91c70a996c962f54f428087ec97fafdfdca4f44d",
+  "review_manifest_sha256": "5ef4910b47033381c7b32a67cf80d4054b630e08aebd99a910c65581307f7d06",
+  "scope": "Original fixed-dose same-device paired U/R comparison only. Actual identity and normalized loader mappings must match before any binary. No fallback or on-lease relaxation.",
+  "declared_image_tag": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+  "historical_library_bytes": "UNVERIFIED: finite3 retained SONAME/path mappings, not complete library content hashes",
+  "historical_container_image_digest": "UNVERIFIED",
+  "disposition": "Independent prospective FIT explicitly accepts this disclosed provenance limit for the paired comparison with strict resources, parity, state and accounting retained. No general platform or cross-driver qualification. Retain actual library hashes prospectively."
+}

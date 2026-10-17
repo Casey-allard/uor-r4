@@ -25,9 +25,14 @@ is preserved. The [exact-driver selector](../labs/driver-aware-pod-selection-202
 is now protected and a separately reviewed/released [595.71.05 finite qualification](../labs/counterfactual-baseline-reuse-driver-595-2026-10-17/README.md)
 passes the unchanged32 U/R pairs,16 typed refusals and18 strict resource admissions,
 with unchanged state/epoch and apply0 on the recorded RTX5090 environment.
-After protected result delivery and cleanup, original-checkpoint timing still
-requires its own reviewed packet and distinct release. No general driver-family
-or cross-driver performance qualification follows, and no setup failure is a mechanism negative.
+That finite result is protected in #2568. A separately reviewed and released
+[timing2 attempt](../labs/counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md)
+refused a different actual GPU UUID before any instrument execution, despite
+the matching driver. The archive-copy omission was recovered with exact hashes
+and full cloud verification before teardown. Timing and checkpoint0 parity remain
+unmeasured. Physical-device admission needs a prospective disposition before a
+new release; no general driver-family or cross-driver performance qualification
+follows, and no setup failure is a mechanism negative.
 The design includes the SIMT/locality risk
 and deferred-error requirement rather than presuming a speedup from work counts.
 Selected-cell/member replay is also a material later target; no causal speedup,
