@@ -41,6 +41,12 @@ IV and SIG (sigma) are the standard BLAKE2b constants. The digest length is 12 b
 byte in h[0] is 0x0c; the custom counter and padding are the compatibility-critical details. A port
 must reproduce this function exactly, or ids will not match existing stores.
 
+Equivalently, this is standard BLAKE2b with a 12-byte digest over the logical input [scale] || payload
+(digest_size 12, fanout 1, depth 1): the 128-byte block, zero padding and counter = len(input) are the
+reference implementation's way of hashing the logical input. A port may call a standard BLAKE2b-96 API
+directly. A Python port using hashlib.blake2b(digest_size=12) reproduced the conformance vectors and
+cold-pulled from the reference server, so the equivalence is tested rather than assumed.
+
 ## 3. Records
 
 Leaf record:  scale=0 (1 byte) || id (12) || payload (32)             total 45 bytes

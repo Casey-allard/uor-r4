@@ -1,3 +1,12 @@
+## 2026-10-17 — Protocol spec note: node id is standard BLAKE2b-96 (deepseek/object-store-spec-note)
+
+The [spec note](../labs/object-store-spec-note-2026-10-17/README.md) records that node_id(scale,payload)
+equals standard BLAKE2b with a 12-byte digest over [scale] || payload, so ports may use a normal
+BLAKE2b-96 API instead of reimplementing the padded block; a Python port using hashlib reproduced the
+conformance vectors and cold-pulled the vector object from the reference server (4 records, exact SHA).
+Docs only; tests and formats unchanged. No model compute; training/M2/Stage B HELD. **Next:** protected
+delivery, then keep the Python port as the non-Rust conformance harness.
+
 ## 2026-10-17 — Protocol v1 conformance vectors (deepseek/object-store-vectors)
 
 The [vectors record](../labs/object-store-vectors-2026-10-17/README.md) freezes a deterministic 96-byte
