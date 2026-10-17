@@ -1,3 +1,13 @@
+## 2026-10-17 — Read-only retries for verify and fleet audit (deepseek/object-store-verify-retry)
+
+The [verify-retry record](../labs/object-store-verify-retry-2026-10-17/README.md) extends reconnect/retry
+to objpeer verify and therefore fleet audit: --retries N re-runs the pipelined series after retryable
+I/O/schema/integrity failures, while binding/unknown/limit errors stop early; verification is read-only
+so retries cannot corrupt state. A cutting-proxy CLI test cuts the first connection and bridges the
+second, yielding a successful verified audit with a retry line. CLI 10/10, peer 15/15, controls 10/10,
+vectors 1/1, showcase 5/5; Clippy -D warnings and fmt clean. No model compute; training/M2/Stage B
+HELD. **Next:** protected delivery, then product consolidation with the measured-surface index.
+
 ## 2026-10-17 — Reconnect and retry for real networks (deepseek/object-store-retry)
 
 The [retry record](../labs/object-store-retry-2026-10-17/README.md) adds opt-in --retries N to objpeer

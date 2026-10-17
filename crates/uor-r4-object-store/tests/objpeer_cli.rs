@@ -581,3 +581,77 @@ fn packaged_cli_retries_after_a_cut_connection() {
     server.join().expect("server");
     proxy.join().expect("proxy");
 }
+
+#[test]
+fn packaged_cli_verify_retries_after_a_cut_connection() {
+    use sha2::{Digest, Sha256};
+
+    let dir = tmp_dir("verify-retry");
+    let object = dir.join("object.bin");
+    let payload = atoms(64, 81);
+    std::fs::write(&object, &payload).unwrap();
+
+    let mut sender = Store::new(test_limits());
+    let manifest = sender.fold(&payload).expect("fold").manifest;
+    let server_listener = TcpListener::bind("127.0.0.1:0").expect("bind server");
+    let server_addr = server_listener.local_addr().expect("server addr");
+    let server = thread::spawn(move || {
+        let (stream, _) = server_listener.accept().expect("accept");
+        let mut reader = stream.try_clone().expect("clone");
+        let mut writer = stream;
+        peer::serve(&sender, &manifest, &mut reader, &mut writer).expect("serve");
+    });
+
+    let proxy_listener = TcpListener::bind("127.0.0.1:0").expect("bind proxy");
+    let proxy_addr = proxy_listener.local_addr().expect("proxy addr");
+    let proxy = thread::spawn(move || {
+        let (mut cut, _) = proxy_listener.accept().expect("accept cut");
+        let mut buffer = [0u8; 16];
+        let _ = cut.read(&mut buffer);
+        drop(cut);
+        let (client, _) = proxy_listener.accept().expect("accept bridge");
+        let upstream = TcpStream::connect(server_addr).expect("upstream");
+        let mut client_read = client.try_clone().expect("clone client");
+        let mut upstream_write = upstream.try_clone().expect("clone upstream");
+        let pump = thread::spawn(move || {
+            let _ = std::io::copy(&mut client_read, &mut upstream_write);
+        });
+        let mut upstream_read = upstream;
+        let mut client_write = client;
+        let _ = std::io::copy(&mut upstream_read, &mut client_write);
+        pump.join().ok();
+    });
+
+    let digest = Sha256::digest(&payload);
+    let sha: String = digest.iter().map(|byte| format!("{:02x}", byte)).collect();
+    let targets = dir.join("targets.txt");
+    std::fs::write(&targets, format!("{}\n", sha)).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("verify")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--have")
+        .arg(&object)
+        .arg("--addr")
+        .arg(proxy_addr.to_string())
+        .arg("--targets")
+        .arg(&targets)
+        .args(["--retries", "2"])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    assert!(out.status.success(), "verify retry failed: {}", stderr);
+    assert!(
+        stderr.contains("retry 1/2"),
+        "expected retry line: {}",
+        stderr
+    );
+    assert!(
+        stdout.contains("verified=1"),
+        "expected verified audit: {}",
+        stdout
+    );
+    server.join().expect("server");
+    proxy.join().expect("proxy");
+}

@@ -146,6 +146,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-verify-retry": {
+    "branch": "deepseek/object-store-verify-retry",
+    "claimed_at": "2026-10-17T16:45:35-04:00",
+    "head": "01703e3bd",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-verify-series": {
     "branch": "deepseek/object-store-verify-series",
     "claimed_at": "2026-10-17T15:51:00-04:00",

@@ -360,19 +360,6 @@ fn main() {
             if !have.is_empty() {
                 fold_file(&mut store, &have);
             }
-            let stream = TcpStream::connect(&addr)
-                .unwrap_or_else(|e| die(&format!("connect {}: {}", addr, e)));
-            let reader_stream = stream
-                .try_clone()
-                .unwrap_or_else(|e| die(&format!("clone: {}", e)));
-            let mut reader = Counted {
-                inner: reader_stream,
-                bytes: 0,
-            };
-            let mut writer = Counted {
-                inner: stream,
-                bytes: 0,
-            };
             let expected =
                 if expect_sha.is_none() && expect_version.is_none() && expect_bytes.is_none() {
                     None
@@ -416,9 +403,33 @@ fn main() {
                     });
                 }
             }
-            let outcomes = peer::verify_series(&store, &requests, &mut reader, &mut writer)
-                .unwrap_or_else(|e| die(&format!("verify: {:?}", e)));
-            let wire_bytes = reader.bytes + writer.bytes;
+            let mut attempt = 0usize;
+            let (outcomes, wire_bytes) = loop {
+                let outcome =
+                    (|| -> uor_r4_object_store::Result<(Vec<peer::VerifyOutcome>, u64)> {
+                        let stream = TcpStream::connect(&addr)?;
+                        let reader_stream = stream.try_clone()?;
+                        let mut reader = Counted {
+                            inner: reader_stream,
+                            bytes: 0,
+                        };
+                        let mut writer = Counted {
+                            inner: stream,
+                            bytes: 0,
+                        };
+                        let outcomes =
+                            peer::verify_series(&store, &requests, &mut reader, &mut writer)?;
+                        Ok((outcomes, reader.bytes + writer.bytes))
+                    })();
+                match outcome {
+                    Ok(value) => break value,
+                    Err(error) if attempt < retries && retryable(&error) => {
+                        attempt += 1;
+                        eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+                    }
+                    Err(error) => die(&format!("verify: {:?}", error)),
+                }
+            };
             let mut verified = 0usize;
             let mut stale = 0usize;
             let mut unknown = 0usize;
