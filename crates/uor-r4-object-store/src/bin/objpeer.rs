@@ -45,6 +45,8 @@ fn hex32(value: &str) -> [u8; 32] {
     out
 }
 
+type SyncServed = (Vec<(Manifest, peer::PullStats)>, u64, String);
+
 struct Counted<S> {
     inner: S,
     bytes: u64,
@@ -247,7 +249,7 @@ fn main() {
             }
         }
         "sync" => {
-            if addr.is_empty() || targets.is_empty() || out_dir.is_empty() {
+            if addrs.is_empty() || targets.is_empty() || out_dir.is_empty() {
                 die("sync requires --addr, --targets and --out-dir");
             }
             let mut store = load_store(&store_path);
@@ -281,11 +283,15 @@ fn main() {
                     selector: Some(*selector),
                 })
                 .collect();
-            let mut attempt = 0usize;
-            let (results, wire_bytes) = loop {
-                let outcome =
-                    (|| -> uor_r4_object_store::Result<(Vec<(Manifest, peer::PullStats)>, u64)> {
-                        let stream = TcpStream::connect(&addr)?;
+            let mut served: Option<SyncServed> = None;
+            for address in &addrs {
+                let mut attempt = 0usize;
+                loop {
+                    let outcome = (|| -> uor_r4_object_store::Result<(
+                        Vec<(Manifest, peer::PullStats)>,
+                        u64,
+                    )> {
+                        let stream = TcpStream::connect(address)?;
                         let reader_stream = stream.try_clone()?;
                         let mut reader = Counted {
                             inner: reader_stream,
@@ -299,15 +305,30 @@ fn main() {
                             peer::pull_series(&mut store, &requests, &mut reader, &mut writer)?;
                         Ok((results, reader.bytes + writer.bytes))
                     })();
-                match outcome {
-                    Ok(value) => break value,
-                    Err(error) if attempt < retries && retryable(&error) => {
-                        attempt += 1;
-                        eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+                    match outcome {
+                        Ok((results, wire)) => {
+                            served = Some((results, wire, address.clone()));
+                            break;
+                        }
+                        Err(error) if attempt < retries && retryable(&error) => {
+                            attempt += 1;
+                            eprintln!("retry {}/{} after {:?}", attempt, retries, error);
+                        }
+                        Err(error) => {
+                            eprintln!(
+                                "replica {} unavailable for sync: {:?}; trying next",
+                                address, error
+                            );
+                            break;
+                        }
                     }
-                    Err(error) => die(&format!("sync: {:?}", error)),
                 }
-            };
+                if served.is_some() {
+                    break;
+                }
+            }
+            let (results, wire_bytes, replica_used) =
+                served.unwrap_or_else(|| die("no replica served the sync target set"));
             fs::create_dir_all(&out_dir)
                 .unwrap_or_else(|e| die(&format!("create {}: {}", out_dir, e)));
             let mut nodes = 0u64;
@@ -336,20 +357,22 @@ fn main() {
             save_store(&store, &store_path);
             if json {
                 println!(
-                    "{{\"artifacts\":{},\"nodes\":{},\"record_bytes\":{},\"wire_bytes\":{},\"output_dir\":\"{}\"}}",
+                    "{{\"artifacts\":{},\"nodes\":{},\"record_bytes\":{},\"wire_bytes\":{},\"replica\":\"{}\",\"output_dir\":\"{}\"}}",
                     results.len(),
                     nodes,
                     record_bytes,
                     wire_bytes,
+                    replica_used,
                     out_dir
                 );
             } else {
                 println!(
-                    "SYNC_SERIES artifacts={} nodes={} record_bytes={} wire_bytes={}",
+                    "SYNC_SERIES artifacts={} nodes={} record_bytes={} wire_bytes={} replica={}",
                     results.len(),
                     nodes,
                     record_bytes,
-                    wire_bytes
+                    wire_bytes,
+                    replica_used
                 );
             }
         }

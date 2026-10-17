@@ -783,3 +783,104 @@ fn packaged_cli_multi_replica_reports_unknown_on_one_replica() {
     reader1.read_to_string(&mut sink).ok();
     reader2.read_to_string(&mut sink).ok();
 }
+
+#[test]
+fn packaged_cli_sync_fails_over_from_a_dead_replica() {
+    let dir = tmp_dir("sync-failover-dead");
+    let object = dir.join("object.bin");
+    let payload = atoms(64, 101);
+    std::fs::write(&object, &payload).unwrap();
+    let (mut server, mut reader, addr, _) =
+        spawn_serve_many(&dir.join("server.store"), &[&object], 1);
+    let targets = dir.join("targets.txt");
+    std::fs::write(&targets, format!("{}\n", sha_hex(&payload))).unwrap();
+    let out_dir = dir.join("out");
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("sync")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--addr")
+        .arg("127.0.0.1:1")
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--out-dir")
+        .arg(&out_dir)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+    assert!(
+        out.status.success(),
+        "failover sync failed: {} {}",
+        stdout,
+        stderr
+    );
+    assert!(stderr.contains("unavailable for sync"), "{}", stderr);
+    assert!(stdout.contains("\"artifacts\":1"), "{}", stdout);
+    assert!(
+        stdout.contains(&format!("\"replica\":\"{}\"", addr)),
+        "expected second replica in JSON: {}",
+        stdout
+    );
+    assert_eq!(
+        std::fs::read(out_dir.join(format!("{}.bin", sha_hex(&payload)))).unwrap(),
+        payload
+    );
+    let _ = server.wait();
+    let mut sink = String::new();
+    reader.read_to_string(&mut sink).ok();
+}
+
+#[test]
+fn packaged_cli_sync_fails_over_when_first_replica_lacks_the_target() {
+    let dir = tmp_dir("sync-failover-missing");
+    let target = dir.join("target.bin");
+    let other = dir.join("other.bin");
+    let target_payload = atoms(64, 102);
+    std::fs::write(&target, &target_payload).unwrap();
+    std::fs::write(&other, atoms(64, 103)).unwrap();
+    let (mut server1, mut reader1, addr1, _) =
+        spawn_serve_many(&dir.join("server1.store"), &[&other], 1);
+    let (mut server2, mut reader2, addr2, _) =
+        spawn_serve_many(&dir.join("server2.store"), &[&target], 1);
+    let targets = dir.join("targets.txt");
+    std::fs::write(&targets, format!("{}\n", sha_hex(&target_payload))).unwrap();
+    let out_dir = dir.join("out");
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("sync")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--addr")
+        .arg(&addr1)
+        .arg("--addr")
+        .arg(&addr2)
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--out-dir")
+        .arg(&out_dir)
+        .arg("--json")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+    assert!(
+        out.status.success(),
+        "missing-target failover failed: {} {}",
+        stdout,
+        stderr
+    );
+    assert!(stderr.contains("unavailable for sync"), "{}", stderr);
+    assert!(
+        stdout.contains(&format!("\"replica\":\"{}\"", addr2)),
+        "expected second replica in JSON: {}",
+        stdout
+    );
+    let _ = server1.wait();
+    let _ = server2.wait();
+    let mut sink = String::new();
+    reader1.read_to_string(&mut sink).ok();
+    reader2.read_to_string(&mut sink).ok();
+}

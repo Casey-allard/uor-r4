@@ -125,6 +125,13 @@
     "lab": "deepseek",
     "note": ""
   },
+  "deepseek/object-store-replica-sync": {
+    "branch": "deepseek/object-store-replica-sync",
+    "claimed_at": "2026-10-17T16:55:06-04:00",
+    "head": "857bc69e2",
+    "lab": "deepseek",
+    "note": ""
+  },
   "deepseek/object-store-retry": {
     "branch": "deepseek/object-store-retry",
     "claimed_at": "2026-10-17T16:42:38-04:00",

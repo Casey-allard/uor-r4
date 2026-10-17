@@ -1,3 +1,13 @@
+## 2026-10-17 — Replica-aware sync with failover (deepseek/object-store-replica-sync)
+
+The [replica-sync record](../labs/object-store-replica-sync-2026-10-17/README.md) makes objpeer sync
+replica-aware: repeated --addr is tried in order with per-replica retries, a failed or incomplete
+replica falls through to the next, and the artifact set is written once with the serving replica
+reported in JSON/SYNC_SERIES. Tests cover a dead first replica and a first replica missing the target.
+CLI 14/14, peer 15/15, controls 10/10, vectors 1/1, showcase 5/5; Clippy -D warnings and fmt clean. No
+model compute; training/M2/Stage B HELD. **Next:** protected delivery, then a local end-to-end
+audit-then-failover-sync repair demo and INDEX update.
+
 ## 2026-10-17 — Replica-aware fleet audit (deepseek/object-store-replica-audit)
 
 The [replica-audit record](../labs/object-store-replica-audit-2026-10-17/README.md) lets objpeer verify
