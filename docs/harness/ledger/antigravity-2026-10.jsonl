@@ -374,3 +374,12 @@
 {"kind": "heartbeat", "lab": "antigravity", "line": "Verifying whole-packet REVIEW-SHA256SUMS (ba376960) and STARTUP-CURRENT-SHA256SUMS (e8ca0478) for Dose 1 review verdict", "milestone": "m1", "next": "Stand by for confined review of Codex/cf1 Dose 1 execution packet on #2029", "schema": 1, "ts": "2026-10-18T04:13:51Z"}
 {"kind": "heartbeat", "lab": "antigravity", "line": "Verifying whole-packet REVIEW-SHA256SUMS (ba376960) and STARTUP-CURRENT-SHA256SUMS (e8ca0478) for Dose 1 review verdict", "milestone": "m1", "next": "Stand by for confined review of Codex/cf1 Dose 1 execution packet on #2029", "schema": 1, "ts": "2026-10-18T04:18:51Z"}
 {"kind": "heartbeat", "lab": "antigravity", "line": "Verifying whole-packet REVIEW-SHA256SUMS (ba376960) and STARTUP-CURRENT-SHA256SUMS (e8ca0478) for Dose 1 review verdict", "milestone": "m1", "next": "Stand by for confined review of Codex/cf1 Dose 1 execution packet on #2029", "schema": 1, "ts": "2026-10-18T04:23:12Z"}
+{"branch": "antigravity/ag1-cr1-cr6-fixture-runner", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:53-04:00"}
+{"branch": "antigravity/ag1-dr-qualification-runbook", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:53-04:00"}
+{"branch": "antigravity/ag1-studio-shell-d36", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:53-04:00"}
+{"branch": "antigravity/attention-cell-reference-scorer", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:53-04:00"}
+{"branch": "antigravity/d29-vendor-discrete-interlock-hardening", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:53-04:00"}
+{"branch": "antigravity/d32-ratchet-and-proof-model-audit", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:54-04:00"}
+{"branch": "antigravity/harness-d32-and-rule-dispatch", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:54-04:00"}
+{"branch": "antigravity/interlock-ratchet-hardening", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:54-04:00"}
+{"branch": "antigravity/rope-interlock-hardening", "kind": "release", "lab": "antigravity", "schema": 1, "ts": "2026-10-18T11:49:54-04:00"}

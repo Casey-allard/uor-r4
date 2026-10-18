@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UOR-R4 #1172 — integer stack runtime in the browser</title>
+<style>
+  body { background:#0d1117; color:#c9d1d9; font:14px/1.5 -apple-system,monospace; margin:2em; }
+  h1 { font-size:1.1em; color:#58a6ff; }
+  .row { margin:.5em 0; }
+  button { background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:.4em .9em; border-radius:6px; cursor:pointer; }
+  pre { background:#161b22; border:1px solid #30363d; border-radius:6px; padding:1em; white-space:pre-wrap; max-height:40vh; overflow:auto; }
+  .pass { color:#3fb950; } .fail { color:#f85149; } .dim { color:#8b949e; }
+  #tokens { font-size:1.2em; letter-spacing:.1em; }
+</style>
+</head>
+<body>
+<h1>UOR-R4 #1172 — integer stack runtime, served in this tab</h1>
+<div class="row dim">No server. The model artifact is fetched as bytes and run entirely in this page by the WASM integer engine.</div>
+<div class="row">
+  <input type="file" id="artifact" accept=".lut,.bin">
+  <button id="load" disabled>load</button>
+  <button id="run" disabled>step 32</button>
+  <button id="reload" disabled>reload-identical test</button>
+</div>
+<div class="row">status: <span id="status" class="dim">choose a UORLUT01 stack artifact</span></div>
+<div class="row">tokens (greedy): <span id="tokens" class="dim">—</span></div>
+<div class="row">margin (top1-top2, Q16): <span id="margin" class="dim">—</span></div>
+<div class="row">weights/token (R3): <span id="wpt" class="dim">—</span></div>
+<div class="row">reload-identical: <span id="identical" class="dim">—</span></div>
+<pre id="log" class="dim">log</pre>
+
+<script type="module">
+import init, { loadStack, step, saveSession, restoreSession, weightsPerToken } from './pkg-serving/uor_r4_integer.js';
+
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+const log = (m, cls) => { logEl.textContent += '\n' + m; logEl.className = cls || 'dim'; };
+const status = (m) => { $('status').textContent = m; };
+
+let artifactBytes = null;
+let handle = null;
+let firstRunTokens = [];
+let firstRunState = null;
+
+await init();
+status('module ready - choose an artifact');
+
+$('artifact').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  artifactBytes = new Uint8Array(await f.arrayBuffer());
+  status('artifact bytes ready (' + artifactBytes.length + ' B) - click load');
+  $('load').disabled = false;
+});
+
+$('load').addEventListener('click', () => {
+  try {
+    handle = loadStack(artifactBytes);
+    const wpt = weightsPerToken(handle);
+    $('wpt').textContent = wpt.toLocaleString() + ' weights';
+    status('loaded, session handle ' + handle);
+    $('run').disabled = false;
+    $('reload').disabled = false;
+    $('tokens').textContent = '-';
+    firstRunTokens = [];
+    log('loaded handle=' + handle + ', weightsPerToken=' + wpt);
+  } catch (e) {
+    log('load failed: ' + e, 'fail');
+  }
+});
+
+$('run').addEventListener('click', () => {
+  if (handle === null) return;
+  try {
+    let tok = 0;
+    const out = [];
+    const N = 32;
+    for (let i = 0; i < N; i++) {
+      const r = step(handle, tok);
+      const next = r[0] >>> 0;
+      const margin = r[1] | 0;
+      out.push(next);
+      tok = next;
+      if (i === N - 1) { $('margin').textContent = String(margin); }
+    }
+    firstRunTokens = out.slice();
+    firstRunState = saveSession(handle);
+    $('tokens').textContent = out.join(' ');
+    log('stepped ' + N + ' tokens; state saved (' + firstRunState.length + ' B)');
+    $('identical').textContent = '-';
+  } catch (e) {
+    log('step failed: ' + e, 'fail');
+  }
+});
+
+$('reload').addEventListener('click', () => {
+  if (handle === null || !firstRunState) return;
+  try {
+    // Reload-identical (their section-8 requirement: 100% identical greedy
+    // streams across a reload). Run 1 saved its state at token 32 with
+    // position=32. Restoring it and continuing greedy from that position
+    // must produce the same continuation a fresh run would from position 32.
+    // The deterministic check: restore, continue 16 more tokens, and compare
+    // against a second fresh run of 48 tokens' tail (tokens 32..48).
+    restoreSession(handle, firstRunState);
+    const replay = [];
+    let tok = firstRunTokens[firstRunTokens.length - 1];
+    for (let i = 0; i < 16; i++) {
+      const r = step(handle, tok);
+      const next = r[0] >>> 0;
+      replay.push(next);
+      tok = next;
+    }
+    // Fresh reference: re-run 48 tokens from scratch on a new session.
+    const handle2 = loadStack(artifactBytes);
+    const ref48 = [];
+    let tok2 = 0;
+    for (let i = 0; i < 48; i++) {
+      const r = step(handle2, tok2);
+      const next = r[0] >>> 0;
+      ref48.push(next);
+      tok2 = next;
+    }
+    const refTail = ref48.slice(32);
+    const a = refTail.join(',');
+    const b = replay.join(',');
+    if (a === b) {
+      $('identical').textContent = 'IDENTICAL (' + replay.length + ' tokens)';
+      $('identical').className = 'pass';
+      log('reload-identical: streams match byte-for-byte');
+    } else {
+      let divergeAt = -1;
+      for (let i = 0; i < refTail.length; i++) {
+        if (refTail[i] !== replay[i]) { divergeAt = i; break; }
+      }
+      $('identical').textContent = 'DIVERGED at ' + divergeAt;
+      $('identical').className = 'fail';
+      log('reload-identical: diverged at index ' + divergeAt + '\nA: ' + a + '\nB: ' + b, 'fail');
+    }
+  } catch (e) {
+    log('reload test failed: ' + e, 'fail');
+  }
+});
+</script>
+</body>
+</html>
