@@ -24,6 +24,13 @@ with no implementation or identity fault found; no registered efficacy hypothesi
 fires, fresh remains sealed, and there is no KEEP or mechanism-negative verdict.
 [Result and preserved custody](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md) include pod `56510253` down at **07:53:30 UTC**.
 
+The immediate M1 priority is the existing FIT K16-A/R admission redirect on
+`rows_v1`, seeds1/2: [timing source and qualification sequence](docs/labs/k16-rows-timing-source-2026-10-18/README.md).
+The timing adapter is source-only. Actual new-head qualification, the two
+checkpoint-0 A/R timing cells with100 samples plus one excluded warmup,
+and an accepted measured D-Packet precede training under the existing conditional
+release. The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125) removes the two Q4 cells and importer from the critical path.
+
 Start with the [illustrated geometry](docs/geometry.md), [documentation hub](docs/README.md),
 [current status](STATUS.md), or [contributor guide](CONTRIBUTING.md).
 [D37](docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised)

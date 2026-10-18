@@ -83,10 +83,10 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-attention-rows-q1-result": {
-    "branch": "codex/cf1-attention-rows-q1-result",
-    "claimed_at": "2026-10-18T04:24:12-04:00",
-    "head": "e002430a0",
+  "codex/cf1-k16-rows-timing": {
+    "branch": "codex/cf1-k16-rows-timing",
+    "claimed_at": "2026-10-18T09:27:38-04:00",
+    "head": "fb9e004fb",
     "lab": "codex",
     "note": ""
   },

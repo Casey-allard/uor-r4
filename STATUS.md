@@ -26,14 +26,18 @@ Keep Route/K16, seeds 1 and 2, `CanonicalVectorThenReadV1`, the registered
 same-device, same-state, same-R-objective lanes/rows parity with **>16 occupied cells and an
 actual R>0 row**, 25/25 controls plus `admit_ptx`, G-Pre, C-R1..C-R6,
 required refusal/terminal coverage, wrong-objective/broken-negative checks and zero apply.
-Retain all four checkpoint-0/Q4 × A/R timing cells, **100 samples each** plus
-one excluded warmup, unless explicitly waived. [PR #2658](https://github.com/UOR-Foundation/uor-r4/pull/2658) is merged; its
+The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125) retains only checkpoint-0 A/R timing, **100 samples each** plus
+one excluded warmup. The two Q4 cells are waived; the importer is off the critical path. [PR #2658](https://github.com/UOR-Foundation/uor-r4/pull/2658) is merged; its
 source-scoped parity and five-sample diagnostic timings do not establish
 new-head qualification, the registered timing or packet acceptance.
 The separate K8 Relation/R successor is deferred planning, not an added K16 gate.
 The existing conditional release preserves qualification → accepted packet →
 training → fresh before KEEP; fresh execution is not a training-start gate.
 Other training/M2/Stage B holds remain.
+The [explicit rows timing adapter](docs/labs/k16-rows-timing-source-2026-10-18/README.md)
+binds the production path and rows image identities at source level. Its new-head
+CUDA/timing execution is NOT_RUN by this delivery. The owner-waived Q4
+importer is preserved as preparation, without blocking qualification.
 The [architecture](docs/architecture.md) traces current computation to source;
 [current-state](docs/integration/current-state.md) retains the chronological evidence.
 

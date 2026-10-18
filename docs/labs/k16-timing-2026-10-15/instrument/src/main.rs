@@ -23,7 +23,7 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use uor_r4_discrete::{Identity, ObjectivePolicy, Spec};
+use uor_r4_discrete::{training::CounterfactualPath, Identity, ObjectivePolicy, Spec};
 
 mod checkpoint_bridge;
 mod counterfactual_controls;
@@ -101,6 +101,8 @@ pub struct Pin {
     pub schema: String,
     pub spec: Spec,
     pub read_spec: String,
+    #[serde(default, skip_serializing_if = "CounterfactualPath::is_lanes")]
+    pub counterfactual_path: CounterfactualPath,
     pub rows: usize,
     pub batches: usize,
     pub warmups: usize,
@@ -245,6 +247,9 @@ pub fn validate(pin: &Pin) -> std::result::Result<Vec<Cell>, String> {
             "read-policy mismatch: pin is {:?}, this instrument is pinned to Route",
             pin.read_spec
         ));
+    }
+    if pin.diagnostic.is_some() && !pin.counterfactual_path.is_lanes() {
+        return Err("the subphase diagnostic profiler supports only lanes_v1; rows_v1 requires the qualification timing path".into());
     }
     if pin.rows != ROWS {
         return Err(format!("rows is {}, expected {ROWS}", pin.rows));
@@ -567,6 +572,7 @@ pub fn plan(pin: &Pin, cells: &[Cell]) -> Value {
             "padded_context_tokens_per_batch": ROWS as u128 * PADDED_CONTEXT_TOKENS_PER_ROW,
         },
         "read_spec": pin.read_spec,
+        "counterfactual_path": pin.counterfactual_path,
         "batches_per_cell": pin.batches,
         "excluded_warmups_per_cell": pin.warmups,
         "timed_operations": ["carry_windows", "propose(route)", "observation", "propose(vector_block)", "observation"],
@@ -739,7 +745,14 @@ mod driver {
             let result = if let Some(profile) = profiler.as_mut() {
                 device.propose_profiled(&warmup_batch, &targets, parameter, profile)
             } else {
-                device.propose(&warmup_batch, &targets, parameter)
+                match pin.counterfactual_path {
+                    CounterfactualPath::LanesV1 => {
+                        device.propose(&warmup_batch, &targets, parameter)
+                    }
+                    CounterfactualPath::RowsV1 => {
+                        device.propose_rows_cached(&warmup_batch, &targets, parameter)
+                    }
+                }
             };
             result.map_err(|error| ledger.fault("warmup_propose", &error.to_string()))?;
             if let Some(profile) = &profiler {
@@ -781,7 +794,14 @@ mod driver {
                     let proposal = if let Some(profile) = profiler.as_mut() {
                         device.propose_profiled(&carried, &targets, parameter, profile)
                     } else {
-                        device.propose(&carried, &targets, parameter)
+                        match pin.counterfactual_path {
+                            CounterfactualPath::LanesV1 => {
+                                device.propose(&carried, &targets, parameter)
+                            }
+                            CounterfactualPath::RowsV1 => {
+                                device.propose_rows_cached(&carried, &targets, parameter)
+                            }
+                        }
                     }
                     .map_err(|error| error.to_string())?;
                     if profiler.is_some() {
@@ -828,6 +848,7 @@ mod driver {
                 }
                 proposal_records.push(json!({
                     "operation": operation,
+                    "counterfactual_path": pin.counterfactual_path,
                     "parameter": format!("{parameter:?}"),
                     "propose_ns": propose_ns,
                     "subphases": subphases,
@@ -851,6 +872,7 @@ mod driver {
             timed_batches += 1;
             ledger.push(json!({
                 "record_kind": "batch",
+                "counterfactual_path": pin.counterfactual_path,
                 "cell": {"source": cell.source, "policy": policy_name(cell.policy)},
                 "batch": index,
                 "rows": ROWS,
@@ -894,6 +916,7 @@ mod driver {
         };
         Ok(json!({
             "record_kind": "cell",
+            "counterfactual_path": pin.counterfactual_path,
             "cell": {"source": cell.source, "policy": policy_name(cell.policy)},
             "timed_batches": timed_batches,
             "excluded_warmups": pin.warmups,
@@ -924,6 +947,11 @@ mod driver {
             "epoch_after": epoch_after,
             "identities": {
                 "compiled": compiled_identity(),
+                "rows_image_sha256": if pin.counterfactual_path == CounterfactualPath::RowsV1 {
+                    Some(uor_r4_discrete::device::compiled_rows_image_sha256())
+                } else {
+                    None
+                },
                 "device": device.resource_metadata().map_err(|e| e.to_string())?,
             },
             "applied": false,
@@ -1198,6 +1226,47 @@ mod tests {
 
     fn pin() -> Pin {
         serde_json::from_value(pin_value()).expect("pin parses")
+    }
+
+    #[test]
+    fn rows_counterfactual_path_is_explicit_in_the_plan_and_record() {
+        let mut value = pin_value();
+        value["counterfactual_path"] = json!("rows_v1");
+        let pin: Pin = serde_json::from_value(value).expect("rows pin parses");
+        let cells = validate(&pin).expect("rows pin validates");
+        let header = plan(&pin, &cells);
+        assert_eq!(header["counterfactual_path"], "rows_v1");
+        assert_eq!(header["batches_per_cell"], 100);
+        assert_eq!(header["excluded_warmups_per_cell"], 1);
+        let directory = tempfile::tempdir().expect("metadata directory");
+        let path = directory.path().join("record.json");
+        Ledger::new(path.clone(), header)
+            .flush("partial")
+            .expect("write metadata");
+        let record: Value = serde_json::from_slice(&std::fs::read(path).expect("read metadata"))
+            .expect("record JSON");
+        assert_eq!(record["header"]["counterfactual_path"], "rows_v1");
+    }
+
+    #[test]
+    fn legacy_pin_keeps_its_serialized_default_and_names_lanes_in_the_plan() {
+        let pin = pin();
+        assert_eq!(pin.counterfactual_path, CounterfactualPath::LanesV1);
+        let serialized = serde_json::to_value(&pin).expect("pin JSON");
+        assert!(serialized.get("counterfactual_path").is_none());
+        let cells = validate(&pin).expect("legacy pin validates");
+        assert_eq!(plan(&pin, &cells)["counterfactual_path"], "lanes_v1");
+    }
+
+    #[test]
+    fn unknown_counterfactual_path_and_rows_with_lane_profiler_are_refused() {
+        let mut value = pin_value();
+        value["counterfactual_path"] = json!("rows_typo");
+        assert!(serde_json::from_value::<Pin>(value).is_err());
+        let mut pin = diagnostic_pin();
+        pin.counterfactual_path = CounterfactualPath::RowsV1;
+        let error = validate(&pin).expect_err("lane-only profiler refuses rows");
+        assert!(error.contains("supports only lanes_v1"), "{error}");
     }
 
     #[test]

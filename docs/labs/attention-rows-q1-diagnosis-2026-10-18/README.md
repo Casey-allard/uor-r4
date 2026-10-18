@@ -7,7 +7,7 @@ the registered copy-successor panel and its complement? The separately released
 `rows_v1` attempt reached the existing admission-collapse gate in both arms:
 **Q1_STOP_FOR_DIAGNOSIS at 4,096 contiguous batches, exit 0**. This is a registered
 diagnostic stop, not a crash, completed full dose, mechanism negative or KEEP.
-**Independent scientific outcome review: PENDING, designated Claude seat.**
+**Independent scientific outcome review: [Claude6248429872](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872), configured admission collapse; no implementation or identity fault found.** The shared vector/combine objective-A pathway is source-supported, not causal proof.
 The operational result is **NOT YET PROMOTED** to a learned-attention result.
 Count **0/3**, reply **37/232 SUSPENDED** and the scientific bars remain unchanged;
 there is no progress-count reset.
@@ -211,16 +211,15 @@ are not summed and are not invoices. The prior mixed Codex proxy $9.018094999
 becomes **$11.838576666 plus separate PM work** under the native rounded basis;
 storage and transfer remain UNMEASURED.
 
-**Next:** complete the already requested designated Claude scientific review of
-the sealed actual Q1/control/source/hash/row/counter evidence, then let Kimi and
-the owner make the outcome-dependent configuration decision. Existing
-[sheet §7.12.4](../../harness/prep/m1-learned-attention-link-2026-10-17.md#7124-objective-policy-h--resolved-a-nearestaddressmarginv1)
-points A-collapse toward prospective R, `OccupiedCellRankHingeV1`, through a new
-pre-registration and owner decision. The conditional source dependency map
-`79f7afd104b1f97eefbe5186282a4fe56b41349ab597655a68b3ae6449511596`
-records an existing R writer/rows propagation while the current attention
-guard, sheet and rows qualification remain A-only. It selects no R configuration,
-issues no FIT/release and bridges no old checkpoint. No automatic larger A dose,
-retry, optimization campaign, fresh score or model replay follows. This result
-record changes no source, scientific bar, hold or count. Training/M2/StageB
-boundaries and Q4 NOT_EXECUTABLE remain in force.
+**Current next dependency:** the designated scientific outcome is posted above.
+The owner then selected the already FIT K16-A versus K16-R admission redirect on
+`rows_v1` ([6250410397](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397)),
+with the existing conditional release and registered gates preserved. See the
+[concrete source/qualification/packet sequence](../k16-rows-timing-source-2026-10-18/README.md).
+This is a distinct Route/K16, two-arm/two-seed contrast; it does not resume either
+attention attempt or import its checkpoint. Earlier R-only attention planning
+and source maps remain prospective preparation rather than an added K16 gate.
+No full-dose attribution, mechanism negative, KEEP, count reset or fresh result
+follows from this diagnostic outcome. Other training/M2/StageB holds remain;
+the explicit K16 conditional release requires actual source/qualification/timing
+and accepted D-Packet before training.

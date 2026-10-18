@@ -2,6 +2,12 @@
 
 > **Current M1 handoff (18 October):** the original ordinary-path dose remains [owner-stopped before Q1](attention-dose1-strategic-stop-2026-10-18/README.md). Both arms of the separate [rows Dose2](attention-rows-q1-diagnosis-2026-10-18/README.md) stopped at the registered Q1 admission-collapse gate after 4,096 batches, with P_succ target admission 2,034 → 225 treatment /205 control. [Scientific review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872) finds configured admission collapse in both arms and no implementation or identity fault; no registered efficacy hypothesis fires. These counts are not accuracy or a treatment win. Fresh stays sealed; no KEEP or mechanism-negative verdict follows. The pod was down at 07:53:30 UTC, and #2652/#2653 are merged. A shared vector/combine pathway is plausible, not causally established. See [STATUS](../../STATUS.md) for the next-decision boundary.
 >
+> **Current K16 preparation:** the existing FIT A/R redirect on `rows_v1`, seeds1/2,
+> retains its conditional release and all registered qualification predicates.
+> The [timing adapter and packet sequence](k16-rows-timing-source-2026-10-18/README.md)
+> are source-only; actual new-head qualification, checkpoint-0 A/R100-sample timing
+> and accepted measured D-Packet remain pending. The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125) removes Q4/importer from the critical path.
+>
 > [D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) permits offline floating point, retaining matmul/GEMM and softmax/squashing bans, GPU-only model compute and separately qualified D11 export. Other training, M2 and Stage B holds remain.
 >
 > Work claims and reviewer availability are renewable and belong in the live harness/issue. Start with the [session contract](session-goal.md), [protocol](protocol.md), [current architecture](../architecture.md) and [discrete crate](../../crates/uor-r4-discrete/README.md); the dated packets below preserve historical scope.
