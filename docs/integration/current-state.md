@@ -1,3 +1,11 @@
+## 2026-10-18 — Mechanism briefs corrected for the aliased-key finding (claude; mechanism-brief lane)
+
+- **`finite-relational-head.md`:** records that every trained Relation run so far started from the 16-vector xorshift codebook, so no run yet isolates the read. It adds a fair-test prerequisite: a distinguishable-key codebook, shown by artifact-level coverage gates (D39 item 2).
+- **`prime-zeta-complex-routing.md`:** records the #2692 / #2694 wiring and the census numbers, plus the caveat that injectivity comes from the construction's quota/uniqueness pass (which the nulls share), not from the prime phases.
+- **The mechanisms index rows** are updated to match.
+
+Docs only. No compute, $0.
+
 ## 2026-10-18 — Injective-lineage attention-runner interlocks (claude)
 
 Following AGY's FIT review (#2029 6253870519), this change adds:

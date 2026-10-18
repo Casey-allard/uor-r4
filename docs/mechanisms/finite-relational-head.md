@@ -183,9 +183,22 @@ Per [#2482 §5](../labs/spiralcore-attention-independent-review-2026-10-14/READM
    - **Zero code for `ReadSpec::Relation` exists in `crates/uor-r4-discrete/` today, and zero GPU or CPU runs of this head have been executed.**
      - Correction — the bold sentence above is stale (2026-10-17): implemented at `discrete.cu:78-267`, `device.rs:341-356`, `device.rs:1231-1246`, `device.rs:1512-1514`, `lib.rs:76-79,116-127,140-153`; qualified by `relation_qualification.rs` (C1–C8). A trained `rows_v1` arm executed on 2026-10-18: Relation against frozen-zero reached 4,096 batches in both arms and stopped at the configured Q1 admission collapse (`P_succ` target admission 2,034 → 225 treatment / 205 control), with no accuracy or paired win and no KEEP ([diagnosis](../labs/attention-rows-q1-diagnosis-2026-10-18/README.md)). What remains unexecuted is the **Stage M1 construction qualification** and the **Stage M2 Relation-vs-Route discriminator**, both owner-release-gated; see [d34-successor-table-control-2026-10-17.md](../harness/prep/d34-successor-table-control-2026-10-17.md) §6.9.
 
+4. **Every trained Relation run so far started from aliased keys (finding, 2026-10-18).** The default xorshift initializer gives **16 distinct token vectors** at checkpoint 0. That has been known since `a2-pilot-diagnosis-2026-10-14`, and the W0 census and `coverage-census` (#2678) confirm it: 256 tokens share each vector.
+   - The Relation read ranks context nodes by relation score over those payloads, so at initialization its keys separate only 16 classes. The Dose 2 `rows_v1` arms above began there.
+   - Their codebook could diversify only through single-coordinate moves: 2.4% of attempts were accepted, and the census reached 264 distinct vectors at a full Q4 dose. Those moves also drove the admission collapse.
+   - So **no trained run so far isolates whether the Relation read can learn.**
+   - An injective initialization is now available for new lineages (#2692/#2694: PrimeZeta, 4,096 vectors, DEV alias ceiling 14,287 / 14,287, zero tie mass). The draft sheet `m1-attention-injective-init-DRAFT-2026-10-18.md` asks this head's trained question on it, with exactly one variable changed from `m1-learned-attention-link-2026-10-17.md`.
+
 ---
 
 ## 7. What a fair test needs (M1 Construction Controls vs. Later M2 Trained-In Discriminator)
+
+**Prerequisite for any trained Relation test (added 2026-10-18).** The run must start from a codebook whose keys can be told apart, and it must show that with artifact-level coverage gates (D39 item 2):
+- the DEV alias ceiling, raw and net of admission, is at or above the sheet's bar;
+- within-cell tie mass is reported;
+- occupied cells are more than 16.
+
+A run on the 16-vector xorshift initialization measures codebook diversification as much as the read, and it cannot decide this head.
 
 ### 7.1 Stage M1 — Finite CUDA Construction Qualification (`NOT_RUN` — pre-registered in `docs/harness/prep/m1-finite-relational-head-2026-10-14.md`, [#2494](https://github.com/UOR-Foundation/uor-r4/pull/2494), `TEST FITNESS: FIT` by Claude at `4f0181b2c`; execution gated on owner release)
 Before any corpus training or model adoption, a finite construction qualification must pass all 10 controls enumerated in [#2482 §9](../labs/spiralcore-attention-independent-review-2026-10-14/README.md) (lines `368-374`; previously grouped as 9 when controls 7 and 8 were combined into a single bullet) and [D34](../integration/DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate):

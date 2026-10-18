@@ -60,6 +60,18 @@ Downstream of this offline host boundary, **100% of model compute and learning r
      - The remote job wrapper's trailing `sha256sum *` shell command included two subdirectories (`flock-controls`, `route-controls`) and exited `1` after `prime-zeta-qualify qualify` itself exited `0` and wrote all control JSONs; `receipts/SHA256SUMS` records the six verified file digests.
      - **What this test could and could not judge**: This finite construction qualification judged offline quantization, PTX integer purity, snapshot loading, non-aliasing, and counterfactual non-vacuity at epoch 0. Because `applied_updates = 0` and `corpus_rows_consumed = 0`, it **cannot** judge whether `PrimeZeta` improves trained language quality, writer admission, or rank margins over `TangentNull`, `NormalNull`, or xorshift initialization.
 
+4. **Wired as an opt-in initializer for new lineages (D39 item 3; #2692, #2694, 2026-10-18):**
+   - **Wiring.** `DriverConfig.codebook_initialization: pinned_table_v1` loads an exact integer table. `prime-zeta-codebook` exports this constructor's table, or a matched null, as `uor-r4.codebook-table/1`. The pinned table is:
+     - bound into the lineage by its file SHA;
+     - checked on the host for schema, spec, length, word digest and the declared distinct-vector count;
+     - admitted as roots on the GPU by `Device::from_snapshot`;
+     - enforced at checkpoint 0 (G-Init).
+
+     The seeded default and the frozen lineage are byte-unchanged.
+   - **Coverage census** (`coverage-census`, #2678, host grouping only), on the 14,287-row DEV panel. The xorshift checkpoint 0 has **16** distinct vectors, a DEV alias ceiling of 1,986 rows, and 4 of 674 targets that can win a tie. PrimeZeta V4096 B4 has **4,096** vectors, a ceiling of 14,287, all 674 targets, and zero tie mass.
+   - **The first downstream sheet is a draft:** `docs/harness/prep/m1-attention-injective-init-DRAFT-2026-10-18.md`. It asks the attention question (Relation vs FrozenZero) on this initialization. It is **not** the PrimeZeta-vs-null attribution below, which stays a separate sheet.
+   - **Caveat on what injectivity proves.** Because the quota/uniqueness pass also runs on both nulls (see the disclosures above), injectivity is a property of the construction, not of the prime phases. An attention result on this initialization is therefore evidence about distinguishable keys, not about prime-zeta geometry.
+
 ## What success and failure look like
 
 - **Finite construction stage (`PASS`, #2473/#2477)**:
