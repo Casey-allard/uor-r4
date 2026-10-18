@@ -25,3 +25,7 @@ Concurrent recv on one fd remains unsupported. close defers per-fd buffer reset 
 ## Next
 
 Exact-head review, protected merge, branch/worktree cleanup and hygiene. PR: https://github.com/UOR-Foundation/uor-r4/pull/2621
+
+## Claims cleanup (2026-10-18)
+
+All merged wire side-exploration branch claims (side-exploration, review-fixes, review-fixes-2, review-fixes-3, and this cleanup branch) were removed from docs/harness/claims.json. No code, model or evidence change.

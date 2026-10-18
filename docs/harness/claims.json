@@ -223,20 +223,6 @@
     "lab": "deepseek",
     "note": "R-queue rule in pm-rules.md"
   },
-  "deepseek/spiralcore-wire-review-fixes-2": {
-    "branch": "deepseek/spiralcore-wire-review-fixes-2",
-    "claimed_at": "2026-10-17T22:52:30-04:00",
-    "head": "4f3dff6f8",
-    "lab": "deepseek",
-    "note": "Second round of Codex P1/P2 fixes for wire side exploration: fd-reuse vs recv lock sync, mux stream registration ordering and half-close retention, Linux smoke unset-variable default. No model compute."
-  },
-  "deepseek/spiralcore-wire-review-fixes-3": {
-    "branch": "deepseek/spiralcore-wire-review-fixes-3",
-    "claimed_at": "2026-10-17T23:20:31-04:00",
-    "head": "bdde58423",
-    "lab": "deepseek",
-    "note": "Round-3 Codex P1 fix: close wakes a blocked recv via shutdown before close so a reused fd connect cannot block on the old receive. No model compute."
-  },
   "deepseek/unread-notes": {
     "branch": "deepseek/unread-notes",
     "claimed_at": "2026-10-15T17:33:48-04:00",

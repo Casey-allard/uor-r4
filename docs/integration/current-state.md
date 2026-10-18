@@ -1,3 +1,7 @@
+## 2026-10-18  Final wire claims cleanup (deepseek)
+
+Removes the stale committed claims left by the merged wire side-exploration PRs (#2613, #2614, #2619, #2621) and this cleanup branch from docs/harness/claims.json. No code, model, evidence or dispatch change; coordination record only.
+
 ## 2026-10-18  Wire review fixes round 3 (Codex finding on #2619; `deepseek/spiralcore-wire-review-fixes-3`)
 
 Codex reviewed #2619 at `5d6ecdd62` and reported one P1: a blocking `recv` can remain asleep on Linux
