@@ -7,13 +7,11 @@
 - `StackModel::read_supervised_loss` → `ReadSupervisedLoss {language, binding, bound, competing, heads}`
 - the training flag `read_binding_supervision=W`, and `read_lineage` / `ReadLineage::RandomSo4`
 
-**What has been tried, honestly:** #2155 fine-tuned one 29M chat artifact on generated dialogues.
-- Own objective reached: bound mass 0.73→0.90 at W=0.1, and 0.93 at W=0.5.
-- Headline flat: v5 memory 20→19/40 at W=0.1 and 17/40 at W=0.5. Reply panel 37→39/232.
-- Wrong-value failures (the targeted failure mode): **17 → 12**, with nine rows repaired and four broken, row-paired against the anchor.
-- It was counted as a negative under D21, although it met its own target. Under [D22](../integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened) it is reopened, with power.
+**What has been tried, honestly:**
+- **Powered run: three seeds from step 0, each against a matched `W=0` control ([record](../labs/read-binding-powered-2026-10-11/README.md), 2026-10-11). KEEP + iterate (D22 §2).** Bound mass 0.732 → 0.896/0.899/0.905; competing mass 0.140 → 0.090/0.086/0.081; wrong-value failures **47 → 30/120** (per seed −5, −11, −1; `p = 0.0034` on the seed that repairs twelve and breaks one); memory **57 → 65/120**, with all three arms at or below the anchor's BPB (1.17142/1.17067/1.17060 against 1.17425). A head ablation shows the read is the answer path. The competing-mass-margin (30 → 30) and phase-binding (memory 17/20) iterations were rejected.
+- **#2155, the single-seed late bolt-on, archived-negative (D22 scope):** one 29M chat artifact on generated dialogues. Bound mass 0.73→0.90 at W=0.1 and 0.93 at W=0.5; v5 memory 20→19/40 at W=0.1 and 17/40 at W=0.5; reply panel 37→39/232; wrong-value failures 17 → 12 (nine repaired, four broken, row-paired). It was counted as a negative under D21 although it met its own target; [D22](../integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened) reopened the mechanism, and the powered run above supplied the power.
 
-That is one seed and a 40-row panel, so ±2–3 rows is noise. It was bolted on late, and the supervised head may not be the head the output actually uses. It shows the read *can* be steered. It does not show that steering it moves answers.
+One seed on a 40-row panel is ±2–3 rows of noise, and the supervised head may not be the head the output actually uses; the powered run is what settles that. The powered run is in the historical float/softmax form, preserved inactive under D23/D30/D32: it shows the read *can* be steered and that steering it moves the headline. It does not qualify a serving path; a re-registration needs a geometric or discrete read and the fair-test conditions below.
 **What success looks like:** Own: bound mass rises, competing mass falls, and wrong-value failures drop. Headline: M1 #2029 v5 memory `check_pass` and reply `acceptable`, with no BPB regression.
 **What failure looks like:** Bound mass near 1 on the head that causally feeds the output (shown by ablation), and still no memory gain over a matched control across seeds. That would mean correct binding is not the bottleneck.
 **A fair test:**

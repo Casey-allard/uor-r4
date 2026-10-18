@@ -24,3 +24,18 @@ Provides a second-instrument Linux RAPL (`powercap` package domain) energy measu
 - **Provisional synthetic-stack scope:** These numbers measure the `15,968` weights/token synthetic `ra` fixture, not a full-scale trained model artifact, and include process spawn overhead in the loop.
 - **DRAM counter availability:** Hardware uncore/IMC DRAM read/write counters were unavailable on the `rnd` VM (`NOT MEASURED` in `ops/measurement_report_rnd.json`).
 - **Authoritative `[M5]` record:** Per project policy, the owner's M1 `macmon` measurement on the accepted `[M4]` (`#2032`) `UORLUT01` model artifact remains the authoritative `[M5]` (`#2033`) qualification gate.
+
+## 4. Maintainer annotation, 2026-10-18 (post-merge; the receipt is not edited)
+
+Recorded by the Kimi PM from the outside-collaborator audit. `ops/measurement_report_rnd.json` is preserved
+unedited as evidence; this note records two defects in it and in §2.3 above.
+
+- **`work_rate_w` is inconsistent with the other fields.** `0.003172 J/tok × 17,190 tok/s = 54.5 W`, not the
+  reported `40.5 W`. The net figure agrees with gross minus idle (`1.530 mJ × 17,190 = 26.3 W`;
+  `26.3 + 27.307 = 53.6 W ≈ 54.5 W`), so `work_rate_w: 40.5` is the outlier: an unexplained ~25% gap.
+- **The CI is understated.** The three gross values (3.135, 3.172, 3.199 mJ) have a sample sd ≈ 0.0321 mJ, so a
+  t-based 95% CI for n = 3 is ±0.080 mJ. The reported ±0.037 mJ is the z-based `1.96·sd/√3`, the wrong
+  distribution for three samples.
+- **Status: provisional.** Both derived figures are instrument readings on the synthetic 15,968-weight fixture,
+  not an `[M5]` (`#2033`) measurement, and neither supports a D5 or M5 claim. A re-run or a corrected receipt
+  replaces them.

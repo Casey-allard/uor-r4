@@ -24,7 +24,7 @@
 - #2161: a token-identity pointer cut wrong-value answers 17→12, but memory stayed **19/40**. That pointer line was archived at 3/3.
 - Net: these were negatives for a soft pointer, not for exact addressing.
 - The addressed-memory operator named in DeepSeek's pivot card was **not built**, because `DialogueSettings` has no memory fields. So the idea is **untested** on the M1 panel.
-- Product-key layers are wired and round-trip-tested, but no scored M1 result was found on main.
+- Product-key layers are wired and round-trip-tested. A scored 3-seed **product-key MLP-replacement** result exists ([record](../labs/addressed-read-2026-10-11/README.md)): wrong-value 47→34/120, memory flat at 57/57, +36.9 M params, −90% MACs at the replaced layer and about 20× the training wall. Its own correction says the **read was never replaced**: that run tested a product-key replacement for the MLP, not the read address. The address-instead-of-search mechanism therefore remains **untested** on the M1 panel.
 
 **What success looks like:**
 - Own metrics: exact recall of asserted facts at any distance, with version-correct answers (current vs previous value) and correct abstention after eviction.

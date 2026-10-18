@@ -66,9 +66,11 @@ The registered CLI is `examples/geometric-stack-native.rs`, reusing its native r
 - The implementation, its CUDA f32 kernel and its focused tests landed (#2255 and the OP-family PRs:
   hand computation on a fixed row, finite-difference gradients, bit-exactness of the `Ce` path it did not
   touch, and a serving-compliance witness that a non-pointer model's `next_scores` are its raw last logits).
-- **No training run has executed this objective.** Rung 0's own pre-registration is the sheet named below;
-  under the D25 freeze and the owner's holding rules, no model compute runs until a `TEST FITNESS: FIT`
-  verdict and an explicit hold release. The CUDA kernel has been parity-tested against the CPU reference
+- **No training run has executed this objective.** Rung 0's own pre-registration is the sheet named below.
+  [D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) (18 October) revised the D32 item-5 freeze: this F32 sheet is **re-registrable only** as a new
+  pre-registration with a fresh `TEST FITNESS: FIT` on its milestone and an owner release, in a separately
+  scanned float module, with a reported D11 export gap and no matmul or softmax. Under the current holds, no
+  model compute runs until that verdict and release. The CUDA kernel has been parity-tested against the CPU reference
   (device receipt in the operator record); it has never trained a model.
 - No claim is made that a hinge reaches cross-entropy-level language quality. That is exactly the question
   rung 0 measures at its own scope, with margin curves, not with incomparable NLLs.

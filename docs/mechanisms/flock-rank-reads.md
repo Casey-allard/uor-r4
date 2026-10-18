@@ -14,7 +14,7 @@
 - Hamming-rank: **+0.259 BPB**, and its seeds diverge.
 - Learned rank tables (#2153/#2160): **+0.0185 BPB**, 54% of the gap closed, against a 0.01 bar.
 - v4 memory was within tolerance for fixed and learned rank (it is noisy at 3–6/40).
-- The line hit 3/3 under D21 and **stopped**.
+- The line hit 3/3 under D21 and **stopped**. [D22](../integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened) §5 reopened the configuration, and the discrete `ReadSpec::Flock` is the **`active`** successor on the current substrate (#2395/#2400 at `e7d926fbe`). These M4 runs remain archived-negative in their softmax-trained, host-flock form.
 
 Could these tests judge the idea? Only partly:
 - (a) There was one W/K setting.

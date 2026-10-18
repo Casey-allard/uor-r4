@@ -11,10 +11,11 @@
 //!   `i16x8.extadd_pairwise_i8x16` and `i32x4.extadd_pairwise_i16x8`
 //!   (adds, not multiplies). Zero `mul`/`float` by construction.
 //!
-//! - **Arm M (labeled non-R2):** the same inner loop with
-//!   `i32x4.dot_i16x8`, a hardware multiplier. Reported beside Arm T under
-//!   their D12 (evidence, not a veto) so the measured cost of the D11
-//!   strictness is explicit.
+//! - **Arm M (withdrawn as an evidence arm):** an earlier revision ran the
+//!   same inner loop with `i32x4.dot_i16x8`, a hardware multiplier, and
+//!   reported it beside Arm T under their D12. The merged kernel delegates to
+//!   Arm T: there is no Arm M implementation and no D12 evidence row for it.
+//!   [`dot_dot_arm_m`] remains only as a name-preserving wrapper.
 //!
 //! Both are scalar-fallback: with `simd128` off, [`swizzle_dot_arm_t`] and
 //! [`dot_dot_arm_m`] compute the identical integers in the loop the engine

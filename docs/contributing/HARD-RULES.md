@@ -1,0 +1,23 @@
+# Hard rules for any contribution
+
+These are the constraints a diff is judged against. They are not style preferences: a
+contribution that breaks one is not merged, however good it is otherwise. The full rule
+set is [AGENTS.md](../../AGENTS.md); the decisions themselves are in
+[DECISIONS.md](../integration/DECISIONS.md). Where this page and a decision disagree, the
+decision wins.
+
+| Rule | Decision | What it means in your diff | How to check |
+|---|---|---|---|
+| **No softmax, softplus, sigmoid, tanh or GELU anywhere.** | D23, D25 | Not in losses, sampling, teachers, comparators or auxiliary heads; not as `log-softmax` or softmax-inside-cross-entropy; not renamed or precomputed into a table. | `git grep -n -iE 'softmax\|softplus\|sigmoid\|tanh\|gelu'` over the paths you touched. Every hit must be a comment about preserved historical evidence, never executed code. |
+| **No dense matrix multiplication or GEMM.** | D25, D30 | Covers training and serving, including wrapper laundering: `matmul`, `gemm`, BLAS, or a hand-written loop that is the same contraction. Additive and table-driven maps are allowed. | `uor-harness ratchet d25` (advisory) and the audit scripts under `scripts/`. State in the PR which operation replaced the contraction. |
+| **A banned mechanism may not exist in any compiled or loaded module.** | D29 | Presence counts, not only execution. A renamed feature that re-exposes a retired runtime is a violation even if it is never called. | Compile the feature you changed and inspect its symbols and imports; the crate-level `#[cfg] compile_error!` guards exist for this. |
+| **Model compute is GPU-only.** | D24 | No CPU fallback in training, evaluation, scoring, normalization or the forward path. Non-model work (editing, compilation, static checks, data preparation, grading stored outputs) runs locally. | A CPU run of a model path is a defect to fix with a kernel, not a cheaper result to report. |
+| **Serving is integer and table only.** | D11 | The served kernel has no floating point, no transcendental arithmetic and no multiplier instruction. Products of runtime values come from tables or exact geometric structure. | `scripts/serving_multiplier_check.py` and `scripts/audit_zero_matmul_serving.py`. |
+| **Float is legal in offline training only.** | D37 | A float forward pass, gradient or optimizer lives in a separate, separately scanned geometric module with its own allowlist entry. It never widens the discrete crate's scan, and every float-trained candidate reports its D11 export gap. | The pre-registration names the module and the scan entry; the report gives the export gap on the same evaluator. |
+| **New code and tooling default to Rust.** | D27 | Python only where Rust genuinely cannot do the job. A measurement script is tooling, so the default applies to it too. | The PR says why Rust was insufficient if Python appears. |
+| **Never commit model binaries, corpora, wasm bundles or generated artifacts.** | `.gitignore` | No `.wasm`, `.lut`, checkpoints, datasets, `pkg-*/` output or generated figures. Large material goes to the MD5-verified store, not the tree. | `git status --short` and `git diff --stat`: no large blobs in the diff. |
+| **Never commit credentials, passwords, tokens or absolute home paths.** | — | No API keys, no `sudo -S` passwords, no `/home/<user>/...` in scripts. | `git grep -n -iE 'password\|api[_-]?key\|secret'` on the changed paths. Report a leaked secret privately per [SECURITY.md](../../SECURITY.md). |
+| **Every claim names its artifact, data split and comparison.** | `docs/formal_vocabulary.md` | Write "measured X on Y against Z", not "X works". Unverified is stated as unverified; a negative stays on the record. | Re-read the PR description against the numbers in the diff. |
+| **Delivery is through the protected merge queue.** | Owner, 9 October 2026 | Short-lived branch, protected PR, exact-head review, merge queue. Never direct-push `main`, never bypass protection, never admin-merge. | `uor-harness check`, then `gh pr view` for the branch state. |
+| **Archive, do not delete.** | D14, owner direction | Unique source, negative results, artifacts and other labs' work are preserved. Superseded source lands as an archive patch, not as a deletion. | `git status` for deleted evidence paths; ask before removing anything you did not create. |
+| **External compute only through `scripts/pod/uor-pod`.** | D26, owner 5 October 2026 | No other paid or external compute class, no hand-rolled cloud VM and no new provider. Caps across all labs: at most 4 running pods and $8 per hour. | `uor-pod status` before any GPU work; record the lease and the cost. |

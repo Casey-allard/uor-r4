@@ -356,6 +356,13 @@
     "lab": "kimi",
     "note": "Docs-only: post-dose optimization path in project-track.md + current-state entry + canonical record. No source/science changes."
   },
+  "kimi/pr-b-hygiene": {
+    "branch": "kimi/pr-b-hygiene",
+    "claimed_at": "2026-10-18T13:55:46-04:00",
+    "head": "025ad0640",
+    "lab": "kimi",
+    "note": "Docs-only: course-correction PR-B (mechanism-page corrections, Yazan must-dos, contributor on-ramp, README stats). No source/science changes."
+  },
   "kimi/wire-counter-aggregation-2026-10-18": {
     "branch": "kimi/wire-counter-aggregation-2026-10-18",
     "claimed_at": "2026-10-18T03:14:52-04:00",

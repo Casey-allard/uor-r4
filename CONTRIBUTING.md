@@ -7,6 +7,10 @@ Contributors are human researchers, AI labs (Claude, Codex, DeepSeek) and anyone
 follows the procedure below. This is the current, owner-approved workflow; [AGENTS.md](AGENTS.md)
 is the full rule set and wins on any conflict.
 
+**Before you write code:** the constraints a diff is judged against are in
+[HARD-RULES.md](docs/contributing/HARD-RULES.md). If you are outside the labs, start with
+[Contributing without lab access](docs/contributing/OUTSIDE.md).
+
 ## Principles
 
 - `origin/main` is the single source of truth. A branch or PR is a temporary delivery step,
@@ -17,8 +21,10 @@ is the full rule set and wins on any conflict.
 
 ## For humans: start here
 
-1. Read the [README](README.md), [STATUS.md](STATUS.md), then [docs/labs/README.md](docs/labs/README.md)
-   and the [project map](docs/PROJECT_MAP.md). Do not repeat a broad historical audit.
+1. Read the [README](README.md), [STATUS.md](STATUS.md) and [NOW.md](docs/integration/NOW.md) —
+   the current plan on one page — then [docs/architecture.md](docs/architecture.md) and the
+   [project map](docs/PROJECT_MAP.md). `docs/labs/` is the AI research labs' onboarding; you
+   do not need it. Do not repeat a broad historical audit.
 2. Build and test (Rust 1.97.1 is pinned and selected by rustup):
    ```sh
    cargo check --locked -p uor-r4-discrete --lib
@@ -26,11 +32,17 @@ is the full rule set and wins on any conflict.
    cargo run -q --locked -p xtask -- figures
    ```
    Run focused tests for the path you change; there is no blanket full-suite requirement.
-3. Good first areas: milestone M6 (exact arithmetic in the stack, issue #2034), M5 (a laptop
-   energy and RAM measurement plan, #2033), M7 (API and WASM for the stack, #2035),
-   documentation and claim-wording fixes, and reading a negative result in
-   [docs/integration/current-state.md](docs/integration/current-state.md) to find a cause.
-4. Ask on the milestone issue before starting; comment what you will do.
+3. **What is actually open.** Model work is gated: M1–M4 (#2029–#2032) own the model, and
+   M5–M8 (#2033–#2036) each declare a dependency on the M4 served model and are `not-started`.
+   Do not start model work without a maintainer saying a slot is open. Genuinely open now:
+   - documentation and claim-wording fixes (open an issue first);
+   - reproducing a published negative result and reporting a discrepancy;
+   - tooling and CI improvements that do not touch the model path;
+   - reading [current-state.md](docs/integration/current-state.md) and identifying a cause;
+   - issues labelled `good first issue` — ask and one will be seeded for you.
+4. Ask on the milestone issue, or on #2028 for tracker work, before starting; comment what you
+   will do. A maintainer will tell you within a day whether the work is wanted; if it is not,
+   that is a normal answer, not a rejection.
 
 ## The workflow (every lab, agent and human)
 
@@ -101,6 +113,15 @@ correction; it is never silently replaced.
 
 ## The harness: run it, do not reconstruct it
 
+The harness is a locally compiled Rust helper, not an installed tool:
+
+```sh
+CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness
+```
+
+If you do not have it, skip this section: a maintainer will run these gates for you, and
+nothing here blocks a documentation or tooling contribution.
+
 Planning, the milestone headline, what a skill requires, what a run costs and what went wrong
 before are all queryable. Do not rebuild them from prose each session, and do not carry them
 in your head:
@@ -115,12 +136,12 @@ uor-harness check               # every machine-checkable rule
 
 Two habits keep it honest, and both are cheap:
 
-- **Receipt the work.** `cli.py skill use <id>` and `cli.py team dispatch <role>` write one line
+- **Receipt the work.** `uor-harness skill use <id>` and `uor-harness team dispatch <role>` write one line
   to `docs/harness/ledger/`. A skill that was loaded, or an agent that was dispatched, without a
   receipt is invisible to the owner - which is the failure this exists to end. `uor-harness` writes
   the line to the **live tier** first and `uor-harness ledger-sync` carries it into the committed
   shard before the PR, so recording a skill never dirties a checkout (R10).
-- **Make a lesson a guard.** When something goes wrong, `cli.py mistakes capture` records the
+- **Make a lesson a guard.** When something goes wrong, `uor-harness mistakes capture` records the
   trigger, symptom and lesson and names the rule that will catch it next time. A lesson with no
   guard is a note that will be forgotten again.
 

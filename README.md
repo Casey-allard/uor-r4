@@ -100,7 +100,7 @@ Live tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 | M4 One served model (D11 and a CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | unified D11 model/export unqualified |
 | M5 Laptop cost | [#2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | energy per token on an M1: not measured |
 | M6 Reasoning and coding | [#2034](https://github.com/UOR-Foundation/uor-r4/issues/2034) | not started | exact arithmetic is the visible gap |
-| M7 Distribution (API, WASM, Studio) | [#2035](https://github.com/UOR-Foundation/uor-r4/issues/2035) | not started | local API only |
+| M7 Distribution (API, WASM, Studio) | [#2035](https://github.com/UOR-Foundation/uor-r4/issues/2035) | runtime delivered; model bundle not integrated | local API only; the D11 WASM runtime and zero-matmul audit gate landed ([#2654](https://github.com/UOR-Foundation/uor-r4/pull/2654); [record](docs/labs/wasm-serving-runtime-2026-10-18/README.md)), but the selected model bundle is not yet reachable |
 | M8 Alpha release | [#2036](https://github.com/UOR-Foundation/uor-r4/issues/2036) | not started | owner decision |
 
 <img src="docs/figures/milestones.svg" alt="Milestones M1 to M8: M1 in progress, M2 and M4 held, M3 paused, M5 to M8 planned" width="100%">
