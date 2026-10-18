@@ -329,6 +329,18 @@ pub struct Block {
     pub kind: CoordinateKind,
     pub coordinates: Vec<crate::Parameter>,
 }
+/// The first cursor of a config's schedule (`block` present iff `K > 1`):
+/// the single definition behind `PreparedDriver::initial_cursor`.
+pub fn initial_cursor_for(config: &DriverConfig) -> Cursor {
+    Cursor {
+        block: (!config.coordinate_block.is_one()).then_some(BlockCursor {
+            o_vec: 0,
+            o_read: 0,
+            committed_moves: 0,
+        }),
+        ..Cursor::initial()
+    }
+}
 /// Per-family cursors `(o_vec, o_read)` before batch `completed_batches`: a
 /// pure function of the batch ordinal, `K`, the schedule and family sizes.
 /// A vector batch takes `min(K, vectors left in its pass)`, a read batch
@@ -705,14 +717,7 @@ impl PreparedDriver {
     }
     /// The first cursor of this driver's schedule (`block` present iff `K > 1`).
     pub fn initial_cursor(&self) -> Cursor {
-        Cursor {
-            block: (!self.config.coordinate_block.is_one()).then_some(BlockCursor {
-                o_vec: 0,
-                o_read: 0,
-                committed_moves: 0,
-            }),
-            ..Cursor::initial()
-        }
+        initial_cursor_for(&self.config)
     }
     pub fn batch(&self, cursor: &Cursor) -> Result<CorpusBatch> {
         self.validate_cursor(cursor)?;
@@ -1561,6 +1566,25 @@ mod tests {
         assert!(wrong.validate().is_err());
         Ok(())
     }
+    #[test]
+    fn initial_cursor_for_is_k_aware_and_k1_is_legacy_initial() -> Result<()> {
+        let driver = metadata_fixture(1, ReadSpec::Route)?;
+        let mut config = driver.config().clone();
+        assert_eq!(initial_cursor_for(&config), Cursor::initial());
+        assert_eq!(driver.initial_cursor(), Cursor::initial());
+        config.coordinate_block = CoordinateBlock(4);
+        let k4 = initial_cursor_for(&config);
+        assert_eq!(
+            k4.block,
+            Some(BlockCursor {
+                o_vec: 0,
+                o_read: 0,
+                committed_moves: 0
+            })
+        );
+        assert_ne!(k4, Cursor::initial());
+        Ok(())
+    }
     const SPEC24: Spec = Spec {
         vocabulary: 10,
         blocks: 2,
@@ -2228,6 +2252,158 @@ mod tests {
         assert_eq!(encoded["applied"], false);
         Ok(())
     }
+    #[test]
+    fn k1_step_receipt_bytes_are_unchanged() -> Result<()> {
+        let receipt = StepReceipt {
+            lineage_sha256: "ab".into(),
+            cursor_before: Cursor::initial(),
+            cursor_after: Cursor::initial(),
+            coordinate: Coordinate {
+                kind: CoordinateKind::Gate,
+                index: 20,
+            },
+            target_positions: vec![3],
+            candidate: 1,
+            loss_before: 10,
+            loss_after: 9,
+            model_epoch: 0,
+            applied: false,
+            apply_refused_by_policy: false,
+            any_candidate_cost_differs_from_identity: true,
+        };
+        let cursor = r#"{"completed_batches":0,"accepted_updates":0,"corpus_pass":0,"next_target":0,"next_coordinate":0}"#;
+        assert_eq!(
+            serde_json::to_string(&receipt).map_err(|e| invalid(e.to_string()))?,
+            format!(
+                r#"{{"lineage_sha256":"ab","cursor_before":{cursor},"cursor_after":{cursor},"coordinate":{{"kind":"gate","index":20}},"target_positions":[3],"candidate":1,"loss_before":10,"loss_after":9,"model_epoch":0,"applied":false,"any_candidate_cost_differs_from_identity":true}}"#
+            )
+        );
+        Ok(())
+    }
+    #[test]
+    fn block_receipt_round_trips_and_omits_absent_joint_loss() -> Result<()> {
+        let driver = block_fixture(
+            4,
+            ReadSpec::Flock { kept: 2 },
+            SPEC24,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        )?;
+        let before = driver.initial_cursor();
+        let after = driver.advance_block(&before, true, 3)?;
+        let mut receipt = BlockReceipt {
+            lineage_sha256: "ab".into(),
+            cursor_before: before,
+            cursor_after: after,
+            kind: CoordinateKind::VectorBlock,
+            k: 4,
+            s_len: 3,
+            joint: true,
+            l_before: 10,
+            l_joint: Some(7),
+            l_best: 8,
+            committed_loss: 7,
+            commit_ordinals: vec![0, 2, 3],
+            o_vec: 0,
+            o_read: 0,
+            completed_batches: 0,
+            model_epoch: 1,
+        };
+        let encoded = serde_json::to_string(&receipt).map_err(|e| invalid(e.to_string()))?;
+        let decoded: BlockReceipt =
+            serde_json::from_str(&encoded).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(decoded, receipt);
+        assert_eq!(
+            decoded.cursor_after.block,
+            Some(BlockCursor {
+                o_vec: 4,
+                o_read: 0,
+                committed_moves: 3
+            })
+        );
+        receipt.l_joint = None;
+        let value = serde_json::to_value(&receipt).map_err(|e| invalid(e.to_string()))?;
+        assert!(value.get("l_joint").is_none());
+        let decoded: BlockReceipt =
+            serde_json::from_value(value).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(decoded, receipt);
+        Ok(())
+    }
+    #[test]
+    fn block_checkpoint_refuses_inconsistent_moves_and_family_cursors() -> Result<()> {
+        let driver = block_fixture(
+            4,
+            ReadSpec::Flock { kept: 2 },
+            SPEC24,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        )?;
+        // Two committed batches (4 + 1 moves) and one no-op batch.
+        let mut cursor = driver.initial_cursor();
+        for (committed, moves) in [(true, 4), (false, 0), (true, 1)] {
+            cursor = driver.advance_block(&cursor, committed, moves)?;
+        }
+        assert_eq!(cursor.accepted_updates, 2);
+        let checkpoint_at = |cursor: Cursor| -> Result<DriverCheckpoint> {
+            let model = json!({"schema":crate::SCHEMA,"spec":driver.config.spec,"read_spec":driver.config.read_spec,"seed":1,"epoch":cursor.accepted_updates,"source_sha256":"0".repeat(64),"kernel_sha256":"1".repeat(64),"geometry_sha256":"2".repeat(64)});
+            Ok(DriverCheckpoint {
+                schema: CHECKPOINT_SCHEMA.into(),
+                lineage: driver.lineage.clone(),
+                cursor,
+                model_sha256: corpus::sha256(
+                    &serde_json::to_vec(&model).map_err(|e| invalid(e.to_string()))?,
+                ),
+                model,
+            })
+        };
+        driver.validate_checkpoint(&checkpoint_at(cursor)?)?;
+        let block = cursor
+            .block
+            .ok_or_else(|| invalid("K = 4 cursor carries block fields"))?;
+        assert_eq!(block.committed_moves, 5);
+        for (moves, o_vec, o_read, message) in [
+            (
+                1,
+                block.o_vec,
+                block.o_read,
+                "resume committed_moves outside accepted_updates..=K*accepted_updates",
+            ),
+            (
+                9,
+                block.o_vec,
+                block.o_read,
+                "resume committed_moves outside accepted_updates..=K*accepted_updates",
+            ),
+            (
+                5,
+                block.o_read,
+                block.o_vec,
+                "resume o_vec/o_read differ from the per-family block schedule",
+            ),
+            (
+                5,
+                block.o_vec + 1,
+                block.o_read,
+                "resume o_vec/o_read differ from the per-family block schedule",
+            ),
+        ] {
+            let mut bad = cursor;
+            bad.block = Some(BlockCursor {
+                o_vec,
+                o_read,
+                committed_moves: moves,
+            });
+            assert_eq!(
+                refusal(driver.validate_checkpoint(&checkpoint_at(bad)?)),
+                message
+            );
+        }
+        // epoch == accepted_updates still binds the model to the block cursor.
+        let mut stale = checkpoint_at(cursor)?;
+        stale.model["epoch"] = json!(5);
+        stale.model_sha256 =
+            corpus::sha256(&serde_json::to_vec(&stale.model).map_err(|e| invalid(e.to_string()))?);
+        assert!(driver.validate_checkpoint(&stale).is_err());
+        Ok(())
+    }
 }
 
 /// A capability cannot be deserialized or constructed by external callers.
@@ -2350,6 +2526,30 @@ pub struct StepReceipt {
 }
 fn is_false(value: &bool) -> bool {
     !*value
+}
+/// One BVG-K block batch. `o_vec`/`o_read` and `completed_batches` are the
+/// cursor before the batch; `cursor_after` carries the advanced block cursor.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlockReceipt {
+    pub lineage_sha256: String,
+    pub cursor_before: Cursor,
+    pub cursor_after: Cursor,
+    pub kind: CoordinateKind,
+    pub k: u32,
+    pub s_len: u32,
+    pub joint: bool,
+    pub l_before: u64,
+    /// `L(S_t)`; present iff `|S_t| >= 2`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub l_joint: Option<u64>,
+    pub l_best: u64,
+    pub committed_loss: u64,
+    pub commit_ordinals: Vec<u32>,
+    pub o_vec: u64,
+    pub o_read: u64,
+    pub completed_batches: u64,
+    pub model_epoch: u64,
 }
 
 #[cfg(feature = "cuda")]
@@ -2528,9 +2728,120 @@ impl PreparedDriver {
         admission: &CorpusUpdateAdmission,
         batches: std::num::NonZeroU64,
     ) -> Result<(Cursor, Vec<StepReceipt>)> {
+        if !self.config.coordinate_block.is_one() {
+            return Err(invalid(
+                "coordinate_block > 1 runs through run_block_transitions",
+            ));
+        }
         let mut receipts = Vec::new();
         for _ in 0..batches.get() {
             let receipt = self.transition(model, &cursor, admission)?;
+            cursor = receipt.cursor_after;
+            receipts.push(receipt);
+        }
+        Ok((cursor, receipts))
+    }
+    /// One BVG-K block batch under the same owner admission as `transition`:
+    /// score the block on one carried batch, choose and decide on the device,
+    /// commit the decided set (none, one move, or the joint `S_t`). FrozenZeroV1
+    /// marks relation-tail gates ineligible, so they are never committed.
+    /// Crate-private: drivers reach it only through `run_block_transitions`
+    /// (K > 1); the K = 1 call exists solely for the H4 identity control V1.
+    pub(crate) fn transition_block(
+        &self,
+        model: &mut crate::device::Device,
+        cursor: &Cursor,
+        admission: &CorpusUpdateAdmission,
+        rowsk: &crate::device::RowsKScoring,
+        bvgk: &crate::device::BvgkKernels,
+    ) -> Result<BlockReceipt> {
+        if admission.lineage_sha256 != self.lineage_sha256()? {
+            return Err(invalid("owner admission belongs to another driver lineage"));
+        }
+        if cursor.completed_batches >= admission.max_completed_batches {
+            return Err(invalid("admitted diagnostic pilot dose exhausted"));
+        }
+        self.admit_model(model, cursor)?;
+        // Refuse cursor overflow before apply_block can change the model.
+        self.advance_block(cursor, false, 0)?;
+        let block = self.block_at(cursor)?;
+        let eligible = block
+            .coordinates
+            .iter()
+            .map(|parameter| {
+                let index = match *parameter {
+                    crate::Parameter::VectorBlock(i)
+                    | crate::Parameter::Route(i)
+                    | crate::Parameter::Gate(i) => i,
+                };
+                self.apply_refused_by_policy(Coordinate {
+                    kind: block.kind,
+                    index,
+                })
+                .map(|refused| !refused)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let batch = self.batch(cursor)?;
+        let carried = model.carry_windows(&batch.windows)?;
+        let proposal = model.propose_block(
+            &carried,
+            &batch.targets,
+            &block.coordinates,
+            &eligible,
+            rowsk,
+            bvgk,
+        )?;
+        let record = proposal.record().clone();
+        let commit = model.apply_block(&proposal)?;
+        // The device commit must agree with its own record before the cursor
+        // moves: a disagreement is a loud refusal, never a silent drift.
+        if commit.moves as usize != record.commit_ordinals.len() || commit.joint != record.joint {
+            return Err(Error::Invalid(format!(
+                "block commit ({} moves, joint {}) disagrees with its record ({} ordinals, joint {})",
+                commit.moves,
+                commit.joint,
+                record.commit_ordinals.len(),
+                record.joint
+            )));
+        }
+        let after = self.advance_block(cursor, commit.moves > 0, u64::from(commit.moves))?;
+        self.admit_model(model, &after)?;
+        let (o_vec, o_read) = self.family_cursors(cursor.completed_batches)?;
+        Ok(BlockReceipt {
+            lineage_sha256: self.lineage_sha256()?,
+            cursor_before: *cursor,
+            cursor_after: after,
+            kind: block.kind,
+            k: record.k,
+            s_len: record.s_len,
+            joint: record.joint,
+            l_before: record.l_before,
+            l_joint: record.l_joint,
+            l_best: record.l_best,
+            committed_loss: record.committed_loss,
+            commit_ordinals: record.commit_ordinals,
+            o_vec,
+            o_read,
+            completed_batches: cursor.completed_batches,
+            model_epoch: model.epoch()?,
+        })
+    }
+    /// The `coordinate_block > 1` loop; `K = 1` stays on `run_transitions`.
+    pub fn run_block_transitions(
+        &self,
+        model: &mut crate::device::Device,
+        mut cursor: Cursor,
+        admission: &CorpusUpdateAdmission,
+        batches: std::num::NonZeroU64,
+    ) -> Result<(Cursor, Vec<BlockReceipt>)> {
+        if self.config.coordinate_block.is_one() {
+            return Err(invalid("coordinate_block 1 runs through run_transitions"));
+        }
+        let rowsk = model.rowsk_scoring()?;
+        let bvgk = model.bvgk_kernels()?;
+        let mut receipts = Vec::new();
+        for _ in 0..batches.get() {
+            let receipt = self.transition_block(model, &cursor, admission, &rowsk, &bvgk)?;
             cursor = receipt.cursor_after;
             receipts.push(receipt);
         }

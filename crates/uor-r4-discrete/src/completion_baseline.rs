@@ -182,7 +182,7 @@ fn authenticate_with_reference(
         "checkpoint schema",
     )?;
     require(
-        c.cursor == training::Cursor::initial()
+        c.cursor == training::initial_cursor_for(&plan.config)
             && p.vector == KindCounters::default()
             && p.route == KindCounters::default(),
         "checkpoint zero/counters",
@@ -448,7 +448,7 @@ pub(crate) mod metadata_controls {
             checkpoint: training::DriverCheckpoint {
                 schema: training::CHECKPOINT_SCHEMA.into(),
                 lineage,
-                cursor: training::Cursor::initial(),
+                cursor: training::initial_cursor_for(&plan.config),
                 model_sha256: digest(&model)?,
                 model,
             },

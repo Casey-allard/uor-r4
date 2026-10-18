@@ -103,3 +103,47 @@ Two of its notes are carried to H4:
 - Also measure the per-batch cost of the clone copy. Geometry is immutable and could be shared.
 
 **Delivery.** The branch was rebuilt on main after H2a's squash merge, by replaying H2b's own diff. Lib tests pass 128/128, the stub-CUDA check passes, and clippy is clean on the touched files. The edit to `device.rs` changes the model binding's `source_sha256`, as expected. `driver_source_sha256` is unchanged.
+
+## H3: driver block transition (`training.rs`)
+
+- **`run_block_transitions`** is the K > 1 driver loop.
+  - It refuses K = 1, because K = 1 stays on the untouched `run_transitions` / `transition`.
+  - It loads the RowsK scoring and BVG-K kernels once per run.
+  - `run_transitions` refuses K > 1.
+- **`transition_block`** is crate-private. Per batch it:
+  1. runs the same owner admission and `admit_model` as `transition`;
+  2. checks cursor overflow before any device mutation;
+  3. builds the carried batch exactly as `transition` does;
+  4. sets `eligible[i] = !apply_refused_by_policy(coordinate i)`, so FrozenZeroV1 never commits a relation trit;
+  5. calls `propose_block` and then `apply_block`;
+  6. checks the device commit against its record (`moves == |commit_ordinals|` and the `joint` flags agree);
+  7. calls `advance_block`, then `admit_model`, so `epoch == accepted_updates` holds after every batch.
+- **`BlockReceipt`** records the lineage, the cursor before and after, the kind, K, |S_t|, joint, `L_before`, `L(S_t)`, `L(best)`, the committed loss, the commit ordinals, `o` and the model epoch.
+- **K-aware initial cursors.** The new `initial_cursor_for(&DriverConfig)` is the one definition behind `PreparedDriver::initial_cursor()`. The remaining initial-checkpoint compares in `completion_baseline.rs` and `redirect_admission.rs`, and the `controller.rs` fixture, route through it.
+
+**Review.** A fresh reviewer subagent returned PASS-WITH-FIXES. It found the K = 1 bytes unchanged, the batch built identically, eligibility applied to every block coordinate, accounting consistent, re-admission after every batch, kernels loaded once per run and no unwraps. Its fixes are applied:
+- `transition_block` is now `pub(crate)`. A blanket K = 1 refusal would break V1, and at K = 1 FrozenZero gives the same no-commit outcome as `transition`.
+- The commit-versus-record cross-check is added.
+
+Two of its points needed no change. Its `LanesV1` concern is already refused at K > 1 by H1's `DriverConfig::validate`. Its overflow note is unreachable in practice (about 2^64 moves).
+
+**Owed to H4 (GPU):**
+- (1) A K = 4 run of 16 or more batches under both schedules, with a read batch. Per batch it checks `epoch == accepted_updates`, `committed_moves == Σ moves`, `moves == |ordinals|`, and that the committed loss equals a fresh forward.
+- (2) FrozenZero with a read block straddling the combine/relation boundary.
+- (3) An all-ineligible no-op batch.
+- (4) A mid-run checkpoint and restore that is byte-identical to an uninterrupted run.
+- (5) V1: `transition_block` at K = 1 equals `transition`.
+- (6) Kernels bound to another device are refused.
+
+**Checks (host, rebuilt on main after H2b's squash merge):**
+- Lib tests: 132 passed.
+- Stub-nvcc `check --features cuda --all-targets`: exit 0.
+- Clippy: clean in this crate.
+- fmt: clean.
+- Both dated instruments pass; the pinned `stage-a` instrument is unedited.
+- `check_no_softmax.py`: OK.
+- Negative gates:
+  - routing K = 1 through the block loop fails to compile (the receipt types differ);
+  - dropping the K > 1 branch of `initial_cursor_for` fails its test.
+
+**Effect.** `driver_source_sha256` changes, because `training.rs`, `controller.rs`, `completion_baseline.rs` and `redirect_admission.rs` are in its include list. The frozen K16 build is unaffected.

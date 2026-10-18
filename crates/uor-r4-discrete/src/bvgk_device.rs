@@ -303,7 +303,6 @@ impl Device {
 
     /// Commit a decided block in one epoch. A no-op batch (`commit_count == 0`)
     /// returns zero moves without a launch.
-    #[expect(dead_code, reason = "H3 wires the block transition")]
     pub(crate) fn apply_block(&mut self, proposal: &BlockProposal) -> Result<BlockCommit> {
         if proposal.binding != self.binding || !Arc::ptr_eq(&proposal.stream, &self.stream) {
             return Err(invalid("BVG-K proposal belongs to another model/stream"));

@@ -1,3 +1,11 @@
+## 2026-10-18 — BVG-K C2 piece H3: driver block transition (claude; W3)
+
+- **Driver loop:** `run_block_transitions` (K > 1 only) drives `transition_block`, which calls propose, applies with FrozenZero eligibility, checks commit = record, then advances the cursor and re-admits (`epoch == accepted_updates`).
+- **K = 1:** stays on the untouched `transition`.
+- **Receipts and cursors:** a `BlockReceipt` per batch, and K-aware initial cursors throughout.
+
+The reviewer subagent returned PASS-WITH-FIXES, and its fixes are applied. Lib tests pass 132/132, the stub-CUDA check is clean, and both instruments pass. The driver hash changes. C2 source is now complete. **Next: H4, the GPU qualifier for V1, V3–V6, V8 and V9 plus the reviewers' controls, then FIT and one pod run.** No compute, $0.
+
 ## 2026-10-18 — BVG-K C2 piece H2b: device API for block propose, joint verify and apply (claude; W3)
 
 `propose_block` does four things:

@@ -921,7 +921,7 @@ mod tests {
             checkpoint: training::DriverCheckpoint {
                 schema: training::CHECKPOINT_SCHEMA.into(),
                 lineage,
-                cursor: training::Cursor::initial(),
+                cursor: training::initial_cursor_for(&c),
                 model_sha256: "0".repeat(64),
                 model: json!({}),
             },
@@ -930,13 +930,13 @@ mod tests {
             vector: KindCounters::default(),
         };
         validate_resume_metadata(&release, &p)?;
-        validate_baseline_pair(&p, &p, &training::Cursor::initial())?;
+        validate_baseline_pair(&p, &p, &training::initial_cursor_for(&c))?;
         let mut replaced = p.clone();
         replaced.baseline_evaluation["aggregate"] = json!({"different":true});
-        assert!(validate_baseline_pair(&p, &replaced, &training::Cursor::initial()).is_err());
+        assert!(validate_baseline_pair(&p, &replaced, &training::initial_cursor_for(&c)).is_err());
         replaced = p.clone();
         replaced.baseline_snapshot_metadata = json!({"different":true});
-        assert!(validate_baseline_pair(&p, &replaced, &training::Cursor::initial()).is_err());
+        assert!(validate_baseline_pair(&p, &replaced, &training::initial_cursor_for(&c)).is_err());
         for case in 0..5 {
             let mut wrong = p.clone();
             match case {

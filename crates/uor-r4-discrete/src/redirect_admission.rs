@@ -123,7 +123,7 @@ fn validate_initial(
 ) -> Result<()> {
     require(
         initial.schema == training::CHECKPOINT_SCHEMA
-            && initial.cursor == training::Cursor::initial()
+            && initial.cursor == training::initial_cursor_for(&plan.config)
             && initial.lineage.config == plan.config
             && initial.lineage.driver_source_sha256 == plan.execution.driver_source_sha256
             && corpus::sha256(&encode(&initial.lineage)?) == plan.execution.lineage_sha256
