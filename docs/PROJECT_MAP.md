@@ -9,7 +9,7 @@
 | [`uor-r4-discrete`](../crates/uor-r4-discrete/README.md) | Current M1 integer carrier/read/writer and scoped learning driver; 8D blocks, 16 carrier roots, 64 signed actions. |
 | [core manifest](../crates/uor-r4-core/Cargo.toml) → [`native_support.rs`](../crates/uor-r4-core/src/native_support.rs) | Fixed geometry, tokenizer and report/source support. Historical `lib.rs`/learner executors are excluded. |
 | [integer manifest](../crates/uor-r4-integer/Cargo.toml) → [`native_geometry.rs`](../crates/uor-r4-integer/src/native_geometry.rs) | Fixed geometry and metadata; historical model-serving executors remain inactive. |
-| [`uor-r4-training`](../crates/uor-r4-training/README.md) | Preserved operator-phase source and selected native CUDA boundary; earlier float sheets need D37 re-registration/FIT before reactivation. |
+| [`uor-r4-training`](../crates/uor-r4-training/README.md) | Preserved operator-phase source and selected native CUDA boundary; earlier float sheets need D37 re-registration/FIT before reactivation. |\n\n**Evidence and external-contributor instruments:** [`ops/`](../ops/) holds dated artifacts preserved as evidence, not active plan: the RAPL energy protocol and synthetic-stack receipt (provisional, not full-path M5 energy), the D5-b QUBO memo (formulation only; no assignment solver exists), and the Braket Bell-state receipt (unverified, not QAOA evidence). See D38, D39 and the [WASM-serving lab record](labs/wasm-serving-runtime-2026-10-18/README.md) for scope and caveats.
 
 [Architecture arrow sources](architecture.md), [current status](../STATUS.md) and
 [D37](integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised)
