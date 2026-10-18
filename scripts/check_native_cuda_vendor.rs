@@ -20,6 +20,8 @@ mod decomposition_source;
 mod rows_source;
 #[path = "../crates/uor-r4-discrete/src/rowsk_source.rs"]
 mod rowsk_source;
+#[path = "../crates/uor-r4-discrete/src/bvgk_source.rs"]
+mod bvgk_source;
 #[path = "../third_party/candle-kernels-0.9.2/entry_allowlist.rs"]
 mod entry_allowlist;
 mod native_dependency_boundary;
@@ -972,6 +974,22 @@ fn check_rowsk_source(source: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn check_bvgk_source(source: &str) -> Result<(), String> {
+    let bad = forbidden_discrete_cuda(source);
+    if !bad.is_empty() {
+        return Err(format!(
+            "generated bvgk.cu forbidden discrete/D32 CUDA tokens: {bad:?}"
+        ));
+    }
+    let entries = global_entries(&code_cuda(source), true)?;
+    if entries != bvgk_source::ENTRIES {
+        return Err(format!(
+            "generated bvgk.cu global entry list differs: {entries:?}"
+        ));
+    }
+    Ok(())
+}
+
 fn quoted(text: &str) -> Result<Vec<String>, String> {
     let mut parts = text.split('"');
     let mut out = Vec::new();
@@ -1277,8 +1295,10 @@ fn verify(
     check_rows_source(&rows_cu)?;
     let rowsk_cu = rowsk_source::generate(&rows_cu)?;
     check_rowsk_source(&rowsk_cu)?;
+    let bvgk_cu = bvgk_source::generate(&rowsk_cu)?;
+    check_bvgk_source(&bvgk_cu)?;
     checked.push(
-        "discrete CUDA kernel sources (discrete.cu + generated decomposition, baseline-reuse, row-parallel and K-coordinate modules) D23/D25/D32 integer-only token and 11+1+1+3+5 entry census"
+        "discrete CUDA kernel sources (discrete.cu + generated decomposition, baseline-reuse, row-parallel, K-coordinate and BVG-K modules) D23/D25/D32 integer-only token and 11+1+1+3+5+8 entry census"
             .into(),
     );
     check_standalone_instrument_inventory(repo)?;
@@ -1720,6 +1740,41 @@ fn main() {
         assert!(
             check_rowsk_source(&format!("{rowsk}\n{multiline_decl}")).is_err(),
             "extra generated rows-K entry must fail"
+        );
+        let bvgk = bvgk_source::generate(&rowsk).expect("separate BVG-K module");
+        check_bvgk_source(&bvgk).expect("generated BVG-K integer entries");
+        for planted in [
+            "__device__ auto injected() { return 1.0f; }",
+            "__device__ float injected(float x) { return x; }",
+            "__device__ U injected(U x) { return (U)expf((float)x); }",
+            "__device__ U injected(U x) { return (U)tanhf((float)x); }",
+            "__device__ void injected() { asm(\"mma.sync.aligned.m16n8k16\"); }",
+            "#include <mma.h>",
+        ] {
+            assert!(
+                check_bvgk_source(&format!("{bvgk}\n{planted}")).is_err(),
+                "planted float/squash/tensor token in generated BVG-K must fail: {planted}"
+            );
+        }
+        assert!(
+            check_bvgk_source(&format!("{bvgk}\n{multiline_decl}")).is_err(),
+            "extra generated BVG-K entry must fail"
+        );
+        assert!(
+            check_bvgk_source(&bvgk.replace(
+                "extern \"C\" __global__ void discrete_bvgk_decide(",
+                "__device__ void discrete_bvgk_decide("
+            ))
+            .is_err(),
+            "missing generated BVG-K entry must fail"
+        );
+        assert!(
+            check_bvgk_source(&bvgk.replace(
+                "void discrete_bvgk_apply(",
+                "void discrete_bvgk_commit("
+            ))
+            .is_err(),
+            "renamed generated BVG-K entry must fail"
         );
         assert!(
             check_baseline_reuse_source(&format!(

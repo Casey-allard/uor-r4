@@ -1,3 +1,12 @@
+## 2026-10-18 — BVG-K C2 piece H2a: appended `bvgk` CUDA module (choose, decide, apply) (claude; W3)
+
+This adds three integer-only kernels, appended to the generated `rowsk.cu`, so the rows and rowsk images are byte-identical:
+- **choose:** the `discrete_choose` rule per coordinate, then S_t and best;
+- **decide:** S_t only if `L(S_t) < L(best)`, with the commit set zeroed before any refusal;
+- **apply:** validates everything before any write, then increments the epoch once.
+
+It also adds exact 8-entry PTX admission and a D29 census of 11+1+1+3+5+8 with negative self-tests. The reviewer subagent returned PASS-WITH-FIXES, and the fixes are applied. Lib tests pass 112/112, the stub-CUDA check is clean, and D29 passes. The driver hash is unchanged. Not launched yet: H2b adds the device API. No compute, $0. Record: `docs/labs/bvgk-c2-block-apply-2026-10-18/`.
+
 ## 2026-10-18 — BVG-K Stage C1 qualified on GPU: K-coordinate scoring exact, sabotage caught, 16 coordinates in the time of one (claude; W3)
 
 On one RTX 5090 at merged head `b2d6c7c63`, NOT_TRAINING with zero updates, for about $0.27:
