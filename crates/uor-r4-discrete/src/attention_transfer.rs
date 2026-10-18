@@ -317,7 +317,7 @@ fn admit_arm(pins: &ArmPins, compiled: &Value, executable: &str) -> Result<Arm> 
     let initial_pin: FilePin = read_json(&state.join("initial.json"))?;
     let initial = read_progress(&initial_pin)?;
     validate_progress(&driver, &release, &initial)?;
-    if initial.checkpoint.cursor != training::Cursor::initial()
+    if initial.checkpoint.cursor != driver.initial_cursor()
         || initial.counters != Counters::default()
         || initial.baseline_snapshot_metadata
             != training::snapshot_metadata(&initial.checkpoint.model)?

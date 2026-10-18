@@ -566,6 +566,7 @@ mod tests {
                 corpus_pass: 0,
                 next_target: completed * 64,
                 next_coordinate: (completed % 16_404) as u32,
+                block: None,
             };
             request.expected_cursor = input.checkpoint.cursor;
             input.vector.attempted = completed.min(16_384);

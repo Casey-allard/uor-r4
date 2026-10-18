@@ -81,7 +81,7 @@ fn device_command(args: &[String]) -> Result<()> {
             report_command(&args[2],|| {
                 let driver=uor_r4_discrete::training::PreparedDriver::load(config)?;
                 let model=driver.new_model(0)?;
-                serde_json::to_value(driver.checkpoint(&model,uor_r4_discrete::training::Cursor::initial())?)
+                serde_json::to_value(driver.checkpoint(&model,driver.initial_cursor())?)
                     .map_err(|e|invalid(e.to_string()))
             })
         }

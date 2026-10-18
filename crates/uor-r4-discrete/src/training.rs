@@ -67,6 +67,25 @@ impl CounterfactualPath {
         *self == Self::LanesV1
     }
 }
+/// BVG-K Stage C2: coordinates committed per batch (`K`). The default `K = 1`
+/// is never serialized, so existing config and lineage bytes are unchanged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct CoordinateBlock(pub u32);
+impl Default for CoordinateBlock {
+    fn default() -> Self {
+        Self::ONE
+    }
+}
+impl CoordinateBlock {
+    pub const ONE: Self = Self(1);
+    pub fn is_one(&self) -> bool {
+        *self == Self::ONE
+    }
+    pub fn get(self) -> u32 {
+        self.0
+    }
+}
 /// Initial codebook of a fresh model (D39 item 3). The default is the seeded
 /// device initializer, and it keeps existing configurations byte-identical. A
 /// pinned table is an exact integer codebook (e.g. the qualified PrimeZeta
@@ -171,6 +190,8 @@ pub struct DriverConfig {
         skip_serializing_if = "CodebookInitialization::is_seeded_device"
     )]
     pub codebook_initialization: CodebookInitialization,
+    #[serde(default, skip_serializing_if = "CoordinateBlock::is_one")]
+    pub coordinate_block: CoordinateBlock,
     pub seed: u32,
     pub batch_rows: u32,
     pub train: CorpusSource,
@@ -200,6 +221,15 @@ impl DriverConfig {
         {
             return Err(invalid(
                 "frozen-zero relation learning requires interleaved Relation with active-leaf initialization",
+            ));
+        }
+        if !(1..=64).contains(&self.coordinate_block.get()) {
+            return Err(invalid("coordinate_block must be 1..=64"));
+        }
+        if !self.coordinate_block.is_one() && self.counterfactual_path != CounterfactualPath::RowsV1
+        {
+            return Err(invalid(
+                "coordinate_block > 1 requires the rows_v1 counterfactual path",
             ));
         }
         if self.schema != DRIVER_SCHEMA
@@ -251,7 +281,6 @@ pub struct Coordinate {
     pub kind: CoordinateKind,
     pub index: u32,
 }
-#[cfg(feature = "cuda")]
 impl Coordinate {
     fn parameter(self) -> crate::Parameter {
         match self.kind {
@@ -269,6 +298,9 @@ pub struct Cursor {
     pub corpus_pass: u64,
     pub next_target: u64,
     pub next_coordinate: u32,
+    /// Present iff `coordinate_block > 1`; absent (bytes unchanged) at `K = 1`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block: Option<BlockCursor>,
 }
 impl Cursor {
     pub fn initial() -> Self {
@@ -278,8 +310,73 @@ impl Cursor {
             corpus_pass: 0,
             next_target: 0,
             next_coordinate: 0,
+            block: None,
         }
     }
+}
+/// Per-family coordinate ordinals of a `K > 1` schedule (absolute visit
+/// counts; the family index is the ordinal modulo the family size).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlockCursor {
+    pub o_vec: u64,
+    pub o_read: u64,
+    pub committed_moves: u64,
+}
+/// The coordinates one batch visits: one family, in today's order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Block {
+    pub kind: CoordinateKind,
+    pub coordinates: Vec<crate::Parameter>,
+}
+/// Per-family cursors `(o_vec, o_read)` before batch `completed_batches`: a
+/// pure function of the batch ordinal, `K`, the schedule and family sizes.
+/// A vector batch takes `min(K, vectors left in its pass)`, a read batch
+/// `min(K, reads left in its pass)`, so no block straddles a family pass.
+pub fn family_cursors(
+    completed_batches: u64,
+    block: u32,
+    schedule: SchedulePolicy,
+    vectors: u64,
+    reads: u64,
+) -> Result<(u64, u64)> {
+    let k = u64::from(block);
+    if k == 0 || vectors == 0 || reads == 0 {
+        return Err(invalid("block schedule needs K and both families nonzero"));
+    }
+    let vector_blocks = vectors.div_ceil(k);
+    let read_blocks = reads.div_ceil(k);
+    let (vector_batches, read_batches) = match schedule {
+        SchedulePolicy::InterleavedReadEvery8V1 => (
+            completed_batches - completed_batches / 8,
+            completed_batches / 8,
+        ),
+        SchedulePolicy::CanonicalVectorThenReadV1 => {
+            let cycle = vector_blocks + read_blocks;
+            let (cycles, phase) = (completed_batches / cycle, completed_batches % cycle);
+            let overflow = || invalid("block schedule overflow");
+            (
+                cycles
+                    .checked_mul(vector_blocks)
+                    .and_then(|v| v.checked_add(phase.min(vector_blocks)))
+                    .ok_or_else(overflow)?,
+                cycles
+                    .checked_mul(read_blocks)
+                    .and_then(|v| v.checked_add(phase.saturating_sub(vector_blocks)))
+                    .ok_or_else(overflow)?,
+            )
+        }
+    };
+    let ordinal = |batches: u64, blocks: u64, size: u64| {
+        (batches / blocks)
+            .checked_mul(size)
+            .and_then(|v| v.checked_add((batches % blocks) * k))
+            .ok_or_else(|| invalid("block schedule overflow"))
+    };
+    Ok((
+        ordinal(vector_batches, vector_blocks, vectors)?,
+        ordinal(read_batches, read_blocks, reads)?,
+    ))
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -437,6 +534,11 @@ impl PreparedDriver {
     /// Schedule from the absolute batch ordinal. A cursor's wrapped phase alone
     /// is insufficient: a 16,404-batch interleaved cycle is not a multiple of 8.
     pub fn coordinate_at(&self, completed_batches: u64) -> Result<Coordinate> {
+        if !self.config.coordinate_block.is_one() {
+            return Err(invalid(
+                "coordinate_block > 1 schedule is addressed through block_at",
+            ));
+        }
         if self.config.schedule == SchedulePolicy::CanonicalVectorThenReadV1 {
             return self.coordinate((completed_batches % u64::from(self.coordinates)) as u32);
         }
@@ -492,7 +594,125 @@ impl PreparedDriver {
                 "resume cursor differs from declared corpus/schedule cycle",
             ));
         }
+        let k = self.config.coordinate_block.get();
+        match (&cursor.block, k > 1) {
+            (None, false) => {}
+            (Some(_), false) => {
+                return Err(invalid("coordinate_block 1 cursor carries no block fields"))
+            }
+            (None, true) => {
+                return Err(invalid("coordinate_block > 1 cursor requires block fields"))
+            }
+            (Some(block), true) => {
+                if (block.o_vec, block.o_read) != self.family_cursors(cursor.completed_batches)? {
+                    return Err(invalid(
+                        "resume o_vec/o_read differ from the per-family block schedule",
+                    ));
+                }
+                if block.committed_moves < cursor.accepted_updates
+                    || cursor
+                        .accepted_updates
+                        .checked_mul(u64::from(k))
+                        .is_some_and(|bound| block.committed_moves > bound)
+                {
+                    return Err(invalid(
+                        "resume committed_moves outside accepted_updates..=K*accepted_updates",
+                    ));
+                }
+            }
+        }
         Ok(())
+    }
+    fn families(&self) -> (u64, u64) {
+        let vectors = self.config.spec.vocabulary * self.config.spec.blocks;
+        (u64::from(vectors), u64::from(self.coordinates - vectors))
+    }
+    fn family_cursors(&self, completed_batches: u64) -> Result<(u64, u64)> {
+        let (vectors, reads) = self.families();
+        family_cursors(
+            completed_batches,
+            self.config.coordinate_block.get(),
+            self.config.schedule,
+            vectors,
+            reads,
+        )
+    }
+    fn is_read_batch(&self, completed_batches: u64) -> bool {
+        match self.config.schedule {
+            SchedulePolicy::InterleavedReadEvery8V1 => completed_batches % 8 == 7,
+            SchedulePolicy::CanonicalVectorThenReadV1 => {
+                let (vectors, reads) = self.families();
+                let k = u64::from(self.config.coordinate_block.get());
+                let vector_blocks = vectors.div_ceil(k);
+                completed_batches % (vector_blocks + reads.div_ceil(k)) >= vector_blocks
+            }
+        }
+    }
+    /// The block batch `cursor.completed_batches` visits. At `K = 1` it is
+    /// exactly `[coordinate_at(completed_batches)]`.
+    pub fn block_at(&self, cursor: &Cursor) -> Result<Block> {
+        self.validate_cursor(cursor)?;
+        let (vectors, reads) = self.families();
+        let (o_vec, o_read) = self.family_cursors(cursor.completed_batches)?;
+        let (kind, ordinal, size) = if self.is_read_batch(cursor.completed_batches) {
+            let kind = if self.config.read_spec == ReadSpec::Route {
+                CoordinateKind::Route
+            } else {
+                CoordinateKind::Gate
+            };
+            (kind, o_read, reads)
+        } else {
+            (CoordinateKind::VectorBlock, o_vec, vectors)
+        };
+        let start = ordinal % size;
+        let end = size.min(start + u64::from(self.config.coordinate_block.get()));
+        Ok(Block {
+            kind,
+            coordinates: (start..end)
+                .map(|index| {
+                    Coordinate {
+                        kind,
+                        index: index as u32,
+                    }
+                    .parameter()
+                })
+                .collect(),
+        })
+    }
+    /// Advance one block batch: `completed_batches` +1, the batch's family
+    /// cursor by its block length, `accepted_updates` by the commit and
+    /// `committed_moves` by `moves` (0 without a commit, 1..=length with one).
+    pub fn advance_block(&self, cursor: &Cursor, committed: bool, moves: u64) -> Result<Cursor> {
+        let length = self.block_at(cursor)?.coordinates.len() as u64;
+        if committed != (moves > 0) || moves > length {
+            return Err(invalid(
+                "block commit needs 1..=block-length moves, and no commit none",
+            ));
+        }
+        let mut next = self.advance_unchecked(cursor, committed)?;
+        if let Some(block) = cursor.block {
+            let (o_vec, o_read) = self.family_cursors(next.completed_batches)?;
+            next.block = Some(BlockCursor {
+                o_vec,
+                o_read,
+                committed_moves: block
+                    .committed_moves
+                    .checked_add(moves)
+                    .ok_or_else(|| invalid("move cursor overflow"))?,
+            });
+        }
+        Ok(next)
+    }
+    /// The first cursor of this driver's schedule (`block` present iff `K > 1`).
+    pub fn initial_cursor(&self) -> Cursor {
+        Cursor {
+            block: (!self.config.coordinate_block.is_one()).then_some(BlockCursor {
+                o_vec: 0,
+                o_read: 0,
+                committed_moves: 0,
+            }),
+            ..Cursor::initial()
+        }
     }
     pub fn batch(&self, cursor: &Cursor) -> Result<CorpusBatch> {
         self.validate_cursor(cursor)?;
@@ -504,6 +724,14 @@ impl PreparedDriver {
     }
     pub fn advance(&self, cursor: &Cursor, applied: bool) -> Result<Cursor> {
         self.validate_cursor(cursor)?;
+        if !self.config.coordinate_block.is_one() {
+            return Err(invalid(
+                "coordinate_block > 1 advances through advance_block",
+            ));
+        }
+        self.advance_unchecked(cursor, applied)
+    }
+    fn advance_unchecked(&self, cursor: &Cursor, applied: bool) -> Result<Cursor> {
         let completed = cursor
             .completed_batches
             .checked_add(1)
@@ -519,6 +747,7 @@ impl PreparedDriver {
             corpus_pass: completed / batches,
             next_target: (completed % batches) * u64::from(self.config.batch_rows),
             next_coordinate: (completed % u64::from(self.schedule_cycle)) as u32,
+            block: None,
         })
     }
     pub fn plan(&self) -> Result<Value> {
@@ -808,6 +1037,7 @@ mod tests {
             relation_learning_policy: RelationLearningPolicy::LearnV1,
             counterfactual_path: CounterfactualPath::LanesV1,
             codebook_initialization: CodebookInitialization::SeededDeviceV1,
+            coordinate_block: CoordinateBlock::ONE,
             schema: DRIVER_SCHEMA.into(),
             spec,
             read_spec,
@@ -917,7 +1147,8 @@ mod tests {
                     accepted_updates: 0,
                     corpus_pass: u64::from(total) / 2,
                     next_target: 0,
-                    next_coordinate: 0
+                    next_coordinate: 0,
+                    block: None
                 }
             );
             let first = driver.batch(&Cursor::initial())?;
@@ -1046,6 +1277,7 @@ mod tests {
             corpus_pass: u64::MAX / 2,
             next_target: 3,
             next_coordinate: (u64::MAX % 24) as u32,
+            block: None,
         };
         driver.validate_cursor(&boundary)?;
         assert!(driver.advance(&boundary, false).is_err());
@@ -1200,6 +1432,7 @@ mod tests {
                 corpus_pass: 8202,
                 next_target: 0,
                 next_coordinate: 0,
+                block: None,
             };
             driver.validate_cursor(&cursor)?;
             assert_eq!(
@@ -1326,6 +1559,446 @@ mod tests {
         wrong = frozen.config.clone();
         wrong.read_initialization = ReadInitialization::ZeroGatesV1;
         assert!(wrong.validate().is_err());
+        Ok(())
+    }
+    const SPEC24: Spec = Spec {
+        vocabulary: 10,
+        blocks: 2,
+        context: 3,
+        kept_cells: 2,
+    };
+    const SPEC192: Spec = Spec {
+        vocabulary: 4096,
+        blocks: 4,
+        context: 192,
+        kept_cells: 8,
+    };
+    fn block_fixture(
+        k: u32,
+        mode: ReadSpec,
+        spec: Spec,
+        schedule: SchedulePolicy,
+    ) -> Result<PreparedDriver> {
+        let mut driver = metadata_schedule_fixture(1, mode, spec, schedule)?;
+        driver.config.coordinate_block = CoordinateBlock(k);
+        driver.config.counterfactual_path = CounterfactualPath::RowsV1;
+        Ok(driver)
+    }
+    fn refusal<T: std::fmt::Debug>(result: Result<T>) -> String {
+        match result {
+            Err(Error::Invalid(message)) => message,
+            other => format!("not an Invalid refusal: {other:?}"),
+        }
+    }
+    fn parameter_index(parameter: crate::Parameter) -> u32 {
+        match parameter {
+            crate::Parameter::VectorBlock(i)
+            | crate::Parameter::Route(i)
+            | crate::Parameter::Gate(i) => i,
+        }
+    }
+    #[test]
+    fn block_k1_reproduces_coordinate_at_on_24_step_and_c192_fixtures() -> Result<()> {
+        for schedule in [
+            SchedulePolicy::InterleavedReadEvery8V1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ] {
+            for (spec, mode, steps) in [
+                (SPEC24, ReadSpec::Route, 48),
+                (SPEC24, ReadSpec::Flock { kept: 2 }, 48),
+                (SPEC24, ReadSpec::Relation { kept: 2, sweeps: 1 }, 48),
+                (SPEC192, ReadSpec::Route, 16404),
+                (SPEC192, ReadSpec::Relation { kept: 8, sweeps: 1 }, 16404),
+            ] {
+                let driver = block_fixture(1, mode, spec, schedule)?;
+                let mut cursor = driver.initial_cursor();
+                assert_eq!(cursor, Cursor::initial());
+                for step in 0..steps {
+                    let block = driver.block_at(&cursor)?;
+                    let expected = driver.coordinate_at(step)?;
+                    assert_eq!(block.kind, expected.kind);
+                    assert_eq!(block.coordinates, vec![expected.parameter()]);
+                    let committed = step % 3 == 0;
+                    let next = driver.advance_block(&cursor, committed, u64::from(committed))?;
+                    // At K = 1 a block advance is today's advance, byte for byte.
+                    assert_eq!(next, driver.advance(&cursor, committed)?);
+                    assert!(next.block.is_none());
+                    cursor = next;
+                }
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn block_visit_ratio_and_family_passes_match_k1() -> Result<()> {
+        for schedule in [
+            SchedulePolicy::InterleavedReadEvery8V1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ] {
+            for mode in [ReadSpec::Route, ReadSpec::Relation { kept: 8, sweeps: 1 }] {
+                for k in [4u32, 16] {
+                    let driver = block_fixture(k, mode, SPEC192, schedule)?;
+                    let (vectors, reads) = driver.families();
+                    let mut cursor = driver.initial_cursor();
+                    let (mut vector_batches, mut read_batches) = (0u64, 0u64);
+                    let (mut vector_seq, mut read_seq) = (Vec::new(), Vec::new());
+                    let mut moves = 0;
+                    // Two full vector passes in either schedule.
+                    let cycle = vectors.div_ceil(u64::from(k)) + reads.div_ceil(u64::from(k));
+                    let steps = match schedule {
+                        SchedulePolicy::InterleavedReadEvery8V1 => {
+                            8 * (2 * vectors.div_ceil(u64::from(k))).div_ceil(7)
+                        }
+                        SchedulePolicy::CanonicalVectorThenReadV1 => 2 * cycle,
+                    };
+                    for step in 0..steps {
+                        let block = driver.block_at(&cursor)?;
+                        let indices: Vec<u32> = block
+                            .coordinates
+                            .iter()
+                            .copied()
+                            .map(parameter_index)
+                            .collect();
+                        assert!(!indices.is_empty() && indices.len() <= k as usize);
+                        // Contiguous, ascending: no block wraps or straddles a pass.
+                        assert!(indices.windows(2).all(|w| w[1] == w[0] + 1));
+                        if block.kind == CoordinateKind::VectorBlock {
+                            vector_batches += 1;
+                            vector_seq.extend(indices.iter().copied());
+                        } else {
+                            read_batches += 1;
+                            read_seq.extend(indices.iter().copied());
+                        }
+                        let take = (step % 2 == 0).then_some(indices.len() as u64);
+                        moves += take.unwrap_or(0);
+                        cursor =
+                            driver.advance_block(&cursor, take.is_some(), take.unwrap_or(0))?;
+                        assert_eq!(cursor.block.map(|b| b.committed_moves), Some(moves));
+                    }
+                    if schedule == SchedulePolicy::InterleavedReadEvery8V1 {
+                        // Batch kinds follow today's rule, so 1 read : 7 vector per 8.
+                        // Exactly every eighth batch is a read batch.
+                        assert_eq!(read_batches, steps / 8);
+                        assert_eq!(vector_batches, steps - steps / 8);
+                    } else {
+                        assert_eq!(vector_batches, 2 * vectors.div_ceil(u64::from(k)));
+                        assert_eq!(vector_seq.len() as u64, 2 * vectors);
+                        assert_eq!(read_batches, 2 * reads.div_ceil(u64::from(k)));
+                        assert_eq!(read_seq.len() as u64, 2 * reads);
+                    }
+                    // Every coordinate once per family pass, in today's order.
+                    for (seq, size) in [(&vector_seq, vectors), (&read_seq, reads)] {
+                        // Exact visit counts: full passes plus the ascending partial.
+                        let (passes, rest) = (seq.len() as u64 / size, seq.len() as u64 % size);
+                        assert!(passes >= 1);
+                        for index in 0..size {
+                            let count = seq.iter().filter(|i| u64::from(**i) == index).count();
+                            assert_eq!(count as u64, passes + u64::from(index < rest));
+                        }
+                        assert!(seq
+                            .iter()
+                            .enumerate()
+                            .all(|(i, index)| u64::from(*index) == i as u64 % size));
+                    }
+                    assert!(vector_seq.len() as u64 >= 2 * vectors);
+                }
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn block_config_and_resume_refusals_are_focused() -> Result<()> {
+        let config = metadata_fixture(1, ReadSpec::Route)?.config.clone();
+        for k in [0, 65] {
+            let mut bad = config.clone();
+            bad.coordinate_block = CoordinateBlock(k);
+            bad.counterfactual_path = CounterfactualPath::RowsV1;
+            assert_eq!(refusal(bad.validate()), "coordinate_block must be 1..=64");
+        }
+        let mut lanes = config.clone();
+        lanes.coordinate_block = CoordinateBlock(4);
+        assert_eq!(
+            refusal(lanes.validate()),
+            "coordinate_block > 1 requires the rows_v1 counterfactual path"
+        );
+        let mut rows = lanes.clone();
+        rows.counterfactual_path = CounterfactualPath::RowsV1;
+        rows.validate()?;
+
+        let driver = block_fixture(
+            4,
+            ReadSpec::Route,
+            SPEC24,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        )?;
+        let mut cursor = driver.initial_cursor();
+        for step in 0..11 {
+            let length = driver.block_at(&cursor)?.coordinates.len() as u64;
+            cursor =
+                driver.advance_block(&cursor, step % 2 == 0, (step % 2 == 0) as u64 * length)?;
+        }
+        driver.validate_cursor(&cursor)?;
+        let block = cursor
+            .block
+            .ok_or_else(|| invalid("K>1 cursor has block"))?;
+        let with = |b: BlockCursor| Cursor {
+            block: Some(b),
+            ..cursor
+        };
+        let schedule_refusal = "resume o_vec/o_read differ from the per-family block schedule";
+        assert_eq!(
+            refusal(driver.validate_cursor(&with(BlockCursor {
+                o_vec: block.o_vec + 1,
+                ..block
+            }))),
+            schedule_refusal
+        );
+        assert_eq!(
+            refusal(driver.validate_cursor(&with(BlockCursor {
+                o_read: block.o_read + 1,
+                ..block
+            }))),
+            schedule_refusal
+        );
+        let moves_refusal = "resume committed_moves outside accepted_updates..=K*accepted_updates";
+        for committed_moves in [cursor.accepted_updates - 1, 4 * cursor.accepted_updates + 1] {
+            assert_eq!(
+                refusal(driver.validate_cursor(&with(BlockCursor {
+                    committed_moves,
+                    ..block
+                }))),
+                moves_refusal
+            );
+        }
+        assert_eq!(
+            refusal(driver.validate_cursor(&Cursor {
+                block: None,
+                ..cursor
+            })),
+            "coordinate_block > 1 cursor requires block fields"
+        );
+        assert_eq!(
+            refusal(driver.advance(&cursor, true)),
+            "coordinate_block > 1 advances through advance_block"
+        );
+        assert_eq!(
+            refusal(driver.advance_block(&cursor, true, 0)),
+            "block commit needs 1..=block-length moves, and no commit none"
+        );
+        let k1 = block_fixture(
+            1,
+            ReadSpec::Route,
+            SPEC24,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        )?;
+        assert_eq!(
+            refusal(k1.validate_cursor(&Cursor {
+                block: Some(BlockCursor {
+                    o_vec: 0,
+                    o_read: 0,
+                    committed_moves: 0
+                }),
+                ..Cursor::initial()
+            })),
+            "coordinate_block 1 cursor carries no block fields"
+        );
+        Ok(())
+    }
+    #[test]
+    fn block_cursor_serialized_mid_pass_resumes_the_uninterrupted_sequence() -> Result<()> {
+        for schedule in [
+            SchedulePolicy::InterleavedReadEvery8V1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ] {
+            let driver = block_fixture(4, ReadSpec::Flock { kept: 2 }, SPEC24, schedule)?;
+            let run = |mut cursor: Cursor, from: u64, to: u64| -> Result<(Cursor, Vec<Block>)> {
+                let mut blocks = Vec::new();
+                for step in from..to {
+                    let block = driver.block_at(&cursor)?;
+                    let moves = if step % 3 == 0 {
+                        0
+                    } else {
+                        block.coordinates.len().min(2) as u64
+                    };
+                    blocks.push(block);
+                    cursor = driver.advance_block(&cursor, moves > 0, moves)?;
+                }
+                Ok((cursor, blocks))
+            };
+            let (whole_end, whole) = run(driver.initial_cursor(), 0, 100)?;
+            let (middle, mut first) = run(driver.initial_cursor(), 0, 37)?;
+            let encoded = serde_json::to_vec(&middle).map_err(|e| invalid(e.to_string()))?;
+            let resumed: Cursor =
+                serde_json::from_slice(&encoded).map_err(|e| invalid(e.to_string()))?;
+            assert_eq!(resumed, middle);
+            driver.validate_cursor(&resumed)?;
+            let (end, rest) = run(resumed, 37, 100)?;
+            first.extend(rest);
+            assert_eq!(first, whole);
+            assert_eq!(end, whole_end);
+        }
+        Ok(())
+    }
+    /// Block coordinate lists (vector blocks, read blocks) in visit order.
+    fn k3_cycle(schedule: SchedulePolicy, steps: u64) -> Result<(Vec<Vec<u32>>, Vec<Vec<u32>>)> {
+        let driver = block_fixture(3, ReadSpec::Flock { kept: 2 }, SPEC24, schedule)?;
+        assert_eq!(driver.families(), (20, 4));
+        let mut cursor = driver.initial_cursor();
+        let (mut vector, mut read) = (Vec::new(), Vec::new());
+        for _ in 0..steps {
+            let block = driver.block_at(&cursor)?;
+            let list: Vec<u32> = block
+                .coordinates
+                .iter()
+                .copied()
+                .map(parameter_index)
+                .collect();
+            if block.kind == CoordinateKind::VectorBlock {
+                vector.push(list);
+            } else {
+                read.push(list);
+            }
+            cursor = driver.advance_block(&cursor, false, 0)?;
+        }
+        Ok((vector, read))
+    }
+    #[test]
+    fn block_k3_truncates_at_pass_boundaries_under_both_schedules() -> Result<()> {
+        let pass: Vec<Vec<u32>> = vec![
+            vec![0, 1, 2],
+            vec![3, 4, 5],
+            vec![6, 7, 8],
+            vec![9, 10, 11],
+            vec![12, 13, 14],
+            vec![15, 16, 17],
+            vec![18, 19],
+        ];
+        let reads: Vec<Vec<u32>> = vec![vec![0, 1, 2], vec![3]];
+        // Canonical: 7 vector blocks then 2 read blocks per cycle.
+        let (vector, read) = k3_cycle(SchedulePolicy::CanonicalVectorThenReadV1, 9)?;
+        assert_eq!((&vector, &read), (&pass, &reads));
+        // Interleaved: every eighth batch is a read batch; 16 steps = 14 + 2.
+        let (vector, read) = k3_cycle(SchedulePolicy::InterleavedReadEvery8V1, 16)?;
+        assert_eq!(vector, [pass.clone(), pass.clone()].concat());
+        assert_eq!(read, reads);
+        // No block straddles a pass; every coordinate once per family pass.
+        for list in vector.iter().chain(read.iter()) {
+            assert!(list.windows(2).all(|w| w[1] == w[0] + 1));
+        }
+        assert_eq!(pass.concat(), (0..20).collect::<Vec<u32>>());
+        assert_eq!(reads.concat(), (0..4).collect::<Vec<u32>>());
+        Ok(())
+    }
+    #[test]
+    fn block_k3_cursor_resumes_right_after_a_truncated_block() -> Result<()> {
+        for schedule in [
+            SchedulePolicy::InterleavedReadEvery8V1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ] {
+            let driver = block_fixture(3, ReadSpec::Flock { kept: 2 }, SPEC24, schedule)?;
+            let run = |mut cursor: Cursor, from: u64, to: u64| -> Result<(Cursor, Vec<Block>)> {
+                let mut blocks = Vec::new();
+                for step in from..to {
+                    let block = driver.block_at(&cursor)?;
+                    let moves = if step % 3 == 0 { 0 } else { 1 };
+                    blocks.push(block);
+                    cursor = driver.advance_block(&cursor, moves > 0, moves)?;
+                }
+                Ok((cursor, blocks))
+            };
+            // Step 6 is the truncated [18, 19] vector block; resume right after it.
+            let (middle, mut first) = run(driver.initial_cursor(), 0, 7)?;
+            assert_eq!(first[6].coordinates.len(), 2);
+            let encoded = serde_json::to_vec(&middle).map_err(|e| invalid(e.to_string()))?;
+            let resumed: Cursor =
+                serde_json::from_slice(&encoded).map_err(|e| invalid(e.to_string()))?;
+            driver.validate_cursor(&resumed)?;
+            let (end, rest) = run(resumed, 7, 60)?;
+            first.extend(rest);
+            let (whole_end, whole) = run(driver.initial_cursor(), 0, 60)?;
+            assert_eq!(first, whole);
+            assert_eq!(end, whole_end);
+        }
+        Ok(())
+    }
+    #[test]
+    fn block_k4_initial_checkpoint_validates_and_coordinate_at_refuses() -> Result<()> {
+        let driver = block_fixture(
+            4,
+            ReadSpec::Flock { kept: 2 },
+            SPEC24,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        )?;
+        let initial = driver.initial_cursor();
+        assert_ne!(initial, Cursor::initial());
+        driver.validate_cursor(&initial)?;
+        let model = json!({"schema":crate::SCHEMA,"spec":driver.config.spec,"read_spec":driver.config.read_spec,"seed":1,"epoch":0,"source_sha256":"0".repeat(64),"kernel_sha256":"1".repeat(64),"geometry_sha256":"2".repeat(64)});
+        let checkpoint = DriverCheckpoint {
+            schema: CHECKPOINT_SCHEMA.into(),
+            lineage: driver.lineage.clone(),
+            cursor: initial,
+            model_sha256: corpus::sha256(
+                &serde_json::to_vec(&model).map_err(|e| invalid(e.to_string()))?,
+            ),
+            model,
+        };
+        driver.validate_checkpoint(&checkpoint)?;
+        let mut legacy = checkpoint.clone();
+        legacy.cursor = Cursor::initial();
+        assert!(driver.validate_checkpoint(&legacy).is_err());
+        assert_eq!(
+            refusal(driver.coordinate_at(0)),
+            "coordinate_block > 1 schedule is addressed through block_at"
+        );
+        Ok(())
+    }
+    #[test]
+    fn coordinate_block_default_keeps_config_and_cursor_bytes() -> Result<()> {
+        let legacy = metadata_fixture(1, ReadSpec::Route)?;
+        let encoded = serde_json::to_vec(&legacy.config).map_err(|e| invalid(e.to_string()))?;
+        let value: Value = serde_json::from_slice(&encoded).map_err(|e| invalid(e.to_string()))?;
+        assert!(value.get("coordinate_block").is_none());
+        let decoded: DriverConfig =
+            serde_json::from_slice(&encoded).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(decoded.coordinate_block, CoordinateBlock::ONE);
+        assert_eq!(
+            serde_json::to_vec(&decoded).map_err(|e| invalid(e.to_string()))?,
+            encoded
+        );
+        // The opt-in adds exactly one key; removing it restores the K = 1 bytes.
+        let mut blocked = legacy.config.clone();
+        blocked.coordinate_block = CoordinateBlock(4);
+        blocked.counterfactual_path = CounterfactualPath::RowsV1;
+        let mut blocked_value =
+            serde_json::to_value(&blocked).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(blocked_value["coordinate_block"], 4);
+        let mut rows_value = value.clone();
+        rows_value["counterfactual_path"] = json!("rows_v1");
+        blocked_value
+            .as_object_mut()
+            .ok_or_else(|| invalid("config is an object"))?
+            .remove("coordinate_block");
+        assert_eq!(blocked_value, rows_value);
+        // Pre-change K = 1 cursor bytes, verbatim.
+        let k1 = block_fixture(
+            1,
+            ReadSpec::Route,
+            SPEC24,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        )?;
+        assert_eq!(
+            serde_json::to_string(&k1.initial_cursor()).map_err(|e| invalid(e.to_string()))?,
+            r#"{"completed_batches":0,"accepted_updates":0,"corpus_pass":0,"next_target":0,"next_coordinate":0}"#
+        );
+        let k4 = block_fixture(
+            4,
+            ReadSpec::Route,
+            SPEC24,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        )?;
+        assert!(serde_json::to_string(&k4.initial_cursor())
+            .map_err(|e| invalid(e.to_string()))?
+            .ends_with(r#""block":{"o_vec":0,"o_read":0,"committed_moves":0}}"#));
         Ok(())
     }
     #[test]

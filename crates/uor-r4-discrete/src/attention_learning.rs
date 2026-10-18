@@ -1092,7 +1092,7 @@ pub fn run(
             // All admission, cursor, counters and initial baseline checks precede CUDA.
             validate_progress(&driver, &release, &p)?;
             validate_progress(&driver, &release, &initial)?;
-            if initial.checkpoint.cursor != training::Cursor::initial()
+            if initial.checkpoint.cursor != driver.initial_cursor()
                 || initial.counters != Counters::default()
                 || initial.baseline_snapshot_metadata
                     != training::snapshot_metadata(&initial.checkpoint.model)?
@@ -1114,7 +1114,7 @@ pub fn run(
             (model, p)
         } else {
             let model = driver.new_model(0)?;
-            let checkpoint = driver.checkpoint(&model, training::Cursor::initial())?;
+            let checkpoint = driver.checkpoint(&model, driver.initial_cursor())?;
             validate_initial_storage(driver.config(), &checkpoint.model)?;
             let baseline_snapshot_metadata = training::snapshot_metadata(&checkpoint.model)?;
             let baseline_evaluation = driver.evaluate_checkpoint(&model, &checkpoint)?;
@@ -1323,6 +1323,7 @@ mod tests {
             relation_learning_policy: training::RelationLearningPolicy::LearnV1,
             counterfactual_path: training::CounterfactualPath::LanesV1,
             codebook_initialization: training::CodebookInitialization::SeededDeviceV1,
+            coordinate_block: training::CoordinateBlock::ONE,
             seed: 1,
             batch_rows: 64,
             train: corpus::CorpusSource {

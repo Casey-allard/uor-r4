@@ -1,3 +1,12 @@
+## 2026-10-18 — BVG-K C2 piece H1: per-family block schedule and cursor (claude; W3)
+
+This adds the opt-in `coordinate_block` K (1..=64, serde-skipped at 1, RowsV1 only), with:
+- **cursors:** per-family `(o_vec, o_read)`, a pure function of `completed_batches` and checked on resume;
+- **counter:** a `committed_moves` counter, with `accepted_updates ≤ committed_moves ≤ K·accepted_updates`;
+- **schedule:** `block_at` / `advance_block`, following today's kind rule, with no block straddling a pass.
+
+K = 1 bytes and behaviour are unchanged; V1 and V10 are host tests. The reviewer subagent returned PASS-WITH-FIXES, and the fixes are applied. Lib tests pass 120/120 on the tree merged with H2a, and the stub-CUDA check is clean. The driver hash changes; the frozen K16 build is unaffected. No compute, $0.
+
 ## 2026-10-18 — BVG-K C2 piece H2a: appended `bvgk` CUDA module (choose, decide, apply) (claude; W3)
 
 This adds three integer-only kernels, appended to the generated `rowsk.cu`, so the rows and rowsk images are byte-identical:

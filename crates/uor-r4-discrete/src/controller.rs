@@ -373,8 +373,12 @@ fn validate_resume_metadata(release: &ValidatedRelease, p: &PilotCheckpoint) -> 
     }
     Ok(())
 }
-fn validate_baseline_pair(initial: &PilotCheckpoint, resumed: &PilotCheckpoint) -> Result<()> {
-    if initial.checkpoint.cursor != training::Cursor::initial()
+fn validate_baseline_pair(
+    initial: &PilotCheckpoint,
+    resumed: &PilotCheckpoint,
+    initial_cursor: &training::Cursor,
+) -> Result<()> {
+    if &initial.checkpoint.cursor != initial_cursor
         || initial.manifest_sha256 != resumed.manifest_sha256
         || initial.baseline_evaluation != resumed.baseline_evaluation
         || initial.baseline_snapshot_metadata != resumed.baseline_snapshot_metadata
@@ -385,11 +389,15 @@ fn validate_baseline_pair(initial: &PilotCheckpoint, resumed: &PilotCheckpoint) 
     }
     Ok(())
 }
-fn validate_initial_baseline(release: &ValidatedRelease, resumed: &PilotCheckpoint) -> Result<()> {
+fn validate_initial_baseline(
+    release: &ValidatedRelease,
+    resumed: &PilotCheckpoint,
+    initial_cursor: &training::Cursor,
+) -> Result<()> {
     let pin: FilePin = read_json(&release.manifest.run_state_directory.join("initial.json"))?;
     let initial: PilotCheckpoint =
         serde_json::from_slice(&pin.read()?).map_err(|e| invalid(e.to_string()))?;
-    validate_baseline_pair(&initial, resumed)
+    validate_baseline_pair(&initial, resumed, initial_cursor)
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -624,13 +632,13 @@ pub fn run_pilot(
             let progress: PilotCheckpoint =
                 serde_json::from_slice(&pin.read()?).map_err(|e| invalid(e.to_string()))?;
             validate_resume(&driver, &release, &progress)?;
-            validate_initial_baseline(&release, &progress)?;
+            validate_initial_baseline(&release, &progress, &driver.initial_cursor())?;
             write_new(&out.join("resume-parent.json"), &pin)?;
             let (model, _) = driver.restore(progress.checkpoint.clone(), 0)?;
             (model, progress)
         } else {
             let model = driver.new_model(0)?;
-            let checkpoint = driver.checkpoint(&model, training::Cursor::initial())?;
+            let checkpoint = driver.checkpoint(&model, driver.initial_cursor())?;
             let metadata = training::snapshot_metadata(&checkpoint.model)?;
             let evaluation = driver.evaluate(&model)?;
             let progress = PilotCheckpoint {
@@ -922,13 +930,13 @@ mod tests {
             vector: KindCounters::default(),
         };
         validate_resume_metadata(&release, &p)?;
-        validate_baseline_pair(&p, &p)?;
+        validate_baseline_pair(&p, &p, &training::Cursor::initial())?;
         let mut replaced = p.clone();
         replaced.baseline_evaluation["aggregate"] = json!({"different":true});
-        assert!(validate_baseline_pair(&p, &replaced).is_err());
+        assert!(validate_baseline_pair(&p, &replaced, &training::Cursor::initial()).is_err());
         replaced = p.clone();
         replaced.baseline_snapshot_metadata = json!({"different":true});
-        assert!(validate_baseline_pair(&p, &replaced).is_err());
+        assert!(validate_baseline_pair(&p, &replaced, &training::Cursor::initial()).is_err());
         for case in 0..5 {
             let mut wrong = p.clone();
             match case {
@@ -1031,7 +1039,7 @@ pub fn evaluate_pilot(config: DriverConfig, manifest: ReleaseManifest, out: &Pat
     let progress: PilotCheckpoint =
         serde_json::from_slice(&pin.read()?).map_err(|e| invalid(e.to_string()))?;
     validate_resume(&driver, &release, &progress)?;
-    validate_initial_baseline(&release, &progress)?;
+    validate_initial_baseline(&release, &progress, &driver.initial_cursor())?;
     write_new(
         &out.join("admission.json"),
         &json!({"manifest":release.manifest,"manifest_sha256":release.manifest_sha256,"checkpoint":pin,"purpose":"evaluation only"}),

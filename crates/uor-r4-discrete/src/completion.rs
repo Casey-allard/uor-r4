@@ -89,7 +89,7 @@ fn parent(plan: &CompletionPlan) -> Result<Option<PilotCheckpoint>> {
         (1, Some(pin)) if pin.sha256 == PARENT_SHA256 => {
             let p: PilotCheckpoint = serde_json::from_slice(&pin.read()?).map_err(|e| invalid(e.to_string()))?;
             if p.schema != "uor-r4.pilot-checkpoint/1"
-                || p.checkpoint.cursor != (training::Cursor { completed_batches:1640, accepted_updates:236, corpus_pass:0, next_target:104960, next_coordinate:1640 })
+                || p.checkpoint.cursor != (training::Cursor { completed_batches:1640, accepted_updates:236, corpus_pass:0, next_target:104960, next_coordinate:1640, block: None })
                 || p.vector != (KindCounters { attempted:1640, any_candidate_cost_differs_from_identity:1179, accepted_updates:236 })
                 || p.checkpoint.lineage.driver_source_sha256 != OLD_DRIVER
                 || corpus::sha256(&encode(&p.checkpoint.lineage)?) != OLD_LINEAGE
@@ -685,7 +685,7 @@ pub fn run(config: DriverConfig, a: CompletionAdmission, out: &Path, resume: boo
             )
         } else {
             let model = driver.new_model(0)?;
-            let checkpoint = driver.checkpoint(&model, training::Cursor::initial())?;
+            let checkpoint = driver.checkpoint(&model, driver.initial_cursor())?;
             let baseline_snapshot_metadata = training::snapshot_metadata(&checkpoint.model)?;
             let baseline_evaluation = driver.evaluate(&model)?;
             (
@@ -824,6 +824,7 @@ mod tests {
                     corpus_pass: 0,
                     next_target: 104960,
                     next_coordinate: 1640,
+                    block: None,
                 },
                 model_sha256: corpus::sha256(&encode(&model)?),
                 model,
@@ -965,6 +966,7 @@ mod tests {
             corpus_pass: 0,
             next_target: 262464,
             next_coordinate: 4101,
+            block: None,
         };
         let lineage = corpus::sha256(&encode(&checkpoint.lineage)?);
         let mut execution = plan.execution;

@@ -45,3 +45,35 @@ Two of its notes are carried to H4:
 - Negative gate: removing decide's zeroing fails the new test.
 
 `driver_source_sha256` is unchanged; no include-list file is touched.
+
+## H1: per-family cursor schedule, `coordinate_block`, cursor fields (host)
+
+- **Config.** `DriverConfig.coordinate_block` (K, 1..=64) is serde-skipped at 1. K > 1 requires `counterfactual_path = RowsV1`.
+- **Cursor.**
+  - `Cursor.block: Option<BlockCursor { o_vec, o_read, committed_moves }>` is serde-skipped when `None`. It must be `None` at K = 1 and `Some` at K > 1.
+  - `(o_vec, o_read)` are absolute family visit counts and a pure function of `completed_batches`. Resume recomputes and checks them.
+  - The invariant `accepted_updates ≤ committed_moves ≤ K·accepted_updates` is enforced, and each batch commits 0 moves, or 1..=block length when it commits.
+- **Schedule.**
+  - `block_at` follows today's batch-kind rule: under `InterleavedReadEvery8V1`, read iff `b % 8 == 7`; under `CanonicalVectorThenReadV1`, ceil(vectors/K) vector batches then ceil(reads/K) read batches.
+  - Each family takes the next `min(K, remaining in its pass)` ordinals, so no block straddles a pass.
+  - `advance_block` advances the cursor.
+  - At K > 1, `coordinate_at` and `advance` refuse with a focused message.
+- **Initial checkpoints.** Every initial-checkpoint writer and guard now uses the K-aware `driver.initial_cursor()`, which equals `Cursor::initial()` at K = 1.
+- **Pinned evidence kept.** The pinned `stage-a-admission` instrument is untouched; its `..Cursor::initial()` literal compiles as is. The unpinned `fresh-scoring-eval` instrument gains `block: None` in one test literal.
+
+**Tests (host):**
+- V1: K = 1 `block_at` equals `coordinate_at` on the 24-step and C192 16,404-step fixtures, under both schedules.
+- Visit ratio: exact per-family visit counts at K = 4 and 16.
+- K = 3 truncation: exact block lists at pass boundaries under both schedules, plus a resume right after a truncated block.
+- V6 refusals: focused messages.
+- V9: resume mid-pass equals the uninterrupted sequence.
+- V10: K = 1 config and cursor bytes are unchanged, and legacy JSON gives K = 1.
+- A K = 4 initial checkpoint validates.
+
+**Negative gates:** removing the cursor recompute fails the resume-refusal test, and removing the pass clamp fails both K = 3 tests.
+
+**Review.** A fresh reviewer subagent returned PASS-WITH-FIXES with no defect on the K = 1 path or in the schedule arithmetic. Its fixes are applied: K-aware initial cursors, K = 3 truncation tests, `coordinate_at` refusing at K > 1, and the vacuous assertions replaced.
+
+**Effect.** `driver_source_sha256` changes, because `training.rs` is in its include list. The running K16 roles use frozen build `21224b44` and are unaffected.
+
+**Follow-up for H3.** These remaining `Cursor::initial()` uses still need K-aware routing once the block transition exists: `completion_baseline.rs` (two sites), `redirect_admission.rs` and one site in `controller.rs`. Today they refuse loudly at K > 1, not silently.
