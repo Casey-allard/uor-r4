@@ -44,6 +44,11 @@ pub use rowsk_device::{
     compiled_rowsk_image_sha256, rowsk_extends_rows_source, CoordinateScore, RowsKScoring,
     MAX_COORDINATE_BLOCK,
 };
+#[path = "bvgk_device.rs"]
+mod bvgk_device;
+pub use bvgk_device::{
+    bvgk_extends_rowsk_source, compiled_bvgk_image_sha256, BlockProposal, BvgkKernels,
+};
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 
 /// Trace ABI from the production flock read, ordered by row then payload block:

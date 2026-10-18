@@ -4,6 +4,7 @@
 pub mod baseline_reuse;
 #[cfg(test)]
 mod baseline_reuse_source;
+pub mod bvgk_block;
 pub mod bvgk_source;
 pub mod controller;
 pub mod corpus;

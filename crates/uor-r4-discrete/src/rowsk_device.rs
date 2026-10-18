@@ -60,6 +60,34 @@ impl Device {
         parameters: &[Parameter],
         scoring: &RowsKScoring,
     ) -> Result<Vec<CoordinateScore>> {
+        let scores = self.score_rows_k_device(batch, targets, parameters, scoring)?;
+        self.stream.synchronize().map_err(cuda)?;
+        let losses = self.stream.clone_dtoh(&scores.losses).map_err(cuda)?;
+        let status = self.stream.clone_dtoh(&scores.status).map_err(cuda)?;
+        if self.epoch()? != scores.epoch {
+            return Err(invalid("K-coordinate scoring changed the model epoch"));
+        }
+        Ok(parameters
+            .iter()
+            .enumerate()
+            .map(|(c, &parameter)| CoordinateScore {
+                parameter,
+                status: status[c],
+                losses: losses[c * 16..c * 16 + 16].to_vec(),
+            })
+            .collect())
+    }
+
+    /// The three scoring launches of `score_rows_k`, leaving the per-coordinate
+    /// losses, status words and indices on the device (queued on this stream,
+    /// not yet synchronized). `epoch` is the admitted epoch.
+    pub(super) fn score_rows_k_device(
+        &self,
+        batch: &CarriedBatch,
+        targets: &[u32],
+        parameters: &[Parameter],
+        scoring: &RowsKScoring,
+    ) -> Result<DeviceScores> {
         if scoring.binding != self.binding || !Arc::ptr_eq(&scoring.stream, &self.stream) {
             return Err(invalid(
                 "K-coordinate handle belongs to another model/stream",
@@ -171,22 +199,24 @@ impl Device {
         // SAFETY: block*16 loss words and block status words; one thread per
         // (coordinate, lane), ordered after both producers on this stream.
         unsafe { launch.launch(launch_config(reducers)) }.map_err(cuda)?;
-        self.stream.synchronize().map_err(cuda)?;
-        let losses = self.stream.clone_dtoh(&losses).map_err(cuda)?;
-        let status = self.stream.clone_dtoh(&status).map_err(cuda)?;
-        if self.epoch()? != epoch_before {
-            return Err(invalid("K-coordinate scoring changed the model epoch"));
-        }
-        Ok(parameters
-            .iter()
-            .enumerate()
-            .map(|(c, &parameter)| CoordinateScore {
-                parameter,
-                status: status[c],
-                losses: losses[c * 16..c * 16 + 16].to_vec(),
-            })
-            .collect())
+        Ok(DeviceScores {
+            kind,
+            indices: indices_device,
+            losses,
+            status,
+            epoch: epoch_before,
+        })
     }
+}
+
+/// Device-resident K-coordinate scores: `losses[c*16 + lane]`, `status[c]`,
+/// `indices[c]`, the block's CUDA kind and the epoch they were scored at.
+pub(super) struct DeviceScores {
+    pub(super) kind: u32,
+    pub(super) indices: CudaSlice<u32>,
+    pub(super) losses: CudaSlice<u64>,
+    pub(super) status: CudaSlice<u32>,
+    pub(super) epoch: u64,
 }
 
 /// The embedded K-coordinate source begins with the embedded row-parallel

@@ -77,3 +77,29 @@ Two of its notes are carried to H4:
 **Effect.** `driver_source_sha256` changes, because `training.rs` is in its include list. The running K16 roles use frozen build `21224b44` and are unaffected.
 
 **Follow-up for H3.** These remaining `Cursor::initial()` uses still need K-aware routing once the block transition exists: `completion_baseline.rs` (two sites), `redirect_admission.rs` and one site in `controller.rs`. Today they refuse loudly at K > 1, not silently.
+
+## H2b: device API (`bvgk_device.rs`, `bvgk_block.rs`)
+
+- **`Device::propose_block(&CarriedBatch, targets, block, eligible, &RowsKScoring, &BvgkKernels)`**, in order:
+  1. Admit the block (lengths, 1..=64, no repeats).
+  2. Run C1 scoring and keep it on the device. `score_rows_k` is split into `score_rows_k_device` plus the unchanged host tail, so the launches are the ones qualified in C1.
+  3. Choose.
+  4. For |S_t| ≥ 2, run the **joint verify on a device-to-device scratch clone**: a deep copy of table, routes, gates, epoch and geometry, with a fresh rows cache. Apply S_t to the clone, re-carry the same windows (carry depends on the table), and take the current-state loss of `[best]` as `L(S_t)`.
+  5. Decide.
+  6. Read back, check that the original epoch is unchanged, and assemble the record.
+- **Record checks.** The host record requires the commit mask to equal choose's **member** mask on a joint commit, exactly `{best}` on a single commit, and nothing on an empty S_t. It also requires `popcount(member) == |S_t|`.
+- **`apply_block`** refuses another binding or stream and a stale epoch, skips the launch on an empty set, and checks the epoch went up by exactly 1. It has no caller until H3 (`#[expect(dead_code)]`).
+- **Buffers.** Every status, summary, record and mask buffer is freshly zeroed on each call.
+
+**Review.** A fresh reviewer subagent returned PASS-WITH-FIXES. It confirmed the clone is fully separate, `L_joint` is read from the right lane and epoch, status words are fresh, readbacks are ordered, and the C1 split leaves behaviour unchanged. Its fix, the commit-equals-member check, is applied with a negative gate. I separately checked that `RowsKScoring` holds only kernel handles, binding and stream, with no buffers.
+
+**Owed to H4 (GPU controls static review cannot cover):**
+- (a) Re-carry parity: an unchanged clone reproduces the pre-state rows-K losses on every lane, for both `carry` and `carry_windows`.
+- (b) The original state is byte-identical around a |S_t| ≥ 2 proposal.
+- (c) `L_joint` equals a real commit of S_t on a separate device, followed by fresh scoring.
+- (d) Every decision case: empty, single, joint wins, joint ties, joint loses, and mask equals member.
+- (e) Refusals: stale proposal, other binding or stream, and a repeated apply.
+- (f) A C1 V2 parity rerun on the split `score_rows_k`.
+- Also measure the per-batch cost of the clone copy. Geometry is immutable and could be shared.
+
+**Delivery.** The branch was rebuilt on main after H2a's squash merge, by replaying H2b's own diff. Lib tests pass 128/128, the stub-CUDA check passes, and clippy is clean on the touched files. The edit to `device.rs` changes the model binding's `source_sha256`, as expected. `driver_source_sha256` is unchanged.

@@ -1,3 +1,15 @@
+## 2026-10-18 — BVG-K C2 piece H2b: device API for block propose, joint verify and apply (claude; W3)
+
+`propose_block` does four things:
+- C1 scoring, kept on the device;
+- the choose step;
+- for |S_t| ≥ 2, a joint verify on a **device-to-device scratch clone**, so the original state is untouched;
+- the decide step.
+
+The host record requires the commit set to equal the scored member set. `apply_block` refuses a stale or foreign proposal and checks epoch +1.
+
+The reviewer subagent returned PASS-WITH-FIXES, and its fix is applied with a negative gate. Lib tests pass 128/128 and the stub-CUDA check passes; it has not yet run on a GPU. The six GPU controls owed to the H4 qualifier are listed in the record. The model binding's source hash changes (`device.rs`); the driver hash does not. No compute, $0.
+
 ## 2026-10-18 — BVG-K C2 piece H1: per-family block schedule and cursor (claude; W3)
 
 This adds the opt-in `coordinate_block` K (1..=64, serde-skipped at 1, RowsV1 only), with:
