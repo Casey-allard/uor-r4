@@ -2369,4 +2369,6 @@ impl WholePathCudaProducer {
     }
 }
 
-pub use crate::native_vector_channel::{native_vector_channel,carry_native_store_read,DeviceVectorStoreRead,DeviceVectorStoreValue};
+pub use crate::native_vector_channel::{
+    carry_native_store_read, native_vector_channel, DeviceVectorStoreRead, DeviceVectorStoreValue,
+};

@@ -28,7 +28,9 @@ use serde_json::{json, Value};
 use uor_r4_core::native_geometric::addressed_attention::artifact::{
     BoundGeometry, Model, Provenance,
 };
-use uor_r4_core::native_geometric::addressed_attention::engine::{self, Head, Policy, RuntimeSession};
+use uor_r4_core::native_geometric::addressed_attention::engine::{
+    self, Head, Policy, RuntimeSession,
+};
 use uor_r4_core::native_geometric::addressed_attention::inputs::Phase;
 use uor_r4_core::native_geometric::addressed_attention::objects::{Action, ObjectSession, Symbol};
 use uor_r4_core::native_geometric::addressed_attention::pilot::{self, Control, Controlled};
@@ -237,7 +239,12 @@ struct DriveConfig {
     objective: Objective,
 }
 
-fn drive(config: &DriveConfig, params: &Parameters, geometry: &BoundGeometry, model: &Model) -> AnyResult<Value> {
+fn drive(
+    config: &DriveConfig,
+    params: &Parameters,
+    geometry: &BoundGeometry,
+    model: &Model,
+) -> AnyResult<Value> {
     let mut document: Vec<u16> = config.doc.iter().map(|&b| u16::from(b)).collect();
     if config.append_eos {
         document.push(256);
@@ -258,7 +265,9 @@ fn drive(config: &DriveConfig, params: &Parameters, geometry: &BoundGeometry, mo
             turns += 1;
         }
         let target = document[step % document.len()];
-        policy.inner.set_target(usize::from(target), document.len())?;
+        policy
+            .inner
+            .set_target(usize::from(target), document.len())?;
         let offered = match session.predict(geometry, &mut policy) {
             Ok(offered) => offered,
             Err(e) => {
@@ -363,12 +372,7 @@ fn pilot_path(
             let offer = runtime.predict(geometry, &mut policy)?;
             runtime.observe(Symbol::Byte(byte), offer.offer.id, geometry, &mut policy)?;
         }
-        for target in example
-            .answer
-            .iter()
-            .map(|&b| u16::from(b))
-            .chain([256])
-        {
+        for target in example.answer.iter().map(|&b| u16::from(b)).chain([256]) {
             let offer = runtime.predict(geometry, &mut policy)?;
             let actual = if target == 256 {
                 Symbol::Eos
@@ -412,11 +416,9 @@ fn main() -> AnyResult<()> {
     }
     for ancestor in base.parent().into_iter().flat_map(Path::ancestors) {
         if ancestor.join("manifest.json").exists() {
-            return Err(format!(
-                "base {} is beneath an already sealed root",
-                base.display()
-            )
-            .into());
+            return Err(
+                format!("base {} is beneath an already sealed root", base.display()).into(),
+            );
         }
     }
     std::fs::create_dir_all(&base)?;
@@ -443,28 +445,165 @@ fn main() -> AnyResult<()> {
     let digits_run: &[u8] = b"123456789123456789123456789\n";
     let program: &[u8] = b"Rust: print a+b; a=3,b=5.\nfn main(){println!(\"{}\",8);}\n";
     let configs: [DriveConfig; 17] = [
-        DriveConfig { name: "00-harness-baseline-eos-1000", doc: base_doc, append_eos: true, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "01-base-sampled-1000", doc: base_doc, append_eos: false, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "02-base-argmax-1000", doc: base_doc, append_eos: false, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::ControlArgmax },
-        DriveConfig { name: "03-base-arithfirst-1000", doc: base_doc, append_eos: false, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::ArithFirst },
-        DriveConfig { name: "04-base-hardadd", doc: base_doc, append_eos: false, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::HardAdd },
-        DriveConfig { name: "05-digits-space-sampled-1000", doc: digits_space, append_eos: false, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "06-digits-run-sampled-1000", doc: digits_run, append_eos: false, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "07-program-sampled-1000", doc: program, append_eos: false, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "08-digits-run-argmax-1000", doc: digits_run, append_eos: false, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::ControlArgmax },
-        DriveConfig { name: "09-digits-run-seed973", doc: digits_run, append_eos: false, param_seed: 973, event_seed: 973, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "10-digits-run-seed41", doc: digits_run, append_eos: false, param_seed: 41, event_seed: 973, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "11-digits-run-seed12345", doc: digits_run, append_eos: false, param_seed: 12345, event_seed: 973, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "12-digits-run-event1", doc: digits_run, append_eos: false, param_seed: 7341, event_seed: 1, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "13-digits-run-event7", doc: digits_run, append_eos: false, param_seed: 7341, event_seed: 7, steps: 1000, objective: Objective::Sampled },
-        DriveConfig { name: "14-digits-run-sampled-4000", doc: digits_run, append_eos: false, param_seed: 7341, event_seed: 973, steps: 4000, objective: Objective::Sampled },
-        DriveConfig { name: "15-base-sampled-4000", doc: base_doc, append_eos: false, param_seed: 7341, event_seed: 973, steps: 4000, objective: Objective::Sampled },
-        DriveConfig { name: "16-digits-run-eos-1000", doc: digits_run, append_eos: true, param_seed: 7341, event_seed: 973, steps: 1000, objective: Objective::Sampled },
+        DriveConfig {
+            name: "00-harness-baseline-eos-1000",
+            doc: base_doc,
+            append_eos: true,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "01-base-sampled-1000",
+            doc: base_doc,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "02-base-argmax-1000",
+            doc: base_doc,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::ControlArgmax,
+        },
+        DriveConfig {
+            name: "03-base-arithfirst-1000",
+            doc: base_doc,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::ArithFirst,
+        },
+        DriveConfig {
+            name: "04-base-hardadd",
+            doc: base_doc,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::HardAdd,
+        },
+        DriveConfig {
+            name: "05-digits-space-sampled-1000",
+            doc: digits_space,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "06-digits-run-sampled-1000",
+            doc: digits_run,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "07-program-sampled-1000",
+            doc: program,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "08-digits-run-argmax-1000",
+            doc: digits_run,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::ControlArgmax,
+        },
+        DriveConfig {
+            name: "09-digits-run-seed973",
+            doc: digits_run,
+            append_eos: false,
+            param_seed: 973,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "10-digits-run-seed41",
+            doc: digits_run,
+            append_eos: false,
+            param_seed: 41,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "11-digits-run-seed12345",
+            doc: digits_run,
+            append_eos: false,
+            param_seed: 12345,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "12-digits-run-event1",
+            doc: digits_run,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 1,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "13-digits-run-event7",
+            doc: digits_run,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 7,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "14-digits-run-sampled-4000",
+            doc: digits_run,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 4000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "15-base-sampled-4000",
+            doc: base_doc,
+            append_eos: false,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 4000,
+            objective: Objective::Sampled,
+        },
+        DriveConfig {
+            name: "16-digits-run-eos-1000",
+            doc: digits_run,
+            append_eos: true,
+            param_seed: 7341,
+            event_seed: 973,
+            steps: 1000,
+            objective: Objective::Sampled,
+        },
     ];
 
     let development = pilot_data::development();
     let mut rows: Vec<Value> = Vec::new();
-    let mut pilot_by_seed: std::collections::BTreeMap<u64, Value> = std::collections::BTreeMap::new();
+    let mut pilot_by_seed: std::collections::BTreeMap<u64, Value> =
+        std::collections::BTreeMap::new();
 
     let data_digest = *blake3::hash(MODEL_DATA).as_bytes();
     let config_digest = *blake3::hash(CONFIG_DIGEST).as_bytes();
@@ -492,8 +631,12 @@ fn main() -> AnyResult<()> {
         if !pilot_by_seed.contains_key(&config.param_seed) {
             let mut arms = serde_json::Map::new();
             for control in pilot::CONTROLS {
-                let eval = pilot::evaluate(&params, model.compiled(), geometry, &development, control)?;
-                arms.insert(format!("{control:?}"), serde_json::to_value(pilot::metrics(&eval))?);
+                let eval =
+                    pilot::evaluate(&params, model.compiled(), geometry, &development, control)?;
+                arms.insert(
+                    format!("{control:?}"),
+                    serde_json::to_value(pilot::metrics(&eval))?,
+                );
             }
             let path = pilot_path(&params, model.compiled(), geometry, &development)?;
             let value = json!({"param_seed": config.param_seed, "arms": arms, "pilot_path": path});
@@ -544,7 +687,9 @@ fn main() -> AnyResult<()> {
         })
         .collect();
     let any_chosen = rows.iter().any(|r| {
-        r["stats"]["chosen_add"].as_u64().unwrap_or(0) + r["stats"]["chosen_sub"].as_u64().unwrap_or(0) > 0
+        r["stats"]["chosen_add"].as_u64().unwrap_or(0)
+            + r["stats"]["chosen_sub"].as_u64().unwrap_or(0)
+            > 0
     });
     let any_offered = rows
         .iter()
@@ -570,7 +715,10 @@ fn main() -> AnyResult<()> {
         ],
     });
     emit(&base, "summary", &summary)?;
-    std::fs::write(base.join("sweep.json"), serde_json::to_vec_pretty(&summary)?)?;
+    std::fs::write(
+        base.join("sweep.json"),
+        serde_json::to_vec_pretty(&summary)?,
+    )?;
     println!(
         "[reach] any_offered={any_offered} any_chosen={any_chosen} elapsed_ms={} base={}",
         started.elapsed().as_millis(),

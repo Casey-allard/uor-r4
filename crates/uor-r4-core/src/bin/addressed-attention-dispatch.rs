@@ -17,8 +17,12 @@ use std::sync::Mutex;
 use std::time::Instant;
 
 use serde_json::{json, Value};
-use uor_r4_core::native_geometric::addressed_attention::artifact::{BoundGeometry, Model, Provenance};
-use uor_r4_core::native_geometric::addressed_attention::engine::{ForwardTrace, RuntimeSession, Work};
+use uor_r4_core::native_geometric::addressed_attention::artifact::{
+    BoundGeometry, Model, Provenance,
+};
+use uor_r4_core::native_geometric::addressed_attention::engine::{
+    ForwardTrace, RuntimeSession, Work,
+};
 use uor_r4_core::native_geometric::addressed_attention::learner;
 use uor_r4_core::native_geometric::addressed_attention::objects::{Action, Reference, Symbol};
 use uor_r4_core::native_geometric::addressed_attention::pilot::{self, Control};
@@ -96,8 +100,12 @@ fn reference_code(r: Option<Reference>) -> Value {
             turn,
             start,
             end,
-        }) => json!({"kind": "occurrence", "epoch": epoch, "turn": turn, "start": start, "end": end}),
-        Some(Reference::Result { epoch, id }) => json!({"kind": "result", "epoch": epoch, "id": id}),
+        }) => {
+            json!({"kind": "occurrence", "epoch": epoch, "turn": turn, "start": start, "end": end})
+        }
+        Some(Reference::Result { epoch, id }) => {
+            json!({"kind": "result", "epoch": epoch, "id": id})
+        }
     }
 }
 
@@ -226,7 +234,11 @@ fn run(root: &Path, log: &Mutex<std::fs::File>, started: Instant) -> AnyResult<(
     // ---- (b) bounded drive with the crate's own SampledPolicy. The whole
     // target stream is the terminal-EOS pilot document; the frozen parameters
     // are NOT fitted, so this measures mechanics, not language quality.
-    let document: Vec<u16> = SCORED_SENTENCE.iter().map(|&b| u16::from(b)).chain([256]).collect();
+    let document: Vec<u16> = SCORED_SENTENCE
+        .iter()
+        .map(|&b| u16::from(b))
+        .chain([256])
+        .collect();
     writeln!(
         Tee(log),
         "[aa-dispatch] constructed geometry={} identity={} parameters={} model_bytes={} document={} positions",
@@ -325,7 +337,13 @@ fn run(root: &Path, log: &Mutex<std::fs::File>, started: Instant) -> AnyResult<(
     let mut pilot_json = serde_json::Map::new();
     let t0 = Instant::now();
     for control in pilot::CONTROLS {
-        let rows = pilot::evaluate(&parameters, model.compiled(), geometry, &development, control)?;
+        let rows = pilot::evaluate(
+            &parameters,
+            model.compiled(),
+            geometry,
+            &development,
+            control,
+        )?;
         let metrics = pilot::metrics(&rows);
         pilot_json.insert(
             format!("{control:?}"),
@@ -419,10 +437,17 @@ fn run(root: &Path, log: &Mutex<std::fs::File>, started: Instant) -> AnyResult<(
             "This probe reads no trained artifact and changes no production path.",
         ],
     });
-    std::fs::write(root.join("dispatch.json"), serde_json::to_vec_pretty(&report)?)?;
+    std::fs::write(
+        root.join("dispatch.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
 
     writeln!(Tee(log), "[aa-dispatch] construction_ms={constructed_ms}")?;
-    writeln!(Tee(log), "[aa-dispatch] work={}", serde_json::to_string(&work_json(work))?)?;
+    writeln!(
+        Tee(log),
+        "[aa-dispatch] work={}",
+        serde_json::to_string(&work_json(work))?
+    )?;
     writeln!(
         Tee(log),
         "[aa-dispatch] sampled_policy circuit_calls={} gate_events={} head_events={} scored_positions={} mean_ce={}",

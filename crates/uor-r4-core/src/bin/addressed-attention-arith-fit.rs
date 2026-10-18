@@ -421,11 +421,8 @@ fn compute_plan(
                 winner = Winner::Occurrence(s);
             }
         }
-        for id in runtime
-            .objects()
-            .result_frontier()
-            .saturating_sub(8)
-            .max(1)..runtime.objects().result_frontier()
+        for id in runtime.objects().result_frontier().saturating_sub(8).max(1)
+            ..runtime.objects().result_frontier()
         {
             let rec = runtime.objects().result(epoch, id)?;
             let c = g.score(q, rec.lease.keys())?;
@@ -667,9 +664,9 @@ fn arm_metrics<'a>(evaluated: &'a Value, set: &str, control: &str) -> &'a Value 
 }
 
 fn main() -> AnyResult<()> {
-    let mode = std::env::args().nth(1).ok_or(
-        "usage: addressed-attention-arith-fit {criteria|run} <new-absolute-report-base>",
-    )?;
+    let mode = std::env::args()
+        .nth(1)
+        .ok_or("usage: addressed-attention-arith-fit {criteria|run} <new-absolute-report-base>")?;
     let base = std::env::args()
         .nth(2)
         .ok_or("usage: addressed-attention-arith-fit {criteria|run} <new-absolute-report-base>")?;
@@ -760,7 +757,10 @@ fn run_attempt(root: &Path, base: &Path, attempt_started: Instant) -> AnyResult<
         return Err("frozen criteria changed after they were written".into());
     }
     let criteria_digest = blake3::hash(&criteria_bytes).to_hex().to_string();
-    std::fs::write(root.join("criteria-digest.txt"), format!("{criteria_digest}\n"))?;
+    std::fs::write(
+        root.join("criteria-digest.txt"),
+        format!("{criteria_digest}\n"),
+    )?;
 
     let train_indices = train_indices();
     let holdout_indices = holdout_indices();
@@ -791,12 +791,24 @@ fn run_attempt(root: &Path, base: &Path, attempt_started: Instant) -> AnyResult<
     let pre = evaluate_sets(&initial, &initial_compiled, &g, &train, &holdout, &all)?;
     let pre_us = t0.elapsed().as_micros();
     let t0 = Instant::now();
-    let (pre_forced, pre_forced_steps) =
-        drive_all(&g, &initial, &initial_compiled, &all_indices, Arm::ForcedReadOp, true)?;
+    let (pre_forced, pre_forced_steps) = drive_all(
+        &g,
+        &initial,
+        &initial_compiled,
+        &all_indices,
+        Arm::ForcedReadOp,
+        true,
+    )?;
     let pre_forced_us = t0.elapsed().as_micros();
     let t0 = Instant::now();
-    let (pre_natural, pre_natural_steps) =
-        drive_all(&g, &initial, &initial_compiled, &all_indices, Arm::Production, false)?;
+    let (pre_natural, pre_natural_steps) = drive_all(
+        &g,
+        &initial,
+        &initial_compiled,
+        &all_indices,
+        Arm::Production,
+        false,
+    )?;
     let pre_natural_us = t0.elapsed().as_micros();
 
     // ---- the one pre-registered fit: plain SGD on the crate's own learner
@@ -807,20 +819,16 @@ fn run_attempt(root: &Path, base: &Path, attempt_started: Instant) -> AnyResult<
     let mut stopped_at_cap = false;
     let fit_timer = Instant::now();
     for update in 0..UPDATES {
-        if fit_timer.elapsed().as_millis() >= FIT_CAP_MS || attempt_started.elapsed().as_millis() >= ATTEMPT_CAP_MS
+        if fit_timer.elapsed().as_millis() >= FIT_CAP_MS
+            || attempt_started.elapsed().as_millis() >= ATTEMPT_CAP_MS
         {
             stopped_at_cap = true;
             break;
         }
         let index = train_indices[update as usize % train_indices.len()];
         let example = &train[update as usize % train.len()];
-        let batch = match learner::batch(
-            &params,
-            &g,
-            &pilot::document(example),
-            EVENT_SEED,
-            update,
-        ) {
+        let batch = match learner::batch(&params, &g, &pilot::document(example), EVENT_SEED, update)
+        {
             Ok(v) => v,
             Err(e) => {
                 loop_error = Some(e.to_string());
@@ -904,8 +912,14 @@ fn run_attempt(root: &Path, base: &Path, attempt_started: Instant) -> AnyResult<
     let post = evaluate_sets(&params, &compiled, &g, &train, &holdout, &all)?;
     let post_us = t0.elapsed().as_micros();
     let t0 = Instant::now();
-    let (post_forced, post_forced_steps) =
-        drive_all(&g, &params, &compiled, &all_indices, Arm::ForcedReadOp, true)?;
+    let (post_forced, post_forced_steps) = drive_all(
+        &g,
+        &params,
+        &compiled,
+        &all_indices,
+        Arm::ForcedReadOp,
+        true,
+    )?;
     let post_forced_us = t0.elapsed().as_micros();
     let t0 = Instant::now();
     let (post_natural, post_natural_steps) =
@@ -931,7 +945,11 @@ fn run_attempt(root: &Path, base: &Path, attempt_started: Instant) -> AnyResult<
         .as_f64()
         .unwrap_or(f64::NAN);
     let mut weaker = Vec::new();
-    for control in ["ReadDisabled", "ExactPayloadMasked", "StateTransportDisabled"] {
+    for control in [
+        "ReadDisabled",
+        "ExactPayloadMasked",
+        "StateTransportDisabled",
+    ] {
         let ce = arm_metrics(&post, "holdout", control)["mean_response_ce"]
             .as_f64()
             .unwrap_or(f64::NAN);
@@ -953,9 +971,15 @@ fn run_attempt(root: &Path, base: &Path, attempt_started: Instant) -> AnyResult<
         }));
     }
     let f3 = f2 && weaker.iter().all(|w| w["beaten"] == json!(true));
-    let f4_pre = pre_forced["totals"]["arithmetic_steps"].as_u64().unwrap_or(0) > 0
+    let f4_pre = pre_forced["totals"]["arithmetic_steps"]
+        .as_u64()
+        .unwrap_or(0)
+        > 0
         && pre_forced["totals"]["correct_value_steps"] == pre_forced["totals"]["arithmetic_steps"];
-    let f4_post = post_forced["totals"]["arithmetic_steps"].as_u64().unwrap_or(0) > 0
+    let f4_post = post_forced["totals"]["arithmetic_steps"]
+        .as_u64()
+        .unwrap_or(0)
+        > 0
         && post_forced["totals"]["correct_value_steps"]
             == post_forced["totals"]["arithmetic_steps"];
     let f4 = f4_pre && f4_post;
@@ -1064,7 +1088,10 @@ fn run_attempt(root: &Path, base: &Path, attempt_started: Instant) -> AnyResult<
         "criteria_digest_blake3": criteria_digest,
         "bin_source_blake3": hex::encode(blake3::hash(include_bytes!("addressed-attention-arith-fit.rs").as_slice()).as_bytes()),
     });
-    std::fs::write(root.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
+    std::fs::write(
+        root.join("report.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
 
     println!(
         "[aa-arith-fit] updates={updates} stopped_at_cap={stopped_at_cap} fit_us={fit_us} ce_first={ce_first:.6} ce_last={ce_last:.6} ce_at_64={}",

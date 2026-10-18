@@ -1,3 +1,12 @@
+## 2026-10-18  Object-store batch plumbing for sync/repair (deepseek)
+
+Follow-up to #2607: objpeer --batch was silently ignored by sync and repair (pull_series hardcoded
+the default). Added pull_series_with_batch, passed batch through sync/repair, rejected flags a
+subcommand ignores, and listed the real subcommands in usage. Tests: sync --batch and repair --batch
+end-to-end plus three rejection cases; package 60 passed / 0 failed, clippy clean. Host-only, no model
+compute. Record: [labs/object-store-batch-plumbing-2026-10-18](../labs/object-store-batch-plumbing-2026-10-18/README.md).
+PR: (added after creation).
+
 ## 2026-10-18  Final DeepSeek claims cleanup (deepseek)
 
 Removes the two merged delivery claims (#2629, #2633) and the cleanup branch claim from docs/harness/claims.json. Coordination only; no code/model/evidence change.

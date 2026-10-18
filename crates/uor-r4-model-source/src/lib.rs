@@ -2693,9 +2693,9 @@ pub struct HuggingFaceLlamaOracle {
     fast_matmul: bool,
 }
 
-pub use uor_r4_source_interface::SourceUnavailable;
 #[cfg(not(target_arch = "wasm32"))]
 pub use uor_r4_source_interface::SourceIngestKind;
+pub use uor_r4_source_interface::SourceUnavailable;
 
 /// Exact-widening source codecs (#598): BF16, F16, and F32 → `f32`.
 ///

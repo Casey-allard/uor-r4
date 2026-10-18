@@ -478,11 +478,8 @@ fn compute_plan(
                 winner = Winner::Occurrence(s);
             }
         }
-        for id in runtime
-            .objects()
-            .result_frontier()
-            .saturating_sub(8)
-            .max(1)..runtime.objects().result_frontier()
+        for id in runtime.objects().result_frontier().saturating_sub(8).max(1)
+            ..runtime.objects().result_frontier()
         {
             let rec = runtime.objects().result(epoch, id)?;
             let c = g.score(q, rec.lease.keys())?;
@@ -559,12 +556,7 @@ fn drive(
     let mut first_generated_state_digest = String::new();
     let mut state_digest_taken = false;
 
-    for target in example
-        .answer
-        .iter()
-        .map(|&b| u16::from(b))
-        .chain([256])
-    {
+    for target in example.answer.iter().map(|&b| u16::from(b)).chain([256]) {
         if arm != Arm::Production {
             let (plan, detail) =
                 compute_plan(g, &runtime, epoch, spans).map_err(|e| format!("plan: {e}"))?;
@@ -583,9 +575,12 @@ fn drive(
             correct_symbols += 1;
         }
         let operands = offered.offer.operands();
-        let payloads: Vec<Option<String>> =
-            operands.iter().map(|o| o.as_ref().map(payload_string)).collect();
-        let values: [Option<i64>; 2] = operands.map(|o| o.and_then(|l| objects::decode_i64(l.payload()).ok()));
+        let payloads: Vec<Option<String>> = operands
+            .iter()
+            .map(|o| o.as_ref().map(payload_string))
+            .collect();
+        let values: [Option<i64>; 2] =
+            operands.map(|o| o.and_then(|l| objects::decode_i64(l.payload()).ok()));
         let action = offered.offer.action;
         let produced = offered.offer.active().and_then(|a| {
             a.provisional()
@@ -619,7 +614,8 @@ fn drive(
                 }
             }
         }
-        let intended_pair = payloads[0].as_deref() == Some(span_string(&example.prompt, spans[0]).as_str())
+        let intended_pair = payloads[0].as_deref()
+            == Some(span_string(&example.prompt, spans[0]).as_str())
             && payloads[1].as_deref() == Some(span_string(&example.prompt, spans[1]).as_str());
         intended_pair_steps += u64::from(intended_pair);
         if record {
@@ -806,11 +802,9 @@ fn prepare_base(base: &str) -> AnyResult<PathBuf> {
     }
     for ancestor in base.parent().into_iter().flat_map(Path::ancestors) {
         if ancestor.join("manifest.json").exists() {
-            return Err(format!(
-                "base {} is beneath an already sealed root",
-                base.display()
-            )
-            .into());
+            return Err(
+                format!("base {} is beneath an already sealed root", base.display()).into(),
+            );
         }
     }
     std::fs::create_dir_all(&base)?;
@@ -880,13 +874,19 @@ fn mode_diagnose(base: &Path, params: &Parameters, model: &Model) -> AnyResult<(
                 false,
             )?;
             aggregate.absorb(&row);
-            if row["stats"]["arithmetic_offered_steps"].as_u64().unwrap_or(0) > 0 {
+            if row["stats"]["arithmetic_offered_steps"]
+                .as_u64()
+                .unwrap_or(0)
+                > 0
+            {
                 offers_any = true;
             }
         }
         let agg = aggregate.json();
         let calls = agg["stats"]["control_calls"].as_u64().unwrap_or(0);
-        let offers = agg["stats"]["arithmetic_offered_steps"].as_u64().unwrap_or(0);
+        let offers = agg["stats"]["arithmetic_offered_steps"]
+            .as_u64()
+            .unwrap_or(0);
         rows.push(json!({
             "shape": shape.name(),
             "prompt_example": String::from_utf8_lossy(&examples[0].prompt).to_string(),
@@ -998,11 +998,8 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model, shape: Shape) -> An
         for (index, example) in examples.iter().enumerate() {
             let epoch = index as u64 + 1;
             let mut runtime = RuntimeSession::new(params.digest(), g, epoch)?;
-            let mut policy = Oracle::new(
-                InterpretedPolicy { parameters: params },
-                Arm::Production,
-                0,
-            );
+            let mut policy =
+                Oracle::new(InterpretedPolicy { parameters: params }, Arm::Production, 0);
             for &byte in &example.prompt {
                 let offer = runtime.predict(g, &mut policy)?;
                 runtime.observe(Symbol::Byte(byte), offer.offer.id, g, &mut policy)?;
@@ -1017,12 +1014,7 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model, shape: Shape) -> An
             let mut wrong_value_steps = 0u64;
             let mut copy_steps = 0u64;
             let mut noncopy_steps = 0u64;
-            for target in example
-                .answer
-                .iter()
-                .map(|&b| u16::from(b))
-                .chain([256])
-            {
+            for target in example.answer.iter().map(|&b| u16::from(b)).chain([256]) {
                 let offered = runtime.predict(g, &mut policy)?;
                 let emitted = symbol_code(offered.offer.symbol);
                 positions += 1;
@@ -1038,10 +1030,9 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model, shape: Shape) -> An
                     if let (Some(a), Some(b)) = (values[0], values[1]) {
                         if let Some(expected) = exact_value(action, a, b) {
                             let want = canonical(expected);
-                            let produced = offered
-                                .offer
-                                .active()
-                                .and_then(|x| x.provisional().map(|_| x.lease().payload().to_vec()));
+                            let produced = offered.offer.active().and_then(|x| {
+                                x.provisional().map(|_| x.lease().payload().to_vec())
+                            });
                             if produced.as_deref() == Some(want.as_slice()) {
                                 correct_value_steps += 1;
                             } else {
@@ -1057,12 +1048,14 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model, shape: Shape) -> An
                         }
                     }
                 }
-                let payloads: Vec<Option<String>> =
-                    operands.iter().map(|o| o.as_ref().map(payload_string)).collect();
-                let intended_pair =
-                    payloads[0].as_deref() == Some(span_string(&example.prompt, spans[0]).as_str())
-                        && payloads[1].as_deref()
-                            == Some(span_string(&example.prompt, spans[1]).as_str());
+                let payloads: Vec<Option<String>> = operands
+                    .iter()
+                    .map(|o| o.as_ref().map(payload_string))
+                    .collect();
+                let intended_pair = payloads[0].as_deref()
+                    == Some(span_string(&example.prompt, spans[0]).as_str())
+                    && payloads[1].as_deref()
+                        == Some(span_string(&example.prompt, spans[1]).as_str());
                 intended_pair_steps += u64::from(intended_pair);
                 let actual = symbol_of(target)?;
                 runtime.observe(actual, offered.offer.id, g, &mut policy)?;
@@ -1113,7 +1106,10 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model, shape: Shape) -> An
 
     // --- secondary arm S3: forced read, C1 (compiled control) and C2 (forced op)
     let mut forced = serde_json::Map::new();
-    for (name, arm) in [("C1_forced_read", Arm::ForcedRead), ("C2_forced_read_and_op", Arm::ForcedReadOp)] {
+    for (name, arm) in [
+        ("C1_forced_read", Arm::ForcedRead),
+        ("C2_forced_read_and_op", Arm::ForcedReadOp),
+    ] {
         let (aggregate, rows) = arm_rows(g, params, model, shape, Control::Full, arm, true)?;
         let agg = aggregate.json();
         println!(
@@ -1136,13 +1132,21 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model, shape: Shape) -> An
 
     // --- pre-registered branch rule
     let full = &arm_aggregates["Full"];
-    let full_ce = official["Full"]["mean_response_ce"].as_f64().unwrap_or(f64::NAN);
-    let controls = ["ReadDisabled", "ExactPayloadMasked", "StateTransportDisabled"];
+    let full_ce = official["Full"]["mean_response_ce"]
+        .as_f64()
+        .unwrap_or(f64::NAN);
+    let controls = [
+        "ReadDisabled",
+        "ExactPayloadMasked",
+        "StateTransportDisabled",
+    ];
     let mut control_verdicts = serde_json::Map::new();
     let mut beats_all = true;
     for control in controls {
         let arm = &arm_aggregates[control];
-        let ce = official[control]["mean_response_ce"].as_f64().unwrap_or(f64::NAN);
+        let ce = official[control]["mean_response_ce"]
+            .as_f64()
+            .unwrap_or(f64::NAN);
         let strict_ce = full_ce < ce;
         let mut unique_exact = false;
         if let (Some(f), Some(c)) = (
@@ -1172,9 +1176,15 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model, shape: Shape) -> An
         );
     }
     let full_nonzero = full["correct_symbols"].as_u64().unwrap_or(0) > 0;
-    let offered = full["stats"]["arithmetic_offered_steps"].as_u64().unwrap_or(0);
+    let offered = full["stats"]["arithmetic_offered_steps"]
+        .as_u64()
+        .unwrap_or(0);
     let calls = full["stats"]["control_calls"].as_u64().unwrap_or(0);
-    let offer_fraction = if calls == 0 { 0.0 } else { offered as f64 / calls as f64 };
+    let offer_fraction = if calls == 0 {
+        0.0
+    } else {
+        offered as f64 / calls as f64
+    };
     let a1 = offer_fraction >= A1_MIN_OFFER_FRACTION;
     let a2 = full["selected_operations"].as_u64().unwrap_or(0) > 0;
     let a3 = official.len() == 4;
@@ -1247,7 +1257,10 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model, shape: Shape) -> An
             "official": official,
         }))?,
     )?;
-    println!("[oracle] branch={branch} elapsed_ms={}", start.elapsed().as_millis());
+    println!(
+        "[oracle] branch={branch} elapsed_ms={}",
+        start.elapsed().as_millis()
+    );
     Ok(())
 }
 
@@ -1287,6 +1300,10 @@ fn main() -> AnyResult<()> {
         }
         other => return Err(format!("unknown mode {other}").into()),
     }
-    println!("[oracle] done elapsed_ms={} base={}", started.elapsed().as_millis(), base.display());
+    println!(
+        "[oracle] done elapsed_ms={} base={}",
+        started.elapsed().as_millis(),
+        base.display()
+    );
     Ok(())
 }

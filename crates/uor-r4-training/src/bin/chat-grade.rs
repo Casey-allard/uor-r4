@@ -736,7 +736,11 @@ fn contains_exact_math_term(haystack: &str, needle: &str) -> bool {
             }
             if prev == '.' {
                 let before_dot = &haystack[..start - prev.len_utf8()];
-                if before_dot.chars().next_back().is_some_and(|c| c.is_ascii_digit()) {
+                if before_dot
+                    .chars()
+                    .next_back()
+                    .is_some_and(|c| c.is_ascii_digit())
+                {
                     return false;
                 }
             }
@@ -1828,11 +1832,10 @@ fn validate_checks(checks: &Checks, requests: &[Request]) -> Result<Vec<String>,
                         .into());
                     }
                 }
-                if let Some(f) = forbid.iter().find(|f| {
-                    compact_turns
-                        .iter()
-                        .any(|u| contains_exact_math_term(u, f))
-                }) {
+                if let Some(f) = forbid
+                    .iter()
+                    .find(|f| compact_turns.iter().any(|u| contains_exact_math_term(u, f)))
+                {
                     return Err(format!(
                         "row {}: exact_text forbidden term '{f}' is in a user turn",
                         request.id
@@ -5978,7 +5981,10 @@ mod tests {
         // Basic match
         assert!(contains_exact_math_term("8x^2+x-10", "8x^2+x-10"));
         // Boundary with punctuation
-        assert!(contains_exact_math_term("f(x)-g(x)=8x^2+x-10.", "8x^2+x-10"));
+        assert!(contains_exact_math_term(
+            "f(x)-g(x)=8x^2+x-10.",
+            "8x^2+x-10"
+        ));
         assert!(contains_exact_math_term("(8x^2+x-10)", "8x^2+x-10"));
         // Leading digit superstring: must fail
         assert!(!contains_exact_math_term("18x^2+x-10", "8x^2+x-10"));
@@ -5994,35 +6000,51 @@ mod tests {
         // Decimal float matching
         assert!(contains_exact_math_term("therootsare4.37and-1.37", "4.37"));
         assert!(contains_exact_math_term("therootsare4.37and-1.37", "-1.37"));
-        assert!(!contains_exact_math_term("therootsare4.375and-1.37", "4.37"));
+        assert!(!contains_exact_math_term(
+            "therootsare4.375and-1.37",
+            "4.37"
+        ));
         assert!(!contains_exact_math_term("therootsare0.4.37", "4.37"));
 
         // 2. High-level checks verdict on heldout-122:
-        let h122_turn = "Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).";
+        let h122_turn =
+            "Consider f(x) = x^3 + 7x^2 - 8x - 3 and g(x) = x^3 - x^2 - 9x + 7.  Find f(x) - g(x).";
         // Positive passes
         assert_eq!(
-            checks_v2.verdict("heldout-122", &[h122_turn], "f(x) - g(x) = 8x^2 + x - 10.").status,
+            checks_v2
+                .verdict("heldout-122", &[h122_turn], "f(x) - g(x) = 8x^2 + x - 10.")
+                .status,
             "PASS"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-122", &[h122_turn], "8x2 + x - 10").status,
+            checks_v2
+                .verdict("heldout-122", &[h122_turn], "8x2 + x - 10")
+                .status,
             "PASS"
         );
         // Negative superstrings fail
         assert_eq!(
-            checks_v2.verdict("heldout-122", &[h122_turn], "18x² + x − 10").status,
+            checks_v2
+                .verdict("heldout-122", &[h122_turn], "18x² + x − 10")
+                .status,
             "FAIL"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-122", &[h122_turn], "8x² + x − 100").status,
+            checks_v2
+                .verdict("heldout-122", &[h122_turn], "8x² + x − 100")
+                .status,
             "FAIL"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-122", &[h122_turn], "f(x) - g(x) = 8x^2 - x + 10.").status,
+            checks_v2
+                .verdict("heldout-122", &[h122_turn], "f(x) - g(x) = 8x^2 - x + 10.")
+                .status,
             "FAIL"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-122", &[h122_turn], "-8x^2 + x + 10").status,
+            checks_v2
+                .verdict("heldout-122", &[h122_turn], "-8x^2 + x + 10")
+                .status,
             "FAIL"
         );
 
@@ -6030,40 +6052,62 @@ mod tests {
         let h125_turn = "Find a value of x such that the expression x^2 - 3x + 5 is equal to 11.";
         // Positive roots without "x =" prefix pass
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "The roots are 4.37 and −1.37").status,
+            checks_v2
+                .verdict("heldout-125", &[h125_turn], "The roots are 4.37 and −1.37")
+                .status,
             "PASS"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "x = 4.37").status,
+            checks_v2
+                .verdict("heldout-125", &[h125_turn], "x = 4.37")
+                .status,
             "PASS"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "The roots are x = (3 + sqrt(33)) / 2 and (3 - sqrt(33)) / 2.").status,
+            checks_v2
+                .verdict(
+                    "heldout-125",
+                    &[h125_turn],
+                    "The roots are x = (3 + sqrt(33)) / 2 and (3 - sqrt(33)) / 2."
+                )
+                .status,
             "PASS"
         );
         // Negative controls must fail
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "x = 1.37").status,
+            checks_v2
+                .verdict("heldout-125", &[h125_turn], "x = 1.37")
+                .status,
             "FAIL"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "x = -4.37").status,
+            checks_v2
+                .verdict("heldout-125", &[h125_turn], "x = -4.37")
+                .status,
             "FAIL"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "x = sqrt(33)").status,
+            checks_v2
+                .verdict("heldout-125", &[h125_turn], "x = sqrt(33)")
+                .status,
             "FAIL"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "33/2 is the answer").status,
+            checks_v2
+                .verdict("heldout-125", &[h125_turn], "33/2 is the answer")
+                .status,
             "FAIL"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "The root is 4.375").status,
+            checks_v2
+                .verdict("heldout-125", &[h125_turn], "The root is 4.375")
+                .status,
             "FAIL"
         );
         assert_eq!(
-            checks_v2.verdict("heldout-125", &[h125_turn], "The roots are 4.37 and 1.37").status,
+            checks_v2
+                .verdict("heldout-125", &[h125_turn], "The roots are 4.37 and 1.37")
+                .status,
             "FAIL"
         );
     }

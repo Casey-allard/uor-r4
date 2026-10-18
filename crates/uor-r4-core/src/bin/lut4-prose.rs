@@ -437,7 +437,11 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             bpb(soft_bits),
             bpb(hard_bits),
             changed as f64 / eval_rows.len().max(1) as f64,
-            (hit_base / hit_bytes.max(1) as f64, hit_soft / hit_bytes.max(1) as f64, hit_rows),
+            (
+                hit_base / hit_bytes.max(1) as f64,
+                hit_soft / hit_bytes.max(1) as f64,
+                hit_rows,
+            ),
         )
     };
 

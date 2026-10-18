@@ -187,11 +187,8 @@ fn compute_plan(
                 winner_is_intended = s == start;
             }
         }
-        for id in runtime
-            .objects()
-            .result_frontier()
-            .saturating_sub(8)
-            .max(1)..runtime.objects().result_frontier()
+        for id in runtime.objects().result_frontier().saturating_sub(8).max(1)
+            ..runtime.objects().result_frontier()
         {
             let rec = runtime.objects().result(epoch, id)?;
             let c = g.score(q, rec.lease.keys())?;
@@ -424,10 +421,16 @@ fn main() -> AnyResult<()> {
     }
 
     let any_active_varies = rows.iter().any(|r| {
-        r["sweep"]["active_byte_distinct_contexts"].as_u64().unwrap_or(0) > 1
+        r["sweep"]["active_byte_distinct_contexts"]
+            .as_u64()
+            .unwrap_or(0)
+            > 1
     });
     let all_active_varies = rows.iter().all(|r| {
-        r["sweep"]["active_byte_distinct_contexts"].as_u64().unwrap_or(0) > 1
+        r["sweep"]["active_byte_distinct_contexts"]
+            .as_u64()
+            .unwrap_or(0)
+            > 1
     });
     let distinct_emit_contexts: std::collections::BTreeSet<u64> = rows
         .iter()
@@ -469,7 +472,10 @@ fn main() -> AnyResult<()> {
             "The sweep varies ONLY one 8-bit byte field while holding all 1023 other bits fixed, so it isolates that channel's reachability into the 9-bit context.",
         ],
     });
-    std::fs::write(root.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
+    std::fs::write(
+        root.join("report.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
     report_output::seal(root)?;
     report_output::verify(root)?;
     println!("[reach] sealed {}", root.display());

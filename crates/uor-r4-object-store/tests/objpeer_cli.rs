@@ -916,6 +916,8 @@ fn packaged_cli_repair_restores_split_targets() {
         .arg("--addr")
         .arg(&addr2)
         .arg("--json")
+        .arg("--batch")
+        .arg("1024")
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout).to_string();
@@ -1088,4 +1090,73 @@ fn packaged_cli_pull_batch_flag_pulls_exactly() {
         String::from_utf8_lossy(&result.stderr)
     );
     assert_eq!(std::fs::read(&out).unwrap(), payload);
+}
+
+#[test]
+fn packaged_cli_sync_batch_flag_pulls_exactly() {
+    let dir = tmp_dir("sync-batch");
+    let payload = (0..(512 * 1024))
+        .map(|i| (i % 251) as u8)
+        .collect::<Vec<u8>>();
+    let object = dir.join("object.bin");
+    std::fs::write(&object, &payload).unwrap();
+    let sha = sha_hex(&payload);
+    let (mut server, mut reader, addr, _lines) =
+        spawn_serve_many(&dir.join("server.store"), &[&object], 1);
+    let targets = dir.join("targets.txt");
+    std::fs::write(&targets, format!("{}\n", sha)).unwrap();
+    let out_dir = dir.join("out");
+    let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+        .arg("sync")
+        .arg("--store")
+        .arg(dir.join("client.store"))
+        .arg("--addr")
+        .arg(&addr)
+        .arg("--targets")
+        .arg(&targets)
+        .arg("--out-dir")
+        .arg(&out_dir)
+        .arg("--batch")
+        .arg("1024")
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "sync --batch failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        std::fs::read(out_dir.join(format!("{}.bin", sha))).unwrap(),
+        payload
+    );
+    let _ = server.wait();
+    let mut rest = String::new();
+    reader.read_to_string(&mut rest).ok();
+}
+
+#[test]
+fn packaged_cli_rejects_flags_that_the_subcommand_ignores() {
+    let cases: [(&[&str], &str); 3] = [
+        (
+            &["verify", "--store", "unused", "--batch", "8"],
+            "--batch applies only to pull, sync and repair",
+        ),
+        (
+            &["pull", "--store", "unused", "--sessions", "2"],
+            "--sessions/--concurrent apply only to serve",
+        ),
+        (
+            &["join", "--store", "unused", "--concurrent"],
+            "--sessions/--concurrent apply only to serve",
+        ),
+    ];
+    for (args, needle) in cases {
+        let out = Command::new(env!("CARGO_BIN_EXE_objpeer"))
+            .args(args)
+            .output()
+            .unwrap();
+        assert_eq!(out.status.code(), Some(2), "args {args:?}");
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(stderr.contains(needle), "args {args:?}: {stderr}");
+    }
 }

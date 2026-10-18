@@ -653,7 +653,13 @@ fn term_groups_sum_to_the_scorer_exactly() {
     let model = create_test_model();
     let contexts: [&[usize]; 3] = [
         &[1, 2, 3],
-        &[b't' as usize, b'h' as usize, b'e' as usize, b' ' as usize, b'c' as usize],
+        &[
+            b't' as usize,
+            b'h' as usize,
+            b'e' as usize,
+            b' ' as usize,
+            b'c' as usize,
+        ],
         &[7, 11, 13, 17, 19, 23, 29, 31],
     ];
     for ctx in contexts {

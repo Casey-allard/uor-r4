@@ -358,6 +358,18 @@ pub fn pull_series<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
 ) -> Result<Vec<(Manifest, PullStats)>> {
+    pull_series_with_batch(store, requests, None, reader, writer)
+}
+
+/// Pull several objects on one session with an explicit FETCH batch size, clamped to 1..=65535:
+/// raise it on high-latency links. `sync` and `repair` pass their `--batch` through this path.
+pub fn pull_series_with_batch<R: Read, W: Write>(
+    store: &mut Store,
+    requests: &[PullRequest],
+    batch: Option<usize>,
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<Vec<(Manifest, PullStats)>> {
     let mut results = Vec::with_capacity(requests.len());
     for request in requests {
         results.push(pull_one(
@@ -365,7 +377,7 @@ pub fn pull_series<R: Read, W: Write>(
             request.expected,
             request.selector,
             false,
-            None,
+            batch,
             reader,
             writer,
         )?);

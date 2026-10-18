@@ -179,10 +179,7 @@ fn example_of(index: usize) -> Example {
     let scalar = expected_scalar(index);
     Example {
         id: format!("arith/{}/{index}", op_name(index).to_lowercase()),
-        family: format!(
-            "arith_canonical_decimal_{}",
-            op_name(index).to_lowercase()
-        ),
+        family: format!("arith_canonical_decimal_{}", op_name(index).to_lowercase()),
         prompt: render(a, b),
         answer: scalar.to_string().into_bytes(),
         expected_scalar: Some(scalar),
@@ -338,9 +335,11 @@ struct Instr<'a> {
 }
 
 impl<'a> Instr<'a> {
-    fn new(compiled: &'a uor_r4_core::native_geometric::addressed_attention::circuit::PrimitiveExport,
-           identity: u16,
-           arm: Arm) -> Self {
+    fn new(
+        compiled: &'a uor_r4_core::native_geometric::addressed_attention::circuit::PrimitiveExport,
+        identity: u16,
+        arm: Arm,
+    ) -> Self {
         Self {
             inner: Controlled::new(compiled, Control::Full, identity),
             arm,
@@ -355,8 +354,12 @@ impl<'a> Instr<'a> {
     /// The frozen reach sweep: with the natural packed input otherwise fixed,
     /// vary only the 8-bit active-byte field and read back what the circuit and
     /// the frozen emission head can distinguish about it.
-    fn sweep(&mut self, input: &[bool; INPUT_BITS], target_byte: Option<u8>, natural_context: u16)
-        -> engine::Result<(u16, u16, Option<u16>, Option<u16>, Option<u16>)> {
+    fn sweep(
+        &mut self,
+        input: &[bool; INPUT_BITS],
+        target_byte: Option<u8>,
+        natural_context: u16,
+    ) -> engine::Result<(u16, u16, Option<u16>, Option<u16>, Option<u16>)> {
         let mut byte_to_context = [0u16; 256];
         let mut probe = *input;
         for value in 0..256usize {
@@ -467,8 +470,13 @@ fn reference_json(r: Option<objects::Reference>) -> Value {
     match r {
         None => Value::Null,
         Some(objects::Reference::Occurrence {
-            start, end, turn, epoch,
-        }) => json!({"kind": "occurrence", "epoch": epoch, "turn": turn, "start": start, "end": end}),
+            start,
+            end,
+            turn,
+            epoch,
+        }) => {
+            json!({"kind": "occurrence", "epoch": epoch, "turn": turn, "start": start, "end": end})
+        }
         Some(objects::Reference::Result { epoch, id }) => {
             json!({"kind": "result", "epoch": epoch, "id": id})
         }
@@ -556,14 +564,21 @@ fn drive(
         let operands = offered.offer.operands();
         let payloads: Vec<Option<String>> = operands
             .iter()
-            .map(|o| o.as_ref().map(|l| String::from_utf8_lossy(l.payload()).to_string()))
+            .map(|o| {
+                o.as_ref()
+                    .map(|l| String::from_utf8_lossy(l.payload()).to_string())
+            })
             .collect();
-        let selected_values: [Option<i64>; 2] = operands
-            .map(|o| o.and_then(|l| objects::decode_i64(l.payload()).ok()));
+        let selected_values: [Option<i64>; 2] =
+            operands.map(|o| o.and_then(|l| objects::decode_i64(l.payload()).ok()));
         let value_correct_selected = if arithmetic {
             match (selected_values[0], selected_values[1]) {
                 (Some(a), Some(b)) => {
-                    let expected = if action == Action::AddAB { a + b } else { a - b };
+                    let expected = if action == Action::AddAB {
+                        a + b
+                    } else {
+                        a - b
+                    };
                     Some(produced_bytes.as_deref() == Some(canonical(expected).as_slice()))
                 }
                 _ => None,
@@ -578,8 +593,10 @@ fn drive(
         };
         let read_a_ok = reference_matches(offered.trace.selected[0], spans[0]);
         let read_b_ok = reference_matches(offered.trace.selected[1], spans[1]);
-        let payload_a_ok = payloads[0].as_deref() == Some(span_string(&example.prompt, spans[0]).as_str());
-        let payload_b_ok = payloads[1].as_deref() == Some(span_string(&example.prompt, spans[1]).as_str());
+        let payload_a_ok =
+            payloads[0].as_deref() == Some(span_string(&example.prompt, spans[0]).as_str());
+        let payload_b_ok =
+            payloads[1].as_deref() == Some(span_string(&example.prompt, spans[1]).as_str());
         let intended_pair_payload = payload_a_ok && payload_b_ok;
         let op_ok = action_index(action) == intended_op;
         let input_byte = capture.as_ref().map(|c| c.input_byte).unwrap_or(0);
@@ -740,7 +757,8 @@ fn aggregate(rows: &[StepRow], work: Work) -> Value {
     let mut target_byte_new_context = 0u64;
     let mut both_natural_carried = 0u64;
     let mut both_natural_provisional = 0u64;
-    let mut emitted_histogram: std::collections::BTreeMap<u16, u64> = std::collections::BTreeMap::new();
+    let mut emitted_histogram: std::collections::BTreeMap<u16, u64> =
+        std::collections::BTreeMap::new();
     let mut target_in_input_positions: Vec<Value> = Vec::new();
     for row in rows {
         read_a_ok += u64::from(row.read_a_ok);
@@ -962,7 +980,11 @@ fn emit(base: &Path, name: &str, value: &Value) -> AnyResult<PathBuf> {
     std::fs::write(root.join("report.json"), serde_json::to_vec_pretty(value)?)?;
     report_output::seal(&root)?;
     let files = report_output::verify(&root)?;
-    println!("[unforced-emit] sealed {} unlisted={}", root.display(), files.len());
+    println!(
+        "[unforced-emit] sealed {} unlisted={}",
+        root.display(),
+        files.len()
+    );
     Ok(root)
 }
 
@@ -1047,7 +1069,9 @@ fn baseline_replication(agg: &Value) -> Value {
         (
             "work.selected_operations",
             9,
-            agg["work"]["selected_operations"].as_u64().unwrap_or(u64::MAX),
+            agg["work"]["selected_operations"]
+                .as_u64()
+                .unwrap_or(u64::MAX),
         ),
         (
             "work.circuit_calls",
@@ -1144,7 +1168,8 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model) -> AnyResult<()> {
     let mut forced_work = Work::default();
     let mut forced_overrides = 0u64;
     for index in 0..PROBLEMS.len() {
-        let (rows, work, _, overrides) = drive(g, compiled, params, index, Arm::ForcedEmissionOnly)?;
+        let (rows, work, _, overrides) =
+            drive(g, compiled, params, index, Arm::ForcedEmissionOnly)?;
         forced_work.circuit_calls += work.circuit_calls;
         forced_work.candidate_scores += work.candidate_scores;
         forced_work.predictions += work.predictions;
@@ -1180,7 +1205,8 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model) -> AnyResult<()> {
         .iter()
         .filter(|r| r.provisional && r.produced_byte.is_some())
         .fold((0u64, 0u64), |(hit, total), r| {
-            let hit = hit + u64::from(r.produced_byte == Some(r.target as u8) && r.target != SYMBOL_EOS);
+            let hit =
+                hit + u64::from(r.produced_byte == Some(r.target as u8) && r.target != SYMBOL_EOS);
             (hit, total + 1)
         });
 
@@ -1240,9 +1266,7 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model) -> AnyResult<()> {
     let prov_argmax_equals_produced = prov["argmax_for_reached_context_equals_produced_byte"]
         .as_u64()
         .unwrap_or(0);
-    let prov_input_equals_target = prov["input_byte_equals_target_byte"]
-        .as_u64()
-        .unwrap_or(0);
+    let prov_input_equals_target = prov["input_byte_equals_target_byte"].as_u64().unwrap_or(0);
     let collapse = natural_agg["reach_sweep"]
         ["steps_where_target_byte_shares_its_context_with_another_byte"]
         .as_u64()
@@ -1427,7 +1451,8 @@ fn mode_run(base: &Path, params: &Parameters, model: &Model) -> AnyResult<()> {
     emit(base, "comparison", &comparison)?;
     println!(
         "[unforced-emit] triage={} elapsed_ms={}",
-        triage["mode"], start.elapsed().as_millis()
+        triage["mode"],
+        start.elapsed().as_millis()
     );
     Ok(())
 }
@@ -1439,11 +1464,9 @@ fn prepare_base(base: &str, create: bool) -> AnyResult<PathBuf> {
     }
     for ancestor in base.parent().into_iter().flat_map(Path::ancestors) {
         if ancestor.join("manifest.json").exists() {
-            return Err(format!(
-                "base {} is beneath an already sealed root",
-                base.display()
-            )
-            .into());
+            return Err(
+                format!("base {} is beneath an already sealed root", base.display()).into(),
+            );
         }
     }
     if create {

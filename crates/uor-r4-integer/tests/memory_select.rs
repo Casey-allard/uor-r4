@@ -23,17 +23,12 @@ fn reference(first: &[i32], second: &[i32], top_k: usize) -> Vec<(u16, u16)> {
     let mut candidates: Vec<(i64, usize, usize)> = Vec::new();
     for &a in &firsts {
         for &b in &seconds {
-            candidates.push((
-                i64::from(first[a]) + i64::from(second[b]),
-                a,
-                b,
-            ));
+            candidates.push((i64::from(first[a]) + i64::from(second[b]), a, b));
         }
     }
     candidates.sort_by(|x, y| {
-        y.0.cmp(&x.0).then(
-            (x.1 * sub_keys + x.2).cmp(&(y.1 * sub_keys + y.2)),
-        )
+        y.0.cmp(&x.0)
+            .then((x.1 * sub_keys + x.2).cmp(&(y.1 * sub_keys + y.2)))
     });
     candidates.truncate(top_k);
     candidates
