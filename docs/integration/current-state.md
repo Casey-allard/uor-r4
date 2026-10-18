@@ -1,3 +1,7 @@
+## 2026-10-18  Final DeepSeek claims cleanup (deepseek)
+
+Removes the two merged delivery claims (#2629, #2633) and the cleanup branch claim from docs/harness/claims.json. Coordination only; no code/model/evidence change.
+
 ## 2026-10-18  Wire matrix reproducibility and claim correction (deepseek)
 
 Fixes evidence defects at the edge of the merged wire side exploration: the three adapter legs now
