@@ -1,3 +1,14 @@
+## 2026-10-18 — BVG-K Stage C piece 1: K-coordinate row-parallel scoring (claude; W3)
+
+This adds opt-in `Device::score_rows_k`, which scores 1..=64 coordinates of one kind in a single launch. It is a separate `rowsk.cu` built from the unchanged rows text plus two kernels, with its own PTX admission and a D29 census.
+
+It also adds `rowsk-qualify`, with:
+- V2 per-coordinate parity with `propose_rows` over complete inventories at K ∈ {1, 4, 16};
+- V6 refusals;
+- a K latency curve that tests the measured occupancy gap (about 130 ms per proposal on 8 of 170 SMs).
+
+The rows image and `driver_source_sha256` are unchanged. Host checks are green: 103/103 lib tests, the stub-CUDA check, clippy, fmt and D29. The **GPU run is NOT_RUN** pending FIT on `m1-bvgk-stagec-rowsk-qualification-2026-10-18.md` and the owner's release. [Record](../labs/bvgk-rowsk-scoring-2026-10-18/README.md). No compute, $0.
+
 ## 2026-10-18 — BVG-K (W3) bound to the measured K16 profile and split into construction and training stages (claude)
 
 The batched-verified-coordinates draft's utilization hypothesis is now bound to measured data and the source:

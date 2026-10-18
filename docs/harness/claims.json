@@ -41,6 +41,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/bvgk-rowsk-scoring-20261018": {
+    "branch": "claude/bvgk-rowsk-scoring-20261018",
+    "claimed_at": "2026-10-18T16:56:39-04:00",
+    "head": "948744c99",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/c1-coupling-draft-20261018": {
     "branch": "claude/c1-coupling-draft-20261018",
     "claimed_at": "2026-10-17T23:08:55-04:00",

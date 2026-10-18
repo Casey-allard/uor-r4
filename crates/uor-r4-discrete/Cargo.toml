@@ -35,5 +35,9 @@ name = "rows-qualify"
 path = "src/bin/rows-qualify.rs"
 
 [[bin]]
+name = "rowsk-qualify"
+path = "src/bin/rowsk-qualify.rs"
+
+[[bin]]
 name = "coverage-census"
 path = "src/bin/coverage-census.rs"

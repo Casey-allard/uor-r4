@@ -18,6 +18,8 @@ mod baseline_reuse_source;
 mod decomposition_source;
 #[path = "../crates/uor-r4-discrete/src/rows_source.rs"]
 mod rows_source;
+#[path = "../crates/uor-r4-discrete/src/rowsk_source.rs"]
+mod rowsk_source;
 #[path = "../third_party/candle-kernels-0.9.2/entry_allowlist.rs"]
 mod entry_allowlist;
 mod native_dependency_boundary;
@@ -954,6 +956,22 @@ fn check_rows_source(source: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn check_rowsk_source(source: &str) -> Result<(), String> {
+    let bad = forbidden_discrete_cuda(source);
+    if !bad.is_empty() {
+        return Err(format!(
+            "generated rowsk.cu forbidden discrete/D32 CUDA tokens: {bad:?}"
+        ));
+    }
+    let entries = global_entries(&code_cuda(source), true)?;
+    if entries != rowsk_source::ENTRIES {
+        return Err(format!(
+            "generated rowsk.cu global entry list differs: {entries:?}"
+        ));
+    }
+    Ok(())
+}
+
 fn quoted(text: &str) -> Result<Vec<String>, String> {
     let mut parts = text.split('"');
     let mut out = Vec::new();
@@ -1257,8 +1275,10 @@ fn verify(
     check_baseline_reuse_source(&reuse_cu)?;
     let rows_cu = rows_source::generate(&discrete_cu)?;
     check_rows_source(&rows_cu)?;
+    let rowsk_cu = rowsk_source::generate(&rows_cu)?;
+    check_rowsk_source(&rowsk_cu)?;
     checked.push(
-        "discrete CUDA kernel sources (discrete.cu + generated decomposition, baseline-reuse and row-parallel modules) D23/D25/D32 integer-only token and 11+1+1+3 entry census"
+        "discrete CUDA kernel sources (discrete.cu + generated decomposition, baseline-reuse, row-parallel and K-coordinate modules) D23/D25/D32 integer-only token and 11+1+1+3+5 entry census"
             .into(),
     );
     check_standalone_instrument_inventory(repo)?;
@@ -1689,6 +1709,17 @@ fn main() {
         assert!(
             check_rows_source(&format!("{rows}\n{multiline_decl}")).is_err(),
             "extra generated rows entry must fail"
+        );
+        let rowsk = rowsk_source::generate(&rows).expect("separate K-coordinate module");
+        check_rowsk_source(&rowsk).expect("generated K-coordinate integer entries");
+        assert!(
+            check_rowsk_source(&format!("{rowsk}\n__device__ auto injected() {{ return 1.0f; }}"))
+                .is_err(),
+            "floating literal injected into generated rows-K module must fail"
+        );
+        assert!(
+            check_rowsk_source(&format!("{rowsk}\n{multiline_decl}")).is_err(),
+            "extra generated rows-K entry must fail"
         );
         assert!(
             check_baseline_reuse_source(&format!(

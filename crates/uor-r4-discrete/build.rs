@@ -11,6 +11,8 @@ mod baseline_reuse_source;
 mod decomposition_source;
 #[path = "src/rows_source.rs"]
 mod rows_source;
+#[path = "src/rowsk_source.rs"]
+mod rowsk_source;
 
 const ENTRIES: [&str; 12] = [
     "discrete_init",
@@ -348,6 +350,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/decomposition_source.rs");
     println!("cargo:rerun-if-changed=src/baseline_reuse_source.rs");
     println!("cargo:rerun-if-changed=src/rows_source.rs");
+    println!("cargo:rerun-if-changed=src/rowsk_source.rs");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
     let out = PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not supply OUT_DIR")?);
@@ -432,6 +435,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &fs::read_to_string(out.join("rows.ptx"))?,
         &rows_source::ENTRIES,
     )?;
+    // Opt-in K-coordinate scoring (BVG-K Stage C): the generated rows text plus
+    // two entries, its own admitted five-entry PTX and cubin. The rows image
+    // above is unchanged; this is a separate module.
+    let rowsk = rowsk_source::generate(&fs::read_to_string(out.join("rows.cu"))?)?;
+    fs::write(out.join("rowsk.cu"), rowsk)?;
+    let status = Command::new(&nvcc)
+        .args(["-ptx", "-std=c++17"])
+        .arg(format!("-arch={arch}"))
+        .arg("-o")
+        .arg(out.join("rowsk.ptx"))
+        .arg(out.join("rowsk.cu"))
+        .status()?;
+    if !status.success() {
+        return Err(format!("K-coordinate PTX build failed: {status}").into());
+    }
+    admit_ptx_inventory(
+        &fs::read_to_string(out.join("rowsk.ptx"))?,
+        &rowsk_source::ENTRIES,
+    )?;
     // Assemble the exact PTX admitted above, rather than compiling the CUDA
     // source a second time. These same cubins and their assembly reports are
     // embedded by the driver; no CUDA context or model executes during build.
@@ -441,6 +463,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("decomposition", out.join("decomposition.ptx")),
         ("baseline-reuse", out.join("baseline-reuse.ptx")),
         ("rows", out.join("rows.ptx")),
+        ("rowsk", out.join("rowsk.ptx")),
     ] {
         let mut resource_command = Command::new(&nvcc);
         // PTX input needs assembly, not C++ preprocessing or a new resource cap.

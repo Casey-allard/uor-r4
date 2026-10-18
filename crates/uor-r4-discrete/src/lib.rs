@@ -20,6 +20,7 @@ pub mod metadata;
 pub mod objective;
 pub mod proposal_timing;
 pub mod rows_source;
+pub mod rowsk_source;
 pub use objective::ObjectivePolicy;
 pub mod training;
 
@@ -415,3 +416,5 @@ pub mod qualification;
 pub mod relation_qualification;
 #[cfg(feature = "cuda")]
 pub mod rows_qualification;
+#[cfg(feature = "cuda")]
+pub mod rowsk_qualification;

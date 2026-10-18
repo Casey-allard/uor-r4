@@ -38,6 +38,11 @@ pub use baseline_reuse_device::BaselineReuseProfiler;
 #[path = "rows_device.rs"]
 mod rows_device;
 pub use rows_device::{compiled_rows_image_sha256, RowsCounterfactual};
+#[path = "rowsk_device.rs"]
+mod rowsk_device;
+pub use rowsk_device::{
+    compiled_rowsk_image_sha256, CoordinateScore, RowsKScoring, MAX_COORDINATE_BLOCK,
+};
 static NEXT_MODEL: AtomicU64 = AtomicU64::new(1);
 
 /// Trace ABI from the production flock read, ordered by row then payload block:
