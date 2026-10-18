@@ -20,6 +20,90 @@
     "lab": "antigravity",
     "note": "Implement and wire un-dispatched harness.owner_rules_applied, harness.entry_point, harness.documented_commands (with GROUPS/FLAGS validation), prlint.gates_declared, and receipts.skill_usage_recorded in uor-r4-harness (#2570)"
   },
+  "claude/batched-coordinates-draft-20261018": {
+    "branch": "claude/batched-coordinates-draft-20261018",
+    "claimed_at": "2026-10-18T02:18:32-04:00",
+    "head": "9a3434259",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/c1-coupling-draft-20261018": {
+    "branch": "claude/c1-coupling-draft-20261018",
+    "claimed_at": "2026-10-17T23:08:55-04:00",
+    "head": "d1f0a9a99",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/claim-wording-rust-20261018": {
+    "branch": "claude/claim-wording-rust-20261018",
+    "claimed_at": "2026-10-17T23:48:09-04:00",
+    "head": "53b90576e",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/counterfactual-rows-20261018": {
+    "branch": "claude/counterfactual-rows-20261018",
+    "claimed_at": "2026-10-18T00:34:26-04:00",
+    "head": "02bbefd6e",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/d37-offline-float-20261018": {
+    "branch": "claude/d37-offline-float-20261018",
+    "claimed_at": "2026-10-17T22:35:33-04:00",
+    "head": "94d4d34ad",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/driver-rows-path-20261018": {
+    "branch": "claude/driver-rows-path-20261018",
+    "claimed_at": "2026-10-18T00:39:46-04:00",
+    "head": "32c096c58",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/public-face-reconcile-2026-10-15": {
+    "branch": "claude/public-face-reconcile-2026-10-15",
+    "claimed_at": "2026-10-15T18:19:36-04:00",
+    "head": "b7421576a",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/relation-r-draft-20261018": {
+    "branch": "claude/relation-r-draft-20261018",
+    "claimed_at": "2026-10-18T10:24:44-04:00",
+    "head": "2a40287de",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/resume-message-20261018": {
+    "branch": "claude/resume-message-20261018",
+    "claimed_at": "2026-10-18T12:25:57-04:00",
+    "head": "9b234ae40",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/rows-qual-fixes-20261018": {
+    "branch": "claude/rows-qual-fixes-20261018",
+    "claimed_at": "2026-10-18T00:46:33-04:00",
+    "head": "7eae5dcc0",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/rows-r-objective-20261018": {
+    "branch": "claude/rows-r-objective-20261018",
+    "claimed_at": "2026-10-18T09:22:09-04:00",
+    "head": "fb9e004fb",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/starling-brief-20261018": {
+    "branch": "claude/starling-brief-20261018",
+    "claimed_at": "2026-10-17T22:53:57-04:00",
+    "head": "4f3dff6f8",
+    "lab": "claude",
+    "note": ""
+  },
   "codex/admission-rank-hinge": {
     "branch": "codex/admission-rank-hinge",
     "claimed_at": "2026-10-15T14:17:03-04:00",
@@ -232,8 +316,8 @@
   },
   "kimi-pm-main": {
     "branch": "kimi-pm-main",
-    "claimed_at": "2026-10-18T03:19:18-04:00",
-    "head": "2572f323f",
+    "claimed_at": "2026-10-18T13:44:36-04:00",
+    "head": "0122737e9",
     "lab": "kimi",
     "note": ""
   },
@@ -243,20 +327,6 @@
     "head": "bc485d1f3",
     "lab": "kimi",
     "note": "Docs-shape repair only: add required D22 blocks + truthful PENDING verdict to the C1 DRAFT sheet; no registration, FIT request, science, source or compute (#2620 CI 117572368828; PM comments 6245063482/6245085269)"
-  },
-  "kimi/d38-d5-split": {
-    "branch": "kimi/d38-d5-split",
-    "claimed_at": "2026-10-18T13:18:06-04:00",
-    "head": "f8ddce2f3",
-    "lab": "kimi",
-    "note": ""
-  },
-  "kimi/d39-course-correction": {
-    "branch": "kimi/d39-course-correction",
-    "claimed_at": "2026-10-18T13:41:10-04:00",
-    "head": "1feef402d",
-    "lab": "kimi",
-    "note": ""
   },
   "kimi/dose1-dispatch-record-2026-10-18": {
     "branch": "kimi/dose1-dispatch-record-2026-10-18",
@@ -272,13 +342,6 @@
     "lab": "kimi",
     "note": "Docs-only: post-dose optimization path in project-track.md + current-state entry + canonical record. No source/science changes."
   },
-  "kimi/packet-budget-correction": {
-    "branch": "kimi/packet-budget-correction",
-    "claimed_at": "2026-10-18T14:18:15-04:00",
-    "head": "41549f452",
-    "lab": "kimi",
-    "note": ""
-  },
   "kimi/pr-b-hygiene": {
     "branch": "kimi/pr-b-hygiene",
     "claimed_at": "2026-10-18T13:55:46-04:00",
@@ -286,25 +349,11 @@
     "lab": "kimi",
     "note": "Docs-only: course-correction PR-B (mechanism-page corrections, Yazan must-dos, contributor on-ramp, README stats). No source/science changes."
   },
-  "kimi/pr-c-front": {
-    "branch": "kimi/pr-c-front",
-    "claimed_at": "2026-10-18T14:06:57-04:00",
-    "head": "50d63c258",
-    "lab": "kimi",
-    "note": ""
-  },
   "kimi/pr-d-plan": {
     "branch": "kimi/pr-d-plan",
     "claimed_at": "2026-10-18T13:56:19-04:00",
     "head": "0122737e9",
     "lab": "kimi",
     "note": ""
-  },
-  "kimi/wire-counter-aggregation-2026-10-18": {
-    "branch": "kimi/wire-counter-aggregation-2026-10-18",
-    "claimed_at": "2026-10-18T03:14:52-04:00",
-    "head": "42ab73dd9",
-    "lab": "kimi",
-    "note": "P2 #2613 follow-up: accumulate WireGateway route wire bytes across completed connections (#2029/#2613)"
   }
 }
