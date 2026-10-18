@@ -355,5 +355,12 @@
     "head": "0122737e9",
     "lab": "kimi",
     "note": ""
+  },
+  "kimi/pr-d37-labels": {
+    "branch": "kimi/pr-d37-labels",
+    "claimed_at": "2026-10-18T14:32:58-04:00",
+    "head": "2ad5bd286",
+    "lab": "kimi",
+    "note": ""
   }
 }

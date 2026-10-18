@@ -7,6 +7,7 @@ under D25, including handwritten CUDA sums. Preserve all results below at their
 original scope; none authorizes another dense comparator or teacher. The owner
 requested [SpiralCore BFS plus retained ternary FBS projection](spiralcore-fbs-projection.md).
 Local Hamilton rotations remain geometric operators; whole-path training is held.
+It is re-registrable as an offline float sheet under [D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) (fresh FIT + owner release; separately scanned module; D11 integer export with export gap; softmax/matmul bans unchanged); the dense matmul ban is unchanged, so a sheet must take a table/Cayley-product path.
 
 ## The historical idea
 

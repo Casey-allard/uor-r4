@@ -7,6 +7,7 @@ is BLOCKED pending compliant replacement. Prior source fixtures are historical
 implementation evidence, not compliance or permission to execute. The absolute
 [no-softmax policy](../labs/no-softmax-2026-10-12/README.md) applies to the complete
 learning/output path, not just geometric routing. No training is authorized.
+It is re-registrable as an offline float sheet under [D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) (fresh FIT + owner release; separately scanned module; D11 integer export with export gap; softmax/matmul bans unchanged); this releases no hold, and the sampled-choice producer remains blocked because softmax is still banned.
 
 **Earlier October 13 implementation status (pre-D29 extraction):** The [OP3a/common native vector writer](../labs/geometric-head-shared-writer-2026-10-13/README.md)
 shares the same learned embedding Tensor/Var across token input, raw-distance

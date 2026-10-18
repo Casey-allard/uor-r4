@@ -19,6 +19,7 @@ M2 work connects [live geometric carrier credit](unified-geometric-carrier-credi
 at identical saved437, preserving panels/objective and the later genuinely
 fresh acceptance requirement. Reactivating the constructor would need a
 separate live work card, identities and resource admission, not an old lease.
+It is re-registrable as an offline float sheet under [D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) (fresh FIT + owner release; separately scanned module; D11 integer export with export gap; softmax/matmul bans unchanged); the solver-numerics blocker is unchanged.
 **What success looks like:** Own: the constructor returns a legal, guard-preserving, loss-descending move, and repeated moves keep descending. Headline: M2 #2030 complete correct replies on the 512 panel (8/512 at D21; 437/512 development after #2162; fresh 0/128 in #2164).
 **What failure looks like:** With exact or rational arithmetic (no LU drift), legal moves exist but give no descent over float-then-quantize at equal compute. Or the guard set is infeasible.
 **A fair test:**
