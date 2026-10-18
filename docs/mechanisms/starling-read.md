@@ -81,7 +81,7 @@ Rungs 1–3, the pivot and the surrogate were measured beside softmax helpers, s
 - **Key-address gap:** already closed by the shared per-token address.
 
 Candidates, ranked:
-- **C1 — float-trained coupling over the fixed Flock topology.** Selection stays the integer Flock rank.
+- **C1 — float-trained coupling over the fixed Flock topology.** Selection stays the integer Flock rank. Draft controls and export-gap contract: [`m4-c1-flock-coupling-DRAFT-2026-10-18.md`](../harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md) (not registered).
   - Offline, train a float `K_h` per (head, level), optionally per edge type: `y = v_t + K_h·(Σ carried_j / n − v_t)`. This is an elementwise scalar update, not a GEMM.
   - Export `K_h` to a Gate trit (or a small integer applied by repeated addition, as `snap` already builds `n·r`). The Gate/snap tables are the integer boundary.
   - **Decisive measurement:** conditional top-1 on the Dose 1 slices against the discrete-trained same-spec artifact, plus the export gap.

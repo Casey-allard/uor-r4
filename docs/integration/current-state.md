@@ -1,3 +1,14 @@
+## 2026-10-18 — C1 flock-coupling draft: finite controls and export-gap contract (claude)
+
+The [C1 draft](../harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md) specifies the D37 float-trained coupling magnitude for the discrete Flock read, exported to integer Gate weights (`ReadSpec::FlockCoupled`, with `k_max = 1 ≡ Flock`). It contains:
+- 22 finite controls (C0, X1–X12 and nine F rows), with literals hand-derived from the generated 16-root orbit: cache fidelity, the integer export kernel, and the float primitive (including an export-gap witness);
+- a writer-structured mean-L1 proxy objective with a proxy-agreement instrument;
+- a box-projected update, needed because the writer's address margin exceeds the inter-root distance;
+- the export-gap contract on the Dose 1 evaluator;
+- arms A0/A1/A2/A2-int/A2′/Z/R at matched writer-evaluation budget.
+
+**Review:** three fresh-context reviewer subagents (literal recomputation, test fitness, round-2). Every finding is resolved: the empty-level `terms`, ABSENT cache rows, the proxy units and blocks, the Adam `pow`, the Relation-trit scope, and the trace encoding. **Status:** not registered, no FIT requested, no source change, no compute, $0. Training/M2/Stage B stay HELD. **Next:** registration after the Dose 1 decision. The open items are k_max>1 under D11, the D21 line status, the owner/PM reading of the float gap forward, and the agreement threshold and C0 sample.
+
 ## 2026-10-18 — Starling/murmuration brief: discrete Flock named as the integer murmuration read; post-dose candidates (claude)
 
 [`docs/mechanisms/starling-read.md`](../mechanisms/starling-read.md) now records that the active discrete `ReadSpec::Flock` (`discrete.cu:125`) already realises the murmuration rule: frame-transported consensus, with a ternary coupling trit. Six finite controls PASS and it has never been trained. The brief also records that Dose 1 tests relation trits on top of Flock, not Flock against Route. It ranks three post-dose candidates under D37: C1, a float-trained coupling exported to Gate trits; C2, lawful soft-to-hard selection; C3, the FBS ternary-tree read. These are hypotheses only: nothing is registered, no compute ran, $0. The merged claims `claude/d37-offline-float-20261018` and `claude/public-face-reconcile-2026-10-15` are released. Training/M2/Stage B stay HELD. **Next:** a C1 finite-control draft, with the pre-registration after the Dose 1 decision.
