@@ -1,3 +1,12 @@
+> **Outside contributor?** Use this shorter checklist and ignore the lab items below:
+> - [ ] I ran `cargo check`, `cargo test` and `uor-r4-claim-wording` locally and pasted the output
+> - [ ] No binaries, corpora, generated artifacts or credentials in the diff
+> - [ ] `git grep -n -i '<what changed>' -- '*.md'` and stale docs updated
+> - [ ] I understand model work may be gated; a maintainer will confirm or redirect
+>
+> Read [docs/contributing/HARD-RULES.md](docs/contributing/HARD-RULES.md) and
+> [docs/contributing/OUTSIDE.md](docs/contributing/OUTSIDE.md) first.
+
 <!-- Delivery cadence: CONTRIBUTING.md § Delivery cadence. Delete lines that do not apply, and say why. -->
 
 ## Line and headline (D21, docs/labs/session-goal.md)

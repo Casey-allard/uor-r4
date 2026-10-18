@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Current plan (NOW.md)
+    url: https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/NOW.md
+    about: The one-page plan of record — what is active, gated and blocked.
+  - name: Contributing without lab access
+    url: https://github.com/UOR-Foundation/uor-r4/blob/main/docs/contributing/OUTSIDE.md
+    about: You do not need the harness, a pod or a lab label; start here.
+  - name: Hard rules for any contribution
+    url: https://github.com/UOR-Foundation/uor-r4/blob/main/docs/contributing/HARD-RULES.md
+    about: The constraints a diff is judged against (D11, D23, D25, D27, D29, D37).
+  - name: Roadmap and current state
+    url: https://github.com/UOR-Foundation/uor-r4/issues/2028
+    about: What is active, gated, and blocked (#2028).

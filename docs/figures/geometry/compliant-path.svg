@@ -17,7 +17,7 @@
 <path d="M360,196 L392,196" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
 <rect x="392" y="112" width="768" height="330" rx="14" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
 <text x="412" y="138" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">N layers (rung 0: pattern rrrrrr, recurrence only)</text>
-<rect x="412" y="154" width="360" height="270" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<rect x="412" y="154" width="360" height="270" rx="10" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 4"/>
 <text x="426" y="180" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">recurrence (r layer), #2293</text>
 <text x="426" y="201" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">per 4-lane quaternion state h:</text>
 <text x="426" y="217" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">opening = clamp(gate + decay, 0, 1)</text>
@@ -27,9 +27,9 @@
 <text x="426" y="281" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">output: Hamilton gate  q(g) ⊗ y</text>
 <text x="426" y="297" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">gradient: declared geometric secant</text>
 <text x="426" y="313" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">over the table's neighbours</text>
-<rect x="426" y="394" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="485" y="409" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<rect x="790" y="154" width="350" height="270" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<rect x="426" y="394" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="509.5" y="409" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<rect x="790" y="154" width="350" height="270" rx="10" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 4"/>
 <text x="804" y="180" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">geometric feed-forward</text>
 <text x="804" y="201" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">SpiralCore/FBS projection (#2279):</text>
 <text x="804" y="217" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a learned query picks one carrier</text>
@@ -38,17 +38,17 @@
 <text x="804" y="265" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">input/output pair.</text>
 <text x="804" y="281" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">G2 gate (#2260): out = q(g) ⊗ u,</text>
 <text x="804" y="297" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a rotation of the value, not a squash</text>
-<rect x="804" y="394" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="863" y="409" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="804" y="394" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="887.5" y="409" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
 <path d="M772,290 L790,290" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
 <path d="M776,442 L776,470 L330,470 L330,500" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
-<rect x="160" y="500" width="340" height="130" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<rect x="160" y="500" width="340" height="130" rx="10" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 4"/>
 <text x="174" y="526" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">geometric head (OP3a)</text>
 <text x="174" y="547" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">product-key scoring over the vocabulary;</text>
 <text x="174" y="563" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">replaces the dense tied head.</text>
 <text x="174" y="579" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">Delivered; float source now inactive.</text>
-<rect x="174" y="600" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="233" y="615" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="174" y="600" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="257.5" y="615" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
 <path d="M500,560 L540,560" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
 <rect x="540" y="500" width="210" height="120" rx="10" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1.5"/>
 <text x="556" y="524" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">raw scores z_t</text>
@@ -69,13 +69,9 @@
 <text x="804" y="619" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the largest integer score wins;</text>
 <text x="804" y="635" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">no sampling, so no softmax is needed</text>
 <text x="40" y="694" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">Later: read layers (starling / rank-table reads) join in rung 0b. Before any run: device qualification (dependency 4), TEST FITNESS and the owner's hold</text>
-<text x="40" y="712" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">release. Built &amp; tested means landed source with focused tests: none of this path has been trained yet.</text>
+<text x="40" y="712" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">release. Historical · inactive means preserved float source, not an executed path: none of this path runs or has been trained.</text>
 <path d="M40,724 L1160,724" fill="none" stroke="#D0D7DE" stroke-width="1"/>
 <text x="40" y="746" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
-<rect x="110" y="731" width="34" height="20" rx="5" fill="#E3F4EE" stroke="#007A5E" stroke-width="2"/>
-<text x="152" y="746" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Working</text>
-<rect x="232.05" y="731" width="34" height="20" rx="5" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
-<text x="274.05" y="746" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Built &amp; tested</text>
-<rect x="404.15000000000003" y="731" width="34" height="20" rx="5" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="446.15000000000003" y="746" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Planned</text>
+<rect x="110" y="731" width="34" height="20" rx="5" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="152" y="746" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Historical · inactive</text>
 </svg>

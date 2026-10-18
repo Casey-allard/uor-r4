@@ -42,6 +42,7 @@ const DATE: &str = "13 October 2026";
 enum St {
     Working,
     Built,
+    Historical,
     Progress,
     Planned,
     Held,
@@ -54,6 +55,7 @@ impl St {
         match self {
             St::Working => "WORKING",
             St::Built => "BUILT & TESTED",
+            St::Historical => "HISTORICAL · INACTIVE",
             St::Progress => "IN PROGRESS",
             St::Planned => "PLANNED",
             St::Held => "HELD",
@@ -65,6 +67,7 @@ impl St {
         match self {
             St::Working => "Working",
             St::Built => "Built & tested",
+            St::Historical => "Historical · inactive",
             St::Progress => "In progress",
             St::Planned => "Planned",
             St::Held => "Held by the owner",
@@ -77,6 +80,7 @@ impl St {
         match self {
             St::Working => ("#E3F4EE", GREEN, 2.5, None),
             St::Built => ("#E4EFF8", BLUE, 1.75, None),
+            St::Historical => ("#F6F8FA", "#8C959F", 1.5, Some("4 4")),
             St::Progress => ("url(#hP)", "#B87A00", 2.0, None),
             St::Planned => ("#FFFFFF", "#6E7781", 1.75, Some("6 5")),
             St::Held => ("#F4F0F8", PURPLE, 2.0, Some("9 4")),
@@ -96,6 +100,7 @@ impl St {
         match self {
             St::Working => (GREEN, GREEN, "#FFFFFF", None),
             St::Built => (BLUE, BLUE, "#FFFFFF", None),
+            St::Historical => ("#E6E9ED", "#8C959F", INK, Some("4 3")),
             St::Progress => (ORANGE, "#B87A00", INK, None),
             St::Planned => ("#FFFFFF", "#6E7781", ARROW, Some("4 3")),
             St::Held => (PURPLE, PURPLE, "#FFFFFF", None),
@@ -596,7 +601,7 @@ fn compliant_path() -> Result<String, Fail> {
     );
     s.card(
         [412.0, 154.0, 360.0, 270.0],
-        St::Built,
+        St::Historical,
         "recurrence (r layer), #2293",
         &[
             "per 4-lane quaternion state h:",
@@ -612,7 +617,7 @@ fn compliant_path() -> Result<String, Fail> {
     );
     s.card(
         [790.0, 154.0, 350.0, 270.0],
-        St::Built,
+        St::Historical,
         "geometric feed-forward",
         &[
             "SpiralCore/FBS projection (#2279):",
@@ -636,7 +641,7 @@ fn compliant_path() -> Result<String, Fail> {
     );
     s.card(
         [160.0, 500.0, 340.0, 130.0],
-        St::Built,
+        St::Historical,
         "geometric head (OP3a)",
         &[
             "product-key scoring over the vocabulary;",
@@ -697,8 +702,8 @@ fn compliant_path() -> Result<String, Fail> {
     );
 
     s.fit([40.0, 694.0], (12.5, 400, MUTED), 1120.0, "Later: read layers (starling / rank-table reads) join in rung 0b. Before any run: device qualification (dependency 4), TEST FITNESS and the owner's hold");
-    s.fit([40.0, 712.0], (12.5, 400, MUTED), 1120.0, "release. Built & tested means landed source with focused tests: none of this path has been trained yet.");
-    s.legend(746.0, &[St::Working, St::Built, St::Planned]);
+    s.fit([40.0, 712.0], (12.5, 400, MUTED), 1120.0, "release. Historical · inactive means preserved float source, not an executed path: none of this path runs or has been trained.");
+    s.legend(746.0, &[St::Historical]);
     s.finish(
         "Historical operator path (12–13 October)",
         "Token, embedding table read, recurrence layers with a clamped opening, an exact rate table and a Hamilton output gate, a geometric feed-forward made of the SpiralCore/FBS projection and the G2 Hamilton gate, then the delivered geometric head (float source now inactive), raw scores, a rank-margin hinge in training and greedy argmax in serving.",
@@ -708,7 +713,7 @@ fn compliant_path() -> Result<String, Fail> {
 fn operators() -> Result<String, Fail> {
     let mut s = Svg::new("operators", 1200.0, 600.0);
     s.header(
-        "The three geometric operators of the compliant trunk",
+        "The three geometric operators of the earlier float trunk (inactive)",
         "Each replaces a banned operation with geometry: a rotation for a squash, a selection for a dense sum, a margin for a softmax.",
     );
     // panel frames
@@ -1143,7 +1148,7 @@ fn milestones() -> Result<String, Fail> {
         "Progress toward the alpha",
         &format!("Pre-alpha, 18 October 2026. No model holds a useful conversation yet. Each milestone closes only on a saved model."),
     );
-    let items: [(&str, &str, St, [&str; 3]); 8] = [
+    let items: [(&str, &str, St, [&str; 4]); 8] = [
         (
             "M1",
             "Language base",
@@ -1151,7 +1156,8 @@ fn milestones() -> Result<String, Fail> {
             [
                 "reply 37/232 suspended",
                 "pilot: 236 updates",
-                "paired dose: partial",
+                "Dose2 stopped at Q1;",
+                "admission collapse",
             ],
         ),
         (
@@ -1162,6 +1168,7 @@ fn milestones() -> Result<String, Fail> {
                 "437/512 dev replies,",
                 "0/128 fresh transfer;",
                 "training held",
+                "",
             ],
         ),
         (
@@ -1172,37 +1179,38 @@ fn milestones() -> Result<String, Fail> {
                 "evaluator and session",
                 "built; waits on an",
                 "M1 or M2 model",
+                "",
             ],
         ),
         (
             "M4",
             "One served model",
             St::Held,
-            ["unified D11 model", "and export remain", "unqualified"],
+            ["unified D11 model", "and export remain", "unqualified", ""],
         ),
         (
             "M5",
             "Laptop cost",
             St::Planned,
-            ["J/token on an M1", "laptop: not measured", ""],
+            ["J/token on an M1", "laptop: not measured", "", ""],
         ),
         (
             "M6",
             "Reasoning & coding",
             St::Planned,
-            ["exact arithmetic is", "the visible gap", ""],
+            ["exact arithmetic is", "the visible gap", "", ""],
         ),
         (
             "M7",
             "Distribution",
             St::Planned,
-            ["API, WASM, Studio;", "local API only so far", ""],
+            ["API, WASM, Studio;", "local API only so far", "", ""],
         ),
         (
             "M8",
             "Alpha release",
             St::Planned,
-            ["one labelled release", "on the same model", ""],
+            ["one labelled release", "on the same model", "", ""],
         ),
     ];
     let cy = 168.0;
@@ -1254,7 +1262,7 @@ fn milestones() -> Result<String, Fail> {
     s.legend(636.0, &[St::Progress, St::Held, St::Paused, St::Planned]);
     s.finish(
         "Milestones M1 to M8",
-        "M1 language base in progress (reply 37 of 232 suspended, pilot 236 updates, original paired dose partial); M2 grounded reply held (437 of 512 development replies, 0 of 128 on fresh transfer); M3 durable memory paused; M4 one served model held; M5 to M8 not started.",
+        "M1 language base in progress (reply 37 of 232 suspended, pilot 236 updates, Dose2 stopped at Q1 with admission collapse in both arms); M2 grounded reply held (437 of 512 development replies, 0 of 128 on fresh transfer); M3 durable memory paused; M4 one served model held; M5 to M8 not started.",
     )
 }
 
@@ -1263,73 +1271,73 @@ fn geometry_stack() -> Result<String, Fail> {
         (
             "Prime / UOR addressing",
             "exact identity; gcd and n-let admission",
-            St::Built,
+            St::Historical,
             "stack memory port; native store",
         ),
         (
             "Zeta phases",
             "fixed γ·(log p − log q) table",
-            St::Built,
+            St::Historical,
             "native learner tables",
         ),
         (
             "R4/S3 quaternion state",
             "state carried by rotation",
-            St::Built,
+            St::Historical,
             "every recurrence layer",
         ),
         (
             "H4, icosians, E8",
             "120 icosians; reduced-metric E8 construction",
-            St::Built,
+            St::Historical,
             "historical toolbox; separate from M1",
         ),
         (
             "Exact Z[φ]",
             "golden integers a + bφ, no rounding",
-            St::Built,
+            St::Historical,
             "compiler and native tables",
         ),
         (
             "Hopf S³ → S², fibre kept",
             "float-backed; Q30 storage",
-            St::Built,
+            St::Historical,
             "offline geometry; outside M1",
         ),
         (
             "Chirality and polarity",
             "exact orientation signs",
-            St::Built,
+            St::Historical,
             "compiler and native paths",
         ),
         (
             "G2 Hamilton gate",
             "a rotation q(g) ⊗ u, not a squash",
-            St::Built,
+            St::Historical,
             "trunk feed-forward and recurrence",
         ),
         (
             "SpiralCore / FBS projection",
             "select one carrier, transport by BFS",
-            St::Built,
+            St::Historical,
             "every trunk projection",
         ),
         (
             "Geometric recurrence gates",
             "clamped opening, exact rate table",
-            St::Built,
+            St::Historical,
             "trunk recurrence",
         ),
         (
             "Rank-margin objective",
             "hinge over declared rivals, raw scores",
-            St::Built,
+            St::Historical,
             "rung 0 training objective",
         ),
         (
             "Geometric head (OP3a)",
             "product-key vocabulary scoring",
-            St::Built,
+            St::Historical,
             "delivered float source; inactive",
         ),
         (
@@ -1344,7 +1352,7 @@ fn geometry_stack() -> Result<String, Fail> {
     let h = top + row_h * rows.len() as f64 + 110.0;
     let mut s = Svg::new("geometry-stack", 1200.0, h);
     s.header(
-        "Geometric primitives and operators: what each does and where it is used",
+        "Geometric primitives and operators: the historical float form",
         &format!("Historical operator inventory, {DATE}. Float source is inactive; current M1: architecture.svg."),
     );
     s.text(
@@ -1356,7 +1364,7 @@ fn geometry_stack() -> Result<String, Fail> {
     s.text([350.0, 132.0], (13.5, 700, INK), "start", "What it does");
     s.text([700.0, 132.0], (13.5, 700, INK), "start", "Status");
     s.text(
-        [860.0, 132.0],
+        [880.0, 132.0],
         (13.5, 700, INK),
         "start",
         "Where it is used",
@@ -1374,14 +1382,14 @@ fn geometry_stack() -> Result<String, Fail> {
         s.fit([60.0, y + 28.0], (14.5, 700, INK), 280.0, name);
         s.fit([350.0, y + 28.0], (12.5, 400, BODY), 340.0, role);
         s.pill(700.0, y + 12.0, *st);
-        s.fit([860.0, y + 28.0], (12.5, 400, BODY), 290.0, used);
+        s.fit([880.0, y + 28.0], (12.5, 400, BODY), 270.0, used);
     }
     let y = top + row_h * rows.len() as f64 + 20.0;
-    s.fit([40.0, y], (12.5, 400, MUTED), 1120.0, "Shaded rows: the geometric primitives. White rows: the operators of the compliant trunk (12–13 October), built to replace softmax, squashing and dense products.");
-    s.legend(h - 26.0, &[St::Built, St::Progress, St::Planned]);
+    s.fit([40.0, y], (12.5, 400, MUTED), 1120.0, "Shaded rows: the geometric primitives. White rows: operators of the earlier float trunk, written to replace softmax, squashing and dense products.");
+    s.legend(h - 26.0, &[St::Historical, St::Progress]);
     s.finish(
         "Geometric primitives and operators",
-        "Thirteen rows: prime addressing, zeta phases, quaternion state, H4/icosian/E8, exact Z[phi], Hopf observation and chirality are the primitives; the G2 Hamilton gate, the SpiralCore/FBS projection, the geometric recurrence gates and the rank-margin objective are built as source for the compliant trunk; the geometric head is delivered as inactive float source; the starling read is in progress for rung 0b.",
+        "Thirteen rows: prime addressing, zeta phases, quaternion state, H4/icosian/E8, exact Z[phi], Hopf observation and chirality are the primitives; the G2 Hamilton gate, the SpiralCore/FBS projection, the geometric recurrence gates and the rank-margin objective are written as dormant source for the earlier float trunk; the geometric head is delivered as inactive float source; the starling read is in progress for rung 0b.",
     )
 }
 

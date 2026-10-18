@@ -1,0 +1,28 @@
+name: Question
+description: Ask about the project, a claim or the contribution workflow before writing code.
+title: "[question] <topic>"
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for anything that is not yet a task. Model work in M1–M4
+        ([#2029]–[#2032]) is gated and owned by a lab; a maintainer will confirm or
+        redirect.
+        Read [NOW.md](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/NOW.md)
+        and [OUTSIDE.md](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/contributing/OUTSIDE.md)
+        first.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: One or two sentences. Link the file, claim or result you mean.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: What you have already read or tried
+      description: Links to the record or code you checked, so the answer can start there.
+    validations:
+      required: false

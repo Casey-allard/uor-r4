@@ -19,6 +19,29 @@ A new host binary, `coverage-census` (`crates/uor-r4-discrete/src/coverage_censu
 [current-state-2026-10-03-to-2026-10-13-archive.md](../history/current-state-2026-10-03-to-2026-10-13-archive.md);
 everything earlier is linked under [Older entries and authority](#older-entries-and-authority).*
 
+## 2026-10-18 — Front door: README hero, figure badges, templates, good-first-issues (kimi PM; course-correction PR-C)
+
+The README status block is now the front-door audit's ~110-word hero, followed by a "What works
+today, and what does not" table and a contents line; pod, waiver and timestamp detail moved to
+`STATUS.md`, where it already lived. `serving-pipeline.svg` is embedded under the M4 boundary, and
+`assets/images/hero_banner.jpg` became `historical-concept-art-2077.jpg` so it cannot be mistaken
+for a banner. The two dormant float figures now say `HISTORICAL · INACTIVE` instead of
+`BUILT & TESTED`, `operators.svg` names "the earlier float trunk (inactive)", and
+`milestones.svg` M1 reads "Dose2 stopped at Q1; admission collapse".
+`.github/ISSUE_TEMPLATE/config.yml` plus a `question` form and an outside-contributor PR checklist
+open the GitHub surface, and five `good first issue`s are seeded (#2679–#2683).
+
+**Checks.** `python3 scripts/check_claim_wording.py` and the Rust claim-wording gate pass;
+`cargo fmt --check -p xtask` passes; `cargo run -q --locked -p xtask -- figures` reports every
+generated figure current.
+Record: [labs/front-door-2026-10-18](../labs/front-door-2026-10-18/README.md).
+
+**Next:** the newcomer queue is #2679–#2683; the README rules-table D35/D36 rows and the
+`docs/README.md` / `docs/PROJECT_MAP.md` splits remain open from the audit.
+
+Documentation and assets only — no model compute, $0.
+
+
 ## 2026-10-18 — Plan repair: project-track collapsed to one active plan, per-milestone DoD, rolling current-state window (kimi PM; course-correction PR-D)
 
 `project-track.md` had grown to 1,458 lines carrying **three sections that each called itself the active plan**, a D8 rung ladder written for a substrate D32 froze, and 13 October text under an 18 October heading (audit `docs/labs/course-correction-2026-10-18/audits/roadmap-tracker-coherence.md`, findings C14–C20). It is now 219 lines: the K16-A/K16-R admission redirect as the single active line, the critical path with owners from `NOW.md`, **definitions of done for M1–M8**, the D39 item 4 W1–W4 sequence, and the rules that bind every row. The whole prior file is preserved verbatim in [project-track-archive-2026-10-18](../history/project-track-archive-2026-10-18.md) with five `Superseded` banners — including the pre-D23 Rung-1 text whose step 3 is `a = softmax(-energy / temperature)`, marked prohibited rather than deleted — and its three externally linked anchors kept as stubs.

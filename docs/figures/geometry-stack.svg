@@ -1,113 +1,111 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 936" width="1200" height="936" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
 <title id="t">Geometric primitives and operators</title>
-<desc id="d">Thirteen rows: prime addressing, zeta phases, quaternion state, H4/icosian/E8, exact Z[phi], Hopf observation and chirality are the primitives; the G2 Hamilton gate, the SpiralCore/FBS projection, the geometric recurrence gates and the rank-margin objective are built as source for the compliant trunk; the geometric head is delivered as inactive float source; the starling read is in progress for rung 0b.</desc>
+<desc id="d">Thirteen rows: prime addressing, zeta phases, quaternion state, H4/icosian/E8, exact Z[phi], Hopf observation and chirality are the primitives; the G2 Hamilton gate, the SpiralCore/FBS projection, the geometric recurrence gates and the rank-margin objective are written as dormant source for the earlier float trunk; the geometric head is delivered as inactive float source; the starling read is in progress for rung 0b.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
 <rect x="0.5" y="0.5" width="1199" height="935" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Geometric primitives and operators: what each does and where it is used</text>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Geometric primitives and operators: the historical float form</text>
 <text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Historical operator inventory, 13 October 2026. Float source is inactive; current M1: architecture.svg.</text>
 <text x="40" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Primitive / operator</text>
 <text x="350" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">What it does</text>
 <text x="700" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
-<text x="860" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Where it is used</text>
+<text x="880" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Where it is used</text>
 <rect x="40" y="150" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="150" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="150" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="178" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Prime / UOR addressing</text>
 <text x="350" y="178" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">exact identity; gcd and n-let admission</text>
-<rect x="700" y="162" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="177" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="178" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">stack memory port; native store</text>
+<rect x="700" y="162" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="177" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="178" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">stack memory port; native store</text>
 <rect x="40" y="202" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="202" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="202" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="230" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Zeta phases</text>
 <text x="350" y="230" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">fixed γ·(log p − log q) table</text>
-<rect x="700" y="214" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="229" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="230" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">native learner tables</text>
+<rect x="700" y="214" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="229" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="230" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">native learner tables</text>
 <rect x="40" y="254" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="254" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="254" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="282" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">R4/S3 quaternion state</text>
 <text x="350" y="282" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">state carried by rotation</text>
-<rect x="700" y="266" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="281" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="282" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">every recurrence layer</text>
+<rect x="700" y="266" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="281" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="282" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">every recurrence layer</text>
 <rect x="40" y="306" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="306" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="306" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="334" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">H4, icosians, E8</text>
 <text x="350" y="334" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">120 icosians; reduced-metric E8 construction</text>
-<rect x="700" y="318" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="333" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="334" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">historical toolbox; separate from M1</text>
+<rect x="700" y="318" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="333" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="334" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">historical toolbox; separate from M1</text>
 <rect x="40" y="358" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="358" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="358" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="386" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Exact Z[φ]</text>
 <text x="350" y="386" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">golden integers a + bφ, no rounding</text>
-<rect x="700" y="370" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="385" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="386" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">compiler and native tables</text>
+<rect x="700" y="370" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="385" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="386" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">compiler and native tables</text>
 <rect x="40" y="410" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="410" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="410" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="438" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Hopf S³ → S², fibre kept</text>
 <text x="350" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">float-backed; Q30 storage</text>
-<rect x="700" y="422" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="437" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">offline geometry; outside M1</text>
+<rect x="700" y="422" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="437" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">offline geometry; outside M1</text>
 <rect x="40" y="462" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="462" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="462" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="490" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Chirality and polarity</text>
 <text x="350" y="490" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">exact orientation signs</text>
-<rect x="700" y="474" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="489" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="490" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">compiler and native paths</text>
+<rect x="700" y="474" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="489" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="490" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">compiler and native paths</text>
 <rect x="40" y="514" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="514" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="514" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="542" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">G2 Hamilton gate</text>
 <text x="350" y="542" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a rotation q(g) ⊗ u, not a squash</text>
-<rect x="700" y="526" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="541" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="542" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">trunk feed-forward and recurrence</text>
+<rect x="700" y="526" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="541" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="542" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">trunk feed-forward and recurrence</text>
 <rect x="40" y="566" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="566" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="566" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="594" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">SpiralCore / FBS projection</text>
 <text x="350" y="594" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">select one carrier, transport by BFS</text>
-<rect x="700" y="578" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="593" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="594" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">every trunk projection</text>
+<rect x="700" y="578" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="593" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="594" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">every trunk projection</text>
 <rect x="40" y="618" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="618" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="618" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="646" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Geometric recurrence gates</text>
 <text x="350" y="646" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">clamped opening, exact rate table</text>
-<rect x="700" y="630" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="645" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="646" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">trunk recurrence</text>
+<rect x="700" y="630" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="645" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="646" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">trunk recurrence</text>
 <rect x="40" y="670" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="670" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="670" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="698" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Rank-margin objective</text>
 <text x="350" y="698" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">hinge over declared rivals, raw scores</text>
-<rect x="700" y="682" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="697" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="698" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">rung 0 training objective</text>
+<rect x="700" y="682" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="697" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="698" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">rung 0 training objective</text>
 <rect x="40" y="722" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="722" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
+<rect x="40" y="722" width="6" height="46" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
 <text x="60" y="750" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Geometric head (OP3a)</text>
 <text x="350" y="750" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">product-key vocabulary scoring</text>
-<rect x="700" y="734" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
-<text x="759" y="749" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="750" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">delivered float source; inactive</text>
+<rect x="700" y="734" width="167" height="22" rx="11" fill="#E6E9ED" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="783.5" y="749" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">HISTORICAL · INACTIVE</text>
+<text x="880" y="750" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">delivered float source; inactive</text>
 <rect x="40" y="774" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
 <rect x="40" y="774" width="6" height="46" rx="3" fill="#B87A00" stroke="#B87A00" stroke-width="1"/>
 <text x="60" y="802" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Starling / rank-table read</text>
 <text x="350" y="802" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">~7 neighbours on the 600-cell</text>
 <rect x="700" y="786" width="97" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
 <text x="748.5" y="801" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">IN PROGRESS</text>
-<text x="860" y="802" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">rung 0b, after rung 0</text>
-<text x="40" y="846" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">Shaded rows: the geometric primitives. White rows: the operators of the compliant trunk (12–13 October), built to replace softmax, squashing and dense products.</text>
+<text x="880" y="802" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">rung 0b, after rung 0</text>
+<text x="40" y="846" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start">Shaded rows: the geometric primitives. White rows: operators of the earlier float trunk, written to replace softmax, squashing and dense products.</text>
 <path d="M40,888 L1160,888" fill="none" stroke="#D0D7DE" stroke-width="1"/>
 <text x="40" y="910" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
-<rect x="110" y="895" width="34" height="20" rx="5" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
-<text x="152" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Built &amp; tested</text>
-<rect x="282.1" y="895" width="34" height="20" rx="5" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
-<text x="324.1" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">In progress</text>
-<rect x="432.75" y="895" width="34" height="20" rx="5" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
-<text x="474.75" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Planned</text>
+<rect x="110" y="895" width="34" height="20" rx="5" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="152" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Historical · inactive</text>
+<rect x="332.15" y="895" width="34" height="20" rx="5" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="374.15" y="910" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">In progress</text>
 </svg>

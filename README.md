@@ -10,26 +10,36 @@ model that runs on a laptop?*
 [![Last commit](https://img.shields.io/github/last-commit/UOR-Foundation/uor-r4/main)](https://github.com/UOR-Foundation/uor-r4/commits/main)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-ffcc4d)](https://huggingface.co/caseyallard/uor-r4-geometric-214m)
 
-**Pre-alpha, 18 October 2026.** We are building a local language model around geometric
-state, transport and addressed memory. No model here holds a useful conversation yet;
-**0 of 8 milestones are complete**. The active [discrete crate](crates/uor-r4-discrete/README.md)
-has a shared integer input/carry/output writer and Route, Flock and Relation reads.
-A scoped diagnostic pilot learned 236 vector updates; the original paired attention dose
-was owner-stopped before Q1, with its partials preserved. Both arms of the separate
-`rows_v1` Dose2 attempt then stopped at the registered **Q1 admission-collapse gate
-after 4,096 batches**. P_succ target admission fell from 2,034 to **225 treatment /
-205 control**. These are admission counts, not accuracy or a treatment win.
-[Scientific review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872) concludes **configured admission collapse in both arms**,
-with no implementation or identity fault found; no registered efficacy hypothesis
-fires, fresh remains sealed, and there is no KEEP or mechanism-negative verdict.
-[Result and preserved custody](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md) include pod `56510253` down at **07:53:30 UTC**.
+**Contents:** [What works today](#what-works-today-and-what-does-not) · [The question](#the-question) ·
+[Architecture](#architecture) · [Where we are](#where-we-are) · [Current path](#the-current-path-discrete-geometric-learning) ·
+[Rules](#rules-the-project-works-under) · [Mechanisms](#mechanisms-under-test) · [Results](#results-so-far) ·
+[Bookkeeping](#bookkeeping-where-things-are-recorded) · [Quick start](#quick-start) ·
+[Models and data](#models-and-data) · [Acknowledgements](#acknowledgements)
 
-The immediate M1 priority is the existing FIT K16-A/R admission redirect on
-`rows_v1`, seeds1/2: [timing source and qualification sequence](docs/labs/k16-rows-timing-source-2026-10-18/README.md).
-The timing adapter is source-only. Actual new-head qualification, the two
-checkpoint-0 A/R timing cells with100 samples plus one excluded warmup,
-and an accepted measured D-Packet precede training under the existing conditional
-release. The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125) removes the two Q4 cells and importer from the critical path.
+**Pre-alpha, 18 October 2026.** We are building a local language model whose state, memory and
+next-token choice are geometric instead of a transformer's dense attention. **0 of 8 milestones
+are complete, and no model here holds a useful conversation yet.** What exists is a working
+integer substrate — a shared token-vector table, ordered context, Route/Flock/Relation reads and
+a shared writer in [`crates/uor-r4-discrete`](crates/uor-r4-discrete/README.md) — plus a scoped
+diagnostic pilot that learned 236 vector updates. The latest paired attention attempt stopped at
+its pre-registered Q1 admission gate in both arms: a configured admission collapse, not an
+accuracy result or a mechanism verdict
+([record](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)). The immediate priority is
+qualifying the FIT'd K16-A/R redirect before any further training.
+
+## What works today, and what does not
+
+| Works today | Does not work yet |
+|---|---|
+| An integer 8D carrier with 16 roots and 64 signed actions | Useful conversation, general prose, reasoning or coding |
+| Route, Flock and Relation reads | Any unified served model |
+| The shared input/carry/output writer | Any measured laptop energy figure |
+| The D19 exact byte store, with no model integration claimed | Running the current model in a browser |
+| 25/25 admitted CUDA construction controls and 1,085 finite parity cases | |
+| A D11 integer WASM runtime for the historical stack ([#2654](https://github.com/UOR-Foundation/uor-r4/pull/2654)) | |
+
+The left column is tested substrate; the right column is what would make it a language model.
+Neither column is a claim of measured language quality.
 
 Start with the [one-page current plan](docs/integration/NOW.md), the [illustrated geometry](docs/geometry.md),
 [documentation hub](docs/README.md), [current status](STATUS.md), or [contributor guide](CONTRIBUTING.md).
@@ -81,6 +91,8 @@ selected Cargo graph and validation boundaries.
 - **Serving (M4):** D11 targets integer/table execution without a multiplier instruction.
   Core and integer currently select fixed geometry/support modules; historical model
   executors are preserved outside that selected build. A unified served model remains unqualified.
+
+<img src="docs/figures/serving-pipeline.svg" alt="The D11 serving pipeline: the integer engine serves exported stack artifacts with adds, shifts, compares and table reads; the existing artifacts are historical, the compliant model cannot yet be exported, and the native learner keeps its own integer runtime and terminal chat" width="100%">
 
 The wider [geometry foundations](docs/geometry.md) include quaternions, icosians,
 exact golden coefficients, Hopf observations and prime/zeta addressing. Each has a

@@ -15,6 +15,10 @@ What they are not:
 - The `sovereign_studio_*.png`, `model_manager_modal.png`, `monaco_*.png` and `github_repo_monaco.png`
   captures show a Studio/IDE product surface from that earlier direction. No current mission path
   depends on them.
+- `historical-concept-art-2077.jpg` (formerly `hero_banner.jpg`, renamed 2026-10-18) is sci-fi
+  concept art dated **SEP 14, 2077**, carrying invented telemetry ("SYNAPTIC FLOW: 1.4 TB/s",
+  "OPS/S: 315 PETAFLOP S"). It is not a banner, not the README hero, and none of its numbers was
+  measured.
 - The geometry tour in [docs/geometry.md](../../docs/geometry.md) carries its own
   **historical float form (pre-D23)** banner where it describes the pre-ban path (archived at
   [docs/history/geometry-float-form-2026-10.md](../../docs/history/geometry-float-form-2026-10.md))
