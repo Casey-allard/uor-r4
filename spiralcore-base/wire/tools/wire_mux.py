@@ -251,7 +251,11 @@ class _ServerStream:
         self.plain = 0
         self.wire = 0
         self.window_updates = 0
+        self.input_done = False
+        self.output_done = False
         self.thread = threading.Thread(target=self._target_reader, daemon=True)
+
+    def start(self):
         self.thread.start()
 
     def _target_reader(self):
@@ -294,7 +298,8 @@ class _ServerStream:
                 self.connection.writer.frame(self.stream_id, FIN)
             except OSError:
                 pass
-            self.connection.finish_stream(self.stream_id)
+            self.output_done = True
+            self.connection.finish_stream_if_done(self)
 
     def on_frame(self, kind, payload):
         if kind in (DATA_COMPRESSED, DATA_RAW):
@@ -316,10 +321,12 @@ class _ServerStream:
                 self.connection.writer.frame(self.stream_id, WINDOW, struct.pack(">I", total))
                 self.window_updates += 1
         elif kind == FIN:
+            self.input_done = True
             try:
                 self.target.shutdown(socket.SHUT_WR)
             except OSError:
                 pass
+            self.connection.finish_stream_if_done(self)
         elif kind == WINDOW:
             with self.cond:
                 self.credit += struct.unpack(">I", payload)[0]
@@ -457,6 +464,11 @@ class _ServerConnection:
         with self.lock:
             self.streams.pop(stream_id, None)
 
+    def finish_stream_if_done(self, stream):
+        with self.lock:
+            if stream.input_done and stream.output_done:
+                self.streams.pop(stream.stream_id, None)
+
     def run(self):
         try:
             while True:
@@ -495,6 +507,7 @@ class _ServerConnection:
                     stream = _ServerStream(self, stream_id, target)
                     with self.lock:
                         self.streams[stream_id] = stream
+                    stream.start()
                 else:
                     with self.lock:
                         stream = self.streams.get(stream_id)

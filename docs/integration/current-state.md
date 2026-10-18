@@ -1,3 +1,14 @@
+## 2026-10-18  Wire review fixes round 2 (Codex findings on #2614; `deepseek/spiralcore-wire-review-fixes-2`)
+
+Codex reviewed #2614 at `448a9cb4f` and reported three P1s plus one P2; all addressed here. Interposer:
+`connect` waits on `io_lock` before resetting a reused fd, closing the fd-reuse-vs-blocked-recv race.
+Mux: streams are registered before their reader starts, and half-closed streams stay registered until
+both client FIN and target EOF (`input_done` + `output_done`). Linux smoke: brace-safe default for an
+unset `WIRE_SMOKE_WORK` under `set -u`. Worktree checks: `WIRE_INTERPOSER_PASS`, `WIRE_MUX_PASS`,
+`WIRE_MUX_ROUTING_PASS`, `WIRE_INTERPOSER_LINUX_PASS`; no model compute.
+Record: [labs/spiralcore-wire-review-fixes-2-2026-10-18](../labs/spiralcore-wire-review-fixes-2-2026-10-18/README.md).
+PR: https://github.com/UOR-Foundation/uor-r4/pull/2619
+
 ## 2026-10-18 — C1 flock-coupling draft: finite controls and export-gap contract (claude)
 
 The [C1 draft](../harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md) specifies the D37 float-trained coupling magnitude for the discrete Flock read, exported to integer Gate weights (`ReadSpec::FlockCoupled`, with `k_max = 1 ≡ Flock`). It contains:

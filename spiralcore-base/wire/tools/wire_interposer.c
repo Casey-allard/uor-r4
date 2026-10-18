@@ -515,9 +515,18 @@ int WIRE_API(connect)(int fd, const struct sockaddr *addr, socklen_t len) {
     }
     FdState *state = &fds[fd];
     pthread_mutex_lock(&state->lock);
-    if (!state->active) {
-        reset_state(state);
+    int need_reset = !state->active;
+    pthread_mutex_unlock(&state->lock);
+    if (need_reset) {
+        /* Wait for a possibly still-running recv on this fd to leave io_lock before
+           resetting state, so fd reuse cannot race a blocked reader. */
+        pthread_mutex_lock(&state->io_lock);
+        pthread_mutex_lock(&state->lock);
+        if (!state->active) reset_state(state);
+        pthread_mutex_unlock(&state->lock);
+        pthread_mutex_unlock(&state->io_lock);
     }
+    pthread_mutex_lock(&state->lock);
     if (sys_connect(fd, (const struct sockaddr *)&route->gateway, sizeof(route->gateway)) < 0) {
         pthread_mutex_unlock(&state->lock);
         return -1;
