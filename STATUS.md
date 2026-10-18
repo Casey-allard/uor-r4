@@ -1,6 +1,8 @@
 # Status
 
-**Pre-alpha, evidence checked 18 October 2026.** No model holds a useful conversation;
+**Pre-alpha, evidence checked 18 October 2026.** The one-page current plan is [NOW.md](docs/integration/NOW.md); it is authoritative when this status page and the plan disagree.
+
+No model holds a useful conversation;
 0/8 milestones are complete. M1's reply headline remains **37/232 SUSPENDED**;
 the Dose2 Q1 diagnostic stop establishes no efficacy or fresh-transfer result.
 

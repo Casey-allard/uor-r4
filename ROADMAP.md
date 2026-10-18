@@ -1,5 +1,7 @@
 # UOR-R4 Geometric Language Model - roadmap
 
+**Current plan:** [NOW.md](docs/integration/NOW.md) is the authoritative one-page plan; this roadmap keeps the long-form history and details.
+
 **Immediate M1 path, 18 October:** the
 [minimal device token-cell input producer](docs/labs/attention-token-cell-export-2026-10-17/README.md),
 is delivered in #2601 with reviewed Gate9 construction. The separately released

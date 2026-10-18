@@ -31,8 +31,8 @@ checkpoint-0 A/R timing cells with100 samples plus one excluded warmup,
 and an accepted measured D-Packet precede training under the existing conditional
 release. The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125) removes the two Q4 cells and importer from the critical path.
 
-Start with the [illustrated geometry](docs/geometry.md), [documentation hub](docs/README.md),
-[current status](STATUS.md), or [contributor guide](CONTRIBUTING.md).
+Start with the [one-page current plan](docs/integration/NOW.md), the [illustrated geometry](docs/geometry.md),
+[documentation hub](docs/README.md), [current status](STATUS.md), or [contributor guide](CONTRIBUTING.md).
 [D37](docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised)
 allows offline floating-point training, while retaining the matmul/GEMM and
 softmax/squashing prohibitions and GPU-only model compute. D11 integer serving

@@ -1,3 +1,9 @@
+## 2026-10-18  One-page plan linked from README/STATUS/ROADMAP (deepseek)
+
+Links `docs/integration/NOW.md` from the repository front door, status page and roadmap title block,
+closing the D39 Phase 1 tracker-hygiene item. Docs-only; no code, model or evidence change, no compute.
+Record: [labs/now-link-2026-10-18](../labs/now-link-2026-10-18/README.md).
+
 ## 2026-10-18 — D39: course-correction package approved; NOW.md is the current plan page (kimi PM; owner decision)
 
 The owner approved the PM's consolidated course-correction package in full after six independent DeepSeek audits (preserved in `docs/labs/course-correction-2026-10-18/`). [D39](DECISIONS.md#d39--m1-closing-bar-k16-reachability-gate-post-qualification-sequence-and-lab-self-direction-owner-2026-10-18) records: the M1 definition-of-done (the 116/232 reply bar is BLOCKED under R14, not a closing condition); the G-Cap reachability gate in its corrected form (DEV-row alias ceiling vs Bar (i); the W0 census showed Bar (i) reachable — 16 distinct vectors at checkpoint 0 and 264 at Q4, but alias ceilings of 1,986–8,948 rows; token coverage is aliasing's real cost); injective initializers permitted for new lineages; the W1→W4 post-qualification sequence (K16 run → FIT'd read-code capture → BVG-K discrete speed law → one conditional float sheet); the export-gap disqualification rule (two-seed band, fixed at FIT); the interim M1 headline (injective codebook + Q4 admission ≥ 4,894, so D21 can fire again); lab self-direction with PM redirection; serving-float as reporting-only. New `docs/integration/NOW.md` is the 90-second current-plan page. The K16 sheet carries Amendment 7 (G-Cap + coverage metrics, prospective). The issue template that permitted training matmul is corrected (live D25/D30/D37 violation). GitHub milestones M1–M8 now exist with #2029–#2036 assigned. No hold, FIT or compute is released.
