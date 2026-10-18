@@ -216,20 +216,6 @@
     "lab": "deepseek",
     "note": "R-queue rule in pm-rules.md"
   },
-  "deepseek/spiralcore-wire-review-fixes": {
-    "branch": "deepseek/spiralcore-wire-review-fixes",
-    "claimed_at": "2026-10-17T22:42:50-04:00",
-    "head": "94d4d34ad",
-    "lab": "deepseek",
-    "note": "Address Codex P1 review findings on merged side exploration #2613: remove committed local/ build logs, Linux smoke scratch inside checkout, release completed Python mux streams, split interposer recv lock from close/shutdown lock. No model compute."
-  },
-  "deepseek/spiralcore-wire-side-exploration": {
-    "branch": "deepseek/spiralcore-wire-side-exploration",
-    "claimed_at": "2026-10-17T22:23:27-04:00",
-    "head": "1bb39ff27",
-    "lab": "deepseek",
-    "note": "Wire transport side exploration: merge spiralcore-base/wire (Python adapter/socket/mux/interposer + Rust wire-rs crate, docs, evidence) into uor-r4 as a side exploration under the infrastructure/tooling lane (#2029). No model compute. Protected PR + independent review."
-  },
   "deepseek/unread-notes": {
     "branch": "deepseek/unread-notes",
     "claimed_at": "2026-10-15T17:33:48-04:00",

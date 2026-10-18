@@ -1,3 +1,9 @@
+## 2026-10-18  Wire side-exploration claims cleanup (deepseek)
+
+Removes the stale committed claims for the merged wire branches (`deepseek/spiralcore-wire-side-exploration`,
+`deepseek/spiralcore-wire-review-fixes`) plus this cleanup branch entry from docs/harness/claims.json.
+No code, model, evidence or dispatch change; coordination record only. References #2613, #2614.
+
 ## 2026-10-18 — D37: floating point legal in offline training only (claude)
 
 The owner revised D32. Float forward passes, gradients and optimizers are legal in offline training. Softmax/squashing and matmul stay banned everywhere, and compute stays GPU-only. The export is the integer boundary: D11 serving, with a reported export gap. The October 14 zeta-zero exception is unchanged, and archived float sheets return only by re-registration and a fresh FIT. The owner also stated the reason behind the bans: exclude expensive operations, for fast local training and serving.

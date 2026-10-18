@@ -39,3 +39,8 @@ lab deepseek, registered before mutation.
 ## Next
 
 Exact-head review, protected merge, branch/worktree cleanup and hygiene. PR: https://github.com/UOR-Foundation/uor-r4/pull/2614
+
+## Claims cleanup (2026-10-18)
+
+After #2613 and #2614 merged, their branch entries were removed from docs/harness/claims.json
+(including this cleanup branch entry after its own merge). No code, model or evidence change.
