@@ -321,13 +321,6 @@
     "lab": "kimi",
     "note": ""
   },
-  "kimi/c1-sheet-shape-repair-2026-10-18": {
-    "branch": "kimi/c1-sheet-shape-repair-2026-10-18",
-    "claimed_at": "2026-10-17T23:19:24-04:00",
-    "head": "bc485d1f3",
-    "lab": "kimi",
-    "note": "Docs-shape repair only: add required D22 blocks + truthful PENDING verdict to the C1 DRAFT sheet; no registration, FIT request, science, source or compute (#2620 CI 117572368828; PM comments 6245063482/6245085269)"
-  },
   "kimi/dose1-dispatch-record-2026-10-18": {
     "branch": "kimi/dose1-dispatch-record-2026-10-18",
     "claimed_at": "2026-10-17T23:10:49-04:00",
