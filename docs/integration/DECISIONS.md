@@ -245,6 +245,8 @@ transformerless model) stands as an objective, not a measured result.
 
 Owner: Casey · Drafted by: the run lead · Date: 2026-09-24 · **Ratified by owner instruction, 2026-09-24 session.**
 
+**Amended by [D38](#d38--d5-split-d5-a-residency-and-d5-b-sparsity-owner-2026-10-18) (2026-10-18):** the invariant is split into D5-a (residency: DRAM bytes/token → 0 after warm-up) and D5-b (sparsity: the original per-token parameter sparsity below, which binds when the model exceeds cache).
+
 D0-a's distinguishing test — **per-token parameter sparsity** ("if serving touches all entries of a learned weight
 store per token, it is a matrix product regardless of the opcode used") — survives D0-b as the **end-state**
 contract. D0-b continues to permit bounded ≤4-bit additive/table linear maps as the *interim experimental*
@@ -1775,3 +1777,13 @@ Read every ban below through this goal. Each one exists to exclude an expensive 
    - **Separate float modules:** a float training path is a separate module. It gets its own scanned allowlist entry, added and reviewed with its pre-registration, never by widening the discrete crate's scan.
    - **Holds:** Training, M2 and Stage B stay HELD, and Q4 stays NOT_EXECUTABLE. This entry releases no hold, FIT or compute.
    - **Evidence:** preserved float evidence keeps its dated scope (D22). No result is promoted retroactively.
+
+## D38 — D5 split: D5-a residency and D5-b sparsity (owner 2026-10-18)
+
+**Authority, October 18:** the owner, in Kimi's PM session, ratified the D5-a/D5-b split proposed by outside contributor Yazan Barakat (`@Cyborg-Hawk-AI`) in `#2657` (memo: `ops/D5B_ADDRESS_ASSIGNMENT_MEMO.md`): "yes amend the policy as you recommend", answering the PM's ratify-or-reject recommendation from the outside-collaborator audit. This entry amends [D5](#d5--per-token-parameter-sparsity-is-the-terminal-serving-invariant).
+
+1. **D5-a — residency:** DRAM bytes per token approach zero after warm-up. When the served artifact fits in cache, the first-principles floor ("bytes of parameters touched per token set the energy floor", ROADMAP R5) is met by residency rather than by sparsity. D5-a is measurable only with hardware counters (cache/DRAM bytes per token after warm-up); a residency claim without counters is unmeasured, not met.
+2. **D5-b — sparsity:** per-token parameter sparsity, the original D5 invariant, binds whenever the model exceeds cache; it is the big-model path and remains the terminal serving invariant unchanged. Dense per-token access to a learned weight store remains non-compliant with the end state regardless of the opcode used.
+3. **Claims must name the half they meet.** A small model that meets D5-a by residency may not claim D5-b sparsity, and a D5-b claim requires measured selected access, not artifact size. The existing served artifact stays recorded as D5-b-non-compliant (611,814 inspections/step, D5); its D5-a status is unmeasured until counters exist. M5 (#2033) reports D5-a residency counters and, when the model exceeds cache, D5-b selected parameter access.
+4. **What is adopted and what is not.** Adopted: the split itself and its measurement consequences. Not adopted: the memo's QUBO address-assignment formulation, which remains an unimplemented instrument proposal — its co-access matrix `A[k1,k2]` does not exist, its `D[c1,c2]` distance term is defined but unused in its own objective, and the codec simulated-annealing solver (`xtask/src/qubo_codec.rs`) solves a different (codec rounding) problem, so no D5-b solver exists yet. `ops/braket_qaoa_toy_receipt.json` is a Bell-state parity check, not a QAOA optimization; external paid compute outside `uor-pod` is not authorized (GPU-pods rule, 5 October), so that receipt is retained as an unverified artifact, not evidence.
+5. **D18 re-entry and holds unchanged.** The D5-b candidate's D18 re-entry gate ("a served model answers at least half of development turns") is unaffected by this split. This entry releases no hold, FIT or compute.
