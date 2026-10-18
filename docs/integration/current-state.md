@@ -1,3 +1,15 @@
+## 2026-10-18 — State-of-attention audit + PM framing correction (kimi)
+
+Owner question: six months without demonstrated attention. PM-commissioned independent synthesis
+maps every attention mechanism with its measurements and status: the bottleneck is the codebook
+(16 distinct vectors at init, ties to lowest ID — nothing distinct to select); the read is starved
+by construction (20 proposals / 16,404 updates); Flock never corpus-trained; Relation verdict
+NOT_RUN; the injective PrimeZeta codebook (4,096 vectors, 0 tie mass) is the measured fix and the
+next attention test. PM correction: K16 A/R are writer admission objectives on `Route`, not an
+attention arm (#2029 6255963920). Also strikes the stale "zero code for Relation" sentence in
+finite-relational-head.md (its 2026-10-17 correction stands).
+Record: [labs/attention-state-2026-10-18](../labs/attention-state-2026-10-18/README.md).
+
 ## 2026-10-18 — Injective codebook init: sheet FIT after Claude subagent review; plan binds its own sheet (claude)
 
 Under the owner's subagent-review direction, two fresh reviewers returned FIT-WITH-FIXES. All fixes are applied:
