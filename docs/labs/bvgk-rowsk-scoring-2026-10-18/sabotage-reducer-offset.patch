@@ -1,0 +1,13 @@
+diff --git a/crates/uor-r4-discrete/src/rowsk_source.rs b/crates/uor-r4-discrete/src/rowsk_source.rs
+index c1f0cacd8..09f414829 100644
+--- a/crates/uor-r4-discrete/src/rowsk_source.rs
++++ b/crates/uor-r4-discrete/src/rowsk_source.rs
+@@ -62,7 +62,7 @@ extern "C" __global__ void discrete_counterfactual_rowsk_eval(const int* table,c
+ extern "C" __global__ void discrete_counterfactual_rowsk_reduce(const U* s,U kind,const U* indices,U k,const U* base,const W* all_cost,const U* all_flag,W* all_losses,U* all_status) {
+     U t=blockIdx.x*blockDim.x+threadIdx.x;U c=t/16,candidate=t%16;if(c>=k)return;
+     U index=indices[c];U per=s[4]*16;
+-    const W* cost=all_cost+c*per;const U* flag=all_flag+c*per;W* losses=all_losses+c*16;U* status=all_status+c;
++    const W* cost=all_cost+c*per;const U* flag=all_flag+c*per;W* losses=all_losses+(c?c-1:0)*16;U* status=all_status+c;
+     W sum=0;U eligible=0;losses[candidate]=~(W)0;
+     bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
+     if((kind==GATE_KIND && !gated) || (kind==0 && gated)){atomicExch(status,9u);return;}

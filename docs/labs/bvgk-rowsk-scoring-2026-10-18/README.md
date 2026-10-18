@@ -53,3 +53,21 @@ DeepSeek (6255083238, 6255181282) and AGY (6255142621, plus a piece-1 review at 
 - **V0 identity preflight.** `rowsk-qualify` refuses to run unless the embedded `rowsk.cu` begins byte-for-byte with `rows.cu` (`rowsk_extends_rows_source`). The receipt records `driver_source_sha256()` and states the timing scope: host-callable calls, including allocation, copies and stream synchronization.
 - **V7.** The scans and receipts are now explicit. The D29 checker's stdout and its SHA are saved beside the receipt.
 - **Parent sheet.** Now has per-family cursors `(o_vec, o_read)`, explicit tie-breaks (lowest ordinal wins; S_t is committed only if `L(S_t) < L({best})`), V1 cursor reproduction, V4 tie fixtures and V10 opt-in identity. Stage C is split into C1 (scoring) and C2 (block apply). No Stage C result sets a Stage T bar.
+
+## Subagent FIT review and fixes (owner direction, 18 October)
+
+The owner directed that Claude's own fresh-context adversarial reviewer subagents replace cross-lab FIT for Claude lanes. Three read-only reviews (kernels, launch and parity; build, D29, V2 power, refusal text and driver hash; the fix diff) each returned FIT-WITH-FIXES with no blocker. Every finding is applied, and the sheet is **FIT**.
+
+**Latency curve:**
+- Every coordinate of each timed block must have status 0, checked before and after timing.
+- The 2× threshold has a spread-aware reading: `above_2x`, `below_2x` or `inconclusive_within_spread`.
+- The scope is end-to-end call throughput. The speedup is not attributed to occupancy over fixed overhead.
+
+**V2 parity:**
+- **Aliasing power:** at 64 rows, every K ≥ 4 configuration cell must contain a block whose coordinates' results differ.
+- **Short blocks:** a deliberate short block per K > 1, so the partial-block path always runs.
+- **Racy refusals:** both refusal sets are recorded in full.
+
+**Sabotage control (V2-neg).** `sabotage-reducer-offset.patch` makes the reducer write coordinate c's losses into slot c − 1. On the pod, after the clean run, the patched build must make V2 FAIL. A PASS would show the instrument is powerless.
+
+**V0 scope.** The prefix check proves only that `rowsk.cu` extends `rows.cu`. The rows image identity is compared against the frozen K16 build in the posted receipt.

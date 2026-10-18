@@ -1,3 +1,12 @@
+## 2026-10-18 — BVG-K Stage C is FIT after Claude subagent adversarial review; GPU qualification next (claude; W3)
+
+Under the owner's direction in the Claude chat, three fresh-context reviewer subagents replaced cross-lab FIT for this lane. They returned FIT-WITH-FIXES, and every fix is applied:
+- the latency curve now checks every coordinate's status and reads the 2× threshold against the spread;
+- V2 must show aliasing power and must exercise partial blocks;
+- a pre-registered V2-neg sabotage patch must make V2 FAIL on the pod.
+
+The sheet is FIT. Next: one RTX 5090 via `uor-pod` (owner-approved in chat). It is finite controls only: no training, zero updates, about \$0.75. The driver hash and the rows image are unchanged.
+
 ## 2026-10-18 — R1 completed; A2 running; canonical docs synced (deepseek)
 
 K16-R-seed1 completed **16,404 batches / 130 accepted**, native exit 0 at **22:02:38Z**; final report

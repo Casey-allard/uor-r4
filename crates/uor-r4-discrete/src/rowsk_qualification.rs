@@ -12,7 +12,7 @@ use crate::{
     device::{CoordinateScore, Device, RowsCounterfactual, RowsKScoring, MAX_COORDINATE_BLOCK},
     Error, Identity, ObjectivePolicy, Parameter, ReadSpec, Result, Spec,
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 fn require(ok: bool, why: &str) -> Result<()> {
@@ -77,8 +77,15 @@ struct Tally {
     successes: u64,
     refusals: u64,
     racy_refusals: u64,
-    /// (rows, rows-K) observed status-set sizes for each racy refusal.
-    racy_set_sizes: Vec<(usize, usize)>,
+    /// (parameter, rows set, rows-K set) observed for each racy refusal.
+    racy_sets: Vec<(String, Vec<String>, Vec<String>)>,
+    /// Blocks of at least two coordinates that held two or more different
+    /// (status, losses) results, keyed by configuration cell: (multi, distinct).
+    /// An aliasing bug (coordinate c reading another's slot) is visible only
+    /// in such blocks.
+    distinct_blocks: BTreeMap<String, (u64, u64)>,
+    /// Blocks shorter than their K (the partial-block path).
+    short_blocks: u64,
 }
 
 fn unchanged<T>(device: &Device, call: impl FnOnce() -> Result<T>) -> Result<T> {
@@ -104,13 +111,19 @@ fn compare_block(
     targets: &[u32],
     block: &[Parameter],
     tally: &mut Tally,
-) -> Result<()> {
+) -> Result<bool> {
     let input = device.carry_windows(windows)?;
     let scores = unchanged(device, || {
         device.score_rows_k(&input, targets, block, rowsk)
     })?;
     require(scores.len() == block.len(), "one score per coordinate")?;
     tally.blocks += 1;
+    let distinct = scores
+        .iter()
+        .map(|s| (s.status, s.losses.clone()))
+        .collect::<BTreeSet<_>>()
+        .len()
+        >= 2;
     for (score, &parameter) in scores.iter().zip(block) {
         tally.cases += 1;
         require(score.parameter == parameter, "scores follow block order")?;
@@ -164,7 +177,11 @@ fn compare_block(
                         }
                         Ok((seen_rows, seen_k))
                     })?;
-                    tally.racy_set_sizes.push((seen_rows.len(), seen_k.len()));
+                    tally.racy_sets.push((
+                        format!("{parameter:?}"),
+                        seen_rows.iter().cloned().collect(),
+                        seen_k.iter().cloned().collect(),
+                    ));
                     require(
                         seen_rows.intersection(&seen_k).next().is_some(),
                         &format!(
@@ -184,7 +201,7 @@ fn compare_block(
             }
         }
     }
-    Ok(())
+    Ok(distinct)
 }
 
 /// V2 over complete inventories, chunked into blocks of each K.
@@ -234,17 +251,49 @@ fn scoring_parity(tally: &mut Tally) -> Result<()> {
             for row_count in [1usize, 7, 64] {
                 let batch = windows(&mut rng, row_count, context, vocabulary);
                 let targets: Vec<u32> = (0..row_count).map(|_| rng.next(vocabulary)).collect();
-                for inventory in &kinds {
+                for (kind, inventory) in kinds.iter().enumerate() {
                     for k in [1usize, 4, 16] {
-                        for block in inventory.chunks(k) {
-                            compare_block(&device, &rows, &rowsk, &batch, &targets, block, tally)?;
+                        // Every chunk, plus one deliberately short block so the
+                        // partial-block path runs even when K divides the inventory.
+                        let short = k.min(inventory.len()).saturating_sub(1);
+                        let extra = (k > 1 && short > 0).then(|| &inventory[..short]);
+                        for block in inventory.chunks(k).chain(extra) {
+                            let distinct = compare_block(
+                                &device, &rows, &rowsk, &batch, &targets, block, tally,
+                            )?;
+                            if block.len() < k {
+                                tally.short_blocks += 1;
+                            }
+                            if block.len() >= 2 {
+                                let cell = format!(
+                                    "{read:?}/b{blocks}/{objective:?}/rows{row_count}/kind{kind}/k{k}"
+                                );
+                                let entry = tally.distinct_blocks.entry(cell).or_default();
+                                entry.0 += 1;
+                                entry.1 += u64::from(distinct);
+                            }
                         }
                     }
                 }
             }
         }
     }
-    require(tally.successes > 0, "no successful parity case ran")
+    require(tally.successes > 0, "no successful parity case ran")?;
+    require(tally.short_blocks > 0, "no partial block ran")?;
+    // Aliasing power: at 64 rows, every configuration cell with K >= 4 must hold
+    // at least one block whose coordinates' results differ.
+    let blind: Vec<&String> = tally
+        .distinct_blocks
+        .iter()
+        .filter(|(cell, &(_, distinct))| {
+            cell.contains("/rows64/") && !cell.ends_with("/k1") && distinct == 0
+        })
+        .map(|(cell, _)| cell)
+        .collect();
+    require(
+        blind.is_empty(),
+        &format!("V2 cannot see aliasing in cells {blind:?}"),
+    )
 }
 
 /// V6: refused before any launch, with state unchanged.
@@ -416,15 +465,42 @@ fn latency_curve() -> Result<serde_json::Value> {
             scores[0].status == 0 && scores[0].losses == first,
             "latency-shape first coordinate differs from propose_rows",
         )?;
+        // A refused coordinate exits early and would shrink the block's work,
+        // inflating the speedup: every timed coordinate must be scored.
+        require(
+            scores.iter().all(|s| s.status == 0),
+            &format!("latency-shape block K={k} has a refused coordinate"),
+        )?;
         let (ns, p95, raw) = sample(Box::new(|| {
             device
                 .score_rows_k(&input, &targets, &block, &rowsk)
                 .map(|_| ())
         }))?;
+        let after = device.score_rows_k(&input, &targets, &block, &rowsk)?;
+        require(
+            after.iter().all(|s| s.status == 0) && after[0].losses == first,
+            &format!("latency-shape block K={k} changed outcome across timing"),
+        )?;
+        // Spread-aware reading of the pre-registered 2x threshold: the low bound
+        // pairs the single median with the block p95, the high bound the single
+        // p95 with the block median.
+        let k_single = u128::from(k);
+        let low = single_ns * k_single * 1000 / p95.max(1);
+        let high = single_p95 * k_single * 1000 / ns.max(1);
+        let reading = if low >= 2000 {
+            "above_2x"
+        } else if high < 2000 {
+            "below_2x"
+        } else {
+            "inconclusive_within_spread"
+        };
         cases.push(serde_json::json!({
             "k": k, "block_median_ns": ns as u64, "block_p95_ns": p95 as u64, "raw_samples_ns": raw,
-            "ns_per_coordinate": (ns / u128::from(k)) as u64,
-            "speedup_x1000_vs_k_single_proposals": (single_ns * u128::from(k) * 1000 / ns.max(1)) as u64,
+            "ns_per_coordinate": (ns / k_single) as u64,
+            "speedup_x1000_vs_k_single_proposals": (single_ns * k_single * 1000 / ns.max(1)) as u64,
+            "speedup_x1000_low": low as u64,
+            "speedup_x1000_high": high as u64,
+            "reading_vs_2x": reading,
         }));
     }
     Ok(serde_json::json!({
@@ -457,7 +533,9 @@ pub fn run(report: &Path) -> Result<()> {
                 "name": name, "status": "PASS", "blocks": tally.blocks, "cases": tally.cases,
                 "successes": tally.successes, "refusals": tally.refusals,
                 "racy_refusals": tally.racy_refusals,
-                "racy_set_sizes_rows_rowsk": tally.racy_set_sizes,
+                "racy_sets_parameter_rows_rowsk": tally.racy_sets,
+                "short_blocks": tally.short_blocks,
+                "distinct_blocks_multi_distinct": tally.distinct_blocks,
             }),
             Err(error) => {
                 failed = true;
