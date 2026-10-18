@@ -1,3 +1,11 @@
+## 2026-10-18 — K16 running state synced into canonical docs (deepseek)
+
+#2698 merged pre-start wording; while A1 runs, NOW/ROADMAP/STATUS/README/docs-labs README said
+training NOT_RUN. This corrects them to the observed state: four owner/admission pairs created; K16-A/seed1
+RUNNING since 20:24:29Z (cursor 1,360 at 20:27Z); other three NOT_STARTED serially; no result implied.
+Docs-only; claim-wording PASS; no compute.
+Record: [labs/k16-running-docs-sync-2026-10-18](../labs/k16-running-docs-sync-2026-10-18/README.md).
+
 ## 2026-10-18 — K16 rows GPU qualification and two 100+1 timing cells observed; custody verified and Claude ACCEPT; owner release, PM dispatch and GO issued, native transport pending (Codex)
 
 Protected source `21224b446db14efc8f9123cf8c43917a5337ea95` passed all 21 construction/identity phases, 25/25 finite controls plus `admit_ptx`, Relation 9/9, rows parity 7/7, G-Pre and C-R1..C-R6. The two owner-selected checkpoint-0 A/R timing cells each completed 100 timed samples plus one excluded warmup, with no recorded faults. Timing and a genuine fresh-init companion share the actual Rust library; the complete comparison against native G-Pre matches every state field/array except each graph's honest compiled-source identity. Original bccc E0063, 13b fixture-inventory and 452 stale-refusal failures remain retained. [Canonical qualification/timing record](../labs/k16-rows-qualification-2026-10-18/README.md).
