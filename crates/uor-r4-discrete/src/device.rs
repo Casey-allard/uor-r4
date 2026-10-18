@@ -405,6 +405,37 @@ pub struct Snapshot {
     pub geometry_sha256: String,
 }
 
+/// Two encodings of one snapshot, never interchangeable with a raw FilePin or
+/// the encoding of the enclosing DriverCheckpoint. This is storage metadata;
+/// computing these hashes does not construct a Device or evaluate a model.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SnapshotHashDomains {
+    /// Domain A: serialization of the serde_json::Value stored in a checkpoint.
+    pub model_storage_sha256: String,
+    /// Domain B: serialization of the typed Snapshot in declared field order.
+    pub model_snapshot_sha256: String,
+}
+
+pub fn snapshot_hash_domains(snapshot: &Snapshot) -> Result<SnapshotHashDomains> {
+    let stored = serde_json::to_value(snapshot).map_err(|e| invalid(e.to_string()))?;
+    stored_snapshot_hash_domains(&stored)
+}
+
+pub fn stored_snapshot_hash_domains(stored: &serde_json::Value) -> Result<SnapshotHashDomains> {
+    let snapshot: Snapshot =
+        serde_json::from_value(stored.clone()).map_err(|e| invalid(e.to_string()))?;
+    Ok(SnapshotHashDomains {
+        // Hash the original stored Value, not a normalized typed round trip.
+        model_storage_sha256: crate::corpus::sha256(
+            &serde_json::to_vec(stored).map_err(|e| invalid(e.to_string()))?,
+        ),
+        model_snapshot_sha256: crate::corpus::sha256(
+            &serde_json::to_vec(&snapshot).map_err(|e| invalid(e.to_string()))?,
+        ),
+    })
+}
+
 fn kernel_sha256() -> String {
     Sha256::digest(PTX.as_bytes())
         .iter()
@@ -1993,5 +2024,78 @@ fn check_status(stream: &Arc<CudaStream>, status: &CudaSlice<u32>, operation: &s
         Err(invalid(format!(
             "discrete CUDA {operation} refused with status {code}"
         )))
+    }
+}
+
+#[cfg(test)]
+mod snapshot_hash_tests {
+    use super::*;
+
+    // Serializer fixture only. These literal arrays are not evaluated or
+    // admitted as a model, and no CUDA context or Device is constructed.
+    fn snapshot() -> Snapshot {
+        Snapshot {
+            schema: SCHEMA.into(),
+            spec: Spec {
+                vocabulary: 2,
+                blocks: 2,
+                context: 2,
+                kept_cells: 2,
+            },
+            read_spec: ReadSpec::Route,
+            objective_policy: ObjectivePolicy::NearestAddressMarginV1,
+            read_initialization: ReadInitialization::ZeroGatesV1,
+            seed: 1,
+            epoch: 0,
+            table: vec![0; 16],
+            routes: vec![0; 2],
+            gates: vec![0; 2],
+            operator_kappa: "literal-metadata".into(),
+            composition_kappa: "literal-metadata".into(),
+            kernel_sha256: "1".repeat(64),
+            source_sha256: "2".repeat(64),
+            geometry_sha256: "3".repeat(64),
+        }
+    }
+
+    #[test]
+    fn one_snapshot_retains_both_encoding_domains() -> Result<()> {
+        let snapshot = snapshot();
+        let stored = serde_json::to_value(&snapshot).map_err(|e| invalid(e.to_string()))?;
+        let hashes = snapshot_hash_domains(&snapshot)?;
+        assert_eq!(hashes, stored_snapshot_hash_domains(&stored)?);
+        assert_eq!(
+            hashes.model_storage_sha256,
+            crate::corpus::sha256(
+                &serde_json::to_vec(&stored).map_err(|e| invalid(e.to_string()))?
+            )
+        );
+        assert_eq!(
+            hashes.model_snapshot_sha256,
+            crate::corpus::sha256(
+                &serde_json::to_vec(&snapshot).map_err(|e| invalid(e.to_string()))?
+            )
+        );
+        assert_ne!(hashes.model_storage_sha256, hashes.model_snapshot_sha256);
+        Ok(())
+    }
+
+    #[test]
+    fn stored_domain_is_not_normalized_and_malformed_snapshot_refuses() -> Result<()> {
+        let mut stored = serde_json::to_value(snapshot()).map_err(|e| invalid(e.to_string()))?;
+        let original = stored_snapshot_hash_domains(&stored)?;
+        // Explicitly writing a default changes Domain A, while typed encoding
+        // omits that default and therefore leaves Domain B unchanged.
+        stored["read_initialization"] = serde_json::json!(ReadInitialization::ZeroGatesV1);
+        let explicit = stored_snapshot_hash_domains(&stored)?;
+        assert_ne!(original.model_storage_sha256, explicit.model_storage_sha256);
+        assert_eq!(
+            original.model_snapshot_sha256,
+            explicit.model_snapshot_sha256
+        );
+        stored["unexpected"] = serde_json::json!(true);
+        assert!(stored_snapshot_hash_domains(&stored).is_err());
+        assert!(stored_snapshot_hash_domains(&serde_json::json!({})).is_err());
+        Ok(())
     }
 }

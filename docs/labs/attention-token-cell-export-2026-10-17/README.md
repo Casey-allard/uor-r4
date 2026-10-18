@@ -27,6 +27,19 @@ runtime-export evidence; learned Relation and the separate paired dose remain
 NOT_RUN. No token map alone establishes full same-cell attribution.
 Gate8 and its binary retain their earlier identities and evidence scopes.
 
+## Explicit hash names for the next source
+
+[PM6243260600 and the bounded runner repair](../attention-hash-domains-2026-10-17/README.md)
+reserve `model_snapshot_sha256` for typed Snapshot serialization (B) and add
+`model_storage_sha256` for the stored model-Value serialization (A). Historical
+Battery3's same-named export field carries A while its eval field carries B;
+the existing checkpoint-to-eval validation already checked the consistent pair.
+Those accepted historical bytes remain unchanged, without rerun or rescore.
+Canonical DriverCheckpoint and raw file identities remain separate. The new
+source passes Gate10's five compiler/host commands at dfa3, with its debug
+binary archived without invocation; protected delivery precedes dose use. Gate9 and
+Battery3 evidence below retains its exact earlier source scope.
+
 ## Exact interface and format
 
 ```text
@@ -49,7 +62,8 @@ membership, a token's geometric address, model admission or ranking.
 `report.json` uses `uor-r4.attention-token-cells/1` and binds:
 
 - Actual config/checkpoint file paths and SHA256s, canonical config and typed
-  checkpoint SHA256, lineage, canonical model snapshot SHA256, and source/kernel/
+  checkpoint SHA256, lineage, explicit stored model-Value and typed Snapshot
+  SHA256 domains in the repaired source, and source/kernel/
   geometry/spec/read/initialization/seed metadata.
 - Actual output-file SHA256, encoding, count and byte inventory.
 - Existing checkpoint epoch/cursor, unchanged snapshot, one model restore, one

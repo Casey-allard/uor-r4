@@ -357,6 +357,7 @@ fn dev_record(
             "transfer DEV evidence has wrong arm/checkpoint/panel",
         ));
     }
+    verify_checkpoint_hash_fields(&value, checkpoint)?;
     verify_evaluation(&value["evaluation"], checkpoint)?;
     Ok(value["evaluation"].clone())
 }
@@ -386,6 +387,8 @@ fn match_arms(treatment: &Arm, control: &Arm) -> Result<()> {
             != control.progress.baseline_snapshot_metadata
         || treatment.progress.baseline_evaluation["model_snapshot_sha256"]
             != control.progress.baseline_evaluation["model_snapshot_sha256"]
+        || treatment.progress.baseline_evaluation["model_storage_sha256"]
+            != control.progress.baseline_evaluation["model_storage_sha256"]
     {
         return Err(invalid(
             "transfer arms differ beyond registered relation policy/identities",
@@ -437,6 +440,7 @@ fn validate_partial(
     {
         return Err(invalid("paired fresh partial binding differs"));
     }
+    verify_checkpoint_hash_fields(value, &arm.progress.checkpoint)?;
     verify_evaluation(&value["evaluation"], &arm.progress.checkpoint)?;
     if value["b3"] != json!(evidence::summarize(&value["evaluation"], rows)?) {
         return Err(invalid("paired fresh partial B3 differs"));
@@ -458,7 +462,9 @@ fn observe_arm(
     {
         return Err(invalid("fresh restore changed the admitted snapshot"));
     }
-    let evaluation = arm.driver.evaluate_transfer(&model, fresh)?;
+    let evaluation =
+        arm.driver
+            .evaluate_transfer_checkpoint(&model, fresh, &arm.progress.checkpoint)?;
     verify_evaluation(&evaluation, &arm.progress.checkpoint)?;
     let b3 = evidence::summarize(&evaluation, rows)?;
     if serde_json::to_value(model.snapshot()?).map_err(|e| invalid(e.to_string()))?
@@ -466,9 +472,11 @@ fn observe_arm(
     {
         return Err(invalid("fresh evaluation changed snapshot storage"));
     }
+    let hashes = checkpoint_hash_domains(&arm.progress.checkpoint)?;
     let value = json!({"schema":"uor-r4.attention-transfer-partial/2","arm":label,
         "binding":binding,"admission_sha256":arm.release.manifest_sha256,
         "driver_checkpoint_sha256":corpus::sha256(&encode(&arm.progress.checkpoint)?),
+        "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
         "evaluation":evaluation,"b3":b3,"snapshot_unchanged":true,"updates_applied":0});
     validate_partial(&value, arm, label, binding, fresh, rows)?;
     let state = &arm.release.manifest.run_state_directory;
@@ -529,11 +537,16 @@ pub fn run(decision_path: &Path, out: &Path) -> Result<()> {
         *word = json!(0);
     }
     expected.model_sha256 = corpus::sha256(&encode(&expected.model)?);
+    let treatment_hashes = checkpoint_hash_domains(&treatment.progress.checkpoint)?;
+    let control_hashes = checkpoint_hash_domains(&control.progress.checkpoint)?;
+    let ablated_hashes = checkpoint_hash_domains(&expected)?;
     if ablation
         != json!({"schema":"uor-r4.attention-relation-off/1",
         "admission_sha256":treatment.release.manifest_sha256,
         "parent_driver_checkpoint_sha256":corpus::sha256(&encode(&treatment.progress.checkpoint)?),
         "parent_model_sha256":treatment.progress.checkpoint.model_sha256,
+        "parent_model_storage_sha256":treatment_hashes.model_storage_sha256,"parent_model_snapshot_sha256":treatment_hashes.model_snapshot_sha256,
+        "model_storage_sha256":ablated_hashes.model_storage_sha256,"model_snapshot_sha256":ablated_hashes.model_snapshot_sha256,
         "modified_storage":"only relation gate trits set to zero", "checkpoint":expected})
     {
         return Err(invalid(
@@ -577,6 +590,11 @@ pub fn run(decision_path: &Path, out: &Path) -> Result<()> {
             }
         }
         let receipt: Value = read_json(&result_path)?;
+        if receipt["treatment_model_hashes"] != json!(treatment_hashes)
+            || receipt["control_model_hashes"] != json!(control_hashes)
+        {
+            return Err(invalid("completed transfer snapshot hash domains differ"));
+        }
         if receipt["binding"] != binding
             || receipt["schema"] != json!("uor-r4.attention-transfer-result/2")
             || receipt["status"] != json!("PAIRED_FRESH_OBSERVED_PENDING_PM_DISCRIMINATOR")
@@ -642,6 +660,7 @@ pub fn run(decision_path: &Path, out: &Path) -> Result<()> {
         let receipt = json!({"schema":"uor-r4.attention-transfer-result/2",
             "status":"PAIRED_FRESH_OBSERVED_PENDING_PM_DISCRIMINATOR",
             "binding":binding,"treatment_partial":treatment_partial,"control_partial":control_partial,
+            "treatment_model_hashes":treatment_hashes,"control_model_hashes":control_hashes,
             "paired_fresh":paired,"snapshot_unchanged":true,
             "updates_applied":0,"treatment_fresh_evaluations":1,"control_fresh_evaluations":1,
             "gpu_fresh_evaluations":2,"ablation_fresh_evaluations":0,"training_capability_issued":false,

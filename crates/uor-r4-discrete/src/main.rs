@@ -94,8 +94,8 @@ fn device_command(args: &[String]) -> Result<()> {
                 if checkpoint.cursor.accepted_updates!=0 {
                     return Err(Error::TrainingHeld);
                 }
-                let (model,_cursor)=driver.restore(checkpoint,0)?;
-                driver.evaluate(&model)
+                let (model,_cursor)=driver.restore(checkpoint.clone(),0)?;
+                driver.evaluate_checkpoint(&model,&checkpoint)
             })
         }
         Some("init") if args.len()==4=>{

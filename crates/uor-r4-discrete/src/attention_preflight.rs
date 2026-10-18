@@ -53,6 +53,7 @@ pub fn export_token_cells(
     let driver = PreparedDriver::load(config.clone())?;
     let (checkpoint, checkpoint_file): (training::DriverCheckpoint, _) = input(checkpoint_path)?;
     driver.validate_checkpoint(&checkpoint)?;
+    let hashes = checkpoint_hash_domains(&checkpoint)?;
     // Reserve the new output before any CUDA allocation or model restore.
     // A later failure leaves this partial file with the caller's FAILED report.
     let output_path = output_directory.join("token_cells.u16");
@@ -97,7 +98,8 @@ pub fn export_token_cells(
         "status":"DEVICE_TOKEN_CELL_MAP_EXPORTED_ZERO_APPLY",
         "config_file":config_file,"config_sha256":corpus::sha256(&encode(&config)?),
         "lineage_sha256":driver.lineage_sha256()?,"checkpoint_file":checkpoint_file,
-        "driver_checkpoint_sha256":checkpoint_sha256,"model_snapshot_sha256":checkpoint.model_sha256,
+        "driver_checkpoint_sha256":checkpoint_sha256,
+        "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
         "model_bindings":{"source_sha256":checkpoint.model["source_sha256"],
             "kernel_sha256":checkpoint.model["kernel_sha256"],"geometry_sha256":checkpoint.model["geometry_sha256"],
             "spec":config.spec,"read_spec":config.read_spec,"objective_policy":config.objective_policy,
@@ -232,11 +234,13 @@ pub fn dev_b3(config_path: &Path, checkpoint_path: &Path, evaluation_path: &Path
         b3,
         ..
     } = inputs;
+    let hashes = checkpoint_hash_domains(&checkpoint)?;
     Ok(json!({"schema":"uor-r4.attention-preflight-dev-b3/1",
         "status":"VALIDATED_RETAINED_DEV_OBSERVATIONS",
         "config_file":config_file,"config_sha256":corpus::sha256(&encode(&config)?),
         "lineage_sha256":driver.lineage_sha256()?,"checkpoint_file":checkpoint_file,
         "driver_checkpoint_sha256":corpus::sha256(&encode(&checkpoint)?),"evaluation_file":evaluation_file,
+        "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
         "compiled_identity_checked":true,"model_epoch":checkpoint.cursor.accepted_updates,
         "completed_batches":checkpoint.cursor.completed_batches,"b3":b3,
         "admission_contract":"checked EvaluationRow.admitted_cells minus address_rivals in {0,1}",
@@ -418,11 +422,13 @@ pub fn capture_dev(
             "capture complete inventory or unchanged snapshot check failed",
         ));
     }
+    let hashes = checkpoint_hash_domains(&inputs.checkpoint)?;
     Ok(json!({"schema":"uor-r4.attention-preflight-dev-capture/1",
         "status":"ACTUAL_GPU_FORWARD_CELL_IDS_CAPTURED_ZERO_APPLY",
         "config_file":inputs.config_file,"config_sha256":corpus::sha256(&encode(config)?),
         "lineage_sha256":inputs.driver.lineage_sha256()?,"checkpoint_file":inputs.checkpoint_file,
         "driver_checkpoint_sha256":corpus::sha256(&encode(&inputs.checkpoint)?),
+        "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
         "evaluation_file":inputs.evaluation_file,"dev_binding":source.binding(),
         "model_epoch":epoch,"completed_batches":inputs.checkpoint.cursor.completed_batches,
         "rows":rows,"b3":inputs.b3,"row_count":inputs.rows.len(),

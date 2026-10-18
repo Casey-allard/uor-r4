@@ -20,10 +20,10 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-attention-battery3-result": {
-    "branch": "codex/cf1-attention-battery3-result",
-    "claimed_at": "2026-10-17T19:25:30-04:00",
-    "head": "65ed29d38",
+  "codex/cf1-attention-hash-domains": {
+    "branch": "codex/cf1-attention-hash-domains",
+    "claimed_at": "2026-10-17T19:56:11-04:00",
+    "head": "a2af13cc2",
     "lab": "codex",
     "note": ""
   },

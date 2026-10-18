@@ -523,6 +523,8 @@ struct AttentionCheckpoint {
     schema: String,
     admission_sha256: String,
     checkpoint: training::DriverCheckpoint,
+    model_storage_sha256: String,
+    model_snapshot_sha256: String,
     baseline_evaluation: Value,
     baseline_snapshot_metadata: Value,
     counters: Counters,
@@ -535,6 +537,8 @@ struct Q1Record {
     admission_sha256: String,
     baseline_evaluation_sha256: String,
     checkpoint: training::DriverCheckpoint,
+    model_storage_sha256: String,
+    model_snapshot_sha256: String,
     counters: Counters,
     evaluation: FilePin,
     init_b3: evidence::B3Summary,
@@ -592,6 +596,12 @@ fn validate_q1(
     }
     let q: Q1Record = serde_json::from_slice(&pin.read()?).map_err(|e| invalid(e.to_string()))?;
     driver.validate_checkpoint(&q.checkpoint)?;
+    let hashes = checkpoint_hash_domains(&q.checkpoint)?;
+    verify_snapshot_hash_fields(
+        &json!({"model_storage_sha256":q.model_storage_sha256,"model_snapshot_sha256":q.model_snapshot_sha256}),
+        &hashes.model_storage_sha256,
+        &hashes.model_snapshot_sha256,
+    )?;
     q.counters
         .validate(driver.config(), 4096, q.checkpoint.cursor.accepted_updates)?;
     if q.checkpoint.cursor.completed_batches != 4096
@@ -625,6 +635,7 @@ fn validate_q1(
     {
         return Err(invalid("attention Q1 evaluation envelope differs"));
     }
+    verify_checkpoint_hash_fields(&observed, &q.checkpoint)?;
     verify_evaluation(&observed["evaluation"], &q.checkpoint)?;
     let rows = dev_row_identities(driver.config())?;
     if evidence::summarize(&p.baseline_evaluation, &rows)? != q.init_b3
@@ -679,10 +690,13 @@ fn capture_q1(
             .gate_relation
             .any_candidate_cost_differs_from_identity,
     )?;
+    let hashes = checkpoint_hash_domains(&p.checkpoint)?;
     let record = Q1Record {
         admission_sha256: release.manifest_sha256.clone(),
         baseline_evaluation_sha256: corpus::sha256(&encode(&p.baseline_evaluation)?),
         checkpoint: p.checkpoint.clone(),
+        model_storage_sha256: hashes.model_storage_sha256,
+        model_snapshot_sha256: hashes.model_snapshot_sha256,
         counters: p.counters.clone(),
         evaluation,
         init_b3,
@@ -744,6 +758,12 @@ fn validate_progress(
     p: &AttentionCheckpoint,
 ) -> Result<()> {
     driver.validate_checkpoint(&p.checkpoint)?;
+    let hashes = checkpoint_hash_domains(&p.checkpoint)?;
+    verify_snapshot_hash_fields(
+        &json!({"model_storage_sha256":p.model_storage_sha256,"model_snapshot_sha256":p.model_snapshot_sha256}),
+        &hashes.model_storage_sha256,
+        &hashes.model_snapshot_sha256,
+    )?;
     let c = p.checkpoint.cursor;
     checkpoint_boundary(c.completed_batches)?;
     p.counters
@@ -779,14 +799,49 @@ fn validate_progress(
     validate_q1(driver, release, p)?;
     Ok(())
 }
+/// Validate named metadata domains. Old attention wrappers without the new pair
+/// are refused; this does not migrate or alter the historical DriverCheckpoint.
+#[cfg(any(feature = "cuda", test))]
+fn verify_snapshot_hash_fields(record: &Value, storage: &str, snapshot: &str) -> Result<()> {
+    corpus::validate_sha256(storage)?;
+    corpus::validate_sha256(snapshot)?;
+    if record["model_storage_sha256"].as_str() != Some(storage)
+        || record["model_snapshot_sha256"].as_str() != Some(snapshot)
+    {
+        return Err(invalid(
+            "snapshot storage/typed hash domains are missing or differ",
+        ));
+    }
+    Ok(())
+}
+#[cfg(feature = "cuda")]
+fn checkpoint_hash_domains(
+    checkpoint: &training::DriverCheckpoint,
+) -> Result<crate::device::SnapshotHashDomains> {
+    let hashes = crate::device::stored_snapshot_hash_domains(&checkpoint.model)?;
+    if hashes.model_storage_sha256 != checkpoint.model_sha256 {
+        return Err(invalid("DriverCheckpoint legacy storage hash differs"));
+    }
+    Ok(hashes)
+}
+#[cfg(feature = "cuda")]
+fn verify_checkpoint_hash_fields(
+    record: &Value,
+    checkpoint: &training::DriverCheckpoint,
+) -> Result<()> {
+    let hashes = checkpoint_hash_domains(checkpoint)?;
+    verify_snapshot_hash_fields(
+        record,
+        &hashes.model_storage_sha256,
+        &hashes.model_snapshot_sha256,
+    )
+}
 #[cfg(feature = "cuda")]
 fn verify_evaluation(evaluation: &Value, checkpoint: &training::DriverCheckpoint) -> Result<()> {
-    let snapshot: crate::device::Snapshot =
-        serde_json::from_value(checkpoint.model.clone()).map_err(|e| invalid(e.to_string()))?;
+    verify_checkpoint_hash_fields(evaluation, checkpoint)?;
     if evaluation["model_epoch"] != json!(checkpoint.cursor.accepted_updates)
         || evaluation["evaluation_lineage_sha256"]
             != json!(corpus::sha256(&encode(&checkpoint.lineage)?))
-        || evaluation["model_snapshot_sha256"] != json!(corpus::sha256(&encode(&snapshot)?))
         || evaluation["evaluation_mutates_model"] != json!(false)
         || evaluation["updates_applied_by_evaluation"] != json!(0)
     {
@@ -844,10 +899,11 @@ fn evaluate_once(
     transfer: Option<&corpus::PreparedCorpus>,
 ) -> Result<FilePin> {
     let path = release.manifest.run_state_directory.join(name);
+    let hashes = checkpoint_hash_domains(checkpoint)?;
     if !path.exists() {
         let evaluation = match transfer {
-            Some(source) => driver.evaluate_transfer(model, source)?,
-            None => driver.evaluate(model)?,
+            Some(source) => driver.evaluate_transfer_checkpoint(model, source, checkpoint)?,
+            None => driver.evaluate_checkpoint(model, checkpoint)?,
         };
         verify_evaluation(&evaluation, checkpoint)?;
         write_new(
@@ -855,6 +911,7 @@ fn evaluate_once(
             &json!({"schema":"uor-r4.attention-learning-evaluation/1",
             "admission_sha256":release.manifest_sha256,
             "transfer":transfer.map(|source| source.binding()),
+            "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
             "driver_checkpoint_sha256":corpus::sha256(&encode(checkpoint)?),"evaluation":evaluation}),
         )?;
         sync_directory(&release.manifest.run_state_directory)?;
@@ -870,6 +927,7 @@ fn evaluate_once(
             "attention durable evaluation admission/checkpoint differs",
         ));
     }
+    verify_checkpoint_hash_fields(&value, checkpoint)?;
     verify_evaluation(&value["evaluation"], checkpoint)?;
     if let Some(source) = transfer {
         if value["evaluation"]["transfer_corpus"] != json!(source.binding())
@@ -913,11 +971,15 @@ fn relation_off(
     ablated.model = serde_json::to_value(&snapshot).map_err(|e| invalid(e.to_string()))?;
     ablated.model_sha256 = corpus::sha256(&encode(&ablated.model)?);
     driver.validate_checkpoint(&ablated)?;
+    let parent_hashes = checkpoint_hash_domains(&p.checkpoint)?;
+    let ablated_hashes = checkpoint_hash_domains(&ablated)?;
     let state = &release.manifest.run_state_directory;
     let path = state.join("relation-off-checkpoint.json");
     let record = json!({"schema":"uor-r4.attention-relation-off/1","admission_sha256":release.manifest_sha256,
         "parent_driver_checkpoint_sha256":corpus::sha256(&encode(&p.checkpoint)?),
         "parent_model_sha256":p.checkpoint.model_sha256,"modified_storage":"only relation gate trits set to zero",
+        "parent_model_storage_sha256":parent_hashes.model_storage_sha256,"parent_model_snapshot_sha256":parent_hashes.model_snapshot_sha256,
+        "model_storage_sha256":ablated_hashes.model_storage_sha256,"model_snapshot_sha256":ablated_hashes.model_snapshot_sha256,
         "checkpoint":ablated});
     if !path.exists() {
         write_new(&path, &record)?;
@@ -949,6 +1011,8 @@ fn relation_off(
     Ok(
         json!({"status":"OBSERVED_PENDING_REGISTERED_DISCRIMINATOR","checkpoint":checkpoint_pin,"b3":b3,
         "evaluation":evaluation,"transfer_evaluations":0,"parent_model_sha256":p.checkpoint.model_sha256,
+        "parent_model_storage_sha256":parent_hashes.model_storage_sha256,"parent_model_snapshot_sha256":parent_hashes.model_snapshot_sha256,
+        "model_storage_sha256":ablated_hashes.model_storage_sha256,"model_snapshot_sha256":ablated_hashes.model_snapshot_sha256,
         "ablated_model_sha256":ablated.model_sha256,"learned_attention_result":"NOT_YET_SCORED"}),
     )
 }
@@ -1008,13 +1072,16 @@ pub fn run(
             let checkpoint = driver.checkpoint(&model, training::Cursor::initial())?;
             validate_initial_storage(driver.config(), &checkpoint.model)?;
             let baseline_snapshot_metadata = training::snapshot_metadata(&checkpoint.model)?;
-            let baseline_evaluation = driver.evaluate(&model)?;
+            let baseline_evaluation = driver.evaluate_checkpoint(&model, &checkpoint)?;
             verify_evaluation(&baseline_evaluation, &checkpoint)?;
+            let hashes = checkpoint_hash_domains(&checkpoint)?;
             (
                 model,
                 AttentionCheckpoint {
                     schema: PROGRESS_SCHEMA.into(),
                     admission_sha256: release.manifest_sha256.clone(),
+                    model_storage_sha256: hashes.model_storage_sha256,
+                    model_snapshot_sha256: hashes.model_snapshot_sha256,
                     checkpoint,
                     baseline_evaluation,
                     baseline_snapshot_metadata,
@@ -1069,6 +1136,9 @@ pub fn run(
             let completed = receipt.cursor_after.completed_batches;
             if completed.is_multiple_of(64) || completed == ATTENTION_BATCHES {
                 progress.checkpoint = driver.checkpoint(&model, receipt.cursor_after)?;
+                let hashes = checkpoint_hash_domains(&progress.checkpoint)?;
+                progress.model_storage_sha256 = hashes.model_storage_sha256;
+                progress.model_snapshot_sha256 = hashes.model_snapshot_sha256;
                 if completed == 4096 {
                     capture_q1(&driver, &release, &mut progress, &model)?;
                 }
@@ -1082,6 +1152,7 @@ pub fn run(
                         &json!({"status":"Q1_STOP_FOR_DIAGNOSIS",
                         "mechanism_negative":false,"learned_attention_result":"NOT_YET_SCORED",
                         "admission_sha256":release.manifest_sha256,"checkpoint":final_pin,"q1":progress.q1,
+                        "model_storage_sha256":progress.model_storage_sha256,"model_snapshot_sha256":progress.model_snapshot_sha256,
                         "completed_batches":4096,"fresh_transfer_evaluations":0}),
                     )?;
                     return sync_directory(out);
@@ -1112,6 +1183,7 @@ pub fn run(
             "eligible_train_target_exposures":ATTENTION_BATCHES*64,"sensitivity":progress.counters,
             "baseline_evaluation":progress.baseline_evaluation,"baseline_snapshot_metadata":progress.baseline_snapshot_metadata,
             "final_checkpoint":final_pin,"final_evaluation":final_evaluation,"final_b3":final_b3,"relation_off":ablation,
+            "model_storage_sha256":progress.model_storage_sha256,"model_snapshot_sha256":progress.model_snapshot_sha256,
             "attempt_elapsed_ns":started.elapsed().as_nanos().to_string(),
             "fresh_transfer":{"status":"SEALED_PENDING_PAIRED_DEV_DECISION","source":admission.plan.transfer,"evaluations":0},
             "q1":progress.q1,
@@ -1137,6 +1209,54 @@ pub fn run(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn snapshot_hash_pair_requires_named_domains_without_legacy_fallback() -> Result<()> {
+        let storage = "a".repeat(64);
+        let snapshot = "b".repeat(64);
+        let pair = json!({"model_storage_sha256":storage,"model_snapshot_sha256":snapshot});
+        verify_snapshot_hash_fields(&pair, &storage, &snapshot)?;
+        for invalid in [
+            json!({"model_snapshot_sha256":snapshot}),
+            json!({"model_sha256":storage,"model_snapshot_sha256":snapshot}),
+            json!({"model_storage_sha256":snapshot,"model_snapshot_sha256":storage}),
+            json!({"model_storage_sha256":storage,"model_snapshot_sha256":null}),
+            json!({"model_storage_sha256":storage,"model_snapshot_sha256":[]}),
+        ] {
+            assert!(verify_snapshot_hash_fields(&invalid, &storage, &snapshot).is_err());
+        }
+        assert!(verify_snapshot_hash_fields(&pair, "bad", &snapshot).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn hash_pair_validation_keeps_file_and_checkpoint_domains_separate() -> Result<()> {
+        // A metadata-only encoding example: declared struct order and sorted
+        // Value order differ, just as the production typed Snapshot fixture
+        // (CUDA-feature source test) checks with its real serializer.
+        #[derive(Serialize)]
+        struct StoredMetadata {
+            z: u32,
+            a: u32,
+        }
+        let typed = StoredMetadata { z: 7, a: 1 };
+        let stored = serde_json::to_value(&typed).map_err(|e| invalid(e.to_string()))?;
+        let storage = corpus::sha256(&encode(&stored)?);
+        let snapshot = corpus::sha256(&encode(&typed)?);
+        assert_ne!(storage, snapshot);
+        let raw_file = corpus::sha256(
+            &serde_json::to_vec_pretty(&stored).map_err(|e| invalid(e.to_string()))?,
+        );
+        let checkpoint = corpus::sha256(&encode(&json!({"model":stored,"model_sha256":storage}))?);
+        let mut record = json!({"model_storage_sha256":storage,"model_snapshot_sha256":snapshot,
+            "driver_checkpoint_sha256":checkpoint,"checkpoint_file":{"sha256":raw_file}});
+        verify_snapshot_hash_fields(&record, &storage, &snapshot)?;
+        record["model_snapshot_sha256"] = json!(checkpoint);
+        assert!(verify_snapshot_hash_fields(&record, &storage, &snapshot).is_err());
+        record["model_snapshot_sha256"] = json!(raw_file);
+        assert!(verify_snapshot_hash_fields(&record, &storage, &snapshot).is_err());
+        Ok(())
+    }
 
     // Configuration/admission/counter metadata only. No corpus, model or CUDA is constructed.
     fn config(read_spec: ReadSpec) -> DriverConfig {

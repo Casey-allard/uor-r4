@@ -915,7 +915,7 @@ pub const NAMES: &[&str] = &[
 /// the registered training shape. Part (i), ACTIVE, is the existing registered
 /// relation_copy_successor_fixture; its exact literals are not rerun or replaced.
 /// All read selection, carry, consensus and loss computations use Device.
-fn active_leaf_initialization_and_matched_off_path() -> Result<()> {
+fn active_leaf_initialization_and_matched_off_path() -> Result<serde_json::Value> {
     // INERT uses exactly the ACTIVE tokens, prefix, target, read shape and seed.
     // Only the declared interventions differ: all combines zero, Gate(6)=0/+1.
     let zero = relation_snapshot(6, 2, 1, 1, &C2_TOKENS, &[0; 14])?;
@@ -969,6 +969,7 @@ fn active_leaf_initialization_and_matched_off_path() -> Result<()> {
     for index in [0usize, 5, 10, 15] {
         expected[index] = 1;
     }
+    let mut init_locks = Vec::new();
     for seed in [1u32, 2] {
         let treatment = Device::new_with_initialization(
             spec,
@@ -1010,18 +1011,20 @@ fn active_leaf_initialization_and_matched_off_path() -> Result<()> {
                     .map_err(|e| Error::Invalid(e.to_string()))?,
             "INIT LOCK exact initial storage or identity changed on reload",
         )?;
-        println!(
-            "{}",
-            serde_json::json!({
+        let hashes = crate::device::snapshot_hash_domains(&treatment_snapshot)?;
+        let record = serde_json::json!({
             "control":"active_leaf_initialization_and_matched_off_path","part":"INIT LOCK",
             "spec":spec,"read_spec":read_spec,"seed":seed,
             "initialization":crate::ReadInitialization::ActiveLeafV1,
             "plus_one_combine_indices":[0,5,10,15],"gates":control_snapshot.gates,
             "treatment_control_snapshot_bit_identical":true,"reload_bit_identical":true,
-            "snapshot_sha256":crate::corpus::sha256(&treatment_bytes),"applied_updates":0})
-        );
+            "snapshot_sha256":crate::corpus::sha256(&treatment_bytes),
+            "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
+            "applied_updates":0});
+        println!("{record}");
+        init_locks.push(record);
     }
-    Ok(())
+    Ok(serde_json::json!({"init_locks":init_locks}))
 }
 
 /// Same reporting semantics as `qualification::run` and `flock_qualification::run`:
@@ -1029,15 +1032,15 @@ fn active_leaf_initialization_and_matched_off_path() -> Result<()> {
 /// controls NOT_RUN; the report directory is created exclusively before any CUDA work.
 pub fn run(report: &Path) -> Result<()> {
     std::fs::create_dir(report).map_err(|e| Error::Invalid(format!("exclusive report: {e}")))?;
-    let controls: [fn() -> Result<()>; 9] = [
-        relation_off_flock_parity,
-        relation_copy_successor_fixture,
-        relation_irrelevant_change_invariance,
-        relation_conflicting_successors,
-        relation_suffix_and_target_isolation,
-        relation_endpoint_causal_boundary,
-        relation_deterministic_tie_order,
-        relation_bounded_sweeps_and_refusals,
+    let controls: [fn() -> Result<serde_json::Value>; 9] = [
+        || relation_off_flock_parity().map(|()| serde_json::Value::Null),
+        || relation_copy_successor_fixture().map(|()| serde_json::Value::Null),
+        || relation_irrelevant_change_invariance().map(|()| serde_json::Value::Null),
+        || relation_conflicting_successors().map(|()| serde_json::Value::Null),
+        || relation_suffix_and_target_isolation().map(|()| serde_json::Value::Null),
+        || relation_endpoint_causal_boundary().map(|()| serde_json::Value::Null),
+        || relation_deterministic_tie_order().map(|()| serde_json::Value::Null),
+        || relation_bounded_sweeps_and_refusals().map(|()| serde_json::Value::Null),
         active_leaf_initialization_and_matched_off_path,
     ];
     let mut records = Vec::new();
@@ -1045,9 +1048,9 @@ pub fn run(report: &Path) -> Result<()> {
     for (index, (name, test)) in NAMES.iter().zip(controls).enumerate() {
         attempted += 1;
         let record = match test() {
-            Ok(()) => {
+            Ok(details) => {
                 passed += 1;
-                serde_json::json!({"index":index+1,"name":name,"status":"PASS"})
+                serde_json::json!({"index":index+1,"name":name,"status":"PASS","details":details})
             }
             Err(error @ Error::Cuda(_)) => {
                 failed = true;
