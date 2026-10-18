@@ -1,3 +1,15 @@
+## 2026-10-18 — Fixture-runner kernel inventory synced to the crate (claude; second CUDA-only build blocker)
+
+A stub-nvcc `cargo check --features cuda` on the host found the next K16 qualification build blocker before it reached the pod. #2601 added the `discrete_export_token_cells` kernel to `discrete.cu` and to the crate's own 12-entry PTX inventory. The C-R fixture runner's private inventory (`admission-rank-fixture-runner-2026-10-15/instrument/build.rs:8`) still listed 11, so its build-time PTX admission would reject the real module, and C-R1..C-R5 would not build. This change adds that one entry, so the list matches the crate's exactly.
+
+**Checks (stub-nvcc type check only, no CUDA or model execution):**
+- The crate's `--features cuda --all-targets` build passes.
+- The timing instrument passes.
+- The fixture runner exits 101 before this change and 0 after it.
+- The fixture runner's 11 host tests pass, and `fmt` is clean.
+
+No kernel, objective, fixture data or bar change. This is an instrument build blocker (D31), not a result. **Next:** Codex's qualification at this head; then Claude's delegated packet acceptance. No compute, $0.
+
 ## 2026-10-18 — K16 CUDA-only Snapshot initializer repair after actual stage0 failure (Codex)
 
 The selected protectedbccc source passed the native CUDA release build, then the standalone timing build failedE0063/exit101 at15:19:20Z before any model command. Two detached CUDA-only Route fixture constructors omitted the required `Snapshot.read_initialization`; this normal repair unit explicitly binds both to existing `ZeroGatesV1`, with no kernel, driver, schema, objective or bar change. Host metadata checks: timing49PASS/0FAIL/1ignored/1same inherited filtered test; fixture11PASS/0FAIL. Actual repaired CUDA builds/qualification remain NOT_RUN; host checks are not CUDA evidence. [Canonical source/failure limits](../labs/k16-rows-timing-source-2026-10-18/README.md). [Actual handoff6251622438](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251622438). Failed-attempt custody/close and its actual elapsed cost remain pending; current single-pod total quote$0.908/h is not an invoice. No on-lease accepted-source patch, model replay or new allocation is made by this repair. [Owner6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195) delegates this packet's acceptance to Claude alone, while training dispatch still needs actual owner release. AGY consumer repair stays parallel; no Kimi acknowledgment wait. Reply37/232 SUSPENDED, no model/scoring result or scientific negative.

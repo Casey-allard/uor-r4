@@ -5,9 +5,10 @@
 use std::collections::BTreeSet;
 use std::{env, fs, path::PathBuf, process::Command};
 
-const ENTRIES: [&str; 11] = [
+const ENTRIES: [&str; 12] = [
     "discrete_init",
     "discrete_encode",
+    "discrete_export_token_cells",
     "discrete_forward",
     "discrete_counterfactual",
     "discrete_choose",
