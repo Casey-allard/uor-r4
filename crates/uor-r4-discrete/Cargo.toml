@@ -27,6 +27,10 @@ name = "prime-zeta-qualify"
 path = "src/bin/prime-zeta-qualify.rs"
 
 [[bin]]
+name = "prime-zeta-codebook"
+path = "src/bin/prime-zeta-codebook.rs"
+
+[[bin]]
 name = "rows-qualify"
 path = "src/bin/rows-qualify.rs"
 

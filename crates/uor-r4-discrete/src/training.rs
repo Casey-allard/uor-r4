@@ -67,6 +67,88 @@ impl CounterfactualPath {
         *self == Self::LanesV1
     }
 }
+/// Initial codebook of a fresh model (D39 item 3). The default is the seeded
+/// device initializer, and it keeps existing configurations byte-identical. A
+/// pinned table is an exact integer codebook (e.g. the qualified PrimeZeta
+/// constructor's output), bound into the lineage by its file SHA-256 and
+/// admitted by the same GPU snapshot validation as any reload.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum CodebookInitialization {
+    #[default]
+    SeededDeviceV1,
+    PinnedTableV1 {
+        table: FilePin,
+    },
+}
+impl CodebookInitialization {
+    pub fn is_seeded_device(&self) -> bool {
+        *self == Self::SeededDeviceV1
+    }
+}
+pub const CODEBOOK_TABLE_SCHEMA: &str = "uor-r4.codebook-table/1";
+/// The integer codebook file a pinned initialization names. `table_sha256` is
+/// SHA-256 over the little-endian bytes of every word, in table order (the
+/// PrimeZeta constructor's own table digest).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CodebookTable {
+    pub schema: String,
+    pub spec: Spec,
+    pub mode: String,
+    pub table: Vec<i32>,
+    pub table_sha256: String,
+    /// Declared number of distinct full token vectors (4,096 means injective at
+    /// V4096). The loader recounts it, so a claimed property is a checked one.
+    pub distinct_vectors: usize,
+}
+impl CodebookTable {
+    pub fn words_sha256(table: &[i32]) -> String {
+        let bytes: Vec<u8> = table.iter().flat_map(|w| w.to_le_bytes()).collect();
+        corpus::sha256(&bytes)
+    }
+    /// Distinct full token vectors (all blocks) in a table of `blocks` blocks.
+    pub fn count_distinct(table: &[i32], blocks: u32) -> usize {
+        let width = blocks as usize * 8;
+        if width == 0 {
+            return 0;
+        }
+        table
+            .chunks_exact(width)
+            .collect::<std::collections::HashSet<_>>()
+            .len()
+    }
+    /// Read and check a pinned table for `spec`. Host metadata only: root
+    /// membership is admitted on the GPU when the table is loaded.
+    pub fn load(pin: &FilePin, spec: Spec) -> Result<Vec<i32>> {
+        let file: Self =
+            serde_json::from_slice(&pin.read()?).map_err(|e| invalid(e.to_string()))?;
+        if file.schema != CODEBOOK_TABLE_SCHEMA {
+            return Err(invalid(format!("codebook table schema {}", file.schema)));
+        }
+        if file.spec.vocabulary != spec.vocabulary || file.spec.blocks != spec.blocks {
+            return Err(invalid(
+                "codebook table vocabulary/blocks differ from the driver spec",
+            ));
+        }
+        if file.table.len() != spec.vocabulary as usize * spec.blocks as usize * 8 {
+            return Err(invalid(
+                "codebook table length differs from vocabulary x blocks x 8",
+            ));
+        }
+        if Self::words_sha256(&file.table) != file.table_sha256 {
+            return Err(invalid(
+                "codebook table words differ from their declared SHA-256",
+            ));
+        }
+        if Self::count_distinct(&file.table, spec.blocks) != file.distinct_vectors {
+            return Err(invalid(
+                "codebook table distinct-vector count differs from its declaration",
+            ));
+        }
+        Ok(file.table)
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DriverConfig {
@@ -84,6 +166,11 @@ pub struct DriverConfig {
     pub relation_learning_policy: RelationLearningPolicy,
     #[serde(default, skip_serializing_if = "CounterfactualPath::is_lanes")]
     pub counterfactual_path: CounterfactualPath,
+    #[serde(
+        default,
+        skip_serializing_if = "CodebookInitialization::is_seeded_device"
+    )]
+    pub codebook_initialization: CodebookInitialization,
     pub seed: u32,
     pub batch_rows: u32,
     pub train: CorpusSource,
@@ -209,6 +296,8 @@ pub struct PreparedDriver {
     lineage: Lineage,
     coordinates: u32,
     schedule_cycle: u32,
+    /// The pinned initial codebook, when the config names one.
+    initial_table: Option<Vec<i32>>,
 }
 
 impl PreparedDriver {
@@ -262,6 +351,12 @@ impl PreparedDriver {
             train: train.binding().clone(),
             dev: dev.binding().clone(),
         };
+        let initial_table = match &config.codebook_initialization {
+            CodebookInitialization::SeededDeviceV1 => None,
+            CodebookInitialization::PinnedTableV1 { table } => {
+                Some(CodebookTable::load(table, config.spec)?)
+            }
+        };
         Ok(Self {
             config,
             train,
@@ -269,6 +364,7 @@ impl PreparedDriver {
             lineage,
             coordinates,
             schedule_cycle,
+            initial_table,
         })
     }
     pub fn config(&self) -> &DriverConfig {
@@ -697,6 +793,7 @@ mod tests {
             read_initialization: ReadInitialization::ZeroGatesV1,
             relation_learning_policy: RelationLearningPolicy::LearnV1,
             counterfactual_path: CounterfactualPath::LanesV1,
+            codebook_initialization: CodebookInitialization::SeededDeviceV1,
             schema: DRIVER_SCHEMA.into(),
             spec,
             read_spec,
@@ -737,6 +834,7 @@ mod tests {
             lineage,
             coordinates,
             schedule_cycle,
+            initial_table: None,
         })
     }
     #[test]
@@ -1201,6 +1299,100 @@ mod tests {
         Ok(())
     }
     #[test]
+    fn codebook_initialization_default_keeps_config_bytes_and_pin_is_bound() -> Result<()> {
+        let legacy = metadata_fixture(1, ReadSpec::Route)?;
+        let encoded = serde_json::to_value(&legacy.config).map_err(|e| invalid(e.to_string()))?;
+        // The seeded default is never serialized: existing config hashes hold.
+        assert!(encoded.get("codebook_initialization").is_none());
+        assert!(legacy.initial_table.is_none());
+        let mut pinned = legacy.config.clone();
+        pinned.codebook_initialization = CodebookInitialization::PinnedTableV1 {
+            table: FilePin {
+                path: std::path::PathBuf::from("/codebook.json"),
+                sha256: "a".repeat(64),
+            },
+        };
+        let pinned_encoded = serde_json::to_value(&pinned).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(
+            pinned_encoded["codebook_initialization"]["kind"],
+            "pinned_table_v1"
+        );
+        let decoded: DriverConfig =
+            serde_json::from_value(pinned_encoded).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(decoded, pinned);
+        // The pinned table's file hash is part of the bound configuration.
+        assert_ne!(
+            serde_json::to_vec(&pinned).map_err(|e| invalid(e.to_string()))?,
+            serde_json::to_vec(&legacy.config).map_err(|e| invalid(e.to_string()))?
+        );
+        Ok(())
+    }
+    #[test]
+    fn pinned_codebook_table_is_checked_before_any_model() -> Result<()> {
+        let spec = Spec {
+            vocabulary: 2,
+            blocks: 2,
+            context: 4,
+            kept_cells: 1,
+        };
+        let table: Vec<i32> = (0..32).collect();
+        let good = CodebookTable {
+            schema: CODEBOOK_TABLE_SCHEMA.into(),
+            spec,
+            mode: "prime_zeta".into(),
+            table_sha256: CodebookTable::words_sha256(&table),
+            distinct_vectors: CodebookTable::count_distinct(&table, spec.blocks),
+            table: table.clone(),
+        };
+        // Gitignored scratch under the repository root (never /tmp).
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../local/test-scratch")
+            .join(format!("codebook-table-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).map_err(|e| invalid(e.to_string()))?;
+        let pin = |name: &str, file: &CodebookTable| -> Result<FilePin> {
+            let path = dir.join(name);
+            let bytes = serde_json::to_vec(file).map_err(|e| invalid(e.to_string()))?;
+            std::fs::write(&path, &bytes).map_err(|e| invalid(e.to_string()))?;
+            Ok(FilePin {
+                path,
+                sha256: corpus::sha256(&bytes),
+            })
+        };
+        assert_eq!(CodebookTable::load(&pin("good.json", &good)?, spec)?, table);
+        let mut wrong_schema = good.clone();
+        wrong_schema.schema = "other".into();
+        let mut short = good.clone();
+        short.table.pop();
+        short.table_sha256 = CodebookTable::words_sha256(&short.table);
+        let mut wrong_digest = good.clone();
+        wrong_digest.table[0] += 1;
+        let mut other_spec = good.clone();
+        other_spec.spec.vocabulary = 3;
+        let mut other_blocks = good.clone();
+        other_blocks.spec.blocks = 4;
+        let mut false_distinct = good.clone();
+        false_distinct.distinct_vectors += 1;
+        for (name, file) in [
+            ("schema.json", &wrong_schema),
+            ("short.json", &short),
+            ("digest.json", &wrong_digest),
+            ("spec.json", &other_spec),
+            ("blocks.json", &other_blocks),
+            ("distinct.json", &false_distinct),
+        ] {
+            assert!(
+                CodebookTable::load(&pin(name, file)?, spec).is_err(),
+                "{name}"
+            );
+        }
+        // A file whose bytes differ from its pin is refused before parsing.
+        let mut stale = pin("good.json", &good)?;
+        stale.sha256 = "b".repeat(64);
+        assert!(CodebookTable::load(&stale, spec).is_err());
+        std::fs::remove_dir_all(&dir).map_err(|e| invalid(e.to_string()))?;
+        Ok(())
+    }
+    #[test]
     fn frozen_relation_preserves_all_scheduled_proposal_slots() -> Result<()> {
         let frozen = frozen_relation_metadata_fixture()?;
         let mut learned = frozen_relation_metadata_fixture()?;
@@ -1454,14 +1646,27 @@ impl PreparedDriver {
         Ok(())
     }
     pub fn new_model(&self, ordinal: usize) -> Result<crate::device::Device> {
-        crate::device::Device::new_with_initialization(
+        let model = crate::device::Device::new_with_initialization(
             self.config.spec,
             self.config.read_spec,
             self.config.objective_policy,
             self.config.read_initialization,
             self.config.seed,
             ordinal,
-        )
+        )?;
+        let Some(table) = &self.initial_table else {
+            return Ok(model);
+        };
+        // Routes, gates, seed and epoch stay the device initializer's; only the
+        // codebook is replaced. from_snapshot admits every table word as a root
+        // on the GPU, exactly as for any reload.
+        let mut snapshot = model.snapshot()?;
+        snapshot.table = table.clone();
+        let model = crate::device::Device::from_snapshot(snapshot, ordinal)?;
+        if model.snapshot()?.table != *table {
+            return Err(invalid("pinned initial codebook differs after device load"));
+        }
+        Ok(model)
     }
     pub fn checkpoint(
         &self,

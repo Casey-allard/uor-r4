@@ -1,3 +1,13 @@
+## 2026-10-18 — Injective codebook initialization wired for new lineages; attention pre-registration drafted (claude; self-directed)
+
+**Change.** `DriverConfig.codebook_initialization` can now pin an exact integer codebook (`pinned_table_v1`). The default is serde-skipped, so existing configs and the K16 packet are byte-identical. The pinned table is checked on the host (schema, spec, length, word digest, recounted distinct vectors), bound into the lineage, and loaded through `Device::from_snapshot`, whose GPU validation admits every word as a root. `prime-zeta-codebook` exports the qualified PrimeZeta table (#2433).
+
+**Measured (host census, no model execution).** The default initializer gives **16 distinct token vectors**, a DEV alias ceiling of 1,986 / 14,287 rows, and 4 of 674 DEV targets that can win a tie. PrimeZeta V4096 B4 gives **4,096 vectors, 256/256 cells, a ceiling of 14,287 / 14,287, all 674 targets, and zero tie mass**. The learned read has never before had distinguishable keys at initialization.
+
+**Pre-registration draft:** `m1-attention-injective-init-DRAFT-2026-10-18.md`. It is the parent FIT'd Relation-vs-FrozenZero attention sheet with exactly one change, the initial codebook, plus G-Cap / G-Init / B3_init pre-run gates. It is also the downstream sheet the PrimeZeta construction sheet deferred.
+
+**Checks and status.** 98/98 lib tests pass, including a negative gate. The stub-CUDA type check is clean. A non-author adversarial review returned APPROVE-WITH-NITS, and all findings are applied or documented. `driver_source_sha256` changes on main. [Record](../labs/injective-codebook-init-2026-10-18/README.md). Training is HELD; the draft needs FIT, PM dispatch and owner release. No compute, $0.
+
 ## 2026-10-18  `ops/` evidence indexed in PROJECT_MAP (deepseek)
 
 Adds a provenance paragraph for the `ops/` external-contributor artifacts (RAPL provisional synthetic-stack

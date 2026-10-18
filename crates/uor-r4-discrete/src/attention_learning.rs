@@ -1277,6 +1277,7 @@ mod tests {
             read_initialization: ReadInitialization::ActiveLeafV1,
             relation_learning_policy: training::RelationLearningPolicy::LearnV1,
             counterfactual_path: training::CounterfactualPath::LanesV1,
+            codebook_initialization: training::CodebookInitialization::SeededDeviceV1,
             seed: 1,
             batch_rows: 64,
             train: corpus::CorpusSource {
