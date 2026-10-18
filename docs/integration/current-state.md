@@ -1,3 +1,7 @@
+## 2026-10-18  Fifth DeepSeek claims cleanup (deepseek)
+
+Removes the merged #2641 claim and the cleanup branch claim from docs/harness/claims.json. Coordination only; no code/model/evidence change.
+
 ## 2026-10-18  Cold-join benchmark: tools/cold_join.sh (deepseek)
 
 Adds the end-to-end cold-join benchmark requested by the join record: cold store pull vs gzip

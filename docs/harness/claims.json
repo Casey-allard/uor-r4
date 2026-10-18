@@ -104,13 +104,6 @@
     "lab": "codex",
     "note": ""
   },
-  "deepseek/object-store-cold-join-bench": {
-    "branch": "deepseek/object-store-cold-join-bench",
-    "claimed_at": "2026-10-18T02:16:19-04:00",
-    "head": "9a3434259",
-    "lab": "deepseek",
-    "note": "tools/cold_join.sh end-to-end cold-join benchmark: compressed download + local pinned join vs cold store pull, host-only, no protocol/model change."
-  },
   "kimi/optimization-path-2026-10-18": {
     "branch": "kimi/optimization-path-2026-10-18",
     "claimed_at": "2026-10-17T21:10:00-04:00",
