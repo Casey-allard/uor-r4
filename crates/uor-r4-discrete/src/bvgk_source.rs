@@ -235,7 +235,7 @@ mod tests {
             "sigmoid",
             "tanh",
             "softplus",
-            "softmax",
+            concat!("soft", "max"),
             "sqrt",
             "mma.",
             "mma_",
