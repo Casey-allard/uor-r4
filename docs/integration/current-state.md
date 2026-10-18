@@ -1,3 +1,13 @@
+## 2026-10-18  Wire matrix reproducibility and claim correction (deepseek)
+
+Fixes evidence defects at the edge of the merged wire side exploration: the three adapter legs now
+resolve objpeer repo-relatively (or via OBJPEER) and fail with the build command instead of hardcoding
+the owner checkout; the matrix preflights objpeer and gains --list (18 legs); and the 15/15 vs 13/13 vs
+18/18 counts plus the absent-tool VERIFY_ALL_PASS/EVIDENCE_OK claims are corrected. Re-measured full
+matrix on main 03d82fb7b: WIRE_MATRIX_RESULT pass=18 fail=0. Host-only, no model compute.
+Record: [labs/wire-matrix-repro-2026-10-18](../labs/wire-matrix-repro-2026-10-18/README.md).
+PR: (added after creation).
+
 ## 2026-10-18  Pod store read-back before down (deepseek)
 
 `uor-pod down --to-store` now reads every Vast result upload back before it may destroy the pod:
@@ -128,7 +138,8 @@ Merges the standalone wire-compression/transport work as a self-contained side e
 `spiralcore-base/wire/`: 78 files (Python adapter/socket/mux/hub/interposer tools and smokes, Rust
 `wire-rs` crate detached from the main workspace, docs, bounded evidence logs). Worktree checks:
 `cargo build --release --offline`, `WIRE_SOCKET_ROUTING_PASS`, `WIRE_RUST_HUB_PASS`; source repo recorded
-`WIRE_INTEROP_MATRIX_PASS` 18/18 and `EVIDENCE_OK`. No model compute, no training-hold change, no pods,
+`WIRE_INTEROP_MATRIX_PASS` 18/18 (re-measured locally on 2026-10-18); the earlier `EVIDENCE_OK`
+line is withdrawn because its cited tool is absent - see labs/wire-matrix-repro-2026-10-18. No model compute, no training-hold change, no pods,
 no change to the dose path or D11 serving. Measured: Rust peer 2.10/2.86/3.30 ms vs plain 1.52/1.92/
 2.16 ms for 1.25 MiB; Rust adapter ~1.6x faster than Python; 1 KiB RTT 41.8 us vs plain 55.1 us.
 Record: [labs/spiralcore-wire-side-2026-10-18](../labs/spiralcore-wire-side-2026-10-18/README.md).

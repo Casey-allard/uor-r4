@@ -7,6 +7,20 @@ WORK="$PROJ/local/wire-matrix"
 mkdir -p "$WORK"
 PASS=0
 FAIL=0
+ROOT=$(cd "$PROJ/../.." && pwd)
+OBJPEER=${OBJPEER:-$ROOT/target/release/objpeer}
+export OBJPEER
+if [ "${1:-}" = "--list" ]; then
+  for n in socket-layer socket-routing socket-tls mux mux-routing interposer-macos interposer-linux-mvm hub-cli rust-interop rust-hub rust-adapter rust-mux adapter-pair adapter-hub adapter-policy adapter-metrics adapter-idle adapter-protocol; do echo "$n"; done
+  echo "LEGS_COUNT=18"
+  exit 0
+fi
+if [ ! -x "$OBJPEER" ]; then
+  echo "MATRIX PRECHECK FAIL: no objpeer at $OBJPEER" >&2
+  echo "  build: (cd \"$ROOT\" && cargo build --release -p uor-r4-object-store --bin objpeer)" >&2
+  echo "  or set OBJPEER to an existing binary" >&2
+  exit 1
+fi
 run() {
   local name=$1
   shift

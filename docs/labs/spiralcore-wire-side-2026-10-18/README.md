@@ -24,8 +24,10 @@ list; the crate is standalone with its own [workspace] table.
     python3 tools/wire_socket_routing_smoke.py                             WIRE_SOCKET_ROUTING_PASS
     bash tools/wire_rust_hub_smoke.sh                                      WIRE_RUST_HUB_PASS
 
-Source repository (review repo) recorded before the copy: WIRE_INTEROP_MATRIX_PASS 18/18 and
-EVIDENCE_OK. Conflict-marker scan on touched docs: zero markers.
+Source repository (review repo) recorded before the copy: WIRE_INTEROP_MATRIX_PASS 18/18. The
+EVIDENCE_OK line is withdrawn: the cited tools/check_evidence.py is not in the copied folder. The
+18/18 claim was re-measured on main 03d82fb7b on 2026-10-18 (see labs/wire-matrix-repro-2026-10-18).
+Conflict-marker scan on touched docs: zero markers.
 
 ## Measured headline (committed evidence, loopback, loaded host)
 

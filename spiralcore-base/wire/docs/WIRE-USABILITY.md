@@ -21,7 +21,7 @@ one wire framing (UORADP01 handshake, u32 frames with a raw-flag bit, hybrid zli
 | TLS socket layer | tools/wire_socket_tls_smoke.py | WIRE_SOCKET_TLS_PASS |
 | Mux per-stream routing | tools/wire_mux_routing_smoke.py | WIRE_MUX_ROUTING_PASS |
 | Rust binding | tools/wire_rust_interop_smoke.sh | WIRE_RUST_INTEROP_PASS |
-| Full interop matrix | tools/wire_interop_matrix.sh | WIRE_INTEROP_MATRIX_PASS (15/15) |
+| Full interop matrix | tools/wire_interop_matrix.sh | WIRE_INTEROP_MATRIX_PASS (18/18) |
 | Overhead benchmark | tools/wire_overhead_bench.py | WIRE_OVERHEAD_BENCH_PASS |
 
 ## Measurements
@@ -50,15 +50,19 @@ on real links (the earlier WAN measurements: adapter tunnel ratio 0.904 on proto
 232x; protocol batch opt-in 2.58x WAN; cold-join 1:2.73). No exponential speedup or compression-carrier
 claim is made.
 
-## Interop matrix (15/15 PASS)
+## Interop matrix (18/18 PASS, measured 2026-10-18)
 
-socket layer, routing, mux, mux per-stream routing, macOS interposer, Linux interposer (mvm), hub CLI, Rust interop, adapter
-pair/hub/policy/metrics/idle/protocol. Evidence: evidence/artifacts/usability/matrix-run.log.
+The matrix runs 18 legs: socket layer, socket routing, TLS, mux, mux routing, macOS interposer, Linux
+interposer (mvm), hub CLI, four Rust-binding legs, and seven adapter legs. Measured at main `03d82fb7b`
+on 2026-10-18 with `WIRE_MATRIX_RESULT pass=18 fail=0` and `WIRE_INTEROP_MATRIX_PASS tests=18`; per-leg
+logs are written under `local/wire-matrix/` (gitignored) and the command below prints the markers.
 
 ## Regression
 
-tools/verify_all.sh -> VERIFY_ALL_PASS on uor-r4 main b32a54882 (58 tests, Clippy, fmt, fleet demo, Python
-port, cold join, portable agent); tools/check_evidence.py -> EVIDENCE_OK. Owner checkout clean; 0 pods.
+Earlier copies of this document cited `tools/verify_all.sh` (VERIFY_ALL_PASS) and `tools/check_evidence.py`
+(EVIDENCE_OK); those tools are not in this folder, so those two claims are withdrawn. Verification is the
+matrix command plus each leg marker; the matrix preflight fails loudly if `objpeer` is missing rather than
+silently skipping adapter legs. No aggregate EVIDENCE_OK tool is shipped here.
 
 ## Residual limits (documented, not hidden)
 
@@ -75,9 +79,11 @@ port, cold join, portable agent); tools/check_evidence.py -> EVIDENCE_OK. Owner 
 
 ## Reproduce
 
-    bash tools/wire_interop_matrix.sh                # 13/13
+    # objpeer is required by the adapter legs; resolve/build it repo-relatively:
+    #   (cd <repo-root> && cargo build --release -p uor-r4-object-store --bin objpeer)
+    # or export OBJPEER=/path/to/objpeer
+    bash tools/wire_interop_matrix.sh --list         # 18 leg names
+    bash tools/wire_interop_matrix.sh                # 18/18 -> WIRE_INTEROP_MATRIX_PASS tests=18
     python3 tools/wire_overhead_bench.py             # overhead table
     bash tools/wire_interposer_smoke.sh              # macOS
     # Linux interposer: run wire_interposer_linux_smoke.sh in a Linux VM / mvm microVM
-    UOR_R4=~/uor-r4 bash tools/verify_all.sh         # VERIFY_ALL_PASS
-    UOR_R4=~/uor-r4 python3 tools/check_evidence.py  # EVIDENCE_OK

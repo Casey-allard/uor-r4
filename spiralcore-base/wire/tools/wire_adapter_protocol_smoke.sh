@@ -3,12 +3,13 @@
 set -u
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 PROJ=$(cd "$SCRIPT_DIR/.." && pwd)
+REPO_ROOT=$(cd "$PROJ/../.." && pwd)
 if [ -z "$(printenv OBJPEER)" ]; then
-  OBJPEER="$HOME/uor-r4/target/release/objpeer"
+  OBJPEER="$REPO_ROOT/target/release/objpeer"
 else
   OBJPEER=$(printenv OBJPEER)
 fi
-[ -x "$OBJPEER" ] || { echo "missing objpeer: $OBJPEER" >&2; exit 2; }
+[ -x "$OBJPEER" ] || { echo "missing objpeer: $OBJPEER (build: cargo build --release -p uor-r4-object-store --bin objpeer)" >&2; exit 2; }
 mkdir -p "$PROJ/local"
 WORK=$(mktemp -d "$PROJ/local/wire-protocol.XXXXXX")
 ALL_PIDS=""

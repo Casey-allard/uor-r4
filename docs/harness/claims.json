@@ -90,6 +90,13 @@
     "lab": "deepseek",
     "note": "Additive read-back verification of Vast --to-store result uploads before down deletes the pod (F1). Owns scripts/pod/uor-pod vast_archive_store/down path and scripts/pod/tests/uor-pod-dryrun.sh; no changes to pod tool behaviour outside verification, no model compute."
   },
+  "deepseek/wire-matrix-repro": {
+    "branch": "deepseek/wire-matrix-repro",
+    "claimed_at": "2026-10-18T01:05:41-04:00",
+    "head": "03d82fb7b",
+    "lab": "deepseek",
+    "note": "Fix wire side-exploration evidence: make the 3 objpeer matrix legs repo-relative (no owner checkout), add preflight build/list + skip reasons, remove or implement cited-but-absent tools, reconcile the 18/18 vs 15/15 vs 13/13 counts with a local run, and correct current-state claims. No model compute."
+  },
   "kimi/optimization-path-2026-10-18": {
     "branch": "kimi/optimization-path-2026-10-18",
     "claimed_at": "2026-10-17T21:10:00-04:00",
