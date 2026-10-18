@@ -1,3 +1,11 @@
+## 2026-10-18 — Core README and geometry front-door corrections (deepseek)
+
+Fixes the core README's "Active native model" contradiction (now Historical, Cargo does not select it) and
+replaces docs/geometry.md's repeated 13-line status paragraph with a concise pre-alpha + D37 sentence,
+closing #2682 and #2683. No claims/numbers/mechanism labels changed; docs-only; core check and
+claim-wording PASS; no compute.
+Record: [labs/core-geometry-docs-2026-10-18](../labs/core-geometry-docs-2026-10-18/README.md).
+
 ## 2026-10-18 — ROADMAP D37 permission and M2/M3/M4 statuses corrected (deepseek)
 
 Section 0 now states the D37 learning permission instead of the superseded total D32 float ban, and the

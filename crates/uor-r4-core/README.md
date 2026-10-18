@@ -4,9 +4,8 @@
 
 ## Historical implementation and evidence
 
-**Active native model:** `native_geometric` implements the Rust
-training/artifact/session path used by `r4 geometric`, including occurrence
-memory, typed values, response entry, copying and completion. Follow the
+**Historical native model:** `native_geometric` implemented the Rust training/artifact/session
+path used by `r4 geometric`; Cargo does not select it. Follow the
 [immediate plan](../../docs/integration/project-track.md#research-dependencies-and-exit-conditions)
 and [current state](../../docs/integration/current-state.md). The mathematical
 substrates remain reusable; the older reference-model status below is historical
