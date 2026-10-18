@@ -215,5 +215,12 @@
     "head": "f8af41057",
     "lab": "deepseek",
     "note": "unread-note surfacing in heartbeat + claims housekeeping"
+  },
+  "kimi/optimization-path-2026-10-18": {
+    "branch": "kimi/optimization-path-2026-10-18",
+    "claimed_at": "2026-10-17T21:10:00-04:00",
+    "head": "b8158ad98",
+    "lab": "kimi",
+    "note": "Docs-only: post-dose optimization path in project-track.md + current-state entry + canonical record. No source/science changes."
   }
 }
