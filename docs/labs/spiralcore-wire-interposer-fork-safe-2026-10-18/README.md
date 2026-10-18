@@ -58,3 +58,7 @@ shutdown(SHUT_RDWR) to wake a blocked reader, which disturbs a socket shared aft
 
 Protected PR, exact-head review, merge, cleanup and hygiene.
 PR: https://github.com/UOR-Foundation/uor-r4/pull/2625
+
+## Claims cleanup (2026-10-18)
+
+After #2625 merged, its branch claim and this cleanup branch claim were removed from docs/harness/claims.json. No code, model or evidence change.

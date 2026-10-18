@@ -1,3 +1,7 @@
+## 2026-10-18  Fork-safe interposer claims cleanup (deepseek)
+
+Removes the stale committed claim for the merged fork-safe interposer branch (#2625) and this cleanup branch from docs/harness/claims.json. No code, model or evidence change; coordination record only.
+
 ## 2026-10-18  Interposer fork-safe close (wire side exploration; deepseek)
 
 Closes the Codex P1 residual on the merged wire side exploration: close no longer calls
