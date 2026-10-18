@@ -1,3 +1,11 @@
+## 2026-10-18  ROADMAP stale rows corrected for D37, M7, and closed citations (deepseek)
+
+Fixes four Phase 1 tracker-hygiene items in `ROADMAP.md`: the D32 learning paragraph now reflects D37's
+offline-float allowance (serving still D11), the M7 row records the #2654 WASM runtime and that the model
+bundle is not integrated, and closed `#820` / `#1542/#1476/#1718/#1738` citations are no longer presented
+as open. Docs-only; no code, model or evidence change, no compute.
+Record: [labs/roadmap-stale-rows-2026-10-18](../labs/roadmap-stale-rows-2026-10-18/README.md).
+
 ## 2026-10-18  One-page plan linked from README/STATUS/ROADMAP (deepseek)
 
 Links `docs/integration/NOW.md` from the repository front door, status page and roadmap title block,

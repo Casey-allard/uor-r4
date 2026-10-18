@@ -50,7 +50,7 @@ and separate M2 holds remain HELD. Kimi owns the
 discrete successor sheet; a FIT review releases no hold.
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
-Updated 14 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
+Updated 18 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
 capability and lower complete-path energy are not established.
 
 Milestones M1-M8 below, with the standing serving rules in section 0. Live status and claims:
@@ -148,13 +148,14 @@ closes only when its acceptance is met on the saved model.
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | in progress; compute blocked | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained inactive; model/stack executors are excluded from the selected integer facade. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |
 | M5 | [Laptop cost, D5](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | Measured J/token, RSS and tokens/s on the M1 with selected parameter access | none |
 | M6 | [Reasoning and coding](https://github.com/UOR-Foundation/uor-r4/issues/2034) | not started | Executable reasoning and coding on the same model | exact arithmetic is the visible gap |
-| M7 | [API, WASM, Pages Studio](https://github.com/UOR-Foundation/uor-r4/issues/2035) | not started | The model reachable through API, WASM and the Studio | local API only |
+| M7 | [API, WASM, Pages Studio](https://github.com/UOR-Foundation/uor-r4/issues/2035) | runtime delivered; model bundle not integrated | The model reachable through API, WASM and the Studio | D11 WASM runtime + zero-matmul audit gate landed (#2654; [record](docs/labs/wasm-serving-runtime-2026-10-18/README.md)); local API only; the selected model bundle is not yet reachable |
 | M8 | [Alpha release](https://github.com/UOR-Foundation/uor-r4/issues/2036) | not started | Owner-declared alpha | none |
 
 Standing direction (owner, 3 October): no transformer baselines; mechanisms are compared with matched geometric alternatives and with the previous best geometric model.
 
-Standing issues: compute board [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037); open bugs [#1542](https://github.com/UOR-Foundation/uor-r4/issues/1542), [#1476](https://github.com/UOR-Foundation/uor-r4/issues/1476),
-[#1718](https://github.com/UOR-Foundation/uor-r4/issues/1718), [#1738](https://github.com/UOR-Foundation/uor-r4/issues/1738).
+Standing issues: compute board [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037). Closed historical bugs
+[#1542](https://github.com/UOR-Foundation/uor-r4/issues/1542), [#1476](https://github.com/UOR-Foundation/uor-r4/issues/1476),
+[#1718](https://github.com/UOR-Foundation/uor-r4/issues/1718), [#1738](https://github.com/UOR-Foundation/uor-r4/issues/1738) are kept for citation history, not as open issues.
 
 ## Retained experiment evidence and proposals
 
@@ -178,14 +179,14 @@ Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/g
 
 **North star: geometric intelligence.** The goal is a working geometric language model whose
 runtime uses integer, fixed-point and geometric operations only: no transformer, no matrix
-multiplication and no floating point. D32 extends the discrete requirement to
-learning and numerical model instruments: no float forward, gradients or optimizer.
-D25 prohibits matrix multiplication and exponential-family squashing;
-D24 prohibits CPU model compute. Non-model
-preparation/analysis/tooling may run locally. Training remains held.
+multiplication and no floating point at serving (D11). The active discrete path (D32) stays
+integer/GPU-only. Under D37, offline training may use float forward passes, gradients and
+optimizers in a separately scanned geometric module, with its export gap reported; D25 still
+prohibits matrix multiplication and exponential-family squashing, and D24 keeps model compute
+on the GPU. Non-model preparation/analysis/tooling may run locally. Training remains held.
 
 The owner reaffirmed this target on 2026-09-27: "Keep the native, multiplier-free serving
-target" ([#820](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279)).
+target" ([#820, closed 2026-10-09; historical quote](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279)).
 
 The rules below apply to every lab. A serving change that breaks any of R1–R4 does not enter
 the mission path.
