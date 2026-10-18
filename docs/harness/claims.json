@@ -83,12 +83,33 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/cf1-attention-strategic-stop": {
+    "branch": "codex/cf1-attention-strategic-stop",
+    "claimed_at": "2026-10-18T01:29:12-04:00",
+    "head": "fe4c327b5",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/cf1-k16-inactive-archive": {
     "branch": "codex/cf1-k16-inactive-archive",
     "claimed_at": "2026-10-18T01:57:31-04:00",
     "head": "c7cfc2e15",
     "lab": "codex",
     "note": ""
+  },
+  "codex/cf1-reuse-timing-uuid-blocker": {
+    "branch": "codex/cf1-reuse-timing-uuid-blocker",
+    "claimed_at": "2026-10-16T22:35:15-04:00",
+    "head": "66154156d",
+    "lab": "codex",
+    "note": ""
+  },
+  "deepseek/object-store-cold-join-bench": {
+    "branch": "deepseek/object-store-cold-join-bench",
+    "claimed_at": "2026-10-18T02:16:19-04:00",
+    "head": "9a3434259",
+    "lab": "deepseek",
+    "note": "tools/cold_join.sh end-to-end cold-join benchmark: compressed download + local pinned join vs cold store pull, host-only, no protocol/model change."
   },
   "kimi/optimization-path-2026-10-18": {
     "branch": "kimi/optimization-path-2026-10-18",
