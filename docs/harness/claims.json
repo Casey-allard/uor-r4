@@ -62,10 +62,10 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/injective-init-20261018": {
-    "branch": "claude/injective-init-20261018",
-    "claimed_at": "2026-10-18T14:44:46-04:00",
-    "head": "546667170",
+  "claude/injective-prereg-fit-20261018": {
+    "branch": "claude/injective-prereg-fit-20261018",
+    "claimed_at": "2026-10-18T15:00:07-04:00",
+    "head": "9f321e4eb",
     "lab": "claude",
     "note": ""
   },

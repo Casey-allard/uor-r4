@@ -15,6 +15,10 @@
   - D22, D23/D25/D30 (no softmax, squashing or matmul), D24 (GPU only), D29, D11.
   - D37 and the October 14 zeta exception: f64 exists only in the offline constructor module, before the integer table. The driver, kernels and training are integer.
   - D39 items 2 and 3.
+- **D22 scope of this sheet (replaces the parent's):** PrimeZeta V4096 / B4 `pinned_table_v1` initialization (`table_sha256 e9e03bcd…`), with the parent's arms, read (`Relation{8,1}`), schedule, objective A, K = 8 and `ActiveLeafV1` read initialization.
+  - A negative here closes only this configuration, never the mechanism.
+  - The parent's `+1-leaf-combine` initialization scope does not describe this configuration and is not reused.
+- **Identity pins are all new** and are recorded in the release packet: source `driver_source_sha256 a328e63f9f73119328bccc2a0f9d2c036914ceba725d5afc18f129001741724c` (main at #2692), both configs, lineage, the table file SHA, and the built binary. No parent receipt is inherited as PASS.
 - **Supersedes as the preferred next attention configuration:** the conditional Relation+R draft (`m1-learned-attention-link-R-DRAFT-2026-10-18.md`). That draft stays on file. It addresses admission through the objective; this sheet addresses the aliasing that precedes it.
 
 ## 1. Why: the read has never had distinguishable keys
@@ -35,6 +39,8 @@ The qualified PrimeZeta constructor gives an injective codebook. Its census, mea
 
 Table: `prime-zeta-codebook` V4096 B4. `table_sha256` is `e9e03bcd95b78632a7f18d1b27c07d37f0ba82c52eee692c37da011eadac8804`, bit-exact for seeds 1 and 2.
 
+**This comparison characterizes the instrument; it is not evidence about trained read behaviour.** The seeded column is the parent lineage's checkpoint 0, and the PrimeZeta column is table-level. The artifact-level values are measured again on the actual checkpoint-0 snapshot by the §3 gates.
+
 ## 2. What changes from the parent
 
 | Item | Parent | This sheet |
@@ -49,10 +55,26 @@ Table: `prime-zeta-codebook` V4096 B4. `table_sha256` is `e9e03bcd95b78632a7f18d
 
 ## 3. Bar
 
-**Pre-run instrument gates.** Zero updates, run on the GPU in the parent's pre-flight battery. A failure is `INSTRUMENT_UNREACHABLE` (D31), not a mechanism negative.
-1. **G-Cap (D39 item 2):** the coverage census on the actual checkpoint-0 artifact reports a DEV alias ceiling above Bar (i). The table-level ceiling above is 14,287.
-2. **G-Init:** the checkpoint-0 snapshot's table equals the pinned table word for word, and GPU snapshot validation passes.
-3. **B3_init(P_succ) is reported before training.** If it is below 500, the Q1 gate's first predicate cannot be met, and the run is not dispatched without a successor decision. With 256 occupied cells, admission at K = 8 must be measured rather than assumed.
+**Pre-run instrument gates.** Zero updates, run on the GPU at the new source head, after the parent's inherited pre-flight battery has been **re-run at that head**. Old receipts are not inherited. A gate failure is `INSTRUMENT_UNREACHABLE` (D31), not a mechanism negative. All values below are recorded in the release packet.
+
+1. **G-Init.** On the actual checkpoint-0 artifact of each arm:
+   - the snapshot's `table` equals the pinned file's table word for word;
+   - its word digest equals `e9e03bcd…`;
+   - GPU snapshot validation (`discrete_validate`) passes;
+   - routes, gates, seed and epoch equal the unpinned initializer's for the same config;
+   - a deliberately corrupted copy of the table (one non-root word) is refused with status 6. This is the negative control.
+2. **G-Occ (artifact level).** The GPU token-cell export (`attention-export-token-cells`, which admits these Relation configs) runs on each checkpoint-0 artifact, and `coverage-census --token-cells` reports:
+   - `occupied_cells` (must exceed 16; 256 is expected);
+   - the occupancy histogram;
+   - crowding;
+   - **within-cell tie mass** (must be 0, with no split alias group).
+
+   These are measured on the artifact, never inferred from the table.
+3. **G-Cap, raw and net of admission (D39 item 2).**
+   - Raw: `dev_alias_ceiling_rows` from `coverage-census` on the artifact.
+   - Net: P_succ rows whose target is an alias representative **and** whose target cell is admitted at checkpoint 0. The admission term comes from the zero-update checkpoint-0 DEV evaluation's per-row admitted cells, the same evaluation that yields B3_init.
+   - Both values are reported. Net G-Cap must be at least the Q1 evaluability floor (500 P_succ rows), or the run is `INSTRUMENT_UNREACHABLE`.
+4. **B3_init(P_succ)** is measured on the GPU and recorded before dispatch. If it is below 500, the run is not dispatched, and a successor decision is needed: with 256 occupied cells, admission at K = 8 may be low from the start. This is the parent's hard gate, run on this lineage.
 
 **Decision bars:** inherited verbatim from the parent §7.6 and §7.7:
 - `F_I = max(24, 2·sqrt(b+c))`;
@@ -78,7 +100,7 @@ The fresh draw stays sealed until the paired DEV decision.
 
 1. Merge the source (pinned initialization and `prime-zeta-codebook`) after exact-head review. Note: this changes `driver_source_sha256` on main; the K16 packet stays bound to its own build.
 2. Write the two configs (Relation and FrozenZero, seed 1). Then run TEST FITNESS with non-author seats, PM dispatch and owner release.
-3. Run the parent's pre-flight battery, plus G-Cap, G-Init and B3_init (§3).
+3. At the new head, re-run the parent's inherited pre-flight battery (old receipts are not reused). Then run G-Init (with its negative control), G-Occ, G-Cap (raw and net) and B3_init (§3). Then re-measure the per-batch cost. Record every pin and value in the release packet.
 4. Run the Q1 gate, then the full dose, as in the parent.
 5. Make the DEV decision per the parent §7.7, then score fresh transfer only on H_geom.
 
@@ -90,7 +112,20 @@ The fresh draw stays sealed until the paired DEV decision.
 
 ## 8. Cost
 
-On `rows_v1`, Relation at K = 8 takes about 0.07 s per proposal (#2658 timing). 16,404 batches is therefore about 20 min per arm, plus the parent's evaluations. Both arms on one 2×5090 pod take about 45 min, about $2. Seed 2, if released, doubles that.
+**Measured basis, not a microbenchmark.** The #2658 0.07 s figure is a row-parity proposal microbenchmark (`timing.qualified=false`), not a training batch, and it is **not** used.
+
+This sheet's exact path (`rows_v1`, Relation `{8,1}`, K = 8, `InterleavedReadEvery8V1`, `ActiveLeafV1`, 64 rows per batch) was measured in the fast Dose 1 rerun (`docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md`):
+- both arms ran 4,096 batches each, in parallel on one 2×5090 pod;
+- elapsed was 5,361 s in total, including setup, baseline and Q1 evaluations;
+- so the upper bound is about **1.31 s per batch**.
+
+| Run | Pod time | Cost at the measured $1.894/h |
+|---|---|---|
+| Full dose, 16,404 batches per arm, both arms in parallel | ≤ about 6.0 h | **≤ about $11.4** |
+| A Q1 stop at 4,096 batches | about 1.5 h | **about $2.8**, as measured |
+| Seed 2, if released | doubles the run cost | |
+
+The release packet re-measures per-batch cost at the new head over the first logged batches. This estimate is not a stop rule; extensions follow the standing owner rule.
 
 ## 9. Minimum test power
 

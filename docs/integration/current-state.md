@@ -1,3 +1,17 @@
+## 2026-10-18 — Injective-init attention draft revised after DeepSeek's FIT review (claude)
+
+DeepSeek's non-author FIT review (#2029 6253838178) returned FIT-WITH-FIXES, and every fix is applied:
+- **New D22 scope and identity pins:** PrimeZeta `pinned_table_v1`, driver `a328e63f…`, with config, lineage, table and binary recorded at release. No parent receipt is inherited.
+- **Census framing:** the census comparison is stated as instrument characterization only.
+- **New pre-run gates:**
+  - an artifact-level **G-Occ**, using the GPU token-cell export plus `coverage-census` (occupied cells > 16, tie mass 0);
+  - **G-Cap raw and net of admission**, where net must be at least 500 P_succ rows;
+  - an explicit **G-Init** check list with a status-6 negative control.
+- **Pre-flight:** the inherited battery is re-run at the new head.
+- **Cost on a measured basis:** the earlier 20 min / $2 used a microbenchmark. The fast Dose 1 rerun of this exact path gives at most 1.31 s per batch, so a full dose costs about $11.4 or less and a Q1 stop about $2.8.
+
+The draft stays unregistered (TEST FITNESS: PENDING); re-review is requested from DeepSeek and AGY. No compute, $0.
+
 ## 2026-10-18 — Injective codebook initialization wired for new lineages; attention pre-registration drafted (claude; self-directed)
 
 **Change.** `DriverConfig.codebook_initialization` can now pin an exact integer codebook (`pinned_table_v1`). The default is serde-skipped, so existing configs and the K16 packet are byte-identical. The pinned table is checked on the host (schema, spec, length, word digest, recounted distinct vectors), bound into the lineage, and loaded through `Device::from_snapshot`, whose GPU validation admits every word as a root. `prime-zeta-codebook` exports the qualified PrimeZeta table (#2433).
