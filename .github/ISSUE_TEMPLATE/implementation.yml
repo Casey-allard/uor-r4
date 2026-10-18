@@ -5,9 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Follow docs/integration/project-track.md, current-state.md and AGENTS.md.
-        #820 owns the ordered roadmap. Reuse an existing responsibility before creating another tracker.
-        Rust training may use matmul; final serving has no matrix products or transformer backbone.
+        Follow docs/integration/NOW.md, project-track.md, current-state.md and AGENTS.md.
+        #2028 owns the ordered roadmap (milestones M1–M8, #2029–#2036). Reuse an existing responsibility before creating another tracker.
+        Hard rules: no softmax/softplus/sigmoid/tanh/GELU anywhere (D23/D25); no matmul/GEMM in training or serving (D25/D30); D37 allows float in offline training only, in a separate scanned module; serving is integer-only (D11).
   - type: input
     id: owner
     attributes:

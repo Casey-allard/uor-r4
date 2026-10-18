@@ -26,8 +26,8 @@ body:
     id: parent
     attributes:
       label: Parent tracker / stage
-      description: Ordered #820 roadmap responsibility whose implementation decision this changes.
-      placeholder: "#820 / <active predictive-memory child>"
+      description: Ordered #2028 roadmap responsibility (milestone issue #2029–#2036) whose implementation decision this changes.
+      placeholder: "#2029 / <active K16 admission-redirect child>"
     validations:
       required: true
   - type: textarea

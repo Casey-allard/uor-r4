@@ -240,3 +240,12 @@ To isolate the **admission objective** without confounding it with width `K`, ad
 ## Verdict
 
 TEST FITNESS: FIT (design) — Kimi PM seat, 2026-10-15, head 8a4388424 ([#2515 comment 6199263447](https://github.com/UOR-Foundation/uor-r4/pull/2515#issuecomment-6199263447))
+
+## Amendment 7 — G-Cap reachability gate and coverage metrics (D39 item 2, owner 2026-10-18)
+
+Prospective, for the A/R run and its successors; the in-flight qualification session is unchanged.
+
+- **G-Cap:** before the A/R run, compute the alias ceiling over DEV rows (rows whose target is the lowest-ID member of its alias group, the only member that can win the evaluation tie-break). If that ceiling, net of admission, cannot reach Bar (i) = 1,941, the run is `INSTRUMENT_UNREACHABLE` (D31), not a mechanism negative. The W0 census of 2026-10-18 (`docs/labs/course-correction-2026-10-18/alias-census-REPORT.md`) measured the ceiling at 1,986 rows at checkpoint 0 and 8,948 at the full-dose Q4 artifact, so Bar (i) is reachable at the registered dose; the binding constraint is the admitted-cell ceiling (1,920 < 1,941 at Q4), which this sheet's ≥ 4,894 admission gate targets.
+- **Coverage metrics:** the run packet reports distinct full vectors, the alias-group histogram, and within-cell tie mass at checkpoint 0 and at each evaluation checkpoint, beside the existing Σ8T/Σ32A/Σ32R reporting. The census found 16 distinct vectors at checkpoint 0 and 264 at Q4; only 143 of 674 DEV target tokens are predictable at Q4.
+- **G-Pre supplement:** G-Pre ≥ 4,894 at checkpoint 0 is near-vacuous at ≤ 16 occupied cells (K = 16 admits every occupied cell); it is retained as a sanity gate, and the coverage metrics above carry the capacity information.
+- **Headline:** the `Panel target` headline above (116/232 replies) is BLOCKED under R14 and is not a closing condition (D39 item 1). The interim headline is: injective codebook + Q4 target admission ≥ 4,894 (D39 item 6). New lineages may use an injective codebook initializer (D39 item 3); this sheet's frozen lineage keeps the xorshift default.
