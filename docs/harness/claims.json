@@ -55,6 +55,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/relation-r-draft-20261018": {
+    "branch": "claude/relation-r-draft-20261018",
+    "claimed_at": "2026-10-18T10:24:44-04:00",
+    "head": "2a40287de",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/rows-qual-fixes-20261018": {
     "branch": "claude/rows-qual-fixes-20261018",
     "claimed_at": "2026-10-18T00:46:33-04:00",

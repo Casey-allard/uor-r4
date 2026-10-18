@@ -1,3 +1,17 @@
+## 2026-10-18 — Owner waives the two Q4 timing cells; Relation+R successor drafted (claude)
+
+**Owner decision (in Claude's chat, 14:25Z; relayed at [#2029 6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125)).** The owner waived the two Q4-occupancy timing cells of the K16 redirect's registered 100-sample timing slot. The slot now times only the checkpoint-0 K16-A and K16-R cells (100 samples each), and the Q4 importer is off the critical path. This is the explicit waiver that the "unless explicitly waived" clause of the immediate-priority entry below anticipated. Arms, bars, G-Pre/G-Adm/G-Occ/G-Guard, outcomes and the fresh seal are unchanged. Packet acceptance and training remain NO-GO until qualification.
+
+**Successor draft.** [`m1-learned-attention-link-R-DRAFT-2026-10-18.md`](../harness/prep/m1-learned-attention-link-R-DRAFT-2026-10-18.md) is the Relation + R successor named by the parent §7.12.4. It is unregistered and has no FIT. A non-author adversarial review returned SOUND-WITH-FIXES, and all six findings are applied:
+- an occupancy guard that makes a vacuous B3 pass INVALID;
+- registration only on K16-R passing G-Adm + G-Occ, with named withdrawal branches including `K16_A_KEEP_R_NULL_AT_SCOPE`;
+- no attribution across sheets or to R alone;
+- trajectory rules that forbid selection and require zero-apply;
+- per-arm scope strings;
+- C-R1..C-R6 as a prerequisite.
+
+A source check (`discrete.cu:125–247`) shows that the read width (8 context nodes) is independent of the writer's admitted cells (K), so no target is hidden from the read. **Next:** the redirect runs; this draft is registered or withdrawn by its outcome. No compute, $0.
+
 ## 2026-10-18 — Documentation #2643 protected-delivered; own claim closeout
 
 [PR#2643](https://github.com/UOR-Foundation/uor-r4/pull/2643) squash-merged through the protected queue at `9fd1b8baec6a7586a2595cd4be94f6df77fd1c66`; fresh-main tree `90f743529b2e50ef72ec4120dd22869a3d0249aa` equals the revalidated delivery head. PR CI/harness and merge-group CI succeeded; the only post-merge Pages run is terminal/skipped by existing policy. [Closeout record](../labs/documentation-2643-closeout-2026-10-18/README.md) records exact checks, source identity and preservation. This unit removes only the delivered docs branch's own claim; peer state and research outcomes remain unchanged. **Next:** protected delivery and verification of that claim removal, then owned transport cleanup without deleting unique local evidence.
