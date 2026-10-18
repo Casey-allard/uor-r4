@@ -1,6 +1,10 @@
 # Dose 1 selected packet and fresh-source seal — 18 October 2026
 
-## Question and scope
+## Current actual status — 18 October, after closure
+
+This original packet was released under [6244964455](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6244964455), built its actual RELEASE executable and ran both paired arms before the owner's strategic stop following reviewed rows-driver delivery. Actual partials are **904 treatment /1065 frozen-zero batches**, raw exits143, **Q1 NOT_REACHED_BOTH**. Full pre-down data/operator custody and separate after-down closure are independently accepted at [6246074493](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6246074493); own pod was down at05:16:47Z. [Canonical strategic-stop record](../attention-dose1-strategic-stop-2026-10-18/README.md). The original dispatch is consumed: no completed learned result, final DEVICE maps/224 captures, fresh scoring, KEEP, mechanism negative or count reset. Count0/3 and reply37/232 SUSPENDED remain unchanged. The source20d `rows_v1` successor's1376-member/01833fa7 static packet is a source/metadata draft awaiting whole review and a new owner release, NOT_READY/NOT_RELEASED/NOT_RUN. The sections below preserve the original **pre-execution preparation** and its dated checks; their NOT_RUN/$0 statements describe that preparation stage.
+
+## Preparation question and scope (before execution)
 
 Prepare the already registered one-seed paired Relation LearnV1/FrozenZeroV1 dose without another handoff stall, source/identity shortcut or changed scientific bar. This is pure-data metadata, operator source integration and preservation; the learned dose, actual release-model build, personal admission and final attribution remain **NOT_RUN**. Decision: **NOT YET PROMOTED** to execution. Kimi retains FIT/protected queue/actual dispatch and AGY the confined whole-packet review. Count0/3 and suspended37/232 headline remain unchanged; metadata does not reset them. The existing decisive paired dose remains the next scientific dependency.
 
@@ -52,7 +56,7 @@ New provider/model/scorer work:0; new GPU cost:$0. Storage/transfer UNMEASURED, 
 
 Complete original raw-root/every actual own-session native run/exact ops are selected, compressed once and all member SHA verified on the same compressed reader, then full cloud readback plus separate late operator archive precede normal native own-down. Later closure immutable separately. All raw provider/create/up/lease/operator/personal/base64 files stay private0700/0600. Unknown/live work retains+renews; no force/on-lease patch/automatic CREATE retry. Peers are preserved; own absence never manufactures global fleet0. Accepted initial inaccessible-SSH native early-delete exception stays honest remote-evidence UNAVAILABLE.
 
-## Decision and next action
+## Preparation decision and next action (before execution)
 
 SOURCE/METADATA PACKET FROZEN, NOT_RELEASED/NOT_RUN. [Exact active handoff6243120503](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6243120503) requests AGY confined actual234packet verdict, then Kimi actual applicable FIT/execution dispatch with fresh admission. This record PR is not another release condition. Actual release build/plan reviews/CaseyTTY are late same-dispatch inputs; personal commands arrive only when the actual pod/files/check-plan are ready.
 

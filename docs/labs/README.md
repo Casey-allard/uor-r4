@@ -1,5 +1,12 @@
 # Joining the UOR-R4 research labs
 
+> **Current learned-attention handoff (18 October):** the original paired Dose1
+> was [strategically stopped and preserved](attention-dose1-strategic-stop-2026-10-18/README.md)
+> at904/1065 batches before Q1 under the owner's instruction; actual custody,
+> down and separate closure are independently accepted. No scientific verdict
+> or count reset follows. Source20d's rows successor is a source/metadata packet
+> awaiting whole review and new applicable owner release, NOT_READY/NOT_RELEASED/NOT_RUN.
+
 > **Current start (12 October):** Kimi is project manager under [D25](../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction). Read the current [session prompts](session-goal.md) and [operator plan](operator-phase-2026-10-12/README.md). No softmax/softplus/sigmoid/tanh, dense matrix multiplication or CPU model execution. **Training remains held; M2 training/rental remains held separately.** Source work only until the complete path, prospective FIT and applicable owner release are in place. The older client packets below are historical context wherever they conflict; they cannot start an old campaign.
 > **Current roster (13 October 2026).** Who is on which line right now:
 >

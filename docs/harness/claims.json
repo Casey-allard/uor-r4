@@ -76,6 +76,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/cf1-attention-strategic-stop": {
+    "branch": "codex/cf1-attention-strategic-stop",
+    "claimed_at": "2026-10-18T01:29:12-04:00",
+    "head": "fe4c327b5",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/cf1-reuse-timing-uuid-blocker": {
     "branch": "codex/cf1-reuse-timing-uuid-blocker",
     "claimed_at": "2026-10-16T22:35:15-04:00",

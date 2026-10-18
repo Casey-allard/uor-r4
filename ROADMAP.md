@@ -1,19 +1,25 @@
 # UOR-R4 Geometric Language Model - roadmap
 
-**Immediate M1 path, 17 October:** the
+**Immediate M1 path, 18 October:** the
 [minimal device token-cell input producer](docs/labs/attention-token-cell-export-2026-10-17/README.md),
 is delivered in #2601 with reviewed Gate9 construction. The separately released
 [Battery3 preflight](docs/labs/attention-preflight-2026-10-17/README.md) now passes
 its actual device export, initial admission, sensitivity and9-control
 qualification gates with zero applies; all26 steps and original operator exit0.
-After independent actual-outcome disposition, prepare/review/release the
-separately pinned paired Relation/frozen-zero learning test under the
-[learned-attention sheet](docs/harness/prep/m1-learned-attention-link-2026-10-17.md).
+The original paired Relation/frozen-zero learning test under the
+[learned-attention sheet](docs/harness/prep/m1-learned-attention-link-2026-10-17.md)
+ran at23d5 and was [strategically stopped](docs/labs/attention-dose1-strategic-stop-2026-10-18/README.md)
+at904/1065 batches before Q1 after reviewed rows-driver delivery. Its partials,
+pre-down data/operator custody and separate closure are independently accepted;
+no completed learned result or count reset follows. The source20d rows successor
+is a reviewed-component source/metadata draft awaiting whole review and a new
+applicable owner release, NOT_READY/NOT_RELEASED/NOT_RUN.
 Actual device admissions and the matched reference reports support attribution;
 full same-cell dose results cannot be inferred from scalar admission counts.
 The export source passes all five Gate9 construction/host commands and its
-read-only device export has now run in Battery3. The paired learning dose,
-full same-cell attribution and learned result remain NOT_RUN.
+read-only device export has now run in Battery3. Full paired-dose completion,
+final same-cell attribution and fresh scoring remain NOT_RUN; count0/3 and
+reply37/232 SUSPENDED stay unchanged.
 This progression changes no scientific bar or standing training/compute hold.
 
 **Current learning permission — D32:** discrete/exact GPU model computation and
@@ -47,12 +53,13 @@ The [artifact hash-domain repair](docs/labs/attention-hash-domains-2026-10-17/RE
 is protected-delivered at23d5 after Gate10 five-command construction/host PASS;
 Battery3 remains accepted as-is, no rerun/rescore. The
 [Dose 1 selected packet](docs/labs/attention-dose1-packet-2026-10-18/README.md)
-now binds actual FreshV2 metadata and reviewed operator components. AGY actual
-confined packet verdict and Kimi FIT/dispatch precede fresh admission; actual
-RELEASE construction, plan reviews/check-plan and Casey personal TTY happen on
-the same resource before model work. No learned result, full attribution or
-progress-count reset follows from packet preparation. Optimization remains
-gated on the dose outcome under project-track's post-dose path.
+preserves its preparation history and points to the actual strategic-stop closure.
+The successor source20d packet1376/01833fa7 rebinds current components and rows_v1
+configs; whole-packet review and a new actual owner release precede execution.
+Its same resource phase produces the new RELEASE identity before actual plans,
+reviews/check-plan and source-compatible admission; no old capability/checkpoint
+is inherited. The completed scientific dose remains the next dependency under
+the unchanged sheet, without a KEEP or progress-count reset.
 
 ## Earlier operator qualification (pre-D32, inactive)
 

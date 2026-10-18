@@ -1,0 +1,123 @@
+{
+  "schema": "uor-r4.attention-dose1-strategic-stop-public-evidence/1",
+  "classification": "OWNER_STOPPED_STRATEGIC",
+  "decision": "NOT_YET_PROMOTED_TO_LEARNED_ATTENTION_RESULT",
+  "scientific_verdict": "NOT_ISSUED",
+  "progress": {
+    "line_count": "0/3",
+    "reply_headline": "37/232_SUSPENDED",
+    "keep": false,
+    "mechanism_negative": false,
+    "count_reset": false
+  },
+  "receipts": {
+    "original_dispatch": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6244964455",
+    "owner_strategy": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6245711750",
+    "stop_helper_independent_source_review": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6245906700",
+    "independent_actual_outcome_review": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6246074493"
+  },
+  "original_run": {
+    "protected_source_commit": "23d5b146b46cf6479d27695a555e03e3cc98e972",
+    "manifest_sha256": "5d5481cd6c19513c316d1f7144257bcf623b0c660afb0fb9c34f9052c0fb7c44",
+    "dispatch_sha256": "4f7681690f0ded838f8793a64117f3fdd96f2bf5464b2803730eb12f4fa543bb",
+    "release_binary_sha256": "1f7dd5268b6e7b69c3a22a2c7a4905d5484cdedb720ee89ceb541b18d8b2dbb3",
+    "session": "codex-attention-dose1",
+    "pod": "vast-56488188",
+    "seed": 1,
+    "layout": "ONE_POD_TWO_PHYSICAL_GPUS",
+    "registered_native_job_exits": [0, 143, 143],
+    "treatment": {
+      "completed_contiguous_batches": 904,
+      "raw_status": "COMMAND_FAILED_TERMINAL",
+      "raw_exit": 143,
+      "native_end_utc": "2026-10-18T04:58:38Z"
+    },
+    "frozen_zero": {
+      "completed_contiguous_batches": 1065,
+      "raw_status": "COMMAND_FAILED_TERMINAL",
+      "raw_exit": 143,
+      "native_end_utc": "2026-10-18T04:58:40Z"
+    },
+    "q1": "NOT_REACHED_BOTH",
+    "full_dose": "NOT_COMPLETED",
+    "final_device_maps": "NOT_RUN",
+    "capture_dev224": "NOT_RUN",
+    "paired_fresh": "NOT_RUN",
+    "full_same_cell_attribution": "NOT_RUN"
+  },
+  "custody": {
+    "root_manifest_sha256": "6b5c4f29587789adb38e63c9517a0246c70f74642d88d0dc21da0a74f9e3a9e5",
+    "regular_members": 198,
+    "regular_member_bytes": 237872396,
+    "gzip_bytes": 24808873,
+    "gzip_sha256": "05126b3b555ff72d247e895e6d651eb9a69ce41c4db004e1e060e71d20c22014",
+    "all_regular_members_sha_verified": true,
+    "archive_hash_binding": "SAME_COMPRESSED_READER_AS_VERIFIED_MEMBERS",
+    "persistent_second_raw_tree_created": false,
+    "archives": [
+      {
+        "name": "codex-attention-dose1-strategic-stop-data-20261018.tar",
+        "cloud_path": "icloud:UOR-R4/results/codex/codex-attention-dose1-strategic-stop-data-20261018.tar",
+        "bytes": 25345536,
+        "full_readback_md5": "ec029a201130ab41b3cd89b3cc6355de",
+        "verified_utc": "2026-10-18T05:05:53Z",
+        "timing": "BEFORE_DOWN"
+      },
+      {
+        "name": "codex-attention-dose1-strategic-stop-operator-20261018.tar",
+        "cloud_path": "icloud:UOR-R4/results/codex/codex-attention-dose1-strategic-stop-operator-20261018.tar",
+        "bytes": 143634944,
+        "full_readback_md5": "a75a23a70ab438e46f399a96df39ad8e",
+        "verified_utc": "2026-10-18T05:11:25Z",
+        "timing": "BEFORE_DOWN",
+        "selected_sha_entries": 7838
+      },
+      {
+        "name": "codex-attention-dose1-strategic-stop-closure-20261018.tar",
+        "cloud_path": "icloud:UOR-R4/results/codex/codex-attention-dose1-strategic-stop-closure-20261018.tar",
+        "bytes": 4026880,
+        "full_readback_md5": "fb4a4a264408c44ae61fbad5559a7e05",
+        "verified_utc": "2026-10-18T05:23:37Z",
+        "timing": "AFTER_DOWN_SEPARATE_SUPPLEMENT",
+        "selected_sha_entries": 140,
+        "manifest_sha256": "ff2ddfce4e91f6e1d106a9467b6f17d1be8b19545fbb515612a7d2d20fc9930a"
+      }
+    ]
+  },
+  "teardown": {
+    "last_quiescence_observed_utc": "2026-10-18T05:16:41Z",
+    "owned_matching_processes": 0,
+    "unreadable_live_processes": 0,
+    "gpu_compute_applications": 0,
+    "observation_is_atomic_compare_and_swap": false,
+    "release_and_down_exit": 0,
+    "actual_down_utc": "2026-10-18T05:16:47Z",
+    "fresh_configured_provider": "vast",
+    "fresh_configured_fleet_count": 0,
+    "own_lease_absent": true,
+    "peer_mutation": false
+  },
+  "cost": {
+    "basis": "ELAPSED_RATE_PROXIES_NOT_INVOICES",
+    "provider_uptime_seconds": 8009,
+    "rounded_rate_usd_per_hour": "1.894",
+    "native_rounded_proxy_usd": "4.213623889",
+    "native_raw_quote_proxy_usd": "4.212931753",
+    "alternative_wall_seconds": 8012,
+    "alternatives_not_summed": true,
+    "prior_mixed_codex_proxy_usd": "4.804471110",
+    "carried_mixed_codex_proxy_usd": "9.018094999",
+    "pm_cost_separate": true,
+    "storage_transfer": "UNMEASURED"
+  },
+  "successor": {
+    "protected_source_commit": "20d158ae31052ef4e62896fadcab23ae341deced",
+    "static_manifest_entries": 1376,
+    "static_manifest_sha256": "01833fa7bc540c5e15e02e0156521a1455502a6261cd5747c153519b7dbb7415",
+    "counterfactual_path": "rows_v1",
+    "status": "SOURCE_METADATA_DRAFT_NOT_READY_NOT_RELEASED_NOT_RUN",
+    "new_owner_release_required": true,
+    "old_checkpoint_or_release_inherited": false
+  },
+  "privacy": "SANITIZED_PUBLIC_METADATA_ONLY_NO_CAPABILITIES_OR_PROVIDER_ENVIRONMENT_CONTENT"
+}
