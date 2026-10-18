@@ -27,6 +27,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/c1-sheet-shape-20261018": {
+    "branch": "claude/c1-sheet-shape-20261018",
+    "claimed_at": "2026-10-17T23:46:28-04:00",
+    "head": "e8703a63c",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/starling-brief-20261018": {
     "branch": "claude/starling-brief-20261018",
     "claimed_at": "2026-10-17T22:53:57-04:00",

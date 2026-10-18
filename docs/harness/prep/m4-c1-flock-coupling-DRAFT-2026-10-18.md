@@ -197,3 +197,58 @@ These rows test the mean-L1 hinge primitive `H_8` (the address-term margin) on T
 3. X7's exact writer losses on T′ — derived at FIT time from the writer's literal costs.
 4. Owner/PM confirmation that the §5.2 float gap forward is the D37 item-3 instrument, offline, GPU-only and never served.
 5. The proxy-agreement threshold (§3) and the C0 sample size, both set at registration from a sampled TRAIN measurement.
+
+## 8. D22 registration blocks (NOT_REGISTERED, NOT_RUN, $0)
+
+This section supplies the blocks the harness requires. It completes the sheet's shape only:
+it registers nothing, sets no bar or budget, changes no mechanism or control, and authorises
+no compute.
+
+### Bar (NOT_REGISTERED)
+
+No bar is registered. This DRAFT sets no numeric bar; the proposed comparison and the
+two-seed-noise rule remain those in §5.4 and §6, and are fixed at registration before any
+result is visible.
+
+### Base artifact (NOT_REGISTERED)
+
+No base artifact is bound or loaded. At registration the base will be the Dose 1 decision
+checkpoint named in `m1-learned-attention-link-2026-10-17.md`; its exact artifact hash is
+recorded then. Dose 1 has not run, so no checkpoint is available to this DRAFT.
+
+### Data split (NOT_REGISTERED)
+
+No data is read. At registration C1 inherits the Dose 1 TRAIN/DEV split (14,287 DEV rows;
+`P_succ` 3,847), with sealed fresh transfer reported for every KEEP; the C0 and
+proxy-agreement samples are drawn from TRAIN at registration (§3, §7.5). This DRAFT adds no
+split, draws no sample and opens no data.
+
+### Steps (NOT_RUN)
+
+No step has run. After registration and FIT, the proposed order is: C0 cache fidelity →
+finite controls (C0, X1–X12, F1–F7, F5b, F5c) → tuple cache → arms A0, A1, A2, A2-int, A2′, Z, R →
+export-gap report. Every step remains gated by registration and the owner holds; nothing
+here authorises compute.
+
+### Stop rule (NOT_REGISTERED)
+
+No run exists to stop. At registration the stop rule stays: any finite-control FAIL stops
+the line for diagnosis (D31) and is never a mechanism negative; an instrument stop waits;
+an export-limited flag permits at most one successor change before the configuration closes
+(D22). All owner holds remain in force.
+
+### Cost (NOT_REGISTERED)
+
+$0. Zero GPU-hours, zero pods, zero model compute; this repair is a host-only documentation
+edit. Any future cost is projected at registration from the Dose 1 measured per-batch cost
+(§6), and none of it is authorised here.
+
+### Minimum test power (NOT_REGISTERED)
+
+No decisive run is registered. The proposed design states the D22 §3 minimum: ≥ 2 seeds, the
+14,287-row Dose 1 DEV panel (≥ 200 rows), sealed fresh transfer for every KEEP, and bars not
+narrower than two-seed noise (§6). No power claim is admitted by this DRAFT.
+
+**Fitness status.** DRAFT, not registered; no FIT is requested and no compute is cleared.
+
+TEST FITNESS: PENDING

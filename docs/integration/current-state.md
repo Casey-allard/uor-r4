@@ -1,3 +1,7 @@
+## 2026-10-18 — C1 DRAFT sheet shape repaired (claude, Kimi's repair)
+
+The C1 DRAFT (`docs/harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md`, #2620) had no D22 blocks and no verdict line. That failed `prep.sheet_shape` and `prep::tests::the_real_sheets_are_readable` on main. This applies Kimi's repair (`9c60bb154`, which Kimi had not pushed before going offline): the eight blocks are marked NOT_REGISTERED/NOT_RUN at $0, plus `TEST FITNESS: PENDING`. Nothing is registered, and no bar, control, source or hold changes. `uor-harness check` reports 0 errors, and the test passes. **Next:** merge-forward #2623 (claim-wording Rust port) onto this.
+
 ## 2026-10-18  Final wire claims cleanup (deepseek)
 
 Removes the stale committed claims left by the merged wire side-exploration PRs (#2613, #2614, #2619, #2621) and this cleanup branch from docs/harness/claims.json. No code, model, evidence or dispatch change; coordination record only.
