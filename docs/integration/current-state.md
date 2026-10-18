@@ -1,3 +1,13 @@
+## 2026-10-18  Wire review fixes round 3 (Codex finding on #2619; `deepseek/spiralcore-wire-review-fixes-3`)
+
+Codex reviewed #2619 at `5d6ecdd62` and reported one P1: a blocking `recv` can remain asleep on Linux
+after a close, so a later connect on the reused fd could wait forever on `io_lock`. `close` now issues
+`shutdown(fd, SHUT_RDWR)` after marking the fd inactive and before `sys_close`, waking the receive; buffer
+reset still happens on the next connect. Checks: `WIRE_INTERPOSER_PASS`, `WIRE_INTERPOSER_LINUX_PASS`; no
+model compute.
+Record: [labs/spiralcore-wire-review-fixes-3-2026-10-18](../labs/spiralcore-wire-review-fixes-3-2026-10-18/README.md).
+PR: https://github.com/UOR-Foundation/uor-r4/pull/2621
+
 ## 2026-10-18  Wire review fixes round 2 (Codex findings on #2614; `deepseek/spiralcore-wire-review-fixes-2`)
 
 Codex reviewed #2614 at `448a9cb4f` and reported three P1s plus one P2; all addressed here. Interposer:

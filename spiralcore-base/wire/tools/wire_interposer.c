@@ -624,8 +624,10 @@ int WIRE_API(close)(int fd) {
         state->active = 0;
         state->eof = 1;
         pthread_mutex_unlock(&state->lock);
-        /* Do not reset_state here: a blocking recv may still own the buffers.
-           The next connect on this fd resets them. */
+        /* Wake a recv blocked on another thread before closing: otherwise Linux can leave
+           that receive asleep on the old file, and a later connect on the reused descriptor
+           would wait forever for io_lock. The next connect resets the buffers. */
+        (void)sys_shutdown(fd, SHUT_RDWR);
     }
     return sys_close(fd);
 }
