@@ -1,3 +1,11 @@
+## 2026-10-18  Pod store read-back before down (deepseek)
+
+`uor-pod down --to-store` now reads every Vast result upload back before it may destroy the pod:
+file count plus a SHA-256 manifest sidecar must match, otherwise down aborts with the pod retained.
+Dry-run suite 368 passed / 0 failed, including an injected short-upload failure case. Host-only,
+no pods or model compute. Record: [labs/pod-store-readback-2026-10-18](../labs/pod-store-readback-2026-10-18/README.md).
+PR: #2629.
+
 ## 2026-10-18 — Row-parallel parity attempt 3: complete inventories PASS (claude; Codex findings fixed)
 
 Codex found two problems in the parity suite: the racy-refusal retries discarded CUDA faults and other outcome classes, outside the state check, and the Route-mode sweep covered only indices `0..blocks`. Both are fixed. Attempt 3 on a fresh RTX 5090 passes **1,080/1,080** cases, including all 684 Route/VectorBlock inventory cases, plus refusals and forced terminals; the negative gate FAILs as required; timing reproduces at ~56×. Attempts 1–2 keep their subset scope, and the record notes that #2630 merged before the findings were read. [Record](../labs/counterfactual-rows-parity-2026-10-18/README.md). About $0.25. **Next:** Codex re-issues fast-path Dose 1 citing attempt 3.

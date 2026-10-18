@@ -380,8 +380,10 @@ remaining volume and for Runpod-only accounts); every command takes either kind 
   instance, and records the archive in the ledger; move it to iCloud with
   `cloud-store put`. Above 5 GB (`UOR_POD_VAST_ARCHIVE_MAX_MB`) it refuses;
   `down --to-store` instead has the pod upload them to the HF store under
-  `vast-archive/<pod>/` (no laptop copy, no size cap). `reap` archives what it can
-  before destroying an idle unleased Vast pod.
+  `vast-archive/<pod>/` (no laptop copy, no size cap). Each upload is then read
+  back before the pod may be destroyed: the store must list the same file count
+  (with the listing command's own exit status propagated) and return the same
+  SHA-256 manifest sidecar, or `down` aborts with the pod retained. `reap` archives what it can before destroying an idle unleased Vast pod.
 - **Destroy.** `vastai destroy instance` asks `[y/N]` and aborts when nobody
   answers; the tool answers it and then confirms the instance is gone from the
   listing. By hand: `echo y | vastai destroy instance N`.

@@ -1531,20 +1531,55 @@ vast_archive() {  # POD -> 0 when archived (or nothing to archive)
 }
 
 # down --to-store: the pod uploads its result directories to the HF store
-# (vast-archive/<pod>/<dir>) with /root/uor-store and the owner's write token,
-# then `down` destroys it. No laptop disk is used, so there is no size cap.
-vast_archive_store() {  # POD DIRS KB -> 0 when every directory was uploaded
-  local pod=$1 have=$2 kb=$3 d
+# (vast-archive/<pod>/<dir>) with /root/uor-store and the owner token, then
+# `down` destroys it. No laptop disk is used, so there is no size cap. Each
+# upload is read back before the pod may be destroyed: the store must list the
+# same file count and return the same SHA-256 manifest sidecar. A silent partial
+# upload therefore aborts `down` with the pod retained.
+vast_archive_store() {  # POD DIRS KB -> 0 when every directory was uploaded AND read back
+  local pod=$1 have=$2 kb=$3 d tag files checksum hashline got cmpout manifest readback files_tmp listing verified_files=0 verified_manifest=unverified verified_dirs=0
   if ! is_dry && ! pod_ssh "$pod" 'test -x /root/uor-store' </dev/null; then
     warn "$pod has no /root/uor-store (bootstrapped before it existed): run 'uor-pod bootstrap $pod' to install it, or archive without --to-store"; return 1
   fi
-  if is_dry; then echo "DRY-RUN: on $pod: /root/uor-store put /workspace/<dir> vast-archive/$pod/<dir> for: $have ($kb KB)" >&2; return 0; fi
+  if is_dry; then
+    echo "DRY-RUN: on $pod: /root/uor-store put /workspace/<dir> vast-archive/$pod/<dir> for: $have ($kb KB)" >&2
+    echo "DRY-RUN: on $pod: read back each upload (file count + SHA-256 manifest) before down" >&2
+    return 0
+  fi
   for d in $have; do
     pod_ssh "$pod" "/root/uor-store put /workspace/$d vast-archive/$pod/$d" </dev/null ||
       { warn "uploading /workspace/$d of $pod to the HF store failed"; return 1; }
+    tag=$(printf "%s" "$d" | tr / _)
+    manifest=/tmp/uor-store-manifest-$tag.sha256
+    readback=/tmp/uor-store-readback-$tag
+    files_tmp=/tmp/uor-store-files-$tag
+    listing=/tmp/uor-store-list-$tag
+    pod_ssh "$pod" "cd /workspace/$d && find . -type f -print0 > $files_tmp && LC_ALL=C sort -z $files_tmp -o $files_tmp && xargs -0r sha256sum < $files_tmp > $manifest" </dev/null ||
+      { warn "building the read-back manifest for /workspace/$d of $pod failed; pod retained"; return 1; }
+    files=$(pod_ssh "$pod" "wc -l < $manifest" </dev/null | tr -d " ") || files=
+    hashline=$(pod_ssh "$pod" "sha256sum $manifest" </dev/null) || hashline=
+    checksum=${hashline%% *}
+    if [ -z "$files" ] || [ -z "$checksum" ]; then warn "the read-back manifest for /workspace/$d of $pod is unreadable; pod retained"; return 1; fi
+    pod_ssh "$pod" "/root/uor-store put $manifest vast-archive/$pod/$d.manifest.sha256" </dev/null ||
+      { warn "uploading the read-back manifest for /workspace/$d of $pod failed; pod retained"; return 1; }
+    pod_ssh "$pod" "rm -f $listing && /root/uor-store ls vast-archive/$pod/$d > $listing" </dev/null ||
+      { warn "read-back listing for /workspace/$d of $pod failed; pod retained"; return 1; }
+    got=$(pod_ssh "$pod" "wc -l < $listing" </dev/null | tr -d " ") || got=
+    if [ "$got" != "$files" ]; then
+      warn "READ-BACK FAILED for /workspace/$d of $pod: the store lists ${got:-?} files, expected $files; pod retained, repair the store before any down"
+      return 1
+    fi
+    cmpout=$(pod_ssh "$pod" "rm -rf $readback && /root/uor-store get vast-archive/$pod/$d.manifest.sha256 $readback >/dev/null && if cmp -s $manifest $readback/vast-archive/$pod/$d.manifest.sha256; then echo MATCH; else echo MISMATCH; fi" </dev/null | tr -d " ") || cmpout=
+    if [ "$cmpout" != MATCH ]; then
+      warn "READ-BACK FAILED for /workspace/$d of $pod: the manifest read back does not match; pod retained, repair the store before any down"
+      return 1
+    fi
+    verified_files=$((verified_files + files))
+    verified_manifest=$checksum
+    verified_dirs=$((verified_dirs + 1))
   done
-  lock_acquire; ledger vast-archive "${LAB:-?}" "$pod" "$(jq -cn --arg d "hf:vast-archive/$pod" --argjson kb "$kb" '{dest: $d, kb: $kb}')"; lock_release
-  echo "Archived $((kb / 1024)) MB of $pod results to the HF store under vast-archive/$pod/ (uor-store get vast-archive/$pod/ DIR restores them)"
+  lock_acquire; ledger vast-archive "${LAB:-?}" "$pod" "$(jq -cn --arg d "hf:vast-archive/$pod" --argjson kb "$kb" --argjson files "$verified_files" --argjson dirs "$verified_dirs" --arg manifest "$verified_manifest" '{dest: $d, kb: $kb, verified: true, files: $files, directories: $dirs} + (if $dirs == 1 then {manifest_sha256: $manifest} else {} end)')"; lock_release
+  echo "Archived $((kb / 1024)) MB of $pod results to the HF store under vast-archive/$pod/ (read-back verified $verified_files files; uor-store get vast-archive/$pod/ DIR restores them)"
 }
 
 cmd_down() {
