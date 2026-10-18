@@ -521,6 +521,7 @@ pub(super) mod cuda {
             },
             read_spec: ReadSpec::Route,
             objective_policy: policy,
+            read_initialization: uor_r4_discrete::ReadInitialization::ZeroGatesV1,
             seed: 1,
             epoch: 0,
             table,

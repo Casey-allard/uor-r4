@@ -248,6 +248,7 @@ mod gpu_runner {
             spec,
             read_spec: ReadSpec::Route,
             objective_policy,
+            read_initialization: uor_r4_discrete::ReadInitialization::ZeroGatesV1,
             seed: 1,
             epoch: 0,
             table,

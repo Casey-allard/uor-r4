@@ -7,6 +7,43 @@ entry used by the production training driver. This is source and host-metadata
 work: **new-head CUDA construction, qualification, timing and training are NOT_RUN
 by this delivery**. No kernel, objective, scientific bar or learning schedule changes.
 
+## Actual qualification build failure and narrow repair
+
+The single owner-released qualification attempt selected protected source
+`bccc1f172c9790b5edc531185f5146b1de6669e8`. Setup completed on one RTX5090,
+Ubuntu24.04.3, NVCC12.8 and Rust1.97.1. The native release build passed in52.62s.
+The standalone timing release build then failed with E0063 at
+`counterfactual_controls.rs:514`: its CUDA-only `Snapshot` literal omitted the
+required `read_initialization` field. The native stage0 job stopped at
+2026-10-18T15:19:20Z/exit101; fixture build, clippies, controls, G-Pre, C-R,
+registered timing, corpus updates, fresh scoring and training were NOT_RUN.
+[Actual failure handoff6251622438](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251622438).
+
+The same stale literal exists in the fixture runner's `make_route_snapshot`.
+This source repair explicitly selects `ReadInitialization::ZeroGatesV1` in both
+Route constructors. Both already construct zero gates; the existing default is
+skipped during serialization. No kernel, driver, schema, objective, fixture data
+or scientific bar changes. The two standalone manifests have detached workspaces
+and default to no CUDA feature, so host tests did not type-check these literals.
+The production snapshot constructor already records this field.
+
+The observed compiler failure is the failing regression evidence. After this
+repair, host metadata tests pass: timing49PASS/0FAIL/1ignored with the same
+explicitly filtered inherited reuse-identity test; fixture11PASS/0FAIL. These
+checks do **not** verify the repaired CUDA-feature build. Both real standalone
+CUDA builds and the entire qualifying receipt sequence remain owed at the
+reviewed source. No accepted on-pod source patch, model replay or new allocation
+is performed by this source repair. The failed attempt and its operational
+lock-inheritance fault remain preserved separately; neither is a scientific
+negative. Current native total quote is$0.908/h, not an invoice; custody/close and
+actual elapsed cost are still pending at this record's preparation.
+
+[Owner-delegated acceptance6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195)
+now belongs to Claude alone for the single qualifying packet after stored
+receipts and digests. DeepSeek's copy cross-check is parallel. This delegation
+releases no training: dispatch still requires the actual owner's release.
+AGY's consumer repair proceeds independently. No Kimi acknowledgment is added.
+
 ## Existing decision and concrete release sequence
 
 The [owner decision relayed by Claude6250410397](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397)

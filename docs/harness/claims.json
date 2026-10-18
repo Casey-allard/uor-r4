@@ -90,6 +90,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/cf1-k16-cuda-snapshot-fix": {
+    "branch": "codex/cf1-k16-cuda-snapshot-fix",
+    "claimed_at": "2026-10-18T11:24:34-04:00",
+    "head": "966c28519",
+    "lab": "codex",
+    "note": "Two CUDA-only Route Snapshot initializer repairs after actual E0063; source only no on-lease patch or retry"
+  },
   "codex/cf1-k16-rows-timing": {
     "branch": "codex/cf1-k16-rows-timing",
     "claimed_at": "2026-10-18T09:27:38-04:00",

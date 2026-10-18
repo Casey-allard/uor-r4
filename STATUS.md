@@ -19,6 +19,12 @@ No registered paired efficacy comparison is licensed at Q1.
 **Immediate priority — 18 October 2026:** prepare and qualify the existing FIT'd
 K16-A versus K16-R admission redirect on `rows_v1`, under the
 [owner direction](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397) and [PM gate audit](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855).
+**Actual qualification build blocker:** the selectedbccc native build passed, but the
+CUDA timing build failedE0063/exit101 before model controls. Two standalone Route
+Snapshot constructors now explicitly bind the existing zero-gate initialization;
+repaired real CUDA builds and qualification remain owed. See the
+[source/failure record](docs/labs/k16-rows-timing-source-2026-10-18/README.md).
+
 **Source/packet preparation GO; packet acceptance and training NO-GO** pending exact-head
 qualification, measured timing/budget and acceptance of the regenerated D-Packet.
 Keep Route/K16, seeds 1 and 2, `CanonicalVectorThenReadV1`, the registered
