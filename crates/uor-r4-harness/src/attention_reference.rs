@@ -270,6 +270,26 @@ impl RelationLearningPolicyRecord {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CounterfactualPath {
+    #[default]
+    LanesV1,
+    RowsV1,
+}
+
+impl CounterfactualPath {
+    pub fn is_lanes_v1(&self) -> bool {
+        *self == Self::LanesV1
+    }
+
+    pub fn is_lanes(&self) -> bool {
+        self.is_lanes_v1()
+    }
+}
+
+pub type CounterfactualPathRecord = CounterfactualPath;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SchedulePolicyRecord {
@@ -298,6 +318,8 @@ pub struct DriverConfigRecord {
         skip_serializing_if = "RelationLearningPolicyRecord::is_learn"
     )]
     pub relation_learning_policy: RelationLearningPolicyRecord,
+    #[serde(default, skip_serializing_if = "CounterfactualPath::is_lanes_v1")]
+    pub counterfactual_path: CounterfactualPath,
     pub seed: u32,
     pub batch_rows: u32,
     pub train: CorpusSourceRecord,
@@ -4464,6 +4486,7 @@ mod tests {
             objective_policy: ObjectivePolicyRecord::NearestAddressMarginV1,
             read_initialization: ReadInitializationRecord::ActiveLeafV1,
             relation_learning_policy: policy,
+            counterfactual_path: CounterfactualPath::LanesV1,
             seed: 1,
             batch_rows: 64,
             train: train_source.clone(),
@@ -5549,5 +5572,351 @@ mod tests {
             tables.u_train_ranked_table_sha256
         );
         let _ = fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn counterfactual_path_lanes_v1_skip_and_rows_v1_exact_producer_lineage_and_domain_c() {
+        let train_source = CorpusSourceRecord {
+            split: SplitRecord::Train,
+            tokens: FilePinRecord {
+                path: "/workspace/uor-r4/local/driver/data/mw-balp/train/tokens.u16".into(),
+                sha256: CANONICAL_TRAIN_TOKENS_SHA256.to_string(),
+            },
+            mask: FilePinRecord {
+                path: "/workspace/uor-r4/local/driver/data/mw-balp/train/response_mask.u8".into(),
+                sha256: CANONICAL_TRAIN_MASK_SHA256.to_string(),
+            },
+            expected_payload_tokens: CANONICAL_TRAIN_PAYLOAD_TOKENS,
+            expected_eligible_targets: CANONICAL_TRAIN_ELIGIBLE_ROWS as u64,
+        };
+        let dev_source = CorpusSourceRecord {
+            split: SplitRecord::Dev,
+            tokens: FilePinRecord {
+                path: "/workspace/uor-r4/local/driver/data/ft/dev/tokens.u16".into(),
+                sha256: CANONICAL_DEV_TOKENS_SHA256.to_string(),
+            },
+            mask: FilePinRecord {
+                path: "/workspace/uor-r4/local/driver/data/ft/dev/response_mask.u8".into(),
+                sha256: CANONICAL_DEV_MASK_SHA256.to_string(),
+            },
+            expected_payload_tokens: CANONICAL_DEV_PAYLOAD_TOKENS,
+            expected_eligible_targets: CANONICAL_DEV_ELIGIBLE_ROWS as u64,
+        };
+        let bos = BosIdentityRecord {
+            token: "<|bos|>".to_string(),
+            id: 0,
+        };
+        let train_binding = CorpusBindingRecord {
+            source: train_source.clone(),
+            vocabulary: CANONICAL_VOCAB as u32,
+            bos: bos.clone(),
+            payload_tokens: CANONICAL_TRAIN_PAYLOAD_TOKENS,
+            mask_bytes: CANONICAL_TRAIN_PAYLOAD_TOKENS,
+            mask_selected_positions: CANONICAL_TRAIN_ELIGIBLE_ROWS as u64,
+            eligible_targets: CANONICAL_TRAIN_ELIGIBLE_ROWS as u64,
+            documents: 60_000,
+            window_policy:
+                "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1"
+                    .to_string(),
+            identity_policy:
+                "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1"
+                    .to_string(),
+        };
+        let dev_binding = CorpusBindingRecord {
+            source: dev_source.clone(),
+            vocabulary: CANONICAL_VOCAB as u32,
+            bos: bos.clone(),
+            payload_tokens: CANONICAL_DEV_PAYLOAD_TOKENS,
+            mask_bytes: CANONICAL_DEV_PAYLOAD_TOKENS,
+            mask_selected_positions: CANONICAL_DEV_ELIGIBLE_ROWS as u64,
+            eligible_targets: CANONICAL_DEV_ELIGIBLE_ROWS as u64,
+            documents: 400,
+            window_policy:
+                "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1"
+                    .to_string(),
+            identity_policy:
+                "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1"
+                    .to_string(),
+        };
+
+        // 1. Legacy lanes_v1 config (omitting counterfactual_path) deserializes to LanesV1
+        // and reserializes without counterfactual_path, reproducing exact Dose 1 producer pins.
+        let legacy_treatment_cfg = DriverConfigRecord {
+            schema: DRIVER_EVAL_SCHEMA.to_string(),
+            spec: SpecRecord {
+                vocabulary: CANONICAL_VOCAB as u32,
+                blocks: 4,
+                context: CANONICAL_CONTEXT as u32,
+                kept_cells: 8,
+            },
+            read_spec: ReadSpecRecord::Relation { kept: 8, sweeps: 1 },
+            objective_policy: ObjectivePolicyRecord::NearestAddressMarginV1,
+            read_initialization: ReadInitializationRecord::ActiveLeafV1,
+            relation_learning_policy: RelationLearningPolicyRecord::LearnV1,
+            counterfactual_path: CounterfactualPath::LanesV1,
+            seed: 1,
+            batch_rows: 64,
+            train: train_source,
+            dev: dev_source,
+            tokenizer: FilePinRecord {
+                path: "/workspace/uor-r4/local/driver/data/tokenizer.json".into(),
+                sha256: CANONICAL_TOKENIZER_SHA256.to_string(),
+            },
+            bos,
+            schedule: SchedulePolicyRecord::InterleavedReadEvery8V1,
+        };
+        let legacy_bytes = serde_json::to_vec(&legacy_treatment_cfg).unwrap();
+        let legacy_json_str = std::str::from_utf8(&legacy_bytes).unwrap();
+        assert!(!legacy_json_str.contains("counterfactual_path"));
+        assert_eq!(
+            sha256_hex(&legacy_bytes),
+            "c446aa7fcc926bc951e8c39929794e45f749f760c739f74ec8347dbe4bf9f216"
+        );
+        let roundtrip_legacy: DriverConfigRecord = serde_json::from_slice(&legacy_bytes).unwrap();
+        assert_eq!(
+            roundtrip_legacy.counterfactual_path,
+            CounterfactualPath::LanesV1
+        );
+        assert_eq!(serde_json::to_vec(&roundtrip_legacy).unwrap(), legacy_bytes);
+
+        let mut legacy_ctrl_cfg = legacy_treatment_cfg.clone();
+        legacy_ctrl_cfg.relation_learning_policy = RelationLearningPolicyRecord::FrozenZeroV1;
+        let legacy_ctrl_bytes = serde_json::to_vec(&legacy_ctrl_cfg).unwrap();
+        assert!(!std::str::from_utf8(&legacy_ctrl_bytes)
+            .unwrap()
+            .contains("counterfactual_path"));
+        assert_eq!(
+            sha256_hex(&legacy_ctrl_bytes),
+            "1435f01644dddc8e678b5268533d30edb16b6905563d8a3fa122b0623f1071c3"
+        );
+
+        // Explicit "counterfactual_path": "lanes_v1" on input also normalizes to skipped field.
+        let mut explicit_lanes_val: Value = serde_json::from_slice(&legacy_bytes).unwrap();
+        explicit_lanes_val["counterfactual_path"] = json!("lanes_v1");
+        let parsed_explicit_lanes: DriverConfigRecord =
+            serde_json::from_value(explicit_lanes_val).unwrap();
+        assert_eq!(
+            parsed_explicit_lanes.counterfactual_path,
+            CounterfactualPath::LanesV1
+        );
+        assert_eq!(
+            serde_json::to_vec(&parsed_explicit_lanes).unwrap(),
+            legacy_bytes
+        );
+
+        // 2. Explicit rows_v1 config deserializes and reserializes with `"counterfactual_path":"rows_v1"`
+        // in the exact position between `relation_learning_policy` and `seed`, reproducing the exact
+        // producer config_sha256 and lineage_sha256 from consumer-panel-rows-treatment-v1/report.json
+        // (7f59e7c42155620069cc2416a7e1a1fddfae358331b6b737d7a16a02a41b4578).
+        let mut rows_treatment_val: Value = serde_json::from_slice(&legacy_bytes).unwrap();
+        rows_treatment_val["counterfactual_path"] = json!("rows_v1");
+        let rows_treatment_cfg: DriverConfigRecord =
+            serde_json::from_value(rows_treatment_val).unwrap();
+        assert_eq!(
+            rows_treatment_cfg.counterfactual_path,
+            CounterfactualPath::RowsV1
+        );
+        let rows_treatment_bytes = serde_json::to_vec(&rows_treatment_cfg).unwrap();
+        let rows_treatment_str = std::str::from_utf8(&rows_treatment_bytes).unwrap();
+        assert!(rows_treatment_str
+            .contains("\"read_initialization\":\"active_leaf_v1\",\"counterfactual_path\":\"rows_v1\",\"seed\":1"));
+        assert_eq!(
+            sha256_hex(&rows_treatment_bytes),
+            "c194cd6e4f3e5b127e6ef5dbe3294aa893a205518ed62a632da7236e57c72228"
+        );
+
+        let rows_driver_source_sha =
+            "9a1b121b0d8896bdba85baed40d95834f01bdb9b22d48167c374e34de8fa069e";
+        let rows_treatment_lineage = DriverLineageRecord {
+            schema: DRIVER_EVAL_SCHEMA.to_string(),
+            driver_source_sha256: rows_driver_source_sha.to_string(),
+            config: rows_treatment_cfg.clone(),
+            train: train_binding.clone(),
+            dev: dev_binding.clone(),
+        };
+        let rows_treatment_lineage_bytes = serde_json::to_vec(&rows_treatment_lineage).unwrap();
+        assert_eq!(
+            sha256_hex(&rows_treatment_lineage_bytes),
+            "f1403a8894563c99706b69fe501e066f1ca62951ddef5d870bf8df409d491a53"
+        );
+
+        let mut rows_ctrl_cfg = rows_treatment_cfg.clone();
+        rows_ctrl_cfg.relation_learning_policy = RelationLearningPolicyRecord::FrozenZeroV1;
+        let rows_ctrl_bytes = serde_json::to_vec(&rows_ctrl_cfg).unwrap();
+        let rows_ctrl_str = std::str::from_utf8(&rows_ctrl_bytes).unwrap();
+        assert!(rows_ctrl_str.contains(
+            "\"relation_learning_policy\":\"frozen_zero_v1\",\"counterfactual_path\":\"rows_v1\",\"seed\":1"
+        ));
+        assert_eq!(
+            sha256_hex(&rows_ctrl_bytes),
+            "15a10bac9eb04bb84daaa71f9c580cfaa2e28151f05616da768aa9fc784d866f"
+        );
+        let rows_ctrl_lineage = DriverLineageRecord {
+            schema: DRIVER_EVAL_SCHEMA.to_string(),
+            driver_source_sha256: rows_driver_source_sha.to_string(),
+            config: rows_ctrl_cfg,
+            train: train_binding,
+            dev: dev_binding,
+        };
+        let rows_ctrl_lineage_bytes = serde_json::to_vec(&rows_ctrl_lineage).unwrap();
+        assert_eq!(
+            sha256_hex(&rows_ctrl_lineage_bytes),
+            "480c5bafd3a07ddfafd02bde47f71bfbce3544e677da0c7e289158ac4a2210c9"
+        );
+
+        // 3. Verify Domain C checkpoint validation (`verify_driver_checkpoint_domains`) for rows_v1.
+        let (_, _, rel_eval, _, _, _) = fixture_receipts(1, 0);
+        let typed_snapshot = DeviceSnapshotRecord {
+            schema: DISCRETE_SNAPSHOT_SCHEMA.to_string(),
+            spec: rows_treatment_cfg.spec,
+            read_spec: rows_treatment_cfg.read_spec,
+            objective_policy: rows_treatment_cfg.objective_policy,
+            read_initialization: rows_treatment_cfg.read_initialization,
+            seed: rows_treatment_cfg.seed,
+            epoch: 0,
+            table: vec![0; 131072],
+            routes: vec![0; 16384],
+            gates: vec![0; 45],
+            operator_kappa: "spiralcore_fbs_v1".to_string(),
+            composition_kappa: "g2_tree_v1".to_string(),
+            kernel_sha256: rel_eval["model_bindings"]["kernel_sha256"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+            source_sha256: rel_eval["model_bindings"]["source_sha256"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+            geometry_sha256: rel_eval["model_bindings"]["geometry_sha256"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        };
+        let typed_snap_sha = sha256_hex(&serde_json::to_vec(&typed_snapshot).unwrap());
+        let model_val = serde_json::to_value(&typed_snapshot).unwrap();
+        let value_model_sha = sha256_hex(&serde_json::to_vec(&model_val).unwrap());
+        let rows_ckpt = DriverCheckpointRecord {
+            schema: DRIVER_CHECKPOINT_SCHEMA.to_string(),
+            lineage: rows_treatment_lineage,
+            cursor: DriverCursorRecord {
+                completed_batches: 0,
+                accepted_updates: 0,
+                corpus_pass: 0,
+                next_target: 0,
+                next_coordinate: 0,
+            },
+            model_sha256: value_model_sha.clone(),
+            model: model_val,
+        };
+        let rows_ckpt_domain_c_sha = sha256_hex(&serde_json::to_vec(&rows_ckpt).unwrap());
+        let rows_ckpt_pretty_bytes = serde_json::to_vec_pretty(&rows_ckpt).unwrap();
+        let rows_ckpt_domain_d_sha = sha256_hex(&rows_ckpt_pretty_bytes);
+        let bindings = TokenCellsModelBindingsRecord {
+            source_sha256: typed_snapshot.source_sha256.clone(),
+            kernel_sha256: typed_snapshot.kernel_sha256.clone(),
+            geometry_sha256: typed_snapshot.geometry_sha256.clone(),
+            spec: typed_snapshot.spec,
+            read_spec: typed_snapshot.read_spec,
+            objective_policy: typed_snapshot.objective_policy,
+            read_initialization: typed_snapshot.read_initialization,
+            seed: typed_snapshot.seed,
+        };
+        let verified_domain_b = verify_driver_checkpoint_domains(
+            &rows_ckpt_pretty_bytes,
+            &rows_ckpt_domain_d_sha,
+            &rows_ckpt_domain_c_sha,
+            "c194cd6e4f3e5b127e6ef5dbe3294aa893a205518ed62a632da7236e57c72228",
+            "f1403a8894563c99706b69fe501e066f1ca62951ddef5d870bf8df409d491a53",
+            &value_model_sha,
+            0,
+            0,
+            &bindings,
+        )
+        .unwrap();
+        assert_eq!(verified_domain_b, typed_snap_sha);
+
+        // 4. Verify paired-dev rejects mismatched counterfactual_path between treatment and control.
+        let (mut panel, mut rel_cap, mut rel_eval_rows, ctrl_cap, ctrl_eval_lanes, d34) =
+            fixture_receipts(1, 0);
+        let mut rel_lin_rows: DriverLineageRecord =
+            serde_json::from_value(rel_eval_rows["evaluation_lineage"].clone()).unwrap();
+        rel_lin_rows.config.counterfactual_path = CounterfactualPath::RowsV1;
+        let rel_cfg_rows_sha = sha256_hex(&serde_json::to_vec(&rel_lin_rows.config).unwrap());
+        let rel_lin_rows_sha = sha256_hex(&serde_json::to_vec(&rel_lin_rows).unwrap());
+        rel_eval_rows["evaluation_lineage"] = serde_json::to_value(&rel_lin_rows).unwrap();
+        rel_eval_rows["evaluation_lineage_sha256"] = json!(rel_lin_rows_sha);
+        let rel_eval_rows_sha = sha256_hex(&serde_json::to_vec(&rel_eval_rows).unwrap());
+        rel_cap["config_sha256"] = json!(rel_cfg_rows_sha);
+        rel_cap["lineage_sha256"] = json!(rel_lin_rows_sha);
+        rel_cap["evaluation_file"]["sha256"] = json!(rel_eval_rows_sha);
+        panel["config_sha256"] = json!(rel_cfg_rows_sha);
+        panel["lineage_sha256"] = json!(rel_lin_rows_sha);
+        let ctrl_eval_lanes_sha = sha256_hex(&serde_json::to_vec(&ctrl_eval_lanes).unwrap());
+        let mismatch_err = score_paired_dev_values(
+            &panel,
+            sha256_hex(b"p"),
+            &rel_cap,
+            sha256_hex(b"rc"),
+            &rel_eval_rows,
+            rel_eval_rows_sha,
+            &ctrl_cap,
+            sha256_hex(b"cc"),
+            &ctrl_eval_lanes,
+            ctrl_eval_lanes_sha,
+            None,
+            &d34,
+            sha256_hex(b"d34"),
+            None,
+            None,
+            false,
+        )
+        .unwrap_err();
+        assert!(
+            mismatch_err.contains("other than relation_learning_policy"),
+            "{mismatch_err}"
+        );
+
+        let mut ctrl_cap_rows = ctrl_cap;
+        let mut ctrl_eval_rows = ctrl_eval_lanes;
+        let mut ctrl_lin_rows: DriverLineageRecord =
+            serde_json::from_value(ctrl_eval_rows["evaluation_lineage"].clone()).unwrap();
+        ctrl_lin_rows.config.counterfactual_path = CounterfactualPath::RowsV1;
+        let ctrl_cfg_rows_sha = sha256_hex(&serde_json::to_vec(&ctrl_lin_rows.config).unwrap());
+        let ctrl_lin_rows_sha = sha256_hex(&serde_json::to_vec(&ctrl_lin_rows).unwrap());
+        ctrl_eval_rows["evaluation_lineage"] = serde_json::to_value(&ctrl_lin_rows).unwrap();
+        ctrl_eval_rows["evaluation_lineage_sha256"] = json!(ctrl_lin_rows_sha);
+        let ctrl_eval_rows_sha = sha256_hex(&serde_json::to_vec(&ctrl_eval_rows).unwrap());
+        ctrl_cap_rows["config_sha256"] = json!(ctrl_cfg_rows_sha);
+        ctrl_cap_rows["lineage_sha256"] = json!(ctrl_lin_rows_sha);
+        ctrl_cap_rows["evaluation_file"]["sha256"] = json!(ctrl_eval_rows_sha);
+        let paired_rows_ok = score_paired_dev_values(
+            &panel,
+            sha256_hex(b"p"),
+            &rel_cap,
+            sha256_hex(b"rc"),
+            &rel_eval_rows,
+            sha256_hex(&serde_json::to_vec(&rel_eval_rows).unwrap()),
+            &ctrl_cap_rows,
+            sha256_hex(b"cc"),
+            &ctrl_eval_rows,
+            ctrl_eval_rows_sha,
+            None,
+            &d34,
+            sha256_hex(b"d34"),
+            None,
+            None,
+            false,
+        )
+        .unwrap();
+        assert_eq!(paired_rows_ok["schema"], PAIRED_DEV_SCORE_SCHEMA);
+
+        // 5. Unknown counterfactual_path variant or extra field on DriverConfigRecord is rejected.
+        let mut unknown_variant_val: Value = serde_json::from_slice(&legacy_bytes).unwrap();
+        unknown_variant_val["counterfactual_path"] = json!("blocks_v99");
+        assert!(serde_json::from_value::<DriverConfigRecord>(unknown_variant_val).is_err());
+
+        let mut extra_field_val: Value = serde_json::from_slice(&rows_treatment_bytes).unwrap();
+        extra_field_val["unexpected_field"] = json!("nope");
+        assert!(serde_json::from_value::<DriverConfigRecord>(extra_field_val).is_err());
     }
 }
