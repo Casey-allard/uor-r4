@@ -23,14 +23,26 @@ K16-A vs K16-R admission redirect on the `rows_v1` counterfactual path
 
 | # | Step | Owner | State (2026-10-18) |
 |---|---|---|---|
-| 1 | One-session qualification at `21224b446`+: 25/25 controls + `admit_ptx` PASS, C-R1..C-R6 PASS, G-Pre PASS (4 cells), two checkpoint-0 A/R 100+1 timing records, sealed manifests | Codex | **running** |
-| 2 | Consumer verifier repair (Codex findings against `af1dec4e`) | Antigravity | in progress |
-| 3 | Packet acceptance (sole seat, owner `6251237195`) | Claude | pending |
-| 4 | Four `rows_v1` configs + measured D-Packet | Codex | pending |
-| 5 | Training dispatch — needs PM dispatch + owner release (`6201365250` chain) | Kimi PM + owner | held |
+| 1 | One-session qualification at `21224b446`+: 25/25 controls + `admit_ptx` PASS, C-R1..C-R6 PASS, G-Pre PASS (4 cells), two checkpoint-0 A/R 100+1 timing records, sealed manifests | Codex | **complete; DATA and late operator full readbacks verified** |
+| 2 | Consumer verifier source repair, helper `5c3bc562` / README `410fa4de` (disposition `6254038861`) | Antigravity | complete; source findings closed |
+| 3 | Packet acceptance (sole seat, owner `6251237195`), sealed packet request `6254373730` | Claude | **ACCEPT `6254417234`** |
+| 4 | Four `rows_v1` configs + measured D-Packet | Codex | accepted packet includes DOCUMENT_ONLY readiness; no machine capability |
+| 5 | Four unchanged A/R×seed1/2 trajectories: owner's relayed gated release `6254435225` | Kimi PM + Claude | PM dispatch `6254457591` ISSUED_GATED_START; four-init census `6254480425` POSTED_PASS (raw/net1,986); census report custody verified; native admission transport in preparation; training NOT_RUN |
 | 6 | W2 read-code capacity capture (already FIT'd, same lease) | Codex | queued |
 | 7 | W3 BVG-K discrete batched-coordinate law (registered before any float sheet) | TBD | queued |
 | 8 | W4 one float-credit sheet, only if W2 = H_law and W3 fails | TBD | conditional |
+
+The frozen qualification packet retains source `21224b446`; new injective-lineage
+work does not replace its source or receipts. The same lease is retained; normal
+close is not claimed. Claude's four-init census `6254480425` is POSTED_PASS:
+raw/net1,986 on each role >1,941,16 vectors,16 alias groups×256, tie mass4,096
+tokens/12,301 DEV rows; cell metrics UNAVAILABLE. The scientific start gate is
+cleared. Report SHA `19c053e9779d6ab1dd7b02a5403b6c10910131c5829b51dd7ca361d512f050cf`;
+the3,119-byte report is retrieved/hash-verified. Durable object
+`claude-k16-cp0-coverage-census-20261018.tar`:16,384bytes, MD5
+`6687ae6ad16d9a1b56836ec414a57467` (root native fetch83459/exit0). No further
+census wait remains. Native admission transport is being prepared; training NOT_RUN.
+The gated release covers no W2/W3/W4 work or changed arms, bars or fresh seal.
 
 ## Current instruments and gates
 

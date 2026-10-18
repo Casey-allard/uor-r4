@@ -1,13 +1,28 @@
 # K16 rows timing source and release integration — 18 October 2026
 
-The existing K16-A versus K16-R admission redirect now has an explicit `rows_v1`
-selector in its synchronized timing instrument. Both the excluded warmup and
-measured Route/VectorBlock proposals call the same `Device::propose_rows_cached`
-entry used by the production training driver. This is source and host-metadata
-work: **new-head CUDA construction, qualification, timing and training are NOT_RUN
-by this delivery**. No kernel, objective, scientific bar or learning schedule changes.
+**Current execution result, 18 October:** the [qualification record](../k16-rows-qualification-2026-10-18/README.md)
+now binds protected source 21224b446, all 21 construction/identity phases, 25/25
+finite controls plus `admit_ptx`, Relation 9/9, rows parity 7/7, G-Pre, C-R1..C-R6
+and two checkpoint-0 A/R timing cells with 100 completed samples plus one excluded
+warmup each. Timing and its fresh-init companion share the same actual Rust
+library. The companion matches native G-Pre in every state field/array except
+each graph's honest compiled-source identity; no source-hash rewrite or Snapshot
+rebind was used. DATA and late operator custody have verified full cloud
+readbacks and [Claude ACCEPT6254417234](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254417234)
+binds the sealed packet. The [owner's relayed gated release6254435225](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254435225)
+is now paired with [Kimi PM dispatch6254457591](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254457591),
+ISSUED_GATED_START. [Claude census PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425)
+posts raw/net1,986 on all roles >1,941, clearing the scientific start gate. Its
+3,119-byte report is retrieved/hash-verified from durable cloud custody; native admission transport is in preparation. Training and fresh scoring are NOT_RUN. The same
+lease is retained and normal close is separate.
 
-## Actual qualification build failure and narrow repair
+This page also retains the earlier timing-source unit and its failed CUDA build.
+The `rows_v1` selector routes excluded warmup and measured Route/VectorBlock
+proposals through production `Device::propose_rows_cached`. That source delivery
+itself ran host metadata checks only; the later real GPU receipts above supersede
+its unexecuted qualification/timing status, without changing the old observations.
+
+## Historical bccc qualification build failure and narrow repair
 
 The single owner-released qualification attempt selected protected source
 `bccc1f172c9790b5edc531185f5146b1de6669e8`. Setup completed on one RTX5090,
@@ -30,19 +45,23 @@ The production snapshot constructor already records this field.
 The observed compiler failure is the failing regression evidence. After this
 repair, host metadata tests pass: timing49PASS/0FAIL/1ignored with the same
 explicitly filtered inherited reuse-identity test; fixture11PASS/0FAIL. These
-checks do **not** verify the repaired CUDA-feature build. Both real standalone
-CUDA builds and the entire qualifying receipt sequence remain owed at the
-reviewed source. No accepted on-pod source patch, model replay or new allocation
-is performed by this source repair. The failed attempt and its operational
+checks do **not** verify the repaired CUDA-feature build. At that repair's
+preparation, both real standalone CUDA builds and the qualifying receipt sequence
+were still owed; the later 21224 record supplies the actual execution evidence.
+No accepted on-pod source patch, model replay or new allocation was performed by
+this source repair. The failed attempt and its operational
 lock-inheritance fault remain preserved separately; neither is a scientific
-negative. Current native total quote is$0.908/h, not an invoice; custody/close and
+negative. The observed native total quote was$0.908/h, not an invoice; custody/close and
 actual elapsed cost are still pending at this record's preparation.
 
 [Owner-delegated acceptance6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195)
 now belongs to Claude alone for the single qualifying packet after stored
 receipts and digests. DeepSeek's copy cross-check is parallel. This delegation
 releases no training: dispatch still requires the actual owner's release.
-AGY's consumer repair proceeds independently. No Kimi acknowledgment is added.
+AGY's frozen-packet consumer source findings are closed at helper5c3bc562/
+README410fa4de ([6254038861](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254038861));
+this is source review, separate from Claude's packet acceptance. No Kimi
+acceptance acknowledgment is added; genuine PM dispatch remains separate.
 
 ## Existing decision and concrete release sequence
 
@@ -56,7 +75,7 @@ This is four fresh-initialized trajectories, with frozen DEV checkpoints at
 0/4,101/8,202/12,303/16,404. The earlier K8 Relation/frozen-zero attempt and its
 4,096-batch collapse gate are separate consumed configurations.
 
-[Kimi's current disposition6250526855](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855)
+[Kimi's source-preparation disposition6250526855](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855)
 is source/packet preparation GO, training/packet acceptance NO-GO pending the
 actual predicates. The ordered chain is:
 
@@ -72,14 +91,17 @@ actual predicates. The ordered chain is:
 3. **Two timing cells**, checkpoint0 × A/R, **100 completed samples
    each plus1excluded warmup**. The owner explicitly waived Q4. Preserve
    raw samples, counts, snapshot/epoch equality, path and image identities.
-4. Accepted completed D-Packet with genuine receipts, exact four arm/seed identities,
-   original fresh-source binding and measured all-in budget; then the existing
-   conditional release permits the four training trajectories. Fresh scoring is
-   before KEEP/capability promotion, rather than a training-start prerequisite.
+4. Completed D-Packet with genuine receipts, exact four arm/seed identities,
+   original fresh-source binding and a measured budget that separates observed
+   units from allowances. Claude's actual packet acceptance, PM dispatch and
+   the actual owner training release remain separate under 6251237195. Fresh
+   scoring is before KEEP/capability promotion, not a training-start prerequisite.
 
-The conditional release does not need another strategic owner acknowledgment.
-Actual packet review and PM dispatch remain operational work. Five-sample
-qualifier timing, earlier99-sample records or old checkpoint0 rates cannot fill
+The later owner delegation6251237195 supersedes the earlier interpretation that
+the conditional chain needed no further owner training release. Claude alone
+accepts the sealed qualification packet; Kimi PM dispatch and actual owner
+training release remain separate. Qualification or timing PASS is not dispatch.
+Five-sample qualifier timing, earlier99-sample records or old checkpoint0 rates cannot fill
 this100-sample/two-cell slot. The measured unit includes carry, Route and vector
 proposal/observation on a frozen state; it is **forward-only, not training-dose
 throughput**, and the budget must retain evaluation, accepted-update, I/O and
@@ -101,7 +123,7 @@ The ordinary compiled identity remains separately reported. Synchronization,
 100+1 window allocation, rate denominator, policy/artifact admission, partial
 fault preservation and unchanged snapshot/epoch assertions are retained.
 
-## Verification and limits
+## Historical source verification and limits
 
 The new test first failed because the old strict Pin rejected
 `counterfactual_path`. After the adapter, all three new host tests pass:
@@ -121,36 +143,51 @@ and is not a CUDA/runtime qualification waiver. The existing ignored case stays
 ignored. No CPU model/reference, corpus evaluation, GPU, provider or scorer runs.
 
 All test/build/review records are retained as official delivery evidence in the
-private operator packet; they are not disposable debug output. This source unit
-uses no paid resource. The earlier cumulative resource ledger remains separate.
+private operator packet; they are not disposable debug output. The original
+source unit used no paid resource. Later GPU preparation, faults, builds, controls,
+idle and custody belong to the separately charged qualification episode. The
+2.3691 GPU-hour checkpoint-0 proposal-work projection is not training throughput;
+the remaining 5–8 GPU-hour estimate includes unmeasured allowances and is not
+measured all-in cost, an invoice, a hard deadline or a release.
 
 ## Ownership and next dependency
 
 Codex owns this timing adapter and the external operator/config/D-Packet integration.
 Claude owns the R/K16 rows qualifier and exact source review; AGY reuses the
-existing redirect runbook/consumer with the actual four identities. Kimi owns
-operational packet acceptance/dispatch. While Kimi is offline, DeepSeek offers
-source-queue cover under the owner's autonomous direction; model acceptance and
-honest machine owner/admission attribution remain separate. No duplicate
+existing redirect runbook/consumer with the actual four identities. Claude alone owns
+packet acceptance under 6251237195; Kimi owns PM dispatch, and actual owner training
+release/machine admission remain separate. DeepSeek's independent receipt
+cross-check runs in parallel and adds no required acceptance seat. No duplicate
 scorer or proposed K8 R-only/B3 trajectory is introduced.
 
 The original transfer archive has been restored once and all16 original manifest
 members SHA-verified:2,000 eligible targets across200 documents,505,085 payload
 tokens, Split::Fresh. It remains distinct from attention FreshV2. The four host
 configs change only the explicit rows selector and five physical input paths;
-all input SHA pins match. Native runtime staging/lineage/build and genuine
-qualification still must bind their actual resulting bytes.
+all input SHA pins match. The current qualification record binds actual runtime, build, lineage and state
+witness bytes. DATA/operator custody and Claude's packet ACCEPT are complete;
+the four configs remain DOCUMENT_ONLY readiness, not machine capabilities. The
+owner's relayed gated release6254435225 covers exactly those four trajectories;
+Kimi PM dispatch6254457591 is ISSUED_GATED_START; Claude's actual four-init
+raw/net reachability census is POSTED_PASS6254480425:1,986 on all four roles
+>1,941. The report is retrieved/hash-verified from durable cloud custody; no
+further census wait remains after the cleared scientific start gate. No normal-close claim follows from these documents.
 
 The [prior rows Q1 result](../attention-rows-q1-diagnosis-2026-10-18/README.md)
 now has the designated scientific outcome: configured admission collapse with
 no implementation/identity fault found. It supplies no mechanism negative,
-paired advantage, KEEP or count reset. **Reply37/232 remains SUSPENDED; count0/3
-for that attention line is unchanged.** The K16 redirect retains its own sheet
+paired advantage, KEEP or count reset. **Historical reply37/232 remains SUSPENDED; count0/3
+for that consumed attention line is unchanged.** The K16 redirect retains its own sheet
 and progress accounting; source preparation cannot move a headline number.
 
-Delivery line: `k16-admission-redirect`, registered count1/3, headline reply37/232
-SUSPENDED. This source unit moves no headline and claims no reset. The already
-merged#2653 transport claim is removed after fresh verification that its own
+Historical source delivery line: `k16-admission-redirect`, registered count1/3 at
+that delivery, reply37/232 SUSPENDED. It moved no headline and claimed no reset.
+D39 now sets M1's interim headline to injective codebook + Q4 target admission
+≥ 4,894; its saved-artifact closing conditions remain in NOW.md. Qualification
+claims no learned result, KEEP or count reset. The source unit's historical bookkeeping below retains its original delivery
+scope, not the current live-claim state. Its already
+merged#2653 transport claim was removed after fresh verification that its own
 worktree/local/remote branches are absent; its verified source/claim-delta cloud
-restoration remains preserved. Peer claims are unchanged, and the active timing
-claim remains. This is scoped bookkeeping in the normal source unit.
+restoration remains preserved. Peer claims were unchanged, and that source
+unit retained its active timing claim at its delivery. This is historical
+bookkeeping; the timing transport was subsequently delivered and retired.

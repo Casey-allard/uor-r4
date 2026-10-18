@@ -1,12 +1,23 @@
 # Joining the UOR-R4 research labs
 
-> **Current M1 handoff (18 October):** the original ordinary-path dose remains [owner-stopped before Q1](attention-dose1-strategic-stop-2026-10-18/README.md). Both arms of the separate [rows Dose2](attention-rows-q1-diagnosis-2026-10-18/README.md) stopped at the registered Q1 admission-collapse gate after 4,096 batches, with P_succ target admission 2,034 → 225 treatment /205 control. [Scientific review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872) finds configured admission collapse in both arms and no implementation or identity fault; no registered efficacy hypothesis fires. These counts are not accuracy or a treatment win. Fresh stays sealed; no KEEP or mechanism-negative verdict follows. The pod was down at 07:53:30 UTC, and #2652/#2653 are merged. A shared vector/combine pathway is plausible, not causally established. See [STATUS](../../STATUS.md) for the next-decision boundary.
+> **Retained rows Q1 result (18 October):** the original ordinary-path dose remains [owner-stopped before Q1](attention-dose1-strategic-stop-2026-10-18/README.md). Both arms of the separate [rows Dose2](attention-rows-q1-diagnosis-2026-10-18/README.md) stopped at the registered Q1 admission-collapse gate after 4,096 batches, with P_succ target admission 2,034 → 225 treatment /205 control. [Scientific review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872) finds configured admission collapse in both arms and no implementation or identity fault; no registered efficacy hypothesis fires. These counts are not accuracy or a treatment win. Fresh stays sealed; no KEEP or mechanism-negative verdict follows. The pod was down at 07:53:30 UTC, and #2652/#2653 are merged. A shared vector/combine pathway is plausible, not causally established. See [STATUS](../../STATUS.md) for the next-decision boundary.
 >
-> **Current K16 preparation:** the existing FIT A/R redirect on `rows_v1`, seeds1/2,
-> retains its conditional release and all registered qualification predicates.
-> The [timing adapter and packet sequence](k16-rows-timing-source-2026-10-18/README.md)
-> are source-only; actual new-head qualification, checkpoint-0 A/R100-sample timing
-> and accepted measured D-Packet remain pending. The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125) removes Q4/importer from the critical path.
+> **Current K16 qualification (18 October):** at protected source 21224b446, the
+> [declared GPU gates and two checkpoint-0 A/R100+1 timing cells passed](k16-rows-qualification-2026-10-18/README.md).
+> The timing/fresh-init companion share one Rust library; the complete state
+> comparison against native G-Pre preserves the graphs' distinct source identities.
+> DATA and late operator custody have verified cloud readbacks;
+> [Claude ACCEPT6254417234](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254417234)
+> binds the measured packet and its four DOCUMENT_ONLY configs. The owner's
+> [gated release6254435225](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254435225)
+> covers only unchanged A/R×seed1/2; [PM dispatch6254457591](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254457591)
+> is ISSUED_GATED_START. Claude's actual four-init raw/net coverage census >1,941
+> is [POSTED_PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425):
+> raw/net1,986 on all roles >1,941. The3,119-byte census report has verified
+> retrieved cloud custody; no further census wait remains. Training is NOT_RUN. The owner-waived Q4 cells/importer remain off
+> the critical path. D39's current plan is [NOW.md](../integration/NOW.md), with
+> interim headline injective codebook + Q4 target admission ≥ 4,894; the earlier
+> reply37/232 remains historical SUSPENDED evidence under R14.
 >
 > [D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) permits offline floating point, retaining matmul/GEMM and softmax/squashing bans, GPU-only model compute and separately qualified D11 export. Other training, M2 and Stage B holds remain.
 >

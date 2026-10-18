@@ -1,0 +1,135 @@
+{
+  "status": "PROPOSAL_NOT_OWNER_RELEASE_NOT_MEASURED_ALL_IN",
+  "quote": {
+    "gpu": "RTX5090",
+    "count": 1,
+    "usd_per_hour": 0.908,
+    "basis": "current quote supplied by owning operator; not invoice or newly queried provider receipt"
+  },
+  "fixed_dose": {
+    "arms": [
+      "A",
+      "R"
+    ],
+    "seeds": [
+      1,
+      2
+    ],
+    "trajectories": 4,
+    "batches_each": 16404,
+    "vector_each": 16384,
+    "route_each": 20,
+    "rows_per_batch": 64,
+    "target_presentations_each": 1049856,
+    "total_batches": 65616,
+    "total_target_presentations": 4199424,
+    "dev_cursors": [
+      0,
+      4101,
+      8202,
+      12303,
+      16404
+    ],
+    "dev_rows_each": 14287,
+    "dev_evaluations_total": 20,
+    "dev_target_presentations_total": 285740,
+    "fresh_eligible_rows_each_qualifying_run": 2000,
+    "fresh_condition": "only qualifying trajectories before KEEP/capability promotion; no fresh exposure in training, G-Pre or timing"
+  },
+  "measured_timing_record_sha256": "3efb4768ec37458f8ad1f585eca595f8cb1e94dbf489ccf8e9222786a4db8712",
+  "measured_frozen_checkpoint0_projection": {
+    "seconds": 8528.79475929776,
+    "gpu_hours": 2.369109655360489,
+    "rental_usd_proxy": 2.151151567067324,
+    "domain": "Projection from exact raw per-family means for the registered 16384:20 mix; not measured training or all-in cost."
+  },
+  "explicit_unmeasured_planning_allowances_gpu_hours": {
+    "later_occupancy_and_coordinate_extra": {
+      "low": 1.1845548276802444,
+      "high": 2.369109655360489,
+      "basis": "50\u2013100% additional frozen proposal projection; an explicit planning assumption, not an empirical bound. Q4 timing was waived."
+    },
+    "accepted_apply_counter_commit": {
+      "low": 0.25,
+      "high": 0.5
+    },
+    "twenty_dev_evaluations": {
+      "low": 0.25,
+      "high": 0.5,
+      "basis": "15\u201330 minutes proposed. The observed 165-second six-init/evaluation envelope is context, not a per-DEV bound."
+    },
+    "qualifying_fresh": {
+      "low": 0,
+      "high": 0.08333333333333333,
+      "basis": "Zero if no trajectory qualifies; up to five minutes proposed across qualifying fresh evaluations. Not measured."
+    },
+    "initialization_checkpoint_and_full_custody_io": {
+      "low": 0.25,
+      "high": 0.5
+    },
+    "fault_preservation_review_idle": {
+      "low": 0.5,
+      "high": 1.0,
+      "authority": "No automatic paid/model retry; preserve faults and obtain the existing external review and any distinct release."
+    }
+  },
+  "component_scenario_gpu_hours": {
+    "low": 4.803664483040733,
+    "high": 7.321552644054311
+  },
+  "rounded_remaining_request": {
+    "gpu_count": 1,
+    "gpu": "RTX5090",
+    "gpu_hours_low": 5,
+    "gpu_hours_high": 8,
+    "usd_low": 4.54,
+    "usd_high": 7.264,
+    "status": "EXPLICIT_CONSERVATIVE_PROPOSAL_NOT_CONFIDENCE_INTERVAL_OR_HARD_STOP",
+    "healthy_run_policy": "Renew healthy work; a planning estimate is not a kill deadline. Owner limits, disk constraints and failure rules remain."
+  },
+  "already_accrued_episode_cost": {
+    "kind": "DATED_RESOURCE_RENTAL_PROXY_NOT_INVOICE",
+    "started_utc": "2026-10-18T15:01:18Z",
+    "cutoff_utc": "2026-10-18T19:46:01Z",
+    "elapsed_seconds": 17083,
+    "gpu_count": 1,
+    "gpu": "RTX5090",
+    "quoted_total_usd_per_hour": "0.908",
+    "rental_usd_proxy": "4.308712222222222222222222222",
+    "includes": "All same-resource setup, failed builds, controls, timing, idle, transfer and custody through cutoff; not GPU-active time.",
+    "native_normal_close": "NOT_OCCURRED",
+    "continued_lease_time": "Accrues after this cutoff separately; do not sum overlapping cutoffs.",
+    "provider_invoice": "UNMEASURED",
+    "storage_transfer_invoice": "UNMEASURED",
+    "training_release": false
+  },
+  "actual_gpu_active_seconds": "UNMEASURED",
+  "provider_invoice": "UNMEASURED",
+  "storage_transfer_invoice": "UNMEASURED",
+  "authority": {
+    "qualification_release": 6201365250,
+    "rows_fastpath": 6250410397,
+    "q4_waiver": 6251027125,
+    "qualification_acceptor_delegation": 6251237195,
+    "qualification_acceptor": "Claude alone after sealed receipt digests",
+    "training_dispatch": "owner release and genuine current machine/admission transport remain separate; this skeleton grants none"
+  },
+  "fresh_descriptor": {
+    "status": "METADATA_AND_MANIFEST_CHECKED_NO_PAYLOAD_READ",
+    "binding_sha256": "4bd108ad4b1ee4673f87e3b87ef89a01a563a556330fa577d06e675f6be7f460",
+    "manifest_sha256": "044b2e444e809890037763c09ef60d22ad13b9c507ff7ce783c089068eccdeaa",
+    "manifest_entries": 16,
+    "split": "fresh",
+    "eligible_targets": 2000,
+    "documents": 200,
+    "payload_tokens": 505085,
+    "tokens_sha256": "82ead8db9584544a4cc461c394aaf9b00fa6c9fd8fdbf82e316392a71ecabd7b",
+    "mask_sha256": "8287d20d2c76d388ab7ed9becda6f209d224574a933fa2d14c7bdda3663f5ce4",
+    "rows_sha256": "086443039e52cf5057fe81f3fa3d1bf938083936080b7cdff378ec7d547440a2",
+    "documents_sha256": "6da8d07d5c6edddbf15c4d31c2d4d1c855bb727bcbd41684e1aca7f492f3f616",
+    "novelty_scope": "held out current discrete TRAIN/DEV; historically used pre-D32; different chat-source distribution; no semantic/paraphrase contamination guarantee"
+  },
+  "schema": "uor-r4.k16-rows-budget-proposal/1",
+  "date": "2026-10-18",
+  "document_status": "PROPOSAL_WITH_EXPLICIT_ASSUMPTIONS_AND_DATED_EPISODE_COST_CUTOFF"
+}

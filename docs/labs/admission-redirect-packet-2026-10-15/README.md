@@ -1,6 +1,35 @@
-# Admission redirect D-Packet — data/configuration binding, qualification pending
+# Admission redirect D-Packet — historical data/configuration binding
 
-**16 October current cost dependency:** owner instrument+optimize-first defers
+**18 October current pointer:** the [K16 rows qualification record](../k16-rows-qualification-2026-10-18/README.md)
+now records protected source 21224b446 construction, declared GPU controls/G-Pre/C-R
+and two checkpoint-0 A/R timing cells,100 samples plus one excluded warmup each.
+Timing uses a shared-library fresh-init companion with an all-state-except-source
+witness against native G-Pre; the compiled graph identities remain honest and distinct.
+DATA and late operator custody have verified full readbacks;
+[Claude ACCEPT6254417234](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254417234)
+binds the measured packet/four DOCUMENT_ONLY configs. Under the
+[owner's relayed gated release6254435225](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254435225),
+[PM dispatch6254457591](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254457591)
+is ISSUED_GATED_START. Claude's actual four-init census is
+[POSTED_PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425),
+raw/net1,986 on all four roles >1,941, clearing the scientific start gate. The
+3,119-byte report is retrieved/hash-verified from durable cloud custody; training is NOT_RUN. The same lease is retained; normal close is separate.
+The [later owner delegation6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195)
+keeps PM dispatch and actual owner training release separate. The owner waived
+Q4 timing/importer from the critical path. The 2.3691 GPU-hour checkpoint-0
+proposal-work projection and 5–8 GPU-hour remaining allowance are proposals,
+not measured all-in spending. See [NOW](../../integration/NOW.md) for D39's current
+plan, interim headline and closing conditions.
+
+## Historical packet snapshot — 15–16 October
+
+All restart, pending-executor, timing, cost, ownership and next-action statements
+below retain their original 15–16 October source/release scope. They are preserved
+history, not the current 18 October qualification or authority state. Original
+binding and cost JSON are unchanged; the current record above binds the new
+runtime artifacts, completed custody/acceptance and still-gated dispatch separately.
+
+**Historical 16 October cost dependency:** owner instrument+optimize-first defers
 the 100-batch qualification rate. The [pending sub-phase diagnostic](../propose-subphase-diagnostic-2026-10-16/README.md)
 is not a training rate and cannot fill this packet's qualification timing slot.
 Its separately reviewed checkpoint-0 identity bridge is required before execution.
@@ -17,7 +46,7 @@ qualification and packet gates are green. **This work does not launch training.*
 M2 and Stage B are not released. The earlier sheet's blanket hold text is historical
 relative to this scoped release; its technical gates still apply unchanged.
 
-## Qualification blocker and division of work
+## Historical qualification blockers and division of work
 
 **Latest restart (5):** the [attempt at merged `812459c7f`](../k16-qualification-restart5-2026-10-16/README.md)
 passes all six CUDA build/clippy gates, G-Pre and each GPU C-R control. All four
@@ -63,7 +92,7 @@ timing runner, and Codex this packet. No pod spend until those executors are rev
 and merged. The timing [interface agreement](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201508191)
 requires immutable before/after snapshots and zero corpus apply calls.
 
-| Required receipt | Current disposition |
+| Required receipt | Disposition in the 16 October snapshot |
 | --- | --- |
 | Existing 25 finite controls, newly compiled PTX admission | NOT_RUN on the future qualification executable |
 | C-R1 rank/admission equivalence | PASS in restart 5; independent receipt review pending |
@@ -286,6 +315,6 @@ Retain failed and partial attempts too. Verify the archive **before**
 lease/wall/storage cost on #2029. Never destroy an unarchived unique result.
 
 Line: exact addressed memory / admission redirect; count unchanged;
-M1 headline 37/232 unchanged. **Next:** exact-head packet review, reviewed executor
+Historical M1 reply37/232 unchanged at this packet date. **Historical next action:** exact-head packet review, reviewed executor
 merges, qualification, then fill measured timing/runtime pins and final packet
 acceptance. This draft is not gate 2 green and does not authorize a training batch.

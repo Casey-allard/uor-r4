@@ -25,7 +25,7 @@ diagnostic pilot that learned 236 vector updates. The latest paired attention at
 its pre-registered Q1 admission gate in both arms: a configured admission collapse, not an
 accuracy result or a mechanism verdict
 ([record](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)). The immediate priority is
-qualifying the FIT'd K16-A/R redirect before any further training.
+preparing native admission transport for the owner's relayed and PM-dispatched K16-A/R training release after Claude's posted census PASS.
 
 ## What works today, and what does not
 
@@ -40,6 +40,30 @@ qualifying the FIT'd K16-A/R redirect before any further training.
 
 The left column is tested substrate; the right column is what would make it a language model.
 Neither column is a claim of measured language quality.
+
+The immediate M1 priority is the existing FIT K16-A/R admission redirect on
+`rows_v1`, seeds1/2: [timing source and qualification sequence](docs/labs/k16-rows-timing-source-2026-10-18/README.md).
+At protected source `21224b446`, the declared construction, finite controls,
+G-Pre, C-R1..C-R6 and two checkpoint-0 A/R timing cells passed, with 100 timed
+samples plus one excluded warmup per cell. A shared-library fresh-init companion
+supplies the timing state; its all-state-except-source comparison with G-Pre
+passes without equating the two compiled graphs.
+[Qualification and timing record](docs/labs/k16-rows-qualification-2026-10-18/README.md).
+DATA and late operator custody have verified cloud readbacks. The
+[sealed packet request6254373730](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254373730)
+received [Claude ACCEPT6254417234](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254417234). The
+[owner's relayed gated release6254435225](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254435225)
+covers four unchanged A/R×seed1/2 trajectories.
+[Kimi PM dispatch6254457591](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254457591)
+is issued as gated-start. [Claude census PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425)
+posts raw/net1,986 on all four roles, above1,941; the scientific start gate is
+cleared. The3,119-byte census report is retrieved and hash-verified from its
+durable cloud object; no further census wait remains. Training is
+NOT_RUN. The same lease is retained, and normal close is not claimed.
+The [later owner delegation6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195)
+keeps PM dispatch and actual owner training release separate. The
+[owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125)
+removes the two Q4 cells and importer from the critical path.
 
 Start with the [one-page current plan](docs/integration/NOW.md), the [illustrated geometry](docs/geometry.md),
 [documentation hub](docs/README.md), [current status](STATUS.md), or [contributor guide](CONTRIBUTING.md).
@@ -106,7 +130,7 @@ Live tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 
 | Milestone | Issue | Status | Headline now → target |
 |---|---|---|---|
-| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | pilot complete; Dose2 Q1 diagnostic stop | reply headline SUSPENDED/no target under R14; [pilot measurements](docs/labs/a2-pilot-2026-10-14/README.md) do not qualify useful conversation |
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | K16 qualification gates/timing passed; DATA/operator custody verified; Claude ACCEPT; PM dispatch ISSUED_GATED_START; four-init census POSTED_PASS; report custody verified; training NOT_RUN | D39 interim: injective codebook + Q4 target admission ≥ 4,894; historical reply37/232 SUSPENDED under R14. Qualification is not a learned result or M1 closure |
 | M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | held | 437/512 development replies (above 256), but 0/128 on fresh transfer |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | paused | evaluator and session built; waits on an M1 or M2 model |
 | M4 One served model (D11 and a CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | unified D11 model/export unqualified |
@@ -117,8 +141,9 @@ Live tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 
 <img src="docs/figures/milestones.svg" alt="Milestones M1 to M8: M1 in progress, M2 and M4 held, M3 paused, M5 to M8 planned" width="100%">
 
-Per-lab measured position: [STATUS.md](STATUS.md). Plan of record: [ROADMAP.md](ROADMAP.md) and
-[project-track.md](docs/integration/project-track.md).
+Per-lab measured position: [STATUS.md](STATUS.md). Plan of record:
+[NOW.md](docs/integration/NOW.md); [ROADMAP.md](ROADMAP.md) and
+[project-track.md](docs/integration/project-track.md) retain longer details and history.
 
 ## The current path: discrete geometric learning
 

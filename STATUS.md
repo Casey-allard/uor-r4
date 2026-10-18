@@ -2,9 +2,11 @@
 
 **Pre-alpha, evidence checked 18 October 2026.** The one-page current plan is [NOW.md](docs/integration/NOW.md); it is authoritative when this status page and the plan disagree.
 
-No model holds a useful conversation;
-0/8 milestones are complete. M1's reply headline remains **37/232 SUSPENDED**;
-the Dose2 Q1 diagnostic stop establishes no efficacy or fresh-transfer result.
+No model holds a useful conversation; 0/8 milestones are complete.
+[D39](docs/integration/DECISIONS.md#d39--m1-closing-bar-k16-reachability-gate-post-qualification-sequence-and-lab-self-direction-owner-2026-10-18)
+sets M1's interim headline to **injective codebook + Q4 target admission ≥ 4,894**.
+The historical reply37/232 remains SUSPENDED under R14, rather than the current
+interim headline. The Dose2 Q1 diagnostic stop establishes no efficacy or fresh-transfer result.
 
 | Evidence | What it establishes |
 |---|---|
@@ -18,34 +20,49 @@ The shared vector/combine pathway is a plausible explanation for the admission
 collapse, including in the relation-disabled control, but causality is not established.
 No registered paired efficacy comparison is licensed at Q1.
 
-**Immediate priority — 18 October 2026:** prepare and qualify the existing FIT'd
-K16-A versus K16-R admission redirect on `rows_v1`, under the
-[owner direction](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397) and [PM gate audit](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855).
-**Actual qualification build blocker:** the selectedbccc native build passed, but the
-CUDA timing build failedE0063/exit101 before model controls. Two standalone Route
-Snapshot constructors now explicitly bind the existing zero-gate initialization;
-repaired real CUDA builds and qualification remain owed. See the
-[source/failure record](docs/labs/k16-rows-timing-source-2026-10-18/README.md).
+**Current qualification — 18 October 2026:** the existing FIT'd K16-A versus
+K16-R admission redirect on `rows_v1`, under the
+[owner direction](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397)
+and [PM gate audit](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855),
+has passed its declared GPU gates at protected source `21224b446`: all 21
+construction/identity phases, 25/25 finite controls plus `admit_ptx`, Relation 9/9,
+rows parity 7/7, G-Pre and C-R1..C-R6. Two checkpoint-0 A/R timing cells each
+completed 100 timed samples plus one excluded warmup. Timing and the fresh-init
+companion share the actual Rust library; the companion state matches native
+G-Pre except each graph's honest compiled-source identity.
+[Results and exact build graphs](docs/labs/k16-rows-qualification-2026-10-18/README.md)
+retain the original bccc E0063 failure and subsequent protected repairs as history.
 
-**Source/packet preparation GO; packet acceptance and training NO-GO** pending exact-head
-qualification, measured timing/budget and acceptance of the regenerated D-Packet.
-Keep Route/K16, seeds 1 and 2, `CanonicalVectorThenReadV1`, the registered
-16,404-batch schedule and scientific bars unchanged. Qualification requires
-same-device, same-state, same-R-objective lanes/rows parity with **>16 occupied cells and an
-actual R>0 row**, 25/25 controls plus `admit_ptx`, G-Pre, C-R1..C-R6,
-required refusal/terminal coverage, wrong-objective/broken-negative checks and zero apply.
-The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125) retains only checkpoint-0 A/R timing, **100 samples each** plus
-one excluded warmup. The two Q4 cells are waived; the importer is off the critical path. [PR #2658](https://github.com/UOR-Foundation/uor-r4/pull/2658) is merged; its
-source-scoped parity and five-sample diagnostic timings do not establish
-new-head qualification, the registered timing or packet acceptance.
-The separate K8 Relation/R successor is deferred planning, not an added K16 gate.
-The existing conditional release preserves qualification → accepted packet →
-training → fresh before KEEP; fresh execution is not a training-start gate.
-Other training/M2/Stage B holds remain.
-The [explicit rows timing adapter](docs/labs/k16-rows-timing-source-2026-10-18/README.md)
-binds the production path and rows image identities at source level. Its new-head
-CUDA/timing execution is NOT_RUN by this delivery. The owner-waived Q4
-importer is preserved as preparation, without blocking qualification.
+**DATA and late operator custody are verified; Claude ACCEPT6254417234 is recorded; training is NOT_RUN.**
+All15 DATA shards and the separate metadata reconcile to19 cloud objects; the
+two late operator payload groups and metadata also have full verified readbacks.
+The [sealed packet request6254373730](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254373730)
+binds these receipts and the four DOCUMENT_ONLY configs. The
+[owner's relayed gated release6254435225](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254435225)
+covers exactly four unchanged A/R×seed1/2 trajectories;
+[Kimi PM dispatch6254457591](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254457591)
+is ISSUED_GATED_START. [Claude census PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425)
+posts raw/net1,986 on every role, clearing the scientific start gate. Its
+3,119-byte report is retrieved/hash-verified from durable cloud custody; no
+further census wait remains. Root is preparing native admission transport. No first training batch is claimed.
+The same lease remains retained; normal close and its final accounting are separate. Measured samples support a checkpoint-0 proposal-work
+projection of 2.3691 GPU-hours; the remaining 5–8 GPU-hour range adds unmeasured allowances
+and is a proposal, not measured all-in cost or a release.
+Keep Route/K16, seeds1/2, `CanonicalVectorThenReadV1` and the 16,404-batch schedule.
+The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125)
+removes the two Q4 cells and importer from the critical path. Prior five-sample
+qualifier timings remain diagnostic; they do not fill the registered 100-sample slot.
+The later [owner delegation6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195)
+assigns packet acceptance to Claude alone; PM dispatch and actual owner training
+release remain separate. Four bound `rows_v1` configs and a measured D-Packet
+precede that decision. Fresh execution is before KEEP, not a training-start gate.
+Other training/M2/Stage B holds remain. K8 Relation/R remains separate planning.
+
+M1 closes only under D39's saved-artifact conditions: G-Pre ≥ 4,894, G-Adm both
+seeds, G-Occ > 16 cells with a real R > 0 row, ≤0.90 BPB on the chat held-out stream
+through D11 export with gap reported, and fresh pre-registered transfer. Initial
+qualification admission is not a learned result or fulfillment of those conditions.
+
 The [architecture](docs/architecture.md) traces current computation to source;
 [current-state](docs/integration/current-state.md) retains the chronological evidence.
 
@@ -157,10 +174,13 @@ the same synchronized CUDA harness. No model training or quality run occurred.
 
 | Line | Retained reading and limitation | Current next dependency |
 | --- | --- | --- |
-| M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | D32 [decomposition](docs/labs/counterfactual-decomposition-run-2026-10-16/README.md) resolves writer/baseline cost in four cells; [baseline reuse](docs/labs/counterfactual-baseline-reuse-implementation-2026-10-16/README.md) is implemented and [finite-qualified on580.95.05](docs/labs/counterfactual-baseline-reuse-finite-pass-2026-10-17/README.md). After the [timing startup refusal](docs/labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md) and protected [exact-driver selector](docs/labs/driver-aware-pod-selection-2026-10-17/README.md), a separately reviewed/released [finite qualification on595.71.05](docs/labs/counterfactual-baseline-reuse-driver-595-2026-10-17/README.md) passes32 exact U/R pairs,16 typed refusals and18 strict resource admissions including R shared512, unchanged state/epoch and apply0. Archive verified before teardown; fleet0. Finite record #2568 is protected and cleaned. A separately released [timing2 attempt](docs/labs/counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md) refused a changed GPU UUID before any binary; archive-copy recovery was verified before teardown. Next: protect the setup record and prospectively resolve device admission before a new release. Speedup, checkpoint0 parity and training remain unmeasured; holds remain |
+| M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | [Frozen21224 qualification](docs/labs/k16-rows-qualification-2026-10-18/README.md), two100+1 timing cells and DATA/lateOP readbacks complete; Claude ACCEPT6254417234. Owner gated release6254435225 covers four unchanged A/R×seed1/2 trajectories only; Kimi PM dispatch6254457591 is ISSUED_GATED_START; Claude census6254480425 is POSTED_PASS: raw/net1986 on all four roles >1941; census report custody retrieved/hash-verified, native admission transport in preparation. Training NOT_RUN. |
 | M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](docs/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law refuses. Head/shared vector channel and the repaired compiled boundary have finite CUDA qualification at `1f1547bfd`; full M2 remains unqualified. Unified line count12/3 after masked-reference source delivery #2328 (previous11/3 retained; closeout is the same unit), no reset | Masked TRAIN-reference repair delivered in #2328; Claude CONFIRM FIT recorded; D29 finite qualification passes; protected delivery remains; coherent full-M2 intent/compiler path and explicit owner hold release remain dependencies |
 | M3 durable memory | Evaluator/session delivered; unqualified | Preserve interfaces; no automatic experiment when M2 is held |
 | M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; historical artifacts include prohibited paths; their model executors are excluded from the selected build. [Starling bootstrap](docs/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude discrete murmuration read against shared integer carrier; reviewed finite qualification, then owner-released discrete learning; no float gradient path |
+
+**Historical M1 next-dependency snapshot — superseded by the current K16 packet:**
+D32 [decomposition](docs/labs/counterfactual-decomposition-run-2026-10-16/README.md) resolves writer/baseline cost in four cells; [baseline reuse](docs/labs/counterfactual-baseline-reuse-implementation-2026-10-16/README.md) is implemented and [finite-qualified on580.95.05](docs/labs/counterfactual-baseline-reuse-finite-pass-2026-10-17/README.md). After the [timing startup refusal](docs/labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md) and protected [exact-driver selector](docs/labs/driver-aware-pod-selection-2026-10-17/README.md), a separately reviewed/released [finite qualification on595.71.05](docs/labs/counterfactual-baseline-reuse-driver-595-2026-10-17/README.md) passes32 exact U/R pairs,16 typed refusals and18 strict resource admissions including R shared512, unchanged state/epoch and apply0. Archive verified before teardown; fleet0. Finite record #2568 is protected and cleaned. A separately released [timing2 attempt](docs/labs/counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md) refused a changed GPU UUID before any binary; archive-copy recovery was verified before teardown. Next: protect the setup record and prospectively resolve device admission before a new release. Speedup, checkpoint0 parity and training remain unmeasured; holds remain
 
 Historical BPB/NLL is preserved at its original scope and cannot authorize a new
 normalized-exponential evaluator. Raw-score/answer quality and speed are separate;
