@@ -71,14 +71,17 @@ jobs:
             echo "No Rust/build-relevant path changed; skipping compilation."
           fi
 
-      - name: Claim-wording gate
-        run: python3 scripts/check_claim_wording.py
-
       - name: Install Rust (stable)
         if: steps.scope.outputs.code == 'true'
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
+
+      # Docs-only changes skip the compile above but still run the claim-wording
+      # gate, which is now a Rust binary (D27): install a bare toolchain for it.
+      - name: Install Rust for the claim-wording gate (docs-only change)
+        if: steps.scope.outputs.code != 'true'
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo
         if: steps.scope.outputs.code == 'true'
@@ -90,6 +93,9 @@ jobs:
             target
           key: cargo-fast-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: cargo-fast-${{ runner.os }}-
+
+      - name: Claim-wording gate
+        run: cargo run -q --locked -p uor-r4-claim-wording -- .
 
       - name: cargo fmt --check
         if: steps.scope.outputs.code == 'true'
@@ -229,7 +235,7 @@ jobs:
           restore-keys: cargo-${{ runner.os }}-
 
       - name: Claim-wording gate (docs/formal_vocabulary.md §2.1, issue #123)
-        run: python3 scripts/check_claim_wording.py
+        run: cargo run -q --locked -p uor-r4-claim-wording -- .
 
       # #787: honest name — this exercises the audit ENGINE against
       # reference fixtures; the real #160 disassembly/dependency audit of

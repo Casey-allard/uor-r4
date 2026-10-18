@@ -72,7 +72,7 @@ specification but no activated binding check yet; documents must label such clai
 The prohibited phrases are **"machine-verified"**, **"machine verified"**, **"exact equivalence"**, **"exact teacher equivalence"**, and **"provably equivalent"**. They are prohibited in
 normative documents (`docs/**`, crate READMEs) unless the same line links a proof
 artifact or certificate, or the phrase is explicitly disavowed on that line.
-`scripts/check_claim_wording.py` enforces this when explicitly activated (see §6). The project does not
+The `uor-r4-claim-wording` gate enforces this when explicitly activated (see §6). The project does not
 claim exact teacher equivalence (disallowed per this rule), does not claim
 human-level reasoning, and does not treat plausible language output as evidence of
 coherent internal state transitions.
@@ -191,8 +191,9 @@ by wholesale rewrite.
 
 ## 6. Enforcement
 
-- `scripts/check_claim_wording.py` scans `docs/**/*.md` and crate `README.md` files
-  and fails on §2.1 violations. Run locally: `python3 scripts/check_claim_wording.py`.
+- The `uor-r4-claim-wording` crate (Rust port of the retired `scripts/check_claim_wording.py`)
+  scans `docs/**/*.md` and crate `README.md` files
+  and fails on §2.1 violations. Run locally: `cargo run -q --locked -p uor-r4-claim-wording -- .`.
 - Current PR and merge-group CI run the focused native checks described by the
   [execution policy](integration/agent-execution-policy.md#verification-and-records).
   Four historical required statuses acknowledge compatibility only. Run the

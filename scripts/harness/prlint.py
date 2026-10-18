@@ -944,7 +944,7 @@ _CHECKLIST = (
     ("Every document this change makes stale is updated", False),
     ("STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged", False),
     ("README updated in its existing sections, or nothing a reader relies on changed", False),
-    ("python3 scripts/check_claim_wording.py passes", False),
+    ("cargo run -q --locked -p uor-r4-claim-wording -- . passes", False),
     ("After merge: verify on fresh origin/main, delete the branch and worktree, uor-hygiene --apply", False),
 )
 

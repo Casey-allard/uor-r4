@@ -1597,7 +1597,7 @@ const CHECKLIST: [&str; 8] = [
     "Every document this change makes stale is updated",
     "STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged",
     "README updated in its existing sections, or nothing a reader relies on changed",
-    "python3 scripts/check_claim_wording.py passes",
+    "cargo run -q --locked -p uor-r4-claim-wording -- . passes",
     "After merge: verify on fresh origin/main, delete the branch and worktree, uor-hygiene --apply",
 ];
 

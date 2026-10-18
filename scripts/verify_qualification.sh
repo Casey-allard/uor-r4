@@ -6,7 +6,7 @@ cd "$REPO_ROOT"
 
 echo "=== 1. Checking Static Code Quality & Claim Wording ==="
 cargo fmt --check
-python3 scripts/check_claim_wording.py
+cargo run -q --locked -p uor-r4-claim-wording -- .
 cargo check --manifest-path crates/uor-r4-core/Cargo.toml --all-targets
 
 echo "=== 2. Checking Allocation & Integer Kernel Invariants ==="

@@ -44,7 +44,7 @@ is the full rule set and wins on any conflict.
    [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037) through `uor-pod`.
 4. **Check.** Compile and exercise the changed Rust path with focused tests (arithmetic,
    causality, serialization, interfaces). Run actual generated behavior for a model change.
-   Run `python3 scripts/check_claim_wording.py`. Do not treat absent fixtures, unrun tests or the
+   Run `cargo run -q --locked -p uor-r4-claim-wording -- .`. Do not treat absent fixtures, unrun tests or the
    CI acknowledgement jobs as a pass: the `required-transport` job executes no tests.
 5. **Record and update docs in the same PR** (the delivery cadence below).
 6. **Open a protected PR.** Stage named paths only. Fill in the PR checklist. Use

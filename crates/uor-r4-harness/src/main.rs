@@ -267,6 +267,10 @@ COMMANDS:
                 The D23/D25/D32 ratchets (Rust port of the scripts/check_no_*.py pair
                 plus the D32 discrete-float gate). Exits 1 when a count grew;
                 --update-baseline may only lower counts.
+    claim-wording
+                The claim-wording gate (docs/formal_vocabulary.md section 2.1; Rust
+                port of the retired scripts/check_claim_wording.py). Exits 1 on an
+                unlinked machine-verified/exact-equivalence phrase.
     help        This text.
 
 The Python harness owns behaviour until this path passes the same checks; the
@@ -455,6 +459,7 @@ fn main() -> ExitCode {
         Some("shard-check") => cmd_shard_check(&repo, &rest, json),
         Some("status") => cmd_status(&repo, &rest),
         Some("ratchet") => cmd_ratchet(&repo, &rest),
+        Some("claim-wording") => cmd_claim_wording(&repo),
         Some("lint") => cmd_lint(&repo, &rest, json),
         Some("check-rules") => {
             // The port's coverage record. `parity.py` compares this against Python's registered
@@ -3666,6 +3671,25 @@ fn cmd_lint(repo: &Path, args: &[String], json: bool) -> ExitCode {
         ExitCode::SUCCESS
     } else {
         ExitCode::from(1)
+    }
+}
+
+/// `claim-wording`: the claim-wording gate over `repo`, same output and exit codes as the
+/// `uor-r4-claim-wording` binary (0 clean, 1 violation, 2 unreadable tree).
+fn cmd_claim_wording(repo: &Path) -> ExitCode {
+    match uor_r4_claim_wording::check(repo) {
+        Ok(violations) => {
+            print!("{}", uor_r4_claim_wording::report(&violations));
+            if violations.is_empty() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
+        }
+        Err(e) => {
+            eprintln!("uor-harness: claim-wording: {e}");
+            ExitCode::from(2)
+        }
     }
 }
 

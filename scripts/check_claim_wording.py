@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Claim-wording gate (issue #123, docs/formal_vocabulary.md section 2.1).
+RETIRED 2026-10-18: use `cargo run -p uor-r4-claim-wording` (Rust port, D27). Kept as dated evidence; no caller remains.
 
 Scans normative Markdown (docs/**, crate and root READMEs) for prohibited claim
 phrases: "machine-verified", "machine verified", "exact equivalence",

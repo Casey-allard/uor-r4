@@ -1,3 +1,7 @@
+## 2026-10-18 — Claim-wording gate ported to Rust (claude)
+
+The claim-wording gate is now the `uor-r4-claim-wording` crate (D27): run `cargo run -q --locked -p uor-r4-claim-wording -- .` or `uor-harness claim-wording`. It is a line-for-line port of `scripts/check_claim_wording.py`. Its stdout and exit code are byte-identical to the script's on this repository and on a violation probe; the crate has 13 tests. The CI steps, the PR template, AGENTS/CONTRIBUTING, pm-rules, formal vocabulary §6 and the prlint checklist label now call the Rust gate. CI coverage is unchanged, including docs-only diffs in `fast-gate`. The Python script is retired, not deleted. [Record](../labs/claim-wording-rust-port-2026-10-18/README.md). No compute, $0. **Next:** none on this line; the retired script stays as dated evidence.
+
 ## 2026-10-18 — C1 DRAFT sheet shape repaired (claude, Kimi's repair)
 
 The C1 DRAFT (`docs/harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md`, #2620) had no D22 blocks and no verdict line. That failed `prep.sheet_shape` and `prep::tests::the_real_sheets_are_readable` on main. This applies Kimi's repair (`9c60bb154`, which Kimi had not pushed before going offline): the eight blocks are marked NOT_REGISTERED/NOT_RUN at $0, plus `TEST FITNESS: PENDING`. Nothing is registered, and no bar, control, source or hold changes. `uor-harness check` reports 0 errors, and the test passes. **Next:** merge-forward #2623 (claim-wording Rust port) onto this.

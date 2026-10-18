@@ -27,10 +27,10 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/c1-sheet-shape-20261018": {
-    "branch": "claude/c1-sheet-shape-20261018",
-    "claimed_at": "2026-10-17T23:46:28-04:00",
-    "head": "e8703a63c",
+  "claude/claim-wording-rust-20261018": {
+    "branch": "claude/claim-wording-rust-20261018",
+    "claimed_at": "2026-10-17T23:48:09-04:00",
+    "head": "53b90576e",
     "lab": "claude",
     "note": ""
   },

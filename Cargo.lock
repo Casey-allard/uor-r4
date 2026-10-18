@@ -2382,6 +2382,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-claim-wording"
+version = "0.1.0"
+dependencies = [
+ "regex",
+]
+
+[[package]]
 name = "uor-r4-core"
 version = "0.1.0"
 dependencies = [
@@ -2488,6 +2495,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "uor-r4-claim-wording",
 ]
 
 [[package]]

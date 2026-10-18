@@ -51,7 +51,7 @@ come from the owner through the PM.
   (93 sites / 26 files across `crates/` and `docs/labs/*/instrument/`, gating `.matmul(`, `MatMul`,
   `cublas`, `gemm` and tensor-core `wmma`/`mma_sync` intrinsics), `cargo run -p uor-r4-core --bin r4-policy-check`
   (verifying `/schema == "uor-r4.agent-execution-policy/6"`, `training_matrix_multiplication_allowed == false`,
-  and the D25/D32 discrete/no-matmul invariants), and `scripts/check_claim_wording.py`.
+  and the D25/D32 discrete/no-matmul invariants), and the claim-wording gate (`cargo run -q --locked -p uor-r4-claim-wording -- .`).
 - **Why.** The bans erode one "temporary" site at a time; a baseline is a floor, not a budget.
 - **Harness surface.** `lint check` and `uor-harness check` invoke both the D23 (`Kind::NormExp`) and D25
   (`Kind::Matmul`) interlocks in process via `prlint.d23_interlock`; a PR that raises either baseline fails.

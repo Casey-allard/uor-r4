@@ -1,0 +1,18 @@
+[package]
+name = "uor-r4-claim-wording"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Claim-wording gate (issue #123, docs/formal_vocabulary.md section 2.1). Rust port of the retired scripts/check_claim_wording.py (owner rule D27), with the same scan, rules and output."
+
+[lib]
+name = "uor_r4_claim_wording"
+path = "src/lib.rs"
+
+[[bin]]
+name = "uor-r4-claim-wording"
+path = "src/bin/uor-r4-claim-wording.rs"
+
+[dependencies]
+regex = "1"

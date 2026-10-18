@@ -23,6 +23,7 @@ members = [
     "crates/uor-r4-naf",
     "crates/uor-r4-recon-dag",
     "crates/uor-r4-harness",
+    "crates/uor-r4-claim-wording",
     "crates/uor-r4-pod-provider",
     "xtask",
     "tools/lab-runner",
