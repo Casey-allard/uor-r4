@@ -1276,6 +1276,7 @@ mod tests {
             objective_policy: crate::ObjectivePolicy::NearestAddressMarginV1,
             read_initialization: ReadInitialization::ActiveLeafV1,
             relation_learning_policy: training::RelationLearningPolicy::LearnV1,
+            counterfactual_path: training::CounterfactualPath::LanesV1,
             seed: 1,
             batch_rows: 64,
             train: corpus::CorpusSource {

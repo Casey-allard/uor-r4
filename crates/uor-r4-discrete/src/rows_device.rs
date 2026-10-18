@@ -166,3 +166,28 @@ pub fn compiled_rows_image_sha256() -> [String; 4] {
         format!("{:x}", Sha256::digest(ROWS_RESOURCE_REPORT.as_bytes())),
     ]
 }
+
+impl Device {
+    /// `propose_rows` with this device's own lazily loaded module, so a driver
+    /// loads the row-parallel image once per model rather than once per batch.
+    pub fn propose_rows_cached(
+        &self,
+        batch: &CarriedBatch,
+        targets: &[u32],
+        parameter: Parameter,
+    ) -> Result<Proposal> {
+        let rows = match self.rows_cache.get() {
+            Some(rows) => rows,
+            None => {
+                let loaded = self.rows_counterfactual()?;
+                // A concurrent first load on the same device keeps either handle;
+                // both bind this exact model and stream.
+                let _ = self.rows_cache.set(loaded);
+                self.rows_cache
+                    .get()
+                    .ok_or_else(|| invalid("row-parallel module cache unavailable"))?
+            }
+        };
+        self.propose_rows(batch, targets, parameter, rows)
+    }
+}

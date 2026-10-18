@@ -755,6 +755,8 @@ pub struct Device {
     metadata: BinderPlan,
     kernels: Kernels,
     binding: Binding,
+    /// Lazily loaded opt-in row-parallel module, bound to this model/stream.
+    rows_cache: std::sync::OnceLock<RowsCounterfactual>,
 }
 
 fn packed_geometry() -> Vec<u32> {
@@ -972,6 +974,7 @@ impl Device {
             metadata,
             kernels,
             binding,
+            rows_cache: std::sync::OnceLock::new(),
         })
     }
 

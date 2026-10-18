@@ -559,6 +559,7 @@ fn corpus_schedule_resume(context: &mut Context<'_>) -> Result<()> {
             },
             read_spec,
             relation_learning_policy: crate::training::RelationLearningPolicy::LearnV1,
+            counterfactual_path: crate::training::CounterfactualPath::LanesV1,
             seed,
             batch_rows: 3,
             train: train.binding().source.clone(),

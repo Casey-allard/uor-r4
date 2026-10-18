@@ -52,6 +52,21 @@ impl RelationLearningPolicy {
         *self == Self::LearnV1
     }
 }
+/// Which exact counterfactual kernel scores a proposal. Both produce identical
+/// losses, chooser input and statuses (row-parallel GPU parity, #2630); only the
+/// launch shape differs. The default keeps existing configurations byte-identical.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CounterfactualPath {
+    #[default]
+    LanesV1,
+    RowsV1,
+}
+impl CounterfactualPath {
+    pub fn is_lanes(&self) -> bool {
+        *self == Self::LanesV1
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DriverConfig {
@@ -67,6 +82,8 @@ pub struct DriverConfig {
     pub read_initialization: ReadInitialization,
     #[serde(default, skip_serializing_if = "RelationLearningPolicy::is_learn")]
     pub relation_learning_policy: RelationLearningPolicy,
+    #[serde(default, skip_serializing_if = "CounterfactualPath::is_lanes")]
+    pub counterfactual_path: CounterfactualPath,
     pub seed: u32,
     pub batch_rows: u32,
     pub train: CorpusSource,
@@ -679,6 +696,7 @@ mod tests {
             objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             read_initialization: ReadInitialization::ZeroGatesV1,
             relation_learning_policy: RelationLearningPolicy::LearnV1,
+            counterfactual_path: CounterfactualPath::LanesV1,
             schema: DRIVER_SCHEMA.into(),
             spec,
             read_spec,
@@ -1159,6 +1177,30 @@ mod tests {
         Ok(())
     }
     #[test]
+    fn counterfactual_path_default_keeps_config_bytes_and_rows_is_explicit() -> Result<()> {
+        let legacy = metadata_fixture(1, ReadSpec::Route)?;
+        let encoded = serde_json::to_value(&legacy.config).map_err(|e| invalid(e.to_string()))?;
+        // The default is never serialized, so existing config hashes are unchanged.
+        assert!(encoded.get("counterfactual_path").is_none());
+        assert_eq!(
+            legacy.config.counterfactual_path,
+            CounterfactualPath::LanesV1
+        );
+        let mut rows = legacy.config.clone();
+        rows.counterfactual_path = CounterfactualPath::RowsV1;
+        let rows_encoded = serde_json::to_value(&rows).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(rows_encoded["counterfactual_path"], "rows_v1");
+        let decoded: DriverConfig =
+            serde_json::from_value(rows_encoded).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(decoded, rows);
+        // The selected kernel is part of the bound configuration identity.
+        assert_ne!(
+            serde_json::to_vec(&rows).map_err(|e| invalid(e.to_string()))?,
+            serde_json::to_vec(&legacy.config).map_err(|e| invalid(e.to_string()))?
+        );
+        Ok(())
+    }
+    #[test]
     fn frozen_relation_preserves_all_scheduled_proposal_slots() -> Result<()> {
         let frozen = frozen_relation_metadata_fixture()?;
         let mut learned = frozen_relation_metadata_fixture()?;
@@ -1452,6 +1494,20 @@ impl PreparedDriver {
         self.admit_model(&model, &checkpoint.cursor)?;
         Ok((model, checkpoint.cursor))
     }
+    /// Score one proposal with the configured exact counterfactual kernel. The
+    /// row-parallel path returns the same losses and chooser input (#2630).
+    fn propose_with_path(
+        &self,
+        model: &crate::device::Device,
+        carried: &crate::device::CarriedBatch,
+        targets: &[u32],
+        parameter: crate::Parameter,
+    ) -> Result<crate::device::Proposal> {
+        match self.config.counterfactual_path {
+            CounterfactualPath::LanesV1 => model.propose(carried, targets, parameter),
+            CounterfactualPath::RowsV1 => model.propose_rows_cached(carried, targets, parameter),
+        }
+    }
     /// Deterministic virtual proposal. The returned next cursor changes no model state.
     pub fn propose_next(
         &self,
@@ -1466,8 +1522,8 @@ impl PreparedDriver {
         let batch = self.batch(cursor)?;
         let carried = model.carry_windows(&batch.windows)?;
         let coordinate = self.coordinate_at(cursor.completed_batches)?;
-        let observation = model
-            .propose(&carried, &batch.targets, coordinate.parameter())?
+        let observation = self
+            .propose_with_path(model, &carried, &batch.targets, coordinate.parameter())?
             .observation()?;
         Ok(StepReceipt {
             lineage_sha256: self.lineage_sha256()?,
@@ -1504,7 +1560,8 @@ impl PreparedDriver {
         let batch = self.batch(cursor)?;
         let carried = model.carry_windows(&batch.windows)?;
         let coordinate = self.coordinate_at(cursor.completed_batches)?;
-        let proposal = model.propose(&carried, &batch.targets, coordinate.parameter())?;
+        let proposal =
+            self.propose_with_path(model, &carried, &batch.targets, coordinate.parameter())?;
         let observation = proposal.observation()?;
         // CUDA still computes the complete counterfactual for frozen relation
         // slots. Policy only withholds the commit; its loss remains hypothetical.

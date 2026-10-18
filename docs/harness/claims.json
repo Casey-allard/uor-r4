@@ -6,6 +6,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/driver-rows-path-20261018": {
+    "branch": "claude/driver-rows-path-20261018",
+    "claimed_at": "2026-10-18T00:39:46-04:00",
+    "head": "32c096c58",
+    "lab": "claude",
+    "note": ""
+  },
   "codex/cf1-reuse-timing-uuid-blocker": {
     "branch": "codex/cf1-reuse-timing-uuid-blocker",
     "claimed_at": "2026-10-16T22:35:15-04:00",
