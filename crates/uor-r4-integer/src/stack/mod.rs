@@ -55,6 +55,8 @@ mod chat;
 pub mod flock;
 mod format;
 pub(crate) mod kernels;
+#[cfg(feature = "serving-wasm")]
+pub mod simd;
 mod session;
 #[cfg(test)]
 mod tests;

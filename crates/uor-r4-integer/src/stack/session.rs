@@ -311,10 +311,12 @@ pub struct IntegerStackModel {
     /// Threads that a step's weight maps run on (1: the calling thread only).
     threads: usize,
     /// The worker pool of `threads > 1`; `None` steps on the calling thread.
+    #[cfg(not(target_arch = "wasm32"))]
     pool: Option<rayon::ThreadPool>,
 }
 
 /// A worker pool of `threads` threads, or `None` for one thread.
+#[cfg(not(target_arch = "wasm32"))]
 fn thread_pool(threads: usize) -> Result<Option<rayon::ThreadPool>, StackError> {
     match threads {
         0 => Err(StackError::Threads(
@@ -570,6 +572,7 @@ impl IntegerStackModel {
             rank,
             weights_per_token: weights,
             threads: 1,
+            #[cfg(not(target_arch = "wasm32"))]
             pool: None,
         })
     }
@@ -584,6 +587,7 @@ impl IntegerStackModel {
     /// thread only, the default: laptop jobs register their thread counts in
     /// a shared budget, so a loaded model never starts threads by itself).
     /// The outputs do not depend on it.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn set_threads(&mut self, threads: usize) -> Result<(), StackError> {
         self.pool = thread_pool(threads)?;
         self.threads = threads;
@@ -1623,6 +1627,7 @@ impl IntegerStackSession<'_> {
     /// The step runs on the model's worker pool when it has one
     /// ([`IntegerStackModel::set_threads`]); the integers do not depend on it.
     #[inline(never)]
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn step(&mut self, token: u32) -> Result<&[i32], StackError> {
         let model = self.model;
         match &model.pool {
@@ -1639,6 +1644,14 @@ impl IntegerStackSession<'_> {
         }
         Ok(&self.b.logits)
     }
+
+    /// The single-threaded step: the only form on wasm32.
+    #[inline(never)]
+    #[cfg(target_arch = "wasm32")]
+    pub fn step(&mut self, token: u32) -> Result<&[i32], StackError> {
+        stack_step(self, token, false)?;
+        Ok(&self.b.logits)
+    }
 }
 
 // Every closure handed to the pool (`install`, `join`) captures exactly one
@@ -1647,6 +1660,7 @@ impl IntegerStackSession<'_> {
 // register (`fmov`), and no arithmetic of ours is inlined into them.
 
 /// One step to run on the pool, and its outcome.
+#[cfg(not(target_arch = "wasm32"))]
 struct StepCall<'s, 'm> {
     session: &'s mut IntegerStackSession<'m>,
     token: u32,
@@ -1655,6 +1669,7 @@ struct StepCall<'s, 'm> {
 
 /// [`stack_step`] of a [`StepCall`], on the model's pool.
 #[inline(never)]
+#[cfg(not(target_arch = "wasm32"))]
 fn stack_step_call(call: &mut StepCall<'_, '_>) {
     call.result = stack_step(call.session, call.token, true);
 }
@@ -1802,7 +1817,9 @@ const PARALLEL_MIN_ROWS: usize = 2 << TASK_ROWS_LOG2;
 /// `kernel(first, part)` over `out` (elements `first..first + out.len()`),
 /// halved by `rayon::join` at task boundaries (multiples of `2^task_log2`)
 /// down to tasks of at most `2^task_log2` elements. Must run on the model's
-/// pool.
+/// pool. On wasm32 there is no pool: the two halves run sequentially on the
+/// calling thread, in the same order, producing the same integers.
+#[cfg(not(target_arch = "wasm32"))]
 fn split_rows<T, F>(first: usize, out: &mut [T], task_log2: u32, kernel: &F)
 where
     T: Send,
@@ -1829,6 +1846,35 @@ where
         kernel,
     };
     rayon::join(|| stack_row_task(&mut low), || stack_row_task(&mut high));
+}
+
+#[cfg(target_arch = "wasm32")]
+fn split_rows<T, F>(first: usize, out: &mut [T], task_log2: u32, kernel: &F)
+where
+    T: Send,
+    F: Fn(usize, &mut [T]) + Sync,
+{
+    let task = 1usize << task_log2;
+    if out.len() <= task {
+        kernel(first, out);
+        return;
+    }
+    let mid = (((out.len() >> 1) >> task_log2) << task_log2).max(task);
+    let (low, high) = out.split_at_mut(mid);
+    let mut low = RowTask {
+        first,
+        out: low,
+        task_log2,
+        kernel,
+    };
+    let mut high = RowTask {
+        first: first + mid,
+        out: high,
+        task_log2,
+        kernel,
+    };
+    stack_row_task(&mut low);
+    stack_row_task(&mut high);
 }
 
 /// One half of a [`split_rows`] split.
@@ -1910,10 +1956,16 @@ fn stack_map_pairs2(
             x_exp,
             out: out1,
         };
+        #[cfg(not(target_arch = "wasm32"))]
         rayon::join(
             || stack_map_task(&mut first),
             || stack_map_task(&mut second),
         );
+        #[cfg(target_arch = "wasm32")]
+        {
+            stack_map_task(&mut first);
+            stack_map_task(&mut second);
+        }
     } else {
         stack_gemv_pairs(m0, pairs, x_exp, 0, out0);
         stack_gemv_pairs(m1, pairs, x_exp, 0, out1);
@@ -1969,14 +2021,16 @@ fn stack_recurrence(
     for (g, bias) in b.gate_out.iter_mut().zip(&r.gate_bias) {
         *g = g.saturating_add(*bias);
     }
-    let (drive, gate) = b.branches.split_at(d);
+    let (drive, gate) = b.branches.split_at(core::hint::black_box(d));
     // Causal convolution of the drive: this position and the three before it
     // (zero before the stream starts), at exponent -16.
-    let (tap0, rest) = r.taps.split_at(d);
-    let (tap1, rest) = rest.split_at(d);
-    let (tap2, tap3) = rest.split_at(d);
-    let (back1, rest) = history.split_at(d);
-    let (back2, back3) = rest.split_at(d);
+    // `black_box(d)` prevents LLVM from combining three `i16` pointer advances
+    // (`2*d + 2*d + 2*d`) into `d * 6` (`i32.mul`).
+    let (tap0, rest) = r.taps.split_at(core::hint::black_box(d));
+    let (tap1, rest) = rest.split_at(core::hint::black_box(d));
+    let (tap2, tap3) = rest.split_at(core::hint::black_box(d));
+    let (back1, rest) = history.split_at(core::hint::black_box(d));
+    let (back2, back3) = rest.split_at(core::hint::black_box(d));
     for (i, slot) in b.wide.iter_mut().enumerate().take(d) {
         let c = i64::from(r.conv_bias[i])
             .wrapping_add(grid_apply(i64::from(drive[i]), tap0[i]))
@@ -1986,7 +2040,7 @@ fn stack_recurrence(
         *slot = c;
     }
     // Age the history by one position: the oldest row drops off the end.
-    history.copy_within(..history.len() - d, d);
+    history.copy_within(..history.len() - core::hint::black_box(d), core::hint::black_box(d));
     history[..d].copy_from_slice(drive);
     let (decays, rotations) = b.gate_out.split_at(lanes);
     let (wide, rates) = (&b.wide[..d], &r.rates[..]);
@@ -2267,7 +2321,9 @@ struct HeadParts<'a> {
 
 /// [`stack_heads`] with the heads halved by `rayon::join` down to one head
 /// per task. Each head writes only its own buffers, so the outputs are those
-/// of one thread. Must run on the model's pool.
+/// of one thread. Must run on the model's pool. On wasm32 the halves run
+/// sequentially on the calling thread, in the same order, same integers.
+#[cfg(not(target_arch = "wasm32"))]
 fn split_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
     if parts.count <= 1 {
         stack_heads(read, parts);
@@ -2336,6 +2392,78 @@ fn split_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
         }),
     };
     rayon::join(|| stack_head_task(&mut low), || stack_head_task(&mut high));
+}
+
+/// The wasm32 `split_heads`: same split, sequential halves.
+#[cfg(target_arch = "wasm32")]
+fn split_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
+    if parts.count <= 1 {
+        stack_heads(read, parts);
+        return;
+    }
+    let (hd, context) = (read.model.head_dim, read.model.shape.context);
+    let low = parts.count >> 1;
+    let (head_at, row_at) = (
+        stack_mul_u64(low as u64, hd as u64) as usize,
+        stack_mul_u64(low as u64, context as u64) as usize,
+    );
+    let HeadParts {
+        first,
+        count,
+        wide,
+        query_tables,
+        scores,
+        weights,
+        flock,
+        mix,
+        pointer_weights,
+    } = parts;
+    if wide.len() < head_at
+        || query_tables.len() < head_at
+        || mix.len() < head_at
+        || scores.len() < row_at
+        || weights.len() < row_at
+    {
+        debug_assert!(false, "split_heads: a head lies outside the read buffers");
+        return;
+    }
+    let (wide_low, wide_high) = wide.split_at_mut(head_at);
+    let (tables_low, tables_high) = query_tables.split_at_mut(head_at);
+    let (mix_low, mix_high) = mix.split_at_mut(head_at);
+    let (scores_low, scores_high) = scores.split_at_mut(row_at);
+    let (weights_low, weights_high) = weights.split_at_mut(row_at);
+    let (flock_low, flock_high) = flock.split_at_mut(low.min(flock.len()));
+    let (high_first, high_count) = (first + low, count - low);
+    let mut low_task = HeadTask {
+        read,
+        parts: Some(HeadParts {
+            first,
+            count: low,
+            wide: wide_low,
+            query_tables: tables_low,
+            scores: scores_low,
+            weights: weights_low,
+            flock: flock_low,
+            mix: mix_low,
+            pointer_weights,
+        }),
+    };
+    let mut high_task = HeadTask {
+        read,
+        parts: Some(HeadParts {
+            first: high_first,
+            count: high_count,
+            wide: wide_high,
+            query_tables: tables_high,
+            scores: scores_high,
+            weights: weights_high,
+            flock: flock_high,
+            mix: mix_high,
+            pointer_weights: None,
+        }),
+    };
+    stack_head_task(&mut low_task);
+    stack_head_task(&mut high_task);
 }
 
 /// One half of a [`split_heads`] split.
@@ -2525,7 +2653,9 @@ fn stack_heads(read: &HeadRead<'_>, parts: HeadParts<'_>) {
             }
             total
         };
-        mix.fill(0);
+        for slot in mix.iter_mut() {
+            *slot = core::hint::black_box(0);
+        }
         let mut value_at = head_at;
         for &w in weights.iter() {
             if w != 0 {
@@ -2611,7 +2741,9 @@ fn stack_rank_weights(
         let at = *rank.row_at.get(m)?;
         (learned.get(at..at + m)?, 1u64 << 31)
     };
-    weights.fill(0);
+    for slot in weights.iter_mut() {
+        *slot = core::hint::black_box(0);
+    }
     for (index, entry) in entries.iter().enumerate() {
         let slot = if index >= null_rank { index + 1 } else { index };
         *weights.get_mut(entry.position)? = u64::from(*table.get(slot)?);

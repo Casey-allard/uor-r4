@@ -386,6 +386,7 @@ impl<'a> NativeCueCarrier<'a> {
     }
     /// Target-free source score, including sources without Copy occurrences.
     /// The legacy per-occurrence preparation remains unchanged.
+    #[allow(dead_code)]
     pub(crate) fn score_source_cue(
         &self,
         trace: &CueCarrierTrace,

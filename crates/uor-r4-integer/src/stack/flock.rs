@@ -139,8 +139,8 @@ impl FlockScratch {
     /// Ensure capacity for at least `needed` positions.
     pub fn ensure_capacity(&mut self, needed: usize) {
         let bound = needed.min(MAX_FLOCK_CONTEXT);
-        if self.slots.len() < bound {
-            self.slots.resize(bound, None);
+        while self.slots.len() < bound {
+            self.slots.push(core::hint::black_box(None));
         }
         if self.rest.capacity() < bound {
             self.rest.reserve(bound - self.rest.len());
@@ -154,7 +154,9 @@ impl FlockScratch {
     #[inline(always)]
     fn prepare(&mut self, query: usize) {
         self.ensure_capacity(query + 1);
-        self.slots[..=query].fill(None);
+        for slot in &mut self.slots[..=query] {
+            *slot = core::hint::black_box(None);
+        }
         self.rest.clear();
         self.entries.clear();
     }
@@ -207,7 +209,7 @@ pub fn flock_select_integer(
 
     let window_start = (query + 1).saturating_sub(select.window);
     for slot in scratch.slots[window_start..=query].iter_mut() {
-        *slot = Some(FlockSlot::Window);
+        *slot = core::hint::black_box(Some(FlockSlot::Window));
     }
     // Sink takes precedence if it falls inside the window span
     scratch.slots[select.sink] = Some(FlockSlot::Sink);

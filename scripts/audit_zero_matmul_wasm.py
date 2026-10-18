@@ -259,6 +259,9 @@ def scan_function(data, start, end):
             scan.class_iii += 1
         elif op == 0xFC and sub in FC_FLOAT_SUBOPS:
             scan.class_iii += 1
+        elif op == 0xFC and 8 <= sub <= 17:
+            # Standard Wasm bulk-memory and table operations (memory.copy, memory.fill, etc.)
+            pass
         elif op in (0xFC, 0xFD, 0xFE):
             scan.unclassified[f"0x{op:02X} {sub}"] += 1
     if pos != end:
@@ -456,6 +459,10 @@ CALL_GRAPH_ALLOW_PATTERNS = [
     r"load",
     r"from_file",
     r"from_serialized",
+    r"restore_state",
+    r"session_codec",
+    r"drop_in_place",
+    r"drop_glue",
 ]
 
 
@@ -471,7 +478,7 @@ def is_allowlisted(names):
 # thirteen `uor_wasm_*` helpers are the functions `wasm.rs` defines; the module
 # exports no load, session or step entry point. The model step is audited as
 # its own root because no helper reaches it.
-MANDATORY_WASM_SYMBOLS = [
+LEGACY_WASM_SYMBOLS = [
     ("uor_wasm_version", "uor_wasm_version"),
     ("uor_wasm_state_dim", "uor_wasm_state_dim"),
     ("uor_wasm_vocab_size", "uor_wasm_vocab_size"),
@@ -495,12 +502,27 @@ MANDATORY_WASM_SYMBOLS = [
     ("IntegerModel::step_conversational_into", "IntegerModel24step_conversational_into"),
 ]
 
+# #1172 serving surface (wasm_serve / wasm_bindgen_exports): the load,
+# session and step entry points the old module lacked.
+SERVING_WASM_SYMBOLS = [
+    ("loadStack", "loadStack"),
+    ("step", "step"),
+    ("saveSession", "saveSession"),
+    ("restoreSession", "restoreSession"),
+    ("weightsPerToken", "weightsPerToken"),
+    ("stack::IntegerStackSession::step", "IntegerStackSession4step|IntegerStackSession>::step"),
+    ("stack::stack_argmax", "stack_argmax"),
+]
+
+MANDATORY_WASM_SYMBOLS = LEGACY_WASM_SYMBOLS + SERVING_WASM_SYMBOLS
+
 
 def audit_symbol(module, name, pattern, follow_calls):
+    alternatives = pattern.split("|")
     roots = [
         index
         for index, names in sorted(module.names.items())
-        if module.is_defined(index) and any(pattern in n for n in names)
+        if module.is_defined(index) and any(alt in n for alt in alternatives for n in names)
     ]
     result = {
         "name": name,
@@ -710,8 +732,8 @@ def run_self_test():
 
     none = {"mul": 0, "div": 0, "float": 0, "unclassified": 0}
     # memory.fill has one memory-index immediate; the following i32.mul must be seen.
-    check("memory.fill then i32.mul", [0, 0xFC, 11, 0, 0x6C, 0x0B], {**none, "mul": 1, "unclassified": 1})
-    check("memory.copy then i64.mul", [0, 0xFC, 10, 0, 0, 0x7E, 0x0B], {**none, "mul": 1, "unclassified": 1})
+    check("memory.fill then i32.mul", [0, 0xFC, 11, 0, 0x6C, 0x0B], {**none, "mul": 1})
+    check("memory.copy then i64.mul", [0, 0xFC, 10, 0, 0, 0x7E, 0x0B], {**none, "mul": 1})
     # A SIMD splat has no immediate; the following i64.mul must be seen.
     check("i32x4.splat then i64.mul", [0, 0xFD, 17, 0x7E, 0x0B], {**none, "mul": 1, "unclassified": 1})
     # extract_lane has one lane byte and no memarg.
@@ -773,6 +795,11 @@ def main():
         action="store_true",
         help="Follow direct calls transitively from each audited symbol",
     )
+    parser.add_argument(
+        "--serving",
+        action="store_true",
+        help="Audit only the #1172 serving-wasm entry points (cdylib build without legacy C-ABI helpers)",
+    )
     parser.add_argument("--self-test", action="store_true", help="Run decoder sentinels only")
     args = parser.parse_args()
 
@@ -808,9 +835,10 @@ def main():
         "build_commit": args.build_commit,
         "scope": scope_text(args.call_graph),
     }
+    symbols = SERVING_WASM_SYMBOLS if args.serving else MANDATORY_WASM_SYMBOLS
     results = [
         audit_symbol(module, name, pattern, args.call_graph)
-        for name, pattern in MANDATORY_WASM_SYMBOLS
+        for name, pattern in symbols
     ]
     if args.json:
         print(json.dumps({"schema": "uor-r4.wasm-instruction-audit/1", **meta, "results": results}, indent=2))

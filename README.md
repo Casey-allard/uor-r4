@@ -382,7 +382,11 @@ The [project map](docs/PROJECT_MAP.md) covers every crate and directory.
 - **Gerrit** (DarkUnicorn, [LinkedIn](https://www.linkedin.com/in/gerrit-b%C3%B6hme-36b3a9413)): author of GoldSnnail and goldworm-coder, reviewed as external sources for state-layout patterns and evaluation ideas.
 - **Wil Dahn** ([W33-Theory](https://github.com/wilcompute/W33-Theory)): theory discussions on the high-level geometry and its allowed pathing; author of the W(3,3) corpus reviewed by the labs.
 - **John Haines**: theory discussions on the high-level geometry and its allowed pathing.
-- **Ron Brazil**: theory discussions and engineering design.
+- **Ron Brazil**: theory discussions, engineering design, and research and development work.
+- **Adam De Delva** ([LinkedIn](https://www.linkedin.com/in/adamdedelva/)): vision, relationships, unending support, product analysis, promotion, and commercialization efforts.
+- **Yassine Amraoui** ([LinkedIn](https://www.linkedin.com/in/amraoui-yassine/)): research and development work.
+- **Andrew Kadziolka**: development integration, assessment, analysis and conceptual design.
+- **Yazan Barakat** ([@Cyborg-Hawk-AI](https://github.com/Cyborg-Hawk-AI)): research and development work on the WebAssembly D11 integer serving runtime (#1172, PR #2654).
 - **The AI research labs** (Kimi, Claude, Codex, DeepSeek), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.
 
 ## Citation and license

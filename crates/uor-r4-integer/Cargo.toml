@@ -8,10 +8,20 @@ autobins = false
 
 [lib]
 path = "src/native_geometry.rs"
+# `cdylib` is required for the #1172 WASM module (`serving-wasm`); it adds no
+# artifact to the default native qualification build's compile surface.
+crate-type = ["rlib", "cdylib"]
 
 [features]
 # Compatibility name only: selecting historical executors fails at compile time.
 historical-runtime = []
+# Serve the preserved D11 integer/stack runtime to WebAssembly (#1172). The
+# native qualification graph never selects this feature; with it, the facade's
+# compile_error! stands down and the preserved serving root compiles (see the
+# facade gate in src/native_geometry.rs). On wasm32 `dep:rayon` is not pulled:
+# the worker pool is a native-only path, cfg'd out there (steps are
+# single-threaded; the integers do not depend on threading).
+serving-wasm = ["dep:wasm-bindgen", "dep:uor-r4-tokenizer", "dep:rayon"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -20,23 +30,41 @@ sha2 = "0.10.8"
 hex = "0.4.3"
 blake3 = "=1.5.0"
 
+# The preserved serving root's own dependencies (only needed with
+# `serving-wasm`, the feature that compiles it). Optional so the default
+# native qualification graph does not link them.
+uor-r4-tokenizer = { path = "../uor-r4-tokenizer", optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# Native-only: the stack step's opt-in worker pool (#1691). wasm32 steps are
+# single-threaded; the integers do not depend on threading.
+rayon = { version = "1.10", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { version = "0.2.92", optional = true }
+
 
 [[bin]]
 name = "uor-chat"
 path = "src/bin/uor-chat.rs"
-required-features = ["historical-runtime"]
+required-features = ["serving-wasm"]
 
 [[bin]]
 name = "uor-r4-integer"
 path = "src/bin/uor-r4-integer.rs"
-required-features = ["historical-runtime"]
+required-features = ["serving-wasm"]
 
 [[bin]]
 name = "verify-integer"
 path = "src/bin/verify-integer.rs"
-required-features = ["historical-runtime"]
+required-features = ["serving-wasm"]
 
 [[bin]]
 name = "uor-r4-stack"
 path = "src/bin/uor-r4-stack.rs"
-required-features = ["historical-runtime"]
+required-features = ["serving-wasm"]
+
+[[bin]]
+name = "mk-synthetic-stack"
+path = "src/bin/mk-synthetic-stack.rs"
+required-features = ["serving-wasm"]

@@ -1,0 +1,37 @@
+{
+  "label": "UOR-R4 D11 stack engine, synthetic ra stack (serving-wasm build), rnd Linux x86_64",
+  "date": "2026-10-18",
+  "serving": {
+    "weights_per_token_r3": 15968,
+    "tokens_per_s": {
+      "mean": 17190,
+      "runs": [
+        17304,
+        17025,
+        17241
+      ]
+    },
+    "rss_bytes": 3670016,
+    "energy": {
+      "gross_j_per_tok": {
+        "mean": 0.003172,
+        "min": 0.003135,
+        "max": 0.003199
+      },
+      "net_j_per_tok": {
+        "mean": 0.00153,
+        "ci95": 3.7e-05
+      },
+      "idle_rate_w": 27.307,
+      "work_rate_w": 40.5,
+      "note": "RAPL pkg; idle-rate subtraction (their energy_per_token.py shape); spawn overhead inside the sustained loop reported gross"
+    },
+    "dram_bytes_per_token": "NOT MEASURED (no uncore/IMC counters on this VM; cache-miss events unsupported)",
+    "comparator_llamacpp_smollm2_135m_q4_0": "NOT RUN (no llama.cpp on rnd)"
+  },
+  "caveats": [
+    "Small synthetic stack (15,968 weights/tok); numbers are not the 7.15M main-line model.",
+    "Spawn overhead is inside the loop and reported gross; the engine-only steady state is faster.",
+    "Their M1 numbers (4.13 vs 0.96 mJ/tok) are a different artifact, instrument and machine; not compared here."
+  ]
+}

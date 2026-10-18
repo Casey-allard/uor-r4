@@ -60,3 +60,12 @@ __pycache__/
 # worktrees must not carry one.
 /research/*
 !/research/README.md
+
+# macOS AppleDouble files (ExFAT external drives)
+._*
+
+# Build artifacts from wasm-bindgen/mk-synthetic-stack
+/pkg-serving/
+librust_out.rlib
+synthetic-stack.lut
+

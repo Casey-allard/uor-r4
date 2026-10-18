@@ -12,9 +12,43 @@ pub use conversation::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{fmt, time::Instant};
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
+use std::fmt;
 use uor_r4_tokenizer::dialogue::{DialogueError, DialogueProtocol, Message};
 
+/// Wall-clock instant for generation telemetry. On native targets this is
+/// `std::time::Instant`; on `wasm32-unknown-unknown` (no std clock) time comes
+/// from a host-injected nanosecond source so the same telemetry fields stay
+/// exact integers (`duration_nanos_exact` is unchanged). A zero source means
+/// "unmeasured", which is what browser hosts get unless they inject a clock.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) type Clock = Instant;
+
+#[cfg(all(target_arch = "wasm32", feature = "serving-wasm"))]
+pub(crate) type Clock = crate::wasm_host::WasmInstant;
+
+#[inline(always)]
+pub(crate) fn clock_now() -> Clock {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        Instant::now()
+    }
+    #[cfg(all(target_arch = "wasm32", feature = "serving-wasm"))]
+    {
+        crate::wasm_host::WasmInstant::now()
+    }
+}
+
+/// Nanosecond total of a generation clock reading, as an exact integer.
+///
+/// On native targets the input is a `std::time::Duration` from
+/// `std::time::Instant`; on `wasm32-unknown-unknown` it is a
+/// [`crate::wasm_host::WasmDuration`] from the host-injected clock. Both
+/// inputs carry exact integer nanoseconds (the std path converts through
+/// `Duration::as_nanos` semantics; the wasm path carries the raw count), so
+/// the shift-add loop below never sees a value that started as a float.
+#[cfg(not(target_arch = "wasm32"))]
 #[inline(always)]
 pub(crate) fn duration_nanos_exact(d: std::time::Duration) -> u128 {
     let secs = d.as_secs();
@@ -29,6 +63,12 @@ pub(crate) fn duration_nanos_exact(d: std::time::Duration) -> u128 {
         bits &= bits - 1;
     }
     sec_nanos + d.subsec_nanos() as u128
+}
+
+#[cfg(all(target_arch = "wasm32", feature = "serving-wasm"))]
+#[inline(always)]
+pub(crate) fn duration_nanos_exact(d: crate::wasm_host::WasmDuration) -> u128 {
+    d.as_nanos()
 }
 
 #[inline(always)]
@@ -203,7 +243,7 @@ impl Bundle {
         Ok(session)
     }
     pub fn generate(&self, request: &Request) -> Result<Generation> {
-        let clock = Instant::now();
+        let clock = clock_now();
         validate_budget(
             1,
             self.tokenizer().encode(&request.prompt).len(),
@@ -249,7 +289,7 @@ impl Bundle {
         read_mode: ReadMode,
         first_sentence: bool,
     ) -> std::result::Result<DialogueGeneration, DialogueSessionError> {
-        let clock = Instant::now();
+        let clock = clock_now();
         let tokens = self.dialogue_prefix(protocol, messages)?;
         validate_generation_budget(tokens.len(), max_new_tokens, self.model().config().context)?;
         let protocol_identity = protocol.identity()?;
@@ -302,7 +342,7 @@ impl Bundle {
 impl<'a> TextSession<'a> {
     fn observe(&mut self, token: u32) -> Result<()> {
         let position = self.state.len();
-        let clock = Instant::now();
+        let clock = clock_now();
         let step = self
             .bundle
             .model()
@@ -414,7 +454,7 @@ impl<'a> TextSession<'a> {
         selection: Selection,
         first_sentence: bool,
     ) -> Result<Generation> {
-        let clock = Instant::now();
+        let clock = clock_now();
         let calls_at_entry = self.calls;
         let model_ns_at_entry = self.model_ns;
         validate_generation_budget(

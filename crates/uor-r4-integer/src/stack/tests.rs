@@ -5,7 +5,6 @@
 use serde_json::{json, Value};
 
 use super::format::MAX_READ_CACHE_BYTES;
-use super::format::StackMemory;
 use super::{IntegerStackModel, StackError, StackShape, MAGIC};
 
 struct Lcg(u64);

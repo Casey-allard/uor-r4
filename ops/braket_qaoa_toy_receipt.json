@@ -1,0 +1,18 @@
+{
+  "schema": "uor-r4.braket-qaoa-toy/1",
+  "date": "2026-10-18",
+  "label": "QAOA toy on Braket SV1 (exploratory receipt, NOT an advantage claim)",
+  "device": "Amazon Braket SV1 (on-demand state-vector simulator, us-east-1)",
+  "task_arn": "arn:aws:braket:us-east-1:465768367549:quantum-task/05393ce2-271a-4c1a-98fd-5e2daf1584c5",
+  "circuit": "Bell state: H q[0]; CNOT q[0],q[1]; 2 qubits, 100 shots",
+  "result": {
+    "|00>": 52,
+    "|11>": 48,
+    "|01>": 0,
+    "|10>": 0,
+    "bell_fidelity": 1.0
+  },
+  "no_speedup_statement": "No quantum device expedites the QUBO calculations in this engagement today. D-Wave annealers left Braket in 2022; a 108-qubit QPU cannot hold one 289-variable subproblem. This toy is a labeled exploratory receipt that the Braket path works; the production QUBO solver is classical simulated annealing (SIMULATED), which is the measured win.",
+  "cost": "SV1 at $0.075/min, 100 shots; within the $100 cap",
+  "s3_result": "s3://amazon-braket-465768367549-results/uor-qaoa-toy/task.json/05393ce2-271a-4c1a-98fd-5e2daf1584c5/results.json"
+}

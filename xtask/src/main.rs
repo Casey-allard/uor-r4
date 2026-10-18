@@ -20,6 +20,7 @@ mod gnaf_release_path;
 mod gnaf_root;
 mod gnaf_scan;
 mod kappa;
+mod qubo_codec;
 
 fn main() -> ExitCode {
     let task = std::env::args()
@@ -49,6 +50,25 @@ fn main() -> ExitCode {
         "gnaf-conformance" => gnaf_conformance::gnaf_conformance(&root, !write),
         "kappa" => kappa::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         "figures" => figures::run(&root, write),
+        "qubo-codec" => {
+            let seed = std::env::args()
+                .nth(2)
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(0xD11);
+            let size = std::env::args()
+                .nth(3)
+                .and_then(|s| s.parse::<usize>().ok())
+                .unwrap_or(32);
+            let sweeps = std::env::args()
+                .nth(4)
+                .and_then(|s| s.parse::<usize>().ok())
+                .unwrap_or(64);
+            let (rtn, sa, ratio) = qubo_codec::benchmark(seed, size, sweeps);
+            println!(
+                "{{\"schema\":\"uor-r4.qubo-codec-benchmark/1\",\"seed\":{seed},\"group_size\":{size},\"sweeps\":{sweeps},\"rtn_err\":{rtn},\"sa_err\":{sa},\"sa_over_rtn\":{ratio},\"note\":\"AdaRound-QUBO solved classically (SA); no quantum device expedites this today (SIMULATED)\"}}"
+            );
+            Ok(())
+        }
         _ => {
             eprintln!(
                 "cargo xtask <task>\n\

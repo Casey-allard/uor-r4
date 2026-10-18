@@ -10,7 +10,7 @@ use super::{
 };
 use crate::{invalid, Bundle, IntegerError, ReadMode, SamplePolicy, Sampler};
 use serde::Serialize;
-use std::{fmt, time::Instant};
+use std::fmt;
 use uor_r4_tokenizer::dialogue::{DialogueError, DialogueProtocol, Message};
 
 /// A new user turn may interrupt an unfinished assistant only explicitly.
@@ -274,7 +274,7 @@ impl<'a> DialogueConversation<'a> {
             self.bundle.model().config().context,
         )?;
 
-        let clock = Instant::now();
+        let clock = super::clock_now();
         let (calls_before, ns_before) = self
             .session
             .as_ref()
@@ -370,7 +370,7 @@ pub struct DialogueConversationStream<'s, 'a> {
     stopped: bool,
     stop_reason: Option<Stop>,
     error: Option<ConversationError>,
-    clock: Instant,
+    clock: super::Clock,
     calls_before: usize,
     ns_before: u128,
 }

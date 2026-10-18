@@ -146,7 +146,7 @@ fn multiples_u128(a: u128) -> [u128; 16] {
     let mut table = [0u128; 16];
     let mut acc = 0u128;
     for slot in table.iter_mut().skip(1) {
-        acc = acc.wrapping_add(a) ^ zero;
+        acc = black_box(acc.wrapping_add(a)) ^ zero;
         *slot = acc;
     }
     table
@@ -159,7 +159,7 @@ fn multiples_u64(a: u64) -> [u64; 16] {
     let mut table = [0u64; 16];
     let mut acc = 0u64;
     for slot in table.iter_mut().skip(1) {
-        acc = acc.wrapping_add(a) ^ zero;
+        acc = black_box(acc.wrapping_add(a)) ^ zero;
         *slot = acc;
     }
     table
