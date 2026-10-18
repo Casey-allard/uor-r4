@@ -69,31 +69,10 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-attention-hash-domains": {
-    "branch": "codex/cf1-attention-hash-domains",
-    "claimed_at": "2026-10-17T19:56:11-04:00",
-    "head": "a2af13cc2",
-    "lab": "codex",
-    "note": ""
-  },
-  "codex/cf1-attention-strategic-stop": {
-    "branch": "codex/cf1-attention-strategic-stop",
-    "claimed_at": "2026-10-18T01:29:12-04:00",
-    "head": "fe4c327b5",
-    "lab": "codex",
-    "note": ""
-  },
-  "codex/cf1-k16-inactive-archive": {
-    "branch": "codex/cf1-k16-inactive-archive",
-    "claimed_at": "2026-10-18T01:57:31-04:00",
-    "head": "c7cfc2e15",
-    "lab": "codex",
-    "note": ""
-  },
-  "codex/cf1-reuse-timing-uuid-blocker": {
-    "branch": "codex/cf1-reuse-timing-uuid-blocker",
-    "claimed_at": "2026-10-16T22:35:15-04:00",
-    "head": "66154156d",
+  "codex/cf1-attention-rows-q1-result": {
+    "branch": "codex/cf1-attention-rows-q1-result",
+    "claimed_at": "2026-10-18T04:24:12-04:00",
+    "head": "e002430a0",
     "lab": "codex",
     "note": ""
   },

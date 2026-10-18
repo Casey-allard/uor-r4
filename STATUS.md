@@ -3,7 +3,7 @@
 **Active dependency — learned native attention, 18 October:** the interleaved
 Relation learning path and its checkpoint/preflight runner are delivered in
 #2575/#2582, with construction evidence at their recorded sources. An attributable
-learned-attention result is still NOT_RUN. The
+learned-attention efficacy result remains unestablished. The
 [read-only CUDA token-cell export](docs/labs/attention-token-cell-export-2026-10-17/README.md)
 needed for the reference-input contract is delivered in #2601; Gate9 passes all five construction/host
 commands at96ad8a475, including82 metadata tests with0fail/1ignored and a linked
@@ -29,8 +29,14 @@ Attribution is OWNER_STOPPED_STRATEGIC, not a source or mechanism negative.
 No completed learned result, final same-cell attribution, fresh transfer, KEEP,
 mechanism negative or count reset follows; count0/3 and reply37/232 SUSPENDED remain.
 The separate `rows_v1` successor (source20d, packet1376/01833fa7) was owner-released
-under6246440910 with a new pod and proceeds under its own release; its outcome is not
-claimed here.
+under6246440910. Both arms reached their registered
+[Q1 diagnostic stops](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)
+at4,096 batches/exit0: P_succ target admission2034→225 treatment and2034→205
+frozen-zero, both belowfloor500 and halfinitial, with nonzero gate sensitivities.
+Original DATA and late-operator SHA/cloud readbacks preceded own down07:53:30Z;
+the separate after-down closure is also verified. The release is consumed.
+Scientific outcome review and a prospective next-configuration decision remain;
+full-dose attribution, final maps/224 captures and fresh scoring remain NOT_RUN.
 Training/M2/StageB remain HELD;
 Q4 NOT_EXECUTABLE. The earlier pilot below retains its measured scope.
 

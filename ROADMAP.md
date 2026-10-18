@@ -12,15 +12,20 @@ ran at23d5 and was [strategically stopped](docs/labs/attention-dose1-strategic-s
 at904/1065 batches before Q1 after reviewed rows-driver delivery. Its partials,
 pre-down data/operator custody and separate closure are independently accepted;
 no completed learned result or count reset follows. The source20d rows successor
-was subsequently owner-released under6246440910 with its own packet, reviews and
-a new pod; its outcome is not claimed here.
+was subsequently owner-released under6246440910 and reached registered
+[Q1 diagnostic stops in both arms](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md):
+4,096 batches/exit0, P_succ target admission2034→225 treatment/205 frozen-zero,
+both belowfloor500 and halfinitial, with nonzero sensitivity. Complete data/operator
+custody preceded own down07:53:30Z; separate closure is verified. Scientific outcome
+review and the existing prospective next-configuration decision remain pending.
 Actual device admissions and the matched reference reports support attribution;
 full same-cell dose results cannot be inferred from scalar admission counts.
 The export source passes all five Gate9 construction/host commands and its
-read-only device export has now run in Battery3. The paired learning dose began
-but was owner-stopped after 904 treatment / 1,065 frozen-zero batches before Q1;
-full paired-dose completion, final same-cell attribution, fresh scoring and a
-learned result remain NOT_RUN; count0/3 and reply37/232 SUSPENDED stay unchanged.
+read-only device export has now run in Battery3. The original strategic stop and
+the successor's registered Q1 diagnosis retain separate source/release identities.
+Full paired-dose completion, final same-cell attribution, fresh scoring and an
+attributable learned result remain unestablished; count0/3 and reply37/232 SUSPENDED
+stay unchanged.
 This progression changes no scientific bar or standing training/compute hold.
 
 **Current learning permission — D32:** discrete/exact GPU model computation and
@@ -63,10 +68,13 @@ two-arm approval and both check-plan entries were followed by a partial run
 (904/1,065 batches) that the owner stopped below Q1; custody is verified and the
 original attempt is consumed. The separate `rows_v1` successor (source
 `20d158ae`, 1,376-member packet `01833fa7`) is owner-released with its own
-RELEASE identity, plans, reviews and admission; its outcome is not claimed here.
-A completed scientific dose remains the next dependency under the unchanged
-sheet, without a KEEP or progress-count reset; optimization remains gated on a
-completed dose outcome under project-track's post-dose path.
+RELEASE identity, plans, reviews and admission. Both arms now stopped at their
+registered4,096-batch diagnosis branch; its release is consumed, with full
+[custody and native closure](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md).
+The next dependency is genuine scientific outcome review and the sheet's existing
+prospective configuration decision, without a KEEP or progress-count reset.
+Optimization remains gated on that decision under project-track's post-dose path;
+no larger A dose or objective change is authorized by this record.
 
 ## Earlier operator qualification (pre-D32, inactive)
 
@@ -110,7 +118,7 @@ closes only when its acceptance is met on the saved model.
 
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
-| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Codex operational PM; independent reviewers) | diagnostic pilot complete; [counterfactual decomposition](docs/labs/counterfactual-decomposition-run-2026-10-16/README.md) resolves writer/baseline cost in four cells, apply0; [FIT baseline-reuse source](docs/labs/counterfactual-baseline-reuse-implementation-2026-10-16/README.md) delivered; resource-refusal repair delivered; [finite controls pass](docs/labs/counterfactual-baseline-reuse-finite-pass-2026-10-17/README.md):32 exact U/R pairs,16 typed refusals, zero apply on580.95.05; [timing startup refused](docs/labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md) actual595.71.05 before instrument; [exact-driver selector](docs/labs/driver-aware-pod-selection-2026-10-17/README.md) is delivered; separately released [595.71.05 finite qualification](docs/labs/counterfactual-baseline-reuse-driver-595-2026-10-17/README.md) passes unchanged32 U/R pairs,16 typed refusals and18 resource admissions, apply0; record #2568 protected/cleaned; [timing2](docs/labs/counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md) refused changed GPU UUID before binary, with archive recovery verified before teardown; prospective device admission disposition precedes any new timing release; training held | Reply headline SUSPENDED/no target under R14; successor learning needs a prospective sheet and scoped release | [D33 pilot](docs/labs/a2-pilot-2026-10-14/README.md): 1,640 batches, 236 accepted vector updates; DEV top-1/top-8 17/173 → 82/1,169 over 14,287 targets, aggregate loss increased, count reference still ahead. Mixed diagnostic observation; no mechanism verdict or useful-language qualification. Route sensitivity NOT_RUN; fresh transfer UNAVAILABLE/NOT_RUN. Earlier operator/F32 and historical memory20/40, reply37/232 results retain their dated records and inactive scope. |
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi PM; Codex executor; independent reviewers) | [Rows learning Q1 diagnosis](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md): both4,096 batches/exit0, complete custody/native close; scientific outcome review pending. Earlier construction, parity, baseline-reuse and timing records retain their source-scoped history. | Reply37/232 SUSPENDED/no target under R14; count0/3 unchanged. Next configuration needs the genuine outcome review, prospective registration and applicable owner release. | P_succ target admission2,034/3,847 initially →225 treatment/205 frozen-zero, both below500 and halfinitial with nonzero sensitivity. No full-dose efficacy, fresh result, mechanism verdict or KEEP. [Historical D33 pilot](docs/labs/a2-pilot-2026-10-14/README.md):1,640 batches/236 accepted vectors, DEV top-1/top-8 17/173→82/1,169 with increased loss; mixed diagnosis, not useful-language qualification. |
 | M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law refuses; shared vector infrastructure finite CUDA-qualified, full M2 unqualified, count12/3 after masked TRAIN-reference #2328 delivery (prior11/3 retained; closeout is the same unit), no reset; new evaluator qualification11 controls PASS (9 metadata,2 CUDA) and Amendment5 independentCONFIRMFIT; Amendment6 sheetFIT; repaired compiled boundary 31 controls PASS at `1f1547bfd`; protected delivery pending |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | in progress; compute blocked | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained inactive; model/stack executors are excluded from the selected integer facade. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |

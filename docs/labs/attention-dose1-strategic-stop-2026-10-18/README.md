@@ -100,12 +100,15 @@ The consumed original release cannot restart either arm. The successor external
 qualifier repairs, and pins explicit matched `rows_v1` configurations. Its
 1,376-member static manifest is
 `01833fa7bc540c5e15e02e0156521a1455502a6261cd5747c153519b7dbb7415`.
-This is source/metadata preparation: **NOT_READY / NOT_RELEASED / NOT_RUN**,
-awaiting actual whole-packet review and a new applicable owner release. No new
-pod, RELEASE ELF, capability, checkpoint or dose result is claimed here.
+That successor was separately owner-released under
+[6246440910](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6246440910)
+and reached registered **Q1_STOP_FOR_DIAGNOSIS in both arms at4,096 batches/exit0**.
+Its [own canonical result](../attention-rows-q1-diagnosis-2026-10-18/README.md)
+binds its distinct RELEASE executable, capabilities, checkpoints, complete custody
+and down07:53:30Z. It is not a continuation or reinterpretation of these904/1065
+original-source partials.
 
-**Next:** finish that exact successor's whole-packet review and actual scoped
-release/admission, then execute its reviewed source. No extra acknowledgement or
-future ELF hash is required before the resource phase can produce it. FreshV2,
-paired arms, objective, Q1 and scientific bars stay fixed. Training/M2/StageB holds
-and Q4 NOT_EXECUTABLE remain; this historical closure lifts no hold.
+**Next:** genuine scientific review of that successor's Q1 outcome and the existing
+prospective configuration decision. Both releases are consumed. FreshV2 remains
+sealed; this historical closure changes no paired/scientific bar or hold.
+Training/M2/StageB holds and Q4 NOT_EXECUTABLE remain.
