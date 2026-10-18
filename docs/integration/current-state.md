@@ -1,3 +1,10 @@
+## 2026-10-18 — ROADMAP D37 permission and M2/M3/M4 statuses corrected (deepseek)
+
+Section 0 now states the D37 learning permission instead of the superseded total D32 float ban, and the
+milestone table uses the README statuses (M2 held, M3 paused, M4 held). Closes #2680 and #2681; no other
+cells or the SVG touched. Claim-wording PASS; docs-only; no compute.
+Record: [labs/roadmap-d37-status-2026-10-18](../labs/roadmap-d37-status-2026-10-18/README.md).
+
 ## 2026-10-18 — PROJECT_MAP ops row and heading spacing fixed (deepseek)
 
 Adds `ops/` to "Where work and evidence are stored" with its RAPL/D5-b/Braket caveats and fixes the two
