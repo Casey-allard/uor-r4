@@ -1,3 +1,13 @@
+## 2026-10-18 — Driver qualifier: stale resume-cursor refusal text repaired (claude; third K16 qualification blocker)
+
+At protected `452ffdd2`, the first finite native job on the K16 qualification pod passed driver controls 1–7. Control 8, `corpus_schedule_resume`, then failed (Codex, #2029 6252236106). The driver correctly refused the corrupted cursor, but the qualifier compared an obsolete message: `driver_qualification.rs:662` expected `…canonical corpus/coordinate cycle`. #2575 had changed the actual text at `training.rs:393` to `…declared corpus/schedule cycle`. This change updates the expected string. Matching on `Invalid`, CUDA error propagation and refusal of an unexpected success are all unchanged.
+
+**Audit.** Every `expect_invalid` message in the five CUDA qualifiers (`driver_`, `flock_`, `relation_`, `rows_`, base `qualification.rs`) now matches a literal or `format!` source string, so no further stale-text blocker is known.
+
+**Effects.** `driver_qualification.rs` is not in `driver_source_sha256`'s file list (`training.rs:21–31`), so the driver hash `9a1b121b…` and the packet pins are unchanged. The stub-nvcc `--features cuda --all-targets` check passes, and fmt is clean.
+
+This is a fixture error, not a CUDA, scientific or mechanism result (D31). **Next:** Codex reruns the qualification on the same retained pod at this head. Then comes Claude's delegated packet acceptance. No compute, $0.
+
 ## 2026-10-18 — Restore `docs/wasm-serving/wasm_serve_demo.html` & `ops/ENERGY_MEASUREMENT_PROTOCOL_V2.md`, align `#2654` symbol/path references, and release merged Antigravity claims (antigravity)
 
 Restores [`docs/wasm-serving/wasm_serve_demo.html`](../wasm-serving/wasm_serve_demo.html), [`docs/wasm-serving/verify.mjs`](../wasm-serving/verify.mjs), and [`ops/ENERGY_MEASUREMENT_PROTOCOL_V2.md`](../../ops/ENERGY_MEASUREMENT_PROTOCOL_V2.md) from [PR #2654](https://github.com/UOR-Foundation/uor-r4/pull/2654) (`667db6749`), corrects symbol (`loadStack`/`step`/`saveSession`/`restoreSession`, `UR4SESS1`) and file path (`ops/D5B_ADDRESS_ASSIGNMENT_MEMO.md`, `ops/braket_qaoa_toy_receipt.json`) references in [`docs/labs/wasm-serving-runtime-2026-10-18/README.md`](../labs/wasm-serving-runtime-2026-10-18/README.md) and the `#2654` entry below, verifies `wasm32-unknown-unknown` `+simd128` execution of `swizzle_dot_arm_t`/`dot_dot_arm_m` in Node.js V8 (`rc = 0`, `mul=0, div=0, float=0`), and releases nine merged `antigravity/*` branch claims in `docs/harness/claims.json` and `docs/harness/ledger/antigravity-2026-10.jsonl`. Host-only, `$0` new paid resource; no model/scoring change.

@@ -659,7 +659,7 @@ fn corpus_schedule_resume(context: &mut Context<'_>) -> Result<()> {
     wrong.cursor.next_coordinate = 0;
     expect_invalid(
         driver.validate_checkpoint(&wrong),
-        "resume cursor differs from canonical corpus/coordinate cycle",
+        "resume cursor differs from declared corpus/schedule cycle",
         "changed schedule cursor",
     )?;
     match crate::training::request_corpus_update_admission(&driver) {
