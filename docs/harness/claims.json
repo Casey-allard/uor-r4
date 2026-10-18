@@ -20,6 +20,13 @@
     "lab": "antigravity",
     "note": "Implement and wire un-dispatched harness.owner_rules_applied, harness.entry_point, harness.documented_commands (with GROUPS/FLAGS validation), prlint.gates_declared, and receipts.skill_usage_recorded in uor-r4-harness (#2570)"
   },
+  "claude/batched-coordinates-draft-20261018": {
+    "branch": "claude/batched-coordinates-draft-20261018",
+    "claimed_at": "2026-10-18T02:18:32-04:00",
+    "head": "9a3434259",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/c1-coupling-draft-20261018": {
     "branch": "claude/c1-coupling-draft-20261018",
     "claimed_at": "2026-10-17T23:08:55-04:00",
