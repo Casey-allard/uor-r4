@@ -104,6 +104,13 @@
     "lab": "codex",
     "note": ""
   },
+  "deepseek/object-store-fleet-demo": {
+    "branch": "deepseek/object-store-fleet-demo",
+    "claimed_at": "2026-10-18T02:50:13-04:00",
+    "head": "e780b0b64",
+    "lab": "deepseek",
+    "note": "tools/fleet_maintenance.sh demo: audit two replicas, failover sync with a dead replica, repair a missing target, final audit. Host-only, no protocol/model change."
+  },
   "kimi/d37-propagation-2026-10-18": {
     "branch": "kimi/d37-propagation-2026-10-18",
     "claimed_at": "2026-10-17T23:03:25-04:00",
