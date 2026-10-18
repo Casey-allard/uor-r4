@@ -6,6 +6,7 @@ pub mod baseline_reuse;
 mod baseline_reuse_source;
 pub mod controller;
 pub mod corpus;
+pub mod coverage_census;
 pub mod decomposition;
 #[cfg(test)]
 mod decomposition_source;

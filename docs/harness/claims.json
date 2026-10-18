@@ -48,6 +48,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/coverage-census-20261018": {
+    "branch": "claude/coverage-census-20261018",
+    "claimed_at": "2026-10-18T13:57:19-04:00",
+    "head": "d670a796d",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/d37-offline-float-20261018": {
     "branch": "claude/d37-offline-float-20261018",
     "claimed_at": "2026-10-17T22:35:33-04:00",

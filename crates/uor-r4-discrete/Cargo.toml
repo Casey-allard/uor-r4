@@ -29,3 +29,7 @@ path = "src/bin/prime-zeta-qualify.rs"
 [[bin]]
 name = "rows-qualify"
 path = "src/bin/rows-qualify.rs"
+
+[[bin]]
+name = "coverage-census"
+path = "src/bin/coverage-census.rs"

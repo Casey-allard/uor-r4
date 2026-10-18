@@ -1,3 +1,19 @@
+## 2026-10-18 — Coverage census instrument for D39 item 2 (claude; self-directed)
+
+A new host binary, `coverage-census` (`crates/uor-r4-discrete/src/coverage_census.rs`), reports the coverage metrics that D39 item 2 requires in every qualification packet:
+- distinct vectors and the alias-group histogram;
+- within-cell tie mass;
+- the DEV alias ceiling that feeds the G-Cap gate.
+
+**How it stays D24-clean.** It validates config, corpus and checkpoint through `PreparedDriver::load` and `validate_checkpoint`, then groups and counts stored data only. Cell metrics come solely from the GPU token-cell export receipt, bound to the exact checkpoint; it never reconstructs a cell on the host. This replaces the local Python W0 census, which re-derived cells on the CPU.
+
+**Validation:**
+- It reproduces W0 exactly on the same stored checkpoints and 14,287 DEV rows: Q4 has 264 vectors and an 8,948-row ceiling; the initial snapshot has 16 and 1,986.
+- 6/6 unit tests pass, and a split-alias negative gate FAILs as required.
+- A non-author adversarial review returned APPROVE-WITH-NITS; every finding is applied or resolved from the source.
+- `driver_source_sha256` is unchanged.
+
+**Limits.** The GPU exporter admits only attention-learning configs, so Route configs (the K16 redirect) have no cell receipt yet and report cell metrics as UNAVAILABLE. A full positive run awaits a native K16 checkpoint on the host. [Record](../labs/coverage-census-2026-10-18/README.md). No compute, $0.
 *Rolling window, updated 2026-10-18 (course-correction PR-D): this page holds entries dated
 2026-10-14 and newer. Entries for 13 October back to 3 October are in
 [current-state-2026-10-03-to-2026-10-13-archive.md](../history/current-state-2026-10-03-to-2026-10-13-archive.md);
