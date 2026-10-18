@@ -41,6 +41,20 @@ const DISCRETE_ENTRIES: [&str; 11] = [
     "discrete_count",
     "discrete_count_score",
 ];
+const DISCRETE_ENTRIES_WITH_EXPORT: [&str; 12] = [
+    "discrete_init",
+    "discrete_encode",
+    "discrete_export_token_cells",
+    "discrete_forward",
+    "discrete_counterfactual",
+    "discrete_choose",
+    "discrete_apply",
+    "discrete_validate",
+    "discrete_evaluate",
+    "discrete_evaluation_aggregate",
+    "discrete_count",
+    "discrete_count_score",
+];
 const BANNED_FEATURES: [&str; 8] = [
     "cublas",
     "cublaslt",
@@ -1201,7 +1215,7 @@ fn verify(
     }
     let discrete_code = code_cuda(&discrete_cu);
     let discrete_entries = global_entries(&discrete_code, true)?;
-    if discrete_entries != DISCRETE_ENTRIES {
+    if discrete_entries != DISCRETE_ENTRIES && discrete_entries != DISCRETE_ENTRIES_WITH_EXPORT {
         return Err(format!(
             "{} global entry list differs: {discrete_entries:?}",
             discrete_cu_path.display()

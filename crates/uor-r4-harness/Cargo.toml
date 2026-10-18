@@ -14,6 +14,10 @@ path = "src/lib.rs"
 name = "uor-harness"
 path = "src/main.rs"
 
+[[bin]]
+name = "attention-cell-reference-scorer"
+path = "src/bin/attention_cell_reference_scorer.rs"
+
 [dev-dependencies]
 tempfile = "3"
 
