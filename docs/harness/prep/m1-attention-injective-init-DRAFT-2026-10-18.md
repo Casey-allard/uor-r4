@@ -112,20 +112,23 @@ The fresh draw stays sealed until the paired DEV decision.
 
 ## 8. Cost
 
-**Measured basis, not a microbenchmark.** The #2658 0.07 s figure is a row-parity proposal microbenchmark (`timing.qualified=false`), not a training batch, and it is **not** used.
+**Assumption-based planning estimates; changed-lineage throughput and cost remain unmeasured.** The #2658 0.07 s figure is a row-parity proposal microbenchmark (`timing.qualified=false`), not a training batch, and it is **not** used.
 
-This sheet's exact path (`rows_v1`, Relation `{8,1}`, K = 8, `InterleavedReadEvery8V1`, `ActiveLeafV1`, 64 rows per batch) was measured in the fast Dose 1 rerun (`docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md`):
-- both arms ran 4,096 batches each, in parallel on one 2×5090 pod;
-- elapsed was 5,361 s in total, including setup, baseline and Q1 evaluations;
-- so the upper bound is about **1.31 s per batch**.
+The historical [second paired `rows_v1` Q1 attempt (Dose2)](../../labs/attention-rows-q1-diagnosis-2026-10-18/README.md), source `20d158ae` / ELF `e7cb6197`, used Relation `{8,1}`, K = 8, `InterleavedReadEvery8V1`, `ActiveLeafV1` and 64 rows per batch. It is distinct from the original owner-stopped 904/1,065-batch attempt and from this sheet's new injective lineage:
 
-| Run | Pod time | Cost at the measured $1.894/h |
+- both historical arms reached 4,096 batches, in parallel on one 2×5090 pod;
+- **5,361 s was the resource lifetime**, covering setup/build, model work, custody and rental, not a measured batch-timing series;
+- [retained timing clarification6253995798](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6253995798) distinguishes dispatch-to-terminal-observation wall envelopes from GPU/per-batch timings. It establishes no measured upper bound for this changed lineage.
+
+Dividing that resource lifetime by 4,096 gives about **1.31 s per batch only as a planning assumption**. The following extrapolations assume the new lineage has the same amortized resource lifetime per batch, both arms remain parallel, and the historical quoted pod rate of $1.894/h applies. Setup, occupancy, evaluation and custody costs need not scale this way; these are neither measured costs nor upper bounds.
+
+| Run | Assumption-based pod-time estimate | Assumption-based cost estimate at $1.894/h |
 |---|---|---|
-| Full dose, 16,404 batches per arm, both arms in parallel | ≤ about 6.0 h | **≤ about $11.4** |
-| A Q1 stop at 4,096 batches | about 1.5 h | **about $2.8**, as measured |
-| Seed 2, if released | doubles the run cost | |
+| Full dose, 16,404 batches per arm, both arms in parallel | about 6.0 h | **about $11.4** |
+| A Q1 stop at 4,096 batches | about 1.5 h | **about $2.8** |
+| Seed 2, if released | assumes the same additional run time | assumes the same additional run cost |
 
-The release packet re-measures per-batch cost at the new head over the first logged batches. This estimate is not a stop rule; extensions follow the standing owner rule.
+The release packet must measure per-batch throughput and all-in cost for the new head and lineage rather than inherit these estimates. Registered owner caps and Q1 stops are unchanged; these planning figures grant no budget or compute release and are not stop rules. Extensions follow the standing owner rule.
 
 ## 9. Minimum test power
 
