@@ -1,0 +1,119 @@
+# uor-pod job by=claude/claude-stagec-20261018 pod=vast-56628021 gpu=0 queued 2026-10-18T22:32:30Z
+# cmd: bash /root/stagec.sh
+# start 2026-10-18T22:32:30Z (holding /root/gpu0.lock)
+## 2026-10-18T22:32:30Z checkout b2d6c7c63cea8715e3d3be9f68a0b820fb78f65f
+NVIDIA GeForce RTX 5090, 580.95.05, 0 MiB
+## 2026-10-18T22:32:33Z D29 checker (clean)
+info: syncing channel updates for 1.97.1-x86_64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: downloading 2 components
+0fc2f06d3ab73cd20b073c5515d5e3d170250770ba4d620c1e8ed2c5a9b0d576  /workspace/uor-r4/runs/claude/bvgk-stagec-20261018/d29-selftest.txt
+15add4b3d262d461d5930fb3701af8bd06f8be426febacc70b04bc1872500143  /workspace/uor-r4/runs/claude/bvgk-stagec-20261018/d29-clean.txt
+## 2026-10-18T22:32:37Z build clean
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+0b1373a02ec191ff173f10cfd6f293cc3355ed2022cde113c6dd17f41c7dea51  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rowsk.cu
+48d8e6e05f2de03d2f9931812f606e5f923c2416dd4205696a6228d858446318  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rows.cu
+9b320a75ce3a92d50ca81b1a95789cb3b01b24d2a3f48ede851003e90da1f408  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rowsk.ptx
+## 2026-10-18T22:33:54Z run clean
+CLEAN_RC=0
+ressMarginV1/rows1/kind1/k4":[18,9],"Route/b2/NearestAddressMarginV1/rows64/kind0/k16":[4,4],"Route/b2/NearestAddressMarginV1/rows64/kind0/k4":[6,6],"Route/b2/NearestAddressMarginV1/rows64/kind1/k16":[6,6],"Route/b2/NearestAddressMarginV1/rows64/kind1/k4":[18,18],"Route/b2/NearestAddressMarginV1/rows7/kind0/k16":[4,4],"Route/b2/NearestAddressMarginV1/rows7/kind0/k4":[6,6],"Route/b2/NearestAddressMarginV1/rows7/kind1/k16":[6,6],"Route/b2/NearestAddressMarginV1/rows7/kind1/k4":[18,18],"Route/b4/NearestAddressMarginV1/rows1/kind0/k16":[4,4],"Route/b4/NearestAddressMarginV1/rows1/kind0/k4":[8,8],"Route/b4/NearestAddressMarginV1/rows1/kind1/k16":[10,10],"Route/b4/NearestAddressMarginV1/rows1/kind1/k4":[34,16],"Route/b4/NearestAddressMarginV1/rows64/kind0/k16":[4,4],"Route/b4/NearestAddressMarginV1/rows64/kind0/k4":[8,8],"Route/b4/NearestAddressMarginV1/rows64/kind1/k16":[10,10],"Route/b4/NearestAddressMarginV1/rows64/kind1/k4":[34,34],"Route/b4/NearestAddressMarginV1/rows7/kind0/k16":[4,4],"Route/b4/NearestAddressMarginV1/rows7/kind0/k4":[8,8],"Route/b4/NearestAddressMarginV1/rows7/kind1/k16":[10,10],"Route/b4/NearestAddressMarginV1/rows7/kind1/k4":[34,32],"Route/b4/OccupiedCellRankHingeV1/rows1/kind0/k16":[4,4],"Route/b4/OccupiedCellRankHingeV1/rows1/kind0/k4":[8,8],"Route/b4/OccupiedCellRankHingeV1/rows1/kind1/k16":[10,10],"Route/b4/OccupiedCellRankHingeV1/rows1/kind1/k4":[34,31],"Route/b4/OccupiedCellRankHingeV1/rows64/kind0/k16":[4,4],"Route/b4/OccupiedCellRankHingeV1/rows64/kind0/k4":[8,8],"Route/b4/OccupiedCellRankHingeV1/rows64/kind1/k16":[10,10],"Route/b4/OccupiedCellRankHingeV1/rows64/kind1/k4":[34,34],"Route/b4/OccupiedCellRankHingeV1/rows7/kind0/k16":[4,4],"Route/b4/OccupiedCellRankHingeV1/rows7/kind0/k4":[8,8],"Route/b4/OccupiedCellRankHingeV1/rows7/kind1/k16":[10,10],"Route/b4/OccupiedCellRankHingeV1/rows7/kind1/k4":[34,34]},"name":"v2_scoring_parity","racy_refusals":0,"racy_sets_parameter_rows_rowsk":[],"refusals":0,"short_blocks":132,"status":"PASS","successes":5130}
+{"blocks":0,"cases":6,"distinct_blocks_multi_distinct":{},"name":"v6_block_refusals","racy_refusals":0,"racy_sets_parameter_rows_rowsk":[],"refusals":6,"short_blocks":0,"status":"PASS","successes":0}
+{"cases":[{"block_median_ns":123528773,"block_p95_ns":123608073,"k":1,"ns_per_coordinate":123528773,"raw_samples_ns":[123487493,123505753,123520593,123515233,123533013,123514523,123547533,123547953,123511283,123510023,123510373,123529693,123526793,123607743,123660232,123608073,123531073,123506073,123528773,123563113],"reading_vs_2x":"below_2x","speedup_x1000_high":1016,"speedup_x1000_low":1015,"speedup_x1000_vs_k_single_proposals":1015},{"block_median_ns":123461482,"block_p95_ns":123497823,"k":4,"ns_per_coordinate":30865370,"raw_samples_ns":[123484264,123497823,123505563,123477453,123466943,123441903,123416994,123397343,123418314,123436393,123479923,123466263,123436764,123429793,123408953,123461482,123439094,123419403,123480973,123490553],"reading_vs_2x":"above_2x","speedup_x1000_high":4069,"speedup_x1000_low":4065,"speedup_x1000_vs_k_single_proposals":4066},{"block_median_ns":123574422,"block_p95_ns":123624633,"k":16,"ns_per_coordinate":7723401,"raw_samples_ns":[123592684,123577622,123587723,123634083,123599292,123553263,123566923,123624633,123574422,123524964,123498852,123521434,123605572,123621403,123552283,123553203,123546582,123537354,123549092,123585313],"reading_vs_2x":"above_2x","speedup_x1000_high":16262,"speedup_x1000_low":16243,"speedup_x1000_vs_k_single_proposals":16249}],"qualified":false,"shape":"V4096/B4/C192/K16 Route objective A, seed 1 checkpoint 0, 64 rows, VectorBlock 0..K, 1 warmup + 20 timed, median and nearest-rank p95","single_propose_rows_median_ns":125505066,"single_propose_rows_p95_ns":125601676,"single_propose_rows_raw_samples_ns":[125536996,125507906,125481526,125488116,125646155,125601676,125516235,125494086,125495046,125492876,125489346,125505066,125505755,125548956,125533336,125513226,125486325,125502976,125489705,125478306]}
+## 2026-10-18T22:34:22Z V2-neg: apply sabotage
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+2532c3d9f5f965a283d446ff131c840be480cd27b7f78bd8b37c8440bdc4291f  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rowsk.cu
+48d8e6e05f2de03d2f9931812f606e5f923c2416dd4205696a6228d858446318  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rows.cu
+f9c452ed633ca0ee4b7dc34e66ac62321eb85eba34b7e9892f2a845f34754694  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rowsk.ptx
+## 2026-10-18T22:35:33Z run sabotage (V2 must FAIL)
+SABOTAGE_RC=1
+{"cases":10,"error":"invalid discrete model: Route(3): losses differ: rows [448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448] rows-K [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]","name":"v2_scoring_parity","status":"FAIL"}
+## 2026-10-18T22:35:33Z revert sabotage and re-check image identity
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+0b1373a02ec191ff173f10cfd6f293cc3355ed2022cde113c6dd17f41c7dea51  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rowsk.cu
+48d8e6e05f2de03d2f9931812f606e5f923c2416dd4205696a6228d858446318  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rows.cu
+9b320a75ce3a92d50ca81b1a95789cb3b01b24d2a3f48ede851003e90da1f408  /root/build/target-sm120/release/build/uor-r4-discrete-a14d033b41341cd2/out/rowsk.ptx
+IMAGE_REVERTED_EQUALS_CLEAN=yes
+## 2026-10-18T22:36:44Z done
+STAGEC_DONE
+# exit=0 end=2026-10-18T22:36:44Z

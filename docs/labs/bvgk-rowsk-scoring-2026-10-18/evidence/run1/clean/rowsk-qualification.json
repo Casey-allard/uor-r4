@@ -1,0 +1,367 @@
+{
+  "applied_updates": 0,
+  "controls": [
+    {
+      "blocks": 2028,
+      "cases": 5130,
+      "distinct_blocks_multi_distinct": {
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows1/kind0/k16": [
+          6,
+          4
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows1/kind0/k4": [
+          12,
+          4
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows1/kind1/k16": [
+          6,
+          4
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows1/kind1/k4": [
+          18,
+          11
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows64/kind0/k16": [
+          6,
+          4
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows64/kind0/k4": [
+          12,
+          6
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows64/kind1/k16": [
+          6,
+          6
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows64/kind1/k4": [
+          18,
+          18
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows7/kind0/k16": [
+          6,
+          4
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows7/kind0/k4": [
+          12,
+          6
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows7/kind1/k16": [
+          6,
+          6
+        ],
+        "Relation { kept: 2, sweeps: 1 }/b2/NearestAddressMarginV1/rows7/kind1/k4": [
+          18,
+          15
+        ],
+        "Route/b2/NearestAddressMarginV1/rows1/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b2/NearestAddressMarginV1/rows1/kind0/k4": [
+          6,
+          4
+        ],
+        "Route/b2/NearestAddressMarginV1/rows1/kind1/k16": [
+          6,
+          6
+        ],
+        "Route/b2/NearestAddressMarginV1/rows1/kind1/k4": [
+          18,
+          9
+        ],
+        "Route/b2/NearestAddressMarginV1/rows64/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b2/NearestAddressMarginV1/rows64/kind0/k4": [
+          6,
+          6
+        ],
+        "Route/b2/NearestAddressMarginV1/rows64/kind1/k16": [
+          6,
+          6
+        ],
+        "Route/b2/NearestAddressMarginV1/rows64/kind1/k4": [
+          18,
+          18
+        ],
+        "Route/b2/NearestAddressMarginV1/rows7/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b2/NearestAddressMarginV1/rows7/kind0/k4": [
+          6,
+          6
+        ],
+        "Route/b2/NearestAddressMarginV1/rows7/kind1/k16": [
+          6,
+          6
+        ],
+        "Route/b2/NearestAddressMarginV1/rows7/kind1/k4": [
+          18,
+          18
+        ],
+        "Route/b4/NearestAddressMarginV1/rows1/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b4/NearestAddressMarginV1/rows1/kind0/k4": [
+          8,
+          8
+        ],
+        "Route/b4/NearestAddressMarginV1/rows1/kind1/k16": [
+          10,
+          10
+        ],
+        "Route/b4/NearestAddressMarginV1/rows1/kind1/k4": [
+          34,
+          16
+        ],
+        "Route/b4/NearestAddressMarginV1/rows64/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b4/NearestAddressMarginV1/rows64/kind0/k4": [
+          8,
+          8
+        ],
+        "Route/b4/NearestAddressMarginV1/rows64/kind1/k16": [
+          10,
+          10
+        ],
+        "Route/b4/NearestAddressMarginV1/rows64/kind1/k4": [
+          34,
+          34
+        ],
+        "Route/b4/NearestAddressMarginV1/rows7/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b4/NearestAddressMarginV1/rows7/kind0/k4": [
+          8,
+          8
+        ],
+        "Route/b4/NearestAddressMarginV1/rows7/kind1/k16": [
+          10,
+          10
+        ],
+        "Route/b4/NearestAddressMarginV1/rows7/kind1/k4": [
+          34,
+          32
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows1/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows1/kind0/k4": [
+          8,
+          8
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows1/kind1/k16": [
+          10,
+          10
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows1/kind1/k4": [
+          34,
+          31
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows64/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows64/kind0/k4": [
+          8,
+          8
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows64/kind1/k16": [
+          10,
+          10
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows64/kind1/k4": [
+          34,
+          34
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows7/kind0/k16": [
+          4,
+          4
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows7/kind0/k4": [
+          8,
+          8
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows7/kind1/k16": [
+          10,
+          10
+        ],
+        "Route/b4/OccupiedCellRankHingeV1/rows7/kind1/k4": [
+          34,
+          34
+        ]
+      },
+      "name": "v2_scoring_parity",
+      "racy_refusals": 0,
+      "racy_sets_parameter_rows_rowsk": [],
+      "refusals": 0,
+      "short_blocks": 132,
+      "status": "PASS",
+      "successes": 5130
+    },
+    {
+      "blocks": 0,
+      "cases": 6,
+      "distinct_blocks_multi_distinct": {},
+      "name": "v6_block_refusals",
+      "racy_refusals": 0,
+      "racy_sets_parameter_rows_rowsk": [],
+      "refusals": 6,
+      "short_blocks": 0,
+      "status": "PASS",
+      "successes": 0
+    }
+  ],
+  "driver_source_sha256": "f0dd75c192f3bb7237ccbe53ee95c4945be220777d2b774eb6f7361961fc57ef",
+  "latency_curve": {
+    "cases": [
+      {
+        "block_median_ns": 123528773,
+        "block_p95_ns": 123608073,
+        "k": 1,
+        "ns_per_coordinate": 123528773,
+        "raw_samples_ns": [
+          123487493,
+          123505753,
+          123520593,
+          123515233,
+          123533013,
+          123514523,
+          123547533,
+          123547953,
+          123511283,
+          123510023,
+          123510373,
+          123529693,
+          123526793,
+          123607743,
+          123660232,
+          123608073,
+          123531073,
+          123506073,
+          123528773,
+          123563113
+        ],
+        "reading_vs_2x": "below_2x",
+        "speedup_x1000_high": 1016,
+        "speedup_x1000_low": 1015,
+        "speedup_x1000_vs_k_single_proposals": 1015
+      },
+      {
+        "block_median_ns": 123461482,
+        "block_p95_ns": 123497823,
+        "k": 4,
+        "ns_per_coordinate": 30865370,
+        "raw_samples_ns": [
+          123484264,
+          123497823,
+          123505563,
+          123477453,
+          123466943,
+          123441903,
+          123416994,
+          123397343,
+          123418314,
+          123436393,
+          123479923,
+          123466263,
+          123436764,
+          123429793,
+          123408953,
+          123461482,
+          123439094,
+          123419403,
+          123480973,
+          123490553
+        ],
+        "reading_vs_2x": "above_2x",
+        "speedup_x1000_high": 4069,
+        "speedup_x1000_low": 4065,
+        "speedup_x1000_vs_k_single_proposals": 4066
+      },
+      {
+        "block_median_ns": 123574422,
+        "block_p95_ns": 123624633,
+        "k": 16,
+        "ns_per_coordinate": 7723401,
+        "raw_samples_ns": [
+          123592684,
+          123577622,
+          123587723,
+          123634083,
+          123599292,
+          123553263,
+          123566923,
+          123624633,
+          123574422,
+          123524964,
+          123498852,
+          123521434,
+          123605572,
+          123621403,
+          123552283,
+          123553203,
+          123546582,
+          123537354,
+          123549092,
+          123585313
+        ],
+        "reading_vs_2x": "above_2x",
+        "speedup_x1000_high": 16262,
+        "speedup_x1000_low": 16243,
+        "speedup_x1000_vs_k_single_proposals": 16249
+      }
+    ],
+    "qualified": false,
+    "shape": "V4096/B4/C192/K16 Route objective A, seed 1 checkpoint 0, 64 rows, VectorBlock 0..K, 1 warmup + 20 timed, median and nearest-rank p95",
+    "single_propose_rows_median_ns": 125505066,
+    "single_propose_rows_p95_ns": 125601676,
+    "single_propose_rows_raw_samples_ns": [
+      125536996,
+      125507906,
+      125481526,
+      125488116,
+      125646155,
+      125601676,
+      125516235,
+      125494086,
+      125495046,
+      125492876,
+      125489346,
+      125505066,
+      125505755,
+      125548956,
+      125533336,
+      125513226,
+      125486325,
+      125502976,
+      125489705,
+      125478306
+    ]
+  },
+  "latency_scope": "host-callable Device::score_rows_k vs Device::propose_rows, including per-call buffer allocation, host-to-device and device-to-host copies and stream synchronization",
+  "rows_image_sha256": [
+    "48d8e6e05f2de03d2f9931812f606e5f923c2416dd4205696a6228d858446318",
+    "c03752ab4750394b4cb6b10897884622e5cf8150cd0b7e08326e89ad4a33e49a",
+    "9d0f170b86961c4cc3900c29c75c65a75a9d8e0baa41e67aea613f9db313c5df",
+    "ce43fc17c803f1f83e4c709ddcbbbed3ab9cc7586644ec2a6b10d8193afc5e24"
+  ],
+  "rowsk_extends_rows_source": true,
+  "rowsk_image_sha256": [
+    "0b1373a02ec191ff173f10cfd6f293cc3355ed2022cde113c6dd17f41c7dea51",
+    "9b320a75ce3a92d50ca81b1a95789cb3b01b24d2a3f48ede851003e90da1f408",
+    "11d3cfd57356be8769d821f26389049dbcfa545126c5dc39b9f82faea8d7c62d",
+    "cb824eaeab13b7e0e6d1f70514da61ffbbb5f30105391c90c47572318355b4a8"
+  ],
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "status": "PASS",
+  "suite": "bvgk-rowsk-scoring-qualification",
+  "training": "HELD"
+}

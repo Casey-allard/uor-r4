@@ -71,3 +71,29 @@ The owner directed that Claude's own fresh-context adversarial reviewer subagent
 **Sabotage control (V2-neg).** `sabotage-reducer-offset.patch` makes the reducer write coordinate c's losses into slot c − 1. On the pod, after the clean run, the patched build must make V2 FAIL. A PASS would show the instrument is powerless.
 
 **V0 scope.** The prefix check proves only that `rowsk.cu` extends `rows.cu`. The rows image identity is compared against the frozen K16 build in the posted receipt.
+
+## Result: GPU qualification run 1 — PASS (2026-10-18, one RTX 5090)
+
+- **Source and pod:** merged head `b2d6c7c63cea8715e3d3be9f68a0b820fb78f65f` (#2710). Vast pod `vast-56628021`, RTX 5090, nvcc 12.8. Bootstrap parity PASS. About 17 min of pod time, about $0.27.
+- **Status:** NOT_TRAINING; zero applied updates; no corpus.
+- **Evidence:** `evidence/run1/`, with `SHA256SUMS`, the job script, the job log and both receipts. The pod workspace is also archived to the HF store under `vast-archive/vast-56628021/`, with read-back verified.
+
+| Control | Outcome |
+|---|---|
+| V0 preflight | `rowsk.cu` extends `rows.cu`. The rows source, PTX and cubin hashes (`48d8e6e0…`, `c03752ab…`, `9d0f170b…`) equal every qualified #2630 rows-parity attempt; the fourth hash is the resource-report text, which differs between all of those attempts. `driver_source_sha256` = `f0dd75c1…` (unchanged by this work). |
+| V2 scoring parity | **PASS. 5,130 / 5,130 coordinates** matched `propose_rows` exactly (losses and status), with 0 refusals and 0 racy cases. 132 short blocks ran, and the aliasing-power requirement held in every 64-row K ≥ 4 cell. |
+| V6 block refusals | **PASS, 6 / 6**, each with its expected message and state unchanged. |
+| V2-neg sabotage | **FAIL, as required** (`SABOTAGE_RC=1`): `Route(3): losses differ: rows [448 ×16] rows-K [0 ×16]`. That is the predicted signature: the last coordinate's slot is left unwritten. After the revert, the image is byte-identical to the clean image (`image-clean.txt` = `image-reverted.txt`). |
+| D29 | Self-test and repo PASS. The output is identical for the clean and sabotaged sources. |
+| Receipt | `clean/rowsk-qualification.json`, SHA-256 `d5ec5348d64e2abd74a334319d4f78e6ed7b174b5a2fc0bb381505dc46e09e56`. |
+
+**Latency curve** (V4096/B4/C192/K16 Route objective A, seed 1, checkpoint 0, 64 rows; 1 warmup + 20 timed; end-to-end call latency):
+
+| K | block median | block p95 | speedup ×1000 (low–high) | reading |
+|---|---:|---:|---:|---|
+| single `propose_rows` | 125.51 ms | 125.60 ms | — | — |
+| 1 | 123.53 ms | 123.61 ms | 1,015 (1,015–1,016) | below_2x |
+| 4 | 123.46 ms | 123.50 ms | 4,066 (4,065–4,069) | above_2x |
+| 16 | 123.57 ms | 123.62 ms | **16,249 (16,243–16,262)** | **above_2x** |
+
+**Reading.** At this shape, the cost of scoring is flat in K up to at least 16: 16 coordinates cost the same as one. Stage T's throughput hypothesis therefore holds at this shape. Per the sheet, this is end-to-end throughput: it does not say whether the flat cost is idle SM capacity or fixed per-call overhead. No Stage T bar, margin or K selection follows from it. **Next:** Stage C2, the block apply (cursors, tie-breaks and V1/V3–V5/V8–V10). Measuring K beyond 16, up to the cap of 64, is a candidate for C2's latency curve.

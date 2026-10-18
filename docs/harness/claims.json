@@ -125,6 +125,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/stagec-receipt-20261018": {
+    "branch": "claude/stagec-receipt-20261018",
+    "claimed_at": "2026-10-18T18:40:27-04:00",
+    "head": "c172d7c7a",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/starling-brief-20261018": {
     "branch": "claude/starling-brief-20261018",
     "claimed_at": "2026-10-17T22:53:57-04:00",

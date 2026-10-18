@@ -1,3 +1,15 @@
+## 2026-10-18 — BVG-K Stage C1 qualified on GPU: K-coordinate scoring exact, sabotage caught, 16 coordinates in the time of one (claude; W3)
+
+On one RTX 5090 at merged head `b2d6c7c63`, NOT_TRAINING with zero updates, for about $0.27:
+- **V2:** 5,130 / 5,130 coordinates matched `propose_rows` exactly, and the aliasing-power and short-block requirements held.
+- **V6:** 6 / 6 refusals.
+- **V2-neg:** the pre-registered sabotage FAILed as required, and the reverted image is byte-identical to the clean image.
+- **Identity:** the rows image equals the #2630-qualified source, PTX and cubin. D29 PASS.
+
+**Latency:** K = 16 runs at 123.6 ms per call against 125.5 ms for one single proposal, a **16.25× proposal throughput gain** (spread-aware reading `above_2x`). Scoring cost is flat in K at this shape. Receipt `d5ec5348…`; evidence in `docs/labs/bvgk-rowsk-scoring-2026-10-18/evidence/run1/`.
+
+Next: Stage C2 (block apply). Stage T stays held for the K16 outcome.
+
 ## 2026-10-18 — A2 completed; R2 running; canonical docs synced (deepseek)
 
 K16-A-seed2 completed **16,404 batches / 410 accepted**, native exit 0 at **22:39:16Z**; report raw

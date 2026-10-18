@@ -1,0 +1,4 @@
+{"cases":10,"error":"invalid discrete model: Route(3): losses differ: rows [448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448, 448] rows-K [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]","name":"v2_scoring_parity","status":"FAIL"}
+{"blocks":0,"cases":6,"distinct_blocks_multi_distinct":{},"name":"v6_block_refusals","racy_refusals":0,"racy_sets_parameter_rows_rowsk":[],"refusals":6,"short_blocks":0,"status":"PASS","successes":0}
+"NOT_RUN: a control failed"
+invalid discrete model: one or more K-coordinate controls failed
