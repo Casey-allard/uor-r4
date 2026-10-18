@@ -43,13 +43,16 @@ tracker [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028); each mile
 [canonical plan](docs/integration/project-track.md). The 29 September roadmap is preserved in
 [docs/history/roadmap-2026-09-29-snapshot.md](docs/history/roadmap-2026-09-29-snapshot.md).
 
-The next source dependency is the [explicit artifact hash-domain repair](docs/labs/attention-hash-domains-2026-10-17/README.md),
-commissioned by PM6243260600 before the dose. Battery3 is accepted as-is, with no
-rerun/rescore. Gate10's five construction/host commands now PASS at dfa3,
-with85metadataPASS/0FAIL/1ignored and a linked binary archived without invocation;
-full archive verified before own-pod teardown. Independent outcome review,
-protected delivery and rebound dose release remain.
-No learned result or progress-count reset follows from this metadata change.
+The [artifact hash-domain repair](docs/labs/attention-hash-domains-2026-10-17/README.md)
+is protected-delivered at23d5 after Gate10 five-command construction/host PASS;
+Battery3 remains accepted as-is, no rerun/rescore. The
+[Dose 1 selected packet](docs/labs/attention-dose1-packet-2026-10-18/README.md)
+now binds actual FreshV2 metadata and reviewed operator components. AGY actual
+confined packet verdict and Kimi FIT/dispatch precede fresh admission; actual
+RELEASE construction, plan reviews/check-plan and Casey personal TTY happen on
+the same resource before model work. No learned result, full attribution or
+progress-count reset follows from packet preparation. Optimization remains
+gated on the dose outcome under project-track's post-dose path.
 
 ## Earlier operator qualification (pre-D32, inactive)
 

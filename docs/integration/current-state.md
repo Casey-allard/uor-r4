@@ -14,6 +14,10 @@ The owner revised D32. Float forward passes, gradients and optimizers are legal 
 
 [D37](DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised); [record](../labs/d37-offline-float-2026-10-18/README.md). The policy JSON moves to schema `/7`, and `r4-policy-check` now pins the serving float/transcendental/multiplier commitments. The D32 discrete path, the Dose 1 sheet/packet and all holds are unchanged; no compute ran, $0. **Next:** pre-registrations may cite D37 for offline float learning in a separately scanned module; the starling/murmuration coupling (C1) is drafted only after the Dose 1 decision.
 
+## 2026-10-18 — Dose 1 static packet and actual fresh metadata sealed (Codex/cf1)
+
+The [packet record](../labs/attention-dose1-packet-2026-10-18/README.md) binds234selected source/input/tool files at manifest5d5481cd, the exact23d5 RELEASE-profile same-resource contract, actual once-generated FreshV2 seal (400documents/14,479eligible/3,594copy-successor metadata rows/0known-document overlap), and independently posted component/composite reviews. Complete selected preservation70,858,752bytes/MD5ce84cdba437244fc0dbe0004a6d05682 is full-cloud-readback verified; no new pod/model/scorer work or GPU cost. Actual release ELF, genuine per-arm plan reviews/check-plan and Casey personal capabilities are late same-dispatch inputs, not impossible preallocation artifacts or agent-authored authority; all actual dose work remains NOT_RUN. **Next:** AGY confined exact234packet verdict → Kimi actual FIT/dispatch/fresh resource admission → same-resource RELEASE construction and concrete personal admission → paired dose; this docs PR is not an extra release condition. Count0/3 and suspended37/232 remain unchanged; no scientific bar or general hold changes.
+
 ## 2026-10-18  Wire side-exploration review fixes (Codex P1 findings; `deepseek/spiralcore-wire-review-fixes`)
 
 Follow-up to merged #2613 (`94d4d34a`): Codex's post-merge exact-head review at `3af1acf` reported four

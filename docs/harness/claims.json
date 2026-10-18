@@ -27,6 +27,13 @@
     "lab": "claude",
     "note": ""
   },
+  "codex/cf1-attention-dose-packet": {
+    "branch": "codex/cf1-attention-dose-packet",
+    "claimed_at": "2026-10-17T22:43:56-04:00",
+    "head": "94d4d34ad",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/cf1-attention-hash-domains": {
     "branch": "codex/cf1-attention-hash-domains",
     "claimed_at": "2026-10-17T19:56:11-04:00",
