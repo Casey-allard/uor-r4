@@ -12,14 +12,15 @@ ran at23d5 and was [strategically stopped](docs/labs/attention-dose1-strategic-s
 at904/1065 batches before Q1 after reviewed rows-driver delivery. Its partials,
 pre-down data/operator custody and separate closure are independently accepted;
 no completed learned result or count reset follows. The source20d rows successor
-is a reviewed-component source/metadata draft awaiting whole review and a new
-applicable owner release, NOT_READY/NOT_RELEASED/NOT_RUN.
+was subsequently owner-released under6246440910 with its own packet, reviews and
+a new pod; its outcome is not claimed here.
 Actual device admissions and the matched reference reports support attribution;
 full same-cell dose results cannot be inferred from scalar admission counts.
 The export source passes all five Gate9 construction/host commands and its
-read-only device export has now run in Battery3. Full paired-dose completion,
-final same-cell attribution and fresh scoring remain NOT_RUN; count0/3 and
-reply37/232 SUSPENDED stay unchanged.
+read-only device export has now run in Battery3. The paired learning dose began
+but was owner-stopped after 904 treatment / 1,065 frozen-zero batches before Q1;
+full paired-dose completion, final same-cell attribution, fresh scoring and a
+learned result remain NOT_RUN; count0/3 and reply37/232 SUSPENDED stay unchanged.
 This progression changes no scientific bar or standing training/compute hold.
 
 **Current learning permission — D32:** discrete/exact GPU model computation and
@@ -53,13 +54,19 @@ The [artifact hash-domain repair](docs/labs/attention-hash-domains-2026-10-17/RE
 is protected-delivered at23d5 after Gate10 five-command construction/host PASS;
 Battery3 remains accepted as-is, no rerun/rescore. The
 [Dose 1 selected packet](docs/labs/attention-dose1-packet-2026-10-18/README.md)
-preserves its preparation history and points to the actual strategic-stop closure.
-The successor source20d packet1376/01833fa7 rebinds current components and rows_v1
-configs; whole-packet review and a new actual owner release precede execution.
-Its same resource phase produces the new RELEASE identity before actual plans,
-reviews/check-plan and source-compatible admission; no old capability/checkpoint
-is inherited. The completed scientific dose remains the next dependency under
-the unchanged sheet, without a KEEP or progress-count reset.
+now binds actual FreshV2 metadata and reviewed operator components; the record
+preserves its preparation history and points to the actual strategic-stop
+closure. AGY's confined verdict and Kimi's actual dispatch are recorded
+([dispatch record](docs/labs/attention-dose1-dispatch-2026-10-18/README.md));
+the dispatch's allocation at `vast-56488188`, its RELEASE build metadata, AGY's
+two-arm approval and both check-plan entries were followed by a partial run
+(904/1,065 batches) that the owner stopped below Q1; custody is verified and the
+original attempt is consumed. The separate `rows_v1` successor (source
+`20d158ae`, 1,376-member packet `01833fa7`) is owner-released with its own
+RELEASE identity, plans, reviews and admission; its outcome is not claimed here.
+A completed scientific dose remains the next dependency under the unchanged
+sheet, without a KEEP or progress-count reset; optimization remains gated on a
+completed dose outcome under project-track's post-dose path.
 
 ## Earlier operator qualification (pre-D32, inactive)
 

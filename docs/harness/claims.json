@@ -69,13 +69,6 @@
     "lab": "claude",
     "note": ""
   },
-  "codex/cf1-attention-dose-packet": {
-    "branch": "codex/cf1-attention-dose-packet",
-    "claimed_at": "2026-10-17T22:43:56-04:00",
-    "head": "94d4d34ad",
-    "lab": "codex",
-    "note": ""
-  },
   "codex/cf1-attention-hash-domains": {
     "branch": "codex/cf1-attention-hash-domains",
     "claimed_at": "2026-10-17T19:56:11-04:00",
@@ -104,12 +97,12 @@
     "lab": "codex",
     "note": ""
   },
-  "kimi/d37-propagation-2026-10-18": {
-    "branch": "kimi/d37-propagation-2026-10-18",
-    "claimed_at": "2026-10-17T23:03:25-04:00",
+  "kimi/dose1-dispatch-record-2026-10-18": {
+    "branch": "kimi/dose1-dispatch-record-2026-10-18",
+    "claimed_at": "2026-10-17T23:10:49-04:00",
     "head": "35c4c4038",
     "lab": "kimi",
-    "note": "Host-only mechanical D37 propagation: harness milestones/prep rules/pm-rules R5/R13/project-track/optimization record/current-state + canonical record; no code behavior, no compute, no holds moved."
+    "note": ""
   },
   "kimi/optimization-path-2026-10-18": {
     "branch": "kimi/optimization-path-2026-10-18",
