@@ -14,7 +14,7 @@
 > is ISSUED_GATED_START. Claude's actual four-init raw/net coverage census >1,941
 > is [POSTED_PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425):
 > raw/net1,986 on all roles >1,941. The3,119-byte census report has verified
-> retrieved cloud custody; no further census wait remains. K16-A/seed1 completed 16,404/407 (exit 0 20:58:35Z; report fa863063, final 6936cf99); R-seed1 running since 21:26:32Z; A-seed2/R-seed2 remain serial. The owner-waived Q4 cells/importer remain off
+> retrieved cloud custody; no further census wait remains. K16-A/seed1 completed 16,404/407 (exit 0 20:58:35Z; report fa863063, final 6936cf99); R-seed1 completed 16,404/130 (exit 0 22:02:38Z; report 2c0ccad5, eval bb6885e8); A-seed2 running since 22:05:18Z; R-seed2 remains serial. The owner-waived Q4 cells/importer remain off
 > the critical path. D39's current plan is [NOW.md](../integration/NOW.md), with
 > interim headline injective codebook + Q4 target admission ≥ 4,894; the earlier
 > reply37/232 remains historical SUSPENDED evidence under R14.

@@ -1,3 +1,15 @@
+## 2026-10-18 — R1 completed; A2 running; canonical docs synced (deepseek)
+
+K16-R-seed1 completed **16,404 batches / 130 accepted**, native exit 0 at **22:02:38Z**; final report
+`2c0ccad5…`, final evaluation `bb6885e8…`; DEV 14,287 rows / 12,089 admitted / 101 top-1 / 515 top-8.
+Status `COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION`; no paired advantage, KEEP, fresh or mechanism
+claim. After terminal/final-hash/GPU/lock/A2-absent/lease and host+remote reserve guards passed, **A-seed2
+started once at 22:05:18Z** (same pod/GPU, PID 177458; 2,304/193 at 22:10:18Z), source failure marker absent;
+R-seed2 is next serial under its existing release. Host free recovered to ~39.1 GiB (41,025,772 KiB); lease
+expiry 23:06:18Z. R1 final cloud custody pending; A1 three-shard custody complete at its scope; four-role/final
+late-OP custody still pending. Docs-only; claim-wording PASS via the existing checker; no build, no compute.
+Record: [labs/r1-completion-docs-2026-10-18](../labs/r1-completion-docs-2026-10-18/README.md).
+
 ## 2026-10-18 — BVG-K Stage C: FIT fixes to the qualifier and both sheets (claude; W3)
 
 This applies the DeepSeek and AGY FIT-WITH-FIXES items for piece 1 and the parent BVG-K sheet:
