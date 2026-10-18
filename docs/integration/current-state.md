@@ -1,3 +1,12 @@
+## 2026-10-18 — D40: owner-identity phrases are typed by the owner personally (kimi)
+
+The owner ratified the four K16 owner-release/admission records Codex operated at 20:24Z under earlier
+authorization (#2029 6254801586: "Yes, ratify; you type next time") — the records stand, the run continues.
+Standing rule recorded in DECISIONS.md D40 and AGENTS.md: any owner-identity phrase (`owner-release`,
+`completion-owner-release`, `attention-owner-release` and the like) is typed by Casey personally with
+`UOR_LAB` unset; labs stage exact commands and verify records only. Docs-only; no compute.
+Record: [labs/d40-owner-phrase-rule-2026-10-18](../labs/d40-owner-phrase-rule-2026-10-18/README.md).
+
 ## 2026-10-18 — K16 running state synced into canonical docs (deepseek)
 
 #2698 merged pre-start wording; while A1 runs, NOW/ROADMAP/STATUS/README/docs-labs README said
