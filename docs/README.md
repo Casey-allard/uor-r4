@@ -1,43 +1,39 @@
-# UOR-R4 Geometric Language Model — documentation
+# UOR-R4 documentation
 
-## Current documentation entry points — 2026-09-07
+UOR-R4 investigates geometric language computation for useful local intelligence.
+The active M1 implementation is [`uor-r4-discrete`](../crates/uor-r4-discrete/README.md):
+8D carrier blocks, signed transport, ordered context and one integer vector writer.
+The broader geometry remains a research foundation; current source and measured
+results determine which mechanisms are actually integrated.
 
-UOR-R4 Geometric Language Model develops geometric-only native intelligence in Rust. Offline training may
-use matrix multiplication; the serving target uses learned bounded geometric
-routing, state and integer/table operators, with no serving matrix products.
-Deterministic geometric address/page selection is permitted. Shared typed
-operators are the current priority; expert gates remain a conditional future
-option under the owner's later clarification.
-Neither a hidden dense transformer nor a response provider supplies the model.
+## Find your way
 
-The active implementation is
-[crates/uor-r4-core/src/native_geometric](../crates/uor-r4-core/src/native_geometric),
-shared by the native CLI and API. Bounded attention and causal inference are
-implemented and measured at the artifact scopes below. General prose completion,
-general reasoning, frontier capability and the completed native-model Studio
-remain goals.
+| You want to… | Start here |
+|---|---|
+| Understand the goal and results | [Root README](../README.md), [status](../STATUS.md) |
+| Follow the current computation | [Architecture and arrow sources](architecture.md), [discrete crate](../crates/uor-r4-discrete/README.md) |
+| Learn the mathematics | [The geometry, illustrated](geometry.md), [mechanism briefs](mechanisms/README.md) |
+| Contribute | [Contributor guide](../CONTRIBUTING.md), [project map](PROJECT_MAP.md), [agent instructions](../AGENTS.md) |
+| Check a changing claim | [Current state](integration/current-state.md), [M1 issue](https://github.com/UOR-Foundation/uor-r4/issues/2029), [lab records](labs/README.md) |
+| Read the plan and rules | [Roadmap](../ROADMAP.md), [canonical plan](integration/project-track.md), [decisions](integration/DECISIONS.md) |
+| Recover older research | [Research index](../research/README.md), [architecture audit](integration/architecture-2026-09/README.md), [branch archive](history/branch-archive/INDEX.md) |
 
-- [Project map: code, interfaces, research and stored artifacts](PROJECT_MAP.md)
-- [Current model direction and development instructions](integration/model-direction-2026-09.md)
-- [Research storage and imported history](../research/README.md)
-- [Local project knowledge index](../tools/uor-knowledge/README.md)
-- [Capability roadmap and Studio handoffs](../ROADMAP.md#order-of-work)
-- [Complete architecture/source reconciliation](integration/architecture-2026-09/README.md)
-- [Canonical goal and immediate build sequence](integration/project-track.md#immediate-build-sequence)
-- [Current implemented state and remaining failure](integration/current-state.md)
-- [Research direction and reusable mechanisms](native_geometric_direction_review_973.md)
-- [Source-level mechanism map](native_geometric_mechanism_map_973.md)
-- [Native model lifecycle and commands](native_geometric_workflow.md)
-- [Continuation instructions](integration/CONTINUE.md)
+## Current policy and evidence
 
-**Documentation authority:** the plan owns goals/dependencies; current-state owns
-executed capability. Per-issue measurement records, ADRs, proofs, research archives
-and dated JSON snapshots retain their original scope and must not be read as the
-current global work queue. Historical “current”, “next” and “not authorized”
-wording applies to its recorded experiment. A superseded issue's open obligations
-move through the [consolidation map](integration/project-track.md#consolidated-issue-responsibilities),
-not through an assumption of completion. Source contracts and technical runtime
-invariants remain applicable to their declared component.
+[D37](integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised)
+permits offline floating-point forward passes, gradients and optimizers. It retains
+matmul/GEMM and softmax/squashing prohibitions and GPU-only model compute.
+The active discrete path stays integer. A float-trained candidate must report its
+D11 integer export gap; offline permission does not qualify serving or release a hold.
+
+The selected core library is [`native_support.rs`](../crates/uor-r4-core/src/native_support.rs),
+and integer selects [`native_geometry.rs`](../crates/uor-r4-integer/src/native_geometry.rs).
+The larger historical `native_geometric` learner/runtime is preserved source,
+not the selected model implementation. See the [architecture map](architecture.md).
+
+The plan owns goals and dependencies; current-state and artifact-bound lab records
+own observations. Dated “current” or “next” statements below describe their original
+experiment. They do not override current policy, scoped releases or the live queue.
 
 ## Historical research map
 
@@ -342,7 +338,7 @@ Choose the shortest path that matches what you need:
 - **Audit a result or claim:** use the [research ledger](RESEARCH.md), then open
   the exact issue-numbered evidence record it names.
 - **Run the existing interface:** return to the root
-  [README](../README.md#getting-started).
+  [README](../README.md#quick-start).
 
 If an older roadmap disagrees with the R4 Intelligence Completion Plan or live
 GitHub dependency graph, the completion plan and live dependency graph win.

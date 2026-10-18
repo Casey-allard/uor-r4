@@ -393,7 +393,7 @@ Bounded inference and contextual/copy attention exist. General prose, general re
 
 ## Code and documentation ownership
 
-- `crates/uor-r4-core/src/native_geometric/` is the current model implementation; its callers expose native CLI/API/session behavior.
+- `crates/uor-r4-discrete/` is the active M1 model/read/writer and scoped learning driver. Core selects `src/native_support.rs` and integer selects `src/native_geometry.rs`; the larger `core/src/native_geometric/` learner/runtime is preserved historical source, not the selected model API. See [current architecture](docs/architecture.md).
 - `crates/uor-r4-router/` includes reusable routing plus historical/exploratory paths; it is not interchangeable with the retained native model.
 - Graph format/compiler/runtime/certifier, model-source and proof crates retain their scoped contracts. The `no_std` R4G1 kernel is a separate frozen contract, not blanket language evidence.
 - `docs/integration/project-track.md` owns roadmap responsibilities; `current-state.md` owns changing artifact/results/next action. Update claims where asserted, without creating duplicate stage mirrors.

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-<title id="t">How the next token is predicted</title>
-<desc id="d">Left-to-right pipeline of the geometric stack: a token id selects an embedding row; sixteen layers in the pattern rrarrarrarrarrar alternate quaternion-rotation recurrence (r) with reads over earlier positions (a); a final norm gives logits over the 4,096 tokens, a softmax in the float form, and an optional copy head routed by prime products mixes in a copy distribution to give the next-token probabilities. A band notes that the served form uses integer table reads and a greedy argmax over integer scores.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, 'DejaVu Sans', sans-serif">
+<title id="t">Historical float next-token path</title>
+<desc id="d">Historical pre-D23 pipeline of the geometric stack: a token id selects an embedding row; sixteen layers in the pattern rrarrarrarrarrar alternate quaternion-rotation recurrence (r) with reads over earlier positions (a); a final norm gives logits over the 4,096 tokens, a softmax in the float form, and an optional copy head routed by prime products mixes in a copy distribution to give the next-token probabilities. A band marks the historical export target; those executors are excluded from the selected build.</desc>
 <rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
-<text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">How the next token is predicted</text>
+<text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">Historical float next-token path</text>
 <rect x="40" y="160" width="90" height="70" rx="12" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.4" stroke-opacity="1"/>
 <text x="85" y="184" font-size="13" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">token id</text>
 <text x="85" y="205" font-size="20" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">x_t</text>
@@ -163,8 +163,7 @@
 <rect x="40" y="596" width="920" height="24" rx="12" fill="#e6f6ef" fill-opacity="1" stroke="#009E73" stroke-width="1.2" stroke-opacity="1"/>
 <circle cx="58" cy="608" r="10" fill="#009E73" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
 <text x="58" y="612.5" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">7</text>
-<text x="504" y="612" font-size="11.5" fill="#00704f" fill-opacity="1" text-anchor="middle" font-weight="bold">served: steps 2–6 as D11 integer table reads (no multiplier, no float); token = greedy argmax over i32 scores, no vocabulary softmax</text>
+<text x="504" y="612" font-size="11.5" fill="#00704f" fill-opacity="1" text-anchor="middle" font-weight="bold">Historical export target: D11 tables and greedy argmax; these executors are excluded from the selected build.</text>
 <text x="40" y="648" font-size="14" fill="#5f6b7a">Geometry: state carried by quaternion rotation, the past read by a Lorentz score, copying routed by primes. Float form shown.</text>
-<text x="40" y="669" font-size="14" fill="#5f6b7a">Example numbers are illustrative. Served form: D11 integer table reads for steps 2-6, greedy argmax, no vocabulary softmax.</text>
-<text x="40" y="690" font-size="14" fill="#7a4f00">historical (pre-D25): the softmax read and head, the sigmoid copy gate and the SwiGLU MLP drawn here are banned in executed paths (see the banner in docs/geometry.md).</text>
+<text x="40" y="669" font-size="14" fill="#5f6b7a">Historical pre-D23 float form: prohibited softmax/copy/MLP paths. Example numbers are illustrative.</text>
 </svg>

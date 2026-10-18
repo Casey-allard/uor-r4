@@ -10,64 +10,26 @@ model that runs on a laptop?*
 [![Last commit](https://img.shields.io/github/last-commit/UOR-Foundation/uor-r4/main)](https://github.com/UOR-Foundation/uor-r4/commits/main)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-ffcc4d)](https://huggingface.co/caseyallard/uor-r4-geometric-214m)
 
-**Status, 14 October 2026: pre-alpha.** No model in this repository holds a useful conversation yet.
-Under D32 the active model and its learning/qualification instruments are discrete: no
-floating-point forward, gradients, optimizer or matrix multiplication. D37 (18 October)
-now allows float in offline training only, with a D11 integer export. The new
-SpiralCore/FBS shared-vector path, flock read and new D1 driver pass **all twenty-five
-admitted CUDA construction controls** at source `e7d926fbe` (#2400), after a fresh
-non-author Codex FIT. Eleven Route, six flock and eight driver controls cover the
-shared writer, read, evaluator/reference, seeded schedule/resume and update boundaries.
-Both reads use the same integer input/carry/output codebook and writer. M1's quality target
-remains SUSPENDED pending a discriminating reply grader under R14.
-**The scoped D33 seed-1 diagnostic pilot is complete; further training and M2 remain held.**
-The current M1 priority is the [learned native-attention link](docs/harness/prep/m1-learned-attention-link-2026-10-17.md).
-Its interleaved learning and checkpoint runner are delivered; the
-[minimal GPU token-cell export](docs/labs/attention-token-cell-export-2026-10-17/README.md)
-passes its exact-source CUDA check, strict package Clippy, host metadata suite
-and debug link in Gate9. After protected delivery, the separately released
-[Battery3 preflight](docs/labs/attention-preflight-2026-10-17/README.md) completed
-the actual read-only4096-token export, initial admission/sensitivity gates and
-nine Relation qualification controls with zero applies. The separately released
-`rows_v1` paired learning attempt reached its registered
-[Q1 diagnostic stop in both arms](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)
-at4,096 batches: P_succ target admission2034→225 treatment/205 frozen-zero,
-below the registered500-target floor with nonzero sensitivities. Both returned0;
-all evidence is preserved and the pod is down. Scientific outcome review and the
-prospective next configuration remain; full attribution and fresh transfer are
-unestablished. Admission counts are not learned accuracy.
-The completed D33 pilot recorded 1,640 corpus batches and 236 accepted vector updates. Earlier construction
-controls recorded eleven isolated fixture apply calls and eight disposable updates;
-those retain their pre-pilot scope. [Pilot measurements and preserved artifacts](docs/labs/a2-pilot-2026-10-14/README.md).
-The [paired pilot diagnosis and D5 completion controller](docs/labs/a2-pilot-diagnosis-2026-10-14/README.md)
-separate writer admission loss from improved within-list ranks. Completion has
-separate per-seed release scopes and preserves the pilot checkpoint; its metadata
-controls pass, while its new CUDA build and execution remain unverified. This
-source does not release training or change the initializer, schedule or evaluator.
-[Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
-The D1 Rust corpus/schedule/checkpoint driver and integer GPU evaluator are now
-implemented at source `e7d926fbe38537f4faa90b817705c61a780778d6` ([#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)).
-The A1 release build, new driver qualification and D2 operation-cost measurement
-pass. At V4096/width32/context192/64 rows, median Route/Flock forward costs are
-37.84/40.58ms; virtual vector proposals cost3.90/4.21s. Serial counterfactual replay
-is the measured cost bottleneck. The roughly17.8/19.2-hour parameter-pass estimates
-are **UNVERIFIED fixed-batch projections**, not training throughput or geometric-law
-negatives. [Raw measurement](docs/labs/discrete-driver-cost-2026-10-13/receipts/measurement.json).
-The later [K16 decomposition](docs/labs/counterfactual-decomposition-run-2026-10-16/README.md)
-localizes 99.979% of measured lane cycles to the writer, with 46.92–47.22%
-in repeated baseline work across all four policy/operation cells. All 32 matched
-diagnostic proposals preserve results and state, with zero apply; incremental
-clock perturbation is below 0.77%. The next bounded design reuses each exact
-baseline row across candidates. No optimization speedup or training release
-follows from these measurements.
-Earlier seventeen-control evidence at
-`76198c3b5` retains its prior source scope and Claude FIT attribution.
-The driver validates pinned tokens/masks/tokenizer, constructs document-bounded
-next-token windows, and cycles one vector/read coordinate per batch. Its corpus
-update capability was issued only for the completed D33 pilot; the generic training
-CLI still returns `TrainingHeld` and this release authorizes no successor run.
-Earlier 31/18-control float receipts retain their exact historical scope;
-[PR #2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) preserves that evidence.
+**Pre-alpha, 18 October 2026.** We are building a local language model around geometric
+state, transport and addressed memory. No model here holds a useful conversation yet;
+**0 of 8 milestones are complete**. The active [discrete crate](crates/uor-r4-discrete/README.md)
+has a shared integer input/carry/output writer and Route, Flock and Relation reads.
+A scoped diagnostic pilot learned 236 vector updates; the original paired attention dose
+was owner-stopped before Q1, with its partials preserved. Both arms of the separate
+`rows_v1` Dose2 attempt then stopped at the registered **Q1 admission-collapse gate
+after 4,096 batches**. P_succ target admission fell from 2,034 to **225 treatment /
+205 control**. These are admission counts, not accuracy or a treatment win.
+[Scientific review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872) concludes **configured admission collapse in both arms**,
+with no implementation or identity fault found; no registered efficacy hypothesis
+fires, fresh remains sealed, and there is no KEEP or mechanism-negative verdict.
+[Result and preserved custody](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md) include pod `56510253` down at **07:53:30 UTC**.
+
+Start with the [illustrated geometry](docs/geometry.md), [documentation hub](docs/README.md),
+[current status](STATUS.md), or [contributor guide](CONTRIBUTING.md).
+[D37](docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised)
+allows offline floating-point training, while retaining the matmul/GEMM and
+softmax/squashing prohibitions and GPU-only model compute. D11 integer serving
+is a separate export and qualification obligation.
 
 ## The question
 
@@ -78,8 +40,8 @@ instruction at serving time ([D11](docs/integration/DECISIONS.md#d11--native-mul
 
 "Geometry" here means concrete, exact structures:
 
-- **State and transport:** unit quaternions (R4/S³) that rotate the state each step.
-- **Exact structure:** the 120 icosians (the 600-cell), exact golden integers `Z[φ]`, E8 = H4 ⊕ φH4.
+- **State and transport:** quaternion (R4/S³) foundations; exact signed actions on 8D blocks in current M1.
+- **Exact structure:** the 120 unit icosians (the 600-cell), exact golden coefficients `Z[φ]` with their one-half coordinate scale, and the [reduced-metric icosian E8 construction](docs/geometry.md#3-the-120-icosians-the-600-cell-and-e8).
 - **Addressing:** prime (UOR) addresses, SpiralCore signed transport, fixed zeta-zero phases.
 
 The answer is recorded either way. Architectural priority is not a measured advantage, and the
@@ -87,26 +49,33 @@ project keeps the two apart.
 
 ## Architecture
 
-The active standalone discrete path uses actual64-state SpiralCore transport,
-ordered FBS context and one integer codebook for input, carried vectors and output.
-Its sixteen-root orbit is not full E8 coverage or a language result; Claude's
-discrete read/integration remain separate. The diagram and older line descriptions
-below preserve the prior architecture snapshot, not an executable float trunk.
+The current M1 path carries tokens through **8D blocks** drawn from a **16-root
+carrier orbit**, with **64 exact signed transport actions**. Four blocks give width 32.
+Ordered ternary FBS plans preserve context order. Route transports one selected
+carrier per block; Flock/Relation combine transported carriers by sums and snaps.
+All reads use the same vector format as the output writer.
 
-<img src="docs/figures/architecture.svg" alt="Architecture: line A, the geometric stack language base, shows the earlier operator status; the native head now exists, the revised compiled boundary passes finite controls at its declared source scope, and training is held; line B, the native learner, completes 437 of 512 development replies but 0 of 128 on fresh transfer; both join as one model served under D11 at M4" width="100%">
+<img src="docs/figures/architecture.svg" alt="Current discrete M1 path: token table to ordered context, geometric read, shared vector writer and raw token selection; learning proposes exact moves. M2 and unified D11 serving remain separate obligations." width="600">
 
-- **Line A, the language base (M1) — `active` (discrete SpiralCore/FBS trunk) / `dormant` (pre-D32 float operator source) / `archived-negative (D22 scope: pre-D23/D25 softmax/SwiGLU/dense-matmul stack configurations)`.** A geometric stack language model: recurrence layers that carry a
-  quaternion state by rotation, geometric feed-forward blocks and a geometric head. The post-D30/D32 **active** discrete implementation lives in [`crates/uor-r4-discrete`](crates/uor-r4-discrete) ([brief](docs/mechanisms/discrete-geometric-learning.md), [pilot record](docs/labs/a2-pilot-2026-10-14/README.md)); the pre-D32 floating-point operator-phase source in [`crates/uor-r4-training`](crates/uor-r4-training) is **dormant** (preserved inactive at [#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370) and [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md)); pre-D23/D25 softmax and dense-projection configurations are **archived-negative (D22 scope)** ([historical float form](docs/history/geometry-float-form-2026-10.md)).
-  Code: [`crates/uor-r4-discrete`](crates/uor-r4-discrete), [`crates/uor-r4-training`](crates/uor-r4-training).
-- **Line B, grounded reply from exact memory (M2, M3) — `active` (fixed geometry and separate D19 `uor-r4-object-store` line) / `dormant` (held M2 native compiler/emitter learner) / `archived-negative (D22 scope: 437/512 dev / 0/128 fresh-transfer frozen-adapter panel-fitting and 128-update 0/512 endpoints)`.** A learned compiler writes facts into an exact,
-  versioned, addressed store; a learned emitter writes the reply. That historical compiler/emitter
-  source is preserved (**dormant**, M2 training/rental held: [pooled-rank record](docs/labs/m2-pooled-rank-2026-10-10/README.md), [carrier-credit brief](docs/mechanisms/unified-geometric-carrier-credit.md), [integration audit](docs/labs/unified-geometric-integration-2026-10-11/AUDIT.md)); the selected core build now exposes **active** fixed geometry and exact-storage support, alongside the separate **active** D19 exact compressed object-store line ([D34](docs/integration/DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate)).
-  Code: [`crates/uor-r4-core/src/native_geometric`](crates/uor-r4-core/src/native_geometric).
-- **Serving (M4 target) — `active` (D11/D5 contract and fixed geometry) / `dormant` (pre-D29/D32 exported stack executors) / `archived-negative (D22 scope: superseded D10 converted-transformer track #1518)`.** One model under D11 remains unqualified. The selected
-  [`crates/uor-r4-integer`](crates/uor-r4-integer) build exposes **active** fixed geometry and metadata;
-  historical model-serving executors are **dormant** (excluded from the selected native build; preserved at [D11 serving record](docs/labs/d11-serving-2026-10-10/README.md)), and the converted-transformer comparator path is **archived-negative (D22 scope)** ([D11](docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded)).
+Every arrow is traced in the [architecture source map](docs/architecture.md).
+The [discrete crate guide](crates/uor-r4-discrete/README.md) names the actual entry points,
+selected Cargo graph and validation boundaries.
 
-The geometry is explained, with pictures and post-D30 `active` / `dormant` / `archived-negative (D22 scope)` mechanism labels, in **[The geometry, illustrated](docs/geometry.md)** (pre-D23 float-form tour preserved at **[geometry-float-form-2026-10.md](docs/history/geometry-float-form-2026-10.md)**).
+- **Language base (M1):** active discrete source, a completed diagnostic pilot and
+  preserved partial attention dose. [Current evidence](STATUS.md).
+- **Grounded memory (M2/M3):** retained compiler/emitter research is held. Its
+  437/512 development replies and 0/128 fresh-transfer result retain their
+  [frozen-adapter scope](docs/labs/m2-pooled-rank-2026-10-10/README.md).
+  The [D19 object store](crates/uor-r4-object-store/README.md) is a separate byte-storage
+  prototype, with no model integration claimed.
+- **Serving (M4):** D11 targets integer/table execution without a multiplier instruction.
+  Core and integer currently select fixed geometry/support modules; historical model
+  executors are preserved outside that selected build. A unified served model remains unqualified.
+
+The wider [geometry foundations](docs/geometry.md) include quaternions, icosians,
+exact golden coefficients, Hopf observations and prime/zeta addressing. Each has a
+specific mathematical role; inclusion in the research programme does not imply it
+runs in the current M1 kernel or has measured predictive advantage.
 
 ## Where we are
 
@@ -115,10 +84,10 @@ Live tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 
 | Milestone | Issue | Status | Headline now → target |
 |---|---|---|---|
-| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | discrete diagnostic pilot complete; further training held | reply headline SUSPENDED/no target under R14; [pilot measurements](docs/labs/a2-pilot-2026-10-14/README.md) do not qualify useful conversation |
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | pilot complete; Dose2 Q1 diagnostic stop | reply headline SUSPENDED/no target under R14; [pilot measurements](docs/labs/a2-pilot-2026-10-14/README.md) do not qualify useful conversation |
 | M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | held | 437/512 development replies (above 256), but 0/128 on fresh transfer |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | paused | evaluator and session built; waits on an M1 or M2 model |
-| M4 One served model (D11 and a CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | softmax at runtime: yes → must be no (D23) |
+| M4 One served model (D11 and a CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | unified D11 model/export unqualified |
 | M5 Laptop cost | [#2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | energy per token on an M1: not measured |
 | M6 Reasoning and coding | [#2034](https://github.com/UOR-Foundation/uor-r4/issues/2034) | not started | exact arithmetic is the visible gap |
 | M7 Distribution (API, WASM, Studio) | [#2035](https://github.com/UOR-Foundation/uor-r4/issues/2035) | not started | local API only |
@@ -144,12 +113,14 @@ updates on one RTX 5090. On the pinned 14,287-target development set, top-1
 correct moved 17 → 82 and top-8 173 → 1,169; the aggregate loss increased.
 The count reference remains ahead, and this partial pilot does not establish
 useful language quality. Its artifacts are preserved and the pod is deleted.
-Further training and M2 remain held. [Measurements, limitations and next step](docs/labs/a2-pilot-2026-10-14/README.md).
+That pilot release is consumed; the separately released attention successor is tracked in [STATUS](STATUS.md). M2 remains held. [Measurements, limitations and next step](docs/labs/a2-pilot-2026-10-14/README.md).
 
 | Active component | Delivered scope | Record |
 |---|---|---|
 | Discrete carrier, shared writer and flock read | 25 admitted CUDA construction controls; the pilot uses Route read and does not train flock gates | [integration](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md), [driver](docs/labs/discrete-driver-cost-2026-10-13/README.md) |
 | Pinned admission, checkpoints and diagnostics | Exact binary/config/data/review/release binding, recovery snapshots, sensitivity and coverage/collision counters | [admission](docs/labs/discrete-admission-2026-10-14/README.md) |
+| Paired Relation attention dose | Original owner-stopped before Q1; separate rows Dose2 stopped at 4,096 batches in both arms with admission 2,034 → 225/205. Configured admission collapse; no efficacy hypothesis or treatment win | [Dose2 record](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md), [scientific review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872) |
+| Row-parallel proposal path | 1,085 finite parity cases, zero updates; ~56× proposal microbenchmark, `timing.qualified=false` | [attempt 3 JSON](docs/labs/counterfactual-rows-parity-2026-10-18/evidence/attempt3/rows-parity.json) |
 | Seed-1 diagnostic learning pilot | Complete; mixed DEV measurements; bars/guard undecided and fresh transfer unavailable | [result](docs/labs/a2-pilot-2026-10-14/README.md) |
 
 <details>
@@ -173,8 +144,8 @@ they do not authorize its floating-point training path under D32.
 | Rung 0: the first lawful training run (2 arms × 2 seeds, ≤ $4) | — | **`dormant`** float sheet (Amendment6 independent FIT; **held**/frozen under D32 §5, finite source qualification recorded; superseded on the active path by the discrete D33/D5 sheets) | [sheet](docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md), [discrete pilot](docs/labs/a2-pilot-2026-10-14/README.md) |
 | Rung 0b: starling / rank-table reads with a rank-consistent gradient | softmax attention | **`dormant`** in F32/F64 form (after rung 0; preserved inactive under D32; discrete `ReadSpec::Flock` is **`active`** in [#2395](https://github.com/UOR-Foundation/uor-r4/pull/2395)/[#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)) | [brief](docs/mechanisms/starling-read.md), [rung0b source](docs/labs/starling-rung0b-source-2026-10-13/README.md) |
 
-The diagrams and table retain the earlier operator snapshot. The selected native API excludes historical core/integer model executors, teachers, LUT engines and exporters from compilation. Source/checkpoint lineage binds the masked TRAIN count reference separately from the DEV diagnostic oracle. "Source, tested" labels retain their named source/control scope. The repaired dependency graph separately passed the 31 finite controls at `1f1547bfd`; that historical result establishes neither trained language quality nor D11 serving. Pictures of the earlier operators:
-[the geometry page](docs/geometry.md#the-operators-of-the-compliant-trunk).
+The diagrams and table retain the earlier operator snapshot; their dates are historical. The selected native API excludes historical core/integer model executors, teachers, LUT engines and exporters from compilation. Source/checkpoint lineage binds the masked TRAIN count reference separately from the DEV diagnostic oracle. "Source, tested" labels retain their named source/control scope. The repaired dependency graph separately passed the 31 finite controls at `1f1547bfd`; that historical result establishes neither trained language quality nor D11 serving. Pictures of the earlier operators:
+[the geometry page](docs/geometry.md#the-compliant-next-token-path).
 
 </details>
 
@@ -206,15 +177,15 @@ alone do not certify that a scalar loop is geometric. All decisions: [DECISIONS.
 
 One page per novel mechanism: the idea, where it lives, what has been tried and what a fair test needs.
 Index: [docs/mechanisms/](docs/mechanisms/README.md). Post-D30/D32 status labels distinguish:
-- **`active`** — on the current D32 discrete geometric substrate (`crates/uor-r4-discrete`), D32 Oct 14 offline Prime-Zeta constructor, D34 `ReadSpec::Relation` design card, or separate D19 `uor-r4-object-store` line;
+- **`active`** — on the current D32 discrete geometric substrate (`crates/uor-r4-discrete`), D32 Oct 14 offline Prime-Zeta constructor, implemented `ReadSpec::Relation` reranker, or separate D19 `uor-r4-object-store` line;
 - **`dormant`** — open geometric mechanisms under [D12](docs/integration/DECISIONS.md#d12--gates-promote-never-kill-reopen-geometric-candidates-port-the-native-engines-mechanisms-keep-a-geometric-toolbox)/[D22](docs/integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened) or pre-D32 floating-point / held M2 source preserved inactive as evidence under [D29](docs/integration/DECISIONS.md#d29--no-banned-mechanism-in-any-compiled-or-loaded-module-vendor-runtime-content-counts)/[D30](docs/integration/DECISIONS.md#d30--hard-substrate-rules-no-matmul-or-softmax-anywhere-no-wrapper-laundering-rust-only-gpu-only-heavy-compute-pod-kernel-builds)/[D32](docs/integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning);
 - **`archived-negative (D22 scope)`** — specific tested configurations (recipe, key, softmax/matmul/host coupling, or solver encoding) closed or prohibited under D18/D21/D22/D23/D24/D25/D30, which close only the tested configuration and never the underlying geometric mechanism.
 
 | Mechanism | Milestone | Where it stands |
 |---|---|---|
-| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | **`active`** — source `e7d926fbe`: twenty-five controls/D2 measurement PASS; eight isolated fixture updates, corpus0; serial proposal replay is the cost bottleneck; #2400, scoped D33 pilot complete, D5 seed-1 completion running, further training held. Evidence: [learning](docs/labs/discrete-geometric-learning-2026-10-13/README.md), [flock/writer](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md), [driver cost](docs/labs/discrete-driver-cost-2026-10-13/README.md), [pilot](docs/labs/a2-pilot-2026-10-14/README.md), [diagnosis](docs/labs/a2-pilot-diagnosis-2026-10-14/README.md) |
+| [Discrete SpiralCore/FBS learning and shared writer](docs/mechanisms/discrete-geometric-learning.md) | M1, M2, M4 | **`active`** — shared integer carrier/read/writer and scoped learning driver. The [D33 pilot](docs/labs/a2-pilot-2026-10-14/README.md) completed 236 vector updates; the [original paired attention dose](docs/labs/attention-dose1-strategic-stop-2026-10-18/README.md) was owner-stopped before Q1. The separate `rows_v1` Dose2 reached the registered Q1 admission-collapse stop in both arms; [STATUS](STATUS.md) tracks its diagnostic result and consumed release. Earlier [25-control qualification and serial proposal costs](docs/labs/discrete-driver-cost-2026-10-13/README.md) retain their source scope; [rows attempt3](docs/labs/counterfactual-rows-parity-2026-10-18/evidence/attempt3/rows-parity.json) is finite parity and proposal timing, not whole-training speed. |
 | [Prime-rank indexing and complex-plane zeta-phase routing](docs/mechanisms/prime-zeta-complex-routing.md) | M1, M4 | **`active`** (standalone offline `Snapshot.table` constructor under D32 Oct 14 addendum; 17+6 CUDA construction controls PASS at `912a8a069` after FIT #2433 and owner release; frozen D5 `discrete_init` xorshift default unchanged; learned attribution **`dormant`**/held) / **`archived-negative (D22 scope: retired continuous float `get_word_vector` baseline superseded by D30/D32)`**. Evidence: [construction record](docs/labs/prime-zeta-construction-2026-10-14/README.md), [prep sheet](docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md) |
-| [Finite relational head (`ReadSpec::Relation` reranker)](docs/mechanisms/finite-relational-head.md) | M1, M4 | **`active`** (source-only design card revised per D34, #2482/#2486; `relation-off ≡ Flock`; copy-successor target 3,847/14,287 = 26.9% DEV; ≤16K shortlist excluded; M1 qualification sheet [`m1-finite-relational-head-2026-10-14.md`](docs/harness/prep/m1-finite-relational-head-2026-10-14.md) [#2494](https://github.com/UOR-Foundation/uor-r4/pull/2494) `TEST FITNESS: FIT`; Stage M2 discriminator sheet [`m4-finite-relational-head-2026-10-15.md`](docs/harness/prep/m4-finite-relational-head-2026-10-15.md) [#2502](https://github.com/UOR-Foundation/uor-r4/pull/2502) `PENDING FIT`; NOT_RUN / held) / **`dormant`** (`C6`-vs-`G64` energy controller demoted to unselected contingent arm). Evidence: [design record](docs/labs/finite-relational-head-design-2026-10-14/README.md), [independent review](docs/labs/spiralcore-attention-independent-review-2026-10-14/README.md), [native review](docs/labs/spiralcore-native-attention-review-2026-10-14/README.md) |
+| [Finite relational head (`ReadSpec::Relation` reranker)](docs/mechanisms/finite-relational-head.md) | M1, M4 | **`active`** — implemented Relation reranking, interleaved learning and checkpoint/preflight runner. [Battery3](docs/labs/attention-preflight-2026-10-17/README.md) completed nine Relation qualification controls with zero applies; the original paired dose has [preserved pre-Q1 partials](docs/labs/attention-dose1-strategic-stop-2026-10-18/README.md). The rows Dose2 also stopped for configured admission collapse in both arms; no registered efficacy hypothesis fires. See [STATUS](STATUS.md) for the scientific review and sealed-fresh boundary. The [D34 design](docs/labs/finite-relational-head-design-2026-10-14/README.md) retains its design-stage scope; the M2 discriminator and unselected `C6`/`G64` controller remain separate. |
 | [SpiralCore/FBS projection](docs/mechanisms/spiralcore-fbs-projection.md) | M1, M2 | **`dormant`** in pre-D32 F32/BF16 form (prior floating form preserved inactive under D32; discrete integer SpiralCore/FBS transport is **`active`** in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)). Evidence: [projection record](docs/labs/spiralcore-fbs-projection-2026-10-12/README.md), [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md) ([#2370](https://github.com/UOR-Foundation/uor-r4/pull/2370)) |
 | [Rank-margin objective](docs/mechanisms/rank-margin-objective.md) | M1 | **`dormant`** in pre-D32 F32 form (prior floating objective preserved; discrete integer `8*token_hinge + width*address_hinge` successor is **`active`** in [`discrete-geometric-learning.md`](docs/mechanisms/discrete-geometric-learning.md)). Evidence: [law design](docs/labs/d23-learning-law-design-2026-10-12/README.md), [D29 boundary](docs/labs/d29-vendor-boundary-2026-10-13/README.md), [float sheet](docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md) |
 | [Starling read](docs/mechanisms/starling-read.md) (~7 neighbours on the 600-cell) | M4 | **`dormant`** in pre-D32 float/rung-0b `starling_native` form (served softmax-free; its float gradient is rung 0b, preserved inactive under D32; discrete `ReadSpec::Flock` is **`active`** in [#2395](https://github.com/UOR-Foundation/uor-r4/pull/2395)/[#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400)) / **`archived-negative (D22 scope: pre-D23 Rungs 1–3, pivot and softmax-surrogate configurations #2222–#2249)`**. Evidence: [rung0b source](docs/labs/starling-rung0b-source-2026-10-13/README.md), [murmuration design](docs/labs/murmuration-design-2026-10-13/README.md), [rung 1](docs/labs/starling-read-2026-10-11/README.md), [rung 2](docs/labs/starling-anneal-2026-10-11/README.md), [rung 3](docs/labs/starling-content-2026-10-11/README.md), [pivot](docs/labs/starling-pivot-2026-10-11/README.md), [surrogate](docs/labs/starling-surrogate-2026-10-12/README.md), [branch archive](docs/history/branch-archive/INDEX.md) |
@@ -297,12 +268,9 @@ Sources: [current state](docs/integration/current-state.md), [evidence index](do
 The owner, Casey Allard, sets direction and holds the decisions on spending, holds and mechanism stops.
 The work is done by AI research labs that share one repository and one harness:
 
-- **Kimi:** project manager. One plan, line assignments, collision resolution and the operator phase.
-- **Claude:** expert lab for the starling and rank reads and the GPU pods. It is also the proposed
-  keeper of this README, the figures and the geometry page ([bookkeeping](docs/bookkeeping.md)).
-- **Codex (Sol):** expert lab for enforcement, M2, the geometric head and the writer.
-- **DeepSeek:** the harness and maintenance, plus the invariant-addressed router and memory.
-- **Antigravity:** a fifth lab, currently offline.
+Labs coordinate through renewable claims and review roles in the [shared protocol](docs/labs/protocol.md).
+Current ownership and reviewer availability belong on the live issue and harness, rather than
+in permanent contributor navigation. Independent review checks exact source and evidence scope.
 
 Every unit follows the same cadence: claim a branch in the harness, pre-register any compute and get a
 `TEST FITNESS: FIT` review, deliver through a protected PR with checks run at its exact head, write the
@@ -317,18 +285,16 @@ Rust 1.97.1 is pinned by `rust-toolchain.toml`. Training data and trained artifa
 repository (see [Models and data](#models-and-data)). Model compute runs on GPU pods only (D24).
 
 ```sh
-git clone https://github.com/UOR-Foundation/uor-r4 && cd uor-r4
-CARGO_TARGET_DIR=local/readme-target cargo check -p uor-r4-training --lib --example geometric-stack
-CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness
-UOR_LAB=codex ./local/harness-target/debug/uor-harness ratchet d23
-UOR_LAB=codex ./local/harness-target/debug/uor-harness ratchet d25
+cargo check --locked -p uor-r4-discrete --lib
+cargo test --locked -p uor-r4-discrete --lib
+cargo run -q --locked -p xtask -- figures
+cargo run -q --locked -p uor-r4-claim-wording -- .
 ```
 
-These commands compile/check source only; they execute no model. The native `geometric-stack`
-example supports CUDA `train` and masked `evaluate`; historical sampling/export modes and integer
-model executors are excluded. CUDA builds and finite controls use the admitted pod runner with
-the pinned finite sheet; neither the commands nor FIT release a training hold. Use your own lab
-identifier and target directory.
+These source, host-metadata and documentation checks execute no model. Rust1.97.1
+is pinned. Device qualification and model execution require CUDA, the admitted
+runner, an exact pre-registration and the applicable scoped release. See the
+[discrete crate guide](crates/uor-r4-discrete/README.md) before using its CLI.
 
 New lab: set `UOR_LAB`, then run the harness onboarding ([docs/harness/ONBOARD-PROMPT.md](docs/harness/ONBOARD-PROMPT.md)).
 GPU work goes through `scripts/pod/uor-pod` ([docs/labs/compute.md](docs/labs/compute.md)); never rent by hand.
@@ -372,6 +338,7 @@ never on a serving path, and no new comparator runs are permitted (D23).
 
 | Path | Purpose |
 |---|---|
+| [`crates/uor-r4-discrete`](crates/uor-r4-discrete/README.md) | active integer SpiralCore/FBS model, Route/Flock/Relation reads, shared writer and scoped learning driver |
 | [`crates/uor-r4-core`](crates/uor-r4-core) | selected fixed geometry, tokenizer and exact-storage support via `native_support.rs`; historical learner/model sources preserved inactive |
 | [`crates/uor-r4-training`](crates/uor-r4-training) | native-only geometric CUDA stack, shared vector writer/store and train/evaluate CLI; historical teacher/export/experiment modules excluded |
 | [`crates/uor-r4-integer`](crates/uor-r4-integer) | selected fixed H4 geometry and report metadata; historical D11 model/CLI source retained inactive, compliant serving remains an obligation |
@@ -389,7 +356,7 @@ never on a serving path, and no new comparator runs are permitted (D23).
 
 The [project map](docs/PROJECT_MAP.md) covers every crate and directory.
 
-**Statistics, 13 October 2026** (mostly multi-agent lab work, not a count of human contributors): about
+**Historical statistics, 13 October 2026** (mostly multi-agent lab work, not a count of human contributors): about
 1,990 commits since 9 June 2026; 1,761 merged PRs (968 in the last 30 days); about 1.68M lines of Rust;
 8,131 `#[test]` functions; decisions D0 to D27; 14 open issues.
 

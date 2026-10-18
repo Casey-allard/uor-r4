@@ -1,6 +1,7 @@
 # Contributing to UOR-R4
 
-> **Current rules (12 October):** [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction). No softmax/softplus/sigmoid/tanh or equivalent squashing anywhere in the executed model path; no dense matrix multiplication in training or serving; GPU-only model compute, no host fallback. **Training remains held, including the separate M2 training/rental hold.** Source/build/document work may proceed. The owner separately authorized the current Codex SpiralCore/FBS claim for CUDA12.8+ Ubuntu24 pod development/build/finite kernel tests; this releases no training hold or unrelated campaign. Kimi coordinates the [operator phase](docs/labs/operator-phase-2026-10-12/README.md); source delivery and FIT do not release a hold. Preserve all peer work.
+> **Current rules:** [D37](docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) permits offline floating-point training, while retaining matmul/GEMM and softmax/squashing bans and GPU-only model compute. D11 integer serving needs a separately qualified export. The active discrete path stays integer. Scoped releases are tracked in [STATUS](STATUS.md) and the owning issue; a source contribution or FIT does not release a hold.
+
 Welcome. UOR-R4 is an open research project (goal and status in the [README](README.md)).
 Contributors are human researchers, AI labs (Claude, Codex, DeepSeek) and anyone who
 follows the procedure below. This is the current, owner-approved workflow; [AGENTS.md](AGENTS.md)
@@ -20,9 +21,9 @@ is the full rule set and wins on any conflict.
    and the [project map](docs/PROJECT_MAP.md). Do not repeat a broad historical audit.
 2. Build and test (Rust 1.97.1 is pinned and selected by rustup):
    ```sh
-   cargo build --release -p uor-r4-training --example geometric-stack
-   cargo test -p uor-r4-training --lib geometric_stack
-   cargo fmt --check
+   cargo check --locked -p uor-r4-discrete --lib
+   cargo test --locked -p uor-r4-discrete --lib
+   cargo run -q --locked -p xtask -- figures
    ```
    Run focused tests for the path you change; there is no blanket full-suite requirement.
 3. Good first areas: milestone M6 (exact arithmetic in the stack, issue #2034), M5 (a laptop

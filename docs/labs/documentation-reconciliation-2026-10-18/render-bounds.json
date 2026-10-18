@@ -1,0 +1,222 @@
+[
+  {
+    "file": "docs/figures/architecture.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/600-cell-icosians.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/compliant-path.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/connections.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/exact-2i-lanes.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/golden-integers.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/hamming-rank-read.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/hopf-fibration.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/native-input-access.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/next-token.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/octonion-signed-binding.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/operators.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/prime-addressing.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/protected-joint-learning.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/quaternion-rotation.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/s3-and-transport.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/vsa-hypervectors.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/zeta-phases.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry-stack.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/milestones.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/serving-pipeline.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/training-pipeline.svg",
+    "viewport": 1200,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/architecture.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/600-cell-icosians.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/compliant-path.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/connections.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/exact-2i-lanes.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/golden-integers.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/hamming-rank-read.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/hopf-fibration.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/native-input-access.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/next-token.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/octonion-signed-binding.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/operators.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/prime-addressing.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/protected-joint-learning.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/quaternion-rotation.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/s3-and-transport.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/vsa-hypervectors.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry/zeta-phases.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/geometry-stack.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/milestones.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/serving-pipeline.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  },
+  {
+    "file": "docs/figures/training-pipeline.svg",
+    "viewport": 390,
+    "text_outside_viewbox": []
+  }
+]

@@ -1,0 +1,87 @@
+{
+  "scope": "Documentation and host-only validation; no model execution",
+  "rust": "1.97.1",
+  "discrete_host_tests": {
+    "passed": 90,
+    "failed": 0,
+    "ignored": 1
+  },
+  "generated_rust_figures": 7,
+  "geometry_checks": {
+    "passed": 29,
+    "note": "finite enumerations and sampled numerical consistency checks; not 29 general proofs"
+  },
+  "link_audit": {
+    "checked": 822,
+    "unresolved": 0,
+    "note": "Repository-relative Markdown/HTML paths and Markdown heading/explicit anchors in current front doors and this record; external HTTP targets excluded."
+  },
+  "svg_render": {
+    "viewports": [
+      1200,
+      390
+    ],
+    "figures": 22,
+    "renders": 44,
+    "text_outside_svg_bounds": 0,
+    "method": "Chromium; transformed text bounding rectangles; visual review of rendered figures. Mathematical diagrams require zoom on mobile.",
+    "results_file": "render-bounds.json",
+    "previews_directory": "previews",
+    "automated_bounds_do_not_replace_visual_inspection": true
+  },
+  "svg_sha256": {
+    "docs/figures/architecture.svg": "9e29642613b66c79654c0e22ab4b26cfd1da0e17bade43d243576c0b028d00e0",
+    "docs/figures/geometry/600-cell-icosians.svg": "916789426848031d530cf87e951355a5f26987772080c125dd673fc22ad83ba5",
+    "docs/figures/geometry/compliant-path.svg": "dc439075053635a1daef130004561b5b13513919d53c0f311898418fde84847e",
+    "docs/figures/geometry/connections.svg": "885d5581ab088d771d533d426b210918831ed1521c84886c7ee7e1718f2814b1",
+    "docs/figures/geometry/exact-2i-lanes.svg": "d6979dd5833813cd5e6e70dc192c7bbe155ba20ad54112aadad3bf5638fab879",
+    "docs/figures/geometry/golden-integers.svg": "a1f1b42f704aa767a59ac8460cddfb28ee0089d5f72251400510dd95c5e8821e",
+    "docs/figures/geometry/hamming-rank-read.svg": "9212886631d16c91f8d698c655c928e4576b7ed9798ca70008a75c28dff60b4d",
+    "docs/figures/geometry/hopf-fibration.svg": "76f4694f21e843cef108be2e76631b957d646d4ce68f909f86371da42149bce5",
+    "docs/figures/geometry/native-input-access.svg": "acb91ce3171e926d9e16ddf0b5e6e42ac8bc71a36babef5ef34a4b5c4cdd62fb",
+    "docs/figures/geometry/next-token.svg": "050b307b35b3ce98c6bde8d7fd5f5d9625401e9e34b9ec87aadbedd108ef7bbb",
+    "docs/figures/geometry/octonion-signed-binding.svg": "e9cc3d3d3c4ebb4bfd20e4331566da667c6da086bed3ab9a54f9640e4279fa66",
+    "docs/figures/geometry/operators.svg": "22ea94e53f5003a85c521f7776e354113ce35fd29c8373fc44dc22811e406370",
+    "docs/figures/geometry/prime-addressing.svg": "2fae41e692ebfb7da2da4f76ac9cf899e18b0b14fa381903d3829f0cb75b958f",
+    "docs/figures/geometry/protected-joint-learning.svg": "a96733cdf53fe62fc9831c69ffc2b7f71803c0118cbcfebfd591f2606ef7585d",
+    "docs/figures/geometry/quaternion-rotation.svg": "6b3ec72d954e9a3896c6a13cb2e293c5e075dfd735d1ed77f05936ef9b233e39",
+    "docs/figures/geometry/s3-and-transport.svg": "ab5da02452035fee1f7db30e3190e5b1ddce9eec7304efe18e98f73b11bbf8ca",
+    "docs/figures/geometry/vsa-hypervectors.svg": "c8750f3833fd124d0cc91cc6c0467bafe39c78c9aa9b8cf36ed05b1d6b866f45",
+    "docs/figures/geometry/zeta-phases.svg": "2f16db7d6b6e4cd042a62c3adf268ef748a79446a6b840ffddc45efab6db09dd",
+    "docs/figures/geometry-stack.svg": "b95e02a8eca437129a19c8b88d6bd34e4037c0e15a618eb290a289fdd1d4751a",
+    "docs/figures/milestones.svg": "383c162e81c841b5124e0ae34c4a1027af77b57777ab19aa5b5e6ef0f8a0f4f7",
+    "docs/figures/serving-pipeline.svg": "b86c2be7cd6034d9d4f4d9f209534a693152b9f52370f4747201335c8aa7fb3c",
+    "docs/figures/training-pipeline.svg": "6070a2c19ccf6c36e3c3da79eebf3be17b6b2b66dfb98407bd2b39c905a99257"
+  },
+  "preview_sha256": {
+    "previews/architecture-1200.png": "1fa41ad231ec4e82c1b01eb8a11f2e34f7d308d7c6af044f3c1a9ba1da38d2c5",
+    "previews/architecture-390.png": "8085eb1ab396c2217ad8dbacaafe9b293400fac0379ddd14a1327b8bff70fe68",
+    "previews/connections-1200.png": "83f83385afae446119cbab4c2aab9f28601020846ca9a131867631e970e76d9c",
+    "previews/connections-390.png": "f45d03fdb176dc4abaacecef36b610e402b197faa20ebe069c2608ba5d88df7c",
+    "previews/hamming-rank-read-1200.png": "f8b84ee11a530ffc4f4b7301bd9a270b6d5089b26689962880776d79f6f82641",
+    "previews/hamming-rank-read-390.png": "a505dce317636c908c2004fd8ac33e9990c490bdde7b3bd3610b89c99da612be",
+    "previews/hopf-fibration-1200.png": "7bda9be0d99f706154d8e5eb1a4fa2a36439c64f65c6aa600adf7569a9491405",
+    "previews/vsa-hypervectors-1200.png": "508236719cf236595b43929b8b32e77d54216d35f0afa2f25c3f9ef0977499b2",
+    "previews/zeta-phases-1200.png": "069ea813179254d3b9843f31261f48fdc60846a762123b17306bc820ce7772c5"
+  },
+  "review_wording_regressions": {
+    "rejected_claims": 17,
+    "files": 10,
+    "result": "PASS",
+    "scope": "Specific rejected wording; not scientific validation"
+  },
+  "integration": {
+    "main_sha": "e780b0b64aeeeb290967934d2c490bac6dc3a256",
+    "previous_reviewed_head": "22e8d3c29e44a8f6fd2a7c3489287c0304eecad1",
+    "conflicts_resolved": [
+      "docs/harness/claims.json",
+      "docs/integration/current-state.md"
+    ],
+    "main_claims_preserved": true,
+    "only_docs_claim_added": true,
+    "unchanged_regenerated_svgs": 22,
+    "unchanged_preview_pngs": 9,
+    "checks_directory": "checks/integration-e780b0b6",
+    "ci_workflows_or_permissions_changed": false
+  }
+}

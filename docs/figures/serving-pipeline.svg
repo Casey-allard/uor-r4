@@ -4,8 +4,8 @@
 <desc id="d">The integer engine serves exported stack artifacts with adds, shifts, compares and table reads and is bit-exact with its float reference; the existing artifacts are historical because they contain prohibited reads, and the compliant trunk cannot be exported until the engine binds its new modes. The native learner has its own integer runtime and terminal chat.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
 <rect x="0.5" y="0.5" width="1199" height="659" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Serving: the D11 contract</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Served kernels use adds, subtracts, shifts, compares and table reads: no floating point, no multiplier instruction, no transformer.</text>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Historical serving paths and D11 target</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Historical executors below are excluded from the selected build. Unified D11 serving remains unqualified.</text>
 <text x="40" y="118" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">STACK MODEL</text>
 <rect x="40" y="130" width="300" height="128" rx="10" fill="url(#hF)" stroke="#8C959F" stroke-width="1.5" stroke-dasharray="2 3"/>
 <text x="54" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Exported artifacts</text>

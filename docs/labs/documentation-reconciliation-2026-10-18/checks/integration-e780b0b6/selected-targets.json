@@ -1,0 +1,11 @@
+{
+  "uor-r4-core": [
+    "crates/uor-r4-core/src/native_support.rs"
+  ],
+  "uor-r4-integer": [
+    "crates/uor-r4-integer/src/native_geometry.rs"
+  ],
+  "uor-r4-discrete": [
+    "crates/uor-r4-discrete/src/lib.rs"
+  ]
+}

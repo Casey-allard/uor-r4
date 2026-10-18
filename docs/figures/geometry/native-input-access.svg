@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-<title id="t">M2: input influence and explicit read access</title>
-<desc id="d">All admitted tokens update recurrent geometry; only Source occurrences enter the current bank read and Copy lists.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, 'DejaVu Sans', sans-serif">
+<title id="t">Historical M2: input influence and read access</title>
+<desc id="d">In this retained M2 snapshot, admitted tokens update recurrence; only Source occurrences enter its bank read and Copy lists.</desc>
 <rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
-<text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">M2: input influence and explicit read access</text>
+<text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">Historical M2: input influence and read access</text>
 <rect x="40" y="102" width="265" height="98" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#0072B2" stroke-width="1.5" stroke-opacity="1"/>
 <text x="54" y="127" font-size="16" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">All supplied tokens</text>
 <text x="54" y="151" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Source + Context + full query</text>
@@ -50,7 +50,7 @@
 <text x="60" y="439" font-size="18" fill="#D55E00" fill-opacity="1" text-anchor="start" font-weight="bold">Candidate consolidation: a separate read-only history role</text>
 <text x="60" y="465" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Retained input position + causal state can become a key without becoming a stored fact or Copy action.</text>
 <text x="60" y="488" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Not integrated. Early cue changes 3981/4096 Generate and 11/11 Copy scores; next: learning integration.</text>
-<text x="40" y="550" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">No claim that Source-only admission causes the current 8/512 result.</text>
+<text x="40" y="550" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">No causal claim for Source-only admission in the historical 8/512 result.</text>
 <text x="40" y="577" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">No change to Source provenance, accepted artifact, D11 target or native acceptance checks.</text>
 <text x="40" y="648" font-size="14" fill="#5f6b7a">Caller trace plus token-zero diagnostic: early cue reaches scores; novel replies 0/2, original controls 2/2.</text>
 <text x="40" y="669" font-size="14" fill="#5f6b7a">M1 all-position read is a separate path. A read-only history role is not yet integrated.</text>

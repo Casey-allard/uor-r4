@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, 'DejaVu Sans', sans-serif">
 <title id="t">Fixed zeta-zero phases as position signatures</title>
-<desc id="d">Ten small unit circles, one per nontrivial zeta zero gamma-k, each showing the phase e to the i gamma-k log n of positions n equals 1 to 12 as dots; below, a colour table of the same phases where every position n gives a different column of ten phases.</desc>
+<desc id="d">Illustrative phases for ten fixed zeta-zero frequencies at positions n equals 1 to 12. These examples do not guarantee injectivity after quantization; current codebook uniqueness is enforced separately by allocation controls.</desc>
 <rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
 <text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">Fixed zeta-zero phases as position signatures</text>
 <text x="132" y="100" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">γ₁ = 14.1347</text>
@@ -431,6 +431,6 @@
 <text x="800" y="616" font-size="12" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">3π/2</text>
 <text x="800" y="626" font-size="13" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">colour = phase γ·ln n</text>
 <text x="40" y="634" font-size="14" fill="#5f6b7a">Fixed phases from the zeta zeros γ: each pair of primes gets the phase γ·(log p − log q).</text>
-<text x="40" y="655" font-size="14" fill="#5f6b7a">The model uses them as a fixed lookup table of distinct, non-repeating offsets; they are not learned.</text>
-<text x="40" y="676" font-size="14" fill="#5f6b7a">Dot n sits at angle γ·ln n (mod 2π); in the table, colour = phase, so each column is one position’s signature.</text>
+<text x="40" y="655" font-size="14" fill="#5f6b7a">Illustrative phases: quantization does not guarantee uniqueness; current codebook allocation controls enforce it.</text>
+<text x="40" y="676" font-size="14" fill="#5f6b7a">Dot n sits at angle γ·ln n (mod 2π); table colour encodes phase. See docs/geometry.md for the constructor.</text>
 </svg>

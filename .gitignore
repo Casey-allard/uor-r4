@@ -58,4 +58,5 @@ __pycache__/
 # 30 GB disk floor. The bytes live in `icloud:UOR-R4/results/owner-docs/` and restore with
 # `scripts/storage/research-data restore <name> --run`. The owner checkout keeps a working copy;
 # worktrees must not carry one.
-/research/
+/research/*
+!/research/README.md

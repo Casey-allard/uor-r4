@@ -1,0 +1,216 @@
+warning: function `invalid` is never used
+  --> crates/uor-r4-integer/src/native_geometry.rs:61:15
+   |
+61 | pub(crate) fn invalid(message: impl Into<String>) -> IntegerError {
+   |               ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 4 warnings
+warning: field `max_batches` is never read
+   --> crates/uor-r4-discrete/src/controller.rs:130:5
+    |
+127 | pub struct ValidatedRelease {
+    |            ---------------- field in this struct
+...
+130 |     max_batches: u64,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ValidatedRelease` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `max_batches` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:136:19
+    |
+132 | impl ValidatedRelease {
+    | --------------------- method in this implementation
+...
+136 |     pub(crate) fn max_batches(&self) -> u64 {
+    |                   ^^^^^^^^^^^
+
+warning: function `validate_release` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:215:4
+    |
+215 | fn validate_release(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `validate_resume` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:344:4
+    |
+344 | fn validate_resume(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `validate_initial_baseline` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:388:4
+    |
+388 | fn validate_initial_baseline(release: &ValidatedRelease, resumed: &PilotCheckpoint) -> Result<()> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `lock_run` is never used
+   --> crates/uor-r4-discrete/src/controller.rs:525:4
+    |
+525 | fn lock_run(release: &ValidatedRelease, resume: bool) -> Result<RunLock> {
+    |    ^^^^^^^^
+
+warning: function `release` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:299:4
+    |
+299 | fn release(
+    |    ^^^^^^^
+
+warning: function `validate_progress` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:374:4
+    |
+374 | fn validate_progress(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `read_evaluation` is never used
+   --> crates/uor-r4-discrete/src/completion.rs:525:4
+    |
+525 | fn read_evaluation(
+    |    ^^^^^^^^^^^^^^^
+
+warning: fields `lineage_sha256` and `max_completed_batches` are never read
+    --> crates/uor-r4-discrete/src/training.rs:1318:5
+     |
+1317 | pub struct CorpusUpdateAdmission {
+     |            --------------------- fields in this struct
+1318 |     lineage_sha256: String,
+     |     ^^^^^^^^^^^^^^
+1319 |     max_completed_batches: u64,
+     |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `issue_corpus_update_admission` is never used
+    --> crates/uor-r4-discrete/src/training.rs:1394:15
+     |
+1394 | pub(crate) fn issue_corpus_update_admission(
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `uor-r4-discrete` (lib test) generated 11 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running unittests src/lib.rs (target/debug/deps/uor_r4_discrete-0204714b23ecff06)
+
+running 91 tests
+test baseline_reuse::tests::metadata_partition_bounds_and_fault_deferral ... ok
+test controller::attention_learning::evidence::tests::copy_successor_short_windows_distance_one_and_absent_query ... ok
+test baseline_reuse::tests::image_and_report_metadata_refuse_stale_or_incomplete_bindings ... ok
+test controller::attention_learning::evidence::tests::copy_successor_uses_nearest_occurrence_despite_older_conflict ... ok
+test controller::attention_learning::evidence::tests::counts_bind_ordered_rows_across_batches_and_partition_psucc ... ok
+test controller::attention_learning::evidence::tests::duplicate_missing_extra_reordered_or_wrong_targets_are_refused ... ok
+test controller::attention_learning::evidence::tests::q1_floor_half_and_sensitivity_boundaries_are_exact ... ok
+test controller::attention_learning::evidence::tests::malformed_counts_and_missing_metadata_are_refused ... ok
+test controller::attention_learning::evidence::tests::q1_revalidates_stored_counts_and_every_ordered_identity ... ok
+test controller::attention_learning::preflight::tests::probe_uses_first64_declared_successors_without_outcome_selection ... ok
+test controller::attention_learning::evidence::tests::stored_types_reject_unknown_fields ... ok
+test controller::attention_learning::preflight::tests::probe_window_excludes_target_and_future_occurrences ... ok
+test baseline_reuse_source::tests::separate_entry_preserves_helpers_and_virtual_body ... ok
+test controller::attention_learning::preflight::tests::token_cell_export_has_no_cpu_fallback_or_input_reads ... ok
+test controller::attention_learning::preflight::tests::token_cell_encoding_preserves_device_order_and_little_endian_bytes ... ok
+test controller::attention_learning::tests::family_and_resume_checkpoint_bounds_are_fail_closed ... ok
+test controller::attention_learning::tests::absolute_schedule_counter_bounds_refuse_corruption_before_apply ... ok
+test controller::attention_learning::tests::hash_pair_validation_keeps_file_and_checkpoint_domains_separate ... ok
+test controller::attention_learning::tests::matched_frozen_zero_control_keeps_inventory_and_refuses_relation_slots ... ok
+test controller::attention_learning::tests::snapshot_hash_pair_requires_named_domains_without_legacy_fallback ... ok
+test controller::attention_learning::tests::compiled_identity_requires_all_three_exact_pins ... ok
+test controller::attention_learning::transfer::tests::actual_fresh_inventory_requires_both_floors_and_unique_order ... ok
+test controller::attention_learning::transfer::tests::fresh_discordance_uses_psucc_intersection_and_actual_hit_bits ... ok
+test controller::attention_learning::transfer::tests::fresh_floor_is_exact_integer_ceiling_and_refuses_overflow ... ok
+test controller::attention_learning::transfer::tests::joint_intent_is_exclusive_and_preserves_partial_reservation ... ok
+test controller::attention_learning::transfer::tests::transfer_metadata_requires_explicit_prospective_decision_and_all_pins ... ok
+test controller::attention_learning::tests::transfer_and_evaluation_cost_are_prospectively_fixed ... ok
+test controller::completion::baseline_authentication::metadata_controls::reference_pin_matches_authenticated_pilot_when_supplied ... ignored, requires UOR_BASELINE_PILOT_REPORT pointing at the authenticated retained artifact
+test controller::attention_learning::tests::review_and_owner_bind_plan_and_refuse_inherited_authority ... ok
+test controller::completion::baseline_authentication::metadata_controls::typed_and_value_serialization_are_distinct_digest_domains ... ok
+test controller::attention_learning::tests::attention_requires_its_own_scope_initialization_and_pins ... ok
+test controller::completion::baseline_authentication::tests::authentication_publication_is_immutable_and_resume_fails_closed ... ok
+test controller::completion::redirect::tests::four_redirect_scopes_preserve_pilot_and_reject_unregistered_data ... ok
+test controller::completion::redirect::tests::owner_transport_is_unchanged_and_cannot_reuse_other_arm_or_k8_release ... ok
+test controller::completion::baseline_authentication::metadata_controls::stored_k16_baseline_rows_are_admitted_without_model_execution ... ok
+test controller::completion::tests::atomic_state_publication_preserves_stray_pending_and_existing_final ... ok
+test controller::completion::tests::completion_migration_changes_only_operational_lineage ... ok
+test controller::completion::tests::completion_owner_fixture_is_memory_only_and_binds_entire_plan ... ok
+test controller::completion::tests::completion_seed_scopes_never_expand_pilot_or_chain_seeds ... ok
+test controller::completion::tests::pilot_owner_record_is_not_a_completion_release ... ok
+test controller::completion::tests::quarter_payload_requires_exact_cursor_epoch_reference_and_lineage ... ok
+test controller::tests::controller_is_pilot_only_and_unknown_release_fields_refuse ... ok
+test controller::tests::explicit_unlock_refuses_live_or_foreign_holders_and_preserves_dead_lock ... ok
+test controller::tests::immutable_checkpoint_output_refuses_reuse ... ok
+test controller::tests::legacy_pilot_and_redirect_cannot_inherit_attention_schedule ... ok
+test controller::tests::pilot_configuration_rejects_unregistered_seed_dose_or_data ... ok
+test controller::tests::release_actor_is_owner_terminal_or_d33_delegate_only ... ok
+test controller::tests::release_records_bind_owner_review_scope_and_every_identity ... ok
+test controller::tests::resume_counters_require_exact_pilot_cursor_and_baseline ... ok
+test corpus::tests::corpus_header_masks_documents_and_tail_are_metadata ... ok
+test corpus::tests::corpus_refuses_hash_mask_header_and_missing_bos ... ok
+test corpus::tests::tokenizer_bos_is_explicit_metadata ... ok
+test decomposition::tests::boundary_straddle_and_incremental_perturbation_are_unresolved ... ok
+test decomposition::tests::cuda_image_metadata_refuses_pending_malformed_hashes_and_unknown_fields ... ok
+test decomposition::tests::cuda_image_metadata_requires_exact_format_and_canonical_target ... ok
+test decomposition::tests::every_candidate_loss_and_proposal_word_participates_in_parity ... ok
+test decomposition::tests::missing_terminal_fault_and_nested_overcount_cannot_support_routing ... ok
+test decomposition::tests::producer_shaped_trace_accounts_nested_cycles_without_double_count ... ok
+test decomposition::tests::resource_amendment_refuses_jit_drift_spills_and_launch_failure ... ok
+test decomposition::tests::resource_log_parser_is_entry_scoped_and_refuses_missing_data ... ok
+test decomposition_source::tests::changed_production_anchor_is_an_instrument_blocker ... ok
+test metadata::tests::every_admitted_context_preserves_ordered_atom_coverage ... ok
+test metadata::tests::triple_and_nine_atom_closure_retain_exact_child_indices ... ok
+test objective::tests::controls_are_scaffolding_not_qualification_receipts ... ok
+test objective::tests::objective_policy_is_strict_and_distinct_metadata ... ok
+test proposal_timing::tests::host_spans_have_unique_names_and_start_incomplete ... ok
+test proposal_timing::tests::invalid_or_overflowing_clock_values_are_refused ... ok
+test proposal_timing::tests::vendor_clock_bits_decode_without_float_arithmetic ... ok
+test rows_source::tests::a_changed_ordinary_loop_refuses_generation ... ok
+test rows_source::tests::generated_module_keeps_helpers_and_adds_exactly_three_entries ... ok
+test rows_source::tests::only_the_reducer_publishes_status ... ok
+test rows_source::tests::ordinary_lane_loop_anchor_matches_the_admitted_kernel ... ok
+test tests::apply_calls_are_confined_to_bounded_fixture_and_admitted_transition ... ok
+test tests::configuration_and_hold_are_metadata_only ... ok
+test tests::read_configuration_is_explicit_bounded_metadata ... ok
+test training::tests::checkpoint_metadata_refuses_swapped_config_data_and_cursor ... ok
+test controller::completion::baseline_authentication::metadata_controls::high_u_is_authenticated_but_instrument_invalid_not_a_model_negative ... ok
+test training::tests::complete_coordinate_cycle_and_resume_are_metadata ... ok
+test training::tests::evaluation_storage_binding_preserves_explicit_default_without_changing_typed_domain ... ok
+test training::tests::counterfactual_path_default_keeps_config_bytes_and_rows_is_explicit ... ok
+test training::tests::frozen_relation_checkpoint_requires_complete_zero_tail_and_policy_lineage ... ok
+test training::tests::initialization_defaults_and_cross_schedule_lineage_refuse ... ok
+test training::tests::interleaved_schedule_24_step_fixture_and_resume ... ok
+test training::tests::interleaved_schedule_c192_counts_frequencies_and_absolute_wrap ... ok
+test training::tests::pilot_slice_reports_masked_reference_share_without_reordering ... ok
+test training::tests::receipt_policy_refusal_is_explicit_and_legacy_default_is_omitted ... ok
+test training::tests::relation_learning_policy_defaults_and_explicit_scope ... ok
+test training::tests::snapshot_metadata_distinguishes_interior_patterns_from_writer_cells ... ok
+test training::tests::frozen_relation_preserves_all_scheduled_proposal_slots ... ok
+test controller::completion::redirect::tests::qualification_metadata_rejects_scope_parent_missing_evidence_and_failed_gates ... ok
+test controller::completion::baseline_authentication::metadata_controls::zero_baseline_binds_model_rows_reference_and_seed_without_execution ... ok
+
+test result: ok. 90 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.39s
+

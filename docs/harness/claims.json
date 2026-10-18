@@ -90,6 +90,13 @@
     "lab": "kimi",
     "note": ""
   },
+  "codex/docs-research-front-door": {
+    "branch": "codex/docs-research-front-door",
+    "claimed_at": "2026-10-18T06:28:47+00:00",
+    "head": "9a343425",
+    "lab": "codex",
+    "note": "Documentation reconciliation only; draft PR and independent parent review; no model compute or resource actions"
+  },
   "kimi/optimization-path-2026-10-18": {
     "branch": "kimi/optimization-path-2026-10-18",
     "claimed_at": "2026-10-17T21:10:00-04:00",

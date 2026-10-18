@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
 <title id="t">The gated training pipeline</title>
-<desc id="d">Data from the private HF store, a pre-registration sheet, a TEST FITNESS review and the owner's hold release come before any GPU time. A Vast.ai pod bootstrapped from the store trains the compliant trunk on GPU only, evaluates with raw-score measures and keeps the results in iCloud and the store. Export to D11 waits for the integer engine to bind the new geometric modes.</desc>
+<desc id="d">Historical operator-phase workflow: data, pre-registration, review, scoped owner release, GPU training/evaluation and artifact preservation. This dated diagram is not the active execution status; see STATUS.md. Unified D11 serving remains unqualified.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
 <rect x="0.5" y="0.5" width="1199" height="679" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
 <text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Training: three gates before any GPU time</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Every run is pre-registered, reviewed and released by the owner before it starts. Status 13 October 2026: no compliant run yet.</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Historical operator snapshot, 13 October 2026. Later discrete pilot/dose evidence: STATUS.md.</text>
 <text x="40" y="118" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">BEFORE THE RUN</text>
 <rect x="40" y="130" width="250" height="128" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
 <text x="54" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Data</text>

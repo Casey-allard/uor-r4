@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, 'DejaVu Sans', sans-serif">
 <title id="t">Hamming-rank read (softmax-free)</title>
-<desc id="d">Query and keys are binarized to sign bits. Each key gets a distance d_j, the popcount of query xor key plus an age term. Keys are sorted by d_j and weighted by a rank table w_i proportional to 1 over i plus 1, and the values are summed. This replaces the exp-table-emulated softmax over Lorentz or dot scores. Pre-registered, not yet measured.</desc>
+<desc id="d">Query and keys are binarized to sign bits. Each key gets a distance d_j, the popcount of query xor key plus an age term. Keys are sorted by d_j and weighted by a rank table w_i proportional to 1 over i plus 1, and the values are summed. This historical proposal replaces the pre-D23 exp-table softmax comparator; it is not the current discrete Flock/Relation implementation.</desc>
 <rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
 <text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">Hamming-rank read (softmax-free)</text>
 <rect x="720" y="34" width="240" height="28" rx="14" fill="#fff4cf" fill-opacity="1" stroke="#E69F00" stroke-width="1.4" stroke-opacity="1"/>
-<text x="840" y="53" font-size="12.5" fill="#7a4f00" fill-opacity="1" text-anchor="middle" font-weight="bold">pre-registered, not yet measured</text>
+<text x="840" y="53" font-size="12.5" fill="#7a4f00" fill-opacity="1" text-anchor="middle" font-weight="bold">historical research proposal</text>
 <text x="40" y="100" font-size="16" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="bold">1  binarize q and keys</text>
 <text x="390" y="100" font-size="16" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="bold">2  distance per key</text>
 <text x="680" y="100" font-size="16" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="bold">3  rank, weight, sum</text>
@@ -157,7 +157,7 @@
 <rect x="680" y="380" width="280" height="40" rx="10" fill="#eef6fc" fill-opacity="1" stroke="#0072B2" stroke-width="1.4" stroke-opacity="1"/>
 <text x="820" y="405" font-size="13.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">output = Σ_i w_i · v_(i)</text>
 <rect x="40" y="466" width="454" height="34" rx="10" fill="#fdf3ea" fill-opacity="1" stroke="#D55E00" stroke-width="1.2" stroke-opacity="1"/>
-<text x="267" y="488" font-size="12.5" fill="#8a3a00" fill-opacity="1" text-anchor="middle" font-weight="bold">vs historical pre-D23 float read: exp-table softmax over Lorentz/Dot scores</text>
+<text x="267" y="488" font-size="12.5" fill="#8a3a00" fill-opacity="1" text-anchor="middle" font-weight="bold">historical pre-D23: softmax over Lorentz/Dot scores</text>
 <rect x="506" y="466" width="454" height="34" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.2" stroke-opacity="1"/>
 <text x="733" y="488" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">uses the shared BitCode primitive (planned)</text>
 <rect x="40" y="512" width="920" height="30" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.2" stroke-opacity="1"/>
@@ -172,6 +172,5 @@
 <rect x="498" y="586" width="14" height="14" rx="3" fill="#009E73" fill-opacity="1" stroke="#fff" stroke-width="1" stroke-opacity="1"/>
 <text x="520" y="598" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">rank-table weight</text>
 <text x="40" y="648" font-size="14" fill="#5f6b7a">Rank weights come from a fixed table indexed by rank; the sign-bit codes use the shared BitCode primitive (planned).</text>
-<text x="40" y="669" font-size="14" fill="#5f6b7a">Contrast: the historical pre-D23 float read used exp-table-emulated softmax over Lorentz/Dot scores.</text>
-<text x="40" y="690" font-size="14" fill="#7a4f00">Pre-registered mechanism (M1 #2029), not a measured current path: no run of this read has reported.</text>
+<text x="40" y="669" font-size="14" fill="#5f6b7a">Historical pre-D23 comparator: softmax over Lorentz/Dot scores; excluded from current M1.</text>
 </svg>

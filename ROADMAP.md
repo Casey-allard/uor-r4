@@ -16,10 +16,9 @@ was subsequently owner-released under6246440910 and reached registered
 [Q1 diagnostic stops in both arms](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md):
 4,096 batches/exit0, P_succ target admission2034→225 treatment/205 frozen-zero,
 both belowfloor500 and halfinitial, with nonzero sensitivity. Complete data/operator
-custody preceded own down07:53:30Z; separate closure is verified. Scientific outcome
-review and the existing prospective next-configuration decision remain pending.
-Actual device admissions and the matched reference reports support attribution;
-full same-cell dose results cannot be inferred from scalar admission counts.
+custody preceded own down07:53:30Z; separate closure is verified. The [scientific outcome review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872) concludes configured admission collapse in both arms, with no implementation or identity fault found and no registered efficacy hypothesis firing. Fresh remains sealed. **Immediate priority, 18 October 2026:** preparation and qualification of the existing FIT'd K16-A/K16-R admission redirect on `rows_v1` ([owner direction](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397), [PM gates](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855)); source/packet preparation GO, packet acceptance and training NO-GO pending exact-head qualification, measured timing/budget and an accepted regenerated packet. The separate K8 Relation/R successor is deferred planning.
+Actual device admissions and matched reference reports bound the diagnostic observation;
+learned efficacy and full same-cell dose results cannot be inferred from scalar admission counts.
 The export source passes all five Gate9 construction/host commands and its
 read-only device export has now run in Battery3. The original strategic stop and
 the successor's registered Q1 diagnosis retain separate source/release identities.
@@ -71,10 +70,29 @@ original attempt is consumed. The separate `rows_v1` successor (source
 RELEASE identity, plans, reviews and admission. Both arms now stopped at their
 registered4,096-batch diagnosis branch; its release is consumed, with full
 [custody and native closure](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md).
-The next dependency is genuine scientific outcome review and the sheet's existing
-prospective configuration decision, without a KEEP or progress-count reset.
-Optimization remains gated on that decision under project-track's post-dose path;
-no larger A dose or objective change is authorized by this record.
+The designated [scientific outcome review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872)
+is complete; a shared vector/combine pathway is plausible, but causality is
+unestablished. The immediate dependency is preparation and qualification of the
+**existing FIT'd K16-A versus K16-R admission redirect on `rows_v1`**, not a new
+K8 Relation/R registration or repeated strategic owner decision. The
+[owner direction](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397) and [PM gate audit](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855) retain the existing conditional
+release chain: qualification → accepted D-Packet → training → fresh before KEEP.
+**Source/packet preparation GO; packet acceptance and training NO-GO** pending exact-head
+qualification, measured timing/budget and acceptance of the regenerated D-Packet.
+Keep Route/K16, seeds 1 and 2, `CanonicalVectorThenReadV1`, the registered
+16,404-batch schedule and scientific bars unchanged. Qualification requires
+same-device, same-state, same-R-objective lanes/rows parity with **>16 occupied cells and an
+actual R>0 row**, 25/25 controls plus `admit_ptx`, G-Pre, C-R1..C-R6,
+required refusal/terminal coverage, wrong-objective/broken-negative checks and zero apply.
+Retain all four checkpoint-0/Q4 × A/R timing cells, **100 samples each** plus
+one excluded warmup, unless explicitly waived. [PR #2658](https://github.com/UOR-Foundation/uor-r4/pull/2658) is merged; its
+source-scoped parity and five-sample diagnostic timings do not establish
+new-head qualification, the registered timing or packet acceptance.
+The separate K8 Relation/R successor is deferred planning, not an added K16 gate.
+Regenerate all four `rows_v1` configs and bound source/lineage/PTX/geometry/compiler/
+ELF identities with one reviewed timing instrument and runbook amendment. Reuse
+the bound 2,000-row fresh source; no fresh re-preparation or fresh scoring is a
+training-start gate. No continuation of the stopped K8 dose follows.
 
 ## Earlier operator qualification (pre-D32, inactive)
 
@@ -118,7 +136,7 @@ closes only when its acceptance is met on the saved model.
 
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
-| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi PM; Codex executor; independent reviewers) | [Rows learning Q1 diagnosis](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md): both4,096 batches/exit0, complete custody/native close; scientific outcome review pending. Earlier construction, parity, baseline-reuse and timing records retain their source-scoped history. | Reply37/232 SUSPENDED/no target under R14; count0/3 unchanged. Next configuration needs the genuine outcome review, prospective registration and applicable owner release. | P_succ target admission2,034/3,847 initially →225 treatment/205 frozen-zero, both below500 and halfinitial with nonzero sensitivity. No full-dose efficacy, fresh result, mechanism verdict or KEEP. [Historical D33 pilot](docs/labs/a2-pilot-2026-10-14/README.md):1,640 batches/236 accepted vectors, DEV top-1/top-8 17/173→82/1,169 with increased loss; mixed diagnosis, not useful-language qualification. |
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi PM; Codex executor; independent reviewers) | [Rows learning Q1 diagnosis](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md): both4,096 batches/exit0, complete custody/native close; scientific review concludes configured admission collapse, with no implementation or identity fault found. Immediate priority: prepare/qualify the existing FIT'd Route/K16 A/R redirect on `rows_v1`; source/packet preparation GO, packet acceptance/training NO-GO. Earlier records retain their source-scoped history. | Reply37/232 SUSPENDED/no target under R14; count0/3 unchanged. Retain seeds1/2, schedule16,404 and scientific bars; exact-head nonvacuous R parity, required controls/negatives/zero-apply, all four100-sample timing cells unless waived, measured budget and accepted regenerated packet precede training ([PM gates](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855)). K8 Relation/R is deferred; fresh remains sealed and no efficacy hypothesis fires. | P_succ target admission2,034/3,847 initially →225 treatment/205 frozen-zero, both below500 and halfinitial with nonzero sensitivity. No full-dose efficacy, fresh result, mechanism verdict or KEEP. [Historical D33 pilot](docs/labs/a2-pilot-2026-10-14/README.md):1,640 batches/236 accepted vectors, DEV top-1/top-8 17/173→82/1,169 with increased loss; mixed diagnosis, not useful-language qualification. |
 | M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress; training/rental held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law refuses; shared vector infrastructure finite CUDA-qualified, full M2 unqualified, count12/3 after masked TRAIN-reference #2328 delivery (prior11/3 retained; closeout is the same unit), no reset; new evaluator qualification11 controls PASS (9 metadata,2 CUDA) and Amendment5 independentCONFIRMFIT; Amendment6 sheetFIT; repaired compiled boundary 31 controls PASS at `1f1547bfd`; protected delivery pending |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | in progress; compute blocked | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained inactive; model/stack executors are excluded from the selected integer facade. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |
@@ -148,7 +166,7 @@ Standing issues: compute board [#2037](https://github.com/UOR-Foundation/uor-r4/
 All earlier run schedules in this table are inactive; their metrics and source remain
 preserved at the original scope. None overrides the operator dependency or hold.
 
-Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/geometry.md#11-pre-registered-mechanisms-not-yet-measured); none of them has a measured result yet.
+Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/geometry.md#historical-research-designs); none of them has a measured result yet.
 
 ## 0. Mission and hard runtime rules
 

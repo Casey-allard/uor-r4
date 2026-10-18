@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 936" width="1200" height="936" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
 <title id="t">Geometric primitives and operators</title>
-<desc id="d">Thirteen rows: prime addressing, zeta phases, quaternion state, H4/icosian/E8, exact Z[phi], Hopf observation and chirality are the primitives; the G2 Hamilton gate, the SpiralCore/FBS projection, the geometric recurrence gates and the rank-margin objective are built as source for the compliant trunk; the geometric head is not built; the starling read is in progress for rung 0b.</desc>
+<desc id="d">Thirteen rows: prime addressing, zeta phases, quaternion state, H4/icosian/E8, exact Z[phi], Hopf observation and chirality are the primitives; the G2 Hamilton gate, the SpiralCore/FBS projection, the geometric recurrence gates and the rank-margin objective are built as source for the compliant trunk; the geometric head is delivered as inactive float source; the starling read is in progress for rung 0b.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
 <rect x="0.5" y="0.5" width="1199" height="935" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
 <text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Geometric primitives and operators: what each does and where it is used</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">From the source on 13 October 2026. Built &amp; tested means landed source with focused tests, not a trained model or an advantage.</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Historical operator inventory, 13 October 2026. Float source is inactive; current M1: architecture.svg.</text>
 <text x="40" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Primitive / operator</text>
 <text x="350" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">What it does</text>
 <text x="700" y="132" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
@@ -48,10 +48,10 @@
 <rect x="40" y="410" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
 <rect x="40" y="410" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
 <text x="60" y="438" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Hopf S³ → S², fibre kept</text>
-<text x="350" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">observation without losing phase</text>
+<text x="350" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">float-backed; Q30 storage</text>
 <rect x="700" y="422" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
 <text x="759" y="437" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">native learner only</text>
+<text x="860" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">offline geometry; outside M1</text>
 <rect x="40" y="462" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
 <rect x="40" y="462" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
 <text x="60" y="490" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Chirality and polarity</text>
@@ -88,12 +88,12 @@
 <text x="759" y="697" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
 <text x="860" y="698" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">rung 0 training objective</text>
 <rect x="40" y="722" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
-<rect x="40" y="722" width="6" height="46" rx="3" fill="#6E7781" stroke="#6E7781" stroke-width="1"/>
+<rect x="40" y="722" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
 <text x="60" y="750" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Geometric head (OP3a)</text>
 <text x="350" y="750" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">product-key vocabulary scoring</text>
-<rect x="700" y="734" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
-<text x="734.5" y="749" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
-<text x="860" y="750" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">rung 0 dependency 2</text>
+<rect x="700" y="734" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="759" y="749" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<text x="860" y="750" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">delivered float source; inactive</text>
 <rect x="40" y="774" width="1120" height="46" rx="8" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
 <rect x="40" y="774" width="6" height="46" rx="3" fill="#B87A00" stroke="#B87A00" stroke-width="1"/>
 <text x="60" y="802" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Starling / rank-table read</text>

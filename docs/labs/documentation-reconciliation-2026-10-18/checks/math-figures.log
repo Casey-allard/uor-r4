@@ -1,0 +1,5 @@
+s3 view 95.3 42.7 112.4
+600-cell: vertices=120 edges=720
+band gaps: [1.0, 1.618034]
+min over position pairs of max phase gap: 2.463 rad
+wrote 15 figures to /workspace/uor-r4-docs/docs/figures/geometry

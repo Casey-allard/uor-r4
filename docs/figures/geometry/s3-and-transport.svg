@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, 'DejaVu Sans', sans-serif">
 <title id="t">S³ seen in 3-D, and a state moving through it</title>
 <desc id="d">Great circles of the 4-D unit sphere S3 drawn by stereographic projection to 3-D, where they appear as circles and straight lines, and a path of states h0, h1, h2 and so on produced by multiplying repeatedly by one fixed quaternion, which traces a geodesic.</desc>
 <rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
@@ -156,5 +156,5 @@
 <text x="750" y="511" font-size="13.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">other geodesics through h₀</text>
 <text x="40" y="634" font-size="14" fill="#5f6b7a">Stereographic projection flattens S³ into 3-D (identity at the centre, −1 at infinity): great circles become circles or lines.</text>
 <text x="40" y="655" font-size="14" fill="#5f6b7a">Multiplying by one fixed quaternion q again and again moves h₀ → h₁ → h₂ → … by equal arcs along one great circle.</text>
-<text x="40" y="676" font-size="14" fill="#5f6b7a">Stack recurrence: h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t, with u_t a learned unit quaternion each step.</text>
+<text x="40" y="676" font-size="14" fill="#5f6b7a">Pure transport stays on S³. Additive stack recurrence generally leaves it unless explicitly normalized.</text>
 </svg>

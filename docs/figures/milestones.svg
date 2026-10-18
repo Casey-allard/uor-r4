@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
 <title id="t">Milestones M1 to M8</title>
-<desc id="d">M1 language base in progress (reply 37 of 232, memory 20 of 40, compliant trunk source landed); M2 grounded reply held (437 of 512 development replies, 0 of 128 on fresh transfer); M3 durable memory paused; M4 one served model held; M5 to M8 not started.</desc>
+<desc id="d">M1 language base in progress (reply 37 of 232 suspended, pilot 236 updates, original paired dose partial); M2 grounded reply held (437 of 512 development replies, 0 of 128 on fresh transfer); M3 durable memory paused; M4 one served model held; M5 to M8 not started.</desc>
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
 <rect x="0.5" y="0.5" width="1199" height="659" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
 <text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Progress toward the alpha</text>
-<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Pre-alpha, 13 October 2026. No model holds a useful conversation yet. Each milestone closes only on a saved model.</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Pre-alpha, 18 October 2026. No model holds a useful conversation yet. Each milestone closes only on a saved model.</text>
 <path d="M60,168 L1140,168" fill="none" stroke="#8C959F" stroke-width="4"/>
 <circle cx="100" cy="168" r="30" fill="#FFF0CC" stroke="#B87A00" stroke-width="3"/>
 <text x="100" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M1</text>
@@ -28,9 +28,9 @@
 <text x="315" y="106" font-size="12.5" font-weight="700" fill="#0072B2" text-anchor="middle">M1 + M2 join at M4</text>
 <rect x="40" y="230" width="265" height="172" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
 <text x="54" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M1  Language base</text>
-<text x="54" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">reply 37/232 → 116</text>
-<text x="54" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">memory 20/40 → 34</text>
-<text x="54" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">trunk: source landed</text>
+<text x="54" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">reply 37/232 suspended</text>
+<text x="54" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">pilot: 236 updates</text>
+<text x="54" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">paired dose: partial</text>
 <rect x="54" y="372" width="97" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
 <text x="102.5" y="387" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">IN PROGRESS</text>
 <rect x="323" y="230" width="265" height="172" rx="10" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
@@ -49,9 +49,9 @@
 <text x="651" y="387" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">PAUSED</text>
 <rect x="889" y="230" width="265" height="172" rx="10" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
 <text x="903" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M4  One served model</text>
-<text x="903" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">softmax at runtime:</text>
-<text x="903" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">yes, must be no (D23);</text>
-<text x="903" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">needs a lawful model</text>
+<text x="903" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">unified D11 model</text>
+<text x="903" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">and export remain</text>
+<text x="903" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">unqualified</text>
 <rect x="903" y="372" width="48" height="22" rx="11" fill="#7A4FA3" stroke="#7A4FA3" stroke-width="1.5"/>
 <text x="927" y="387" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">HELD</text>
 <rect x="40" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>

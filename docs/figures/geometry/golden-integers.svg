@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, 'DejaVu Sans', sans-serif">
 <title id="t">Exact golden integers Z[φ]</title>
 <desc id="d">Top: the numbers a plus b phi for small integers a and b placed on the real line, one row per value of b, with their union below. Bottom: the Galois-conjugate embedding that sends the pair a, b to the point a plus b phi and a plus b phi-bar in the plane, a lattice, with the points in a horizontal band projecting to an aperiodic exact chain on the line.</desc>
 <rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
@@ -629,6 +629,6 @@
 <text x="616" y="546" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal"></text>
 <text x="616" y="570" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">every product, sum and norm stays an</text>
 <text x="616" y="594" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">exact integer pair — never a rounded float.</text>
-<text x="40" y="648" font-size="14" fill="#5f6b7a">Icosian coordinates are exact numbers a + bφ (integers a, b); chirality and polarity are exact signs of these coordinates.</text>
+<text x="40" y="648" font-size="14" fill="#5f6b7a">Unit icosian coordinates are (a + bφ)/2 (integers a, b); scaled pairs retain the one-half factor.</text>
 <text x="40" y="669" font-size="14" fill="#5f6b7a">Rows b = −3…3 are integers shifted by bφ; below, each a + bφ is paired with its conjugate a + bφ̄ (φ̄ = 1 − φ).</text>
 </svg>

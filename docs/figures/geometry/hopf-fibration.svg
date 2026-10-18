@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, 'DejaVu Sans', sans-serif">
 <title id="t">The Hopf map: a circle behind every point</title>
 <desc id="d">Left: the 2-sphere with ten colour-coded marked points. Right: the ten corresponding Hopf fibres, which are linked circles in the 3-sphere, drawn by stereographic projection to 3-D in the same colours. Faint circles show the nested tori the fibres sit on.</desc>
 <rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
@@ -309,5 +309,5 @@
 <text x="489" y="360" font-size="13" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal" font-style="italic">fibre</text>
 <text x="40" y="616" font-size="13" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">numbers match points to fibres; dashed rings on S² are the two latitudes whose fibres fill the tori</text>
 <text x="40" y="648" font-size="14" fill="#5f6b7a">Each point on S² is a whole circle in S³; observing only S² loses the position along the circle (the fiber).</text>
-<text x="40" y="669" font-size="14" fill="#5f6b7a">The model keeps the fiber separately. Any two fibres are linked circles; one latitude of S² gives a torus of fibres.</text>
+<text x="40" y="669" font-size="14" fill="#5f6b7a">Core helpers are float-backed with Q30 storage, outside M1. A latitude of S² gives a fibre torus.</text>
 </svg>
