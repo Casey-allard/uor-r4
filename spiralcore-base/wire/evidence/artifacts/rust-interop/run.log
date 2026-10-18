@@ -1,0 +1,1 @@
+WIRE_RUST_INTEROP_PASS rust_text_ratio=0.0034 py_text_ratio=0.0042 rust_random_ratio=1.0001 py_random_ratio=1.0001 rust_gateway_ratio=0.0034

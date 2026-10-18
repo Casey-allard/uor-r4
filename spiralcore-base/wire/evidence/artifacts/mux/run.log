@@ -1,0 +1,1 @@
+WIRE_MUX_PASS streams=8 runs=2 mux_seconds=0.0176,0.0165 separate_seconds=0.0139,0.0123 mux_wire_best=810965 separate_wire_best=807836 mux_ratio=0.2750 separate_ratio=0.2739 window_updates=72

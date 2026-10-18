@@ -1,0 +1,1 @@
+WIRE_RUST_HUB_PASS rust_client_seconds: 0.0025 0.0017 0.0019 HUB_BENCH rust_min=0.0055 rust_mean=0.0065 python_min=0.0081 python_mean=0.0083 rust_ratio=0.0056 python_ratio=0.0040

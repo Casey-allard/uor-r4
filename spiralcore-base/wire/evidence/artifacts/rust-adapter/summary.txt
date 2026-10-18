@@ -1,0 +1,1 @@
+rust_adapter: WIRE_RUST_ADAPTER_PASS; same-run 647KiB text plain(min/mean) and rust edge(min/mean) and python edge(min/mean) recorded; exact bytes via Python WireSocket client and interposer-through-gateway; native proxy ~2x Python adapter in same run

@@ -1,0 +1,1 @@
+rust_mux_client: native 8-stream mux 4.57-4.89ms vs python client 11.9-13.1ms (same run) vs python gateway 15.5-19.9ms; WIRE_RUST_MUX_PASS routes=ok; per-stream routes and fail-closed unknown verified

@@ -1,0 +1,1 @@
+ping_1KiB: plain 59.4us mean; wire L6 50.5us ratio 0.0176; wire L3 44.1us; wire L1 40.7us ratio 0.0186; wire faster than plain at small messages; level1 recommended for latency-first use

@@ -1,3 +1,16 @@
+## 2026-10-18  Wire transport side exploration merged (`deepseek/spiralcore-wire-side-exploration`)
+
+Merges the standalone wire-compression/transport work as a self-contained side exploration under
+`spiralcore-base/wire/`: 78 files (Python adapter/socket/mux/hub/interposer tools and smokes, Rust
+`wire-rs` crate detached from the main workspace, docs, bounded evidence logs). Worktree checks:
+`cargo build --release --offline`, `WIRE_SOCKET_ROUTING_PASS`, `WIRE_RUST_HUB_PASS`; source repo recorded
+`WIRE_INTEROP_MATRIX_PASS` 18/18 and `EVIDENCE_OK`. No model compute, no training-hold change, no pods,
+no change to the dose path or D11 serving. Measured: Rust peer 2.10/2.86/3.30 ms vs plain 1.52/1.92/
+2.16 ms for 1.25 MiB; Rust adapter ~1.6x faster than Python; 1 KiB RTT 41.8 us vs plain 55.1 us.
+Record: [labs/spiralcore-wire-side-2026-10-18](../labs/spiralcore-wire-side-2026-10-18/README.md).
+Next: independent exact-head review, then merge queue; PM (kimi/pm1) holds routing for any promotion
+into the roadmap path. PR: https://github.com/UOR-Foundation/uor-r4/pull/2613.
+
 ## 2026-10-18 — Falsify-then-optimize is the current path (owner direction; kimi/pm1)
 
 The [optimization path record](../labs/optimization-path-2026-10-18/README.md) seals the owner-approved sequence: Dose 1 (paired Relation/frozen-zero falsification, one seed, release-profile binary per PM requirement 6243986174) is the sole paid-compute item; the optimization rung (release baselines, counterfactual row-parallelism, shared-memory staging, selective trace, pre-registered tokens/s bars) is gated on the dose decision; batched-coordinate scoring and spinor/quaternion adapters are conditional future rungs requiring new FIT'd pre-registrations. D11 multiplier-free serving stands; float remains legal in offline training only. Lab assignments: Codex dose packet/execution + kernels, AGY confined reviews + evidence synthesis, Kimi PM sheet/packet/dispositions + measurement plan; DeepSeek's object-store tooling line unchanged. Path directive: [#2029 comment 6244066845](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6244066845). No scientific bar, sheet text, FIT status or compute authorization changes. Training/M2/Stage B HELD; Q4 NOT_EXECUTABLE. **Next:** Codex dose packet seal → AGY confined review → PM dose dispatch.

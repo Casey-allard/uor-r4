@@ -1,0 +1,21 @@
+corpus_bytes=120853
+--- realistic corpus ratios (level 6)
+BENCH_COMPRESS_OK backend=zlib-rs pattern=text bytes=120853 reps=5 level=6 compress_mibs=86.5 decompress_mibs=675.3 ratio=0.25251
+BENCH_COMPRESS_OK backend=miniz_oxide pattern=text bytes=120853 reps=5 level=6 compress_mibs=48.4 decompress_mibs=274.8 ratio=0.25245
+--- realistic corpus zlib-rs level 1 (faster, larger)
+BENCH_COMPRESS_OK backend=zlib-rs pattern=text bytes=120853 reps=5 level=1 compress_mibs=258.9 decompress_mibs=520.3 ratio=0.38018
+--- end-to-end plain vs wire (1.28MB text, 5 runs each)
+PLAIN_CLIENT_OK bytes=1310720 seconds=0.00117 mibs=1064.5
+PLAIN_CLIENT_OK bytes=1310720 seconds=0.00103 mibs=1211.6
+PLAIN_CLIENT_OK bytes=1310720 seconds=0.00095 mibs=1320.6
+PLAIN_CLIENT_OK bytes=1310720 seconds=0.00103 mibs=1216.3
+PLAIN_CLIENT_OK bytes=1310720 seconds=0.00116 mibs=1074.3
+RUST_CLIENT_OK bytes=1310720 seconds=0.0015 mibs=857.5 ratio=0.0068
+RUST_CLIENT_OK bytes=1310720 seconds=0.0010 mibs=1196.6 ratio=0.0068
+RUST_CLIENT_OK bytes=1310720 seconds=0.0012 mibs=1053.2 ratio=0.0068
+RUST_CLIENT_OK bytes=1310720 seconds=0.0012 mibs=1011.9 ratio=0.0068
+RUST_CLIENT_OK bytes=1310720 seconds=0.0011 mibs=1179.6 ratio=0.0068
+--- end-to-end wire random raw (96KiB, 3 runs)
+RUST_CLIENT_OK bytes=98304 seconds=0.0021 mibs=43.7 ratio=1.0001
+RUST_CLIENT_OK bytes=98304 seconds=0.0022 mibs=43.1 ratio=1.0001
+RUST_CLIENT_OK bytes=98304 seconds=0.0026 mibs=36.7 ratio=1.0001

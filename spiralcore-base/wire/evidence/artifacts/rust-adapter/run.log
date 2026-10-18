@@ -1,0 +1,1 @@
+WIRE_RUST_ADAPTER_PASS ADAPTER_BENCH plain_min=0.00118 plain_mean=0.00167 rust_edge_min=0.00152 rust_edge_mean=0.00239 python_edge_min=0.00634 python_edge_mean=0.00739 WIRE_CLIENT_OK bytes=651264 ratio=0.0059

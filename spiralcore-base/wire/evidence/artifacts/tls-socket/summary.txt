@@ -1,0 +1,1 @@
+wire_socket_tls: peer text 0.0042, random 1.0001, TLS routed gateway 0.0042; plain->TLS and TLS->plain fail closed; WIRE_SOCKET_TLS_PASS

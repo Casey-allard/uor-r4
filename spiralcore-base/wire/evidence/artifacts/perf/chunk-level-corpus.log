@@ -1,0 +1,13 @@
+=== chunk sizes ===
+CHUNK 8192 min=0.00230 mean=0.00244 max=0.00260 ratio=0.0101
+CHUNK 16384 min=0.00160 mean=0.00178 max=0.00220 ratio=0.0083
+CHUNK 32768 min=0.00120 mean=0.00140 max=0.00160 ratio=0.0071
+CHUNK 65536 min=0.00110 mean=0.00116 max=0.00140 ratio=0.0068
+=== level and corpus ===
+--- 2MB realistic corpus ratios
+BENCH_COMPRESS_OK backend=zlib-rs pattern=text bytes=148641 reps=5 level=6 compress_mibs=88.3 decompress_mibs=678.3 ratio=0.24489
+BENCH_COMPRESS_OK backend=miniz_oxide pattern=text bytes=148641 reps=5 level=6 compress_mibs=52.3 decompress_mibs=381.8 ratio=0.24480
+BENCH_COMPRESS_OK backend=zlib-rs pattern=text bytes=148641 reps=5 level=1 compress_mibs=267.7 decompress_mibs=575.1 ratio=0.37313
+--- e2e latency by level (1.28MB text, 7 runs)
+LEVEL 1 min=0.00090 mean=0.00101 max=0.00130 ratio=0.0123
+LEVEL 6 min=0.00110 mean=0.00113 max=0.00120 ratio=0.0068

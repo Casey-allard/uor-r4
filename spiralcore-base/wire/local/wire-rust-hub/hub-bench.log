@@ -1,0 +1,1 @@
+HUB_BENCH rust_min=0.0053 rust_mean=0.0061 python_min=0.0076 python_mean=0.0078 rust_ratio=0.0055 python_ratio=0.0040

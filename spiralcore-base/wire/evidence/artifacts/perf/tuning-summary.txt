@@ -1,0 +1,1 @@
+tuning: WIRE_CHUNK optimum 64KiB (1.00/1.11ms vs 2.30ms 8K, 2.10ms 1M); WIRE_LEVEL=1 ~10-20% faster at ~2x ratio; level6 realistic corpus ratio 0.24489 == miniz 0.24480; matrix 18/18 PASS

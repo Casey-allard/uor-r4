@@ -1,0 +1,1 @@
+WIRE_RUST_MUX_PASS routes=ok rust_client_seconds: 0.00932 0.00502 0.00503 MUX_BENCH rust_min=0.0112 rust_mean=0.0114 python_min=0.0156 python_mean=0.0193

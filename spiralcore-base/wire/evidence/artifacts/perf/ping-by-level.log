@@ -1,0 +1,4 @@
+PING mode=plain level=6 min_us=23.3 mean_us=55.1 max_us=75.2 ratio=0.0000
+PING mode=wire level=6 min_us=34.1 mean_us=41.8 max_us=62.8 ratio=0.0176
+PING mode=wire level=1 min_us=30.2 mean_us=33.9 max_us=36.1 ratio=0.0186
+PING mode=wire level=3 min_us=32.5 mean_us=37.8 max_us=52.2 ratio=0.0171

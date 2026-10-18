@@ -1,0 +1,1 @@
+wire_rust_interop: Rust<->Python both directions exact; text ratios 0.0034/0.0042, random 1.0001; Rust->adapter gateway 0.0034; WIRE_RUST_INTEROP_PASS

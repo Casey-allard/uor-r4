@@ -1,0 +1,1 @@
+rust_native_backend: zlib-rs (~2900 MiB/s compress vs 650 miniz); realistic corpus ratio identical (0.25251 vs 0.25245); level1 205 MiB/s ratio 0.380 vs level6 85 MiB/s ratio 0.253; e2e wire 1.10-1.80ms vs plain 1.04-1.30ms (1.28MB text, 5 runs); random raw 96KiB 2.2-2.7ms

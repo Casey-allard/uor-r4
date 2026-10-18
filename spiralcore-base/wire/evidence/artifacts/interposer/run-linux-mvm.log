@@ -1,0 +1,1 @@
+WIRE_INTERPOSER_LINUX_PASS text_ratio=0.0032 random_ratio=1.0001 python_ratio=0.0043 passthrough_connections=0

@@ -1,0 +1,1 @@
+receive_path: raw frames read directly into recv buffer, compressed frames decompressed into it (one copy removed per frame); rust smokes pass; harness plain 1.52/1.92/2.16ms wire 2.10/2.86/3.30ms adapter 0.21/0.36/0.43 vs python 0.54/0.59/0.87 (64KiB rt); hub 0.40/0.43/0.50 (256KiB); mux 2.61/3.70/4.36 (8x128KiB)

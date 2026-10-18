@@ -1,0 +1,1 @@
+optimization_closeout: native Rust peer/hub/adapter/mux; zlib-rs 650->2900 MiB/s compress, realistic ratio unchanged; 64KiB chunk optimum; copy-free recv; wire peer 2.10/2.86/3.30ms vs plain 1.52/1.92/2.16ms (1.25MiB); rust adapter 0.21/0.36/0.43 vs python 0.54/0.59/0.87 (64KiB rt); 1KiB RTT wire 41.8us vs plain 55.1us; matrix 18/18; goal closed

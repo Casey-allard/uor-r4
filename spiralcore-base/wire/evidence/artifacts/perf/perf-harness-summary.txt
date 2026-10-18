@@ -1,0 +1,1 @@
+perf_harness: WIRE_RUST_PERF_PASS runs=7 (loaded host): plain peer 1.14/1.70/2.06ms; wire peer via gateway 2.40/3.09/3.40ms; rust adapter 0.33/0.36/0.42ms per 64KiB rt vs python 0.54/0.59/0.85ms; rust hub 0.40/0.41/0.50ms (256KiB); rust mux 2.34/2.98/4.14ms (8x128KiB); smallmsg plain 36.4us vs wire 59.6us vs adapter 79.6us (earlier quiet run wire 64.8 vs plain 68.7)

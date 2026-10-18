@@ -1,0 +1,45 @@
+/Users/casey.allard/spiralcore-fbs-review/tools/wire_interposer.c:55:17: warning: 'syscall' is deprecated: first deprecated in macOS 10.12 - syscall(2) is unsupported; please switch to a supported interface. For SYS_kdebug_trace use kdebug_signpost(). [-Wdeprecated-declarations]
+   55 |     return (int)syscall(SYS_connect, fd, addr, len);
+      |                 ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/unistd.h:754:6: note: 'syscall' has been explicitly marked deprecated here
+  754 | int      syscall(int, ...);
+      |          ^
+/Users/casey.allard/spiralcore-fbs-review/tools/wire_interposer.c:59:21: warning: 'syscall' is deprecated: first deprecated in macOS 10.12 - syscall(2) is unsupported; please switch to a supported interface. For SYS_kdebug_trace use kdebug_signpost(). [-Wdeprecated-declarations]
+   59 |     return (ssize_t)syscall(SYS_write, fd, buf, len);
+      |                     ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/unistd.h:754:6: note: 'syscall' has been explicitly marked deprecated here
+  754 | int      syscall(int, ...);
+      |          ^
+/Users/casey.allard/spiralcore-fbs-review/tools/wire_interposer.c:63:21: warning: 'syscall' is deprecated: first deprecated in macOS 10.12 - syscall(2) is unsupported; please switch to a supported interface. For SYS_kdebug_trace use kdebug_signpost(). [-Wdeprecated-declarations]
+   63 |     return (ssize_t)syscall(SYS_read, fd, buf, len);
+      |                     ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/unistd.h:754:6: note: 'syscall' has been explicitly marked deprecated here
+  754 | int      syscall(int, ...);
+      |          ^
+/Users/casey.allard/spiralcore-fbs-review/tools/wire_interposer.c:66:17: warning: 'syscall' is deprecated: first deprecated in macOS 10.12 - syscall(2) is unsupported; please switch to a supported interface. For SYS_kdebug_trace use kdebug_signpost(). [-Wdeprecated-declarations]
+   66 |     return (int)syscall(SYS_shutdown, fd, how);
+      |                 ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/unistd.h:754:6: note: 'syscall' has been explicitly marked deprecated here
+  754 | int      syscall(int, ...);
+      |          ^
+/Users/casey.allard/spiralcore-fbs-review/tools/wire_interposer.c:69:17: warning: 'syscall' is deprecated: first deprecated in macOS 10.12 - syscall(2) is unsupported; please switch to a supported interface. For SYS_kdebug_trace use kdebug_signpost(). [-Wdeprecated-declarations]
+   69 |     return (int)syscall(SYS_close, fd);
+      |                 ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/unistd.h:754:6: note: 'syscall' has been explicitly marked deprecated here
+  754 | int      syscall(int, ...);
+      |          ^
+/Users/casey.allard/spiralcore-fbs-review/tools/wire_interposer.c:72:21: warning: 'syscall' is deprecated: first deprecated in macOS 10.12 - syscall(2) is unsupported; please switch to a supported interface. For SYS_kdebug_trace use kdebug_signpost(). [-Wdeprecated-declarations]
+   72 |     return (ssize_t)syscall(SYS_read, fd, buf, len);
+      |                     ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/unistd.h:754:6: note: 'syscall' has been explicitly marked deprecated here
+  754 | int      syscall(int, ...);
+      |          ^
+/Users/casey.allard/spiralcore-fbs-review/tools/wire_interposer.c:75:21: warning: 'syscall' is deprecated: first deprecated in macOS 10.12 - syscall(2) is unsupported; please switch to a supported interface. For SYS_kdebug_trace use kdebug_signpost(). [-Wdeprecated-declarations]
+   75 |     return (ssize_t)syscall(SYS_write, fd, buf, len);
+      |                     ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/unistd.h:754:6: note: 'syscall' has been explicitly marked deprecated here
+  754 | int      syscall(int, ...);
+      |          ^
+7 warnings generated.
+libwireinterposer.dylib: replacing existing signature
+WIRE_INTERPOSER_PASS text_ratio=0.0031 random_ratio=1.0001 python_ratio=0.0042 passthrough_connections=0 direct_wall=seconds=0.0017 interposed_wall=seconds=0.0192

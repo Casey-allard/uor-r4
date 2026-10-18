@@ -1,0 +1,1 @@
+rust_hub: native wire-rs hub; WIRE_RUST_HUB_PASS; 1MiB text mean rust=0.0090s python_hub=0.0113s same client; interposer-through-hub ok; unknown route fails closed

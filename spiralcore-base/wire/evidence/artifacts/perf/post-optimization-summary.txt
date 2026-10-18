@@ -1,0 +1,1 @@
+post_optimization: recv_into reuse + compression scratch + vectored writes; adapter 10-run plain 1.21/1.59ms rust_edge 1.36/2.27ms python_edge 5.40/5.84ms; rust hub client-through 1.8-2.1ms; rust hub(py client) 5.5/6.1ms vs python hub 7.8/8.0ms; rust peer wire ~1.0ms vs plain ~0.97ms

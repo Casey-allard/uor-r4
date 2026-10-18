@@ -1,0 +1,18 @@
+[package]
+name = "wire-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flate2 = { version = "1.1", default-features = false }
+
+[features]
+default = ["backend-zlib-rs"]
+backend-miniz = ["flate2/rust_backend"]
+backend-zlib-rs = ["flate2/zlib-rs"]
+
+[[bin]]
+name = "wire-rs"
+path = "src/main.rs"
+
+[workspace]

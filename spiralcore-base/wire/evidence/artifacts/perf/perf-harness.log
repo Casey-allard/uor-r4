@@ -1,0 +1,36 @@
+{
+  "plain_peer_1.25MiB": [
+    0.00152,
+    0.00192,
+    0.00216
+  ],
+  "wire_peer_1.25MiB": [
+    0.0021,
+    0.00286,
+    0.0033
+  ],
+  "rust_adapter_64KiB_10x": [
+    0.00021,
+    0.00036,
+    0.00043
+  ],
+  "python_adapter_64KiB_10x": [
+    0.00054,
+    0.00059,
+    0.00087
+  ],
+  "rust_hub_256KiB": [
+    0.0004,
+    0.00043,
+    0.0005
+  ],
+  "rust_mux_8x128KiB": [
+    0.00261,
+    0.0037,
+    0.00436
+  ],
+  "smallmsg_plain_us": 26.8,
+  "smallmsg_wire_us": 84.8,
+  "smallmsg_rust_adapter_us": 83.9
+}
+WIRE_RUST_PERF_PASS runs=7

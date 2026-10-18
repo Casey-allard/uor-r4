@@ -942,6 +942,16 @@ The owner approved the falsify-then-optimize sequence as the current path ([path
 3. **Batched-coordinate scoring (candidate).** Scoring all 45 gate coordinates' counterfactuals per batch instead of one is the largest training-time lever; it changes the learning law, so it enters only through a new FIT'd pre-registration, never mid-run.
 4. **Spinor/quaternion adapters (conditional).** Continuous adapters train in float offline and discretize for serving; they enter only on a measured capability ceiling, with a new pre-registration and owner decision at that point.
 
+
+### Side explorations (non-model, infrastructure/tooling lane)
+
+- **Native wire transport** (DeepSeek, 2026-10-18): `spiralcore-base/wire/` is a self-contained side
+  exploration merging the Python adapter/socket/mux/interposer tools and the Rust `wire-rs` crate, with
+  measured loopback results and bounded evidence. Status: candidate, no model compute, not wired into
+  the dose path, D11 serving, training, or the root workspace. Record:
+  [spiralcore-wire-side-2026-10-18](../labs/spiralcore-wire-side-2026-10-18/README.md). Scope is
+  transport/usability only; any model-path use needs its own pre-registration and PM/owner decision.
+
 ### Evaluation and learning contract
 
 - **One declared computation graph.** Next-token/sequence language loss must train the context mechanism through an explicit relaxed operation, estimator or discrete objective; naming an autodiff dependency is insufficient. Record query/key/value/state gradients, the hard operation and its surrogate, masking, quantizer, hardening schedule, and optimizer/checkpoint state. Avoid inference-only operations without backward support.

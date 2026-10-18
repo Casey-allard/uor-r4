@@ -1,0 +1,1 @@
+interposer: macOS DYLD + Linux LD_PRELOAD; text ratios 0.0031/0.0032, random 1.0001, unmodified Python 0.0042/0.0043; non-matching passthrough 0; smokes pass
