@@ -27,7 +27,7 @@ K16-A vs K16-R admission redirect on the `rows_v1` counterfactual path
 | 2 | Consumer verifier source repair, helper `5c3bc562` / README `410fa4de` (disposition `6254038861`) | Antigravity | complete; source findings closed |
 | 3 | Packet acceptance (sole seat, owner `6251237195`), sealed packet request `6254373730` | Claude | **ACCEPT `6254417234`** |
 | 4 | Four `rows_v1` configs + measured D-Packet | Codex | accepted packet includes DOCUMENT_ONLY readiness; no machine capability |
-| 5 | Four unchanged A/R×seed1/2 trajectories: owner's relayed gated release `6254435225` | Kimi PM + Claude | PM dispatch `6254457591` ISSUED_GATED_START; four-init census `6254480425` POSTED_PASS (raw/net1,986); census report custody verified; four owner/admission pairs created and ratified (D40); **K16-A/seed1 COMPLETED** 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); R-seed1/A-seed2/R-seed2 NOT_STARTED (R-seed1 host-unblocked at the restored floor); no result yet |
+| 5 | Four unchanged A/R×seed1/2 trajectories: owner's relayed gated release `6254435225` | Kimi PM + Claude | PM dispatch `6254457591` ISSUED_GATED_START; four-init census `6254480425` POSTED_PASS (raw/net1,986); census report custody verified; four owner/admission pairs created and ratified (D40); **K16-A/seed1 COMPLETED** 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); R-seed1 RUNNING since 21:26:32Z (same pod/GPU, PID 176300; source 1,408 completed / 58 accepted at 21:29:48Z); A-seed2/R-seed2 NOT_STARTED serially; registered paired interpretation pending |
 | 6 | W2 read-code capacity capture (already FIT'd, same lease) | Codex | queued |
 | 7 | W3 BVG-K discrete batched-coordinate law (registered before any float sheet) | TBD | queued |
 | 8 | W4 one float-credit sheet, only if W2 = H_law and W3 fails | TBD | conditional |
@@ -41,7 +41,7 @@ cleared. Report SHA `19c053e9779d6ab1dd7b02a5403b6c10910131c5829b51dd7ca361d512f
 the3,119-byte report is retrieved/hash-verified. Durable object
 `claude-k16-cp0-coverage-census-20261018.tar`:16,384bytes, MD5
 `6687ae6ad16d9a1b56836ec414a57467` (root native fetch83459/exit0). No further
-census wait remains. Native transport produced four owner/admission pairs, ratified by the owner (D40); K16-A/seed1 completed 16,404 batches / 407 accepted (exit 0 at 20:58:35Z, report fa863063, final 6936cf99); R-seed1/A-seed2/R-seed2 remain NOT_STARTED serially, with R-seed1 host-unblocked at the restored floor. No result or paired interpretation yet.
+census wait remains. Native transport produced four owner/admission pairs, ratified by the owner (D40); K16-A/seed1 completed 16,404 batches / 407 accepted (exit 0 at 20:58:35Z, report fa863063, final 6936cf99); R-seed1 RUNNING since 21:26:32Z on the same pod/GPU (PID 176300; source 1,408 completed / 58 accepted at 21:29:48Z); A-seed2/R-seed2 remain NOT_STARTED serially. Registered paired interpretation pending; no result claimed.
 The gated release covers no W2/W3/W4 work or changed arms, bars or fresh seal.
 
 ## Current instruments and gates

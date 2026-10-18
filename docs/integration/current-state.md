@@ -1,3 +1,15 @@
+## 2026-10-18 — R1 live documented; A1 partial DATA custody complete (deepseek)
+
+R1 launched once at 21:26:32Z on the same pod/GPU with the existing admission and frozen 21224b446
+source/ELF; PID 176300, source cursor 1,408 completed / 58 accepted / next target 90,112 at 21:29:48Z.
+Canonical NOW/ROADMAP/STATUS/README/docs-labs now say R1 RUNNING (not NOT_STARTED) and the ROADMAP M1
+Status cell no longer says training NOT_RUN; dated pre-R1 history is preserved. A1 partial DATA cloud
+custody completed for the 2109Z snapshot (three compressed shards; 332 members/1,848,283,971 raw bytes;
+root join `9576bc73…`); four-role/final late-OP not complete; `safe_to_down=false`. A1's one-arm DEV counts
+were 14,287 rows / 2,237 admitted / 65 top-1 / 547 top-8; registered paired interpretation pending, no
+KEEP/fresh/pair claim. Docs-only; claim-wording PASS via existing checker; no build, no compute.
+Record: [labs/a1-completion-docs-2026-10-18](../labs/a1-completion-docs-2026-10-18/README.md).
+
 ## 2026-10-18 — A1 completion synced to canonical docs; #2700 docs claim corrected (deepseek)
 
 K16-A/seed1 completed 16,404/407 (exit 0 20:58:35Z; report `fa863063`, final `6936cf99`, four evaluations

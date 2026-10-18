@@ -33,7 +33,7 @@ G-Pre except each graph's honest compiled-source identity.
 [Results and exact build graphs](docs/labs/k16-rows-qualification-2026-10-18/README.md)
 retain the original bccc E0063 failure and subsequent protected repairs as history.
 
-**DATA and late operator custody are verified; Claude ACCEPT6254417234 is recorded; K16-A/seed1 COMPLETED 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); R-seed1/A-seed2/R-seed2 NOT_STARTED serially.**
+**DATA and late operator custody are verified; Claude ACCEPT6254417234 is recorded; K16-A/seed1 COMPLETED 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); R-seed1 RUNNING since 21:26:32Z; A-seed2/R-seed2 NOT_STARTED serially.**
 All15 DATA shards and the separate metadata reconcile to19 cloud objects; the
 two late operator payload groups and metadata also have full verified readbacks.
 The [sealed packet request6254373730](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254373730)
