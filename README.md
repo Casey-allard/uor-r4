@@ -11,8 +11,9 @@ model that runs on a laptop?*
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-ffcc4d)](https://huggingface.co/caseyallard/uor-r4-geometric-214m)
 
 **Status, 14 October 2026: pre-alpha.** No model in this repository holds a useful conversation yet.
-Under D32 the model and its learning/qualification instruments are discrete: no
-floating-point forward, gradients, optimizer or matrix multiplication. The new
+Under D32 the active model and its learning/qualification instruments are discrete: no
+floating-point forward, gradients, optimizer or matrix multiplication. D37 (18 October)
+now allows float in offline training only, with a D11 integer export. The new
 SpiralCore/FBS shared-vector path, flock read and new D1 driver pass **all twenty-five
 admitted CUDA construction controls** at source `e7d926fbe` (#2400), after a fresh
 non-author Codex FIT. Eleven Route, six flock and eight driver controls cover the
@@ -129,7 +130,9 @@ The active D32 model uses integer E8 carriers, SpiralCore signed transport,
 ordered ternary FBS and one shared input/carry/output vector writer. Learning
 enumerates exact geometric moves and accepts a move only when its fixed-batch
 integer objective improves. No floating-point model computation, gradient,
-softmax or hidden matrix product is admitted.
+softmax or hidden matrix product is admitted on this active discrete path
+(D37 permits offline float training through new pre-registrations; softmax and
+matmul stay banned everywhere).
 
 The first scoped D33 pilot completed 1,640 batches with 236 accepted vector
 updates on one RTX 5090. On the pinned 14,287-target development set, top-1
@@ -188,6 +191,7 @@ The diagrams and table retain the earlier operator snapshot. The selected native
 | [D32](docs/integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning) | Discrete geometric substrate: ternary/Hamming/quaternion computation on SpiralCore/E8/FBS, no floating point in model computation including learning (with the October 14 offline complex-plane zeta-zero exception for `Snapshot.table` construction). |
 | [D33](docs/integration/DECISIONS.md#d33--delegated-d4-execution-for-the-rung-0-a2-pilot-claude-runs-owner-release-after-his-posted-review) | Scoped delegation for the completed rung-0 A2 seed-1 diagnostic pilot only; all other training and M2 holds remain owner-personal and HELD. |
 | [D34](docs/integration/DECISIONS.md#d34--revised-attentionmemory-sequence-accepted-reranker-first-relational-read-plus-a-separate-d19-object-store-crate) | Reranker-first relational read (`ReadSpec::Relation`, `relation-off ≡ Flock`, copy-successor target) plus a separate D19 exact object-store crate (`uor-r4-object-store`); `C6`/`G64` energy controller unselected. |
+| [D37](docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) | Floating point is legal in offline training only (forward, gradients, optimizer). Softmax/squashing and matmul stay banned; serving stays D11 integer, with a reported export gap; the zeta exception is unchanged; archived float sheets need re-registration. |
 
 Rust interlocks `uor-harness ratchet d23` and `uor-harness ratchet d25` ratchet the source tree.
 The D29 selected dependency/PTX checks additionally inspect the compiled boundary; lexical ratchets

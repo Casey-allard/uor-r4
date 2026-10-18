@@ -1,9 +1,19 @@
 # Native geometric AI execution policy
 
+> **Current D37 direction, October 18:** floating point is legal in offline training
+> only: float forward passes, gradients, optimizers and offline numerical training
+> instruments. Softmax/squashing and matmul/GEMM stay banned everywhere, and compute
+> stays GPU-only. The export is the integer boundary: the served artifact is D11
+> integer/table, with a reported export gap. The October 14 zeta-zero exception stays
+> separate. Archived float sheets return only by re-registration and a fresh FIT. The
+> D32 discrete path and all holds are unchanged. The bans exclude expensive operations
+> in service of fast local training and serving.
+> [D37](DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised).
+
 > **Current D32 direction, October 13:** model computation and instruments,
 > including learning, are discrete/exact and GPU-only. No floating-point forward,
 > gradient, optimizer, numerical model instrument or matrix multiplication is
-> admitted. Source `a2a5b89c` passes eleven admitted CUDA construction controls
+> admitted on the discrete path (offline training is revised by D37 above). Source `a2a5b89c` passes eleven admitted CUDA construction controls
 > after Claude FIT; earlier attempts remain outside required review order.
 > Delivery: #2379. M1's quality target remains SUSPENDED, with no model update
 > or quality claim.
@@ -224,9 +234,10 @@ Every PR names its lab and its class. Once its class's conditions hold, the appr
 
 ## Architecture and scope
 
-Prepare data, construct artifacts and run inference in Rust. D32 requires discrete
-GPU learning/model computation and instruments, with no float forward, gradients,
-optimizer, matrix multiplication or prohibited squashing; training remains held.
+Prepare data, construct artifacts and run inference in Rust. The D32 discrete path is
+GPU-only and integer. Under D37, offline training may use float forward passes,
+gradients and optimizers, never matrix multiplication or prohibited squashing, with
+a D11 integer export. Training remains held.
 Final inference executes learned
 geometric operators through bounded routes, state transitions and integer/table
 lookup; a dense transformer stored behind a lookup interface does not satisfy
@@ -282,8 +293,10 @@ does not claim project-wide removal is complete.
 ## Learning and budget
 
 [D32](DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning)
-supersedes D8's floating-point/autodiff bridge. Credit and updates use declared
-admissible discrete geometric moves over the actual context/shared-writer cost.
+superseded D8's floating-point/autodiff bridge. [D37](DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised)
+now permits offline float learning again, through new pre-registrations only. On the
+active discrete path, credit and updates use declared admissible discrete geometric
+moves over the actual context/shared-writer cost.
 Preserve the earlier source, references and differentiable measurements as
 inactive history. Complete a compliant prospective rung with fixed evaluator
 identities and matched controls; neither source construction nor FIT lifts a hold.

@@ -56,7 +56,8 @@ projections of17.8/19.2hours remain **UNVERIFIED**, not corpus-training throughp
 Before admission delivery #2421, corpus updates stayed behind an unissued opaque
 capability. The generic training CLI still returns `TrainingHeld`; D33 admitted
 only the now-completed pilot. M1's quality target remains SUSPENDED. No floating-point model, gradient/optimizer or numerical
-qualification instrument may execute. Earlier 31/18-control float results below
+qualification instrument may execute on the discrete path. D37 (18 October) permits offline float
+training only through a new FIT'd pre-registration with a D11 integer export, and releases no hold. Earlier 31/18-control float results below
 remain historical source-scoped evidence, preserved inactive through #2370.
 Outside the completed pilot, training holds remain HELD; no chat-quality result is claimed.
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
@@ -77,8 +78,8 @@ project manager under [D25](docs/integration/DECISIONS.md#d25---geometric-operat
 No softmax/softplus/sigmoid/tanh or equivalent squashing anywhere in an executed
 model/objective/gradient/output/teacher/comparator path; no dense matrix
 multiplication in training or serving; model/reference compute is GPU-only with
-host fallback refused. D32 also excludes floating-point learning and numerical
-model instruments; D11 retains its multiplier-free serving contract. The predecessor declared recurrence-only path has finite CUDA forward/backward/output
+host fallback refused. D32 excluded floating-point learning and numerical
+model instruments; D37 re-admits them for offline training only. D11 retains its multiplier-free serving contract. The predecessor declared recurrence-only path has finite CUDA forward/backward/output
 qualification at its original rung-0 source/shape; it does not qualify the new compiled boundary. The optimizer update is compiled and
 source-reviewed, not executed. Amendment5 supersedes the whole-DEV count-reference scope and has independent
 scientific [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704) on merged source #2328. The physical

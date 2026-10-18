@@ -49,7 +49,7 @@
     "geometric_routing_priority": true,
     "serving_floating_point_allowed": false,
     "serving_transcendentals_allowed": false,
-    "offline_autodiff_training_allowed": false,
+    "offline_autodiff_training_allowed": true,
     "serving_contract_current": "docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded",
     "serving_kernel_integer_divider_instructions_allowed": false,
     "dense_matrix_multiplication_allowed": false,
@@ -74,10 +74,12 @@
       "teachers",
       "comparators"
     ],
-    "offline_scalar_floating_point_geometric_arithmetic_allowed": false,
-    "model_floating_point_allowed": false,
-    "floating_point_model_instruments_allowed": false,
-    "floating_point_gradients_and_optimizer_allowed": false,
+    "offline_scalar_floating_point_geometric_arithmetic_allowed": true,
+    "offline_training_floating_point_allowed": true,
+    "offline_training_floating_point_instruments_allowed": true,
+    "offline_floating_point_gradients_and_optimizer_allowed": true,
+    "served_model_floating_point_allowed": false,
+    "floating_point_authority": "D37_owner_2026_10_18_offline_training_only_export_boundary_D11_serving_zeta_complex_plane_exception_D32_oct14_kept_separately",
     "discrete_learning_authority": "D32_owner_2026_10_13",
     "learning_substrate": "exact_SpiralCore_E8_FBS_admissible_moves_shared_integer_input_carry_output_writer",
     "geometric_feed_forward_allowed": true,
@@ -195,7 +197,7 @@
       "python_model_implementation_or_product_dependency"
     ],
     "verification": "focused_checks_for_changed_rust_path_and_actual_behavior_with_relevant_broader_checks",
-    "learning_contract": "D32: discrete_native_geometric_moves_over_actual_context_and_shared_writer_no_float_model_instrument_gradient_optimizer_or_matmul_D8_float_bridge_preserved_inactive_training_HELD",
+    "learning_contract": "D32_active_path: discrete_native_geometric_moves_over_actual_context_and_shared_writer; D37: offline_training_may_use_float_forward_gradients_optimizer_via_new_FIT_pre_registration_separate_scanned_module; no_softmax_squashing_or_matmul_anywhere; exported_artifact_D11_integer_with_reported_export_gap; training_HELD",
     "progress_control": {
       "required_before_model_compute": true,
       "authority": "docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25",
@@ -350,7 +352,7 @@
       "concise_limit_and_next_action"
     ]
   },
-  "schema": "uor-r4.agent-execution-policy/6",
+  "schema": "uor-r4.agent-execution-policy/7",
   "workspace": {
     "base": "refreshed_origin_main",
     "preserve_user_and_unique_evidence": true,

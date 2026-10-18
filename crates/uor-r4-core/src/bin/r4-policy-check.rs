@@ -7,7 +7,7 @@ fn check(root: &Path) -> Result<(), String> {
     let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let policy: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
     for (pointer, expected) in [
-        ("/schema", Value::from("uor-r4.agent-execution-policy/6")),
+        ("/schema", Value::from("uor-r4.agent-execution-policy/7")),
         ("/mode", Value::from("native_geometric_ai")),
         ("/architecture/implementation_language", Value::from("rust")),
         (
@@ -22,16 +22,26 @@ fn check(root: &Path) -> Result<(), String> {
             "/architecture/dense_matrix_multiplication_allowed",
             Value::from(false),
         ),
+        // D37: floating point is legal in offline training only; the served
+        // artifact stays D11 integer/table with no float or transcendental.
         (
-            "/architecture/model_floating_point_allowed",
+            "/architecture/served_model_floating_point_allowed",
             Value::from(false),
         ),
         (
-            "/architecture/floating_point_model_instruments_allowed",
+            "/architecture/serving_floating_point_allowed",
             Value::from(false),
         ),
         (
-            "/architecture/floating_point_gradients_and_optimizer_allowed",
+            "/architecture/serving_kernel_floating_point_allowed",
+            Value::from(false),
+        ),
+        (
+            "/architecture/serving_transcendentals_allowed",
+            Value::from(false),
+        ),
+        (
+            "/architecture/serving_kernel_multiplier_instructions_allowed",
             Value::from(false),
         ),
         (
@@ -161,6 +171,36 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         assert!(
             err.contains("/architecture/training_matrix_multiplication_allowed"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn served_float_true_is_rejected() {
+        let root = repo_root();
+        let src =
+            std::fs::read_to_string(root.join("docs/integration/agent-execution-policy.json"))
+                .expect("read policy");
+        let mut val: Value = serde_json::from_str(&src).expect("parse policy");
+        val["architecture"]["served_model_floating_point_allowed"] = Value::from(true);
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-policy-check-served-float-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(dir.join("docs/integration")).expect("mkdir");
+        std::fs::write(
+            dir.join("docs/integration/agent-execution-policy.json"),
+            serde_json::to_string_pretty(&val).expect("serialize"),
+        )
+        .expect("write");
+        let err = check(&dir).expect_err("must reject served float = true");
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(
+            err.contains("/architecture/served_model_floating_point_allowed"),
             "{err}"
         );
     }

@@ -1,8 +1,23 @@
 # AGENTS.md — UOR-R4 Geometric Language Model
 
+> **Current direction, October 18 — D37 offline float.** Floating point is legal in
+> offline training only: float forward passes, gradients and optimizers, and offline
+> numerical training instruments. It still bans softmax/squashing (D23/D25) and
+> matmul/GEMM (D25/D30), keeps GPU-only compute (D24), and requires geometric
+> mechanisms. The integer boundary is the export: the served artifact is D11
+> integer/table only, and every float-trained candidate reports its export gap.
+> The October 14 complex-plane zeta-zero exception stays as written. Archived
+> F32/F64 sheets return only by re-registration and a fresh FIT. The D32 discrete
+> path (`crates/uor-r4-discrete`, Dose 1) is unchanged, and so are the holds.
+> **The bans exist to exclude expensive operations:** the goal is fast local AI that
+> trains fast, runs fast and approaches frontier capability through the geometric
+> method, by stitching the right mechanisms together and optimizing the details.
+> See [D37](docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised).
+
 > **Current direction, October 13 — D32 discrete model and instruments.**
-> D32 supersedes floating-point model/learning permissions: no floating-point
-> forward, gradients, optimizer or numerical model instrument, and no matrix
+> D32 superseded floating-point model/learning permissions (for offline
+> training, now revised by D37 above): no floating-point forward, gradients,
+> optimizer or numerical model instrument on the discrete path, and no matrix
 > multiplication. Use native SpiralCore/E8/FBS geometry and one integer
 > input/carry/output writer. Source `a2a5b89c` passes eleven admitted CUDA
 > construction controls after Claude FIT; apply remains NEVER_RUN. Delivery: #2379.
@@ -149,9 +164,10 @@ invariants still apply to the runtime where they are declared.
   table/tropical/codec parts, prism, LexLean/PrismPM patterns) are the shared
   ecosystem floor - reuse before rewriting. Python only where Rust genuinely cannot
   do the job.
-  D32 requires discrete GPU model computation and instruments, including learning:
-  no floating-point forward/gradient/optimizer, matrix multiplication or prohibited
-  squashing. Training remains held. Final inference
+  The D32 discrete path is GPU-only and integer. Under D37, offline training may
+  use float forward passes, gradients and optimizers, but never matrix
+  multiplication or prohibited squashing. The exported artifact is D11 integer.
+  Training remains held. Final inference
   executes learned geometric operators through bounded routing, state updates
   and integer/table lookup. A dense transformer hidden behind lookup is not the
   target. Preserve old Python/dense references as evidence; do not add a Python
@@ -325,23 +341,26 @@ may run on it.
 
 ## Architecture and claim boundaries
 
-**Current D32 substrate:** model computation and its instruments, including learning,
-are discrete/exact and GPU-only, with no floating point, gradient optimizer or matmul.
+**Current substrate (D32 + D37):** the active discrete path is exact and GPU-only.
+Under D37, offline training may use floating point (forward, gradients,
+optimizer), but no matmul or prohibited squashing. Serving is D11 integer/table.
 The following pre-D32 permission paragraph is retained historical context only;
-its offline scalar-float allowance is inactive and cannot authorize execution.
+its offline scalar-float allowance is inactive and cannot authorize execution
+(that was D25's allowance; D37 separately permits offline float training).
 
 Use the name **UOR-R4 Geometric Language Model**. Technically it is an experimental autoregressive geometric state model with exact addressed memory and learned typed operators. Native attention/context access does not make it a transformer. Historical dense R4/Spin references remain transformers. Do not rename package/CLI/schema identifiers merely to change presentation.
 
-Before D32, D25 permitted scalar floating-point geometric GPU learning and gradients; that permission is now inactive. Current learning uses discrete geometric moves and remains held. D25 supersedes the earlier D0-b dense-map stepping stone: native geometric/addressed operators are required; serving remains integer/table/additive with no floating point, transcendental arithmetic or multiplier instruction. Owner decision [D11](docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded) (2026-09-27) supersedes D10: every lab serves under one native contract, ROADMAP §0 R1–R5. Served kernels have no floating point and no multiplier instruction (products of runtime values use tables or exact geometric structure). There is no transformer backbone. Dense per-token weight-map execution is historical evidence, not an active stepping stone under D25. Geometric routing and shared typed operators remain the preferred architecture. These additive maps are still mathematical linear maps; report their dense parameter access and cost accurately. Converted open-weight transformers (D10's SmolLM2) remain inactive historical evidence; no new prohibited comparator or teacher execution. `uor-r4-lut`/`lut-chat` are frozen non-mission comparators, and D10-era results keep their scope. Hidden teacher/provider responses are not adopted. Geometric address/page selection is allowed; the design currently uses shared typed operators. Expert gates are only a conditional future option requiring a demonstrated capability need and full laptop-cost evidence; do not silently adopt MoE or sparse learned gating.
+Before D32, D25 permitted scalar floating-point geometric GPU learning and gradients; that permission is now inactive. Current learning on the active path uses discrete geometric moves and remains held; D37 permits offline float training through new FIT'd pre-registrations. D25 supersedes the earlier D0-b dense-map stepping stone: native geometric/addressed operators are required; serving remains integer/table/additive with no floating point, transcendental arithmetic or multiplier instruction. Owner decision [D11](docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded) (2026-09-27) supersedes D10: every lab serves under one native contract, ROADMAP §0 R1–R5. Served kernels have no floating point and no multiplier instruction (products of runtime values use tables or exact geometric structure). There is no transformer backbone. Dense per-token weight-map execution is historical evidence, not an active stepping stone under D25. Geometric routing and shared typed operators remain the preferred architecture. These additive maps are still mathematical linear maps; report their dense parameter access and cost accurately. Converted open-weight transformers (D10's SmolLM2) remain inactive historical evidence; no new prohibited comparator or teacher execution. `uor-r4-lut`/`lut-chat` are frozen non-mission comparators, and D10-era results keep their scope. Hidden teacher/provider responses are not adopted. Geometric address/page selection is allowed; the design currently uses shared typed operators. Expert gates are only a conditional future option requiring a demonstrated capability need and full laptop-cost evidence; do not silently adopt MoE or sparse learned gating.
 
 Bounded inference and contextual/copy attention exist. General prose, general reasoning, frontier capability and complete-path energy savings are not established. A successful authored arithmetic or copying panel does not qualify them. Keep candidate admission separate from ranking and harmonic influence. Preserve exact occurrence/version/word identity separately from span boundaries. A prime/hash identity is not a semantic distance. More scalar features cannot recover distinctions erased by representation.
 
 ## Execution-lane invariants
 
 
-- **Native learning:** use discrete/exact geometric GPU moves and comparisons under
-  D32, with no floating-point model/instrument, gradient, optimizer, matrix
-  multiplication or prohibited squashing. Training is held.
+- **Native learning:** use geometric GPU learning. That means the D32 discrete moves,
+  or, under D37 and a new FIT'd pre-registration, offline float forward passes,
+  gradients and optimizers in a separately scanned module, with a reported export
+  gap. No matrix multiplication or prohibited squashing anywhere. Training is held.
   Bind the source/configuration, tokenizer, data and learned parameters to each
   artifact. An offline teacher can be a declared comparator or training source;
   it cannot author serving responses.

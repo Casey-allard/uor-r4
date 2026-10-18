@@ -1,3 +1,9 @@
+## 2026-10-18 — D37: floating point legal in offline training only (claude)
+
+The owner revised D32. Float forward passes, gradients and optimizers are legal in offline training. Softmax/squashing and matmul stay banned everywhere, and compute stays GPU-only. The export is the integer boundary: D11 serving, with a reported export gap. The October 14 zeta-zero exception is unchanged, and archived float sheets return only by re-registration and a fresh FIT. The owner also stated the reason behind the bans: exclude expensive operations, for fast local training and serving.
+
+[D37](DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised); [record](../labs/d37-offline-float-2026-10-18/README.md). The policy JSON moves to schema `/7`, and `r4-policy-check` now pins the serving float/transcendental/multiplier commitments. The D32 discrete path, the Dose 1 sheet/packet and all holds are unchanged; no compute ran, $0. **Next:** pre-registrations may cite D37 for offline float learning in a separately scanned module; the starling/murmuration coupling (C1) is drafted only after the Dose 1 decision.
+
 ## 2026-10-18  Wire side-exploration review fixes (Codex P1 findings; `deepseek/spiralcore-wire-review-fixes`)
 
 Follow-up to merged #2613 (`94d4d34a`): Codex's post-merge exact-head review at `3af1acf` reported four

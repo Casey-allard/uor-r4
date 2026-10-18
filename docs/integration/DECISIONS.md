@@ -1509,6 +1509,8 @@ should have run at all; D31 governs what a failure may mean once it has run.
 
 ## D32 — Discrete geometric substrate: ternary/Hamming/quaternion computation, no floating point in model computation including learning
 
+> **Partly superseded, October 18, by [D37](#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised):** floating point is legal in offline training. Item 1 no longer binds offline training, and item 5 is replaced by D37 item 5 (re-registration only). Serving (D11), the discrete active path and the October 14 zeta exception are unchanged.
+
 **Authority, October 13:** Casey, relayed by Codex from the owner's session to
 #2028 (comment 6154399083) and #2032 (comment 6154399570), with the owner's
 clarification on #2032 (comment 6154447417):
@@ -1734,3 +1736,42 @@ overtook.
    `graph-certify`, `api`, `proof-model` and the root crate remain broken on
    the retired core modules; repair or retirement of that surface needs its own
    owner decision, flagged for the PM queue by Claude (6185876280).
+
+## D37 — Floating point is legal in offline training only; D32's learning-path float ban is revised
+
+**Authority, October 18:** the owner (Casey), in Claude's session at about 02:35Z, verbatim:
+
+> "I'm revising D32: scalar float is allowed in offline training only. Ask Kimi to record a new D-entry with the exact scope."
+
+Claude relayed it to Kimi PM on #2029 (comment 6244744499). The owner then fixed the scope by answering four questions in the same session (about 02:40Z):
+- **Reach:** full float learning.
+- **Archived F32/F64 sheets:** re-register only.
+- **Integer boundary:** at export.
+- **Zeta-zero exception:** kept separately.
+
+Items 1–4 below record those answers.
+
+**Why the bans exist (owner, same session, verbatim):**
+
+> "my goal with all of these bans is to ban expensive operations and to always optimize for what is best for the project goal... fast local ai that can train fast and run fast and reach almost frontier level capability, we should be able to do it with this geometric method, especially as far along as we are... we have so many mechanisms, at this point we just need to stitch the right ones together and optimize all of the things that aren't, which will likely be found in the details"
+
+Read every ban below through this goal. Each one exists to exclude an expensive operation, not to rule out a technique on a technicality (D31). When a case is unclear, choose whatever trains fastest and serves fastest locally on the geometric path, and record that choice on the sheet. Earlier text said float was legal offline, contradicting D32 (#2029 6244066845, `docs/labs/optimization-path-2026-10-18/README.md`, project-track § Post-dose optimization path). That text is now consistent with this entry.
+
+1. **Offline training may use floating point.** Float forward passes, gradients and optimizers are allowed in offline training, together with offline numerical training instruments. This revises D32 item 1 ("superseded for the model path") and item 5 (float sheets frozen) for offline training. It is the "floats are legal in offline training only" rule cited by the path directive.
+2. **Everything else stays banned in training too:**
+   - **D23 / D25:** no softmax, softplus, sigmoid, tanh, GELU or normalized exponential, including renamed or table forms, in objectives, gradients, sampling, teachers or comparators.
+   - **D25 / D30:** no dense matrix multiplication or GEMM, including wrapper laundering.
+   - **D24:** model compute runs on the GPU, with no host fallback.
+   - **D27:** Rust first, no new Python model code.
+   - **D28:** no transformer comparisons.
+   - **D29:** compiled and loaded modules are scanned.
+
+   A float training path must still be geometric (SpiralCore/E8/FBS, icosian/quaternion, prime/zeta), as D32 item 2 requires.
+3. **Serving stays D11; the integer boundary is the export.** The exported, served artifact is integer/table only: no floating point, no transcendental arithmetic, no multiplier instruction, checked under D11. Every float-trained candidate reports its export (discretization) gap, measured on the same evaluator as its float result. A float score alone qualifies nothing for serving.
+4. **The October 14 complex-plane zeta-zero exception is unchanged and stays a separate rule.** The D32 addendum stands as written, with its declared map, inputs, outputs and integer boundary on any sheet that uses it.
+5. **Archived float sheets return only by re-registration.** The F32/F64 operator, rank-margin, secant, murmuration-qualification and writer-adjoint sheets frozen under D32 item 5 do not run as-is. Each may come back only as a new pre-registration with a fresh TEST FITNESS: FIT on its milestone (D22) and an owner release where a hold applies.
+6. **What this does not change:**
+   - **The active discrete path:** the D32 discrete substrate (`crates/uor-r4-discrete`) and its D29 integer token scans (`scripts/check_native_cuda_vendor.rs`) are unchanged. Dose 1 (`docs/harness/prep/m1-learned-attention-link-2026-10-17.md`) stays integer-only as it was FIT'd.
+   - **Separate float modules:** a float training path is a separate module. It gets its own scanned allowlist entry, added and reviewed with its pre-registration, never by widening the discrete crate's scan.
+   - **Holds:** Training, M2 and Stage B stay HELD, and Q4 stays NOT_EXECUTABLE. This entry releases no hold, FIT or compute.
+   - **Evidence:** preserved float evidence keeps its dated scope (D22). No result is promoted retroactively.
