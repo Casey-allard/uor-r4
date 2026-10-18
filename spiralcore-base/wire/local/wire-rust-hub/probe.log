@@ -1,2 +1,0 @@
-PROBE_OK bytes=1048576 received=1048576 seconds=0.0115 mibs=87.2
-WIRE_INTERPOSER_STATS {"connections":1,"plain_in":1048576,"plain_out":1048576,"wire_in":7307,"wire_out":3127,"ratio":0.0050}

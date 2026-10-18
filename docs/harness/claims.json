@@ -209,6 +209,13 @@
     "lab": "deepseek",
     "note": "R-queue rule in pm-rules.md"
   },
+  "deepseek/spiralcore-wire-review-fixes": {
+    "branch": "deepseek/spiralcore-wire-review-fixes",
+    "claimed_at": "2026-10-17T22:42:50-04:00",
+    "head": "94d4d34ad",
+    "lab": "deepseek",
+    "note": "Address Codex P1 review findings on merged side exploration #2613: remove committed local/ build logs, Linux smoke scratch inside checkout, release completed Python mux streams, split interposer recv lock from close/shutdown lock. No model compute."
+  },
   "deepseek/spiralcore-wire-side-exploration": {
     "branch": "deepseek/spiralcore-wire-side-exploration",
     "claimed_at": "2026-10-17T22:23:27-04:00",

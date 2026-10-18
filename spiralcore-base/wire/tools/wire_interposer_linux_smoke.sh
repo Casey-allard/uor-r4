@@ -2,7 +2,8 @@
 # Linux LD_PRELOAD interposer smoke: runs locally (loopback only) with gcc + zlib available.
 set -u
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-WORK=/tmp/wire-interposer-linux
+WORK="$WIRE_SMOKE_WORK"
+[ -n "$WORK" ] || WORK="$SCRIPT_DIR/../local/wire-interposer-linux"
 rm -rf "$WORK"
 mkdir -p "$WORK"
 cd "$WORK"

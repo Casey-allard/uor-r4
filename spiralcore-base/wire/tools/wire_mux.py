@@ -294,6 +294,7 @@ class _ServerStream:
                 self.connection.writer.frame(self.stream_id, FIN)
             except OSError:
                 pass
+            self.connection.finish_stream(self.stream_id)
 
     def on_frame(self, kind, payload):
         if kind in (DATA_COMPRESSED, DATA_RAW):
@@ -334,6 +335,7 @@ class _ServerStream:
             self.target.close()
         except OSError:
             pass
+        self.connection.finish_stream(self.stream_id)
 
 
 class WireMuxGateway:
@@ -450,6 +452,10 @@ class _ServerConnection:
         self.gateway = gateway
         self.streams = {}
         self.lock = threading.Lock()
+
+    def finish_stream(self, stream_id):
+        with self.lock:
+            self.streams.pop(stream_id, None)
 
     def run(self):
         try:

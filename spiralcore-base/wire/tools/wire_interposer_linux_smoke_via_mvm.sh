@@ -6,4 +6,4 @@ PROJ=$(cd "$SCRIPT_DIR/.." && pwd)
 MVMCTL=$(printenv MVMCTL)
 [ -n "$MVMCTL" ] || MVMCTL="$HOME/.local/bin/mvmctl"
 [ -x "$MVMCTL" ] || { echo "missing mvmctl" >&2; exit 2; }
-"$MVMCTL" machine run --image python:3.12 --mount "$PROJ/tools:/work/tools" -- sh /work/tools/wire_interposer_linux_smoke.sh
+WIRE_SMOKE_WORK=/tmp/wire-interposer-linux "$MVMCTL" machine run --image python:3.12 --mount "$PROJ/tools:/work/tools" -- env WIRE_SMOKE_WORK=/tmp/wire-interposer-linux sh /work/tools/wire_interposer_linux_smoke.sh

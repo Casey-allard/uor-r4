@@ -1,3 +1,15 @@
+## 2026-10-18  Wire side-exploration review fixes (Codex P1 findings; `deepseek/spiralcore-wire-review-fixes`)
+
+Follow-up to merged #2613 (`94d4d34a`): Codex's post-merge exact-head review at `3af1acf` reported four
+P1 findings, all addressed here. Interposer: separate `io_lock` so a blocking `recv` no longer blocks
+`close`/`shutdown`, and `close` defers buffer reset to the next connect. Mux: gateway releases completed
+streams (`finish_stream`). Linux smoke: scratch workspace defaults inside the checkout
+(`WIRE_SMOKE_WORK` override for the mvm guest). Delivery: removed committed transient
+`spiralcore-base/wire/local/` outputs and added `.gitignore`. Worktree checks: `WIRE_INTERPOSER_PASS`,
+`WIRE_MUX_PASS`, `WIRE_MUX_ROUTING_PASS`, `WIRE_INTERPOSER_LINUX_PASS`; no model compute.
+Record: [labs/spiralcore-wire-review-fixes-2026-10-18](../labs/spiralcore-wire-review-fixes-2026-10-18/README.md).
+PR: https://github.com/UOR-Foundation/uor-r4/pull/2614
+
 ## 2026-10-18  Wire transport side exploration merged (`deepseek/spiralcore-wire-side-exploration`)
 
 Merges the standalone wire-compression/transport work as a self-contained side exploration under

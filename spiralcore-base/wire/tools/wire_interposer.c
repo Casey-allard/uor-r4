@@ -107,8 +107,9 @@ static ssize_t sys_write(int fd, const void *buf, size_t len) {
 #endif
 
 typedef struct {
-    int active;
+    volatile int active;
     pthread_mutex_t lock;
+    pthread_mutex_t io_lock;   /* serializes recv only; never held by close/shutdown */
     int send_mode;   /* -1 undecided, 0 compressed, 1 raw */
     z_stream def;
     int def_init;
@@ -230,7 +231,10 @@ static void wire_interposer_ctor(void) {
     init_symbols();
     parse_routes();
     int i;
-    for (i = 0; i < MAX_FD; i += 1) pthread_mutex_init(&fds[i].lock, NULL);
+    for (i = 0; i < MAX_FD; i += 1) {
+        pthread_mutex_init(&fds[i].lock, NULL);
+        pthread_mutex_init(&fds[i].io_lock, NULL);
+    }
     g_ready = 1;
     atexit(dump_stats);
 }
@@ -559,9 +563,18 @@ ssize_t WIRE_API(recv)(int fd, void *buffer, size_t size, int flags) {
     if (!g_ready) return sys_recv(fd, buffer, size, flags);
     if (fd < 0 || fd >= MAX_FD || flags != 0 || !fds[fd].active) return sys_recv(fd, buffer, size, flags);
     FdState *state = &fds[fd];
+    pthread_mutex_lock(&state->io_lock);
     pthread_mutex_lock(&state->lock);
-    ssize_t result = read_frame(state, fd, buffer, size);
+    int active = state->active;
     pthread_mutex_unlock(&state->lock);
+    if (!active) {
+        pthread_mutex_unlock(&state->io_lock);
+        return sys_recv(fd, buffer, size, flags);
+    }
+    /* read_frame blocks on the socket; holding io_lock (not lock) keeps shutdown/close
+       responsive and avoids the close-behind-blocking-recv deadlock. */
+    ssize_t result = read_frame(state, fd, buffer, size);
+    pthread_mutex_unlock(&state->io_lock);
     return result;
 }
 
@@ -599,8 +612,11 @@ int WIRE_API(close)(int fd) {
     if (fd >= 0 && fd < MAX_FD && fds[fd].active) {
         FdState *state = &fds[fd];
         pthread_mutex_lock(&state->lock);
-        reset_state(state);
+        state->active = 0;
+        state->eof = 1;
         pthread_mutex_unlock(&state->lock);
+        /* Do not reset_state here: a blocking recv may still own the buffers.
+           The next connect on this fd resets them. */
     }
     return sys_close(fd);
 }
