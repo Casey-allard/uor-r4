@@ -1,3 +1,13 @@
+## 2026-10-18  Laptop/reap archive verification before pod destruction (deepseek)
+
+Closes the remaining pod-custody hole after #2629: the default laptop tar archive and reap paths
+destroyed the pod without verifying the copy, and reap deleted even when archiving failed. Adds a
+pod-vs-laptop count + sorted SHA-256 manifest digest check before delete; the ledger records
+verified/files/manifest_sha256; reap now retains the pod on archive failure. Dry-run suite 373 passed /
+0 failed, including a digest-mismatch retention case. Host-only, no model compute.
+Record: [labs/pod-laptop-archive-verify-2026-10-18](../labs/pod-laptop-archive-verify-2026-10-18/README.md).
+PR: (added after creation).
+
 ## 2026-10-18 — Explicit rows_v1 K16 timing adapter; existing A/R release sequence reconciled (Codex)
 
 Adds the default-preserving counterfactual selector to the standalone K16 timing instrument. Warmup and measured proposals use the production cached rows entry; plan, sample and cell receipts bind the actual path and rows image inventory. Unknown variants and rows with the lanes-only subphase profiler refuse before CUDA.100timed+1excluded, both policies and source-selection validation, synchronization, zero-apply and forward-only rate scope are unchanged. Host checks:49PASS/0FAIL/1ignored with1explicitly filtered inherited reuse-identity test; unfiltered49PASS/1FAIL/1ignored, caused by the historical frozen ordinary-source guard after#2601; no guard relaxed. Formatting/host Clippy pass with inherited warnings; CUDA/model/provider/scorer NOT_RUN. [Canonical source and limits](../labs/k16-rows-timing-source-2026-10-18/README.md). [Owner relay6250410397](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397) renews the existing FIT K16-A/R redirect on rows_v1, seeds1/2, Route/canonical16404each. [PM6250526855](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855): preparation GO; actual qualification, owner-waived two-cell checkpoint-0 A/R100sampletiming and accepted measured D-Packet precede training under the existing conditional release. No repeated strategic ownerack or imported K8/B3 gate. Claude owns R/K16 qualifier; Codex timing/operator/packet; AGY consumer; Kimi acceptance/dispatch. The separately consumed attention Q1 outcome is now independently reviewed as configured admission collapse with no implementation/identity fault found; no mechanism verdict, KEEP, paired advantage, fresh result or reset. Reply37/232 SUSPENDED and attention count0/3 remain. $0 new paid resource.

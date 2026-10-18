@@ -20,12 +20,96 @@
     "lab": "antigravity",
     "note": "Implement and wire un-dispatched harness.owner_rules_applied, harness.entry_point, harness.documented_commands (with GROUPS/FLAGS validation), prlint.gates_declared, and receipts.skill_usage_recorded in uor-r4-harness (#2570)"
   },
+  "claude/batched-coordinates-draft-20261018": {
+    "branch": "claude/batched-coordinates-draft-20261018",
+    "claimed_at": "2026-10-18T02:18:32-04:00",
+    "head": "9a3434259",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/c1-coupling-draft-20261018": {
+    "branch": "claude/c1-coupling-draft-20261018",
+    "claimed_at": "2026-10-17T23:08:55-04:00",
+    "head": "d1f0a9a99",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/claim-wording-rust-20261018": {
+    "branch": "claude/claim-wording-rust-20261018",
+    "claimed_at": "2026-10-17T23:48:09-04:00",
+    "head": "53b90576e",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/counterfactual-rows-20261018": {
+    "branch": "claude/counterfactual-rows-20261018",
+    "claimed_at": "2026-10-18T00:34:26-04:00",
+    "head": "02bbefd6e",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/driver-rows-path-20261018": {
+    "branch": "claude/driver-rows-path-20261018",
+    "claimed_at": "2026-10-18T00:39:46-04:00",
+    "head": "32c096c58",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/relation-r-draft-20261018": {
+    "branch": "claude/relation-r-draft-20261018",
+    "claimed_at": "2026-10-18T10:24:44-04:00",
+    "head": "2a40287de",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/rows-qual-fixes-20261018": {
+    "branch": "claude/rows-qual-fixes-20261018",
+    "claimed_at": "2026-10-18T00:46:33-04:00",
+    "head": "7eae5dcc0",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/rows-r-objective-20261018": {
+    "branch": "claude/rows-r-objective-20261018",
+    "claimed_at": "2026-10-18T09:22:09-04:00",
+    "head": "fb9e004fb",
+    "lab": "claude",
+    "note": ""
+  },
+  "claude/starling-brief-20261018": {
+    "branch": "claude/starling-brief-20261018",
+    "claimed_at": "2026-10-17T22:53:57-04:00",
+    "head": "4f3dff6f8",
+    "lab": "claude",
+    "note": ""
+  },
+  "codex/cf1-attention-rows-q1-result": {
+    "branch": "codex/cf1-attention-rows-q1-result",
+    "claimed_at": "2026-10-18T04:24:12-04:00",
+    "head": "e002430a0",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/cf1-k16-rows-timing": {
     "branch": "codex/cf1-k16-rows-timing",
     "claimed_at": "2026-10-18T09:27:38-04:00",
     "head": "fb9e004fb",
     "lab": "codex",
     "note": ""
+  },
+  "codex/docs-research-front-door": {
+    "branch": "codex/docs-research-front-door",
+    "claimed_at": "2026-10-18T06:28:47+00:00",
+    "head": "9a343425",
+    "lab": "codex",
+    "note": "Documentation reconciliation only; draft PR and independent parent review; no model compute or resource actions"
+  },
+  "deepseek/pod-laptop-archive-verify": {
+    "branch": "deepseek/pod-laptop-archive-verify",
+    "claimed_at": "2026-10-18T10:12:45-04:00",
+    "head": "43bca5e15",
+    "lab": "deepseek",
+    "note": "Add pre-delete verification to the laptop tar archive path and make reap retain a pod when archive verification fails; dry-run tests. Host-only, no model compute."
   },
   "kimi/dose1-dispatch-record-2026-10-18": {
     "branch": "kimi/dose1-dispatch-record-2026-10-18",

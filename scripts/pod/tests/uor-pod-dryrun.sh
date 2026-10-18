@@ -202,6 +202,12 @@ case "$c" in
     m=$(printf '%s' "$c" | sed -n 's|.*> \([^ ]*\.sha256\).*|\1|p')
     n=$(find "$FAKE/vast-ws/$d" -type f 2>/dev/null | wc -l | tr -d " ")
     : > "$f"; : > "$m"; i=0; while [ "$i" -lt "$n" ]; do echo "./f$i" >> "$f"; echo "HASH  ./f$i" >> "$m"; i=$((i+1)); done; exit 0;;
+  *"ARCHIVE_FILES="*)
+    out=$(PATH="$W/bin:$PATH" bash -c "${c//\/workspace/$FAKE/vast-ws}")
+    rc=$?
+    case "$FAKE_ARCHIVE_MISMATCH" in 1) out=$(printf "%s\n" "$out" | sed "s/^ARCHIVE_SUM=.*/ARCHIVE_SUM=deadbeef/");; esac
+    printf "%s\n" "$out"
+    exit $rc;;
   *"/root/uor-store put "*) exit 0;;
 esac
 # the bootstrap run (non-dry tests): 40 lines of output, then either the failure
@@ -1013,17 +1019,26 @@ if jq -e '."vast-9001" | .provider == "vast" and .off_volume == true and .canoni
   ok "the Vast pod is cached as vast-9001 under the creator's lease"; else bad "the Vast pod is cached as vast-9001 under the creator's lease"; fi
 vexpect "run on the Vast pod" 0 "Started on vast-9001 gpu 0" -- run vast-9001 "${X1[@]}" --gpu 0 -- nvidia-smi -L
 # only jobs/ exists (as on a fresh pod): the missing pods/runs/evals are skipped
-mkdir -p "$FAKE/vast-ws/uor-r4/jobs/codex"; echo result > "$FAKE/vast-ws/uor-r4/jobs/codex/r.log"
+mkdir -p "$FAKE/vast-ws/uor-r4/jobs/codex"; echo result > "$FAKE/vast-ws/uor-r4/jobs/codex/r.log"; echo second > "$FAKE/vast-ws/uor-r4/jobs/codex/r2.log"
 FAKE_VAST_KB=$((6 * 1024 * 1024)) vexpect "down refuses when the results are too big for the laptop" 1 "results not archived .*nothing deleted" -- down vast-9001 "${X1[@]}"
 has "the refusal says how big" "holds 6144 MB of results \\(over 5120 MB"
 if jq -e 'any(.[]; .id == 9001)' "$FAKE/vast-instances.json" >/dev/null; then ok "nothing was destroyed"; else bad "nothing was destroyed"; fi
+FAKE_ARCHIVE_MISMATCH=1 vexpect "down refuses when the laptop archive verification fails" 1 "ARCHIVE VERIFICATION FAILED.*pod retained" -- down vast-9001 "${X1[@]}"
+if jq -e 'any(.[]; .id == 9001)' "$FAKE/vast-instances.json" >/dev/null; then ok "the pod is retained after a failed laptop archive check"; else bad "the pod is retained after a failed laptop archive check"; fi
 vexpect "down archives the results, then destroys" 0 "Deleted vast-9001" -- down vast-9001 "${X1[@]}"
 has "the archive is reported" "Archived 0 MB of vast-9001 results to $UOR_POD_STATE/vast-archive/vast-9001"
 if [ "$(cat "$UOR_POD_STATE/vast-archive/vast-9001/uor-r4/jobs/codex/r.log" 2>/dev/null)" = result ]; then ok "the results are on the laptop"; else bad "the results are on the laptop"; fi
 if grep -q '^vastai destroy instance 9001$' "$FAKE/calls" && [ "$(jq length "$FAKE/vast-instances.json")" = 0 ]; then
   ok "destroy answered the [y/N] prompt and the instance is gone"; else bad "destroy answered the [y/N] prompt and the instance is gone"; fi
-if grep '"event":"vast-archive"' "$UOR_POD_STATE/ledger.jsonl" | jq -e --arg d "$UOR_POD_STATE/vast-archive/vast-9001" '.dest == $d and .kb > 0' >/dev/null; then
-  ok "the archive is in the ledger"; else bad "the archive is in the ledger"; fi
+if grep '"event":"vast-archive"' "$UOR_POD_STATE/ledger.jsonl" | jq -e --arg d "$UOR_POD_STATE/vast-archive/vast-9001" '.dest == $d and .kb > 0 and .verified == true and .files == 2' >/dev/null; then
+  ok "the verified archive is in the ledger"; else bad "the verified archive is in the ledger"; fi
+# a fresh pod whose only results directory is empty must still verify (0 files == 0)
+vfresh; VO RTX_5090 1 "$OFF5"; echo 7001 > "$FAKE/vast-gone"
+vexpect "Vast up for the empty-results archive case" 0 "SSH ready after" -- up "${X1[@]}" --gpu 5090 --count 1 --purpose vast --hours 1 --ref "$MAIN_SHA" --no-bootstrap
+rm -rf "$FAKE/vast-ws"; mkdir -p "$FAKE/vast-ws/uor-r4/jobs/codex"
+vexpect "down archives an empty results dir and verifies 0 files" 0 "Archived 0 MB" -- down vast-9001 "${X1[@]}"
+if grep '"event":"vast-archive"' "$UOR_POD_STATE/ledger.jsonl" | jq -e '.verified == true and .files == 0' >/dev/null; then
+  ok "an empty results dir verifies 0 files"; else bad "an empty results dir verifies 0 files"; fi
 # a bootstrap failure destroys the new Vast pod as well
 vfresh; VO RTX_5090 1 "$OFF5"
 FAKE_BOOT_RC=2 vexpect "a failed Vast bootstrap destroys the instance" 1 "bootstrap failed: deleting pod vast-9001" -- up --lab claude --session vboot --gpu 5090 --count 1 --purpose vast --hours 1 --ref "$MAIN_SHA"

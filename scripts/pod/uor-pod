@@ -1507,6 +1507,35 @@ cmd_release() {
 # result directories are copied to $STATE/vast-archive/<pod>/ on this laptop
 # (move them on to iCloud with cloud-store). Results above VAST_ARCHIVE_MAX_MB
 # are refused: the laptop disk is small, so those go to the store by hand.
+# Verify a laptop archive against the pod before the pod may be destroyed: same relative file set
+# (count) and the same SHA-256 manifest digest. This is the laptop-path counterpart of the store
+# read-back in vast_archive_store; a failed check returns 1 so down/reap retain the pod.
+verify_laptop_archive() {  # POD DEST DIRS -> 0 when count and digest match
+  local pod=$1 dest=$2 have=$3 pod_line pod_files pod_sum local_files local_sum
+  if is_dry; then
+    echo "DRY-RUN: verify $pod archive count + SHA-256 manifest before any delete" >&2
+    return 0
+  fi
+  pod_line=$(pod_ssh "$pod" "cd /workspace && f=\$(mktemp) && find $have -type f -print0 > \$f && LC_ALL=C sort -z \$f -o \$f && echo ARCHIVE_FILES=\$(tr -cd '\000' < \$f | wc -c | tr -d ' ') && echo ARCHIVE_SUM=\$(xargs -0r sha256sum < \$f | sha256sum | cut -d' ' -f1) && rm -f \$f" </dev/null) ||
+    { warn "cannot reach $pod over SSH to verify the laptop archive"; return 1; }
+  pod_files=$(printf "%s\n" "$pod_line" | sed -n "s/^ARCHIVE_FILES=//p")
+  pod_sum=$(printf "%s\n" "$pod_line" | sed -n "s/^ARCHIVE_SUM=//p")
+  case $pod_files in ''|*[!0-9]*) warn "cannot count the results on $pod for archive verification"; return 1;; esac
+  [ -n "$pod_sum" ] || { warn "cannot hash the results on $pod for archive verification"; return 1; }
+  local_files=$(cd "$dest" && find $have -type f -print0 | tr -cd '\000' | wc -c | tr -d " ")
+  if command -v sha256sum >/dev/null 2>&1; then
+    local_sum=$(cd "$dest" && find $have -type f -print0 | LC_ALL=C sort -z | xargs -0r sha256sum | sha256sum | cut -d" " -f1)
+  else
+    local_sum=$(cd "$dest" && find $have -type f -print0 | LC_ALL=C sort -z | xargs -0r shasum -a 256 | shasum -a 256 | cut -d" " -f1)
+  fi
+  if [ "$pod_files" != "$local_files" ] || [ "$pod_sum" != "$local_sum" ]; then
+    warn "ARCHIVE VERIFICATION FAILED for $pod: pod ${pod_files} files/${pod_sum}, laptop ${local_files} files/${local_sum}; pod retained"
+    return 1
+  fi
+  VERIFIED_FILES=$local_files
+  VERIFIED_DIGEST=$local_sum
+  return 0
+}
 vast_archive() {  # POD -> 0 when archived (or nothing to archive)
   local pod=$1 have kb dest
   # (the loop ends `true`: a missing last directory is not an SSH failure)
@@ -1526,8 +1555,11 @@ vast_archive() {  # POD -> 0 when archived (or nothing to archive)
   # shellcheck disable=SC2086
   pod_ssh "$pod" "cd /workspace && tar -cf - $(echo $have)" </dev/null | tar -xf - -C "$dest" ||
     { warn "copying the results of $pod failed (partial copy in $dest)"; return 1; }
-  lock_acquire; ledger vast-archive "${LAB:-?}" "$pod" "$(jq -cn --arg d "$dest" --argjson kb "$kb" '{dest: $d, kb: $kb}')"; lock_release
-  echo "Archived $((kb / 1024)) MB of $pod results to $dest (move them to iCloud: cloud-store put <lab> $dest)"
+  VERIFIED_FILES=
+  VERIFIED_DIGEST=
+  verify_laptop_archive "$pod" "$dest" "$have" || return 1
+  lock_acquire; ledger vast-archive "${LAB:-?}" "$pod" "$(jq -cn --arg d "$dest" --argjson kb "$kb" --argjson files "$VERIFIED_FILES" --arg digest "$VERIFIED_DIGEST" '{dest: $d, kb: $kb, verified: true, files: $files, manifest_sha256: $digest}')"; lock_release
+  echo "Archived $((kb / 1024)) MB of $pod results to $dest (verified $VERIFIED_FILES files; move them to iCloud: cloud-store put <lab> $dest)"
 }
 
 # down --to-store: the pod uploads its result directories to the HF store
@@ -1664,7 +1696,12 @@ cmd_reap() {
       continue
     fi
     echo "$id: no live lease, idle $(( (now - since) / 60 )) min — deleting"
-    if is_vast "$id"; then vast_archive "$id" || warn "$id: archive failed; reaping anyway (idle with no live lease: durable output belongs off the pod)"; fi
+    if is_vast "$id"; then
+      if ! vast_archive "$id"; then
+        warn "$id: archive failed; NOT reaping (pod retained). Archive by hand, then down --confirm-archived"
+        continue
+      fi
+    fi
     pod_delete "$id" >/dev/null || { warn "delete of $id not confirmed: $(delete_hint "$id")"; continue; }
     lock_acquire
     if ! is_dry; then rm -f "$f"; cache_put "$id" '{"deleted": true}'; fi
