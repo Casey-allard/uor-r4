@@ -319,6 +319,11 @@ pub fn pull_expected<R: Read, W: Write>(
     pull_selected(store, expected, None, reader, writer)
 }
 
+/// Client-side FETCH pipelining: how many FETCH frames may be in flight before their NODES replies
+/// are read in order. Kept conservative by default because every frame is a full batch; the CLI
+/// exposes --fetch-window so a high-latency run can be tuned or held at 1 for lock-step behavior.
+pub const DEFAULT_FETCH_WINDOW: usize = 4;
+
 /// Pull the object selected by a 32-byte whole-object SHA-256 or manifest version. None keeps the
 /// original behavior (the peer's first/default object).
 pub fn pull_selected<R: Read, W: Write>(
@@ -328,7 +333,41 @@ pub fn pull_selected<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
 ) -> Result<(Manifest, PullStats)> {
-    pull_one(store, expected, selector, true, None, reader, writer)
+    pull_one(
+        store,
+        expected,
+        selector,
+        PullOptions {
+            send_done: true,
+            batch: None,
+            window: DEFAULT_FETCH_WINDOW,
+        },
+        reader,
+        writer,
+    )
+}
+
+/// Pull the default object with an explicit pipelining window; window 1 reproduces lock-step.
+pub fn pull_selected_with_window<R: Read, W: Write>(
+    store: &mut Store,
+    expected: Option<ExpectedObject>,
+    selector: Option<[u8; 32]>,
+    window: usize,
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<(Manifest, PullStats)> {
+    pull_one(
+        store,
+        expected,
+        selector,
+        PullOptions {
+            send_done: true,
+            batch: None,
+            window,
+        },
+        reader,
+        writer,
+    )
 }
 
 /// Pull with an explicit FETCH batch size, clamped to 1..=65535: raise it on high-latency links.
@@ -340,7 +379,39 @@ pub fn pull_selected_with_batch<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
 ) -> Result<(Manifest, PullStats)> {
-    pull_one(store, expected, selector, true, Some(batch), reader, writer)
+    pull_selected_with_batch_window(
+        store,
+        expected,
+        selector,
+        batch,
+        DEFAULT_FETCH_WINDOW,
+        reader,
+        writer,
+    )
+}
+
+/// Pull with an explicit FETCH batch size and a pipelining window; window 1 is the old lock-step path.
+pub fn pull_selected_with_batch_window<R: Read, W: Write>(
+    store: &mut Store,
+    expected: Option<ExpectedObject>,
+    selector: Option<[u8; 32]>,
+    batch: usize,
+    window: usize,
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<(Manifest, PullStats)> {
+    pull_one(
+        store,
+        expected,
+        selector,
+        PullOptions {
+            send_done: true,
+            batch: Some(batch),
+            window,
+        },
+        reader,
+        writer,
+    )
 }
 
 /// One requested artifact in a pull series.
@@ -370,14 +441,29 @@ pub fn pull_series_with_batch<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
 ) -> Result<Vec<(Manifest, PullStats)>> {
+    pull_series_with_batch_window(store, requests, batch, DEFAULT_FETCH_WINDOW, reader, writer)
+}
+
+/// Pull a series with explicit batch and pipelining window; window 1 reproduces lock-step.
+pub fn pull_series_with_batch_window<R: Read, W: Write>(
+    store: &mut Store,
+    requests: &[PullRequest],
+    batch: Option<usize>,
+    window: usize,
+    reader: &mut R,
+    writer: &mut W,
+) -> Result<Vec<(Manifest, PullStats)>> {
     let mut results = Vec::with_capacity(requests.len());
     for request in requests {
         results.push(pull_one(
             store,
             request.expected,
             request.selector,
-            false,
-            batch,
+            PullOptions {
+                send_done: false,
+                batch,
+                window,
+            },
             reader,
             writer,
         )?);
@@ -386,12 +472,17 @@ pub fn pull_series_with_batch<R: Read, W: Write>(
     Ok(results)
 }
 
+struct PullOptions {
+    send_done: bool,
+    batch: Option<usize>,
+    window: usize,
+}
+
 fn pull_one<R: Read, W: Write>(
     store: &mut Store,
     expected: Option<ExpectedObject>,
     selector: Option<[u8; 32]>,
-    send_done: bool,
-    batch: Option<usize>,
+    options: PullOptions,
     reader: &mut R,
     writer: &mut W,
 ) -> Result<(Manifest, PullStats)> {
@@ -412,60 +503,41 @@ fn pull_one<R: Read, W: Write>(
         }
     }
 
-    let batch = batch
+    let batch = options
+        .batch
         .unwrap_or_else(|| batch_size(&limits))
         .clamp(1, u16::MAX as usize);
     let mut fetched: BTreeMap<NodeId, Record> = BTreeMap::new();
     let mut stats = PullStats::default();
+    // Bound in-flight request bytes as well as frame count: a window of huge batches could fill the
+    // socket buffers and block the reply path. 256 KiB of outstanding FETCH requests is conservative;
+    // very large batches therefore degrade to lock-step instead of risking a stall.
+    let window = options
+        .window
+        .max(1)
+        .min((262_144 / (2 + 12 * batch)).max(1));
     loop {
         let missing = missing_nodes(store, &manifest, &fetched)?;
         if missing.is_empty() {
             break;
         }
-        for chunk in missing.chunks(batch) {
-            let mut request = Vec::with_capacity(2 + 12 * chunk.len());
-            request.extend_from_slice(&(chunk.len() as u16).to_be_bytes());
-            for id in chunk {
-                request.extend_from_slice(id);
-            }
-            write_msg(writer, FETCH, &request)?;
-            let (kind, body) = read_msg(reader, &limits)?;
-            if kind != NODES {
-                return Err(Error::SchemaMismatch);
-            }
-            if body.len() < 2 {
-                return Err(Error::SchemaMismatch);
-            }
-            let count = u16::from_be_bytes([body[0], body[1]]) as usize;
-            if count != chunk.len() {
-                return Err(Error::IntegrityFailure);
-            }
-            let mut offset = 2usize;
-            for _ in 0..count {
-                if offset >= body.len() {
-                    return Err(Error::SchemaMismatch);
+        let chunks: Vec<&[NodeId]> = missing.chunks(batch).collect();
+        for group in chunks.chunks(window) {
+            for chunk in group {
+                let mut request = Vec::with_capacity(2 + 12 * chunk.len());
+                request.extend_from_slice(&(chunk.len() as u16).to_be_bytes());
+                for id in *chunk {
+                    request.extend_from_slice(id);
                 }
-                let size = record_size(body[offset]);
-                let end = offset.checked_add(size).ok_or(Error::SchemaMismatch)?;
-                let record = Record::decode(body.get(offset..end).ok_or(Error::SchemaMismatch)?)?;
-                offset = end;
-                if !chunk.contains(&record.id()) {
-                    return Err(Error::IntegrityFailure);
-                }
-                if fetched.insert(record.id(), record).is_some() {
-                    return Err(Error::IntegrityFailure);
-                }
-                stats.nodes_requested += 1;
-                stats.record_bytes += size as u64;
+                write_msg(writer, FETCH, &request)?;
             }
-            if offset != body.len() {
-                return Err(Error::SchemaMismatch);
-            }
-            stats.rounds += 1;
-            if stats.nodes_requested > limits.max_records as u64
-                || stats.record_bytes > limits.max_record_bytes as u64
-            {
-                return Err(Error::LimitExceeded("pull budget"));
+            for chunk in group {
+                read_fetch_response(reader, &limits, chunk, &mut fetched, &mut stats)?;
+                if stats.nodes_requested > limits.max_records as u64
+                    || stats.record_bytes > limits.max_record_bytes as u64
+                {
+                    return Err(Error::LimitExceeded("pull budget"));
+                }
             }
         }
     }
@@ -489,7 +561,7 @@ fn pull_one<R: Read, W: Write>(
         encoded.extend_from_slice(&record.encode());
     }
     store.import_records(&encoded)?;
-    if send_done {
+    if options.send_done {
         write_msg(writer, DONE, &[])?;
     }
 
@@ -501,6 +573,48 @@ fn pull_one<R: Read, W: Write>(
     Ok((manifest, stats))
 }
 
+fn read_fetch_response<R: Read>(
+    reader: &mut R,
+    limits: &Limits,
+    chunk: &[NodeId],
+    fetched: &mut BTreeMap<NodeId, Record>,
+    stats: &mut PullStats,
+) -> Result<()> {
+    let (kind, body) = read_msg(reader, limits)?;
+    if kind != NODES {
+        return Err(Error::SchemaMismatch);
+    }
+    if body.len() < 2 {
+        return Err(Error::SchemaMismatch);
+    }
+    let count = u16::from_be_bytes([body[0], body[1]]) as usize;
+    if count != chunk.len() {
+        return Err(Error::IntegrityFailure);
+    }
+    let mut offset = 2usize;
+    for _ in 0..count {
+        if offset >= body.len() {
+            return Err(Error::SchemaMismatch);
+        }
+        let size = record_size(body[offset]);
+        let end = offset.checked_add(size).ok_or(Error::SchemaMismatch)?;
+        let record = Record::decode(body.get(offset..end).ok_or(Error::SchemaMismatch)?)?;
+        offset = end;
+        if !chunk.contains(&record.id()) {
+            return Err(Error::IntegrityFailure);
+        }
+        if fetched.insert(record.id(), record).is_some() {
+            return Err(Error::IntegrityFailure);
+        }
+        stats.nodes_requested += 1;
+        stats.record_bytes += size as u64;
+    }
+    if offset != body.len() {
+        return Err(Error::SchemaMismatch);
+    }
+    stats.rounds += 1;
+    Ok(())
+}
 /// Check whether this store already holds the peer's object without fetching records or rebuilding
 /// the payload. An expected pin is checked against the peer manifest first. verified means the local
 /// store's closure for the pinned manifest is complete; a byte-level re-hash requires pull.

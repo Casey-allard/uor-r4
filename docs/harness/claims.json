@@ -90,6 +90,13 @@
     "lab": "codex",
     "note": ""
   },
+  "deepseek/object-store-pipelined-fetch": {
+    "branch": "deepseek/object-store-pipelined-fetch",
+    "claimed_at": "2026-10-18T01:44:13-04:00",
+    "head": "e7472f117",
+    "lab": "deepseek",
+    "note": "Pipelined FETCH window for objpeer pull (default 64, --fetch-window opt-out), host-only latency proxy + same-run batch/window matrix; no protocol change, no model compute."
+  },
   "kimi/optimization-path-2026-10-18": {
     "branch": "kimi/optimization-path-2026-10-18",
     "claimed_at": "2026-10-17T21:10:00-04:00",
