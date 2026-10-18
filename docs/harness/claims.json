@@ -363,6 +363,13 @@
     "lab": "kimi",
     "note": "Docs-only: course-correction PR-B (mechanism-page corrections, Yazan must-dos, contributor on-ramp, README stats). No source/science changes."
   },
+  "kimi/pr-d-plan": {
+    "branch": "kimi/pr-d-plan",
+    "claimed_at": "2026-10-18T13:56:19-04:00",
+    "head": "0122737e9",
+    "lab": "kimi",
+    "note": ""
+  },
   "kimi/wire-counter-aggregation-2026-10-18": {
     "branch": "kimi/wire-counter-aggregation-2026-10-18",
     "claimed_at": "2026-10-18T03:14:52-04:00",
