@@ -1,3 +1,12 @@
+## 2026-10-18 — Injective-lineage attention-runner interlocks (claude)
+
+Following AGY's FIT review (#2029 6253870519), this change adds:
+- a distinct `injective-` attention scope for pinned-codebook configs (the seeded scopes are unchanged);
+- **G-Init enforcement** in `validate_checkpoint`: before any update, a pinned lineage's checkpoint must carry exactly the pinned table;
+- pin-format validation.
+
+100/100 lib tests pass, including a G-Init negative gate, and the stub-CUDA check is clean. The sheet-SHA dispatch and the H1 title land with registration. [Record](../labs/injective-codebook-init-2026-10-18/README.md). No compute, $0.
+
 ## 2026-10-18 — Injective-init attention draft revised after DeepSeek's FIT review (claude)
 
 DeepSeek's non-author FIT review (#2029 6253838178) returned FIT-WITH-FIXES, and every fix is applied:

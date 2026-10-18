@@ -131,8 +131,14 @@ pub fn scope(config: &DriverConfig) -> Result<String> {
             "attention requires a separate seed-1 or seed-2 release",
         ));
     }
+    // A pinned initial codebook is a distinct lineage, never the seeded-init scope.
+    let lineage = if config.codebook_initialization.is_seeded_device() {
+        ""
+    } else {
+        "injective-"
+    };
     Ok(format!(
-        "m1-attention-learning-{arm}-k8-seed{}-batches0..16404",
+        "m1-attention-learning-{lineage}{arm}-k8-seed{}-batches0..16404",
         config.seed
     ))
 }
@@ -1487,6 +1493,33 @@ mod tests {
         wrong = p;
         wrong.cost_contract.max_batches = ATTENTION_BATCHES + 1;
         assert!(validate_plan_header(&wrong).is_err());
+        Ok(())
+    }
+    #[test]
+    fn pinned_codebook_lineage_has_its_own_scope() -> Result<()> {
+        let seeded = config(ReadSpec::Relation { kept: 8, sweeps: 1 });
+        // The seeded (Dose 1) scope string is unchanged by this field.
+        assert_eq!(
+            scope(&seeded)?,
+            "m1-attention-learning-relation-k8-seed1-batches0..16404"
+        );
+        let mut pinned = seeded.clone();
+        pinned.codebook_initialization = training::CodebookInitialization::PinnedTableV1 {
+            table: FilePin {
+                path: PathBuf::from("/codebook.json"),
+                sha256: "a".repeat(64),
+            },
+        };
+        assert_eq!(
+            scope(&pinned)?,
+            "m1-attention-learning-injective-relation-k8-seed1-batches0..16404"
+        );
+        let mut control = pinned.clone();
+        control.relation_learning_policy = training::RelationLearningPolicy::FrozenZeroV1;
+        assert_eq!(
+            scope(&control)?,
+            "m1-attention-learning-injective-relation-frozen-zero-k8-seed1-batches0..16404"
+        );
         Ok(())
     }
     #[test]

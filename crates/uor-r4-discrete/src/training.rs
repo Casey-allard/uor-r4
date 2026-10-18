@@ -182,6 +182,9 @@ pub struct DriverConfig {
 impl DriverConfig {
     pub fn validate(&self) -> Result<()> {
         self.read_spec.validate(self.spec)?;
+        if let CodebookInitialization::PinnedTableV1 { table } = &self.codebook_initialization {
+            corpus::validate_sha256(&table.sha256)?;
+        }
         if !self.read_initialization.is_zero_gates()
             && (self.read_spec == ReadSpec::Route
                 || self.schedule != SchedulePolicy::InterleavedReadEvery8V1)
@@ -538,6 +541,17 @@ impl PreparedDriver {
             ));
         }
         self.validate_cursor(&checkpoint.cursor)?;
+        // G-Init: before any accepted update, a pinned lineage carries exactly
+        // its pinned codebook (no substituted or seeded table under its lineage).
+        if let Some(table) = &self.initial_table {
+            if checkpoint.cursor.accepted_updates == 0
+                && checkpoint.model.get("table") != Some(&serde_json::json!(table))
+            {
+                return Err(invalid(
+                    "pinned-codebook checkpoint before any update differs from its pinned table",
+                ));
+            }
+        }
         corpus::validate_sha256(&checkpoint.model_sha256)?;
         if corpus::sha256(
             &serde_json::to_vec(&checkpoint.model).map_err(|e| invalid(e.to_string()))?,
@@ -930,6 +944,46 @@ mod tests {
                 Err(Error::TrainingHeld)
             ));
         }
+        Ok(())
+    }
+    #[test]
+    fn pinned_lineage_refuses_a_substituted_table_before_any_update() -> Result<()> {
+        let mut driver = metadata_fixture(1, ReadSpec::Route)?;
+        let pinned: Vec<i32> = vec![7; 16];
+        driver.initial_table = Some(pinned.clone());
+        // Storage-header fixture only; no GPU model or numeric reference is constructed.
+        let header = |table: &[i32]| json!({"schema":crate::SCHEMA,"spec":driver.config.spec,"read_spec":driver.config.read_spec,"seed":1,"epoch":0,"table":table,"source_sha256":"0".repeat(64),"kernel_sha256":"1".repeat(64),"geometry_sha256":"2".repeat(64)});
+        let checkpoint = |model: Value, cursor: Cursor| -> Result<DriverCheckpoint> {
+            Ok(DriverCheckpoint {
+                schema: CHECKPOINT_SCHEMA.into(),
+                lineage: driver.lineage.clone(),
+                cursor,
+                model_sha256: corpus::sha256(
+                    &serde_json::to_vec(&model).map_err(|e| invalid(e.to_string()))?,
+                ),
+                model,
+            })
+        };
+        driver.validate_checkpoint(&checkpoint(header(&pinned), Cursor::initial())?)?;
+        let mut swapped = pinned.clone();
+        swapped[0] = 8;
+        let refused = driver.validate_checkpoint(&checkpoint(header(&swapped), Cursor::initial())?);
+        assert!(refused.is_err_and(|e| e.to_string().contains("differs from its pinned table")));
+        // A missing table is no substitute either.
+        let mut absent = header(&pinned);
+        absent.as_object_mut().map(|m| m.remove("table"));
+        assert!(driver
+            .validate_checkpoint(&checkpoint(absent, Cursor::initial())?)
+            .is_err());
+        // A malformed pin hash is refused at config validation.
+        let mut config = driver.config.clone();
+        config.codebook_initialization = CodebookInitialization::PinnedTableV1 {
+            table: FilePin {
+                path: std::path::PathBuf::from("/codebook.json"),
+                sha256: "not-a-digest".into(),
+            },
+        };
+        assert!(config.validate().is_err());
         Ok(())
     }
     #[test]

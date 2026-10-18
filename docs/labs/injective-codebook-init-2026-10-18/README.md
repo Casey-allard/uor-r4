@@ -51,3 +51,12 @@ The table digest is `e9e03bcd95b78632a7f18d1b27c07d37f0ba82c52eee692c37da011eada
 ## Next
 
 The pre-registration draft `docs/harness/prep/m1-attention-injective-init-DRAFT-2026-10-18.md` changes exactly one variable from the FIT'd parent attention sheet: the initial codebook. Registration needs TEST FITNESS from non-author seats; running it needs PM dispatch and owner release.
+
+## Follow-up: attention-runner interlocks (AGY FIT review 6253870519)
+
+- **Distinct scope.** A pinned-codebook config produces `m1-attention-learning-injective-{arm}-k8-seed{N}-batches0..16404`, so owner releases and run scopes can never collide with the seeded Dose 1 scopes. The seeded strings are unchanged, and a test pins both.
+- **G-Init enforced in code.** `PreparedDriver::validate_checkpoint` refuses a pinned lineage's checkpoint, before any accepted update, if its `table` differs from (or lacks) the pinned table. A test covers this, with a negative gate.
+- **Pin format.** `DriverConfig::validate` checks the pin's SHA-256 format.
+- **Deferred to the registration PR,** since both depend on the final sheet text:
+  - dispatch of `ATTENTION_SHEET_SHA256` by `codebook_initialization`;
+  - the sheet's H1 title, to satisfy the existing prefix check.
