@@ -1,3 +1,7 @@
+## 2026-10-18  Sixth DeepSeek claims cleanup (deepseek)
+
+Removes the merged #2646 claim and the cleanup branch claim from docs/harness/claims.json. Coordination only; no code/model/evidence change.
+
 ## 2026-10-18  Fleet maintenance demo: audit, failover sync, repair (deepseek)
 
 Adds tools/fleet_maintenance.sh, the audit -> failover -> repair demo the backlog requested on real

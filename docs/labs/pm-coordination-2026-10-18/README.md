@@ -38,3 +38,7 @@ The claim that rode merged PR #2638 (pipelined FETCH) and this cleanup branch cl
 ## Fifth claims cleanup (2026-10-18)
 
 The claim that rode merged PR #2641 (cold-join benchmark) and this cleanup branch claim were removed from docs/harness/claims.json. No code, model or evidence change.
+
+## Sixth claims cleanup (2026-10-18)
+
+The claim that rode merged PR #2646 (fleet maintenance demo) and this cleanup branch claim were removed from docs/harness/claims.json. No code, model or evidence change.
