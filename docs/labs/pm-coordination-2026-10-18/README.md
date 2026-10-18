@@ -42,3 +42,7 @@ The claim that rode merged PR #2641 (cold-join benchmark) and this cleanup branc
 ## Sixth claims cleanup (2026-10-18)
 
 The claim that rode merged PR #2646 (fleet maintenance demo) and this cleanup branch claim were removed from docs/harness/claims.json. No code, model or evidence change.
+
+## Seventh claims cleanup (2026-10-18)
+
+The claim that rode merged PR #2649 (UOROBJ01 conformance) and this cleanup branch claim were removed from docs/harness/claims.json. No code, model or evidence change.

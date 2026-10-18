@@ -1,3 +1,7 @@
+## 2026-10-18  Seventh DeepSeek claims cleanup (deepseek)
+
+Removes the merged #2649 claim and the cleanup branch claim from docs/harness/claims.json. Coordination only; no code/model/evidence change.
+
 ## 2026-10-18  UOROBJ01 non-Rust conformance run (deepseek)
 
 Runs the pure-Python port_agent.py peer against the Rust objpeer server: stale audit (exit 3), pinned
