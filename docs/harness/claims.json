@@ -34,17 +34,10 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/bvgk-registration-prep-20261018": {
-    "branch": "claude/bvgk-registration-prep-20261018",
-    "claimed_at": "2026-10-18T16:49:27-04:00",
-    "head": "e5c3dc4f5",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/bvgk-rowsk-scoring-20261018": {
-    "branch": "claude/bvgk-rowsk-scoring-20261018",
-    "claimed_at": "2026-10-18T16:56:39-04:00",
-    "head": "948744c99",
+  "claude/bvgk-fit-fixes-20261018": {
+    "branch": "claude/bvgk-fit-fixes-20261018",
+    "claimed_at": "2026-10-18T17:10:46-04:00",
+    "head": "076fc82af",
     "lab": "claude",
     "note": ""
   },

@@ -189,6 +189,12 @@ impl Device {
     }
 }
 
+/// The embedded K-coordinate source begins with the embedded row-parallel
+/// source byte for byte (the rows image is unchanged; rows-K only appends).
+pub fn rowsk_extends_rows_source() -> bool {
+    ROWSK_SOURCE.starts_with(super::rows_device::ROWS_SOURCE)
+}
+
 /// Identity of the embedded K-coordinate image, without a CUDA context.
 pub fn compiled_rowsk_image_sha256() -> [String; 4] {
     [

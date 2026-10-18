@@ -33,18 +33,21 @@
 
 ## 2. The law: BVG-K
 
-**The schedule keeps the read share per coordinate, not per batch.** The cursor gains a **coordinate ordinal** `o`, separate from `completed_batches`. The existing interleaved order is walked by `o`, exactly as today's `coordinate_at(o)`.
-- Each batch takes the next **K coordinates of one kind**: K VectorBlock coordinates, or K read coordinates when the order reaches a read run.
-- Each kind's run is bounded by the next kind change.
-- So vector and read coordinates are visited in the **same proportions and order per pass** as K = 1. The read visits per vector pass are equal for both arms, and both are reported.
+**The schedule keeps the read share per coordinate, not per batch: per-family cursors (revised after AGY's FIT review 6255142621, P1).**
+
+Walking a single ordinal through today's interleaved order would cap blocks at the next kind change: at most 7 VectorBlock coordinates, and 1 read coordinate, under `InterleavedReadEvery8V1`. So the cursor instead keeps **two family cursors**, `o_vec` (VectorBlock) and `o_read` (Route or Gate), each walking its own family's ordinals in today's order:
+- **The batch's kind** follows today's rule on `completed_batches`. Under `InterleavedReadEvery8V1`, batch `b` is a read batch iff `b % 8 == 7`. Under `CanonicalVectorThenReadV1`, it follows the canonical vector-run/read-run order.
+- **A vector batch** takes the next `K` VectorBlock ordinals from `o_vec`. **A read batch** takes the next `min(K, reads remaining in the read family's pass)` read ordinals from `o_read`. Each family wraps at its own pass boundary, and a block never straddles a family pass.
+- **The ratio of read to vector coordinate visits** is therefore the same as at K = 1. Under `InterleavedReadEvery8V1` it is 1 read : 7 vector per 8 batches, whatever K is. Coordinates within each family are visited in today's order. Both families' per-pass visit counts are reported for every arm.
+- **At K = 1** the two cursors reproduce `coordinate_at(completed_batches)` exactly. Control V1 checks this bitwise.
 
 **For each batch:**
 1. **Score.** One launch computes the baseline once per row, the virtual moves per `(row, coordinate, lane)`, and one ordered reduction per `(coordinate, lane)`. This is the #2630 replay plus a coordinate axis, using the **same row-eligibility mask as the `rows_v1` counterfactual**. The per-coordinate chooser is unchanged, with the same tie rules as above.
-2. **Propose.** `S_t` is the coordinates whose chosen move strictly improves, ordered by coordinate ordinal. Let `best` be the member with the lowest single-move loss.
+2. **Propose.** `S_t` is the coordinates whose chosen move strictly improves, ordered by coordinate ordinal. Let `best` be the member with the lowest single-move loss. **Ties go to the lowest coordinate ordinal** (AGY P1b): batch losses are exact integers, so equal single-move losses happen.
 3. **Commit:**
    - `S_t` empty: commit nothing (a no-op batch), and advance `o` by the block.
    - `|S_t| = 1`: commit that move. **There is no verify forward**, so K = 1 pays no extra launch.
-   - `|S_t| ≥ 2`: one forward on the same batch, with all of `S_t` applied virtually, gives `L(S_t)`. **Commit whichever of `S_t` and `{best}` has the lower batch loss**, both scored on the same pre-commit state. Every committed state therefore strictly lowers this batch's loss. The joint verify is **required**, not optional, as section 2a explains.
+   - `|S_t| ≥ 2`: one forward on the same batch, with all of `S_t` applied virtually, gives `L(S_t)`. **Commit `S_t` only if `L(S_t) < L({best})` strictly; otherwise commit `{best}`** (so a tie commits the single move, the conservative choice). Both are scored on the same pre-commit state. Every committed state therefore strictly lowers this batch's loss. The joint verify is **required**, not optional, as section 2a explains.
 4. **Accounting:**
    - `epoch` advances **+1 per batch with a commit**, which is unchanged at K = 1.
    - A new `committed_moves` counter counts moves.
@@ -85,15 +88,16 @@ With K = 1, `S_t` is empty or one move, there is no verify, the epoch and cursor
 
 | ID | Control | Expectation |
 |---|---|---|
-| V1 | K = 1 identity | Over N batches, the state hash, epoch, accepted-update and cursor traces equal the current `rows_v1` law bitwise |
+| V1 | K = 1 identity | Over N batches, the state hash, epoch, accepted-update and cursor traces equal the current `rows_v1` law bitwise, and the two family cursors reproduce `coordinate_at(completed_batches)` under both schedules |
 | V2 | Scoring parity | For each coordinate in a block, the 16 losses equal an independent `propose_rows` for that coordinate on the same state |
 | V3 | Block apply = forced sequential apply | Committing `S` by block-apply leaves the same table, routes and gates as a **test-path forced apply of the same fixed ordinals**, one coordinate at a time. A re-proposal is not used, because it could choose differently or be refused with status 5 |
-| V4 | Joint-verify selection | A fixture with **two blocks of the same token** where each move improves alone but the pair worsens the batch: the single best is committed. A second fixture where the pair improves more than the best: the pair is committed |
+| V4 | Joint-verify selection | A fixture with **two blocks of the same token** where each move improves alone but the pair worsens the batch: the single best is committed. A second fixture where the pair improves more than the best: the pair is committed. Tie fixtures: two coordinates with equal single-move losses (the lowest ordinal is `best`), and `L(S_t) == L({best})` (the single move is committed) |
 | V5 | Monotonicity | On every committing batch of a short run, the committed loss is below `L_before` |
 | V6 | Refusals | `K ∉ 1..64`, a mixed-kind block, a stale epoch on block-apply, and inconsistent cursor counters on resume are refused with typed statuses and no state change |
 | V7 | D29 | The generated module carries no float, squash or matmul tokens and an exact entry list |
 | V8 | FrozenZero | At K = 16, every relation trit stays 0 over a schedule reaching every read coordinate, and the refused-slot count matches the re-derived ledger |
 | V9 | Checkpoint and resume | A run checkpointed mid-pass and resumed equals an uninterrupted run bitwise |
+| V10 | Opt-in identity (DeepSeek FIT 6255083238) | With `coordinate_block` absent (serde-skipped at 1), canonical config and lineage bytes and the default driver path are byte-identical to main; nothing selects K > 1 implicitly. The source, build, ELF, compiler, geometry and fixture hashes and the D29 entry census are bound at registration |
 
 ## 5. Bar
 
@@ -121,8 +125,10 @@ The Dose 1 TRAIN/DEV corpora and fresh-draw protocol, pinned exactly as in the f
 
 **Stage C: construction.** Source plus finite GPU controls, with zero corpus updates. It is configuration-agnostic, so it can proceed while the K16 redirect runs.
 1. The §1 hypothesis is now bound to the measured K16 profile (done above).
-2. Implement §3 as opt-in source. The default K = 1 is byte-identical, and `coordinate_block` is serde-skipped at 1.
-3. Run controls V1–V9 on one GPU. Also record a **latency curve**: per-launch latency at K ∈ {1, 4, 16} on the same state, the direct test of the §1 hypothesis. The finite controls need their own TEST FITNESS and owner release; they are not a training dose.
+2. **C1, scoring** (source on main via #2705; registered separately in `m1-bvgk-stagec-rowsk-qualification-2026-10-18.md`): V2, V6, V7 and the latency curve. That sheet pre-registers the curve protocol. **The curve is diagnostic for Stage T, not a quality gate.** Only a control failure stops the line (D31).
+3. **C2, block apply and schedule** (source next; registered with that source): the batched chooser, block apply, family cursors and `coordinate_block`, with controls V1, V3, V4, V5, V8, V9 and V10.
+
+The finite controls need their own TEST FITNESS, PM dispatch and owner release. They are not a training dose, and they make zero corpus updates and no checkpoint promotion. **No Stage C result sets a Stage T quality bar, margin or K selection.** Stage T fixes those at its own registration.
 
 **Stage T: training arms.** These are held until the K16 redirect outcome fixes the configuration of record (Route K16 A or R, or a successor).
 4. Re-base this sheet's configuration on the K16 outcome's configuration of record, and re-derive the Q1 placement, the per-family ledger and the margin from its dispersion.

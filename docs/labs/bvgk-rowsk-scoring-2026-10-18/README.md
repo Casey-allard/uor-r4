@@ -44,3 +44,12 @@ A non-author adversarial review returned APPROVE-WITH-NITS, with no correctness 
 - the racy-refusal retries now sit inside the unchanged-state check, and the record carries the observed set sizes;
 - each V6 refusal must carry its expected message;
 - V6 adds a Route-in-Relation case and a Gate-past-count case.
+
+## FIT fixes (follow-up PR)
+
+DeepSeek (6255083238, 6255181282) and AGY (6255142621, plus a piece-1 review at 21:13Z) returned FIT-WITH-FIXES. Applied:
+
+- **Latency protocol.** The qualifier now makes **1 excluded warmup + 20 timed** launches per K and reports the median (`times[10]`) and the nearest-rank p95. All raw samples are kept in the receipt, and the single-proposal reference gets the same treatment. All K use the same seed-1, checkpoint-0 state on the same pod.
+- **V0 identity preflight.** `rowsk-qualify` refuses to run unless the embedded `rowsk.cu` begins byte-for-byte with `rows.cu` (`rowsk_extends_rows_source`). The receipt records `driver_source_sha256()` and states the timing scope: host-callable calls, including allocation, copies and stream synchronization.
+- **V7.** The scans and receipts are now explicit. The D29 checker's stdout and its SHA are saved beside the receipt.
+- **Parent sheet.** Now has per-family cursors `(o_vec, o_read)`, explicit tie-breaks (lowest ordinal wins; S_t is committed only if `L(S_t) < L({best})`), V1 cursor reproduction, V4 tie fixtures and V10 opt-in identity. Stage C is split into C1 (scoring) and C2 (block apply). No Stage C result sets a Stage T bar.

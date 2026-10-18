@@ -383,18 +383,24 @@ fn latency_curve() -> Result<serde_json::Value> {
         .collect();
     let targets: Vec<u32> = (0..64).map(|_| rng.next(4096)).collect();
     let input = device.carry_windows(&batch)?;
-    let median = |mut f: Box<dyn FnMut() -> Result<()> + '_>| -> Result<u128> {
+    // Pre-registered protocol: 1 excluded warmup + TIMED synchronized samples;
+    // median and nearest-rank p95; every raw sample retained.
+    const TIMED: usize = 20;
+    let sample = |mut f: Box<dyn FnMut() -> Result<()> + '_>| -> Result<(u128, u128, Vec<u64>)> {
         f()?; // excluded warmup
-        let mut times = Vec::new();
-        for _ in 0..5 {
+        let mut times = Vec::with_capacity(TIMED);
+        for _ in 0..TIMED {
             let started = std::time::Instant::now();
             f()?;
             times.push(started.elapsed().as_nanos());
         }
+        let raw: Vec<u64> = times.iter().map(|&t| t as u64).collect();
         times.sort_unstable();
-        Ok(times[2])
+        // Nearest rank: ceil(0.95 * n) - 1, in integers.
+        let p95_index = (95 * TIMED).div_ceil(100) - 1;
+        Ok((times[TIMED / 2], times[p95_index], raw))
     };
-    let single_ns = median(Box::new(|| {
+    let (single_ns, single_p95, single_raw) = sample(Box::new(|| {
         device
             .propose_rows(&input, &targets, Parameter::VectorBlock(0), &rows)
             .map(|_| ())
@@ -410,20 +416,22 @@ fn latency_curve() -> Result<serde_json::Value> {
             scores[0].status == 0 && scores[0].losses == first,
             "latency-shape first coordinate differs from propose_rows",
         )?;
-        let ns = median(Box::new(|| {
+        let (ns, p95, raw) = sample(Box::new(|| {
             device
                 .score_rows_k(&input, &targets, &block, &rowsk)
                 .map(|_| ())
         }))?;
         cases.push(serde_json::json!({
-            "k": k, "block_median_ns": ns as u64,
+            "k": k, "block_median_ns": ns as u64, "block_p95_ns": p95 as u64, "raw_samples_ns": raw,
             "ns_per_coordinate": (ns / u128::from(k)) as u64,
             "speedup_x1000_vs_k_single_proposals": (single_ns * u128::from(k) * 1000 / ns.max(1)) as u64,
         }));
     }
     Ok(serde_json::json!({
-        "shape": "V4096/B4/C192/K16 Route objective A, 64 rows, VectorBlock 0..K, 1 warmup + 5 timed, median",
+        "shape": "V4096/B4/C192/K16 Route objective A, seed 1 checkpoint 0, 64 rows, VectorBlock 0..K, 1 warmup + 20 timed, median and nearest-rank p95",
         "single_propose_rows_median_ns": single_ns as u64,
+        "single_propose_rows_p95_ns": single_p95 as u64,
+        "single_propose_rows_raw_samples_ns": single_raw,
         "qualified": false,
         "cases": cases,
     }))
@@ -431,6 +439,11 @@ fn latency_curve() -> Result<serde_json::Value> {
 
 pub fn run(report: &Path) -> Result<()> {
     std::fs::create_dir(report).map_err(|e| Error::Invalid(format!("exclusive report: {e}")))?;
+    // V0 identity preflight: rows-K only appends to the unchanged rows source.
+    require(
+        crate::device::rowsk_extends_rows_source(),
+        "embedded rowsk.cu does not begin with the embedded rows.cu",
+    )?;
     let mut records = Vec::new();
     let mut failed = false;
     let controls: [(&str, Control); 2] = [
@@ -474,6 +487,9 @@ pub fn run(report: &Path) -> Result<()> {
         "latency_curve": latency,
         "rowsk_image_sha256": crate::device::compiled_rowsk_image_sha256(),
         "rows_image_sha256": crate::device::compiled_rows_image_sha256(),
+        "rowsk_extends_rows_source": true,
+        "driver_source_sha256": crate::training::driver_source_sha256(),
+        "latency_scope": "host-callable Device::score_rows_k vs Device::propose_rows, including per-call buffer allocation, host-to-device and device-to-host copies and stream synchronization",
         "training": "HELD",
         "applied_updates": 0,
     });
