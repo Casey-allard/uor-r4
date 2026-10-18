@@ -16,6 +16,8 @@ use std::{
 mod baseline_reuse_source;
 #[path = "../crates/uor-r4-discrete/src/decomposition_source.rs"]
 mod decomposition_source;
+#[path = "../crates/uor-r4-discrete/src/rows_source.rs"]
+mod rows_source;
 #[path = "../third_party/candle-kernels-0.9.2/entry_allowlist.rs"]
 mod entry_allowlist;
 mod native_dependency_boundary;
@@ -936,6 +938,22 @@ fn check_baseline_reuse_source(source: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn check_rows_source(source: &str) -> Result<(), String> {
+    let bad = forbidden_discrete_cuda(source);
+    if !bad.is_empty() {
+        return Err(format!(
+            "generated rows.cu forbidden discrete/D32 CUDA tokens: {bad:?}"
+        ));
+    }
+    let entries = global_entries(&code_cuda(source), true)?;
+    if entries != rows_source::ENTRIES {
+        return Err(format!(
+            "generated rows.cu global entry list differs: {entries:?}"
+        ));
+    }
+    Ok(())
+}
+
 fn quoted(text: &str) -> Result<Vec<String>, String> {
     let mut parts = text.split('"');
     let mut out = Vec::new();
@@ -1237,8 +1255,10 @@ fn verify(
     }
     let reuse_cu = baseline_reuse_source::generate(&discrete_cu)?;
     check_baseline_reuse_source(&reuse_cu)?;
+    let rows_cu = rows_source::generate(&discrete_cu)?;
+    check_rows_source(&rows_cu)?;
     checked.push(
-        "discrete CUDA kernel sources (discrete.cu + generated decomposition and baseline-reuse modules) D23/D25/D32 integer-only token and 11+1+1 entry census"
+        "discrete CUDA kernel sources (discrete.cu + generated decomposition, baseline-reuse and row-parallel modules) D23/D25/D32 integer-only token and 11+1+1+3 entry census"
             .into(),
     );
     check_standalone_instrument_inventory(repo)?;
@@ -1656,6 +1676,20 @@ fn main() {
         ))
         .expect("admitted ordinary source for separate R module");
         check_baseline_reuse_source(&reuse).expect("generated R integer entry");
+        let rows = rows_source::generate(include_str!(
+            "../crates/uor-r4-discrete/src/discrete.cu"
+        ))
+        .expect("admitted ordinary source for separate row-parallel module");
+        check_rows_source(&rows).expect("generated row-parallel integer entries");
+        assert!(
+            check_rows_source(&format!("{rows}\n__device__ auto injected() {{ return 1.0f; }}"))
+                .is_err(),
+            "floating literal injected into generated rows module must fail"
+        );
+        assert!(
+            check_rows_source(&format!("{rows}\n{multiline_decl}")).is_err(),
+            "extra generated rows entry must fail"
+        );
         assert!(
             check_baseline_reuse_source(&format!(
                 "{reuse}\n__device__ auto injected() {{ return 1.0f; }}"

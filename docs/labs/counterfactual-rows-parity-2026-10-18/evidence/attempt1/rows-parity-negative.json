@@ -1,0 +1,60 @@
+{
+  "applied_updates": 0,
+  "controls": [
+    {
+      "cases": 72,
+      "index": 1,
+      "name": "rows_route_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 72,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 108,
+      "index": 2,
+      "name": "rows_flock_gate_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 108,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 288,
+      "index": 3,
+      "name": "rows_relation_gate_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 288,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 1,
+      "error": "invalid discrete model: Gate(0): one path refused and the other did not: ordinary ok=false rows ok=false",
+      "index": 4,
+      "name": "rows_refusal_parity",
+      "status": "FAIL"
+    },
+    {
+      "cases": 2,
+      "error": "invalid discrete model: Gate(1): losses differ: ordinary [1344, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615] rows [1344, 0, 0, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615]",
+      "index": 5,
+      "name": "rows_forced_terminal_parity",
+      "status": "FAIL"
+    }
+  ],
+  "rows_image_sha256": [
+    "a863c8e8d9c1b1bd429741ac07d8367ca0216fd3ab35b9e9467aa3dc7f8efa3f",
+    "6a8c62f03c45c7173c3f10c8dac6424a71e649092bc573f7ae1fed22e63ba8a0",
+    "1a5c5cd70667604d4fa127bb6309e6126ae168353d7d46454ff19cc9c08b3135",
+    "59748ecdd26b567b9104a17b7e76cbd189c1ab41aaeb20add0f2b78b62222064"
+  ],
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "status": "FAILED",
+  "suite": "rows-counterfactual-parity",
+  "timing": "NOT_RUN: parity failed",
+  "training": "HELD"
+}

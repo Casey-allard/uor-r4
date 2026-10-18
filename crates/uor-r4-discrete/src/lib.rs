@@ -18,6 +18,7 @@ pub mod measurement;
 pub mod metadata;
 pub mod objective;
 pub mod proposal_timing;
+pub mod rows_source;
 pub use objective::ObjectivePolicy;
 pub mod training;
 
@@ -411,3 +412,5 @@ pub mod flock_qualification;
 pub mod qualification;
 #[cfg(feature = "cuda")]
 pub mod relation_qualification;
+#[cfg(feature = "cuda")]
+pub mod rows_qualification;

@@ -1,0 +1,65 @@
+{
+  "applied_updates": 0,
+  "controls": [
+    {
+      "cases": 72,
+      "index": 1,
+      "name": "rows_route_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 72,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 108,
+      "index": 2,
+      "name": "rows_flock_gate_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 108,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 288,
+      "index": 3,
+      "name": "rows_relation_gate_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 288,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 1,
+      "error": "invalid discrete model: Gate(0): one path refused and the other did not: ordinary ok=false rows ok=false",
+      "index": 4,
+      "name": "rows_refusal_parity",
+      "status": "FAIL"
+    },
+    {
+      "cases": 2,
+      "index": 5,
+      "name": "rows_forced_terminal_parity",
+      "racy_refusals": 0,
+      "refusals": [
+        "discrete CUDA counterfactual refused with status 8"
+      ],
+      "status": "PASS",
+      "successes": 1,
+      "successes_with_broken_lane": 1
+    }
+  ],
+  "rows_image_sha256": [
+    "48d8e6e05f2de03d2f9931812f606e5f923c2416dd4205696a6228d858446318",
+    "c03752ab4750394b4cb6b10897884622e5cf8150cd0b7e08326e89ad4a33e49a",
+    "9d0f170b86961c4cc3900c29c75c65a75a9d8e0baa41e67aea613f9db313c5df",
+    "0ec87368a3cc6183a148e785b46b2c4dd89f6ee50ad66aa20d877936d7050704"
+  ],
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "status": "FAILED",
+  "suite": "rows-counterfactual-parity",
+  "timing": "NOT_RUN: parity failed",
+  "training": "HELD"
+}

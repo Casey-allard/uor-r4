@@ -1,0 +1,7 @@
+PASS: explicit nine-module compiler list
+PASS: active vendor CUDA source/header token census and no historical FFI
+PASS: training compiled CUDA sources (.cu) D23/D25/D29 token census and historical/quarantined exclusion
+PASS: discrete CUDA kernel sources (discrete.cu + generated decomposition, baseline-reuse and row-parallel modules) D23/D25/D32 integer-only token and 11+1+1+3 entry census
+PASS: no runtime CUDA compiler calls or compiler subprocesses across training, discrete, and frozen five-root standalone instrument Rust sources and build scripts
+PASS: vendor patches and direct/standalone-instrument selected CUDA cudarc feature declarations
+Static scope PASS. Runtime qualification UNVERIFIED: run frozen named GPU controls separately; this tool runs no model. No proof against arbitrary renamed/semantic equivalents. Omitted optional artifacts NOT_CHECKED.

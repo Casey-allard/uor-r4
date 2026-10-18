@@ -9,6 +9,8 @@ use uor_r4_core::spiralcore_operator::{
 mod baseline_reuse_source;
 #[path = "src/decomposition_source.rs"]
 mod decomposition_source;
+#[path = "src/rows_source.rs"]
+mod rows_source;
 
 const ENTRIES: [&str; 12] = [
     "discrete_init",
@@ -345,6 +347,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/discrete.cu");
     println!("cargo:rerun-if-changed=src/decomposition_source.rs");
     println!("cargo:rerun-if-changed=src/baseline_reuse_source.rs");
+    println!("cargo:rerun-if-changed=src/rows_source.rs");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=UOR_NVCC_ARCH");
     let out = PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not supply OUT_DIR")?);
@@ -411,6 +414,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &fs::read_to_string(out.join("baseline-reuse.ptx"))?,
         &["discrete_counterfactual_baseline_reuse"],
     )?;
+    // Opt-in row-parallel counterfactual: its own generated source, admitted
+    // three-entry PTX and cubin. Earlier invocations remain byte-for-byte.
+    let rows = rows_source::generate(&fs::read_to_string("src/discrete.cu")?)?;
+    fs::write(out.join("rows.cu"), rows)?;
+    let status = Command::new(&nvcc)
+        .args(["-ptx", "-std=c++17"])
+        .arg(format!("-arch={arch}"))
+        .arg("-o")
+        .arg(out.join("rows.ptx"))
+        .arg(out.join("rows.cu"))
+        .status()?;
+    if !status.success() {
+        return Err(format!("row-parallel PTX build failed: {status}").into());
+    }
+    admit_ptx_inventory(
+        &fs::read_to_string(out.join("rows.ptx"))?,
+        &rows_source::ENTRIES,
+    )?;
     // Assemble the exact PTX admitted above, rather than compiling the CUDA
     // source a second time. These same cubins and their assembly reports are
     // embedded by the driver; no CUDA context or model executes during build.
@@ -419,6 +440,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("ordinary", out.join("discrete.ptx")),
         ("decomposition", out.join("decomposition.ptx")),
         ("baseline-reuse", out.join("baseline-reuse.ptx")),
+        ("rows", out.join("rows.ptx")),
     ] {
         let mut resource_command = Command::new(&nvcc);
         // PTX input needs assembly, not C++ preprocessing or a new resource cap.

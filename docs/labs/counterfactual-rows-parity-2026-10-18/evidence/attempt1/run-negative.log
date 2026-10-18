@@ -1,0 +1,7 @@
+{"cases":72,"index":1,"name":"rows_route_parity","racy_refusals":0,"refusals":[],"status":"PASS","successes":72,"successes_with_broken_lane":0}
+{"cases":108,"index":2,"name":"rows_flock_gate_parity","racy_refusals":0,"refusals":[],"status":"PASS","successes":108,"successes_with_broken_lane":0}
+{"cases":288,"index":3,"name":"rows_relation_gate_parity","racy_refusals":0,"refusals":[],"status":"PASS","successes":288,"successes_with_broken_lane":0}
+{"cases":1,"error":"invalid discrete model: Gate(0): one path refused and the other did not: ordinary ok=false rows ok=false","index":4,"name":"rows_refusal_parity","status":"FAIL"}
+{"cases":2,"error":"invalid discrete model: Gate(1): losses differ: ordinary [1344, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615] rows [1344, 0, 0, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615]","index":5,"name":"rows_forced_terminal_parity","status":"FAIL"}
+"NOT_RUN: parity failed"
+invalid discrete model: one or more row-parallel parity controls failed

@@ -1,0 +1,6 @@
+crates/uor-r4-discrete/src/rows_source.rs: OK
+crates/uor-r4-discrete/src/rows_device.rs: OK
+crates/uor-r4-discrete/src/rows_qualification.rs: OK
+crates/uor-r4-discrete/src/discrete.cu: OK
+crates/uor-r4-discrete/build.rs: OK
+crates/uor-r4-discrete/src/device.rs: OK
