@@ -1,5 +1,20 @@
 # Branch archive
 
+## October 18 — K16 count hardening, retained inactive and unconstructed
+
+| Branch | Patch | Base commit | Restored tracked tree | Disposition |
+|---|---|---|---|---|
+| `codex/cf1-k16-warmup-closure` | [complete six-file patch](codex-k16-count-hardening-inactive-20261018.patch) | `d325c3037b5a6cebdf9401636f9ac0cf91a259fe` | `9e7208093cbd950a64ea2d31e37a07a760cc0f31` | Draft #2571 source retained INACTIVE/UNCONSTRUCTED; source-only review6229329805, declared construction/tests/model NOT_RUN. Close/owned cleanup only after protected archive delivery; no timing prerequisite or count reset |
+
+Patch SHA256 `2e118611d60ed61cac2d58d9ba4617581cfa8162c05a6aa76829209824766f95`
+is the complete tracked diff from base to `a3d8ca2d38f5fb2925e02ef7e7c09c8ead98323a`.
+Actual isolated-index application reproduces its entire tree exactly. Historical
+claims/ledger changes are preserved only as evidence, never applied to current
+coordination. [Metadata](codex-k16-count-hardening-inactive-20261018.json) and
+[canonical record](../../labs/k16-inactive-archive-2026-10-18/README.md) retain the
+unrun checks, unresolved100-batch bridge and frozen timing3 boundaries. No archived
+code is activated or executed; no hold is released.
+
 ## October 15 — superseded DeepSeek parked branches, retained inactive
 
 | Branch | Patch | Base commit | Restored tracked tree | Disposition |

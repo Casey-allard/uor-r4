@@ -1,0 +1,262 @@
+diff --git a/docs/harness/claims.json b/docs/harness/claims.json
+index 7039d84ed..4f1291562 100644
+--- a/docs/harness/claims.json
++++ b/docs/harness/claims.json
+@@ -13,12 +13,12 @@
+     "lab": "claude",
+     "note": ""
+   },
+-  "codex/cf1-reuse-timing-uuid-blocker": {
+-    "branch": "codex/cf1-reuse-timing-uuid-blocker",
+-    "claimed_at": "2026-10-16T22:35:15-04:00",
+-    "head": "66154156d",
++  "codex/cf1-k16-warmup-closure": {
++    "branch": "codex/cf1-k16-warmup-closure",
++    "claimed_at": "2026-10-16T23:50:40-04:00",
++    "head": "d325c3037",
+     "lab": "codex",
+-    "note": ""
++    "note": "PM6229239369 timing-line closure: K16 warmup/count source audit and bounded repair, exact-head compile-only transcript; frozen timing3 untouched. Scope docs/labs/k16-timing-2026-10-15/instrument, dated closure record, state/claims/ledger. No model execution release."
+   },
+   "deepseek/k16-warmup-count": {
+     "branch": "deepseek/k16-warmup-count",
+diff --git a/docs/harness/ledger/codex-2026-10.jsonl b/docs/harness/ledger/codex-2026-10.jsonl
+index 8b3cdc877..f88ac32a1 100644
+--- a/docs/harness/ledger/codex-2026-10.jsonl
++++ b/docs/harness/ledger/codex-2026-10.jsonl
+@@ -614,3 +614,13 @@
+ {"kind": "heartbeat", "lab": "codex", "line": "Native CUDA baseline reuse: finite595 protected2568; frozen timing2 independent readiness", "milestone": "m1", "next": "Finish hygiene41126, explicit environment disposition and distinct timing release after fresh admission", "schema": 1, "ts": "2026-10-17T02:28:42Z"}
+ {"kind": "heartbeat", "lab": "codex", "line": "Released fixed32 native baseline-reuse timing; operator32401 running once", "milestone": "m1", "next": "Archive before teardown; independent actual readback then protected record", "schema": 1, "ts": "2026-10-17T02:32:35Z"}
+ {"kind": "heartbeat", "lab": "codex", "line": "Timing2 zero-dose UUID blocker preserved; own pod down; source record and independent review", "milestone": "m1", "next": "Protect blocker/recovery record; prospective environment decision before any new timing attempt", "schema": 1, "ts": "2026-10-17T02:36:50Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "Timing2 blocker PR2569 APPROVE6228618926, actual queue position1; no owned pod", "milestone": "m1", "next": "Verify protected merge, cleanup/hygiene; then independently reviewed successor packet", "schema": 1, "ts": "2026-10-17T02:41:15Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "2569 protected/transportclean; timing3 packet preparation parallel with hygiene54797", "milestone": "m1", "next": "Independent sealed readiness and fresh admission before a distinct timing release", "schema": 1, "ts": "2026-10-17T02:45:12Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "Timing3 host admission and archive-copy preparation; hygiene54797 running; zero new compute", "milestone": "m1", "next": "Freeze packet, independent readiness; no lease before hygiene/fresh disk admission", "schema": 1, "ts": "2026-10-17T02:47:50Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "Timing3 frozen and independently FIT/readiness approved; hygiene complete; handoff before release", "milestone": "m1", "next": "Return routing and release authority; no timing launch or Commission2 without new PM/owner direction", "schema": 1, "ts": "2026-10-17T02:56:22Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "Timing3 bounded stop complete: frozen/reviewed/archived, NOT_RELEASED/NOT_RUN; authority returned", "milestone": "m1", "next": "Await resumed PM/owner explicit release; Commission2 queued, no self-release or successor work", "schema": 1, "ts": "2026-10-17T03:00:29Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "Timing3 bounded stop retained; live scan quiet, no new release or commission", "milestone": "m1", "next": "Await explicit PM/owner direction; Commission2 queued; no compute", "schema": 1, "ts": "2026-10-17T03:01:44Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "Timing3 bounded stop retained; watched PM and AGY updates, no Codex release/request", "milestone": "m1", "next": "Await explicit PM/owner release or review assignment; Commission2 queued", "schema": 1, "ts": "2026-10-17T03:13:44Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "Timing3 bounded stop retained; live scan quiet, no release or review assignment", "milestone": "m1", "next": "Await explicit PM/owner direction; Commission2 queued; no compute", "schema": 1, "ts": "2026-10-17T03:25:30Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "Timing3 bounded stop retained; PM review changes assigned to AGY, no Codex request", "milestone": "m1", "next": "Await explicit PM/owner timing release or executor review assignment; Commission2 queued", "schema": 1, "ts": "2026-10-17T03:37:28Z"}
++{"kind": "heartbeat", "lab": "codex", "line": "PM6229239369 source repair active: count guard/shared schedule; original off-by-one already fixed; disk blocks pods", "milestone": "m1", "next": "PM disposition6229280061 for100-batch source bridge and disk restoration; independent source review", "schema": 1, "ts": "2026-10-17T03:53:00Z"}
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index 8a9a6e73e..8475e8dbb 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -1,3 +1,7 @@
++## 2026-10-17 — Timing-line closure: K16 completed-count guard prepared (codex/cf1)
++
++The [bounded source repair](../labs/k16-warmup-closure-2026-10-17/README.md) follows PM commission6229239369. The original99/100 allocation defect was already repaired in #2539; this change adds an internal exact completed-count refusal before cell rates/success and host metadata tests using the same timed-window iterator as the CUDA loop, preserving partial receipts on mismatch. Source only: host tests and exact-head CUDA check/Clippy are NOT_RUN while local disk is below the30GiB admission floor. The separate100-batch checkpoint0/current-source bridge remains BLOCKED pending PM scope disposition6229280061; frozen timing3 and its binary are unchanged. Its completed readiness/handoff6228764868 remains NOT_RELEASED/NOT_RUN. No model execution, new lease, apply or GPU cost; cumulative38 closed Codex leases/$3.490932222 unchanged, PM/storage/transfer separate/unmeasured. **Next:** independent source review, disk restoration, PM bridge disposition, exact-head compile-only transcript and protected delivery before any separately pinned combined closure execution. The timing line ends after its one released closure; no automatic retry or successor commission. Training/M2/Stage B HELD; Q4 NOT_EXECUTABLE; count0/3 and suspended headline37/232 unchanged.
++
+ ## 2026-10-17 — Timing attempt refuses a changed GPU before instrument execution (codex/cf1)
+ 
+ The [timing2 setup record](../labs/counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md) preserves separate release6228540541 after protected finite qualification #2568. Placement changed between quote and allocation: actual driver595.71.05 matched, but GPU UUID35bf2e2c differed from the qualified1daf8397, so the wrapper stopped before any binary at02:33:21Z. Instrument/model/proposal/timing/apply dose is zero; no timing or checkpoint0 parity result follows. The initial archive copy omitted a required CSV; its manifest check retained and renewed the pod. Preservation-only recovery copied the exact original file and verified all manifests and the complete cloud archive (9,870,336 bytes, MD5 `2e882d487871ff5edc249c15f37c14cf`) before release02:35:01Z/down02:35:07Z. No owned pod remains; the separate DeepSeek lease was untouched. Lifecycle176s at raw$0.9083333333333332/h estimates$0.044407407; cumulative38 closed Codex leases$3.490932222 plus separate PM, storage/transfer UNMEASURED. A subsequent owned-worktree materialization briefly crossed the local disk floor; index refresh/sparse reapply restored it before any new lease or model work. **Next:** protect this blocker/recovery record, then prospectively resolve the physical-device admission constraint and repair the packet's archive copy before a new timing release. No automatic retry or model-negative conclusion. Training/M2/Stage B HELD; Q4 NOT_EXECUTABLE; count0/3 and suspended headline37/232 unchanged.
+diff --git a/docs/labs/k16-timing-2026-10-15/README.md b/docs/labs/k16-timing-2026-10-15/README.md
+index ea912d7d2..ebacf2297 100644
+--- a/docs/labs/k16-timing-2026-10-15/README.md
++++ b/docs/labs/k16-timing-2026-10-15/README.md
+@@ -1,5 +1,7 @@
+ # K16 synchronized 100-batch timing instrument (2026-10-15)
+ 
++**17 October source hardening:** the [closure repair](../k16-warmup-closure-2026-10-17/README.md) retains #2539's already-correct101-window/one-warmup schedule and adds an internal refusal when the completed timed count differs from the pin, before emitting rates or cell success. The shared iterator has source regression tests for100/1, diagnostic3/1 and short/excess partial receipts. Host execution and exact-head CUDA gates are NOT_RUN pending disk admission; the normal100-batch checkpoint0 source bridge is a separate unresolved PM disposition. Frozen timing3 and its32-proposal dose remain unchanged. No new timing or qualification result follows.
++
+ **Current direction, 16 October:** the [sealed sub-phase diagnostic](../propose-subphase-diagnostic-run-2026-10-16/README.md) completed after its reviewed bridge: the counterfactual kernel occupies 99.995770–99.998097% of propose wall. The [decomposition instrument](../counterfactual-instrument-2026-10-16/README.md) adds separate `decompose-check`, `decompose-plan`, CUDA metadata-only `decompose-identity`, and gated `decompose` commands under #2545's design FIT; model execution is NOT_RUN, and all six execution requirements remain explicit. No qualified rate or p95 follows. #2539 fixes the warmup window count. The
+ [owner instrument+optimize-first decision](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6210107580)
+ defers 100-batch qualification timing to the optimized stack. The separate
+diff --git a/docs/labs/k16-timing-2026-10-15/instrument/src/main.rs b/docs/labs/k16-timing-2026-10-15/instrument/src/main.rs
+index 7d6765ea8..9eaf2ee80 100644
+--- a/docs/labs/k16-timing-2026-10-15/instrument/src/main.rs
++++ b/docs/labs/k16-timing-2026-10-15/instrument/src/main.rs
+@@ -407,29 +407,91 @@ pub fn windows_for(pin: &Pin) -> usize {
+     windows_for_counts(pin.batches, pin.warmups)
+ }
+ 
+-/// The same arithmetic, without a Pin, so the count can be asserted in a two-line test.
++/// The same allocation count without a Pin. The CUDA loop consumes `timed_windows` below.
+ pub fn windows_for_counts(batches: usize, warmups: usize) -> usize {
+     batches + warmups
+ }
+ 
++#[cfg(any(feature = "cuda", test))]
++fn timed_windows<T>(windows: &[T], warmups: usize) -> impl Iterator<Item = (usize, &T)> {
++    windows.iter().enumerate().skip(warmups)
++}
++
++/// A completed cell may report rates only for exactly its declared timed dose.
++#[cfg(any(feature = "cuda", test))]
++fn validate_completed_batches(
++    expected: usize,
++    completed: usize,
++    ledger: &mut Ledger,
++) -> std::result::Result<(), String> {
++    if completed != expected {
++        return Err(ledger.fault(
++            "completed_batch_count",
++            &format!(
++                "completed {completed} timed batches, expected {expected}; cell rates refused"
++            ),
++        ));
++    }
++    Ok(())
++}
++
+ #[cfg(test)]
+ mod warmup_count_tests {
+-    use super::windows_for_counts;
++    use super::{timed_windows, validate_completed_batches, windows_for_counts, Ledger};
++    use serde_json::{json, Value};
+ 
+     #[test]
+-    fn the_timed_batches_survive_the_excluded_warmup() {
+-        // A pinned cell declares `batches` TIMED batches plus excluded warmups. Building only
+-        // `batches` windows and then skipping the warmup leaves 99 to time for a pin declaring 100,
+-        // which is what the `timing-status` gate caught at restart-5 (Codex, #2029).
+-        let windows = windows_for_counts(100, 1);
+-        assert_eq!(windows, 101);
+-        assert_eq!(
+-            windows - 1,
+-            100,
+-            "exactly the pinned batches remain to time"
+-        );
+-        assert_eq!(windows_for_counts(100, 0), 100);
+-        assert_eq!(windows_for_counts(100, 2) - 2, 100);
++    fn the_cuda_schedule_excludes_only_the_warmup() {
++        for expected in [100, 3] {
++            // Integer window labels exercise the exact iterator used by run_cell;
++            // no model/window evaluation is needed for schedule metadata.
++            let windows: Vec<_> = (0..windows_for_counts(expected, 1)).collect();
++            let scheduled: Vec<_> = timed_windows(&windows, 1)
++                .map(|(index, window)| (index, *window))
++                .collect();
++            assert_eq!(
++                scheduled,
++                (1..=expected).map(|n| (n, n)).collect::<Vec<_>>()
++            );
++            let dir = tempfile::tempdir().expect("tempdir");
++            let mut ledger = Ledger::new(dir.path().join("record.json"), json!({}));
++            validate_completed_batches(expected, scheduled.len(), &mut ledger)
++                .expect("exact completed dose");
++            assert!(ledger.faults.is_empty());
++            assert!(!ledger.path.exists(), "valid count does not flush a fault");
++        }
++    }
++
++    #[test]
++    fn short_or_excess_cuda_schedules_preserve_partial_receipts() {
++        for (expected, available) in [(100, 100), (100, 102), (3, 3), (3, 5)] {
++            let dir = tempfile::tempdir().expect("tempdir");
++            let mut ledger = Ledger::new(dir.path().join("record.json"), json!({}));
++            let windows: Vec<_> = (0..available).collect();
++            let mut completed = 0;
++            for (index, _) in timed_windows(&windows, 1) {
++                ledger.push(json!({"record_kind":"batch", "batch":index}));
++                completed += 1;
++            }
++            let error = validate_completed_batches(expected, completed, &mut ledger)
++                .expect_err("short and excess doses must refuse rates/success");
++            assert!(error.contains(&format!("completed {completed}")));
++            let written: Value = serde_json::from_str(
++                &std::fs::read_to_string(&ledger.path).expect("partial record preserved"),
++            )
++            .expect("record json");
++            assert_eq!(written["status"], "partial");
++            assert_eq!(
++                written["records"].as_array().expect("records").len(),
++                completed
++            );
++            assert_eq!(written["faults"][0]["stage"], "completed_batch_count");
++            assert!(written["records"]
++                .as_array()
++                .expect("records")
++                .iter()
++                .all(|record| record["record_kind"] == "batch" && record.get("rates").is_none()));
++        }
+     }
+ }
+ 
+@@ -756,7 +818,7 @@ mod driver {
+             ledger.push(json!({"record_kind":"excluded_warmup","cell":{"source":cell.source,"policy":policy_name(cell.policy)},"elapsed_ns":started.elapsed().as_nanos(),"profiles":warmup_profiles,"applied":false}));
+         }
+ 
+-        for (index, window) in windows.iter().enumerate().skip(pin.warmups) {
++        for (index, window) in timed_windows(&windows, pin.warmups) {
+             let batch_started = pin.diagnostic.as_ref().map(|_| Instant::now());
+             if let Err(e) = device.synchronize() {
+                 return Err(ledger.fault("sync_before_carry", &e.to_string()));
+@@ -878,6 +940,8 @@ mod driver {
+             ));
+         }
+ 
++        validate_completed_batches(pin.batches, timed_batches, ledger)?;
++
+         let unit_ns = carry_ns_total
+             + route_propose_ns
+             + route_observation_ns
+diff --git a/docs/labs/k16-warmup-closure-2026-10-17/README.md b/docs/labs/k16-warmup-closure-2026-10-17/README.md
+new file mode 100644
+index 000000000..f02fc1644
+--- /dev/null
++++ b/docs/labs/k16-warmup-closure-2026-10-17/README.md
+@@ -0,0 +1,63 @@
++# K16 completed-count hardening — 17 October 2026
++
++**Source prepared; build/tests and model execution NOT_RUN.** This narrow change
++makes the original K16 cell refuse rates and a successful cell summary unless
++its completed timed-batch count exactly equals its pin. It retains the existing
++partial-ledger fault path. It changes no model law, CUDA/kernel, checkpoint
++bridge, generator, cell selection, warmup order, timing arithmetic or dose.
++
++## Existing correction and current scope
++
++PM commission6229239369 closes the warmup/count source line. The historical
++99/100 allocation bug was already repaired by protected **#2539,
++`bb87d56ec`**: `windows_for(pin)` allocates timed batches plus the excluded warmup,
++and the actual loop skips that warmup. Thus a 100/1 pin already allocates101
++windows and times100; a diagnostic3/1 pin allocates4 and times3. This delivery
++adds a completion check and meaningful regression coverage; it is **not a fresh
++repair of that arithmetic**.
++
++In [main.rs](../k16-timing-2026-10-15/instrument/src/main.rs):
++
++- A small shared `timed_windows` iterator contains the unchanged
++  `enumerate().skip(warmups)` schedule and is used by the actual CUDA loop.
++- After the loop and unchanged zero-apply assertion, and before any rate
++  calculation or successful cell record, `validate_completed_batches` requires
++  exact equality with `pin.batches`. Short or excess completion calls the
++  existing `Ledger::fault("completed_batch_count", ...)`, flushes the partial
++  receipts and returns an error. No cell success/rate summary is returned.
++- Regression source consumes that same iterator with integer window labels.
++  It checks the exact scheduled indices for100/1 and3/1, then exercises short
++  and excess schedules for both doses. Mismatches must preserve all accumulated
++  batch receipts in a partial record with the count fault and no rate fields.
++  These are schedule/serialization metadata tests, not a CPU model oracle.
++
++No schema or declared cell changes. The separate original/reuse fixed32 timing
++path and frozen timing3 packet remain unchanged. This count guard belongs to
++the original K16 `run_cell` path and its diagnostic dose.
++
++## Checks and outstanding gate
++
++Executed here: source/diff inspection, Rust1.97.1 formatting with
++`skip_children=true`, formatting verification and whitespace checks only.
++**Host tests, Cargo build/check/Clippy, CUDA compilation/Clippy and all runtime
++work are NOT_RUN** because the parent reports available disk below the30GiB
++floor. No target tree, provider/API/pod call or model/reference run was created.
++
++After storage admission is restored, validation still needs the focused
++schedule/count/partial-ledger tests and exact-head standalone compile/checks,
++including the CUDA feature and Clippy for the changed CUDA-loop call site.
++Formatting and source reasoning are not compile or test results. Any later
++executable/source identity must be reviewed and pinned before execution.
++
++**Separate source identity / 100-batch checkpoint bridge is BLOCKED**, awaiting
++PM scope disposition6229280061. No bridge is added or changed here; this source
++hardening does not make the original100-batch path executable. The existing
++frozen timing3 packet is not edited, rebuilt, repinned or released by this work.
++
++## Evidence scope
++
++No new leases or GPU cost; no timing/model observation, apply, training,
++checkpoint0 parity, p95, speedup, language or energy result. A count mismatch is
++an instrument blocker, never a mechanism negative. Training/M2/Stage B **HELD**;
++Q4 **NOT_EXECUTABLE**; seed2 excluded. Protected delivery and independent
++exact-head review remain pending; the author does not self-approve.

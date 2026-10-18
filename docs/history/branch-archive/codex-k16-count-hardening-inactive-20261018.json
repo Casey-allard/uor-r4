@@ -1,0 +1,92 @@
+{
+  "schema": "uor-r4.inactive-branch-source-preservation/1",
+  "disposition": "INACTIVE_UNCONSTRUCTED_SOURCE_PRESERVATION",
+  "original_pr": 2571,
+  "original_branch": "codex/cf1-k16-warmup-closure",
+  "base_commit": "d325c3037b5a6cebdf9401636f9ac0cf91a259fe",
+  "source_commit": "a3d8ca2d38f5fb2925e02ef7e7c09c8ead98323a",
+  "source_tree": "9e7208093cbd950a64ea2d31e37a07a760cc0f31",
+  "patch": {
+    "path": "docs/history/branch-archive/codex-k16-count-hardening-inactive-20261018.patch",
+    "sha256": "2e118611d60ed61cac2d58d9ba4617581cfa8162c05a6aa76829209824766f95",
+    "generation": "git diff --binary BASE_COMMIT SOURCE_COMMIT",
+    "complete_tracked_delta": true,
+    "changed_files": 6,
+    "includes_historical_claim_and_ledger_changes": true,
+    "apply_to_current_claims_or_ledger": false
+  },
+  "restoration": {
+    "method": [
+      "GIT_INDEX_FILE=ISOLATED_NEW_INDEX git read-tree BASE_COMMIT",
+      "GIT_INDEX_FILE=ISOLATED_NEW_INDEX git apply --cached --check PATCH",
+      "GIT_INDEX_FILE=ISOLATED_NEW_INDEX git apply --cached PATCH",
+      "GIT_INDEX_FILE=ISOLATED_NEW_INDEX git write-tree"
+    ],
+    "observed_tree": "9e7208093cbd950a64ea2d31e37a07a760cc0f31",
+    "equals_original_complete_source_tree": true,
+    "current_worktree_or_index_activated": false,
+    "isolated_index_retained": true
+  },
+  "source_members": [
+    {
+      "path": "docs/harness/claims.json",
+      "sha256_at_source_commit": "32bbe1a2cf531de787f6914a53709486cafac608f0dd06db6dbc97959dd2ab0c"
+    },
+    {
+      "path": "docs/harness/ledger/codex-2026-10.jsonl",
+      "sha256_at_source_commit": "150652457589986ebf7070d51596cbee45fe804547720e4e8e1dd9585465b0a7"
+    },
+    {
+      "path": "docs/integration/current-state.md",
+      "sha256_at_source_commit": "f924f07a7fc8e024968e6df314b16cf7c1c3328ce5edb0b3e0571cd643652dba"
+    },
+    {
+      "path": "docs/labs/k16-timing-2026-10-15/README.md",
+      "sha256_at_source_commit": "4a507ac48f10b45ab029cbd712e2805c850137ce5ed3c0a12f24bd9153c3efaf"
+    },
+    {
+      "path": "docs/labs/k16-timing-2026-10-15/instrument/src/main.rs",
+      "sha256_at_source_commit": "e381473637b582f387b6b28a2c9f53a61e0abc83fedb1f2b6553cefd00fc2fce"
+    },
+    {
+      "path": "docs/labs/k16-warmup-closure-2026-10-17/README.md",
+      "sha256_at_source_commit": "e0fb56cd165f5f5a060f92e0eaf6ac09c990ea4fa21b4b0e190c35e29f5ed2e7"
+    }
+  ],
+  "review": {
+    "source_only": "https://github.com/UOR-Foundation/uor-r4/pull/2571#issuecomment-6229329805",
+    "source_review_is_construction_or_execution_acceptance": false
+  },
+  "original_worktree_snapshot": {
+    "tracked_index_clean": true,
+    "tracked_worktree_clean": true,
+    "untracked_files": 0,
+    "ignored_files": 0,
+    "empty_inventory_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tracked_paths": 13663,
+    "skip_worktree_paths": 13615
+  },
+  "validation_scope": {
+    "patch_and_isolated_restore": "PASS",
+    "focused_host_schedule_count_tests": "NOT_RUN",
+    "standalone_build_check_clippy": "NOT_RUN",
+    "exact_head_cuda_construction": "NOT_RUN",
+    "model_or_timing": "NOT_RUN",
+    "original_100_batch_checkpoint_bridge": "UNRESOLVED_NOT_RUN",
+    "old_disk_shortage": "HISTORICAL_NOT_CURRENT",
+    "new_gpu_spend_usd": "0"
+  },
+  "authority": {
+    "active_instrument_source_changed": false,
+    "frozen_timing3_or_binary_changed": false,
+    "execution_released": false,
+    "scientific_verdict": "NOT_ISSUED",
+    "mechanism_negative": false,
+    "keep": false,
+    "line_count": "0/3",
+    "reply_headline": "37/232_SUSPENDED",
+    "progress_count_reset": false,
+    "draft2571_close": "ONLY_AFTER_PROTECTED_ARCHIVE_DELIVERY",
+    "old_refs_or_worktree_removed_here": false
+  }
+}
