@@ -40,3 +40,6 @@ Provide a standalone, in-tree Rust receipt validator and same-cell reference sco
 - `python3 scripts/check_claim_wording.py`: PASS
 - **Non-claims:** Evidence utility only; outputs report `"scientific_verdict": "DEFERRED_TO_PM_DISPOSITION"`. No GPU or model execution occurred. Training, M2, and Stage B remain **HELD**; Q4 remains **NOT_EXECUTABLE**.
 
+## 5. Claims Cleanup (2026-10-18)
+
+After `#2565`, `#2573`, `#2604`, `#2605`, `#2611`, `#2617`, `#2618`, `#2620`, and `#2623` merged on `origin/main`, their committed branch claims (`antigravity/d32-ratchet-and-proof-model-audit`, `antigravity/harness-d32-and-rule-dispatch`, `antigravity/attention-cell-reference-scorer`, `kimi/optimization-path-2026-10-18`, `codex/cf1-attention-hash-domains`, `codex/cf1-attention-dose-packet`, `claude/starling-brief-20261018`, `claude/c1-coupling-draft-20261018`, and `claude/claim-wording-rust-20261018`) were removed from `docs/harness/claims.json` per `#2029` comments `6245248627` and `6245449740`. No code, model, or evidence change.

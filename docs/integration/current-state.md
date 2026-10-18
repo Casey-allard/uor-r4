@@ -1,3 +1,7 @@
+## 2026-10-18  Delivered M1/M4/harness branch claims cleanup (antigravity)
+
+Removes the stale committed branch claims for merged PRs #2565, #2573, #2604, #2605, #2611, #2617, #2618, #2620, and #2623 (`antigravity/*`, `kimi/optimization-path-2026-10-18`, `codex/cf1-attention-hash-domains`, `codex/cf1-attention-dose-packet`, and `claude/*`) from `docs/harness/claims.json` per `#2029` comments `6245248627` and `6245449740`. No code, model, or evidence change; coordination record only. Record: [labs/attention-cell-reference-scorer-2026-10-17](../labs/attention-cell-reference-scorer-2026-10-17/README.md).
+
 ## 2026-10-18  PM coordination hygiene: stale DeepSeek claims removed (deepseek)
 
 While Kimi is rate-limited, DeepSeek is covering PM coordination. This removes 25 stale committed
