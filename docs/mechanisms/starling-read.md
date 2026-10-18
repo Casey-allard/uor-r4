@@ -14,6 +14,22 @@ SpiralCore v69 runs an unnormalised Kuramoto phase coupling, `dθᵢ/dt = ωᵢ 
 
 ## In code
 
+- **Active, discrete (D32): `ReadSpec::Flock { kept }` is the integer murmuration read.**
+  - **Source:** `crates/uor-r4-discrete/src/lib.rs:100-103`; kernel `flock_vector` at `crates/uor-r4-discrete/src/discrete.cu:125`, dispatched at `:271`.
+  - **How it works, per payload block b:**
+    - Each kept candidate's payload is carried into the query's frame by the actual SpiralCore BFS action between the two frame roots.
+    - The consensus is `snap_K` of the carried sum.
+    - A Gate trit adds (+1) or subtracts (−1) each level's consensus to the query payload, and the output is `snap_n` of the exact residual.
+  - **The rule it realises:** the murmuration rule `Δ = K_h·(mean − v_t)` with `K_h ∈ {−1, 0, +1}`. There is no float, no mean division and no learned projection.
+  - **Selection:** rank order is frame L1, then coordinate Hamming, then recency (`lib.rs:94-96`). Kept is limited to 1..8.
+  - **Status:**
+    - Six finite CUDA construction controls PASS (`crates/uor-r4-discrete/src/flock_qualification.rs`; #2395, #2400).
+    - Never trained on the corpus; training is held (`lib.rs:212-214`).
+    - Design record: [discrete murmuration read](../labs/discrete-murmuration-read-2026-10-13/README.md).
+  - **Relation to Dose 1:**
+    - `ReadSpec::Relation` (`lib.rs:103`) is Flock plus an exact-relation rerank with 5 edge-type Gate trits per level. "Relation-off ≡ Flock" is its rollback identity.
+    - Dose 1 (`docs/harness/prep/m1-learned-attention-link-2026-10-17.md`) compares learned against frozen relation trits **on top of Flock**. No arm tests the transported-consensus read itself against `Route`.
+    - Under zero gates the read is causally inert, which is why Dose 1 initialises with +1 leaf gates (`ActiveLeafV1`, `lib.rs:76-86`).
 - **Historical:** `read_route=starling:M:K`: `crates/uor-r4-training/src/geometric_stack.rs` (`StarlingRoute`, `starling_select`, `starling_read`). Also in `mqar-bench`. It selects on the host and gates with a sigmoid or tanh, so under D23–D25 it is inactive evidence.
 - **Native, rung 0b:** `native_read=starling_native:M:K:E` on the native trunk. Source: `crates/uor-r4-training/src/starling_native.{rs,cu}`; wiring: `StackModel::set_native_starling_read`.
   - Kernel K1 selects neighbours on the GPU. It is built ahead of time by nvcc into its own module (`build.rs`; no NVRTC).
@@ -56,6 +72,31 @@ Rungs 1–3, the pivot and the surrogate were measured beside softmax helpers, s
   - **An FBS ternary tree for O(log n):** parents hold the transported means of their children.
   - **No rank table, null score or rank hinge.** That rung-0b source stays on main, inactive, as evidence. K1 carries over.
   - **Gating:** its finite controls (§4) need a FIT review. The decisive run is gated on rung 0, the S1/S2 source and controls, and the owner's hold release.
+
+## Next configuration — candidates after the Dose 1 decision (hypotheses; not registered, no compute)
+
+[D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) (18 October) makes float forward passes, gradients and optimizers legal in offline training. Softmax/squashing and matmul stay banned, and the served artifact must be D11 integer with a reported export gap. D37 does not help every recorded failure:
+- **Value/readout failure:** D37 helps most here. A coupling magnitude can now be learned.
+- **Missing competitive selection signal** (rungs 1–3, the pivot): this stays structural. Softmax is still banned, so any credit must be rank- or hinge-shaped.
+- **Key-address gap:** already closed by the shared per-token address.
+
+Candidates, ranked:
+- **C1 — float-trained coupling over the fixed Flock topology.** Selection stays the integer Flock rank.
+  - Offline, train a float `K_h` per (head, level), optionally per edge type: `y = v_t + K_h·(Σ carried_j / n − v_t)`. This is an elementwise scalar update, not a GEMM.
+  - Export `K_h` to a Gate trit (or a small integer applied by repeated addition, as `snap` already builds `n·r`). The Gate/snap tables are the integer boundary.
+  - **Decisive measurement:** conditional top-1 on the Dose 1 slices against the discrete-trained same-spec artifact, plus the export gap.
+  - **Controls:** a zero-coupling ablation and a random-coupling refit; ≥ 2 seeds or ≥ 200 fresh rows (D22); sealed fresh transfer.
+  - **Dose 1 outcome:** a Relation KEEP extends C1 to the 25 relation trits. A negative closes only that configuration (D22) and makes C1 the test of whether a learned coupling magnitude rescues the read.
+- **C2 — lawful soft-to-hard selection.** A rank-consistent utility hinge (rung 0b's `u = −⟨g, v⟩` ordering) plus exploration slots, annealed on a linear or piecewise schedule (no temperature exponential) down to the exact integer Flock rank.
+  - **Decisive measurement:** source-in-flock rate and rank-1-when-kept, by distance bucket, against a hard-only arm.
+  - **When it leads:** most relevant if Dose 1 shows no relation lift.
+- **C3 — FBS ternary-tree murmuration (O(log n)).** Parents hold the transported sums of their three children. Worth it only after C1 shows that the coupling learns, and gated on a long-context bar with tokens/s reported first.
+
+**Open decisions for the C1 sheet:**
+- May an exported coupling exceed a trit (a small integer by repeated addition, which is multiplier-free under D11)?
+- Is C1 the line's decisive run under D21, or a new line?
+
+Every candidate enters only through a pre-registration, then `TEST FITNESS: FIT`, then owner release.
 
 ## A fair test needs
 

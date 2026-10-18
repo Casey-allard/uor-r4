@@ -1,3 +1,7 @@
+## 2026-10-18 — Starling/murmuration brief: discrete Flock named as the integer murmuration read; post-dose candidates (claude)
+
+[`docs/mechanisms/starling-read.md`](../mechanisms/starling-read.md) now records that the active discrete `ReadSpec::Flock` (`discrete.cu:125`) already realises the murmuration rule: frame-transported consensus, with a ternary coupling trit. Six finite controls PASS and it has never been trained. The brief also records that Dose 1 tests relation trits on top of Flock, not Flock against Route. It ranks three post-dose candidates under D37: C1, a float-trained coupling exported to Gate trits; C2, lawful soft-to-hard selection; C3, the FBS ternary-tree read. These are hypotheses only: nothing is registered, no compute ran, $0. The merged claims `claude/d37-offline-float-20261018` and `claude/public-face-reconcile-2026-10-15` are released. Training/M2/Stage B stay HELD. **Next:** a C1 finite-control draft, with the pre-registration after the Dose 1 decision.
+
 ## 2026-10-18  Wire side-exploration claims cleanup (deepseek)
 
 Removes the stale committed claims for the merged wire branches (`deepseek/spiralcore-wire-side-exploration`,
