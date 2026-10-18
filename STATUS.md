@@ -33,7 +33,7 @@ G-Pre except each graph's honest compiled-source identity.
 [Results and exact build graphs](docs/labs/k16-rows-qualification-2026-10-18/README.md)
 retain the original bccc E0063 failure and subsequent protected repairs as history.
 
-**DATA and late operator custody are verified; Claude ACCEPT6254417234 is recorded; training is NOT_RUN.**
+**DATA and late operator custody are verified; Claude ACCEPT6254417234 is recorded; K16-A/seed1 COMPLETED 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); R-seed1/A-seed2/R-seed2 NOT_STARTED serially.**
 All15 DATA shards and the separate metadata reconcile to19 cloud objects; the
 two late operator payload groups and metadata also have full verified readbacks.
 The [sealed packet request6254373730](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254373730)
@@ -44,7 +44,7 @@ covers exactly four unchanged A/R×seed1/2 trajectories;
 is ISSUED_GATED_START. [Claude census PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425)
 posts raw/net1,986 on every role, clearing the scientific start gate. Its
 3,119-byte report is retrieved/hash-verified from durable cloud custody; no
-further census wait remains. Root is preparing native admission transport. No first training batch is claimed.
+further census wait remains. Native transport produced four owner/admission pairs (owner-ratified, D40); A-seed1 completed its registered 16,404 batches with 407 accepted and no recorded faults. No result or capability claim follows.
 The same lease remains retained; normal close and its final accounting are separate. Measured samples support a checkpoint-0 proposal-work
 projection of 2.3691 GPU-hours; the remaining 5–8 GPU-hour range adds unmeasured allowances
 and is a proposal, not measured all-in cost or a release.
@@ -53,9 +53,8 @@ The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/
 removes the two Q4 cells and importer from the critical path. Prior five-sample
 qualifier timings remain diagnostic; they do not fill the registered 100-sample slot.
 The later [owner delegation6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195)
-assigns packet acceptance to Claude alone; PM dispatch and actual owner training
-release remain separate. Four bound `rows_v1` configs and a measured D-Packet
-precede that decision. Fresh execution is before KEEP, not a training-start gate.
+assigns packet acceptance to Claude alone; PM dispatch and owner training release are recorded, and A-seed1 is complete.
+Four bound `rows_v1` configs and the measured D-Packet are accepted. Fresh execution is before KEEP, not a training-start gate.
 Other training/M2/Stage B holds remain. K8 Relation/R remains separate planning.
 
 M1 closes only under D39's saved-artifact conditions: G-Pre ≥ 4,894, G-Adm both

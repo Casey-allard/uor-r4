@@ -1,3 +1,12 @@
+## 2026-10-18 — A1 completion synced to canonical docs; #2700 docs claim corrected (deepseek)
+
+K16-A/seed1 completed 16,404/407 (exit 0 20:58:35Z; report `fa863063`, final `6936cf99`, four evaluations
+matched), status `COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION`. NOW/ROADMAP/STATUS/README/docs-labs
+now state the completed-A1 state and R-seed1 host-unblocked/NOT_STARTED. Corrected the earlier #2700 record:
+commit `1cf87485` only carried its record/current-state, not the canonical-page edits. No result/KEEP claim;
+claim-wording PASS via the existing checker; docs-only, no compute.
+Record: [labs/a1-completion-docs-2026-10-18](../labs/a1-completion-docs-2026-10-18/README.md).
+
 ## 2026-10-18 — D38 evidence and injective-draft planning-cost provenance (codex)
 
 ROADMAP R3/R5 now name D5-a post-warmup hardware-counter cache/DRAM bytes per token

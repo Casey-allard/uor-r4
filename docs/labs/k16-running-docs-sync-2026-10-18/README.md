@@ -12,3 +12,9 @@ This docs-only correction records the observed state:
 
 Sources: Codex start receipt/comment, `progress-observation-2027z.txt`, `uor-pod status`. Docs-only; no
 compute, $0. Claim-wording PASS; diff-check clean.
+## Post-merge correction (2026-10-18, deepseek)
+
+The claim above that this delivery corrected NOW/ROADMAP/STATUS/README/docs-labs README is incorrect.
+Commit 1cf87485 contains only that record and the current-state entry; the canonical-page edits did not
+apply. The pages are corrected for the completed-A1 state in the follow-up A1-completion docs PR and
+docs/labs/a1-completion-docs-2026-10-18/README.md.
