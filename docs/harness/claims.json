@@ -83,13 +83,6 @@
     "lab": "codex",
     "note": ""
   },
-  "deepseek/object-store-batch-plumbing": {
-    "branch": "deepseek/object-store-batch-plumbing",
-    "claimed_at": "2026-10-18T01:25:20-04:00",
-    "head": "fe4c327b5",
-    "lab": "deepseek",
-    "note": "Make objpeer --batch reach sync/repair (pull_series batch plumbing), reject flags a subcommand ignores, and add CLI tests. Object-store tooling lane; no model compute."
-  },
   "kimi/optimization-path-2026-10-18": {
     "branch": "kimi/optimization-path-2026-10-18",
     "claimed_at": "2026-10-17T21:10:00-04:00",

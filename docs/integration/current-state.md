@@ -1,3 +1,7 @@
+## 2026-10-18  Third DeepSeek claims cleanup (deepseek)
+
+Removes the merged #2635 claim and the cleanup branch claim from docs/harness/claims.json. Coordination only; no code/model/evidence change.
+
 ## 2026-10-18  Object-store batch plumbing for sync/repair (deepseek)
 
 Follow-up to #2607: objpeer --batch was silently ignored by sync and repair (pull_series hardcoded
