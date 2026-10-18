@@ -343,7 +343,7 @@ class WireGateway:
         first.join()
         second.join()
         with self.lock:
-            bucket["wire"] = wire.stats()["wire"]
+            bucket["wire"] += wire.stats()["wire"]
         try:
             plain.close()
         except OSError:
