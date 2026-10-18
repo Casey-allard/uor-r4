@@ -59,8 +59,16 @@ line today.
 `K16-R` pass → register the Relation + R successor; `K16_R_NULL` with A keeping admission →
 width-only successor; `ADMISSION_STILL_CAPPED_AT_K16` → full-vector address metric.
 
-**Budget and holds.** About 1.2 h for four runs, measured (see
-[current state](current-state.md)); pod quote $0.908/h on the retained `vast-56571294`.
+**Budget and holds.** Measured (Codex, 2026-10-18, [`#2029`](https://github.com/UOR-Foundation/uor-r4/issues/2029)):
+the registered 100-sample timing units ran **26.022125399 s (A) / 26.023861995 s (R)**,
+each containing carry plus both proposal/observation families, zero apply at checkpoint 0.
+Applied to the registered 16,384-vector/20-route mix that is **8,528.79 s ≈ 2.37 GPU-hours
+across four trajectories, proposal-only**; accepted apply, later occupancy, the 20 DEV
+evaluations, conditional fresh, I/O and paid idle are explicitly unmeasured. The concrete
+remaining proposal is **5–8 h on one 5090 ($4.54–$7.264 at $0.908/h)** with those allowances
+unmeasured; no all-in measured training duration or empirical upper bound is claimed.
+Pod quote $0.908/h on the retained `vast-56571294`. The earlier "1.2 h measured" phrase was
+a rough projection, not a measurement — do not dispatch on it.
 Training, M2 and Stage B are **HELD**; the two Q4 timing cells are waived by the owner
 (`6251027125`); Q4 is `NOT_EXECUTABLE`. No step above releases a hold.
 
@@ -162,7 +170,7 @@ known limitations, and independent verification on consumer hardware.
 After the qualification concludes, in this order, each step needing its own
 `TEST FITNESS: FIT` and an owner release wherever a hold applies:
 
-1. **W1** — the K16-A/R run itself (~1.2 h).
+1. **W1** — the K16-A/R run itself (proposal-only ≈ 2.37 GPU-h on the measured timing basis; concrete proposal 5–8 h on one 5090 with allowances unmeasured — see Budget and holds).
 2. **W2** — the already-FIT'd read-code capacity capture, on the same lease.
 3. **W3** — the BVG-K batched-coordinate discrete law; the matched discrete speed
    competitor, registered **before** any float sheet.

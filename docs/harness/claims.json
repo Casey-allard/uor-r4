@@ -272,6 +272,13 @@
     "lab": "kimi",
     "note": "Docs-only: post-dose optimization path in project-track.md + current-state entry + canonical record. No source/science changes."
   },
+  "kimi/packet-budget-correction": {
+    "branch": "kimi/packet-budget-correction",
+    "claimed_at": "2026-10-18T14:18:15-04:00",
+    "head": "41549f452",
+    "lab": "kimi",
+    "note": ""
+  },
   "kimi/pr-b-hygiene": {
     "branch": "kimi/pr-b-hygiene",
     "claimed_at": "2026-10-18T13:55:46-04:00",
