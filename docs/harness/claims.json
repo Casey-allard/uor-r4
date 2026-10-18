@@ -62,6 +62,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/rows-r-objective-20261018": {
+    "branch": "claude/rows-r-objective-20261018",
+    "claimed_at": "2026-10-18T09:22:09-04:00",
+    "head": "fb9e004fb",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/starling-brief-20261018": {
     "branch": "claude/starling-brief-20261018",
     "claimed_at": "2026-10-17T22:53:57-04:00",

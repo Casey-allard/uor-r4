@@ -1,0 +1,4 @@
+116c116
+<         if(c==~(W)0 || (f&ROWS_TR_BIT)==0){sum=~(W)0;break;}
+---
+>         if(c==~(W)0){sum=~(W)0;break;}

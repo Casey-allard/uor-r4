@@ -17,6 +17,8 @@ pub const NAMES: &[&str] = &[
     "rows_relation_gate_parity",
     "rows_refusal_parity",
     "rows_forced_terminal_parity",
+    "rows_rank_objective_parity",
+    "rows_rank_hinge_active_parity",
 ];
 
 fn require(ok: bool, why: &str) -> Result<()> {
@@ -68,6 +70,9 @@ struct Tally {
     /// (a broken lane: virtual cost MAX or virtual token_rivals 0).
     successes_with_broken_lane: u64,
     racy_refusals: u64,
+    rank_active_rows: u64,
+    rank_occupied_cells: u64,
+    objective_sensitive_parameters: u64,
     refusals: Vec<String>,
 }
 
@@ -292,15 +297,33 @@ fn compare_calls(
 }
 
 fn sweep(read: ReadSpec, blocks: u32, seed: u64, tally: &mut Tally) -> Result<()> {
+    sweep_with(
+        read,
+        blocks,
+        4,
+        crate::ObjectivePolicy::NearestAddressMarginV1,
+        seed,
+        tally,
+    )
+}
+
+fn sweep_with(
+    read: ReadSpec,
+    blocks: u32,
+    kept_cells: u32,
+    objective: crate::ObjectivePolicy,
+    seed: u64,
+    tally: &mut Tally,
+) -> Result<()> {
     let (vocabulary, context) = (16, 12);
     let spec = Spec {
         vocabulary,
         blocks,
         context,
-        kept_cells: 4,
+        kept_cells,
     };
     for model_seed in [7u32, 11] {
-        let device = Device::new_with_read(spec, read, model_seed, 0)?;
+        let device = Device::new_with_objective(spec, read, objective, model_seed, 0)?;
         let rows = device.rows_counterfactual()?;
         let snapshot = device.snapshot()?;
         let gates = snapshot.gates.len() as u32;
@@ -331,6 +354,143 @@ fn rows_route_parity(tally: &mut Tally) -> Result<()> {
     sweep(ReadSpec::Route, 2, 0x5157, tally)?;
     sweep(ReadSpec::Route, 4, 0x5158, tally)
 }
+/// The admission redirect (K16-A vs K16-R, Route) trains at kept_cells 16 under
+/// both objectives; the rank hinge is a different writer term (s[11] == 1).
+fn rows_rank_objective_parity(tally: &mut Tally) -> Result<()> {
+    for objective in [
+        crate::ObjectivePolicy::OccupiedCellRankHingeV1,
+        crate::ObjectivePolicy::NearestAddressMarginV1,
+    ] {
+        sweep_with(ReadSpec::Route, 2, 16, objective, 0x0a16, tally)?;
+        sweep_with(ReadSpec::Route, 4, 16, objective, 0x0a17, tally)?;
+    }
+    Ok(())
+}
+/// The 16 generated anchor-orbit roots (build.rs `ROOTS`, anchor first). A wrong
+/// literal makes the constructed table invalid, which `from_snapshot` refuses.
+const ORBIT_ROOTS: [[i32; 8]; 16] = [
+    [2, 2, 0, 0, 0, 0, 0, 0],
+    [-2, -2, 0, 0, 0, 0, 0, 0],
+    [-2, 2, 0, 0, 0, 0, 0, 0],
+    [0, 0, -2, 0, -2, 0, 0, 0],
+    [0, 0, -2, 0, 2, 0, 0, 0],
+    [0, 0, 0, -2, 0, 0, 0, -2],
+    [0, 0, 0, -2, 0, 0, 0, 2],
+    [0, 0, 0, 0, 0, -2, -2, 0],
+    [0, 0, 0, 0, 0, -2, 2, 0],
+    [0, 0, 0, 0, 0, 2, -2, 0],
+    [0, 0, 0, 0, 0, 2, 2, 0],
+    [0, 0, 0, 2, 0, 0, 0, -2],
+    [0, 0, 0, 2, 0, 0, 0, 2],
+    [0, 0, 2, 0, -2, 0, 0, 0],
+    [0, 0, 2, 0, 2, 0, 0, 0],
+    [2, -2, 0, 0, 0, 0, 0, 0],
+];
+
+/// An *active* rank-hinge parity (PM audit #2029 6250526855 item 2). With 16
+/// or fewer occupied cells, `rank ≤ kept_cells = 16`, so R = 0 on every row and
+/// an R parity is vacuous. This builds a 64-token, two-block table whose tokens
+/// occupy 64 distinct cells (block0 root t mod 16, block1 root (t + t/16) mod 16),
+/// then requires, on the same device and state:
+/// - > 16 occupied cells and at least one evaluated row with `cell_rank_hinge > 0`;
+/// - ordinary vs row-parallel parity under R for every Route and VectorBlock index;
+/// - objective sensitivity: the same state under objective A gives a different
+///   ordinary loss vector for at least one parameter, so a row path that silently
+///   scored A instead of R would fail the R parity above.
+fn rows_rank_hinge_active_parity(tally: &mut Tally) -> Result<()> {
+    let (vocabulary, blocks, context, kept_cells) = (64u32, 2u32, 12u32, 16u32);
+    let spec = Spec {
+        vocabulary,
+        blocks,
+        context,
+        kept_cells,
+    };
+    let base = Device::new_with_objective(
+        spec,
+        ReadSpec::Route,
+        crate::ObjectivePolicy::OccupiedCellRankHingeV1,
+        7,
+        0,
+    )?;
+    let mut snapshot = base.snapshot()?;
+    for t in 0..vocabulary as usize {
+        let b0 = ORBIT_ROOTS[t % 16];
+        let b1 = ORBIT_ROOTS[(t + t / 16) % 16];
+        snapshot.table[t * 16..t * 16 + 8].copy_from_slice(&b0);
+        snapshot.table[t * 16 + 8..t * 16 + 16].copy_from_slice(&b1);
+    }
+    let mut snapshot_a = snapshot.clone();
+    snapshot_a.objective_policy = crate::ObjectivePolicy::NearestAddressMarginV1;
+    let device = Device::from_snapshot(snapshot, 0)?;
+    let device_a = Device::from_snapshot(snapshot_a, 0)?;
+    // Every call below (evaluate, parity pairs, sensitivity proposals) is
+    // bracketed by an unchanged-state check on both devices.
+    let before_r = device.snapshot()?;
+    let before_a = device_a.snapshot()?;
+    let rows = device.rows_counterfactual()?;
+    let route_count = device.snapshot()?.routes.len() as u32;
+    let mut rng = Lcg(0x8a16);
+    let batch = windows(&mut rng, 64, context, vocabulary);
+    let targets: Vec<u32> = (0..64).map(|_| rng.next(vocabulary)).collect();
+    // The rank hinge must be live on this exact batch and state.
+    let input = device.carry_windows(&batch)?;
+    let evaluation = device.evaluate(&input, &targets)?;
+    let occupied = evaluation
+        .rows
+        .iter()
+        .map(|r| r.occupied_cells)
+        .max()
+        .unwrap_or(0);
+    let active = evaluation
+        .rows
+        .iter()
+        .filter(|r| r.cell_rank_hinge > 0)
+        .count();
+    require(
+        occupied > u64::from(kept_cells),
+        &format!("rank fixture has only {occupied} occupied cells (needs > {kept_cells})"),
+    )?;
+    require(
+        active > 0,
+        "rank fixture has no row with cell_rank_hinge > 0: R parity would be vacuous",
+    )?;
+    let input_a = device_a.carry_windows(&batch)?;
+    let mut sensitive = 0u64;
+    let parameters: Vec<Parameter> = (0..route_count)
+        .map(Parameter::Route)
+        .chain((0..vocabulary * blocks).map(Parameter::VectorBlock))
+        .collect();
+    for parameter in parameters {
+        compare(&device, &rows, &batch, &targets, parameter, tally)?;
+        // Admission and eligibility are objective-independent, so both
+        // objectives must accept the proposal; any failure is a FAIL, never a skip.
+        let r = device.propose(&input, &targets, parameter)?;
+        let a = device_a.propose(&input_a, &targets, parameter)?;
+        if r.candidate_losses()? != a.candidate_losses()? {
+            sensitive += 1;
+        }
+    }
+    let unchanged = |d: &Device, before: &crate::device::Snapshot| -> Result<bool> {
+        let after = d.snapshot()?;
+        Ok(before.table == after.table
+            && before.routes == after.routes
+            && before.gates == after.gates
+            && before.epoch == after.epoch)
+    };
+    require(
+        unchanged(&device, &before_r)? && unchanged(&device_a, &before_a)?,
+        "active rank parity mutated model state or epoch",
+    )?;
+    require(
+        sensitive > 0,
+        "objective A and R gave identical ordinary losses on every parameter: R not exercised",
+    )?;
+    tally.rank_active_rows = active as u64;
+    tally.rank_occupied_cells = occupied;
+    tally.objective_sensitive_parameters = sensitive;
+    Ok(())
+}
+
 fn rows_flock_gate_parity(tally: &mut Tally) -> Result<()> {
     sweep(ReadSpec::Flock { kept: 3 }, 2, 0xf10c, tally)?;
     sweep(ReadSpec::Flock { kept: 8 }, 4, 0xf10d, tally)
@@ -384,14 +544,36 @@ fn timing() -> Result<serde_json::Value> {
     };
     let mut rng = Lcg(0x7193);
     let mut cases = Vec::new();
-    for (read, parameter) in [
-        (ReadSpec::Route, Parameter::VectorBlock(0)),
+    // Dose 1 shape (K8, objective A) and the admission-redirect shape (K16,
+    // Route, both objectives: K16-A and K16-R).
+    for (kept_cells, objective, read, parameter) in [
         (
+            8,
+            crate::ObjectivePolicy::NearestAddressMarginV1,
+            ReadSpec::Route,
+            Parameter::VectorBlock(0),
+        ),
+        (
+            8,
+            crate::ObjectivePolicy::NearestAddressMarginV1,
             ReadSpec::Relation { kept: 8, sweeps: 1 },
             Parameter::Gate(0),
         ),
+        (
+            16,
+            crate::ObjectivePolicy::NearestAddressMarginV1,
+            ReadSpec::Route,
+            Parameter::VectorBlock(0),
+        ),
+        (
+            16,
+            crate::ObjectivePolicy::OccupiedCellRankHingeV1,
+            ReadSpec::Route,
+            Parameter::VectorBlock(0),
+        ),
     ] {
-        let device = Device::new_with_read(spec, read, 1, 0)?;
+        let spec = Spec { kept_cells, ..spec };
+        let device = Device::new_with_objective(spec, read, objective, 1, 0)?;
         let rows = device.rows_counterfactual()?;
         let batch: Vec<Vec<Identity>> = (0..64u64)
             .map(|r| {
@@ -437,12 +619,13 @@ fn timing() -> Result<serde_json::Value> {
         )?;
         cases.push(serde_json::json!({
             "read": format!("{read:?}"), "parameter": format!("{parameter:?}"),
+            "kept_cells": kept_cells, "objective": format!("{objective:?}"),
             "ordinary_median_ns": ordinary_ns as u64, "rows_median_ns": rows_ns as u64,
             "losses_equal": true,
         }));
     }
     Ok(serde_json::json!({
-        "shape": "V4096/B4/C192/K8, 64 rows, synchronized propose, 1 warmup + 5 timed, median",
+        "shape": "V4096/B4/C192, K8 (objective A) and K16 (A and R), 64 rows, synchronized propose, 1 warmup + 5 timed, median",
         "qualified": false,
         "cases": cases,
     }))
@@ -450,12 +633,14 @@ fn timing() -> Result<serde_json::Value> {
 
 pub fn run(report: &Path) -> Result<()> {
     std::fs::create_dir(report).map_err(|e| Error::Invalid(format!("exclusive report: {e}")))?;
-    let controls: [fn(&mut Tally) -> Result<()>; 5] = [
+    let controls: [fn(&mut Tally) -> Result<()>; 7] = [
         rows_route_parity,
         rows_flock_gate_parity,
         rows_relation_gate_parity,
         rows_refusal_parity,
         rows_forced_terminal_parity,
+        rows_rank_objective_parity,
+        rows_rank_hinge_active_parity,
     ];
     let mut records = Vec::new();
     let mut failed = false;
@@ -467,6 +652,9 @@ pub fn run(report: &Path) -> Result<()> {
                 "cases": tally.cases, "successes": tally.successes,
                 "successes_with_broken_lane": tally.successes_with_broken_lane,
                 "racy_refusals": tally.racy_refusals,
+                "rank_active_rows": tally.rank_active_rows,
+                "rank_occupied_cells": tally.rank_occupied_cells,
+                "objective_sensitive_parameters": tally.objective_sensitive_parameters,
                 "refusals": tally.refusals,
             }),
             Err(error) => {

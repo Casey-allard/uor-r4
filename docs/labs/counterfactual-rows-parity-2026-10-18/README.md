@@ -100,3 +100,60 @@ Losses are equal in both cases.
 - **Archive:** `icloud:UOR-R4/results/claude/vast-56499123.tar` (5,452,288 bytes, MD5 `369c45c4e1150b2fa68d7397f4b54dbc`).
 - **Cost:** about $0.25. The pod was released and deleted.
 - **What this means:** attempt 3 is the qualifying parity evidence for the fast-path Dose 1 re-issue.
+
+## Attempt 4 at `907a9926b` — rank-hinge objective at K16 PASS; K16 A/R timing
+
+This run is the prerequisite for the owner's fast-path admission redirect (K16-A vs K16-R, #2029 6250410397). It used a fresh RTX 5090, `vast-56557973`, cloned at the exact SHA with the source hashes checked.
+
+**Parity:**
+- **New control `rows_rank_objective_parity`:** Route at `kept_cells = 16`, complete inventories, under both `OccupiedCellRankHingeV1` (the rank hinge, writer `s[11] == 1`) and `NearestAddressMarginV1`. Result: **1,368/1,368 PASS**.
+- **Every earlier control PASSes again:** Route 684, Flock 108, Relation 288, refusals 3, forced terminals.
+- **Other checks:** D29 checks 0/0/0; the negative gate FAILs as required; restored source hashes are clean.
+
+**Timing** (64 rows, median of 5; losses equal in every case):
+
+| Shape / objective | Ordinary | Row-parallel | Ratio |
+|---|---|---|---|
+| K8, Route VectorBlock(0), A | 3.882 s | 0.0700 s | 55.5× |
+| K8, Relation Gate(0), A | 4.200 s | 0.0742 s | 56.6× |
+| **K16, Route VectorBlock(0), A (K16-A)** | 7.400 s | 0.1297 s | **57.0×** |
+| **K16, Route VectorBlock(0), R (K16-R)** | 7.402 s | 0.1292 s | **57.3×** |
+
+**Derived redirect budget:** 16,404 batches × about 0.13 s comes to about 36 min per arm-seed, so the four registered runs take about 1.2 h on a 2×5090 pod, about $2.3. The ordinary kernel would need about 34 h per arm-seed.
+
+- **Evidence:** `evidence/attempt4/`. The release `rows-qualify` SHA-256 starts `75682c52…`.
+- **Archive:** `icloud:UOR-R4/results/claude/vast-56557973.tar` (5,453,824 bytes, MD5 `2991ca26475dd9b8f04def32564c73ed`).
+- **Cost:** about $0.25.
+
+**Correction (PM audit #2029 6250526855, item 2).** Attempt 4's rank-objective parity was **vacuous for the R term**. At vocabulary 16 a model has at most 16 occupied cells, so `rank ≤ kept_cells = 16` and R = 0 on every row. It proves lanes/rows parity under the R code path, not with a live R term, and it stays recorded at that scope.
+
+## Attempt 5 at `3af49e029` — active rank-hinge parity PASS
+
+New control `rows_rank_hinge_active_parity`:
+- **Fixture:** a 64-token, two-block table over **64 distinct cells**. Token `t` has block0 root `t mod 16` and block1 root `(t + t/16) mod 16`.
+- **Required on the exact batch and state**, so the R term is live: more than 16 occupied cells, at least one evaluated row with `cell_rank_hinge > 0`, lanes-vs-rows parity under R for every Route and VectorBlock index, and objective A on the same state giving different ordinary losses for at least one parameter (the wrong-objective gate).
+
+| Check | Result |
+|---|---|
+| Occupied cells | **64** (> K16) |
+| Rows with `cell_rank_hinge > 0` | **46 / 64** |
+| Lanes-vs-rows parity under R (Route + VectorBlock, all indices) | **134 / 134 PASS** |
+| Parameters whose ordinary losses differ between R and A | **134 / 134** |
+| All earlier controls (Route 684, Flock 108, Relation 288, refusals, forced terminals, vacuous-R 1,368) | PASS |
+| D29 self-test / repo, negative gate (reducer `tr` clause deleted), restored hashes | 0 / 0, FAIL as required, clean |
+
+- **Evidence:** `evidence/attempt5/`. The release `rows-qualify` SHA-256 starts `06142611…`.
+- **Archive:** `icloud:UOR-R4/results/claude/vast-56559825.tar` (5,456,896 bytes, MD5 `7db5dbfa3ace2202c41cda903448fd93`).
+- **Cost:** about $0.20.
+
+## Scope of attempts 4–5 and the registered timing slot (AGY review #2658 6250630831, P3)
+
+| Attempt | Source | Controls run | What it establishes |
+|---|---|---|---|
+| 4 | `907a9926b` | 6, including `rows_rank_objective_parity` (1,368/1,368) | Lanes/rows parity under the R code path at K16, **with R = 0 on every row** (V = 16, at most 16 occupied cells). Vacuous for the R term. |
+| 5 | `3af49e029` | 7, adding `rows_rank_hinge_active_parity` (134/134) | Parity with a **live R term**: V = 64, B = 2, K16, 64 occupied cells, 46 rows with R > 0, objective sensitivity 134/134 |
+| Final head (P1/P2 repairs) | this PR's head | the same 7 controls | P1 turns a sensitivity-loop proposal failure into a FAIL instead of a skip. P2 brackets every call in the active control with unchanged-state checks on both devices. Neither changes a measured value. **This head runs on GPU in the single new-head qualification session** (PM audit item 4) and is bound there. |
+
+**Timing.** The 5-sample `timing()` above is `qualified: false`: `VectorBlock(0)` only, checkpoint-0 only. It is a diagnostic speedup check and budget estimate.
+
+**The registered K16 timing slot** is filled in the qualification session by the dedicated `k16-timing` `rows_v1` adapter (#2659, Codex): checkpoint-0 and Q4 × A and R, `Route(0)` plus `VectorBlock(0)`, with 100 timed samples plus 1 excluded warmup. These rows-qualify numbers do not compete with that slot.
