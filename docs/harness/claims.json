@@ -62,6 +62,13 @@
     "lab": "codex",
     "note": ""
   },
+  "deepseek/interposer-fork-safe": {
+    "branch": "deepseek/interposer-fork-safe",
+    "claimed_at": "2026-10-17T23:43:59-04:00",
+    "head": "e8703a63c",
+    "lab": "deepseek",
+    "note": "Close Codex P1 residual: fork-safe interposer close (poll-with-timeout wake instead of shutdown), deterministic fork test in macOS/Linux smokes. No model compute."
+  },
   "deepseek/k16-warmup-count": {
     "branch": "deepseek/k16-warmup-count",
     "claimed_at": "2026-10-16T02:08:02-04:00",

@@ -1,3 +1,15 @@
+## 2026-10-18  Interposer fork-safe close (wire side exploration; deepseek)
+
+Closes the Codex P1 residual on the merged wire side exploration: close no longer calls
+shutdown(SHUT_RDWR) (which disturbed fork-shared sockets). Receive is non-blocking chunked
+(MSG_DONTWAIT) with an atomic active re-check; recv/send/shutdown carry a per-fd generation guard;
+atfork child lock re-init and child skip-free windows; fork test covers close-wake and reused-fd
+connect, with an unsafe-build negative control that must exit 7. Checks: WIRE_INTERPOSER_PASS and
+WIRE_INTERPOSER_LINUX_PASS, both fork_ok=true negative_control=true. Trade-off documented (idle
+20 Hz polls; close can wait for current-frame decompression). No model compute.
+Record: [labs/spiralcore-wire-interposer-fork-safe-2026-10-18](../labs/spiralcore-wire-interposer-fork-safe-2026-10-18/README.md).
+PR: https://github.com/UOR-Foundation/uor-r4/pull/2625.
+
 ## 2026-10-18 — Claim-wording gate ported to Rust (claude)
 
 The claim-wording gate is now the `uor-r4-claim-wording` crate (D27): run `cargo run -q --locked -p uor-r4-claim-wording -- .` or `uor-harness claim-wording`. It is a line-for-line port of `scripts/check_claim_wording.py`. Its stdout and exit code are byte-identical to the script's on this repository and on a violation probe; the crate has 13 tests. The CI steps, the PR template, AGENTS/CONTRIBUTING, pm-rules, formal vocabulary §6 and the prlint checklist label now call the Rust gate. CI coverage is unchanged, including docs-only diffs in `fast-gate`. The Python script is retired, not deleted. [Record](../labs/claim-wording-rust-port-2026-10-18/README.md). No compute, $0. **Next:** none on this line; the retired script stays as dated evidence.

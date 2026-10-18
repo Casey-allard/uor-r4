@@ -66,3 +66,12 @@ The interposer can target a routed hub by appending the route name:
 
 Measured in tools/wire_hub_cli_smoke.sh: a stock C probe reached the echo route through wire_hub.py and
 round-tripped 2 MiB exactly; the hub reported 2 connections / 13113 wire bytes / ratio 0.0024.
+
+## Fork
+
+The interposer close never calls socket-wide shutdown, so a child process closing an inherited routed
+descriptor does not disturb the parent connection. Receive uses non-blocking chunks and checks an atomic
+active flag, so close can stop a blocked reader without a socket shutdown; a pthread_atfork child handler
+re-initializes the per-fd mutexes so a multithreaded parent can fork without the child inheriting a
+locked mutex. Limitation: parent and child must not both keep using the same inherited routed
+descriptor - the per-process compression state makes that stream unsound.
