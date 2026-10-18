@@ -104,12 +104,12 @@
     "lab": "codex",
     "note": "Documentation reconciliation only; draft PR and independent parent review; no model compute or resource actions"
   },
-  "deepseek/pod-laptop-archive-verify": {
-    "branch": "deepseek/pod-laptop-archive-verify",
-    "claimed_at": "2026-10-18T10:12:45-04:00",
-    "head": "43bca5e15",
+  "deepseek/claims-cleanup-2660": {
+    "branch": "deepseek/claims-cleanup-2660",
+    "claimed_at": "2026-10-18T10:55:08-04:00",
+    "head": "5fd2eb974",
     "lab": "deepseek",
-    "note": "Add pre-delete verification to the laptop tar archive path and make reap retain a pod when archive verification fails; dry-run tests. Host-only, no model compute."
+    "note": "Remove the merged #2660 claim from docs/harness/claims.json."
   },
   "kimi/dose1-dispatch-record-2026-10-18": {
     "branch": "kimi/dose1-dispatch-record-2026-10-18",
