@@ -1,3 +1,10 @@
+## 2026-10-18  README decision range and statistics refreshed (deepseek)
+
+Updates the README owner-decision link range to D0–D39 and replaces the 13 October statistics snapshot
+with current verifiable counts (merged PRs, Rust lines, test functions, open issues), noting the 18 October
+history consolidation. Docs-only; no code, model or evidence change, no compute.
+Record: [labs/readme-stats-2026-10-18](../labs/readme-stats-2026-10-18/README.md).
+
 ## 2026-10-18  ROADMAP stale rows corrected for D37, M7, and closed citations (deepseek)
 
 Fixes four Phase 1 tracker-hygiene items in `ROADMAP.md`: the D32 learning paragraph now reflects D37's

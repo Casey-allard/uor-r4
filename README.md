@@ -263,7 +263,7 @@ Sources: [current state](docs/integration/current-state.md), [evidence index](do
 | What | Where |
 |---|---|
 | What is true now, newest first | [docs/integration/current-state.md](docs/integration/current-state.md) |
-| Owner decisions D0–D34 | [docs/integration/DECISIONS.md](docs/integration/DECISIONS.md) |
+| Owner decisions D0–D39 | [docs/integration/DECISIONS.md](docs/integration/DECISIONS.md) |
 | Live tracker and milestone issues | [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028), #2029–#2036 |
 | One dated record per completed unit | `docs/labs/<topic>-<date>/README.md` |
 | Pre-registrations and their `TEST FITNESS` verdicts | [docs/harness/prep/](docs/harness/prep/) and the milestone issue |
@@ -366,9 +366,10 @@ never on a serving path, and no new comparator runs are permitted (D23).
 
 The [project map](docs/PROJECT_MAP.md) covers every crate and directory.
 
-**Historical statistics, 13 October 2026** (mostly multi-agent lab work, not a count of human contributors): about
-1,990 commits since 9 June 2026; 1,761 merged PRs (968 in the last 30 days); about 1.68M lines of Rust;
-8,131 `#[test]` functions; decisions D0 to D27; 14 open issues.
+**Repository statistics, 18 October 2026** (mostly multi-agent lab work, not a count of human contributors):
+2,130 merged PRs (1,000 in the last 30 days); about 1.97M lines of Rust; 9,704 `#[test]` functions;
+decisions D0 to D39; 12 open issues. Git history was consolidated on 18 October, so a commit count since
+9 June is not comparable to the earlier snapshot.
 
 </details>
 
