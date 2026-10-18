@@ -1,0 +1,91 @@
+{
+  "applied_updates": 0,
+  "controls": [
+    {
+      "cases": 684,
+      "index": 1,
+      "name": "rows_route_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 684,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 108,
+      "index": 2,
+      "name": "rows_flock_gate_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 108,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 288,
+      "index": 3,
+      "name": "rows_relation_gate_parity",
+      "racy_refusals": 0,
+      "refusals": [],
+      "status": "PASS",
+      "successes": 288,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 3,
+      "index": 4,
+      "name": "rows_refusal_parity",
+      "racy_refusals": 0,
+      "refusals": [
+        "parameter kind 3 index 0 is reserved but unimplemented",
+        "route parameters are inactive in a flock model",
+        "proposal parameter index exceeds its declared inventory"
+      ],
+      "status": "PASS",
+      "successes": 0,
+      "successes_with_broken_lane": 0
+    },
+    {
+      "cases": 2,
+      "index": 5,
+      "name": "rows_forced_terminal_parity",
+      "racy_refusals": 0,
+      "refusals": [
+        "discrete CUDA counterfactual refused with status 8"
+      ],
+      "status": "PASS",
+      "successes": 1,
+      "successes_with_broken_lane": 1
+    }
+  ],
+  "rows_image_sha256": [
+    "48d8e6e05f2de03d2f9931812f606e5f923c2416dd4205696a6228d858446318",
+    "c03752ab4750394b4cb6b10897884622e5cf8150cd0b7e08326e89ad4a33e49a",
+    "9d0f170b86961c4cc3900c29c75c65a75a9d8e0baa41e67aea613f9db313c5df",
+    "5a2c2f77138fa9fd6a5b1e84d5d2e4f31ea3460ca0f40d98d1819d14deeb6661"
+  ],
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "status": "PASS",
+  "suite": "rows-counterfactual-parity",
+  "timing": {
+    "cases": [
+      {
+        "losses_equal": true,
+        "ordinary_median_ns": 3846949213,
+        "parameter": "VectorBlock(0)",
+        "read": "Route",
+        "rows_median_ns": 69349598
+      },
+      {
+        "losses_equal": true,
+        "ordinary_median_ns": 4148531434,
+        "parameter": "Gate(0)",
+        "read": "Relation { kept: 8, sweeps: 1 }",
+        "rows_median_ns": 73252303
+      }
+    ],
+    "qualified": false,
+    "shape": "V4096/B4/C192/K8, 64 rows, synchronized propose, 1 warmup + 5 timed, median"
+  },
+  "training": "HELD"
+}

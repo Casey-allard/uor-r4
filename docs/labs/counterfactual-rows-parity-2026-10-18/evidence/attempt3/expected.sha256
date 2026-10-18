@@ -1,0 +1,6 @@
+8059a014f6fcf839e67f6ef6afd1e209ec3fdbe53d9af75cf737c0bcc25dec6a  crates/uor-r4-discrete/src/rows_source.rs
+0bf5ed1409ad3c3cd45070442dbe1ab238708aa17589487d5f26616839f657ba  crates/uor-r4-discrete/src/rows_device.rs
+834a2ba947a3ca26690879b3916d21443b7742973aa3a9ce6916085f79d7bc51  crates/uor-r4-discrete/src/rows_qualification.rs
+8cc15ccb605364e8ae4239a1852fc71a08fcfb747c515269b8cca7eecdbf190e  crates/uor-r4-discrete/src/discrete.cu
+3d7054dffb8047a00b6cd166c10d7e8d70ba6d57596dc047cdb31848f892a088  crates/uor-r4-discrete/build.rs
+cdd8867263a3f557eb996ba8f9e75807c662c1e898a63ef9ae2bf5984020fb48  crates/uor-r4-discrete/src/device.rs

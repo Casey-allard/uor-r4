@@ -13,6 +13,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/rows-qual-fixes-20261018": {
+    "branch": "claude/rows-qual-fixes-20261018",
+    "claimed_at": "2026-10-18T00:46:33-04:00",
+    "head": "7eae5dcc0",
+    "lab": "claude",
+    "note": ""
+  },
   "codex/cf1-reuse-timing-uuid-blocker": {
     "branch": "codex/cf1-reuse-timing-uuid-blocker",
     "claimed_at": "2026-10-16T22:35:15-04:00",

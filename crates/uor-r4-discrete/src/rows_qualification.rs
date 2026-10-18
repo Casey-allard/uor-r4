@@ -160,6 +160,7 @@ fn rows_forced_terminal_parity(tally: &mut Tally) -> Result<()> {
 }
 
 /// Run both paths on one case and require identical observable results.
+/// Every call of a case, retries included, sits inside one unchanged-state check.
 fn compare(
     device: &Device,
     rows: &crate::device::RowsCounterfactual,
@@ -169,9 +170,7 @@ fn compare(
     tally: &mut Tally,
 ) -> Result<()> {
     let before = device.snapshot()?;
-    let input = device.carry_windows(windows)?;
-    let ordinary = device.propose(&input, targets, parameter);
-    let parallel = device.propose_rows(&input, targets, parameter, rows);
+    let outcome = compare_calls(device, rows, windows, targets, parameter, tally);
     let after = device.snapshot()?;
     require(
         before.table == after.table
@@ -180,6 +179,42 @@ fn compare(
             && before.epoch == after.epoch,
         "a virtual proposal changed learned state or epoch",
     )?;
+    outcome
+}
+
+/// One retry of a racy refusal: only an Invalid refusal joins the observed set;
+/// a CUDA fault propagates and any other outcome class is a FAIL.
+fn retry_refusal(
+    outcome: Result<Proposal>,
+    path: &str,
+    seen: &mut std::collections::BTreeSet<String>,
+) -> Result<()> {
+    match outcome {
+        Err(Error::Invalid(text)) => {
+            seen.insert(text);
+            Ok(())
+        }
+        Err(error @ Error::Cuda(_)) => Err(error),
+        Ok(_) => Err(Error::Invalid(format!(
+            "{path} retry succeeded after the case refused"
+        ))),
+        Err(other) => Err(Error::Invalid(format!(
+            "{path} retry changed refusal kind: {other}"
+        ))),
+    }
+}
+
+fn compare_calls(
+    device: &Device,
+    rows: &crate::device::RowsCounterfactual,
+    windows: &[Vec<Identity>],
+    targets: &[u32],
+    parameter: Parameter,
+    tally: &mut Tally,
+) -> Result<()> {
+    let input = device.carry_windows(windows)?;
+    let ordinary = device.propose(&input, targets, parameter);
+    let parallel = device.propose_rows(&input, targets, parameter, rows);
     tally.cases += 1;
     match (ordinary, parallel) {
         (Ok(a), Ok(b)) => {
@@ -216,14 +251,16 @@ fn compare(
                 let mut seen_a = std::collections::BTreeSet::from([a.clone()]);
                 let mut seen_b = std::collections::BTreeSet::from([b.clone()]);
                 for _ in 0..4 {
-                    if let Err(Error::Invalid(t)) = device.propose(&input, targets, parameter) {
-                        seen_a.insert(t);
-                    }
-                    if let Err(Error::Invalid(t)) =
-                        device.propose_rows(&input, targets, parameter, rows)
-                    {
-                        seen_b.insert(t);
-                    }
+                    retry_refusal(
+                        device.propose(&input, targets, parameter),
+                        "ordinary",
+                        &mut seen_a,
+                    )?;
+                    retry_refusal(
+                        device.propose_rows(&input, targets, parameter, rows),
+                        "rows",
+                        &mut seen_b,
+                    )?;
                 }
                 require(
                     seen_a.intersection(&seen_b).next().is_some(),
@@ -265,15 +302,20 @@ fn sweep(read: ReadSpec, blocks: u32, seed: u64, tally: &mut Tally) -> Result<()
     for model_seed in [7u32, 11] {
         let device = Device::new_with_read(spec, read, model_seed, 0)?;
         let rows = device.rows_counterfactual()?;
-        let gates = device.snapshot()?.gates.len() as u32;
+        let snapshot = device.snapshot()?;
+        let gates = snapshot.gates.len() as u32;
+        let route_count = snapshot.routes.len() as u32;
         let mut rng = Lcg(seed ^ u64::from(model_seed));
         // One row, an odd count and the full 64-row admission bound.
         for row_count in [1usize, 7, 64] {
             let batch = windows(&mut rng, row_count, context, vocabulary);
             let targets: Vec<u32> = (0..row_count).map(|_| rng.next(vocabulary)).collect();
+            // The complete admitted inventories (Device::parameter): every
+            // route-table entry and every vocabulary-by-block codebook block.
             let parameters: Vec<Parameter> = match read {
-                ReadSpec::Route => (0..blocks)
-                    .flat_map(|b| [Parameter::Route(b), Parameter::VectorBlock(b)])
+                ReadSpec::Route => (0..route_count)
+                    .map(Parameter::Route)
+                    .chain((0..vocabulary * blocks).map(Parameter::VectorBlock))
                     .collect(),
                 _ => (0..gates).map(Parameter::Gate).collect(),
             };

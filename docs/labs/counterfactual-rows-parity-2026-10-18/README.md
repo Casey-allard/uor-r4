@@ -56,3 +56,47 @@ The shape is V4096/B4/C192, `kept_cells` 8, 64 full rows. Each sample is one syn
 - **In the repo:** `evidence/attempt{1,2}/`, holding the logs, JSON reports, exit codes, source and binary hashes, GPU identity and negative diff. The release `rows-qualify` SHA-256 is `809d7912…a9010`.
 - **Full pod archive:** `icloud:UOR-R4/results/claude/vast-56495093.tar` (10,882,048 bytes, MD5 `d7d35d2da896647a81f7ef03b2d3063b`).
 - **Cost:** one pod at about $0.91/h for about 20 min, roughly **$0.30**. The pod was released and deleted after archiving.
+
+## Correction after Codex review (18 October, after merge)
+
+Codex/cf1 posted two source findings before #2630 merged (#2029 6245676413 and its follow-up). Claude merged without reading them, and that is recorded here as a process slip.
+
+1. **Coverage was overclaimed.** Attempts 1–2 swept Route and VectorBlock indices `0..blocks` only: 2 of 32 VectorBlock indices at V16/B2, and 4 of 64 at V16/B4. The route inventory is the route-table length, not `blocks`. **Attempts 1–2 therefore measured a subset of the Route-mode inventory.** The Gate inventories (`0..gate_count`) were complete. The subset evidence stays at its scope.
+2. **The retry oracle was weak.** The racy-refusal retries discarded CUDA faults, unexpected successes and other error kinds, and ran after the case's unchanged-state check. In both measured attempts `racy_refusals = 0`, so that code never ran and no measured result depends on it.
+
+**Repair** (branch `claude/rows-qual-fixes-20261018`):
+- every retry outcome is classified (a CUDA fault propagates; an unexpected success or a changed refusal kind is a FAIL);
+- every call of a case, retries included, runs inside one unchanged-state check;
+- Route-mode sweeps cover the complete admitted inventories, `0..routes.len()` and `0..vocabulary×blocks`.
+
+Attempt 3 reruns the suite at the repaired head. The kernel and the timing are unchanged.
+
+## Attempt 3 at the repaired head `70606e8b8` — PASS with full inventories
+
+The run used a fresh RTX 5090, `vast-56499123`, cloned at the exact SHA with the source hashes checked.
+
+| Item | Result |
+|---|---|
+| Release build / D29 self-test / D29 repo | 0 / 0 / 0 |
+| Route parity, **complete** Route and VectorBlock inventories | **684/684 PASS** |
+| Flock Gate parity | 108/108 PASS |
+| Relation Gate parity | 288/288 PASS |
+| Refusal parity (host refusals by text) | 3/3 PASS |
+| Forced terminals: status 8 and lane break | PASS |
+| Racy refusals | 0 |
+| Negative gate: reducer `tr` clause deleted | FAIL as required |
+| Restored source hashes | clean |
+
+The timing reproduces:
+
+| Read / parameter | Ordinary | Row-parallel | Ratio |
+|---|---|---|---|
+| Route VectorBlock(0) | 3.847 s | 0.0693 s | 55.5× |
+| Relation Gate(0) | 4.149 s | 0.0733 s | 56.6× |
+
+Losses are equal in both cases.
+
+- **Evidence:** `evidence/attempt3/`. The release `rows-qualify` SHA-256 is `2a77161a…`.
+- **Archive:** `icloud:UOR-R4/results/claude/vast-56499123.tar` (5,452,288 bytes, MD5 `369c45c4e1150b2fa68d7397f4b54dbc`).
+- **Cost:** about $0.25. The pod was released and deleted.
+- **What this means:** attempt 3 is the qualifying parity evidence for the fast-path Dose 1 re-issue.

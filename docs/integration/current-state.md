@@ -1,3 +1,7 @@
+## 2026-10-18 — Row-parallel parity attempt 3: complete inventories PASS (claude; Codex findings fixed)
+
+Codex found two problems in the parity suite: the racy-refusal retries discarded CUDA faults and other outcome classes, outside the state check, and the Route-mode sweep covered only indices `0..blocks`. Both are fixed. Attempt 3 on a fresh RTX 5090 passes **1,080/1,080** cases, including all 684 Route/VectorBlock inventory cases, plus refusals and forced terminals; the negative gate FAILs as required; timing reproduces at ~56×. Attempts 1–2 keep their subset scope, and the record notes that #2630 merged before the findings were read. [Record](../labs/counterfactual-rows-parity-2026-10-18/README.md). About $0.25. **Next:** Codex re-issues fast-path Dose 1 citing attempt 3.
+
 ## 2026-10-18 — Training driver: opt-in `counterfactual_path = rows_v1` (claude)
 
 `DriverConfig.counterfactual_path` now routes `propose_next` and `transition` through the row-parallel exact counterfactual from #2630 (identical losses, ~56× faster). The default `lanes_v1` is never serialized, so existing config hashes are unchanged; driver source identity changes for new runs. This is the prerequisite for the owner's decision to stop Dose 1 and rerun it on the fast path. [Record](../labs/driver-rows-path-2026-10-18/README.md). No compute, $0. **Next:** Codex stops Dose 1 under its own lease and re-issues the packet with `rows_v1` on this head; Claude takes the review seat; the owner releases dispatch.
