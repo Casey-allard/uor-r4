@@ -1,3 +1,7 @@
+## 2026-10-18  Fourth DeepSeek claims cleanup (deepseek)
+
+Removes the merged #2638 claim and the cleanup branch claim from docs/harness/claims.json. Coordination only; no code/model/evidence change.
+
 ## 2026-10-18  Object-store pipelined FETCH window (deepseek)
 
 Follow-up to #2607: `pull` was strict lock-step per chunk, so batch tuning still left one RTT per

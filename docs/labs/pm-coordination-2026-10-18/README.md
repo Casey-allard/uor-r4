@@ -30,3 +30,7 @@ The two DeepSeek claims that rode merged delivery PRs (#2629 pod read-back, #263
 ## Third claims cleanup (2026-10-18)
 
 The claim that rode merged PR #2635 (object-store batch plumbing) and this cleanup branch claim were removed from docs/harness/claims.json. No code, model or evidence change.
+
+## Fourth claims cleanup (2026-10-18)
+
+The claim that rode merged PR #2638 (pipelined FETCH) and this cleanup branch claim were removed from docs/harness/claims.json. No code, model or evidence change.
