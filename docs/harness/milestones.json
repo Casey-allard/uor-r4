@@ -348,7 +348,13 @@
     },
     {
       "id": "D32",
-      "rule": "Discrete geometric substrate: model computation AND its instruments, including learning, are discrete/exact and GPU-only - no floating-point forward, gradients, optimizer or numerical model instrument, and no matrix multiplication. Use native SpiralCore/E8/FBS geometry with one integer input/carry/output writer. Supersedes D25's offline scalar floating-point allowance, which is now inactive. Both training holds remain HELD; a FIT review releases neither.",
+      "rule": "Active discrete geometric substrate (`crates/uor-r4-discrete`, Dose 1): model computation and its instruments are discrete/exact and GPU-only - no floating-point forward, gradients, optimizer or numerical model instrument on that path, and no matrix multiplication. Use native SpiralCore/E8/FBS geometry with one integer input/carry/output writer. D37 revises D32's offline-training float ban in separately scanned float modules; the discrete path, D11 serving and the October 14 zeta-zero exception are unchanged. Both training holds remain HELD; a FIT review releases neither.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D37",
+      "rule": "Floating point is legal in offline training only: float forward passes, gradients and optimizers, and offline numerical training instruments, in a separately scanned float module that names its pre-registration (R12/D31), remains geometric (SpiralCore/E8/FBS, icosian/quaternion, prime/zeta), has its own scanned allowlist entry added and reviewed with that pre-registration (never by widening the discrete crate's scan), and reports its export gap. Softmax/squashing (D23/D25) and dense matrix multiplication (D25/D30) stay banned everywhere; model compute stays GPU-only (D24); the exported/served artifact is D11 integer/table only, with no float, transcendental or multiplier instruction; the October 14 complex-plane zeta-zero exception stays separate; archived float sheets return only by re-registration and a fresh FIT; the active discrete Dose 1 and all holds are unchanged. Releases no hold, FIT or compute.",
       "scope": "all",
       "source": "docs/integration/DECISIONS.md"
     }

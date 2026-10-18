@@ -1,10 +1,18 @@
 # UOR-R4 Geometric Language Model — canonical project plan
 
-## Current owner direction — discrete model and instruments, October 13
+## Current owner direction — D37 offline float; active discrete path unchanged, October 18
 
-D32 supersedes all earlier floating-point model/training/instrument permissions.
-Use discrete exact SpiralCore/E8/FBS moves and one native integer input/carry/output
-writer, without float forward, gradients, optimizer or matrix multiplication.
+D37 (owner, 2026-10-18) revises D32's offline-training float ban: float forward
+passes, gradients and optimizers, and offline numerical training instruments, are
+legal in a separately scanned float module that stays geometric
+(SpiralCore/E8/FBS, icosian/quaternion, prime/zeta), has its own scanned allowlist
+entry added and reviewed with the pre-registration (never by widening the discrete
+crate's scan), and reports its export gap.
+Everything else stands: the active discrete path (`crates/uor-r4-discrete`,
+Dose 1) remains exact integer and GPU-only, D11 serving is integer/table with no
+float, transcendental or multiplier instruction, softmax/squashing and dense
+matrix multiplication stay banned, and the October 14 zeta-zero exception is
+separate. Both D32 and D37 release no hold, FIT or compute.
 The composed discrete flock/shared-writer path at `76198c3b5` passes seventeen admitted
 CUDA construction controls after Claude FIT (#2395): eleven Route and six flock.
 The Route read retains query-to-fixed-port selection; Flock ranks earlier frame contents,
@@ -17,6 +25,7 @@ HELD; no update, language or headline result follows.
 Older31/18-control float receipts and unfinished instruments remain inactive,
 source-scoped evidence preserved through #2370. Historical ladders below retain
 their capability obligations but cannot restore a superseded computation law.
+Current authority: [D37 record](../labs/d37-offline-float-2026-10-18/README.md).
 
 ## Historical operator preparation, October 12 — superseded substrate
 
@@ -25,6 +34,7 @@ latest owner direction: no softmax/softplus/sigmoid/tanh or equivalent squashing
 executed model/learning/output/teacher/comparator path; no dense matrix multiplication in
 training or serving; GPU-only model compute/reference execution with no host fallback.
 Its scalar floating-point GPU-learning allowance is historical and superseded by D32;
+D37 separately permits offline float training and does not revive that allowance.
 D11 integer/table, multiplier-free serving remains the target.
 
 **Training remains held, including the separate M2 training/rental hold.** Kimi is the
@@ -935,7 +945,7 @@ Rung status is maintained here and the active artifact/result pointer in [curren
 
 ### Post-dose optimization path — owner direction, October 18
 
-The owner approved the falsify-then-optimize sequence as the current path ([path directive](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6244066845)); record: [optimization path record](../labs/optimization-path-2026-10-18/README.md). D11 multiplier-free serving stands; scalar float and transcendentals remain legal in offline training only. The compute-cost thesis is architectural (cache-resident addressed state, no per-token weight streaming) and is proven in this order:
+The owner approved the falsify-then-optimize sequence as the current path ([path directive](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6244066845)); record: [optimization path record](../labs/optimization-path-2026-10-18/README.md). D11 multiplier-free serving stands. Under [D37](DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) (owner 2026-10-18), float forward passes, gradients, optimizers and numerical instruments are legal in offline training only, in a separately scanned module that stays geometric (SpiralCore/E8/FBS, icosian/quaternion, prime/zeta), has its own scanned allowlist entry added/reviewed with the pre-registration (never widening the discrete crate scan), and reports its export gap; dense matrix multiplication remains banned. The compute-cost thesis is architectural (cache-resident addressed state, no per-token weight streaming) and is proven in this order:
 
 1. **Dose 1 (current).** The paired Relation/frozen-zero falsification run under the [learned-attention-link sheet](../harness/prep/m1-learned-attention-link-2026-10-17.md), one seed first (owner resolution (g)), release-profile binary required. This is the only paid-compute item on the path; its stop semantics are pre-registered (Q1 admission gate, paired DEV decision, sealed fresh transfer).
 2. **Optimization rung (gated on the dose producing a decision).** Release-profile baselines, counterfactual row-parallelism, shared-memory table staging and selective trace capture, with tokens/s bars pre-registered on the same CUDA harness before any kernel work. Optimizing an unfalsified mechanism is prohibited waste; optimizing a decided one is the deliverable.
@@ -1269,7 +1279,7 @@ Representation experiments support witnessed needs rather than forming a mandato
 
 Develop a learned local language model that uses geometric addressing, state, transport and selected operators for useful prose, conversation, memory, reasoning and Rust coding. Ultimately target frontier capability on consumer M1-class laptops with lower energy and wasted compute. The current model is experimental and pre-alpha, not a frontier or general-language result.
 
-**Owner direction (2026-09-23), explicit terminal objective.** The programme's ultimate goal is a **fully transformerless geometric language model in which geometry *replaces* floating-point matrix multiplication**, not merely a model whose output layer is table-native. Offline Rust training may use floating point, gradients and matrix multiplication; the declared serving kernel must not, and no transformer — including one hidden behind a lookup interface — is the target. The serving contract in [agent-execution-policy.json](agent-execution-policy.json) is therefore the intended end-state, not only a boundary on the current prototype. Prime/zeta addressing, R4/S3/H4 transport, exact `Z[phi]`, Hopf retained fiber and shared typed operators are the intended replacement substrate; they still require a demonstrated capability or cost advantage against information- and compute-matched ordinary controls.
+**Owner direction (2026-09-23), explicit terminal objective.** The programme's ultimate goal is a **fully transformerless geometric language model in which geometry *replaces* floating-point matrix multiplication**, not merely a model whose output layer is table-native. The September direction permitted offline floating point, gradients and matrix multiplication; **that matrix-product permission is superseded by D25/D30**, and D37 restores only offline float and gradients in a separately scanned geometric module with its own reviewed scan entry, not matmul. The declared serving kernel must not use floating point, and no transformer — including one hidden behind a lookup interface — is the target. The serving contract in [agent-execution-policy.json](agent-execution-policy.json) is therefore the intended end-state, not only a boundary on the current prototype. Prime/zeta addressing, R4/S3/H4 transport, exact `Z[phi]`, Hopf retained fiber and shared typed operators are the intended replacement substrate; they still require a demonstrated capability or cost advantage against information- and compute-matched ordinary controls.
 
 Use the product name **UOR-R4 Geometric Language Model** and the technical description **experimental autoregressive geometric state model with exact addressed memory and learned typed operators**. Preserve Cargo/CLI and native model artifact schema identifiers; explicitly version incompatible API contract changes. This native design is not a transformer; historical dense R4/Spin references still are.
 
@@ -1277,11 +1287,13 @@ The [direction review](model-direction-2026-09.md) codifies the source investiga
 
 ## Required mechanism roles
 
-**Dated September substrate guidance below is preserved history.** Its float,
-gradient and matrix-product permissions are superseded by D32; current roles use
-discrete geometric moves, the native shared writer and held training admission.
+**Dated September substrate guidance below is preserved history.** Its matrix-product
+permission remains superseded by D25/D30; under D37, offline float and gradients are
+restored for a separately scanned float module without restoring that permission.
+Current roles on the active discrete path use discrete geometric moves, the native
+shared writer and held training admission.
 
-Prepare data, train, construct artifacts and infer in Rust. Offline floating point, gradients and matrix multiplication, including uor-matmul, are permitted. Final serving follows owner-adopted [D0-b](DECISIONS.md): bounded <=4-bit integer/ternary linear maps may execute through additions/subtractions/shifts/table reads, with no multiplier instruction in the declared numerical kernel and no floating point or transcendental arithmetic in served computation. Geometric routing remains the preferred architecture; no transformer backbone or runtime teacher/provider responses are adopted. Deterministic geometric address/page selection is allowed. Shared typed operators are current; expert gates remain conditional future work requiring capability need and measured complete laptop cost.
+Prepare data, train, construct artifacts and infer in Rust. Under D37, offline floating point and gradients are permitted in a separately scanned float module that stays geometric (SpiralCore/E8/FBS, icosian/quaternion, prime/zeta), has its own scanned allowlist entry added/reviewed with the pre-registration (never widening the discrete crate scan), and reports its export gap; matrix multiplication, including uor-matmul, remains banned under D25/D30. Final serving follows owner-adopted [D0-b](DECISIONS.md): bounded <=4-bit integer/ternary linear maps may execute through additions/subtractions/shifts/table reads, with no multiplier instruction in the declared numerical kernel and no floating point or transcendental arithmetic in served computation. Geometric routing remains the preferred architecture; no transformer backbone or runtime teacher/provider responses are adopted. Deterministic geometric address/page selection is allowed. Shared typed operators are current; expert gates remain conditional future work requiring capability need and measured complete laptop cost.
 
 Prime identities and ordered n-lets address lexical/context records; fixed zeta phases provide explicit structured channels; R4/S3/H4 and exact Z[phi] carry typed ordered state and transport. Preserve signed orientation, chirality/polarity, Hopf observation versus retained fiber/torsion and paired-H4/icosian identity/inverse witnesses. UOR/kappa identify and serialize; they do not tokenize or supply semantic distance. Structural roles and measured predictive contributions remain distinct. Do not attach every researched coordinate to every token without a computational purpose.
 

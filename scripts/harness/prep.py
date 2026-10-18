@@ -57,7 +57,7 @@ MIN_ROWS = 200
 #: A rule list maintained in code will keep drifting from the decisions file. The honest short-term
 #: fix is to include the current set and to say so on the sheet, so a reader can check DECISIONS.md
 #: rather than trusting this tuple.
-APPLICABLE_RULES = ("D21", "D22", "D23", "D24", "D25", "D28", "D29", "D31", "D32")
+APPLICABLE_RULES = ("D21", "D22", "D23", "D24", "D25", "D28", "D29", "D31", "D32", "D37")
 
 #: the cost a run must charge, in the session-goal contract's own breakdown.
 COST_BUCKETS = ("preparation", "run", "controls", "evaluation", "retries", "storage")

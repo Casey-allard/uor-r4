@@ -104,6 +104,13 @@
     "lab": "codex",
     "note": ""
   },
+  "kimi/d37-propagation-2026-10-18": {
+    "branch": "kimi/d37-propagation-2026-10-18",
+    "claimed_at": "2026-10-17T23:03:25-04:00",
+    "head": "35c4c4038",
+    "lab": "kimi",
+    "note": "Host-only mechanical D37 propagation: harness milestones/prep rules/pm-rules R5/R13/project-track/optimization record/current-state + canonical record; no code behavior, no compute, no holds moved."
+  },
   "kimi/optimization-path-2026-10-18": {
     "branch": "kimi/optimization-path-2026-10-18",
     "claimed_at": "2026-10-17T21:10:00-04:00",

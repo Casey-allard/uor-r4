@@ -50,8 +50,14 @@ come from the owner through the PM.
   `softplus`, `sigmoid`, `tanh`, `gelu`, `silu`, `rope`, `ropei` and `rotary`), `uor-harness ratchet d25`
   (93 sites / 26 files across `crates/` and `docs/labs/*/instrument/`, gating `.matmul(`, `MatMul`,
   `cublas`, `gemm` and tensor-core `wmma`/`mma_sync` intrinsics), `cargo run -p uor-r4-core --bin r4-policy-check`
-  (verifying `/schema == "uor-r4.agent-execution-policy/6"`, `training_matrix_multiplication_allowed == false`,
-  and the D25/D32 discrete/no-matmul invariants), and the claim-wording gate (`cargo run -q --locked -p uor-r4-claim-wording -- .`).
+  (verifying `/schema == "uor-r4.agent-execution-policy/7"`, `training_matrix_multiplication_allowed == false`,
+  `serving_floating_point_allowed == false`, `serving_transcendentals_allowed == false` and
+  `serving_kernel_multiplier_instructions_allowed == false`, plus the D25/D32/D37 invariants: offline float
+  training is allowed only in a separately scanned geometric module (SpiralCore/E8/FBS,
+  icosian/quaternion, prime/zeta) whose own scanned allowlist entry is added and reviewed with the
+  pre-registration (never by widening the discrete crate scan), while the active discrete path, D11 serving
+  and the no-squashing/no-matmul bans are unchanged), and the claim-wording gate
+  (`cargo run -q --locked -p uor-r4-claim-wording -- .`).
 - **Why.** The bans erode one "temporary" site at a time; a baseline is a floor, not a budget.
 - **Harness surface.** `lint check` and `uor-harness check` invoke both the D23 (`Kind::NormExp`) and D25
   (`Kind::Matmul`) interlocks in process via `prlint.d23_interlock`; a PR that raises either baseline fails.
@@ -267,12 +273,21 @@ come from the owner through the PM.
   before it counts — and the first question that review answers is whether the test should have been
   run at all.
 
-## R13 — Discrete learning path: rung re-registration and the instrument boundary (implements D32)
+## R13 — Discrete learning path: rung re-registration and the instrument boundary (active discrete path only; implements D32)
 
 **Authority, October 13:** owner delegation in session — "choose what is best for the project
 overall in the sense of what our ultimate goal is — a working geometric language model... make
 the best choice among the allowed." This rule is the PM's ruling under that delegation, within
 D32 and all standing decisions.
+
+**Scope (D37, October 18):** the rulings below govern the **active discrete path only** —
+`crates/uor-r4-discrete`, Dose 1 and its instruments. A separate D37 offline float lane may use
+float forward passes, gradients, optimizers and declared numerical instruments in a **separately
+scanned module** that stays geometric (SpiralCore/E8/FBS, icosian/quaternion, prime/zeta), under
+R12/D31 and a pre-registration that adds and reviews its own scanned allowlist entry (never by
+widening the discrete crate scan) and reports its export gap. That lane does not widen, share or
+weaken the discrete crate's exact instruments, and it releases no hold. The discrete path's
+exact/no-float optimizer and instrument rulings stand unchanged.
 
 - **Ruling 1 — rung 0 re-registers as a new sheet on a compliant discrete learning law.**
   The frozen F32 sheet (`docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md`, FIT at
@@ -280,10 +295,10 @@ D32 and all standing decisions.
   lawful pins carry over to the successor sheet where they survive the substrate change: the
   pinned panel and data hashes, seed discipline, the count-predictor reference class, anti-vacuity
   guards, the dev evaluation policy and scale-invariant rank measures. The learning law,
-  optimizer and instruments are redesigned discrete: admissible-move selection and local credit
-  over the geometry-preserving SpiralCore/FBS transport, no floating-point optimizer, no dense
-  learned maps as a prerequisite.
-- **Ruling 2 — no floating point in instruments that verify the model path.** Qualification of
+  optimizer and instruments on this path are redesigned discrete: admissible-move selection and
+  local credit over the geometry-preserving SpiralCore/FBS transport, no floating-point optimizer,
+  no dense learned maps as a prerequisite.
+- **Ruling 2 — no floating point in instruments that verify the active discrete model path.** Qualification of
   discrete kernels uses exact integer/rational arithmetic, stored expected values, analytic exact
   values, or exhaustive enumeration over small discrete state spaces. No floating-point oracle,
   on any device, even test-only. For a discrete law an exact check is always available in
