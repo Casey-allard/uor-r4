@@ -1,3 +1,11 @@
+## 2026-10-18  PM coordination hygiene: stale DeepSeek claims removed (deepseek)
+
+While Kimi is rate-limited, DeepSeek is covering PM coordination. This removes 25 stale committed
+claims for already-merged DeepSeek branches (object-store series and wire follow-ups), removes the
+orphan local branch flagged by uor-harness check, and records the PM coordination note. No code,
+model or evidence change; no other lab's claims or files touched.
+Record: [labs/pm-coordination-2026-10-18](../labs/pm-coordination-2026-10-18/README.md).
+
 ## 2026-10-18  Fork-safe interposer claims cleanup (deepseek)
 
 Removes the stale committed claim for the merged fork-safe interposer branch (#2625) and this cleanup branch from docs/harness/claims.json. No code, model or evidence change; coordination record only.
