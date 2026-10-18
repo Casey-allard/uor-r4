@@ -60,3 +60,17 @@ The pre-registration draft `docs/harness/prep/m1-attention-injective-init-DRAFT-
 - **Deferred to the registration PR,** since both depend on the final sheet text:
   - dispatch of `ATTENTION_SHEET_SHA256` by `codebook_initialization`;
   - the sheet's H1 title, to satisfy the existing prefix check.
+
+## Subagent FIT review and fixes (owner direction, 18 October)
+
+Two fresh-context reviewer subagents reviewed the sheet. The first covered the sheet and its source, and the second the fix diff. Both returned FIT-WITH-FIXES. Everything they found is applied, and the sheet is **TEST FITNESS: FIT**.
+
+- **F1.** `validate_plan_header` now picks the registered sheet by `codebook_initialization`. A seeded init binds the parent sheet and is unchanged. A pinned init binds this sheet. Each is refused with the other's SHA. A unit test pins both SHAs and both title prefixes to the committed sheets. A negative gate confirmed it: with the fix reverted, the pinned-plan test fails.
+- **F3.** The `injective-` scope requires `distinct_vectors == V` and carries a 12-hex table-SHA prefix. The seeded scope string is byte-identical.
+- **Bar (i).** It is a ranking bar: `top1_control(P_succ, cp0) + 24`. The gate is net G-Cap > max(500, Bar (i)). It is necessary, not sufficient.
+- **F2.** A Sequencing section: register now, and dispatch only after D39 W1 concludes, with the configuration re-checked first.
+- **F5.** The G-Init negative control is split into a host refusal and GPU status 6.
+- **F6.** G-Init is a checkpoint-0 property.
+- **Re-pin rule.** The sheet does not pin the driver hash inside itself, because that would be circular. The release packet binds it through `execution.driver_source_sha256`.
+
+Training stays HELD. Registration releases nothing. Dispatch also needs the owner's release, which Casey types (D40).

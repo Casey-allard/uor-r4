@@ -18,7 +18,8 @@
 - **D22 scope of this sheet (replaces the parent's):** PrimeZeta V4096 / B4 `pinned_table_v1` initialization (`table_sha256 e9e03bcd…`), with the parent's arms, read (`Relation{8,1}`), schedule, objective A, K = 8 and `ActiveLeafV1` read initialization.
   - A negative here closes only this configuration, never the mechanism.
   - The parent's `+1-leaf-combine` initialization scope does not describe this configuration and is not reused.
-- **Identity pins are all new** and are recorded in the release packet: source `driver_source_sha256 a328e63f9f73119328bccc2a0f9d2c036914ceba725d5afc18f129001741724c` (main at #2692), both configs, lineage, the table file SHA, and the built binary. No parent receipt is inherited as PASS.
+- **Identity pins are all new** and are recorded in the release packet, not in this sheet: source `driver_source_sha256`, both configs, lineage, the table file SHA, and the built binary. No parent receipt is inherited as PASS.
+  - The driver hash is deliberately not written here, as in the parent sheet. The driver source contains this sheet's SHA-256 (`INJECTIVE_SHEET_SHA256` in `attention_learning.rs`, the registered-sheet table a `pinned_table_v1` plan must bind), so a driver hash inside the sheet would be circular. The plan's `execution.driver_source_sha256` carries it, and plan validation checks it against the built driver.
 - **Supersedes as the preferred next attention configuration:** the conditional Relation+R draft (`m1-learned-attention-link-R-DRAFT-2026-10-18.md`). That draft stays on file. It addresses admission through the objective; this sheet addresses the aliasing that precedes it.
 
 ## 1. Why: the read has never had distinguishable keys
@@ -62,7 +63,10 @@ Table: `prime-zeta-codebook` V4096 B4. `table_sha256` is `e9e03bcd95b78632a7f18d
    - its word digest equals `e9e03bcd…`;
    - GPU snapshot validation (`discrete_validate`) passes;
    - routes, gates, seed and epoch equal the unpinned initializer's for the same config;
-   - a deliberately corrupted copy of the table (one non-root word) is refused with status 6. This is the negative control.
+   - negative controls, two of them, each with its own expected refusal:
+     - (a) an edited copy of the table file (one word changed) with its hashes left stale is refused on the host before any model: the `FilePin` SHA-256 check (`corpus.rs`), or, if the pin is re-hashed, the `table_sha256` word-digest check in `CodebookTable::load`. Both are `Error::Invalid`.
+     - (b) a re-hashed, re-pinned file whose changed word is a non-root word passes the host checks and is refused on the GPU by `from_snapshot`/`discrete_validate` with status 6.
+   - G-Init is a checkpoint-0 property: the driver checks the pinned table only while `accepted_updates == 0`. Later checkpoints are bound by the lineage and config pin (which carry the table file SHA) and by `new_model`'s GPU re-verification of every reloaded snapshot.
 2. **G-Occ (artifact level).** The GPU token-cell export (`attention-export-token-cells`, which admits these Relation configs) runs on each checkpoint-0 artifact, and `coverage-census --token-cells` reports:
    - `occupied_cells` (must exceed 16; 256 is expected);
    - the occupancy histogram;
@@ -73,7 +77,13 @@ Table: `prime-zeta-codebook` V4096 B4. `table_sha256` is `e9e03bcd95b78632a7f18d
 3. **G-Cap, raw and net of admission (D39 item 2).**
    - Raw: `dev_alias_ceiling_rows` from `coverage-census` on the artifact.
    - Net: P_succ rows whose target is an alias representative **and** whose target cell is admitted at checkpoint 0. The admission term comes from the zero-update checkpoint-0 DEV evaluation's per-row admitted cells, the same evaluation that yields B3_init.
-   - Both values are reported. Net G-Cap must be at least the Q1 evaluability floor (500 P_succ rows), or the run is `INSTRUMENT_UNREACHABLE`.
+   - Both values are reported. D39 item 2 requires net G-Cap to exceed the sheet's **Bar (i)**. The alias ceiling caps how many rows top-1 can ever win, so Bar (i) has to be a **ranking** bar, not an admission count.
+   - The parent's primary ranking bar (§7.6) is paired, not absolute. H_geom needs the Relation arm to beat the FrozenZero control on the matched `P_succ` set by `c − b ≥ F_I = max(24, 2·sqrt(b+c))` top-1 rows. So the Relation arm must be able to win at least `top1_control + F_I` rows.
+   - This sheet's **Bar (i)** is therefore `top1_control(P_succ, checkpoint 0) + 24`. It uses the control's checkpoint-0 top-1 count from the same zero-update DEV evaluation, and the 24-row floor of `F_I`.
+   - **The gate is: net G-Cap > max(500, Bar (i)).** The 500 is the §7.12.1 evaluability floor `B3(P_succ) ≥ 500`. If the gate fails, the run is `INSTRUMENT_UNREACHABLE` and is not dispatched.
+   - This is a **necessary, not sufficient** condition. The control can still learn after checkpoint 0, so passing the gate does not prove H_geom is reachable. Failing it proves H_geom is not.
+   - The 1,941 figure in D39 item 2 is the Bar (i) of the rung-0 admission sheets (`m1-discrete-rung0-admission*`), not of this attention sheet. It does not apply here.
+   - **Reported, not gating (D39 item 6):** the interim M1 headline, "injective codebook plus Q4 target admission ≥ 4,894", is reported for this lineage so that D21 can count the line. Its Q4 admission count is recorded when it exists. It neither releases nor blocks dispatch.
 4. **B3_init(P_succ)** is measured on the GPU and recorded before dispatch. If it is below 500, the run is not dispatched, and a successor decision is needed: with 256 occupied cells, admission at K = 8 may be low from the start. This is the parent's hard gate, run on this lineage.
 
 **Decision bars:** inherited verbatim from the parent §7.6 and §7.7:
@@ -103,6 +113,13 @@ The fresh draw stays sealed until the paired DEV decision.
 3. At the new head, re-run the parent's inherited pre-flight battery (old receipts are not reused). Then run G-Init (with its negative control), G-Occ, G-Cap (raw and net) and B3_init (§3). Then re-measure the per-batch cost. Record every pin and value in the release packet.
 4. Run the Q1 gate, then the full dose, as in the parent.
 5. Make the DEV decision per the parent §7.7, then score fresh transfer only on H_geom.
+
+### Sequencing (D39)
+
+- This sheet registers its source now. Dispatch waits for the D39 W1 (K16-A/R) conclusion.
+- Before dispatch, the configuration (K = 8, objective A, `ActiveLeafV1`, `InterleavedReadEvery8V1`) is re-checked against the K16 configuration of record.
+  - If K16 shows that K16 admission is required, the K8 arm is re-registered rather than run. Run as written, it would predictably be `INSTRUMENT_UNREACHABLE`.
+- This sheet is not one of D39 item 4's W1–W4 items. It is pursued under D39 item 7 (lab self-direction) and item 6 (the interim headline names the injective codebook).
 
 ## 7. Stop rule
 
@@ -136,4 +153,6 @@ The release packet must measure per-batch throughput and all-in cost for the new
 - Seed 2 is reproducibility only.
 - **Out of scope, as a named follow-up sheet:** the PrimeZeta-vs-null attribution (tangent and normal nulls, both exportable with `prime-zeta-codebook`), and injective vs seeded initialization at a matched arm.
 
-TEST FITNESS: PENDING
+Re-pin rule: changing this sheet (including the TEST FITNESS line below) changes `INJECTIVE_SHEET_SHA256` in `attention_learning.rs` and therefore `driver_source_sha256`. Both are re-pinned in the same PR, and the release packet binds the driver hash through `execution.driver_source_sha256`.
+
+TEST FITNESS: FIT (owner direction 2026-10-18 in the Claude chat: Claude's fresh-context adversarial reviewer subagents replace cross-lab FIT for Claude lanes. Two read-only reviews — the sheet and source, then the fix diff — returned FIT-WITH-FIXES; every finding (F1–F6, the ranking Bar (i), the re-pin rule and the title-prefix test) is applied. Registration does not release training: dispatch waits for the D39 W1 conclusion per §Sequencing, then the owner's release, typed by Casey per D40.)

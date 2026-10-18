@@ -1,3 +1,13 @@
+## 2026-10-18 — Injective codebook init: sheet FIT after Claude subagent review; plan binds its own sheet (claude)
+
+Under the owner's subagent-review direction, two fresh reviewers returned FIT-WITH-FIXES. All fixes are applied:
+- **F1 (HIGH):** attention plans now bind the registered sheet by `codebook_initialization`, so an injective plan can no longer bind the parent's seeded-init table.
+- **F3:** the injective scope certifies `distinct == V` and names its table.
+- **Bar (i):** now the ranking bar, `top1_control(cp0) + 24`, gated as net G-Cap > max(500, Bar (i)).
+- Sequencing, the G-Init controls and the re-pin rule are stated.
+
+`driver_source_sha256` changes, because `attention_learning.rs` is in its include list. The running K16 build is frozen at `21224b44` and unaffected. Lib tests pass 107/107. Training HELD; dispatch waits for D39 W1. No compute, $0.
+
 ## 2026-10-18 — BVG-K Stage C is FIT after Claude subagent adversarial review; GPU qualification next (claude; W3)
 
 Under the owner's direction in the Claude chat, three fresh-context reviewer subagents replaced cross-lab FIT for this lane. They returned FIT-WITH-FIXES, and every fix is applied:

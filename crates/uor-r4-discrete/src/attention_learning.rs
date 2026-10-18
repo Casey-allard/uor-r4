@@ -20,6 +20,20 @@ pub const ATTENTION_BASE_SOURCE: &str = "ef9d30999700be11e103f96590e9e3b83b6807c
 /// arm/seed remain independently pinned by the review payload and owner plan.
 pub const ATTENTION_SHEET_SHA256: &str =
     "844814009ecc7368c0a3ecabf62434bae7d72850363e19f67c0126810fee7ffc";
+/// The injective-codebook (PinnedTableV1) attention pre-registration sheet.
+pub const INJECTIVE_SHEET_SHA256: &str =
+    "79c6f9434f2751e6e3d3380d93fc6c3fd313e86abb6f1538a15953a185b030a6";
+/// The registered sheet (SHA-256 and title line) a plan must bind, keyed by
+/// the codebook initialization: the seeded lineage keeps the parent sheet.
+const ATTENTION_SHEET_TITLE: &str = "# Pre-registration — M1 learned-attention link";
+const INJECTIVE_SHEET_TITLE: &str = "# Learned attention link from an injective codebook";
+fn registered_sheet(config: &DriverConfig) -> (&'static str, &'static str) {
+    if config.codebook_initialization.is_seeded_device() {
+        (ATTENTION_SHEET_SHA256, ATTENTION_SHEET_TITLE)
+    } else {
+        (INJECTIVE_SHEET_SHA256, INJECTIVE_SHEET_TITLE)
+    }
+}
 const PLAN_SCHEMA: &str = "uor-r4.attention-learning-owner-plan/2";
 #[cfg(feature = "cuda")]
 const ADMISSION_SCHEMA: &str = "uor-r4.attention-learning-owner-admission/2";
@@ -131,11 +145,17 @@ pub fn scope(config: &DriverConfig) -> Result<String> {
             "attention requires a separate seed-1 or seed-2 release",
         ));
     }
-    // A pinned initial codebook is a distinct lineage, never the seeded-init scope.
-    let lineage = if config.codebook_initialization.is_seeded_device() {
-        ""
-    } else {
-        "injective-"
+    // A pinned initial codebook is a distinct lineage, never the seeded-init
+    // scope; the scope names its table by a SHA-256 prefix.
+    let lineage = match &config.codebook_initialization {
+        training::CodebookInitialization::SeededDeviceV1 => String::new(),
+        training::CodebookInitialization::PinnedTableV1 { table } => {
+            let prefix = table
+                .sha256
+                .get(..12)
+                .ok_or_else(|| invalid("pinned codebook table SHA-256 is too short"))?;
+            format!("injective-{prefix}-")
+        }
     };
     Ok(format!(
         "m1-attention-learning-{lineage}{arm}-k8-seed{}-batches0..16404",
@@ -184,12 +204,30 @@ fn validate_plan_header(plan: &AttentionPlan) -> Result<()> {
         || e.driver_source_sha256 != training::driver_source_sha256()
         || e.config_sha256 != corpus::sha256(&encode(&plan.config)?)
         || e.sheet_sha256 != plan.sheet.sha256
-        || plan.sheet.sha256 != ATTENTION_SHEET_SHA256
+        || plan.sheet.sha256 != registered_sheet(&plan.config).0
         || !plan.run_state_directory.is_absolute()
     {
         return Err(invalid(
             "attention plan schema/scope/source/config/cost contract mismatch",
         ));
+    }
+    Ok(())
+}
+/// The `injective-` scope certifies injectivity: a pinned table must hold one
+/// distinct full vector per vocabulary token (`CodebookTable::load` has already
+/// recounted its declared `distinct_vectors`).
+fn validate_injective_table(config: &DriverConfig) -> Result<()> {
+    if let training::CodebookInitialization::PinnedTableV1 { table } =
+        &config.codebook_initialization
+    {
+        let words = training::CodebookTable::load(table, config.spec)?;
+        if training::CodebookTable::count_distinct(&words, config.spec.blocks)
+            != config.spec.vocabulary as usize
+        {
+            return Err(invalid(
+                "the injective attention scope requires a pinned codebook with distinct_vectors == vocabulary",
+            ));
+        }
     }
     Ok(())
 }
@@ -234,12 +272,13 @@ fn validate_plan(plan: &AttentionPlan) -> Result<()> {
     if !sheet
         .lines()
         .any(|line| line.starts_with("TEST FITNESS: FIT"))
-        || !sheet.starts_with("# Pre-registration — M1 learned-attention link")
+        || !sheet.starts_with(registered_sheet(&plan.config).1)
     {
         return Err(invalid(
             "attention requires the canonical M1 learned-attention FIT sheet",
         ));
     }
+    validate_injective_table(&plan.config)?;
     let review: AttentionReview = serde_json::from_slice(&plan.independent_review.read()?)
         .map_err(|e| invalid(e.to_string()))?;
     validate_review(plan, &review)
@@ -1512,14 +1551,111 @@ mod tests {
         };
         assert_eq!(
             scope(&pinned)?,
-            "m1-attention-learning-injective-relation-k8-seed1-batches0..16404"
+            "m1-attention-learning-injective-aaaaaaaaaaaa-relation-k8-seed1-batches0..16404"
         );
         let mut control = pinned.clone();
         control.relation_learning_policy = training::RelationLearningPolicy::FrozenZeroV1;
         assert_eq!(
             scope(&control)?,
-            "m1-attention-learning-injective-relation-frozen-zero-k8-seed1-batches0..16404"
+            "m1-attention-learning-injective-aaaaaaaaaaaa-relation-frozen-zero-k8-seed1-batches0..16404"
         );
+        Ok(())
+    }
+    #[test]
+    fn registered_sheet_constants_match_committed_sheets() {
+        let parent =
+            include_bytes!("../../../docs/harness/prep/m1-learned-attention-link-2026-10-17.md");
+        let injective = include_bytes!(
+            "../../../docs/harness/prep/m1-attention-injective-init-DRAFT-2026-10-18.md"
+        );
+        assert_eq!(corpus::sha256(parent), ATTENTION_SHEET_SHA256);
+        assert_eq!(corpus::sha256(injective), INJECTIVE_SHEET_SHA256);
+        // validate_plan refuses a sheet whose first line lacks its title prefix.
+        assert!(parent.starts_with(ATTENTION_SHEET_TITLE.as_bytes()));
+        assert!(injective.starts_with(INJECTIVE_SHEET_TITLE.as_bytes()));
+    }
+    fn with_sheet(mut p: AttentionPlan, sha256: &str) -> AttentionPlan {
+        p.sheet.sha256 = sha256.into();
+        p.execution.sheet_sha256 = sha256.into();
+        p
+    }
+    fn pinned_plan(table_sha256: &str) -> Result<AttentionPlan> {
+        let mut p = plan()?;
+        p.config.codebook_initialization = training::CodebookInitialization::PinnedTableV1 {
+            table: FilePin {
+                path: PathBuf::from("/metadata/codebook.json"),
+                sha256: table_sha256.into(),
+            },
+        };
+        p.scope = scope(&p.config)?;
+        p.cost_contract = AttentionCostContract::expected(&p.config);
+        p.execution.config_sha256 = corpus::sha256(&encode(&p.config)?);
+        Ok(with_sheet(p, INJECTIVE_SHEET_SHA256))
+    }
+    #[test]
+    fn seeded_plan_binds_parent_sheet_only() -> Result<()> {
+        let seeded = plan()?;
+        validate_plan_header(&seeded)?;
+        let refused = validate_plan_header(&with_sheet(seeded, INJECTIVE_SHEET_SHA256));
+        assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
+        Ok(())
+    }
+    #[test]
+    fn pinned_plan_binds_injective_sheet_only() -> Result<()> {
+        let pinned = pinned_plan(&"b".repeat(64))?;
+        validate_plan_header(&pinned)?;
+        let refused = validate_plan_header(&with_sheet(pinned, ATTENTION_SHEET_SHA256));
+        assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
+        Ok(())
+    }
+    #[test]
+    fn injective_scope_names_table_and_refuses_non_injective_table() -> Result<()> {
+        let digest = format!("0123456789ab{}", "c".repeat(52));
+        let pinned = pinned_plan(&digest)?;
+        assert!(pinned.scope.contains("-injective-0123456789ab-"));
+        let spec = Spec {
+            vocabulary: 2,
+            blocks: 2,
+            context: 4,
+            kept_cells: 1,
+        };
+        // Gitignored scratch under the repository root (never /tmp).
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../local/test-scratch")
+            .join(format!("injective-scope-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).map_err(|e| invalid(e.to_string()))?;
+        let pin = |name: &str, table: Vec<i32>| -> Result<FilePin> {
+            let file = training::CodebookTable {
+                schema: training::CODEBOOK_TABLE_SCHEMA.into(),
+                spec,
+                mode: "prime_zeta".into(),
+                table_sha256: training::CodebookTable::words_sha256(&table),
+                distinct_vectors: training::CodebookTable::count_distinct(&table, spec.blocks),
+                table,
+            };
+            let bytes = serde_json::to_vec(&file).map_err(|e| invalid(e.to_string()))?;
+            let path = dir.join(name);
+            std::fs::write(&path, &bytes).map_err(|e| invalid(e.to_string()))?;
+            Ok(FilePin {
+                path,
+                sha256: corpus::sha256(&bytes),
+            })
+        };
+        let mut config = pinned.config.clone();
+        config.spec = spec;
+        // Two tokens, two distinct 16-word vectors: injective.
+        config.codebook_initialization = training::CodebookInitialization::PinnedTableV1 {
+            table: pin("injective.json", (0..32).collect())?,
+        };
+        let accepted = validate_injective_table(&config);
+        // Two tokens sharing one vector: honestly declared, but not injective.
+        config.codebook_initialization = training::CodebookInitialization::PinnedTableV1 {
+            table: pin("aliased.json", (0..16).chain(0..16).collect())?,
+        };
+        let refused = validate_injective_table(&config);
+        std::fs::remove_dir_all(&dir).map_err(|e| invalid(e.to_string()))?;
+        accepted?;
+        assert!(refused.is_err_and(|e| e.to_string().contains("distinct_vectors == vocabulary")));
         Ok(())
     }
     #[test]
