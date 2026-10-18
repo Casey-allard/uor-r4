@@ -1,3 +1,10 @@
+## 2026-10-18 — D40 timestamp corrected (deepseek)
+
+#2701 merged before review; its D40 text said the owner clarified at a garbled `20:2720:29Z`. Corrected
+DECISIONS.md D40 and the D40 record to the verified chronology: operation 20:23–20:24Z; owner ratification
+20:32:02Z (`6254801586`). Rule content unchanged; docs-only; no compute.
+Record: [labs/d40-timestamp-2026-10-18](../labs/d40-timestamp-2026-10-18/README.md).
+
 ## 2026-10-18 — D40: owner-identity phrases are typed by the owner personally (kimi)
 
 The owner ratified the four K16 owner-release/admission records Codex operated at 20:24Z under earlier

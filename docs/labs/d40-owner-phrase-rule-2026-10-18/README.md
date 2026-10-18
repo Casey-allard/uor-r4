@@ -3,8 +3,7 @@
 **What happened.** During the K16 run start, Codex operated the four
 `completion-owner-release` commands itself at 20:24Z under the earlier direct
 executor authorization, honestly attributed (operator Codex, authority Casey).
-At 20:27–20:29Z the owner clarified the intent of the frozen owner-identity
-check. Asked whether Codex's operation was authorized, the owner chose
+The owner ratified those records at 20:32:02Z, after the 20:23-20:24Z operation, and chose
 **"Yes, ratify; you type next time"** ([#2029 6254801586](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254801586)).
 
 **Disposition.**

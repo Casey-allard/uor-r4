@@ -1803,7 +1803,7 @@ Read every ban below through this goal. Each one exists to exclude an expensive 
 
 ## D40 — Owner-identity phrases are typed by the owner personally (owner 2026-10-18)
 
-**Authority, October 18:** during the K16 run start, Codex operated the four `completion-owner-release` commands itself at 20:24Z under the earlier direct executor authorization, before the owner's 20:27–20:29Z clarification. Asked whether that was authorized, the owner chose "Yes, ratify; you type next time" (#2029 `6254801586`).
+**Authority, October 18:** during the K16 run start, Codex operated the four `completion-owner-release` commands itself at 20:24Z under the earlier direct executor authorization, after the 20:23-20:24Z operation; the owner ratified those records at 20:32:02Z and chose "Yes, ratify; you type next time" (#2029 `6254801586`).
 
 1. **Ratification.** The four K16 owner-release/admission records created 2026-10-18 stand: Codex is the recorded operator under owner authorization, with honest attribution (`owner.json` names the authority, `operator-attribution.json` and transcripts name the operator). The run continued without replacement records or repeats.
 2. **Standing rule.** Any owner-identity phrase (`owner-release`, `completion-owner-release`, `attention-owner-release` and the like) is typed by Casey personally, in a terminal with `UOR_LAB` unset. No lab types one, including under relayed or in-chat delegation. Labs stage the exact commands and verify the resulting records; the owner runs them.
