@@ -1,3 +1,9 @@
+## 2026-10-18 — PROJECT_MAP ops row and heading spacing fixed (deepseek)
+
+Adds `ops/` to "Where work and evidence are stored" with its RAPL/D5-b/Braket caveats and fixes the two
+missing spaces in the September headings, closing #2679. Docs-only; claim-wording PASS; no compute.
+Record: [labs/project-map-ops-headings-2026-10-18](../labs/project-map-ops-headings-2026-10-18/README.md).
+
 ## 2026-10-18 — Mechanism briefs corrected for the aliased-key finding (claude; mechanism-brief lane)
 
 - **`finite-relational-head.md`:** records that every trained Relation run so far started from the 16-vector xorshift codebook, so no run yet isolates the read. It adds a fair-test prerequisite: a distinguishable-key codebook, shown by artifact-level coverage gates (D39 item 2).

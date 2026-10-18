@@ -45,7 +45,7 @@ The earlier [principal attention programme](integration/principal-attention-plan
 
 The historical [loaded sparse-read gate](integration/native-sparse-read-result-2026-09-24.md), in `bin/native-sparse-read.rs`, failed its ordinary-cache comparison. The preceding [real-text opportunity gate](integration/realtext-sparse-recall-result-2026-09-24.md) and [addressed lexical bridge](integration/addressed-lexical-bridge-result-2026-09-24.md) retain their bounded cache and caller-addressed copying evidence. None establishes learned semantic addressing, general language or geometric advantage. Full ordinary `(f)` and geometric `(h)` KVAR arms remain unrun. Dated "next" statements below are historical unless repeated by the active plan.
 
-## Causal continuation interfaces, September24 UTC
+## Causal continuation interfaces, September 24 UTC
 
 `native_geometric/learner/tl_checkpoint.rs`, `tl_intervention.rs`, `tl_read_plan.rs` and `relative_action_learning.rs` implement exact training continuation, explicit training-only feedback intervention, compiled sparse readout and finite relation-conditioned vector selection. `bin/support/causal_continuation.rs` owns the executed study; `relative-control-audit.rs` strengthens the ordinary comparator. [Current result](integration/causal-continuation-result-2026-09-24.md) and [handoff](integration/causal-continuation-handoff-2026-09-24.md) bind scopes and retained paths.
 
@@ -208,6 +208,7 @@ They do not claim every line or theorem in the combined archives was verified.
 | --- | --- |
 | [research/](../research/README.md) | Tracked research snapshots and original attribution. Some large media/data are Git LFS objects; a pointer file does not establish local payload availability. The archive index names retained history refs. |
 | [docs/RESEARCH.md](RESEARCH.md), issue-numbered records, [docs/evidence/](evidence/) | Append-only measured results, exact input/artifact bindings, controls, negatives and `NOT_RUN`/`UNAVAILABLE` boundaries. Do not overwrite historical outcomes to simplify the story. |
+| [ops/](../ops/) | Dated external-contributor instruments and measurement artifacts preserved as evidence, not active plan: the RAPL energy-measurement protocol and synthetic-stack receipt (provisional, not full-path M5 energy), the D5-b address-assignment memo (formulation only; no solver), the Braket Bell-state toy receipt (unverified) and the measurement report. See D38/D39 for scope. |
 | Repository-local ignored `.uor-models/` | Bulk corpus/model artifacts, retained parents/candidates, training/evaluation inputs, reports and command/resource receipts. These are local material, not guaranteed by cloning Git. Current-state and its evidence records identify exact paths/CIDs. |
 | Current local native store: `/Users/casey.allard/uor-r4/.uor-models/native-typed-value-2026-09-05/` | Retained native lineage and bounded model-development receipts. This is the recorded host path, not a portable default; verify it on another host. |
 | Current local cumulative ledger: `/Users/casey.allard/uor-r4/.uor-models/native-joint-learning-2026-09-04/model-time.json` | Shared consumed/remaining model allowance across fits, preparation, evaluation, retries and resumes. Refresh this ledger and storage before projecting the next complete execution; do not reset it because a new issue/task starts. |
@@ -258,6 +259,6 @@ must not become the newcomer quickstart for the native model.
 
 The [principal review](integration/readout-result-review-2026-09-20.md) verifies prefix recovery and the empirical-head gain, corrects actual-teacher/exposure/KL and export metadata claims, and withdraws the dominant feature-rank diagnosis. The [next prompt](integration/deepseek-head-projection-step-2026-09-20.md) specifies Q0/QG projection of the retained floating head into the existing ternary CPL2 path. Common source: `learner/lowbit.rs`, `learner/prior_learning.rs`, `learner/realtext_support.rs`, `bin/readout-diagnostic.rs`. Existing `prefix_artifact.rs` owns CPX2 recovery. That projection was subsequently executed with a reduced seed search; the complete prescribed search remains unrun. The active post-#1312 occurrence-reader prompt is linked above.
 
-## September23 principal continuation components
+## September 23 principal continuation components
 
 `native_geometric/learner/lexical_residual.rs` owns sparse integer local-prior composition; `hamilton_transport.rs` owns finite signed quaternion vector actions. `TlTrainer::from_model_fresh_optimizer` supplies exact served-weight warm initialization, not optimizer checkpoint resume. `bin/support/principal_continuation.rs` contains the explicit research modes. The [principal handoff](integration/principal-handoff-2026-09-23.md) binds retained candidates, evidence, tests and remaining limits. None of these components silently changes the default serving model.
