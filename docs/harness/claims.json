@@ -97,6 +97,13 @@
     "lab": "codex",
     "note": ""
   },
+  "deepseek/uorobj01-conformance": {
+    "branch": "deepseek/uorobj01-conformance",
+    "claimed_at": "2026-10-18T03:14:07-04:00",
+    "head": "2572f323f",
+    "lab": "deepseek",
+    "note": "UOROBJ01 non-Rust conformance: run port_agent.py pull/audit against objpeer serve, add reproducible smoke + record. Host-only, no model change."
+  },
   "kimi/dose1-dispatch-record-2026-10-18": {
     "branch": "kimi/dose1-dispatch-record-2026-10-18",
     "claimed_at": "2026-10-17T23:10:49-04:00",
