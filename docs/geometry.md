@@ -20,7 +20,10 @@ mechanism-negative verdict follows.
 allows offline floats while retaining matmul/GEMM and softmax/squashing bans,
 GPU-only model compute and a separately qualified D11 integer export.
 
-<img src="figures/architecture.svg" width="600" alt="Current M1 discrete data flow: shared table, ordered context, read, writer, exact-move learning">
+<picture>
+  <source media="(max-width: 600px)" srcset="figures/architecture-narrow.svg">
+  <img src="figures/architecture.svg" width="1200" alt="Current M1 discrete data flow: shared table, ordered context, read, writer, exact-move learning">
+</picture>
 
 ## The compliant next-token path
 
@@ -86,6 +89,10 @@ in [`discrete.cu`](../crates/uor-r4-discrete/src/discrete.cu).
 The binary icosahedral group 2I contains 120 unit quaternions, closed under
 multiplication. These are the H4 roots and vertices of the 600-cell. This full
 120-element structure is distinct from the current M1 16-root orbit.
+The figure retains the historical icosian-snap toolbox construction: its
+120 vertices form four projected rings of 30, with 12 neighbours per vertex
+and 720 edges. Snapping a learned rotation to this codebook describes the
+retained experiment, rather than the current M1 read or learning path.
 
 The shorthand `E8 = H4 ⊕ φH4` refers here to an **icosian construction with a
 specified reduced metric**, not an independent Cartesian product of two H4

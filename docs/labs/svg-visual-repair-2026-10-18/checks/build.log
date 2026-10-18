@@ -1,0 +1,93 @@
+info: syncing channel updates for 1.97.1-x86_64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: component rustfmt is up to date
+info: downloading component clippy
+    Updating git repository `https://github.com/UOR-Foundation/UOR-Framework.git`
+    Updating crates.io index
+    Updating git repository `https://github.com/UOR-Foundation/uor-addr.git`
+    Updating git repository `https://github.com/UOR-Foundation/uor-matmul.git`
+ Downloading crates ...
+  Downloaded cc v1.2.67
+  Downloaded crypto-common v0.1.7
+  Downloaded arrayvec v0.7.8
+  Downloaded block-buffer v0.10.4
+  Downloaded equivalent v1.0.2
+  Downloaded cfg-if v1.0.4
+  Downloaded find-msvc-tools v0.1.9
+  Downloaded aho-corasick v1.1.4
+  Downloaded cpufeatures v0.2.17
+  Downloaded constant_time_eq v0.3.1
+  Downloaded digest v0.10.7
+  Downloaded generic-array v0.14.7
+  Downloaded quote v1.0.46
+  Downloaded itoa v1.0.18
+  Downloaded memchr v2.8.3
+  Downloaded proc-macro2 v1.0.106
+  Downloaded regex v1.13.1
+  Downloaded hashbrown v0.17.1
+  Downloaded serde v1.0.228
+  Downloaded serde_core v1.0.228
+  Downloaded indexmap v2.14.0
+  Downloaded serde_spanned v0.6.9
+  Downloaded regex-syntax v0.8.11
+  Downloaded regex-automata v0.4.16
+  Downloaded shlex v2.0.1
+  Downloaded serde_derive v1.0.228
+  Downloaded serde_json v1.0.150
+  Downloaded syn v2.0.119
+  Downloaded toml v0.8.23
+  Downloaded toml_write v0.1.2
+  Downloaded toml_datetime v0.6.11
+  Downloaded winnow v0.7.15
+  Downloaded version_check v0.9.5
+  Downloaded unicode-ident v1.0.24
+  Downloaded typenum v1.20.1
+  Downloaded blake3 v1.5.0
+  Downloaded sha2 v0.10.9
+  Downloaded toml_edit v0.22.27
+  Downloaded zmij v1.0.23
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.46
+   Compiling serde_core v1.0.228
+   Compiling serde v1.0.228
+   Compiling memchr v2.8.3
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling zmij v1.0.23
+   Compiling syn v2.0.119
+   Compiling aho-corasick v1.1.4
+   Compiling regex-syntax v0.8.11
+   Compiling typenum v1.20.1
+   Compiling serde_json v1.0.150
+   Compiling serde_derive v1.0.228
+   Compiling equivalent v1.0.2
+   Compiling itoa v1.0.18
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.9
+   Compiling hashbrown v0.17.1
+   Compiling indexmap v2.14.0
+   Compiling regex-automata v0.4.16
+   Compiling cc v1.2.67
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling winnow v0.7.15
+   Compiling uor-r4-harness v0.1.0 (/workspace/uor-r4/crates/uor-r4-harness)
+   Compiling toml_write v0.1.2
+   Compiling blake3 v1.5.0
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling cfg-if v1.0.4
+   Compiling digest v0.10.7
+   Compiling arrayvec v0.7.8
+   Compiling arrayref v0.3.9 (/workspace/uor-r4/third_party/arrayref)
+   Compiling cpufeatures v0.2.17
+   Compiling regex v1.13.1
+   Compiling toml_edit v0.22.27
+   Compiling constant_time_eq v0.3.1
+   Compiling uor-r4-claim-wording v0.1.0 (/workspace/uor-r4/crates/uor-r4-claim-wording)
+   Compiling sha2 v0.10.9
+   Compiling toml v0.8.23
+   Compiling repo-model v0.1.0 (/workspace/uor-r4/crates/repo-model)
+   Compiling xtask v0.1.0 (/workspace/uor-r4/xtask)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 41.00s

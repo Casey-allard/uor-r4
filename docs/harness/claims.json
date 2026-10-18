@@ -104,6 +104,13 @@
     "lab": "codex",
     "note": "Documentation reconciliation only; draft PR and independent parent review; no model compute or resource actions"
   },
+  "codex/svg-repair-20261018": {
+    "branch": "codex/svg-repair-20261018",
+    "claimed_at": "2026-10-18T14:30:48+00:00",
+    "head": "59fb17c3",
+    "lab": "codex",
+    "note": "Owner-requested native SVG visual repair; docs/figures, generators, embedded previews and documentation record only; no model or gate changes"
+  },
   "kimi/dose1-dispatch-record-2026-10-18": {
     "branch": "kimi/dose1-dispatch-record-2026-10-18",
     "claimed_at": "2026-10-17T23:10:49-04:00",

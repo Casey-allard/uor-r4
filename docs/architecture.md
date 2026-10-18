@@ -4,7 +4,10 @@ The current M1 implementation is [`uor-r4-discrete`](../crates/uor-r4-discrete/R
 This is a map of implemented data flow, not a claim of useful language quality or a
 completed unified serving system. [Status and results](../STATUS.md) name the measured scope.
 
-<img src="figures/architecture.svg" width="600" alt="Discrete M1 data flow with exact geometric learning; M2 and unified serving remain separate obligations">
+<picture>
+  <source media="(max-width: 600px)" srcset="figures/architecture-narrow.svg">
+  <img src="figures/architecture.svg" width="1200" alt="Discrete M1 data flow with exact geometric learning; M2 and unified serving remain separate obligations">
+</picture>
 
 ## Follow one token
 

@@ -94,7 +94,7 @@
 <line x1="330" y1="362" x2="330" y2="117.68" stroke="#8a97a6" stroke-width="1" stroke-opacity="0.8" stroke-linecap="round"/>
 <text x="336" y="121.68" font-size="13" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal" font-style="italic">z</text>
 <line x1="229.79" y1="571.82" x2="434.21" y2="143.79" stroke="#E69F00" stroke-width="2.6" stroke-opacity="1" stroke-linecap="round"/>
-<text x="442.21" y="137.79" font-size="15" fill="#9a6a00" fill-opacity="1" text-anchor="start" font-weight="bold">axis (x, y, z)</text>
+<text x="442.21" y="137.79" font-size="15" fill="#9a6a00" fill-opacity="1" text-anchor="start" font-weight="bold">axis n</text>
 <path d="M479.32 303.09 L472.77 297.72 L465.91 292.38 L458.75 287.08 L451.31 281.83 L443.61 276.65 L435.66 271.56 L427.5 266.56 L419.15 261.67 L410.62 256.91 L401.94 252.29 L393.14 247.81 L384.23 243.5 L375.25 239.36 L366.22 235.41 L357.16 231.65 L348.1 228.1 L339.06 224.77 L330.07 221.66 L321.14 218.79 L312.32 216.16 L303.61 213.78 L295.05 211.65 L286.66 209.78" fill="none" fill-opacity="1" stroke="#56B4E9" stroke-width="0.6" stroke-opacity="0.25" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
 <path d="M525.78 359.65 L523.71 354.96 L521.19 350.14 L518.21 345.2 L514.78 340.15 L510.92 335.02 L506.64 329.8 L501.94 324.53 L496.85 319.2 L491.37 313.85 L485.52 308.47 L479.32 303.09" fill="none" fill-opacity="1" stroke="#56B4E9" stroke-width="0.7" stroke-opacity="0.39" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
 <path d="M286.66 209.78 L278.46 208.19 L270.47 206.86 L262.72 205.81 L255.22 205.03 L248 204.53 L241.07 204.32 L234.46 204.39 L228.19 204.73 L222.27 205.36 L216.71 206.27 L211.54 207.45 L206.76 208.91" fill="none" fill-opacity="1" stroke="#56B4E9" stroke-width="0.7" stroke-opacity="0.39" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
@@ -141,13 +141,13 @@
 <rect x="776.18" y="328" width="7.64" height="30" rx="0" fill="#56B4E9" fill-opacity="1" stroke="#fff" stroke-width="1.5" stroke-opacity="1"/>
 <rect x="783.82" y="328" width="158.18" height="30" rx="0" fill="#009E73" fill-opacity="1" stroke="#fff" stroke-width="1.5" stroke-opacity="1"/>
 <text x="660" y="388" font-size="15" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="bold">w² + x² + y² + z² = 1.000</text>
-<text x="660" y="430" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">The axis is the vector part (x, y, z);</text>
+<text x="660" y="430" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">The axis is parallel to (x, y, z);</text>
 <text x="660" y="454" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">the angle comes from w = cos(θ/2).</text>
 <text x="660" y="478" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal"></text>
 <text x="660" y="502" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Conjugation q v q⁻¹ acts on R³;</text>
 <text x="660" y="526" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">q and −q give the same rotation.</text>
 <text x="660" y="550" font-size="14.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Left action q h acts on R⁴ instead.</text>
-<text x="40" y="634" font-size="14" fill="#5f6b7a">q = cos(θ/2) + sin(θ/2)(xi + yj + zk) turns every 3-D vector by θ about the axis (x, y, z): v ↦ q v q*.</text>
+<text x="40" y="634" font-size="14" fill="#5f6b7a">q = cos(θ/2) + sin(θ/2)(n₁i + n₂j + n₃k) rotates vectors by θ about the unit axis n: v ↦ q v q*.</text>
 <text x="40" y="655" font-size="14" fill="#5f6b7a">All unit quaternions together form the 4-D unit sphere S³; q and −q describe the same 3D conjugation.</text>
 <text x="40" y="676" font-size="14" fill="#5f6b7a">Pure transport stays on S³. Additive stack recurrence generally leaves it unless explicitly normalized.</text>
 </svg>

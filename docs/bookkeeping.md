@@ -42,6 +42,11 @@ corrected.
    `cargo run -p xtask -- figures` fails when a committed SVG no longer matches. The generator also
    refuses text that overflows its box. Change the data, regenerate, and commit the code and the SVGs
    together.
+   The architecture also has a generated narrow layout. Embed it with the
+   existing `<picture>` source in the README and geometry/source-map pages;
+   keep the desktop SVG at its native landscape proportions. Detailed
+   mathematical figures retain their original 1000×700 canvas and links to
+   the vector originals for zooming.
 5. **Same PR as the change, when it is small.** A lab whose merged unit changes one README cell or one
    mechanism status updates it in its own delivery PR. Anything larger, such as a figure, a new
    section or a restructure, goes to the README keeper.

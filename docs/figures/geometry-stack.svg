@@ -34,10 +34,10 @@
 <rect x="40" y="306" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
 <rect x="40" y="306" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
 <text x="60" y="334" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">H4, icosians, E8</text>
-<text x="350" y="334" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">120-icosian codebook; E8 = H4 ⊕ φH4</text>
+<text x="350" y="334" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">120 icosians; reduced-metric E8 construction</text>
 <rect x="700" y="318" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
 <text x="759" y="333" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
-<text x="860" y="334" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">native tables; E8 anchor orbit</text>
+<text x="860" y="334" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">historical toolbox; separate from M1</text>
 <rect x="40" y="358" width="1120" height="46" rx="8" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
 <rect x="40" y="358" width="6" height="46" rx="3" fill="#0072B2" stroke="#0072B2" stroke-width="1"/>
 <text x="60" y="386" font-size="14.5" font-weight="700" fill="#1F2328" text-anchor="start">Exact Z[φ]</text>

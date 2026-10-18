@@ -1,0 +1,11 @@
+{
+  "files": [
+    "README.md",
+    "docs/geometry.md",
+    "docs/architecture.md",
+    "docs/bookkeeping.md",
+    "docs/labs/svg-visual-repair-2026-10-18/README.md"
+  ],
+  "checked": 337,
+  "failures": []
+}

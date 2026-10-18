@@ -2,9 +2,9 @@
 //!
 //! The README and `docs/geometry.md` diagrams are drawn here, in Rust (D27: Rust
 //! for tooling), so a status change is a one-line edit and a reviewable diff
-//! instead of a hand-edited SVG. Every figure uses one vocabulary: cards with a
-//! status, status pills, arrows and a legend, in the colour-blind-safe palette the
-//! earlier figures used. Text never overflows its card: each line's width is
+//! instead of a hand-edited SVG. Figures share the original fine outlines,
+//! small annotations, status keys and colour-blind-safe palette. Architecture
+//! has landscape and narrow layouts. Text never overflows its card: each line's width is
 //! estimated and the task fails instead of writing a clipped figure.
 //!
 //! Without `--write` the task checks that every generated file is current (the
@@ -313,130 +313,255 @@ impl Svg {
 // ---------------------------------------------------------------- figures
 
 /// Current arrows are sourced individually in docs/architecture.md.
-/// The narrow, vertical layout keeps the same reading order on mobile.
+/// Landscape schema follows Claude's multi-lane figure at 3778e1d6.
+/// A separate narrow SVG keeps labels readable without enlarging the desktop art.
 fn architecture() -> Result<String, Fail> {
-    let mut s = Svg::new("architecture", 600.0, 1320.0);
+    let mut s = Svg::new("architecture", 1200.0, 660.0);
+    s.header("UOR-R4: discrete geometric architecture", "18 October 2026 · implemented source; language quality and unified D11 serving remain unqualified");
+    s.section(116.0, "M1 · SHARED REPRESENTATION AND ORDERED READ");
     s.rect(
-        [0.5, 0.5, 599.0, 1319.0],
-        16.0,
-        ("#FFFFFF", RULE, 1.0, None),
+        [190.0, 140.0, 390.0, 64.0],
+        5.0,
+        ("#FFFFFF", BLUE, 1.5, None),
     );
     s.text(
-        [30.0, 44.0],
-        (26.0, 700, INK),
+        [206.0, 165.0],
+        (15.0, 700, INK),
         "start",
-        "Current M1: discrete geometry",
+        "Shared token-vector table V",
     );
     s.text(
-        [30.0, 75.0],
-        (20.0, 400, MUTED),
+        [206.0, 187.0],
+        (14.0, 400, BODY),
         "start",
-        "18 October 2026 · implemented data flow",
+        "8D blocks · 16 carrier roots · 64 signed actions",
     );
-    let steps = [
+    s.path("M580,172 H968 V238", ARROW, 1.5, None, true);
+    s.text(
+        [768.0, 161.0],
+        (13.0, 400, MUTED),
+        "middle",
+        "same table for input and output",
+    );
+    s.arrow(278.0, 204.0, 278.0, 238.0, false);
+    for (x, w, title, lines) in [
+        (40.0, 110.0, "Token IDs", vec!["x₁, …, xₜ"]),
         (
-            "1  Encode IDs from shared table",
-            "8D blocks · 16 carrier roots · 64 actions",
+            190.0,
+            176.0,
+            "Encode",
+            vec!["table lookup", "discrete_encode"],
         ),
         (
-            "2  Ordered ternary context",
-            "FBS plans preserve context order",
+            406.0,
+            180.0,
+            "Ordered context",
+            vec!["ternary FBS plans", "preserve order"],
         ),
         (
-            "3  Route / Flock / Relation read",
-            "Route: one carrier, exact transport",
+            906.0,
+            154.0,
+            "Shared writer",
+            vec!["cell admission", "integer distance"],
         ),
-        (
-            "4  Shared vector writer",
-            "Address admission + integer distances",
-        ),
-        ("5  Selected token", "Deterministic ties · no softmax"),
-    ];
-    for (i, (title, detail)) in steps.iter().enumerate() {
-        let y = 108.0 + i as f64 * 132.0;
-        s.rect([30.0, y, 540.0, 98.0], 12.0, ("#E4EFF8", BLUE, 1.5, None));
-        s.fit([50.0, y + 35.0], (23.0, 700, INK), 500.0, title);
-        if i == 2 {
-            s.fit([50.0, y + 61.0], (20.0, 400, BODY), 500.0, detail);
+    ] {
+        s.rect([x, 238.0, w, 82.0], 5.0, ("#FFFFFF", BLUE, 1.5, None));
+        s.fit([x + 12.0, 264.0], (15.0, 700, INK), w - 24.0, title);
+        for (i, line) in lines.iter().enumerate() {
             s.fit(
-                [50.0, y + 85.0],
-                (20.0, 400, BODY),
-                500.0,
-                "Flock/Relation: sum and snap",
+                [x + 12.0, 287.0 + 18.0 * i as f64],
+                (14.0, 400, BODY),
+                w - 24.0,
+                line,
             );
-        } else {
-            s.fit([50.0, y + 70.0], (20.0, 400, BODY), 500.0, detail);
-        }
-        if i < steps.len() - 1 {
-            s.arrow(300.0, y + 98.0, 300.0, y + 130.0, false);
         }
     }
     s.rect(
-        [30.0, 796.0, 540.0, 166.0],
-        12.0,
-        ("#E3F4EE", GREEN, 1.5, None),
+        [626.0, 214.0, 240.0, 130.0],
+        5.0,
+        ("#FFFFFF", BLUE, 1.5, None),
     );
-    s.fit(
-        [50.0, 831.0],
-        (23.0, 700, INK),
-        500.0,
-        "Learning on a fixed batch",
-    );
-    for (i, line) in [
-        "Snapshot + batch → exact virtual moves",
-        "Compare objectives → accept improvement",
-        "rows_v1: opt-in parallel proposal work",
-    ]
-    .iter()
-    .enumerate()
-    {
-        s.fit(
-            [50.0, 864.0 + i as f64 * 30.0],
-            (20.0, 400, BODY),
-            500.0,
-            line,
-        );
-    }
-    s.rect([30.0, 992.0, 540.0, 228.0], 12.0, (PANEL, RULE, 1.5, None));
-    s.fit(
-        [50.0, 1027.0],
-        (23.0, 700, INK),
-        500.0,
-        "Separate research and obligations",
-    );
-    for (i, line) in [
-        "M2 compiler / emitter: held research",
-        "D19 object store: no model integration",
-        "Hopf fibre tracking: outside this M1 path",
-        "Unified D11 serving: unqualified",
-        "Useful conversation: unqualified",
-    ]
-    .iter()
-    .enumerate()
-    {
-        s.fit(
-            [50.0, 1060.0 + i as f64 * 30.0],
-            (20.0, 400, BODY),
-            500.0,
-            line,
-        );
-    }
+    s.text([642.0, 241.0], (15.0, 700, INK), "start", "Read vector");
     s.text(
-        [30.0, 1262.0],
-        (19.0, 400, MUTED),
+        [642.0, 266.0],
+        (14.0, 400, BODY),
         "start",
-        "Arrow sources and optional Prime-Zeta setup:",
+        "Route: one carrier + transport",
+    );
+    s.path("M642,278 H850", RULE, 1.0, None, false);
+    s.text(
+        [642.0, 299.0],
+        (14.0, 400, BODY),
+        "start",
+        "Flock / Relation: select,",
     );
     s.text(
-        [30.0, 1291.0],
-        (19.0, 700, BLUE),
+        [642.0, 321.0],
+        (14.0, 400, BODY),
         "start",
-        "docs/architecture.md",
+        "transport, equal sum → snap",
     );
+    for (a, b) in [
+        (150.0, 190.0),
+        (366.0, 406.0),
+        (586.0, 626.0),
+        (866.0, 906.0),
+        (1060.0, 1100.0),
+    ] {
+        s.arrow(a, 279.0, b, 279.0, false);
+    }
+    s.circle(1128.0, 279.0, 28.0, "#FFFFFF", BLUE, 1.5);
+    s.text([1128.0, 285.0], (16.0, 700, INK), "middle", "xₜ₊₁");
+    s.text([1128.0, 330.0], (13.0, 400, MUTED), "middle", "selected ID");
+    s.section(386.0, "LEARNING · EXACT VIRTUAL MOVES ON A FIXED BATCH");
+    for (x, title, detail) in [
+        (40.0, "Snapshot + batch", "fixed objective inputs"),
+        (328.0, "Virtual proposals", "rows_v1 is opt-in"),
+        (616.0, "Compare objectives", "exact integer scores"),
+        (904.0, "Accepted snapshot", "improvement + admission"),
+    ] {
+        s.rect([x, 404.0, 256.0, 64.0], 5.0, ("#FFFFFF", BLUE, 1.5, None));
+        s.text([x + 14.0, 430.0], (15.0, 700, INK), "start", title);
+        s.text([x + 14.0, 452.0], (14.0, 400, BODY), "start", detail);
+        if x < 904.0 {
+            s.arrow(x + 256.0, 436.0, x + 288.0, 436.0, false);
+        }
+    }
+    s.section(
+        512.0,
+        "SEPARATE RESEARCH AND SERVING BOUNDARIES · NO INTEGRATION ARROWS",
+    );
+    s.card(
+        [40.0, 530.0, 340.0, 66.0],
+        St::Held,
+        "M2 compiler / emitter",
+        &["Held research; outside the current M1 path"],
+        false,
+    );
+    s.card(
+        [406.0, 530.0, 350.0, 66.0],
+        St::Planned,
+        "Object store and Hopf / fibre",
+        &["Store not integrated; Hopf helpers offline"],
+        false,
+    );
+    s.card(
+        [782.0, 530.0, 378.0, 66.0],
+        St::Planned,
+        "Unified D11 serving",
+        &["Separate qualification still required"],
+        false,
+    );
+    s.legend(641.0, &[St::Built, St::Held, St::Planned]);
     s.finish(
         "Current discrete M1 architecture",
         "discrete_encode looks up token IDs in the shared table to produce encoded blocks. Ordered FBS plans feed Route single-carrier transport or Flock/Relation transported sums and snaps. The same vector table supplies the writer and selected token. Learning compares exact virtual moves on a fixed batch. M2, object-store integration, Hopf fibre tracking and unified D11 serving are separate boundaries. Every current arrow is sourced in docs/architecture.md.",
     )
+}
+
+fn architecture_narrow() -> Result<String, Fail> {
+    let mut s = Svg::new("architecture-narrow", 380.0, 810.0);
+    s.text(
+        [16.0, 28.0],
+        (18.0, 700, INK),
+        "start",
+        "Discrete geometric M1",
+    );
+    s.text(
+        [16.0, 50.0],
+        (13.0, 400, MUTED),
+        "start",
+        "Implemented source · 18 October 2026",
+    );
+    s.rect([16.0, 72.0, 348.0, 58.0], 5.0, ("#FFFFFF", BLUE, 1.5, None));
+    s.text(
+        [30.0, 96.0],
+        (15.0, 700, INK),
+        "start",
+        "Shared token-vector table V",
+    );
+    s.text(
+        [30.0, 117.0],
+        (13.0, 400, BODY),
+        "start",
+        "8D blocks · 16 roots · 64 signed actions",
+    );
+    s.arrow(190.0, 130.0, 190.0, 154.0, false);
+    for (y, title, detail) in [
+        (154.0, "Token IDs → encode", "discrete_encode: table lookup"),
+        (236.0, "Ordered context", "ternary FBS plans preserve order"),
+        (
+            318.0,
+            "Route / Flock / Relation",
+            "one carrier / transported sum → snap",
+        ),
+        (
+            400.0,
+            "Shared writer → selected ID",
+            "address admission + integer distance",
+        ),
+    ] {
+        s.rect([32.0, y, 316.0, 58.0], 5.0, ("#FFFFFF", BLUE, 1.5, None));
+        s.text([46.0, y + 24.0], (15.0, 700, INK), "start", title);
+        s.fit([46.0, y + 45.0], (13.0, 400, BODY), 288.0, detail);
+        if y < 400.0 {
+            s.arrow(190.0, y + 58.0, 190.0, y + 82.0, false);
+        }
+    }
+    s.path("M364,101 H372 V429 H348", ARROW, 1.25, None, true);
+    s.text(
+        [16.0, 501.0],
+        (14.0, 700, BLUE),
+        "start",
+        "FIXED-BATCH LEARNING",
+    );
+    for (x, title, detail) in [
+        (16.0, "Snapshot + batch", "virtual proposals"),
+        (206.0, "Compare → accept", "improvement required"),
+    ] {
+        s.rect([x, 518.0, 158.0, 62.0], 5.0, ("#FFFFFF", BLUE, 1.5, None));
+        s.text([x + 10.0, 543.0], (14.0, 700, INK), "start", title);
+        s.text([x + 10.0, 565.0], (12.5, 400, BODY), "start", detail);
+    }
+    s.arrow(174.0, 549.0, 206.0, 549.0, false);
+    s.text(
+        [16.0, 618.0],
+        (14.0, 700, BLUE),
+        "start",
+        "SEPARATE BOUNDARIES",
+    );
+    s.rect(
+        [16.0, 636.0, 348.0, 48.0],
+        5.0,
+        ("#FFFFFF", PURPLE, 1.5, Some("7 4")),
+    );
+    s.text(
+        [30.0, 665.0],
+        (14.0, 400, INK),
+        "start",
+        "M2 compiler / emitter: held research",
+    );
+    s.rect(
+        [16.0, 698.0, 348.0, 88.0],
+        5.0,
+        ("#FFFFFF", MUTED, 1.25, Some("5 4")),
+    );
+    for (i, t) in [
+        "Object store: no model integration",
+        "Hopf / fibre: offline helpers outside M1",
+        "Unified D11 serving: unqualified",
+    ]
+    .iter()
+    .enumerate()
+    {
+        s.text(
+            [30.0, 722.0 + 24.0 * i as f64],
+            (14.0, 400, BODY),
+            "start",
+            t,
+        );
+    }
+    s.finish("Current discrete M1 architecture, narrow layout", "The same implemented flow as architecture.svg, arranged for narrow Markdown columns. A shared table supplies encoder and writer. Ordered ternary context feeds Route single-carrier transport or Flock/Relation transported sums and snaps. Fixed-batch learning accepts improving admitted moves. M2 is held; object-store integration, offline Hopf utilities and unqualified unified serving are separate boundaries. This is source structure, not a language-quality claim.")
 }
 
 fn compliant_path() -> Result<String, Fail> {
@@ -1155,9 +1280,9 @@ fn geometry_stack() -> Result<String, Fail> {
         ),
         (
             "H4, icosians, E8",
-            "120-icosian codebook; E8 = H4 ⊕ φH4",
+            "120 icosians; reduced-metric E8 construction",
             St::Built,
-            "native tables; E8 anchor orbit",
+            "historical toolbox; separate from M1",
         ),
         (
             "Exact Z[φ]",
@@ -1267,6 +1392,7 @@ type Builder = fn() -> Result<String, Fail>;
 fn figures() -> Vec<(&'static str, Builder)> {
     vec![
         ("docs/figures/architecture.svg", architecture),
+        ("docs/figures/architecture-narrow.svg", architecture_narrow),
         ("docs/figures/milestones.svg", milestones),
         ("docs/figures/training-pipeline.svg", training_pipeline),
         ("docs/figures/serving-pipeline.svg", serving_pipeline),

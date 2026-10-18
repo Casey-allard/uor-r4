@@ -62,7 +62,10 @@ Ordered ternary FBS plans preserve context order. Route transports one selected
 carrier per block; Flock/Relation combine transported carriers by sums and snaps.
 All reads use the same vector format as the output writer.
 
-<img src="docs/figures/architecture.svg" alt="Current discrete M1 path: token table to ordered context, geometric read, shared vector writer and raw token selection; learning proposes exact moves. M2 and unified D11 serving remain separate obligations." width="600">
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/figures/architecture-narrow.svg">
+  <img src="docs/figures/architecture.svg" alt="Current discrete M1 path: token table to ordered context, geometric read, shared vector writer and raw token selection; learning proposes exact moves. M2 and unified D11 serving remain separate obligations." width="1200">
+</picture>
 
 Every arrow is traced in the [architecture source map](docs/architecture.md).
 The [discrete crate guide](crates/uor-r4-discrete/README.md) names the actual entry points,

@@ -163,7 +163,7 @@ def axis_quat(n, theta): return (cos(theta / 2),) + scl(n, sin(theta / 2))
 def fig_quaternion():
     fg = Fig("quaternion-rotation.svg", "Quaternion conjugation rotates 3-D vectors",
              "A sphere wireframe with a rotation axis, a vector v, its image q v q* and the arc it sweeps. A side panel shows that a unit quaternion is a point on the 4-D unit sphere S3 because its four squared components sum to one.",
-             ["q = cos(θ/2) + sin(θ/2)(xi + yj + zk) turns every 3-D vector by θ about the axis (x, y, z): v ↦ q v q*.",
+             ["q = cos(θ/2) + sin(θ/2)(n₁i + n₂j + n₃k) rotates vectors by θ about the unit axis n: v ↦ q v q*.",
               "All unit quaternions together form the 4-D unit sphere S³; q and −q describe the same 3D conjugation.",
               "Pure transport stays on S³. Additive stack recurrence generally leaves it unless explicitly normalized."])
     n = unit((0.35, 0.2, 0.91)); theta = math.radians(110)
@@ -181,7 +181,7 @@ def fig_quaternion():
         fg.text(x + (6 if x >= o[0] else -6), y + 4, lb, 13, MUTED, "start" if x >= o[0] else "end", style="italic")
     a0, a1 = vw(scl(n, -1.25)), vw(scl(n, 1.3)); o = vw((0, 0, 0))
     fg.line(a0[0], a0[1], a1[0], a1[1], ORANGE, 2.6)
-    fg.text(a1[0] + 8, a1[1] - 6, "axis (x, y, z)", 15, "#9a6a00", weight="bold")
+    fg.text(a1[0] + 8, a1[1] - 6, "axis n", 15, "#9a6a00", weight="bold")
     cc = scl(n, dot(v, n)); rad = sqrt(1 - dot(v, n) ** 2)
     e1 = unit(add(v, scl(n, -dot(v, n)))); e2 = cross(n, e1)
     ring = lambda t: add(cc, add(scl(e1, rad * cos(t)), scl(e2, rad * sin(t))))
@@ -217,7 +217,7 @@ def fig_quaternion():
         wd = tot * val * val; fg.rect(x0, 328, wd, 30, col, "#fff", 1.5); x0 += wd
     sq = sum(c_[1] ** 2 for c_ in comps); assert abs(sq - 1) < 1e-12
     fg.text(px + 20, 388, f"w² + x² + y² + z² = {sq:.3f}", 15, INK, weight="bold")
-    for i, l in enumerate(["The axis is the vector part (x, y, z);", "the angle comes from w = cos(θ/2).", "", "Conjugation q v q⁻¹ acts on R³;", "q and −q give the same rotation.", "Left action q h acts on R⁴ instead."]):
+    for i, l in enumerate(["The axis is parallel to (x, y, z);", "the angle comes from w = cos(θ/2).", "", "Conjugation q v q⁻¹ acts on R³;", "q and −q give the same rotation.", "Left action q h acts on R⁴ instead."]):
         fg.text(px + 20, 430 + 24 * i, l, 14.5, INK)
     fg.save()
 
@@ -458,7 +458,7 @@ def fig_600cell():
     dep = [sqrt(max(0, 1 - r * r)) for r in rad]       # distance out of the projection plane
     fg = Fig("600-cell-icosians.svg", "The 120 unit icosians: the 600-cell",
              "The 120 vertices of the 600-cell, which are the 120 unit icosians and the root system of H4, projected from 4-D to the plane with the Coxeter-plane projection. The 120 points fall on four concentric rings of 30 with 30-fold symmetry, joined by the 720 edges between vertices at distance one over phi. Depth is shown by opacity.",
-             ["During training each step's rotation u_t can be snapped to the nearest of these 120 unit icosians — an exact, finite codebook.",
+             ["Coxeter-plane projection of the binary icosahedral group 2I: four rings of 30 vertices.",
               "Each vertex has 12 neighbours: 120 × 12 / 2 = 720 edges. Fainter points and edges lie farther out of the plane."])
     bins = {}
     for i, j in E:
@@ -567,6 +567,19 @@ def fig_zeta():
               "Dot n sits at angle γ·ln n (mod 2π); table colour encodes phase. See docs/geometry.md for the constructor."])
     NS = list(range(1, 13)); ncol = lambda n: ramp([ORANGE, VERM, PURPLE, BLUE], (n - 1) / 11)
     ang = lambda g, n: (g * log(n)) % (2 * pi)
+    # Optical label offsets only: the phase points and connecting geometry stay
+    # exactly at gamma*ln(n). Near-coincident labels must not read as "72" or "111".
+    label_offsets = {
+        (1, 7): (6, -5), (1, 11): (-7, 8),
+        (2, 1): (0, 5), (2, 2): (-10, 10), (2, 11): (0, -5),
+        (3, 2): (7, 0), (3, 7): (-7, 0), (3, 3): (3, -4), (3, 5): (-3, 4),
+        (4, 2): (-6, 5), (4, 3): (20, 9), (5, 7): (10, 12),
+        (6, 5): (-6, -4), (6, 7): (7, 7),
+        (7, 2): (-2, 4), (7, 5): (-2, -4),
+        (8, 3): (-1, 3), (8, 11): (-3, -3),
+        (9, 2): (3, 20), (9, 11): (-22, 3),
+        (10, 1): (0, -9), (10, 11): (0, 9),
+    }
     for k, g in enumerate(ZEROS):
         cx = 40 + 92 + 184 * (k % 5); cy = 168 + 168 * (k // 5); r = 56
         fg.text(cx, cy - r - 12, f"γ{sub(k + 1)} = {g:.4f}", 14, INK, "middle", weight="bold")
@@ -577,8 +590,12 @@ def fig_zeta():
         for n, (x, y) in zip(NS, pts):
             fg.circle(x, y, 5.4, ncol(n), "#fff", 1)
             if n in (1, 2, 3, 5, 7, 11):
+                if k == 8 and n == 5:
+                    continue  # n=2 and n=5 coincide visually at gamma_9: label together.
                 dx, dy = x - cx, y - cy; L = math.hypot(dx, dy) or 1
-                fg.text(x + dx / L * 13, y + dy / L * 13 + 4, str(n), 11, INK, "middle")
+                ox, oy = label_offsets.get((k + 1, n), (0, 0))
+                label = "2,5" if k == 8 and n == 2 else str(n)
+                fg.text(x + dx / L * 13 + ox, y + dy / L * 13 + 4 + oy, label, 11, INK, "middle")
     ty, cw, chh, tx = 466, 42, 13.5, 120
     fg.text(40, ty - 26, "phase of n at each zero", 13.5, MUTED)
     for j, n in enumerate(NS):

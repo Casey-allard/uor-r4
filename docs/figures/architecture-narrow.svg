@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 810" width="380" height="810" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">Current discrete M1 architecture, narrow layout</title>
+<desc id="d">The same implemented flow as architecture.svg, arranged for narrow Markdown columns. A shared table supplies encoder and writer. Ordered ternary context feeds Route single-carrier transport or Flock/Relation transported sums and snaps. Fixed-batch learning accepts improving admitted moves. M2 is held; object-store integration, offline Hopf utilities and unqualified unified serving are separate boundaries. This is source structure, not a language-quality claim.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
+<text x="16" y="28" font-size="18" font-weight="700" fill="#1F2328" text-anchor="start">Discrete geometric M1</text>
+<text x="16" y="50" font-size="13" font-weight="400" fill="#57606A" text-anchor="start">Implemented source · 18 October 2026</text>
+<rect x="16" y="72" width="348" height="58" rx="5" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.5"/>
+<text x="30" y="96" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Shared token-vector table V</text>
+<text x="30" y="117" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">8D blocks · 16 roots · 64 signed actions</text>
+<path d="M190,130 L190,154" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="32" y="154" width="316" height="58" rx="5" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.5"/>
+<text x="46" y="178" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Token IDs → encode</text>
+<text x="46" y="199" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">discrete_encode: table lookup</text>
+<path d="M190,212 L190,236" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="32" y="236" width="316" height="58" rx="5" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.5"/>
+<text x="46" y="260" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Ordered context</text>
+<text x="46" y="281" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">ternary FBS plans preserve order</text>
+<path d="M190,294 L190,318" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="32" y="318" width="316" height="58" rx="5" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.5"/>
+<text x="46" y="342" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Route / Flock / Relation</text>
+<text x="46" y="363" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">one carrier / transported sum → snap</text>
+<path d="M190,376 L190,400" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="32" y="400" width="316" height="58" rx="5" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.5"/>
+<text x="46" y="424" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">Shared writer → selected ID</text>
+<text x="46" y="445" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">address admission + integer distance</text>
+<path d="M364,101 H372 V429 H348" fill="none" stroke="#424A53" stroke-width="1.25" marker-end="url(#ah)"/>
+<text x="16" y="501" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">FIXED-BATCH LEARNING</text>
+<rect x="16" y="518" width="158" height="62" rx="5" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.5"/>
+<text x="26" y="543" font-size="14" font-weight="700" fill="#1F2328" text-anchor="start">Snapshot + batch</text>
+<text x="26" y="565" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">virtual proposals</text>
+<rect x="206" y="518" width="158" height="62" rx="5" fill="#FFFFFF" stroke="#0072B2" stroke-width="1.5"/>
+<text x="216" y="543" font-size="14" font-weight="700" fill="#1F2328" text-anchor="start">Compare → accept</text>
+<text x="216" y="565" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">improvement required</text>
+<path d="M174,549 L206,549" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<text x="16" y="618" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">SEPARATE BOUNDARIES</text>
+<rect x="16" y="636" width="348" height="48" rx="5" fill="#FFFFFF" stroke="#7A4FA3" stroke-width="1.5" stroke-dasharray="7 4"/>
+<text x="30" y="665" font-size="14" font-weight="400" fill="#1F2328" text-anchor="start">M2 compiler / emitter: held research</text>
+<rect x="16" y="698" width="348" height="88" rx="5" fill="#FFFFFF" stroke="#57606A" stroke-width="1.25" stroke-dasharray="5 4"/>
+<text x="30" y="722" font-size="14" font-weight="400" fill="#2B3138" text-anchor="start">Object store: no model integration</text>
+<text x="30" y="746" font-size="14" font-weight="400" fill="#2B3138" text-anchor="start">Hopf / fibre: offline helpers outside M1</text>
+<text x="30" y="770" font-size="14" font-weight="400" fill="#2B3138" text-anchor="start">Unified D11 serving: unqualified</text>
+</svg>

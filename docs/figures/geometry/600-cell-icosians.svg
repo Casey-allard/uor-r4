@@ -143,6 +143,6 @@
 <text x="960" y="132" font-size="13.5" fill="#5f6b7a" fill-opacity="1" text-anchor="end" font-weight="normal">  and (±½,±½,±½,±½)</text>
 <text x="960" y="156" font-size="13.5" fill="#5f6b7a" fill-opacity="1" text-anchor="end" font-weight="normal">96 = even perms of</text>
 <text x="960" y="176" font-size="13.5" fill="#5f6b7a" fill-opacity="1" text-anchor="end" font-weight="normal">½(±φ, ±1, ±1/φ, 0)</text>
-<text x="40" y="648" font-size="14" fill="#5f6b7a">During training each step's rotation u_t can be snapped to the nearest of these 120 unit icosians — an exact, finite codebook.</text>
+<text x="40" y="648" font-size="14" fill="#5f6b7a">Coxeter-plane projection of the binary icosahedral group 2I: four rings of 30 vertices.</text>
 <text x="40" y="669" font-size="14" fill="#5f6b7a">Each vertex has 12 neighbours: 120 × 12 / 2 = 720 edges. Fainter points and edges lie farther out of the plane.</text>
 </svg>

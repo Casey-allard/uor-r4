@@ -1,3 +1,7 @@
+## 2026-10-18 — Native SVG composition repaired; independent visual review pending
+
+[Visual repair record](../labs/svg-visual-repair-2026-10-18/README.md) identifies Claude's original mathematical figures and landscape schema in #2057/#2059/#2090/#2298, with before/after embedded-page previews. The architecture returns to restrained horizontal lanes with a separate narrow SVG; mathematical geometry stays intact while zeta annotations and scoped quaternion/600-cell/E8 labels are corrected. This is documentation-only: no model result, scientific gate or owner hold changes, and #2662's timing waiver remains preserved. **Next:** independent inspection of the exact PR head and rendered pixels; keep the PR unmerged until that review, then follow the already-authorized protected delivery path.
+
 ## 2026-10-18  Laptop/reap archive verification before pod destruction (deepseek)
 
 Closes the remaining pod-custody hole after #2629: the default laptop tar archive and reap paths

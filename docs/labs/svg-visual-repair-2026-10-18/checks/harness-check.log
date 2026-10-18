@@ -1,0 +1,63 @@
+52 rules, 21 failed (0 error, 20 warn)
+  warn budget.disk_floor [/workspace/uor-r4]
+      free disk is 28.48 GB, below the documented 30-70 GB working band (measured on /workspace/uor-r4)
+      fix: run: scripts/storage/uor-hygiene --apply   (removes merged worktrees, idle build caches and folders already in iCloud); below 30 GB is a stop condition, not a note
+  warn multilab.claim_not_merged [docs/harness/claims.json]
+      codex still holds a claim on "codex/svg-repair-20261018", but its work is already in origin/main
+      fix: release it: uor-harness team release --branch codex/svg-repair-20261018 --lab codex
+  warn multilab.claim_stale [docs/harness/claims.json]
+      antigravity has held "antigravity/d32-ratchet-and-proof-model-audit" for 38h with no live heartbeat and has published no presence at all
+      fix: release it if you are done, or run `uor-harness heartbeat -m <milestone>` so the claim is visibly live; the PM resolves a contested claim (pm-rules.md R7)
+  warn multilab.claim_stale [docs/harness/claims.json]
+      antigravity has held "antigravity/harness-d32-and-rule-dispatch" for 35h with no live heartbeat and has published no presence at all
+      fix: release it if you are done, or run `uor-harness heartbeat -m <milestone>` so the claim is visibly live; the PM resolves a contested claim (pm-rules.md R7)
+  warn multilab.ledger_lab_recorded [docs/harness/ledger/unknown-2026-10.jsonl]
+      unknown-2026-10.jsonl: a receipt has no lab (prep at 2026-10-13T16:01:15-04:00)
+      fix: identity comes from `--lab` or $UOR_LAB; pass one when recording
+  warn multilab.presence_fresh [docs/harness/presence/claude.json]
+      lab claude: presence is STALE (7344m ago) (last: starling read 2/3)
+      fix: the lab refreshes it with: uor-harness heartbeat -m <milestone> --lab claude
+  warn multilab.presence_fresh [docs/harness/presence/kimi.json]
+      lab kimi: presence is STALE (7327m ago) (last: evaluation integrity 1/3)
+      fix: the lab refreshes it with: uor-harness heartbeat -m <milestone> --lab kimi
+  warn prep.fit_before_run [docs/harness/prep/m1-batched-verified-coordinates-DRAFT-2026-10-18.md]
+      docs/harness/prep/m1-batched-verified-coordinates-DRAFT-2026-10-18.md proposes a run but its verdict is PENDING, so compute is NOT cleared (D22). A sheet must reach TEST FITNESS: FIT on the milestone before any compute.
+      fix: get the sheet to FIT on the milestone, then: uor-harness prep fit -m <m> --verdict FIT --reviewer <lab>; D24 also forbids running this on the CPU
+  warn prep.fit_before_run [docs/harness/prep/m1-decode-tokens-per-second-DRAFT-2026-10-18.md]
+      docs/harness/prep/m1-decode-tokens-per-second-DRAFT-2026-10-18.md proposes a run but its verdict is PENDING, so compute is NOT cleared (D22). A sheet must reach TEST FITNESS: FIT on the milestone before any compute.
+      fix: get the sheet to FIT on the milestone, then: uor-harness prep fit -m <m> --verdict FIT --reviewer <lab>; D24 also forbids running this on the CPU
+  warn prep.fit_before_run [docs/harness/prep/m1-learned-attention-link-R-DRAFT-2026-10-18.md]
+      docs/harness/prep/m1-learned-attention-link-R-DRAFT-2026-10-18.md proposes a run but its verdict is PENDING, so compute is NOT cleared (D22). A sheet must reach TEST FITNESS: FIT on the milestone before any compute.
+      fix: get the sheet to FIT on the milestone, then: uor-harness prep fit -m <m> --verdict FIT --reviewer <lab>; D24 also forbids running this on the CPU
+  warn prep.fit_before_run [docs/harness/prep/m1-no-mechanism-2026-10-13.md]
+      docs/harness/prep/m1-no-mechanism-2026-10-13.md proposes a run but its verdict is PENDING, so compute is NOT cleared (D22). A sheet must reach TEST FITNESS: FIT on the milestone before any compute.
+      fix: get the sheet to FIT on the milestone, then: uor-harness prep fit -m <m> --verdict FIT --reviewer <lab>; D24 also forbids running this on the CPU
+  warn prep.fit_before_run [docs/harness/prep/m1-no-mechanism-2026-10-14.md]
+      docs/harness/prep/m1-no-mechanism-2026-10-14.md proposes a run but its verdict is PENDING, so compute is NOT cleared (D22). A sheet must reach TEST FITNESS: FIT on the milestone before any compute.
+      fix: get the sheet to FIT on the milestone, then: uor-harness prep fit -m <m> --verdict FIT --reviewer <lab>; D24 also forbids running this on the CPU
+  warn prep.fit_before_run [docs/harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md]
+      docs/harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md proposes a run but its verdict is PENDING, so compute is NOT cleared (D22). A sheet must reach TEST FITNESS: FIT on the milestone before any compute.
+      fix: get the sheet to FIT on the milestone, then: uor-harness prep fit -m <m> --verdict FIT --reviewer <lab>; D24 also forbids running this on the CPU
+  warn prep.fit_before_run [docs/harness/prep/m4-finite-relational-head-2026-10-15.md]
+      docs/harness/prep/m4-finite-relational-head-2026-10-15.md proposes a run but its verdict is PENDING, so compute is NOT cleared (D22). A sheet must reach TEST FITNESS: FIT on the milestone before any compute.
+      fix: get the sheet to FIT on the milestone, then: uor-harness prep fit -m <m> --verdict FIT --reviewer <lab>; D24 also forbids running this on the CPU
+  warn prep.panel_frozen [docs/harness/panels/m5-cost.json]
+      panel m5-cost (M5) is not started: not marked frozen, no grader, no bars; freeze it before the first run it would score
+      fix: set frozen=true, a grader and at least one bar with current and target in the panel file
+  warn prep.panel_frozen [docs/harness/panels/m6-reasoning.json]
+      panel m6-reasoning (M6) is not started: not marked frozen, no grader, no bars; freeze it before the first run it would score
+      fix: set frozen=true, a grader and at least one bar with current and target in the panel file
+  warn prep.panel_frozen [docs/harness/panels/m7-distribution.json]
+      panel m7-distribution (M7) is not started: not marked frozen, no grader, no bars; freeze it before the first run it would score
+      fix: set frozen=true, a grader and at least one bar with current and target in the panel file
+  warn prep.panel_frozen [docs/harness/panels/m8-alpha.json]
+      panel m8-alpha (M8) is not started: not marked frozen, no grader, no bars; freeze it before the first run it would score
+      fix: set frozen=true, a grader and at least one bar with current and target in the panel file
+  warn status.no_orphan_branches [docs/harness/claims.json]
+      local branch "work" whose work is already in origin/main
+      fix: uor-harness git clean-merged    # proves it, then --apply deletes it; then: git push origin --delete work
+  warn status.registry_vs_github [/workspace/uor-r4/docs/harness/milestones.json]
+      the registry was NOT cross-checked against GitHub (unavailable): `gh issue view 2029 --json number,title,state,updatedAt,url,comments` exited 1: Post "https://api.github.com/graphql": Forbidden; `gh issue view 2030 --json number,title,state,updatedAt,url,comments` exited 1: Post "https://api.github.com/graphql": Forbidden; `gh issue view 2031 --json number,title,state,updatedAt,url,comments` exited 1: Post "https://api.github.com/graphql": Forbidden; `gh issue view 2032 --json number,title,state,updatedAt,url,comments` exited 1: Post "https://api.github.com/graphql": Forbidden; `gh issue view 2033 --json number,title,state,updatedAt,url,comments` exited 1: Post "https://api.github.com/graphql": Forbidden; `gh issue view 2034 --json number,title,state,updatedAt,url,comments` exited 1: Post "https://api.github.com/graphql": Forbidden; `gh issue view 2035 --json number,title,state,updatedAt,url,comments` exited 1: Post "https://api.github.com/graphql": Forbidden; `gh issue view 2036 --json number,title,state,updatedAt,url,comments` exited 1: Post "https://api.github.com/graphql": Forbidden
+  info budget.no_new_spending_class [AGENTS.md]
+      owner caps in force: <= 4 running pods and <= $8.00/h across all labs and sessions, all external compute through scripts/pod/uor-pod; a new spending class needs an owner decision
+      fix: if a run would exceed a cap or need a new spending class, stop that line and ask the owner on the milestone

@@ -1,0 +1,798 @@
+{
+  "before": "9fd1b8baec6a7586a2595cd4be94f6df77fd1c66",
+  "content_width_desktop": 946,
+  "viewports": [
+    1280,
+    390
+  ],
+  "embedded": [
+    {
+      "version": "before",
+      "page": "README.md",
+      "viewport": 1280,
+      "figure": "architecture",
+      "preview": "architecture-before-1280.png",
+      "capture_height": 1486,
+      "preview_sha256": "62f57ecdc38a7fdf65a666f0be273c2201fa33c275cb785cc99b69c808a8db0a",
+      "src": "/before/docs/figures/architecture.svg",
+      "width": 600,
+      "height": 1320,
+      "naturalWidth": 600,
+      "naturalHeight": 1320,
+      "alt": "Current discrete M1 path: token table to ordered context, geometric read, shared vector writer and raw token selection; learning proposes exact moves. M2 and unified D11 serving remain separate obligations.",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "quaternion-rotation",
+      "preview": "quaternion-rotation-before-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "9cf3e4199abe189171da57a32665abbadb02cf2262830586cda7be7f399bd74d",
+      "src": "/before/docs/figures/geometry/quaternion-rotation.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Quaternion conjugation rotates a 3D vector; quaternion left multiplication acts on a 4D state",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "600-cell-icosians",
+      "preview": "600-cell-icosians-before-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "9dd23caee0018d27c6b01b4e7a1e1074e19c0ea27f5c11111de4c96158f4587b",
+      "src": "/before/docs/figures/geometry/600-cell-icosians.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Coxeter-plane projection of the 120 unit icosians, vertices of the 600-cell",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "zeta-phases",
+      "preview": "zeta-phases-before-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "6097f3337a5eab9c95eedd5ad37d688e2e66937e942f9145e80c9550fd2fe55e",
+      "src": "/before/docs/figures/geometry/zeta-phases.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Fixed zeta-zero frequencies produce complex phases from log-prime addresses",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "connections",
+      "preview": "connections-before-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "b67095520bc340da56273476fd08dc09fbcf87e32f7b739d9f3281fa4dd02820",
+      "src": "/before/docs/figures/geometry/connections.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Diagram connecting the six-prime registry, semiprimes, K6, the icosahedral axes, the 120 icosians, quaternions, Z[phi], octonions and the Fano plane, Cl(0,6) bivectors, E8, the Hopf map and VSA codes, with each link marked as verified math, used in a model, pre-registered, or a labelling choice",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "hopf-fibration",
+      "preview": "hopf-fibration-before-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "63042ee5cc4c062ab4b25efa280708f5c4ed2d73095a8da89bf8686abcfc9ef3",
+      "src": "/before/docs/figures/geometry/hopf-fibration.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Hopf observation S³ to S² loses an S¹ fibre coordinate",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/history/geometry-float-form-2026-10.md",
+      "viewport": 1280,
+      "figure": "geometry-stack",
+      "preview": "geometry-stack-before-1280.png",
+      "capture_height": 815,
+      "preview_sha256": "e76c73e08898da38a2d14fb61ca47d335eb8e0ab3cd6054f3e7a19ffedbe205f",
+      "src": "/before/docs/figures/geometry-stack.svg",
+      "width": 946,
+      "height": 738,
+      "naturalWidth": 1200,
+      "naturalHeight": 936,
+      "alt": "The geometry stack: prime addressing, zeta phases, R4/S3 state, H4 and icosian structure with exact Z[phi]",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "README.md",
+      "viewport": 390,
+      "figure": "architecture",
+      "preview": "architecture-before-390.png",
+      "capture_height": 1073,
+      "preview_sha256": "0403fb0ceeceefcaf070d3bccc55fbb0e3d909286683029d6cce2a9414a5e38b",
+      "src": "/before/docs/figures/architecture.svg",
+      "width": 358,
+      "height": 788,
+      "naturalWidth": 600,
+      "naturalHeight": 1320,
+      "alt": "Current discrete M1 path: token table to ordered context, geometric read, shared vector writer and raw token selection; learning proposes exact moves. M2 and unified D11 serving remain separate obligations.",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "quaternion-rotation",
+      "preview": "quaternion-rotation-before-390.png",
+      "capture_height": 382,
+      "preview_sha256": "5f5e90ede57a2138be5fd285244eb34337a05e24f628c0a96627ccf6cdccd2f8",
+      "src": "/before/docs/figures/geometry/quaternion-rotation.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Quaternion conjugation rotates a 3D vector; quaternion left multiplication acts on a 4D state",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "600-cell-icosians",
+      "preview": "600-cell-icosians-before-390.png",
+      "capture_height": 412,
+      "preview_sha256": "7db52c5ee635e1e969eff900c41c867fed5f29084628972031fec71bc525d2b2",
+      "src": "/before/docs/figures/geometry/600-cell-icosians.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Coxeter-plane projection of the 120 unit icosians, vertices of the 600-cell",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "zeta-phases",
+      "preview": "zeta-phases-before-390.png",
+      "capture_height": 412,
+      "preview_sha256": "c66b5f232d9a0a01389e92d9fd27b550358974a850cb4a0c81c5707c18c42820",
+      "src": "/before/docs/figures/geometry/zeta-phases.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Fixed zeta-zero frequencies produce complex phases from log-prime addresses",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "connections",
+      "preview": "connections-before-390.png",
+      "capture_height": 412,
+      "preview_sha256": "a1e07fd8f25dda29f453aa071256acaaf809f9301f4afcbfd9909a3683dac035",
+      "src": "/before/docs/figures/geometry/connections.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Diagram connecting the six-prime registry, semiprimes, K6, the icosahedral axes, the 120 icosians, quaternions, Z[phi], octonions and the Fano plane, Cl(0,6) bivectors, E8, the Hopf map and VSA codes, with each link marked as verified math, used in a model, pre-registered, or a labelling choice",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "hopf-fibration",
+      "preview": "hopf-fibration-before-390.png",
+      "capture_height": 412,
+      "preview_sha256": "0a643577ed27a13da479aedae0ff2eb3a04a204227dcdafa2b60742060edee14",
+      "src": "/before/docs/figures/geometry/hopf-fibration.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Hopf observation S³ to S² loses an S¹ fibre coordinate",
+      "pageOverflow": false
+    },
+    {
+      "version": "before",
+      "page": "docs/history/geometry-float-form-2026-10.md",
+      "viewport": 390,
+      "figure": "geometry-stack",
+      "preview": "geometry-stack-before-390.png",
+      "capture_height": 357,
+      "preview_sha256": "fd7bd889ea925cbf41322ab984b6b416eb3ca8bb2de3333bc3d527218c2f69a9",
+      "src": "/before/docs/figures/geometry-stack.svg",
+      "width": 358,
+      "height": 279,
+      "naturalWidth": 1200,
+      "naturalHeight": 936,
+      "alt": "The geometry stack: prime addressing, zeta phases, R4/S3 state, H4 and icosian structure with exact Z[phi]",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "README.md",
+      "viewport": 1280,
+      "figure": "architecture",
+      "preview": "architecture-after-1280.png",
+      "capture_height": 686,
+      "preview_sha256": "87aae08aec60f42c43a2833429abf2fe86e9619ea64e0590961e04e32face014",
+      "src": "/after/docs/figures/architecture.svg",
+      "width": 946,
+      "height": 520,
+      "naturalWidth": 1200,
+      "naturalHeight": 660,
+      "alt": "Current discrete M1 path: token table to ordered context, geometric read, shared vector writer and raw token selection; learning proposes exact moves. M2 and unified D11 serving remain separate obligations.",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "quaternion-rotation",
+      "preview": "quaternion-rotation-after-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "4a9b07d8c9322e4b548a9159e250e64630c31fd27ee648f6e6922ac9d6dc5ec9",
+      "src": "/after/docs/figures/geometry/quaternion-rotation.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Quaternion conjugation rotates a 3D vector; quaternion left multiplication acts on a 4D state",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "600-cell-icosians",
+      "preview": "600-cell-icosians-after-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "8d4dc57fdcd00d2e3ed7e0d12aef485d925841d526e6cdecaa1547b31548bb0b",
+      "src": "/after/docs/figures/geometry/600-cell-icosians.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Coxeter-plane projection of the 120 unit icosians, vertices of the 600-cell",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "zeta-phases",
+      "preview": "zeta-phases-after-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "84203f180417c6c2754f7154e543f11d2b3c6cd0c2e47008a1fdb1caa9cf0b4a",
+      "src": "/after/docs/figures/geometry/zeta-phases.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Fixed zeta-zero frequencies produce complex phases from log-prime addresses",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "connections",
+      "preview": "connections-after-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "fc6238a8f8dec6489e2dc47728b8354dba5a59ac3dc5cd4486d4113e46900f18",
+      "src": "/after/docs/figures/geometry/connections.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Diagram connecting the six-prime registry, semiprimes, K6, the icosahedral axes, the 120 icosians, quaternions, Z[phi], octonions and the Fano plane, Cl(0,6) bivectors, E8, the Hopf map and VSA codes, with each link marked as verified math, used in a model, pre-registered, or a labelling choice",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 1280,
+      "figure": "hopf-fibration",
+      "preview": "hopf-fibration-after-1280.png",
+      "capture_height": 794,
+      "preview_sha256": "4d9a1ac133892d8d22f311486226dbb555ab853030e8abd9f5e8df3513e95614",
+      "src": "/after/docs/figures/geometry/hopf-fibration.svg",
+      "width": 946,
+      "height": 662,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Hopf observation S³ to S² loses an S¹ fibre coordinate",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/history/geometry-float-form-2026-10.md",
+      "viewport": 1280,
+      "figure": "geometry-stack",
+      "preview": "geometry-stack-after-1280.png",
+      "capture_height": 815,
+      "preview_sha256": "a6c30128ca249e7d666bd9ac07d3030dd2fd5936128addb4e6a60cf539aaf412",
+      "src": "/after/docs/figures/geometry-stack.svg",
+      "width": 946,
+      "height": 738,
+      "naturalWidth": 1200,
+      "naturalHeight": 936,
+      "alt": "The geometry stack: prime addressing, zeta phases, R4/S3 state, H4 and icosian structure with exact Z[phi]",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "README.md",
+      "viewport": 390,
+      "figure": "architecture",
+      "preview": "architecture-after-390.png",
+      "capture_height": 1049,
+      "preview_sha256": "1463ace1eaa916b04dd53d60e3b454bb1760ea858ce86eec319c2dfbb3abdd86",
+      "src": "/after/docs/figures/architecture-narrow.svg",
+      "width": 358,
+      "height": 763,
+      "naturalWidth": 380,
+      "naturalHeight": 810,
+      "alt": "Current discrete M1 path: token table to ordered context, geometric read, shared vector writer and raw token selection; learning proposes exact moves. M2 and unified D11 serving remain separate obligations.",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "quaternion-rotation",
+      "preview": "quaternion-rotation-after-390.png",
+      "capture_height": 382,
+      "preview_sha256": "e4e14e1acfc63fc21503f7951d5c978edf2abf64843e6cb70352c63cee1a4c14",
+      "src": "/after/docs/figures/geometry/quaternion-rotation.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Quaternion conjugation rotates a 3D vector; quaternion left multiplication acts on a 4D state",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "600-cell-icosians",
+      "preview": "600-cell-icosians-after-390.png",
+      "capture_height": 412,
+      "preview_sha256": "b6e2115101523ed7a606c4c60e7c66a98f67f8a6766e0b5d27d0792eb3bbe9b7",
+      "src": "/after/docs/figures/geometry/600-cell-icosians.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Coxeter-plane projection of the 120 unit icosians, vertices of the 600-cell",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "zeta-phases",
+      "preview": "zeta-phases-after-390.png",
+      "capture_height": 412,
+      "preview_sha256": "db0c2de45eceec8c25dc7086271b19d70175a0279fba4387a15d840e30cd630c",
+      "src": "/after/docs/figures/geometry/zeta-phases.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Fixed zeta-zero frequencies produce complex phases from log-prime addresses",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "connections",
+      "preview": "connections-after-390.png",
+      "capture_height": 412,
+      "preview_sha256": "e21d582c89a1445ca79d37921cc01093a48d7968f1b1c10e3a8e1a94390e7095",
+      "src": "/after/docs/figures/geometry/connections.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Diagram connecting the six-prime registry, semiprimes, K6, the icosahedral axes, the 120 icosians, quaternions, Z[phi], octonions and the Fano plane, Cl(0,6) bivectors, E8, the Hopf map and VSA codes, with each link marked as verified math, used in a model, pre-registered, or a labelling choice",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/geometry.md",
+      "viewport": 390,
+      "figure": "hopf-fibration",
+      "preview": "hopf-fibration-after-390.png",
+      "capture_height": 412,
+      "preview_sha256": "400331052cca43630b2c04e7c596523b37a711008386878213096b1bc6281b7a",
+      "src": "/after/docs/figures/geometry/hopf-fibration.svg",
+      "width": 358,
+      "height": 251,
+      "naturalWidth": 900,
+      "naturalHeight": 630,
+      "alt": "Hopf observation S³ to S² loses an S¹ fibre coordinate",
+      "pageOverflow": false
+    },
+    {
+      "version": "after",
+      "page": "docs/history/geometry-float-form-2026-10.md",
+      "viewport": 390,
+      "figure": "geometry-stack",
+      "preview": "geometry-stack-after-390.png",
+      "capture_height": 357,
+      "preview_sha256": "df3cb187bd15dd1f91b5385bd52d7553842c54b58d36d2937dbc0bf9a7f611e9",
+      "src": "/after/docs/figures/geometry-stack.svg",
+      "width": 358,
+      "height": 279,
+      "naturalWidth": 1200,
+      "naturalHeight": 936,
+      "alt": "The geometry stack: prime addressing, zeta phases, R4/S3 state, H4 and icosian structure with exact Z[phi]",
+      "pageOverflow": false
+    }
+  ],
+  "svg": [
+    {
+      "file": "docs/figures/architecture-narrow.svg",
+      "sha256": "7498259c4af34c476d510693337d3241ad704ed91bda69ebdf22b8b875d08567",
+      "viewBox": [
+        380,
+        810
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Current discrete M1 architecture, narrow layout",
+      "description": true
+    },
+    {
+      "file": "docs/figures/architecture.svg",
+      "sha256": "cc28d1921ecffea528f2017b2275a3ab8595883492a42fcfec07de734b2117dc",
+      "viewBox": [
+        1200,
+        660
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Current discrete M1 architecture",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry-stack.svg",
+      "sha256": "3d0e4506e595443fe5c813b00e2cd26cc872565b04d9a81e7dda8481c32b3d2b",
+      "viewBox": [
+        1200,
+        936
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Geometric primitives and operators",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/600-cell-icosians.svg",
+      "sha256": "062ff4c25b3d5268d33ba351abdfa7544c0d71dac213074e715252fefc7e8936",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "The 120 unit icosians: the 600-cell",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/compliant-path.svg",
+      "sha256": "dc439075053635a1daef130004561b5b13513919d53c0f311898418fde84847e",
+      "viewBox": [
+        1200,
+        760
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Historical operator path (12–13 October)",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/connections.svg",
+      "sha256": "885d5581ab088d771d533d426b210918831ed1521c84886c7ee7e1718f2814b1",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "How the geometric pieces connect",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/exact-2i-lanes.svg",
+      "sha256": "d6979dd5833813cd5e6e70dc192c7bbe155ba20ad54112aadad3bf5638fab879",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Exact icosian holonomy lanes (E1)",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/golden-integers.svg",
+      "sha256": "a1f1b42f704aa767a59ac8460cddfb28ee0089d5f72251400510dd95c5e8821e",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Exact golden integers Z[φ]",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/hamming-rank-read.svg",
+      "sha256": "9212886631d16c91f8d698c655c928e4576b7ed9798ca70008a75c28dff60b4d",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Hamming-rank read (softmax-free)",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/hopf-fibration.svg",
+      "sha256": "76f4694f21e843cef108be2e76631b957d646d4ce68f909f86371da42149bce5",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "The Hopf map: a circle behind every point",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/native-input-access.svg",
+      "sha256": "acb91ce3171e926d9e16ddf0b5e6e42ac8bc71a36babef5ef34a4b5c4cdd62fb",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Historical M2: input influence and read access",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/next-token.svg",
+      "sha256": "050b307b35b3ce98c6bde8d7fd5f5d9625401e9e34b9ec87aadbedd108ef7bbb",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Historical float next-token path",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/octonion-signed-binding.svg",
+      "sha256": "e9cc3d3d3c4ebb4bfd20e4331566da667c6da086bed3ab9a54f9640e4279fa66",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Octonion-signed binding vs XOR",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/operators.svg",
+      "sha256": "22ea94e53f5003a85c521f7776e354113ce35fd29c8373fc44dc22811e406370",
+      "viewBox": [
+        1200,
+        600
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "The three geometric operators",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/prime-addressing.svg",
+      "sha256": "2fae41e692ebfb7da2da4f76ac9cf899e18b0b14fa381903d3829f0cb75b958f",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Prime addressing: an address is a product of primes",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/protected-joint-learning.svg",
+      "sha256": "a96733cdf53fe62fc9831c69ffc2b7f71803c0118cbcfebfd591f2606ef7585d",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "M2: learning with protected token competition",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/quaternion-rotation.svg",
+      "sha256": "2eecb1d9d8609be1d2efa18923cfeed356b597a84b45a3ef9f8c0282ff2ab44a",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Quaternion conjugation rotates 3-D vectors",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/s3-and-transport.svg",
+      "sha256": "ab5da02452035fee1f7db30e3190e5b1ddce9eec7304efe18e98f73b11bbf8ca",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "S³ seen in 3-D, and a state moving through it",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/vsa-hypervectors.svg",
+      "sha256": "c8750f3833fd124d0cc91cc6c0467bafe39c78c9aa9b8cf36ed05b1d6b866f45",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "VSA hypervectors: Hamming similarity",
+      "description": true
+    },
+    {
+      "file": "docs/figures/geometry/zeta-phases.svg",
+      "sha256": "ff9552edcdc444dbbc51baf762bd0476b64dc895dbf953b66fde82602f9a122a",
+      "viewBox": [
+        1000,
+        700
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Fixed zeta-zero phases as position signatures",
+      "description": true
+    },
+    {
+      "file": "docs/figures/milestones.svg",
+      "sha256": "383c162e81c841b5124e0ae34c4a1027af77b57777ab19aa5b5e6ef0f8a0f4f7",
+      "viewBox": [
+        1200,
+        660
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "Milestones M1 to M8",
+      "description": true
+    },
+    {
+      "file": "docs/figures/serving-pipeline.svg",
+      "sha256": "b86c2be7cd6034d9d4f4d9f209534a693152b9f52370f4747201335c8aa7fb3c",
+      "viewBox": [
+        1200,
+        660
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "The D11 serving pipeline",
+      "description": true
+    },
+    {
+      "file": "docs/figures/training-pipeline.svg",
+      "sha256": "6070a2c19ccf6c36e3c3da79eebf3be17b6b2b66dfb98407bd2b39c905a99257",
+      "viewBox": [
+        1200,
+        680
+      ],
+      "clipped": [],
+      "raster": 0,
+      "role": "img",
+      "title": "The gated training pipeline",
+      "description": true
+    }
+  ],
+  "preserved_geometry": [
+    {
+      "figure": "quaternion-rotation",
+      "before": "7aefd2d6183ed25d365530f51521c6ae00e1b28ed8440c058f6298f3d58a189f",
+      "after": "7aefd2d6183ed25d365530f51521c6ae00e1b28ed8440c058f6298f3d58a189f",
+      "equal": true
+    },
+    {
+      "figure": "600-cell-icosians",
+      "before": "b527d2d284606fd349610eb0001998139bfb1a812dd2d723cfa5624884af5a33",
+      "after": "b527d2d284606fd349610eb0001998139bfb1a812dd2d723cfa5624884af5a33",
+      "equal": true
+    },
+    {
+      "figure": "zeta-phases",
+      "before": "2f42eb8fd0d5154db99fa33dfad5d5cb47575c0a6e1b36719975c715118ae7da",
+      "after": "2f42eb8fd0d5154db99fa33dfad5d5cb47575c0a6e1b36719975c715118ae7da",
+      "equal": true
+    },
+    {
+      "figure": "hopf-fibration",
+      "before": "05ddef57f0278184d0d438b3c908d8411866c8954c2951d688339ff65cbd5208",
+      "after": "05ddef57f0278184d0d438b3c908d8411866c8954c2951d688339ff65cbd5208",
+      "equal": true
+    },
+    {
+      "figure": "prime-addressing",
+      "before": "8fc99b31b455f759b157e8f9bfe4e013c838f57a91ba5c22265731dfd0ebe717",
+      "after": "8fc99b31b455f759b157e8f9bfe4e013c838f57a91ba5c22265731dfd0ebe717",
+      "equal": true
+    },
+    {
+      "figure": "connections",
+      "before": "0f907eda00c035f13d84027b25ae14d7ad0ee61711334ccee55bf832fc0b55f8",
+      "after": "0f907eda00c035f13d84027b25ae14d7ad0ee61711334ccee55bf832fc0b55f8",
+      "equal": true
+    }
+  ],
+  "zeta_label_overlaps": []
+}
