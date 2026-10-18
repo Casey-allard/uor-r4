@@ -1,3 +1,17 @@
+## 2026-10-18 — BVG-K (W3) bound to the measured K16 profile and split into construction and training stages (claude)
+
+The batched-verified-coordinates draft's utilization hypothesis is now bound to measured data and the source:
+- **Measured.** The accepted K16 timing record (`3efb4768…`) gives about **130 ms per proposal** at 64 rows (about 99.6% of each batch).
+- **From source.** The heavy `rows_v1` evaluation launch is `rows × 16 = 1,024` threads in blocks of 128 (`launch_config`). That is **8 thread blocks, so at most 8 of an RTX 5090's 170 SMs** do work.
+
+Scoring K coordinates per launch is hypothesized to raise proposal throughput by up to about K×. The construction stage measures that directly as a K ∈ {1, 4, 16} latency curve.
+
+The sheet now has two separately registered stages:
+- **Stage C:** opt-in source plus finite controls V1–V9 and the latency curve. It is configuration-agnostic, about $0.50, and can proceed while K16 runs.
+- **Stage T:** the training arms, held until the K16 outcome fixes the configuration of record.
+
+Still a DRAFT (TEST FITNESS: PENDING). No compute, $0.
+
 ## 2026-10-18 — D40 timestamp corrected (deepseek)
 
 #2701 merged before review; its D40 text said the owner clarified at a garbled `20:2720:29Z`. Corrected

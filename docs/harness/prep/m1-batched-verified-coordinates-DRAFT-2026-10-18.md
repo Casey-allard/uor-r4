@@ -2,7 +2,8 @@
 
 - **Status:** DRAFT design, revised after one adversarial reviewer-subagent round (findings 1–10 folded in below).
   - **Not registered**, and TEST FITNESS is not requested. No source change, no compute, $0.
-  - This is a **learning-law change** (path step 3, `project-track.md` § Post-dose optimization path). It enters only through a FIT'd pre-registration after the fast-path Dose 1 decision, and never mid-run.
+  - This is a **learning-law change** (W3 in `NOW.md`; D39 item 4: registered before any float sheet). It enters only through FIT'd pre-registration, and never mid-run.
+  - **Two stages (§8):** construction (Stage C: source plus finite controls and the K latency curve, configuration-agnostic) and training arms (Stage T). Stage T is held until the K16 redirect outcome fixes the configuration of record.
 - **Line:** M1 discrete learning infrastructure (#2029). **Lab:** claude.
 - **Authority and rules:**
   - Owner path directive (#2029 6244066845): "batched-coordinate scoring … only as a new FIT'd pre-registration after the dose".
@@ -18,7 +19,17 @@
 - Under `InterleavedReadEvery8V1`, every eighth batch is a read (Gate) coordinate and the rest are VectorBlock coordinates.
 - The Dose 1 configuration has 16,384 VectorBlock coordinates (V4096 × B4) and a 16,404-batch schedule cycle (`schedule_cycle`). Each epoch step is one accepted update.
 
-**Hypothesis, not measured:** each batch teaches exactly one coordinate. Under `rows_v1` a proposal launches 64, then 1,024, then 16 threads, which is far below an RTX 5090's core count. The idle-GPU figure is **to be bound to the fast-path Dose 1's measured per-batch profile** before it motivates anything.
+**Measured cost, plus a launch shape taken from source (bound 2026-10-18).**
+- **Measured.** The accepted K16 qualification's registered timing record (`3efb4768ec37458f8ad1f585eca595f8cb1e94dbf489ccf8e9222786a4db8712`; 2 checkpoint-0 cells, 100 timed batches each, `rows_v1`, 64 rows) gives these per-proposal means:
+
+  | Proposal | Objective A | Objective R |
+  |---|---|---|
+  | Route | 130.24 ms | 130.25 ms |
+  | VectorBlock | 129.50 ms | 129.51 ms |
+
+  Carry costs 0.47 ms. The proposal is about 99.6% of the batch.
+- **Launch shape (from source).** The heavy evaluation kernel (`rows_device.rs`, `discrete_counterfactual_rows_eval`) launches `rows × 16 = 1,024` threads. `launch_config` (`device.rs`) clamps blocks to 128 threads, which gives **8 thread blocks**. An RTX 5090 has 170 SMs, so **at most 8 SMs (about 4.7%) do work** during the roughly 130 ms that dominates every batch. Each thread runs the full serial writer for its (row, lane).
+- **Hypothesis (to be measured by the construction stage, §8 step 3).** Scoring K coordinates in one launch (`rows × 16 × K` threads) raises proposal throughput by up to about K× at similar latency, until SMs, registers or memory saturate. The construction stage measures the K = 1, 4, 16 per-launch latency directly; the hypothesis is not assumed.
 
 ## 2. The law: BVG-K
 
@@ -100,19 +111,23 @@ Fixed numerically at registration, before any result is visible.
 
 ## 6. Base artifact
 
-None is bound in this draft. At registration all arms start from the identical initialization of the fast-path Dose 1 configuration, with the seed list fixed then. There is no checkpoint promotion.
+None is bound in this draft. Stage T arms start from the identical initialization of the **configuration of record that the K16 redirect outcome selects**, with the seed list fixed at registration. Stage C uses disposable fixtures and the K16 checkpoint-0 state, with zero corpus updates. There is no checkpoint promotion.
 
 ## 7. Data split
 
 The Dose 1 TRAIN/DEV corpora and fresh-draw protocol, pinned exactly as in the fast-path packet: train/DEV `3dee858f…`/`0919e90f…`, with fresh V2 sealed until the paired DEV decision. No new data.
 
-## 8. Steps
+## 8. Steps (two stages, registered and released separately)
 
-1. Wait for the fast-path Dose 1 decision, and bind the section 1 utilization hypothesis to its measured per-batch profile. If the decision changes the configuration of record, re-base on it.
-2. Implement section 3 as opt-in source.
-3. Run controls V1–V9 on one GPU.
-4. Run arms **K = 1, K = 4 and K = 16**, each ≥ 2 seeds, on identical pods with the pre-registered bars. K = 4 separates "K helps" from "K = 16 overfits".
-5. Score on DEV, with fresh transfer for any KEEP.
+**Stage C: construction.** Source plus finite GPU controls, with zero corpus updates. It is configuration-agnostic, so it can proceed while the K16 redirect runs.
+1. The §1 hypothesis is now bound to the measured K16 profile (done above).
+2. Implement §3 as opt-in source. The default K = 1 is byte-identical, and `coordinate_block` is serde-skipped at 1.
+3. Run controls V1–V9 on one GPU. Also record a **latency curve**: per-launch latency at K ∈ {1, 4, 16} on the same state, the direct test of the §1 hypothesis. The finite controls need their own TEST FITNESS and owner release; they are not a training dose.
+
+**Stage T: training arms.** These are held until the K16 redirect outcome fixes the configuration of record (Route K16 A or R, or a successor).
+4. Re-base this sheet's configuration on the K16 outcome's configuration of record, and re-derive the Q1 placement, the per-family ledger and the margin from its dispersion.
+5. Run arms **K = 1, K = 4 and K = 16**, each ≥ 2 seeds, on identical pods with the pre-registered bars. K = 4 separates "K helps" from "K = 16 overfits".
+6. Score on DEV, with fresh transfer for any KEEP.
 
 ## 9. Stop rule
 
@@ -122,7 +137,7 @@ The Dose 1 TRAIN/DEV corpora and fresh-draw protocol, pinned exactly as in the f
 
 ## 10. Cost
 
-- **Implementation and controls:** about $1 of GPU.
+- **Stage C (implementation, controls and the K latency curve):** under 30 min on one 5090, **about $0.50**. One K = 1 launch is about 130 ms (measured); the K latency curve is a handful of launches per K.
 - **Three arms × 2 seeds:** each arm should be under an hour on the fast path, about $12 in all on a 2×5090 pod. The projection is refined at registration from the fast-path Dose 1's measured per-batch cost.
 
 ## 11. Minimum test power
