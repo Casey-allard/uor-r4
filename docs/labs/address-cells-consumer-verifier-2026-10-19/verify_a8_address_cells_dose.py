@@ -85,7 +85,21 @@ Verifies:
    - Exact step-`175` (`Gate(21)`) bifurcation after identical steps `0..174` (`28` vector writes,
      `14` on `block in {0, 3}` over `10` tokens / `6` `P_succ` targets / `302` rows; `7` combine writes)
    - Two-sided (`init_b3` vs `q1_b3`/`final_b3`) and matched 4-way cross-arm Q1 cohort (`unchanged_both`,
-     `moved_both`, `moved_rel_only`, `moved_fz_only`) `P_succ` admission decompositions (`48/48` self-tests).
+     `moved_both`, `moved_rel_only`, `moved_fz_only`) `P_succ` admission decompositions.
+5. Admission-Preserving Acceptance-Rule Pre-Registration Sheet, Unvisited-Tail TRAIN `P_succ`
+   Anchor & Active Interval-Rejection Consumer Verification (`verify_admission_preserving_sheet_and_anchor`,
+   `verify_train_psucc_tail_anchor_csv`, `verify_admission_preserving_guard_bundle`):
+   - `docs/harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md` (`e9d4a4bf…` at draft,
+     `17,156` B, `126` lines; top/bottom `TEST FITNESS` consistency, all 7 D22 headings, parent sheet
+     `3e622beb…`, and anchor CSV `8c1b80e9…`)
+   - Host-derived unvisited-tail TRAIN `P_succ` anchor (`3,847` genuine `is_copy_successor` rows in
+     `C = 192` causal in-document window starting at eligible index `1,049,856`, actual indices
+     `1,049,857 ..= 1,064,112`, canonical CSV SHA-256 `8c1b80e9b15e4e2bcc765037afa7800b785418be3e20b8cc80ce13ee2e32b3c1`)
+   - §7 Registration checklist, D40/D31 preconditions, 15% readiness predicate (`R = added_gate_cost /
+     ungated_two_arm_dose_cost <= 0.15`, `258` evaluations/arm = `516` total), synchronous-barrier interval
+     audits (`0`, `64..16384`, and mandatory 20-batch tail `16404`), `margin == 24` rollback + schedule
+     cursor advance, and §2.4 `RULE_EFFECTIVELY_NOOP` (`> 0.50` rejection rate or `3` consecutive
+     full-interval rejections; `56/56` self-tests).
 
 Host-only; never creates a CUDA context, constructs a model, or alters a hold.
 """
@@ -465,6 +479,51 @@ ROOT_TUPLE_TO_ID: dict[tuple[int, ...], int] = {
 ROOT_BYTES_TO_ID: dict[bytes, int] = {
     struct.pack("<8i", *r): idx for idx, r in enumerate(ROOTS)
 }
+
+EXPECTED_ADMISSION_PRESERVING_SHEET_REL_PATH = (
+    "docs/harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md"
+)
+EXPECTED_ADMISSION_PRESERVING_DRAFT_SHEET_SHA256 = (
+    "e9d4a4bf1951986f683cf3914241de375a864d0e756d8b70ea9024fe50afa452"
+)
+EXPECTED_ADMISSION_PRESERVING_DRAFT_SHEET_BYTES = 17156
+EXPECTED_ADMISSION_PRESERVING_DRAFT_SHEET_LINES = 126
+EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_SHA256 = (
+    "fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450"
+)
+EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_BYTES = 17745
+EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_LINES = 126
+EXPECTED_ADMISSION_PRESERVING_D22_HEADINGS: tuple[str, ...] = (
+    "## Base artifact",
+    "## Data split",
+    "## 3. Bar",
+    "## 4. Cost",
+    "## Stop rule",
+    "## Minimum test power (D22 section 3)",
+    "## 5. Steps",
+)
+EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256 = (
+    "8c1b80e9b15e4e2bcc765037afa7800b785418be3e20b8cc80ce13ee2e32b3c1"
+)
+EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS = 3847
+EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX = 1049856
+EXPECTED_TRAIN_PSUCC_TAIL_FIRST_ROW: tuple[int, int, int, int] = (1049857, 3251166, 714, 1)
+EXPECTED_TRAIN_PSUCC_TAIL_LAST_ROW: tuple[int, int, int, int] = (1064112, 3295596, 310, 1)
+EXPECTED_ADMISSION_PRESERVING_AUDIT_CADENCE_BATCHES = 64
+EXPECTED_ADMISSION_PRESERVING_TAIL_BATCHES = 20
+EXPECTED_ADMISSION_PRESERVING_EVALUATIONS_PER_ARM = 258
+EXPECTED_ADMISSION_PRESERVING_TOTAL_EVALUATIONS_TWO_ARMS = 516
+EXPECTED_ADMISSION_PRESERVING_MARGIN_ROWS = 24
+EXPECTED_ADMISSION_PRESERVING_ANCHOR_MIN_BASELINE = 500
+EXPECTED_ADMISSION_PRESERVING_MAX_REJECTION_RATE = 0.50
+EXPECTED_ADMISSION_PRESERVING_MAX_CONSECUTIVE_FULL_REJECTIONS = 3
+EXPECTED_ADMISSION_PRESERVING_MAX_GATE_COST_RATIO = 0.15
+DEFAULT_LOCAL_MW_BALP_TRAIN_TOKENS_PATH = Path(
+    "/Users/casey.allard/uor-r4-local/codex-attention-preflight-inputs-v1/mw-balp/train/tokens.u16"
+)
+DEFAULT_LOCAL_MW_BALP_TRAIN_MASK_PATH = Path(
+    "/Users/casey.allard/uor-r4-local/codex-attention-preflight-inputs-v1/mw-balp/train/response_mask.u8"
+)
 
 EXPECTED_VAST_56670997_CENSUS_EXPECTATIONS: dict[str, Any] = {
     "manifest_sha256": EXPECTED_VAST_56670997_RUNS_MANIFEST_SHA256,
@@ -1479,6 +1538,11 @@ def verify_staged_contract(
     if (dose_ev_dir / "SHA256SUMS").is_file():
         committed_dose_summary = verify_committed_a8_dose_receipt(repo_root)
 
+    admission_preserving_summary = None
+    ap_sheet_path = repo_root / EXPECTED_ADMISSION_PRESERVING_SHEET_REL_PATH
+    if ap_sheet_path.is_file():
+        admission_preserving_summary = verify_admission_preserving_sheet_and_anchor(repo_root)
+
     return {
         "status": "PASS",
         "sheet_sha256": sheet_sha,
@@ -1502,6 +1566,7 @@ def verify_staged_contract(
         "runbook_readme_sha256": rb_readme_sha,
         "executor_packet": packet_summary,
         "committed_a8_dose_receipt": committed_dose_summary,
+        "admission_preserving_sheet": admission_preserving_summary,
     }
 
 
@@ -3880,7 +3945,7 @@ def build_synthetic_dose_bundle(repo_root: Path | None = None) -> dict[str, Any]
 
 
 def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str, Any]:
-    """Run 48 positive and negative self-tests covering all A8 pre-run, Q1, D34, D40, decision, and census/attribution rules."""
+    """Run 56 positive and negative self-tests covering all A8 pre-run, Q1, D34, D40, decision, census/attribution, and admission-preserving active interval rejection rules."""
     results: list[dict[str, Any]] = []
 
     def record(name: str, passed: bool, detail: str) -> None:
@@ -4630,6 +4695,324 @@ def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str,
                 "two-sided P_succ decomposition mismatch" in str(exc) and "DEV row key mismatch" in str(exc2),
                 f"decomp={exc}; row_key={exc2}",
             )
+
+    # T49: Admission-preserving sheet & TRAIN tail P_succ anchor CSV verification
+    ap_sheet_res = verify_admission_preserving_sheet_and_anchor(repo_root)
+    syn_anchor_rows = [
+        (EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX + 1 + i, 3251166 + i * 10, (i % 4095) + 1, 1)
+        for i in range(EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS)
+    ]
+    syn_anchor_res = verify_train_psucc_tail_anchor_csv(
+        syn_anchor_rows, require_exact_pinned_sha=False
+    )
+    record(
+        "49_admission_preserving_sheet_and_train_tail_anchor_csv_pass",
+        ap_sheet_res["status"] == "PASS"
+        and (
+            (
+                ap_sheet_res["test_fitness"] == "PENDING"
+                and ap_sheet_res["sheet_sha256"] == EXPECTED_ADMISSION_PRESERVING_DRAFT_SHEET_SHA256
+            )
+            or (
+                ap_sheet_res["test_fitness"] == "FIT"
+                and ap_sheet_res["sheet_sha256"] == EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_SHA256
+            )
+        )
+        and ap_sheet_res["anchor_csv_sha256"] == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+        and len(ap_sheet_res["d22_headings_verified"]) == 7
+        and syn_anchor_res["status"] == "PASS"
+        and (
+            ap_sheet_res["anchor_uort_verification"] is None
+            or ap_sheet_res["anchor_uort_verification"]["csv_sha256"]
+            == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+        ),
+        f"sheet={ap_sheet_res['sheet_sha256'][:12]} ({ap_sheet_res['test_fitness']}), anchor={ap_sheet_res['anchor_csv_sha256'][:12]}, uort={ap_sheet_res['anchor_uort_verification'] is not None}",
+    )
+
+    # T50: Valid 2-arm (258 evaluations/arm including baseline 0 and tail 16,404) active interval rejection bundle PASS
+    base_ap = build_synthetic_admission_preserving_bundle()
+    res_ap_ok = verify_admission_preserving_guard_bundle(base_ap)
+    record(
+        "50_admission_preserving_valid_two_arm_active_rejection_pass",
+        res_ap_ok["status"] == "PASS"
+        and res_ap_ok["verdict"]
+        == "ADMISSION_PRESERVING_DIAGNOSTIC_PASS_DEFER_TO_PARENT_DECISION"
+        and res_ap_ok["keep"] is False
+        and res_ap_ok["mechanism_negative"] is False
+        and res_ap_ok["arms"]["relation"]["evaluations_count"] == 258
+        and res_ap_ok["arms"]["frozen_zero"]["evaluations_count"] == 258
+        and res_ap_ok["arms"]["relation"]["rejected_intervals"] == 2
+        and res_ap_ok["arms"]["frozen_zero"]["rejected_intervals"] == 2,
+        f"verdict={res_ap_ok['verdict']}, rel_rej={res_ap_ok['arms']['relation']['rejected_intervals']}/257",
+    )
+
+    # T51: Qualification gate cost ratio R = added_gate_cost / ungated_two_arm_dose_cost > 0.15 -> STOP_BEFORE_TRAINING_REPLAN_GATE_COST_EXCEEDS_15PCT
+    ap_high_cost = copy.deepcopy(base_ap)
+    ap_high_cost["training_started"] = False
+    ap_high_cost["qualification_cost"]["added_gate_cost"] = 2.28
+    ap_high_cost["qualification_cost"]["ungated_two_arm_dose_cost"] = 11.40
+    ap_high_cost["qualification_cost"]["cost_ratio_r"] = 0.20
+    res_ap_cost = verify_admission_preserving_guard_bundle(ap_high_cost)
+    ap_high_cost_started = copy.deepcopy(ap_high_cost)
+    ap_high_cost_started["training_started"] = True
+    res_ap_cost_started = verify_admission_preserving_guard_bundle(ap_high_cost_started)
+    record(
+        "51_admission_preserving_gate_cost_ratio_exceeds_15pct_stop",
+        res_ap_cost["verdict"] == "STOP_BEFORE_TRAINING_REPLAN_GATE_COST_EXCEEDS_15PCT"
+        and res_ap_cost["mechanism_negative"] is False
+        and res_ap_cost["keep"] is False
+        and res_ap_cost_started["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "gate_cost_exceeds_15pct_but_training_started" in res_ap_cost_started["faults"],
+        f"pre_train={res_ap_cost['verdict']} (R={res_ap_cost['cost_ratio_r']:.2f}), started={res_ap_cost_started['verdict']}",
+    )
+
+    # T52: Anchor baseline < 500, wrong anchor CSV SHA-256, or training-prefix overlap (eligible_ordinal < 1,049,856) -> INSTRUMENT_UNREACHABLE_D31
+    ap_low_base = copy.deepcopy(base_ap)
+    ap_low_base["prerun_gates"]["relation"]["anchor_baseline_admitted"] = 499
+    ap_low_base["prerun_gates"]["frozen_zero"]["anchor_baseline_admitted"] = 499
+    res_ap_low_base = verify_admission_preserving_guard_bundle(ap_low_base)
+
+    ap_bad_anchor_sha = copy.deepcopy(base_ap)
+    ap_bad_anchor_sha["registration"]["anchor_csv_sha256"] = "0" * 64
+    res_ap_bad_sha = verify_admission_preserving_guard_bundle(ap_bad_anchor_sha)
+
+    ap_prefix_overlap = copy.deepcopy(base_ap)
+    ap_prefix_overlap["registration"]["anchor_first_eligible_ordinal"] = (
+        EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX - 1
+    )
+    ap_prefix_overlap["registration"]["training_prefix_overlap_rows"] = 1
+    res_ap_overlap = verify_admission_preserving_guard_bundle(ap_prefix_overlap)
+
+    overlap_csv_rejected = False
+    bad_csv_rows = list(syn_anchor_rows)
+    bad_csv_rows[0] = (EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX - 1, 3251160, 714, 1)
+    try:
+        verify_train_psucc_tail_anchor_csv(bad_csv_rows, require_exact_pinned_sha=False)
+    except VerificationError as exc:
+        overlap_csv_rejected = "overlaps training prefix" in str(exc)
+
+    record(
+        "52_admission_preserving_anchor_baseline_or_hash_or_prefix_overlap_d31",
+        res_ap_low_base["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "relation_anchor_baseline_below_500" in res_ap_low_base["faults"]
+        and res_ap_bad_sha["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "anchor_csv_sha256_mismatch" in res_ap_bad_sha["faults"]
+        and res_ap_overlap["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "anchor_overlaps_training_prefix" in res_ap_overlap["faults"]
+        and overlap_csv_rejected,
+        f"low_base={res_ap_low_base['faults']}, bad_sha={res_ap_bad_sha['faults']}, overlap_csv_rejected={overlap_csv_rejected}",
+    )
+
+    # T53: Breach without restoring last passing model_storage_sha256/epoch/accepted_updates or without cursor advance or missing receipt -> INSTRUMENT_UNREACHABLE_D31
+    ap_bad_restore = copy.deepcopy(base_ap)
+    ap_bad_restore["arms"]["relation"]["audits"][10]["restored_model_storage_sha256"] = "9" * 64
+    res_ap_bad_restore = verify_admission_preserving_guard_bundle(ap_bad_restore)
+
+    ap_no_cursor = copy.deepcopy(base_ap)
+    ap_no_cursor["arms"]["relation"]["audits"][10][
+        "schedule_cursor_advanced_past_interval"
+    ] = False
+    res_ap_no_cursor = verify_admission_preserving_guard_bundle(ap_no_cursor)
+
+    ap_no_receipt = copy.deepcopy(base_ap)
+    ap_no_receipt["arms"]["relation"]["audits"][10]["rejection_receipts_count"] = 0
+    res_ap_no_receipt = verify_admission_preserving_guard_bundle(ap_no_receipt)
+
+    record(
+        "53_admission_preserving_breach_unrestored_state_or_cursor_or_receipt_d31",
+        res_ap_bad_restore["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "relation_audit_640_breach_failed_to_restore_last_passing_state"
+        in res_ap_bad_restore["faults"]
+        and res_ap_no_cursor["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "relation_audit_640_breach_missing_preservation_cursor_or_receipt"
+        in res_ap_no_cursor["faults"]
+        and res_ap_no_receipt["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "relation_audit_640_breach_missing_preservation_cursor_or_receipt"
+        in res_ap_no_receipt["faults"],
+        f"restore={res_ap_bad_restore['faults']}, cursor={res_ap_no_cursor['faults']}, receipt={res_ap_no_receipt['faults']}",
+    )
+
+    # T54: 3 consecutive full-interval rejections -> RULE_EFFECTIVELY_NOOP (mechanism_negative = False)
+    ap_3consec = build_synthetic_admission_preserving_bundle()
+    # Rebuild relation arm with 3 consecutive breaches at intervals 10, 11, 12 (stopping at batch 768 = index 12)
+    ap_3consec_full = copy.deepcopy(base_ap)
+    # Construct relation arm with breaches at {10, 11, 12} by mutating interval 11 and 12 in relation
+    # Even cleaner: use build helper logic by setting breaches on intervals 1, 2, 3 and truncating at index 3 (batch 192)
+    rel_a0 = copy.deepcopy(ap_3consec["arms"]["relation"]["audits"][0])
+    s0_sha = rel_a0["model_storage_sha256"]
+    sn0_sha = rel_a0["model_snapshot_sha256"]
+    consec_audits = [rel_a0]
+    for idx in (1, 2, 3):
+        b = idx * 64
+        consec_audits.append(
+            {
+                "audit_batch": b,
+                "synchronous_pause": True,
+                "concurrent_updates": 0,
+                "model_storage_sha256": hashlib.sha256(f"c:{idx}".encode("utf-8")).hexdigest(),
+                "model_snapshot_sha256": hashlib.sha256(f"cs:{idx}".encode("utf-8")).hexdigest(),
+                "model_epoch": 1,
+                "accepted_updates": 1,
+                "driver_cursor": {
+                    "completed_batches": b,
+                    "accepted_updates": 1,
+                    "corpus_pass": 0,
+                    "next_target": b * 64,
+                    "next_coordinate": b % 45,
+                },
+                "family_counters": {"vector": 1, "route": 0, "combine": 0, "relation": 0},
+                "lineage_sha256": EXPECTED_A8_RELATION_LINEAGE_SHA256,
+                "anchor_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+                "anchor_admitted": 1120 - 30,
+                "breach": True,
+                "audit_status": "AUDIT_BREACH",
+                "action": "REJECT_INTERVAL",
+                "rejection_mode": "whole_interval",
+                "failed_checkpoint_preserved": True,
+                "append_only_evidence_preserved": True,
+                "schedule_cursor_advanced_past_interval": True,
+                "rejection_receipts_count": 1,
+                "restored_model_storage_sha256": s0_sha,
+                "restored_model_snapshot_sha256": sn0_sha,
+                "restored_model_epoch": 0,
+                "restored_accepted_updates": 0,
+                "restored_family_counters": {"vector": 0, "route": 0, "combine": 0, "relation": 0},
+            }
+        )
+    ap_3consec_full["arms"]["relation"]["audits"] = consec_audits
+    res_ap_3consec = verify_admission_preserving_guard_bundle(ap_3consec_full)
+    record(
+        "54_admission_preserving_three_consecutive_full_rejections_noop_stop",
+        res_ap_3consec["verdict"] == "RULE_EFFECTIVELY_NOOP"
+        and res_ap_3consec["mechanism_negative"] is False
+        and res_ap_3consec["keep"] is False
+        and res_ap_3consec["arms"]["relation"]["max_consecutive_full_rejections"] == 3
+        and res_ap_3consec["arms"]["relation"]["noop_triggered_at_batch"] == 192,
+        f"verdict={res_ap_3consec['verdict']}, reasons={res_ap_3consec['noop_reasons']}",
+    )
+
+    # T55: Rejection rate rejected_intervals / audited_intervals > 0.50 at Q1 (33 / 64, max_consecutive == 2 < 3) -> RULE_EFFECTIVELY_NOOP
+    ap_q1_rate = copy.deepcopy(base_ap)
+    # Build 64 Q1 intervals where 33 breach without 3 consecutive (e.g. pattern of 2 breaches, 1 pass for 11 blocks = 22 breaches in 33 intervals, plus 11 single breaches separated by passes = 33 breaches in 55 intervals, remaining 9 pass -> 33/64 breaches, max_consecutive = 2)
+    q1_breach_set: set[int] = set()
+    # Indices 1..64:
+    # Put breaches at (1,2), (4,5), (7,8) -> 6 breaches; and odd indices 11,13,...,63 (27 indices) -> total 6 + 27 = 33 breaches out of 64, max consecutive = 2!
+    q1_breach_set.update({1, 2, 4, 5, 7, 8})
+    for odd_idx in range(11, 65, 2):
+        q1_breach_set.add(odd_idx)
+    assert len(q1_breach_set) == 33
+
+    q1_rate_audits = [copy.deepcopy(base_ap["arms"]["relation"]["audits"][0])]
+    cur_s = q1_rate_audits[0]["model_storage_sha256"]
+    cur_sn = q1_rate_audits[0]["model_snapshot_sha256"]
+    cur_ep = 0
+    cur_acc = 0
+    cur_fc = {"vector": 0, "route": 0, "combine": 0, "relation": 0}
+    for idx in range(1, 65):
+        b = idx * 64
+        ns = hashlib.sha256(f"q1r:s:{idx}".encode("utf-8")).hexdigest()
+        nsn = hashlib.sha256(f"q1r:sn:{idx}".encode("utf-8")).hexdigest()
+        nfc = dict(cur_fc)
+        nfc["vector"] += 1
+        nacc = sum(nfc.values())
+        if idx in q1_breach_set:
+            q1_rate_audits.append(
+                {
+                    "audit_batch": b,
+                    "synchronous_pause": True,
+                    "concurrent_updates": 0,
+                    "model_storage_sha256": ns,
+                    "model_snapshot_sha256": nsn,
+                    "model_epoch": nacc,
+                    "accepted_updates": nacc,
+                    "driver_cursor": {
+                        "completed_batches": b,
+                        "accepted_updates": nacc,
+                        "corpus_pass": 0,
+                        "next_target": b * 64,
+                        "next_coordinate": b % 45,
+                    },
+                    "family_counters": nfc,
+                    "lineage_sha256": EXPECTED_A8_RELATION_LINEAGE_SHA256,
+                    "anchor_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+                    "anchor_admitted": 1120 - 28,
+                    "breach": True,
+                    "audit_status": "AUDIT_BREACH",
+                    "action": "REJECT_INTERVAL",
+                    "rejection_mode": "whole_interval",
+                    "failed_checkpoint_preserved": True,
+                    "append_only_evidence_preserved": True,
+                    "schedule_cursor_advanced_past_interval": True,
+                    "rejection_receipts_count": 1,
+                    "restored_model_storage_sha256": cur_s,
+                    "restored_model_snapshot_sha256": cur_sn,
+                    "restored_model_epoch": cur_ep,
+                    "restored_accepted_updates": cur_acc,
+                    "restored_family_counters": dict(cur_fc),
+                }
+            )
+        else:
+            cur_s = ns
+            cur_sn = nsn
+            cur_ep = nacc
+            cur_acc = nacc
+            cur_fc = nfc
+            q1_rate_audits.append(
+                {
+                    "audit_batch": b,
+                    "synchronous_pause": True,
+                    "concurrent_updates": 0,
+                    "model_storage_sha256": cur_s,
+                    "model_snapshot_sha256": cur_sn,
+                    "model_epoch": cur_ep,
+                    "accepted_updates": cur_acc,
+                    "driver_cursor": {
+                        "completed_batches": b,
+                        "accepted_updates": cur_acc,
+                        "corpus_pass": 0,
+                        "next_target": b * 64,
+                        "next_coordinate": b % 45,
+                    },
+                    "family_counters": dict(cur_fc),
+                    "lineage_sha256": EXPECTED_A8_RELATION_LINEAGE_SHA256,
+                    "anchor_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+                    "anchor_admitted": 1120 - 5,
+                    "breach": False,
+                    "action": "COMMIT",
+                }
+            )
+    ap_q1_rate["arms"]["relation"]["audits"] = q1_rate_audits
+    res_ap_q1_rate = verify_admission_preserving_guard_bundle(ap_q1_rate)
+    record(
+        "55_admission_preserving_q1_rejection_rate_above_50pct_noop_stop",
+        res_ap_q1_rate["verdict"] == "RULE_EFFECTIVELY_NOOP"
+        and res_ap_q1_rate["mechanism_negative"] is False
+        and res_ap_q1_rate["keep"] is False
+        and res_ap_q1_rate["arms"]["relation"]["rejected_intervals"] == 33
+        and res_ap_q1_rate["arms"]["relation"]["audited_intervals"] == 64
+        and res_ap_q1_rate["arms"]["relation"]["max_consecutive_full_rejections"] == 2,
+        f"verdict={res_ap_q1_rate['verdict']}, rejected=33/64, max_consec=2",
+    )
+
+    # T56: Missing final 20-batch tail audit at 16,404 (257 instead of 258 evaluations) or FrozenZero accepted_relation > 0 -> INSTRUMENT_UNREACHABLE_D31
+    ap_no_tail = copy.deepcopy(base_ap)
+    ap_no_tail["arms"]["frozen_zero"]["audits"] = ap_no_tail["arms"]["frozen_zero"]["audits"][:257]
+    res_ap_no_tail = verify_admission_preserving_guard_bundle(ap_no_tail)
+
+    ap_fz_rel = copy.deepcopy(base_ap)
+    ap_fz_rel["arms"]["frozen_zero"]["audits"][1]["family_counters"]["relation"] = 1
+    ap_fz_rel["arms"]["frozen_zero"]["audits"][1]["accepted_updates"] += 1
+    ap_fz_rel["arms"]["frozen_zero"]["audits"][1]["model_epoch"] += 1
+    res_ap_fz_rel = verify_admission_preserving_guard_bundle(ap_fz_rel)
+
+    record(
+        "56_admission_preserving_missing_tail_16404_or_frozen_zero_relation_d31",
+        res_ap_no_tail["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "frozen_zero_missing_mandatory_final_16404_tail_audit" in res_ap_no_tail["faults"]
+        and res_ap_fz_rel["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "frozen_zero_audit_64_accepted_relation_nonzero" in res_ap_fz_rel["faults"],
+        f"no_tail={res_ap_no_tail['faults']}, fz_rel={res_ap_fz_rel['faults']}",
+    )
 
     return {
         "status": "PASS",
@@ -5999,9 +6382,1045 @@ def build_synthetic_census_bundle(repo_root: Path | None = None) -> dict[str, An
     }
 
 
+_CACHED_TRAIN_PSUCC_TAIL_ANCHOR: dict[tuple[str, str, int, int], dict[str, Any]] = {}
+
+
+def recompute_train_psucc_tail_anchor_from_uort(
+    train_tokens_path: Path,
+    train_mask_path: Path,
+    start_eligible_index: int = EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX,
+    target_rows: int = EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS,
+) -> dict[str, Any]:
+    """Recompute the 3,847-row unvisited-tail TRAIN P_succ anchor CSV directly from pinned UORT files."""
+    cache_key = (
+        str(train_tokens_path.resolve()),
+        str(train_mask_path.resolve()),
+        start_eligible_index,
+        target_rows,
+    )
+    if cache_key in _CACHED_TRAIN_PSUCC_TAIL_ANCHOR:
+        return copy.deepcopy(_CACHED_TRAIN_PSUCC_TAIL_ANCHOR[cache_key])
+
+    raw_tokens = read_bytes_checked(train_tokens_path, "TRAIN tokens.u16")
+    raw_mask = read_bytes_checked(train_mask_path, "TRAIN response_mask.u8")
+    tok_sha = hashlib.sha256(raw_tokens).hexdigest()
+    mask_sha = hashlib.sha256(raw_mask).hexdigest()
+    require(
+        tok_sha == EXPECTED_TRAIN_TOKENS_SHA256,
+        f"TRAIN tokens.u16 SHA-256 mismatch: {tok_sha} != {EXPECTED_TRAIN_TOKENS_SHA256}",
+    )
+    require(
+        mask_sha == EXPECTED_TRAIN_MASK_SHA256,
+        f"TRAIN response_mask.u8 SHA-256 mismatch: {mask_sha} != {EXPECTED_TRAIN_MASK_SHA256}",
+    )
+    require(
+        len(raw_tokens) >= 64 and raw_tokens[:4] == b"UORT",
+        "TRAIN tokens.u16 missing canonical 64-byte UORT header",
+    )
+    version, count, vocab = struct.unpack_from("<IQI", raw_tokens, 4)
+    require(
+        version == 1
+        and count == 7512797
+        and vocab == 4096
+        and all(b == 0 for b in raw_tokens[20:64])
+        and len(raw_tokens) == 64 + count * 2
+        and len(raw_mask) == count,
+        f"TRAIN UORT header/inventory mismatch: version={version}, count={count}, vocab={vocab}",
+    )
+
+    tokens = struct.unpack_from(f"<{count}H", raw_tokens, 64)
+    require(tokens[0] == 0, "TRAIN UORT must start with BOS token id 0")
+
+    doc_start = 0
+    docs = 0
+    elig_idx = 0
+    rows: list[tuple[int, int, int, int]] = []
+    for pos in range(count):
+        tok = tokens[pos]
+        if tok == 0:
+            doc_start = pos
+            docs += 1
+        elif pos > 0 and raw_mask[pos] == 1:
+            if elig_idx >= start_eligible_index and len(rows) < target_rows:
+                w_start = max(doc_start, pos - 192)
+                require(w_start < pos, f"target at {pos} has no in-document predecessor")
+                query = tokens[pos - 1]
+                found = -1
+                for p in range(pos - 2, w_start - 1, -1):
+                    if tokens[p] == query:
+                        found = p
+                        break
+                if found != -1 and tokens[found + 1] == tok:
+                    rows.append((elig_idx, pos, tok, 1))
+            elig_idx += 1
+
+    require(
+        docs == 60000 and elig_idx == 2425925,
+        f"TRAIN documents/eligible_targets mismatch: docs={docs}, eligible={elig_idx}",
+    )
+    require(
+        len(rows) == target_rows,
+        f"expected {target_rows} unvisited-tail TRAIN P_succ rows, found {len(rows)}",
+    )
+    csv_text = "".join(f"{r[0]},{r[1]},{r[2]},{r[3]}\n" for r in rows)
+    csv_sha = hashlib.sha256(csv_text.encode("utf-8")).hexdigest()
+    if (
+        start_eligible_index == EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX
+        and target_rows == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS
+    ):
+        require(
+            csv_sha == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+            and rows[0] == EXPECTED_TRAIN_PSUCC_TAIL_FIRST_ROW
+            and rows[-1] == EXPECTED_TRAIN_PSUCC_TAIL_LAST_ROW,
+            f"recomputed TRAIN P_succ anchor mismatch: sha={csv_sha}, first={rows[0]}, last={rows[-1]}",
+        )
+    res = {
+        "status": "PASS",
+        "train_tokens_sha256": tok_sha,
+        "train_mask_sha256": mask_sha,
+        "payload_tokens": count,
+        "documents": docs,
+        "eligible_targets": elig_idx,
+        "start_eligible_index": start_eligible_index,
+        "anchor_rows": len(rows),
+        "first_row": rows[0],
+        "last_row": rows[-1],
+        "csv_sha256": csv_sha,
+        "csv_text": csv_text,
+        "rows": rows,
+    }
+    _CACHED_TRAIN_PSUCC_TAIL_ANCHOR[cache_key] = copy.deepcopy(res)
+    return res
+
+
+def verify_train_psucc_tail_anchor_csv(
+    csv_text_or_rows: str | list[Any],
+    train_tokens_path: Path | None = None,
+    train_mask_path: Path | None = None,
+    require_exact_pinned_sha: bool = True,
+) -> dict[str, Any]:
+    """Verify the 3,847-line canonical TRAIN P_succ tail anchor CSV and optional UORT binary equivalence."""
+    rows: list[tuple[int, int, int, int]] = []
+    if isinstance(csv_text_or_rows, str):
+        require(
+            csv_text_or_rows.endswith("\n"),
+            "anchor CSV must be newline-terminated UTF-8",
+        )
+        lines = csv_text_or_rows.splitlines()
+        require(
+            len(lines) == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS,
+            f"anchor CSV must have {EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS} lines, got {len(lines)}",
+        )
+        for idx, line in enumerate(lines):
+            parts = line.split(",")
+            require(
+                len(parts) == 4 and all(p.isdigit() for p in parts),
+                f"anchor CSV line {idx} malformed: {line!r}",
+            )
+            eo, tp, tt, ip = (int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3]))
+            require(
+                f"{eo},{tp},{tt},{ip}" == line,
+                f"anchor CSV line {idx} non-canonical formatting: {line!r}",
+            )
+            rows.append((eo, tp, tt, ip))
+        csv_text = csv_text_or_rows
+    elif isinstance(csv_text_or_rows, list):
+        require(
+            len(csv_text_or_rows) == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS,
+            f"anchor rows must have {EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS} entries, got {len(csv_text_or_rows)}",
+        )
+        for idx, item in enumerate(csv_text_or_rows):
+            if isinstance(item, (tuple, list)) and len(item) == 4:
+                eo, tp, tt, ip = item[0], item[1], item[2], item[3]
+            elif isinstance(item, dict):
+                eo = item.get("eligible_ordinal", item.get("row_ordinal"))
+                tp = item.get("target_position")
+                tt = item.get("target_token")
+                ip = 1 if item.get("is_psucc") is True else item.get("is_psucc")
+            else:
+                raise VerificationError(f"anchor row {idx} invalid type: {item!r}")
+            require(
+                all(is_u64(v) for v in (eo, tp, tt, ip)),
+                f"anchor row {idx} fields must be non-negative integers: {(eo, tp, tt, ip)!r}",
+            )
+            rows.append((int(eo), int(tp), int(tt), int(ip)))
+        csv_text = "".join(f"{r[0]},{r[1]},{r[2]},{r[3]}\n" for r in rows)
+    else:
+        raise VerificationError(f"unsupported anchor input type: {type(csv_text_or_rows)!r}")
+
+    prev_eo = -1
+    prev_tp = -1
+    for idx, (eo, tp, tt, ip) in enumerate(rows):
+        require(
+            eo >= EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX,
+            f"anchor row {idx} eligible_ordinal {eo} overlaps training prefix (< {EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX})",
+        )
+        require(
+            eo < 2425925 and 0 < tp < 7512797 and 0 < tt < 4096 and ip == 1,
+            f"anchor row {idx} out of TRAIN bounds or is_psucc != 1: {(eo, tp, tt, ip)}",
+        )
+        require(
+            eo > prev_eo and tp > prev_tp,
+            f"anchor row {idx} violates strict ascending eligible_ordinal/target_position order: {(eo, tp)} after {(prev_eo, prev_tp)}",
+        )
+        prev_eo = eo
+        prev_tp = tp
+
+    csv_sha = hashlib.sha256(csv_text.encode("utf-8")).hexdigest()
+    if require_exact_pinned_sha:
+        require(
+            csv_sha == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+            f"anchor CSV SHA-256 mismatch: {csv_sha} != {EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256}",
+        )
+        require(
+            rows[0] == EXPECTED_TRAIN_PSUCC_TAIL_FIRST_ROW
+            and rows[-1] == EXPECTED_TRAIN_PSUCC_TAIL_LAST_ROW,
+            f"anchor first/last row mismatch: first={rows[0]}, last={rows[-1]}",
+        )
+
+    uort_recomputed = False
+    if train_tokens_path is not None or train_mask_path is not None:
+        require(
+            train_tokens_path is not None and train_mask_path is not None,
+            "train_tokens_path and train_mask_path must be supplied together",
+        )
+        rec = recompute_train_psucc_tail_anchor_from_uort(train_tokens_path, train_mask_path)
+        require(
+            rec["csv_sha256"] == csv_sha and rec["rows"] == rows,
+            "anchor CSV rows/SHA-256 disagree with UORT binary recomputation",
+        )
+        uort_recomputed = True
+
+    return {
+        "status": "PASS",
+        "anchor_rows": len(rows),
+        "first_row": rows[0],
+        "last_row": rows[-1],
+        "training_prefix_overlap_rows": 0,
+        "dev_or_heldout_or_fresh_rows_in_anchor": 0,
+        "csv_sha256": csv_sha,
+        "uort_recomputed": uort_recomputed,
+    }
+
+
+def verify_admission_preserving_sheet_and_anchor(
+    repo_root: Path,
+    sheet_path: Path | None = None,
+    train_tokens_path: Path | None = None,
+    train_mask_path: Path | None = None,
+) -> dict[str, Any]:
+    """Verify `docs/harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md` and the TRAIN tail P_succ anchor."""
+    target_sheet = sheet_path or (repo_root / EXPECTED_ADMISSION_PRESERVING_SHEET_REL_PATH)
+    raw = read_bytes_checked(target_sheet, "admission-preserving sheet")
+    sheet_sha = hashlib.sha256(raw).hexdigest()
+    sheet_bytes = len(raw)
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise VerificationError(f"invalid UTF-8 in {target_sheet}: {exc}") from exc
+    sheet_lines = text.count("\n")
+    lines = text.splitlines()
+
+    top_verdict: str | None = None
+    bottom_verdict: str | None = None
+    for line in lines[:12]:
+        if line.startswith("- **Status:**"):
+            if "TEST FITNESS: PENDING" in line:
+                top_verdict = "PENDING"
+            elif "TEST FITNESS: FIT" in line:
+                top_verdict = "FIT"
+            break
+    for line in reversed(lines):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("TEST FITNESS: PENDING"):
+            bottom_verdict = "PENDING"
+        elif stripped.startswith("TEST FITNESS: FIT"):
+            bottom_verdict = "FIT"
+        break
+
+    require(
+        top_verdict in ("PENDING", "FIT") and top_verdict == bottom_verdict,
+        f"admission-preserving sheet top/bottom TEST FITNESS mismatch: top={top_verdict!r}, bottom={bottom_verdict!r}",
+    )
+    if top_verdict == "PENDING":
+        require(
+            sheet_sha == EXPECTED_ADMISSION_PRESERVING_DRAFT_SHEET_SHA256
+            and sheet_bytes == EXPECTED_ADMISSION_PRESERVING_DRAFT_SHEET_BYTES
+            and sheet_lines == EXPECTED_ADMISSION_PRESERVING_DRAFT_SHEET_LINES,
+            f"admission-preserving DRAFT sheet SHA/bytes/lines mismatch: {sheet_sha} ({sheet_bytes} B, {sheet_lines} lines)",
+        )
+    else:
+        require(
+            sheet_sha == EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_SHA256
+            and sheet_bytes == EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_BYTES
+            and sheet_lines == EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_LINES,
+            f"admission-preserving FIT sheet SHA/bytes/lines mismatch: {sheet_sha} ({sheet_bytes} B, {sheet_lines} lines)",
+        )
+
+    line_set = {line.strip() for line in lines}
+    for heading in EXPECTED_ADMISSION_PRESERVING_D22_HEADINGS:
+        require(
+            heading in line_set,
+            f"admission-preserving sheet missing required D22 heading: {heading!r}",
+        )
+
+    for required_token in (
+        "docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md",
+        EXPECTED_A8_SHEET_SHA256,
+        EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+        "1,049,856",
+        "1,049,857…1,064,112",
+        "3,847",
+        "margin = 24 rows",
+        "anchor baseline must be >= 500",
+        "RULE_EFFECTIVELY_NOOP",
+        "rejected_intervals / audited_intervals > 0.50",
+        "3 consecutive full-interval rejections",
+        "258 per arm including baseline",
+        "516 evaluations",
+        "R = added_gate_cost / ungated_two_arm_dose_cost",
+        "R <= 0.15",
+        "R > 0.15",
+    ):
+        require(
+            required_token in text,
+            f"admission-preserving sheet missing required binding token: {required_token!r}",
+        )
+
+    tok_p = train_tokens_path or (
+        DEFAULT_LOCAL_MW_BALP_TRAIN_TOKENS_PATH
+        if DEFAULT_LOCAL_MW_BALP_TRAIN_TOKENS_PATH.is_file()
+        else None
+    )
+    msk_p = train_mask_path or (
+        DEFAULT_LOCAL_MW_BALP_TRAIN_MASK_PATH
+        if DEFAULT_LOCAL_MW_BALP_TRAIN_MASK_PATH.is_file()
+        else None
+    )
+    anchor_verification: dict[str, Any] | None = None
+    if tok_p is not None and msk_p is not None:
+        rec = recompute_train_psucc_tail_anchor_from_uort(tok_p, msk_p)
+        anchor_verification = verify_train_psucc_tail_anchor_csv(
+            rec["csv_text"],
+            train_tokens_path=tok_p,
+            train_mask_path=msk_p,
+            require_exact_pinned_sha=True,
+        )
+
+    return {
+        "status": "PASS",
+        "sheet_path": str(target_sheet),
+        "sheet_sha256": sheet_sha,
+        "sheet_bytes": sheet_bytes,
+        "sheet_lines": sheet_lines,
+        "test_fitness": top_verdict,
+        "d22_headings_verified": list(EXPECTED_ADMISSION_PRESERVING_D22_HEADINGS),
+        "parent_sheet_sha256": EXPECTED_A8_SHEET_SHA256,
+        "anchor_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+        "anchor_rows": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS,
+        "anchor_start_eligible_index": EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX,
+        "anchor_first_row": list(EXPECTED_TRAIN_PSUCC_TAIL_FIRST_ROW),
+        "anchor_last_row": list(EXPECTED_TRAIN_PSUCC_TAIL_LAST_ROW),
+        "anchor_uort_verification": anchor_verification,
+    }
+
+
+def verify_admission_preserving_guard_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    """Consumer-verify an admission-preserving active interval rejection & no-op counter-metric bundle."""
+    faults: list[str] = []
+    if not isinstance(bundle, dict):
+        return {
+            "status": "FAIL",
+            "verdict": "INSTRUMENT_UNREACHABLE_D31",
+            "mechanism_negative": False,
+            "keep": False,
+            "faults": ["bundle_not_a_dict"],
+        }
+
+    reg = bundle.get("registration")
+    if not isinstance(reg, dict):
+        faults.append("missing_registration_section")
+        reg = {}
+
+    training_started = bool(bundle.get("training_started", True))
+
+    # 1. §7 Registration Checklist & D40/D31 Preconditions
+    if reg.get("sheet_sha256") not in (
+        EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_SHA256,
+        EXPECTED_ADMISSION_PRESERVING_DRAFT_SHEET_SHA256,
+    ):
+        faults.append("invalid_or_missing_sheet_sha256")
+    if training_started and (
+        reg.get("sheet_verdict") != "FIT"
+        or reg.get("sheet_sha256") != EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_SHA256
+    ):
+        faults.append("sheet_verdict_not_fit_for_execution")
+    if reg.get("parent_sheet_sha256") != EXPECTED_A8_SHEET_SHA256:
+        faults.append("parent_sheet_sha256_mismatch")
+    if reg.get("a8_table_sha256") != EXPECTED_A8_TABLE_FILE_SHA256:
+        faults.append("a8_table_sha256_mismatch")
+    if reg.get("train_tokens_sha256") != EXPECTED_TRAIN_TOKENS_SHA256:
+        faults.append("train_tokens_sha256_mismatch")
+    if reg.get("train_mask_sha256") != EXPECTED_TRAIN_MASK_SHA256:
+        faults.append("train_mask_sha256_mismatch")
+    if reg.get("anchor_csv_sha256") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256:
+        faults.append("anchor_csv_sha256_mismatch")
+    if reg.get("anchor_rows") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS:
+        faults.append("anchor_rows_count_mismatch")
+    first_eo = reg.get("anchor_first_eligible_ordinal")
+    last_eo = reg.get("anchor_last_eligible_ordinal")
+    if (
+        not is_u64(first_eo)
+        or first_eo < EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX
+        or first_eo != EXPECTED_TRAIN_PSUCC_TAIL_FIRST_ROW[0]
+    ):
+        faults.append("anchor_first_eligible_ordinal_invalid_or_overlaps_training_prefix")
+    if not is_u64(last_eo) or last_eo != EXPECTED_TRAIN_PSUCC_TAIL_LAST_ROW[0]:
+        faults.append("anchor_last_eligible_ordinal_mismatch")
+    if reg.get("dev_or_heldout_or_fresh_rows_in_anchor") != 0:
+        faults.append("anchor_contains_dev_or_heldout_or_fresh_rows")
+    if reg.get("training_prefix_overlap_rows") != 0:
+        faults.append("anchor_overlaps_training_prefix")
+    if not is_hex64(reg.get("evaluator_source_sha256")):
+        faults.append("missing_or_invalid_evaluator_source_sha256")
+    if reg.get("evaluator_reads_dev_or_fresh") is not False:
+        faults.append("evaluator_must_never_read_dev_or_fresh")
+    if reg.get("evaluator_accepts_post_update_checkpoint") is not True:
+        faults.append("evaluator_must_accept_post_update_checkpoint")
+    if reg.get("evaluator_reconstructs_original_context") is not True:
+        faults.append("evaluator_must_reconstruct_original_context")
+    if not is_hex64(reg.get("controller_source_sha256")):
+        faults.append("missing_or_invalid_controller_source_sha256")
+    if not isinstance(reg.get("pm_dispatch_id"), str) or not reg["pm_dispatch_id"].strip():
+        faults.append("missing_pm_dispatch_id")
+    if (
+        not isinstance(reg.get("d40_release_record_id"), str)
+        or not reg["d40_release_record_id"].strip()
+        or str(reg.get("d40_owner", "")).lower() != "casey"
+        or reg.get("d40_uor_lab_env_unset") is not True
+    ):
+        faults.append("invalid_or_missing_casey_d40_release")
+
+    # 2. Qualification-stage 15% readiness predicate (§4)
+    qcost = bundle.get("qualification_cost")
+    computed_r: float | None = None
+    if not isinstance(qcost, dict):
+        faults.append("missing_qualification_cost_section")
+    else:
+        added_cost = qcost.get("added_gate_cost")
+        ungated_cost = qcost.get("ungated_two_arm_dose_cost")
+        if (
+            not isinstance(added_cost, (int, float))
+            or isinstance(added_cost, bool)
+            or added_cost < 0
+            or not isinstance(ungated_cost, (int, float))
+            or isinstance(ungated_cost, bool)
+            or ungated_cost <= 0
+        ):
+            faults.append("qualification_cost_values_invalid")
+        else:
+            computed_r = float(added_cost) / float(ungated_cost)
+            decl_r = qcost.get("cost_ratio_r")
+            if decl_r is not None and (
+                not isinstance(decl_r, (int, float))
+                or isinstance(decl_r, bool)
+                or abs(float(decl_r) - computed_r) > 1e-9
+            ):
+                faults.append("qualification_cost_ratio_r_mismatch")
+        if qcost.get("planned_evaluations_per_arm") != EXPECTED_ADMISSION_PRESERVING_EVALUATIONS_PER_ARM:
+            faults.append("planned_evaluations_per_arm_must_equal_258")
+        if qcost.get("planned_total_evaluations") != EXPECTED_ADMISSION_PRESERVING_TOTAL_EVALUATIONS_TWO_ARMS:
+            faults.append("planned_total_evaluations_must_equal_516")
+        if qcost.get("shared_setup_custody_close_excluded") is not True:
+            faults.append("shared_setup_custody_close_must_be_excluded")
+        if not qcost.get("hardware_and_rate_bound"):
+            faults.append("qualification_hardware_and_rate_not_bound")
+
+    if (
+        not faults
+        and computed_r is not None
+        and computed_r > EXPECTED_ADMISSION_PRESERVING_MAX_GATE_COST_RATIO
+    ):
+        if not training_started:
+            return {
+                "status": "DIAGNOSTIC_STOP",
+                "verdict": "STOP_BEFORE_TRAINING_REPLAN_GATE_COST_EXCEEDS_15PCT",
+                "mechanism_negative": False,
+                "keep": False,
+                "cost_ratio_r": computed_r,
+                "max_allowed_cost_ratio_r": EXPECTED_ADMISSION_PRESERVING_MAX_GATE_COST_RATIO,
+                "faults": [],
+            }
+        faults.append("gate_cost_exceeds_15pct_but_training_started")
+
+    # 3. Inherited cp0 pre-run gates & anchor baseline >= 500 on both arms
+    prerun = bundle.get("prerun_gates")
+    anchor_baselines: dict[str, int] = {}
+    if not isinstance(prerun, dict):
+        faults.append("missing_prerun_gates_section")
+    else:
+        for arm in ("relation", "frozen_zero"):
+            pg = prerun.get(arm)
+            if not isinstance(pg, dict):
+                faults.append(f"{arm}_missing_prerun_gates")
+                continue
+            if (
+                pg.get("b3_init") != EXPECTED_A8_CP0_PSUCC_ADMITTED
+                or pg.get("full_admitted") != EXPECTED_A8_CP0_FULL_ADMITTED
+                or pg.get("top1") != EXPECTED_A8_CP0_FULL_TOP1
+                or pg.get("bar_i") != 86
+                or pg.get("g_init_passed") is not True
+                or pg.get("g_occ_passed") is not True
+            ):
+                faults.append(f"{arm}_inherited_cp0_prerun_gate_mismatch")
+            ab = pg.get("anchor_baseline_admitted")
+            if not is_u64(ab) or ab > EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS:
+                faults.append(f"{arm}_anchor_baseline_invalid")
+            elif ab < EXPECTED_ADMISSION_PRESERVING_ANCHOR_MIN_BASELINE:
+                faults.append(f"{arm}_anchor_baseline_below_500")
+            else:
+                anchor_baselines[arm] = int(ab)
+        if (
+            "relation" in anchor_baselines
+            and "frozen_zero" in anchor_baselines
+            and anchor_baselines["relation"] != anchor_baselines["frozen_zero"]
+        ):
+            faults.append("cross_arm_cp0_anchor_baseline_mismatch")
+
+    # 4. Per-Arm Synchronous Barrier & Active Interval Rejection Audit Sequence
+    arms_doc = bundle.get("arms")
+    if not isinstance(arms_doc, dict):
+        faults.append("missing_arms_section")
+        arms_doc = {}
+
+    expected_audit_batches = [
+        k * EXPECTED_ADMISSION_PRESERVING_AUDIT_CADENCE_BATCHES for k in range(257)
+    ] + [CANONICAL_ATTENTION_BATCHES]
+    assert len(expected_audit_batches) == EXPECTED_ADMISSION_PRESERVING_EVALUATIONS_PER_ARM
+
+    arm_summaries: dict[str, Any] = {}
+    noop_stops: list[str] = []
+    q1_stops: list[str] = []
+
+    for arm, expected_lin_sha in (
+        ("relation", EXPECTED_A8_RELATION_LINEAGE_SHA256),
+        ("frozen_zero", EXPECTED_A8_FROZEN_ZERO_LINEAGE_SHA256),
+    ):
+        arm_data = arms_doc.get(arm)
+        if not isinstance(arm_data, dict):
+            faults.append(f"{arm}_missing_arm_bundle")
+            continue
+        audits = arm_data.get("audits")
+        if not isinstance(audits, list) or len(audits) == 0:
+            faults.append(f"{arm}_missing_or_empty_audits")
+            continue
+
+        baseline_adm = anchor_baselines.get(arm, EXPECTED_ADMISSION_PRESERVING_ANCHOR_MIN_BASELINE)
+        min_allowed_adm = baseline_adm - EXPECTED_ADMISSION_PRESERVING_MARGIN_ROWS
+
+        # Audit 0 (baseline at batch 0)
+        a0 = audits[0]
+        if not isinstance(a0, dict) or a0.get("audit_batch") != 0:
+            faults.append(f"{arm}_missing_baseline_audit_at_batch_0")
+            continue
+        if (
+            a0.get("synchronous_pause") is not True
+            or a0.get("concurrent_updates") != 0
+            or not is_hex64(a0.get("model_storage_sha256"))
+            or not is_hex64(a0.get("model_snapshot_sha256"))
+            or a0.get("model_epoch") != 0
+            or a0.get("accepted_updates") != 0
+            or not isinstance(a0.get("driver_cursor"), dict)
+            or a0["driver_cursor"].get("completed_batches") != 0
+            or a0.get("family_counters") != {"vector": 0, "route": 0, "combine": 0, "relation": 0}
+            or a0.get("lineage_sha256") != expected_lin_sha
+            or a0.get("anchor_csv_sha256") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+            or a0.get("anchor_admitted") != baseline_adm
+            or a0.get("breach") is not False
+        ):
+            faults.append(f"{arm}_baseline_audit_0_barrier_or_pin_mismatch")
+
+        last_pass_storage_sha = a0.get("model_storage_sha256", "")
+        last_pass_snapshot_sha = a0.get("model_snapshot_sha256", "")
+        last_pass_epoch = 0
+        last_pass_accepted = 0
+        last_pass_counters = {"vector": 0, "route": 0, "combine": 0, "relation": 0}
+
+        audited_intervals = 0
+        rejected_intervals = 0
+        consecutive_full_rejections = 0
+        max_consecutive_full_rejections = 0
+        arm_noop_batch: int | None = None
+        arm_noop_reason: str | None = None
+        arm_q1_stop = False
+
+        if len(audits) > EXPECTED_ADMISSION_PRESERVING_EVALUATIONS_PER_ARM:
+            faults.append(f"{arm}_too_many_audits_{len(audits)}")
+            continue
+
+        for idx in range(1, len(audits)):
+            ak = audits[idx]
+            exp_batch = expected_audit_batches[idx]
+            if not isinstance(ak, dict) or ak.get("audit_batch") != exp_batch:
+                faults.append(f"{arm}_audit_{idx}_batch_schedule_mismatch_expected_{exp_batch}")
+                break
+
+            # Synchronous barrier & pin checks
+            fc = ak.get("family_counters")
+            dc = ak.get("driver_cursor")
+            acc_u = ak.get("accepted_updates")
+            m_ep = ak.get("model_epoch")
+            if (
+                ak.get("synchronous_pause") is not True
+                or ak.get("concurrent_updates") != 0
+                or not is_hex64(ak.get("model_storage_sha256"))
+                or not is_hex64(ak.get("model_snapshot_sha256"))
+                or not is_u64(m_ep)
+                or not is_u64(acc_u)
+                or not isinstance(dc, dict)
+                or dc.get("completed_batches") != exp_batch
+                or not isinstance(fc, dict)
+                or set(fc.keys()) != {"vector", "route", "combine", "relation"}
+                or not all(is_u64(fc[k]) for k in ("vector", "route", "combine", "relation"))
+                or fc["route"] != 0
+                or sum(fc.values()) != acc_u
+                or ak.get("lineage_sha256") != expected_lin_sha
+                or ak.get("anchor_csv_sha256") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+            ):
+                faults.append(f"{arm}_audit_{exp_batch}_synchronous_barrier_or_pin_invalid")
+                break
+
+            if arm == "frozen_zero" and fc["relation"] != 0:
+                faults.append(f"frozen_zero_audit_{exp_batch}_accepted_relation_nonzero")
+                break
+
+            adm = ak.get("anchor_admitted")
+            if not is_u64(adm) or adm > EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS:
+                faults.append(f"{arm}_audit_{exp_batch}_anchor_admitted_invalid")
+                break
+
+            expected_breach = adm < min_allowed_adm
+            if ak.get("breach") != expected_breach:
+                faults.append(f"{arm}_audit_{exp_batch}_breach_flag_mismatch")
+                break
+
+            audited_intervals += 1
+
+            if not expected_breach:
+                if (
+                    ak.get("action") not in (None, "COMMIT", "PASS")
+                    or acc_u < last_pass_accepted
+                    or m_ep != acc_u
+                    or any(fc[k] < last_pass_counters[k] for k in ("vector", "route", "combine", "relation"))
+                ):
+                    faults.append(f"{arm}_audit_{exp_batch}_commit_state_monotonicity_violation")
+                    break
+                last_pass_storage_sha = ak["model_storage_sha256"]
+                last_pass_snapshot_sha = ak["model_snapshot_sha256"]
+                last_pass_epoch = m_ep
+                last_pass_accepted = acc_u
+                last_pass_counters = dict(fc)
+                consecutive_full_rejections = 0
+            else:
+                mode = ak.get("rejection_mode", "whole_interval")
+                rcount = ak.get("rejection_receipts_count")
+                if (
+                    ak.get("audit_status") != "AUDIT_BREACH"
+                    or ak.get("action") not in ("REJECT_INTERVAL", "REJECT_SELECTIVE")
+                    or ak.get("failed_checkpoint_preserved") is not True
+                    or ak.get("append_only_evidence_preserved") is not True
+                    or ak.get("schedule_cursor_advanced_past_interval") is not True
+                    or dc.get("completed_batches") != exp_batch
+                    or not is_u64(rcount)
+                    or rcount < 1
+                ):
+                    faults.append(f"{arm}_audit_{exp_batch}_breach_missing_preservation_cursor_or_receipt")
+                    break
+
+                if mode == "whole_interval":
+                    if (
+                        ak.get("restored_model_storage_sha256") != last_pass_storage_sha
+                        or ak.get("restored_model_snapshot_sha256", last_pass_snapshot_sha)
+                        != last_pass_snapshot_sha
+                        or ak.get("restored_model_epoch") != last_pass_epoch
+                        or ak.get("restored_accepted_updates") != last_pass_accepted
+                        or ak.get("restored_family_counters", last_pass_counters)
+                        != last_pass_counters
+                    ):
+                        faults.append(f"{arm}_audit_{exp_batch}_breach_failed_to_restore_last_passing_state")
+                        break
+                    rejected_intervals += 1
+                    consecutive_full_rejections += 1
+                    if consecutive_full_rejections > max_consecutive_full_rejections:
+                        max_consecutive_full_rejections = consecutive_full_rejections
+                elif mode == "selective":
+                    rest_ep = ak.get("restored_model_epoch")
+                    rest_acc = ak.get("restored_accepted_updates")
+                    rest_adm = ak.get("post_selective_restore_anchor_admitted")
+                    rest_fc = ak.get("restored_family_counters")
+                    if (
+                        ak.get("per_update_isolation_proved") is not True
+                        or not is_hex64(ak.get("restored_model_storage_sha256"))
+                        or not is_hex64(ak.get("restored_model_snapshot_sha256"))
+                        or not is_u64(rest_ep)
+                        or not is_u64(rest_acc)
+                        or rest_ep != rest_acc
+                        or not (last_pass_accepted <= rest_acc < acc_u)
+                        or not isinstance(rest_fc, dict)
+                        or sum(rest_fc.values()) != rest_acc
+                        or not is_u64(rest_adm)
+                        or rest_adm < min_allowed_adm
+                    ):
+                        faults.append(f"{arm}_audit_{exp_batch}_selective_rejection_proof_invalid")
+                        break
+                    last_pass_storage_sha = ak["restored_model_storage_sha256"]
+                    last_pass_snapshot_sha = ak["restored_model_snapshot_sha256"]
+                    last_pass_epoch = rest_ep
+                    last_pass_accepted = rest_acc
+                    last_pass_counters = dict(rest_fc)
+                    consecutive_full_rejections = 0
+                else:
+                    faults.append(f"{arm}_audit_{exp_batch}_unknown_rejection_mode_{mode!r}")
+                    break
+
+                if (
+                    arm_noop_batch is None
+                    and consecutive_full_rejections
+                    >= EXPECTED_ADMISSION_PRESERVING_MAX_CONSECUTIVE_FULL_REJECTIONS
+                ):
+                    arm_noop_batch = exp_batch
+                    arm_noop_reason = f"{arm}_three_consecutive_full_interval_rejections_at_batch_{exp_batch}"
+
+            # Check Q1 boundary (batch 4,096 = audit index 64)
+            if exp_batch == CANONICAL_Q1_BATCHES:
+                q1g = arm_data.get("q1_gate")
+                if not isinstance(q1g, dict):
+                    faults.append(f"{arm}_missing_q1_gate_at_batch_4096")
+                    break
+                q1_psucc = q1g.get("q1_dev_psucc_admitted")
+                comb_s = q1g.get("combine_sensitive")
+                rel_s = q1g.get("relation_sensitive")
+                if not (is_u64(q1_psucc) and is_u64(comb_s) and is_u64(rel_s)):
+                    faults.append(f"{arm}_q1_gate_counts_invalid")
+                    break
+                if arm == "frozen_zero" and q1g.get("accepted_relation", 0) != 0:
+                    faults.append("frozen_zero_q1_accepted_relation_nonzero")
+                    break
+                q1_dec = compute_q1_decision(
+                    EXPECTED_A8_CP0_PSUCC_ADMITTED, int(q1_psucc), int(comb_s), int(rel_s)
+                )
+                if q1_dec["diagnostic_stop"]:
+                    arm_q1_stop = True
+                if (
+                    arm_noop_batch is None
+                    and rejected_intervals * 2 > audited_intervals
+                ):
+                    arm_noop_batch = CANONICAL_Q1_BATCHES
+                    arm_noop_reason = (
+                        f"{arm}_q1_rejection_rate_exceeds_50pct_{rejected_intervals}_of_{audited_intervals}"
+                    )
+
+        if faults:
+            continue
+
+        last_batch = audits[-1]["audit_batch"]
+        if (
+            arm_noop_batch is None
+            and audited_intervals > 0
+            and rejected_intervals * 2 > audited_intervals
+        ):
+            arm_noop_batch = last_batch
+            arm_noop_reason = (
+                f"{arm}_rejection_rate_exceeds_50pct_{rejected_intervals}_of_{audited_intervals}"
+            )
+
+        # Verify schedule completion / mandatory final 20-batch tail audit at 16,404
+        if len(audits) != EXPECTED_ADMISSION_PRESERVING_EVALUATIONS_PER_ARM:
+            # Allowed to stop early ONLY if stopped at a valid diagnostic stop boundary
+            valid_early_stop = (
+                (arm_noop_batch is not None and last_batch == arm_noop_batch)
+                or (arm_q1_stop and last_batch == CANONICAL_Q1_BATCHES)
+            )
+            if not valid_early_stop:
+                if len(audits) == 257 and last_batch == 16384:
+                    faults.append(f"{arm}_missing_mandatory_final_16404_tail_audit")
+                else:
+                    faults.append(
+                        f"{arm}_incomplete_audit_schedule_{len(audits)}_of_{EXPECTED_ADMISSION_PRESERVING_EVALUATIONS_PER_ARM}"
+                    )
+                continue
+
+        if arm_q1_stop:
+            q1_stops.append(arm)
+        if arm_noop_batch is not None and arm_noop_reason is not None:
+            noop_stops.append(arm_noop_reason)
+
+        arm_summaries[arm] = {
+            "evaluations_count": len(audits),
+            "audited_intervals": audited_intervals,
+            "rejected_intervals": rejected_intervals,
+            "rejection_rate": (
+                rejected_intervals / audited_intervals if audited_intervals > 0 else 0.0
+            ),
+            "max_consecutive_full_rejections": max_consecutive_full_rejections,
+            "final_completed_batches": last_batch,
+            "final_accepted_updates": last_pass_accepted,
+            "final_model_epoch": last_pass_epoch,
+            "final_model_storage_sha256": last_pass_storage_sha,
+            "final_family_counters": last_pass_counters,
+            "q1_diagnostic_stop": arm_q1_stop,
+            "noop_triggered_at_batch": arm_noop_batch,
+            "noop_reason": arm_noop_reason,
+        }
+
+    if faults:
+        return {
+            "status": "FAIL",
+            "verdict": "INSTRUMENT_UNREACHABLE_D31",
+            "mechanism_negative": False,
+            "keep": False,
+            "cost_ratio_r": computed_r,
+            "faults": faults,
+        }
+
+    if noop_stops:
+        return {
+            "status": "DIAGNOSTIC_STOP",
+            "verdict": "RULE_EFFECTIVELY_NOOP",
+            "mechanism_negative": False,
+            "keep": False,
+            "cost_ratio_r": computed_r,
+            "noop_reasons": noop_stops,
+            "arms": arm_summaries,
+            "faults": [],
+        }
+
+    if q1_stops:
+        return {
+            "status": "DIAGNOSTIC_STOP",
+            "verdict": "Q1_STOP_FOR_DIAGNOSIS",
+            "mechanism_negative": False,
+            "keep": False,
+            "cost_ratio_r": computed_r,
+            "q1_stopped_arms": q1_stops,
+            "arms": arm_summaries,
+            "faults": [],
+        }
+
+    return {
+        "status": "PASS",
+        "verdict": "ADMISSION_PRESERVING_DIAGNOSTIC_PASS_DEFER_TO_PARENT_DECISION",
+        "mechanism_negative": False,
+        "keep": False,
+        "cost_ratio_r": computed_r,
+        "arms": arm_summaries,
+        "faults": [],
+    }
+
+
+def build_synthetic_admission_preserving_bundle() -> dict[str, Any]:
+    """Construct a valid 2-arm (258 evaluations/arm) active interval rejection bundle for self-tests 50..56."""
+    audit_batches = [
+        k * EXPECTED_ADMISSION_PRESERVING_AUDIT_CADENCE_BATCHES for k in range(257)
+    ] + [CANONICAL_ATTENTION_BATCHES]
+    baseline_adm = 1120
+
+    def make_arm(is_fz: bool, breach_indices: set[int]) -> dict[str, Any]:
+        lin_sha = (
+            EXPECTED_A8_FROZEN_ZERO_LINEAGE_SHA256
+            if is_fz
+            else EXPECTED_A8_RELATION_LINEAGE_SHA256
+        )
+        prefix_ch = "b" if is_fz else "a"
+        storage_sha = (prefix_ch + "0") * 32
+        snap_sha = (prefix_ch + "1") * 32
+        epoch = 0
+        acc = 0
+        counters = {"vector": 0, "route": 0, "combine": 0, "relation": 0}
+
+        audits: list[dict[str, Any]] = [
+            {
+                "audit_batch": 0,
+                "synchronous_pause": True,
+                "concurrent_updates": 0,
+                "model_storage_sha256": storage_sha,
+                "model_snapshot_sha256": snap_sha,
+                "model_epoch": 0,
+                "accepted_updates": 0,
+                "driver_cursor": {
+                    "completed_batches": 0,
+                    "accepted_updates": 0,
+                    "corpus_pass": 0,
+                    "next_target": 0,
+                    "next_coordinate": 0,
+                },
+                "family_counters": dict(counters),
+                "lineage_sha256": lin_sha,
+                "anchor_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+                "anchor_admitted": baseline_adm,
+                "breach": False,
+                "action": "PASS",
+            }
+        ]
+
+        for idx in range(1, len(audit_batches)):
+            b = audit_batches[idx]
+            cand_storage = hashlib.sha256(f"{prefix_ch}:storage:{idx}".encode("utf-8")).hexdigest()
+            cand_snap = hashlib.sha256(f"{prefix_ch}:snap:{idx}".encode("utf-8")).hexdigest()
+            cand_counters = dict(counters)
+            cand_counters["vector"] += 1
+            if idx % 4 == 0:
+                cand_counters["combine"] += 1
+            if not is_fz and idx % 8 == 0:
+                cand_counters["relation"] += 1
+            cand_acc = sum(cand_counters.values())
+            cand_epoch = cand_acc
+
+            if idx in breach_indices:
+                audits.append(
+                    {
+                        "audit_batch": b,
+                        "synchronous_pause": True,
+                        "concurrent_updates": 0,
+                        "model_storage_sha256": cand_storage,
+                        "model_snapshot_sha256": cand_snap,
+                        "model_epoch": cand_epoch,
+                        "accepted_updates": cand_acc,
+                        "driver_cursor": {
+                            "completed_batches": b,
+                            "accepted_updates": cand_acc,
+                            "corpus_pass": 0,
+                            "next_target": b * 64,
+                            "next_coordinate": b % 45,
+                        },
+                        "family_counters": cand_counters,
+                        "lineage_sha256": lin_sha,
+                        "anchor_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+                        "anchor_admitted": baseline_adm - 25,  # breach (< baseline - 24)
+                        "breach": True,
+                        "audit_status": "AUDIT_BREACH",
+                        "action": "REJECT_INTERVAL",
+                        "rejection_mode": "whole_interval",
+                        "failed_checkpoint_preserved": True,
+                        "append_only_evidence_preserved": True,
+                        "schedule_cursor_advanced_past_interval": True,
+                        "rejection_receipts_count": cand_acc - acc,
+                        "restored_model_storage_sha256": storage_sha,
+                        "restored_model_snapshot_sha256": snap_sha,
+                        "restored_model_epoch": epoch,
+                        "restored_accepted_updates": acc,
+                        "restored_family_counters": dict(counters),
+                    }
+                )
+            else:
+                storage_sha = cand_storage
+                snap_sha = cand_snap
+                epoch = cand_epoch
+                acc = cand_acc
+                counters = cand_counters
+                audits.append(
+                    {
+                        "audit_batch": b,
+                        "synchronous_pause": True,
+                        "concurrent_updates": 0,
+                        "model_storage_sha256": storage_sha,
+                        "model_snapshot_sha256": snap_sha,
+                        "model_epoch": epoch,
+                        "accepted_updates": acc,
+                        "driver_cursor": {
+                            "completed_batches": b,
+                            "accepted_updates": acc,
+                            "corpus_pass": 0,
+                            "next_target": b * 64,
+                            "next_coordinate": b % 45,
+                        },
+                        "family_counters": dict(counters),
+                        "lineage_sha256": lin_sha,
+                        "anchor_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+                        "anchor_admitted": baseline_adm - 10,  # within 24-row margin
+                        "breach": False,
+                        "action": "COMMIT",
+                    }
+                )
+
+        return {
+            "q1_gate": {
+                "q1_dev_psucc_admitted": 920 if not is_fz else 910,
+                "combine_sensitive": 120,
+                "relation_sensitive": 85 if not is_fz else 0,
+                "accepted_relation": 8 if not is_fz else 0,
+            },
+            "audits": audits,
+        }
+
+    return {
+        "schema": "uor-r4.admission-preserving-guard-bundle/1",
+        "training_started": True,
+        "registration": {
+            "sheet_path": EXPECTED_ADMISSION_PRESERVING_SHEET_REL_PATH,
+            "sheet_sha256": EXPECTED_ADMISSION_PRESERVING_FIT_SHEET_SHA256,
+            "sheet_verdict": "FIT",
+            "parent_sheet_sha256": EXPECTED_A8_SHEET_SHA256,
+            "a8_table_sha256": EXPECTED_A8_TABLE_FILE_SHA256,
+            "train_tokens_sha256": EXPECTED_TRAIN_TOKENS_SHA256,
+            "train_mask_sha256": EXPECTED_TRAIN_MASK_SHA256,
+            "anchor_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+            "anchor_rows": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS,
+            "anchor_first_eligible_ordinal": EXPECTED_TRAIN_PSUCC_TAIL_FIRST_ROW[0],
+            "anchor_last_eligible_ordinal": EXPECTED_TRAIN_PSUCC_TAIL_LAST_ROW[0],
+            "dev_or_heldout_or_fresh_rows_in_anchor": 0,
+            "training_prefix_overlap_rows": 0,
+            "evaluator_source_sha256": "e" * 64,
+            "evaluator_reads_dev_or_fresh": False,
+            "evaluator_accepts_post_update_checkpoint": True,
+            "evaluator_reconstructs_original_context": True,
+            "controller_source_sha256": "c" * 64,
+            "pm_dispatch_id": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6263492322",
+            "d40_release_record_id": "d40-casey-admission-preserving-20261019",
+            "d40_owner": "Casey",
+            "d40_uor_lab_env_unset": True,
+        },
+        "qualification_cost": {
+            "added_gate_cost": 1.14,
+            "ungated_two_arm_dose_cost": 11.40,
+            "cost_ratio_r": 0.10,
+            "planned_evaluations_per_arm": EXPECTED_ADMISSION_PRESERVING_EVALUATIONS_PER_ARM,
+            "planned_total_evaluations": EXPECTED_ADMISSION_PRESERVING_TOTAL_EVALUATIONS_TWO_ARMS,
+            "shared_setup_custody_close_excluded": True,
+            "hardware_and_rate_bound": True,
+        },
+        "prerun_gates": {
+            "relation": {
+                "b3_init": EXPECTED_A8_CP0_PSUCC_ADMITTED,
+                "full_admitted": EXPECTED_A8_CP0_FULL_ADMITTED,
+                "top1": EXPECTED_A8_CP0_FULL_TOP1,
+                "bar_i": 86,
+                "g_init_passed": True,
+                "g_occ_passed": True,
+                "anchor_baseline_admitted": baseline_adm,
+            },
+            "frozen_zero": {
+                "b3_init": EXPECTED_A8_CP0_PSUCC_ADMITTED,
+                "full_admitted": EXPECTED_A8_CP0_FULL_ADMITTED,
+                "top1": EXPECTED_A8_CP0_FULL_TOP1,
+                "bar_i": 86,
+                "g_init_passed": True,
+                "g_occ_passed": True,
+                "anchor_baseline_admitted": baseline_adm,
+            },
+        },
+        "arms": {
+            "relation": make_arm(False, {10, 42}),
+            "frozen_zero": make_arm(True, {15, 88}),
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Host-only consumer verifier for A8 address-cells learning dose, pre-run gates, and 65+258 checkpoint census/attribution."
+        description="Host-only consumer verifier for A8 address-cells learning dose, pre-run gates, 65+258 checkpoint census/attribution, and admission-preserving active interval rejection."
     )
     parser.add_argument(
         "--repo-root",
@@ -6081,6 +7500,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional JSON bundle of Q1/full-dose + D34 paired-dev receipts to grade.",
     )
     parser.add_argument(
+        "--verify-admission-preserving",
+        type=Path,
+        default=None,
+        help="Optional JSON bundle of admission-preserving active interval rejection receipts to grade.",
+    )
+    parser.add_argument(
         "--allow-fault-exit-zero",
         action="store_true",
         help="Return exit code 0 even when --prerun-bundle fails or --dose-bundle grades INSTRUMENT_FAULT.",
@@ -6088,7 +7513,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Run the 48-case positive and negative self-test suite.",
+        help="Run the 56-case positive and negative self-test suite.",
     )
     args = parser.parse_args(argv)
 
@@ -6150,6 +7575,18 @@ def main(argv: list[str] | None = None) -> int:
         if dose_res.get("verdict") == "INSTRUMENT_FAULT" and not args.allow_fault_exit_zero:
             exit_code = 1
 
+    if args.verify_admission_preserving is not None:
+        ap_doc = read_json_checked(
+            args.verify_admission_preserving, "admission-preserving bundle"
+        )
+        ap_res = verify_admission_preserving_guard_bundle(ap_doc)
+        out["admission_preserving_verification"] = ap_res
+        if (
+            ap_res.get("verdict") == "INSTRUMENT_UNREACHABLE_D31"
+            and not args.allow_fault_exit_zero
+        ):
+            exit_code = 1
+
     print(json.dumps(out, indent=2))
     return exit_code
 
@@ -6173,4 +7610,3 @@ if __name__ == "__main__":
             file=sys.stderr,
         )
         sys.exit(1)
-
