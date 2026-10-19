@@ -20,6 +20,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/address-cells-preflight-receipt-20261019": {
+    "branch": "claude/address-cells-preflight-receipt-20261019",
+    "claimed_at": "2026-10-18T23:22:03-04:00",
+    "head": "232b67a6a",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/address-cells-registration-20261019": {
     "branch": "claude/address-cells-registration-20261019",
     "claimed_at": "2026-10-18T22:35:02-04:00",

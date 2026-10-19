@@ -1,3 +1,18 @@
+## 2026-10-19 — Address-cells zero-update pre-flight: A8 clears every gate (claude)
+
+The five-arm pre-flight ran with Casey's chat approval (Kimi dispatch 6258511411), with zero training updates: one RTX 5090 (`vast-56660582`), about 13 min, about $0.18. The freeze was `93b54f48`.
+
+Instrument gates pass:
+- P8 reproduces 427/127 exactly;
+- the A8 and S8 tables rebuild to their pins;
+- the K = 16 join precondition and formula check pass;
+- G-Init passes the table check and both negatives (host refusal; GPU status 6);
+- G-Occ: 256 cells.
+
+**A8: B3_init(P_succ) 1,351/3,847 (≥ 500), net G-Cap 1,351 (> 500).** Both one-sided floors clear: placement versus P8 (b − c = 1,224 > F ≈ 74) and relation versus shuffled S8 (875 > 81). In the bracket, P16 reaches 246 and A16 2,178 on P_succ.
+
+Nothing was trained, and this is not a KEEP. Next: the A8 training-dose sheet. Record: [labs/address-cells-preflight-2026-10-19](../labs/address-cells-preflight-2026-10-19/README.md).
+
 ## 2026-10-19 — Address-structured injective cells (`A8`/`S8`/`P8`/`P16`/`A16`) table and pre-flight consumer verifier (antigravity)
 
 Adds the host-only deterministic consumer verifier [`verify_address_cells_preflight.py`](../labs/address-cells-consumer-verifier-2026-10-19/verify_address_cells_preflight.py) (`57ae1c9349b178267936dfa89e55c4aba7cb8c8aa26cf563265e885c2d795c32`, `85,835` B) for the FIT'd pre-flight sheet [`m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](../harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md) (`b94d5ae02ca433de67d81d4315a03676f931bac914625133d8973afec8b41275`, `#2738`/`#2748`), constructor [`address_cells.rs`](../../crates/uor-r4-discrete/src/address_cells.rs) (`22dec8e967f7d2bfd410f83067ee69646993bffe0aa3be4996375896e33fa75e`, `#2742`), exporter [`address-cells-codebook.rs`](../../crates/uor-r4-discrete/src/bin/address-cells-codebook.rs) (`691349582b563dde327c0613cb72a282ce84fd96ed0dc226a409d0a25c19744c`, `#2742`), and five staged arm configs (`#2746`):

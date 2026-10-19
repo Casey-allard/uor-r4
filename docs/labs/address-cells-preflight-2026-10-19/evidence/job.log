@@ -1,0 +1,110 @@
+# uor-pod job by=claude/claude-ascpre-20261019 pod=vast-56660582 gpu=0 queued 2026-10-19T03:12:48Z
+# cmd: bash /root/asc-battery.sh
+# start 2026-10-19T03:12:48Z (holding /root/gpu0.lock)
+93b54f48c4e1983e278140f77a3377041ddd65e4
+NVIDIA GeForce RTX 5090, 595.84, 0 MiB
+## 2026-10-19T03:12:48Z build all uor-r4-discrete CUDA binaries
+build_rc=0
+build_identity_rc=0
+## 2026-10-19T03:14:24Z inputs: pinned data and the PrimeZeta table
+0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b  /workspace/uor-r4/local/driver/data/ft/dev/tokens.u16
+a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078  /workspace/uor-r4/local/driver/data/ft/dev/response_mask.u8
+3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8  /workspace/uor-r4/local/driver/data/mw-balp/train/tokens.u16
+b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3  /workspace/uor-r4/local/driver/data/mw-balp/train/response_mask.u8
+d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89  /workspace/uor-r4/local/driver/data/tokenizer.json
+83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b  /workspace/uor-r4/local/driver/data/injective/prime-zeta-v4096-b4-c192-k8.json
+## 2026-10-19T03:14:24Z rebuild the A8 and S8 tables from TRAIN on the pod (address-cells-codebook)
+a8_rc=0
+s8_rc=0
+{"counts_sha256":"755a5a81ddbf0f9d81b4d0bd88e54435b96f5485f87ad92a22d235651fe6ca44","distinct_vectors":4096,"file_sha256":"6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1","mode":"address_structured_v1","model_execution":false,"occupied_cells":256,"schema":"uor-r4.codebook-table/1","table_sha256":"4122cbab44bd88658743984fc1ab79059bf032c3e2fe526ffcf4ea5f95d9cd74","train_tokens_sha256":"3082a50cc92a2a37b653002e546a6fc5edd50b5c2966151b832f83e289b07945"}
+{"counts_sha256":"755a5a81ddbf0f9d81b4d0bd88e54435b96f5485f87ad92a22d235651fe6ca44","distinct_vectors":4096,"file_sha256":"a185bdca07077fe7157e947ff1fa80919e6f99165a4dd5a04061a97873c92718","mode":"address_shuffled_v1_seed_20261019","model_execution":false,"occupied_cells":256,"schema":"uor-r4.codebook-table/1","table_sha256":"d2fb8680a16e8017f6f0e6518df6810f6206023b0d14388dc076d4cfde2ebc5b","train_tokens_sha256":"3082a50cc92a2a37b653002e546a6fc5edd50b5c2966151b832f83e289b07945"}
+a8_file=6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1 s8_file=a185bdca07077fe7157e947ff1fa80919e6f99165a4dd5a04061a97873c92718
+TABLE_REBUILD: PASS
+6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1  /workspace/uor-r4/local/driver/data/address-cells/address-structured-v1.json
+a185bdca07077fe7157e947ff1fa80919e6f99165a4dd5a04061a97873c92718  /workspace/uor-r4/local/driver/data/address-cells/address-shuffled-v1-seed-20261019.json
+## 2026-10-19T03:14:25Z p8: attention-build-identity
+p8 identity_rc=0
+## 2026-10-19T03:14:26Z p8: init-corpus (checkpoint 0)
+p8 init_rc=0
+## 2026-10-19T03:14:28Z p8: eval-corpus (zero-update DEV)
+p8 eval_rc=0
+{"address_eligible_rows":14287,"address_hinge_distribution":{"histogram":[0,0,0,0,132,0,0,0,0,0,0,0,218,0,0,0,1582,0,0,0,3065,0,0,0,9290,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"max":24,"mean":{"denominator":14287,"numerator":312716},"min":4,"p25":20,"p50":24,"p75":24,"p90":24,"p99":24,"zero_rows":0},"address_hinge_sum":312716,"address_loss_share_ta":{"denominator":16320032,"numerator":10006912},"address_rival_count_sum":113869,"address_unviolated_eligible_rows":0,"admitted_cell_count_sum":114296,"admitted_strict_win_rows":19,"admitted_t
+## 2026-10-19T03:14:57Z a8: attention-build-identity
+a8 identity_rc=0
+## 2026-10-19T03:14:57Z a8: init-corpus (checkpoint 0)
+a8 init_rc=0
+## 2026-10-19T03:14:59Z a8: eval-corpus (zero-update DEV)
+a8 eval_rc=0
+{"address_eligible_rows":14287,"address_hinge_distribution":{"histogram":[0,0,0,0,1567,0,0,0,0,0,0,0,2308,0,0,0,3947,0,0,0,1868,0,0,0,4597,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"max":24,"mean":{"denominator":14287,"numerator":244804},"min":4,"p25":12,"p50":16,"p75":24,"p90":24,"p99":24,"zero_rows":0},"address_hinge_sum":244804,"address_loss_share_ta":{"denominator":13979232,"numerator":7833728},"address_rival_count_sum":110052,"address_unviolated_eligible_rows":0,"admitted_cell_count_sum":114296,"admitted_strict_win_rows":133,"admitted
+## 2026-10-19T03:15:28Z s8: attention-build-identity
+s8 identity_rc=0
+## 2026-10-19T03:15:28Z s8: init-corpus (checkpoint 0)
+s8 init_rc=0
+## 2026-10-19T03:15:30Z s8: eval-corpus (zero-update DEV)
+s8 eval_rc=0
+{"address_eligible_rows":14287,"address_hinge_distribution":{"histogram":[0,0,0,0,1283,0,0,0,0,0,0,0,333,0,0,0,2360,0,0,0,2786,0,0,0,7525,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"max":24,"mean":{"denominator":14287,"numerator":283208},"min":4,"p25":16,"p50":24,"p75":24,"p90":24,"p99":24,"zero_rows":0},"address_hinge_sum":283208,"address_loss_share_ta":{"denominator":15521280,"numerator":9062656},"address_rival_count_sum":112563,"address_unviolated_eligible_rows":0,"admitted_cell_count_sum":114296,"admitted_strict_win_rows":99,"admitted_t
+## 2026-10-19T03:16:00Z p16: attention-build-identity
+p16 identity_rc=2
+## 2026-10-19T03:16:00Z p16: init-corpus (checkpoint 0)
+p16 init_rc=0
+## 2026-10-19T03:16:02Z p16: eval-corpus (zero-update DEV)
+p16 eval_rc=0
+{"address_eligible_rows":14287,"address_hinge_distribution":{"histogram":[0,0,0,0,132,0,0,0,0,0,0,0,218,0,0,0,1582,0,0,0,3065,0,0,0,9290,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"max":24,"mean":{"denominator":14287,"numerator":312716},"min":4,"p25":20,"p50":24,"p75":24,"p90":24,"p99":24,"zero_rows":0},"address_hinge_sum":312716,"address_loss_share_ta":{"denominator":16322944,"numerator":10006912},"address_rival_count_sum":227720,"address_unviolated_eligible_rows":0,"admitted_cell_count_sum":228592,"admitted_strict_win_rows":19,"admitted_t
+## 2026-10-19T03:16:37Z a16: attention-build-identity
+a16 identity_rc=2
+## 2026-10-19T03:16:37Z a16: init-corpus (checkpoint 0)
+a16 init_rc=0
+## 2026-10-19T03:16:39Z a16: eval-corpus (zero-update DEV)
+a16 eval_rc=0
+{"address_eligible_rows":14287,"address_hinge_distribution":{"histogram":[0,0,0,0,1567,0,0,0,0,0,0,0,2308,0,0,0,3947,0,0,0,1868,0,0,0,4597,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"max":24,"mean":{"denominator":14287,"numerator":244804},"min":4,"p25":12,"p50":16,"p75":24,"p90":24,"p99":24,"zero_rows":0},"address_hinge_sum":244804,"address_loss_share_ta":{"denominator":13979232,"numerator":7833728},"address_rival_count_sum":222569,"address_unviolated_eligible_rows":0,"admitted_cell_count_sum":228592,"admitted_strict_win_rows":133,"admitted
+## 2026-10-19T03:17:14Z p8: attention-dev-b3
+p8 b3_rc=0
+{"full":427,"psucc":127,"psucc_rows":3847,"complement":300}
+## 2026-10-19T03:17:16Z p8: attention-panel
+p8 panel_rc=0
+## 2026-10-19T03:17:18Z p8: attention-export-token-cells
+p8 cells_rc=0
+## 2026-10-19T03:17:18Z p8: coverage-census --token-cells
+p8 census_rc=0
+{"occupied":256,"tie_mass":null,"ceiling":null}
+p8 cp0_table=3c49339ac63d906a18483ad4cd0154be4e458d5e4ebebded0612642a6370ed09 pinned_table=3c49339ac63d906a18483ad4cd0154be4e458d5e4ebebded0612642a6370ed09
+p8 GINIT_TABLE: PASS
+## 2026-10-19T03:17:19Z a8: attention-dev-b3
+a8 b3_rc=0
+{"full":4244,"psucc":1351,"psucc_rows":3847,"complement":2893}
+## 2026-10-19T03:17:21Z a8: attention-panel
+a8 panel_rc=0
+## 2026-10-19T03:17:23Z a8: attention-export-token-cells
+a8 cells_rc=0
+## 2026-10-19T03:17:24Z a8: coverage-census --token-cells
+a8 census_rc=0
+{"occupied":256,"tie_mass":null,"ceiling":null}
+a8 cp0_table=d8df5e6246649cb99fbf1cc77bc60e4fda37fd809421222b71839f7c53a3c9fc pinned_table=d8df5e6246649cb99fbf1cc77bc60e4fda37fd809421222b71839f7c53a3c9fc
+a8 GINIT_TABLE: PASS
+## 2026-10-19T03:17:24Z s8: attention-dev-b3
+s8 b3_rc=0
+{"full":1733,"psucc":476,"psucc_rows":3847,"complement":1257}
+## 2026-10-19T03:17:26Z s8: attention-panel
+s8 panel_rc=0
+## 2026-10-19T03:17:28Z s8: attention-export-token-cells
+s8 cells_rc=0
+## 2026-10-19T03:17:29Z s8: coverage-census --token-cells
+s8 census_rc=0
+{"occupied":256,"tie_mass":null,"ceiling":null}
+s8 cp0_table=31ec7e0e1d31c5b68a036c404d57a5db4322a7a0da500ea2b8c77c8118b3a399 pinned_table=31ec7e0e1d31c5b68a036c404d57a5db4322a7a0da500ea2b8c77c8118b3a399
+s8 GINIT_TABLE: PASS
+## 2026-10-19T03:17:29Z G-Init negative (a): an edited A8 table with stale hashes is refused on the host
+neg_a_rc=2
+NEG_A: PASS (refused)
+/workspace/uor-r4/runs/claude/address-cells-preflight-20261019/neg/a-run/report.json
+invalid discrete model: content hash differs: /workspace/uor-r4/runs/claude/address-cells-preflight-20261019/neg/a.json
+
+## 2026-10-19T03:17:29Z G-Init negative (b): a re-hashed, re-pinned non-root word is refused on the GPU (status 6)
+neg_b_rc=2
+NEG_B: PASS (GPU status 6)
+/workspace/uor-r4/runs/claude/address-cells-preflight-20261019/neg/b-run/report.json
+invalid discrete model: discrete CUDA snapshot validation refused with status 6
+
+## 2026-10-19T03:17:30Z done
+BATTERY_DONE
+# exit=0 end=2026-10-19T03:17:30Z
