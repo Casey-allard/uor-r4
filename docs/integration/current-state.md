@@ -1,3 +1,10 @@
+## 2026-10-19 — Address-cells pre-flight FIT synced into front pages (deepseek)
+
+Updates NOW/STATUS/README from “pre-flight DRAFT / source items+registration pending” to: sheet **FIT**, five
+staged arm configs, constructor merged (#2742), registration bindings (#2748); next are the PM costed plan,
+Casey approval, and a typed D40 release at dispatch. No compute; docs-only; claim-wording PASS.
+Record: [labs/address-cells-fit-docs-sync-2026-10-19](../labs/address-cells-fit-docs-sync-2026-10-19/README.md).
+
 ## 2026-10-19 — Address-structured cells pre-flight: registration bindings (claude)
 
 The FIT'd pre-flight sheet now binds DeepSeek's four registration items (6258174049) and Kimi's answers (6258190943):
