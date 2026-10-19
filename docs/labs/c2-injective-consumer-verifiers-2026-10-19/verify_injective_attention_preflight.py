@@ -71,6 +71,22 @@ EXPECTED_RELATION_LINEAGE_SHA256 = (
 EXPECTED_FROZEN_ZERO_LINEAGE_SHA256 = (
     "9ec2a6adcd9ae4b30bc22bb7012fca4e01ce178427a249576297b13b6eb8c65d"
 )
+EXPECTED_MODEL_SNAPSHOT_SHA256 = (
+    "54cb8217fe50cf154996fee5dd0e15ab6cb6784634732535bd7b22c1de59c341"
+)
+EXPECTED_RELATION_B3_FULL_REPORT_SHA256 = (
+    "9bc36546299ef21bf4074756a2d8043aa240b39a43756557a7c366124f299cf7"
+)
+EXPECTED_FROZEN_ZERO_B3_FULL_REPORT_SHA256 = (
+    "b4d450709ef5c058fa15bd6e9b749b5d5b8cc833e231a3d5e20085dc6efb0e4b"
+)
+EXPECTED_RELATION_EVAL_FILE_SHA256 = (
+    "8129cbb1074d4c1ef964f0e7923127610b01fc490e5968064cba96e00e794c48"
+)
+EXPECTED_FROZEN_ZERO_EVAL_FILE_SHA256 = (
+    "da2d5d13511f6203e878983c34c39202f0cc9f928b0fbd213ad4f7372b15d5d7"
+)
+EXPECTED_SOURCE_HEAD = "5c7276cfd8eac2fd8c820ec75395971162d6fe06"
 
 HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -453,9 +469,43 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         and cells.get("status") == "FROM_GPU_TOKEN_CELL_RECEIPT"
         and is_u64(cells.get("occupied_cells"))
         and cells["occupied_cells"] > 16
-        and cells.get("tokens_in_crowded_cells") == 4096,
-        f"G-Occ cells check failed (occupied_cells must exceed 16): {cells}",
+        and cells.get("tokens_in_crowded_cells") == 4096
+        and cells.get("crowded_cells_multiple_vectors") == 256
+        and cells.get("max_cell_occupancy") == 16
+        and cells.get("dev_rows_in_crowded_cells") == 14287
+        and cells.get("cell_collision_pairs") == 30720,
+        f"G-Occ cells check failed (occupied_cells must exceed 16 and crowding fields must match): {cells}",
     )
+    occ_hist = cells.get("cell_occupancy_histogram")
+    require(
+        isinstance(occ_hist, dict)
+        and occ_hist == {"16": 256}
+        and sum(occ_hist.values()) == cells["occupied_cells"]
+        and sum(int(k) * v for k, v in occ_hist.items()) == census["vocabulary"]
+        and sum(v * (int(k) * (int(k) - 1) // 2) for k, v in occ_hist.items())
+        == cells["cell_collision_pairs"],
+        f"G-Occ cell_occupancy_histogram invariant failed: {occ_hist}",
+    )
+    g_cap_obj = census.get("g_cap")
+    require(
+        isinstance(g_cap_obj, dict)
+        and g_cap_obj.get("alias_ceiling_rows") == raw_g_cap
+        and g_cap_obj.get("bar_rows") == 500
+        and g_cap_obj.get("verdict") == "ALIAS_CEILING_ABOVE_BAR",
+        f"census g_cap sub-object mismatch: {g_cap_obj}",
+    )
+
+    if "source_head" in bundle:
+        require(
+            bundle["source_head"] == EXPECTED_SOURCE_HEAD,
+            f"source-head.txt mismatch: {bundle['source_head']!r} != {EXPECTED_SOURCE_HEAD!r}",
+        )
+    if "cells_stdout" in bundle:
+        require(
+            isinstance(bundle["cells_stdout"], str)
+            and bundle["cells_stdout"].strip().endswith("/relation/cells/report.json"),
+            f"relation/cells.stdout unexpected content: {bundle['cells_stdout']!r}",
+        )
 
     # Zero-update DEV eval aggregates and B3 summaries
     rel_eval = bundle.get("relation_eval")
@@ -467,7 +517,16 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         "missing eval-aggregate or b3/summary objects",
     )
 
-    for label, ev, b3_doc, expected_cfg_file_sha, expected_cfg_sha, expected_lin_sha in (
+    for (
+        label,
+        ev,
+        b3_doc,
+        expected_cfg_file_sha,
+        expected_cfg_sha,
+        expected_lin_sha,
+        expected_eval_file_sha,
+        expected_full_report_sha,
+    ) in (
         (
             "relation",
             rel_eval,
@@ -475,6 +534,8 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             EXPECTED_RUNBOOK_PINS["injective-relation-seed1.json"],
             EXPECTED_RELATION_CONFIG_SHA256,
             EXPECTED_RELATION_LINEAGE_SHA256,
+            EXPECTED_RELATION_EVAL_FILE_SHA256,
+            EXPECTED_RELATION_B3_FULL_REPORT_SHA256,
         ),
         (
             "frozen_zero",
@@ -483,6 +544,8 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             EXPECTED_RUNBOOK_PINS["injective-frozen-zero-seed1.json"],
             EXPECTED_FROZEN_ZERO_CONFIG_SHA256,
             EXPECTED_FROZEN_ZERO_LINEAGE_SHA256,
+            EXPECTED_FROZEN_ZERO_EVAL_FILE_SHA256,
+            EXPECTED_FROZEN_ZERO_B3_FULL_REPORT_SHA256,
         ),
     ):
         require(
@@ -518,7 +581,17 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             and b3_doc.get("config_sha256") == expected_cfg_sha
             and b3_doc.get("lineage_sha256") == expected_lin_sha
             and b3_doc.get("model_storage_sha256") == model_sha
-            and b3_doc.get("config_file", {}).get("sha256") == expected_cfg_file_sha,
+            and b3_doc.get("model_snapshot_sha256") == EXPECTED_MODEL_SNAPSHOT_SHA256
+            and b3_doc.get("config_file", {}).get("sha256") == expected_cfg_file_sha
+            and b3_doc.get("evaluation_file", {}).get("sha256") == expected_eval_file_sha
+            and b3_doc.get("full_report_sha256") == expected_full_report_sha
+            and b3_doc.get("admission_contract")
+            == "checked EvaluationRow.admitted_cells minus address_rivals in {0,1}"
+            and b3_doc.get("actual_admitted_slot_ids")
+            == {
+                "reason": "eval-corpus reports counts; slot IDs are not derived from those counts",
+                "status": "UNAVAILABLE",
+            },
             f"{label} b3/summary metadata/hold/identity check failed",
         )
         b3 = b3_doc.get("b3", {})
@@ -545,6 +618,12 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         rel_b3["checkpoint_file"]["sha256"] == census.get("checkpoint_raw_sha256")
         and rel_b3["driver_checkpoint_sha256"] == census.get("driver_checkpoint_sha256"),
         "relation B3 summary checkpoint hashes do not match relation census.json",
+    )
+    require(
+        rel_eval["aggregate"] == fz_eval["aggregate"]
+        and rel_b3["b3"] == fz_b3["b3"]
+        and rel_b3["model_snapshot_sha256"] == fz_b3["model_snapshot_sha256"],
+        "checkpoint-0 cross-arm equivalence failed: relation and frozen_zero must match at 0 updates",
     )
 
     rel_b3_psucc = rel_b3["b3"]["psucc"]["target_admitted"]
@@ -644,6 +723,8 @@ def load_preflight_bundle_from_dir(preflight_dir: Path) -> dict[str, Any]:
     ]
     return {
         "table_shas": table_sha_lines,
+        "source_head": (preflight_dir / "source-head.txt").read_text(encoding="utf-8").strip(),
+        "cells_stdout": (preflight_dir / "relation" / "cells.stdout").read_text(encoding="utf-8"),
         "build_identity": json.loads(
             (preflight_dir / "build-identity.json").read_text(encoding="utf-8")
         ),
@@ -707,6 +788,8 @@ def make_synthetic_preflight_bundle() -> dict[str, Any]:
     }
     return {
         "table_shas": [EXPECTED_TABLE_FILE_SHA256, EXPECTED_TABLE_FILE_SHA256],
+        "source_head": EXPECTED_SOURCE_HEAD,
+        "cells_stdout": "/workspace/uor-r4/runs/claude/injective-preflight-20261019/relation/cells/report.json\n",
         "build_identity": {
             "compiled": compiled,
             "cuda_context_created": False,
@@ -761,6 +844,12 @@ def make_synthetic_preflight_bundle() -> dict[str, Any]:
             "dev_alias_ceiling_rows": 14287,
             "dev_distinct_targets": 674,
             "dev_targets_alias_representative": 674,
+            "g_cap": {
+                "alias_ceiling_rows": 14287,
+                "bar_rows": 500,
+                "note": "G-Cap also nets out admission; that term comes from the admission receipt, not this census",
+                "verdict": "ALIAS_CEILING_ABOVE_BAR",
+            },
             "within_cell_tie_mass": {
                 "dev_rows_targeting_non_representative": 0,
                 "tokens_in_alias_groups": 0,
@@ -769,6 +858,11 @@ def make_synthetic_preflight_bundle() -> dict[str, Any]:
                 "status": "FROM_GPU_TOKEN_CELL_RECEIPT",
                 "occupied_cells": 256,
                 "tokens_in_crowded_cells": 4096,
+                "crowded_cells_multiple_vectors": 256,
+                "max_cell_occupancy": 16,
+                "dev_rows_in_crowded_cells": 14287,
+                "cell_collision_pairs": 30720,
+                "cell_occupancy_histogram": {"16": 256},
             },
         },
         "relation_eval": copy.deepcopy(eval_doc),
@@ -790,11 +884,22 @@ def make_synthetic_preflight_bundle() -> dict[str, Any]:
             "config_sha256": EXPECTED_RELATION_CONFIG_SHA256,
             "lineage_sha256": EXPECTED_RELATION_LINEAGE_SHA256,
             "model_storage_sha256": model_sha,
+            "model_snapshot_sha256": EXPECTED_MODEL_SNAPSHOT_SHA256,
             "checkpoint_file": {"path": "/rel/init.json", "sha256": rel_ckpt_raw},
             "driver_checkpoint_sha256": rel_ckpt_drv,
             "config_file": {
                 "path": "/rel/cfg.json",
                 "sha256": EXPECTED_RUNBOOK_PINS["injective-relation-seed1.json"],
+            },
+            "evaluation_file": {
+                "path": "/rel/eval.json",
+                "sha256": EXPECTED_RELATION_EVAL_FILE_SHA256,
+            },
+            "full_report_sha256": EXPECTED_RELATION_B3_FULL_REPORT_SHA256,
+            "admission_contract": "checked EvaluationRow.admitted_cells minus address_rivals in {0,1}",
+            "actual_admitted_slot_ids": {
+                "reason": "eval-corpus reports counts; slot IDs are not derived from those counts",
+                "status": "UNAVAILABLE",
             },
             "b3": {
                 "psucc": {"rows": 3847, "target_admitted": 127},
@@ -819,11 +924,22 @@ def make_synthetic_preflight_bundle() -> dict[str, Any]:
             "config_sha256": EXPECTED_FROZEN_ZERO_CONFIG_SHA256,
             "lineage_sha256": EXPECTED_FROZEN_ZERO_LINEAGE_SHA256,
             "model_storage_sha256": model_sha,
+            "model_snapshot_sha256": EXPECTED_MODEL_SNAPSHOT_SHA256,
             "checkpoint_file": {"path": "/fz/init.json", "sha256": "0" * 64},
             "driver_checkpoint_sha256": "1" * 64,
             "config_file": {
                 "path": "/fz/cfg.json",
                 "sha256": EXPECTED_RUNBOOK_PINS["injective-frozen-zero-seed1.json"],
+            },
+            "evaluation_file": {
+                "path": "/fz/eval.json",
+                "sha256": EXPECTED_FROZEN_ZERO_EVAL_FILE_SHA256,
+            },
+            "full_report_sha256": EXPECTED_FROZEN_ZERO_B3_FULL_REPORT_SHA256,
+            "admission_contract": "checked EvaluationRow.admitted_cells minus address_rivals in {0,1}",
+            "actual_admitted_slot_ids": {
+                "reason": "eval-corpus reports counts; slot IDs are not derived from those counts",
+                "status": "UNAVAILABLE",
             },
             "b3": {
                 "psucc": {"rows": 3847, "target_admitted": 127},
@@ -954,11 +1070,46 @@ def run_self_tests() -> dict[str, Any]:
         "inherited Gate22/Gate0/ACTIVE-INERT/INIT LOCK battery is required",
     )
     check_fail(
-        "net_g_cap_fails_high_control_top1",
-        passing_bundle,
-        lambda d: d["frozen_zero_eval"]["aggregate"].__setitem__("top1_correct", 580),
-        "G-Init negative (b)",  #Wait: when net_g_cap <= 580+24=604, it classifies as TERMINAL_PREFLIGHT_FAIL!
-    ) if False else None
+        "b3_full_report_sha_mismatch",
+        base,
+        lambda d: d["relation_b3"].__setitem__("full_report_sha256", "0" * 64),
+        "b3/summary metadata/hold/identity check failed",
+    )
+    check_fail(
+        "b3_model_snapshot_sha_mismatch",
+        base,
+        lambda d: d["frozen_zero_b3"].__setitem__("model_snapshot_sha256", "f" * 64),
+        "b3/summary metadata/hold/identity check failed",
+    )
+    check_fail(
+        "cp0_cross_arm_b3_mismatch",
+        base,
+        lambda d: (
+            d["frozen_zero_b3"]["b3"]["psucc"].__setitem__("target_admitted", 128),
+            d["frozen_zero_b3"]["b3"]["complement"].__setitem__("target_admitted", 299),
+        ),
+        "checkpoint-0 cross-arm equivalence failed",
+    )
+    check_fail(
+        "g_occ_histogram_mismatch",
+        base,
+        lambda d: d["relation_census"]["cells"].__setitem__(
+            "cell_occupancy_histogram", {"16": 255, "15": 1}
+        ),
+        "G-Occ cell_occupancy_histogram invariant failed",
+    )
+    check_fail(
+        "g_occ_collision_pairs_mismatch",
+        base,
+        lambda d: d["relation_census"]["cells"].__setitem__("cell_collision_pairs", 30719),
+        "G-Occ cells check failed",
+    )
+    check_fail(
+        "source_head_mismatch",
+        base,
+        lambda d: d.__setitem__("source_head", "0" * 40),
+        "source-head.txt mismatch",
+    )
 
     # Test net G-Cap > max(500, top1_control + 24) when B3_init >= 500 but control_top1 + 24 >= net_g_cap
     total += 1
@@ -969,7 +1120,7 @@ def run_self_tests() -> dict[str, Any]:
         high_ctrl[key]["b3"]["full"]["target_admitted"] = 2000
     for key in ("relation_eval", "frozen_zero_eval"):
         high_ctrl[key]["aggregate"]["target_admitted_rows"] = 2000
-    high_ctrl["frozen_zero_eval"]["aggregate"]["top1_correct"] = 530  # bar_i = 554 >= 550
+        high_ctrl[key]["aggregate"]["top1_correct"] = 530  # bar_i = 554 >= 550
     res_high_ctrl = verify_preflight_bundle(high_ctrl)
     require(
         res_high_ctrl["verdict"] == "TERMINAL_PREFLIGHT_FAIL_INSTRUMENT_UNREACHABLE"

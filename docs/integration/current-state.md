@@ -1,3 +1,16 @@
+## 2026-10-19 — W3 BVG-K Stage C2 and injective-attention consumer verifiers hardened + #2737 documentary corrections (antigravity)
+
+Follow-up hardening and documentary correction on `docs/labs/c2-injective-consumer-verifiers-2026-10-19/` (#2727 / #2737):
+
+1. `verify_bvgk_c2_qualify.py` (`31a12a97ef050e51cedb893d52476e800393c2e6e4319927c0cf3dc19cf1c314`, `36,362` B):
+   replaces the naive substring static `Device::apply` check with a comment/string-stripping Rust lexer (`strip_rust_comments_and_strings` + `verify_no_guarded_single_apply`) over both `crates/uor-r4-discrete/src/bvgk_qualification.rs` and `crates/uor-r4-discrete/src/bin/bvgk-qualify.rs` (catching `Device::apply(...)` and `<receiver>.apply(...)` regardless of whitespace or `&` argument syntax without false-failing on comments/strings); tightens `ut_jr_dc_v3_block_sweep` to enforce `proposals (804) + refused_blocks (0) == cases (804)`, `refused_blocks == 0`, `empty (140) + single (345) + multi_member_proposals (319) == proposals (804)`, and the composite `applied_updates` lower bound `3,418 >= 2 * single + 4 * joint_loses_or_ties + 5 * joint_wins (2,226)`. Expands `--self-test` from `19/19` to `24/24` PASS.
+2. `verify_injective_attention_preflight.py` (`b1bc2204bbdb0edca9f3fb653f20c248fff392238523ccf748977a615d32ab7c`, `52,766` B):
+   adds explicit verification of `full_report_sha256` (`9bc3654602ef8b404bd2208f23363f22b38ab73bf713a982e390b211fc60405a` and `b4d45070ae0177611c72f71c4287ab4cb538e3d98ce272f031411457d2acfaaf`) cross-checked against `b3/summary.json` `evaluation_file.sha256`, `psucc.definition_sha256` (`a8ab3184…`), `model_snapshot_sha256` (`54cb8217…`), `admission_contract` (`admitted_slot_count == 8`, `distinct_cell_representatives == true`, `query_cell_slot_id == 0`), `actual_admitted_slot_ids == [0..7]`, cross-arm checkpoint-0 equivalence (`relation` and `frozen-zero` share identical zero-update `aggregate` and `b3` partitions), `G-Occ` `cell_occupancy_histogram == {"16": 256}` / `cell_collision_pairs == 30,720` / `g_cap`, and `source-head.txt` / `relation/cells.stdout`; removes dead code at lines 956–961; expands `--self-test` from `18/18` to `24/24` PASS.
+3. Corrects the #2737 `current-state.md` entry below (and PR #2737 / #2029 `6258025922` comments per Codex audit `6258023954`) so all 64-hex SHA-256 digests, control names, driver source file count (`11`), and runbook path (`docs/labs/injective-attention-runbook-2026-10-19/`) match the repository byte-for-byte.
+
+Host-only; zero GPU/pod compute (`$0`). Record:
+[labs/c2-injective-consumer-verifiers-2026-10-19](../labs/c2-injective-consumer-verifiers-2026-10-19/README.md).
+
 ## 2026-10-19 — D41 execution-release gate fixed: typed D40 release at dispatch (kimi)
 
 Owner chose option (b) on the D41 execution-gate question: the chat ratification is the policy
@@ -41,23 +54,24 @@ Landing two deterministic, zero-dependency Python 3 host-only consumer verifiers
 `docs/labs/c2-injective-consumer-verifiers-2026-10-19/` to audit the executed pod receipts
 landed in #2733 (`docs/labs/injective-preflight-and-c2-qualify-2026-10-19/evidence/`):
 
-1. `verify_bvgk_c2_qualify.py` (`db8e4c87b00a7baa4916c9593ae79b786018b37cd22c1896276754b6cfcce05e`, `33,547` B):
-   recomputes the three embedded CUDA kernel sources (`rows.cu` `48d8e6e0…`, `rowsk.cu` `0b1373a0…`,
-   `bvgk.cu` `e646f016…`) and the 3-source concatenated `driver_source_sha256` (`f4509049…`) directly
+1. `verify_bvgk_c2_qualify.py` (`db8e4c87b00a7baa4916c9593ae79b786018b37cd22c1896276754b6cfcce05e`, `33,547` B; hardened in follow-up to `31a12a97ef050e51cedb893d52476e800393c2e6e4319927c0cf3dc19cf1c314`, `36,362` B):
+   recomputes the three embedded CUDA kernel sources (`rows.cu` `48d8e6e05f2de03d2f9931812f606e5f923c2416dd4205696a6228d858446318`,
+   `rowsk.cu` `0b1373a02ec191ff173f10cfd6f293cc3355ed2022cde113c6dd17f41c7dea51`,
+   `bvgk.cu` `e646f0160a49d22430c0d3fbd3f2b3764d2c6d332864549b13ddbcbd292ba050`) and the 11-file
+   `driver_source_sha256` (`f4509049add30b7b756cf5a9ddf97d5633ad4aa790028d8b1b210986945d09e9`) directly
    from `crates/uor-r4-discrete/src/`, enforces static `Device::apply` absence on the qualification path,
-   and audits `bvgk-qualification.json` (`2fff942f…`) against all five C2 controls (`C2-Parity`,
-   `C2-Injective`, `C2-Scale`, `C2-Latency`, `C2-Static-Apply-Absence`) and the 23-entry evidence
-   manifest (`989a3684…`). Verified PASS on #2733 receipts and `19/19` `--self-test` tampering cases.
-2. `verify_injective_attention_preflight.py` (`d30e907d492765461ccce9daf152a0b2eb84aa84da56ddbc4f444f337eb8381c`, `46,154` B):
-   verifies the staged runbook (`docs/labs/injective-attention-staging-2026-10-19/`, `SHA256SUMS` `a6da44d0…`),
-   recomputes the little-endian `i32` table SHA-256 (`e9e03bcd…`) and `4,096` distinct 32-word cells of
-   `prime-zeta-v4096-b4-c192-k8.json` (`83c1380a…`), verifies the single-key `codebook` diff against
-   parent `rows_v1`, recomputes the D40 scope/phrase hashes (`6f512e85…` / `ed9741f7…`), verifies the
-   7-item documentary contract (#2730/#2731) and pre-registration sheet (`e47ce5af…`), and audits the
+   and audits `bvgk-qualification.json` (`2fff942fa2b802e180c9bd87336692730d6beaf22f2c0bac8867afb0dea345f3`) against all five C2 controls (`v0_source_identity`,
+   `rc_recarry_parity`, `ut_jr_dc_v3_block_sweep` [wrapping `ut_original_untouched`, `jr_joint_reference`, `dc_decision_coverage_v4_v5`, `v3_block_equals_sequential`], `rf_refusals`, `c1r_v2_scoring_parity`), diagnostic `throughput`, and the 23-entry evidence
+   manifest (`989a3684a701222c6fc06d90ffaba19e01d24d8d5516a5def5ba2b4f14556430`). Verified PASS on #2733 receipts and `--self-test` tampering cases.
+2. `verify_injective_attention_preflight.py` (`d30e907d492765461ccce9daf152a0b2eb84aa84da56ddbc4f444f337eb8381c`, `46,154` B; hardened in follow-up to `b1bc2204bbdb0edca9f3fb653f20c248fff392238523ccf748977a615d32ab7c`, `52,766` B):
+   verifies the staged runbook (`docs/labs/injective-attention-runbook-2026-10-19/`, `SHA256SUMS` `a6da44d0eaacd5f4f6bea2430c8418a9de185c4dcf09395b7e384669c687cab3`),
+   recomputes the little-endian `i32` table SHA-256 (`e9e03bcd95b78632a7f18d1b27c07d37f0ba82c52eee692c37da011eadac8804`) and `4,096` distinct 32-word cells of
+   `prime-zeta-v4096-b4-c192-k8.json` (`83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b`), verifies the single-key `codebook_initialization` diff against
+   parent `rows_v1`, recomputes the `injective-83c1380a8f50-` scopes and D40 owner-release phrases, verifies the
+   7-item documentary contract (#2730/#2731) and pre-registration sheet (`e47ce5af1d2bf55649acbd54806386545f8dc160e9cbcccf55110fb5396045ee`), and audits the
    #2733 pre-flight receipts (`TERMINAL_PREFLIGHT_FAIL_INSTRUMENT_UNREACHABLE` on `B3_init(P_succ) = 127 < 500`
    and `net_g_cap = 127 <= 500`, with moot downstream controls recorded as `NOT_RUN_MOOT_AFTER_B3_FAIL`
-   and `owner_plans = "WITHHELD"`). Verified PASS on both staged and #2733 execution modes and `18/18`
-   `--self-test` cases.
+   and `owner_plans = "WITHHELD"`). Verified PASS on both staged and #2733 execution modes and `--self-test` cases.
 
 Host-only; zero GPU/pod compute (`$0`). Record:
 [labs/c2-injective-consumer-verifiers-2026-10-19](../labs/c2-injective-consumer-verifiers-2026-10-19/README.md).

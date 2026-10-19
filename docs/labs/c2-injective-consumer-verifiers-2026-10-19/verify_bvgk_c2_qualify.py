@@ -85,6 +85,37 @@ def is_hex64(value: Any) -> bool:
     return isinstance(value, str) and bool(HEX64_RE.match(value))
 
 
+RUST_TOKEN_RE = re.compile(
+    r'//[^\n]*|/\*.*?\*/|r(#*)\".*?\"\1|\"(?:\\.|[^\"\\])*\"',
+    re.S,
+)
+SINGLE_APPLY_CALL_RE = re.compile(r"(?:\bDevice\s*::\s*apply|\.\s*apply)\s*\(")
+APPLY_BLOCK_CALL_RE = re.compile(r"\.\s*apply_block\s*\(")
+
+
+def strip_rust_comments_and_strings(source: str) -> str:
+    """Replace Rust comments and string literals with spaces so lexical checks inspect code only."""
+    return RUST_TOKEN_RE.sub(" ", source)
+
+
+def verify_no_guarded_single_apply(
+    source: str,
+    label: str,
+    require_apply_block: bool = False,
+) -> None:
+    """Verify code (after stripping comments/strings) never calls guarded single-move Device::apply."""
+    stripped = strip_rust_comments_and_strings(source)
+    require(
+        SINGLE_APPLY_CALL_RE.search(stripped) is None,
+        f"{label} must never call guarded single-move Device::apply",
+    )
+    if require_apply_block:
+        require(
+            APPLY_BLOCK_CALL_RE.search(stripped) is not None,
+            f"{label} must commit fixture updates via apply_block",
+        )
+
+
 def compute_host_source_hashes(repo_root: Path) -> dict[str, str]:
     """Recompute driver_source_sha256 and generated CUDA source hashes from repo files."""
     src_dir = repo_root / "crates" / "uor-r4-discrete" / "src"
@@ -96,15 +127,19 @@ def compute_host_source_hashes(repo_root: Path) -> dict[str, str]:
         require(path.is_file(), f"missing driver source file: {path}")
         driver_hasher.update(path.read_bytes())
 
-    # Check static source guard in bvgk_qualification.rs: no guarded Device::apply call
+    # Check static source guard in bvgk_qualification.rs and bin/bvgk-qualify.rs
     qual_src = (src_dir / "bvgk_qualification.rs").read_text(encoding="utf-8")
-    require(
-        "Device::apply(" not in qual_src and ".apply(&" not in qual_src,
-        "bvgk_qualification.rs must never call guarded single-move Device::apply",
+    verify_no_guarded_single_apply(
+        qual_src,
+        "bvgk_qualification.rs",
+        require_apply_block=True,
     )
-    require(
-        ".apply_block(" in qual_src,
-        "bvgk_qualification.rs must commit fixture updates via apply_block",
+    bin_qual_path = src_dir / "bin" / "bvgk-qualify.rs"
+    require(bin_qual_path.is_file(), f"missing qualifier binary source: {bin_qual_path}")
+    verify_no_guarded_single_apply(
+        bin_qual_path.read_text(encoding="utf-8"),
+        "bin/bvgk-qualify.rs",
+        require_apply_block=False,
     )
 
     # Reconstruct generated CUDA sources (rows.cu, rowsk.cu, bvgk.cu) from source files
@@ -395,8 +430,10 @@ def verify_bvgk_qualification_payload(
         f"ut_jr_dc_v3_block_sweep sub-controls mismatch: {sub_controls}",
     )
     require(
-        sweep["cases"] == 804 and sweep["proposals"] == sweep["cases"],
-        f"ut_jr_dc_v3_block_sweep expected 804 cases == proposals, got {sweep['cases']}/{sweep['proposals']}",
+        sweep["cases"] == 804
+        and sweep["refused_blocks"] == 0
+        and sweep["proposals"] + sweep["refused_blocks"] == sweep["cases"],
+        f"ut_jr_dc_v3_block_sweep expected 804 cases == proposals and 0 refused_blocks, got cases={sweep['cases']} proposals={sweep['proposals']} refused_blocks={sweep['refused_blocks']}",
     )
     # Minimum test power / UNDERPOWERED rules (sheet §Bar DC & §Minimum test power)
     for cat in ("empty", "single", "joint_wins", "joint_loses_or_ties"):
@@ -414,12 +451,9 @@ def verify_bvgk_qualification_payload(
     )
     # Partition identities
     require(
-        sweep["empty"]
-        + sweep["single"]
-        + sweep["multi_member_proposals"]
-        + sweep["refused_blocks"]
+        sweep["empty"] + sweep["single"] + sweep["multi_member_proposals"]
         == sweep["proposals"],
-        "sweep proposal partition empty + single + multi_member_proposals + refused_blocks != proposals",
+        "sweep proposal partition empty + single + multi_member_proposals != proposals",
     )
     require(
         sweep["joint_wins"] + sweep["joint_loses_or_ties"] == sweep["multi_member_proposals"],
@@ -438,9 +472,14 @@ def verify_bvgk_qualification_payload(
         sweep["v3_joint_cases"] == sweep["joint_wins"],
         "sweep v3_joint_cases must equal joint_wins",
     )
+    min_composite_updates = (
+        2 * sweep["single"]
+        + 4 * sweep["joint_loses_or_ties"]
+        + 5 * sweep["joint_wins"]
+    )
     require(
-        sweep["applied_updates"] > sweep["commits"],
-        "sweep applied_updates must exceed commits (includes JR/V3 single reference applies)",
+        sweep["applied_updates"] >= min_composite_updates,
+        f"sweep applied_updates {sweep['applied_updates']} < composite floor {min_composite_updates}",
     )
 
     # 4. RF refusals
@@ -824,6 +863,42 @@ def run_self_tests(repo_root: Path | None = None) -> dict[str, Any]:
         lambda d: d["throughput"]["cases"][2].__setitem__("ns_per_coordinate", 123),
         "ns_per_coordinate != block_median_ns // k",
     )
+    check_fail(
+        "sweep_nonzero_refused_blocks",
+        lambda d: (
+            d["controls"][2].__setitem__("refused_blocks", 1),
+            d["controls"][2].__setitem__("empty", 139),
+        ),
+        "0 refused_blocks",
+    )
+    check_fail(
+        "sweep_applied_updates_below_composite_floor",
+        lambda d: (
+            d["controls"][2].__setitem__("applied_updates", 2225),
+            d.__setitem__("applied_updates", 2226),
+        ),
+        "composite floor 2226",
+    )
+
+    # Static Device::apply guard self-tests (comments/strings allowed; no-amp and whitespace calls rejected)
+    total += 1
+    verify_no_guarded_single_apply(
+        '// Device::apply(&p) in line comment\n/* dev.apply(p) in block comment */\nlet msg = "Device::apply(p)";\ndev.apply_block(&proposal);',
+        "synthetic_comment_and_string",
+        require_apply_block=True,
+    )
+    passed += 1
+
+    for bad_label, bad_src in (
+        ("static_apply_no_ampersand", "single.apply(proposal);\nsingle.apply_block(&proposal);"),
+        ("static_apply_whitespace", "Device :: apply ( &proposal );\nsingle.apply_block(&proposal);"),
+    ):
+        total += 1
+        try:
+            verify_no_guarded_single_apply(bad_src, bad_label, require_apply_block=True)
+            raise AssertionError(f"self-test {bad_label!r} unexpectedly passed")
+        except VerificationError:
+            passed += 1
 
     host_hashes = None
     if repo_root is not None:
