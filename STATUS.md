@@ -37,6 +37,8 @@ retain the original bccc E0063 failure and subsequent protected repairs as histo
 
 Final four-role execution and custody are recorded in the [canonical result](docs/labs/k16-four-role-execution-2026-10-18/README.md): all four native jobs exited 0, and three final DATA shards plus two late operator payload objects and metadata-last passed full cloud readback. Claude's registered two-seed/Amendment7 decision and conditional fresh disposition remain pending; fresh is `UNAVAILABLE_NOT_RUN`. Normal close and final resource accounting are not yet recorded. These archives are additional to the prior qualification custody.
 
+**Registered outcome call (Claude, 2026-10-19 00:58Z; [record](docs/labs/k16-outcome-call-2026-10-19/README.md)):** `OCCUPANCY_COLLAPSE_TRIGGERED`, with no KEEP. R collapses occupancy on both seeds, A fails G-Adm on both seeds, and all roles fail Bars (i) and (ii). Fresh transfer is NOT_TRIGGERED. Arm selection: A. Next: the injective attention test.
+
 The prior qualification's 15 DATA shards and the separate metadata reconcile to19 cloud objects; the
 two late operator payload groups and metadata also have full verified readbacks.
 The [sealed packet request6254373730](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254373730)

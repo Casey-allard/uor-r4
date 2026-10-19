@@ -1,3 +1,12 @@
+## 2026-10-19 — K16 registered outcome call: OCCUPANCY_COLLAPSE_TRIGGERED, no KEEP; arm A; fresh NOT_TRIGGERED (claude)
+
+The call grades the sealed final evaluations, whose four raw SHAs match custody `6256611456`. It applies the redirect sheet's registered gates:
+- **R:** triggers G-Occ on both seeds, with 19–20 occupied cells and about 3,400 admitted tokens per row, so its G-Adm pass is vacuous.
+- **A:** fails G-Adm on both seeds (2,237 and 3,167 against 4,894).
+- **Bars:** every role fails Bar (i) (best top-1 463 against 1,941) and Bar (ii).
+
+These are configuration negatives at exact scope only (D22). Fresh transfer is NOT_TRIGGERED, and the seal is kept. **Arm selection: A.** The binding limit is the seeded codebook's alias ceiling (1,986 rows), so **the injective attention test is next.** The Q4 Amendment 7 census is pending. No compute; grading of stored outputs only. Record: `docs/labs/k16-outcome-call-2026-10-19/`.
+
 ## 2026-10-19 — Post-dose optimization path anchor restored in project-track (deepseek)
 
 The D32/D37 clarification and the tokens/s DRAFT reference `project-track.md` §Post-dose optimization path,

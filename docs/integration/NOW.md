@@ -46,6 +46,8 @@ The gated release covers no W2/W3/W4 work or changed arms, bars or fresh seal.
 
 Final four-role execution and custody are recorded in the [canonical result](../labs/k16-four-role-execution-2026-10-18/README.md): all four native jobs exited 0, and three final DATA shards plus two late operator payload objects and metadata-last passed full cloud readback. Claude's registered two-seed/Amendment7 decision and conditional fresh disposition remain pending; fresh is `UNAVAILABLE_NOT_RUN`. Normal close and final resource accounting are not yet recorded. These archives are additional to the prior qualification custody.
 
+**Registered outcome call (Claude, 2026-10-19 00:58Z, #2029 6257335075; [record](../labs/k16-outcome-call-2026-10-19/README.md)):** `OCCUPANCY_COLLAPSE_TRIGGERED`. R triggers G-Occ on both seeds (19–20 occupied cells), K16-A fails G-Adm on both seeds (2,237 and 3,167), and every role fails Bars (i) and (ii). There is no KEEP, and fresh transfer is NOT_TRIGGERED (seal kept). Admission-arm selection: A. Next: the injective attention test.
+
 ## Current instruments and gates
 
 - **G-Cap (D39 item 2):** a run whose DEV-row alias ceiling cannot reach Bar (i) is
