@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 pub mod dialogue;
+pub mod training;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
@@ -259,25 +260,14 @@ impl ByteBpeTokenizer {
     /// or the whole segment without a `Digits` step), so the prefix is
     /// applied here, after digit splitting.
     fn encode_segment(&self, segment: &str, ids: &mut Vec<u32>) {
-        let splits = match self.digits_individual {
-            Some(individual) => split_digits(segment, individual),
-            None => vec![segment],
-        };
-        for split in splits {
-            if split.is_empty() {
-                continue;
-            }
-            let prefixed;
-            let split = if self.add_prefix_space && !split.starts_with(' ') {
-                prefixed = format!(" {split}");
-                prefixed.as_str()
-            } else {
-                split
-            };
-            for pre_token in pre_tokenize(split) {
+        for_each_pre_token(
+            segment,
+            self.add_prefix_space,
+            self.digits_individual,
+            |pre_token| {
                 self.bpe(pre_token, ids);
-            }
-        }
+            },
+        );
     }
 
     /// Lossy encode, mirroring the legacy surface: byte-level BPE encodes
@@ -562,6 +552,35 @@ struct PreTokenizerConfig {
     /// `Some(individual_digits)` when a `Digits` step precedes `ByteLevel`
     /// (SmolLM2: `Digits { individual_digits: true }`).
     digits_individual: Option<bool>,
+}
+
+/// Shared segmentation for inference and training. Prefix spaces apply after
+/// the optional Digits split, exactly as in the existing encoder.
+fn for_each_pre_token(
+    segment: &str,
+    add_prefix_space: bool,
+    digits_individual: Option<bool>,
+    mut visit: impl FnMut(&str),
+) {
+    let splits = match digits_individual {
+        Some(individual) => split_digits(segment, individual),
+        None => vec![segment],
+    };
+    for split in splits {
+        if split.is_empty() {
+            continue;
+        }
+        let prefixed;
+        let split = if add_prefix_space && !split.starts_with(' ') {
+            prefixed = format!(" {split}");
+            prefixed.as_str()
+        } else {
+            split
+        };
+        for pre_token in pre_tokenize(split) {
+            visit(pre_token);
+        }
+    }
 }
 
 /// Confirm the pre-tokenizer is `ByteLevel`, optionally preceded by a

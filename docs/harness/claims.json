@@ -370,6 +370,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/cf1-rust-bpe-trainer": {
+    "branch": "codex/cf1-rust-bpe-trainer",
+    "claimed_at": "2026-10-19T01:07:50-04:00",
+    "head": "65451d828",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/counterfactual-baseline-reuse": {
     "branch": "codex/counterfactual-baseline-reuse",
     "claimed_at": "2026-10-16T19:20:37-04:00",
