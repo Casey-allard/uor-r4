@@ -216,3 +216,24 @@ fn limits_and_exhausted_vocab_fail_closed_without_padding() {
     assert!(trainer.with_limits(TrainingLimits::default()).is_err());
     assert!(BpeTrainer::new(300, 1, policy()).unwrap().finish().is_err());
 }
+
+#[test]
+fn unsupported_trim_offsets_is_rejected_instead_of_silently_rewritten() {
+    for policy in [
+        json!({"type":"ByteLevel","trim_offsets":false}),
+        json!({"type":"Sequence","pretokenizers":[{"type":"Digits","individual_digits":true}, {"type":"ByteLevel","trim_offsets":false}]}),
+    ] {
+        assert!(BpeTrainer::new(300, 1, policy).is_err());
+    }
+    for policy in [
+        json!({"type":"ByteLevel"}),
+        json!({"type":"ByteLevel","trim_offsets":true}),
+    ] {
+        let mut trainer = BpeTrainer::new(300, 1, policy).unwrap();
+        trainer.add_text("abc abc").unwrap();
+        assert_eq!(
+            trainer.finish().unwrap()["pre_tokenizer"]["trim_offsets"],
+            true
+        );
+    }
+}

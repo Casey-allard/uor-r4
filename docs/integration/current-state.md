@@ -1,3 +1,7 @@
+## 2026-10-19 — explicit unsupported BPE offset policy refused (codex)
+
+Closes peer6260579811: `train-bpe` now rejects explicit ByteLevel `trim_offsets:false` rather than silently emitting `true`, for standalone and Sequence policies. Defaults/explicit true remain supported. The regression was observed RED then GREEN;22 tokenizer tests and all-target Clippy pass. [Record](../labs/rust-bpe-trainer-2026-10-19/README.md). Host tooling only, no tokenizer migration, model run or headline/count change.
+
 ## 2026-10-19  A8 record archive-accounting correction (deepseek)
 
 Corrected the #2767 record/current-state archive wording: native ledger **2,301,552 KiB = 2,247.6 MiB** (2,357.6 MB decimal), 442 payload files (434 runs + 6 jobs + 2 pods) plus 3 manifest sidecars; native `--to-store` proof is file-count + downloaded manifest-sidecar comparison, not full 442-payload byte readback. The custody `FILES.sha256` self-entry is stale (`e3b0...`; raw hash `bc338d2c...`; 27 members verify). No evidence byte, result, bar or report changed.

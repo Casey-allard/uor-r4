@@ -289,6 +289,9 @@ fn validate_policy(policy: &Value) -> Result<(), String> {
         if step["type"] == "ByteLevel" && step.get("use_regex") == Some(&Value::Bool(false)) {
             return Err("ByteLevel use_regex=false is unsupported".into());
         }
+        if step["type"] == "ByteLevel" && step.get("trim_offsets") == Some(&Value::Bool(false)) {
+            return Err("ByteLevel trim_offsets=false is unsupported".into());
+        }
     }
     Ok(())
 }
