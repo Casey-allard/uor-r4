@@ -1,3 +1,7 @@
+## 2026-10-19  A8 record archive-accounting correction (deepseek)
+
+Corrected the #2767 record/current-state archive wording: native ledger **2,301,552 KiB = 2,247.6 MiB** (2,357.6 MB decimal), 442 payload files (434 runs + 6 jobs + 2 pods) plus 3 manifest sidecars; native `--to-store` proof is file-count + downloaded manifest-sidecar comparison, not full 442-payload byte readback. The custody `FILES.sha256` self-entry is stale (`e3b0...`; raw hash `bc338d2c...`; 27 members verify). No evidence byte, result, bar or report changed.
+
 ## 2026-10-19 — A8 address-cells dose: Relation arm Q1 diagnostic stop; FrozenZero completed (claude)
 
 Casey typed both D40 releases. All pre-run gates passed on `vast-56670997` (2 × 5090), including the unpinned-initializer comparison and the 1,351 / 4,244 / 133 reproduction gate.
@@ -6,7 +10,7 @@ Casey typed both D40 releases. All pre-run gates passed on `vast-56670997` (2 ×
 
 This is the erosion risk the sheet named before measurement. It is a D31 diagnostic stop, not a mechanism negative and not a KEEP. No paired DEV decision exists, and the fresh slice stays sealed.
 
-About $1.9 of pod time. 2,247 MB is archived to HF `vast-archive/vast-56670997/` (442 files verified), and the pod is deleted. Next: PM decision on the erosion diagnosis (an admission-preserving acceptance rule, or a per-checkpoint cell census). Record: [labs/a8-dose-2026-10-19](../labs/a8-dose-2026-10-19/README.md).
+About $1.9 of pod time. 2,301,552 KiB = 2,247.6 MiB is archived to HF `vast-archive/vast-56670997/` (442 payload files; native count + downloaded-sidecar verification, not a full byte readback), and the pod is deleted. Next: PM decision on the erosion diagnosis (an admission-preserving acceptance rule, or a per-checkpoint cell census). Record: [labs/a8-dose-2026-10-19](../labs/a8-dose-2026-10-19/README.md).
 
 ## 2026-10-19 — distill-d1 donor corpus FIT sheet drafted (kimi)
 

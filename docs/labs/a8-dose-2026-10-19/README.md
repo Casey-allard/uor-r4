@@ -9,7 +9,7 @@
   - **Casey typed both D40 releases himself** on the pod, with `UOR_LAB` unset. Admission owner records: Relation `f392a260…`, FrozenZero `1e74a6e5…`.
 - **Source freeze:** `2c015db9f01d3ba3a7d79889a052b1345d9da48f`. The ELF is `ea2e13933fbf61b43b42c948bef91eac70ac76352c24019c64913cf72475f4e5`, and the driver source `f673edb5…`.
 - **Pod:** `vast-56670997`, 2 × RTX 5090, Vast Czechia, $1.816/h. It was created at about 04:38Z and deleted after archiving at about 05:40Z: roughly 62 minutes of pod life, **about $1.9**. That is a resource proxy, not an invoice; storage and transfer were not measured.
-- **Archive:** HF store `caseyallard/uor-r4-store:vast-archive/vast-56670997/`, 2,247 MB with 442 files read back and verified. It holds the gates, both arms' runs, and custody (plans, reviews, releases, state). Every directory carries a `FILES.sha256`. The sealed fresh V2 slice is not in the archive.
+- **Archive:** HF store `caseyallard/uor-r4-store:vast-archive/vast-56670997/`, native ledger 2,301,552 KiB = **2,247.6 MiB** (2,357.6 MB decimal) for **442 payload files** (434 runs + 6 jobs + 2 pods) plus 3 manifest sidecars; the native proof is file-count + downloaded manifest-sidecar comparison, not a full 442-payload byte readback. See the post-merge correction below. It holds the gates, both arms' runs, and custody (plans, reviews, releases, state). Every directory carries a `FILES.sha256`. The sealed fresh V2 slice is not in the archive.
 
 ## Pre-run gates (zero updates): all PASS
 
@@ -77,3 +77,7 @@ Diagnose why accepted updates eject P_succ targets, and why Relation does so fas
 - **(iii)** re-registering at a finer checkpoint cadence to locate where the erosion happens.
 
 The archived 64-batch checkpoints support (ii) without any new training.
+
+## Post-merge correction (2026-10-19)
+
+The archive accounting above was re-worded after independent custody review: the native ledger records **2,301,552 KiB = 2,247.6 MiB** (2,357.6 MB decimal) for 442 payload files (434 runs + 6 jobs + 2 pods), with 3 manifest sidecars listed (445 total). Native `--to-store` verifies file counts and downloads/compares each manifest sidecar; it does not download/hash every payload byte. The custody `FILES.sha256` self-entry is stale (`e3b0...`); its raw file hash is `bc338d2c...` and its 27 other members verify. No result, bar, report or evidence byte changed.
