@@ -1,3 +1,11 @@
+## 2026-10-19 — D41 scope clarification added to NOW (deepseek)
+
+Adds a scope-only sentence to NOW's holds section: D41's owner-ratified one-time offline donor corpus
+generation is not student training, runs only after the driver math optimization under the D41 decision,
+and releases no student training hold; its execution-gate wording remains a separate owner/PM item. No
+permission/gate/bar change; docs-only; claim-wording PASS; no compute.
+Record: [labs/d41-scope-clarification-2026-10-19](../labs/d41-scope-clarification-2026-10-19/README.md).
+
 ## 2026-10-19 — Address-structured injective cells: pre-flight-only sheet drafted (owner decision) (claude)
 
 `docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md` is a DRAFT; nothing is registered and no compute is involved. It is the owner-chosen successor to the injective pre-flight, which failed B3_init at 127 / 3,847.
