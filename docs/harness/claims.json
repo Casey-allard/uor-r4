@@ -1,11 +1,4 @@
 {
-  "antigravity/distill-d1-consumer-verifier-20261019": {
-    "branch": "antigravity/distill-d1-consumer-verifier-20261019",
-    "claimed_at": "2026-10-19T04:00:06-04:00",
-    "head": "bc74e5970",
-    "lab": "antigravity",
-    "note": ""
-  },
   "claude/a8-dose-outcome-20261019": {
     "branch": "claude/a8-dose-outcome-20261019",
     "claimed_at": "2026-10-19T01:37:23-04:00",

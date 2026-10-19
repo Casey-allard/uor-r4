@@ -3,7 +3,7 @@
 - **Lab:** Antigravity (`UOR_LAB=antigravity`, session `ag1`)
 - **Milestone:** M1 Grounded Conversation and Durable Memory ([#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029))
 - **Governing Decision:** [D41 — One-Time Offline Donor-Model Generation for the `distill-d1` Corpus Lineage (`openai/gpt-oss-120b`), Scoped and Expiring](../../integration/DECISIONS.md#d41--one-time-offline-donor-model-generation-for-the-distill-d1-corpus-lineage-openaigpt-oss-120b-scoped-and-expiring)
-- **Registration Sheet:** [`docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md`](../../harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md) (staged in `#2773` `30e7445d3`, advanced to `TEST FITNESS: FIT` in `#2774` `bc74e5970`)
+- **Registration Sheet:** [`docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md`](../../harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md) (drafted in `#2765` `4d3ae4f6b`, prior main tip `30e7445d3` `#2773`; advanced to `TEST FITNESS: FIT` in `#2774` `bc74e5970`)
 - **Compute / Cost:** Host-only (`$0.00` GPU, `0` pods, `0` GPU hours). No model execution, no pod dispatch, and no hold release.
 
 ---
@@ -14,7 +14,7 @@ Under [D41](../../integration/DECISIONS.md#d41--one-time-offline-donor-model-gen
 
 This record delivers [`verify_distill_d1_donor_corpus.py`](verify_distill_d1_donor_corpus.py), a standalone, host-only (`$0` GPU) consumer verifier that validates every clause of the `distill-d1` registration sheet and enforces the 5 clarifications landed in `#2774` (`bc74e597068ac04da515307dc4dd08d135d30157`):
 
-1. **Top-line and bottom-line `TEST FITNESS` consistency (`parse_sheet_fitness_status`):** Parses both the header `- **Status:** ... **TEST FITNESS: <VERDICT>**` line and the footer `TEST FITNESS: <VERDICT>` line of the registration sheet, raising `INSTRUMENT_UNREACHABLE_D31` (`sheet_status_contradiction`) if they disagree, and pins both the initial `#2773` draft SHA-256 (`dcf3ec1e4913126dbae71fc8674acc98e3c9a31ecf129c5c874c645201d14e73`, `24,263` B, `293` lines) and the post-FIT `#2774` sheet SHA-256 (`51797f33cf13981529fe10f29433ff52020cf1cf354603d61d229a3cc30ad7d6`, `25,622` B, `295` lines).
+1. **Top-line and bottom-line `TEST FITNESS` consistency (`parse_sheet_fitness_status`):** Parses both the header `- **Status:** ... **TEST FITNESS: <VERDICT>**` line and the footer `TEST FITNESS: <VERDICT>` line of the registration sheet, raising `INSTRUMENT_UNREACHABLE_D31` (`sheet_status_contradiction`) if they disagree, and pins both the initial `#2765` (`4d3ae4f6b`; prior main tip `30e7445d3`, `#2773`) draft SHA-256 (`dcf3ec1e4913126dbae71fc8674acc98e3c9a31ecf129c5c874c645201d14e73`, `24,263` B, `293` lines) and the post-FIT `#2774` sheet SHA-256 (`51797f33cf13981529fe10f29433ff52020cf1cf354603d61d229a3cc30ad7d6`, `25,622` B, `295` lines).
 2. **Explicit `merkle_mode` binding (`compute_shard_merkle_root`):** Requires `checklist.store.merkle_mode` (§8 item 10) and `receipt.content_pin.merkle_mode` (§2.3) to be explicitly bound (`"hex-colon"` for `SHA256(left_hex || ":" || right_hex)` or `"raw-concat"` for `SHA256(left_bytes || right_bytes)`, with odd-node promotion and ascending shard order), rejecting any mismatch between checklist and receipt or between `content_pin.merkle_root` and `readback.recomputed_merkle_root` as `INSTRUMENT_UNREACHABLE_D31`.
 3. **`G13` / `P6` `C = 192` mandatory seal gate with `C = 512` diagnostic under `MAX_CONTEXT = 243`:** Enforces `PreparedCorpus::batch(0, 192, 64)` returning `64` non-empty windows with in-document predecessors on `train` and `dev` as the mandatory `G13` / `P6` seal gate, while requiring `context_512_status == "NOT_RUN_MAX_CONTEXT_243"` so the `C = 512` diagnostic is never silently omitted or falsely claimed under `MAX_CONTEXT = 243`.
 4. **Scope & fallback donor interlocks (§1.1, §6, §7, §8 items 3 & 9):** Enforces `donor.repo == "openai/gpt-oss-120b"`, `quantization == "MXFP4"`, `license_spdx == "Apache-2.0"`, `budget.driver_math_optimization_completed == True` (owner step 2 prerequisite before steps 4–8), and `budget.student_training_authorized == False` (§6 student consumption rows are informational only), rejecting any un-amended fallback donor (such as `Qwen/Qwen3-30B-A3B` on RTX 5090) unless a new owner decision amends D41.
@@ -30,7 +30,7 @@ All SHA-256 digests, byte counts, and line counts below are measured directly fr
 |---|---|---:|---:|---|
 | [`docs/labs/distill-d1-consumer-verifier-2026-10-19/verify_distill_d1_donor_corpus.py`](verify_distill_d1_donor_corpus.py) | `2e0011c36d21ef6acf1c89ac8804d3a134e641b5fa3d2e344e346436d1c04d75` | `154,310` | `3,287` | Standalone host-only `distill-d1` consumer verifier (`32/32` self-tests `PASS`) |
 | [`docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md`](../../harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md) (post-FIT `#2774`) | `51797f33cf13981529fe10f29433ff52020cf1cf354603d61d229a3cc30ad7d6` | `25,622` | `295` | `TEST FITNESS: FIT` registration sheet (top & bottom status consistent; 15 required sections) |
-| `docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md` (initial `#2773` draft) | `dcf3ec1e4913126dbae71fc8674acc98e3c9a31ecf129c5c874c645201d14e73` | `24,263` | `293` | Pre-FIT historical draft SHA-256 (rejected by §8 item 1 if used as a dispatch checklist pin) |
+| `docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md` (initial `#2765` `4d3ae4f6b` draft; prior main tip `30e7445d3`, `#2773`) | `dcf3ec1e4913126dbae71fc8674acc98e3c9a31ecf129c5c874c645201d14e73` | `24,263` | `293` | Pre-FIT historical draft SHA-256 (rejected by §8 item 1 if used as a dispatch checklist pin) |
 | [`crates/uor-r4-discrete/src/metadata.rs`](../../../../crates/uor-r4-discrete/src/metadata.rs) | `27e53e4feecb391adb4a4db3462712a8d9375aed09c0e57086581134cb6e1e32` | `7,086` | `211` | `MAX_CONTEXT = 243` (`3^5` ternary power-of-3 bound) |
 | [`crates/uor-r4-discrete/src/corpus.rs`](../../../../crates/uor-r4-discrete/src/corpus.rs) | `826bdaba978b3c54542147656c8aa3cf24d1aa39b6711528b02b545c4fda9f7e` | `14,777` | `401` | `UORT` v1 `64`-byte header (`"UORT"`, version `1`, vocab, count, reserved `0`), `WINDOW_POLICY`, `IDENTITY_POLICY`, `batch(0, context, rows)` |
 | [`crates/uor-r4-training/src/knowledge_corpus.rs`](../../../../crates/uor-r4-training/src/knowledge_corpus.rs) | `d07b19c97905f137fcc6c6878e07ec4989e68bc5a31dc2b6fe85125e669a3c2c` | `13,727` | `382` | `PanelExclusion` (`PANEL_NGRAM = 8`, `MIN_SHORT_REQUEST_WORDS = 4`, short turns `4..7` words) |
@@ -102,9 +102,10 @@ executes all 32 positive and negative self-tests in `< 0.2s` on host CPU (`$0` G
 
 ## 5. Coordination Hygiene (`docs/harness/claims.json`)
 
-In accordance with [#2029 comment `6262421374`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6262421374) item 4, this delivery also releases the 4 finished `antigravity/*` branch claims in [`docs/harness/claims.json`](../../harness/claims.json):
+In accordance with [#2029 comment `6262421374`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6262421374) item 4 and [#2029 comment `6262709553`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6262709553), all 5 finished `antigravity/*` branch claims have been released from [`docs/harness/claims.json`](../../harness/claims.json):
 
-- `antigravity/a8-dose-census-attribution-verifier` (merged in `#2741`)
-- `antigravity/address-cells-consumer-verifier-2026-10-19` (merged in `#2751`)
-- `antigravity/address-cells-consumer-verifier-v2-2026-10-19` (merged in `#2765`)
-- `antigravity/w2-k16-consumer-verifiers-20261019` (merged in `#2772`)
+- `antigravity/w2-k16-consumer-verifiers-20261019` (merged in `#2727` `85446e96a`)
+- `antigravity/address-cells-consumer-verifier-2026-10-19` (merged in `#2750` `232b67a6a`)
+- `antigravity/address-cells-consumer-verifier-v2-2026-10-19` (merged in `#2758` `3f3c7360f`)
+- `antigravity/a8-dose-census-attribution-verifier` (merged in `#2773` `30e7445d3`)
+- `antigravity/distill-d1-consumer-verifier-20261019` (merged in `#2775` `babe5ca9f`)
