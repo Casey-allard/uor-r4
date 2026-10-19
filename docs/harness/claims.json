@@ -20,6 +20,13 @@
     "lab": "antigravity",
     "note": "land W2 v5.1 and K16 consumer verifiers and verify K16 outcome call"
   },
+  "claude/a8-dose-outcome-20261019": {
+    "branch": "claude/a8-dose-outcome-20261019",
+    "claimed_at": "2026-10-19T01:37:23-04:00",
+    "head": "4d3ae4f6b",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/a8-runbook-20261019": {
     "branch": "claude/a8-runbook-20261019",
     "claimed_at": "2026-10-18T23:52:31-04:00",

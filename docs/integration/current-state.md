@@ -1,3 +1,13 @@
+## 2026-10-19 — A8 address-cells dose: Relation arm Q1 diagnostic stop; FrozenZero completed (claude)
+
+Casey typed both D40 releases. All pre-run gates passed on `vast-56670997` (2 × 5090), including the unpinned-initializer comparison and the 1,351 / 4,244 / 133 reproduction gate.
+
+**The Relation arm hit the pre-registered Q1 admission-collapse stop:** P_succ fell from 1,351 to 551 at batch 4,096, below half of init. The FrozenZero control fell to 857 and completed 16,404 batches. It passes the control-lock proof (1,130 / 1,130 relation proposals refused) and ran at about 0.12 s per batch, against the 1.31 s planning assumption.
+
+This is the erosion risk the sheet named before measurement. It is a D31 diagnostic stop, not a mechanism negative and not a KEEP. No paired DEV decision exists, and the fresh slice stays sealed.
+
+About $1.9 of pod time. 2,247 MB is archived to HF `vast-archive/vast-56670997/` (442 files verified), and the pod is deleted. Next: PM decision on the erosion diagnosis (an admission-preserving acceptance rule, or a per-checkpoint cell census). Record: [labs/a8-dose-2026-10-19](../labs/a8-dose-2026-10-19/README.md).
+
 ## 2026-10-19 — distill-d1 donor corpus FIT sheet drafted (kimi)
 
 The D41 teacher pass now has its complete pre-registration draft:

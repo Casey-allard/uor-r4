@@ -1,0 +1,132 @@
+# uor-pod job by=claude/claude-a8dose-20261019 pod=vast-56670997 gpu=0 queued 2026-10-19T04:40:21Z
+# cmd: bash /root/a8-gates.sh
+# start 2026-10-19T04:40:21Z (holding /root/gpu0.lock)
+2c015db9f01d3ba3a7d79889a052b1345d9da48f
+0, NVIDIA GeForce RTX 5090, 580.95.05, 0 MiB
+1, NVIDIA GeForce RTX 5090, 580.95.05, 0 MiB
+## 2026-10-19T04:40:21Z build all uor-r4-discrete CUDA binaries
+build_rc=0
+build_identity_rc=0
+ea2e13933fbf61b43b42c948bef91eac70ac76352c24019c64913cf72475f4e5  /root/build/target-sm120/release/discrete-stack
+## 2026-10-19T04:41:51Z inputs: config pins
+/workspace/uor-r4/local/driver/data/ft/dev/tokens.u16: OK
+/workspace/uor-r4/local/driver/data/mw-balp/train/tokens.u16: OK
+/workspace/uor-r4/local/driver/data/ft/dev/response_mask.u8: OK
+/workspace/uor-r4/local/driver/data/mw-balp/train/response_mask.u8: OK
+/workspace/uor-r4/local/driver/data/tokenizer.json: OK
+GATE DATA_PINS: PASS
+## 2026-10-19T04:41:52Z table rebuild (address-cells-codebook, as #2751)
+a8_rc=0
+{"counts_sha256":"755a5a81ddbf0f9d81b4d0bd88e54435b96f5485f87ad92a22d235651fe6ca44","distinct_vectors":4096,"file_sha256":"6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1","mode":"address_structured_v1","model_execution":false,"occupied_cells":256,"schema":"uor-r4.codebook-table/1","table_sha256":"4122cbab44bd88658743984fc1ab79059bf032c3e2fe526ffcf4ea5f95d9cd74","train_tokens_sha256":"3082a50cc92a2a37b653002e546a6fc5edd50b5c2966151b832f83e289b07945"}
+GATE TABLE_REBUILD: PASS
+6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1  /workspace/uor-r4/local/driver/data/address-cells/address-structured-v1.json
+## 2026-10-19T04:41:52Z relation: attention-build-identity
+GATE relation_IDENTITY: PASS
+## 2026-10-19T04:41:52Z relation: init-corpus
+relation init_rc=0
+## 2026-10-19T04:41:53Z relation: eval-corpus
+relation eval_rc=0
+## 2026-10-19T04:42:16Z relation: attention-dev-b3
+relation b3_rc=0
+## 2026-10-19T04:42:17Z relation: attention-panel
+relation panel_rc=0
+## 2026-10-19T04:42:18Z relation: export-token-cells + census
+relation cells_rc=0
+relation census_rc=0
+{"occupied":256,"tie":{"dev_rows_targeting_non_representative":0,"tokens_in_alias_groups":0},"ceiling":14287,"alias":{"1":4096}}
+GATE relation_GOCC: PASS
+GATE relation_GINIT_TABLE: PASS
+GATE relation_INIT_LOCK_GATES: PASS
+## 2026-10-19T04:42:19Z relation: unpinned initializer (parent rows_v1 config)
+relation unpinned_init_rc=0
+relation routes pinned=71cdce5745294836cde996e8d595ac8113c7b77d6d9c3a66d3a2143d5fbf5117 unpinned=71cdce5745294836cde996e8d595ac8113c7b77d6d9c3a66d3a2143d5fbf5117
+GATE relation_GINIT_UNPINNED_routes: PASS
+relation gates pinned=ceb6ae990120140e17d063ce30cd9d07799f0a9fed676b50b912866b7bb1a293 unpinned=ceb6ae990120140e17d063ce30cd9d07799f0a9fed676b50b912866b7bb1a293
+GATE relation_GINIT_UNPINNED_gates: PASS
+relation seed pinned=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865 unpinned=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865
+GATE relation_GINIT_UNPINNED_seed: PASS
+relation epoch pinned=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa unpinned=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+GATE relation_GINIT_UNPINNED_epoch: PASS
+relation b3[psucc,full]=[1351,4244] top1_full=133
+GATE relation_REPRODUCTION: PASS
+58cd6f1d4ec3a6dd35c536957e693f58ee41794535110a96e5ecd5896677e703  /workspace/uor-r4/runs/claude/a8-dose-gates-20261019/relation/snapshot.json
+c919ac5f0ac442983f3dd89e457956dd5c6e8b7a5542c171854f4c58d4940ac6  /workspace/uor-r4/runs/claude/a8-dose-gates-20261019/relation/request.json
+## 2026-10-19T04:42:21Z relation: propose gate 22
+relation propose_gate22_rc=0
+{"candidate":0,"before":59136,"after":59136,"any_candidate_cost_differs_from_identity":true,"epoch":0,"candidate_losses":[59136,59872,60928,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615]}
+GATE relation_GATE22_SENSITIVE: PASS
+## 2026-10-19T04:42:26Z relation: propose gate 0
+relation propose_gate0_rc=0
+{"candidate":0,"before":59136,"after":59136,"any_candidate_cost_differs_from_identity":true,"epoch":0,"candidate_losses":[59136,61312,62400,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615]}
+GATE relation_GATE0_SENSITIVE: PASS
+relation psucc_top1_cp0=62
+## 2026-10-19T04:42:31Z frozen-zero: attention-build-identity
+GATE frozen-zero_IDENTITY: PASS
+## 2026-10-19T04:42:31Z frozen-zero: init-corpus
+frozen-zero init_rc=0
+## 2026-10-19T04:42:32Z frozen-zero: eval-corpus
+frozen-zero eval_rc=0
+## 2026-10-19T04:42:55Z frozen-zero: attention-dev-b3
+frozen-zero b3_rc=0
+## 2026-10-19T04:42:56Z frozen-zero: attention-panel
+frozen-zero panel_rc=0
+## 2026-10-19T04:42:57Z frozen-zero: export-token-cells + census
+frozen-zero cells_rc=0
+frozen-zero census_rc=0
+{"occupied":256,"tie":{"dev_rows_targeting_non_representative":0,"tokens_in_alias_groups":0},"ceiling":14287,"alias":{"1":4096}}
+GATE frozen-zero_GOCC: PASS
+GATE frozen-zero_GINIT_TABLE: PASS
+GATE frozen-zero_INIT_LOCK_GATES: PASS
+## 2026-10-19T04:42:58Z frozen-zero: unpinned initializer (parent rows_v1 config)
+frozen-zero unpinned_init_rc=0
+frozen-zero routes pinned=71cdce5745294836cde996e8d595ac8113c7b77d6d9c3a66d3a2143d5fbf5117 unpinned=71cdce5745294836cde996e8d595ac8113c7b77d6d9c3a66d3a2143d5fbf5117
+GATE frozen-zero_GINIT_UNPINNED_routes: PASS
+frozen-zero gates pinned=ceb6ae990120140e17d063ce30cd9d07799f0a9fed676b50b912866b7bb1a293 unpinned=ceb6ae990120140e17d063ce30cd9d07799f0a9fed676b50b912866b7bb1a293
+GATE frozen-zero_GINIT_UNPINNED_gates: PASS
+frozen-zero seed pinned=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865 unpinned=4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865
+GATE frozen-zero_GINIT_UNPINNED_seed: PASS
+frozen-zero epoch pinned=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa unpinned=9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa
+GATE frozen-zero_GINIT_UNPINNED_epoch: PASS
+frozen-zero b3[psucc,full]=[1351,4244] top1_full=133
+GATE frozen-zero_REPRODUCTION: PASS
+58cd6f1d4ec3a6dd35c536957e693f58ee41794535110a96e5ecd5896677e703  /workspace/uor-r4/runs/claude/a8-dose-gates-20261019/frozen-zero/snapshot.json
+c919ac5f0ac442983f3dd89e457956dd5c6e8b7a5542c171854f4c58d4940ac6  /workspace/uor-r4/runs/claude/a8-dose-gates-20261019/frozen-zero/request.json
+## 2026-10-19T04:43:00Z frozen-zero: propose gate 22
+frozen-zero propose_gate22_rc=0
+{"candidate":0,"before":59136,"after":59136,"any_candidate_cost_differs_from_identity":true,"epoch":0,"candidate_losses":[59136,59872,60928,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615]}
+GATE frozen-zero_GATE22_SENSITIVE: PASS
+## 2026-10-19T04:43:05Z frozen-zero: propose gate 0
+frozen-zero propose_gate0_rc=0
+{"candidate":0,"before":59136,"after":59136,"any_candidate_cost_differs_from_identity":true,"epoch":0,"candidate_losses":[59136,61312,62400,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615,18446744073709551615]}
+GATE frozen-zero_GATE0_SENSITIVE: PASS
+frozen-zero psucc_top1_cp0=62
+## 2026-10-19T04:43:10Z cross-arm: checkpoint-0 models byte-equal (INIT LOCK supplement)
+GATE CROSS_ARM_MODEL: PASS
+## 2026-10-19T04:43:10Z Bar (i) and net G-Cap
+bar_i=86 ceiling=14287 b3_psucc=1351 net_gcap=1351 threshold=500
+GATE NET_GCAP: PASS
+GATE B3_INIT: PASS
+## 2026-10-19T04:43:10Z G-Init negative (a): edited A8 table, stale hashes, refused on the host
+neg_a_rc=2
+/workspace/uor-r4/runs/claude/a8-dose-gates-20261019/neg/a-run/report.json
+invalid discrete model: content hash differs: /workspace/uor-r4/runs/claude/a8-dose-gates-20261019/neg/a.json
+
+GATE NEG_A: PASS
+## 2026-10-19T04:43:10Z G-Init negative (b): re-hashed re-pinned A8 non-root word, refused on the GPU (status 6)
+neg_b_rc=2 nb=e35bb48d800cd41e5e6b0b48d4b41b8b61fc147f4fde98c54e8dff919d15f90e
+/workspace/uor-r4/runs/claude/a8-dose-gates-20261019/neg/b-run/report.json
+invalid discrete model: discrete CUDA snapshot validation refused with status 6
+
+GATE NEG_B: PASS
+## 2026-10-19T04:43:10Z qualify-relation (C2 ACTIVE/INERT, relation suite, INIT LOCK record)
+qualify_rc=0
+{"status":"PASS","registered":9,"passed":9,"not_run":0,"applied_updates":0}
+GATE QUALIFY_RELATION: PASS
+{"part":"INIT LOCK","treatment_control_snapshot_bit_identical":true,"reload_bit_identical":true,"plus_one_combine_indices":[0,5,10,15],"snapshot_sha256":"4fd9d9665964a5d448dd74a9f15c288c86b051a5f3d472ebaa90abcfa5cff423","applied_updates":0}
+{"part":"INIT LOCK","treatment_control_snapshot_bit_identical":true,"reload_bit_identical":true,"plus_one_combine_indices":[0,5,10,15],"snapshot_sha256":"83387d14ef50f113238a88226fa75df82a7f718fd90a594519e6fb520eabc12d","applied_updates":0}
+{"part":null,"treatment_control_snapshot_bit_identical":null,"reload_bit_identical":null,"plus_one_combine_indices":null,"snapshot_sha256":null,"applied_updates":null}
+GATE INIT_LOCK_RECORD: FAIL
+## 2026-10-19T04:43:26Z done
+GATES_FAILED
+GATES_DONE
+# exit=0 end=2026-10-19T04:43:26Z
