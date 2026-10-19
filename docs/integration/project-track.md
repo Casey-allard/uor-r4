@@ -213,7 +213,43 @@ instead of a 404.
 
 ## Post-dose optimization path
 
-Archived 2026-10-18. Text:
+**Current, 2026-10-19 — the address-structured attention path (owner-approved).** The archived
+October 18 path and D39's W1–W4 are the lineage; tonight's evidence moved the path through them:
+
+1. **W1 K16 A/R — DONE (2026-10-18).** Four trajectories terminal, custody sealed and
+   cross-verified (#2720). Registered call: `OCCUPANCY_COLLAPSE_TRIGGERED`, no KEEP, D22
+   configuration negative at exact scope; arm A (address-margin objective) is the objective of
+   record (#2723). Neither mechanism family closed.
+2. **W2 read-code capacity — DONE.** DeepSeek ACCEPT at the v5.1 verifier (#2029 6257268086).
+3. **Injective attention attempt — INSTRUMENT_UNREACHABLE (2026-10-19, #2733).** The seeded
+   codebook admitted everything but could not rank (16 shared cells); the injective PrimeZeta
+   codebook ranked but admitted ~3% (B3_init 127 < 500). A design contradiction measured for
+   $0.40 at pre-flight, zero training updates.
+4. **Address-structured injective cells — BATTERY PASS (2026-10-19).** Placement of each token's
+   cell near its TRAIN predecessors' cells, injectivity and the 256-cell address space retained:
+   **A8 P_succ 1,351/3,847 (35.1%) vs the B3_init ≥ 500 gate; S8 shuffled-packing control 476;
+   P8 instrument exactness 427/127 reproduced exactly.** The predecessor structure, not repacking,
+   moves admission (#2029 6258943688; independently recomputed from byte-verified retained
+   reports; $0.143). This is the measured foundation of the attention read: the model's K-cell
+   window now contains the target often enough to learn.
+5. **Training-dose sheet (current critical path).** The actual attention test — Relation
+   learning with updates at the now-reachable admission, A8-vs-S8 as the control structure.
+   FIT review → typed D40 owner release → dispatch. Stage T (BVG-K training integration, W3)
+   registers after admission; its construction stages C1/C2 are DONE (scoring cost flat in K,
+   16.25× at K=16, #2713/#2722).
+6. **Throughput sprint (parallel).** Occupancy fix (8 of 170 SMs was the measured bottleneck)
+   and scratch reuse (#2743 merged; CUDA equivalence/timing qualification next). This pays for
+   the shape upgrade.
+7. **Shape upgrade (after Stage T measurement).** V 4,096 → 16,384 (B=4, injective with 4×
+   slack, u16 format unchanged) and context 192 → 512, with a Rust BPE trainer and a new corpus
+   lineage. Sized by measured throughput, not ambition.
+8. **Teacher pass (D41, owner-ratified 2026-10-19).** One-time offline `distill-d1` corpus from
+   `openai/gpt-oss-120b`, hard targets only on the unchanged D32 discrete path, typed D40
+   release at dispatch, exception expires at corpus seal. $2 pilot first.
+9. **W4 conditional float sheet (unchanged).** D37 scope: offline only, separate scanned module,
+   export gap reported.
+
+Archived October 18 text:
 [Post-dose optimization path  owner direction, October 18](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/history/project-track-archive-2026-10-18.md#post-dose-optimization-path--owner-direction-october-18).
 
 ## Research dependencies and exit conditions
