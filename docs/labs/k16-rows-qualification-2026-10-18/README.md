@@ -1,5 +1,7 @@
 # K16 rows qualification — 18 October 2026
 
+> **Successor, 18 October 23:54 UTC:** all four released K16-A/R trajectories have completed, with final DATA and late operator custody verified. See the [four-role execution record](../k16-four-role-execution-2026-10-18/README.md). Training `NOT_RUN` and admission-preparation statements below retain their qualification-time scope; they do not describe the later execution. Registered interpretation and conditional fresh disposition remain pending.
+
 The first registered `rows_v1` qualification at protected source
 `21224b446db14efc8f9123cf8c43917a5337ea95` completes the declared construction,
 finite controls, G-Pre, C-R1..C-R6 and two checkpoint-0 timing cells. The timing

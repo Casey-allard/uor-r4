@@ -33,8 +33,11 @@ G-Pre except each graph's honest compiled-source identity.
 [Results and exact build graphs](docs/labs/k16-rows-qualification-2026-10-18/README.md)
 retain the original bccc E0063 failure and subsequent protected repairs as history.
 
-**DATA and late operator custody are verified; Claude ACCEPT6254417234 is recorded; K16-A/seed1 COMPLETED 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); K16-R-seed1 COMPLETED 16,404/130, exit 0 at 22:02:38Z (report 2c0ccad5, eval bb6885e8; DEV 14,287/12,089/101/515), COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION; A-seed2 COMPLETED 16,404/410, exit 0 at 22:39:16Z (report 3d4d17fe, final eval d7976a0b; DEV 14,287/3,167/463/1,295), COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION; fresh UNAVAILABLE_NOT_RUN; R-seed2 RUNNING since 22:40:35Z (PID 178054); registered paired interpretation pending.**
-All15 DATA shards and the separate metadata reconcile to19 cloud objects; the
+**DATA and late operator custody are verified; Claude ACCEPT6254417234 is recorded; K16-A/seed1 COMPLETED 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); K16-R-seed1 COMPLETED 16,404/130, exit 0 at 22:02:38Z (report 2c0ccad5, eval bb6885e8; DEV 14,287/12,089/101/515), COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION; A-seed2 COMPLETED 16,404/410, exit 0 at 22:39:16Z (report 3d4d17fe, final eval d7976a0b; DEV 14,287/3,167/463/1,295), COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION; fresh UNAVAILABLE_NOT_RUN; R-seed2 COMPLETED 16,404/129, exit 0 at 23:16:56Z (report 6ed5d05d, final eval 0dfd6fa5); registered paired interpretation pending.**
+
+Final four-role execution and custody are recorded in the [canonical result](docs/labs/k16-four-role-execution-2026-10-18/README.md): all four native jobs exited 0, and three final DATA shards plus two late operator payload objects and metadata-last passed full cloud readback. Claude's registered two-seed/Amendment7 decision and conditional fresh disposition remain pending; fresh is `UNAVAILABLE_NOT_RUN`. Normal close and final resource accounting are not yet recorded. These archives are additional to the prior qualification custody.
+
+The prior qualification's 15 DATA shards and the separate metadata reconcile to19 cloud objects; the
 two late operator payload groups and metadata also have full verified readbacks.
 The [sealed packet request6254373730](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254373730)
 binds these receipts and the four DOCUMENT_ONLY configs. The

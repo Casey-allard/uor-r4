@@ -14,7 +14,7 @@
 > is ISSUED_GATED_START. Claude's actual four-init raw/net coverage census >1,941
 > is [POSTED_PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425):
 > raw/net1,986 on all roles >1,941. The3,119-byte census report has verified
-> retrieved cloud custody; no further census wait remains. K16-A/seed1 completed 16,404/407 (exit 0 20:58:35Z; report fa863063, final 6936cf99); R-seed1 completed 16,404/130 (exit 0 22:02:38Z; report 2c0ccad5, eval bb6885e8); A-seed2 completed 16,404/410 (exit 0 22:39:16Z; report 3d4d17fe, final eval d7976a0b); R-seed2 running since 22:40:35Z. The owner-waived Q4 cells/importer remain off
+> retrieved cloud custody; no further census wait remains. K16-A/seed1 completed 16,404/407 (exit 0 20:58:35Z; report fa863063, final 6936cf99); R-seed1 completed 16,404/130 (exit 0 22:02:38Z; report 2c0ccad5, eval bb6885e8); A-seed2 completed 16,404/410 (exit 0 22:39:16Z; report 3d4d17fe, final eval d7976a0b); R-seed2 completed 16,404/129 (exit 0 23:16:56Z; report 6ed5d05d, final eval 0dfd6fa5). The owner-waived Q4 cells/importer remain off
 > the critical path. D39's current plan is [NOW.md](../integration/NOW.md), with
 > interim headline injective codebook + Q4 target admission ≥ 4,894; the earlier
 > reply37/232 remains historical SUSPENDED evidence under R14.
@@ -22,6 +22,8 @@
 > [D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) permits offline floating point, retaining matmul/GEMM and softmax/squashing bans, GPU-only model compute and separately qualified D11 export. Other training, M2 and Stage B holds remain.
 >
 > Work claims and reviewer availability are renewable and belong in the live harness/issue. Start with the [session contract](session-goal.md), [protocol](protocol.md), [current architecture](../architecture.md) and [discrete crate](../../crates/uor-r4-discrete/README.md); the dated packets below preserve historical scope.
+
+> **Final four-role custody:** all four jobs exited 0. Three final DATA shards and two late operator payloads plus metadata-last passed full cloud readback. See the [execution record](k16-four-role-execution-2026-10-18/README.md). Registered interpretation, conditional fresh disposition and normal close remain pending.
 
 > **Current owner direction, October 1 — D19:** grounded conversation and durable
 > memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek

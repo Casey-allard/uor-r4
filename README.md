@@ -25,7 +25,7 @@ diagnostic pilot that learned 236 vector updates. The latest paired attention at
 its pre-registered Q1 admission gate in both arms: a configured admission collapse, not an
 accuracy result or a mechanism verdict
 ([record](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)). The immediate priority is
-preparing native admission transport for the owner's relayed and PM-dispatched K16-A/R training release after Claude's posted census PASS.
+completing the registered interpretation of the four finished K16-A/R trajectories; final DATA and late operator archives are verified.
 
 ## What works today, and what does not
 
@@ -128,9 +128,11 @@ runs in the current M1 kernel or has measured predictive advantage.
 **0 of 8 milestones complete.** Each closes only when its acceptance is met on a saved model.
 Live tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 
+Final four-role execution and custody are recorded in the [canonical result](docs/labs/k16-four-role-execution-2026-10-18/README.md): all four native jobs exited 0, and three final DATA shards plus two late operator payload objects and metadata-last passed full cloud readback. Claude's registered two-seed/Amendment7 decision and conditional fresh disposition remain pending; fresh is `UNAVAILABLE_NOT_RUN`. Normal close and final resource accounting are not yet recorded. These archives are additional to the prior qualification custody.
+
 | Milestone | Issue | Status | Headline now → target |
 |---|---|---|---|
-| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | K16 qualification gates/timing passed; DATA/operator custody verified; Claude ACCEPT; PM dispatch ISSUED_GATED_START; four-init census POSTED_PASS; report custody verified; K16-A/seed1 COMPLETED 16,404/407 (exit 0 20:58:35Z; report fa863063, final 6936cf99); R-seed1 COMPLETED 16,404/130 (exit 0 22:02:38Z; report 2c0ccad5, eval bb6885e8); A-seed2 COMPLETED 16,404/410 (exit 0 22:39:16Z; report 3d4d17fe, final eval d7976a0b); R-seed2 RUNNING since 22:40:35Z; no result yet | D39 interim: injective codebook + Q4 target admission ≥ 4,894; historical reply37/232 SUSPENDED under R14. Qualification is not a learned result or M1 closure |
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | K16 qualification gates/timing passed; DATA/operator custody verified; Claude ACCEPT; PM dispatch ISSUED_GATED_START; four-init census POSTED_PASS; report custody verified; K16-A/seed1 COMPLETED 16,404/407 (exit 0 20:58:35Z; report fa863063, final 6936cf99); R-seed1 COMPLETED 16,404/130 (exit 0 22:02:38Z; report 2c0ccad5, eval bb6885e8); A-seed2 COMPLETED 16,404/410 (exit 0 22:39:16Z; report 3d4d17fe, final eval d7976a0b); R-seed2 COMPLETED 16,404/129 (exit 0 23:16:56Z; report 6ed5d05d, final eval 0dfd6fa5); registered scientific interpretation pending | D39 interim: injective codebook + Q4 target admission ≥ 4,894; historical reply37/232 SUSPENDED under R14. Qualification is not a learned result or M1 closure |
 | M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | held | 437/512 development replies (above 256), but 0/128 on fresh transfer |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | paused | evaluator and session built; waits on an M1 or M2 model |
 | M4 One served model (D11 and a CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | unified D11 model/export unqualified |

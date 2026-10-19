@@ -1,0 +1,215 @@
+{
+  "schema": "uor-r4.k16-four-role-execution-public-projection/1",
+  "draft": true,
+  "document_date": "2026-10-18",
+  "source_commit": "21224b446db14efc8f9123cf8c43917a5337ea95",
+  "runtime_executable_raw_sha256": "3add3e8d6942dc53d90682446914338e99141dc81ef08a1b79b8e71a6565c336",
+  "native_compiled_source_sha256": "035b3c127bb5a0eb84e50901cabb09391922e40ec6ffb3b4f638abccf6930b85",
+  "driver_source_sha256": "9a1b121b0d8896bdba85baed40d95834f01bdb9b22d48167c374e34de8fa069e",
+  "execution": "ALL_FOUR_REGISTERED_TRAJECTORIES_COMPLETE_NATIVE_EXIT_ZERO",
+  "configuration": {
+    "read": "Route",
+    "objective_arms": [
+      "K16-A",
+      "K16-R"
+    ],
+    "seeds": [
+      1,
+      2
+    ],
+    "backend": "rows_v1",
+    "shape": "V4096/B4/C192/K16",
+    "schedule": "CanonicalVectorThenReadV1",
+    "batches_per_role": 16404
+  },
+  "roles": [
+    {
+      "role": "k16-A-seed1",
+      "completed_batches": 16404,
+      "accepted_updates": 407,
+      "native_exit": 0,
+      "native_end": "2026-10-18T20:58:35Z",
+      "source_status": "COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION",
+      "report_raw_sha256": "fa8630637c5c7bebf9d465f54eb9449c0efe26354ab29134a785d2955d4b3f28",
+      "final_evaluation_raw_sha256": "6936cf9983f18c2e08d13e4a97e1b942f6fc3c60f14b2fa704fff3e5f86ae5f3",
+      "DEV_rows": 14287,
+      "DEV_target_admitted": 2237,
+      "DEV_top1_correct": 65,
+      "final_checkpoint_raw_sha256": "5c334ace84e5b3f80eeca849b8c0a455ede9d0f559b39d3b488fc97c75947bf6",
+      "DEV_top8_correct": 547
+    },
+    {
+      "role": "k16-R-seed1",
+      "completed_batches": 16404,
+      "accepted_updates": 130,
+      "native_exit": 0,
+      "native_end": "2026-10-18T22:02:38Z",
+      "source_status": "COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION",
+      "report_raw_sha256": "2c0ccad526af018877e79fb63ca366302a4cb6a5fd3e979912a56410d3b60d74",
+      "final_evaluation_raw_sha256": "bb6885e8ee0d30e8efce0f6a08a9b22873894023a229056a710ef5bb0f27575c",
+      "DEV_rows": 14287,
+      "DEV_target_admitted": 12089,
+      "DEV_top1_correct": 101,
+      "final_checkpoint_raw_sha256": "9b4c4a6930c464610883f2e5c960c8ab55ed1db3312ca9477aa9aa12f1a1689e",
+      "DEV_top8_correct": 515
+    },
+    {
+      "role": "k16-A-seed2",
+      "completed_batches": 16404,
+      "accepted_updates": 410,
+      "native_exit": 0,
+      "native_end": "2026-10-18T22:39:16Z",
+      "source_status": "COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION",
+      "report_raw_sha256": "3d4d17fee9ab692b3547adfabdd849763918745925429e2f80aa9b764f336a6d",
+      "final_evaluation_raw_sha256": "d7976a0bce774f79c2ee06df5a8f81879e53846cc73a5e50309e3d84e7068180",
+      "DEV_rows": 14287,
+      "DEV_target_admitted": 3167,
+      "DEV_top1_correct": 463,
+      "final_checkpoint_raw_sha256": "0a8b9556f8083c3e0d005661eae67ddb6dc8b341d41b9c080213001197fc0373",
+      "DEV_top8_correct": 1295
+    },
+    {
+      "role": "k16-R-seed2",
+      "completed_batches": 16404,
+      "accepted_updates": 129,
+      "native_exit": 0,
+      "native_end": "2026-10-18T23:16:56Z",
+      "source_status": "COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION",
+      "report_raw_sha256": "6ed5d05d50fe7ec5d31ba818fd65eb03cef3a3aefd5fa6084d6688969036dd7b",
+      "final_evaluation_raw_sha256": "0dfd6fa5707012832fc88e4ab1f39e9ef86a6be1ccaa47f2cd7daace5f080df9",
+      "DEV_rows": 14287,
+      "DEV_target_admitted": 12466,
+      "DEV_top1_correct": 230,
+      "final_checkpoint_raw_sha256": "cc3751f9bef888424ba30635319bbf398fba6cebda0b52d9d357b6e5a5028517",
+      "DEV_top8_correct": 824
+    }
+  ],
+  "authority_comments": {
+    "qualification_acceptance": 6254417234,
+    "owner_relay": 6254435225,
+    "PM_dispatch": 6254457591,
+    "four_init_census_PASS": 6254480425,
+    "four_PM_records": 6254679412,
+    "owner_ratification": 6254801586
+  },
+  "final_DATA": {
+    "custody_join_raw_sha256": "44eafa157fdba6060ca6ee0d43db8fffa3f1b38db1514709e7590f04f4a90459",
+    "index_sha256": "c21cd8b1591eab12c2b71ecff3f9fa8646b6c65c68d7a1b0a8be1205ca111127",
+    "objects": [
+      {
+        "id": "training-root-part-000",
+        "object_basename": "codex-cf1-k16-four-role-data1-training-root-part-000-2324z.tar",
+        "outer_bytes": 351675392,
+        "outer_md5": "948cd0b9bb4eb22bcda3470e001abd00",
+        "inner_gzip_sha256": "1ca211b4975c61e8aaaf21a2b01911d7842f213ae4f1cd0ba1997e41f6fdfe77",
+        "inner_gzip_bytes": 351480539,
+        "regular_members": 1130,
+        "raw_regular_bytes": 7387870556
+      },
+      {
+        "id": "frozen-controls-part-000",
+        "object_basename": "codex-cf1-k16-four-role-data1-frozen-controls-part-000-2324z.tar",
+        "outer_bytes": 543232,
+        "outer_md5": "0c5a2d4db5ab34530ba94f1281650039",
+        "inner_gzip_sha256": "3c47f642f25b7a43c72abc85436ee57dc33d12a42e1fa5c423597f4f07722176",
+        "inner_gzip_bytes": 509604,
+        "regular_members": 94,
+        "raw_regular_bytes": 2827437
+      },
+      {
+        "id": "metadata-part-000",
+        "object_basename": "codex-cf1-k16-four-role-data1-metadata-part-000-2324z.tar",
+        "outer_bytes": 222208,
+        "outer_md5": "ba5688cbbdf5c0708e5d2234e0e357c7",
+        "inner_gzip_sha256": "65cadb6e79d697eeac495f3313d21346789b71ac91743bf1e85c23366bb5efc0",
+        "inner_gzip_bytes": 197155,
+        "regular_members": 51,
+        "raw_regular_bytes": 1122052
+      }
+    ],
+    "same_reader_all_member_sha256": "VERIFIED",
+    "full_cloud_MD5_and_index": "VERIFIED",
+    "original_source_POST_identity": "VERIFIED",
+    "host_raw_checkpoint_extraction": false,
+    "public_receipt": 6256611456
+  },
+  "member_map": {
+    "raw_sha256": "8ad8ec3c4a88962ff89463f75ef14ca05693361e8c2b1b378868af9ede230b99",
+    "actual_cloud_binding_raw_sha256": "539e5348a4be0c5e31db3265ed9e31a0a78bdcfa96f8671d36ae844493af02ad",
+    "public_receipt": 6256619207
+  },
+  "final_lateOP": {
+    "final_result_raw_sha256": "6318b36073c03b11c6d80f4e0910338792b8313d624988c9b0ebf7e0f2848f03",
+    "authority_raw_sha256": "db5aedad06dc43fbdf2545f3db5212e7b3e5ed339d5537e4c2ea6b7964a897af",
+    "selected_regular_files": 3546,
+    "selected_regular_bytes": 74246206,
+    "objects": [
+      {
+        "id": "group001",
+        "object_basename": "codex-k16-final-operator-group001-2344z.tar",
+        "outer_bytes": 18341888,
+        "outer_md5": "4f25dcd0e0d3a484e5f3391a21bbf62b",
+        "inner_gzip_sha256": "9420e314baf13bca53abd31de16c665166a6b0f5b9e0caeb6f8a9f8bbed172c4",
+        "regular_members": 178,
+        "raw_regular_bytes": 66284905
+      },
+      {
+        "id": "group002",
+        "object_basename": "codex-k16-final-operator-group002-2344z.tar",
+        "outer_bytes": 4226048,
+        "outer_md5": "f30225c855d5335c29195801d1241d6f",
+        "inner_gzip_sha256": "b812353f59c90f393562dd2c04717f79561384f9545cd731d22708e95af601f1",
+        "regular_members": 3368,
+        "raw_regular_bytes": 7961301
+      },
+      {
+        "id": "metadata",
+        "object_basename": "codex-k16-final-operator-metadata-2344z.tar",
+        "outer_bytes": 787456,
+        "outer_md5": "def2482a5115a6f673a2e24dd30b18e1",
+        "inner_gzip_sha256": "fa713df26b9ebf8fd050840766149133345b93f58f01db1f463ecf4e3fade18d",
+        "regular_members": 38,
+        "raw_regular_bytes": 7816612
+      }
+    ],
+    "same_reader_all_member_sha256": "VERIFIED",
+    "full_cloud_MD5_and_index": "VERIFIED",
+    "originals_and_failed_attempts_retained": true,
+    "public_receipt": 6256692287
+  },
+  "scientific_disposition": {
+    "status": "PENDING_CLAUDE_REGISTERED_TWO_SEED_INTERPRETATION",
+    "genuine_outcome_comment": null,
+    "outcome_receipt_raw_sha256": null,
+    "Amendment7_census": "PENDING_ACTUAL_ATTRIBUTED_RESULT",
+    "new_KEEP_or_mechanism_claim": false,
+    "fresh": {
+      "status": "UNAVAILABLE_NOT_RUN",
+      "conditional_disposition": "PENDING_REGISTERED_INTERPRETATION",
+      "execution_receipt": null
+    }
+  },
+  "consumer_source_review": {
+    "comment": 6256723035,
+    "helper_raw_sha256": "588ffa12fdac7a3087ebf89f8265c3d34de38346aeab43d98454f63c51a1ad4a",
+    "previous_two_interface_findings": "CLOSED",
+    "manifest_shortcut_authentication": "NEW_CONFINED_SOURCE_REPAIR_REQUESTED",
+    "custody_invalidated": false,
+    "independently_authenticated_evidence_available_to_Claude": true,
+    "consumer_executed_by_this_delivery_preparation": false
+  },
+  "resource_accounting": {
+    "quote_usd_per_hour": 0.908,
+    "quote_is_invoice": false,
+    "historical_proxy_cutoff_utc": "2026-10-18T19:46:01Z",
+    "historical_proxy_usd": 4.308712222,
+    "later_retained_resource_time": "FINAL_ACCOUNTING_PENDING_ACTUAL_CUTOFF",
+    "final_total_usd": null,
+    "storage_transfer_charges": "UNMEASURED",
+    "normal_close": "NOT_PERFORMED",
+    "actual_close_receipt": null,
+    "healthy_or_future_retries_authorized_by_this_record": false
+  },
+  "scope_limit": "Public documentary projection. No raw owner/admission capability, provider payload, personal path, private storage URI or model array. Not machine admission and not byte-identical to sealed private receipts.",
+  "observation_cutoff_utc": "2026-10-18T23:54:54Z"
+}

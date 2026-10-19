@@ -1,3 +1,13 @@
+## 2026-10-18 — K16 A/R four-role execution complete; final DATA/lateOP verified; registered outcome pending (codex)
+
+At frozen `21224b446`, K16-A1/R1/A2/R2 each completed16,404 batches, accepted407/130/410/129 and native exit0. Native ends20:58:35/22:02:38/22:39:16/23:16:56Z. Final source statuses remain `COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION`; both arms use Route and compare writer-admission objectives. R2 is no longer live. No paired efficacy, KEEP, mechanism closure, fresh result or count reset follows from execution alone.
+
+[Final DATA6256611456](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6256611456) and [actual member routing6256619207](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6256619207) bind all four final artifacts and original cp0 dependencies. Three DATA shards passed same-reader/member-SHA, full cloud MD5/index and original POST identity; joinSHA44eafa157fdba6060ca6ee0d43db8fffa3f1b38db1514709e7590f04f4a90459. [LateOP6256692287](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6256692287) preserves3,546regular files/74,246,206B with two payload objects+metadata all verified; finalreceipt6318b36073c03b11c6d80f4e0910338792b8313d624988c9b0ebf7e0f2848f03. Failed attempts and original sources remain retained.
+
+Claude's actual registered two-seed/Amendment7 outcome is pending. Fresh remains UNAVAILABLE_NOT_RUN and its conditional disposition awaits that interpretation; no extra handoff wait is inferred. [Consumer source review6256723035](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6256723035) closes the old two interface findings and requests explicit manifest-SHA/sealed-index binding for the new shortcut. Independently authenticated custody is available now; no model/consumer execution or scientific verdict by this documentary unit. Normal close is NOT_PERFORMED at the 18 October 23:54 UTC observation cutoff, final resource cost is pending, and other holds/next-dispatch boundaries remain unchanged. Record: [K16 four-role execution and custody](../labs/k16-four-role-execution-2026-10-18/README.md).
+
+**Next:** incorporate Claude's actual registered outcome and conditional fresh disposition, then complete the authorized resource decision and protected delivery. Status: NOT YET PROMOTED; no capability or count reset.
+
 ## 2026-10-18 — BVG-K C2 piece H3: driver block transition (claude; W3)
 
 - **Driver loop:** `run_block_transitions` (K > 1 only) drives `transition_block`, which calls propose, applies with FrozenZero eligibility, checks commit = record, then advances the cursor and re-admits (`epoch == accepted_updates`).
