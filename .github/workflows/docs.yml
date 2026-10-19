@@ -1,0 +1,99 @@
+name: docs
+
+# Docs-reorganization guard: archive/ is immutable, checksum manifests do not
+# regress, links do not break and the claim-wording gate passes. Not a required
+# check; path-filtered so it never competes for the shared runner slot.
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'archive/**'
+      - 'xtask/**'
+      - 'book.toml'
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: docs archive and links
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-docs-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-docs-${{ runner.os }}-
+
+      - name: Build xtask
+        run: cargo build -q --locked -p xtask
+
+      - name: Base worktree
+        if: github.event_name == 'pull_request'
+        run: git worktree add ../base "${{ github.event.pull_request.base.sha }}"
+
+      # A base commit that predates a task skips that comparison with a notice;
+      # a base that has the task but fails to run it fails the job.
+      - name: Baselines from the base commit
+        if: github.event_name == 'pull_request'
+        working-directory: ../base
+        env:
+          # The base gets its own target dir: a shared one lets cargo treat the
+          # newer base artifacts as fresh for the head, so head steps would run
+          # base code.
+          CARGO_TARGET_DIR: ${{ runner.temp }}/base-target
+        run: |
+          set -euo pipefail
+          if grep -q '"archive-verify"' xtask/src/main.rs; then
+            cargo run -q --locked -p xtask -- archive-verify --json "$GITHUB_WORKSPACE/base-av.json"
+          else
+            echo "::notice::archive-verify is not in the base commit; skipping the manifest comparison"
+          fi
+          if grep -q '"links"' xtask/src/main.rs; then
+            cargo run -q --locked -p xtask -- links --json "$GITHUB_WORKSPACE/base-links.json"
+          else
+            echo "::notice::links is not in the base commit; skipping the link comparison"
+          fi
+
+      # Archive immutability (--base) needs no baseline file and always runs on PRs.
+      - name: Archive verify
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            cargo run -q --locked -p xtask -- archive-verify
+            exit 0
+          fi
+          BASE=${{ github.event.pull_request.base.sha }}
+          if [ -f base-av.json ]; then
+            cargo run -q --locked -p xtask -- archive-verify --baseline base-av.json --renames-from "$BASE" --base "$BASE"
+          else
+            cargo run -q --locked -p xtask -- archive-verify --base "$BASE"
+          fi
+
+      - name: Links
+        run: |
+          set -euo pipefail
+          if [ -f base-links.json ]; then
+            cargo run -q --locked -p xtask -- links --baseline base-links.json --renames-from "${{ github.event.pull_request.base.sha }}"
+          else
+            cargo run -q --locked -p xtask -- links
+            echo "::notice::no links baseline; reported totals only"
+          fi
+
+      - name: Claim-wording gate
+        run: cargo run -q --locked -p uor-r4-claim-wording -- .

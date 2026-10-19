@@ -1,3 +1,15 @@
+## 2026-10-19 — Repository renormalization: link, inventory, move and archive-verify tooling (claude)
+
+The owner asked for a full audit, reorganization and illustrated rewrite of the repository, with nothing deleted and archived records kept byte-identical. This unit adds the Rust safety net, run before anything moves.
+- `xtask links` checks every tracked markdown link. It can simulate a move, take renames from git, and add virtual pointer stubs.
+- `xtask docs-inventory` lists every docs file with its SHA-256 and manifest coverage, plus every by-string code reference to a doc path.
+- `xtask docs-move` performs renames only, through `git mv`.
+- `xtask archive-verify` checks the SHA256SUMS manifests and fails if any archived file is modified or deleted.
+- A non-required `docs.yml` runs all four on docs PRs.
+
+Baseline at `a15435627`: 14,255 links checked, 552 already broken; 744/0/537 manifest entries ok/mismatch/off-repo; 3,450 code refs to doc paths. Simulated equal-depth move maps would break 1,449–2,010 links. Three hub-file pointer stubs would repair 420 of them. No file moves in this unit. [Record](../labs/repo-renormalization-2026-10-19/README.md).
+**Next:** finish the audit fleet (record catalog, eras, rules, mechanisms), then checkpoint 1 with the owner: charter, mechanism board, move map.
+
 ## 2026-10-19 — Current-work pointers follow delivered controller and consumer (codex)
 
 NOW and ROADMAP point to runbook/executor staging and separate prospective finite

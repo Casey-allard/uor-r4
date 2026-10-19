@@ -10,7 +10,11 @@ use std::process::ExitCode;
 
 use repo_model::{codegen, Model};
 
+mod archive_verify;
 mod audit;
+mod docs_inventory;
+mod docs_links;
+mod docs_move;
 mod figures;
 mod gate;
 mod gnaf_conformance;
@@ -50,6 +54,19 @@ fn main() -> ExitCode {
         "gnaf-conformance" => gnaf_conformance::gnaf_conformance(&root, !write),
         "kappa" => kappa::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         "figures" => figures::run(&root, write),
+        "docs-inventory" => {
+            docs_inventory::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
+                .map_err(Into::into)
+        }
+        "links" => docs_links::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
+            .map_err(Fail::from),
+        "docs-move" => {
+            docs_move::run(&root, &std::env::args().skip(2).collect::<Vec<_>>()).map_err(Into::into)
+        }
+        "archive-verify" => {
+            archive_verify::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
+                .map_err(Into::into)
+        }
         "qubo-codec" => {
             let seed = std::env::args()
                 .nth(2)
@@ -87,6 +104,10 @@ fn main() -> ExitCode {
                  gnaf-conformance  #653 SPEC 17.3: CONFORMANCE.md is deterministically generated from model/claims.json and current\n\
                  kappa <cmd>       #624: publish/fetch/tag against a kappa-registry (R4_KAPPA_REGISTRY)\n\
                  figures           D27: the README/geometry status diagrams are generated and current\n\
+                 links [..]        docs reorganization: tracked-markdown link check (--json OUT, --baseline FILE, --renames-from REV, --simulate MAP.tsv)\n\
+                 docs-inventory --out FILE.json [--prefix P ..]  docs reorganization: docs file inventory and by-string code references\n\
+                 docs-move         move files/dirs with git mv from --map MAP.tsv (dry run unless --apply)\n\
+                 archive-verify    SHA256SUMS manifests vs the tree [--json OUT] [--baseline FILE]; archive/ immutability [--base REV]\n\
                  \n\
                  --write           check-model/gnaf-root/gnaf-manifest/gnaf-conformance/figures: rewrite the generated file instead of checking it"
             );

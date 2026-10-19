@@ -230,6 +230,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/renorm-tooling-20261019": {
+    "branch": "claude/renorm-tooling-20261019",
+    "claimed_at": "2026-10-19T16:42:55-04:00",
+    "head": "a15435627",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/resume-message-20261018": {
     "branch": "claude/resume-message-20261018",
     "claimed_at": "2026-10-18T12:25:57-04:00",
