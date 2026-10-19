@@ -225,13 +225,16 @@ October 18 path and D39's W1–W4 are the lineage; tonight's evidence moved the 
    codebook admitted everything but could not rank (16 shared cells); the injective PrimeZeta
    codebook ranked but admitted ~3% (B3_init 127 < 500). A design contradiction measured for
    $0.40 at pre-flight, zero training updates.
-4. **Address-structured injective cells — BATTERY PASS (2026-10-19).** Placement of each token's
+4. **Address-structured injective cells  admission and paired gates PASS; full G-Init component NOT_RUN (2026-10-19).** Placement of each token's
    cell near its TRAIN predecessors' cells, injectivity and the 256-cell address space retained:
    **A8 P_succ 1,351/3,847 (35.1%) vs the B3_init ≥ 500 gate; S8 shuffled-packing control 476;
    P8 instrument exactness 427/127 reproduced exactly.** The predecessor structure, not repacking,
    moves admission (#2029 6258943688; independently recomputed from byte-verified retained
-   reports; $0.143). This is the measured foundation of the attention read: the model's K-cell
-   window now contains the target often enough to learn.
+   reports; cost proxies about $0.171 wall / $0.156 native uptime, not an invoice). The FIT sheet
+   full G-Init clause (routes/gates/epoch equal an unpinned initializer) was not run; only cross-arm
+   equality was measured, so that component is NOT_RUN and training-sheet drafting is conditional.
+   This is the measured admission foundation of the attention read, not a uniform full PASS or
+   learning evidence.
 5. **Training-dose sheet (current critical path).** The actual attention test — Relation
    learning with updates at the now-reachable admission, A8-vs-S8 as the control structure.
    FIT review → typed D40 owner release → dispatch. Stage T (BVG-K training integration, W3)

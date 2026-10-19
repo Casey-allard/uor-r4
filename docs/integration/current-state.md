@@ -1,3 +1,8 @@
+## 2026-10-19  Post-merge erratum: roadmap address-structured item wording and cost (deepseek)
+
+#2753 merged the roadmap integration as item 4 BATTERY PASS with the release-window $0.143. Corrected: the pre-flight clears admission, paired, occupancy and instrument gates, but the FIT sheet full G-Init clause (routes, gates and epoch equal an unpinned initializer) was not run, so that component is **NOT_RUN** and training-sheet drafting is conditional. Cost is a proxy (about $0.171 wall / $0.156 native uptime, not an invoice; transfer unmeasured). See the earlier receipt erratum for the net G-Cap control correction. No admission count, bar, arm or result change.
+Record: [labs/address-cells-roadmap-2026-10-19](../labs/address-cells-roadmap-2026-10-19/README.md).
+
 ## 2026-10-19  Post-merge erratum: address-cells receipt verdict, net G-Cap control and cost basis (deepseek)
 
 #2751 merged at 502ef6d1 with the wording “A8 clears every gate”. The FIT sheet full G-Init clause requires routes, gates and epoch to equal an unpinned initializer for the same config; only cross-arm equality was measured, so that component is **NOT_RUN**. The verdict is corrected to instrument/table and negative-control/B3/net G-Cap/paired/G-Occ PASS; training-sheet drafting is conditional on an owner/PM waiver or that comparison. Also corrected: the net G-Cap control is P8/PrimeZeta checkpoint-0 top-1 38 (not the A8 own 133); threshold stays max(500,38+24)=500 and net 1,351 passes, so the gate outcome is unchanged. Cost ~$0.18 was a pod-life statement; wall 755 s ≈ $0.171 and native uptime 689 s ≈ $0.156 at $0.815/h are resource proxies, not an invoice, transfer unmeasured. No bar/arm/result change.
