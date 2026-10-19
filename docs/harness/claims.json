@@ -1,24 +1,10 @@
 {
-  "antigravity/attention-cell-reference-scorer": {
-    "branch": "antigravity/attention-cell-reference-scorer",
-    "claimed_at": "2026-10-17T15:52:00-04:00",
-    "head": "07bb99b40",
+  "antigravity/w2-k16-consumer-verifiers-20261019": {
+    "branch": "antigravity/w2-k16-consumer-verifiers-20261019",
+    "claimed_at": "2026-10-18T21:11:48-04:00",
+    "head": "5a16ec323",
     "lab": "antigravity",
-    "note": "Standalone Rust same-cell reference scorer (attention-cell-reference-scorer) for Unit 2b preflight-dev and Dose 1 paired-dev receipts in crates/uor-r4-harness (#2029)"
-  },
-  "antigravity/d32-ratchet-and-proof-model-audit": {
-    "branch": "antigravity/d32-ratchet-and-proof-model-audit",
-    "claimed_at": "2026-10-16T19:52:34-04:00",
-    "head": "2d6794e28",
-    "lab": "antigravity",
-    "note": "Host-only D32 Rust float-type/literal ratchet (uor-harness ratchet d32), Hopper/Blackwell tensor-core ratchet (wgmma/tcgen05), and uor-r4-proof-model D23/D25/D32 inference audit expansion (#2563)"
-  },
-  "antigravity/harness-d32-and-rule-dispatch": {
-    "branch": "antigravity/harness-d32-and-rule-dispatch",
-    "claimed_at": "2026-10-16T22:51:46-04:00",
-    "head": "fa62a670a",
-    "lab": "antigravity",
-    "note": "Implement and wire un-dispatched harness.owner_rules_applied, harness.entry_point, harness.documented_commands (with GROUPS/FLAGS validation), prlint.gates_declared, and receipts.skill_usage_recorded in uor-r4-harness (#2570)"
+    "note": "land W2 v5.1 and K16 consumer verifiers and verify K16 outcome call"
   },
   "claude/batched-coordinates-draft-20261018": {
     "branch": "claude/batched-coordinates-draft-20261018",

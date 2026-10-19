@@ -1,0 +1,237 @@
+{
+  "schema": "uor-r4.k16-rows-redirect-consumer-contract/1",
+  "status": "HOST_ONLY_CONSUMER_CONTRACT_READY_NO_GPU_EXECUTED",
+  "owner_and_pm_authority": {
+    "sheet_path": "docs/harness/prep/m1-discrete-rung0-admission-redirect-2026-10-15.md",
+    "sheet_sha256": "e40034cd03a4e4c76b0f216e499d0f32a151a98fc370bb8939ea97ff67920884",
+    "fit_review_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6199263447",
+    "owner_release_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201365250",
+    "owner_fastpath_decision_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397",
+    "codex_coordination_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250442558",
+    "codex_timing_claim_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250520132",
+    "kimi_pm_scope_audit_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855",
+    "kimi_pm_scope_audit_sha256": "5de86e1269f497900589c13b36980dd665ad689ccd896c0bcf004e133fad67ce",
+    "codex_readiness_update_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250571840"
+  },
+  "ownership_boundaries": {
+    "agy_owned_directory": "/Users/casey.allard/uor-r4-local/antigravity-k16-rows-fastpath-consumer",
+    "codex_owned_directory": "/Users/casey.allard/uor-r4-local/codex-cf1-k16-rows-fastpath",
+    "codex_owned_timing_branch": "codex/cf1-k16-rows-timing",
+    "codex_owned_timing_source": "docs/labs/k16-timing-2026-10-15/instrument/src/main.rs",
+    "claude_owned_branch": "claude/rows-r-objective-20261018",
+    "claude_owned_pr": "https://github.com/UOR-Foundation/uor-r4/pull/2658",
+    "claude_pr_head_reviewed": "3af49e0298b586ca6416a293fe7f41b20a6d4ce5",
+    "shared_repo_root": "/Users/casey.allard/uor-r4",
+    "shared_repo_head_inspected": "fb9e004fb5195c7b0870359cf92ced53b0cc5cbf",
+    "k8_attention_scorer_change_required": false,
+    "k8_attention_scorer_rationale": "Existing redirect report shapes (uor-r4.discrete-corpus-driver/1, uor-r4.admission-rank-fixture-runner/1, uor-r4.completion-checkpoint/1, uor-r4.completion-evaluation/1, uor-r4.completion-report/1, uor-r4.fresh-scoring-report/1) already emit all primary, secondary, safety, and fresh-transfer metrics required by m1-discrete-rung0-admission-redirect-2026-10-15.md. Furthermore, verify_driver_checkpoint_domains in crates/uor-r4-harness/src/attention_reference.rs (#2652, e002430a0bd62372528d82704a815667967a242e) already accepts K16-A and K16-R DriverCheckpoint and EvaluationReport artifacts with Spec{4096,4,192,16}, ReadSpec::Route, ObjectivePolicy::{NearestAddressMarginV1,OccupiedCellRankHingeV1}, CounterfactualPath::RowsV1 ('rows_v1'), SchedulePolicy::CanonicalVectorThenReadV1, and seeds {1,2}."
+  },
+  "frozen_data_and_geometry_bindings": {
+    "data_binding_path": "docs/labs/admission-redirect-packet-2026-10-15/data-binding.json",
+    "data_binding_sha256": "4bd108ad4b1ee4673f87e3b87ef89a01a563a556330fa577d06e675f6be7f460",
+    "train_tokens_sha256": "b1ba1f6fa0f9a0fbcfbe09aa7b8d56ef0f4b7e91fb33b2d9873d7c6a251ef26d",
+    "train_mask_sha256": "ef2d8e4b6bb286dd8be233bc5711d2a5c32d3f258a08365934c6ef94eb7679e8",
+    "dev_tokens_sha256": "44c3ef7fd14b120e12d44e11cd14dd8c91592136598f9860d341a2b2d56e8050",
+    "dev_mask_sha256": "1ef4aa3cf0b61e526eb6119e904d665b6e2667bd21b40e71fd14180cd3b722f5",
+    "fresh_tokens_sha256": "82ead8db9584544a4cc461c394aaf9b00fa6c9fd8fdbf82e316392a71ecabd7b",
+    "fresh_mask_sha256": "3cd682a4528d57dd28c8cf194dfbd7c1317e4f13bf73c3c9487be2e897f966a3",
+    "fresh_rows_sha256": "be825be9c48d888565b415a0219c074a5743ce3be604cb7104e239ffdd0ccce8",
+    "fresh_documents_sha256": "fd9bd32c191a9bc5160e107902a1d14b211a91b87be92bc61a0e92bc8676227a",
+    "tokenizer_sha256": "d21aa0ee2ea8ffbc9f1f92a7efef0cc83b9dc17f1be2aeffe0f08b9158da4cc8",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+    "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+    "sealed_stage_a_k_sweep_sha256": "cc81ca6f76f3a38ac61ffe1d4665a1442d1e42961f4451691327b91b438f472c"
+  },
+  "driver_source_and_arm_bindings_at_fb9e004": {
+    "driver_source_sha256": "9aaf01a834058e13cfe7366c47556c36e78a64e5184bc0da71f0dc58340f27f8",
+    "driver_source_files_hashed_in_order": [
+      "crates/uor-r4-discrete/src/training.rs",
+      "crates/uor-r4-discrete/src/controller.rs",
+      "crates/uor-r4-discrete/src/completion.rs",
+      "crates/uor-r4-discrete/src/redirect_admission.rs",
+      "crates/uor-r4-discrete/src/corpus.rs"
+    ],
+    "note_on_driver_source_sha256": "Neither claude/rows-r-objective-20261018 (#2658, touching crates/uor-r4-discrete/src/rows_qualification.rs) nor codex/cf1-k16-rows-timing (touching docs/labs/k16-timing-2026-10-15/instrument/src/main.rs) modifies the five driver_source_sha256 files; driver_source_sha256 remains 9aaf01a834058e13cfe7366c47556c36e78a64e5184bc0da71f0dc58340f27f8. Note that physical corpus/tokenizer path rebinds in DriverConfig change config_sha256 and lineage_sha256 deterministically as a function of the bound paths.",
+    "repo_relative_arms": {
+      "k16-A-seed1": {
+        "scope": "m1-admission-redirect-k16-a-seed1-checkpoint0..16404",
+        "seed": 1,
+        "objective_policy": "nearest_address_margin_v1",
+        "counterfactual_path": "rows_v1",
+        "historical_lanes_v1_file_sha256": "eff7a77e1c3c8454324c9ddf31a6c08bdbe1b213d3324fe7b7889c0fe7665ae4",
+        "historical_lanes_v1_typed_config_sha256": "58b99b595aa6110c8250e8183b3875e93d19d887a941d295c20937dea73b370d",
+        "rows_v1_typed_config_sha256": "9c9af3da23e22620bf285a9184efec6b24b94ce4d1eed91b03b3566b9286a472",
+        "rows_v1_lineage_sha256": "bb853eeb1fda49d44081c67262284b33e87ec47a07705651d054c73d92a00e55"
+      },
+      "k16-R-seed1": {
+        "scope": "m1-admission-redirect-k16-r-seed1-checkpoint0..16404",
+        "seed": 1,
+        "objective_policy": "occupied_cell_rank_hinge_v1",
+        "counterfactual_path": "rows_v1",
+        "historical_lanes_v1_file_sha256": "25ef452f78cb612bdedd8135461836ec459d1f7c899e2e5940e830c3dffc61b7",
+        "historical_lanes_v1_typed_config_sha256": "4257bfc44b7e6b3f84f112f99a06a0eb83d618fe3fe0246d4b76782b9b395e3a",
+        "rows_v1_typed_config_sha256": "c46d231342ecc2804d7913074fa9f025e630c75d115c1f37159bdf5fb3c777b9",
+        "rows_v1_lineage_sha256": "163fafa887e4e5f8af2314bdea4a8ea746e498210a41517b553e9dfeb42cf1eb"
+      },
+      "k16-A-seed2": {
+        "scope": "m1-admission-redirect-k16-a-seed2-checkpoint0..16404",
+        "seed": 2,
+        "objective_policy": "nearest_address_margin_v1",
+        "counterfactual_path": "rows_v1",
+        "historical_lanes_v1_file_sha256": "bed46548bdb15e883386044442999584696e6cd9acddaf8c2cc5a8be6b578ee4",
+        "historical_lanes_v1_typed_config_sha256": "bf9791597a16e72de012d5367c7f0d77446450466ea2bd5865c694883846e2ba",
+        "rows_v1_typed_config_sha256": "cba7eee4bfd6cd16e36f4416bf21a688e6a238af9451363f6b9a5251ef96c551",
+        "rows_v1_lineage_sha256": "d5baac99ada3438f450290cbbabc7f398c792233d166fe08caa0e4c7ad9f6ceb"
+      },
+      "k16-R-seed2": {
+        "scope": "m1-admission-redirect-k16-r-seed2-checkpoint0..16404",
+        "seed": 2,
+        "objective_policy": "occupied_cell_rank_hinge_v1",
+        "counterfactual_path": "rows_v1",
+        "historical_lanes_v1_file_sha256": "fe9f172b428ee131fac4a3865402f55ef80c3749ef32f1d98a830718ad361156",
+        "historical_lanes_v1_typed_config_sha256": "0726f80e4a94ccce3226e02d5a9cecfdd7ce72bdaf8be2ea241f26bfd4616714",
+        "rows_v1_typed_config_sha256": "0471880ba8db0fb09ee1b24da418fd33189961446190f8e0364381d7a6c98731",
+        "rows_v1_lineage_sha256": "04da4e9628b266a59d324facb343c4165bac59162097fe8b427633d0657ffb46"
+      }
+    }
+  },
+  "timing_receipt_consumer_binding": {
+    "instrument_source": "docs/labs/k16-timing-2026-10-15/instrument/src/main.rs",
+    "owner_branch": "codex/cf1-k16-rows-timing",
+    "required_record_schema": "k16-timing-record/v1",
+    "required_status": "complete",
+    "required_counterfactual_path": "rows_v1",
+    "required_dispatch": "propose_rows_cached",
+    "required_cells": [
+      {
+        "source": "checkpoint0",
+        "policy": "nearest_address_margin_v1",
+        "timed_batches": 100,
+        "excluded_warmups": 1,
+        "applied": false
+      },
+      {
+        "source": "checkpoint0",
+        "policy": "occupied_cell_rank_hinge_v1",
+        "timed_batches": 100,
+        "excluded_warmups": 1,
+        "applied": false
+      },
+      {
+        "source": "sealed_seed1_q4",
+        "policy": "nearest_address_margin_v1",
+        "timed_batches": 100,
+        "excluded_warmups": 1,
+        "applied": false
+      },
+      {
+        "source": "sealed_seed1_q4",
+        "policy": "occupied_cell_rank_hinge_v1",
+        "timed_batches": 100,
+        "excluded_warmups": 1,
+        "applied": false
+      }
+    ],
+    "explicit_refusals": [
+      "Refuse any timing record where counterfactual_path != 'rows_v1' or where legacy lanes_v1 Device::propose was timed.",
+      "Refuse any timing record with timed_batches != 100 (e.g. historical restart5 99-sample off-by-one record or 3-sample diagnostic record).",
+      "Refuse any rows-qualify 5-sample diagnostic timing object (qualified: false) as a substitute for the 100-batch timing slot.",
+      "Refuse any timing record with non-empty faults, applied != false, or snapshot_digest_before != snapshot_digest_after or epoch_before != epoch_after."
+    ]
+  },
+  "rows_qualify_consumer_binding": {
+    "instrument_source": "crates/uor-r4-discrete/src/rows_qualification.rs",
+    "owner_branch": "claude/rows-r-objective-20261018",
+    "pr_number": 2658,
+    "required_controls_count": 7,
+    "required_controls_in_order": [
+      "rows_route_parity",
+      "rows_flock_gate_parity",
+      "rows_relation_gate_parity",
+      "rows_refusal_parity",
+      "rows_forced_terminal_parity",
+      "rows_rank_objective_parity",
+      "rows_rank_hinge_active_parity"
+    ],
+    "active_rank_hinge_predicates": {
+      "control_name": "rows_rank_hinge_active_parity",
+      "kept_cells": 16,
+      "rank_occupied_cells_min": 17,
+      "expected_rank_occupied_cells": 64,
+      "rank_active_rows_min": 1,
+      "objective_sensitive_parameters_min": 1,
+      "racy_refusals_exact": 0,
+      "applied_updates_exact": 0
+    }
+  },
+  "producer_consumer_compatibility_audit": {
+    "uor_r4_discrete_driver_and_controller": {
+      "status": "COMPATIBLE_AS_IS",
+      "details": [
+        "DriverConfig::validate (training.rs:1419) and PreparedDriver::propose_with_path (training.rs:1499) already accept CounterfactualPath::RowsV1 ('rows_v1') and dispatch propose_rows_cached in propose_next and transition.",
+        "controller::validate_redirect_config (controller.rs:202), completion::validate_config (completion.rs:226), redirect_admission::validate_plan (redirect_admission.rs:199), init-corpus, eval-corpus, completion-build-identity, completion-check-plan, and completion accept counterfactual_path: 'rows_v1' without code changes.",
+        "ExecutionIdentity.base_source in redirect_admission.rs:222 must equal '2fa663b54', and sheet.sha256 must equal 'e40034cd03a4e4c76b0f216e499d0f32a151a98fc370bb8939ea97ff67920884'."
+      ]
+    },
+    "admission_rank_fixture_runner_c_r1_to_c_r6": {
+      "status": "COMPATIBLE_IF_HISTORICAL_CONFIG_DIR_PRESERVED",
+      "details": [
+        "CRITICAL: fixtures::run_host_checks (docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/src/fixtures.rs:548-593, called by both 'check' and GPU 'run' inside run_c_r6 at main.rs:1037) verifies the exact historical lanes_v1 raw file SHA-256 and typed config_sha256 of docs/labs/admission-redirect-packet-2026-10-15/configs/k16-{A,R}-seed{1,2}.json.",
+        "Do NOT overwrite docs/labs/admission-redirect-packet-2026-10-15/configs/k16-{A,R}-seed{1,2}.json in place; stage the four rows_v1 DriverConfig files in the new fast-path packet directory (/Users/casey.allard/uor-r4-local/codex-cf1-k16-rows-fastpath) so C-R6 Part 6A continues to pass unchanged.",
+        "C-R6 Part 6C (main.rs:1092-1161) reads --g-pre-dir receipts (g-pre-k8-A-seed1-eval/report.json and g-pre-k16-{A,R}-seed{1,2}-eval/report.json) via driver_evaluation() and driver_zero_update(), which accept both raw uor-r4.discrete-corpus-driver/1 and wrapped uor-r4.completion-evaluation/1 receipts with counterfactual_path: 'rows_v1'."
+      ]
+    },
+    "fresh_scoring_eval": {
+      "status": "COMPATIBLE_AS_IS",
+      "details": [
+        "docs/labs/fresh-scoring-eval-2026-10-15/instrument/src/main.rs:252-351 authenticates CompletionInput (uor-r4.completion-checkpoint/1) and CompletionAdmission (uor-r4.redirect-owner-admission/1) via validate_redirect_config and exact config_sha256/lineage_sha256/model_sha256 equality.",
+        "evaluator.rs:13 requires serde_json::to_value(&before_snapshot) == checkpoint.model (Domain A == Domain B). Keep checkpoint.model exactly as emitted by Device::snapshot() (which omits objective_policy when NearestAddressMarginV1 and does not carry counterfactual_path)."
+      ]
+    }
+  },
+  "acceptance_and_decision_bars": {
+    "g_pre": {
+      "k8_seed1_exact": {
+        "target_admitted_rows": 5680,
+        "top1_correct": 17,
+        "top8_correct": 173,
+        "token_strict_win_eligible_rows": 105,
+        "address_hinge_sum": 261824,
+        "occupied_cells": 16
+      },
+      "k16_all_four_arms_min": {
+        "target_admitted_rows_min": 4894,
+        "occupied_cells_exact": 16,
+        "updates_applied_by_evaluation": 0
+      }
+    },
+    "trained_q4_16404_batches": {
+      "primary_admission_preservation": {
+        "k16_r_minus_k16_a_target_admitted_rows_min_both_seeds": 2000,
+        "k16_r_target_admitted_rows_min_both_seeds": 4500
+      },
+      "secondary_within_admitted_selection": {
+        "k16_r_token_strict_win_eligible_rows_min_both_seeds": 225,
+        "k16_r_top8_correct_min_both_seeds": 368,
+        "k16_r_top1_correct_min_both_seeds": 45,
+        "k16_r_must_not_underperform_k16_a_on_both_seeds": [
+          "token_strict_win_eligible_rows",
+          "top8_correct",
+          "top1_correct"
+        ]
+      },
+      "anti_collapse_and_safety": {
+        "occupied_cells_min_all_quarters": 12,
+        "cell_rank_hinge_sum_must_decrease_from_best_of_checkpoint0_or_q1_to_q4": true,
+        "token_hinge_sum_max_ratio_vs_checkpoint0": 1.05,
+        "route_tail_attempted_exact": 20,
+        "completed_batches_exact": 16404
+      },
+      "fresh_transfer_2000_rows": {
+        "scored_rows_exact": 2000,
+        "required_on_selected_arm_for_keep": true
+      }
+    }
+  }
+}

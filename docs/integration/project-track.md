@@ -46,7 +46,7 @@ line today.
 | # | Step | Owner | State (2026-10-18) |
 |---|---|---|---|
 | 1 | Full one-session qualification at `21224b446`+: 25/25 finite controls + `admit_ptx`, C-R1..C-R6, G-Pre (checkpoint-0 `target_admitted_rows` ≥ 4,894, both seeds), active-R rows checks, two checkpoint-0 A/R 100+1 timing records, measured all-in budget, sealed manifests | Codex | **running** |
-| 2 | Consumer-verifier corrections (two-cell timing amendment, rows-image 4-tuple, C-R5 constants, negative-witness identity, C-R6 four distinct roles, source/checkpoint identity) | Antigravity | in progress |
+| 2 | Consumer-verifier corrections (two-cell timing amendment, rows-image 4-tuple, C-R5 constants, negative-witness identity, C-R6 four distinct roles, source/checkpoint identity, off-host `FilePin` manifest binding) | Antigravity | **complete; K16 helper `fa981782` / README `fc5a765b` (`6256900961`) and W2 v5.1 `db02488e` / `2b6f61e2` / `c21f6e27` (`6256723035`, `6257268086`) closed** |
 | 3 | Packet acceptance — sole seat, owner `6251237195` | Claude | pending |
 | 4 | Regenerate four `rows_v1` configs + measured D-Packet | Codex | pending |
 | 5 | **Training dispatch** — needs PM dispatch and an explicit owner release | Kimi PM + owner | held |

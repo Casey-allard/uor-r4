@@ -1,0 +1,472 @@
+{
+  "schema": "uor-r4.k16-rows-redirect-consumer-contract/2",
+  "supersedes_contract_v1_sha256": "126d6f623ec9b401459d5554d1984837867219cc72313635bcbe9e0031eca701",
+  "v2_corrections_summary": [
+    "Corrected driver_source_sha256 from 5-file subset (9aaf01a8...) to the actual 11-file training::driver_source_sha256() in crates/uor-r4-discrete/src/training.rs:19-33 (9a1b121b0d8896bdba85baed40d95834f01bdb9b22d48167c374e34de8fa069e) and recomputed all four repo-relative, Codex-local-physical, and pod-absolute rows_v1 lineage_sha256 digests.",
+    "Corrected frozen_data_and_geometry_bindings SHA-256 pins to the exact values in docs/labs/admission-redirect-packet-2026-10-15/data-binding.json (train_tokens 3dee858f..., train_mask b5e7352d..., dev_tokens 0919e90f..., dev_mask a838bb1a..., fresh_mask 8287d20d..., fresh_rows 08644303..., fresh_documents 6da8d07d..., tokenizer d36d3e87...).",
+    "Bound #2652 consumer binary /Users/casey.allard/.local/share/uor-r4/bin/attention-cell-reference-scorer (sha256: b62e85c0bd883115b5f7090d26b7e77f6fbf1774811544f41f776d934593e2cb) and commit e002430a0bd62372528d82704a815667967a242e.",
+    "Bound Claude PR #2658 repaired head 5683a5902f1eaa15b79b1202b1ac2c20717cbe0f (rows_qualification.rs sha256: 9f600ea5f74e59cedfcf90e95de535fd49b30690eb0843b172efa85b35165bc5) and Codex PR #2659 head 971e175bb2059cfc7a44af357ad30dab68fb4b1e (k16-timing main.rs sha256: aceba2c3de0bdbafc11a9671090db68d896d4ee1bde4feba98a014fa3f68d661).",
+    "Bound Codex staged configs/inventory.json and readiness-gaps/REPORT.md in /Users/casey.allard/uor-r4-local/codex-cf1-k16-rows-fastpath, plus explicit per-control C-R1..C-R6 schemas/predicates, 4-domain checkpoint/model hashes (Domains A..D), and skip_serializing_if invariants."
+  ],
+  "status": "HOST_ONLY_CONSUMER_CONTRACT_V2_READY_NO_GPU_EXECUTED",
+  "owner_and_pm_authority": {
+    "sheet_path": "docs/harness/prep/m1-discrete-rung0-admission-redirect-2026-10-15.md",
+    "sheet_sha256": "e40034cd03a4e4c76b0f216e499d0f32a151a98fc370bb8939ea97ff67920884",
+    "fit_review_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6199263447",
+    "owner_release_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6201365250",
+    "owner_fastpath_decision_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397",
+    "codex_coordination_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250442558",
+    "codex_timing_claim_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250520132",
+    "kimi_pm_scope_audit_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855",
+    "kimi_pm_scope_audit_sha256": "5de86e1269f497900589c13b36980dd665ad689ccd896c0bcf004e133fad67ce",
+    "codex_readiness_update_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250571840",
+    "codex_q4_dependency_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250605878",
+    "codex_pr2659_and_staging_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250676907"
+  },
+  "ownership_boundaries": {
+    "agy_owned_directory": "/Users/casey.allard/uor-r4-local/antigravity-k16-rows-fastpath-consumer",
+    "agy_owned_repo_interface": "crates/uor-r4-harness/src/attention_reference.rs",
+    "agy_pr2652_merge_commit": "e002430a0bd62372528d82704a815667967a242e",
+    "agy_pr2652_consumer_binary_path": "/Users/casey.allard/.local/share/uor-r4/bin/attention-cell-reference-scorer",
+    "agy_pr2652_consumer_binary_sha256": "b62e85c0bd883115b5f7090d26b7e77f6fbf1774811544f41f776d934593e2cb",
+    "codex_owned_directory": "/Users/casey.allard/uor-r4-local/codex-cf1-k16-rows-fastpath",
+    "codex_owned_timing_branch": "codex/cf1-k16-rows-timing",
+    "codex_owned_timing_pr": "https://github.com/UOR-Foundation/uor-r4/pull/2659",
+    "codex_pr_head_reviewed": "971e175bb2059cfc7a44af357ad30dab68fb4b1e",
+    "codex_owned_timing_source": "docs/labs/k16-timing-2026-10-15/instrument/src/main.rs",
+    "codex_timing_source_sha256": "aceba2c3de0bdbafc11a9671090db68d896d4ee1bde4feba98a014fa3f68d661",
+    "claude_owned_branch": "claude/rows-r-objective-20261018",
+    "claude_owned_pr": "https://github.com/UOR-Foundation/uor-r4/pull/2658",
+    "claude_pr_head_reviewed": "5683a5902f1eaa15b79b1202b1ac2c20717cbe0f",
+    "claude_owned_qualifier_source": "crates/uor-r4-discrete/src/rows_qualification.rs",
+    "claude_qualifier_source_sha256": "9f600ea5f74e59cedfcf90e95de535fd49b30690eb0843b172efa85b35165bc5",
+    "shared_repo_root": "/Users/casey.allard/uor-r4",
+    "shared_repo_head_inspected": "fb9e004fb5195c7b0870359cf92ced53b0cc5cbf",
+    "k8_attention_scorer_change_required": false,
+    "k8_attention_scorer_rationale": "Existing redirect report shapes (uor-r4.discrete-corpus-driver/1, uor-r4.admission-rank-fixture-runner/1, uor-r4.completion-checkpoint/1, uor-r4.completion-evaluation/1, uor-r4.completion-report/1, uor-r4.fresh-scoring-report/1) already emit all primary, secondary, safety, and fresh-transfer metrics required by m1-discrete-rung0-admission-redirect-2026-10-15.md. Furthermore, verify_driver_checkpoint_domains in crates/uor-r4-harness/src/attention_reference.rs (#2652, e002430a0bd62372528d82704a815667967a242e, binary b62e85c0bd883115b5f7090d26b7e77f6fbf1774811544f41f776d934593e2cb) already accepts K16-A and K16-R DriverCheckpoint and EvaluationReport artifacts with Spec{4096,4,192,16}, ReadSpec::Route, ReadInitialization::ZeroGatesV1, ObjectivePolicy::{NearestAddressMarginV1,OccupiedCellRankHingeV1}, CounterfactualPath::RowsV1 ('rows_v1'), SchedulePolicy::CanonicalVectorThenReadV1, and seeds {1,2}."
+  },
+  "frozen_data_and_geometry_bindings": {
+    "data_binding_path": "docs/labs/admission-redirect-packet-2026-10-15/data-binding.json",
+    "data_binding_sha256": "4bd108ad4b1ee4673f87e3b87ef89a01a563a556330fa577d06e675f6be7f460",
+    "train_tokens_sha256": "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8",
+    "train_mask_sha256": "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3",
+    "train_payload_tokens": 7512797,
+    "train_eligible_targets": 2425925,
+    "train_documents": 60000,
+    "dev_tokens_sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b",
+    "dev_mask_sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078",
+    "dev_payload_tokens": 42856,
+    "dev_eligible_targets": 14287,
+    "dev_documents": 400,
+    "fresh_tokens_sha256": "82ead8db9584544a4cc461c394aaf9b00fa6c9fd8fdbf82e316392a71ecabd7b",
+    "fresh_mask_sha256": "8287d20d2c76d388ab7ed9becda6f209d224574a933fa2d14c7bdda3663f5ce4",
+    "fresh_rows_sha256": "086443039e52cf5057fe81f3fa3d1bf938083936080b7cdff378ec7d547440a2",
+    "fresh_documents_sha256": "6da8d07d5c6edddbf15c4d31c2d4d1c855bb727bcbd41684e1aca7f492f3f616",
+    "fresh_payload_tokens": 505085,
+    "fresh_eligible_targets": 2000,
+    "fresh_documents": 200,
+    "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "operator_kappa": "blake3:a0ea3a10dd10c5f4856b0d881d33d94c3293bad0e68bd07a47918e2bb82c819b",
+    "composition_kappa": "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0",
+    "sealed_stage_a_k_sweep_sha256": "cc81ca6f76f3a38ac61ffe1d4665a1442d1e42961f4451691327b91b438f472c",
+    "sealed_seed1_q4_wrapper": {
+      "schema": "uor-r4.completion-checkpoint/1",
+      "wrapper_file_sha256": "4477eb5c2480b0b85cc94036a2e15b0d22b654e25deee9c8717aa6e30f8ef7bf",
+      "inner_model_path": ".checkpoint.model",
+      "inner_model_storage_sha256": "29ba5517a6b1b6d3c7ce54d593221560b446c5048a0b0db882ad53b5ec75bbbf",
+      "historical_source_sha256": "e18361495276e491525674fb3fdce308b0ad787c7fd6860a811adb60dacd9e1a",
+      "historical_kernel_sha256": "931a511bece20641ae00c6b0e943f4f2a380c0f35a824d85fcc0447f1e1ccf5b",
+      "occupied_cells": 189,
+      "original_kept_cells": 8
+    }
+  },
+  "serialization_and_hash_domain_invariants": {
+    "skip_serializing_if_rules": {
+      "DriverConfig_and_DriverConfigRecord": {
+        "objective_policy": "omitted when nearest_address_margin_v1 (K16-A); serialized as \"occupied_cell_rank_hinge_v1\" for K16-R",
+        "read_initialization": "omitted when zero_gates_v1 (always omitted for Route K16-A and K16-R)",
+        "relation_learning_policy": "omitted when learn_v1 (always omitted for Route K16-A and K16-R)",
+        "counterfactual_path": "omitted when lanes_v1; explicitly serialized as \"rows_v1\" between relation_learning_policy and seed for both K16-A and K16-R"
+      },
+      "DeviceSnapshot_and_DeviceSnapshotRecord": {
+        "objective_policy": "omitted when nearest_address_margin_v1 (K16-A); serialized as \"occupied_cell_rank_hinge_v1\" for K16-R",
+        "read_initialization": "omitted in uor-r4-discrete Snapshot (Route/Flock/Relation Snapshot does not serialize read_initialization when zero_gates_v1)",
+        "counterfactual_path": "not a field of Snapshot (Snapshot has 14 fields: schema, spec, read_spec, [objective_policy], seed, epoch, table, routes, gates, operator_kappa, composition_kappa, source_sha256, kernel_sha256, geometry_sha256)"
+      }
+    },
+    "four_checkpoint_and_model_hash_domains": {
+      "domain_A_model_storage_sha256": "sha256(serde_json::to_vec(&checkpoint.model)) — canonical JSON Value key order (BTreeMap alphabetical); stored in DriverCheckpoint.model_sha256",
+      "domain_B_typed_model_snapshot_sha256": "sha256(serde_json::to_vec(&snapshot)) — struct declaration field order of uor_r4_discrete::device::Snapshot (or DeviceSnapshotRecord); stored in EvaluationReport.model_snapshot_sha256",
+      "domain_C_driver_checkpoint_sha256": "sha256(serde_json::to_vec(&driver_checkpoint)) — compact typed DriverCheckpoint / DriverCheckpointRecord serialization",
+      "domain_D_checkpoint_file_sha256": "sha256(raw_checkpoint_file_bytes) — raw on-disk pretty-printed JSON bytes of checkpoint.json",
+      "note_on_fresh_scoring_eval": "docs/labs/fresh-scoring-eval-2026-10-15/instrument/src/evaluator.rs:13 compares serde_json::to_value(&before_snapshot) == checkpoint.model (serde_json::Value equality, which is order-insensitive on JSON object keys), whereas main.rs:335-343 verifies stored_snapshot_hash_domains(&checkpoint.model)?.model_storage_sha256 == checkpoint.model_sha256 (Domain A)."
+    }
+  },
+  "driver_source_and_arm_bindings_at_fb9e004": {
+    "driver_source_sha256": "9a1b121b0d8896bdba85baed40d95834f01bdb9b22d48167c374e34de8fa069e",
+    "driver_source_files_hashed_in_order": [
+      "crates/uor-r4-discrete/src/corpus.rs",
+      "crates/uor-r4-discrete/src/training.rs",
+      "crates/uor-r4-discrete/src/controller.rs",
+      "crates/uor-r4-discrete/src/completion.rs",
+      "crates/uor-r4-discrete/src/completion_baseline.rs",
+      "crates/uor-r4-discrete/src/redirect_admission.rs",
+      "crates/uor-r4-discrete/src/attention_learning.rs",
+      "crates/uor-r4-discrete/src/attention_evidence.rs",
+      "crates/uor-r4-discrete/src/attention_transfer.rs",
+      "crates/uor-r4-discrete/src/attention_preflight.rs",
+      "crates/uor-r4-discrete/src/main.rs"
+    ],
+    "note_on_driver_source_sha256": "Neither claude/rows-r-objective-20261018 (#2658 at 5683a5902f1eaa15b79b1202b1ac2c20717cbe0f, touching crates/uor-r4-discrete/src/rows_qualification.rs) nor codex/cf1-k16-rows-timing (#2659 at 971e175bb2059cfc7a44af357ad30dab68fb4b1e, touching docs/labs/k16-timing-2026-10-15/instrument/src/main.rs) modifies any of the 11 files hashed by training::driver_source_sha256(); driver_source_sha256 remains 9a1b121b0d8896bdba85baed40d95834f01bdb9b22d48167c374e34de8fa069e.",
+    "arms": {
+      "k16-A-seed1": {
+        "scope": "m1-admission-redirect-k16-a-seed1-checkpoint0..16404",
+        "seed": 1,
+        "objective_policy": "nearest_address_margin_v1",
+        "counterfactual_path": "rows_v1",
+        "historical_lanes_v1_file_sha256": "eff7a77e1c3c8454324c9ddf31a6c08bdbe1b213d3324fe7b7889c0fe7665ae4",
+        "historical_lanes_v1_typed_config_sha256": "58b99b595aa6110c8250e8183b3875e93d19d887a941d295c20937dea73b370d",
+        "repo_relative_paths": {
+          "rows_v1_typed_config_sha256": "9c9af3da23e22620bf285a9184efec6b24b94ce4d1eed91b03b3566b9286a472",
+          "rows_v1_lineage_sha256": "6899a00d8cfbf02d036e28b4c95032c91b2ed70666182c72cdf00fa24ea5168f"
+        },
+        "codex_local_physical_paths": {
+          "staged_raw_file_sha256": "cd4fbc4de3b1de9f36f428c2125cb93d2d614f6c6cc666250c855da978bef4c2",
+          "rows_v1_typed_config_sha256": "3cd093853efccef3ad10341ec53d3d0fe18c0c45fe6f0fba0706709cce09a995",
+          "rows_v1_lineage_sha256": "d1213db4cca11d80df8c91be9b8f8abd40cc2983fa7c87e2963009af0f4755eb"
+        },
+        "pod_workspace_absolute_paths": {
+          "rows_v1_typed_config_sha256": "400ad4c21e7a55d1f564cd6968ee48cb57b1addeb3bff096beef7edf756e4877",
+          "rows_v1_lineage_sha256": "a3a5c7e23879cfc698ec7d801d01255580ff64ad373b45d288f6376300b24e82"
+        }
+      },
+      "k16-R-seed1": {
+        "scope": "m1-admission-redirect-k16-r-seed1-checkpoint0..16404",
+        "seed": 1,
+        "objective_policy": "occupied_cell_rank_hinge_v1",
+        "counterfactual_path": "rows_v1",
+        "historical_lanes_v1_file_sha256": "25ef452f78cb612bdedd8135461836ec459d1f7c899e2e5940e830c3dffc61b7",
+        "historical_lanes_v1_typed_config_sha256": "4257bfc44b7e6b3f84f112f99a06a0eb83d618fe3fe0246d4b76782b9b395e3a",
+        "repo_relative_paths": {
+          "rows_v1_typed_config_sha256": "c46d231342ecc2804d7913074fa9f025e630c75d115c1f37159bdf5fb3c777b9",
+          "rows_v1_lineage_sha256": "70c0f5f12301242c9861328e54172c4ba8108a67765daab67509686d0f56ee77"
+        },
+        "codex_local_physical_paths": {
+          "staged_raw_file_sha256": "07460ac3289bbba26b0116153f3d9b25d8b93c701052eb8587040bb1b5c07d49",
+          "rows_v1_typed_config_sha256": "934840bdf12f35e31076ea06eef75b1266969019bfdba402b9101f3578461765",
+          "rows_v1_lineage_sha256": "1bd97e8178e8c8b6951e66d417b6fac6eed0cbfd8cb7e473e509d193ab4c1ec3"
+        },
+        "pod_workspace_absolute_paths": {
+          "rows_v1_typed_config_sha256": "3ade2d1046e19ced4f2044db75c26632a9970888473d54e8dd5f7e5c26f2822d",
+          "rows_v1_lineage_sha256": "805030be1cf0fc611b782c4c38beea3cad612fb1939a0a6e76b03edc4493a596"
+        }
+      },
+      "k16-A-seed2": {
+        "scope": "m1-admission-redirect-k16-a-seed2-checkpoint0..16404",
+        "seed": 2,
+        "objective_policy": "nearest_address_margin_v1",
+        "counterfactual_path": "rows_v1",
+        "historical_lanes_v1_file_sha256": "bed46548bdb15e883386044442999584696e6cd9acddaf8c2cc5a8be6b578ee4",
+        "historical_lanes_v1_typed_config_sha256": "bf9791597a16e72de012d5367c7f0d77446450466ea2bd5865c694883846e2ba",
+        "repo_relative_paths": {
+          "rows_v1_typed_config_sha256": "cba7eee4bfd6cd16e36f4416bf21a688e6a238af9451363f6b9a5251ef96c551",
+          "rows_v1_lineage_sha256": "3d9804e57b1bf4ce55d726de470a0b0ec9d75247772e6249566bf16566398ad5"
+        },
+        "codex_local_physical_paths": {
+          "staged_raw_file_sha256": "e859f1640dee79162a3394f70f8e39b2e7accd41d91d7cc8a147edbb49bd6283",
+          "rows_v1_typed_config_sha256": "ccd36b0b8709b38cb82fa589acb4061600dfea9aa94ed58b4493e54566b4380d",
+          "rows_v1_lineage_sha256": "b2c00e806033352b3fb8cc7a986ab5c20dad5e6d50ff277b285e346e0d177a51"
+        },
+        "pod_workspace_absolute_paths": {
+          "rows_v1_typed_config_sha256": "509af02a13164ef679f75c6856205feed83b0a20e6d46e1abd7c73899f946939",
+          "rows_v1_lineage_sha256": "e0ab1317323aa37e4b337ed7ffd40713dc16814592564ea7a352e0b64a84bf56"
+        }
+      },
+      "k16-R-seed2": {
+        "scope": "m1-admission-redirect-k16-r-seed2-checkpoint0..16404",
+        "seed": 2,
+        "objective_policy": "occupied_cell_rank_hinge_v1",
+        "counterfactual_path": "rows_v1",
+        "historical_lanes_v1_file_sha256": "fe9f172b428ee131fac4a3865402f55ef80c3749ef32f1d98a830718ad361156",
+        "historical_lanes_v1_typed_config_sha256": "0726f80e4a94ccce3226e02d5a9cecfdd7ce72bdaf8be2ea241f26bfd4616714",
+        "repo_relative_paths": {
+          "rows_v1_typed_config_sha256": "0471880ba8db0fb09ee1b24da418fd33189961446190f8e0364381d7a6c98731",
+          "rows_v1_lineage_sha256": "83992b9c5a15067593cb94ed21fb92f2091236ecca5cf6fdca43eab5b67b183e"
+        },
+        "codex_local_physical_paths": {
+          "staged_raw_file_sha256": "fbc575cdb8c1ff3653b019561f91860b14ed64398576da80c3b7dd9ce68b31e0",
+          "rows_v1_typed_config_sha256": "4e41233be893ea10a8e9af987b2a9a7a2aabf247181ac59757df3fd1330171e7",
+          "rows_v1_lineage_sha256": "c6189796277621da9184e5f84b0ac75764a65d68526c9a155671edc5d75d67b0"
+        },
+        "pod_workspace_absolute_paths": {
+          "rows_v1_typed_config_sha256": "374161119eff3978607a558fc92af364f8f4d94d5c83f1bd09204e03abbd3e2f",
+          "rows_v1_lineage_sha256": "8f2912409a8b74d21cfe8f5ed8c8e5632676a01296b525d8761b2c676e909ae9"
+        }
+      }
+    }
+  },
+  "timing_receipt_consumer_binding": {
+    "instrument_source": "docs/labs/k16-timing-2026-10-15/instrument/src/main.rs",
+    "owner_branch": "codex/cf1-k16-rows-timing",
+    "pr_number": 2659,
+    "reviewed_head": "971e175bb2059cfc7a44af357ad30dab68fb4b1e",
+    "instrument_source_sha256": "aceba2c3de0bdbafc11a9671090db68d896d4ee1bde4feba98a014fa3f68d661",
+    "required_plan_schema": "k16-timing-plan/v1",
+    "required_record_schema": "k16-timing-record/v1",
+    "required_status": "complete",
+    "required_counterfactual_path": "rows_v1",
+    "required_dispatch": "propose_rows_cached",
+    "required_rows_image_sha256_present": true,
+    "pending_same_unit_dependency": "Reviewed cross-version evaluation-only Q4 importer for sealed wrapper 4477eb5c2480b0b85cc94036a2e15b0d22b654e25deee9c8717aa6e30f8ef7bf (.checkpoint.model_sha256 = 29ba5517a6b1b6d3c7ce54d593221560b446c5048a0b0db882ad53b5ec75bbbf, 189 occupied cells, K8->K16 evaluation_only_rebind=true, training_resume=false). Existing checkpoint_bridge.rs is checkpoint0-only.",
+    "required_cells": [
+      {
+        "source": "checkpoint0",
+        "policy": "nearest_address_margin_v1",
+        "timed_batches": 100,
+        "excluded_warmups": 1,
+        "applied": false
+      },
+      {
+        "source": "checkpoint0",
+        "policy": "occupied_cell_rank_hinge_v1",
+        "timed_batches": 100,
+        "excluded_warmups": 1,
+        "applied": false
+      },
+      {
+        "source": "sealed_seed1_q4",
+        "policy": "nearest_address_margin_v1",
+        "timed_batches": 100,
+        "excluded_warmups": 1,
+        "applied": false
+      },
+      {
+        "source": "sealed_seed1_q4",
+        "policy": "occupied_cell_rank_hinge_v1",
+        "timed_batches": 100,
+        "excluded_warmups": 1,
+        "applied": false
+      }
+    ],
+    "explicit_refusals": [
+      "Refuse any timing record where header.counterfactual_path != 'rows_v1', cell.counterfactual_path != 'rows_v1', or identities.rows_image_sha256 is null/absent.",
+      "Refuse any timing record where legacy lanes_v1 Device::propose or the lanes-only subphase diagnostic profiler was used.",
+      "Refuse any timing record with timed_batches != 100 (e.g. historical restart5 99-sample off-by-one record or 3-sample diagnostic record).",
+      "Refuse any rows-qualify 5-sample diagnostic timing object (qualified: false) as a substitute for the 100-batch timing slot.",
+      "Refuse any timing record with non-empty faults, applied != false, or snapshot_digest_before != snapshot_digest_after or epoch_before != epoch_after."
+    ]
+  },
+  "rows_qualify_consumer_binding": {
+    "instrument_source": "crates/uor-r4-discrete/src/rows_qualification.rs",
+    "owner_branch": "claude/rows-r-objective-20261018",
+    "pr_number": 2658,
+    "reviewed_head": "5683a5902f1eaa15b79b1202b1ac2c20717cbe0f",
+    "instrument_source_sha256": "9f600ea5f74e59cedfcf90e95de535fd49b30690eb0843b172efa85b35165bc5",
+    "required_schema": "uor-r4.discrete-spiralcore-fbs/2",
+    "required_suite": "rows-counterfactual-parity",
+    "required_status": "PASS",
+    "required_training_status": "HELD",
+    "required_applied_updates": 0,
+    "required_controls_count": 7,
+    "required_controls_in_order": [
+      {
+        "index": 1,
+        "name": "rows_route_parity",
+        "cases": 684,
+        "successes": 684,
+        "racy_refusals": 0
+      },
+      {
+        "index": 2,
+        "name": "rows_flock_gate_parity",
+        "cases": 108,
+        "successes": 108,
+        "racy_refusals": 0
+      },
+      {
+        "index": 3,
+        "name": "rows_relation_gate_parity",
+        "cases": 288,
+        "successes": 288,
+        "racy_refusals": 0
+      },
+      {
+        "index": 4,
+        "name": "rows_refusal_parity",
+        "cases": 3,
+        "successes": 0,
+        "refusals_len": 3,
+        "racy_refusals": 0
+      },
+      {
+        "index": 5,
+        "name": "rows_forced_terminal_parity",
+        "cases": 2,
+        "successes": 1,
+        "successes_with_broken_lane": 1,
+        "refusals_len": 1,
+        "racy_refusals": 0
+      },
+      {
+        "index": 6,
+        "name": "rows_rank_objective_parity",
+        "cases": 1368,
+        "successes": 1368,
+        "racy_refusals": 0
+      },
+      {
+        "index": 7,
+        "name": "rows_rank_hinge_active_parity",
+        "cases": 134,
+        "successes": 134,
+        "kept_cells": 16,
+        "rank_occupied_cells_min": 17,
+        "expected_rank_occupied_cells": 64,
+        "rank_active_rows_min": 1,
+        "expected_rank_active_rows": 46,
+        "objective_sensitive_parameters_min": 1,
+        "expected_objective_sensitive_parameters": 134,
+        "racy_refusals": 0,
+        "error_propagation_hardened": true,
+        "two_device_state_bracketed": true
+      }
+    ],
+    "reducer_negative_gate": {
+      "required": true,
+      "expected_exit_code": 1,
+      "expected_failing_control": "rows_forced_terminal_parity"
+    }
+  },
+  "c_r1_to_c_r6_and_g_pre_consumer_binding": {
+    "runner_source": "docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/src/main.rs",
+    "suite_schema": "uor-r4.admission-rank-fixture-runner/1",
+    "control_report_schema": "uor-r4.admission-rank-control/1",
+    "required_suite_fields": {
+      "status": "PASS",
+      "model_compute_executed": true,
+      "apply_calls": 0,
+      "cpu_model_reference_used": false
+    },
+    "controls": {
+      "C-R1": {
+        "name": "rank_hinge_exact_admission_equivalence",
+        "predicates": [
+          "fixture_1a_mixed_distance.occupied_cells == 5 && target_cell_rank == 3 && cell_rank_hinge_k1_to_16 == [2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0] && target_admitted_k1_to_16 == [false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true]",
+          "fixture_1a_equal_distance_tie matches fixture_1a_mixed_distance",
+          "fixture_1b_all_256_cells_k16: occupied_cells == 256, admitted_cells == 16, target_cell_rank == 256, cell_rank_hinge == 240, weighted_cell_rank_hinge_sum == 7680"
+        ]
+      },
+      "C-R2": {
+        "name": "single_count_per_occupied_cell_invariance",
+        "predicates": [
+          "part_2a_crowded_rival_cell: multiplicities == [1,2,4], target_cell_rank == [3,3,3], cell_rank_hinge_k1 == [2,2,2], cell_rank_hinge_k2 == [1,1,1], cell_rank_hinge_k3 == [0,0,0], admitted_token_count_k3 == [3,4,6]",
+          "part_2b_new_preceding_cell: occupied_cells 5 -> 6, target_cell_rank 3 -> 4, cell_rank_hinge_after_k1_to_k4 == [3,2,1,0]"
+        ]
+      },
+      "C-R3": {
+        "name": "virtual_vs_applied_candidate_identity_on_rank_and_occupancy",
+        "predicates": [
+          "total_candidate_evaluations_verified == 160 (5 mutation classes x 2 policies x 16 candidates)",
+          "mutations create_cell, empty_cell, move_target_cell, interior_block_only, identity_candidate all passed == true"
+        ]
+      },
+      "C-R4": {
+        "name": "absent_rival_and_occupancy_under_k_bounds",
+        "predicates": [
+          "occupancy_under_k.m1_at_k16: occupied_cells == 1, target_cell_rank == 1, cell_rank_hinge == 0, target_admitted == true",
+          "occupancy_under_k.m16_at_k16: occupied_cells == 16, target_admitted_rows == 16, cell_rank_hinge_sum == 0",
+          "absent_rival_checks: wholly_ineligible_refusal_status == 8, mixed_batch_skips_tr_zero_identically == true across both policies"
+        ]
+      },
+      "C-R5": {
+        "name": "bounded_integer_arithmetic_dual_loss_and_distribution_schema",
+        "predicates": [
+          "evaluation_schema == 'uor-r4.discrete-objective-evaluation/1', row_words == 25, aggregate_words == 1126, histogram_bins == [513, 257, 241]",
+          "dual_loss_and_summary_aggregation_verified == true",
+          "status12_overflow_checks all pass"
+        ]
+      },
+      "C-R6": {
+        "name": "k16_baseline_guard_and_untrained_ceiling_check",
+        "predicates": [
+          "stage_a_sweep_sha256 == 'cc81ca6f76f3a38ac61ffe1d4665a1442d1e42961f4451691327b91b438f472c'",
+          "baseline_admitted_cells_guard_range == [1, 16], g_pre_k16_minimum == 4894",
+          "v4096_checkpoint0_device_checks: seed in {1,2} x K in {8,16} all report occupied_cells == 16, and K=16 reports admitted_cells == 16, target_admitted_rows == 1, cell_rank_hinge_sum == 0",
+          "g_pre_k8_seed1_receipt matches sealed pilot checkpoint-0 counts (target_admitted_rows=5680, top1=17, top8=173, strict_wins=105, address_hinge_sum=261824, occupied_cells=16)",
+          "g_pre_k16_receipts (all 4 arms) report target_admitted_rows >= 4894 (14287 at checkpoint 0, pass-through capacity at 16 occupied cells) and zero updates"
+        ]
+      }
+    }
+  },
+  "producer_consumer_compatibility_audit": {
+    "uor_r4_discrete_driver_and_controller": {
+      "status": "COMPATIBLE_AS_IS",
+      "details": [
+        "DriverConfig::validate (training.rs:1419) and PreparedDriver::propose_with_path (training.rs:1499) already accept CounterfactualPath::RowsV1 ('rows_v1') and dispatch propose_rows_cached in propose_next and transition.",
+        "controller::validate_redirect_config (controller.rs:202), completion::validate_config (completion.rs:226), redirect_admission::validate_plan (redirect_admission.rs:199), init-corpus, eval-corpus, completion-build-identity, completion-check-plan, and completion accept counterfactual_path: 'rows_v1' without code changes.",
+        "ExecutionIdentity.base_source in redirect_admission.rs:222 must equal '2fa663b54', and sheet.sha256 must equal 'e40034cd03a4e4c76b0f216e499d0f32a151a98fc370bb8939ea97ff67920884'.",
+        "QualificationReview (redirect_admission.rs:31-43) requires reviewer == 'Kimi', verdict == 'APPROVE_K16_REDIRECT_QUALIFIED_ADMISSION', exact_source_review linking Claude's exact-source review issue-comment URL, and receipt_url linking Kimi's scoped packet/qualification acceptance issue-comment URL; CompletionPlan.claude_review must equal CompletionPlan.redirect.pm_review."
+      ]
+    },
+    "admission_rank_fixture_runner_c_r1_to_c_r6": {
+      "status": "COMPATIBLE_IF_HISTORICAL_CONFIG_DIR_PRESERVED",
+      "details": [
+        "CRITICAL: fixtures::run_host_checks (docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/src/fixtures.rs:548-593, called by both 'check' and GPU 'run' inside run_c_r6 at main.rs:1037) verifies the exact historical lanes_v1 raw file SHA-256 and typed config_sha256 of docs/labs/admission-redirect-packet-2026-10-15/configs/k16-{A,R}-seed{1,2}.json.",
+        "Do NOT overwrite docs/labs/admission-redirect-packet-2026-10-15/configs/k16-{A,R}-seed{1,2}.json in place; stage the four rows_v1 DriverConfig files in the external fast-path packet directory (/Users/casey.allard/uor-r4-local/codex-cf1-k16-rows-fastpath/configs/, verified in inventory.json) so C-R6 Part 6A continues to pass unchanged.",
+        "C-R6 Part 6C (main.rs:1092-1161) reads --g-pre-dir receipts (g-pre-k8-A-seed1-eval/report.json and g-pre-k16-{A,R}-seed{1,2}-eval/report.json) via driver_evaluation() and driver_zero_update(), which accept both raw uor-r4.discrete-corpus-driver/1 and wrapped uor-r4.completion-evaluation/1 receipts with counterfactual_path: 'rows_v1'."
+      ]
+    },
+    "fresh_scoring_eval": {
+      "status": "COMPATIBLE_AS_IS",
+      "details": [
+        "docs/labs/fresh-scoring-eval-2026-10-15/instrument/src/main.rs:252-351 authenticates CompletionInput (uor-r4.completion-checkpoint/1) and CompletionAdmission (uor-r4.redirect-owner-admission/1) via validate_redirect_config and exact config_sha256/lineage_sha256/model_sha256 equality.",
+        "evaluator.rs:13 requires serde_json::to_value(&before_snapshot) == checkpoint.model, and main.rs:335-343 requires stored_snapshot_hash_domains(&checkpoint.model)?.model_storage_sha256 == checkpoint.model_sha256 (Domain A). Keep checkpoint.model exactly as emitted by Device::snapshot()."
+      ]
+    }
+  },
+  "acceptance_and_decision_bars": {
+    "g_pre": {
+      "k8_seed1_exact": {
+        "target_admitted_rows": 5680,
+        "top1_correct": 17,
+        "top8_correct": 173,
+        "token_strict_win_eligible_rows": 105,
+        "address_hinge_sum": 261824,
+        "occupied_cells": 16
+      },
+      "k16_all_four_arms_min": {
+        "target_admitted_rows_min": 4894,
+        "occupied_cells_exact": 16,
+        "updates_applied_by_evaluation": 0
+      }
+    },
+    "trained_q4_16404_batches": {
+      "primary_admission_preservation": {
+        "k16_r_minus_k16_a_target_admitted_rows_min_both_seeds": 2000,
+        "k16_r_target_admitted_rows_min_both_seeds": 4500
+      },
+      "secondary_within_admitted_selection": {
+        "k16_r_token_strict_win_eligible_rows_min_both_seeds": 225,
+        "k16_r_top8_correct_min_both_seeds": 368,
+        "k16_r_top1_correct_min_both_seeds": 45,
+        "k16_r_must_not_underperform_k16_a_on_both_seeds": [
+          "token_strict_win_eligible_rows",
+          "top8_correct",
+          "top1_correct"
+        ]
+      },
+      "anti_collapse_and_safety": {
+        "occupied_cells_min_all_quarters": 12,
+        "cell_rank_hinge_sum_must_decrease_from_best_of_checkpoint0_or_q1_to_q4": true,
+        "token_hinge_sum_max_ratio_vs_checkpoint0": 1.05,
+        "route_tail_attempted_exact": 20,
+        "completed_batches_exact": 16404
+      },
+      "fresh_transfer_2000_rows": {
+        "scored_rows_exact": 2000,
+        "required_on_selected_arm_for_keep": true
+      }
+    }
+  }
+}
