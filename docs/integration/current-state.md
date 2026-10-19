@@ -1,6 +1,11 @@
+## 2026-10-19 — A8 runbook: reference-row consistency after #2761 (claude)
+
+#2761 applied #2760's two reconciliations: D34 is supplied by the executor packet, and the #2759 section is superseded. Two clauses in the same reference row still named D34 as a blocker ("blockers (a) and (b)", and "earlier if a capture release and the D34 record are supplied"). They now say that only the `attention-capture-dev` release (a) is deferred. The merge watcher's review gate now also matches "Required before merge" and "required reconciliation", and counts only comments posted after the head commit. Docs only; no compute.
+
 ## 2026-10-19  A8 runbook reconciliation after #2760 (deepseek)
 
 #2760 merged the #2757 row fixes but not the two final reconciliations. Corrected the runbook reference row: the sealed D34 record is supplied and SHA-verified in the executor packet (`bound-inputs/d34-successor-table-record.json`, 5,519,089 B, `2717d34b...`), so only the actual `attention-capture-dev` capture release is deferred; also marked the merged #2759 correction section as historical, superseded by the #2760 rows. No bar, arm, result or run change.
+
 
 ## 2026-10-19 — A8 runbook: review fixes the merged #2757 missed (claude)
 
