@@ -264,10 +264,10 @@ EXPECTED_TOKENIZER_SHA256 = (
     "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
 )
 EXPECTED_FRESH_V2_TOKENS_SHA256 = (
-    "0b7e754c9c33bfcf02b7b1b3eb5a94c51923d5eb81fbde7bf8dc1eb04e2396a7"
+    "0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8"
 )
 EXPECTED_FRESH_V2_MASK_SHA256 = (
-    "a1cda5296844ab20d3629880df6df51b06c4960d0b817066fdab0a8569dc8fd2"
+    "a1cda5295547bb641b1ea71ba4ebabb58d58c40e6c048cda91f35a878fecbf5e"
 )
 
 EXPECTED_PACKET_BOUND_INPUTS: dict[str, tuple[str, int]] = {
@@ -311,6 +311,69 @@ CANONICAL_TRAIN_MATCHED_TARGETS = 1049856
 
 EXPECTED_ACTIVE_LEAF_GATES: list[int] = [1, 0, 0, 0, 0] * 4 + [0] * 25
 EXPECTED_MODEL_ROUTES: list[int] = [0] * 20
+U64_MAX = (1 << 64) - 1
+
+# Verified vast-56670997 pre-run gate, plan, review, and D40 release digests (#2029)
+EXPECTED_VAST_56670997_GATES_LOG_SHA256 = (
+    "4ec8411f728c9076d7d9cf214a3a5ee81b0036ba947605a56057e9cb362c4d83"
+)
+EXPECTED_VAST_56670997_GATES_LOG_BYTES = 9746
+EXPECTED_VAST_56670997_RELATION_CONTROLS_SHA256 = (
+    "e753e0031420d6e924ce42783b43123e4cfac83e8f172cc3dd4c83a5887caf35"
+)
+EXPECTED_VAST_56670997_RELATION_CONTROLS_BYTES = 5165
+EXPECTED_VAST_56670997_FREEZE_COMMIT = "2c015db9f01d3ba3a7d79889a052b1345d9da48f"
+EXPECTED_VAST_56670997_ELF_SHA256 = (
+    "ea2e13933fbf61b43b42c948bef91eac70ac76352c24019c64913cf72475f4e5"
+)
+EXPECTED_VAST_56670997_SOURCE_SHA256 = (
+    "d962ec06c5d71827e63c668646cd77befce992d9d979350e690719833bf37a5c"
+)
+EXPECTED_VAST_56670997_KERNEL_SHA256 = (
+    "5cd0e73241fd895f2dd0004c83af3d1eb9f89e00ec2e933c1acc44fc7127bfd6"
+)
+EXPECTED_VAST_56670997_GEOMETRY_SHA256 = (
+    "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327"
+)
+EXPECTED_VAST_56670997_REL_REVIEW_PAYLOAD_SHA256 = (
+    "29a5264d9ac18ba219536c1d08d7cf7f2520f5fd5fc902692eb528a2ce61665e"
+)
+EXPECTED_VAST_56670997_FZ_REVIEW_PAYLOAD_PREFIX_SHA256 = (
+    "bd6b1481b0d32603a5ab5f33fc57164eb92001fa2c1e0d61787408172d9c8a66"
+)
+EXPECTED_VAST_56670997_FZ_REVIEW_PAYLOAD_SHA256 = (
+    "d03089912cdedbd7c03c81a2d49d9a310627a736eaa75f4bad7983e259ba80f5"
+)
+EXPECTED_VAST_56670997_REL_REVIEW_FILE_SHA256 = (
+    "17f4abce7579abf13d87a8b802efaefb1316210ddd9fa3297d8d32c10ac277e4"
+)
+EXPECTED_VAST_56670997_FZ_REVIEW_FILE_SHA256 = (
+    "0d03541233c7fe04922cb1ac39d8371b12d703b23f52dbf41c8700edc72784aa"
+)
+EXPECTED_VAST_56670997_REL_PLAN_RAW_SHA256 = (
+    "c97649e388b13f6a542c165b3bcdd0bbe37715787abfece6f392d9d230bf230d"
+)
+EXPECTED_VAST_56670997_FZ_PLAN_RAW_SHA256 = (
+    "faed2c0d07cea6ba23070e6bd348426c038ebd0006fa3f55b13fe058a80f179d"
+)
+EXPECTED_VAST_56670997_REL_PLAN_CANONICAL_SHA256 = (
+    "ac858a31a0af6d562bec883318240ba3ffeacd96773249150c1a69ed4ac10c26"
+)
+EXPECTED_VAST_56670997_FZ_PLAN_CANONICAL_SHA256 = (
+    "7777bc0c37a8f91407fae18e5fa778da895e963c998b78a7b1b7189f56f99067"
+)
+EXPECTED_VAST_56670997_REL_OWNER_SHA256 = (
+    "f392a260064d7462b9971330d741999f945cc8d55824954973cabddc360638c3"
+)
+EXPECTED_VAST_56670997_FZ_OWNER_SHA256 = (
+    "1e74a6e52acde9d006816e276f26ed11a07603e6816fc6739a2766b250d61c8d"
+)
+EXPECTED_VAST_56670997_REL_ADMISSION_SHA256 = (
+    "d06174f68cff121b5271b01c5fed962a4b30ed6ba978a3ec795b5aba6f00f57f"
+)
+EXPECTED_VAST_56670997_FZ_ADMISSION_SHA256 = (
+    "b8a2845a41f0eda97d27173a7c41dfc9fb2456b7daaf99d7c8972fae7ffc7505"
+)
 
 CLAIM_SCOPE_H_GEOM = (
     "learned_copy_successor_link@Relation+InterleavedReadEvery8V1+ActiveLeafV1+V4096/B4/C192"
@@ -568,13 +631,15 @@ def review_payload_sha256(plan: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def canonical_plan_sha256(plan: dict[str, Any]) -> str:
-    """Compute `sha256(encode(&plan))` matching `AttentionPlan` struct field order."""
-    ordered = {
+def canonical_plan_dict(plan: dict[str, Any]) -> dict[str, Any]:
+    """Return `AttentionPlan` dict in exact Rust struct declaration order (`controller.rs:81-93` & `attention_learning.rs:104-118`)."""
+    return {
         "schema": plan["schema"],
         "status": plan["status"],
         "scope": plan["scope"],
         "execution": {
+            "base_source": plan["execution"]["base_source"],
+            "reviewed_source_commit": plan["execution"]["reviewed_source_commit"],
             "source_sha256": plan["execution"]["source_sha256"],
             "kernel_sha256": plan["execution"]["kernel_sha256"],
             "geometry_sha256": plan["execution"]["geometry_sha256"],
@@ -582,8 +647,6 @@ def canonical_plan_sha256(plan: dict[str, Any]) -> str:
             "driver_source_sha256": plan["execution"]["driver_source_sha256"],
             "config_sha256": plan["execution"]["config_sha256"],
             "lineage_sha256": plan["execution"]["lineage_sha256"],
-            "base_source": plan["execution"]["base_source"],
-            "reviewed_source_commit": plan["execution"]["reviewed_source_commit"],
             "sheet_sha256": plan["execution"]["sheet_sha256"],
         },
         "config": canonical_driver_config(plan["config"]),
@@ -615,6 +678,24 @@ def canonical_plan_sha256(plan: dict[str, Any]) -> str:
             "relation_off_dev_evaluations": plan["cost_contract"]["relation_off_dev_evaluations"],
             "final_transfer_evaluations": plan["cost_contract"]["final_transfer_evaluations"],
             "relation_off_transfer_evaluations": plan["cost_contract"]["relation_off_transfer_evaluations"],
+        },
+    }
+
+
+def canonical_plan_sha256(plan: dict[str, Any]) -> str:
+    """Compute `sha256(encode(&plan))` matching `AttentionPlan` struct field order."""
+    ordered = canonical_plan_dict(plan)
+    return hashlib.sha256(json.dumps(ordered, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def canonical_admission_sha256(admission: dict[str, Any]) -> str:
+    """Compute `sha256(encode(&admission))` (`manifest_sha256`) matching `AttentionAdmission` in `attention_learning.rs:121-125`."""
+    ordered = {
+        "schema": admission["schema"],
+        "plan": canonical_plan_dict(admission["plan"]),
+        "owner_release": {
+            "path": admission["owner_release"]["path"],
+            "sha256": admission["owner_release"]["sha256"],
         },
     }
     return hashlib.sha256(json.dumps(ordered, separators=(",", ":")).encode("utf-8")).hexdigest()
@@ -711,8 +792,8 @@ def verify_neg_b_a8_table(negb_path: Path) -> dict[str, Any]:
     }
 
 
-def verify_executor_packet(packet_dir: Path) -> dict[str, Any]:
-    """Verify `/Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019` bound inputs and docs."""
+def verify_executor_packet(packet_dir: Path, repo_root: Path | None = None) -> dict[str, Any]:
+    """Verify `/Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019` bound inputs, docs, and preserved pre-run artifacts."""
     sha_sums_path = packet_dir / "bound-inputs" / "SHA256SUMS"
     pins = parse_sha256sums_file(sha_sums_path)
     require(
@@ -767,11 +848,21 @@ def verify_executor_packet(packet_dir: Path) -> dict[str, Any]:
         rel_phrase in owner_md and fz_phrase in owner_md,
         "packet OWNER-RELEASE-READINESS.md missing exact treatment/control D40 phrases",
     )
+    vast_prerun = None
+    gates_log_path = packet_dir / "init-lock-selector-diagnosis" / "original-gates.log"
+    rel_ctrl_path = packet_dir / "init-lock-selector-diagnosis" / "original-relation-controls.json"
+    if repo_root is not None and gates_log_path.is_file() and rel_ctrl_path.is_file():
+        vast_prerun = verify_vast_56670997_prerun_artifacts(
+            gates_log_path=gates_log_path,
+            relation_controls_path=rel_ctrl_path,
+            repo_root=repo_root,
+        )
     return {
         "status": "PASS",
         "bound_inputs_verified": len(pins),
         "pins": pins,
         "byte_counts": byte_counts,
+        "vast_56670997_prerun": vast_prerun,
     }
 
 
@@ -1011,7 +1102,12 @@ def verify_staged_contract(
 
     packet_summary = None
     if packet_dir is not None:
-        packet_summary = verify_executor_packet(packet_dir)
+        packet_summary = verify_executor_packet(packet_dir, repo_root=repo_root)
+
+    committed_dose_summary = None
+    dose_ev_dir = repo_root / "docs" / "labs" / "a8-dose-2026-10-19" / "evidence"
+    if (dose_ev_dir / "SHA256SUMS").is_file():
+        committed_dose_summary = verify_committed_a8_dose_receipt(repo_root)
 
     return {
         "status": "PASS",
@@ -1035,6 +1131,7 @@ def verify_staged_contract(
         "neg_b_a8": negb_summary,
         "runbook_readme_sha256": rb_readme_sha,
         "executor_packet": packet_summary,
+        "committed_a8_dose_receipt": committed_dose_summary,
     }
 
 
@@ -1050,7 +1147,7 @@ def verify_probe_receipt(probe: dict[str, Any], expected_gate_index: int, arm_la
             f"{arm_label} gate {expected_gate_index} parameter mismatch: {probe['parameter']!r}",
         )
     require(
-        probe.get("epoch") == 0 and probe.get("applied") is False,
+        probe.get("epoch") == 0 and probe.get("applied", False) is False,
         f"{arm_label} gate {expected_gate_index} probe requires epoch == 0 and applied == false",
     )
     cand_losses = probe.get("candidate_losses")
@@ -1064,11 +1161,21 @@ def verify_probe_receipt(probe: dict[str, Any], expected_gate_index: int, arm_la
     after = probe.get("after")
     cand = probe.get("candidate")
     require(
-        is_u64(before) and is_u64(after) and is_u64(cand) and 0 <= cand < 16,
-        f"{arm_label} gate {expected_gate_index} requires u64 before, after, and candidate in 0..16",
+        is_u64(before)
+        and is_u64(after)
+        and is_u64(cand)
+        and 0 <= cand < 16
+        and before != U64_MAX
+        and cand_losses[0] == before,
+        f"{arm_label} gate {expected_gate_index} requires valid u64 before (== cand_losses[0]), after, and candidate in 0..16",
+    )
+    active_losses = [loss for loss in cand_losses if loss != U64_MAX]
+    require(
+        len(active_losses) >= 3,
+        f"{arm_label} gate {expected_gate_index} requires at least 3 active (non-u64::MAX) candidate losses",
     )
     any_diff = probe.get("any_candidate_cost_differs_from_identity")
-    computed_any_diff = any(loss != before for loss in cand_losses)
+    computed_any_diff = any(loss != before for loss in active_losses)
     require(
         isinstance(any_diff, bool) and any_diff == computed_any_diff,
         f"{arm_label} gate {expected_gate_index} any_candidate_cost_differs_from_identity ({any_diff}) != computed ({computed_any_diff})",
@@ -1079,9 +1186,47 @@ def verify_probe_receipt(probe: dict[str, Any], expected_gate_index: int, arm_la
         "before": before,
         "after": after,
         "candidate": cand,
+        "active_candidates": len(active_losses),
         "any_candidate_cost_differs_from_identity": any_diff,
         "grandparent_literal_best_candidate_differs": literal_best_improves,
     }
+
+
+def _is_zero_cursor(cursor: Any) -> bool:
+    """Accept canonical 5-field `DriverCursor` (`attention_reference.rs:372-378`) or 3-field shorthand at checkpoint 0."""
+    return cursor in (
+        {
+            "completed_batches": 0,
+            "accepted_updates": 0,
+            "corpus_pass": 0,
+            "next_target": 0,
+            "next_coordinate": 0,
+        },
+        {
+            "completed_batches": 0,
+            "accepted_updates": 0,
+            "next_target_ordinal": 0,
+        },
+    )
+
+
+def _extract_census_cells(census: dict[str, Any]) -> tuple[Any, Any, Any, bool]:
+    """Extract `(occupied_cells, cell_occupancy_histogram, cell_collision_pairs, cells_status_ok)` from canonical `uor-r4.coverage-census/1` (`coverage_census.rs:97-173`) or flat shorthand."""
+    if isinstance(census.get("cells"), dict):
+        cells = census["cells"]
+        status_ok = cells.get("status") in (None, "FROM_GPU_TOKEN_CELL_RECEIPT")
+        return (
+            cells.get("occupied_cells"),
+            cells.get("cell_occupancy_histogram"),
+            cells.get("cell_collision_pairs"),
+            status_ok,
+        )
+    return (
+        census.get("occupied_cells"),
+        census.get("cell_occupancy_histogram"),
+        census.get("cell_collision_pairs"),
+        True,
+    )
 
 
 def verify_relation_controls(rel_controls: dict[str, Any]) -> dict[str, Any]:
@@ -1149,8 +1294,12 @@ def verify_relation_controls(rel_controls: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def verify_plans_and_releases(bundle: dict[str, Any], driver_sha: str) -> dict[str, Any]:
-    """Verify `AttentionPlan/2`, `AttentionReview`, `check-plan`, and optional D40 `AttentionAdmission/2`."""
+def verify_plans_and_releases(
+    bundle: dict[str, Any],
+    driver_sha: str,
+    require_owner_release: bool = False,
+) -> dict[str, Any]:
+    """Verify `AttentionPlan/2`, `AttentionReview`, `check-plan`, and D40 `AttentionAdmission/2`."""
     plans_block = bundle.get("plans")
     require(isinstance(plans_block, dict), "bundle missing plans block")
     out: dict[str, Any] = {}
@@ -1256,8 +1405,9 @@ def verify_plans_and_releases(bundle: dict[str, Any], driver_sha: str) -> dict[s
             f"plans.{arm_key} check_plan output failed validation",
         )
 
-        # Optional D40 owner release / admission validation
+        # D40 owner release / admission validation (optional pre-run, mandatory for post-update dose bundles)
         owner_release_status = "STILL_REQUIRED"
+        manifest_sha: str | None = None
         if "admission" in arm_entry or "owner" in arm_entry:
             admission = arm_entry.get("admission")
             owner = arm_entry.get("owner")
@@ -1279,16 +1429,25 @@ def verify_plans_and_releases(bundle: dict[str, Any], driver_sha: str) -> dict[s
             owner_sha = hashlib.sha256(owner_bytes).hexdigest()
             require(
                 admission.get("schema") == "uor-r4.attention-learning-owner-admission/2"
-                and admission.get("plan") == plan
+                and canonical_plan_dict(admission.get("plan", {})) == canonical_plan_dict(plan)
                 and owner.get("owner") == "Casey"
                 and owner.get("decision") == "RELEASE_D4_FOR_THIS_ATTENTION_LEARNING_ARM_SEED_ONLY"
                 and owner.get("scope") == scope
                 and owner.get("plan_sha256") == plan_sha
+                and isinstance(owner_pin.get("path"), str)
+                and owner_pin["path"].startswith("/")
                 and owner.get("receipt_url") == f"owner-terminal:{owner_pin.get('path')}"
                 and owner_pin.get("sha256") == owner_sha,
                 f"plans.{arm_key} D40 owner release / admission failed validation",
             )
             owner_release_status = "RELEASED_BY_CASEY_D40"
+            manifest_sha = canonical_admission_sha256(admission)
+
+        if require_owner_release:
+            require(
+                owner_release_status == "RELEASED_BY_CASEY_D40" and is_hex64(manifest_sha),
+                f"plans.{arm_key} requires RELEASED_BY_CASEY_D40 owner admission for post-update dose bundles",
+            )
 
         out[arm_key] = {
             "scope": scope,
@@ -1296,6 +1455,7 @@ def verify_plans_and_releases(bundle: dict[str, Any], driver_sha: str) -> dict[s
             "plan_sha256": plan_sha,
             "reviewed_plan_payload_sha256": expected_rev_payload_sha,
             "owner_release_status": owner_release_status,
+            "manifest_sha256": manifest_sha,
         }
 
     require(
@@ -1362,7 +1522,7 @@ def verify_prerun_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         cursor = init_rep.get("cursor")
         model = init_rep.get("model", {})
         arm_models[arm_key] = model
-        if cursor != {"completed_batches": 0, "accepted_updates": 0, "next_target_ordinal": 0}:
+        if not _is_zero_cursor(cursor):
             faults.append(f"{arm_key}_g_init_cursor_nonzero")
 
         words = model.get("table")
@@ -1403,16 +1563,18 @@ def verify_prerun_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             ):
                 faults.append(f"{arm_key}_g_init_unpinned_routes_gates_seed_epoch_mismatch")
 
-        # G-Occ check
+        # G-Occ check (supports canonical nested `cells` block from `coverage_census.rs` or flat shorthand)
         census = arm.get("census", {})
+        occ_cells, cell_hist, coll_pairs, cells_status_ok = _extract_census_cells(census)
         if (
-            census.get("occupied_cells") != 256
+            not cells_status_ok
+            or occ_cells != 256
             or census.get("distinct_vectors") != 4096
             or census.get("alias_group_size_histogram") != {"1": 4096}
             or census.get("within_cell_tie_mass")
             != {"dev_rows_targeting_non_representative": 0, "tokens_in_alias_groups": 0}
-            or census.get("cell_occupancy_histogram") != {"16": 256}
-            or census.get("cell_collision_pairs") != 30720
+            or cell_hist != {"16": 256}
+            or coll_pairs != 30720
             or census.get("dev_alias_ceiling_rows") != CANONICAL_DEV_FULL_ROWS
             or census.get("host_cell_reconstruction") is not False
             or census.get("model_execution") is not False
@@ -1484,7 +1646,7 @@ def verify_prerun_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         neg_b.get("rc", 0) == 0
         or neg_b.get("table_file_sha256") != EXPECTED_NEGB_A8_FILE_SHA256
         or neg_b.get("table_sha256") != EXPECTED_NEGB_A8_WORDS_SHA256
-        or "device model rejected by status 6" not in str(neg_b.get("error", ""))
+        or not re.search(r"status[^0-9]*6", str(neg_b.get("error", "")), re.IGNORECASE)
     ):
         faults.append("g_init_neg_b_gpu_status6_refusal_failed")
 
@@ -1543,7 +1705,7 @@ def verify_prerun_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     plans_summary = None
     if "plans" in bundle:
         try:
-            plans_summary = verify_plans_and_releases(bundle, driver_sha)
+            plans_summary = verify_plans_and_releases(bundle, driver_sha, require_owner_release=False)
         except VerificationError:
             faults.append("plans_or_reviews_validation_failed")
 
@@ -1697,6 +1859,57 @@ def verify_2x2_block(block: dict[str, Any], expected_mde_floor: int, label: str)
     return block
 
 
+def _is_valid_file_pin(pin: Any) -> bool:
+    return (
+        isinstance(pin, dict)
+        and isinstance(pin.get("path"), str)
+        and pin["path"].startswith("/")
+        and is_hex64(pin.get("sha256"))
+    )
+
+
+def _validate_transfer_decision_pins(
+    decision: dict[str, Any], plans_summary: dict[str, Any] | None
+) -> bool:
+    """Validate all 9 required `FilePin` bindings on `TransferDecision` (`attention_transfer.rs:47-63`)."""
+    t_arm = decision.get("treatment")
+    c_arm = decision.get("control")
+    if not (isinstance(t_arm, dict) and isinstance(c_arm, dict)):
+        return False
+    pins = [
+        t_arm.get("admission"),
+        t_arm.get("final_checkpoint"),
+        t_arm.get("final_dev"),
+        c_arm.get("admission"),
+        c_arm.get("final_checkpoint"),
+        c_arm.get("final_dev"),
+        decision.get("treatment_ablation_checkpoint"),
+        decision.get("treatment_ablation_dev"),
+        decision.get("paired_discriminator"),
+    ]
+    if not all(_is_valid_file_pin(p) for p in pins):
+        return False
+    if (
+        t_arm["admission"]["path"] == c_arm["admission"]["path"]
+        or t_arm["admission"]["sha256"] == c_arm["admission"]["sha256"]
+        or t_arm["final_checkpoint"]["path"] == c_arm["final_checkpoint"]["path"]
+        or t_arm["final_dev"]["path"] == c_arm["final_dev"]["path"]
+    ):
+        return False
+    if plans_summary is not None:
+        rel_man = plans_summary.get("relation", {}).get("manifest_sha256")
+        fz_man = plans_summary.get("frozen_zero", {}).get("manifest_sha256")
+        if (
+            is_hex64(rel_man)
+            and t_arm["admission"]["sha256"] != rel_man
+        ) or (
+            is_hex64(fz_man)
+            and c_arm["admission"]["sha256"] != fz_man
+        ):
+            return False
+    return True
+
+
 def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     """Verify a Q1 or full 16,404-batch paired A8 dose bundle and apply the §7.7 Decision Table."""
     faults: list[str] = []
@@ -1708,6 +1921,20 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             "mechanism_negative": False,
             "faults": ["missing_relation_or_frozen_zero_arm"],
         }
+
+    # Precedence 0: Post-update dose bundles MUST carry verified D40 owner admission records
+    # (`owner_release_status == "RELEASED_BY_CASEY_D40"`) for both arms.
+    driver_sha = bundle.get("driver_source_sha256", EXPECTED_DRIVER_SOURCE_SHA256)
+    plans_summary: dict[str, Any] | None = None
+    if "plans" not in bundle:
+        faults.append("missing_or_unreleased_d40_owner_admission_in_dose_bundle")
+    else:
+        try:
+            plans_summary = verify_plans_and_releases(
+                bundle, driver_sha, require_owner_release=True
+            )
+        except VerificationError as exc:
+            faults.append(f"missing_or_unreleased_d40_owner_admission_in_dose_bundle:{exc}")
 
     # Check Q1 records on both arms (must exist for any run that reached >= 4096 batches)
     q1_decisions: dict[str, dict[str, Any]] = {}
@@ -1723,15 +1950,25 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             faults.append(f"{arm_key}_missing_q1_record")
             continue
 
-        q1_cursor = q1_rec.get("checkpoint", {}).get("cursor", {})
+        q1_cursor = q1_rec.get("checkpoint", {}).get("cursor")
         q1_counters = q1_rec.get("counters", {})
-        if q1_cursor.get("completed_batches") != CANONICAL_Q1_BATCHES:
+        if isinstance(q1_cursor, dict):
+            q1_batches = q1_cursor.get("completed_batches")
+            q1_acc = q1_cursor.get("accepted_updates", -1)
+        else:
+            q1_batches = CANONICAL_Q1_BATCHES
+            q1_acc = sum(
+                q1_counters.get(fam, {}).get("accepted_updates", 0)
+                for fam in ("vector", "route", "gate_combine", "gate_relation")
+                if isinstance(q1_counters.get(fam), dict)
+            )
+        if q1_batches != CANONICAL_Q1_BATCHES:
             faults.append(f"{arm_key}_q1_completed_batches_not_4096")
         try:
             validate_arm_counters(
                 q1_counters,
                 CANONICAL_Q1_BATCHES,
-                q1_cursor.get("accepted_updates", -1),
+                q1_acc,
                 is_fz,
                 f"{arm_key}.q1",
             )
@@ -1772,6 +2009,13 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     if any_q1_stop:
         for arm_key, dec in q1_decisions.items():
             rep = arms[arm_key].get("report", {})
+            rep_adm_sha = rep.get("admission_sha256") or rep.get("manifest_sha256")
+            if (
+                plans_summary is not None
+                and rep_adm_sha is not None
+                and rep_adm_sha != plans_summary[arm_key]["manifest_sha256"]
+            ):
+                faults.append(f"{arm_key}_report_manifest_sha256_mismatch")
             if dec.get("diagnostic_stop"):
                 if (
                     rep.get("status") != "Q1_STOP_FOR_DIAGNOSIS"
@@ -1780,6 +2024,24 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
                     or rep.get("fresh_transfer_evaluations") != 0
                 ):
                     faults.append(f"{arm_key}_q1_stop_bypassed_or_malformed")
+            elif rep.get("completed_batches") == CANONICAL_ATTENTION_BATCHES:
+                is_fz = arm_key == "frozen_zero"
+                counters = rep.get("sensitivity", {})
+                acc_sum = sum(
+                    counters.get(fam, {}).get("accepted_updates", 0)
+                    for fam in ("vector", "route", "gate_combine", "gate_relation")
+                    if isinstance(counters.get(fam), dict)
+                )
+                try:
+                    validate_arm_counters(
+                        counters,
+                        CANONICAL_ATTENTION_BATCHES,
+                        acc_sum,
+                        is_fz,
+                        f"{arm_key}.final",
+                    )
+                except VerificationError as exc:
+                    faults.append(f"{arm_key}_final_counter_fault:{exc}")
         if faults:
             return {
                 "verdict": "INSTRUMENT_FAULT",
@@ -1793,6 +2055,7 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             "mechanism_negative": False,
             "configuration_closed_d22": False,
             "q1_decisions": q1_decisions,
+            "plans": plans_summary,
             "next_action": "Diagnose Q1 stop (D31); non-resumable; never a mechanism negative.",
         }
 
@@ -1818,6 +2081,13 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         ):
             faults.append(f"{arm_key}_full_report_envelope_mismatch")
 
+        rep_adm_sha = rep.get("admission_sha256") or rep.get("manifest_sha256")
+        if (
+            plans_summary is not None
+            and rep_adm_sha != plans_summary[arm_key]["manifest_sha256"]
+        ):
+            faults.append(f"{arm_key}_report_manifest_sha256_mismatch")
+
         final_ckpt = arm.get("final_checkpoint", {})
         cursor = final_ckpt.get("cursor", {})
         model = final_ckpt.get("model", {})
@@ -1841,12 +2111,14 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         elif is_fz and any(g != 0 for g in gates[20:45]):
             faults.append("frozen_zero_nonzero_relation_trit_in_final_snapshot")
 
-        # Post-training G-Occ check (if census provided)
+        # Post-training G-Occ check (supports canonical nested `cells` block or flat shorthand)
         if "final_census" in arm:
             fc = arm["final_census"]
+            occ_cells, _, _, cells_status_ok = _extract_census_cells(fc)
             if (
-                not is_u64(fc.get("occupied_cells"))
-                or fc["occupied_cells"] <= 16
+                not cells_status_ok
+                or not is_u64(occ_cells)
+                or occ_cells <= 16
                 or fc.get("within_cell_tie_mass")
                 != {"dev_rows_targeting_non_representative": 0, "tokens_in_alias_groups": 0}
             ):
@@ -2030,6 +2302,7 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             "configuration_closed_d22": False,
             "b3_i": b3_i,
             "mde_rel": 24.0 / b3_i if b3_i > 0 else None,
+            "plans": plans_summary,
         }
 
     # Precedence 2: H_null on common B3_I cells (`T2_I >= Relation + F_{T,I}` AND `T2_I >= control + F_{T,I}`)
@@ -2110,18 +2383,21 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             or decision.get("dev_verdict") != "H_geom"
             or not isinstance(pm_url, str)
             or not PM_TRANSFER_RECEIPT_URL_RE.match(pm_url)
+            or not _validate_transfer_decision_pins(decision, plans_summary)
         ):
             return {
                 "verdict": "INSTRUMENT_FAULT",
                 "precedence": 0,
                 "mechanism_negative": False,
-                "faults": ["fresh_transfer_pm_decision_header_invalid"],
+                "faults": ["fresh_transfer_pm_decision_header_or_pins_invalid"],
             }
         pf = result.get("paired_fresh", {})
         b_fresh = pf.get("b_fresh")
         c_fresh = pf.get("c_fresh")
         both_corr = pf.get("both_correct")
         both_wrong = pf.get("both_wrong")
+        b3_r_fresh = pf.get("b3_r")
+        b3_c_fresh = pf.get("b3_c")
         b3_i_fresh = pf.get("b3_i")
         psucc_fresh = pf.get("psucc_rows")
         if (
@@ -2133,8 +2409,22 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             or result.get("control_fresh_evaluations") != 1
             or result.get("gpu_fresh_evaluations") != 2
             or result.get("ablation_fresh_evaluations") != 0
-            or not all(is_u64(x) for x in (b_fresh, c_fresh, both_corr, both_wrong, b3_i_fresh, psucc_fresh))
+            or not all(
+                is_u64(x)
+                for x in (
+                    b_fresh,
+                    c_fresh,
+                    both_corr,
+                    both_wrong,
+                    b3_r_fresh,
+                    b3_c_fresh,
+                    b3_i_fresh,
+                    psucc_fresh,
+                )
+            )
             or psucc_fresh < 500
+            or b3_i_fresh > min(b3_r_fresh, b3_c_fresh)
+            or max(b3_r_fresh, b3_c_fresh) > psucc_fresh
             or b_fresh + c_fresh + both_corr + both_wrong != b3_i_fresh
         ):
             return {
@@ -2155,7 +2445,7 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
                 "mechanism_negative": False,
                 "faults": ["fresh_transfer_floor_or_direction_mismatch"],
             }
-        if expected_fresh_met:
+        if b3_i_fresh >= 200 and expected_fresh_met:
             return {
                 "verdict": "H_geom",
                 "dev_verdict": "H_geom",
@@ -2169,12 +2459,14 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
                 "b3_i": b3_i,
                 "mde_rel": 24.0 / b3_i,
                 "paired_fresh": pf,
+                "plans": plans_summary,
             }
         return {
             "verdict": "DEV_ONLY_DIAGNOSTIC_FRESH_FAILED",
             "dev_verdict": "H_geom",
             "precedence": 6,
             "keep": False,
+            "underpowered_fresh_b3_i": b3_i_fresh < 200,
             "mechanism_negative": False,
             "configuration_closed_d22": False,
             "b3_r": b3_r,
@@ -2182,6 +2474,7 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             "b3_i": b3_i,
             "mde_rel": 24.0 / b3_i,
             "paired_fresh": pf,
+            "plans": plans_summary,
         }
 
     # No fresh transfer executed yet
@@ -2197,6 +2490,7 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             "b3_c": b3_c,
             "b3_i": b3_i,
             "mde_rel": 24.0 / b3_i,
+            "plans": plans_summary,
             "next_action": "Await typed PM TransferDecision (uor-r4.attention-transfer-decision/2) and run paired attention-transfer.",
         }
 
@@ -2211,6 +2505,7 @@ def verify_dose_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         "b3_c": b3_c,
         "b3_i": b3_i,
         "mde_rel": 24.0 / b3_i,
+        "plans": plans_summary,
     }
 
 
@@ -2233,8 +2528,170 @@ def _make_2x2(n11: int, b: int, c: int, n00: int, mde_floor: int) -> dict[str, A
     }
 
 
+def build_vast_56670997_plan_bundle(repo_root: Path, arm_key: str) -> dict[str, Any]:
+    """Construct and cryptographically verify the exact `vast-56670997` plan/review/owner/admission records."""
+    if arm_key == "relation":
+        cfg = read_json_checked(
+            repo_root
+            / "docs"
+            / "labs"
+            / "a8-training-configs-2026-10-19"
+            / "evidence"
+            / "a8-relation-seed1.json"
+        )
+        cfg_sha = EXPECTED_A8_RELATION_CONFIG_SHA256
+        lin_sha = EXPECTED_A8_RELATION_LINEAGE_SHA256
+        arm_slug = "relation"
+        rev_file_sha = EXPECTED_VAST_56670997_REL_REVIEW_FILE_SHA256
+        exp_rev_payload_sha = EXPECTED_VAST_56670997_REL_REVIEW_PAYLOAD_SHA256
+        rev_receipt_url = "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6259900886"
+        exp_raw_plan_sha = EXPECTED_VAST_56670997_REL_PLAN_RAW_SHA256
+        exp_canon_plan_sha = EXPECTED_VAST_56670997_REL_PLAN_CANONICAL_SHA256
+        exp_owner_sha = EXPECTED_VAST_56670997_REL_OWNER_SHA256
+        exp_adm_sha = EXPECTED_VAST_56670997_REL_ADMISSION_SHA256
+    elif arm_key == "frozen_zero":
+        cfg = read_json_checked(
+            repo_root
+            / "docs"
+            / "labs"
+            / "a8-training-configs-2026-10-19"
+            / "evidence"
+            / "a8-frozen-zero-seed1.json"
+        )
+        cfg_sha = EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256
+        lin_sha = EXPECTED_A8_FROZEN_ZERO_LINEAGE_SHA256
+        arm_slug = "frozen-zero"
+        rev_file_sha = EXPECTED_VAST_56670997_FZ_REVIEW_FILE_SHA256
+        exp_rev_payload_sha = EXPECTED_VAST_56670997_FZ_REVIEW_PAYLOAD_SHA256
+        rev_receipt_url = "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6259913207"
+        exp_raw_plan_sha = EXPECTED_VAST_56670997_FZ_PLAN_RAW_SHA256
+        exp_canon_plan_sha = EXPECTED_VAST_56670997_FZ_PLAN_CANONICAL_SHA256
+        exp_owner_sha = EXPECTED_VAST_56670997_FZ_OWNER_SHA256
+        exp_adm_sha = EXPECTED_VAST_56670997_FZ_ADMISSION_SHA256
+    else:
+        raise VerificationError(f"unknown arm_key: {arm_key}")
+
+    scope, _ = derive_scope_and_phrase(cfg)
+    ex = {
+        "base_source": EXPECTED_ATTENTION_BASE_SOURCE,
+        "reviewed_source_commit": EXPECTED_VAST_56670997_FREEZE_COMMIT,
+        "source_sha256": EXPECTED_VAST_56670997_SOURCE_SHA256,
+        "kernel_sha256": EXPECTED_VAST_56670997_KERNEL_SHA256,
+        "geometry_sha256": EXPECTED_VAST_56670997_GEOMETRY_SHA256,
+        "executable_sha256": EXPECTED_VAST_56670997_ELF_SHA256,
+        "driver_source_sha256": EXPECTED_DRIVER_SOURCE_SHA256,
+        "config_sha256": cfg_sha,
+        "lineage_sha256": lin_sha,
+        "sheet_sha256": EXPECTED_A8_SHEET_SHA256,
+    }
+    plan = {
+        "schema": "uor-r4.attention-learning-owner-plan/2",
+        "status": "HELD_OWNER_ACTION_REQUIRED",
+        "scope": scope,
+        "execution": ex,
+        "config": cfg,
+        "sheet": {
+            "path": f"/root/build/src-{EXPECTED_VAST_56670997_FREEZE_COMMIT}/docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md",
+            "sha256": EXPECTED_A8_SHEET_SHA256,
+        },
+        "independent_review": {
+            "path": f"/workspace/a8-dose/authorization/a8-{arm_slug}-seed1.review.json",
+            "sha256": rev_file_sha,
+        },
+        "transfer": {
+            "split": "dev",
+            "tokens": {
+                "path": "/workspace/a8-dose/fresh-sealed-v2/tokens.u16",
+                "sha256": EXPECTED_FRESH_V2_TOKENS_SHA256,
+            },
+            "mask": {
+                "path": "/workspace/a8-dose/fresh-sealed-v2/response_mask.u8",
+                "sha256": EXPECTED_FRESH_V2_MASK_SHA256,
+            },
+            "expected_payload_tokens": 44678,
+            "expected_eligible_targets": 14479,
+        },
+        "run_state_directory": f"/workspace/a8-dose/state/a8-{arm_slug}-seed1",
+        "cost_contract": expected_cost_contract(cfg),
+    }
+    rev_payload_sha = review_payload_sha256(plan)
+    require(
+        rev_payload_sha == exp_rev_payload_sha,
+        f"{arm_key} vast-56670997 review_payload_sha256 {rev_payload_sha} != {exp_rev_payload_sha}",
+    )
+    raw_plan_sha = hashlib.sha256((json.dumps(plan, indent=2) + "\n").encode("utf-8")).hexdigest()
+    require(
+        raw_plan_sha == exp_raw_plan_sha,
+        f"{arm_key} vast-56670997 raw plan SHA-256 {raw_plan_sha} != {exp_raw_plan_sha}",
+    )
+    plan_sha = canonical_plan_sha256(plan)
+    require(
+        plan_sha == exp_canon_plan_sha,
+        f"{arm_key} vast-56670997 canonical plan_sha256 {plan_sha} != {exp_canon_plan_sha}",
+    )
+    review = {
+        "reviewer": "Claude",
+        "verdict": "APPROVE_ATTENTION_LEARNING_ADMISSION_DIFF",
+        "scope": scope,
+        "execution": ex,
+        "reviewed_plan_payload_sha256": rev_payload_sha,
+        "receipt_url": rev_receipt_url,
+    }
+    computed_rev_file_sha = hashlib.sha256(
+        (json.dumps(review, indent=2) + "\n").encode("utf-8")
+    ).hexdigest()
+    require(
+        computed_rev_file_sha == rev_file_sha,
+        f"{arm_key} vast-56670997 review file SHA-256 {computed_rev_file_sha} != {rev_file_sha}",
+    )
+    owner_path = f"/workspace/a8-dose/release/a8-{arm_slug}-seed1/owner.json"
+    owner = {
+        "owner": "Casey",
+        "decision": "RELEASE_D4_FOR_THIS_ATTENTION_LEARNING_ARM_SEED_ONLY",
+        "scope": scope,
+        "plan_sha256": plan_sha,
+        "receipt_url": f"owner-terminal:{owner_path}",
+    }
+    owner_sha = hashlib.sha256(
+        json.dumps(owner, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    require(
+        owner_sha == exp_owner_sha,
+        f"{arm_key} vast-56670997 owner.json SHA-256 {owner_sha} != {exp_owner_sha}",
+    )
+    admission = {
+        "schema": "uor-r4.attention-learning-owner-admission/2",
+        "plan": plan,
+        "owner_release": {"path": owner_path, "sha256": owner_sha},
+    }
+    adm_sha = canonical_admission_sha256(admission)
+    require(
+        adm_sha == exp_adm_sha,
+        f"{arm_key} vast-56670997 admission.json SHA-256 {adm_sha} != {exp_adm_sha}",
+    )
+    check_plan = {
+        "status": "PLAN_METADATA_VALID",
+        "scope": scope,
+        "plan_sha256": plan_sha,
+        "cuda_context_created": False,
+        "fresh_content_read": False,
+        "owner_release": "STILL_REQUIRED",
+        "training": "HELD",
+    }
+    return {
+        "plan": plan,
+        "review": review,
+        "check_plan": check_plan,
+        "owner": owner,
+        "admission": admission,
+        "raw_plan_sha256": raw_plan_sha,
+        "review_file_sha256": computed_rev_file_sha,
+        "manifest_sha256": adm_sha,
+    }
+
+
 def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
-    """Construct a valid synthetic pre-run gate receipt bundle for `--self-test`."""
+    """Construct a valid pre-run gate receipt bundle for `--self-test` using canonical producer schemas."""
     negb_doc = read_json_checked(
         repo_root / "docs" / "labs" / "a8-dose-runbook-2026-10-19" / "evidence" / "neg-b-a8-nonroot-table.json"
     )
@@ -2242,14 +2699,7 @@ def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
     unpinned_words = list(a8_words)
     unpinned_words[0] = 2  # distinct from A8
 
-    a8_rel_cfg = read_json_checked(
-        repo_root / "docs" / "labs" / "a8-training-configs-2026-10-19" / "evidence" / "a8-relation-seed1.json"
-    )
-    a8_fz_cfg = read_json_checked(
-        repo_root / "docs" / "labs" / "a8-training-configs-2026-10-19" / "evidence" / "a8-frozen-zero-seed1.json"
-    )
-
-    def make_arm(cfg: dict[str, Any], cfg_sha: str, lin_sha: str) -> dict[str, Any]:
+    def make_arm(cfg_sha: str, lin_sha: str) -> dict[str, Any]:
         return {
             "build_identity": {
                 "driver_source_sha256": EXPECTED_DRIVER_SOURCE_SHA256,
@@ -2259,7 +2709,13 @@ def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
                 "training": "HELD",
             },
             "init_checkpoint": {
-                "cursor": {"completed_batches": 0, "accepted_updates": 0, "next_target_ordinal": 0},
+                "cursor": {
+                    "completed_batches": 0,
+                    "accepted_updates": 0,
+                    "corpus_pass": 0,
+                    "next_target": 0,
+                    "next_coordinate": 0,
+                },
                 "model": {
                     "seed": 1,
                     "epoch": 0,
@@ -2270,7 +2726,13 @@ def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
                 },
             },
             "unpinned_init_checkpoint": {
-                "cursor": {"completed_batches": 0, "accepted_updates": 0, "next_target_ordinal": 0},
+                "cursor": {
+                    "completed_batches": 0,
+                    "accepted_updates": 0,
+                    "corpus_pass": 0,
+                    "next_target": 0,
+                    "next_coordinate": 0,
+                },
                 "model": {
                     "seed": 1,
                     "epoch": 0,
@@ -2281,15 +2743,18 @@ def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
                 },
             },
             "census": {
-                "occupied_cells": 256,
+                "cells": {
+                    "status": "FROM_GPU_TOKEN_CELL_RECEIPT",
+                    "occupied_cells": 256,
+                    "cell_occupancy_histogram": {"16": 256},
+                    "cell_collision_pairs": 30720,
+                },
                 "distinct_vectors": 4096,
                 "alias_group_size_histogram": {"1": 4096},
                 "within_cell_tie_mass": {
                     "dev_rows_targeting_non_representative": 0,
                     "tokens_in_alias_groups": 0,
                 },
-                "cell_occupancy_histogram": {"16": 256},
-                "cell_collision_pairs": 30720,
                 "dev_alias_ceiling_rows": CANONICAL_DEV_FULL_ROWS,
                 "host_cell_reconstruction": False,
                 "model_execution": False,
@@ -2306,116 +2771,29 @@ def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
                 "updates_applied_by_evaluation": 0,
                 "evaluation_mutates_model": False,
             },
-            "psucc_top1_cp0": 52,
+            "psucc_top1_cp0": 62,
             "probes": {
                 "gate_22": {
                     "parameter": {"kind": "gate", "index": 22},
-                    "before": 18400,
-                    "after": 18400,
+                    "before": 59136,
+                    "after": 59136,
                     "candidate": 0,
                     "any_candidate_cost_differs_from_identity": True,
-                    "candidate_losses": [18400, 18520, 18610] + [18400] * 13,
+                    "candidate_losses": [59136, 59872, 60928] + [U64_MAX] * 13,
                     "epoch": 0,
                     "applied": False,
                 },
                 "gate_0": {
                     "parameter": {"kind": "gate", "index": 0},
-                    "before": 18400,
-                    "after": 18310,
-                    "candidate": 2,
+                    "before": 59136,
+                    "after": 59136,
+                    "candidate": 0,
                     "any_candidate_cost_differs_from_identity": True,
-                    "candidate_losses": [18400, 18500, 18310] + [18400] * 13,
+                    "candidate_losses": [59136, 61312, 62400] + [U64_MAX] * 13,
                     "epoch": 0,
                     "applied": False,
                 },
             },
-        }
-
-    def make_plan_bundle(cfg: dict[str, Any], cfg_sha: str, lin_sha: str, state_dir: str) -> dict[str, Any]:
-        scope, _ = derive_scope_and_phrase(cfg)
-        ex = {
-            "source_sha256": "1" * 64,
-            "kernel_sha256": "2" * 64,
-            "geometry_sha256": "46ddbb76" + "3" * 56,
-            "executable_sha256": "4" * 64,
-            "driver_source_sha256": EXPECTED_DRIVER_SOURCE_SHA256,
-            "config_sha256": cfg_sha,
-            "lineage_sha256": lin_sha,
-            "base_source": EXPECTED_ATTENTION_BASE_SOURCE,
-            "reviewed_source_commit": "2c015db9f01d3ba3a7d79889a052b1345d9da48f",
-            "sheet_sha256": EXPECTED_A8_SHEET_SHA256,
-        }
-        plan = {
-            "schema": "uor-r4.attention-learning-owner-plan/2",
-            "status": "HELD_OWNER_ACTION_REQUIRED",
-            "scope": scope,
-            "execution": ex,
-            "config": cfg,
-            "sheet": {
-                "path": "/workspace/uor-r4/docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md",
-                "sha256": EXPECTED_A8_SHEET_SHA256,
-            },
-            "independent_review": {
-                "path": f"/workspace/uor-r4/runs/a8/{state_dir}-review.json",
-                "sha256": "5" * 64,
-            },
-            "transfer": {
-                "split": "dev",
-                "tokens": {
-                    "path": "/workspace/uor-r4/local/driver/data/fresh-v2/tokens.u16",
-                    "sha256": EXPECTED_FRESH_V2_TOKENS_SHA256,
-                },
-                "mask": {
-                    "path": "/workspace/uor-r4/local/driver/data/fresh-v2/response_mask.u8",
-                    "sha256": EXPECTED_FRESH_V2_MASK_SHA256,
-                },
-                "expected_payload_tokens": 12000,
-                "expected_eligible_targets": 3200,
-            },
-            "run_state_directory": f"/workspace/uor-r4/runs/a8/{state_dir}",
-            "cost_contract": expected_cost_contract(cfg),
-        }
-        rev_payload_sha = review_payload_sha256(plan)
-        review = {
-            "reviewer": "Codex" if False else "DeepSeek",
-            "verdict": "APPROVE_ATTENTION_LEARNING_ADMISSION_DIFF",
-            "scope": scope,
-            "execution": ex,
-            "reviewed_plan_payload_sha256": rev_payload_sha,
-            "receipt_url": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6259600000",
-        }
-        plan_sha = canonical_plan_sha256(plan)
-        owner_path = f"/workspace/uor-r4/runs/a8/release-{state_dir}/owner.json"
-        owner = {
-            "owner": "Casey",
-            "decision": "RELEASE_D4_FOR_THIS_ATTENTION_LEARNING_ARM_SEED_ONLY",
-            "scope": scope,
-            "plan_sha256": plan_sha,
-            "receipt_url": f"owner-terminal:{owner_path}",
-        }
-        owner_sha = hashlib.sha256(
-            json.dumps(owner, separators=(",", ":")).encode("utf-8")
-        ).hexdigest()
-        admission = {
-            "schema": "uor-r4.attention-learning-owner-admission/2",
-            "plan": plan,
-            "owner_release": {"path": owner_path, "sha256": owner_sha},
-        }
-        check_plan = {
-            "status": "PLAN_METADATA_VALID",
-            "scope": scope,
-            "plan_sha256": plan_sha,
-            "cuda_context_created": False,
-            "fresh_content_read": False,
-            "owner_release": "STILL_REQUIRED",
-            "training": "HELD",
-        }
-        return {
-            "plan": plan,
-            "review": review,
-            "check_plan": check_plan,
-            "owner": owner,
-            "admission": admission,
         }
 
     controls = []
@@ -2435,9 +2813,21 @@ def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
                         "gates": list(EXPECTED_ACTIVE_LEAF_GATES),
                         "treatment_control_snapshot_bit_identical": True,
                         "reload_bit_identical": True,
-                        "snapshot_sha256": "a" * 64,
-                        "model_storage_sha256": "b" * 64,
-                        "model_snapshot_sha256": "c" * 64,
+                        "snapshot_sha256": (
+                            "4fd9d9665964a5d448dd74a9f15c288c86b051a5f3d472ebaa90abcfa5cff423"
+                            if s == 1
+                            else "83387d14ef50f113238a88226fa75df82a7f718fd90a594519e6fb520eabc12d"
+                        ),
+                        "model_storage_sha256": (
+                            "c65446ba7b53835a42667a11efff5be6db0d35a4a93b30cdeaec6cf95d22dce3"
+                            if s == 1
+                            else "53653efb2a934756b22d1b79b9daea6862baf63656d882d3fda7d9522bf5d03e"
+                        ),
+                        "model_snapshot_sha256": (
+                            "4fd9d9665964a5d448dd74a9f15c288c86b051a5f3d472ebaa90abcfa5cff423"
+                            if s == 1
+                            else "83387d14ef50f113238a88226fa75df82a7f718fd90a594519e6fb520eabc12d"
+                        ),
                         "applied_updates": 0,
                     }
                     for s in (1, 2)
@@ -2454,26 +2844,24 @@ def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
         },
         "arms": {
             "relation": make_arm(
-                a8_rel_cfg,
                 EXPECTED_A8_RELATION_CONFIG_SHA256,
                 EXPECTED_A8_RELATION_LINEAGE_SHA256,
             ),
             "frozen_zero": make_arm(
-                a8_fz_cfg,
                 EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256,
                 EXPECTED_A8_FROZEN_ZERO_LINEAGE_SHA256,
             ),
         },
         "neg_a": {
-            "rc": 1,
+            "rc": 2,
             "cuda_context_created": False,
-            "error": "invalid discrete model: content hash differs from table_sha256",
+            "error": "invalid discrete model: content hash differs: /workspace/uor-r4/runs/claude/a8-dose-gates-20261019/neg/a.json",
         },
         "neg_b": {
-            "rc": 1,
+            "rc": 2,
             "table_file_sha256": EXPECTED_NEGB_A8_FILE_SHA256,
             "table_sha256": EXPECTED_NEGB_A8_WORDS_SHA256,
-            "error": "device model rejected by status 6",
+            "error": "invalid discrete model: discrete CUDA snapshot validation refused with status 6",
         },
         "relation_controls": {
             "schema": "uor-r4.discrete-spiralcore-fbs/2",
@@ -2496,24 +2884,263 @@ def build_synthetic_prerun_bundle(repo_root: Path) -> dict[str, Any]:
             "full_reference_pass_claimed": False,
         },
         "plans": {
-            "relation": make_plan_bundle(
-                a8_rel_cfg,
-                EXPECTED_A8_RELATION_CONFIG_SHA256,
-                EXPECTED_A8_RELATION_LINEAGE_SHA256,
-                "state-relation-seed1",
-            ),
-            "frozen_zero": make_plan_bundle(
-                a8_fz_cfg,
-                EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256,
-                EXPECTED_A8_FROZEN_ZERO_LINEAGE_SHA256,
-                "state-frozen-zero-seed1",
-            ),
+            "relation": build_vast_56670997_plan_bundle(repo_root, "relation"),
+            "frozen_zero": build_vast_56670997_plan_bundle(repo_root, "frozen_zero"),
         },
     }
 
 
-def build_synthetic_dose_bundle() -> dict[str, Any]:
+def verify_vast_56670997_prerun_artifacts(
+    gates_log_path: Path,
+    relation_controls_path: Path,
+    repo_root: Path,
+) -> dict[str, Any]:
+    """Ingest and verify the preserved `vast-56670997` pre-run `original-gates.log` and `original-relation-controls.json`."""
+    gates_bytes = read_bytes_checked(gates_log_path, "vast-56670997 original-gates.log")
+    gates_sha = hashlib.sha256(gates_bytes).hexdigest()
+    require(
+        gates_sha == EXPECTED_VAST_56670997_GATES_LOG_SHA256
+        and len(gates_bytes) == EXPECTED_VAST_56670997_GATES_LOG_BYTES,
+        f"original-gates.log SHA/bytes mismatch: {gates_sha} ({len(gates_bytes)} B)",
+    )
+    rel_ctrl_bytes = read_bytes_checked(
+        relation_controls_path, "vast-56670997 original-relation-controls.json"
+    )
+    rel_ctrl_sha = hashlib.sha256(rel_ctrl_bytes).hexdigest()
+    require(
+        rel_ctrl_sha == EXPECTED_VAST_56670997_RELATION_CONTROLS_SHA256
+        and len(rel_ctrl_bytes) == EXPECTED_VAST_56670997_RELATION_CONTROLS_BYTES,
+        f"original-relation-controls.json SHA/bytes mismatch: {rel_ctrl_sha} ({len(rel_ctrl_bytes)} B)",
+    )
+    rel_ctrl_doc = json.loads(rel_ctrl_bytes.decode("utf-8"))
+    gates_text = gates_bytes.decode("utf-8")
+    lines = gates_text.splitlines()
+
+    require(
+        EXPECTED_VAST_56670997_FREEZE_COMMIT in lines,
+        "original-gates.log missing source freeze commit 2c015db9f01d3ba3a7d79889a052b1345d9da48f",
+    )
+    require(
+        f"{EXPECTED_VAST_56670997_ELF_SHA256}  /root/build/target-sm120/release/discrete-stack" in lines,
+        "original-gates.log missing discrete-stack ELF SHA-256 line",
+    )
+
+    required_gate_passes = (
+        "GATE DATA_PINS: PASS",
+        "GATE TABLE_REBUILD: PASS",
+        "GATE relation_IDENTITY: PASS",
+        "GATE relation_GOCC: PASS",
+        "GATE relation_GINIT_TABLE: PASS",
+        "GATE relation_INIT_LOCK_GATES: PASS",
+        "GATE relation_GINIT_UNPINNED_routes: PASS",
+        "GATE relation_GINIT_UNPINNED_gates: PASS",
+        "GATE relation_GINIT_UNPINNED_seed: PASS",
+        "GATE relation_GINIT_UNPINNED_epoch: PASS",
+        "GATE relation_REPRODUCTION: PASS",
+        "GATE relation_GATE22_SENSITIVE: PASS",
+        "GATE relation_GATE0_SENSITIVE: PASS",
+        "GATE frozen-zero_IDENTITY: PASS",
+        "GATE frozen-zero_GOCC: PASS",
+        "GATE frozen-zero_GINIT_TABLE: PASS",
+        "GATE frozen-zero_INIT_LOCK_GATES: PASS",
+        "GATE frozen-zero_GINIT_UNPINNED_routes: PASS",
+        "GATE frozen-zero_GINIT_UNPINNED_gates: PASS",
+        "GATE frozen-zero_GINIT_UNPINNED_seed: PASS",
+        "GATE frozen-zero_GINIT_UNPINNED_epoch: PASS",
+        "GATE frozen-zero_REPRODUCTION: PASS",
+        "GATE frozen-zero_GATE22_SENSITIVE: PASS",
+        "GATE frozen-zero_GATE0_SENSITIVE: PASS",
+        "GATE CROSS_ARM_MODEL: PASS",
+        "GATE NET_GCAP: PASS",
+        "GATE B3_INIT: PASS",
+        "GATE NEG_A: PASS",
+        "GATE NEG_B: PASS",
+        "GATE QUALIFY_RELATION: PASS",
+    )
+    for gline in required_gate_passes:
+        require(gline in lines, f"original-gates.log missing required PASS gate line: {gline}")
+
+    # Verify the preserved INIT_LOCK_RECORD jq selector false-FAIL is documented and resolved by canonical JSON
+    require(
+        '{"part":null,"treatment_control_snapshot_bit_identical":null,"reload_bit_identical":null,"plus_one_combine_indices":null,"snapshot_sha256":null,"applied_updates":null}'
+        in lines
+        and "GATE INIT_LOCK_RECORD: FAIL" in lines,
+        "original-gates.log missing preserved INIT_LOCK_RECORD selector false-FAIL evidence",
+    )
+
+    # Verify compact jq -c hashes of routes, gates, seed, epoch in unpinned G-Init check
+    expected_jq_hashes = {
+        "routes": hashlib.sha256(
+            (json.dumps(EXPECTED_MODEL_ROUTES, separators=(",", ":")) + "\n").encode("utf-8")
+        ).hexdigest(),
+        "gates": hashlib.sha256(
+            (json.dumps(EXPECTED_ACTIVE_LEAF_GATES, separators=(",", ":")) + "\n").encode("utf-8")
+        ).hexdigest(),
+        "seed": hashlib.sha256(b"1\n").hexdigest(),
+        "epoch": hashlib.sha256(b"0\n").hexdigest(),
+    }
+    for arm_label in ("relation", "frozen-zero"):
+        for field_name, exp_hash in expected_jq_hashes.items():
+            expected_line = f"{arm_label} {field_name} pinned={exp_hash} unpinned={exp_hash}"
+            require(
+                expected_line in lines,
+                f"original-gates.log missing unpinned equality line: {expected_line}",
+            )
+        require(
+            f"{arm_label} b3[psucc,full]=[1351,4244] top1_full=133" in lines,
+            f"original-gates.log missing {arm_label} reproduction line",
+        )
+        require(
+            f"{arm_label} psucc_top1_cp0=62" in lines,
+            f"original-gates.log missing {arm_label} psucc_top1_cp0=62 line",
+        )
+        require(
+            f"58cd6f1d4ec3a6dd35c536957e693f58ee41794535110a96e5ecd5896677e703  /workspace/uor-r4/runs/claude/a8-dose-gates-20261019/{arm_label}/snapshot.json"
+            in lines,
+            f"original-gates.log missing {arm_label} snapshot.json SHA-256",
+        )
+        require(
+            f"c919ac5f0ac442983f3dd89e457956dd5c6e8b7a5542c171854f4c58d4940ac6  /workspace/uor-r4/runs/claude/a8-dose-gates-20261019/{arm_label}/request.json"
+            in lines,
+            f"original-gates.log missing {arm_label} request.json SHA-256",
+        )
+
+    require(
+        "bar_i=86 ceiling=14287 b3_psucc=1351 net_gcap=1351 threshold=500" in lines,
+        "original-gates.log missing Bar (i) / net G-Cap summary line",
+    )
+
+    # Parse embedded JSON receipts from original-gates.log (table rebuild + 4 gate probes)
+    table_rebuild_doc = json.loads(lines[19])
+    rel_g22 = json.loads(lines[55])
+    rel_g0 = json.loads(lines[59])
+    fz_g22 = json.loads(lines[95])
+    fz_g0 = json.loads(lines[99])
+
+    # Build full pre-run bundle using live vast-56670997 receipts + original-relation-controls.json + plans/releases
+    bundle = build_synthetic_prerun_bundle(repo_root)
+    bundle["table_rebuild"] = table_rebuild_doc
+    bundle["arms"]["relation"]["probes"]["gate_22"] = rel_g22
+    bundle["arms"]["relation"]["probes"]["gate_0"] = rel_g0
+    bundle["arms"]["frozen_zero"]["probes"]["gate_22"] = fz_g22
+    bundle["arms"]["frozen_zero"]["probes"]["gate_0"] = fz_g0
+    bundle["neg_a"] = {
+        "rc": 2,
+        "cuda_context_created": False,
+        "error": lines[111],
+    }
+    bundle["neg_b"] = {
+        "rc": 2,
+        "table_file_sha256": EXPECTED_NEGB_A8_FILE_SHA256,
+        "table_sha256": EXPECTED_NEGB_A8_WORDS_SHA256,
+        "error": lines[117],
+    }
+    bundle["relation_controls"] = rel_ctrl_doc
+
+    prerun_res = verify_prerun_bundle(bundle)
+    require(
+        prerun_res["status"] == "PASS"
+        and prerun_res["verdict"] == "PRERUN_GATES_PASS_READY_FOR_OWNER_RELEASE"
+        and prerun_res["bar_i_and_g_cap"]["bar_i_psucc"] == 86
+        and prerun_res["bar_i_and_g_cap"]["net_g_cap"] == 1351
+        and prerun_res["faults"] == []
+        and prerun_res["plans"]["relation"]["owner_release_status"] == "RELEASED_BY_CASEY_D40"
+        and prerun_res["plans"]["frozen_zero"]["owner_release_status"] == "RELEASED_BY_CASEY_D40",
+        f"vast-56670997 pre-run verification failed: {prerun_res}",
+    )
+
+    # Also verify that the pre-fix frozen-zero plan (relation_off_dev_evaluations=1) reproduces bd6b1481...
+    fz_prefix_plan = copy.deepcopy(bundle["plans"]["frozen_zero"]["plan"])
+    fz_prefix_plan["cost_contract"]["relation_off_dev_evaluations"] = 1
+    require(
+        review_payload_sha256(fz_prefix_plan) == EXPECTED_VAST_56670997_FZ_REVIEW_PAYLOAD_PREFIX_SHA256,
+        "failed to reproduce pre-fix frozen-zero review_payload_sha256 bd6b1481...",
+    )
+
+    return {
+        "status": "PASS",
+        "gates_log_sha256": gates_sha,
+        "relation_controls_sha256": rel_ctrl_sha,
+        "freeze_commit": EXPECTED_VAST_56670997_FREEZE_COMMIT,
+        "discrete_stack_elf_sha256": EXPECTED_VAST_56670997_ELF_SHA256,
+        "cp0_snapshot_sha256": "58cd6f1d4ec3a6dd35c536957e693f58ee41794535110a96e5ecd5896677e703",
+        "cp0_request_sha256": "c919ac5f0ac442983f3dd89e457956dd5c6e8b7a5542c171854f4c58d4940ac6",
+        "bar_i": prerun_res["bar_i_and_g_cap"]["bar_i_psucc"],
+        "net_g_cap": prerun_res["bar_i_and_g_cap"]["net_g_cap"],
+        "plans": prerun_res["plans"],
+    }
+
+
+def verify_committed_a8_dose_receipt(repo_root: Path) -> dict[str, Any]:
+    """Verify the committed `#2767` `docs/labs/a8-dose-2026-10-19/` receipt and `vast-56670997` Q1 diagnostic stop."""
+    ev_dir = repo_root / "docs" / "labs" / "a8-dose-2026-10-19" / "evidence"
+    sha_manifest = parse_sha256sums_file(ev_dir / "SHA256SUMS")
+    expected_ev_shas = {
+        "a8-gates.sh": "a11ae977996d8012a60f830928e979387d26a1619858c466413da6c9fe0e9392",
+        "a8-plan-payload.rs": "cbf28735bae46238daa867cc0ce370b97854693e71a0ec541a4929191c40eb29",
+        "a8-plans.sh": "e38864aa361b5357e5ac31ef089582c54ccde3cc7099206faa19837f92bd7931",
+        "a8-seal.sh": "988fc158a8bbb956da5120803f00ee46cd1cd9e35d51879ecf437e5df4aa2ca8",
+        "frozen-zero-q1-summary.json": "92fcc94c38da0017e31fb3eabf88d4edf66d9ed0d50666c0a931e38f1ded607e",
+        "frozen-zero-report.json": "91531de94af5039ca1ce44615e27f2802294ea09232f26f6f42c300c49fabd28",
+        "gates-job.log": EXPECTED_VAST_56670997_GATES_LOG_SHA256,
+        "relation-q1-summary.json": "12bff673bf7a3c2541e07da1de41c4457217673bd9ee3747ec3100bd62a9fb68",
+    }
+    require(
+        sha_manifest == expected_ev_shas,
+        f"a8-dose-2026-10-19/evidence/SHA256SUMS mismatch: {sha_manifest}",
+    )
+    rel_q1 = read_json_checked(ev_dir / "relation-q1-summary.json")
+    fz_q1 = read_json_checked(ev_dir / "frozen-zero-q1-summary.json")
+    fz_rep = read_json_checked(ev_dir / "frozen-zero-report.json")
+
+    real_dose_bundle = {
+        "driver_source_sha256": EXPECTED_DRIVER_SOURCE_SHA256,
+        "plans": {
+            "relation": build_vast_56670997_plan_bundle(repo_root, "relation"),
+            "frozen_zero": build_vast_56670997_plan_bundle(repo_root, "frozen_zero"),
+        },
+        "arms": {
+            "relation": {
+                "q1_record": rel_q1,
+                "report": rel_q1["report"],
+            },
+            "frozen_zero": {
+                "q1_record": fz_q1,
+                "report": fz_rep,
+            },
+        },
+    }
+    dose_res = verify_dose_bundle(real_dose_bundle)
+    require(
+        dose_res["verdict"] == "Q1_DIAGNOSTIC_STOP"
+        and dose_res["mechanism_negative"] is False
+        and dose_res["configuration_closed_d22"] is False
+        and dose_res["q1_decisions"]["relation"]["diagnostic_stop"] is True
+        and dose_res["q1_decisions"]["relation"]["psucc_less_than_half_init"] is True
+        and dose_res["q1_decisions"]["relation"]["q1_psucc_target_admitted"] == 551
+        and dose_res["q1_decisions"]["frozen_zero"]["diagnostic_stop"] is False
+        and dose_res["q1_decisions"]["frozen_zero"]["q1_psucc_target_admitted"] == 857,
+        f"committed #2767 A8 dose verification failed: {dose_res}",
+    )
+    return {
+        "status": "PASS",
+        "verdict": dose_res["verdict"],
+        "mechanism_negative": dose_res["mechanism_negative"],
+        "configuration_closed_d22": dose_res["configuration_closed_d22"],
+        "relation_q1_psucc": 551,
+        "relation_q1_full": 1511,
+        "relation_q1_sha256": rel_q1["report"]["q1"]["sha256"],
+        "frozen_zero_q1_psucc": 857,
+        "frozen_zero_q1_full": 2519,
+        "frozen_zero_q1_sha256": fz_rep["q1"]["sha256"],
+        "frozen_zero_completed_batches": fz_rep["completed_batches"],
+        "frozen_zero_refused_relation_proposals": fz_rep["sensitivity"]["refused_relation_proposals"],
+    }
+
+
+def build_synthetic_dose_bundle(repo_root: Path | None = None) -> dict[str, Any]:
     """Construct a valid synthetic full-dose (16,404-batch) `H_geom` + fresh-transfer bundle."""
+    repo_root = repo_root or Path(__file__).resolve().parents[3]
     rel_gates = [1, 0, 0, 0, 0] * 4 + [1, 0, -1, 0, 0] + [0] * 20
     fz_gates = list(EXPECTED_ACTIVE_LEAF_GATES)
 
@@ -2526,7 +3153,9 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
                 "cursor": {
                     "completed_batches": CANONICAL_Q1_BATCHES,
                     "accepted_updates": acc_total,
-                    "next_target_ordinal": CANONICAL_Q1_BATCHES * 64,
+                    "corpus_pass": 0,
+                    "next_target": CANONICAL_Q1_BATCHES * 64,
+                    "next_coordinate": 0,
                 }
             },
             "counters": {
@@ -2620,6 +3249,10 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
     neither = CANONICAL_DEV_PSUCC_ROWS - (b3_i + r_only + c_only)
 
     return {
+        "plans": {
+            "relation": build_vast_56670997_plan_bundle(repo_root, "relation"),
+            "frozen_zero": build_vast_56670997_plan_bundle(repo_root, "frozen_zero"),
+        },
         "arms": {
             "relation": {
                 "q1_record": make_q1(False),
@@ -2627,7 +3260,9 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
                     "cursor": {
                         "completed_batches": CANONICAL_ATTENTION_BATCHES,
                         "accepted_updates": 342,
-                        "next_target_ordinal": CANONICAL_TRAIN_MATCHED_TARGETS,
+                        "corpus_pass": 0,
+                        "next_target": CANONICAL_TRAIN_MATCHED_TARGETS,
+                        "next_coordinate": 0,
                     },
                     "model": {
                         "epoch": 342,
@@ -2649,7 +3284,12 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
                     },
                 },
                 "final_census": {
-                    "occupied_cells": 256,
+                    "cells": {
+                        "status": "FROM_GPU_TOKEN_CELL_RECEIPT",
+                        "occupied_cells": 256,
+                        "cell_occupancy_histogram": {"16": 256},
+                        "cell_collision_pairs": 30720,
+                    },
                     "within_cell_tie_mass": {
                         "dev_rows_targeting_non_representative": 0,
                         "tokens_in_alias_groups": 0,
@@ -2660,6 +3300,7 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
                     "status": "COMPLETE_PENDING_REGISTERED_DISCRIMINATOR",
                     "learned_attention_result": "NOT_YET_SCORED",
                     "scope": "m1-attention-learning-injective-6600bdb1306d-relation-k8-seed1-batches0..16404",
+                    "manifest_sha256": EXPECTED_VAST_56670997_REL_ADMISSION_SHA256,
                     "completed_batches": CANONICAL_ATTENTION_BATCHES,
                     "eligible_train_target_exposures": CANONICAL_TRAIN_MATCHED_TARGETS,
                     "sensitivity": rel_counters,
@@ -2685,7 +3326,9 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
                     "cursor": {
                         "completed_batches": CANONICAL_ATTENTION_BATCHES,
                         "accepted_updates": 322,
-                        "next_target_ordinal": CANONICAL_TRAIN_MATCHED_TARGETS,
+                        "corpus_pass": 0,
+                        "next_target": CANONICAL_TRAIN_MATCHED_TARGETS,
+                        "next_coordinate": 0,
                     },
                     "model": {
                         "epoch": 322,
@@ -2695,7 +3338,12 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
                     },
                 },
                 "final_census": {
-                    "occupied_cells": 256,
+                    "cells": {
+                        "status": "FROM_GPU_TOKEN_CELL_RECEIPT",
+                        "occupied_cells": 256,
+                        "cell_occupancy_histogram": {"16": 256},
+                        "cell_collision_pairs": 30720,
+                    },
                     "within_cell_tie_mass": {
                         "dev_rows_targeting_non_representative": 0,
                         "tokens_in_alias_groups": 0,
@@ -2706,6 +3354,7 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
                     "status": "COMPLETE_PENDING_REGISTERED_DISCRIMINATOR",
                     "learned_attention_result": "NOT_YET_SCORED",
                     "scope": "m1-attention-learning-injective-6600bdb1306d-relation-frozen-zero-k8-seed1-batches0..16404",
+                    "manifest_sha256": EXPECTED_VAST_56670997_FZ_ADMISSION_SHA256,
                     "completed_batches": CANONICAL_ATTENTION_BATCHES,
                     "eligible_train_target_exposures": CANONICAL_TRAIN_MATCHED_TARGETS,
                     "sensitivity": fz_counters,
@@ -2792,6 +3441,46 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
                 "schema": "uor-r4.attention-transfer-decision/2",
                 "verdict": "RELEASE_PAIRED_FRESH_AFTER_DEV_H_GEOM",
                 "dev_verdict": "H_geom",
+                "treatment": {
+                    "admission": {
+                        "path": "/workspace/a8-dose/release/a8-relation-seed1/admission.json",
+                        "sha256": EXPECTED_VAST_56670997_REL_ADMISSION_SHA256,
+                    },
+                    "final_checkpoint": {
+                        "path": "/workspace/a8-dose/state/a8-relation-seed1/checkpoint.json",
+                        "sha256": "1" * 64,
+                    },
+                    "final_dev": {
+                        "path": "/workspace/a8-dose/state/a8-relation-seed1/final-evaluation.json",
+                        "sha256": "2" * 64,
+                    },
+                },
+                "control": {
+                    "admission": {
+                        "path": "/workspace/a8-dose/release/a8-frozen-zero-seed1/admission.json",
+                        "sha256": EXPECTED_VAST_56670997_FZ_ADMISSION_SHA256,
+                    },
+                    "final_checkpoint": {
+                        "path": "/workspace/a8-dose/state/a8-frozen-zero-seed1/checkpoint.json",
+                        "sha256": "3" * 64,
+                    },
+                    "final_dev": {
+                        "path": "/workspace/a8-dose/state/a8-frozen-zero-seed1/final-evaluation.json",
+                        "sha256": "4" * 64,
+                    },
+                },
+                "treatment_ablation_checkpoint": {
+                    "path": "/workspace/uor-r4/runs/claude/a8-dose-relation-seed1/relation-off-checkpoint.json",
+                    "sha256": "5" * 64,
+                },
+                "treatment_ablation_dev": {
+                    "path": "/workspace/uor-r4/runs/claude/a8-dose-relation-seed1/relation-off-dev.json",
+                    "sha256": "6" * 64,
+                },
+                "paired_discriminator": {
+                    "path": "/workspace/uor-r4/runs/claude/a8-dose-paired-dev-score.json",
+                    "sha256": "7" * 64,
+                },
                 "pm_receipt_url": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6259999999",
             },
             "result": {
@@ -2821,7 +3510,7 @@ def build_synthetic_dose_bundle() -> dict[str, Any]:
 
 
 def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str, Any]:
-    """Run 30 positive and negative self-tests covering all A8 pre-run, Q1, D34, and decision rules."""
+    """Run 40 positive and negative self-tests covering all A8 pre-run, Q1, D34, D40, and decision rules."""
     results: list[dict[str, Any]] = []
 
     def record(name: str, passed: bool, detail: str) -> None:
@@ -2904,7 +3593,7 @@ def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str,
     # T8: Pre-run Gate22 probe inert (`any_candidate_cost_differs_from_identity == False`) -> INSTRUMENT_FAULT_D31
     b_inert = copy.deepcopy(base_prerun)
     b_inert["arms"]["relation"]["probes"]["gate_22"]["any_candidate_cost_differs_from_identity"] = False
-    b_inert["arms"]["relation"]["probes"]["gate_22"]["candidate_losses"] = [18400] * 16
+    b_inert["arms"]["relation"]["probes"]["gate_22"]["candidate_losses"] = [59136, 59136, 59136] + [U64_MAX] * 13
     res_inert = verify_prerun_bundle(b_inert)
     record(
         "08_prerun_gate22_probe_inert_fault",
@@ -2998,7 +3687,7 @@ def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str,
     )
 
     # T15: Dose Q1 diagnostic stop (admission collapse `< 0.5 * 1351`, i.e. `675 <= 675.5`)
-    base_dose = build_synthetic_dose_bundle()
+    base_dose = build_synthetic_dose_bundle(repo_root)
     d_q1_stop = copy.deepcopy(base_dose)
     d_q1_stop["arms"]["relation"]["q1_record"]["q1_b3"]["psucc"]["target_admitted"] = 675
     d_q1_stop["arms"]["relation"]["q1_record"]["q1_b3"]["full"]["target_admitted"] = 675 + 2500
@@ -3287,6 +3976,137 @@ def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str,
             f"ok={rc_dose_ok}, fault={rc_dose_fault}",
         )
 
+    # T33: ExecutionIdentity struct field order & vast-56670997 12-digest reproduction
+    rel_plan_b = base_prerun["plans"]["relation"]
+    fz_plan_b = base_prerun["plans"]["frozen_zero"]
+    record(
+        "33_execution_identity_order_and_vast_56670997_digests",
+        canonical_plan_sha256(rel_plan_b["plan"]) == EXPECTED_VAST_56670997_REL_PLAN_CANONICAL_SHA256
+        and canonical_plan_sha256(fz_plan_b["plan"]) == EXPECTED_VAST_56670997_FZ_PLAN_CANONICAL_SHA256
+        and rel_plan_b["manifest_sha256"] == EXPECTED_VAST_56670997_REL_ADMISSION_SHA256
+        and fz_plan_b["manifest_sha256"] == EXPECTED_VAST_56670997_FZ_ADMISSION_SHA256,
+        f"rel={rel_plan_b['manifest_sha256'][:12]}, fz={fz_plan_b['manifest_sha256'][:12]}",
+    )
+
+    # T34: Gate probe u64::MAX sentinel slot filtering rejects inert gate (both forged any_diff=True and any_diff=False)
+    b_u64max_forged = copy.deepcopy(base_prerun)
+    b_u64max_forged["arms"]["relation"]["probes"]["gate_22"]["candidate_losses"] = (
+        [59136, 59136, 59136] + [U64_MAX] * 13
+    )
+    b_u64max_forged["arms"]["relation"]["probes"]["gate_22"][
+        "any_candidate_cost_differs_from_identity"
+    ] = True
+    res_u64max_forged = verify_prerun_bundle(b_u64max_forged)
+    b_u64max_inert = copy.deepcopy(b_u64max_forged)
+    b_u64max_inert["arms"]["relation"]["probes"]["gate_22"][
+        "any_candidate_cost_differs_from_identity"
+    ] = False
+    res_u64max_inert = verify_prerun_bundle(b_u64max_inert)
+    record(
+        "34_prerun_probe_u64_max_sentinel_inert_gate_rejected",
+        res_u64max_forged["verdict"] == "INSTRUMENT_FAULT_D31"
+        and "relation_probe_schema_invalid" in res_u64max_forged["faults"]
+        and res_u64max_inert["verdict"] == "INSTRUMENT_FAULT_D31"
+        and "relation_probe_inert_under_bound_predicate" in res_u64max_inert["faults"],
+        f"forged={res_u64max_forged['faults']}, inert={res_u64max_inert['faults']}",
+    )
+
+    # T35: Nested coverage-census `cells.status != FROM_GPU_TOKEN_CELL_RECEIPT` rejected
+    b_bad_census = copy.deepcopy(base_prerun)
+    b_bad_census["arms"]["relation"]["census"]["cells"]["status"] = "HOST_RECONSTRUCTED"
+    res_bad_census = verify_prerun_bundle(b_bad_census)
+    record(
+        "35_prerun_nested_census_status_tamper_rejected",
+        res_bad_census["verdict"] == "INSTRUMENT_FAULT_D31"
+        and "relation_g_occ_mismatch" in res_bad_census["faults"],
+        str(res_bad_census["faults"]),
+    )
+
+    # T36: Dose bundle missing D40 `RELEASED_BY_CASEY_D40` (`STILL_REQUIRED`) -> INSTRUMENT_FAULT
+    d_no_d40 = copy.deepcopy(base_dose)
+    del d_no_d40["plans"]["relation"]["owner"]
+    del d_no_d40["plans"]["relation"]["admission"]
+    res_no_d40 = verify_dose_bundle(d_no_d40)
+    record(
+        "36_dose_missing_d40_owner_release_fault",
+        res_no_d40["verdict"] == "INSTRUMENT_FAULT"
+        and any(
+            f.startswith("missing_or_unreleased_d40_owner_admission_in_dose_bundle")
+            for f in res_no_d40["faults"]
+        ),
+        str(res_no_d40["faults"]),
+    )
+
+    # T37: Dose bundle report `manifest_sha256` mismatch against `admission.json` -> INSTRUMENT_FAULT
+    d_bad_manifest = copy.deepcopy(base_dose)
+    d_bad_manifest["arms"]["frozen_zero"]["report"]["manifest_sha256"] = "0" * 64
+    res_bad_manifest = verify_dose_bundle(d_bad_manifest)
+    record(
+        "37_dose_report_manifest_sha256_mismatch_fault",
+        res_bad_manifest["verdict"] == "INSTRUMENT_FAULT"
+        and "frozen_zero_report_manifest_sha256_mismatch" in res_bad_manifest["faults"],
+        str(res_bad_manifest["faults"]),
+    )
+
+    # T38: Dose bundle `TransferDecision` missing required FilePin -> INSTRUMENT_FAULT
+    d_missing_pin = copy.deepcopy(base_dose)
+    del d_missing_pin["fresh_transfer"]["decision"]["treatment_ablation_checkpoint"]
+    res_missing_pin = verify_dose_bundle(d_missing_pin)
+    record(
+        "38_dose_fresh_transfer_missing_file_pin_fault",
+        res_missing_pin["verdict"] == "INSTRUMENT_FAULT"
+        and "fresh_transfer_pm_decision_header_or_pins_invalid" in res_missing_pin["faults"],
+        str(res_missing_pin["faults"]),
+    )
+
+    # T39: Dose bundle fresh transfer `b3_i < 200` underpowered -> DEV_ONLY_DIAGNOSTIC_FRESH_FAILED (never `H_geom`)
+    d_fresh_under = copy.deepcopy(base_dose)
+    d_fresh_under["fresh_transfer"]["result"]["paired_fresh"] = {
+        "psucc_rows": 860,
+        "b3_r": 290,
+        "b3_c": 280,
+        "b3_i": 199,
+        "b_fresh": 8,
+        "c_fresh": 34,
+        "both_correct": 40,
+        "both_wrong": 117,
+        "floor": 20,
+        "treatment_direction_and_floor_met": True,
+    }
+    res_fresh_under = verify_dose_bundle(d_fresh_under)
+    record(
+        "39_dose_fresh_transfer_b3_i_below_200_underpowered_fault",
+        res_fresh_under["verdict"] == "DEV_ONLY_DIAGNOSTIC_FRESH_FAILED"
+        and res_fresh_under.get("underpowered_fresh_b3_i") is True
+        and res_fresh_under["keep"] is False,
+        f"verdict={res_fresh_under['verdict']}, underpowered={res_fresh_under.get('underpowered_fresh_b3_i')}",
+    )
+
+    # T40: Live vast-56670997 pre-run artifacts & committed #2767 A8 dose receipt verification
+    committed_dose_res = verify_committed_a8_dose_receipt(repo_root)
+    default_pkt = packet_dir or Path("/Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019")
+    gates_log_p = default_pkt / "init-lock-selector-diagnosis" / "original-gates.log"
+    rel_ctrl_p = default_pkt / "init-lock-selector-diagnosis" / "original-relation-controls.json"
+    if gates_log_p.is_file() and rel_ctrl_p.is_file():
+        vast_res = verify_vast_56670997_prerun_artifacts(gates_log_p, rel_ctrl_p, repo_root)
+        record(
+            "40_live_vast_56670997_prerun_and_committed_dose_receipt_pass",
+            vast_res["status"] == "PASS"
+            and vast_res["bar_i"] == 86
+            and committed_dose_res["status"] == "PASS"
+            and committed_dose_res["verdict"] == "Q1_DIAGNOSTIC_STOP",
+            f"gates_log={vast_res['gates_log_sha256'][:12]}, bar_i={vast_res['bar_i']}, dose={committed_dose_res['verdict']}",
+        )
+    else:
+        record(
+            "40_live_vast_56670997_prerun_and_committed_dose_receipt_pass",
+            res_prerun["bar_i_and_g_cap"]["bar_i_psucc"] == 86
+            and res_prerun["status"] == "PASS"
+            and committed_dose_res["status"] == "PASS"
+            and committed_dose_res["verdict"] == "Q1_DIAGNOSTIC_STOP",
+            f"dose={committed_dose_res['verdict']} (external packet dir not mounted)",
+        )
+
     return {
         "status": "PASS",
         "total_tests": len(results),
@@ -3324,6 +4144,18 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional path to external executor packet (/Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019).",
     )
     parser.add_argument(
+        "--gates-log",
+        type=Path,
+        default=None,
+        help="Optional path to vast-56670997 original-gates.log.",
+    )
+    parser.add_argument(
+        "--relation-controls",
+        type=Path,
+        default=None,
+        help="Optional path to vast-56670997 original-relation-controls.json.",
+    )
+    parser.add_argument(
         "--prerun-bundle",
         type=Path,
         default=None,
@@ -3343,7 +4175,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Run the 32-case positive and negative self-test suite.",
+        help="Run the 40-case positive and negative self-test suite.",
     )
     args = parser.parse_args(argv)
 
@@ -3361,6 +4193,17 @@ def main(argv: list[str] | None = None) -> int:
         packet_dir=args.packet_dir,
     )
     out["staged_contract"] = staged
+
+    if args.gates_log is not None or args.relation_controls is not None:
+        require(
+            args.gates_log is not None and args.relation_controls is not None,
+            "--gates-log and --relation-controls must be supplied together",
+        )
+        out["vast_56670997_prerun"] = verify_vast_56670997_prerun_artifacts(
+            gates_log_path=args.gates_log,
+            relation_controls_path=args.relation_controls,
+            repo_root=args.repo_root,
+        )
 
     if args.self_test:
         out["self_tests"] = run_self_tests(args.repo_root, packet_dir=args.packet_dir)
