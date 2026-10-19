@@ -1,3 +1,13 @@
+## 2026-10-19 — Current-work pointers follow delivered controller and consumer (codex)
+
+NOW and ROADMAP point to runbook/executor staging and separate prospective finite
+qualification after #2782/#2783 delivery; the prior A8 diagnosis remains retained
+history. Immutable scientific FIT sheet restoration and qualification binding stay
+with #2785; this documentation unit changes neither. Real CUDA qualification,
+restoration and timing remain NOT_RUN, with finite-stage and full-dose authorization
+separate. [Record](../labs/admission-current-pointers-2026-10-19/README.md).
+**Next:** exact-head independent review of the draft PR and protected delivery.
+
 ## 2026-10-19 — Integrated `#2782` (`fd409fcdf`) audited-learning source, `TrainAnchorManifest`, finite qualification, and two-arm audited-dose consumer binding (`64/64` self-tests PASS) (antigravity)
 
 Extends [`verify_a8_address_cells_dose.py`](../labs/address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py) (`82f29cdcbd387ba19597b9dea79711eb54dcbd1df49ec8c0b74e623d080b8223`, `417,600` B, `9,354` lines; `64/64` positive and negative self-tests `PASS`, extended from `#2781` `650490f4c92e94c1e9d2d4ef5d890dea9719b43fb0709389c394e5a035bcc721`, `340,000` B, `7,612` lines, `56/56` `PASS`) with `verify_integrated_audited_source_contract`, `compute_original_window_pin`, `verify_train_anchor_manifest`, `verify_audited_qualification_artifacts` (`--verify-qualification-bundle`), and `verify_integrated_audited_dose_artifacts` (`--verify-audited-dose-bundle`), binding the host-only (`$0` GPU) consumer verifier to the merged `#2782` (`fd409fcdf3bc43d607e768bae6f8cf403aa75901`) admission-preserving `A8` audited-learning controller and finite qualification source:

@@ -2,7 +2,20 @@
 
 **Current plan:** [NOW.md](docs/integration/NOW.md) is the authoritative one-page plan; this roadmap keeps the long-form history and details.
 
-**Current M1 work — 19 October:** [A8](docs/labs/a8-dose-2026-10-19/README.md)
+**Current M1 work — 19 October:** the
+[admission-preserving A8 controller and separate finite qualification producer](docs/labs/admission-anchor-controller-2026-10-19/README.md)
+are on main ([#2782](https://github.com/UOR-Foundation/uor-r4/pull/2782)), as is the
+[host consumer verifier](docs/labs/address-cells-consumer-verifier-2026-10-19/README.md)
+([#2783](https://github.com/UOR-Foundation/uor-r4/pull/2783)). Current work is audited-dose
+runbook/executor staging and separate prospective finite-qualification registration.
+Registration must preserve the immutable scientific FIT sheet identity;
+[#2785](https://github.com/UOR-Foundation/uor-r4/pull/2785) tracks sheet restoration
+and the separate qualification binding. Real CUDA qualification, restoration and
+timing remain NOT_RUN. The finite stage's bounded updates and restoration controls
+require its own FIT, costed owner approval, PM dispatch and personal release;
+later full-dose approval and personal arm releases remain separate.
+
+**Retained A8 dose and diagnosis history — 19 October:** [A8](docs/labs/a8-dose-2026-10-19/README.md)
 ended at its registered Q1 diagnostic stop; FrozenZero completed 16,404 batches,
 and `vast-56670997` is closed. Claude owns the host-only erosion diagnosis from
 retained checkpoints and move logs

@@ -14,7 +14,19 @@ conversation yet.** Milestones M1–M8 are GitHub milestones on issues #2029–#
 
 ## Current work — M1 (#2029)
 
-Codex has implemented the [admission-preserving A8 interval controller and separate finite qualification producer](../labs/admission-anchor-controller-2026-10-19/README.md) against the FIT sheet. Host metadata/source tests and synthetic CUDA type checks pass; real CUDA qualification, restoration and timing remain NOT_RUN. DeepSeek owns the sheet, Claude the review seat and AGY the consumer. Protected source delivery and exact-head review precede a separately registered, costed and approved numerical qualification; later dose personal release remains separate. No pod is rented while these prerequisites are pending.
+The [admission-preserving A8 controller and separate finite qualification producer](../labs/admission-anchor-controller-2026-10-19/README.md)
+are on main ([#2782](https://github.com/UOR-Foundation/uor-r4/pull/2782)), as is the
+[host consumer verifier](../labs/address-cells-consumer-verifier-2026-10-19/README.md)
+([#2783](https://github.com/UOR-Foundation/uor-r4/pull/2783)). Current work is audited-dose
+runbook/executor staging and separate prospective finite-qualification registration.
+Registration must preserve the immutable scientific FIT sheet identity;
+[#2785](https://github.com/UOR-Foundation/uor-r4/pull/2785) tracks sheet restoration
+and the separate qualification binding. Real CUDA qualification, restoration and
+timing remain NOT_RUN. The finite stage's bounded updates and restoration controls
+require its own FIT, costed owner approval, PM dispatch and personal release;
+later full-dose approval and personal arm releases remain separate.
+
+### Retained A8 dose and diagnosis history
 
 [A8](../labs/a8-dose-2026-10-19/README.md) ended at its registered Q1 diagnostic
 stop; FrozenZero completed 16,404 batches, and `vast-56670997` is closed.
