@@ -54,7 +54,7 @@ The table was built on the host with `prime-zeta-codebook evidence/spec.json 1 O
    ```
 
    Required output: `file_sha256 = 83c1380a…` and `table_sha256 = e9e03bcd…`. Any other value is an instrument blocker; stop.
-3. **Configs.** Copy `evidence/injective-{relation,frozen-zero}-seed1.json`, then run `discrete-stack attention-build-identity CONFIG` on each. That validates the config and returns the identities the plan binds, including the scope above.
+3. **Configs.** Copy `evidence/injective-{relation,frozen-zero}-seed1.json`, then run `discrete-stack attention-build-identity CONFIG` on each. That validates the config and returns the identities the plan binds; the scope comes from the existing scope/check-plan path (`attention-build-identity` does not emit it).
 4. **Pre-flight battery** (sheet §3; GPU, zero updates):
    - **G-Init and its negative controls:**
      - an edited table file with stale hashes is refused on the host;
@@ -64,10 +64,12 @@ The table was built on the host with `prime-zeta-codebook evidence/spec.json 1 O
      - `occupied_cells` must exceed 16; 256 is the expected value, not the gate;
      - within-cell tie mass must be 0, with no split alias group;
      - the occupancy histogram and crowding are reported.
-   - **G-Cap:** run `coverage-census --token-cells` on the checkpoint-0 export from `attention-export-token-cells`. The gate is **net G-Cap > max(500, top1_control(cp0) + 24)**.
+   - **G-Cap:** run `coverage-census --token-cells` on the checkpoint-0 export from `attention-export-token-cells`. The gate is **net G-Cap > max(500, top1_control(cp0) + 24)**: join the raw full-DEV alias ceiling to the actual zero-update `B3`/`P_succ` and the control `cp0` top-1 rather than deriving it from a substitute surface.
    - **`B3_init(P_succ)` from `attention-dev-b3`:** must be ≥ 500, or the run is not dispatched.
 
-   Post the battery receipt on #2029. Any FAIL stops the runbook for diagnosis.
+   **Inherited contract (unchanged, explicitly retained):** Gate22 and Gate0, the `Relation` C2 ACTIVE/INERT pair, the INIT LOCK, and the reference battery. These are inherited from the parent/sheet and are not redefined here.
+
+Post the battery receipt on #2029. Any FAIL stops the runbook for diagnosis.
 5. **Plans and review.**
    - Write one `uor-r4.attention-learning-owner-plan/2` per arm from the build identities. Follow the parent `rows_v1` plan templates in `codex-attention-dose2-rows-final-static-20261018/packet/admission/prepared-inputs/`.
    - Set `run_state_directory` to a fresh absolute path, separate from the release directory.

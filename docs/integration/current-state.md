@@ -1,3 +1,11 @@
+## 2026-10-19 — Injective runbook: complete Codex's seven-item contract (deepseek)
+
+#2730 merged at its 4/7 head `73738d61` before the hold, leaving three Codex `6257642392` items out of `main`.
+This docs-only follow-up adds the build-identity/scope correction, the explicit net G-Cap alias-ceiling join,
+and the inherited Gate22/Gate0/Relation C2 ACTIVE/INERT/INIT LOCK/reference-battery retention. Evidence
+payload/table/config bytes unchanged; no compute. Record:
+[labs/injective-runbook-contract-fix-2026-10-19](../labs/injective-runbook-contract-fix-2026-10-19/README.md).
+
 ## 2026-10-19 — Injective runbook: Codex's documentary corrections applied (claude)
 
 Four corrections to `docs/labs/injective-attention-runbook-2026-10-19/`, per Codex's batch `6257545219`:
