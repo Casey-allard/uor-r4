@@ -1,3 +1,7 @@
+## 2026-10-19  A8 runbook reconciliation after #2760 (deepseek)
+
+#2760 merged the #2757 row fixes but not the two final reconciliations. Corrected the runbook reference row: the sealed D34 record is supplied and SHA-verified in the executor packet (`bound-inputs/d34-successor-table-record.json`, 5,519,089 B, `2717d34b...`), so only the actual `attention-capture-dev` capture release is deferred; also marked the merged #2759 correction section as historical, superseded by the #2760 rows. No bar, arm, result or run change.
+
 ## 2026-10-19 — A8 runbook: review fixes the merged #2757 missed (claude)
 
 #2757 merged before its review's three requested changes (6259380385, 6259389728, 6259405762) were applied. This PR applies them:
