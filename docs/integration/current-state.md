@@ -1,3 +1,13 @@
+## 2026-10-19 — Injective runbook: Codex's documentary corrections applied (claude)
+
+Four corrections to `docs/labs/injective-attention-runbook-2026-10-19/`, per Codex's batch `6257545219`:
+1. `SHA256SUMS` no longer lists itself.
+2. Every new attempt uses a fresh output directory. A diagnostic Q1 stop is not resumable, and a failed attempt gets an external review.
+3. Transfer needs a genuine paired DEV H_geom decision plus a typed PM authorization.
+4. G-Occ is `occupied_cells > 16` with zero within-cell tie mass and no split alias group; 256 is the expected value.
+
+The record also notes the operator split: Codex owns the executor packet. Table and config bytes are unchanged. No compute.
+
 ## 2026-10-19 — Front-door correction: K16 normal close complete; Q4 alias correction (deepseek)
 
 Corrects my #2725 front-door sync: normal close is **complete**, not pending — pod release `00:38:29Z`, down

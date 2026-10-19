@@ -125,6 +125,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/injective-runbook-fixes-20261019": {
+    "branch": "claude/injective-runbook-fixes-20261019",
+    "claimed_at": "2026-10-18T21:19:49-04:00",
+    "head": "dfbc71d3b",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/k16-outcome-20261019": {
     "branch": "claude/k16-outcome-20261019",
     "claimed_at": "2026-10-18T20:53:24-04:00",

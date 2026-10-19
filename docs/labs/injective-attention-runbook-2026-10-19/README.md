@@ -3,6 +3,7 @@
 - **Lab:** Claude (self-directed; #2029 intent `6257406680`).
 - **Sheet:** `docs/harness/prep/m1-attention-injective-init-DRAFT-2026-10-18.md`, **TEST FITNESS: FIT** (#2712). The header was corrected in this PR, and the sheet SHA is re-pinned to `e47ce5afb3966bda13cd04bd9b99849b401c028e078de958fa98b5e8b7ed4efb` in `attention_learning.rs`.
 - **§Sequencing:** met by the K16 outcome call (#2029 `6257335075`, record `docs/labs/k16-outcome-call-2026-10-19/`). The call selected arm A with no K16 admission advantage, so the sheet's K8 / objective-A configuration stands.
+- **Operator split** (#2029 `6257545219`, owner-reaffirmed): **Codex owns the executor packet** and brings Casey his exact command when ready. Claude supplies and reviews the source, sheet and this runbook. Kimi dispatches. This record is the source-side runbook that Codex's packet integrates; Codex's corrections are applied below.
 - **Status: STAGED. Nothing has run.** Training is HELD. Running needs the explicit PM dispatch, then the owner's release per arm. Under D40, Casey types the phrase himself in a terminal with `UOR_LAB` unset; no lab types it.
 
 ## What the test is
@@ -24,6 +25,8 @@ Both use seed 1, K = 8, objective A (`NearestAddressMarginV1`), `active_leaf_v1`
 | `parent-rows-frozen-zero-seed1.json` | Parent `rows_v1` matched control config | `6a035717130a5e7106e1…` (see `SHA256SUMS`) |
 | `injective-relation-seed1.json` | Parent treatment plus `codebook_initialization = pinned_table_v1` | see `SHA256SUMS` |
 | `injective-frozen-zero-seed1.json` | Parent control plus the same pin | see `SHA256SUMS` |
+
+`evidence/SHA256SUMS` lists every evidence file except itself; its own digest is recorded in the PR body.
 
 The two injective configs differ from their parents **only** in `codebook_initialization`, which is checked by `jq` diff. They use the parent's canonical pod data paths (`/workspace/uor-r4/local/driver/data/...`). The table pin's path is `/workspace/uor-r4/local/driver/data/injective/prime-zeta-v4096-b4-c192-k8.json`.
 
@@ -57,7 +60,10 @@ The table was built on the host with `prime-zeta-codebook evidence/spec.json 1 O
      - an edited table file with stale hashes is refused on the host;
      - a re-hashed and re-pinned non-root word is refused with GPU status 6;
      - the loaded table equals the pin word for word, and routes, gates and epoch equal the unpinned initializer's.
-   - **G-Occ:** 256 occupied cells at checkpoint 0.
+   - **G-Occ** (sheet §3 item 2, measured on the artifact by `attention-export-token-cells` then `coverage-census --token-cells`):
+     - `occupied_cells` must exceed 16; 256 is the expected value, not the gate;
+     - within-cell tie mass must be 0, with no split alias group;
+     - the occupancy histogram and crowding are reported.
    - **G-Cap:** run `coverage-census --token-cells` on the checkpoint-0 export from `attention-export-token-cells`. The gate is **net G-Cap > max(500, top1_control(cp0) + 24)**.
    - **`B3_init(P_succ)` from `attention-dev-b3`:** must be ≥ 500, or the run is not dispatched.
 
@@ -91,8 +97,14 @@ Each run writes `owner.json` and `admission.json` into its release directory. Th
 
 **Lab side, run and transfer:**
 
-6. Run `discrete-stack attention CONFIG <release>/admission.json NEW_REPORT_DIR`, one arm per GPU (`uor-pod run … --gpu 0` and `--gpu 1`). Use `attention-resume` with the same arguments after any interruption. The Q1 gate at batch 4,096 and the DEV evaluations run inside the job. The sheet's §7.9 / Q1 stop rule halts a failing run at Q1. The phrase cannot narrow the scope; it always says "through batch 16404".
-7. After the sealed paired DEV decision, run `discrete-stack attention-transfer PAIRED_DEV_DECISION NEW_REPORT_DIR`. This opens the fresh V2 slice once.
+6. Run `discrete-stack attention CONFIG <release>/admission.json NEW_REPORT_DIR`, one arm per GPU (`uor-pod run … --gpu 0` and `--gpu 1`).
+   - `attention-resume` continues a live interrupted attempt only in that attempt's own state. **Every new attempt uses a fresh, never-used output directory.** A diagnostic Q1 stop is **not** resumable.
+   - A failed attempt is preserved and gets an explicit external review before any new attempt. The Q1 gate at batch 4,096 and the DEV evaluations run inside the job. The sheet's §7.9 / Q1 stop rule halts a failing run at Q1. The phrase cannot narrow the scope; it always says "through batch 16404".
+7. Run `discrete-stack attention-transfer PAIRED_DEV_DECISION NEW_REPORT_DIR` **only after** both of these:
+   - a genuine sealed paired DEV **H_geom** decision (sheet and parent §7.6), not just any paired decision;
+   - a **typed PM transfer authorization** posted on #2029.
+
+   It opens the fresh V2 slice once.
 8. Post the receipts, archive to the HF store and iCloud, and delete the pod.
 
 ## Cost (sheet §Cost; assumptions)
