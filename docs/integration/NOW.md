@@ -62,7 +62,13 @@ Final four-role execution and custody are recorded in the [canonical result](../
 
 ## Holds and hard rules
 
-Training, M2 and Stage B are HELD; Q4 timing cells are waived (owner `6251027125`).
+Training outside an explicitly released scope remains HELD, including M2 and
+Stage B. The completed K16 Route writer-objective experiment used its own scoped
+release; its [registered outcome](../labs/k16-outcome-call-2026-10-19/README.md)
+is `OCCUPANCY_COLLAPSE_TRIGGERED`, with no KEEP and fresh `NOT_TRIGGERED` (sealed).
+Each unreleased successor needs its own applicable authorization and gates;
+completed releases and FIT reviews do not authorize future training.
+Q4 timing cells are waived (owner `6251027125`).
 No softmax/softplus/sigmoid/tanh/GELU anywhere (D23/D25); no matmul/GEMM anywhere
 (D25/D30); model compute is GPU-only (D24); banned mechanisms may not exist in any
 compiled module (D29); Rust-first (D27); no transformer comparators (D28). D37:

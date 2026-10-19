@@ -30,15 +30,20 @@ graphs' distinct compiled-source identities.
 
 DATA and late operator custody have verified full cloud readbacks;
 [Claude ACCEPT6254417234](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254417234)
-binds the sealed packet. Training,
-fresh scoring and capability promotion are NOT_RUN. Four bound `rows_v1` configs
+binds the sealed packet. The released K16 Route writer-objective experiment has
+completed all four A/R×seed1/2 trajectories. Its registered verdict is
+`OCCUPANCY_COLLAPSE_TRIGGERED`, with no KEEP; fresh transfer is `NOT_TRIGGERED`
+and stays sealed. See the [current plan](docs/integration/NOW.md) and
+[registered outcome](docs/labs/k16-outcome-call-2026-10-19/README.md).
+Four bound `rows_v1` configs
 and the measured D-Packet are accepted under
 [owner delegation6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195).
 The [owner's relayed gated release6254435225](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254435225),
 [PM dispatch6254457591](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254457591)
 and [GO6254507680](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254507680)
-are issued for exactly the four unchanged trajectories. Native admission
-transport remains before start; training is NOT_RUN.
+were issued for exactly the four unchanged trajectories; their completed native
+transport and training are preserved in the
+[execution and custody record](docs/labs/k16-four-role-execution-2026-10-18/README.md).
 The checkpoint-0 proposal-work projection is 2.3691 GPU-hours; the remaining 5–8
 GPU-hour proposal includes explicit unmeasured allowances and is not measured
 all-in cost, a release or a hard stop. The bccc E0063 build failure and later
@@ -63,8 +68,10 @@ The historical reply-quality target remains SUSPENDED pending
 a discriminating grader; D39's current interim headline and closing conditions
 are separate, as recorded above. Earlier operator/31/18-control float entries
 are preserved historical source scopes, not executable training permissions
-(preservation #2370). The completed pilot's release is consumed; further training
-and separate M2 holds remain HELD. Kimi owns the
+(preservation #2370). The completed pilot's release is consumed. Training outside
+an explicitly released scope and the separate M2 training/rental hold remain
+HELD; completed experiments do not authorize later work. Each unreleased
+successor needs its own applicable authorization and gates. Kimi owns the
 discrete successor sheet; a FIT review releases no hold.
 [Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
@@ -200,7 +207,7 @@ multiplication and no floating point at serving (D11). The active discrete path 
 integer/GPU-only. Under D37, offline training may use float forward passes, gradients and
 optimizers in a separately scanned geometric module, with its export gap reported; D25 still
 prohibits matrix multiplication and exponential-family squashing, and D24 keeps model compute
-on the GPU. Non-model preparation/analysis/tooling may run locally. Training remains held.
+on the GPU. Non-model preparation/analysis/tooling may run locally. Training outside an explicitly released scope remains held.
 
 The owner reaffirmed this target on 2026-09-27: "Keep the native, multiplier-free serving
 target" ([#820, closed 2026-10-09; historical quote](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279)).
