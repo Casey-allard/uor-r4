@@ -6,6 +6,13 @@
     "lab": "antigravity",
     "note": "land W2 v5.1 and K16 consumer verifiers and verify K16 outcome call"
   },
+  "claude/address-cells-sheet-20261019": {
+    "branch": "claude/address-cells-sheet-20261019",
+    "claimed_at": "2026-10-18T21:49:47-04:00",
+    "head": "314c91f72",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/batched-coordinates-draft-20261018": {
     "branch": "claude/batched-coordinates-draft-20261018",
     "claimed_at": "2026-10-18T02:18:32-04:00",

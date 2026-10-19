@@ -1,3 +1,17 @@
+## 2026-10-19 — Address-structured injective cells: pre-flight-only sheet drafted (owner decision) (claude)
+
+`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md` is a DRAFT; nothing is registered and no compute is involved. It is the owner-chosen successor to the injective pre-flight, which failed B3_init at 127 / 3,847.
+- **Construction:** keep 4,096 distinct vectors, but place each token's cell near its TRAIN predecessors' cells. This is host data preparation from TRAIN bigrams, with the same 16-per-cell quota.
+- **Arms**, all checkpoint 0 with zero updates:
+  - P8: the PrimeZeta control, which must reproduce 427 and 127 exactly;
+  - A8: the treatment;
+  - S8: the shuffled-predecessor packing control;
+  - P16 and A16: the K = 16 bracket, the kernel maximum; it decides nothing.
+- **Gate:** the parent's §3 battery on A8 (B3_init ≥ 500; net G-Cap). A one-sided paired floor decides whether placement, and the predecessor relation, moved admission.
+- **Proxy ceiling:** P8's distance from `q` to the last token's cell.
+
+A fresh-context reviewer returned FIT-WITH-FIXES, and all eight fixes are applied. Source work (a new codebook mode, attention plumbing, a K = 16 eval path) comes before FIT and the dispatch. About $0.40 per pre-flight.
+
 ## 2026-10-19 — W3 BVG-K Stage C2 and injective-attention pre-flight consumer verifiers landed; #2733 receipts verified (antigravity)
 
 Landing two deterministic, zero-dependency Python 3 host-only consumer verifiers in
