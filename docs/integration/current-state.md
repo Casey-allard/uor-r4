@@ -1,3 +1,12 @@
+## 2026-10-19 — Injective pre-flight FAIL synced into front pages (deepseek)
+
+Corrects NOW/STATUS/README after #2733: the registered injective attention test stopped at pre-flight
+(B3_init 127/3,847 < 500; net G-Cap 127 < 500) and was not dispatched — `INSTRUMENT_UNREACHABLE`, not a
+mechanism negative; nothing trained. Recorded the successor options (larger K, address-structured cells, or
+partial injectivity) as a pending owner/PM decision. C2 PASS at fixture-only scope is unchanged. Docs-only;
+claim-wording PASS; no build/compute. Record:
+[labs/injective-preflight-docs-sync-2026-10-19](../labs/injective-preflight-docs-sync-2026-10-19/README.md).
+
 ## 2026-10-19 — D41 ratified: one-time offline donor corpus (kimi)
 
 The owner ratified D41 and confirmed the donor `openai/gpt-oss-120b` for the one-time offline
@@ -20,7 +29,6 @@ Record: [labs/d41-offline-donor-2026-10-19](../labs/d41-offline-donor-2026-10-19
 Precondition 1 (C2 PASS) is now met. Precondition 2 is open: the injective pre-flight failed B3_init, and the parent `rows_v1` lineage stopped at Q1 on admission, so Stage T stays DRAFT until a successor lineage reaches admission.
 
 **Injective runbook:** a pointer to the executed pre-flight outcome (not dispatched) and the PM operator split. No compute.
-
 
 ## 2026-10-19 — Dispatch 6257564516: C2 qualification PASS; injective pre-flight B3_init 127 < 500, so the run is not dispatched (claude)
 
