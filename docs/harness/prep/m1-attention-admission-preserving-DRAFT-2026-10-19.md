@@ -102,6 +102,27 @@ A guard that blocks all learning must fail. **Rejection-rate no-op counter:** wi
 6. Decision per 3; record; no fresh use unless the parent's H_geom path applies.
 7. Record `docs/labs/admission-preserving-2026-10-19/README.md` and a newest-first current-state entry.
 
+## Qualification binding (PM, 2026-10-19)
+
+The controller source prerequisite of step 2 is **satisfied and bound**: the admission-preserving
+controller and finite qualification producer merged as `fd409fcdf3bc43d607e768bae6f8cf403aa75901`
+(#2782; AGY exact-head APPROVE 6266518570; 198 host tests PASS; real CUDA qualification/restoration/timing
+NOT_RUN at merge).
+
+The dose's pre-flight therefore **includes the finite CUDA qualification** of that merged source
+before any training update:
+
+1. **Rollback equivalence (fixture level):** restore-from-checkpoint after a synthetic failed interval
+   reproduces the pre-interval model state byte-exact (model, cursors, epoch, counters).
+2. **Interval-audit timing:** measured per-audit cost on the run hardware, feeding the sheet's
+   readiness formula `R = added_gate_cost / ungated_two_arm_dose_cost ≤ 15%`; the measured value is
+   recorded on the run receipt.
+3. **Rejection receipts:** the qualification producer emits the selective/whole-interval rejection
+   receipt schema; format verified against the sheet's record requirements.
+
+A qualification failure is an instrument stop (`INSTRUMENT_UNREACHABLE`, D31) before any training
+update; no DEV fallback. Qualification draft and quote: #2029 comment 6266885149.
+
 ## 6. Out of scope
 
 - Candidate-level gate (priced as successor if interval erosion outruns 64-batch cadence); new kernel work; donor/corpus work; fresh transfer; KEEP/paired-DEV/H_geom claim; any table, arm or mechanism change.
