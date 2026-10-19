@@ -24,7 +24,7 @@ a shared writer in [`crates/uor-r4-discrete`](crates/uor-r4-discrete/README.md) 
 diagnostic pilot that learned 236 vector updates. The latest paired attention attempt stopped at
 its pre-registered Q1 admission gate in both arms: a configured admission collapse, not an
 accuracy result or a mechanism verdict
-([record](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)). The registered interpretation of the four finished K16-A/R trajectories is now complete: **`OCCUPANCY_COLLAPSE_TRIGGERED`**, no KEEP; admission arm **A**; fresh transfer **NOT_TRIGGERED** (seal kept). Final DATA and late operator archives are verified; normal close and final accounting remain pending.
+([record](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)). The registered interpretation of the four finished K16-A/R trajectories is now complete: **`OCCUPANCY_COLLAPSE_TRIGGERED`**, no KEEP; admission arm **A**; fresh transfer **NOT_TRIGGERED** (seal kept). Final DATA and late operator archives are verified; normal close is complete (pod released 00:38:29Z, down 00:38:33Z; after-down closure custody 131,072 B/MD5 `9f7368ac…`), while final rental accounting remains pending. The Q4 census correction stands: initial aliasing binds at initialization only and is not the sole final-ranking cause.
 
 ## What works today, and what does not
 
@@ -56,8 +56,7 @@ covers four unchanged A/R×seed1/2 trajectories.
 is issued as gated-start. [Claude census PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425)
 posts raw/net1,986 on all four roles, above1,941; the scientific start gate is
 cleared. The3,119-byte census report is retrieved and hash-verified from its
-durable cloud object; no further census wait remains. Training is
-NOT_RUN. The same lease is retained, and normal close is not claimed.
+durable cloud object; no further census wait remains. Training has since completed all four trajectories; the lease was released at 00:38:29Z and brought down at 00:38:33Z, with after-down closure custody complete (131,072 B/MD5 `9f7368ac…`). Final rental accounting remains pending.
 The [later owner delegation6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195)
 keeps PM dispatch and actual owner training release separate. The
 [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125)

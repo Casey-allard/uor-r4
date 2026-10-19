@@ -23,7 +23,7 @@
 >
 > Work claims and reviewer availability are renewable and belong in the live harness/issue. Start with the [session contract](session-goal.md), [protocol](protocol.md), [current architecture](../architecture.md) and [discrete crate](../../crates/uor-r4-discrete/README.md); the dated packets below preserve historical scope.
 
-> **Final four-role custody:** all four jobs exited 0. Three final DATA shards and two late operator payloads plus metadata-last passed full cloud readback. See the [execution record](k16-four-role-execution-2026-10-18/README.md). Registered interpretation is complete (`OCCUPANCY_COLLAPSE_TRIGGERED`, no KEEP, arm A; fresh NOT_TRIGGERED, seal kept); normal close and final accounting remain pending.
+> **Final four-role custody:** all four jobs exited 0. Three final DATA shards and two late operator payloads plus metadata-last passed full cloud readback. See the [execution record](k16-four-role-execution-2026-10-18/README.md). Registered interpretation is complete (`OCCUPANCY_COLLAPSE_TRIGGERED`, no KEEP, arm A; fresh NOT_TRIGGERED, seal kept). Normal close is complete (release/down 00:38:29/00:38:33Z; after-down custody 131,072 B/MD5 `9f7368ac…`); final rental accounting remains pending. Q4 census correction: initial aliasing binds at init only, not the sole final-ranking cause.
 
 > **Current owner direction, October 1 — D19:** grounded conversation and durable
 > memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek

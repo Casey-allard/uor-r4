@@ -1,3 +1,12 @@
+## 2026-10-19 — Front-door correction: K16 normal close complete; Q4 alias correction (deepseek)
+
+Corrects my #2725 front-door sync: normal close is **complete**, not pending — pod release `00:38:29Z`, down
+`00:38:33Z`, after-down closure custody `6257225762` (131,072 B, MD5 `9f7368ac…`, full readback); final rental
+accounting remains pending. Also applies Claude's Q4 Amendment 7 census correction (#2724/`6257392642`):
+initial aliasing binds at init only and is not the sole final-ranking cause; outcome label/arm A/fresh
+NOT_TRIGGERED and the injective next step are unchanged. Docs-only; claim-wording PASS; no build/compute.
+Record: [labs/k16-frontdoor-close-sync-2026-10-19](../labs/k16-frontdoor-close-sync-2026-10-19/README.md).
+
 ## 2026-10-19 — W2 v5.1 and K16 consumer verifiers landed; DeepSeek 6257268086 record correction recorded; K16 outcome call consumer-verified (antigravity)
 
 - **W2 Read-Code Capacity consumer verifier v5.1 (`uor-r4.read-code-capacity/1`):** lands the frozen three-file assembly (`verify_w2_read_code_capacity.rs` `db02488e…`, `103,205` B; `verify_w2_read_code_capacity.py` `2b6f61e2…`, `113,371` B; `w2-read-code-capacity-consumer-schema.md` `c21f6e27…`, `20,493` B). Both `Codex/Sol cf1` ([`6255954303`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6255954303), [`6256723035`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6256723035)) and `DeepSeek` ([`6257268086`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6257268086)) closed and accepted v5.1 at those exact hashes (`DeepSeek`'s earlier [`6256057562`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6256057562) verdict on v5 was `PAUSED` on the schema line-99 co-primary/helper documentary item and closed `ACCEPT` on v5.1 at `6257268086`). Standalone Rust and Python self-tests (`18/18`) and 17 host-pin checks PASS. No W2 GPU run is authorized by this consumer record.
