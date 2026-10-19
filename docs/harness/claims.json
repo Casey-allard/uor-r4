@@ -34,6 +34,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/a8-runbook-review-fixes-20261019": {
+    "branch": "claude/a8-runbook-review-fixes-20261019",
+    "claimed_at": "2026-10-19T00:08:12-04:00",
+    "head": "b57dd0b40",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/a8-training-sheet-20261019": {
     "branch": "claude/a8-training-sheet-20261019",
     "claimed_at": "2026-10-18T23:30:55-04:00",
