@@ -4,6 +4,7 @@
 - **Sheet:** `docs/harness/prep/m1-attention-injective-init-DRAFT-2026-10-18.md`, **TEST FITNESS: FIT** (#2712). The header was corrected in this PR, and the sheet SHA is re-pinned to `e47ce5afb3966bda13cd04bd9b99849b401c028e078de958fa98b5e8b7ed4efb` in `attention_learning.rs`.
 - **§Sequencing:** met by the K16 outcome call (#2029 `6257335075`, record `docs/labs/k16-outcome-call-2026-10-19/`). The call selected arm A with no K16 admission advantage, so the sheet's K8 / objective-A configuration stands.
 - **Operator split** (#2029 `6257545219`, owner-reaffirmed): **Codex owns the executor packet** and brings Casey his exact command when ready. Claude supplies and reviews the source, sheet and this runbook. Kimi dispatches. This record is the source-side runbook that Codex's packet integrates; Codex's corrections are applied below.
+- **Pre-flight executed 2026-10-19 (PM dispatch #2029 `6257564516`; Claude as the single pod operator, Codex binding the packet and delivering Casey's command):** **B3_init(P_succ) = 127 of 3,847, below 500, so the run is NOT dispatched** (sheet §3), and a successor decision is needed. G-Init, its negative (a) and G-Occ PASS. Record: `docs/labs/injective-preflight-and-c2-qualify-2026-10-19/`. The owner-release steps below stay staged for a successor configuration only.
 - **Status: STAGED. Nothing has run.** Training is HELD. Running needs the explicit PM dispatch, then the owner's release per arm. Under D40, Casey types the phrase himself in a terminal with `UOR_LAB` unset; no lab types it.
 
 ## What the test is

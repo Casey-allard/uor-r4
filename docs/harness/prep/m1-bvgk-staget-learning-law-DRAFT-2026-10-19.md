@@ -21,12 +21,15 @@ Stage C1 measured the motivation (#2713). At the K16 shape, 16 coordinates score
 
 ## Preconditions before registration (all must hold)
 
-1. **C2 device-level qualification PASS** (`m1-bvgk-stagec2-block-qualification-2026-10-18.md`, FIT; owner-approved fixture-only run, awaiting PM dispatch).
-2. **The base lineage is fixed by the injective test** (`docs/labs/injective-attention-runbook-2026-10-19/`).
-   - If its pre-flight battery and Q1 gate pass, the base is the **injective treatment configuration**: PrimeZeta table file `83c1380a…`, `Relation{8,1}`, objective A, K8, `rows_v1`, Dose 1 pins.
-   - Otherwise the base is the parent `rows_v1` configuration (raw `52b32dc8…`), with the injective result recorded as context.
-   - Either way, exactly one variable changes from the base: `coordinate_block`.
-3. **The numeric non-inferiority margin** is fixed from the base lineage's measured two-seed dispersion on DEV `P_succ` conditional top-1 and full DEV loss, at matched wall clock. It is set at registration and never after a Stage T result is visible.
+1. **C2 device-level qualification PASS.** **Met** 2026-10-19: all five controls PASS (#2029 `6257768576`, record `docs/labs/injective-preflight-and-c2-qualify-2026-10-19/`).
+2. **A base lineage that reaches its own admission gate.**
+   - **Status 2026-10-19:** the injective pre-flight **failed B3_init**: 127 of 3,847 P_succ rows admitted at checkpoint 0, below 500, so that run is not dispatched. The fallback, the parent `rows_v1` configuration (raw `52b32dc8…`), itself stopped at Q1 on admission collapse (`docs/labs/attention-rows-q1-diagnosis-2026-10-18/`).
+   - **So no current base lineage reaches admission.** Stage T stays DRAFT until a successor lineage passes its pre-flight and Q1 gates. The candidates are larger K, an address-structured injective cell assignment, or partial injectivity (successor options in the pre-flight record).
+   - Whatever base is chosen, exactly one variable changes from it: `coordinate_block`.
+3. **The numeric non-inferiority margin**, a registration item.
+   - It is fixed from a **measured two-seed dispersion** of the chosen base at matched wall clock, on DEV `P_succ` conditional top-1 and full DEV loss.
+   - If the base has only one seed, as the injective runbook does, registration must first run a second-seed T1, at its own cost line. Alternatively, it may adopt a named measured two-seed dispersion from the parent lineage, with the reason stated.
+   - It is never set from a single seed, and never after any Stage T result is visible.
 
 ## Arms (one variable: `coordinate_block`)
 
@@ -40,11 +43,16 @@ Seeds 1 and 2. Each arm uses its own GPU on identical pods.
 
 ## Bar (axes inherited from parent §5; numbers fixed at registration)
 
-- **Primary axis:** equal training wall clock.
+- **Primary axis: equal training wall clock, `W`, fixed at registration.**
+  - **What the clock covers.** Each arm's clock starts at its first training batch, after admission and the checkpoint-0 evaluation, and stops at elapsed `W`. Build, table load and pre-flight are excluded. DEV evaluations and checkpoint I/O are **included** in every arm's own clock, so T16 and T4 pay for their own evaluations.
+  - **Where an arm is read.** Each arm is read at its last completed checkpoint at or before `W`.
+  - **Q1.** The base lineage's Q1 stop maps to `W/4` on the same axis.
 - **Lead metric:** target-tokens/s.
 - **Secondary axes, reported:** equal coordinate evaluations and equal target rows.
-- **KEEP for T16:** better DEV quality at equal wall clock on both seeds, beyond the registered margin, with fresh transfer reported (D22).
-- **Non-inferiority:** T16 must not trail T1 by more than the margin on either quality metric at equal wall clock.
+- **Quality metrics.** **Primary:** DEV `P_succ` conditional top-1. **Co-primary:** full DEV loss. **Reported, not gating:** top-8 and B3.
+- **KEEP for T16** requires, on both seeds, primary top-1 better than T1 beyond the margin **and** full DEV loss non-inferior. Fresh transfer must be reported (D22).
+- **Non-inferiority:** neither primary metric may trail T1 by more than the margin at `W`.
+- **T4**, if registered, is judged the same way and carries its own cost and power line.
 - **Diagnostics only, never a stop:**
   - joint-commit rate, mean |S_t| and no-op batches;
   - DEV loss per pass (in-sample over-fit exposure);
@@ -69,9 +77,17 @@ These need an owner-released `CorpusUpdateAdmission`, so they run inside the rel
 
 ## Cost (projection, refined at registration)
 
-T1 costs the base lineage's measured per-batch time, about 1.31 s per batch on the K8 Relation shape (injective sheet §Cost). For T16, C1 shows the proposal stage is flat in K at the K16 Route shape; the K8 Relation shape is measured by the C2 TP diagnostic before registration.
-
-At equal wall clock all arms cost the same. With 3 arms × 2 seeds at about 6 h each, that is about $34 on 2 × 5090 pods: 3 pod-pairs at about $1.89/h for about 6 h. A Q1-equivalent stop costs about a quarter of that. The owner caps (≤ 4 pods, ≤ $8/h) and the 30 GiB disk floor are hard stops.
+- **What is measured.** The only measured per-call numbers are at the **K16 Route shape**:
+  - C1: 125.5 ms for one proposal; 123.6 ms for 16 coordinates, scoring only.
+  - C2 TP: 129.7 ms at K = 1 and 259 ms at K = 16 including the joint verify, about 8× per coordinate.
+- **What is assumed.** The base lineage's per-batch time is **not measured**. The 1.31 s/batch figure is the injective sheet's planning assumption, not a measurement. It is measured at registration, together with K = 16 at the base's own shape.
+- **Wave plan within the caps** (≤ 4 pods, ≤ $8/h). Using 2 pods × 2 GPUs (4 slots, about $3.8/h), at equal wall clock `W`:
+  - **Wave 1:** T1 and T16 on seeds 1 and 2, four arm-seeds at once.
+  - **Wave 2 (only if T4 is registered):** T4 on seeds 1 and 2, on 1 pod.
+  - **Cost at `W` ≈ 6 h:** about **$23** for wave 1 (24 GPU-hours) and about **$11** for wave 2 (12 GPU-hours). That is about 12 h elapsed and about $34 with T4, or about 6 h and about $23 without.
+  - A Q1-equivalent stop costs about a quarter of that.
+- **Not included above:** the margin's second-seed T1, if it is needed (precondition 3), with its own line.
+- **Hard stops:** the 30 GiB disk floor and the owner caps.
 
 ## Base artifact
 
