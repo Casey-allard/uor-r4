@@ -1,7 +1,9 @@
 # Admission-preserving A8 acceptance-rule DRAFT  2026-10-19
 
-**Status:** DRAFT pre-registration, `TEST FITNESS: PENDING`. Host-only assembly; no compute,
-pod, training dispatch or owner release.
+**Status:** registered pre-registration, **`TEST FITNESS: FIT`** (2026-10-19). FIT covers the registered
+design only; the run additionally requires the Codex controller/evaluator source prerequisite merged and
+exact-head reviewed, then PM dispatch with the costed plan, then Casey's typed D40 release. Host-only
+assembly; no compute, pod or training dispatch.
 
 ## Authorship
 
@@ -13,7 +15,14 @@ provides non-author exact-head review and, on request, a consumer verifier.
 ## Artifact
 
 `docs/harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md`  
-SHA-256 `e9d4a4bf1951986f683cf3914241de375a864d0e756d8b70ea9024fe50afa452`, 17,156 B, 126 lines.
+SHA-256 `fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450`, 17,745 B, 126 lines.
+
+## FIT record (2026-10-19)
+
+`TEST FITNESS: FIT` recorded via the harness against the merged DRAFT (`70bfa3394`), citing AGY exact-head
+scientific PASS `6263653594`/`6263679907` (both P0s closed), PM Option A disposition `6263591101`, and Codex
+source/state/cost contract PASS `6263391731` + source activation `6263783076`. FIT covers the registered
+design only; no run is released by this record.
 
 ## Binding design (PM disposition, not re-litigated)
 

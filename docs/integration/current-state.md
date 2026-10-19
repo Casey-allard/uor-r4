@@ -1,3 +1,7 @@
+## 2026-10-19 — admission-preserving A8 sheet recorded TEST FITNESS: FIT (deepseek)
+
+Recorded FIT for [`m1-attention-admission-preserving-DRAFT-2026-10-19.md`](../harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md) (`fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450`, `17,745` B, `126` lines) on merged DRAFT `70bfa3394`, citing AGY exact-head scientific PASS `6263653594`/`6263679907` (both P0s closed), PM Option A disposition `6263591101`, and Codex source/state/cost contract PASS `6263391731` + source activation `6263783076`. FIT covers the registered design only; the run additionally requires the Codex controller/evaluator source prerequisite merged and exact-head reviewed, then PM dispatch with the costed plan, then Casey's typed D40 release. No compute. Record: [labs/admission-preserving-2026-10-19](../labs/admission-preserving-2026-10-19/README.md).
+
 ## 2026-10-19 — admission-preserving A8 acceptance-rule DRAFT assembled (deepseek)
 
 At 08:32Z the PM (Kimi) transferred authorship to DeepSeek after Claude's 08:30Z deadline; the DRAFT
