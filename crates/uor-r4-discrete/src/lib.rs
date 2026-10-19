@@ -2,6 +2,9 @@
 //! Static geometry compilation is a build dependency, excluded from the runtime graph.
 //! The routing atlas is one sixteen-root E8 orbit; this is not full-orbit learnability.
 pub mod address_cells;
+pub mod attention_anchor;
+pub mod attention_anchor_device;
+pub mod attention_audit;
 pub mod baseline_reuse;
 #[cfg(test)]
 mod baseline_reuse_source;
@@ -24,6 +27,7 @@ pub mod objective;
 pub mod proposal_timing;
 pub mod rows_source;
 pub mod rowsk_source;
+pub mod snapshot;
 pub use objective::ObjectivePolicy;
 pub mod training;
 
@@ -284,6 +288,35 @@ mod tests {
                 ),
                 1,
             ),
+            // Exactly one predeclared synthetic update and two foreign-model
+            // refusal probes under the private finite qualification release.
+            (
+                (
+                    "attention_audit_qualification.rs".into(),
+                    [
+                        "if !model",
+                        ".",
+                        "apply",
+                        "(&proposal)? || model.epoch()? != 1 {",
+                    ]
+                    .concat(),
+                ),
+                1,
+            ),
+            (
+                (
+                    "attention_audit_qualification.rs".into(),
+                    ["restored", ".", "apply", "(&proposal),"].concat(),
+                ),
+                1,
+            ),
+            (
+                (
+                    "attention_audit_qualification.rs".into(),
+                    ["actual", ".", "apply", "(&proposal),"].concat(),
+                ),
+                1,
+            ),
         ]);
         assert_eq!(
             observed, expected,
@@ -313,6 +346,45 @@ mod tests {
             .ok_or_else(|| Error::Invalid("admission-gated transition source absent".into()))?;
         assert!(transition.contains("admission: &CorpusUpdateAdmission"));
         assert!(transition.contains("if admission.lineage_sha256 != self.lineage_sha256()?"));
+        let qualification = fs::read_to_string(root.join("attention_audit_qualification.rs"))
+            .map_err(|e| Error::Invalid(e.to_string()))?;
+        let synthetic = qualification
+            .split("fn synthetic_stage(")
+            .nth(1)
+            .and_then(|text| text.split("pub fn run(").next())
+            .ok_or_else(|| Error::Invalid("finite synthetic qualification stage absent".into()))?;
+        assert!(synthetic.contains("release: &ValidatedQualificationRelease"));
+        assert!(synthetic.contains("release.plan.limits.validate()?"));
+        assert!(synthetic.contains("literal_fixture(2)?"));
+        for predicate in [
+            "observed.candidate != 7",
+            "observed.before != 640",
+            "observed.after != 544",
+            "observed.epoch != 0",
+        ] {
+            assert!(synthetic.contains(predicate));
+        }
+        assert_eq!(synthetic.matches(&[".", "apply", "("].concat()).count(), 2);
+        let synthetic_refusal = [
+            "exact_refusal(\n        restored",
+            ".",
+            "apply",
+            "(&proposal),\n        \"proposal belongs to another model/source/geometry\",\n    )?;",
+        ]
+        .concat();
+        assert!(synthetic.contains(&synthetic_refusal));
+        let production = qualification
+            .split("fn production_stage(")
+            .nth(1)
+            .and_then(|text| text.split("fn synthetic_stage(").next())
+            .ok_or_else(|| Error::Invalid("finite production qualification stage absent".into()))?;
+        assert!(production.contains("release: &ValidatedQualificationRelease"));
+        assert!(production.contains("release.finite_bound(driver)?"));
+        assert!(production.contains("restore_passing_device("));
+        assert_eq!(production.matches(&[".", "apply", "("].concat()).count(), 1);
+        let production_refusal = ["exact_refusal(\n            actual", ".", "apply", "(&proposal),\n            \"proposal belongs to another model/source/geometry\",\n        )?;"].concat();
+        assert!(production.contains(&production_refusal));
+        assert!(qualification.contains("fn exact_refusal<T>(result: Result<T>, expected: &str)"));
         Ok(())
     }
     #[test]

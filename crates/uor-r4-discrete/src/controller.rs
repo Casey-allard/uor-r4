@@ -18,6 +18,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[path = "attention_audited.rs"]
+pub mod attention_audited;
 #[path = "attention_learning.rs"]
 pub mod attention_learning;
 #[path = "completion.rs"]

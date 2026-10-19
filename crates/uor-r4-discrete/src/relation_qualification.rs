@@ -1074,7 +1074,13 @@ pub fn run(report: &Path) -> Result<()> {
         println!("{record}");
         records.push(record);
     }
-    let payload = serde_json::json!({"schema":crate::SCHEMA,"suite":"relation","status":if hard_stop.is_some(){"ABORTED"}else if failed{"FAILED"}else{"PASS"},"registered":NAMES.len(),"attempted":attempted,"passed":passed,"failed":attempted-passed,"not_run":NAMES.len()-attempted,"controls":records,"training":"HELD","applied_updates":0});
+    let executable = std::env::current_exe().map_err(|e| Error::Invalid(e.to_string()))?;
+    let executing_elf_sha256 = crate::corpus::sha256(
+        &std::fs::read(executable).map_err(|e| Error::Invalid(e.to_string()))?,
+    );
+    let payload = serde_json::json!({"schema":crate::SCHEMA,"suite":"relation","status":if hard_stop.is_some(){"ABORTED"}else if failed{"FAILED"}else{"PASS"},"registered":NAMES.len(),"attempted":attempted,"passed":passed,"failed":attempted-passed,"not_run":NAMES.len()-attempted,"controls":records,"training":"HELD","applied_updates":0,
+        "producer_compiled_identity":crate::device::compiled_identity(),"producer_driver_source_sha256":crate::training::driver_source_sha256(),"producer_executable_sha256":executing_elf_sha256,
+        "producer_identity_scope":"actual-executing-canonical-relation-fixture-suite-not-A8-config"});
     std::fs::write(
         report.join("relation-controls.json"),
         serde_json::to_vec_pretty(&payload).map_err(|e| Error::Invalid(e.to_string()))?,

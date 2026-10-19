@@ -28,6 +28,14 @@ pub fn driver_source_sha256() -> String {
     bytes.extend_from_slice(include_bytes!("attention_evidence.rs"));
     bytes.extend_from_slice(include_bytes!("attention_transfer.rs"));
     bytes.extend_from_slice(include_bytes!("attention_preflight.rs"));
+    bytes.extend_from_slice(include_bytes!("attention_anchor.rs"));
+    bytes.extend_from_slice(include_bytes!("attention_audit.rs"));
+    bytes.extend_from_slice(include_bytes!("attention_anchor_device.rs"));
+    bytes.extend_from_slice(include_bytes!("attention_audited.rs"));
+    bytes.extend_from_slice(include_bytes!("attention_audit_qualification.rs"));
+    bytes.extend_from_slice(include_bytes!("driver_qualification.rs"));
+    bytes.extend_from_slice(include_bytes!("relation_qualification.rs"));
+    bytes.extend_from_slice(include_bytes!("snapshot.rs"));
     bytes.extend_from_slice(include_bytes!("main.rs"));
     corpus::sha256(&bytes)
 }
@@ -2500,6 +2508,20 @@ pub(crate) fn issue_corpus_update_admission(
     Ok(CorpusUpdateAdmission {
         lineage_sha256,
         max_completed_batches: release.max_batches(),
+    })
+}
+
+/// Finite qualification has a separate opaque release; it cannot inherit a
+/// full-dose capability or enlarge the approved source protocol's bound.
+#[cfg(feature = "cuda")]
+pub(crate) fn issue_audit_qualification_admission(
+    driver: &PreparedDriver,
+    release: &crate::controller::attention_audited::qualification::ValidatedQualificationRelease,
+) -> Result<CorpusUpdateAdmission> {
+    let max_completed_batches = release.finite_bound(driver)?;
+    Ok(CorpusUpdateAdmission {
+        lineage_sha256: driver.lineage_sha256()?,
+        max_completed_batches,
     })
 }
 

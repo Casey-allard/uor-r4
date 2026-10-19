@@ -35,6 +35,16 @@ fn device_command(args: &[String]) -> Result<()> {
     };
     let read = |p: &str| std::fs::read(p).map_err(|e| invalid(e.to_string()));
     match args.first().map(String::as_str) {
+        Some("attention-audit-qualify") if args.len()==4=>{
+            let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
+            let admission=read_json::<uor_r4_discrete::controller::attention_audited::qualification::QualificationAdmission>(&args[2])?;
+            uor_r4_discrete::controller::attention_audited::qualification::run(config,admission,Path::new(&args[3]))
+        }
+        Some("attention-audit") if args.len()==4=>{
+            let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
+            let admission=read_json::<uor_r4_discrete::controller::attention_audited::AuditedAdmission>(&args[2])?;
+            uor_r4_discrete::controller::attention_audited::run(config,admission,Path::new(&args[3]))
+        }
         Some("attention") | Some("attention-resume") if args.len()==4=>{
             let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
             let admission=read_json::<uor_r4_discrete::controller::attention_learning::AttentionAdmission>(&args[2])?;
@@ -55,12 +65,16 @@ fn device_command(args: &[String]) -> Result<()> {
             let admission=read_json::<uor_r4_discrete::controller::ReleaseManifest>(&args[2])?;
             uor_r4_discrete::controller::evaluate_pilot(config,admission,Path::new(&args[3]))
         }
-        Some("build-identity") | Some("completion-build-identity") | Some("attention-build-identity") if args.len()==1 || args.len()==2=>{
+        Some("build-identity") | Some("completion-build-identity") | Some("attention-build-identity") | Some("attention-audit-build-identity") if (args.len()==1 && args[0]!="attention-audit-build-identity") || args.len()==2=>{
             let executable=std::env::current_exe().map_err(|e|invalid(e.to_string()))?;
             let mut identity=serde_json::json!({"compiled":uor_r4_discrete::device::compiled_identity(),"driver_source_sha256":uor_r4_discrete::training::driver_source_sha256(),"executable_sha256":uor_r4_discrete::corpus::sha256(&std::fs::read(executable).map_err(|e|invalid(e.to_string()))?),"cuda_context_created":false,"training":"HELD"});
             if args.len()==2 {
                 let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
-                if args[0]=="completion-build-identity" {uor_r4_discrete::controller::completion::validate_config(&config)?;}
+                if args[0]=="attention-audit-build-identity" {
+                    uor_r4_discrete::controller::attention_audited::validate_config(&config)?;
+                    identity["audited_scope"]=serde_json::json!(uor_r4_discrete::controller::attention_audited::scope(&config)?);
+                }
+                else if args[0]=="completion-build-identity" {uor_r4_discrete::controller::completion::validate_config(&config)?;}
                 else if args[0]=="attention-build-identity" {uor_r4_discrete::controller::attention_learning::validate_config(&config)?;}
                 else {uor_r4_discrete::controller::validate_pilot_config(&config)?;}
                 let driver=uor_r4_discrete::training::PreparedDriver::load(config)?;
@@ -131,8 +145,10 @@ fn device_command(args: &[String]) -> Result<()> {
             };
             #[derive(serde::Deserialize)] #[serde(deny_unknown_fields)]
             struct Request{windows:Vec<Vec<Identity>>,targets:Vec<u32>}
-            let snapshot:Snapshot=serde_json::from_slice(&read(&args[1])?).map_err(|e|invalid(e.to_string()))?;
-            let request:Request=serde_json::from_slice(&read(&args[2])?).map_err(|e|invalid(e.to_string()))?;
+            let snapshot_bytes=read(&args[1])?;
+            let request_bytes=read(&args[2])?;
+            let snapshot:Snapshot=serde_json::from_slice(&snapshot_bytes).map_err(|e|invalid(e.to_string()))?;
+            let request:Request=serde_json::from_slice(&request_bytes).map_err(|e|invalid(e.to_string()))?;
             snapshot.read_spec.validate(snapshot.spec)?;
             match (snapshot.read_spec,parameter) {
                 (ReadSpec::Route,Some(Parameter::Gate(index)))=>return Err(Error::UnimplementedParameter {kind:3,index}),
@@ -146,7 +162,12 @@ fn device_command(args: &[String]) -> Result<()> {
             if request.targets.len()!=request.windows.len() || request.targets.iter().any(|&id| id>=snapshot.spec.vocabulary){return Err(invalid("one valid next-token target is required per window"));}
             let model=Device::from_snapshot(snapshot,0)?;
             let input=model.carry_windows(&request.windows)?;
-            if let Some(parameter)=parameter {let proposal=model.propose(&input,&request.targets,parameter)?;let p=proposal.observation()?;let candidate_losses=proposal.candidate_losses()?;println!("{}",serde_json::json!({"candidate":p.candidate,"candidate_is_ordinal":true,"read_spec":model.read_spec(),"before":p.before,"after":p.after,"any_candidate_cost_differs_from_identity":p.any_candidate_cost_differs_from_identity,"candidate_losses":candidate_losses,"epoch":p.epoch,"valid_lengths":input.valid_lengths(),"applied":false}));Ok(())}
+            if let Some(parameter)=parameter {let proposal=model.propose(&input,&request.targets,parameter)?;let p=proposal.observation()?;let candidate_losses=proposal.candidate_losses()?;
+                let (parameter_kind,parameter_index)=match parameter {Parameter::Route(i)=>("route",i),Parameter::VectorBlock(i)=>("vector",i),Parameter::Gate(i)=>("gate",i)};
+                let executing_elf=std::env::current_exe().map_err(|e|invalid(e.to_string()))?;
+                println!("{}",serde_json::json!({"candidate":p.candidate,"candidate_is_ordinal":true,"read_spec":model.read_spec(),"before":p.before,"after":p.after,"any_candidate_cost_differs_from_identity":p.any_candidate_cost_differs_from_identity,"candidate_losses":candidate_losses,"epoch":p.epoch,"valid_lengths":input.valid_lengths(),"applied":false,
+                    "parameter_kind":parameter_kind,"parameter_index":parameter_index,"snapshot_file_sha256":uor_r4_discrete::corpus::sha256(&snapshot_bytes),"request_file_sha256":uor_r4_discrete::corpus::sha256(&request_bytes),
+                    "producer_compiled_identity":uor_r4_discrete::device::compiled_identity(),"producer_driver_source_sha256":uor_r4_discrete::training::driver_source_sha256(),"producer_executable_sha256":uor_r4_discrete::corpus::sha256(&std::fs::read(executing_elf).map_err(|e|invalid(e.to_string()))?)}));Ok(())}
             else {let result=model.forward(&input,&request.targets)?;println!("{}",serde_json::json!({"tokens":result.predictions,"read_spec":model.read_spec(),"loss_numerators":result.losses,"token_rivals":result.token_rivals,"address_rivals":result.address_rivals,"admitted_cells":result.admitted_cells,"vectors":result.vectors()?,"epoch":result.epoch(),"valid_lengths":input.valid_lengths(),"training":"HELD"}));Ok(())}
         }
         _=>Err(invalid("CUDA commands: pilot|pilot-resume|eval-pilot CONFIG ADMISSION NEW_REPORT_DIR | init SPEC.json NEW_ARTIFACT.json SEED | init-read CONFIG.json NEW_ARTIFACT.json SEED | infer ARTIFACT REQUEST | propose ARTIFACT REQUEST route|vector|gate INDEX | init-corpus CONFIG NEW_REPORT_DIR | eval-corpus CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR | qualify NEW_REPORT_DIR | qualify-flock NEW_REPORT_DIR | qualify-relation NEW_REPORT_DIR | qualify-driver NEW_REPORT_DIR | measure-cost NEW_REPORT_DIR")),
@@ -164,7 +185,14 @@ completion-build-identity [CONFIG] — compiled K8 completion or K16 redirect id
 completion-check-plan PLAN — read-only plan metadata validation, no release.
 completion-owner-release PLAN NEW_RELEASE_DIR — Casey personally, separate arm/seed scope; no D33 delegation.
 completion|completion-resume CONFIG ADMISSION NEW_REPORT_DIR — separately released arm/seed, cap16404; never chains scopes.");
-            println!("attention-build-identity [CONFIG] — compiled/config/lineage identity without a CUDA context.
+            println!("attention-audit-build-identity CONFIG — new audited scope compiled/config/lineage identity; no CUDA context.
+attention-audit-check-plan PLAN — new FIT/anchor/source/qualification/cost/review metadata validation; no release.
+attention-audit-owner-release PLAN NEW_RELEASE_DIR — Casey personally, exact CUDA executable and new scope; no delegated/old release.
+attention-audit CONFIG ADMISSION NEW_REPORT_DIR — separately released whole-interval rejection; no resume or fresh execution.
+attention-audit-qualification-check-plan PLAN — distinct finite qualification metadata chain, never dose release.
+attention-audit-qualification-owner-release PLAN NEW_RELEASE_DIR — Casey personally, separately FIT-qualified finite scope only.
+attention-audit-qualify CONFIG QUALIFICATION_ADMISSION NEW_REPORT_DIR — bounded actual source controls/calibration, no complete dose.
+attention-build-identity [CONFIG] — compiled/config/lineage identity without a CUDA context.
 attention-check-plan PLAN — metadata validation only; no release.
 attention-owner-release PLAN NEW_RELEASE_DIR — Casey personally at a terminal, UOR_LAB unset; separate attention arm/seed scope, no D33 delegation.
 attention-panel CONFIG NEW_REPORT_DIR — canonical DEV row metadata and first64 successor probe request, no model.
@@ -192,6 +220,36 @@ attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched
                 ))?
             );
             Ok(())
+        }
+        Some("attention-audit-check-plan") if args.len() == 2 => {
+            println!(
+                "{}",
+                uor_r4_discrete::controller::attention_audited::check_plan(std::path::Path::new(
+                    &args[1]
+                ))?
+            );
+            Ok(())
+        }
+        Some("attention-audit-qualification-check-plan") if args.len() == 2 => {
+            println!(
+                "{}",
+                uor_r4_discrete::controller::attention_audited::qualification::check_plan(
+                    std::path::Path::new(&args[1])
+                )?
+            );
+            Ok(())
+        }
+        Some("attention-audit-qualification-owner-release") if args.len() == 3 => {
+            uor_r4_discrete::controller::attention_audited::qualification::owner_release(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+            )
+        }
+        Some("attention-audit-owner-release") if args.len() == 3 => {
+            uor_r4_discrete::controller::attention_audited::owner_release(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+            )
         }
         Some("attention-panel") if args.len() == 3 => report_command(&args[2], || {
             uor_r4_discrete::controller::attention_learning::preflight::panel(std::path::Path::new(

@@ -14,6 +14,8 @@ conversation yet.** Milestones M1–M8 are GitHub milestones on issues #2029–#
 
 ## Current work — M1 (#2029)
 
+Codex has implemented the [admission-preserving A8 interval controller and separate finite qualification producer](../labs/admission-anchor-controller-2026-10-19/README.md) against the FIT sheet. Host metadata/source tests and synthetic CUDA type checks pass; real CUDA qualification, restoration and timing remain NOT_RUN. DeepSeek owns the sheet, Claude the review seat and AGY the consumer. Protected source delivery and exact-head review precede a separately registered, costed and approved numerical qualification; later dose personal release remains separate. No pod is rented while these prerequisites are pending.
+
 [A8](../labs/a8-dose-2026-10-19/README.md) ended at its registered Q1 diagnostic
 stop; FrozenZero completed 16,404 batches, and `vast-56670997` is closed.
 Claude owns the host-only erosion diagnosis from retained checkpoints and move

@@ -37,7 +37,7 @@ fn id(token: u32, occurrence: u64) -> Identity {
         version: 9,
     }
 }
-fn literal_fixture(vocabulary: u32) -> Result<Snapshot> {
+pub(crate) fn literal_fixture(vocabulary: u32) -> Result<Snapshot> {
     let model = Device::new(
         Spec {
             vocabulary,

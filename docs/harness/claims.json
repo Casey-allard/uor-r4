@@ -286,6 +286,13 @@
     "lab": "codex",
     "note": ""
   },
+  "codex/cf1-admission-anchor-audit": {
+    "branch": "codex/cf1-admission-anchor-audit",
+    "claimed_at": "2026-10-19T05:11:16-04:00",
+    "head": "258dc3ef9",
+    "lab": "codex",
+    "note": ""
+  },
   "codex/cf1-attention-battery3-result": {
     "branch": "codex/cf1-attention-battery3-result",
     "claimed_at": "2026-10-17T19:25:30-04:00",

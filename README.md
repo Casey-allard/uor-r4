@@ -146,6 +146,8 @@ Per-lab measured position: [STATUS.md](STATUS.md). Plan of record:
 
 ## The current path: discrete geometric learning
 
+The [admission-preserving A8 controller](docs/labs/admission-anchor-controller-2026-10-19/README.md) adds interval rejection with failed-state custody and a separate finite source-qualification CLI. Source review and host checks pass; real CUDA qualification, timing and later dose release remain separate prerequisites, with no new language result claimed.
+
 The active D32 model uses integer E8 carriers, SpiralCore signed transport,
 ordered ternary FBS and one shared input/carry/output vector writer. Learning
 enumerates exact geometric moves and accepts a move only when its fixed-batch

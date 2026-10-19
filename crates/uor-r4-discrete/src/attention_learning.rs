@@ -242,7 +242,7 @@ fn validate_plan_header(plan: &AttentionPlan) -> Result<()> {
 /// The `injective-` scope certifies injectivity: a pinned table must hold one
 /// distinct full vector per vocabulary token (`CodebookTable::load` has already
 /// recounted its declared `distinct_vectors`).
-fn validate_injective_table(config: &DriverConfig) -> Result<()> {
+pub(super) fn validate_injective_table(config: &DriverConfig) -> Result<()> {
     if let training::CodebookInitialization::PinnedTableV1 { table } =
         &config.codebook_initialization
     {
@@ -617,7 +617,7 @@ struct Q1Record {
     q1_b3: evidence::B3Summary,
     decision: evidence::Q1Decision,
 }
-fn dev_row_identities(config: &DriverConfig) -> Result<Vec<(u64, u32, bool)>> {
+pub(super) fn dev_row_identities(config: &DriverConfig) -> Result<Vec<(u64, u32, bool)>> {
     // Corpus/window partition metadata only. No scoring or forward computation.
     let source = corpus::PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)?;
     let mut rows = Vec::with_capacity(source.eligible_len());
@@ -801,7 +801,7 @@ fn checkpoint_boundary(n: u64) -> Result<()> {
     Ok(())
 }
 #[cfg(feature = "cuda")]
-fn validate_initial_storage(config: &DriverConfig, model: &Value) -> Result<()> {
+pub(super) fn validate_initial_storage(config: &DriverConfig, model: &Value) -> Result<()> {
     let (combine, total) = gate_inventory(config)?;
     let stages = BinderPlan::new(config.spec.context as usize)?.stages();
     let gates = model["gates"]
@@ -909,7 +909,10 @@ fn verify_checkpoint_hash_fields(
     )
 }
 #[cfg(feature = "cuda")]
-fn verify_evaluation(evaluation: &Value, checkpoint: &training::DriverCheckpoint) -> Result<()> {
+pub(super) fn verify_evaluation(
+    evaluation: &Value,
+    checkpoint: &training::DriverCheckpoint,
+) -> Result<()> {
     verify_checkpoint_hash_fields(evaluation, checkpoint)?;
     if evaluation["model_epoch"] != json!(checkpoint.cursor.accepted_updates)
         || evaluation["evaluation_lineage_sha256"]

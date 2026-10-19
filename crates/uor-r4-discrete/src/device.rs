@@ -392,65 +392,9 @@ pub struct ProposalObservation {
     pub any_candidate_cost_differs_from_identity: bool,
 }
 
-/// Artifact storage only. Values are admitted on the GPU when loaded; no
-/// host score, route or transport is computed during serialization.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Snapshot {
-    pub schema: String,
-    pub spec: Spec,
-    pub read_spec: ReadSpec,
-    #[serde(
-        default,
-        skip_serializing_if = "ObjectivePolicy::is_nearest_address_margin"
-    )]
-    pub objective_policy: ObjectivePolicy,
-    #[serde(default, skip_serializing_if = "ReadInitialization::is_zero_gates")]
-    pub read_initialization: ReadInitialization,
-    pub seed: u32,
-    pub epoch: u64,
-    pub table: Vec<i32>,
-    pub routes: Vec<u32>,
-    /// Explicit full [blocks,stages] trit inventory in both modes. It is
-    /// inactive in Route mode; there is no schema1/default-mode migration.
-    pub gates: Vec<i32>,
-    pub operator_kappa: String,
-    pub composition_kappa: String,
-    pub kernel_sha256: String,
-    pub source_sha256: String,
-    pub geometry_sha256: String,
-}
-
-/// Two encodings of one snapshot, never interchangeable with a raw FilePin or
-/// the encoding of the enclosing DriverCheckpoint. This is storage metadata;
-/// computing these hashes does not construct a Device or evaluate a model.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct SnapshotHashDomains {
-    /// Domain A: serialization of the serde_json::Value stored in a checkpoint.
-    pub model_storage_sha256: String,
-    /// Domain B: serialization of the typed Snapshot in declared field order.
-    pub model_snapshot_sha256: String,
-}
-
-pub fn snapshot_hash_domains(snapshot: &Snapshot) -> Result<SnapshotHashDomains> {
-    let stored = serde_json::to_value(snapshot).map_err(|e| invalid(e.to_string()))?;
-    stored_snapshot_hash_domains(&stored)
-}
-
-pub fn stored_snapshot_hash_domains(stored: &serde_json::Value) -> Result<SnapshotHashDomains> {
-    let snapshot: Snapshot =
-        serde_json::from_value(stored.clone()).map_err(|e| invalid(e.to_string()))?;
-    Ok(SnapshotHashDomains {
-        // Hash the original stored Value, not a normalized typed round trip.
-        model_storage_sha256: crate::corpus::sha256(
-            &serde_json::to_vec(stored).map_err(|e| invalid(e.to_string()))?,
-        ),
-        model_snapshot_sha256: crate::corpus::sha256(
-            &serde_json::to_vec(&snapshot).map_err(|e| invalid(e.to_string()))?,
-        ),
-    })
-}
+pub use crate::snapshot::{
+    snapshot_hash_domains, stored_snapshot_hash_domains, Snapshot, SnapshotHashDomains,
+};
 
 fn kernel_sha256() -> String {
     Sha256::digest(PTX.as_bytes())
@@ -463,6 +407,7 @@ fn source_sha256() -> [u8; 32] {
     let mut source = Sha256::new();
     source.update(SCHEMA.as_bytes());
     source.update(include_bytes!("device.rs"));
+    source.update(include_bytes!("snapshot.rs"));
     source.update(include_bytes!("discrete.cu"));
     source.update(include_bytes!("metadata.rs"));
     source.update(include_bytes!("lib.rs"));
