@@ -99,7 +99,11 @@ Verifies:
      ungated_two_arm_dose_cost <= 0.15`, `258` evaluations/arm = `516` total), synchronous-barrier interval
      audits (`0`, `64..16384`, and mandatory 20-batch tail `16404`), `margin == 24` rollback + schedule
      cursor advance, and §2.4 `RULE_EFFECTIVELY_NOOP` (`> 0.50` rejection rate or `3` consecutive
-     full-interval rejections; `56/56` self-tests).
+     full-interval rejections)
+6. Integrated `#2782` Audited Source Contract, `TrainAnchorManifest`, Finite Qualification &
+   Audited Dose Consumer Verification (`verify_integrated_audited_source_contract`,
+   `verify_train_anchor_manifest`, `verify_audited_qualification_artifacts`,
+   `verify_integrated_audited_dose_artifacts`; `64/64` self-tests).
 
 Host-only; never creates a CUDA context, constructs a model, or alters a hold.
 """
@@ -120,7 +124,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-DRIVER_SOURCE_FILES: tuple[str, ...] = (
+HISTORICAL_DRIVER_SOURCE_FILES: tuple[str, ...] = (
     "corpus.rs",
     "training.rs",
     "controller.rs",
@@ -132,6 +136,34 @@ DRIVER_SOURCE_FILES: tuple[str, ...] = (
     "attention_transfer.rs",
     "attention_preflight.rs",
     "main.rs",
+)
+
+DRIVER_SOURCE_FILES: tuple[str, ...] = (
+    "corpus.rs",
+    "training.rs",
+    "controller.rs",
+    "completion.rs",
+    "completion_baseline.rs",
+    "redirect_admission.rs",
+    "attention_learning.rs",
+    "attention_evidence.rs",
+    "attention_transfer.rs",
+    "attention_preflight.rs",
+    "attention_anchor.rs",
+    "attention_audit.rs",
+    "attention_anchor_device.rs",
+    "attention_audited.rs",
+    "attention_audit_qualification.rs",
+    "driver_qualification.rs",
+    "relation_qualification.rs",
+    "snapshot.rs",
+    "main.rs",
+)
+
+COMPILED_SOURCE_FILES: tuple[str, ...] = (
+    "lib.rs",
+    "device.rs",
+    "discrete.cu",
 )
 
 ROOTS: list[list[int]] = [
@@ -168,9 +200,50 @@ RELATION_QUALIFICATION_NAMES: list[str] = [
 EXPECTED_DRIVER_SOURCE_SHA256 = (
     "f673edb5d3bfea8bae44594adf122fbe937626c60c5be838d59a3ffc42f55ccf"
 )
+EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256 = (
+    "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d"
+)
+EXPECTED_COMPILED_SOURCE_SHA256 = (
+    "a5d59806d7aa12ce7bed05bacc8cffa700da717a172efbe787075cce78c60831"
+)
 EXPECTED_ATTENTION_LEARNING_RS_SHA256 = (
     "21e8b5282b3ef2956d359c9518e9f0bf68c0d2d75e4febcc59514c1cacd8709f"
 )
+EXPECTED_INTEGRATED_ATTENTION_LEARNING_RS_SHA256 = (
+    "2dda0b543cbb957f275c1f1e952be18e09f9d3c094e6aac72db7bdd70b6c7c89"
+)
+EXPECTED_INTEGRATED_MODULE_PINS: dict[str, tuple[str, int, int]] = {
+    "attention_anchor.rs": (
+        "603a0f953d6aefa8216a7e6d25d4f080eecf8411a91db1d0b665fbdb74e11585",
+        24921,
+        658,
+    ),
+    "attention_audit.rs": (
+        "aff42682b220fef11698566fb1055bd43773e9db2f2653c86806de9a088f4350",
+        37194,
+        1064,
+    ),
+    "attention_anchor_device.rs": (
+        "9e89c266c6815b045e15a792812bfc33d0014133ef908f740d9f62b41aba08c8",
+        28030,
+        695,
+    ),
+    "attention_audited.rs": (
+        "cd4c6e3d29708d0f93a348e1e352440009f8630cffb9c285d84a53631f22c909",
+        70828,
+        1718,
+    ),
+    "attention_audit_qualification.rs": (
+        "dc9919134cdfecc614d8327c75fa91f4526c40f3c12644c46c76e39487212163",
+        138269,
+        3234,
+    ),
+    "snapshot.rs": (
+        "c03dcb7bc0e0e966951285a52cf76bf672ee74bf136c42403b40d1a4b5da1170",
+        5922,
+        135,
+    ),
+}
 EXPECTED_ATTENTION_BASE_SOURCE = "ef9d30999700be11e103f96590e9e3b83b6807c7"
 EXPECTED_SEEDED_SHEET_SHA256 = (
     "844814009ecc7368c0a3ecabf62434bae7d72850363e19f67c0126810fee7ffc"
@@ -241,6 +314,9 @@ EXPECTED_A8_RELATION_CONFIG_SHA256 = (
 EXPECTED_A8_RELATION_LINEAGE_SHA256 = (
     "265c91d07cb59031a766efff92535772957c92556acca2a2bce2082a8a6f44de"
 )
+EXPECTED_INTEGRATED_A8_RELATION_LINEAGE_SHA256 = (
+    "f22ebd7129f194c7b3089a3b647b3d174d8c0c95fb18395611bba77036fa3cf3"
+)
 
 EXPECTED_A8_FROZEN_ZERO_CONFIG_FILE_SHA256 = (
     "cf7ebcc85d2e463ae8f6691b63d90a0e005701cb38b8249a8d0d5460d8508479"
@@ -251,6 +327,18 @@ EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256 = (
 )
 EXPECTED_A8_FROZEN_ZERO_LINEAGE_SHA256 = (
     "3f3f4816816b2c529882f6b3edbb0a68c7f16d51e8c228ba04e346f9ed439cf5"
+)
+EXPECTED_INTEGRATED_A8_FROZEN_ZERO_LINEAGE_SHA256 = (
+    "e4c3efc99f51bc3eb4c13844cc3e7dc12e9e42d32a2cde39603e6052d649e79a"
+)
+EXPECTED_TRAIN_ANCHOR_MANIFEST_SHA256 = (
+    "f85466ff339d8fb848fb1151a7d672fba5687296b81b1ad6fb39c36ddaca27de"
+)
+EXPECTED_TRAIN_ANCHOR_ROW0_WINDOW_SHA256 = (
+    "eaddc64951b2a1520df965ba1ad089d8572a2146c2cc6813b25b81a5662abb81"
+)
+EXPECTED_TRAIN_ANCHOR_ROW_LAST_WINDOW_SHA256 = (
+    "6a53f3af61f225e226e1c3e25cbec97cd622ea7fafc364fba4886891efae5175"
 )
 
 EXPECTED_UNPINNED_RELATION_CONFIG_FILE_SHA256 = (
@@ -1326,7 +1414,7 @@ def verify_staged_contract(
         "A8 sheet missing TEST FITNESS: FIT line",
     )
 
-    # 2. Verify float-free constructor and 11-file driver_source_sha256
+    # 2. Verify float-free constructor, 19-file driver_source_sha256, and 3-file compiled_source_sha256
     for rel_path in (
         "crates/uor-r4-discrete/src/address_cells.rs",
         "crates/uor-r4-discrete/src/bin/address-cells-codebook.rs",
@@ -1343,15 +1431,24 @@ def verify_staged_contract(
         driver_hasher.update(read_bytes_checked(src_dir / fname, fname))
     driver_sha = driver_hasher.hexdigest()
     require(
-        driver_sha == EXPECTED_DRIVER_SOURCE_SHA256,
-        f"driver_source_sha256 {driver_sha} != {EXPECTED_DRIVER_SOURCE_SHA256}",
+        driver_sha == EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256,
+        f"driver_source_sha256 {driver_sha} != {EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256}",
+    )
+
+    compiled_hasher = hashlib.sha256()
+    for fname in COMPILED_SOURCE_FILES:
+        compiled_hasher.update(read_bytes_checked(src_dir / fname, fname))
+    compiled_sha = compiled_hasher.hexdigest()
+    require(
+        compiled_sha == EXPECTED_COMPILED_SOURCE_SHA256,
+        f"compiled_source_sha256 {compiled_sha} != {EXPECTED_COMPILED_SOURCE_SHA256}",
     )
 
     attn_rs_bytes = read_bytes_checked(src_dir / "attention_learning.rs", "attention_learning.rs")
     attn_rs_sha = hashlib.sha256(attn_rs_bytes).hexdigest()
     require(
-        attn_rs_sha == EXPECTED_ATTENTION_LEARNING_RS_SHA256,
-        f"attention_learning.rs SHA {attn_rs_sha} != {EXPECTED_ATTENTION_LEARNING_RS_SHA256}",
+        attn_rs_sha == EXPECTED_INTEGRATED_ATTENTION_LEARNING_RS_SHA256,
+        f"attention_learning.rs SHA {attn_rs_sha} != {EXPECTED_INTEGRATED_ATTENTION_LEARNING_RS_SHA256}",
     )
     attn_rs_text = attn_rs_bytes.decode("utf-8")
     for token in (
@@ -1399,17 +1496,29 @@ def verify_staged_contract(
         "a8-relation-seed1.json must be byte-identical to pre-flight a8.json",
     )
 
-    rel_cfg_sha, rel_lin_sha = compute_config_and_lineage_sha(a8_rel, driver_sha)
-    fz_cfg_sha, fz_lin_sha = compute_config_and_lineage_sha(a8_fz, driver_sha)
+    rel_cfg_sha, rel_lin_sha = compute_config_and_lineage_sha(
+        a8_rel, EXPECTED_DRIVER_SOURCE_SHA256
+    )
+    fz_cfg_sha, fz_lin_sha = compute_config_and_lineage_sha(
+        a8_fz, EXPECTED_DRIVER_SOURCE_SHA256
+    )
     require(
         rel_cfg_sha == EXPECTED_A8_RELATION_CONFIG_SHA256
         and rel_lin_sha == EXPECTED_A8_RELATION_LINEAGE_SHA256,
-        f"a8-relation config/lineage SHA mismatch: {rel_cfg_sha} / {rel_lin_sha}",
+        f"a8-relation historical config/lineage SHA mismatch: {rel_cfg_sha} / {rel_lin_sha}",
     )
     require(
         fz_cfg_sha == EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256
         and fz_lin_sha == EXPECTED_A8_FROZEN_ZERO_LINEAGE_SHA256,
-        f"a8-frozen-zero config/lineage SHA mismatch: {fz_cfg_sha} / {fz_lin_sha}",
+        f"a8-frozen-zero historical config/lineage SHA mismatch: {fz_cfg_sha} / {fz_lin_sha}",
+    )
+
+    _, rel_int_lin_sha = compute_config_and_lineage_sha(a8_rel, driver_sha)
+    _, fz_int_lin_sha = compute_config_and_lineage_sha(a8_fz, driver_sha)
+    require(
+        rel_int_lin_sha == EXPECTED_INTEGRATED_A8_RELATION_LINEAGE_SHA256
+        and fz_int_lin_sha == EXPECTED_INTEGRATED_A8_FROZEN_ZERO_LINEAGE_SHA256,
+        f"integrated A8 lineage SHA mismatch: {rel_int_lin_sha} / {fz_int_lin_sha}",
     )
 
     # Single-key diffs against parent seeded and PrimeZeta injective configs
@@ -1543,15 +1652,20 @@ def verify_staged_contract(
     if ap_sheet_path.is_file():
         admission_preserving_summary = verify_admission_preserving_sheet_and_anchor(repo_root)
 
+    integrated_source_summary = verify_integrated_audited_source_contract(repo_root)
+
     return {
         "status": "PASS",
         "sheet_sha256": sheet_sha,
         "driver_source_sha256": driver_sha,
+        "historical_driver_source_sha256": EXPECTED_DRIVER_SOURCE_SHA256,
+        "compiled_source_sha256": compiled_sha,
         "attention_learning_rs_sha256": attn_rs_sha,
         "relation": {
             "config_file_sha256": EXPECTED_A8_RELATION_CONFIG_FILE_SHA256,
             "config_sha256": rel_cfg_sha,
             "lineage_sha256": rel_lin_sha,
+            "integrated_lineage_sha256": rel_int_lin_sha,
             "scope": rel_scope,
             "d40_phrase": rel_phrase,
         },
@@ -1559,6 +1673,7 @@ def verify_staged_contract(
             "config_file_sha256": EXPECTED_A8_FROZEN_ZERO_CONFIG_FILE_SHA256,
             "config_sha256": fz_cfg_sha,
             "lineage_sha256": fz_lin_sha,
+            "integrated_lineage_sha256": fz_int_lin_sha,
             "scope": fz_scope,
             "d40_phrase": fz_phrase,
         },
@@ -1567,6 +1682,7 @@ def verify_staged_contract(
         "executor_packet": packet_summary,
         "committed_a8_dose_receipt": committed_dose_summary,
         "admission_preserving_sheet": admission_preserving_summary,
+        "integrated_audited_source": integrated_source_summary,
     }
 
 
@@ -5014,6 +5130,173 @@ def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str,
         f"no_tail={res_ap_no_tail['faults']}, fz_rel={res_ap_fz_rel['faults']}",
     )
 
+    # T57: Integrated #2782 19-file driver_source_sha256, 3-file compiled_source_sha256, 6 modules & lineage SHAs
+    int_src = verify_integrated_audited_source_contract(repo_root)
+    record(
+        "57_integrated_audited_source_contract_and_lineage_pass",
+        int_src["status"] == "PASS"
+        and int_src["driver_source_sha256"] == EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256
+        and int_src["compiled_source_sha256"] == EXPECTED_COMPILED_SOURCE_SHA256
+        and len(int_src["modules"]) == 6
+        and staged["relation"]["integrated_lineage_sha256"]
+        == EXPECTED_INTEGRATED_A8_RELATION_LINEAGE_SHA256
+        and staged["frozen_zero"]["integrated_lineage_sha256"]
+        == EXPECTED_INTEGRATED_A8_FROZEN_ZERO_LINEAGE_SHA256,
+        f"driver={int_src['driver_source_sha256'][:12]}, compiled={int_src['compiled_source_sha256'][:12]}",
+    )
+
+    # T58: TrainAnchorManifest (`uor-r4.train-copy-successor-anchor/v1`) & OriginalWindowPin verification + tamper refusal
+    syn_manifest = build_synthetic_train_anchor_manifest()
+    res_manifest_ok = verify_train_anchor_manifest(
+        syn_manifest, require_canonical_3847=False
+    )
+    bad_manifest_csv = copy.deepcopy(syn_manifest)
+    bad_manifest_csv["row_csv_sha256"] = "0" * 64
+    manifest_tamper_rejected = False
+    try:
+        verify_train_anchor_manifest(bad_manifest_csv, require_canonical_3847=False)
+    except VerificationError as exc:
+        manifest_tamper_rejected = "row_csv_sha256 mismatch" in str(exc)
+
+    bad_manifest_split = copy.deepcopy(syn_manifest)
+    bad_manifest_split["corpus"]["source"]["split"] = "dev"
+    split_tamper_rejected = False
+    try:
+        verify_train_anchor_manifest(bad_manifest_split, require_canonical_3847=False)
+    except VerificationError as exc:
+        split_tamper_rejected = "must be TRAIN" in str(exc)
+
+    record(
+        "58_train_anchor_manifest_and_original_window_pin_pass_and_tamper_rejected",
+        res_manifest_ok["status"] == "PASS"
+        and res_manifest_ok["rows"] == 4
+        and manifest_tamper_rejected
+        and split_tamper_rejected,
+        f"manifest_sha={res_manifest_ok['manifest_sha256'][:12]}, tamper_rejected={manifest_tamper_rejected and split_tamper_rejected}",
+    )
+
+    # T59: Finite source qualification bundle (`attention_audit_qualification.rs`) valid PASS
+    base_qual = build_synthetic_audited_qualification_bundle(repo_root)
+    res_qual_ok = verify_audited_qualification_artifacts(base_qual)
+    record(
+        "59_audited_qualification_valid_bundle_pass",
+        res_qual_ok["status"] == "PASS"
+        and res_qual_ok["verdict"] == "QUALIFICATION_PASS_READY_FOR_SEPARATE_DOSE_D40_PLAN"
+        and res_qual_ok["checks_passed"] == 5
+        and res_qual_ok["mechanism_negative"] is False
+        and res_qual_ok["keep"] is False,
+        f"verdict={res_qual_ok['verdict']}, adm={res_qual_ok['admission_sha256'][:12]}",
+    )
+
+    # T60: Finite source qualification authorization actor/verdict tamper, limits warmup tamper, or check failure -> INSTRUMENT_UNREACHABLE_D31
+    qual_bad_auth = copy.deepcopy(base_qual)
+    qual_bad_auth["authorizations"]["qualification_fit"]["actor"] = "Casey"
+    res_qual_bad_auth = verify_audited_qualification_artifacts(qual_bad_auth)
+
+    qual_bad_lim = copy.deepcopy(base_qual)
+    qual_bad_lim["plan"]["limits"]["throughput_warmup_attempts_per_arm"] = 1
+    res_qual_bad_lim = verify_audited_qualification_artifacts(qual_bad_lim)
+
+    qual_bad_chk = copy.deepcopy(base_qual)
+    qual_bad_chk["report"]["qualification"]["checks"][4]["passed"] = False
+    res_qual_bad_chk = verify_audited_qualification_artifacts(qual_bad_chk)
+
+    record(
+        "60_audited_qualification_auth_or_limits_or_battery_tamper_d31",
+        res_qual_bad_auth["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "qualification_authorization_qualification_fit_invalid" in res_qual_bad_auth["faults"]
+        and res_qual_bad_lim["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "qualification_plan_limits_invalid" in res_qual_bad_lim["faults"]
+        and res_qual_bad_chk["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "qualification_five_check_battery_failed" in res_qual_bad_chk["faults"],
+        f"auth={res_qual_bad_auth['faults']}, lim={res_qual_bad_lim['faults']}, chk={res_qual_bad_chk['faults']}",
+    )
+
+    # T61: Finite source qualification calibration > 15% gate cost -> STOP_OVER_15_PERCENT_GATE_COST, and arithmetic tamper -> INSTRUMENT_UNREACHABLE_D31
+    qual_over_15 = copy.deepcopy(base_qual)
+    qual_over_15["report"]["calibration"]["projected_ungated_two_arm_dose_ns"] = (
+        qual_over_15["report"]["calibration"]["projected_added_gate_ns"] * 5
+    )  # R = 0.20 > 0.15
+    qual_over_15["report"]["calibration"]["passes_15_percent_gate"] = False
+    qual_over_15["report"]["status"] = "STOP_OVER_15_PERCENT_GATE_COST"
+    res_qual_over_15 = verify_audited_qualification_artifacts(qual_over_15)
+
+    qual_bad_math = copy.deepcopy(base_qual)
+    qual_bad_math["report"]["calibration"]["projected_added_gate_ns"] += 1
+    res_qual_bad_math = verify_audited_qualification_artifacts(qual_bad_math)
+
+    record(
+        "61_audited_qualification_calibration_over_15pct_stop_and_formula_mismatch_d31",
+        res_qual_over_15["verdict"] == "STOP_OVER_15_PERCENT_GATE_COST"
+        and res_qual_over_15["mechanism_negative"] is False
+        and res_qual_over_15["keep"] is False
+        and res_qual_bad_math["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "qualification_calibration_arithmetic_or_gate_flag_mismatch"
+        in res_qual_bad_math["faults"],
+        f"over_15={res_qual_over_15['verdict']}, bad_math={res_qual_bad_math['faults']}",
+    )
+
+    # T62: Integrated #2782 audited dose bundle (`attention_audited.rs`) valid PASS
+    base_aud_dose = build_synthetic_integrated_audited_dose_bundle(repo_root)
+    res_aud_dose_ok = verify_integrated_audited_dose_artifacts(base_aud_dose)
+    record(
+        "62_integrated_audited_dose_valid_bundle_pass",
+        res_aud_dose_ok["status"] == "PASS"
+        and res_aud_dose_ok["verdict"]
+        == "AUDITED_DOSE_COMPLETE_PENDING_PAIRED_DISCRIMINATOR"
+        and res_aud_dose_ok["mechanism_negative"] is False
+        and res_aud_dose_ok["keep"] is False,
+        f"verdict={res_aud_dose_ok['verdict']}, rel_adm={res_aud_dose_ok['admission_shas']['relation'][:12]}",
+    )
+
+    # T63: Integrated audited dose cost attestation tamper, resource cap breach, or restore observation mismatch -> INSTRUMENT_UNREACHABLE_D31
+    ad_bad_att = copy.deepcopy(base_aud_dose)
+    ad_bad_att["cost_attestations"]["pm_dispatch"]["actor"] = "Claude"
+    res_ad_bad_att = verify_integrated_audited_dose_artifacts(ad_bad_att)
+
+    ad_over_cap = copy.deepcopy(base_aud_dose)
+    ad_over_cap["arms"]["relation"]["resource_observation"]["observed_cost_cents"] = 99999
+    res_ad_over_cap = verify_integrated_audited_dose_artifacts(ad_over_cap)
+
+    ad_bad_rest = copy.deepcopy(base_aud_dose)
+    ad_bad_rest["arms"]["relation"]["restore_observations"][0][
+        "restored_model_storage_sha256"
+    ] = "f" * 64
+    res_ad_bad_rest = verify_integrated_audited_dose_artifacts(ad_bad_rest)
+
+    record(
+        "63_integrated_audited_dose_cost_attestation_or_resource_cap_or_restore_mismatch_d31",
+        res_ad_bad_att["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "dose_cost_attestation_pm_dispatch_invalid" in res_ad_bad_att["faults"]
+        and res_ad_over_cap["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "relation_resource_observation_invalid_or_exceeds_approved_cap"
+        in res_ad_over_cap["faults"]
+        and res_ad_bad_rest["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "relation_breach_artifact_0_restore_mismatch" in res_ad_bad_rest["faults"],
+        f"att={res_ad_bad_att['faults']}, cap={res_ad_over_cap['faults']}, rest={res_ad_bad_rest['faults']}",
+    )
+
+    # T64: Integrated audited dose RULE_EFFECTIVELY_NOOP diagnostic stop and cross-arm directory/pin mismatch -> INSTRUMENT_UNREACHABLE_D31
+    ad_noop = copy.deepcopy(base_aud_dose)
+    ad_noop["arms"]["relation"]["report"]["status"] = "RULE_EFFECTIVELY_NOOP"
+    res_ad_noop = verify_integrated_audited_dose_artifacts(ad_noop)
+
+    ad_same_dir = copy.deepcopy(base_aud_dose)
+    ad_same_dir["arms"]["frozen_zero"]["plan"]["run_state_directory"] = ad_same_dir["arms"][
+        "relation"
+    ]["plan"]["run_state_directory"]
+    res_ad_same_dir = verify_integrated_audited_dose_artifacts(ad_same_dir)
+
+    record(
+        "64_integrated_audited_dose_noop_or_q1_stop_and_cross_arm_pin_mismatch",
+        res_ad_noop["verdict"] == "RULE_EFFECTIVELY_NOOP"
+        and res_ad_noop["mechanism_negative"] is False
+        and res_ad_noop["keep"] is False
+        and res_ad_same_dir["verdict"] == "INSTRUMENT_UNREACHABLE_D31"
+        and "both_arms_share_same_run_state_directory" in res_ad_same_dir["faults"],
+        f"noop={res_ad_noop['verdict']}, same_dir={res_ad_same_dir['faults']}",
+    )
+
     return {
         "status": "PASS",
         "total_tests": len(results),
@@ -7418,6 +7701,1436 @@ def build_synthetic_admission_preserving_bundle() -> dict[str, Any]:
     }
 
 
+TRAIN_ANCHOR_SCHEMA = "uor-r4.train-copy-successor-anchor/v1"
+TRAIN_ANCHOR_SELECTION_POLICY = "first-copy-successor-at-or-after-original-eligible-index/v1"
+TRAIN_ANCHOR_ROW_CSV_POLICY = (
+    "original-eligible-index,target-absolute-position,target-token,1/headerless-decimal-lf/v1"
+)
+TRAIN_ANCHOR_WINDOW_HASH_POLICY = (
+    "uor-r4.original-corpus-window/identities-u32-u64-u64-u64-le/v1"
+)
+
+QUAL_PLAN_SCHEMA = "uor-r4.attention-audit-source-qualification-plan/1"
+QUAL_ADMISSION_SCHEMA = "uor-r4.attention-audit-source-qualification-admission/1"
+QUAL_OWNER_SCHEMA = "uor-r4.attention-audit-source-qualification-owner-decision/1"
+QUAL_OWNER_DECISION = "RELEASE_FINITE_AUDITED_SOURCE_QUALIFICATION_ONLY"
+QUAL_SCOPE = "m1-attention-active-audit-finite-source-qualification-v1"
+QUAL_PROTOCOL = "train61-synthetic1-interval64-two-arm-throughput-v1"
+QUAL_AUTH_SCHEMA = "uor-r4.attention-audit-qualification-authorization/1"
+QUAL_TIMING_PROTOCOL_SCHEMA = "uor-r4.attention-audit-measurement-protocol/1"
+QUAL_BOOKKEEPING_SCHEMA = "uor-r4.attention-audit-host-bookkeeping-measurement/1"
+QUAL_CALIBRATION_SCHEMA = "uor-r4.attention-audit-calibration/1"
+QUAL_BATTERY_SCHEMA = "uor-r4.attention-audit-qualification/1"
+QUAL_REPORT_SCHEMA = "uor-r4.attention-audit-finite-qualification-report/1"
+QUAL_REQUIRED_CHECK_NAMES: list[str] = [
+    "canonical_initlock_c2",
+    "required_negatives",
+    "g_occ",
+    "sensitivity",
+    "audited_restore_epoch_cursor",
+]
+QUAL_MAX_PROGRESS_HISTORY = 16922
+
+AUDITED_DOSE_PLAN_SCHEMA = "uor-r4.attention-audit-owner-plan/1"
+AUDITED_DOSE_ADMISSION_SCHEMA = "uor-r4.attention-audit-owner-admission/1"
+AUDITED_DOSE_OWNER_SCHEMA = "uor-r4.attention-audit-owner-decision/1"
+AUDITED_DOSE_SCOPE_PREFIX = "m1-attention-active-whole-interval-rejection-v1"
+AUDITED_DOSE_OWNER_DECISION = "RELEASE_D40_AUDITED_WHOLE_INTERVAL_ARM_ONLY"
+AUDITED_DOSE_REVIEW_VERDICT = "APPROVE_ACTIVE_WHOLE_INTERVAL_ADMISSION_PLAN"
+AUDITED_DOSE_COST_DECISION_SCHEMA = "uor-r4.attention-audit-costed-dose-decision/1"
+AUDITED_DOSE_COST_ATTESTATION_SCHEMA = "uor-r4.attention-audit-dose-cost-attestation/1"
+AUDITED_DOSE_RESOURCE_OBSERVATION_SCHEMA = "uor-r4.attention-audit-resource-observation/1"
+AUDITED_DOSE_DURABLE_RECORD_SCHEMA = "uor-r4.attention-whole-interval-audit/v1"
+AUDITED_DOSE_EVALUATION_SCHEMA = "uor-r4.attention-audit-evaluation/1"
+AUDITED_DOSE_RESTORE_INTENT_SCHEMA = "uor-r4.attention-audit-restore-intent/1"
+AUDITED_DOSE_RESTORE_OBSERVATION_SCHEMA = "uor-r4.attention-audit-restore-observation/1"
+AUDITED_DOSE_Q1_SCHEMA = "uor-r4.attention-audit-q1/1"
+AUDITED_DOSE_CHECKPOINT_SCHEMA = "uor-r4.attention-audit-checkpoint/1"
+AUDITED_DOSE_REPORT_SCHEMA = "uor-r4.attention-audit-report/1"
+AUDITED_DOSE_FAILED_MODEL_SCHEMA = "uor-r4.attention-audit-failed-model/1"
+EXPECTED_REGISTERED_AUDIT_POLICY: dict[str, Any] = {
+    "cadence": 64,
+    "max_batches": 16404,
+    "final_tail_batches": 20,
+    "margin": 24,
+    "minimum_baseline": 500,
+    "reject_whole_interval": True,
+    "consecutive_full_rejections": 3,
+    "audits_per_arm": 258,
+}
+
+
+def verify_integrated_audited_source_contract(repo_root: Path) -> dict[str, Any]:
+    """Verify the integrated #2782 audited-learning Rust modules, float-free invariants, and CLI subcommands."""
+    src_dir = repo_root / "crates" / "uor-r4-discrete" / "src"
+    module_digests: dict[str, dict[str, Any]] = {}
+    for fname, (exp_sha, exp_bytes, exp_lines) in EXPECTED_INTEGRATED_MODULE_PINS.items():
+        fpath = src_dir / fname
+        raw = read_bytes_checked(fpath, fname)
+        actual_sha = hashlib.sha256(raw).hexdigest()
+        text = raw.decode("utf-8")
+        actual_lines = text.count("\n")
+        require(
+            actual_sha == exp_sha and len(raw) == exp_bytes and actual_lines == exp_lines,
+            f"integrated module {fname} SHA/bytes/lines mismatch: {actual_sha} ({len(raw)} B, {actual_lines} lines) != {exp_sha} ({exp_bytes} B, {exp_lines} lines)",
+        )
+        require(
+            not re.search(r"\b(f32|f64)\b", text),
+            f"integrated module {fname} contains forbidden f32/f64 token",
+        )
+        module_digests[fname] = {
+            "sha256": actual_sha,
+            "bytes": len(raw),
+            "lines": actual_lines,
+        }
+
+    main_text = read_text_checked(src_dir / "main.rs", "main.rs")
+    for subcmd in (
+        '"attention-audit-build-identity"',
+        '"attention-audit-check-plan"',
+        '"attention-audit-owner-release"',
+        '"attention-audit"',
+        '"attention-audit-qualification-check-plan"',
+        '"attention-audit-qualification-owner-release"',
+        '"attention-audit-qualify"',
+    ):
+        require(subcmd in main_text, f"main.rs missing required audited CLI subcommand: {subcmd}")
+    anchor_text = read_text_checked(src_dir / "attention_anchor.rs", "attention_anchor.rs")
+    require(
+        "pub fn build(corpus: &PreparedCorpus, policy: AnchorPolicy)" in anchor_text,
+        "attention_anchor.rs missing TrainAnchorManifest::build",
+    )
+
+    return {
+        "status": "PASS",
+        "driver_source_sha256": EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256,
+        "compiled_source_sha256": EXPECTED_COMPILED_SOURCE_SHA256,
+        "modules": module_digests,
+    }
+
+
+def compute_original_window_pin(window: list[dict[str, Any]]) -> dict[str, str]:
+    """Replicate `OriginalWindowPin::from_window` (`attention_anchor.rs:47-65`)."""
+    buf = bytearray(TRAIN_ANCHOR_WINDOW_HASH_POLICY.encode("utf-8"))
+    buf.append(0)
+    buf.extend(struct.pack("<Q", len(window)))
+    for ident in window:
+        buf.extend(
+            struct.pack(
+                "<IQQQ",
+                int(ident["token"]),
+                int(ident["occurrence"]),
+                int(ident["record"]),
+                int(ident["version"]),
+            )
+        )
+    return {
+        "encoding": TRAIN_ANCHOR_WINDOW_HASH_POLICY,
+        "sha256": hashlib.sha256(buf).hexdigest(),
+    }
+
+
+def verify_train_anchor_manifest(
+    manifest: dict[str, Any],
+    train_tokens_path: Path | None = None,
+    train_mask_path: Path | None = None,
+    require_canonical_3847: bool = True,
+) -> dict[str, Any]:
+    """Verify a serialized `TrainAnchorManifest` (`uor-r4.train-copy-successor-anchor/v1`) matching `attention_anchor.rs`."""
+    require(isinstance(manifest, dict), "TrainAnchorManifest must be a dict")
+    require(
+        manifest.get("schema") == TRAIN_ANCHOR_SCHEMA
+        and manifest.get("selection_policy") == TRAIN_ANCHOR_SELECTION_POLICY
+        and manifest.get("row_csv_policy") == TRAIN_ANCHOR_ROW_CSV_POLICY,
+        "TrainAnchorManifest schema/policy header mismatch",
+    )
+    corpus = manifest.get("corpus")
+    policy = manifest.get("policy")
+    rows = manifest.get("rows")
+    require(
+        isinstance(corpus, dict) and isinstance(policy, dict) and isinstance(rows, list),
+        "TrainAnchorManifest missing corpus, policy, or rows",
+    )
+    src = corpus.get("source", {})
+    require(
+        src.get("split") == "train"
+        and corpus.get("vocabulary") == 4096
+        and corpus.get("bos") == {"token": "<|bos|>", "id": 0}
+        and corpus.get("window_policy")
+        == "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1"
+        and corpus.get("identity_policy")
+        == "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1",
+        "TrainAnchorManifest corpus binding must be TRAIN with canonical V4096/BOS0 policies",
+    )
+    count = policy.get("count")
+    start_el = policy.get("start_eligible_index")
+    ctx = policy.get("context")
+    require(
+        is_u64(count)
+        and count > 0
+        and is_u64(start_el)
+        and is_u64(ctx)
+        and 1 <= ctx <= 243
+        and len(rows) == count,
+        "TrainAnchorManifest policy or row count invalid",
+    )
+    if require_canonical_3847:
+        require(
+            start_el == EXPECTED_TRAIN_PSUCC_TAIL_START_ELIGIBLE_INDEX
+            and count == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS
+            and ctx == 192
+            and src.get("tokens", {}).get("sha256") == EXPECTED_TRAIN_TOKENS_SHA256
+            and src.get("mask", {}).get("sha256") == EXPECTED_TRAIN_MASK_SHA256
+            and corpus.get("payload_tokens") == 7512797
+            and corpus.get("eligible_targets") == 2425925
+            and corpus.get("documents") == 60000,
+            "TrainAnchorManifest does not match canonical 3,847-row mw-balp TRAIN anchor pins",
+        )
+
+    csv_lines: list[str] = []
+    prev_el = -1
+    prev_pos = -1
+    canonical_rows: list[dict[str, Any]] = []
+    for idx, r in enumerate(rows):
+        require(isinstance(r, dict), f"row[{idx}] must be a dict")
+        ao = r.get("anchor_ordinal")
+        el = r.get("eligible_index")
+        pos = r.get("target_position")
+        tok = r.get("target_token")
+        tid = r.get("target_identity")
+        ow = r.get("original_window")
+        require(
+            ao == idx
+            and is_u64(el)
+            and el >= start_el
+            and el > prev_el
+            and is_u64(pos)
+            and pos > prev_pos
+            and is_u64(tok)
+            and 0 < tok < 4096
+            and isinstance(tid, dict)
+            and tid.get("token") == tok
+            and tid.get("occurrence") == pos
+            and is_u64(tid.get("record"))
+            and (int(tid["record"]) >> 62) == 0
+            and tid.get("version") == 0
+            and isinstance(ow, dict)
+            and ow.get("encoding") == TRAIN_ANCHOR_WINDOW_HASH_POLICY
+            and is_hex64(ow.get("sha256")),
+            f"TrainAnchorManifest row[{idx}] identity/ordering/window pin invalid: {r!r}",
+        )
+        prev_el = int(el)
+        prev_pos = int(pos)
+        csv_lines.append(f"{el},{pos},{tok},1\n")
+        canonical_rows.append(
+            {
+                "anchor_ordinal": ao,
+                "eligible_index": el,
+                "target_position": pos,
+                "target_token": tok,
+                "target_identity": {
+                    "token": tid["token"],
+                    "occurrence": tid["occurrence"],
+                    "record": tid["record"],
+                    "version": tid["version"],
+                },
+                "original_window": {
+                    "encoding": ow["encoding"],
+                    "sha256": ow["sha256"],
+                },
+            }
+        )
+
+    recomputed_csv_sha = hashlib.sha256("".join(csv_lines).encode("utf-8")).hexdigest()
+    require(
+        manifest.get("row_csv_sha256") == recomputed_csv_sha,
+        f"TrainAnchorManifest row_csv_sha256 mismatch: {manifest.get('row_csv_sha256')} != {recomputed_csv_sha}",
+    )
+    if require_canonical_3847:
+        require(
+            recomputed_csv_sha == EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+            and rows[0]["original_window"]["sha256"] == EXPECTED_TRAIN_ANCHOR_ROW0_WINDOW_SHA256
+            and rows[-1]["original_window"]["sha256"] == EXPECTED_TRAIN_ANCHOR_ROW_LAST_WINDOW_SHA256,
+            "TrainAnchorManifest canonical row_csv_sha256 or endpoint OriginalWindowPin SHA-256 mismatch",
+        )
+
+    ordered_corpus = {
+        "source": {
+            "split": src["split"],
+            "tokens": {"path": src["tokens"]["path"], "sha256": src["tokens"]["sha256"]},
+            "mask": {"path": src["mask"]["path"], "sha256": src["mask"]["sha256"]},
+            "expected_payload_tokens": src["expected_payload_tokens"],
+            "expected_eligible_targets": src["expected_eligible_targets"],
+        },
+        "vocabulary": corpus["vocabulary"],
+        "bos": {"token": corpus["bos"]["token"], "id": corpus["bos"]["id"]},
+        "payload_tokens": corpus["payload_tokens"],
+        "mask_bytes": corpus["mask_bytes"],
+        "mask_selected_positions": corpus["mask_selected_positions"],
+        "eligible_targets": corpus["eligible_targets"],
+        "documents": corpus["documents"],
+        "window_policy": corpus["window_policy"],
+        "identity_policy": corpus["identity_policy"],
+    }
+    ordered_payload = {
+        "schema": manifest["schema"],
+        "selection_policy": manifest["selection_policy"],
+        "row_csv_policy": manifest["row_csv_policy"],
+        "corpus": ordered_corpus,
+        "policy": {
+            "start_eligible_index": policy["start_eligible_index"],
+            "count": policy["count"],
+            "context": policy["context"],
+        },
+        "rows": canonical_rows,
+        "row_csv_sha256": recomputed_csv_sha,
+    }
+    recomputed_manifest_sha = hashlib.sha256(
+        json.dumps(ordered_payload, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    require(
+        manifest.get("manifest_sha256") == recomputed_manifest_sha,
+        f"TrainAnchorManifest manifest_sha256 mismatch: {manifest.get('manifest_sha256')} != {recomputed_manifest_sha}",
+    )
+
+    if train_tokens_path is not None and train_mask_path is not None:
+        uort_rec = recompute_train_psucc_tail_anchor_from_uort(
+            train_tokens_path, train_mask_path, int(start_el), int(count)
+        )
+        require(
+            uort_rec["csv_sha256"] == recomputed_csv_sha,
+            "TrainAnchorManifest differs from UORT recomputation",
+        )
+
+    return {
+        "status": "PASS",
+        "manifest_sha256": recomputed_manifest_sha,
+        "row_csv_sha256": recomputed_csv_sha,
+        "rows": len(rows),
+    }
+
+
+def _qual_plan_payload_sha256(plan: dict[str, Any]) -> str:
+    """Replicate `attention_audit_qualification::payload_sha256` (serde_json::Value BTreeMap order with 4 auth keys removed)."""
+    payload = copy.deepcopy(plan)
+    for k in ("qualification_fit", "owner_scope_cost", "pm_dispatch", "independent_review"):
+        payload.pop(k, None)
+    payload["relation_config"] = canonical_driver_config(payload["relation_config"])
+    payload["frozen_zero_config"] = canonical_driver_config(payload["frozen_zero_config"])
+    return hashlib.sha256(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+
+def verify_audited_qualification_artifacts(bundle: dict[str, Any]) -> dict[str, Any]:
+    """Consumer-verify the finite source qualification plan, admission, 4 authorizations, calibration, and 5-check report (`attention_audit_qualification.rs`)."""
+    faults: list[str] = []
+    if not isinstance(bundle, dict):
+        return {
+            "status": "FAIL",
+            "verdict": "INSTRUMENT_UNREACHABLE_D31",
+            "mechanism_negative": False,
+            "keep": False,
+            "faults": ["qualification_bundle_not_a_dict"],
+        }
+
+    plan = bundle.get("plan")
+    admission = bundle.get("admission")
+    owner = bundle.get("owner")
+    auths = bundle.get("authorizations", {})
+    report = bundle.get("report")
+    if not (
+        isinstance(plan, dict)
+        and isinstance(admission, dict)
+        and isinstance(owner, dict)
+        and isinstance(auths, dict)
+        and isinstance(report, dict)
+    ):
+        return {
+            "status": "FAIL",
+            "verdict": "INSTRUMENT_UNREACHABLE_D31",
+            "mechanism_negative": False,
+            "keep": False,
+            "faults": ["missing_plan_admission_owner_authorizations_or_report"],
+        }
+
+    # 1. Verify QualificationPlan header, execution, configs, anchor pin, and Limits
+    ex = plan.get("execution", {})
+    if (
+        plan.get("schema") != QUAL_PLAN_SCHEMA
+        or plan.get("status") != "HELD_FINITE_QUALIFICATION_ADMISSION_REQUIRED"
+        or plan.get("scope") != QUAL_SCOPE
+        or ex.get("base_source") != EXPECTED_ATTENTION_BASE_SOURCE
+        or not is_hex40(ex.get("reviewed_source_commit"))
+        or ex.get("driver_source_sha256") != EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256
+        or ex.get("compiled_source_sha256") != EXPECTED_COMPILED_SOURCE_SHA256
+        or ex.get("sheet_sha256") != EXPECTED_A8_SHEET_SHA256
+        or not is_hex64(ex.get("executable_sha256"))
+        or plan.get("sheet", {}).get("sha256") != EXPECTED_A8_SHEET_SHA256
+        or not is_hex64(plan.get("anchor", {}).get("sha256"))
+    ):
+        faults.append("qualification_plan_header_or_execution_identity_invalid")
+
+    rel_cfg = plan.get("relation_config")
+    fz_cfg = plan.get("frozen_zero_config")
+    if not (isinstance(rel_cfg, dict) and isinstance(fz_cfg, dict)):
+        faults.append("qualification_plan_configs_missing")
+    else:
+        r_csha, r_lsha = compute_config_and_lineage_sha(
+            rel_cfg, EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256
+        )
+        f_csha, f_lsha = compute_config_and_lineage_sha(
+            fz_cfg, EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256
+        )
+        if (
+            r_csha != EXPECTED_A8_RELATION_CONFIG_SHA256
+            or r_lsha != EXPECTED_INTEGRATED_A8_RELATION_LINEAGE_SHA256
+            or f_csha != EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256
+            or f_lsha != EXPECTED_INTEGRATED_A8_FROZEN_ZERO_LINEAGE_SHA256
+        ):
+            faults.append("qualification_plan_config_or_integrated_lineage_sha256_mismatch")
+
+    lim = plan.get("limits", {})
+    gs = lim.get("gate_samples", 0)
+    if (
+        not isinstance(lim, dict)
+        or lim.get("protocol") != QUAL_PROTOCOL
+        or lim.get("anchor_batches_per_sample") != 61
+        or not is_u64(gs)
+        or not (1 <= gs <= 3)
+        or lim.get("synthetic_apply_calls") != 1
+        or lim.get("synthetic_accepted_updates") != 1
+        or lim.get("synthetic_stale_apply_refusals") != 1
+        or lim.get("production_stale_apply_refusals_per_arm") != 1
+        or lim.get("anchor_evaluations_per_arm") != gs + 1
+        or lim.get("rejected_interval_attempts") != 64
+        or lim.get("throughput_attempts_per_arm") != 384
+        or lim.get("throughput_warmup_attempts_per_arm") != 0
+        or lim.get("projected_audits") != 516
+        or lim.get("projected_restore_events") != 514
+        or lim.get("timer_scope") != "synchronized-device-snapshot-seal-fsync-readback-lifecycle-v1"
+        or lim.get("cache_policy") != "fresh-device-per-arm-no-unreported-warmup-v1"
+        or not is_u64(lim.get("max_runtime_seconds"))
+        or lim["max_runtime_seconds"] <= 0
+        or not is_u64(lim.get("max_cost_cents"))
+        or lim["max_cost_cents"] <= 0
+    ):
+        faults.append("qualification_plan_limits_invalid")
+
+    # 2. Verify 4 Authorization records binding payload_sha256(plan)
+    expected_payload_sha = _qual_plan_payload_sha256(plan)
+    auth_specs = (
+        ("qualification_fit", "qualification_fit", {"Claude", "DeepSeek", "AGY"}, "TEST FITNESS: FIT"),
+        ("owner_scope_cost", "owner_cost_scope", {"Casey"}, "APPROVE_EXACT_FINITE_QUALIFICATION_SCOPE_AND_COST"),
+        ("pm_dispatch", "pm_dispatch", {"Kimi"}, "DISPATCH_FINITE_SOURCE_QUALIFICATION_ONLY"),
+        ("independent_review", "source_plan_review", {"Claude", "DeepSeek", "AGY"}, "APPROVE_EXACT_QUALIFICATION_PLAN"),
+    )
+    for plan_key, exp_role, allowed_actors, exp_verdict in auth_specs:
+        auth_obj = auths.get(plan_key)
+        pin_obj = plan.get(plan_key, {})
+        if not isinstance(auth_obj, dict) or not isinstance(pin_obj, dict):
+            faults.append(f"qualification_missing_authorization_{plan_key}")
+            continue
+        auth_sha = hashlib.sha256(
+            json.dumps(auth_obj, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        if (
+            auth_obj.get("schema") != QUAL_AUTH_SCHEMA
+            or auth_obj.get("role") != exp_role
+            or auth_obj.get("actor") not in allowed_actors
+            or auth_obj.get("verdict") != exp_verdict
+            or auth_obj.get("scope") != QUAL_SCOPE
+            or auth_obj.get("execution") != ex
+            or auth_obj.get("reviewed_payload_sha256") != expected_payload_sha
+            or not isinstance(auth_obj.get("receipt_url"), str)
+            or not bool(RECEIPT_URL_RE.match(auth_obj["receipt_url"]))
+            or pin_obj.get("sha256") != auth_sha
+        ):
+            faults.append(f"qualification_authorization_{plan_key}_invalid")
+
+    # 3. Verify QualificationOwner & QualificationAdmission
+    plan_sha = hashlib.sha256(
+        json.dumps(plan, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    owner_sha = hashlib.sha256(
+        json.dumps(owner, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    owner_pin = admission.get("owner_release", {})
+    if (
+        admission.get("schema") != QUAL_ADMISSION_SCHEMA
+        or admission.get("plan") != plan
+        or owner.get("schema") != QUAL_OWNER_SCHEMA
+        or owner.get("owner") != "Casey"
+        or owner.get("decision") != QUAL_OWNER_DECISION
+        or owner.get("scope") != QUAL_SCOPE
+        or owner.get("plan_sha256") != plan_sha
+        or owner.get("receipt_url") != f"owner-terminal:{owner_pin.get('path')}"
+        or owner_pin.get("sha256") != owner_sha
+    ):
+        faults.append("qualification_owner_or_admission_invalid")
+
+    admission_sha = hashlib.sha256(
+        json.dumps(admission, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+    # 4. Verify Calibration, TimingProtocol, BookkeepingMeasurement, and 5-Check Qualification battery
+    cal = report.get("calibration", {})
+    tp = cal.get("timing_protocol", {}) if isinstance(cal, dict) else {}
+    bk = cal.get("bookkeeping", {}) if isinstance(cal, dict) else {}
+    qual = report.get("qualification", {})
+
+    if (
+        report.get("schema") != QUAL_REPORT_SCHEMA
+        or report.get("scope") != QUAL_SCOPE
+        or report.get("admission_sha256") != admission_sha
+        or report.get("anchor_manifest_sha256") != plan.get("anchor", {}).get("sha256")
+        or report.get("anchor_row_csv_sha256") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+        or report.get("anchor_rows") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS
+        or report.get("training") != "HELD"
+        or report.get("full_dose_started") is not False
+    ):
+        faults.append("qualification_report_header_or_hold_invariant_invalid")
+
+    if (
+        not isinstance(tp, dict)
+        or tp.get("schema") != QUAL_TIMING_PROTOCOL_SCHEMA
+        or tp.get("timer_scope") != "synchronized-device-snapshot-seal-fsync-readback-lifecycle-v1"
+        or tp.get("cache_policy") != "fresh-device-per-arm-no-unreported-warmup-v1"
+        or tp.get("cuda_synchronized_before_and_after") is not True
+        or tp.get("fresh_device_per_arm") is not True
+        or tp.get("unreported_warmup_evaluations") != 0
+        or tp.get("includes_anchor_batches_and_snapshot_seal") is not True
+        or tp.get("includes_restore_fsync_and_readback") is not True
+        or tp.get("includes_step_and_boundary_host_bookkeeping") is not True
+    ):
+        faults.append("qualification_timing_protocol_invalid")
+
+    if (
+        not isinstance(bk, dict)
+        or bk.get("schema") != QUAL_BOOKKEEPING_SCHEMA
+        or bk.get("progress_history_entries") != QUAL_MAX_PROGRESS_HISTORY
+        or not is_u64(bk.get("step_bookkeeping_ns"))
+        or bk["step_bookkeeping_ns"] <= 0
+        or not is_u64(bk.get("boundary_bookkeeping_ns"))
+        or bk["boundary_bookkeeping_ns"] <= 0
+        or not is_u64(bk.get("breach_ack_bookkeeping_ns"))
+        or bk["breach_ack_bookkeeping_ns"] <= 0
+    ):
+        faults.append("qualification_bookkeeping_measurement_invalid")
+
+    passes_15pct = False
+    if not isinstance(cal, dict) or cal.get("schema") != QUAL_CALIBRATION_SCHEMA:
+        faults.append("qualification_calibration_missing_or_schema_invalid")
+    else:
+        g_eval = cal.get("gate_evaluation_ns", 0)
+        rest_ns = cal.get("restore_and_FailedModel_preservation_ns", 0)
+        ungated_ns = cal.get("projected_ungated_two_arm_dose_ns", 0)
+        added_ns = cal.get("projected_added_gate_ns", 0)
+        step_ns = bk.get("step_bookkeeping_ns", 0) if isinstance(bk, dict) else 0
+        bound_ns = bk.get("boundary_bookkeeping_ns", 0) if isinstance(bk, dict) else 0
+        ack_ns = bk.get("breach_ack_bookkeeping_ns", 0) if isinstance(bk, dict) else 0
+        expected_added_ns = (
+            516 * g_eval + 32808 * step_ns + 516 * bound_ns + 514 * (rest_ns + ack_ns)
+        )
+        expected_passes = (added_ns * 100) <= (ungated_ns * 15)
+        if (
+            cal.get("protocol") != QUAL_PROTOCOL
+            or cal.get("anchor_rows") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS
+            or cal.get("anchor_batches_per_evaluation") != 61
+            or cal.get("projected_audits") != 516
+            or cal.get("projected_restore_events") != 514
+            or not is_u64(g_eval)
+            or g_eval <= 0
+            or not is_u64(rest_ns)
+            or rest_ns <= 0
+            or not is_u64(ungated_ns)
+            or ungated_ns <= 0
+            or added_ns != expected_added_ns
+            or cal.get("passes_15_percent_gate") != expected_passes
+        ):
+            faults.append("qualification_calibration_arithmetic_or_gate_flag_mismatch")
+        else:
+            passes_15pct = bool(expected_passes)
+
+    checks = qual.get("checks", []) if isinstance(qual, dict) else []
+    if (
+        not isinstance(qual, dict)
+        or qual.get("schema") != QUAL_BATTERY_SCHEMA
+        or qual.get("status") != "PASS"
+        or [c.get("name") for c in checks if isinstance(c, dict)] != QUAL_REQUIRED_CHECK_NAMES
+        or not all(isinstance(c, dict) and c.get("passed") is True for c in checks)
+    ):
+        faults.append("qualification_five_check_battery_failed")
+
+    expected_report_status = (
+        "QUALIFICATION_PASS_READY_FOR_SEPARATE_DOSE_D40_PLAN"
+        if passes_15pct
+        else "STOP_OVER_15_PERCENT_GATE_COST"
+    )
+    if report.get("status") != expected_report_status:
+        faults.append("qualification_report_status_mismatch")
+
+    if faults:
+        return {
+            "status": "FAIL",
+            "verdict": "INSTRUMENT_UNREACHABLE_D31",
+            "mechanism_negative": False,
+            "keep": False,
+            "faults": faults,
+        }
+
+    if not passes_15pct:
+        return {
+            "status": "DIAGNOSTIC_STOP",
+            "verdict": "STOP_OVER_15_PERCENT_GATE_COST",
+            "mechanism_negative": False,
+            "keep": False,
+            "admission_sha256": admission_sha,
+            "projected_added_gate_ns": cal["projected_added_gate_ns"],
+            "projected_ungated_two_arm_dose_ns": cal["projected_ungated_two_arm_dose_ns"],
+            "faults": [],
+        }
+
+    return {
+        "status": "PASS",
+        "verdict": "QUALIFICATION_PASS_READY_FOR_SEPARATE_DOSE_D40_PLAN",
+        "mechanism_negative": False,
+        "keep": False,
+        "admission_sha256": admission_sha,
+        "projected_added_gate_ns": cal["projected_added_gate_ns"],
+        "projected_ungated_two_arm_dose_ns": cal["projected_ungated_two_arm_dose_ns"],
+        "checks_passed": len(checks),
+        "faults": [],
+    }
+
+
+def _audited_dose_review_payload_sha256(plan: dict[str, Any]) -> str:
+    """Replicate `attention_audited::review_payload_sha256`."""
+    payload = copy.deepcopy(plan)
+    payload.pop("independent_review", None)
+    payload["config"] = canonical_driver_config(payload["config"])
+    return hashlib.sha256(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+
+def _audited_dose_cost_payload_sha256(decision: dict[str, Any]) -> str:
+    """Replicate `attention_audited::cost_payload_sha256`."""
+    payload = copy.deepcopy(decision)
+    payload.pop("owner_cost_approval", None)
+    payload.pop("pm_dispatch", None)
+    return hashlib.sha256(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+
+def verify_integrated_audited_dose_artifacts(bundle: dict[str, Any]) -> dict[str, Any]:
+    """Consumer-verify an integrated #2782 audited dose bundle (`attention_audited.rs` & `attention_audit.rs`)."""
+    faults: list[str] = []
+    if not isinstance(bundle, dict):
+        return {
+            "status": "FAIL",
+            "verdict": "INSTRUMENT_UNREACHABLE_D31",
+            "mechanism_negative": False,
+            "keep": False,
+            "faults": ["audited_dose_bundle_not_a_dict"],
+        }
+
+    cost_dec = bundle.get("cost_decision")
+    cost_atts = bundle.get("cost_attestations", {})
+    arms = bundle.get("arms", {})
+    if not (isinstance(cost_dec, dict) and isinstance(cost_atts, dict) and isinstance(arms, dict)):
+        return {
+            "status": "FAIL",
+            "verdict": "INSTRUMENT_UNREACHABLE_D31",
+            "mechanism_negative": False,
+            "keep": False,
+            "faults": ["missing_cost_decision_attestations_or_arms"],
+        }
+
+    # 1. Verify CostedDoseDecision & 2 DoseCostAttestations (Casey + Kimi)
+    expected_cost_payload_sha = _audited_dose_cost_payload_sha256(cost_dec)
+    if (
+        cost_dec.get("schema") != AUDITED_DOSE_COST_DECISION_SCHEMA
+        or cost_dec.get("status") != "COSTED_DOSE_READY_FOR_SEPARATE_D40_RELEASE"
+        or cost_dec.get("scope") != AUDITED_DOSE_SCOPE_PREFIX
+        or cost_dec.get("calibration_passes_15_percent_gate") is not True
+        or cost_dec.get("projected_audits") != 516
+        or cost_dec.get("projected_restore_events") != 514
+        or not is_u64(cost_dec.get("projected_added_gate_ns"))
+        or not is_u64(cost_dec.get("projected_ungated_two_arm_dose_ns"))
+        or (cost_dec["projected_added_gate_ns"] * 100)
+        > (cost_dec["projected_ungated_two_arm_dose_ns"] * 15)
+        or not is_u64(cost_dec.get("max_runtime_seconds"))
+        or cost_dec["max_runtime_seconds"] <= 0
+        or not is_u64(cost_dec.get("max_cost_cents"))
+        or cost_dec["max_cost_cents"] <= 0
+    ):
+        faults.append("costed_dose_decision_invalid_or_exceeds_15pct_gate")
+
+    for key, exp_actor, exp_role, exp_verdict in (
+        ("owner_cost_approval", "Casey", "owner_cost_scope", "APPROVE_EXACT_COSTED_DOSE_PLAN"),
+        ("pm_dispatch", "Kimi", "pm_dispatch", "DISPATCH_EXACT_COSTED_DOSE_PLAN"),
+    ):
+        att = cost_atts.get(key)
+        pin = cost_dec.get(key, {})
+        if not isinstance(att, dict) or not isinstance(pin, dict):
+            faults.append(f"missing_dose_cost_attestation_{key}")
+            continue
+        att_sha = hashlib.sha256(
+            json.dumps(att, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        if (
+            att.get("schema") != AUDITED_DOSE_COST_ATTESTATION_SCHEMA
+            or att.get("actor") != exp_actor
+            or att.get("role") != exp_role
+            or att.get("verdict") != exp_verdict
+            or att.get("scope") != AUDITED_DOSE_SCOPE_PREFIX
+            or att.get("reviewed_cost_payload_sha256") != expected_cost_payload_sha
+            or not isinstance(att.get("receipt_url"), str)
+            or not bool(RECEIPT_URL_RE.match(att["receipt_url"]))
+            or pin.get("sha256") != att_sha
+        ):
+            faults.append(f"dose_cost_attestation_{key}_invalid")
+
+    cost_dec_sha = hashlib.sha256(
+        json.dumps(cost_dec, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+    # 2. Verify both arms (relation and frozen_zero)
+    arm_Admission_shas: dict[str, str] = {}
+    arm_state_dirs: list[str] = []
+    arm_qual_pins: list[dict[str, Any]] = []
+    arm_anchor_pins: list[dict[str, Any]] = []
+    arm_verdicts: dict[str, str] = {}
+
+    for arm_name, is_learn, exp_cfg_sha, exp_lin_sha in (
+        (
+            "relation",
+            True,
+            EXPECTED_A8_RELATION_CONFIG_SHA256,
+            EXPECTED_INTEGRATED_A8_RELATION_LINEAGE_SHA256,
+        ),
+        (
+            "frozen_zero",
+            False,
+            EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256,
+            EXPECTED_INTEGRATED_A8_FROZEN_ZERO_LINEAGE_SHA256,
+        ),
+    ):
+        arm_b = arms.get(arm_name)
+        if not isinstance(arm_b, dict):
+            faults.append(f"{arm_name}_missing_arm_bundle")
+            continue
+        plan = arm_b.get("plan")
+        review = arm_b.get("review")
+        admission = arm_b.get("admission")
+        owner = arm_b.get("owner")
+        res_obs = arm_b.get("resource_observation")
+        progress = arm_b.get("progress")
+        report = arm_b.get("report")
+        if not all(
+            isinstance(x, dict)
+            for x in (plan, review, admission, owner, res_obs, progress, report)
+        ):
+            faults.append(f"{arm_name}_missing_required_plan_admission_progress_or_report_objects")
+            continue
+
+        exp_scope = f"{AUDITED_DOSE_SCOPE_PREFIX}-{'relation' if is_learn else 'frozen-zero'}-seed1-attempts0..16404"
+        ex = plan.get("execution", {})
+        if (
+            plan.get("schema") != AUDITED_DOSE_PLAN_SCHEMA
+            or plan.get("status") != "HELD_OWNER_ACTION_REQUIRED"
+            or plan.get("scope") != exp_scope
+            or ex.get("driver_source_sha256") != EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256
+            or ex.get("config_sha256") != exp_cfg_sha
+            or ex.get("lineage_sha256") != exp_lin_sha
+            or ex.get("sheet_sha256") != EXPECTED_A8_SHEET_SHA256
+            or plan.get("policy") != EXPECTED_REGISTERED_AUDIT_POLICY
+            or plan.get("cost_decision", {}).get("sha256") != cost_dec_sha
+        ):
+            faults.append(f"{arm_name}_audited_plan_header_execution_or_policy_invalid")
+
+        rev_payload_sha = _audited_dose_review_payload_sha256(plan)
+        rev_sha = hashlib.sha256(
+            json.dumps(review, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        if (
+            review.get("reviewer") not in {"Claude", "DeepSeek", "AGY"}
+            or review.get("verdict") != AUDITED_DOSE_REVIEW_VERDICT
+            or review.get("scope") != exp_scope
+            or review.get("execution") != ex
+            or review.get("reviewed_plan_payload_sha256") != rev_payload_sha
+            or not isinstance(review.get("receipt_url"), str)
+            or not bool(RECEIPT_URL_RE.match(review["receipt_url"]))
+            or plan.get("independent_review", {}).get("sha256") != rev_sha
+        ):
+            faults.append(f"{arm_name}_audited_plan_independent_review_invalid")
+
+        plan_sha = hashlib.sha256(
+            json.dumps(plan, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        owner_sha = hashlib.sha256(
+            json.dumps(owner, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        owner_pin = admission.get("owner_release", {})
+        if (
+            admission.get("schema") != AUDITED_DOSE_ADMISSION_SCHEMA
+            or admission.get("plan") != plan
+            or owner.get("schema") != AUDITED_DOSE_OWNER_SCHEMA
+            or owner.get("owner") != "Casey"
+            or owner.get("decision") != AUDITED_DOSE_OWNER_DECISION
+            or owner.get("scope") != exp_scope
+            or owner.get("plan_sha256") != plan_sha
+            or owner.get("receipt_url") != f"owner-terminal:{owner_pin.get('path')}"
+            or owner_pin.get("sha256") != owner_sha
+        ):
+            faults.append(f"{arm_name}_audited_owner_or_admission_invalid")
+
+        adm_sha = hashlib.sha256(
+            json.dumps(admission, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        arm_Admission_shas[arm_name] = adm_sha
+        arm_state_dirs.append(str(plan.get("run_state_directory", "")).rstrip("/"))
+        arm_qual_pins.append(plan.get("qualification_report", {}))
+        arm_anchor_pins.append(plan.get("anchor", {}))
+
+        # ResourceObservation cap checks
+        if (
+            res_obs.get("schema") != AUDITED_DOSE_RESOURCE_OBSERVATION_SCHEMA
+            or res_obs.get("scope") != exp_scope
+            or res_obs.get("admission_sha256") != adm_sha
+            or not is_u64(res_obs.get("observed_elapsed_seconds"))
+            or res_obs["observed_elapsed_seconds"] > cost_dec.get("max_runtime_seconds", 0)
+            or not is_u64(res_obs.get("observed_cost_cents"))
+            or res_obs["observed_cost_cents"] > cost_dec.get("max_cost_cents", 0)
+        ):
+            faults.append(f"{arm_name}_resource_observation_invalid_or_exceeds_approved_cap")
+
+        # ProgressCheckpoint, DurableRecords, Evaluations, RestoreIntents/Observations, FailedModels, and Report
+        if (
+            progress.get("schema") != AUDITED_DOSE_CHECKPOINT_SCHEMA
+            or progress.get("scope") != exp_scope
+            or progress.get("admission_sha256") != adm_sha
+            or progress.get("anchor_manifest_sha256") != plan.get("anchor", {}).get("sha256")
+            or progress.get("anchor_row_csv_sha256") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+            or progress.get("policy") != EXPECTED_REGISTERED_AUDIT_POLICY
+        ):
+            faults.append(f"{arm_name}_progress_checkpoint_header_invalid")
+
+        records = arm_b.get("durable_records", [])
+        evals = arm_b.get("evaluations", [])
+        intents = arm_b.get("restore_intents", [])
+        observations = arm_b.get("restore_observations", [])
+        failed_models = arm_b.get("failed_models", [])
+        if not (isinstance(records, list) and len(records) >= 1 and len(evals) == len(records)):
+            faults.append(f"{arm_name}_missing_or_mismatched_durable_records_and_evaluations")
+            continue
+
+        breach_count = 0
+        for idx, (rec, ev) in enumerate(zip(records, evals)):
+            if (
+                not isinstance(rec, dict)
+                or not isinstance(ev, dict)
+                or rec.get("schema") != AUDITED_DOSE_DURABLE_RECORD_SCHEMA
+                or ev.get("schema") != AUDITED_DOSE_EVALUATION_SCHEMA
+                or rec.get("audit_index") != idx
+                or ev.get("audit_index") != idx
+                or ev.get("scope") != exp_scope
+                or ev.get("admission_sha256") != adm_sha
+            ):
+                faults.append(f"{arm_name}_audit_record_or_evaluation_{idx}_invalid")
+                break
+            out_block = rec.get("outcome", {})
+            if isinstance(out_block, dict) and out_block.get("kind") == "rejected_whole_interval":
+                breach_count += 1
+
+        if (
+            len(intents) != breach_count
+            or len(observations) != breach_count
+            or len(failed_models) != breach_count
+        ):
+            faults.append(f"{arm_name}_breach_restore_intent_observation_or_failed_model_count_mismatch")
+        else:
+            for b_idx, (it, ob, fm) in enumerate(zip(intents, observations, failed_models)):
+                if (
+                    not isinstance(it, dict)
+                    or not isinstance(ob, dict)
+                    or not isinstance(fm, dict)
+                    or it.get("schema") != AUDITED_DOSE_RESTORE_INTENT_SCHEMA
+                    or ob.get("schema") != AUDITED_DOSE_RESTORE_OBSERVATION_SCHEMA
+                    or fm.get("schema") != AUDITED_DOSE_FAILED_MODEL_SCHEMA
+                    or it.get("scope") != exp_scope
+                    or ob.get("scope") != exp_scope
+                    or fm.get("scope") != exp_scope
+                    or it.get("admission_sha256") != adm_sha
+                    or ob.get("admission_sha256") != adm_sha
+                    or fm.get("admission_sha256") != adm_sha
+                    or ob.get("restored_model_storage_sha256") != it.get("last_passing_model_storage_sha256")
+                    or ob.get("restored_model_snapshot_sha256") != it.get("last_passing_model_snapshot_sha256")
+                    or ob.get("restored_model_epoch") != it.get("last_passing_model_epoch")
+                ):
+                    faults.append(f"{arm_name}_breach_artifact_{b_idx}_restore_mismatch")
+                    break
+
+        if (
+            report.get("schema") != AUDITED_DOSE_REPORT_SCHEMA
+            or report.get("scope") != exp_scope
+            or report.get("admission_sha256") != adm_sha
+            or report.get("anchor_manifest_sha256") != plan.get("anchor", {}).get("sha256")
+            or report.get("anchor_row_csv_sha256") != EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256
+            or report.get("audits_completed") != len(records)
+            or report.get("rejected_intervals") != breach_count
+            or report.get("training_other_scopes") != "HELD"
+        ):
+            faults.append(f"{arm_name}_audited_dose_report_invalid")
+
+        if not is_learn and report.get("sensitivity", {}).get("accepted_relation", 0) != 0:
+            faults.append("frozen_zero_audited_dose_accepted_relation_nonzero")
+
+        arm_verdicts[arm_name] = str(report.get("status", ""))
+
+    if len(arm_state_dirs) == 2 and arm_state_dirs[0] == arm_state_dirs[1]:
+        faults.append("both_arms_share_same_run_state_directory")
+    if len(arm_qual_pins) == 2 and arm_qual_pins[0] != arm_qual_pins[1]:
+        faults.append("cross_arm_qualification_report_pin_mismatch")
+    if len(arm_anchor_pins) == 2 and arm_anchor_pins[0] != arm_anchor_pins[1]:
+        faults.append("cross_arm_anchor_pin_mismatch")
+
+    if faults:
+        return {
+            "status": "FAIL",
+            "verdict": "INSTRUMENT_UNREACHABLE_D31",
+            "mechanism_negative": False,
+            "keep": False,
+            "faults": faults,
+        }
+
+    if any(v == "RULE_EFFECTIVELY_NOOP" for v in arm_verdicts.values()):
+        return {
+            "status": "DIAGNOSTIC_STOP",
+            "verdict": "RULE_EFFECTIVELY_NOOP",
+            "mechanism_negative": False,
+            "keep": False,
+            "arm_verdicts": arm_verdicts,
+            "admission_shas": arm_Admission_shas,
+            "faults": [],
+        }
+
+    if any(v == "Q1_STOP_FOR_DIAGNOSIS" for v in arm_verdicts.values()):
+        return {
+            "status": "DIAGNOSTIC_STOP",
+            "verdict": "Q1_STOP_FOR_DIAGNOSIS",
+            "mechanism_negative": False,
+            "keep": False,
+            "arm_verdicts": arm_verdicts,
+            "admission_shas": arm_Admission_shas,
+            "faults": [],
+        }
+
+    return {
+        "status": "PASS",
+        "verdict": "AUDITED_DOSE_COMPLETE_PENDING_PAIRED_DISCRIMINATOR",
+        "mechanism_negative": False,
+        "keep": False,
+        "arm_verdicts": arm_verdicts,
+        "admission_shas": arm_Admission_shas,
+        "faults": [],
+    }
+
+
+def build_synthetic_train_anchor_manifest() -> dict[str, Any]:
+    """Construct a valid 4-row synthetic `TrainAnchorManifest` for self-test 58."""
+    win0 = [
+        {"token": 10, "occurrence": 1, "record": 0, "version": 0},
+        {"token": 20, "occurrence": 2, "record": 0, "version": 0},
+        {"token": 10, "occurrence": 3, "record": 0, "version": 0},
+    ]
+    rows: list[dict[str, Any]] = []
+    csv_lines: list[str] = []
+    for idx in range(4):
+        el = 1049856 + idx + 1
+        pos = 3251166 + idx * 10
+        tok = 700 + idx
+        w = copy.deepcopy(win0)
+        w[-1]["occurrence"] = pos - 1
+        wpin = compute_original_window_pin(w)
+        rows.append(
+            {
+                "anchor_ordinal": idx,
+                "eligible_index": el,
+                "target_position": pos,
+                "target_token": tok,
+                "target_identity": {
+                    "token": tok,
+                    "occurrence": pos,
+                    "record": 25932 + idx,
+                    "version": 0,
+                },
+                "original_window": wpin,
+            }
+        )
+        csv_lines.append(f"{el},{pos},{tok},1\n")
+    row_csv_sha = hashlib.sha256("".join(csv_lines).encode("utf-8")).hexdigest()
+    corpus_binding = {
+        "source": {
+            "split": "train",
+            "tokens": {
+                "path": "/workspace/uor-r4/local/driver/data/mw-balp/train/tokens.u16",
+                "sha256": EXPECTED_TRAIN_TOKENS_SHA256,
+            },
+            "mask": {
+                "path": "/workspace/uor-r4/local/driver/data/mw-balp/train/response_mask.u8",
+                "sha256": EXPECTED_TRAIN_MASK_SHA256,
+            },
+            "expected_payload_tokens": 7512797,
+            "expected_eligible_targets": 2425925,
+        },
+        "vocabulary": 4096,
+        "bos": {"token": "<|bos|>", "id": 0},
+        "payload_tokens": 7512797,
+        "mask_bytes": 7512797,
+        "mask_selected_positions": 2425925,
+        "eligible_targets": 2425925,
+        "documents": 60000,
+        "window_policy": "response-masked-targets/within-document-predecessor/sliding-prefix/ascending-once/v1",
+        "identity_policy": "corpus-SHA-bound/split-prefix2bits/document-ordinal62bits/absolute-token-occurrence/version0/v1",
+    }
+    payload = {
+        "schema": TRAIN_ANCHOR_SCHEMA,
+        "selection_policy": TRAIN_ANCHOR_SELECTION_POLICY,
+        "row_csv_policy": TRAIN_ANCHOR_ROW_CSV_POLICY,
+        "corpus": corpus_binding,
+        "policy": {"start_eligible_index": 1049856, "count": 4, "context": 192},
+        "rows": rows,
+        "row_csv_sha256": row_csv_sha,
+    }
+    m_sha = hashlib.sha256(json.dumps(payload, separators=(",", ":")).encode("utf-8")).hexdigest()
+    out = dict(payload)
+    out["manifest_sha256"] = m_sha
+    return out
+
+
+def build_synthetic_audited_qualification_bundle(repo_root: Path) -> dict[str, Any]:
+    """Construct a valid finite source qualification bundle matching `attention_audit_qualification.rs` for self-tests 59..61."""
+    cfg_dir = repo_root / "docs" / "labs" / "a8-training-configs-2026-10-19" / "evidence"
+    rel_cfg = canonical_driver_config(read_json_checked(cfg_dir / "a8-relation-seed1.json"))
+    fz_cfg = canonical_driver_config(read_json_checked(cfg_dir / "a8-frozen-zero-seed1.json"))
+    ex = {
+        "base_source": EXPECTED_ATTENTION_BASE_SOURCE,
+        "reviewed_source_commit": "fd409fcdf3bc43d607e768bae6f8cf403aa75901",
+        "compiled_source_sha256": EXPECTED_COMPILED_SOURCE_SHA256,
+        "driver_source_sha256": EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256,
+        "relation_config_sha256": EXPECTED_A8_RELATION_CONFIG_SHA256,
+        "frozen_zero_config_sha256": EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256,
+        "relation_lineage_sha256": EXPECTED_INTEGRATED_A8_RELATION_LINEAGE_SHA256,
+        "frozen_zero_lineage_sha256": EXPECTED_INTEGRATED_A8_FROZEN_ZERO_LINEAGE_SHA256,
+        "sheet_sha256": EXPECTED_A8_SHEET_SHA256,
+        "executable_sha256": "e" * 64,
+    }
+    plan: dict[str, Any] = {
+        "schema": QUAL_PLAN_SCHEMA,
+        "status": "HELD_FINITE_QUALIFICATION_ADMISSION_REQUIRED",
+        "scope": QUAL_SCOPE,
+        "execution": ex,
+        "relation_config": rel_cfg,
+        "frozen_zero_config": fz_cfg,
+        "sheet": {
+            "path": "/workspace/uor-r4/docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md",
+            "sha256": EXPECTED_A8_SHEET_SHA256,
+        },
+        "anchor": {
+            "path": "/workspace/uor-r4/local/anchor/train-anchor-manifest.json",
+            "sha256": EXPECTED_TRAIN_ANCHOR_MANIFEST_SHA256,
+        },
+        "qualification_fit": {"path": "/workspace/qual/fit.json", "sha256": "0" * 64},
+        "owner_scope_cost": {"path": "/workspace/qual/owner-cost.json", "sha256": "0" * 64},
+        "pm_dispatch": {"path": "/workspace/qual/pm.json", "sha256": "0" * 64},
+        "independent_review": {"path": "/workspace/qual/review.json", "sha256": "0" * 64},
+        "output_directory": "/workspace/uor-r4/runs/qual-20261019",
+        "limits": {
+            "protocol": QUAL_PROTOCOL,
+            "anchor_batches_per_sample": 61,
+            "gate_samples": 2,
+            "synthetic_apply_calls": 1,
+            "synthetic_accepted_updates": 1,
+            "synthetic_stale_apply_refusals": 1,
+            "production_stale_apply_refusals_per_arm": 1,
+            "anchor_evaluations_per_arm": 3,
+            "rejected_interval_attempts": 64,
+            "throughput_attempts_per_arm": 384,
+            "throughput_warmup_attempts_per_arm": 0,
+            "projected_audits": 516,
+            "projected_restore_events": 514,
+            "timer_scope": "synchronized-device-snapshot-seal-fsync-readback-lifecycle-v1",
+            "cache_policy": "fresh-device-per-arm-no-unreported-warmup-v1",
+            "max_runtime_seconds": 1800,
+            "max_cost_cents": 400,
+        },
+    }
+    payload_sha = _qual_plan_payload_sha256(plan)
+    auths: dict[str, Any] = {}
+    for key, role, actor, verdict in (
+        ("qualification_fit", "qualification_fit", "AGY", "TEST FITNESS: FIT"),
+        ("owner_scope_cost", "owner_cost_scope", "Casey", "APPROVE_EXACT_FINITE_QUALIFICATION_SCOPE_AND_COST"),
+        ("pm_dispatch", "pm_dispatch", "Kimi", "DISPATCH_FINITE_SOURCE_QUALIFICATION_ONLY"),
+        ("independent_review", "source_plan_review", "AGY", "APPROVE_EXACT_QUALIFICATION_PLAN"),
+    ):
+        a_obj = {
+            "schema": QUAL_AUTH_SCHEMA,
+            "actor": actor,
+            "role": role,
+            "verdict": verdict,
+            "scope": QUAL_SCOPE,
+            "execution": ex,
+            "reviewed_payload_sha256": payload_sha,
+            "receipt_url": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6266600001",
+        }
+        a_sha = hashlib.sha256(json.dumps(a_obj, separators=(",", ":")).encode("utf-8")).hexdigest()
+        auths[key] = a_obj
+        plan[key]["sha256"] = a_sha
+
+    plan_sha = hashlib.sha256(json.dumps(plan, separators=(",", ":")).encode("utf-8")).hexdigest()
+    owner_path = "/workspace/qual/owner-release.json"
+    owner = {
+        "schema": QUAL_OWNER_SCHEMA,
+        "owner": "Casey",
+        "decision": QUAL_OWNER_DECISION,
+        "scope": QUAL_SCOPE,
+        "plan_sha256": plan_sha,
+        "receipt_url": f"owner-terminal:{owner_path}",
+    }
+    owner_sha = hashlib.sha256(json.dumps(owner, separators=(",", ":")).encode("utf-8")).hexdigest()
+    admission = {
+        "schema": QUAL_ADMISSION_SCHEMA,
+        "plan": plan,
+        "owner_release": {"path": owner_path, "sha256": owner_sha},
+    }
+    adm_sha = hashlib.sha256(json.dumps(admission, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+    g_eval_ns = 1_000_000
+    step_ns = 1_000
+    bound_ns = 10_000
+    rest_ns = 200_000
+    ack_ns = 5_000
+    added_ns = 516 * g_eval_ns + 32808 * step_ns + 516 * bound_ns + 514 * (rest_ns + ack_ns)
+    ungated_ns = added_ns * 10  # R = 0.10 <= 0.15
+
+    report = {
+        "schema": QUAL_REPORT_SCHEMA,
+        "status": "QUALIFICATION_PASS_READY_FOR_SEPARATE_DOSE_D40_PLAN",
+        "scope": QUAL_SCOPE,
+        "admission_sha256": adm_sha,
+        "execution": ex,
+        "anchor_manifest_sha256": EXPECTED_TRAIN_ANCHOR_MANIFEST_SHA256,
+        "anchor_row_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+        "anchor_rows": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS,
+        "calibration": {
+            "schema": QUAL_CALIBRATION_SCHEMA,
+            "protocol": QUAL_PROTOCOL,
+            "timing_protocol": {
+                "schema": QUAL_TIMING_PROTOCOL_SCHEMA,
+                "timer_scope": "synchronized-device-snapshot-seal-fsync-readback-lifecycle-v1",
+                "cache_policy": "fresh-device-per-arm-no-unreported-warmup-v1",
+                "cuda_synchronized_before_and_after": True,
+                "fresh_device_per_arm": True,
+                "unreported_warmup_evaluations": 0,
+                "includes_anchor_batches_and_snapshot_seal": True,
+                "includes_restore_fsync_and_readback": True,
+                "includes_step_and_boundary_host_bookkeeping": True,
+            },
+            "anchor_rows": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_ROWS,
+            "anchor_batches_per_evaluation": 61,
+            "gate_evaluation_ns": g_eval_ns,
+            "restore_and_FailedModel_preservation_ns": rest_ns,
+            "bookkeeping": {
+                "schema": QUAL_BOOKKEEPING_SCHEMA,
+                "progress_history_entries": QUAL_MAX_PROGRESS_HISTORY,
+                "step_bookkeeping_ns": step_ns,
+                "boundary_bookkeeping_ns": bound_ns,
+                "breach_ack_bookkeeping_ns": ack_ns,
+            },
+            "relation_step_throughput_ns_per_attempt": 100_000,
+            "frozen_zero_step_throughput_ns_per_attempt": 100_000,
+            "projected_audits": 516,
+            "projected_restore_events": 514,
+            "projected_added_gate_ns": added_ns,
+            "projected_ungated_two_arm_dose_ns": ungated_ns,
+            "passes_15_percent_gate": True,
+        },
+        "qualification": {
+            "schema": QUAL_BATTERY_SCHEMA,
+            "status": "PASS",
+            "checks": [{"name": name, "passed": True} for name in QUAL_REQUIRED_CHECK_NAMES],
+        },
+        "training": "HELD",
+        "full_dose_started": False,
+    }
+    return {
+        "plan": plan,
+        "authorizations": auths,
+        "owner": owner,
+        "admission": admission,
+        "report": report,
+    }
+
+
+def build_synthetic_integrated_audited_dose_bundle(repo_root: Path) -> dict[str, Any]:
+    """Construct a valid integrated #2782 audited dose bundle matching `attention_audited.rs` for self-tests 62..64."""
+    cfg_dir = repo_root / "docs" / "labs" / "a8-training-configs-2026-10-19" / "evidence"
+    rel_cfg = canonical_driver_config(read_json_checked(cfg_dir / "a8-relation-seed1.json"))
+    fz_cfg = canonical_driver_config(read_json_checked(cfg_dir / "a8-frozen-zero-seed1.json"))
+
+    cost_dec: dict[str, Any] = {
+        "schema": AUDITED_DOSE_COST_DECISION_SCHEMA,
+        "status": "COSTED_DOSE_READY_FOR_SEPARATE_D40_RELEASE",
+        "scope": AUDITED_DOSE_SCOPE_PREFIX,
+        "qualification_report": {
+            "path": "/workspace/qual/report.json",
+            "sha256": "9" * 64,
+        },
+        "calibration_passes_15_percent_gate": True,
+        "projected_audits": 516,
+        "projected_restore_events": 514,
+        "projected_added_gate_ns": 655_068_000,
+        "projected_ungated_two_arm_dose_ns": 6_550_680_000,
+        "max_runtime_seconds": 7200,
+        "max_cost_cents": 1600,
+        "owner_cost_approval": {"path": "/workspace/dose/owner-cost.json", "sha256": "0" * 64},
+        "pm_dispatch": {"path": "/workspace/dose/pm-dispatch.json", "sha256": "0" * 64},
+    }
+    cost_payload_sha = _audited_dose_cost_payload_sha256(cost_dec)
+    cost_atts: dict[str, Any] = {}
+    for key, actor, role, verdict in (
+        ("owner_cost_approval", "Casey", "owner_cost_scope", "APPROVE_EXACT_COSTED_DOSE_PLAN"),
+        ("pm_dispatch", "Kimi", "pm_dispatch", "DISPATCH_EXACT_COSTED_DOSE_PLAN"),
+    ):
+        att = {
+            "schema": AUDITED_DOSE_COST_ATTESTATION_SCHEMA,
+            "actor": actor,
+            "role": role,
+            "verdict": verdict,
+            "scope": AUDITED_DOSE_SCOPE_PREFIX,
+            "qualification_report_sha256": "9" * 64,
+            "reviewed_cost_payload_sha256": cost_payload_sha,
+            "receipt_url": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6266600002",
+        }
+        att_sha = hashlib.sha256(json.dumps(att, separators=(",", ":")).encode("utf-8")).hexdigest()
+        cost_atts[key] = att
+        cost_dec[key]["sha256"] = att_sha
+
+    cost_dec_sha = hashlib.sha256(
+        json.dumps(cost_dec, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+    def make_arm(arm_name: str, is_learn: bool, cfg: dict[str, Any], cfg_sha: str, lin_sha: str) -> dict[str, Any]:
+        scope = f"{AUDITED_DOSE_SCOPE_PREFIX}-{'relation' if is_learn else 'frozen-zero'}-seed1-attempts0..16404"
+        ex = {
+            "base_source": EXPECTED_ATTENTION_BASE_SOURCE,
+            "reviewed_source_commit": "fd409fcdf3bc43d607e768bae6f8cf403aa75901",
+            "source_sha256": EXPECTED_COMPILED_SOURCE_SHA256,
+            "kernel_sha256": "8cc15ccb605364e8ae4239a1852fc71a08fcfb747c515269b8cca7eecdbf190e",
+            "geometry_sha256": "a" * 64,
+            "executable_sha256": "e" * 64,
+            "driver_source_sha256": EXPECTED_INTEGRATED_DRIVER_SOURCE_SHA256,
+            "config_sha256": cfg_sha,
+            "lineage_sha256": lin_sha,
+            "sheet_sha256": EXPECTED_A8_SHEET_SHA256,
+        }
+        plan: dict[str, Any] = {
+            "schema": AUDITED_DOSE_PLAN_SCHEMA,
+            "status": "HELD_OWNER_ACTION_REQUIRED",
+            "scope": scope,
+            "execution": ex,
+            "config": cfg,
+            "sheet": {
+                "path": "/workspace/uor-r4/docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md",
+                "sha256": EXPECTED_A8_SHEET_SHA256,
+            },
+            "anchor": {
+                "path": "/workspace/uor-r4/local/anchor/train-anchor-manifest.json",
+                "sha256": EXPECTED_TRAIN_ANCHOR_MANIFEST_SHA256,
+            },
+            "qualification_report": {
+                "path": "/workspace/qual/report.json",
+                "sha256": "9" * 64,
+            },
+            "cost_decision": {
+                "path": "/workspace/dose/cost-decision.json",
+                "sha256": cost_dec_sha,
+            },
+            "independent_review": {
+                "path": f"/workspace/dose/{arm_name}-review.json",
+                "sha256": "0" * 64,
+            },
+            "run_state_directory": f"/workspace/uor-r4/runs/audited-{arm_name}-seed1",
+            "policy": copy.deepcopy(EXPECTED_REGISTERED_AUDIT_POLICY),
+        }
+        rev_payload_sha = _audited_dose_review_payload_sha256(plan)
+        review = {
+            "reviewer": "AGY",
+            "verdict": AUDITED_DOSE_REVIEW_VERDICT,
+            "scope": scope,
+            "execution": ex,
+            "reviewed_plan_payload_sha256": rev_payload_sha,
+            "receipt_url": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6266600003",
+        }
+        rev_sha = hashlib.sha256(
+            json.dumps(review, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        plan["independent_review"]["sha256"] = rev_sha
+        plan_sha = hashlib.sha256(
+            json.dumps(plan, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        owner_path = f"/workspace/dose/{arm_name}-owner.json"
+        owner = {
+            "schema": AUDITED_DOSE_OWNER_SCHEMA,
+            "owner": "Casey",
+            "decision": AUDITED_DOSE_OWNER_DECISION,
+            "scope": scope,
+            "plan_sha256": plan_sha,
+            "receipt_url": f"owner-terminal:{owner_path}",
+        }
+        owner_sha = hashlib.sha256(
+            json.dumps(owner, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        admission = {
+            "schema": AUDITED_DOSE_ADMISSION_SCHEMA,
+            "plan": plan,
+            "owner_release": {"path": owner_path, "sha256": owner_sha},
+        }
+        adm_sha = hashlib.sha256(
+            json.dumps(admission, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+
+        base_storage = ("1" if is_learn else "2") * 64
+        base_snap = ("3" if is_learn else "4") * 64
+        failed_storage = ("5" if is_learn else "6") * 64
+        failed_snap = ("7" if is_learn else "8") * 64
+
+        records = [
+            {
+                "schema": AUDITED_DOSE_DURABLE_RECORD_SCHEMA,
+                "audit_index": 0,
+                "outcome": {"kind": "baseline_committed", "admitted": 1120},
+            },
+            {
+                "schema": AUDITED_DOSE_DURABLE_RECORD_SCHEMA,
+                "audit_index": 1,
+                "outcome": {"kind": "rejected_whole_interval", "admitted": 1090, "threshold": 1096},
+            },
+            {
+                "schema": AUDITED_DOSE_DURABLE_RECORD_SCHEMA,
+                "audit_index": 2,
+                "outcome": {"kind": "interval_committed", "admitted": 1115, "threshold": 1096},
+            },
+        ]
+        evals = [
+            {
+                "schema": AUDITED_DOSE_EVALUATION_SCHEMA,
+                "scope": scope,
+                "admission_sha256": adm_sha,
+                "audit_index": i,
+                "anchor_admitted": 1120 if i == 0 else (1090 if i == 1 else 1115),
+            }
+            for i in range(3)
+        ]
+        intents = [
+            {
+                "schema": AUDITED_DOSE_RESTORE_INTENT_SCHEMA,
+                "scope": scope,
+                "admission_sha256": adm_sha,
+                "audit_index": 1,
+                "last_passing_model_storage_sha256": base_storage,
+                "last_passing_model_snapshot_sha256": base_snap,
+                "last_passing_model_epoch": 0,
+            }
+        ]
+        observations = [
+            {
+                "schema": AUDITED_DOSE_RESTORE_OBSERVATION_SCHEMA,
+                "scope": scope,
+                "admission_sha256": adm_sha,
+                "audit_index": 1,
+                "restored_model_storage_sha256": base_storage,
+                "restored_model_snapshot_sha256": base_snap,
+                "restored_model_epoch": 0,
+            }
+        ]
+        failed_models = [
+            {
+                "schema": AUDITED_DOSE_FAILED_MODEL_SCHEMA,
+                "scope": scope,
+                "admission_sha256": adm_sha,
+                "audit_index": 1,
+                "failed_model_storage_sha256": failed_storage,
+                "failed_model_snapshot_sha256": failed_snap,
+            }
+        ]
+        progress = {
+            "schema": AUDITED_DOSE_CHECKPOINT_SCHEMA,
+            "scope": scope,
+            "admission_sha256": adm_sha,
+            "anchor_manifest_sha256": EXPECTED_TRAIN_ANCHOR_MANIFEST_SHA256,
+            "anchor_row_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+            "policy": copy.deepcopy(EXPECTED_REGISTERED_AUDIT_POLICY),
+        }
+        res_obs = {
+            "schema": AUDITED_DOSE_RESOURCE_OBSERVATION_SCHEMA,
+            "scope": scope,
+            "admission_sha256": adm_sha,
+            "observed_elapsed_seconds": 1200,
+            "observed_cost_cents": 300,
+        }
+        report = {
+            "schema": AUDITED_DOSE_REPORT_SCHEMA,
+            "status": "COMPLETE_PENDING_REGISTERED_DISCRIMINATOR",
+            "scope": scope,
+            "admission_sha256": adm_sha,
+            "anchor_manifest_sha256": EXPECTED_TRAIN_ANCHOR_MANIFEST_SHA256,
+            "anchor_row_csv_sha256": EXPECTED_TRAIN_PSUCC_TAIL_ANCHOR_CSV_SHA256,
+            "audits_completed": 3,
+            "rejected_intervals": 1,
+            "sensitivity": {"accepted_relation": 4 if is_learn else 0},
+            "training_other_scopes": "HELD",
+        }
+        return {
+            "plan": plan,
+            "review": review,
+            "owner": owner,
+            "admission": admission,
+            "resource_observation": res_obs,
+            "progress": progress,
+            "durable_records": records,
+            "evaluations": evals,
+            "restore_intents": intents,
+            "restore_observations": observations,
+            "failed_models": failed_models,
+            "report": report,
+        }
+
+    return {
+        "cost_decision": cost_dec,
+        "cost_attestations": cost_atts,
+        "arms": {
+            "relation": make_arm(
+                "relation",
+                True,
+                rel_cfg,
+                EXPECTED_A8_RELATION_CONFIG_SHA256,
+                EXPECTED_INTEGRATED_A8_RELATION_LINEAGE_SHA256,
+            ),
+            "frozen_zero": make_arm(
+                "frozen_zero",
+                False,
+                fz_cfg,
+                EXPECTED_A8_FROZEN_ZERO_CONFIG_SHA256,
+                EXPECTED_INTEGRATED_A8_FROZEN_ZERO_LINEAGE_SHA256,
+            ),
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Host-only consumer verifier for A8 address-cells learning dose, pre-run gates, 65+258 checkpoint census/attribution, and admission-preserving active interval rejection."
@@ -7506,6 +9219,18 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional JSON bundle of admission-preserving active interval rejection receipts to grade.",
     )
     parser.add_argument(
+        "--verify-qualification-bundle",
+        type=Path,
+        default=None,
+        help="Optional JSON bundle of finite audited source qualification receipts to grade.",
+    )
+    parser.add_argument(
+        "--verify-audited-dose-bundle",
+        type=Path,
+        default=None,
+        help="Optional JSON bundle of integrated #2782 audited dose receipts to grade.",
+    )
+    parser.add_argument(
         "--allow-fault-exit-zero",
         action="store_true",
         help="Return exit code 0 even when --prerun-bundle fails or --dose-bundle grades INSTRUMENT_FAULT.",
@@ -7513,7 +9238,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Run the 56-case positive and negative self-test suite.",
+        help="Run the 64-case positive and negative self-test suite.",
     )
     args = parser.parse_args(argv)
 
@@ -7583,6 +9308,23 @@ def main(argv: list[str] | None = None) -> int:
         out["admission_preserving_verification"] = ap_res
         if (
             ap_res.get("verdict") == "INSTRUMENT_UNREACHABLE_D31"
+            and not args.allow_fault_exit_zero
+        ):
+            exit_code = 1
+
+    if args.verify_qualification_bundle is not None:
+        q_doc = read_json_checked(args.verify_qualification_bundle, "qualification bundle")
+        q_res = verify_audited_qualification_artifacts(q_doc)
+        out["qualification_verification"] = q_res
+        if q_res.get("verdict") == "INSTRUMENT_UNREACHABLE_D31" and not args.allow_fault_exit_zero:
+            exit_code = 1
+
+    if args.verify_audited_dose_bundle is not None:
+        ad_doc = read_json_checked(args.verify_audited_dose_bundle, "audited dose bundle")
+        ad_res = verify_integrated_audited_dose_artifacts(ad_doc)
+        out["audited_dose_verification"] = ad_res
+        if (
+            ad_res.get("verdict") == "INSTRUMENT_UNREACHABLE_D31"
             and not args.allow_fault_exit_zero
         ):
             exit_code = 1

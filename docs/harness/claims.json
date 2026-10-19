@@ -1,4 +1,11 @@
 {
+  "antigravity/a8-audited-source-consumer-binding-20261019": {
+    "branch": "antigravity/a8-audited-source-consumer-binding-20261019",
+    "claimed_at": "2026-10-19T07:52:15-04:00",
+    "head": "fd409fcdf",
+    "lab": "antigravity",
+    "note": "Bind integrated admission-preserving controller & finite qualification source/schemas (PR #2782, fd409fcdf) in verify_a8_address_cells_dose.py (64/64 PASS)"
+  },
   "claude/a8-dose-outcome-20261019": {
     "branch": "claude/a8-dose-outcome-20261019",
     "claimed_at": "2026-10-19T01:37:23-04:00",
