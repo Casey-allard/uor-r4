@@ -1,7 +1,9 @@
-# Address-Structured Injective Cells (`A8` / `S8` / `P8` / `P16` / `A16`) Table & Pre-Flight Consumer Verifier (19 October 2026)
+# Address-Structured Injective Cells (`A8` / `S8` / `P8` / `P16` / `A16`) Pre-Flight & `A8` Learning-Dose Consumer Verifiers (19 October 2026)
 
 - **Line:** `m1-attention-address-structured-cells-consumer-verifier` — **Count:** 0/3 (verification tooling; does not count against any 3-negative mechanism line per D21) — **Headline:** `1.20` (`#2029` / `#2028`, unchanged)
-- **Deliverable:** Host-only deterministic consumer verifier [`verify_address_cells_preflight.py`](verify_address_cells_preflight.py) (`587cd552464a51c5628f38346a268719ac1611bd9ab44130406e5efb9ef67080`, `123,134` B; hardened from `#2750` `57ae1c9349b178267936dfa89e55c4aba7cb8c8aa26cf563265e885c2d795c32`, `85,835` B) for the Address-Structured Injective Cells registration sheet [`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](../../harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md) (`b94d5ae02ca433de67d81d4315a03676f931bac914625133d8973afec8b41275`, `#2738` / `#2748`), offline codebook constructor [`crates/uor-r4-discrete/src/address_cells.rs`](../../../crates/uor-r4-discrete/src/address_cells.rs) (`22dec8e967f7d2bfd410f83067ee69646993bffe0aa3be4996375896e33fa75e`, `#2742`), exporter [`crates/uor-r4-discrete/src/bin/address-cells-codebook.rs`](../../../crates/uor-r4-discrete/src/bin/address-cells-codebook.rs) (`691349582b563dde327c0613cb72a282ce84fd96ed0dc226a409d0a25c19744c`, `#2742`), staged five-arm pre-flight configs [`docs/labs/address-cells-preflight-configs-2026-10-19/`](../address-cells-preflight-configs-2026-10-19/README.md) (`#2746`), and executed five-arm pre-flight pod archive (`vast-56660582`) and committed receipt [`docs/labs/address-cells-preflight-2026-10-19/`](../address-cells-preflight-2026-10-19/README.md) (`#2751` / `#2752`).
+- **Deliverables:**
+  1. [`verify_address_cells_preflight.py`](verify_address_cells_preflight.py) (`587cd552464a51c5628f38346a268719ac1611bd9ab44130406e5efb9ef67080`, `123,134` B; `32/32` self-tests `PASS`, `#2750` / `#2754`) — host-only consumer verifier for the Address-Structured Injective Cells pre-flight sheet [`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](../../harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md) (`b94d5ae02ca433de67d81d4315a03676f931bac914625133d8973afec8b41275`, `#2738` / `#2748`), offline codebook constructor [`crates/uor-r4-discrete/src/address_cells.rs`](../../../crates/uor-r4-discrete/src/address_cells.rs) (`22dec8e967f7d2bfd410f83067ee69646993bffe0aa3be4996375896e33fa75e`, `#2742`), staged five-arm pre-flight configs [`docs/labs/address-cells-preflight-configs-2026-10-19/`](../address-cells-preflight-configs-2026-10-19/README.md) (`#2746`), and executed five-arm pre-flight pod archive (`vast-56660582`) and committed receipt [`docs/labs/address-cells-preflight-2026-10-19/`](../address-cells-preflight-2026-10-19/README.md) (`#2751` / `#2752`).
+  2. [`verify_a8_address_cells_dose.py`](verify_a8_address_cells_dose.py) (`38e483852203c5b4a6bcc8f31914a01be52c706ab37b03ff786be8e750553b4f`, `147,741` B; `32/32` self-tests `PASS`) — host-only consumer verifier for the FIT-approved `A8` learning pre-registration sheet [`docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md`](../../harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md) (`3e622bebd7c468c6cd3d15a38486768c7902807998f71cae039a4341ab55da2b`, `12,697` B, `#2755`), `registered_sheet` source gate in [`crates/uor-r4-discrete/src/attention_learning.rs`](../../../crates/uor-r4-discrete/src/attention_learning.rs) (`21e8b5282b3ef2956d359c9518e9f0bf68c0d2d75e4febcc59514c1cacd8709f`, `driver_source_sha256` `f673edb5d3bfea8bae44594adf122fbe937626c60c5be838d59a3ffc42f55ccf`, `#2755`), staged `A8` training configs [`docs/labs/a8-training-configs-2026-10-19/`](../a8-training-configs-2026-10-19/README.md) (`#2756`), staged `A8` dose runbook [`docs/labs/a8-dose-runbook-2026-10-19/`](../a8-dose-runbook-2026-10-19/README.md) (`#2757` / `#2759` / `#2760`), external executor packet (`/Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019`, `#2758` / `#2761`), pre-run gate bundles, Q1 (`4,096` batches) and full-dose (`16,404` batches) trajectories, D34 paired-DEV reference scorer (`uor-r4.attention-paired-dev-reference-score/1`), and Precedence `0..6` decision table.
 - **Scope & Holds:** Host-only (`cuda_context_created: false`, `model_constructed: false`, `training: "HELD"`, `$0.00` GPU/rental spend). Does not release any D4 training hold or dispatch a pod.
 
 ---
@@ -73,16 +75,53 @@ Both the Rust binary (`cargo run --locked -p uor-r4-discrete --bin address-cells
 
 ---
 
-## 5. Verification Commands
+## 5. `A8` Learning-Dose & Pre-Run Gate Consumer Verifier ([`verify_a8_address_cells_dose.py`](verify_a8_address_cells_dose.py), `32/32` Self-Tests `PASS`)
+
+[`verify_a8_address_cells_dose.py`](verify_a8_address_cells_dose.py) (`38e483852203c5b4a6bcc8f31914a01be52c706ab37b03ff786be8e750553b4f`, `147,741` B) verifies the staged `A8` learning contract on `origin/main` and grades both pre-run gate bundles (`--prerun-bundle`) and Q1/full-dose + D34 paired-DEV reference scorer bundles (`--dose-bundle`):
+
+### 5.1 Staged Contract, Sheet, Configs, `neg-b` Artifact & Executor Packet (`verify_staged_contract`)
+
+| Artifact / Pin | Path / Identifier | SHA-256 | Bytes | Verified Invariants |
+| :--- | :--- | :--- | ---: | :--- |
+| **FIT Sheet** (`#2755`) | [`docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md`](../../harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md) | `3e622bebd7c468c6cd3d15a38486768c7902807998f71cae039a4341ab55da2b` | `12,697` | `TEST FITNESS: FIT`, canonical title prefix, float-free constructor check (`address_cells.rs` + `address-cells-codebook.rs` = `0` float matches) |
+| **Driver Source** (`#2755`) | 11 files in `crates/uor-r4-discrete/src/` (`attention_learning.rs` `21e8b5282b3ef2956d359c9518e9f0bf68c0d2d75e4febcc59514c1cacd8709f`) | `f673edb5d3bfea8bae44594adf122fbe937626c60c5be838d59a3ffc42f55ccf` | — | `registered_sheet(config)` binds `3e622beb…` iff `PinnedTableV1` has `file_sha256 == 6600bdb1…` and refuses unregistered tables (e.g. `S8` `a185bdca…`) |
+| **Treatment Config** (`#2756`) | [`docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json`](../a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json) | `469a2ff0fe17a6a80f5875a077b3e6a9436553efdf1c6e7884541220553e9d5e` | `1,924` | Byte-identical to pre-flight `a8.json`; `config_sha256 = f223d78f45fe26dee4080ae7ca9a5b9ff12d9ef0df847375671d52db733fbecd`, `lineage_sha256 = 265c91d07cb59031a766efff92535772957c92556acca2a2bce2082a8a6f44de`, scope `m1-attention-learning-injective-6600bdb1306d-relation-k8-seed1-batches0..16404` |
+| **Control Config** (`#2756`) | [`docs/labs/a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json`](../a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json) | `cf7ebcc85d2e463ae8f6691b63d90a0e005701cb38b8249a8d0d5460d8508479` | `1,930` | Differs from treatment only in `relation_learning_policy = frozen_zero_v1`; `config_sha256 = c3fbffe08d13008b8b7ab400a4ef946f2c49632906d88e431d5e80314b9f5536`, `lineage_sha256 = 3f3f4816816b2c529882f6b3edbb0a68c7f16d51e8c228ba04e346f9ed439cf5`, scope `m1-attention-learning-injective-6600bdb1306d-relation-frozen-zero-k8-seed1-batches0..16404` |
+| **`G-Init` Negative (b)** (`#2757`) | [`docs/labs/a8-dose-runbook-2026-10-19/evidence/neg-b-a8-nonroot-table.json`](../a8-dose-runbook-2026-10-19/evidence/neg-b-a8-nonroot-table.json) | `e35bb48d800cd41e5e6b0b48d4b41b8b61fc147f4fde98c54e8dff919d15f90e` | `278,778` | `table_sha256 = f9e1ea54345d6e8528801484062a84c4db4747888529f05a278f0776c2cd2db5`, `4,096` distinct vectors, `words[:8] = [0,2,2,0,0,0,0,0]` (`not in ROOTS`), `words[8:]` SHA-256 `bbfa92244b530398f30d6abb4b9916191f8397e9eb8ec957450e6a35feaba769` (restoring `[0,0,0,0,0,-2,2,0]` reproduces `A8` `table_sha256 = 4122cbab…`) |
+| **Dose Runbook** (`#2757`/`#2759`/`#2760`) | [`docs/labs/a8-dose-runbook-2026-10-19/README.md`](../a8-dose-runbook-2026-10-19/README.md) | `9fcf48cf3c110b7f3c1523edad24dcb8a6ea4bc311bf0ed7ab4c63e4135d304a` | `17,670` | `evidence/SHA256SUMS` (`4293db2ea743201de13edf8ebf0b6eb0dfec78e11dbb3abd98955293ee1e95d5`, `94` B); binds `both_probes_any_active_candidate_cost_differs_v1`, `qualify-relation` `INIT LOCK`, and D34 `2717d34b…` |
+| **Executor Packet** (`#2758`/`#2761`) | `/Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019/` | `bound-inputs/SHA256SUMS` (`7/7` PASS) | — | Binds `sheet.md` (`3e622beb…`), `a8-relation-seed1.json` (`469a2ff0…`), `a8-frozen-zero-seed1.json` (`cf7ebcc8…`), `d34-successor-table-record.json` (`2717d34bcfcdd1486991925ecab066266a6b56ba34b89727c37f78c821fe3bec`, `5,519,089` B), `neg-b-a8-nonroot-table.json` (`e35bb48d…`), `unpinned-relation-seed1.json` (`52b32dc8…`), and `unpinned-frozen-zero-seed1.json` (`6a035717…`) |
+
+### 5.2 Pre-Run Gate, Inherited-Control & D40 Release Consumer Verification (`verify_prerun_bundle`)
+
+1. **Pod Table Rebuild & `attention-build-identity`:** Verifies pod-rebuilt `A8` (`6600bdb1…` / `4122cbab…` / `counts_sha256 = 755a5a81…`) and both arms' `attention-build-identity` (`cuda_context_created = false`, `training = "HELD"`, no `scope`, matching `config_sha256` and `lineage_sha256`).
+2. **Hard `G-Init` + Unpinned `SeededDeviceV1` Comparison + Negatives (a)/(b) + `G-Occ`:** Verifies zero-update checkpoint-0 `cursor`, 131,072-word `model.table` digest `4122cbab…`, active-leaf 45-gate layout (`gates[0,5,10,15] == +1`, all other combine/relation trits `0`), cross-arm checkpoint-0 bit-identity (`relation == frozen_zero`), **hard unpinned comparison** (`routes`, `gates`, `seed`, `epoch` equal to `parent-rows-{relation,frozen-zero}-seed1` while unpinned `table` differs from `A8`), negative (a) host refusal, negative (b) GPU status-6 refusal on `neg-b-a8-nonroot-table.json` (`e35bb48d…` / `f9e1ea54…`), and `G-Occ` (`occupied_cells == 256 > 16`, zero tie mass, `4,096` distinct vectors, `30,720` collision pairs).
+3. **Reproduction Gate (`D31`) & `Bar (i)` / `net_g_cap`:** Requires **both** arms at checkpoint 0 to reproduce `B3_init(P_succ) == 1,351 / 3,847`, `B3_init(full) == 4,244 / 14,287` (`complement == 2,893 / 10,440`), and `top1_cp0(full) == 133`; computes `Bar (i) = top1_control(P_succ, cp0) + 24` and requires `net_g_cap (1,351) > max(500, Bar (i))`.
+4. **Inherited Controls (`#2759` / `#2760`):**
+   - **Gate 22 & Gate 0 sensitivity (`both_probes_any_active_candidate_cost_differs_v1`):** Requires `any_candidate_cost_differs_from_identity == true`, `epoch == 0`, `applied == false`, 16 `candidate_losses`, and verbatim `before`, `after`, `candidate` on both arms (while reporting the grandparent `before == after and candidate == 0` reading).
+   - **Canonical `qualify-relation` & `INIT LOCK`:** Requires `relation-controls.json` `status == "PASS"` (`9/9` controls, `applied_updates == 0`), `relation_copy_successor_fixture` (C2 ACTIVE), and `active_leaf_initialization_and_matched_off_path` (`init_locks[]` seeds 1 and 2 with `plus_one_combine_indices == [0,5,10,15]`, `treatment_control_snapshot_bit_identical == true`, `reload_bit_identical == true`, `zero_relation_ablation_matches_frozen_zero == true`).
+   - **Reference battery (`attention-cell-reference-scorer preflight-dev`):** Accepts explicit `NOT_RUN_DEFERRED_TO_DOSE` (with supplied `d34_sha256 == 2717d34b…` bound and only `attention-capture-dev` deferred) or full `VALIDATED_PREFLIGHT_DEV_CAPTURE_AND_SEALED_D34_SCORE` (`ordered_row_binding_sha256 == 6d92da29…`), refusing any metadata-only claim of full reference `PASS`.
+5. **Plans, Reviews & D40 Personal Release:** Verifies `uor-r4.attention-learning-owner-plan/2` (`sheet_sha256 == 3e622beb…`, fresh V2 transfer pins `0b7e754c…` / `a1cda529…` / `df5d074a…`, distinct `run_state_directory`), `uor-r4.attention-learning-admission-review/1` (`review_payload_sha256`), `attention-check-plan`, and optional `uor-r4.attention-learning-admission/2` + `uor-r4.attention-owner-release/1` (`owner == "Casey"`, `interactive_terminal == true`, exact D40 confirmation phrase).
+
+### 5.3 Dose Trajectory, Q1 Gate, D34 Paired-DEV Scorer & Precedence `0..6` Decision Table (`verify_dose_bundle`)
+
+1. **45-Coordinate Schedule & Control-Lock Ledger Proof:** Replicates `Counters::validate` (`reads = B // 8`, `combines = (reads // 45) * 20 + min(reads % 45, 20)`, `relations = reads - combines`, `vectors = B - reads`; at `16,404` batches: `14,354` vector, `0` route, `910` combine, `1,130` relation attempts; at Q1 `4,096` batches: `275` relation attempts) and enforces `refused_relation_proposals == relations`, `gate_relation.accepted_updates == 0`, and `model.gates[20:45] == [0]*25` on `FrozenZero`.
+2. **Q1 Gate (`4,096` batches):** Replicates `attention_evidence::decide_counts` (`psucc_below_500`, `psucc_less_than_half_init`, `no_combine_or_relation_sensitivity`) and enforces non-resumable `Q1_DIAGNOSTIC_STOP` (`mechanism_negative = false`, `fresh_transfer_evaluations == 0`).
+3. **Full-Dose Checkpoints, Zero-Relation Ablation & Post-Training `G-Occ`/`G-Adm`:** Verifies `16,404` batches (`1,049,856` TRAIN target exposures), within-checkpoint zero-relation ablation (`uor-r4.attention-relation-off/1`), post-training `occupied_cells > 16`, and `B3_end(P_succ) >= 500`.
+4. **D34 Paired-DEV Scorer & Precedence `0..6` Verdicts:** Verifies `uor-r4.attention-paired-dev-reference-score/1` (`B3_R + B3_C - B3_I + neither == 3,847`, `MDE_rel = 24 / B3_I`, exact integer floors `F_I`, `F_{T,R}`, `F_{T,I}`, `F_A`, `F_C`, `F_ITT`, and `T2` / `U_succ` conservation) and classifies:
+   - **Precedence 0:** `INSTRUMENT_FAULT` (`keep = false`, `mechanism_negative = false`)
+   - **Precedence 1:** `UNDERPOWERED_OR_INVALID` when `B3_I < 200` (`keep = false`, `mechanism_negative = false`)
+   - **Precedence 2:** `H_null` when `T2_I >= Relation + F_{T,I}` and `T2_I >= control + F_{T,I}` on `B3_I` (`mechanism_negative = true`)
+   - **Precedence 3:** `H_control` when `|Relation - ablation| < F_A` on `B3_I` or `control >= Relation + F_C` on `B3_I` (`mechanism_negative = true`)
+   - **Precedence 4:** `H_mixed_INCONCLUSIVE` when neither `H_null`/`H_control` nor all five `H_geom` DEV conditions hold (`mechanism_negative = false`)
+   - **Precedence 5:** `H_geom_DEV_PENDING_PAIRED_FRESH_TRANSFER` (DEV-only) or `H_geom` (`keep = true` when paired fresh transfer passes with `b_fresh - c_fresh >= max(20, ceil(2 * sqrt(b_fresh + c_fresh)))` on `B3_I >= 200` under valid `uor-r4.attention-transfer-decision/2`)
+   - **Precedence 6:** `DEV_ONLY_DIAGNOSTIC_FRESH_FAILED` when DEV `H_geom` holds and PM authorized transfer, but paired fresh transfer fails (`keep = false`, `mechanism_negative = false`). Any fresh transfer run without DEV `H_geom` + valid `TransferDecision` is rejected as `INSTRUMENT_FAULT`.
+
+---
+
+## 6. Verification Commands
 
 ```sh
-# 1. Run 32 positive/negative self-tests and verify staged configs + repository bindings
-python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_address_cells_preflight.py \
-  --self-test \
-  --configs-dir docs/labs/address-cells-preflight-configs-2026-10-19 \
-  --repo-root .
-
-# 2. Full verification: self-tests + configs + TRAIN table reproduction + raw pod archive + committed #2751 receipt
+# 1. Pre-flight consumer verifier: 32/32 self-tests + staged configs + TRAIN reproduction + pod archive + #2751 receipt
 python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_address_cells_preflight.py \
   --self-test \
   --configs-dir docs/labs/address-cells-preflight-configs-2026-10-19 \
@@ -91,4 +130,10 @@ python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_address_cell
   --train-mask /Users/casey.allard/uor-r4-local/codex-attention-preflight-inputs-v1/mw-balp/train/response_mask.u8 \
   --preflight-dir /Users/casey.allard/.local/share/uor-r4/compute/vast-archive/vast-56660582/uor-r4/runs/claude/address-cells-preflight-20261019 \
   --receipt-dir docs/labs/address-cells-preflight-2026-10-19
+
+# 2. A8 learning-dose & pre-run gate consumer verifier: 32/32 self-tests + staged contract + external executor packet
+python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py \
+  --self-test \
+  --repo-root . \
+  --packet-dir /Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019
 ```
