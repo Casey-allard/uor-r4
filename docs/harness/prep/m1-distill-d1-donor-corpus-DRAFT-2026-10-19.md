@@ -1,6 +1,6 @@
 # `distill-d1` — one-time offline donor corpus (gpt-oss-120b)
 
-- **Status:** DRAFT pre-registration, **TEST FITNESS: PENDING**. No compute, no pod, $0 so far.
+- **Status:** registered pre-registration draft, **TEST FITNESS: FIT** (see the end of the sheet; non-author review by Antigravity ag1, #2029 comment 6262125366). No compute, no pod, $0 so far.
 - **Line:** M1 corpus infrastructure (#2029). **Lab:** kimi (pm1). **Reviewer:** fresh-context adversarial reviewer subagent (owner direction 6255848646), plus a non-author seat.
 - **Governing decision:** **D41**, ratified 2026-10-19. One donor `openai/gpt-oss-120b`, one corpus `distill-d1`, one pass. Clause 2 binds the generation receipt; clause 3 forbids donor execution in student preparation, training, evaluation, serving, grading or any panel, and forbids scoring donor output against the student; clause 4 leaves D11, D23, D25, D29, D30 and the D32 discrete path unchanged on the student side; clause 5 makes the corpus an instrument input; clause 6 expires the exception at seal; clause 7 limits cost to the prospective plan below.
 - **Purpose (one line):** generate, bind and consume one hash-pinned 30M-token distilled corpus for the discrete student, without ever running a teacher inside the student path.
@@ -59,7 +59,7 @@ Shares are of student tokens after tokenization, measured on the kept set. A sli
 ### 1.3 Document shape
 
 - **≤200 student tokens**, including role prefixes, split at turn boundaries — never mid-turn and never mid-code-block.
-- The current operating context is **C=192** (`Spec { vocabulary: 4096, blocks: 4, context: 192, kept_cells: 8 }`, `docs/harness/prep/m1-learned-attention-link-2026-10-17.md:74`), and the crate's hard bound is `MAX_CONTEXT = 243` (`crates/uor-r4-discrete/src/metadata.rs:5`). A 200-token document plus BOS fits C=192 and fits C=512 without re-cutting.
+- The current operating context is **C=192** (`Spec { vocabulary: 4096, blocks: 4, context: 192, kept_cells: 8 }`, `docs/harness/prep/m1-learned-attention-link-2026-10-17.md:74`), and the crate's hard bound is `MAX_CONTEXT = 243` (`crates/uor-r4-discrete/src/metadata.rs:5`). A 200-token document plus BOS is admitted at C=192 via sliding windows (`corpus.rs:255-290`) and fits C=512 without re-cutting.
 - The **planned C=512 upgrade requires raising `MAX_CONTEXT`** in source. This sheet does not depend on that change and does not authorize it; the 200-token cap is chosen so the corpus is usable at both widths whichever lands first.
 - Documents shorter than 16 student tokens are dropped (they teach a prefix, not a continuation).
 
@@ -96,10 +96,12 @@ New schema, modelled on the existing `FilePin` convention (`crates/uor-r4-discre
 | **Donor pin** | repo, revision, weights SHA-256 (per file + combined), quantization, total/active params, licence SPDX |
 | **Generation pin** | prompt-set SHA-256, slice map, temperature, top_p, top_k, max_tokens, reasoning effort, per-shard seed, shard plan |
 | **Run pin** | pod id, provider, GPU type and count, lease id, rate $/GPU/h, UTC start and end, engine version, image digest, driver/CUDA version |
-| **Content pin** | per-shard: path, SHA-256, document count, student-token count; then document-count total, token total, and a **Merkle root over shard SHA-256 leaves** |
+| **Content pin** | per-shard: path, SHA-256, document count, student-token count; then document-count total, token total, `merkle_mode` (`hex-colon` or `raw-concat`), and a **Merkle root over shard SHA-256 leaves** |
 | **Readback** | destination store path, per-shard SHA-256 re-read after transfer, recomputed Merkle root, MD5/index record, verification timestamp and operator |
 
-A receipt missing any field is an instrument fault (D31), not a corpus defect. The Merkle root is the seal identity: it is what the student-side manifest cites and what D41 clause 6 expires against.
+A receipt missing any field is an instrument fault (D31), not a corpus defect. The Merkle root is the seal identity: it is what the student-side manifest cites and what D41 clause 6 expires against. **Canonical Merkle rule:** ascending shard order by `shard_id`/relative path; leaf digest `SHA256(shard_bytes)`; internal node `SHA256(left_hex_ascii || ":" || right_hex_ascii)`, or raw 32-byte concatenation `SHA256(left_bytes || right_bytes)` when `merkle_mode` is declared in the receipt; odd trailing node promoted at each level.
+
+**Word-tokenization normalization (G5/G6/G7/G11c):** lowercase ASCII alphanumeric word splitting (`[a-z0-9]+`, matching `knowledge_corpus`) for every n-gram rule, so producer and consumer verifier agree deterministically.
 
 ## 3. Quality gates
 
@@ -146,7 +148,7 @@ Malformed = schema invalid, fails byte round-trip, wrong role order, or contains
 | ID | Gate | PASS iff |
 |---|---|---|
 | **G12** | UORT admission | `PreparedCorpus::load` succeeds; vocabulary exactly 4096; first token is BOS 0; mask binary and exactly payload length; eligible-target count equals the manifest (`crates/uor-r4-discrete/src/corpus.rs:129-215`) |
-| **G13** | Window admission | `batch(0, 192, 64)` returns 64 valid windows with in-document predecessors, and the same call at context 512 succeeds once `MAX_CONTEXT` is raised |
+| **G13** | Window admission | `batch(0, 192, 64)` returns 64 valid windows with in-document predecessors. C=192 is the seal gate; the C=512 call is `NOT_RUN`/diagnostic until the separate `MAX_CONTEXT` raise, and never blocks the seal |
 | **G14** | Seal | receipt, manifest and Merkle root written; store readback re-verified; the D41 exception is recorded **expired** at seal |
 
 ## 4. Pilot design
@@ -195,7 +197,7 @@ If measured tok/s is **< 250**, stop and re-plan size or donor with the owner; d
 |---|---|
 | Format | UORT v1, 64-byte header, `u16` tokens, vocabulary **exactly 4096**, BOS 0 |
 | Mask | `response_mask.u8`, binary, exactly payload length; eligible positions are `mask==1`, non-BOS, with an in-document predecessor |
-| Splits | train ≈ 90%, dev ≈ 5%, held-out (sealed) ≈ 5%, split by document hash with a fixed salt; assignment bound in the manifest |
+| Splits | train ≈ 90%, dev ≈ 5%, held-out (sealed) ≈ 5%, split by document hash with a fixed salt; assignment bound in the manifest. The sealed slice maps to `Split::Fresh` (`"fresh"`) in `CorpusSource` (`crates/uor-r4-discrete/src/corpus.rs:52-57`) |
 | Lineage | new corpus identity `distill-d1`, with `tokens_sha256`, mask SHA, document count, token count, eligible targets, tokenizer pin and Merkle root. It never inherits `mw-balp`'s identity |
 | Tokenizer | `d36d3e87…` for the pilot and the production corpus. A different tokenizer would be a different corpus |
 | Dev slice | ≥ 250,000 eligible targets, so later training sheets have power without touching the sealed slice |
@@ -224,9 +226,9 @@ Tokenization and UORT conversion are CPU work but a **big** CPU job (30M tokens,
 | Production, 30M tokens | 400 tok/s → 20.8 h, $2.50/GPU/h | **$52** |
 | Production + 20% retries/overhead | repairs, re-draws, audits | **$63** |
 | 50M ceiling | 34.7 h | ~$87 |
-| Fallback: 30M on Qwen3-30B-A3B / 1× 5090 | 550 tok/s → 15.2 h at $0.99/h, only if the owner redirects the donor | ~$15 |
-| Student consumption, 3 epochs | 3 × 17.0 h at $0.99/h, current 489.7 tok/s | ~$50 |
-| Student consumption after the occupancy fix | unknown until measured | lower, not projected |
+| *(informational only)* Fallback: 30M on Qwen3-30B-A3B / 1× 5090 | 550 tok/s → 15.2 h at $0.99/h; **not authorized by D41** — any donor change needs a new owner decision/amendment | ~$15 |
+| *(informational only)* Student consumption, 3 epochs | 3 × 17.0 h at $0.99/h, current 489.7 tok/s; **not authorized by this sheet** — student training is a separate FIT'd sheet | ~$50 |
+| *(informational only)* Student consumption after the occupancy fix | unknown until measured | lower, not projected |
 
 Rate basis: the documented 5090 rate is $0.99/GPU/h (`docs/labs/compute.md:225`); the PRO 6000 has been observed at ≈$3.16/h for one card (`docs/labs/context-curve-2026-10-11/README.md:4`) and ≈$2.39/GPU/h on a 2× pod (`docs/labs/vsa-native-test-2026-10-09/README.md:19`). $2.50/GPU/h is a planning midpoint. The ≤ $8/h cap and ≤ 4 running pods are hard (`docs/labs/compute.md:364`).
 
@@ -289,4 +291,4 @@ The measured limiter is on the consuming side: 64 rows per 130.7 ms batch = **48
 
 ---
 
-TEST FITNESS: PENDING. This draft is submitted for fresh-context adversarial review and one non-author seat. Registration requires: every finding applied and posted; the §8 checklist bound; the owner's costed-plan approval; then PM dispatch and Casey's typed D40 release. **No pod is rented and no token is generated by this sheet alone.** The D41 exception is unspent until the release is typed, and it expires at the corpus seal.
+TEST FITNESS: FIT (non-author review by Antigravity ag1, #2029 comment 6262125366: sheet/source cross-check PASS on UORT/PreparedCorpus, PanelExclusion, throughput/occupancy citations; the three implementation clarifications — Split::Fresh mapping, the canonical Merkle rule, and word-tokenization normalization — are applied in this text). Registration requires: every finding applied and posted; the §8 checklist bound; the owner's costed-plan approval; then PM dispatch and Casey's typed D40 release. **No pod is rented and no token is generated by this sheet alone.** The D41 exception is unspent until the release is typed, and it expires at the corpus seal.
