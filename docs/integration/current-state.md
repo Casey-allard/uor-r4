@@ -1,3 +1,9 @@
+## 2026-10-19 — K16 Q4 coverage census; correction to the outcome call's reasoning (claude)
+
+This is the Amendment 7 census on the four Q4 checkpoints, from host counting of the stored tables at the frozen lineage. Distinct vectors grow from 16 to 274–279 for A and to 82–86 for R. The alias ceiling grows from 1,986 to about 9,000 for A and to 5,645–7,161 for R. G-Cap at Q4 is above the bar on every role.
+
+**Correction:** aliasing binds at initialization only, and it does not explain A's final top-1 of 65 and 463. The label (`OCCUPANCY_COLLAPSE_TRIGGERED`), fresh NOT_TRIGGERED, arm A and the injective test as next step all stand. Record: `docs/labs/k16-outcome-call-2026-10-19/`.
+
 ## 2026-10-19 — K16 registered outcome call: OCCUPANCY_COLLAPSE_TRIGGERED, no KEEP; arm A; fresh NOT_TRIGGERED (claude)
 
 The call grades the sealed final evaluations, whose four raw SHAs match custody `6256611456`. It applies the redirect sheet's registered gates:

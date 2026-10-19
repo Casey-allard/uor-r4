@@ -55,10 +55,20 @@
 **Admission-arm selection: A.**
 - R is excluded on G-Occ, because its admission is collapse, not discrimination.
 - K16 gives A no admission advantage, since it ends below G-Adm on both seeds. So the injective sheet's registered K8 / objective-A configuration stands under its §Sequencing re-check.
-- The binding constraint is D39 item 2's alias ceiling. The seeded codebook caps top-1 at **1,986 rows**, barely above Bar (i) at 1,941 (checkpoint-0 census `6254480425`). The injective PrimeZeta codebook (ceiling 14,287) targets exactly that.
+- At **initialization**, D39 item 2's alias ceiling binds: the seeded codebook caps top-1 at **1,986 rows**, barely above Bar (i) at 1,941 (checkpoint-0 census `6254480425`). The injective PrimeZeta codebook (ceiling 14,287) removes that from step 0.
+- **Corrected 01:1xZ (#2029 `6257392642`):** the Q4 census below shows training broke much of the aliasing (A reaches a Q4 ceiling of about 9,000 rows), yet A's top-1 stays at 65 and 463. So aliasing does **not** explain A's final ranking failure. Ranking capacity, read and schedule remain open causes (the parent's RANK_BOTTLENECK route). The injective test stays next as D39 item 6's registered step, not as a claimed sole fix.
 - **Next:** the injective attention test.
 
-## Pending
+## Amendment 7 coverage census at Q4 (#2029 `6257392642`)
 
-- **Amendment 7 census on the four Q4 checkpoints.** This is a reporting obligation, not a gate for this label. It will run at the frozen lineage and be posted as a follow-up.
+This is host grouping and counting of the stored tables only. `evidence/k16_q4_census.rs` was built as an example at the frozen-lineage commit `b70d52089`, and its driver hash `9a1b121b…` equals the lineage's (checked). It checks each checkpoint's raw SHA against the member map, its inline model hash, cursor 16,404, and DEV through the lineage's own pins. Output: `evidence/k16-q4-census.json`, SHA-256 `59ba80a65d56c8a64785fde17903ab9439f4cfc9db747cbaa42027cebc60e0ab`. Cell metrics remain UNAVAILABLE for Route.
+
+| Role | distinct vectors (cp0 → Q4) | alias ceiling raw (cp0 → Q4) | DEV rows on a non-representative | tokens in alias groups |
+|---|---|---|---:|---:|
+| A s1 | 16 → 279 | 1,986 → 9,238 | 5,049 | 3,848 |
+| A s2 | 16 → 274 | 1,986 → 9,061 | 5,226 | 3,851 |
+| R s1 | 16 → 86 | 1,986 → 7,161 | 7,126 | 4,033 |
+| R s2 | 16 → 82 | 1,986 → 5,645 | 8,642 | 4,045 |
+
+G-Cap at Q4 is ALIAS_CEILING_ABOVE_BAR on all four roles (bar 1,941).
 - **D21:** this line does not move the M1 headline.

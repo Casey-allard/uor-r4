@@ -1,0 +1,144 @@
+{
+  "bar_rows": 1941,
+  "driver_source_sha256": "9a1b121b0d8896bdba85baed40d95834f01bdb9b22d48167c374e34de8fa069e",
+  "host_cell_reconstruction": false,
+  "model_execution": false,
+  "roles": [
+    {
+      "alias_group_size_histogram": {
+        "1": 248,
+        "2": 14,
+        "231": 1,
+        "232": 1,
+        "235": 1,
+        "237": 1,
+        "238": 2,
+        "239": 3,
+        "240": 4,
+        "241": 1,
+        "243": 1,
+        "245": 1,
+        "3": 1
+      },
+      "cells": "UNAVAILABLE_NO_GPU_TOKEN_CELL_RECEIPT",
+      "checkpoint_report_raw_sha256": "5c334ace84e5b3f80eeca849b8c0a455ede9d0f559b39d3b488fc97c75947bf6",
+      "cursor": {
+        "accepted_updates": 407,
+        "completed_batches": 16404
+      },
+      "dev_alias_ceiling_rows_raw": 9238,
+      "dev_distinct_targets": 674,
+      "dev_rows": 14287,
+      "dev_targets_alias_representative": 151,
+      "distinct_vectors": 279,
+      "g_cap_raw_verdict": "ALIAS_CEILING_ABOVE_BAR",
+      "model_sha256": "598920ee5201b98541c1c0bb8b23712abf981d424465151835d92860e5782d7d",
+      "role": "k16-A-seed1",
+      "within_cell_tie_mass": {
+        "dev_rows_targeting_non_representative": 5049,
+        "tokens_in_alias_groups": 3848
+      }
+    },
+    {
+      "alias_group_size_histogram": {
+        "1": 63,
+        "2": 5,
+        "245": 1,
+        "247": 1,
+        "250": 3,
+        "251": 3,
+        "252": 4,
+        "253": 3,
+        "255": 1,
+        "3": 2
+      },
+      "cells": "UNAVAILABLE_NO_GPU_TOKEN_CELL_RECEIPT",
+      "checkpoint_report_raw_sha256": "9b4c4a6930c464610883f2e5c960c8ab55ed1db3312ca9477aa9aa12f1a1689e",
+      "cursor": {
+        "accepted_updates": 130,
+        "completed_batches": 16404
+      },
+      "dev_alias_ceiling_rows_raw": 7161,
+      "dev_distinct_targets": 674,
+      "dev_rows": 14287,
+      "dev_targets_alias_representative": 68,
+      "distinct_vectors": 86,
+      "g_cap_raw_verdict": "ALIAS_CEILING_ABOVE_BAR",
+      "model_sha256": "79d55a95f3d8f6d05238c4bb29dc36e9639615cd4638ca0b578dc72162a70471",
+      "role": "k16-R-seed1",
+      "within_cell_tie_mass": {
+        "dev_rows_targeting_non_representative": 7126,
+        "tokens_in_alias_groups": 4033
+      }
+    },
+    {
+      "alias_group_size_histogram": {
+        "1": 245,
+        "2": 12,
+        "232": 2,
+        "234": 1,
+        "235": 1,
+        "237": 2,
+        "238": 1,
+        "239": 1,
+        "240": 1,
+        "241": 2,
+        "242": 3,
+        "245": 1,
+        "247": 1,
+        "3": 1
+      },
+      "cells": "UNAVAILABLE_NO_GPU_TOKEN_CELL_RECEIPT",
+      "checkpoint_report_raw_sha256": "0a8b9556f8083c3e0d005661eae67ddb6dc8b341d41b9c080213001197fc0373",
+      "cursor": {
+        "accepted_updates": 410,
+        "completed_batches": 16404
+      },
+      "dev_alias_ceiling_rows_raw": 9061,
+      "dev_distinct_targets": 674,
+      "dev_rows": 14287,
+      "dev_targets_alias_representative": 146,
+      "distinct_vectors": 274,
+      "g_cap_raw_verdict": "ALIAS_CEILING_ABOVE_BAR",
+      "model_sha256": "fa1c4463c181019c35e3f31b67e826f0346672f4413acd4f674372bb353c1450",
+      "role": "k16-A-seed2",
+      "within_cell_tie_mass": {
+        "dev_rows_targeting_non_representative": 5226,
+        "tokens_in_alias_groups": 3851
+      }
+    },
+    {
+      "alias_group_size_histogram": {
+        "1": 51,
+        "2": 15,
+        "246": 1,
+        "247": 1,
+        "249": 3,
+        "250": 1,
+        "251": 3,
+        "252": 2,
+        "253": 2,
+        "254": 3
+      },
+      "cells": "UNAVAILABLE_NO_GPU_TOKEN_CELL_RECEIPT",
+      "checkpoint_report_raw_sha256": "cc3751f9bef888424ba30635319bbf398fba6cebda0b52d9d357b6e5a5028517",
+      "cursor": {
+        "accepted_updates": 129,
+        "completed_batches": 16404
+      },
+      "dev_alias_ceiling_rows_raw": 5645,
+      "dev_distinct_targets": 674,
+      "dev_rows": 14287,
+      "dev_targets_alias_representative": 62,
+      "distinct_vectors": 82,
+      "g_cap_raw_verdict": "ALIAS_CEILING_ABOVE_BAR",
+      "model_sha256": "7ad31aab1b625d4b317e6a3c82367c7103dbdc13e97eecda2c5b41b21a20ea69",
+      "role": "k16-R-seed2",
+      "within_cell_tie_mass": {
+        "dev_rows_targeting_non_representative": 8642,
+        "tokens_in_alias_groups": 4045
+      }
+    }
+  ],
+  "schema": "uor-r4.k16-q4-coverage-census/1"
+}
