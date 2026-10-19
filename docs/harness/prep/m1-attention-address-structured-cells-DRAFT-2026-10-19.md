@@ -2,7 +2,7 @@
 
 - **Status:** DRAFT, pre-flight only. **TEST FITNESS: FIT** (2026-10-19, second-round fresh-context adversarial review; see Review below).
   - **This sheet runs pre-flight only:** zero training updates on any arm. A training sheet follows only if an arm clears the gates below.
-  - Training stays HELD. Compute needs FIT, then PM dispatch, then the owner's release for this finite zero-update run.
+  - Training stays HELD. PM dispatch alone does not run this pre-flight. The owner gate is in **Registration bindings** below.
 - **Line:** M1 learned attention (#2029). **Lab:** claude.
 - **Owner decision:** Claude chat, 2026-10-19 — "draft an address-structured injective cell table sheet (with the K-scaled table as a bracketing control), pre-flight only first."
 - **Parent and context:**
@@ -15,6 +15,32 @@
   - D32: integer tables.
   - D22: a negative closes a configuration only.
   - D40: no owner phrase is involved in a zero-update pre-flight.
+
+## Registration bindings (2026-10-19)
+
+These answer DeepSeek's four registration items (#2029 6258174049) and bind Kimi's answers (6258190943). None changes a bar, an arm or a gate.
+
+- **Source (item 2).**
+  - (a) is merged: #2742, `2811c6e93e886552d34f26cccf031d67a004a649`. The FIT'd sheet is merged: #2746, `05b90b4e5d1ddbd00b70564c0edf1d0880d7ca9b`.
+  - (b) and (c) need no code. The K = 16 arms run only `init-corpus` and `eval-corpus` (`main.rs:78-100`, `DriverConfig::validate`). They never reach the attention validator's K = 8 pin (`attention_learning.rs:169`), which DeepSeek's 6258208112 also locates. The `attention-*` commands run on the K = 8 arms only.
+  - If `eval-corpus` refuses a K = 16 config at the pod, P16 and A16 are dropped as diagnostics. They decide nothing, and no gate on P8, A8 or S8 depends on them.
+- **Source freeze.**
+  - The battery runs at the `origin/main` commit named in the PM's costed plan. The `attention-build-identity` output at that commit is recorded with the receipt.
+  - #2743 (row-proposal scratch reuse) is **neither required nor excluded**. By source, the battery calls no `propose` or `apply`:
+    - `attention_preflight.rs` has no such call;
+    - `init-corpus` writes checkpoint 0;
+    - `eval-corpus` launches `Device::evaluate`'s own kernel (`device.rs:1493`).
+  - So including or omitting #2743 cannot change an arm, and P8's exact reproduction of 427 / 127 checks the frozen commit either way.
+- **Owner gate (item 3; Kimi 6258190943).**
+  - PM dispatch does not run this pre-flight.
+  - Kimi brings Casey the exact costed plan (his standing instruction 6258074111: a costed decision before any rental).
+  - Casey's explicit approval in chat is the recorded owner authorization for the rental and the pre-flight.
+  - Any owner-identity phrase in the runbook is typed by Casey personally (D40); no lab types one.
+  - The "about $0.40 / under 30 min" figure in **Cost** is this sheet's estimate, not a quote; the PM's plan carries the quote.
+- **D41 and Stage T (item 4).**
+  - This pre-flight is separate from D41 donor work and from the Stage T learning-law draft.
+  - It uses no donor and releases no training hold. Its result does not change D41's sequence.
+- **Design (item 1).** Kimi confirmed placement-only 256 × 16 as drafted. The 32-cell compact form stays parked as the fallback if A8 fails its floor.
 
 ## Why
 
@@ -111,7 +137,7 @@ None. Every arm is a fresh checkpoint 0 (`init-corpus`, `new_model(0)`) from its
 ## Steps
 
 1. Source piece (a) is merged (#2742); (b) and (c) need no code. The A8 / S8 tables are pinned above, rebuilt on the pod and required to match.
-2. FIT this sheet with a fresh-context adversarial reviewer subagent (owner direction 6255848646), posting every finding. Then PM dispatch.
+2. FIT this sheet with a fresh-context adversarial reviewer subagent (owner direction 6255848646), posting every finding (done, #2746). Then follow the owner gate in **Registration bindings**: PM's costed plan, then Casey's explicit chat approval.
 3. On one GPU via `uor-pod`, build, then run the following per arm:
    - `init-corpus` and `eval-corpus`;
    - `attention-dev-b3`, for the K = 8 arms;

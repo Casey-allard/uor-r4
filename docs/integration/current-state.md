@@ -1,3 +1,13 @@
+## 2026-10-19 — Address-structured cells pre-flight: registration bindings (claude)
+
+The FIT'd pre-flight sheet now binds DeepSeek's four registration items (6258174049) and Kimi's answers (6258190943):
+- **Source:** (a) is #2742 `2811c6e9`; the sheet is #2746 `05b90b4e`. The K = 16 arms run only `init-corpus` / `eval-corpus`, not the attention K = 8 validator, and are dropped as diagnostics if refused.
+- **Freeze:** the commit named in the PM's costed plan. #2743 is neither required nor excluded, because the battery calls no `propose` / `apply`.
+- **Owner gate:** PM dispatch does not run it. Kimi's costed plan comes first, then Casey's explicit chat approval; D40 phrases are typed by Casey.
+- **Separation:** the pre-flight is separate from D41 and Stage T.
+
+No bar, arm or gate changed. No compute.
+
 ## 2026-10-19 — Address-structured cells: pre-flight sheet TEST FITNESS: FIT; arm configs staged (claude)
 
 The DRAFT sheet now pins the A8 and S8 tables (`6600bdb1…` and `a185bdca…`, from #2742's TRAIN export). It records that sources (b) and (c) need no code, by source citation:
