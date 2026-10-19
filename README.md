@@ -24,8 +24,7 @@ a shared writer in [`crates/uor-r4-discrete`](crates/uor-r4-discrete/README.md) 
 diagnostic pilot that learned 236 vector updates. The latest paired attention attempt stopped at
 its pre-registered Q1 admission gate in both arms: a configured admission collapse, not an
 accuracy result or a mechanism verdict
-([record](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)). The immediate priority is
-completing the registered interpretation of the four finished K16-A/R trajectories; final DATA and late operator archives are verified.
+([record](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md)). The registered interpretation of the four finished K16-A/R trajectories is now complete: **`OCCUPANCY_COLLAPSE_TRIGGERED`**, no KEEP; admission arm **A**; fresh transfer **NOT_TRIGGERED** (seal kept). Final DATA and late operator archives are verified; normal close and final accounting remain pending.
 
 ## What works today, and what does not
 
@@ -41,8 +40,7 @@ completing the registered interpretation of the four finished K16-A/R trajectori
 The left column is tested substrate; the right column is what would make it a language model.
 Neither column is a claim of measured language quality.
 
-The immediate M1 priority is the existing FIT K16-A/R admission redirect on
-`rows_v1`, seeds1/2: [timing source and qualification sequence](docs/labs/k16-rows-timing-source-2026-10-18/README.md).
+The K16-A/R admission redirect on `rows_v1`, seeds1/2 is complete; the next M1 step is the injective attention test (timing source and qualification sequence: [record](docs/labs/k16-rows-timing-source-2026-10-18/README.md)).
 At protected source `21224b446`, the declared construction, finite controls,
 G-Pre, C-R1..C-R6 and two checkpoint-0 A/R timing cells passed, with 100 timed
 samples plus one excluded warmup per cell. A shared-library fresh-init companion
@@ -132,7 +130,7 @@ Final four-role execution and custody are recorded in the [canonical result](doc
 
 | Milestone | Issue | Status | Headline now → target |
 |---|---|---|---|
-| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | K16 qualification gates/timing passed; DATA/operator custody verified; Claude ACCEPT; PM dispatch ISSUED_GATED_START; four-init census POSTED_PASS; report custody verified; K16-A/seed1 COMPLETED 16,404/407 (exit 0 20:58:35Z; report fa863063, final 6936cf99); R-seed1 COMPLETED 16,404/130 (exit 0 22:02:38Z; report 2c0ccad5, eval bb6885e8); A-seed2 COMPLETED 16,404/410 (exit 0 22:39:16Z; report 3d4d17fe, final eval d7976a0b); R-seed2 COMPLETED 16,404/129 (exit 0 23:16:56Z; report 6ed5d05d, final eval 0dfd6fa5); registered scientific interpretation pending | D39 interim: injective codebook + Q4 target admission ≥ 4,894; historical reply37/232 SUSPENDED under R14. Qualification is not a learned result or M1 closure |
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | K16 qualification gates/timing passed; DATA/operator custody verified; Claude ACCEPT; PM dispatch ISSUED_GATED_START; four-init census POSTED_PASS; report custody verified; K16-A/seed1 COMPLETED 16,404/407 (exit 0 20:58:35Z; report fa863063, final 6936cf99); R-seed1 COMPLETED 16,404/130 (exit 0 22:02:38Z; report 2c0ccad5, eval bb6885e8); A-seed2 COMPLETED 16,404/410 (exit 0 22:39:16Z; report 3d4d17fe, final eval d7976a0b); R-seed2 COMPLETED 16,404/129 (exit 0 23:16:56Z; report 6ed5d05d, final eval 0dfd6fa5); registered outcome call `OCCUPANCY_COLLAPSE_TRIGGERED`, no KEEP, arm A; fresh NOT_TRIGGERED | D39 interim: injective codebook + Q4 target admission ≥ 4,894; historical reply37/232 SUSPENDED under R14. Qualification is not a learned result or M1 closure |
 | M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | held | 437/512 development replies (above 256), but 0/128 on fresh transfer |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | paused | evaluator and session built; waits on an M1 or M2 model |
 | M4 One served model (D11 and a CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | unified D11 model/export unqualified |

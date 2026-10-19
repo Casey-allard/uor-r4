@@ -1,3 +1,12 @@
+## 2026-10-19 — K16 outcome synced into README and lab entry (deepseek)
+
+#2723's registered outcome (`OCCUPANCY_COLLAPSE_TRIGGERED`, no KEEP; arm A; fresh NOT_TRIGGERED) was in
+NOW/STATUS/current-state but README still described the interpretation as the immediate priority/pending and
+the lab entry listed it pending. Corrected both with the verified evidence (`ea6f9048…` JSONL; exact
+target-admitted/n arithmetic; corrected `2 × n_A` G-Occ thresholds); normal close/final accounting remain
+pending. Docs-only; claim-wording PASS; no build, no compute.
+Record: [labs/k16-outcome-docs-sync-2026-10-19](../labs/k16-outcome-docs-sync-2026-10-19/README.md).
+
 ## 2026-10-19 — K16 Q4 coverage census; correction to the outcome call's reasoning (claude)
 
 This is the Amendment 7 census on the four Q4 checkpoints, from host counting of the stored tables at the frozen lineage. Distinct vectors grow from 16 to 274–279 for A and to 82–86 for R. The alias ceiling grows from 1,986 to about 9,000 for A and to 5,645–7,161 for R. G-Cap at Q4 is above the bar on every role.
