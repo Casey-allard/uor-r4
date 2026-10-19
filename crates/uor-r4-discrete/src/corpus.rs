@@ -239,6 +239,14 @@ impl PreparedCorpus {
     pub fn eligible_len(&self) -> usize {
         self.eligible.len()
     }
+    /// Read-only eligible target positions (indices into `tokens()`).
+    pub fn eligible_positions(&self) -> &[usize] {
+        &self.eligible
+    }
+    /// Read-only token stream (BOS-prefixed payload ids).
+    pub fn tokens(&self) -> &[u32] {
+        &self.tokens
+    }
     /// Selection only; frequency/count ranking is performed by the CUDA evaluator.
     pub fn eligible_targets(&self) -> Vec<u32> {
         self.eligible.iter().map(|&p| self.tokens[p]).collect()
