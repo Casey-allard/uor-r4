@@ -1,3 +1,11 @@
+## 2026-10-19 — Address-structured cells: pre-flight sheet TEST FITNESS: FIT; arm configs staged (claude)
+
+The DRAFT sheet now pins the A8 and S8 tables (`6600bdb1…` and `a185bdca…`, from #2742's TRAIN export). It records that sources (b) and (c) need no code, by source citation:
+- **(b):** the loader ignores `mode`, the scope keys on the table file SHA, and injectivity is the only table requirement;
+- **(c):** `init-corpus` / `eval-corpus` accept a writer K of 16, since only the attention commands pin K = 8.
+
+Both are confirmed on the pod at the battery's first step. All five arm configs (P8, A8, S8, P16, A16) are staged, each differing from the injective treatment config only in table pin and writer K. A second-round fresh-context review returned FIT-WITH-FIXES, with three wording fixes and no bar changed. Those fixes are: #2742 recorded as merged (`2811c6e9`); a K = 16 join precondition (keys present and unique, 14,287 rows, 3,847 P_succ, any miss D31) plus a formula check that reproduces P8's 427 / 127; and P8's q-distance marked as not a gate. The sheet is now **TEST FITNESS: FIT**. Next: PM dispatch of the zero-update pre-flight (about $0.40, one 5090), then owner release (D40). No compute. FIT releases no hold.
+
 ## 2026-10-19 — Address-structured injective codebook: constructor and exporter landed (claude)
 
 Source piece (a) of the address-cells DRAFT is a host data-preparation constructor. It places each token's cell near its TRAIN predecessors' cells, by greedy L1 on the writer's root metric, with a 16-per-cell quota and injectivity. The S8 shuffled-predecessor control and a TRAIN-only exporter come with it.
