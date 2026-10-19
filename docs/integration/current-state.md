@@ -1,3 +1,11 @@
+## 2026-10-19 — A8 address-cells learning sheet: FIT, registered in source, configs staged (claude)
+
+The A8 training sheet (`m1-attention-a8-address-cells-learning-2026-10-19.md`, SHA `3e622beb…`) is **TEST FITNESS: FIT**. It is the PrimeZeta injective sheet with only the pinned table changed, to `address_structured_v1` (`6600bdb1…`). It was promoted by the #2751 pre-flight. DeepSeek's post-merge erratum on #2751 is accepted: the unpinned-initializer G-Init comparison was not run there, so "A8 clears every gate" overstated it. The sheet says so and makes that comparison a hard pre-run gate.
+
+The fresh-context review returned FIT-WITH-FIXES with five findings, all applied. The material one: `registered_sheet` used to bind every pinned table to the PrimeZeta sheet. It now maps exactly (seeded → grandparent sheet; PrimeZeta → parent; A8 → this sheet) and **refuses any other pinned table**. Three tests cover this, and a negative gate shows the refusal is what they test.
+
+The Relation and FrozenZero A8 configs are staged. Lib tests pass 142 / 142, and the CUDA typecheck uses a stub nvcc, so it is a host check only. No compute. Training stays HELD. Next: PM dispatch, then Casey's typed D40 release. Record: [labs/a8-training-configs-2026-10-19](../labs/a8-training-configs-2026-10-19/README.md).
+
 ## 2026-10-19  Post-merge erratum: roadmap address-structured item wording and cost (deepseek)
 
 #2753 merged the roadmap integration as item 4 BATTERY PASS with the release-window $0.143. Corrected: the pre-flight clears admission, paired, occupancy and instrument gates, but the FIT sheet full G-Init clause (routes, gates and epoch equal an unpinned initializer) was not run, so that component is **NOT_RUN** and training-sheet drafting is conditional. Cost is a proxy (about $0.171 wall / $0.156 native uptime, not an invoice; transfer unmeasured). See the earlier receipt erratum for the net G-Cap control correction. No admission count, bar, arm or result change.

@@ -23,15 +23,40 @@ pub const ATTENTION_SHEET_SHA256: &str =
 /// The injective-codebook (PinnedTableV1) attention pre-registration sheet.
 pub const INJECTIVE_SHEET_SHA256: &str =
     "e47ce5afb3966bda13cd04bd9b99849b401c028e078de958fa98b5e8b7ed4efb";
+/// The address-structured (A8) injective-codebook attention sheet.
+pub const A8_SHEET_SHA256: &str =
+    "3e622bebd7c468c6cd3d15a38486768c7902807998f71cae039a4341ab55da2b";
+/// Table file SHA-256s each pinned-table sheet registers (its D22 scope).
+const PRIME_ZETA_TABLE_FILE_SHA256: &str =
+    "83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b";
+const A8_TABLE_FILE_SHA256: &str =
+    "6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1";
 /// The registered sheet (SHA-256 and title line) a plan must bind, keyed by
-/// the codebook initialization: the seeded lineage keeps the parent sheet.
+/// the codebook initialization: the seeded lineage keeps the parent sheet, and
+/// each pinned table binds only the sheet whose scope names its file. Any other
+/// pinned table has no registered sheet and is refused.
 const ATTENTION_SHEET_TITLE: &str = "# Pre-registration — M1 learned-attention link";
 const INJECTIVE_SHEET_TITLE: &str = "# Learned attention link from an injective codebook";
-fn registered_sheet(config: &DriverConfig) -> (&'static str, &'static str) {
-    if config.codebook_initialization.is_seeded_device() {
-        (ATTENTION_SHEET_SHA256, ATTENTION_SHEET_TITLE)
-    } else {
-        (INJECTIVE_SHEET_SHA256, INJECTIVE_SHEET_TITLE)
+const A8_SHEET_TITLE: &str =
+    "# Learned attention link from an address-structured injective codebook";
+fn registered_sheet(config: &DriverConfig) -> Result<(&'static str, &'static str)> {
+    match &config.codebook_initialization {
+        training::CodebookInitialization::SeededDeviceV1 => {
+            Ok((ATTENTION_SHEET_SHA256, ATTENTION_SHEET_TITLE))
+        }
+        training::CodebookInitialization::PinnedTableV1 { table }
+            if table.sha256 == PRIME_ZETA_TABLE_FILE_SHA256 =>
+        {
+            Ok((INJECTIVE_SHEET_SHA256, INJECTIVE_SHEET_TITLE))
+        }
+        training::CodebookInitialization::PinnedTableV1 { table }
+            if table.sha256 == A8_TABLE_FILE_SHA256 =>
+        {
+            Ok((A8_SHEET_SHA256, A8_SHEET_TITLE))
+        }
+        training::CodebookInitialization::PinnedTableV1 { .. } => Err(invalid(
+            "attention binds a sheet only for a registered pinned table (PrimeZeta or A8)",
+        )),
     }
 }
 const PLAN_SCHEMA: &str = "uor-r4.attention-learning-owner-plan/2";
@@ -191,6 +216,7 @@ fn validate_plan_header(plan: &AttentionPlan) -> Result<()> {
     ] {
         corpus::validate_sha256(hash)?;
     }
+    let (registered_sha256, _) = registered_sheet(&plan.config)?;
     if plan.schema != PLAN_SCHEMA
         || plan.status != "HELD_OWNER_ACTION_REQUIRED"
         || plan.scope != scope(&plan.config)?
@@ -204,7 +230,7 @@ fn validate_plan_header(plan: &AttentionPlan) -> Result<()> {
         || e.driver_source_sha256 != training::driver_source_sha256()
         || e.config_sha256 != corpus::sha256(&encode(&plan.config)?)
         || e.sheet_sha256 != plan.sheet.sha256
-        || plan.sheet.sha256 != registered_sheet(&plan.config).0
+        || plan.sheet.sha256 != registered_sha256
         || !plan.run_state_directory.is_absolute()
     {
         return Err(invalid(
@@ -269,10 +295,11 @@ fn validate_plan(plan: &AttentionPlan) -> Result<()> {
     validate_plan_header(plan)?;
     let bytes = plan.sheet.read()?;
     let sheet = std::str::from_utf8(&bytes).map_err(|e| invalid(e.to_string()))?;
+    let (_, registered_title) = registered_sheet(&plan.config)?;
     if !sheet
         .lines()
         .any(|line| line.starts_with("TEST FITNESS: FIT"))
-        || !sheet.starts_with(registered_sheet(&plan.config).1)
+        || !sheet.starts_with(registered_title)
     {
         return Err(invalid(
             "attention requires the canonical M1 learned-attention FIT sheet",
@@ -1569,11 +1596,17 @@ mod tests {
         let injective = include_bytes!(
             "../../../docs/harness/prep/m1-attention-injective-init-DRAFT-2026-10-18.md"
         );
+        let a8 = include_bytes!(
+            "../../../docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md"
+        );
         assert_eq!(corpus::sha256(parent), ATTENTION_SHEET_SHA256);
         assert_eq!(corpus::sha256(injective), INJECTIVE_SHEET_SHA256);
+        assert_eq!(corpus::sha256(a8), A8_SHEET_SHA256);
         // validate_plan refuses a sheet whose first line lacks its title prefix.
         assert!(parent.starts_with(ATTENTION_SHEET_TITLE.as_bytes()));
         assert!(injective.starts_with(INJECTIVE_SHEET_TITLE.as_bytes()));
+        assert!(a8.starts_with(A8_SHEET_TITLE.as_bytes()));
+        assert!(!a8.starts_with(INJECTIVE_SHEET_TITLE.as_bytes()));
     }
     fn with_sheet(mut p: AttentionPlan, sha256: &str) -> AttentionPlan {
         p.sheet.sha256 = sha256.into();
@@ -1603,10 +1636,64 @@ mod tests {
     }
     #[test]
     fn pinned_plan_binds_injective_sheet_only() -> Result<()> {
-        let pinned = pinned_plan(&"b".repeat(64))?;
+        let pinned = pinned_plan(PRIME_ZETA_TABLE_FILE_SHA256)?;
         validate_plan_header(&pinned)?;
-        let refused = validate_plan_header(&with_sheet(pinned, ATTENTION_SHEET_SHA256));
+        let refused = validate_plan_header(&with_sheet(pinned.clone(), ATTENTION_SHEET_SHA256));
         assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
+        let refused = validate_plan_header(&with_sheet(pinned, A8_SHEET_SHA256));
+        assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
+        Ok(())
+    }
+    #[test]
+    fn registered_table_file_shas_match_committed_artifacts() -> Result<()> {
+        // The sheets name tables by file SHA-256 through their configs' pins.
+        let prime_zeta = include_bytes!(
+            "../../../docs/labs/injective-attention-runbook-2026-10-19/evidence/prime-zeta-v4096-b4-c192-k8.json"
+        );
+        assert_eq!(corpus::sha256(prime_zeta), PRIME_ZETA_TABLE_FILE_SHA256);
+        let pinned = |bytes: &[u8]| -> Result<String> {
+            let config: DriverConfig =
+                serde_json::from_slice(bytes).map_err(|e| invalid(e.to_string()))?;
+            match config.codebook_initialization {
+                training::CodebookInitialization::PinnedTableV1 { table } => Ok(table.sha256),
+                training::CodebookInitialization::SeededDeviceV1 => {
+                    Err(invalid("committed config is not pinned"))
+                }
+            }
+        };
+        for config in [
+            &include_bytes!("../../../docs/labs/injective-attention-runbook-2026-10-19/evidence/injective-relation-seed1.json")[..],
+            &include_bytes!("../../../docs/labs/injective-attention-runbook-2026-10-19/evidence/injective-frozen-zero-seed1.json")[..],
+        ] {
+            assert_eq!(pinned(config)?, PRIME_ZETA_TABLE_FILE_SHA256);
+        }
+        for config in [
+            &include_bytes!("../../../docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json")[..],
+            &include_bytes!("../../../docs/labs/a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json")[..],
+        ] {
+            assert_eq!(pinned(config)?, A8_TABLE_FILE_SHA256);
+        }
+        Ok(())
+    }
+    #[test]
+    fn a8_plan_binds_a8_sheet_only() -> Result<()> {
+        let a8 = with_sheet(pinned_plan(A8_TABLE_FILE_SHA256)?, A8_SHEET_SHA256);
+        validate_plan_header(&a8)?;
+        for other in [INJECTIVE_SHEET_SHA256, ATTENTION_SHEET_SHA256] {
+            let refused = validate_plan_header(&with_sheet(a8.clone(), other));
+            assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
+        }
+        Ok(())
+    }
+    #[test]
+    fn unregistered_pinned_table_binds_no_sheet() -> Result<()> {
+        // An injective table outside every registered scope (e.g. S8) must not
+        // fall back to the PrimeZeta sheet.
+        let s8 = "a185bdca07077fe7157e947ff1fa80919e6f99165a4dd5a04061a97873c92718";
+        for sheet in [INJECTIVE_SHEET_SHA256, A8_SHEET_SHA256] {
+            let refused = validate_plan_header(&with_sheet(pinned_plan(s8)?, sheet));
+            assert!(refused.is_err_and(|e| e.to_string().contains("registered pinned table")));
+        }
         Ok(())
     }
     #[test]

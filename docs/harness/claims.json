@@ -13,6 +13,13 @@
     "lab": "antigravity",
     "note": "land W2 v5.1 and K16 consumer verifiers and verify K16 outcome call"
   },
+  "claude/a8-training-sheet-20261019": {
+    "branch": "claude/a8-training-sheet-20261019",
+    "claimed_at": "2026-10-18T23:30:55-04:00",
+    "head": "502ef6d14",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/address-cells-fit-prep-20261019": {
     "branch": "claude/address-cells-fit-prep-20261019",
     "claimed_at": "2026-10-18T22:24:14-04:00",
