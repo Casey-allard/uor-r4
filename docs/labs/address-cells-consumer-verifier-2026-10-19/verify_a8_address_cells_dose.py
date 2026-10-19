@@ -67,10 +67,25 @@ Verifies:
    - D34 `uor-r4.attention-paired-dev-reference-score/1` verification (`B3_R`, `B3_C`, `B3_I >= 200`,
      `MDE_rel = 24 / B3_I`, paired 2x2 McNemar floors `F_I`, `F_{T,R}`, `F_{T,I}`, `F_A`, `F_C`, `F_ITT`,
      and same-cell `T2_R` / `T2_I` / `U_succ` conservation)
-   - Strict Precedence 0..6 Decision Table (`INSTRUMENT_FAULT`, `UNDERPOWERED_OR_INVALID`,
-     `H_null`, `H_control`, `H_mixed_INCONCLUSIVE`, `H_geom_DEV_PENDING_PAIRED_FRESH_TRANSFER`,
-     `H_geom`, `DEV_ONLY_DIAGNOSTIC_FRESH_FAILED`) and conditional fresh-transfer gate requiring
-     both DEV `H_geom` and `uor-r4.attention-transfer-decision/2` PM authorization.
+    - Strict Precedence 0..6 Decision Table (`INSTRUMENT_FAULT`, `UNDERPOWERED_OR_INVALID`,
+      `H_null`, `H_control`, `H_mixed_INCONCLUSIVE`, `H_geom_DEV_PENDING_PAIRED_FRESH_TRANSFER`,
+      `H_geom`, `DEV_ONLY_DIAGNOSTIC_FRESH_FAILED`) and conditional fresh-transfer gate requiring
+      both DEV `H_geom` and `uor-r4.attention-transfer-decision/2` PM authorization.
+4. Per-Checkpoint Cell Census, `steps.jsonl` Slot Bijection, Step-175 Bifurcation & Two-Sided /
+   4-Way Cross-Arm `P_succ` Admission Decomposition (`verify_a8_census_and_attribution`):
+   - `runs.manifest.sha256` (`083d2444…`, 434 lines), all `65/65` `Relation` (`0..4096` step 64)
+     and `258/258` `FrozenZero` (`0..16384` step 64 + `16404`) checkpoints, both `steps.jsonl`
+     logs (`c0294d36…` / `645c3fa9…`), `q1.json` (`1362a783…` / `844eda30…`), and `report.json`
+     (`b8f58bd6…` / `86367dac…`)
+   - Kernel cell mapping (`discrete.cu:282-289`): `0` off-orbit `block_0..3` roots, `256/256`
+     occupied cells at every checkpoint (`cp0` `16` tokens/cell matching GPU `token_cells.u16`
+     `f249902d…` `4,096/4,096`), and `0` transient cell excursions across all `65 + 258` checkpoints
+   - `0`-mismatch per-interval (`64`-batch) direct `VectorBlock` slot bijection (`discrete.cu:449`)
+     across all `64 + 257 = 321` intervals (`token = index // 4, block = index % 4`)
+   - Exact step-`175` (`Gate(21)`) bifurcation after identical steps `0..174` (`28` vector writes,
+     `14` on `block in {0, 3}` over `10` tokens / `6` `P_succ` targets / `302` rows; `7` combine writes)
+   - Two-sided (`init_b3` vs `q1_b3`/`final_b3`) and matched 4-way cross-arm Q1 cohort (`unchanged_both`,
+     `moved_both`, `moved_rel_only`, `moved_fz_only`) `P_succ` admission decompositions (`48/48` self-tests).
 
 Host-only; never creates a CUDA context, constructs a model, or alters a hold.
 """
@@ -374,6 +389,361 @@ EXPECTED_VAST_56670997_REL_ADMISSION_SHA256 = (
 EXPECTED_VAST_56670997_FZ_ADMISSION_SHA256 = (
     "b8a2845a41f0eda97d27173a7c41dfc9fb2456b7daaf99d7c8972fae7ffc7505"
 )
+
+# Verified vast-56670997 census, steps.jsonl, q1.json, and report.json digests (#2029)
+EXPECTED_VAST_56670997_RUNS_MANIFEST_SHA256 = (
+    "083d2444a1aecda46985b0ef086856bcae9dcd0cb60e41a133ecf2046b6f1767"
+)
+EXPECTED_VAST_56670997_RUNS_MANIFEST_BYTES = 53520
+EXPECTED_VAST_56670997_RUNS_MANIFEST_LINES = 434
+EXPECTED_VAST_56670997_CP0_TOKEN_CELLS_U16_SHA256 = (
+    "f249902d932715a68ad3173dc933b3a4f75d52da95325aa5909a1fadcbf076cd"
+)
+EXPECTED_VAST_56670997_REL_CP00000_SHA256 = (
+    "b2afa7fe98ac301cc9054e9297675efdca3a2b3a44ec9ffdee9c9b05c98716e9"
+)
+EXPECTED_VAST_56670997_REL_CP00000_BYTES = 6967383
+EXPECTED_VAST_56670997_REL_CP04096_SHA256 = (
+    "2e980f2d688877bb4d8f4c3587bcf15f2499b551ad4b613dd149ac4a77ab7e7e"
+)
+EXPECTED_VAST_56670997_REL_CP04096_BYTES = 6967576
+EXPECTED_VAST_56670997_FZ_CP00000_SHA256 = (
+    "0e5c9fb9bea891833e163971f9a90968ac5bba8f3c1515818cebdd8703ab060d"
+)
+EXPECTED_VAST_56670997_FZ_CP00000_BYTES = 6967471
+EXPECTED_VAST_56670997_FZ_CP04096_SHA256 = (
+    "59251bd70ff6b650779f46fe91f50abd8cf6f8d5def95914ed4cd38c90b72689"
+)
+EXPECTED_VAST_56670997_FZ_CP04096_BYTES = 6967653
+EXPECTED_VAST_56670997_FZ_CP16404_SHA256 = (
+    "14e693a08d9e717702f2181d7e6c6e86e28e815fefb0985223187dc6015bafce"
+)
+EXPECTED_VAST_56670997_FZ_CP16404_BYTES = 6967666
+EXPECTED_VAST_56670997_REL_STEPS_JSONL_SHA256 = (
+    "c0294d3639f5c2265874c4f63f91baeadd07bb26793edadd3eb8b3d419015a2c"
+)
+EXPECTED_VAST_56670997_REL_STEPS_JSONL_BYTES = 4008402
+EXPECTED_VAST_56670997_REL_STEPS_JSONL_LINES = 4096
+EXPECTED_VAST_56670997_FZ_STEPS_JSONL_SHA256 = (
+    "645c3fa9592147969ff674cb4f2d74f1b421adedc8b8022739700275d937acc2"
+)
+EXPECTED_VAST_56670997_FZ_STEPS_JSONL_BYTES = 16992852
+EXPECTED_VAST_56670997_FZ_STEPS_JSONL_LINES = 16404
+EXPECTED_VAST_56670997_REL_Q1_JSON_SHA256 = (
+    "1362a783b568e6d8a00775e834aff9e4d1b03bf649a76b7e6c0148925a88b404"
+)
+EXPECTED_VAST_56670997_REL_Q1_JSON_BYTES = 3262919
+EXPECTED_VAST_56670997_FZ_Q1_JSON_SHA256 = (
+    "844eda30a0e8a1f2b993999521c5bbc5e39c566ea4fcc7b864a3803aa87df4ac"
+)
+EXPECTED_VAST_56670997_FZ_Q1_JSON_BYTES = 3261947
+EXPECTED_VAST_56670997_FZ_REPORT_JSON_SHA256 = (
+    "b8f58bd6d72321ad82e4441e184d602f96a386d45fb411d9ef62a39e79289a89"
+)
+EXPECTED_VAST_56670997_FZ_REPORT_JSON_BYTES = 8176537
+EXPECTED_VAST_56670997_REL_REPORT_JSON_SHA256 = (
+    "86367dac9c283f4469293f4dcc4d894a29dbf5247738b5b34a280e4b920617c9"
+)
+EXPECTED_VAST_56670997_REL_REPORT_JSON_BYTES = 746
+
+DEFAULT_VAST_56670997_ARCHIVE_DIR = Path(
+    "/Users/casey.allard/uor-r4-local/a8-dose-archive-56670997/vast-archive/vast-56670997/uor-r4"
+)
+DEFAULT_VAST_56670997_RELATION_CHECKPOINTS_DIR = Path(
+    "/Users/casey.allard/uor-r4-local/a8-census-relation/vast-archive/vast-56670997/uor-r4/runs/claude/a8-dose-relation-seed1"
+)
+DEFAULT_VAST_56670997_FROZEN_CHECKPOINTS_DIR = Path(
+    "/Users/casey.allard/uor-r4-local/a8-census-frozen/vast-archive/vast-56670997/uor-r4/runs/claude/a8-dose-frozen-zero-seed1"
+)
+DEFAULT_VAST_56670997_STEPS_DIR = Path(
+    "/Users/casey.allard/uor-r4-local/a8-steps-sample/vast-archive/vast-56670997/uor-r4"
+)
+
+ROOT_TUPLE_TO_ID: dict[tuple[int, ...], int] = {
+    tuple(r): idx for idx, r in enumerate(ROOTS)
+}
+ROOT_BYTES_TO_ID: dict[bytes, int] = {
+    struct.pack("<8i", *r): idx for idx, r in enumerate(ROOTS)
+}
+
+EXPECTED_VAST_56670997_CENSUS_EXPECTATIONS: dict[str, Any] = {
+    "manifest_sha256": EXPECTED_VAST_56670997_RUNS_MANIFEST_SHA256,
+    "manifest_bytes": EXPECTED_VAST_56670997_RUNS_MANIFEST_BYTES,
+    "manifest_lines": EXPECTED_VAST_56670997_RUNS_MANIFEST_LINES,
+    "relation_checkpoint_count": 65,
+    "frozen_zero_checkpoint_count": 258,
+    "relation_intervals": 64,
+    "frozen_zero_intervals": 257,
+    "total_intervals": 321,
+    "cp0_token_cells_u16_sha256": EXPECTED_VAST_56670997_CP0_TOKEN_CELLS_U16_SHA256,
+    "relation_cp0_sha256": EXPECTED_VAST_56670997_REL_CP00000_SHA256,
+    "relation_q1_cp_sha256": EXPECTED_VAST_56670997_REL_CP04096_SHA256,
+    "frozen_zero_cp0_sha256": EXPECTED_VAST_56670997_FZ_CP00000_SHA256,
+    "frozen_zero_q1_cp_sha256": EXPECTED_VAST_56670997_FZ_CP04096_SHA256,
+    "frozen_zero_final_cp_sha256": EXPECTED_VAST_56670997_FZ_CP16404_SHA256,
+    "relation_steps_sha256": EXPECTED_VAST_56670997_REL_STEPS_JSONL_SHA256,
+    "relation_steps_bytes": EXPECTED_VAST_56670997_REL_STEPS_JSONL_BYTES,
+    "relation_steps_lines": EXPECTED_VAST_56670997_REL_STEPS_JSONL_LINES,
+    "frozen_zero_steps_sha256": EXPECTED_VAST_56670997_FZ_STEPS_JSONL_SHA256,
+    "frozen_zero_steps_bytes": EXPECTED_VAST_56670997_FZ_STEPS_JSONL_BYTES,
+    "frozen_zero_steps_lines": EXPECTED_VAST_56670997_FZ_STEPS_JSONL_LINES,
+    "relation_q1_json_sha256": EXPECTED_VAST_56670997_REL_Q1_JSON_SHA256,
+    "frozen_zero_q1_json_sha256": EXPECTED_VAST_56670997_FZ_Q1_JSON_SHA256,
+    "frozen_zero_report_json_sha256": EXPECTED_VAST_56670997_FZ_REPORT_JSON_SHA256,
+    "relation_report_json_sha256": EXPECTED_VAST_56670997_REL_REPORT_JSON_SHA256,
+    "population_bounds": {
+        "cp0": {"occupied_cells": 256, "min_pop": 16, "max_pop": 16},
+        "relation_q1": {"occupied_cells": 256, "min_pop": 9, "max_pop": 20},
+        "frozen_zero_q1": {"occupied_cells": 256, "min_pop": 8, "max_pop": 20},
+        "frozen_zero_final": {"occupied_cells": 256, "min_pop": 4, "max_pop": 20},
+    },
+    "vector_writes": {
+        "relation_q1": {
+            "total": 192,
+            "by_block": [58, 49, 52, 33],
+            "block_0_or_3_writes": 91,
+            "moved_tokens": 80,
+            "moved_psucc_targets": 63,
+            "moved_psucc_rows": 1461,
+        },
+        "frozen_zero_q1": {
+            "total": 207,
+            "by_block": [64, 49, 55, 39],
+            "block_0_or_3_writes": 103,
+            "moved_tokens": 91,
+            "moved_psucc_targets": 71,
+            "moved_psucc_rows": 1369,
+        },
+        "frozen_zero_final": {
+            "total": 301,
+            "by_block": [82, 75, 80, 64],
+            "block_0_or_3_writes": 146,
+            "moved_tokens": 130,
+            "moved_psucc_targets": 89,
+            "moved_psucc_rows": 1527,
+        },
+        "q1_moved_overlap": {
+            "shared": {"tokens": 65, "psucc_targets": 52, "psucc_rows": 1150},
+            "relation_only": {"tokens": 15, "psucc_targets": 11, "psucc_rows": 311},
+            "frozen_zero_only": {"tokens": 26, "psucc_targets": 19, "psucc_rows": 219},
+        },
+    },
+    "bifurcation": {
+        "identical_prefix_steps": 175,
+        "first_divergence_step": 175,
+        "prefix_accepted_vector_writes": 28,
+        "prefix_accepted_block_0_or_3_writes": 14,
+        "prefix_moved_tokens": 10,
+        "prefix_moved_psucc_targets": 6,
+        "prefix_moved_psucc_rows": 302,
+        "prefix_accepted_gate_combine_writes": 7,
+        "prefix_accepted_gate_relation_writes": 0,
+        "divergence_coordinate": {"kind": "gate", "index": 21},
+        "divergence_candidate": 2,
+        "divergence_loss_before": 55680,
+        "divergence_loss_after": 55232,
+        "relation_applied": True,
+        "frozen_zero_applied": False,
+        "frozen_zero_refused_by_policy": True,
+    },
+    "two_sided_decomposition": {
+        "relation_q1": {
+            "target_cell_unchanged": {
+                "targets": 385,
+                "rows": 2386,
+                "init_admitted": 934,
+                "end_admitted": 412,
+                "kept": 295,
+                "lost": 639,
+                "gained": 117,
+                "never": 1335,
+                "net_change": -522,
+            },
+            "target_cell_moved": {
+                "targets": 63,
+                "rows": 1461,
+                "init_admitted": 417,
+                "end_admitted": 139,
+                "kept": 44,
+                "lost": 373,
+                "gained": 95,
+                "never": 949,
+                "net_change": -278,
+            },
+            "total": {
+                "targets": 448,
+                "rows": 3847,
+                "init_admitted": 1351,
+                "end_admitted": 551,
+                "kept": 339,
+                "lost": 1012,
+                "gained": 212,
+                "never": 2284,
+                "net_change": -800,
+            },
+        },
+        "frozen_zero_q1": {
+            "target_cell_unchanged": {
+                "targets": 377,
+                "rows": 2478,
+                "init_admitted": 912,
+                "end_admitted": 577,
+                "kept": 437,
+                "lost": 475,
+                "gained": 140,
+                "never": 1426,
+                "net_change": -335,
+            },
+            "target_cell_moved": {
+                "targets": 71,
+                "rows": 1369,
+                "init_admitted": 439,
+                "end_admitted": 280,
+                "kept": 102,
+                "lost": 337,
+                "gained": 178,
+                "never": 752,
+                "net_change": -159,
+            },
+            "total": {
+                "targets": 448,
+                "rows": 3847,
+                "init_admitted": 1351,
+                "end_admitted": 857,
+                "kept": 539,
+                "lost": 812,
+                "gained": 318,
+                "never": 2178,
+                "net_change": -494,
+            },
+        },
+        "frozen_zero_final": {
+            "target_cell_unchanged": {
+                "targets": 359,
+                "rows": 2320,
+                "init_admitted": 863,
+                "end_admitted": 540,
+                "kept": 385,
+                "lost": 478,
+                "gained": 155,
+                "never": 1302,
+                "net_change": -323,
+            },
+            "target_cell_moved": {
+                "targets": 89,
+                "rows": 1527,
+                "init_admitted": 488,
+                "end_admitted": 257,
+                "kept": 89,
+                "lost": 399,
+                "gained": 168,
+                "never": 871,
+                "net_change": -231,
+            },
+            "total": {
+                "targets": 448,
+                "rows": 3847,
+                "init_admitted": 1351,
+                "end_admitted": 797,
+                "kept": 474,
+                "lost": 877,
+                "gained": 323,
+                "never": 2173,
+                "net_change": -554,
+            },
+        },
+    },
+    "four_way_q1_cohorts": {
+        "unchanged_both": {
+            "targets": 366,
+            "rows": 2167,
+            "init_admitted": 833,
+            "rel_q1_admitted": 366,
+            "rel_net": -467,
+            "rel_kept": 260,
+            "rel_lost": 573,
+            "rel_gained": 106,
+            "rel_never": 1228,
+            "fz_q1_admitted": 537,
+            "fz_net": -296,
+            "fz_kept": 404,
+            "fz_lost": 429,
+            "fz_gained": 133,
+            "fz_never": 1201,
+            "paired_rel_minus_fz": -171,
+            "both_admitted": 189,
+            "rel_only_admitted": 177,
+            "fz_only_admitted": 348,
+            "neither_admitted": 1453,
+        },
+        "moved_both": {
+            "targets": 52,
+            "rows": 1150,
+            "init_admitted": 338,
+            "rel_q1_admitted": 116,
+            "rel_net": -222,
+            "rel_kept": 34,
+            "rel_lost": 304,
+            "rel_gained": 82,
+            "rel_never": 730,
+            "fz_q1_admitted": 222,
+            "fz_net": -116,
+            "fz_kept": 62,
+            "fz_lost": 276,
+            "fz_gained": 160,
+            "fz_never": 652,
+            "paired_rel_minus_fz": -106,
+            "both_admitted": 42,
+            "rel_only_admitted": 74,
+            "fz_only_admitted": 180,
+            "neither_admitted": 854,
+        },
+        "moved_rel_only": {
+            "targets": 11,
+            "rows": 311,
+            "init_admitted": 79,
+            "rel_q1_admitted": 23,
+            "rel_net": -56,
+            "rel_kept": 10,
+            "rel_lost": 69,
+            "rel_gained": 13,
+            "rel_never": 219,
+            "fz_q1_admitted": 40,
+            "fz_net": -39,
+            "fz_kept": 33,
+            "fz_lost": 46,
+            "fz_gained": 7,
+            "fz_never": 225,
+            "paired_rel_minus_fz": -17,
+            "both_admitted": 7,
+            "rel_only_admitted": 16,
+            "fz_only_admitted": 33,
+            "neither_admitted": 255,
+        },
+        "moved_fz_only": {
+            "targets": 19,
+            "rows": 219,
+            "init_admitted": 101,
+            "rel_q1_admitted": 46,
+            "rel_net": -55,
+            "rel_kept": 35,
+            "rel_lost": 66,
+            "rel_gained": 11,
+            "rel_never": 107,
+            "fz_q1_admitted": 58,
+            "fz_net": -43,
+            "fz_kept": 40,
+            "fz_lost": 61,
+            "fz_gained": 18,
+            "fz_never": 100,
+            "paired_rel_minus_fz": -12,
+            "both_admitted": 16,
+            "rel_only_admitted": 30,
+            "fz_only_admitted": 42,
+            "neither_admitted": 131,
+        },
+    },
+}
 
 CLAIM_SCOPE_H_GEOM = (
     "learned_copy_successor_link@Relation+InterleavedReadEvery8V1+ActiveLeafV1+V4096/B4/C192"
@@ -3510,7 +3880,7 @@ def build_synthetic_dose_bundle(repo_root: Path | None = None) -> dict[str, Any]
 
 
 def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str, Any]:
-    """Run 40 positive and negative self-tests covering all A8 pre-run, Q1, D34, D40, and decision rules."""
+    """Run 48 positive and negative self-tests covering all A8 pre-run, Q1, D34, D40, decision, and census/attribution rules."""
     results: list[dict[str, Any]] = []
 
     def record(name: str, passed: bool, detail: str) -> None:
@@ -4107,6 +4477,160 @@ def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str,
             f"dose={committed_dose_res['verdict']} (external packet dir not mounted)",
         )
 
+    # T41: Positive census, slot bijection, step-175 bifurcation, 0 transient excursions, and two-sided + 4-way P_succ decomposition
+    base_census = build_synthetic_census_bundle(repo_root)
+    res_census = verify_a8_census_and_attribution(base_census)
+    record(
+        "41_census_bijection_bifurcation_and_psucc_decomposition_pass",
+        res_census["status"] == "PASS"
+        and res_census["slot_bijection"]["total_mismatches"] == 0
+        and res_census["occupancy"]["relation_transient_excursions"] == 0
+        and res_census["occupancy"]["frozen_zero_transient_excursions"] == 0
+        and res_census["bifurcation"]["first_divergence_step"] == 175
+        and res_census["two_sided_decomposition"]["relation_q1"]["total"]["net_change"] == -800
+        and res_census["four_way_q1_cohorts"]["unchanged_both"]["paired_rel_minus_fz"] == -171,
+        f"intervals={res_census['slot_bijection']['total_intervals']}, rel_net={res_census['two_sided_decomposition']['relation_q1']['total']['net_change']}",
+    )
+
+    # T42: Negative — Checkpoint or steps.jsonl SHA-256 mismatch against runs.manifest.sha256 rejected
+    c_bad_sha = copy.deepcopy(base_census)
+    c_bad_sha["relation_checkpoints"][-1]["sha256"] = "0" * 64
+    try:
+        verify_a8_census_and_attribution(c_bad_sha)
+        record("42_census_checkpoint_manifest_sha256_mismatch_rejected", False, "failed to reject SHA mismatch")
+    except VerificationError as exc:
+        record(
+            "42_census_checkpoint_manifest_sha256_mismatch_rejected",
+            "SHA-256" in str(exc),
+            str(exc),
+        )
+
+    # T43: Negative — Off-orbit block_0 / block_3 root in checkpoint table rejected
+    c_off_orbit = copy.deepcopy(base_census)
+    c_off_orbit["relation_checkpoints"][1]["table"][:8] = [0, 2, 2, 0, 0, 0, 0, 0]
+    try:
+        verify_a8_census_and_attribution(c_off_orbit)
+        record("43_census_off_orbit_root_rejected", False, "failed to reject off-orbit root")
+    except VerificationError as exc:
+        record("43_census_off_orbit_root_rejected", "off-orbit root" in str(exc), str(exc))
+
+    # T44: Negative — Cell occupancy < 256 at any checkpoint rejected
+    c_occ_collapse = copy.deepcopy(base_census)
+    # Collapse all 4,096 tokens at checkpoint 1 into cell 0 (ROOTS[0] on block_0 and block_3)
+    collapsed_tbl = list(c_occ_collapse["relation_checkpoints"][1]["table"])
+    for t in range(4096):
+        collapsed_tbl[t * 32 : t * 32 + 8] = list(ROOTS[0])
+        collapsed_tbl[t * 32 + 24 : t * 32 + 32] = list(ROOTS[0])
+    c_occ_collapse["relation_checkpoints"][1]["table"] = collapsed_tbl
+    try:
+        verify_a8_census_and_attribution(c_occ_collapse)
+        record("44_census_cell_occupancy_below_256_rejected", False, "failed to reject occupancy < 256")
+    except VerificationError as exc:
+        record(
+            "44_census_cell_occupancy_below_256_rejected",
+            "cell occupancy collapse" in str(exc),
+            str(exc),
+        )
+
+    # T45: Negative — steps.jsonl vector_block slot mismatch against checkpoint table diff rejected
+    c_slot_mismatch = copy.deepcopy(base_census)
+    # Mutate an extra unlogged vector_block slot (slot 3999, block 3 of token 999) in checkpoint 1
+    bad_slot_tbl = list(c_slot_mismatch["relation_checkpoints"][1]["table"])
+    cur_root_id = ROOT_TUPLE_TO_ID[tuple(bad_slot_tbl[3999 * 8 : 4000 * 8])]
+    bad_slot_tbl[3999 * 8 : 4000 * 8] = list(ROOTS[(cur_root_id + 1) % 16])
+    c_slot_mismatch["relation_checkpoints"][1]["table"] = bad_slot_tbl
+    try:
+        verify_a8_census_and_attribution(c_slot_mismatch)
+        record("45_census_vector_block_slot_bijection_mismatch_rejected", False, "failed to reject slot bijection mismatch")
+    except VerificationError as exc:
+        record(
+            "45_census_vector_block_slot_bijection_mismatch_rejected",
+            "vector_block slot bijection mismatch" in str(exc),
+            str(exc),
+        )
+
+    # T46: Negative — Transient cell excursion (token leaves cp0 cell at cp1 and returns to cp0 cell at Q1) rejected
+    c_excursion = copy.deepcopy(base_census)
+    # Step 4 in prefix_ops moved block 0 of prefix_b03_tokens[4] (and never touched its block 3).
+    # Revert that slot back to its cp0 root in interval 175->400 with a matching applied step at batch 399
+    # so slot bijection and interval cell-diff checks pass, isolating the transient cell excursion detector.
+    exc_slot = c_excursion["relation_steps"][4]["coordinate"]["index"]
+    cp0_slot_words = list(c_excursion["relation_checkpoints"][0]["table"][exc_slot * 8 : (exc_slot + 1) * 8])
+    c_excursion["relation_checkpoints"][-1]["table"][exc_slot * 8 : (exc_slot + 1) * 8] = cp0_slot_words
+    last_st = c_excursion["relation_steps"][399]
+    acc_b = last_st["cursor_before"]["accepted_updates"]
+    c_excursion["relation_steps"][399] = {
+        "cursor_before": dict(last_st["cursor_before"]),
+        "cursor_after": {
+            "completed_batches": 400,
+            "accepted_updates": acc_b + 1,
+            "corpus_pass": 0,
+            "next_target": 400 * 64,
+            "next_coordinate": 400,
+        },
+        "coordinate": {"kind": "vector_block", "index": exc_slot},
+        "target_positions": [19, 20],
+        "candidate": 15,
+        "loss_before": 60000,
+        "loss_after": 59500,
+        "model_epoch": acc_b + 1,
+        "applied": True,
+        "any_candidate_cost_differs_from_identity": True,
+    }
+    c_excursion["relation_checkpoints"][-1]["accepted_updates"] = acc_b + 1
+    c_excursion["relation_checkpoints"][-1]["epoch"] = acc_b + 1
+    try:
+        verify_a8_census_and_attribution(c_excursion)
+        record("46_census_transient_cell_excursion_rejected", False, "failed to reject transient cell excursion")
+    except VerificationError as exc:
+        record(
+            "46_census_transient_cell_excursion_rejected",
+            "transient cell excursion detected" in str(exc),
+            str(exc),
+        )
+
+    # T47: Negative — Pre-bifurcation (0..174) mismatch or step-175 Gate(21) mismatch rejected
+    c_bad_bif = copy.deepcopy(base_census)
+    c_bad_bif["frozen_zero_steps"][174]["loss_after"] = 999999
+    try:
+        verify_a8_census_and_attribution(c_bad_bif)
+        record("47_census_step175_bifurcation_or_prefix_mismatch_rejected", False, "failed to reject step 174 mismatch")
+    except VerificationError as exc:
+        c_bad_175 = copy.deepcopy(base_census)
+        c_bad_175["relation_steps"][175]["coordinate"] = {"kind": "gate", "index": 22}
+        try:
+            verify_a8_census_and_attribution(c_bad_175)
+            record("47_census_step175_bifurcation_or_prefix_mismatch_rejected", False, "failed to reject step 175 coordinate mismatch")
+        except VerificationError as exc2:
+            record(
+                "47_census_step175_bifurcation_or_prefix_mismatch_rejected",
+                "pre-bifurcation step 174" in str(exc) and "Gate(21) bifurcation mismatch" in str(exc2),
+                f"prefix={exc}; step175={exc2}",
+            )
+
+    # T48: Negative — Two-sided or 4-way cross-arm P_succ decomposition arithmetic / row-key mismatch rejected
+    c_bad_decomp = copy.deepcopy(base_census)
+    # Flip one P_succ row's target_admitted in Relation Q1 without updating expectations
+    for row in c_bad_decomp["relation_q1"]["q1_b3"]["rows"]:
+        if row["is_psucc"]:
+            row["target_admitted"] = not row["target_admitted"]
+            break
+    try:
+        verify_a8_census_and_attribution(c_bad_decomp)
+        record("48_census_two_sided_and_four_way_psucc_decomposition_mismatch_rejected", False, "failed to reject P_succ decomposition mismatch")
+    except VerificationError as exc:
+        c_bad_row_key = copy.deepcopy(base_census)
+        c_bad_row_key["frozen_zero_q1"]["q1_b3"]["rows"][0]["target_position"] += 1
+        try:
+            verify_a8_census_and_attribution(c_bad_row_key)
+            record("48_census_two_sided_and_four_way_psucc_decomposition_mismatch_rejected", False, "failed to reject row_key mismatch")
+        except VerificationError as exc2:
+            record(
+                "48_census_two_sided_and_four_way_psucc_decomposition_mismatch_rejected",
+                "two-sided P_succ decomposition mismatch" in str(exc) and "DEV row key mismatch" in str(exc2),
+                f"decomp={exc}; row_key={exc2}",
+            )
+
     return {
         "status": "PASS",
         "total_tests": len(results),
@@ -4115,9 +4639,1369 @@ def run_self_tests(repo_root: Path, packet_dir: Path | None = None) -> dict[str,
     }
 
 
+def _extract_checkpoint_root_ids_and_cells(
+    table: list[int], label: str
+) -> tuple[list[int], list[int], int, int, int]:
+    """Validate 131,072-word table roots (`0` off-orbit blocks) and compute 4,096 token cells and occupancy."""
+    require(
+        isinstance(table, list) and len(table) == 4096 * 32,
+        f"{label}: table must have 131,072 i32 words, got {len(table) if isinstance(table, list) else type(table)!r}",
+    )
+    try:
+        packed = struct.pack("<131072i", *table)
+    except (struct.error, TypeError) as exc:
+        raise VerificationError(f"{label}: invalid i32 word in table: {exc}") from exc
+
+    mv = memoryview(packed)
+    root_ids: list[int] = [0] * 16384
+    for slot in range(16384):
+        rid = ROOT_BYTES_TO_ID.get(mv[slot * 32 : (slot + 1) * 32])
+        if rid is None:
+            tok = slot // 4
+            blk = slot % 4
+            raise VerificationError(
+                f"{label}: off-orbit root at slot {slot} (token={tok}, block={blk}): {table[slot * 8 : (slot + 1) * 8]}"
+            )
+        root_ids[slot] = rid
+
+    cells: list[int] = [0] * 4096
+    pop: list[int] = [0] * 256
+    for tok in range(4096):
+        c = root_ids[tok * 4] * 16 + root_ids[tok * 4 + 3]
+        cells[tok] = c
+        pop[c] += 1
+
+    occupied_cells = sum(1 for count in pop if count > 0)
+    require(
+        occupied_cells == 256,
+        f"{label}: cell occupancy collapse: occupied_cells={occupied_cells} < 256",
+    )
+    return root_ids, cells, occupied_cells, min(pop), max(pop)
+
+
+def _fast_load_checkpoint_json(
+    raw: bytes, ref_base_eval_bytes: bytes | None, label: str
+) -> tuple[dict[str, Any], bytes | None]:
+    """Parse a checkpoint JSON file while verifying byte-identity of the repeated 6.68 MB `baseline_evaluation` slice."""
+    marker_start = b'"baseline_evaluation":'
+    marker_end = b',"baseline_snapshot_metadata":'
+    i0 = raw.find(marker_start)
+    i1 = raw.find(marker_end, i0 if i0 != -1 else 0)
+    if i0 == -1 or i1 == -1:
+        doc = json.loads(raw.decode("utf-8"))
+        return doc, ref_base_eval_bytes
+    be_slice = raw[i0:i1]
+    if ref_base_eval_bytes is None:
+        doc = json.loads(raw.decode("utf-8"))
+        be = doc.get("baseline_evaluation", {})
+        agg = be.get("aggregate", {}) if isinstance(be, dict) else {}
+        require(
+            agg.get("scored_rows") == CANONICAL_DEV_FULL_ROWS
+            and agg.get("target_admitted_rows") == EXPECTED_A8_CP0_FULL_ADMITTED
+            and agg.get("top1_correct") == EXPECTED_A8_CP0_FULL_TOP1
+            and be.get("evaluation_mutates_model") is False
+            and be.get("updates_applied_by_evaluation") == 0,
+            f"{label}: cp0 baseline_evaluation aggregate mismatch: {agg}",
+        )
+        return doc, be_slice
+    require(
+        be_slice == ref_base_eval_bytes,
+        f"{label}: baseline_evaluation slice differs from cp0",
+    )
+    stripped = raw[:i0] + b'"baseline_evaluation":null' + raw[i1:]
+    return json.loads(stripped.decode("utf-8")), ref_base_eval_bytes
+
+
+def load_vast_56670997_census_bundle(
+    census_archive_dir: Path | None = None,
+    relation_checkpoints_dir: Path | None = None,
+    frozen_checkpoints_dir: Path | None = None,
+    steps_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Load and SHA-verify the real `vast-56670997` 65+258 checkpoints, `steps.jsonl` logs, `q1.json`, and `report.json`."""
+    archive_dir = census_archive_dir or DEFAULT_VAST_56670997_ARCHIVE_DIR
+    rel_cp_dir = relation_checkpoints_dir or DEFAULT_VAST_56670997_RELATION_CHECKPOINTS_DIR
+    fz_cp_dir = frozen_checkpoints_dir or DEFAULT_VAST_56670997_FROZEN_CHECKPOINTS_DIR
+    s_dir = steps_dir or DEFAULT_VAST_56670997_STEPS_DIR
+
+    manifest_path = archive_dir / "runs.manifest.sha256"
+    manifest_bytes = read_bytes_checked(manifest_path, "runs.manifest.sha256")
+    manifest_sha = hashlib.sha256(manifest_bytes).hexdigest()
+    require(
+        manifest_sha == EXPECTED_VAST_56670997_RUNS_MANIFEST_SHA256
+        and len(manifest_bytes) == EXPECTED_VAST_56670997_RUNS_MANIFEST_BYTES,
+        f"runs.manifest.sha256 SHA/bytes mismatch: {manifest_sha} ({len(manifest_bytes)} B)",
+    )
+    manifest_entries: dict[str, str] = {}
+    for line in manifest_bytes.decode("utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        require(len(parts) == 2 and is_hex64(parts[0]), f"invalid manifest line: {line!r}")
+        manifest_entries[parts[1]] = parts[0]
+    require(
+        len(manifest_entries) == EXPECTED_VAST_56670997_RUNS_MANIFEST_LINES,
+        f"runs.manifest.sha256 line count {len(manifest_entries)} != {EXPECTED_VAST_56670997_RUNS_MANIFEST_LINES}",
+    )
+
+    def load_arm_checkpoints(cp_dir: Path, arm_dir_name: str, expected_count: int) -> list[dict[str, Any]]:
+        cp_paths = sorted(cp_dir.glob("checkpoint-*.json"))
+        require(
+            len(cp_paths) == expected_count,
+            f"{arm_dir_name}: expected {expected_count} checkpoint-*.json files in {cp_dir}, found {len(cp_paths)}",
+        )
+        out_cps: list[dict[str, Any]] = []
+        ref_be: bytes | None = None
+        for p in cp_paths:
+            raw = read_bytes_checked(p, p.name)
+            sha = hashlib.sha256(raw).hexdigest()
+            doc, ref_be = _fast_load_checkpoint_json(raw, ref_be, f"{arm_dir_name}/{p.name}")
+            cp_inner = doc.get("checkpoint", {})
+            cursor = cp_inner.get("cursor", {})
+            model = cp_inner.get("model", {})
+            out_cps.append(
+                {
+                    "name": p.name,
+                    "manifest_key": f"./claude/{arm_dir_name}/{p.name}",
+                    "sha256": sha,
+                    "bytes": len(raw),
+                    "completed_batches": cursor.get("completed_batches"),
+                    "accepted_updates": cursor.get("accepted_updates"),
+                    "epoch": model.get("epoch"),
+                    "gates": model.get("gates"),
+                    "routes": model.get("routes"),
+                    "table": model.get("table"),
+                }
+            )
+        return out_cps
+
+    rel_cps = load_arm_checkpoints(rel_cp_dir, "a8-dose-relation-seed1", 65)
+    fz_cps = load_arm_checkpoints(fz_cp_dir, "a8-dose-frozen-zero-seed1", 258)
+
+    def resolve_steps_path(arm_dir_name: str) -> Path:
+        cand1 = s_dir / "runs" / "claude" / arm_dir_name / "steps.jsonl"
+        if cand1.is_file():
+            return cand1
+        cand2 = s_dir / "claude" / arm_dir_name / "steps.jsonl"
+        if cand2.is_file():
+            return cand2
+        return s_dir / arm_dir_name / "steps.jsonl"
+
+    rel_steps_path = resolve_steps_path("a8-dose-relation-seed1")
+    fz_steps_path = resolve_steps_path("a8-dose-frozen-zero-seed1")
+    rel_steps_bytes = read_bytes_checked(rel_steps_path, "Relation steps.jsonl")
+    fz_steps_bytes = read_bytes_checked(fz_steps_path, "FrozenZero steps.jsonl")
+    rel_steps_sha = hashlib.sha256(rel_steps_bytes).hexdigest()
+    fz_steps_sha = hashlib.sha256(fz_steps_bytes).hexdigest()
+    rel_steps = [json.loads(line) for line in rel_steps_bytes.decode("utf-8").splitlines() if line.strip()]
+    fz_steps = [json.loads(line) for line in fz_steps_bytes.decode("utf-8").splitlines() if line.strip()]
+
+    rel_q1_path = (
+        archive_dir
+        / "runs"
+        / "claude"
+        / "a8-dose-custody-20261019"
+        / "state"
+        / "a8-relation-seed1"
+        / "q1.json"
+    )
+    fz_q1_path = (
+        archive_dir
+        / "runs"
+        / "claude"
+        / "a8-dose-custody-20261019"
+        / "state"
+        / "a8-frozen-zero-seed1"
+        / "q1.json"
+    )
+    fz_report_path = archive_dir / "runs" / "claude" / "a8-dose-frozen-zero-seed1" / "report.json"
+    rel_report_path = archive_dir / "runs" / "claude" / "a8-dose-relation-seed1" / "report.json"
+
+    rel_q1_bytes = read_bytes_checked(rel_q1_path, "Relation q1.json")
+    fz_q1_bytes = read_bytes_checked(fz_q1_path, "FrozenZero q1.json")
+    fz_report_bytes = read_bytes_checked(fz_report_path, "FrozenZero report.json")
+    rel_report_bytes = read_bytes_checked(rel_report_path, "Relation report.json")
+
+    return {
+        "manifest_sha256": manifest_sha,
+        "manifest_bytes": len(manifest_bytes),
+        "manifest_entries": manifest_entries,
+        "relation_checkpoints": rel_cps,
+        "frozen_zero_checkpoints": fz_cps,
+        "relation_steps_sha256": rel_steps_sha,
+        "relation_steps_bytes": len(rel_steps_bytes),
+        "relation_steps": rel_steps,
+        "frozen_zero_steps_sha256": fz_steps_sha,
+        "frozen_zero_steps_bytes": len(fz_steps_bytes),
+        "frozen_zero_steps": fz_steps,
+        "relation_q1_sha256": hashlib.sha256(rel_q1_bytes).hexdigest(),
+        "relation_q1_bytes": len(rel_q1_bytes),
+        "relation_q1": json.loads(rel_q1_bytes.decode("utf-8")),
+        "frozen_zero_q1_sha256": hashlib.sha256(fz_q1_bytes).hexdigest(),
+        "frozen_zero_q1_bytes": len(fz_q1_bytes),
+        "frozen_zero_q1": json.loads(fz_q1_bytes.decode("utf-8")),
+        "frozen_zero_report_sha256": hashlib.sha256(fz_report_bytes).hexdigest(),
+        "frozen_zero_report_bytes": len(fz_report_bytes),
+        "frozen_zero_report": json.loads(fz_report_bytes.decode("utf-8")),
+        "relation_report_sha256": hashlib.sha256(rel_report_bytes).hexdigest(),
+        "relation_report_bytes": len(rel_report_bytes),
+        "relation_report": json.loads(rel_report_bytes.decode("utf-8")),
+        "expected": EXPECTED_VAST_56670997_CENSUS_EXPECTATIONS,
+    }
+
+
+def verify_a8_census_and_attribution(
+    bundle: dict[str, Any] | None = None,
+    *,
+    census_archive_dir: Path | None = None,
+    relation_checkpoints_dir: Path | None = None,
+    frozen_checkpoints_dir: Path | None = None,
+    steps_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Verify 65+258 checkpoints, steps.jsonl slot bijection, step-175 Gate(21) bifurcation,
+    0 transient cell excursions, and two-sided + 4-way cross-arm P_succ admission decompositions.
+    """
+    if bundle is None:
+        bundle = load_vast_56670997_census_bundle(
+            census_archive_dir=census_archive_dir,
+            relation_checkpoints_dir=relation_checkpoints_dir,
+            frozen_checkpoints_dir=frozen_checkpoints_dir,
+            steps_dir=steps_dir,
+        )
+
+    expected = bundle.get("expected", EXPECTED_VAST_56670997_CENSUS_EXPECTATIONS)
+    manifest_entries = bundle.get("manifest_entries", {})
+    require(
+        isinstance(manifest_entries, dict)
+        and bundle.get("manifest_sha256") == expected["manifest_sha256"]
+        and len(manifest_entries) == expected["manifest_lines"],
+        f"runs.manifest.sha256 verification failed: sha={bundle.get('manifest_sha256')}, lines={len(manifest_entries)}",
+    )
+    require(
+        manifest_entries.get("./claude/a8-dose-gates-20261019/relation/cells/token_cells.u16")
+        == expected["cp0_token_cells_u16_sha256"]
+        and manifest_entries.get("./claude/a8-dose-gates-20261019/frozen-zero/cells/token_cells.u16")
+        == expected["cp0_token_cells_u16_sha256"],
+        "runs.manifest.sha256 cp0 token_cells.u16 SHA-256 mismatch",
+    )
+
+    # Verify non-checkpoint file pins against runs.manifest.sha256 and expected constants
+    pin_checks = (
+        (
+            "./claude/a8-dose-relation-seed1/steps.jsonl",
+            bundle.get("relation_steps_sha256"),
+            expected["relation_steps_sha256"],
+        ),
+        (
+            "./claude/a8-dose-frozen-zero-seed1/steps.jsonl",
+            bundle.get("frozen_zero_steps_sha256"),
+            expected["frozen_zero_steps_sha256"],
+        ),
+        (
+            "./claude/a8-dose-custody-20261019/state/a8-relation-seed1/q1.json",
+            bundle.get("relation_q1_sha256"),
+            expected["relation_q1_json_sha256"],
+        ),
+        (
+            "./claude/a8-dose-custody-20261019/state/a8-frozen-zero-seed1/q1.json",
+            bundle.get("frozen_zero_q1_sha256"),
+            expected["frozen_zero_q1_json_sha256"],
+        ),
+        (
+            "./claude/a8-dose-frozen-zero-seed1/report.json",
+            bundle.get("frozen_zero_report_sha256"),
+            expected["frozen_zero_report_json_sha256"],
+        ),
+        (
+            "./claude/a8-dose-relation-seed1/report.json",
+            bundle.get("relation_report_sha256"),
+            expected["relation_report_json_sha256"],
+        ),
+    )
+    for m_key, actual_sha, exp_sha in pin_checks:
+        require(
+            actual_sha == exp_sha and manifest_entries.get(m_key) == exp_sha,
+            f"manifest/file SHA-256 mismatch for {m_key}: actual={actual_sha}, manifest={manifest_entries.get(m_key)}, expected={exp_sha}",
+        )
+
+    rel_cps = bundle.get("relation_checkpoints", [])
+    fz_cps = bundle.get("frozen_zero_checkpoints", [])
+    rel_steps = bundle.get("relation_steps", [])
+    fz_steps = bundle.get("frozen_zero_steps", [])
+    require(
+        len(rel_cps) == expected["relation_checkpoint_count"]
+        and len(fz_cps) == expected["frozen_zero_checkpoint_count"],
+        f"checkpoint count mismatch: rel={len(rel_cps)} (exp {expected['relation_checkpoint_count']}), fz={len(fz_cps)} (exp {expected['frozen_zero_checkpoint_count']})",
+    )
+    require(
+        len(rel_steps) == expected["relation_steps_lines"]
+        and len(fz_steps) == expected["frozen_zero_steps_lines"],
+        f"steps.jsonl line count mismatch: rel={len(rel_steps)}, fz={len(fz_steps)}",
+    )
+    q1_batch_key = expected.get("q1_batch", CANONICAL_Q1_BATCHES)
+    final_batch_key = expected.get("final_batch", CANONICAL_ATTENTION_BATCHES)
+
+    def verify_arm_trajectory(
+        arm_name: str,
+        cps: list[dict[str, Any]],
+        steps: list[dict[str, Any]],
+        is_frozen_zero: bool,
+    ) -> dict[str, Any]:
+        prev_batch: int | None = None
+        prev_root_ids: list[int] | None = None
+        prev_cells: list[int] | None = None
+        cp0_cells: list[int] | None = None
+        q1_cells: list[int] | None = None
+        ever_moved_tokens: set[int] = set()
+        ever_moved_by_q1: set[int] = set()
+        interval_mismatches = 0
+        pop_by_batch: dict[int, dict[str, int]] = {}
+
+        for idx, cp in enumerate(cps):
+            m_key = cp.get("manifest_key", "")
+            cp_sha = cp.get("sha256", "")
+            require(
+                is_hex64(cp_sha) and manifest_entries.get(m_key) == cp_sha,
+                f"{arm_name} checkpoint {m_key} SHA-256 {cp_sha} != manifest {manifest_entries.get(m_key)}",
+            )
+            batch = cp.get("completed_batches")
+            require(is_u64(batch), f"{arm_name} checkpoint {m_key} invalid completed_batches: {batch!r}")
+            gates = cp.get("gates")
+            require(
+                isinstance(gates, list) and len(gates) == 45 and all(g in (-1, 0, 1) for g in gates),
+                f"{arm_name} checkpoint {m_key} invalid 45-trit gates",
+            )
+            if is_frozen_zero:
+                require(
+                    gates[20:45] == [0] * 25,
+                    f"{arm_name} checkpoint {m_key} has non-zero relation gate trit: {gates[20:45]}",
+                )
+
+            root_ids, cells, occ, min_pop, max_pop = _extract_checkpoint_root_ids_and_cells(
+                cp.get("table", []), f"{arm_name}/{cp.get('name', idx)}"
+            )
+            pop_by_batch[batch] = {
+                "occupied_cells": occ,
+                "min_pop": min_pop,
+                "max_pop": max_pop,
+            }
+
+            if idx == 0:
+                require(batch == 0, f"{arm_name} first checkpoint must have batch 0, got {batch}")
+                cp0_cells = cells
+                cp0_word_sha = hashlib.sha256(
+                    struct.pack("<131072i", *cp["table"])
+                ).hexdigest()
+                require(
+                    cp0_word_sha == EXPECTED_A8_TABLE_WORDS_SHA256,
+                    f"{arm_name} cp0 table_sha256 {cp0_word_sha} != {EXPECTED_A8_TABLE_WORDS_SHA256}",
+                )
+                cp0_u16_sha = hashlib.sha256(struct.pack("<4096H", *cells)).hexdigest()
+                require(
+                    cp0_u16_sha == expected["cp0_token_cells_u16_sha256"],
+                    f"{arm_name} cp0 token_cells.u16 SHA-256 {cp0_u16_sha} != {expected['cp0_token_cells_u16_sha256']}",
+                )
+                require(
+                    gates == EXPECTED_ACTIVE_LEAF_GATES,
+                    f"{arm_name} cp0 gates mismatch",
+                )
+            else:
+                assert prev_batch is not None and prev_root_ids is not None and prev_cells is not None
+                require(
+                    batch > prev_batch and batch <= len(steps),
+                    f"{arm_name} non-monotonic or out-of-range checkpoint batch {prev_batch} -> {batch}",
+                )
+                interval_steps = steps[prev_batch:batch]
+                for offset, st in enumerate(interval_steps):
+                    exp_b = prev_batch + offset
+                    cb = st.get("cursor_before", {}).get("completed_batches")
+                    ca = st.get("cursor_after", {}).get("completed_batches")
+                    require(
+                        cb == exp_b and ca == exp_b + 1,
+                        f"{arm_name} step {exp_b} cursor batch discontinuity: {cb} -> {ca}",
+                    )
+                    if is_frozen_zero and st.get("coordinate", {}).get("kind") == "gate":
+                        g_idx = st["coordinate"].get("index", -1)
+                        if g_idx >= 20:
+                            require(
+                                st.get("applied") is False,
+                                f"FrozenZero applied a relation gate update at step {exp_b}: {st}",
+                            )
+
+                changed_slots = {
+                    slot for slot in range(16384) if root_ids[slot] != prev_root_ids[slot]
+                }
+                applied_vec_steps = [
+                    st
+                    for st in interval_steps
+                    if st.get("applied") is True
+                    and st.get("coordinate", {}).get("kind") == "vector_block"
+                ]
+                step_slots: set[int] = set()
+                for st in applied_vec_steps:
+                    s_idx = st["coordinate"].get("index")
+                    cand = st.get("candidate")
+                    require(
+                        is_u64(s_idx) and 0 <= s_idx < 16384 and is_u64(cand) and 1 <= cand < 16,
+                        f"{arm_name} invalid applied vector_block step: {st}",
+                    )
+                    require(
+                        s_idx not in step_slots,
+                        f"{arm_name} duplicate applied vector_block slot {s_idx} in interval {prev_batch}->{batch}",
+                    )
+                    step_slots.add(s_idx)
+
+                if changed_slots != step_slots:
+                    interval_mismatches += 1
+                    raise VerificationError(
+                        f"{arm_name} interval {prev_batch}->{batch} vector_block slot bijection mismatch: "
+                        f"table_diff={sorted(changed_slots)} vs steps_applied={sorted(step_slots)}"
+                    )
+
+                changed_cell_tokens = {
+                    tok for tok in range(4096) if cells[tok] != prev_cells[tok]
+                }
+                expected_cell_moved_tokens = {
+                    slot // 4 for slot in changed_slots if (slot % 4) in (0, 3)
+                }
+                require(
+                    changed_cell_tokens == expected_cell_moved_tokens,
+                    f"{arm_name} interval {prev_batch}->{batch} token cell movement mismatch: "
+                    f"actual={sorted(changed_cell_tokens)} vs block_0_3={sorted(expected_cell_moved_tokens)}",
+                )
+
+            assert cp0_cells is not None
+            curr_diff_from_cp0 = {tok for tok in range(4096) if cells[tok] != cp0_cells[tok]}
+            ever_moved_tokens |= curr_diff_from_cp0
+            if batch <= q1_batch_key:
+                ever_moved_by_q1 |= curr_diff_from_cp0
+            if batch == q1_batch_key:
+                q1_cells = cells
+            # Check 0 transient cell excursions at every checkpoint
+            transient_now = ever_moved_tokens - curr_diff_from_cp0
+            require(
+                len(transient_now) == 0,
+                f"{arm_name} transient cell excursion detected at batch {batch} for tokens {sorted(transient_now)}",
+            )
+
+            prev_batch = batch
+            prev_root_ids = root_ids
+            prev_cells = cells
+
+        assert cp0_cells is not None and prev_cells is not None
+        end_moved_tokens = {tok for tok in range(4096) if prev_cells[tok] != cp0_cells[tok]}
+        q1_moved_tokens = (
+            {tok for tok in range(4096) if q1_cells[tok] != cp0_cells[tok]}
+            if q1_cells is not None
+            else end_moved_tokens
+        )
+        return {
+            "checkpoints_verified": len(cps),
+            "intervals_verified": len(cps) - 1,
+            "interval_mismatches": interval_mismatches,
+            "transient_excursions": len(ever_moved_tokens - end_moved_tokens),
+            "q1_transient_excursions": len(ever_moved_by_q1 - q1_moved_tokens),
+            "pop_by_batch": pop_by_batch,
+            "q1_moved_tokens": q1_moved_tokens,
+            "end_moved_tokens": end_moved_tokens,
+        }
+
+    rel_traj = verify_arm_trajectory("relation", rel_cps, rel_steps, is_frozen_zero=False)
+    fz_traj = verify_arm_trajectory("frozen_zero", fz_cps, fz_steps, is_frozen_zero=True)
+
+    require(
+        rel_cps[0]["sha256"] == expected["relation_cp0_sha256"]
+        and rel_cps[-1]["sha256"] == expected["relation_q1_cp_sha256"]
+        and fz_cps[0]["sha256"] == expected["frozen_zero_cp0_sha256"]
+        and fz_cps[-1]["sha256"] == expected["frozen_zero_final_cp_sha256"],
+        "endpoint checkpoint SHA-256 mismatch against expected pins",
+    )
+    fz_q1_matches = [cp for cp in fz_cps if cp["completed_batches"] == q1_batch_key]
+    require(
+        len(fz_q1_matches) == 1 and fz_q1_matches[0]["sha256"] == expected["frozen_zero_q1_cp_sha256"],
+        "FrozenZero Q1 checkpoint SHA-256 mismatch",
+    )
+
+    exp_pop = expected["population_bounds"]
+    require(
+        rel_traj["pop_by_batch"][0] == exp_pop["cp0"]
+        and fz_traj["pop_by_batch"][0] == exp_pop["cp0"]
+        and rel_traj["pop_by_batch"][q1_batch_key] == exp_pop["relation_q1"]
+        and fz_traj["pop_by_batch"][q1_batch_key] == exp_pop["frozen_zero_q1"]
+        and fz_traj["pop_by_batch"][final_batch_key] == exp_pop["frozen_zero_final"],
+        f"checkpoint population bounds mismatch: rel={rel_traj['pop_by_batch']}, fz={fz_traj['pop_by_batch']}",
+    )
+
+    # Verify row-key alignment across init_b3, Relation q1_b3, FrozenZero q1_b3, and FrozenZero final_b3
+    rel_q1_doc = bundle["relation_q1"]
+    fz_q1_doc = bundle["frozen_zero_q1"]
+    fz_rep_doc = bundle["frozen_zero_report"]
+    init_rows_rel = rel_q1_doc.get("init_b3", {}).get("rows", [])
+    init_rows_fz = fz_q1_doc.get("init_b3", {}).get("rows", [])
+    rel_q1_rows = rel_q1_doc.get("q1_b3", {}).get("rows", [])
+    fz_q1_rows = fz_q1_doc.get("q1_b3", {}).get("rows", [])
+    fz_final_rows = fz_rep_doc.get("final_b3", {}).get("rows", [])
+
+    require(
+        len(init_rows_rel) == CANONICAL_DEV_FULL_ROWS
+        and init_rows_rel == init_rows_fz
+        and len(rel_q1_rows) == CANONICAL_DEV_FULL_ROWS
+        and len(fz_q1_rows) == CANONICAL_DEV_FULL_ROWS
+        and len(fz_final_rows) == CANONICAL_DEV_FULL_ROWS,
+        "DEV B3 row arrays must all have 14,287 rows with identical init_b3 across arms",
+    )
+
+    psucc_rows: list[dict[str, Any]] = []
+    psucc_targets: set[int] = set()
+    init_psucc_admitted = 0
+    init_full_admitted = 0
+    for idx in range(CANONICAL_DEV_FULL_ROWS):
+        r0 = init_rows_rel[idx]
+        key0 = (r0.get("row_ordinal"), r0.get("target_position"), r0.get("target_token"), r0.get("is_psucc"))
+        require(r0.get("row_ordinal") == idx, f"non-sequential row_ordinal at index {idx}: {r0}")
+        for label_r, other_rows in (
+            ("relation_q1", rel_q1_rows),
+            ("frozen_zero_q1", fz_q1_rows),
+            ("frozen_zero_final", fz_final_rows),
+        ):
+            ro = other_rows[idx]
+            key_o = (
+                ro.get("row_ordinal"),
+                ro.get("target_position"),
+                ro.get("target_token"),
+                ro.get("is_psucc"),
+            )
+            require(
+                key_o == key0,
+                f"DEV row key mismatch at index {idx} in {label_r}: {key_o} != {key0}",
+            )
+        if r0.get("target_admitted") is True:
+            init_full_admitted += 1
+        if r0.get("is_psucc") is True:
+            psucc_rows.append(r0)
+            psucc_targets.add(r0["target_token"])
+            if r0.get("target_admitted") is True:
+                init_psucc_admitted += 1
+
+    require(
+        len(psucc_rows) == CANONICAL_DEV_PSUCC_ROWS
+        and len(psucc_targets) == 448
+        and init_psucc_admitted == EXPECTED_A8_CP0_PSUCC_ADMITTED
+        and init_full_admitted == EXPECTED_A8_CP0_FULL_ADMITTED,
+        f"init_b3 invariant mismatch: psucc_rows={len(psucc_rows)}, targets={len(psucc_targets)}, psucc_adm={init_psucc_admitted}, full_adm={init_full_admitted}",
+    )
+
+    # Verify exact step-175 Gate(21) bifurcation
+    exp_bif = expected["bifurcation"]
+    bif_idx = exp_bif["first_divergence_step"]
+    require(
+        len(rel_steps) > bif_idx and len(fz_steps) > bif_idx,
+        f"steps.jsonl shorter than bifurcation step {bif_idx}",
+    )
+    step_compare_keys = (
+        "cursor_before",
+        "cursor_after",
+        "coordinate",
+        "target_positions",
+        "candidate",
+        "loss_before",
+        "loss_after",
+        "model_epoch",
+        "applied",
+        "any_candidate_cost_differs_from_identity",
+    )
+    for s_idx in range(bif_idx):
+        sr = rel_steps[s_idx]
+        sf = fz_steps[s_idx]
+        for k in step_compare_keys:
+            require(
+                sr.get(k) == sf.get(k),
+                f"pre-bifurcation step {s_idx} field {k!r} differs between Relation and FrozenZero: {sr.get(k)!r} vs {sf.get(k)!r}",
+            )
+
+    prefix_vec = [
+        st
+        for st in rel_steps[:bif_idx]
+        if st.get("applied") is True and st.get("coordinate", {}).get("kind") == "vector_block"
+    ]
+    prefix_b03 = [st for st in prefix_vec if (st["coordinate"]["index"] % 4) in (0, 3)]
+    prefix_moved_toks = {st["coordinate"]["index"] // 4 for st in prefix_b03}
+    prefix_moved_psucc_targets = prefix_moved_toks & psucc_targets
+    prefix_moved_psucc_rows = sum(1 for r in psucc_rows if r["target_token"] in prefix_moved_toks)
+    prefix_comb = [
+        st
+        for st in rel_steps[:bif_idx]
+        if st.get("applied") is True
+        and st.get("coordinate", {}).get("kind") == "gate"
+        and st["coordinate"].get("index", 99) < 20
+    ]
+    prefix_rel = [
+        st
+        for st in rel_steps[:bif_idx]
+        if st.get("applied") is True
+        and st.get("coordinate", {}).get("kind") == "gate"
+        and st["coordinate"].get("index", 0) >= 20
+    ]
+    require(
+        len(prefix_vec) == exp_bif["prefix_accepted_vector_writes"]
+        and len(prefix_b03) == exp_bif["prefix_accepted_block_0_or_3_writes"]
+        and len(prefix_moved_toks) == exp_bif["prefix_moved_tokens"]
+        and len(prefix_moved_psucc_targets) == exp_bif["prefix_moved_psucc_targets"]
+        and prefix_moved_psucc_rows == exp_bif["prefix_moved_psucc_rows"]
+        and len(prefix_comb) == exp_bif["prefix_accepted_gate_combine_writes"]
+        and len(prefix_rel) == exp_bif["prefix_accepted_gate_relation_writes"],
+        f"pre-bifurcation 0..{bif_idx - 1} summary mismatch",
+    )
+
+    sr_175 = rel_steps[bif_idx]
+    sf_175 = fz_steps[bif_idx]
+    require(
+        sr_175.get("coordinate") == exp_bif["divergence_coordinate"]
+        and sf_175.get("coordinate") == exp_bif["divergence_coordinate"]
+        and sr_175.get("candidate") == exp_bif["divergence_candidate"]
+        and sf_175.get("candidate") == exp_bif["divergence_candidate"]
+        and sr_175.get("loss_before") == exp_bif["divergence_loss_before"]
+        and sf_175.get("loss_before") == exp_bif["divergence_loss_before"]
+        and sr_175.get("loss_after") == exp_bif["divergence_loss_after"]
+        and sf_175.get("loss_after") == exp_bif["divergence_loss_after"]
+        and sr_175.get("applied") is exp_bif["relation_applied"]
+        and sf_175.get("applied") is exp_bif["frozen_zero_applied"]
+        and sf_175.get("apply_refused_by_policy") is exp_bif["frozen_zero_refused_by_policy"],
+        f"step-{bif_idx} Gate(21) bifurcation mismatch: rel={sr_175}, fz={sf_175}",
+    )
+
+    # Verify cumulative VectorBlock write counts and cell-moved token sets
+    def summarize_vector_steps(steps_slice: list[dict[str, Any]], expected_moved_toks: set[int]) -> dict[str, Any]:
+        vec = [
+            st
+            for st in steps_slice
+            if st.get("applied") is True and st.get("coordinate", {}).get("kind") == "vector_block"
+        ]
+        by_block = [
+            sum(1 for st in vec if st["coordinate"]["index"] % 4 == blk) for blk in range(4)
+        ]
+        b03 = [st for st in vec if (st["coordinate"]["index"] % 4) in (0, 3)]
+        moved_toks = {st["coordinate"]["index"] // 4 for st in b03}
+        require(
+            moved_toks == expected_moved_toks,
+            f"steps.jsonl moved tokens {sorted(moved_toks)} != checkpoint cell diff {sorted(expected_moved_toks)}",
+        )
+        moved_pt = moved_toks & psucc_targets
+        moved_pr = sum(1 for r in psucc_rows if r["target_token"] in moved_toks)
+        return {
+            "total": len(vec),
+            "by_block": by_block,
+            "block_0_or_3_writes": len(b03),
+            "moved_tokens": len(moved_toks),
+            "moved_psucc_targets": len(moved_pt),
+            "moved_psucc_rows": moved_pr,
+            "_moved_tokens_set": moved_toks,
+        }
+
+    rel_q1_vec = summarize_vector_steps(rel_steps[:q1_batch_key], rel_traj["q1_moved_tokens"])
+    fz_q1_vec = summarize_vector_steps(fz_steps[:q1_batch_key], fz_traj["q1_moved_tokens"])
+    fz_fin_vec = summarize_vector_steps(fz_steps[:final_batch_key], fz_traj["end_moved_tokens"])
+
+    rel_moved_q1 = rel_q1_vec.pop("_moved_tokens_set")
+    fz_moved_q1 = fz_q1_vec.pop("_moved_tokens_set")
+    fz_moved_fin = fz_fin_vec.pop("_moved_tokens_set")
+
+    shared_q1_toks = rel_moved_q1 & fz_moved_q1
+    rel_only_q1_toks = rel_moved_q1 - fz_moved_q1
+    fz_only_q1_toks = fz_moved_q1 - rel_moved_q1
+    q1_overlap = {
+        "shared": {
+            "tokens": len(shared_q1_toks),
+            "psucc_targets": len(shared_q1_toks & psucc_targets),
+            "psucc_rows": sum(1 for r in psucc_rows if r["target_token"] in shared_q1_toks),
+        },
+        "relation_only": {
+            "tokens": len(rel_only_q1_toks),
+            "psucc_targets": len(rel_only_q1_toks & psucc_targets),
+            "psucc_rows": sum(1 for r in psucc_rows if r["target_token"] in rel_only_q1_toks),
+        },
+        "frozen_zero_only": {
+            "tokens": len(fz_only_q1_toks),
+            "psucc_targets": len(fz_only_q1_toks & psucc_targets),
+            "psucc_rows": sum(1 for r in psucc_rows if r["target_token"] in fz_only_q1_toks),
+        },
+    }
+
+    exp_vw = expected["vector_writes"]
+    require(
+        rel_q1_vec == exp_vw["relation_q1"]
+        and fz_q1_vec == exp_vw["frozen_zero_q1"]
+        and fz_fin_vec == exp_vw["frozen_zero_final"]
+        and q1_overlap == exp_vw["q1_moved_overlap"],
+        f"vector_writes summary mismatch: rel_q1={rel_q1_vec}, fz_q1={fz_q1_vec}, fz_fin={fz_fin_vec}, overlap={q1_overlap}",
+    )
+
+    # Compute and verify two-sided P_succ admission decomposition
+    def compute_two_sided(end_rows: list[dict[str, Any]], moved_toks: set[int]) -> dict[str, Any]:
+        out_sub: dict[str, Any] = {}
+        for sub_name, pred in (
+            ("target_cell_unchanged", lambda t: t not in moved_toks),
+            ("target_cell_moved", lambda t: t in moved_toks),
+            ("total", lambda t: True),
+        ):
+            t_set: set[int] = set()
+            rows_cnt = init_adm = end_adm = kept = lost = gained = never = 0
+            for r0, r1 in zip(init_rows_rel, end_rows):
+                if not r0["is_psucc"] or not pred(r0["target_token"]):
+                    continue
+                t_set.add(r0["target_token"])
+                rows_cnt += 1
+                a0 = bool(r0["target_admitted"])
+                a1 = bool(r1["target_admitted"])
+                if a0:
+                    init_adm += 1
+                if a1:
+                    end_adm += 1
+                if a0 and a1:
+                    kept += 1
+                elif a0 and not a1:
+                    lost += 1
+                elif not a0 and a1:
+                    gained += 1
+                else:
+                    never += 1
+            net = end_adm - init_adm
+            require(
+                kept + lost == init_adm
+                and kept + gained == end_adm
+                and kept + lost + gained + never == rows_cnt
+                and gained - lost == net,
+                f"two-sided conservation failure in {sub_name}",
+            )
+            out_sub[sub_name] = {
+                "targets": len(t_set),
+                "rows": rows_cnt,
+                "init_admitted": init_adm,
+                "end_admitted": end_adm,
+                "kept": kept,
+                "lost": lost,
+                "gained": gained,
+                "never": never,
+                "net_change": net,
+            }
+        for k in ("targets", "rows", "init_admitted", "end_admitted", "kept", "lost", "gained", "never", "net_change"):
+            require(
+                out_sub["target_cell_unchanged"][k] + out_sub["target_cell_moved"][k]
+                == out_sub["total"][k],
+                f"two-sided additive partition failure on {k}",
+            )
+        return out_sub
+
+    two_sided = {
+        "relation_q1": compute_two_sided(rel_q1_rows, rel_moved_q1),
+        "frozen_zero_q1": compute_two_sided(fz_q1_rows, fz_moved_q1),
+        "frozen_zero_final": compute_two_sided(fz_final_rows, fz_moved_fin),
+    }
+    require(
+        two_sided == expected["two_sided_decomposition"],
+        f"two-sided P_succ decomposition mismatch: actual={two_sided} vs expected={expected['two_sided_decomposition']}",
+    )
+
+    # Compute and verify matched 4-way cross-arm Q1 cohort decomposition
+    cohorts_pred = {
+        "unchanged_both": lambda t: (t not in rel_moved_q1) and (t not in fz_moved_q1),
+        "moved_both": lambda t: (t in rel_moved_q1) and (t in fz_moved_q1),
+        "moved_rel_only": lambda t: (t in rel_moved_q1) and (t not in fz_moved_q1),
+        "moved_fz_only": lambda t: (t not in rel_moved_q1) and (t in fz_moved_q1),
+    }
+    four_way: dict[str, Any] = {}
+    for c_name, pred in cohorts_pred.items():
+        t_set: set[int] = set()
+        rows_cnt = init_adm = rel_adm = fz_adm = 0
+        r_kept = r_lost = r_gain = r_nev = 0
+        f_kept = f_lost = f_gain = f_nev = 0
+        both_adm = rel_only_adm = fz_only_adm = neither_adm = 0
+        for r0, rr, rf in zip(init_rows_rel, rel_q1_rows, fz_q1_rows):
+            if not r0["is_psucc"] or not pred(r0["target_token"]):
+                continue
+            t_set.add(r0["target_token"])
+            rows_cnt += 1
+            a0 = bool(r0["target_admitted"])
+            ar = bool(rr["target_admitted"])
+            af = bool(rf["target_admitted"])
+            if a0:
+                init_adm += 1
+            if ar:
+                rel_adm += 1
+            if af:
+                fz_adm += 1
+            if a0 and ar:
+                r_kept += 1
+            elif a0 and not ar:
+                r_lost += 1
+            elif not a0 and ar:
+                r_gain += 1
+            else:
+                r_nev += 1
+            if a0 and af:
+                f_kept += 1
+            elif a0 and not af:
+                f_lost += 1
+            elif not a0 and af:
+                f_gain += 1
+            else:
+                f_nev += 1
+            if ar and af:
+                both_adm += 1
+            elif ar and not af:
+                rel_only_adm += 1
+            elif not ar and af:
+                fz_only_adm += 1
+            else:
+                neither_adm += 1
+        require(
+            both_adm + rel_only_adm == rel_adm
+            and both_adm + fz_only_adm == fz_adm
+            and both_adm + rel_only_adm + fz_only_adm + neither_adm == rows_cnt
+            and rel_only_adm - fz_only_adm == rel_adm - fz_adm,
+            f"4-way cohort paired conservation failure in {c_name}",
+        )
+        four_way[c_name] = {
+            "targets": len(t_set),
+            "rows": rows_cnt,
+            "init_admitted": init_adm,
+            "rel_q1_admitted": rel_adm,
+            "rel_net": rel_adm - init_adm,
+            "rel_kept": r_kept,
+            "rel_lost": r_lost,
+            "rel_gained": r_gain,
+            "rel_never": r_nev,
+            "fz_q1_admitted": fz_adm,
+            "fz_net": fz_adm - init_adm,
+            "fz_kept": f_kept,
+            "fz_lost": f_lost,
+            "fz_gained": f_gain,
+            "fz_never": f_nev,
+            "paired_rel_minus_fz": rel_adm - fz_adm,
+            "both_admitted": both_adm,
+            "rel_only_admitted": rel_only_adm,
+            "fz_only_admitted": fz_only_adm,
+            "neither_admitted": neither_adm,
+        }
+
+    require(
+        four_way == expected["four_way_q1_cohorts"],
+        f"four_way_q1_cohorts mismatch: actual={four_way} vs expected={expected['four_way_q1_cohorts']}",
+    )
+
+    # Verify cross-identities between 4-way cohorts and two-sided Q1 decompositions
+    require(
+        four_way["unchanged_both"]["rows"] + four_way["moved_fz_only"]["rows"]
+        == two_sided["relation_q1"]["target_cell_unchanged"]["rows"]
+        and four_way["moved_both"]["rows"] + four_way["moved_rel_only"]["rows"]
+        == two_sided["relation_q1"]["target_cell_moved"]["rows"]
+        and four_way["unchanged_both"]["rows"] + four_way["moved_rel_only"]["rows"]
+        == two_sided["frozen_zero_q1"]["target_cell_unchanged"]["rows"]
+        and four_way["moved_both"]["rows"] + four_way["moved_fz_only"]["rows"]
+        == two_sided["frozen_zero_q1"]["target_cell_moved"]["rows"]
+        and sum(c["paired_rel_minus_fz"] for c in four_way.values())
+        == two_sided["relation_q1"]["total"]["end_admitted"]
+        - two_sided["frozen_zero_q1"]["total"]["end_admitted"],
+        "4-way cohort vs two-sided Q1 cross-identity mismatch",
+    )
+
+    return {
+        "status": "PASS",
+        "manifest_sha256": bundle["manifest_sha256"],
+        "manifest_lines": len(manifest_entries),
+        "occupancy": {
+            "all_checkpoints_occupied_256_of_256": True,
+            "off_orbit_roots": 0,
+            "cp0_token_cells_u16_sha256": expected["cp0_token_cells_u16_sha256"],
+            "relation_transient_excursions": rel_traj["transient_excursions"],
+            "frozen_zero_transient_excursions": fz_traj["transient_excursions"],
+            "population_bounds": {
+                "cp0": rel_traj["pop_by_batch"][0],
+                "relation_q1": rel_traj["pop_by_batch"][q1_batch_key],
+                "frozen_zero_q1": fz_traj["pop_by_batch"][q1_batch_key],
+                "frozen_zero_final": fz_traj["pop_by_batch"][final_batch_key],
+            },
+        },
+        "slot_bijection": {
+            "relation_intervals": rel_traj["intervals_verified"],
+            "frozen_zero_intervals": fz_traj["intervals_verified"],
+            "total_intervals": rel_traj["intervals_verified"] + fz_traj["intervals_verified"],
+            "total_mismatches": rel_traj["interval_mismatches"] + fz_traj["interval_mismatches"],
+            "vector_writes": {
+                "relation_q1": rel_q1_vec,
+                "frozen_zero_q1": fz_q1_vec,
+                "frozen_zero_final": fz_fin_vec,
+                "q1_moved_overlap": q1_overlap,
+            },
+        },
+        "bifurcation": exp_bif,
+        "two_sided_decomposition": two_sided,
+        "four_way_q1_cohorts": four_way,
+    }
+
+
+def build_synthetic_census_bundle(repo_root: Path | None = None) -> dict[str, Any]:
+    """Construct a deterministic synthetic census, steps.jsonl, and B3 row bundle for self-tests 41..48."""
+    repo_root = repo_root or Path(__file__).resolve().parents[3]
+    negb_doc = read_json_checked(
+        repo_root / "docs" / "labs" / "a8-dose-runbook-2026-10-19" / "evidence" / "neg-b-a8-nonroot-table.json"
+    )
+    a8_words = EXPECTED_A8_TOKEN0_BLOCK0 + negb_doc["table"][8:]
+    base_root_ids, _, _, _, _ = _extract_checkpoint_root_ids_and_cells(a8_words, "synthetic_cp0")
+
+    # Group tokens by their cp0 cell (256 cells x 16 tokens) so we can move specific tokens
+    # while preserving 256/256 cell occupancy and hitting exact target/row counts.
+    cell_to_tokens: dict[int, list[int]] = {c: [] for c in range(256)}
+    for tok in range(4096):
+        c = base_root_ids[tok * 4] * 16 + base_root_ids[tok * 4 + 3]
+        cell_to_tokens[c].append(tok)
+
+    # Pick 448 distinct P_succ target tokens (at most 2 per cell across cells 0..223)
+    # and at most 1 moved non-P_succ token per cell so every cell retains >= 13 tokens.
+    psucc_target_list: list[int] = []
+    non_psucc_moved_pool: list[int] = []
+    unmoved_non_pt: list[int] = []
+    for c in range(256):
+        toks = cell_to_tokens[c]
+        if c < 224:
+            psucc_target_list.extend(toks[:2])
+            non_psucc_moved_pool.append(toks[2])
+            unmoved_non_pt.extend(toks[3:])
+        else:
+            non_psucc_moved_pool.append(toks[0])
+            unmoved_non_pt.extend(toks[1:])
+    assert len(psucc_target_list) == 448
+
+    # Partition the 448 P_succ targets into the 4 cross-arm Q1 cohorts:
+    # - moved_both: 52 targets (first 6 are moved in prefix 0..174)
+    # - moved_rel_only: 11 targets
+    # - moved_fz_only: 19 targets
+    # - unchanged_both: 366 targets (first 18 move in FrozenZero post-Q1 so final has 71+18=89 moved P_succ targets)
+    moved_both_pt = psucc_target_list[:52]
+    moved_rel_only_pt = psucc_target_list[52:63]
+    moved_fz_only_pt = psucc_target_list[63:82]
+    unchanged_both_pt = psucc_target_list[82:448]
+    fz_post_q1_pt = unchanged_both_pt[:18]
+
+    # Non-P_succ moved tokens to hit exact total moved token counts:
+    # - prefix 0..174: 6 P_succ targets + 4 non-P_succ = 10 moved tokens
+    # - shared Q1: 52 P_succ + 13 non-P_succ = 65 tokens
+    # - rel_only Q1: 11 P_succ + 4 non-P_succ = 15 tokens (total Rel Q1 moved = 80)
+    # - fz_only Q1: 19 P_succ + 7 non-P_succ = 26 tokens (total FZ Q1 moved = 91)
+    # - fz post-Q1: 18 P_succ + 21 non-P_succ = 39 tokens (total FZ Final moved = 130)
+    shared_non_pt = non_psucc_moved_pool[:13]
+    rel_only_non_pt = non_psucc_moved_pool[13:17]
+    fz_only_non_pt = non_psucc_moved_pool[17:24]
+    fz_post_non_pt = non_psucc_moved_pool[24:45]
+
+    prefix_b03_tokens = moved_both_pt[:6] + shared_non_pt[:4]  # 10 tokens (6 P_succ targets)
+    post_prefix_shared_tokens = moved_both_pt[6:] + shared_non_pt[4:]  # 55 tokens
+    rel_only_tokens = moved_rel_only_pt + rel_only_non_pt  # 15 tokens
+    fz_only_tokens = moved_fz_only_pt + fz_only_non_pt  # 26 tokens
+    fz_post_tokens = fz_post_q1_pt + fz_post_non_pt  # 39 tokens
+
+    # Build step lists:
+    # Relation: 192 steps (checkpoints at 0, 175, 192)
+    # FrozenZero: 256 steps (checkpoints at 0, 175, 192, 256)
+    def make_step(
+        step_idx: int,
+        acc_before: int,
+        epoch_before: int,
+        kind: str,
+        coord_idx: int,
+        candidate: int,
+        applied: bool,
+        loss_before: int = 60000,
+        loss_after: int = 59500,
+        refused_by_policy: bool = False,
+    ) -> dict[str, Any]:
+        acc_after = acc_before + (1 if applied else 0)
+        epoch_after = epoch_before + (1 if applied else 0)
+        st = {
+            "cursor_before": {
+                "completed_batches": step_idx,
+                "accepted_updates": acc_before,
+                "corpus_pass": 0,
+                "next_target": step_idx * 64,
+                "next_coordinate": step_idx,
+            },
+            "cursor_after": {
+                "completed_batches": step_idx + 1,
+                "accepted_updates": acc_after,
+                "corpus_pass": 0,
+                "next_target": (step_idx + 1) * 64,
+                "next_coordinate": step_idx + 1,
+            },
+            "coordinate": {"kind": kind, "index": coord_idx},
+            "target_positions": [19, 20],
+            "candidate": candidate,
+            "loss_before": loss_before,
+            "loss_after": loss_after if (applied or refused_by_policy) else loss_before,
+            "model_epoch": epoch_after,
+            "applied": applied,
+            "any_candidate_cost_differs_from_identity": True,
+        }
+        if refused_by_policy:
+            st["apply_refused_by_policy"] = True
+        return st
+
+    # Prefix 0..174: 28 vector writes (14 on block 0/3 over 10 tokens: 10 on block 0 + 4 on block 3; 7 on block 1; 7 on block 2) + 7 gate_combine writes
+    prefix_ops: list[tuple[str, int, int, bool]] = []
+    for t in prefix_b03_tokens:
+        prefix_ops.append(("vector_block", t * 4 + 0, 1, True))
+    for t in prefix_b03_tokens[:4]:
+        prefix_ops.append(("vector_block", t * 4 + 3, 1, True))
+    for i in range(7):
+        prefix_ops.append(("vector_block", unmoved_non_pt[i] * 4 + 1, 1, True))
+        prefix_ops.append(("vector_block", unmoved_non_pt[i] * 4 + 2, 1, True))
+    for i in range(7):
+        prefix_ops.append(("gate", i, 2, True))
+    while len(prefix_ops) < 175:
+        prefix_ops.append(("vector_block", unmoved_non_pt[50 + (len(prefix_ops) % 100)] * 4 + 1, 0, False))
+
+    # Interval 175..399 (Q1 at 400) and 400..511 (Final at 512):
+    # Matches all exact moved-token counts (80, 91, 130, 65, 15, 26) and exact
+    # 192 [58,49,52,33] / 207 [64,49,55,39] / 301 [82,75,80,64] vector write counts.
+    rel_q1_slots: list[int] = []
+    # Relation Q1 needs [58, 49, 52, 33] across blocks 0..3 (total 192; b0+b3 = 91 across 80 tokens):
+    # Prefix already has 10 b0 + 4 b3 (over 10 tokens) + 7 b1 + 7 b2.
+    # Add 48 b0 + 22 b3 over the remaining 70 Relation moved tokens (55 shared + 15 rel_only) + 7 extra b3 on already-moved tokens:
+    rem_rel_moved = post_prefix_shared_tokens + rel_only_tokens  # 70 tokens
+    for t in rem_rel_moved[:48]:
+        rel_q1_slots.append(t * 4 + 0)
+    for t in rem_rel_moved[48:70]:
+        rel_q1_slots.append(t * 4 + 3)
+    for t in rem_rel_moved[:7]:
+        rel_q1_slots.append(t * 4 + 3)
+    for i in range(42):
+        rel_q1_slots.append(unmoved_non_pt[10 + i] * 4 + 1)
+    for i in range(45):
+        rel_q1_slots.append(unmoved_non_pt[10 + i] * 4 + 2)
+
+    # FrozenZero Q1 needs [64, 49, 55, 39] across blocks 0..3 (total 207; b0+b3 = 103 across 91 tokens):
+    # Prefix already has 10 b0 + 4 b3 (over 10 tokens) + 7 b1 + 7 b2.
+    # Remaining 81 FZ Q1 moved tokens = 55 post_prefix_shared + 26 fz_only:
+    rem_fz_moved = post_prefix_shared_tokens + fz_only_tokens  # 81 tokens
+    fz_q1_slots: list[int] = []
+    for t in rem_fz_moved[:54]:
+        fz_q1_slots.append(t * 4 + 0)
+    for t in rem_fz_moved[54:81]:
+        fz_q1_slots.append(t * 4 + 3)
+    for t in rem_fz_moved[:8]:
+        fz_q1_slots.append(t * 4 + 3)
+    for i in range(42):
+        fz_q1_slots.append(unmoved_non_pt[60 + i] * 4 + 1)
+    for i in range(48):
+        fz_q1_slots.append(unmoved_non_pt[60 + i] * 4 + 2)
+
+    # FrozenZero post-Q1 (to Final) needs [82-64=18, 75-49=26, 80-55=25, 64-39=25] = 94 writes (43 on b0/b3 across 39 new tokens + 4 existing):
+    fz_post_slots: list[int] = []
+    for t in fz_post_tokens[:18]:
+        fz_post_slots.append(t * 4 + 0)
+    for t in fz_post_tokens[18:39]:
+        fz_post_slots.append(t * 4 + 3)
+    for t in fz_post_tokens[:4]:
+        fz_post_slots.append(t * 4 + 3)
+    for i in range(26):
+        fz_post_slots.append(unmoved_non_pt[120 + i] * 4 + 1)
+    for i in range(25):
+        fz_post_slots.append(unmoved_non_pt[120 + i] * 4 + 2)
+
+    q1_syn_batch = 400
+    fin_syn_batch = 512
+
+    def build_arm_steps_and_cps(is_fz: bool) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        steps: list[dict[str, Any]] = []
+        table = list(a8_words)
+        gates = list(EXPECTED_ACTIVE_LEAF_GATES)
+        acc = 0
+        epoch = 0
+
+        def snap(batch_num: int, name: str, sha_override: str) -> dict[str, Any]:
+            return {
+                "name": name,
+                "manifest_key": f"./claude/{'a8-dose-frozen-zero-seed1' if is_fz else 'a8-dose-relation-seed1'}/{name}",
+                "sha256": sha_override,
+                "bytes": 6967500,
+                "completed_batches": batch_num,
+                "accepted_updates": acc,
+                "epoch": epoch,
+                "gates": list(gates),
+                "routes": list(EXPECTED_MODEL_ROUTES),
+                "table": list(table),
+            }
+
+        def apply_slot(slot: int) -> None:
+            old_rid = ROOT_TUPLE_TO_ID[tuple(table[slot * 8 : (slot + 1) * 8])]
+            table[slot * 8 : (slot + 1) * 8] = list(ROOTS[(old_rid + 1) % 16])
+
+        cps: list[dict[str, Any]] = [
+            snap(
+                0,
+                "checkpoint-00000.json",
+                EXPECTED_VAST_56670997_FZ_CP00000_SHA256 if is_fz else EXPECTED_VAST_56670997_REL_CP00000_SHA256,
+            )
+        ]
+
+        # 0..174
+        for s_idx, (kind, c_idx, cand, app) in enumerate(prefix_ops):
+            steps.append(make_step(s_idx, acc, epoch, kind, c_idx, cand, app))
+            if app:
+                acc += 1
+                epoch += 1
+                if kind == "vector_block":
+                    apply_slot(c_idx)
+                else:
+                    gates[c_idx] = -1
+
+        cps.append(snap(175, "checkpoint-00175.json", ("a" if not is_fz else "b") * 64))
+
+        # Step 175: Gate(21) bifurcation
+        if not is_fz:
+            steps.append(make_step(175, acc, epoch, "gate", 21, 2, True, 55680, 55232))
+            acc += 1
+            epoch += 1
+            gates[21] = -1
+        else:
+            steps.append(make_step(175, acc, epoch, "gate", 21, 2, False, 55680, 55232, refused_by_policy=True))
+
+        # 176..q1_syn_batch-1
+        q1_slots = fz_q1_slots if is_fz else rel_q1_slots
+        for offset in range(q1_syn_batch - 176):
+            s_idx = 176 + offset
+            if offset < len(q1_slots):
+                slot = q1_slots[offset]
+                steps.append(make_step(s_idx, acc, epoch, "vector_block", slot, 1, True))
+                acc += 1
+                epoch += 1
+                apply_slot(slot)
+            else:
+                steps.append(make_step(s_idx, acc, epoch, "vector_block", 0, 0, False))
+
+        cps.append(
+            snap(
+                q1_syn_batch,
+                "checkpoint-04096.json",
+                EXPECTED_VAST_56670997_FZ_CP04096_SHA256 if is_fz else EXPECTED_VAST_56670997_REL_CP04096_SHA256,
+            )
+        )
+
+        if is_fz:
+            for offset in range(fin_syn_batch - q1_syn_batch):
+                s_idx = q1_syn_batch + offset
+                if offset < len(fz_post_slots):
+                    slot = fz_post_slots[offset]
+                    steps.append(make_step(s_idx, acc, epoch, "vector_block", slot, 1, True))
+                    acc += 1
+                    epoch += 1
+                    apply_slot(slot)
+                else:
+                    steps.append(make_step(s_idx, acc, epoch, "vector_block", 0, 0, False))
+            cps.append(snap(fin_syn_batch, "checkpoint-16404.json", EXPECTED_VAST_56670997_FZ_CP16404_SHA256))
+
+        return steps, cps
+
+    rel_steps, rel_cps = build_arm_steps_and_cps(False)
+    fz_steps, fz_cps = build_arm_steps_and_cps(True)
+
+    # Construct the 14,287 DEV B3 rows (3,847 P_succ rows + 10,440 complement rows)
+    # matching the exact 4-way Q1 cohorts, 302 prefix rows, and FrozenZero Final two-sided decomposition!
+    # Cohort row counts:
+    # - moved_both (52 targets, 1,150 rows): first 6 targets (prefix) get 302 rows; remaining 46 targets get 848 rows
+    # - moved_rel_only (11 targets, 311 rows)
+    # - moved_fz_only (19 targets, 219 rows)
+    # - unchanged_both (366 targets, 2,167 rows): first 18 targets (fz_post_q1_pt) get 158 rows (so FZ Final moved has 1369 + 158 = 1527 rows!); remaining 348 targets get 2,009 rows
+    def distribute_rows(targets: list[int], total_rows: int) -> list[int]:
+        base_c = total_rows // len(targets)
+        rem_c = total_rows % len(targets)
+        out_t: list[int] = []
+        for idx, t in enumerate(targets):
+            cnt = base_c + (1 if idx < rem_c else 0)
+            out_t.extend([t] * cnt)
+        assert len(out_t) == total_rows
+        return out_t
+
+    mb_tokens_per_row = distribute_rows(moved_both_pt[:6], 302) + distribute_rows(moved_both_pt[6:], 848)
+    mro_tokens_per_row = distribute_rows(moved_rel_only_pt, 311)
+    mfo_tokens_per_row = distribute_rows(moved_fz_only_pt, 219)
+    ub_post_tokens_per_row = distribute_rows(fz_post_q1_pt, 158)
+    ub_stay_tokens_per_row = distribute_rows(unchanged_both_pt[18:], 2009)
+
+    def make_cohort_states(
+        rows_cnt: int,
+        r_kept: int,
+        r_lost: int,
+        r_gain: int,
+        f_kept: int,
+        f_lost: int,
+        f_gain: int,
+        both_adm: int,
+    ) -> list[tuple[bool, bool, bool]]:
+        # Construct (init, rel_q1, fz_q1) tuples satisfying all marginals and both_admitted
+        init_adm = r_kept + r_lost
+        assert f_kept + f_lost == init_adm
+        init_0 = rows_cnt - init_adm
+        # On init=1 (size init_adm): rel_q1=1 on r_kept, fz_q1=1 on f_kept. Overlap on init=1:
+        ov1 = min(r_kept, f_kept, both_adm)
+        # On init=0 (size init_0): rel_q1=1 on r_gain, fz_q1=1 on f_gain. Need overlap ov0 = both_adm - ov1:
+        ov0 = both_adm - ov1
+        if ov0 > min(r_gain, f_gain):
+            ov0 = min(r_gain, f_gain)
+            ov1 = both_adm - ov0
+        states: list[tuple[bool, bool, bool]] = []
+        # init=1 rows
+        for i in range(init_adm):
+            ar = i < r_kept
+            af = (i < ov1) or (r_kept <= i < r_kept + (f_kept - ov1))
+            states.append((True, ar, af))
+        # init=0 rows
+        for i in range(init_0):
+            ar = i < r_gain
+            af = (i < ov0) or (r_gain <= i < r_gain + (f_gain - ov0))
+            states.append((False, ar, af))
+        assert len(states) == rows_cnt
+        return states
+
+    ub_states = make_cohort_states(2167, 260, 573, 106, 404, 429, 133, 189)
+    mb_states = make_cohort_states(1150, 34, 304, 82, 62, 276, 160, 42)
+    mro_states = make_cohort_states(311, 10, 69, 13, 33, 46, 7, 7)
+    mfo_states = make_cohort_states(219, 35, 66, 11, 40, 61, 18, 16)
+
+    # Reorder ub_states so the first 158 rows (fz_post_q1_pt) have exact init_admitted = 488 - 439 = 49
+    ub_init1 = [s for s in ub_states if s[0]]
+    ub_init0 = [s for s in ub_states if not s[0]]
+    ub_states_ordered = (
+        ub_init1[:49]
+        + ub_init0[: 158 - 49]
+        + ub_init1[49:]
+        + ub_init0[158 - 49 :]
+    )
+    ub_tokens_per_row = ub_post_tokens_per_row + ub_stay_tokens_per_row
+
+    # Assign fz_final (a_fin) on each row:
+    # - FZ Final moved rows = mb (1,150) + mfo (219) + ub_post (158) = 1,527 rows (init_adm = 338 + 101 + 49 = 488):
+    #   needs kept=89, lost=399, gained=168, never=871
+    # - FZ Final unchanged rows = ub_stay (2,009) + mro (311) = 2,320 rows (init_adm = (833-49) + 79 = 863):
+    #   needs kept=385, lost=478, gained=155, never=1302
+    all_psucc_spec: list[tuple[int, bool, bool, bool, bool]] = []
+    moved_fin_pool = list(zip(mb_tokens_per_row, mb_states)) + list(zip(mfo_tokens_per_row, mfo_states)) + list(zip(ub_post_tokens_per_row, ub_states_ordered[:158]))
+    unch_fin_pool = list(zip(ub_stay_tokens_per_row, ub_states_ordered[158:])) + list(zip(mro_tokens_per_row, mro_states))
+
+    def assign_final(
+        pool: list[tuple[int, tuple[bool, bool, bool]]], kept_target: int, gain_target: int
+    ) -> None:
+        k_cnt = g_cnt = 0
+        for tok, (a0, ar, af) in pool:
+            if a0:
+                afin = k_cnt < kept_target
+                if afin:
+                    k_cnt += 1
+            else:
+                afin = g_cnt < gain_target
+                if afin:
+                    g_cnt += 1
+            all_psucc_spec.append((tok, a0, ar, af, afin))
+        assert k_cnt == kept_target and g_cnt == gain_target
+
+    assign_final(moved_fin_pool, 89, 168)
+    assign_final(unch_fin_pool, 385, 155)
+    assert len(all_psucc_spec) == CANONICAL_DEV_PSUCC_ROWS
+
+    init_rows: list[dict[str, Any]] = []
+    rel_q1_rows: list[dict[str, Any]] = []
+    fz_q1_rows: list[dict[str, Any]] = []
+    fz_fin_rows: list[dict[str, Any]] = []
+
+    for idx, (tok, a0, ar, af, afin) in enumerate(all_psucc_spec):
+        pos = idx + 10
+        init_rows.append({"row_ordinal": idx, "target_position": pos, "target_token": tok, "is_psucc": True, "target_admitted": a0})
+        rel_q1_rows.append({"row_ordinal": idx, "target_position": pos, "target_token": tok, "is_psucc": True, "target_admitted": ar})
+        fz_q1_rows.append({"row_ordinal": idx, "target_position": pos, "target_token": tok, "is_psucc": True, "target_admitted": af})
+        fz_fin_rows.append({"row_ordinal": idx, "target_position": pos, "target_token": tok, "is_psucc": True, "target_admitted": afin})
+
+    for offset in range(CANONICAL_DEV_COMP_ROWS):
+        idx = CANONICAL_DEV_PSUCC_ROWS + offset
+        pos = idx + 10
+        tok = unmoved_non_pt[0]
+        a0 = offset < EXPECTED_A8_CP0_COMP_ADMITTED
+        ar = offset < 960
+        af = offset < 1662
+        afin = offset < 1220
+        init_rows.append({"row_ordinal": idx, "target_position": pos, "target_token": tok, "is_psucc": False, "target_admitted": a0})
+        rel_q1_rows.append({"row_ordinal": idx, "target_position": pos, "target_token": tok, "is_psucc": False, "target_admitted": ar})
+        fz_q1_rows.append({"row_ordinal": idx, "target_position": pos, "target_token": tok, "is_psucc": False, "target_admitted": af})
+        fz_fin_rows.append({"row_ordinal": idx, "target_position": pos, "target_token": tok, "is_psucc": False, "target_admitted": afin})
+
+    # Compute actual synthetic population bounds at cp0, q1_syn_batch, and fin_syn_batch
+    _, _, _, rel_q1_min, rel_q1_max = _extract_checkpoint_root_ids_and_cells(rel_cps[-1]["table"], "syn_rel_q1")
+    _, _, _, fz_q1_min, fz_q1_max = _extract_checkpoint_root_ids_and_cells(fz_cps[-2]["table"], "syn_fz_q1")
+    _, _, _, fz_fin_min, fz_fin_max = _extract_checkpoint_root_ids_and_cells(fz_cps[-1]["table"], "syn_fz_fin")
+
+    syn_expected = copy.deepcopy(EXPECTED_VAST_56670997_CENSUS_EXPECTATIONS)
+    syn_expected["relation_checkpoint_count"] = len(rel_cps)
+    syn_expected["frozen_zero_checkpoint_count"] = len(fz_cps)
+    syn_expected["relation_intervals"] = len(rel_cps) - 1
+    syn_expected["frozen_zero_intervals"] = len(fz_cps) - 1
+    syn_expected["total_intervals"] = (len(rel_cps) - 1) + (len(fz_cps) - 1)
+    syn_expected["relation_steps_lines"] = len(rel_steps)
+    syn_expected["frozen_zero_steps_lines"] = len(fz_steps)
+    syn_expected["q1_batch"] = q1_syn_batch
+    syn_expected["final_batch"] = fin_syn_batch
+    syn_expected["population_bounds"] = {
+        "cp0": {"occupied_cells": 256, "min_pop": 16, "max_pop": 16},
+        "relation_q1": {"occupied_cells": 256, "min_pop": rel_q1_min, "max_pop": rel_q1_max},
+        "frozen_zero_q1": {"occupied_cells": 256, "min_pop": fz_q1_min, "max_pop": fz_q1_max},
+        "frozen_zero_final": {"occupied_cells": 256, "min_pop": fz_fin_min, "max_pop": fz_fin_max},
+    }
+
+    manifest_entries: dict[str, str] = {
+        "./claude/a8-dose-gates-20261019/relation/cells/token_cells.u16": EXPECTED_VAST_56670997_CP0_TOKEN_CELLS_U16_SHA256,
+        "./claude/a8-dose-gates-20261019/frozen-zero/cells/token_cells.u16": EXPECTED_VAST_56670997_CP0_TOKEN_CELLS_U16_SHA256,
+        "./claude/a8-dose-relation-seed1/steps.jsonl": EXPECTED_VAST_56670997_REL_STEPS_JSONL_SHA256,
+        "./claude/a8-dose-frozen-zero-seed1/steps.jsonl": EXPECTED_VAST_56670997_FZ_STEPS_JSONL_SHA256,
+        "./claude/a8-dose-custody-20261019/state/a8-relation-seed1/q1.json": EXPECTED_VAST_56670997_REL_Q1_JSON_SHA256,
+        "./claude/a8-dose-custody-20261019/state/a8-frozen-zero-seed1/q1.json": EXPECTED_VAST_56670997_FZ_Q1_JSON_SHA256,
+        "./claude/a8-dose-frozen-zero-seed1/report.json": EXPECTED_VAST_56670997_FZ_REPORT_JSON_SHA256,
+        "./claude/a8-dose-relation-seed1/report.json": EXPECTED_VAST_56670997_REL_REPORT_JSON_SHA256,
+    }
+    for cp in rel_cps + fz_cps:
+        manifest_entries[cp["manifest_key"]] = cp["sha256"]
+    syn_expected["manifest_lines"] = len(manifest_entries)
+
+    return {
+        "manifest_sha256": EXPECTED_VAST_56670997_RUNS_MANIFEST_SHA256,
+        "manifest_bytes": EXPECTED_VAST_56670997_RUNS_MANIFEST_BYTES,
+        "manifest_entries": manifest_entries,
+        "relation_checkpoints": rel_cps,
+        "frozen_zero_checkpoints": fz_cps,
+        "relation_steps_sha256": EXPECTED_VAST_56670997_REL_STEPS_JSONL_SHA256,
+        "relation_steps": rel_steps,
+        "frozen_zero_steps_sha256": EXPECTED_VAST_56670997_FZ_STEPS_JSONL_SHA256,
+        "frozen_zero_steps": fz_steps,
+        "relation_q1_sha256": EXPECTED_VAST_56670997_REL_Q1_JSON_SHA256,
+        "relation_q1": {
+            "init_b3": {"rows": init_rows},
+            "q1_b3": {"rows": rel_q1_rows},
+        },
+        "frozen_zero_q1_sha256": EXPECTED_VAST_56670997_FZ_Q1_JSON_SHA256,
+        "frozen_zero_q1": {
+            "init_b3": {"rows": copy.deepcopy(init_rows)},
+            "q1_b3": {"rows": fz_q1_rows},
+        },
+        "frozen_zero_report_sha256": EXPECTED_VAST_56670997_FZ_REPORT_JSON_SHA256,
+        "frozen_zero_report": {
+            "final_b3": {"rows": fz_fin_rows},
+        },
+        "relation_report_sha256": EXPECTED_VAST_56670997_REL_REPORT_JSON_SHA256,
+        "relation_report": {"status": "Q1_STOP_FOR_DIAGNOSIS"},
+        "expected": syn_expected,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Host-only consumer verifier for A8 address-cells learning dose & pre-run gates."
+        description="Host-only consumer verifier for A8 address-cells learning dose, pre-run gates, and 65+258 checkpoint census/attribution."
     )
     parser.add_argument(
         "--repo-root",
@@ -4156,6 +6040,35 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional path to vast-56670997 original-relation-controls.json.",
     )
     parser.add_argument(
+        "--verify-census",
+        action="store_true",
+        help="Verify the 65 Relation + 258 FrozenZero checkpoints, steps.jsonl slot bijection, step-175 Gate(21) bifurcation, and two-sided + 4-way P_succ admission decomposition.",
+    )
+    parser.add_argument(
+        "--census-archive-dir",
+        type=Path,
+        default=None,
+        help="Optional path to vast-56670997 uor-r4 archive directory containing runs.manifest.sha256, q1.json, and report.json.",
+    )
+    parser.add_argument(
+        "--relation-checkpoints-dir",
+        type=Path,
+        default=None,
+        help="Optional path to directory containing 65 Relation checkpoint-*.json files.",
+    )
+    parser.add_argument(
+        "--frozen-checkpoints-dir",
+        type=Path,
+        default=None,
+        help="Optional path to directory containing 258 FrozenZero checkpoint-*.json files.",
+    )
+    parser.add_argument(
+        "--steps-dir",
+        type=Path,
+        default=None,
+        help="Optional path to directory containing runs/claude/a8-dose-{relation,frozen-zero}-seed1/steps.jsonl.",
+    )
+    parser.add_argument(
         "--prerun-bundle",
         type=Path,
         default=None,
@@ -4175,7 +6088,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Run the 40-case positive and negative self-test suite.",
+        help="Run the 48-case positive and negative self-test suite.",
     )
     args = parser.parse_args(argv)
 
@@ -4203,6 +6116,20 @@ def main(argv: list[str] | None = None) -> int:
             gates_log_path=args.gates_log,
             relation_controls_path=args.relation_controls,
             repo_root=args.repo_root,
+        )
+
+    if (
+        args.verify_census
+        or args.census_archive_dir is not None
+        or args.relation_checkpoints_dir is not None
+        or args.frozen_checkpoints_dir is not None
+        or args.steps_dir is not None
+    ):
+        out["census_and_attribution"] = verify_a8_census_and_attribution(
+            census_archive_dir=args.census_archive_dir,
+            relation_checkpoints_dir=args.relation_checkpoints_dir,
+            frozen_checkpoints_dir=args.frozen_checkpoints_dir,
+            steps_dir=args.steps_dir,
         )
 
     if args.self_test:
@@ -4246,3 +6173,4 @@ if __name__ == "__main__":
             file=sys.stderr,
         )
         sys.exit(1)
+

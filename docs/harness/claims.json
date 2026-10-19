@@ -1,4 +1,11 @@
 {
+  "antigravity/a8-dose-census-attribution-verifier": {
+    "branch": "antigravity/a8-dose-census-attribution-verifier",
+    "claimed_at": "2026-10-19T02:40:17-04:00",
+    "head": "db3050a6f",
+    "lab": "antigravity",
+    "note": ""
+  },
   "antigravity/address-cells-consumer-verifier-2026-10-19": {
     "branch": "antigravity/address-cells-consumer-verifier-2026-10-19",
     "claimed_at": "2026-10-18T22:57:26-04:00",
