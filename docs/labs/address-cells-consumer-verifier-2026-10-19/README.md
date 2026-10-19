@@ -159,3 +159,7 @@ python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_a8_address_c
   --gates-log /Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019/init-lock-selector-diagnosis/original-gates.log \
   --relation-controls /Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019/init-lock-selector-diagnosis/original-relation-controls.json
 ```
+
+## Post-merge correction (2026-10-19)
+
+The merged current-state entry repeated stale draft receipt values. Corrected there to the actual #2767 evidence: Relation Q1 accepted counters vector 192 / combine 117 / relation 87 (route 0), full 1,511, P_succ 551; FrozenZero final vector 14,354/832/301, combine 920/914/508, relation 1,130/579/0, P_succ 797, full 2,017 (Q1 857/2,519); canonical gate log 4ec8411f and relation-controls e753e003; 27 payload members verified with a stale custody manifest self-entry. Verifier code, README table and self-tests were already correct and are unchanged.
