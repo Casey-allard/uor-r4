@@ -265,17 +265,17 @@
     "lab": "codex",
     "note": ""
   },
-  "codex/cf1-attention-rows-q1-result": {
-    "branch": "codex/cf1-attention-rows-q1-result",
-    "claimed_at": "2026-10-18T04:24:12-04:00",
-    "head": "e002430a0",
-    "lab": "codex",
-    "note": ""
-  },
   "codex/cf1-attention-strategic-stop": {
     "branch": "codex/cf1-attention-strategic-stop",
     "claimed_at": "2026-10-18T01:29:12-04:00",
     "head": "fe4c327b5",
+    "lab": "codex",
+    "note": ""
+  },
+  "codex/cf1-injective-attention-packet": {
+    "branch": "codex/cf1-injective-attention-packet",
+    "claimed_at": "2026-10-18T20:45:59-04:00",
+    "head": "4cca1e03f",
     "lab": "codex",
     "note": ""
   },
@@ -285,13 +285,6 @@
     "head": "966c28519",
     "lab": "codex",
     "note": "Two CUDA-only Route Snapshot initializer repairs after actual E0063; source only no on-lease patch or retry"
-  },
-  "codex/cf1-k16-four-role-result": {
-    "branch": "codex/cf1-k16-four-role-result",
-    "claimed_at": "2026-10-18T19:58:16-04:00",
-    "head": "7a6218364",
-    "lab": "codex",
-    "note": ""
   },
   "codex/cf1-k16-inactive-archive": {
     "branch": "codex/cf1-k16-inactive-archive",

@@ -90,6 +90,7 @@ impl Device {
             },
             binding: self.binding.clone(),
             rows_cache: std::sync::OnceLock::new(),
+            rows_scratch: scratch_cache::ScratchCache::new(),
         })
     }
 

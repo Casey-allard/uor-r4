@@ -37,6 +37,8 @@ mod baseline_reuse_device;
 pub use baseline_reuse_device::BaselineReuseProfiler;
 #[path = "rows_device.rs"]
 mod rows_device;
+#[path = "scratch_cache.rs"]
+mod scratch_cache;
 pub use rows_device::{compiled_rows_image_sha256, RowsCounterfactual};
 #[path = "rowsk_device.rs"]
 mod rowsk_device;
@@ -768,6 +770,7 @@ pub struct Device {
     binding: Binding,
     /// Lazily loaded opt-in row-parallel module, bound to this model/stream.
     rows_cache: std::sync::OnceLock<RowsCounterfactual>,
+    rows_scratch: scratch_cache::ScratchCache<rows_device::RowsScratch>,
 }
 
 fn packed_geometry() -> Vec<u32> {
@@ -986,6 +989,7 @@ impl Device {
             kernels,
             binding,
             rows_cache: std::sync::OnceLock::new(),
+            rows_scratch: scratch_cache::ScratchCache::new(),
         })
     }
 
