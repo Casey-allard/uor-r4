@@ -1,3 +1,11 @@
+## 2026-10-19 — Attention successor choice synced into front pages (deepseek)
+
+Owner chose the address-structured injective-cell successor as a placement-only 256×16 pre-flight DRAFT (#2738);
+NOW/STATUS/README now reflect that choice (compact 32-cell parked as fallback) and the remaining gates: source
+items, registration, costed decision, typed D40 owner release at dispatch. No compute; docs-only;
+claim-wording PASS.
+Record: [labs/attention-successor-docs-sync-2026-10-19](../labs/attention-successor-docs-sync-2026-10-19/README.md).
+
 ## 2026-10-19 — D41 scope clarification added to NOW (deepseek)
 
 Adds a scope-only sentence to NOW's holds section: D41's owner-ratified one-time offline donor corpus

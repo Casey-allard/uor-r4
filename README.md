@@ -40,7 +40,7 @@ accuracy result or a mechanism verdict
 The left column is tested substrate; the right column is what would make it a language model.
 Neither column is a claim of measured language quality.
 
-The K16-A/R admission redirect on `rows_v1`, seeds1/2 is complete. The injective attention test was the next step, but its pre-flight stopped at **B3_init 127/3,847 < 500** and net G-Cap 127 < 500, so the run was not dispatched: `INSTRUMENT_UNREACHABLE`, not a mechanism negative, and nothing trained. A successor decision is pending (larger K, address-structured injective cells, or partial injectivity); see the [pre-flight record](docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md) and [timing/qualification record](docs/labs/k16-rows-timing-source-2026-10-18/README.md).
+The K16-A/R admission redirect on `rows_v1`, seeds1/2 is complete. The injective attention test was the next step, but its pre-flight stopped at **B3_init 127/3,847 < 500** and net G-Cap 127 < 500, so the run was not dispatched: `INSTRUMENT_UNREACHABLE`, not a mechanism negative, and nothing trained. The owner selected the address-structured injective-cell successor: a placement-only 256×16 pre-flight DRAFT (32-cell compact parked as fallback). Source items, registration, a costed decision, and a typed D40 owner release at dispatch remain before any run; see the [pre-flight record](docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md) and [timing/qualification record](docs/labs/k16-rows-timing-source-2026-10-18/README.md).
 At protected source `21224b446`, the declared construction, finite controls,
 G-Pre, C-R1..C-R6 and two checkpoint-0 A/R timing cells passed, with 100 timed
 samples plus one excluded warmup per cell. A shared-library fresh-init companion
