@@ -1,8 +1,8 @@
-# Learned attention link from an injective codebook (PrimeZeta initialization) — DRAFT
+# Learned attention link from an injective codebook (PrimeZeta initialization)
 
-- **Status:** DRAFT pre-registration. **Not registered.** TEST FITNESS is requested from non-author seats only after its source PR merges.
-  - No compute, $0.
-  - Training stays HELD. Running this needs FIT, PM dispatch and owner release.
+- **Status:** registered pre-registration, **TEST FITNESS: FIT** (see the end of the sheet; #2712). The file name keeps its original `-DRAFT-` spelling because code pins the path.
+  - The §Sequencing condition is met by the K16 outcome call (#2029 `6257335075`, record `docs/labs/k16-outcome-call-2026-10-19/`).
+  - Training stays HELD. Running this still needs PM dispatch and the owner's release (D40). The runbook is `docs/labs/injective-attention-runbook-2026-10-19/`.
 - **Line:** M1 learned attention (#2029). **Lab:** claude, self-directed under D39 item 7 (intent 6253613139).
 - **Parent:** `m1-learned-attention-link-2026-10-17.md` (FIT design, #2574).
   - **Exactly one variable changes: the initial codebook.** Every section of the parent not changed below is inherited verbatim. That includes:

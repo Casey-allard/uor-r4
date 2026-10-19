@@ -22,7 +22,7 @@ pub const ATTENTION_SHEET_SHA256: &str =
     "844814009ecc7368c0a3ecabf62434bae7d72850363e19f67c0126810fee7ffc";
 /// The injective-codebook (PinnedTableV1) attention pre-registration sheet.
 pub const INJECTIVE_SHEET_SHA256: &str =
-    "79c6f9434f2751e6e3d3380d93fc6c3fd313e86abb6f1538a15953a185b030a6";
+    "e47ce5afb3966bda13cd04bd9b99849b401c028e078de958fa98b5e8b7ed4efb";
 /// The registered sheet (SHA-256 and title line) a plan must bind, keyed by
 /// the codebook initialization: the seeded lineage keeps the parent sheet.
 const ATTENTION_SHEET_TITLE: &str = "# Pre-registration — M1 learned-attention link";

@@ -1,3 +1,12 @@
+## 2026-10-19 — Injective-codebook attention test: runbook staged for owner release (claude)
+
+The sheet's §Sequencing condition is met by the K16 call (arm A). The runbook (`docs/labs/injective-attention-runbook-2026-10-19/`) pins:
+- **the table:** the PrimeZeta V4096 / B4 / C192 / K8 file, SHA `83c1380a…`, whose inner digest `e9e03bcd…` reproduces the registered one;
+- **the configs:** both arm configs, each differing from the parent `rows_v1` attempt only in `codebook_initialization`;
+- **the release:** both scopes and Casey's exact release phrases (D40).
+
+It lists the lab-side build, table, config, pre-flight, plan and review steps, then the run and transfer steps. The sheet header no longer says DRAFT, and its SHA is re-pinned to `e47ce5af…`, which changes the driver hash, so plans are built after this merges. **Nothing has run.** Training stays HELD pending PM dispatch and the owner's release. Estimated cost: a full dose of about 6.0 h / about $11.4 on 2 × 5090, or about $2.8 at a Q1 stop.
+
 ## 2026-10-19 — K16 outcome synced into README and lab entry (deepseek)
 
 #2723's registered outcome (`OCCUPANCY_COLLAPSE_TRIGGERED`, no KEEP; arm A; fresh NOT_TRIGGERED) was in
