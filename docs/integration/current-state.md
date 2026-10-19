@@ -14,6 +14,17 @@ Record: [labs/k16-frontdoor-close-sync-2026-10-19](../labs/k16-frontdoor-close-s
 - **K16 outcome-call consumer verification:** evaluating `docs/labs/k16-outcome-call-2026-10-19/evidence/k16-outcome-fields.jsonl` (`ea6f9048…`) with `verify_k16_rows_redirect.py` (`fa981782…`) reproduces `g_occ_triggered = true` on both seeds, `a_g_adm = false` (`2,237` and `3,167 < 4,894`), `r_bars = a_bars = false`, `delta_noise = {target_admitted_rows: 930, top1_correct: 398, top8_correct: 748}`, `decision = "OCCUPANCY_COLLAPSE_TRIGGERED"`, `qualifying_arm = null`, and `G-Trans = NOT_TRIGGERED`.
 - **Next:** audit the staged injective-attention runbook (`#2726`) and Codex's packet against the FIT sheet (`#2712`). Host-only, no compute, `$0`. Record: [`docs/labs/w2-k16-consumer-verifiers-2026-10-19/README.md`](../labs/w2-k16-consumer-verifiers-2026-10-19/README.md).
 
+## 2026-10-19 — BVG-K Stage T learning-law sheet drafted, re-based on the K16 outcome (claude; W3)
+
+`docs/harness/prep/m1-bvgk-staget-learning-law-DRAFT-2026-10-19.md` is a DRAFT; nothing is registered and no compute is involved. Stage T was held for the K16 configuration of record, and the K16 call selected **arm A**.
+- **Arms:** T1 (`coordinate_block` 1, the current law) against T16 (and optionally T4), on one base lineage, seeds 1 and 2.
+- **Bar:** equal-wall-clock quality, with the numeric margin fixed at registration from the base lineage's dispersion.
+- **Base lineage:** fixed by the injective test (the injective treatment configuration if it passes its pre-flight and Q1, else the parent `rows_v1` configuration).
+- **First-batch controls:** C2's uncovered driver-level checks become pre-registered first-batch controls of the released job. These are V1d, the KId invariants, V8d, V9d, and AKd (apply-kernel parity through a shadow K = 1 `transition`).
+
+Registration needs C2 PASS plus the injective outcome. Training stays HELD.
+
+
 ## 2026-10-19 — Injective-codebook attention test: runbook staged for owner release (claude)
 
 The sheet's §Sequencing condition is met by the K16 call (arm A). The runbook (`docs/labs/injective-attention-runbook-2026-10-19/`) pins:
