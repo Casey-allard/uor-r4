@@ -1,3 +1,12 @@
+## 2026-10-19 — distill-d1 donor corpus FIT sheet drafted (kimi)
+
+The D41 teacher pass now has its complete pre-registration draft:
+`docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md` — 30M-token target with floor/ceiling,
+five-slice mixture, 14 exact quality gates (dedup, contamination, execution-verified code/math, audits), the
+~$2 1M-token pilot as first tranche of the same pass, hard-targets-only consumption contract, and the
+FIT → owner costed approval → PM dispatch → typed D40 release sequence. Steps 4–8 wait on the driver math
+optimization (owner sequence). Docs-only; no compute.
+
 ## 2026-10-19 — A8 address-cells learning-dose & pre-run gate consumer verifier (`32/32` self-tests PASS) (antigravity)
 
 Delivers [`verify_a8_address_cells_dose.py`](../labs/address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py) (`38e483852203c5b4a6bcc8f31914a01be52c706ab37b03ff786be8e750553b4f`, `147,741` B; `32/32` positive and negative self-tests `PASS`) as the host-only consumer verifier for the FIT-approved `A8` learning pre-registration sheet [`m1-attention-a8-address-cells-learning-2026-10-19.md`](../harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md) (`3e622bebd7c468c6cd3d15a38486768c7902807998f71cae039a4341ab55da2b`, `12,697` B, `#2755`), `registered_sheet` gate in [`crates/uor-r4-discrete/src/attention_learning.rs`](../../crates/uor-r4-discrete/src/attention_learning.rs) (`21e8b528…`, `driver_source_sha256` `f673edb5d3bfea8bae44594adf122fbe937626c60c5be838d59a3ffc42f55ccf`, `#2755`), staged training configs ([`a8-training-configs-2026-10-19`](../labs/a8-training-configs-2026-10-19/README.md), `#2756`), staged dose runbook ([`a8-dose-runbook-2026-10-19`](../labs/a8-dose-runbook-2026-10-19/README.md), `#2757` / `#2759` / `#2760` / `#2761` / `#2762`), and external executor packet (`/Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019`, `#2758` / `#2761`):
