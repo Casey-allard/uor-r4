@@ -1,0 +1,141 @@
+# uor-pod job by=claude/claude-dispatch-20261019 pod=vast-56648533 gpu=1 queued 2026-10-19T01:28:46Z
+# cmd: bash /root/c2-qualify.sh
+# start 2026-10-19T01:28:46Z (holding /root/gpu1.lock)
+## 2026-10-19T01:28:46Z source 5c7276cfd8eac2fd8c820ec75395971162d6fe06
+NVIDIA GeForce RTX 5090, 580.178.04, 1 MiB
+NVIDIA GeForce RTX 5090, 580.178.04, 1 MiB
+## 2026-10-19T01:28:46Z D29 checker
+info: syncing channel updates for 1.97.1-x86_64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: downloading 2 components
+0fc2f06d3ab73cd20b073c5515d5e3d170250770ba4d620c1e8ed2c5a9b0d576  /workspace/uor-r4/runs/claude/bvgk-c2-qualify-20261019/d29-selftest.txt
+36e03705416bf83798cbec0392f90e4051315dfa5e1e5d82b28408ab939f4f4a  /workspace/uor-r4/runs/claude/bvgk-c2-qualify-20261019/d29.txt
+## 2026-10-19T01:28:50Z build all uor-r4-discrete CUDA binaries (shared with the injective pre-flight)
+warning: constant `ASK_CURRENT` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:41:7
+   |
+41 | const ASK_CURRENT: usize = 0;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `ASK_PREVIOUS` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:42:7
+   |
+42 | const ASK_PREVIOUS: usize = 1;
+   |       ^^^^^^^^^^^^
+
+warning: constant `ASK_INITIAL` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:43:7
+   |
+43 | const ASK_INITIAL: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: associated function `from_question_intent` is never used
+  --> crates/uor-r4-core/src/native_geometric/learner/scoped_store.rs:57:8
+   |
+56 | impl HistoryView {
+   | ---------------- associated function in this implementation
+57 |     fn from_question_intent(intent: usize) -> Option<Self> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `TokenQuantizationWitness` is never constructed
+   --> crates/uor-r4-discrete/src/bin/../prime_zeta.rs:157:12
+    |
+157 | pub struct TokenQuantizationWitness {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `StructuralSeparation` is never constructed
+   --> crates/uor-r4-discrete/src/bin/../prime_zeta.rs:192:12
+    |
+192 | pub struct StructuralSeparation {
+    |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `token_witness` is never used
+   --> crates/uor-r4-discrete/src/bin/../prime_zeta.rs:515:8
+    |
+515 | pub fn token_witness(
+    |        ^^^^^^^^^^^^^
+
+warning: function `compare_codebooks` is never used
+   --> crates/uor-r4-discrete/src/bin/../prime_zeta.rs:536:8
+    |
+536 | pub fn compare_codebooks(
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `verify_zero_float_ptx` is never used
+   --> crates/uor-r4-discrete/src/bin/../prime_zeta.rs:602:8
+    |
+602 | pub fn verify_zero_float_ptx(ptx: &str) -> Result<usize> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+-rwxr-xr-x 2 root root 10750168 Oct 19 01:29 /root/build/target-sm120/release/bvgk-qualify
+-rwxr-xr-x 2 root root  9217952 Oct 19 01:29 /root/build/target-sm120/release/discrete-stack
+46c0b98c88098ece7b3b1df77632e336589e3f8a393bd25b004738e0ae53fe9c  /root/build/target-sm120/release/bvgk-qualify
+## 2026-10-19T01:29:56Z run bvgk-qualify (fixture-only)
+QUALIFY_RC=0
+tatus":"PASS","v3_cases":0,"v3_joint_cases":0}
+{"applied_updates":3418,"cases":804,"commits":664,"controls":[{"name":"ut_original_untouched","status":"PASS"},{"name":"jr_joint_reference","status":"PASS"},{"name":"dc_decision_coverage_v4_v5","status":"PASS"},{"name":"v3_block_equals_sequential","status":"PASS"}],"detail":{},"empty":140,"joint_loses_or_ties":59,"joint_wins":260,"lanes":0,"multi_member_proposals":319,"name":"ut_jr_dc_v3_block_sweep","proposals":804,"racy_status":0,"refusals":0,"refused_blocks":0,"single":345,"status":"PASS","v3_cases":664,"v3_joint_cases":260}
+{"applied_updates":1,"cases":9,"commits":0,"detail":{},"empty":0,"joint_loses_or_ties":0,"joint_wins":0,"lanes":0,"multi_member_proposals":0,"name":"rf_refusals","proposals":0,"racy_status":0,"refusals":9,"refused_blocks":0,"single":0,"status":"PASS","v3_cases":0,"v3_joint_cases":0}
+{"applied_updates":0,"cases":5130,"commits":0,"detail":{"v2_blocks":2028,"v2_racy_refusals":0,"v2_successes":5130},"empty":0,"joint_loses_or_ties":0,"joint_wins":0,"lanes":0,"multi_member_proposals":0,"name":"c1r_v2_scoring_parity","proposals":0,"racy_status":0,"refusals":0,"refused_blocks":0,"single":0,"status":"PASS","v3_cases":0,"v3_joint_cases":0}
+{"cases":[{"block_median_ns":129650777,"block_p95_ns":161446852,"joint_committed":false,"joint_verify_ran":false,"k":1,"ns_per_coordinate":129650777,"raw_samples_ns":[129650777,129663978,129646187,129620308,129644297,188693403,161446852,129637160,129641838,129658226,129650988,129619588,129642338,129657177,129657867,129630747,129633108,130502298,129655368,129630947],"s_len":1},{"block_median_ns":259976472,"block_p95_ns":261006940,"joint_committed":false,"joint_verify_ran":true,"k":4,"ns_per_coordinate":64994118,"raw_samples_ns":[259983731,260025821,260013801,259976472,261006940,259972112,259969281,259949043,260139008,259950282,351227759,259944408,259978620,259963502,259946013,259991461,259976702,259966641,259970582,259956382],"s_len":2},{"block_median_ns":259136969,"block_p95_ns":261390830,"joint_committed":false,"joint_verify_ran":true,"k":16,"ns_per_coordinate":16196060,"raw_samples_ns":[260005200,259143530,259158509,259276056,259128270,259142789,259136969,259126289,259089750,259126280,287288807,261390830,259086051,259151270,259121240,259120422,259103760,259499162,259099840,259098210],"s_len":8}],"qualified":false,"scope":"host-callable Device::propose_block (rows-K scoring, choose, scratch clone + re-carry + joint score when |S_t| >= 2, decide, readback) vs Device::propose_rows","shape":"V4096/B4/C192/K16 Route objective A, seed 1 checkpoint 0, 64 rows, VectorBlock 0..K, all eligible, 1 warmup + 20 timed, median and nearest-rank p95","single_propose_rows_median_ns":131880432,"single_propose_rows_p95_ns":131906261,"single_propose_rows_raw_samples_ns":[131911721,131884061,131870442,131880432,131895591,131870082,131906261,131853932,131894342,131895991,131856883,131857532,131894791,131879552,131865992,131864702,131880761,131867232,131853642,131884422]}
+total 8
+drwxr-xr-x 2 root root   37 Oct 19 01:31 .
+drwxr-xr-x 3 root root  139 Oct 19 01:29 ..
+-rw-r--r-- 1 root root 6802 Oct 19 01:31 bvgk-qualification.json
+## 2026-10-19T01:31:20Z done
+C2_DONE
+# exit=0 end=2026-10-19T01:31:20Z
+# uor-pod job by=claude/claude-dispatch-20261019 pod=vast-56648533 gpu=0 queued 2026-10-19T01:30:33Z
+# cmd: bash /root/inj-stage-a.sh
+# start 2026-10-19T01:30:33Z (holding /root/gpu0.lock)
+## 2026-10-19T01:30:33Z help
+## 2026-10-19T01:30:33Z build-identity
+rc=0
+## 2026-10-19T01:30:33Z table rebuild check (create_new to a fresh path, compare with the pinned file)
+rc=0
+83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b  /workspace/uor-r4/runs/claude/injective-preflight-20261019/rebuilt-table.json
+83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b  /workspace/uor-r4/local/driver/data/injective/prime-zeta-v4096-b4-c192-k8.json
+## 2026-10-19T01:30:33Z relation: attention-build-identity
+rc=0
+## 2026-10-19T01:30:33Z relation: init-corpus (checkpoint 0, new_model(0))
+rc=0
+## 2026-10-19T01:30:35Z relation: eval-corpus (zero-update DEV evaluation)
+rc=0
+## 2026-10-19T01:31:01Z frozen-zero: attention-build-identity
+rc=0
+## 2026-10-19T01:31:01Z frozen-zero: init-corpus (checkpoint 0, new_model(0))
+rc=0
+## 2026-10-19T01:31:02Z frozen-zero: eval-corpus (zero-update DEV evaluation)
+rc=0
+## 2026-10-19T01:31:28Z done
+STAGE_A_DONE
+# exit=0 end=2026-10-19T01:31:28Z
+# uor-pod job by=claude/claude-dispatch-20261019 pod=vast-56648533 gpu=0 queued 2026-10-19T01:32:44Z
+# cmd: bash /root/inj-stage-b.sh
+# start 2026-10-19T01:32:44Z (holding /root/gpu0.lock)
+## 2026-10-19T01:32:44Z relation: attention-dev-b3
+rc=0
+## 2026-10-19T01:32:46Z relation: attention-panel
+rc=0
+## 2026-10-19T01:32:47Z frozen-zero: attention-dev-b3
+rc=0
+## 2026-10-19T01:32:48Z frozen-zero: attention-panel
+rc=0
+## 2026-10-19T01:32:50Z relation: attention-export-token-cells (GPU, zero updates)
+rc=0
+## 2026-10-19T01:32:51Z relation: coverage-census --token-cells
+rc=0
+## 2026-10-19T01:32:51Z G-Init: checkpoint-0 table equals the pinned table word for word
+cp0_table_json_sha=3c49339ac63d906a18483ad4cd0154be4e458d5e4ebebded0612642a6370ed09 pinned_table_json_sha=3c49339ac63d906a18483ad4cd0154be4e458d5e4ebebded0612642a6370ed09
+GINIT_TABLE: PASS
+## 2026-10-19T01:32:51Z G-Init negative (a): an edited table file with stale hashes is refused on the host
+rc=2
+NEG_A: PASS (refused)
+/workspace/uor-r4/runs/claude/injective-preflight-20261019/neg/a-run/report.json
+invalid discrete model: content hash differs: /workspace/uor-r4/runs/claude/injective-preflight-20261019/neg/a.json
+## 2026-10-19T01:32:51Z done
+STAGE_B_DONE
+# exit=0 end=2026-10-19T01:32:51Z

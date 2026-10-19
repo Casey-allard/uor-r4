@@ -1,0 +1,3 @@
+-rwxr-xr-x 2 root root 10750168 Oct 19 01:29 /root/build/target-sm120/release/bvgk-qualify
+-rwxr-xr-x 2 root root  9217952 Oct 19 01:29 /root/build/target-sm120/release/discrete-stack
+46c0b98c88098ece7b3b1df77632e336589e3f8a393bd25b004738e0ae53fe9c  /root/build/target-sm120/release/bvgk-qualify

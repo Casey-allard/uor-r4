@@ -1,0 +1,43 @@
+{
+  "accepted_updates": 0,
+  "alias_group_size_histogram": {
+    "1": 4096
+  },
+  "blocks": 4,
+  "cells": {
+    "cell_collision_pairs": 30720,
+    "cell_occupancy_histogram": {
+      "16": 256
+    },
+    "crowded_cells_multiple_vectors": 256,
+    "dev_rows_in_crowded_cells": 14287,
+    "max_cell_occupancy": 16,
+    "occupied_cells": 256,
+    "status": "FROM_GPU_TOKEN_CELL_RECEIPT",
+    "tokens_in_crowded_cells": 4096
+  },
+  "checkpoint_raw_sha256": "8fbbc3a3183d915dfcad1c7cf3a52ec16238dfe2f30f3fd5b797e8fc1d9f8fd3",
+  "completed_batches": 0,
+  "dev_alias_ceiling_rows": 14287,
+  "dev_distinct_targets": 674,
+  "dev_rows": 14287,
+  "dev_targets_alias_representative": 674,
+  "distinct_vectors": 4096,
+  "driver_checkpoint_sha256": "a32f1258f00f12ab7968f45452418f0d38aee4785105ac1b05a0a6e624bac09d",
+  "g_cap": {
+    "alias_ceiling_rows": 14287,
+    "bar_rows": 500,
+    "note": "G-Cap also nets out admission; that term comes from the admission receipt, not this census",
+    "verdict": "ALIAS_CEILING_ABOVE_BAR"
+  },
+  "host_cell_reconstruction": false,
+  "model_execution": false,
+  "model_sha256": "134fd6636d5e256fb0d1320d88de527a5384582b6effe3b54214eb0c32332031",
+  "schema": "uor-r4.coverage-census/1",
+  "status": "COMPLETE",
+  "vocabulary": 4096,
+  "within_cell_tie_mass": {
+    "dev_rows_targeting_non_representative": 0,
+    "tokens_in_alias_groups": 0
+  }
+}

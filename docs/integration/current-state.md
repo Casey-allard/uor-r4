@@ -1,3 +1,13 @@
+## 2026-10-19 — Dispatch 6257564516: C2 qualification PASS; injective pre-flight B3_init 127 < 500, so the run is not dispatched (claude)
+
+On one 2 × 5090 pod at main `5c7276cf`, for about $0.40, with the pod deleted afterwards:
+- **BVG-K C2 qualifier:** all five controls PASS (fixture-only; `Device::apply` never called). K = 16 with joint verify gives about 8× per coordinate.
+- **Injective attention pre-flight (zero updates):**
+  - G-Init and its negative (a), plus G-Occ, PASS: 256 cells, 0 tie mass.
+  - **B3_init(P_succ) is 127 of 3,847, below 500, and net G-Cap is 127.** The run is **not dispatched** (sheet §3).
+
+The cause is admission breadth: K = 8 admits about 3% of 256 evenly occupied cells, so aliasing is no longer the limit. This is an instrument-reachability result, not a mechanism negative, and nothing trained. A successor decision is needed: larger K, an address-structured injective cell assignment, or partial injectivity. Record: `docs/labs/injective-preflight-and-c2-qualify-2026-10-19/`.
+
 ## 2026-10-19 — Injective runbook: complete Codex's seven-item contract (deepseek)
 
 #2730 merged at its 4/7 head `73738d61` before the hold, leaving three Codex `6257642392` items out of `main`.

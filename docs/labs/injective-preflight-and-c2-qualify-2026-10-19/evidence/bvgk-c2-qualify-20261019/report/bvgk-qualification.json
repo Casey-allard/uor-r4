@@ -1,0 +1,261 @@
+{
+  "applied_updates": 3419,
+  "applied_updates_scope": "fixture devices only: block commits and the single applies of the V3/JR references; no corpus, checkpoint or artifact is written",
+  "bvgk_image_sha256": [
+    "e646f0160a49d22430c0d3fbd3f2b3764d2c6d332864549b13ddbcbd292ba050",
+    "e3fb57ef0ce1ff0c2ff8d1fbb9c2347672dc5e71da04806f77ff35fe082931f5",
+    "85ed1da8ed444eee2560a440aec65b951a17d32d1a74a775446843ba2ca81157",
+    "16abad4a9a2f8a44b1bc7537c5e642d57b53a9917d486d82b98786c12701193b"
+  ],
+  "controls": [
+    {
+      "bvgk_extends_rowsk_source": true,
+      "name": "v0_source_identity",
+      "rowsk_extends_rows_source": true,
+      "status": "PASS"
+    },
+    {
+      "applied_updates": 0,
+      "cases": 64,
+      "commits": 0,
+      "detail": {},
+      "empty": 0,
+      "joint_loses_or_ties": 0,
+      "joint_wins": 0,
+      "lanes": 14080,
+      "multi_member_proposals": 0,
+      "name": "rc_recarry_parity",
+      "proposals": 0,
+      "racy_status": 0,
+      "refusals": 0,
+      "refused_blocks": 0,
+      "single": 0,
+      "status": "PASS",
+      "v3_cases": 0,
+      "v3_joint_cases": 0
+    },
+    {
+      "applied_updates": 3418,
+      "cases": 804,
+      "commits": 664,
+      "controls": [
+        {
+          "name": "ut_original_untouched",
+          "status": "PASS"
+        },
+        {
+          "name": "jr_joint_reference",
+          "status": "PASS"
+        },
+        {
+          "name": "dc_decision_coverage_v4_v5",
+          "status": "PASS"
+        },
+        {
+          "name": "v3_block_equals_sequential",
+          "status": "PASS"
+        }
+      ],
+      "detail": {},
+      "empty": 140,
+      "joint_loses_or_ties": 59,
+      "joint_wins": 260,
+      "lanes": 0,
+      "multi_member_proposals": 319,
+      "name": "ut_jr_dc_v3_block_sweep",
+      "proposals": 804,
+      "racy_status": 0,
+      "refusals": 0,
+      "refused_blocks": 0,
+      "single": 345,
+      "status": "PASS",
+      "v3_cases": 664,
+      "v3_joint_cases": 260
+    },
+    {
+      "applied_updates": 1,
+      "cases": 9,
+      "commits": 0,
+      "detail": {},
+      "empty": 0,
+      "joint_loses_or_ties": 0,
+      "joint_wins": 0,
+      "lanes": 0,
+      "multi_member_proposals": 0,
+      "name": "rf_refusals",
+      "proposals": 0,
+      "racy_status": 0,
+      "refusals": 9,
+      "refused_blocks": 0,
+      "single": 0,
+      "status": "PASS",
+      "v3_cases": 0,
+      "v3_joint_cases": 0
+    },
+    {
+      "applied_updates": 0,
+      "cases": 5130,
+      "commits": 0,
+      "detail": {
+        "v2_blocks": 2028,
+        "v2_racy_refusals": 0,
+        "v2_successes": 5130
+      },
+      "empty": 0,
+      "joint_loses_or_ties": 0,
+      "joint_wins": 0,
+      "lanes": 0,
+      "multi_member_proposals": 0,
+      "name": "c1r_v2_scoring_parity",
+      "proposals": 0,
+      "racy_status": 0,
+      "refusals": 0,
+      "refused_blocks": 0,
+      "single": 0,
+      "status": "PASS",
+      "v3_cases": 0,
+      "v3_joint_cases": 0
+    }
+  ],
+  "driver_source_sha256": "f4509049add30b7b756cf5a9ddf97d5633ad4aa790028d8b1b210986945d09e9",
+  "rows_image_sha256": [
+    "48d8e6e05f2de03d2f9931812f606e5f923c2416dd4205696a6228d858446318",
+    "c03752ab4750394b4cb6b10897884622e5cf8150cd0b7e08326e89ad4a33e49a",
+    "9d0f170b86961c4cc3900c29c75c65a75a9d8e0baa41e67aea613f9db313c5df",
+    "3a3c620782d2cb97b3c1e99074e467ff5faad979636766edd368c02dd9710221"
+  ],
+  "rowsk_image_sha256": [
+    "0b1373a02ec191ff173f10cfd6f293cc3355ed2022cde113c6dd17f41c7dea51",
+    "9b320a75ce3a92d50ca81b1a95789cb3b01b24d2a3f48ede851003e90da1f408",
+    "11d3cfd57356be8769d821f26389049dbcfa545126c5dc39b9f82faea8d7c62d",
+    "c2d74425413da8a23ac8cb4f9791a3e19ffcb122daa90535ee2970d670f5be10"
+  ],
+  "schema": "uor-r4.discrete-spiralcore-fbs/2",
+  "status": "PASS",
+  "suite": "bvgk-block-qualification",
+  "throughput": {
+    "cases": [
+      {
+        "block_median_ns": 129650777,
+        "block_p95_ns": 161446852,
+        "joint_committed": false,
+        "joint_verify_ran": false,
+        "k": 1,
+        "ns_per_coordinate": 129650777,
+        "raw_samples_ns": [
+          129650777,
+          129663978,
+          129646187,
+          129620308,
+          129644297,
+          188693403,
+          161446852,
+          129637160,
+          129641838,
+          129658226,
+          129650988,
+          129619588,
+          129642338,
+          129657177,
+          129657867,
+          129630747,
+          129633108,
+          130502298,
+          129655368,
+          129630947
+        ],
+        "s_len": 1
+      },
+      {
+        "block_median_ns": 259976472,
+        "block_p95_ns": 261006940,
+        "joint_committed": false,
+        "joint_verify_ran": true,
+        "k": 4,
+        "ns_per_coordinate": 64994118,
+        "raw_samples_ns": [
+          259983731,
+          260025821,
+          260013801,
+          259976472,
+          261006940,
+          259972112,
+          259969281,
+          259949043,
+          260139008,
+          259950282,
+          351227759,
+          259944408,
+          259978620,
+          259963502,
+          259946013,
+          259991461,
+          259976702,
+          259966641,
+          259970582,
+          259956382
+        ],
+        "s_len": 2
+      },
+      {
+        "block_median_ns": 259136969,
+        "block_p95_ns": 261390830,
+        "joint_committed": false,
+        "joint_verify_ran": true,
+        "k": 16,
+        "ns_per_coordinate": 16196060,
+        "raw_samples_ns": [
+          260005200,
+          259143530,
+          259158509,
+          259276056,
+          259128270,
+          259142789,
+          259136969,
+          259126289,
+          259089750,
+          259126280,
+          287288807,
+          261390830,
+          259086051,
+          259151270,
+          259121240,
+          259120422,
+          259103760,
+          259499162,
+          259099840,
+          259098210
+        ],
+        "s_len": 8
+      }
+    ],
+    "qualified": false,
+    "scope": "host-callable Device::propose_block (rows-K scoring, choose, scratch clone + re-carry + joint score when |S_t| >= 2, decide, readback) vs Device::propose_rows",
+    "shape": "V4096/B4/C192/K16 Route objective A, seed 1 checkpoint 0, 64 rows, VectorBlock 0..K, all eligible, 1 warmup + 20 timed, median and nearest-rank p95",
+    "single_propose_rows_median_ns": 131880432,
+    "single_propose_rows_p95_ns": 131906261,
+    "single_propose_rows_raw_samples_ns": [
+      131911721,
+      131884061,
+      131870442,
+      131880432,
+      131895591,
+      131870082,
+      131906261,
+      131853932,
+      131894342,
+      131895991,
+      131856883,
+      131857532,
+      131894791,
+      131879552,
+      131865992,
+      131864702,
+      131880761,
+      131867232,
+      131853642,
+      131884422
+    ]
+  },
+  "training": "HELD"
+}

@@ -104,6 +104,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/dispatch-receipts-20261019": {
+    "branch": "claude/dispatch-receipts-20261019",
+    "claimed_at": "2026-10-18T21:35:37-04:00",
+    "head": "6ba4fe774",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/driver-rows-path-20261018": {
     "branch": "claude/driver-rows-path-20261018",
     "claimed_at": "2026-10-18T00:39:46-04:00",
