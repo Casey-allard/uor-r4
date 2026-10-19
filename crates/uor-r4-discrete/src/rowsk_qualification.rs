@@ -296,6 +296,21 @@ fn scoring_parity(tally: &mut Tally) -> Result<()> {
     )
 }
 
+/// The unchanged V2 sweep, reused by the BVG-K C1 regression (C1R) so the
+/// split scoring is checked by the very instrument that qualified C1.
+/// Returns (blocks, cases, successes, refusals, racy refusals).
+pub(crate) fn v2_scoring_parity_counts() -> Result<[u64; 5]> {
+    let mut tally = Tally::default();
+    scoring_parity(&mut tally)?;
+    Ok([
+        tally.blocks,
+        tally.cases,
+        tally.successes,
+        tally.refusals,
+        tally.racy_refusals,
+    ])
+}
+
 /// V6: refused before any launch, with state unchanged.
 fn block_refusals(tally: &mut Tally) -> Result<()> {
     let spec = Spec {

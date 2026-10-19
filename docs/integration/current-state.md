@@ -40,6 +40,19 @@ updated the stub count to four. Docs-only; no bar/hold/source/compute change; cl
 existing checker; no build, no compute.
 Record: [labs/post-dose-anchor-hygiene-2026-10-19](../labs/post-dose-anchor-hygiene-2026-10-19/README.md).
 
+## 2026-10-18 — BVG-K C2 piece H4: device-level GPU qualifier, sheet FIT (claude; W3)
+
+`bvgk-qualify` checks the block path on synthetic fixture devices only:
+- V0, RC and UT;
+- JR (joint loss against an independent reference) and V3;
+- DC, with membership checked independently of the shared choose rule and decision-coverage power required;
+- RF, the C1 rerun, and a diagnostic throughput curve.
+
+It commits only through `apply_block`. The guarded `Device::apply` is never called (owner direction). The sheet lists what stays uncovered: the BVG-K against ordinary apply kernel on GPU, K = 1 identity with `transition`, and all driver-level controls. Those need an owner-released admission and become Stage T first-batch controls.
+
+Subagent FIT is applied. Host gates are green: 132/132 tests, stub-CUDA, D29 and the softmax scan. **GPU run next** (owner-approved, fixture-only, about $0.75). No compute yet.
+
+
 ## 2026-10-18 — K16 A/R four-role execution complete; final DATA/lateOP verified; registered outcome pending (codex)
 
 At frozen `21224b446`, K16-A1/R1/A2/R2 each completed16,404 batches, accepted407/130/410/129 and native exit0. Native ends20:58:35/22:02:38/22:39:16/23:16:56Z. Final source statuses remain `COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION`; both arms use Route and compare writer-admission objectives. R2 is no longer live. No paired efficacy, KEEP, mechanism closure, fresh result or count reset follows from execution alone.

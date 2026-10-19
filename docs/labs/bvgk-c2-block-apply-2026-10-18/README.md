@@ -147,3 +147,43 @@ Two of its points needed no change. Its `LanesV1` concern is already refused at 
   - dropping the K > 1 branch of `initial_cursor_for` fails its test.
 
 **Effect.** `driver_source_sha256` changes, because `training.rs`, `controller.rs`, `completion_baseline.rs` and `redirect_admission.rs` are in its include list. The frozen K16 build is unaffected.
+
+## H4: device-level GPU qualifier (`bvgk-qualify`) and sheet
+
+**Sheet.** `docs/harness/prep/m1-bvgk-stagec2-block-qualification-2026-10-18.md` is **FIT** after a fresh-context reviewer subagent returned FIT-WITH-FIXES. All its fixes are applied:
+- the mixed-kind refusal text was verified against the source;
+- DC's expected members are also checked **independently** against the raw C1 lanes and the eligibility mask;
+- the sweep covers every chunk under three eligibility patterns;
+- the sheet text and the uncovered list are corrected.
+
+**Controls** (all on synthetic fixture devices):
+
+| Control | What it checks |
+|---|---|
+| V0 | The rows, rowsk and bvgk prefix identity |
+| RC | Re-carry parity |
+| UT | The original state is untouched |
+| JR | The joint loss against an independent reference |
+| DC | Decision rule, V4 and V5, with required coverage of empty, single, joint-wins and joint-loses-or-ties |
+| V3 | Block apply equals the per-member composition |
+| RF | Nine refusals |
+| C1R | The C1 V2 rerun |
+| TP | Throughput (diagnostic only) |
+
+**Owner direction.** The qualifier commits only through `apply_block`. **The guarded `Device::apply` is never called, and its doc comment is unchanged.** Each member's reference is a K = 1 `propose_block` plus `apply_block`, on its own fixture device restored from the pre-state, with the deltas overlaid.
+
+**What it leaves uncovered** (the sheet's list):
+1. The BVG-K apply kernel against the ordinary `discrete_apply` on GPU. Only host drift-pins link them.
+2. V1 K = 1 identity with `transition`.
+3. Every driver-level control. These need an owner-released `CorpusUpdateAdmission`, and become first-batch controls of any released Stage T run.
+4. Shared re-carry and `score_rows_k` paths, covered only by RC and C1R.
+5. Corpus-scale behaviour.
+
+**Checks (host, at this head):**
+- Lib tests: 132 passed.
+- Stub-nvcc `check --features cuda --all-targets`: exit 0.
+- Clippy and fmt: clean.
+- `check_no_softmax.py`: OK. D29: PASS.
+- `device.rs` is unchanged against main.
+
+**GPU run:** NOT_RUN. It is owner-approved for this fixture-only scope (Claude chat, about 23:39Z) and runs after merge.
