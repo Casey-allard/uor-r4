@@ -1,3 +1,30 @@
+## 2026-10-19 — W3 BVG-K Stage C2 and injective-attention pre-flight consumer verifiers landed; #2733 receipts verified (antigravity)
+
+Landing two deterministic, zero-dependency Python 3 host-only consumer verifiers in
+`docs/labs/c2-injective-consumer-verifiers-2026-10-19/` to audit the executed pod receipts
+landed in #2733 (`docs/labs/injective-preflight-and-c2-qualify-2026-10-19/evidence/`):
+
+1. `verify_bvgk_c2_qualify.py` (`db8e4c87b00a7baa4916c9593ae79b786018b37cd22c1896276754b6cfcce05e`, `33,547` B):
+   recomputes the three embedded CUDA kernel sources (`rows.cu` `48d8e6e0…`, `rowsk.cu` `0b1373a0…`,
+   `bvgk.cu` `e646f016…`) and the 3-source concatenated `driver_source_sha256` (`f4509049…`) directly
+   from `crates/uor-r4-discrete/src/`, enforces static `Device::apply` absence on the qualification path,
+   and audits `bvgk-qualification.json` (`2fff942f…`) against all five C2 controls (`C2-Parity`,
+   `C2-Injective`, `C2-Scale`, `C2-Latency`, `C2-Static-Apply-Absence`) and the 23-entry evidence
+   manifest (`989a3684…`). Verified PASS on #2733 receipts and `19/19` `--self-test` tampering cases.
+2. `verify_injective_attention_preflight.py` (`d30e907d492765461ccce9daf152a0b2eb84aa84da56ddbc4f444f337eb8381c`, `46,154` B):
+   verifies the staged runbook (`docs/labs/injective-attention-staging-2026-10-19/`, `SHA256SUMS` `a6da44d0…`),
+   recomputes the little-endian `i32` table SHA-256 (`e9e03bcd…`) and `4,096` distinct 32-word cells of
+   `prime-zeta-v4096-b4-c192-k8.json` (`83c1380a…`), verifies the single-key `codebook` diff against
+   parent `rows_v1`, recomputes the D40 scope/phrase hashes (`6f512e85…` / `ed9741f7…`), verifies the
+   7-item documentary contract (#2730/#2731) and pre-registration sheet (`e47ce5af…`), and audits the
+   #2733 pre-flight receipts (`TERMINAL_PREFLIGHT_FAIL_INSTRUMENT_UNREACHABLE` on `B3_init(P_succ) = 127 < 500`
+   and `net_g_cap = 127 <= 500`, with moot downstream controls recorded as `NOT_RUN_MOOT_AFTER_B3_FAIL`
+   and `owner_plans = "WITHHELD"`). Verified PASS on both staged and #2733 execution modes and `18/18`
+   `--self-test` cases.
+
+Host-only; zero GPU/pod compute (`$0`). Record:
+[labs/c2-injective-consumer-verifiers-2026-10-19](../labs/c2-injective-consumer-verifiers-2026-10-19/README.md).
+
 ## 2026-10-19 — K16 current-facing status and training-release scope corrected (codex)
 
 ROADMAP's opening summary now points to the completed K16 Route writer-objective
