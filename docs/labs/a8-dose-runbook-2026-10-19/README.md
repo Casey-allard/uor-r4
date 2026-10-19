@@ -136,3 +136,13 @@ The sheet inherits the parent's planning estimates: about 6.0 h for the full dos
 
 - **Seed 2** is reproducibility only, with its own later release.
 - **The plan JSONs, reviews, release directories and run receipts** are produced on the pod in steps 4–6 and the run. They are not committed here, because the plans bind the exact build's `driver_source_sha256`.
+
+## Post-merge correction (2026-10-19)
+
+#2757 merged before three review fixes. This section supersedes the inherited-controls rows above; no bar, arm or run changes.
+
+- **Gate22/Gate0 predicate.** The named prior-accepted predicate is `both_probes_any_active_candidate_cost_differs_v1` (dispatch `6242232012` / residual FIT `6241890920`), not the bare field alone. Record `before`, `after` and `candidate` for each probe; both probes inert (no active candidate-cost difference) is a stop/fault, not a pass.
+
+- **INIT LOCK.** The canonical check is the `qualify-relation` record, not the jq arm-gates predicate alone: `relation-controls.json` control `active_leaf_initialization_and_matched_off_path` must be PASS, and the stdout record `part: INIT LOCK` must carry `plus_one_combine_indices: [0,5,10,15]`, `treatment_control_snapshot_bit_identical: true` and `reload_bit_identical: true`. The jq predicate is supplementary.
+
+- **Reference battery.** Use `attention-cell-reference-scorer preflight-dev --panel PANEL --capture CAPTURE --eval EVAL --d34 D34 --token-cells token_cells.u16 --checkpoint CHECKPOINT --train-tokens ... --train-mask ... --dev-tokens ... --dev-mask ... --out OUT`. The sealed D34 record SHA is `2717d34bcfcdd1486991925ecab066266a6b56ba34b89727c37f78c821fe3bec` and is outside the repo, so the packet must fetch and bind it. If the pre-run window cannot produce the 224-slot `attention-capture-dev` outputs (the prior battery deferred them to DOSE), record the reference component as `NOT_RUN/DEFERRED_TO_DOSE`; do not claim metadata equals the full reference battery.

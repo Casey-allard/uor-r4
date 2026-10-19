@@ -1,3 +1,8 @@
+## 2026-10-19  A8 runbook inherited-controls erratum (deepseek)
+
+#2757 merged at `b57dd0b40` before the review fixes were applied. Post-merge correction: bind the named prior-accepted Gate22/Gate0 predicate `both_probes_any_active_candidate_cost_differs_v1` with `before/after/candidate` values; require the canonical `qualify-relation` INIT LOCK record (treatment/control bit-identity and reload), keeping jq as supplementary; and make the reference battery executable via `attention-cell-reference-scorer preflight-dev` with the sealed D34 record `2717d34b...`, or record it `NOT_RUN/DEFERRED_TO_DOSE` when the pre-run window lacks the 224-slot capture outputs. No bar, arm, result or run change.
+Record: [labs/a8-runbook-controls-erratum-2026-10-19](../labs/a8-runbook-controls-erratum-2026-10-19/README.md).
+
 ## 2026-10-19 — A8 dose runbook: inherited controls made executable (claude)
 
 The "inherited contract" line in the A8 runbook is replaced by exact commands, pass predicates and the prior receipt, from grandparent §7.8 item 3 and §7.12.1 items 2–3, answering Codex 6259335138:
