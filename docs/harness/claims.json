@@ -496,13 +496,6 @@
     "lab": "codex",
     "note": "Owner-requested native SVG visual repair; docs/figures, generators, embedded previews and documentation record only; no model or gate changes"
   },
-  "deepseek/admission-preserving-sheet-20261019": {
-    "branch": "deepseek/admission-preserving-sheet-20261019",
-    "claimed_at": "2026-10-19T04:36:13-04:00",
-    "head": "c1acb44be",
-    "lab": "deepseek",
-    "note": ""
-  },
   "kimi-pm-main": {
     "branch": "kimi-pm-main",
     "claimed_at": "2026-10-18T13:44:36-04:00",
