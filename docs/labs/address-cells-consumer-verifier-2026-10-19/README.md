@@ -1,7 +1,7 @@
 # Address-Structured Injective Cells (`A8` / `S8` / `P8` / `P16` / `A16`) Table & Pre-Flight Consumer Verifier (19 October 2026)
 
 - **Line:** `m1-attention-address-structured-cells-consumer-verifier` — **Count:** 0/3 (verification tooling; does not count against any 3-negative mechanism line per D21) — **Headline:** `1.20` (`#2029` / `#2028`, unchanged)
-- **Deliverable:** Host-only deterministic consumer verifier [`verify_address_cells_preflight.py`](verify_address_cells_preflight.py) (`57ae1c9349b178267936dfa89e55c4aba7cb8c8aa26cf563265e885c2d795c32`, `85,835` B) for the Address-Structured Injective Cells registration sheet [`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](../../harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md) (`b94d5ae02ca433de67d81d4315a03676f931bac914625133d8973afec8b41275`, `#2738` / `#2748`), offline codebook constructor [`crates/uor-r4-discrete/src/address_cells.rs`](../../../crates/uor-r4-discrete/src/address_cells.rs) (`22dec8e967f7d2bfd410f83067ee69646993bffe0aa3be4996375896e33fa75e`, `#2742`), exporter [`crates/uor-r4-discrete/src/bin/address-cells-codebook.rs`](../../../crates/uor-r4-discrete/src/bin/address-cells-codebook.rs) (`691349582b563dde327c0613cb72a282ce84fd96ed0dc226a409d0a25c19744c`, `#2742`), and staged five-arm pre-flight configs [`docs/labs/address-cells-preflight-configs-2026-10-19/`](../address-cells-preflight-configs-2026-10-19/README.md) (`#2746`).
+- **Deliverable:** Host-only deterministic consumer verifier [`verify_address_cells_preflight.py`](verify_address_cells_preflight.py) (`587cd552464a51c5628f38346a268719ac1611bd9ab44130406e5efb9ef67080`, `123,134` B; hardened from `#2750` `57ae1c9349b178267936dfa89e55c4aba7cb8c8aa26cf563265e885c2d795c32`, `85,835` B) for the Address-Structured Injective Cells registration sheet [`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](../../harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md) (`b94d5ae02ca433de67d81d4315a03676f931bac914625133d8973afec8b41275`, `#2738` / `#2748`), offline codebook constructor [`crates/uor-r4-discrete/src/address_cells.rs`](../../../crates/uor-r4-discrete/src/address_cells.rs) (`22dec8e967f7d2bfd410f83067ee69646993bffe0aa3be4996375896e33fa75e`, `#2742`), exporter [`crates/uor-r4-discrete/src/bin/address-cells-codebook.rs`](../../../crates/uor-r4-discrete/src/bin/address-cells-codebook.rs) (`691349582b563dde327c0613cb72a282ce84fd96ed0dc226a409d0a25c19744c`, `#2742`), staged five-arm pre-flight configs [`docs/labs/address-cells-preflight-configs-2026-10-19/`](../address-cells-preflight-configs-2026-10-19/README.md) (`#2746`), and executed five-arm pre-flight pod archive (`vast-56660582`) and committed receipt [`docs/labs/address-cells-preflight-2026-10-19/`](../address-cells-preflight-2026-10-19/README.md) (`#2751` / `#2752`).
 - **Scope & Holds:** Host-only (`cuda_context_created: false`, `model_constructed: false`, `training: "HELD"`, `$0.00` GPU/rental spend). Does not release any D4 training hold or dispatch a pod.
 
 ---
@@ -20,10 +20,10 @@ Both the Rust binary (`cargo run --locked -p uor-r4-discrete --bin address-cells
 
 ## 2. Staged 5-Arm Configuration & Lineage Verification (`#2746` / `#2748`)
 
-- `driver_source_sha256` (11 concatenated source files in `crates/uor-r4-discrete/src/`): `44f3b50ab80a98931996c07dd1ab2f661b11ed0a3e9493b5e10ae9fd90632bdc`
+- `driver_source_sha256` at pre-flight freeze `93b54f48c4e1983e278140f77a3377041ddd65e4` (`#2746` / `#2751`, 11 concatenated source files in `crates/uor-r4-discrete/src/`): `44f3b50ab80a98931996c07dd1ab2f661b11ed0a3e9493b5e10ae9fd90632bdc` (post-`#2755` `registered_sheet` update at `50ed2977f`: `f673edb5d3bfea8bae44594adf122fbe937626c60c5be838d59a3ffc42f55ccf`)
 - `docs/labs/address-cells-preflight-configs-2026-10-19/evidence/SHA256SUMS`: `895ec8fb8bd875d7009a0d91e82c838f5a88e636556c4e19614ed6530928c4fb` (`372` B; no self-entry)
 
-| Arm | Config File | File SHA-256 | Bytes | `config_sha256` | `lineage_sha256` | `spec.kept_cells` | `read_spec.kept` | `attention_learning::scope` (`K=8` arms only) |
+| Arm | Config File | File SHA-256 | Bytes | `config_sha256` | `lineage_sha256` (`93b54f48` freeze) | `spec.kept_cells` | `read_spec.kept` | `attention_learning::scope` (`K=8` arms only) |
 | :--- | :--- | :--- | ---: | :--- | :--- | ---: | ---: | :--- |
 | **`P8`** | `evidence/p8.json` | `7927b1ddde3025d947ce56166c0a30e3ad8d310211aaab1df80851a4ae611bda` | `1,926` | `0c3404d43109eafa4230e7245caf4219283417894f6a5adf77b862a326c0d5cf` | `3849a4bdf93c847baef835c60253421fa14283fb15c47dbcd1c18fca23916025` | `8` | `8` | `m1-attention-learning-injective-83c1380a8f50-relation-k8-seed1-batches0..16404` |
 | **`A8`** | `evidence/a8.json` | `469a2ff0fe17a6a80f5875a077b3e6a9436553efdf1c6e7884541220553e9d5e` | `1,924` | `f223d78f45fe26dee4080ae7ca9a5b9ff12d9ef0df847375671d52db733fbecd` | `cf6cf50f76eb9f6950fc518258a878df4cf8e44c9ec0c010e85ceb50c8cb8940` | `8` | `8` | `m1-attention-learning-injective-6600bdb1306d-relation-k8-seed1-batches0..16404` |
@@ -33,35 +33,62 @@ Both the Rust binary (`cargo run --locked -p uor-r4-discrete --bin address-cells
 
 ---
 
-## 3. Pre-Flight Gates & Self-Test Coverage (`26/26` PASS)
+## 3. Pre-Flight Gates & Self-Test Coverage (`32/32` PASS)
 
-[`verify_address_cells_preflight.py`](verify_address_cells_preflight.py) enforces every pre-flight gate and decision rule from [`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](../../harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md) (`b94d5ae02ca433de67d81d4315a03676f931bac914625133d8973afec8b41275`):
+[`verify_address_cells_preflight.py`](verify_address_cells_preflight.py) enforces every pre-flight gate and decision rule from [`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](../../harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md) (`b94d5ae02ca433de67d81d4315a03676f931bac914625133d8973afec8b41275`) across both synthetic/normalized JSON bundles and the raw 72-file pod receipt layout (`asc-battery.sh` / `vast-56660582`) plus committed repository receipts (`#2751` / `#2752`):
 
-1. **Pod table rebuild & `build-identity` gate:** Verifies pod-rebuilt `P8` (`83c1380a…`), `A8` (`6600bdb1…`), `S8` (`a185bdca…`), and `counts_sha256` (`755a5a81…`), plus `driver_source_sha256` (`44f3b50a…`), `training: "HELD"`, `cuda_context_created: false`, and absence of `scope`.
-2. **`G-Init` + negatives (a) and (b) + `G-Occ` across `P8`, `A8`, `S8`:** Verifies zero-update checkpoint-0 `cursor`, host table SHA refusal (`invalid discrete model: content hash differs`), GPU status-6 non-root refusal, and `G-Occ` (`occupied_cells == 256 > 16`, `distinct_vectors == 4096`, `alias_group_size_histogram == {"1": 4096}`, zero within-cell tie mass, `cell_occupancy_histogram == {"16": 256}`, `cell_collision_pairs == 30,720`).
+1. **Pod table rebuild & `build-identity` gate:** Verifies pod-rebuilt `P8` (`83c1380a…`), `A8` (`6600bdb1…`), `S8` (`a185bdca…`), and `counts_sha256` (`755a5a81…`), plus `driver_source_sha256` (`44f3b50a…`), `executable_sha256` (`de1f9aa8…`), `training: "HELD"`, `cuda_context_created: false`, and absence of `scope`.
+2. **`G-Init` + negatives (a) and (b) + `G-Occ` across `P8`, `A8`, `S8`:** Verifies zero-update checkpoint-0 `cursor`, exact `model.table` 131,072-word little-endian `i32` SHA-256 (`e9e03bcd…` / `4122cbab…` / `d2fb8680…`), cross-arm `routes` (`71cdce579ea2dd8f147c0a37cecd9efcfab25d6ff25cd139b0ca00ed9ca42a6b`), `gates` (`ceb6ae9984fb2ac6e217e2d5d1a9931ed5cd2032506d956a3b00b75c8e35bf97`), `seed == 1`, and `epoch == 0` equality, pinned-vs-unpinned `SeededDeviceV1` checkpoint-0 comparison status (`PASS` when provided, or `NOT_RUN` -> `g_init = "PARTIAL_UNPINNED_COMPARISON_NOT_RUN"` and `promotion_qualification = "CONDITIONAL_G_INIT_UNPINNED_NOT_RUN"` when omitted as in `#2751` / `#2752`), host table SHA refusal (`invalid discrete model: content hash differs`), GPU status-6 non-root refusal, and `G-Occ` (`occupied_cells == 256 > 16`, `distinct_vectors == 4096`, `alias_group_size_histogram == {"1": 4096}`, zero within-cell tie mass, `cell_occupancy_histogram == {"16": 256}`, `cell_collision_pairs == 30,720`, and GPU `cells/token_cells.u16` cell ID cross-verification against `model.table`).
 3. **`P8` exactness gate (`D31`):** Requires `P8` checkpoint 0 to reproduce `427` full-panel and `127` `P_succ` target-admitted rows (`300` complement). Any mismatch returns `INSTRUMENT_FAULT_D31` (`INSTRUMENT_FAULT_P8_EXACTNESS_MISS`, `mechanism_negative: false`), never a mechanism negative.
-4. **`K=16` bracket join precondition & `P8` formula check (`D31`):** Grades `eval-corpus` per-row records joined on `(target_position, target_token)` to `is_psucc`; requires `14,287` unique keys, `3,847` `P_succ` rows, `admitted_cells - address_rivals in {0, 1}`, and verifies that `admitted_cells - address_rivals == 1` on `P8` reproduces `(427, 127)` before grading `P16`/`A16` (or accepts `DROPPED_DIAGNOSTIC_NOT_RUN` per `#2748` Registration bindings if `eval-corpus` refuses `K=16`). `bracket_can_promote` is always `false`.
-5. **Paired one-sided McNemar discordance on `P_succ` (`3,847` rows):** Verifies `n11 + b + c + n00 == 3,847`, marginals `n11 + b == treatment_admitted` and `n11 + c == control_admitted`, and evaluates `b - c > F` where `F = max(24, 2 * sqrt(b + c))` via exact integer inequality `(b - c > 24) and ((b - c)^2 > 4 * (b + c))`, classifying attribution into `PREDECESSOR_RELATION` (`A8 > P8` and `A8 > S8`), `FREQUENCY_PACKING_ONLY` (`A8 > P8` only), or `PLACEMENT_DID_NOT_MOVE_ADMISSION`.
-6. **`A8` promotion battery:** Requires `B3_init(P_succ) >= 500` and `net_g_cap > max(500, top1_control(cp0) + 24)` (`A8_PROMOTED_TO_TRAINING_SHEET_DRAFT` vs `TERMINAL_PREFLIGHT_FAIL_A8_BELOW_GATE` / `CONFIGURATION_CLOSED_D22`, `mechanism_negative: false`).
+4. **`K=16` bracket join precondition & `P8` formula check (`D31`):** Grades `eval-corpus` per-row records (`batches[].rows` or flat `rows`) joined on `(target_position, target_token)` to `is_psucc`; requires `14,287` unique keys, `3,847` `P_succ` rows, `admitted_cells - address_rivals in {0, 1}`, and verifies that `admitted_cells - address_rivals == 1` on `P8` reproduces `(427, 127)` before grading `P16`/`A16` (or accepts `DROPPED_DIAGNOSTIC_NOT_RUN` per `#2748` Registration bindings if `eval-corpus` refuses `K=16`). `bracket_can_promote` is always `false`.
+5. **Paired one-sided McNemar discordance on `P_succ` (`3,847` rows):** Computes and verifies `n11 + b + c + n00 == 3,847`, marginals `n11 + b == treatment_admitted` and `n11 + c == control_admitted`, and evaluates `b - c > F` where `F = max(24, 2 * sqrt(b + c))` via exact integer inequality `(b - c > 24) and ((b - c)^2 > 4 * (b + c))`, classifying attribution into `PREDECESSOR_RELATION` (`A8 > P8` and `A8 > S8`), `FREQUENCY_PACKING_ONLY` (`A8 > P8` only), or `PLACEMENT_DID_NOT_MOVE_ADMISSION`.
+6. **`A8` promotion battery & `control_top1_cp0` audit:** Requires `B3_init(P_succ) >= 500` and `net_g_cap > max(500, top1_control(cp0) + 24)` (`A8_PROMOTED_TO_TRAINING_SHEET_DRAFT` vs `TERMINAL_PREFLIGHT_FAIL_A8_BELOW_GATE` / `CONFIGURATION_CLOSED_D22`, `mechanism_negative: false`), auditing both `P8` `top1_cp0` (`38`) and `A8` own `top1_cp0` (`133`) per `#2752`.
 
-## 4. Verification Commands
+---
+
+## 4. Executed Pre-Flight Consumer Verification (`vast-56660582` & `#2751` / `#2752`)
+
+[`verify_address_cells_preflight.py`](verify_address_cells_preflight.py) was executed against both the raw 72-file pod archive (`/Users/casey.allard/.local/share/uor-r4/compute/vast-archive/vast-56660582/uor-r4/runs/claude/address-cells-preflight-20261019`) and the committed repository receipt (`docs/labs/address-cells-preflight-2026-10-19`, `#2751` `502ef6d14` + erratum `#2752` `e3aa51ed0`):
+
+- **Archive & manifest integrity:** `72/72` files in `FILES.sha256` (`5ed27b2101189de58a1560917e644b4875e412277009188a1ac3da758fcda5f7`) and `6/6` entries in `docs/labs/address-cells-preflight-2026-10-19/evidence/SHA256SUMS` (`9b627066f9d2b0b08a1869df8d9bb6619c6edaa5db14f3c8b208e164c3f49d56`) verified byte-for-byte; `source-head.txt` = `93b54f48c4e1983e278140f77a3377041ddd65e4`; `build-identity.json` (`e20ebc85141510d19830480d1341af17128f4f8beabbecc23d8e4ed6bfafc0d9`) pins `driver_source_sha256 = 44f3b50ab80a98931996c07dd1ab2f661b11ed0a3e9493b5e10ae9fd90632bdc` and `executable_sha256 = de1f9aa8f3066294fa6c22bef5e2d095d354a6c9684bd6898387131b8e975619`.
+- **Negative controls:**
+  - `neg-a` (`neg/a.stdout`, `c7ef2325fb09b32ec55e0de03ed8898c071b8378f1ca96191ac05337da79a79d`, `rc=1`): `invalid discrete model: content hash differs from table_sha256` (`PASS`).
+  - `neg-b` (`neg/b.stdout`, `65dd60662b1086b0f562b2dbadff6f1c52686c05cf18c4483c92b03937e7cf21`, `rc=1` on `neg/b.json` `070478a0a36f3330f3d7aa8e4a8d94d7280a569a09f633b419b04766424c6403` with token `0` word `0` mutated `-1 -> 0`): `device model rejected by status 6` (`PASS`).
+
+| Arm | `K` | Checkpoint-0 `model.json` SHA-256 | `table_sha256` (`131,072` `i32` LE) | `token_cells.u16` SHA-256 | Full Panel (`14,287`) | `P_succ` (`3,847`) | Complement (`10,440`) | `top1_cp0` | `top8_cp0` | Mean `q`→last-token L1 (`14,287` rows) |
+| :--- | ---: | :--- | :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **`P8`** | `8` | `c2483c03189455e0773ff43e5364bfcb3401ad20f4d517dfbf5de148401afce1` | `e9e03bcd95b78632a7f18d1b27c07d37f0ba82c52eee692c37da011eadac8804` | `48c2cb543af984aa9d0a434d8848c9db04a04848e29ac841c0818525ab3313f0` | `427` | `127` | `300` | `38` | `95` | `14.129208` (`201,864` total) |
+| **`A8`** | `8` | `78b71c6f065c29754518c638e071c99e4d5c93744bb3b861ed0e8e546faeb215` | `4122cbab44bd88658743984fc1ab79059bf032c3e2fe526ffcf4ea5f95d9cd74` | `3a89545c3008b1a9114db5fb717a20390c4257a39ba86ff3fb5e29e31f106319` | `4,244` | `1,351` | `2,893` | `133` | `513` | `14.072513` (`201,054` total) |
+| **`S8`** | `8` | `9f31803b3b0bec881a987813231e6d9bef5530e2bb46351a63df032a8905b33a` | `d2fb8680a16e8017f6f0e6518df6810f6206023b0d14388dc076d4cfde2ebc5b` | `2839be9debf73c8a1f167f6df5f00816c56e98965d910fb5a468d608e994e985` | `1,733` | `476` | `1,257` | `99` | `185` | `14.230069` (`203,305` total) |
+| **`P16`** | `16` | `03299002ad2f6f2999687d829aea5692380f248be9282dd40db5b9f6431ea653` | `e9e03bcd95b78632a7f18d1b27c07d37f0ba82c52eee692c37da011eadac8804` | — (`init`/`eval` only) | `872` | `246` | `626` | `37` | `106` | — |
+| **`A16`** | `16` | `7e8379b1a4a3f598a398fb72080c8e768d58574b7a6365820bd1b66faa1e78e7` | `4122cbab44bd88658743984fc1ab79059bf032c3e2fe526ffcf4ea5f95d9cd74` | — (`init`/`eval` only) | `6,023` | `2,178` | `3,845` | `133` | `727` | — |
+
+- **Paired one-sided McNemar discordance on `P_succ` (`3,847` rows):**
+  - `A8` vs `P8` (placement effect): `n11 = 49`, `b = 1,302` (`A8`-only), `c = 78` (`P8`-only), `n00 = 2,418`; `b - c = 1,224 > F = 74.296702` (`(b-c)^2 = 1,498,176 > 4*(b+c) = 5,520`, `PASS`).
+  - `A8` vs `S8` (predecessor-relation effect beyond frequency packing): `n11 = 93`, `b = 1,258` (`A8`-only), `c = 383` (`S8`-only), `n00 = 2,113`; `b - c = 875 > F = 81.018516` (`(b-c)^2 = 765,625 > 4*(b+c) = 6,564`, `PASS`).
+  - Attribution: `PREDECESSOR_RELATION`.
+- **`G-Init` & `control_top1_cp0` audit (reconciled with `#2752`):**
+  - Cross-arm `routes` (`71cdce57…`), `gates` (`ceb6ae99…`), `seed == 1`, and `epoch == 0` are identical across all 5 checkpoint-0 models (`P8`, `A8`, `S8`, `P16`, `A16`), and every `model.table` matches its pinned `table_sha256`. Because no unpinned `SeededDeviceV1` checkpoint-0 artifact was generated in the `#2751` battery, the verifier records `g_init_pinned_vs_unpinned_routes_gates_epoch = "NOT_RUN"`, `g_init = "PARTIAL_UNPINNED_COMPARISON_NOT_RUN"`, and `promotion_qualification = "CONDITIONAL_G_INIT_UNPINNED_NOT_RUN"` (which `#2755` makes a hard pre-run gate in `m1-attention-a8-address-cells-learning-2026-10-19.md`).
+  - `evidence/grading.json` (`90c113ad8f57b1b304dd8c9ae798127029608f0cd6770a764d84d159ac216a5e`) plugged `A8`'s own `top1_cp0 = 133` into `max(500, top1_control(cp0) + 24)` instead of the `P8` control's `top1_cp0 = 38`; the verifier audits both (`max(500, 38 + 24) = 500` and `max(500, 133 + 24) = 500`) and confirms the threshold (`500`) and `A8` `net_g_cap` (`1,351 > 500`, `PASS`) are invariant.
+
+---
+
+## 5. Verification Commands
 
 ```sh
-# 1. Run 26 positive/negative self-tests and verify staged configs + repository bindings
+# 1. Run 32 positive/negative self-tests and verify staged configs + repository bindings
 python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_address_cells_preflight.py \
   --self-test \
   --configs-dir docs/labs/address-cells-preflight-configs-2026-10-19 \
   --repo-root .
 
-# 2. Also reproduce A8 and S8 tables byte-for-byte from local cached TRAIN pins
+# 2. Full verification: self-tests + configs + TRAIN table reproduction + raw pod archive + committed #2751 receipt
 python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_address_cells_preflight.py \
   --self-test \
   --configs-dir docs/labs/address-cells-preflight-configs-2026-10-19 \
   --repo-root . \
   --train-tokens /Users/casey.allard/uor-r4-local/codex-attention-preflight-inputs-v1/mw-balp/train/tokens.u16 \
-  --train-mask /Users/casey.allard/uor-r4-local/codex-attention-preflight-inputs-v1/mw-balp/train/response_mask.u8
-
-# 3. Grade a completed 5-arm pre-flight receipt directory
-python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_address_cells_preflight.py \
-  --preflight-dir /path/to/preflight-receipt-dir
+  --train-mask /Users/casey.allard/uor-r4-local/codex-attention-preflight-inputs-v1/mw-balp/train/response_mask.u8 \
+  --preflight-dir /Users/casey.allard/.local/share/uor-r4/compute/vast-archive/vast-56660582/uor-r4/runs/claude/address-cells-preflight-20261019 \
+  --receipt-dir docs/labs/address-cells-preflight-2026-10-19
 ```

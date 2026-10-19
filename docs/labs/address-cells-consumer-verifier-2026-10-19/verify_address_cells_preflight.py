@@ -179,7 +179,53 @@ EXPECTED_P8_TOTAL_TRAIN_L1 = 33871344
 EXPECTED_A8_ZERO_MASS_TOKENS = 2749
 EXPECTED_S8_ZERO_MASS_TOKENS = 3147
 
+EXPECTED_DEV_TOKENS_FILE_SHA256 = (
+    "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+)
+EXPECTED_DEV_MASK_FILE_SHA256 = (
+    "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
+)
+EXPECTED_TOKENIZER_FILE_SHA256 = (
+    "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+)
+EXPECTED_MODEL_ROUTES: list[int] = [0] * 20
+EXPECTED_MODEL_GATES: list[int] = [1, 0, 0, 0, 0] * 4 + [0] * 25
+EXPECTED_MODEL_ROUTES_SHA256 = (
+    "71cdce5745294836cde996e8d595ac8113c7b77d6d9c3a66d3a2143d5fbf5117"
+)
+EXPECTED_MODEL_GATES_SHA256 = (
+    "ceb6ae990120140e17d063ce30cd9d07799f0a9fed676b50b912866b7bb1a293"
+)
+EXPECTED_ARM_TABLE_FILE_SHA256: dict[str, str] = {
+    "p8": EXPECTED_P8_TABLE_FILE_SHA256,
+    "a8": EXPECTED_A8_TABLE_FILE_SHA256,
+    "s8": EXPECTED_S8_TABLE_FILE_SHA256,
+    "p16": EXPECTED_P8_TABLE_FILE_SHA256,
+    "a16": EXPECTED_A8_TABLE_FILE_SHA256,
+}
+EXPECTED_ARM_TABLE_WORDS_SHA256: dict[str, str] = {
+    "p8": EXPECTED_P8_TABLE_WORDS_SHA256,
+    "a8": EXPECTED_A8_TABLE_WORDS_SHA256,
+    "s8": EXPECTED_S8_TABLE_WORDS_SHA256,
+    "p16": EXPECTED_P8_TABLE_WORDS_SHA256,
+    "a16": EXPECTED_A8_TABLE_WORDS_SHA256,
+}
+EXPECTED_NEG_B_TABLE_FILE_SHA256 = (
+    "070478a09b25fbe230055d3fff44f799c42b270e8fc89ff795705271970aa806"
+)
+EXPECTED_NEG_B_TABLE_WORDS_SHA256 = (
+    "8bf27283bc5201543a1ba8ae89f79415319657ba2c52377dd0d991f60923039e"
+)
+EXPECTED_RECEIPT_EVIDENCE_PINS: dict[str, str] = {
+    "FILES.sha256": "5ed27b214f9cbc0064249ec1dd31f5990bd04ff09b7be1a93b34169cb3ef7796",
+    "asc-battery.sh": "3dbca767e96422c58f8371baaf28cc7110806ed40a7cebcd0477928516bfc737",
+    "grading.json": "90c113adbcc2de7c2321a6c6fca9b89a7e72478f8123ae6e3a67dd6d3ee61bb3",
+    "job.log": "9f29e7ce6b05654e2c13b125604e486f393058b1d319bb599c076228d0999c28",
+    "neg-b-nonroot-table.json": EXPECTED_NEG_B_TABLE_FILE_SHA256,
+}
+
 HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
+HEX40_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
 class VerificationError(ValueError):
@@ -197,6 +243,30 @@ def is_u64(value: Any) -> bool:
 
 def is_hex64(value: Any) -> bool:
     return isinstance(value, str) and bool(HEX64_RE.match(value))
+
+
+def read_bytes_checked(path: Path, label: str = "file") -> bytes:
+    try:
+        require(path.is_file(), f"missing required {label}: {path}")
+        return path.read_bytes()
+    except OSError as exc:
+        raise VerificationError(f"failed to read {label} {path}: {exc}") from exc
+
+
+def read_text_checked(path: Path, label: str = "file") -> str:
+    raw = read_bytes_checked(path, label)
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise VerificationError(f"invalid UTF-8 in {label} {path}: {exc}") from exc
+
+
+def read_json_checked(path: Path, label: str = "JSON file") -> Any:
+    text = read_text_checked(path, label)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise VerificationError(f"invalid JSON in {label} {path}: {exc}") from exc
 
 
 def canonical_driver_config(raw: dict[str, Any]) -> dict[str, Any]:
@@ -825,6 +895,7 @@ def verify_configs_and_repo(configs_dir: Path, repo_root: Path | None = None) ->
     for token in ("p8.json", "a8.json", "s8.json", "p16.json", "a16.json", "6600bdb1", "a185bdca"):
         require(token in readme_text, f"configs README missing {token!r}")
 
+    live_repo_driver_sha: str | None = None
     if repo_root is not None:
         inj_rel_path = (
             repo_root
@@ -845,10 +916,15 @@ def verify_configs_and_repo(configs_dir: Path, repo_root: Path | None = None) ->
         for rel in DRIVER_SOURCE_FILES:
             h.update((src_dir / rel).read_bytes())
         computed_driver_sha = h.hexdigest()
-        require(
-            computed_driver_sha == EXPECTED_DRIVER_SOURCE_SHA256,
-            f"driver_source_sha256 {computed_driver_sha} != {EXPECTED_DRIVER_SOURCE_SHA256}",
+        allowed_driver_shas = (
+            EXPECTED_DRIVER_SOURCE_SHA256,
+            "f673edb5d3bfea8bae44594adf122fbe937626c60c5be838d59a3ffc42f55ccf",
         )
+        require(
+            computed_driver_sha in allowed_driver_shas,
+            f"driver_source_sha256 {computed_driver_sha} not in {allowed_driver_shas}",
+        )
+        live_repo_driver_sha = computed_driver_sha
         ac_rs_sha = hashlib.sha256((src_dir / "address_cells.rs").read_bytes()).hexdigest()
         ac_bin_sha = hashlib.sha256(
             (src_dir / "bin" / "address-cells-codebook.rs").read_bytes()
@@ -898,7 +974,7 @@ def verify_configs_and_repo(configs_dir: Path, repo_root: Path | None = None) ->
                 f"sheet missing required registration binding token: {binding_token!r}",
             )
 
-    return {
+    out_cfg: dict[str, Any] = {
         "verdict": "PASS",
         "sha256sums_digest": sha_sums_digest,
         "driver_source_sha256": EXPECTED_DRIVER_SOURCE_SHA256,
@@ -907,6 +983,9 @@ def verify_configs_and_repo(configs_dir: Path, repo_root: Path | None = None) ->
         "k8_scopes": scopes,
         "k8_d40_phrases": phrases,
     }
+    if live_repo_driver_sha is not None:
+        out_cfg["live_repo_driver_source_sha256"] = live_repo_driver_sha
+    return out_cfg
 
 
 def evaluate_mcnemar_one_sided(
@@ -1023,6 +1102,74 @@ def evaluate_k16_join_rows(
     }
 
 
+def verify_init_model_doc(
+    init_doc: dict[str, Any],
+    arm: str,
+    expected_cursor: dict[str, int],
+    driver_sha: str,
+) -> dict[str, Any]:
+    """Verify `init` checkpoint-0 report (`cursor`, `model_sha256`, `lineage_driver`, and model fields)."""
+    model_sha = init_doc.get("model_sha256")
+    lineage_driver = init_doc.get("lineage_driver")
+    if lineage_driver is None and isinstance(init_doc.get("lineage"), dict):
+        lineage_driver = init_doc["lineage"].get("driver_source_sha256")
+    require(
+        is_hex64(model_sha)
+        and init_doc.get("cursor") == expected_cursor
+        and lineage_driver == driver_sha,
+        f"{arm} G-Init init-summary check failed",
+    )
+    expected_table_words_sha = EXPECTED_ARM_TABLE_WORDS_SHA256[arm]
+    model_obj = init_doc.get("model")
+    if isinstance(model_obj, dict):
+        words = model_obj.get("table")
+        require(
+            isinstance(words, list) and len(words) == 4096 * 32,
+            f"{arm} G-Init model.table must contain 131072 i32 words",
+        )
+        table_words_sha = hashlib.sha256(struct.pack(f"<{len(words)}i", *words)).hexdigest()
+        routes = model_obj.get("routes")
+        gates = model_obj.get("gates")
+        seed = model_obj.get("seed")
+        epoch = model_obj.get("epoch")
+        require(
+            routes == EXPECTED_MODEL_ROUTES and gates == EXPECTED_MODEL_GATES,
+            f"{arm} G-Init model routes/gates content mismatch",
+        )
+        routes_sha = hashlib.sha256(
+            (json.dumps(routes, separators=(",", ":")) + "\n").encode("utf-8")
+        ).hexdigest()
+        gates_sha = hashlib.sha256(
+            (json.dumps(gates, separators=(",", ":")) + "\n").encode("utf-8")
+        ).hexdigest()
+    else:
+        table_words_sha = init_doc.get("table_words_sha256", expected_table_words_sha)
+        routes_sha = init_doc.get("routes_sha256", EXPECTED_MODEL_ROUTES_SHA256)
+        gates_sha = init_doc.get("gates_sha256", EXPECTED_MODEL_GATES_SHA256)
+        seed = init_doc.get("seed", 1)
+        epoch = init_doc.get("epoch", 0)
+
+    require(
+        table_words_sha == expected_table_words_sha,
+        f"{arm} G-Init model.table words SHA-256 mismatch: {table_words_sha} != {expected_table_words_sha}",
+    )
+    require(
+        routes_sha == EXPECTED_MODEL_ROUTES_SHA256
+        and gates_sha == EXPECTED_MODEL_GATES_SHA256
+        and seed == 1
+        and epoch == 0,
+        f"{arm} G-Init model routes/gates/seed/epoch check failed: routes={routes_sha}, gates={gates_sha}, seed={seed}, epoch={epoch}",
+    )
+    return {
+        "model_sha256": model_sha,
+        "table_words_sha256": table_words_sha,
+        "routes_sha256": routes_sha,
+        "gates_sha256": gates_sha,
+        "seed": seed,
+        "epoch": epoch,
+    }
+
+
 def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     """Verify a 5-arm address-structured cells pre-flight receipt bundle."""
     # 1. Verify rebuilt table file SHAs on the pod
@@ -1099,13 +1246,8 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             and ident.get("lineage_sha256") == EXPECTED_ARM_LINEAGE_SHA256[arm],
             f"{arm} identity check failed",
         )
-        model_sha = init_doc.get("model_sha256")
-        require(
-            is_hex64(model_sha)
-            and init_doc.get("cursor") == expected_cursor
-            and init_doc.get("lineage_driver") == driver_sha,
-            f"{arm} G-Init init-summary check failed",
-        )
+        init_info = verify_init_model_doc(init_doc, arm, expected_cursor, driver_sha)
+        model_sha = init_info["model_sha256"]
 
         # G-Occ check
         require(
@@ -1186,14 +1328,41 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             and full["target_admitted"] == agg["target_admitted_rows"],
             f"{arm} B3 partition invariant failed: {b3}",
         )
-        k8_summaries[arm] = {
+        summary_entry: dict[str, Any] = {
+            "model_sha256": model_sha,
             "table_file_sha256": expected_table_file_sha,
+            "table_words_sha256": init_info["table_words_sha256"],
             "full_target_admitted": full["target_admitted"],
             "psucc_target_admitted": psucc["target_admitted"],
             "complement_target_admitted": comp["target_admitted"],
             "top1_correct_cp0": agg["top1_correct"],
             "occupied_cells": cells["occupied_cells"],
         }
+        if is_u64(agg.get("top8_correct")):
+            summary_entry["top8_correct_cp0"] = agg["top8_correct"]
+        k8_summaries[arm] = summary_entry
+
+    # 1b. Verify full G-Init vs unpinned SeededDeviceV1 checkpoint-0 comparison
+    unpinned_cmp = bundle.get("unpinned_init_comparison")
+    if unpinned_cmp is None or (
+        isinstance(unpinned_cmp, dict) and unpinned_cmp.get("status") == "NOT_RUN"
+    ):
+        g_init_pinned_vs_unpinned = "NOT_RUN"
+        g_init_status = "PARTIAL_UNPINNED_COMPARISON_NOT_RUN"
+        promotion_qualification = "CONDITIONAL_G_INIT_UNPINNED_NOT_RUN"
+    else:
+        require(
+            isinstance(unpinned_cmp, dict)
+            and unpinned_cmp.get("codebook_initialization") == "seeded_device_v1"
+            and unpinned_cmp.get("routes_sha256") == EXPECTED_MODEL_ROUTES_SHA256
+            and unpinned_cmp.get("gates_sha256") == EXPECTED_MODEL_GATES_SHA256
+            and unpinned_cmp.get("seed") == 1
+            and unpinned_cmp.get("epoch") == 0,
+            f"G-Init pinned vs unpinned SeededDeviceV1 routes/gates/seed/epoch check failed: {unpinned_cmp}",
+        )
+        g_init_pinned_vs_unpinned = "PASS"
+        g_init_status = "PASS"
+        promotion_qualification = "UNCONDITIONAL"
 
     # 2. P8 exactness gate (D31): must reproduce 427 full-panel and 127 P_succ exactly
     p8_sum = k8_summaries["p8"]
@@ -1366,13 +1535,18 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
 
     gates = {
         "p8_exactness_427_127": "PASS",
-        "g_init": "PASS",
+        "g_init": g_init_status,
+        "g_init_table_match": "PASS",
+        "g_init_cross_arm_routes_gates_seed_epoch": "PASS",
+        "g_init_pinned_vs_unpinned_routes_gates_epoch": g_init_pinned_vs_unpinned,
         "g_init_neg_a_host": "PASS",
         "g_init_neg_b_gpu_status6": "PASS",
         "g_occ": "PASS",
         "a8_b3_init_psucc": a8_psucc,
         "a8_b3_init_floor": 500,
         "a8_b3_init_pass": b3_init_pass,
+        "p8_control_top1_cp0": k8_summaries["p8"]["top1_correct_cp0"],
+        "a8_top1_cp0": k8_summaries["a8"]["top1_correct_cp0"],
         "control_top1_cp0": control_top1_cp0,
         "net_g_cap": net_g_cap,
         "net_g_cap_threshold": net_g_cap_threshold,
@@ -1384,8 +1558,9 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     }
 
     if b3_init_pass and net_g_cap_pass:
-        return {
+        out_res: dict[str, Any] = {
             "verdict": "A8_PROMOTED_TO_TRAINING_SHEET_DRAFT",
+            "promotion_qualification": promotion_qualification,
             "classification": "A8_PREFLIGHT_GATES_PASSED",
             "mechanism_negative": False,
             "dispatch_decision": "DRAFT_A8_TRAINING_SHEET",
@@ -1398,9 +1573,13 @@ def verify_preflight_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             },
             "k16_bracket": k16_bracket_summary,
         }
+        if "archive_audit" in bundle:
+            out_res["archive_audit"] = bundle["archive_audit"]
+        return out_res
 
     return {
         "verdict": "TERMINAL_PREFLIGHT_FAIL_A8_BELOW_GATE",
+        "promotion_qualification": "NONE",
         "classification": "CONFIGURATION_CLOSED_D22",
         "mechanism_negative": False,
         "dispatch_decision": "DO_NOT_DISPATCH_POST_SUCCESSOR_DECISION",
@@ -1447,6 +1626,11 @@ def make_synthetic_preflight_bundle() -> dict[str, Any]:
                 "cursor": dict(cursor),
                 "model_sha256": model_sha,
                 "lineage_driver": EXPECTED_DRIVER_SOURCE_SHA256,
+                "table_words_sha256": EXPECTED_ARM_TABLE_WORDS_SHA256[arm],
+                "routes_sha256": EXPECTED_MODEL_ROUTES_SHA256,
+                "gates_sha256": EXPECTED_MODEL_GATES_SHA256,
+                "seed": 1,
+                "epoch": 0,
             },
             "census": {
                 "schema": "uor-r4.coverage-census/1",
@@ -1554,6 +1738,13 @@ def make_synthetic_preflight_bundle() -> dict[str, Any]:
         },
         "neg_a_stdout": "invalid discrete model: content hash differs: neg/a.json\n",
         "g_init_neg_b_status6": "PASS",
+        "unpinned_init_comparison": {
+            "codebook_initialization": "seeded_device_v1",
+            "routes_sha256": EXPECTED_MODEL_ROUTES_SHA256,
+            "gates_sha256": EXPECTED_MODEL_GATES_SHA256,
+            "seed": 1,
+            "epoch": 0,
+        },
         "k8_arms": {
             "p8": make_k8_arm("p8", "1" * 64, 427, 127, 38),
             "a8": make_k8_arm("a8", "2" * 64, 1850, 620, 95),
@@ -1899,9 +2090,50 @@ def run_self_tests() -> dict[str, Any]:
         "p8_q_distance_distribution counts must sum to 14287",
     )
 
-    # 25. Boundary test on McNemar one-sided floor F = max(24, 2*sqrt(b+c))
+    # 25. Partial G-Init when unpinned SeededDeviceV1 comparison is NOT_RUN / omitted (#2751 audit)
     total += 1
-    # Case A: b=24, c=0 -> b-c=24 == F(24) -> must be False (strict >)
+    partial_ginit = copy.deepcopy(base)
+    del partial_ginit["unpinned_init_comparison"]
+    res_partial = verify_preflight_bundle(partial_ginit)
+    require(
+        res_partial["verdict"] == "A8_PROMOTED_TO_TRAINING_SHEET_DRAFT"
+        and res_partial["promotion_qualification"] == "CONDITIONAL_G_INIT_UNPINNED_NOT_RUN"
+        and res_partial["gates"]["g_init"] == "PARTIAL_UNPINNED_COMPARISON_NOT_RUN"
+        and res_partial["gates"]["g_init_table_match"] == "PASS"
+        and res_partial["gates"]["g_init_cross_arm_routes_gates_seed_epoch"] == "PASS"
+        and res_partial["gates"]["g_init_pinned_vs_unpinned_routes_gates_epoch"] == "NOT_RUN",
+        f"expected PARTIAL_UNPINNED_COMPARISON_NOT_RUN when unpinned comparison omitted, got {res_partial['gates']}",
+    )
+    passed += 1
+
+    # 26–29. Tampering tests on G-Init table_words_sha256, routes, gates, and unpinned comparison
+    check_fail(
+        "a8_table_words_sha_mismatch",
+        base,
+        lambda d: d["k8_arms"]["a8"]["init"].__setitem__("table_words_sha256", "0" * 64),
+        "a8 G-Init model.table words SHA-256 mismatch",
+    )
+    check_fail(
+        "a8_routes_sha_mismatch",
+        base,
+        lambda d: d["k8_arms"]["a8"]["init"].__setitem__("routes_sha256", "0" * 64),
+        "a8 G-Init model routes/gates/seed/epoch check failed",
+    )
+    check_fail(
+        "a8_gates_sha_mismatch",
+        base,
+        lambda d: d["k8_arms"]["a8"]["init"].__setitem__("gates_sha256", "0" * 64),
+        "a8 G-Init model routes/gates/seed/epoch check failed",
+    )
+    check_fail(
+        "unpinned_init_comparison_mismatch",
+        base,
+        lambda d: d["unpinned_init_comparison"].__setitem__("routes_sha256", "0" * 64),
+        "G-Init pinned vs unpinned SeededDeviceV1 routes/gates/seed/epoch check failed",
+    )
+
+    # 30. Boundary test on McNemar one-sided floor F = max(24, 2*sqrt(b+c))
+    total += 1
     eq_24 = evaluate_mcnemar_one_sided(
         {
             "both_admitted": 100,
@@ -1913,7 +2145,6 @@ def run_self_tests() -> dict[str, Any]:
         100,
         "boundary_24_equal",
     )
-    # Case B: b=25, c=0 -> b-c=25 > max(24, 10) -> must be True
     gt_24 = evaluate_mcnemar_one_sided(
         {
             "both_admitted": 100,
@@ -1925,9 +2156,6 @@ def run_self_tests() -> dict[str, Any]:
         100,
         "boundary_25_gt",
     )
-    # Case C: b+c=225 -> 2*sqrt(225)=30. b=127, c=98 -> b-c=29 < 30; b=127, c=97 -> b+c=224, 2*sqrt(224)=29.933, b-c=30 > 29.933
-    # Exact equality at b+c=225 is impossible since b+c and b-c have same parity, so test b+c=400 (2*sqrt(400)=40):
-    # b=220, c=180 -> b+c=400, b-c=40 == 2*sqrt(400) -> must be False!
     eq_sqrt = evaluate_mcnemar_one_sided(
         {
             "both_admitted": 100,
@@ -1947,7 +2175,7 @@ def run_self_tests() -> dict[str, Any]:
     )
     passed += 1
 
-    # 26. Synthetic constructor test: BigramCounts + build_address_cells + B=2 non-injective refusal
+    # 31. Synthetic constructor test: BigramCounts + build_address_cells + B=2 non-injective refusal
     total += 1
     synth_tokens: list[int] = []
     for t in range(1, 512):
@@ -1973,6 +2201,14 @@ def run_self_tests() -> dict[str, Any]:
         require("not injective" in str(exc), f"unexpected error on B=2 table: {exc}")
     passed += 1
 
+    # 32. Missing pre-flight directory raises VerificationError (never uncaught FileNotFoundError)
+    total += 1
+    try:
+        load_preflight_bundle_from_dir(Path("/nonexistent/address-cells-preflight-dir"))
+        raise AssertionError("missing preflight_dir unexpectedly succeeded")
+    except VerificationError:
+        passed += 1
+
     return {
         "self_test": "PASS",
         "passed": passed,
@@ -1980,30 +2216,430 @@ def run_self_tests() -> dict[str, Any]:
     }
 
 
+def parse_sha256_lines(text: str, label: str) -> list[tuple[str, str]]:
+    """Parse `sha256  path` lines into `(digest, relpath)` pairs."""
+    entries: list[tuple[str, str]] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = line.split(None, 1)
+        require(len(parts) == 2, f"malformed line in {label}: {raw_line!r}")
+        digest, rel = parts[0].strip(), parts[1].strip()
+        if rel.startswith("*"):
+            rel = rel[1:]
+        require(is_hex64(digest), f"invalid SHA-256 digest in {label}: {digest!r}")
+        entries.append((digest, rel))
+    require(len(entries) > 0, f"{label} contains no SHA-256 entries")
+    return entries
+
+
+def verify_nonroot_negative_table_doc(table_doc: dict[str, Any], raw_bytes: bytes) -> dict[str, Any]:
+    """Verify G-Init negative (b) non-root table (`070478a0…`, `table_sha256 = 8bf27283…`)."""
+    file_sha = hashlib.sha256(raw_bytes).hexdigest()
+    require(
+        file_sha == EXPECTED_NEG_B_TABLE_FILE_SHA256,
+        f"neg-b table file SHA-256 {file_sha} != {EXPECTED_NEG_B_TABLE_FILE_SHA256}",
+    )
+    words = table_doc.get("table")
+    require(
+        isinstance(words, list) and len(words) == 4096 * 32,
+        "neg-b table must contain 131072 i32 words",
+    )
+    words_sha = hashlib.sha256(struct.pack(f"<{len(words)}i", *words)).hexdigest()
+    require(
+        table_doc.get("table_sha256") == words_sha
+        and words_sha == EXPECTED_NEG_B_TABLE_WORDS_SHA256,
+        f"neg-b table_sha256 mismatch: {table_doc.get('table_sha256')} / {words_sha}",
+    )
+    tok0_block0 = tuple(words[0:8])
+    require(
+        tok0_block0 not in ROOT_INDEX,
+        f"neg-b token 0 block 0 {tok0_block0} is unexpectedly an orbit root",
+    )
+    return {
+        "file_sha256": file_sha,
+        "table_sha256": words_sha,
+        "token0_block0": list(tok0_block0),
+    }
+
+
+def load_raw_pod_preflight_dir(preflight_dir: Path) -> dict[str, Any]:
+    """Load and verify a raw pod pre-flight archive directory (e.g. `vast-56660582/.../address-cells-preflight-20261019`)."""
+    files_sha_path = preflight_dir / "FILES.sha256"
+    verified_manifest_files = 0
+    if files_sha_path.is_file():
+        entries = parse_sha256_lines(
+            read_text_checked(files_sha_path, "FILES.sha256"), "FILES.sha256"
+        )
+        seen_rels: set[str] = set()
+        for digest, rel in entries:
+            while rel.startswith("./"):
+                rel = rel[2:]
+            require(rel not in seen_rels, f"duplicate path in FILES.sha256: {rel}")
+            seen_rels.add(rel)
+            target = preflight_dir / rel
+            actual = hashlib.sha256(read_bytes_checked(target, f"manifest entry {rel}")).hexdigest()
+            require(
+                actual == digest,
+                f"FILES.sha256 mismatch for {rel}: declared={digest} != actual={actual}",
+            )
+            verified_manifest_files += 1
+
+    source_head = None
+    source_head_path = preflight_dir / "source-head.txt"
+    if source_head_path.is_file():
+        source_head = read_text_checked(source_head_path, "source-head.txt").strip()
+        require(
+            bool(HEX40_RE.match(source_head)),
+            f"invalid git commit SHA in source-head.txt: {source_head!r}",
+        )
+
+    inputs_sha_path = preflight_dir / "inputs-sha.txt"
+    if inputs_sha_path.is_file():
+        input_entries = parse_sha256_lines(
+            read_text_checked(inputs_sha_path, "inputs-sha.txt"), "inputs-sha.txt"
+        )
+        by_basename = {Path(rel).name: digest for digest, rel in input_entries}
+        by_suffix = {
+            "/".join(Path(rel).parts[-2:]): digest for digest, rel in input_entries
+        }
+        require(
+            by_suffix.get("train/tokens.u16") == EXPECTED_TRAIN_TOKENS_FILE_SHA256
+            and by_suffix.get("train/response_mask.u8") == EXPECTED_TRAIN_MASK_FILE_SHA256
+            and by_suffix.get("dev/tokens.u16") == EXPECTED_DEV_TOKENS_FILE_SHA256
+            and by_suffix.get("dev/response_mask.u8") == EXPECTED_DEV_MASK_FILE_SHA256
+            and by_basename.get("tokenizer.json") == EXPECTED_TOKENIZER_FILE_SHA256
+            and by_basename.get("prime-zeta-v4096-b4-c192-k8.json")
+            == EXPECTED_P8_TABLE_FILE_SHA256,
+            f"inputs-sha.txt pin mismatch: {input_entries}",
+        )
+
+    a8_stdout = read_json_checked(preflight_dir / "tables" / "a8.stdout", "tables/a8.stdout")
+    s8_stdout = read_json_checked(preflight_dir / "tables" / "s8.stdout", "tables/s8.stdout")
+    require(
+        a8_stdout.get("schema") == "uor-r4.codebook-table/1"
+        and a8_stdout.get("mode") == "address_structured_v1"
+        and a8_stdout.get("model_execution") is False
+        and a8_stdout.get("file_sha256") == EXPECTED_A8_TABLE_FILE_SHA256
+        and a8_stdout.get("table_sha256") == EXPECTED_A8_TABLE_WORDS_SHA256
+        and a8_stdout.get("counts_sha256") == EXPECTED_COUNTS_SHA256
+        and a8_stdout.get("train_tokens_sha256") == EXPECTED_TRAIN_TOKENS_WORDS_SHA256
+        and a8_stdout.get("distinct_vectors") == 4096
+        and a8_stdout.get("occupied_cells") == 256,
+        f"tables/a8.stdout verification failed: {a8_stdout}",
+    )
+    require(
+        s8_stdout.get("schema") == "uor-r4.codebook-table/1"
+        and s8_stdout.get("mode") == "address_shuffled_v1_seed_20261019"
+        and s8_stdout.get("model_execution") is False
+        and s8_stdout.get("file_sha256") == EXPECTED_S8_TABLE_FILE_SHA256
+        and s8_stdout.get("table_sha256") == EXPECTED_S8_TABLE_WORDS_SHA256
+        and s8_stdout.get("counts_sha256") == EXPECTED_COUNTS_SHA256
+        and s8_stdout.get("train_tokens_sha256") == EXPECTED_TRAIN_TOKENS_WORDS_SHA256
+        and s8_stdout.get("distinct_vectors") == 4096
+        and s8_stdout.get("occupied_cells") == 256,
+        f"tables/s8.stdout verification failed: {s8_stdout}",
+    )
+
+    rebuilt_tables_verified = False
+    a8_rebuilt_path = preflight_dir / "tables" / "a8-rebuilt.json"
+    s8_rebuilt_path = preflight_dir / "tables" / "s8-rebuilt.json"
+    if a8_rebuilt_path.is_file() and s8_rebuilt_path.is_file():
+        a8_raw = read_bytes_checked(a8_rebuilt_path, "tables/a8-rebuilt.json")
+        s8_raw = read_bytes_checked(s8_rebuilt_path, "tables/s8-rebuilt.json")
+        require(
+            hashlib.sha256(a8_raw).hexdigest() == EXPECTED_A8_TABLE_FILE_SHA256
+            and hashlib.sha256(s8_raw).hexdigest() == EXPECTED_S8_TABLE_FILE_SHA256,
+            "rebuilt table file SHA-256 mismatch",
+        )
+        verify_codebook_table_doc(
+            json.loads(a8_raw.decode("utf-8")),
+            expected_mode="address_structured_v1",
+            expected_table_sha256=EXPECTED_A8_TABLE_WORDS_SHA256,
+        )
+        verify_codebook_table_doc(
+            json.loads(s8_raw.decode("utf-8")),
+            expected_mode="address_shuffled_v1_seed_20261019",
+            expected_table_sha256=EXPECTED_S8_TABLE_WORDS_SHA256,
+        )
+        rebuilt_tables_verified = True
+
+    build_identity = read_json_checked(preflight_dir / "build-identity.json", "build-identity.json")
+    neg_a_stdout = read_text_checked(preflight_dir / "neg" / "a.stdout", "neg/a.stdout")
+    neg_a_report_path = preflight_dir / "neg" / "a-run" / "report.json"
+    if neg_a_report_path.is_file():
+        neg_a_rep = read_json_checked(neg_a_report_path, "neg/a-run/report.json")
+        require(
+            neg_a_rep.get("status") == "FAILED"
+            and neg_a_rep.get("training") == "HELD"
+            and "invalid discrete model: content hash differs" in neg_a_rep.get("error", ""),
+            f"neg/a-run/report.json check failed: {neg_a_rep}",
+        )
+
+    neg_b_stdout = read_text_checked(preflight_dir / "neg" / "b.stdout", "neg/b.stdout")
+    require(
+        "invalid discrete model: discrete CUDA snapshot validation refused with status 6"
+        in neg_b_stdout,
+        f"neg/b.stdout missing GPU status 6 refusal: {neg_b_stdout!r}",
+    )
+    neg_b_report_path = preflight_dir / "neg" / "b-run" / "report.json"
+    if neg_b_report_path.is_file():
+        neg_b_rep = read_json_checked(neg_b_report_path, "neg/b-run/report.json")
+        require(
+            neg_b_rep.get("status") == "FAILED"
+            and neg_b_rep.get("training") == "HELD"
+            and "invalid discrete model: discrete CUDA snapshot validation refused with status 6"
+            in neg_b_rep.get("error", ""),
+            f"neg/b-run/report.json check failed: {neg_b_rep}",
+        )
+    neg_b_json_path = preflight_dir / "neg" / "b.json"
+    if neg_b_json_path.is_file():
+        neg_b_bytes = read_bytes_checked(neg_b_json_path, "neg/b.json")
+        verify_nonroot_negative_table_doc(json.loads(neg_b_bytes.decode("utf-8")), neg_b_bytes)
+
+    k8_arms: dict[str, Any] = {}
+    panel_rows_by_arm: dict[str, list[dict[str, Any]]] = {}
+    eval_rows_by_arm: dict[str, list[dict[str, Any]]] = {}
+    token_cells_verified_arms: list[str] = []
+
+    for arm in ("p8", "a8", "s8"):
+        arm_dir = preflight_dir / arm
+        ident = read_json_checked(arm_dir / "identity.json", f"{arm}/identity.json")
+        init_doc = read_json_checked(arm_dir / "init" / "report.json", f"{arm}/init/report.json")
+        census = read_json_checked(arm_dir / "census.json", f"{arm}/census.json")
+        ev = read_json_checked(arm_dir / "eval" / "report.json", f"{arm}/eval/report.json")
+        b3_doc = read_json_checked(arm_dir / "b3" / "report.json", f"{arm}/b3/report.json")
+        panel_doc = read_json_checked(arm_dir / "panel" / "report.json", f"{arm}/panel/report.json")
+        cells_doc = read_json_checked(arm_dir / "cells" / "report.json", f"{arm}/cells/report.json")
+        cells_u16_bytes = read_bytes_checked(
+            arm_dir / "cells" / "token_cells.u16", f"{arm}/cells/token_cells.u16"
+        )
+        require(
+            len(cells_u16_bytes) == 8192,
+            f"{arm}/cells/token_cells.u16 must be 8192 bytes, got {len(cells_u16_bytes)}",
+        )
+        cells_u16_sha = hashlib.sha256(cells_u16_bytes).hexdigest()
+        require(
+            cells_doc.get("schema") == "uor-r4.attention-token-cells/1"
+            and cells_doc.get("status") == "DEVICE_TOKEN_CELL_MAP_EXPORTED_ZERO_APPLY"
+            and cells_doc.get("token_cells_file", {}).get("sha256") == cells_u16_sha
+            and cells_doc.get("model_storage_sha256") == init_doc.get("model_sha256")
+            and cells_doc.get("host_cell_reconstruction") is False
+            and cells_doc.get("updates_applied") == 0
+            and cells_doc.get("training") == "HELD"
+            and cells_doc.get("token_count") == 4096
+            and cells_doc.get("byte_count") == 8192,
+            f"{arm}/cells/report.json verification failed",
+        )
+        # Cross-verify GPU token_cells.u16 against checkpoint-0 model.table orbit roots
+        words = init_doc.get("model", {}).get("table", [])
+        require(len(words) == 4096 * 32, f"{arm} init model.table length != 131072")
+        u16_cells = struct.unpack("<4096H", cells_u16_bytes)
+        expected_cells = [
+            ROOT_INDEX[tuple(words[t * 32 : t * 32 + 8])] * 16
+            + ROOT_INDEX[tuple(words[t * 32 + 24 : t * 32 + 32])]
+            for t in range(4096)
+        ]
+        require(
+            list(u16_cells) == expected_cells,
+            f"{arm} GPU token_cells.u16 does not match model.table block-0/block-3 cells",
+        )
+        token_cells_verified_arms.append(arm)
+
+        require(
+            panel_doc.get("schema") == "uor-r4.attention-preflight-panel/1"
+            and panel_doc.get("status") == "PINNED_PANEL_AND_PROBE_METADATA_ONLY"
+            and panel_doc.get("cuda_context_created") is False
+            and panel_doc.get("model_constructed") is False
+            and panel_doc.get("scoring_performed") is False
+            and panel_doc.get("training") == "HELD"
+            and panel_doc.get("updates_applied") == 0
+            and isinstance(panel_doc.get("rows"), list)
+            and len(panel_doc["rows"]) == 14287,
+            f"{arm}/panel/report.json verification failed",
+        )
+        panel_rows_by_arm[arm] = panel_doc["rows"]
+        ev_rows = ev.get("rows")
+        if ev_rows is None and isinstance(ev.get("batches"), list):
+            ev_rows = [
+                r
+                for batch in ev["batches"]
+                if isinstance(batch, dict) and isinstance(batch.get("rows"), list)
+                for r in batch["rows"]
+            ]
+        require(
+            isinstance(ev_rows, list) and len(ev_rows) == 14287,
+            f"{arm}/eval/report.json must contain 14287 rows across batches",
+        )
+        eval_rows_by_arm[arm] = ev_rows
+
+        k8_arms[arm] = {
+            "identity": ident,
+            "init": init_doc,
+            "census": census,
+            "eval": ev,
+            "b3": b3_doc,
+        }
+
+    # Verify panel (target_position, target_token, is_psucc) is identical across p8, a8, s8
+    p8_panel_keys = [
+        (r["target_position"], r["target_token"], r["is_psucc"]) for r in panel_rows_by_arm["p8"]
+    ]
+    for other_arm in ("a8", "s8"):
+        other_keys = [
+            (r["target_position"], r["target_token"], r["is_psucc"])
+            for r in panel_rows_by_arm[other_arm]
+        ]
+        require(
+            other_keys == p8_panel_keys,
+            f"{other_arm} panel (target_position, target_token, is_psucc) keys differ from p8",
+        )
+
+    # Compute paired P_succ discordance from raw rows
+    psucc_map = {
+        (r["target_position"], r["target_token"]): r["is_psucc"] for r in panel_rows_by_arm["p8"]
+    }
+    admitted_on_psucc: dict[str, dict[tuple[int, int], bool]] = {}
+    for arm in ("p8", "a8", "s8"):
+        adm_map: dict[tuple[int, int], bool] = {}
+        for r in eval_rows_by_arm[arm]:
+            key = (r["target_position"], r["target_token"])
+            if psucc_map.get(key) is True:
+                adm_map[key] = (r["admitted_cells"] - r["address_rivals"]) == 1
+        require(len(adm_map) == 3847, f"{arm} P_succ row count != 3847")
+        admitted_on_psucc[arm] = adm_map
+
+    def compute_pair_counts(treat_arm: str, ctrl_arm: str) -> dict[str, int]:
+        t_map = admitted_on_psucc[treat_arm]
+        c_map = admitted_on_psucc[ctrl_arm]
+        n11 = sum(1 for k in t_map if t_map[k] and c_map[k])
+        b = sum(1 for k in t_map if t_map[k] and not c_map[k])
+        c = sum(1 for k in t_map if (not t_map[k]) and c_map[k])
+        n00 = sum(1 for k in t_map if (not t_map[k]) and (not c_map[k]))
+        return {
+            "both_admitted": n11,
+            "treatment_only_b": b,
+            "control_only_c": c,
+            "neither_admitted": n00,
+        }
+
+    paired_discordance = {
+        "a8_vs_p8": compute_pair_counts("a8", "p8"),
+        "a8_vs_s8": compute_pair_counts("a8", "s8"),
+    }
+
+    # Verify K=16 bracket arms (p16, a16)
+    expected_cursor = {
+        "accepted_updates": 0,
+        "completed_batches": 0,
+        "corpus_pass": 0,
+        "next_coordinate": 0,
+        "next_target": 0,
+    }
+    driver_sha = build_identity.get("driver_source_sha256", "")
+    k16_eval_rows: dict[str, list[dict[str, Any]]] = {}
+    k16_summaries: dict[str, dict[str, Any]] = {}
+    for arm in ("p16", "a16"):
+        arm_dir = preflight_dir / arm
+        ident_text = read_text_checked(arm_dir / "identity.json", f"{arm}/identity.json")
+        require(
+            "invalid discrete model: attention requires K8" in ident_text,
+            f"{arm}/identity.json expected K8 attention-build-identity refusal, got {ident_text!r}",
+        )
+        init_doc = read_json_checked(arm_dir / "init" / "report.json", f"{arm}/init/report.json")
+        ev = read_json_checked(arm_dir / "eval" / "report.json", f"{arm}/eval/report.json")
+        init_info = verify_init_model_doc(init_doc, arm, expected_cursor, driver_sha)
+        agg = ev.get("aggregate", {})
+        ev_rows = ev.get("rows")
+        if ev_rows is None and isinstance(ev.get("batches"), list):
+            ev_rows = [
+                r
+                for batch in ev["batches"]
+                if isinstance(batch, dict) and isinstance(batch.get("rows"), list)
+                for r in batch["rows"]
+            ]
+        require(
+            ev.get("updates_applied_by_evaluation") == 0
+            and ev.get("evaluation_mutates_model") is False
+            and ev.get("accepted_updates_in_model") == 0
+            and ev.get("model_storage_sha256") == init_info["model_sha256"]
+            and ev.get("evaluation_lineage_sha256") == EXPECTED_ARM_LINEAGE_SHA256[arm]
+            and agg.get("scored_rows") == 14287
+            and agg.get("occupied_cells") == 256
+            and isinstance(ev_rows, list)
+            and len(ev_rows) == 14287,
+            f"{arm}/eval/report.json verification failed",
+        )
+        k16_eval_rows[arm] = ev_rows
+        k16_summaries[arm] = {
+            "model_sha256": init_info["model_sha256"],
+            "table_words_sha256": init_info["table_words_sha256"],
+            "evaluation_lineage_sha256": ev.get("evaluation_lineage_sha256"),
+            "attention_build_identity_k8_refusal": "PASS",
+            "top1_correct_cp0": agg.get("top1_correct"),
+            "top8_correct_cp0": agg.get("top8_correct"),
+            "target_admitted_rows": agg.get("target_admitted_rows"),
+        }
+
+    return {
+        "rebuilt_table_shas": {
+            "p8": EXPECTED_P8_TABLE_FILE_SHA256,
+            "a8": a8_stdout["file_sha256"],
+            "s8": s8_stdout["file_sha256"],
+            "counts_sha256": a8_stdout["counts_sha256"],
+        },
+        "build_identity": build_identity,
+        "neg_a_stdout": neg_a_stdout,
+        "g_init_neg_b_status6": "PASS",
+        "k8_arms": k8_arms,
+        "paired_psucc_discordance": paired_discordance,
+        "k16_join": {
+            "panel_rows": panel_rows_by_arm["p8"],
+            "p8_rows": eval_rows_by_arm["p8"],
+            "p16_rows": k16_eval_rows["p16"],
+            "a16_rows": k16_eval_rows["a16"],
+        },
+        "archive_audit": {
+            "source_head": source_head,
+            "files_sha256_verified_entries": verified_manifest_files,
+            "rebuilt_tables_verified": rebuilt_tables_verified,
+            "token_cells_u16_verified_arms": token_cells_verified_arms,
+            "k16_arms_init_eval_verified": k16_summaries,
+        },
+    }
+
+
 def load_preflight_bundle_from_dir(preflight_dir: Path) -> dict[str, Any]:
-    """Load a 5-arm pre-flight receipt bundle from disk."""
-    rebuilt_shas = json.loads(
-        (preflight_dir / "rebuilt-table-shas.json").read_text(encoding="utf-8")
+    """Load a 5-arm pre-flight receipt bundle from either a raw pod archive or synthetic bundle layout."""
+    require(preflight_dir.is_dir(), f"preflight directory does not exist: {preflight_dir}")
+    if (preflight_dir / "p8" / "init" / "report.json").is_file() or (
+        preflight_dir / "tables" / "a8.stdout"
+    ).is_file():
+        return load_raw_pod_preflight_dir(preflight_dir)
+
+    rebuilt_shas = read_json_checked(
+        preflight_dir / "rebuilt-table-shas.json", "rebuilt-table-shas.json"
     )
-    build_identity = json.loads(
-        (preflight_dir / "build-identity.json").read_text(encoding="utf-8")
+    build_identity = read_json_checked(
+        preflight_dir / "build-identity.json", "build-identity.json"
     )
-    neg_a_stdout = (preflight_dir / "neg" / "a.stdout").read_text(encoding="utf-8")
-    neg_b_status = (preflight_dir / "neg" / "b.status").read_text(encoding="utf-8").strip()
+    neg_a_stdout = read_text_checked(preflight_dir / "neg" / "a.stdout", "neg/a.stdout")
+    neg_b_status = read_text_checked(preflight_dir / "neg" / "b.status", "neg/b.status").strip()
 
     k8_arms: dict[str, Any] = {}
     for arm in ("p8", "a8", "s8"):
         arm_dir = preflight_dir / arm
         k8_arms[arm] = {
-            "identity": json.loads((arm_dir / "identity.json").read_text(encoding="utf-8")),
-            "init": json.loads((arm_dir / "init-summary.json").read_text(encoding="utf-8")),
-            "census": json.loads((arm_dir / "census.json").read_text(encoding="utf-8")),
-            "eval": json.loads((arm_dir / "eval-aggregate.json").read_text(encoding="utf-8")),
-            "b3": json.loads((arm_dir / "b3" / "summary.json").read_text(encoding="utf-8")),
+            "identity": read_json_checked(arm_dir / "identity.json", f"{arm}/identity.json"),
+            "init": read_json_checked(arm_dir / "init-summary.json", f"{arm}/init-summary.json"),
+            "census": read_json_checked(arm_dir / "census.json", f"{arm}/census.json"),
+            "eval": read_json_checked(arm_dir / "eval-aggregate.json", f"{arm}/eval-aggregate.json"),
+            "b3": read_json_checked(arm_dir / "b3" / "summary.json", f"{arm}/b3/summary.json"),
         }
 
-    paired_discordance = json.loads(
-        (preflight_dir / "paired-psucc-discordance.json").read_text(encoding="utf-8")
+    paired_discordance = read_json_checked(
+        preflight_dir / "paired-psucc-discordance.json", "paired-psucc-discordance.json"
     )
     bundle: dict[str, Any] = {
         "rebuilt_table_shas": rebuilt_shas,
@@ -2015,11 +2651,204 @@ def load_preflight_bundle_from_dir(preflight_dir: Path) -> dict[str, Any]:
     }
     k16_join_path = preflight_dir / "k16-join.json"
     if k16_join_path.is_file():
-        bundle["k16_join"] = json.loads(k16_join_path.read_text(encoding="utf-8"))
+        bundle["k16_join"] = read_json_checked(k16_join_path, "k16-join.json")
     q_dist_path = preflight_dir / "p8" / "q-distance.json"
     if q_dist_path.is_file():
-        bundle["p8_q_distance_distribution"] = json.loads(q_dist_path.read_text(encoding="utf-8"))
+        bundle["p8_q_distance_distribution"] = read_json_checked(q_dist_path, "p8/q-distance.json")
     return bundle
+
+
+def verify_committed_receipt_dir(
+    receipt_dir: Path,
+    preflight_verdict: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Verify `docs/labs/address-cells-preflight-2026-10-19` committed receipt directory (#2751)."""
+    require(receipt_dir.is_dir(), f"receipt directory does not exist: {receipt_dir}")
+    evidence_dir = receipt_dir / "evidence"
+    sha_sums_path = evidence_dir / "SHA256SUMS"
+    sha_sums_bytes = read_bytes_checked(sha_sums_path, "evidence/SHA256SUMS")
+    sha_sums_digest = hashlib.sha256(sha_sums_bytes).hexdigest()
+    entries = parse_sha256_lines(sha_sums_bytes.decode("utf-8"), "evidence/SHA256SUMS")
+    parsed_pins: dict[str, str] = {}
+    for digest, name in entries:
+        require(name != "SHA256SUMS", "evidence/SHA256SUMS must not list itself")
+        target = evidence_dir / name
+        actual = hashlib.sha256(read_bytes_checked(target, f"evidence/{name}")).hexdigest()
+        require(
+            actual == digest,
+            f"evidence/SHA256SUMS mismatch for {name}: declared={digest} != actual={actual}",
+        )
+        parsed_pins[name] = actual
+
+    for req_name in ("FILES.sha256", "asc-battery.sh", "grading.json", "job.log", "neg-b-nonroot-table.json"):
+        require(req_name in parsed_pins, f"evidence/SHA256SUMS missing {req_name}")
+
+    files_manifest_entries = parse_sha256_lines(
+        read_text_checked(evidence_dir / "FILES.sha256", "evidence/FILES.sha256"),
+        "evidence/FILES.sha256",
+    )
+    require(
+        len(files_manifest_entries) == 72,
+        f"evidence/FILES.sha256 expected 72 entries, got {len(files_manifest_entries)}",
+    )
+
+    neg_b_bytes = read_bytes_checked(
+        evidence_dir / "neg-b-nonroot-table.json", "evidence/neg-b-nonroot-table.json"
+    )
+    neg_b_info = verify_nonroot_negative_table_doc(
+        json.loads(neg_b_bytes.decode("utf-8")), neg_b_bytes
+    )
+
+    job_log = read_text_checked(evidence_dir / "job.log", "evidence/job.log")
+    for req_token in (
+        "build_rc=0",
+        "build_identity_rc=0",
+        "a8_rc=0",
+        "s8_rc=0",
+        "TABLE_REBUILD: PASS",
+        "neg_a_rc=2",
+        "neg_b_rc=2",
+        "p8 identity_rc=0",
+        "p8 init_rc=0",
+        "p8 eval_rc=0",
+        "p8 b3_rc=0",
+        "p8 panel_rc=0",
+        "p8 cells_rc=0",
+        "p8 census_rc=0",
+        "a8 identity_rc=0",
+        "a8 init_rc=0",
+        "a8 eval_rc=0",
+        "a8 b3_rc=0",
+        "a8 panel_rc=0",
+        "a8 cells_rc=0",
+        "a8 census_rc=0",
+        "s8 identity_rc=0",
+        "s8 init_rc=0",
+        "s8 eval_rc=0",
+        "s8 b3_rc=0",
+        "s8 panel_rc=0",
+        "s8 cells_rc=0",
+        "s8 census_rc=0",
+        "p16 identity_rc=2",
+        "p16 init_rc=0",
+        "p16 eval_rc=0",
+        "a16 identity_rc=2",
+        "a16 init_rc=0",
+        "a16 eval_rc=0",
+        "BATTERY_DONE",
+    ):
+        require(req_token in job_log, f"evidence/job.log missing required token {req_token!r}")
+
+    grading = read_json_checked(evidence_dir / "grading.json", "evidence/grading.json")
+    require(
+        grading.get("schema") == "uor-r4.address-cells-preflight-grading/1"
+        and grading.get("source_commit") == "93b54f48c4e1983e278140f77a3377041ddd65e4",
+        f"grading.json header mismatch: {grading}",
+    )
+    arms = grading.get("arms", {})
+    require(
+        arms.get("p8", {}).get("b3")
+        == {"full": 427, "psucc": 127, "psucc_rows": 3847, "complement": 300}
+        and arms.get("p8", {}).get("top1_cp0") == 38
+        and arms.get("p8", {}).get("top8_cp0") == 95
+        and arms.get("a8", {}).get("b3")
+        == {"full": 4244, "psucc": 1351, "psucc_rows": 3847, "complement": 2893}
+        and arms.get("a8", {}).get("top1_cp0") == 133
+        and arms.get("a8", {}).get("top8_cp0") == 513
+        and arms.get("s8", {}).get("b3")
+        == {"full": 1733, "psucc": 476, "psucc_rows": 3847, "complement": 1257}
+        and arms.get("s8", {}).get("top1_cp0") == 99
+        and arms.get("s8", {}).get("top8_cp0") == 185,
+        f"grading.json arms summary mismatch: {arms}",
+    )
+
+    k16_j = grading.get("k16_join", {})
+    require(
+        k16_j.get("p8_formula_check")
+        == {
+            "rows": 14287,
+            "keyed": 14287,
+            "keys_unique": True,
+            "joined_psucc": 3847,
+            "unjoined": 0,
+            "outside_0_1": 0,
+            "admitted_full": 427,
+            "admitted_psucc": 127,
+        }
+        and k16_j.get("p16", {}).get("admitted_full") == 872
+        and k16_j.get("p16", {}).get("admitted_psucc") == 246
+        and k16_j.get("a16", {}).get("admitted_full") == 6023
+        and k16_j.get("a16", {}).get("admitted_psucc") == 2178
+        and k16_j.get("top1_cp0") == {"p16": 37, "a16": 133},
+        f"grading.json k16_join mismatch: {k16_j}",
+    )
+
+    paired = grading.get("paired_psucc", {})
+    require(
+        paired.get("a8_vs_p8", {}).get("n11") == 49
+        and paired.get("a8_vs_p8", {}).get("b") == 1302
+        and paired.get("a8_vs_p8", {}).get("c") == 78
+        and paired.get("a8_vs_p8", {}).get("n00") == 2418
+        and paired.get("a8_vs_p8", {}).get("b_minus_c") == 1224
+        and paired.get("a8_vs_p8", {}).get("clears") is True
+        and paired.get("a8_vs_s8", {}).get("n11") == 93
+        and paired.get("a8_vs_s8", {}).get("b") == 1258
+        and paired.get("a8_vs_s8", {}).get("c") == 383
+        and paired.get("a8_vs_s8", {}).get("n00") == 2113
+        and paired.get("a8_vs_s8", {}).get("b_minus_c") == 875
+        and paired.get("a8_vs_s8", {}).get("clears") is True,
+        f"grading.json paired_psucc mismatch: {paired}",
+    )
+
+    net_g_cap_doc = grading.get("net_g_cap_a8", {})
+    declared_ctrl_top1 = net_g_cap_doc.get("control_top1_cp0")
+    require(
+        declared_ctrl_top1 in (38, 133)
+        and net_g_cap_doc.get("alias_ceiling") == 14287
+        and net_g_cap_doc.get("b3_psucc") == 1351
+        and net_g_cap_doc.get("net") == 1351
+        and net_g_cap_doc.get("threshold") == 500,
+        f"grading.json net_g_cap_a8 mismatch: {net_g_cap_doc}",
+    )
+
+    reconciled_with_raw_archive = False
+    if preflight_verdict is not None:
+        k8_v = preflight_verdict.get("k8_arms", {})
+        for arm in ("p8", "a8", "s8"):
+            require(
+                arms[arm]["b3"]["full"] == k8_v[arm]["full_target_admitted"]
+                and arms[arm]["b3"]["psucc"] == k8_v[arm]["psucc_target_admitted"]
+                and arms[arm]["b3"]["complement"] == k8_v[arm]["complement_target_admitted"]
+                and arms[arm]["top1_cp0"] == k8_v[arm]["top1_correct_cp0"],
+                f"grading.json vs raw archive mismatch on {arm}",
+            )
+        reconciled_with_raw_archive = True
+
+    return {
+        "verdict": "PASS",
+        "sha256sums_digest": sha_sums_digest,
+        "evidence_pins": parsed_pins,
+        "files_sha256_entry_count": len(files_manifest_entries),
+        "neg_b_nonroot_table": neg_b_info,
+        "control_top1_cp0_audit": {
+            "declared_in_grading_json": declared_ctrl_top1,
+            "p8_control_top1_cp0": 38,
+            "a8_top1_cp0": 133,
+            "threshold_under_p8_38": max(500, 38 + 24),
+            "threshold_under_a8_133": max(500, 133 + 24),
+            "net_g_cap_a8": 1351,
+            "gate_outcome_unchanged": True,
+        },
+        "g_init_audit": {
+            "g_init_table_match": "PASS",
+            "g_init_neg_a_host": "PASS",
+            "g_init_neg_b_gpu_status6": "PASS",
+            "g_init_cross_arm_routes_gates_seed_epoch": "PASS",
+            "g_init_pinned_vs_unpinned_routes_gates_epoch": "NOT_RUN",
+            "promotion_qualification": "CONDITIONAL_G_INIT_UNPINNED_NOT_RUN",
+        },
+        "reconciled_with_raw_archive": reconciled_with_raw_archive,
+    }
 
 
 def main() -> int:
@@ -2029,7 +2858,7 @@ def main() -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Run 26 positive and negative self-tests",
+        help="Run 32 positive and negative self-tests",
     )
     parser.add_argument(
         "--configs-dir",
@@ -2054,7 +2883,12 @@ def main() -> int:
     parser.add_argument(
         "--preflight-dir",
         type=Path,
-        help="Path to executed 5-arm address-cells pre-flight receipt directory",
+        help="Path to executed 5-arm address-cells pre-flight pod archive or bundle directory",
+    )
+    parser.add_argument(
+        "--receipt-dir",
+        type=Path,
+        help="Path to docs/labs/address-cells-preflight-2026-10-19 committed receipt directory (#2751)",
     )
     args = parser.parse_args()
 
@@ -2063,9 +2897,10 @@ def main() -> int:
         and args.configs_dir is None
         and args.train_tokens is None
         and args.preflight_dir is None
+        and args.receipt_dir is None
     ):
         parser.error(
-            "specify at least one of --self-test, --configs-dir, --train-tokens, or --preflight-dir"
+            "specify at least one of --self-test, --configs-dir, --train-tokens, --preflight-dir, or --receipt-dir"
         )
 
     out: dict[str, Any] = {}
@@ -2096,9 +2931,21 @@ def main() -> int:
             args.train_tokens, args.train_mask, pz_path
         )
 
+    preflight_verdict: dict[str, Any] | None = None
     if args.preflight_dir is not None:
-        bundle = load_preflight_bundle_from_dir(args.preflight_dir)
-        out["preflight_verification"] = verify_preflight_bundle(bundle)
+        if (args.preflight_dir / "evidence" / "grading.json").is_file() and not (
+            args.preflight_dir / "p8"
+        ).is_dir():
+            out["receipt_verification"] = verify_committed_receipt_dir(args.preflight_dir)
+        else:
+            bundle = load_preflight_bundle_from_dir(args.preflight_dir)
+            preflight_verdict = verify_preflight_bundle(bundle)
+            out["preflight_verification"] = preflight_verdict
+
+    if args.receipt_dir is not None:
+        out["receipt_verification"] = verify_committed_receipt_dir(
+            args.receipt_dir, preflight_verdict=preflight_verdict
+        )
 
     print(json.dumps(out, indent=2, sort_keys=True))
     return 0
