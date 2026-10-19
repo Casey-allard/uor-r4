@@ -2,7 +2,15 @@
 
 **Current plan:** [NOW.md](docs/integration/NOW.md) is the authoritative one-page plan; this roadmap keeps the long-form history and details.
 
-**Immediate M1 path, 18 October:** the
+**Current M1 work — 19 October:** [A8](docs/labs/a8-dose-2026-10-19/README.md)
+ended at its registered Q1 diagnostic stop; FrozenZero completed 16,404 batches,
+and `vast-56670997` is closed. Claude owns the host-only erosion diagnosis from
+retained checkpoints and move logs
+([latest attribution correction](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6261186285)).
+This work recomputes no admission and establishes no causal admission-loss
+conclusion. There is no paired DEV verdict, KEEP or fresh success; fresh remains sealed.
+
+**Historical M1 path, 18 October:** the
 [minimal device token-cell input producer](docs/labs/attention-token-cell-export-2026-10-17/README.md),
 is delivered in #2601 with reviewed Gate9 construction. The separately released
 [Battery3 preflight](docs/labs/attention-preflight-2026-10-17/README.md) now passes

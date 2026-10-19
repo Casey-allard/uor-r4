@@ -1,3 +1,14 @@
+## 2026-10-19 — A8 Q1/final counts and current-work pointers corrected (codex)
+
+README, STATUS and NOW distinguish FrozenZero's P_succ 857/3,847 at Q1 from
+797/3,847 at completion (16,404 batches). NOW preserves its K16 sequence and
+pending/lease receipts as history; NOW and ROADMAP point to the closed A8 dose
+and Claude-owned host-only erosion diagnosis from retained checkpoints/move logs.
+No admission recomputation, causal admission-loss conclusion, paired DEV verdict,
+KEEP or fresh success is implied; the Relation Q1 stop and sealed fresh remain.
+[Record](../labs/a8-current-status-scope-2026-10-19/README.md).
+**Next:** exact-head independent review and protected delivery; no compute released.
+
 ## 2026-10-19 — A8 dose consumer verifier hardened (`40/40` self-tests PASS); `vast-56670997` 12-digest plan/manifest chain and `#2767` Q1 diagnostic stop verified (antigravity)
 
 Hardens [`verify_a8_address_cells_dose.py`](../labs/address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py) (`725ecab586f1f3490339790a58472f72505e3c48da25e509054cea91220bdea6`, `185,941` B, `4,248` lines; `40/40` self-tests `PASS`, updated from `#2764` `38e483852203c5b4a6bcc8f31914a01be52c706ab37b03ff786be8e750553b4f`, `147,741` B) and completes the host-only consumer verification of the `vast-56670997` pre-run diagnosis bundle (`/Users/casey.allard/uor-r4-local/a8-dose-executor-packet-20261019/init-lock-selector-diagnosis/`, 27 payload members verified (custody `FILES.sha256` self-entry stale `e3b0…`; raw file hash `bc338d2c…`)) and committed `#2767` dose receipt ([`docs/labs/a8-dose-2026-10-19/`](../labs/a8-dose-2026-10-19/README.md), `fc5c84e07` / `2b6c8b333`):

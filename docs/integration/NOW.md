@@ -1,6 +1,6 @@
 # NOW — what UOR-R4 is doing, on one page
 
-**Updated 2026-10-18 (post-D39).** This page is the current plan. When it disagrees
+**Updated 2026-10-19 (post-D39).** This page is the current plan. When it disagrees
 with a longer document, this page is right; fix the longer document. History and the
 long-form plan: `project-track.md`. Decisions: `DECISIONS.md` (D0–D39).
 
@@ -12,14 +12,27 @@ consumer laptop. **Pre-alpha: 0 of 8 milestones complete; no model holds a usefu
 conversation yet.** Milestones M1–M8 are GitHub milestones on issues #2029–#2036;
 #2028 is the roadmap tracker.
 
-## Active line — M1 (#2029)
+## Current work — M1 (#2029)
+
+[A8](../labs/a8-dose-2026-10-19/README.md) ended at its registered Q1 diagnostic
+stop; FrozenZero completed 16,404 batches, and `vast-56670997` is closed.
+Claude owns the host-only erosion diagnosis from retained checkpoints and move
+logs ([latest attribution correction](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6261186285)).
+This work recomputes no admission and establishes no causal admission-loss
+conclusion. There is no paired DEV verdict, KEEP or fresh success; fresh remains sealed.
+
+## Historical K16 redirect — 18 October 2026
+
+The sequence and receipts below are a historical snapshot. Pending-interpretation
+and retained-lease statements describe that snapshot; the completed K16 outcome
+is recorded below, and the current work is described above.
 
 K16-A vs K16-R admission redirect on the `rows_v1` counterfactual path
 (sheet `docs/harness/prep/m1-discrete-rung0-admission-redirect-2026-10-15.md`, FIT
 `6199263447`, seeds {1,2}, V4096/B4/C192/K16, `ReadSpec::Route`,
 `CanonicalVectorThenReadV1`, 16,404 batches). M1 closing bar: D39 item 1.
 
-## Critical path, in order
+### Historical sequence and receipts
 
 | # | Step | Owner | State (2026-10-18) |
 |---|---|---|---|
@@ -46,7 +59,9 @@ The gated release covers no W2/W3/W4 work or changed arms, bars or fresh seal.
 
 Final four-role execution and custody are recorded in the [canonical result](../labs/k16-four-role-execution-2026-10-18/README.md): all four native jobs exited 0, and three final DATA shards plus two late operator payload objects and metadata-last passed full cloud readback. Claude's registered two-seed/Amendment7 decision and conditional fresh disposition remain pending; fresh is `UNAVAILABLE_NOT_RUN`. Normal close and final resource accounting are not yet recorded. These archives are additional to the prior qualification custody.
 
-**Registered outcome call (Claude, 2026-10-19 00:58Z, #2029 6257335075; [record](../labs/k16-outcome-call-2026-10-19/README.md)):** `OCCUPANCY_COLLAPSE_TRIGGERED`. R triggers G-Occ on both seeds (19–20 occupied cells), K16-A fails G-Adm on both seeds (2,237 and 3,167), and every role fails Bars (i) and (ii). There is no KEEP, and fresh transfer is NOT_TRIGGERED (seal kept). Admission-arm selection: A. **Follow-up:** the injective pre-flight stopped at B3_init 127/3,847 < 500 and net G-Cap 127 < 500, so the run was not dispatched — `INSTRUMENT_UNREACHABLE`, not a mechanism negative; nothing trained. The owner selected the **address-structured injective-cell** successor as a **placement-only 256×16 pre-flight**; the sheet is now **FIT** (`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`) and the 32-cell compact form is parked as a fallback. The constructor (#2742) and five staged arm configs are merged; registration bindings are in #2748. The zero-update pre-flight ran with Casey's chat approval: A8 reached B3_init(P_succ) 1,351/3,847 and net G-Cap 1,351, clearing both one-sided floors (against P8 and against shuffled S8). P8 reproduced 427/127. Nothing was trained. The A8 learning sheet is now FIT and registered in source, and its two configs are staged ([A8 learning sheet](../labs/a8-training-configs-2026-10-19/README.md)). The A8 dose then ran (Casey typed both releases): **the Relation arm hit the pre-registered Q1 admission-collapse stop** (P_succ 1,351 → 551, below half of init), while the FrozenZero control fell to 857 and completed 16,404 batches. That is a D31 diagnostic stop, not a mechanism negative and not a KEEP; no paired DEV decision exists and the fresh slice stays sealed ([A8 dose record](../labs/a8-dose-2026-10-19/README.md); [address-cells pre-flight record](../labs/address-cells-preflight-2026-10-19/README.md); [injective pre-flight record](../labs/injective-preflight-and-c2-qualify-2026-10-19/README.md)).
+## Recorded outcomes and A8 follow-up
+
+**Registered outcome call (Claude, 2026-10-19 00:58Z, #2029 6257335075; [record](../labs/k16-outcome-call-2026-10-19/README.md)):** `OCCUPANCY_COLLAPSE_TRIGGERED`. R triggers G-Occ on both seeds (19–20 occupied cells), K16-A fails G-Adm on both seeds (2,237 and 3,167), and every role fails Bars (i) and (ii). There is no KEEP, and fresh transfer is NOT_TRIGGERED (seal kept). Admission-arm selection: A. **Follow-up:** the injective pre-flight stopped at B3_init 127/3,847 < 500 and net G-Cap 127 < 500, so the run was not dispatched — `INSTRUMENT_UNREACHABLE`, not a mechanism negative; nothing trained. The owner selected the **address-structured injective-cell** successor as a **placement-only 256×16 pre-flight**; the sheet is now **FIT** (`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`) and the 32-cell compact form is parked as a fallback. The constructor (#2742) and five staged arm configs are merged; registration bindings are in #2748. The zero-update pre-flight ran with Casey's chat approval: A8 reached B3_init(P_succ) 1,351/3,847 and net G-Cap 1,351, clearing both one-sided floors (against P8 and against shuffled S8). P8 reproduced 427/127. Nothing was trained. The A8 learning sheet is now FIT and registered in source, and its two configs are staged ([A8 learning sheet](../labs/a8-training-configs-2026-10-19/README.md)). The A8 dose then ran (Casey typed both releases): **the Relation arm hit the pre-registered Q1 admission-collapse stop** (P_succ 1,351 → 551, below half of init), while the FrozenZero control recorded P_succ 857/3,847 at Q1 and 797/3,847 at completion (16,404 batches). That is a D31 diagnostic stop, not a mechanism negative and not a KEEP; no paired DEV decision exists and the fresh slice stays sealed ([A8 dose record](../labs/a8-dose-2026-10-19/README.md); [address-cells pre-flight record](../labs/address-cells-preflight-2026-10-19/README.md); [injective pre-flight record](../labs/injective-preflight-and-c2-qualify-2026-10-19/README.md)).
 
 ## Current instruments and gates
 
@@ -91,4 +106,4 @@ waiting for handoff. Heartbeat every 5 minutes (`uor-harness heartbeat -m m1`).
 |---|---|---|
 | Paired Relation/frozen-zero dose (sheet `m1-learned-attention-link-2026-10-17`) | the FIT'd integer sheet | run owner-stopped at 904/1,065 batches |
 | `rows_v1` successor ("Dose 2") | `20d158ae`, packet `01833fa7` | stopped at Q1: configured admission collapse, both arms (2,034 → 225/205); instrument finding, not a negative |
-| K16-A / K16-R redirect | `m1-discrete-rung0-admission-redirect-2026-10-15` | **the live line** |
+| K16-A / K16-R redirect | `m1-discrete-rung0-admission-redirect-2026-10-15` | completed; `OCCUPANCY_COLLAPSE_TRIGGERED`, no KEEP; fresh `NOT_TRIGGERED` (sealed) |
