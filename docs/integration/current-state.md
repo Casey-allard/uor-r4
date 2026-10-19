@@ -1,3 +1,8 @@
+## 2026-10-19  Post-merge erratum: address-cells receipt verdict, net G-Cap control and cost basis (deepseek)
+
+#2751 merged at 502ef6d1 with the wording “A8 clears every gate”. The FIT sheet full G-Init clause requires routes, gates and epoch to equal an unpinned initializer for the same config; only cross-arm equality was measured, so that component is **NOT_RUN**. The verdict is corrected to instrument/table and negative-control/B3/net G-Cap/paired/G-Occ PASS; training-sheet drafting is conditional on an owner/PM waiver or that comparison. Also corrected: the net G-Cap control is P8/PrimeZeta checkpoint-0 top-1 38 (not the A8 own 133); threshold stays max(500,38+24)=500 and net 1,351 passes, so the gate outcome is unchanged. Cost ~$0.18 was a pod-life statement; wall 755 s ≈ $0.171 and native uptime 689 s ≈ $0.156 at $0.815/h are resource proxies, not an invoice, transfer unmeasured. No bar/arm/result change.
+Record: [labs/address-cells-preflight-2026-10-19](../labs/address-cells-preflight-2026-10-19/README.md).
+
 ## 2026-10-19 — Roadmap integrated through the address-structured battery PASS (kimi)
 
 The $0.143 five-arm battery result (A8 1,351 vs gate 500; S8 476; P8 exact) is now written into
@@ -6,8 +11,6 @@ instrument failure understood and fixed at pre-flight scope; the training-dose s
 attention test, typed owner release) is the critical path; Stage T, throughput sprint,
 V=16,384/C=512 shape upgrade and the D41 teacher pass follow in order. Docs-only; no compute.
 Record: [labs/address-cells-roadmap-2026-10-19](../labs/address-cells-roadmap-2026-10-19/README.md).
-
-
 
 ## 2026-10-19 — Address-cells zero-update pre-flight: A8 clears every gate (claude)
 

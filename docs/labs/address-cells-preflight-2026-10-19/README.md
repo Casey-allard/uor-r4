@@ -15,7 +15,7 @@
 | Source freeze | `93b54f48c4e1983e278140f77a3377041ddd65e4`. It includes #2743, which by source the battery never calls. |
 | Pod | `vast-56660582`: one RTX 5090, Vast.ai Czechia, $0.815/h. Bootstrap parity PASS, nvcc 12.8. |
 | Battery | [`evidence/asc-battery.sh`](evidence/asc-battery.sh) (`3dbca767…`), run 03:12:47Z–03:17:30Z, `exit=0`. |
-| Pod time and cost | About 13 min of pod life, about **$0.18**. The pod was deleted after archiving. |
+| Pod time and cost | Pod life about 13 min: wall 755 s, native down uptime 689 s. At $0.815/h those are about $0.171 and $0.156 resource proxies, not an invoice; transfer and storage components are unmeasured. The pod was deleted after archiving. |
 | Archive | HF store `caseyallard/uor-r4-store:vast-archive/vast-56660582/` (read-back verified, 79 files). The full result tree (92 MB, 72 files) is hashed in [`evidence/FILES.sha256`](evidence/FILES.sha256) and also verified locally. |
 
 A first launch at 03:11:55Z stopped before any command ran. The script's exclusive `mkdir` of the result root failed because the parent `runs/claude/` did not exist on the fresh pod. That was an instrument fault in my script. It was fixed (create the parent, keep the leaf exclusive) and relaunched once.
@@ -41,7 +41,7 @@ A first launch at 03:11:55Z stopped before any command ran. The script's exclusi
 | **B3_init(P_succ) ≥ 500** | **PASS: 1,351 / 3,847** (full panel 4,244 / 14,287; complement 2,893 / 10,440) |
 | **Net G-Cap > max(500, top1_control(cp0) + 24)** | **PASS: 1,351 > 500.** Net is min(alias ceiling 14,287, B3 P_succ 1,351). The control's checkpoint-0 top-1 is A8's own, 133, because Relation and FrozenZero share the identical checkpoint-0 model: the 10-19 receipt shows `model_sha256 134fd663…` and top-1 38 for both. |
 
-**A8 clears every gate.** Per the sheet's step 4, A8 is promoted to a training-sheet draft. No KEEP or ranking claim follows from a pre-flight.
+**A8 clears the instrument, table and negative-control, B3, net G-Cap, paired-floor and G-Occ gates.** The FIT sheet full G-Init clause also requires routes, gates and epoch to equal an unpinned initializer for the same config; that arm was not run, so this component is **NOT_RUN** (cross-arm equality is not the same test). Training-sheet drafting is conditional on an explicit owner/PM waiver or a future small unpinned-initializer comparison. No KEEP or ranking claim follows from a pre-flight.
 
 ## Readings (one-sided, fixed before measurement; 3,847 P_succ rows, paired by row)
 
@@ -86,3 +86,11 @@ AGY's consumer verifier (#2750) expects its own bundle layout (`rebuilt-table-sh
 ## Next
 
 The A8 training-dose sheet: the parent's Relation versus FrozenZero contrast with only the table changed. That sheet needs its own FIT, PM dispatch and Casey's typed D40 release before any training.
+
+## Post-merge correction (2026-10-19)
+
+#2751 merged as 502ef6d1 with the title and current-state wording “A8 clears every gate”. The FIT sheet full G-Init clause requires routes, gates and epoch to equal an unpinned initializer for the same config; only cross-arm equality across pinned tables was measured, so that component is **NOT_RUN**, not PASS. The verdict above is corrected accordingly; training-sheet drafting is conditional on an explicit owner/PM waiver or a future small unpinned-initializer comparison.
+
+Two evidence-basis corrections: the net G-Cap control is the P8/PrimeZeta checkpoint-0 top-1 38, not the A8 own 133 as originally written; the threshold remains max(500, 38+24)=500 and net 1,351 still passes, so the gate outcome is unchanged. Cost was described as about $0.18 all-in; pod-life wall 755 s and native down uptime 689 s at $0.815/h are about $0.171 and $0.156 resource proxies, not an invoice, and transfer/storage are unmeasured.
+
+No bar, arm, result or attribution changes; P8 427/127, A8 4,244/1,351, S8 1,733/476 and the paired floors remain independently verified.
