@@ -71,7 +71,28 @@ Both A8 configs differ from the injective runbook configs, and from the parent s
    - **Reproduction gate (D31), both arms:** B3_init on P_succ is 1,351 / 3,847, on the full panel 4,244 / 14,287, and top-1 on the full panel is 133. These are byte-identical inputs, so any difference is an instrument fault.
    - **Bar (i):** `top1_control(P_succ, cp0) + 24`, from the FrozenZero arm's own evaluation. It is graded on the host from stored outputs: the count of P_succ rows (joined by `(target_position, target_token)` to the panel) where `top8[0] == target_token`.
    - **The gate:** net G-Cap > max(500, Bar (i)).
-   - **Inherited contract (unchanged):** Gate22 and Gate0, the Relation C2 ACTIVE / INERT pair, the INIT LOCK and the reference battery, from the parent sheets.
+   - **Inherited contract:** the exact commands are in the next subsection.
+
+   **Inherited controls: exact commands, pass predicates and prior receipt** (grandparent `m1-learned-attention-link-2026-10-17.md` §7.8 item 3 and §7.12.1 items 2–3; #2029 `6259335138`). Codex's Battery3 ran this same set on the seeded lineage and passed it (`docs/labs/attention-preflight-2026-10-17/`, report `80cae1fc…`, verdict `6243075217`). Only the snapshot changes here.
+
+   | Control | Exact command at the build head | Pass predicate | Battery3 receipt (seeded) |
+   |---|---|---|---|
+   | Bind the config | `discrete-stack attention-build-identity CONFIG` (step 4) | exit 0 | build identity PASS |
+   | Gate22 sensitivity (level-0 `e=2` relation trit) | `discrete-stack propose SNAPSHOT.json REQUEST.json gate 22` | the printed JSON has `any_candidate_cost_differs_from_identity: true`, `epoch: 0`, and no apply | "Fixed Gate22 and Gate0 probes … predicates true; epoch0 / applied false" |
+   | Gate0 sensitivity (block-0 leaf combine) | `discrete-stack propose SNAPSHOT.json REQUEST.json gate 0` | the same as Gate22 | the same row |
+   | C2 ACTIVE / INERT, and the relation suite | `discrete-stack qualify-relation NEW_DIR` | `NEW_DIR/relation-controls.json` has `status: "PASS"`, `registered: 9`, `passed: 9`, `not_run: 0`, `applied_updates: 0` | "9 registered / 9 attempted / 9 PASS … including the registered C2 / INIT LOCK requirements" |
+   | INIT LOCK (training shape), on each arm's checkpoint 0 | `jq -e '.model.gates as $g \| ($g\|length)==45 and ([0,5,10,15]\|map($g[.]))==[1,1,1,1] and ([range(0;20)]-[0,5,10,15]\|all($g[.]==0)) and ($g[20:45]\|all(.==0))' INIT/report.json` | exit 0 | "INIT lock PASS"; on A8 checkpoint 0 (#2751, HF archive) it already holds: 45 gates, combine `[0,5,10,15]=+1`, all 25 relation trits 0 |
+   | Reference battery (§7.12.1 item 1) | the `init-corpus` / `eval-corpus` / `attention-dev-b3` runs above, plus the host T1 / T1b / T2 / U_succ report on the same cells | T1 = 3,847 / 3,847 on P_succ (the panel-definition check); the rest is reported | "Initial DEV evaluation … Initial B3 admission" rows |
+
+   - **INIT LOCK predicate, checked on the host:** it exits 0 on the archived A8 and P8 checkpoint-0 reports, and exits 1 on two mutants: relation trit `gates[22]=1`, and stray combine `gates[3]=1`.
+   - **The two `propose` inputs:**
+     - `SNAPSHOT.json` is the `.model` field of the arm's `init-corpus` `report.json`. `propose` reads a `Snapshot`, not the `DriverCheckpoint`.
+     - `REQUEST.json` is `{"windows": [[Identity…]…], "targets": […]}`: at most 64 real P_succ rows, each with its 192-token causal window and its target (§7.12.1 item 2).
+     - Reuse Battery3's request builder from Codex's packet; this record does not invent one.
+     - `propose` computes candidate losses only. It never calls `Device::apply`.
+   - **Order and stop:** Gate22 and Gate0 run on **both** arms' checkpoint 0. `qualify-relation` is source-level, so it runs once per build head.
+     - An inert probe or any non-PASS control stops before training (D31). That is an activation or instrument fault, not a mechanism negative.
+     - The §7.8 item 2 control-lock ledger proof (45 coordinates, 1,130 relation refusals) is a Q1 and end-of-dose check, not a pre-run gate.
 
    Post the gate receipt on #2029. Any FAIL stops the runbook for diagnosis (D31), and no plan is written.
 6. **Plans and review.** These are the same as the injective runbook's step 5:

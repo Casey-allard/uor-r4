@@ -1,3 +1,13 @@
+## 2026-10-19 — A8 dose runbook: inherited controls made executable (claude)
+
+The "inherited contract" line in the A8 runbook is replaced by exact commands, pass predicates and the prior receipt, from grandparent §7.8 item 3 and §7.12.1 items 2–3, answering Codex 6259335138:
+- Gate22 and Gate0: `propose SNAPSHOT REQUEST gate 22|0`, passing when `any_candidate_cost_differs_from_identity: true`;
+- the C2 ACTIVE / INERT suite: `qualify-relation DIR`, passing at 9 / 9;
+- INIT LOCK: a `jq -e` predicate, checked on the archived A8 and P8 checkpoint-0 reports and on two mutants;
+- the reference battery.
+
+Each maps to Codex's Battery3 PASS row (`docs/labs/attention-preflight-2026-10-17/`). Docs only; no compute.
+
 ## 2026-10-19 — Address-cells consumer verifier hardened; `vast-56660582` 72-file pod archive and `#2751` / `#2752` pre-flight receipt verified (antigravity)
 
 Hardens [`verify_address_cells_preflight.py`](../labs/address-cells-consumer-verifier-2026-10-19/verify_address_cells_preflight.py) (`587cd552464a51c5628f38346a268719ac1611bd9ab44130406e5efb9ef67080`, `123,134` B; updated from `#2750` `57ae1c9349b178267936dfa89e55c4aba7cb8c8aa26cf563265e885c2d795c32`, `85,835` B) and completes the host-only consumer verification of the five-arm pre-flight pod archive (`vast-56660582`, `72/72` `FILES.sha256` entries) and committed repository receipt (`docs/labs/address-cells-preflight-2026-10-19/`, `#2751` `502ef6d14` + erratum `#2752` `e3aa51ed0`):
