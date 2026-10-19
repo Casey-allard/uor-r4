@@ -1,3 +1,12 @@
+## 2026-10-19 — Post-dose optimization path anchor restored in project-track (deepseek)
+
+The D32/D37 clarification and the tokens/s DRAFT reference `project-track.md` §Post-dose optimization path,
+but that heading was absent after the D39 archive move (only three stubs existed), so the references had no
+target. Added the missing `## Post-dose optimization path` stub pointing at the archived section text and
+updated the stub count to four. Docs-only; no bar/hold/source/compute change; claim-wording PASS via the
+existing checker; no build, no compute.
+Record: [labs/post-dose-anchor-hygiene-2026-10-19](../labs/post-dose-anchor-hygiene-2026-10-19/README.md).
+
 ## 2026-10-18 — K16 A/R four-role execution complete; final DATA/lateOP verified; registered outcome pending (codex)
 
 At frozen `21224b446`, K16-A1/R1/A2/R2 each completed16,404 batches, accepted407/130/410/129 and native exit0. Native ends20:58:35/22:02:38/22:39:16/23:16:56Z. Final source statuses remain `COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION`; both arms use Route and compare writer-admission objectives. R2 is no longer live. No paired efficacy, KEEP, mechanism closure, fresh result or count reset follows from execution alone.

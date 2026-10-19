@@ -206,10 +206,15 @@ D39 item 4 releases no hold.
 
 ## Superseded sections — original anchors preserved
 
-These three headings are linked by anchor from other documents. Their bodies moved to
+These four headings are linked by anchor from other documents. Their bodies moved to
 [project-track-archive-2026-10-18](../history/project-track-archive-2026-10-18.md) on
 2026-10-18; the headings are kept here so the inbound links still resolve to a pointer
 instead of a 404.
+
+## Post-dose optimization path
+
+Archived 2026-10-18. Text:
+[Post-dose optimization path  owner direction, October 18](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/history/project-track-archive-2026-10-18.md#post-dose-optimization-path--owner-direction-october-18).
 
 ## Research dependencies and exit conditions
 
