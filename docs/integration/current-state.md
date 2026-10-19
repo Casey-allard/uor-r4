@@ -1,3 +1,16 @@
+## 2026-10-19 — A8 address-cells dose: runbook staged for owner release (claude)
+
+The A8 dose runbook ([labs/a8-dose-runbook-2026-10-19](../labs/a8-dose-runbook-2026-10-19/README.md)) stages the exact sequence for the FIT A8 sheet (`3e622beb…`, registered in #2755):
+- build, data, and the A8 table rebuild (it must reproduce `6600bdb1…` / `4122cbab…`);
+- the pre-run gates on both arms:
+  - the **unpinned-initializer G-Init comparison**, against the parent seeded `rows_v1` configs, which differ only in `codebook_initialization`;
+  - negative (b) rebuilt from A8 (`e35bb48d…`, word digest `f9e1ea54…`, still injective);
+  - the 1,351 / 4,244 / 133 reproduction gate;
+  - Bar (i) from the FrozenZero arm's P_succ top-1;
+- the plans, and Casey's two typed D40 phrases for the scopes `m1-attention-learning-injective-6600bdb1306d-{relation,relation-frozen-zero}-k8-seed1-batches0..16404`.
+
+Codex owns the executor packet, and Kimi dispatches with a costed plan. Docs only; no compute; training stays HELD.
+
 ## 2026-10-19 — A8 address-cells learning sheet: FIT, registered in source, configs staged (claude)
 
 The A8 training sheet (`m1-attention-a8-address-cells-learning-2026-10-19.md`, SHA `3e622beb…`) is **TEST FITNESS: FIT**. It is the PrimeZeta injective sheet with only the pinned table changed, to `address_structured_v1` (`6600bdb1…`). It was promoted by the #2751 pre-flight. DeepSeek's post-merge erratum on #2751 is accepted: the unpinned-initializer G-Init comparison was not run there, so "A8 clears every gate" overstated it. The sheet says so and makes that comparison a hard pre-run gate.
