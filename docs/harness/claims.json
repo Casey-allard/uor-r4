@@ -1,4 +1,11 @@
 {
+  "antigravity/address-cells-consumer-verifier-2026-10-19": {
+    "branch": "antigravity/address-cells-consumer-verifier-2026-10-19",
+    "claimed_at": "2026-10-18T22:57:26-04:00",
+    "head": "93b54f48c",
+    "lab": "antigravity",
+    "note": "Delivering verify_address_cells_preflight.py consumer verifier for #2738/#2742/#2746/#2748 (A8/S8/P8/P16/A16 configs, A8/S8 table pins, paired McNemar F floor, K16 join gate, and preflight bundle auditing) + host-only verification of #2742/#2746/#2748/#2743; zero GPU compute"
+  },
   "antigravity/w2-k16-consumer-verifiers-20261019": {
     "branch": "antigravity/w2-k16-consumer-verifiers-20261019",
     "claimed_at": "2026-10-18T21:11:48-04:00",
