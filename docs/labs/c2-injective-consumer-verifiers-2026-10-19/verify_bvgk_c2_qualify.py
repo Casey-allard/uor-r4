@@ -904,6 +904,10 @@ def run_self_tests(repo_root: Path | None = None) -> dict[str, Any]:
     if repo_root is not None:
         total += 1
         host_hashes = compute_host_source_hashes(repo_root)
+        # Bind the synthetic payload to the live fixture hash: the constant
+        # in make_synthetic_valid_payload() is historical and must not drift
+        # the repo-root self-test when driver sources change.
+        base["driver_source_sha256"] = host_hashes["driver_source_sha256"]
         verify_bvgk_qualification_payload(
             base,
             expected_driver_sha256=host_hashes["driver_source_sha256"],

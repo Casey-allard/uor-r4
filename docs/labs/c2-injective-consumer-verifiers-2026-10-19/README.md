@@ -74,3 +74,7 @@ python3 docs/labs/c2-injective-consumer-verifiers-2026-10-19/verify_injective_at
   --preflight-dir docs/labs/injective-preflight-and-c2-qualify-2026-10-19/evidence/injective-preflight-20261019 \
   --repo-root .
 ```
+
+## 2026-10-19  Self-test fixture fix
+
+`verify_bvgk_c2_qualify.py --self-test --repo-root .` failed on the frozen fixture `driver_source_sha256` (`f4509049...`) once the live 11-file driver hash changed. The repo-root self-test now binds the synthetic payload to the computed host hash before validating it; the constant remains historical fixture data. Verified host-only: `--self-test` and `--self-test --repo-root .` both exit 0 (24 total). No evidence semantics changed.

@@ -1,3 +1,7 @@
+## 2026-10-19  C2 verifier self-test fixture fix (deepseek)
+
+The repo-root C2 self-test compared a frozen historical fixture hash `f4509049...` against the live ordered 11-file driver hash (`f673edb5...`), so it failed whenever driver sources changed even though the verifier logic and evidence path were unaffected. The self-test now binds the synthetic payload `driver_source_sha256` to the computed host hash before validation; the constant stays as historical fixture data. Host-only verification: `--self-test` and `--self-test --repo-root .` both exit 0. No evidence, bar or run change.
+
 ## 2026-10-19 — A8 runbook: reference-row consistency after #2761 (claude)
 
 #2761 applied #2760's two reconciliations: D34 is supplied by the executor packet, and the #2759 section is superseded. Two clauses in the same reference row still named D34 as a blocker ("blockers (a) and (b)", and "earlier if a capture release and the D34 record are supplied"). They now say that only the `attention-capture-dev` release (a) is deferred. The merge watcher's review gate now also matches "Required before merge" and "required reconciliation", and counts only comments posted after the head commit. Docs only; no compute.
