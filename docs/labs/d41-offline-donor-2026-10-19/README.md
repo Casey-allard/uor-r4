@@ -20,3 +20,8 @@ retained by the Kimi PM seat; key points: gpt-oss-120b is Apache-2.0 (no naming 
 conditions; Llama 3.3 and Gemma 3 were excluded on license grounds), ~30M-token production
 corpus ≈ $52–63 on one PRO 6000, Qwen3-30B-A3B (~$15 on one 5090) remains the cheaper
 fallback should the owner redirect.
+
+**Addendum (owner, 2026-10-19):** the chat ratification is the policy decision, not the
+execution release. The `distill-d1` donor pass is released by a typed D40 owner release at
+dispatch time, staged by the labs like any other compute, after its FIT sheet and PM dispatch
+(DECISIONS.md D41 item 5).
