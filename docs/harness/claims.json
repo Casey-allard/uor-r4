@@ -160,9 +160,9 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/renorm-layout-20261020": {
-    "branch": "claude/renorm-layout-20261020",
-    "claimed_at": "2026-10-20T08:48:52-04:00",
+  "claude/renorm-projects-import-20261020": {
+    "branch": "claude/renorm-projects-import-20261020",
+    "claimed_at": "2026-10-20T08:56:56-04:00",
     "head": "0d9bbef3c",
     "lab": "claude",
     "note": ""

@@ -46,6 +46,11 @@ To restore one project, fetch its tar, check it against `tars.sha256`, unpack it
 
 The plan for each project is the same: the source files named in that project's README are copied into its folder here, byte for byte, and the originals stay in the tar. Where the same file appears in two projects, one copy is kept and the other is recorded as a duplicate by hash (see [`prime-analysis/`](prime-analysis/README.md) and [`ai-research/`](ai-research/README.md)). Third-party and personal documents are not committed until the owner has reviewed their licensing or privacy. The folder inventory behind this plan is `docs/labs/repo-renormalization-2026-10-19/audit/folders.json` (research_projects).
 
+## Compliance scope
+
+Code under `projects/` is preserved research. The repository never runs it, and it is outside the model's compliance scope: the no-softmax, no-matmul and GPU-only rules ([D23](../docs/integration/DECISIONS.md), D24, D25) govern the model, not these side projects.
+
+
 ## Go deeper
 
 - [Charter](../CHARTER.md) for what counts as the model and what does not.

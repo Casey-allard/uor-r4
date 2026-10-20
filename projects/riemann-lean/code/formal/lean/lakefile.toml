@@ -1,0 +1,55 @@
+name = "prime_riemann_bridge"
+version = "0.1.0"
+defaultTargets = ["PrimeRiemannBridgeMathlib"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeMathlib"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeCompletionKernel"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeImportedResults"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeImportedInstance"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeZeroOscillationProgram"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeAsymptoticImportedBoundary"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeAsymptoticImportedProvider"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeConcretePackInstantiation"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeOscillatoryReduction"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeW2bFinalSlot"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeW2bImportedInstance"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeInghamImportedSlot"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeSpinningTopFrontier"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeNearStrictTailToPintz"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeFinalTargetEquivalence"
+
+[[lean_lib]]
+name = "PrimeRiemannBridgeSchlagePuchta2019ImportedInstance"

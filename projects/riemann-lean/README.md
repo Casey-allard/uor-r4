@@ -44,16 +44,9 @@ The words "formalization scaffold" in the README are the correct reading. Treat 
 
 The full project is preserved in the private Hugging Face dataset `caseyallard/uor-r4-store` under `research-archive/2026-10-19/tars/riemann-lean.tar` (7,279,616 bytes, 248 files, SHA-256 `45b4a16ed2fbca6d99595299b697e09569747d468de39bb94a33ee3307cd455d`). Every file inside is listed in `files.sha256`, and the tar is listed in `tars.sha256`.
 
-## Source files brought into this folder
+## Code
 
-All of it is source and small, so nearly everything comes in:
-
-- `README.md`
-- `formal/lean/**/*.lean`, `lakefile.toml`, `lake-manifest.json`, `lean-toolchain`, and the three `verify_formal_proof*.sh` scripts
-- the 185 top-level `*.py` files
-- `data/**/*.json` (optional; moves to the store if the owner prefers)
-
-Not brought in: `.lake` build cache, `.olean` files, vendored Python binaries and `.npz` caches. They were already excluded from the original and can be rebuilt.
+`code/` holds 234 files (2,102,410 bytes) copied byte for byte on 20 October 2026 from `research/riemann-lean` (backed up as `riemann-lean.tar`): the Lean sources under `formal/lean/` with `lakefile.toml`, `lake-manifest.json` and `lean-toolchain`, the top-level Python probes and shell scripts, the Markdown notes, and the five `data/*.json` files the probes read (all under 64 KB). Excluded: 14 data JSON files (11 that no code reads, one between 64 KB and 512 KB, and two zeta-zero tables over 512 KB), and every file under `.lake/`. No licence file or vendored third-party source was found. One file contains 2 absolute `/Users/` paths, left unchanged. The code is preserved research and is not run by this repository.
 
 ## Go deeper
 

@@ -1,0 +1,14 @@
+{
+ "schema":"uor-r4.causal-final-freeze/1",
+ "selection_complete_before_final_scoring":true,
+ "primary":"intervened-1/selected.tlx",
+ "primary_sha256":"1ac700658a476e356ff64db95003277f30c27b3d181ca183444dd7621c5d955f",
+ "matched_control":"ordinary-1/selected.tlx",
+ "control_sha256":"8934cac3c5698d5491c1e2217929b77eae6457d12fd87866fd0d7c63bed74996",
+ "parent":"principal-continuation-2026-09-23/warm-decay-candidate.tlx",
+ "parent_sha256":"69e8b88b41bb09d9149be1ac7e83e5e50db2974f470dce05405a55cc1f0bfb7e",
+ "selection_rule":"Lowest new-source Tune loss among checkpoints satisfying the predeclared grounding and causal gates; both selections are step256. No final-source loss used to select any candidate.",
+ "final_population":"The source files predeclared in data-plan.json: pg74,pg219 and Rust Book ownership chapter.16 evenly spread64-token windows per source; first8 observed; remaining56 scored. Rust chapter is source-file-separated within the same book, not an independent publisher/family.",
+ "expected_reporting":"Report each source, aggregate loss, every generated failure and comparison with both parent and matched ordinary arm. No adaptation after opening the final scores; no claim that the historical grounding gates are fresh.",
+ "resume":"Separate-process continuation from step128 running in parallel; production candidate is already fixed, and replay may only verify or falsify equality."
+}

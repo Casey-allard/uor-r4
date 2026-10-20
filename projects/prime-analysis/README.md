@@ -60,13 +60,26 @@ The second row matters for the model: the program's own controls found no specia
 
 The full project is preserved in the private Hugging Face dataset `caseyallard/uor-r4-store` under `research-archive/2026-10-19/tars/prime-analysis.tar` (566,219,264 bytes, 7,708 files, SHA-256 `25747ed4345b510f85187d119db17cc5b2ee01f2f8f791f8a952d9a44970f36e`). Every file inside is listed in `files.sha256`, and the tar is listed in `tars.sha256`. The project's own README names GitHub repositories and hosted pages under `Casey-allard`; no separate remote is recorded in the folder itself.
 
-## Source files brought into this folder
+## Source files
 
-- `README.md` and the Markdown briefings and specifications in `research/` (the curated set; the rest stays in the store)
-- `research/theoretical-mathematics/**/*.py` and `**/*.tex`, except the 185 duplicates of `riemann-lean` and anything under `.vendor/`, `output/` or `external/` (vendored or regenerable third-party code, which is not committed before review)
-- `simulations/*.html` (six pages)
+The owner decided on 20 October 2026 that this project's code stays in the store, because it is too large to commit: about 46 MB of Python and TeX in 3,034 files. This folder holds two things instead:
+- [`INDEX.tsv`](INDEX.tsv), which lists every file with its size and SHA-256 (7,708 rows);
+- the restore commands in **Restore** below.
 
-Stay in the store: `images/`, `photos/`, PDFs, DOCX files and the manuscripts under `published-manuscripts/`. The slide decks may later serve as figures for the documentation, subject to the licensing review.
+The images, photos, PDFs, DOCX files and manuscripts also stay in the store.
+
+## Restore
+
+The code is not committed here. [`INDEX.tsv`](INDEX.tsv) lists all 7708 files of the project, one row each: `path<TAB>size<TAB>sha256`, with the path relative to the project folder, the size in bytes from the owner's local copy (20 October 2026) and the hash from `files.sha256`. To restore the files (the tar sits under `tars/` in the dataset; the two checksum files sit one level above it):
+
+```sh
+hf download caseyallard/uor-r4-store research-archive/2026-10-19/tars/prime-analysis.tar research-archive/2026-10-19/tars.sha256 research-archive/2026-10-19/files.sha256 --repo-type dataset --local-dir .
+cd research-archive/2026-10-19/tars
+grep ' prime-analysis.tar$' ../tars.sha256 | shasum -a 256 -c -
+tar xf prime-analysis.tar
+grep '  ./prime-analysis/' ../files.sha256 | shasum -a 256 -c --quiet -
+```
+
 
 ## Go deeper
 

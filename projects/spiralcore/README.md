@@ -63,6 +63,10 @@ The two references were part of the owner's untracked `research/` folder. The fu
 - From the former `spiralcore-base/wire`, now [`wire/`](wire/): all 82 files (tools, `crates/wire-rs`, `docs`, bounded `evidence`), unchanged.
 - From `research/spiralcore-v68`: `README.md`, `provenance.json`, the mathematics extract, the v68 HTML (placed under `reference/`) and the FBS PDF (about 3 MB; stays in the store if the size policy says so, with its hash recorded here).
 
+## Code
+
+`v68/` holds 1 file (8,080 bytes) copied byte for byte on 20 October 2026 from `research/spiralcore-v68` (backed up as `spiralcore-v68.tar`): its `README.md`. That folder has no code. The HTML reference (about 1 MB) and the FBS PDF are over the 512 KB limit or not source, the mathematics extract is plain text, and `provenance.json` is not read by any code, so all four stay in the store and are checked by `files.sha256`. No absolute paths, no licence file.
+
 ## Go deeper
 
 - Records: `docs/labs/spiralcore-wire-side-2026-10-18/README.md`, `docs/labs/wire-counter-aggregation-2026-10-18/README.md`, `docs/labs/wire-matrix-repro-2026-10-18/README.md`, `docs/labs/uorobj01-conformance-2026-10-18/README.md`.

@@ -1,0 +1,17 @@
+{
+ "schema":"uor-r4.crossed-copy-fit-protocol/1",
+ "declared_before_first_fit":true,
+ "initial_artifact":"principal-continuation-2026-09-23/warm-decay-candidate.tlx",
+ "arms":["ordinary copied-token supervision","training-only independently intervened copied-token feedback"],
+ "updates":256,
+ "learning_rate":"linear 0.01 to 0.001; fresh optimizer at start; exact moments/schedule/RNG on resume",
+ "shuffle_seed":20260924,
+ "batch":"3 repository prose,3 new-source prose/code,1 authored instruction,2 grounded,2 class-copy examples",
+ "crossed_training_cells":12,
+ "withheld_cells":"feedback_index == (source_index+2)%4; four opposite-class pairs excluded from both arms' draws",
+ "selection":"Among64-step checkpoints, smallest new-source Tune loss subject to temporal32/32,class4/4,legacy-heldout3/3 and, for intervention arm,16/16 crossed feedback. Those legacy/diagnostic panels are exposed development gates, not a fresh final test.",
+ "final_sources":"Score the already-declared final source set only after candidate choice is frozen. If no candidate meets gates, preserve failures and score predeclared terminal artifacts as failed exploratory candidates without promoting them.",
+ "exact_resume":"Replay intervention steps129..256 in a separate process from checkpoint128 plus its bound control/selection companion; compare final latent/moment checkpoint, served artifact and selected artifact bytes.",
+ "geometry":"Separate bounded relation-conditioned vector learner, ordinary signed-permutation fit with same supervision; not the numerical cause of prose results.",
+ "cost":"Prompt ingestion plus generated-token loops; compare exact sequences before claiming speed; isolate zero-allocation readout from allocating recurrent updates."
+}

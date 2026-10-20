@@ -47,10 +47,9 @@ Both papers are by Alex. The README states they are included "with the author's 
 
 The full project is preserved in the private Hugging Face dataset `caseyallard/uor-r4-store` under `research-archive/2026-10-19/tars/msa.tar` (338,432 bytes, 3 files, SHA-256 `73be0abc4ff823d00b35bab447e4f1928b45a478f9479dec84efa9504f1dd0b0`). Every file inside is listed in `files.sha256`, and the tar is listed in `tars.sha256`.
 
-## Source files brought into this folder
+## Code
 
-- `README.md` (the original, kept as written)
-- `Structural_Arithmetic.pdf` and `Modular_Structural_Arithmetic_MSA__A_Formal_System.pdf`, after the permission check above
+`code/` holds 1 file (777 bytes) copied byte for byte on 20 October 2026 from `research/msa` (backed up as `msa.tar`): the original `README.md`. The folder has no code; the two papers are PDFs and stay in the store pending the permission check above. No absolute paths, no licence file.
 
 ## Go deeper
 

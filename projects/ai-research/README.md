@@ -47,19 +47,26 @@ Treat these as the old workspace's statements. This page reports what the files 
 
 The full project is preserved in the private Hugging Face dataset `caseyallard/uor-r4-store` under `research-archive/2026-10-19/tars/ai-research.tar` (377,595,904 bytes, 3,335 files, SHA-256 `dbdb1fa6f09712b9faba207a0188d23d0a591c9773cdcbb7ec6aeb21b8ddf1ce`). Every file inside is listed in `files.sha256`, and the tar is listed in `tars.sha256`.
 
-## Source files brought into this folder
+## Source files
 
-Only source and short notes come in; all data stays in the store.
+The owner decided on 20 October 2026 that this project's code stays in the store, because it is too large to commit: about 10 MB of source in 809 files. This folder holds two things instead:
+- [`INDEX.tsv`](INDEX.tsv), which lists every file with its size and SHA-256 (3,335 rows);
+- the restore commands in **Restore** below.
 
-- `README.md`, `PROJECT_MAP.md`, and the loose `*_note.md` files
-- `MUDBench/src/**` and `MUDBench/tests/**`
-- `ai-router/**/*.py`, after removing files that duplicate `research-archives`, and `ai-router/preprints/paper1_arxiv_rebuild_v4/**/*.tex`
-- `claims_to_evidence_table.md` files
-- `ramsey/**/*.py` and `deepermath/**/*.py`
+The data (CSV, NPZ, images and PDFs) also stays in the store.
 
-Stay in the store: all CSV, NPZ, PNG and PDF files, large run outputs under `router-research/`, preprint build artifacts, and `1608.04200v2.pdf` (a third-party arXiv paper).
+## Restore
 
-The owner's inventory suggests splitting this project into three folders later (router research, MUDBench, Ramsey). That is a proposal and is not decided; this page treats the snapshot as one project.
+The code is not committed here. [`INDEX.tsv`](INDEX.tsv) lists all 3335 files of the project, one row each: `path<TAB>size<TAB>sha256`, with the path relative to the project folder, the size in bytes from the owner's local copy (20 October 2026) and the hash from `files.sha256`. To restore the files (the tar sits under `tars/` in the dataset; the two checksum files sit one level above it):
+
+```sh
+hf download caseyallard/uor-r4-store research-archive/2026-10-19/tars/ai-research.tar research-archive/2026-10-19/tars.sha256 research-archive/2026-10-19/files.sha256 --repo-type dataset --local-dir .
+cd research-archive/2026-10-19/tars
+grep ' ai-research.tar$' ../tars.sha256 | shasum -a 256 -c -
+tar xf ai-research.tar
+grep '  ./ai-research/' ../files.sha256 | shasum -a 256 -c --quiet -
+```
+
 
 ## Go deeper
 
