@@ -1,0 +1,93 @@
+{
+  "id": "e8-orbit-memory",
+  "canonical_name": "E8 orbit memory",
+  "aliases": [
+    "exact-E8-addressed memory",
+    "E8 memory in place of the MLP",
+    "e8_memory (E8h, E8a)",
+    "fixed E8 product-key memory"
+  ],
+  "plain_what": "Instead of a feed-forward layer, the model reads a few rows from a very large table. The row addresses come from the 240 special points of the E8 lattice, found by a fast exact nearest-point decode. The hope is a fixed, exact address book that touches a handful of rows per token rather than running a full dense layer.",
+  "replaces": "MLP/feed-forward",
+  "how_it_works": "Per head, the query is cut into two 8-dimensional halves. Each half is decoded exactly to its nearest E8 root in O(8) operations (the two largest |x_i| with sign rules, or signs with a parity fix for the half-integer roots); no 240-way scan, checked against a full scan on 20,000 queries. SpiralCore's 64-element Cl(0,6) signed-permutation group splits the 240 roots into 15 orbits of 16; a half's candidates are the 16 roots of its decoded root's orbit. The two halves address 240 x 240 = 57,600 value slots; each head keeps the top k (k = 8 in the rung) by combined score. A kept slot of rank r is weighted by R[h][r] * sigmoid(beta*s + gamma): a rank table and a gate, with no softmax. The output sums the weighted value rows (256-wide float rows; a 59 MB value table per layer, of which a token reads 32 rows). Selection is detached, so only the query map, rank table, gate scale and the values learn. Usage logging reports orbit entropy and the share of slots read. In the later whole-path M2 source the same exact E8 tables are reused as a bounded integer record index and route transport, without any value-table MLP replacement.",
+  "geometry": "E8 root system (240 roots, doubled integer coordinates); SpiralCore Cl(0,6) 64-element group acting by signed axis permutations (15 orbits of 16); exact O(8) nearest-root decode; the 240-by-240 product slot grid. The 120-icosian H4 variant of the same layer lives in stack_memory.rs.",
+  "code": [
+    {"path": "crates/uor-r4-training/src/e8_memory.rs", "role": "e8_tables, E8Tables::nearest, e8_select, e8_memory_read, usage logging; StackModel::set_e8_memory and CLI e8_memory=LAYERS:HEADS:K"},
+    {"path": "crates/uor-r4-training/src/stack_memory.rs", "role": "Product-key memory layer with fixed Codebook::{H4,E8} sub-keys (the capacity-matched learned-key control P lives here)"},
+    {"path": "crates/uor-r4-core/src/spiralcore_operator.rs", "role": "SignedMatrix8 signed-axis composition and apply_root_key used to build E8 orbits and the 64 action-image tables without a generic matrix product"},
+    {"path": "crates/uor-r4-training/src/whole_path_learning.rs", "role": "Whole-path source reusing the exact E8 tables as a bounded record index and transport (CPU fixtures only)"}
+  ],
+  "status": "PARKED",
+  "status_reason": "The tested form (float values, logistic-sigmoid gate, no served form) met its half-MLP bar at +0.033 BPB, but a learned product-key memory of equal capacity beat the fixed E8 addresses by 0.023 BPB, so the geometry was never credited; replacing every MLP cost +0.116. The sigmoid gate breaks D23 (docs/labs/e8-orbit-memory-2026-10-11/README.md).",
+  "reopen_conditions": [
+    "Run the row-3 iteration the record names, on GPU only, pre-registered with a fresh TEST FITNESS: FIT: raise k from 8 to 16, and add learned per-orbit residual offsets on the E8 frame to separate 'fixed addresses' from 'value capacity' as the cause of the gap to the learned-key control.",
+    "Replace the sigmoid gate with a D23-clean gate (rank table with a hard threshold or exact selection) and register it as a D37 offline float sheet in a separately scanned module with an integer export (integer value tables, E8 decode as table lookups) and a reported export gap; owner release required.",
+    "Keep the fair-test conditions: a capacity-matched learned-key control (P), routing health (orbit entropy and slot share), matched training steps and the same panel, at least 2 seeds.",
+    "Provide a D11 served form: integer serving refuses product-key memory today (docs/labs/native-address-port-2026-10-11/README.md), and report tokens per second, since a MAC saving did not appear in tokens per second for the learned-key twin."
+  ],
+  "rule_compat": {
+    "D11": "No served form: export refuses and integer serving refuses product-key memory. The value tables are float (59 MB per layer). The decode, orbit tables and route transport are exact bounded integer lookups, and the whole-path source uses them that way.",
+    "D23": "Violates as built: the read weight is R[h][r] * sigmoid(beta*s + gamma) (crates/uor-r4-training/src/e8_memory.rs module docs). It is softmax-free but sigmoid is banned too.",
+    "D30": "Cuts the replaced layer's multiply-adds roughly tenfold by design arithmetic (about 27k vs 270k per token), but the query map and value mixing are dense float linear ops. E8 and SpiralCore table construction was rewritten without a generic 8x8 matrix product (docs/labs/native-vector-transport-2026-10-12/README.md).",
+    "D32_D37": "Not on the D32 discrete path. D37 would allow float training of such a layer offline only as a new FIT'd sheet with an integer export and export gap. The fixed E8 roots are exact integer data."
+  },
+  "experiments": [
+    {"date": "2026-09-26", "record": "docs/integration/geometric-attention-2026-09-26.md", "configuration": "MQAR-like associative recall with a minimal retrieval head; E8 block codes (8 blocks of 240 roots, about 63 bits per key) vs sign-bit Hamming codes and float scores; trained on 64 pairs, tested to 512 pairs (1,024 candidates)", "result": "E8 key codes recall perfectly at 64-bit width and slightly better than sign bits at 8 bits; the note records that as final snapped scores in a language model E8 trained worse than sign bits", "verdict": "inconclusive", "numbers": "100.0% at 512 pairs for E8 blocks; at 8 bits E8 25.8% vs sign 21.9% (hard top-1 16.7% vs 13.1%)"},
+    {"date": "2026-09-27", "record": "docs/integration/memory-layers-cycle5-2026-09-27.md", "configuration": "Plan and implementation note: product-key memory layers with learned, fixed-H4 (120 icosians) and fixed-E8 (240 roots) sub-keys", "result": "Implementation unit-tested (selection equals brute-force top-k; gradients match finite differences on 228 and 230 coordinates; codebook inner products as defined); the experiment was NOT_RUN and held", "verdict": "inconclusive", "numbers": "slot counts: learned 65,536, H4 14,400, E8 57,600"},
+    {"date": "2026-09-28", "record": "docs/integration/addressing-contest-result-2026-09-28.md", "configuration": "D5 addressing contest on a fitted quaternion parent: fixed H4/E8/sign codebooks vs k-means and oracle as an admission index, T=256, s=16 (E8 here is an index over events, not an MLP replacement)", "result": "NOT QUALIFIED under the frozen rule: the best geometric arm (H4) was 0.0021 nats behind k-means but 1.17 recall points behind, and not cheaper; E8 was further behind", "verdict": "negative", "numbers": "recall@1 k-means-120 0.9813, h4-rht 0.9696, e8-rht 0.9450; Read NLL delta vs full: k-means +0.007201, h4-rht +0.009313, e8-rht +0.012083"},
+    {"date": "2026-10-11", "record": "docs/labs/e8-orbit-memory-2026-10-11/README.md", "configuration": "Rung 1: E8 memory replacing half (layers 1,3,5,7: E8h) or all 8 (E8a) MLPs; width 256, geometric rrarrarr, 2,000 steps, 2 seeds, laptop CPU; arms D256 dense and P learned product-key memory of equal capacity", "result": "Decision row 3, keep and iterate: E8h inside the bar but the learned-key twin beats it, so the E8 geometry is not credited; routing is healthy, not collapsed", "verdict": "inconclusive", "numbers": "BPB D256 1.4078, P 1.4175 (+0.010), E8h 1.4406 (+0.033), E8a 1.5237 (+0.116); noise 0.0054; orbit entropy 3.85-3.87 of 3.91 bits, 83-87% of slots read; CPU training 1,330 tok/s (E8h), 405 (E8a), 2,140 (P)"},
+    {"date": "2026-10-11", "record": "docs/labs/unified-geometric-integration-2026-10-11/README.md", "configuration": "Integration ledger referencing the E8 rung as PR #2205 in a unified geometric credit comparison", "result": "The E8 ten-fold multiply-add saving is design arithmetic, not a measured speed or energy saving; broad entropy and coverage rule out aggregate collapse, not every query-level address-quality failure", "verdict": "inconclusive", "numbers": "orbit tables: 64 actions split 240 roots into 15 orbits of 16"},
+    {"date": "2026-10-11", "record": "docs/labs/native-bound-content-2026-10-11/README.md", "configuration": "Whole-path source reusing E8Tables and SpiralCore's 64 signed actions to compile 15,360 E8 action images once; transport_root is a bounded integer lookup", "result": "Source KEEP, no training; E8 is used as an exact route beside exact content identity, not as an MLP replacement and not activated in the saved 437/512 model", "verdict": "inconclusive", "numbers": "15,360 action images; saved model 437/512 unchanged"},
+    {"date": "2026-10-12", "record": "docs/labs/native-vector-transport-2026-10-12/README.md", "configuration": "Removed generic 8x8 matrix multiplication from SpiralCore and E8 static table construction (direct signed-axis permutation composition)", "result": "Static algebra checks pass; no model or learned parameter executed", "verdict": "positive", "numbers": "3 static-algebra tests PASS; all 240 doubled E8 roots preserved bijectively under every one of 64 actions and inverses"},
+    {"date": "2026-10-12", "record": "docs/labs/whole-path-recovery-2026-10-12/README.md", "configuration": "Whole-path M2 source with a 240-way write key and 15 orbit-family profiles from the exact E8 tables", "result": "KEEP source, CUDA execution NOT_RUN, sampled producer later blocked by D23; E8 regressions pass on CPU", "verdict": "inconclusive", "numbers": "5 E8 regression tests pass among 28 whole-path + 3 grounded-store"},
+    {"date": "2026-10-12", "record": "docs/labs/kimi-direction-2026-10-12/README.md", "configuration": "Project-manager review of the lab record", "result": "Restates the E8 outcome as keep-and-iterate: learned keys beat fixed E8 addresses by 0.023 BPB", "verdict": "inconclusive", "numbers": "0.023 BPB"}
+  ],
+  "never_tested": [
+    "Any E8 memory run after rung 1: no k = 16 run, no learned per-orbit offsets, no GPU run of the layer (the rung was the last CPU geometric-stack run).",
+    "E8 memory trained in from pretraining; rung 1 trained a 256-wide stack for 2,000 steps from scratch on its own recipe, not a long run.",
+    "A softmax- and sigmoid-free gate, or any D32 discrete form of the layer.",
+    "Integer value tables and a D11 served form with measured tokens per second and an export gap.",
+    "E8 memory as the READ (address instead of search); only the MLP was replaced.",
+    "E8 as the write address of facts with prime semiprimes as the exact check (exact-memory open question).",
+    "Query-level address quality (the entropy and coverage statistics are aggregate)."
+  ],
+  "failed_only_on_configuration": [
+    "E8a (all 8 MLPs replaced, +0.116 BPB): says that replacing every MLP at width 256 for 2,000 steps is too much capacity removed, not that E8 addressing fails; the record calls it a separate, later step.",
+    "E8h versus the learned twin (+0.023 BPB): a 2,000-step, 2-seed, laptop-CPU comparison with a sigmoid gate; the gap is either addressing or per-slot value capacity, which the record could not separate.",
+    "Addressing contest (E8 as an admission index): a fixed unit-norm codebook with no gain channel against a k-means codebook with raw centroids, so the geometric-versus-ordinary contrast is confounded by magnitude (the record says so); it closes that index configuration at T=256 and these bit rates.",
+    "Speed on CPU (1,330 vs 2,140 tok/s): host-side slot selection, not an integer table read."
+  ],
+  "open_questions": [
+    "Is the 0.023 BPB gap to learned keys addressing (fixed roots) or value capacity? Learned per-orbit offsets on the E8 frame would separate the two.",
+    "Which layers and what k? E8h replaced 1,3,5,7; E8a replaced all.",
+    "What is the served form: integer value tables read as table lookups at what export gap?",
+    "Does a smaller value width or shared value table keep quality while cutting the 59 MB per layer?",
+    "Does the exact record-index role in the whole-path source give a better test of fixed E8 addressing than MLP replacement does?"
+  ],
+  "evidence": [
+    "docs/mechanisms/e8-orbit-memory.md",
+    "docs/labs/e8-orbit-memory-2026-10-11/README.md",
+    "docs/integration/addressing-contest-result-2026-09-28.md",
+    "docs/integration/memory-layers-cycle5-2026-09-27.md",
+    "docs/integration/geometric-attention-2026-09-26.md",
+    "docs/labs/native-vector-transport-2026-10-12/README.md",
+    "docs/labs/native-bound-content-2026-10-11/README.md",
+    "docs/labs/whole-path-recovery-2026-10-12/README.md",
+    "docs/labs/unified-geometric-integration-2026-10-11/README.md",
+    "docs/labs/kimi-direction-2026-10-12/README.md",
+    "docs/integration/DECISIONS.md (D5, D22, D23, D30, D37, D38)"
+  ],
+  "related": [
+    "exact-memory: the parent family; E8 orbit memory is its product-key memory with fixed E8 sub-keys, replacing an MLP",
+    "spiralcore-fbs: supplies the Cl(0,6) group whose 64 actions define the 15 orbits",
+    "spin-weights: the 120-icosian H4 variant of the same memory layer (stack_memory.rs)",
+    "admission: the addressing contest used E8 codes as an event index",
+    "carrier-credit and discrete-learning: the whole-path and discrete lines that reuse the exact tables",
+    "ternary-xor: E8 is a lifted Hamming code (e8-orbit note), the bridge to XOR and popcount arithmetic"
+  ],
+  "figure_ideas": [
+    "The 240 E8 roots drawn as a ring of 15 coloured clusters of 16 (the orbits); a query half is a dot that snaps to its nearest root, and the other 15 members of that orbit light up as candidates.",
+    "A 240 by 240 grid of value slots in which two orbit selections cross; the top 8 cells light up and rows from a table are read, beside a dense layer drawn as a full block to show the tenfold gap in multiply-adds.",
+    "A four-bar chart of held-out BPB (dense 1.4078, learned keys 1.4175, E8 half 1.4406, E8 all 1.5237) with the 0.0054 noise band marked, to show the geometry is inside the bar but behind its learned twin."
+  ]
+}

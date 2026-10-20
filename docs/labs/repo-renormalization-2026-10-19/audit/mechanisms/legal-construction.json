@@ -1,0 +1,103 @@
+{
+  "id": "legal-construction",
+  "canonical_name": "Protected legal construction",
+  "aliases": [
+    "protected / discrete legal construction",
+    "direct joint legal-set construction",
+    "protected Prefix/Generate transaction",
+    "quantized-form parameter moves",
+    "exact legal-constructor solver (MIP)",
+    "D22 constructor"
+  ],
+  "plain_what": "Instead of training with smooth numbers and rounding at the end, choose each parameter change directly from the short list of values the final integer model can hold, while a checker guarantees that a set of already-correct answers stays correct. Every accepted step is then exactly servable and provably keeps what was learned.",
+  "replaces": "optimizer/backprop",
+  "how_it_works": "Setting: the M2 native learner holds 1,920 Prefix and Generate coefficients as float masters, served as signed quarter-grid codes q/4 with q in [-7,7], giving 15 legal destinations per coordinate. A protected transaction commits a change only if (a) native scoring strictly lowers the pooled loss, (b) 17 reference roles and 380 original winners still win, and (c) the linearized guard test J delta >= -1e-10 ||delta|| holds. Residual feedback: take a continuous protected direction and round it onto the grid with 32 feedback rounds. Direct construction: a mixed-integer program per coordinate with binaries l and r choosing noop, lower or upper code (l + r <= 1, q between the stated bounds, delta = (q - q0)/4 + (l + r)(q0/4 - m)); minimize the original gradient dot delta subject to 380 unit-normalized guard rows, 1,960 variables, 440 constraints, 4,096 branch-and-bound nodes (pure Rust microlp, offline). Numerical repair: scale-aware LU pivot threshold tau_j = 32 n u max(column maxabs) with a normwise residual check on each fresh factor. The discrete-path analogue (moves that are legal by construction, committed only on strict joint improvement) now lives in discrete-learning and its BVG-K block-apply.",
+  "geometry": "Quarter-grid Q4 code lattice of the H4/icosian-style finite signed tables (15 legal codes per coordinate), exact native integer token masses, protected-winner halfspaces. The discrete analogue uses signed-axis group bivector moves on E8 anchor-orbit roots.",
+  "code": [
+    {"path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_legal_set.rs", "role": "Direct joint legal-set constructor (microlp branch and bound)"},
+    {"path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs", "role": "Protected joint Prefix/Generate vector with cyclic halfspace correction"},
+    {"path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_credit_import.rs", "role": "Authenticated import of saved objective and protected derivatives"},
+    {"path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/gradient_vector_prefix.rs", "role": "Coordinated Prefix transaction along the full gradient"},
+    {"path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs", "role": "Coupled Prefix/Generate learner used by the donor and legacy runs"},
+    {"path": "docs/history/branch-archive/d22-constructor-unfinished-20261010.patch", "role": "Unfinished full current-parent constructor (inactive, indexed)"},
+    {"path": "docs/history/branch-archive/basis-residual-repair-20261009.patch", "role": "Scale-aware LU pivot patch for microlp (inactive)"},
+    {"path": "crates/uor-r4-discrete/src/bvgk_source.rs", "role": "Discrete analogue: block apply committed only if the joint loss beats the best single move"}
+  ],
+  "status": "PARKED",
+  "status_reason": "Never judged on the panel. Every attempt stopped before a protected descending move, mostly on solver numerics (docs/labs/direct-legal-construction-2026-10-09, basis-residual-repair-2026-10-09). D21 archived the line and D22 section 5 reopened it. The 11 October owner pivot deferred the generic constructor and the discrete path took over the goal.",
+  "reopen_conditions": [
+    "Solve the saved input245 instance (1,960 variables, 440 constraints, 15 legal destinations) in exact rational or Z[phi]-integer arithmetic, or with a numerically robust solver, so the singular-pivot blocker is removed",
+    "Score at least one legal displacement on the frozen 512 panel and the 128 fresh rows, over at least 2 seeds, against a float-trained then quantized control at matched compute (D22 section 3 and 5(a))",
+    "A greedy legal coordinate search as a cheap baseline before any full MIP",
+    "Re-registration as an offline float sheet under D37 with a fresh TEST FITNESS: FIT, an owner release for the M2 hold, a separately scanned module and a D11 export gap",
+    "Or reuse the legal-by-construction idea on the discrete path (BVG-K block apply plus an admission-preserving acceptance rule) under its own FIT"
+  ],
+  "rule_compat": {
+    "D11": "Aligned with it: the goal is that every accepted step is already in the servable integer code set, so there is no rounding loss. The solver itself is offline float LU and is not a serving component.",
+    "D23": "The constructor and the guards use native integer token masses; the underlying M2 CE/pooled-ranking objective used softmax and softplus forms, which D23 bans, so a rerun needs a compliant objective.",
+    "D30": "No dense matmul is needed by the constructor; it solves a sparse mixed-integer linear program with a pure-Rust backend. The guard Jacobians come from the M2 native stack.",
+    "D32_D37": "Float LU and float gradients in the constructor were frozen by D32 item 5 and became re-registrable under D37 (offline float, separately scanned module). The D32-style discrete successor is active in discrete-learning."
+  },
+  "experiments": [
+    {"date": "2026-10-09", "record": "docs/labs/protected-margin-credit-2026-10-09/README.md", "configuration": "Library-only differentiable log-ratio margin so protected answers contribute gradient", "result": "Arithmetic tests pass; no model benefit claimed", "verdict": "inconclusive", "numbers": "accepted stays 8/512"},
+    {"date": "2026-10-09", "record": "docs/labs/protected-joint-construction-2026-10-09/README.md", "configuration": "Protected joint Prefix/Generate direction, four common radii, quantized to the quarter grid", "result": "Continuous direction passes protection; every quantized transaction violates it; no native proposal and no commit", "verdict": "negative", "numbers": "violated protected constraints 104 / 170 / 98 / 93 of 380 at radii 1 / 2 / 4 / 7"},
+    {"date": "2026-10-09", "record": "docs/labs/quantized-protection-attribution-2026-10-09/README.md", "configuration": "Saved-arithmetic attribution of why the four rounded displacements fail", "result": "Quarter-grid rounding accounts for most of the adverse pressure; analysis only", "verdict": "inconclusive", "numbers": "roughly 90-96% of adverse stage pressure attributed to rounding"},
+    {"date": "2026-10-09", "record": "docs/labs/protected-discrete-feedback-2026-10-09/README.md", "configuration": "Discrete feedback constructor, 32 rounds x 32 inner passes, 15 legal codes per coordinate, from saved native credit", "result": "No eligible vector, no native proposal, no commit", "verdict": "negative", "numbers": "32 rounds, 28 distinct destinations, 0 eligible, 52-218 violated rows per round; native reload 5/15, 17/17 references, 380/380 winners, CE 5.1115 unchanged"},
+    {"date": "2026-10-09", "record": "docs/labs/discrete-feedback-attribution-2026-10-09/README.md", "configuration": "Attribution of the saved discrete-feedback formation failures", "result": "All 32 proposals were different or conflicting with protected answers; no universal veto, which justified a joint constructor", "verdict": "negative", "numbers": "28 distinct failures; union of violated rows 338/380"},
+    {"date": "2026-10-09", "record": "docs/labs/prefix-vector-run-2026-10-09/README.md", "configuration": "Coordinated Prefix move along the full gradient, four radii [1,2,4,7], original parent", "result": "All four lower combined CE but none passes the unchanged protections", "verdict": "negative", "numbers": "conditional 6/15 vs original 5/15; radius 1 CE 4.8106, radius 7 CE 2.2363 with 15/17 references; accepted 8/512"},
+    {"date": "2026-10-09", "record": "docs/labs/full-donor-run-2026-10-09/README.md", "configuration": "Complete donor utility credit with legal-code selection on 1,920 coordinates", "result": "Reaches 9/15 as the older negative did; fifteen-position gate negative; rejected", "verdict": "negative", "numbers": "956 accepted changes (627 Prefix, 329 Generate) of 14,292 alternatives; 9/15; 8/512"},
+    {"date": "2026-10-09", "record": "docs/labs/coupled-export-recovery-2026-10-09/README.md", "configuration": "Fixed exporter so the coupled learner reloads exactly", "result": "9 of 15 positions, below the full-episode gate; not selected", "verdict": "negative", "numbers": "9/15"},
+    {"date": "2026-10-09", "record": "docs/labs/pair-copy-bound-2026-10-09/README.md", "configuration": "Mathematical bound on legal Generate pair changes at the first error", "result": "No legal pair change can beat frozen Copy there; stops widening a pair-only search", "verdict": "negative", "numbers": "target upper bounds below rival lower bounds at all nine references"},
+    {"date": "2026-10-09", "record": "docs/labs/direct-legal-construction-2026-10-09/README.md", "configuration": "Direct joint MIP over all 15 legal destinations of 1,920 coordinates, absolute and centered encodings, microlp 0.6.0, 4,096-node bound", "result": "Both encodings stop with a singular-matrix error before any proposal; a tooling blocker", "verdict": "blocked", "numbers": "1,960 variables, 440 constraints; 0 proposals"},
+    {"date": "2026-10-09", "record": "docs/labs/legal-basis-diagnosis-2026-10-09/README.md", "configuration": "Instrumented replay of the failing solver bases", "result": "A nonzero pivot just under the backend threshold, not an empty column", "verdict": "inconclusive", "numbers": "pivot near 9e-11 vs threshold 1e-10 (and 7e-12 in the second basis per D22)"},
+    {"date": "2026-10-09", "record": "docs/labs/basis-residual-repair-2026-10-09/README.md", "configuration": "Scale-aware LU singularity rule with residual-qualified solves, tau_j = 32 n u max(...)", "result": "Both captured bases solve accurately, but the exact constructor still hits a singular matrix later and returns no assignment", "verdict": "inconclusive", "numbers": "148 of 150 fresh factors verified in the follow-up per the mechanism brief; no assignment"},
+    {"date": "2026-10-10", "record": "docs/labs/d22-constructor-2026-10-10/README.md", "configuration": "Full current-parent constructor (Prefix 960 + Generate 960 on the full 512 pooled-ranking/EOS objective), replay 15", "result": "Interrupted after 102.9 minutes for an owner-requested session transfer; UNFINISHED_NOT_NEGATIVE", "verdict": "blocked", "numbers": "6,172.7 s; 2,622 factors; no assignment or sealed report"},
+    {"date": "2026-10-19", "record": "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md", "configuration": "BVG-K C2 block-apply qualifier on synthetic fixture devices (discrete analogue of a protected joint commit)", "result": "All qualifier controls pass; a block commits only if the joint loss strictly beats the best single move", "verdict": "positive", "numbers": "3,419 fixture updates, Device::apply never called, K=16 call 259 ms with joint verify"}
+  ],
+  "never_tested": [
+    "Any legal displacement scored on the frozen 512 panel or the 128 fresh rows",
+    "A constructor run on exact rational or Z[phi]-integer arithmetic",
+    "Float-trained-then-quantized control at matched compute, over at least 2 seeds, on the same learner",
+    "Greedy legal coordinate search as a baseline",
+    "Coordinate-group decomposition to shrink the basis, or guards relaxed to slack penalties",
+    "Pair-coefficient credit combined with a unary move at the same frame (the bound only excludes pair-only changes)",
+    "Legal-by-construction moves with an admission-preserving acceptance rule on the discrete model"
+  ],
+  "failed_only_on_configuration": [
+    "Residual feedback (#2079-#2121): a float direction rounded to a 15-code grid per coordinate violated the guard rows after rounding, a property of that rounding rule and radii",
+    "Direct MIP (#2125, #2132, #2134): backend LU pivot just below a 1e-10 threshold on the saved input245 instance, a numerical blocker, not a verdict",
+    "Full-donor and coupled runs at 9/15: Prefix and Generate unary coordinates only, frozen Source/Context/Cue/bridge, one frame population",
+    "Pair-copy bound: pair-only changes at one frame with Copy mass frozen",
+    "Replay 15: stopped for a session transfer, never completed"
+  ],
+  "open_questions": [
+    "Does an exact-arithmetic or Z[phi]-integer pivot rule make the MIP solve at all on input245?",
+    "If it solves, does a legal descending move exist that beats float-then-quantize at equal compute?",
+    "Is the protected-guard idea better realized as the discrete path's acceptance rule than as a solver?",
+    "Which of the 380 guards are essential, and does relaxing them to slack penalties make the problem feasible?"
+  ],
+  "evidence": [
+    "docs/mechanisms/protected-legal-construction.md",
+    "docs/labs/direct-legal-construction-2026-10-09/README.md",
+    "docs/labs/legal-basis-diagnosis-2026-10-09/README.md",
+    "docs/labs/basis-residual-repair-2026-10-09/README.md",
+    "docs/labs/protected-discrete-feedback-2026-10-09/README.md",
+    "docs/labs/protected-joint-construction-2026-10-09/README.md",
+    "docs/labs/d22-constructor-2026-10-10/README.md",
+    "docs/labs/lab-pivot-2026-10-09/README.md",
+    "docs/history/branch-archive/INDEX.md",
+    "docs/integration/DECISIONS.md (D21 section 3, D22 section 5(a), D37)"
+  ],
+  "related": [
+    "discrete-learning: realizes the same goal (no rounding loss) by making every move legal by construction",
+    "carrier-credit: same M2 learner and panels, different intervention (credit to carriers rather than constrained moves)",
+    "rank-margin: the pooled-ranking objective supplied the descent target for the constructor",
+    "spin-weights: the quarter-grid / icosian code set the legal destinations come from",
+    "ternary-xor: another multiplier-free weight alphabet with the same export question"
+  ],
+  "figure_ideas": [
+    "A number line of one coefficient with the float master as a dot and the 15 legal quarter-grid codes as ticks; show the continuous step, its rounded landing code, and a protected winner flipping red when rounding crosses its guard.",
+    "A guard matrix: 380 protected rows by the candidate moves of each radius, coloured by violation, showing 93-170 red cells after rounding versus none for the continuous direction.",
+    "A solver trace: pivot magnitude per branch-and-bound refactorization on a log axis dropping to about 9e-11 against the 1e-10 threshold line, with the scale-aware threshold drawn above it."
+  ]
+}

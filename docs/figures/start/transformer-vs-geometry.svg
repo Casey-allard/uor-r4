@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 716" width="960" role="img" aria-labelledby="t d">
+<title id="t">Transformer parts and their geometric replacements</title>
+<desc id="d">Two aligned columns. The left column lists fourteen parts of a transformer from input to output: tokenizer, embedding, position, attention (what to read), attention (mixing), copy heads, context memory (KV cache), feed-forward, gates and activations, normalization, output head (softmax), loss (cross-entropy), optimizer (backprop) and runtime. An arrow from each part points to the UOR-R4 mechanisms meant to replace it, drawn as chips whose outline and label give the status: solid green ACTIVE, dashed amber READY, dotted purple PARKED. Position and normalization have no mechanism and are drawn as empty dashed red boxes labelled gap 1 and gap 2. A blue dot marks the seven rows trained together on today's discrete path: tokenizer, embedding, both attention rows, output head, loss and optimizer; that path has no feed-forward layer and no position mechanism. The board counts 10 ACTIVE, 4 READY and 13 PARKED mechanisms.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.colhead { font-size: 13px; font-weight: 600; fill: var(--muted); }
+.lbl { font-size: 13px; fill: var(--ink); }
+.strong { font-weight: 600; }
+.note { font-size: 11.5px; fill: var(--muted); }
+.legend { font-size: 12px; fill: var(--body); }
+.part { fill: var(--panel); stroke: var(--rule); stroke-width: 1.5; }
+.part-gap { stroke: var(--verm); }
+.gap { fill: none; stroke: var(--verm); stroke-width: 1.75; stroke-dasharray: 7 4; }
+.gap-text { fill: var(--verm); font-size: 13px; font-weight: 600; }
+.chip-active { fill: var(--active); fill-opacity: 0.12; stroke: var(--active); stroke-width: 1.75; }
+.chip-ready { fill: var(--ready); fill-opacity: 0.12; stroke: var(--ready); stroke-width: 1.75; stroke-dasharray: 6 3; }
+.chip-parked { fill: var(--parked); fill-opacity: 0.10; stroke: var(--parked); stroke-width: 1.75; stroke-dasharray: 0.5 3.5; stroke-linecap: round; }
+.st { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+.st-active { fill: var(--active); }
+.st-ready { fill: var(--ready); }
+.st-parked { fill: var(--parked); }
+.flow { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.head-fill { fill: var(--muted); }
+.onpath { fill: var(--blue); }
+.pathcol { fill: var(--blue); fill-opacity: 0.06; stroke: var(--blue); stroke-opacity: 0.35; stroke-width: 1; }
+.rule { stroke: var(--rule); stroke-width: 1; }
+</style>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" class="head-fill"/>
+  </marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="716"/>
+
+<text class="title" x="24" y="36">Transformer parts and their geometric replacements</text>
+<text class="sub" x="24" y="58">Each part beside the UOR-R4 mechanisms meant to replace it. Two parts, position and normalization, have none.</text>
+
+<!-- Legend -->
+<rect class="chip-active" x="24" y="76" width="26" height="16" rx="4"/>
+<text class="legend" x="58" y="89"><tspan class="strong">ACTIVE (10)</tspan> on today's model path</text>
+<rect class="chip-ready" x="274" y="76" width="26" height="16" rx="4"/>
+<text class="legend" x="308" y="89"><tspan class="strong">READY (4)</tspan> built and tested, never trained</text>
+<rect class="chip-parked" x="554" y="76" width="26" height="16" rx="4"/>
+<text class="legend" x="588" y="89"><tspan class="strong">PARKED (13)</tspan> tried forms failed; still open</text>
+
+<line class="rule" x1="24" y1="106" x2="936" y2="106"/>
+<text class="colhead" x="24" y="128">Transformer part</text>
+<text class="colhead" x="344" y="128">UOR-R4 mechanism (status)</text>
+<rect class="pathcol" x="886" y="112" width="52" height="542" rx="8"/>
+<text class="note" x="912" y="124" text-anchor="middle">trained</text>
+<text class="note" x="912" y="137" text-anchor="middle">together</text>
+
+<rect class="part" x="24" y="140" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="159">Tokenizer</text>
+<line class="flow" x1="300" y1="154" x2="334" y2="154" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="140" width="138" height="29" rx="6"/>
+<text class="lbl" x="354" y="159">tokenizer</text>
+<text class="st st-active" x="472" y="158" text-anchor="end">ACTIVE</text>
+<circle class="onpath" cx="912" cy="154" r="6"/>
+<rect class="part" x="24" y="177" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="196">Embedding</text>
+<line class="flow" x1="300" y1="191" x2="334" y2="191" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="177" width="313" height="29" rx="6"/>
+<text class="lbl" x="354" y="196">prime-zeta codebook · address cells</text>
+<text class="st st-active" x="647" y="195" text-anchor="end">ACTIVE</text>
+<circle class="onpath" cx="912" cy="191" r="6"/>
+<rect class="part part-gap" x="24" y="214" width="270" height="29" rx="6"/>
+<text class="lbl strong" x="38" y="233">Position</text>
+<line class="flow" x1="300" y1="228" x2="334" y2="228" marker-end="url(#arr)"/>
+<rect class="gap" x="344" y="214" width="300" height="29" rx="6"/>
+<text class="gap-text" x="358" y="233">No mechanism (gap 1)</text>
+<rect class="part" x="24" y="251" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="270">Attention: what to read</text>
+<line class="flow" x1="300" y1="265" x2="334" y2="265" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="251" width="319" height="29" rx="6"/>
+<text class="lbl" x="354" y="270">route · flock · relation · admission</text>
+<text class="st st-active" x="653" y="269" text-anchor="end">ACTIVE</text>
+<rect class="chip-parked" x="671" y="251" width="105" height="29" rx="6"/>
+<text class="lbl" x="681" y="270">Hopf</text>
+<text class="st st-parked" x="766" y="269" text-anchor="end">PARKED</text>
+<circle class="onpath" cx="912" cy="265" r="6"/>
+<rect class="part" x="24" y="288" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="307">Attention: mixing</text>
+<line class="flow" x1="300" y1="302" x2="334" y2="302" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="288" width="112" height="29" rx="6"/>
+<text class="lbl" x="354" y="307">flock</text>
+<text class="st st-active" x="446" y="306" text-anchor="end">ACTIVE</text>
+<circle class="onpath" cx="912" cy="302" r="6"/>
+<rect class="part" x="24" y="325" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="344">Copy heads</text>
+<line class="flow" x1="300" y1="339" x2="334" y2="339" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="325" width="132" height="29" rx="6"/>
+<text class="lbl" x="354" y="344">relation</text>
+<text class="st st-active" x="466" y="343" text-anchor="end">ACTIVE</text>
+<rect class="chip-parked" x="484" y="325" width="152" height="29" rx="6"/>
+<text class="lbl" x="494" y="344">pointer key</text>
+<text class="st st-parked" x="626" y="343" text-anchor="end">PARKED</text>
+<rect class="part" x="24" y="362" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="381">Context memory (KV cache)</text>
+<line class="flow" x1="300" y1="376" x2="334" y2="376" marker-end="url(#arr)"/>
+<rect class="chip-parked" x="344" y="362" width="299" height="29" rx="6"/>
+<text class="lbl" x="354" y="381">exact memory · VSA · read binding</text>
+<text class="st st-parked" x="633" y="380" text-anchor="end">PARKED</text>
+<rect class="part" x="24" y="399" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="418">Feed-forward</text>
+<line class="flow" x1="300" y1="413" x2="334" y2="413" marker-end="url(#arr)"/>
+<rect class="chip-ready" x="344" y="399" width="273" height="29" rx="6"/>
+<text class="lbl" x="354" y="418">SpiralCore/FBS · Hamilton gate</text>
+<text class="st st-ready" x="607" y="417" text-anchor="end">READY</text>
+<rect class="chip-parked" x="625" y="399" width="179" height="29" rx="6"/>
+<text class="lbl" x="635" y="418">E8 orbit memory</text>
+<text class="st st-parked" x="794" y="417" text-anchor="end">PARKED</text>
+<rect class="part" x="24" y="436" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="455">Gates and activations</text>
+<line class="flow" x1="300" y1="450" x2="334" y2="450" marker-end="url(#arr)"/>
+<rect class="chip-ready" x="344" y="436" width="286" height="29" rx="6"/>
+<text class="lbl" x="354" y="455">Hamilton gate · recurrence gates</text>
+<text class="st st-ready" x="620" y="454" text-anchor="end">READY</text>
+<rect class="part part-gap" x="24" y="473" width="270" height="29" rx="6"/>
+<text class="lbl strong" x="38" y="492">Normalization</text>
+<line class="flow" x1="300" y1="487" x2="334" y2="487" marker-end="url(#arr)"/>
+<rect class="gap" x="344" y="473" width="300" height="29" rx="6"/>
+<text class="gap-text" x="358" y="492">No mechanism (gap 2)</text>
+<rect class="part" x="24" y="510" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="529">Output head (softmax)</text>
+<line class="flow" x1="300" y1="524" x2="334" y2="524" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="510" width="272" height="29" rx="6"/>
+<text class="lbl" x="354" y="529">admission · discrete learning</text>
+<text class="st st-active" x="606" y="528" text-anchor="end">ACTIVE</text>
+<circle class="onpath" cx="912" cy="524" r="6"/>
+<rect class="part" x="24" y="547" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="566">Loss (cross-entropy)</text>
+<line class="flow" x1="300" y1="561" x2="334" y2="561" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="547" width="192" height="29" rx="6"/>
+<text class="lbl" x="354" y="566">rank-margin hinge</text>
+<text class="st st-active" x="526" y="565" text-anchor="end">ACTIVE</text>
+<circle class="onpath" cx="912" cy="561" r="6"/>
+<rect class="part" x="24" y="584" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="603">Optimizer (backprop)</text>
+<line class="flow" x1="300" y1="598" x2="334" y2="598" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="584" width="192" height="29" rx="6"/>
+<text class="lbl" x="354" y="603">discrete learning</text>
+<text class="st st-active" x="526" y="602" text-anchor="end">ACTIVE</text>
+<rect class="chip-parked" x="544" y="584" width="313" height="29" rx="6"/>
+<text class="lbl" x="554" y="603">carrier credit · legal construction</text>
+<text class="st st-parked" x="847" y="602" text-anchor="end">PARKED</text>
+<circle class="onpath" cx="912" cy="598" r="6"/>
+<rect class="part" x="24" y="621" width="270" height="29" rx="6"/>
+<text class="lbl" x="38" y="640">Runtime</text>
+<line class="flow" x1="300" y1="635" x2="334" y2="635" marker-end="url(#arr)"/>
+<rect class="chip-active" x="344" y="621" width="205" height="29" rx="6"/>
+<text class="lbl" x="354" y="640">D11 integer serving</text>
+<text class="st st-active" x="539" y="639" text-anchor="end">ACTIVE</text>
+<rect class="chip-parked" x="557" y="621" width="145" height="29" rx="6"/>
+<text class="lbl" x="567" y="640">R4G1 graph</text>
+<text class="st st-parked" x="692" y="639" text-anchor="end">PARKED</text>
+
+<!-- Footer -->
+<circle class="onpath" cx="30" cy="676" r="5"/>
+<text class="legend" x="42" y="680">Trained together on today's discrete path. That path has no feed-forward layer and no position mechanism.</text>
+<text class="note" x="24" y="702">Counts from the mechanism board, 19 October 2026. The board keeps D11 integer serving ACTIVE; the audit would call it READY.</text>
+</svg>

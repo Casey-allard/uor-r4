@@ -1,0 +1,99 @@
+{
+  "id": "object-store",
+  "canonical_name": "Exact byte object store (D19)",
+  "aliases": [
+    "uor-r4-object-store",
+    "D19 durable-memory store",
+    "exact ternary byte-object store",
+    "UOROBJ01 / objpeer replication",
+    "Showcase-compatible record tree",
+    "reconstruction DAG store"
+  ],
+  "plain_what": "A model-independent library that keeps data exactly. Bytes are cut into small pieces, hashed and arranged in a tree, so repeated content is stored once, any byte range can be read back and checked, and an update sends only the pieces that changed. It is storage plumbing for durable chat memory, not part of the model's thinking.",
+  "replaces": "none",
+  "how_it_works": "fold(bytes) splits the data into ordered 32-byte atoms (the last zero-padded) and arranges them as a canonical ternary (base-3) tree of records. A record is a scale byte, a 12-byte BLAKE2b-96 hash of scale||payload, then either a 32-byte leaf or three ordered 12-byte child ids (45 or 49 bytes). A child's scale must equal its parent's minus one, which forbids cycles. Equal chunks hash to the same record, so repeated content is stored once while every ordered occurrence is kept. A manifest pins length, ordered roots and the whole-object SHA-256; the object version is the SHA-256 of the canonical manifest. rebuild checks padding and the whole SHA-256; range(start..end) descends only branches that intersect the range and authenticates each visited record against the root, so a 23-byte read of a 32,768-byte object needed 8 authenticated nodes (384 serialized bytes). Occurrence bindings tie every token occurrence of a pinned tokenizer to an object version and a byte span. A peer protocol lets a receiver ask only for missing node ids, verify the digest, and commit atomically. Deduplication is not general compression: unique 32,768-byte content takes 70,972 record bytes (2.17 times). No model, learned routing or geometry is involved; node ids are never geometric addresses.",
+  "geometry": "SpiralCore's ternary (three-child) hashed record tree in the Showcase format. Content-hash addressing only (BLAKE2b-96 node ids, SHA-256 object digest); no E8, H4, prime or zeta object, and exact identity is deliberately kept separate from any geometric address.",
+  "code": [
+    {"path": "crates/uor-r4-object-store/src/store.rs", "role": "Store: fold, rebuild, range, missing, import/export of records, save/load, resource limits"},
+    {"path": "crates/uor-r4-object-store/src/record.rs", "role": "Validated record encoding (scale, 12-byte id, leaf or three child ids)"},
+    {"path": "crates/uor-r4-object-store/src/manifest.rs", "role": "Versioned canonical manifest (length, ordered roots and scales, whole SHA-256)"},
+    {"path": "crates/uor-r4-object-store/src/bindings.rs", "role": "Pinned-tokenizer ingestion and separately versioned token-occurrence bindings (UORBND01)"},
+    {"path": "crates/uor-r4-object-store/src/peer.rs", "role": "Peer replication: pull_selected, pull_series, serve_many, verify, verify_series"},
+    {"path": "crates/uor-r4-object-store/src/bin/objpeer.rs", "role": "Command-line serve/pull/sync/verify/repair/join tool"},
+    {"path": "crates/uor-r4-object-store/PROTOCOL.md", "role": "Byte-accurate replication protocol spec for ports to other runtimes"},
+    {"path": "crates/uor-r4-object-store/tools/cold_join.sh", "role": "Measured cold-join recipe: compressed download, local fold, warm deltas"},
+    {"path": "crates/uor-r4-object-store/tools/fleet_maintenance.sh", "role": "Loopback demo of audit, failover sync and repair across two replicas"},
+    {"path": "crates/uor-r4-recon-dag/src/lib.rs", "role": "On-demand reconstruction-DAG reader with RangeVerified vs WholeObject claims (separate crate)"}
+  ],
+  "status": "READY",
+  "status_reason": "Built and byte-tested: 20 integration controls at delivery (docs/labs/d19-object-store-2026-10-15/README.md), 60 tests after the 17-18 October peer and fleet work, and a pure-Python client conformance PASS (docs/labs/uorobj01-conformance-2026-10-18/README.md). Not wired into any model; no crate depends on it; the M3 durable-memory bars have not been run.",
+  "reopen_conditions": [],
+  "rule_compat": {
+    "D11": "Not model compute and outside the served path. The library source contains no floating point (the only f64 is a test timing); hash primitives are integer. No D11 instruction-level audit of the crate has been run.",
+    "D23": "No softmax, sigmoid or tanh anywhere in src or tests (searched).",
+    "D30": "No matrix multiplication, and no model.",
+    "D32_D37": "No learning, no float, nothing to export: integer and byte only. It adds no substrate to the D32 discrete path."
+  },
+  "experiments": [
+    {"date": "2026-10-14", "record": "docs/labs/spiralcore-attention-assessment-2026-10-14/README.md", "configuration": "Codex review of six outside SpiralCore documents, including their supplied transport test suites and an independent direct-codec audit", "result": "Byte transport and exact geometry check out; the proposed attention head is unproven. Cold versus warm exchange shows the dedup benefit on the supplied content", "verdict": "positive", "numbers": "supplied suites pass: 6 core, 4 v1.1, 10 showcase test groups; 1 MiB cold 62,579 B vs warm 438 B; independent 128 KiB warm repeat 367 B"},
+    {"date": "2026-10-14", "record": "docs/labs/spiralcore-native-attention-review-2026-10-14/README.md", "configuration": "Selective range read and repeated/unique fixtures on the Showcase record tree (Codex constructive review)", "result": "Compressed exact data can be read selectively; a missing unrelated leaf did not block a range but did block full reconstruction", "verdict": "positive", "numbers": "23-byte range of a 32,768-byte object (1,532 stored nodes): 2 leaf occurrences, 8 authenticated nodes, 384 serialized bytes; repeated 7,776-byte object 8 unique records (380 bytes) reconstructing 243 ordered leaves; unique fixture 70,972 record bytes"},
+    {"date": "2026-10-14", "record": "docs/labs/spiralcore-attention-independent-review-2026-10-14/README.md", "configuration": "Claude's independent adversarial review (PR #2482); basis for D34", "result": "Separated the object store from attention: benefit is warm and edit reuse, unique content expands 2.17 times, so it belongs on the D19 durable-memory line as its own crate", "verdict": "inconclusive", "numbers": "unique content 70,972 record bytes for 32,768 raw bytes (2.17x)"},
+    {"date": "2026-10-14", "record": "docs/labs/recon-dag-reader-2026-10-14/README.md", "configuration": "Rust on-demand reader for the reconstruction DAG, eager vs indexed backends", "result": "Both backends return identical bytes on every range; separates 'the nodes I touched verified' from 'the whole object verified'; nothing consumed it yet", "verdict": "positive", "numbers": "203 ranges identical, equal to the source; reader tests 13 passed"},
+    {"date": "2026-10-15", "record": "docs/labs/d19-object-store-2026-10-15/README.md", "configuration": "Implemented crate with fixed limits (16 MiB object, 1,000,000 records, 1,000,000 occurrences), atom/carry-boundary range checks, malformed-import and digest-mismatch controls, source-fixture reproduction", "result": "KEEP as a source/data-structure prototype, not promoted into the model; a follow-up fixed typed I/O errors and size-limit wording", "verdict": "positive", "numbers": "20 object-store integration tests + 13 tokenizer tests pass (22 controls after docs/labs/d19-object-store-review-nits-2026-10-15/README.md); retained record bytes: unique 32,768 raw -> 70,972; repeated 7,776 -> 380; UTF-8/NUL 605 -> 421; empty 0 -> 0"},
+    {"date": "2026-10-17", "record": "docs/labs/object-store-peer-2026-10-17/README.md", "configuration": "Transport-agnostic peer replication session (hardened in docs/labs/object-store-peer-hardening-2026-10-17/README.md with pinned identity, dynamic batching and atomic commit)", "result": "A receiver holding an older version fetched only missing nodes and rebuilt exactly; the hardening let a cold 1 MiB pull finish and rejects a wrong pinned identity before any import", "verdict": "positive", "numbers": "1,048,576-byte object, receiver 16 atoms older: 22 records / 1,014 bytes / 3 rounds; 16 scattered edits add 131 records; wrong identity: BindingMismatch, 0 records imported; later dedupe fix for repeated missing ids (docs/labs/object-store-peer-dedupe-2026-10-17/README.md)"},
+    {"date": "2026-10-17", "record": "docs/labs/object-store-peer-concurrency-2026-10-17/README.md", "configuration": "12 warm receivers pulling from one loaded store concurrently vs sequentially", "result": "Serving never mutates the store, so concurrent replication is faster", "verdict": "positive", "numbers": "0.864 s concurrent vs 3.506 s sequential"},
+    {"date": "2026-10-17", "record": "docs/labs/object-store-batch-2026-10-17/README.md", "configuration": "Opt-in FETCH batch size on a 52,535,088-byte synthetic random artifact over a WAN (Vast pod)", "result": "Cold pull is round-trip bound; a larger window helped across the WAN but hurt locally, so it stays opt-in (a --batch bug that made sync and repair ignore the flag was fixed 2026-10-18)", "verdict": "positive", "numbers": "default batch 236.19 s vs --batch 32768 91.50 s (2.58x); 143,659,164 wire bytes and 2,462,578 nodes either way; local cold pull 37.4 s at 32768 vs 18.8 s at 4096"},
+    {"date": "2026-10-17", "record": "docs/labs/object-store-join-2026-10-17/README.md", "configuration": "objpeer join: fold a locally decompressed artifact only if SHA-256 and length match pins; cold store pull vs compressed download for a 2 MiB artifact", "result": "A cold store pull is a documented loss; the supported recipe is compressed download, local fold, then warm deltas", "verdict": "positive", "numbers": "cold store pull 5,725,408 B vs compressed artifact 39,920 B; package 57 passed / 0 failed"},
+    {"date": "2026-10-17", "record": "docs/labs/object-store-verify-pipeline-2026-10-17/README.md", "configuration": "Fleet tooling: pipelined manifest verification in windows of 64, multi-replica audit, failover sync, repair, retry on dropped connection, hash-pinned pulls, JSON audit targets, wire-protocol spec and 96-byte frozen test vectors", "result": "Each tool is covered by focused tests; the post-change cross-machine timing for verification pipelining was not in the record excerpt (the before figure was 5.819 s for 20 checks, about 291 ms per round trip)", "verdict": "inconclusive", "numbers": "verify peer tests 14/14; 100 checks across two windows all Verified; about 221 B per check on the wire"},
+    {"date": "2026-10-18", "record": "docs/labs/object-store-pipelined-fetch-2026-10-18/README.md", "configuration": "Pull sends several FETCH requests before reading replies, with an emulated 8 ms delay (batch 128)", "result": "About 2.8 times faster under emulated delay; not a real WAN measurement", "verdict": "positive", "numbers": "window 1: 3.706 s vs window 8: 1.324 s"},
+    {"date": "2026-10-18", "record": "docs/labs/uorobj01-conformance-2026-10-18/README.md", "configuration": "Pure-Python client audits and pulls a 256 KiB artifact from the Rust server over loopback; fleet-maintenance script on two loopback replicas (docs/labs/object-store-fleet-maintenance-2026-10-18/README.md)", "result": "The wire protocol works across two runtimes (client side only); the maintenance demo audits, fails over and repairs on loopback only", "verdict": "positive", "numbers": "262,144 bytes pulled byte-identical, stale then verified; initial two-replica audit 4 checks, 0 verified, 4 stale; object-store tests 60 passed, 0 failed"}
+  ],
+  "never_tested": [
+    "Any model consuming the store: exact quotations from the store feeding the emitter or a durable-session export/import through it (DurableMemoryStore::export_scope/import_scope is unchanged and unwired).",
+    "The M3 durable-memory bars on a selected M1/M2 artifact: provenance, contradiction and correction, abstention on unstated or retracted facts, explicit reset, process restart, token-for-token identical restore.",
+    "A real WAN measurement of pipelined fetch (the 2.8x is under an emulated 8 ms delay) and of the post-change verification pipeline.",
+    "Hostile-network security and transport authentication: pins prove integrity, not authentication; no short-hash collision fixture was constructed for the 12-byte node id.",
+    "Occurrence bindings against the actual M1 tokenizer at corpus scale; the adapter refuses lossy or normalised sources rather than guessing offsets.",
+    "Storage cost on real chat or corpus data against a general-purpose compressor: unique content expands 2.17 times in records."
+  ],
+  "failed_only_on_configuration": [
+    "Cold store pull (5,725,408 B vs 39,920 B compressed for a 2 MiB artifact; 143.7 MB on the wire for a 52.5 MB random artifact): a cost of pulling unique content as records; not a flaw of range reads or warm deltas, and the supported cold-join recipe avoids it.",
+    "Large FETCH batches locally (37.4 s vs 18.8 s): an opt-in trade-off, not a failure of the store.",
+    "Early fixed 256 x 128 batch cap that could not finish a cold 1 MiB pull, and the repeated-id request bug: both fixed implementation defects, not evidence about the design."
+  ],
+  "open_questions": [
+    "To become ACTIVE: what is the first model consumer (exact quotation into the emitter, or durable-session persistence), and which M3 bar is the pre-registered test?",
+    "Where does the exact object identity (object version, token occurrence) meet the geometric representation, given that exact token, occurrence and version identity must stay separate from geometric addresses?",
+    "Should the live DeepSeek reader (uor-r4-recon-dag) and the store share one RecordBackend, and which owns the range-read production path?",
+    "Does ternary tree sharing pay off on real conversation logs, or does the 2.17 times expansion on unique text dominate?",
+    "Which of the 12-byte BLAKE2b node id limits and the pinned-manifest trust model are enough for multi-machine memory?"
+  ],
+  "evidence": [
+    "docs/labs/d19-object-store-design-2026-10-14/README.md",
+    "docs/labs/d19-object-store-2026-10-15/README.md",
+    "docs/labs/d19-object-store-review-nits-2026-10-15/README.md",
+    "docs/labs/spiralcore-native-attention-review-2026-10-14/README.md",
+    "docs/labs/spiralcore-attention-independent-review-2026-10-14/README.md",
+    "docs/labs/recon-dag-reader-2026-10-14/README.md",
+    "docs/labs/object-store-peer-2026-10-17/README.md",
+    "docs/labs/object-store-batch-2026-10-17/README.md",
+    "docs/labs/object-store-join-2026-10-17/README.md",
+    "docs/labs/object-store-pipelined-fetch-2026-10-18/README.md",
+    "docs/labs/uorobj01-conformance-2026-10-18/README.md",
+    "crates/uor-r4-object-store/PROTOCOL.md",
+    "docs/integration/DECISIONS.md (D19, D34)"
+  ],
+  "related": [
+    "exact-memory: stores facts under exact addresses inside the model path; this store holds the source bytes beneath it and has no facts or addresses",
+    "relation-read: D34 chose the reranker for attention and the object store for exact compressed reads, as separate work",
+    "spiralcore-fbs: shares SpiralCore's ternary tree idea and the Showcase format, but no learning",
+    "flock-read: the Flock read admits a small exact index; the store's exact range reads were reviewed alongside it",
+    "tokenizer: the pinned byte-BPE tokenizer binds token occurrences to byte spans",
+    "lut-serving: M3 restore is specified on the served path (UR4SESS1); the design note says session export bytes could be stored here, not yet done"
+  ],
+  "figure_ideas": [
+    "A document drawn as a row of 32-byte tiles folding into a three-child tree with a root hash on top; click a byte range and only the branches that cover it light up (8 nodes, 384 bytes for a 23-byte read of a 32 KiB object), with the verified path highlighted.",
+    "Two versions of the same file side by side with shared subtrees greyed out: only the 22 changed records (1,014 bytes) travel to the receiver, in 3 rounds.",
+    "A bar chart of the storage accounts for the four fixtures (unique 32,768 -> 70,972; repeated 7,776 -> 380; UTF-8 605 -> 421; empty 0 -> 0) to show that dedup helps repeats and expands unique content."
+  ]
+}

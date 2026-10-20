@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" role="img" aria-labelledby="t d">
+<title id="t">Desktop client architecture (specification)</title>
+<desc id="d">A laptop outline split into two halves. Left half, the webview: the shared Studio interface (editor, chat, model manager), the same page as the web client. Right half, the Rust core (Tauri backend), specified but not built: four boxes. The model engine (uor-r4-integer, as in uor-chat) and the memory store (uor-r4-object-store, D19) are drawn solid and tagged "exists as library". Scoped file access (granted folders only) and the model manager (verify SHA-256, load UORLUT01, check for updates) are drawn dashed because they are not built. Dashed arrows between the halves are labelled Tauri commands, such as native_read_file and native_git_status. A disk inside the laptop holds the model file and the memory store with UR4SESS1 snapshots. One dashed arrow leaves the laptop: an optional, user-visible check for a new model release. Nothing else crosses the border.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.layer { font-size: 13.5px; font-weight: 600; }
+.name { font-size: 13.5px; font-weight: 600; }
+.detail { font-size: 12px; fill: var(--muted); }
+.note { font-size: 11.5px; fill: var(--muted); }
+.small { font-size: 11px; fill: var(--muted); }
+.mono { font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--muted); }
+.monob { font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--ink); }
+.pane-text { font-size: 12.5px; fill: var(--body); }
+.tagtext { font-size: 11px; font-weight: 600; fill: var(--blue); }
+.screen { fill: var(--bg); stroke: var(--muted); stroke-width: 2; }
+.base { fill: var(--panel); stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; }
+.half { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
+.half-spec { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.pane { fill: var(--bg); stroke: var(--rule); stroke-width: 1.25; }
+.code { stroke: var(--sky); stroke-width: 3; stroke-linecap: round; }
+.code2 { stroke: var(--muted); stroke-opacity: 0.5; stroke-width: 3; stroke-linecap: round; }
+.bubble-user { fill: var(--blue); fill-opacity: 0.18; }
+.bubble-model { fill: var(--green); fill-opacity: 0.18; }
+.box-built { fill: var(--blue); fill-opacity: 0.08; stroke: var(--blue); stroke-width: 2; }
+.box-spec { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.tag { fill: var(--bg); stroke: var(--blue); stroke-width: 1.25; }
+.disk { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
+.disk-top { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.flow-plan { stroke: var(--muted); stroke-width: 1.75; fill: none; stroke-dasharray: 5 4; }
+.head-fill { fill: var(--muted); }
+</style>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" class="head-fill"/>
+  </marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="540"/>
+
+<text class="title" x="24" y="36">The desktop client (specification)</text>
+<text class="sub" x="24" y="58">Solid: exists today. Dashed: specified, not built. Only an optional update check leaves the laptop.</text>
+
+<!-- Laptop -->
+<rect class="screen" x="24" y="80" width="820" height="420" rx="12"/>
+<path class="base" d="M8,500 L860,500 L846,518 L22,518 Z"/>
+
+<!-- Left half: webview -->
+<rect class="half" x="44" y="100" width="326" height="300" rx="8"/>
+<text class="layer" x="60" y="124">Webview</text>
+<text class="note" x="60" y="142">Studio page, shared with the web client</text>
+<rect class="pane" x="60" y="156" width="150" height="130" rx="6"/>
+<text class="pane-text" x="72" y="176">editor</text>
+<line class="code" x1="72" y1="196" x2="130" y2="196"/>
+<line class="code2" x1="84" y1="210" x2="188" y2="210"/>
+<line class="code2" x1="84" y1="224" x2="164" y2="224"/>
+<line class="code" x1="72" y1="238" x2="120" y2="238"/>
+<line class="code2" x1="84" y1="252" x2="176" y2="252"/>
+<line class="code" x1="72" y1="266" x2="110" y2="266"/>
+<rect class="pane" x="218" y="156" width="136" height="130" rx="6"/>
+<text class="pane-text" x="230" y="176">chat</text>
+<rect class="bubble-user" x="276" y="188" width="66" height="20" rx="7"/>
+<rect class="bubble-model" x="230" y="216" width="90" height="34" rx="7"/>
+<rect class="bubble-user" x="282" y="258" width="60" height="20" rx="7"/>
+<rect class="pane" x="60" y="294" width="294" height="36" rx="6"/>
+<text class="pane-text" x="207" y="317" text-anchor="middle">model manager</text>
+<text class="note" x="60" y="358">Detects Tauri and calls native commands;</text>
+<text class="note" x="60" y="374">falls back to browser APIs without them.</text>
+
+<!-- Tauri commands between halves -->
+<text class="name" x="425" y="196" text-anchor="middle">Tauri</text>
+<text class="name" x="425" y="212" text-anchor="middle">commands</text>
+<line class="flow-plan" x1="374" y1="226" x2="474" y2="226" marker-end="url(#arr)"/>
+<line class="flow-plan" x1="476" y1="250" x2="376" y2="250" marker-end="url(#arr)"/>
+<text class="mono" x="425" y="274" text-anchor="middle">native_read_file</text>
+<text class="mono" x="425" y="288" text-anchor="middle">native_git_status</text>
+<text class="mono" x="425" y="302" text-anchor="middle">…</text>
+
+<!-- Right half: Rust core -->
+<rect class="half-spec" x="480" y="100" width="344" height="300" rx="8"/>
+<text class="layer" x="496" y="124">Rust core (Tauri backend)</text>
+<text class="note" x="496" y="142">specified, not built: no src-tauri/ folder yet</text>
+
+<rect class="box-built" x="496" y="152" width="312" height="52" rx="6"/>
+<text class="name" x="510" y="173">Model engine</text>
+<rect class="tag" x="696" y="160" width="104" height="18" rx="9"/><text class="tagtext" x="748" y="173" text-anchor="middle">exists as library</text>
+<text class="detail" x="510" y="193">uor-r4-integer (as in uor-chat)</text>
+
+<rect class="box-built" x="496" y="212" width="312" height="52" rx="6"/>
+<text class="name" x="510" y="233">Memory store</text>
+<rect class="tag" x="696" y="220" width="104" height="18" rx="9"/><text class="tagtext" x="748" y="233" text-anchor="middle">exists as library</text>
+<text class="detail" x="510" y="253">uor-r4-object-store (D19)</text>
+
+<rect class="box-spec" x="496" y="272" width="312" height="52" rx="6"/>
+<text class="name" x="510" y="293">Scoped file access</text>
+<text class="detail" x="510" y="313">granted folders only</text>
+
+<rect class="box-spec" x="496" y="332" width="312" height="52" rx="6"/>
+<text class="name" x="510" y="353">Model manager</text>
+<text class="detail" x="510" y="373">verify SHA-256, load UORLUT01, updates</text>
+
+<!-- Disk -->
+<path class="disk" d="M234,428 L234,474 A200,10 0 0 0 634,474 L634,428 Z"/>
+<ellipse class="disk-top" cx="434" cy="428" rx="200" ry="10"/>
+<text class="name" x="252" y="456">Disk</text>
+<text class="pane-text" x="300" y="454">model file (<tspan class="monob">UORLUT01</tspan>)</text>
+<text class="pane-text" x="300" y="472">memory store + <tspan class="monob">UR4SESS1</tspan> snapshots</text>
+
+<!-- Optional update check: the only arrow that leaves -->
+<line class="flow-plan" x1="810" y1="358" x2="940" y2="358" marker-end="url(#arr)"/>
+<text class="small" x="852" y="292">Optional,</text>
+<text class="small" x="852" y="306">user-visible:</text>
+<text class="small" x="852" y="320">check for a new</text>
+<text class="small" x="852" y="334">model release</text>
+</svg>

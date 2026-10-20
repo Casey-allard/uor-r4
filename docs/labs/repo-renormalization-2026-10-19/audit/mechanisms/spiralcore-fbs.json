@@ -1,0 +1,198 @@
+{
+  "id": "spiralcore-fbs",
+  "canonical_name": "SpiralCore transport with ternary FBS binders (float projection form)",
+  "aliases": [
+    "projection=spiralcore_fbs",
+    "SpiralCore BFS plus Atomic Ternary FBS",
+    "quaternion_weights=spiralcore_fbs",
+    "OP2 native projection (#2279)",
+    "SpiralCore tree",
+    "HoloBox/FBS base-3 tree (retention tree)"
+  ],
+  "plain_what": "Instead of mixing every input into every output with learned weights, each output block picks one input block from a small tree of stored blocks, three branches per node, and moves it along a path of exact signed-axis steps in 8-dimensional E8 space. No learned coefficient is multiplied in; the path itself does the transforming.",
+  "replaces": "arithmetic/matmul",
+  "how_it_works": "Input channels are 8D integer atoms kept by a static Rust compiler in ordered ternary (base-3) binders: children, parent links, atom identity, support length and the incomplete frontier (at most 6,560 atoms, 16 frontier roots, 8 stages). SpiralCore supplies the geometry: octonion left actions give 15 Clifford bivector generators B, each a signed coordinate permutation with B^2 = -I, acting on the 16 roots of one E8 anchor orbit through 64 signed operator states. BFS over these labelled edges gives ordered action histories, composed by left-composition; the exact inverse is the reversed sequence with each B cubed. The model stores F32 query points [output_blocks, stages, 8]. At each stage a query picks a root of the fixed orbit by distance, and the BFS history between roots composes the signed action that transports the selected atom's 8 coordinates. Each output block selects ONE input atom and transports it; no coefficient exists for any input/output pair, and exact atom identity stays separate from geometric state. Forward is gather and sign; the input adjoint is the exact inverse action scattered to the selected atom. Query credit is a declared root-edge secant surrogate: force each lawful sibling, reroute its descendants, pair output credit with the carrier displacement, resolve along the edge. It is not the derivative of hard selection. CUDA only; CPU fallback refused.",
+  "geometry": "E8 root system (one 16-root anchor orbit of the 240 roots); Clifford Cl(0,6) bivectors from octonion left actions (15 edges, 64 signed states); signed-axis permutations; SpiralCore BFS routes and exact inverses; ordered ternary (base-3) FBS binder tree and frontier.",
+  "code": [
+    {
+      "path": "crates/uor-r4-training/src/spiralcore_fbs.rs",
+      "role": "Static compiler (binders, BFS histories, actions, inverses, artifact hashes) and the custom op; schema spiralcore-fbs-projection/1"
+    },
+    {
+      "path": "crates/uor-r4-training/src/spiralcore_fbs.cu",
+      "role": "CUDA forward, input adjoint and secant kernels (spiralcore_fbs_fwd/bwd), 183 lines"
+    },
+    {
+      "path": "crates/uor-r4-core/src/spiralcore_operator.rs",
+      "role": "Exact SignedMatrix8, Cl06 bivectors and finite composition table; generic 8x8 multiplication replaced by signed-axis composition (native-vector-transport)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/native_vector_writer.rs",
+      "role": "Shared native vector writer fed by the projection (OP3a head)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "ACTIVE integer descendant: transported query vs fixed branch/frontier roots, ternary FBS children and frontier, shared integer writer"
+    },
+    {
+      "path": "crates/uor-r4-discrete/build.rs",
+      "role": "Imports spiralcore_operator to emit the exact 64-state geometry tables"
+    },
+    {
+      "path": "docs/history/branch-archive/INDEX.md",
+      "role": "Indexed restoration patch of the dense CPU/CUDA quaternion source this projection replaced"
+    }
+  ],
+  "status": "READY",
+  "status_reason": "The float projection is built and device-qualified at the finite-kernel level (four CUDA, three static-plan and two artifact tests on an RTX 5090, zero absolute error on exact fixtures) and ran inside 18 rung-0 controls; it has never been trained. Secant fitness and language utility are unmeasured. Its integer descendant is ACTIVE in discrete-learning.",
+  "reopen_conditions": [
+    "To activate the float form: a new D37 sheet in a separately scanned float module, with fresh TEST FITNESS: FIT, the owner release that applies, an export gap, and the shared writer and geometric head as dependencies.",
+    "Show the secant surrogate gives descent (a falling loss or a comparison with a random-refit control) and that routing is stable; neither has been measured.",
+    "Justify the total number of 8D blocks prospectively; record that each output block reads one input atom, so a capacity comparison against a mixing projection is needed.",
+    "Fresh transfer and D22 noise requirements for any KEEP; tokens/s on the same CUDA harness against the retired dense arm."
+  ],
+  "rule_compat": {
+    "D11": "The float F32/BF16 form is not servable. Signed-axis permutations, sign flips and table reads need no multiplier, and the integer descendant in crates/uor-r4-discrete is integer-only on the GPU.",
+    "D23": "No probability weights, normalised exponentials or learned input/output coefficient grids; selection is hard by distance. no_softmax ratchet 1649/1649 on the delivering PR.",
+    "D30": "Retires the dense Hamilton contraction; no matmul in the new path (no_matmul ratchet 93/93, down from 95). Static table construction reads no model tensors and is not model compute.",
+    "D32_D37": "The F32 form was frozen by D32 section 4 and may return only by re-registration under D37; the integer SpiralCore/FBS transport is exactly the substrate D32 names as the backbone, and is the ACTIVE model path."
+  },
+  "experiments": [
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/spiralcore-live-review-2026-10-09/README.md",
+      "configuration": "Source review of hosted SpiralCore v69 (240 E8 roots, 15 bivectors, BFS routes, exact inverses)",
+      "result": "KEEP the exact finite-action machinery as a consolidation input; NOT YET PROMOTED as a model integration or a fix for the M2 failure",
+      "verdict": "inconclusive",
+      "numbers": "Hosted file 1,025,707 bytes, SHA256 d976e34d; no runtime executed"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-tree-2026-10-12/README.md",
+      "configuration": "Persistent base-3 tree per 600-cell vertex (HoloBox/FBS carry) retaining keys by learned salience, float stack with a softmax teacher (pre-D23), 3 seeds, context 1536",
+      "result": "Tree's own target met (hit rate >= 0.85 on 2 of 3 seeds) so kept as a component; recall bar missed, readout now limits (row 3)",
+      "verdict": "positive",
+      "numbers": "Hit rate 0.99/0.68/0.90; recall 0.031/0.615/0.340 (mean 0.329) vs bar 0.54, softmax 0.999, ring-only 0.241; 5.6-36.1 candidates/query vs 1,536; recall at distance 1000 no longer decays (seed 2: 0.58)"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/native-vector-transport-2026-10-12/README.md",
+      "configuration": "SignedMatrix8 composition and E8 table construction rewritten as direct signed-axis permutation, no generic 8x8 multiply",
+      "result": "Static algebra checks pass; not a shared writer, learning law or GPU kernel",
+      "verdict": "positive",
+      "numbers": "Same canonical wire representation; no throughput claim"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/spiralcore-fbs-projection-2026-10-12/README.md",
+      "configuration": "Finite-kernel qualification of projection=spiralcore_fbs on Vast pod vast-55667424 (RTX 5090, CUDA 12.8.93), no model, no dense comparator, no training",
+      "result": "Four native_cuda_tests, three static_plan_tests, two native_projection_ tests and the retired-dense refusal test all pass; all 27 terminal children of a three-level binder, selected-input adjoint, two-atom GPU secant, shared-credit and F32/BF16 controls",
+      "verdict": "positive",
+      "numbers": "Exact fixtures zero absolute error; secant controls <= 1e-5; 4-test wall 2.50 s; build 2m58s cold, peak RSS 4.5 GB; cost about $0.171; training updates 0"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/geometric-head-shared-writer-2026-10-13/README.md",
+      "configuration": "OP3a: head=spiralcore_product, requires the projection, one learned embedding table as the shared vector channel; cell = token identity mod 256",
+      "result": "Implemented and qualified at finite CUDA boundaries; delivery pending at the time; no training",
+      "verdict": "positive",
+      "numbers": "Width 8..1024 in whole 8D blocks; at most 16 cells x 32 slots = 512 comparisons (128 by default at V=4096)"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/s1-s2-float-preservation-2026-10-13/README.md",
+      "configuration": "F32 murmuration (S1/S2) qualification on a Vast RTX 5090 with an F64 secant instrument, 33 controls across five source revisions",
+      "result": "Stopped and preserved when the owner banned float model computation (D32); a secant failure was an instrument defect repaired with device F64; scope change, not a mechanism negative",
+      "verdict": "diagnostic-stop",
+      "numbers": "Best replay 31 of 33 passed; analytic 0.041992284 vs naive F32 secant 0.04184246 vs repaired F64 0.04200984584"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/rung0-complete-path-2026-10-13/README.md",
+      "configuration": "Native rung-0 complete path repair, actual batch 16 x context 384 shape, projection=spiralcore_fbs with product head and margin writer",
+      "result": "18 finite CUDA controls pass; no optimizer update, no quality number",
+      "verdict": "positive",
+      "numbers": "18/18 on 05c84bece; peak GPU 9,274 MiB"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/discrete-geometric-learning-2026-10-13/README.md",
+      "configuration": "Integer-only SpiralCore/FBS context, tree routing and rotation into a shared vector writer with proposal-only learning (Route read)",
+      "result": "All eleven construction controls pass after FIT; virtual proposal witness 640 to 544; apply never ran",
+      "verdict": "positive",
+      "numbers": "11/11 at a2a5b89c; first attempt: 1 PASS, 1 CUDA launch-resource hard stop, 9 NOT_RUN"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/discrete-geometric-learning-2026-10-13/README.md (D2 cost block, PR #2400)",
+      "configuration": "Native Rust driver and integer GPU evaluator at e7d926fbe, V4096 / B4 / context 192 / 64 rows",
+      "result": "25 CUDA controls and D2 operation-cost measurement pass; serial per-candidate counterfactual replay is the cost bottleneck",
+      "verdict": "positive",
+      "numbers": "Forward 37.84 ms (Route) / 40.58 ms (Flock); VectorBlock proposal 3.903 s / 4.206 s; 64,030.54 s (about 17.8 h) projected per fixed-batch coordinate sweep, an UNVERIFIED estimate"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/a2-pilot-2026-10-14/README.md",
+      "configuration": "First 1,640-batch GPU training pilot of the discrete SpiralCore/FBS model, seed 1, one RTX 5090, 236 accepted VectorBlock updates",
+      "result": "Rank counts improved a lot while the aggregate loss rose slightly; mixed diagnostic; later diagnosed as an initializer giving only 16 distinct vectors",
+      "verdict": "inconclusive",
+      "numbers": "Top-8 correct 173 to 1,169; top-1 17 to 82; strict distance wins 105 to 149; loss numerator 13,816,032 to 13,884,032; distinct vectors 16 to 155 of 4,096 identities"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/spiralcore-attention-independent-review-2026-10-14/README.md",
+      "configuration": "Independent review of the SpiralCore reconstruction-native attention proposal (PR #2480)",
+      "result": "No migration to decide; four separable items; geometric transport (root-label packing, <=16K Flock index) has insufficient evidence for any change",
+      "verdict": "inconclusive",
+      "numbers": "Context capped at 243; copy-successor target 3,847 of 14,287 DEV targets"
+    }
+  ],
+  "never_tested": [
+    "Training the float projection: zero optimizer updates have run on it, and no language measure exists.",
+    "Whether the root-edge secant surrogate yields descent; the pair credit is declared, not proved.",
+    "Whether one selected atom per output block carries enough information compared with an all-input mixing projection (no capacity or cost comparison was run).",
+    "Input-conditioned behaviour: selection by shared learned queries does not by itself make the read depend on the input.",
+    "Coverage of all 240 E8 roots (only one 16-root anchor orbit) and an independent H4 partner; the complete marked external FBS object.",
+    "Tokens/s or energy against the retired dense arm, and any D11 export of the float form."
+  ],
+  "failed_only_on_configuration": [
+    "Starling tree recall 0.329 vs bar 0.54: the tree kept the source (hit rate 0.99 on seed 1) while the rank-table readout failed to turn it into an answer (recall 0.03); a readout failure, not a transport failure.",
+    "First discrete A2 pilot: loss rose while ranks improved, traced to an initializer with 16 distinct vectors and a writer that reached fewer target cells.",
+    "F32 secant control 11 failure: two F32 sums differing by about 8e-5 against a rounding floor near 1e-6, an instrument defect.",
+    "Setup blockers preserved as non-results: missing /usr/bin/time, fixture credit inferred as F64 instead of F32, an orphaned test comment, the first discrete attempt's CUDA launch-resource stop.",
+    "The dense Hamilton contraction it replaced was retired by rule (D25), not by a measured negative."
+  ],
+  "open_questions": [
+    "Does selecting one atom per output block lose too much compared with the all-pair sum, and can a small routed set per block recover it?",
+    "Is the secant surrogate a sound credit signal, and can it be compared with the discrete counterfactual-and-choose rule on the same carrier?",
+    "How many 8D blocks are enough? The bound of 6,560 atoms is operational, not a quality bar, and no MiniLM 384D dependency is adopted.",
+    "Would a float SpiralCore trunk under D37 add anything beyond the integer discrete path that already runs, or only duplicate it at higher cost?"
+  ],
+  "evidence": [
+    "docs/mechanisms/spiralcore-fbs-projection.md",
+    "docs/labs/spiralcore-fbs-projection-2026-10-12/README.md",
+    "docs/labs/native-vector-transport-2026-10-12/README.md",
+    "docs/labs/starling-tree-2026-10-12/README.md",
+    "docs/labs/rung0-complete-path-2026-10-13/README.md",
+    "docs/labs/discrete-geometric-learning-2026-10-13/README.md",
+    "docs/labs/s1-s2-float-preservation-2026-10-13/README.md",
+    "docs/labs/a2-pilot-2026-10-14/README.md",
+    "docs/integration/DECISIONS.md (D25 later clarification; D32; D37)",
+    "docs/labs/course-correction-2026-10-18/audits/mechanism-census.md (row 48)"
+  ],
+  "related": [
+    "discrete-learning: the integer SpiralCore/FBS form of the same transport is the ACTIVE model path",
+    "flock-read: Flock reads transport payloads through the same BFS actions; the starling tree is the retention layer",
+    "spin-weights: this projection replaced the dense quaternion contraction",
+    "hamilton-gate: the geometric feed-forward partner of this projection",
+    "recurrence-gates: shares the root-edge secant credit pattern",
+    "route-read: Route selects ports by the transported query compared with fixed branch roots",
+    "e8-orbit-memory: the same E8 root orbit used as exact addresses",
+    "ternary-xor: the ternary binder tree and trit gates"
+  ],
+  "figure_ideas": [
+    "A base-3 tree of atoms, with one root-to-leaf path highlighted; beside it the 16 roots of the E8 anchor orbit as nodes of the 15-edge BFS graph. Move the query point: the nearest root changes, and the chosen atom's 8 coordinates travel along the BFS edges, each edge permuting axes and flipping signs; then run the same path backward to show the exact inverse.",
+    "A route diagram of two SpiralCore edges applied to a concrete 8-vector (for example the root (1,1,0,0,0,0,0,0)), showing coordinate permutation and sign flips step by step, then composing two steps into one signed action and checking it equals the product.",
+    "Dense vs selected projection side by side: a grid where every input block connects to every output block (all cells lit) against a grid with exactly one line per output block, labelled with the one atom each output block chose."
+  ]
+}

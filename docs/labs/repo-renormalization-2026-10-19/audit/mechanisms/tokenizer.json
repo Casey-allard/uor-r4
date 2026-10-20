@@ -1,0 +1,146 @@
+{
+  "id": "tokenizer",
+  "canonical_name": "Byte-level BPE tokenizer and corpus preparation",
+  "aliases": [
+    "BPE",
+    "uor-r4-tokenizer",
+    "hf_bpe (old name inside uor-r4-core)",
+    "pinned tokenizer d36d3e87",
+    "train-bpe",
+    "UORT prepared-corpus format",
+    "DialogueProtocol (shared dialogue encoding)",
+    "data preparation"
+  ],
+  "plain_what": "Cuts text into small pieces (tokens) that the model counts, and turns tokens back into text. It starts from raw bytes so any text works, then learns frequent byte pairs as bigger pieces. The project's pinned tokenizer has 4,096 pieces; a 16,384-piece one is being prepared. The model never sees letters, only these piece numbers.",
+  "replaces": "tokenizer",
+  "how_it_works": "Byte-level byte-pair encoding. IDs 0, 1, 2 are BOS, EOS, UNK, then 256 single-byte symbols, then learned merges (the pinned tokenizer is 3 + 256 + 3,837 merges = 4,096). Training counts adjacent token pairs over the unique pre-tokens of the corpus, weighted by how often each pre-token occurs, then repeatedly merges the most frequent pair. Ties break by ascending left then right token string, so the result is deterministic. Only the words containing the merged pair are recounted (a pair-to-word index plus a lazy heap). Special tokens are atomic and no merge crosses a special token, a pre-token boundary or an input file. The default pre-tokenizer is ByteLevel; an optional Digits-then-ByteLevel sequence is accepted. The output is a Hugging Face-shaped tokenizer.json whose raw-byte blake3 hash is the tokenizer identity, bound into every corpus and artifact. Encoding applies merges by rank. Prepared corpora (UORT v1) are a 64-byte header followed by u16 token ids, with BOS markers and an optional binary response mask; the discrete driver verifies file hash, token count and tokenizer identity before reading a target. A DialogueProtocol object fixes how roles and turns are serialized so training, panels and chat use identical token segments. Everything runs as integer bookkeeping on the host; none of it is model compute.",
+  "geometry": "None in the tokenizer itself. Downstream, each token id is placed by the prime-zeta codebook (prime rank plus zeta phase) and keeps its own exact occurrence identity; a prime or hash of a token is an identity, not a semantic distance. A numeral codec accumulates consecutive digit tokens left to right into one ordered value (tokens 8,4 give 84; 4,8 give 48).",
+  "code": [
+    {"path": "crates/uor-r4-tokenizer/src/lib.rs", "role": "Runtime byte-level BPE engine, tokenizer.json parser, stable raw-byte tokenizer identity (951 lines)"},
+    {"path": "crates/uor-r4-tokenizer/src/training.rs", "role": "Deterministic merge-training core: weighted pair counts, pair-to-word index, lazy heap (389 lines)"},
+    {"path": "crates/uor-r4-tokenizer/src/bin/train-bpe.rs", "role": "Host-only CLI that trains a tokenizer for a requested vocabulary (259 to 65,536); create-new output, refuses overwrite and FIFOs"},
+    {"path": "crates/uor-r4-core/src/transformerless/native_mod.rs", "role": "Selected-build facade that keeps only executor-independent tokenizer APIs (bpe_derive, hf_bpe, sentencepiece); the rest of the old transformerless closure is inactive evidence"},
+    {"path": "crates/uor-r4-tokenizer/src/dialogue.rs", "role": "Serializable DialogueProtocol: one literal-role dialogue encoding shared by corpus builder, panels and chat (882 lines)"},
+    {"path": "crates/uor-r4-tokenizer/tests/training.rs", "role": "Determinism, tie-break, special-token, vocabulary-exhaustion and recount checks against an independent exhaustive count over 40 corpora"},
+    {"path": "crates/uor-r4-discrete/src/corpus.rs", "role": "PreparedCorpus loader for UORT v1: verifies header, hash, tokenizer identity, BOS, response mask and eligible-target counts"},
+    {"path": "crates/uor-r4-core/src/native_geometric/numeral.rs", "role": "Numeral codec that turns digit-token runs into one ordered value with an inclusive token interval (historical native engine; excluded from the current selected build, which maps native_geometric to native_support.rs)"},
+    {"path": "crates/uor-r4-training/src/bin/prepare-knowledge-corpus.rs", "role": "Rust corpus preparation (thread-count independent output order)"},
+    {"path": "crates/uor-r4-training/src/bin/prepare-chat-parquet.rs", "role": "Rust chat-corpus preparation from parquet (behind the parquet-input feature)"},
+    {"path": "crates/uor-r4-training/src/bin/mix-chat-corpus.rs", "role": "Concatenates and mixes prepared chat corpora with response masks"}
+  ],
+  "status": "ACTIVE",
+  "status_reason": "ACTIVE: every current corpus, driver, panel and artifact is bound to tokenizer d36d3e87 (vocab 4,096), pinned in the M1 sheets (docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md). A Rust trainer for a 16,384-token vocabulary landed 2026-10-19 as tooling only (docs/labs/rust-bpe-trainer-2026-10-19/README.md); no tokenizer has been swapped or evaluated.",
+  "reopen_conditions": [],
+  "rule_compat": {
+    "D11": "Compatible in design. Encoding is a rank-ordered merge lookup with no learned arithmetic, and uor-r4-integer takes the tokenizer as an optional dependency for text sessions. The files read do not record that the tokenizer encode path was itself put through the D11 instruction audit; tokenization is host-side, outside the served numerical kernels.",
+    "D23": "Not applicable. Counting and merging pairs involves no softmax, sigmoid or tanh.",
+    "D30": "Compatible. Rust only (D27); the trainer is integer counting with checked arithmetic. The distill-d1 sheet puts the large tokenization job on the pod, not the laptop.",
+    "D32_D37": "Not model computation, so the float/integer split does not apply. Identity-bound: a different tokenizer is a different corpus (distill-d1 sheet, tokenizer row)."
+  },
+  "experiments": [
+    {
+      "date": "2026-07-26",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0201-epic-token-index-mismatch-resolution-diagnostic-pivot.md",
+      "configuration": "TinyStories baseline partition test of the first R4G1 pipeline against a SmolLM2 teacher",
+      "result": "Bad scores were traced to Hugging Face observation extraction and token indexing, not to the zero-multiply runtime; the runtime kernel reproduced the reference when indexing was correct.",
+      "verdict": "positive",
+      "numbers": "R4G1 compiled 37.15 bits/token vs teacher floor 14.84; kernel reproduces top-1 28.9%, argmax agreement 31.7%, 6.54 bits/token (#201)"
+    },
+    {
+      "date": "2026-09-03",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1094-implement-and-compare-the-fixed-text-to-clause-adapter-again.md",
+      "configuration": "Fixed text-to-clause segmentation adapter against externally supplied clauses, controlled-language family, no fitting",
+      "result": "Adapter preserved every reader input and decision; bounded to the controlled grammar and not general parsing.",
+      "verdict": "positive",
+      "numbers": "1,600/1,600 valid rows exact, 22,400/22,400 roles consumed per arm and phase, 80 refusals and 16 boundary controls matched (docs/r4_retained_comparison_1094.md)"
+    },
+    {
+      "date": "2026-09-26",
+      "record": "docs/integration/dialogue-protocol-contract-2026-09-26.md",
+      "configuration": "Source review of two dialogue serializations (literal User:/Assistant: markers versus dedicated role tokens) across active branches",
+      "result": "Serializations were incompatible and even identical visible text can encode differently because BPE may merge a marker's trailing space with the first content token; one DialogueProtocol contract was written. No model run.",
+      "verdict": "inconclusive",
+      "numbers": "No measurement; adopted so far only in the integer text-session path"
+    },
+    {
+      "date": "2026-10-08",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1894-data-vs-architecture-settled-in-domain-data-is-worth-0-159-b.md",
+      "configuration": "7.16M stack retrained on chat-v0-p2 only versus the sealed mixed-corpus model at identical size, recipe and held-out stream",
+      "result": "In-domain data was worth about twice what going from 7M to 20M parameters was worth; data preparation, not model size, was the larger lever at this scale.",
+      "verdict": "positive",
+      "numbers": "1.1199 -> 0.9607 BPB from data (-0.1592); 0.9607 -> 0.8770 from size (-0.0837); single seed, 512 windows (#1894)"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1958-breakthrough-demands-paired-with-matching-short-answers-prod.md",
+      "configuration": "Demand-bearing short-form store of 2,860 documents (a demand paired with exactly the requested short answer), validated against 16 clauses, mixed into the chat corpus",
+      "result": "Answer-form compliance appeared across all form classes on panel v2 once demands were paired with matching short answers; every earlier arm produced prose. Compliance is a data-pairing effect, not a tokenizer effect.",
+      "verdict": "positive",
+      "numbers": "2,860 documents, 16,410 response tokens; chat corpus had 4 eligible one-word episodes (#1958); panel v2, authored, development scope"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/v5-numeric-diagnosis-2026-10-09/README.md",
+      "configuration": "Recomputation from sealed v5 acceptance replies and the frozen 4,096-token tokenizer; no model run",
+      "result": "The vocabulary has no multi-digit token; numeric memory rows fail far more often than word rows; most failing numeric rows emit no digit at all. Token count and digit confusion were tested and refuted as causes.",
+      "verdict": "positive",
+      "numbers": "numeric rows failed 12/13 (92.3%) vs word rows 18/27 (66.7%); 10 pure single-digit tokens, 0 multi-digit tokens; 3 of 13 digit slots are superscripts"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/numeric-addressability-probe-2026-10-09/README.md",
+      "configuration": "Untrained probe of the numeral codec: does a two-digit value have an ordered home when stored as two tokens?",
+      "result": "Refuted. The codec keeps order and token interval, so 84 and 48 are distinct values; the numeric failure sits in the learned read/emit path, not in storage. A number-aware tokenizer was therefore not shown to be needed.",
+      "verdict": "negative",
+      "numbers": "5/5 numeral tests pass; order preserved, 74 distinct from 84; 10 of 12 failing numeric rows emit no digit (stands unchanged)"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/rust-bpe-trainer-2026-10-19/README.md",
+      "configuration": "Deterministic Rust trainer for a 16,384-token vocabulary, host-only, checked against an independent exhaustive recount",
+      "result": "Tooling validated on a synthetic fixture; does not change the active tokenizer and produces no model result.",
+      "verdict": "positive",
+      "numbers": "8,192-document fixture attains exactly 16,384 tokens and round-trips unseen text; 40 deterministic corpora recount-matched; FIFO and trim_offsets regressions fixed"
+    }
+  ],
+  "never_tested": [
+    "Whether a larger vocabulary (16,384) helps or hurts the discrete model: no model has been trained on a tokenizer other than d36d3e87.",
+    "A number-aware tokenizer (multi-digit pieces or a numeric slot): planned as Option A/B in docs/labs/numeric-addressability-plan-2026-10-09/README.md but never built or run.",
+    "Whether tokenizer choice interacts with prime-zeta placement or cell coverage: prime-zeta qualification used V=4096 only.",
+    "Tokenization fairness across scripts and languages; the training corpora are English chat and code.",
+    "Reclaiming the three superscript digit slots (idle vocabulary) for multi-digit tokens."
+  ],
+  "failed_only_on_configuration": [
+    "The v5 numeric memory misses (docs/labs/v5-numeric-diagnosis-2026-10-09/README.md) were measured on a pointer-copy float stack with no memory operator, so they say something about that learned read/emit path and the 4,096 vocabulary, not about byte-level BPE as a mechanism.",
+    "The incompatible dialogue serializations (docs/integration/dialogue-protocol-contract-2026-09-26.md) were a branch-coordination defect fixed by a shared protocol, not a tokenizer failure."
+  ],
+  "open_questions": [
+    "Does the 16,384-piece tokenizer improve the prime-zeta and address-cell qualification numbers, or just spread cells thinner?",
+    "Do digit-split numerals remain a barrier once the discrete read can address an exact value?",
+    "How much of the pinned vocabulary is idle (superscripts, rare merges) on the active corpora?",
+    "Should the tokenizer be trained on the distill-d1 donor corpus, and would that make it a different corpus identity?"
+  ],
+  "evidence": [
+    "crates/uor-r4-tokenizer/src/training.rs",
+    "docs/labs/rust-bpe-trainer-2026-10-19/README.md",
+    "docs/labs/v5-numeric-diagnosis-2026-10-09/README.md",
+    "docs/labs/numeric-addressability-probe-2026-10-09/README.md",
+    "docs/labs/numeric-addressability-plan-2026-10-09/README.md",
+    "docs/integration/dialogue-protocol-contract-2026-09-26.md",
+    "docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md",
+    "docs/labs/discrete-driver-cost-2026-10-13/README.md",
+    "docs/history/github-archive-2026-10-15/markdown/1894-data-vs-architecture-settled-in-domain-data-is-worth-0-159-b.md"
+  ],
+  "related": [
+    "prime-zeta-codebook: maps each token id to a prime-rank and zeta-phase position; tokenizer fixes V and the id space",
+    "address-cells: the 256x16 cell placement is sized by the vocabulary",
+    "discrete-learning: the driver reads UORT corpora and verifies tokenizer identity",
+    "native-geometric: the numeral codec and the Sept lexical codec sit on token ids",
+    "lut-serving: the served engine carries the tokenizer for text sessions"
+  ],
+  "figure_ideas": [
+    "A sentence fed through the tokenizer: bytes at the bottom, merge arcs lifting pairs into larger pieces, the final piece ids on top; the number 84 shown as two pieces 8 and 4 to make the numeric problem visible.",
+    "A merge-rank ladder: the 3,837 learned merges as a ladder from most frequent pair downward, with a slider for vocabulary size (4,096 vs 16,384) that changes how many pieces a fixed paragraph needs.",
+    "A data-pipeline strip: raw text, tokenizer, UORT file with response mask, driver check marks for hash, token count and tokenizer identity, so a reader sees what 'identity-bound' means."
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "id": "rank-margin",
+  "canonical_name": "Rank-margin hinge objective",
+  "aliases": [
+    "margin hinge over declared rivals",
+    "Objective::MarginHinge",
+    "8*token_hinge + width*address_hinge",
+    "NearestAddressMarginV1 (objective A)",
+    "OccupiedCellRankHingeV1 (objective R)",
+    "D-R admission-rank objective",
+    "D23 learning-law objective"
+  ],
+  "plain_what": "Instead of turning scores into probabilities and punishing surprise, the loss only asks: does the right answer beat its strongest wrong rivals by a fixed gap? If yes, zero loss and no learning signal. If no, the shortfall in raw score units is the loss. Every step is a comparison and a subtraction.",
+  "replaces": "loss",
+  "how_it_works": "Float form (offline, pre-D32): for each row take the raw head scores z, find the top-k non-target rivals (k declared in advance, 1 or 8 in the rung-0 arms) and set L = mean over those k of max(0, 1 - z_target + z_rival). Score scale 1 is fixed, a row already leading every rival by 1 contributes exactly zero gradient, and there is no exponential or normalization in either direction. Reports use raw-score measures: top-1, recall at 8, hinge value, unviolated rate. Integer form (current discrete writer): token_hinge T = max(0, width + d(target) - d(best rival token)) using integer L1 token distance, address_hinge A = max(0, 8 + addr(target) - addr(best rival cell)); numerator = 8*T + width*A over 8*width (objective A). Objective R replaces A by R = max(0, r - K) where r is one plus the number of occupied cells that precede the target cell in (address distance, cell id) order, so a crowded cell counts once and R = 0 iff the target cell is among the K kept cells. Eligibility is fixed from the baseline, absent comparisons contribute zero and a wholly ineligible batch refuses with status 8.",
+  "geometry": "Integer L1 displacement in 8D E8-anchor-orbit blocks, product cells from first/last block root indices (256 cells), address distance to fixed SpiralCore atlas ports, kept-cell count K, exact tie-breaking by smallest token or cell identity. Float form uses negative mean-L1 scores from the shared SpiralCore-port writer.",
+  "code": [
+    {"path": "crates/uor-r4-discrete/src/discrete.cu", "role": "Integer writer: token margin, address margin, rank hinge R, loss_ta and loss_tr, overflow status 12"},
+    {"path": "crates/uor-r4-discrete/src/objective.rs", "role": "ObjectivePolicy (A and R), C-R1..C-R6 scaffold, histogram and quantile schema"},
+    {"path": "crates/uor-r4-discrete/src/redirect_admission.rs", "role": "K16 redirect admission gates and qualification receipts"},
+    {"path": "crates/uor-r4-training/src/geometric_stack.rs", "role": "Float Objective::MarginHinge { rivals }, dispatched to the fused MarginRank op (pre-D32, inactive)"},
+    {"path": "crates/uor-r4-training/src/cuda_stack.cu", "role": "margin_rank_rows and margin_rank_grad CUDA kernels, one warp per row"},
+    {"path": "crates/uor-r4-training/src/native_vector_writer.rs", "role": "Float shared vector writer with token and address margin credit and omitted-target credit"},
+    {"path": "crates/uor-r4-training/src/geometric_stack_native.rs", "role": "Native rung-0 evaluator with TRAIN-masked count reference"},
+    {"path": "docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md", "role": "Rung-0 float pre-registration (frozen by D32, re-registrable under D37)"}
+  ],
+  "status": "ACTIVE",
+  "status_reason": "The integer hinge (objectives A and R) is the loss the current discrete writer trains (docs/labs/discrete-geometric-learning-2026-10-13, docs/labs/admission-rank-hinge-2026-10-15). The float rung-0 hinge is READY but was never trained (docs/mechanisms/rank-margin-objective.md). K16-R collapsed occupancy, so the objective choice is open (docs/labs/k16-outcome-call-2026-10-19).",
+  "reopen_conditions": [],
+  "rule_compat": {
+    "D11": "Integer form is already served-compatible: compares, subtractions and integer weights 8 and width (a power-of-two-friendly shift-add). The float form is a training-only objective and its D11 export gap has never been measured.",
+    "D23": "Compliant by construction: no exp, log-sum-exp, softplus, sigmoid or tanh in either direction. The earlier M2 pooled-rank run used softplus on a log-ratio and is not compliant; it is the historical precursor only.",
+    "D30": "No matmul. The hinge itself is elementwise; the writer uses integer L1 scans over bounded cell and token sets.",
+    "D32_D37": "Integer form is the D32 objective. The F32 rung-0 sheet was frozen by D32 item 5 and returns only as a new D37 pre-registration with fresh FIT, owner release, a separately scanned module and a reported export gap."
+  },
+  "experiments": [
+    {"date": "2026-09-20", "record": "docs/integration/relational-reader-result-2026-09-20.md", "configuration": "Learned H4 relative-element reader with loss-aligned action objective, shared causal candidate pool (audit tags it as a margin-trained reader)", "result": "Missed its predeclared precision bar; categorical control later found mis-evaluated", "verdict": "negative", "numbers": "precision +0.0987 vs 0.15 bar"},
+    {"date": "2026-09-21", "record": "docs/integration/relational-learning-result-2026-09-21.md", "configuration": "Matched H4 and categorical readers with a bounded alternating scalar fit / descriptor refit schedule", "result": "Refit recovers the relation on a replayed construction; the controller margin does not; categorical matched or better; scope narrowed in review", "verdict": "positive", "numbers": "no single headline number; principal review: construction is a replay and the 646/1813 admission figure does not establish dominant admission loss"},
+    {"date": "2026-09-24", "record": "docs/integration/integrated-attention-a4-result-2026-09-24.md", "configuration": "A4: one learned integer action score over NoRead and admitted records, trained with bounded margins against matched A3 controls", "result": "Selector chose some correct first sources but no arm produced a complete correct answer", "verdict": "negative", "numbers": "complete correct answers 0/12 in all four arms; fit sources selected 28/192 (C120 A4) vs 0/192 (control)"},
+    {"date": "2026-10-09", "record": "docs/labs/protected-margin-credit-2026-10-09/README.md", "configuration": "Library-only differentiable log-ratio margin between two tokens (protected-answer credit)", "result": "Arithmetic tests pass; no model benefit claimed", "verdict": "inconclusive", "numbers": "accepted stays 8/512"},
+    {"date": "2026-10-10", "record": "docs/labs/m2-pooled-rank-2026-10-10/README.md", "configuration": "Strongest-wrong-rival pooled-token ranking from saved 177/512 on the native learner; loss was softplus(-log(M[y]/M[r])) with softmax-weighted episode averaging (a normalized-exponential form, banned by D23 two days later)", "result": "Development complete replies rose with zero losses, but every development row was exposed in training and the fresh draw later scored 0/128", "verdict": "positive", "numbers": "177/512 -> 437/512; 260 gains, 0 losses; fresh 0/128 (#2164, panel fitting)"},
+    {"date": "2026-10-12", "record": "docs/labs/margin-objective-2026-10-12/README.md", "configuration": "Float hinge mean_k relu(1 - z_t + z_k), rivals 1 or 8, CPU f64 and CUDA f32 kernels, source and tests only", "result": "938 lib tests pass; CUDA parity suite 38/38 on an RTX 4090 including the margin test; two kernel defects caught before merge; no training run", "verdict": "positive", "numbers": "938 lib tests, CUDA parity 38/38 (construction only)"},
+    {"date": "2026-10-13", "record": "docs/labs/rung0-complete-path-2026-10-13/README.md", "configuration": "Repair of the float rung-0 learning/output path, finite controls at the real shape", "result": "18 finite GPU controls pass after five defects fixed; sheet Amendment 6 later added TRAIN-masked count reference", "verdict": "positive", "numbers": "18/18 finite controls, no optimizer update (construction only)"},
+    {"date": "2026-10-13", "record": "docs/labs/geometric-head-shared-writer-2026-10-13/README.md", "configuration": "Float product-cell head and shared vector writer with token and address margin credit", "result": "Five finite CUDA controls pass; later D29 vendor-boundary record reports 31 controls at 1f1547bfd", "verdict": "positive", "numbers": "5/5 controls; 31/31 controls on RTX 4090 (docs/labs/d29-vendor-boundary-2026-10-13)"},
+    {"date": "2026-10-13", "record": "docs/mechanisms/rank-margin-objective.md", "configuration": "Rung-0 float pre-registration: six recurrence blocks, objective hinge at 1 and 8 rivals, two seeds, one pod", "result": "Never executed; D32 item 5 froze it and D37 allows only re-registration with a fresh FIT and owner release", "verdict": "blocked", "numbers": "bars: top-1 and recall@8 each at least 5 points over the TRAIN-count predictor on both seeds"},
+    {"date": "2026-10-13", "record": "docs/labs/discrete-geometric-learning-2026-10-13/README.md", "configuration": "Integer 8*token_hinge + width*address_hinge writer objective with explicit omitted-target and zero-rival semantics", "result": "Qualified at finite boundary: literal writer costs, omitted targets, zero-eligibility, virtual proposals", "verdict": "positive", "numbers": "11/11 CUDA controls (construction only)"},
+    {"date": "2026-10-14", "record": "docs/labs/a2-pilot-diagnosis-2026-10-14/README.md", "configuration": "Exact decomposition of the pilot loss: weighted token and address terms", "result": "Token hinge fell and address hinge rose; ranks improved while the total numerator rose", "verdict": "diagnostic-stop", "numbers": "token hinge -7,996 (x8 = -63,968); address hinge +4,124 (x32 = +131,968); total +68,000"},
+    {"date": "2026-10-15", "record": "docs/labs/rung0-stage-a-sweep-2026-10-15/README.md", "configuration": "Evaluation-only widening of the K=8-trained codebook to K=8..16", "result": "No K reaches the 4,894 admission gate; address hinge is exactly K-invariant, so up-weighting it cannot move the admission boundary", "verdict": "negative", "numbers": "K=16 ceiling 2,400 vs gate 4,894; address hinge sum identical across K at all four cursors"},
+    {"date": "2026-10-16", "record": "docs/labs/admission-rank-fixture-runner-2026-10-15/README.md", "configuration": "Standalone GPU fixture runner for C-R1..C-R6 of the rank-hinge objective, five restarts", "result": "Earlier restarts failed on build, clippy and receipt-schema bugs; restart 5 passed all six controls then halted at a timing-count gate (99 not 100)", "verdict": "diagnostic-stop", "numbers": "restart 5: 6/6 C-R controls, 99 of 100 timed batches"},
+    {"date": "2026-10-18", "record": "docs/labs/k16-rows-qualification-2026-10-18/README.md", "configuration": "K16 qualification at source 21224b446: G-Pre, C-R1..C-R6, registered timing for both objectives", "result": "All gates complete; untrained K16 admits every row but with only 16 occupied cells (pass-through)", "verdict": "positive", "numbers": "C-R 6/6 PASS; G-Pre K16 admitted 14,287 with 16 cells; per-batch median 260.08 ms (A) and 260.10 ms (R); 100 timed samples each"},
+    {"date": "2026-10-19", "record": "docs/labs/k16-outcome-call-2026-10-19/README.md", "configuration": "K16-A (objective A) vs K16-R (objective R), K=16, two seeds, 16,404 batches, Route read", "result": "OCCUPANCY_COLLAPSE_TRIGGERED: R collapsed to about 20 occupied cells and passes admission vacuously; A kept occupancy but lost admission; both miss the ranking bars; no KEEP", "verdict": "negative", "numbers": "R: admitted 12,089 / 12,466, cells 20 / 19, top-1 101 / 230; A: admitted 2,237 / 3,167, cells 209 / 192, top-1 65 / 463; Bar(i) 1,941, Bar(ii) 4,775 missed by all four roles"}
+  ],
+  "never_tested": [
+    "The float rung-0 hinge as an actual trained model: no run has ever executed MarginHinge, so quality versus a cross-entropy-free baseline is unmeasured",
+    "Declared rival sets other than top-k by raw score (all, random, hardest by margin)",
+    "A score scale other than 1.0, or a per-row adaptive margin",
+    "An occupancy-regularized rank objective (the registered route after K16-R collapse)",
+    "The hinge on a start with 4,096 distinct vectors (injective PrimeZeta or address-cell codebook)",
+    "The hinge combined with an admission-preserving acceptance rule",
+    "The hinge with a read and a pointer head (float sheet refuses a pointer today)",
+    "Any BPB or NLL equivalent, since the hinge has no likelihood; language quality under this objective has no measured unit yet"
+  ],
+  "failed_only_on_configuration": [
+    "K16-R occupancy collapse: objective R with the seeded 16-vector start and K=16, so one cell holds most tokens and admission passes vacuously; says nothing about hinge objectives with an occupancy term",
+    "K16-A admission loss: objective A with K=16 and seeded start; the 16-root start gives an alias ceiling of 1,986 at checkpoint 0",
+    "Pilot loss rise: the K=8 weighting of 32 on the address term pushed the total up even as ranks improved; a weighting question, not a ban on margins",
+    "Stage A widening: K was changed at evaluation only on a K=8-trained codebook",
+    "A4 (Sept 24) and relational reader (Sept 20): older integer-reader margins on constructed panels, where the recipe and the panel, not the margin idea, were the fault"
+  ],
+  "open_questions": [
+    "Does the integer hinge need an explicit occupancy or spread term to prevent K16-R style collapse?",
+    "Which loss weight between token and address terms keeps both rank and admission improving?",
+    "Without a likelihood, what measure stands in for bits-per-token when comparing against a transformer-free baseline that is not allowed to be a transformer?",
+    "Can a float hinge sheet beat the integer hinge, and by how much after export (D37, export gap rule in D39 item 5)?"
+  ],
+  "evidence": [
+    "docs/mechanisms/rank-margin-objective.md",
+    "docs/labs/margin-objective-2026-10-12/README.md",
+    "docs/labs/d23-learning-law-design-2026-10-12/README.md",
+    "docs/labs/discrete-geometric-learning-2026-10-13/README.md",
+    "docs/labs/a2-pilot-diagnosis-2026-10-14/README.md",
+    "docs/labs/rung0-stage-a-sweep-2026-10-15/README.md",
+    "docs/labs/rung0-admission-redirect-prep-2026-10-15/README.md",
+    "docs/labs/k16-rows-qualification-2026-10-18/README.md",
+    "docs/labs/k16-outcome-call-2026-10-19/README.md",
+    "docs/labs/m2-pooled-rank-2026-10-10/README.md",
+    "docs/integration/DECISIONS.md (D23, D25, D32 item 5, D37 item 5, D39)"
+  ],
+  "related": [
+    "discrete-learning: runs the hinge as its integer loss and decides which move is kept",
+    "admission: the K kept cells are what objective R tries to protect",
+    "address-cells and prime-zeta-codebook: initializers that change how many cells exist for the hinge to rank",
+    "flock-read: the read that supplies the query vector the hinge scores",
+    "carrier-credit: its shared writer is the same scoring head with omitted-target credit"
+  ],
+  "figure_ideas": [
+    "One row drawn as a number line of raw scores: the target dot, eight rival dots and a shaded one-unit margin band; show the hinge as the length of the red overshoot and the gradient as zero once the target clears the band.",
+    "Side-by-side 16x16 cell grids with the target cell and its rank r among occupied cells: objective A rewards a close address, objective R lights up only when r exceeds K; animate K16-R drawing every token into about 20 cells.",
+    "Stacked bar of the pilot loss before and after (token term down 63,968, address term up 131,968) next to rising top-8 hits, showing why loss and rank disagreed."
+  ]
+}

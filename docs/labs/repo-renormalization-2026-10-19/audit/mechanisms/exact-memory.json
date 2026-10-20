@@ -1,0 +1,329 @@
+{
+  "id": "exact-memory",
+  "canonical_name": "Exact addressed memory",
+  "aliases": [
+    "exact addressed memory",
+    "prime-keyed exact log and gcd sieve (log-sieve retrieval)",
+    "semiprime expert / prime-route store",
+    "AERM exact relation store (D2, G v1)",
+    "product-key memory (E8/H4 or learned sub-keys)",
+    "exact-pair cache",
+    "KVAR overwrite memory",
+    "address instead of search"
+  ],
+  "plain_what": "A fact is written once under an exact address and read back exactly, instead of being smeared across weights or found by fuzzy similarity. Addresses are built from prime numbers, so the same words name the same slot. A newer value replaces the old one, the old one stays recoverable, and a missing fact can say I do not know.",
+  "replaces": "key-value memory",
+  "how_it_works": "Three built forms. (1) Exact log plus sieve: every user turn is logged as word atoms, each word with a prime from a registry table. A clause's address is its square-free set of content primes plus ordered pairs (n-lets). A query admits a clause when gcd(query, clause) > 1, computed as a sorted merge of factor lists. Ranking is separate: most shared primes, then latest occurrence, then ordered-pair match. A record is evicted only when its ring slot was overwritten. (2) AERM store (G v1): learned heads tag tokens as entity, relation, value or other; an integer store maps (entity, relation) -> value, keeps the previous distinct value and a version counter, and a read returns None, Hit, Absent or Evicted for the current and previous register. The prime-route variant keys by the semiprime p_a*p_b of two atoms, which names the unordered pair exactly by unique factorization; the value is routed through the expert so direction survives. (3) Product-key memory: the query splits into two halves, each scored against S sub-keys; the top k per side give k^2 candidate slots scored by the sum; the best k are read from an S^2-row value table. Sub-keys are learned or fixed to the 120 unit icosians or 240 E8 roots. The built form mixes rows with softmax weights.",
+  "geometry": "Prime atoms and square-free semiprimes (unique factorization), ordered n-lets, gcd divisibility; optional fixed sub-key codebooks from the 600-cell (120 unit icosians, H4) and the 240 E8 roots; Lorentz (hyperboloid) distance as an optional sub-key score.",
+  "code": [
+    {
+      "path": "crates/uor-r4-training/src/stack_aerm.rs",
+      "role": "AERM exact relation store simulator and G v1 always-on read policy (current and previous register)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/stack_prime_route.rs",
+      "role": "Prime-route / semiprime key store; ReadPolicy::{Tagged,Sieve}; evaluation instrument for the memory port's address"
+    },
+    {
+      "path": "crates/uor-r4-training/src/stack_store.rs",
+      "role": "Token-level bridge over the scoped-memory exact versioned store: version order, predecessor chain, conflict marking, reassertion, capacity eviction, typed status vocabulary"
+    },
+    {
+      "path": "crates/uor-r4-training/src/stack_memory.rs",
+      "role": "Sparse product-key memory layer with Codebook::{H4,E8} and MemoryScore::{Dot,Lorentz}"
+    },
+    {
+      "path": "crates/uor-r4-training/src/cache_memory.rs",
+      "role": "Learned continuous cache over a frozen model (exact-pair and learned-key cache arms)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/whole_path_learning.rs",
+      "role": "Codex whole-path source: native compiler, staged exact store, bounded E8 record index and emitter on one credit tape (CPU fixtures only)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/durable_memory.rs",
+      "role": "Conversation and identity-scoped durable memory with checkpoint bytes (storage operations only)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/historical_read.rs",
+      "role": "Learned base/previous-record selection over exact versioned records; source payloads stay exact"
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/kvar-recall.rs",
+      "role": "Standalone synthetic key-value overwrite memory harness (KVAR)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/realtext-sparse-recall.rs",
+      "role": "Real-text exact-pair cache harness"
+    }
+  ],
+  "status": "PARKED",
+  "status_reason": "Every trained form that was tested failed its bar or broke a rule: learned read triggers failed held-out phrasing (docs/integration/g1-always-on-read-result-2026-09-28.md); the product-key form uses softmax weights and scored 19/40 against a 27/40 bar (docs/labs/addressed-memory-2026-10-10/README.md). The address-as-read form was never built. Not on the D32 run plan; the integer exact store itself is rule-compatible.",
+  "reopen_conditions": [
+    "Build the address as the READ, not an MLP replacement: add memory fields to the dialogue settings and train the store and read in from the start (D22 section 5(c) order, never executed), 2-3 seeds, frozen panel of at least 80 rows; brief bar is at least +8/40 over 19/40 with BPB within 0.01.",
+    "Run the cheap serving-time address oracle first (supply the true slot address) to bound the gain before any training.",
+    "Re-register as a D37 offline-float sheet or a D32 discrete sheet with a softmax-free value mix (rank table or hard select), a separately scanned module, an integer export and a reported export gap; needs a fresh TEST FITNESS: FIT and owner release.",
+    "Provide an integer read kernel (gcd or sorted-merge admission plus table value read) in uor-r4-integer; today integer serving refuses product-key memory (docs/labs/native-address-port-2026-10-11/README.md) and has no gcd.",
+    "Report address-formation accuracy (tagging or query-key) separately from read accuracy, since 77.7 percent of held-out failures were query-entity tagging (docs/integration/g1-decomposition-result-2026-09-29.md)."
+  ],
+  "rule_compat": {
+    "D11": "Exact store, sorted-merge admission and shift-subtract gcd are table and integer operations by design. No served form exists: uor-r4-integer has no gcd, and integer serving refuses product-key memory (native-address-port record, 3 memory_shape tests pin the refusal).",
+    "D23": "The exact log, sieve and AERM store contain no softmax. The product-key built form mixes rows with softmax weights (stack_memory.rs docs), and the learned tag and trigger heads trained with cross-entropy: those parts are banned.",
+    "D30": "The store and sieve use no matmul. The tested forms sit inside the dense float stack (query maps, tag heads), so they are not D30-clean as built.",
+    "D32_D37": "Integer exact store matches the D32 integer shape. Learned tagger or query map would be float under D37 with an integer export and reported gap; the discrete crate has no memory store yet. No hold released."
+  },
+  "experiments": [
+    {
+      "date": "2026-08-26",
+      "record": "docs/prime_route_attention_qualification_958.md",
+      "configuration": "Source-free prime-route mechanics: exact Z[phi] steps, prime routes, ordered n-lets, gcd overlap, schema-2 manifest, 7-row query closure; no product probe",
+      "result": "Mechanics pass but terminal outcome is storage and recall only; the product probe (stage 4) was not run for lack of a manifest-bound compiler from prompt tokens to addresses",
+      "verdict": "inconclusive",
+      "numbers": "Stage 1 PASS_SOURCE_FREE; stage 2 PASS_COMPLETE_MANIFEST_V2; stage 4 NOT_RUN; canary (docs/prime_route_worker_canary_958.md) 32/32 exact reference matches, 16 four-worker compiles"
+    },
+    {
+      "date": "undated",
+      "record": "docs/native_geometric_reassertion_chain_repair_973.md",
+      "configuration": "Sept native_geometric Rust engine: learned selector over exact versioned records (initial/previous/current), authored panels, familiar grammar",
+      "result": "Positive at authored-panel scope: version-chain reads, same-value reassertion links and owner revisions pass construction and fresh draws; general language not established",
+      "verdict": "positive",
+      "numbers": "976/976 construction and fresh targets (reassertion repair); 1,464/1,464 (docs/native_geometric_minimal_head_973.md); owner revision 60/60 vs parent 24/60 (docs/native_geometric_owner_revision_973.md)"
+    },
+    {
+      "date": "undated",
+      "record": "docs/native_geometric_historical_selection_973.md",
+      "configuration": "Learned previous-version read selecting exact old records, predeclared fresh text gate",
+      "result": "Selected exact old records but failed the fresh text gate, not promoted",
+      "verdict": "negative",
+      "numbers": "44/64 complete on the fresh gate"
+    },
+    {
+      "date": "2026-09-13",
+      "record": "docs/native_geometric_addressed_attention_pilot_973.md",
+      "configuration": "Eight-phase addressed-attention path (LUT circuit, exact object store, offline credit); fixed 64-update pilot",
+      "result": "Primitives and forward dry run pass (18 Rust tests) but the 64-update pilot produced no useful generated answers",
+      "verdict": "negative",
+      "numbers": "18 Rust tests passed (docs/native_geometric_addressed_attention_primitives_973.md); pilot CE moved slightly and one correct symbol was lost"
+    },
+    {
+      "date": "2026-09-20",
+      "record": "docs/integration/occurrence-reader-result-2026-09-20.md",
+      "configuration": "Occurrence reader over exact sources with abstention, constructed and all-position panels",
+      "result": "Won its targeted slot-selection endpoint but failed both all-position non-regression tolerances because abstention was uncalibrated; the related relative-H4 competitive reader harmed natural text",
+      "verdict": "negative",
+      "numbers": "competitive reader +1.29 bits/token on natural text (docs/integration/competitive-reader-result-2026-09-20.md)"
+    },
+    {
+      "date": "2026-09-22",
+      "record": "docs/integration/scoped-correction-memory-result-2026-09-22.md",
+      "configuration": "Learned observation feeding exact scoped versioned memory, authored correction panels",
+      "result": "Answered authored correction panels; principal review narrowed claims to the bounded fixtures",
+      "verdict": "positive",
+      "numbers": "no headline count in the catalog excerpt"
+    },
+    {
+      "date": "2026-09-24",
+      "record": "docs/integration/kvar-recall-result-2026-09-24.md",
+      "configuration": "Synthetic KVAR: 64 content tokens, K in {4,8} keys each rebound at least twice, lag 4/16/64; gated token-addressed overwrite store, hard-select readout; held-out 204 episodes",
+      "result": "The overwrite store reached 0.72-0.82 held-out accuracy where recurrence and gate-only arms sat at chance; decision ACCEPT_MEMORY_MECHANISM; geometry arm not run",
+      "verdict": "positive",
+      "numbers": "served accuracy 0.8235 (seed 1) and 0.7157 (seed 2) vs 0.0098 recurrence-only, 0.0196 gate-only; hand-coded overwrite table 1.0000; order-2 count 0.0000. Hard-select successor on fresh seeds 0.75-0.83 (docs/integration/kvar-hard-successor-result-2026-09-24.md)"
+    },
+    {
+      "date": "2026-09-24",
+      "record": "docs/integration/realtext-sparse-recall-result-2026-09-24.md",
+      "configuration": "Exact (previous, current) token-pair successor cache mixed with a static count reference; 24 Dev documents of exposed project Markdown",
+      "result": "Pre-registered gate passed: cache lowers the count reference; not general prose, not a learned age policy",
+      "verdict": "positive",
+      "numbers": "-0.237644 bits/target (95% CI -0.292814 to -0.190741) over 87,564 positions; 24.23% of positions have an exact-pair read at lag 64 or more"
+    },
+    {
+      "date": "2026-09-24",
+      "record": "docs/integration/native-sparse-read-result-2026-09-24.md",
+      "configuration": "Learned four-bit selector over exact pairs vs the recent exact-pair cache, prose and Rust sources",
+      "result": "The learned selector failed to beat the ordinary recent exact-pair cache",
+      "verdict": "negative",
+      "numbers": "no count in the catalog excerpt"
+    },
+    {
+      "date": "2026-09-24",
+      "record": "docs/integration/addressed-lexical-bridge-result-2026-09-24.md",
+      "configuration": "Explicit typed address driving a native Generate/Copy/Stop rollout, familiar one-token values; original attempt and typed-abstention correction retained",
+      "result": "A changed relevant source changes the actually copied token; missing evidence returns a typed empty response; not learned parsing or language quality",
+      "verdict": "positive",
+      "numbers": "24-row authoritative panel passes with independent replay and native/compiled parity"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/d2-aerm-probe-result-2026-09-28.md",
+      "configuration": "AERM probe: 1.41M-parameter stack with exact integer store, learned per-token read trigger; 3 seeds vs equal-parameter control; held-out templates and names",
+      "result": "Gate failed in every seed: exact store perfect in distribution, learned trigger never fired on held-out phrasing; with a gold register the held-out classes are 1.000",
+      "verdict": "negative",
+      "numbers": "in-distribution 1.000 every class; held-out Updated 0.000/0.000/0.015 vs control 0.41/0.39/0.47; margin 0.146/0.122/0.102 vs 0.30 required; trigger fired 0 of 826 (docs/integration/log-sieve-retrieval-design-2026-10-01.md)"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/g1-always-on-read-result-2026-09-28.md",
+      "configuration": "G v1: always-on address-driven read of current and previous register; same world, seeds and control as D2",
+      "result": "Frozen gate failed in all three seeds; text-NLL gate and parameter parity passed",
+      "verdict": "negative",
+      "numbers": "held-out Updated 0.1575 / 0.0733 / 0.0293 vs 0.90 bar; control 0.4652 / 0.7729 / 0.8132"
+    },
+    {
+      "date": "2026-09-29",
+      "record": "docs/integration/g1-decomposition-result-2026-09-29.md",
+      "configuration": "Zero-training failure-cause attribution on G v1 held-out failures, 3 seeds",
+      "result": "Failures are address formation, not storage: query-entity tagging dominates; eviction and wrong stored value never occur",
+      "verdict": "positive",
+      "numbers": "1,905 failures: QueryEntityTag 1,480 (77.7%), WriteEntityKey 242 (12.7%), QueryRelationTag 142 (7.5%), Evicted 0, WrongValueStored 0"
+    },
+    {
+      "date": "2026-09-29",
+      "record": "docs/integration/g-binding-result-2026-09-29.md",
+      "configuration": "Mask text-batch tag and trigger auxiliary losses (arm A), optionally plus 83-name diversity (arm B); seed 1",
+      "result": "Masking lifted held-out binding but the text-NLL guard failed, so nothing was promoted; name diversity not indicated",
+      "verdict": "inconclusive",
+      "numbers": "arm A held-out Updated 0.967 (264/273) vs baseline 0.158; arm B 0.645; text NLL +0.1188 vs bound 0.05"
+    },
+    {
+      "date": "2026-09-29",
+      "record": "docs/integration/arm-c-result-2026-09-29.md",
+      "configuration": "Mask tag loss but keep prose trigger supervision (arm C)",
+      "result": "Prose triggers went to zero but held-out binding and text NLL missed; gating address-driven reads to user turns named as next unit",
+      "verdict": "negative",
+      "numbers": "held-out Updated 0.553 (151/273) vs 0.90; text NLL +0.083 vs 0.05; triggers 0.0 per 1,000 tokens"
+    },
+    {
+      "date": "2026-10-01",
+      "record": "docs/integration/grounded-memory-evidence-2026-10-01.md",
+      "configuration": "Exact lexical route (E1) and emit-1 emitter with the exact log plus prime sieve recalled record, MQAR distances 16/64/200; one training seed, development draw, gold-category dispatch",
+      "result": "Identity channel (verbatim key repeated between statement and query) works; recall-off collapses the emitter; copy panel at the BPE boundary 0/33",
+      "verdict": "positive",
+      "numbers": "E1 MQAR 747/747; emit-1 + sieve MQAR 106/109 (d16 36/37, d64 34/36, d200 36/36, d200 cases all N=2); recall off 16/109 vs parent 37/109"
+    },
+    {
+      "date": "2026-10-01",
+      "record": "docs/integration/grounded-memory-evidence-2026-10-01.md",
+      "configuration": "Relation binding (same relation in different words) via the sieve, an oracle record, and a learned lexical relation route (v12)",
+      "result": "The sieve alone barely answers relation queries; the emitter is fine given the right record; the learned route improves but E3 gate stays unmet and abstention requirement fails",
+      "verdict": "inconclusive",
+      "numbers": "sieve open 1/52 and closed 1/17; oracle recall open 48/52, closed 16/17; v12 learned route open 25/52, closed 2/17 vs comparison model 27/52; abstention 8/14; E3 relation .712-.837 vs .9 gate"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/addressed-memory-2026-10-10/README.md",
+      "configuration": "Product-key memory (64 sub-keys, top-k 16) at layer 4 of the 29M chat model, from step 0, 2,000 steps, two seeds; layer-8 and 256-sub-key probes",
+      "result": "Memory half stayed at the no-memory level; the 22/40 half-step hint was just shorter training",
+      "verdict": "negative",
+      "numbers": "19/40 on both seeds vs 27/40 bar; anchor 20/40; step-matched no-memory control 22/40; layer-8 probe P8 20/40, wrong-value 17 -> 10; CUDA bridge 7.4 s/step -> 0.19 s/step"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/m2-fresh-437-2026-10-10/README.md",
+      "configuration": "Saved M2 model (pooled-token-ranking) on fresh unexposed role/value-bank combinations",
+      "result": "Development result reproduces exactly but does not transfer: recorded as panel fitting",
+      "verdict": "negative",
+      "numbers": "437/512 development vs 0/128 fresh (bar 52)"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/addressed-read-2026-10-11/README.md",
+      "configuration": "Product-key memory (4 heads, 256 sub-keys, key 128, top-k 32, dot) replacing the layer-8 MLP, trained in from step 0, three seeds vs matched controls",
+      "result": "Wrong-value failures fell at flat headline; the record's later correction says it replaced the MLP, not the read, so address-vs-search remains untested",
+      "verdict": "inconclusive",
+      "numbers": "wrong-value 47 -> 34/120; memory 57/120 vs 57/120; params 28,958,761 -> 65,868,585 (+36.9M); 0.058 s -> 1.19 s per step (20x); -90% MACs at replaced layer"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/addressed-read-lean-2026-10-11/README.md",
+      "configuration": "Lean product-key memory (64 sub-keys, key 64, top-k 16) replacing the layer-8 MLP, two seeds",
+      "result": "Size and speed costs removed and wrong-value gain kept, but language quality worsened beyond the allowed margin",
+      "verdict": "negative",
+      "numbers": "BPB +0.0949 and +0.1066 vs 0.02 allowed; wrong-value 47 -> 34/120; memory 50/120 vs 57/120; +4.3% params; 0.12 s vs 0.052 s per step"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/tokens-per-second-2026-10-11/README.md",
+      "configuration": "f32 GPU harness, product-key memory replacing the layer-8 MLP vs MLP controls, generated tokens per second",
+      "result": "Fewer multiplies did not mean faster: 1.65x slower generation and 2.4x slower training in this harness; a same-day correction relabelled arms as MLP-vs-lookup",
+      "verdict": "negative",
+      "numbers": "~637 vs ~385 ids/s; 245 s vs 104 s per 2,000 steps"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/native-address-port-2026-10-11/README.md",
+      "configuration": "Attempt to serve product-key memory on the D11 integer path (plus the withdrawn fused-kernel claim in docs/labs/fused-memory-kernel-2026-10-11/README.md)",
+      "result": "The integer serving path refuses product-key memory entirely, so the speed case is unmeasured where it matters; the claimed fused-kernel 12x was a fat-vs-lean codebook difference and is withdrawn",
+      "verdict": "blocked",
+      "numbers": "3 memory_shape tests pass (they pin the refusal); no surviving kernel measurement"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/whole-path-recovery-2026-10-12/README.md",
+      "configuration": "Codex whole-path source: packed native compiler, staged exact store, bounded E8 record index, native emitter on a shared credit tape (preceded by docs/labs/whole-path-implementation-2026-10-12/README.md and docs/labs/native-bound-content-2026-10-11/README.md)",
+      "result": "KEEP source; CPU-reference checks only, CUDA execution NOT_RUN; the sampled producer was later blocked by D23; no training, M2 437/512 unchanged",
+      "verdict": "inconclusive",
+      "numbers": "28 whole-path + 3 grounded-store + 5 E8 regression fixtures pass (earlier cut: 15 whole-path + 7 native-bank)"
+    }
+  ],
+  "never_tested": [
+    "Address-instead-of-search as the model's actual read: every 'addressed read' run replaced an MLP, not the read (docs/labs/addressed-read-2026-10-11/README.md correction; docs/labs/kimi-direction-2026-10-12/README.md section 4 item 5).",
+    "Memory fields in the dialogue training settings with the store and read trained in from pretraining (D22 section 5(c) order).",
+    "A true gcd sieve on the integer path: as of 2026-10-01 only a pairwise membership scan had been built and measured (docs/integration/log-sieve-retrieval-design-2026-10-01.md).",
+    "Relation binding across paraphrase using a learned channel feeding the exact channel, at the E3 gate (.9 relation accuracy).",
+    "Ordered n-let keys (prime powers or positional exponents) for atoms that are not role-disjoint.",
+    "Eviction proofs driving abstention at long context in a trained model.",
+    "D5-b selected-access measurement (parameters actually touched per token) for any exact memory on the served path.",
+    "H4 or E8 codebooks as the WRITE address of facts with prime semiprimes as the exact check (brief open question 3)."
+  ],
+  "failed_only_on_configuration": [
+    "D2 and G v1 (2026-09-28): a 1.4M-parameter probe whose read trigger or tag head was learned from templated text. The exact store scored 1.000 whenever the register was right; the failure was learned address formation, so it closes that parser configuration, not exact memory.",
+    "Product-key memory at layer 4 (19/40) and the layer-8 fat and lean runs: 2,000-step fine-tunes of one 29M chat model on a 40-row panel with softmax weights and a replaced MLP; these test an MLP replacement, not an address-as-read.",
+    "Lean product-key memory (+0.095 BPB): an eightfold smaller codebook replacing an MLP; the loss is the missing dense layer's work.",
+    "Tokens per second (1.65x slower): measured in an f32 host-bridge GPU harness; the intended primitive is an integer table read on the D11 path, which refuses it today.",
+    "Saved M2 437/512 -> 0/128: a pooled-token-ranking adapter fitted to development bank combinations; says nothing about whether exact memory transfers.",
+    "Arm C and arm A/B (2026-09-29): supervision recipes for tag and trigger losses on prose batches."
+  ],
+  "open_questions": [
+    "Where does the exact store sit in the D32 discrete model: as a Relation/Route read target over retained structure, or as a separate store behind the object-store crate?",
+    "Retrieval caused only 2.2 percent of failing rows in the era-22 chat panel (eras.md, #1708): is memory the binding constraint on the M1 headline at all?",
+    "Can address formation (query entity and relation tagging) be made exact enough, e.g. by prime registry lookup of repeated words, that no learned tagger is needed for verbatim keys?",
+    "Should the key be entity prime times attribute prime written when the fact is stated, with a learned gate from the exact hit into the output, or copy the value token directly?",
+    "A learned gate from the store's exact hit versus copying the value directly (brief open question 2).",
+    "How are abstention and eviction scored fairly when a fact was legitimately evicted from a bounded ring?"
+  ],
+  "evidence": [
+    "docs/mechanisms/exact-addressed-memory.md",
+    "docs/integration/log-sieve-retrieval-design-2026-10-01.md",
+    "docs/integration/grounded-memory-evidence-2026-10-01.md",
+    "docs/integration/d2-aerm-probe-result-2026-09-28.md",
+    "docs/integration/g1-always-on-read-result-2026-09-28.md",
+    "docs/integration/g1-decomposition-result-2026-09-29.md",
+    "docs/integration/kvar-recall-result-2026-09-24.md",
+    "docs/integration/realtext-sparse-recall-result-2026-09-24.md",
+    "docs/labs/addressed-memory-2026-10-10/README.md",
+    "docs/labs/addressed-read-2026-10-11/README.md",
+    "docs/labs/addressed-read-lean-2026-10-11/README.md",
+    "docs/labs/tokens-per-second-2026-10-11/README.md",
+    "docs/labs/native-address-port-2026-10-11/README.md",
+    "docs/labs/whole-path-recovery-2026-10-12/README.md",
+    "docs/labs/kimi-direction-2026-10-12/README.md",
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/integration/DECISIONS.md (D18, D19, D22 section 5(c), D23, D30, D37)"
+  ],
+  "related": [
+    "pointer-key: copies the value token the address names; the pointer found the source but not the slot",
+    "read-binding: teaches an attention read which stated value belongs to the question, the learned alternative to an exact address",
+    "object-store: exact byte storage of source material beneath the model, no addressing of facts",
+    "e8-orbit-memory: the E8-addressed product-key variant of this memory, replacing an MLP",
+    "relation-read: the D34 reranker reads retained structure; exact edges would come from this store",
+    "admission: the measured ceiling on what any read can reach (2,201 of 14,287 targets at Q1)",
+    "prime-zeta-codebook: supplies the prime registry the sieve and semiprime keys depend on",
+    "route-read and flock-read: similarity-free alternatives that read by address or small kept sets"
+  ],
+  "figure_ideas": [
+    "A conversation scrolling past a row of numbered slots: each stated fact writes a tile whose label is a product of two primes; a correction stacks a new version on the old tile; a question lights the gcd match and the right version, while an unwritten key shows 'Absent' and an overwritten ring slot shows 'Evicted'.",
+    "Bar chart of the D2/G v1 cliff for one seed: in-distribution 1.000, held-out templates 0.000-0.158, held-out with gold register 1.000, beside the stacked failure causes (query-entity tag 77.7 percent, zero eviction, zero wrong stored value).",
+    "A 256 by 256 grid of value slots: two half-queries each pick a few rows and columns, the crossings light up as k-squared candidates, and only the best k cells (a token reads 32 rows of 65,536) are read."
+  ]
+}

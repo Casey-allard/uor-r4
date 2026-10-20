@@ -1,0 +1,115 @@
+{
+  "id": "pointer-key",
+  "canonical_name": "Pointer copy with an exact identity key",
+  "aliases": [
+    "pointer-copy head (A1)",
+    "copy head",
+    "token-identity pointer (pointer_identity)",
+    "prime-route pointer (pointer_route=prime-ranked)",
+    "entity-address pointer",
+    "copy-identity fold table",
+    "forced-copy oracle (copy-span oracle)"
+  ],
+  "plain_what": "When asked 'what is Ana's locker?', the model should copy the stored answer from earlier text rather than invent one. The pointer chooses which earlier token to copy. This mechanism wants it to choose by the exact name of the slot (Ana plus locker), not by the surrounding wording. Measured today, the pointer instead lands on the repeated sentence frame.",
+  "replaces": "attention",
+  "how_it_works": "The copy head mixes a copy distribution into the output: p = (1-g)*softmax(z) + g * sum over sources j with token x_j = v of a_j, where g is a learned gate and a_j is the pointer's attention over a window of earlier tokens. The project-specific part is how a source is chosen. Every token has a registered prime; a source is admitted when gcd with the query's atoms is above 1, or by ordered n-let equality (RouteAdmission::SharedAtom or Ngram); rarer atoms weigh more (ln gcd); the route score is scaled by ROUTE_SHARPNESS = 4.0 and the attention is a softmax over admitted sources. A token-identity term (PointerIdentity) adds the overlap of the six tokens before the source with the six before the query (POINTER_IDENTITY_WINDOW = 6). A fixed table folds case and one leading space to a canonical id (copy_identity.rs); it only decides matches and never changes the emitted token. The intended key is the slot address (entity prime times attribute prime), not the wording around the value. Export serves only an unrouted, unselected pointer; the identity and routed variants are offline.",
+  "geometry": "Prime atoms with gcd and ordered n-let admission (ADR-0003 prime router, ln-gcd weighting); a fixed token-id fold table. No Hopf, E8 or quaternion object is used by the pointer itself.",
+  "code": [
+    {"path": "crates/uor-r4-training/src/geometric_stack.rs", "role": "PointerConfig, PointerSelect::TopK, PointerIdentity, PrimeRoute with RouteAdmission::{SharedAtom,Ngram}, gate_supervised_loss, set_pointer_key_fold, set_copy_span_oracle"},
+    {"path": "crates/uor-r4-training/src/copy_identity.rs", "role": "Fixed canonical-id fold table (case and one leading space) used only to decide which sources a pointer key matches"},
+    {"path": "crates/uor-r4-training/src/stack_prime_route.rs", "role": "Prime-route / semiprime addressing instrument shared with exact-memory"},
+    {"path": "crates/uor-r4-training/examples/bind-probe-exact.rs", "role": "Exact-recall probe and token-identity copy-stop scorer used for the 84-cell pointer panel"},
+    {"path": "crates/uor-r4-training/src/bin/heldout-memory-panel.rs", "role": "Held-out memory panel builder for the v4/v5 memory rows"},
+    {"path": "crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs", "role": "Sept native engine: learned exact word-occurrence Copy over retained records"}
+  ],
+  "status": "PARKED",
+  "status_reason": "Every tested form is a softmax pointer in a dense float stack that missed its bar or cannot be served: a real prime-ranked key raised the dev hit rate 0.377 to 0.5452 yet memory stayed 19/21/23 vs 20/40 (docs/labs/ptr-addr-2026-10-10/README.md); export refuses identity terms. The entity-address key and forced-copy oracle were never run.",
+  "reopen_conditions": [
+    "Run the serving-time forced-copy oracle first (supply the true slot address or span; the copy-span oracle instrument exists but N/O1/O2 on the bound artifact were never run, docs/labs/copy-span-oracle-2026-10-12/README.md) to bound the gain at no training cost.",
+    "Then a parsed or learned slot-address key (entity prime times attribute prime) trained in from the start of the dialogue fine-tune, with matched controls, at least 3 seeds and at least 120 memory rows; pre-registered bar of at least +5/40-equivalent over the control.",
+    "A copy distribution with no softmax (rank table, hard select, or exact admission plus learned ranking) so the head can be registered under D23/D30, as a new offline float sheet under D37 or on the D32 discrete path, with fresh TEST FITNESS: FIT and owner release.",
+    "An integer serving route by gcd or n-let equality with no float score, with the export gap reported."
+  ],
+  "rule_compat": {
+    "D11": "Export serves only an unrouted, unselected pointer; a pointer carrying an identity term is refused at export (docs/labs/token-identity-stop-open-population-2026-10-09/README.md) and D10 refuses pointer models (docs/integration/direction-review-2026-09-30.md). The fold table is one table read plus integer equality, stated D11-legal in copy_identity.rs.",
+    "D23": "Violates as built: the mixture uses softmax(z) and the pointer attention is a softmax over admitted sources (geometric_stack.rs, ROUTE_SHARPNESS comment); eras.md era-28 records that it 'used softmax and could not be served'.",
+    "D30": "The pointer sits inside a dense float stack and its score is a dot product, so it is not matmul-free as built.",
+    "D32_D37": "Not on the D32 discrete path (no pointer there). D37 permits an offline float re-registration in a separately scanned module with an integer export and reported gap; nothing is released."
+  },
+  "experiments": [
+    {"date": "undated", "record": "docs/native_geometric_correspondence_973.md", "configuration": "Sept native_geometric engine: ordered occurrence correspondence between query and source words, authored panels", "result": "Passed its gate while preserving all earlier traces and matched controls; the same engine's Copy of exact occurrences is the pointer ancestor", "verdict": "positive", "numbers": "6,304/6,304 earlier traces preserved"},
+    {"date": "2026-09-21", "record": "docs/integration/relational-session-result-2026-09-21.md", "configuration": "Typed session runner over exact owned spans, development-exposed panels (grounded session: docs/integration/grounded-session-result-2026-09-21.md)", "result": "Primary answers and observed-type policy rose on development; exposed component evidence, not language qualification", "verdict": "positive", "numbers": "128/128 primary answers; observed-type policy 64 -> 128; grounded session reproduces 672 development transitions and answers 4 of 4"},
+    {"date": "2026-09-22", "record": "docs/integration/ordinary-form-argument-binding-result-2026-09-22.md", "configuration": "Learned joint span and role decoder with exact cross-BPE joins for ordinary question forms", "result": "Final answers correct; H4 and categorical arms tie, so the geometry is not credited", "verdict": "positive", "numbers": "24/24 final answers"},
+    {"date": "2026-09-23", "record": "docs/integration/ordinary-lexical-result-2026-09-23.md", "configuration": "One Generate/Copy/Stop served model; formulation record docs/integration/ordinary-lexical-formulation-result-2026-09-23.md", "result": "Authored temporal preflight passes; prose and copy-feedback claims were later narrowed; removing grounded rehearsal cut served prose loss while the count reference still wins", "verdict": "positive", "numbers": "32/32 authored preflight; prose loss 7.37 -> 6.68 bits/target"},
+    {"date": "2026-09-24", "record": "docs/integration/matched-span-copy-length-result-2026-09-24.md", "configuration": "Native Copy span cap 8 vs cap 3 on matched data", "result": "Cap 8 beats cap 3; the copy-then-stop failure is diagnosed as a missing terminal Stop decision", "verdict": "inconclusive", "numbers": "no count in the catalog excerpt"},
+    {"date": "2026-09-27", "record": "docs/integration/emission-selection-diagnostic-result-2026-09-27.md", "configuration": "Parity and witness diagnostic on the emission selection policy", "result": "Exact parity; departures point to the selection policy, prose verdict unchanged", "verdict": "positive", "numbers": "8 departures plus 2 near-ties among 12 witnesses"},
+    {"date": "2026-10-01", "record": "docs/integration/log-sieve-retrieval-design-2026-10-01.md", "configuration": "D18 A1 pre-registered arms (P, P+ptr, T, C) on MQAR distances 16/64/200, quoted from #1552", "result": "No read without a pointer head retrieved; pointer arms learned to copy the latest stated value, matching the untrained recency rule, and their misses are wrong-key answers", "verdict": "negative", "numbers": "MQAR 1/109 without a pointer; pointer arms 0.28-0.44, falling about as 1/N; untrained R-recency 0.36"},
+    {"date": "2026-10-01", "record": "docs/integration/geometric-attention-latch-2026-10-01.md", "configuration": "Native integer attention with capture-credit Held models vs same-parameter Local controls (binding record: docs/integration/geometric-attention-binding-2026-10-01.md)", "result": "Answer-only and direct-credit arms fail; capture-credit Held models answer everything; predecessor-identity carry repairs query-to-occurrence association on authored key-value tasks", "verdict": "positive", "numbers": "128 of 128 answers for capture-credit Held models; Local controls do not"},
+    {"date": "2026-10-03", "record": "docs/integration/geometric-final-prefix-audit-2026-10-03.md", "configuration": "Zero-update audit of the final native artifact's Copy targets (source-learning boundary record: docs/integration/geometric-source-learning-2026-10-03.md)", "result": "Most Copy targets lose to another Copy action, so stop or period tuning cannot repair them; the 64-update hybrid fit was not admitted because raw source lacked 60 of 114 target tokens", "verdict": "negative", "numbers": "54 of 74 Copy targets lose to another Copy action; 4/20 complete answers; source boundary missing 60 of 114 target tokens"},
+    {"date": "2026-10-05", "record": "docs/integration/geometric-source-end-2026-10-05.md", "configuration": "Learned Period and Stop potentials on a bounded supplied-record panel; one native refinement round (docs/integration/geometric-source-end-native-refinement-2026-10-05.md)", "result": "Fresh complete replies rose; query pairs stayed at zero", "verdict": "positive", "numbers": "fresh complete 3 -> 8 of 32; refinement 7 -> 9 of 32, development 92 -> 96 of 128; query pairs 0/16"},
+    {"date": "2026-10-09", "record": "docs/labs/pointer-selected-ids-decode-2026-10-09/README.md", "configuration": "Diagnostic series on the 29M v5 chat artifact's copy pointer over 13 numeric memory rows: positional read, selected-id decode, mass read, reader/emitter split", "result": "The pointer attends the repeated sentence frame (a bare space token) and almost never the changing digits; most failing rows are reader faults, a few emitter faults. Mass read validated against the decoder 166/166 steps", "verdict": "positive", "numbers": "second digit selected on 0/13 rows, first digit on 3/13; bare-space id 223 attention 0.9202 / 0.9064; split READER 10, EMITTER 2, PARTIAL 1; word rows with value above frame 21/27 vs numeric 0/13; copy mass 0.60-0.90 on 3 rows, 0.20 or less on 10"},
+    {"date": "2026-10-09", "record": "docs/labs/inference-path-fix-result-2026-10-09/README.md", "configuration": "Serving-time knobs TopK(2) pointer selection plus gate floor 0.9 on unchanged weights, 13-row memory cluster", "result": "Missed the pre-declared target; no weights changed", "verdict": "negative", "numbers": "both stored digits selected on 0/13 (control) -> 3/13 (treatment); target 13/13; control reproduces sealed replies 13/13"},
+    {"date": "2026-10-09", "record": "docs/labs/token-identity-stop-open-population-2026-10-09/README.md", "configuration": "Token-identity copy stop at gate floor 0.5 on the 84-cell never-seen-value pointer panel (arm-ptr); related span-extraction read-out record docs/labs/span-extraction-2026-10-09/README.md", "result": "72/84 exact recall; the remaining misses cannot be fixed by relaxing the rule because the opened span emits the whole premise sentence; the mid-reply pointer-locked-run read-out locks one token early", "verdict": "diagnostic-stop", "numbers": "72/84 = 0.8571 (Wilson 0.7667-0.9163); 2x2: fires 20 exact / 3 not, does not fire 52 / 9; run opened but never fired 8/9; span extraction fitted mode 77/84, p = 0.0625"},
+    {"date": "2026-10-09", "record": "docs/labs/v5-declared-acceptance-2026-10-09/README.md", "configuration": "29M copy-pointer dialogue stack with no memory operator on the frozen v5 memory panel, one-shot declared test", "result": "Missed by 24 rows; a constant beat it on the abstention half; v5 becomes development evidence", "verdict": "negative", "numbers": "10/40 memory vs target at least 34/40; 1/24 unknowable; 11/64 whole panel"},
+    {"date": "2026-10-10", "record": "docs/labs/pointer-gate-finetune-2026-10-10/README.md", "configuration": "pointer_gate_supervision W=0.1 and 0.5 on chat-29m-B with a 55% recall mixture, one seed per arm", "result": "Memory doubled and the open-chat panel fell, but a no-supervision control did as well: the data mix, not the gate, caused both", "verdict": "negative", "numbers": "memory 10 -> 21/40 (S) vs 22/40 (C), p = 1.00; open reply 43 -> 28/232 (S), 22/232 (C)"},
+    {"date": "2026-10-10", "record": "docs/labs/pointer-identity-2026-10-10/README.md", "configuration": "pointer_identity 0.25 and 1.0 token-overlap term keyed on the six tokens around the value, chat-29m-B, mix-10 store, one seed per arm", "result": "Wrong-value errors fell but memory did not; keyed on the context preceding the value rather than the slot's name, so the pointer line was archived under the three-negatives rule and later reopened by D22", "verdict": "negative", "numbers": "wrong-value 17 -> 16 -> 12 of 40; memory 19/40 vs 20/40 anchor; dev hit rate 0.003 at identity 1.0"},
+    {"date": "2026-10-10", "record": "docs/labs/ptr-addr-2026-10-10/README.md", "configuration": "One-atom prime-ranked pointer route (pointer_route=prime-ranked:1, identity off), 2,000 steps on mix-10, three data orders vs learned-key control D10", "result": "An exact entity-address key raised the hit rate at no likelihood cost, but answers did not improve; the pre-registered bar (wrong-value at most 12 and memory at least 25/40 on all seeds) was not met", "verdict": "negative", "numbers": "dev hit 0.377 -> 0.5452 at reachability 0.668; memory 19/21/23 vs 20/40; wrong-value 17/15/9 vs 17; BPB 1.17387/1.16947/1.17109 vs anchor 1.17425"},
+    {"date": "2026-10-10", "record": "docs/labs/mixture-dose-2026-10-10/README.md", "configuration": "Recall-mixture doses 10/25/55 percent on the chat-29m-B base", "result": "10 percent doubled memory without hurting replies, abstention needed 25 percent and cost replies; missed the keep bar by one row", "verdict": "negative", "numbers": "D10: memory 20/40, reply 37/232 (p=0.42 vs base 43/232); D25 unknowable 15/24"},
+    {"date": "2026-10-11", "record": "docs/labs/answer-path-2026-10-11/README.md", "configuration": "Four serving-time tests on one model (23/40 normal): copy head off, facts removed, copy forced to half mixture", "result": "Answers come from the attention read over context, not the copy head: turning the copy head off costs one row", "verdict": "positive", "numbers": "normal 23/40; copy head off 22/40; facts removed 0/40; copy forced to half 7/40"},
+    {"date": "2026-10-12", "record": "docs/labs/copy-span-oracle-2026-10-12/README.md", "configuration": "Serving-time switch replacing the pointer's attention with a uniform distribution over a supplied answer span (the forced-copy oracle's attention half)", "result": "Instrument built and unit-tested; the N/O1/O2 run on the bound artifact was not done", "verdict": "blocked", "numbers": "training library tests 919 passed, 0 failed; oracle-off must reproduce 23/40 exactly (not yet run)"}
+  ],
+  "never_tested": [
+    "The forced-copy oracle on a bound artifact (supply the true slot or span and see whether answers follow); named as the cheapest decisive test and still never run (docs/labs/kimi-direction-2026-10-12/README.md section 4 item 5).",
+    "A pointer keyed on the slot's name (entity prime times attribute prime) written when the fact is stated, as opposed to the six tokens around the value or a one-atom window.",
+    "Admitting a whole value span (the full two-digit run) rather than one token.",
+    "Exact admission plus learned ranking (ranked: true) over addresses.",
+    "Any pointer on the D32 discrete path or with a softmax-free copy distribution.",
+    "An integer-served pointer routed by gcd, with the export gap measured.",
+    "A run of at least 3 seeds and 120 memory rows: every pointer run was one fine-tune of one 29M chat artifact on a 40-row panel (plus three data orders in ptr-addr)."
+  ],
+  "failed_only_on_configuration": [
+    "pointer_identity 0.25 and 1.0 (hit 0.003): the key was the six tokens before the source versus before the query, not the slot's name; D22 reopened it for exactly this reason.",
+    "ptr-addr one-atom prime route: a raised hit rate with unchanged answers, but the pointer branch carries only about 6 percent of the mixture (answer-path record), so the read-outs measured a minor branch; the bottleneck is after the source is found.",
+    "Gate-supervision fine-tune: a control with no supervision reached 22/40, so the result says nothing about the pointer.",
+    "Inference-path knobs (TopK(2), floor 0.9) on unchanged weights: a two-setting decode change, not a trained key.",
+    "v5 declared acceptance 10/40: the artifact had no memory operator at all.",
+    "Span-extraction read-out: a re-tuning of where to start reading the answer, not a key."
+  ],
+  "open_questions": [
+    "Should the key be entity prime times attribute prime, written when the fact is stated?",
+    "Should a value span be admitted whole rather than one token?",
+    "If the answer path is the read (answer-path and head-ablation records), is a separate pointer the right place for the key, or should the key act on the read itself?",
+    "Can an exact admission with a rank-table copy distribution close the gap that the softmax pointer left, with no served-model change?",
+    "Is the 6 percent mixture branch the reason the pointer measurements never moved the headline?"
+  ],
+  "evidence": [
+    "docs/mechanisms/pointer-identity-key.md",
+    "docs/labs/ptr-addr-2026-10-10/README.md",
+    "docs/labs/pointer-identity-2026-10-10/README.md",
+    "docs/labs/pointer-gate-finetune-2026-10-10/README.md",
+    "docs/labs/pointer-selected-ids-decode-2026-10-09/README.md",
+    "docs/labs/pcopy-mass-read-2026-10-09/README.md",
+    "docs/labs/pcopy-posread-2026-10-09/README.md",
+    "docs/labs/numeric-pointer-split-2026-10-09/README.md",
+    "docs/labs/token-identity-stop-open-population-2026-10-09/README.md",
+    "docs/labs/answer-path-2026-10-11/README.md",
+    "docs/labs/copy-span-oracle-2026-10-12/README.md",
+    "docs/labs/kimi-direction-2026-10-12/README.md",
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/integration/log-sieve-retrieval-design-2026-10-01.md",
+    "docs/integration/DECISIONS.md (D18, D21, D22 section 5(d), D23, D30, D37)"
+  ],
+  "related": [
+    "exact-memory: the store whose slot address the pointer is meant to use as its key",
+    "read-binding: steers the attention read toward the bound value; the answer path turned out to be that read, not the copy head",
+    "route-read: a different way to read by address (the D32 discrete Route), no copy mixture",
+    "relation-read: the D34 copy-successor capability is the pointer's native-substrate analogue",
+    "prime-zeta-codebook: the prime registry behind gcd and n-let admission",
+    "tokenizer: multi-digit values have no multi-digit tokens (0 pure multi-digit tokens in the 4096 vocabulary), which interacts with copy"
+  ],
+  "figure_ideas": [
+    "A short passage 'My locker is 47 ... What is my locker?' with a bar above every token showing the pointer's attention: one tall bar (0.92) on a bare space token in the repeated frame and almost nothing on '4' and '7'; beside it the same passage with all mass forced onto the two digits (the oracle).",
+    "Two linked dials across the three ptr-addr seeds: pointer hit rate rising from 0.377 to 0.5452 while memory score stays at 19, 21, 23 of 40 beside the control's 20, showing the answers do not follow the hit rate.",
+    "A 13-row reader-versus-emitter sorting board: 10 rows stop at 'never selected the digit', 2 at 'selected but not emitted', 1 partial."
+  ]
+}

@@ -1,0 +1,255 @@
+{
+  "id": "prime-zeta-codebook",
+  "canonical_name": "Prime-zeta codebook",
+  "aliases": [
+    "prime-rank indexing + zeta-phase routing",
+    "prime-zeta complex routing",
+    "PrimeZeta constructor (CodebookMode::PrimeZeta)",
+    "P8 (the PrimeZeta arm in the 2026-10-19 pre-flights)",
+    "pinned_table_v1 / uor-r4.codebook-table/1 (the loader that carries it)",
+    "complex-plane zeta-zero exception (D32 Oct 14 addendum)",
+    "historical ancestors: prime router, prime-route attention, 16-window zeta projection, phase-clock Design P"
+  ],
+  "plain_what": "Gives every word in the vocabulary a unique, fixed starting address built from its prime number (2, 3, 5, ...) and the phases of the Riemann zeta zeros. It is computed once, offline, and stored as a plain table of small integers. It replaces the random starting vectors, which had only 16 distinct values for 4,096 words.",
+  "replaces": "embedding",
+  "how_it_works": "Token v gets prime p = p_(id(v)+1), so the vocabulary maps one-to-one onto the first V primes (p_4096 = 38873). For each of the first 512 pinned zeta-zero ordinates gamma_k the phase is theta_k(p) = gamma_k * ln(p) mod 2*pi, the unit phasor z_k = cos(theta_k) + i sin(theta_k). Four consecutive channels per 8-D block form a vector in C^4, split into two C^2->R^4 spinor pairs, quantized to integers (PhaseQ29, UnitS3Q30), and embedded in the four orthogonal 2-D root planes of the 16-root E8 orbit. Each block takes the orbit root with the largest exact integer inner product. The writer cell of a token is the pair (root of block 0, root of last block), a 16 x 16 = 256 cell grid. A quota pass puts exactly V/256 = 16 tokens in each cell, and a uniqueness pass gives interior blocks distinct roots so all 4,096 full vectors differ. Floating point (ln, sin, cos) is confined to this one-time host step (D32 Oct 14 exception). The output is an integer table loaded as Snapshot.table by Device::from_snapshot, and every word is admitted as a root on the GPU. Two matched nulls share the same pipeline: TangentNull shifts every gamma_k by 1.0, NormalNull permutes the primes and distorts off the critical line.",
+  "geometry": "Primes (prime-rank bijection), Riemann zeta-zero ordinates on the critical line (phasors), C^4->R^4 and C^8->R^8 realification, unit quaternions on S^3 (Q30), the 16-root E8 orbit and its four orthogonal 2-D root planes, 16 x 16 writer cell grid. Fixed-width integer table; no learned parameters.",
+  "code": [
+    {
+      "path": "crates/uor-r4-discrete/src/prime_zeta.rs",
+      "role": "Standalone host-side constructor: first_n_primes, PhaseQ29, UnitS3Q30, generate_codebook with the cell quota and uniqueness pass, TangentNull and NormalNull, compare_codebooks, verify_zero_float_ptx"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/bin/prime-zeta-qualify.rs",
+      "role": "Construction qualification binary: host-verify, CUDA qualify, controls C18..C23"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/bin/prime-zeta-codebook.rs",
+      "role": "Exports the constructor's table (or a matched null) as uor-r4.codebook-table/1"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/training.rs",
+      "role": "DriverConfig.codebook_initialization = pinned_table_v1, CodebookTable::load, PreparedDriver::new_model replaces only the codebook, G-Init check at checkpoint 0"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/coverage_census.rs",
+      "role": "G-Cap instrument: distinct vectors, alias groups, DEV alias ceiling, tie mass"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "discrete_init (the xorshift default that gives only 16 patterns), token_cell, discrete_validate (status 6 refuses a non-root word)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/zeta_zeros.rs",
+      "role": "ZETA_ZEROS: 512 pinned Odlyzko ordinates, included by prime_zeta.rs without a runtime dependency on uor-r4-core"
+    },
+    {
+      "path": "crates/uor-r4-core/src/prime_route_attention.rs",
+      "role": "Core reference definitions of PhaseQ29, UnitS3Q30 and zeta_phase_delta; historical prime-route attention (#958)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/lib.rs",
+      "role": "get_word_vector: the retired continuous float zeta word-vector baseline"
+    },
+    {
+      "path": "docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md",
+      "role": "FIT pre-registration sheet for the construction qualification"
+    }
+  ],
+  "status": "ACTIVE",
+  "status_reason": "The qualified constructor and the pinned_table_v1 loader are on the current M1 path: PrimeZeta is the P8 baseline and the zero-mass fallback inside the A8 table. Trained attribution against the two nulls is NOT_RUN and held. Injectivity comes from the quota and uniqueness pass shared with both nulls, not from prime phases (docs/labs/prime-zeta-construction-2026-10-14/README.md).",
+  "reopen_conditions": [],
+  "rule_compat": {
+    "D11": "Compatible. The served artifact sees only an integer table (i32 root coordinates); no float and no multiplier at serving. All float work happens once, offline, on the host.",
+    "D23": "No softmax, sigmoid, tanh or other squashing anywhere in the construction. sin and cos are used only to build phasors.",
+    "D30": "No GEMM or dense matmul. Construction scores each token with a few exact 8-element integer inner products against 16 roots, once, on the host; the model only does table reads.",
+    "D32_D37": "Float is confined to the D32 October 14 complex-plane zeta-zero exception (gamma_k ln p, the phasors and the C^4->R^4 / C^8->R^8 maps), which D37 item 4 keeps as a separate rule. Everything downstream is integer, and admit_ptx found 0 float instructions in the 11-entry PTX."
+  },
+  "experiments": [
+    {
+      "date": "2026-06-10..2026-07-21",
+      "record": "local/renorm/audit/eras/eras.json (era-01)",
+      "configuration": "First prime router: sparse 512-dimension prime vectors plus hypervector algebra (#1, #6, #9)",
+      "result": "Structural PRs only; reviewers flagged panics and unbounded allocation; no model quality recorded",
+      "verdict": "inconclusive",
+      "numbers": "no benchmark numbers in #1-#10"
+    },
+    {
+      "date": "2026-07-28",
+      "record": "docs/prime_router_geometric_context_evidence.md",
+      "configuration": "Ancestor prime-router evidence: R4 angular state as a context carrier",
+      "result": "Reported angular routing and decodability, not token generation; not reproduced under this repository's gates",
+      "verdict": "inconclusive",
+      "numbers": "mod-12 decodability resolved to 1.0 on router-lineage trajectories only"
+    },
+    {
+      "date": "2026-07-27..2026-08-03",
+      "record": "docs/phase_clock_address_design.md; local/renorm/audit/eras/eras.json (era-05, #392)",
+      "configuration": "Design P: cyclic phase-clock digits on the zeta torus as an address channel for the graph-compiler store",
+      "result": "All rows fell below the shipped sign-signature row; phase channel retired in that store",
+      "verdict": "negative",
+      "numbers": "12.5-16.7% top-1 vs 34.7% for the shipped row A"
+    },
+    {
+      "date": "2026-08-03..2026-08-06",
+      "record": "docs/debanding_audit_434.md; local/renorm/audit/eras/eras.json (era-06, #440, #434)",
+      "configuration": "Zeta-grid retrieval headline re-examined; stored zeta state was banded to 32 of 512 coefficients",
+      "result": "The 0.89 MRR headline was a storage artifact: full-width vectors score 0.8948 and banding cost about 0.66 MRR. De-banding passed its three pre-declared conditions",
+      "verdict": "negative",
+      "numbers": "free top-1 8.17% full width vs 7.64% banded; anchor accuracy 11.4% vs 9.3%"
+    },
+    {
+      "date": "undated",
+      "record": "docs/zeta_projection_246.md",
+      "configuration": "16-window zeta projection (complex QR over sparse zeta-zero neighbourhoods) replacing a stub router projection (#246)",
+      "result": "Top-1 and MRR rose on a six-sentence fixture; the document states the delta is an empirical criterion, not a general retrieval guarantee",
+      "verdict": "inconclusive",
+      "numbers": "top-1 0.167 -> 1.000, MRR 0.444 -> 1.000 on 6 sentences / 6 queries"
+    },
+    {
+      "date": "2026-08-26",
+      "record": "docs/prime_route_attention_qualification_958.md",
+      "configuration": "Source-free fixed-zeta prime-route attention (#958): exact Z[phi], prime routes, ordered n-lets, fixed-zeta phase deltas, S3/Hopf fiber, torsion",
+      "result": "Terminal RETAIN_STORAGE_RECALL_ONLY. Source-free mechanics pass; product probe and teacher comparison NOT_RUN",
+      "verdict": "inconclusive",
+      "numbers": "stages 1-3 PASS, stages 4-5 NOT_RUN"
+    },
+    {
+      "date": "2026-08-26",
+      "record": "docs/prime_route_worker_canary_958.md",
+      "configuration": "Four-worker prime-route manifest compile versus single-worker output",
+      "result": "Substrate-scope gates PASS; says nothing about attention or generation",
+      "verdict": "positive",
+      "numbers": "32/32 exact reference matches; all 16 four-worker compiles used and peaked at four workers"
+    },
+    {
+      "date": "2026-09-05",
+      "record": "docs/native_geometric_occurrence_selection_973.md",
+      "configuration": "Native local-path occurrence selection comparing source and query H4 and fixed-zeta phase paths, with prime postings admitting candidates",
+      "result": "Prose first-token selection improved on a matched source; Rust exact generation stayed at 0/32. The zeta phase term was not isolated",
+      "verdict": "positive",
+      "numbers": "first-token 15/32 -> 20/32, exact prose 5/32 -> 6/32, Rust exact 0/32"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/geometric-toolbox-2026-09-28.md",
+      "configuration": "Review of prime/CRT exact addressing and fixed zeta-zero phase channels as predictive features",
+      "result": "No better than tabulation as predictive features; kept as exact identity and as a positional basis candidate",
+      "verdict": "negative",
+      "numbers": "no predictive gain recorded"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/a2-pilot-diagnosis-2026-10-14/README.md",
+      "configuration": "Diagnosis of the default xorshift initializer (the baseline PrimeZeta replaces)",
+      "result": "Symbolic analysis: low4(X(x)) coupling gives exactly 16 full-vector patterns, each shared by 256 token identities, for every seed at this shape",
+      "verdict": "diagnostic-stop",
+      "numbers": "16 patterns x 256 tokens; checkpoint-0 16 patterns / 16 cells"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/prime-zeta-construction-2026-10-14/README.md",
+      "configuration": "Host construction qualification and bounded CUDA construction controls (V4096 B4 and B2, seeds 0/1/2, two nulls), zero training",
+      "result": "Bit-exact across aarch64 and x86_64; 4,096 of 4,096 unique vectors, 256 of 256 cells; separates from both nulls; 17 base plus 6 PrimeZeta CUDA controls PASS with 0 applied updates",
+      "verdict": "positive",
+      "numbers": "table e9e03bcd...; PrimeZeta vs TangentNull 4090/4096 tokens differ, vs NormalNull 4096/4096; 0 float PTX instructions; pod cost about $0.13"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/injective-codebook-init-2026-10-18/README.md; docs/labs/coverage-census-2026-10-18/README.md",
+      "configuration": "PrimeZeta wired as pinned_table_v1 initializer; host coverage census on the 14,287-row DEV panel",
+      "result": "Aliasing removed at checkpoint 0 by construction; host check only, no GPU run of the pinned new_model path yet",
+      "verdict": "positive",
+      "numbers": "distinct vectors 16 -> 4,096; DEV alias ceiling 1,986 -> 14,287; predictable DEV targets 4 -> 674 of 674; tie mass 12,301 -> 0 rows"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+      "configuration": "Injective-attention pre-flight (zero updates) with the PrimeZeta table at K=8",
+      "result": "Aliasing fixed but tokens spread over all 256 cells, so only about 8/256 of target cells are admitted; B3_init gate failed, run not dispatched; INSTRUMENT_UNREACHABLE, not a mechanism negative",
+      "verdict": "diagnostic-stop",
+      "numbers": "B3_init(P_succ) 127/3,847 vs gate 500; full panel 427/14,287 (3.0%)"
+    }
+  ],
+  "never_tested": [
+    "Trained-in attribution: PrimeZeta vs TangentNull (delta 1.0) vs NormalNull vs a quota-only or PRNG injective control, at matched budget, with at least 2 seeds or at least 200 fresh rows, reporting admission, top-1/top-8, separated hinges and fresh transfer (docs/mechanisms/prime-zeta-complex-routing.md).",
+    "Whether prime-log zeta phases give neighbouring tokens any useful similarity. Construction assigns primes by token id, which is arbitrary, so the phases encode identity, not meaning; no test checks whether phase-near tokens behave alike.",
+    "Any language-level effect (loss, BPB, replies) of starting from PrimeZeta. Every PrimeZeta result is construction, census or zero-update admission.",
+    "Independent seeds: CodebookMode::PrimeZeta is a deterministic function of token id (seeds 0/1/2 give identical tables), so seed variance needs a declared orthogonal axis such as a channel offset or batch order.",
+    "Special-token handling (bos, eos, pad) with reserved small primes or fixed points.",
+    "Fixed zeta-phase channels trained into a position or phase encoding on the discrete stack (toolbox 'native port step 4')."
+  ],
+  "failed_only_on_configuration": [
+    "Design P phase-clock rows (#392): lost to a sign-signature row in the old graph-compiler store; says nothing about zeta phases in a token codebook on the D32 stack.",
+    "Zeta-grid 0.89 MRR (#440): a banded-storage artifact (banding cost about 0.66 MRR), not a verdict on zeta geometry.",
+    "Continuous float get_word_vector baseline: retired by D30/D32, not by a measured failure.",
+    "P8 B3_init 127/3,847: uniform placement over 256 cells at K=8 cannot admit enough targets (about 8/256). This closes 'spread tokens evenly at K=8', which the pre-flight itself calls instrument reachability (sheet line S:59), not the prime-zeta mechanism.",
+    "Prime-route attention (#958) RETAIN_STORAGE_RECALL_ONLY: the product probe never ran, so no product-level verdict exists either way.",
+    "Toolbox 'no predictive gain as a feature': a September float-feature comparison against tabulation, not a trained-in test inside the D32 writer."
+  ],
+  "open_questions": [
+    "How much of any admission change comes from uniform 256-cell coverage and uniqueness (shared with both nulls) versus the prime-zeta root ranking itself?",
+    "Which orthogonal axis supplies seed diversity for primary PrimeZeta runs?",
+    "Do structural tokens deserve reserved primes or geometric fixed points?",
+    "Now that A8 places tokens by TRAIN predecessors, is PrimeZeta still worth keeping as the zero-mass fallback, or does a random injective null do the same job?",
+    "Is the four-channels-per-block C^4 packing the right use of the zeta zeros, or would a different pairing of channels to root planes change anything measurable?"
+  ],
+  "evidence": [
+    "docs/mechanisms/prime-zeta-complex-routing.md",
+    "docs/labs/prime-zeta-construction-2026-10-14/README.md",
+    "docs/labs/prime-zeta-construction-2026-10-14/receipts/prime-zeta-qualification.json",
+    "docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md",
+    "docs/labs/injective-codebook-init-2026-10-18/README.md",
+    "docs/labs/coverage-census-2026-10-18/README.md",
+    "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+    "docs/labs/a2-pilot-diagnosis-2026-10-14/README.md",
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/labs/course-correction-2026-10-18/audits/mechanism-census.md",
+    "docs/integration/DECISIONS.md (D32 October 14 addendum, D37 item 4, D39 item 3)",
+    "docs/prime_route_attention_qualification_958.md",
+    "docs/integration/geometric-toolbox-2026-09-28.md"
+  ],
+  "related": [
+    {
+      "id": "address-cells",
+      "how": "Builds on this: A8 reuses the same writer-cell grid and falls back to the PrimeZeta cell for tokens with no placed predecessors; P8 is its baseline arm."
+    },
+    {
+      "id": "discrete-learning",
+      "how": "The training driver loads this table as its starting codebook through pinned_table_v1."
+    },
+    {
+      "id": "admission",
+      "how": "G-Cap and B3_init gates were created because this table exposed that spreading over 256 cells starves admission."
+    },
+    {
+      "id": "spiralcore-fbs",
+      "how": "Supplies the E8 orbit roots and the 64-state transport the table is placed on."
+    },
+    {
+      "id": "exact-memory",
+      "how": "Shares the prime registry idea: primes as exact identity keys (gcd sieve, semiprime experts) versus primes as phase generators here."
+    },
+    {
+      "id": "hopf-observation",
+      "how": "UnitS3Q30 points and the Hopf fibre helpers sit in the same core file (prime_route_attention.rs); the discrete table uses S^3 points but not the Hopf map."
+    },
+    {
+      "id": "route-read",
+      "how": "Reads that consume the table's addresses at checkpoint 0."
+    },
+    {
+      "id": "flock-read",
+      "how": "Same: the flock consensus ranks context leaves by frame-root proximity over these root labels."
+    },
+    {
+      "id": "relation-read",
+      "how": "The Relation arm of the A8 dose started from this lineage of tables."
+    }
+  ],
+  "figure_ideas": [
+    "A prime ladder (2, 3, 5, 7, ... on a log axis) feeding eight small clock dials, one per zeta zero. As you slide a token's prime up, each dial's hand rotates by gamma_k times ln p. An arrow then drops the token onto a 16 x 16 board of writer cells and the dot jumps to its cell, with 16 dots stacking up in each cell. (Static art already exists at docs/figures/geometry/zeta-phases.svg and prime-addressing.svg to animate.)",
+    "Before and after for 4,096 tokens drawn as dots. Left (default xorshift): the dots collapse into 16 piles of 256 and a caption shows that ties go to the lowest token id, so only one dot per pile can ever win. Right (PrimeZeta): 256 cells with 16 dots each, every dot distinct. A counter animates 16 -> 4,096 distinct vectors and 1,986 -> 14,287 reachable DEV rows.",
+    "Three-panel control comparison: the same ten tokens placed by PrimeZeta, TangentNull (all gamma shifted by 1.0) and NormalNull (primes shuffled). Lines connect each token's cell across panels to show that 4,090 to 4,096 of 4,096 tokens move, so the nulls are genuinely different tables."
+  ]
+}

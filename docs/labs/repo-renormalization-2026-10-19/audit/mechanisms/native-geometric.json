@@ -1,0 +1,332 @@
+{
+  "id": "native-geometric",
+  "canonical_name": "Native geometric engine (Line B: typed values, version chains, grounded replies)",
+  "aliases": [
+    "native_geometric",
+    "Line B native learner",
+    "r4 geometric",
+    "version-intent chain learner",
+    "Copy / Add / Stop typed selector",
+    "native H4/Q4 source realizer",
+    "cross-state continuation (M2)",
+    "native pooled-token ranking",
+    "native lattice learner (19 September ancestor)"
+  ],
+  "plain_what": "A small language model written from scratch in Rust that treats words as exact prime-number addresses and keeps its memory as rotations in four-dimensional geometry. It learns which earlier word or number to copy, add or stop on, and which version of a changing fact to read. It answered authored questions exactly but never wrote free prose.",
+  "replaces": "whole-model engine",
+  "how_it_works": "Each token has a full prime address and ordered two-prime keys name contexts. Eight fixed zeta-zero phase channels, compiled to 16-bit turns, give position-like phases. A window of recent tokens is folded in order into exact H4 (icosian) coordinates with exact Z[phi] sums, signed chirality and bounded eviction. A readout of conditional score tables plus seven gated feature groups (coefficients quantised in eighths, bounded shift-add) predicts the next piece. On top sit small learned selector tables, each fitted on constructed families: which source occurrence to read, whether to write an exact owner-value relation (sixteen versions kept), whether to Copy, Add or Stop on typed numeric literals, how deep to read, and which version intent (initial, previous or current) to follow along a validated chain, abstaining when a chain is truncated. A shared geometric writer emits the answer. In October the same line trained Q4 'cross-state' coefficients over categorical H4 banks (Context, Prefix, Generate) with exact integer scoring and a pooled-token ranking objective, reaching 437 of 512 complete replies on its exposed development panel. Exact occurrence and version identity stays separate from geometric addresses, and digests are never used as semantic features. Training used floating point; serving executes the quantised integer scores. The preserved source is excluded from the current build by cfg(any()) and the native_support.rs facade.",
+  "geometry": "Prime registry and ordered n-lets; fixed zeta-zero phase channels; H4/icosian (R4/S3) window fold; exact Z[phi] arithmetic; chirality and cosine polarity; Hopf S3-to-S2 observation with the fibre kept explicitly; 120-root leaf assignment (prime modulo 120); Q4 coefficient grids over categorical H4 action banks; exact E8 transport and retained-state copy credit in the October source.",
+  "code": [
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/mod.rs",
+      "role": "Preserved Sept engine, about 62,943 lines across the directory: prime registry, relations, version intents, learned routing, typed operators"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_support.rs",
+      "role": "Selected-build facade; maps native_geometric to native_geometric/native_support.rs so the historical engine is excluded (20 lines)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/relation.rs",
+      "role": "Exact relation writes and reads, sixteen versions and a current directory"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/historical_version_intent.rs",
+      "role": "Learned selector for initial / previous / current version along validated chains"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/operation_transition.rs",
+      "role": "Learned Stop/Add selector that chains numeric operations"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/numeral.rs",
+      "role": "Numeral codec: digit tokens to one ordered typed value"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/durable_memory.rs",
+      "role": "Durable memory and sessions for the engine"
+    },
+    {
+      "path": "src/native_geometric_cli.rs",
+      "role": "Root r4 geometric command: prepare, fit, evaluate, generate (also native_geometric_service.rs loopback workbench)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/geometric_read.rs",
+      "role": "October Line B read, context, prefix and generate learning modules (geometric_context.rs, geometric_generate_learning.rs, geometric_value_*.rs, geometric_source_realizer.rs); all cfg(any()) in lib.rs"
+    },
+    {
+      "path": "crates/uor-r4-training/src/native_geometric_cuda_kernels.rs",
+      "role": "Line B CUDA kernels; the 14-kernel native context module and 1-kernel selected-potential module were quarantined by D29"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/geometric_context_q4.rs",
+      "role": "Integer Q4 scorers for the October line (geometric_*_q4.rs); excluded from the native selected build"
+    },
+    {
+      "path": "crates/uor-r4-training/src/native_vector_writer.rs",
+      "role": "Shared integer vector writer module compiled in the current training crate; the AGENTS.md one-writer requirement applies to this line and the discrete path alike"
+    }
+  ],
+  "status": "PARKED",
+  "status_reason": "PARKED: authored-panel passes never reached prose (eras 18-19: generated prose 0/5), M2 437/512 collapsed to 0/128 on fresh rows (docs/labs/m2-fresh-437-2026-10-10/README.md), its pooled-ranking objective uses softplus/exp (D23/D25), and Line B kernels were quarantined by D29. The one-exact-writer idea lives on in the discrete path.",
+  "reopen_conditions": [
+    "The owner lifts the separate M2 training/rental hold and a new pre-registration with TEST FITNESS: FIT replaces the softplus/exp pooled ranking with a lawful rank-margin hinge (D23/D25) and runs on the GPU in its own scanned module (D37).",
+    "The decisive panel is a genuinely unexposed draw of at least 200 fresh rows or at least 2 seeds (D22), not the 512-row development panel that was fit.",
+    "The quarantined native-context and selected-potential kernels are rebuilt without the hidden dense contraction and re-qualified (D29 correction in docs/labs/d29-module-split-2026-10-13/README.md).",
+    "Line B is joined to the shared integer vector writer so the compiler/emitter path and the language path use one geometric representation (AGENTS.md owner clarification).",
+    "The relation-read reranker (D34) produces a result that needs exact multi-version identity memory; that is the natural route back for the version-chain selectors."
+  ],
+  "rule_compat": {
+    "D11": "Partly. The engine's own scores are quantised integers executed with bounded shift/add, and it ships an integer realizer that ran source-free in a restricted chroot (28 replies, 178 actions reproduced). Host tokenization, fitting and reports use floating point, and no complete-binary D11 audit of the native engine is recorded.",
+    "D23": "Non-compliant in the M2 line. The pooled-token ranking loss is softplus of a log mass ratio with log-sum-exp episode weighting and softmax(ell) token weights (docs/labs/m2-pooled-rank-2026-10-10/README.md); the Sept engine's f64 softmax sampler was flagged in 1284. D23 and D25 made the path non-compliant for new runs.",
+    "D30": "Unclear for the Sept engine: its fitting was table search with host floating point, and offline matmul was then permitted (docs/native_geometric_workflow.md). D29 quarantined the Line B native-context (14 kernels) and selected-potential (1 kernel) modules after a hidden dense contraction was found. October Line B added CUDA integer scoring; no GPU-only fitting path for the Sept engine appears in the records read.",
+    "D32_D37": "Offline float learning with straight-through gradients over Q4 coefficients would be legal under D37 once its objective is lawful and its module is separately scanned; the discrete path (crates/uor-r4-discrete) supersedes it for the active model. Export gap is built in (Q4) but never reported against a float score."
+  },
+  "experiments": [
+    {
+      "date": "2026-09-04",
+      "record": "docs/native_geometric_recovery_973.md",
+      "configuration": "First native Rust geometric model after the owner-directed recovery: prime lexical identities, zeta phases, H4 fold, fixed geometric readout",
+      "result": "The fixed geometric readout was far worse than the same model with geometry switched off; the learned readout was added next.",
+      "verdict": "negative",
+      "numbers": "0.13-0.23% next-piece accuracy with the fixed geometric readout vs 21.5% with geometry disabled"
+    },
+    {
+      "date": "2026-09-05",
+      "record": "docs/native_geometric_relation_admission_1139.md",
+      "configuration": "Exact-guarded NoWrite shortcuts in the relation writer on a representative prompt",
+      "result": "Writer work cut by more than 20x with identical writes; geometric superiority unestablished.",
+      "verdict": "positive",
+      "numbers": "writer score comparisons 2,054,052 -> 91,884"
+    },
+    {
+      "date": "2026-09-05",
+      "record": "docs/native_geometric_typed_value_973.md",
+      "configuration": "Learned typed numeric literals, checked Copy/Add and bounded numeral emission",
+      "result": "Numeric binding improved; complete responses and generated Rust still failed.",
+      "verdict": "positive",
+      "numbers": "no pass count in the one-line record; complete responses and generated Rust listed as failing"
+    },
+    {
+      "date": "2026-09-06",
+      "record": "docs/native_geometric_literal_selection_1139.md",
+      "configuration": "Shared literal extension on a single learned selector",
+      "result": "New numeric answers rose but earlier identifier copies regressed, so the parent was kept.",
+      "verdict": "negative",
+      "numbers": "new numeric answers 12/16; earlier identifier-copy cases 62/62 -> 60/62"
+    },
+    {
+      "date": "2026-09-07",
+      "record": "docs/native_geometric_literal_binding_1139.md",
+      "configuration": "Angular continuation for first-use operand binding versus equality continuation",
+      "result": "Angular continuation retained; equality continuation was not.",
+      "verdict": "positive",
+      "numbers": "16/16 on first-use operand cases vs parent 8/16; 630/631 construction; equality continuation 8/16"
+    },
+    {
+      "date": "2026-09-08",
+      "record": "docs/native_geometric_current_query_1140.md",
+      "configuration": "Bounded current-query scope after generated history; artifact ddc943f9",
+      "result": "Retained for its bounded scope; earlier rejected candidates are preserved. All 663 retained answers passed in the #1140 programme (era-14).",
+      "verdict": "positive",
+      "numbers": "255/255 construction, 48/48 open cases"
+    },
+    {
+      "date": "2026-09-10",
+      "record": "docs/native_geometric_historical_version_973.md",
+      "configuration": "Learned selector that chooses initial or previous version along validated ancestor chains; successor e3a906c8",
+      "result": "Passed construction, development and an independent fresh draw on authored data. The sibling truncated-history abstention selector was superseded by a 2026-09-10 review over reassertion regressions (docs/native_geometric_truncated_history_abstention_973.md).",
+      "verdict": "positive",
+      "numbers": "no pass count in the one-line record"
+    },
+    {
+      "date": "2026-09-12",
+      "record": "docs/native_geometric_independent_neighbor_973.md",
+      "configuration": "Fresh draw of learned unknown-neighbor role rules",
+      "result": "Systematic failure: every three-word name with an interior 'will' fails at the source-role key; the normal model stays unpromoted. A companion lexical-role record shows 'will' passes 0/24 while ordinary names pass 24/24.",
+      "verdict": "negative",
+      "numbers": "2,016/2,304 passed"
+    },
+    {
+      "date": "2026-09-12",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1229-adopt-shared-geometric-core-plan-and-record-failed-first-lea.md",
+      "configuration": "First predeclared shared-core experiment: one geometric core for H4 recurrence, bounded reads and byte/EOS emission",
+      "result": "Failed: held-out NLL gain below the requirement and byte/EOS accuracy fell.",
+      "verdict": "negative",
+      "numbers": "held-out NLL improved 1.425% vs required more than 2%; byte/EOS accuracy 2/249 -> 0/249"
+    },
+    {
+      "date": "2026-09-12",
+      "record": "docs/native_geometric_credit_assignment_973.md",
+      "configuration": "One-use interventions as credit signals for replacing a parameter",
+      "result": "Direction probe failed; the surrogate was rejected.",
+      "verdict": "negative",
+      "numbers": "0 of 8 proposed replacements improved the actual loss"
+    },
+    {
+      "date": "2026-09-12",
+      "record": "docs/native_geometric_block_learning_973.md",
+      "configuration": "Exhaustive block calibration, then a joint fit",
+      "result": "Calibration passed its gate, but the joint fit failed contextual transfer and generated incoherent text; not promoted.",
+      "verdict": "negative",
+      "numbers": "no count in the one-line record"
+    },
+    {
+      "date": "2026-09-12",
+      "record": "docs/native_geometric_dependent_language_973.md",
+      "configuration": "Two raw-language reads joined through recurrent state, with intervention families",
+      "result": "All open development answers passed; development evidence, not held-out.",
+      "verdict": "positive",
+      "numbers": "768/768 open development answers"
+    },
+    {
+      "date": "2026-09-13",
+      "record": "docs/native_geometric_context_decoder_refit_973.md",
+      "configuration": "Four decoder-refit cells on the native model",
+      "result": "All failed the development gate; refitting lowered probe loss but lost correct positions and continuations stayed incoherent.",
+      "verdict": "negative",
+      "numbers": "0 of 4 cells passed"
+    },
+    {
+      "date": "2026-09-19",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1284-stage-1-falsification-sweep-per-mechanism-ablation-attention.md",
+      "configuration": "Per-mechanism ablation of the native lattice learner (H4 600-cell trigram, Hamming leaves, skip-engrams, 4-head binary VSA attention), 2,048 teacher-forced positions",
+      "result": "JEPA block, s2 readout, engram and bias contribute; VSA attention is inert, the coarse lattice tier (64.2% of bytes) and lane tables are net-negative. The continuous training number overstated the shipped artifact.",
+      "verdict": "inconclusive",
+      "numbers": "baseline 1.8055 BPB; jepa +0.3743; s2_readout +0.3377; engram +0.2228; vsa -0.0007; lattice_coarse -0.0066; lanes -0.0071; continuous 1.2372 vs served 1.8055 (0.57 gap)"
+    },
+    {
+      "date": "2026-09-21",
+      "record": "docs/integration/shared-transition-result-2026-09-21.md",
+      "configuration": "H4 shared learned transitions against an additive C120 table and, after principal correction, a competent ordinary finite table",
+      "result": "H4 transitions beat the additive and cache controls but a corrected ordinary table matched or beat them; no H4 advantage. The shared recurrence was kept as a component.",
+      "verdict": "negative",
+      "numbers": "H4 186/288, 48/128, 10/64 vs corrected ordinary table 288/288, 124/128, 64/64"
+    },
+    {
+      "date": "2026-09-22",
+      "record": "docs/integration/transferable-lexical-result-2026-09-22.md",
+      "configuration": "Version-3 state-lexical artifact with typed causal observations",
+      "result": "Passed an exposed panel; the principal review limits it to an interface result, not language transfer.",
+      "verdict": "inconclusive",
+      "numbers": "31/31 on an exposed panel"
+    },
+    {
+      "date": "2026-09-27",
+      "record": "docs/integration/dialogue-child-native-observation-2026-09-27.md",
+      "configuration": "Hard native (integer) conversion of the selected dialogue child",
+      "result": "Conversion lost relations that the continuous child kept; preserved as diagnostic evidence, not promoted.",
+      "verdict": "negative",
+      "numbers": "no count in the one-line record"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/d6-information-audit-result-2026-09-28.md",
+      "configuration": "2I direction codes substituted for the dense read score in the native model (evaluation only, two identical runs)",
+      "result": "Rejected as address codes in this configuration; D12 later reopened trained-in 2I/E8 read codes.",
+      "verdict": "negative",
+      "numbers": "top read choice changed at 41-46% of positions"
+    },
+    {
+      "date": "2026-10-02",
+      "record": "docs/integration/geometric-value-q4-fit-2026-10-02.md",
+      "configuration": "Answer-only fit of strict 4-bit K2 value sources, 640 updates per seed, two seeds, 256 exposed panel rows each",
+      "result": "Recovered and passed the unrestricted parent on exposed development panels; no matched extra-dose control, so no benefit is attributed to geometry or quantization.",
+      "verdict": "positive",
+      "numbers": "479/512 vs 451 projection and 467 unrestricted parent; 24 gains and 12 losses vs parent"
+    },
+    {
+      "date": "2026-10-04",
+      "record": "docs/integration/native-source-realizer-runtime-2026-10-04.md",
+      "configuration": "Packed Copy/Period/Stop realizer run source-free in a restricted filesystem",
+      "result": "Source-free artifact fidelity established for that component and panel; no model adopted or retrained.",
+      "verdict": "positive",
+      "numbers": "4 initial reads and 28 own-prefix generations reproduced; 178 generated-step actions exact"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/m2-cross-state-2026-10-10/README.md",
+      "configuration": "Cross-state field reading factual memory state and reply-so-far state, then resumed training, bottleneck and rival-aware objectives (m2-cross-resume, m2-bottleneck, m2-bottleneck-resume); frozen 512-row development panel",
+      "result": "Complete correct replies climbed step by step with all earlier successes kept; every row is development-exposed.",
+      "verdict": "positive",
+      "numbers": "8 -> 22 -> 145 -> 175 -> 177 of 512 complete replies"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/m2-pooled-rank-2026-10-10/README.md",
+      "configuration": "Strongest-wrong-rival pooled-token ranking (softplus of log mass ratio) from the saved 177 model, 256 updates, fixed schedule",
+      "result": "Cleared the 256/512 development threshold with zero losses, but all 512 rows were exposed in training and the objective is now banned.",
+      "verdict": "positive",
+      "numbers": "177 -> 437 of 512; 260 gains, 0 losses; 75 replies still fail"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/m2-fresh-437-2026-10-10/README.md",
+      "configuration": "Single frozen fresh qualification of the saved 437 model: 128 unexposed role/value-bank combinations of familiar wording",
+      "result": "Development result was fitting, not transfer; fresh replies never completed (output-limit stops), and D22 treats this as a configuration closure.",
+      "verdict": "negative",
+      "numbers": "0/128 complete replies vs bar 52/128; development replay reproduces 437/512 exactly; 3 correct entry tokens"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/m2-reply-gradient-2026-10-10/README.md",
+      "configuration": "Ordinary-gradient reply recipes on the saved 8-reply model: all 512 answers (reply-gradient), 24 prototype examples (m2-prototype-reply), 24 joint-parameter examples (m2-joint-reply), 24 stratified answers (m2-stratified-reply), and four more passes from 145 (m2-cross-145)",
+      "result": "Every recipe damaged the working replies or gained none; stopped and preserved as negatives, which triggered the D21 pivot.",
+      "verdict": "negative",
+      "numbers": "reply-gradient kept 2 of 8; prototype 8 -> 4 of 512; joint 0/512; stratified kept 2 of 8; cross-145 145 -> 139 (7 gained, 13 lost)"
+    }
+  ],
+  "never_tested": [
+    "The native engine at matched capacity against an ordinary control: D12 records it was set aside at 1.68M parameters and never compared at matched capacity.",
+    "Free-running prose: continuous NLL improved but generated prose scored 0/5 per arm in the D8 ladder (era-19, #1398, in local/renorm/audit/eras/eras.md).",
+    "A genuinely fresh qualification of any M2 model after D22 criticism of the exposed panel: the only fresh draw scored 0/128 and no successor was run.",
+    "A lawful (rank-margin or hinge) objective for the cross-state banks.",
+    "GPU execution of the September engine: its fitting is recorded as host Rust; only the October line has CUDA scoring kernels.",
+    "Whether version-chain selectors transfer to free-form edited facts, rather than authored wordings.",
+    "A D11 instruction audit of the complete native engine binary."
+  ],
+  "failed_only_on_configuration": [
+    "437/512 -> 0/128: the 24-literal bank panel was fit during training and the fresh draw reused 15 of its literals; D22 section 4 reads it as panel fitting, a configuration failure, not a verdict on cross-state continuation.",
+    "The ordinary-gradient reply recipes (2 of 8, 4 of 512, 0/512): single-recipe failures on 24 to 512 examples at one learning rate, with a prototype or joint parameter family that destabilised working replies.",
+    "Shared-core experiment 1.425% vs 2%: one predeclared configuration of a 1.68M-parameter model.",
+    "Decoder refit, block learning and credit-assignment negatives: calibrations of particular heads in a small model, each preserved at its exact scope.",
+    "Shared H4 transitions 186/288 vs ordinary 288/288: the ordinary comparator was a finite table given the same supervision, so this tests a configuration of H4 transitions, not rotation as a mechanism.",
+    "Fixed geometric readout 0.13%: an unlearned readout; the learned readout replaced it.",
+    "Interior 'will' names: a context-word barrier localised at one key, with no repair attempted."
+  ],
+  "open_questions": [
+    "Which Line B ideas survive into the discrete path: the typed Copy/Add/Stop selector, version-intent chains, or the exact-relation writer?",
+    "Do exact version chains need a learned selector at all once the D19 object store holds exact records?",
+    "Can the cross-state field (reads both memory state and reply-so-far) be rebuilt as a SpiralCore read with a hinge objective and reach more than 0/128 fresh?",
+    "What did the 75 replies that never completed fail on, beyond output-limit stops?"
+  ],
+  "evidence": [
+    "docs/native_geometric_workflow.md",
+    "docs/native_geometric_mechanism_map_973.md",
+    "docs/native_geometric_recovery_973.md",
+    "docs/integration/model-direction-2026-09.md",
+    "docs/integration/recovery-2026-09-08.md",
+    "docs/labs/m2-pooled-rank-2026-10-10/README.md",
+    "docs/labs/m2-fresh-437-2026-10-10/README.md",
+    "docs/labs/d29-module-split-2026-10-13/README.md",
+    "docs/integration/DECISIONS.md (D12 item 3, D21, D22, D23, D29, D34)",
+    "local/renorm/audit/eras/eras.md (eras 13 to 19, 25, 29)"
+  ],
+  "related": [
+    "prime-zeta-codebook: prime addresses and fixed zeta phases first appeared here and were rebuilt as a qualified construction",
+    "relation-read: the exact-relation head is the reranker-first successor accepted in D34",
+    "exact-memory: version chains and relation writes are the exact memory ancestor",
+    "object-store: the D19 exact store takes over durable exact records",
+    "carrier-credit: the October unified carrier credit was built inside Line B",
+    "legal-construction: protected discrete construction was the Line B solver family",
+    "rank-margin: the lawful hinge that replaces the banned pooled softplus ranking",
+    "pointer-key and read-binding: copy-with-identity ideas that started here",
+    "hopf-observation: the Hopf map with retained fibre used here",
+    "discrete-learning: the active path that keeps Line B's single shared writer idea",
+    "geometric-stack: the learned float model that took over after the Sept ladder"
+  ],
+  "figure_ideas": [
+    "A version-chain picture: a fact (a locker number) edited three times, drawn as a chain of boxes with arrows; the learned selector points at 'initial', 'previous' or 'current' depending on the question, and abstains when the chain is cut.",
+    "The M2 ladder as a staircase from 8 to 22 to 145 to 177 to 437 of 512 on the development panel, with a trapdoor at the right end dropping to 0 of 128 on fresh rows, so a reader sees development is not transfer.",
+    "Word to address to rotation: a word becomes a prime, a window of words is folded into one icosian rotation drawn on a sphere, a Z[phi] bar shows the exact sum, and a small phase dial shows the eight fixed zeta phases."
+  ]
+}

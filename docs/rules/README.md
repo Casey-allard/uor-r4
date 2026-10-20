@@ -38,7 +38,7 @@ The charter's section 3 lists thirteen technical constraints. Here they are in e
 | 3.3 | No matrix multiplication | No dense matmul in training, evaluation, tooling or serving, including wrappers and hand-written loops. A geometric feed-forward block is allowed; a dense MLP is not. | Matmul is the cost the project exists to remove. |
 | 3.4 | Presence counts | Banned code may not sit in any compiled or loaded module. NVRTC (runtime GPU compilation) is banned. The checks `uor-harness ratchet d23` and `d25` only ever tighten. | Code that is present eventually runs. |
 | 3.5 | Research compute is GPU-only | Training, evaluation, qualification and reference runs use the GPU. Spend GPU only where a run can change a decision. | Host runs gave wrong timing and wrong evidence, and the GPU is where the speed is. |
-| 3.6 | Serving is integer, on your device | The shipped model uses no float, transcendental, multiplier or integer-divide instruction. Running it on a laptop CPU, in a browser (WebAssembly) or on Apple silicon is allowed, and so is measuring its speed and energy. | The product is fast local AI on ordinary hardware. |
+| 3.6 | Serving is integer, on your device | The shipped model uses no float, transcendental, multiplier or integer-divide instruction. Running it on a laptop CPU, in a browser (WebAssembly) or on Apple silicon is allowed, and so is measuring its speed and energy. Panel scoring, qualification and milestone evaluation of an exported artifact remain GPU research compute; only product serving and measuring its tokens/s and energy run on client devices. | The product is fast local AI on ordinary hardware. |
 | 3.7 | Float only offline, with an export gap | Float training is legal offline in a separately scanned module. Every float candidate reports how much accuracy it loses when exported to integers; a loss above the two-seed noise band disqualifies it. | Float trains faster, but only the integer artifact ships. |
 | 3.8 | Zeta exception | Float is allowed for complex-plane zeta-zero parts and prime log-phases. Everything downstream is discrete. | Zeta phases are complex numbers by nature. |
 | 3.9 | Efficiency is measured | Report sparse access, bytes per token, bounded candidates and exact memory together. | Unmeasured efficiency is not efficiency. |
@@ -56,7 +56,7 @@ A **lab** is any contributor, human or AI, working under the charter. The rules 
 **Labs may:**
 - Choose their own work from `NOW.md`, post a one-line intent note, claim a branch and carry on unless redirected (`CHARTER.md` §5.3).
 - Build, run finite kernel tests and run host checks without any pre-registration (§4.5).
-- Train in float offline and report the export gap (§3.7).
+- Train in float offline once a sheet, FIT and typed release exist (training is currently held; §3.7, §4.5, §5.1), and report the export gap on the same evaluator.
 - Serve the integer model on a user's device and measure it (§3.6).
 - Review their own pull request at the exact head, from a fresh context (§5.5), and use a fresh-context subagent as the non-author FIT reviewer (§4.5).
 

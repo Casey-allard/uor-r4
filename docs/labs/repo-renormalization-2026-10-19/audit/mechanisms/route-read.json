@@ -1,0 +1,265 @@
+{
+  "id": "route-read",
+  "canonical_name": "Routed read (address-routed context access)",
+  "aliases": [
+    "ReadSpec::Route",
+    "invariant-addressed read",
+    "spanning-tree router",
+    "route-native / prime-route attention",
+    "read_lineage (phase_bind, rot, carrier)",
+    "uor-r4-router (prime router)"
+  ],
+  "plain_what": "Instead of comparing the current word with every earlier word, the model sends a query down a small tree of geometric addresses and picks up the single earlier word sitting at the end of that path. It makes one hard choice per step by walking a tree, and never scores the whole history.",
+  "replaces": "attention",
+  "how_it_works": "Per 8-dimensional block b of the model width, the query is the integer vector at the last position. At each tree level the query is acted on by a learned signed-axis permutation (one of 64 group elements; coordinates are permuted and sign-flipped by table lookup). At level 0 the nearest of up to 16 frontier roots is chosen; at later levels the nearest of 3 children. Nearest means the smallest (L1 distance, coordinate Hamming, port id) to one of the 16 roots of a single E8 orbit. Each choice composes a precomputed BFS transport action between roots, so total = BFS[root -> goal] composed with total. The ternary BinderPlan tree built over the context ends in leaves that are earlier positions; the output is the accumulated action applied to the chosen leaf's carrier vector. Cost is levels x 16 comparisons, independent of how many earlier positions exist (context cap 243). Port selection never inspects which token a leaf holds, so content enters only through the query's geometry. Learning is discrete: each route parameter is tried against its 15 generator moves in a counterfactual forward pass, the best strictly improving move is applied, and nothing is differentiated. The output vector goes to the shared writer (see admission).",
+  "geometry": "One 16-root E8 orbit as the routing atlas; signed-axis action group of order 64; BFS transport tables between roots; SpiralCore ternary BinderPlan tree. Float-era forms used prime/UOR addresses, H4/binary-icosahedral (2I) roots, Hopf sectors, Lorentz scores and a spanning tree over cells.",
+  "code": [
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "route_vector kernel (lines 41-79): learned frame action, nearest-port descent of the ternary tree, BFS transport to a leaf; also the shared counterfactual/choose/apply kernels"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/lib.rs",
+      "role": "ReadSpec::{Route,Flock,Relation} enum, Parameter::Route(u32), spec validation, training hold"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/qualification.rs",
+      "role": "Finite exact CUDA construction controls for the Route model (11 controls)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/rows_device.rs",
+      "role": "Opt-in row-parallel counterfactual scoring used to train Route parameters (about 56x faster, identical losses)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/training.rs",
+      "role": "Corpus driver; schedule that gives Route parameters their (few) proposal slots"
+    },
+    {
+      "path": "crates/uor-r4-training/src/stack_address.rs",
+      "role": "Float-era cell/representative address primitive on which the spanning-tree router was to be built (dormant)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/geometric_address.rs",
+      "role": "Float-era signed-2I direct address reader (Oct 1 record)"
+    },
+    {
+      "path": "crates/uor-r4-router/src/lib.rs",
+      "role": "Legacy UorR4Router prime-router engine; does not build against current core (#2345), preserved as evidence"
+    }
+  ],
+  "status": "ACTIVE",
+  "status_reason": "ReadSpec::Route is the base read of every trained discrete artifact: rung-0 seed 1 (149 top-1 of 14,287) and the four K16 runs (docs/labs/k16-outcome-call-2026-10-19/README.md). But no read-off/read-on ablation exists and Route got only 20 proposals in 16,404 updates, so its contribution is unattributed (docs/labs/attention-state-2026-10-18/README.md).",
+  "reopen_conditions": [
+    "Float-era variants (spanning-tree router with tangent and normal nulls, read_lineage as addressing rather than scoring) are open but unregistered; they may be re-registered as an offline float sheet under D37 with a fresh FIT, a D11 integer export and a reported export gap.",
+    "A fair Route test needs a codebook whose addresses are distinct (injective or address-structured cells) so that a read can be judged at all.",
+    "A fair Route test needs a read-off/read-on ablation with enough read proposals in the schedule (an interleaved schedule or a dedicated Route stage)."
+  ],
+  "rule_compat": {
+    "D11": "Kernel uses table gather, sign flip, compare and integer add only (discrete.cu header comment); no float, no multiply in model values. The audited records contain no D11 served export or export-gap measurement for a trained discrete Route artifact.",
+    "D23": "Compliant: hard argmin by (L1, Hamming, port); no softmax, sigmoid, tanh or exponential anywhere in forward, objective or credit. The float-era Lorentz and M1 router configurations used a softmax read and were cancelled for it.",
+    "D30": "Compliant: no matmul or GEMM; the 8x8 'rotation' is a signed axis permutation read from a table.",
+    "D32_D37": "D32 integer, GPU-only, counterfactual move learning; training of the discrete path stays held except under separately released, owner-typed scoped runs (D40). D37 would allow a float-trained Route only as a new FIT'd pre-registration with a D11 export."
+  },
+  "experiments": [
+    {
+      "date": "2026-07-28",
+      "record": "docs/prime_router_geometric_context_evidence.md",
+      "configuration": "Ancestor prime-router (sparse prime vectors, angular routing) claims re-examined under this repo's gates",
+      "result": "Reported angular routing and decodability, not token generation; not reproduced under repo gates",
+      "verdict": "inconclusive",
+      "numbers": "no generation numbers"
+    },
+    {
+      "date": "2026-07-31",
+      "record": "docs/hopf_sector_occupancy_d3.md",
+      "configuration": "Held-out Hopf-sector routing on the D3 corpus",
+      "result": "Routing concentrated in a few sectors; a signed Hopf projection later raised occupancy (docs/hopf_projection_remediation_306.md), serving quality unmeasured",
+      "verdict": "negative",
+      "numbers": "7 of 512 sectors used vs a 64-sector reachable bound; remediation 7 -> 43 of 512"
+    },
+    {
+      "date": "2026-08-26",
+      "record": "docs/prime_route_attention_qualification_958.md",
+      "configuration": "Fixed-zeta prime-route attention, source-free qualification (ADR-0003)",
+      "result": "Address/manifest algebra and causal candidate selection mechanics pass; not shown to carry lexical or semantic value as attention. Terminal outcome RETAIN_STORAGE_RECALL_ONLY",
+      "verdict": "negative",
+      "numbers": "canary 32/32 exact matches; product probe and teacher comparison not run"
+    },
+    {
+      "date": "2026-08-27",
+      "record": "docs/local_geometric_attention_969.md",
+      "configuration": "Local causal R4/S3 path attention with H4 least-geodesic cost, two-unit decoded smoke",
+      "result": "Proceed to next stage; not a model result",
+      "verdict": "positive",
+      "numbers": "two-unit smoke only"
+    },
+    {
+      "date": "2026-08-27",
+      "record": "docs/recursive_geometric_attention_a1_952.md",
+      "configuration": "Recursive attention with additive last-child hierarchy summary",
+      "result": "Terminal negative: the additive summary cannot carry ordered state, though candidate reads are reachable",
+      "verdict": "negative",
+      "numbers": "none beyond the terminal verdict"
+    },
+    {
+      "date": "2026-09-13",
+      "record": "docs/native_geometric_addressed_attention_pilot_973.md",
+      "configuration": "Fixed 64-update pilot of learned addressed attention (full eight-phase path)",
+      "result": "Ran to completion; no useful generated answers; one correct symbol lost; development CE moved slightly",
+      "verdict": "negative",
+      "numbers": "64 updates"
+    },
+    {
+      "date": "2026-09-24",
+      "record": "docs/integration/integrated-attention-a3-result-2026-09-24.md",
+      "configuration": "Integer coarse-address learning inside the integrated attention prototype",
+      "result": "Source admission rose but selection and complete answers stayed at zero",
+      "verdict": "negative",
+      "numbers": "admission 1/24 -> 17/24; selection 0/24; complete correct 0/12 per arm"
+    },
+    {
+      "date": "2026-09-26",
+      "record": "docs/integration/hyperbolic-cycle3-2026-09-26.md",
+      "configuration": "Lorentz read vs Dot read on code, 4 seeds",
+      "result": "Lorentz ahead on average, small; the earlier pilot overstated it",
+      "verdict": "positive",
+      "numbers": "0.018 nats better on average, 3 of 4 seeds"
+    },
+    {
+      "date": "2026-10-01",
+      "record": "docs/integration/geometric-address-reader-2026-10-01.md",
+      "configuration": "Signed-2I direct address reader, float, 2 seeds x 320 updates, authored variable-gap grammar",
+      "result": "Selects the correct source on all original and longer-gap rows in both seeds; float only, not served",
+      "verdict": "positive",
+      "numbers": "128/128 original and longer-gap rows, both seeds"
+    },
+    {
+      "date": "2026-10-01",
+      "record": "docs/integration/geometric-attention-integer-qk-2026-10-01.md",
+      "configuration": "Integer paired q/k projection on the address reader (plus hard-bridge and integer-latch records the same day)",
+      "result": "Held models keep their answers after hard/integer conversion; Local controls show numerical sensitivity",
+      "verdict": "positive",
+      "numbers": "128 of 128 answers kept; zero answer predictions changed in the hard-bridge record"
+    },
+    {
+      "date": "2026-10-04",
+      "record": "docs/integration/geometric-consumed-cells-2026-10-04.md",
+      "configuration": "Three accepted integer cell edits in the address path",
+      "result": "Per-round frontier CE falls but construction replies stay 0/8 and held-out transfer was not run",
+      "verdict": "inconclusive",
+      "numbers": "construction 0/8"
+    },
+    {
+      "date": "2026-10-04",
+      "record": "docs/integration/geometric-radial-sharing-2026-10-04.md",
+      "configuration": "Matched radial sharing, two arms",
+      "result": "Some development behaviour learned; neither arm completes any untouched transfer answer",
+      "verdict": "negative",
+      "numbers": "0 of 32 transfer answers"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/answer-path-2026-10-11/README.md",
+      "configuration": "Four serving-time tests on one M2 model (float softmax read)",
+      "result": "Answers come from the attention read over context, not the copy head; the read is on the answer path",
+      "verdict": "inconclusive",
+      "numbers": "memory panel normal 23/40; copy head off 22/40; facts removed 0/40; copy forced to half 7/40"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/geometric-read-2026-10-11/README.md",
+      "configuration": "lorentz vs l2 score for the dense read, 3 matched seeds, fine-tuned in from a flat base",
+      "result": "Ahead on every seed but below the pre-registered per-seed margin (met on 1 of 3); mechanism stays open. Scoring change, not addressing",
+      "verdict": "positive",
+      "numbers": "wrong-value 49 -> 32 of 120; memory 48 -> 59 of 120"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/discrete-geometric-learning-2026-10-13/README.md",
+      "configuration": "First integer-only GPU path: tree routing, rotation, shared writer, proposal-only learning",
+      "result": "All finite construction controls pass; no update or training",
+      "verdict": "positive",
+      "numbers": "11 CUDA controls PASS"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/a2-pilot-2026-10-14/README.md",
+      "configuration": "Seed-1 diagnostic pilot, 1,640 batches, Route K=8; only VectorBlock parameters visited",
+      "result": "Rank counts rose, aggregate loss rose slightly; Route parameters were not attempted",
+      "verdict": "inconclusive",
+      "numbers": "top-8 173 -> 1,169; 236 accepted VectorBlock updates; Route sensitivity NOT_RUN"
+    },
+    {
+      "date": "2026-10-15",
+      "record": "docs/labs/rung0-admission-prep-2026-10-15/README.md",
+      "configuration": "Seed-1 full rung-0 dose, Route K=8, 16,404 batches, 14,287 DEV rows",
+      "result": "Pre-registered bars missed; bars were arithmetically unreachable because admission (1,920) was below the top-1 bar (1,941). Iteration evidence, not a mechanism negative",
+      "verdict": "negative",
+      "numbers": "top-1 149 (bar 1,941); top-8 747 (bar 4,775); 16 of 20 Route updates accepted (attention-state record)"
+    },
+    {
+      "date": "2026-10-17",
+      "record": "docs/labs/host-diagnostics-2026-10-17/README.md",
+      "configuration": "Host-only re-score of saved checkpoints; Route interim",
+      "result": "Route interim NOT_RUN (host commission only); a context-free successor table already beats the trained read",
+      "verdict": "inconclusive",
+      "numbers": "context-free table top-1 6,300 of 14,287 vs trained read 149"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/k16-outcome-call-2026-10-19/README.md",
+      "configuration": "Four K16 runs (two writer objectives x two seeds), Route read held fixed, 16,404 batches each",
+      "result": "No read comparison: the experiment varied the writer's admission objective. Occupancy collapse, no KEEP",
+      "verdict": "negative",
+      "numbers": "A: 2,237 / 3,167 target-admitted, top-1 65 / 463; R: 12,089 / 12,466 admitted over 19-20 occupied cells, top-1 101 / 230"
+    }
+  ],
+  "never_tested": [
+    "Route versus no read (read-off ablation) and Route versus Flock on a codebook with distinct addresses.",
+    "Route trained with a schedule that gives it more than 20 proposals in 16,404 updates.",
+    "The tangent-null and normal-null controls (move the address along the manifold vs across a branch) that the invariant-addressed-read brief requires to show the geometry is load-bearing.",
+    "Spanning-tree addressing as addressing: read_lineage variants were only ever measured as scoring changes.",
+    "Served tokens per second and cost of a routed read against a scored read at long context.",
+    "Content-aware port selection (ports are chosen by the query's geometry, never by what the leaves hold)."
+  ],
+  "failed_only_on_configuration": [
+    "Prime-route attention (#958) and trajectory routing (docs/trajectory_routing_946.md): closed as storage/recall-only or inert in a product probe; they say nothing about routing inside a trained integer read.",
+    "read_lineage scorer configurations and the M1 router campaign were cancelled at 2/3 seeds under D23/D24 for a softmax/host fallback; a configuration, not a mechanism negative (docs/mechanisms/README.md status table).",
+    "Integrated attention A1-A4 (Sept 24): authored 24-example panels, soft or float selectors; failures traced to write gates and selector retention, not to routing by address.",
+    "Rung-0 seed 1 and the K16 runs: judged on a codebook with 16 distinct vectors where only 16 address classes exist, so the read could not be separated from codebook drift.",
+    "Lorentz vs l2: a scoring comparison inside a softmax read, inactive under D23."
+  ],
+  "open_questions": [
+    "How much of the 149 top-1 does the learned Route contribute, if any?",
+    "Can a Route that never looks at leaf content reach the copy-successor targets (3,847 of 14,287) that the finite-relational-head brief says Route and Flock provably cannot express?",
+    "Which invariant should be the address: a prime/UOR address, an icosian phase, or a composition?",
+    "Is a single 16-root orbit enough atlas, or does the read need the full orbit (lib.rs notes this is not full-orbit learnability)?"
+  ],
+  "evidence": [
+    "docs/mechanisms/invariant-addressed-read.md",
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/labs/k16-outcome-call-2026-10-19/README.md",
+    "docs/labs/rung0-admission-prep-2026-10-15/README.md",
+    "docs/labs/rung0-stage-a-sweep-2026-10-15/README.md",
+    "docs/labs/a2-pilot-2026-10-14/README.md",
+    "docs/labs/geometric-read-2026-10-11/README.md",
+    "docs/labs/discrete-geometric-learning-2026-10-13/README.md",
+    "docs/integration/geometric-address-reader-2026-10-01.md",
+    "docs/integration/DECISIONS.md"
+  ],
+  "related": [
+    "flock-read: same kernel family; replaces Route's single leaf with a transported consensus of K kept neighbours",
+    "relation-read: adds an exact-relation reranker on top of Flock, targeting what Route cannot express",
+    "admission: the writer that consumes the routed vector; admission, not routing, is the measured ceiling",
+    "address-cells: the codebook that gives positions their addresses",
+    "prime-zeta-codebook: the injective initialiser that makes addresses distinct",
+    "exact-memory: the older idea of routing a query to an exact prime address",
+    "spiralcore-fbs: supplies the BFS transport and ternary tree",
+    "discrete-learning: the counterfactual choose/apply law that trains the route parameters"
+  ],
+  "figure_ideas": [
+    "A ternary tree drawn over a row of context tokens (leaves). The query enters at the top; at each level three child ports are lit with their L1 distances to the 16 roots, the nearest is highlighted, and a rotation arrow accumulates down the path until one leaf is picked.",
+    "The 16 roots of the orbit drawn as 16 points on a ring, with the query vector as a moving point. As a route action changes (a learning move), the query rotates and the chosen port jumps from one root to another.",
+    "Side-by-side cost bars: comparisons per step for a scored read (grows with context) against the routed read (flat at levels x 16), at contexts 192, 1,536 and 4,096."
+  ]
+}

@@ -1,0 +1,337 @@
+{
+  "id": "geometric-stack",
+  "canonical_name": "Geometric stack (layered quaternion-recurrence language model)",
+  "aliases": [
+    "rrarra / rrarrarr / rrarrarrar stack",
+    "cycle-4 stack, geometric_s1",
+    "chat-29m-B, 19.9M chat stack",
+    "214M pretrain geo-214m-e448de86 (Step 8 arm P/Q)",
+    "R4/Spin softmax reference (#1014, #1017)",
+    "joint recurrent learner (1.68M precursor)",
+    "StackArch::Geometric",
+    "geometric_stack_native (lawful extract)"
+  ],
+  "plain_what": "A language model built as a stack of layers. Most layers carry a running memory that a learned four-number spinner (a unit quaternion) rotates and fades at each word; a few look back over earlier words. It was the main trained model, 7 to 214 million parameters, until the rules banned most of its arithmetic.",
+  "replaces": "whole-model engine",
+  "how_it_works": "Layers repeat in a pattern such as rrarra: r is a recurrence layer, a is a read layer, each followed by a feed-forward block in a residual stream with RMS normalisation. Recurrence: lanes of four channels hold a quaternion state h. Per token, h_t = lambda_t * (u_t * h_(t-1)) + sqrt(1 - lambda_t^2) * c_t, where * is the Hamilton product, u_t is a unit quaternion computed from the input (starting at identity), lambda_t is a gated decay with timescales spread from 2 to about 1,000 tokens, and c_t is a width-4 causal convolution of the input. Read layers: attention over earlier positions with a dot, Euclidean (l2) or Lorentz hyperbolic-distance score. Feed-forward: SwiGLU with dense projections. Optional parts: a copy-pointer head, a product-key memory that replaces an MLP or the last read (split the query into halves, keep the top-k sub-keys per side, join, gather value rows), and flock or starling rank reads. It is trained in float on GPU (AdamW) at 7M, 19.9M, 29M and 214M parameters, then exported to 4-bit grouped weights and served by the D11 integer engine. Measured arithmetic of the 29M stack: MLP 39.6%, recurrence projections 31.0%, reads 16.6%, output head 7.4%, the quaternion rotations 0.05% (16,128 multiplies per token out of 30.3M); the geometry sits inside dense projections.",
+  "geometry": "Unit quaternions (S3) as the recurrence transport, with an optional snap of each rotation to the nearest unit icosian (2I); matched abelian U(1) control; Lorentz (hyperboloid) read score; optional fixed H4 and E8 codebooks for product-key memory (never run); in the earlier dense R4/Spin references, attention was reproduced exactly in cumulative R4/Spin/H4 frames.",
+  "code": [
+    {
+      "path": "crates/uor-r4-training/src/geometric_stack.rs",
+      "role": "Historical float stack, 36,976 lines: reads, flock, starling, product-key memory, pointer head. Inactive source"
+    },
+    {
+      "path": "crates/uor-r4-training/src/geometric_stack_native.rs",
+      "role": "Qualified native extract (1,911 lines): only CUDA FBS, geometric recurrence and the shared writer execute; module geometric_stack points here in lib.rs"
+    },
+    {
+      "path": "crates/uor-r4-training/src/geometric_stack_native_cuda.rs",
+      "role": "Prebuilt-module CUDA ops for the extract (24 ahead-of-time kernels, no NVRTC)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/cuda_stack.cu",
+      "role": "Historical stack kernel source; 33 kernels with banned content excluded from compiled modules by D29"
+    },
+    {
+      "path": "crates/uor-r4-training/src/stack_memory.rs",
+      "role": "Product-key memory operator (879 lines), trained in historically"
+    },
+    {
+      "path": "crates/uor-r4-training/src/stack_export.rs",
+      "role": "Float stack to UORLUT01 exporter; compiled out with cfg(any()) after D29"
+    },
+    {
+      "path": "crates/uor-r4-training/examples/geometric-stack-native.rs",
+      "role": "Current example entry (feature native-rung0); examples/geometric-stack.rs is the historical driver"
+    },
+    {
+      "path": "crates/uor-r4-training/src/joint_model.rs",
+      "role": "1.68M joint recurrent learner (quaternion vs Householder-pair transport), the September precursor"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/stack/session.rs",
+      "role": "D11 integer engine that serves exported stacks (see lut-serving)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/bin/chat-grade.rs",
+      "role": "Deterministic chat/memory panel scorer used for the M1 numbers"
+    },
+    {
+      "path": "crates/uor-r4-core/src/helm_d_r4_attention.rs",
+      "role": "Dense R4/Spin softmax reference attention (HELM-D) used for the exact-parity record"
+    },
+    {
+      "path": "src/r4_softmax_reference_generation.rs",
+      "role": "Root-package generation path for the SmolLM2 R4/Spin reference (historical)"
+    },
+    {
+      "path": "tools/r4-softmax-trainer",
+      "role": "Historical Python offline softmax trainers for the transformer comparator (not a crate)"
+    }
+  ],
+  "status": "PARKED",
+  "status_reason": "PARKED: the form actually trained (softmax reads, sigmoid and SiLU gating, dense matmul) is banned by D23/D25/D30 and never met the M1 bars (memory 20/40 vs 34; served 1.20-1.24 vs 0.90 BPB, docs/labs/d11-serving-2026-10-10). Its quaternion transport was KEPT (docs/integration/transport-attribution-d1-2026-09-28.md); a lawful 24-kernel extract is built but untrained.",
+  "reopen_conditions": [
+    "A new D37 pre-registration with TEST FITNESS: FIT that rebuilds the stack from lawful parts only (Hamilton-gate feed-forward, geometric or dyadic recurrence, flock/relation or rank-margin reads; no softmax, sigmoid, SiLU, GELU or GEMM), in its own scanned module, with the training hold released by the owner.",
+    "It reports the export gap on the same evaluator as the float score and targets M1 criterion 2 (D11 served at or below 0.90 BPB on the chat held-out stream).",
+    "At least 2 seeds or 200 fresh rows (D22), compared only with prior native rungs and lawful count references (D28: no transformer controls).",
+    "The dense hotspots the audit found (MLP 39.6%, recurrence projections 31.0%) are replaced by addressed or exact-geometry reads and shown to move tokens per second on the product path (D5-b).",
+    "Optional, as the spinor/quaternion adapter in step 4 of the post-dose optimization path (docs/labs/optimization-path-2026-10-18/README.md): conditional, float offline, discretized serving, measured-ceiling entry only."
+  ],
+  "rule_compat": {
+    "D11": "The trained stacks were exported (GPTQ, 4-bit) and served bit-exactly by the D11 engine: d11 minus d10 NLL 0.0, max logit difference 0 (docs/labs/d11-serving-2026-10-10/README.md). But every weight is read every token (about 30.2M parameters per token at 29M), which D5-b calls non-compliant, and the engine's attention uses exp-table masses.",
+    "D23": "The trained form contains banned content: softmax attention reads, a sigmoid gate on the decay, a softplus-parametrised decay rate, SwiGLU (SiLU), and a GELU output gate. The D29 split moved 33 kernels carrying softmax, sigmoid, softplus, tanh-GELU, exp/log and wmma/mma out of every compiled module (docs/labs/d29-module-split-2026-10-13/README.md).",
+    "D30": "Dense projections and MLPs are matrix multiplication, and the old kernel source used tensor-core contractions; both are banned anywhere, including training.",
+    "D32_D37": "D37 allows float forward, gradients and optimizers offline, but only geometric and lawful ops, in a separately scanned module, with the export gap reported. Measured historical export gaps: 0.00883 to 0.01944 BPB (19.9M, identical positions) and +0.0257 nats GPTQ on the 7M stack."
+  },
+  "experiments": [
+    {
+      "date": "2026-08-26",
+      "record": "docs/geometric_decoder_spike_950.md",
+      "configuration": "G0: one geometric mixer layer at layer 29 of SmolLM2-135M-Instruct, four-entry support",
+      "result": "Decodable, cycle-free output through the seam; viability only, no quality advantage claimed.",
+      "verdict": "positive",
+      "numbers": "32 cycle-free tokens, 4/5 prompts responsive, disabled seam bit-identical over 71 positions"
+    },
+    {
+      "date": "2026-08-26",
+      "record": "docs/geometric_mixer_qualification_951.md",
+      "configuration": "G1: that mixer distilled with a memory adapter, 9 held-out positions, real vs coordinate-permuted loss",
+      "result": "Missed its 5% advantage gate; verdict REDESIGN_REPRESENTATION.",
+      "verdict": "negative",
+      "numbers": "held-out real loss 0.9414 vs permuted 0.9852, advantage 4.4416% vs 5% required"
+    },
+    {
+      "date": "2026-08-29",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1002-establish-helm-d-r4-full-decoder-softmax-reference.md",
+      "configuration": "SmolLM2 full-decoder softmax attention reproduced in exact cumulative R4/Spin frames, with a permutation control",
+      "result": "Exact algebra reproduces the donor; exact algebra carried no meaning of its own.",
+      "verdict": "positive",
+      "numbers": "max / mean logit delta 1.05e-5 / 2.27e-6 over 196,608 logits; permutation control shifts logits by 23.08"
+    },
+    {
+      "date": "2026-08-30",
+      "record": "docs/r4_softmax_trace_observability_1012.md",
+      "configuration": "Trace distillation of a softmax teacher into a geometric recurrent suffix student (#1011/#1012)",
+      "result": "Geometric structure added nothing measurable over the frozen suffix on nine held-out positions; the follow-up observability probe had insufficient support (primary-support coverage 0.6203) and was not promoted or extended.",
+      "verdict": "negative",
+      "numbers": "frozen suffix CE 2.660721 vs geometric recurrent 2.660705 (era-12 #1011); permuted-minus-geometric 0.0000238 vs 0.10 floor; teacher top-1 3/9"
+    },
+    {
+      "date": "2026-08-30",
+      "record": "docs/r4_softmax_quality_capacity_continuation_1017.md",
+      "configuration": "End-to-end 7.155M-parameter R4/Spin causal-softmax LM, six layers (#1014), then one frozen continuation to 150M tokens (#1017)",
+      "result": "Learned causal attention is load-bearing, but the full quality definition of done failed; attention retained, campaign closed negative.",
+      "verdict": "negative",
+      "numbers": "#1014 NLL 2.1274 enabled vs 4.8048 attention-off; #1017 sealed NLL 1.5728 vs 1.50 ceiling (149,995,520 tokens)"
+    },
+    {
+      "date": "2026-08-28 to 2026-09-03 (era-12; day not recorded)",
+      "record": "docs/r4_paired_h4_prompt_capacity_973.md",
+      "configuration": "Prompt-capacity rungs: paired exact-H4 token addresses per layer, retained direct and layerwise-normalised readouts, learned candidate-leaf readout, block-delta binding",
+      "result": "Every rung ended below its frozen floor (PARTIAL, NO_CAPACITY or rejected); none retried.",
+      "verdict": "negative",
+      "numbers": "paired-H4 candidate won 282/512 directions vs 308 required; delta vs V1 -0.0001195"
+    },
+    {
+      "date": "2026-08-28 to 2026-09-03 (era-12; day not recorded)",
+      "record": "docs/r4_zoology_checkpoint_continuation_1057.md",
+      "configuration": "Multi-query associative recall: role-tagged curriculum (#1045), copied Zoology cell (#1050), continued checkpoint (#1057)",
+      "result": "Open MQAR was not learned by the role-tagged curriculum; the copied cell worked, showing earlier binding failures came from the recipe; continuation fell just short of its strict target.",
+      "verdict": "negative",
+      "numbers": "#1050 11,900/12,000 = 99.1667% top-1; #1057 98.52% development recall vs >99% target; #1045 stopped at rung R1 OPEN_MQAR_NOT_LEARNED"
+    },
+    {
+      "date": "2026-09-24",
+      "record": "docs/integration/reference-baselines-result-2026-09-24.md",
+      "configuration": "Count and cache baselines fitted against the #1017 neural reference (rung 0 of the D8 ladder)",
+      "result": "The #1017 transformer-shaped reference stays best, completing rung 0 within its scope.",
+      "verdict": "positive",
+      "numbers": "#1017 reference 1.58 nats; count and cache baselines worse"
+    },
+    {
+      "date": "2026-09-25",
+      "record": "docs/integration/joint-recurrent-result-2026-09-25.md",
+      "configuration": "1.68M-parameter learned recurrent memory with quaternion transport vs matched Householder-pair control, 29,999,104 target visits each, one seed",
+      "result": "Both arms passed the engineering continuation gate; quaternion transport did not beat the ordinary control on natural likelihood, and actual prose stayed poor.",
+      "verdict": "inconclusive",
+      "numbers": "Read NLL 2.110368 (quaternion) vs 2.085241 (matched ordinary) vs 2.391786 count/cache (era-19 #1389)"
+    },
+    {
+      "date": "2026-09-27",
+      "record": "docs/integration/geometric-stack-cycle4-2026-09-27.md",
+      "configuration": "Capacity-matched rrarra stack (quaternion transport, Lorentz reads) vs #1017-shape transformer control, 7,324 updates, one seed",
+      "result": "Parity, not advantage; the stack led at 1,000 updates and the lead closed by about 2,750; generated code still repeats or is malformed.",
+      "verdict": "positive",
+      "numbers": "NLL 1.998113 (7,153,860 params) vs 2.011149 (7,155,360); 789.3 vs 788.1 tokens/s; at 1,000 updates stack led by 0.158 nats"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/transport-attribution-d1-2026-09-28.md",
+      "configuration": "D1: quaternion transport vs identity transport at matched MLP width, 1,000 updates, two seeds",
+      "result": "Meets the pre-registered keep rule; the transport stays in the core. Development measurement only.",
+      "verdict": "positive",
+      "numbers": "gap 0.0711 nats (seed 1) and 0.0774 (seed 2) vs rule of at least 0.02; +332,928 parameters, 8-10% slower training"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/s1-stack-serving-measurements-2026-09-28.md",
+      "configuration": "Export of the 7.15M cycle-4 stack to the D10/D11 interim 4-bit format, evaluation only; snap of every transport quaternion to the nearest icosian",
+      "result": "Export gap misses the 0.02-nat gate, mostly in the output head; exact icosian serving of the transport is not adopted as an option.",
+      "verdict": "negative",
+      "numbers": "RTN +0.0362, GPTQ +0.0257 nats vs 0.02; icosian snap +0.026 on each of three models"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/d4-stack-representation-measurements-2026-09-28.md",
+      "configuration": "Representation codecs for the stack: RTN, online Hadamard + grouped 4-bit, head-compensated 4-bit (E8 lattice arms in d4-e8-and-d11-cost-result-2026-09-28.md)",
+      "result": "No arm meets the 0.02-nat gate; Grouped4BitCodec kept as a usable component.",
+      "verdict": "negative",
+      "numbers": "RTN +0.036229; Hadamard+G4 +0.063668 (LUT engine run) or +0.027007 (float-reference run); E8 about 2 bpw +2.42 nats"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/s2-dialogue-stack-baseline-2026-09-28.md",
+      "configuration": "First dialogue-trained stack: 2,237 LM updates then 1,024 full-prefix response updates, 161-response panel",
+      "result": "Beat the pre-registered loss bar; the replies themselves were poor: a loss win is not conversation.",
+      "verdict": "positive",
+      "numbers": "pooled response NLL 2.520916 vs native child 2.773887 vs parent 3.022131; 2 of 38 final replies answer the request; 0 of 10 memory recalls"
+    },
+    {
+      "date": "2026-09-29",
+      "record": "docs/integration/b3-e8-smollm2-result-2026-09-29.md",
+      "configuration": "Offline uncompensated E8P lattice coding of SmolLM2-360M MLP weights (235,929,600 weights, 32 layers) under a randomized Hadamard transform, 2/3/4 bits",
+      "result": "Pre-registered kill rule triggered at 3 bits; recorded as a negative for this uncompensated offline implementation, not for E8 codes in general.",
+      "verdict": "negative",
+      "numbers": "RTN 4-bit +0.071494 nats; E8P 3-bit +4.962782; excess +4.891289 vs kill threshold 0.05"
+    },
+    {
+      "date": "2026-10-06",
+      "record": "docs/labs/d20-run-2026-10-06/d20-run-report.md",
+      "configuration": "D20 contest: geometric read stack (rrarra, l2 read, rotation, width 128) vs parameter-matched 6-layer transformer control, 3 seeds each, 1,800 steps, multi-query recall",
+      "result": "Inconclusive by the pre-registered rule: the geometric arm failed on one seed and was near-perfect on two; the control was steady and low. Nothing retired.",
+      "verdict": "inconclusive",
+      "numbers": "geometric 0.0073 / 0.9995 / 1.0000 (mean 0.6689, sd 0.573) vs control 0.2529 / 0.2510 / 0.2563 (mean 0.2534, sd 0.0027)"
+    },
+    {
+      "date": "2026-10-08",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1893-a-chat-trained-geometric-stack-served-multiplier-free-0-9550.md",
+      "configuration": "One chain on one GPU: train a 19.9M chat-only stack (12,207 steps), export, serve by the D11 engine",
+      "result": "First end-to-end chat model served multiplier-free; the earlier null results were measured on models below uniform, because the pipeline had never run end to end.",
+      "verdict": "positive",
+      "numbers": "D11 0.9550 BPB, fused float 0.8770, previously served artifact 4.3885; Kneser-Ney 5-gram 1.2803"
+    },
+    {
+      "date": "2026-10-08",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1913-size-at-10-the-214m-chat-stack-1-0966-loses-to-a-7-16m-chat.md",
+      "configuration": "Data vs size: 7.16M on chat-only data vs sealed mixed-data model (#1894); 214M SmolTalk-derived chat stack vs the 7.16M chat-only model (#1913); different evaluation protocols",
+      "result": "Matching the training distribution beat adding parameters; the largest chat model was not the best, a statement about data, not architecture.",
+      "verdict": "positive",
+      "numbers": "data -0.1592 BPB vs size -0.0837 (1.1199 -> 0.9607 -> 0.8770); 214M scores 1.0966 vs 7.16M chat-only 0.9607"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/v5-declared-acceptance-2026-10-09/README.md",
+      "configuration": "One-shot declared acceptance of the 29M chat stack on the frozen v5 memory panel (40 rows; the model has a copy pointer and no memory operator); the 214M model had read 31/40 on the earlier v4 panel (docs/labs/v4-memory-panel-reproduction-2026-10-09/README.md)",
+      "result": "Missed by 24 rows. No memory reader was involved, so the reading is for a copy-pointer dialogue stack, not an addressed-memory path.",
+      "verdict": "negative",
+      "numbers": "10/40 vs declared at least 34; unknowable half 1/24; 214M v4 reproduced exactly at 31/40 vs 26/40 at 96M"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/mixture-dose-2026-10-10/README.md",
+      "configuration": "Recall-dialogue share of fine-tuning at 0/10/25/55%; then a binding-dense generator (docs/labs/binding-dense-2026-10-10/README.md) at 10% and 25%",
+      "result": "Memory gain saturates by 10% but abstention needs 25% and costs replies; the binding-dense mixture made memory worse. Closes these doses; line reached 3/3 and pivoted.",
+      "verdict": "negative",
+      "numbers": "memory 10/40 -> 20/40 at 10% (22/40 at 55%); reply 43 -> 37 -> 28 -> 22 of 232; abstention 1/24 -> 0 -> 15 -> 19; binding-dense 20/40 -> 17/40"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/addressed-memory-2026-10-10/README.md",
+      "configuration": "Product-key memory in 4 of 10 layers trained in from step 0 on the 29M recipe, two seeds, 2,000 steps; GPU forward fixed (7.4 s/step on CPU to 0.19 s)",
+      "result": "Rejected for this configuration (closes the configuration, not the mechanism); at half the steps the same memory read 22/40 with the line's best wrong-value count, pointing at a step-matched control.",
+      "verdict": "negative",
+      "numbers": "19/40 and 19/40 vs brief bar 27/40; no-memory base 20/40; wrong-value 17 of 40 for base and G1"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/addressed-read-2026-10-11/README.md",
+      "configuration": "Product-key memory replacing the softmax read at the last read layer (answer layer), trained in from step 0, three seeds vs matched controls",
+      "result": "KEEP and iterate: met its target (fewer wrong-value answers) with no headline loss; ledger names the cost. A correction notes it replaced the MLP at that layer, not the read.",
+      "verdict": "positive",
+      "numbers": "wrong-value 47 -> 34 of 120 (two of three seeds); headline flat 57/120 vs 57/120; layer compute -90%; +36.9M params; 20x training wall"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/addressed-read-lean-2026-10-11/README.md",
+      "configuration": "Same memory with the codebook cut 8x (sub_keys 64, key_dim 64, top_k 16), three arms vs matched controls",
+      "result": "Costs vanished and the failure-mode gain stayed, but language quality fell; rejects this configuration and downgrades the fat configuration's KEEP to conditional.",
+      "verdict": "negative",
+      "numbers": "+1.26M params (+4.3%), 245 s vs 104 s; float BPB +0.095 and +0.107 vs 0.02 allowed; 7 fewer memory rows over 120"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/integration/geometry-audit-2026-10-11/README.md",
+      "configuration": "Arithmetic ledger of the deployed 29M stack (width 576, 10 layers rrarrarrar, MLP 732, read l2)",
+      "result": "The served model is a transformer-shaped dense stack with a quaternion-mixed residual; the geometry is 0.05% of the arithmetic and the Lorentz score, zeta phases, primes and exact store are not in the trained base.",
+      "verdict": "negative",
+      "numbers": "30,270,720 MACs/token: MLP 39.6%, recurrence projections 31.0%, reads 16.6% (40.5% at 4,096 context), head 7.4%, quaternion rotation 0.05% (16,128 multiplies), addressed store 0"
+    }
+  ],
+  "never_tested": [
+    "A stack built only from lawful parts (Hamilton-gate feed-forward, dyadic recurrence, rank or flock reads) and trained at the scale where this one reached 0.877 BPB: the 24-kernel extract is qualified at finite controls only.",
+    "Cycle 5 product-key memory layers with fixed H4 and E8 codebooks: the experiment is NOT_RUN and was held (docs/integration/memory-layers-cycle5-2026-09-27.md).",
+    "Trained-in 2I or E8 read addresses with magnitude carried: until the geometric toolbox record of 2026-09-28 nothing had been trained in, and the snapped-training route (#1912) closed only one recipe.",
+    "Lorentz reads in the 29M chat base: it trains with read=l2 (the flat ablation control), so the hyperbolic read's contribution at chat scale is unmeasured.",
+    "A 10-layer stack trained on a data set larger than the 82M-token chat-v0-p2 split (none was reachable, #1913).",
+    "A fair energy measurement: the only figures are the truncated captures and the 4.3x-worse per-product emulation (see lut-serving).",
+    "A step-matched control for the addressed-memory half-step 22/40 reading."
+  ],
+  "failed_only_on_configuration": [
+    "#951 4.4416% vs 5%: one layer of a frozen SmolLM2 with a memory adapter, nine held-out positions; says nothing about a trained stack.",
+    "#1017 sealed NLL 1.5728 vs 1.50: one 7.16M model at 150M tokens; the record keeps attention and calls it NLL-only.",
+    "#1057 98.52% vs the strict 99% target is near-target, not a failed mechanism (record wording).",
+    "Export gap 0.0257 vs 0.02 and the Hadamard / E8P codecs: rounding recipes on a dense float stack, not on the integer boundary itself.",
+    "Addressed memory 19/40 vs 27/40 and the lean +0.095 BPB: particular codebook sizes and placements of a lookup memory trained at the anchor's own step count.",
+    "214M 1.0966 vs 0.9607: a data-mixture finding on different protocols, not a verdict on scale.",
+    "v5 10/40: the model had no memory operator at all, per the record's own qualifier.",
+    "D20 3-seed contest: the geometric mean was higher (0.6689 vs 0.2534) but one seed at 0.0073 fell below every control seed, so the pre-registered rule returns INCONCLUSIVE; it exposes a seed-reliability problem, not a loss."
+  ],
+  "open_questions": [
+    "Which of the stack's dense blocks can be replaced by exact geometry or addressed reads without losing the 0.877 BPB class, in tokens per second on the product path?",
+    "Why did the geometric read fail on one seed and succeed on two in the D20 contest, and does a better initialisation remove the seed gap?",
+    "Is the quaternion transport still load-bearing once its projections are lawful (Hamilton gate, spin-native weights)?",
+    "What does the label 'P/Q' mean exactly in the Step 8 arms, and which 214M variants are worth preserving beyond bases/geo-214m-e448de86?",
+    "How much of the 31/40 v4 memory result at 214M came from capacity rather than data (the 214M model was weaker on BPB than a 7M one)?"
+  ],
+  "evidence": [
+    "docs/integration/geometric-stack-cycle4-2026-09-27.md",
+    "docs/integration/transport-attribution-d1-2026-09-28.md",
+    "docs/integration/geometric-toolbox-2026-09-28.md",
+    "docs/integration/geometry-audit-2026-10-11/README.md",
+    "docs/labs/d29-module-split-2026-10-13/README.md",
+    "docs/labs/d20-run-2026-10-06/d20-run-report.md",
+    "docs/labs/d11-serving-2026-10-10/README.md",
+    "docs/labs/kimi-direction-2026-10-12/README.md",
+    "docs/r4_softmax_quality_capacity_continuation_1017.md",
+    "docs/integration/DECISIONS.md (D8, D11, D12, D20, D22, D23, D29, D30, D37)",
+    "local/renorm/audit/eras/eras.md (eras 11, 12, 19, 20, 22 to 24, 28)"
+  ],
+  "related": [
+    "lut-serving: the engine that exported and served these stacks bit-exactly",
+    "spin-weights: icosian-pair exact weights, the lawful form of the stack's quaternion maps (KEEP)",
+    "recurrence-gates: dyadic rate and keep tables and quaternion scan, the lawful form of the gated recurrence",
+    "hamilton-gate: the G2 rotation gate that replaces SwiGLU in a lawful stack",
+    "flock-read and route-read: softmax-free replacements for the stack's attention reads",
+    "exact-memory and e8-orbit-memory: addressed stores meant to replace the dense MLP and read",
+    "read-binding and pointer-key: the supervised read and copy head added to this stack",
+    "spiralcore-fbs: the SpiralCore/FBS projection that the lawful native extract executes",
+    "rank-margin: the lawful hinge objective that replaces cross-entropy for this stack",
+    "native-geometric: the parallel Rust-from-scratch line whose mechanisms D12 asked to port into this stack"
+  ],
+  "figure_ideas": [
+    "Where the arithmetic goes: one wide bar for the 30.3M multiply-adds per token cut into MLP, recurrence projections, reads and head, with the quaternion rotation as a hair-thin sliver pulled out and magnified (16,128 of 30,270,720).",
+    "A single lane of the recurrence animated: a four-number state drawn as an arrow on a hypersphere, rotated by a different unit quaternion at each word and shrunk by the decay, beside the same lane with identity transport; a small counter shows the 0.07-nat difference that D1 measured.",
+    "A layer diagram of rrarra with each block stamped lawful or banned (softmax read, sigmoid decay gate, SiLU feed-forward in red; quaternion scan, RMS norm, margin-rank hinge in green), making D23/D29 concrete."
+  ]
+}

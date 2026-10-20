@@ -1,0 +1,238 @@
+{
+  "id": "ternary-xor",
+  "canonical_name": "Ternary and XOR/Hamming arithmetic",
+  "aliases": [
+    "ternary weights",
+    "XOR matmul",
+    "bitsliced ternary contraction",
+    "ternary alternative with xor (owner prompt, 12 Oct 2026)",
+    "Hamming / popcount distance",
+    "TernaryLinear / lowbit",
+    "multiplier-free weights",
+    "modulo-256 substrate"
+  ],
+  "plain_what": "Store each weight as -1, 0 or +1, so using it needs only add, subtract or skip, and compare two bit patterns by counting how many bits differ. The aim is cheap multiplier-free arithmetic. The dense ternary sum was assessed and not adopted; the bit-counting and three-valued switches now live inside the discrete model.",
+  "replaces": "arithmetic/matmul",
+  "how_it_works": "Ternary weights w in {-1,0,+1} are stored in two bit planes: P is set where w=+1, N where w=-1, and P AND N = 0 (the repo's lowbit code uses 2 bits per weight, CODE_POS=1, CODE_NEG=2, so the planes are the two bits). For a binary activation vector X the dot product is exact: sum w_i x_i = popcount(P AND X) - popcount(N AND X). The zero case is free (skip). Multi-bit activations repeat this per bit-plane and combine with shifts and adds; a power-of-two row scale is a shift. XOR is not the ternary dot product: XOR gives Hamming distance d(a,b) = popcount(a XOR b), a distance whose signed-sum use needs |a| + |b| - 2|a AND b|. Against GF(2), -1 and +1 collapse into one element, so 'ternary XOR matmul' is false as stated. What is true: the multiplier disappears but the sum over all W x D weights stays dense, so the matmul does not. In the discrete model the same ingredients appear as routing parts: a coordinate Hamming count breaks equal L1 displacement ties when a transported query chooses a port, and ternary trit gates (candidates visited in the order 0, -1, +1) switch flock levels on or off. No bitsliced contraction or GPU popcount kernel exists in the tree.",
+  "geometry": "Not a lattice mechanism by itself: Boolean hypercube / GF(2) bit planes. Inside the discrete model it acts on 8D integer root coordinates of the E8 anchor orbit and on ternary (base-3) FBS binders; E8 is the (8,4,4) Hamming code lifted to a lattice (Construction A, verified in the 26 Sep note), but Hamming distance on E8 labels is not the E8 lattice metric (D32).",
+  "code": [
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/lowbit.rs",
+      "role": "TernaryLinear: 2-bit disjoint POS/NEG packing; forward_i32 is add/subtract/skip with a power-of-two scale; used only for post-hoc export/quantisation of float masters"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/lowbit_core.rs",
+      "role": "Dense ternary recurrence core h_t = relu(W_x + W_h h_{t-1}) (the 19 Sep negative)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/lowbit_attention.rs",
+      "role": "Low-bit attention variant built on the same ternary/integer arithmetic"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/head_projection.rs",
+      "role": "Ternary projection search of the output head (Q0 plain, QG activation-aware)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/hamming_refinement/metric.rs",
+      "role": "XOR, popcount and integer add over a 240-bit signature code; table reads only"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/hamming_policy/policy.rs",
+      "role": "Seeded LUT4 circuit with two Hamming refinement hops"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/vsa/hypervector.rs",
+      "role": "XOR binding of equal-length codes (A xor B xor B = A); a code operation, not a weighted sum"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "Active use: coordinate Hamming tie-break in root_cost (lines ~35-60) and ternary trit Gate parameter with ordinal order [0,-1,+1] (lines ~80-95)"
+    }
+  ],
+  "status": "PARKED",
+  "status_reason": "As proposed (a dense ternary/XOR contraction replacing matmul) it was assessed and not adopted: it removes the multiplier, not the dense sum (D25; docs/mechanisms/ternary-xor-arithmetic.md). It was never trained in, and the post-hoc ternary head export lost (7.416 vs 7.171 bits). Its Hamming and trit-gate parts run inside discrete-learning and flock-read.",
+  "reopen_conditions": [
+    "A GPU kernel for the bitsliced or lookup-table ternary contraction exists and is exact against TernaryLinear::forward_i32 for both binary and 8-bit activations, with host fallback refused (D24).",
+    "A pre-registered rung trains it in from step 0, not as a post-hoc snap of a float master, against the matched icosian-mantissa arm at equal steps, width and weight bytes, with at least 2 seeds or 200 fresh rows; bar = larger of 0.01 BPB or 2x measured noise, set before compute.",
+    "Tokens/s on the same CUDA harness goes up, not only MACs or bytes touched; the D11 engine lost 68.0 vs 127.5 tok/s, and product-key memory lost the same way, so this is the bar to beat.",
+    "The contraction is applied where it is not a dense W x D sum (a routed or selected subset), or the owner rules it an accepted, labelled non-geometric arithmetic substitution (open question 5 of the brief), before any run.",
+    "Or the alphabet is made geometric: three values that are actual group elements (for example Eisenstein cube roots, a sub-ring of Z[phi]) rather than a truncated scalar quantiser."
+  ],
+  "rule_compat": {
+    "D11": "Compatible in form: add/subtract/skip and AND+popcount need no multiplier, and a power-of-two scale is a shift. Not shown to be fast: the one multiplier-free engine measured (D11 on a 29M stack) ran 68.0 tok/s against 127.5 on the float path, bit-exact (d11-serving-2026-10-10).",
+    "D23": "No softmax or squashing in the mechanism; scoring is a hard count. Nothing to scan.",
+    "D30": "A ternary weight contraction is still a dense W x D sum, which D25 says a handwritten dense contraction cannot replace; it would not pass as a matmul substitute. The Hamming tie-break and trit gates inside routing are not matmul.",
+    "D32_D37": "D32 names ternary and Hamming computation as the preferred substrate and the active discrete model uses ternary gates and coordinate Hamming. D37 allows float training, but the dense-matmul ban stays, so a ternary master would need new offline sheet with an export gap."
+  },
+  "experiments": [
+    {
+      "date": "2026-09",
+      "record": "docs/native_geometric_hamming_refinement_973.md",
+      "configuration": "Hamming contextual refinement primitive: query to exact read to state update, authored policy, 240-bit code from the 120 signed signatures, XOR+popcount+integer add, no training",
+      "result": "PASS_HAMMING_REFINEMENT_PRIMITIVES on five finite causal cases; explicitly not a language model",
+      "verdict": "positive",
+      "numbers": "5 causal cases, 1-4 hops, up to 256 occurrences scored per hop"
+    },
+    {
+      "date": "2026-09",
+      "record": "docs/native_geometric_hamming_policy_973.md",
+      "configuration": "One seeded shared LUT4 circuit (4096-1024-256-1796, 3076 gates, 6152 parameter bytes), two Hamming hops, unfitted",
+      "result": "Trajectory conformance PASS, language UNQUALIFIED_INITIALIZED_NO_FIT",
+      "verdict": "inconclusive",
+      "numbers": "0/24 complete answers, 1/460 response symbols, mean CE 10.9981724105"
+    },
+    {
+      "date": "2026-09-12",
+      "record": "docs/native_geometric_dependent_attention_973.md",
+      "configuration": "Learned Boolean query-update tables for a dependent second read, with ablation controls",
+      "result": "Ablation controls pass; final independent qualification not run",
+      "verdict": "positive",
+      "numbers": "No quantities in the header; authored finite task"
+    },
+    {
+      "date": "2026-09-19",
+      "record": "docs/integration/geometric-core-architecture-2026-09-19.md",
+      "configuration": "Dense ternary recurrence h_t = relu(W_x[:,t] + W_h h_{t-1}), W_h ternary, int32 state",
+      "result": "State saturates between 16 and 32 steps at every width; one remembered item is buried under summed input; later takeover review corrected the 'universal impossibility' reading",
+      "verdict": "negative",
+      "numbers": "Spectral norm about 2*sqrt(p*d); i32 limit 2.147e9 reached by 32 steps at dims 32/64/128; delayed recall D=4 works for dim >=128, D=8 scores 0.00 at dims 64/128/256"
+    },
+    {
+      "date": "2026-09-20",
+      "record": "docs/integration/geometric-query-review-2026-09-20.md",
+      "configuration": "PR #1308: ternary projection of the frozen output head; Q0 plain quantiser, QG activation-aware search (reduced: nearest-code seed skipped), vs empirical head E and float head F",
+      "result": "Both conversions fail the practical screen against E; QG beats Q0 by 0.2253 bits; complete prescribed search NOT_RUN",
+      "verdict": "negative",
+      "numbers": "Dev bits/target (36 docs, 17,342 targets): E 7.170816, Q0 7.416178, QG 7.190872, F 6.874144; QG-Q0 gain 0.225306 [0.200621, 0.250300]"
+    },
+    {
+      "date": "2026-09-22",
+      "record": "docs/integration/state-conditioned-lexical-result-2026-09-22.md",
+      "configuration": "Learned seven-slot ternary realizer on authored cases",
+      "result": "31/31 authored cases; principal review qualified the finite comparator and temporal-meaning claims",
+      "verdict": "inconclusive",
+      "numbers": "31/31 authored"
+    },
+    {
+      "date": "2026-09-23",
+      "record": "docs/integration/ordinary-lexical-readout-refit-result-2026-09-23.md",
+      "configuration": "In-class ternary readout refit on the frozen state; integer kernel vs float fit",
+      "result": "Integer kernel realises the float fit exactly; gain far below the pre-declared bar; first-draft conclusion retracted",
+      "verdict": "negative",
+      "numbers": "Gain about 0.13 bits served vs bar 0.30; A_kclass 5.977039 dev vs P 5.5136 (headroom 0.4634 bits)"
+    },
+    {
+      "date": "2026-09-26",
+      "record": "docs/integration/geometric-attention-2026-09-26.md",
+      "configuration": "Hamming sign-bit keys (XOR+popcount) vs float dot, cosine, hyperbolic and E8 block keys on toy recall; Hamming as final LM scores",
+      "result": "64-bit Hamming codes recall as well as float at 1,024 candidates with 8 bytes/key instead of 128; used as final LM scores they cost bits, so they should admit candidates and exact scores rank; at 8 bits E8 beats sign bits",
+      "verdict": "positive",
+      "numbers": "Recall 100% at 1,024 candidates; final-score cost 0.014 bits/byte; at 8 bits 25.8% (E8) vs 21.9% (sign)"
+    },
+    {
+      "date": "2026-09-27",
+      "record": "docs/integration/packed-integer-comparison-2026-09-27.md",
+      "configuration": "Signed-4-bit packed coefficient storage in the D0-b integer engine on two retained width-256 models (not ternary, same multiplier-free family)",
+      "result": "All 8 baseline/candidate pairs match across replay, 128 generations, continuations and chat; dense access remains",
+      "verdict": "positive",
+      "numbers": "87% fewer retained coefficient bytes; 4,096 replay positions; 138 requests per version"
+    },
+    {
+      "date": "2026-10-01",
+      "record": "docs/integration/geometric-attention-integer-latch-2026-10-01.md",
+      "configuration": "Signed-4-bit integer gate with retained identity, shift/add arithmetic, on four saved native stacks",
+      "result": "Zero action disagreements against the float hard reference",
+      "verdict": "positive",
+      "numbers": "0 disagreements across 4 saved models"
+    },
+    {
+      "date": "2026-10-01",
+      "record": "docs/integration/geometric-attention-integer-qk-2026-10-01.md",
+      "configuration": "Integer paired q/k projection (32-column groups, codes -7..7, dyadic scales)",
+      "result": "Held models keep full answers; Local controls show numerical sensitivity",
+      "verdict": "positive",
+      "numbers": "128/128 answers on both Held seeds"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/nemesis-xor-review-2026-10-09/README.md",
+      "configuration": "Advisory review of Casey's 2-page R4 XOR/Hamming PDF",
+      "result": "Boolean identities valid; proves no semantic distance, routing or learning gain; existing typed metric contracts kept",
+      "verdict": "inconclusive",
+      "numbers": "No compute"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/d11-serving-2026-10-10/README.md",
+      "configuration": "Multiplier-free D11 integer engine vs float path on three 29M-stack artifacts, 64 held-out windows, 8 threads",
+      "result": "Engine bit-exact; slower than the float path; served quality far from target so the gap is the model",
+      "verdict": "negative",
+      "numbers": "d11-d10 nll 0.0 and max |dlogit| 0 on all 64 windows; 68.0 vs 127.5 tok/s (A0); served 1.20138 BPB vs target <= 0.90"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/owner-ruling-and-storage-2026-10-12/README.md",
+      "configuration": "Independent re-check of the popcount identity for ternary weights against binary activations, plus the owner's no-matmul ruling",
+      "result": "Identity exact; assessed as a quantisation lever that removes the multiplier but not the dense contraction; no model run",
+      "verdict": "inconclusive",
+      "numbers": "5,000 random trials in this record; 2,000 trials (n in {7,16,64,255}) in the brief; exact every time"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/discrete-flock-writer-integration-2026-10-13/README.md",
+      "configuration": "Discrete model with ternary Parameter::Gate proposals and coordinate Hamming in flock selection, integer CUDA",
+      "result": "Six new flock controls plus eleven Route regressions pass; gate-cost witness selects ordinal 2; no update applied",
+      "verdict": "positive",
+      "numbers": "17/17 controls at 76198c3b5; gate cost witness [448,256,64]; applied updates 0"
+    }
+  ],
+  "never_tested": [
+    "Any bitsliced or popcount contraction: no kernel and no code exists, and uor-r4-training has no ternary-weight code (its only 'ternary' mention is the FBS binder in spiralcore_fbs.rs).",
+    "A ternary weight trained in from step 0 in the training crate; every TernaryLinear use is a post-hoc snap of a float master.",
+    "Weight planes plus bitsliced activations (the actual XOR arm), separated from the weight-only arm.",
+    "A ternary alphabet of true group elements (Eisenstein cube roots or another sub-ring) instead of a scalar truncation.",
+    "A matched comparison against the icosian-mantissa weights at equal steps, width and weight bytes.",
+    "Tokens/s of any ternary contraction on the shared CUDA harness.",
+    "A corpus run that isolates ternary trit-gate moves; I found only finite construction controls (applied updates 0) for them."
+  ],
+  "failed_only_on_configuration": [
+    "Dense ternary recurrence saturated an int32 state: a failure of an unnormalised, ungated, dense recurrence, not of ternary weights in a normalised or routed structure (the takeover review withdrew the broader reading).",
+    "Post-hoc ternary head export lost to the empirical head: a quantiser applied to a float master with a reduced search; it says nothing about weights trained ternary from the start.",
+    "Ternary readout refit missed its 0.30-bit bar: one frozen-state refit; the 0.13-bit gain is real and the integer kernel reproduced it exactly.",
+    "The D11 engine ran slower than the float path: one engine on one laptop where weight bytes, not multipliers, are scarce; it measures operation substitution on a dense contraction.",
+    "Hamming sign bits cost 0.014 bits/byte as final LM scores: shows they should admit candidates, not rank them; the retained use already follows that."
+  ],
+  "open_questions": [
+    "Which operand is binary? Weight-side ternary alone gives conditional adds, not XOR; the XOR arm needs planar activations, and today's activations are integer Q formats.",
+    "Is {-1,0,+1} compatible with the project's exact Z[phi] objects, or only a coarser version of the icosian Cayley-table read?",
+    "At what depth D does the inter-plane shift-and-add reduction stop beating a conditional-add loop on the actual GPU?",
+    "If ternary wins on cost and ties on quality, is it a KEEP for a labelled non-geometric substitution or a demotion of the exact-coefficient family? This is an owner decision.",
+    "Does the discrete model's ternary gate (Parameter::Gate) help language quality at all, once a corpus run isolates it?"
+  ],
+  "evidence": [
+    "docs/mechanisms/ternary-xor-arithmetic.md",
+    "docs/mechanisms/ternary-xor-evidence-factsheet.md",
+    "docs/labs/owner-ruling-and-storage-2026-10-12/README.md",
+    "docs/labs/d11-serving-2026-10-10/README.md",
+    "docs/integration/geometric-core-architecture-2026-09-19.md",
+    "docs/integration/geometric-query-review-2026-09-20.md",
+    "docs/integration/ordinary-lexical-readout-refit-result-2026-09-23.md",
+    "docs/labs/discrete-flock-writer-integration-2026-10-13/README.md",
+    "docs/integration/DECISIONS.md (D25 lines 1214-1300, D32, D37)",
+    "docs/labs/course-correction-2026-10-18/audits/d37-reactivation-architect.md (row: Ternary / XOR arithmetic)"
+  ],
+  "related": [
+    "spin-weights: the competing multiplier-free weight representation (icosian pairs with 2-bit mantissa, 1.5148 BPB, level with dense) and the better-justified one",
+    "discrete-learning: runs the ternary trit gates and coordinate Hamming tie-breaks that are this mechanism's active descendant",
+    "flock-read: Flock selection uses frame/payload Hamming and ternary level consensus gates",
+    "spiralcore-fbs: the ternary FBS binder tree is the base-3 structure these gates sit on",
+    "lut-serving: the D11 integer engine and the wasm multiply-free audit are where the multiplier-free claim was measured",
+    "vsa: XOR binding of codes is the legitimate XOR use",
+    "e8-orbit-memory: E8 as a Hamming code lifted to a lattice"
+  ],
+  "figure_ideas": [
+    "Two bit-plane strips for a row of 16 ternary weights (one marking +1, one marking -1) and an activation bit strip: slide an AND mask, light the surviving bits, show the two popcounts and their subtraction, to make visible that the operators are AND and subtract, not XOR.",
+    "Two 8-coordinate E8 root vectors drawn as bar rows with mismatching coordinates highlighted: first compare by L1 displacement, then show a tie and the Hamming count (number of differing coordinates) breaking it, as in the discrete route selection.",
+    "Grid of all W x D weight cells for a dense ternary layer, every cell lit each token, beside a routed read where only a few selected cells light: shows why removing the multiplier does not remove the dense contraction."
+  ]
+}

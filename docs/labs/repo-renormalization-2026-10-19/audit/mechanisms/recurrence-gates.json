@@ -1,0 +1,102 @@
+{
+  "id": "recurrence-gates",
+  "canonical_name": "Geometric recurrence gates",
+  "aliases": [
+    "rec_gates=geometric",
+    "RecGates::Geometric",
+    "rate_select",
+    "dyadic rate and keep tables",
+    "clamped-linear opening",
+    "quaternion scan",
+    "dependency 3 (#2293)"
+  ],
+  "plain_what": "A recurrent layer keeps a running memory and decides at each step how fast old content fades and how much new input enters. The old recipe used smooth curves (sigmoid, exponential, tanh). The replacement opens the input with a clamped straight line, picks the fade rate from a short table of powers of two, and carries state by rotation.",
+  "replaces": "attention",
+  "how_it_works": "The trunk's sequence mixer is a recurrence over quaternion lanes: h_t = q_t (x) h_{t-1} + b_t, evaluated by quaternion_scan, with q_t a decay-scaled unit quaternion and b_t the convolved drive. Four squashing sites in the historical form (a sigmoid opening, an exp/softplus decay rate, a tanh-GELU output gate) are replaced in rec_gates=geometric mode. (1) Opening: score = clamp(gate opening + rec.decay, 0, 1), exact subgradient; the per-lane decay parameter is read raw, with no softplus. (2) Rate: rate_select picks one of 16 table entries by threshold on the score; lambda = 2^-(s+1), an exact f32 power of two, with keep = sqrt(1 - lambda^2) precomputed in a second table, so |keep^2 + lambda^2 - 1| <= 6e-8 and serving needs only table reads. (3) Carry: the unchanged quaternion scan. (4) Output gate: the Hamilton rotation gate (see hamilton-gate) on the recurrence output. Because hard selection has zero derivative, the backward uses a declared geometric secant surrogate: pair the incoming adjoints (d lambda, d keep) with the selected entry's neighbours' full counterfactual table displacement and resolve the contrast along the fixed edge 1/16, half per side, whole weight to the single neighbour at either end. No probability or exponential is involved. The geometric mode refuses non-CUDA devices, export and qat; the historical mode stays the default so old artifacts reproduce.",
+  "geometry": "Unit-quaternion transport on S3 lanes (Hamilton product, rotation of R4 blocks); an exact dyadic table; the Hamilton rotation gate. Related finite-group (binary icosahedral 2I) lanes were studied separately.",
+  "code": [
+    {"path": "crates/uor-r4-training/src/geometric_stack.rs", "role": "RecGates enum (L1473), composed_recurrence (L13005), quaternion_scan (L15606), RATE_TABLE (L18859), KEEP_TABLE (L18882), RATE_ENTRIES (L18904), RateSelect op (L18925), rate_select (L19027)"},
+    {"path": "crates/uor-r4-training/src/cuda_stack.cu", "role": "rate_select_fwd (L259) and rate_select_bwd, quaternion_scan_fwd/bwd (L377), recurrence_* kernels for the historical fused core"},
+    {"path": "crates/uor-r4-training/src/geometric_stack/cuda_ops.rs", "role": "Launchers rate_select_fwd/bwd (L691/L716) and quaternion_scan_fwd/bwd (L853/L891); bf16 twins in cuda_ops_bf16.rs"},
+    {"path": "crates/uor-r4-training/examples/geometric-stack.rs", "role": "Trainer flag rec_gates=historical|geometric (the missing flag was one of the five rung-0 defects fixed 13 Oct)"},
+    {"path": "crates/uor-r4-core/src/native_geometric/learner/hamilton_transport.rs", "role": "Exact Q8 signed-permutation left actions used for integer transport"},
+    {"path": "docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md", "role": "Rung-0 sheet that names the four squashing sites and this replacement as dependency 3"}
+  ],
+  "status": "READY",
+  "status_reason": "Built and tested substrate, never trained: clamp, rate/keep tables, secant credit and Hamilton output gate are implemented with host-checked errors of 5e-13 (rate), 4.6e-10 (keep) and 5.5e-8 (secant); the geometric arm has 0 squash tokens; 18 finite CUDA controls passed at the rung-0 shape (docs/labs/rung0-complete-path-2026-10-13). The six-recurrence rung-0 fit never ran; the discrete model has no recurrence.",
+  "reopen_conditions": [
+    "To activate: a new D37 offline-float sheet (separately scanned module, fresh TEST FITNESS: FIT, owner release) that runs the rung-0 six-recurrence fit with rec_gates=geometric against a matched historical-gates arm.",
+    "A device qualification that names these kernels (dependency 4 of the rung-0 sheet): no rate_select test appears in tests/cuda_stack_ops_parity.rs, and the CUDA path is exercised only inside the 18 rung-0 controls.",
+    "Evidence that the secant surrogate gives descent (a loss that falls, or a comparison with a random-refit control), since it is not the derivative of hard selection.",
+    "Fresh transfer, at least 2 seeds, and the export gap on the same evaluator; a D11 table form needs the integer engine to bind the new rate scores instead of the historical decay parameter."
+  ],
+  "rule_compat": {
+    "D11": "Designed for it: rate and keep are exact f32 powers of two read from a table, the opening is clamped-linear and the scan is Hamilton products. Not yet exportable: the integer engine binds the historical decay parameter, so export and qat refuse the mode; the Hamilton output gate still needs the icosian snap.",
+    "D23": "Verified by grep on 13 Oct: 0 squash-family tokens in the geometric decay arm, output-gate arm, rate_select host op and its CUDA kernels (the historical branches keep 8 by design). The read path's exp is untouched and out of scope for the recurrence-only rung 0.",
+    "D30": "No dense contraction and no softmax: a clamp, a table read, the scan and a per-block rotation. no_matmul ratchet 93/93 and no_softmax ratchet 1649/1649 were unchanged by the delivering PR.",
+    "D32_D37": "A float operator; D32 section 4 froze it, D37 section 5 allows it back by re-registration only. The active discrete model carries no recurrent state, so this belongs to a separate float trunk."
+  },
+  "experiments": [
+    {"date": "2026-08-07", "record": "docs/context_horizon_424.md", "configuration": "Long-range context ceiling and the Bott-Fock decay constant of the shipped fold (issue #424)", "result": "Distant context is worth about one point of top-1; the shipped fold's decay constant retains 16% of that ceiling ('mechanism right, constant wrong'); the gated A/B was not run", "verdict": "diagnostic-stop", "numbers": "Base 21.62% +/- 0.16pp (n=66,536); distant-context ceiling +1.02pp; fold retains 16%"},
+    {"date": "2026-08-28", "record": "docs/geometric_gated_delta_retention_973.md", "configuration": "Multirate gated-delta retention core, four banks, geometric arm vs matched plain delta, on a 28-event synthetic fixture", "result": "Structural smoke passes; geometry-specific result NO_ADVANTAGE_ON_THIS_FIXTURE; decision-bearing corpus qualification NOT_RUN", "verdict": "negative", "numbers": "Geometric 16/28 next-token and 55/112 association margins vs plain delta 23/28 and 98/112; ties the left_fold_route intervention"},
+    {"date": "2026-09-19", "record": "docs/integration/geometric-core-architecture-2026-09-19.md", "configuration": "Dense ternary recurrence h_t = relu(W_x + W_h h_{t-1})", "result": "Integer state saturates between 16 and 32 steps; one remembered item is buried under summed input; motivates a gated, bounded-state recurrence", "verdict": "negative", "numbers": "Delayed recall: D=4 works for dim >= 128, D=8 scores 0.00 at dims 64/128/256"},
+    {"date": "2026-09-25", "record": "docs/integration/joint-recurrent-result-2026-09-25.md", "configuration": "D8 rung 1: one learned recurrent memory with quaternion transport vs a matched Householder-pair control, 1,678,466 parameters, one paired seed", "result": "Accepted at its limited engineering gate for both artifacts; the quaternion arm does not beat its matched ordinary control on natural likelihood; actual generations show drift and repetition", "verdict": "inconclusive", "numbers": "7,324 steps, 29,999,104 target visits; at step 8,348 (numbers from the rung-2 records) comparison-tail NLL quaternion 2.090518 vs Householder 2.064403 (count/cache 2.391786, offline transformer 1.574024)"},
+    {"date": "2026-09-25", "record": "docs/integration/quantized-recurrent-result-2026-09-25.md", "configuration": "D8 rung 2: quantization-aware continuation of both recurrent arms to step 8,348", "result": "Both final packed artifacts exceed the permitted loss over their continuous controls; recipe rejected at its frozen scope", "verdict": "negative", "numbers": "Gate: packed minus continuous <= +0.05 nats; 4,194,304 new target visits per arm"},
+    {"date": "2026-09-25", "record": "docs/integration/projected-recurrent-result-2026-09-25.md", "configuration": "Projected-shadow continuation from the quantized step 7,836 to 8,348", "result": "Four of five frozen gates pass; both arms fail the likelihood allowance; recipe rejected", "verdict": "negative", "numbers": "Packed minus continuous +0.059801 (quaternion) and +0.083525 (Householder) vs +0.05; packed 2.150320 / 2.147929; continuous 2.090518 / 2.064403"},
+    {"date": "2026-09-26", "record": "docs/integration/language-continuation-result-2026-09-26.md", "configuration": "Full-context continuation 8,348 to 15,672 for both arms", "result": "Exposure milestone complete; natural likelihood improved but no arm meets the unchanged prose rule; the quaternion integer goose continuation short-cycles", "verdict": "negative", "numbers": "7,324 further updates per arm; context 256 throughout"},
+    {"date": "2026-09-27", "record": "docs/integration/geometric-stack-cycle4-2026-09-27.md", "configuration": "Capacity-matched parallel-trainable geometric stack (rrarra) vs transformer control, 7.15M vs 7.16M parameters, one seed per arm", "result": "Parity at full exposure; stack led at 1,000 updates; adopted as the main-line core at the time", "verdict": "positive", "numbers": "1.9981 vs 2.0111 nats at 7,324 updates (29,999,104 visits); 789 vs 788 tok/s; lead 0.158 nats at 1,000 updates closed by about 2,750 updates"},
+    {"date": "2026-09-27", "record": "docs/integration/b1-finite-group-lanes-2026-09-27.md", "configuration": "Quaternion (2I) and reflection-pair recurrent lanes: Stage A A5 word problem, Stage B inside the stack, fresh replication", "result": "Stage A passes; the capability belongs to the finite group, not to quaternions; Stage B fails its per-seed gates and the fresh reflection-pair replication fails, so no lane type stays in the stack", "verdict": "negative", "numbers": "Stage A: 17/18 non-commutative runs exact to length 4,096 (128x training length), commutative/frozen 18/18 at chance; replication seed 4 text gate +0.069"},
+    {"date": "2026-09-28", "record": "docs/integration/transport-attribution-d1-2026-09-28.md", "configuration": "D1: quaternion transport vs identity transport in rrarra at matched MLP width 749, 1,000 updates, two seeds", "result": "Quaternion transport kept (bar: wins by >= 0.02 nats in both seeds)", "verdict": "positive", "numbers": "Wins by 0.0711 and 0.0774 nats; +332,928 parameters; trains 10% and 8% slower"},
+    {"date": "2026-10-13", "record": "docs/labs/recurrence-geometric-gates-2026-10-13/README.md", "configuration": "rec_gates=geometric: clamped opening, 16-entry dyadic rate/keep tables, secant credit, Hamilton output gate; source only", "result": "Implemented and locally checked; no run, no device receipt; NOT YET PROMOTED", "verdict": "inconclusive", "numbers": "Rate table max error 5e-13, keep 4.6e-10 relative, secant 5.5e-8 relative; squash tokens 0 in geometric arms vs 8 in historical branches; no_matmul 93/93, no_softmax 1649/1649"},
+    {"date": "2026-10-13", "record": "docs/labs/rung0-complete-path-2026-10-13/README.md", "configuration": "Native rung-0 complete path repair; actual batch 16 x context 384 six-recurrence graph, width 256, MLP 384, V=4096, CUDA F32", "result": "18 finite CUDA controls pass; opening/decay credit nonzero in all six layers; five defects repaired, including ordinary recurrence still entering the historical sigmoid/exp/GELU core and an unsigned displacement at the lower rate-table edge", "verdict": "positive", "numbers": "18/18 on source 05c84bece; peak GPU 9,274 MiB; no optimizer update; no quality number"}
+  ],
+  "never_tested": [
+    "The rung-0 six-recurrence fit itself: never run (held, then superseded by D32); no geometric-vs-historical gates comparison on any data.",
+    "Whether the 16-entry dyadic table is fine enough: a learned continuous decay and the table were never compared.",
+    "Whether the secant surrogate produces descent; the true derivative of hard selection is zero almost everywhere.",
+    "A standalone device parity test for rate_select (none found in the parity suite) and a bf16 margin kernel.",
+    "A fused geometric recurrence kernel (the geometric mode runs as an op composition).",
+    "D11 export of the geometric mode.",
+    "The quaternion arm against its Householder control with more than one paired seed, or on the geometric-gates trunk."
+  ],
+  "failed_only_on_configuration": [
+    "Dense ternary recurrence saturation: an unbounded dense state; says nothing about a bounded, gated, rotating one.",
+    "Gated-delta smoke lost to plain delta on a 28-event synthetic fixture whose read key came from the last context only; the hierarchy-fed rung was never built.",
+    "Quantization-aware and projected continuation (rung 2): tests a quantization recipe on the continuous learner, not the dyadic rate table.",
+    "Quaternion arm no better than Householder at one paired seed: not a transport negative, since identity transport is clearly worse (D1: 0.07 nats).",
+    "B1 lanes: the A5 tracking skill belongs to the finite group; the Stage B text gate failure is about mixing synthetic words into text training.",
+    "Shipped Bott-Fock fold retained 16% of the long-range ceiling: the constant, not the idea of decay, was wrong."
+  ],
+  "open_questions": [
+    "Do hard-selected rates train stably under a secant credit, or does the table plateau (the last four keep entries sit at the f32 plateau of 1)?",
+    "Does rotation (quaternion) beat reflection (Householder pair) as the state-carry at scale and under a finite-precision export?",
+    "Is a recurrence the right sequence mixer for the geometric model at all now that the active discrete model reads context through Route/Flock?",
+    "What does the export gap look like when rate scores are bound into the integer engine?"
+  ],
+  "evidence": [
+    "docs/labs/recurrence-geometric-gates-2026-10-13/README.md",
+    "docs/labs/rung0-complete-path-2026-10-13/README.md",
+    "docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md",
+    "docs/integration/transport-attribution-d1-2026-09-28.md",
+    "docs/integration/joint-recurrent-result-2026-09-25.md",
+    "docs/integration/projected-recurrent-result-2026-09-25.md",
+    "docs/integration/b1-finite-group-lanes-2026-09-27.md",
+    "docs/integration/geometric-core-architecture-2026-09-19.md",
+    "docs/labs/course-correction-2026-10-18/audits/mechanism-census.md (rows 63 and 65)",
+    "docs/mechanisms/README.md (status board, recurrence gates bullet)"
+  ],
+  "related": [
+    "hamilton-gate: supplies the output gate of the geometric recurrence",
+    "spin-weights: shares the Hamilton product; the quaternion scan is the carry",
+    "spiralcore-fbs: shares the root-edge secant-surrogate credit pattern",
+    "rank-margin: the margin objective the rung-0 sheet trains this trunk with",
+    "ternary-xor: the dense ternary recurrence negative",
+    "discrete-learning: the active model replaces recurrence with routed exact reads",
+    "geometric-stack: the 214M float trunk these gates were written for"
+  ],
+  "figure_ideas": [
+    "A staircase plot of the 16 table rates lambda = 2^-(s+1) against the opening score in [0,1], laid over the smooth sigmoid/exp curve it replaces; mark the selected entry and its two neighbours that the secant credit compares.",
+    "A set of quaternion lanes drawn as arrows rotating each step: the arrow turns by q_t and shrinks by the chosen lambda, with keep = sqrt(1 - lambda^2) shown as the fraction of the old state kept, so lambda^2 + keep^2 = 1 appears as a unit-circle triangle.",
+    "A retention curve for a single remembered token over 32 steps for several table rates, each a clean power of two, next to the historical continuous decay: shows the bank of fixed clocks the table provides."
+  ]
+}

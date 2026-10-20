@@ -16,11 +16,11 @@ An entry gives the date, what changed, which charter clauses it touches, and who
 
 ## 19 October 2026: charter adopted at checkpoint 1
 
-**Decided by:** the owner (Casey), in chat, at checkpoint 1 of the repository renormalisation. The charter replaces the stacked directions in `AGENTS.md` and decisions D0 to D41 as the project's rules (decision D42). Source: `CHARTER.md`, the final `DECISIONS.md` index, and the checkpoint notes in `local/renorm/audit/charter/final/charter-diff-notes.md`.
+**Decided by:** the owner (Casey), in chat, at checkpoint 1 of the repository renormalisation. The charter replaces the stacked directions in `AGENTS.md` and decisions D0 to D41 as the project's rules (decision D42). Source: `CHARTER.md`, the final `DECISIONS.md` index, and the checkpoint notes in [`charter-diff-notes.md`](../labs/repo-renormalization-2026-10-19/audit/charter-diff-notes.md).
 
 The owner answered eight questions. One line each, with the clause it changed:
 
-1. **Client serving (Q1).** D24's ban on CPU compute governs research compute only. Serving the exported D11 integer model on client devices (CPU, browser WebAssembly, Apple silicon), including measuring tokens per second and energy, is allowed. D36's "browser counts as CPU model compute" clause is replaced. (Clauses 3.5 and 3.6.)
+1. **Client serving (Q1).** D24's ban on CPU compute governs research compute only. Serving the exported D11 integer model on client devices (CPU, browser WebAssembly, Apple silicon), including measuring tokens per second and energy, is allowed. D36's "browser counts as CPU model compute" clause is replaced. (Clauses 3.5 and 3.6.) Panel scoring, qualification and milestone evaluation of an exported artifact remain GPU research compute; only product serving and measuring its tokens/s and energy run on client devices.
 2. **Pre-registration (Q2).** A one-page sheet with a non-author FIT review is needed only before GPU training or evaluation, and before any run a milestone claim rests on. A fresh-context subagent counts as non-author. Builds, finite kernel tests and host checks need none. (Clause 4.5.)
 3. **Releases (Q3).** One typed owner release per pre-registered sheet, covering its arms, seeds and stop rules. D40 is unchanged: Casey types it personally. (Clause 5.1.)
 4. **Records (Q4).** One notebook page per research line, with one row per result. Dated evidence folders exist only for sealed artifacts. `NOW.md` plus the notebooks replace `current-state.md`, and STATUS and ROADMAP change only with state. (Clause 5.6.)
@@ -39,7 +39,7 @@ The owner answered eight questions. One line each, with the clause it changed:
 | Five-, twenty- and thirty-minute check-in cadences, and queue entries called by the manager | Retired | `CHARTER.md` section 6 |
 | Per-PR dated records | Retired in favour of notebook rows | `CHARTER.md` section 6 |
 | `adopt_policy` hold | Retired | `CHARTER.md` section 6 |
-| Decisions D0, D0-b, D1, D3, D7, D8, D10, D13, D15, D16, D25, D33, D35 | Listed as history only in the charter; most were superseded long before this date. See the [decision map](decision-map.md) | `CHARTER.md` section 6 |
+| Already superseded, now listed in charter 6: decisions D0, D0-b, D1, D3, D7, D8, D10, D13, D15, D16, D25, D32 item 1, D33, D35, and the expired D18 window | Listed as history only in the charter; most were superseded long before this date. See the [decision map](decision-map.md) | `CHARTER.md` section 6 |
 
 ## Where it stands
 

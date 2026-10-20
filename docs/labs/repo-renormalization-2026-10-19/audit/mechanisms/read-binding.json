@@ -1,0 +1,102 @@
+{
+  "id": "read-binding",
+  "canonical_name": "Read binding (supervised value binding)",
+  "aliases": [
+    "read-binding supervision",
+    "read_binding_supervision",
+    "bound/competing mass loss",
+    "phase binding (read_lineage=phase_bind), the exact-by-construction variant",
+    "teacher-only binding labels"
+  ],
+  "plain_what": "During training, a teacher marks which earlier words hold the value the question asks for and which hold other stated values. The model is rewarded for putting its attention on the right ones. It targets the failure 'found a value, but the wrong one', and nothing about how answers are produced changes at serving time.",
+  "replaces": "loss",
+  "how_it_works": "For a query whose next token belongs to a stated value, the training data carries labels: source positions that hold the asked value (bound) and positions that hold the other stated values (competing). The geometric read has per-head attention weights over earlier positions. Let m_bound be the attention mass on bound positions. The loss on the best-binding head is -log(m_bound + 1e-6) (READ_SUPERVISION_FLOOR = 1e-6) with weight W (0.1 in the keeper, 0.5 in the first test), added to the language loss. Competing mass is monitored, and in one variant penalised with 0.5*relu(m_competing - 0.03). The labels never touch a hidden state or a logit, so the served network is unchanged; only the read learns to separate values. It is applied to a late read layer (layer 8 in a stack whose reads are layers 2, 5 and 8) and from step 0 of the fine-tune. The exact-by-construction variant (read_lineage = phase_bind) gives each value a fixed phase or lineage tag so binding is exact rather than learned; a random-SO(4) lineage is the control. Labels come from a sidecar file produced with the dialogue corpus.",
+  "geometry": "Acts on the Lorentz-score R4-state read; the phase-binding variant uses fixed (snapped) phases and a ReadLineage tag, with a random SO(4) lineage as control. The core supervised form uses no special geometric object.",
+  "code": [
+    {"path": "crates/uor-r4-training/src/geometric_stack.rs", "role": "ReadBinding, ReadBindingTarget, ReadSupervisionGroup/Row/Target, StackModel::read_supervised_loss -> ReadSupervisedLoss, READ_SUPERVISION_FLOOR, read lineage"},
+    {"path": "crates/uor-r4-training/examples/geometric-stack.rs", "role": "Training CLI that carries the read_binding_supervision=W and read_lineage flags"},
+    {"path": "crates/uor-r4-training/src/bin/dialogue-recall-corpus.rs", "role": "Writes the binding_labels sidecar (bound and competing positions) with the recall corpus"},
+    {"path": "crates/uor-r4-training/src/bin/chat-grade.rs", "role": "Frozen-panel grader; read_silence_layer switch used by the head ablation"}
+  ],
+  "status": "PARKED",
+  "status_reason": "Met its mechanism target and moved the headline in the one form tested (3 seeds from step 0: wrong-value 47 -> 30/120, memory 57 -> 65/120, docs/labs/read-binding-powered-2026-10-11/README.md), but that read is a float softmax attention, inactive under D23/D30/D32. It has never been tried on any discrete or geometric read.",
+  "reopen_conditions": [
+    "Re-register as an offline float sheet under D37 on a read that is not a softmax attention (a rank-table, Flock or Relation read), as a separately scanned module with an integer export and a reported export gap; fresh TEST FITNESS: FIT and owner release.",
+    "Or port the signal to the D32 discrete read (Route, Flock, Relation): the discrete analogue of bound versus competing mass, supervised from the start of training.",
+    "Fair-test conditions: supervise from the start (not a late bolt-on), at least 3 seeds, at least 120 memory rows, a matched W=0 control, held-out bound and competing mass, and a head-ablation check that the bound head drives the answer; bar of +5/40-equivalent over the control.",
+    "Change the supervision rather than its length or its sharpness: both the 16,000-step and margin variants decoupled the masses from the panel; per-head supervision or routing the output through the binding head are the named candidates."
+  ],
+  "rule_compat": {
+    "D11": "Training-only signal: the labels never enter the network and nothing of the loss exists at serving time, so it adds no served operation. The tested read had no D11 served form.",
+    "D23": "Violates in the tested form: the loss itself has no softmax (it is -log of an attention mass) but the mass comes from a softmax attention read (docs/labs/attention-state-2026-10-18/README.md: 'it is a softmax read'). The tested runs are preserved as inactive evidence.",
+    "D30": "The 29M float stack it trained is a dense matmul stack; the signal needs a matmul-free read to be re-registered.",
+    "D32_D37": "Not on the D32 discrete path. Float training is legal offline under D37, so the signal itself is admissible if attached to a lawful geometric read and exported to an integer artifact."
+  },
+  "experiments": [
+    {"date": "undated", "record": "docs/r4_zoology_optimizer_clock_1055.md", "configuration": "Precursor: copied causal-softmax Zoology MQAR cell freshly initialised on exact #1045 bytes, optimizer-clock correction (earlier exact_transfer_1053 and later coherent-inference 1061 records)", "result": "Development top-1 rose with the training recipe alone but missed the strict bar; a later copy of the cell scored 99.17 percent, showing the binding failures came from the recipe (eras.md era-12)", "verdict": "inconclusive", "numbers": "12.01% (docs/r4_zoology_exact_transfer_1053.md) -> 68.29% vs strict >99% bar; 99.17% copied cell per eras.md (#1050)"},
+    {"date": "2026-10-03", "record": "docs/integration/surface-form-breadth-2026-10-03.md", "configuration": "Synthetic memory corpus with eight surface forms per relation vs one (phrase lock-in hypothesis); no read supervision", "result": "Breadth generalises unseen statement forms but not unseen question forms: the residual binding failure is request-form-specific", "verdict": "positive", "numbers": "unseen statement forms 37.8% -> 94.6% (McNemar p = 3.1e-11); unseen question forms 58.1% -> 63.5% (p = 0.54)"},
+    {"date": "2026-10-09", "record": "docs/labs/v4-memory-panel-reproduction-2026-10-09/README.md", "configuration": "Step 8 arm P: read-binding supervision 0.1 on the 214M float pointer stack vs arm Q (reproduced exactly on laptop CPU)", "result": "Arm P did not beat arm Q; this is the measured negative that D22's closed-config note refers to; the 9 misses split into wrong-value and no-value with no single fixable cause", "verdict": "negative", "numbers": "arm P 29/40 vs arm Q 31/40 (target 34/40); acceptable 27/40"},
+    {"date": "2026-10-09", "record": "docs/labs/answer-span-supervision-2026-10-09/README.md", "configuration": "Planned training change to supervise only the answer tokens on the recorded mixed corpus", "result": "Not run: pod reconnaissance showed answers are already just the value so the mask would zero nothing", "verdict": "diagnostic-stop", "numbers": "answers containing is/are/was/my/the etc.: 0 of 2,012; spend $0.30, no GPU job"},
+    {"date": "2026-10-10", "record": "docs/labs/binding-dense-2026-10-10/README.md", "configuration": "Recall-stream generator v1 (binding-dense) at 10.2% and 25.5% share on chat-29m-B, one seed per arm (a data lever, no read labels)", "result": "More value-binding examples did not fix memory answers; this was the third flat cycle that forced a D21 pivot card", "verdict": "negative", "numbers": "v5 memory 17/40 vs 20/40 at the same dose with generator v2"},
+    {"date": "2026-10-10", "record": "docs/labs/read-binding-2026-10-10/README.md", "configuration": "read_binding_supervision W=0.1 and 0.5, late fine-tune of chat-29m-B on the 10% mixture, 2,000 steps, one seed per arm (#2155)", "result": "Hit its own objective but left the 40-row memory panel flat; counted as a negative under D21 and reopened by D22", "verdict": "inconclusive", "numbers": "bound mass 0.732 -> 0.896 (W=0.1); memory 19/40 (W=0.1) and 17/40 (W=0.5) vs anchor 20/40; wrong-value 17 -> 12; reply panel 37 -> 39/232"},
+    {"date": "2026-10-11", "record": "docs/labs/answer-path-2026-10-11/README.md", "configuration": "Four serving-time tests on one model: copy head off, facts removed, copy forced", "result": "Answers come from the attention read over context, which is where read binding acts", "verdict": "positive", "numbers": "normal 23/40; copy head off 22/40; facts removed 0/40; copy forced to half 7/40"},
+    {"date": "2026-10-11", "record": "docs/labs/read-binding-powered-2026-10-11/README.md", "configuration": "Supervision W=0.1 from step 0, 3 seeds (data orders) vs matched W=0 controls, chat-29m-B on mix-10, 2,000 steps, layer 8; first-layer arm for attribution", "result": "Met the pre-registered bar without a headline loss: KEEP and iterate; masses are train-side and the panel is 40 rows per seed", "verdict": "positive", "numbers": "bound mass 0.732 -> 0.896/0.899/0.905; competing 0.140 -> 0.090/0.086/0.081; wrong-value 47 -> 30/120; memory 57 -> 65/120; best seed 24/40 vs 20/40, McNemar p = 0.0034 (repairs 12, breaks 1); BPB 1.17142/1.17067/1.17060 vs anchor 1.17425; first-layer arm bound mass 0.786"},
+    {"date": "2026-10-11", "record": "docs/labs/head-ablation-2026-10-11/README.md", "configuration": "Serving-time switch silencing one read layer on the read-bound artifact S2, no training", "result": "Silencing the supervised layer removes the answers, not just their accuracy: the supervised layer is the answer path", "verdict": "positive", "numbers": "unablated 24/40; layer 8 silenced 0/40 (37 rows no value, 0 wrong); layer 2 silenced 2/40; layer 5 silenced 7/40"},
+    {"date": "2026-10-11", "record": "docs/labs/read-binding-margin-2026-10-11/README.md", "configuration": "0.5*relu(competing mass - 0.03) hinge added to W=0.1, 3 seeds, 2,000 steps", "result": "Competing attention halved but wrong answers stayed put: closes this margin configuration only", "verdict": "negative", "numbers": "competing mass 0.0462 vs 0.0897 (seed 1); memory 64 vs 65/120; wrong-value 30 vs 30"},
+    {"date": "2026-10-11", "record": "docs/labs/phase-binding-2026-10-11/README.md", "configuration": "read_lineage=phase_bind (snapped fixed phases) on top of W=0.1, two seeds", "result": "Same binding mass, worse answers, slower training; the keeper stays and the mechanism stays open", "verdict": "negative", "numbers": "memory 17/40 vs 19/40 and 20/40 vs 24/40 (wrong-value 14 vs 5); 0.058 -> 0.777 s per step (13.4x); params 28,958,761 -> 30,968,449 (+2.0M)"},
+    {"date": "2026-10-11", "record": "docs/labs/read-binding-scaled-2026-10-11/README.md", "configuration": "The keeper recipe at 8,000 steps (4x), 3 seeds vs equal-budget W=0 controls", "result": "Advantage doubled and every seed was positive; KEEP and iterate", "verdict": "positive", "numbers": "wrong-value 49 -> 23/120; memory 48 -> 64/120; bound mass 0.969-0.971, competing 0.026-0.027; two seeds individually significant (p = 0.031, 0.035)"},
+    {"date": "2026-10-11", "record": "docs/labs/read-binding-16k-2026-10-11/README.md", "configuration": "16,000 steps, 2 seeds vs matched controls", "result": "Mechanism still helps and its own objective keeps sharpening, but the advantage did not grow; budget lever closed, supervision target must change", "verdict": "positive", "numbers": "wrong-value 25 -> 15/80; memory 39 -> 45/80; bound mass 0.985/0.984, competing 0.012/0.013; seed p = 1.00 and 0.064"},
+    {"date": "2026-10-12", "record": "docs/labs/copy-span-oracle-2026-10-12/README.md", "configuration": "Forced-copy oracle attention half (supplied answer span) intended to tell addressing from gating from emission", "result": "Instrument built; the run on the bound artifact was not done", "verdict": "blocked", "numbers": "919 library tests passed; N/O1/O2 pending"},
+    {"date": "2026-10-18", "record": "docs/labs/attention-state-2026-10-18/README.md", "configuration": "Independent read-only synthesis of every attention mechanism", "result": "Classifies read binding as the one powered result that a learned read can move a headline, but in a float softmax form that D23/D32 made inactive; nothing in the integer substrate has it", "verdict": "inconclusive", "numbers": "wrong-value 47 -> 30/120; memory 57 -> 65/120 (as recorded)"}
+  ],
+  "never_tested": [
+    "Read-binding supervision on any discrete or geometric read (Route, Flock, Relation) or any read that is not a softmax attention.",
+    "Per-head supervision (every head) or routing the output through the binding head, named after the 16,000-step result.",
+    "Pairing the binding with the pointer so that bound positions feed the copy distribution directly.",
+    "Held-out bound and competing mass: the masses reported are train-side.",
+    "At least 120 memory rows per seed: every panel has 40 memory rows (the standing declared deviation).",
+    "Binding labels on a model pretrained with the mechanism (all runs are fine-tunes of one 29M base); transfer to fresh combinations is unmeasured for this mechanism.",
+    "A pre-registered fresh-draw transfer number for the KEEP (D22 section 4)."
+  ],
+  "failed_only_on_configuration": [
+    "#2155 (W=0.1/0.5, one seed, late bolt-on, 40-row panel): met its own target; the headline moved by one row, inside the +/-2-3 row noise. D22 reopened it.",
+    "214M arm P vs Q (29/40 vs 31/40): a float pointer stack on a different panel and recipe; counted as a negative of that configuration.",
+    "Competing-mass margin: sharper separation of the same read left the panel flat; closes the hinge, not the idea.",
+    "Phase binding: exactness of the same quantity cost 13.4x wall time and lost rows; says exact lineage tagging as built is a bad route, not that binding is.",
+    "Longer training (16,000 steps): closes the budget lever only.",
+    "Binding-dense data lever: more binding examples in the data is not the supervision."
+  ],
+  "open_questions": [
+    "Is the lever 'bound mass on the right value' or something the masses do not capture? The masses kept improving while the panel gain stopped growing.",
+    "Supervise every head, or route the output through the binding head?",
+    "Pair it with the pointer so bound positions feed the copy distribution?",
+    "Phase or lineage tagging of values (exact binding) instead of learned mass, in a form that is cheap (the tested form cost 13.4x)?",
+    "What is the discrete analogue of bound and competing mass on a ternary-gate read?"
+  ],
+  "evidence": [
+    "docs/mechanisms/read-binding.md",
+    "docs/labs/read-binding-powered-2026-10-11/README.md",
+    "docs/labs/read-binding-scaled-2026-10-11/README.md",
+    "docs/labs/read-binding-16k-2026-10-11/README.md",
+    "docs/labs/head-ablation-2026-10-11/README.md",
+    "docs/labs/answer-path-2026-10-11/README.md",
+    "docs/labs/read-binding-2026-10-10/README.md",
+    "docs/labs/read-binding-margin-2026-10-11/README.md",
+    "docs/labs/phase-binding-2026-10-11/README.md",
+    "docs/labs/v4-memory-panel-reproduction-2026-10-09/README.md",
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/integration/DECISIONS.md (D21, D22 section 5(e), D23, D30, D37)"
+  ],
+  "related": [
+    "pointer-key: the copy head found not to be the answer path; binding acts on the read it bypasses",
+    "exact-memory: the exact-address alternative to learning which value a read binds to",
+    "flock-read and relation-read: the softmax-free reads a re-registration would supervise",
+    "route-read: the invariant-addressed read that answers 'address instead of search' without a mass to supervise",
+    "admission: the measured ceiling on what any read can reach, which supervision cannot raise"
+  ],
+  "figure_ideas": [
+    "Attention bars over a short passage with two stated values ('Ana's locker is 47. Ben's locker is 12. What is Ana's locker?'): before training the mass is split between 47 and 12 (bound 0.73, competing 0.14); after supervision it piles onto 47 (0.90); the three seed values appear as three marks.",
+    "Paired scatter of 120 memory rows: control wrong-value 47 versus supervised 30 (and 49 versus 23 at 4x training), with repaired and broken rows coloured, showing the net movement.",
+    "A bar of memory score when each read layer is silenced in turn: unablated 24/40, layer 5 7/40, layer 2 2/40, layer 8 0/40, showing the supervised layer is where the answers come from."
+  ]
+}

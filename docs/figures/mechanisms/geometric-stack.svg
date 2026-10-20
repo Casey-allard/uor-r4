@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1040" width="960" role="img" aria-labelledby="t d">
+<title id="t">Geometric stack: arithmetic and rules</title>
+<desc id="d">Three stacked panels. Panel A: one bar for the 30,270,720 multiply-adds per token of the 29-million-parameter stack, split into feed-forward blocks 39.6 percent, recurrence projections 31.0 percent, reads 16.6 percent, output head 7.4 percent and an unitemised remainder of about 5.4 percent. The quaternion rotation is a hair-thin sliver of 16,128 multiplies, 0.05 percent. The addressed store, primes, zeta phases and icosians took none. Reads reach 40.5 percent at 4,096 tokens of context. Panel B: one recurrence lane, a four-number state drawn as an arrow that is rotated and shrunk at each of four words, beside the same lane with the rotation removed; the measured difference was 0.0711 and 0.0774 nats on two seeds after 1,000 updates, a development measurement. Panel C: the layer pattern r r a r r a, each layer followed by a feed-forward block, with the parts banned by today's rules, the parts allowed, one part neither banned nor given an integer form, and the allowed replacements as dashed outlines. Notice that the geometry was a hair-thin sliver of a dense network.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); }
+.t { font-size: 20px; font-weight: 600; }
+.h { font-size: 15px; font-weight: 600; }
+.l { font-size: 13px; fill: var(--body); }
+.b { font-size: 13px; font-weight: 600; }
+.s { font-size: 12px; fill: var(--body); }
+.n { font-size: 12px; fill: var(--muted); }
+.mid { text-anchor: middle; }
+.end { text-anchor: end; }
+.c-verm { fill: var(--verm); }
+.c-green { fill: var(--green); }
+.c-muted { fill: var(--muted); }
+.c-blue { fill: var(--blue); }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+.thin { stroke: var(--rule); stroke-width: 1; fill: none; }
+.seg { stroke: var(--bg); stroke-width: 1.5; }
+.f-blue { fill: var(--blue); } .f-orange { fill: var(--orange); } .f-sky { fill: var(--sky); }
+.f-pink { fill: var(--pink); } .f-rule { fill: var(--rule); } .f-verm { fill: var(--verm); }
+.sph { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+.lane { stroke: var(--blue); stroke-width: 2.5; fill: none; marker-end: url(#ahb); }
+.next { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#ahm); }
+.flow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#ahm); }
+.bx-ok { fill: var(--bg); stroke: var(--green); stroke-width: 2; }
+.bx-ban { fill: var(--bg); stroke: var(--verm); stroke-width: 2; }
+.chip-ban { fill: var(--bg); stroke: var(--verm); stroke-width: 2; }
+.chip-ok { fill: var(--bg); stroke: var(--green); stroke-width: 2; }
+.chip-no { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 3; }
+.chip-rep { fill: var(--bg); stroke: var(--blue); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.ahb-p { fill: var(--blue); } .ahm-p { fill: var(--muted); }
+</style>
+<defs>
+  <marker id="ahb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="ahb-p" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="ahm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ahm-p" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="1040"/>
+<text class="t" x="24" y="38">Geometric stack: a thin sliver of geometry inside a dense network</text>
+
+<!-- Panel A -->
+<rect class="panel" x="16" y="56" width="928" height="274" rx="6"/>
+<text class="h" x="32" y="82">A. Where one token's arithmetic went</text>
+<text class="n" x="32" y="100">29M stack, width 576, 10 layers: 30,270,720 multiply-adds per token</text>
+<rect class="f-blue seg" x="32" y="112" width="354.8" height="40"/>
+<rect class="f-orange seg" x="386.8" y="112" width="277.8" height="40"/>
+<rect class="f-sky seg" x="664.6" y="112" width="148.7" height="40"/>
+<rect class="f-pink seg" x="813.3" y="112" width="66.3" height="40"/>
+<rect class="f-rule seg" x="879.6" y="112" width="48.4" height="40"/>
+<text class="l mid" x="209.4" y="172">Feed-forward blocks</text>
+<text class="b mid" x="209.4" y="189">39.6%</text>
+<text class="l mid" x="525.7" y="172">Recurrence projections</text>
+<text class="b mid" x="525.7" y="189">31.0%</text>
+<text class="l mid" x="739" y="172">Reads</text>
+<text class="b mid" x="739" y="189">16.6%</text>
+<text class="s mid" x="846.5" y="172">Output head</text>
+<text class="b mid" x="846.5" y="189">7.4%</text>
+<text class="s end" x="928" y="206">Other: the remainder, not itemised in the source (about 5.4%)</text>
+<rect class="thin" x="32" y="224" width="896" height="14"/>
+<rect class="f-verm" x="32" y="220" width="2" height="22"/>
+<text class="l" x="32" y="262"><tspan class="b c-verm">Quaternion rotation:</tspan> 16,128 multiplies = 0.05% of the arithmetic (sliver drawn wider than its true scale)</text>
+<text class="l" x="32" y="286">Addressed store, prime addresses, zeta phases, icosians: 0 multiplies, because they were not in the trained base.</text>
+<rect class="thin" x="32" y="298" width="400" height="14"/>
+<rect class="f-sky" x="32" y="298" width="162" height="14"/>
+<text class="l" x="444" y="310">Reads reach 40.5% at 4,096 tokens of context</text>
+
+<!-- Panel B -->
+<rect class="panel" x="16" y="346" width="928" height="290" rx="6"/>
+<text class="h" x="32" y="372">B. One recurrence lane: turn the memory at each word, let it fade</text>
+<text class="b" x="32" y="398">With rotation: a different unit quaternion each step</text>
+<text class="b" x="496" y="398">Rotation removed (identity)</text>
+<line class="thin" x1="476" y1="384" x2="476" y2="560"/>
+<!-- rotated lane -->
+<circle class="sph" cx="70" cy="464" r="34"/><ellipse class="thin" cx="70" cy="464" rx="34" ry="10"/>
+<circle class="sph" cx="180" cy="464" r="34"/><ellipse class="thin" cx="180" cy="464" rx="34" ry="10"/>
+<circle class="sph" cx="290" cy="464" r="34"/><ellipse class="thin" cx="290" cy="464" rx="34" ry="10"/>
+<circle class="sph" cx="400" cy="464" r="34"/><ellipse class="thin" cx="400" cy="464" rx="34" ry="10"/>
+<line class="lane" x1="70" y1="464" x2="83" y2="441.5"/>
+<line class="lane" x1="180" y1="464" x2="201.7" y2="460.2"/>
+<line class="lane" x1="290" y1="464" x2="303.8" y2="475.6"/>
+<line class="lane" x1="400" y1="464" x2="398.7" y2="478.9"/>
+<line class="next" x1="108" y1="464" x2="142" y2="464"/>
+<line class="next" x1="218" y1="464" x2="252" y2="464"/>
+<line class="next" x1="328" y1="464" x2="362" y2="464"/>
+<!-- identity lane -->
+<circle class="sph" cx="540" cy="464" r="34"/><ellipse class="thin" cx="540" cy="464" rx="34" ry="10"/>
+<circle class="sph" cx="650" cy="464" r="34"/><ellipse class="thin" cx="650" cy="464" rx="34" ry="10"/>
+<circle class="sph" cx="760" cy="464" r="34"/><ellipse class="thin" cx="760" cy="464" rx="34" ry="10"/>
+<circle class="sph" cx="870" cy="464" r="34"/><ellipse class="thin" cx="870" cy="464" rx="34" ry="10"/>
+<line class="lane" x1="540" y1="464" x2="553" y2="441.5"/>
+<line class="lane" x1="650" y1="464" x2="661" y2="444.9"/>
+<line class="lane" x1="760" y1="464" x2="769" y2="448.4"/>
+<line class="lane" x1="870" y1="464" x2="877.5" y2="451"/>
+<line class="next" x1="578" y1="464" x2="612" y2="464"/>
+<line class="next" x1="688" y1="464" x2="722" y2="464"/>
+<line class="next" x1="798" y1="464" x2="832" y2="464"/>
+<text class="s mid" x="70" y="522">word 1</text><text class="s mid" x="180" y="522">word 2</text>
+<text class="s mid" x="290" y="522">word 3</text><text class="s mid" x="400" y="522">word 4</text>
+<text class="s mid" x="540" y="522">word 1</text><text class="s mid" x="650" y="522">word 2</text>
+<text class="s mid" x="760" y="522">word 3</text><text class="s mid" x="870" y="522">word 4</text>
+<text class="n" x="32" y="542">Each word: rotate the arrow by a new unit quaternion, shrink it by the decay,</text>
+<text class="n" x="32" y="557">add a small input term. Arrow lengths and angles are illustrative.</text>
+<text class="n" x="496" y="542">Same lane, rotation set to the identity: the arrow still fades but its</text>
+<text class="n" x="496" y="557">direction is never turned.</text>
+<text class="l" x="32" y="580">h(t) = λ·(u ⊗ h(t−1)) + √(1−λ²)·c      u: unit quaternion (starts as identity), λ: decay, c: input term</text>
+<text class="b" x="32" y="604">Difference measured in the D1 test: 0.0711 and 0.0774 nats (two seeds, 1,000 updates)</text>
+<text class="n" x="32" y="622">Development measurement; the test core still had banned parts, and the identity arm had 332,928 fewer parameters.</text>
+
+<!-- Panel C -->
+<rect class="panel" x="16" y="652" width="928" height="388" rx="6"/>
+<text class="h" x="32" y="678">C. The trained form against today's rules (layer pattern r r a r r a)</text>
+<rect class="bx-ok" x="32" y="694" width="138" height="46" rx="4"/>
+<text class="b mid" x="101" y="712">r  recurrence</text><text class="n mid" x="101" y="730">scan: allowed</text>
+<rect class="bx-ok" x="182" y="694" width="138" height="46" rx="4"/>
+<text class="b mid" x="251" y="712">r  recurrence</text><text class="n mid" x="251" y="730">scan: allowed</text>
+<rect class="bx-ban" x="332" y="694" width="138" height="46" rx="4"/>
+<text class="b mid" x="401" y="712">a  read</text><text class="n mid" x="401" y="730">softmax: banned</text>
+<rect class="bx-ok" x="482" y="694" width="138" height="46" rx="4"/>
+<text class="b mid" x="551" y="712">r  recurrence</text><text class="n mid" x="551" y="730">scan: allowed</text>
+<rect class="bx-ok" x="632" y="694" width="138" height="46" rx="4"/>
+<text class="b mid" x="701" y="712">r  recurrence</text><text class="n mid" x="701" y="730">scan: allowed</text>
+<rect class="bx-ban" x="782" y="694" width="138" height="46" rx="4"/>
+<text class="b mid" x="851" y="712">a  read</text><text class="n mid" x="851" y="730">softmax: banned</text>
+<rect class="bx-ban" x="32" y="750" width="138" height="40" rx="4"/><text class="s mid" x="101" y="767">feed-forward</text><text class="n mid" x="101" y="782">SwiGLU: banned</text>
+<rect class="bx-ban" x="182" y="750" width="138" height="40" rx="4"/><text class="s mid" x="251" y="767">feed-forward</text><text class="n mid" x="251" y="782">SwiGLU: banned</text>
+<rect class="bx-ban" x="332" y="750" width="138" height="40" rx="4"/><text class="s mid" x="401" y="767">feed-forward</text><text class="n mid" x="401" y="782">SwiGLU: banned</text>
+<rect class="bx-ban" x="482" y="750" width="138" height="40" rx="4"/><text class="s mid" x="551" y="767">feed-forward</text><text class="n mid" x="551" y="782">SwiGLU: banned</text>
+<rect class="bx-ban" x="632" y="750" width="138" height="40" rx="4"/><text class="s mid" x="701" y="767">feed-forward</text><text class="n mid" x="701" y="782">SwiGLU: banned</text>
+<rect class="bx-ban" x="782" y="750" width="138" height="40" rx="4"/><text class="s mid" x="851" y="767">feed-forward</text><text class="n mid" x="851" y="782">SwiGLU: banned</text>
+<line class="flow" x1="32" y1="806" x2="926" y2="806"/>
+<text class="n" x="32" y="824">Layers run left to right in a residual stream, with RMS normalisation between blocks.</text>
+
+<text class="b c-verm" x="32" y="860">Banned</text>
+<rect class="chip-ban" x="150" y="840" width="118" height="30" rx="5"/><text class="l mid" x="209" y="860">softmax read</text>
+<rect class="chip-ban" x="278" y="840" width="153" height="30" rx="5"/><text class="l mid" x="354.5" y="860">sigmoid decay gate</text>
+<rect class="chip-ban" x="441" y="840" width="146" height="30" rx="5"/><text class="l mid" x="514" y="860">SiLU feed-forward</text>
+<rect class="chip-ban" x="597" y="840" width="138" height="30" rx="5"/><text class="l mid" x="666" y="860">GELU output gate</text>
+<rect class="chip-ban" x="745" y="840" width="146" height="30" rx="5"/><text class="l mid" x="818" y="860">dense projections</text>
+
+<text class="b c-green" x="32" y="900">Allowed</text>
+<rect class="chip-ok" x="150" y="880" width="267" height="30" rx="5"/><text class="l mid" x="283.5" y="900">quaternion scan (Hamilton product)</text>
+<rect class="chip-ok" x="427" y="880" width="181" height="30" rx="5"/><text class="l mid" x="517.5" y="900">rank-margin hinge loss</text>
+
+<text class="b c-muted" x="32" y="940">Neither</text>
+<rect class="chip-no" x="150" y="920" width="146" height="30" rx="5"/><text class="l mid" x="223" y="940">RMS normalisation</text>
+<text class="n" x="308" y="940">not banned, but no integer form recorded</text>
+
+<text class="b c-blue" x="32" y="980">Replacements</text>
+<rect class="chip-rep" x="150" y="960" width="181" height="30" rx="5"/><text class="l mid" x="240.5" y="980">SwiGLU → Hamilton gate</text>
+<rect class="chip-rep" x="341" y="960" width="203" height="30" rx="5"/><text class="l mid" x="442.5" y="980">softmax read → flock read</text>
+<rect class="chip-rep" x="554" y="960" width="317" height="30" rx="5"/><text class="l mid" x="712.5" y="980">dense projections → SpiralCore projection</text>
+<text class="n" x="32" y="1016">Solid outline: status in the trained stack. Dashed outline: allowed replacement from another mechanism page, not part of the trained stack.</text>
+</svg>

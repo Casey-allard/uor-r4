@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 574" width="960" height="574" role="img">
+<title>Discrete learning step</title>
+<desc>A four-stage loop on one table entry. Stage 1: try all 16 legal states of the entry (the current state plus 15 rotations) by replaying a batch of examples and summing an integer loss for each. Stage 2: pick the lowest total, with ties going to staying put. Stage 3: commit only if that bar is strictly lower than the stay bar; otherwise refuse and change nothing. Stage 4: re-check the stored table on the GPU, then return to stage 1 for the next coordinate. A strip below shows one proposal taking 3.843 seconds serially and 0.0691 seconds row-parallel, 55.6 times faster. Bar lengths in the loop are illustrative.</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1f2328;--body:#2b3138;--muted:#57606a;--rule:#d0d7de;--panel:#f6f8fa;--blue:#0072b2;--sky:#56b4e9;--green:#007a5e;--orange:#e69f00;--verm:#d55e00;--purple:#7a4fa3;--pink:#cc79a7;--active:#007a5e;--ready:#b06d00;--parked:#7a4fa3}
+@media (prefers-color-scheme: dark){svg{--bg:#0d1117;--ink:#e6edf3;--body:#c9d1d9;--muted:#8b949e;--rule:#30363d;--panel:#161b22;--blue:#58a6ff;--sky:#79c0ff;--green:#3fb950;--orange:#f0b72f;--verm:#ff7b72;--purple:#bc8cff;--pink:#f778ba;--active:#3fb950;--ready:#f0b72f;--parked:#bc8cff}}
+.bg{fill:var(--bg)}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+.title{font-size:19px;font-weight:600}
+.h{font-size:14px;font-weight:600}
+.b{font-weight:600}
+.n{font-size:11.5px;fill:var(--muted)}
+.body{fill:var(--body)}
+.mut{fill:var(--muted)}
+.c{text-anchor:middle}
+.e{text-anchor:end}
+.panel{fill:var(--panel);stroke:var(--rule);stroke-width:1}
+.rule{fill:none;stroke:var(--rule);stroke-width:1}
+.dot{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.arrow{fill:none;stroke:var(--ink);stroke-width:1.5}
+.fi{fill:var(--ink)}
+.fm{fill:var(--muted)}
+.fb{fill:var(--blue)}
+.fv{fill:var(--verm)}
+.cell{fill:var(--bg);stroke:var(--rule);stroke-width:1}
+.cellstay{fill:var(--bg);stroke:var(--ink);stroke-width:2}
+.celllit{fill:var(--blue);fill-opacity:.2;stroke:var(--blue);stroke-width:2}
+.bar{fill:var(--muted);fill-opacity:.6}
+.barlit{fill:var(--blue)}
+.cardA{fill:var(--bg);stroke:var(--blue);stroke-width:2}
+.cardB{fill:var(--bg);stroke:var(--orange);stroke-width:2;stroke-dasharray:6 4}
+.tick{fill:none;stroke:var(--blue);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.cross{fill:none;stroke:var(--orange);stroke-width:3;stroke-linecap:round}
+.tie{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-dasharray:4 3}
+.ring{fill:none;stroke:var(--blue);stroke-width:2}
+.ghost{fill:var(--bg);stroke:var(--rule);stroke-width:1}
+</style>
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="574"/>
+<text class="title" x="24" y="32">Discrete learning: one step on one table entry</text>
+
+<rect class="panel" x="24" y="52" width="272" height="348" rx="8"/>
+<rect class="panel" x="324" y="52" width="152" height="348" rx="8"/>
+<rect class="panel" x="504" y="52" width="220" height="348" rx="8"/>
+<rect class="panel" x="752" y="52" width="184" height="348" rx="8"/>
+
+<text class="h" x="40" y="76">1 counterfactual</text>
+<rect class="ghost" x="40" y="88" width="130" height="14" rx="3" opacity=".45"/>
+<rect class="ghost" x="46" y="94" width="130" height="14" rx="3" opacity=".7"/>
+<rect class="ghost" x="52" y="100" width="130" height="14" rx="3"/>
+<text class="n" x="192" y="110">replayed rows</text>
+<path class="arrow" d="M117 117V134" marker-end="url(#ah)"/>
+<rect class="cellstay" x="38" y="138" width="52" height="26" rx="4"/>
+<text class="n c" x="64" y="155">stay</text>
+<rect class="bar" x="38" y="169" width="38" height="6" rx="1"/>
+<rect class="cell" x="102" y="138" width="52" height="26" rx="4"/>
+<text class="n c" x="128" y="155">1</text>
+<rect class="bar" x="102" y="169" width="44" height="6" rx="1"/>
+<rect class="cell" x="166" y="138" width="52" height="26" rx="4"/>
+<text class="n c" x="192" y="155">2</text>
+<rect class="bar" x="166" y="169" width="31" height="6" rx="1"/>
+<rect class="cell" x="230" y="138" width="52" height="26" rx="4"/>
+<text class="n c" x="256" y="155">3</text>
+<rect class="bar" x="230" y="169" width="47" height="6" rx="1"/>
+<rect class="cell" x="38" y="190" width="52" height="26" rx="4"/>
+<text class="n c" x="64" y="207">4</text>
+<rect class="bar" x="38" y="221" width="36" height="6" rx="1"/>
+<rect class="cell" x="102" y="190" width="52" height="26" rx="4"/>
+<text class="n c" x="128" y="207">5</text>
+<rect class="bar" x="102" y="221" width="41" height="6" rx="1"/>
+<rect class="celllit" x="166" y="190" width="52" height="26" rx="4"/>
+<text class="n c" x="192" y="207">6</text>
+<rect class="barlit" x="166" y="221" width="15" height="6" rx="1"/>
+<rect class="cell" x="230" y="190" width="52" height="26" rx="4"/>
+<text class="n c" x="256" y="207">7</text>
+<rect class="bar" x="230" y="221" width="33" height="6" rx="1"/>
+<rect class="cell" x="38" y="242" width="52" height="26" rx="4"/>
+<text class="n c" x="64" y="259">8</text>
+<rect class="bar" x="38" y="273" width="29" height="6" rx="1"/>
+<rect class="cell" x="102" y="242" width="52" height="26" rx="4"/>
+<text class="n c" x="128" y="259">9</text>
+<rect class="bar" x="102" y="273" width="45" height="6" rx="1"/>
+<rect class="cell" x="166" y="242" width="52" height="26" rx="4"/>
+<text class="n c" x="192" y="259">10</text>
+<rect class="bar" x="166" y="273" width="40" height="6" rx="1"/>
+<rect class="cell" x="230" y="242" width="52" height="26" rx="4"/>
+<text class="n c" x="256" y="259">11</text>
+<rect class="bar" x="230" y="273" width="24" height="6" rx="1"/>
+<rect class="cell" x="38" y="294" width="52" height="26" rx="4"/>
+<text class="n c" x="64" y="311">12</text>
+<rect class="bar" x="38" y="325" width="34" height="6" rx="1"/>
+<rect class="cell" x="102" y="294" width="52" height="26" rx="4"/>
+<text class="n c" x="128" y="311">13</text>
+<rect class="bar" x="102" y="325" width="42" height="6" rx="1"/>
+<rect class="cell" x="166" y="294" width="52" height="26" rx="4"/>
+<text class="n c" x="192" y="311">14</text>
+<rect class="bar" x="166" y="325" width="27" height="6" rx="1"/>
+<rect class="cell" x="230" y="294" width="52" height="26" rx="4"/>
+<text class="n c" x="256" y="311">15</text>
+<rect class="bar" x="230" y="325" width="36" height="6" rx="1"/>
+<text class="n" x="40" y="354">16 legal states: stay, plus 15 rotations.</text>
+<text class="n" x="40" y="369">Bar length = integer loss on the replay</text>
+<text class="n" x="40" y="384">(illustrative; only the order matters).</text>
+
+<path class="arrow" d="M298 226H321" marker-end="url(#ah)"/>
+<path class="arrow" d="M478 226H501" marker-end="url(#ah)"/>
+<path class="arrow" d="M726 226H749" marker-end="url(#ah)"/>
+
+<text class="h" x="340" y="76">2 choose</text>
+<text class="body" x="340" y="100">the state with the</text>
+<text class="body" x="340" y="116">lowest total loss</text>
+<rect class="celllit" x="340" y="136" width="52" height="26" rx="4"/>
+<text class="n c" x="366" y="153">6</text>
+<rect class="barlit" x="340" y="167" width="15" height="6" rx="1"/>
+<text class="n" x="400" y="153">lowest bar</text>
+<rect class="cellstay" x="340" y="198" width="52" height="26" rx="4"/>
+<text class="n c" x="366" y="215">stay</text>
+<rect class="bar" x="340" y="229" width="38" height="6" rx="1"/>
+<text class="n" x="400" y="215">stay bar</text>
+<rect class="tie" x="340" y="262" width="120" height="56" rx="6"/>
+<text class="b c" x="400" y="284">ties go to stay</text>
+<text class="n c" x="400" y="302">nothing is sampled</text>
+
+<text class="h" x="520" y="76">3 apply</text>
+<rect class="cardA" x="520" y="92" width="188" height="126" rx="6"/>
+<text class="n" x="532" y="114">stay</text>
+<rect class="bar" x="566" y="108" width="38" height="7" rx="1"/>
+<text class="n" x="532" y="134">lit</text>
+<rect class="barlit" x="566" y="128" width="15" height="7" rx="1"/>
+<text class="body" x="532" y="160">lit bar strictly lower</text>
+<path class="tick" d="M533 184l5 6l11-13"/>
+<text class="b" x="558" y="190">commit</text>
+<text class="n" x="532" y="208">entry takes the lit state</text>
+<text class="n c" x="614" y="236">or</text>
+<rect class="cardB" x="520" y="246" width="188" height="126" rx="6"/>
+<text class="n" x="532" y="268">stay</text>
+<rect class="bar" x="566" y="262" width="38" height="7" rx="1"/>
+<text class="n" x="532" y="288">lit</text>
+<rect class="barlit" x="566" y="282" width="38" height="7" rx="1"/>
+<text class="body" x="532" y="314">lit bar equal or higher</text>
+<path class="cross" d="M533 330l11 11m0-11l-11 11"/>
+<text class="b" x="558" y="340">refuse</text>
+<text class="n" x="532" y="360">nothing changes</text>
+
+<text class="h" x="768" y="76">4 validate</text>
+<circle class="ring" cx="844" cy="150" r="28"/>
+<path class="tick" d="M831 150l9 10l17-21"/>
+<text class="body c" x="844" y="210">re-check the stored</text>
+<text class="body c" x="844" y="228">table on the GPU</text>
+
+<path class="arrow" d="M844 400V424H160V403" marker-end="url(#ah)"/>
+<text class="body c" x="502" y="445">next coordinate: block, route frame or gate</text>
+
+<text class="h" x="24" y="482">Measured cost of one proposal (Route read, 64 rows)</text>
+<text class="body" x="24" y="510">serial, one proposal</text>
+<rect class="bar" x="250" y="500" width="480" height="12" rx="2"/>
+<text class="b" x="738" y="510">3.843 s</text>
+<text class="body" x="24" y="536">row-parallel</text>
+<rect class="barlit" x="250" y="526" width="8.63" height="12" rx="2"/>
+<text class="b" x="268" y="536">0.0691 s (55.6 times faster)</text>
+<text class="n" x="24" y="562">Cell grid and bar lengths in the loop are illustrative; the two timings are measured.</text>
+</svg>

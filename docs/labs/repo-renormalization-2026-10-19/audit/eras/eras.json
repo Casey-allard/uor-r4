@@ -1,0 +1,3262 @@
+{
+  "range": "#1-#2495",
+  "date_span": "2026-06-10..2026-10-15",
+  "sources": {
+    "e1": {
+      "range": "#1-#600",
+      "date_span": "2026-06-10..2026-08-12",
+      "notes": "Created dates come from the markdown exports; the INDEX column shows closed/updated dates and most PRs show 2026-10-09 from a bulk cleanup, so era boundaries use created/merged dates read from heads. Roughly 45 items were read at head or last-comment level (including #1, #6, #7, #9, #11, #65, #102, #103, #122, #201, #230, #234, #243, #249, #268, #280, #290, #300, #303, #306, #320, #327, #364, #370, #392-#395, #399, #407, #417, #421, #424, #428, #430, #433, #434, #437, #440, #446, #460, #475, #490, #509, #512, #514-#516, #589, #598, #600); the other items are summarized from titles only. Phase-clock and Hopf results above are as stated in their closing comments. Overlap: eras 2 and 3 share 2026-07-23 to 07-24 because the quality chain (#65) and formal tracker (#122) ran concurrently. #1-#10 are mostly empty-bodied PRs, so era 1 goals are inferred from titles and code-review text. I did not open docs/history/*.md snapshots because they cover late Sept onward, after this range."
+    },
+    "e2": {
+      "range": "#601-#1200",
+      "date_span": "2026-08-10..2026-09-08",
+      "notes": "Range covers issues #601-#1200 (217 issues, 384 PRs; 600 markdown files). Issue created dates run 2026-08-10 (#601) to 2026-09-08 (#1200); INDEX dates for many PRs show 2026-10-09 because of a later bulk update, so PR dates were not used for era boundaries. Era dates overlap on boundaries (e.g. #973 opened 2026-08-27 while the geometric-decoder work was still running). Numbers were taken from issue/PR bodies and closing comments read directly; where only titles were read (#1059, #1061, #1075, #1120, #1122 details) no result numbers are stated. #820, #973, #954, #962, #1088, #1139 and #1140 were all later closed not_planned or by Lab 1 on 2026-09-29 and 2026-10-09 (moved to #2031 and the plan of record #1507); I did not read the 2026-09-29 plan itself, which belongs to the next range. #1190-#1193 describe capability scorecards that #1198 later withdrew as unsupported; treat their numbers as unverified. Not fully read: #605 ladder details, #654 phases beyond titles, #1088-#1091 bodies, #1137 comments beyond the handoff, Octeract papers. Mechanism ids used are from vocab.md; native_geometric typed values are tagged native-geometric."
+    },
+    "e3": {
+      "range": "#1201-#1800",
+      "date_span": "2026-09-08..2026-10-06",
+      "notes": "Scope: 600 items (28 issues, 572 PRs) created 2026-09-08 to 2026-10-06; INDEX dates are last-activity so creation dates were taken from each markdown header. Read in full or substantially: about 90 bodies (heads and selected tables), plus INDEX titles for all 600. Comments were skimmed only; the 393-comment #1552 and 397-comment #1750 trackers were read as headers and first comments, and #1512 (238 comments) and #1515 were not opened, so per-run D19 results (v12-v20, E3/E4 detail) and lab-board decisions are under-covered. Several PRs here were later corrected by principal-review PRs (#1320, #1322, #1327, #1329, #1331, #1459); claims in these eras should be read with those corrections. Some PRs (#1789, #1792, #1796) describe themselves as draft or unmerged while the archive index marks them closed; merge status not verified. Original lab names (Lab 1 Claude, Lab 2 OpenCode, Lab 3 Anti-Gravity, Kimi steward, Codex, DeepSeek) vary over the range. Mechanism ids are best-effort mappings onto the vocab; the Sept native_geometric and H4/Hamming mechanisms mostly map to native-geometric, vsa and hopf-observation. docs/history snapshots and docs/evidence/docs/integration directory names were listed for cross-check but not opened in depth. Scratch files e3.idx, e3.tsv, e3.c and e3.b1-b4 remain beside this output in the audit directory."
+    },
+    "e4": {
+      "range": "#1801-#2495",
+      "date_span": "2026-10-06..2026-10-15",
+      "notes": "Range covers 695 INDEX rows (#1801-#2495): almost all are PRs; issues in range are #2028-#2037 (tracker, milestones M1-M8, compute board #2037). Index date column is last-activity, not creation; creation dates of early items are 2026-10-06 (e.g. #1801, #1808, #1809), so the era span begins 2026-10-06; PRs #1801-#1852 show 2026-10-09 only because they were touched in consolidation. Several PRs #2346 and #2458 have titles containing a pipe character that truncated their INDEX rows; titles recovered only partially. I opened or read heads of roughly 70 markdown items (above the stated 40 cap) because bodies were short; comments were skimmed only for #2032 (266 comments, DeepSeek/Claude milestone log) and #2135/#2165 reviews. The INDEX shows items #2028-#2037 as issues; their bodies are the same 'latest delivery' text copied across milestones (13 Oct state), so per-milestone bodies carry little unique history; M4 #2032 holds most mechanism pre-registrations and FIT reviews as comments. Era boundaries overlap in time because DeepSeek, Codex and Claude labs ran parallel lines. Eras 1-5 cover pre-tracker lines and overlap with 6; numbers are cited from PR bodies, not re-verified against docs/evidence. Cross-check with docs/history snapshots was limited to section headings of project-track-archive; not exhaustively compared."
+    }
+  },
+  "notes": "Merged from four era readers (e1 #1-#600, e2 #601-#1200, e3 #1201-#1800, e4 #1801-#2495). Eras are sorted by start date, then end date; ids era-01..era-32 are assigned in that order. Each reader covered a disjoint item range, so no era was duplicated outright; eras that share calendar days are listed in overlaps_with (mostly boundary days, and parallel lab lines from 6 to 13 October). The one item cited as key_item in two eras (#2135, D21) is kept only in era-27 (governance) and remains cited in era-25 results. Era text is copied from the readers unchanged; source_reader names the input file. phase is an added grouping (A-E) for readability, not a source field. The e4 range runs to 15 October, past the nominal 13 October cut. Reader caveats (bulk 2026-10-09 close dates, title-only items, under-read trackers #1512/#1515/#1552/#1750/#2032, later principal-review corrections #1320-#1331/#1459, unverified #1190-#1193 scorecards) are preserved under sources.",
+  "phases": [
+    {
+      "id": "A",
+      "name": "Compile a teacher into tables and graphs",
+      "eras": [
+        "era-01",
+        "era-10"
+      ],
+      "date_span": "2026-06-10..2026-08-26"
+    },
+    {
+      "id": "B",
+      "name": "Learned geometric decoder and the softmax reference",
+      "eras": [
+        "era-11",
+        "era-14"
+      ],
+      "date_span": "2026-08-25..2026-09-08"
+    },
+    {
+      "id": "C",
+      "name": "Native geometric learner, exact memory and the prose deficit",
+      "eras": [
+        "era-15",
+        "era-19"
+      ],
+      "date_span": "2026-09-08..2026-09-25"
+    },
+    {
+      "id": "D",
+      "name": "Geometric stack, labs, chat and memory lines",
+      "eras": [
+        "era-20",
+        "era-29"
+      ],
+      "date_span": "2026-09-26..2026-10-11"
+    },
+    {
+      "id": "E",
+      "name": "Lawful geometric operators and the discrete substrate",
+      "eras": [
+        "era-30",
+        "era-32"
+      ],
+      "date_span": "2026-10-10..2026-10-15"
+    }
+  ],
+  "eras": [
+    {
+      "id": "era-01",
+      "phase": "A",
+      "name": "R4 prime router and first transformerless prototype",
+      "date_span": "2026-06-10..2026-07-21",
+      "start": "2026-06-10",
+      "end": "2026-07-21",
+      "source_reader": "e1",
+      "overlaps_with": [
+        "era-02"
+      ],
+      "goal": "Stand up the R4 prime router (sparse 512-dim vectors, local HTTP chat server) and a 'transformerless local AI' that compiles a teacher model into a table/graph engine.",
+      "engines_or_approaches": [
+        "R4 prime router (UorR4Router, f64 512-dim sparse vectors)",
+        "transformerless local AI (compile + store + chat)",
+        "Llama CPU full-attention teacher execution",
+        "proof-carrying semantic routing with 1024-bit VSA hypervectors"
+      ],
+      "mechanisms": [
+        "prime-zeta-codebook",
+        "hopf-observation",
+        "vsa",
+        "exact-memory",
+        "tokenizer"
+      ],
+      "key_items": [
+        {
+          "num": 1,
+          "title": "R4 prime router",
+          "why_it_matters": "First PR of the repo (2026-06-10): sparse-vector serialization plus local HTTP server around UorR4Router."
+        },
+        {
+          "num": 6,
+          "title": "Codex/transformerless local ai",
+          "why_it_matters": "Brings the 'transformerless' engine into the uor-r4 workspace as modular crates with CLI, tests and HTTP endpoints."
+        },
+        {
+          "num": 7,
+          "title": "integrate full attention Llama CPU execution and persist tokens",
+          "why_it_matters": "Early teacher path: runs a Llama model's full attention on CPU to produce observations; body is empty, so details are not recorded."
+        },
+        {
+          "num": 9,
+          "title": "proof-carrying semantic addresses, VSA algebra, SemanticGeometry trait",
+          "why_it_matters": "Introduces 1024-bit VSA bind/unbind/bundle and a pluggable SemanticGeometry trait in the router crate."
+        },
+        {
+          "num": 10,
+          "title": "proof-carrying semantic routing and hologram compiler redesign (Phase 1-4, 10)",
+          "why_it_matters": "Hands off from the router prototype to the 'hologram compiler' direction that became R4G1."
+        }
+      ],
+      "results": [
+        "#1 and #6 were reviewed by gemini-code-assist, which flagged panics, unbounded allocation and a compile error; no measured model quality is recorded (#1, #6).",
+        "No benchmark numbers appear in #1-#10; items are structural PRs with sparse bodies (#7, #9)."
+      ],
+      "why_it_ended": "Not retired by a decision; absorbed by the R4G1 graph-compiler plan (docs/r4_graph_compiler_implementation_plan.md) when the issue tracker was seeded on 2026-07-21 (#11-#34).",
+      "knowledge_to_keep": [
+        "The repo's first code (#1) was a router with sparse 512-dim vectors; later geometry work (zeta grid, Hopf sectors) descends from it.",
+        "Early authorship is split across Casey-allard, Codex branches and the auser account; archive names are not role labels."
+      ]
+    },
+    {
+      "id": "era-02",
+      "phase": "A",
+      "name": "R4G1 graph compiler: plan, format and inference contract",
+      "date_span": "2026-07-21..2026-07-26",
+      "start": "2026-07-21",
+      "end": "2026-07-26",
+      "source_reader": "e1",
+      "overlaps_with": [
+        "era-01",
+        "era-03",
+        "era-04"
+      ],
+      "goal": "Compile a teacher's behaviour into an immutable, bounded R4G1 graph (HEAD/CODE/NODE/EDGE/ROUT/EMIT/EXCT/PROV/CERT) whose CPU inference is multiplication-free, allocation-free and certified.",
+      "engines_or_approaches": [
+        "R4G1 graph format and compiler",
+        "TLA transformerless runtime",
+        "ScoreQ fixed-point scoring",
+        "multi-timescale RuntimeState",
+        "SmolLM2 HF-compiled evaluation",
+        "deterministic Rayon compiler executors"
+      ],
+      "mechanisms": [
+        "r4g1-graph",
+        "lut-serving",
+        "tokenizer",
+        "ternary-xor",
+        "vsa"
+      ],
+      "key_items": [
+        {
+          "num": 11,
+          "title": "R4G1 wire-format RFC and GraphView validation invariants",
+          "why_it_matters": "Defines the R4G1 container and two-stage validation; 57 tests, GraphView only built after both stages pass."
+        },
+        {
+          "num": 19,
+          "title": "Replace floating route scores with ScoreQ fixed-point residuals",
+          "why_it_matters": "Puts routing scores on an integer/fixed-point footing, an early step toward the multiplier-free serving contract."
+        },
+        {
+          "num": 20,
+          "title": "Certificate schema with source, corpus, graph, metric, op, benchmark CIDs",
+          "why_it_matters": "Introduces machine-checkable certificates binding every artifact to content identifiers."
+        },
+        {
+          "num": 122,
+          "title": "TRACKER: Formal analysis direction for the holographic semantic operating system",
+          "why_it_matters": "Turns a 17-section formal-analysis PDF into an issue program (#123-#137); origin of the definition/objective/guarantee claim classes."
+        },
+        {
+          "num": 157,
+          "title": "Define the normative CPU-only, multiplication-free, zero-allocation inference contract",
+          "why_it_matters": "Source of the inference operation contract; compilation and training are explicitly unrestricted, only serving is constrained."
+        },
+        {
+          "num": 165,
+          "title": "Deterministic compiler executor abstraction (sequential + Rayon)",
+          "why_it_matters": "Start of a 11-issue chain (#165-#175) for deterministic multicore compilation with byte-equal artifacts."
+        },
+        {
+          "num": 198,
+          "title": "[EPIC] Roadmap: Web Worker isolation, standards hardening, multi-scale context",
+          "why_it_matters": "Groups browser worker, unified inference payload, UOR attestation and scaled D3 certification work."
+        }
+      ],
+      "results": [
+        "R4G1 stage-1/stage-2 validation landed with 57 tests, workspace clippy-clean and kappa-reproduction green (#11).",
+        "Issues #11-#34 and #157-#175 were closed within days by PRs that mostly landed as structure (schema, tests, specs), not model-quality gains (#35-#57, #162-#192).",
+        "The formal-analysis tracker mapped PDF sections to implementation PRs #138-#156 (#122)."
+      ],
+      "why_it_ended": "Not retired; shifted from building scaffolding to measuring quality once Gate C measured the first formula at 0.3% vs 31.7% baseline (#65 context), starting the quality chain.",
+      "knowledge_to_keep": [
+        "The mul-free zero-alloc contract (#157) governs production inference only; the compiler may use floats, heap and threads.",
+        "Many 'closes #N' PRs in this era delivered specs and harnesses; do not read them as capability results.",
+        "Most PRs in the export show close date 2026-10-09 from a bulk cleanup; use created/merged dates."
+      ]
+    },
+    {
+      "id": "era-03",
+      "phase": "A",
+      "name": "Quality chain, honest scoring and the Furey quantum plan",
+      "date_span": "2026-07-23..2026-07-24",
+      "start": "2026-07-23",
+      "end": "2026-07-24",
+      "source_reader": "e1",
+      "overlaps_with": [
+        "era-02"
+      ],
+      "goal": "Get the R4G1 graph scorer from 0.3% to baseline via a 16-step dependency chain, and in parallel add a Furey-inspired algebra stack (Cayley-Dickson, Clifford, Bott-Fock, density operator).",
+      "engines_or_approaches": [
+        "R4G1 deployed scorer (Rule 1 chain, Rule 2 EXCT precedence)",
+        "Gate C trend tracking",
+        "Furey quantum geometric plan (arXiv 2607.18450)",
+        "overlap-node scoring variants",
+        "Witten-Bell emission smoothing"
+      ],
+      "mechanisms": [
+        "r4g1-graph",
+        "vsa",
+        "ternary-xor",
+        "tokenizer",
+        "exact-memory"
+      ],
+      "key_items": [
+        {
+          "num": 65,
+          "title": "TRACKER: R4G1 quality-improvement chain",
+          "why_it_matters": "Single dependency-ordered map of 16 fixes in 5 chains; root context was Gate C 0.3% vs 31.7% TLA3 baseline."
+        },
+        {
+          "num": 64,
+          "title": "Scoring redesign: correlated residual stacking across overlapping memberships",
+          "why_it_matters": "Chain-telescoped scoring plus EXCT precedence redesign; everything else in the quality chain depended on it."
+        },
+        {
+          "num": 102,
+          "title": "Main carries #99's fake interaction-residual metric and #80's invariant-breaking variants",
+          "why_it_matters": "Self-audit: a zero-delta metric hid that interaction residuals actually degraded scoring; resolved by revert PR #114."
+        },
+        {
+          "num": 103,
+          "title": "TRACKER: Quantum Geometric Transformerless Engine (Furey 2026)",
+          "why_it_matters": "Six-phase plan (#104-#109) for Cayley-Dickson 16D, Cl(0,8), Lie-Jordan, Bott-Fock, density-operator cover; 5/6 landed that day."
+        },
+        {
+          "num": 110,
+          "title": "BDD quality floor: pin Rule 1+2 anchors in the deployed gate",
+          "why_it_matters": "Deployed quality gate now rejects graphs below the pinned baseline (#111)."
+        }
+      ],
+      "results": [
+        "Honest pinned harness showed all 16 interaction-residual candidate pairs degrade held-out scoring, e.g. Rule 1 +0.64 to +2.25 bits/token (#102, #101).",
+        "The #99 'fake metric' and #80 scoring variants were removed from main by revert (#102, #114).",
+        "Furey phases #104-#108 landed as modules with unit/BDD tests and Gate F numbers; no quality gain on Gate C is recorded (#103)."
+      ],
+      "why_it_ended": "The Furey algebra modules were never wired into inference; #249 (2026-07-28) deliberately kept them dormant, and #515 later registered them as open claims behind gates.",
+      "knowledge_to_keep": [
+        "A reported zero delta can be an unwired metric: #99's 0.0000 hid a real degradation. Pin an honest harness before trusting nulls.",
+        "Furey Cayley-Dickson/Cl(0,8)/Lie-Jordan/Bott-Fock/quantum_cover code exists but feeds nothing in inference (#249)."
+      ]
+    },
+    {
+      "id": "era-04",
+      "phase": "A",
+      "name": "Token-index pivot, honest cascade and CLI/web client",
+      "date_span": "2026-07-26..2026-07-26",
+      "start": "2026-07-26",
+      "end": "2026-07-26",
+      "source_reader": "e1",
+      "overlaps_with": [
+        "era-02"
+      ],
+      "goal": "Resolve the high-entropy result (37.15 bits/token vs 14.84 teacher floor) as a Hugging Face observation/token-indexing bug, and make serving degrade gracefully with a CLI and browser front end.",
+      "engines_or_approaches": [
+        "R4G1 deployed path",
+        "dynamic engine fallback to transformerless",
+        "uor-r4-cli launcher and REPL",
+        "W(3,3) phase field web UI with WebSocket telemetry",
+        "UOR attestation envelope",
+        "TinyStories llama2.c reference"
+      ],
+      "mechanisms": [
+        "r4g1-graph",
+        "tokenizer",
+        "lut-serving",
+        "none"
+      ],
+      "key_items": [
+        {
+          "num": 201,
+          "title": "[Epic] Token-Index Mismatch Resolution & Diagnostic Pivot",
+          "why_it_matters": "Branch B: TinyStories reference reproduced 28.9% top-1, 6.54 bits, so the evaluation harness was sound and the fault was HF observation indexing."
+        },
+        {
+          "num": 203,
+          "title": "Enforce strict tokenizer_cid verification",
+          "why_it_matters": "Runtime refuses a tokenizer that does not match the compiled artifact."
+        },
+        {
+          "num": 210,
+          "title": "Dynamic Engine Fallback Pipeline and D4 Policy",
+          "why_it_matters": "Router falls back across engines; later replaced by a single honest cascade (#248, #272)."
+        },
+        {
+          "num": 212,
+          "title": "W(3,3) Phase Field UI & WebSocket Telemetry",
+          "why_it_matters": "First browser front end for the engine with live telemetry."
+        },
+        {
+          "num": 222,
+          "title": "minimalist r4 client wrapper, vendor chat API, single-command launcher",
+          "why_it_matters": "Origin of the uor-r4-cli launcher and REPL later renamed through #225, #226."
+        }
+      ],
+      "results": [
+        "Harness check: TinyStories kappa-reproduction passed, reproducing top-1 28.9%, agreement 31.7%, 6.54 bits/token (#201).",
+        "Elevated 37.15 bits/token was isolated to HF observation extraction and token indexing rather than the runtime kernel (#201).",
+        "Epic closed 2026-07-26 with 94 BDD scenarios green; later work found the teacher floor still 13.4 bits (#268)."
+      ],
+      "why_it_ended": "The epic closed the same day; the tokenizer fix (#253) and deeper teacher-floor investigation (#268) followed. The fallback cascade was rewritten as 'honest cascade' in #248/#272.",
+      "knowledge_to_keep": [
+        "WINDOW = 8 context is a parameter of the Chain-2 encoder, not an invariant; extension was mapped to multi-timescale Phase 8 (#201).",
+        "The HF path used a non-BPE tokenizer for observation (#242), so early HF numbers were distorted."
+      ]
+    },
+    {
+      "id": "era-05",
+      "phase": "A",
+      "name": "Diagnostics, mul-free store and the TLA6/TLA7 integer runtime",
+      "date_span": "2026-07-27..2026-08-03",
+      "start": "2026-07-27",
+      "end": "2026-08-03",
+      "source_reader": "e1",
+      "overlaps_with": [
+        "era-06"
+      ],
+      "goal": "Explain why graph evaluation was vacuous or poor, fix measurement instruments, and make the multiplication-free store competitive with an f32 control (shift-add dot assignment).",
+      "engines_or_approaches": [
+        "certify rows (A, A-f32, A-binary, A-dot) on D3 corpus",
+        "shift-add dot assignment (TLA6, TLA7)",
+        "VP-tree and SIMD dot scan",
+        "uor-addr attestation and kappa-addressed region objects",
+        "SmolLM2-135M teacher",
+        "Hopf sector projection",
+        "phase-clock Design P"
+      ],
+      "mechanisms": [
+        "r4g1-graph",
+        "lut-serving",
+        "ternary-xor",
+        "prime-zeta-codebook",
+        "hopf-observation",
+        "tokenizer",
+        "exact-memory"
+      ],
+      "key_items": [
+        {
+          "num": 230,
+          "title": "Mul-free context assignment fragments the store 3.71x against its own f32 control",
+          "why_it_matters": "Opens the store-fragmentation program; attributed to sign-Hamming assignment, not residual handling."
+        },
+        {
+          "num": 234,
+          "title": "D3: Gate C evaluation distribution answered entirely by exact-context lookup",
+          "why_it_matters": "Gate C was restating the baseline; fixed by strict full-code EXCT-miss semantics and per-status reporting."
+        },
+        {
+          "num": 243,
+          "title": "f32 residual-VQ store + mul-free graded-signature query assignment",
+          "why_it_matters": "Decision epic: shift-add dot kernel (Phase B), 1-term TLA6 (C1), witness-attested graded codes (C2)."
+        },
+        {
+          "num": 268,
+          "title": "D3 teacher floor remains ~13.4 bits after the tokenizer fix",
+          "why_it_matters": "Traced to stream interleaving; fixed by story-contiguous replay; quoted floor 11.17 bits/token."
+        },
+        {
+          "num": 276,
+          "title": "Design P: complex discrete phase-clock addressing",
+          "why_it_matters": "Zeta-torus phase channel tested as address-space candidate; recorded negative in #392."
+        },
+        {
+          "num": 280,
+          "title": "R4G1 graph readout predicts 0.0% on held-out while the same store predicts 28.2%",
+          "why_it_matters": "Led to demoting the convert_r4g1 scaffold to a container-format demo."
+        },
+        {
+          "num": 300,
+          "title": "External-referee floor measurement: SmolLM2-135M on D3 held-out",
+          "why_it_matters": "Same text outside the pipeline gave 3.84 bits/token versus 11.17 inside it: the floor was pipeline-internal."
+        },
+        {
+          "num": 303,
+          "title": "Terminal audit: R4 Hopf sector space under-addressed by block-norm projection",
+          "why_it_matters": "Measured 7/512 sectors occupied (1.4%); remediation tracked in #306, later refuted by #430."
+        },
+        {
+          "num": 327,
+          "title": "Decision: adopt 300k/500k-token corpus as next pinned era",
+          "why_it_matters": "Scaling curve roughly log-linear, +1.5 to +1.8pp top-1 per corpus doubling; 500k pinned (TLA7 era)."
+        }
+      ],
+      "results": [
+        "Shift-add dot (Phase B) scored 30.7/34.3 top-1/agreement with 47,476 keys and zero multiplies versus a 344,604-key shipped store (#243, #230).",
+        "Phase C part 2 reached 31.63% on the fixture and beat the same-corpus baseline on both metrics on D3 (5.38/15.22) (#243).",
+        "Scaling: shipped integer runtime 33.4/37.3 at 500k beats the 150k f32 ceiling 32.1/36.4 (#327).",
+        "Phase-clock Design P rows (12.5-16.7% top-1) all fell below shipped row A at 34.7%: recorded negative, phase channel retired (#392).",
+        "Graph readout via convert_r4g1 scaffold: 0.0% held-out vs 28.2% for the same store; scaffold demoted (#280).",
+        "First honest serving-surface C row: 1021/1021 positions ExactContext, top-1 5.6% (#280)."
+      ],
+      "why_it_ended": "Phase C closed with decisions in #243; the remaining graph-path weakness (about 1.2% top-1 on its slice) became the target of the next era's root-cause work (#364).",
+      "knowledge_to_keep": [
+        "Store fragmentation came from sign-Hamming assignment; dot-product assignment with power-of-two centroids gives smaller and more accurate stores at zero multiplies (#230, #243).",
+        "An EXCT-dominated eval measures the baseline, not the graph; always report strict full-code miss rate (#234).",
+        "Phase-clock/complex-phase addressing (Design P) was measured and closed negative by key-space dilution (#392).",
+        "External referees catch pipeline-internal errors: 11.17 vs 3.84 bits on the same text (#268, #300)."
+      ]
+    },
+    {
+      "id": "era-06",
+      "phase": "A",
+      "name": "Graph-path root cause and R4-native geometry program",
+      "date_span": "2026-08-03..2026-08-06",
+      "start": "2026-08-03",
+      "end": "2026-08-06",
+      "source_reader": "e1",
+      "overlaps_with": [
+        "era-05",
+        "era-07"
+      ],
+      "goal": "Find why the graph path yields about 1-2% top-1, then restore geometry (E8/icosian codebooks, router anchors, anchor-infill serving) as the load-bearing substrate.",
+      "engines_or_approaches": [
+        "region emissions and contrast weighting",
+        "E8/icosian codebook spike",
+        "anchor-infill A-mode serving (FWDA section)",
+        "router-selected anchors",
+        "two-pass generation",
+        "certify harness",
+        "FMM far-field scorer"
+      ],
+      "mechanisms": [
+        "e8-orbit-memory",
+        "spin-weights",
+        "route-read",
+        "hopf-observation",
+        "prime-zeta-codebook",
+        "r4g1-graph",
+        "ternary-xor"
+      ],
+      "key_items": [
+        {
+          "num": 364,
+          "title": "Region emissions select by distinctiveness, not likelihood",
+          "why_it_matters": "Emission lists cover 1.57% of probability mass; contrast weighting reached parity with not conditioning at all."
+        },
+        {
+          "num": 290,
+          "title": "Exploratory: hierarchical far-field operator (Fast Multipole Method)",
+          "why_it_matters": "Opened to be falsified; Gram-block form is rank <= 288 so no asymptotic win; a different low-rank scorer (#356) gave gains."
+        },
+        {
+          "num": 393,
+          "title": "R4-native architecture: restore geometry as the load-bearing substrate",
+          "why_it_matters": "Program umbrella; verdict: geometry load-bearing for the redundancy-rich regime only."
+        },
+        {
+          "num": 395,
+          "title": "E8/icosian codebook for store vectors",
+          "why_it_matters": "Spike showed E8 beats sign codes at matched bits and icosian serving path is table-implementable; design law recorded."
+        },
+        {
+          "num": 399,
+          "title": "Syntax as routing: E_b-conditioned infill step consuming forward anchors",
+          "why_it_matters": "A-mode infill shipped (+4.2pp live); standalone two-pass refuted twice (#417, #418)."
+        },
+        {
+          "num": 421,
+          "title": "Router reconnection: router-selected anchors feeding the infill engine",
+          "why_it_matters": "Original hybrid architecture measured: router anchors beat unigram and shuffled nulls."
+        },
+        {
+          "num": 422,
+          "title": "Hopf post-remediation retrieval quality",
+          "why_it_matters": "The measurement #306 conditioned on; signed projection retrieval MRR 0.0045 vs 0.0743 before: negative."
+        },
+        {
+          "num": 407,
+          "title": "Compile-path quality: retrained same-budget RVQ beats the shipped codes",
+          "why_it_matters": "Attributed +1.4pp to era self-consistency and +0.5-0.7pp to CTX_SAMPLE 6k to 50k; fifth kappa re-pin."
+        }
+      ],
+      "results": [
+        "Real-bundle contrast-weighted emission: graph top-1 5.99% vs root-only 5.19%, bits 22.51 vs 22.53, so ranking gain but no distributional gain (#364).",
+        "Router anchors 7.6% free top-1 vs unigram 2.1%, shuffled 3.1%, true anchors 31.5%: POSITIVE (#428).",
+        "Draft-anchor two-pass (real B-mode) 40.4 vs 41.3 on live slice: net negative; naive two-pass refuted (#417).",
+        "Hopf signed projection: 6.1x occupancy spread but no retrieval value, sector-filtered MRR 0.0045 vs 0.0743 (#430).",
+        "Zeta-grid 0.89 MRR re-attributed: content vectors full-width scored 0.8948, banding cost about 0.66 MRR (#440).",
+        "E8-256 beats sign code at matched bits; lattice snapping free at 0.5rms; all-integer table-read assignment costs 0.4pp (#397, #404, #406)."
+      ],
+      "why_it_ended": "Umbrella #393 closed 2026-08-05 with all rows measured; successors were the broad-corpus frontier (#433), geometry ancestry (#434), stratification (#435) and router quality (#422).",
+      "knowledge_to_keep": [
+        "Design law: keep the E8/icosian lattice on the comparison side, never flattened into hash keys (#395).",
+        "Geometry gains were measured only in a redundancy-rich corpus regime; broad text behaved differently (#393, #433).",
+        "Geometric emission conditioning at best equals not conditioning unless regions are specialised (#364, #370).",
+        "A positive-sounding geometry claim can be a storage artifact: banding explained the zeta MRR headline (#440)."
+      ]
+    },
+    {
+      "id": "era-07",
+      "phase": "A",
+      "name": "Broad-corpus frontier, two-sided context and capacity scaling",
+      "date_span": "2026-08-05..2026-08-08",
+      "start": "2026-08-05",
+      "end": "2026-08-08",
+      "source_reader": "e1",
+      "overlaps_with": [
+        "era-06",
+        "era-08"
+      ],
+      "goal": "Explain the 26-27% broad-corpus ceiling, test two-sided and stratified context, scale cover capacity, and clean up retrieval/geometry claims.",
+      "engines_or_approaches": [
+        "wiki10k and 2.11M-record corpora",
+        "two-sided context keying (Kracht distribution classes)",
+        "latent right-context mixture",
+        "capacity-scaled cover induction",
+        "content-vector router query",
+        "Spectral vs VSA geometry",
+        "IPF marginal consistency"
+      ],
+      "mechanisms": [
+        "r4g1-graph",
+        "route-read",
+        "vsa",
+        "prime-zeta-codebook",
+        "hopf-observation",
+        "exact-memory",
+        "tokenizer"
+      ],
+      "key_items": [
+        {
+          "num": 433,
+          "title": "Broad-corpus frontier: why the substrate caps at ~26-27%",
+          "why_it_matters": "Answered by #437: the ceiling is the teacher signal, with a quantified 16pp representation gap in the home regime."
+        },
+        {
+          "num": 435,
+          "title": "Construction-time structural stratification",
+          "why_it_matters": "Partitioned store construction tested; v1-v3 all negative (#441, #443)."
+        },
+        {
+          "num": 446,
+          "title": "Two-sided context distribution classes over left/right",
+          "why_it_matters": "Two-sided keying gives 38.77% but right context is non-causal; causal latent-mix arms negative on top-1."
+        },
+        {
+          "num": 448,
+          "title": "MEASUREMENT INTEGRITY: score pipeline not run-to-run deterministic",
+          "why_it_matters": "Nondeterminism claim refuted at induction (#449) but a live tie-break bug was found in emit_r4g1 (#451, #453)."
+        },
+        {
+          "num": 460,
+          "title": "Cover split criterion and codebook fit",
+          "why_it_matters": "Absolute 0.25-bit entropy floor made 2.11M records degenerate (8 regions); scaled capacity gave +5.0pp."
+        },
+        {
+          "num": 486,
+          "title": "Why does the cosine fail to identify a sentence from itself?",
+          "why_it_matters": "Serving compared a routing vector to a content vector; fixing it gave +0.136 MRR (adopted in #494)."
+        },
+        {
+          "num": 487,
+          "title": "#434's Spectral row is lexical retrieval, not spectral geometry",
+          "why_it_matters": "Correction of a geometry claim; the VSA switch also silently lost retrieval (#497)."
+        },
+        {
+          "num": 424,
+          "title": "Bott-Fock O(1) context fold: measure the named priority candidate",
+          "why_it_matters": "Long-range context worth only +1.02pp for any carrier; shipped decay retains 16% (+0.16pp)."
+        }
+      ],
+      "results": [
+        "Broad ceiling: target-stream unigram floor 26.82%, any-k oracle 27.51%, teacher argmax agreement 6.4% on wiki vs 70.2% home; oracle 52.7% vs measured 36.5% home (#437).",
+        "Two-sided keying 31.0% / 6.94 bits vs Rule 1+2 26.4% / 8.27 (non-causal); causal marginal 25.91% top-1 negative but bits better by 0.897 (#447, #454).",
+        "Capacity-scaled cover: regions 48 to 110, region-path top-1 +5.0pp, serving impact capped near 0.15pp by exact-context dominance (#460).",
+        "Codebook fit only +0.44pp (2.1 SE), below the +1.0pp exit rule (#460).",
+        "Bott-Fock ceiling: lossless upper bound +0.16pp as shipped, 'mechanism sound, constant wrong' (#424, #475).",
+        "Content-vector query +0.1363 MRR; lexical weight W=0 gave +0.022 MRR (#490, #494, #502, #504).",
+        "IPF consistency operator reaches only the unigram floor; overlapping blocks do disagree (#499, #505)."
+      ],
+      "why_it_ended": "Teacher breadth identified as binding constraint (#437), directing work to the SmolLM2-360M broad-corpus program (#509, #320); latent right-class family closed dead for top-1 (#455).",
+      "knowledge_to_keep": [
+        "On broad text the ceiling was the teacher signal, not representation; a better teacher beat every clever store trick (#437, #509).",
+        "Latent right-class marginalisation is dead for top-1 but its calibration gain (bits 15.48 vs 22.21 at 2.11M) survived (#446).",
+        "Fixed-threshold cover splits do not scale with corpus size; capacity must scale with N (#460).",
+        "Bott-Fock context fold should be retuned (decay >>2 to >>7) before any revival (#424)."
+      ]
+    },
+    {
+      "id": "era-08",
+      "phase": "A",
+      "name": "SmolLM2-360M broad program, dormant-claim gating and upstream modernization",
+      "date_span": "2026-08-08..2026-08-12",
+      "start": "2026-08-08",
+      "end": "2026-08-12",
+      "source_reader": "e1",
+      "overlaps_with": [
+        "era-07",
+        "era-09"
+      ],
+      "goal": "Prove a competent broad teacher lifts the substrate, re-pin the baseline, preserve ruled-out mechanisms behind gates, enforce total-ops conformance, and queue model-source ingestion and upstream modernization.",
+      "engines_or_approaches": [
+        "SmolLM2-360M teacher on Simple-Wiki",
+        "recommend-scale calculator (corpus-scale law)",
+        "R5 audit-limits conformance gate",
+        "activation-gate registry (cargo xtask gate)",
+        "model-source adapter (safetensors shards)",
+        "UOR Framework/uor-addr/NAF/kappa-registry modernization"
+      ],
+      "mechanisms": [
+        "r4g1-graph",
+        "tokenizer",
+        "lut-serving",
+        "none"
+      ],
+      "key_items": [
+        {
+          "num": 320,
+          "title": "Teacher upgrade: measured SmolLM2 baseline (135M rehearsal, then 360M)",
+          "why_it_matters": "135M floor 4.20 bits, 360M P2 floor 3.79 bits; re-pin deferred into the broad program."
+        },
+        {
+          "num": 509,
+          "title": "Broad-corpus program: observe SmolLM2-360M on Simple-Wiki",
+          "why_it_matters": "POSITIVE: Rule 1+2 reached 10.19% and latent-mix 29.0% against about 0.1% for the narrow teacher off-distribution."
+        },
+        {
+          "num": 516,
+          "title": "Baseline re-pin: adopt SmolLM2-360M broad corpus as pinned baseline",
+          "why_it_matters": "Keeps stories15M as continuity partition; scale 10-15k articles with scaled capacity cover."
+        },
+        {
+          "num": 514,
+          "title": "Corpus-scale law + recommend-scale calculator",
+          "why_it_matters": "Turns 'how much corpus does a teacher need' into a calibrated calculator; EXCT coverage knee about 1-2M records."
+        },
+        {
+          "num": 510,
+          "title": "Template gates R4/R5/R6: audit-deferral, audit-limits, cargo-deny",
+          "why_it_matters": "Drove a #511-#588 PR series converting panics/unwraps to total ops until each crate hit zero; R5 became a CI gate."
+        },
+        {
+          "num": 515,
+          "title": "Preserve-and-gate all dormant/ruled-out mechanisms",
+          "why_it_matters": "Every off-serving mechanism registered in model/ledger.toml as an open claim with an activation gate; six wrong registrations corrected."
+        },
+        {
+          "num": 589,
+          "title": "Modernize and rebase r4 against upstream (UOR Framework, ADDR, NAF, kappa-registry)",
+          "why_it_matters": "Audit found pins already at upstream HEAD; campaign closed 2026-08-12 with seven sub-issues."
+        },
+        {
+          "num": 600,
+          "title": "Make source and compiled geometry explicit; version the 288-dim projection",
+          "why_it_matters": "Hidden source-to-288 averaging projection (576-dim to 288) made an explicit, identified step; delivered via PR #636."
+        },
+        {
+          "num": 598,
+          "title": "model-source: indexed safetensors shards and declared codecs",
+          "why_it_matters": "Part of #597-#600 model-source program opening ingestion of open-weight models beyond the single-file SmolLM2 fixture."
+        }
+      ],
+      "results": [
+        "Broad-teacher Gate C on 4,358 held-out positions: Rule 1+2 10.19% / 12.72 bits; latent-mix 29.0% / 11.71; TLA3 baseline 25.70% / 14.70; teacher floor 3.60 bits (#509, #512).",
+        "Oracle-right control 15.9% vs shuffled-class null 21.5% were recorded alongside the latent-mix result (#509).",
+        "EXCT full-code resolution: 37.5% at 21k records, 85.4% at 500k, 97.8% at 2.11M (#514).",
+        "Dormant-claim audit: six #590 registrations disproven because the modules were actually wired (#515, #592, #593, #614)."
+      ],
+      "why_it_ended": "Range ends at #600 (2026-08-12); the next issues (#601+) continue the model-source, attention and trace programs queued here (#589, #600).",
+      "knowledge_to_keep": [
+        "Teacher breadth, not store cleverness, was the binding constraint on broad text; the 360M baseline re-pin is the reference for that regime (#509, #516).",
+        "Dormant mechanisms are preserved by registration with activation gates, not deletion; check wiring before gating or you break the build (#515).",
+        "Source-to-compiled projection (576 to 288 dims) must be explicit and versioned, since it silently changed geometry before cover induction (#600)."
+      ]
+    },
+    {
+      "id": "era-09",
+      "phase": "A",
+      "name": "Behavioral recompilation, serving productization and the coherence hunt",
+      "date_span": "2026-08-10..2026-08-19",
+      "start": "2026-08-10",
+      "end": "2026-08-19",
+      "source_reader": "e2",
+      "overlaps_with": [
+        "era-08",
+        "era-10"
+      ],
+      "goal": "Compile open-weight teachers (SmolLM2, GPT-2) into the transformerless R4G1 table/graph runtime, ship a ready-by-default OpenAI-compatible R4 model on uor-matmul, and find out why generated text was incoherent.",
+      "engines_or_approaches": [
+        "R4G1 graph compiler/runtime (transformerless, P-4 integer kernel)",
+        "TLA transformerless runtime",
+        "SmolLM2 and GPT-2 teacher oracles via neutral model-source adapter",
+        "uor-matmul exact GEMM and tropical max-plus route composition",
+        "R4RouteAttentionV1 / route-fit / MSA structured selector (dormant)",
+        "OpenAI-compatible serving API (/v1 and /uor/v1)",
+        "GNAF / WASM-GEMM proof vendoring",
+        "release bundles and sampled decode",
+        "f64 geometric W(3,3) router (exploratory)"
+      ],
+      "mechanisms": [
+        "r4g1-graph",
+        "lut-serving",
+        "route-read",
+        "admission",
+        "tokenizer",
+        "exact-memory",
+        "vsa",
+        "hopf-observation",
+        "ternary-xor"
+      ],
+      "key_items": [
+        {
+          "num": 601,
+          "title": "tokenizer: versioned tokenizer adapters and differential source fixtures",
+          "why_it_matters": "Start of the architecture-neutral compiler boundary (#597-#607): source snapshot, codecs, tokenizer, operator, trace, certificate, non-Llama adapter."
+        },
+        {
+          "num": 604,
+          "title": "attention: R4RouteAttentionV1 reference semantics and packed lowering",
+          "why_it_matters": "Built the closest transformer-shaped, P-4-legal geometric attention operator; stayed dormant until a real-teacher fit (#605/#804)."
+        },
+        {
+          "num": 626,
+          "title": "router: tropical (max-plus) multi-hop route composition",
+          "why_it_matters": "Pre-registered mechanism measured negative: composed routes through noise-like emission residuals hurt argmax; kernel retained as dormant mechanism."
+        },
+        {
+          "num": 655,
+          "title": "serving: ready-by-default R4 model on uor-matmul runtime",
+          "why_it_matters": "Umbrella for release bundles, engine profiles, uor-matmul migration, sampled-decode default and the r4 canonical identity flip."
+        },
+        {
+          "num": 654,
+          "title": "api: pinned OpenAI-compatible R4 serving profile",
+          "why_it_matters": "Phases A-G delivered truthful /v1 chat, responses, streaming and SDK smoke tests, with R4 extensions kept under /uor/v1."
+        },
+        {
+          "num": 657,
+          "title": "model-source: dispatch compile over TeacherOracle (GPT-2 compile)",
+          "why_it_matters": "Proved the compiler boundary is architecture-neutral with a full GPT-2 compile-to-certify canary (#667-#670)."
+        },
+        {
+          "num": 661,
+          "title": "attention: evaluate Octeract Hamming-weight quotienting",
+          "why_it_matters": "Source conformance done; trace screen UNAVAILABLE for lack of a registered real trace. Not a rejection of the idea."
+        },
+        {
+          "num": 643,
+          "title": "operator: MSA-structured selector (role classes and cascade orbits)",
+          "why_it_matters": "Reference, packed lowering and A/B harness built; stayed dormant because its fitted baseline never existed."
+        },
+        {
+          "num": 747,
+          "title": "docs: honest overhaul and track-viability assessment",
+          "why_it_matters": "Classified engine tracks: transformerless/R4G1 goal-aligned, attention tracks comparison-only, GNAF a GEMM proof not a language mechanism."
+        },
+        {
+          "num": 745,
+          "title": "serving/#655-E3: degenerate small-vocabulary token-loop generation",
+          "why_it_matters": "Central open question: offline per-position signal was real but live generation was word salad. Led to the ordering bug find."
+        },
+        {
+          "num": 755,
+          "title": "load_corpus_bytes assumes per-story-contiguous record order",
+          "why_it_matters": "Root-cause bug: interleaved records corrupted context reconstruction; fix turned garbage output into grammatical text."
+        },
+        {
+          "num": 759,
+          "title": "distinct prompts converge onto same n-gram trajectory",
+          "why_it_matters": "Attractor-basin symptom; follow-ups #762 and #784 traced it to the argmax rule, not code collision."
+        },
+        {
+          "num": 784,
+          "title": "codebook-collision attractor basins re-tracked",
+          "why_it_matters": "Measured 0.0% full-depth code collision; mechanism is argmax over converging marginals (11/15 prompts pick newline)."
+        },
+        {
+          "num": 786,
+          "title": "dormant-mechanism re-evaluation",
+          "why_it_matters": "22-row why-dormant table; no dormant negative invalidated by the ordering bug; roadmap confirmed in original CPU-first spirit."
+        },
+        {
+          "num": 804,
+          "title": "decide the dormant route-attention family",
+          "why_it_matters": "Real SmolLM2 fit: instrument vacuous (N2 0.292 vs fitted 0.396; 119/120 heads vacuous). Operator stays dormant."
+        },
+        {
+          "num": 744,
+          "title": "instruction_eval_passed gate disagrees with itself",
+          "why_it_matters": "Quality gate rebuilt from live probes; all four local bundles correctly rejected, so nothing falsely claimed to pass."
+        },
+        {
+          "num": 811,
+          "title": "cli: ask/chat has no D4 abstention",
+          "why_it_matters": "All five semantic-OOD probes were SERVABLE: runtime D4 parity is not semantic answerability. Seeds S2."
+        },
+        {
+          "num": 814,
+          "title": "Decode-default flip: sampled decode on all serving surfaces",
+          "why_it_matters": "Pinned-seed sampling made the 15/15-valid decode default; greedy kept as opt-in; canary byte-identical."
+        },
+        {
+          "num": 817,
+          "title": "serving: r4 is the canonical served model identity",
+          "why_it_matters": "Completed the #655-F flip after v0.1 release pipeline (#815) and abstention gate (#816)."
+        },
+        {
+          "num": 741,
+          "title": "release: what shipping looks like (CLI vs WASM, bundle distribution)",
+          "why_it_matters": "Resolved via tag-triggered dual-frontend release builds and verified install-release (#815)."
+        }
+      ],
+      "results": [
+        "#626: tropical route composition negative (14.51 bits vs null 8.57); transition graph self-loop dominated; kernel retained dormant as tropical-route-dormant.",
+        "#745/#755: interleaved corpus record order was a major cause of degenerate output; recompile became grammatical but prompt-insensitive.",
+        "#784: full-depth context-code collision 0.0%; failure is argmax over converging marginals, ranked levers redirected to decode-side fixes (#785).",
+        "#804/#605: real-teacher route-fit gate FAIL, instrument vacuous because teacher attention supports are temporally smooth; layer 9 head 0 only pointer.",
+        "#814: pinned-seed sampled decode matches the archived 15/15 valid arm byte-for-byte (0/40 diffs); greedy opt-out reproduces old default.",
+        "#722: Octeract collision screen UNAVAILABLE: no registered pinned-real full/1 trace bundle, so no empirical verdict.",
+        "#744: 0.0/1.0 versus 0.85/0.01 quality-gate disagreement traced to hand-typed CLI floats; fixed with computed live probes (#749/#750)."
+      ],
+      "why_it_ended": "S0-S7 Intelligence Completion Plan (#820, 2026-08-19) reframed the work as evidence-gated stages on the R4G1 path; #829-#833 published the plan and the truth baseline.",
+      "knowledge_to_keep": [
+        "Corpus record ordering must be by (story, span_start), not disk order; #755 fixed a major source of garbage generation.",
+        "Collision is not the bottleneck: 0.0% full-depth collisions; quality loss is argmax over converging marginals (#784).",
+        "Teacher attention supports are temporally smooth; any route-fit instrument must beat next-position persistence (N2), not chance (#804).",
+        "Dormant mechanisms are retained behind ledger gates with recorded negatives, never silently activated or deleted (#786).",
+        "A UNAVAILABLE report (missing real trace) is not a negative; Octeract (#661) remains untested on real traces.",
+        "D4 runtime parity is not semantic abstention: all five OOD probes were still served (#811)."
+      ]
+    },
+    {
+      "id": "era-10",
+      "phase": "A",
+      "name": "R4 Intelligence Completion Plan, stages S0-S7",
+      "date_span": "2026-08-19..2026-08-26",
+      "start": "2026-08-19",
+      "end": "2026-08-26",
+      "source_reader": "e2",
+      "overlaps_with": [
+        "era-09",
+        "era-11"
+      ],
+      "goal": "Establish one authoritative truth baseline on the R4G1 path, then earn persistent prompt state, calibrated abstention, free-running generation, planning, instruction behavior and scale in evidence-gated stages.",
+      "engines_or_approaches": [
+        "R4G1Runtime as sole normative scorer",
+        "TLA comparator store",
+        "PSTATE segment lane and skip-mix SKMX/PSIB lane (RF-31)",
+        "RF-30 typed selective prediction",
+        "RF-32/RF-33 compositional planning and bounded semantic transitions",
+        "W(3,3) geometry qualification",
+        "SmolLM2-360M broad bundle"
+      ],
+      "mechanisms": [
+        "r4g1-graph",
+        "admission",
+        "route-read",
+        "relation-read",
+        "exact-memory",
+        "lut-serving",
+        "vsa"
+      ],
+      "key_items": [
+        {
+          "num": 820,
+          "title": "UOR-R4 programme tracker (R4 Intelligence Completion Plan)",
+          "why_it_matters": "Parent of stages S0-S7; later reused as the programme root for the geometric-decoder and native model eras."
+        },
+        {
+          "num": 821,
+          "title": "TRACKER/S0: truth baseline, conformance, normative inference closure",
+          "why_it_matters": "S0 PROMOTE at exact scope: 29.52% vs TLA 28.12% on 72,130 positions; no universal 30% or instruction claim."
+        },
+        {
+          "num": 933,
+          "title": "restore normative R4G1 serving reachability, bind deployed quality, re-ratify RF-31",
+          "why_it_matters": "Corrected admission evidence: one production owner R4G1Runtime, schema-2 admission, sections-absent control +34.5 permille."
+        },
+        {
+          "num": 934,
+          "title": "audit canonical 30% quality target",
+          "why_it_matters": "Diagnosed the baseline target; live-teacher parity stays NOT_RUN, not PASS (fixtures absent)."
+        },
+        {
+          "num": 822,
+          "title": "TRACKER/S1: persistent prompt-conditioned predictive state",
+          "why_it_matters": "PROMOTED after redesign to 1-token skip-mix lowering; deployed +28.45 permille beats the frozen 20 permille floor."
+        },
+        {
+          "num": 836,
+          "title": "lower and certify the selected prompt-state scorer",
+          "why_it_matters": "Segment-lane lowering built end to end but verdict REVISE (sub-floor causal utility); stayed dormant."
+        },
+        {
+          "num": 908,
+          "title": "end-to-end deployed causal run for injected skip-mix lane",
+          "why_it_matters": "Cleared the 20 permille floor (+28.45 [25.57,31.32]) with conditioning null collapsing; led to activation (#910)."
+        },
+        {
+          "num": 823,
+          "title": "TRACKER/S2: evidence-grounded selective prediction and abstention",
+          "why_it_matters": "Closed LIMIT: typed decline deployed, but calibrated confidence and semantic abstention NOT ESTABLISHED."
+        },
+        {
+          "num": 931,
+          "title": "refit selective confidence with deployed SKMX/PSIB evidence",
+          "why_it_matters": "Sanctioned re-entry also failed both frozen gates; TEST stayed sealed; bars not moved."
+        },
+        {
+          "num": 824,
+          "title": "TRACKER/S3: coherent free-running generation",
+          "why_it_matters": "Closed LIMIT: gap total, trajectory lane inert; coherent free-running generation NOT ESTABLISHED."
+        },
+        {
+          "num": 946,
+          "title": "compile and compose full-prefix-signature routing regions",
+          "why_it_matters": "S3 re-entry implemented the representation fix; production reached the lane yet 0 served tokens changed (INERT)."
+        },
+        {
+          "num": 826,
+          "title": "TRACKER/S4: learned semantic planning and geometry qualification",
+          "why_it_matters": "Closed LIMIT: bounded transitions kept; reasoning not established; geometry gave no advantage."
+        },
+        {
+          "num": 845,
+          "title": "qualify W(3,3) against Hamming, binary, VSA and spectral baselines",
+          "why_it_matters": "NO GEOMETRIC ADVANTAGE: W(3,3) did not beat an informed non-geometric ordering arm; stays offline/reference-only."
+        },
+        {
+          "num": 846,
+          "title": "certify compositional planning and bound the reasoning claim",
+          "why_it_matters": "Pre-access audit found zero valid untouched final cells; final grid NOT_RUN; reasoning NOT ESTABLISHED."
+        },
+        {
+          "num": 825,
+          "title": "TRACKER/S5: native instruction behavior and delta covers",
+          "why_it_matters": "Closed not planned by the geometric-decoder reset; patch/delta covers never became the language path."
+        },
+        {
+          "num": 827,
+          "title": "TRACKER/S6: R4G1 v1 scale, streaming, local composition",
+          "why_it_matters": "Closed not planned; scaling the R4G1 representation cannot repair the missing causal language mechanism."
+        },
+        {
+          "num": 828,
+          "title": "TRACKER/S7: proof/release closure and distribution",
+          "why_it_matters": "Closed not planned; proving and distributing the graph product before coherent generation was the sequencing error."
+        },
+        {
+          "num": 859,
+          "title": "formal: specify and prove stable R4 prime-router kernel in Lean 4",
+          "why_it_matters": "Formal-verification lane F0 under the programme; preserved as proof material, not language evidence."
+        }
+      ],
+      "results": [
+        "#821/#933: S0 PROMOTE at exact scope, 21,293/72,130 = 29.52% vs TLA 28.12%, paired +13.988 permille [11.057, 16.919].",
+        "#908/#910: skip-mix lane deployed +28.45 permille causal effect vs 20 permille floor; activated as RF-31 (31 conformance ids).",
+        "#836/#885: segment-lane lowering verdict REVISE; real but sub-floor causal utility; #887 confirmed the 20 permille floor stands.",
+        "#837/#931: artifact-only confidence calibrator and the sanctioned content-evidence refit both failed frozen gates; S2 final LIMIT (#939).",
+        "#894: free-running trajectory gap measured as total; #913 trajectory-state gate NOT TRIGGERED; S3 LIMIT (#914).",
+        "#946/#947: 20/20 canary positions reached trajectory lane, but 0 candidate-list and 0 served-token changes; product verdict INERT.",
+        "#925: bounded semantic transitions (RF-33) clear effect floor in 12/20 joint-split cells; LIMITED verdict.",
+        "#929: W(3,3) NO GEOMETRIC ADVANTAGE under equal budgets; #846 reasoning NOT ESTABLISHED, final grid NOT_RUN."
+      ],
+      "why_it_ended": "Maintainer architecture reset #948/#949 (2026-08-25/26): coherent free-running generation was never established on R4G1, so S5-S7 and F0 were closed not planned and milestone 21 became the only active engineering line.",
+      "knowledge_to_keep": [
+        "A table/graph path is a scoped teacher-forced retrieval system; teacher-forced gains do not imply free-running coherence (#948).",
+        "Frozen gates never move after a miss: 20 permille causal floor and S2 gates survived every re-entry (#887, #931).",
+        "Making a lane reachable is not making it causal: the trajectory lane ran in 20/20 positions yet changed 0 tokens (#946).",
+        "W(3,3) fixed geometry gave no measured advantage over an informed ordering baseline at equal budget (#929).",
+        "Compositional benchmarks need materialized composition cells, partition CIDs and access-log binding before any final grid (#846).",
+        "PROMOTE evidence is bound to the exact artifact scope; no universal 30% floor or instruction-following claim follows (#821)."
+      ]
+    },
+    {
+      "id": "era-11",
+      "phase": "B",
+      "name": "Geometric decoder reset and route-native attention (GI-0, A1)",
+      "date_span": "2026-08-25..2026-08-29",
+      "start": "2026-08-25",
+      "end": "2026-08-29",
+      "source_reader": "e2",
+      "overlaps_with": [
+        "era-10",
+        "era-12"
+      ],
+      "goal": "Recenter on a local CPU-first geometric causal decoder: first a hybrid on the SmolLM2 seam, then a source-free route-native attention over a hierarchy of lexical routes using fixed-zeta prime-route state and exact H4/SpiralCore transport.",
+      "engines_or_approaches": [
+        "SmolLM2 one-layer R4 mixer at layer-29 seam (hybrid, uor-matmul)",
+        "fixed-zeta prime-route foundation (GI-0, schema-2 manifest)",
+        "ordered route summaries and candidate-relative transition gate (A1R)",
+        "causal R4/S3 path attention (A1Q-L)",
+        "construction-transferred and corpus-induced signed transport (A1Q-L2, L3)",
+        "source-free table-native lexical baseline (SFTBL001)",
+        "paired-H4 / SpiralCore exact algebra controls"
+      ],
+      "mechanisms": [
+        "prime-zeta-codebook",
+        "route-read",
+        "exact-memory",
+        "spiralcore-fbs",
+        "hopf-observation",
+        "admission",
+        "relation-read",
+        "ternary-xor"
+      ],
+      "key_items": [
+        {
+          "num": 948,
+          "title": "roadmap: recenter UOR-R4 on an end-to-end uor-matmul geometric causal decoder",
+          "why_it_matters": "The architecture reset: R4G1 retained as negative control, coherent geometric decoder becomes the sole objective."
+        },
+        {
+          "num": 949,
+          "title": "LEGACY TRACKER: hybrid geometric decoder superseded by #820",
+          "why_it_matters": "Records the hybrid ladder #950-#955 and its fate as transitional evidence and negative controls."
+        },
+        {
+          "num": 950,
+          "title": "G0: coherent local control and one-layer R4 decoder spike",
+          "why_it_matters": "Layer-0 seam failed with period-2 loop; repaired layer-29 seam gave 32 coherent tokens, 4/5 operator rubric."
+        },
+        {
+          "num": 951,
+          "title": "G1: qualify the one-layer R4 mixer",
+          "why_it_matters": "Terminal REDESIGN_REPRESENTATION: advantage 4.44% vs fixed 5% gate; memory load-bearing but insufficient."
+        },
+        {
+          "num": 958,
+          "title": "GI-0: retained fixed-zeta prime-route foundation at layer-29 seam",
+          "why_it_matters": "Source-free prime/semiprime/n-let substrate and hierarchical route-state design retained as GI-0 foundation under #820."
+        },
+        {
+          "num": 952,
+          "title": "A1: recursive geometric attention across the full route hierarchy",
+          "why_it_matters": "Terminal REDESIGN_ORDERED_ROUTE_SUMMARY: order-erasing hierarchy summary; attention output NOT_RUN."
+        },
+        {
+          "num": 969,
+          "title": "A1Q-L: one causal R4 least-cost attention mechanism",
+          "why_it_matters": "First load-bearing route-path mechanism result: PROCEED_TO_I1 with causal R4 path attention; identity-derived, not semantic."
+        },
+        {
+          "num": 953,
+          "title": "I1: bounded source-free geometric generation loop",
+          "why_it_matters": "Source-free count-radius intervention changed table continuation; replay exact; no semantic or coherence claim."
+        },
+        {
+          "num": 983,
+          "title": "A1Q-L2: construction-transferred candidate-conditioned geometric attention",
+          "why_it_matters": "UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER: 0/6 structural coverage; immutable negative evidence."
+        },
+        {
+          "num": 985,
+          "title": "PLAN: reconcile programme after A1Q-L2",
+          "why_it_matters": "Chose corpus-induced placement, harmonic link-state field and signed transport; exact geometry kept as addressing substrate."
+        },
+        {
+          "num": 986,
+          "title": "A1Q-L3: corpus-induced harmonic signed transport attention",
+          "why_it_matters": "UNAVAILABLE_FRAME_OR_POPULATION: no canonical codec or split commitment; chart transport NOT_ESTABLISHED."
+        },
+        {
+          "num": 989,
+          "title": "B0: source-free table-native lexical baseline",
+          "why_it_matters": "Established the source-free table baseline that later generation interventions are measured against (#990)."
+        }
+      ],
+      "results": [
+        "#950: layer-29 seam yields 32 decodable cycle-free tokens, 4/5 prompt-responsive; disabled seam bit-identical across 71 positions.",
+        "#951: held-out real loss 0.9414 vs permuted 0.9852, advantage 0.0444 below 0.05 gate; terminal REDESIGN_REPRESENTATION.",
+        "#952: 966/966 comparisons equal, exact identities differ 3/3: the reusable hierarchy summary erased order; scorer not implemented.",
+        "#969: causal path selector inverts 8/8 admitted values, 4/4 incremental updates equal clean rebuilds, byte-identical replay.",
+        "#983: 0/6 raw structural coverage, 0/6 sealed strict ceiling; terminal UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER.",
+        "#986: 3,000-document corpus reproduced (2,404 construction, 596 held-out) but no frozen pair artifact; UNAVAILABLE, not zero pairs.",
+        "#953: geometric continuation differs from disabled continuation, base CID unchanged, two executions reproduce overlay bytes exactly."
+      ],
+      "why_it_ended": "Identity-derived geometric attention could not be shown to carry semantics (#983, #986 UNAVAILABLE; #1011/#1012 trace-distillation negatives); pivot to training ordinary causal-softmax attention in R4 coordinates (#1012, #1014) under #973.",
+      "knowledge_to_keep": [
+        "Exact algebra (H4, SpiralCore 64-state) reproduces perfectly as control but supplies no semantics by itself (#952, #985).",
+        "Order-erasing hierarchy summaries lose information; an associative noncommutative fold is required (#952 to #967).",
+        "Seam choice matters: layer-0 replacement looped at period 2; layer 29 preserved a coherent substrate (#950).",
+        "Distinguish UNAVAILABLE from zero: missing frame or population is a stop, not zero eligible pairs (#986).",
+        "Hybrid geometric-support-around-source-weights was retired as serving objective but kept as negative control (#949).",
+        "Geometry gave a 4.44% relative gain at the layer-29 seam, just below the 5% bar (#951); not a promotion."
+      ]
+    },
+    {
+      "id": "era-12",
+      "phase": "B",
+      "name": "Softmax-reference learning, Zoology MQAR and English binding (#973 programme)",
+      "date_span": "2026-08-28..2026-09-03",
+      "start": "2026-08-28",
+      "end": "2026-09-03",
+      "source_reader": "e2",
+      "overlaps_with": [
+        "era-11",
+        "era-13"
+      ],
+      "goal": "Under the integration umbrella #973, first trace-distill R4 softmax students, then train ordinary causal-softmax attention in R4/Spin frames end to end, and qualify associative binding and grounded relations as the base for a learned geometric model.",
+      "engines_or_approaches": [
+        "HELM-D R4 full-decoder softmax reference (donor parity in exact cumulative R4/Spin/H4 frames)",
+        "R4SoftmaxTraceStateStudentV1 and observability ladder",
+        "end-to-end R4/Spin causal-softmax LM (7.15M parameters, six layers)",
+        "13.13M local-M1 capacity prototype (MPS)",
+        "Zoology causal-softmax MQAR control copied from released source",
+        "compound-binding core with learned soft-role reader",
+        "paired-H4 retained readout campaigns",
+        "bounded grounded-answer prototype and relation supervision (#954)",
+        "Apple Accelerate CPU generation (r4 generate)"
+      ],
+      "mechanisms": [
+        "geometric-stack",
+        "hopf-observation",
+        "read-binding",
+        "pointer-key",
+        "relation-read",
+        "spiralcore-fbs",
+        "exact-memory",
+        "tokenizer"
+      ],
+      "key_items": [
+        {
+          "num": 973,
+          "title": "Integration: one learned geometric model",
+          "why_it_matters": "Umbrella for the whole softmax-reference, binding and native-model ladder through 2026-09-29, when its ordering was retired."
+        },
+        {
+          "num": 1002,
+          "title": "Establish HELM-D R4 full-decoder softmax reference",
+          "why_it_matters": "Gauge-equivalent R4/Spin softmax parity PASS (logit delta 1.05e-5); permutation control breaks function: transport seam live."
+        },
+        {
+          "num": 1003,
+          "title": "Record intrinsic Lorentz R4 construction result",
+          "why_it_matters": "UNAVAILABLE stop before held-out; curved NLL 3.90 vs flat 3.70 vs donor 2.65; not an attention verdict."
+        },
+        {
+          "num": 1006,
+          "title": "Publish learned-manifold Attempt 02 and freeze localization",
+          "why_it_matters": "FAIL_HELM_D_MANIFOLD_CONSTRUCTION: learned Lorentz failed donor retention and Euclidean parity."
+        },
+        {
+          "num": 1011,
+          "title": "A1Q-H1: R4SoftmaxTraceStateStudentV1",
+          "why_it_matters": "Clean negative: geometric recurrent state improved CE by 0.000016 nats; every arm emitted the same period-two loop."
+        },
+        {
+          "num": 1012,
+          "title": "A1Q-H2: localize trace-state signal loss",
+          "why_it_matters": "INSUFFICIENT_SUPPORT_COVERAGE; full Q/K/V probe 0.000346 nats worse than suffix; stopped trace-distillation path."
+        },
+        {
+          "num": 1014,
+          "title": "A1Q-H3: end-to-end R4/Spin causal-softmax LM",
+          "why_it_matters": "Attention load-bearing (+2.68 nats/token when off) but quality DoD failed: NLL above 1.50, subject retention 3/5."
+        },
+        {
+          "num": 1017,
+          "title": "A1Q-H4: continue frozen base LM to 150M tokens",
+          "why_it_matters": "5/5 bounded generation but sealed NLL 1.5728 missed the strict <1.50 gate; became the working local generator."
+        },
+        {
+          "num": 1019,
+          "title": "A1Q-H5: optional local-M1 13.13M capacity prototype",
+          "why_it_matters": "Model subgates passed; MPS campaign 4.49 s/step projected 20.66 h and fused variant slower; stopped, no CUDA fallback."
+        },
+        {
+          "num": 1041,
+          "title": "P0.1: decide frozen #1017 normal-use scope",
+          "why_it_matters": "Decision KEEP_RAW_CONTINUATION_ONLY: #1017 is a raw-continuation generator, not a chat model."
+        },
+        {
+          "num": 1043,
+          "title": "A1Q-H6: position-preserving R4 associative binding",
+          "why_it_matters": "INVALID_POSITION_KV_BINDING; mixed recipe did not fit associative retrieval on its own construction data."
+        },
+        {
+          "num": 1045,
+          "title": "A1Q-H7: role-tagged associative-first causal K/V",
+          "why_it_matters": "OPEN_MQAR_NOT_LEARNED at 7,137/8,192; errors were unseen-key routing mismatches (84.6% in-row)."
+        },
+        {
+          "num": 1050,
+          "title": "A1Q-H10: reproduce released Zoology width-64 control",
+          "why_it_matters": "SOURCE_REPRODUCTION_POSITIVE at 99.17% top-1: copied ordinary softmax cell learns binding; localizes failure to training contract."
+        },
+        {
+          "num": 1053,
+          "title": "A1Q-H11: transfer Zoology cell to exact #1045 bytes",
+          "why_it_matters": "STOCK_CELL_TRANSFER_MISS 12.01%; optimizer-clock fix (#1055) then lifted development to 68.3% (#1057)."
+        },
+        {
+          "num": 1073,
+          "title": "A1Q-H: compound owner-object binding through fact-level Q/K/V",
+          "why_it_matters": "COMPOUND_BINDING_FRESH_PASSED; 286,976-parameter core; supported queries put 54.64% attention on null."
+        },
+        {
+          "num": 1077,
+          "title": "Learn a position-independent language interface for compound binding",
+          "why_it_matters": "Learned soft-role reader matches hard-field oracle answers (max logit diff 0.0623) within controlled language."
+        },
+        {
+          "num": 1079,
+          "title": "Qualify learned soft-role and compound binding through unchanged R4",
+          "why_it_matters": "LANGUAGE_R4_PRESERVED_CONTROL_WEAK: preserved, but the broken-transport control was too weak to attribute."
+        },
+        {
+          "num": 1023,
+          "title": "C1: bounded fail-closed grounded answer prototype (#954)",
+          "why_it_matters": "FAIL_GROUNDING_PRODUCT_TRANSFER_ABSTENTION_COLLAPSE (1/3); starts the #954 negative chain (#1027, #1028)."
+        },
+        {
+          "num": 1037,
+          "title": "learned associative readout campaign",
+          "why_it_matters": "LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY; paired-H4 variants (#1034-#1036) only PARTIAL on fresh NLL 3.71-3.74 vs 3.89-3.90."
+        },
+        {
+          "num": 1094,
+          "title": "Fixed text-to-clause adapter vs supplied segmentation",
+          "why_it_matters": "Removed supplied segmentation only for the controlled-language family; no new-world or general parsing."
+        }
+      ],
+      "results": [
+        "#1002: R4 softmax parity max/mean logit delta 1.05e-5 / 2.27e-6 over 196,608 logits; permutation control shifts logits by 23.08.",
+        "#1011: frozen suffix CE 2.660721 vs geometric recurrent 2.660705; permuted minus geometric 0.0000238 below 0.10 floor.",
+        "#1014: enabled sealed NLL 2.1274 vs attention-off 4.8048; Rust parity within 0.005; generation 3/5 subject retention.",
+        "#1017/#1018: 7.15M-parameter continuation sealed NLL 1.5728 (gate <1.50), subject-or-scene 5/5, normalized replay 5/5.",
+        "#1050: copied Zoology width-64 cell 11,900/12,000 = 99.1667% top-1 at epoch 20 on independently generated rows.",
+        "#1053/#1057: exact-byte transfer 984/8,192 (12.01%), after optimizer-clock correction development accuracy rose 36.0% to 68.3%.",
+        "#1073: compound binding fresh transfer passed; #1065-#1071 English probes missed (QUERY_OBJECT, JOINT_QUERY, CYCLIC_FACTS preservation misses).",
+        "#1034-#1038: paired-H4, retained-readout and block-delta rungs end PROMPT_CAPACITY_FAIL/PARTIAL/NO_CAPACITY; fresh NLL gains small."
+      ],
+      "why_it_ended": "Owner build-first correction (#1111, 2026-09-04) and restore of native Rust geometric learning (#1125): the frozen-ladder, Python-trainer process could not reach a working product; plans reset to a single Rust model path.",
+      "knowledge_to_keep": [
+        "Ordinary causal-softmax attention in exact R4/Spin frames is exactly reproducible; the problem was learning, not transport (#1002, #1050).",
+        "Trace-distillation into small recurrent R4 state cells carried no signal beyond the suffix baseline (#1011, #1012).",
+        "A copied reference cell passed at 99.17% while the bundled recipe failed: training contract, not architecture, localized the miss (#1050).",
+        "Learned binding failures were unseen-key routing errors inside the right row, not dead attention or decoder (#1045 audit).",
+        "Soft-role mixtures with null attention must be preserved end-to-end; argmax routing breaks compound binding (#1073).",
+        "Any gain over the suffix baseline must exceed the declared materiality floor; 0.000016 nats is noise (#1011).",
+        "#1017 is a raw-continuation generator only; do not market it as chat (#1041)."
+      ]
+    },
+    {
+      "id": "era-13",
+      "phase": "B",
+      "name": "Build-first pre-alpha: native Rust geometric artifact",
+      "date_span": "2026-09-03..2026-09-05",
+      "start": "2026-09-03",
+      "end": "2026-09-05",
+      "source_reader": "e2",
+      "overlaps_with": [
+        "era-12",
+        "era-14"
+      ],
+      "goal": "Stop bookkeeping-heavy source-only governance, get one source-free native Rust geometric model producing prompt-dependent text through the real CLI/service, and develop recurrent sparse attention, a finite R4 nonlinear block and typed value binding.",
+      "engines_or_approaches": [
+        "SFTBL001 source-free lexical table (r4 source-free-generate)",
+        "native Rust geometric model with prime/zeta/ordered-H4 state and exact Z[phi] coefficients",
+        "fixed recurrent R4 memory and bounded sparse geometric recurrent attention",
+        "R4H4FrameQuaternionCubeResidualV1 finite nonlinear block",
+        "retained value writes and query-conditioned memory selection",
+        "native typed values and causal numeral emission",
+        "native reference artifact, loader and four-fact workbench"
+      ],
+      "mechanisms": [
+        "native-geometric",
+        "prime-zeta-codebook",
+        "hopf-observation",
+        "exact-memory",
+        "relation-read",
+        "spin-weights",
+        "hamilton-gate",
+        "recurrence-gates",
+        "pointer-key"
+      ],
+      "key_items": [
+        {
+          "num": 1081,
+          "title": "Adopt integrated research workflow, source dossier and roadmap",
+          "why_it_matters": "Introduced the dossier, knowledge MCP tooling and the plan later judged over-burdensome."
+        },
+        {
+          "num": 1086,
+          "title": "Specify native artifact export, loader and reference behavior",
+          "why_it_matters": "Defined the learned-path native artifact contract; implemented and qualified at #1102/#1104."
+        },
+        {
+          "num": 1102,
+          "title": "Implement and qualify the frozen native learned-reference bridge",
+          "why_it_matters": "Qualified numerical and behavioral parity for one exact artifact; no general language or ordinary qualify() run."
+        },
+        {
+          "num": 1108,
+          "title": "Enforce deterministic source-only execution for automated agents",
+          "why_it_matters": "The governance rule that blocked compilation and execution; replaced one day later by #1111."
+        },
+        {
+          "num": 1111,
+          "title": "Replace source-only governance with build-first pre-alpha mode",
+          "why_it_matters": "Owner correction: allow builds and focused tests, defer proofs and ledgers, zero automatic retries."
+        },
+        {
+          "num": 1112,
+          "title": "Expose artifact-only source-free table generation",
+          "why_it_matters": "r4 source-free-generate loads a 35.6 MB packed table; continuations were prompt-dependent but incoherent."
+        },
+        {
+          "num": 1125,
+          "title": "Restore native Rust geometric learning and project direction",
+          "why_it_matters": "Corrected drift toward Python reference fitting; one Rust model path used by CLI, library and workbench."
+        },
+        {
+          "num": 1120,
+          "title": "Implement fixed recurrent R4 memory and architectural-alpha track",
+          "why_it_matters": "First recurrent R4 memory reader; #1122 added bounded sparse admission, cutting materialized attention scores 15.27%."
+        },
+        {
+          "num": 1123,
+          "title": "Implement finite-indexed R4 nonlinear block",
+          "why_it_matters": "Parameter-free quaternion cube in the H4 frame as the nonlinear stage; #1124 bounded development fit stopped on time projection."
+        },
+        {
+          "num": 1130,
+          "title": "Add native typed-value binding and causal numeral emission",
+          "why_it_matters": "Started the typed value path (#1131-#1136) that became the version-intent native_geometric engine."
+        },
+        {
+          "num": 1136,
+          "title": "Correct response-entry abstention from repeated unbound scores",
+          "why_it_matters": "Closed the NoWrite/abstention correction before the four-step immediate plan (#1137-#1140)."
+        }
+      ],
+      "results": [
+        "#1112: retained 35,655,288-byte SFTBL001 artifact continues prompts through the CLI without opening source corpus or provider.",
+        "#1122: sparse geometry selected a different set than age-only top-eight on 33 of 35 decisions; storage stayed 2,304 f32 values.",
+        "#1124: both bounded launches completed the 120-token backward gate and eight updates; conservative projection did not clear the budget.",
+        "#1102: one build and one comparison envelope consumed within caps; loader mutation evidence retained; no fit or withheld access."
+      ],
+      "why_it_ended": "Owner-approved immediate sequence #1137-#1140 and tracker consolidation (#1141, 2026-09-05) replaced the recurrent-attention branch with role-aware selection, exact relations, selective access and typed operator composition.",
+      "knowledge_to_keep": [
+        "Governance that forbids execution cannot produce a product; build-first mode with focused tests became the working norm (#1111).",
+        "Source-free table generation is prompt-dependent but not coherent; it is a baseline, not the product (#1112).",
+        "Sparse geometric admission reduced work without a recorded quality gain; report both together (#1122).",
+        "Keep exact artifact scope in every qualification: one artifact, one runtime, observed authoring stratum (#1102)."
+      ]
+    },
+    {
+      "id": "era-14",
+      "phase": "B",
+      "name": "Native geometric model v0: roles, relations, typed composition and alpha shell",
+      "date_span": "2026-09-05..2026-09-08",
+      "start": "2026-09-05",
+      "end": "2026-09-08",
+      "source_reader": "e2",
+      "overlaps_with": [
+        "era-13",
+        "era-15"
+      ],
+      "goal": "Learn role-aware source selection, exact retained relations, geometric typed selection and shared Copy/Add/Stop transitions in one native Rust model, then expose it through API, WASM and the Pages Studio toward the first alpha.",
+      "engines_or_approaches": [
+        "native_geometric engine in uor-r4-core (typed values, version intent, copy/add chain)",
+        "learned H4 routing and selected transforms (geo-transformer block)",
+        "shared signed-H4 Stop/Copy/Add selector",
+        "exact relation writes with sixteen-version storage and ordered H4/zeta role context",
+        "source-span copying and phrase-start selection",
+        "native capability API v2, WASM runtime and Pages Studio (Sovereign AI Developer Studio)",
+        "retained artifacts 79710468..., ddc943f9..."
+      ],
+      "mechanisms": [
+        "native-geometric",
+        "relation-read",
+        "pointer-key",
+        "exact-memory",
+        "hamilton-gate",
+        "prime-zeta-codebook",
+        "hopf-observation",
+        "object-store",
+        "spin-weights"
+      ],
+      "key_items": [
+        {
+          "num": 1137,
+          "title": "Step 1/4: learn role-aware source selection and causal response commitment",
+          "why_it_matters": "Accepted: 62/62 preservation, 8/8 binding; shared learned occurrence/NoRead choice commits through to copying."
+        },
+        {
+          "num": 1138,
+          "title": "Step 2/4: retain exact relations with learned writes and updates",
+          "why_it_matters": "Writer masks participant identities and uses ordered H4/zeta context; exact source values and sixteen-version storage kept."
+        },
+        {
+          "num": 1139,
+          "title": "[01] Learn contextual phrase and role binding",
+          "why_it_matters": "Scoped lexical transfer gained but post-copy feedback use UNVERIFIED; closed 2026-09-29 under the new plan of record."
+        },
+        {
+          "num": 1140,
+          "title": "[02] Learn shared state transitions and compositional emission",
+          "why_it_matters": "Add-to-Add and Add-to-Copy accepted with all 663 retained answers passing; arbitrary prose and alpha not claimed."
+        },
+        {
+          "num": 1141,
+          "title": "Adopt the immediate geometric build plan and consolidate tracking",
+          "why_it_matters": "Four-step sequence; closed six superseded issues as not planned with preserved bodies."
+        },
+        {
+          "num": 1146,
+          "title": "Prioritize learned geo-transformer routing and reuse existing foundations",
+          "why_it_matters": "Set the jointly learned geo-transformer block (placement, bounded admission, integer/table compute) with named reuse boundaries."
+        },
+        {
+          "num": 1161,
+          "title": "Reconcile geometric model architecture, mechanisms and contributor evidence",
+          "why_it_matters": "Source review: no serving matrix products or transformer backbone; 98-entry source map; shared typed operators as priority."
+        },
+        {
+          "num": 1174,
+          "title": "Codify geometric language model direction and ordered roadmap",
+          "why_it_matters": "Named the project UOR-R4 Geometric Language Model; twelve ordered responsibilities; 422-issue census preserved."
+        },
+        {
+          "num": 1177,
+          "title": "Learn lexical-prefix-to-copy transition and resolve city transfer",
+          "why_it_matters": "Representative of the #973 contextual copy/phrase ladder (#1175-#1177) before multi-operator work."
+        },
+        {
+          "num": 1188,
+          "title": "executable Rust coding and workspace use (#1088)",
+          "why_it_matters": "Delivered scaffold-level claims; later audit found release axis never compiled model-generated text."
+        },
+        {
+          "num": 1190,
+          "title": "scale quality with complete-path M1 latency, energy, memory (#963)",
+          "why_it_matters": "Profiling and capability scorecard PR; later flagged as reporting measurements its checks did not make."
+        },
+        {
+          "num": 1195,
+          "title": "integrate sovereign AI studio, wire native geometric model, alpha release",
+          "why_it_matters": "Brought the Pages Studio and r4-native-chat CLI under uor-r4 with external LLM downloads stripped."
+        },
+        {
+          "num": 1198,
+          "title": "Recover native geometric serving and withdraw unsupported qualification",
+          "why_it_matters": "Honesty correction: API silently trained a fixture; fabricated scorecards removed; retained model 79710468 passes 663 answers."
+        },
+        {
+          "num": 1199,
+          "title": "Learn current-query operands without losing prior geometric results",
+          "why_it_matters": "Candidate ddc943f9 fixes 13+4 returning 35; 255/255 construction, 48/48 open, 24/24 numeric transfer."
+        },
+        {
+          "num": 1200,
+          "title": "Learn shared geometric operator transitions from committed results",
+          "why_it_matters": "Stop/Copy/Add selector chains an Add on the committed result: 36/36 construction, 24/24 open, 24/24 transfer."
+        }
+      ],
+      "results": [
+        "#1137: 62/62 preservation responses and 8/8 binding outputs correct; earlier OPEN wording sets 16/16 and 30/32.",
+        "#1140: all 663 retained answers pass, 254 transition replays and 72 lexical outputs; first joint candidate rejected for eight Copy regressions.",
+        "#1198: experimental b2da9f9a reached 183/183 construction, 12/12 open and numeric transfer yet returned 35 instead of 17; not promoted.",
+        "#1199: removing the original computed result leaves 32 independent answers correct while all 16 dependent answers change.",
+        "#1200: extra-3 query emits 20 then 23 then Stop below the three-operation cap; controls lose all eight second operations.",
+        "#1138: representative case still performs 2,054,052 writer score-row comparisons, so sparse admission cost remains open."
+      ],
+      "why_it_ended": "Not a failure of one mechanism: Lab 1 closed the 7 September ladder (#954, #962, #973, #1139, #1088 and others) on 2026-09-29 in favor of the plan of record #1507 and tracks #1508-#1510; capability work moved to #2031.",
+      "knowledge_to_keep": [
+        "Typed Stop/Copy/Add selection plus exact provenance is the first learned composition path; preserve the 663 retained-answer regression set.",
+        "Check that every qualification measures what it claims: #1190 telemetry and the API fixture-training default were fabricated (#1198).",
+        "Candidates that pass new cases but regress earlier Copy or reversed-order rows are rejected and retained, not promoted (#1140, #1198).",
+        "Shared signed-H4 selection over derived totals needs matched current-literal vs dependent-result contrasts (#1199).",
+        "Dense serving is excluded; offline Rust training may use matmul and serving stays bounded integer/table operations (#1161).",
+        "Serving the same artifact in the browser Studio requires a real artifact load; transformer or template paths are not the model (#1161, #1198)."
+      ]
+    },
+    {
+      "id": "era-15",
+      "phase": "C",
+      "name": "Version-intent chain learner cycles (native_geometric)",
+      "date_span": "2026-09-08..2026-09-12",
+      "start": "2026-09-08",
+      "end": "2026-09-12",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-14",
+        "era-16"
+      ],
+      "goal": "Teach the Sept native_geometric engine in uor-r4-core to emit exact records and bytes through one shared geometric writer, with owner/revision/version-intent binding, historical reads and abstention on truncated chains.",
+      "engines_or_approaches": [
+        "native_geometric engine (uor-r4-core)",
+        "shared geometric byte/record emitter",
+        "exact addressed memory with version chains",
+        "answer oracle and sealed report directories"
+      ],
+      "mechanisms": [
+        "native-geometric",
+        "exact-memory",
+        "address-cells"
+      ],
+      "key_items": [
+        {
+          "num": 1201,
+          "title": "Learn shared geometric byte and exact-record emission",
+          "why_it_matters": "First of a long run of near-identical cycle PRs building the shared writer; start of the range."
+        },
+        {
+          "num": 1208,
+          "title": "Correct native source recency bias and diagnose writer role collision",
+          "why_it_matters": "Shows the typical pattern: a defect found in the instrument or reader is repaired and recorded, not hidden."
+        },
+        {
+          "num": 1221,
+          "title": "Learn initial-versus-previous version intent through validated ancestor chains",
+          "why_it_matters": "Introduces version-intent chain traversal, the core of exact versioned memory in this era."
+        },
+        {
+          "num": 1222,
+          "title": "Learn abstention for truncated histories",
+          "why_it_matters": "Establishes that abstention must be proved against eviction, not inferred from an unfollowed link."
+        },
+        {
+          "num": 1224,
+          "title": "Reserve report destinations before model work and type the answer oracle",
+          "why_it_matters": "Origin of the claim-then-seal report directory and single typed answer-oracle rules still in AGENTS.md."
+        },
+        {
+          "num": 1229,
+          "title": "Adopt shared geometric core plan and record failed first learning gate",
+          "why_it_matters": "Owner pivots to a shared geometric core after memory-repair stalled; its first gate fails."
+        }
+      ],
+      "results": [
+        "#1229: first predeclared shared-core experiment failed: held-out NLL improved 1.425% against a greater-than-2% requirement; byte/EOS accuracy fell 2/249 to 0/249.",
+        "#1223/#1225-#1228: chain-contract, same-value reassertion head, repeated-head previous-record and reader-request-window repairs each landed as separate bounded PRs; all merged, none claimed general capability."
+      ],
+      "why_it_ended": "Accumulated memory/version repair stopped yielding useful progress; owner adopted a shared geometric language core (#1229) and a research reassessment (#1243, #1244).",
+      "knowledge_to_keep": [
+        "Reject a rejected or unfollowed chain link as proof of absence; prove eviction first (#1222, AGENTS.md chain-traversal rule).",
+        "Create report directories exclusively before loading a model; seal and verify them; never reuse a root (#1224).",
+        "Author accepted answers from typed intent once and judge membership only (#1224)."
+      ]
+    },
+    {
+      "id": "era-16",
+      "phase": "C",
+      "name": "Shared geometric core and addressed attention",
+      "date_span": "2026-09-12..2026-09-17",
+      "start": "2026-09-12",
+      "end": "2026-09-17",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-15"
+      ],
+      "goal": "Learn finite H4 recurrence, bounded context reads and byte/EOS emission jointly; find why emission and credit assignment fail; then design learned addressed/Hamming geometric attention with hard Boolean export.",
+      "engines_or_approaches": [
+        "shared geometric core (isolated Rust path)",
+        "H4 recurrence with angular emission trees",
+        "addressed attention primitives with causal credit",
+        "Hamming contextual read",
+        "typed relational attention with Boolean/table export",
+        "recurrent grounded text loop"
+      ],
+      "mechanisms": [
+        "native-geometric",
+        "vsa",
+        "exact-memory",
+        "hopf-observation",
+        "relation-read"
+      ],
+      "key_items": [
+        {
+          "num": 1230,
+          "title": "Identify the shared-core emission bottleneck without refitting",
+          "why_it_matters": "Localizes failure to emission of ordered state components rather than state or reads."
+        },
+        {
+          "num": 1231,
+          "title": "Calibrate shared geometric emission and preserve failed admission",
+          "why_it_matters": "Calibration failed admission; exhaustive audit showed capacity existed but no lower-loss optimum was proven."
+        },
+        {
+          "num": 1243,
+          "title": "Record decoder refit failure and reassess geometric attention learning",
+          "why_it_matters": "Suspends the isolated state/head sequence and redirects to exact objects plus learned geometric access."
+        },
+        {
+          "num": 1244,
+          "title": "Specify learned addressed geometric attention and causal credit gate",
+          "why_it_matters": "Design of exact leases, signed H4 reads and hard-trajectory credit that later PRs implement."
+        },
+        {
+          "num": 1254,
+          "title": "Learn typed geometric attention with hard Boolean export",
+          "why_it_matters": "First learned typed geometric attention that reloads exactly after Boolean/table export."
+        },
+        {
+          "num": 1258,
+          "title": "Integrate recurrent geometric reads with multi-source text",
+          "why_it_matters": "Passed PASS_RECURRENT_GROUNDED_TEXT gate on a constructed multi-source panel."
+        },
+        {
+          "num": 1264,
+          "title": "Train shared reader and updater from final-answer suffix credit",
+          "why_it_matters": "Reader and updater learned from final-answer credit passed its gate on constructed language tasks."
+        },
+        {
+          "num": 1280,
+          "title": "docs: explain geometric language model research and architecture",
+          "why_it_matters": "First public explanatory document for the programme."
+        }
+      ],
+      "results": [
+        "#1231: three-pass calibration failed admission: root errors 12/672 pass, ASCII errors 220/660 miss the required fewer than 216; construction accuracy 25/672 to 65/672.",
+        "#1243: frozen-state decoder comparison failed every prespecified gate; adapting the head lowered NLL but lost 19 correct positions.",
+        "#1254: typed attention reached 64/64 correct outputs and sources on constructed development after four attempts; export/reload reproduces all 8,256 outputs.",
+        "#1258: recurrent grounded text reached 64/64 exact answers and 32/32 changed-source pairs on constructed panels; an earlier attempt regressed 8 short examples and was kept as negative.",
+        "#1264: suffix-credit training gave 1536/1536 development answers on constructed families (PASS_SHARED_LANGUAGE_OUTPUT_CREDIT); not natural language."
+      ],
+      "why_it_ended": "Constructed-panel passes did not transfer to real text; the Sept 19 takeover ran a falsification sweep and delivered the native lattice learner (#1283, #1284).",
+      "knowledge_to_keep": [
+        "A clean pass on an authored/constructed panel is not language or memory capability; every report in this era says so (#1258, #1264).",
+        "Emission of ordered state components, not state or read, was the first measured bottleneck (#1230).",
+        "Hard Boolean/table export with exact reload was achieved early (#1254): the discrete-export idea predates D32."
+      ]
+    },
+    {
+      "id": "era-17",
+      "phase": "C",
+      "name": "Falsification sweep, order-2 core and real-text prior",
+      "date_span": "2026-09-19..2026-09-20",
+      "start": "2026-09-19",
+      "end": "2026-09-20",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-18"
+      ],
+      "goal": "Measure each mechanism of the delivered native lattice learner before adding more geometry; then learn a real-text prior and test whether history/prefix state or an exact-occurrence read adds anything beyond local counts.",
+      "engines_or_approaches": [
+        "native geometric lattice learner with zero-allocation serving (H4 600-cell trigram, Voronoi Hamming leaves, skip-engrams, 4-head binary VSA attention)",
+        "order-2 geometric core",
+        "learned exact-token low-bit prior (cold-context prior, IPL1)",
+        "ternary output-head projection",
+        "older-prefix 2I group-state register"
+      ],
+      "mechanisms": [
+        "native-geometric",
+        "vsa",
+        "hopf-observation",
+        "ternary-xor",
+        "exact-memory",
+        "lut-serving"
+      ],
+      "key_items": [
+        {
+          "num": 1283,
+          "title": "Deliver native geometric language learner, zero-allocation serving, and full-corpus training",
+          "why_it_matters": "Delivery of the 555M-token native learner that the next PR then ablates."
+        },
+        {
+          "num": 1284,
+          "title": "Stage 1 falsification sweep: per-mechanism ablation, attention repair, D0-a contract",
+          "why_it_matters": "Per-mechanism ablation plus owner's D0-a serving contract (no multiplier, per-token sparsity)."
+        },
+        {
+          "num": 1287,
+          "title": "Per-token compute counted: the readout is 99.97%",
+          "why_it_matters": "Shows vocabulary readout, not the geometric read, dominates per-token compute; motivates bounded shortlists."
+        },
+        {
+          "num": 1294,
+          "title": "Cold-context prior + causal memory: all three gates fail",
+          "why_it_matters": "First negative of the real-text prior line; later found to contain a nats-labelled-as-bits defect."
+        },
+        {
+          "num": 1300,
+          "title": "First corrected real-text prior curve",
+          "why_it_matters": "Corrected exported low-bit prior learns context beyond the marginal; generation still collapses."
+        },
+        {
+          "num": 1304,
+          "title": "Learned older-prefix group-state/read pilot: screen FAILED",
+          "why_it_matters": "A 120-state register of older tokens was not measurably used."
+        },
+        {
+          "num": 1312,
+          "title": "Frozen S attribution: separable read is local query calibration, not history",
+          "why_it_matters": "Removes the claim that the 2I group product is useful memory."
+        },
+        {
+          "num": 1314,
+          "title": "Learned geometric exact-occurrence reader: targeted selection works, abstention fails",
+          "why_it_matters": "Geometry carried selection on a constructed family but misread natural text."
+        }
+      ],
+      "results": [
+        "#1284: ablation on baseline 1.8055 BPB: JEPA block (+0.3743), s2_readout, engram, bias contribute; VSA attention inert, coarse lattice tier (64.2% of bytes) and lane tables net-negative.",
+        "#1284: continuous training BPB 1.2372 versus discrete served artifact 1.8055: a 0.57 BPB gap between reported and shipped numbers.",
+        "#1287: readout is 99.97% of per-token work (exact read); projected 480x fewer ops with a shortlist, accuracy cost unmeasured.",
+        "#1300: low-bit prior at step 512 reached 7.1425 dev bits/target against 9.0599 exact unigram; every generation repeated a token.",
+        "#1304: older-prefix register failed all screens (point gain -0.0172 bits); a count table beat the parent by 0.479 bits at the same dose.",
+        "#1312: dropping the older row improved cross-entropy on both panels; gain is a current-token calibration.",
+        "#1314: on geom_slot_only construction reader reached 0.825 versus 0.550 geometry-disabled; on raw text it read at 88 positions with 83 false copies (+2.79 bits)."
+      ],
+      "why_it_ended": "Real-text prior shown to be local; DeepSeek handoff moved to learned relational reads (#1313, #1315-#1318).",
+      "knowledge_to_keep": [
+        "The VSA attention layer was inert because query and key roles were independent random codebooks; fix was a shared role (#1284).",
+        "Reported training BPB can diverge from the shipped discrete artifact by 0.57 BPB; always measure the served form (#1284).",
+        "A count/cache baseline beats added history state at small dose; test geometry against counts first (#1304, #1368).",
+        "Testbeds where the address determines the answer cannot measure the cost of shortlist pruning (#1288)."
+      ]
+    },
+    {
+      "id": "era-18",
+      "phase": "C",
+      "name": "Relational readers, utility policy and typed transitions",
+      "date_span": "2026-09-20..2026-09-23",
+      "start": "2026-09-20",
+      "end": "2026-09-23",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-17",
+        "era-19"
+      ],
+      "goal": "Make a learned contextual geometric read that selects the right source, learn how strongly to let it influence the local predictor, and extend to learned typed transitions, argument binding, scoped correction memory and a lexical emitter.",
+      "engines_or_approaches": [
+        "relational reader with inverse(q)*k relative-element ranking over 2I",
+        "contextual utility controller",
+        "finite-influence reader policy",
+        "shared typed geometric transitions (finite-state controls)",
+        "joint semi-Markov argument-binding decoder",
+        "scoped/versioned correction memory sessions",
+        "ordinary lexical TlModel / transferable_lexical",
+        "DeepSeek-written step cards"
+      ],
+      "mechanisms": [
+        "relation-read",
+        "route-read",
+        "exact-memory",
+        "hopf-observation",
+        "native-geometric",
+        "pointer-key"
+      ],
+      "key_items": [
+        {
+          "num": 1319,
+          "title": "Learned contextual geometric relational reader: promising near miss",
+          "why_it_matters": "Matched categorical control scored worse than the no-relation arm, so geometry rather than table size carried the gain."
+        },
+        {
+          "num": 1321,
+          "title": "Competing-source geometric read: working read, severe text harm",
+          "why_it_matters": "Constructed gain was real but natural-text harm blocked promotion; later corrected in #1322."
+        },
+        {
+          "num": 1325,
+          "title": "Matched relational learning: refit recovers relation, controller margin does not",
+          "why_it_matters": "Corrected by #1327; the source-learning improvement survived review."
+        },
+        {
+          "num": 1330,
+          "title": "Corrected reader-policy contract: clean negative",
+          "why_it_matters": "Fit/serve gap-threshold bug repaired; the earlier text gain did not reproduce."
+        },
+        {
+          "num": 1339,
+          "title": "Learn shared geometric transitions with verified finite-state controls",
+          "why_it_matters": "One shared action per primitive plus a competent finite-state comparator."
+        },
+        {
+          "num": 1344,
+          "title": "Learn and verify ordinary-form argument binding with exact lexical joins",
+          "why_it_matters": "Joint span/role decoder passed development panels for categorical and H4 arms equally."
+        },
+        {
+          "num": 1346,
+          "title": "Learn scoped correction memory and verify retained causal sessions",
+          "why_it_matters": "A correction changes later answers without changing an already pinned answer."
+        },
+        {
+          "num": 1355,
+          "title": "Qualify ordinary lexical result and harden served artifact bounds",
+          "why_it_matters": "First qualified ordinary-lexical artifact later audited and found prose-deficient (#1359)."
+        }
+      ],
+      "results": [
+        "#1319: relational read precision 0.873 versus 0.755 exact-recurrence and 0.709 categorical control; precision bar 0.15 missed, expected action loss -1.024 nats; labelled not positive.",
+        "#1330: corrected finite-influence policy: clean negative; the constant boost explained the earlier held-out text gain (preserved as corrected by #1331).",
+        "#1344: categorical and H4 arms both 48/48 development and 40/40 exposed regression; no advantage for H4 over categorical on these forms.",
+        "#1314/#1321: constructed reader gains repeatedly failed to survive natural text (false copies, text harm)."
+      ],
+      "why_it_ended": "Authored-panel wins did not produce prose; the Sept 23 lexical audit found the deficit and the owner/principal reassessed direction (#1359, #1363-#1371).",
+      "knowledge_to_keep": [
+        "Categorical-control arm with the same table size is the right matched control for a group-structured read (#1319).",
+        "Many step PRs here were later corrected by principal-review PRs (#1320, #1322, #1327, #1329, #1331); read the correction before the claim.",
+        "Fit-time and serve-time feature partitions must come from one immutable config (#1330)."
+      ]
+    },
+    {
+      "id": "era-19",
+      "phase": "C",
+      "name": "Prose-deficit diagnosis, direction reassessment and D8 reference ladder",
+      "date_span": "2026-09-23..2026-09-25",
+      "start": "2026-09-23",
+      "end": "2026-09-25",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-18"
+      ],
+      "goal": "Locate the ordinary-text deficit (curriculum, output side, state/horizon), restate the terminal objective as fully transformerless, then run the D8 ladder: matched reference, recurrent memory learner, discretization, bounded admission, integer serving.",
+      "engines_or_approaches": [
+        "TlModel ordinary-lexical learner",
+        "KVAR keyed-variable-lag retrieval panel",
+        "#1017 offline transformer reference (comparator)",
+        "joint recurrent geometric memory learner (quaternion vs matched Householder-pair)",
+        "legal integer-code rounding",
+        "orthant64 bounded admission",
+        "uor-r4-integer full256 serving"
+      ],
+      "mechanisms": [
+        "native-geometric",
+        "exact-memory",
+        "lut-serving",
+        "ternary-xor",
+        "tokenizer",
+        "geometric-stack"
+      ],
+      "key_items": [
+        {
+          "num": 1363,
+          "title": "Per-position formulation: the prose deficit was the curriculum",
+          "why_it_matters": "Prose deficit traced partly to grounded-draw curriculum; first of a stacked result chain."
+        },
+        {
+          "num": 1366,
+          "title": "The joint fit does not recover the headroom",
+          "why_it_matters": "Doubling steps changed nothing: training budget is not the constraint."
+        },
+        {
+          "num": 1370,
+          "title": "State the terminal objective: fully transformerless, geometry replacing float matmul",
+          "why_it_matters": "Owner 2026-09-23 terminal goal; registers Hamiltonian/vectors lead as a hypothesis."
+        },
+        {
+          "num": 1371,
+          "title": "Whole-repository review and direction reassessment",
+          "why_it_matters": "States serving-arithmetic goal is sound but no geometric mechanism had beaten a matched ordinary control."
+        },
+        {
+          "num": 1377,
+          "title": "Adopt the 2026-09-24 direction decision (D4 goal decomposition)",
+          "why_it_matters": "Splits Goal S (multiplier-free serving) from Goal R (geometric advantage, a gated hypothesis)."
+        },
+        {
+          "num": 1379,
+          "title": "M1 Part B-prime: KVAR panel, gated overwrite addressed memory extends horizon",
+          "why_it_matters": "Evidence that horizon/state, not readout, is the lever."
+        },
+        {
+          "num": 1387,
+          "title": "Correct training direction and restore Rust autodiff after A2-A4",
+          "why_it_matters": "D8: stop local selector tuning; adopt reference to joint recurrent student to discretization ladder."
+        },
+        {
+          "num": 1389,
+          "title": "Train an integrated recurrent geometric memory learner with matched control",
+          "why_it_matters": "Quaternion learner 2.110 NLL vs ordinary 2.085 versus transformer reference 1.574."
+        },
+        {
+          "num": 1393,
+          "title": "Retain learned integer-code candidates and advance to bounded access",
+          "why_it_matters": "Learned floor/ceil integer-code choices cleared the likelihood-retention barrier that two quantization recipes failed."
+        },
+        {
+          "num": 1395,
+          "title": "Prevent experiment loops and preserve full 256-token access",
+          "why_it_matters": "Origin of the progress-control rules (D9) now at the top of AGENTS.md."
+        },
+        {
+          "num": 1397,
+          "title": "Deliver full256 standalone integer serving and exact generation speedup",
+          "why_it_matters": "uor-r4-integer extracted; 4,096 distribution hashes preserved across optimization."
+        },
+        {
+          "num": 1398,
+          "title": "Continue full-context learning through a calibrated integer export",
+          "why_it_matters": "Target failed: prose 0/5 in continuous arms; neither candidate promoted."
+        }
+      ],
+      "results": [
+        "#1366: 4,000 steps gave 6.708963 bits versus 6.684105 at 2,000; paired interval includes zero; more training did not help.",
+        "#1371: no geometric mechanism had beaten an information- and compute-matched ordinary control on any task.",
+        "#1389: both learners completed 29,999,104 target visits; Read NLL 2.110368 quaternion vs 2.085241 matched ordinary vs 2.391786 count/cache.",
+        "#1390: both discretized recipes failed the +0.05-nat retention allowance; ordinary packed generation also failed short-cycle.",
+        "#1392: parameter quantization dominates immediate loss (+0.0371/+0.0499 nats with float interfaces).",
+        "#1394: bounded orthant64 admission failed source retention (complete source answers 28 to 17 and 24 to 17 of 32); not promoted.",
+        "#1398: continuous NLL improved to 1.996/1.975 but actual prose was 0/5 per arm; integer prose 0/5 and 1/5."
+      ],
+      "why_it_ended": "Offline D8 ladder reached integer serving but not prose; focus moved to a conversational chatbot, multi-lab tracks and the D10/D11 serving contract (#1400 onward).",
+      "knowledge_to_keep": [
+        "Training length is not the constraint on the ordinary-lexical deficit; the lever is state/horizon (#1366, #1378).",
+        "Loss improvement is not generation quality: continuous NLL fell while prose stayed 0/5 (#1398).",
+        "Goal S (multiplier-free serving) and Goal R (geometric predictive advantage) are separate claims (#1377, D4).",
+        "A failed discretization recipe is not a failed mechanism; learned integer-code choices at fixed parents worked (#1392, #1393)."
+      ]
+    },
+    {
+      "id": "era-20",
+      "phase": "D",
+      "name": "Multi-lab chat engine, D10/D11 serving contract and stack core",
+      "date_span": "2026-09-26..2026-09-29",
+      "start": "2026-09-26",
+      "end": "2026-09-29",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-21"
+      ],
+      "goal": "Deliver a served integer conversational model, make multiplier-free transformerless serving the one contract for all labs (D11), adopt a capacity-matched geometric stack as the main-line core, and run director-gated studies D1-D6 and G/I1 memory ports.",
+      "engines_or_approaches": [
+        "uor-chat zero-matmul integer chatbot",
+        "uor-r4-integer D11 engine and UORLUT01 stack bundles",
+        "geometric stack (rrarra pattern, Lorentz/L2 reads, quaternion transport)",
+        "S1 QAT / S2 dialogue stack",
+        "S4 icosian 2I transport snap",
+        "G v1/v2 address-driven read, I1 six-view store",
+        "AERM probe (exact relational memory)",
+        "SmolLM2 converted-student track B (parked)",
+        "Anti-Gravity D4 codecs (Hadamard+4-bit, E8)",
+        "Kimi steward / four-lab roadmap"
+      ],
+      "mechanisms": [
+        "geometric-stack",
+        "lut-serving",
+        "hopf-observation",
+        "spin-weights",
+        "flock-read",
+        "route-read",
+        "exact-memory",
+        "e8-orbit-memory",
+        "ternary-xor"
+      ],
+      "key_items": [
+        {
+          "num": 1400,
+          "title": "Deliver native UOR-R4 geometric conversational chatbot with zero-matmul serving",
+          "why_it_matters": "uor-chat REPL with integer sampler and session persistence; claims verified by an internal auditor only."
+        },
+        {
+          "num": 1414,
+          "title": "Cycle 4: capacity-matched geometric stack, integer serving, dialogue path",
+          "why_it_matters": "Builds the deep geometric stack and matched control that become the main-line core."
+        },
+        {
+          "num": 1437,
+          "title": "Cycle-4 main comparison result; cycle-5 product-key memory held",
+          "why_it_matters": "Stack 1.998113 NLL vs transformer control 2.011149 at equal speed: parity, not advantage."
+        },
+        {
+          "num": 1443,
+          "title": "D11: native, multiplier-free, transformerless serving for every lab; D10 superseded",
+          "why_it_matters": "Owner decision making R1-R5 the single serving contract."
+        },
+        {
+          "num": 1447,
+          "title": "B1 closure: reflection-pair replication fails; Stage C parked",
+          "why_it_matters": "No lane type kept in the stack; finite-group state stays a Stage A result."
+        },
+        {
+          "num": 1456,
+          "title": "D5 addressing contest: geometric index not qualified",
+          "why_it_matters": "H4/E8 fixed codebooks lost to k-means at matched cost; retires that index configuration only."
+        },
+        {
+          "num": 1457,
+          "title": "D2 result: store works, learned read does not generalise",
+          "why_it_matters": "Memory margin 0.146/0.122/0.102 against 0.30 bar; held-out read trigger never fired."
+        },
+        {
+          "num": 1459,
+          "title": "Director: #1458's D4 results were not measured",
+          "why_it_matters": "Numbers typed into tests were presented as results; rule that results need sealed roots."
+        },
+        {
+          "num": 1460,
+          "title": "D1: keep the quaternion transport in the rrarra core",
+          "why_it_matters": "Quaternion beat identity transport by about +0.07 nats in both seeds."
+        },
+        {
+          "num": 1470,
+          "title": "S2: first dialogue-trained stack",
+          "why_it_matters": "Better loss (2.520916 vs 2.773887) but 0/10 memory recalls."
+        },
+        {
+          "num": 1473,
+          "title": "D12 (owner): gates promote, never kill; reopen geometric candidates",
+          "why_it_matters": "Policy later bounded by D20 (#1747)."
+        },
+        {
+          "num": 1495,
+          "title": "G-binding result: masking text tags recovers held-out binding",
+          "why_it_matters": "Held-out Updated 0.158 to 0.967; supervision artifact was a major cause."
+        },
+        {
+          "num": 1505,
+          "title": "G v2 frozen-trunk key probe: recorded negative",
+          "why_it_matters": "2I-atom keys 0.327 vs softmax control 0.491 at split 4."
+        },
+        {
+          "num": 1507,
+          "title": "Plan of record 2026-09-29: path to chat and geometric transformer replacement",
+          "why_it_matters": "Honest status: chat not achieved, no geometric attention advantage; names root causes."
+        }
+      ],
+      "results": [
+        "#1400: claimed 5-turn entity recall 80% collapsing to 0% under NoRead, peak RSS 9.17 MB, 1.897 ms per token (internal auditor, authored panels).",
+        "#1449: integer path measured 0.00413 J/token vs 0.00096 for float parent: about 4.3x worse and 2.6x slower (whole-system marginal).",
+        "#1464: D6 information audit verdict ORDINARY-BETTER; dot-score argmax matched model read argmax in 0 of 48,412 positions (instrument check).",
+        "#1456: D5 contest NOT QUALIFIED: recall 1.17 points behind best ordinary arm; Read NLL 2.005804 vs 2.003692 (k-means-120).",
+        "#1447: A5 tracking 1.000 in 3/3 seeds but dNLL +0.069 in seed 4 against a gate of 0.05; transformer control 0.008-0.027.",
+        "#1470: S2 pooled development response NLL 2.520916, 2 of 38 final turns answer, 0 of 10 memory recalls.",
+        "#1522: D15/D16 allow a converted student to be served after a release-binary audit; parity decides keeping a geometric form."
+      ],
+      "why_it_ended": "Plan of record (#1507) and D14/D13 reorganized into durable labs and epics (#1508-#1515, #1521); D18 narrowed work to one retrieval question.",
+      "knowledge_to_keep": [
+        "Never merge a number typed in a test or PR text as a result; require sealed report roots (#1459).",
+        "Measured integer serving energy was worse than its float parent on that first measurement (#1449); energy claims need measurement.",
+        "A fixed geometric codebook (H4 600-cell or E8) matched but did not beat learned k-means as an index (#1456).",
+        "Quaternion transport helped in the stack (D1, #1460) while other geometric additions (lane types, 2I group read) were not kept.",
+        "Instrument artifacts (text tags in supervision) can explain apparent geometry failures (#1495)."
+      ]
+    },
+    {
+      "id": "era-21",
+      "phase": "D",
+      "name": "Durable labs, retrieval question (D18) and D19 grounded session",
+      "date_span": "2026-09-29..2026-10-02",
+      "start": "2026-09-29",
+      "end": "2026-10-02",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-20",
+        "era-22"
+      ],
+      "goal": "Reorganize into durable GitHub-led labs; answer one retrieval question (can the stack copy a value it was told); then build one saved compiler/store/emitter grounded session with exact memory and prime-sieve recall.",
+      "engines_or_approaches": [
+        "durable lab runner and GitHub claims (D13/D14)",
+        "A1 pointer-copy head over canonical flock selector",
+        "M-world v1/v2/v2.1 typed-intent worlds",
+        "exact conversation log plus prime sieve (E1-E4)",
+        "relation compiler with learned value-span head",
+        "GroundedSession with log recall",
+        "ADR-0003 prime router",
+        "geometric address reader without q/k maps",
+        "geometric NoRead and H4-composed values"
+      ],
+      "mechanisms": [
+        "route-read",
+        "flock-read",
+        "pointer-key",
+        "exact-memory",
+        "object-store",
+        "relation-read",
+        "read-binding",
+        "prime-zeta-codebook",
+        "native-geometric"
+      ],
+      "key_items": [
+        {
+          "num": 1508,
+          "title": "[Epic] Native geometric model: grounded conversation and durable memory first",
+          "why_it_matters": "October 1 adopted roadmap header; owns integrated user capability."
+        },
+        {
+          "num": 1511,
+          "title": "[Lab board] Claude, learned compiler, memory and generated conversation",
+          "why_it_matters": "Lab board; labs now organize as boards and claimable work."
+        },
+        {
+          "num": 1521,
+          "title": "Implement durable GitHub-led research labs and recovery",
+          "why_it_matters": "Runner with CAS claims, crash journals and exactly-once charges."
+        },
+        {
+          "num": 1522,
+          "title": "D15 (owner) and D16 (council)",
+          "why_it_matters": "Converted-student serving rule and council working rules (parity decides)."
+        },
+        {
+          "num": 1548,
+          "title": "A1 retrieval integration: pointer copy head, flock reads, M-world v2.1",
+          "why_it_matters": "Canonical shared selector crate::flock and pointer head integrated, nothing trained."
+        },
+        {
+          "num": 1553,
+          "title": "D18 (owner-approved): one retrieval question for 1-14 October",
+          "why_it_matters": "Owner narrows 1-14 October to one question: can the stack copy a just-told value and keep it under D11 serving."
+        },
+        {
+          "num": 1558,
+          "title": "Record D18 outcome D (owner-confirmed 1 October)",
+          "why_it_matters": "A1 kill met: every arm below 0.5 MQAR recall at d16, transformer control scored 0."
+        },
+        {
+          "num": 1559,
+          "title": "Design memo: retrieval by an exact conversation log and a prime sieve",
+          "why_it_matters": "Exact log plus gcd/prime admission plus learned relation compiler plus recall-line emission."
+        },
+        {
+          "num": 1552,
+          "title": "[Active] D19 grounded generation continuation",
+          "why_it_matters": "393-comment execution tracker for the D19 grounded session; holds work cards, E1-E4, v13-v20 runs."
+        },
+        {
+          "num": 1587,
+          "title": "Route the pointer by exact prime arithmetic (ADR-0003 prime router)",
+          "why_it_matters": "Prime-product key plus gcd admission inside the pointer head, offered beside learned scores."
+        },
+        {
+          "num": 1600,
+          "title": "Grounded session: opt-in exact log recall for unresolved turns",
+          "why_it_matters": "Session MQAR 42 to 79/109 on the authored panel."
+        },
+        {
+          "num": 1622,
+          "title": "current-state: D19 best configuration is emit-6r",
+          "why_it_matters": "Training-template paraphrases scored 889 vs 819 for emit-5c on paired development."
+        }
+      ],
+      "results": [
+        "#1558: D18 outcome D: pointer arms scored 0.28-0.44 MQAR recall falling about 1/N and did not beat the untrained most-recent-value rule (0.36).",
+        "#1574: v20 negative recorded; raw teacher paraphrases had inherited label errors, fixed by a reviewed derivative of 776 decisions (#1573).",
+        "#1607: best D19 config (emit-5c, unless_query, log_recall=sieve): MQAR 108/109, relation 76/83, copy 18/33, instruction 28/98 on authored world.",
+        "#1614: geometric NoRead fit reproduced 512 legacy predictions; CE mixed; establishes a learnable path, not language.",
+        "#1586: direct geometric content/context reader without q/k maps answered 128/128 authored cases in two seeds."
+      ],
+      "why_it_ended": "D19 session plateaued on authored worlds; focus moved to scaling the stack ladder with chat grading and memory panels (Oct 2-5).",
+      "knowledge_to_keep": [
+        "D18 outcome D: the learned pointer copies recency, not the queried key; exact log/prime sieve is what retrieved (#1558, #1559).",
+        "Raw teacher paraphrases carried label errors and trained skills that failed on development phrasings (#1573, #1622).",
+        "Authored-panel wins (MQAR 108/109) were achieved with an exact sieve provider, not a learned read (#1600, #1607).",
+        "Ranking must be separated from admission in prime-routed reads (#1587, #1589)."
+      ]
+    },
+    {
+      "id": "era-22",
+      "phase": "D",
+      "name": "Scale ladder, CUDA/Metal training, tiered chat eval and native H4 realizer",
+      "date_span": "2026-10-02..2026-10-05",
+      "start": "2026-10-02",
+      "end": "2026-10-05",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-21",
+        "era-23"
+      ],
+      "goal": "Train the geometric stack on GPUs up to about 96M and measure chat quality honestly; in parallel keep the native H4/Q4 source realizer, turn compiler and causal bank attention learning, and serve the ladder models in integer engines.",
+      "engines_or_approaches": [
+        "geometric-stack trainer (Metal then CUDA, bf16, two-GPU data parallel)",
+        "chat-v1 parquet corpus (SmolTalk, UltraChat)",
+        "chat-grade with local Ollama judge (qwen2.5:7b)",
+        "tiered conversational eval and MQAR bench",
+        "uor-r4-integer L2 read and pointer-copy serving",
+        "native H4/Q4 source realizer, turn compiler, bank attention (Codex)",
+        "uor-pod shared GPU pods on Runpod"
+      ],
+      "mechanisms": [
+        "geometric-stack",
+        "lut-serving",
+        "flock-read",
+        "route-read",
+        "relation-read",
+        "carrier-credit",
+        "admission",
+        "exact-memory",
+        "tokenizer"
+      ],
+      "key_items": [
+        {
+          "num": 1625,
+          "title": "Train the geometric stack on Metal",
+          "why_it_matters": "Recurrence and read backward kernels on M1 GPU for the scale ladder."
+        },
+        {
+          "num": 1632,
+          "title": "chat-grade: frozen chat panel judged by a local offline grader",
+          "why_it_matters": "Strict 7B judge baseline: emit-6r acceptable on 3/64."
+        },
+        {
+          "num": 1649,
+          "title": "Deliver optional CUDA training port and retain device parity evidence",
+          "why_it_matters": "CUDA offline training port delivered; later the main training path."
+        },
+        {
+          "num": 1660,
+          "title": "Parquet chat-corpus preparation and two-GPU data-parallel training for the 100M rung",
+          "why_it_matters": "chat-v1 of 589,939 rows and 1.39B tokens; about 1.5x data-parallel speedup."
+        },
+        {
+          "num": 1667,
+          "title": "Serve read=l2 ladder models in both integer engines",
+          "why_it_matters": "Exact multiplier-free L2 read; ladder models servable in integer form."
+        },
+        {
+          "num": 1672,
+          "title": "Preserve the retired-mechanisms catalogue, external literature recon and ADR template",
+          "why_it_matters": "1,350-line catalogue of retired and failed mechanisms by family, with verdicts."
+        },
+        {
+          "num": 1704,
+          "title": "Read key shift: saved option, production-pattern bench, serving path",
+          "why_it_matters": "With key shift rrarra recalled 1.000 at every distance; corrected seed-dependent #1698 failure."
+        },
+        {
+          "num": 1706,
+          "title": "Preserve the 5 October whole-project barrier assessment",
+          "why_it_matters": "30-agent assessment: five expert proposals, none survived adversarial review."
+        },
+        {
+          "num": 1708,
+          "title": "Step 0a: open-panel failure taxonomy at 96M and 29M",
+          "why_it_matters": "Recall/consistency is 2.2% of failing rows: retrieval cannot move the open panel."
+        },
+        {
+          "num": 1733,
+          "title": "Re-score chat models on the tiered eval: tier C does not beat the constant",
+          "why_it_matters": "A fixed 'I'm not sure' reply beat or equalled all seven models on tier C."
+        },
+        {
+          "num": 1727,
+          "title": "Add native H4 turn compiler and diagnose value-sensitive transfer",
+          "why_it_matters": "Raw-language native compilation added to the geometric store/reader path."
+        },
+        {
+          "num": 1700,
+          "title": "Train causal geometric bank attention and retain measured tradeoffs",
+          "why_it_matters": "Bank CE 2.1629 to 1.7357 but all single-source rows regressed; parent retained."
+        }
+      ],
+      "results": [
+        "#1666/#1668: native source realizer 4 to 18/20 and 20/20 original replies, but novel-source transfer only 2/16 and construction 0/8.",
+        "#1708: 96M open panel 186 failing rows: R 4 (2.2%), knowledge-absent 65, incoherent 26, instruction 17, truncation 19; kappa 0.966 self-agreement.",
+        "#1733: tier C accuracy 25-35 of 160 against a constant at 42; five models significantly below it; memory 0-3/30 for every model.",
+        "#1660: data_parallel=2 gave 1.49x (29M) and 1.47x (77.5M); train loss within 0.005 of single GPU.",
+        "#1697: 32 exact native crossings each improved its witness but every full64 CE worsened; accepted parent retained."
+      ],
+      "why_it_ended": "D20 owner decision (#1746/#1747) set a pre-registered geometry vs matched-control contest and shifted instrument work to attribution and component probes.",
+      "knowledge_to_keep": [
+        "Open-panel quality is limited by knowledge/corpus and fluency, not retrieval: R is 2.2% of failing rows (#1708).",
+        "A constant clarification reply can beat models on a tiered eval if weights are not per-category (#1733).",
+        "About a quarter of failing panel rows were ill-posed (material missing); report them separately (#1708).",
+        "Seed-dependence can fake a mechanism failure; recurrence-layer result flipped between seeds (#1704)."
+      ]
+    },
+    {
+      "id": "era-23",
+      "phase": "D",
+      "name": "D20 contest, attribution probes and Hybrid control",
+      "date_span": "2026-10-05..2026-10-06",
+      "start": "2026-10-05",
+      "end": "2026-10-06",
+      "source_reader": "e3",
+      "overlaps_with": [
+        "era-22",
+        "era-24",
+        "era-25"
+      ],
+      "goal": "Make it possible for a geometric mechanism to lose by pre-registered rules; attribute failures to head, representation, key content or read type; keep compute pods reliable and build the control arms the contest requires.",
+      "engines_or_approaches": [
+        "D20 contest (geometry vs parameter-matched ordinary control)",
+        "addressed_attention eight-phase engine probes (DeepSeek)",
+        "mqar-bench stages (Stage-0 frozen-vector swap, key probe, read supervision)",
+        "MiniLM-teacher clause retrieval into static E8 tables (offline teacher)",
+        "StackArch::Hybrid (recurrence plus ordinary attention reads)",
+        "uor-pod and lab-runner tooling"
+      ],
+      "mechanisms": [
+        "geometric-stack",
+        "flock-read",
+        "read-binding",
+        "e8-orbit-memory",
+        "hopf-observation",
+        "route-read",
+        "hamilton-gate",
+        "none"
+      ],
+      "key_items": [
+        {
+          "num": 1746,
+          "title": "OWNER DECISION: bounded suspension of D2/D12 for one contest",
+          "why_it_matters": "Council argued no mechanism could lose under four clauses; requests owner authority."
+        },
+        {
+          "num": 1747,
+          "title": "D20: geometry stays first; suspend the no-loss rule only after exhaustion",
+          "why_it_matters": "Defines exhaustion by five conditions; a tie is a loss; retirement is never deletion."
+        },
+        {
+          "num": 1750,
+          "title": "Compute board: shared GPU pods (uor-pod)",
+          "why_it_matters": "397-comment mirror of the pod ledger; shared-GPU rules begin here (#1758)."
+        },
+        {
+          "num": 1773,
+          "title": "addressed_attention: arithmetic reachability probe and oracle",
+          "why_it_matters": "Mask, read and integer operator work (80/80); the untrained 257-way emission head is the bottleneck."
+        },
+        {
+          "num": 1774,
+          "title": "addressed_attention: emission-context and fit instruments",
+          "why_it_matters": "Digit is lost in a 1024-to-9 hash context; discrete LUT truth tables resist gradient learning."
+        },
+        {
+          "num": 1780,
+          "title": "geometric-stack head-vs-representation probe",
+          "why_it_matters": "Plain linear readout already reaches served accuracy: do not fund geometry at the prediction step."
+        },
+        {
+          "num": 1782,
+          "title": "Phase 0: MiniLM-teacher clause retrieval (static E8 tables)",
+          "why_it_matters": "Both E8-table and Hopf arms below lexical baseline: DROP."
+        },
+        {
+          "num": 1785,
+          "title": "mqar-bench: Stage-0 frozen-vector readout swap",
+          "why_it_matters": "Representation, not head, is the missing component; exact sieve is the only D11-clean retriever."
+        },
+        {
+          "num": 1789,
+          "title": "Step 7a: read-key probe and key-content arms; REJECT at 96M",
+          "why_it_matters": "Learned key conv/carrier/rot arms improved a pilot but were rejected at 96M."
+        },
+        {
+          "num": 1796,
+          "title": "Step 7d: read-binding supervision",
+          "why_it_matters": "Pre-registered 96M A/B gives REJECT: memory 26 vs bar of at least 28."
+        },
+        {
+          "num": 1798,
+          "title": "training: add StackArch::Hybrid, the read-attribution control",
+          "why_it_matters": "First control that attributes effect to geometric read versus recurrence."
+        },
+        {
+          "num": 1788,
+          "title": "docs(labs): policy migration record",
+          "why_it_matters": "Lab-store policy migration deadlocked; every claim refused by a store 215 commits behind."
+        }
+      ],
+      "results": [
+        "#1773: forced read plus forced operator: operand spans 80/80, operator exact 80/80, but emitted value 0/80 (unfitted parameters).",
+        "#1780: served head 94.29% vs plain linear softmax 93.14% (98.8% recovered) vs 1-NN 88.00%; truncating head to rank 9 cost 6.10 bits.",
+        "#1782: generator-dev lexical 55.3%, E8 table 51.6%, Hopf 49.7%; segmentation caps any selector at 77.9%.",
+        "#1785: fused L2 read value top-1 0.0595 vs sieve 1.0000 on 192 rows; verdict H_repr fires, H_head does not.",
+        "#1798: 3 seeds at lr 3e-4: geometric read 0.9992 mean (variance 1.03e-6), hybrid 0.5714 (variance 0.2530), attention-only 0.2534.",
+        "#1789/#1796: 96M key arms F2/conv8 memory 18-20 vs 24/21 baseline; binding supervision memory 26/26, both rejected."
+      ],
+      "why_it_ended": "Range ends with the D20 contest still open; no promotion or retirement was recorded here. Successors (D23/D25/D32/D37) are outside this range.",
+      "knowledge_to_keep": [
+        "The geometric read's distinctive measured contribution on this task was seed reliability (variance 1e-6 vs 0.25), not peak accuracy (#1798).",
+        "A plain linear map or 1-NN already matches the served head on the selected panel; headroom is representation/knowledge (#1780).",
+        "Earlier claims that hybrid attribution was definitive came from n=1 and were retracted (#1798).",
+        "Discrete LUT circuits are a trainable bottleneck, not a wire cut (#1774); relevant to later discrete learning.",
+        "A tie is a loss under D20 and retirement is removal from the critical path, never deletion (#1747)."
+      ]
+    },
+    {
+      "id": "era-24",
+      "phase": "D",
+      "name": "Serving the float stack end to end (chat BPB ladder)",
+      "date_span": "2026-10-06..2026-10-09",
+      "start": "2026-10-06",
+      "end": "2026-10-09",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-23",
+        "era-25",
+        "era-26",
+        "era-27",
+        "era-28"
+      ],
+      "goal": "Stop measuring mechanisms on models below uniform: train a chat-distribution geometric stack, export it, serve it through the multiplier-free D11 engine, and settle data-vs-size and export-gap questions.",
+      "engines_or_approaches": [
+        "geometric stack (rrarrarr float, 8M/19.9M/29M/214M P/Q)",
+        "D11 multiplier-free integer engine / D10 reference",
+        "GPTQ vs round-to-nearest export",
+        "bf16 flash-style CUDA read (Phase 2b)",
+        "LUT-4 learned two-input gate network",
+        "Kneser-Ney 5-gram gate",
+        "holographic phase binding (Step 9)"
+      ],
+      "mechanisms": [
+        "geometric-stack",
+        "lut-serving",
+        "hopf-observation"
+      ],
+      "key_items": [
+        {
+          "num": 1893,
+          "title": "A chat-trained geometric stack served multiplier-free: 0.9550 bits per byte vs 4.3885 today",
+          "why_it_matters": "First end-to-end train-export-serve chain; D11 engine reproduces float reference exactly (d10 = d11)."
+        },
+        {
+          "num": 1899,
+          "title": "Correct the served result to 0.93277 BPB; record the end-to-end reproduction",
+          "why_it_matters": "Corrected the headline served chat number that later issues (#2072, #2029) cite."
+        },
+        {
+          "num": 1913,
+          "title": "Size at 10x: the 214M chat stack (1.0966) loses to a 7.16M chat-only model (0.9607)",
+          "why_it_matters": "Largest model was not the best chat model; training distribution beat parameter count."
+        },
+        {
+          "num": 1809,
+          "title": "bf16 Phase 2b: flash-style tensor-core fused read",
+          "why_it_matters": "CUDA flash read behind a flag; later made default and ADOPTED (#1827, #1830)."
+        },
+        {
+          "num": 1881,
+          "title": "RETRACTION: the Stage 4 shortlist result was a degenerate constant shift, not learning",
+          "why_it_matters": "LUT-4 term emitted constant 0; claimed BPB gain came from a uniform penalty. Retracted."
+        },
+        {
+          "num": 1876,
+          "title": "LUT-4: a learned network of two-input lookup gates",
+          "why_it_matters": "Stage 4 mechanism to add feature interaction to the additive serving scorer; no language gate passed."
+        },
+        {
+          "num": 1801,
+          "title": "Holographic phase binding on the read (read_lineage=phase_bind, Step 9)",
+          "why_it_matters": "Opt-in quaternion key/query phase binding; tested later in #2194."
+        },
+        {
+          "num": 1885,
+          "title": "Measure the Kneser-Ney gate on real held-out text: 1.280275 bits per byte",
+          "why_it_matters": "Established the real-text n-gram baseline against which stacks were judged."
+        }
+      ],
+      "results": [
+        "#1893: chat-trained 19.9M stack served by D11 at 0.9550 BPB (fused float 0.8770) versus 4.3885 for the then-served artifact.",
+        "#1893: D11 vs D10 nll difference 0.0, top-1 agreement 1.0, zero logit difference on the second independently trained artifact.",
+        "#1894: in-domain data worth 0.159 BPB versus 0.084 for model size.",
+        "#1913: 214M SmolTalk-derived stack scores 1.0966 BPB; 7.16M chat-only control scores 0.9607.",
+        "#1899/#1915: corrected served score 0.93277 BPB; served-vs-float gap settled on identical positions at 0.00883 BPB.",
+        "#1904: GPTQ beats round-to-nearest by 0.00376 BPB; 64 calibration windows is an interior optimum.",
+        "#1912: snapped-training route closed: quantisation damage is a basin effect, not a dose.",
+        "#1881: Stage 4 LUT-4 shortlist gain retracted as a constant shift (80% of targets outside top-64).",
+        "#1830: flash read adopted after Phase 2b gate (+6.3-6.7% end to end reported in #1809)."
+      ],
+      "why_it_ended": "Pipeline question answered (#1893/#1899), so work moved to what the served chat model could not do: instruction following and memory (#1916-#1958, #2029 milestone tracker created #2028-#2036).",
+      "knowledge_to_keep": [
+        "Train, export and serve the same model end to end before judging any mechanism; earlier nulls were measured on a below-uniform model (#1893).",
+        "In this project's corpora, matching the training distribution beat adding parameters by a wide margin (#1894, #1913).",
+        "A guard that refuses degenerate output terms is needed: LUT-4 learned a constant (#1881, #1883).",
+        "D11 integer engine is bit-exact against its reference across contexts and artifacts (#1890, #1915, #2211)."
+      ]
+    },
+    {
+      "id": "era-25",
+      "phase": "D",
+      "name": "Codex native geometric credit and constructor line",
+      "date_span": "2026-10-06..2026-10-10",
+      "start": "2026-10-06",
+      "end": "2026-10-10",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-23",
+        "era-24",
+        "era-26",
+        "era-27",
+        "era-28",
+        "era-29",
+        "era-30"
+      ],
+      "goal": "Learn native H4/categorical bank, Context, Prefix and Generate geometry with exact credit through frozen transport and a protected discrete constructor.",
+      "engines_or_approaches": [
+        "native_geometric engine with H4 action banks",
+        "categorical geometric transport and frozen Generate",
+        "unified geometric carrier credit",
+        "protected joint transactions / legal constructor (LU bases)",
+        "CUDA integer scoring",
+        "M2 reply panel 8/512"
+      ],
+      "mechanisms": [
+        "native-geometric",
+        "carrier-credit",
+        "legal-construction",
+        "admission",
+        "relation-read"
+      ],
+      "key_items": [
+        {
+          "num": 1808,
+          "title": "Preserve learned H4 action choices through categorical compilation",
+          "why_it_matters": "Start of the Codex native reconciliation stream (#1808-#1898)."
+        },
+        {
+          "num": 1882,
+          "title": "Constrain coordinated Context learning and retain the 8/512 outcome",
+          "why_it_matters": "Records M2 headline stuck at 8 of 512 complete replies."
+        },
+        {
+          "num": 2079,
+          "title": "Add coordinated Prefix transactions from the complete native episode gradient",
+          "why_it_matters": "Protected transaction attempt; negative recorded in #2084."
+        },
+        {
+          "num": 2132,
+          "title": "Localize legal-constructor failure to branch-basis small pivots",
+          "why_it_matters": "Last diagnosis before the constructor line was stopped."
+        },
+        {
+          "num": 2141,
+          "title": "M2 reply-completion gradient result: reject 8->2/512 candidate; retain accepted8",
+          "why_it_matters": "Start of M2 post-pivot run sequence."
+        }
+      ],
+      "results": [
+        "#1882: coordinated Context learning retains the 8/512 outcome.",
+        "#2084: coordinated Prefix transaction negative with protected direction conflict.",
+        "#2117/#2121: saved-credit discrete-feedback experiment negative; conflicts attributed.",
+        "#2135: D21 review: 33 DeepSeek and 15 Codex PRs merged; neither M1 (43/232, 10/40) nor M2 (8/512) moved.",
+        "#2141/#2143/#2148/#2149: reply-completion, stratified, prototype and joint fits rejected (2/512, 2/24, 4/512, 0/512)."
+      ],
+      "why_it_ended": "D21 (#2135) stopped the constructor line and pointed M2 straight at the headline; D22 (#2165, #2166) later reopened the constructor as a configuration-level closure only.",
+      "knowledge_to_keep": [
+        "Diagnosis, attribution and readings PRs never move a headline; three on one line force a pivot card (D21, #2135).",
+        "The constructor line was stopped on LU-pivot numerics without ever being scored on the panel (#2165 audit).",
+        "Frozen-transport credit studies repeatedly plateaued; coordinated joint learning conflicted with protected directions (#2084, #2109)."
+      ]
+    },
+    {
+      "id": "era-26",
+      "phase": "D",
+      "name": "Chat instruction-following ladder (response mask, terminal weight, demand store)",
+      "date_span": "2026-10-09",
+      "start": "2026-10-09",
+      "end": "2026-10-09",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-24",
+        "era-25",
+        "era-27",
+        "era-28"
+      ],
+      "goal": "Close the served chat model's deficit: it was fluent but not responsive to demands. Isolate objective vs data vs capacity.",
+      "engines_or_approaches": [
+        "29M chat stack",
+        "response-region objective (full_prefix vs role_only)",
+        "turn-terminal and commitment-token weights",
+        "demand-bearing short-form store",
+        "chat-grade reply panel v2"
+      ],
+      "mechanisms": [
+        "geometric-stack",
+        "tokenizer",
+        "pointer-key"
+      ],
+      "key_items": [
+        {
+          "num": 1918,
+          "title": "Instruction following on the served chat path: 0/6 compliance, 22/22 fluency",
+          "why_it_matters": "Baseline: served chat model fluent but compliant with none of six demands."
+        },
+        {
+          "num": 1922,
+          "title": "Form-diversity intervention fails: the deficit is the objective, not the data",
+          "why_it_matters": "Showed data mixing alone did not move compliance."
+        },
+        {
+          "num": 1931,
+          "title": "Response-region objective works under full_prefix; role_only caused the list collapse",
+          "why_it_matters": "Identified which masking policy is usable."
+        },
+        {
+          "num": 1950,
+          "title": "Terminal-weight optimum near 60x: compliance and retention together",
+          "why_it_matters": "Terminal weighting is non-monotone; 20x helps, 200x destroys."
+        },
+        {
+          "num": 1958,
+          "title": "Breakthrough: demands paired with matching short answers produce form compliance",
+          "why_it_matters": "Data needed the demand-answer pair; the project had held each half separately."
+        },
+        {
+          "num": 1964,
+          "title": "At 19.9M: perfect compliance, a correct fact, and grounded retention",
+          "why_it_matters": "Capacity helped retention where weights and shapes did not (#1962)."
+        },
+        {
+          "num": 1972,
+          "title": "Cross-turn binding is not bought by 1.7x capacity: a mechanism question",
+          "why_it_matters": "Handed the remaining gap (binding across turns) to a mechanism line."
+        }
+      ],
+      "results": [
+        "#1918: served chat path 0/6 instruction compliance, 22/22 fluency.",
+        "#1929: response mask extracted; 71.1% of the chat corpus is response region.",
+        "#1943/#1944: doubling training does not close the gap; data support falsified, objective is the barrier.",
+        "#1958: demand-paired short-form store gives compliance across all form classes on panel v2.",
+        "#1966/#1967: adding an attribute store dilutes the short-form mode; response mass caused the collapse.",
+        "#1962: retention is capacity-bound, not shape- or weight-bound.",
+        "#1970: attribute extraction is a capability gap, not a masking artifact."
+      ],
+      "why_it_ended": "Residual failure was cross-turn value binding, which the pointer/copy and read-binding lines (#1973-#2041) took over.",
+      "knowledge_to_keep": [
+        "Instruction compliance needed the pair: a demand in the user turn plus the exact short form in the assistant turn (#1958).",
+        "Per-token objective can commit to one token once a demonstration exists; weights are non-monotone (#1949, #1951).",
+        "Sweep both ends of a weight before judging; 20x and 200x gave opposite answers (#1949)."
+      ]
+    },
+    {
+      "id": "era-27",
+      "phase": "D",
+      "name": "Governance reset: main consolidation, tracker rebuild, D21/D22, mechanism briefs",
+      "date_span": "2026-10-09..2026-10-10",
+      "start": "2026-10-09",
+      "end": "2026-10-10",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-24",
+        "era-25",
+        "era-26",
+        "era-28",
+        "era-29",
+        "era-30"
+      ],
+      "goal": "Make main the single source of truth, rebuild the roadmap around tracker #2028 and milestones M1-M8, and stop labs closing novel mechanisms on weak tests.",
+      "engines_or_approaches": [
+        "tracker #2028 and milestones #2029-#2036",
+        "branch archive patches",
+        "uor-hygiene",
+        "README v2 with figures",
+        "D21 three-negatives rule",
+        "D22 negative closes a configuration",
+        "mechanism briefs and TEST FITNESS gate"
+      ],
+      "mechanisms": [
+        "none"
+      ],
+      "key_items": [
+        {
+          "num": 2015,
+          "title": "Unify branch work into main: archive 60 Claude branches",
+          "why_it_matters": "Branches became delivery transport; unmerged work archived as patches in docs/history/branch-archive."
+        },
+        {
+          "num": 2028,
+          "title": "[Roadmap] UOR-Foundation tracker: path to a native conversation and memory alpha",
+          "why_it_matters": "Root tracker; milestones M1-M8 are #2029-#2036, compute board #2037."
+        },
+        {
+          "num": 2048,
+          "title": "Retire codex/lab-state: archive its records and history on main",
+          "why_it_matters": "No standing branches."
+        },
+        {
+          "num": 2057,
+          "title": "README v2: goal, progress, mechanisms with figures",
+          "why_it_matters": "First public README rebuild with five SVG figures and status legend."
+        },
+        {
+          "num": 2059,
+          "title": "Illustrated geometry: seven computed figures and docs/geometry.md",
+          "why_it_matters": "Origin of the geometry page and figures."
+        },
+        {
+          "num": 2135,
+          "title": "D21 (owner): three negatives force a pivot",
+          "why_it_matters": "Pivot card rule; assigned DeepSeek the pointer fix and archived Codex constructor."
+        },
+        {
+          "num": 2165,
+          "title": "D22 (owner): a negative closes a configuration, never a mechanism",
+          "why_it_matters": "Reopened five closures; stopping a novel mechanism needs the owner."
+        },
+        {
+          "num": 2167,
+          "title": "Mechanism briefs: one page per novel mechanism, and the test-fitness gate",
+          "why_it_matters": "Created docs/mechanisms and the pre-registration FIT review before compute."
+        },
+        {
+          "num": 2186,
+          "title": "Geometry audit: the trained stack's geometric operations are 0.05% of its arithmetic",
+          "why_it_matters": "Owner-asked diagnosis: trained stack was matrix wrappers; 0% of compute was the exact addressed store."
+        }
+      ],
+      "results": [
+        "#2186: quaternion transport 16,128 multiplies/token = 0.05% of MACs; addressed store, prime, zeta and icosian 0%.",
+        "#2186: read share 16.6% at context 384, 40.5% at 4,096.",
+        "#2165: audit of closures found honest, scoped records but unfit tests (e.g. identity pointer keyed on wrong context, hit rate 0.003).",
+        "#2015: 2,724 refs inventoried; 352 of Claude's 412 branches landed, 60 archived."
+      ],
+      "why_it_ended": "Not ended: governance carried forward. Later rules D23-D34 built on it. The geometry audit (#2186) redirected research toward actually-geometric compute (next eras).",
+      "knowledge_to_keep": [
+        "Closing a novel mechanism on a bar narrower than panel noise is the failure D22 was written to stop (#2165).",
+        "Novel mechanisms were entered as options beside matched controls and the control won; the trained base ran read=l2, the flat Euclidean ablation (#2186 B3).",
+        "Pre-registered mechanism briefs plus a TEST FITNESS review before compute is the working gate (#2167, #2272)."
+      ]
+    },
+    {
+      "id": "era-28",
+      "phase": "D",
+      "name": "Pointer, copy-stop and read-binding line (DeepSeek)",
+      "date_span": "2026-10-09..2026-10-11",
+      "start": "2026-10-09",
+      "end": "2026-10-11",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-24",
+        "era-25",
+        "era-26",
+        "era-27",
+        "era-29",
+        "era-30"
+      ],
+      "goal": "Make the chat stack recall values stated earlier in a dialogue: pointer routing, gate supervision, copy-stop rules, and supervised read binding.",
+      "engines_or_approaches": [
+        "pointer/copy head with gate",
+        "gate floor and token-identity copy-stop (serving-time read-out rules)",
+        "read-binding supervision (bound vs competing mass)",
+        "v4/v5 memory panels, open reply panel",
+        "native VSA codes (fixed vs icosian-root)",
+        "product-key memory trained in"
+      ],
+      "mechanisms": [
+        "pointer-key",
+        "read-binding",
+        "vsa",
+        "exact-memory",
+        "geometric-stack"
+      ],
+      "key_items": [
+        {
+          "num": 1992,
+          "title": "Gate supervision is net harmful at every weight tested: route closed",
+          "why_it_matters": "Later reopened as configuration-only closure by D22."
+        },
+        {
+          "num": 2008,
+          "title": "Gate floor at 0.5 recovers recall on every arm with zero losses",
+          "why_it_matters": "Learned attention already held the answer; the mixing weight was the bottleneck."
+        },
+        {
+          "num": 2041,
+          "title": "Token-identity copy stop: new best 72/84 = 0.8571, F=1.0 recovered",
+          "why_it_matters": "Best recall of never-seen values; offline-only mechanism."
+        },
+        {
+          "num": 2072,
+          "title": "Correction: the pointer line's mechanism is softmax-based and cannot be served",
+          "why_it_matters": "Owner-prompted correction: pointer gains are offline-only, not progress toward the served model."
+        },
+        {
+          "num": 2099,
+          "title": "Native VSA retraining result: KEEP (trained VSA helps); root-only codes collapse token identity",
+          "why_it_matters": "Overturned DeepSeek's null: it was a frozen-artifact effect."
+        },
+        {
+          "num": 2112,
+          "title": "The v5 declared acceptance run MISSES: 10 of 40 against a declared >= 34",
+          "why_it_matters": "Pre-declared memory bar missed; also exposed a vacuous binding-swap control."
+        },
+        {
+          "num": 2123,
+          "title": "The pointer split: READER 10, EMITTER 2; the full two-digit run is NEVER selected",
+          "why_it_matters": "Localised memory failures to the reader, not the emitter."
+        },
+        {
+          "num": 2145,
+          "title": "Pointer-gate fine-tune: v5 memory 10/40 -> 21/40, reply panel 43/232 -> 28/232",
+          "why_it_matters": "Primary bar met, guard missed by one cell; matched control showed data, not loss, drove it."
+        },
+        {
+          "num": 2190,
+          "title": "Read binding, powered: three seeds cut wrong-value failures 47 -> 30",
+          "why_it_matters": "First KEEP on the read-binding line, p = 0.0034 on one pair."
+        }
+      ],
+      "results": [
+        "#2008: gate floor 0.5 gains +14, +49, +28 cells on three arms with zero cells lost (84-cell panel).",
+        "#2041: token-identity copy stop reaches 72/84 = 0.8571; +7 vs prior best, McNemar p=0.0654 (not significant).",
+        "#2061: token-identity copy stop open population is empty after mechanism measured.",
+        "#2099: fixed-code VSA trained in improves held-out BPB by 0.014-0.023; icosian-root codes give at most -0.005.",
+        "#2113: VSA mode 2 (root code plus per-token residual) is worse than fixed codes; not KEEP.",
+        "#2118: addressability probe refutes the premise that a two-digit value has no single address.",
+        "#2145: v5 memory 21/40, reply 28/232 vs control 22/40, 22/232.",
+        "#2190: bound mass 0.732 to ~0.90, wrong-value failures 47 to 30 over 120 rows, memory 57 to 65/120.",
+        "#2194: phase binding costs 2M params and 13.4x step time with a worse panel on both pairs."
+      ],
+      "why_it_ended": "Pointer copying was recognised as offline-only softmax (#2072), the D21 pivot rule (#2135) and D22 (#2165) reframed negatives, and owner direction moved to softmax-free serving (#2150-#2160, D23 #2251).",
+      "knowledge_to_keep": [
+        "Gate floor and identity stop show the learned read already contained the answer; failures were mixing and termination (#2008, #2041).",
+        "A control instrument that checks zero rows reported pass: assert checked-row counts (#2112, #2122).",
+        "Matched-control arms showed a gain and its cost both came from training data, not the new loss (#2145).",
+        "Read binding aimed at wrong-value failures works but moved answers only modestly (#2190, #2207, #2217)."
+      ]
+    },
+    {
+      "id": "era-29",
+      "phase": "D",
+      "name": "M2 grounded-reply line: 8 to 437/512, then 0/128 fresh",
+      "date_span": "2026-10-10",
+      "start": "2026-10-10",
+      "end": "2026-10-10",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-25",
+        "era-27",
+        "era-28",
+        "era-30"
+      ],
+      "goal": "Raise saved complete grounded replies on the frozen 512-row panel using cross-state continuation and native pooled-token ranking.",
+      "engines_or_approaches": [
+        "saved cross-state continuation (Q4 coefficients)",
+        "bottleneck objective",
+        "native pooled-token ranking (softplus margin ratio)",
+        "frozen 512-row development panel; fresh 128-row draw"
+      ],
+      "mechanisms": [
+        "native-geometric",
+        "carrier-credit",
+        "rank-margin",
+        "exact-memory"
+      ],
+      "key_items": [
+        {
+          "num": 2152,
+          "title": "M2: cross-state continuation improves saved replies from 8 to 22/512",
+          "why_it_matters": "First movement of the M2 headline."
+        },
+        {
+          "num": 2154,
+          "title": "M2: saved cross-state continuation raises complete replies to 145/512",
+          "why_it_matters": "Large step via continuation."
+        },
+        {
+          "num": 2157,
+          "title": "M2: bottleneck objective raises saved complete replies from 145 to 175",
+          "why_it_matters": "Objective change moved the headline after recipe plateau."
+        },
+        {
+          "num": 2162,
+          "title": "KEEP native pooled-token ranking: 177 -> 437/512 complete replies",
+          "why_it_matters": "Gained 260 replies, lost none; development threshold 256 passed."
+        },
+        {
+          "num": 2164,
+          "title": "M2 saved437 fails fresh qualification: 0/128; retain development 437/512",
+          "why_it_matters": "Fresh transfer 0/128 vs 52 required; development gain was exposed-data fit."
+        }
+      ],
+      "results": [
+        "#2152: 8 to 22/512; #2154: 145/512; #2159: 175 to 177/512 KEEP.",
+        "#2156: 145-to-139 reply continuation rejected; dose recipe stopped.",
+        "#2162: 177 to 437/512; length8 stratum 11 to 90/128; fresh qualification NOT_RUN at that time.",
+        "#2164: fresh 0/128 vs 52 required; 124 output-limit stops, zero complete replies in all five strata."
+      ],
+      "why_it_ended": "Fresh failure (#2164) showed the dev panel had been fit; D22 (#2165) criticised keeping ordinary levers as a novel line's decisive run, and softmax/matmul bans (#2251, #2263) later made this softplus-ranking path non-compliant.",
+      "knowledge_to_keep": [
+        "437/512 is a development number on exposed rows; fresh transfer was 0/128 (#2164). Never quote it without that.",
+        "Opposite-outcome question and frozen panel before the fresh draw made the negative unambiguous (#2162, #2164)."
+      ]
+    },
+    {
+      "id": "era-30",
+      "phase": "E",
+      "name": "Geometric mechanism rungs: softmax-free reads, quaternion/icosian weights, E8 memory, starling read",
+      "date_span": "2026-10-10..2026-10-13",
+      "start": "2026-10-10",
+      "end": "2026-10-13",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-25",
+        "era-27",
+        "era-28",
+        "era-29",
+        "era-31",
+        "era-32"
+      ],
+      "goal": "Replace softmax read and dense compute with geometric mechanisms, each pre-registered with a brief and matched controls, scored on BPB and recall.",
+      "engines_or_approaches": [
+        "fixed and learned rank-table reads, Hamming-rank read",
+        "wide flock read (flock:32:32)",
+        "SoftSort training read",
+        "quaternion-valued matrices",
+        "icosian pair weights with 2-bit mantissa",
+        "E8 orbit memory replacing MLP",
+        "product-key addressed memory (CUDA, integer join)",
+        "starling read on 600-cell (rungs 1-4)",
+        "persistent base-3 FBS tree / HoloBox",
+        "invariant-addressed router, spanning-tree route",
+        "mqar-bench synthetic recall"
+      ],
+      "mechanisms": [
+        "flock-read",
+        "route-read",
+        "exact-memory",
+        "spin-weights",
+        "e8-orbit-memory",
+        "hopf-observation",
+        "spiralcore-fbs",
+        "ternary-xor",
+        "rank-margin"
+      ],
+      "key_items": [
+        {
+          "num": 2150,
+          "title": "Softmax-free reads arm group 1: REJECT rank (+0.040 BPB) and Hamming-rank (+0.259 BPB)",
+          "why_it_matters": "First measurement of fixed rank-table reads against softmax at 0.877 BPB."
+        },
+        {
+          "num": 2160,
+          "title": "Decisive run: learned rank tables REJECT (+0.0185 BPB); the softmax-free read line stops",
+          "why_it_matters": "Learned profile closed 54% of the gap but missed the 0.01 bar."
+        },
+        {
+          "num": 2174,
+          "title": "Wide learned flock read (arm W): REJECT (+0.0166 served BPB, 15% slower)",
+          "why_it_matters": "Support size 17 to 66 bought only 0.0013 BPB; the weighting is the gap."
+        },
+        {
+          "num": 2193,
+          "title": "Quaternion-valued matrices: KEEP, structure beats plain sizing at equal weight bytes",
+          "why_it_matters": "Q256 1.4959 vs D152 1.5136 BPB; first geometric-weights KEEP."
+        },
+        {
+          "num": 2216,
+          "title": "Exact multiplier-free weights at dense quality: icosian pairs with 2-bit mantissa (KEEP)",
+          "why_it_matters": "QM2 1.5148 vs D152 1.5136 BPB at about 19-20 bits per weight."
+        },
+        {
+          "num": 2205,
+          "title": "E8 orbit memory in place of the MLP, rung 1: half the MLPs +0.033 BPB at ~10x fewer ops",
+          "why_it_matters": "Inside 0.05 bar; learned-key memory of equal capacity 0.023 better, so E8 geometry not credited."
+        },
+        {
+          "num": 2200,
+          "title": "Measured tokens/s on GPU: the addressed read is 1.65x slower than the read it replaces",
+          "why_it_matters": "Analytic -90% MACs invisible in measured tokens/s when unfused."
+        },
+        {
+          "num": 2211,
+          "title": "The context curve: served tokens/s at 384/1024/4096",
+          "why_it_matters": "Rate falls 2.1x for 10.7x context; the O(n) read prize is bounded to about 1.7x."
+        },
+        {
+          "num": 2195,
+          "title": "Starling read: 600-cell neighbour read (no softmax); rung 1 at chance from scratch",
+          "why_it_matters": "Hard selection gives keys outside kept set no gradient; mechanism stays open."
+        },
+        {
+          "num": 2233,
+          "title": "Starling read: light distillation 3,600 steps gives mqar recall 0.780 on 5/5 seeds",
+          "why_it_matters": "Mechanism target met (KEEP) on synthetic recall."
+        },
+        {
+          "num": 2239,
+          "title": "Starling read vs softmax at equal budget: behind at 512, fails at 1536 from eviction",
+          "why_it_matters": "Fixed store holds 94% of a 512 window but 31% of 1536."
+        },
+        {
+          "num": 2249,
+          "title": "Why starling learning is a lottery, and a dense bootstrap that makes 3/5 seeds match softmax",
+          "why_it_matters": "DBRK bootstrap gives 0.96-0.999 recall on 3/5 seeds with no softmax at runtime."
+        },
+        {
+          "num": 2232,
+          "title": "The route should be a spanning tree over the cells, not a top-k over addresses",
+          "why_it_matters": "Design of the invariant-addressed routing (#2226, #2228, #2234, #2236)."
+        }
+      ],
+      "results": [
+        "#2150: softmax A 0.877 BPB float; fixed rank +0.0398, Hamming-rank +0.259.",
+        "#2160: learned rank 0.895 (float), served 0.904; cost D11 143.4 vs 151.8 tok/s.",
+        "#2193: Q256 beats equal-parameter dense D152 by 0.018 BPB (noise 0.0029); costs +0.088 vs D256.",
+        "#2202: icosian weights +0.141 BPB post-hoc and +0.140 trained in: 120 directions too coarse.",
+        "#2206/#2216: residual icosian pairs: direction fixed +0.016 with f32 norm; 2-bit mantissa norm +0.020.",
+        "#2218: exact activations +0.0196 BPB post-hoc; trained-in no better.",
+        "#2205: E8 half-MLP 1.4406 vs dense 1.4078 BPB.",
+        "#2177/#2183: product-key memory trained into M1 stack works on GPU; step-matched control showed gain was shorter fit (#2181).",
+        "#2201: starling rung 2 address hit rate 10% to 73%, readout does not learn; #2208 content gate does not lift recall.",
+        "#2241: starling readout self-distillation one seed at 0.964 recall, others near chance.",
+        "#2207/#2217: read binding at 8000 and 16000 steps: advantage doubles, budget lever then exhausted."
+      ],
+      "why_it_ended": "D23 (#2251) banned softmax everywhere including training surrogates, D25/#2263 banned matmul, and the owner stopped arm S (#2184); all these float arms were frozen as inactive evidence and replaced by the operator phase.",
+      "knowledge_to_keep": [
+        "Hard selection gives unselected keys no gradient, so geometric address read needs a training bridge (#2195, #2201, #2233).",
+        "Quaternion and icosian structure give real quality at equal weight bytes, but a Hamilton block is still 16 multiply-adds (#2193, #2216).",
+        "Analytic MAC savings are not tokens/s; fusion matters (#2200, #2212 reverted in #2213).",
+        "Starling retention fails by eviction as context grows; selection works when the source is forced in (#2239)."
+      ]
+    },
+    {
+      "id": "era-31",
+      "phase": "E",
+      "name": "Operator phase, bans (D23/D24/D25/D30) and Rust harness port",
+      "date_span": "2026-10-12..2026-10-14",
+      "start": "2026-10-12",
+      "end": "2026-10-14",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-30",
+        "era-32"
+      ],
+      "goal": "Rebuild the learning and output path from lawful geometric operators (no softmax, no matmul, GPU-only), with an enforceable harness, pre-registered rung 0, and Rust-first tooling.",
+      "engines_or_approaches": [
+        "rank-margin hinge objective (MarginHinge)",
+        "OP1 G2 Hamilton rotation gate",
+        "OP2 fused Hamilton projection then SpiralCore BFS plus Atomic Ternary FBS projection",
+        "recurrence gates / dyadic rate table",
+        "native starling/murmuration read (rung 0b, K1 GPU selection)",
+        "shared native vector head and writer",
+        "uor-harness (Rust port of D22 gate, ratchets, check, status)",
+        "Vast.ai pods and HF store (D26)",
+        "ahead-of-time nvcc modules (NVRTC banned)"
+      ],
+      "mechanisms": [
+        "rank-margin",
+        "hamilton-gate",
+        "recurrence-gates",
+        "spiralcore-fbs",
+        "flock-read",
+        "ternary-xor",
+        "carrier-credit",
+        "none"
+      ],
+      "key_items": [
+        {
+          "num": 2251,
+          "title": "D23: prohibit softmax throughout the active project",
+          "why_it_matters": "Owner: no softmax anywhere including training, sampling, objectives, teachers."
+        },
+        {
+          "num": 2252,
+          "title": "D24: no CPU model compute, and a ratchet interlock for the softmax ban",
+          "why_it_matters": "Model compute GPU-only; ratchet checks enforce the ban."
+        },
+        {
+          "num": 2257,
+          "title": "The operator phase: geometric replacements for the gate, projections and head",
+          "why_it_matters": "Design record: OP1 gate, OP2 projections, OP3 head, OP4 rank read."
+        },
+        {
+          "num": 2263,
+          "title": "Owner rules matmul out everywhere; ternary/XOR assessed",
+          "why_it_matters": "D25: no matmul in training or serving; ternary removes multiplier, not matmul."
+        },
+        {
+          "num": 2255,
+          "title": "The rank-margin objective: D23's first softmax-free training loss",
+          "why_it_matters": "Hinge over strongest rivals with CUDA kernel; no exponential anywhere."
+        },
+        {
+          "num": 2260,
+          "title": "OP1 (G2 only): the Hamilton rotation gate, with CUDA kernels",
+          "why_it_matters": "G1 rectified-square withdrawn as non-geometric; G2 is the only gate arm."
+        },
+        {
+          "num": 2279,
+          "title": "Replace dense quaternion contraction with SpiralCore BFS and retained FBS geometry",
+          "why_it_matters": "Projection routes one 8D carrier by transport instead of a dense coefficient grid."
+        },
+        {
+          "num": 2318,
+          "title": "Complete the native geometric rung0 learning/output path",
+          "why_it_matters": "Six-layer recurrence connected to SpiralCore/FBS, Hamilton gates and native metrics; 18 controls pass."
+        },
+        {
+          "num": 2338,
+          "title": "Rung 0b source: the lawful native starling read, 16/16 finite CUDA controls",
+          "why_it_matters": "Starling line reached 3/3; later superseded by murmuration read (#2351, #2355)."
+        },
+        {
+          "num": 2342,
+          "title": "D30: hard substrate rules",
+          "why_it_matters": "No matmul/softmax, Rust only, GPU-only heavy compute; no wrapper-laundering."
+        },
+        {
+          "num": 2344,
+          "title": "D29 + NVRTC ban: compliant CUDA modules built ahead of time by nvcc",
+          "why_it_matters": "Compiled-module rule; NVRTC banned project-wide."
+        },
+        {
+          "num": 2345,
+          "title": "Qualify native geometric CUDA boundary and shared vector writer: 31 controls pass",
+          "why_it_matters": "Cut cudarc/GEMM/Candle dependency edges from native path."
+        },
+        {
+          "num": 2278,
+          "title": "D27: Rust first, and the uor-foundation ecosystem as the shared floor",
+          "why_it_matters": "Rust default for all new code; reuse sibling crates."
+        },
+        {
+          "num": 2261,
+          "title": "uor-pod: Vast.ai provider, the default for new pods (D26)",
+          "why_it_matters": "Compute policy shift to Vast with HF-store bootstrap (#2281)."
+        },
+        {
+          "num": 2272,
+          "title": "Rung 0 pre-registered: the rank-margin objective's TEST FITNESS sheet (PENDING)",
+          "why_it_matters": "Rung-0 sheet amended through Amendment 6 CONFIRMED FIT (#2330)."
+        },
+        {
+          "num": 2363,
+          "title": "D31: no result is ruled out on an instrument technicality",
+          "why_it_matters": "Classify instrument vs mechanism failure before stopping."
+        }
+      ],
+      "results": [
+        "#2318: 18 finite controls pass (11 CUDA, 7 metadata) at batch16 x context384, width256; optimizer update compiled but NOT_RUN.",
+        "#2345: 31 finite controls pass on RTX 4090, CUDA 12.8.93, zero skips.",
+        "#2338: 16/16 finite CUDA controls for native starling read; no training, no quality claim.",
+        "#2468: D30 complete: every uor-harness subcommand ported to Rust, delegate_to_python removed.",
+        "#2265/#2346: no-matmul ratchet and D23/D25 ratchets exist in Rust.",
+        "#2365/#2373: M1 reply headline suspended under R14; deterministic re-score vacuous."
+      ],
+      "why_it_ended": "Owner D32 (#2367) required no floating point in model computation including learning; the float rung-0 optimizer law was frozen as design record and rung 0 re-registered on a discrete law.",
+      "knowledge_to_keep": [
+        "Mechanism targets must be non-vacuous: R14 voided targets derived from vacuous instruments (#2373).",
+        "A ternary weight removes the multiplier but not the matmul; XOR is Hamming distance, not a dot product (#2263).",
+        "A check that cannot run must not report as a pass; several harness defects were of this form (#2397, #2399).",
+        "Code written for float rung 0 (OP1-OP3, SpiralCore/FBS projection) is preserved and indexed, not deleted (#2370)."
+      ]
+    },
+    {
+      "id": "era-32",
+      "phase": "E",
+      "name": "D32 discrete geometric substrate and M1 pilot",
+      "date_span": "2026-10-13..2026-10-15",
+      "start": "2026-10-13",
+      "end": "2026-10-15",
+      "source_reader": "e4",
+      "overlaps_with": [
+        "era-30",
+        "era-31"
+      ],
+      "goal": "Learn on an exact GPU-only integer substrate (SpiralCore signed actions, ordered ternary FBS, one shared integer vector writer), plus prime-zeta indexing, and begin a bounded relational/object-store design for exact memory.",
+      "engines_or_approaches": [
+        "uor-r4-discrete crate (Route/Flock reads, shared integer writer)",
+        "counterfactual proposal then choose then apply learning (admission capability, held by default)",
+        "discrete murmuration/flock read on integer carrier",
+        "prime-rank plus complex-plane zeta-phase routing (V4096, C^4 to R^4)",
+        "ReadSpec::Relation bounded exact-relation reranker",
+        "D19 exact byte object store (uor-r4-object-store)",
+        "SpiralCore reconstruction-DAG reader"
+      ],
+      "mechanisms": [
+        "discrete-learning",
+        "spiralcore-fbs",
+        "flock-read",
+        "route-read",
+        "admission",
+        "prime-zeta-codebook",
+        "ternary-xor",
+        "relation-read",
+        "object-store",
+        "exact-memory"
+      ],
+      "key_items": [
+        {
+          "num": 2367,
+          "title": "D32: discrete geometric substrate decision + rung-0 sheet freeze",
+          "why_it_matters": "Owner: ternary/Hamming/quaternion computation, no floating point in model computation including learning."
+        },
+        {
+          "num": 2379,
+          "title": "Discrete SpiralCore/FBS learning proposals and shared integer vector writer",
+          "why_it_matters": "Admitted 11/11 CUDA controls pass at source a2a5b89c; zero parameter updates."
+        },
+        {
+          "num": 2398,
+          "title": "D32 addendum: complex-plane zeta-zero floating-point exception",
+          "why_it_matters": "Float permitted only for zeta-zero imaginary parts in prime-routing maps; everything downstream integer."
+        },
+        {
+          "num": 2400,
+          "title": "Discrete driver: pinned corpus, CUDA metrics and measured Route/Flock cost",
+          "why_it_matters": "25/25 CUDA controls pass; median forward measured; held evaluation only at epoch-zero."
+        },
+        {
+          "num": 2421,
+          "title": "Discrete pilot admission, trained evaluation and P1/P2 reports",
+          "why_it_matters": "Held-by-default seed-1 pilot controller; owner release file must be created by Casey (R15, C1)."
+        },
+        {
+          "num": 2449,
+          "title": "Record completed discrete seed-1 pilot and preserved diagnostics",
+          "why_it_matters": "First learning on the discrete substrate: mixed diagnostic, not a verdict."
+        },
+        {
+          "num": 2454,
+          "title": "D5: scoped completion admission and pilot loss/coverage diagnosis",
+          "why_it_matters": "Explains pilot: target-cell admission fell 5,680 to 2,180; coverage/collision remedies registered separately."
+        },
+        {
+          "num": 2473,
+          "title": "Build prime-zeta complex routing construction qualification, matched nulls, and V4096 fixtures",
+          "why_it_matters": "Bijective prime atom map with 4096/4096 unique PhaseQ29, UnitS3Q30 and writer vectors; no collisions at V4096 B4."
+        },
+        {
+          "num": 2482,
+          "title": "Independent adversarial review of SpiralCore reconstruction-native attention: REVISE",
+          "why_it_matters": "Split a migration proposal into four items; exact compressed reads go to D19 object store."
+        },
+        {
+          "num": 2485,
+          "title": "D34: owner accepts revised attention/memory sequence",
+          "why_it_matters": "Reranker-first ReadSpec::Relation plus separate D19 object-store crate; direction only, no compute release."
+        },
+        {
+          "num": 2486,
+          "title": "Revise finite-relational-head.md into ReadSpec::Relation bounded exact-relation reranker card",
+          "why_it_matters": "Relation-off is identical to Flock; copy-successor 26.9% DEV target."
+        },
+        {
+          "num": 2495,
+          "title": "D19: exact Showcase-compatible byte object store and occurrence bindings",
+          "why_it_matters": "Object store prototype: 20 byte controls pass; not promoted into the model."
+        }
+      ],
+      "results": [
+        "#2379: 11/11 CUDA controls pass on RTX 5090, CUDA 12.8.93, six seconds, zero parameter updates.",
+        "#2400: 25/25 finite CUDA controls (Route 11, Flock 6, driver 8); D2 cost 30/30 timed APIs.",
+        "#2449: seed-1 pilot 1640 batches; DEV top-1 17 to 82, top-8 173 to 1169 of 14287 targets; aggregate loss numerator rose 13816032 to 13884032; masked-TRAIN count reference still ahead (1226/4060).",
+        "#2449: route sensitivity NOT_RUN; bars NOT_DECIDED; fresh transfer UNAVAILABLE; no mechanism verdict.",
+        "#2477: prime-zeta CUDA construction qualification pass: 11 PTX entries, 17/17 base controls plus 6 prime-zeta controls.",
+        "#2495: object-store prototype 20 byte controls and 13 tokenizer tests pass."
+      ],
+      "why_it_ended": "Not ended at the snapshot (15 Oct 2026): completion run, seed 2 and trained-in comparisons remain HELD. Later D37 (18 Oct, outside this range) re-allowed offline float training; M1 pilot successors continue in later records.",
+      "knowledge_to_keep": [
+        "The pilot raised top-8 hits sevenfold but aggregate loss rose; coverage and collision of writer cells, not the learning law alone, limited it (#2449, #2454).",
+        "Float is allowed only for zeta-zero complex phases at construction time; the integer boundary must be declared (#2398, #2473).",
+        "Owner-release for training is typed personally by Casey; labs only stage commands (R15, #2421, #2423, #2436)."
+      ]
+    }
+  ]
+}

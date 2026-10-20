@@ -4,7 +4,7 @@ This notebook is for results about running the trained model cheaply: serving it
 
 ## Results
 
-Sources: `local/renorm/audit/catalog.jsonl`. Verdict words are defined on the [format page](./README.md#the-five-verdict-words).
+Sources: [`archive/catalog.jsonl`](../../../archive/catalog.jsonl). Verdict words are defined on the [format page](./README.md#the-five-verdict-words).
 
 | Date | What ran | Number | Bar | Verdict | Artifact |
 |---|---|---|---|---|---|

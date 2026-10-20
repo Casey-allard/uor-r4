@@ -1,0 +1,252 @@
+{
+  "id": "vsa",
+  "canonical_name": "Vector-symbolic binding (hypervector codes)",
+  "aliases": [
+    "VSA",
+    "hyperdimensional computing (HDC)",
+    "binary spatter code",
+    "Hypervector4096 codes",
+    "HRR-style associative transition context",
+    "vsa_scale_q15 term / set-vsa-code-mode",
+    "octonion-signed binding (design only)"
+  ],
+  "plain_what": "Gives each token a long bit string (4,096 bits). XOR glues two things together, such as a role and a word. A majority vote merges many strings into one summary. Counting differing bits measures similarity. In the older prose model this added a cheap 'was this word recently in context' cue to the next-word score.",
+  "replaces": "key-value memory",
+  "how_it_works": "A hypervector is D = 4096 bits. Binding is bitwise XOR, which is its own inverse, so (A xor B) xor B = A. Permutation is a cyclic bit rotation, used to mark order. Bundling is a bitwise majority vote over a context window of up to 64 transition terms, with a fixed tie-breaker. Similarity is the Hamming distance from popcount, turned into a Q1.15 fixed-point bipolar correlation. Unbinding a bundle with a key gives a noisy copy of the stored value. For k random bipolar terms the cross-talk standard deviation grows as sqrt((k-1)/D), so 64 terms in 4096 bits leave a signal-to-noise ratio near 8. In the September prose scorer the term enters as one additive feature per candidate token: (vsa_scale_q15 * correlation(context_vec, code(candidate))) >> 16, where the context vector bundles an associative transition context and up to four 'orthogonal VSA attention' heads. Token codes have three modes: fixed hash (splitmix64 of seed and token id, expected distance D/2, so only identity carries signal), root (a hash of the token's icosian root, at most 120 distinct codes) and learned (root XOR a hash of a 5-D S2 readout, 4,096 distinct codes). The scale is trained; the codes are not. A separate router geometry switch used VSA facet stores for entity, relation and temporal retrieval.",
+  "geometry": "The Hamming cube {0,1}^4096 with its XOR group and cyclic-shift automorphism; icosian roots (H4 120-root labels) as a code source in mode 1; the S2 readout in mode 2; the Fano-plane octonion table as a design-stage signed binding.",
+  "code": [
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/vsa/hypervector.rs",
+      "role": "Hypervector<WORDS>: XOR bind, rotation, majority bundle, popcount Hamming, Q1.15 score"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/vsa/codebook.rs",
+      "role": "Fixed on-demand codebook from a seed"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/vsa/context_engine.rs",
+      "role": "encode_attended_multiscale_context: transition bundle plus attention heads"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/vsa/attention.rs",
+      "role": "Orthogonal VSA attention heads"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/vsa/hierarchical.rs",
+      "role": "Hierarchical (coarse and fine) VSA routing"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/vsa_codes.rs",
+      "role": "Code modes: fixed, root, learned"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs",
+      "role": "score_vsa_candidate and the trained vsa_scale_q15 (trained by gradient and Adam)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/train-native-prose.rs",
+      "role": "CPU learner used for the 9 Oct retraining test (--vsa-codes, --vsa-code-refresh)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/ablate-prose.rs",
+      "role": "Held-out BPB scorer with VSA and engram ablations and --vsa-code-mode"
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/set-vsa-code-mode.rs",
+      "role": "Load-time code-mode swap used by the 8 Oct frozen-artifact tests"
+    },
+    {
+      "path": "crates/uor-r4-core/src/bin/shortlist-recall.rs",
+      "role": "Shortlist recall harness with the VSA codebook wired to learned roots"
+    },
+    {
+      "path": "crates/uor-r4-core/src/semantic/vsa.rs",
+      "role": "VSA geometry and facet stores behind the router geometry switch"
+    },
+    {
+      "path": "crates/uor-r4-core/tests/vsa_conformance.rs",
+      "role": "Conformance tests for the VSA algebra (also vsa_algebra.rs)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/spiralcore_operator.rs",
+      "role": "Canonical v63 Fano table, the control for any octonion-signed binding"
+    }
+  ],
+  "status": "PARKED",
+  "status_reason": "Fixed-code VSA trained into the legacy native prose learner improved held-out BPB by 0.014-0.023 on 2 seeds and 2 slices, but the run used the CPU learner (barred by D24), and root codes, the mode-2 variant, frozen-artifact swaps and the router switch all failed or were uninformative (docs/labs/vsa-native-test-2026-10-09, vsa-review-2026-10-09). It is not on the D32 path.",
+  "reopen_conditions": [
+    "A GPU-only, D23/D25-compliant retraining of the fixed-code term, either in an offline D37 float learner with a fresh FIT and a D11 integer export gap, or as a discrete Hamming binding on the D32 writer, with owner release where a hold applies.",
+    "The one follow-up the 9 Oct result justifies: freeze the mode-2 codebook after a warm-up and train on, to test the moving-codes hypothesis.",
+    "A redundancy test with the exact copy head ablated, plus a scale sweep (0, 250, 500, 1000, 2000, 4000) on the artifact, so a null cannot be blamed on a tiny scale or on duplicated evidence.",
+    "A role-times-filler binding test on held-out phrasing against an equal-bit ordinary codebook, reporting decision-flip rate, with exact token and occurrence identity kept separate from the sketch.",
+    "For octonion-signed binding: a signed-XOR versus plain-XOR equal-cost test on order-sensitive relations using the canonical v63 Fano table, not the rejected draft table."
+  ],
+  "rule_compat": {
+    "D11": "Core ops (XOR, rotate, majority, popcount) are multiplier-free integer operations. The scorer's Q15 scale multiply ((scale * corr) >> 16) is a runtime product that has not been shown to be table-only, and serving always rebuilds the fixed hash codebook on demand. Not audited against the zero-multiply contract for any current path.",
+    "D23": "The VSA operations contain no softmax or squashing. The host learner that trained the scale was not audited against D23 here (UNVERIFIED).",
+    "D30": "Bitwise operations and popcount only; no matmul in the VSA algebra itself. The surrounding JEPA scorer was not audited.",
+    "D32_D37": "D32 explicitly welcomes XOR and Hamming comparisons on ternary and E8 labels, with Hamming as one component, not a Hamming-only model (owner clarification 13 Oct). Binary 4096-bit hypervector VSA is not part of the D32 path, and the 9 Oct retraining ran on CPU (the record itself says it should have run elsewhere, owner rule #2095), so it breaks D24 as now written."
+  },
+  "experiments": [
+    {
+      "date": "2026-06-10..2026-07-21",
+      "record": "local/renorm/audit/eras/eras.json (era-01, #9)",
+      "configuration": "First hypervector algebra beside the prime router",
+      "result": "Folded into the graph-compiler plan; no model quality recorded",
+      "verdict": "inconclusive",
+      "numbers": "none recorded"
+    },
+    {
+      "date": "2026-08-07",
+      "record": "docs/geometry_ablation_434.md",
+      "configuration": "Router geometry switch, Spectral vs Vsa, via get_top_resonances_native on a 46,342-window corpus, 500 probes",
+      "result": "Vsa scored exactly zero because index_corpus never populates the VSA facet store: the two arms read disjoint stores. A wiring fact, not a verdict on VSA",
+      "verdict": "diagnostic-stop",
+      "numbers": "Spectral top-1 0.6240, MRR 0.7179; Vsa top-1 0.0000, MRR 0.0000"
+    },
+    {
+      "date": "2026-08-08",
+      "record": "docs/retrieval_reassessment_500.md",
+      "configuration": "Re-measurement of three earlier retrieval negatives, including the Spectral vs VSA comparison",
+      "result": "Three earlier retrieval negatives, including Spectral vs VSA (#434), were one dead-cosine artifact: the query vector was the wrong kind of object, so the shared lexical term (not either geometry) produced 0.7179. The write-up says the two geometries were indistinguishable, which conflicts with #434's own table (Vsa 0.0000, a facet-store wiring fault); no record shows the VSA arm rerun after the fix",
+      "verdict": "diagnostic-stop",
+      "numbers": "MRR 0.7179 -> 0.8542 with content query; 0.8763 with the lexical term dropped"
+    },
+    {
+      "date": "undated",
+      "record": "docs/session_signature_247.md",
+      "configuration": "Opt-in session-manifold signature lane with an A/B guard and a float-free runtime (#247)",
+      "result": "Quality gain not established; awaits a held-out measurement",
+      "verdict": "inconclusive",
+      "numbers": "none recorded"
+    },
+    {
+      "date": "2026-09-19",
+      "record": "docs/integration/handoff-2026-09-19.md (receipt native_geometric_shortlist_routing_2026-09-19.txt)",
+      "configuration": "VSA codebook wired to the learned roots for shortlist routing",
+      "result": "Recall and served shortlist BPB improved, replicated on two disjoint slices",
+      "verdict": "positive",
+      "numbers": "recall 8.4-8.8% -> 10.7-11.2%; shortlist BPB -0.045 to -0.053"
+    },
+    {
+      "date": "2026-09-19..2026-09-28",
+      "record": "docs/integration/DECISIONS.md (D2); docs/integration/geometric-toolbox-2026-09-28.md; local/renorm/audit/eras/eras.json (era-17, #1284)",
+      "configuration": "Falsification ablation of the September prose model with VSA attention on and off",
+      "result": "VSA attention was inert, but D2 rules this a wiring defect (the codebook was not consistent with the learned representation), not a retirement verdict; toolbox puts it within noise",
+      "verdict": "inconclusive",
+      "numbers": "baseline 1.8055 BPB; VSA flips 0.7% of decisions; about 0.0013 bits/byte, within noise"
+    },
+    {
+      "date": "2026-10-08",
+      "record": "docs/labs/vsa-review-2026-10-09/README.md",
+      "configuration": "DeepSeek #820 negatives: load-time code swap to root and learned codes on a frozen artifact, then scale ablated to 0",
+      "result": "Valid null for 'swap codes in a frozen artifact': nothing co-adapted with the new codes, scale not refit. The term is live but tiny. Two other comments tested no hypervectors at all",
+      "verdict": "inconclusive",
+      "numbers": "BPB change -0.0010 to -0.0020 when the term is removed; top-1 moves at most 0.12 pp; 8,127 scored positions per slice"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/vsa-native-test-2026-10-09/README.md",
+      "configuration": "Native retraining, fixed hash codes vs VSA off, 2 seeds x 2 held-out slices, 6,795,016 training tokens per run, CPU learner (about 2.3 h on a pod)",
+      "result": "KEEP. With the term trained in, held-out BPB improves on all four seed-slice pairs and each within-model ablation interval excludes zero",
+      "verdict": "positive",
+      "numbers": "arm 2 minus arm 1: -0.0208 / -0.0226 (seed 1), -0.0144 / -0.0163 (seed 2); VSA ablation delta +0.0133 to +0.0157; BPB 1.8366 vs 1.8574 on slice A, seed 1"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/vsa-native-test-2026-10-09/README.md",
+      "configuration": "Icosian-root codes (mode 1: 120 distinct codes) vs VSA off",
+      "result": "No gain: tokens sharing a root get identical codes, so the term cannot separate them",
+      "verdict": "negative",
+      "numbers": "arm 3 minus arm 1: +0.0003 / +0.0001 (seed 1), -0.0053 / -0.0054 (seed 2); VSA ablation delta +0.0023 to +0.0025"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/vsa-native-test-2026-10-09/README.md",
+      "configuration": "Mode 2: root code plus per-token readout residual (4,096 distinct codes), codebook refreshed every 1,000 steps, laptop CPU",
+      "result": "Not KEEP: worse than fixed codes in all four cells and its own VSA term slightly harmful. Moving-codes hypothesis untested",
+      "verdict": "negative",
+      "numbers": "BPB worse than fixed by +0.026 / +0.028 (seed 1) and +0.013 / +0.014 (seed 2); VSA ablation delta -0.002 to -0.005"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/octonion-substrate-review-2026-10-09/README.md",
+      "configuration": "Arithmetic check of a draft octonion signed-multiplication table supplied for signed binding",
+      "result": "Draft orientation breaks alternativity, so the table is rejected; octonion substrate not promoted, signed binding still unrun",
+      "verdict": "negative",
+      "numbers": "counterexample x = e1+e2, y = e4: x(xy) = -2e4+2e7 but (xx)y = -2e4"
+    }
+  ],
+  "never_tested": [
+    "Mode 2 with a codebook frozen after warm-up (the one follow-up the 9 Oct record justifies; not scheduled).",
+    "A scale sweep on a frozen artifact, and VSA with the exact copy head ablated to test whether the cue is simply redundant.",
+    "Role-times-filler binding for relation reads on held-out phrasing, with an equal-bit control and decision-flip rate (the toolbox's stated use).",
+    "Octonion-signed binding versus plain XOR at equal cost, using the canonical v63 Fano table.",
+    "Any VSA binding on the D32 discrete path (GPU, integer writer, ternary or E8 Hamming comparisons).",
+    "More than two seeds, larger scale than 6.8 million tokens, or chat data rather than TinyStories.",
+    "Spectral vs VSA retrieval after the dead-cosine and facet-store fixes: no record shows the #434 comparison rerun for the VSA arm."
+  ],
+  "failed_only_on_configuration": [
+    "Router geometry switch returning 0.0000 MRR (#434): a wiring defect in corpus ingestion, nothing about hypervectors.",
+    "8 Oct frozen-artifact code swaps (#820): the scale and other weights never co-adapted with the new codes, so they test inertness of a frozen term, not what VSA could contribute.",
+    "Root codes (mode 1): 120 codes for 4,096 tokens collapse token identity; says nothing about codes that keep identity and add structure.",
+    "Mode 2: the codebook was rebuilt from the readout every 1,000 steps while the heads trained, a plausible moving-target cause that was not tested.",
+    "#1284 'VSA attention inert': the codebook was inconsistent with the learned representation (D2), explicitly not a retirement verdict.",
+    "Draft octonion table: a sign-orientation defect in that table, not in octonion binding."
+  ],
+  "open_questions": [
+    "Can codes derived from learned geometry (not a hash) keep identity and add similarity, and does that beat fixed hash codes? Mode 2 was the first attempt and lost.",
+    "Does the +0.014 to +0.023 BPB survive once the exact copy and prime-route heads already supply the same recency evidence at larger scale?",
+    "Is the engram table, not VSA, doing the real memory work? Removing it costs about 0.19-0.20 BPB against VSA's 0.013-0.016.",
+    "Would a bundle of about 64 terms in 4,096 bits carry order and bindings through unbinding, or only membership?",
+    "Does serving ignore the code mode? The review notes runtime.rs rebuilds the fixed codebook on demand, and ablate-prose prints a stale 'MIS-WIRED' label."
+  ],
+  "evidence": [
+    "docs/labs/vsa-native-test-2026-10-09/README.md",
+    "docs/labs/vsa-review-2026-10-09/README.md",
+    "docs/geometry_ablation_434.md",
+    "docs/retrieval_reassessment_500.md",
+    "docs/integration/handoff-2026-09-19.md",
+    "docs/integration/DECISIONS.md (D2)",
+    "docs/integration/geometric-toolbox-2026-09-28.md",
+    "docs/labs/octonion-substrate-review-2026-10-09/README.md",
+    "docs/labs/nemesis-xor-review-2026-10-09/README.md",
+    "docs/integration/principal-attention-mathematics-2026-09-24.md",
+    "docs/labs/course-correction-2026-10-18/audits/mechanism-census.md"
+  ],
+  "related": [
+    {
+      "id": "ternary-xor",
+      "how": "Same XOR, popcount and Hamming arithmetic; D32 favours it on ternary and E8 labels, so a discrete VSA would live there."
+    },
+    {
+      "id": "exact-memory",
+      "how": "The intended partner: VSA sketches propose candidates and exact references decide the copied content."
+    },
+    {
+      "id": "spin-weights",
+      "how": "Mode 1 derives codes from icosian roots; the result was that root-only codes collapse identity."
+    },
+    {
+      "id": "read-binding",
+      "how": "Both try to make a read bind the right value; VSA role-times-filler is the multiplier-free route to the same goal."
+    },
+    {
+      "id": "flock-read",
+      "how": "Its Hamming-on-coordinates distance is the discrete cousin of VSA similarity."
+    },
+    {
+      "id": "hopf-observation",
+      "how": "Both appear in the old 'prime and Hopf routing' stack as lossy summaries kept beside exact identity."
+    },
+    {
+      "id": "spiralcore-fbs",
+      "how": "Supplies the Fano table used as the control for octonion-signed binding."
+    }
+  ],
+  "figure_ideas": [
+    "Bind, bundle and probe on bit strips. Show three tokens as 64-cell bit strips, XOR each with a role strip, then fold them into one majority-vote strip. Pick a role and unbind: the matching token's strip lights up with a similarity bar, while noise bars for the others grow as more items are bundled (signal-to-noise near 8 at 64 items in 4,096 bits). (Static art already exists at docs/figures/geometry/vsa-hypervectors.svg to animate.)",
+    "Three code modes side by side on 4,096 token dots. Mode 0 (random hash): every dot far from every other. Mode 1 (root codes): dots collapse into 120 clumps. Mode 2 (root plus residual): clumps loosen. Beside each, the held-out BPB change against VSA off (-0.0144 to -0.0226, about 0, +0.013 to +0.028 worse than fixed).",
+    "A paired on/off ablation: for each of the two seeds and two slices, a pair of bars for BPB with the VSA term trained in and off, with the 0.01 bar drawn, so the viewer sees all four pairs clear it while the root-code bars do not."
+  ]
+}

@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1018" width="960" role="img" aria-labelledby="t d">
+<title id="t">D11 integer table serving</title>
+<desc id="d">Three stacked panels. Panel A: one dot product with no multiply. An integer activation x is turned once into a table of 16 multiples, 0 to 15 times x, using additions only. Three 4-bit weight codes each select one slot; the selected values pass a shift for the group scale and drop into a running sum. A counter reads multiply instructions: 0. Panel B: integer-engine outputs against reference outputs lie exactly on the diagonal, maximum difference 0 on 64 windows for three 29M artifacts. Two short bars show the real cost of rounding the weights, 0.00883 bits per byte on identical positions of the 19.9M stack and 0.009288 on a 512-window matched triple. A separate faint strip shows the 0.90 bar and the served readings 1.20138, 1.24402 and 1.24233, so the shortfall is the model, not the engine. Panel C: 44 native symbol ranges in the release binary and seven named WebAssembly symbols, all counted at zero multiply, zero divide and zero float instructions. The audit counts instructions and says nothing about model quality.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); }
+.t { font-size: 20px; font-weight: 600; }
+.h { font-size: 15px; font-weight: 600; }
+.l { font-size: 13px; fill: var(--body); }
+.b { font-size: 13px; font-weight: 600; }
+.s { font-size: 12px; fill: var(--body); }
+.n { font-size: 12px; fill: var(--muted); }
+.big { font-size: 24px; font-weight: 600; fill: var(--green); }
+.mid { text-anchor: middle; }
+.end { text-anchor: end; }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+.okbox { fill: var(--bg); stroke: var(--green); stroke-width: 2; }
+.strip { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 4 3; }
+.thin { stroke: var(--rule); stroke-width: 1; fill: none; }
+.axis { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+.axisf { stroke: var(--muted); stroke-width: 1; fill: none; }
+.slot { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.slot-on { fill: var(--orange); fill-opacity: 0.35; stroke: var(--orange); stroke-width: 2.5; }
+.lit { stroke: var(--orange); stroke-width: 2; fill: none; }
+.litarrow { stroke: var(--orange); stroke-width: 2; fill: none; marker-end: url(#aho); }
+.sel { stroke: var(--ink); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+.arrow { stroke: var(--ink); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+.diag { stroke: var(--blue); stroke-width: 2; fill: none; }
+.pt { fill: var(--blue); }
+.dot { fill: var(--muted); }
+.f-blue { fill: var(--blue); }
+.bar { stroke: var(--verm); stroke-width: 1.5; stroke-dasharray: 5 3; fill: none; }
+.tile { fill: var(--green); fill-opacity: 0.25; stroke: var(--green); stroke-width: 1.5; }
+.wtile { fill: var(--bg); stroke: var(--green); stroke-width: 2; }
+.ah-p { fill: var(--ink); } .aho-p { fill: var(--orange); }
+</style>
+<defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-p" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="aho" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="aho-p" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="1018"/>
+<text class="t" x="24" y="38">D11 integer serving: an exact engine with no multiply instruction</text>
+
+<!-- Panel A -->
+<rect class="panel" x="16" y="56" width="928" height="262" rx="6"/>
+<text class="h" x="32" y="82">A. One dot product, no multiply instruction</text>
+<rect class="box" x="32" y="100" width="110" height="40" rx="5"/>
+<text class="b mid" x="87" y="118">activation x</text><text class="s mid" x="87" y="133">(an integer)</text>
+<line class="arrow" x1="87" y1="142" x2="87" y2="158"/>
+<line class="lit" x1="170" y1="160" x2="170" y2="120"/>
+<line class="lit" x1="338" y1="160" x2="338" y2="120"/>
+<line class="lit" x1="674" y1="160" x2="674" y2="120"/>
+<line class="litarrow" x1="170" y1="120" x2="710" y2="120"/>
+<text class="n" x="360" y="112">the selected values flow to the sum</text>
+<rect class="box" x="712" y="100" width="100" height="40" rx="5"/>
+<text class="b mid" x="762" y="118">shift by</text><text class="s mid" x="762" y="133">group scale</text>
+<line class="arrow" x1="814" y1="120" x2="830" y2="120"/>
+<rect class="box" x="832" y="100" width="96" height="40" rx="5"/>
+<text class="b mid" x="880" y="118">running sum</text><text class="s mid" x="880" y="133">integer add</text>
+<rect class="slot" x="32" y="160" width="52" height="32"/><text class="s mid" x="58" y="181">0</text>
+<rect class="slot" x="88" y="160" width="52" height="32"/><text class="s mid" x="114" y="181">x</text>
+<rect class="slot-on" x="144" y="160" width="52" height="32"/><text class="b mid" x="170" y="181">2x</text>
+<rect class="slot" x="200" y="160" width="52" height="32"/><text class="s mid" x="226" y="181">3x</text>
+<rect class="slot" x="256" y="160" width="52" height="32"/><text class="s mid" x="282" y="181">4x</text>
+<rect class="slot-on" x="312" y="160" width="52" height="32"/><text class="b mid" x="338" y="181">5x</text>
+<rect class="slot" x="368" y="160" width="52" height="32"/><text class="s mid" x="394" y="181">6x</text>
+<rect class="slot" x="424" y="160" width="52" height="32"/><text class="s mid" x="450" y="181">7x</text>
+<rect class="slot" x="480" y="160" width="52" height="32"/><text class="s mid" x="506" y="181">8x</text>
+<rect class="slot" x="536" y="160" width="52" height="32"/><text class="s mid" x="562" y="181">9x</text>
+<rect class="slot" x="592" y="160" width="52" height="32"/><text class="s mid" x="618" y="181">10x</text>
+<rect class="slot-on" x="648" y="160" width="52" height="32"/><text class="b mid" x="674" y="181">11x</text>
+<rect class="slot" x="704" y="160" width="52" height="32"/><text class="s mid" x="730" y="181">12x</text>
+<rect class="slot" x="760" y="160" width="52" height="32"/><text class="s mid" x="786" y="181">13x</text>
+<rect class="slot" x="816" y="160" width="52" height="32"/><text class="s mid" x="842" y="181">14x</text>
+<rect class="slot" x="872" y="160" width="52" height="32"/><text class="s mid" x="898" y="181">15x</text>
+<line class="sel" x1="170" y1="226" x2="170" y2="196"/>
+<line class="sel" x1="338" y1="226" x2="338" y2="196"/>
+<line class="sel" x1="674" y1="226" x2="674" y2="196"/>
+<rect class="box" x="110" y="228" width="120" height="34" rx="5"/><text class="b mid" x="170" y="249">weight code 2</text>
+<rect class="box" x="278" y="228" width="120" height="34" rx="5"/><text class="b mid" x="338" y="249">weight code 5</text>
+<rect class="box" x="614" y="228" width="120" height="34" rx="5"/><text class="b mid" x="674" y="249">weight code 11</text>
+<rect class="okbox" x="760" y="222" width="168" height="48" rx="5"/>
+<text class="s mid" x="844" y="238">multiply instructions</text><text class="big mid" x="844" y="263">0</text>
+<text class="n" x="32" y="290">The table holds 16 multiples of x (0, x, 2x … 15x), built once with additions only. Each 4-bit weight code picks one slot.</text>
+<text class="n" x="32" y="308">Weights are 4-bit codes in groups of 32 with a one-byte scale, applied by shifts. The three codes drawn are illustrative.</text>
+
+<!-- Panel B -->
+<rect class="panel" x="16" y="334" width="928" height="410" rx="6"/>
+<text class="h" x="32" y="360">B. The engine is exact; the real cost is in rounding the weights</text>
+<text class="n" x="64" y="384">integer-engine logits</text>
+<line class="axis" x1="64" y1="392" x2="64" y2="572"/>
+<line class="axis" x1="64" y1="572" x2="244" y2="572"/>
+<line class="diag" x1="64" y1="572" x2="244" y2="392"/>
+<circle class="pt" cx="78.4" cy="557.6" r="4"/><circle class="pt" cx="94.6" cy="541.4" r="4"/>
+<circle class="pt" cx="116.2" cy="519.8" r="4"/><circle class="pt" cx="128.8" cy="507.2" r="4"/>
+<circle class="pt" cx="154" cy="482" r="4"/><circle class="pt" cx="173.8" cy="462.2" r="4"/>
+<circle class="pt" cx="190" cy="446" r="4"/><circle class="pt" cx="213.4" cy="422.6" r="4"/>
+<circle class="pt" cx="229.6" cy="406.4" r="4"/>
+<text class="n mid" x="154" y="590">reference logits</text>
+<text class="b" x="32" y="612">Maximum difference 0 on 64 windows</text>
+<text class="n" x="32" y="628">three 29M artifacts; the points are schematic</text>
+
+<text class="b" x="340" y="384">Real cost of rounding the weights (bits per byte)</text>
+<rect class="f-blue" x="350" y="404" width="247.2" height="24"/>
+<rect class="f-blue" x="350" y="462" width="260.1" height="24"/>
+<line class="axis" x1="350" y1="398" x2="350" y2="530"/>
+<text class="b" x="606" y="421">0.00883</text>
+<text class="b" x="619" y="479">0.009288</text>
+<text class="s" x="358" y="446">identical positions, 19.9M stack</text>
+<text class="s" x="358" y="504">512-window matched triple</text>
+<line class="axisf" x1="350" y1="530" x2="630" y2="530"/>
+<text class="n mid" x="350" y="546">0</text><text class="n mid" x="630" y="546">0.01</text>
+<text class="b" x="690" y="424">Rounding costs under a</text>
+<text class="b" x="690" y="441">hundredth of a bit per byte.</text>
+
+<rect class="strip" x="32" y="650" width="896" height="82" rx="5"/>
+<text class="n" x="44" y="668">For scale, a separate strip: the 0.90 bar and the served readings (bits per byte, lower is better)</text>
+<line class="axisf" x1="48" y1="710" x2="880" y2="710"/>
+<line class="bar" x1="140.4" y1="684" x2="140.4" y2="714"/>
+<text class="s" x="148" y="698">0.90 bar</text>
+<circle class="dot" cx="697.7" cy="710" r="4"/><circle class="dot" cx="773.4" cy="710" r="4"/><circle class="dot" cx="776.5" cy="710" r="4"/>
+<text class="s end" x="702" y="698">1.20138</text><text class="s end" x="772" y="698">1.24233</text><text class="s" x="780" y="698">1.24402</text>
+<text class="n mid" x="325.3" y="726">1.00</text><text class="n mid" x="510.2" y="726">1.10</text>
+<text class="n mid" x="695.1" y="726">1.20</text><text class="n mid" x="880" y="726">1.30</text>
+
+<!-- Panel C -->
+<rect class="panel" x="16" y="760" width="928" height="242" rx="6"/>
+<text class="h" x="32" y="786">C. The audit: instructions are counted in the compiled program</text>
+<text class="b" x="32" y="810">44 native symbol ranges in the release binary</text>
+<g><rect class="tile" x="32.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="52.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="72.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="92.9" y="820" width="17" height="18" rx="2"/><rect class="tile" x="113.2" y="820" width="17" height="18" rx="2"/><rect class="tile" x="133.5" y="820" width="17" height="18" rx="2"/><rect class="tile" x="153.8" y="820" width="17" height="18" rx="2"/><rect class="tile" x="174.1" y="820" width="17" height="18" rx="2"/><rect class="tile" x="194.4" y="820" width="17" height="18" rx="2"/><rect class="tile" x="214.7" y="820" width="17" height="18" rx="2"/><rect class="tile" x="235.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="255.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="275.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="295.9" y="820" width="17" height="18" rx="2"/><rect class="tile" x="316.2" y="820" width="17" height="18" rx="2"/><rect class="tile" x="336.5" y="820" width="17" height="18" rx="2"/><rect class="tile" x="356.8" y="820" width="17" height="18" rx="2"/><rect class="tile" x="377.1" y="820" width="17" height="18" rx="2"/><rect class="tile" x="397.4" y="820" width="17" height="18" rx="2"/><rect class="tile" x="417.7" y="820" width="17" height="18" rx="2"/><rect class="tile" x="438.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="458.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="478.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="498.9" y="820" width="17" height="18" rx="2"/><rect class="tile" x="519.2" y="820" width="17" height="18" rx="2"/><rect class="tile" x="539.5" y="820" width="17" height="18" rx="2"/><rect class="tile" x="559.8" y="820" width="17" height="18" rx="2"/><rect class="tile" x="580.1" y="820" width="17" height="18" rx="2"/><rect class="tile" x="600.4" y="820" width="17" height="18" rx="2"/><rect class="tile" x="620.7" y="820" width="17" height="18" rx="2"/><rect class="tile" x="641.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="661.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="681.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="701.9" y="820" width="17" height="18" rx="2"/><rect class="tile" x="722.2" y="820" width="17" height="18" rx="2"/><rect class="tile" x="742.5" y="820" width="17" height="18" rx="2"/><rect class="tile" x="762.8" y="820" width="17" height="18" rx="2"/><rect class="tile" x="783.1" y="820" width="17" height="18" rx="2"/><rect class="tile" x="803.4" y="820" width="17" height="18" rx="2"/><rect class="tile" x="823.7" y="820" width="17" height="18" rx="2"/><rect class="tile" x="844.0" y="820" width="17" height="18" rx="2"/><rect class="tile" x="864.3" y="820" width="17" height="18" rx="2"/><rect class="tile" x="884.6" y="820" width="17" height="18" rx="2"/><rect class="tile" x="904.9" y="820" width="17" height="18" rx="2"/></g>
+<text class="l" x="32" y="858">Each of the 44 tiles: multiply 0, divide 0, float 0.</text>
+<text class="b" x="32" y="888">7 WebAssembly serving symbols</text>
+<rect class="wtile" x="32" y="898" width="84" height="32" rx="4"/><text class="s mid" x="74" y="918">loadStack</text>
+<rect class="wtile" x="122" y="898" width="64" height="32" rx="4"/><text class="s mid" x="154" y="918">step</text>
+<rect class="wtile" x="192" y="898" width="97" height="32" rx="4"/><text class="s mid" x="240.5" y="918">saveSession</text>
+<rect class="wtile" x="295" y="898" width="116" height="32" rx="4"/><text class="s mid" x="353" y="918">restoreSession</text>
+<rect class="wtile" x="417" y="898" width="123" height="32" rx="4"/><text class="s mid" x="478.5" y="918">weightsPerToken</text>
+<rect class="wtile" x="546" y="898" width="222" height="32" rx="4"/><text class="s mid" x="657" y="918">stack::IntegerStackSession::step</text>
+<rect class="wtile" x="774" y="898" width="149" height="32" rx="4"/><text class="s mid" x="848.5" y="918">stack::stack_argmax</text>
+<text class="l" x="32" y="954">Each of the 7: multiply 0, divide 0, float 0.</text>
+<text class="n" x="32" y="974">The audit counts instructions; it says nothing about model quality.</text>
+<text class="n" x="32" y="990">The SIMD kernels in the WebAssembly build are unintegrated fixtures that the audit never exercises.</text>
+</svg>

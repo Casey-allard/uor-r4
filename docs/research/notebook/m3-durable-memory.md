@@ -18,7 +18,7 @@ Background: the [object store mechanism](../../mechanisms/object-store.md) and [
 
 ## Results
 
-Sources: the row comes from `local/renorm/audit/catalog.jsonl`; numbers and the bar were checked against the record. Verdict words are defined on the [format page](./README.md#the-five-verdict-words).
+Sources: the row comes from [`archive/catalog.jsonl`](../../../archive/catalog.jsonl); numbers and the bar were checked against the record. Verdict words are defined on the [format page](./README.md#the-five-verdict-words).
 
 | Date | What ran | Number | Bar | Verdict | Artifact |
 |---|---|---|---|---|---|

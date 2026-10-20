@@ -57,7 +57,7 @@ Rules for keeping a notebook:
 | `data-tokenizer` | [data-tokenizer.md](./data-tokenizer.md) | Which data and which tokenizer does the model train on? | 0 |
 | `harness-governance` | [harness-governance.md](./harness-governance.md) | Is the research tooling and process worth its cost? | 0 |
 
-*Source of the counts: `local/renorm/audit/catalog.jsonl`, records dated 12 October 2026 or later whose outcome is positive, negative, inconclusive, diagnostic-stop or blocked, counted with `jq`. Pages with 0 rows have records on those dates, but all of them are tooling, planning or process records. The page says so.*
+*Source of the counts: [`archive/catalog.jsonl`](../../../archive/catalog.jsonl), records dated 12 October 2026 or later whose outcome is positive, negative, inconclusive, diagnostic-stop or blocked, counted with `jq`. Pages with 0 rows have records on those dates, but all of them are tooling, planning or process records. The page says so.*
 
 The other fourteen lines in the audit catalog (for example `m2-exact-memory` and `m1-float-rung0`) have no notebook yet. Each gets one the next time it produces a result. The project is pre-alpha: 0 of 8 milestones are complete, and no row on any page is a language result.
 

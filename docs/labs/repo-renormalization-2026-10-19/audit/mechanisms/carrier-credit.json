@@ -1,0 +1,110 @@
+{
+  "id": "carrier-credit",
+  "canonical_name": "Live geometric carrier credit",
+  "aliases": [
+    "unified geometric carrier credit",
+    "live H4 / Generate prototype credit",
+    "whole-path learning",
+    "shared native vector writer (float form)",
+    "causal cost-to-go credit (September addressed-attention form)",
+    "donor utility credit"
+  ],
+  "plain_what": "When a model reads memory and then writes an answer, the learning signal should reach the actual geometric objects that carried the information, not just the final scoring coefficients. This line pushes error credit back through the live H4 carriers and prototypes, and later through one shared token-vector table used for input, memory and output.",
+  "replaces": "optimizer/backprop",
+  "how_it_works": "Two forms. (1) September #973 addressed attention: sample four hard trajectories (read, key, emit decisions), then credit each parameter-score event with the normalized suffix cost-to-go from its CE boundary instead of the whole-trajectory loss, using the other particles as baseline. (2) October M2 form: the saved437 native field scores factual-state and local-state H4 relations against Generate prototypes; freezing those carriers while fitting only the coefficients disconnects the geometry from what must generalize. The unified credit computes independent conditional utilities over all 120 H4 elements, restores the exact saved fractional masters (quarter-grid Q4 codes q/4, q in [-7,7]), and fits Context carriers, prototypes and coefficients together on the pooled-ranking plus EOS objective. Factor reads are factored onto at most 120 encountered prototypes per lane. Whole-path design extends credit to compiler spans, exact store writes, E8 root admission and consumed donors through an explicit hard-decision graph, with exact token, occurrence and version identity kept apart from the geometric summaries. The float shared writer ties one learned vector table to token input, addressed output and the compiler/store/emitter channel, with product-cell addressing and omitted-target score credit. The integer form of this shared carrier now lives in discrete-learning.",
+  "geometry": "H4 / 600-cell relative element codes (120 icosian elements, Q4 quantized), SpiralCore E8 actions and 240 E8 roots as coarse routes, exact prime-addressed occurrence store (identity kept separate), product cells from first/last 8D block roots, quarter-grid Z[phi]-style finite signed tables.",
+  "code": [
+    {"path": "crates/uor-r4-core/src/native_geometric/addressed_attention/causal_credit.rs", "role": "September suffix cost-to-go credit estimator (old SerialLoo vs causal)"},
+    {"path": "crates/uor-r4-core/src/native_geometric/addressed_attention/learner.rs", "role": "September four-particle SGD learner with strict checkpoints"},
+    {"path": "crates/uor-r4-training/src/geometric_continuation_learning.rs", "role": "Independent full-120 conditional utilities for coupled episode learning"},
+    {"path": "crates/uor-r4-training/src/geometric_bank_generate.rs", "role": "Authenticated live factual/local Context carriers and Generate prototype probabilities"},
+    {"path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/unified_geometry.rs", "role": "Restore saved437 fractional masters and fit Context/prototypes jointly (the executed ON/OFF arms)"},
+    {"path": "crates/uor-r4-core/src/native_geometric/learner/geometric_continuation_field.rs", "role": "Factor cache over at most 120 encountered prototypes per lane"},
+    {"path": "crates/uor-r4-training/src/whole_path_learning.rs", "role": "Joint compiler/store/E8/emitter credit reference with shared Var inventory (CPU reference)"},
+    {"path": "crates/uor-r4-training/src/whole_path_device.rs", "role": "CUDA-shaped numerical graph producers and replay recovery (never run on device)"},
+    {"path": "crates/uor-r4-training/src/native_vector_writer.rs", "role": "Float shared vector writer: one table for input, output and carried tokens"},
+    {"path": "crates/uor-r4-training/src/native_vector_channel.rs", "role": "Common vector channel adapter used by compiler/store/emitter"}
+  ],
+  "status": "PARKED",
+  "status_reason": "Executed forms failed or broke a rule: three fixed 128-update arms went from 437/512 to 0/512 (docs/labs/unified-geometric-integration-2026-10-11), September pilots failed (docs/native_geometric_addressed_attention_causal_pilot_973.md), and the sampled-choice producer uses softmax (D23). The shared-table idea survives in discrete-learning.",
+  "reopen_conditions": [
+    "A D23-compliant replacement for the sampled-choice producer, such as exact hard selection by address or integer counterfactual moves, with the credit path scanned end to end",
+    "One coherent typed binding, frame and native credit boundary qualified first, as the whole-path audit requires, so carriers and prototypes change under a readout that is trained with them rather than frozen",
+    "A panel that is not component-only (the saved panel reuses 128 banks, 12 query strings and 48 exact answers for 512 inputs) with at least 2 seeds and a genuinely fresh qualification draw of at least 128 rows",
+    "Matched ON versus OFF credit with identical active parameters, all 4,096 Generate choices and physical Copy aliases scored, carriers rebuilt after each update",
+    "An offline float re-registration under D37 (fresh FIT, owner release, separately scanned module, export gap against the D11 integer form), or an integer counterfactual form on the discrete path",
+    "Owner release of the separate M2 training and rental hold"
+  ],
+  "rule_compat": {
+    "D11": "M2 stack serves from finite signed geometric tables (Q4 codes), so the served form is integer. Float masters are training-only and the export gap of the unified form was never measured. Every position still scores all 4,096 Generate choices, so per-token parameter access is not sparse (D5-b unmeasured).",
+    "D23": "Blocked: the delivered whole-path sampled-choice law (#2246 producer) uses softmax and the pooled-rank loss used softplus. The shared-writer margin form and the integer discrete writer are compliant.",
+    "D30": "The finite-factor path uses table reads and quarter-grid sums, not matmul. The shared writer scans bounded cell sets with L1 displacement. D29 module scans passed for the writer (31 controls).",
+    "D32_D37": "Pre-D32 float form is preserved inactive under D32. D37 makes it re-registrable as an offline float sheet; the integer carrier (one table for input, carry, output) is already ACTIVE in the discrete crate."
+  },
+  "experiments": [
+    {"date": "2026-09-13", "record": "docs/native_geometric_addressed_attention_stability_973.md", "configuration": "Frozen-parameter gradient and context diagnostic of the addressed attention model", "result": "Weak gradient repeatability and low emission-context overlap; not proof of zero gradient or defect", "verdict": "inconclusive", "numbers": "no pass/fail count"},
+    {"date": "2026-09-13", "record": "docs/native_geometric_addressed_attention_pilot_973.md", "configuration": "Four-trajectory SGD, 64 updates, 16 train / 8 dev records, full-trajectory credit", "result": "Completed but no useful generation; one formerly correct symbol lost", "verdict": "negative", "numbers": "dev symbols 1/154, exact answers 0/8 and 0/16, dev CE 5.5530 -> 5.5516"},
+    {"date": "2026-09-13", "record": "docs/native_geometric_addressed_attention_causal_credit_973.md", "configuration": "Suffix cost-to-go credit vs old estimator on frozen endpoints, 32 batches / 128 trajectories, no parameter updates", "result": "Passed the fixed engineering selection gate", "verdict": "positive", "numbers": "gate-gradient covariance ratio 0.526 (-47.4%); every family improved; model gate still FAIL"},
+    {"date": "2026-09-13", "record": "docs/native_geometric_addressed_attention_causal_pilot_973.md", "configuration": "Same 64-update recipe with the selected causal credit", "result": "Training CE slightly better, development CE worse, retention lost; no exact answers", "verdict": "negative", "numbers": "train correct 0/306, dev 1/154, exact 0/16 and 0/8; dev CE 5.5710 vs 5.5530 initial"},
+    {"date": "2026-10-09", "record": "docs/labs/bounded-pair-run-2026-10-09/README.md", "configuration": "Learn only the Generate ordered-pair table, 960 of 57,600 coordinates, 14 alternatives each, from the original parent", "result": "One more conditional position fixed; whole-answer score unchanged", "verdict": "inconclusive", "numbers": "conditional winners 5/15 -> 6/15, combined CE 5.1115 -> 4.0429, 931 of 960 changes accepted, accepted model stays 8/512"},
+    {"date": "2026-10-09", "record": "docs/labs/full-donor-run-2026-10-09/README.md", "configuration": "Coupled Prefix/Generate learner with complete donor utility (full pooled loss per alternative), 31 backwards, 1,920 coordinates", "result": "Same 9/15 as the older coupled negative, with the same correct positions (0-6, 11, 12) and CE slightly lower; not promoted", "verdict": "negative", "numbers": "9/15 conditional, 956 accepted changes, 14,292 alternatives, 8/512 unchanged"},
+    {"date": "2026-10-09", "record": "docs/labs/pair-copy-bound-2026-10-09/README.md", "configuration": "Optimistic upper bound for any legal Generate pair change at one frame", "result": "No pair-only change can beat the rival's frozen Copy mass at the first error", "verdict": "negative", "numbers": "target upper bound below rival Copy lower bound at all nine reference points (for example 319,960,263 vs 2,147,483,648)"},
+    {"date": "2026-10-09", "record": "docs/labs/pair-proposal-attribution-2026-10-09/README.md", "configuration": "Re-read saved bounded-pair results at the earliest remaining error", "result": "No alternative corrected the error although the search covered most of initial descent", "verdict": "inconclusive", "numbers": "0 of 13,440 alternatives corrected it; search covered 93% of initial descent"},
+    {"date": "2026-10-09", "record": "docs/labs/early-query-causal-2026-10-09/README.md", "configuration": "Change only the first query token on the retained native parent, two rows", "result": "Input difference reaches the scores but both answers are wrong", "verdict": "inconclusive", "numbers": "0/2 correct"},
+    {"date": "2026-10-11", "record": "docs/labs/native-bound-content-2026-10-11/README.md", "configuration": "Connect compiler, store and reader into one native session; exact E8 transport; retained-state copy credit", "result": "Source KEEP; no training", "verdict": "inconclusive", "numbers": "source-only, panel 437/512 and opened 0/128 unchanged"},
+    {"date": "2026-10-11", "record": "docs/labs/unified-geometric-integration-2026-10-11/README.md", "configuration": "Matched ON/OFF field-carrier credit from saved437, 128 updates over two all-512 epochs, seeds 1001 and 2001", "result": "Three completed arms lose every saved success; fourth arm interrupted by owner for a panel audit; nothing promoted or closed", "verdict": "inconclusive", "numbers": "OFF1001, ON1001, OFF2001: 437/512 -> 0/512, CE 2.1828 -> 7.7373 / 7.7924 / 7.7373; ON2001 not started its optimizer"},
+    {"date": "2026-10-12", "record": "docs/labs/whole-path-implementation-2026-10-12/README.md", "configuration": "Joint compiler, exact store, E8 index and emitter shared-credit source reference, tiny fixture", "result": "15 fixtures pass; not training ready; CPU only", "verdict": "inconclusive", "numbers": "15 focused fixtures, no optimizer run"},
+    {"date": "2026-10-12", "record": "docs/labs/whole-path-recovery-2026-10-12/README.md", "configuration": "CUDA-shaped producers, sampled replay recovery and equal-episode batch credit", "result": "28 CPU-reference fixtures pass; CUDA never run; the sampled producer is then blocked by D23", "verdict": "blocked", "numbers": "28 CPU fixtures, CUDA NOT_RUN"},
+    {"date": "2026-10-13", "record": "docs/labs/geometric-head-shared-writer-2026-10-13/README.md", "configuration": "Float OP3a head and shared native vector writer with margin credit", "result": "Five finite CUDA controls pass on corrected source; later vendor-boundary record reports 31 controls on RTX 4090", "verdict": "positive", "numbers": "5 controls; 31/31 controls at 1f1547bfd (infrastructure only, no trained result)"},
+    {"date": "2026-10-13", "record": "docs/labs/discrete-flock-writer-integration-2026-10-13/README.md", "configuration": "Integer shared writer carrying tokens through carry_windows, with Flock read on the same codebook", "result": "17 controls pass including shared-parameter identity; this is the surviving form of the carrier idea", "verdict": "positive", "numbers": "17/17 controls (construction only)"}
+  ],
+  "never_tested": [
+    "Unified credit with a coherent typed binding: the executed ON/OFF arms kept the readout frozen while Context and prototypes moved",
+    "ON2001 (the fourth arm): it stopped before its optimizer, so the replicated ON versus OFF contrast was never completed",
+    "The opened-128 transfer diagnostic and a genuinely fresh qualification draw for any carrier-credit candidate",
+    "The whole-path credit on a device (CUDA producers, sampled-trajectory recovery, multi-episode batches)",
+    "A compliant (non-softmax) sampled-choice or hard-decision credit estimator",
+    "A learned compiler plus exact store plus E8 admission trained together on realistic, non-component panels",
+    "Joint credit for compiler spans, memory writes and E8 root admission with delayed episode reward",
+    "A carrier-credit comparison on the discrete integer path with the shared table moved by counterfactual moves"
+  ],
+  "failed_only_on_configuration": [
+    "September addressed-attention pilots: a 64-update recipe with SGD on a 665,216-parameter vector and authored 16/8 records; says nothing about credit through carriers on a trained base",
+    "Unified ON/OFF arms collapsing to 0/512: fixed 128 updates, frozen readout under changing carriers, mixed finite/ambient credit and a component-only panel; the audit calls these risks, not causes",
+    "Full-donor run 9/15: restricted to Prefix and Generate unary coordinates with Source, Context, Cue, bridge and pair tables frozen",
+    "Pair-copy bound: one frame (input245, position 4) with the Copy mass held fixed",
+    "Whole-path recovery blocked: the sampled producer used softmax, a rule break, not a negative"
+  ],
+  "open_questions": [
+    "Does credit through live carriers beat a better-conditioned frozen-carrier fit at matched compute, or does ordinary shared adaptation explain any gain?",
+    "Can the hard-decision credit be rewritten as integer counterfactual moves so the D23 problem disappears?",
+    "Should H4 carriers, 64 SpiralCore actions and 240 E8 roots share any learned map, given that no cast equates them and each needs an explicit basis, action and inverse witness?",
+    "What panel would make a whole-path result informative rather than a component-only benchmark?"
+  ],
+  "evidence": [
+    "docs/mechanisms/unified-geometric-carrier-credit.md",
+    "docs/labs/unified-geometric-integration-2026-10-11/README.md",
+    "docs/labs/unified-geometric-integration-2026-10-11/AUDIT.md",
+    "docs/labs/native-bound-content-2026-10-11/README.md",
+    "docs/labs/whole-path-implementation-2026-10-12/README.md",
+    "docs/labs/whole-path-recovery-2026-10-12/README.md",
+    "docs/labs/geometric-head-shared-writer-2026-10-13/README.md",
+    "docs/labs/full-donor-run-2026-10-09/README.md",
+    "docs/labs/pair-copy-bound-2026-10-09/README.md",
+    "docs/native_geometric_addressed_attention_causal_pilot_973.md",
+    "docs/integration/DECISIONS.md (D22, D23, D29, D32, D37)"
+  ],
+  "related": [
+    "discrete-learning: carries the shared single-table carrier forward in integer form",
+    "rank-margin: the margin objective supplies the omitted-target and address credit inside the shared writer",
+    "legal-construction: same M2 learner and the same 8/512 and 437/512 panels",
+    "e8-orbit-memory and spiralcore-fbs: supply the E8 admission and transport that the whole-path credit was meant to train",
+    "exact-memory: the occurrence store whose identity must stay separate from the geometric summary",
+    "read-binding: a teacher-side signal that would train which value the read binds to"
+  ],
+  "figure_ideas": [
+    "A pipeline strip (query, compiler spans, exact store, E8 index, H4 carriers, Generate prototypes, answer) with arrows showing where credit flows in the frozen-carrier fit versus the unified fit; light up the layers that actually changed.",
+    "Bar chart of complete correct replies for saved437 and the three completed ON/OFF arms (437 down to 0), with the CE rising 2.18 to about 7.74 as a secondary line, showing the collapse.",
+    "The 120 H4 elements drawn as 600-cell vertices on a sphere, with the handful of prototypes a lane encounters highlighted and the others dimmed, to show why credit is limited to at most 120 encountered prototypes."
+  ]
+}

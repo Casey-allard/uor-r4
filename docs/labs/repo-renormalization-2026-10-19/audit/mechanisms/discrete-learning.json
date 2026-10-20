@@ -1,0 +1,330 @@
+{
+  "id": "discrete-learning",
+  "canonical_name": "Discrete geometric learning (exact-move counterfactual training)",
+  "aliases": [
+    "SpiralCore/FBS discrete learning",
+    "counterfactual-choose-apply-validate training",
+    "D32 learning law",
+    "rows_v1 counterfactual path",
+    "row-parallel counterfactual",
+    "BVG-K (batched verified coordinates)",
+    "discrete driver / Dose 1 / Dose 2 / rung-0 pilot and completion",
+    "Device::propose / apply"
+  ],
+  "plain_what": "The model is a table of small integer vectors plus a few routing choices. To learn, the machine tries every legal rotation of one table entry, replays the examples under each, keeps the one with the lowest integer loss, and commits it only if it strictly helps. No gradients, no floating point, no matrix products.",
+  "replaces": "optimizer/backprop",
+  "how_it_works": "State: a shared integer codebook (token -> 8D vector blocks, each block one of 16 roots of one E8 anchor orbit), a categorical frame per route stage (one of 64 signed-axis group elements) and optional ternary read gates. Forward: a token window is read by Route (the transformed query is compared with fixed FBS branch roots, never leaf contents), Flock{kept} or Relation. A shared writer gives each token a product cell from the root indices of its first and last blocks (256 cells), ranks cells by L1 address distance, scans up to K kept cells and scores token L1 distance. Loss numerator = 8*token_hinge + width*address_hinge over 8*width (objective A), or an occupied-cell rank variant (R). Learning step for one coordinate (a VectorBlock, a Route frame or a Gate): replay read and writer for identity plus the 15 bivector moves over rows fixed eligible by the baseline; choose the minimum integer cost, ties to identity, then lowest resulting port; apply only a strictly improving move and validate. The rows_v1 kernel computes the baseline once per row and each virtual move once per (row, lane), reproducing the serial losses exactly. BVG-K scores K coordinates per launch and commits a block only if its joint loss beats the best single move.",
+  "geometry": "E8 anchor-orbit roots (16 per 8D block, not the full 240), SpiralCore 64-element signed-axis group with action/composition/inverse tables and BFS transport, ternary FBS children/frontier, integer L1 and Hamming distances, bivector moves, product cells from first/last block root indices, icosian/quaternion actions only as design intent.",
+  "code": [
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "CUDA module: discrete_init, forward, counterfactual (16 lanes), choose, apply, validate, evaluate, shared writer and cell ranking"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/device.rs",
+      "role": "Device API: carry, carry_windows, evaluate, propose, apply with epoch and identity binding"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/training.rs",
+      "role": "Corpus driver: UORT tokens, response masks, canonical coordinate cycle, checkpoints, TRAIN-masked count reference, TrainingHeld gate"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/rows_source.rs",
+      "role": "Generated row-parallel counterfactual image (baseline, per-lane virtual move, reducer)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/rows_device.rs",
+      "role": "propose_rows and cached variant, opt-in handle"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/rowsk_source.rs",
+      "role": "BVG-K C1: K-coordinate row-parallel scoring"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/bvgk_source.rs",
+      "role": "BVG-K C2: choose, decide and block-apply kernels"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/baseline_reuse.rs",
+      "role": "Exact per-row GPU baseline reuse (opt-in)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/decomposition.rs",
+      "role": "Counterfactual cost decomposition instrument"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/controller.rs",
+      "role": "A2 pilot admission controller and release-gated transition loop"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/completion.rs",
+      "role": "Rung-0 completion controller, quarter checkpoints"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_audited.rs",
+      "role": "Admission-preserving controller: whole-interval rejection with last-passing pin"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_learning.rs",
+      "role": "Paired Relation LearnV1 vs FrozenZero learning path"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/snapshot.rs",
+      "role": "Schema-2 snapshot types and hashing"
+    },
+    {
+      "path": "crates/uor-r4-core/src/spiralcore_operator.rs",
+      "role": "Static SpiralCore/E8 geometry compiled at build time (the only core module the active path needs)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/qualification.rs",
+      "role": "Finite CUDA construction controls (Route), with flock_qualification.rs and driver_qualification.rs"
+    }
+  ],
+  "status": "ACTIVE",
+  "status_reason": "This is the learning law of the only current model path, crates/uor-r4-discrete (docs/labs/discrete-geometric-learning-2026-10-13, docs/architecture.md). It trained a pilot and four K16 runs, and the pilot still shows no language gain (docs/labs/k16-outcome-call-2026-10-19). Training stays HELD pending owner release.",
+  "reopen_conditions": [],
+  "rule_compat": {
+    "D11": "The model is already integer: table, routes and gates are integers, and reads, writer and loss use integer add, compare and table lookups. The served form is the same snapshot, so there is no float to discretize. A served D11 engine for this model does not exist yet, and no export gap or tokens/s has been measured.",
+    "D23": "No softmax, exp, softplus, sigmoid or tanh anywhere. Choice is an integer argmin with an explicit tie rule, and the objective is an integer hinge (docs/labs/discrete-geometric-learning-2026-10-13).",
+    "D30": "No matmul or GEMM. Distances are integer L1 and Hamming over 8D blocks, and moves are group-table lookups. D29 scans the compiled CUDA module (scripts/check_native_cuda_vendor.rs).",
+    "D32_D37": "This is the D32 law (discrete, GPU-only, no float). D37 later allowed offline float training, but this module stays integer and a float path would need its own scanned module and a reported export gap. All model operations are GPU-only, with no host fallback."
+  },
+  "experiments": [
+    {
+      "date": "2026-09-12",
+      "record": "docs/native_geometric_credit_assignment_973.md",
+      "configuration": "Pre-D32 native engine: one-use intervention credit, eight proposed replacements",
+      "result": "None of eight proposed replacements improved actual loss; the direction probe failed",
+      "verdict": "negative",
+      "numbers": "0 of 8 replacements improved loss"
+    },
+    {
+      "date": "2026-09-12",
+      "record": "docs/native_geometric_tied_learning_973.md",
+      "configuration": "Tied categorical sampler over complete geometric trajectories, pre-D32 engine",
+      "result": "No seed strictly beat fixed joint sampling; complete construction correct fell",
+      "verdict": "negative",
+      "numbers": "complete construction correct 79 -> 67"
+    },
+    {
+      "date": "2026-10-01",
+      "record": "docs/integration/geometric-attention-hard-bridge-2026-10-01.md",
+      "configuration": "Hard capture/hold gate replacing the soft gate in four saved pre-D32 models",
+      "result": "Held models keep their answers; zero answer predictions change",
+      "verdict": "positive",
+      "numbers": "128 of 128 answers kept"
+    },
+    {
+      "date": "2026-10-02",
+      "record": "docs/integration/geometric-native-held-credit-2026-10-02.md",
+      "configuration": "Native capture and age learning, 640 updates, pre-D32 engine",
+      "result": "Seed-2 accuracy collapsed; the event block caused it",
+      "verdict": "negative",
+      "numbers": "244 -> 83 of 256"
+    },
+    {
+      "date": "2026-10-04",
+      "record": "docs/integration/geometric-native-route-fit-2026-10-04.md",
+      "configuration": "Two 64-update paired native route fits, about 15,600 packed coefficients moved",
+      "result": "Both fitted candidates regressed and the unchanged parent was kept; fresh transfer NOT_RUN",
+      "verdict": "negative",
+      "numbers": "about 15,600 coefficients moved, parent kept"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/discrete-geometric-learning-2026-10-13/README.md",
+      "configuration": "Route read, integer writer, proposal-only learning, 11 CUDA construction controls at source a2a5b89c (after Claude FIT)",
+      "result": "All 11 controls pass, including the exact virtual improvement witness; apply never ran",
+      "verdict": "positive",
+      "numbers": "11/11 controls, witness 640 -> 544, applied updates 0 (construction only, not a learning result)"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/discrete-flock-writer-integration-2026-10-13/README.md",
+      "configuration": "Flock{kept} read and ternary Gate proposals added on the same codebook and writer, source 76198c3b5",
+      "result": "17 Route and Flock controls pass; gate witness [448,256,64] selects ordinal 2 without mutation",
+      "verdict": "positive",
+      "numbers": "17/17 controls, applied updates 0 (construction only)"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/discrete-driver-cost-2026-10-13/README.md",
+      "configuration": "Native Rust corpus driver at e7d926fbe: 25 CUDA controls and D2 cost at V4096/B4/context192/64 rows",
+      "result": "25 controls and D2 cost pass; serial per-candidate replay is the bottleneck",
+      "verdict": "positive",
+      "numbers": "25/25 controls; Route proposal 3.903 s, plain forward 37.8 ms; projected 17.8 h per 64-row sweep UNVERIFIED"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/a2-pilot-2026-10-14/README.md",
+      "configuration": "Rung-0 pilot, seed 1, K=8, 1,640 batches, VectorBlock 0..1639 only, objective A",
+      "result": "Rank counts rose while the loss numerator rose; the model stayed below the TRAIN-count reference",
+      "verdict": "inconclusive",
+      "numbers": "top-8 173 -> 1,169 of 14,287; top-1 17 -> 82; loss 13,816,032 -> 13,884,032; 236 accepted updates; count reference 1,226 top-1 / 4,060 top-8; distinct vectors 16 -> 155"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/a2-pilot-diagnosis-2026-10-14/README.md",
+      "configuration": "Metadata-only diagnosis of the pilot report",
+      "result": "Initializer gives exactly 16 distinct vectors (256 tokens each); the writer reached fewer target cells even as in-list ranks improved",
+      "verdict": "diagnostic-stop",
+      "numbers": "target-cell admission 5,680 -> 2,180; token rivals 29,254,096 -> 3,631,257; occupied cells 16 -> 124"
+    },
+    {
+      "date": "2026-10-15",
+      "record": "docs/labs/rung0-stage-a-sweep-2026-10-15/README.md",
+      "configuration": "K=8 seed-1 completion, 16,404 batches; eval-time widening K=8..16 on four preserved checkpoints, 36 zero-update evaluations",
+      "result": "Gate G-A FAIL (eval-time widening only); K=16 ceiling far below the 4,894 gate; earlier checkpoints reach higher ceilings than the final one",
+      "verdict": "negative",
+      "numbers": "target admitted at 16,404: K=8 1,920 ... K=16 2,400 vs gate 4,894; completion top-1 149, top-8 747"
+    },
+    {
+      "date": "2026-10-16",
+      "record": "docs/labs/counterfactual-controls-pass-2026-10-16/README.md",
+      "configuration": "Finite U/D counterfactual controls on repaired images, seed 1",
+      "result": "FINITE_CONTROL_PASS with typed refusals and unchanged state",
+      "verdict": "positive",
+      "numbers": "40 proposal attempts, 128 endpoint evaluations, 16 typed refusals, apply 0"
+    },
+    {
+      "date": "2026-10-16",
+      "record": "docs/labs/counterfactual-decomposition-run-2026-10-16/README.md",
+      "configuration": "32 matched proposals on the original K16 checkpoint, two policies by Route/VectorBlock",
+      "result": "Repeated baseline work is material and writer work dominates",
+      "verdict": "positive",
+      "numbers": "baseline share 46.92-47.22% of lane cycles; writer 99.979%"
+    },
+    {
+      "date": "2026-10-17",
+      "record": "docs/labs/counterfactual-baseline-reuse-finite-pass-2026-10-17/README.md",
+      "configuration": "Exact GPU baseline reuse (opt-in), finite invocation on RTX 5090",
+      "result": "Exact U/R pairs match, typed refusals hold; timing attempts later refused on driver/UUID checks before any instrument command",
+      "verdict": "positive",
+      "numbers": "32 exact U/R pairs, 16 refusals, 414 producer-row outcomes, apply 0; timing NOT_RUN (setup blocks, not mechanism negatives)"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/counterfactual-rows-parity-2026-10-18/README.md",
+      "configuration": "Row-parallel rows_v1 kernel vs ordinary kernel at V4096/B4/C192, K=8, 64 rows",
+      "result": "Identical losses, large speedup (Route and Relation Gate; parity coverage corrected after review)",
+      "verdict": "positive",
+      "numbers": "Route 3.843 s -> 0.0691 s (55.6x); Relation Gate 4.144 s -> 0.0728 s (56.9x)"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/attention-dose1-strategic-stop-2026-10-18/README.md",
+      "configuration": "Paired Relation LearnV1 / FrozenZero Dose 1 on the ordinary (slow) path, seed 1",
+      "result": "Owner stopped both arms before the Q1 checkpoint once the faster driver landed; not a failure and not a negative",
+      "verdict": "blocked",
+      "numbers": "Relation 904 and FrozenZero 1,065 complete batch receipts, exit 143; Q1 (4,096) not reached"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md",
+      "configuration": "Paired rows_v1 Relation LearnV1 vs FrozenZero, objective A, K=8, seed 1, stopped at Q1 (4,096 batches)",
+      "result": "Both arms lose target admission and fire the registered Q1 admission stop; Relation is only 20 rows higher, not a registered advantage",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ admission 2,034 -> 225 (Relation) vs 2,034 -> 205 (FrozenZero) of 3,847; full DEV 7,500 -> 829 vs 767; 631 vs 558 accepted proposals"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/bvgk-rowsk-scoring-2026-10-18/README.md",
+      "configuration": "BVG-K stage C1: score up to 64 coordinates per launch (source, then GPU qualifier)",
+      "result": "Source delivered; later qualifier reported a scoring-only curve of about 16x at K=16 (as quoted by the C2 record)",
+      "verdict": "positive",
+      "numbers": "K=16 about 130 ms single proposal baseline; C1 curve about 16x (quoted)"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/k16-outcome-call-2026-10-19/README.md",
+      "configuration": "K16-A and K16-R, two seeds each, 16,404 batches each, Route read, writer objectives only",
+      "result": "OCCUPANCY_COLLAPSE_TRIGGERED: R collapsed to about 20 cells, A lost admission; no KEEP",
+      "verdict": "negative",
+      "numbers": "A: top-1 65 / 463, admitted 2,237 / 3,167, cells 209 / 192; R: top-1 101 / 230, admitted 12,089 / 12,466, cells 20 / 19; gate Bar(i) top-1 1,941 missed by all"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/a8-dose-2026-10-19/README.md",
+      "configuration": "A8 address-cells dose, Relation LearnV1 vs FrozenZero, both arms at Q1 (4,096 batches), 2 x RTX 5090, about 62 min, about $1.9",
+      "result": "Relation fired the half-initial Q1 stop; both arms lost admission; FrozenZero completed 16,404 batches",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ 1,351 -> 551 (Relation) vs 857 (FrozenZero); FrozenZero 16,404 batches in 1,967 s (0.12 s/batch)"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+      "configuration": "Zero-update pre-flight of the injective PrimeZeta codebook at K=8, plus BVG-K C2 block-apply qualifier on fixtures",
+      "result": "C2 qualifier passes; injective start fixes aliasing but spreads tokens over 256 cells so B3_init fails and the run is not dispatched",
+      "verdict": "diagnostic-stop",
+      "numbers": "B3_init 127/3,847 vs bar 500; alias ceiling 14,287; C2 K=16 259 ms (about 8x) with joint verify, 3,419 fixture updates"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/admission-anchor-controller-2026-10-19/README.md",
+      "configuration": "Admission-preserving controller (whole-interval rejection, 3,847-row TRAIN anchor), source and host tests",
+      "result": "Source delivered; real CUDA qualification, timing and any learning result NOT_RUN",
+      "verdict": "inconclusive",
+      "numbers": "198 host tests pass; 258 audits per arm planned"
+    }
+  ],
+  "never_tested": [
+    "Route-frame and gate learning in the A2 pilot (only VectorBlock coordinates 0..1639 moved; Route sensitivity NOT_RUN)",
+    "Learning on a collision-free start together with a wide enough admission budget (injective table plus K at least about 34, or cells assigned by address structure)",
+    "An admission-preserving acceptance rule actually run on the GPU (controller delivered, qualification NOT_RUN)",
+    "Frequent-token revisit schedules and a full corpus epoch (a 16,404-coordinate pass consumes 1,049,856 of 2,425,925 TRAIN targets)",
+    "The BVG-K learning law (Stage T) and any batched-coordinate training run",
+    "Full 240-root E8 coverage, and the quaternion/icosian adapters and Z[phi] pairs",
+    "Any generation, reply grading, BPB or tokens/s from a trained discrete model",
+    "A D11 integer-table serving engine for the discrete snapshot",
+    "Fresh transfer for any run (fresh slice is sealed and unopened)",
+    "Trained-in Flock{kept} at dose: only construction controls and the Q1 stop exist",
+    "A float offline credit sheet built on the same geometry (D37 allows it, none is registered)"
+  ],
+  "failed_only_on_configuration": [
+    "Pilot loss rise: seeded initializer (xorshift low 4 bits) yields only 16 distinct vectors, so it is an initialization defect, not an E8 capacity result (docs/labs/a2-pilot-diagnosis-2026-10-14)",
+    "K=8 completion and Stage A widening failure: eval-time widening of a K=8-trained codebook; K>8-trained lineages were never tested (docs/labs/rung0-stage-a-sweep-2026-10-15)",
+    "K16-A and K16-R: both are Route writer-admission objectives with the seeded 16-vector start; an alias ceiling of 1,986 at checkpoint 0 binds, and the run says nothing about attention (docs/labs/k16-outcome-call-2026-10-19)",
+    "Rows Q1 and A8 Q1 stops: accepted moves eject admitted targets from their cells because acceptance looks only at the batch's own loss, a rule problem, with a diagnostic stop that closes no mechanism (D22)",
+    "Dose 1 ordinary path: an owner strategic stop (Relation 904, FrozenZero 1,065 batches), not a result",
+    "Baseline-reuse timing: refused on exact driver 595.71.05 and a different GPU UUID before any instrument command, so setup blocks",
+    "Pre-D32 Sept-Oct 2026 learning lines (tied sampler, native route fits): continuous or sampled learners on the older engine, preserved as separate evidence"
+  ],
+  "open_questions": [
+    "Which acceptance criterion keeps accepted moves from trading admission for within-list rank?",
+    "Can cell assignment by address structure (rather than 256 evenly spread cells) raise admission at K=8 without re-creating aliasing?",
+    "Does a speedup of about 56x (rows) and 8-16x (BVG-K) change what dose is affordable enough to settle the question?",
+    "Is a Route/Relation read with learned frames actually better than the frozen-zero control once admission is held fixed?",
+    "How large is the gap between the integer win and an offline float credit law on the same geometry (D37)?"
+  ],
+  "evidence": [
+    "docs/labs/discrete-geometric-learning-2026-10-13/README.md",
+    "docs/labs/discrete-flock-writer-integration-2026-10-13/README.md",
+    "docs/labs/discrete-driver-cost-2026-10-13/README.md",
+    "docs/labs/a2-pilot-2026-10-14/README.md",
+    "docs/labs/a2-pilot-diagnosis-2026-10-14/README.md",
+    "docs/labs/rung0-stage-a-sweep-2026-10-15/README.md",
+    "docs/labs/counterfactual-decomposition-run-2026-10-16/README.md",
+    "docs/labs/counterfactual-rows-parity-2026-10-18/README.md",
+    "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md",
+    "docs/labs/k16-outcome-call-2026-10-19/README.md",
+    "docs/labs/a8-dose-2026-10-19/README.md",
+    "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+    "docs/mechanisms/discrete-geometric-learning.md",
+    "docs/integration/DECISIONS.md (D22, D23, D32, D37, D39)"
+  ],
+  "related": [
+    "rank-margin: its objective (integer hinge) is what the counterfactual step minimizes",
+    "flock-read and route-read and relation-read: the reads whose frames and gates are the learnable coordinates",
+    "prime-zeta-codebook and address-cells: the codebook initializers that replace the 16-vector seeded start",
+    "admission: the shortlist machinery whose erosion drives most diagnostic stops",
+    "spiralcore-fbs: supplies the 64-element group and the FBS tree used for transport",
+    "legal-construction: the older float-then-round attempt at the same goal of never leaving the legal set; discrete moves are legal by construction",
+    "carrier-credit: its shared token vector table idea survives here as the single input/carry/output codebook"
+  ],
+  "figure_ideas": [
+    "A 4x4 grid of the 16 anchor-orbit roots for one block, with one token's vector as a highlighted cell; show the 15 possible rotations as arrows and the one chosen move lit up, with a bar chart of the 16 integer costs below it.",
+    "The 256 product cells as a 16x16 heat map colored by token count, drawn at checkpoint 0 (16 hot cells), pilot end (124 cells), K16-A (about 200 cells) and K16-R (about 20 cells), with the target cell and the K kept cells for one row outlined, so admission loss is visible.",
+    "Timeline of one training batch: baseline pass, 16 virtual-move lanes, choose, apply or refuse, validate, annotated with the serial 3.84 s versus row-parallel 0.069 s bars."
+  ]
+}

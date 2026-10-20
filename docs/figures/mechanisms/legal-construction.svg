@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 556" width="960" height="556" role="img">
+<title>Why rounding breaks protection</title>
+<desc>Left: a number line for one coefficient with 15 legal quarter-step values from minus 7 over 4 to plus 7 over 4. A smooth step moves the unrounded master value to a new place that is still before a protected answer's guard, and rounding then snaps it to the nearest legal tick, which is past the guard, so one of three protected answers is broken. Right: a grid of 380 protected winners against four step sizes (1, 2, 4, 7). After rounding, 104, 170, 98 and 93 of the 380 guards are violated; the smooth direction violates none. The red pattern inside each column is illustrative; the counts are data.</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1f2328;--body:#2b3138;--muted:#57606a;--rule:#d0d7de;--panel:#f6f8fa;--blue:#0072b2;--sky:#56b4e9;--green:#007a5e;--orange:#e69f00;--verm:#d55e00;--purple:#7a4fa3;--pink:#cc79a7;--active:#007a5e;--ready:#b06d00;--parked:#7a4fa3}
+@media (prefers-color-scheme: dark){svg{--bg:#0d1117;--ink:#e6edf3;--body:#c9d1d9;--muted:#8b949e;--rule:#30363d;--panel:#161b22;--blue:#58a6ff;--sky:#79c0ff;--green:#3fb950;--orange:#f0b72f;--verm:#ff7b72;--purple:#bc8cff;--pink:#f778ba;--active:#3fb950;--ready:#f0b72f;--parked:#bc8cff}}
+.bg{fill:var(--bg)}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+.title{font-size:19px;font-weight:600}
+.h{font-size:14px;font-weight:600}
+.b{font-weight:600}
+.n{font-size:11.5px;fill:var(--muted)}
+.body{fill:var(--body)}
+.mut{fill:var(--muted)}
+.c{text-anchor:middle}
+.e{text-anchor:end}
+.panel{fill:var(--panel);stroke:var(--rule);stroke-width:1}
+.rule{fill:none;stroke:var(--rule);stroke-width:1}
+.dot{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.arrow{fill:none;stroke:var(--ink);stroke-width:1.5}
+.fi{fill:var(--ink)}
+.fm{fill:var(--muted)}
+.fb{fill:var(--blue)}
+.fv{fill:var(--verm)}
+.axis{fill:none;stroke:var(--ink);stroke-width:1.5}
+.mdot{fill:var(--blue);stroke:var(--bg);stroke-width:1.5}
+.sdot{fill:var(--sky);stroke:var(--blue);stroke-width:1.5}
+.step{fill:none;stroke:var(--blue);stroke-width:2}
+.snap{fill:none;stroke:var(--verm);stroke-width:2.5}
+.guard{fill:none;stroke:var(--verm);stroke-width:2;stroke-dasharray:5 3}
+.bad{fill:var(--verm);fill-opacity:.12}
+.card{fill:var(--bg);stroke:var(--rule);stroke-width:1}
+.icon{fill:var(--bg);stroke:var(--ink);stroke-width:1.5}
+.iconbad{fill:var(--verm);fill-opacity:.18;stroke:var(--verm);stroke-width:2.5}
+.ok{fill:none;stroke:var(--blue);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.no{fill:none;stroke:var(--verm);stroke-width:2.5;stroke-linecap:round}
+.col{fill:var(--rule);fill-opacity:.55;stroke:var(--rule);stroke-width:1}
+.red{fill:var(--verm)}
+</style>
+<defs>
+<marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="ahv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="556"/>
+<text class="title" x="24" y="32">Why rounding breaks protected answers</text>
+
+<rect class="panel" x="24" y="52" width="576" height="468" rx="8"/>
+<rect class="panel" x="620" y="52" width="316" height="468" rx="8"/>
+
+<text class="h" x="40" y="76">One coefficient on the legal grid</text>
+<rect class="bad" x="443.4" y="172" width="125" height="90"/>
+<path class="guard" d="M443.4 168V264"/>
+<text class="b c" x="443" y="162">guard of answer 3</text>
+<path class="axis" d="M48 250H568"/>
+<path class="axis" d="M56 243v14M92 243v14M128 243v14M164 243v14M200 243v14M236 243v14M272 243v14M308 243v14M344 243v14M380 243v14M416 243v14M452 243v14M488 243v14M524 243v14M560 243v14"/>
+<text class="n c" x="56" y="277">−7/4</text>
+<text class="n c" x="92" y="277">−6/4</text>
+<text class="n c" x="128" y="277">−5/4</text>
+<text class="n c" x="164" y="277">−4/4</text>
+<text class="n c" x="200" y="277">−3/4</text>
+<text class="n c" x="236" y="277">−2/4</text>
+<text class="n c" x="272" y="277">−1/4</text>
+<text class="n c" x="308" y="277">0</text>
+<text class="n c" x="344" y="277">1/4</text>
+<text class="n c" x="380" y="277">2/4</text>
+<text class="n c" x="416" y="277">3/4</text>
+<text class="n c" x="452" y="277">4/4</text>
+<text class="n c" x="488" y="277">5/4</text>
+<text class="n c" x="524" y="277">6/4</text>
+<text class="n c" x="560" y="277">7/4</text>
+<text class="n c" x="308" y="299">15 legal quarter-step values: q/4 with q from −7 to +7</text>
+<circle class="mdot" cx="351.2" cy="250" r="5.5"/>
+<text class="body e" x="338" y="222">master value</text>
+<text class="n e" x="338" y="236">(unrounded)</text>
+<path class="step" d="M355 243Q393 196 430 243" marker-end="url(#ahb)"/>
+<text class="body c" x="393" y="207">smooth step</text>
+<circle class="sdot" cx="434.7" cy="250" r="5"/>
+<path class="snap" d="M437 243Q444 222 450 243" marker-end="url(#ahv)"/>
+<text class="n" x="462" y="216">snaps to the</text>
+<text class="n" x="462" y="230">nearest tick</text>
+
+<text class="h" x="40" y="326">Protected answers (380 original winners in the run)</text>
+<rect class="card" x="40" y="338" width="262" height="112" rx="6"/>
+<rect class="card" x="322" y="338" width="262" height="112" rx="6"/>
+<text class="b" x="52" y="360">smooth value: all guards hold</text>
+<text class="b" x="334" y="360">rounded value: guard 3 broken</text>
+<rect class="icon" x="56" y="372" width="38" height="38" rx="6"/>
+<path class="ok" d="M65 391l7 8l14-17"/>
+<rect class="icon" x="120" y="372" width="38" height="38" rx="6"/>
+<path class="ok" d="M129 391l7 8l14-17"/>
+<rect class="icon" x="184" y="372" width="38" height="38" rx="6"/>
+<path class="ok" d="M193 391l7 8l14-17"/>
+<text class="n c" x="75" y="428">answer 1</text>
+<text class="n c" x="139" y="428">answer 2</text>
+<text class="n c" x="203" y="428">answer 3</text>
+<rect class="icon" x="338" y="372" width="38" height="38" rx="6"/>
+<path class="ok" d="M347 391l7 8l14-17"/>
+<rect class="icon" x="402" y="372" width="38" height="38" rx="6"/>
+<path class="ok" d="M411 391l7 8l14-17"/>
+<rect class="iconbad" x="466" y="372" width="38" height="38" rx="6"/>
+<path class="no" d="M476 382l18 18m0-18l-18 18"/>
+<text class="n c" x="357" y="428">answer 1</text>
+<text class="n c" x="421" y="428">answer 2</text>
+<text class="n c" x="485" y="428">answer 3</text>
+
+<text class="body" x="40" y="474">A step that is safe in smooth form can break protected answers</text>
+<text class="body" x="40" y="491">once it lands on the coarse legal grid. Rounding accounts for</text>
+<text class="body" x="40" y="508">roughly 90 to 96% of the adverse pressure (saved arithmetic).</text>
+
+<text class="h" x="636" y="76">380 protected winners × 4 step sizes</text>
+<text class="n c" x="746" y="100">step size (radius)</text>
+<text class="b c" x="662" y="117">1</text>
+<text class="b c" x="718" y="117">2</text>
+<text class="b c" x="774" y="117">4</text>
+<text class="b c" x="830" y="117">7</text>
+<text class="body c" x="886" y="100">smooth</text>
+<text class="body c" x="886" y="117">direction</text>
+<rect class="col" x="640" y="124" width="44" height="280"/>
+<rect class="col" x="696" y="124" width="44" height="280"/>
+<rect class="col" x="752" y="124" width="44" height="280"/>
+<rect class="col" x="808" y="124" width="44" height="280"/>
+<rect class="col" x="864" y="124" width="44" height="280"/>
+<path class="red" d="M640 124.00h44v0.75h-44zM640 124.74h44v0.75h-44zM640 125.47h44v0.75h-44zM640 129.89h44v0.75h-44zM640 130.63h44v0.75h-44zM640 134.32h44v0.75h-44zM640 135.05h44v0.75h-44zM640 138.00h44v0.75h-44zM640 138.74h44v0.75h-44zM640 140.21h44v0.75h-44zM640 140.95h44v0.75h-44zM640 146.11h44v0.75h-44zM640 147.58h44v0.75h-44zM640 149.05h44v0.75h-44zM640 149.79h44v0.75h-44zM640 156.42h44v0.75h-44zM640 157.89h44v0.75h-44zM640 174.11h44v0.75h-44zM640 175.58h44v0.75h-44zM640 177.05h44v0.75h-44zM640 177.79h44v0.75h-44zM640 180.00h44v0.75h-44zM640 180.74h44v0.75h-44zM640 182.21h44v0.75h-44zM640 182.95h44v0.75h-44zM640 185.16h44v0.75h-44zM640 188.84h44v0.75h-44zM640 189.58h44v0.75h-44zM640 192.53h44v0.75h-44zM640 196.21h44v0.75h-44zM640 199.89h44v0.75h-44zM640 200.63h44v0.75h-44zM640 205.05h44v0.75h-44zM640 208.74h44v0.75h-44zM640 211.68h44v0.75h-44zM640 212.42h44v0.75h-44zM640 215.37h44v0.75h-44zM640 217.58h44v0.75h-44zM640 218.32h44v0.75h-44zM640 220.53h44v0.75h-44zM640 223.47h44v0.75h-44zM640 226.42h44v0.75h-44zM640 227.89h44v0.75h-44zM640 230.84h44v0.75h-44zM640 237.47h44v0.75h-44zM640 243.37h44v0.75h-44zM640 245.58h44v0.75h-44zM640 252.95h44v0.75h-44zM640 255.89h44v0.75h-44zM640 258.84h44v0.75h-44zM640 260.32h44v0.75h-44zM640 261.79h44v0.75h-44zM640 266.95h44v0.75h-44zM640 269.89h44v0.75h-44zM640 272.11h44v0.75h-44zM640 272.84h44v0.75h-44zM640 275.05h44v0.75h-44zM640 276.53h44v0.75h-44zM640 277.26h44v0.75h-44zM640 282.42h44v0.75h-44zM640 289.79h44v0.75h-44zM640 299.37h44v0.75h-44zM640 300.84h44v0.75h-44zM640 301.58h44v0.75h-44zM640 305.26h44v0.75h-44zM640 306.00h44v0.75h-44zM640 310.42h44v0.75h-44zM640 319.26h44v0.75h-44zM640 320.00h44v0.75h-44zM640 322.95h44v0.75h-44zM640 330.32h44v0.75h-44zM640 337.68h44v0.75h-44zM640 339.89h44v0.75h-44zM640 341.37h44v0.75h-44zM640 347.26h44v0.75h-44zM640 348.00h44v0.75h-44zM640 348.74h44v0.75h-44zM640 349.47h44v0.75h-44zM640 350.21h44v0.75h-44zM640 356.11h44v0.75h-44zM640 356.84h44v0.75h-44zM640 359.05h44v0.75h-44zM640 359.79h44v0.75h-44zM640 362.74h44v0.75h-44zM640 364.95h44v0.75h-44zM640 365.68h44v0.75h-44zM640 367.89h44v0.75h-44zM640 368.63h44v0.75h-44zM640 370.84h44v0.75h-44zM640 371.58h44v0.75h-44zM640 373.05h44v0.75h-44zM640 376.74h44v0.75h-44zM640 378.95h44v0.75h-44zM640 381.16h44v0.75h-44zM640 381.89h44v0.75h-44zM640 385.58h44v0.75h-44zM640 387.05h44v0.75h-44zM640 389.26h44v0.75h-44zM640 390.74h44v0.75h-44zM640 391.47h44v0.75h-44zM640 395.16h44v0.75h-44zM640 397.37h44v0.75h-44zM640 398.11h44v0.75h-44zM640 398.84h44v0.75h-44z"/>
+<path class="red" d="M696 124.00h44v0.75h-44zM696 129.16h44v0.75h-44zM696 129.89h44v0.75h-44zM696 131.37h44v0.75h-44zM696 133.58h44v0.75h-44zM696 134.32h44v0.75h-44zM696 135.79h44v0.75h-44zM696 139.47h44v0.75h-44zM696 140.21h44v0.75h-44zM696 140.95h44v0.75h-44zM696 143.16h44v0.75h-44zM696 143.89h44v0.75h-44zM696 148.32h44v0.75h-44zM696 151.26h44v0.75h-44zM696 159.37h44v0.75h-44zM696 161.58h44v0.75h-44zM696 162.32h44v0.75h-44zM696 163.79h44v0.75h-44zM696 166.74h44v0.75h-44zM696 167.47h44v0.75h-44zM696 168.21h44v0.75h-44zM696 168.95h44v0.75h-44zM696 169.68h44v0.75h-44zM696 171.16h44v0.75h-44zM696 172.63h44v0.75h-44zM696 174.11h44v0.75h-44zM696 174.84h44v0.75h-44zM696 175.58h44v0.75h-44zM696 177.79h44v0.75h-44zM696 178.53h44v0.75h-44zM696 179.26h44v0.75h-44zM696 180.00h44v0.75h-44zM696 182.21h44v0.75h-44zM696 182.95h44v0.75h-44zM696 184.42h44v0.75h-44zM696 185.16h44v0.75h-44zM696 185.89h44v0.75h-44zM696 191.79h44v0.75h-44zM696 192.53h44v0.75h-44zM696 193.26h44v0.75h-44zM696 194.00h44v0.75h-44zM696 199.16h44v0.75h-44zM696 199.89h44v0.75h-44zM696 202.11h44v0.75h-44zM696 202.84h44v0.75h-44zM696 203.58h44v0.75h-44zM696 206.53h44v0.75h-44zM696 207.26h44v0.75h-44zM696 208.74h44v0.75h-44zM696 209.47h44v0.75h-44zM696 210.21h44v0.75h-44zM696 211.68h44v0.75h-44zM696 212.42h44v0.75h-44zM696 213.89h44v0.75h-44zM696 216.11h44v0.75h-44zM696 216.84h44v0.75h-44zM696 217.58h44v0.75h-44zM696 218.32h44v0.75h-44zM696 219.79h44v0.75h-44zM696 221.26h44v0.75h-44zM696 222.74h44v0.75h-44zM696 224.95h44v0.75h-44zM696 225.68h44v0.75h-44zM696 227.89h44v0.75h-44zM696 229.37h44v0.75h-44zM696 230.11h44v0.75h-44zM696 231.58h44v0.75h-44zM696 232.32h44v0.75h-44zM696 233.05h44v0.75h-44zM696 233.79h44v0.75h-44zM696 235.26h44v0.75h-44zM696 237.47h44v0.75h-44zM696 238.95h44v0.75h-44zM696 239.68h44v0.75h-44zM696 241.89h44v0.75h-44zM696 243.37h44v0.75h-44zM696 244.84h44v0.75h-44zM696 246.32h44v0.75h-44zM696 247.79h44v0.75h-44zM696 248.53h44v0.75h-44zM696 250.74h44v0.75h-44zM696 253.68h44v0.75h-44zM696 254.42h44v0.75h-44zM696 255.16h44v0.75h-44zM696 260.32h44v0.75h-44zM696 263.26h44v0.75h-44zM696 264.00h44v0.75h-44zM696 266.21h44v0.75h-44zM696 268.42h44v0.75h-44zM696 269.16h44v0.75h-44zM696 272.84h44v0.75h-44zM696 275.79h44v0.75h-44zM696 276.53h44v0.75h-44zM696 277.26h44v0.75h-44zM696 279.47h44v0.75h-44zM696 283.16h44v0.75h-44zM696 285.37h44v0.75h-44zM696 288.32h44v0.75h-44zM696 289.79h44v0.75h-44zM696 292.00h44v0.75h-44zM696 294.95h44v0.75h-44zM696 295.68h44v0.75h-44zM696 297.89h44v0.75h-44zM696 298.63h44v0.75h-44zM696 299.37h44v0.75h-44zM696 300.84h44v0.75h-44zM696 303.05h44v0.75h-44zM696 304.53h44v0.75h-44zM696 307.47h44v0.75h-44zM696 308.95h44v0.75h-44zM696 315.58h44v0.75h-44zM696 316.32h44v0.75h-44zM696 319.26h44v0.75h-44zM696 320.74h44v0.75h-44zM696 322.95h44v0.75h-44zM696 325.16h44v0.75h-44zM696 325.89h44v0.75h-44zM696 329.58h44v0.75h-44zM696 330.32h44v0.75h-44zM696 333.26h44v0.75h-44zM696 334.00h44v0.75h-44zM696 334.74h44v0.75h-44zM696 338.42h44v0.75h-44zM696 339.16h44v0.75h-44zM696 340.63h44v0.75h-44zM696 341.37h44v0.75h-44zM696 342.11h44v0.75h-44zM696 344.32h44v0.75h-44zM696 347.26h44v0.75h-44zM696 348.00h44v0.75h-44zM696 349.47h44v0.75h-44zM696 350.21h44v0.75h-44zM696 350.95h44v0.75h-44zM696 352.42h44v0.75h-44zM696 353.16h44v0.75h-44zM696 354.63h44v0.75h-44zM696 355.37h44v0.75h-44zM696 356.11h44v0.75h-44zM696 357.58h44v0.75h-44zM696 359.05h44v0.75h-44zM696 359.79h44v0.75h-44zM696 360.53h44v0.75h-44zM696 361.26h44v0.75h-44zM696 362.00h44v0.75h-44zM696 363.47h44v0.75h-44zM696 365.68h44v0.75h-44zM696 366.42h44v0.75h-44zM696 367.16h44v0.75h-44zM696 367.89h44v0.75h-44zM696 368.63h44v0.75h-44zM696 370.11h44v0.75h-44zM696 370.84h44v0.75h-44zM696 372.32h44v0.75h-44zM696 373.79h44v0.75h-44zM696 376.00h44v0.75h-44zM696 376.74h44v0.75h-44zM696 378.95h44v0.75h-44zM696 381.89h44v0.75h-44zM696 382.63h44v0.75h-44zM696 383.37h44v0.75h-44zM696 384.11h44v0.75h-44zM696 385.58h44v0.75h-44zM696 391.47h44v0.75h-44zM696 392.21h44v0.75h-44zM696 392.95h44v0.75h-44zM696 395.16h44v0.75h-44zM696 397.37h44v0.75h-44zM696 401.05h44v0.75h-44zM696 402.53h44v0.75h-44zM696 403.26h44v0.75h-44z"/>
+<path class="red" d="M752 126.21h44v0.75h-44zM752 130.63h44v0.75h-44zM752 133.58h44v0.75h-44zM752 134.32h44v0.75h-44zM752 135.79h44v0.75h-44zM752 137.26h44v0.75h-44zM752 140.95h44v0.75h-44zM752 143.16h44v0.75h-44zM752 149.79h44v0.75h-44zM752 150.53h44v0.75h-44zM752 151.26h44v0.75h-44zM752 152.74h44v0.75h-44zM752 154.95h44v0.75h-44zM752 157.16h44v0.75h-44zM752 161.58h44v0.75h-44zM752 164.53h44v0.75h-44zM752 166.00h44v0.75h-44zM752 172.63h44v0.75h-44zM752 173.37h44v0.75h-44zM752 176.32h44v0.75h-44zM752 177.05h44v0.75h-44zM752 177.79h44v0.75h-44zM752 178.53h44v0.75h-44zM752 179.26h44v0.75h-44zM752 181.47h44v0.75h-44zM752 182.21h44v0.75h-44zM752 183.68h44v0.75h-44zM752 185.16h44v0.75h-44zM752 187.37h44v0.75h-44zM752 191.79h44v0.75h-44zM752 194.74h44v0.75h-44zM752 196.95h44v0.75h-44zM752 198.42h44v0.75h-44zM752 199.89h44v0.75h-44zM752 201.37h44v0.75h-44zM752 203.58h44v0.75h-44zM752 204.32h44v0.75h-44zM752 210.95h44v0.75h-44zM752 215.37h44v0.75h-44zM752 216.11h44v0.75h-44zM752 216.84h44v0.75h-44zM752 224.21h44v0.75h-44zM752 226.42h44v0.75h-44zM752 227.89h44v0.75h-44zM752 228.63h44v0.75h-44zM752 230.11h44v0.75h-44zM752 231.58h44v0.75h-44zM752 234.53h44v0.75h-44zM752 236.00h44v0.75h-44zM752 239.68h44v0.75h-44zM752 240.42h44v0.75h-44zM752 247.05h44v0.75h-44zM752 247.79h44v0.75h-44zM752 250.74h44v0.75h-44zM752 252.21h44v0.75h-44zM752 252.95h44v0.75h-44zM752 256.63h44v0.75h-44zM752 257.37h44v0.75h-44zM752 258.11h44v0.75h-44zM752 259.58h44v0.75h-44zM752 261.05h44v0.75h-44zM752 262.53h44v0.75h-44zM752 265.47h44v0.75h-44zM752 266.95h44v0.75h-44zM752 269.89h44v0.75h-44zM752 271.37h44v0.75h-44zM752 272.11h44v0.75h-44zM752 273.58h44v0.75h-44zM752 278.74h44v0.75h-44zM752 287.58h44v0.75h-44zM752 288.32h44v0.75h-44zM752 297.89h44v0.75h-44zM752 299.37h44v0.75h-44zM752 309.68h44v0.75h-44zM752 311.89h44v0.75h-44zM752 315.58h44v0.75h-44zM752 323.68h44v0.75h-44zM752 337.68h44v0.75h-44zM752 339.89h44v0.75h-44zM752 352.42h44v0.75h-44zM752 356.84h44v0.75h-44zM752 360.53h44v0.75h-44zM752 362.00h44v0.75h-44zM752 364.95h44v0.75h-44zM752 365.68h44v0.75h-44zM752 370.84h44v0.75h-44zM752 371.58h44v0.75h-44zM752 373.05h44v0.75h-44zM752 375.26h44v0.75h-44zM752 377.47h44v0.75h-44zM752 381.89h44v0.75h-44zM752 383.37h44v0.75h-44zM752 390.00h44v0.75h-44zM752 390.74h44v0.75h-44zM752 392.95h44v0.75h-44zM752 395.16h44v0.75h-44zM752 398.11h44v0.75h-44zM752 399.58h44v0.75h-44z"/>
+<path class="red" d="M808 124.74h44v0.75h-44zM808 125.47h44v0.75h-44zM808 126.95h44v0.75h-44zM808 129.89h44v0.75h-44zM808 137.26h44v0.75h-44zM808 138.00h44v0.75h-44zM808 144.63h44v0.75h-44zM808 145.37h44v0.75h-44zM808 153.47h44v0.75h-44zM808 155.68h44v0.75h-44zM808 158.63h44v0.75h-44zM808 159.37h44v0.75h-44zM808 161.58h44v0.75h-44zM808 166.00h44v0.75h-44zM808 166.74h44v0.75h-44zM808 171.89h44v0.75h-44zM808 177.05h44v0.75h-44zM808 178.53h44v0.75h-44zM808 179.26h44v0.75h-44zM808 182.21h44v0.75h-44zM808 185.89h44v0.75h-44zM808 186.63h44v0.75h-44zM808 188.84h44v0.75h-44zM808 191.05h44v0.75h-44zM808 191.79h44v0.75h-44zM808 194.00h44v0.75h-44zM808 195.47h44v0.75h-44zM808 198.42h44v0.75h-44zM808 203.58h44v0.75h-44zM808 206.53h44v0.75h-44zM808 208.00h44v0.75h-44zM808 210.21h44v0.75h-44zM808 214.63h44v0.75h-44zM808 216.11h44v0.75h-44zM808 217.58h44v0.75h-44zM808 220.53h44v0.75h-44zM808 222.74h44v0.75h-44zM808 224.21h44v0.75h-44zM808 226.42h44v0.75h-44zM808 227.89h44v0.75h-44zM808 230.11h44v0.75h-44zM808 233.79h44v0.75h-44zM808 235.26h44v0.75h-44zM808 236.74h44v0.75h-44zM808 239.68h44v0.75h-44zM808 241.89h44v0.75h-44zM808 247.05h44v0.75h-44zM808 250.74h44v0.75h-44zM808 255.89h44v0.75h-44zM808 257.37h44v0.75h-44zM808 258.11h44v0.75h-44zM808 263.26h44v0.75h-44zM808 264.74h44v0.75h-44zM808 269.89h44v0.75h-44zM808 270.63h44v0.75h-44zM808 271.37h44v0.75h-44zM808 275.79h44v0.75h-44zM808 277.26h44v0.75h-44zM808 280.95h44v0.75h-44zM808 283.16h44v0.75h-44zM808 289.05h44v0.75h-44zM808 290.53h44v0.75h-44zM808 292.74h44v0.75h-44zM808 294.95h44v0.75h-44zM808 297.89h44v0.75h-44zM808 299.37h44v0.75h-44zM808 300.84h44v0.75h-44zM808 303.05h44v0.75h-44zM808 303.79h44v0.75h-44zM808 311.16h44v0.75h-44zM808 311.89h44v0.75h-44zM808 317.79h44v0.75h-44zM808 320.74h44v0.75h-44zM808 324.42h44v0.75h-44zM808 325.89h44v0.75h-44zM808 336.21h44v0.75h-44zM808 339.16h44v0.75h-44zM808 342.11h44v0.75h-44zM808 347.26h44v0.75h-44zM808 348.00h44v0.75h-44zM808 348.74h44v0.75h-44zM808 349.47h44v0.75h-44zM808 355.37h44v0.75h-44zM808 358.32h44v0.75h-44zM808 360.53h44v0.75h-44zM808 369.37h44v0.75h-44zM808 372.32h44v0.75h-44zM808 378.21h44v0.75h-44zM808 378.95h44v0.75h-44zM808 381.89h44v0.75h-44zM808 386.32h44v0.75h-44zM808 394.42h44v0.75h-44zM808 403.26h44v0.75h-44z"/>
+<text class="b c" x="662" y="425">104</text>
+<text class="b c" x="718" y="425">170</text>
+<text class="b c" x="774" y="425">98</text>
+<text class="b c" x="830" y="425">93</text>
+<text class="b c" x="886" y="425">none</text>
+<text class="n c" x="662" y="441">violated</text>
+<text class="n c" x="718" y="441">violated</text>
+<text class="n c" x="774" y="441">violated</text>
+<text class="n c" x="830" y="441">violated</text>
+<text class="n c" x="886" y="441">violated</text>
+<rect class="red" x="640" y="462" width="14" height="10"/>
+<text class="body" x="662" y="471">guard violated by the rounded move</text>
+<rect class="col" x="640" y="484" width="14" height="10"/>
+<text class="body" x="662" y="493">guard holds</text>
+<text class="n" x="24" y="544">Which rows are red inside each column is illustrative; the counts (104, 170, 98, 93 of 380) are measured.</text>
+</svg>

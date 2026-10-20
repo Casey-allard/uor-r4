@@ -1,0 +1,296 @@
+{
+  "id": "hopf-observation",
+  "canonical_name": "Hopf observation with a kept fibre (and the Lorentz read)",
+  "aliases": [
+    "Hopf map S3 -> S2",
+    "retained fibre / holonomy tracking",
+    "UnitS3Q30::hopf, hopf_fiber_project",
+    "Fubini-Study metric trajectory",
+    "Hopf sector routing (512 sectors)",
+    "Lorentz / hyperbolic read score, LorentzAffine",
+    "HELM-D R4 Lorentz attention",
+    "S7 quaternionic Hopf relation state (conditional, never implemented)"
+  ],
+  "plain_what": "A way of looking at a rotation state, a point on a four-dimensional sphere, through a three-dimensional shadow that forgets one angle, while separately keeping that forgotten angle so nothing is lost. It was used to track drifting phase and to bin states into routing sectors. A related curved-space distance, the Lorentz read, was also tried for scoring.",
+  "replaces": "attention-scoring",
+  "how_it_works": "A unit quaternion q = (a, b, c, d) lies on the 3-sphere S3. The Hopf map sends it to the 2-sphere S2 by h(q) = (2(ac + bd), 2(bc - ad), a^2 + b^2 - c^2 - d^2). Multiplying q by a common complex phase e^(i*phi) moves it along a circle (the fibre) but leaves h(q) unchanged, so the S2 image alone cannot be inverted. Reconstruction needs the S2 base, the S1 fibre phase and a chart convention (poles are special); there is no global identification S3 = S2 x S1. Holonomy tracking accumulates the wrapped fibre-phase change and the Fubini-Study geodesic distance along a state trajectory. Sector routing bins three Hopf coordinates (chi, delta, alpha) into 8 x 8 x 8 = 512 sectors, of which at most 64 are reachable when the inputs are non-negative. The Lorentz read lifts query q and key k to the hyperboloid, q0 = sqrt(1 + |q|^2), k0 likewise, z = q0*k0 - q.k, and scores beta * (delta - arccosh z), with a learned radius delta and a scale beta, as an alternative to a dot product. In the integer runtime the Hopf fibre and zeta state are tracked as telemetry only and do not affect outputs.",
+  "geometry": "Unit quaternions on S3 (Q30 fixed point), the Hopf fibration S1 -> S3 -> S2, the 120 icosians' Hopf image (30 points, fibres of size 4), Fubini-Study distance on the Bloch sphere, hyperbolic space as the Lorentz hyperboloid, and a conditional S7 -> S4 extension.",
+  "code": [
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/hopf_metric.rs",
+      "role": "UnitS3, hopf_map, hopf_fiber_point, from_hopf_fiber, Q30 versions, holonomy-tracking trajectory"
+    },
+    {
+      "path": "crates/uor-r4-core/src/prime_route_attention.rs",
+      "role": "UnitS3Q30::hopf, rotate_common_fiber, SpinTorsionState (float-backed offline helpers with Q30 storage)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/lib.rs",
+      "role": "hopf_coordinate_components_scalar, hopf_phase_transport_components_scalar, assign_sector_hopf_transport_scalar (sector binning)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/binary_model.rs",
+      "role": "context_hopf_fiber_q30 and the per-token discrete_s2_readout in the older JEPA prose model"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs",
+      "role": "context_hopf_s2 / context_hopf_fiber_q30 used to fold context into a root and predict base and fibre"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/embedding.rs",
+      "role": "forward_hopf / backward_hopf for the continuous embedding"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/math.rs",
+      "role": "Integer UnitS3Q30, hopf_project, hopf_fiber_project"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/model.rs",
+      "role": "Per-session hopf_state and cumulative_holonomy_q30, marked TELEMETRY-ONLY (does not affect logits)"
+    },
+    {
+      "path": "crates/uor-r4-router/tests/hopf_sector_occupancy.rs",
+      "role": "Sector occupancy measurement (#303, #306); sibling hopf_retrieval_quality.rs for #430"
+    },
+    {
+      "path": "crates/uor-r4-training/src/joint_model.rs",
+      "role": "ReadScore::Lorentz and LorentzAffine read, score = exp(log_beta) * (offset - arccosh z)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/geometric_stack.rs",
+      "role": "ReadScore::Lorentz in the pre-D32 float geometric stack"
+    },
+    {
+      "path": "crates/uor-r4-core/src/helm_d_r4_attention.rs",
+      "role": "HELM-D R4 Lorentz attention constructions (softmax, now D23-excluded)"
+    },
+    {
+      "path": "docs/figures/geometry/hopf-fibration.svg",
+      "role": "Existing static illustration of the S3 -> S2 observation and the lost fibre"
+    }
+  ],
+  "status": "PARKED",
+  "status_reason": "The map and kept fibre are built and unit-tested but run only as integer-runtime telemetry; the retained-fibre comparison was never run for language (docs/labs/course-correction-2026-10-18/audits/mechanism-census.md). Tested prediction forms failed or used banned parts: sector routing filled 7 of 512 sectors, softmax Lorentz attention, and a Lorentz read neutral or slightly ahead of dot product.",
+  "reopen_conditions": [
+    "Retained-fibre test: base-only vs base plus fibre vs explicit bank tags at equal retained bytes, with fibre removal or permutation, a common action, one endpoint changed vs both, and exact occurrence identity kept outside the lossy summary.",
+    "An integer, multiplier-free Hopf map (the current Q30 helpers use integer multiply and divide, or decode to f64 and call sin/cos) wired into a consumer on the discrete path.",
+    "A Lorentz or hyperbolic read re-registered as an offline D37 float sheet with a fresh FIT, a read that avoids softmax and dense matmul, a third paired seed, and a D11 export gap (an integer arccosh table does not exist yet).",
+    "The reduced finite S7 construction (relative lookup on finite 2I as baseline) only after a witnessed information or cost need.",
+    "Hierarchy-heavy tasks where hyperbolic keys already showed a large gap (77.5% vs 0.4% for dot product on code scopes) put on an equal-capacity, softmax-free harness."
+  ],
+  "rule_compat": {
+    "D11": "Not yet. The integer crate's Hopf helpers are Q30 integer arithmetic but include multiplication and division, and the core helpers decode to f64. The Lorentz read needs arccosh, and the integer runtime refuses Lorentz models until an integer arccosh table exists (cycle 2, section 6). Hopf in the integer runtime is telemetry, not served output.",
+    "D23": "The Hopf map has no softmax. Every Lorentz read and the HELM-D attention that were actually run normalised scores with softmax (read mass, a NoRead logit), which D23 excludes as executed forms.",
+    "D30": "The map itself is a few bilinear products, not a matrix multiplication. The float Lorentz stacks use dense learned query and key projections and inner products q.k, which D25/D30 bar.",
+    "D32_D37": "Float Hopf helpers (sin, cos, sqrt) lie outside the D32 zeta-zero exception. D37 allows offline float training, so a float Hopf or Lorentz read could be re-registered with a fresh FIT, but the discrete Route, Flock and Relation reads currently use no Hopf quantity (docs/geometry.md section 5)."
+  },
+  "experiments": [
+    {
+      "date": "2026-07-28",
+      "record": "docs/prime_router_geometric_context_evidence.md",
+      "configuration": "Ancestor prime-router evidence: R4 angular state with Hopf-style phase coordinates as a context carrier",
+      "result": "Reported angular routing and linear decodability, not token generation; not reproduced under this repository's gates",
+      "verdict": "inconclusive",
+      "numbers": "mod-12 decodability 1.0 on router-lineage trajectories only"
+    },
+    {
+      "date": "2026-07-31",
+      "record": "docs/hopf_sector_occupancy_d3.md",
+      "configuration": "Held-out D3 routing, 1,500 decisions, Hopf input from magnitude-only block norms, 512 sectors (#303)",
+      "result": "Routing concentrated in a tiny corner; non-negative inputs make 7/8 of sectors unreachable by construction",
+      "verdict": "negative",
+      "numbers": "7 of 512 sectors occupied (1.4%); static reachable bound 64 of 512 (12.5%)"
+    },
+    {
+      "date": "2026-07-31",
+      "record": "docs/hopf_projection_remediation_306.md",
+      "configuration": "Same protocol with a fixed signed Blake3-derived block projection (#306)",
+      "result": "Occupancy rose; retrieval quality and collisions left unmeasured",
+      "verdict": "inconclusive",
+      "numbers": "43 of 512 sectors (8.4%), 6.1x more; chi range [0.0001, 0.4741]"
+    },
+    {
+      "date": "2026-08-03..2026-08-06",
+      "record": "local/renorm/audit/eras/eras.json (era-06, #430)",
+      "configuration": "Hopf signed projection used as a retrieval filter",
+      "result": "Occupancy spread but no retrieval value",
+      "verdict": "negative",
+      "numbers": "sector-filtered MRR 0.0045 vs 0.0743"
+    },
+    {
+      "date": "2026-08-27",
+      "record": "docs/recursive_geometric_attention_a1_952.md",
+      "configuration": "A1.0 recursive attention with an additive last-child hierarchy summary over route rows",
+      "result": "Terminal REDESIGN_ORDERED_ROUTE_SUMMARY: the summary erased earlier causal order; candidate and value paths were reachable; the record says this is not evidence that Hopf has no value",
+      "verdict": "negative",
+      "numbers": "all three matched contrasts lost order at every exposed level; 966/966 comparisons equal while exact identities differed 3/3"
+    },
+    {
+      "date": "2026-08-28",
+      "record": "docs/direct_causal_geometric_attention_973.md",
+      "configuration": "Equal-budget V3: one-head dense H4/S3 causal attention vs plain fixed-frame and current-only arms, 156 raw trainable-manifold degrees of freedom each",
+      "result": "Geometry not load-bearing on fresh V3; an alternative connection also scored 10/12, so no connection-specific advantage. Earlier V2 8/8 was budget-mismatched and is non-promotable",
+      "verdict": "negative",
+      "numbers": "full H4 3/12, plain fixed tangent 12/12, current-only 6/12, alternative connection 10/12"
+    },
+    {
+      "date": "undated",
+      "record": "docs/candidate_relative_identifiability_a1p_970.md",
+      "configuration": "A1P paired-H4 R4 heatmap readout (#970)",
+      "result": "Exact heatmap classes alias incompatible candidate outcomes, so a predeclared hard gate stopped the run before scalar search; the record says it is not evidence against H4 x H4 or golden transport",
+      "verdict": "negative",
+      "numbers": "terminal RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q"
+    },
+    {
+      "date": "undated",
+      "record": "docs/helm_d_r4_softmax_decoder_973.md; docs/helm_d_score_centroid_localization_973.md",
+      "configuration": "HELM-D: causal softmax run through coherent R4/Spin frames in SmolLM2 (parity), then learned-manifold Lorentz attention vs Euclidean",
+      "result": "Parity passes (representation, not an advantage). Learned Lorentz scored far worse than donor and Euclidean; tangent readout rejected; Lorentz score worse than Euclidean on two documents",
+      "verdict": "negative",
+      "numbers": "Lorentz NLL 7.71 vs donor 3.668 and matched Euclidean 4.483; all three destructive controls worse"
+    },
+    {
+      "date": "2026-09-19",
+      "record": "docs/integration/EVIDENCE.md (P7); docs/integration/current-state-archive-through-2026-09-24.md",
+      "configuration": "Per-mechanism ablation of the September JEPA prose model, 2,048 positions: zero the per-token 5-D discrete_s2_readout",
+      "result": "The S2 readout channel contributes strongly, but zeroing JEPA also changes the fibre it consumes, so effects do not sum; a pairwise factorial was never run",
+      "verdict": "positive",
+      "numbers": "s2_readout +0.3377 BPB when ablated (baseline 1.8055); jepa +0.3743"
+    },
+    {
+      "date": "2026-09-26",
+      "record": "docs/integration/hyperbolic-cycle2-2026-09-26.md",
+      "configuration": "Hyperbolic keys on real code-scope hierarchies; radius-plus-direction quantizer; hyperbolic vs dot attention in a tiny LM",
+      "result": "Only hyperbolic keys learned the hierarchy; a 36-bit quantized key kept most accuracy; hyperbolic attention helped most on code",
+      "verdict": "positive",
+      "numbers": "77.5% of non-root queries at 16 dims vs 0.4% for dot; 36 bits kept 87% of full accuracy; -0.020 bits/byte on code, -0.005 on prose"
+    },
+    {
+      "date": "2026-09-26",
+      "record": "docs/integration/hyperbolic-cycle3-2026-09-26.md",
+      "configuration": "Lorentz read in the Rust D8 learner, 2,000 updates, four seeds, width 128, context 128, after an initialization fix (learned radius delta, matched scale beta)",
+      "result": "Consistent but small gain; the 600-step pilot overstated it",
+      "verdict": "positive",
+      "numbers": "ahead of Dot in 3 of 4 seeds, 0.018 nats per token on average (0.007 bits/byte); WikiText 1 seed +0.037 nats"
+    },
+    {
+      "date": "2026-09-27",
+      "record": "docs/integration/radial-adaptation-result-2026-09-27.md",
+      "configuration": "Matched three-arm radial reader adaptation (Dot, Lorentz, LorentzAffine), 1,024 updates per arm from one negative parent",
+      "result": "Neither radial arm beat the Dot reset on likelihood or source responses; parked at this dose, not a rejection of geometric readers",
+      "verdict": "negative",
+      "numbers": "976 dev blocks, 249,856 targets per pass; 12,582,912 new target visits in total"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/geometric-toolbox-2026-09-28.md",
+      "configuration": "Lorentz read in the main-line stack at about 7M parameters on code; transferred readers",
+      "result": "Neutral against Dot; kept as the geometry the reads are built on. Curvature stayed flat when learned and a horocycle position prior was worse",
+      "verdict": "inconclusive",
+      "numbers": "Lorentz minus Dot -0.0001; transferred readers +0.046 and +0.013; horocycle 3.264 vs 3.226"
+    },
+    {
+      "date": "2026-10-05..2026-10-06",
+      "record": "local/renorm/audit/eras/eras.json (era-23, #1782)",
+      "configuration": "Generator-dev selector arms: lexical, E8 table and Hopf",
+      "result": "The Hopf arm trailed the lexical arm; segmentation caps any selector at 77.9%",
+      "verdict": "negative",
+      "numbers": "lexical 55.3%, E8 table 51.6%, Hopf 49.7%"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/geometric-read-2026-10-11/README.md",
+      "configuration": "Lorentz vs its flat L2 ablation, same weights, three seeds, 8,000-step fits, 40-row memory panels",
+      "result": "Ahead on every seed but only one seed met the pre-registered per-seed margin; reported positive but below its bar, mechanism open",
+      "verdict": "inconclusive",
+      "numbers": "wrong-value 49 -> 32 of 120; memory 48 -> 59 of 120; per-seed wrong-value delta -4 / -9 / -4; one seed p = 0.049"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/phase-binding-2026-10-11/README.md",
+      "configuration": "Fixed geometric phases (read lineage phase_bind) to make read binding exact, on top of the read-binding keeper, 2 seeds (tagged to this id; uses fixed circle phases, not the Hopf map itself)",
+      "result": "Same bound mass as learned supervision, worse answers, 13x slower; REJECT for this configuration, mechanism open",
+      "verdict": "negative",
+      "numbers": "memory 19 -> 17 and 24 -> 20; wrong-value 12 -> 14 and 5 -> 14; +2.0 M parameters; 0.058 -> 0.777 s/step"
+    }
+  ],
+  "never_tested": [
+    "Retained fibre for language: base-only vs base plus fibre vs explicit bank tags at equal bytes. The census states 'never tested for language'.",
+    "A Hopf quantity inside the D32 discrete reads (Route, Flock, Relation). docs/geometry.md section 5: Hopf fibre tracking is not wired into the current discrete M1 read.",
+    "The S7 / quaternionic Hopf relation state: no implementation exists.",
+    "A pairwise jepa x s2_readout factorial or Shapley attribution to separate the Hopf-S2 channel from the JEPA weights.",
+    "Third paired seed for Lorentz vs Dot (D17 v2 required it, D18 forbade new training), and a Lorentz-scored pointer (the D18 Lorentz pointer never ran).",
+    "A softmax-free, matmul-free Lorentz read; every executed Lorentz form used both.",
+    "Hopf holonomy as a dialogue-state feature that actually influences output (the integer tests assert non-zero winding only, not usefulness)."
+  ],
+  "failed_only_on_configuration": [
+    "Sector routing (7 and then 43 of 512): magnitude-only or signed block projections of the zeta session state on one corpus; says nothing about the Hopf map on a meaningful state.",
+    "A1.0 and A1P: failures of an additive last-child summary and a paired-H4 heatmap readout; both records say the Hopf and H4 structures are not refuted.",
+    "HELM-D Lorentz and the V3 attention scaffold: softmax attention with a context-dependent normalised centroid; closed by D23 as an executed form and by equal-budget controls as a configuration.",
+    "Radial adaptation: one dose (1,024 updates) from a negative parent; the record explicitly parks only these transferred configurations.",
+    "Phase binding: one expensive CPU-forward implementation on top of a keeper that already worked.",
+    "Hopf selector arm at 49.7%: one panel whose selector ceiling is 77.9%."
+  ],
+  "open_questions": [
+    "Does keeping the fibre next to the S2 base recover order or role distinctions that a base-only summary loses, at equal bytes?",
+    "What did the old s2_readout channel really carry, given the interaction with the JEPA weights?",
+    "Is hyperbolic geometry better as an index or key space (where it showed the large 77.5% vs 0.4% gap) than as a read score (where it was neutral)?",
+    "Can a hierarchy be reached with a deeper integer tree and ordinary arithmetic, as the 2026-09-19 compute review suggests, making hyperbolic arithmetic unnecessary?",
+    "Should the Lorentz read be split from the Hopf map into its own mechanism id?"
+  ],
+  "evidence": [
+    "docs/integration/structural-memory-hopf-direction-2026-09-20.md",
+    "docs/geometry.md",
+    "docs/hopf_sector_occupancy_d3.md",
+    "docs/hopf_projection_remediation_306.md",
+    "docs/direct_causal_geometric_attention_973.md",
+    "docs/integration/hyperbolic-cycle2-2026-09-26.md",
+    "docs/integration/hyperbolic-cycle3-2026-09-26.md",
+    "docs/integration/radial-adaptation-result-2026-09-27.md",
+    "docs/labs/geometric-read-2026-10-11/README.md",
+    "docs/labs/phase-binding-2026-10-11/README.md",
+    "docs/integration/geometric-toolbox-2026-09-28.md",
+    "docs/integration/EVIDENCE.md",
+    "docs/labs/course-correction-2026-10-18/audits/mechanism-census.md",
+    "crates/uor-r4-integer/src/model.rs (telemetry-only block)"
+  ],
+  "related": [
+    {
+      "id": "prime-zeta-codebook",
+      "how": "UnitS3Q30 and the common-fibre helpers live beside the prime-route zeta phases; the discrete table uses S3 points but not the Hopf map."
+    },
+    {
+      "id": "spin-weights",
+      "how": "Hopf observes the same unit quaternions and icosian roots that spin-native weights act with."
+    },
+    {
+      "id": "spiralcore-fbs",
+      "how": "Both treat the E8 and H4 lattices; the kept-fibre idea matters wherever a lossy summary sits beside exact state."
+    },
+    {
+      "id": "vsa",
+      "how": "Another lossy sketch kept beside exact identity; the toolbox pairs them as candidates for role binding."
+    },
+    {
+      "id": "route-read",
+      "how": "Hyperbolic keys were pitched as an address geometry for routing a read."
+    },
+    {
+      "id": "flock-read",
+      "how": "The flock read ranks by 600-cell frame proximity, a discrete cousin of a geometric neighbourhood score."
+    },
+    {
+      "id": "read-binding",
+      "how": "Phase binding and the Lorentz-vs-L2 read both sat on top of the read-binding keeper."
+    },
+    {
+      "id": "exact-memory",
+      "how": "Exact occurrence identity must stay outside any Hopf summary; the sieve and store do that job."
+    }
+  ],
+  "figure_ideas": [
+    "A rotating 3-sphere picture. Show one unit quaternion as a point on S3 (drawn as its stereographic projection), its S2 shadow as a dot on a sphere next to it, and the fibre as a circle through the point. Drag a phase slider: the S3 point moves around its circle while the S2 dot stays put. A second readout accumulates the winding as 'kept fibre phase', so viewers see exactly what the shadow forgets. (Static art already exists at docs/figures/geometry/hopf-fibration.svg to animate.)",
+    "A 512-cell sector grid that lights the cells occupied by the old routing: 7 of 512 with magnitude-only inputs (a tiny corner, the reachable 64 outlined) and 43 of 512 after signed projection. Under it, the retrieval number that did not move (MRR 0.0045 vs 0.0743).",
+    "Two readers scoring the same query against stored keys: a flat dot product and a hyperbolic distance on a disk. On a nested tree of code scopes the hyperbolic disk keeps parents near the centre and finds the right ancestor (77.5%), while the flat picture crowds them (0.4%). A second panel shows the same swap in a language model, with the small bars: 0.018 nats, 3 of 4 seeds."
+  ]
+}

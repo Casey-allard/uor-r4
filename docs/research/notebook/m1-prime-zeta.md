@@ -17,7 +17,7 @@ Background: [primes and zeta](../../geometry/primes-and-zeta.md) explains the ph
 
 ## Results
 
-Sources: the row comes from `local/renorm/audit/catalog.jsonl`; numbers and the bar were checked against the record and its pre-registration sheet (`docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md`, marked `TEST FITNESS: FIT`). Verdict words are defined on the [format page](./README.md#the-five-verdict-words).
+Sources: the row comes from [`archive/catalog.jsonl`](../../../archive/catalog.jsonl); numbers and the bar were checked against the record and its pre-registration sheet (`docs/harness/prep/m1-prime-zeta-complex-routing-2026-10-14.md`, marked `TEST FITNESS: FIT`). Verdict words are defined on the [format page](./README.md#the-five-verdict-words).
 
 | Date | What ran | Number | Bar | Verdict | Artifact |
 |---|---|---|---|---|---|

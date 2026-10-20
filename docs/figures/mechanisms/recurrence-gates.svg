@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 494" width="960" role="img" aria-labelledby="t d">
+<title id="t">Geometric recurrence gates</title>
+<desc id="d">Three parts. Left: a staircase of the 16 table fade rates, lambda equal to 2 to the minus i plus 1 for i from 0 to 15, against the opening score s from 0 to 1 on a logarithmic rate axis, drawn just below the smooth curve it replaces. One selected step and its two neighbours, which the secant credit rule compares, are marked. Middle: a quaternion lane drawn as an arrow that rotates and shrinks by lambda each step, and below it lambda and the keep factor kappa shown as the two legs of a right triangle inscribed in a unit circle, so lambda squared plus kappa squared is 1; the example is lambda one half and kappa 0.866. Right: the fraction of the old state kept over 32 steps for table rates one half, one quarter, one eighth and one sixteenth, each a power of two, beside a dashed historical curve with a rate near one; the table curves fall to almost nothing within a few steps.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.ti { font-size: 19px; font-weight: 600; }
+.h { font-size: 14px; font-weight: 600; }
+.big { font-size: 20px; font-weight: 600; }
+.n { font-size: 12px; fill: var(--muted); }
+.m { fill: var(--muted); }
+.b { font-weight: 600; }
+.c { text-anchor: middle; }
+.r { text-anchor: end; }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.ln { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.rl { stroke: var(--rule); stroke-width: 1; fill: none; }
+.dash { stroke-dasharray: 5 4; }
+.dot { stroke-dasharray: 2 3; }
+.fi { fill: var(--ink); } .fm { fill: var(--muted); } .fb { fill: var(--blue); } .fg { fill: var(--green); }
+.fo { fill: var(--orange); } .fv { fill: var(--verm); } .fp { fill: var(--purple); } .fs { fill: var(--sky); } .fk { fill: var(--pink); }
+.si { stroke: var(--ink); } .sm { stroke: var(--muted); } .sb { stroke: var(--blue); } .sg { stroke: var(--green); }
+.so { stroke: var(--orange); } .sv { stroke: var(--verm); } .sp { stroke: var(--purple); } .ss { stroke: var(--sky); }
+.w2 { stroke-width: 2; } .w15 { stroke-width: 1.5; } .w1 { stroke-width: 1; } .nf { fill: none; }
+.sk { stroke: var(--pink); } .sbd { stroke: var(--body); } .sr { stroke: var(--rule); }
+.t { fill: var(--body); } .bs { font-size: 13px; font-weight: 600; } .s11 { font-size: 11.5px; } .l { text-anchor: start; }
+.o3 { opacity: 0.3; } .o5 { opacity: 0.5; } .o7 { opacity: 0.7; } .fr { fill: var(--rule); } .fpn { fill: var(--panel); } .fbg { fill: var(--bg); }
+.st { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; } .stP { fill: var(--parked); } .stR { fill: var(--ready); }
+.chipP { fill: var(--bg); stroke: var(--parked); stroke-width: 1.8; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.chipR { fill: var(--bg); stroke: var(--ready); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.w3 { stroke-width: 3; } .w25 { stroke-width: 2.5; } .w05 { stroke-width: 0.6; } .rnd { stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<defs>
+<marker id="a-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+<marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<marker id="a-verm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+<marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fo"/></marker>
+<marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fg"/></marker>
+<marker id="a-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fk"/></marker>
+<marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fp"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="494"/>
+<text class="ti" x="16" y="32">Geometric recurrence gates: sixteen fixed clocks replace a smooth dial</text>
+<rect class="panel" x="16" y="48" width="300" height="404" rx="8"/>
+<text class="h" x="30" y="72">1  A staircase of 16 clocks</text>
+<text class="n" x="30" y="92">rate λ = 2^−(i+1), index i = floor(16 s)</text>
+<rect class="cell" x="56" y="104" width="240" height="240"/>
+<line class="rl" x1="71" y1="104" x2="71" y2="344"/>
+<line class="rl" x1="56" y1="119" x2="296" y2="119"/>
+<line class="rl" x1="86" y1="104" x2="86" y2="344"/>
+<line class="rl" x1="56" y1="134" x2="296" y2="134"/>
+<line class="rl" x1="101" y1="104" x2="101" y2="344"/>
+<line class="rl" x1="56" y1="149" x2="296" y2="149"/>
+<line class="rl" x1="116" y1="104" x2="116" y2="344"/>
+<line class="rl" x1="56" y1="164" x2="296" y2="164"/>
+<line class="rl" x1="131" y1="104" x2="131" y2="344"/>
+<line class="rl" x1="56" y1="179" x2="296" y2="179"/>
+<line class="rl" x1="146" y1="104" x2="146" y2="344"/>
+<line class="rl" x1="56" y1="194" x2="296" y2="194"/>
+<line class="rl" x1="161" y1="104" x2="161" y2="344"/>
+<line class="rl" x1="56" y1="209" x2="296" y2="209"/>
+<line class="rl" x1="176" y1="104" x2="176" y2="344"/>
+<line class="rl" x1="56" y1="224" x2="296" y2="224"/>
+<line class="rl" x1="191" y1="104" x2="191" y2="344"/>
+<line class="rl" x1="56" y1="239" x2="296" y2="239"/>
+<line class="rl" x1="206" y1="104" x2="206" y2="344"/>
+<line class="rl" x1="56" y1="254" x2="296" y2="254"/>
+<line class="rl" x1="221" y1="104" x2="221" y2="344"/>
+<line class="rl" x1="56" y1="269" x2="296" y2="269"/>
+<line class="rl" x1="236" y1="104" x2="236" y2="344"/>
+<line class="rl" x1="56" y1="284" x2="296" y2="284"/>
+<line class="rl" x1="251" y1="104" x2="251" y2="344"/>
+<line class="rl" x1="56" y1="299" x2="296" y2="299"/>
+<line class="rl" x1="266" y1="104" x2="266" y2="344"/>
+<line class="rl" x1="56" y1="314" x2="296" y2="314"/>
+<line class="rl" x1="281" y1="104" x2="281" y2="344"/>
+<line class="rl" x1="56" y1="329" x2="296" y2="329"/>
+<line class="sm w1 dash" x1="56" y1="104" x2="296" y2="344"/>
+<path class="nf sm w2" d="M56 119 H71 V134 H86 V149 H101 V164 H116 V179 H131 V194 H146 V209 H161 V224 H176 V239 H191 V254 H206 V269 H221 V284 H236 V299 H251 V314 H266 V329 H281 V344 H296"/>
+<line class="sb w3" x1="116" y1="179" x2="131" y2="179"/>
+<line class="sv w3" x1="131" y1="194" x2="146" y2="194"/>
+<line class="sb w3" x1="146" y1="209" x2="161" y2="209"/>
+<line class="sv w1 dot" x1="112" y1="254" x2="137" y2="198"/><line class="sb w1 dot" x1="150" y1="270" x2="153" y2="213"/>
+<text class="n r" x="52" y="123">1/2</text><text class="n r" x="52" y="228">2⁻⁸</text><text class="n r" x="52" y="348">2⁻¹⁶</text>
+<text class="n c" x="56" y="362">0</text><text class="n c" x="176" y="362">0.5</text><text class="n c" x="296" y="362">1</text>
+<text class="n c" x="176" y="378">opening score s</text>
+<text class="n" x="196" y="142">dashed: the smooth</text><text class="n" x="196" y="157">curve it replaces</text><text class="n" x="196" y="172">(illustrative)</text>
+<text class="n b fv" x="64" y="262">selected step i</text><text class="n b fb" x="64" y="278">neighbours i − 1, i + 1</text><text class="n" x="64" y="294">the secant credit compares</text><text class="n" x="64" y="309">these three table entries</text>
+<text class="tb" x="30" y="410">Log rate axis: one step down = half the rate.</text><text class="n" x="30" y="428">Steps are exact powers of two, read from a table.</text>
+<rect class="panel" x="328" y="48" width="296" height="404" rx="8"/>
+<text class="h" x="342" y="72">2  One step of a lane</text>
+<text class="b" x="342" y="98">Carry: rotate, then shrink by λ</text>
+<circle class="nf sm w1 dot" cx="476" cy="170" r="62"/><circle class="nf sm w1 dot" cx="476" cy="170" r="31"/><circle class="nf sm w1 dot" cx="476" cy="170" r="15.5"/>
+<line class="sb w2" x1="476" y1="170" x2="504.0" y2="121.5" marker-end="url(#a-blue)"/>
+<line class="sb w2" x1="476" y1="170" x2="503.9" y2="167.6" marker-end="url(#a-blue)"/>
+<line class="sb w2" x1="476" y1="170" x2="485.0" y2="180.7" marker-end="url(#a-blue)"/>
+<circle class="fi" cx="476" cy="170" r="2.5"/>
+<text class="n" x="514" y="118">start</text><text class="n" x="512" y="171">1 step</text><text class="n" x="490" y="196">2 steps</text>
+<path class="nf sm w1 dash" d="M486 112 A66 66 0 0 1 538 160" marker-end="url(#a-muted)"/><text class="n" x="386" y="250">each step turns by the unit quaternion u</text>
+<text class="n" x="342" y="268">h_t = λ u ⊗ h_(t−1) + κ b_t  (b_t not drawn)</text>
+<line class="rl" x1="340" y1="280" x2="612" y2="280"/>
+<text class="b" x="342" y="300">Fade and keep share a unit circle</text>
+<circle class="nf sm w15" cx="440" cy="368" r="60"/>
+<line class="rl" x1="372" y1="368" x2="508" y2="368"/><line class="rl" x1="440" y1="306" x2="440" y2="430"/>
+<polygon class="fb o3" points="440,368 492,368 492,338"/>
+<line class="sb w3" x1="440" y1="368" x2="492" y2="368"/><line class="sv w3" x1="492" y1="368" x2="492" y2="338"/><line class="si w2" x1="440" y1="368" x2="492" y2="338"/>
+<path class="nf sm w1" d="M486 368V362H492"/><circle class="fi" cx="492" cy="338" r="3"/>
+<text class="n b fb c" x="466" y="384">κ</text><text class="n b fv" x="498" y="356">λ</text><text class="n b" x="450" y="347">1</text>
+<text class="tb" x="520" y="334">λ² + κ² = 1</text><text class="n" x="520" y="352">example i = 0:</text><text class="n" x="520" y="368">λ = 1/2</text><text class="n" x="520" y="384">κ = 0.866</text>
+<text class="n" x="342" y="440">κ (keep) is read from a second 16-entry table.</text>
+<rect class="panel" x="636" y="48" width="308" height="404" rx="8"/>
+<text class="h" x="650" y="72">3  How much of one token survives</text>
+<text class="n" x="650" y="92">fraction of the old state kept (rotation ignored)</text>
+<rect class="cell" x="676" y="100" width="248" height="200"/>
+<line class="rl" x1="738" y1="100" x2="738" y2="300"/>
+<line class="rl" x1="800" y1="100" x2="800" y2="300"/>
+<line class="rl" x1="862" y1="100" x2="862" y2="300"/>
+<line class="rl" x1="676" y1="200" x2="924" y2="200"/>
+<path class="nf sv w2 rnd" d="M676.0 100.0 L683.8 200.0 L691.5 250.0 L699.2 275.0 L707.0 287.5 L714.8 293.8 L722.5 296.9 L730.2 298.4 L738.0 299.2 L745.8 299.6 L753.5 299.8 L761.2 299.9 L769.0 300.0 L776.8 300.0 L784.5 300.0 L792.2 300.0 L800.0 300.0 L807.8 300.0 L815.5 300.0 L823.2 300.0 L831.0 300.0 L838.8 300.0 L846.5 300.0 L854.2 300.0 L862.0 300.0 L869.8 300.0 L877.5 300.0 L885.2 300.0 L893.0 300.0 L900.8 300.0 L908.5 300.0 L916.2 300.0 L924.0 300.0 "/>
+<path class="nf so w2 rnd" d="M676.0 100.0 L683.8 250.0 L691.5 287.5 L699.2 296.9 L707.0 299.2 L714.8 299.8 L722.5 300.0 L730.2 300.0 L738.0 300.0 L745.8 300.0 L753.5 300.0 L761.2 300.0 L769.0 300.0 L776.8 300.0 L784.5 300.0 L792.2 300.0 L800.0 300.0 L807.8 300.0 L815.5 300.0 L823.2 300.0 L831.0 300.0 L838.8 300.0 L846.5 300.0 L854.2 300.0 L862.0 300.0 L869.8 300.0 L877.5 300.0 L885.2 300.0 L893.0 300.0 L900.8 300.0 L908.5 300.0 L916.2 300.0 L924.0 300.0 "/>
+<path class="nf sg w2 rnd" d="M676.0 100.0 L683.8 275.0 L691.5 296.9 L699.2 299.6 L707.0 300.0 L714.8 300.0 L722.5 300.0 L730.2 300.0 L738.0 300.0 L745.8 300.0 L753.5 300.0 L761.2 300.0 L769.0 300.0 L776.8 300.0 L784.5 300.0 L792.2 300.0 L800.0 300.0 L807.8 300.0 L815.5 300.0 L823.2 300.0 L831.0 300.0 L838.8 300.0 L846.5 300.0 L854.2 300.0 L862.0 300.0 L869.8 300.0 L877.5 300.0 L885.2 300.0 L893.0 300.0 L900.8 300.0 L908.5 300.0 L916.2 300.0 L924.0 300.0 "/>
+<path class="nf sb w2 rnd" d="M676.0 100.0 L683.8 287.5 L691.5 299.2 L699.2 300.0 L707.0 300.0 L714.8 300.0 L722.5 300.0 L730.2 300.0 L738.0 300.0 L745.8 300.0 L753.5 300.0 L761.2 300.0 L769.0 300.0 L776.8 300.0 L784.5 300.0 L792.2 300.0 L800.0 300.0 L807.8 300.0 L815.5 300.0 L823.2 300.0 L831.0 300.0 L838.8 300.0 L846.5 300.0 L854.2 300.0 L862.0 300.0 L869.8 300.0 L877.5 300.0 L885.2 300.0 L893.0 300.0 L900.8 300.0 L908.5 300.0 L916.2 300.0 L924.0 300.0 "/>
+<path class="nf sm w2 dash rnd" d="M676.0 100.0 L683.8 120.0 L691.5 138.0 L699.2 154.2 L707.0 168.8 L714.8 181.9 L722.5 193.7 L730.2 204.3 L738.0 213.9 L745.8 222.5 L753.5 230.3 L761.2 237.2 L769.0 243.5 L776.8 249.2 L784.5 254.2 L792.2 258.8 L800.0 262.9 L807.8 266.6 L815.5 270.0 L823.2 273.0 L831.0 275.7 L838.8 278.1 L846.5 280.3 L854.2 282.3 L862.0 284.0 L869.8 285.6 L877.5 287.1 L885.2 288.4 L893.0 289.5 L900.8 290.6 L908.5 291.5 L916.2 292.4 L924.0 293.1 "/>
+<circle class="fv" cx="676.0" cy="100.0" r="2.6"/>
+<circle class="fv" cx="683.8" cy="200.0" r="2.6"/>
+<circle class="fv" cx="691.5" cy="250.0" r="2.6"/>
+<circle class="fv" cx="699.2" cy="275.0" r="2.6"/>
+<circle class="fv" cx="707.0" cy="287.5" r="2.6"/>
+<circle class="fv" cx="714.8" cy="293.8" r="2.6"/>
+<circle class="fv" cx="722.5" cy="296.9" r="2.6"/>
+<text class="n r" x="670" y="304">0</text><text class="n r" x="670" y="204">0.5</text><text class="n r" x="670" y="104">1</text>
+<text class="n c" x="676" y="318">0</text><text class="n c" x="738" y="318">8</text><text class="n c" x="800" y="318">16</text><text class="n c" x="862" y="318">24</text><text class="n c" x="924" y="318">32</text><text class="n c" x="800" y="334">steps</text>
+<line class="sv w2" x1="800" y1="114" x2="820" y2="114"/><text class="n" x="826" y="118">λ = 1/2 (i = 0)</text>
+<line class="so w2" x1="800" y1="130" x2="820" y2="130"/><text class="n" x="826" y="134">λ = 1/4 (i = 1)</text>
+<line class="sg w2" x1="800" y1="146" x2="820" y2="146"/><text class="n" x="826" y="150">λ = 1/8 (i = 2)</text>
+<line class="sb w2" x1="800" y1="162" x2="820" y2="162"/><text class="n" x="826" y="166">λ = 1/16 (i = 3)</text>
+<line class="sm w2 dash" x1="800" y1="178" x2="820" y2="178"/><text class="n" x="826" y="182">old, near 1</text>
+<text class="tb" x="650" y="358">No table entry keeps more than half per step</text>
+<text class="n" x="650" y="374">(a reading of the source: every λ ≤ 1/2).</text>
+<text class="n" x="650" y="394">At λ = 1/2, 32 steps leave 2⁻³² (arithmetic).</text>
+<text class="n" x="650" y="414">Whether 16 clocks keep enough long memory</text><text class="n" x="650" y="430">is untested.</text>
+<text class="n" x="16" y="474">The smooth curve (left) and the near-1 curve (right) are illustrative; the table and the arithmetic are from the source. Status: ready, never trained.</text>
+</svg>

@@ -1,0 +1,225 @@
+{
+  "id": "relation-read",
+  "canonical_name": "Relation read (finite relational head)",
+  "aliases": [
+    "ReadSpec::Relation",
+    "finite relational head",
+    "bounded exact-relation reranker",
+    "D34 reranker-first",
+    "copy-successor / induction read",
+    "relation trits",
+    "Dose 1 / A8 Relation arm"
+  ],
+  "plain_what": "Flock picks earlier positions that look like the current one. Relation lets the model also follow simple links between positions, such as 'the word right after the earlier copy of this word', so it can learn the copy-the-next-word habit behind much of language. Each link type is switched on or off by one three-valued dial.",
+  "replaces": "attention-scoring",
+  "how_it_works": "Relation is Flock plus a reranker. The pool is every causally eligible node of the ternary BinderPlan tree. Five edge types come from retained structure only: parent-child, sibling, sequential successor (leaf j+1 follows leaf j), same token id, same frame root. Each node starts with a match score 8 minus the L1 distance between its frame root and the query's frame root (8, 4 or 0). For S sweeps (1 to 5) each node adds, for every edge type e with a learned Gate trit g[e, level] in {-1,0,+1}, the previous scores of its neighbours: added if the trit is +1, subtracted if -1. Candidates are ranked by relation score first, then the Flock keys; the top K feed the unchanged Flock transport, consensus and gated add. Example: in 'x A B y z A', the earlier A scores 8; a +1 successor trit at level 0 passes that score to B, so B outranks every non-successor and its payload is carried in. That is the copy-successor read, which Route and Flock cannot express. With all trits zero every score is zero and the read is bit-identical to Flock. The trits reuse the Gate parameter kind (5 per level) and are proposed on an interleaved schedule where every 8th batch is a read batch.",
+  "geometry": "Orbit-root frames of one 16-root E8 orbit (match score from L1 distance between frames); BFS transport; SpiralCore ternary BinderPlan tree whose parent/child/sibling/successor adjacency supplies the edges; ternary Gate trits.",
+  "code": [
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "Relation branch inside flock_vector (lines 164-212): edge-type sweeps and relation score; ranking comparator with relation score as first key at line 236; flock_vector spans 125-269"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/lib.rs",
+      "role": "ReadSpec::Relation { kept, sweeps }, RELATION_EDGE_TYPES = 5, gate inventory, ReadInitialization::ActiveLeafV1"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/relation_qualification.rs",
+      "role": "Finite exact CUDA construction controls for Relation and Gate (9 controls, including active-leaf initialisation and matched-off path)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/training.rs",
+      "role": "SchedulePolicy::InterleavedReadEvery8V1 and RelationLearningPolicy::{LearnV1, FrozenZeroV1} (the matched control locks relation trits at zero)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_learning.rs",
+      "role": "Separately released, bounded Relation/Flock learning with admission, storage and receipt metadata"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_preflight.rs",
+      "role": "Zero-update token-cell export and DEV capture used to attribute same-cell effects"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_transfer.rs",
+      "role": "Deferred paired fresh-slice evaluation after a sealed DEV decision"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_audited.rs",
+      "role": "Admission-preserving active-interval guard around Relation learning (merged #2782, finite qualification not yet run)"
+    },
+    {
+      "path": "docs/labs/relation-subpanel-audit-2026-10-15/README.md",
+      "role": "Host-only Rust tooling that splits results by copy-successor rows and attributes gains to relation trits"
+    }
+  ],
+  "status": "ACTIVE",
+  "status_reason": "Built, controlled (9/9 finite CUDA controls) and trained twice: Dose 1 rows_v1 (Q1 admission collapse, 2,034 -> 225/205) and A8 (Relation stopped at Q1 by its half-init rule, 551 vs control 857). Neither run yielded a paired Relation-vs-FrozenZero verdict, so the read has not been judged (docs/labs/a8-dose-2026-10-19/README.md).",
+  "reopen_conditions": [
+    "Not parked. The next registered step is the admission-preserving A8 rerun (docs/harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md, TEST FITNESS: FIT, controller merged, finite qualification and PM dispatch and owner-typed release outstanding).",
+    "A trained Relation must beat the context-free T2 successor-table comparator (6,300 of 14,287 DEV top-1 in the host re-score) to count; this is the stated bar in the learned-attention-link sheet.",
+    "Stage M2 discriminator (docs/harness/prep/m4-finite-relational-head-2026-10-15.md): matched interleaved Relation vs Route with zero-trit ablation, P_succ bar and noise floor, still HELD and PENDING FIT.",
+    "A float-trained extension of the 25 relation trits (C1, D37) enters only after a Relation KEEP, as a new FIT'd pre-registration with an integer export and a reported export gap."
+  ],
+  "rule_compat": {
+    "D11": "Integer only: compare, gather, add, subtract on i32 scores bounded by 472,392; trits are -1/0/+1; no multiply, no float. No D11 served export or export gap for a trained Relation artifact exists in the audited records.",
+    "D23": "Compliant: hard top-K by integer keys, no exponential or normalisation.",
+    "D30": "Compliant: no matmul; sweeps are sums over a bounded neighbour list (degree at most 8, 5 edge types).",
+    "D32_D37": "D32 integer GPU path trained by counterfactual Gate moves; D34 authorises the reranker-first design as direction only (no compute or hold release); every run needs FIT, PM dispatch and an owner-typed D40 release. D37 allows a float-trained coupling extension only through a new pre-registration."
+  },
+  "experiments": [
+    {
+      "date": "undated (Sept 2026)",
+      "record": "docs/native_geometric_relational_attention_973.md",
+      "configuration": "Precursor: Rust-trained typed one-read attention over four typed records, 288 Boolean compatibility inputs (relative H4 roots, Hamming landmarks, phase differences); authored panel",
+      "result": "Passed its bounded gate; controls fail; held-out evaluation not run; not the discrete Relation head",
+      "verdict": "positive",
+      "numbers": "64/64 development answers; 32/32 changed-source pairs; uniform routing 16/64; ReadDisabled 0/64; QueryReversed 0/64"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/spiralcore-attention-independent-review-2026-10-14/README.md",
+      "configuration": "Model-free statistics on the pinned DEV panel (14,287 eligible response-masked targets, context 192) and an adversarial review of four SpiralCore attention proposals",
+      "result": "A bounded exact-relation reranker is the smallest falsifier; the copy-successor sub-panel is 26.9% of DEV; admission, not attention, was the measured ceiling at Q1. Read parameters got 20 of 16,404 proposals",
+      "verdict": "inconclusive",
+      "numbers": "copy-successor 3,847 of 14,287 (distance buckets 1-8/9-32/33-96/97-192: 50/2,872/900/25); admitted targets at Q1 2,201 of 14,287; D34 accepted this direction on 14 Oct"
+    },
+    {
+      "date": "2026-10-15",
+      "record": "docs/labs/readspec-relation-m1-construction-2026-10-15/README.md",
+      "configuration": "ReadSpec::Relation implemented in the discrete crate with eight control tests; source only",
+      "result": "Construction built; GPU qualification awaited owner release at record time (later 9/9 PASS in the 17 Oct preflight)",
+      "verdict": "inconclusive",
+      "numbers": "0 GPU hours, 0 apply updates, 0 corpus rows at record time"
+    },
+    {
+      "date": "2026-10-17",
+      "record": "docs/labs/native-relation-learning-path-2026-10-17/README.md",
+      "configuration": "Interleaved schedule so a Relation head actually receives proposals; six paid pod attempts at the compiler checks",
+      "result": "Operator and lint blockers on every attempt; nothing learned or measured",
+      "verdict": "blocked",
+      "numbers": "0 model updates, 6 compiler pod leases"
+    },
+    {
+      "date": "2026-10-17",
+      "record": "docs/labs/attention-preflight-2026-10-17/README.md",
+      "configuration": "Zero-training GPU Battery3 (26 steps) measuring starting admission and the Relation controls",
+      "result": "All steps pass; earlier Battery2 failed only at data staging; token map alone cannot establish same-cell attribution",
+      "verdict": "positive",
+      "numbers": "Relation controls 9/9 PASS; initial P_succ admission 2,034 of 3,847 (floor 500); full panel 7,500 of 14,287"
+    },
+    {
+      "date": "2026-10-17",
+      "record": "docs/labs/host-diagnostics-2026-10-17/README.md",
+      "configuration": "Host-only re-score of saved K=8 checkpoints; Relation arm not run",
+      "result": "Raising admission K from 8 to 16 did not help; a simple context-free successor table (T2) beats the trained read by a wide margin, setting the bar a Relation artifact must clear",
+      "verdict": "inconclusive",
+      "numbers": "Q4 K=8 vs K=16 top-1 149 -> 138 (n=1,920); T2 table top-1 6,300 of 14,287 vs trained read 149; D34 decision row 1 UNAVAILABLE"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/attention-dose1-strategic-stop-2026-10-18/README.md",
+      "configuration": "Dose 1 paired Relation LearnV1 vs FrozenZeroV1 on the ordinary proposal path",
+      "result": "Owner stopped both arms early to switch to the row-parallel driver; archived, not a verdict",
+      "verdict": "diagnostic-stop",
+      "numbers": "stopped at 904 (Relation) and 1,065 (control) batches; exit 143; 198 preserved files"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/counterfactual-rows-parity-2026-10-18/README.md",
+      "configuration": "Row-parallel counterfactual kernel (rows_v1), opt-in, exact-parity test against the ordinary path",
+      "result": "Identical proposal losses about 56x faster; enabled the rerun",
+      "verdict": "positive",
+      "numbers": "3.843 s vs 0.0691 s (55.6x); Route parity 684/684; K16 Route VectorBlock timing 7.400 s vs 0.1297 s (57.0x)"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md",
+      "configuration": "Dose 1 rows_v1, Relation{kept 8, sweeps 1}, ActiveLeaf init, interleaved every 8, objective A, 16-vector seeded codebook, stopped at the registered Q1 gate at 4,096 batches",
+      "result": "Both arms hit admission collapse, so the read could not be judged; relation trits were being accepted in the treatment arm only",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ admission 2,034 -> 225 (Relation) vs 205 (control); relation proposals attempted/sensitive/accepted 275/140/94 vs 275/141/0; full DEV 7,500 -> 829 vs 767"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/address-cells-preflight-2026-10-19/README.md",
+      "configuration": "Five zero-update arms: address-structured cells A8 vs uniform P8 and shuffled-packing S8, K=8 and K=16",
+      "result": "Placing each token's cell near its predecessors' cells lifted copy-successor admission without changing the read",
+      "verdict": "positive",
+      "numbers": "P_succ admitted A8 1,351 vs P8 127 vs S8 476 of 3,847 (3.3% -> 35.1%); A16 2,178"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+      "configuration": "Injective 4,096-vector table with uniform cell spread as the Relation starting codebook; zero-update pre-flight",
+      "result": "Fixed aliasing but only 3% of rows admit the right cell at K=8; run not dispatched; instrument unreachable, not a mechanism negative",
+      "verdict": "diagnostic-stop",
+      "numbers": "B3_init(P_succ) 127 of 3,847 vs gate 500; 256 occupied cells; tie mass 0"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/a8-dose-2026-10-19/README.md",
+      "configuration": "A8 address-cells dose: Relation LearnV1 vs FrozenZero, one GPU each, Casey-typed releases",
+      "result": "Both arms lost admission to learning moves; Relation fell faster and its half-init stop fired at Q1; FrozenZero finished; coincides with 87 accepted relation-trit updates but is not attribution",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ 1,351 -> 551 (Relation, Q1 stop) vs 857 (control, full dose); full panel at Q1 1,511 vs 2,519 of 14,287; relation trits attempted/sensitive/accepted 275/124/87"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/admission-preserving-2026-10-19/README.md",
+      "configuration": "Pre-registered A8 rerun with a guard that audits a fixed 3,847-row TRAIN anchor every 64 batches and rejects intervals that erode admission (margin 24)",
+      "result": "FIT; nothing run; controller and consumer verifier merged (#2782, #2783), finite qualification next",
+      "verdict": "inconclusive",
+      "numbers": "258 evaluations per arm incl. baseline; anchor sha 8c1b80e9; no-op stop if rejection rate > 0.50"
+    }
+  ],
+  "never_tested": [
+    "A completed full-dose Relation arm paired against its FrozenZero control with admission intact; no run has reached a DEV H_geom decision, so the sealed fresh slice is unopened.",
+    "Whether the SequentialSuccessor trit at level 0 is ever learned and what it buys on the 3,847-row copy-successor sub-panel (zero-trit attribution has no data).",
+    "Relation against the T2 successor table comparator and against Route in the Stage M2 matched discriminator.",
+    "More than one sweep (S > 1), the other four edge types, and any level above 0.",
+    "Whether the interleaved schedule (every 8th batch) gives the read enough proposals; the canonical pass gave 20 of 16,404.",
+    "Relation with admission-preserving acceptance, with K=16, or with a fully injective address-structured codebook at once.",
+    "Cost and tokens per second of the Relation read at serving shape."
+  ],
+  "failed_only_on_configuration": [
+    "Dose 1 rows_v1: the seeded 16-vector codebook collapsed admission in both arms by 4,096 batches; the stop is registered as a diagnostic stop, not a mechanism negative, count 0/3.",
+    "A8 Relation arm: stopped at Q1 under the half-init rule after learning moves ejected target cells; the control lost 37% too. The sheet's stated known risk, not a verdict on the read.",
+    "Injective-only start: B3_init 127 of 3,847 fails the 500 gate, so the instrument is unreachable at K=8 with uniform cells.",
+    "First Dose 1 attempt on the ordinary path: owner strategic stop for speed, preserved but not graded.",
+    "K16-A/K16-R are not Relation runs: both use Route and vary only the writer objective."
+  ],
+  "open_questions": [
+    "Can a Relation read be judged at all until admission stops eroding under learning?",
+    "Does the admission-preserving guard reject so many intervals that learning becomes a no-op (RULE_EFFECTIVELY_NOOP)?",
+    "Is the copy-successor capability better delivered by the read or by a count/successor table beside it?",
+    "Which of the 25 relation trits (5 edge types x 5 levels) matter beyond the level-0 successor?",
+    "Should the sub-panel complement (10,440 rows) be a hard no-regression bar?"
+  ],
+  "evidence": [
+    "docs/mechanisms/finite-relational-head.md",
+    "docs/labs/finite-relational-head-design-2026-10-14/README.md",
+    "docs/labs/spiralcore-attention-independent-review-2026-10-14/README.md",
+    "docs/labs/spiralcore-native-attention-review-2026-10-14/README.md",
+    "docs/labs/attention-preflight-2026-10-17/README.md",
+    "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md",
+    "docs/labs/a8-dose-2026-10-19/README.md",
+    "docs/labs/address-cells-preflight-2026-10-19/README.md",
+    "docs/labs/host-diagnostics-2026-10-17/README.md",
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/integration/DECISIONS.md"
+  ],
+  "related": [
+    "flock-read: relation-off is bit-identical to Flock; the FrozenZero control is a trained Flock-equivalent",
+    "route-read: the Stage M2 discriminator compares Relation against Route; Route cannot express copy-successor",
+    "admission: the measured ceiling that stopped both Relation doses",
+    "address-cells: the codebook change that restored starting admission for Relation (A8)",
+    "prime-zeta-codebook: the injective constructor behind the injective-init pre-flight",
+    "object-store: the D34 companion line (exact compressed reads for durable memory), not attention",
+    "discrete-learning: counterfactual choose/apply law and the rows_v1 speedup that train the trits"
+  ],
+  "figure_ideas": [
+    "The sequence 'x A B y z A' drawn as leaves of a small tree. Step 1: leaf A lights with match score 8. Step 2: a +1 successor trit sends a scored arrow one leaf to the right; B's score becomes 8 and it jumps to the top of the ranked list. A toggle sets all trits to zero and the ranking falls back to the Flock order.",
+    "A 5 x 5 grid (edge type by tree level) of ternary dials showing trit values; a slider replays training and shows which dials move off zero (94 accepted relation-trit updates in Dose 1, 87 in A8) and how P_succ admission changes beside it.",
+    "A funnel for the copy-successor target: 14,287 DEV rows, 8,648 where the query recurs, 3,847 where the target is the successor of its latest copy, then how many are admitted into the shortlist at checkpoint 0 (127, 1,351, 2,034 depending on codebook)."
+  ]
+}

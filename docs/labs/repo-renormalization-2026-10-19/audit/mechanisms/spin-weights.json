@@ -1,0 +1,175 @@
+{
+  "id": "spin-weights",
+  "canonical_name": "Spin-native weights (quaternion and icosian maps)",
+  "aliases": [
+    "quaternion weights",
+    "quaternion_weights=all",
+    "Hamilton-block projections",
+    "HamiltonLinear (OP2)",
+    "residual icosian pairs",
+    "icosian Cayley-table products",
+    "icosian-mantissa weights",
+    "spin-snap"
+  ],
+  "plain_what": "Instead of a grid of independent numbers, each 4x4 block of a weight matrix is one quaternion, a four-number turn-and-scale, applied by the Hamilton product. Trained quaternions are then snapped to 120 exact icosahedral rotations plus a small scale, so a block product becomes a table lookup and a few shifts and adds.",
+  "replaces": "arithmetic/matmul",
+  "how_it_works": "Compact form: each projection map (attention q/k/v/out, recurrence in/gate/out, MLP gate/up/down) is stored as Q[out/4, in/4, 4], one quaternion per 4x4 block, so 4x fewer weights. A block acts as the Hamilton left-multiplication matrix L(a,b,c,d) = [[a,-b,-c,-d],[b,a,-d,c],[c,d,a,-b],[d,-c,b,a]]; an output quaternion is y_j = sum_k Q_jk (x) x_k with the input read as in/4 quaternions (16 multiply-adds per block, so no arithmetic is saved on its own). Snap: each trained quaternion becomes m * 2^e * (g1 + g2/4), where g1 is the nearest of the 120 unit icosians (the binary icosahedral group 2I, exact over Z[phi]), g2 the icosian nearest the residual, m a 2-bit mantissa in {1, 1.25, 1.5, 1.75} and e a power of two: about 19 to 20 bits against 128 for f32. A product of two snapped quaternions is a read in the 120x120 Cayley table plus shifts and at most two adds. Activations can be snapped to the same set after training. Trained-in snaps used a straight-through gradient; the GPU snap itself was a matmul against the 120 icosians. The forward first expanded each map to a dense matrix for cuBLAS, then used a fused Hamilton kernel (OP2); both are retired in favour of SpiralCore/FBS selection.",
+  "geometry": "Quaternions and the Hamilton product; the 120 unit icosians = binary icosahedral group 2I = 600-cell vertices; exact Z[phi] coefficients; the 120x120 Cayley (group) table; spin double cover (sign kept exactly).",
+  "code": [
+    {
+      "path": "crates/uor-r4-training/src/geometric_stack.rs",
+      "role": "QuaternionWeights (L297), QuaternionSnap incl. IcosianPair/M1/M2 (L434), quaternion_snap_straight_through (L737), ActivationSnap (L282); quaternion_dense_weight (L782) and hamilton_linear (L19041) are now stubs that refuse to run"
+    },
+    {
+      "path": "crates/uor-r4-training/examples/quaternion-snap.rs",
+      "role": "Post-hoc snap probe used for the spin-snap study"
+    },
+    {
+      "path": "crates/uor-r4-training/src/stack_snap_parity.rs",
+      "role": "D11 snap parity report: exported multiplier-free artifact vs two float comparators"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/group_table.rs",
+      "role": "Exact 2I group composition by table lookup (replaces a 16-multiply Hamilton product)"
+    },
+    {
+      "path": "crates/uor-r4-core/src/native_geometric/learner/hamilton_transport.rs",
+      "role": "Exact Q8 signed-permutation left actions on integer 4-vectors"
+    },
+    {
+      "path": "docs/history/branch-archive/dense-quaternion-projection-inactive-20261012.patch",
+      "role": "Restorable dense quaternion contraction source (CPU and CUDA, adjoints, comparators), preserved inactive"
+    }
+  ],
+  "status": "PARKED",
+  "status_reason": "Quaternion weights and 2-bit-mantissa icosian pairs met their bars (1.5148 BPB, level with dense; docs/labs/icosian-mantissa-2026-10-11), but only as a dense Hamilton-block contraction run through matmul, which D25/D30 ban; the code that ran them now refuses. Single-icosian snaps and trained-in activation snaps lost. The mechanism stays open.",
+  "reopen_conditions": [
+    "A table or Cayley-product path (120x120 read, shifts, adds) that contains no dense all-input contraction, for example the block product applied only to blocks chosen by routing, as #2279 did for projections; it must be a new D37 sheet (fresh FIT, owner release, separately scanned float module, export gap reported).",
+    "An explicit architecture decision for a Hamilton-block trunk: the 18 Oct architect audit says the active discrete model has no dense projections to replace, so reopening is a new architecture. The 18 Oct optimization path already lists 'spinor/quaternion adapters' as a conditional, measured-ceiling-only item.",
+    "Before any negative on activation snapping counts, a soft-to-hard schedule (blend alpha*snap + (1-alpha)*x with alpha rising to 1) compared with the post-hoc +0.0196 BPB, as pre-registered in the activation-snap record.",
+    "A served-form table kernel for exact-set x exact-set block products, measured in tokens/s on the same CUDA harness, with weight bytes per token held equal to the dense control (8.55 MB vs 8.62 MB in the rung-0 study).",
+    "At least 2 seeds with paired per-block analysis (noise 0.0012-0.0041 BPB in these records) and fresh transfer for any KEEP (D22)."
+  ],
+  "rule_compat": {
+    "D11": "Weight side multiplier-free by design (two icosian table entries, a shift, at most two adds); the activation side and the exact x exact table kernel were never built, and export of quaternion-weight models is refused (quaternion_served_refusal).",
+    "D23": "No softmax or squashing in the mechanism itself; snaps use nearest-point selection.",
+    "D30": "Failed as run: the forward expanded each map to a dense matrix and called cuBLAS, and the snap itself was a matmul against the 120 icosians. The OP2 fused kernel is a handwritten dense block contraction, which D25 does not accept as a replacement. Both execution paths now refuse.",
+    "D32_D37": "The historical form is float and was frozen by D32; D37 allows it back as an offline float sheet by re-registration. Exact quaternion/icosian actions with integer-pair Z[phi] coefficients or finite transition tables are named in D32 as a discrete substrate; the active model uses 8D signed-axis transport instead."
+  },
+  "experiments": [
+    {
+      "date": "2026-09-19",
+      "record": "docs/integration/handoff-2026-09-19.md",
+      "configuration": "Exact 2I group table composition replacing the 16-multiply Hamilton product in the serving path",
+      "result": "Exact group table and multiply-free serving path verified; no chat capability, training loop or energy measurement yet",
+      "verdict": "positive",
+      "numbers": "Group_table.rs docstring: the replaced site was about 1,000 multiplies per generated token"
+    },
+    {
+      "date": "2026-09-20",
+      "record": "docs/integration/readout-result-review-2026-09-20.md",
+      "configuration": "PR #1306 prefix recovery: executable CPX2 artifacts with the exact multiplication table bound through a signed-root bijection",
+      "result": "All products checked; old learned function preserved",
+      "verdict": "positive",
+      "numbers": "14,400 products (120x120) checked"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/quaternion-weights-2026-10-11/README.md",
+      "configuration": "quaternion_weights=all, width 256, rrarrarr, 2,000 steps, chat-v0, CPU laptop; dense D256, D152 (equal total params), D128 (equal map weights); 2-3 seeds",
+      "result": "KEEP (decision row 2): beats dense at equal total parameters; 4x fewer map weights costs vs dense at equal width; no arithmetic saved yet (Q256 does D256's 5,537,792 MACs/token)",
+      "verdict": "positive",
+      "numbers": "BPB D256 1.407758, Q256 1.495866, D152 1.513594, D128 1.552003; Q256-D152 = -0.0177 vs bar -0.0059; Q256-D256 = +0.088; noise 0.002929; panel separates sizes (D128-D256 = 0.144); weight bytes 8.55 MB vs 8.62 MB"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/icosian-qat-2026-10-11/README.md",
+      "configuration": "Snap each Q256 quaternion weight to norm x nearest of 120 icosians: post-hoc probe, then trained in with a straight-through gradient (QSe power-of-two norm, QSf f32 norm); CUDA (RTX 4090) training",
+      "result": "Row 4: trained-in snap does not recover the post-hoc cost; direction (about 15 degrees between icosians) is the coarse part",
+      "verdict": "negative",
+      "numbers": "Post-hoc W +0.141 (mean cosine 0.965), WAs +0.265, WAd +0.327, WA +0.475; QSe 1.6344 (+0.140), QSf 1.5976 (+0.103) vs Q256c 1.4944; D152 +0.019; noise 0.0041; norms span 2^-9..2^-2 = 3 bits"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/icosian-pair-2026-10-11/README.md",
+      "configuration": "Residual icosian pair 2^e(g1 + g2/4), with f32 norm (QPf) or power-of-two norm (QP), trained in",
+      "result": "Row 3: pair fixes the direction; power-of-two norm is the remaining cost; host-side snap trained 11x slower",
+      "verdict": "inconclusive",
+      "numbers": "Mean angle 14.75 -> 4.73 degrees (9x less direction error energy); QPf 1.5105 (+0.016), QP 1.5652 (+0.071), QSf +0.103, QSe +0.140; noise 0.0015 (QP), 0.0028 (QPf); 15.6k tok/s"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/icosian-mantissa-2026-10-11/README.md",
+      "configuration": "Pair with 1- or 2-bit-mantissa norm m*2^e*(g1+g2/4); GPU snap bit-identical to host loops; 3 seeds, one RTX 4090",
+      "result": "KEEP for the norm; weight side exact and level with dense at equal parameters; norm cost falls from +0.055 to +0.004",
+      "verdict": "positive",
+      "numbers": "QM2 1.5148 (+0.020 vs Q256c 1.4944), D152 1.5136 (QM2 +0.0012), QM1 1.5312 (+0.037), QP +0.071; noise 0.0012/0.0027; 19-20 bits vs 128; snap 122,000 tok/s vs 15,600 (7.8x); 6 runs 8.5 min, about $0.15"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/activation-snap-2026-10-11/README.md",
+      "configuration": "Snap every quaternion-map input to the same exact set, post hoc and trained in with a straight-through gradient; 3 seeds, one RTX 4090",
+      "result": "Row 3: post-hoc snap gives fully exact maps at small cost; training it in is slightly worse; a configuration result",
+      "verdict": "negative",
+      "numbers": "QM2g 1.5148; post-hoc 1.5343 (+0.0196); trained-in QA 1.5379 (+0.0231); +0.021 vs dense D152 1.5136; noise 0.0017; 42.4k tok/s after a first attempt tripped the 39k throughput gate"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/hamilton-linear-2026-10-13/README.md",
+      "configuration": "OP2: fused Hamilton projection kernel (forward and both adjoints) replacing the expanded dense GEMM; compact weights are already the stored artifact",
+      "result": "Implemented and locally checked; no run, no device receipt, no model numbers; superseded the same week by SpiralCore/FBS selection (#2279) under the dense-contraction ban",
+      "verdict": "blocked",
+      "numbers": "949 lib tests pass (944 + 5 new); agreement with dense expansion < 1e-5; host-executed kernels <= 8.4e-7 peak-scaled; a sign error in the weight-adjoint was caught before delivery"
+    }
+  ],
+  "never_tested": [
+    "A table-lookup (Cayley) kernel for exact-set x exact-set block products, in any form.",
+    "Tokens/s, wall-clock or energy of any quaternion or icosian map; Q256 uses the same 5,537,792 float multiply-adds per token as D256.",
+    "A soft-to-hard schedule for activation snapping, or a finer direction set (third icosian term, or the 2,160-point second E8 shell).",
+    "Any width larger than 256 or any run longer than 2,000 steps; the 4x-fewer-weights penalty (+0.088 BPB) was measured only there.",
+    "Device parity for the OP2 fused kernel (parity tests exist but were skipped; no named device receipt).",
+    "A fresh-transfer measurement for the quaternion or icosian KEEPs (D22 asks for one; none is recorded in the lab records).",
+    "Quaternion maps used inside a routed or selected structure instead of an all-input sum."
+  ],
+  "failed_only_on_configuration": [
+    "Single-icosian snaps (+0.141 post hoc, +0.140 trained in): only 120 directions about 15 degrees apart; the residual pair cut mean angle to 4.73 degrees and recovered most of it.",
+    "Power-of-two norm (+0.055 over an f32 norm): too few levels; a 2-bit mantissa removed it (+0.004).",
+    "Trained-in activation snap with a straight-through gradient (+0.0231 vs post-hoc +0.0196, about 2x noise): one gradient bridge at one scale; the pre-registered soft-to-hard schedule is untried.",
+    "4x fewer map weights at equal width cost +0.088 BPB: a capacity trade at width 256 and 2,000 steps, not a refutation.",
+    "The dense contraction itself was retired by rule (D25/D30), not by a negative result; on 13 Oct three '*snap*' unit tests that exercise it were reported failing by design (recurrence-geometric-gates record); I did not re-run them."
+  ],
+  "open_questions": [
+    "How much of the activation-snap cost is in direction and how much in scale?",
+    "Snap during training or construct directly in served form (the M2 constructor)?",
+    "Is a finer exact group better: 2I x {2^(e/2)}, the 600-cell plus a scale codebook, or the second E8 shell?",
+    "Can a quaternion block product be useful without any all-input sum, i.e. can routing choose which blocks multiply?",
+    "Do the rung-0 gains (equal weight bytes, +0.018 BPB over dense) survive at scale and under D37 offline float training with an export gap?"
+  ],
+  "evidence": [
+    "docs/mechanisms/spin-native-weights.md",
+    "docs/labs/quaternion-weights-2026-10-11/README.md",
+    "docs/labs/icosian-qat-2026-10-11/README.md",
+    "docs/labs/icosian-pair-2026-10-11/README.md",
+    "docs/labs/icosian-mantissa-2026-10-11/README.md",
+    "docs/labs/activation-snap-2026-10-11/README.md",
+    "docs/labs/hamilton-linear-2026-10-13/README.md",
+    "docs/labs/spiralcore-fbs-projection-2026-10-12/README.md",
+    "docs/labs/course-correction-2026-10-18/audits/d37-reactivation-architect.md (row: Spin-native weights)",
+    "docs/labs/course-correction-2026-10-18/audits/mechanism-census.md (row 59)",
+    "docs/integration/DECISIONS.md (D25 lines 1214-1300; D37)"
+  ],
+  "related": [
+    "spiralcore-fbs: replaced the dense quaternion sum with one selected, transported 8D carrier per output block",
+    "hamilton-gate: the same Hamilton product used as a gate on 4-blocks",
+    "recurrence-gates: quaternion scan carries state by the same product; D1 kept it (identity transport costs 0.07 nats)",
+    "ternary-xor: the competing multiplier-free weight alphabet, a scalar quantiser outside Z[phi]",
+    "discrete-learning: the active model uses 8D signed-axis transport and the shared integer writer instead of quaternion maps",
+    "e8-orbit-memory: exact E8 addresses, the other half of the spin-native design",
+    "hopf-observation: quaternions reach S3 -> S2 observation"
+  ],
+  "figure_ideas": [
+    "A sphere with the 120 icosian directions as dots: draw one trained quaternion as an arrow, snap it to the nearest dot (about 15 degrees off), then add the second residual icosian and show the arrow land within 4.7 degrees; the cosine rises from 0.965 as the error ring shrinks.",
+    "The 120x120 Cayley table as a grid heat-map: choose weight icosian i and input icosian j, light cell (i,j) to read the product icosian k, then show the mantissa and exponent as a shift and one or two adds, so one block product is one table read.",
+    "A bar chart of held-out BPB from the records: D256 1.4078, Q256 1.4959, D152 1.5136, QM2 1.5148, QM2 with snapped activations 1.5343, D128 1.5520, single-icosian trained snap 1.6344, with the equal-weight-bytes pair highlighted."
+  ]
+}

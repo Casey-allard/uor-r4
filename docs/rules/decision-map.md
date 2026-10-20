@@ -81,7 +81,7 @@ Counting the rows above (excluding the I1 to I5 row and D42): 14 decisions kept,
 | Charter | Adopted 19 October 2026. | `CHARTER.md`; [change log](changes.md) |
 | Live decision index | Each entry keeps its heading, a one-sentence summary and a fate line. | `docs/integration/DECISIONS.md` |
 | Full original text | Preserved unchanged in the archive. | [archived original](../../archive/integration/DECISIONS-2026-10-19.md) |
-| Rule-by-rule mapping | Working document of 258 individual rules to charter clauses, kept in the audit directory. | `local/renorm/audit/charter/rule-map.md` |
+| Rule-by-rule mapping | Working document of 258 individual rules to charter clauses, kept in the audit directory. | [`rule-map.md`](../labs/repo-renormalization-2026-10-19/audit/rule-map.md) |
 
 ## Go deeper
 

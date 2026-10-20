@@ -1,0 +1,292 @@
+{
+  "id": "r4g1-graph",
+  "canonical_name": "R4G1 compiled lookup graph (teacher-to-tables)",
+  "aliases": [
+    "R4G1",
+    "TLA / TLA6 / TLA7 runtime",
+    "transformerless graph",
+    "graph compiler / certifier",
+    "frozen no_std kernel",
+    "skip-mix lane (RF-31)",
+    "segment lane",
+    "trajectory routing lane",
+    "Phase B shift-add store",
+    "Geometric Intelligence Programme S0-S7 stages"
+  ],
+  "plain_what": "The project's first approach. Watch a conventional language model, record what it prefers in each context as a huge file of lookup tables, then answer by reading those tables with whole-number adds and comparisons only. It ran with no multiplication and matched the teacher on repetitive text, but never wrote coherent text on its own.",
+  "replaces": "whole-model engine",
+  "how_it_works": "Offline, a teacher transformer (SmolLM2, GPT-2) is run over a corpus and its preferences are recorded. A compiler turns them into an R4G1 graph: a packed, content-addressed file holding records keyed by hashed context codes (recent-token n-grams and prefix regions), a cover of regions induced by entropy-gain splits, pre-quantised integer residual score tables per region, optional extra lanes (skip-mix candidate injection, segment, trajectory), and certificates comparing the graph to the teacher on held-out positions. At run time the engine hashes the recent tokens into a context code, takes the exact-context record or the best-matching region (nearest match over compact Hamming signatures, scored by a shift-add dot product in place of a multiply), accumulates the integer residuals in Q16.16 with saturation, counts each evidence contribution once, breaks ties deterministically and emits the best token. The frozen kernel contract permits only XOR, AND, OR, shifts, rotates, popcount, integer add and subtract, comparisons and table reads, with no float, multiply, divide or allocation after setup. Compilation, certification and every teacher forward pass are offline and unrestricted. Geometry (E8 and Hopf codes, zeta and prime routing, tropical routes) was tried as an indexing or scoring layer inside this frame.",
+  "geometry": "Prime and zeta-phase routing keys, Hopf S3-to-S2 observation, E8-256 and 120-root codebooks for store vectors, H4/icosian frames, tropical (max-plus) route composition, VP-tree over Hamming signatures, Furey/Cayley-Dickson algebra modules (never wired into inference). Only the E8 codebook (beat sign codes at matched bits) and the integer shift-add dot kept measured value; the rest tied or lost.",
+  "code": [
+    {"path": "crates/uor-r4-graph-format/src/lib.rs", "role": "R4G1 container: no_std fixed-width types, two-stage validation, canonical serializer, GraphView (11,450 lines, 187 tests); frozen"},
+    {"path": "crates/uor-r4-graph-runtime/src/engine.rs", "role": "Multiplier-free table execution kernel R4G1Runtime::predict_step (4,946 lines, 53 tests); frozen"},
+    {"path": "crates/uor-r4-graph-format/src/scoring_semantics.rs", "role": "Q16.16 saturating score rules and no-double-counting accumulator"},
+    {"path": "crates/uor-r4-graph-compiler/src", "role": "Cross-compiler from a transformer source model to an R4G1 graph, 28 stages (34,424 lines); historical, does not build against retired core modules (D36)"},
+    {"path": "crates/uor-r4-graph-certify/src", "role": "Certifier/verifier of compiled graphs against the teacher, route-cost analysis (25,799 lines); historical"},
+    {"path": "crates/uor-r4-graph-cli/src", "role": "Transformerless CLI library: convert, certify, scenarios, cover-sweep, runtime corpus (20,184 lines); historical"},
+    {"path": "crates/uor-r4-model-source/src", "role": "Teacher side: Rust port of a Llama forward pass plus Safetensors/SmolLM2 adapters (27,486 lines); comparator"},
+    {"path": "crates/uor-r4-proof-model/src/kani_proofs.rs", "role": "Executable proof specification and Kani harness for allocation, bounds, top-k determinism (frozen)"},
+    {"path": "crates/uor-r4-core/src/transformerless/runtime.rs", "role": "Original in-core R4G1 runtime and scorer; retired, replaced in the selected build by native_mod.rs (tokenizer APIs only)"},
+    {"path": "crates/uor-r4-api/src", "role": "Typed facade over compile/engine/serving/release-bundle APIs (17,920 lines); root crate r4 CLI and wasm facade also depend on the retired surface"},
+    {"path": "docs/inference_contract.md", "role": "Normative permitted-operation set and zero-allocation lifecycle for the frozen runtime"}
+  ],
+  "status": "PARKED",
+  "status_reason": "PARKED: compiled gains stayed teacher-forced and never became coherent free-running text (docs/free_running_reachability_840.md, docs/trajectory_routing_946.md INERT); the compiler path needs a banned transformer teacher and its float/softmax modules were retired by D36. Format and runtime kernel stay as a frozen, tested multiplier-free reference.",
+  "reopen_conditions": [
+    "An owner decision on repair-or-retire of graph-compiler, graph-certify, api, proof-model and the root crate, which D36 item 3 flagged and left open.",
+    "A compile source that is not a banned transformer teacher: for example tables read out of the native discrete model, or the single donor corpus admitted by D41 (hard targets only, never for graph compilation unless a new decision says so).",
+    "A fresh D22 pre-registration with TEST FITNESS: FIT, at least two seeds, scored against lawful native references (D28) on free-running generation rather than teacher-forced agreement.",
+    "Adoption of the packed graph container and frozen kernel as the D11 export container for M4, with the export gap reported (D37).",
+    "Any added lane must show a served-token change at deployed reachability (the trajectory lane changed zero tokens)."
+  ],
+  "rule_compat": {
+    "D11": "The frozen kernel is the ancestor of D11: only bitwise ops, shifts, popcount, integer add and subtract, comparisons and table reads, no float, multiply, divide or steady-state allocation (docs/inference_contract.md). Compliant as a kernel. Lookup is keyed by context code, but no per-token parameter-access count for the runtime was found in the records read, so D5-b status is unmeasured.",
+    "D23": "Runtime scoring is softmax-free by contract (integer saturating residuals, docs/scoring_semantics.md). The offline path used teacher probabilities and log-probabilities (docs/probability_metadata_127.md); the retired transformerless compiler and runtime modules carry float and softmax content that D36 item 2 says is D23/D32-banned and may not be restored.",
+    "D30": "Compiling needs a transformer teacher forward pass (Llama port, uor-matmul exact GEMM), which D25/D30 ban anywhere and D28 bans as a comparator or teacher. The frozen runtime itself contains no matmul (docs/matrix_operation_census.md).",
+    "D32_D37": "D37 would allow float offline compilation, but the transformer teacher and probability machinery are separately banned. Nothing here is on the discrete GPU-only path, and the graph crates no longer build against the retired core."
+  },
+  "experiments": [
+    {
+      "date": "2026-07-23",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0102-main-carries-99-s-fake-interaction-residual-metric-and-80-s.md",
+      "configuration": "Pinned honest harness over 16 interaction-residual candidate pairs (date is the issue opening date)",
+      "result": "Every candidate degraded held-out scoring; a metric reading zero had hidden a real loss and the fake metric was reverted from main.",
+      "verdict": "negative",
+      "numbers": "Rule 1 +0.64 to +2.25 bits/token (#102)"
+    },
+    {
+      "date": "2026-07-28",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0243-f32-residual-vq-store-mul-free-graded-signature-query-assign.md",
+      "configuration": "Phase B: shift-add dot product plus metric-consistent beam over a graded store (date is the issue opening date)",
+      "result": "A much smaller integer store with zero multiplies matched and slightly beat the larger earlier store on the same measure.",
+      "verdict": "positive",
+      "numbers": "30.7 / 34.3 top-1 / agreement, 47,476 keys, multiplies 0, vs 28.2 / 31.9 for the previously shipped store (134,733 keys)"
+    },
+    {
+      "date": "2026-07-29",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0280-r4g1-graph-readout-predicts-0-0-on-held-out-while-the-same-s.md",
+      "configuration": "R4G1 graph path versus the same store read through the store path, 1,002-position subsample (date is the issue opening date)",
+      "result": "A conversion/readout defect: same bytes, wrong decoder grammar; the graph scaffold was demoted and the store path unaffected.",
+      "verdict": "negative",
+      "numbers": "graph path 0.0% top-1 / 0.0% agreement vs store path 28.2% / 31.9%, reproduced bit-for-bit 3 times"
+    },
+    {
+      "date": "2026-08-01",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0327-decision-adopt-300k-token-corpus-as-next-pinned-era-1-8pp-me.md",
+      "configuration": "Corpus-scale sweep 150k to 500k records, shipped integer runtime against an f32 ceiling (date is the issue opening date)",
+      "result": "No knee: gains continued log-linearly, and at 500k the integer runtime already beat the 150k f32 ceiling.",
+      "verdict": "positive",
+      "numbers": "shipped 33.4 / 37.3 at 500k vs f32 ceiling 32.1 / 36.4 at 150k; about +1.5 to +1.8 points per doubling"
+    },
+    {
+      "date": "2026-08-01",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0330-design-simd-shift-add-dot-scan-contract-legal-serving-speedu.md",
+      "configuration": "SIMD vectorization of the shift-add dot scan, compact one-term layout (issues #331 to #352; date is the issue opening date)",
+      "result": "The isolated criterion was met but the end-to-end criterion was not; closed because the feeding component was at break-even.",
+      "verdict": "inconclusive",
+      "numbers": "3.82x isolated (criterion at least 3x) met; about 1.3-1.56x end to end vs at least 2x not met"
+    },
+    {
+      "date": "2026-08-03",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0392-feat-certify-276-design-p-lane-b-rows-measured-recorded-nega.md",
+      "configuration": "Phase-clock Design P rows against the shipped row A",
+      "result": "Every phase-clock row fell far below the shipped store; phase channel retired from this design.",
+      "verdict": "negative",
+      "numbers": "A-P 12.5% and A-P-with-G 16.7% top-1 vs shipped A 34.7%"
+    },
+    {
+      "date": "2026-08-05",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0428-test-certify-421-m-r1-router-anchor-reconnection-positive-si.md",
+      "configuration": "Router-selected anchors feeding the graph, with unigram, shuffled and true-anchor controls (date is the PR opening date)",
+      "result": "Positive signal that the router carries information beyond controls; still far below true anchors.",
+      "verdict": "positive",
+      "numbers": "router anchors 7.6% free top-1 vs unigram 2.1%, shuffled 3.1%, true anchors 31.5%"
+    },
+    {
+      "date": "2026-08-05",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0430-test-router-422-hopf-retrieval-quality-recorded-negative-occ.md",
+      "configuration": "Hopf signed projection as a retrieval index (date is the PR opening date)",
+      "result": "Occupancy spread was real, retrieval value was not.",
+      "verdict": "negative",
+      "numbers": "6.1x occupancy spread; sector-filtered MRR 0.0045 vs 0.0743"
+    },
+    {
+      "date": "2026-08-05",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0440-test-router-434-band-matched-controls-zeta-claim-re-attribut.md",
+      "configuration": "Band-matched controls for the zeta-grid routing headline (date is the PR opening date)",
+      "result": "The zeta-grid headline was a storage artifact, re-attributed to content vectors and banding.",
+      "verdict": "negative",
+      "numbers": "0.89 MRR re-attributed: full-width content vectors scored 0.8948; banding cost about 0.66 MRR"
+    },
+    {
+      "date": "2026-08-06",
+      "record": "docs/reconstruction_null_456.md",
+      "configuration": "Reconstruction metric with a deranged-emission null and a unigram floor, 20,000 held-out positions of the 500k fixture, default cover (42 regions)",
+      "result": "The metric is not vacuous (null passes), but graph-only reconstruction sits below a unigram baseline, so optimizing reconstruction bits as a split criterion is not worth building.",
+      "verdict": "negative",
+      "numbers": "real tables 0.0148 top-1 / 16.3209 bits; deranged 0.0034 / 19.3144; unigram floor 0.0636 / 8.7059"
+    },
+    {
+      "date": "2026-08-06",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0460-cover-split-criterion-and-codebook-fit-the-two-capacity-leve.md",
+      "configuration": "Capacity-scaled cover and codebook fit, two capacity levers (date is the issue opening date)",
+      "result": "More regions improved region-path accuracy but serving impact stayed capped because exact-context lookup dominates; codebook fit missed its exit rule.",
+      "verdict": "negative",
+      "numbers": "regions 48 to 110, region-path top-1 +5.0 points, serving capped near +0.15 points; codebook fit +0.44 points (2.1 SE) vs +1.0 exit rule"
+    },
+    {
+      "date": "2026-08-08",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0509-broad-corpus-program-observe-smollm2-360m-on-simple-wiki-doe.md",
+      "configuration": "SmolLM2-360M observed on broad text, Gate C on 4,358 held-out positions (date is the issue opening date)",
+      "result": "Broad-corpus ceiling set by the teacher, not the store; controls (oracle-right 15.9%, shuffled-class null 21.5%) recorded alongside.",
+      "verdict": "inconclusive",
+      "numbers": "Rule 1+2 10.19% / 12.72 bits; latent-mix 29.0% / 11.71; TLA3 baseline 25.70% / 14.70; teacher floor 3.60 bits"
+    },
+    {
+      "date": "2026-08-12",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0626-router-tropical-max-plus-multi-hop-route-composition-p-4-leg.md",
+      "configuration": "Tropical (max-plus) multi-hop route composition against a root null (date is the issue opening date)",
+      "result": "Negative; the transition graph was dominated by self-loops; the kernel was retained dormant.",
+      "verdict": "negative",
+      "numbers": "1-hop and 2-hop tropical 14.51 bits vs null 8.57"
+    },
+    {
+      "date": "2026-08-17",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0755-compiler-load-corpus-bytes-runtime-history-token-assume-per.md",
+      "configuration": "Recompile after fixing corpus record ordering (date is the issue opening date)",
+      "result": "Interleaved corpus record order was a major cause of degenerate output; the recompile became grammatical but prompt-insensitive.",
+      "verdict": "positive",
+      "numbers": "no headline number; see also #784: full-depth context-code collision 0.0%, failure is argmax over converging marginals"
+    },
+    {
+      "date": "2026-08-18",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0804-research-decide-the-dormant-route-attention-family-604-605-6.md",
+      "configuration": "Real-teacher route-fit gate for the dormant route-attention family (date is the issue opening date)",
+      "result": "Gate failed and the instrument was vacuous because teacher attention supports are temporally smooth; only layer 9 head 0 behaved like a pointer.",
+      "verdict": "diagnostic-stop",
+      "numbers": "route-fit gate FAIL; collision screen #722 UNAVAILABLE (no registered pinned-real trace bundle)"
+    },
+    {
+      "date": "2026-08-19",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0821-tracker-s0-truth-baseline-conformance-and-normative-inferenc.md",
+      "configuration": "S0 truth baseline: canonical SmolLM2-360M bundle, 72,130 held-out positions (date is the issue opening date; reconciled in #933)",
+      "result": "S0 promoted at its exact scope. #933 then reopened its serving premise (strict normative serving was not established) and ratified one R4G1Runtime selector contract for the exact bundle; historical certifier rows are comparators, not a serving verdict.",
+      "verdict": "positive",
+      "numbers": "21,293/72,130 = 29.52% vs TLA 28.12%, paired +13.988 permille [11.057, 16.919]; canonical Rule 1+2 24.393% vs TLA 28.121% (docs/normative_r4g1_quality_933.md)"
+    },
+    {
+      "date": "2026-08-19",
+      "record": "docs/segment_lane_836_verdict.md",
+      "configuration": "Segment lane lowered into the deployed learned-table path; reachability arithmetic then a real-bundle spot check (docs/segment_lane_886_spotcheck.md)",
+      "result": "Fully lowered and safe but its reachable ceiling is below the pre-registered causal floor, and the deployed lane followed only 1 of 10 favourable minimal pairs.",
+      "verdict": "negative",
+      "numbers": "ceiling 19.0 permille vs 20 permille floor; 1/10 faithful vs bar 6/10"
+    },
+    {
+      "date": "2026-08-19",
+      "record": "docs/selective_calibration_837.md",
+      "configuration": "Artifact-only confidence calibrator and the sanctioned content-evidence refit against frozen gates",
+      "result": "No calibrator met the release or research gates; semantic abstention not established.",
+      "verdict": "negative",
+      "numbers": "NO CALIBRATOR ESTABLISHED (stage S2 final LIMIT, #939)"
+    },
+    {
+      "date": "2026-08-19",
+      "record": "docs/bounded_semantic_transitions_843.md",
+      "configuration": "Bounded typed planner (RF-33) on 20 joint-split cells, Holm-corrected",
+      "result": "Planner clears the effect floor where greedy fails but not where greedy already solves; neither promoted nor refuted.",
+      "verdict": "inconclusive",
+      "numbers": "bounded breadth-first rejects the null in 12 of 20 joint-split cells; not on the 8 greedy-solvable cells"
+    },
+    {
+      "date": "2026-08-21",
+      "record": "docs/skipmix_lane_897_spotcheck.md",
+      "configuration": "Deployed one-token skip-mix lane on the real bundle, favourable minimal pairs",
+      "result": "Below the predeclared faithfulness bar; #904 traced the gap to an eight-token candidate cap (35 of 87 pairs structurally unreachable) and #906 let skip-mix inject candidates.",
+      "verdict": "negative",
+      "numbers": "41 of 87 pairs followed vs bar 53 of 87 (60%); after injection fix projected 58 of 87 (docs/skipmix_candidate_injection_906.md)"
+    },
+    {
+      "date": "2026-08-21",
+      "record": "docs/skipmix_endtoend_causal_908.md",
+      "configuration": "End-to-end causal run of the injected skip-mix lane against the 20 permille floor, R4Engine reference harness",
+      "result": "Cleared the floor on the R4Engine reference harness. #933 recorded that scope as reference/off-serving, because R4G1Runtime did not yet consume the sections and the RF-31 registration overclaimed deployed-serving reachability.",
+      "verdict": "positive",
+      "numbers": "+28.45 permille [25.57, 31.32]; 21,424/72,130 = 29.702%"
+    },
+    {
+      "date": "2026-08-21",
+      "record": "docs/free_running_reachability_840.md",
+      "configuration": "Correctable-footprint measurement of free-running trajectory errors on the promoted skip-mix representation",
+      "result": "The footprint a corrective observation could address is about 100x below the required drop, so the corrective rounds were not launched.",
+      "verdict": "negative",
+      "numbers": "footprint about 1 permille (3/3200 served steps) vs 100 permille required"
+    },
+    {
+      "date": "2026-08-22",
+      "record": "docs/history/github-archive-2026-10-15/markdown/0929-research-845-the-equal-budget-measurement-and-the-no-geometr.md",
+      "configuration": "Equal-budget measurement of geometric arms on both pre-registered axes (W(3,3) geometry among them)",
+      "result": "Pre-registered negative branch: no geometric advantage under equal budgets.",
+      "verdict": "negative",
+      "numbers": "verdict NO GEOMETRIC ADVANTAGE (#929); reasoning #846 NOT ESTABLISHED, final grid NOT_RUN"
+    },
+    {
+      "date": "2026-08-25",
+      "record": "docs/trajectory_routing_946.md",
+      "configuration": "Trajectory-signature routing compiled into the exact schema-2 #933 bundle, 64-position canary and production census",
+      "result": "Compiled and reached in production but changed zero candidate lists and zero served tokens; verdict INERT.",
+      "verdict": "negative",
+      "numbers": "20/20 canary positions reached the lane; 0 candidate-list changes; 0 served-token changes; selector top-1 21,293/72,130"
+    }
+  ],
+  "never_tested": [
+    "A graph compiled from a non-transformer source, such as exact tables read out of the native discrete model.",
+    "Free-running coherence of any compiled bundle: the corrective-observation rounds were never launched (docs/free_running_reachability_840.md).",
+    "Measured laptop energy or tokens/s of the frozen R4G1 runtime as a serving engine on the current machine.",
+    "Stages S3 to S7 of the completion plan; reasoning (#846) is NOT ESTABLISHED and its final grid NOT_RUN.",
+    "Learned (rather than compiled) routing inside the graph.",
+    "A collision screen on a registered pinned-real trace bundle (#722 UNAVAILABLE, not a negative)."
+  ],
+  "failed_only_on_configuration": [
+    "Graph readout 0.0% (#280): a decoder grammar defect on the same bytes that read 28.2% through the store path; says nothing about the graph format.",
+    "Skip-mix 41/87 (#897): caused by an eight-token candidate cap, fixed in #906 (projected 58/87).",
+    "Segment lane (#836): the reachable ceiling 19.0 permille sits just under a 20 permille floor on this bundle.",
+    "Trajectory lane INERT (#946): measured on one exact bundle where exact-context records dominate; the lane was compiled and reached but never changed a token.",
+    "Tropical routes (#626): the transition graph was self-loop dominated on that fixture.",
+    "Route-fit gate (#804): instrument vacuous because teacher attention is temporally smooth; the record calls it unreachable, not a verdict on route attention.",
+    "Phase-clock Design P rows (#392): rows built for that one design fell short; the phase idea survives elsewhere (zeta phases in the prime-zeta codebook)."
+  ],
+  "open_questions": [
+    "Is the packed R4G1 container a good export format for the discrete model, or should M4 use UORLUT01 only?",
+    "How much of the 29.5% ceiling is exact-context lookup (an n-gram table) rather than anything graph-specific?",
+    "Which of the 31 conformance ids registered for RF-31 are still true after #933 reclassified the lane as off-serving?",
+    "Do the Furey and Cayley-Dickson modules, never wired into inference, deserve a first real wiring test?"
+  ],
+  "evidence": [
+    "docs/inference_contract.md",
+    "docs/scoring_semantics.md",
+    "docs/normative_r4g1_quality_933.md",
+    "docs/matrix_operation_census.md",
+    "docs/project_baseline_audit_2026_08_18.md",
+    "docs/trajectory_routing_946.md",
+    "docs/free_running_reachability_840.md",
+    "docs/reconstruction_null_456.md",
+    "docs/skipmix_endtoend_causal_908.md",
+    "docs/integration/DECISIONS.md (D11, D28, D30, D36)",
+    "local/renorm/audit/eras/eras.md (eras 01 to 10)"
+  ],
+  "related": [
+    "lut-serving: the later integer serving runtime that carries the same no-multiply rule to learned stacks",
+    "prime-zeta-codebook: prime and zeta routing first appeared here as graph keys",
+    "route-read: router anchors and the VP-tree were this line's early read",
+    "e8-orbit-memory: E8-256 store codebooks beat sign codes at matched bits here",
+    "hopf-observation: Hopf retrieval index measured negative here",
+    "native-geometric: the native Rust engine that replaced compiled tables with learned state",
+    "geometric-stack: the learned float model that replaced the teacher-compiled graph"
+  ],
+  "figure_ideas": [
+    "A teacher-as-notebook picture: a large model's preferences on thousands of contexts being copied into rows of a table, then at run time one context hashed to a row and scored by additions, with the multiply symbol crossed out.",
+    "A ceiling bar chart on the broad-text panel: unigram floor 26.82%, any-k oracle 27.51%, shipped 29.52%, teacher agreement, so a reader sees how little room the store had under a lookup-only design.",
+    "A scaling curve of top-1 against corpus size (150k to 500k records) on a log axis with no knee, with the integer runtime line crossing above the older float ceiling."
+  ]
+}

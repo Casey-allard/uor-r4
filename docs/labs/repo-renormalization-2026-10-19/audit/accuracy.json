@@ -1,0 +1,273 @@
+{
+  "method": "Each sample path from meta/sample.txt was matched to its catalog row by .path in records/*.jsonl and checked against the source file in the origin/main worktree. Scored fields: date, lab, line, mechanisms, outcome, headline_numbers, one_line for lab-record rows (7 fields); date, line, mechanisms, outcome, one_line for doc rows, whose schema has no lab or headline_numbers field (5 fields). Major = wrong outcome/verdict, wrong number, or misleading one_line. Milestone mismatches are listed as minor notes but excluded from error_rate_fields because milestone is not a scored field.",
+  "sample_size": 29,
+  "sample_note": "meta/sample.txt lists 29 paths, not 30; all 29 were found in the catalog.",
+  "fields_scored": 185,
+  "fields_wrong": 17,
+  "records_with_any_error": 14,
+  "records_with_major_error": 2,
+  "error_rate_records": 0.069,
+  "error_rate_fields": 0.092,
+  "records": [
+    {
+      "path": "docs/labs/a8-current-status-scope-2026-10-19/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/answer-span-supervision-2026-10-09/README.md",
+      "errors": [
+        {
+          "field": "milestone (not scored)",
+          "catalog": "M2",
+          "source": "Issue: #2029 (line 3); #2029 is M1",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/labs/budget-show-port-2026-10-14/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/copy-span-oracle-2026-10-12/README.md",
+      "errors": [
+        {
+          "field": "milestone (not scored)",
+          "catalog": "M2 / line m2-exact-memory",
+          "source": "References #2029 (M1; pre-registered in #2029 comment 6119323722)",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/labs/coverage-census-2026-10-18/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/decisions-d35-d36-2026-10-15/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/early-query-causal-2026-10-09/README.md",
+      "errors": [
+        {
+          "field": "outcome",
+          "catalog": "inconclusive",
+          "source": "KEEP the bounded early-cue influence witness; the prospective branch 'distinction reaches scores but the wrong token wins' was the one observed. A definite pre-registered diagnostic branch, not an inconclusive reading (one_line already describes it correctly).",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/labs/harness-rust-port-2026-10-13/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/k16-current-status-scope-2026-10-19/README.md",
+      "errors": [
+        {
+          "field": "line",
+          "catalog": "harness-governance (milestone M1)",
+          "source": "Docs-upkeep record for the K16 M1 experiment; its sibling a8-current-status-scope-2026-10-19 (same kind of unit) is catalogued m1-discrete-attention. Inconsistent line choice.",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/labs/m2-bottleneck-resume-2026-10-10/README.md",
+      "errors": [
+        {
+          "field": "mechanisms",
+          "catalog": "[geometric-stack]",
+          "source": "Model is the native Source48/Generate64 parent; only the 115,200 cross-state Q4 coefficients learn, driven by signed H4 relatives of the post-bridge state. This is not the 214M P/Q float stack that geometric-stack denotes; native-geometric/carrier-credit fit (as used for the sibling early-query record).",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/labs/native-relation-learning-path-2026-10-17/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/object-store-peer-concurrency-2026-10-17/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/owner-ruling-and-storage-2026-10-12/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/port-check-arena-2026-10-13/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/prefix-vector-run-2026-10-09/README.md",
+      "errors": [
+        {
+          "field": "headline_numbers",
+          "catalog": "combined CE 5.1115 / 3.6117 / 2.2774",
+          "source": "5.111520730202647 / 3.611677384164191 / 2.277403894726836 (rounded, not exact; values otherwise agree)",
+          "severity": "minor"
+        },
+        {
+          "field": "one_line",
+          "catalog": "all four candidate moves broke protected answers",
+          "source": "Radii 1 and 2 hit a first protected veto; radii 4 and 7 failed the reference gate with protected guards unexamined, and the record says objective-gate rejection 'does not establish any guard result'. Verdict (REJECT, original stays 8/512) is right.",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/labs/quaternion-weights-2026-10-11/README.md",
+      "errors": [
+        {
+          "field": "one_line",
+          "catalog": "...with 4x fewer matrix weights than equal-width dense, but no compute saved yet",
+          "source": "4x fewer matrix weights than the equal-width dense model 'at a cost of 0.088 BPB' (Q256 1.495866 vs D256 1.407758); the one_line omits the cost, so the weight saving reads as free.",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/labs/roster-port-findings-2026-10-14/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/span-extraction-2026-10-09/README.md",
+      "errors": [
+        {
+          "field": "mechanisms",
+          "catalog": "[pointer-key, read-binding]",
+          "source": "A serving-time read-out rule over the pointer's own locked runs; no teacher supervision of read binding is involved, so read-binding does not apply.",
+          "severity": "minor"
+        },
+        {
+          "field": "milestone (not scored)",
+          "catalog": "M2",
+          "source": "References #2029, #2032 (M1, M4)",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/labs/starling-readout-2026-10-12/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/labs/vsa-review-2026-10-09/README.md",
+      "errors": []
+    },
+    {
+      "path": "docs/attested_broad_baseline_833.md",
+      "errors": [
+        {
+          "field": "outcome",
+          "catalog": "blocked",
+          "source": "Header verdict HELD is superseded inside the same file: 'Update 2026-08-20 (rebuild executed) - clean #755-native bundle built; baseline RATIFIED' (Gate C RATIFIED (RETAIN)), then a 2026-08-24 scope correction (#933: served-token quality NOT ESTABLISHED) and a 2026-08-25 #933 outcome (R4G1Runtime greedy census 21,293/72,130 = 29.5203%). Final state is a ratified, scope-corrected baseline, not blocked.",
+          "severity": "major"
+        },
+        {
+          "field": "one_line",
+          "catalog": "the expensive rebuild is held, cheap instrument verdicts recorded",
+          "source": "The rebuild was executed and the #516 baseline RATIFIED (RETAIN) on 2026-08-20; one_line describes only the superseded preflight state.",
+          "severity": "major"
+        }
+      ]
+    },
+    {
+      "path": "docs/hologram_formal_analysis_direction.md",
+      "errors": [
+        {
+          "field": "date",
+          "catalog": null,
+          "source": "'repository index for the July 2026 formal-analysis direction' (date is stated at month precision)",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/native_geometric_jepa_research_973.md",
+      "errors": []
+    },
+    {
+      "path": "docs/native_geometric_text_attention_973.md",
+      "errors": [
+        {
+          "field": "date",
+          "catalog": null,
+          "source": "Receipts path '.uor-handoff/2026-09-12-codex-v7/...' dates the result to 2026-09-12",
+          "severity": "minor"
+        },
+        {
+          "field": "mechanisms",
+          "catalog": "[route-read, read-binding]",
+          "source": "Implemented in crates/uor-r4-core/src/native_geometric/text_attention (learned Boolean-table byte/EOS writer + cursor); native-geometric is the primary mechanism and is missing.",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/r4_native_bridge_1102_harness_review.md",
+      "errors": [
+        {
+          "field": "line",
+          "catalog": "m2-exact-memory",
+          "source": "2026-09-03 review of the #1086 R4 reference/native comparison harness; predates the M2 milestone line by a month. native-geometric-sept (or r4g1-transformerless) fits.",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/r4_zoology_language_interface_1077.md",
+      "errors": [
+        {
+          "field": "outcome",
+          "catalog": "plan",
+          "source": "'## Observed result (2026-09-02) LANGUAGE_INTERFACE_HELDOUT_PASSED': 512-update fit completed; 25,600 primary answers and 358,400 role decisions all correct across construction and four development views incl. both withheld wordings; delivery review verified all 66 criteria. Should be positive.",
+          "severity": "major"
+        },
+        {
+          "field": "one_line",
+          "catalog": "Frozen contract ... tested on withheld wording; no fit yet.",
+          "source": "The fit ran and passed held-out wording (LANGUAGE_INTERFACE_HELDOUT_PASSED); 'no fit yet' is false.",
+          "severity": "major"
+        },
+        {
+          "field": "line",
+          "catalog": "m2-exact-memory",
+          "source": "2026-09-02 R4 zoology clause-role reader under #973 ('#973 stays open'); predates M2. native-geometric-sept fits.",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/integration/astra-temporary-cover-2026-09-28.md",
+      "errors": []
+    },
+    {
+      "path": "docs/integration/deepseek-grounded-lexical-realization-step-2026-09-22.md",
+      "errors": [
+        {
+          "field": "line",
+          "catalog": "m1-discrete-attention",
+          "source": "2026-09-22 brief for learned lexical realization over the scoped_memory/grounded_session learner (owning issues #820/#973); predates the D32 discrete substrate. native-geometric-sept fits.",
+          "severity": "minor"
+        }
+      ]
+    },
+    {
+      "path": "docs/integration/frontier-geometric-transfer-synthesis-2026-09-27.md",
+      "errors": []
+    }
+  ],
+  "systematic_issues": [
+    "Append-only September docs are catalogued from their header status, not their final appended result: #833 (HELD header, later rebuild executed and RATIFIED) and #1077 (contract header, later Observed result HELDOUT_PASSED) both get pre-result outcome and one_line. Both major errors in the sample are this pattern. 22 of the 155 doc-* records with outcome plan/blocked contain a Result/Outcome-type heading; these are unverified candidates for the same error (list reproducible by grepping those paths for '^#+ .*(Observed result|Actual result|Result|Outcome|rebuild executed)').",
+    "Anachronistic research lines for September docs: records dated 2026-09-02..09-22 are assigned October-era lines (m2-exact-memory, m1-discrete-attention) instead of native-geometric-sept / r4g1-transformerless (#1077, #1102, deepseek-grounded-lexical-realization).",
+    "Doc-kind rows have no lab or headline_numbers fields, and date is null when the source gives it only at month precision or in an evidence path (hologram: July 2026; text_attention_973: 2026-09-12). Results stated in such docs (64/64, 25,600 answers) are only in one_line, not machine-readable.",
+    "Milestone field for October pointer-copy records (answer-span-supervision, copy-span-oracle, span-extraction) is M2 although each source references #2029 (M1); the vocab maps pointer work to m2-exact-memory, so line and milestone diverge from the source's own filing.",
+    "Mechanism tagging is inconsistent for the native Source48/Generate64 M2 model: geometric-stack (m2-bottleneck-resume) vs native-geometric/carrier-credit (early-query-causal) vs legal-construction (prefix-vector-run) for the same model family; read-binding is applied to non-supervision read-out work.",
+    "headline_numbers are sometimes rounded rather than exact (prefix-vector-run combined CE to 4 dp), and one_line summaries occasionally drop a stated cost or caveat (quaternion 0.088 BPB cost; prefix-vector guard-unexamined caveat).",
+    "Parallel records of the same kind get different lines (a8 vs k16 current-status scope docs: m1-discrete-attention vs harness-governance).",
+    "Lab-record verdicts, lab attribution and headline numbers are otherwise accurate: 0 major errors in the 20 lab records; both major errors are in the 9 September doc records (2/9)."
+  ]
+}

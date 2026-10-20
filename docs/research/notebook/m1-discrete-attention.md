@@ -27,7 +27,7 @@ The longer story of this line is on its [line page](../lines/m1-discrete-attenti
 
 ## Results
 
-Sources: each row links its record. Counts and one-line descriptions come from `local/renorm/audit/catalog.jsonl`; numbers and bars were checked against the record itself. Records dated before 18 October 2026 are in `archive/`.
+Sources: each row links its record. Counts and one-line descriptions come from [`archive/catalog.jsonl`](../../../archive/catalog.jsonl); numbers and bars were checked against the record itself. Records dated before 18 October 2026 are in `archive/`.
 
 | Date | What ran | Number | Bar | Verdict | Artifact |
 |---|---|---|---|---|---|

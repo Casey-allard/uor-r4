@@ -1,0 +1,264 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 592" width="960" role="img" aria-labelledby="t d">
+<title id="t">One batch of discrete learning</title>
+<desc id="d">A loop for one training batch. A stack of 64 example rows feeds a baseline pass done once per row. A grid of 64 rows by 16 lanes (the current state, called stay, plus 15 rotations) scores every row; the column sums are 16 integer losses and the lowest sum is chosen, with ties going to stay. An apply step commits the move only if its loss is strictly lower than staying; otherwise it refuses and nothing changes. After a commit the stored table is validated on the GPU, then the loop moves to the next coordinate: a vector block, a route frame or a gate. A timing strip compares one proposal on one RTX 5090: ordinary 3.843 seconds against row-parallel 0.0691 seconds, 55.6 times faster. Side panel A shows BVG-K, which scores K = 16 coordinates in one launch and commits them as one block only if the joint loss beats the best single move; scoring is about 16 times faster and block apply about 8 times, on fixtures. Side panel B shows the offline float path as a separate scanned module, held with no sheet registered, which can reach the integer table only through an export-gap check against the two-seed noise band.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.head { font-size: 13px; font-weight: 600; }
+.name { font-size: 13px; font-weight: 600; }
+.small { font-size: 11.5px; }
+.detail { font-size: 11px; fill: var(--muted); }
+.note { font-size: 11px; fill: var(--muted); }
+.good { font-size: 10.5px; font-weight: 700; fill: var(--green); }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.layer { fill: var(--bg); stroke: var(--muted); stroke-width: 1.25; }
+.ok { fill: var(--green); fill-opacity: 0.12; stroke: var(--green); stroke-width: 1.75; }
+.refuse { fill: none; stroke: var(--verm); stroke-width: 1.75; stroke-dasharray: 5 4; }
+.float { fill: none; stroke: var(--purple); stroke-width: 1.75; stroke-dasharray: 2 3; }
+.cell { fill: var(--muted); }
+.bar { fill: var(--muted); fill-opacity: 0.55; }
+.lit { fill: var(--green); }
+.slow { fill: var(--muted); fill-opacity: 0.7; }
+.fast { fill: var(--green); }
+.flow { stroke: var(--muted); stroke-width: 1.75; fill: none; }
+.flow-g { stroke: var(--green); stroke-width: 1.75; fill: none; }
+.flow-v { stroke: var(--verm); stroke-width: 1.75; fill: none; stroke-dasharray: 5 4; }
+.thin { stroke: var(--muted); stroke-width: 1; fill: none; }
+.ah { fill: var(--muted); }
+.ah-g { fill: var(--green); }
+.ah-v { fill: var(--verm); }
+</style>
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker>
+  <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-g" d="M0 0 L10 5 L0 10 z"/></marker>
+  <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-v" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="592"/>
+<text class="title" x="24" y="34">One batch of discrete learning</text>
+<text class="sub" x="24" y="56">Score every legal move on 64 rows, choose the lowest integer loss, commit only a strict gain, then verify the stored table.</text>
+
+<!-- main panel -->
+<rect class="panel" x="24" y="70" width="616" height="370" rx="10"/>
+<text class="head" x="40" y="92">One batch, one coordinate</text>
+
+<!-- stack of rows -->
+<rect class="layer" x="40" y="174" width="60" height="54" rx="5"/>
+<rect class="layer" x="45" y="169" width="60" height="54" rx="5"/>
+<rect class="box" x="50" y="164" width="60" height="54" rx="5"/>
+<text class="small" x="80" y="187" text-anchor="middle">64</text>
+<text class="detail" x="80" y="201" text-anchor="middle">example</text>
+<text class="detail" x="80" y="213" text-anchor="middle">rows</text>
+<path class="flow" d="M110 191 H128" marker-end="url(#a)"/>
+
+<!-- baseline -->
+<rect class="box" x="130" y="164" width="96" height="54" rx="7"/>
+<text class="name" x="178" y="187" text-anchor="middle">baseline</text>
+<text class="name" x="178" y="203" text-anchor="middle">pass</text>
+<text class="detail" x="178" y="232" text-anchor="middle">once per row</text>
+<path class="flow" d="M226 191 H246" marker-end="url(#a)"/>
+
+<!-- grid 6 shown rows x 16 lanes -->
+<text class="head" x="250" y="128">64 rows x 16 lanes</text>
+<rect class="cell" fill-opacity="0.14" x="251" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="261" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="271" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="281" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="291" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="301" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="311" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="321" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="331" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="341" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="351" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="361" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="371" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="381" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="391" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="401" y="138" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="251" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="261" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="271" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="281" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="291" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="301" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="311" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="321" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="331" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="341" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="351" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="361" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="371" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="381" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="391" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="401" y="148" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="251" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="261" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="271" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="281" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="291" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="301" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="311" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="321" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="331" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="341" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="351" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="361" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="371" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="381" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="391" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="401" y="158" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="251" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="261" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="271" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="281" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="291" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="301" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="311" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="321" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="331" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="341" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="351" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="361" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="371" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="381" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="391" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="401" y="168" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="251" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="261" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="271" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="281" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="291" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="301" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="311" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="321" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="331" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="341" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="351" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="361" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="371" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="381" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="391" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="401" y="178" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="251" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="261" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="271" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="281" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="291" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="301" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="311" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="321" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="331" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="341" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="351" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="361" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="371" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.4" x="381" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.26" x="391" y="188" width="8" height="8" rx="1"/>
+<rect class="cell" fill-opacity="0.14" x="401" y="188" width="8" height="8" rx="1"/>
+<text class="detail" x="250" y="213">column sum = loss of one move</text>
+<rect class="bar" x="251" y="235" width="8" height="40" rx="1"/>
+<rect class="bar" x="261" y="229" width="8" height="46" rx="1"/>
+<rect class="bar" x="271" y="225" width="8" height="50" rx="1"/>
+<rect class="bar" x="281" y="231" width="8" height="44" rx="1"/>
+<rect class="bar" x="291" y="227" width="8" height="48" rx="1"/>
+<rect class="bar" x="301" y="233" width="8" height="42" rx="1"/>
+<rect class="bar" x="311" y="237" width="8" height="38" rx="1"/>
+<rect class="bar" x="321" y="245" width="8" height="30" rx="1"/>
+<rect class="bar" x="331" y="247" width="8" height="28" rx="1"/>
+<rect class="lit" x="341" y="259" width="8" height="16" rx="1"/>
+<rect class="bar" x="351" y="247" width="8" height="28" rx="1"/>
+<rect class="bar" x="361" y="245" width="8" height="30" rx="1"/>
+<rect class="bar" x="371" y="235" width="8" height="40" rx="1"/>
+<rect class="bar" x="381" y="227" width="8" height="48" rx="1"/>
+<rect class="bar" x="391" y="229" width="8" height="46" rx="1"/>
+<rect class="bar" x="401" y="231" width="8" height="44" rx="1"/>
+<line class="thin" x1="250" y1="275" x2="410" y2="275"/>
+<text class="good" x="345" y="240" text-anchor="middle">choose</text>
+<path class="thin" d="M261 281 H409 M261 277 V281 M409 277 V281"/>
+<text class="detail" x="255" y="296" text-anchor="middle">stay</text>
+<text class="detail" x="335" y="296" text-anchor="middle">15 rotations</text>
+<text class="small" x="250" y="320">Lowest sum wins. Ties go to stay.</text>
+
+<!-- apply fork -->
+<path class="flow-g" d="M414 258 H432 V160 H452" marker-end="url(#ag)"/>
+<rect class="box" x="452" y="138" width="178" height="44" rx="7"/>
+<text class="name" x="541" y="157" text-anchor="middle">apply only if strictly</text>
+<text class="name" x="541" y="173" text-anchor="middle">lower than stay</text>
+<path class="flow-g" d="M487 182 V210" marker-end="url(#ag)"/>
+<text class="detail" x="493" y="199">lower</text>
+<path class="flow-v" d="M589 182 V210" marker-end="url(#av)"/>
+<text class="detail" x="583" y="199" text-anchor="end">not lower</text>
+<rect class="ok" x="452" y="210" width="70" height="30" rx="7"/>
+<text class="name" x="487" y="230" text-anchor="middle">commit</text>
+<rect class="refuse" x="548" y="210" width="82" height="40" rx="7"/>
+<text class="name" x="589" y="227" text-anchor="middle">refuse</text>
+<text class="detail" x="589" y="241" text-anchor="middle">no change</text>
+<path class="flow-g" d="M487 240 V262" marker-end="url(#ag)"/>
+<rect class="box" x="452" y="262" width="114" height="46" rx="7"/>
+<text class="small" x="509" y="281" text-anchor="middle">validate stored</text>
+<text class="small" x="509" y="296" text-anchor="middle">table on GPU</text>
+
+<!-- return loop -->
+<path class="flow" d="M509 308 V396"/>
+<path class="flow-v" d="M589 250 V396"/>
+<path class="flow" d="M589 396 H75 V232" marker-end="url(#a)"/>
+<text class="small" x="90" y="388">next coordinate: a vector block, a route frame or a gate</text>
+<text class="note" x="40" y="424">Nothing is sampled, and no floating-point number appears in the step.</text>
+
+<!-- side panel A -->
+<rect class="panel" x="656" y="70" width="280" height="208" rx="10"/>
+<text class="head" x="672" y="92">BVG-K: K coordinates, one launch</text>
+<rect class="layer" x="690" y="106" width="100" height="36" rx="4"/>
+<rect class="layer" x="681" y="115" width="100" height="36" rx="4"/>
+<rect class="box" x="672" y="124" width="100" height="36" rx="4"/>
+<text class="detail" x="722" y="147" text-anchor="middle">64 x 16</text>
+<text class="small" x="802" y="128">K = 16 coordinates</text>
+<text class="detail" x="802" y="143">scored side by side</text>
+<text class="detail" x="802" y="158">(1 to 64 supported)</text>
+<path class="flow-g" d="M722 164 V182" marker-end="url(#ag)"/>
+<rect class="ok" x="672" y="182" width="248" height="40" rx="7"/>
+<text class="small" x="796" y="199" text-anchor="middle">commit as one block only if the joint</text>
+<text class="small" x="796" y="214" text-anchor="middle">loss beats the best single move</text>
+<text class="detail" x="672" y="240">Scoring about 16 times faster, block apply</text>
+<text class="detail" x="672" y="253">about 8 times, at K = 16 (fixtures).</text>
+<text class="detail" x="672" y="266">Construction tests only; not yet run.</text>
+
+<!-- side panel B -->
+<rect class="panel" x="656" y="290" width="280" height="150" rx="10"/>
+<text class="head" x="672" y="310">Offline float path (D37)</text>
+<rect class="float" x="672" y="318" width="248" height="50" rx="7"/>
+<text class="small" x="796" y="334" text-anchor="middle">float forward + gradient + optimizer</text>
+<text class="detail" x="796" y="348" text-anchor="middle">a separate scanned module</text>
+<text class="detail" x="796" y="361" text-anchor="middle">held: no sheet registered</text>
+<path class="flow" d="M740 368 V386" marker-end="url(#a)"/>
+<rect class="box" x="672" y="386" width="132" height="34" rx="7"/>
+<text class="detail" x="738" y="400" text-anchor="middle" style="fill:var(--ink)">export gap within the</text>
+<text class="detail" x="738" y="413" text-anchor="middle" style="fill:var(--ink)">two-seed noise band?</text>
+<path class="flow-g" d="M804 403 H826" marker-end="url(#ag)"/>
+<text class="detail" x="815" y="391" text-anchor="middle">yes</text>
+<rect class="ok" x="826" y="392" width="94" height="22" rx="6"/>
+<text class="small" x="873" y="407" text-anchor="middle">integer table</text>
+<text class="detail" x="672" y="433">above the band: disqualified</text>
+
+<!-- timing strip -->
+<rect class="panel" x="24" y="454" width="912" height="86" rx="10"/>
+<text class="head" x="40" y="474">Time for one proposal: Route read, 64 rows, one RTX 5090 (median of five, same scale)</text>
+<text class="small" x="40" y="500">ordinary</text>
+<rect class="slow" x="130" y="487" width="560" height="18" rx="3"/>
+<text class="small" x="698" y="500">3.843 s</text>
+<text class="small" x="40" y="526">row-parallel</text>
+<rect class="fast" x="130" y="513" width="10" height="18" rx="2"/>
+<text class="small" x="148" y="526">0.0691 s (55.6 times faster)</text>
+
+<text class="note" x="24" y="562">Square shading and bar heights are illustrative; only 6 of the 64 rows are drawn. The 64 x 16 layout, the timings and the K = 16 ratios are data.</text>
+<text class="note" x="24" y="578">Training is held. The timing is a non-gating measurement that was not qualified.</text>
+</svg>

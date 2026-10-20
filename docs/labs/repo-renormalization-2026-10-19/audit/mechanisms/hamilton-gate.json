@@ -1,0 +1,86 @@
+{
+  "id": "hamilton-gate",
+  "canonical_name": "Hamilton rotation gate (G2)",
+  "aliases": [
+    "G2",
+    "OP1",
+    "Gate::Hamilton",
+    "q(g) (x) u",
+    "geometric feed-forward gate",
+    "gate=hamilton"
+  ],
+  "plain_what": "A feed-forward layer needs a gate that decides how much of a signal passes. Here the gate signal becomes a unit rotation, and the signal is rotated by it, four numbers at a time. A rotation only turns a vector and needs no exponential or squashing curve. The old gate used a sigmoid, which the rules now ban.",
+  "replaces": "MLP/feed-forward",
+  "how_it_works": "Work on 4-lane blocks. Let g be a gate block and u the matching up (value) block of the MLP hidden layer. Compute r = sqrt(|g|^2 + 1e-12) and q = g / r, a unit quaternion, then out = q (x) u, the Hamilton product. This is a rotation of R4, so |out| = |u| whenever q is a unit quaternion; a zero gate block gives q = 0 and out = 0. Backward (exact, with the normalisation Jacobian): du = conj(q) (x) d, dq = d (x) conj(u), dg = (dq - q (q . dq)) / r. No exp, sigmoid, tanh or softmax appears in either direction. The hidden width must be divisible by 4. One CUDA thread handles one 4-block (hamilton_gate_fwd/bwd, shared source for f32 and bf16). The config field Gate defaults to Swiglu (the sigmoid gate, kept so old artifacts load byte-identically); Hamilton is selected with gate=hamilton, and export/D11 and qat refuse any non-default gate. The same op is the output gate of the geometric recurrence. Still open by the owner's card: an icosian snap of q (so the product becomes a Cayley-table read), an exact hard forward with a straight-through bridge, a serving form, and a named hazard that a near-zero gate block makes dg about 1/r = 1e6.",
+  "geometry": "Unit quaternions (S3) and the Hamilton product acting on R4 blocks; the planned icosian snap would use the 120 unit icosians (600-cell) and the 120x120 Cayley table.",
+  "code": [
+    {"path": "crates/uor-r4-training/src/geometric_stack.rs", "role": "Gate enum (L1437), HamiltonGate custom op (L18711), hamilton_gate (L18828), StackModel::mlp dispatch, validation (hidden % 4)"},
+    {"path": "crates/uor-r4-training/src/cuda_stack.cu", "role": "hamilton_gate_fwd (L172) and hamilton_gate_bwd kernels, one thread per 4-block"},
+    {"path": "crates/uor-r4-training/src/geometric_stack/cuda_ops.rs", "role": "f32 launcher (bf16 in cuda_ops_bf16.rs); bails rather than falling back to host"},
+    {"path": "crates/uor-r4-training/tests/cuda_stack_ops_parity.rs", "role": "test_hamilton_gate_parity (L3221) and test_hamilton_gate_model_parity (L3282); a bf16 model parity test sits beside them"},
+    {"path": "crates/uor-r4-training/examples/geometric-stack.rs", "role": "Trainer flag gate=swiglu|hamilton for train and dialogue-train"},
+    {"path": "docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md", "role": "The frozen rung-0 sheet whose config line includes gate=hamilton"}
+  ],
+  "status": "READY",
+  "status_reason": "Built and tested substrate, never trained: exact forward and adjoint, CUDA kernels and trainer flag exist; 944 lib tests pass, host-executed kernel matches to 9.3e-7, a Vast RTX 5090 parity run passed 43/0 (docs/labs/cuda-parity-gate-import-2026-10-13), and the 18 rung-0 controls ran the Hamilton configuration. No language run, no SwiGLU comparison, no icosian snap; not on the discrete run plan.",
+  "reopen_conditions": [
+    "To activate: a new D37 offline-float sheet in a separately scanned module, with fresh TEST FITNESS: FIT and the owner release that applies; the training holds still apply.",
+    "A matched comparison of gate=hamilton against the SwiGLU gate (and the frozen pre-ban artifact) at equal width, steps and data, at least 2 seeds or 200 fresh rows, with fresh transfer for any KEEP.",
+    "The three open items the owner's card named: an icosian snap of q, the exact hard-forward geometry with its gradient bridge, and a D11 table/serving form; the export gap measured on the same evaluator.",
+    "A real-run check of the near-zero gate hazard (d_gate about 1/r), since weight decay can drive a block toward zero.",
+    "A named, device-qualified parity receipt for the gate tests (the 13 Oct run reports only a summary count of 43 passed)."
+  ],
+  "rule_compat": {
+    "D11": "Not servable today: the exporter refuses any gate other than swiglu, and the normalisation divides by a square root and multiplies two runtime values. It becomes table-servable only after the icosian snap makes q one of 120 icosians, so q (x) u is a Cayley-table read plus shifts.",
+    "D23": "Passes by construction: no exp, sigmoid, tanh, softplus or softmax in forward or backward. D25 closed the SwiGLU sigmoid exception, which this replaces.",
+    "D30": "A per-4-block Hamilton product, not a dense contraction and not GEMM; the owner permits a geometric feed-forward block (Hamilton gate plus Hamilton projections). The dense projection half of that block has since been retired in favour of SpiralCore/FBS.",
+    "D32_D37": "A float op, frozen by D32 section 4; D37 section 5 lets it return only by re-registration. The earlier G1 rectified-square arm was withdrawn by the owner as non-geometric and no G1 source ships."
+  },
+  "experiments": [
+    {"date": "2026-09-23", "record": "docs/integration/hamilton-vector-interpretation-2026-09-23.md", "configuration": "Scoped interpretation of the owner's Hamilton hint; exact Q8 left actions on integer 4-vectors", "result": "Exact signed-permutation actions preserve norm and are invertible; rotating every query and key together cannot change an inner-product ranking, so a useful mechanism needs relative or content-dependent operations; not evidence for attention", "verdict": "inconclusive", "numbers": "K^2 = -I; no model run"},
+    {"date": "2026-10-12", "record": "docs/labs/gate-ops-2026-10-12/README.md", "configuration": "OP1 (G2 only): Gate::Hamilton with CPU reference, CUDA kernels, trainer flag, saved-config field; G1 removed before delivery", "result": "Implemented and locally checked; no run, no device receipt, no model numbers; bf16 dispatch gap found and fixed; NOT YET PROMOTED", "verdict": "inconclusive", "numbers": "944 passed / 0 failed / 7 ignored (938 base + 6 new); clang host-executed kernel vs from-spec reference <= 9.3e-7 peak-scaled; hand blocks exact; no-softmax ratchet 1649/1649"},
+    {"date": "2026-10-13", "record": "docs/labs/cuda-parity-gate-import-2026-10-13/README.md", "configuration": "Vast RTX 5090 bootstrap at c1d53c80 after a missing Gate import in a parity test broke every pod's parity step", "result": "CUDA parity builds and passes; the count includes the gate tests added by the OP1 and OP2 PRs but the summary line does not name tests", "verdict": "inconclusive", "numbers": "43 passed, 0 failed, 3 ignored (38 before OP1); about $0.05"},
+    {"date": "2026-10-13", "record": "docs/labs/rung0-complete-path-2026-10-13/README.md", "configuration": "Finite CUDA controls of the declared rung-0 configuration (recurrence-only trunk with Hamilton gate, SpiralCore/FBS projection, product head, margin objective) at the actual batch 16 x context 384 shape", "result": "18 controls pass on final source 05c84bece; no optimizer update, no quality number", "verdict": "positive", "numbers": "18/18 controls; peak GPU 9,274 MiB; 6144-row writer control passes"}
+  ],
+  "never_tested": [
+    "Any language fit with the Hamilton gate, or any comparison with the SwiGLU gate or the frozen pre-ban artifact.",
+    "The icosian snap of q and the exact hard-forward plus straight-through bridge the owner's card required to be specified.",
+    "A D11 table/serving form and its export gap.",
+    "Behaviour of the 1/r gradient near a zero gate block in a real run.",
+    "Whether a norm-preserving gate can suppress a signal at all: with unit q the output magnitude equals |u| for any g except the exactly-zero block (my reading of the formula; not measured or discussed in the records).",
+    "A standalone, named device parity result for the gate (only a summary count exists)."
+  ],
+  "failed_only_on_configuration": [
+    "G1 rectified-square gate: withdrawn by the owner as non-geometric under D25, not tested and found wanting; no fallback arm exists.",
+    "Missing Gate import broke every pod parity run from 7567cf725 until fixed: a test-source blocker, not a mechanism result."
+  ],
+  "open_questions": [
+    "Does a rotation gate express enough? An amplitude gate (SwiGLU) can shut a channel; a unit rotation cannot.",
+    "How is q snapped to one of 120 icosians without losing the cost advantage seen for weights (+0.0196 BPB for exact activations in the activation-snap study)?",
+    "Is the geometric feed-forward block (Hamilton gate plus structured projections) worth building once the dense projection half is retired?",
+    "Does it add anything over the discrete model's own gating (ternary trits), or does a float gate over a discrete carrier duplicate the same question at higher cost (architect audit, 18 Oct)?"
+  ],
+  "evidence": [
+    "docs/labs/gate-ops-2026-10-12/README.md",
+    "docs/labs/operator-phase-2026-10-12/README.md",
+    "docs/labs/cuda-parity-gate-import-2026-10-13/README.md",
+    "docs/labs/rung0-complete-path-2026-10-13/README.md",
+    "docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md",
+    "docs/integration/DECISIONS.md (D25 lines 1243-1255, 1307)",
+    "docs/labs/course-correction-2026-10-18/audits/mechanism-census.md (row 62)",
+    "docs/labs/course-correction-2026-10-18/audits/d37-reactivation-architect.md (row: F32 operator)",
+    "docs/mechanisms/README.md (status board, G2 bullet)"
+  ],
+  "related": [
+    "recurrence-gates: uses this op as its output gate (replacing state * gelu(g))",
+    "spin-weights: the same Hamilton product, applied to weights; the fused Hamilton projection (OP2) was its sibling",
+    "spiralcore-fbs: replaced OP2's dense projection; OP1 and the projection form the geometric feed-forward block",
+    "rank-margin: the rung-0 sheet that was to train gate=hamilton with the margin objective",
+    "ternary-xor: the discrete model's ternary gates are the active gating mechanism"
+  ],
+  "figure_ideas": [
+    "A value vector drawn as an arrow in 3D (a 4D quaternion block projected down). Sweep the gate input: under a sigmoid gate the arrow shrinks to nothing; under the Hamilton gate it keeps its length and swings around the sphere. Shows what the replacement does and does not do.",
+    "Two feed-forward block wiring diagrams side by side: SwiGLU (gate -> sigmoid -> times up) and Hamilton (gate -> divide by length -> quaternion product with up), with the banned operation crossed out and the table-read replacement for the product shown as a dashed future box.",
+    "A plot of the backward factor 1/r against gate-block length |g|, from the formula in the record, with the 1e-12 guard marked: the near-zero hazard that weight decay could trigger (illustrative of the formula, not a measurement)."
+  ]
+}

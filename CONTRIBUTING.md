@@ -72,8 +72,8 @@ The model is owned by the milestone issues, M1 to M4
 ([#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) to
 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032)); M5 to M8
 ([#2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) to
-[#2036](https://github.com/UOR-Foundation/uor-r4/issues/2036)) depend on a served model and have not
-started. Training is held. Any GPU training or evaluation, and any run a milestone claim rests on,
+[#2036](https://github.com/UOR-Foundation/uor-r4/issues/2036)) depend on a served model. M5, M6 and M8 have not started; M7's browser engine exists, with no model to load.
+Training is held. Any GPU training or evaluation, and any run a milestone claim rests on,
 needs a one-page pre-registration, a review by someone who did not write it, and a release typed by
 the owner ([charter](CHARTER.md) §4.5, §5.1). The model must also obey the technical rules: geometry
 only, no softmax or other squashing function, no matrix multiplication, research compute on GPUs and

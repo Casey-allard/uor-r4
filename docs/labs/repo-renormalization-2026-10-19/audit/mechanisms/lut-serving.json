@@ -1,0 +1,325 @@
+{
+  "id": "lut-serving",
+  "canonical_name": "D11 integer table serving (UORLUT01)",
+  "aliases": [
+    "UORLUT01",
+    "D11 integer engine",
+    "D10 LUT engine (superseded)",
+    "uor-r4-lut",
+    "uor-r4-stack / uor-chat",
+    "multiplier-free serving",
+    "zero-mul audit",
+    "serving-wasm",
+    "LUT-4 shortlist (retracted)"
+  ],
+  "plain_what": "How a finished model runs on an ordinary laptop or in a browser using only whole numbers, adds, shifts and table look-ups, with no floating-point maths and no multiply instruction. A trained model is exported to a compact file, and an audit counts machine instructions to prove no multiply sneaks in.",
+  "replaces": "arithmetic/matmul",
+  "how_it_works": "Training is done offline in float. For serving, the weights are exported into a UORLUT01 container: 4-bit weights in groups of 32, each group with a one-byte scale (4-bit mantissa, 4-bit exponent), plus integer tables for the few nonlinear steps (square root, decay rates, SiLU, arcosh, exp). The D11 engine then computes every token with integers only. A projection y = W x is done by building, for each activation, a 16-entry table of its multiples, using each weight's 4-bit code as an index into that table, and applying group scales by shifts and adds, with four rows blocked to reuse the table. A product of two runtime values (a score, a gate, a value mix) uses a quarter-square table, (a+b)^2/4 - (a-b)^2/4 from a lookup, or shift-add; normalization uses an integer square root or table; sampling is integer min-p. The state of a conversation is saved and restored byte-exactly (UR4SESS1). The contract has five rules: no float and no libm (R1), no multiply or divide instruction (R2), dense per-token access to a learned store is interim, not the end state (R3, D5), no transformer backbone (R4), and energy is claimed only when measured (R5). Compliance is checked by static disassembly of the release binary, counting multiply, divide and float instructions over the serving symbols, native and WebAssembly.",
+  "geometry": "Exact finite tables rather than approximate maths: the binary icosahedral group (2I, 120 elements) Cayley table of about 14 KiB, signed permutations, Z[phi] shift-add products, a 1,025-entry arcosh table for Lorentz read scores, icosian-pair weights with a 2-bit mantissa, and the Q30 Hopf S3-to-S2 observation. The current integer crate selects typed H4 geometry and checked scalar integer arithmetic (native_geometry.rs) for the discrete model's own export.",
+  "code": [
+    {
+      "path": "crates/uor-r4-integer/src/stack/kernels.rs",
+      "role": "D11 table kernels: pair-table GEMV, blocked product tables, quarter-square products (1,580 lines)"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/stack/session.rs",
+      "role": "Per-token stack step: recurrence, reads, pointer head, exact session state (2,971 lines)"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/stack/format.rs",
+      "role": "UORLUT01 container and schemas (lut-stack/1 softmax read, /2 pointer head, /3 softmax-free flock rank read); StackMemory shape that the engine refuses to serve"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/stack/flock.rs",
+      "role": "Integer flock rank selection for softmax-free reads"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/stack/simd.rs",
+      "role": "WASM SIMD128 swizzle-dot fixtures; Maintainer note: unintegrated, not on the serving hot path"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/wasm_serve.rs",
+      "role": "Browser/Node serving entry points behind the serving-wasm feature (loadStack, step, save, restore)"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/session_codec.rs",
+      "role": "UR4SESS1 exact session snapshot codec with checked varints"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/native_geometry.rs",
+      "role": "Integer geometry selected by the active native build; the historical stack runtime compiles only with serving-wasm"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/bin/uor-r4-stack.rs",
+      "role": "Stack CLI audited by the zero-mul gate (also uor-chat.rs)"
+    },
+    {
+      "path": "scripts/audit_zero_matmul_serving.py",
+      "role": "Native static disassembly audit: Class I multiply, Class II divide, Class III float counts over serving symbol ranges (existing Python script)"
+    },
+    {
+      "path": "scripts/audit_zero_matmul_wasm.py",
+      "role": "WebAssembly audit, --serving --call-graph, 7 serving symbols"
+    },
+    {
+      "path": "crates/uor-r4-lut/src/lib.rs",
+      "role": "Retained UORLUT01 metadata and grid helpers only; dense engines excluded under D29 (1,124 lines)"
+    },
+    {
+      "path": "docs/history/d29-excluded-lut-2026-10-13/src/stack.rs",
+      "role": "Preserved D10 LUT stack engine (multiplier and exp-table softmax), excluded from every build"
+    },
+    {
+      "path": "crates/uor-r4-simd/src/lib.rs",
+      "role": "Audited AVX2/NEON table GEMV kernels for the D10 engine; no dependents (frozen)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/stack_export.rs",
+      "role": "Float-stack-to-UORLUT01 exporter (GPTQ); compiled out with cfg(any()) after D29"
+    }
+  ],
+  "status": "ACTIVE",
+  "status_reason": "ACTIVE as the end-of-pipeline contract (M4 #2032): D37 makes the integer export the boundary, and native (44 symbol ranges) and WebAssembly (7/7) zero-mul audits are green (docs/integration/project-track.md M4). No lawful trained model has been exported yet; the D10 LUT engines are excluded (docs/history/d29-excluded-lut-2026-10-13).",
+  "reopen_conditions": [
+    "Sub-part only: the D10 LUT engine and uor-r4-simd stay frozen non-mission comparators; they return only if an owner decision restores a multiplier-allowing serving tier (D11 item 2 withdrew it).",
+    "Sub-part only: serving of product-key memory needs an integer kernel; export_stack refuses it today (docs/labs/native-address-port-2026-10-11/README.md)."
+  ],
+  "rule_compat": {
+    "D11": "This is D11. Bit-exact against its float reference on every windowed check (d11 minus d10 NLL 0.0, max logit difference 0), zero multiply, divide and float instructions across audited symbols. Residual gap: dense per-token weight access (about 30.2M parameters read per token for the 29M stack) is interim and D5-b non-compliant; D5-a residency is unmeasured until hardware counters exist (D38).",
+    "D23": "Partly non-compliant today. Schemas /1 and /2 serve softmax attention reads through exp-table masses, which D29 names; Kimi's 12 October review records 'softmax at runtime: yes'. Schema /3 serves softmax-free flock rank reads, but the trained softmax-free arms missed the 0.01 BPB bar (docs/labs/softmax-free-read-2026-10-10/README.md).",
+    "D30": "Table GEMV streams every weight each token, which D5 calls a dense multiply in disguise; D25 closed dense low-bit maps as a stepping stone. The lawful target is selected addressed reads and exact geometry tables, not these kernels. Engines containing hidden dense contractions were quarantined in D29 (docs/labs/d29-module-split-2026-10-13/README.md).",
+    "D32_D37": "D37 item 3: float training is legal offline; the export is the integer boundary and every candidate must report its export gap on the same evaluator. Precedent gaps: 0.00883 to 0.0194 BPB (19.9M stack), 0.0106 nats after QAT, up to 0.036 nats round-to-nearest (7M stack); no discrete-path export exists yet."
+  },
+  "experiments": [
+    {
+      "date": "2026-08-28",
+      "record": "docs/source_free_table_baseline_989.md",
+      "configuration": "Source-free integer n-gram table (SFTBL001) on held-out lexical targets, no teacher at run time",
+      "result": "Integer lookup predicts held-out lexical targets well above a unigram; a statistical lexical result, not semantic.",
+      "verdict": "positive",
+      "numbers": "99,362/446,342 = 22.261404% top-1 vs unigram 24,163/446,342 = 5.413561%"
+    },
+    {
+      "date": "2026-09-25",
+      "record": "docs/integration/integer-execution-result-2026-09-25.md",
+      "configuration": "Learned attention, recurrence and transport of two accepted 1.68M learned-code parents executed with integer arithmetic and offline-compiled tables",
+      "result": "Both arms met the unchanged numerical bounds and kept every previously correct source answer; language quality remains unproven.",
+      "verdict": "positive",
+      "numbers": "Q48 probabilities sum exactly to 2^48; context 256/256/256 with all 255 previous occurrences visible"
+    },
+    {
+      "date": "2026-09-25",
+      "record": "docs/integration/integer-serving-result-2026-09-25.md",
+      "configuration": "Standalone uor-r4-integer library and CLI over the same two bundles, independent saved-data comparison",
+      "result": "Exact reproduction of saved distributions and a measured speedup after one arithmetic fix; language quality unchanged.",
+      "verdict": "positive",
+      "numbers": "all 4,096 Q48 distribution hashes and greedy predictions match; about 4.5-6.6x faster after one measured fix"
+    },
+    {
+      "date": "2026-09-25",
+      "record": "docs/integration/learned-rounding-result-2026-09-25.md",
+      "configuration": "Jointly learned choice between the two legal neighbouring 4-bit codes of each coordinate, quaternion and Householder-pair arms",
+      "result": "Both arms passed all five retention gates but stay above the continuous references; engineering continuation only.",
+      "verdict": "positive",
+      "numbers": "hard minus continuous +0.0237 (quaternion) and +0.0465 (Householder pair) nats vs gate 0.05; hard parents were 2.1503 and 2.1479"
+    },
+    {
+      "date": "2026-09-25",
+      "record": "docs/integration/quantized-recurrent-result-2026-09-25.md",
+      "configuration": "Four-bit multiplicative / 16-bit additive quantization-aware continuation of the joint recurrent learner; projected-shadow variant in projected-recurrent-result-2026-09-25.md",
+      "result": "Both QAT recipes rejected: packed arms exceeded the retention allowance; the ordinary arm also fell into a period-two cycle.",
+      "verdict": "negative",
+      "numbers": "packed minus continuous +0.059 (quaternion) / +0.080 (Householder) nats; projected +0.060 / +0.084; gate +0.05"
+    },
+    {
+      "date": "2026-09-27",
+      "record": "docs/integration/packed-integer-comparison-2026-09-27.md",
+      "configuration": "Shared packed signed4 coefficient storage against the unpacked baseline on two retained width-256 models, 16 processes",
+      "result": "All frozen replay, generation and chat outputs identical while retained coefficient bytes fell; dense access remains.",
+      "verdict": "positive",
+      "numbers": "8/8 baseline-candidate pairs match; coefficient bytes down 87%"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1449-roadmap-measured-energy-the-oversight-audit-reconciliation-i.md",
+      "configuration": "First measured whole-system marginal energy of the per-product-table integer path against its float parent on the owner's laptop",
+      "result": "Table emulation of every product cost more energy and time than float; recorded as FAILED on energy. Power counters were unavailable on this OS version.",
+      "verdict": "negative",
+      "numbers": "0.00413 J/token vs 0.00096 for the float parent (about 4.3x worse), about 2.6x slower"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/s1-stack-serving-measurements-2026-09-28.md",
+      "configuration": "Cycle-4 7.15M stack exported to the D10/D11 interim format (4-bit groups of 32), evaluation only, 131,072 targets",
+      "result": "Export gap misses the 0.02-nat fidelity gate with either quantizer; integer arithmetic costs nothing measurable, the whole gap is weight representation, and the output head is the largest share.",
+      "verdict": "negative",
+      "numbers": "round-to-nearest +0.0362 nats, GPTQ +0.0257 nats vs gate 0.02; snapping transport quaternions to the nearest icosian +0.026"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/d4-e8-and-d11-cost-result-2026-09-28.md",
+      "configuration": "Float-reference codec arms (round-to-nearest, online Hadamard + grouped 4-bit, Hadamard + single-shell E8) and D11 engine versus NEON reference",
+      "result": "No codec arm meets the 0.02-nat gate at 4.25 bits per weight; the D11 engine is bit-identical to the NEON reference at measured cost.",
+      "verdict": "negative",
+      "numbers": "float 1.998113; RTN +0.036230; Hadamard+G4 +0.027007; E8 ~2 bpw +2.4235; 184.58 tok/s on 1 thread; energy figures unvalidated (capture truncated at the 64 KiB pipe limit)"
+    },
+    {
+      "date": "2026-09-28",
+      "record": "docs/integration/dialogue-code-choice-result-2026-09-28.md",
+      "configuration": "Response-aware learned legal 4-bit codes for the width-576 dialogue child, 512 updates",
+      "result": "Lower development loss but fewer memory-relation answers than nearest rounding: fails the pre-registered retention rule; kept as a negative candidate.",
+      "verdict": "negative",
+      "numbers": "panel NLL down 0.053; relation answers 2 vs 4 of 10; 5 of 10 'What is my...' questions get the same generic reply"
+    },
+    {
+      "date": "2026-09-29",
+      "record": "docs/integration/d4-geometric-s1-qat-result-2026-09-29.md",
+      "configuration": "Quantization-aware training of the cycle-4 stack for 1,000 updates with a straight-through 4-bit representation, then export",
+      "result": "Exported integer engine within 0.011 nats of its own float model; gates read as passing but are marked pending a Lab 1 re-run.",
+      "verdict": "inconclusive",
+      "numbers": "quantization gap +0.010637 nats vs gate 0.02; integer arithmetic gap 7.8e-7 nats; vs float continuation control +0.018012 (margin 0.002)"
+    },
+    {
+      "date": "2026-09-29",
+      "record": "docs/integration/d4-s2-dialogue-qat-result-2026-09-29.md",
+      "configuration": "Dialogue QAT versus float continuation control, 1,024 updates, 58 greedy turns",
+      "result": "Quantized NLL stays close to float, but greedy agreement with the pre-adaptation float baseline is far below the gate; plain float fine-tuning then exporting collapses greedy generation.",
+      "verdict": "negative",
+      "numbers": "agreement 5/58 turns vs at least 29 required; QAT served-minus-float +0.0032 nats; control export diverges on 53/58 turns"
+    },
+    {
+      "date": "2026-10-08",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1893-a-chat-trained-geometric-stack-served-multiplier-free-0-9550.md",
+      "configuration": "One chain: train 19.9M chat-only stack, snap-evaluate, export (round-to-nearest), D11-evaluate on 24,576 targets",
+      "result": "First end-to-end served chat model; integer engine reproduces its reference exactly. The pipeline had never been run end to end before.",
+      "verdict": "positive",
+      "numbers": "D11 0.9550 BPB vs fused float 0.8770 vs previously served artifact 4.3885; d11-d10 NLL 0.0, max logit difference 0"
+    },
+    {
+      "date": "2026-10-08",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1904-gptq-beats-round-to-nearest-by-0-00376-bpb-64-calibration-wi.md",
+      "configuration": "Same 19.9M stack and stream; round-to-nearest versus GPTQ with 64 or 256 calibration windows",
+      "result": "GPTQ with 64 calibration windows is an interior optimum; export default confirmed.",
+      "verdict": "positive",
+      "numbers": "RTN 0.93653 vs GPTQ-64 0.93277 vs GPTQ-256 0.93368 BPB"
+    },
+    {
+      "date": "2026-10-08",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1912-snapped-training-route-closed-quantisation-damage-is-a-basin.md",
+      "configuration": "Fine-tune 250 or 500 steps in the transport-snapped basin, then GPTQ export",
+      "result": "Snapped tuning served worse than no tune despite better float scores; damage appears at the first snapped step and does not grow with dose. Closes this recipe only.",
+      "verdict": "negative",
+      "numbers": "served 0.93277 (no tune) vs 0.95540 (250) vs 0.95150 (500) BPB; quantisation cost 0.01944 vs 0.06117 vs 0.06033"
+    },
+    {
+      "date": "2026-10-08",
+      "record": "docs/history/github-archive-2026-10-15/markdown/1915-served-gap-settled-on-identical-positions-0-00883-bpb-engine.md",
+      "configuration": "Float, snapped and D11 evaluation of one artifact on one identical 24,576-target position set",
+      "result": "The earlier quoted gap mixed different window counts; on identical positions the engine is exact and the gap is weight quantization.",
+      "verdict": "positive",
+      "numbers": "quantization 0.00883 BPB; engine difference about 1e-6"
+    },
+    {
+      "date": "2026-10-09",
+      "record": "docs/labs/criterion2-protocol-pin-2026-10-09/README.md",
+      "configuration": "Matched float/reference/integer triple at 512 windows on an independent retrain of the 19.9M recipe",
+      "result": "The published 0.87755 float / 0.93277 served pair was never like-for-like (512 vs 64 windows). Criterion 2 (served at most 0.90 BPB) is neither met nor claimable on that evidence.",
+      "verdict": "inconclusive",
+      "numbers": "float 0.877550, reference 0.886838, integer 0.886838 BPB; quantization 0.009288; engine 2.7e-7; served column moves 0.045935 BPB between 64 and 512 windows"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/d11-serving-2026-10-10/README.md",
+      "configuration": "Three 29M artifacts (base and two fine-tunes) exported with GPTQ and served by D11, 64 windows, 6,194,589-token held-out stream",
+      "result": "Engine bit-exact on all three, but served quality is far from the 0.90 BPB criterion; the gap is the model, not the export.",
+      "verdict": "negative",
+      "numbers": "1.20138 / 1.24402 / 1.24233 BPB served; D11 68-80 tok/s vs D10 127-137 tok/s on 8 threads"
+    },
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/softmax-free-read-2026-10-10/README.md",
+      "configuration": "Replace the served softmax read with fixed or learned rank-weight tables (four arms, two seeds, 19.93M stack)",
+      "result": "All four arms missed the 0.01 BPB bar; softmax stays in serving. Closes these configurations, not the mechanism.",
+      "verdict": "negative",
+      "numbers": "softmax 0.8772 BPB; extra cost +0.0172 to +0.2585 BPB; learned rank table closed 54% of the gap"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/native-address-port-2026-10-11/README.md",
+      "configuration": "Source audit and test of whether the integer path can serve product-key memory",
+      "result": "The product path refuses product-key memory, so its speed case is unmeasured exactly where a table read could win; refusal pinned in a test and the container format slice landed.",
+      "verdict": "blocked",
+      "numbers": "refusal text: integer export of product-key memories is not implemented; float harness measured the memory 1.65x slower than the MLP it replaces"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/context-curve-2026-10-11/README.md",
+      "configuration": "Same 576-wide 10-layer architecture at context 384, 1,024 and 4,096, 300 steps each, both integer engines",
+      "result": "The quadratic read is real but bounded; the multiplier-free engine's relative cost falls with context. Bit-exact at every length.",
+      "verdict": "inconclusive",
+      "numbers": "D11 63.41 -> 56.19 -> 30.43 tok/s (2.1x fall for 10.7x context); D10/D11 ratio 1.66 -> 1.38 -> 1.24; free read would buy at most about 1.7x"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/activation-snap-2026-10-11/README.md",
+      "configuration": "Snap quaternion-map inputs to the exact icosian weight set after training, and train the snap in",
+      "result": "Post-hoc snap costs quality; training it in is slightly worse. Fully exact maps usable at a small cost over dense.",
+      "verdict": "negative",
+      "numbers": "+0.020 BPB post-hoc; fully exact maps +0.021 vs dense"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/wasm-serving-runtime-2026-10-18/README.md",
+      "configuration": "Contributor-built WebAssembly D11 serving runtime, hardened before merge",
+      "result": "Zero-mul audit passes on all 7 serving symbols and a Node round-trip reloads identically; SIMD kernels are unintegrated fixtures and the demo is not runnable from a clean clone.",
+      "verdict": "positive",
+      "numbers": "7/7 symbols mul=0 div=0 float=0; 165 uor-r4-integer tests pass; reloadIdentical true"
+    }
+  ],
+  "never_tested": [
+    "Serving a lawful discrete or float-rung0 model through D11: no such artifact has been exported yet, so the export gap of the current model path is unmeasured.",
+    "Hardware-counter measurement of DRAM bytes per token (D5-a residency) and selected-parameter access (D5-b): M5 has not run.",
+    "Whole-system energy per token with a validated sampler: the only figures (5.7 and 21.0 mJ/token) came from a truncated capture and are unvalidated; the 4.3x-worse result is from the earlier per-product emulation.",
+    "Integer serving of a product-key or addressed memory read (the kernel is not built).",
+    "A real serving comparison with the SIMD kernels actually on the hot path.",
+    "Free-running generation rate: 184.58 tok/s was input-driven forward throughput, not autoregressive decode."
+  ],
+  "failed_only_on_configuration": [
+    "Per-product table emulation was 4.3x worse on energy (docs/history/.../1449-...md): it replaced every multiply with a table read on a dense model, a property of that dense configuration, not of exact table serving of selected geometry.",
+    "Hadamard + E8 and QAT recipes missing the 0.02-nat export gate: they concern how a dense float stack was rounded, not whether the integer boundary can hold a model.",
+    "The softmax-free read arms (+0.0172 BPB or worse) used host-side rank tables on a stack trained with a softmax control; they say nothing about reads built from the start without softmax.",
+    "Served 1.20-1.24 BPB vs 0.90 target: attributed by the record to the float model, not the engine (bit-exact)."
+  ],
+  "open_questions": [
+    "What is the export gap of a discrete or lawful float model through the D11 container, and does UORLUT01 need a new schema for table-native models rather than 4-bit dense groups?",
+    "How much of the 30.2M parameters touched per token can selected addressed reads remove before tokens/s moves, given MACs were not time (product-key memory was slower on the float harness)?",
+    "Is D5-a residency (cache-resident artifact) enough for the target model size, or does D5-b sparsity bind?",
+    "Should the Python audit scripts be ported to Rust (D27/D30) and run in CI? CUDA and the wasm audit are not built in CI today."
+  ],
+  "evidence": [
+    "docs/integration/DECISIONS.md (D5, D10, D11, D29, D36, D37, D38)",
+    "docs/integration/stack-mission-port-design-2026-09-27.md",
+    "docs/integration/s1-stack-serving-measurements-2026-09-28.md",
+    "docs/integration/d4-e8-and-d11-cost-result-2026-09-28.md",
+    "docs/labs/d11-serving-2026-10-10/README.md",
+    "docs/labs/criterion2-protocol-pin-2026-10-09/README.md",
+    "docs/labs/context-curve-2026-10-11/README.md",
+    "docs/labs/wasm-serving-runtime-2026-10-18/README.md",
+    "docs/integration/project-track.md (M4, M5, M7)",
+    "docs/integration/geometry-audit-2026-10-11/README.md"
+  ],
+  "related": [
+    "geometric-stack: the float model this engine exported and served; the engine is exact and the stack's quality is the limit",
+    "flock-read: the softmax-free read that schema /3 can serve; trained arms missed the bar",
+    "exact-memory: product-key / addressed memory the engine cannot yet serve",
+    "spin-weights: icosian-pair exact weights that make table serving of quaternion maps exact",
+    "ternary-xor: the multiplier-free arithmetic substrate",
+    "r4g1-graph: the earlier frozen table runtime with the same no-multiply rule",
+    "discrete-learning: the active model whose integer export is the next thing this must carry"
+  ],
+  "figure_ideas": [
+    "A single dot product with no multiply: one activation, a 16-slot row of its multiples built once, three 4-bit weight codes lighting the slots they select, a shift for the group scale, and a running sum. A counter beside it reads 'multiply instructions: 0'.",
+    "Float versus integer on the same 64 windows: logits plotted against each other sitting exactly on the diagonal (max difference 0), then a separate bar showing the real cost, weight rounding (0.0088 to 0.0194 BPB), so a reader sees the engine is exact and the loss is in the weights.",
+    "The audit strip: a row of 44 coloured symbol ranges from the release binary, each tagged with counts of multiply, divide and float instructions, all green, beside the seven WebAssembly symbols."
+  ]
+}

@@ -1,0 +1,269 @@
+{
+  "id": "flock-read",
+  "canonical_name": "Flock read (starling / murmuration neighbour read)",
+  "aliases": [
+    "ReadSpec::Flock",
+    "starling read",
+    "murmuration read",
+    "starling_native (rung 0b)",
+    "flock / rank-table reads",
+    "softmax-free read",
+    "7-nearest-neighbours on the 600-cell"
+  ],
+  "plain_what": "Like a starling that only watches its seven nearest neighbours, each step looks at a handful of earlier positions whose geometric 'frame' is closest to its own. It rotates their information into its own frame, takes their consensus and nudges its state toward it. No scores are normalised and no weights are multiplied.",
+  "replaces": "attention",
+  "how_it_works": "Each 8-dimensional block keeps context in a ternary BinderPlan tree whose leaves are earlier positions; interior nodes hold the snapped sum of their three transported children. Every (block, tree level) has one Gate trit in {-1,0,+1}. Eligible nodes at a level end strictly before the query. They are ranked by (L1 distance between the node's frame root and the query's frame root, coordinate Hamming distance, recency, node id) and the best K (1 to 8) are kept. Each kept payload is carried into the query's frame by the BFS transport action between the two frame roots, the carried vectors are summed, and the sum is snapped to the nearest of 16 orbit roots: the level's consensus. Trit +1 adds the consensus root to the query payload, -1 subtracts it, 0 skips the level. The output is the query payload plus the added roots, snapped back to a root. This is the integer form of the Vicsek/Kuramoto rule Delta = K_h * (mean - v_t) with K_h in {-1,0,+1}: align with the local flock, with no weights, no normalisation and no division. Earlier float forms picked 7 neighbours among icosian vertices of the 600-cell (home vertex plus its 12 adjacent ones) with a learned rank table or content gate.",
+  "geometry": "16-root E8 orbit (frame roots and consensus snap); BFS transport actions between roots; SpiralCore ternary BinderPlan tree. Float-era forms: icosian vertices of the 600-cell with 12-vertex neighbourhoods, exact icosian quotient transport, Kuramoto/Vicsek alignment, Minkowski/Lorentz rank scores, Hamming rank on sign codes.",
+  "code": [
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "flock_vector kernel (lines 125-269) and snap (102-110): frame-L1 ranking, transport, consensus, gated add/subtract; dispatched at line 271"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/lib.rs",
+      "role": "ReadSpec::Flock { kept } (1..8), Gate trit parameter kind, ReadInitialization::ActiveLeafV1 (+1 leaf gates so the read is causally live)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/flock_qualification.rs",
+      "role": "Six finite exact CUDA construction controls for Flock and Gate (part of the 25-control suite)"
+    },
+    {
+      "path": "crates/uor-r4-training/src/starling_native.rs",
+      "role": "Rung-0b native starling read (float trunk, hard rank read, rank-consistent hinge, exploration slots); inactive evidence"
+    },
+    {
+      "path": "crates/uor-r4-training/src/starling_native.cu",
+      "role": "Kernel K1: GPU neighbour selection by address dot among the home 600-cell vertex and its 12 neighbours, nvcc-built into its own module"
+    },
+    {
+      "path": "crates/uor-r4-training/src/flock.rs",
+      "role": "Float M4 flock select (sink + local window + top-K) and rank-weight variants; host-side, inactive evidence"
+    },
+    {
+      "path": "crates/uor-r4-training/src/geometric_stack.rs",
+      "role": "Historical read_route=starling:M:K plumbing (StarlingRoute, starling_select, starling_read)"
+    },
+    {
+      "path": "crates/uor-r4-integer/src/stack/flock.rs",
+      "role": "Allocation-free integer insertion top-k flock selector for the served D11 stack (sink + local window)"
+    }
+  ],
+  "status": "ACTIVE",
+  "status_reason": "The discrete Flock kernel passes 25 finite CUDA controls (docs/labs/discrete-driver-cost-2026-10-13/README.md) and runs inside every Relation and FrozenZero arm, since relation-off is bit-identical to Flock (docs/mechanisms/finite-relational-head.md section 3.3). No arm has isolated Flock's own value. The float starling and rank-table forms are inactive evidence (docs/mechanisms/README.md).",
+  "reopen_conditions": [
+    "C1 (docs/harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md): a float-trained coupling magnitude K_h per (head, level) over the fixed integer Flock topology, exported to a Gate trit or small integer, with zero-coupling and random-coupling controls, 2 seeds or 200 fresh rows, and a reported export gap. Not yet registered.",
+    "C2: lawful soft-to-hard selection with a rank-consistent hinge and a linear or piecewise anneal (no temperature exponential) ending at the exact integer rank, scored by source-in-flock rate and rank-1-when-kept by distance bucket.",
+    "C3: FBS ternary-tree murmuration for O(log n) reads, only after C1 shows the coupling learns and gated on a long-context bar with tokens per second reported first.",
+    "Any retry of the float starling/rank-table forms needs a fresh FIT, an owner release, a separately scanned float module, a D11 integer export and no softmax surrogate or helper."
+  ],
+  "rule_compat": {
+    "D11": "Discrete kernel is gather/compare/add/subtract with snap built by repeated addition (discrete.cu); no float, no multiplier. The served integer flock selector exists for the old LUT stack (uor-r4-integer/src/stack/flock.rs); no D11 export of a trained discrete Flock artifact has been built or measured in the audited records.",
+    "D23": "Discrete form compliant: hard rank by integer keys, no exponential. Rungs 1-3, the pivot and the surrogate used softmax helpers, surrogates, sigmoid/tanh gates or teachers and are inactive evidence; the M4 rank tables were trained with a flock-softmax straight-through gradient.",
+    "D30": "Compliant in the discrete and rung-0b forms: no matmul. The float M4 stack that hosted rank-table runs is a dense transformer-style stack and is archived.",
+    "D32_D37": "Discrete form is D32 integer, GPU-only and trained by counterfactual moves (held except owner-typed scoped releases). D37 permits a float-trained coupling (C1) only through a new FIT'd pre-registration with an integer export and reported export gap."
+  },
+  "experiments": [
+    {
+      "date": "2026-10-10",
+      "record": "docs/labs/softmax-free-read-2026-10-10/README.md",
+      "configuration": "M4 chat recipe, 19.93M params, 2 seeds; fixed rank 1/(r+1) flock:8:8, Hamming rank, learned rank table flock:8:8, wide flock:32:32; host flock, flock-softmax straight-through gradient",
+      "result": "All four arms missed the 0.01 BPB bar against the softmax read; learned rank table closed 54% of the gap",
+      "verdict": "negative",
+      "numbers": "softmax baseline 0.8772 BPB; fixed rank +0.0398; Hamming rank +0.2585; learned rank +0.0185; wide flock +0.0172"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/softsort-s-2026-10-11/README.md",
+      "configuration": "Rank read trained with a differentiable sort (SoftSort), arm S",
+      "result": "Never reached its decisive run; owner stopped it as not geometric enough and too costly; two GPU-library bugs found",
+      "verdict": "diagnostic-stop",
+      "numbers": "softmax control A1536 held-out NLL 1.4916751; retune dev NLL 2.726 at step 1,000"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/starling-read-2026-10-11/README.md",
+      "configuration": "Rung 1: starling:4:7 and starling:8:7 from scratch, 600-cell address map, sigmoid-form gate, synthetic in-class recall",
+      "result": "Never learned: hard selection gives keys outside the kept set no gradient",
+      "verdict": "negative",
+      "numbers": "recall 0.009 (chance 0.0045) vs L2 softmax control 0.617; 7x fewer positions scored"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/starling-anneal-2026-10-11/README.md",
+      "configuration": "Rung 2: dense training-only helper annealed to zero (alpha 1 -> 0), SA7 and SA7w, context 512, 1,800 steps, 3 seeds",
+      "result": "Addresses learned to find the source but the readout could not decode it",
+      "verdict": "negative",
+      "numbers": "source in kept 7: 0.099 -> 0.727 at peak -> 0.556 final; recall 0.011 vs softmax 0.617 and pure starling 0.009"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/starling-content-2026-10-11/README.md",
+      "configuration": "Rung 3: content-gated kept 7 (starling:4:7:content, starling:8:7:content)",
+      "result": "Gate was not the bottleneck; value path or per-head availability suspected",
+      "verdict": "negative",
+      "numbers": "recall 0.010 (wide 0.008) vs softmax 0.617; source kept 47-56% of the time"
+    },
+    {
+      "date": "2026-10-11",
+      "record": "docs/labs/starling-pivot-2026-10-11/README.md",
+      "configuration": "Diagnostics: oracle fixed slot, shared kept set, velocity routing",
+      "result": "Selection and value path both work; what fails is learning query-key matching to rank the source first",
+      "verdict": "inconclusive",
+      "numbers": "recall 1.000 with source at a fixed slot; 0.012 with a shared kept set; per-head availability 61-72%"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-surrogate-2026-10-12/README.md",
+      "configuration": "Shared+ranked starling with a training-only softmax surrogate over kept candidates, context 512",
+      "result": "Surrogate taught the ranking, recall lifted unevenly; below the pre-registered bar. D23 later banned the surrogate",
+      "verdict": "negative",
+      "numbers": "mean recall 0.141 (bar 0.28; softmax 0.617); source ranked first 0.55-0.78 vs 0.03-0.12 without"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-distill-2026-10-12/README.md",
+      "configuration": "Selector KL distillation from a dense attention teacher, from step 0 vs from step 900",
+      "result": "From step 0 collapses the addresses; from mid-training raises the source hit rate",
+      "verdict": "inconclusive",
+      "numbers": "recall 0.006 (KL from step 0); 0.188 (from step 900) vs 0.141 without KL; hit rate 0.61-0.68"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-distill-sweep-2026-10-12/README.md",
+      "configuration": "Distillation weight sweep (light W03, heavy W3), with and without teacher helper",
+      "result": "Heavy weight keeps the right source more often but breaks the readout; light weight best so far; no arm met rows 1-2",
+      "verdict": "inconclusive",
+      "numbers": "recall 0.380 (light W03) vs softmax 0.617; 0.128 (heavy W3) despite hit rate 0.765"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-recall-2026-10-12/README.md",
+      "configuration": "Light-distillation starling read (W03L) trained twice as long, 3,600 steps, 512 synthetic recall",
+      "result": "Provisional KEEP on every seed; budget unequal to softmax",
+      "verdict": "positive",
+      "numbers": "mean recall 0.780, 5/5 seeds >= 0.30 (W03, 1,800 steps: 0.281)"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-context-2026-10-12/README.md",
+      "configuration": "Equal-budget starling (ring store of last 4 keys per cell) vs softmax at 512 and 1,536 context",
+      "result": "Loses at 512 and collapses at 1,536 because old sources are evicted from the ring",
+      "verdict": "negative",
+      "numbers": "recall at 512: softmax 0.991 vs W03L 0.831 (bar 0.841); at 1,536: 0.999 vs 0.241"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-tree-2026-10-12/README.md",
+      "configuration": "Persistent base-3 tree per cell replaces the ring (ladder step 3), 1,536 context",
+      "result": "Retention fixed (old sources stay readable, 6-36 candidates per query) but recall limited by the readout",
+      "verdict": "positive",
+      "numbers": "source hit rate 0.99 / 0.68 / 0.90 on 3 seeds; recall 0.329 vs ring 0.241 vs softmax 0.999"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-readout-2026-10-12/README.md",
+      "configuration": "Rank-distill term on the readout (WTR) with the tree at 1,536",
+      "result": "Mean recall did not move; one seed reached softmax-level recall while reading about 69 positions",
+      "verdict": "negative",
+      "numbers": "recall 0.377 (WTR) vs 0.329 (WT); best seed 0.964 at 68.9 mean candidates (max 228)"
+    },
+    {
+      "date": "2026-10-12",
+      "record": "docs/labs/starling-bootstrap-2026-10-12/README.md",
+      "configuration": "Dense bootstrap teacher (DBRK) to escape the chance plateau, 1,536 context",
+      "result": "3 of 5 seeds reached softmax-level recall; diagnosed a chance-plateau escape lottery. Uses a dense teacher, inactive under D23",
+      "verdict": "inconclusive",
+      "numbers": "seeds learned (>= 0.85) 3/5 vs 1/5 others; mean recall 0.746 vs 0.264"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/starling-rung0b-source-2026-10-13/README.md",
+      "configuration": "Rung 0b native starling read rebuilt lawfully (no softmax, no dense map, nvcc-built kernel); source and finite controls only",
+      "result": "Construction passes; no training; kept on main as inactive evidence",
+      "verdict": "inconclusive",
+      "numbers": "16/16 finite GPU controls PASS at source 91788550; no-softmax ratchet 1648/1648"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/discrete-flock-writer-integration-2026-10-13/README.md",
+      "configuration": "Integer murmuration Flock read and Gate trits wired into the discrete GPU model beside Route",
+      "result": "Six new and eleven old finite checks pass; no training",
+      "verdict": "positive",
+      "numbers": "17/17 finite CUDA controls PASS; applied updates 0; gate candidate costs in witness [448,256,64]"
+    },
+    {
+      "date": "2026-10-13",
+      "record": "docs/labs/discrete-driver-cost-2026-10-13/README.md",
+      "configuration": "Corpus driver cost measurement on one GPU, ordinary proposal kernel",
+      "result": "Slow candidate enumeration; no mechanism rejected; training held. Later row-parallel kernel removed most of this cost (docs/labs/counterfactual-rows-parity-2026-10-18/README.md)",
+      "verdict": "inconclusive",
+      "numbers": "25/25 controls PASS; projected one parameter pass Route 17.786 h, Flock 19.166 h (UNVERIFIED projection)"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md",
+      "configuration": "Dose 1 rows_v1: Relation{kept 8, sweeps 1} vs FrozenZero control (relation trits locked at 0, i.e. Flock-equivalent), 16-vector seeded codebook, stopped at 4,096 batches",
+      "result": "Both arms collapsed admission; the Flock-equivalent control could not be judged as a read",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ admission 2,034 -> 225 (Relation) and 205 (control) of 3,847"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/a8-dose-2026-10-19/README.md",
+      "configuration": "A8 address-structured cells: FrozenZero (Flock-equivalent) control ran the full 16,404-batch dose",
+      "result": "Control completed, 301 accepted vector updates, about 0.12 s per batch; learning moved target cells out of the shortlist; fresh transfer sealed",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ admission 1,351 -> 857 of 3,847 (control lost 37%); full panel 2,519 of 14,287 at Q1"
+    }
+  ],
+  "never_tested": [
+    "ReadSpec::Flock as a stand-alone integer read trained on the corpus and compared with Route; no arm tests the transported-consensus read against Route (docs/mechanisms/starling-read.md).",
+    "A read-off/read-on ablation of Flock inside the FrozenZero control.",
+    "The lawful no-softmax decisive run (rung 0b / murmuration section 5: in-context recall top-1 on copyable dev targets).",
+    "Flock on a codebook whose addresses are distinct and stay admitted; every integer Flock-equivalent run so far lost admission first.",
+    "K and M at long context; sink and local-window variants in the integer form.",
+    "Float-trained coupling magnitude (C1), rank-consistent soft-to-hard selection (C2), FBS tree O(log n) read (C3).",
+    "A chirality sign on the coupling (parity sets the oscillation sign in the murmurations paper).",
+    "Served tokens per second of a flock read against a scored read at long context."
+  ],
+  "failed_only_on_configuration": [
+    "Starling rungs 1-3, the pivot and the softmax surrogate: trained from scratch with a host-side selector, sigmoid/tanh gates, and softmax helpers or surrogates, on a synthetic 512-token recall task with a small model. They show that this recipe never learned the ranking; they cannot judge a hinge-credited integer flock.",
+    "M4 rank-table reads (+0.0185 to +0.2585 BPB): trained inside a softmax-tuned stack with a flock-softmax straight-through gradient, hyperparameters tuned for softmax, one W/K setting, host flock at 16-26k tok/s against 163k, short context. The 54% of the gap closed by the learned table was a stop recommendation that D22 reversed.",
+    "SoftSort S: closed by owner decision as not geometric enough and too costly, not by a measured negative.",
+    "Ring-store starling at 1,536: each cell kept only the last 4 keys, so the collapse is eviction, which the base-3 tree fixed.",
+    "Dose 1 and A8 Flock-equivalent controls: run on a 16-vector codebook or on cells that learning moved away from targets, so the read was never the thing being measured."
+  ],
+  "open_questions": [
+    "Does a hard integer flock with only Gate-trit learning have enough capacity, or does it need a learned coupling magnitude (C1)?",
+    "How should a source outside the kept set receive credit without a softmax: exploration slots with a rank hinge (C2)?",
+    "Is one shared address per token (store and query) enough, and does cell occupancy collapse under it?",
+    "What is the right K, and does K matter once admission is fixed?",
+    "Can the tree (C3) keep recall flat to distance 1,000 in the integer form, as the float tree did?"
+  ],
+  "evidence": [
+    "docs/mechanisms/starling-read.md",
+    "docs/mechanisms/flock-rank-reads.md",
+    "docs/labs/discrete-murmuration-read-2026-10-13/README.md",
+    "docs/labs/murmuration-design-2026-10-13/README.md",
+    "docs/labs/discrete-flock-writer-integration-2026-10-13/README.md",
+    "docs/labs/softmax-free-read-2026-10-10/README.md",
+    "docs/labs/starling-tree-2026-10-12/README.md",
+    "docs/labs/starling-context-2026-10-12/README.md",
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/labs/c1-sheet-shape-repair-2026-10-18/README.md"
+  ],
+  "related": [
+    "route-read: Flock replaces Route's single leaf with a transported consensus of K neighbours",
+    "relation-read: Flock plus an exact-relation reranker; relation-off equals Flock",
+    "admission: every Flock-equivalent run so far was limited by admission before the read could be judged",
+    "rank-margin: the rank-consistent hinge that replaced the softmax surrogate in rung 0b",
+    "spiralcore-fbs: BFS transport and the ternary tree behind the O(log n) variant",
+    "hopf-observation: Hopf S3 to S2 observation considered for neighbour keys in the murmuration design",
+    "exact-memory: the persistent tree is an exact addressed store of the past"
+  ],
+  "figure_ideas": [
+    "A strip of token positions with the query at the right end. The K kept neighbours light up; for each, an arrow shows its 8-D payload being rotated into the query's frame; the arrows sum into one consensus point that snaps to the nearest of 16 orbit roots, and the query payload moves toward it.",
+    "Recall against distance (positions back) for three reads on one plot: ring-store flock (collapses past the last 4 keys per cell), tree flock (flat to distance 1,000), and softmax (flat at about 1.0), using the starling-context and starling-tree numbers.",
+    "The 600-cell drawn as 120 vertices; one token's home vertex and its 12 neighbours highlighted, with the 7 nearest earlier tokens inside that neighbourhood circled, shown beside the integer version that uses 16 frame roots instead."
+  ]
+}

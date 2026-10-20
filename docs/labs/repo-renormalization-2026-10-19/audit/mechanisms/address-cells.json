@@ -1,0 +1,229 @@
+{
+  "id": "address-cells",
+  "canonical_name": "Address-structured injective cells",
+  "aliases": [
+    "A8 (address_structured_v1)",
+    "S8 (shuffled-placement control)",
+    "P8 / P16 / A16 (uniform and K=16 bracket arms)",
+    "injective codebook initialization (injective-init, D39 item 3)",
+    "256 x 16 cells",
+    "predecessor-structured cell placement"
+  ],
+  "plain_what": "Each of the 4,096 words gets a unique home cell on a 16 by 16 board, and words are placed next to the cells of the words that usually come just before them in the training text. Then a reader looking around the previous word's cell can already see the likely next words.",
+  "replaces": "embedding",
+  "how_it_works": "A token's writer cell is (root id of block 0, root id of the last block): a 16 x 16 = 256 cell grid, with all 4,096 vectors kept distinct. The reader admits the K = 8 occupied cells nearest its output q, by L1 distance on those two root blocks (the writer's own address_distance), and can only rank tokens inside them, so placement decides what it can see. Construction is host data preparation from TRAIN only. Count integer bigrams (s -> t) at eligible response positions, s being the last context token. Take tokens by descending frequency (ties to the lower id). Each takes the cell minimising the sum over placed predecessors s of count(s -> t) * L1(cell(s), cell), under a quota of 16 per cell. A token with no placed predecessor goes to its PrimeZeta cell if free, else the nearest non-full cell. Inner blocks get distinct root pairs by rank in the cell; a recount requires 4,096 distinct vectors with every cell at quota. The S8 control runs the same greedy with predecessor identities relabelled by a seeded permutation, keeping frequency, quota and mass but destroying the relation. Output is a pinned integer table. Stated proxy gap: admission is centred on snap(u + m), the last token plus context consensus, not on cell(last token) alone.",
+  "geometry": "E8 orbit roots (16 roots; a cell is a pair of roots), L1 distance on root coordinates, the SpiralCore/FBS-era integer writer's cell admission, TRAIN bigram graph used as the pull field; PrimeZeta cells as the fallback.",
+  "code": [
+    {
+      "path": "crates/uor-r4-discrete/src/address_cells.rs",
+      "role": "BigramCounts, the greedy build with quota and distinctness recount, ShuffledV1 control, table_file_bytes"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/bin/address-cells-codebook.rs",
+      "role": "Exporter: TRAIN only, writes uor-r4.codebook-table/1 exclusively, never reads DEV"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/training.rs",
+      "role": "pinned_table_v1 loader, G-Init check, scope string keyed on the table SHA prefix"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/corpus.rs",
+      "role": "eligible_positions() and tokens() read-only accessors the counts use"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "token_cell, writer admission of K nearest occupied cells, discrete_validate status 6 for non-root words"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_preflight.rs",
+      "role": "Zero-update pre-flight battery: B3_init, G-Occ, net G-Cap"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_learning.rs",
+      "role": "Relation vs FrozenZero dose driver with the Q1 stop rule (K pinned at 8)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/coverage_census.rs",
+      "role": "Alias ceiling, tie mass and crowding census (G-Cap)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_anchor.rs",
+      "role": "Admission-preserving successor: TRAIN-derived 3,847-row anchor (source only)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_audited.rs",
+      "role": "Admission-preserving successor: audited learning with whole-interval rejection (also attention_audit.rs, attention_anchor_device.rs, attention_audit_qualification.rs); CUDA qualification NOT_RUN"
+    },
+    {
+      "path": "docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md",
+      "role": "FIT pre-flight sheet that fixed the bars and arms before measurement"
+    },
+    {
+      "path": "docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md",
+      "role": "FIT training-dose sheet for the A8 Relation vs FrozenZero run"
+    }
+  ],
+  "status": "ACTIVE",
+  "status_reason": "A8 is the table of the live M1 attention line. At zero updates it lifted successor admission from 127 to 1,351 of 3,847 (docs/labs/address-cells-preflight-2026-10-19). The learned dose then hit a Q1 diagnostic stop (Relation 551, FrozenZero 857) as learning moves carried tokens out of their placed cells; attribution not established (docs/labs/a8-dose-2026-10-19). Admission-preserving controller merged; its CUDA qualification is NOT_RUN.",
+  "reopen_conditions": [],
+  "rule_compat": {
+    "D11": "Compatible. The artifact is an integer table of root coordinates; the construction is integer counting and integer L1 sums (u128), with no float, so there is no export gap to report.",
+    "D23": "No softmax, squashing or exponential anywhere in the construction, the admission rule or the controller.",
+    "D30": "No matmul. Placement is a greedy over integer L1 sums on the host; the model side is table reads and integer cell distances.",
+    "D32_D37": "Native to D32: a discrete, exact, GPU-scored substrate. Host work is data preparation only (D24), no model quantity is computed on the host. Needs no D37 float and no zeta exception (PrimeZeta enters only as an integer fallback table)."
+  },
+  "experiments": [
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/a2-pilot-2026-10-14/README.md; docs/labs/a2-pilot-diagnosis-2026-10-14/README.md",
+      "configuration": "Seed-1 A2 pilot, 1,640 batches, default xorshift codebook (16 distinct vectors)",
+      "result": "Top-8 hits rose but total loss rose; omitted targets rose because the fixed eight-cell access reached fewer target cells. Diagnosis traced the 16 patterns to a coupled-index defect in the initializer",
+      "verdict": "inconclusive",
+      "numbers": "DEV top-1 17 -> 82, top-8 173 -> 1,169 of 14,287; admitted targets 5,680 -> 2,180; loss numerator 13,816,032 -> 13,884,032"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md",
+      "configuration": "Paired rows_v1 Relation vs relation-disabled control on the seeded 16-vector codebook (Dose 1)",
+      "result": "Both arms reached the admission-collapse gate at 4,096 batches; registered diagnostic stop, not a negative",
+      "verdict": "diagnostic-stop",
+      "numbers": "admission 2,034 -> 225 (Relation) / 205 (control); 94 relation trits accepted"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/attention-state-2026-10-18/README.md; docs/labs/course-correction-2026-10-18/alias-census-REPORT.md",
+      "configuration": "W0 alias census of stored checkpoints on the 14,287-row DEV panel",
+      "result": "The default codebook offers 16 rankable identities for 4,096 tokens; the admitted-cell ceiling, not the alias ceiling, binds at Q4",
+      "verdict": "diagnostic-stop",
+      "numbers": "alias ceiling 1,986 at checkpoint 0 vs bar 1,941; Q4 ceiling 8,948 but admitted-cell ceiling 1,920 < 1,941; 143 of 674 targets predictable at Q4"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/k16-outcome-call-2026-10-19/README.md",
+      "configuration": "K16-A (nearest-rival address margin) vs K16-R (occupied-cell rank hinge), seeds 1 and 2, seeded init, Route read, 16,404 batches",
+      "result": "OCCUPANCY_COLLAPSE_TRIGGERED: R passes admission only vacuously after collapsing to about 20 cells; A fails the admission gate; no KEEP; configuration negatives only",
+      "verdict": "negative",
+      "numbers": "A target_admitted 2,237 / 3,167, cells 16 -> 209 / 192; R target_admitted 12,089 / 12,466 with 20 / 19 cells; all four roles miss top-1 1,941 and top-8 4,775"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+      "configuration": "P8: PrimeZeta injective table at K=8, zero updates",
+      "result": "No aliasing, but tokens spread evenly over 256 cells so only about 8/256 of target cells are admitted; B3_init gate failed; run not dispatched",
+      "verdict": "diagnostic-stop",
+      "numbers": "B3_init(P_succ) 127/3,847 vs gate 500; full panel 427/14,287"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/address-cells-codebook-2026-10-19/README.md; docs/labs/address-cells-consumer-verifier-2026-10-19/README.md",
+      "configuration": "Host export of A8 and S8 tables from pinned TRAIN, rebuilt independently by a Rust binary and a Python verifier",
+      "result": "Both tables injective with 256 cells at quota 16; deterministic; A8 sits closest to predecessors",
+      "verdict": "positive",
+      "numbers": "mean TRAIN predecessor L1 per target: A8 9.22, S8 12.32, P8 13.96 (A8 -33.94% vs P8, -25.12% vs S8); A8 table SHA 4122cbab..."
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/address-cells-preflight-2026-10-19/README.md",
+      "configuration": "Five-arm zero-update pre-flight (P8, P16, S8, A8, A16) on one RTX 5090, bars fixed before measurement",
+      "result": "A8 passed B3_init, net G-Cap, paired floor and G-Occ; placement moved admission and the predecessor relation, not repacking, explains it. Full G-Init clause against an unpinned initializer was NOT_RUN here (run later). Admission evidence, not learning",
+      "verdict": "positive",
+      "numbers": "P_succ admitted of 3,847: A8 1,351, A16 2,178, S8 476, P16 246, P8 127; full panel A8 4,244 / 14,287; A8-P8 b-c = 1,224 (floor 74.3); A8-S8 b-c = 875 (floor 81.0); cost about $0.17"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/a8-dose-2026-10-19/README.md; docs/labs/a8-current-status-scope-2026-10-19/README.md",
+      "configuration": "A8 learned-attention dose, Relation (LearnV1) vs FrozenZero control, seed 1, K=8, 2 x RTX 5090, 16,404 batches planned",
+      "result": "Pre-run gates all PASS (unpinned-initializer comparison now matches). Relation hit the half-init Q1 stop at 4,096 batches; FrozenZero completed 16,404 batches with 797 at completion. Both arms lost admission as accepted moves carried tokens out of their placed cells; Relation lost more. D31 diagnostic stop, no paired DEV verdict, fresh sealed, headline unchanged",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ 1,351 -> Relation 551 at Q1 (stop at 675.5); FrozenZero 857 at Q1, 797 final; full panel at Q1: 1,511 vs 2,519 of 14,287; Relation 87 accepted relation trits; about 0.12 s/batch; cost about $1.9"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/admission-anchor-controller-2026-10-19/README.md; docs/labs/admission-preserving-2026-10-19/README.md",
+      "configuration": "Admission-preserving A8 controller (whole-interval rejection against a TRAIN anchor of 3,847 rows, margin 24, floor 500) and finite source qualification",
+      "result": "Source merged with 198 host tests passing; real CUDA build, qualification, restoration, timing, admission improvement and speedup are NOT_RUN",
+      "verdict": "blocked",
+      "numbers": "258 audits per arm at 16,404 attempts; anchor CSV SHA 8c1b80e9..."
+    }
+  ],
+  "never_tested": [
+    "Whether the attention read can learn on a well-placed injective codebook at all. No run yet produced a paired DEV Relation-vs-FrozenZero verdict; the fresh slice is sealed.",
+    "Any accuracy, ranking, BPB or reply quality for A8. Every A8 number is an admission count on the DEV panel (P_succ rows, or full-panel target-cell admission).",
+    "Placement that also uses successor edges: v1 only lets already-placed predecessors pull a token, and edges toward later-placed tokens never pull earlier ones (stated limitation in the sheet).",
+    "Placement keyed on the actual read centre snap(u + m) rather than the last token's cell; the proxy was reported but not tuned.",
+    "The compact 32-cell form, a K of about 34 or more, and a partially injective table with fewer occupied cells (successor options a to c in the injective pre-flight record).",
+    "More than one shuffle seed for S8, and training from the P16 / A16 bracket arms.",
+    "The admission-preserving rule in a real CUDA run, and a finer-cadence or cell-level ejection census to attribute why Relation loses admission faster.",
+    "Other shapes: V = 16,384 with C = 512 (planned after the dose)."
+  ],
+  "failed_only_on_configuration": [
+    "Seeded-init Dose 1 (2,034 -> 225 / 205) and the A2 pilot: both ran on a codebook with only 16 distinct vectors, so the read could not be fairly judged. They close that initialization, not attention (finite-relational-head record: no trained run yet isolates the read).",
+    "P8 B3_init 127 < 500: uniform PrimeZeta spreading at K=8 starves admission; closes 'uniform placement at K=8' only.",
+    "K16-R: the occupied-cell rank hinge collapsed to about 20 cells and K16-A missed the admission gate; both are objective configurations at seeded init and say nothing about placement.",
+    "A8 Q1 stop: both arms lost admission (control -37%, Relation -59%), consistent with accepted moves ejecting placed targets (co-occurrence, not attribution). This closes unprotected move acceptance; the sheet's own known-risk section predicted it and called it a diagnostic stop, not a mechanism negative.",
+    "The Oct 4 'observable geometric observation cells' (docs/integration/geometric-observable-cells-2026-10-04.md) are a different mechanism (token-root and category coefficient edits in the September native_geometric engine) that happens to share the word 'cells'. It was catalogued under this id but is not part of it."
+  ],
+  "open_questions": [
+    "Why do accepted updates eject admitted targets, and why faster in the Relation arm? A host-only erosion diagnosis from retained checkpoints and move logs is Claude-owned; cell-level ejection counts would be needed to attribute it.",
+    "Can a whole-interval rejection rule hold P_succ admission at or above 500 while still letting the read learn, or does it turn the rule into a no-op (rejection rate above 0.50 or three consecutive full rejections)?",
+    "Is K = 8 enough, or does the line need K scaled with occupancy?",
+    "How much of the A8 gain survives on a different panel or corpus, given the table is built from one TRAIN split?",
+    "Does placement near predecessors cost anything for tokens whose best neighbours are successors?"
+  ],
+  "evidence": [
+    "docs/labs/address-cells-preflight-2026-10-19/README.md",
+    "docs/labs/address-cells-preflight-2026-10-19/evidence/grading.json",
+    "docs/labs/address-cells-codebook-2026-10-19/README.md",
+    "docs/labs/address-cells-consumer-verifier-2026-10-19/README.md",
+    "docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md",
+    "docs/labs/a8-dose-2026-10-19/README.md",
+    "docs/labs/a8-current-status-scope-2026-10-19/README.md",
+    "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+    "docs/labs/injective-codebook-init-2026-10-18/README.md",
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md",
+    "docs/labs/k16-outcome-call-2026-10-19/README.md",
+    "docs/labs/admission-anchor-controller-2026-10-19/README.md",
+    "docs/labs/admission-preserving-2026-10-19/README.md",
+    "docs/integration/DECISIONS.md (D39 items 2, 3, 6; D40)"
+  ],
+  "related": [
+    {
+      "id": "prime-zeta-codebook",
+      "how": "Parent and baseline: A8 uses the same cell grid and the PrimeZeta cell as fallback; P8 is the control arm."
+    },
+    {
+      "id": "admission",
+      "how": "Defines the gates (B3_init, G-Cap, G-Occ, Q1 stop, admission-preserving controller) that decide whether this table is any use."
+    },
+    {
+      "id": "relation-read",
+      "how": "The Relation arm is what the A8 dose was meant to test against its frozen-zero control."
+    },
+    {
+      "id": "flock-read",
+      "how": "Its consensus term m shifts the read centre away from the last token's cell, which is why placement only partly predicts admission."
+    },
+    {
+      "id": "route-read",
+      "how": "The K16 A/R redirect used ReadSpec::Route on the same cell space."
+    },
+    {
+      "id": "rank-margin",
+      "how": "K16-R's occupied-cell rank hinge collapsed occupancy, the failure A8 tries to avoid by fixing the table instead of the objective."
+    },
+    {
+      "id": "discrete-learning",
+      "how": "The shared writer and counterfactual move rule whose accepted moves erode the placement."
+    },
+    {
+      "id": "spiralcore-fbs",
+      "how": "Source of the E8 orbit roots and the writer geometry the cells live on."
+    }
+  ],
+  "figure_ideas": [
+    "A 16 x 16 board of 256 cells with 16 dots each. Draw the ten heaviest TRAIN bigram edges (previous word -> next word) as arrows. Toggle the table between P8 (arrows are long scribbles across the board), S8 (shorter, no meaning) and A8 (short, clustered). Then slide K = 8 and highlight the eight admitted cells around the last word's cell; a counter shows how many of the 3,847 successor targets land inside (127, 476, 1,351).",
+    "A five-bar chart of admitted successors for P8, P16, S8, A16 and A8 with the 500-row gate drawn as a line, and two small 'paired' panels showing the rows that flipped (1,302 gained and 78 lost for A8 vs P8; 1,258 and 383 for A8 vs S8).",
+    "An erosion timeline over training batches for the Relation arm and the FrozenZero arm: the y-axis is admitted successors (starts at 1,351), the Relation arm falls to 551 and stops, the control to 857 then 797. Underneath, a replay of the board where accepted moves push dots out of their neighbourhoods, then a second run with the whole-interval rejection rule snapping the board back to the last passing state."
+  ]
+}

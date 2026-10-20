@@ -1,0 +1,961 @@
+{
+  "crates": [
+    {
+      "name": "uor-r4-discrete",
+      "path": "crates/uor-r4-discrete",
+      "role": "Active M1 model path: exact SpiralCore/FBS discrete learning, shared integer vector writer, CUDA driver and qualification/admission instruments (rows, rows-K, BVG-K, prime-zeta, address-cells).",
+      "status": "active-model",
+      "deps": [
+        "uor-r4-core"
+      ],
+      "loc": 33291,
+      "bins": [
+        "discrete-stack",
+        "prime-zeta-qualify",
+        "prime-zeta-codebook",
+        "rows-qualify",
+        "rowsk-qualify",
+        "bvgk-qualify",
+        "coverage-census",
+        "address-cells-codebook (auto-discovered, not declared)"
+      ],
+      "cuda": true,
+      "needed_by_active_model": true,
+      "tests": 212,
+      "notes": "uor-r4-core is a BUILD-dependency only (build.rs imports spiralcore_operator: cl06_bivectors, cl06_finite_composition_table, SignedMatrix8 to emit exact 64-state geometry tables into OUT_DIR/geometry.rs); it is not in the runtime graph. Runtime deps are only serde, serde_json, sha2 and optional cudarc =0.19.10 (feature cuda, default off). Without feature cuda, build.rs still runs the PTX-admission self-test and generates geometry but invokes no nvcc. With feature cuda it needs UOR_NVCC_ARCH=compute_<n> explicitly (no default) and nvcc. Several src files are include_bytes!/include_str! consumers of docs/labs evidence JSON and docs/harness/prep markdown (attention_learning.rs), so the crate is coupled to docs paths. Also path-depended on by out-of-workspace lab instruments under docs/labs/*/instrument (5 of the 12 standalone Cargo projects under docs/labs name it)."
+    },
+    {
+      "name": "uor-r4-core",
+      "path": "crates/uor-r4-core",
+      "role": "Original 'R4 engine': zeta/Hopf/prime math, historical native_geometric engine, transformerless compiler/runtime pieces, ~50 research binaries; the only live piece for the M1 path is spiralcore_operator.rs (1381 lines).",
+      "status": "active-model",
+      "deps": [
+        "uor-r4-integer",
+        "uor-r4-tokenizer",
+        "uor-r4-source-interface",
+        "third_party/uor-addr-0.2.0"
+      ],
+      "loc": 347279,
+      "bins": [
+        "~50 auto-discovered src/bin/* (e.g. train-native-prose, train-lowbit-chat, integrated-attention*, addressed-attention-*, geometric-realtext-*, query-read, relational-reader, r4-policy-check, prior-learning-*, readout-diagnostic)"
+      ],
+      "cuda": false,
+      "needed_by_active_model": true,
+      "tests": 1700,
+      "notes": "Status is mixed: 'active-model' only because uor-r4-discrete build-depends on it (and CI runs r4-policy-check and native_geometric tests from it). By far the largest crate; most of its 347k lines (native_geometric/, transformerless/, learned_reference/, semantic/, helm_d_r4_attention, many *_attention.rs) are historical or frozen Sept-era evidence per AGENTS.md. Highest-value split candidate: extract spiralcore_operator.rs (+ zeta/E8 math it needs) into a small crate so discrete no longer compiles 347k lines as a build dependency. Cargo feature learned-reference (off) is the CPU float boundary. uor-addr vendored at third_party/uor-addr-0.2.0."
+    },
+    {
+      "name": "uor-r4-integer",
+      "path": "crates/uor-r4-integer",
+      "role": "Standalone integer (D11) runtime for retained packed models; native_geometry.rs is the integer geometry selected by the active path; bins uor-chat, verify-integer, uor-r4-stack.",
+      "status": "serving",
+      "deps": [
+        "uor-r4-tokenizer (optional)"
+      ],
+      "loc": 50294,
+      "bins": [
+        "uor-chat",
+        "uor-r4-integer",
+        "verify-integer",
+        "uor-r4-stack",
+        "mk-synthetic-stack"
+      ],
+      "cuda": false,
+      "needed_by_active_model": true,
+      "tests": 519,
+      "notes": "Transitively required: core -> integer. Also include_bytes! source of historical-h4-tables-v1.bin used by training. lab-runner mentions it in source (delivery/bin) as a name only."
+    },
+    {
+      "name": "uor-r4-tokenizer",
+      "path": "crates/uor-r4-tokenizer",
+      "role": "Shared byte-level BPE engine and stable tokenizer identity (extracted from core hf_bpe).",
+      "status": "tooling",
+      "deps": [],
+      "loc": 2366,
+      "bins": [
+        "train-bpe"
+      ],
+      "cuda": false,
+      "needed_by_active_model": true,
+      "tests": 22,
+      "notes": "Transitive: core, integer (optional), training, object-store depend on it."
+    },
+    {
+      "name": "uor-r4-source-interface",
+      "path": "crates/uor-r4-source-interface",
+      "role": "Raw source-ingestion error/type metadata split out of model-source so core need not depend on model execution.",
+      "status": "tooling",
+      "deps": [],
+      "loc": 420,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": true,
+      "tests": 0,
+      "notes": "Transitive via core. Zero tests; thin type crate."
+    },
+    {
+      "name": "uor-r4-training",
+      "path": "crates/uor-r4-training",
+      "role": "Offline float training crate: CUDA geometric stack (Hamilton gate, rate select, quaternion scan, margin-rank, recurrence, Adam, SpiralCore FBS float, starling-native select), plus ~113 examples and ~32 historical research bins.",
+      "status": "held",
+      "deps": [
+        "uor-r4-integer",
+        "uor-r4-core",
+        "uor-r4-tokenizer"
+      ],
+      "loc": 219797,
+      "bins": [
+        "uor-r4-training",
+        "teacher-paraphrase",
+        "prepare-chat-parquet",
+        "prepare-text-parquet",
+        "chat-grade"
+      ],
+      "cuda": true,
+      "needed_by_active_model": false,
+      "tests": 1208,
+      "notes": "autobins/autoexamples/autotests = false: only 5 bins, the lib and one required-features=cuda example are built; the other ~32 files in src/bin and ~113 examples are source evidence that no cargo command compiles. Training holds apply (AGENTS.md: both training holds HELD). D37 legalizes offline float here but needs fresh FIT'd pre-registration. Features: cuda (candle-core/cuda, candle-nn/cuda, cudarc), native-rung0 (default), metal, cpu-accelerate, reference-accelerate, parquet-input, historical-reference (compile-time refusal, microlp). Pulls patched candle via [patch.crates-io] to third_party; this is the only path by which the 9 candle-kernels modules get nvcc-built. Does not feed the active discrete path; discrete does not depend on it."
+    },
+    {
+      "name": "uor-r4-lut",
+      "path": "crates/uor-r4-lut",
+      "role": "Retained LUT (UORLUT01 / D10) artifact metadata and exact grid helpers only; engines excluded under D29.",
+      "status": "comparator",
+      "deps": [],
+      "loc": 1124,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 5,
+      "notes": "Frozen non-mission comparator per AGENTS.md. No Cargo.toml in the workspace depends on it; the only in-repo user, training/src/stack_export.rs, is compiled out with #[cfg(any())]. Excluded engines live in docs/history/d29-excluded-lut-2026-10-13/. No dedicated CI job."
+    },
+    {
+      "name": "uor-r4-simd",
+      "path": "crates/uor-r4-simd",
+      "role": "Audited AVX2/NEON/portable multiplier-free 4-bit table GEMV kernels for the LUT serving path (D10); the only crate allowed unsafe.",
+      "status": "frozen",
+      "deps": [],
+      "loc": 1015,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 7,
+      "notes": "No dependents (it does not even depend on uor-r4-lut despite its description). Has examples/gemv-bench.rs. Dead candidate: tied to superseded D10 LUT serving."
+    },
+    {
+      "name": "uor-r4-object-store",
+      "path": "crates/uor-r4-object-store",
+      "role": "D19 bounded exact ternary byte-object store for durable chat memory (Showcase-compatible), with PROTOCOL.md, objpeer bin and shell tools (cold_join, fleet_maintenance).",
+      "status": "serving",
+      "deps": [
+        "uor-r4-tokenizer"
+      ],
+      "loc": 3039,
+      "bins": [
+        "objpeer"
+      ],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 61,
+      "notes": "M3 durable-memory line (mechanism object-store). Implements no model/learned routing. Nothing depends on it; it is a standalone product-in-waiting. Covered only by workspace-wide cargo check/test --lib."
+    },
+    {
+      "name": "uor-r4-graph-format",
+      "path": "crates/uor-r4-graph-format",
+      "role": "R4G1 packed graph artifact container: no_std-capable fixed-width types, two-stage validation, canonical serializer, GraphView.",
+      "status": "frozen",
+      "deps": [],
+      "loc": 11450,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 187,
+      "notes": "Frozen TLA/R4G1 kernel contract. Default workspace member. Has a fuzz subproject (crates/uor-r4-graph-format/fuzz) excluded from the workspace. Consumed by root wasm router, graph-runtime, compiler, certify, cli, proof-model, api."
+    },
+    {
+      "name": "uor-r4-graph-runtime",
+      "path": "crates/uor-r4-graph-runtime",
+      "role": "R4G1 graph runtime (multiplier-free table execution kernel).",
+      "status": "frozen",
+      "deps": [
+        "uor-r4-graph-format"
+      ],
+      "loc": 4946,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 53,
+      "notes": "Default member; dev-deps core and graph-compiler (tests only)."
+    },
+    {
+      "name": "uor-r4-graph-compiler",
+      "path": "crates/uor-r4-graph-compiler",
+      "role": "Cross-compiler from transformer source models to R4G1 graphs (transformerless conversion).",
+      "status": "historical",
+      "deps": [
+        "uor-r4-model-source",
+        "uor-r4-graph-format",
+        "uor-r4-core",
+        "uor-r4-router"
+      ],
+      "loc": 34424,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 329,
+      "notes": "r4g1-transformerless line (Jul-Sept). Workspace member. Depends on model-source, which ports the karpathy run.c teacher (a transformer comparator)."
+    },
+    {
+      "name": "uor-r4-graph-certify",
+      "path": "crates/uor-r4-graph-certify",
+      "role": "Certifier/verifier for compiled R4G1 graphs against teacher reference; route-cost analysis.",
+      "status": "historical",
+      "deps": [
+        "uor-r4-core",
+        "uor-r4-graph-format",
+        "uor-r4-graph-runtime",
+        "uor-r4-model-source",
+        "uor-r4-graph-compiler"
+      ],
+      "loc": 25799,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 255,
+      "notes": "Mentions uor-r4-naf and proof-model in route_cost.rs."
+    },
+    {
+      "name": "uor-r4-graph-cli",
+      "path": "crates/uor-r4-graph-cli",
+      "role": "Transformerless CLI library: convert, certify, scenarios, cover-sweep, prime-route canary, runtime corpus.",
+      "status": "historical",
+      "deps": [
+        "uor-r4-core",
+        "uor-r4-graph-compiler",
+        "uor-r4-graph-certify",
+        "uor-r4-graph-runtime",
+        "uor-r4-model-source",
+        "uor-r4-graph-format"
+      ],
+      "loc": 20184,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 157,
+      "notes": "Library only (no [[bin]]); its commands surface through the root `r4` binary. build.rs only records PROFILE/OPT_LEVEL (not CUDA). Dev-dep uor-matmul-core (git)."
+    },
+    {
+      "name": "uor-r4-model-source",
+      "path": "crates/uor-r4-model-source",
+      "role": "TEACHER side: Rust port of karpathy run.c forward pass plus Safetensors/SmolLM2 adapters; source-model loading for the compiler.",
+      "status": "comparator",
+      "deps": [
+        "uor-r4-source-interface",
+        "uor-r4-api (dev-dep, cycle via dev only)"
+      ],
+      "loc": 27486,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 222,
+      "notes": "Transformer teacher/comparator code (uses softmax/matmul via uor-matmul); AGENTS.md: no new prohibited comparator or teacher execution. NOT listed in workspace members but is an implicit workspace member because it is a path dependency. Optional feature observation-blas-exception (Apple Accelerate)."
+    },
+    {
+      "name": "uor-r4-api",
+      "path": "crates/uor-r4-api",
+      "role": "Typed library facade over the transformerless graph stack (compile/engine/serving/release-bundle/qualification APIs), with 2 bins.",
+      "status": "serving",
+      "deps": [
+        "uor-r4-core",
+        "uor-r4-graph-format",
+        "uor-r4-graph-compiler (optional)",
+        "uor-r4-graph-certify",
+        "uor-r4-graph-runtime",
+        "uor-r4-graph-cli (optional)",
+        "uor-r4-model-source"
+      ],
+      "loc": 17920,
+      "bins": [
+        "r4-learned-reference-1102",
+        "r4-native-chat"
+      ],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 255,
+      "notes": "Used by root r4/wasm package and workbench. Features runtime / full. Serves the old R4G1/transformerless artifacts, not the M1 discrete model."
+    },
+    {
+      "name": "uor-r4-proof-model",
+      "path": "crates/uor-r4-proof-model",
+      "role": "Executable proof specification and Kani formal-verification harness for the R4G1 graph compiler.",
+      "status": "frozen",
+      "deps": [
+        "uor-r4-graph-format",
+        "uor-r4-graph-runtime",
+        "uor-r4-core (optional)",
+        "uor-r4-graph-certify (optional)",
+        "uor-r4-graph-compiler (optional)"
+      ],
+      "loc": 1970,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 28,
+      "notes": "Default member; run by formal_verification.yml (cargo test + cargo kani) and CI inference_audit. The only crate with a dedicated formal-verification workflow."
+    },
+    {
+      "name": "uor-r4-router",
+      "path": "crates/uor-r4-router",
+      "role": "R4 router support: token-history session signatures, tier cascade, UOR host bounds; legacy UorR4Router engine preserved behind non-default legacy-engine feature (does not build against current core, #2345).",
+      "status": "historical",
+      "deps": [
+        "uor-r4-core"
+      ],
+      "loc": 5127,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 43,
+      "notes": "Mechanism route-read ancestor (spanning-tree router, read_lineage). Default member. Depended on by graph-compiler and root package; AGENTS.md: not interchangeable with the retained native model."
+    },
+    {
+      "name": "uor-r4-workbench",
+      "path": "crates/uor-r4-workbench",
+      "role": "Opt-in native host for the bounded 'Four-fact' research reference (ADR-0006); CPU floating-point.",
+      "status": "historical",
+      "deps": [
+        "uor-r4-api"
+      ],
+      "loc": 9913,
+      "bins": [
+        "r4-workbench"
+      ],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 65,
+      "notes": "CPU float research host; nothing depends on it. Violates D24/D25 spirit if run as model compute; keep as evidence."
+    },
+    {
+      "name": "uor-r4-naf",
+      "path": "crates/uor-r4-naf",
+      "role": "UOR-NAF v1-draft.6 interchange slice (#623): core, integer, tensor, address and address-binding capabilities.",
+      "status": "frozen",
+      "deps": [],
+      "loc": 863,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 6,
+      "notes": "Never a dependency of a shipped r4 crate (by its own description). xtask/Cargo.toml mentions it only in a comment. Dead candidate."
+    },
+    {
+      "name": "uor-r4-recon-dag",
+      "path": "crates/uor-r4-recon-dag",
+      "role": "Production reader for the reconstruction byte-DAG (on-demand node backend; RangeVerified vs WholeObject digest claims), replacing a lab experiment's range_reader.",
+      "status": "tooling",
+      "deps": [],
+      "loc": 531,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 13,
+      "notes": "SpiralCore-side artifact/compression work (the SpiralCore spin-out). Not referenced by any other Cargo.toml or workflow. Candidate to move with SpiralCore if it becomes its own project."
+    },
+    {
+      "name": "uor-r4-harness",
+      "path": "crates/uor-r4-harness",
+      "role": "Multi-lab research harness in Rust (uor-harness: status, brief, prep, check, heartbeat, claims, skills, ledger, PR lint); port of the Python harness (D27).",
+      "status": "tooling",
+      "deps": [
+        "uor-r4-claim-wording"
+      ],
+      "loc": 43941,
+      "bins": [
+        "uor-harness",
+        "attention-cell-reference-scorer"
+      ],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 580,
+      "notes": "build.rs only records build time (no CUDA). Dedicated CI workflow harness.yml runs fmt, clippy -D warnings, tests. Contains attention-cell-reference-scorer, a research bin living in a tooling crate. Subject of the renormalization (governance/tooling bloat)."
+    },
+    {
+      "name": "uor-r4-claim-wording",
+      "path": "crates/uor-r4-claim-wording",
+      "role": "Claim-wording gate (issue #123): Rust port of check_claim_wording.py.",
+      "status": "tooling",
+      "deps": [],
+      "loc": 309,
+      "bins": [
+        "uor-r4-claim-wording"
+      ],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 13,
+      "notes": "Run as a CI step in ci.yml and AGENTS.md-mandated when editing capability claims; dependency of harness."
+    },
+    {
+      "name": "uor-r4-pod-provider",
+      "path": "crates/uor-r4-pod-provider",
+      "role": "Rust-only Vast.ai REST adapter used by the admitted pod runner.",
+      "status": "tooling",
+      "deps": [],
+      "loc": 885,
+      "bins": [
+        "uor-r4-pod-provider"
+      ],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 8,
+      "notes": "Invoked by scripts/pod/uor-pod (shell) rather than via Cargo; no dependents. compute-ops line."
+    },
+    {
+      "name": "repo-model",
+      "path": "crates/repo-model",
+      "role": "Typed registries parsed from model/*.toml: single source of conformance claims (R1). Build/CI only.",
+      "status": "tooling",
+      "deps": [],
+      "loc": 938,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 9,
+      "notes": "Used by xtask and repo-conformance."
+    },
+    {
+      "name": "repo-conformance",
+      "path": "crates/repo-conformance",
+      "role": "BDD runner and honesty meta-gate (R2/R3). Dev and CI only.",
+      "status": "tooling",
+      "deps": [
+        "repo-model"
+      ],
+      "loc": 370,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 43,
+      "notes": "Referenced by Justfile, features/suites and ci.yml (BDD gates)."
+    },
+    {
+      "name": "xtask",
+      "path": "xtask",
+      "role": "Repository gates: R1 register conformance (cargo xtask <task>); also hosts the in-progress renormalization tooling (archive-verify, docs-move, inventory) per recent commits.",
+      "status": "tooling",
+      "deps": [
+        "repo-model"
+      ],
+      "loc": 4951,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 38,
+      "notes": "Cargo.toml comments reference gnaf-manifest and uor-r4-naf/router for SHA-256 vendoring rationale (no dependency edge on naf)."
+    },
+    {
+      "name": "lab-runner",
+      "path": "tools/lab-runner",
+      "role": "Detached local job runner for labs: filesystem queue, admission control, kill criteria, ledger charging, launchd daemon.",
+      "status": "tooling",
+      "deps": [],
+      "loc": 13250,
+      "bins": [
+        "lab-runner"
+      ],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 122,
+      "notes": "Mentions training/integer crate names in strings only (job specs), no Cargo dependency. compute-ops/harness-governance line."
+    },
+    {
+      "name": "uor-r4-wasm-router",
+      "path": ".",
+      "role": "Root package: the `r4` CLI plus wasm cdylib facade, chat/server/release-bundle commands, and several historical r4_softmax_* teacher-trace experiment modules; BDD test (cucumber).",
+      "status": "serving",
+      "deps": [
+        "uor-r4-core",
+        "uor-r4-graph-format",
+        "uor-r4-proof-model",
+        "uor-r4-graph-runtime",
+        "uor-r4-api",
+        "uor-r4-router",
+        "uor-r4-model-source",
+        "uor-r4-graph-compiler",
+        "uor-r4-graph-certify",
+        "uor-r4-graph-cli"
+      ],
+      "loc": 75885,
+      "bins": [
+        "r4"
+      ],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 499,
+      "notes": "Default-run r4; crate-type cdylib+rlib; deployed by deploy.yml (wasm-pack, Pages) and release.yml. Serves the R4G1/transformerless path, NOT the M1 discrete model. src/ includes r4_softmax_local_generation.rs, r4_softmax_reference_generation.rs, r4_softmax_teacher_trace.rs, r4_softmax_trace_*experiment.rs: transformer-teacher experiment code that D23 treats as inactive evidence. Feature legacy-engine does not build (#2345). Holds the [patch.crates-io] section (candle-*, cudarc, float8, arrayref, uor-foundation). uor-addr and uor-foundation are git deps pinned by rev."
+    },
+    {
+      "name": "tools/r4-softmax-trainer",
+      "path": "tools/r4-softmax-trainer",
+      "role": "Python (uv) historical offline softmax trainers for the transformer comparator.",
+      "status": "historical",
+      "deps": [],
+      "loc": 0,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 0,
+      "notes": "Not a Cargo crate (pyproject.toml, uv.lock). README states historical; loc counts Rust only (0). Violates no-new-Python and no-softmax directions if reactivated."
+    },
+    {
+      "name": "tools/uor-knowledge",
+      "path": "tools/uor-knowledge",
+      "role": "Python local SQLite FTS5 knowledge index exposed as 4 read-only MCP tools (search_knowledge, get_source, related_sources, knowledge_status).",
+      "status": "tooling",
+      "deps": [],
+      "loc": 0,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 0,
+      "notes": "Not a Cargo crate (pyproject.toml). Python, grandfathered; directly relevant to the knowledge-catalog goal of the renormalization."
+    },
+    {
+      "name": "tools/lab-host",
+      "path": "tools/lab-host",
+      "role": "Host-local ops scripts for durable labs: heartbeat launchd plist, host-policy-check, lab-heartbeat.",
+      "status": "tooling",
+      "deps": [],
+      "loc": 0,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 0,
+      "notes": "Not a Cargo crate; README says not part of the workspace and not built by CI. Contains a __pycache__ directory in the tree (check whether tracked)."
+    },
+    {
+      "name": "tools/skills",
+      "path": "tools/skills/uor-project-workflow",
+      "role": "Agent skill definition (SKILL.md + references) for the project workflow.",
+      "status": "tooling",
+      "deps": [],
+      "loc": 0,
+      "bins": [],
+      "cuda": false,
+      "needed_by_active_model": false,
+      "tests": 0,
+      "notes": "Not a Cargo crate."
+    }
+  ],
+  "cuda": [
+    {
+      "file": "crates/uor-r4-discrete/src/discrete.cu",
+      "lines": 577,
+      "kernels": [
+        "discrete_init",
+        "discrete_encode",
+        "discrete_export_token_cells",
+        "discrete_forward",
+        "discrete_counterfactual",
+        "discrete_choose",
+        "discrete_apply",
+        "discrete_validate",
+        "discrete_evaluate",
+        "discrete_evaluation_aggregate",
+        "discrete_count",
+        "discrete_count_score"
+      ],
+      "built_by": "crates/uor-r4-discrete/build.rs (feature cuda; nvcc -ptx -std=c++17 -arch=$UOR_NVCC_ARCH; then PTX admission audit)",
+      "status": "active-model"
+    },
+    {
+      "file": "OUT_DIR/decomposition.cu (generated from discrete.cu by src/decomposition_source.rs)",
+      "kernels": [
+        "discrete_counterfactual_decomposition"
+      ],
+      "built_by": "crates/uor-r4-discrete/build.rs",
+      "status": "active-model (diagnostic instrument; carries internal clocks/counters; ordinary module untouched)"
+    },
+    {
+      "file": "OUT_DIR/baseline-reuse.cu (generated by src/baseline_reuse_source.rs)",
+      "kernels": [
+        "discrete_counterfactual_baseline_reuse"
+      ],
+      "built_by": "crates/uor-r4-discrete/build.rs",
+      "status": "active-model (opt-in baseline-reuse path)"
+    },
+    {
+      "file": "OUT_DIR/rows.cu (generated by src/rows_source.rs)",
+      "kernels": [
+        "discrete_counterfactual_rows_baseline",
+        "discrete_counterfactual_rows_eval",
+        "discrete_counterfactual_rows_reduce"
+      ],
+      "built_by": "crates/uor-r4-discrete/build.rs",
+      "status": "active-model (opt-in row-parallel counterfactual; 3-entry admitted PTX)"
+    },
+    {
+      "file": "OUT_DIR/rowsk.cu (generated by src/rowsk_source.rs from rows.cu)",
+      "kernels": [
+        "discrete_counterfactual_rows_baseline",
+        "discrete_counterfactual_rows_eval",
+        "discrete_counterfactual_rows_reduce",
+        "discrete_counterfactual_rowsk_eval",
+        "discrete_counterfactual_rowsk_reduce"
+      ],
+      "built_by": "crates/uor-r4-discrete/build.rs",
+      "status": "active-model (opt-in K-coordinate scoring, BVG-K Stage C; 5-entry admitted PTX)"
+    },
+    {
+      "file": "OUT_DIR/bvgk.cu (generated by src/bvgk_source.rs from rowsk.cu)",
+      "kernels": [
+        "discrete_counterfactual_rows_baseline",
+        "discrete_counterfactual_rows_eval",
+        "discrete_counterfactual_rows_reduce",
+        "discrete_counterfactual_rowsk_eval",
+        "discrete_counterfactual_rowsk_reduce",
+        "discrete_bvgk_choose",
+        "discrete_bvgk_decide",
+        "discrete_bvgk_apply"
+      ],
+      "built_by": "crates/uor-r4-discrete/build.rs",
+      "status": "active-model (opt-in BVG-K set selection/commit, Stage C2; 8-entry admitted PTX)"
+    },
+    {
+      "file": "crates/uor-r4-training/src/cuda_stack.cu",
+      "lines": 859,
+      "kernels": [
+        "straight_through_fwd",
+        "hamilton_gate_fwd",
+        "hamilton_gate_bwd",
+        "rate_select_fwd",
+        "rate_select_bwd",
+        "rms_norm_fwd",
+        "rms_norm_bwd_dx",
+        "rms_norm_dw_partial",
+        "rms_norm_dw_reduce",
+        "quaternion_scan_fwd",
+        "quaternion_scan_bwd",
+        "margin_rank_rows",
+        "margin_rank_grad",
+        "recurrence_scan_fwd",
+        "recurrence_tile_fold",
+        "recurrence_tile_carry",
+        "recurrence_tile_expand",
+        "recurrence_bwd_params",
+        "poison_words",
+        "adam_update",
+        "sq_lanes",
+        "sq_tree"
+      ],
+      "built_by": "crates/uor-r4-training/build.rs (feature cuda): concatenated with spiralcore_fbs.cu into cuda_stack_f32.ptx (-ftz=false -prec-div=true -prec-sqrt=true) and cuda_stack_bf16.ptx (+ -DUOR_STORAGE_BF16); loaded by cuda_stack_kernels.rs via include_str!",
+      "status": "held (pre-D32 float stack / D37 offline float; training hold)"
+    },
+    {
+      "file": "crates/uor-r4-training/src/spiralcore_fbs.cu",
+      "lines": 183,
+      "kernels": [
+        "spiralcore_fbs_fwd",
+        "spiralcore_fbs_bwd"
+      ],
+      "built_by": "crates/uor-r4-training/build.rs (concatenated into both cuda_stack ptx modules)",
+      "status": "held (SpiralCore BFS + ternary FBS float projection, OP2)"
+    },
+    {
+      "file": "crates/uor-r4-training/src/starling_native.cu",
+      "lines": 134,
+      "kernels": [
+        "starling_native_select"
+      ],
+      "built_by": "crates/uor-r4-training/build.rs (starling_native.ptx, --fmad=false)",
+      "status": "held (flock/starling read, m1-float-rung0)"
+    },
+    {
+      "file": "third_party/candle-kernels-0.9.2/src/{affine,binary,cast,fill,indexing,reduce,sort,ternary,unary}.cu",
+      "lines": 1778,
+      "kernels": [
+        "nine tensor modules (elementwise/reduction/indexing/sort); exponential, log, sigmoid, tanh, erf, GELU, SiLU, softmax and RoPE exports excluded per UOR-PATCH.md"
+      ],
+      "built_by": "third_party/candle-kernels-0.9.2/build.rs, pulled in only when uor-r4-training cuda feature enables candle-core/cuda",
+      "status": "comparator (vendored third-party, patched for D23/D25)"
+    },
+    {
+      "file": "third_party/candle-kernels-0.9.2/historical/{conv,quantized,reduce,reduce-pre-rope-exclusion,unary}.cu and historical/moe/{moe_gguf,moe_wmma,moe_wmma_gguf}.cu",
+      "lines": 8196,
+      "kernels": [
+        "inactive upstream conv/quantized/reduce/unary/MOE kernels"
+      ],
+      "built_by": "never compiled (historical/build.rs retained as evidence)",
+      "status": "historical"
+    },
+    {
+      "file": "docs/history/d29-excluded-kernels-2026-10-13/{cuda_stack_historical,native_context_historical,native_context_quarantined,selected_potential_quarantined}.cu",
+      "lines": 2681,
+      "kernels": [
+        "historical float/native-context kernels excluded under D29 (cuda_stack_historical.cu is the 2504-line pre-exclusion stack)"
+      ],
+      "built_by": "never compiled",
+      "status": "historical"
+    },
+    {
+      "file": "third_party/cudarc-0.19.10/examples/{sin,constant_memory}.cu",
+      "lines": 24,
+      "kernels": [
+        "upstream cudarc example kernels"
+      ],
+      "built_by": "third_party/cudarc-0.19.10/build.rs is not an nvcc kernel build; examples only",
+      "status": "historical"
+    },
+    {
+      "file": "docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/build.rs (no .cu of its own)",
+      "lines": 0,
+      "kernels": [
+        "same 12-entry discrete_* inventory"
+      ],
+      "built_by": "out-of-workspace lab instrument; own admit_ptx copy of the PTX admission audit, compiles the uor-r4-discrete discrete.cu with nvcc when its cuda feature is on",
+      "status": "historical (lab instrument; duplicate of discrete build.rs admission logic)"
+    }
+  ],
+  "dependency_edges": [
+    [
+      "uor-r4-discrete",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-core",
+      "uor-r4-integer"
+    ],
+    [
+      "uor-r4-core",
+      "uor-r4-tokenizer"
+    ],
+    [
+      "uor-r4-core",
+      "uor-r4-source-interface"
+    ],
+    [
+      "uor-r4-integer",
+      "uor-r4-tokenizer"
+    ],
+    [
+      "uor-r4-training",
+      "uor-r4-integer"
+    ],
+    [
+      "uor-r4-training",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-training",
+      "uor-r4-tokenizer"
+    ],
+    [
+      "uor-r4-object-store",
+      "uor-r4-tokenizer"
+    ],
+    [
+      "uor-r4-router",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-model-source",
+      "uor-r4-source-interface"
+    ],
+    [
+      "uor-r4-model-source",
+      "uor-r4-api"
+    ],
+    [
+      "uor-r4-graph-runtime",
+      "uor-r4-graph-format"
+    ],
+    [
+      "uor-r4-graph-runtime",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-graph-runtime",
+      "uor-r4-graph-compiler"
+    ],
+    [
+      "uor-r4-graph-compiler",
+      "uor-r4-model-source"
+    ],
+    [
+      "uor-r4-graph-compiler",
+      "uor-r4-graph-format"
+    ],
+    [
+      "uor-r4-graph-compiler",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-graph-compiler",
+      "uor-r4-router"
+    ],
+    [
+      "uor-r4-graph-certify",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-graph-certify",
+      "uor-r4-graph-format"
+    ],
+    [
+      "uor-r4-graph-certify",
+      "uor-r4-graph-runtime"
+    ],
+    [
+      "uor-r4-graph-certify",
+      "uor-r4-model-source"
+    ],
+    [
+      "uor-r4-graph-certify",
+      "uor-r4-graph-compiler"
+    ],
+    [
+      "uor-r4-graph-cli",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-graph-cli",
+      "uor-r4-graph-compiler"
+    ],
+    [
+      "uor-r4-graph-cli",
+      "uor-r4-graph-certify"
+    ],
+    [
+      "uor-r4-graph-cli",
+      "uor-r4-graph-runtime"
+    ],
+    [
+      "uor-r4-graph-cli",
+      "uor-r4-model-source"
+    ],
+    [
+      "uor-r4-graph-cli",
+      "uor-r4-graph-format"
+    ],
+    [
+      "uor-r4-proof-model",
+      "uor-r4-graph-format"
+    ],
+    [
+      "uor-r4-proof-model",
+      "uor-r4-graph-runtime"
+    ],
+    [
+      "uor-r4-proof-model",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-proof-model",
+      "uor-r4-graph-certify"
+    ],
+    [
+      "uor-r4-proof-model",
+      "uor-r4-graph-compiler"
+    ],
+    [
+      "uor-r4-api",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-api",
+      "uor-r4-graph-format"
+    ],
+    [
+      "uor-r4-api",
+      "uor-r4-graph-compiler"
+    ],
+    [
+      "uor-r4-api",
+      "uor-r4-graph-certify"
+    ],
+    [
+      "uor-r4-api",
+      "uor-r4-graph-runtime"
+    ],
+    [
+      "uor-r4-api",
+      "uor-r4-graph-cli"
+    ],
+    [
+      "uor-r4-api",
+      "uor-r4-model-source"
+    ],
+    [
+      "uor-r4-workbench",
+      "uor-r4-api"
+    ],
+    [
+      "uor-r4-harness",
+      "uor-r4-claim-wording"
+    ],
+    [
+      "repo-conformance",
+      "repo-model"
+    ],
+    [
+      "xtask",
+      "repo-model"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-core"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-graph-format"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-proof-model"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-graph-runtime"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-api"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-router"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-model-source"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-graph-compiler"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-graph-certify"
+    ],
+    [
+      "uor-r4-wasm-router",
+      "uor-r4-graph-cli"
+    ]
+  ],
+  "dead_candidates": [
+    "uor-r4-lut (no Cargo dependents; frozen non-mission D10 comparator, engines already archived under docs/history/d29-excluded-lut-2026-10-13)",
+    "uor-r4-simd (no dependents, not even uor-r4-lut; D10 LUT GEMV kernels)",
+    "uor-r4-naf (no dependents; never a dependency of a shipped crate; interchange draft)",
+    "uor-r4-recon-dag (no dependents, no bins, no CI; SpiralCore-adjacent, move with SpiralCore)",
+    "uor-r4-workbench (no dependents; CPU float Four-fact host, ADR-0006)",
+    "uor-r4-object-store (no dependents; live D19 product-in-waiting rather than dead)",
+    "uor-r4-pod-provider (no Cargo dependents but invoked by scripts/pod/uor-pod; live ops tool)",
+    "lab-runner (no dependents; live ops tool)",
+    "tools/r4-softmax-trainer (Python, historical, not in any CI)",
+    "crates/uor-r4-training src/bin (~32 files) and examples (~113 files): autobins/autoexamples=false so cargo never compiles them; only 5 bins plus one cuda example build",
+    "crates/uor-r4-core src/bin (~50 research bins) and many *_attention.rs: auto-discovered so they compile, but belong to the historical Sept-era line",
+    "uor-r4-router legacy-engine feature (does not build, #2345)",
+    "src/r4_softmax_*.rs in the root package (transformer-teacher experiments, D23 inactive)",
+    "~12 out-of-workspace Cargo projects under docs/labs/*/instrument|harness|tests|report-tool (lab instruments; not built by CI, several path-depend on uor-r4-discrete and replicate its PTX admission logic)"
+  ],
+  "notes": "WORKSPACE SHAPE. Cargo.toml members: 25 crates + xtask + tools/lab-runner (27 entries) plus the root package uor-r4-wasm-router. default-members = root, core, graph-format, router, proof-model, graph-runtime. One crate, uor-r4-model-source, is NOT in members but is an implicit workspace member as a path dependency (29 packages in the graph: 27 members + root + model-source). exclude: uor_standards, graph-format/fuzz, research, third_party/{arrayref,candle-*,cudarc,float8,uor-addr}. Rust toolchain pinned 1.97.1. [patch.crates-io] redirects candle-core/nn/kernels, cudarc, float8, arrayref to third_party and uor-foundation(-sdk) to a pinned UOR-Framework git rev.\n\nACTIVE M1 PATH. Needs only uor-r4-discrete, which needs at build time uor-r4-core (-> integer, tokenizer, source-interface, vendored uor-addr). Nothing else in the workspace is needed: not training, graph-*, api, router, lut, simd, object-store, harness, root package. Runtime crate deps are serde, serde_json, sha2 and optional cudarc. The 347k-line core compiled solely to obtain 1381 lines of spiralcore_operator.rs is the biggest structural wart; extracting that module would shrink the active model's build closure by ~99 percent of core. discrete is 33,291 lines and itself carries many qualification instruments (attention_*, bvgk_*, rows_*, rowsk_*, flock_*, relation_*, redirect_admission, completion*) that are research-line-specific and could be moved under a qualification/ sub-area.\n\nCUDA INVENTORY. Four nvcc-driven build scripts: discrete (6 modules: ordinary 12 entries, decomposition, baseline-reuse, rows, rows-K, BVG-K; each gets nvcc -ptx, PTX admission, then nvcc -cubin --ptxas-options=-v with resource report), training (3 PTX modules), third_party/candle-kernels (9 modules, via training cuda feature), plus the out-of-tree lab instrument. NVRTC is banned (13 Oct 2026); all compilation is ahead of time. No GitHub workflow mentions nvcc or CUDA, so CUDA code is never built in CI (CI cargo check --workspace runs without the cuda feature); qualification runs on pods. Other build.rs files (graph-cli, harness) are not CUDA: graph-cli records PROFILE/OPT_LEVEL, harness records build time.\n\nPTX ADMISSION AUDIT (crates/uor-r4-discrete/build.rs). admit_ptx_inventory(ptx, inventory) lexes the emitted PTX text line by line (comments after // stripped, split on non-alphanumeric/underscore/dot) and rejects the build if any token has a dot-component in {f16,f16x2,f32,f64,bf16,bf16x2,tf32,e4m3,e5m2,mma,wmma,wgmma,tcgen05,tensor,tensormap} or starts with ex2.approx: i.e. no floating-point types, tensor-core/matrix instructions or approximate-exp. Integer multiplies are explicitly allowed (index products). It also parses .entry declarations and requires the entry set to EXACTLY equal the declared inventory (missing or unexpected or duplicate entries fail; unterminated entry fails). The inspected object is the emitted PTX, not the CUDA source spelling. ptx_admission_self_test() runs at every build (even without the cuda feature): it accepts a clean module (floats inside comments are fine, mul.lo.u32 allowed) and requires rejection of add.f32, .reg .bf16, mma.sync, ex2.approx, an unexpected entry, a duplicate entry, and missing entries. After admission, the exact admitted PTX (not re-compiled source) is assembled with nvcc -cubin --ptxas-options=-v --gpu-code=sm_NN for each of six labels (ordinary, decomposition, baseline-reuse, rows, rowsk, bvgk); the build fails if the cubin is not a nonempty ELF or the resource report is empty. cuda-image-target.txt records the sm target. Each later generated module (rows, rowsk, bvgk) is its own source, PTX and cubin, leaving earlier images byte-for-byte unchanged. geometry_source() also emits exact tables from core: AXES[512], COMPOSE[4096], INVERSE[64], ROOTS[16][8], BFS[256], BRANCH[48], GENERATORS[15], with BFS reachability asserted over all 64 frames and 16 roots and operator/composition kappa constants. Note the training crate has NO equivalent PTX admission (float is legal there under D37) and uses precision flags instead. The lab instrument docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/build.rs holds a divergent copy of admit_ptx with the 12-entry inventory only.\n\nTESTS. Test counts are #[test] attribute counts in src/ and tests/ (rough, include ignored): core 1700, training 1208, harness 580, integer 519, root 499, api 255, graph-certify 255, graph-compiler 329, model-source 222, discrete 212, graph-format 187, graph-cli 157, lab-runner 122, workbench 65, object-store 61, graph-runtime 53, router 43, repo-conformance 43, xtask 38, proof-model 28, tokenizer 22, repo-model 9, claim-wording 13, recon-dag 13, pod-provider 8, simd 7, naf 6, lut 5, source-interface 0. LoC are raw line counts of src/**/*.rs (tests/ and examples/ excluded), so the figures for core and training include all bin/ files even where cargo does not build them. Sum of crate src is about 0.9 million lines of Rust.\n\nCI COVERAGE (.github/workflows). ci.yml runs claim-wording, fmt, cargo check --workspace --all-targets, cargo test --workspace --lib, clippy -D warnings all-features, nextest, bdd, doc tests, and a native-geometric job (r4-policy-check, native_geometric lib tests, windowed_geometric_context, native_geometric_allocations, `--bin r4 native_geometric_`). harness.yml covers only uor-r4-harness; formal_verification.yml covers uor-r4-proof-model (tests + Kani); relative-query-check.yml; deploy.yml (wasm-pack Pages); release.yml (cargo build --release --locked). So every workspace member is compile-checked but few have dedicated test jobs, and the active uor-r4-discrete has none (only compile check and lib tests via the workspace run, with no cuda feature).\n\nOUT-OF-WORKSPACE CODE. About 12 standalone Cargo projects under docs/labs/*/{instrument,harness,tests,report-tool,receipt-audit,metadata-audit,scoring-audit} are lab instruments with their own Cargo.lock; some path-depend on uor-r4-discrete and cudarc. Also uor_standards/ (UOR-Framework, prism, uor-addr submodule-style checkouts excluded from workspace), research/ (excluded), third_party/helm-d-reference. Python remains in scripts/*.py (dozens), tools/uor-knowledge, tools/r4-softmax-trainer, tools/lab-host despite the Rust-first rule (D27); scripts/ also holds check_no_softmax.py / check_no_matmul.py (retired in favor of uor-harness ratchet).\n\nOBSERVATIONS FOR THE REORG. (1) Three de-facto products share one workspace: the active M1 discrete model (discrete+core), the old R4G1/transformerless stack (graph-*, api, proof-model, router, model-source, root r4/wasm), and tooling/ops (harness, lab-runner, xtask, pod-provider, repo-*). (2) SpiralCore-as-own-project candidates in code: spiralcore_operator.rs and spiralcore_fbs.rs live inside core/discrete/training rather than a spiralcore crate; uor-r4-recon-dag and parts of uor-r4-object-store are in the same family. (3) Webclient lives in the root package (wasm cdylib, Pages studio via deploy.yml) and the desktop client does not exist yet: no crate named for it. (4) model-source is a transformer teacher that graph-compiler, graph-certify, graph-cli and api all depend on, so the whole R4G1 stack drags in the comparator. (5) uor-r4-model-source dev-depends on uor-r4-api while api depends on model-source (dev-dep cycle allowed by cargo). (6) tools/lab-host has a __pycache__ directory in the working tree; verify whether it is tracked."
+}

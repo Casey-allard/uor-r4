@@ -30,10 +30,10 @@
       "panel": "v5-reply",
       "base_artifact": "D10 (10% recall dose, adopted under D22 5f)",
       "mechanisms": [
-        "exact-addressed-memory",
-        "pointer-identity-key",
+        "exact-memory",
+        "pointer-key",
         "read-binding",
-        "spiralcore-fbs-projection"
+        "spiralcore-fbs"
       ],
       "lines": [
         {
@@ -79,9 +79,9 @@
       "panel": "m2-reply512",
       "base_artifact": "saved437 parent; linked unified-bound-content-437 NOT_RUN",
       "mechanisms": [
-        "protected-legal-construction",
-        "unified-geometric-carrier-credit",
-        "spiralcore-fbs-projection"
+        "legal-construction",
+        "carrier-credit",
+        "spiralcore-fbs"
       ],
       "lines": [
         {
@@ -113,7 +113,7 @@
       "panel": "m3-memory",
       "base_artifact": "stack_grounded_session (#1568) + typed-script evaluator (#1578)",
       "mechanisms": [
-        "exact-addressed-memory"
+        "exact-memory"
       ],
       "lines": [
         {
@@ -150,10 +150,9 @@
       "panel": "m4-served",
       "base_artifact": "19.9M chat stack, 0.933 BPB served",
       "mechanisms": [
-        "starling-read",
-        "flock-rank-reads",
+        "flock-read",
         "e8-orbit-memory",
-        "spin-native-weights"
+        "spin-weights"
       ],
       "lines": [
         {

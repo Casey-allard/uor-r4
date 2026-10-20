@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 764" width="960" height="764" role="img">
+<title>Rank-margin hinge</title>
+<desc>Two stacked panels on one raw-score axis. Before learning, a target dot has eight rival dots; a band one unit wide sits just below the target. Rivals inside the band or above the target get a red bar from the band's lower edge to the rival, and the loss is the mean of those bars. After learning, all eight rivals sit below the band, there are no red bars and the loss is zero, so the example gives no learning signal. A strip shows the pilot loss split: the token term fell by 63,968, the address term rose by 131,968, the total rose by 68,000, while top-8 hits went from 173 to 1,169. A small inset shows the 16 by 16 cell grid used by objectives A and R. Dot positions are illustrative.</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1f2328;--body:#2b3138;--muted:#57606a;--rule:#d0d7de;--panel:#f6f8fa;--blue:#0072b2;--sky:#56b4e9;--green:#007a5e;--orange:#e69f00;--verm:#d55e00;--purple:#7a4fa3;--pink:#cc79a7;--active:#007a5e;--ready:#b06d00;--parked:#7a4fa3}
+@media (prefers-color-scheme: dark){svg{--bg:#0d1117;--ink:#e6edf3;--body:#c9d1d9;--muted:#8b949e;--rule:#30363d;--panel:#161b22;--blue:#58a6ff;--sky:#79c0ff;--green:#3fb950;--orange:#f0b72f;--verm:#ff7b72;--purple:#bc8cff;--pink:#f778ba;--active:#3fb950;--ready:#f0b72f;--parked:#bc8cff}}
+.bg{fill:var(--bg)}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+.title{font-size:19px;font-weight:600}
+.h{font-size:14px;font-weight:600}
+.b{font-weight:600}
+.n{font-size:11.5px;fill:var(--muted)}
+.body{fill:var(--body)}
+.mut{fill:var(--muted)}
+.c{text-anchor:middle}
+.e{text-anchor:end}
+.panel{fill:var(--panel);stroke:var(--rule);stroke-width:1}
+.rule{fill:none;stroke:var(--rule);stroke-width:1}
+.dot{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.arrow{fill:none;stroke:var(--ink);stroke-width:1.5}
+.fi{fill:var(--ink)}
+.fm{fill:var(--muted)}
+.fb{fill:var(--blue)}
+.fv{fill:var(--verm)}
+.band{fill:var(--sky);fill-opacity:.28}
+.axis{fill:none;stroke:var(--muted);stroke-width:1.5}
+.tgt{fill:var(--blue);stroke:var(--bg);stroke-width:1.5}
+.riv{fill:var(--bg);stroke:var(--ink);stroke-width:2}
+.rivx{fill:var(--bg);stroke:var(--verm);stroke-width:2.5}
+.hinge{fill:var(--verm)}
+.down{fill:var(--green)}
+.up{fill:var(--verm)}
+.tot{fill:var(--orange)}
+.grid{fill:none;stroke:var(--rule);stroke-width:1}
+.occ{fill:var(--muted);fill-opacity:.75}
+.tcell{fill:var(--blue);fill-opacity:.4;stroke:var(--blue);stroke-width:2}
+.qx{fill:none;stroke:var(--ink);stroke-width:1.5}
+</style>
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="764"/>
+<text class="title" x="24" y="32">Rank-margin hinge: zero loss once the target leads by the margin</text>
+
+<rect class="panel" x="24" y="48" width="912" height="196" rx="8"/>
+<text class="h" x="40" y="72">before learning</text>
+<rect class="band" x="520" y="92" width="120" height="144"/>
+<text class="n c" x="580" y="230">margin = 1 unit</text>
+<path class="axis" d="M60 112H920"/>
+<path class="dot" d="M700 118V148M612 118V162M575 118V176M548 118V190"/>
+<rect class="hinge" x="520" y="148" width="180" height="9" rx="1"/>
+<rect class="hinge" x="520" y="162" width="92" height="9" rx="1"/>
+<rect class="hinge" x="520" y="176" width="55" height="9" rx="1"/>
+<rect class="hinge" x="520" y="190" width="28" height="9" rx="1"/>
+<circle class="riv" cx="250" cy="112" r="5.5"/>
+<circle class="riv" cx="360" cy="112" r="5.5"/>
+<circle class="riv" cx="440" cy="112" r="5.5"/>
+<circle class="riv" cx="500" cy="112" r="5.5"/>
+<circle class="rivx" cx="548" cy="112" r="5.5"/>
+<circle class="rivx" cx="575" cy="112" r="5.5"/>
+<circle class="rivx" cx="612" cy="112" r="5.5"/>
+<circle class="rivx" cx="700" cy="112" r="5.5"/>
+<circle class="tgt" cx="640" cy="112" r="7.5"/>
+<text class="b c" x="640" y="92">target</text>
+<circle class="tgt" cx="54" cy="150" r="6"/>
+<text class="body" x="66" y="154">target</text>
+<circle class="riv" cx="54" cy="172" r="5.5"/>
+<text class="body" x="66" y="176">the 8 strongest rivals</text>
+<text class="n e" x="512" y="156">red bar = one rival's hinge:</text>
+<text class="n e" x="512" y="170">its reach above the band's bottom edge</text>
+<text class="b e" x="900" y="214">loss = mean of the 8 rival bars</text>
+<text class="n e" x="900" y="232">(a rival with no bar counts as 0)</text>
+
+<rect class="panel" x="24" y="258" width="912" height="196" rx="8"/>
+<text class="h" x="40" y="282">after learning</text>
+<rect class="band" x="520" y="302" width="120" height="144"/>
+<path class="axis" d="M60 322H920"/>
+<circle class="riv" cx="214" cy="322" r="5.5"/>
+<circle class="riv" cx="252" cy="322" r="5.5"/>
+<circle class="riv" cx="300" cy="322" r="5.5"/>
+<circle class="riv" cx="352" cy="322" r="5.5"/>
+<circle class="riv" cx="396" cy="322" r="5.5"/>
+<circle class="riv" cx="430" cy="322" r="5.5"/>
+<circle class="riv" cx="462" cy="322" r="5.5"/>
+<circle class="riv" cx="490" cy="322" r="5.5"/>
+<circle class="tgt" cx="640" cy="322" r="7.5"/>
+<text class="b c" x="640" y="302">target</text>
+<text class="n e" x="512" y="352">all 8 rivals are below the band</text>
+<text class="b e" x="900" y="400">loss = 0: no learning signal from this example</text>
+
+<path class="axis" d="M40 476H926" marker-end="url(#ah)"/>
+<path class="axis" d="M520 470V482M640 470V482"/>
+<text class="body c" x="520" y="500">target score − 1</text>
+<text class="body c" x="640" y="500">target score</text>
+<text class="body e" x="920" y="500">raw score (higher is better)</text>
+
+<text class="h" x="40" y="534">Pilot loss split (seed 1, 1,640 batches)</text>
+<path class="rule" d="M160 552V646"/>
+<text class="body" x="40" y="558">token term: −7,996 × 8 = −63,968</text>
+<rect class="down" x="43.7" y="564" width="116.3" height="10" rx="2"/>
+<text class="body" x="40" y="594">address term: +4,124 × 32 = +131,968</text>
+<rect class="up" x="160" y="600" width="240" height="10" rx="2"/>
+<text class="body" x="40" y="630">total: +68,000 (the loss went up)</text>
+<rect class="tot" x="160" y="636" width="123.7" height="10" rx="2"/>
+<text class="n c" x="160" y="660">0</text>
+<text class="body" x="40" y="682">Yet ranks improved: top-8 hits 173 to 1,169, top-1 17 to 82.</text>
+
+<text class="h" x="590" y="534">Cell terms A and R (16 × 16 cells)</text>
+<path class="grid" d="M590 546h144M590 546v144M590 555h144M599 546v144M590 564h144M608 546v144M590 573h144M617 546v144M590 582h144M626 546v144M590 591h144M635 546v144M590 600h144M644 546v144M590 609h144M653 546v144M590 618h144M662 546v144M590 627h144M671 546v144M590 636h144M680 546v144M590 645h144M689 546v144M590 654h144M698 546v144M590 663h144M707 546v144M590 672h144M716 546v144M590 681h144M725 546v144M590 690h144M734 546v144"/>
+<rect class="occ" x="671" y="600" width="9" height="9"/>
+<text class="n" x="683" y="609">1</text>
+<rect class="occ" x="626" y="618" width="9" height="9"/>
+<text class="n" x="638" y="627">2</text>
+<rect class="occ" x="653" y="654" width="9" height="9"/>
+<text class="n" x="665" y="663">3</text>
+<rect class="occ" x="689" y="636" width="9" height="9"/>
+<text class="n" x="701" y="645">4</text>
+<rect class="tcell" x="608" y="573" width="9" height="9"/>
+<text class="n" x="620" y="582">5</text>
+<rect class="occ" x="716" y="663" width="9" height="9"/>
+<text class="n" x="720" y="682">6</text>
+<path class="qx" d="M654 608l7 7m0-7l-7 7"/>
+<text class="b" x="746" y="566">Objective A</text>
+<text class="body" x="746" y="582">target cell's distance vs</text>
+<text class="body" x="746" y="598">the nearest rival cell (1)</text>
+<text class="b" x="746" y="626">Objective R</text>
+<text class="body" x="746" y="642">lit only when rank r</text>
+<text class="body" x="746" y="658">exceeds K (here 5 &gt; 4)</text>
+<text class="n" x="590" y="706">× = query; numbers = occupied cells in order;</text>
+<text class="n" x="590" y="720">cell 5 is the target; K = 4 is illustrative.</text>
+<text class="n" x="24" y="748">Dot positions and the cell layout are illustrative; the pilot numbers are measured.</text>
+</svg>

@@ -1,0 +1,1259 @@
+{
+  "mechanisms": [
+    {
+      "id": "address-cells",
+      "canonical_name": "Address-structured injective cells",
+      "aliases": [
+        "A8 (address_structured_v1)",
+        "S8 (shuffled-placement control)",
+        "P8 / P16 / A16 (uniform and K=16 bracket arms)",
+        "injective codebook initialization (injective-init, D39 item 3)",
+        "256 x 16 cells",
+        "predecessor-structured cell placement"
+      ],
+      "plain_what": "Each of the 4,096 words gets a unique home cell on a 16 by 16 board, and words are placed next to the cells of the words that usually come just before them in the training text. Then a reader looking around the previous word's cell can already see the likely next words.",
+      "replaces": "embedding",
+      "status": "ACTIVE",
+      "status_reason": "A8 is the table of the live M1 attention line. At zero updates it lifted successor admission from 127 to 1,351 of 3,847 (docs/labs/address-cells-preflight-2026-10-19). The learned dose then hit a Q1 diagnostic stop (Relation 551, FrozenZero 857) as learning moves carried tokens out of their placed cells; attribution not established (docs/labs/a8-dose-2026-10-19). Admission-preserving controller merged; its CUDA qualification is NOT_RUN.",
+      "next": "Run the real CUDA finite qualification of the merged admission-preserving controller (NOT_RUN per docs/labs/admission-anchor-controller-2026-10-19/README.md), then the A8 rerun with the anchor guard after PM dispatch and Casey's typed D40 release.",
+      "lineage": [
+        "prime-zeta-codebook"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "prime-zeta-codebook",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "admission",
+      "canonical_name": "Admission (cell shortlist before the token is chosen)",
+      "aliases": [
+        "kept cells / K shortlist",
+        "target admission",
+        "Q1 admission collapse",
+        "B3_init and G-Cap gates",
+        "P_succ admission",
+        "G-Adm / G-Occ",
+        "admission-preserving guard"
+      ],
+      "plain_what": "Before the model picks a word, it narrows the 4,096 candidates to those stored in a few 'drawers' (cells) near where its read points. A word in a drawer that was not opened can never be chosen. So the number of correct words that make it into the opened drawers sets a ceiling on everything the read can achieve.",
+      "replaces": "softmax output head",
+      "status": "ACTIVE",
+      "status_reason": "Admission is the measured binding constraint on every attention run: K=8 started at 5,680 admitted rows and eroded to 1,920; K16, Dose 1 and A8 all lost it under learning (docs/labs/attention-state-2026-10-18/README.md). The admission-preserving guard is the next registered step (docs/labs/admission-preserving-2026-10-19/README.md, FIT, controller merged).",
+      "next": "Show admission survives learning: the admission-preserving A8 rerun (whole-interval rejection, PM Option A; docs/labs/admission-preserving-2026-10-19/README.md), after its CUDA qualification, which is NOT_RUN.",
+      "lineage": [],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "discrete-learning",
+      "canonical_name": "Discrete geometric learning (exact-move counterfactual training)",
+      "aliases": [
+        "SpiralCore/FBS discrete learning",
+        "counterfactual-choose-apply-validate training",
+        "D32 learning law",
+        "rows_v1 counterfactual path",
+        "row-parallel counterfactual",
+        "BVG-K (batched verified coordinates)",
+        "discrete driver / Dose 1 / Dose 2 / rung-0 pilot and completion",
+        "Device::propose / apply"
+      ],
+      "plain_what": "The model is a table of small integer vectors plus a few routing choices. To learn, the machine tries every legal rotation of one table entry, replays the examples under each, keeps the one with the lowest integer loss, and commits it only if it strictly helps. No gradients, no floating point, no matrix products.",
+      "replaces": "optimizer/backprop",
+      "status": "ACTIVE",
+      "status_reason": "This is the learning law of the only current model path, crates/uor-r4-discrete (docs/labs/discrete-geometric-learning-2026-10-13, docs/architecture.md). It trained a pilot and four K16 runs, and the pilot still shows no language gain (docs/labs/k16-outcome-call-2026-10-19). Training stays HELD pending owner release.",
+      "next": "Produce the first trained discrete artifact that beats its frozen control on language. The registered vehicle is the admission-preserving A8 rerun (docs/labs/k16-outcome-call-2026-10-19/README.md: no arm passes the bars so far).",
+      "lineage": [
+        "carrier-credit",
+        "legal-construction",
+        "native-geometric",
+        "spiralcore-fbs",
+        "ternary-xor"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "native-geometric",
+            "relation": "successor"
+          },
+          {
+            "id": "carrier-credit",
+            "relation": "discrete-form-of"
+          },
+          {
+            "id": "legal-construction",
+            "relation": "successor"
+          },
+          {
+            "id": "spiralcore-fbs",
+            "relation": "discrete-form-of"
+          },
+          {
+            "id": "ternary-xor",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "flock-read",
+      "canonical_name": "Flock read (starling / murmuration neighbour read)",
+      "aliases": [
+        "ReadSpec::Flock",
+        "starling read",
+        "murmuration read",
+        "starling_native (rung 0b)",
+        "flock / rank-table reads",
+        "softmax-free read",
+        "7-nearest-neighbours on the 600-cell"
+      ],
+      "plain_what": "Like a starling that only watches its seven nearest neighbours, each step looks at a handful of earlier positions whose geometric 'frame' is closest to its own. It rotates their information into its own frame, takes their consensus and nudges its state toward it. No scores are normalised and no weights are multiplied.",
+      "replaces": "attention",
+      "status": "ACTIVE",
+      "status_reason": "The discrete Flock kernel passes 25 finite CUDA controls (docs/labs/discrete-driver-cost-2026-10-13/README.md) and runs inside every Relation and FrozenZero arm, since relation-off is bit-identical to Flock (docs/mechanisms/finite-relational-head.md section 3.3). No arm has isolated Flock's own value. The float starling and rank-table forms are inactive evidence (docs/mechanisms/README.md).",
+      "next": "Isolate Flock's own value. Get the C1 coupling sheet (docs/harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md, not yet registered) to TEST FITNESS: FIT, with zero-coupling and random-coupling controls.",
+      "lineage": [
+        "geometric-stack",
+        "relation-read",
+        "route-read"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "geometric-stack",
+            "relation": "discrete-form-of"
+          },
+          {
+            "id": "route-read",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": [
+          {
+            "id": "relation-read",
+            "relation": "specialization"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lut-serving",
+      "canonical_name": "D11 integer table serving (UORLUT01)",
+      "aliases": [
+        "UORLUT01",
+        "D11 integer engine",
+        "D10 LUT engine (superseded)",
+        "uor-r4-lut",
+        "uor-r4-stack / uor-chat",
+        "multiplier-free serving",
+        "zero-mul audit",
+        "serving-wasm",
+        "LUT-4 shortlist (retracted)"
+      ],
+      "plain_what": "How a finished model runs on an ordinary laptop or in a browser using only whole numbers, adds, shifts and table look-ups, with no floating-point maths and no multiply instruction. A trained model is exported to a compact file, and an audit counts machine instructions to prove no multiply sneaks in.",
+      "replaces": "arithmetic/matmul",
+      "status": "ACTIVE",
+      "status_reason": "ACTIVE as the end-of-pipeline contract (M4 #2032): D37 makes the integer export the boundary, and native (44 symbol ranges) and WebAssembly (7/7) zero-mul audits are green (docs/integration/project-track.md M4). No lawful trained model has been exported yet; the D10 LUT engines are excluded (docs/history/d29-excluded-lut-2026-10-13).",
+      "next": "Export one lawful discrete artifact through the D11 container and measure its export gap on the same evaluator. No discrete-path export exists yet.",
+      "lineage": [
+        "r4g1-graph"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "r4g1-graph",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "prime-zeta-codebook",
+      "canonical_name": "Prime-zeta codebook",
+      "aliases": [
+        "prime-rank indexing + zeta-phase routing",
+        "prime-zeta complex routing",
+        "PrimeZeta constructor (CodebookMode::PrimeZeta)",
+        "P8 (the PrimeZeta arm in the 2026-10-19 pre-flights)",
+        "pinned_table_v1 / uor-r4.codebook-table/1 (the loader that carries it)",
+        "complex-plane zeta-zero exception (D32 Oct 14 addendum)",
+        "historical ancestors: prime router, prime-route attention, 16-window zeta projection, phase-clock Design P"
+      ],
+      "plain_what": "Gives every word in the vocabulary a unique, fixed starting address built from its prime number (2, 3, 5, ...) and the phases of the Riemann zeta zeros. It is computed once, offline, and stored as a plain table of small integers. It replaces the random starting vectors, which had only 16 distinct values for 4,096 words.",
+      "replaces": "embedding",
+      "status": "ACTIVE",
+      "status_reason": "The qualified constructor and the pinned_table_v1 loader are on the current M1 path: PrimeZeta is the P8 baseline and the zero-mass fallback inside the A8 table. Trained attribution against the two nulls is NOT_RUN and held. Injectivity comes from the quota and uniqueness pass shared with both nulls, not from prime phases (docs/labs/prime-zeta-construction-2026-10-14/README.md).",
+      "next": "Run the held trained-attribution comparison of PrimeZeta against its two nulls (NOT_RUN; docs/labs/prime-zeta-construction-2026-10-14/README.md).",
+      "lineage": [
+        "address-cells",
+        "native-geometric"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "native-geometric",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": [
+          {
+            "id": "address-cells",
+            "relation": "successor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rank-margin",
+      "canonical_name": "Rank-margin hinge objective",
+      "aliases": [
+        "margin hinge over declared rivals",
+        "Objective::MarginHinge",
+        "8*token_hinge + width*address_hinge",
+        "NearestAddressMarginV1 (objective A)",
+        "OccupiedCellRankHingeV1 (objective R)",
+        "D-R admission-rank objective",
+        "D23 learning-law objective"
+      ],
+      "plain_what": "Instead of turning scores into probabilities and punishing surprise, the loss only asks: does the right answer beat its strongest wrong rivals by a fixed gap? If yes, zero loss and no learning signal. If no, the shortfall in raw score units is the loss. Every step is a comparison and a subtraction.",
+      "replaces": "loss",
+      "status": "ACTIVE",
+      "status_reason": "The integer hinge (objectives A and R) is the loss the current discrete writer trains (docs/labs/discrete-geometric-learning-2026-10-13, docs/labs/admission-rank-hinge-2026-10-15). The float rung-0 hinge is READY but was never trained (docs/mechanisms/rank-margin-objective.md). K16-R collapsed occupancy, so the objective choice is open (docs/labs/k16-outcome-call-2026-10-19).",
+      "next": "Register and run the occupancy-regularised cell-rank objective, the route named after K16-R's occupancy collapse (docs/labs/k16-outcome-call-2026-10-19/README.md).",
+      "lineage": [
+        "native-geometric"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "native-geometric",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "relation-read",
+      "canonical_name": "Relation read (finite relational head)",
+      "aliases": [
+        "ReadSpec::Relation",
+        "finite relational head",
+        "bounded exact-relation reranker",
+        "D34 reranker-first",
+        "copy-successor / induction read",
+        "relation trits",
+        "Dose 1 / A8 Relation arm"
+      ],
+      "plain_what": "Flock picks earlier positions that look like the current one. Relation lets the model also follow simple links between positions, such as 'the word right after the earlier copy of this word', so it can learn the copy-the-next-word habit behind much of language. Each link type is switched on or off by one three-valued dial.",
+      "replaces": "attention-scoring",
+      "status": "ACTIVE",
+      "status_reason": "Built, controlled (9/9 finite CUDA controls) and trained twice: Dose 1 rows_v1 (Q1 admission collapse, 2,034 -> 225/205) and A8 (Relation stopped at Q1 by its half-init rule, 551 vs control 857). Neither run yielded a paired Relation-vs-FrozenZero verdict, so the read has not been judged (docs/labs/a8-dose-2026-10-19/README.md).",
+      "next": "Get the first paired Relation-vs-FrozenZero verdict from the admission-preserving A8 rerun. To count, it must beat the T2 successor-table comparator (6,300 of 14,287 DEV top-1).",
+      "lineage": [
+        "flock-read",
+        "native-geometric",
+        "pointer-key"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "native-geometric",
+            "relation": "successor"
+          },
+          {
+            "id": "flock-read",
+            "relation": "specialization"
+          },
+          {
+            "id": "pointer-key",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "route-read",
+      "canonical_name": "Routed read (address-routed context access)",
+      "aliases": [
+        "ReadSpec::Route",
+        "invariant-addressed read",
+        "spanning-tree router",
+        "route-native / prime-route attention",
+        "read_lineage (phase_bind, rot, carrier)",
+        "uor-r4-router (prime router)"
+      ],
+      "plain_what": "Instead of comparing the current word with every earlier word, the model sends a query down a small tree of geometric addresses and picks up the single earlier word sitting at the end of that path. It makes one hard choice per step by walking a tree, and never scores the whole history.",
+      "replaces": "attention",
+      "status": "ACTIVE",
+      "status_reason": "ReadSpec::Route is the base read of every trained discrete artifact: rung-0 seed 1 (149 top-1 of 14,287) and the four K16 runs (docs/labs/k16-outcome-call-2026-10-19/README.md). But no read-off/read-on ablation exists and Route got only 20 proposals in 16,404 updates, so its contribution is unattributed (docs/labs/attention-state-2026-10-18/README.md).",
+      "next": "A read-off/read-on ablation with enough Route proposals (an interleaved schedule or a dedicated Route stage) on an injective or address-structured codebook. Today Route gets 20 proposals in 16,404 updates (docs/labs/attention-state-2026-10-18/README.md).",
+      "lineage": [
+        "flock-read"
+      ],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": [
+          {
+            "id": "flock-read",
+            "relation": "successor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tokenizer",
+      "canonical_name": "Byte-level BPE tokenizer and corpus preparation",
+      "aliases": [
+        "BPE",
+        "uor-r4-tokenizer",
+        "hf_bpe (old name inside uor-r4-core)",
+        "pinned tokenizer d36d3e87",
+        "train-bpe",
+        "UORT prepared-corpus format",
+        "DialogueProtocol (shared dialogue encoding)",
+        "data preparation"
+      ],
+      "plain_what": "Cuts text into small pieces (tokens) that the model counts, and turns tokens back into text. It starts from raw bytes so any text works, then learns frequent byte pairs as bigger pieces. The project's pinned tokenizer has 4,096 pieces; a 16,384-piece one is being prepared. The model never sees letters, only these piece numbers.",
+      "replaces": "tokenizer",
+      "status": "ACTIVE",
+      "status_reason": "ACTIVE: every current corpus, driver, panel and artifact is bound to tokenizer d36d3e87 (vocab 4,096), pinned in the M1 sheets (docs/harness/prep/m1-distill-d1-donor-corpus-DRAFT-2026-10-19.md). A Rust trainer for a 16,384-token vocabulary landed 2026-10-19 as tooling only (docs/labs/rust-bpe-trainer-2026-10-19/README.md); no tokenizer has been swapped or evaluated.",
+      "next": "Pre-register a matched 4,096-vs-16,384 vocabulary comparison on the discrete model. The Rust trainer landed as tooling only (docs/labs/rust-bpe-trainer-2026-10-19/README.md).",
+      "lineage": [],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "hamilton-gate",
+      "canonical_name": "Hamilton rotation gate (G2)",
+      "aliases": [
+        "G2",
+        "OP1",
+        "Gate::Hamilton",
+        "q(g) (x) u",
+        "geometric feed-forward gate",
+        "gate=hamilton"
+      ],
+      "plain_what": "A feed-forward layer needs a gate that decides how much of a signal passes. Here the gate signal becomes a unit rotation, and the signal is rotated by it, four numbers at a time. A rotation only turns a vector and needs no exponential or squashing curve. The old gate used a sigmoid, which the rules now ban.",
+      "replaces": "MLP/feed-forward",
+      "status": "READY",
+      "status_reason": "Built and tested substrate, never trained: exact forward and adjoint, CUDA kernels and trainer flag exist; 944 lib tests pass, host-executed kernel matches to 9.3e-7, a Vast RTX 5090 parity run passed 43/0 (docs/labs/cuda-parity-gate-import-2026-10-13), and the 18 rung-0 controls ran the Hamilton configuration. No language run, no SwiGLU comparison, no icosian snap; not on the discrete run plan.",
+      "next": "A D37 offline-float sheet (separately scanned module, fresh FIT, owner release) that trains gate=hamilton with the icosian snap and reports the export gap. Name the device parity tests, which the 13 Oct receipt does not do.",
+      "lineage": [
+        "geometric-stack"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "geometric-stack",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "object-store",
+      "canonical_name": "Exact byte object store (D19)",
+      "aliases": [
+        "uor-r4-object-store",
+        "D19 durable-memory store",
+        "exact ternary byte-object store",
+        "UOROBJ01 / objpeer replication",
+        "Showcase-compatible record tree",
+        "reconstruction DAG store"
+      ],
+      "plain_what": "A model-independent library that keeps data exactly. Bytes are cut into small pieces, hashed and arranged in a tree, so repeated content is stored once, any byte range can be read back and checked, and an update sends only the pieces that changed. It is storage plumbing for durable chat memory, not part of the model's thinking.",
+      "replaces": "none",
+      "status": "READY",
+      "status_reason": "Built and byte-tested: 20 integration controls at delivery (docs/labs/d19-object-store-2026-10-15/README.md), 60 tests after the 17-18 October peer and fleet work, and a pure-Python client conformance PASS (docs/labs/uorobj01-conformance-2026-10-18/README.md). Not wired into any model; no crate depends on it; the M3 durable-memory bars have not been run.",
+      "next": "Wire the store into a consumer and run the M3 durable-memory bars (provenance, correction, abstention, restart, token-identical restore) on a selected artifact.",
+      "lineage": [
+        "native-geometric"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "native-geometric",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "recurrence-gates",
+      "canonical_name": "Geometric recurrence gates",
+      "aliases": [
+        "rec_gates=geometric",
+        "RecGates::Geometric",
+        "rate_select",
+        "dyadic rate and keep tables",
+        "clamped-linear opening",
+        "quaternion scan",
+        "dependency 3 (#2293)"
+      ],
+      "plain_what": "A recurrent layer keeps a running memory and decides at each step how fast old content fades and how much new input enters. The old recipe used smooth curves (sigmoid, exponential, tanh). The replacement opens the input with a clamped straight line, picks the fade rate from a short table of powers of two, and carries state by rotation.",
+      "replaces": "attention",
+      "status": "READY",
+      "status_reason": "Built and tested substrate, never trained: clamp, rate/keep tables, secant credit and Hamilton output gate are implemented with host-checked errors of 5e-13 (rate), 4.6e-10 (keep) and 5.5e-8 (secant); the geometric arm has 0 squash tokens; 18 finite CUDA controls passed at the rung-0 shape (docs/labs/rung0-complete-path-2026-10-13). The six-recurrence rung-0 fit never ran; the discrete model has no recurrence.",
+      "next": "Show that the secant surrogate gives descent (a falling loss, or a comparison against a random-refit control) in a D37 sheet that runs the rung-0 six-recurrence fit.",
+      "lineage": [
+        "geometric-stack"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "geometric-stack",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "spiralcore-fbs",
+      "canonical_name": "SpiralCore transport with ternary FBS binders (float projection form)",
+      "aliases": [
+        "projection=spiralcore_fbs",
+        "SpiralCore BFS plus Atomic Ternary FBS",
+        "quaternion_weights=spiralcore_fbs",
+        "OP2 native projection (#2279)",
+        "SpiralCore tree",
+        "HoloBox/FBS base-3 tree (retention tree)"
+      ],
+      "plain_what": "Instead of mixing every input into every output with learned weights, each output block picks one input block from a small tree of stored blocks, three branches per node, and moves it along a path of exact signed-axis steps in 8-dimensional E8 space. No learned coefficient is multiplied in; the path itself does the transforming.",
+      "replaces": "arithmetic/matmul",
+      "status": "READY",
+      "status_reason": "The float projection is built and device-qualified at the finite-kernel level (four CUDA, three static-plan and two artifact tests on an RTX 5090, zero absolute error on exact fixtures) and ran inside 18 rung-0 controls; it has never been trained. Secant fitness and language utility are unmeasured. Its integer descendant is ACTIVE in discrete-learning.",
+      "next": "Show the float projection's secant surrogate gives descent and stable routing in a D37 sheet, with tokens/s on the same CUDA harness.",
+      "lineage": [
+        "discrete-learning",
+        "spin-weights"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "spin-weights",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": [
+          {
+            "id": "discrete-learning",
+            "relation": "discrete-form-of"
+          }
+        ]
+      }
+    },
+    {
+      "id": "carrier-credit",
+      "canonical_name": "Live geometric carrier credit",
+      "aliases": [
+        "unified geometric carrier credit",
+        "live H4 / Generate prototype credit",
+        "whole-path learning",
+        "shared native vector writer (float form)",
+        "causal cost-to-go credit (September addressed-attention form)",
+        "donor utility credit"
+      ],
+      "plain_what": "When a model reads memory and then writes an answer, the learning signal should reach the actual geometric objects that carried the information, not just the final scoring coefficients. This line pushes error credit back through the live H4 carriers and prototypes, and later through one shared token-vector table used for input, memory and output.",
+      "replaces": "optimizer/backprop",
+      "status": "PARKED",
+      "status_reason": "Executed forms failed or broke a rule: three fixed 128-update arms went from 437/512 to 0/512 (docs/labs/unified-geometric-integration-2026-10-11), September pilots failed (docs/native_geometric_addressed_attention_causal_pilot_973.md), and the sampled-choice producer uses softmax (D23). The shared-table idea survives in discrete-learning.",
+      "next": "Replace the softmax sampled-choice producer with exact hard selection by address or integer counterfactual moves, and scan the credit path end to end. The M2 training/rental hold must first be released by the owner.",
+      "lineage": [
+        "discrete-learning"
+      ],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": [
+          {
+            "id": "discrete-learning",
+            "relation": "discrete-form-of"
+          }
+        ]
+      }
+    },
+    {
+      "id": "e8-orbit-memory",
+      "canonical_name": "E8 orbit memory",
+      "aliases": [
+        "exact-E8-addressed memory",
+        "E8 memory in place of the MLP",
+        "e8_memory (E8h, E8a)",
+        "fixed E8 product-key memory"
+      ],
+      "plain_what": "Instead of a feed-forward layer, the model reads a few rows from a very large table. The row addresses come from the 240 special points of the E8 lattice, found by a fast exact nearest-point decode. The hope is a fixed, exact address book that touches a handful of rows per token rather than running a full dense layer.",
+      "replaces": "MLP/feed-forward",
+      "status": "PARKED",
+      "status_reason": "The tested form (float values, logistic-sigmoid gate, no served form) met its half-MLP bar at +0.033 BPB, but a learned product-key memory of equal capacity beat the fixed E8 addresses by 0.023 BPB, so the geometry was never credited; replacing every MLP cost +0.116. The sigmoid gate breaks D23 (docs/labs/e8-orbit-memory-2026-10-11/README.md).",
+      "next": "Replace the sigmoid gate with a D23-clean hard gate and run the named row-3 iteration (k 8 to 16, per-orbit residual offsets) as a D37 sheet against a capacity-matched learned-key control.",
+      "lineage": [
+        "exact-memory"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "exact-memory",
+            "relation": "specialization"
+          }
+        ],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "exact-memory",
+      "canonical_name": "Exact addressed memory",
+      "aliases": [
+        "exact addressed memory",
+        "prime-keyed exact log and gcd sieve (log-sieve retrieval)",
+        "semiprime expert / prime-route store",
+        "AERM exact relation store (D2, G v1)",
+        "product-key memory (E8/H4 or learned sub-keys)",
+        "exact-pair cache",
+        "KVAR overwrite memory",
+        "address instead of search"
+      ],
+      "plain_what": "A fact is written once under an exact address and read back exactly, instead of being smeared across weights or found by fuzzy similarity. Addresses are built from prime numbers, so the same words name the same slot. A newer value replaces the old one, the old one stays recoverable, and a missing fact can say I do not know.",
+      "replaces": "key-value memory",
+      "status": "PARKED",
+      "status_reason": "Every trained form that was tested failed its bar or broke a rule: learned read triggers failed held-out phrasing (docs/integration/g1-always-on-read-result-2026-09-28.md); the product-key form uses softmax weights and scored 19/40 against a 27/40 bar (docs/labs/addressed-memory-2026-10-10/README.md). The address-as-read form was never built. Not on the D32 run plan; the integer exact store itself is rule-compatible.",
+      "next": "Build the address as the read: add memory fields to the dialogue settings and train store and read in from the start. Bound the gain first with a lawful address oracle.",
+      "lineage": [
+        "e8-orbit-memory"
+      ],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": [
+          {
+            "id": "e8-orbit-memory",
+            "relation": "specialization"
+          }
+        ]
+      }
+    },
+    {
+      "id": "geometric-stack",
+      "canonical_name": "Geometric stack (layered quaternion-recurrence language model)",
+      "aliases": [
+        "rrarra / rrarrarr / rrarrarrar stack",
+        "cycle-4 stack, geometric_s1",
+        "chat-29m-B, 19.9M chat stack",
+        "214M pretrain geo-214m-e448de86 (Step 8 arm P/Q)",
+        "R4/Spin softmax reference (#1014, #1017)",
+        "joint recurrent learner (1.68M precursor)",
+        "StackArch::Geometric",
+        "geometric_stack_native (lawful extract)"
+      ],
+      "plain_what": "A language model built as a stack of layers. Most layers carry a running memory that a learned four-number spinner (a unit quaternion) rotates and fades at each word; a few look back over earlier words. It was the main trained model, 7 to 214 million parameters, until the rules banned most of its arithmetic.",
+      "replaces": "whole-model engine",
+      "status": "PARKED",
+      "status_reason": "PARKED: the form actually trained (softmax reads, sigmoid and SiLU gating, dense matmul) is banned by D23/D25/D30 and never met the M1 bars (memory 20/40 vs 34; served 1.20-1.24 vs 0.90 BPB, docs/labs/d11-serving-2026-10-10). Its quaternion transport was KEPT (docs/integration/transport-attribution-d1-2026-09-28.md); a lawful 24-kernel extract is built but untrained.",
+      "next": "A D37 lawful rebuild from parts only (Hamilton-gate feed-forward, geometric recurrence, flock/relation reads, rank-margin loss) with an owner training release, scored against D11 at or below 0.90 BPB.",
+      "lineage": [
+        "flock-read",
+        "hamilton-gate",
+        "native-geometric",
+        "recurrence-gates"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "native-geometric",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": [
+          {
+            "id": "hamilton-gate",
+            "relation": "successor"
+          },
+          {
+            "id": "recurrence-gates",
+            "relation": "successor"
+          },
+          {
+            "id": "flock-read",
+            "relation": "discrete-form-of"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hopf-observation",
+      "canonical_name": "Hopf observation with a kept fibre (and the Lorentz read)",
+      "aliases": [
+        "Hopf map S3 -> S2",
+        "retained fibre / holonomy tracking",
+        "UnitS3Q30::hopf, hopf_fiber_project",
+        "Fubini-Study metric trajectory",
+        "Hopf sector routing (512 sectors)",
+        "Lorentz / hyperbolic read score, LorentzAffine",
+        "HELM-D R4 Lorentz attention",
+        "S7 quaternionic Hopf relation state (conditional, never implemented)"
+      ],
+      "plain_what": "A way of looking at a rotation state, a point on a four-dimensional sphere, through a three-dimensional shadow that forgets one angle, while separately keeping that forgotten angle so nothing is lost. It was used to track drifting phase and to bin states into routing sectors. A related curved-space distance, the Lorentz read, was also tried for scoring.",
+      "replaces": "attention-scoring",
+      "status": "PARKED",
+      "status_reason": "The map and kept fibre are built and unit-tested but run only as integer-runtime telemetry; the retained-fibre comparison was never run for language (docs/labs/course-correction-2026-10-18/audits/mechanism-census.md). Tested prediction forms failed or used banned parts: sector routing filled 7 of 512 sectors, softmax Lorentz attention, and a Lorentz read neutral or slightly ahead of dot product.",
+      "next": "Run the retained-fibre test (base only vs base plus fibre vs bank tags at equal retained bytes), keeping exact occurrence identity outside the lossy summary.",
+      "lineage": [],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "legal-construction",
+      "canonical_name": "Protected legal construction",
+      "aliases": [
+        "protected / discrete legal construction",
+        "direct joint legal-set construction",
+        "protected Prefix/Generate transaction",
+        "quantized-form parameter moves",
+        "exact legal-constructor solver (MIP)",
+        "D22 constructor"
+      ],
+      "plain_what": "Instead of training with smooth numbers and rounding at the end, choose each parameter change directly from the short list of values the final integer model can hold, while a checker guarantees that a set of already-correct answers stays correct. Every accepted step is then exactly servable and provably keeps what was learned.",
+      "replaces": "optimizer/backprop",
+      "status": "PARKED",
+      "status_reason": "Never judged on the panel. Every attempt stopped before a protected descending move, mostly on solver numerics (docs/labs/direct-legal-construction-2026-10-09, basis-residual-repair-2026-10-09). D21 archived the line and D22 section 5 reopened it. The 11 October owner pivot deferred the generic constructor and the discrete path took over the goal.",
+      "next": "Solve the saved input245 instance (1,960 variables, 440 constraints) in exact rational or Z[phi] arithmetic so that the singular-pivot blocker is removed.",
+      "lineage": [
+        "discrete-learning"
+      ],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": [
+          {
+            "id": "discrete-learning",
+            "relation": "successor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "native-geometric",
+      "canonical_name": "Native geometric engine (Line B: typed values, version chains, grounded replies)",
+      "aliases": [
+        "native_geometric",
+        "Line B native learner",
+        "r4 geometric",
+        "version-intent chain learner",
+        "Copy / Add / Stop typed selector",
+        "native H4/Q4 source realizer",
+        "cross-state continuation (M2)",
+        "native pooled-token ranking",
+        "native lattice learner (19 September ancestor)"
+      ],
+      "plain_what": "A small language model written from scratch in Rust that treats words as exact prime-number addresses and keeps its memory as rotations in four-dimensional geometry. It learns which earlier word or number to copy, add or stop on, and which version of a changing fact to read. It answered authored questions exactly but never wrote free prose.",
+      "replaces": "whole-model engine",
+      "status": "PARKED",
+      "status_reason": "PARKED: authored-panel passes never reached prose (eras 18-19: generated prose 0/5), M2 437/512 collapsed to 0/128 on fresh rows (docs/labs/m2-fresh-437-2026-10-10/README.md), its pooled-ranking objective uses softplus/exp (D23/D25), and Line B kernels were quarantined by D29. The one-exact-writer idea lives on in the discrete path.",
+      "next": "After the owner lifts the M2 hold, re-register Line B with the rank-margin hinge in place of softplus/exp pooled ranking, scored on at least 200 fresh rows.",
+      "lineage": [
+        "discrete-learning",
+        "geometric-stack",
+        "object-store",
+        "prime-zeta-codebook",
+        "r4g1-graph",
+        "rank-margin",
+        "relation-read"
+      ],
+      "lineage_detail": {
+        "descends_from": [
+          {
+            "id": "r4g1-graph",
+            "relation": "successor"
+          }
+        ],
+        "descends_into": [
+          {
+            "id": "geometric-stack",
+            "relation": "successor"
+          },
+          {
+            "id": "discrete-learning",
+            "relation": "successor"
+          },
+          {
+            "id": "prime-zeta-codebook",
+            "relation": "successor"
+          },
+          {
+            "id": "relation-read",
+            "relation": "successor"
+          },
+          {
+            "id": "object-store",
+            "relation": "successor"
+          },
+          {
+            "id": "rank-margin",
+            "relation": "successor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pointer-key",
+      "canonical_name": "Pointer copy with an exact identity key",
+      "aliases": [
+        "pointer-copy head (A1)",
+        "copy head",
+        "token-identity pointer (pointer_identity)",
+        "prime-route pointer (pointer_route=prime-ranked)",
+        "entity-address pointer",
+        "copy-identity fold table",
+        "forced-copy oracle (copy-span oracle)"
+      ],
+      "plain_what": "When asked 'what is Ana's locker?', the model should copy the stored answer from earlier text rather than invent one. The pointer chooses which earlier token to copy. This mechanism wants it to choose by the exact name of the slot (Ana plus locker), not by the surrounding wording. Measured today, the pointer instead lands on the repeated sentence frame.",
+      "replaces": "attention",
+      "status": "PARKED",
+      "status_reason": "Every tested form is a softmax pointer in a dense float stack that missed its bar or cannot be served: a real prime-ranked key raised the dev hit rate 0.377 to 0.5452 yet memory stayed 19/21/23 vs 20/40 (docs/labs/ptr-addr-2026-10-10/README.md); export refuses identity terms. The entity-address key and forced-copy oracle were never run.",
+      "next": "Bound the gain with a forced-copy/slot-address oracle on a lawful (softmax-free) read, then train a parsed entity-times-attribute prime key from the start.",
+      "lineage": [
+        "relation-read"
+      ],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": [
+          {
+            "id": "relation-read",
+            "relation": "successor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "r4g1-graph",
+      "canonical_name": "R4G1 compiled lookup graph (teacher-to-tables)",
+      "aliases": [
+        "R4G1",
+        "TLA / TLA6 / TLA7 runtime",
+        "transformerless graph",
+        "graph compiler / certifier",
+        "frozen no_std kernel",
+        "skip-mix lane (RF-31)",
+        "segment lane",
+        "trajectory routing lane",
+        "Phase B shift-add store",
+        "Geometric Intelligence Programme S0-S7 stages"
+      ],
+      "plain_what": "The project's first approach. Watch a conventional language model, record what it prefers in each context as a huge file of lookup tables, then answer by reading those tables with whole-number adds and comparisons only. It ran with no multiplication and matched the teacher on repetitive text, but never wrote coherent text on its own.",
+      "replaces": "whole-model engine",
+      "status": "PARKED",
+      "status_reason": "PARKED: compiled gains stayed teacher-forced and never became coherent free-running text (docs/free_running_reachability_840.md, docs/trajectory_routing_946.md INERT); the compiler path needs a banned transformer teacher and its float/softmax modules were retired by D36. Format and runtime kernel stay as a frozen, tested multiplier-free reference.",
+      "next": "Get the owner decision on repair-or-retire for the graph-compiler/certify/api/proof-model crates that D36 item 3 left open.",
+      "lineage": [
+        "lut-serving",
+        "native-geometric"
+      ],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": [
+          {
+            "id": "native-geometric",
+            "relation": "successor"
+          },
+          {
+            "id": "lut-serving",
+            "relation": "successor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "read-binding",
+      "canonical_name": "Read binding (supervised value binding)",
+      "aliases": [
+        "read-binding supervision",
+        "read_binding_supervision",
+        "bound/competing mass loss",
+        "phase binding (read_lineage=phase_bind), the exact-by-construction variant",
+        "teacher-only binding labels"
+      ],
+      "plain_what": "During training, a teacher marks which earlier words hold the value the question asks for and which hold other stated values. The model is rewarded for putting its attention on the right ones. It targets the failure 'found a value, but the wrong one', and nothing about how answers are produced changes at serving time.",
+      "replaces": "loss",
+      "status": "PARKED",
+      "status_reason": "Met its mechanism target and moved the headline in the one form tested (3 seeds from step 0: wrong-value 47 -> 30/120, memory 57 -> 65/120, docs/labs/read-binding-powered-2026-10-11/README.md), but that read is a float softmax attention, inactive under D23/D30/D32. It has never been tried on any discrete or geometric read.",
+      "next": "Port bound-versus-competing supervision to a D32 discrete read (Flock or Relation), supervised from step 0 with a matched W=0 control and at least 3 seeds.",
+      "lineage": [],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": []
+      }
+    },
+    {
+      "id": "spin-weights",
+      "canonical_name": "Spin-native weights (quaternion and icosian maps)",
+      "aliases": [
+        "quaternion weights",
+        "quaternion_weights=all",
+        "Hamilton-block projections",
+        "HamiltonLinear (OP2)",
+        "residual icosian pairs",
+        "icosian Cayley-table products",
+        "icosian-mantissa weights",
+        "spin-snap"
+      ],
+      "plain_what": "Instead of a grid of independent numbers, each 4x4 block of a weight matrix is one quaternion, a four-number turn-and-scale, applied by the Hamilton product. Trained quaternions are then snapped to 120 exact icosahedral rotations plus a small scale, so a block product becomes a table lookup and a few shifts and adds.",
+      "replaces": "arithmetic/matmul",
+      "status": "PARKED",
+      "status_reason": "Quaternion weights and 2-bit-mantissa icosian pairs met their bars (1.5148 BPB, level with dense; docs/labs/icosian-mantissa-2026-10-11), but only as a dense Hamilton-block contraction run through matmul, which D25/D30 ban; the code that ran them now refuses. Single-icosian snaps and trained-in activation snaps lost. The mechanism stays open.",
+      "next": "An explicit owner architecture decision on a Hamilton-block trunk. The 18 Oct architect audit says the discrete model has no dense projections to replace.",
+      "lineage": [
+        "spiralcore-fbs"
+      ],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": [
+          {
+            "id": "spiralcore-fbs",
+            "relation": "successor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ternary-xor",
+      "canonical_name": "Ternary and XOR/Hamming arithmetic",
+      "aliases": [
+        "ternary weights",
+        "XOR matmul",
+        "bitsliced ternary contraction",
+        "ternary alternative with xor (owner prompt, 12 Oct 2026)",
+        "Hamming / popcount distance",
+        "TernaryLinear / lowbit",
+        "multiplier-free weights",
+        "modulo-256 substrate"
+      ],
+      "plain_what": "Store each weight as -1, 0 or +1, so using it needs only add, subtract or skip, and compare two bit patterns by counting how many bits differ. The aim is cheap multiplier-free arithmetic. The dense ternary sum was assessed and not adopted; the bit-counting and three-valued switches now live inside the discrete model.",
+      "replaces": "arithmetic/matmul",
+      "status": "PARKED",
+      "status_reason": "As proposed (a dense ternary/XOR contraction replacing matmul) it was assessed and not adopted: it removes the multiplier, not the dense sum (D25; docs/mechanisms/ternary-xor-arithmetic.md). It was never trained in, and the post-hoc ternary head export lost (7.416 vs 7.171 bits). Its Hamming and trit-gate parts run inside discrete-learning and flock-read.",
+      "next": "An owner ruling on open question 5: is a routed ternary contraction an accepted non-geometric substitution? Otherwise define a geometric three-value alphabet such as Eisenstein cube roots.",
+      "lineage": [
+        "discrete-learning"
+      ],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": [
+          {
+            "id": "discrete-learning",
+            "relation": "successor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "vsa",
+      "canonical_name": "Vector-symbolic binding (hypervector codes)",
+      "aliases": [
+        "VSA",
+        "hyperdimensional computing (HDC)",
+        "binary spatter code",
+        "Hypervector4096 codes",
+        "HRR-style associative transition context",
+        "vsa_scale_q15 term / set-vsa-code-mode",
+        "octonion-signed binding (design only)"
+      ],
+      "plain_what": "Gives each token a long bit string (4,096 bits). XOR glues two things together, such as a role and a word. A majority vote merges many strings into one summary. Counting differing bits measures similarity. In the older prose model this added a cheap 'was this word recently in context' cue to the next-word score.",
+      "replaces": "key-value memory",
+      "status": "PARKED",
+      "status_reason": "Fixed-code VSA trained into the legacy native prose learner improved held-out BPB by 0.014-0.023 on 2 seeds and 2 slices, but the run used the CPU learner (barred by D24), and root codes, the mode-2 variant, frozen-artifact swaps and the router switch all failed or were uninformative (docs/labs/vsa-native-test-2026-10-09, vsa-review-2026-10-09). It is not on the D32 path.",
+      "next": "A GPU-only retraining of the fixed-code term as a discrete Hamming binding on the D32 writer, with the exact copy head ablated.",
+      "lineage": [],
+      "lineage_detail": {
+        "descends_from": [],
+        "descends_into": []
+      }
+    }
+  ],
+  "family_tree": [
+    {
+      "parent": "r4g1-graph",
+      "child": "native-geometric",
+      "relation": "successor",
+      "note": "native Rust engine replaced teacher-compiled tables (r4g1-graph dossier related)"
+    },
+    {
+      "parent": "r4g1-graph",
+      "child": "lut-serving",
+      "relation": "successor",
+      "note": "same no-multiply rule carried to learned stacks"
+    },
+    {
+      "parent": "native-geometric",
+      "child": "geometric-stack",
+      "relation": "successor",
+      "note": "learned float model took over after the Sept ladder"
+    },
+    {
+      "parent": "native-geometric",
+      "child": "discrete-learning",
+      "relation": "successor",
+      "note": "one exact shared writer idea lives on in the discrete path"
+    },
+    {
+      "parent": "native-geometric",
+      "child": "prime-zeta-codebook",
+      "relation": "successor",
+      "note": "prime addresses and fixed zeta phases rebuilt as a qualified construction"
+    },
+    {
+      "parent": "native-geometric",
+      "child": "relation-read",
+      "relation": "successor",
+      "note": "exact-relation head is the D34 reranker-first successor of the version-chain selectors"
+    },
+    {
+      "parent": "native-geometric",
+      "child": "object-store",
+      "relation": "successor",
+      "note": "D19 store takes over durable exact records"
+    },
+    {
+      "parent": "native-geometric",
+      "child": "rank-margin",
+      "relation": "successor",
+      "note": "lawful hinge replaces the banned softplus pooled ranking"
+    },
+    {
+      "parent": "carrier-credit",
+      "child": "discrete-learning",
+      "relation": "discrete-form-of",
+      "note": "shared native vector writer (float form) survives as the single integer input/carry/output codebook"
+    },
+    {
+      "parent": "legal-construction",
+      "child": "discrete-learning",
+      "relation": "successor",
+      "note": "same goal (no rounding loss), now legal by construction"
+    },
+    {
+      "parent": "spiralcore-fbs",
+      "child": "discrete-learning",
+      "relation": "discrete-form-of",
+      "note": "integer SpiralCore/FBS transport is the active descendant of the float projection"
+    },
+    {
+      "parent": "ternary-xor",
+      "child": "discrete-learning",
+      "relation": "successor",
+      "note": "trit gates and Hamming tie-breaks run inside the discrete model"
+    },
+    {
+      "parent": "spin-weights",
+      "child": "spiralcore-fbs",
+      "relation": "successor",
+      "note": "projection replaced the dense quaternion contraction (#2279)"
+    },
+    {
+      "parent": "geometric-stack",
+      "child": "hamilton-gate",
+      "relation": "successor",
+      "note": "G2 gate replaces the stack's SwiGLU sigmoid gate"
+    },
+    {
+      "parent": "geometric-stack",
+      "child": "recurrence-gates",
+      "relation": "successor",
+      "note": "lawful form of the stack's sigmoid/exp gated recurrence"
+    },
+    {
+      "parent": "geometric-stack",
+      "child": "flock-read",
+      "relation": "discrete-form-of",
+      "note": "float starling/rank-table reads ran in the stack; ReadSpec::Flock is the integer form"
+    },
+    {
+      "parent": "route-read",
+      "child": "flock-read",
+      "relation": "successor",
+      "note": "Flock replaces Route's single leaf with a transported consensus of K neighbours"
+    },
+    {
+      "parent": "flock-read",
+      "child": "relation-read",
+      "relation": "specialization",
+      "note": "Relation = Flock plus relation trits; relation-off is bit-identical to Flock"
+    },
+    {
+      "parent": "pointer-key",
+      "child": "relation-read",
+      "relation": "successor",
+      "note": "D34 copy-successor read is the pointer's native-substrate analogue"
+    },
+    {
+      "parent": "prime-zeta-codebook",
+      "child": "address-cells",
+      "relation": "successor",
+      "note": "A8 reuses the cell grid and falls back to the PrimeZeta cell; P8 is its baseline"
+    },
+    {
+      "parent": "exact-memory",
+      "child": "e8-orbit-memory",
+      "relation": "specialization",
+      "note": "product-key memory with fixed E8 sub-keys, replacing an MLP"
+    }
+  ],
+  "slot_map": {
+    "tokenizer": [
+      "tokenizer"
+    ],
+    "token embedding table": [
+      "prime-zeta-codebook",
+      "address-cells"
+    ],
+    "positional encoding": [],
+    "attention: choosing which earlier positions to read (QK scoring)": [
+      "route-read",
+      "flock-read",
+      "relation-read",
+      "admission",
+      "hopf-observation"
+    ],
+    "attention: mixing the chosen values (softmax-weighted sum)": [
+      "flock-read"
+    ],
+    "copy / induction heads": [
+      "relation-read",
+      "pointer-key"
+    ],
+    "context memory (KV cache, retrieval)": [
+      "exact-memory",
+      "vsa",
+      "read-binding"
+    ],
+    "durable memory outside the model (RAG store)": [
+      "object-store"
+    ],
+    "MLP / feed-forward block": [
+      "e8-orbit-memory",
+      "hamilton-gate",
+      "spiralcore-fbs"
+    ],
+    "activation and gating functions (SiLU/sigmoid/tanh)": [
+      "hamilton-gate",
+      "recurrence-gates"
+    ],
+    "recurrent / state-space sequence mixing": [
+      "recurrence-gates",
+      "geometric-stack"
+    ],
+    "linear projections and matmul arithmetic": [
+      "spiralcore-fbs",
+      "spin-weights",
+      "ternary-xor",
+      "lut-serving"
+    ],
+    "normalization (LayerNorm/RMSNorm)": [],
+    "output head (softmax over the vocabulary)": [
+      "admission",
+      "discrete-learning"
+    ],
+    "loss (cross-entropy)": [
+      "rank-margin",
+      "read-binding"
+    ],
+    "optimizer / backpropagation": [
+      "discrete-learning",
+      "carrier-credit",
+      "legal-construction"
+    ],
+    "inference runtime / quantized serving": [
+      "lut-serving",
+      "r4g1-graph"
+    ],
+    "whole-model engine": [
+      "geometric-stack",
+      "native-geometric",
+      "r4g1-graph"
+    ]
+  },
+  "counts": {
+    "ACTIVE": 10,
+    "READY": 4,
+    "PARKED": 13
+  },
+  "contradictions_found": [
+    {
+      "id": "address-cells",
+      "type": "readme-omission",
+      "detail": "docs/mechanisms/README.md (status as of 18 Oct) has no row for address-structured cells (A8), though they are the table of the live M1 attention line. Dossier: ACTIVE.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/address-cells-preflight-2026-10-19/README.md",
+        "docs/labs/a8-dose-2026-10-19/README.md"
+      ]
+    },
+    {
+      "id": "admission",
+      "type": "readme-omission",
+      "detail": "README has no admission row, though admission is the measured binding constraint on every attention run (K=8 5,680 -> 1,920; K16, Dose 1 and A8 all lost it). Dossier: ACTIVE.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/attention-state-2026-10-18/README.md"
+      ]
+    },
+    {
+      "id": "discrete-learning",
+      "type": "readme-stale",
+      "detail": "README says 'D5 seed-1 completion running' and 'M1 quality target SUSPENDED'. Since then the pilot and four K16 runs completed with no arm passing the bars, and the A8 dose ran and stopped at Q1.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/k16-outcome-call-2026-10-19/README.md",
+        "docs/labs/a8-dose-2026-10-19/README.md"
+      ]
+    },
+    {
+      "id": "relation-read",
+      "type": "readme-stale",
+      "detail": "README says Stage M1 construction and the Stage M2 discriminator remain NOT_RUN, and lists only one trained run. The dossier records two trained runs (rows_v1 and A8: Relation 551 vs FrozenZero 857 at Q1), neither giving a paired verdict.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/a8-dose-2026-10-19/README.md"
+      ]
+    },
+    {
+      "id": "relation-read",
+      "type": "naming",
+      "detail": "The README calls the rows_v1 run 'Dose 2' and the dossier calls it 'Dose 1'. attention-state-2026-10-18 says 'Dose 1's two arms both collapsed (2,034->225/205)', while the attempt id is uor-cf1-dose2-rows-322faf70... in attention-rows-q1-diagnosis-2026-10-18. Pick one canonical name.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/attention-state-2026-10-18/README.md",
+        "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md"
+      ]
+    },
+    {
+      "id": "hamilton-gate",
+      "type": "readme-stale",
+      "detail": "README's D37 list says there is 'no device receipt'. A Vast RTX 5090 parity run at c1d53c80 passed 43/0/3 ignored, though the summary does not name the tests. The rung-0 finite CUDA qualification passed 18 controls at 05c84bec with gate=hamilton rec_gates=geometric. Dossier: READY. I agree.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/cuda-parity-gate-import-2026-10-13/README.md",
+        "docs/labs/rung0-complete-path-2026-10-13/README.md"
+      ]
+    },
+    {
+      "id": "recurrence-gates",
+      "type": "readme-stale",
+      "detail": "README says 'local checks only ... no device receipt'. rung0-complete-path-2026-10-13 records 18 finite CUDA controls PASS with rec_gates=geometric. No test that names rate_select exists, so the qualification is indirect. Dossier: READY.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/rung0-complete-path-2026-10-13/README.md"
+      ]
+    },
+    {
+      "id": "object-store",
+      "type": "status-mapping",
+      "detail": "README calls the D19 object store 'active'. The dossier says READY because no crate depends on it and the M3 bars have not been run. I agree with READY under the new definitions, since it is not on the model path.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/d19-object-store-2026-10-15/README.md"
+      ]
+    },
+    {
+      "id": "lut-serving",
+      "type": "status-disagreement",
+      "detail": "I disagree with the dossier's ACTIVE and would call it READY. The D11 integer boundary is the active contract, but no lawful or discrete artifact has ever been exported through UORLUT01. The dossier's own rule_compat says schemas /1-/2 serve softmax through exp tables (D23 partly non-compliant), and its open question asks whether a new schema is needed for table-native models. Status left as the dossier gives it.",
+      "sources": [
+        "local/renorm/audit/mechanisms/lut-serving.json",
+        "docs/history/d29-excluded-lut-2026-10-13"
+      ]
+    },
+    {
+      "id": "hopf-observation",
+      "type": "status-disagreement",
+      "detail": "This is a soft disagreement with PARKED. The Hopf map with kept fibre is built and unit-tested, and its retained-fibre language test was never run. That fits READY better than 'tested forms failed'. PARKED rests on bundled forms: sector routing (7/512 sectors) and a Lorentz read that the dossier itself calls 'neutral or slightly ahead of dot product', which is not a failure. A split (Hopf kept-fibre READY, Lorentz/sector routing PARKED) would be more accurate. Status left as PARKED.",
+      "sources": [
+        "docs/labs/course-correction-2026-10-18/audits/mechanism-census.md",
+        "local/renorm/audit/mechanisms/hopf-observation.json"
+      ]
+    },
+    {
+      "id": "hamilton-gate",
+      "type": "reopen-condition-conflict",
+      "detail": "One reopen condition asks for a matched comparison against the SwiGLU gate at equal width, steps and data. SwiGLU uses SiLU (x*sigmoid x), and D23/D25 ban sigmoid in new comparator runs. Only the frozen pre-ban artifact's stored outputs could serve as the comparison.",
+      "sources": [
+        "local/renorm/audit/mechanisms/hamilton-gate.json",
+        "AGENTS.md (D23/D25)"
+      ]
+    },
+    {
+      "id": "recurrence-gates",
+      "type": "reopen-condition-conflict",
+      "detail": "The reopen condition runs rec_gates=geometric 'against a matched historical-gates arm'. The historical gates are sigmoid/exp/GELU, which D23/D25 bar from new execution. The comparison has to use preserved stored results.",
+      "sources": [
+        "local/renorm/audit/mechanisms/recurrence-gates.json",
+        "docs/labs/rung0-complete-path-2026-10-13/README.md"
+      ]
+    },
+    {
+      "id": "pointer-key",
+      "type": "reopen-condition-conflict",
+      "detail": "'Run the serving-time forced-copy oracle first ... on the bound artifact' would execute a softmax-pointer float stack, which D23 forbids executing. The oracle has to be rebuilt on a lawful read.",
+      "sources": [
+        "local/renorm/audit/mechanisms/pointer-key.json",
+        "docs/labs/copy-span-oracle-2026-10-12/README.md"
+      ]
+    },
+    {
+      "id": "recurrence-gates",
+      "type": "slot-label",
+      "detail": "The dossier says it 'replaces=attention'. The mechanism actually replaces the sigmoid/exp/tanh gates inside a recurrent layer, and the recurrence as a whole is the sequence-mixing substitute. The slot map lists it under gating and recurrence, not attention.",
+      "sources": [
+        "local/renorm/audit/mechanisms/recurrence-gates.json"
+      ]
+    },
+    {
+      "id": "rank-margin",
+      "type": "status-mapping",
+      "detail": "README marks rank-margin dormant in float form, with the integer form active inside discrete-learning. Dossier: ACTIVE for the integer objective, with the float rung-0 hinge never trained (READY-equivalent). Consistent once the two forms are separated. The board keeps one id at ACTIVE.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/admission-rank-hinge-2026-10-15"
+      ]
+    },
+    {
+      "id": "prime-zeta-codebook",
+      "type": "readme-stale",
+      "detail": "README stresses the 'frozen D5 discrete_init xorshift default unchanged' and an injective-init sheet in DRAFT. PrimeZeta is now the P8 baseline and the A8 fallback (address-cells-preflight-2026-10-19). The dossier also notes that injectivity comes from the quota/uniqueness pass shared with both nulls, not from the prime phases. The prime-phase contribution itself is unattributed.",
+      "sources": [
+        "docs/mechanisms/README.md",
+        "docs/labs/prime-zeta-construction-2026-10-14/README.md",
+        "docs/labs/address-cells-preflight-2026-10-19/README.md"
+      ]
+    },
+    {
+      "id": "*",
+      "type": "readme-omission",
+      "detail": "README has no rows for geometric-stack, native-geometric, r4g1-graph, lut-serving, hopf-observation, vsa or tokenizer. Its vocabulary (active/dormant/archived-negative) differs from ACTIVE/READY/PARKED. 'archived-negative (D22 scope)' labels configurations, not mechanisms, so it is not a mechanism status.",
+      "sources": [
+        "docs/mechanisms/README.md"
+      ]
+    },
+    {
+      "id": "*",
+      "type": "slot-gap",
+      "detail": "No mechanism covers positional encoding or normalization (LayerNorm/RMSNorm). The discrete path's snap-to-orbit-root (flock-read kernel) and tree addresses may play these roles, but no record states it.",
+      "sources": [
+        "local/renorm/audit/mechanisms/flock-read.json"
+      ]
+    }
+  ]
+}

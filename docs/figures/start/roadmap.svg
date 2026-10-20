@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" role="img" aria-labelledby="t d">
+<title id="t">The road from today to the products</title>
+<desc id="d">A left-to-right road with six stops. Stage 0, run what is already FIT'd (W2, A8 rerun, about $0.91), carries a "you are here" pin. Stage 1, make capacity measurable (full-vector address key). Stage 2, pick the learning law (BVG-K, about $12, plus $5 to $10 only if decimal training is needed). Stage 3, add the missing parts (feed-forward, recurrence, reads), a hypothesis. Stage 4, export and serve (exporter, export gap, tokens per second). Stage 5, first simple conversation (exact memory, object store). Stages 1 (optional part), 3 and 4 are tagged new build work. A gate between every pair of stops is labelled owner release. Under the road, milestone M1 spans Stages 2 to 4 with its bar: beat 1,226 and 6,300 on two seeds through the D11 export; M4 sits under Stage 4; M2 under Stage 5; M3 is shown as not yet staged. A lighter second road continues after Stage 5 through M5 laptop cost, M6 reasoning and coding, M7 browser, API and Studio, and M8 alpha, ending at three products: a model file (UORLUT01, integer), a web client and a desktop client (spec only).</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.stage { font-size: 11.5px; font-weight: 600; fill: var(--muted); letter-spacing: 0.03em; }
+.name { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.detail { font-size: 11.5px; fill: var(--muted); }
+.tagtext { font-size: 11px; fill: var(--body); }
+.tag-build-text { font-size: 11px; fill: var(--verm); font-weight: 600; }
+.ms { font-size: 12px; fill: var(--ink); }
+.msb { font-weight: 700; }
+.section { font-size: 13px; font-weight: 600; fill: var(--muted); }
+.road { stroke: var(--rule); stroke-width: 14; stroke-linecap: round; fill: none; }
+.lane { stroke: var(--bg); stroke-width: 2; stroke-dasharray: 10 8; fill: none; }
+.road-far { stroke: var(--rule); stroke-width: 10; stroke-linecap: round; fill: none; stroke-opacity: 0.55; }
+.stop { fill: var(--bg); stroke: var(--blue); stroke-width: 2.5; }
+.stopnum { font-size: 13px; font-weight: 700; fill: var(--blue); }
+.here { fill: var(--orange); stroke: var(--orange); stroke-width: 2.5; }
+.herenum { font-size: 13px; font-weight: 700; fill: var(--bg); }
+.pin { fill: var(--orange); }
+.pinhole { fill: var(--bg); }
+.post { fill: var(--muted); }
+.bar { fill: var(--muted); }
+.gatetext { font-size: 10.5px; fill: var(--muted); }
+.tag { fill: var(--bg); stroke: var(--muted); stroke-width: 1; }
+.tag-hyp { fill: var(--bg); stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 2; }
+.tag-build { fill: var(--verm); fill-opacity: 0.08; stroke: var(--verm); stroke-width: 1.25; }
+.m1 { fill: var(--blue); fill-opacity: 0.10; stroke: var(--blue); stroke-width: 1.5; }
+.mpill { fill: var(--blue); fill-opacity: 0.10; stroke: var(--blue); stroke-width: 1.5; }
+.farstop { fill: var(--bg); stroke: var(--muted); stroke-width: 2; }
+.farnum { font-size: 11px; font-weight: 700; fill: var(--muted); }
+.icon { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
+.icon-line { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.icon-dot { fill: var(--muted); }
+.icon-spec { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.flow { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.head-fill { fill: var(--muted); }
+.rule { stroke: var(--rule); stroke-width: 1; }
+</style>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" class="head-fill"/>
+  </marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="540"/>
+
+<text class="title" x="24" y="36">The road from today to the products</text>
+<text class="sub" x="24" y="58">A plan, not a promise. Every stage that trains a model waits for the owner's release.</text>
+
+<!-- Road, row 1 -->
+<line class="road" x1="40" y1="150" x2="920" y2="150"/>
+<line class="lane" x1="40" y1="150" x2="920" y2="150"/>
+
+<!-- Owner-release gates between stops -->
+<g>
+  <rect class="post" x="161" y="135" width="3" height="30"/><rect class="post" x="176" y="135" width="3" height="30"/><rect class="bar" x="161" y="140" width="18" height="4"/>
+  <text class="gatetext" x="170" y="126" text-anchor="middle">owner release</text>
+  <rect class="post" x="321" y="135" width="3" height="30"/><rect class="post" x="336" y="135" width="3" height="30"/><rect class="bar" x="321" y="140" width="18" height="4"/>
+  <text class="gatetext" x="330" y="126" text-anchor="middle">owner release</text>
+  <rect class="post" x="481" y="135" width="3" height="30"/><rect class="post" x="496" y="135" width="3" height="30"/><rect class="bar" x="481" y="140" width="18" height="4"/>
+  <text class="gatetext" x="490" y="126" text-anchor="middle">owner release</text>
+  <rect class="post" x="641" y="135" width="3" height="30"/><rect class="post" x="656" y="135" width="3" height="30"/><rect class="bar" x="641" y="140" width="18" height="4"/>
+  <text class="gatetext" x="650" y="126" text-anchor="middle">owner release</text>
+  <rect class="post" x="801" y="135" width="3" height="30"/><rect class="post" x="816" y="135" width="3" height="30"/><rect class="bar" x="801" y="140" width="18" height="4"/>
+  <text class="gatetext" x="810" y="126" text-anchor="middle">owner release</text>
+</g>
+
+<!-- You are here -->
+<path class="pin" d="M90,128 C80,114 76,108 76,100 A14,14 0 1 1 104,100 C104,108 100,114 90,128 Z"/>
+<circle class="pinhole" cx="90" cy="100" r="5"/>
+<text class="name" x="112" y="96">You are here</text>
+
+<!-- Stops -->
+<circle class="here" cx="90" cy="150" r="15"/><text class="herenum" x="90" y="155" text-anchor="middle">0</text>
+<circle class="stop" cx="250" cy="150" r="15"/><text class="stopnum" x="250" y="155" text-anchor="middle">1</text>
+<circle class="stop" cx="410" cy="150" r="15"/><text class="stopnum" x="410" y="155" text-anchor="middle">2</text>
+<circle class="stop" cx="570" cy="150" r="15"/><text class="stopnum" x="570" y="155" text-anchor="middle">3</text>
+<circle class="stop" cx="730" cy="150" r="15"/><text class="stopnum" x="730" y="155" text-anchor="middle">4</text>
+<circle class="stop" cx="890" cy="150" r="15"/><text class="stopnum" x="890" y="155" text-anchor="middle">5</text>
+
+<!-- Stage 0 -->
+<text class="stage" x="90" y="186" text-anchor="middle">STAGE 0</text>
+<text class="name" x="90" y="204" text-anchor="middle">Run what is</text>
+<text class="name" x="90" y="220" text-anchor="middle">already FIT'd</text>
+<text class="detail" x="90" y="236" text-anchor="middle">W2, A8 rerun</text>
+<rect class="tag" x="62" y="258" width="56" height="20" rx="10"/><text class="tagtext" x="90" y="272" text-anchor="middle">~$0.91</text>
+
+<!-- Stage 1 -->
+<text class="stage" x="250" y="186" text-anchor="middle">STAGE 1</text>
+<text class="name" x="250" y="204" text-anchor="middle">Make capacity</text>
+<text class="name" x="250" y="220" text-anchor="middle">measurable</text>
+<text class="detail" x="250" y="236" text-anchor="middle">full-vector</text><text class="detail" x="250" y="250" text-anchor="middle">address key</text>
+<rect class="tag-build" x="180" y="258" width="140" height="20" rx="10"/><text class="tag-build-text" x="250" y="272" text-anchor="middle">new build (optional part)</text>
+
+<!-- Stage 2 -->
+<text class="stage" x="410" y="186" text-anchor="middle">STAGE 2</text>
+<text class="name" x="410" y="204" text-anchor="middle">Pick the</text>
+<text class="name" x="410" y="220" text-anchor="middle">learning law</text>
+<text class="detail" x="410" y="236" text-anchor="middle">BVG-K;</text><text class="detail" x="410" y="250" text-anchor="middle">float only if needed</text>
+<rect class="tag" x="342" y="258" width="136" height="20" rx="10"/><text class="tagtext" x="410" y="272" text-anchor="middle">~$12; +$5–10 if float</text>
+
+<!-- Stage 3 -->
+<text class="stage" x="570" y="186" text-anchor="middle">STAGE 3</text>
+<text class="name" x="570" y="204" text-anchor="middle">Add the</text>
+<text class="name" x="570" y="220" text-anchor="middle">missing parts</text>
+<text class="detail" x="570" y="236" text-anchor="middle">feed-forward,</text><text class="detail" x="570" y="250" text-anchor="middle">recurrence, reads</text>
+<rect class="tag-build" x="500" y="258" width="66" height="20" rx="10"/><text class="tag-build-text" x="533" y="272" text-anchor="middle">new build</text>
+<rect class="tag-hyp" x="572" y="258" width="70" height="20" rx="10"/><text class="tagtext" x="607" y="272" text-anchor="middle">hypothesis</text>
+
+<!-- Stage 4 -->
+<text class="stage" x="730" y="186" text-anchor="middle">STAGE 4</text>
+<text class="name" x="730" y="204" text-anchor="middle">Export</text>
+<text class="name" x="730" y="220" text-anchor="middle">and serve</text>
+<text class="detail" x="730" y="236" text-anchor="middle">exporter, export gap,</text><text class="detail" x="730" y="250" text-anchor="middle">tokens/s</text>
+<rect class="tag-build" x="697" y="258" width="66" height="20" rx="10"/><text class="tag-build-text" x="730" y="272" text-anchor="middle">new build</text>
+
+<!-- Stage 5 -->
+<text class="stage" x="890" y="186" text-anchor="middle">STAGE 5</text>
+<text class="name" x="890" y="204" text-anchor="middle">First simple</text>
+<text class="name" x="890" y="220" text-anchor="middle">conversation</text>
+<text class="detail" x="890" y="236" text-anchor="middle">exact memory,</text>
+<text class="detail" x="890" y="250" text-anchor="middle">object store</text>
+
+<!-- Milestones under the road -->
+<line class="rule" x1="24" y1="290" x2="936" y2="290"/>
+<text class="section" x="24" y="316">Milestones tested</text>
+<rect class="m1" x="340" y="300" width="460" height="26" rx="13"/>
+<text class="ms" x="570" y="318" text-anchor="middle"><tspan class="msb">M1</tspan> bar: beat 1,226 and 6,300, on two seeds, through D11</text>
+<rect class="mpill" x="812" y="300" width="132" height="26" rx="13"/>
+<text class="ms" x="878" y="318" text-anchor="middle"><tspan class="msb">M2</tspan> grounded reply</text>
+<rect class="mpill" x="664" y="334" width="134" height="26" rx="13"/>
+<text class="ms" x="731" y="352" text-anchor="middle"><tspan class="msb">M4</tspan> one served model</text>
+<rect class="mpill" x="812" y="334" width="132" height="26" rx="13"/>
+<text class="ms" x="878" y="352" text-anchor="middle"><tspan class="msb">M3</tspan> not yet staged</text>
+
+<!-- Row 2: further out -->
+<line class="rule" x1="24" y1="378" x2="936" y2="378"/>
+<text class="section" x="24" y="402">After the first conversation</text>
+<line class="road-far" x1="40" y1="440" x2="590" y2="440"/>
+<line class="flow" x1="598" y1="440" x2="640" y2="440" marker-end="url(#arr)"/>
+<circle class="farstop" cx="90" cy="440" r="13"/><text class="farnum" x="90" y="444" text-anchor="middle">M5</text>
+<text class="name" x="90" y="474" text-anchor="middle">Laptop cost</text>
+<text class="detail" x="90" y="490" text-anchor="middle">energy, memory, tokens/s</text>
+<circle class="farstop" cx="230" cy="440" r="13"/><text class="farnum" x="230" y="444" text-anchor="middle">M6</text>
+<text class="name" x="230" y="474" text-anchor="middle">Reasoning</text>
+<text class="name" x="230" y="490" text-anchor="middle">and coding</text>
+<circle class="farstop" cx="370" cy="440" r="13"/><text class="farnum" x="370" y="444" text-anchor="middle">M7</text>
+<text class="name" x="370" y="474" text-anchor="middle">Browser, API,</text>
+<text class="name" x="370" y="490" text-anchor="middle">Studio</text>
+<circle class="farstop" cx="510" cy="440" r="13"/><text class="farnum" x="510" y="444" text-anchor="middle">M8</text>
+<text class="name" x="510" y="474" text-anchor="middle">Alpha</text>
+<text class="detail" x="510" y="490" text-anchor="middle">owner declares it</text>
+
+<!-- Products -->
+<g transform="translate(-31,0)">
+<path class="icon" d="M694,416 L716,416 L728,428 L728,464 L694,464 Z"/>
+<path class="icon-line" d="M716,416 L716,428 L728,428"/>
+<line class="icon-line" x1="701" y1="440" x2="721" y2="440"/>
+<line class="icon-line" x1="701" y1="448" x2="721" y2="448"/>
+<line class="icon-line" x1="701" y1="456" x2="715" y2="456"/>
+<text class="name" x="711" y="490" text-anchor="middle">Model file</text>
+<text class="detail" x="711" y="506" text-anchor="middle">UORLUT01, integer</text>
+</g><g transform="translate(-26,0)">
+<rect class="icon" x="784" y="418" width="64" height="46" rx="5"/>
+<line class="icon-line" x1="784" y1="428" x2="848" y2="428"/>
+<circle class="icon-dot" cx="790" cy="423" r="1.8"/><circle class="icon-dot" cx="796" cy="423" r="1.8"/><circle class="icon-dot" cx="802" cy="423" r="1.8"/>
+<text class="name" x="816" y="490" text-anchor="middle">Web client</text>
+<text class="detail" x="816" y="506" text-anchor="middle">in your browser</text>
+</g><g transform="translate(-19,0)">
+<rect class="icon-spec" x="886" y="418" width="50" height="36" rx="4"/>
+<path class="icon-line" d="M878,458 L944,458 L938,466 L884,466 Z"/>
+<text class="name" x="911" y="490" text-anchor="middle">Desktop client</text>
+<text class="detail" x="911" y="506" text-anchor="middle">spec only</text></g>
+</svg>

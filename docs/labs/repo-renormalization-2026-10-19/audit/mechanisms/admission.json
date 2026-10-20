@@ -1,0 +1,250 @@
+{
+  "id": "admission",
+  "canonical_name": "Admission (cell shortlist before the token is chosen)",
+  "aliases": [
+    "kept cells / K shortlist",
+    "target admission",
+    "Q1 admission collapse",
+    "B3_init and G-Cap gates",
+    "P_succ admission",
+    "G-Adm / G-Occ",
+    "admission-preserving guard"
+  ],
+  "plain_what": "Before the model picks a word, it narrows the 4,096 candidates to those stored in a few 'drawers' (cells) near where its read points. A word in a drawer that was not opened can never be chosen. So the number of correct words that make it into the opened drawers sets a ceiling on everything the read can achieve.",
+  "replaces": "softmax output head",
+  "how_it_works": "The writer takes the read's integer vector q (B blocks of 8 numbers, B = 4 registered) and picks a token in two steps, never scoring all 4,096 words. Admission: every token sits in a product cell given by the pair (orbit root of its first block, orbit root of its last block), so 16 x 16 = 256 cells. The K nearest occupied cells to q are admitted, where distance is the L1 distance of q's first block to the cell's first root plus the same for the last block, ties by cell number. K is 8 in the lineage of record and at most 16. Ranking: among tokens in admitted cells the nearest by total L1 over all blocks wins; ties go to the lowest token id. A target outside the admitted cells cannot be predicted whatever the read does, so target-admitted rows cap top-1 and top-8. Training uses a hinge: 8 x token margin + width x address margin (objective A, nearest rival cell) or + width x rank penalty (objective R: how many occupied cells outrank the target beyond K). Codebook moves change a token's cell, so learning can eject targets from the shortlist. The admission-preserving rule audits a fixed TRAIN anchor panel every 64 batches and rejects any interval that shrinks admission.",
+  "geometry": "Product of orbit-root labels of one 16-root E8 orbit on the first and last 8-D block gives 256 cells; L1 distance on integer root coordinates. Codebook initialisers: xorshift seed (16 distinct vectors), PrimeZeta (prime-rank indexing with complex-plane zeta phases, 4,096 distinct vectors), and address-structured placement near each token's predecessors' cells.",
+  "code": [
+    {
+      "path": "crates/uor-r4-discrete/src/discrete.cu",
+      "role": "address_distance (274), token_cell (286), cell_precedes (301) and the writer (307-345): admission of the K nearest occupied cells, nearest token inside them, token/address/rank hinges, occupancy telemetry"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/objective.rs",
+      "role": "ObjectivePolicy::{NearestAddressMarginV1 (A), OccupiedCellRankHingeV1 (R)}"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/redirect_admission.rs",
+      "role": "Evidence binding for the K16 admission redirect (packet, qualification, PM review)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/coverage_census.rs",
+      "role": "Codebook coverage census: distinct vectors, alias groups, tie mass, DEV alias ceiling (G-Cap gate); host counting over GPU-exported token cells"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/address_cells.rs",
+      "role": "address_structured_v1 placement: injective codebook whose cell sits near the cells of TRAIN predecessors (host data preparation only)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/prime_zeta.rs",
+      "role": "One-time offline PrimeZeta injective codebook generator and integer quantisation boundary"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_anchor.rs",
+      "role": "TRAIN-only anchor manifest (3,847 genuine copy-successor rows) for the guard"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_audit.rs",
+      "role": "Receipt lifecycle for the whole-interval admission audit"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_audited.rs",
+      "role": "Active admission-preserving controller: audit every 64 batches, restore and reject on breach (merged in #2782, finite qualification not run)"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/attention_preflight.rs",
+      "role": "Read-only GPU token-cell export and DEV capture for zero-update admission pre-flights"
+    },
+    {
+      "path": "crates/uor-r4-discrete/src/rows_device.rs",
+      "role": "Row-parallel counterfactual scoring (about 56x faster) that made the K16 and A8 doses affordable"
+    }
+  ],
+  "status": "ACTIVE",
+  "status_reason": "Admission is the measured binding constraint on every attention run: K=8 started at 5,680 admitted rows and eroded to 1,920; K16, Dose 1 and A8 all lost it under learning (docs/labs/attention-state-2026-10-18/README.md). The admission-preserving guard is the next registered step (docs/labs/admission-preserving-2026-10-19/README.md, FIT, controller merged).",
+  "reopen_conditions": [
+    "Not parked. Successor routes registered or named after the K16 and A8 stops: admission-preserving acceptance (A8 rerun with the 64-batch anchor guard, finite qualification and owner-typed D40 release outstanding).",
+    "Occupancy-regularised or load-balanced cell-rank objective (the registered route after OCCUPANCY_COLLAPSE_TRIGGERED).",
+    "Full-vector, interior-block or cell-envelope address metric if admission stays capped at K=16 (ADMISSION_STILL_CAPPED_AT_K16 branch).",
+    "A K>8-trained lineage on an injective address-structured codebook; K=16 with injective cells; or a partially injective table, as named after the injective pre-flight failed B3_init."
+  ],
+  "rule_compat": {
+    "D11": "Integer only: compare, absolute difference, add; the hinge weights 8 and width are applied by shift-and-add (checked_scaled_add), no multiplier. No D11 served export of an admission artifact has been measured in the audited records.",
+    "D23": "Compliant: a hard top-K by integer distance and a hinge over declared rivals; no softmax, no exponential, no normalised output head.",
+    "D30": "Compliant: no matmul; token_distance is a sum of absolute differences.",
+    "D32_D37": "D32 integer, GPU-only, counterfactual moves; codebook table moves are VectorBlock parameters. Host code only counts and compares stored outputs (D24). D37 float training of admission has not been proposed."
+  },
+  "experiments": [
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/a2-pilot-2026-10-14/README.md",
+      "configuration": "Seed-1 diagnostic pilot, Route K=8, 1,640 batches, 14,287 DEV rows; only VectorBlock 0..1,639 (token ids 0..409) visited",
+      "result": "Rank counts rose while the aggregate loss rose slightly; distinct vectors grew from 16 to 155",
+      "verdict": "inconclusive",
+      "numbers": "top-1 17 -> 82; top-8 173 -> 1,169; loss numerator 13,816,032 -> 13,884,032; occupied cells 16 -> 124; 236 accepted updates"
+    },
+    {
+      "date": "2026-10-14",
+      "record": "docs/labs/a2-pilot-diagnosis-2026-10-14/README.md",
+      "configuration": "Decomposition of the pilot's loss change",
+      "result": "Token hinge improved but the address hinge rose more, because the initialiser gives only 16 distinct vectors (256 tokens each) and the writer reached fewer target cells; proposes injective initialisation as a separate successor",
+      "verdict": "inconclusive",
+      "numbers": "loss change +68,000 = token -63,968 + address +131,968; target-admitted rows inferred 5,680 -> 2,180 of 14,287"
+    },
+    {
+      "date": "2026-10-15",
+      "record": "docs/labs/rung0-admission-prep-2026-10-15/README.md",
+      "configuration": "Seed-1 full rung-0 dose, Route K=8, 16,404 batches",
+      "result": "Bars missed; they were arithmetically unreachable since top-1 and top-8 cannot exceed target-admitted rows (1,920 < 1,941). Admission-limited miss, iteration evidence, not a mechanism negative",
+      "verdict": "negative",
+      "numbers": "top-1 149 (bar 1,941); top-8 747 (bar 4,775); guard 105 (bar about 525); target-admitted 1,920"
+    },
+    {
+      "date": "2026-10-15",
+      "record": "docs/labs/rung0-stage-a-sweep-2026-10-15/README.md",
+      "configuration": "Zero-update re-score of four preserved K=8 checkpoints at K = 8..16 (36 evaluations); gate G-A needs a K reaching 4,894 target-admitted rows. K=8 controls reproduced exactly",
+      "result": "G-A FAIL: widening at evaluation time cannot add capacity; earlier checkpoints reached higher ceilings than the most trained one",
+      "verdict": "negative",
+      "numbers": "target-admitted at cursor 16,404, K=8..16: 1,920 / 2,069 / 2,099 / 2,148 / 2,204 / 2,240 / 2,260 / 2,307 / 2,400; at K=16 by quarter 3,242 / 3,206 / 2,509 / 2,400; gate 4,894"
+    },
+    {
+      "date": "2026-10-16",
+      "record": "docs/labs/k16-qualification-restart5-2026-10-16/README.md",
+      "configuration": "K16 qualification, fifth restart (four earlier attempts stopped on build, schema and lint defects)",
+      "result": "All controls and untrained admission checks pass; timing recorded 99 batches instead of 100 (off-by-one from skipping warmup); blocked, an instrument defect not a result",
+      "verdict": "blocked",
+      "numbers": "K8 A seed1 admitted 5,680 / 14,287; K16 A seed1 14,287 / 14,287 with 0 strict wins; timed batches 99 of 100"
+    },
+    {
+      "date": "2026-10-17",
+      "record": "docs/labs/host-diagnostics-2026-10-17/README.md",
+      "configuration": "Host-only re-score of saved checkpoints; Stage-A K-sweep Q4 K=8 vs K=16 on the 1,920 rows admitted at K=8",
+      "result": "Raising admission K alone did not help the primary count (H2 supported, admission-only)",
+      "verdict": "inconclusive",
+      "numbers": "top-1 149 -> 138 (n=1,920); discordance b=11, c=0"
+    },
+    {
+      "date": "2026-10-17",
+      "record": "docs/labs/attention-preflight-2026-10-17/README.md",
+      "configuration": "Zero-training Battery3 on the seeded codebook",
+      "result": "Measured starting admission on the copy-successor sub-panel P_succ (3,847 DEV rows whose target follows the latest earlier copy of the query token)",
+      "verdict": "positive",
+      "numbers": "initial P_succ admission 2,034 of 3,847 (floor 500); full panel 7,500 of 14,287"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/course-correction-2026-10-18/alias-census-REPORT.md",
+      "configuration": "W0 coverage census of the seeded codebook and the full-dose Q4 artifact (host counting, no model compute)",
+      "result": "Checkpoint 0 has 16 distinct vectors for 4,096 tokens (256 per vector); alias ceiling just above the top-1 bar; at Q4 the binding limit is the admitted-cell ceiling, 1,920 < 1,941; basis of D39 items 2 and 3",
+      "verdict": "inconclusive",
+      "numbers": "alias ceiling 1,986 (cp0) vs bar 1,941; 8,908 / 8,948 at Q1 / Q4; 143 of 674 DEV target tokens predictable at Q4 (4 at cp0); 391 accepted moves of 16,384 attempts"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/k16-rows-qualification-2026-10-18/README.md",
+      "configuration": "Rows-path qualification for K16 A/R: controls, untrained admission check, 100-sample timing",
+      "result": "Passed; no learning result; four training runs released next",
+      "verdict": "positive",
+      "numbers": "25/25 existing finite controls PASS; C-R1..C-R6 6/6 PASS; K16-A seed1 admitted 14,287 / 14,287, top-1 19, 0 strict wins"
+    },
+    {
+      "date": "2026-10-18",
+      "record": "docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md",
+      "configuration": "Dose 1 rows_v1 Relation vs FrozenZero on the seeded 16-vector codebook, stopped at Q1 (4,096 batches)",
+      "result": "Both arms hit the registered admission-collapse stop; the read could not be judged",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ admission 2,034 -> 225 (Relation) / 205 (control) of 3,847; full DEV 7,500 -> 829 / 767"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/k16-outcome-call-2026-10-19/README.md",
+      "configuration": "K16-A (nearest-rival address margin) vs K16-R (occupied-cell rank hinge), Route, 2 seeds each, 16,404 batches",
+      "result": "OCCUPANCY_COLLAPSE_TRIGGERED, no KEEP: R's admission pass is vacuous pass-through over about 20 cells; A kept occupancy but lost admission. Configuration negatives; injective test next",
+      "verdict": "negative",
+      "numbers": "target-admitted A 2,237 / 3,167, R 12,089 / 12,466 (gate 4,894); occupied cells A 209 / 192, R 20 / 19; top-1 A 65 / 463, R 101 / 230 (bar 1,941); alias ceiling at Q4 about 9,000 for A yet top-1 stays low"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+      "configuration": "Injective 4,096-vector table with uniform cell spread; zero-update pre-flight",
+      "result": "Fixed aliasing but spread tokens over 256 cells so only 3% of rows admit the right cell at K=8; run not dispatched; unreachable instrument, not a mechanism negative",
+      "verdict": "diagnostic-stop",
+      "numbers": "B3_init(P_succ) 127 of 3,847 vs gate 500; G-Occ 256 cells, tie mass 0 PASS"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/address-cells-preflight-2026-10-19/README.md",
+      "configuration": "Five zero-update arms at checkpoint 0: A8 (address-structured cells), P8 (uniform), S8 (shuffled packing), P16, A16",
+      "result": "Placing a token's cell near its predecessors' cells is what moves admission; shuffled packing recovers only part",
+      "verdict": "positive",
+      "numbers": "P_succ admitted A8 1,351 vs P8 127 vs S8 476 of 3,847 (3.3% -> 35.1%); full panel A8 4,244 vs P8 427; A16 2,178; top-1 at cp0 38 -> 133"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/a8-dose-2026-10-19/README.md",
+      "configuration": "A8 address-cells doses: Relation LearnV1 and FrozenZero control, one GPU each, Casey-typed releases",
+      "result": "Learning moves ejected target cells from the shortlist in both arms; Relation stopped at Q1, control completed; D31 diagnostic stop, not a negative",
+      "verdict": "diagnostic-stop",
+      "numbers": "P_succ 1,351 -> 857 (control, -37%) and 551 (Relation, -59%); control about 0.12 s per batch; fresh slice unopened"
+    },
+    {
+      "date": "2026-10-19",
+      "record": "docs/labs/admission-preserving-2026-10-19/README.md",
+      "configuration": "Pre-registered A8 rerun with an interval guard: fixed 3,847-row TRAIN anchor, audit every 64 batches, margin 24, restore and reject on breach, no-op stop if rejection rate > 0.50",
+      "result": "TEST FITNESS: FIT; nothing run; controller and consumer verifier merged, finite qualification and PM dispatch outstanding",
+      "verdict": "inconclusive",
+      "numbers": "anchor sha 8c1b80e9; 258 evaluations per arm including baseline; readiness R = added gate cost / ungated dose cost <= 0.15"
+    }
+  ],
+  "never_tested": [
+    "Admission-preserving acceptance during learning (pre-registered and FIT, never run).",
+    "A K>8-trained lineage with distinct, address-structured cells (K=16 plus A8 placement) trained to full dose.",
+    "Ranking once admission is reached: no run has had admission intact and then failed or succeeded on ranking (the RANK_BOTTLENECK_ISOLATED branch).",
+    "An address metric that uses more than the first and last block of q (full-vector, interior-block or cell-envelope).",
+    "An occupancy-regularised rank objective that does not collapse to about 20 cells.",
+    "Fresh-slice transfer of any admission result; the 2,000-row sealed slice has never been opened.",
+    "Whether a trained-in capacity at K=8 (rather than widening at evaluation) can reach the 4,894 gate."
+  ],
+  "failed_only_on_configuration": [
+    "Eval-time widening of K=8-trained checkpoints (G-A FAIL, 2,400 maximum at K=16): closes widening of that codebook only; K>8-trained lineages stay open.",
+    "K16-R (OccupiedCellRankHingeV1) and K16-A (NearestAddressMarginV1) at K16/B4/C192/rows_v1/16,404 batches with seeded-device initialisation: configuration negatives, no mechanism family closed (D22).",
+    "Dose 1 on a 16-vector codebook: collapse is a property of that starting table, so the read was never judged.",
+    "Injective-only start with uniform cell spread: instrument unreachable at K=8 (B3_init 127 of 3,847).",
+    "A8 without a guard: the sheet named learning-moves-eject-cells as a known risk before measuring it.",
+    "Four K16 qualification restarts and the 99-vs-100 timing count: build, schema, lint and off-by-one defects, blockers to fix rather than results."
+  ],
+  "open_questions": [
+    "Why does learning move target tokens out of the cells that predecessor placement chose, and how fast?",
+    "Does the guard's 24-row margin reject too much (RULE_EFFECTIVELY_NOOP) or too little?",
+    "Is 256 cells too coarse; would a finer address (more blocks) lift admission without raising K?",
+    "At what point does a 16-token-per-cell injective codebook make ranking, not admission, the bottleneck?",
+    "Can a hinge reward admission without letting the model collapse tokens onto a few cells?"
+  ],
+  "evidence": [
+    "docs/labs/attention-state-2026-10-18/README.md",
+    "docs/labs/course-correction-2026-10-18/alias-census-REPORT.md",
+    "docs/labs/a2-pilot-2026-10-14/README.md",
+    "docs/labs/a2-pilot-diagnosis-2026-10-14/README.md",
+    "docs/labs/rung0-stage-a-sweep-2026-10-15/README.md",
+    "docs/labs/k16-outcome-call-2026-10-19/README.md",
+    "docs/labs/address-cells-preflight-2026-10-19/README.md",
+    "docs/labs/a8-dose-2026-10-19/README.md",
+    "docs/labs/admission-preserving-2026-10-19/README.md",
+    "docs/harness/prep/m1-discrete-rung0-admission-redirect-2026-10-15.md",
+    "docs/integration/DECISIONS.md"
+  ],
+  "related": [
+    "address-cells: the codebook placement that sets which cell each token lives in",
+    "prime-zeta-codebook: the injective initialiser",
+    "route-read: the read whose output admission consumes; K16 holds Route fixed",
+    "relation-read: its doses were stopped by admission loss",
+    "flock-read: Flock-equivalent controls lost admission under learning",
+    "rank-margin: the hinge family (token, address, rank) used as admission objectives",
+    "discrete-learning: the counterfactual move law and the BVG-K block-apply speed lever that train the table"
+  ],
+  "figure_ideas": [
+    "A 16 x 16 grid of drawers with 4,096 tokens as dots. A query star lands in the grid; the 8 nearest occupied drawers light up; the target word is shown inside or outside the lit set. A slider steps through checkpoints (cp0, Q1, Q4) so the target's drawer drifts out of the lit set, with the P_succ count beside it (1,351 -> 857 or 551).",
+    "Bar chart of target-admitted rows per configuration against the 4,894 gate: K=8 start 5,680, K=8 end 1,920, K=16 sweep 2,400, K16-A 2,237 and 3,167, K16-R 12,089 and 12,466 (flagged vacuous), A8 start 1,351 of 3,847.",
+    "Occupancy histogram: occupied cells per run (16 at start; 124 after the pilot; 192 to 209 for K16-A; 19 to 20 for K16-R) with a second panel showing tokens per cell, to make 'collapse' visible."
+  ]
+}

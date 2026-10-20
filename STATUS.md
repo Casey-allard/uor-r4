@@ -1,202 +1,31 @@
 # Status
 
-**Pre-alpha, evidence checked 18 October 2026.** The one-page current plan is [NOW.md](docs/integration/NOW.md); it is authoritative when this status page and the plan disagree.
+**Pre-alpha. 0 of 8 milestones are complete, and no model built under the project's rules holds a
+useful conversation.** This page is a pointer: the measured detail, with a source for every number,
+is in [where we are](docs/start/where-we-are.md), and the live one-page plan is
+[NOW.md](docs/integration/NOW.md), which wins if the two disagree.
 
-No model holds a useful conversation; 0/8 milestones are complete.
-[D39](docs/integration/DECISIONS.md#d39--m1-closing-bar-k16-reachability-gate-post-qualification-sequence-and-lab-self-direction-owner-2026-10-18)
-sets M1's interim headline to **injective codebook + Q4 target admission ≥ 4,894**.
-The historical reply37/232 remains SUSPENDED under R14, rather than the current
-interim headline. The Dose2 Q1 diagnostic stop establishes no efficacy or fresh-transfer result.
+![Bar chart of correct first guesses out of 14,287 test positions: trained model seed 1 at 65, seed 2 at 463, unigram table at 1,226, next-word table at 6,300, with a dashed line at 6,300 marking the new M1 bar.](docs/figures/start/status-vs-baselines.svg)
 
-| Evidence | What it establishes |
-|---|---|
-| [D33 diagnostic pilot](archive/labs/a2-pilot-2026-10-14/README.md) | 1,640 batches, 236 accepted vector updates. On 14,287 DEV targets top-1 moved 17 → 82 and top-8 173 → 1,169, while aggregate loss increased; the count reference remains ahead. |
-| [Original paired Dose1](docs/labs/attention-dose1-strategic-stop-2026-10-18/README.md) | Owner-stopped strategically at 904 treatment / 1,065 frozen-zero batches, before Q1. Partials and raw exits143 preserved; custody independently accepted; own pod down 05:16:47 UTC. This was not a mechanism failure. |
-| [Rows parity attempt 3](docs/labs/counterfactual-rows-parity-2026-10-18/evidence/attempt3/rows-parity.json) | 684 Route + 108 Flock + 288 Relation proposal cases, three refusals and two forced terminals: **1,085 cases**, zero updates. ~56× synchronized proposal microbenchmark at V4096/B4/C192/K8/64 rows; `timing.qualified=false`, no whole-training or quality speedup. |
-| [Rows Dose2 Q1 result](docs/labs/attention-rows-q1-diagnosis-2026-10-18/README.md) and [scientific review](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6248429872) | Both arms stopped at the registered admission-collapse gate after 4,096 batches (`Q1_STOP_FOR_DIAGNOSIS`, exit0). P_succ target admission: 2,034 → 225 treatment /205 control of 3,847. These are admission counts, not accuracy or a treatment win. Configured admission collapse in both arms; no implementation or identity fault found, no registered efficacy hypothesis fires, no KEEP or mechanism-negative verdict. Fresh remains sealed. |
-| Custody and publication | Pod `56510253` was released and down at 07:53:30 UTC after preserved custody. [Scorer compatibility #2652](https://github.com/UOR-Foundation/uor-r4/pull/2652) and [diagnostic publication #2653](https://github.com/UOR-Foundation/uor-r4/pull/2653) are merged. Compatibility does not supply unavailable full-dose inputs or license scoring. |
+*The best trained model against two word-count tables (measurements from the
+[K16 outcome](docs/labs/k16-outcome-call-2026-10-19/README.md) and the
+[count tables](archive/labs/host-diagnostics-2026-10-17/README.md)).*
 
-The shared vector/combine pathway is a plausible explanation for the admission
-collapse, including in the relation-disabled control, but causality is not established.
-No registered paired efficacy comparison is licensed at Q1.
+| Milestone | Issue | Status | Where it stands |
+|---|---|---|---|
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress; nothing passes | Best top-1 65 and 463 of 14,287 (top-1 = first guesses that are right), against the bar of beating 1,226 and 6,300 on each of two seeds through the integer export |
+| M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | held | 437/512 saved development replies, 0/128 on a transfer check; a genuinely fresh test is NOT_RUN |
+| M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | paused | Evaluator and session built, not qualified; waits on an M1 or M2 model |
+| M4 One served model (integer export and CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | held | Integer serving engine built. No model trained under today's rules is exported to it; older float stacks were served in October and missed the old 0.90 bits-per-byte bar |
+| M5 Laptop cost | [#2033](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | Energy, memory and tokens per second on an M1 laptop: not measured |
+| M6 Reasoning and coding | [#2034](https://github.com/UOR-Foundation/uor-r4/issues/2034) | not started | Exact arithmetic is the visible gap |
+| M7 API, browser and Studio | [#2035](https://github.com/UOR-Foundation/uor-r4/issues/2035) | engine delivered; no model to load | Browser engine landed in [#2654](https://github.com/UOR-Foundation/uor-r4/pull/2654); not yet connected to the Studio |
+| M8 Alpha release | [#2036](https://github.com/UOR-Foundation/uor-r4/issues/2036) | not started | Owner decision |
 
-**Current qualification — 18 October 2026:** the existing FIT'd K16-A versus
-K16-R admission redirect on `rows_v1`, under the
-[owner direction](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250410397)
-and [PM gate audit](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6250526855),
-has passed its declared GPU gates at protected source `21224b446`: all 21
-construction/identity phases, 25/25 finite controls plus `admit_ptx`, Relation 9/9,
-rows parity 7/7, G-Pre and C-R1..C-R6. Two checkpoint-0 A/R timing cells each
-completed 100 timed samples plus one excluded warmup. Timing and the fresh-init
-companion share the actual Rust library; the companion state matches native
-G-Pre except each graph's honest compiled-source identity.
-[Results and exact build graphs](docs/labs/k16-rows-qualification-2026-10-18/README.md)
-retain the original bccc E0063 failure and subsequent protected repairs as history.
+Training is held: each GPU run needs a reviewed one-page plan and a release typed by the owner
+([charter](CHARTER.md) §5.1). Milestone bars and the road to them: [ROADMAP](ROADMAP.md) and
+[where we're going](docs/start/where-were-going.md). Live tracker:
+[#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Per-line results:
+[research notebooks](docs/research/notebook/README.md).
 
-**DATA and late operator custody are verified; Claude ACCEPT6254417234 is recorded; K16-A/seed1 COMPLETED 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); K16-R-seed1 COMPLETED 16,404/130, exit 0 at 22:02:38Z (report 2c0ccad5, eval bb6885e8; DEV 14,287/12,089/101/515), COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION; A-seed2 COMPLETED 16,404/410, exit 0 at 22:39:16Z (report 3d4d17fe, final eval d7976a0b; DEV 14,287/3,167/463/1,295), COMPLETE_PENDING_REGISTERED_TWO_SEED_INTERPRETATION; fresh UNAVAILABLE_NOT_RUN; R-seed2 COMPLETED 16,404/129, exit 0 at 23:16:56Z (report 6ed5d05d, final eval 0dfd6fa5); registered paired interpretation pending.**
-
-Final four-role execution and custody are recorded in the [canonical result](docs/labs/k16-four-role-execution-2026-10-18/README.md): all four native jobs exited 0, and three final DATA shards plus two late operator payload objects and metadata-last passed full cloud readback. Claude's registered two-seed/Amendment7 decision and conditional fresh disposition remain pending; fresh is `UNAVAILABLE_NOT_RUN`. Normal close and final resource accounting are not yet recorded. These archives are additional to the prior qualification custody.
-
-**Registered outcome call (Claude, 2026-10-19 00:58Z; [record](docs/labs/k16-outcome-call-2026-10-19/README.md)):** `OCCUPANCY_COLLAPSE_TRIGGERED`, with no KEEP. R collapses occupancy on both seeds, A fails G-Adm on both seeds, and all roles fail Bars (i) and (ii). Fresh transfer is NOT_TRIGGERED. Arm selection: A. **Follow-up:** the injective pre-flight stopped at B3_init 127/3,847 < 500 and net G-Cap 127 < 500; the run was not dispatched (`INSTRUMENT_UNREACHABLE`, not a mechanism negative; nothing trained). The owner selected the address-structured injective-cell successor (placement-only 256×16 pre-flight; sheet now FIT, 32-cell compact parked as fallback). The zero-update five-arm pre-flight then ran (dispatch 6258511411, with Casey's chat approval). A8 reached **B3_init(P_succ) 1,351/3,847** (≥ 500) and net G-Cap 1,351 (> 500). Against P8, b − c = 1,224 > F ≈ 74; against shuffled S8, b − c = 875 > F ≈ 81. P8 reproduced 427/127. Nothing was trained. The A8 learning sheet is now FIT and registered in source, and its two configs are staged ([A8 learning sheet](docs/labs/a8-training-configs-2026-10-19/README.md)). The A8 dose then ran (Casey typed both releases): **the Relation arm hit the pre-registered Q1 admission-collapse stop** (P_succ 1,351 → 551, below half of init), while the FrozenZero control recorded P_succ 857/3,847 at Q1 and 797/3,847 at completion (16,404 batches). That is a D31 diagnostic stop, not a mechanism negative and not a KEEP; no paired DEV decision exists and the fresh slice stays sealed ([A8 dose record](docs/labs/a8-dose-2026-10-19/README.md); [address-cells pre-flight record](docs/labs/address-cells-preflight-2026-10-19/README.md); [injective pre-flight record](docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md)).
-
-The prior qualification's 15 DATA shards and the separate metadata reconcile to19 cloud objects; the
-two late operator payload groups and metadata also have full verified readbacks.
-The [sealed packet request6254373730](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254373730)
-binds these receipts and the four DOCUMENT_ONLY configs. The
-[owner's relayed gated release6254435225](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254435225)
-covers exactly four unchanged A/R×seed1/2 trajectories;
-[Kimi PM dispatch6254457591](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254457591)
-is ISSUED_GATED_START. [Claude census PASS6254480425](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6254480425)
-posts raw/net1,986 on every role, clearing the scientific start gate. Its
-3,119-byte report is retrieved/hash-verified from durable cloud custody; no
-further census wait remains. Native transport produced four owner/admission pairs (owner-ratified, D40); A-seed1 completed its registered 16,404 batches with 407 accepted and no recorded faults. No result or capability claim follows.
-The same lease remains retained; normal close and its final accounting are separate. Measured samples support a checkpoint-0 proposal-work
-projection of 2.3691 GPU-hours; the remaining 5–8 GPU-hour range adds unmeasured allowances
-and is a proposal, not measured all-in cost or a release.
-Keep Route/K16, seeds1/2, `CanonicalVectorThenReadV1` and the 16,404-batch schedule.
-The [owner Q4 timing waiver6251027125](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251027125)
-removes the two Q4 cells and importer from the critical path. Prior five-sample
-qualifier timings remain diagnostic; they do not fill the registered 100-sample slot.
-The later [owner delegation6251237195](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6251237195)
-assigns packet acceptance to Claude alone; PM dispatch and owner training release are recorded, and A-seed1 is complete.
-Four bound `rows_v1` configs and the measured D-Packet are accepted. Fresh execution is before KEEP, not a training-start gate.
-Other training/M2/Stage B holds remain. K8 Relation/R remains separate planning.
-
-M1 closes only under D39's saved-artifact conditions: G-Pre ≥ 4,894, G-Adm both
-seeds, G-Occ > 16 cells with a real R > 0 row, ≤0.90 BPB on the chat held-out stream
-through D11 export with gap reported, and fresh pre-registered transfer. Initial
-qualification admission is not a learned result or fulfillment of those conditions.
-
-The [architecture](docs/architecture.md) traces current computation to source;
-[current-state](docs/integration/current-state.md) retains the chronological evidence.
-
-[D37](docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised)
-permits offline floating point, retains matmul/GEMM and softmax/squashing prohibitions,
-and requires D11 integer export qualification. The active discrete model remains integer;
-model/reference computation is GPU-only.
-
-## Earlier source-scoped status records
-
-The dated entries below retain their original qualification and release scope.
-Current dependencies and dispatch status are summarized above.
-
-**Current result — D32/D33, 14 October:** the admitted seed-1 discrete pilot
-completed all 1,640 batches on CUDA, with 236 accepted shared-vector updates.
-On 14,287 pinned DEV targets, top-1 correct moved 17 → 82 and top-8 173 → 1,169;
-the aggregate loss numerator increased 13,816,032 → 13,884,032. The masked-TRAIN
-count reference remains ahead at 1,226 / 4,060. This is a mixed diagnostic
-observation, not useful-language qualification or a mechanism verdict. Complete
-artifacts are preserved and the pod is deleted. The pilot release is consumed;
-all further training, seed 2 and M2 remain HELD pending a prospective sheet and
-scoped release. [Result, scope, costs and next action](archive/labs/a2-pilot-2026-10-14/README.md).
-
-**Completion preparation:** [D5 and the paired diagnosis](archive/labs/a2-pilot-diagnosis-2026-10-14/README.md)
-preserve the pilot while adding separate owner-release scopes, driver-only lineage
-migration and checked quarter-evaluation recovery. Local Rust metadata controls
-pass; the new CUDA build/runtime remains UNVERIFIED. Kimi's completion-sheet
-amendment and Claude's FIT/exact-source review precede a fresh owner decision.
-No initialization, objective, schedule or model compute changed in this preparation.
-
-**Construction/cost baseline before that pilot:** the discrete shared-codebook SpiralCore/FBS path
-with the discrete flock read and D1 driver passes all twenty-five admitted CUDA
-construction controls at `e7d926fbe38537f4faa90b817705c61a780778d6`, after fresh
-non-author Codex FIT (#2400): eleven Route, six flock and eight driver controls.
-The previous seventeen-control result at `76198c3b5` keeps its source scope and
-Claude FIT attribution; #2379's earlier observations keep their review-order labels.
-Exactly eleven authored fixture apply calls produced eight disposable updates,
-with zero corpus updates. D2 operation-cost measurement **PASS**, with30/30 timed
-API calls and12/12 proposal samples, no applied update. At V4096/B4/C192/64 rows,
-median Route/Flock forward takes37.84/40.58ms; vector proposals take3.90/4.21s.
-Counterfactual serial replay is the cost bottleneck; fixed-batch parameter-pass
-projections of17.8/19.2hours remain **UNVERIFIED**, not corpus-training throughput.
-[Raw cost receipt](archive/labs/discrete-driver-cost-2026-10-13/receipts/measurement.json).
-Before admission delivery #2421, corpus updates stayed behind an unissued opaque
-capability. The generic training CLI still returns `TrainingHeld`; D33 admitted
-only the now-completed pilot. M1's quality target remains SUSPENDED. No floating-point model, gradient/optimizer or numerical
-qualification instrument may execute on the discrete path. D37 (18 October) permits offline float
-training only through a new FIT'd pre-registration with a D11 integer export, and releases no hold. Earlier 31/18-control float results below
-remain historical source-scoped evidence, preserved inactive through #2370.
-Outside the completed pilot, training holds remain HELD; no chat-quality result is claimed.
-[Discrete flock/writer record](archive/labs/discrete-flock-writer-integration-2026-10-13/README.md).
-
-Snapshot of 14 October 2026. **Pre-alpha: no model holds a useful conversation yet.**
-Broad reasoning, coding, frontier capability and complete-path energy savings
-remain unestablished. Results/artifact identities are in [current state](docs/integration/current-state.md);
-[ROADMAP](ROADMAP.md) owns milestones and [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028)
-owns live claims/status. The [earlier status snapshot](https://github.com/UOR-Foundation/uor-r4/blob/aaa210ef46301623f10164ae5af586d7f558483a/STATUS.md)
-and its linked experiment records retain all historical readings.
-
-## Historical operator-phase dependency and hold (12–14 October)
-
-**Historical pre-D32 compiled boundary (inactive float source scope):** the native-only source cut, corrected and frozen at `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c`, passes CUDA compilation and all 31 exact finite controls on RTX4090, nvcc12.8.93, compute_89, Rust1.97.1. It excludes historical core/integer model executors, teachers, LUT engines and exporters; `geometric-stack` now selects the native train/evaluate CLI and lineage/optimizer admission refusals. The vendor PTX export/instruction census, selected dependency/features, four executable import checks and five project interlocks pass, with exactly three project PTX modules. Earlier setup/driver/controller and clipping failures are preserved as corrected blockers. Protected delivery is pending; no optimizer update/corpus/training/CPU model ran. Earlier 18/11-control results below retain their original source scope. [D29 record](archive/labs/d29-vendor-boundary-2026-10-13/README.md). Independent Amendment6 FIT and the separate finite FIT sheet release no hold.
-
-**Training remains held; M2 training/rental remains held separately.** Kimi is
-project manager under [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction).
-No softmax/softplus/sigmoid/tanh or equivalent squashing anywhere in an executed
-model/objective/gradient/output/teacher/comparator path; no dense matrix
-multiplication in training or serving; model/reference compute is GPU-only with
-host fallback refused. D32 excluded floating-point learning and numerical
-model instruments; D37 re-admits them for offline training only. D11 retains its multiplier-free serving contract. The predecessor declared recurrence-only path has finite CUDA forward/backward/output
-qualification at its original rung-0 source/shape; it does not qualify the new compiled boundary. The optimizer update is compiled and
-source-reviewed, not executed. Amendment5 supersedes the whole-DEV count-reference scope and has independent
-scientific [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704) on merged source #2328. The physical
-sheet verdict is **FIT** under Kimi's Amendment6 mechanical TRAIN-mask/checksum/CLI pins
-and independent Claude confirmation, at the declared prior source scope. Explicit owner release
-still remains required.
-The owner clarified that both model lines share one directly learned native
-geometric vector representation and writer, using E8/SpiralCore/icosian/FSB
-plus flock/murmuration attention. Total block count is unqualified; the historical
-MiniLM 384D teacher width is not a dependency. The [signed-axis source repair](archive/labs/native-vector-transport-2026-10-12/README.md)
-is static geometry construction, not unified-writer/model qualification.
-
-The [operator phase](archive/labs/operator-phase-2026-10-12/README.md) is source first:
-OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a geometric head → complete-path
-source/device qualification and prospective FIT. Training additionally needs
-explicit release of the applicable owner hold. No partial-trunk OP1 fit, new
-prohibited comparator or CPU model reference; no FIT or source delivery releases
-a hold. The [SpiralCore/FBS projection](archive/labs/spiralcore-fbs-projection-2026-10-12/README.md)
-replaces the dense quaternion contraction, with owner-authorized bounded pod
-build/kernel qualification; training remains held. The [OP3a product head and shared native vector writer](archive/labs/geometric-head-shared-writer-2026-10-13/README.md)
-now use the same embedding Tensor/Var across token input, raw-distance output and
-the compiler/store/emitter vector channel; five finite CUDA controls pass.
-The predecessor's head-only tests did not qualify recurrence. The earlier composed
-successor has finite forward/backward/output qualification at its named source below; trained language,
-learned intent/compiler use and D11 serving remain unqualified. The head/writer unit delivered as #2301, merge `d41dc422f`.
-[Complete-path repairs](archive/labs/rung0-complete-path-2026-10-13/README.md) are
-implemented and finite CUDA-qualified at source `05c84bece50789163bd0f049a2ae76b8a314ef45`;
-all 18 predecessor controls pass. Protected #2318 merge is verified at
-`5b22739a31eafb131d25e098bb7f02ab803d4fe7`. The new
-[masked TRAIN count-reference repair](archive/labs/count-reference-2026-10-13/README.md)
-is implemented at source `2fd6358bbc52d2a202a872ad0954ebb12894606f`; 11 new finite controls PASS (9 metadata,2 CUDA); protected [PR #2328](https://github.com/UOR-Foundation/uor-r4/pull/2328) merged at `9e904a83448c451f738d5c1d45224dfdf73eb84e`. Amendment5 has independent [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704), with unchanged bars;
-Kimi's Amendment6 records the mechanical pins and restores the physical sheet's FIT verdict.
-Its DEV response oracle is diagnostic only. Training remains HELD.
-The rank-margin objective is source, not a language result. The active sheet
-pins the existing rank/anti-vacuity bars, units and paired seeds; tokens/s uses
-the same synchronized CUDA harness. No model training or quality run occurred.
-
-## Measured positions and next source dependencies
-
-| Line | Retained reading and limitation | Current next dependency |
-| --- | --- | --- |
-| M1 language base | Historical v5 memory20/40, reply37/232 (targets34/40 and116/232); historical19.9M served0.886838 BPB at512 windows ([protocol](archive/labs/criterion2-protocol-pin-2026-10-09/README.md)). No new quality result | [Frozen21224 qualification](docs/labs/k16-rows-qualification-2026-10-18/README.md), two100+1 timing cells and DATA/lateOP readbacks complete; Claude ACCEPT6254417234. Owner gated release6254435225 covers four unchanged A/R×seed1/2 trajectories only; Kimi PM dispatch6254457591 is ISSUED_GATED_START; Claude census6254480425 is POSTED_PASS: raw/net1986 on all four roles >1941; census report custody retrieved/hash-verified, native admission transport in preparation. Training NOT_RUN. |
-| M2 grounded reply | Saved437/512 development + opened0/128 transfer diagnostic remain panel fitting; genuinely fresh qualification NOT_RUN. [Whole-path recovery source](archive/labs/whole-path-recovery-2026-10-12/README.md) delivered; CUDA execution unqualified; sampled law refuses. Head/shared vector channel and the repaired compiled boundary have finite CUDA qualification at `1f1547bfd`; full M2 remains unqualified. Unified line count12/3 after masked-reference source delivery #2328 (previous11/3 retained; closeout is the same unit), no reset | Masked TRAIN-reference repair delivered in #2328; Claude CONFIRM FIT recorded; D29 finite qualification passes; protected delivery remains; coherent full-M2 intent/compiler path and explicit owner hold release remain dependencies |
-| M3 durable memory | Evaluator/session delivered; unqualified | Preserve interfaces; no automatic experiment when M2 is held |
-| M4 one served model | Historical D11 bit-exact artifacts and rank-read components retained; historical artifacts include prohibited paths; their model executors are excluded from the selected build. [Starling bootstrap](archive/labs/starling-bootstrap-2026-10-12/README.md) is inactive evidence | Claude discrete murmuration read against shared integer carrier; reviewed finite qualification, then owner-released discrete learning; no float gradient path |
-
-**Historical M1 next-dependency snapshot — superseded by the current K16 packet:**
-D32 [decomposition](archive/labs/counterfactual-decomposition-run-2026-10-16/README.md) resolves writer/baseline cost in four cells; [baseline reuse](archive/labs/counterfactual-baseline-reuse-implementation-2026-10-16/README.md) is implemented and [finite-qualified on580.95.05](archive/labs/counterfactual-baseline-reuse-finite-pass-2026-10-17/README.md). After the [timing startup refusal](archive/labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md) and protected [exact-driver selector](archive/labs/driver-aware-pod-selection-2026-10-17/README.md), a separately reviewed/released [finite qualification on595.71.05](archive/labs/counterfactual-baseline-reuse-driver-595-2026-10-17/README.md) passes32 exact U/R pairs,16 typed refusals and18 strict resource admissions including R shared512, unchanged state/epoch and apply0. Archive verified before teardown; fleet0. Finite record #2568 is protected and cleaned. A separately released [timing2 attempt](archive/labs/counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md) refused a changed GPU UUID before any binary; archive-copy recovery was verified before teardown. Next: protect the setup record and prospectively resolve device admission before a new release. Speedup, checkpoint0 parity and training remain unmeasured; holds remain
-
-Historical BPB/NLL is preserved at its original scope and cannot authorize a new
-normalized-exponential evaluator. Raw-score/answer quality and speed are separate;
-missing measurements are NOT_RUN/UNAVAILABLE, not model negatives. No milestone,
-headline, acceptance criterion or mechanism retirement is changed here.
-
-## Compute and labs
-
-Kimi coordinates the single plan; Claude, DeepSeek and Codex retain their assigned
-source. Claims go on #2029–#2036, leases on [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037),
-pods through uor-pod within ≤4 pods/≤$8/h and all applicable holds. Local source,
-build, static checks, Rust preparation and grading stored outputs are non-model
-work; CPU model execution is prohibited. Protected delivery needs actual
-exact-head checks/review; queue acknowledgements execute no tests. Preserve all
-peer work, source and evidence; remove only verified redundant owned material.
+This page changes only when a milestone's state changes; it is not a log.
