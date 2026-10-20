@@ -5,7 +5,7 @@
 //! through `induction`, not here. It is retained rather than deleted because a
 //! distinct construction path is a mechanism worth being able to return to, and
 //! kept honest by registration --- the `open` claim `graph-construction-dormant`
-//! in model/ledger.toml declares it dormant behind its activation gate (R4 is
+//! in conformance/ledger.toml declares it dormant behind its activation gate (R4 is
 //! satisfied by registration, not by removal).
 
 /// Dormant alternative graph-construction entry point (open:

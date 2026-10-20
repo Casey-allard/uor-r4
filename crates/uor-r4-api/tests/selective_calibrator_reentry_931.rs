@@ -66,18 +66,18 @@ const PRIOR_908_CHANGED: u64 = 39_360;
 fn repo_root() -> PathBuf {
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
         for ancestor in std::path::Path::new(&manifest_dir).ancestors() {
-            if ancestor.join("model/ledger.toml").is_file() {
+            if ancestor.join("conformance/ledger.toml").is_file() {
                 return ancestor.to_path_buf();
             }
         }
     }
     let cwd = std::env::current_dir().expect("current directory is readable");
     for ancestor in cwd.ancestors() {
-        if ancestor.join("model/ledger.toml").is_file() {
+        if ancestor.join("conformance/ledger.toml").is_file() {
             return ancestor.to_path_buf();
         }
     }
-    panic!("repository root not found: no runtime ancestor contains model/ledger.toml");
+    panic!("repository root not found: no runtime ancestor contains conformance/ledger.toml");
 }
 
 fn bundle_root() -> PathBuf {

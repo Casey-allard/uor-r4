@@ -3,7 +3,7 @@
 //! Two jobs, and they are different in kind.
 //!
 //! **R3, feature-first.** Every capability begins as a Gherkin scenario. The
-//! runner below reads `features/suites/*.feature`, extracts the conformance IDs
+//! runner below reads `conformance/features/suites/*.feature`, extracts the conformance IDs
 //! the scenarios are tagged with, and cross-checks them against the register
 //! and against the test names in the workspace. An ID with no scenario, a
 //! scenario with no ID, and an ID with no test are all failures. There are no

@@ -20,7 +20,7 @@ bdd:
 # R1/R2/R3 landed in Phase 1. #510 wires R4 (deferral), R5 (audit-limits) and
 # R6 (cargo-deny): R4's `audit-deferral` honours the carve-out --- a marker is
 # a violation only when its line does not cite an `open` claim in
-# model/ledger.toml --- and R6's deny.toml allow-lists uor-r4's pinned git
+# conformance/ledger.toml --- and R6's deny.toml allow-lists uor-r4's pinned git
 # sources. R5's incremental migration is COMPLETE (graph-cli hit 0 in #587):
 # every shipped crate's `Result` error surface now names only the four
 # sanctioned types (see `xtask/src/audit.rs`), and CI's `register-conformance`
@@ -30,11 +30,11 @@ bdd:
 # --- silently, since nothing here said R5 was even expected to run. Brought
 # back in sync with CI: R5 joins below.
 
-# R1: model/*.toml is the single source; CONFORMANCE.md is generated from it.
+# R1: conformance/*.toml is the single source; CONFORMANCE.md is generated from it.
 check-model:
     cargo run -q -p xtask -- check-model
 
-# Regenerate CONFORMANCE.md from the register after changing model/*.toml.
+# Regenerate CONFORMANCE.md from the register after changing conformance/*.toml.
 model-write:
     cargo run -q -p xtask -- check-model --write
 

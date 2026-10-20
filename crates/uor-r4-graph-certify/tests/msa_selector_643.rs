@@ -2,7 +2,7 @@
 //! (#643).
 //!
 //! The operator under test is DORMANT (`msa-structured-selector-dormant`
-//! in `model/ledger.toml`): these tests construct it directly through
+//! in `conformance/ledger.toml`): these tests construct it directly through
 //! `uor-r4-graph-certify::msa_selector` (scalar reference) and
 //! `uor-r4-graph-runtime::msa_selector` (packed R4G1 lowering, via the
 //! certify crate's `run_packed`); no serving path is exercised or
@@ -24,7 +24,7 @@
 //! bits-per-token versus r4-route-attention/1, AND beats the #457
 //! unigram floor. NEGATIVE (including "no measurable difference") ⇒
 //! close #643 with the comparison table and register a
-//! `msa-structured-selector-dormant` lane in `model/ledger.toml`, the
+//! `msa-structured-selector-dormant` lane in `conformance/ledger.toml`, the
 //! same disposition `r4-route-attention/1` itself would receive on a
 //! negative result.
 //!

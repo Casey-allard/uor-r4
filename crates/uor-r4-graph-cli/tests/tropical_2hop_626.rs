@@ -29,7 +29,7 @@
 //! Instrument null N (deranged edge destinations) must NOT beat 1H or 2H.
 //! Secondary, reported either way: 1H vs NULL — whether the E_f seat carries
 //! any one-hop signal at all. NEGATIVE ⇒ close #626 with the table and register
-//! the dormant lane in model/ledger.toml.
+//! the dormant lane in conformance/ledger.toml.
 //!
 //! # Semantics parity (binding)
 //!

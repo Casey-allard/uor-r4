@@ -1,6 +1,6 @@
 //! Cucumber runner for behavior-level R4G1 checks.
 //!
-//! The feature files live under `features/suites`, following the upstream
+//! The feature files live under `conformance/features/suites`, following the upstream
 //! Hologram layout. Keep the scenarios focused on externally meaningful
 //! behavior; implementation details stay in the server module.
 
@@ -10045,7 +10045,7 @@ async fn main() {
     }
     R4g1World::cucumber()
         .fail_on_skipped()
-        .run_and_exit(concat!(env!("CARGO_MANIFEST_DIR"), "/features/suites"))
+        .run_and_exit(concat!(env!("CARGO_MANIFEST_DIR"), "/conformance/features/suites"))
         .await;
 }
 

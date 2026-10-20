@@ -12,15 +12,15 @@ use std::path::PathBuf;
 fn root() -> PathBuf {
     // #788: runtime resolution, never compile-time env!() — a cached test
     // binary carries the baked path of whatever checkout built it, which
-    // made all 29 markers fail (`features/suites` NotFound) after a
+    // made all 29 markers fail (`conformance/features/suites` NotFound) after a
     // sibling worktree was deleted (AUD-VER-001). repo_model::repo_root
     // walks up from the runtime CARGO_MANIFEST_DIR (cwd fallback) to the
-    // ancestor holding model/ledger.toml.
+    // ancestor holding conformance/ledger.toml.
     repo_model::repo_root()
 }
 
 fn check(id: &str, suite: &str) {
-    let report = scenarios_in(&root().join("features/suites")).expect("suites read");
+    let report = scenarios_in(&root().join("conformance/features/suites")).expect("suites read");
     let mine: Vec<_> = report
         .scenarios
         .iter()

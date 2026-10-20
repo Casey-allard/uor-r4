@@ -1,4 +1,4 @@
-//! Typed registries parsed from `model/*.toml`.
+//! Typed registries parsed from `conformance/*.toml`.
 //!
 //! The model is authored once and has exactly one source (R1): the conformance
 //! ID register, the claim ledger, and the authorities this repository cites.
@@ -22,14 +22,14 @@ pub use registry::{
 
 use std::path::{Path, PathBuf};
 
-/// Everything `model/*.toml` says, parsed and cross-checked.
+/// Everything `conformance/*.toml` says, parsed and cross-checked.
 #[derive(Debug, Clone)]
 pub struct Model {
-    /// `model/ledger.toml`: one row per claim, at exactly one honesty level.
+    /// `conformance/ledger.toml`: one row per claim, at exactly one honesty level.
     pub ledger: Ledger,
-    /// `model/ids.toml`: the conformance ID register.
+    /// `conformance/ids.toml`: the conformance ID register.
     pub ids: Ids,
-    /// `model/authorities.toml`: what this repository cites rather than proves.
+    /// `conformance/authorities.toml`: what this repository cites rather than proves.
     pub authorities: Authorities,
 }
 
@@ -57,7 +57,7 @@ impl std::fmt::Display for ModelError {
 impl std::error::Error for ModelError {}
 
 impl Model {
-    /// Load every model file from a `model/` directory.
+    /// Load every model file from a `conformance/` directory.
     pub fn load(dir: &Path) -> Result<Self, ModelError> {
         Ok(Self {
             ledger: read(dir, "ledger.toml")?,
@@ -69,7 +69,7 @@ impl Model {
     /// Load the model from the repository root, resolved from this crate's
     /// manifest directory so that it works from any working directory.
     pub fn load_from_repo_root() -> Result<Self, ModelError> {
-        Self::load(&repo_root().join("model"))
+        Self::load(&repo_root().join("conformance"))
     }
 
     /// Cross-check the model against itself: every ID well formed, every claim
@@ -141,7 +141,7 @@ impl Model {
         Ok(())
     }
 
-    /// `CM-03`: every `some-true` claim has a row in `model/authorities.toml`
+    /// `CM-03`: every `some-true` claim has a row in `conformance/authorities.toml`
     /// with a citation, and every authority names IDs that exist.
     fn check_authorities(&self) -> Result<(), ModelError> {
         let bad = |m: String| ModelError::Inconsistent(m);
@@ -175,7 +175,7 @@ impl Model {
             };
             if !self.authorities.authority.iter().any(|a| &a.id == name) {
                 return Err(bad(format!(
-                    "{}: cites {name}, which has no row in model/authorities.toml (CM-03)",
+                    "{}: cites {name}, which has no row in conformance/authorities.toml (CM-03)",
                     c.id
                 )));
             }
@@ -200,24 +200,24 @@ fn read<T: serde::de::DeserializeOwned>(dir: &Path, name: &str) -> Result<T, Mod
 /// 1. `CARGO_MANIFEST_DIR` from the process environment (cargo sets it
 ///    for `cargo run`/`cargo test`), walking up to the workspace root;
 /// 2. otherwise walk up from the current directory to the first ancestor
-///    containing `model/ledger.toml` (direct binary invocation).
+///    containing `conformance/ledger.toml` (direct binary invocation).
 pub fn repo_root() -> PathBuf {
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
         for ancestor in Path::new(&manifest_dir).ancestors() {
-            if ancestor.join("model/ledger.toml").is_file() {
+            if ancestor.join("conformance/ledger.toml").is_file() {
                 return ancestor.to_path_buf();
             }
         }
     }
     let cwd = std::env::current_dir().expect("current directory is readable");
     for ancestor in cwd.ancestors() {
-        if ancestor.join("model/ledger.toml").is_file() {
+        if ancestor.join("conformance/ledger.toml").is_file() {
             return ancestor.to_path_buf();
         }
     }
     panic!(
         "repository root not found: no ancestor of CARGO_MANIFEST_DIR or the \
-         current directory contains model/ledger.toml"
+         current directory contains conformance/ledger.toml"
     );
 }
 
@@ -300,7 +300,7 @@ mod tests {
         let model = one_row_model(
             Scope::DeployedProduction,
             Reachability::OffServingPath,
-            "features/suites/s.feature",
+            "conformance/features/suites/s.feature",
         );
         let err = model
             .check()
@@ -319,7 +319,7 @@ mod tests {
         let model = one_row_model(
             Scope::DeployedProduction,
             Reachability::DeployedServing,
-            "features/suites/s.feature",
+            "conformance/features/suites/s.feature",
         );
         model
             .check()

@@ -1,7 +1,7 @@
 //! The activation-gate registry (`cargo xtask gate <claim-id>` / `gates`).
 //!
 //! #515 preserve-and-gate keeps every ruled-out or dormant mechanism registered
-//! in `model/ledger.toml` as an `open` claim, and every `open` claim names an
+//! in `conformance/ledger.toml` as an `open` claim, and every `open` claim names an
 //! *activation gate*: the pre-declared measurement that, once cleared, would
 //! promote the mechanism off the shelf and back onto the serving path. This
 //! module turns that prose register into a runnable one.
@@ -143,7 +143,7 @@ fn report_claim(id: &str, statement: &str) {
 /// Reporting succeeds (exit 0) — this is a status register, not a gate that
 /// fails CI; only an unknown id is an error.
 pub fn gate(root: &Path, id: Option<&str>) -> Result<(), Fail> {
-    let model = Model::load(&root.join("model"))?;
+    let model = Model::load(&root.join("conformance"))?;
     let open: Vec<&repo_model::registry::Claim> = model
         .ledger
         .claim

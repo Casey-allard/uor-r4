@@ -20,19 +20,19 @@ const POPULATION: u64 = 72_130;
 fn repo_root() -> PathBuf {
     if let Some(manifest_dir) = std::env::var_os("CARGO_MANIFEST_DIR") {
         for ancestor in Path::new(&manifest_dir).ancestors() {
-            if ancestor.join("model/ledger.toml").is_file() {
+            if ancestor.join("conformance/ledger.toml").is_file() {
                 return ancestor.to_path_buf();
             }
         }
     }
     let current_dir = std::env::current_dir().expect("current directory is readable");
     for ancestor in current_dir.ancestors() {
-        if ancestor.join("model/ledger.toml").is_file() {
+        if ancestor.join("conformance/ledger.toml").is_file() {
             return ancestor.to_path_buf();
         }
     }
     panic!(
-        "repository root not found: no ancestor of CARGO_MANIFEST_DIR or the current directory contains model/ledger.toml"
+        "repository root not found: no ancestor of CARGO_MANIFEST_DIR or the current directory contains conformance/ledger.toml"
     );
 }
 

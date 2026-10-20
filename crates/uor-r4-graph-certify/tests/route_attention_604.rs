@@ -1,7 +1,7 @@
 //! `R4RouteAttentionV1` differential + witness + property tests (#604).
 //!
 //! The operator under test is DORMANT (`r4-route-attention-dormant` in
-//! `model/ledger.toml`): these tests construct it directly; no serving
+//! `conformance/ledger.toml`): these tests construct it directly; no serving
 //! path is exercised or changed. The reference specification lives in
 //! `uor-r4-graph-certify::route_attention`, the packed lowering in
 //! `uor-r4-graph-runtime::route_attention`, the canonical instance

@@ -12,7 +12,7 @@
 //! total order.
 //!
 //! The fitted operator stays DORMANT: `route-fit-dormant` in
-//! `model/ledger.toml` (next to `r4-route-attention-dormant`), referenced
+//! `conformance/ledger.toml` (next to `r4-route-attention-dormant`), referenced
 //! by no serving path. The replacement-ladder evaluator that consumes
 //! this module's outputs lives in
 //! `uor-r4-graph-certify::route_fit_report`, which also pins the

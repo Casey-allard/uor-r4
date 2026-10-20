@@ -983,7 +983,7 @@ resonance, WASM, release, correctness, and reasoning claims remain parked.
   `uor-r4-model-source::attention::operator_spec`.
 - **Dormant lane (#515 "preserve-and-gate")** — an operator implementation that is
   constructible, differentially tested (reference vs. packed kernel agree bit-for-bit), and
-  registered as an `open`-level claim in `model/ledger.toml`, but referenced by no serving path.
+  registered as an `open`-level claim in `conformance/ledger.toml`, but referenced by no serving path.
   Each claim's `statement` names an explicit activation gate (e.g. a pre-registered A/B exit
   rule) that must clear before the operator can be wired into serving.
 - **`r4-route-attention/1`** (#604) — masked XOR+popcount route-code distance, bounded top-M

@@ -97,11 +97,11 @@ fn every_id_has_a_scenario_and_a_test_cm_02() {
 /// repository that has claimed nothing yet has no scenarios to write and no
 /// suite for them to live in, and that is a legitimate state. A repository with
 /// registered IDs and no feature files is the defect this catches, and the guard
-/// re-arms the moment the first row is added to `model/ids.toml`.
+/// re-arms the moment the first row is added to `conformance/ids.toml`.
 #[test]
 fn no_scenario_is_pending_cm_02() {
-    let model = Model::load(&root().join("model")).expect("model loads");
-    let suites = scenarios_in(&root().join("features/suites")).expect("suites read");
+    let model = Model::load(&root().join("conformance")).expect("model loads");
+    let suites = scenarios_in(&root().join("conformance/features/suites")).expect("suites read");
     assert!(
         model.ids.id.is_empty() || suites.files >= 1,
         "{} registered IDs and no feature files",
@@ -124,7 +124,7 @@ fn no_scenario_is_pending_cm_02() {
 /// citation and either a checksum or a stated reason for its absence.
 #[test]
 fn every_some_true_claim_cites_an_authority_cm_03() {
-    let model = Model::load(&root().join("model")).expect("model loads");
+    let model = Model::load(&root().join("conformance")).expect("model loads");
     model.check().expect("the model is consistent");
 
     let mut some_true = 0usize;
@@ -142,7 +142,7 @@ fn every_some_true_claim_cites_an_authority_cm_03() {
             .authority
             .iter()
             .find(|a| &a.id == name)
-            .unwrap_or_else(|| panic!("{name} has no row in model/authorities.toml"));
+            .unwrap_or_else(|| panic!("{name} has no row in conformance/authorities.toml"));
         assert!(!a.citation.trim().is_empty(), "{name} has no citation");
         assert!(
             a.checksum != "none" || !a.checksum_reason.trim().is_empty(),
@@ -172,7 +172,7 @@ fn the_meta_gate_is_falsifiable_cm_02() {
     // test from, so the plant has nothing to plant and the check is skipped ---
     // stated here rather than silently passing, because a falsifiability test
     // that cannot falsify is the exact thing this test exists to rule out.
-    let model = Model::load(&root.join("model")).expect("model loads");
+    let model = Model::load(&root.join("conformance")).expect("model loads");
     if model.ids.id.is_empty() {
         eprintln!("CM-02: register empty, so there is no ID whose test can be removed");
     } else {

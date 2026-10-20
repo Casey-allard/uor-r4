@@ -51,7 +51,7 @@
 //! It fits nothing, launches no corrective round, adds no runtime/format/
 //! compiler code, and moves no gate on its own -- identical treatment to #840
 //! and #841 (RF-14 / RF-21 / RF-22 / RF-29 evidence language; no new built
-//! capability, no `model/ids.toml` row, no `CONFORMANCE.md` regeneration).
+//! capability, no `conformance/ids.toml` row, no `CONFORMANCE.md` regeneration).
 //!
 //! Run:
 //!   R4_CAUSAL_BUNDLE=<bundle> cargo test -p uor-r4-api --release \

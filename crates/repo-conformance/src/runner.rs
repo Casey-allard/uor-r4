@@ -1,4 +1,4 @@
-//! Reading `features/suites/*.feature` (R3).
+//! Reading `conformance/features/suites/*.feature` (R3).
 
 use std::collections::BTreeSet;
 use std::path::Path;

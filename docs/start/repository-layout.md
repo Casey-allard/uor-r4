@@ -16,8 +16,7 @@ Every top-level folder has one job. This page lists them, says which ones are ab
 | `tools/` | `lab-runner` (a workspace crate), notes for the `uor-knowledge` server, and one historical trainer (below). |
 | `web/` | The web client. `web/studio/` is the Studio page served at `/studio/` on the documentation site. |
 | `xtask/` | Repository tooling, run as `cargo xtask <command>`: link checks, the archive check, figures, the catalog and the site build. |
-| `model/` | The requirements ledger: requirement ids, authorities and `ledger.toml`. The `repo-model` and `repo-conformance` crates read it to produce `CONFORMANCE.md`. **Moving to** `conformance/`. |
-| `features/` | Behaviour specifications (`.feature` files) for those requirements. **Moving to** `conformance/features/`. |
+| `conformance/` | The requirements ledger (`ledger.toml`, `ids.toml`, `authorities.toml`) and its behaviour specifications (`features/suites/*.feature`). The `repo-model` and `repo-conformance` crates read it to produce `CONFORMANCE.md`. Until 20 October 2026 these were the top-level `model/` and `features/` folders. |
 | `models/` | Four reference tokenizer files that older tests compare against. **Moving to** `data/tokenizers/`. |
 | `src/`, `tests/`, `profiles/` | The root Rust package, `uor-r4-wasm-router`: its library, its tests and its server profiles. **Moving to** `crates/uor-r4-wasm-router/`, so the top level holds only workspace settings. |
 
@@ -40,9 +39,9 @@ One more change is planned: the normative reference pages that sit loose in `doc
 
 `README.md`, `CHARTER.md` (the rules), `AGENTS.md` (onboarding for agents), `CONTRIBUTING.md`, `STATUS.md`, `ROADMAP.md`, `SECURITY.md`, `LICENSE`, `CITATION.cff` and the generated `CONFORMANCE.md`, plus build settings: `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `deny.toml`, `Justfile` and `book.toml` (the documentation site).
 
-## Three names that are easy to confuse
+## Names that are easy to confuse
 
-- `model/` is a **requirements ledger**, not a language model. It is moving to `conformance/` to end the confusion.
+- `conformance/` is a **requirements ledger**, not a language model. It was called `model/` until 20 October 2026 and was renamed to end that confusion.
 - `models/` holds **reference tokenizers** used by older tests. It is moving to `data/tokenizers/`.
 - `.uor-models/` is the **runtime model store** on each machine. It is gitignored; its contents come from the private Hugging Face store.
 

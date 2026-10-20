@@ -117,7 +117,7 @@ fn main() -> ExitCode {
             eprintln!(
                 "cargo xtask <task>\n\
                  \n\
-                 check-model       R1: model/*.toml is the single source; regenerate and diff\n\
+                 check-model       R1: conformance/*.toml is the single source; regenerate and diff\n\
                  audit-limits      R5:  no bound that cannot be traced to a parameter\n\
                  audit-deferral    R4: no deferral marker, no stub, no capability behind a flag\n\
                  gates             #515: list every dormant claim's activation gate and status\n\
@@ -165,7 +165,7 @@ type Fail = Box<dyn std::error::Error>;
 /// R1, `CM-01`: the generated Rust consts equal the model, numeral for
 /// numeral.
 fn check_model(root: &Path, write: bool) -> Result<(), Fail> {
-    let model = Model::load(&root.join("model"))?;
+    let model = Model::load(&root.join("conformance"))?;
     model.check()?;
 
     let conformance = codegen::render_conformance(&model);
@@ -185,7 +185,7 @@ fn check_model(root: &Path, write: bool) -> Result<(), Fail> {
     })?;
     if committed != conformance {
         return Err(format!(
-            "{} is stale: it disagrees with model/ids.toml.\n\
+            "{} is stale: it disagrees with conformance/ids.toml.\n\
              R2: a claim cannot exist in the documentation without a ledger row. \
              Run `cargo xtask check-model --write`.",
             conformance_path.display()

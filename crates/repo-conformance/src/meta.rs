@@ -58,7 +58,7 @@ const ASSERTIVE: &[&str] = &[
 /// workspace, which the caller gathers because it knows how to run `cargo`.
 pub fn check_honesty(root: &Path, tests: &BTreeSet<String>) -> std::io::Result<HonestyReport> {
     let mut report = HonestyReport::default();
-    let model = match Model::load(&root.join("model")) {
+    let model = match Model::load(&root.join("conformance")) {
         Ok(m) => m,
         Err(e) => {
             report
@@ -67,7 +67,7 @@ pub fn check_honesty(root: &Path, tests: &BTreeSet<String>) -> std::io::Result<H
             return Ok(report);
         }
     };
-    let suites: SuiteReport = crate::runner::scenarios_in(&root.join("features/suites"))?;
+    let suites: SuiteReport = crate::runner::scenarios_in(&root.join("conformance/features/suites"))?;
     report.scenarios_checked = suites.scenarios.len();
     report.ids_checked = model.ids.id.len();
 
@@ -77,7 +77,7 @@ pub fn check_honesty(root: &Path, tests: &BTreeSet<String>) -> std::io::Result<H
     for row in &model.ids.id {
         if !scenario_ids.contains(row.id.as_str()) {
             report.violations.push(format!(
-                "R3: {} is registered but has no scenario in features/suites/. Every \
+                "R3: {} is registered but has no scenario in conformance/features/suites/. Every \
                  capability begins as a Gherkin scenario.",
                 row.id
             ));

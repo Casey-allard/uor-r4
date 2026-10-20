@@ -63,7 +63,7 @@
 //!   * `>= 6/10` ⇒ the lowering is faithful and the lane sits at its arithmetic
 //!     ceiling as expected (still sub-floor; the lane stays dormant regardless).
 //!
-//! The lane stays dormant whatever the outcome: no `model/ids.toml` change, no
+//! The lane stays dormant whatever the outcome: no `conformance/ids.toml` change, no
 //! `CONFORMANCE.md` change. This is measurement, not deployment. RF-21/22/27/28.
 //!
 //! Run:

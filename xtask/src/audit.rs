@@ -329,14 +329,14 @@ pub fn audit_deferral(root: &Path) -> Result<(), Fail> {
 
     // The carve-out (uor-r4 #510): a deferral is a violation only if it is
     // *unregistered*. A capability kept dormant behind a pre-declared activation
-    // gate is registered in `model/ledger.toml` as an `open` claim --- measured
+    // gate is registered in `conformance/ledger.toml` as an `open` claim --- measured
     // and reported, never asserted (R2) --- and a marker on a line that cites
     // that claim's id is the honest form of "this is deferred, and here is where
     // it is declared". A marker with no such citation is a deferral nobody
     // agreed to, which is exactly what R4 exists to catch. The set is read from
     // the ledger, not listed here, so a claim retired from the ledger re-arms
     // the gate on the lines that cited it.
-    let open_ids: Vec<String> = repo_model::Model::load(&root.join("model"))
+    let open_ids: Vec<String> = repo_model::Model::load(&root.join("conformance"))
         .map(|m| {
             m.ledger
                 .claim
@@ -411,7 +411,7 @@ pub fn audit_deferral(root: &Path) -> Result<(), Fail> {
     if !violations.is_empty() {
         return Err(format!(
             "R4: nothing is deferred *and unregistered*. None of {} may appear \
-             unless the line cites an `open` claim in model/ledger.toml (a \
+             unless the line cites an `open` claim in conformance/ledger.toml (a \
              capability kept dormant behind a pre-declared activation gate). \
              Otherwise: no stub, no placeholder section, no capability behind a \
              flag that turns it off. Register the deferral as `open`, or remove \

@@ -53,7 +53,7 @@
 //! lower than) the unigram floor computed above. NEGATIVE (including
 //! "no measurable difference") closes #643 with the comparison table;
 //! `msa-structured-selector-dormant` (already registered in
-//! `model/ledger.toml`) is the disposition, unchanged.
+//! `conformance/ledger.toml`) is the disposition, unchanged.
 
 use std::collections::BTreeMap;
 use std::path::Path;

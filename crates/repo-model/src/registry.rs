@@ -1,4 +1,4 @@
-//! The typed shape of `model/*.toml`.
+//! The typed shape of `conformance/*.toml`.
 //!
 //! Nothing here interprets the model; [`crate::Model::check`] does that. These
 //! types exist so that a malformed model is a parse error rather than a
@@ -21,7 +21,7 @@ pub enum Level {
 }
 
 impl Level {
-    /// The token used in `model/*.toml` and in generated documentation.
+    /// The token used in `conformance/*.toml` and in generated documentation.
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::SomeTrue => "some-true",
@@ -59,7 +59,7 @@ pub enum Scope {
 }
 
 impl Scope {
-    /// The token used in `model/*.toml` and in generated documentation.
+    /// The token used in `conformance/*.toml` and in generated documentation.
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::ReferenceOnly => "reference-only",
@@ -88,12 +88,12 @@ pub enum Reachability {
     DeployedServing,
     /// Built or measured, but not reached by the serving path.
     OffServingPath,
-    /// Retained behind an activation gate registered in `model/ledger.toml`.
+    /// Retained behind an activation gate registered in `conformance/ledger.toml`.
     DormantGated,
 }
 
 impl Reachability {
-    /// The token used in `model/*.toml` and in generated documentation.
+    /// The token used in `conformance/*.toml` and in generated documentation.
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::DeployedServing => "deployed-serving",
@@ -116,7 +116,7 @@ fn default_reachability() -> Reachability {
     Reachability::OffServingPath
 }
 
-/// `model/ledger.toml`.
+/// `conformance/ledger.toml`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Ledger {
     /// The schema tag.
@@ -210,7 +210,7 @@ impl Ledger {
     }
 }
 
-/// `model/ids.toml` --- the conformance ID register.
+/// `conformance/ids.toml` --- the conformance ID register.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Ids {
     /// The schema tag.
@@ -254,7 +254,7 @@ impl Ids {
     }
 }
 
-/// `model/authorities.toml` --- what this repository cites (`CM-03`).
+/// `conformance/authorities.toml` --- what this repository cites (`CM-03`).
 #[derive(Debug, Clone, Deserialize)]
 pub struct Authorities {
     /// The schema tag.

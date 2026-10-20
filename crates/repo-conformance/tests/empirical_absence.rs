@@ -56,7 +56,7 @@ fn an_absent_empirical_fixture_serializes_unavailable_not_pass() {
 /// `env!` path, per the #788 cached-rlib hazard).
 #[test]
 fn a_present_empirical_fixture_can_pass_and_fail() {
-    let present = repo_model::repo_root().join("model/ledger.toml");
+    let present = repo_model::repo_root().join("conformance/ledger.toml");
     assert!(present.exists(), "positive-control fixture must exist");
 
     assert_eq!(

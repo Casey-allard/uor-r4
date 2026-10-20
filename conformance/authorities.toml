@@ -1,4 +1,4 @@
-# model/authorities.toml --- what this repository cites rather than proves.
+# conformance/authorities.toml --- what this repository cites rather than proves.
 #
 # A `some-true` claim is reproduced from an authority and is not established
 # here. This file is where the authority is named well enough for a third party
