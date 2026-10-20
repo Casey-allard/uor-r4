@@ -1,7 +1,8 @@
 # NOW — what UOR-R4 is doing, on one page
 
-**Updated 2026-10-19 (post-D39).** This page is the current plan. When it disagrees
-with a longer document, this page is right; fix the longer document. History and the
+**Updated 2026-10-20.** [CHARTER.md](../../CHARTER.md) is the single rule book
+and takes precedence. This page is the current operating plan; it takes precedence
+over longer planning documents only where consistent with the charter. History and the
 long-form plan: `project-track.md`. Decisions: `DECISIONS.md` (D0–D39).
 
 ## Objective
@@ -23,8 +24,14 @@ Registration must preserve the immutable scientific FIT sheet identity;
 [#2785](https://github.com/UOR-Foundation/uor-r4/pull/2785) tracks sheet restoration
 and the separate qualification binding. Real CUDA qualification, restoration and
 timing remain NOT_RUN. The finite stage's bounded updates and restoration controls
-require its own FIT, costed owner approval, PM dispatch and personal release;
-later full-dose approval and personal arm releases remain separate.
+require its own FIT, costed owner approval, PM dispatch and owner release;
+later full-dose approval and release remain separate. Under
+[CHARTER §5.1](../../CHARTER.md#5-workflow), Casey types one release per
+pre-registered sheet, covering all its arms, seeds and stop rules.
+
+The current A8 qualification and dose retain the sheet-bound source
+[`fd409fcdf`](https://github.com/UOR-Foundation/uor-r4/commit/fd409fcdf3bc43d607e768bae6f8cf403aa75901), not later `main`
+([source-identity clarification](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6283453868)).
 
 ### Retained A8 dose and diagnosis history
 

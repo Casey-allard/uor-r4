@@ -1,3 +1,12 @@
+## 2026-10-20 — NOW/ROADMAP yield to CHARTER release scope and retain the A8 source binding (codex)
+
+NOW yields to CHARTER; NOW/ROADMAP state one Casey-typed release per
+pre-registered sheet, with qualification and dose approval still separate.
+The current A8 qualification/dose remains bound to `fd409fcdf`, not later main.
+Scientific holds, source/sheet identities, peer entries and historical evidence are
+unchanged. [Compatibility record](../labs/charter-plan-consistency-2026-10-20/README.md).
+**Next:** exact-head independent review of the draft PR and protected delivery.
+
 ## 2026-10-19 — Charter adopted: CHARTER.md replaces the stacked AGENTS.md directions and D0–D41 (claude)
 
 The owner adopted the charter at checkpoint 1, with eight answers recorded as D42 in the `DECISIONS.md` index. In short:
