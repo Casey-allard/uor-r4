@@ -19,7 +19,7 @@ use crate::state::StatePaths;
 /// ported; this says which ones `check` actually calls - and **the two disagreeing is exactly the
 /// defect this module exists to fix**, when `cmd_check` ran none of them while `parity` reported
 /// the set complete.
-pub const RULES: [(&str, &str); 41] = [
+pub const RULES: [(&str, &str); 42] = [
     ("arena.decisive_power", "warn"),
     ("arena.knows_what_it_cannot_measure", "warn"),
     ("arena.parents_exist", "error"),
@@ -63,6 +63,7 @@ pub const RULES: [(&str, &str); 41] = [
     ("status.branch_claimed", "warn"),
     ("status.heartbeat_receipts", "warn"),
     ("status.no_orphan_branches", "warn"),
+    ("status.protected_branches_present", "error"),
     ("status.registry_vs_github", "warn"),
 ];
 
@@ -156,6 +157,7 @@ pub const MODULE_RULES: [(&str, &[&str]); 10] = [
             "status.branch_claimed",
             "status.heartbeat_receipts",
             "status.no_orphan_branches",
+            "status.protected_branches_present",
             "status.registry_vs_github",
         ],
     ),

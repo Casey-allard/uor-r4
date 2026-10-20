@@ -108,6 +108,84 @@ pub fn no_orphan_branches(paths: &StatePaths) -> Vec<Finding> {
     out
 }
 
+/// The protected names that are absent from `heads`, in the order `protected` lists them.
+pub fn missing_protected(heads: &[String], protected: &[String]) -> Vec<String> {
+    protected
+        .iter()
+        .filter(|p| !heads.contains(p))
+        .cloned()
+        .collect()
+}
+
+/// Every branch name on `origin`, or `None` when `ls-remote` could not run or failed (offline).
+///
+/// Every `GIT_*` variable is removed, so a hook's environment cannot point the call at another
+/// repository.
+fn origin_heads(repo: &std::path::Path) -> Option<Vec<String>> {
+    let mut cmd = std::process::Command::new("git");
+    cmd.args(["ls-remote", "--heads", "origin"])
+        .current_dir(repo);
+    for (k, _) in std::env::vars_os() {
+        if k.to_string_lossy().starts_with("GIT_") {
+            cmd.env_remove(&k);
+        }
+    }
+    // A stalled network or a credential prompt must not hang `check`: no prompts, no stdin,
+    // and a bounded wait. Not knowing is reported by the caller as "could not determine".
+    cmd.env("GIT_TERMINAL_PROMPT", "0")
+        .env(
+            "GIT_SSH_COMMAND",
+            "ssh -o BatchMode=yes -o ConnectTimeout=10",
+        )
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null());
+    let mut child = cmd.spawn().ok()?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if std::time::Instant::now() < deadline => {
+                std::thread::sleep(std::time::Duration::from_millis(50))
+            }
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
+    }
+    let out = child.wait_with_output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .filter_map(|l| l.rsplit_once("refs/heads/").map(|(_, b)| b.to_string()))
+            .collect(),
+    )
+}
+
+/// `status.protected_branches_present` — every protected branch still exists on `origin`.
+///
+/// **An unreachable remote is "could not determine", not a failure**: like `no_orphan_branches`
+/// on an `Unknown` branch, the rule emits nothing, so the dispatcher records it as passing.
+pub fn protected_branches_present(paths: &StatePaths) -> Vec<Finding> {
+    let Some(heads) = origin_heads(&paths.repo) else {
+        return Vec::new();
+    };
+    missing_protected(&heads, &githelp::protected_branches(&paths.repo))
+        .into_iter()
+        .map(|b| Finding {
+            rule_id: "status.protected_branches_present",
+            severity: "error",
+            message: format!("protected branch {b:?} is missing from origin"),
+            path: "docs/harness/branches.json".into(),
+            fix: "restore the branch from its last known commit and tell the owner on #2028".into(),
+        })
+        .collect()
+}
 /// Every `status` rule ported in this unit.
 pub fn all(paths: &StatePaths, regs: &Registries, now: i64) -> Vec<Finding> {
     // **The ledger spans two months**, because a heartbeat at 00:05 on the 1st belongs to the month
@@ -119,6 +197,7 @@ pub fn all(paths: &StatePaths, regs: &Registries, now: i64) -> Vec<Finding> {
     let rows = crate::status::receipt_rows(paths, &month, &previous);
     let mut out = branch_claimed(paths);
     out.extend(no_orphan_branches(paths));
+    out.extend(protected_branches_present(paths));
     // **`heartbeat_receipts` was registered with NO IMPLEMENTATION AT ALL**, and
     // **`registry_vs_github` was ported and never dispatched.** Both reported `ok` on every run
     // because nothing produced a finding. **Found by diffing the dispatcher's output against
@@ -375,6 +454,21 @@ mod tests {
         // three units were about.
         let regs = Registries::load(&p).expect("registry");
         let _ = all(&p, &regs, 1_800_000_000);
+    }
+
+    /// **A protected name absent from the remote heads is reported; present ones are not.**
+    #[test]
+    fn missing_protected_names_only_the_absent_branches() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let protected = s(&["main", "gh-pages", "gh-pages-preview"]);
+        assert_eq!(
+            missing_protected(&s(&["main", "claude/x", "gh-pages-preview"]), &protected),
+            s(&["gh-pages"])
+        );
+        assert!(
+            missing_protected(&s(&["gh-pages-preview", "gh-pages", "main"]), &protected).is_empty()
+        );
+        assert_eq!(missing_protected(&[], &protected), protected);
     }
 
     fn paths_of_repo() -> StatePaths {

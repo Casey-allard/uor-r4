@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "protected": [
+    {"name": "main", "purpose": "source of truth"},
+    {"name": "gh-pages", "purpose": "live documentation site and Studio"},
+    {"name": "gh-pages-preview", "purpose": "documentation site preview"}
+  ],
+  "delivery_pattern": "<lab>/<topic>",
+  "note": "Owner, 20 Oct 2026: long-lived branches are never deleted; every other branch is one per open PR and is deleted after its merge."
+}

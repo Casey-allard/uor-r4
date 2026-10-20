@@ -533,9 +533,17 @@ class RuleTest(StatusTestBase):
         rules = status.register_rules()
         self.assertEqual(
             [r.id for r in rules],
-            ["status.heartbeat_receipts", "status.registry_vs_github", "status.no_orphan_branches"],
+            [
+                "status.heartbeat_receipts",
+                "status.registry_vs_github",
+                "status.no_orphan_branches",
+                "status.protected_branches_present",
+            ],
         )
-        self.assertTrue(all(r.severity == "warn" for r in rules))
+        # A missing protected branch (main, gh-pages, gh-pages-preview) is an error; the rest warn.
+        self.assertEqual(
+            [r.severity for r in rules], ["warn", "warn", "warn", "error"]
+        )
         self.assertTrue(all(callable(r.check) for r in rules))
 
     def test_every_check_never_raises_when_everything_is_broken(self) -> None:

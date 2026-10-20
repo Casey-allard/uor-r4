@@ -108,6 +108,7 @@ pub const INVENTORY: &[(&str, &[&str])] = &[
         &[
             "status.branch_claimed",
             "status.no_orphan_branches",
+            "status.protected_branches_present",
             "status.heartbeat_receipts",
             // **The last of the `status` rules.** The `gh` chain, the card reading and the decision
             // are all Rust, and the decision is verified against Python on live data - all eight

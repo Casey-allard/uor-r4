@@ -26,6 +26,47 @@ use crate::state::StatePaths;
 use std::path::Path;
 use std::process::Command;
 
+/// Branches that are never deleted, whatever the registry file says (owner, 20 October 2026).
+///
+/// The registry in `docs/harness/branches.json` is the documented list; this built-in copy is the
+/// floor, so a missing or damaged registry can add protection but never remove it.
+pub const BUILTIN_PROTECTED: [&str; 3] = ["main", "gh-pages", "gh-pages-preview"];
+
+/// The protected branch names: the built-in floor plus every `protected[].name` in the registry.
+pub fn protected_branches(repo: &Path) -> Vec<String> {
+    let mut names: Vec<String> = BUILTIN_PROTECTED.iter().map(|s| s.to_string()).collect();
+    let registry = std::fs::read_to_string(repo.join("docs/harness/branches.json"))
+        .ok()
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok());
+    if let Some(rows) = registry
+        .as_ref()
+        .and_then(|v| v.get("protected"))
+        .and_then(|p| p.as_array())
+    {
+        for name in rows.iter().filter_map(|r| r.get("name")?.as_str()) {
+            if !names.iter().any(|n| n == name) {
+                names.push(name.to_string());
+            }
+        }
+    }
+    names
+}
+
+/// The refusal every branch-delete path returns for a protected name, local or remote.
+pub fn protected_refusal(repo: &Path, branch: &str) -> Option<String> {
+    let name = branch.trim_start_matches("refs/heads/");
+    // Case-insensitive: on a case-insensitive filesystem `git branch -D Main` can remove `main`.
+    protected_branches(repo)
+        .iter()
+        .any(|p| p.eq_ignore_ascii_case(name))
+        .then(|| {
+        format!(
+            "refusing to delete protected branch '{name}': it is listed in \
+             docs/harness/branches.json and long-lived branches are never deleted (owner, 20 Oct 2026)"
+        )
+    })
+}
+
 /// How a local branch relates to `origin/main`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MergeState {
@@ -64,7 +105,7 @@ pub fn branch_states(repo: &Path) -> Vec<BranchState> {
     for branch in refs
         .lines()
         .map(str::trim)
-        .filter(|b| !b.is_empty() && *b != "main")
+        .filter(|b| !b.is_empty() && protected_refusal(repo, b).is_none())
     {
         out.push(classify(repo, branch, &held));
     }
@@ -239,6 +280,10 @@ pub fn apply(repo: &Path, states: &[BranchState]) -> (Vec<String>, Vec<(String, 
         // Re-checked here rather than trusted from the caller: a state computed before a worktree was
         // added would delete a branch that is now held.
         if !s.removable {
+            continue;
+        }
+        if let Some(why) = protected_refusal(repo, &s.branch) {
+            refused.push((s.branch.clone(), why));
             continue;
         }
         match Command::new("git")
@@ -795,6 +840,12 @@ pub fn delete_merged_branch(paths: &StatePaths, branch: &str, apply: bool) -> se
         "reason": "",
         "deleted": false,
     });
+
+    // ---- 0. A protected branch is never deleted, locally or remotely. --------------------------
+    if let Some(why) = protected_refusal(&paths.repo, branch) {
+        result["reason"] = serde_json::json!(why);
+        return result;
+    }
 
     // ---- 1. A live claim, first, and it needs no network. -------------------------------------
     if let Some(claim) = crate::team::load_claims(paths).get(branch) {
@@ -2094,5 +2145,129 @@ mod status_tests {
         );
         // Empty output is named rather than left blank.
         assert!(run_failure("cmd", 1, "   ").ends_with("no output"));
+    }
+}
+
+#[cfg(test)]
+mod protected_branch_tests {
+    use super::*;
+
+    /// Run git in `repo` with every `GIT_*` variable removed, so a hook's environment cannot point
+    /// the command at the repository being committed to.
+    fn git_clean(repo: &Path, args: &[&str]) -> String {
+        let mut cmd = Command::new("git");
+        cmd.current_dir(repo).args(args);
+        for (k, _) in std::env::vars_os() {
+            if k.to_string_lossy().starts_with("GIT_") {
+                cmd.env_remove(&k);
+            }
+        }
+        let out = cmd.output().expect("git runs");
+        String::from_utf8_lossy(&out.stdout).to_string()
+    }
+
+    /// A temp repo with `main`, `gh-pages` and an ordinary merged branch, all at one commit.
+    fn repo_with_protected() -> (tempfile::TempDir, StatePaths) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let repo = dir.path().join("repo");
+        std::fs::create_dir_all(&repo).expect("mkdir");
+        assert!(
+            repo.starts_with(dir.path()),
+            "the test repo must live in its temp dir"
+        );
+        git_clean(&repo, &["init", "-q", "-b", "main"]);
+        let top = git_clean(&repo, &["rev-parse", "--show-toplevel"]);
+        let top = std::fs::canonicalize(top.trim()).expect("toplevel");
+        let tmp = std::fs::canonicalize(dir.path()).expect("tmp");
+        assert!(
+            top.starts_with(&tmp),
+            "git resolved {top:?} outside {tmp:?}"
+        );
+        git_clean(&repo, &["config", "user.email", "t@t"]);
+        git_clean(&repo, &["config", "user.name", "t"]);
+        std::fs::write(repo.join("README.md"), "x\n").expect("write");
+        git_clean(&repo, &["add", "-A"]);
+        git_clean(&repo, &["commit", "-qm", "init"]);
+        git_clean(&repo, &["branch", "gh-pages"]);
+        git_clean(&repo, &["branch", "done-work"]);
+        let paths = StatePaths {
+            repo,
+            live: dir.path().join("live"),
+        };
+        (dir, paths)
+    }
+
+    fn heads(repo: &Path) -> String {
+        git_clean(
+            repo,
+            &["for-each-ref", "--format=%(refname:short)", "refs/heads"],
+        )
+    }
+
+    /// The registry's names are protected even with no registry file, and a registry adds names.
+    #[test]
+    fn protection_ignores_case_and_survives_a_missing_registry() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        // No docs/harness/branches.json in this directory: the built-in names still protect,
+        // and a case-insensitive filesystem cannot be used to delete `main` as `Main`.
+        assert!(protected_refusal(dir.path(), "Main").is_some());
+        assert!(protected_refusal(dir.path(), "refs/heads/GH-PAGES").is_some());
+        assert!(protected_refusal(dir.path(), "gh-pages-preview").is_some());
+        assert!(protected_refusal(dir.path(), "claude/topic").is_none());
+    }
+
+    #[test]
+    fn builtin_floor_and_registry_both_protect() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        assert!(protected_refusal(dir.path(), "gh-pages-preview").is_some());
+        assert!(protected_refusal(dir.path(), "refs/heads/main").is_some());
+        assert!(protected_refusal(dir.path(), "claude/topic").is_none());
+        std::fs::create_dir_all(dir.path().join("docs/harness")).expect("mkdir");
+        std::fs::write(
+            dir.path().join("docs/harness/branches.json"),
+            r#"{"version":1,"protected":[{"name":"release","purpose":"x"}]}"#,
+        )
+        .expect("write");
+        assert!(protected_refusal(dir.path(), "release").is_some());
+        assert!(protected_refusal(dir.path(), "main").is_some());
+    }
+
+    /// `clean-merged --apply` refuses a protected branch even when a caller marks it removable.
+    #[test]
+    fn clean_merged_apply_refuses_a_protected_branch() {
+        let (_dir, paths) = repo_with_protected();
+        let state = |b: &str| BranchState {
+            branch: b.to_string(),
+            state: MergeState::Merged,
+            checked_out: false,
+            removable: true,
+            reason: String::new(),
+        };
+        let (deleted, refused) = apply(&paths.repo, &[state("gh-pages"), state("done-work")]);
+        assert_eq!(deleted, vec!["done-work".to_string()]);
+        assert_eq!(refused.len(), 1, "{refused:?}");
+        assert!(refused[0].1.contains("protected branch"), "{refused:?}");
+        assert!(heads(&paths.repo).contains("gh-pages"));
+    }
+
+    /// `delete-merged --apply` refuses a protected branch before any local or remote delete runs.
+    #[test]
+    fn delete_merged_refuses_a_protected_branch() {
+        let (_dir, paths) = repo_with_protected();
+        let r = delete_merged_branch(&paths, "gh-pages", true);
+        assert_eq!(r["safe_to_delete"], serde_json::json!(false), "{r}");
+        assert_eq!(r["deleted"], serde_json::json!(false), "{r}");
+        assert!(
+            r["remote_deleted"].is_null(),
+            "no remote delete was attempted: {r}"
+        );
+        assert!(
+            r["reason"]
+                .as_str()
+                .unwrap_or("")
+                .contains("protected branch"),
+            "{r}"
+        );
+        assert!(heads(&paths.repo).contains("gh-pages"));
     }
 }

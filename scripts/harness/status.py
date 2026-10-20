@@ -1731,6 +1731,51 @@ def _rule_registry_vs_github(paths: HarnessPaths, reg: Registry) -> list[RuleRes
     return out
 
 
+def _rule_protected_branches_present(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
+    """Every protected branch (built-in floor plus docs/harness/branches.json) exists on origin."""
+    names = ["main", "gh-pages", "gh-pages-preview"]
+    try:
+        for row in (load_json(paths.repo / "docs/harness/branches.json") or {}).get("protected") or []:
+            if isinstance(row, dict) and row.get("name") and row["name"] not in names:
+                names.append(row["name"])
+    except Exception:  # noqa: BLE001 - a damaged registry keeps the built-in floor
+        pass
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    try:
+        proc = subprocess.run(
+            ["git", "ls-remote", "--heads", "origin"],
+            cwd=str(paths.repo), capture_output=True, text=True, timeout=GIT_TIMEOUT, env=env, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        proc = None
+        reason = f"{type(exc).__name__}: {exc}"
+    if proc is None or proc.returncode != 0:
+        if proc is not None:
+            reason = f"git ls-remote exited {proc.returncode}"
+        return [
+            RuleResult(
+                rule_id="status.protected_branches_present",
+                severity="info",
+                ok=True,
+                message=f"could not determine the branches on origin: {reason}",
+                path=str(paths.repo),
+            )
+        ]
+    heads = {line.rsplit("refs/heads/", 1)[1] for line in proc.stdout.splitlines() if "refs/heads/" in line}
+    return [
+        RuleResult(
+            rule_id="status.protected_branches_present",
+            severity="error",
+            ok=False,
+            message=f"protected branch \"{name}\" is missing from origin",
+            path="docs/harness/branches.json",
+            fix="restore the branch from its last known commit and tell the owner on #2028",
+        )
+        for name in names
+        if name not in heads
+    ]
+
+
 def _rule_no_orphan_branches(paths: HarnessPaths, reg: Registry) -> list[RuleResult]:
     """Completed work left on a branch: orphan local branches and reapable worktrees."""
     now = _now()
@@ -1877,6 +1922,14 @@ def register_rules() -> list[Rule]:
             severity="warn",
             check=_rule_no_orphan_branches,
             rationale="AGENTS.md (owner, 9 October 2026): branches are temporary transport; there are no standing branches",
+            scope="repo",
+        ),
+        Rule(
+            id="status.protected_branches_present",
+            description="every protected branch in docs/harness/branches.json exists on origin",
+            severity="error",
+            check=_rule_protected_branches_present,
+            rationale="owner, 20 October 2026: long-lived branches are never deleted",
             scope="repo",
         ),
     ]

@@ -265,6 +265,13 @@ cannot be proved merged — there is no tree to compare, and after a squash merg
 is also what `status.branch_claimed` flags on every `check`; this report says which branches they are
 without going to the tracker.
 
+**Three branches are never deleted (owner, 20 Oct 2026).** `main`, `gh-pages` (the live documentation
+site and Studio) and `gh-pages-preview` are listed in `docs/harness/branches.json`. Every branch delete in
+the harness (`clean-merged`, the merged-branch delete, the remote delete) refuses a protected name, and the
+built-in three stay protected even if the file is damaged. `status.protected_branches_present` fails
+`check` when either site branch, or `main`, is missing from `origin`. Every other branch is `<lab>/<topic>`,
+one per open PR, deleted after its merge. `scripts/storage/uor-hygiene` skips protected branches too.
+
 **Writes are atomic, and a release lands for everyone when the PR does.** The committed store and the
 live mirror are both written by a temporary file plus a rename, so a peer reading while you publish sees
 the old file or the new one and never a half-written one — every claims write is a read-modify-write over

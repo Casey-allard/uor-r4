@@ -1590,7 +1590,8 @@ pub fn delivery_view(paths: &StatePaths) -> DeliveryView {
                 break;
             }
         }
-        let orphan = unmerged == 0;
+        // A protected branch (docs/harness/branches.json) is never an orphan to delete.
+        let orphan = unmerged == 0 && crate::githelp::protected_refusal(repo, name).is_none();
         view.rows.push(BranchRow {
             name: name.to_string(),
             head,
