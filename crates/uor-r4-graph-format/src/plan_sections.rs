@@ -1,6 +1,6 @@
 //! Borrowed packed bounded-planning sections — the optional `PSCH`, `PTRN`,
 //! `PGOL` and `PWIT` sections (#843, lowering the design contract in
-//! `archive/bounded_semantic_transitions_spec_843.md` §5 and §7).
+//! `docs/bounded_semantic_transitions_spec_843.md` §5 and §7).
 //!
 //! Four sections, read with P-4-legal operations only (mask `AND`, integer
 //! comparison, saturating integer add and subtract, and fixed-offset table

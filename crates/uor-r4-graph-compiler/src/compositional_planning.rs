@@ -1,7 +1,7 @@
 //! Compositional-planning reference semantics (#844, S4 item A), carrying
 //! Amendment A1 (#843 increment 2).
 //!
-//! Frozen contract: `archive/compositional_planning_spec_844.md`, including its
+//! Frozen contract: `docs/compositional_planning_spec_844.md`, including its
 //! appended section 11 (Amendment A1). A1 repairs the *generator*, not the
 //! constitution: no frozen number moves. It makes instance difficulty scale
 //! with the requested horizon so every frozen cell is non-vacuous; gives each

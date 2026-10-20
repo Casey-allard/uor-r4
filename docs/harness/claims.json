@@ -244,6 +244,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/renorm-identity-fix-20261020": {
+    "branch": "claude/renorm-identity-fix-20261020",
+    "claimed_at": "2026-10-20T00:33:30-04:00",
+    "head": "19f49a890",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/renorm-tooling-20261019": {
     "branch": "claude/renorm-tooling-20261019",
     "claimed_at": "2026-10-19T16:42:55-04:00",

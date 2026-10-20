@@ -1,7 +1,7 @@
 //! Equal-budget arm/null measurement on the repaired S4 benchmark — the
 //! machine-checked record for #843 increment 6.
 //!
-//! Frozen contract: `archive/bounded_semantic_transitions_spec_843.md` §8, §9 and
+//! Frozen contract: `docs/bounded_semantic_transitions_spec_843.md` §8, §9 and
 //! §10. Certifier-instrument / off-serving-path: this harness measures the
 //! deployed planner, it is not part of it.
 //!

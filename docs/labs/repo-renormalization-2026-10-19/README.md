@@ -149,3 +149,30 @@ This unit lands:
 - "superseded" banners on `session-goal.md`, `protocol.md`, `.kimi-code`, `.codex-lab` and the `.agents` skill.
 
 The previous `AGENTS.md`, `DECISIONS.md` and `CONTRIBUTING.md` are archived byte-identical under `archive/governance/` and `archive/integration/DECISIONS-2026-10-19.md`. The harness gate changes for the notebook cadence land in their own PR.
+
+## Byte-bound sources the cutover touched (fifth unit, 20 Oct 2026)
+
+`docs-rewrite-refs` rewrote `docs/…` path strings in live code. Some of those files are themselves hashed by code that compares the hash against a sealed result, so changing a comment changes a bound identity. A census of every `include_str!`/`include_bytes!` target the cutover rewrote, with each path resolved exactly, found two cases that still matter:
+
+- **The #846 compositional-planning result.** `crates/uor-r4-graph-certify/tests/compositional_planning_certification_846.rs` compares content IDs of six sources with `archive/compositional_planning_certification_846_result.json`. The cutover changed one comment or notes line in each, so `committed_result_binds_the_audit_inputs_and_negative_verdict` failed (#2793 surfaced it once certify built again).
+  - **Fix:** this unit restores those six files byte-for-byte to `pre-renorm-2026-10-19`:
+    - `compositional_reasoning.json`
+    - `compositional_planning.rs`
+    - `semantic_transitions.rs`
+    - `plan_sections.rs`
+    - `plan.rs`
+    - `compositional_planning_measurement_843.rs`
+  - **Verified on #2793's head:** 3 of 3 tests pass with the restore, and the binding test fails without it.
+  - **Stale paths kept on purpose:** their comments again name `docs/…` spec paths that now live under `archive/`. The bytes are bound, so the stale paths stay. Never rewrite these six files.
+- **The discrete driver identity.** `uor_r4_discrete::training::driver_source_sha256()` hashes 19 sources. The cutover rewrote `include_*!` paths to config files that moved: 1 in `controller.rs`, 2 in `completion_baseline.rs`, 1 in `redirect_admission.rs`. These edits were required, because the old paths no longer exist.
+  - **The identity changed:** from `0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d` (at `fd409fcdf`, #2782, unchanged through `97e0eec43`) to `b13d4920d37a49dd0b1c2305ceaf406e51d5baadd058572cbf481f534bdf9b24` (from `d7b39d6a9` on). No compiled behaviour changed: the included file contents are identical.
+  - **For the A8 dose:** the admission-preserving sheet binds its controller and finite qualification to `fd409fcdf`, and the consumer verifier record binds `0f8ce406…`. So the dose must be built at `fd409fcdf`, as bound. A binary built from later main reports `b13d4920…` and the qualification gates will refuse it, correctly.
+
+The other rewritten files that hash themselves are historical targets that do not build today, or that report a hash without comparing it:
+- the core `*_973` tests;
+- the `joint-*` training examples;
+- `chat-grade`'s `milestone_world_v2`;
+- `uor-r4-model-source`;
+- the core `addressed-lexical-bridge` and `realtext-sparse-recall` binaries.
+
+Their old bytes are at the tag `pre-renorm-2026-10-19`.

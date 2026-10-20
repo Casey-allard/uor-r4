@@ -1,6 +1,6 @@
 //! Bounded semantic planner — normative deployed serving (#843 §6).
 //!
-//! Frozen contract: `archive/bounded_semantic_transitions_spec_843.md` §6 and §7.
+//! Frozen contract: `docs/bounded_semantic_transitions_spec_843.md` §6 and §7.
 //! Executes only the P-4 permitted operation classes — XOR/AND/OR/NOT, shift
 //! and rotate, popcount, saturating and wrapping integer add-sub, integer
 //! comparison, and fixed-offset table reads. **There is no multiply, no divide
