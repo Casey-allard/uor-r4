@@ -11,13 +11,13 @@ depends_on: [m1-export-gap-and-toks]
 
 ## Why it matters
 
-M1 bar (e) stops a result that only fits its development panel from closing M1. The M2 reply model failed exactly this way: 437 of 512 on its development panel, then 0 of 128 on rows it had not seen. It cannot run before the earlier bars pass. See [where we're going](../../start/where-were-going.md).
+M1 bar (e) stops a result that only fits its development panel from closing M1. The M2 reply model failed this way: 437 of 512 replies, later judged panel fitting, then 0 of 128 on opened transfer rows (`docs/start/faq.md`, question 21; a genuinely fresh test has not run). It cannot run before the earlier bars pass. See [where we're going](../../start/where-were-going.md).
 
 ## What is missing
 
-M1 bar (e) needs the gain to hold on a fresh, sealed test panel registered in advance. The fresh slice is still sealed: the 19 October outcome call records fresh transfer as `NOT_TRIGGERED` (the fresh slice, binding `4bd108ad…`, stays unopened), and G-Trans runs only when an arm reaches KEEP. The A8 sheet names the fresh V2 tokens, mask and seal as `0b7e754c…`, `a1cda529…` and `df5d074a…`. No saved model has passed bars (a) to (d), so nothing exists to score yet. Frozen `ft/dev` is not reported as fresh.
+M1 bar (e) needs the gain to hold on a fresh, sealed test panel registered in advance. The fresh slice is still sealed: the 19 October outcome call records fresh transfer as `NOT_TRIGGERED` (the fresh slice, binding `4bd108ad…`, stays unopened), and G-Trans runs only when an arm reaches KEEP. The later A8 dose (19 October) also left it sealed: no paired DEV decision exists (`docs/integration/NOW.md` line 85). The A8 sheet names the fresh V2 tokens, mask and seal as `0b7e754c…`, `a1cda529…` and `df5d074a…`. No saved model has passed bars (a) to (d), so nothing exists to score yet. Frozen `ft/dev` is not reported as fresh.
 
-The size, noise floor and threshold for the fresh panel are not yet registered. CHARTER §4.3 requires bars no narrower than measured noise and a fresh transfer number with every development gain.
+The size, noise floor and threshold for the fresh panel are not yet registered. CHARTER §4.3 requires decisive runs to use at least 2 seeds or at least 200 fresh rows, with bars no narrower than measured noise and a fresh transfer number with every development gain.
 
 ## Done when
 
@@ -44,4 +44,5 @@ The size, noise floor and threshold for the fresh panel are not yet registered. 
 - [`ROADMAP.md:14`](../../../ROADMAP.md)
 - [`docs/integration/NOW.md:85`](../../../docs/integration/NOW.md)
 - [`docs/start/where-were-going.md:34`](../../../docs/start/where-were-going.md)
+- [`docs/start/faq.md:111`](../../../docs/start/faq.md)
 

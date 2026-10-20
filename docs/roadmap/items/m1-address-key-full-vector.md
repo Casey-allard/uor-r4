@@ -15,7 +15,7 @@ This tests the leading hypothesis for the low top-1 and is Stage 1, "make the ca
 
 ## What is missing
 
-The address key uses only the first and last block and takes only 5 values (0, 4, 8, 12, 16) to order up to 256 cells (proof, read from `discrete.cu`). Which cells open is therefore largely decided by arbitrary numbering. The architect's likely lever is a full-vector or interior-block address metric, built and measured at zero training. It needs new kernel code and a fresh CUDA qualification.
+The address key uses only the first and last block and takes only 5 values (0, 4, 8, 12, 16) to order up to 256 cells (proof, read from `crates/uor-r4-discrete/src/discrete.cu`: `address_distance` at line 274, `cell_precedes` at line 301). Which cells open is therefore largely decided by arbitrary numbering. The architect's likely lever is a full-vector or interior-block address metric, built and measured at zero training. It needs new kernel code and a fresh CUDA qualification.
 
 ## Done when
 
@@ -26,8 +26,8 @@ Stage 1 bar: "enough distinct vectors that the number of positions still winnabl
 1. Read `docs/labs/course-correction-2026-10-18/audits/d37-reactivation-architect.md` (section 3.2 and section 6 W1), `docs/labs/address-cells-preflight-2026-10-19/README.md` and `docs/mechanisms/discrete-learning.md`.
 2. Open the reusable host code in `crates/uor-r4-discrete/src/`: `address_cells.rs`, `coverage_census.rs`, `attention_preflight.rs`, and the kernel in `crates/uor-r4-discrete/src/discrete.cu`. This item waits on [m1-w2-capacity-capture](m1-w2-capacity-capture.md) for the same measurement setup.
 3. First deliverable, posted on the issue: a design note. It gives the metric (full vector or interior block), why it uses no softmax and no matmul, and finite CPU controls on `address_cells.rs` (distinct-vector count, alias ceiling, tie mass on a fixed fixture).
-4. Build the host version first and run `~/.cargo/bin/cargo test -p uor-r4-discrete --lib address_cells`. Add the kernel change only after the host numbers look worth it; the kernel needs a stub-nvcc check and a fresh CUDA qualification.
-5. Write the one-page pre-registration for the zero-update GPU pre-flight on the A8 placement. Freeze and hash the panel, give the Stage 1 bar above, and get a non-author FIT before any GPU run.
+4. Build the host version first and run `~/.cargo/bin/cargo test -p uor-r4-discrete --lib address_cells` (no feature is needed; the build script skips nvcc unless `--features cuda` is set). Add the kernel change only after the host numbers look worth it; the kernel needs a stub-nvcc `--features cuda` type check (as in `docs/labs/bvgk-c2-block-apply-2026-10-18/README.md`) and a fresh CUDA qualification.
+5. Write the one-page pre-registration for the zero-update GPU pre-flight on the A8 placement. Freeze and hash the panel, give the Stage 1 bar above, and get a non-author FIT before any GPU run. A FIT review releases nothing: if `docs/integration/NOW.md` lists a hold on this run, only Casey types the owner release, and no lab types it.
 6. Run it on the GPU through `scripts/pod/uor-pod` (lease your GPU first) and save results off the pod.
 7. Open a PR that says `Closes #<this issue>` (or `References` if partial), and add one row to `docs/research/notebook/m1-discrete-attention.md`.
 

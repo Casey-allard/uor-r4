@@ -15,7 +15,7 @@ M6 closes reasoning and coding on the same model that holds the conversation and
 
 ## What is missing
 
-m6-reasoning is 0/1 qualified and not started. The served M4 model has to pass the frozen panel and the causal ablation. Today M4 is held: the integer serving engine is built, but no model trained under the current rules is exported to it (`STATUS.md`). The panel, the ablation instrument and the arithmetic mechanism do not exist yet, and the numeric bar for the panel is not yet registered.
+M6 is not started: its headline is 0 of 1 qualified milestone (`docs/harness/milestones.json`). The served M4 model has to pass the frozen panel and the causal ablation. Today M4 is held: the integer serving engine is built, but no model trained under the current rules is exported to it (`STATUS.md:19`). The `m6-reasoning` panel is not frozen (`"frozen": false` in `docs/harness/panels/m6-reasoning.json`) and carries no bars, the noise is unstated, and the panel file's own floor for a decisive run is at least 2 seeds and at least 200 fresh rows. The ablation instrument and the arithmetic mechanism do not exist yet, and the numeric bar for the panel is not yet registered.
 
 ## Done when
 
@@ -23,8 +23,8 @@ M6 bar: 'Executable reasoning and coding on the same model'; the served model pa
 
 ## How to start
 
-1. Check the four dependencies. Confirm that `m4-export-uorlut01-cli`, `m6-reasoning-panel-freeze`, `m6-causal-ablation-instrument` and `m6-exact-arithmetic-mechanism` are done: `ls docs/roadmap/items/` and the item status lines, `docs/harness/panels/m6-reasoning.json` (`frozen` must be `true`), and `gh issue view 2034 --repo UOR-Foundation/uor-r4`. Do not start while any is open. Run `uor-harness status`; the harness briefs cover m1 to m4, so use the issue for M6 context.
-2. Post a draft pre-registration sheet on #2034 as your first deliverable: one page, with the bar from the frozen panel (state it as "not yet registered" if it is still missing), the measured noise, the controls, at least 2 seeds, cost, the stop rules and what each outcome decides. Use a registered sheet such as `docs/labs/a8-dose-2026-10-19/README.md` as a layout reference. The ablation controls must name which parts are knocked out (state transport, addressed memory) and what drop counts as dependence.
+1. Check the four dependencies. Confirm that `m4-export-uorlut01-cli`, `m6-reasoning-panel-freeze`, `m6-causal-ablation-instrument` and `m6-exact-arithmetic-mechanism` are done: `ls docs/roadmap/items/` and the item status lines, `docs/harness/panels/m6-reasoning.json` (`frozen` must be `true`), and `gh issue view 2034 --repo UOR-Foundation/uor-r4`. Do not start while any is open. Run `uor-harness status`. For M6 context read the `m6` entry in `docs/harness/milestones.json`, the M6 section of `docs/integration/project-track.md` and the issue.
+2. Post a draft pre-registration sheet on #2034 as your first deliverable: one page, with the bar from the frozen panel (state it as "not yet registered" if it is still missing), the measured noise, the controls, at least 2 seeds, cost, the stop rules and what each outcome decides. Use a registered sheet such as `docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md` as a layout reference (its record is `docs/labs/a8-dose-2026-10-19/README.md`). The ablation controls must name which parts are knocked out (state transport, addressed memory) and what drop counts as dependence.
 3. Get a non-author TEST FITNESS: FIT review of the sheet (CHARTER §4.5). A fresh-context reviewer counts. A FIT releases nothing. Staging the run needs the owner: Casey types the owner release personally with `UOR_LAB` unset, and the lab stages the exact commands (CHARTER §5.1).
 4. After the release, run on the GPU through `scripts/pod/uor-pod` (`uor-pod status` first; at most 4 pods and $8/h across all labs, and lease only the GPUs you use). Serve the exported model through the integer path, never a float stack. Score the frozen panel with its deterministic oracles, then run the ablation instrument. Outside contributors may use their own GPU and must attach the hardware specs; a non-5090 run is re-run by a maintainer under the same FIT.
 5. Save the results off the pod before `uor-pod down`. Seal the checkpoint hash, panel hash and logs in a dated evidence folder under `docs/labs/` only if the run seals artifacts.
@@ -41,4 +41,5 @@ M6 bar: 'Executable reasoning and coding on the same model'; the served model pa
 ## Sources
 
 - [`ROADMAP.md:19`](../../../ROADMAP.md)
+- [`STATUS.md:19`](../../../STATUS.md)
 - issue#2034

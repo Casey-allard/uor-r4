@@ -15,15 +15,15 @@ Prevents silent corruption of stored facts. M3 cannot be qualified while small t
 
 ## What is missing
 
-The required fix from #1718 is a discriminator or margin gate so that non-memory prose cannot compile to ASSERT or CORRECT, measured before qualifying M3. world=v2 uses compiler-save-op-v25-rawtable and op-model-v25. The gate does not exist yet. The panel that measures it is the [non-relation prose panel](m3-nonrelation-prose-panel.md), and its pass bar is not yet registered.
+The required fix is a discriminator or margin gate so that non-memory prose cannot compile to ASSERT or CORRECT, measured before qualifying M3. (#1718 is a closed historical citation, per `docs/labs/roadmap-stale-rows-2026-10-18/README.md:16`; the requirement is carried by #2031 and the M3 bar in `docs/integration/project-track.md:116-120`.) The world=v2 session recipe uses `compiler-save-op-v25-rawtable` and `op-model-v25` (`docs/compute/ladder-runbook.md:261-265`). The gate does not exist yet: `action` and `table_action` contain no margin or discriminator check. The panel that measures it is the [non-relation prose panel](m3-nonrelation-prose-panel.md), and its pass bar is not yet registered.
 
 ## Done when
 
-M3 criterion 3: "Non-memory conversational prose does not silently overwrite stored facts (#1718)", measured on the pre-registered panel.
+The last clause of the M3 bar in `docs/integration/project-track.md:116-120`: non-memory conversational prose does not silently overwrite stored facts. It is measured on the pre-registered panel.
 
 ## How to start
 
-1. Read `crates/uor-r4-training/src/relation_compiler.rs`: `SavedCompiler::action` and `table_action` (around lines 2205–2320), `classify_row`, and the `ActRule` and `OpPolicy` types. Find how the table and span heads give a relation and an act, and where a margin between the top class and the runner-up could be read. The module already holds a `Softmax` fit type (line 353) that the gate must not reuse. Do not add softmax, sigmoid or a normalized exponential to get a "probability" (CHARTER §3.2); a margin must come from the geometry the heads already use, such as a rank or distance gap.
+1. Read `crates/uor-r4-training/src/relation_compiler.rs`: `SavedCompiler::action` (lines 2219–2295) and `table_action` (lines 2299–2342), `classify_row` (line 2175), and the `ActRule` (line 1102) and `OpPolicy` (line 1071) types. Find how the table and span heads give a relation and an act, and where a margin between the top class and the runner-up could be read. The module's heads are fitted with the `Softmax` and `SparseSoftmax` types (lines 353 and 488; `SparseSoftmax::margin` is at line 588) which the gate must not reuse or turn into a probability. Do not add softmax, sigmoid or a normalized exponential to get a "probability" (CHARTER §3.2); a margin must come from the geometry the heads already use, such as a rank or distance gap.
 2. Wait for or help finish the panel in [m3-nonrelation-prose-panel](m3-nonrelation-prose-panel.md). Its baseline false-assert and false-overwrite rates are the number this gate must beat.
 3. Post a design note on the issue. It must state: the geometric construction of the discriminator or margin gate; how it avoids softmax and matmul; where in `action` it acts (it must return `Unresolved`, never change a write into a read); the finite CPU controls (a hand-built compiler where a statement clears the margin and a small-talk turn does not, and a check that real statements still write); and the failure it must not cause, which is refusing true statements.
 4. Add the gate and its CPU tests in `relation_compiler.rs`. Run `~/.cargo/bin/cargo test -p uor-r4-training relation_compiler` and `uor-harness check`.
@@ -42,4 +42,6 @@ M3 criterion 3: "Non-memory conversational prose does not silently overwrite sto
 ## Sources
 
 - issue#2031 (folds #1718)
-- `crates/uor-r4-training/src/relation_compiler.rs` (`action` and `table_action`, lines 2205–2320)
+- `crates/uor-r4-training/src/relation_compiler.rs` (`action`, lines 2219–2295; `table_action`, lines 2299–2342)
+- `docs/integration/project-track.md` (the M3 bar, lines 116–120)
+- `docs/compute/ladder-runbook.md` (the world=v2 recipe, lines 261–265)

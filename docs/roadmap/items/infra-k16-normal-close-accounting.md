@@ -15,7 +15,7 @@ Closes custody and cost records for the last full experiment so later runs build
 
 ## What is missing
 
-NOW's historical K16 snapshot (`docs/integration/NOW.md:78-81`) says the same lease is retained and "Normal close and final resource accounting are not yet recorded". The registered outcome call itself is done (`OCCUPANCY_COLLAPSE_TRIGGERED`, 2026-10-19), so check whether closure is already recorded before starting; this line may be stale.
+NOW's historical K16 snapshot (`docs/integration/NOW.md:69-81`) says the same lease is retained and "Normal close and final resource accounting are not yet recorded". The registered outcome call itself is done (`OCCUPANCY_COLLAPSE_TRIGGERED`, 2026-10-19), so check whether closure is already recorded before starting; this line may be stale.
 
 What the sources show today:
 
@@ -30,10 +30,10 @@ Normal close and final resource accounting recorded for the K16 run, or the stal
 
 ## How to start
 
-1. Check whether closure is already recorded. Find the K16 lease or pod id in `docs/labs/k16-four-role-execution-2026-10-18/receipt.json` and the #2029 receipts. Then search for it: `git grep -n "<id>" -- docs archive/CATALOG.md`. Also read `docs/labs/k16-current-status-scope-2026-10-19/README.md` and `docs/reference/storage.md`.
-2. Read the live state without changing it: `scripts/pod/uor-pod status` and `uor-harness budget show`. If the lease is still retained, do not destroy anything. Post on the issue and ask the lease holder. Only the session that holds a lease closes it, and results must already be off the pod; NOW records that custody passed.
+1. Check whether closure is already recorded. A search of `docs` for "normal close" and "final resource accounting" finds only NOW and the four-role record. The lease or pod id is not in `docs/labs/k16-four-role-execution-2026-10-18/receipt.json`; look in the #2029 comments, in `docs/harness/ledger/*.jsonl`, and in the local compute ledger that `uor-harness budget show` reads (`docs/harness/README.md:81`). Then search for it: `git grep -n "<id>" -- docs archive/CATALOG.md`. Also read `docs/labs/k16-current-status-scope-2026-10-19/README.md` and `docs/reference/storage.md`.
+2. From the repository root, read the live state without changing it: `scripts/pod/uor-pod status` and `uor-harness budget show`. If the lease is still retained, do not destroy anything. Post on the issue and ask the lease holder. Only the session that holds a lease closes it, and results must already be off the pod; NOW records that custody passed.
 3. First deliverable, posted on the issue: a short comment with the lease id, create time, close time (or "still retained"), billed hours times the quoted $0.908 per hour as a labelled proxy, the storage and transfer figures if measured (otherwise "unmeasured"), and a link for each fact.
-4. Record it. If the close happened, add a dated addendum under line 24 of the four-role record; do not rewrite its earlier wording, since nothing is deleted. If it was already recorded elsewhere, edit `docs/integration/NOW.md:78-81` to drop "not yet recorded" and point to that record. If the close is genuinely still pending, record that and leave NOW as it is.
+4. Record it. If the close happened, add a dated addendum under line 24 of the four-role record; do not rewrite its earlier wording, since nothing is deleted. If it was already recorded elsewhere, edit `docs/integration/NOW.md:69-81` to drop "not yet recorded" and point to that record. If the close is genuinely still pending, record that and leave NOW as it is.
 5. Run `uor-harness check` and `~/.cargo/bin/cargo run -q -p xtask -- roadmap check`.
 6. Open a PR that says `Closes #<this issue>`, or `References` if partial. Record the result as one row in `docs/research/notebook/m1-discrete-attention.md`, the line that holds the K16 rows.
 
@@ -45,4 +45,4 @@ Normal close and final resource accounting recorded for the K16 run, or the stal
 
 ## Sources
 
-- [`docs/integration/NOW.md:78-81`](../../../docs/integration/NOW.md)
+- [`docs/integration/NOW.md:69-81`](../../../docs/integration/NOW.md)
