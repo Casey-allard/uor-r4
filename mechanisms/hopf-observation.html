@@ -1,0 +1,309 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Hopf observation with a kept fibre - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="../start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="../start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="../start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="../start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="../start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="../start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="../products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="../products/web-client.html"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="../products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="../products/releases-and-artifacts.html"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="../model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="../model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="../model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="../geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="../geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="../geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="../geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="../geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="../geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="../geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="../mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="../mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="../mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="../mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="../mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="../mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="../mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/hopf-observation.html" class="active"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="../mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="../mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="../mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="../mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="../mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="../mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="../mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/pointer-key.html"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="../mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="../mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="../mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="../mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="../mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="../mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="../mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="../mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="../mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="../research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="../research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="../research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="../research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="../research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="../research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="../research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="../research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="../research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="../research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="../research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="../research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="../research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="../research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="../rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../rules/decision-map.html"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="../rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="../CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../formal_vocabulary.html"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="../CONFIGURATION.html"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="../reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="../minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="../RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="../projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="../projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="../projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="../projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="../projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="../projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="hopf-observation-with-a-kept-fibre"><a class="header" href="#hopf-observation-with-a-kept-fibre">Hopf observation with a kept fibre</a></h1>
+<p><strong>Status: PARKED.</strong> The map and the kept-fibre bookkeeping are built and unit-tested, but they run only as telemetry in the integer runtime, and the test that matters for language (does keeping the lost angle help?) has never been run. The forms that were tried for prediction failed or used banned parts: sector routing, softmax attention, and a curved-space read that came out neutral (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/course-correction-2026-10-18/audits/mechanism-census.md">mechanism census</a>).</p>
+<p>Labels used below: <strong>proof</strong> means derived from definitions or code, <strong>measurement</strong> means a recorded run, <strong>hypothesis</strong> means an untested idea (see <a href="../CHARTER.html">the charter</a>, section 4.6). Unfamiliar project terms (K16, A8, admission, NOT_RUN) are in the <a href="../start/glossary.html">glossary</a>.</p>
+<h2 id="in-plain-words"><a class="header" href="#in-plain-words">In plain words</a></h2>
+<p>A rotation state in this model is a point on a four-dimensional sphere. The Hopf map looks at that point through a three-dimensional shadow. The shadow forgets one angle, so many different states cast the same shadow. This mechanism keeps the forgotten angle in a separate slot, so nothing is lost, and uses it to track drifting phase and to sort states into routing bins. A related idea, the Lorentz read, scores a match by distance in a curved, tree-friendly space instead of by a dot product. Neither has been shown to help a language model.</p>
+<h2 id="what-it-replaces-in-a-transformer"><a class="header" href="#what-it-replaces-in-a-transformer">What it replaces in a transformer</a></h2>
+<p>Attention scoring: the rule that decides how well a query matches a stored key. A transformer uses a dot product. The Lorentz read replaces it with a curved-space distance, and the Hopf bins were meant to route a query to a small group of keys before scoring.</p>
+<p><img src="../figures/mechanisms/hopf-observation.svg" alt="A unit quaternion drawn as a point on a 3-sphere, its shadow on a 2-sphere, and the fibre circle through the point. A phase slider moves the point around its circle while the shadow stays put, and a second readout accumulates the winding as the kept fibre phase. Beside it, a 512-cell sector grid with 7 cells lit, and a flat dot product against a hyperbolic disk on a tree of code scopes." /></p>
+<p><em>What the shadow forgets, and what the old routing did with it. Moving the point around the fibre changes nothing in the shadow; the kept phase records it.</em></p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p><strong>The map (Definition).</strong> Write a unit quaternion as \(q=(a,b,c,d)\) with \(z_1=a+ib\) and \(z_2=c+id\). The Hopf map to the 2-sphere is
+\[h(q)=\big(2(ac+bd),\ 2(bc-ad),\ a^2+b^2-c^2-d^2\big)=\big(2\,\mathrm{Re}(z_1\bar z_2),\ 2\,\mathrm{Im}(z_1\bar z_2),\ |z_1|^2-|z_2|^2\big).\]</p>
+<p><strong>Two facts (proof, by expanding the squares).</strong> First, \(|h(q)|^2=(a^2+b^2+c^2+d^2)^2=1\), so \(h\) lands on the unit sphere. Second, multiplying both \(z_1\) and \(z_2\) by the same phase \(e^{i\varphi}\) leaves \(z_1\bar z_2\) and both moduli unchanged. That phase moves \(q\) around a circle (the <em>fibre</em>) while \(h(q)\) stays put. So the shadow alone cannot be inverted. Rebuilding \(q\) needs the base point, the fibre phase and a chart convention, because there is no global identification \(S^3=S^2\times S^1\).</p>
+<p><strong>Kept fibre (Definition).</strong> Holonomy tracking accumulates the wrapped change in fibre phase, plus the Fubini-Study distance, along a trajectory of states. In the integer runtime these are recorded per session and are marked telemetry only: they do not change any output.</p>
+<p><strong>Sector routing (Definition).</strong> Three Hopf coordinates are binned \(8\times8\times8=512\) ways. When the inputs are non-negative at most 64 sectors are reachable, a fact of the binning (proof).</p>
+<p><strong>Lorentz read (Definition).</strong> Lift query \(q\) and key \(k\) to the hyperboloid, \(q_0=\sqrt{1+|q|^2}\) and \(k_0=\sqrt{1+|k|^2}\), and set \(z=q_0k_0-q\cdot k\). The score is \(\beta\,(\delta-\operatorname{arccosh} z)\), with a learned radius \(\delta\) and scale \(\beta\).</p>
+<p><strong>Icosian shadows (from enumeration).</strong> The 120 icosians map onto 30 points of the 2-sphere, every fibre of size 4 (checked by finite enumeration in <a href="../geometry/hopf-observation.html">the geometry chapter</a>).</p>
+<p><strong>Rule check.</strong></p>
+<ul>
+<li><em>D11:</em> not yet. The integer helpers use multiplication and division, the core helpers decode to <code>f64</code>, and the integer runtime refuses Lorentz models until an integer arccosh table exists.</li>
+<li><em>D23:</em> the map has no softmax. Every Lorentz read and attention that was actually run normalised scores with softmax, which is excluded.</li>
+<li><em>D30:</em> the map is a few products, not a matrix multiplication. The float Lorentz stacks used dense query and key projections, which are barred.</li>
+<li><em>D32/D37:</em> the float Hopf helpers (sine, cosine, square root) fall outside the zeta-zero exception. Under D37 a float version could be re-registered with a fresh review. The current discrete Route, Flock and Relation reads use no Hopf quantity (<a href="../geometry/hopf-observation.html">the geometry chapter</a>).</li>
+</ul>
+<h2 id="what-has-been-tried"><a class="header" href="#what-has-been-tried">What has been tried</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Date</th><th>What was run</th><th>Result</th><th>Verdict</th><th>Record</th></tr></thead><tbody>
+<tr><td>28 Jul</td><td>Ancestor router: angular state as a context carrier</td><td>Angular routing and decodability only, not generation; not reproduced under today's gates</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/prime_router_geometric_context_evidence.md">evidence note</a></td></tr>
+<tr><td>31 Jul</td><td>Sector routing on held-out decisions, 1,500 decisions (#303)</td><td>7 of 512 sectors occupied (1.4%); at most 64 reachable</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/hopf_sector_occupancy_d3.md">occupancy</a></td></tr>
+<tr><td>31 Jul</td><td>Same protocol with a fixed signed projection (#306)</td><td>43 of 512 sectors (8.4%); retrieval quality left unmeasured</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/hopf_projection_remediation_306.md">remediation</a></td></tr>
+<tr><td>Aug</td><td>Hopf signed projection as a retrieval filter (#430)</td><td>Occupancy spread, no retrieval value: MRR 0.0045 against 0.0743</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/history/github-archive-2026-10-15/markdown/0430-test-router-422-hopf-retrieval-quality-recorded-negative-occ.md">#430 issue record</a></td></tr>
+<tr><td>27–28 Aug</td><td>Recursive attention with an additive summary (#952), then equal-budget direct H4 attention (#973)</td><td>The summary erased earlier order. Full H4 got 3/12 while plain fixed tangent got 12/12, so geometry was not load-bearing. Both records say Hopf is not refuted</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/recursive_geometric_attention_a1_952.md">A1.0</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/direct_causal_geometric_attention_973.md">V3</a></td></tr>
+<tr><td>undated</td><td>Paired-H4 heatmap readout (#970)</td><td>Heatmap classes aliased incompatible outcomes; gate stopped the run</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/candidate_relative_identifiability_a1p_970.md">record</a></td></tr>
+<tr><td>undated</td><td>Softmax decoder through R4 frames, then learned Lorentz attention in SmolLM2 (HELM-D)</td><td>Parity passes. Lorentz scored NLL 7.71 against donor 3.668 and Euclidean 4.483</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/helm_d_r4_softmax_decoder_973.md">parity</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/helm_d_score_centroid_localization_973.md">localization</a></td></tr>
+<tr><td>19 Sep</td><td>Zero the per-token 5-dimensional readout of the September prose model</td><td>+0.3377 bits per byte when removed (baseline 1.8055). Effects do not simply add; no pairwise factorial was run</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/EVIDENCE.md">evidence</a></td></tr>
+<tr><td>26 Sep</td><td>Hyperbolic keys on real code-scope hierarchies</td><td>77.5% of non-root queries at 16 dimensions against 0.4% for dot product; 36-bit keys kept 87% of accuracy; −0.020 bits per byte on code, −0.005 on prose</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/hyperbolic-cycle2-2026-09-26.md">cycle 2</a></td></tr>
+<tr><td>26 Sep</td><td>Lorentz read in the Rust learner, 4 seeds, 2,000 updates</td><td>Ahead of dot in 3 of 4 seeds, mean 0.018 nats (0.007 bits per byte), below the 0.03 bar; the 600-step pilot overstated it</td><td>positive, small</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/hyperbolic-cycle3-2026-09-26.md">cycle 3</a></td></tr>
+<tr><td>27–28 Sep</td><td>Radial adaptation from a negative parent; Lorentz in the 7M-parameter stack</td><td>Neither radial arm beat dot. Lorentz minus dot −0.0001</td><td>negative, neutral</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/radial-adaptation-result-2026-09-27.md">radial</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/geometric-toolbox-2026-09-28.md">toolbox</a></td></tr>
+<tr><td>5–6 Oct</td><td>Generator selector arms (#1782), scored against a MiniLM teacher selector (a neural comparator; inactive evidence)</td><td>Hopf arm H 49.7%, flat arm S 50.8%, Hopf with the fibre kept (H_F) 50.8%: keeping the fibre recovered the 1.1-point gap (n=376, not powered). The lexical baseline got 55.3% and any selector was capped at 77.9% by the clause segmentation, so Phase 0 was dropped on other grounds</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/history/github-archive-2026-10-15/markdown/1782-phase-0-minilm-teacher-clause-retrieval-static-e8-tables-vs.md">#1782 record</a></td></tr>
+<tr><td>12 Oct</td><td>Lorentz against its flat L2 ablation, 3 seeds</td><td>Ahead on every seed, but only one met the per-seed margin: wrong-value 49 to 32 of 120</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/geometric-read-2026-10-11/README.md">geometric read</a></td></tr>
+<tr><td>11 Oct</td><td>Fixed circle phases for read binding, 2 seeds</td><td>Same bound mass as learned supervision, worse answers, 13 times slower</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/phase-binding-2026-10-11/README.md">phase binding</a></td></tr>
+</tbody></table>
+</div>
+<p><strong>Reading these honestly.</strong> Only the occupancy rows test the Hopf map itself, and they tested one projection of one state. The attention failures were an additive summary, a heatmap readout, and softmax constructions; their records say Hopf and H4 are not refuted. The Lorentz read was neutral at best, and it was never run without softmax and dense projections. The strong hyperbolic result (77.5% against 0.4%) was about keys that index a hierarchy, not about scoring a read. The audit suggests splitting this page in two: the kept-fibre map is nearer READY than PARKED, while sector routing and the Lorentz read are the parked forms. The status is left unchanged here. D22 applies: these close configurations, not the mechanism.</p>
+<h2 id="what-has-never-been-tested"><a class="header" href="#what-has-never-been-tested">What has never been tested</a></h2>
+<ul>
+<li><strong>Kept fibre for language:</strong> never tested in a language model (the one kept-fibre datum is the small selector comparison above). Base only against base plus fibre against explicit bank tags, at equal bytes.</li>
+<li><strong>Any Hopf quantity inside the discrete reads</strong> (Route, Flock, Relation).</li>
+<li><strong>The S7 quaternionic Hopf relation state.</strong> No implementation exists.</li>
+<li><strong>A pairwise factorial</strong> separating the Hopf shadow channel from the predictor weights it interacts with (JEPA).</li>
+<li><strong>A third paired seed for Lorentz against dot</strong>, and a Lorentz-scored pointer.</li>
+<li><strong>A Lorentz read without softmax or dense matrices.</strong> Every executed form used both.</li>
+<li><strong>Hopf holonomy as a dialogue-state feature</strong> that changes output. The integer tests assert nonzero winding, not usefulness.</li>
+</ul>
+<h2 id="what-would-reopen-it"><a class="header" href="#what-would-reopen-it">What would reopen it</a></h2>
+<ol>
+<li><strong>A retained-fibre test:</strong> base only against base plus fibre against explicit bank tags, at equal retained bytes, with fibre removal or permutation, a common action, one endpoint changed against both, and exact occurrence identity kept outside the lossy summary.</li>
+<li><strong>An integer, multiplier-free Hopf map</strong> wired into a consumer on the discrete path.</li>
+<li><strong>A Lorentz read re-registered as an offline D37 float sheet</strong> with a fresh review, a read that avoids softmax and dense matrices, a third paired seed and a D11 export gap (an integer arccosh table does not exist yet).</li>
+<li><strong>The reduced finite S7 construction</strong>, only after a witnessed information or cost need.</li>
+<li><strong>Hierarchy-heavy tasks</strong> where hyperbolic keys already showed a large gap, put on an equal-capacity, softmax-free harness.</li>
+</ol>
+<h2 id="also-known-as"><a class="header" href="#also-known-as">Also known as</a></h2>
+<p>Hopf map \(S^3\to S^2\); retained fibre; holonomy tracking; <code>UnitS3Q30::hopf</code> and <code>hopf_fiber_project</code>; Fubini-Study trajectory; Hopf sector routing (512 sectors); Lorentz or hyperbolic read; <code>LorentzAffine</code>; HELM-D R4 Lorentz attention; S7 quaternionic Hopf relation state (conditional, never built).</p>
+<h2 id="code"><a class="header" href="#code">Code</a></h2>
+<ul>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-core/src/native_geometric/hopf_metric.rs"><code>native_geometric/hopf_metric.rs</code></a>: the map, fibre point, Q30 versions and holonomy tracking.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-core/src/prime_route_attention.rs"><code>prime_route_attention.rs</code></a>: <code>UnitS3Q30::hopf</code>, <code>rotate_common_fiber</code>, <code>SpinTorsionState</code>.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/math.rs"><code>uor-r4-integer/src/math.rs</code></a> and <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/model.rs"><code>model.rs</code></a>: integer helpers, and the telemetry-only per-session state.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-router/tests/hopf_sector_occupancy.rs"><code>uor-r4-router/tests/hopf_sector_occupancy.rs</code></a>: the occupancy measurement.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/joint_model.rs"><code>uor-r4-training/src/joint_model.rs</code></a>: the Lorentz read score in the float stacks.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-core/src/helm_d_r4_attention.rs"><code>helm_d_r4_attention.rs</code></a>: the HELM-D constructions (softmax, now excluded).</li>
+<li>Existing static art: <code>docs/figures/geometry/hopf-fibration.svg</code>.</li>
+</ul>
+<h2 id="related-mechanisms"><a class="header" href="#related-mechanisms">Related mechanisms</a></h2>
+<p><a href="prime-zeta-codebook.html">prime-zeta-codebook</a>: shares the unit-quaternion helpers; the table uses points on the 3-sphere but not the Hopf map. <a href="spin-weights.html">spin-weights</a>: acts with the same quaternions and icosian roots. <a href="spiralcore-fbs.html">spiralcore-fbs</a>: both treat E8 and H4. <a href="vsa.html">vsa</a>: another lossy sketch kept beside exact identity. <a href="route-read.html">route-read</a>: hyperbolic keys were pitched as an address geometry. <a href="flock-read.html">flock-read</a>: ranks by frame proximity, a discrete cousin of a neighbourhood score. <a href="read-binding.html">read-binding</a>: phase binding and the Lorentz-against-L2 read both sat on it. <a href="exact-memory.html">exact-memory</a>: exact occurrence identity must stay outside any Hopf summary.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../mechanisms/vsa.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../mechanisms/tokenizer.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../mechanisms/vsa.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../mechanisms/tokenizer.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

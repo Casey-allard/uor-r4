@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 622" width="960" height="622" role="img">
+<title>Tokenizer</title>
+<desc>Three panels. Top: a short text drawn as bytes, merged upward into larger pieces by frequency, with the digits 8 and 4 kept as two separate pieces. Middle: the pinned vocabulary of 4,096 pieces is 3 special ids, 256 bytes and 3,837 merges; a 16,384-piece trainer exists but no model uses it. Bottom: raw text goes through the tokenizer into a prepared corpus file, and the driver checks file hash, token count and tokenizer identity d36d3e87 before reading.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.ti { font-size: 19px; font-weight: 600; }
+.h { font-size: 14px; font-weight: 600; }
+.big { font-size: 20px; font-weight: 600; }
+.n { font-size: 12px; fill: var(--muted); }
+.m { fill: var(--muted); }
+.b { font-weight: 600; }
+.c { text-anchor: middle; }
+.r { text-anchor: end; }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.ln { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.rl { stroke: var(--rule); stroke-width: 1; fill: none; }
+.dash { stroke-dasharray: 5 4; }
+.dot { stroke-dasharray: 2 3; }
+.fi { fill: var(--ink); } .fm { fill: var(--muted); } .fb { fill: var(--blue); } .fg { fill: var(--green); }
+.fo { fill: var(--orange); } .fv { fill: var(--verm); } .fp { fill: var(--purple); } .fs { fill: var(--sky); } .fk { fill: var(--pink); }
+.si { stroke: var(--ink); } .sm { stroke: var(--muted); } .sb { stroke: var(--blue); } .sg { stroke: var(--green); }
+.so { stroke: var(--orange); } .sv { stroke: var(--verm); } .sp { stroke: var(--purple); } .ss { stroke: var(--sky); }
+.w2 { stroke-width: 2; } .w15 { stroke-width: 1.5; } .w1 { stroke-width: 1; } .nf { fill: none; }
+</style>
+<defs>
+<marker id="a-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+<marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<marker id="a-verm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+<marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fo"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="622"/>
+<text class="ti" x="16" y="32">Tokenizer: bytes become pieces, and the fingerprint travels with every file</text>
+<rect class="panel" x="16" y="48" width="928" height="208" rx="8"/>
+<text class="h" x="30" y="72">1  Repeated merging of the most frequent adjacent pair</text>
+<rect class="box" x="60" y="214" width="40" height="28" rx="5"/><text class="c b" x="80" y="233">c</text>
+<rect class="box" x="106" y="214" width="40" height="28" rx="5"/><text class="c b" x="126" y="233">a</text>
+<rect class="box" x="152" y="214" width="40" height="28" rx="5"/><text class="c b" x="172" y="233">t</text>
+<rect class="box" x="198" y="214" width="40" height="28" rx="5"/><text class="c b" x="218" y="233">s</text>
+<rect class="box" x="244" y="214" width="40" height="28" rx="5"/><text class="c b" x="264" y="233">sp</text>
+<rect class="box" x="290" y="214" width="40" height="28" rx="5"/><text class="c b" x="310" y="233">8</text>
+<rect class="box" x="336" y="214" width="40" height="28" rx="5"/><text class="c b" x="356" y="233">4</text>
+<text class="n" x="60" y="251">raw bytes (256 possible)</text>
+<path class="rl w15" d="M80 202 V214 M126 202 V214"/>
+<rect class="box" x="60" y="174" width="86" height="28" rx="5"/><text class="c b" x="103" y="193">ca</text>
+<path class="rl w15" d="M80 162 V174 M172 162 V214"/>
+<rect class="box" x="60" y="134" width="132" height="28" rx="5"/><text class="c b" x="126" y="153">cat</text>
+<path class="rl w15" d="M80 122 V134 M218 122 V214"/>
+<rect class="fb" fill-opacity="0.3" x="60" y="94" width="178" height="28" rx="5"/><rect class="nf sb w2" x="60" y="94" width="178" height="28" rx="5"/><text class="c b" x="149" y="113">cats</text>
+<path class="rl w15" d="M264 214 L264 122"/>
+<rect class="fb" fill-opacity="0.3" x="244" y="94" width="40" height="28" rx="5"/><rect class="nf sb w2" x="244" y="94" width="40" height="28" rx="5"/><text class="c b" x="264" y="113">sp</text>
+<path class="rl w15" d="M310 214 L310 122"/>
+<rect class="fb" fill-opacity="0.3" x="290" y="94" width="40" height="28" rx="5"/><rect class="nf sb w2" x="290" y="94" width="40" height="28" rx="5"/><text class="c b" x="310" y="113">8</text>
+<path class="rl w15" d="M356 214 L356 122"/>
+<rect class="fb" fill-opacity="0.3" x="336" y="94" width="40" height="28" rx="5"/><rect class="nf sb w2" x="336" y="94" width="40" height="28" rx="5"/><text class="c b" x="356" y="113">4</text>
+<text class="n" x="60" y="87">final pieces (each has one id in 0 to 4,095)</text>
+<text class="b" x="470" y="100">Pieces are chosen by frequency.</text>
+<text x="470" y="120">The most frequent pair is merged first, then the next.</text>
+<text class="b" x="470" y="156">A digit is never merged with another digit.</text>
+<text x="470" y="176">So a two-digit number is two pieces, kept in order:</text>
+<rect class="box" x="470" y="190" width="36" height="28" rx="5"/><text class="c b" x="488" y="209">8</text>
+<rect class="box" x="512" y="190" width="36" height="28" rx="5"/><text class="c b" x="530" y="209">4</text>
+<text class="b" x="560" y="209" style="font-size:15px">= 84</text>
+<rect class="box" x="640" y="190" width="36" height="28" rx="5"/><text class="c b" x="658" y="209">4</text>
+<rect class="box" x="682" y="190" width="36" height="28" rx="5"/><text class="c b" x="700" y="209">8</text>
+<text class="b" x="730" y="209" style="font-size:15px">= 48</text>
+<text class="n" x="470" y="244">The pinned vocabulary has 10 single-digit pieces and 0 multi-digit pieces.</text>
+<rect class="panel" x="16" y="268" width="928" height="170" rx="8"/>
+<text class="h" x="30" y="292">2  The pinned vocabulary, and the 16,384-piece trainer</text>
+<text class="n" x="60" y="316">4,096 pieces, the pinned tokenizer (identity d36d3e87)</text>
+<rect class="fo" x="60" y="324" width="2" height="24"/><rect class="fs" x="62" y="324" width="12.5" height="24"/><rect class="fb" x="74.5" y="324" width="185.5" height="24"/>
+<rect class="nf sm w1" x="60" y="324" width="200" height="24"/>
+<path class="ln sb" marker-end="url(#a-blue)" d="M76 360 H258"/>
+<rect class="fo" x="280" y="326" width="10" height="10"/><text x="296" y="336">ids 0 to 2: start, end, unknown</text>
+<rect class="fs" x="280" y="344" width="10" height="10"/><text x="296" y="354">ids 3 to 258: the 256 single bytes</text>
+<rect class="fb" x="560" y="326" width="10" height="10"/><text x="576" y="336">ids 259 to 4,095: 3,837 learned merges</text>
+<text class="n" x="560" y="354">in order of use: most frequent pair first</text>
+<text class="n" x="60" y="380">3 + 256 + 3,837 = 4,096</text>
+<rect class="nf sp w2 dash" x="60" y="394" width="800" height="26" rx="3"/>
+<text class="c" x="460" y="412">16,384 pieces: trainer built 19 October, not used by any model</text>
+<text class="n" x="872" y="412">same scale</text>
+<rect class="panel" x="16" y="450" width="928" height="152" rx="8"/>
+<text class="h" x="30" y="474">3  Every prepared file is checked against the tokenizer’s identity</text>
+<rect class="box" x="30" y="486" width="96" height="96" rx="6"/><text class="c b" x="78" y="526">Raw text</text><text class="n c" x="78" y="544">any bytes</text>
+<path class="ln" marker-end="url(#a-ink)" d="M128 534 H152"/>
+<rect class="box" x="154" y="486" width="214" height="96" rx="6"/><text class="b" x="166" y="510">Tokenizer</text><text class="n" x="166" y="530">stored as tokenizer.json</text><text class="n" x="166" y="546">its blake3 hash is the identity:</text><text class="b" x="166" y="566" style="fill:var(--blue)">d36d3e87</text>
+<path class="ln" marker-end="url(#a-ink)" d="M370 534 H394"/>
+<rect class="box" x="396" y="486" width="270" height="96" rx="6"/><text class="b" x="408" y="510">Prepared corpus (UORT v1)</text><text class="n" x="408" y="530">64-byte header, 16-bit token ids,</text><text class="n" x="408" y="546">start markers, optional binary mask,</text><text class="n" x="408" y="562">tokenizer identity bound in</text>
+<path class="ln" marker-end="url(#a-ink)" d="M668 534 H692"/>
+<rect class="box" x="694" y="486" width="236" height="96" rx="6"/><text class="b" x="706" y="508">Checked before reading</text>
+<path class="nf sg" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M708 530 l5 5 l10 -12"/><text x="732" y="534">file hash</text>
+<path class="nf sg" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M708 550 l5 5 l10 -12"/><text x="732" y="554">token count</text>
+<path class="nf sg" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M708 570 l5 5 l10 -12"/><text x="732" y="574">tokenizer identity d36d3e87</text>
+<text class="n" x="16" y="620">Merge steps and pieces in panel 1 are illustrative, not read from the pinned vocabulary. Counts in panel 2 are from the page.</text>
+</svg>

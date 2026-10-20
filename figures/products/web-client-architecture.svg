@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 548" width="960" role="img" aria-labelledby="t d">
+<title id="t">Web client architecture</title>
+<desc id="d">A browser window with three stacked layers. Top: the Studio page (index.html) with three panes, editor, chat and model manager; it exists but still points at a retired engine. Middle: a Web Worker holding the WebAssembly engine (uor-r4-integer, serving-wasm feature) with its calls init, loadStack, step, saveSession and restoreSession; this is drawn solid because it is built and tested on a synthetic model (PR 2654). Bottom: browser storage holding the model file (model.uorlut01) and session snapshots (UR4SESS1). The wiring from the Studio to the worker and the storage cache are drawn dashed and marked planned (M7). Outside the window on the left, a static file host sends one dashed arrow in, labelled first visit only: page and model file, check SHA-256. On the right, an arrow to a model server is crossed out: no prompts leave the device.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.layer { font-size: 13.5px; font-weight: 600; }
+.name { font-size: 14px; font-weight: 600; }
+.detail { font-size: 12px; fill: var(--muted); }
+.note { font-size: 11.5px; fill: var(--muted); }
+.note-built { font-size: 11.5px; font-weight: 600; fill: var(--blue); }
+.note-plan { font-size: 11.5px; font-weight: 600; fill: var(--muted); }
+.mono { font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--ink); }
+.pane-text { font-size: 12.5px; fill: var(--body); }
+.window { fill: var(--bg); stroke: var(--muted); stroke-width: 1.75; }
+.chrome { fill: var(--panel); stroke: var(--muted); stroke-width: 1.75; }
+.dot { fill: var(--muted); }
+.addr { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.solid { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
+.planned { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.pane { fill: var(--bg); stroke: var(--rule); stroke-width: 1.25; }
+.engine { fill: var(--blue); fill-opacity: 0.08; stroke: var(--blue); stroke-width: 2; }
+.call { fill: var(--bg); stroke: var(--blue); stroke-width: 1.25; }
+.ext { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
+.ext-none { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.file { fill: var(--bg); stroke: var(--blue); stroke-width: 1.5; }
+.flow { stroke: var(--muted); stroke-width: 1.75; fill: none; }
+.flow-plan { stroke: var(--muted); stroke-width: 1.75; fill: none; stroke-dasharray: 5 4; }
+.head-fill { fill: var(--muted); }
+.cross { stroke: var(--verm); stroke-width: 2.5; stroke-linecap: round; }
+.blocked { font-size: 12px; font-weight: 600; fill: var(--verm); }
+</style>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" class="head-fill"/>
+  </marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="548"/>
+
+<text class="title" x="24" y="36">The web client: one download, then everything stays in the tab</text>
+<text class="sub" x="24" y="58">Solid: built and tested on a synthetic model. Dashed: planned for milestone M7.</text>
+
+<!-- Browser window -->
+<rect class="window" x="210" y="80" width="560" height="448" rx="10"/>
+<path class="chrome" d="M210,108 L210,90 A10,10 0 0 1 220,80 L760,80 A10,10 0 0 1 770,90 L770,108 Z"/>
+<circle class="dot" cx="226" cy="94" r="3.5"/><circle class="dot" cx="238" cy="94" r="3.5"/><circle class="dot" cx="250" cy="94" r="3.5"/>
+<rect class="addr" x="270" y="87" width="300" height="15" rx="7.5"/>
+<text class="note" x="282" y="99">/studio</text>
+
+<!-- Layer 1: Studio page -->
+<rect class="solid" x="230" y="122" width="520" height="98" rx="8"/>
+<text class="layer" x="246" y="144">Studio page (index.html)</text>
+<text class="note" x="734" y="144" text-anchor="end">exists; still points at a retired engine</text>
+<rect class="pane" x="246" y="156" width="156" height="50" rx="6"/>
+<text class="pane-text" x="324" y="186" text-anchor="middle">editor</text>
+<rect class="pane" x="412" y="156" width="156" height="50" rx="6"/>
+<text class="pane-text" x="490" y="186" text-anchor="middle">chat</text>
+<rect class="pane" x="578" y="156" width="156" height="50" rx="6"/>
+<text class="pane-text" x="656" y="186" text-anchor="middle">model manager</text>
+
+<!-- Wiring Studio <-> worker (planned) -->
+<line class="flow-plan" x1="440" y1="222" x2="440" y2="256" marker-end="url(#arr)"/>
+<line class="flow-plan" x1="470" y1="256" x2="470" y2="222" marker-end="url(#arr)"/>
+<text class="note-plan" x="486" y="244">wiring: planned (M7)</text>
+
+<!-- Layer 2: Web Worker + engine (built) -->
+<rect class="solid" x="230" y="260" width="520" height="138" rx="8"/>
+<text class="layer" x="246" y="282">Web Worker</text>
+<text class="note-built" x="734" y="282" text-anchor="end">built; tested on a synthetic model (PR 2654)</text>
+<rect class="engine" x="246" y="294" width="488" height="92" rx="8"/>
+<text class="name" x="262" y="316">WebAssembly engine</text>
+<text class="detail" x="418" y="316">uor-r4-integer, serving-wasm feature</text>
+<rect class="call" x="262" y="334" width="48" height="24" rx="12"/><text class="mono" x="286" y="350" text-anchor="middle">init</text>
+<rect class="call" x="318" y="334" width="86" height="24" rx="12"/><text class="mono" x="361" y="350" text-anchor="middle">loadStack</text>
+<rect class="call" x="412" y="334" width="48" height="24" rx="12"/><text class="mono" x="436" y="350" text-anchor="middle">step</text>
+<rect class="call" x="468" y="334" width="100" height="24" rx="12"/><text class="mono" x="518" y="350" text-anchor="middle">saveSession</text>
+<rect class="call" x="576" y="334" width="124" height="24" rx="12"/><text class="mono" x="638" y="350" text-anchor="middle">restoreSession</text>
+<text class="note" x="262" y="376">integer adds, shifts and table look-ups only</text>
+
+<!-- Worker <-> storage (planned) -->
+<line class="flow-plan" x1="400" y1="434" x2="400" y2="400" marker-end="url(#arr)"/>
+<text class="note" x="390" y="422" text-anchor="end">load model</text>
+<line class="flow-plan" x1="580" y1="400" x2="580" y2="434" marker-end="url(#arr)"/>
+<text class="note" x="590" y="422">save session</text>
+
+<!-- Layer 3: browser storage (planned) -->
+<rect class="planned" x="230" y="438" width="520" height="76" rx="8"/>
+<text class="layer" x="246" y="460">Browser storage</text>
+<text class="note-plan" x="734" y="460" text-anchor="end">planned (M7)</text>
+<path class="file" d="M262,470 L276,470 L284,478 L284,500 L262,500 Z"/>
+<text class="mono" x="294" y="490">model.uorlut01</text>
+<rect class="file" x="480" y="472" width="22" height="26" rx="3"/>
+<line class="flow" x1="485" y1="481" x2="497" y2="481"/>
+<line class="flow" x1="485" y1="489" x2="497" y2="489"/>
+<text class="pane-text" x="512" y="490">session snapshots (<tspan class="mono">UR4SESS1</tspan>)</text>
+
+<!-- Left: static file host -->
+<rect class="ext" x="24" y="210" width="150" height="60" rx="8"/>
+<text class="name" x="99" y="236" text-anchor="middle">Static file host</text>
+<text class="detail" x="99" y="254" text-anchor="middle">page + model file</text>
+<line class="flow-plan" x1="176" y1="240" x2="206" y2="240" marker-end="url(#arr)"/>
+<text class="note" x="24" y="294">First visit only:</text>
+<text class="note" x="24" y="310">download page and model,</text>
+<text class="note" x="24" y="326">check SHA-256</text>
+
+<!-- Right: model server, crossed out -->
+<line class="flow" x1="772" y1="240" x2="808" y2="240" marker-end="url(#arr)"/>
+<line class="cross" x1="782" y1="230" x2="798" y2="250"/>
+<line class="cross" x1="798" y1="230" x2="782" y2="250"/>
+<rect class="ext-none" x="812" y="210" width="124" height="60" rx="8"/>
+<text class="name" x="874" y="236" text-anchor="middle">Model server</text>
+<text class="detail" x="874" y="254" text-anchor="middle">none</text>
+<text class="blocked" x="812" y="294">No prompts leave</text>
+<text class="blocked" x="812" y="310">the device</text>
+</svg>

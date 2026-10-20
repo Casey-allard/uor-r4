@@ -1,0 +1,295 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The web client - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="../start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="../start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="../start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="../start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="../start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="../start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="../products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="../products/web-client.html" class="active"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="../products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="../products/releases-and-artifacts.html"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="../model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="../model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="../model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="../geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="../geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="../geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="../geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="../geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="../geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="../geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="../mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="../mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="../mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="../mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="../mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="../mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="../mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/hopf-observation.html"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="../mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="../mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="../mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="../mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="../mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="../mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="../mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/pointer-key.html"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="../mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="../mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="../mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="../mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="../mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="../mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="../mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="../mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="../mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="../research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="../research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="../research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="../research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="../research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="../research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="../research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="../research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="../research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="../research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="../research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="../research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="../research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="../research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="../rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../rules/decision-map.html"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="../rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="../CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../formal_vocabulary.html"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="../CONFIGURATION.html"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="../reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="../minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="../RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="../projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="../projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="../projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="../projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="../projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="../projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="the-web-client"><a class="header" href="#the-web-client">The web client</a></h1>
+<p>The web client is meant to be a language model that lives in a browser tab. You open a web page once, it downloads the model file, and from then on the model runs on your own computer, inside the browser, in a sandboxed form of machine code called WebAssembly. Your prompts and the model's replies never leave the device, because there is no model server to send them to. The page you would use is the Studio, an editor-and-chat interface already in the repository. Today the pieces exist separately and are not joined: the browser engine works on a synthetic test model, the Studio still points at an older engine that was retired, the public site is frozen, and there is no trained model to download. <strong>Until milestones M7 and M8 pass, the web client is a geometry explorer and demonstration, not a product.</strong></p>
+<p>Labels used below: <strong>proof</strong> (derived from definitions or code), <strong>measurement</strong> (a recorded run with its artifact), <strong>hypothesis</strong> (untested). See <a href="../formal_vocabulary.html"><code>docs/formal_vocabulary.md</code></a> and the <a href="../start/glossary.html">glossary</a>.</p>
+<p><img src="../figures/products/web-client-architecture.svg" alt="A browser window with three layers. Top: the Studio page (editor, chat panel, model manager). Middle: a Web Worker box holding the WebAssembly engine with its calls loadStack, step, saveSession and restoreSession. Bottom: browser storage holding the downloaded UORLUT01 model file and saved sessions (UR4SESS1). One arrow, drawn only once and labelled &quot;first visit: download model, check SHA-256&quot;, comes in from a static file host. A crossed-out arrow to a &quot;model server&quot; shows that no prompt leaves the device." /></p>
+<p><em>One download, then everything runs in the tab. The only network traffic is fetching the static page and the model file.</em></p>
+<h2 id="how-it-is-meant-to-work"><a class="header" href="#how-it-is-meant-to-work">How it is meant to work</a></h2>
+<ol>
+<li><strong>Load the page.</strong> The Studio is static HTML, JavaScript and CSS. The charter places it at <code>/studio</code> on the project's documentation site (<a href="../CHARTER.html">charter</a>, section 2).</li>
+<li><strong>Download the model once.</strong> The page fetches one <code>UORLUT01</code> file and checks its SHA-256 against the hash published with the release (<a href="releases-and-artifacts.html">releases</a>). It then keeps the file in browser storage so later visits work offline. This cache is planned, not built (from reading the repository).</li>
+<li><strong>Start the engine in a Web Worker.</strong> A worker is a background thread of the page, so typing stays smooth while the model computes. The worker loads the WebAssembly build of <code>crates/uor-r4-integer</code> and calls <code>init</code>, then <code>loadStack</code> on the model bytes.</li>
+<li><strong>Generate.</strong> For each token the worker calls <code>step</code>. The engine uses only integer adds, shifts and table look-ups (the D11 contract), so the same file gives the same tokens in every browser. That is a design property; M7 has to measure it.</li>
+<li><strong>Save and resume.</strong> <code>saveSession</code> writes the conversation state as a <code>UR4SESS1</code> snapshot, and <code>restoreSession</code> brings it back byte for byte.</li>
+</ol>
+<p>These function names are the real exports of the WebAssembly build: <code>init</code>, <code>tickClock</code>, <code>loadStack</code>, <code>step</code>, <code>saveSession</code>, <code>restoreSession</code>, <code>weightsPerToken</code>, <code>allocEvents</code>, <code>leakedModels</code> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/wasm-serving-runtime-2026-10-18/README.md">record</a>; <strong>proof</strong> by reading <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/wasm_bindgen_exports.rs"><code>wasm_bindgen_exports.rs</code></a>).</p>
+<p><strong>Why serving in the browser is allowed.</strong> Research compute must run on a GPU (D24). On 15 October that rule paused the browser engine, because serving in a browser runs on the user's processor (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d36--github-pages-keep-the-last-good-deploy-live-deploy-job-skipped-until-a-d11-served-wasm-engine-lands">D36</a>). The owner resolved this on 19 October: serving the exported D11 file on client devices, including browser WebAssembly, is the product, and D24 does not apply to it (<a href="../CHARTER.html">charter</a>, section 3.6).</p>
+<h2 id="what-exists-today"><a class="header" href="#what-exists-today">What exists today</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Piece</th><th>Where</th><th>State</th><th>Source</th></tr></thead><tbody>
+<tr><td>Studio interface</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/index.html"><code>index.html</code></a> (7,107 lines), <code>index.css</code>, <code>assets/js/uor_model_worker.js</code></td><td>Editor (Monaco, loaded from a CDN), file tree, chat, model manager, local folder access, GitHub chooser. It imports <code>pkg/uor_r4_wasm_router.js</code>, an engine retired on 15 October, and shows a banner saying no D11 served engine exists</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/index.html"><code>index.html</code></a>, banner <code>d36EngineStatusBanner</code> near line 2323</td></tr>
+<tr><td>WebAssembly integer engine</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/wasm_serve.rs"><code>crates/uor-r4-integer/src/wasm_serve.rs</code></a>, <code>wasm_bindgen_exports.rs</code>, <code>session_codec.rs</code></td><td>Built behind the <code>serving-wasm</code> feature; merged as <code>UOR-Foundation/uor-r4#2654</code></td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/wasm-serving-runtime-2026-10-18/README.md">record</a></td></tr>
+<tr><td>Its checks</td><td>same record</td><td>165 crate tests pass; 7 of 7 serving functions with 0 multiply, 0 divide and 0 float instructions; a Node.js run of 32 steps, save, restore and 16 more steps matches a fresh 48-step run (<code>reloadIdentical: true</code>) on a synthetic model (<strong>measurement</strong>)</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/wasm-serving-runtime-2026-10-18/README.md">record</a></td></tr>
+<tr><td>Browser and Node harnesses</td><td><code>docs/wasm-serving/wasm_serve_demo.html</code>, <code>verify.mjs</code></td><td>Source only: they import a build folder that is not committed, so they do not run from a clean clone</td><td>maintainer annotation in the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/wasm-serving-runtime-2026-10-18/README.md">record</a></td></tr>
+<tr><td>Public deploy</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/.github/workflows/deploy.yml"><code>.github/workflows/deploy.yml</code></a></td><td>Job disabled (<code>if: false</code>) by owner decision on 15 October; the live site is the last good build, 13 October 18:28Z</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d36--github-pages-keep-the-last-good-deploy-live-deploy-job-skipped-until-a-d11-served-wasm-engine-lands">D36</a></td></tr>
+<tr><td>Geometry explorer</td><td><code>geometric_prime_router_webapp.html</code></td><td>A standalone demo page, separate from the Studio; not verified in this audit</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/index.html"><code>index.html</code></a> and the repository root files</td></tr>
+<tr><td>Cross-origin isolation helper</td><td><code>coi-serviceworker.js</code></td><td>Vendored third-party file (v0.1.7, MIT)</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/index.html"><code>index.html</code></a> and the repository root files</td></tr>
+</tbody></table>
+</div>
+<p>Three limits from the engine's own record matter for a reader. The WebAssembly SIMD kernels are test fixtures that nothing calls yet; the engine still runs its scalar table kernel. The demo needs a local build first. And the <code>serving-wasm</code> build compiles some modules unconditionally, so its compliance with the "presence counts" rule (D29) rests on an interpretation that <code>DECISIONS.md</code> does not record (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/wasm-serving-runtime-2026-10-18/README.md">record</a>, maintainer annotation).</p>
+<h2 id="what-is-missing"><a class="header" href="#what-is-missing">What is missing</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Missing piece</th><th>Needed for</th></tr></thead><tbody>
+<tr><td>A trained model exported to <code>UORLUT01</code></td><td>Anything to download (M4, <code>#2032</code>)</td></tr>
+<tr><td>Studio rewired from the retired engine to the integer engine's exports, through a Web Worker</td><td>M7 (<code>#2035</code>)</td></tr>
+<tr><td>A download-once loader with a checksum check and a browser-storage cache</td><td>Offline use after the first visit</td></tr>
+<tr><td>Bit-identical token and session parity across the Rust library, <code>uor-chat</code> and the browser worker, on the real model</td><td>M7</td></tr>
+<tr><td>Truthful capability reporting in the Studio and zero remote model calls</td><td>M7</td></tr>
+<tr><td>Re-enabled Pages deploy (D36 says remove the <code>if</code> in the PR that lands a D11 served engine)</td><td>Public access</td></tr>
+<tr><td>Self-hosted copies of every CDN asset (Monaco, marked, KaTeX, pdf.js, three.js and the Google fonts), and web search removed or made opt-in</td><td>Fully offline use and the no-outside-traffic claim; the page now loads all of these from CDNs and sends search queries to Wikipedia and DuckDuckGo</td></tr>
+<tr><td>Honest screenshots taken after behaviour checks</td><td>Documentation</td></tr>
+</tbody></table>
+</div>
+<p>The M7 bar sums it up: the qualified model "produces bit-identical token completions and session snapshots across the Rust library, the <code>uor-chat</code> CLI and the browser <code>serving-wasm</code> worker", and the Studio "runs entirely client-side in a Web Worker with truthful capability reporting and zero remote model calls" (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/project-track.md">project track</a>, M7). The <code>.wasm</code> audit criterion is green and will be re-run on the shipped bundle; the rest of M7 (rewiring the Studio, three-host parity, client-side Studio) is open.</p>
+<h2 id="until-then-an-explorer-honestly-labelled"><a class="header" href="#until-then-an-explorer-honestly-labelled">Until then: an explorer, honestly labelled</a></h2>
+<p>Until M7 and M8 pass, the web page should present itself as what it is: a geometry explorer and a demonstration of the serving engine on a synthetic model. It must not offer a chat box that implies a working assistant. The Studio's engine-status banner already says so. Showing the engine's real exports (<code>weightsPerToken</code>, <code>allocEvents</code>) on a synthetic model is fair. Showing chat replies is not, until there is a trained model behind them.</p>
+<h2 id="privacy-model"><a class="header" href="#privacy-model">Privacy model</a></h2>
+<ul>
+<li><strong>The model computes only on the device.</strong> No prompt or reply is sent anywhere by the engine. That is the M7 bar, and today it holds trivially, because there is no remote model to call.</li>
+<li><strong>Network use is not yet limited to static files.</strong> The target is the page and the model file only. Today the Studio also loads third-party code and fonts from CDNs (Monaco, pdf.js and three.js from cdnjs; marked, KaTeX and the three.js controls from jsDelivr; fonts from Google Fonts), and its search feature sends the typed query to <code>en.wikipedia.org</code> and <code>api.duckduckgo.com</code>. Features that open files from GitHub talk to GitHub. None of that is model compute, but a privacy claim must not hide it: the requirement is to self-host every asset and make web search opt-in, or remove it, before M7 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/index.html"><code>index.html</code></a>, lines 11 to 25 and 5845 to 5906).</li>
+<li><strong>Integrity, not secrecy, of the model file.</strong> The SHA-256 check proves the file is the released one. The model is public, so there is nothing to hide in it.</li>
+</ul>
+<h2 id="open-questions"><a class="header" href="#open-questions">Open questions</a></h2>
+<ul>
+<li>How large will the model file be, and is a one-time download of that size acceptable on a phone? Unknown until a model exists.</li>
+<li>How fast is WebAssembly against native on the same file? No tokens-per-second figure for the browser has been recorded. The only native figures are from older float models: 68 to 80 tokens per second on 8 threads for a 29M model, which is evaluation throughput over 64 scored windows, not free-running decode (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/d11-serving-2026-10-10/README.md">D11 serving record</a>). No decode tokens per second exists for any D11 artifact.</li>
+<li>Should the Studio's provenance be settled first? Its source is an import from a companion repository, <code>Casey-allard/uor-r4-wasm-chat</code>, which this audit did not inspect.</li>
+</ul>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="desktop-client.html">Desktop client</a>, which shares this interface.</li>
+<li><a href="../model/serving-and-export.html">Serving and export</a> and the <a href="../mechanisms/lut-serving.html">integer serving dossier</a>.</li>
+<li>The <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/wasm-serving-runtime-2026-10-18/README.md">WebAssembly runtime record</a> (<code>UOR-Foundation/uor-r4#2654</code>, tracking issue <code>#1172</code>).</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d36--github-pages-keep-the-last-good-deploy-live-deploy-job-skipped-until-a-d11-served-wasm-engine-lands">D36</a> and the <a href="../CHARTER.html">charter</a>, section 3.6.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../products/language-model.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../products/desktop-client.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../products/language-model.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../products/desktop-client.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

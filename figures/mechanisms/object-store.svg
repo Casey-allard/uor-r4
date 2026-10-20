@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 524" width="960" height="524" role="img">
+<title>Exact byte object store</title>
+<desc>Three panels. Left: a document cut into 32-byte tiles folds into a three-child tree with a root fingerprint on top; a 23-byte range lights only the covering branches, with a verified path to the root, which in the real 32,768-byte object (1,024 atoms) costs 8 authenticated nodes and 384 bytes. Middle: two versions of a file share most of their tree; only the changed records travel, which for a 1 MiB object with a receiver 16 atoms behind was 22 records, 1,014 bytes and 3 rounds. Right: raw against stored record bytes for four test files: unique 32,768 to 70,972, repeated 7,776 to 380, UTF-8 and NUL text 605 to 421, empty 0 to 0. Trees are illustrative.</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1f2328;--body:#2b3138;--muted:#57606a;--rule:#d0d7de;--panel:#f6f8fa;--blue:#0072b2;--sky:#56b4e9;--green:#007a5e;--orange:#e69f00;--verm:#d55e00;--purple:#7a4fa3;--pink:#cc79a7;--active:#007a5e;--ready:#b06d00;--parked:#7a4fa3}
+@media (prefers-color-scheme: dark){svg{--bg:#0d1117;--ink:#e6edf3;--body:#c9d1d9;--muted:#8b949e;--rule:#30363d;--panel:#161b22;--blue:#58a6ff;--sky:#79c0ff;--green:#3fb950;--orange:#f0b72f;--verm:#ff7b72;--purple:#bc8cff;--pink:#f778ba;--active:#3fb950;--ready:#f0b72f;--parked:#bc8cff}}
+.bg{fill:var(--bg)}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+.title{font-size:19px;font-weight:600}
+.h{font-size:14px;font-weight:600}
+.b{font-weight:600}
+.n{font-size:11.5px;fill:var(--muted)}
+.body{fill:var(--body)}
+.mut{fill:var(--muted)}
+.c{text-anchor:middle}
+.e{text-anchor:end}
+.panel{fill:var(--panel);stroke:var(--rule);stroke-width:1}
+.rule{fill:none;stroke:var(--rule);stroke-width:1}
+.dot{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.arrow{fill:none;stroke:var(--ink);stroke-width:1.5}
+.fi{fill:var(--ink)}
+.fm{fill:var(--muted)}
+.fb{fill:var(--blue)}
+.fv{fill:var(--verm)}
+.fo{fill:var(--orange)}
+.edge{fill:none;stroke:var(--rule);stroke-width:1}
+.edgelit{fill:none;stroke:var(--blue);stroke-width:2.5}
+.nd{fill:var(--bg);stroke:var(--muted);stroke-width:1.25}
+.ndlit{fill:var(--blue);fill-opacity:.35;stroke:var(--blue);stroke-width:2}
+.tl{fill:var(--bg);stroke:var(--muted);stroke-width:1}
+.tllit{fill:var(--blue);fill-opacity:.45;stroke:var(--blue);stroke-width:1.5}
+.brk{fill:none;stroke:var(--blue);stroke-width:2}
+.card{fill:var(--bg);stroke:var(--rule);stroke-width:1.5}
+.cardhi{fill:var(--bg);stroke:var(--blue);stroke-width:2}
+.gr{fill:var(--muted);fill-opacity:.35;stroke:var(--muted);stroke-width:1}
+.ch{fill:var(--orange);fill-opacity:.55;stroke:var(--orange);stroke-width:1.75}
+.old{fill:var(--bg);stroke:var(--muted);stroke-width:1.25;stroke-dasharray:3 2}
+.raw{fill:var(--muted);fill-opacity:.65}
+.sto{fill:var(--blue)}
+.sent{fill:none;stroke:var(--orange);stroke-width:2}
+.lnk{fill:none;stroke:var(--muted);stroke-width:1}
+</style>
+<defs>
+<marker id="aho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="fo"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="524"/>
+<text class="title" x="24" y="32">Exact byte object store: what a read, an edit and a file cost</text>
+
+<rect class="panel" x="24" y="52" width="348" height="408" rx="8"/>
+<rect class="panel" x="384" y="52" width="270" height="408" rx="8"/>
+<rect class="panel" x="666" y="52" width="270" height="408" rx="8"/>
+
+<text class="h" x="40" y="76">A small read touches few nodes</text>
+<text class="n c" x="195.8" y="92">root fingerprint</text>
+<path class="edge" d="M45.0 252L56.6 211M56.6 252L56.6 211M68.2 252L56.6 211M79.8 252L91.4 211M91.4 252L91.4 211M103.0 252L91.4 211M114.6 252L126.2 211M126.2 252L126.2 211M137.8 252L126.2 211M149.4 252L161.0 211M161.0 252L161.0 211M172.6 252L161.0 211M184.2 252L195.8 211M195.8 252L195.8 211M207.4 252L195.8 211M219.0 252L230.6 211M230.6 252L230.6 211M242.2 252L230.6 211M253.8 252L265.4 211M265.4 252L265.4 211M277.0 252L265.4 211M288.6 252L300.2 211M300.2 252L300.2 211M311.8 252L300.2 211M323.4 252L335.0 211M335.0 252L335.0 211M346.6 252L335.0 211M56.6 197L91.4 163M91.4 197L91.4 163M126.2 197L91.4 163M161.0 197L195.8 163M195.8 197L195.8 163M230.6 197L195.8 163M265.4 197L300.2 163M300.2 197L300.2 163M335.0 197L300.2 163M91.4 149L195.8 116M195.8 149L195.8 116M300.2 149L195.8 116"/>
+<path class="edgelit" d="M207.4 252L195.8 211M219 252L230.6 211M195.8 197L195.8 163M230.6 197L195.8 163M195.8 149L195.8 116"/>
+<circle class="nd" cx="91.4" cy="156" r="7"/>
+<circle class="ndlit" cx="195.8" cy="156" r="7"/>
+<circle class="nd" cx="300.2" cy="156" r="7"/>
+<circle class="nd" cx="56.6" cy="204" r="7"/>
+<circle class="nd" cx="91.4" cy="204" r="7"/>
+<circle class="nd" cx="126.2" cy="204" r="7"/>
+<circle class="nd" cx="161.0" cy="204" r="7"/>
+<circle class="ndlit" cx="195.8" cy="204" r="7"/>
+<circle class="ndlit" cx="230.6" cy="204" r="7"/>
+<circle class="nd" cx="265.4" cy="204" r="7"/>
+<circle class="nd" cx="300.2" cy="204" r="7"/>
+<circle class="nd" cx="335.0" cy="204" r="7"/>
+<rect class="tl" x="40.0" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="51.6" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="63.2" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="74.8" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="86.4" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="98.0" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="109.6" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="121.2" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="132.8" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="144.4" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="156.0" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="167.6" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="179.2" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="190.8" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tllit" x="202.4" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tllit" x="214.0" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="225.6" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="237.2" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="248.8" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="260.4" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="272.0" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="283.6" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="295.2" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="306.8" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="318.4" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="330.0" y="252" width="10" height="16" rx="1.5"/>
+<rect class="tl" x="341.6" y="252" width="10" height="16" rx="1.5"/>
+<circle class="ndlit" cx="195.8" cy="108" r="8"/>
+<path class="brk" d="M202.4 274V280H224V274"/>
+<text class="n c" x="213" y="296">23-byte range</text>
+<text class="n" x="40" y="296">32-byte tiles</text>
+<rect class="cardhi" x="40" y="314" width="316" height="68" rx="6"/>
+<text class="b" x="54" y="337">8 authenticated nodes, 384 bytes</text>
+<text class="n" x="54" y="355">for a 23-byte read of a 32,768-byte</text>
+<text class="n" x="54" y="370">object (1,024 atoms)</text>
+<path class="edgelit" d="M40 404H64"/>
+<text class="n" x="72" y="408">bold path = nodes checked against the root</text>
+<text class="n" x="40" y="440">Tree drawn with 27 tiles for clarity; the real one has 1,024.</text>
+
+<text class="h" x="400" y="76">An edit sends only changes</text>
+<text class="n c" x="452.5" y="100">old version</text>
+<text class="n c" x="586.5" y="100">new version</text>
+<path class="edge" d="M408.5 190L419.5 156M419.5 190L419.5 156M430.5 190L419.5 156M441.5 190L452.5 156M452.5 190L452.5 156M463.5 190L452.5 156M474.5 190L485.5 156M485.5 190L485.5 156M496.5 190L485.5 156M419.5 144L452.5 122M452.5 144L452.5 122M485.5 144L452.5 122"/>
+<circle class="gr" cx="419.5" cy="150" r="6"/>
+<circle class="old" cx="452.5" cy="150" r="6"/>
+<circle class="gr" cx="485.5" cy="150" r="6"/>
+<circle class="old" cx="452.5" cy="116" r="6.5"/>
+<rect class="gr" x="404.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="415.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="426.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="437.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="old" x="448.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="459.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="470.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="481.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="492.0" y="190" width="9" height="14" rx="1.5"/>
+<path class="edge" d="M542.5 190L553.5 156M553.5 190L553.5 156M564.5 190L553.5 156M575.5 190L586.5 156M586.5 190L586.5 156M597.5 190L586.5 156M608.5 190L619.5 156M619.5 190L619.5 156M630.5 190L619.5 156M553.5 144L586.5 122M586.5 144L586.5 122M619.5 144L586.5 122"/>
+<circle class="gr" cx="553.5" cy="150" r="6"/>
+<circle class="ch" cx="586.5" cy="150" r="6"/>
+<circle class="gr" cx="619.5" cy="150" r="6"/>
+<circle class="ch" cx="586.5" cy="116" r="6.5"/>
+<rect class="gr" x="538.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="549.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="560.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="571.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="ch" x="582.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="593.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="604.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="615.0" y="190" width="9" height="14" rx="1.5"/>
+<rect class="gr" x="626.0" y="190" width="9" height="14" rx="1.5"/>
+<path class="sent" d="M586.5 210V258" marker-end="url(#aho)"/>
+<text class="n" x="594" y="238">sent</text>
+<rect class="cardhi" x="400" y="262" width="238" height="102" rx="6"/>
+<text class="n" x="412" y="282">receiver holding the old version:</text>
+<text class="b" x="412" y="303">22 records, 1,014 bytes,</text>
+<text class="b" x="412" y="321">3 rounds</text>
+<text class="n" x="412" y="342">1 MiB object; receiver is</text>
+<text class="n" x="412" y="356">16 atoms behind</text>
+<rect class="gr" x="400" y="384" width="14" height="12" rx="3"/>
+<text class="n" x="422" y="394">shared with the old version, stored once</text>
+<rect class="ch" x="400" y="402" width="14" height="12" rx="3"/>
+<text class="n" x="422" y="412">changed record</text>
+<rect class="old" x="400" y="420" width="14" height="12" rx="3"/>
+<text class="n" x="422" y="430">replaced node of the old version</text>
+<text class="n" x="400" y="450">Toy tree: one changed tile.</text>
+
+<text class="h" x="682" y="76">Stored size of four test files</text>
+<text class="b" x="682" y="104">unique text</text>
+<rect class="raw" x="690" y="110" width="50.8" height="12"/>
+<text class="n" x="748" y="120">raw 32,768</text>
+<rect class="sto" x="690" y="128" width="110" height="12"/>
+<text class="body" x="808" y="139">stored 70,972</text>
+<text class="b" x="682" y="178">repeated text</text>
+<rect class="raw" x="690" y="184" width="12.1" height="12"/>
+<text class="n" x="710" y="194">raw 7,776</text>
+<rect class="sto" x="690" y="202" width="1" height="12"/>
+<text class="body" x="700" y="213">stored 380</text>
+<text class="b" x="682" y="252">UTF-8 and NUL text</text>
+<rect class="raw" x="690" y="258" width="1.3" height="12"/>
+<text class="n" x="700" y="268">raw 605</text>
+<rect class="sto" x="690" y="276" width="1" height="12"/>
+<text class="body" x="700" y="287">stored 421</text>
+<text class="b" x="682" y="326">empty</text>
+<text class="n" x="690" y="344">raw 0</text>
+<text class="body" x="690" y="362">stored 0</text>
+<path class="lnk" d="M690 106V366"/>
+<text class="b" x="682" y="396">unique text costs about</text>
+<text class="b" x="682" y="414">2.17 times its size</text>
+<text class="n" x="682" y="440">Record bytes, one linear scale.</text>
+
+<text class="h c" x="480" y="490">Repeats and small edits are cheap, a small read is cheap, and unique text costs about 2.17 times its size.</text>
+<text class="n c" x="480" y="510">Trees are illustrative; the byte counts are measured.</text>
+</svg>

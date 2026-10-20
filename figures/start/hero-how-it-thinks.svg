@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 450" width="960" role="img" aria-labelledby="t d">
+<title id="t">How UOR-R4 predicts the next word</title>
+<desc id="d">Four panels read left to right. 1, Text: the phrase "the cat sat on the" is cut into five numbered pieces by a tokenizer with 4,096 pieces; the fifth piece is the newest. 2, Address: each piece lands on a point of a ring of 16 evenly spaced points, a stand-in for the geometric object; both copies of "the" land on the same point. An inset shows one address as 4 blocks of 8 whole numbers, the first block written as (2, -2, 0, 0, 0, 0, 0, 0), marked illustrative. 3, Local read: the newest piece reads only three nearby earlier points, found by address, while the rest of the history stays grey. 4, Next token: two of eight drawers of words open near what was read and the nearest word, "mat", is picked, with no softmax. A band underneath says every step uses whole numbers only: add, subtract, compare and table look-up, with no multiply and no decimals. A corner tag says this is the design, not a working result: 0 of 8 milestones are complete.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.head { font-size: 15px; font-weight: 600; }
+.lbl { font-size: 13px; fill: var(--body); }
+.word { font-size: 14px; }
+.note { font-size: 11.5px; fill: var(--muted); }
+.num { font-size: 11px; font-weight: 600; fill: var(--bg); }
+.cellnum { font-size: 10.5px; fill: var(--body); }
+.cellzero { font-size: 10.5px; fill: var(--muted); }
+.strong { font-weight: 600; }
+.card { fill: var(--panel); stroke: var(--rule); stroke-width: 1.5; }
+.chip { fill: var(--bg); stroke: var(--rule); stroke-width: 1.5; }
+.chip-new { fill: var(--orange); fill-opacity: 0.16; stroke: var(--orange); stroke-width: 1.5; }
+.badge { fill: var(--muted); }
+.badge-new { fill: var(--orange); }
+.ring { fill: none; stroke: var(--rule); stroke-width: 1; }
+.dot { fill: var(--muted); fill-opacity: 0.45; }
+.dot-read { fill: var(--blue); }
+.dot-new { fill: var(--orange); }
+.halo { fill: none; stroke: var(--orange); stroke-width: 1.5; }
+.reach { fill: var(--blue); fill-opacity: 0.07; stroke: var(--blue); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.link { stroke: var(--blue); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.cell-on { fill: var(--sky); fill-opacity: 0.25; stroke: var(--rule); stroke-width: 1; }
+.drawer { fill: var(--bg); stroke: var(--rule); stroke-width: 1.5; }
+.handle { stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; }
+.drawer-open { fill: var(--blue); fill-opacity: 0.10; stroke: var(--blue); stroke-width: 1.5; }
+.pick { fill: none; stroke: var(--orange); stroke-width: 2; }
+.out { fill: var(--orange); fill-opacity: 0.16; stroke: var(--orange); stroke-width: 2; }
+.flow { stroke: var(--muted); stroke-width: 2; fill: none; }
+.head-fill { fill: var(--muted); }
+.band { fill: var(--panel); stroke: var(--green); stroke-width: 1.5; }
+.band-text { font-size: 13.5px; fill: var(--ink); }
+.tag { fill: var(--bg); stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 2; }
+</style>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" class="head-fill"/>
+  </marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="450"/>
+
+<!-- Title -->
+<text class="title" x="20" y="36">How UOR-R4 predicts the next word</text>
+<text class="sub" x="20" y="58">One turn of the loop, as designed. Every step works on whole numbers.</text>
+<rect class="tag" x="640" y="22" width="300" height="26" rx="13"/>
+<text class="note" x="790" y="39" text-anchor="middle">Design, not a working result: 0 of 8 milestones</text>
+
+<!-- Panel 1: Text -->
+<rect class="card" x="20" y="80" width="206" height="296" rx="12"/>
+<circle class="badge" cx="42" cy="104" r="11"/>
+<text class="num" x="42" y="108" text-anchor="middle">1</text>
+<text class="head" x="60" y="109">Text</text>
+<text class="lbl" x="123" y="138" text-anchor="middle">“the cat sat on the”</text>
+<rect class="chip" x="40" y="152" width="166" height="26" rx="13"/>
+<circle class="badge" cx="56" cy="165" r="9"/><text class="num" x="56" y="169" text-anchor="middle">1</text>
+<text class="word" x="74" y="170">the</text>
+<rect class="chip" x="40" y="184" width="166" height="26" rx="13"/>
+<circle class="badge" cx="56" cy="197" r="9"/><text class="num" x="56" y="201" text-anchor="middle">2</text>
+<text class="word" x="74" y="202">cat</text>
+<rect class="chip" x="40" y="216" width="166" height="26" rx="13"/>
+<circle class="badge" cx="56" cy="229" r="9"/><text class="num" x="56" y="233" text-anchor="middle">3</text>
+<text class="word" x="74" y="234">sat</text>
+<rect class="chip" x="40" y="248" width="166" height="26" rx="13"/>
+<circle class="badge" cx="56" cy="261" r="9"/><text class="num" x="56" y="265" text-anchor="middle">4</text>
+<text class="word" x="74" y="266">on</text>
+<rect class="chip-new" x="40" y="280" width="166" height="26" rx="13"/>
+<circle class="badge-new" cx="56" cy="293" r="9"/><text class="num" x="56" y="297" text-anchor="middle">5</text>
+<text class="word" x="74" y="298">the</text>
+<text class="note" x="196" y="297" text-anchor="end">newest</text>
+<text class="lbl" x="123" y="336" text-anchor="middle">Cut into numbered pieces</text>
+<text class="note" x="123" y="354" text-anchor="middle">tokenizer: 4,096 pieces</text>
+
+<line class="flow" x1="230" y1="228" x2="252" y2="228" marker-end="url(#arr)"/>
+
+<!-- Panel 2: Address -->
+<rect class="card" x="258" y="80" width="206" height="296" rx="12"/>
+<circle class="badge" cx="280" cy="104" r="11"/>
+<text class="num" x="280" y="108" text-anchor="middle">2</text>
+<text class="head" x="298" y="109">Address</text>
+<circle class="ring" cx="361" cy="176" r="44"/>
+<circle class="dot" cx="361.0" cy="132.0" r="3.5"/>
+<circle class="dot" cx="377.8" cy="135.3" r="3.5"/>
+<circle class="dot" cx="401.7" cy="159.2" r="3.5"/>
+<circle class="dot" cx="405.0" cy="176.0" r="3.5"/>
+<circle class="dot" cx="392.1" cy="207.1" r="3.5"/>
+<circle class="dot" cx="377.8" cy="216.7" r="3.5"/>
+<circle class="dot" cx="361.0" cy="220.0" r="3.5"/>
+<circle class="dot" cx="344.2" cy="216.7" r="3.5"/>
+<circle class="dot" cx="320.3" cy="192.8" r="3.5"/>
+<circle class="dot" cx="317.0" cy="176.0" r="3.5"/>
+<circle class="dot" cx="329.9" cy="144.9" r="3.5"/>
+<circle class="dot" cx="344.2" cy="135.3" r="3.5"/>
+<circle class="dot-new" cx="392.1" cy="144.9" r="5.5"/>
+<text class="note strong" x="402" y="139">1, 5</text>
+<circle class="dot-read" cx="401.7" cy="192.8" r="5"/>
+<text class="note strong" x="413" y="203">2</text>
+<circle class="dot-read" cx="329.9" cy="207.1" r="5"/>
+<text class="note strong" x="320" y="222" text-anchor="end">3</text>
+<circle class="dot-read" cx="320.3" cy="159.2" r="5"/>
+<text class="note strong" x="308" y="158" text-anchor="end">4</text>
+<text class="note" x="361" y="246" text-anchor="middle">address of “the” (illustrative)</text>
+<!-- block 1: (2, -2, 0, 0, 0, 0, 0, 0) -->
+<rect class="cell-on" x="289" y="254" width="18" height="16"/><text class="cellnum" x="298" y="266" text-anchor="middle">2</text>
+<rect class="cell-on" x="307" y="254" width="18" height="16"/><text class="cellnum" x="316" y="266" text-anchor="middle">−2</text>
+<rect class="cell" x="325" y="254" width="18" height="16"/><text class="cellzero" x="334" y="266" text-anchor="middle">0</text>
+<rect class="cell" x="343" y="254" width="18" height="16"/><text class="cellzero" x="352" y="266" text-anchor="middle">0</text>
+<rect class="cell" x="361" y="254" width="18" height="16"/><text class="cellzero" x="370" y="266" text-anchor="middle">0</text>
+<rect class="cell" x="379" y="254" width="18" height="16"/><text class="cellzero" x="388" y="266" text-anchor="middle">0</text>
+<rect class="cell" x="397" y="254" width="18" height="16"/><text class="cellzero" x="406" y="266" text-anchor="middle">0</text>
+<rect class="cell" x="415" y="254" width="18" height="16"/><text class="cellzero" x="424" y="266" text-anchor="middle">0</text>
+<!-- block 2: (0, 0, 2, 0, 0, 2, 0, 0) -->
+<rect class="cell" x="289" y="274" width="18" height="16"/><text class="cellzero" x="298" y="286" text-anchor="middle">0</text>
+<rect class="cell" x="307" y="274" width="18" height="16"/><text class="cellzero" x="316" y="286" text-anchor="middle">0</text>
+<rect class="cell-on" x="325" y="274" width="18" height="16"/><text class="cellnum" x="334" y="286" text-anchor="middle">2</text>
+<rect class="cell" x="343" y="274" width="18" height="16"/><text class="cellzero" x="352" y="286" text-anchor="middle">0</text>
+<rect class="cell" x="361" y="274" width="18" height="16"/><text class="cellzero" x="370" y="286" text-anchor="middle">0</text>
+<rect class="cell-on" x="379" y="274" width="18" height="16"/><text class="cellnum" x="388" y="286" text-anchor="middle">2</text>
+<rect class="cell" x="397" y="274" width="18" height="16"/><text class="cellzero" x="406" y="286" text-anchor="middle">0</text>
+<rect class="cell" x="415" y="274" width="18" height="16"/><text class="cellzero" x="424" y="286" text-anchor="middle">0</text>
+<!-- block 3: (0, -2, 0, 0, 0, 0, 0, -2) -->
+<rect class="cell" x="289" y="294" width="18" height="16"/><text class="cellzero" x="298" y="306" text-anchor="middle">0</text>
+<rect class="cell-on" x="307" y="294" width="18" height="16"/><text class="cellnum" x="316" y="306" text-anchor="middle">−2</text>
+<rect class="cell" x="325" y="294" width="18" height="16"/><text class="cellzero" x="334" y="306" text-anchor="middle">0</text>
+<rect class="cell" x="343" y="294" width="18" height="16"/><text class="cellzero" x="352" y="306" text-anchor="middle">0</text>
+<rect class="cell" x="361" y="294" width="18" height="16"/><text class="cellzero" x="370" y="306" text-anchor="middle">0</text>
+<rect class="cell" x="379" y="294" width="18" height="16"/><text class="cellzero" x="388" y="306" text-anchor="middle">0</text>
+<rect class="cell" x="397" y="294" width="18" height="16"/><text class="cellzero" x="406" y="306" text-anchor="middle">0</text>
+<rect class="cell-on" x="415" y="294" width="18" height="16"/><text class="cellnum" x="424" y="306" text-anchor="middle">−2</text>
+<!-- block 4: (0, 0, 0, 2, -2, 0, 0, 0) -->
+<rect class="cell" x="289" y="314" width="18" height="16"/><text class="cellzero" x="298" y="326" text-anchor="middle">0</text>
+<rect class="cell" x="307" y="314" width="18" height="16"/><text class="cellzero" x="316" y="326" text-anchor="middle">0</text>
+<rect class="cell" x="325" y="314" width="18" height="16"/><text class="cellzero" x="334" y="326" text-anchor="middle">0</text>
+<rect class="cell-on" x="343" y="314" width="18" height="16"/><text class="cellnum" x="352" y="326" text-anchor="middle">2</text>
+<rect class="cell-on" x="361" y="314" width="18" height="16"/><text class="cellnum" x="370" y="326" text-anchor="middle">−2</text>
+<rect class="cell" x="379" y="314" width="18" height="16"/><text class="cellzero" x="388" y="326" text-anchor="middle">0</text>
+<rect class="cell" x="397" y="314" width="18" height="16"/><text class="cellzero" x="406" y="326" text-anchor="middle">0</text>
+<rect class="cell" x="415" y="314" width="18" height="16"/><text class="cellzero" x="424" y="326" text-anchor="middle">0</text>
+<text class="lbl" x="361" y="350" text-anchor="middle">4 blocks × 8 whole numbers</text>
+<text class="note" x="361" y="366" text-anchor="middle">each block one of 16 fixed points</text>
+
+<line class="flow" x1="468" y1="228" x2="490" y2="228" marker-end="url(#arr)"/>
+
+<!-- Panel 3: Local read -->
+<rect class="card" x="496" y="80" width="206" height="296" rx="12"/>
+<circle class="badge" cx="518" cy="104" r="11"/>
+<text class="num" x="518" y="108" text-anchor="middle">3</text>
+<text class="head" x="536" y="109">Local read</text>
+<circle class="reach" cx="600" cy="205" r="46"/>
+<circle class="dot" cx="520" cy="140" r="4"/>
+<circle class="dot" cx="560" cy="136" r="4"/>
+<circle class="dot" cx="620" cy="134" r="4"/>
+<circle class="dot" cx="676" cy="142" r="4"/>
+<circle class="dot" cx="526" cy="212" r="4"/>
+<circle class="dot" cx="688" cy="196" r="4"/>
+<circle class="dot" cx="680" cy="252" r="4"/>
+<circle class="dot" cx="522" cy="280" r="4"/>
+<circle class="dot" cx="552" cy="268" r="4"/>
+<circle class="dot" cx="640" cy="282" r="4"/>
+<circle class="dot" cx="660" cy="232" r="4"/>
+<line class="link" x1="600" y1="205" x2="572" y2="182"/>
+<line class="link" x1="600" y1="205" x2="630" y2="186"/>
+<line class="link" x1="600" y1="205" x2="584" y2="236"/>
+<circle class="dot-read" cx="572" cy="182" r="5.5"/>
+<circle class="dot-read" cx="630" cy="186" r="5.5"/>
+<circle class="dot-read" cx="584" cy="236" r="5.5"/>
+<circle class="halo" cx="600" cy="205" r="10"/>
+<circle class="dot-new" cx="600" cy="205" r="6"/>
+<line class="handle" x1="605" y1="214" x2="619" y2="250"/><text class="note strong" x="620" y="264">newest</text>
+<text class="lbl" x="599" y="320" text-anchor="middle">Read a few nearby</text>
+<text class="lbl" x="599" y="336" text-anchor="middle">earlier tokens, by address</text>
+<text class="note" x="599" y="356" text-anchor="middle">grey: not compared at all</text>
+
+<line class="flow" x1="706" y1="228" x2="728" y2="228" marker-end="url(#arr)"/>
+
+<!-- Panel 4: Next token -->
+<rect class="card" x="734" y="80" width="206" height="296" rx="12"/>
+<circle class="badge" cx="756" cy="104" r="11"/>
+<text class="num" x="756" y="108" text-anchor="middle">4</text>
+<text class="head" x="774" y="109">Next token</text>
+<!-- column 1 -->
+<rect class="drawer" x="748" y="126" width="84" height="28" rx="4"/><line class="handle" x1="782" y1="140" x2="798" y2="140"/>
+<rect class="drawer-open" x="756" y="158" width="84" height="28" rx="4"/>
+<text class="word strong" x="776" y="177" text-anchor="middle">mat</text>
+<rect class="pick" x="759" y="161" width="34" height="22" rx="11"/>
+<text class="note" x="820" y="176" text-anchor="middle">rug</text>
+<rect class="drawer" x="748" y="190" width="84" height="28" rx="4"/><line class="handle" x1="782" y1="204" x2="798" y2="204"/>
+<rect class="drawer" x="748" y="222" width="84" height="28" rx="4"/><line class="handle" x1="782" y1="236" x2="798" y2="236"/>
+<!-- column 2 -->
+<rect class="drawer" x="842" y="126" width="84" height="28" rx="4"/><line class="handle" x1="876" y1="140" x2="892" y2="140"/>
+<rect class="drawer" x="842" y="158" width="84" height="28" rx="4"/><line class="handle" x1="876" y1="172" x2="892" y2="172"/>
+<rect class="drawer-open" x="850" y="190" width="84" height="28" rx="4"/>
+<text class="note" x="871" y="208" text-anchor="middle">floor</text>
+<text class="note" x="912" y="208" text-anchor="middle">bed</text>
+<rect class="drawer" x="842" y="222" width="84" height="28" rx="4"/><line class="handle" x1="876" y1="236" x2="892" y2="236"/>
+<line class="flow" x1="837" y1="254" x2="837" y2="266" marker-end="url(#arr)"/>
+<rect class="out" x="779" y="270" width="116" height="26" rx="13"/>
+<text class="lbl" x="837" y="288" text-anchor="middle">next: <tspan class="strong">mat</tspan></text>
+<text class="lbl" x="837" y="320" text-anchor="middle">Open a few drawers,</text>
+<text class="lbl" x="837" y="336" text-anchor="middle">pick the nearest word</text>
+<text class="note" x="837" y="356" text-anchor="middle">no softmax; 256 drawers in all</text>
+
+<!-- Band -->
+<rect class="band" x="20" y="392" width="920" height="40" rx="10"/>
+<text class="band-text" x="480" y="417" text-anchor="middle"><tspan class="strong">Whole numbers only:</tspan> add, subtract, compare, table look-up. No multiply, no decimals.</text>
+</svg>

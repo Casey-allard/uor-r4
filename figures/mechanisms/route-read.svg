@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" role="img" aria-labelledby="t d">
+<title id="t">The routed read</title>
+<desc id="d">A ternary tree over 27 earlier tokens. The query enters at the top. At each of three levels the three child ports of the current node are lit with their L1 distance from the framed query to the port's orbit root, and the nearest is highlighted; a rotation step is added to a chain at the left. The path ends at exactly one leaf, circled and labelled picked up; the other leaves are greyed. Inset: comparisons per read for a scored read (27, 81, 243, one per earlier position) against a routed read (at most levels times 16 per block: 48, 64, 80), labelled as upper bounds from the kernel description. The query and frames are illustrative; distances are computed on the real orbit roots and ports.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); }
+</style>
+<rect class="bg" x="0" y="0" width="960" height="600"/>
+<text x="24" y="40" font-size="19" font-weight="600" style="fill:var(--ink)" text-anchor="start">The routed read: one nearest port per level</text>
+<text x="24" y="62" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">A ternary tree over 27 earlier tokens. The query picks one of three ports per level and ends at exactly one token.</text>
+<line x1="384" y1="118" x2="240" y2="200" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="384" y1="118" x2="384" y2="200" style="stroke:var(--verm);stroke-width:2.6"/>
+<line x1="384" y1="118" x2="528" y2="200" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="240" y1="200" x2="192" y2="292" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="240" y1="200" x2="240" y2="292" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="240" y1="200" x2="288" y2="292" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="384" y1="200" x2="336" y2="292" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="384" y1="200" x2="384" y2="292" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="384" y1="200" x2="432" y2="292" style="stroke:var(--verm);stroke-width:2.6"/>
+<line x1="528" y1="200" x2="480" y2="292" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="528" y1="200" x2="528" y2="292" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="528" y1="200" x2="576" y2="292" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="192" y1="292" x2="176" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="192" y1="292" x2="192" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="192" y1="292" x2="208" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="240" y1="292" x2="224" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="240" y1="292" x2="240" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="240" y1="292" x2="256" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="288" y1="292" x2="272" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="288" y1="292" x2="288" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="288" y1="292" x2="304" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="336" y1="292" x2="320" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="336" y1="292" x2="336" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="336" y1="292" x2="352" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="384" y1="292" x2="368" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="384" y1="292" x2="384" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="384" y1="292" x2="400" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="432" y1="292" x2="416" y2="384" style="stroke:var(--verm);stroke-width:2.6"/>
+<line x1="432" y1="292" x2="432" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="432" y1="292" x2="448" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="480" y1="292" x2="464" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="480" y1="292" x2="480" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="480" y1="292" x2="496" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="528" y1="292" x2="512" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="528" y1="292" x2="528" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="528" y1="292" x2="544" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="576" y1="292" x2="560" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="576" y1="292" x2="576" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<line x1="576" y1="292" x2="592" y2="384" style="stroke:var(--muted);stroke-opacity:0.4;stroke-width:1"/>
+<rect x="350" y="76" width="68" height="22" rx="4" style="fill:var(--orange);stroke:none"/>
+<text x="384" y="92" font-size="13" font-weight="600" style="fill:var(--bg)" text-anchor="middle">query q</text>
+<circle cx="384" cy="118" r="6" style="fill:var(--verm)"/>
+<circle cx="240" cy="200" r="6" style="fill:var(--bg);stroke:var(--blue);stroke-width:1.5"/>
+<text x="240" y="188" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--blue)" text-anchor="middle">11</text>
+<circle cx="384" cy="200" r="7" style="fill:var(--verm)"/>
+<text x="384" y="188" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--verm)" text-anchor="middle">5</text>
+<circle cx="528" cy="200" r="6" style="fill:var(--bg);stroke:var(--blue);stroke-width:1.5"/>
+<text x="528" y="188" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--blue)" text-anchor="middle">7</text>
+<circle cx="192" cy="292" r="3.5" style="fill:var(--muted);fill-opacity:0.5"/>
+<circle cx="240" cy="292" r="3.5" style="fill:var(--muted);fill-opacity:0.5"/>
+<circle cx="288" cy="292" r="3.5" style="fill:var(--muted);fill-opacity:0.5"/>
+<circle cx="336" cy="292" r="6" style="fill:var(--bg);stroke:var(--blue);stroke-width:1.5"/>
+<text x="336" y="280" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--blue)" text-anchor="middle">11</text>
+<circle cx="384" cy="292" r="6" style="fill:var(--bg);stroke:var(--blue);stroke-width:1.5"/>
+<text x="384" y="280" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--blue)" text-anchor="middle">9</text>
+<circle cx="432" cy="292" r="7" style="fill:var(--verm)"/>
+<text x="432" y="280" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--verm)" text-anchor="middle">7</text>
+<circle cx="480" cy="292" r="3.5" style="fill:var(--muted);fill-opacity:0.5"/>
+<circle cx="528" cy="292" r="3.5" style="fill:var(--muted);fill-opacity:0.5"/>
+<circle cx="576" cy="292" r="3.5" style="fill:var(--muted);fill-opacity:0.5"/>
+<rect x="170" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="186" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="202" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="218" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="234" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="250" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="266" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="282" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="298" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="314" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="330" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="346" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="362" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="378" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="394" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="410" y="386" width="12" height="12" rx="2" style="fill:var(--verm)"/>
+<circle cx="416" cy="392" r="10.5" style="fill:none;stroke:var(--verm);stroke-width:1.8"/>
+<text x="416" y="376" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--verm)" text-anchor="middle">7</text>
+<rect x="426" y="386" width="12" height="12" rx="2" style="fill:var(--bg);stroke:var(--blue);stroke-width:1.5"/>
+<text x="432" y="376" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--blue)" text-anchor="middle">9</text>
+<rect x="442" y="386" width="12" height="12" rx="2" style="fill:var(--bg);stroke:var(--blue);stroke-width:1.5"/>
+<text x="448" y="376" font-size="12" font-weight="600" style="stroke:var(--bg);stroke-width:3;paint-order:stroke;fill:var(--blue)" text-anchor="middle">11</text>
+<rect x="458" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="474" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="490" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="506" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="522" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="538" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="554" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="570" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<rect x="586" y="386" width="12" height="12" rx="2" style="fill:var(--muted);fill-opacity:0.35"/>
+<text x="416" y="424" font-size="13" font-weight="400" style="fill:var(--verm)" text-anchor="middle">picked up</text>
+<text x="168" y="450" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">27 earlier tokens (leaves); only the picked one is read</text>
+<path d="M38.95 191.05A7 7 0 1 1 29.05 191.05" style="stroke:var(--verm);stroke-width:1.4;fill:none"/>
+<path d="M26.82 193.28L29.27 186.82L33.28 190.83Z" style="fill:var(--verm)"/>
+<text x="48" y="200" font-size="13" font-weight="400" style="fill:var(--body)" text-anchor="start">BFS[0→1]</text>
+<path d="M38.95 283.05A7 7 0 1 1 29.05 283.05" style="stroke:var(--verm);stroke-width:1.4;fill:none"/>
+<path d="M26.82 285.28L29.27 278.82L33.28 282.83Z" style="fill:var(--verm)"/>
+<text x="48" y="292" font-size="13" font-weight="400" style="fill:var(--body)" text-anchor="start">BFS[1→14]</text>
+<path d="M38.95 383.05A7 7 0 1 1 29.05 383.05" style="stroke:var(--verm);stroke-width:1.4;fill:none"/>
+<path d="M26.82 385.28L29.27 378.82L33.28 382.83Z" style="fill:var(--verm)"/>
+<text x="48" y="392" font-size="13" font-weight="400" style="fill:var(--body)" text-anchor="start">BFS[14→14]</text>
+<text x="24" y="122" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">rotation chain</text>
+<text x="24" y="470" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">Numbers: L1 distance from the framed query to each</text>
+<text x="24" y="486" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">port's orbit root; the nearest wins (ties: Hamming,</text>
+<text x="24" y="502" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">then port order). The leaf's contents are never read</text>
+<text x="24" y="518" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">before the pick.</text>
+<text x="24" y="560" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">Illustrative query q = (-2,-1,1,0,0,2,0,-1) and per-level frames; distances use the kernel's rule on the 16 real orbit roots and ports.</text>
+<text x="24" y="576" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">The chain composes each level's transport onto the running total, applied to the picked token's vector.</text>
+<rect x="640" y="86" width="300" height="440" rx="8" style="fill:var(--panel);stroke:var(--rule);stroke-width:1"/>
+<text x="656" y="110" font-size="14" font-weight="600" style="fill:var(--ink)" text-anchor="start">Comparisons per read</text>
+<circle cx="662" cy="128" r="5" style="fill:var(--muted)"/>
+<text x="672" y="132" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">scored: one per earlier position</text>
+<rect x="657" y="141" width="10" height="10" rx="0" style="fill:var(--verm)"/>
+<text x="672" y="150" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">routed: ≤ levels × 16 per block</text>
+<rect x="680" y="438.89" width="28" height="31.11" rx="0" style="fill:var(--muted);fill-opacity:0.6"/>
+<rect x="712" y="414.69" width="28" height="55.31" rx="0" style="fill:var(--verm)"/>
+<text x="694" y="432.89" font-size="12" font-weight="600" style="fill:var(--body)" text-anchor="middle">27</text>
+<text x="726" y="408.69" font-size="12" font-weight="600" style="fill:var(--verm)" text-anchor="middle">48</text>
+<text x="710" y="488" font-size="13" font-weight="400" style="fill:var(--body)" text-anchor="middle">27 tokens</text>
+<rect x="770" y="376.67" width="28" height="93.33" rx="0" style="fill:var(--muted);fill-opacity:0.6"/>
+<rect x="802" y="396.26" width="28" height="73.74" rx="0" style="fill:var(--verm)"/>
+<text x="784" y="370.67" font-size="12" font-weight="600" style="fill:var(--body)" text-anchor="middle">81</text>
+<text x="816" y="390.26" font-size="12" font-weight="600" style="fill:var(--verm)" text-anchor="middle">64</text>
+<text x="800" y="488" font-size="13" font-weight="400" style="fill:var(--body)" text-anchor="middle">81 tokens</text>
+<rect x="860" y="190" width="28" height="280" rx="0" style="fill:var(--muted);fill-opacity:0.6"/>
+<rect x="892" y="377.82" width="28" height="92.18" rx="0" style="fill:var(--verm)"/>
+<text x="874" y="184" font-size="12" font-weight="600" style="fill:var(--body)" text-anchor="middle">243</text>
+<text x="906" y="371.82" font-size="12" font-weight="600" style="fill:var(--verm)" text-anchor="middle">80</text>
+<text x="890" y="488" font-size="13" font-weight="400" style="fill:var(--body)" text-anchor="middle">243 tokens</text>
+<line x1="670" y1="470" x2="930" y2="470" style="stroke:var(--rule);stroke-width:1"/>
+<text x="656" y="506" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">Routed bars are upper bounds from the kernel</text>
+<text x="656" y="520" font-size="11.5" font-weight="400" style="fill:var(--muted)" text-anchor="start">description, not measured times.</text>
+</svg>

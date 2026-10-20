@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 642" width="960" height="642" role="img">
+<title>Read binding</title>
+<desc>Three panels. Top: attention bars over the passage "Ana's locker is 47. Ben's locker is 12. What is Ana's locker?". Before training the attention mass is split, 0.73 on the bound value 47 and 0.14 on the competing value 12. After supervision it piles onto 47 at about 0.90, with the three seed values 0.896, 0.899 and 0.905 marked as ticks. Bottom left: wrong-value answers over 120 memory rows fall from 47 to 30, and from 49 to 23 with four times longer training. Bottom right: the memory score on a 40-row panel is 24 of 40 unablated, and falls to 7, 2 and 0 when read layer 5, 2 or 8 is silenced. Attention masses are measured on training data.</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1f2328;--body:#2b3138;--muted:#57606a;--rule:#d0d7de;--panel:#f6f8fa;--blue:#0072b2;--sky:#56b4e9;--green:#007a5e;--orange:#e69f00;--verm:#d55e00;--purple:#7a4fa3;--pink:#cc79a7;--active:#007a5e;--ready:#b06d00;--parked:#7a4fa3}
+@media (prefers-color-scheme: dark){svg{--bg:#0d1117;--ink:#e6edf3;--body:#c9d1d9;--muted:#8b949e;--rule:#30363d;--panel:#161b22;--blue:#58a6ff;--sky:#79c0ff;--green:#3fb950;--orange:#f0b72f;--verm:#ff7b72;--purple:#bc8cff;--pink:#f778ba;--active:#3fb950;--ready:#f0b72f;--parked:#bc8cff}}
+.bg{fill:var(--bg)}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+.title{font-size:19px;font-weight:600}
+.h{font-size:14px;font-weight:600}
+.b{font-weight:600}
+.n{font-size:11.5px;fill:var(--muted)}
+.body{fill:var(--body)}
+.mut{fill:var(--muted)}
+.c{text-anchor:middle}
+.e{text-anchor:end}
+.panel{fill:var(--panel);stroke:var(--rule);stroke-width:1}
+.rule{fill:none;stroke:var(--rule);stroke-width:1}
+.dot{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.arrow{fill:none;stroke:var(--ink);stroke-width:1.5}
+.fi{fill:var(--ink)}
+.fm{fill:var(--muted)}
+.fb{fill:var(--blue)}
+.fv{fill:var(--verm)}
+.tok{fill:var(--bg);stroke:var(--rule);stroke-width:1}
+.tokb{fill:var(--blue);fill-opacity:.15;stroke:var(--blue);stroke-width:2}
+.tokc{fill:var(--orange);fill-opacity:.15;stroke:var(--orange);stroke-width:2;stroke-dasharray:5 3}
+.mb{fill:var(--blue)}
+.mc{fill:var(--orange)}
+.base{fill:none;stroke:var(--muted);stroke-width:1}
+.axl{fill:none;stroke:var(--rule);stroke-width:1}
+.tickk{fill:none;stroke:var(--blue);stroke-width:2.5}
+.ctl{fill:var(--muted);fill-opacity:.65}
+.sup{fill:var(--blue)}
+.dim{fill:var(--verm)}
+.card{fill:var(--bg);stroke:var(--rule);stroke-width:1.5}
+</style>
+<rect class="bg" x="0" y="0" width="960" height="642"/>
+<text class="title" x="24" y="32">Read binding: attention is taught which stated value to take</text>
+
+<rect class="panel" x="24" y="52" width="912" height="296" rx="8"/>
+<text class="h" x="40" y="76">before training</text>
+<text class="n e" x="920" y="76">attention masses are measured on training data</text>
+<path class="base" d="M40 140H906"/>
+<rect class="mb" x="221" y="74.3" width="40" height="65.7" rx="2"/>
+<text class="b c" x="241" y="68">bound 0.73</text>
+<rect class="mc" x="511" y="127.4" width="40" height="12.6" rx="2"/>
+<text class="b c" x="531" y="121">competing 0.14</text>
+<text class="h" x="40" y="190">after supervision</text>
+<path class="base" d="M40 290H906"/>
+<rect class="mb" x="221" y="209" width="40" height="81" rx="2"/>
+<text class="b c" x="241" y="203">bound about 0.90</text>
+<rect class="mc" x="511" y="281.9" width="40" height="8.1" rx="2"/>
+<text class="b c" x="531" y="275">competing 0.09</text>
+<rect class="tok" x="40" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="67" y="159">Ana's</text>
+<rect class="tok" x="98" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="125" y="159">locker</text>
+<rect class="tok" x="156" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="183" y="159">is</text>
+<rect class="tokb" x="214" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="241" y="159">47</text>
+<rect class="tok" x="272" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="299" y="159">.</text>
+<rect class="tok" x="330" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="357" y="159">Ben's</text>
+<rect class="tok" x="388" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="415" y="159">locker</text>
+<rect class="tok" x="446" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="473" y="159">is</text>
+<rect class="tokc" x="504" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="531" y="159">12</text>
+<rect class="tok" x="562" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="589" y="159">.</text>
+<rect class="tok" x="620" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="647" y="159">What</text>
+<rect class="tok" x="678" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="705" y="159">is</text>
+<rect class="tok" x="736" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="763" y="159">Ana's</text>
+<rect class="tok" x="794" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="821" y="159">locker</text>
+<rect class="tok" x="852" y="144" width="54" height="22" rx="4"/>
+<text class="c" x="879" y="159">?</text>
+<rect class="tok" x="40" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="67" y="309">Ana's</text>
+<rect class="tok" x="98" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="125" y="309">locker</text>
+<rect class="tok" x="156" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="183" y="309">is</text>
+<rect class="tokb" x="214" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="241" y="309">47</text>
+<rect class="tok" x="272" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="299" y="309">.</text>
+<rect class="tok" x="330" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="357" y="309">Ben's</text>
+<rect class="tok" x="388" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="415" y="309">locker</text>
+<rect class="tok" x="446" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="473" y="309">is</text>
+<rect class="tokc" x="504" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="531" y="309">12</text>
+<rect class="tok" x="562" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="589" y="309">.</text>
+<rect class="tok" x="620" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="647" y="309">What</text>
+<rect class="tok" x="678" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="705" y="309">is</text>
+<rect class="tok" x="736" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="763" y="309">Ana's</text>
+<rect class="tok" x="794" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="821" y="309">locker</text>
+<rect class="tok" x="852" y="294" width="54" height="22" rx="4"/>
+<text class="c" x="879" y="309">?</text>
+<text class="n" x="650" y="214">bound mass by seed (zoomed in)</text>
+<path class="base" d="M650 244H890"/>
+<path class="tickk" d="M722 236V252M758 236V252M830 236V252"/>
+<text class="n c" x="722" y="268">0.896</text>
+<text class="n c" x="758" y="282">0.899</text>
+<text class="n c" x="830" y="268">0.905</text>
+<text class="n c" x="650" y="268">0.89</text>
+<text class="n c" x="890" y="268">0.91</text>
+<rect class="tokb" x="40" y="326" width="18" height="12" rx="3"/>
+<text class="body" x="66" y="336">bound: the value the question asks for</text>
+<rect class="tokc" x="400" y="326" width="18" height="12" rx="3"/>
+<text class="body" x="426" y="336">competing: the other stated value</text>
+
+<rect class="panel" x="24" y="364" width="448" height="216" rx="8"/>
+<text class="h" x="40" y="388">Wrong-value answers, 120 memory rows</text>
+<path class="base" d="M40 510H456"/>
+<rect class="ctl" x="80" y="411.3" width="56" height="98.7" rx="2"/>
+<text class="b c" x="108" y="405">47</text>
+<rect class="sup" x="148" y="447" width="56" height="63" rx="2"/>
+<text class="b c" x="176" y="441">30</text>
+<rect class="ctl" x="290" y="407.1" width="56" height="102.9" rx="2"/>
+<text class="b c" x="318" y="401">49</text>
+<rect class="sup" x="358" y="461.7" width="56" height="48.3" rx="2"/>
+<text class="b c" x="386" y="455">23</text>
+<text class="n c" x="108" y="526">control</text>
+<text class="n c" x="176" y="526">supervised</text>
+<text class="n c" x="318" y="526">control</text>
+<text class="n c" x="386" y="526">supervised</text>
+<text class="b c" x="142" y="544">keeper recipe</text>
+<text class="b c" x="352" y="544">four times longer</text>
+<text class="n" x="40" y="566">Best seed, memory score 24 vs 20 of 40 rows (12 repaired, 1 broken).</text>
+
+<rect class="panel" x="488" y="364" width="448" height="216" rx="8"/>
+<text class="h" x="504" y="388">Silence one read layer (40-row panel)</text>
+<path class="base" d="M684 398V530"/>
+<path class="axl" d="M784 398V530M884 398V530"/>
+<text class="body" x="504" y="427">none silenced</text>
+<rect class="sup" x="684" y="412" width="120" height="20" rx="2"/>
+<text class="b" x="812" y="427">24 of 40</text>
+<text class="body" x="504" y="461">layer 5</text>
+<rect class="dim" x="684" y="446" width="35" height="20" rx="2"/>
+<text class="b" x="727" y="461">7 of 40</text>
+<text class="body" x="504" y="495">layer 2</text>
+<rect class="dim" x="684" y="480" width="10" height="20" rx="2"/>
+<text class="b" x="702" y="495">2 of 40</text>
+<text class="body" x="504" y="529">layer 8 (supervised)</text>
+<rect class="dim" x="684" y="514" width="2" height="20" rx="1"/>
+<text class="b" x="694" y="529">0 of 40</text>
+<text class="n c" x="684" y="550">0</text>
+<text class="n c" x="784" y="550">20</text>
+<text class="n c" x="884" y="550">40</text>
+<text class="n" x="504" y="570">rows answered correctly, out of 40</text>
+
+<text class="h c" x="480" y="606">Wrong-value answers fall, and silencing the supervised layer removes the answers.</text>
+<text class="n c" x="480" y="626">Each panel is 40 rows per seed; masses are training-side, not held out.</text>
+</svg>

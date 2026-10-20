@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 548" width="960" height="548" role="img" aria-labelledby="t d">
+<title id="t">Model-result share of records by week</title>
+<desc id="d">Stacked bars, one per ISO week from 20 Jul to 19 Oct, each split into model results and everything else, with the results share above each bar: 0%, 57%, 77%, 40%, 57%, 85%, 60%, 79%, 38%, 43%, 80%, 78%, 11%, 13%. A dashed line marks 50%. The share falls sharply in the busiest week.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); }
+.b { font-weight: 600; }
+.t-ink { fill: var(--ink); } .f-ink { fill: var(--ink); } .s-ink { stroke: var(--ink); }
+.t-body { fill: var(--body); } .f-body { fill: var(--body); } .s-body { stroke: var(--body); }
+.t-muted { fill: var(--muted); } .f-muted { fill: var(--muted); } .s-muted { stroke: var(--muted); }
+.t-rule { fill: var(--rule); } .f-rule { fill: var(--rule); } .s-rule { stroke: var(--rule); }
+.t-panel { fill: var(--panel); } .f-panel { fill: var(--panel); } .s-panel { stroke: var(--panel); }
+.t-bg { fill: var(--bg); } .f-bg { fill: var(--bg); } .s-bg { stroke: var(--bg); }
+.t-blue { fill: var(--blue); } .f-blue { fill: var(--blue); } .s-blue { stroke: var(--blue); }
+.t-sky { fill: var(--sky); } .f-sky { fill: var(--sky); } .s-sky { stroke: var(--sky); }
+.t-green { fill: var(--green); } .f-green { fill: var(--green); } .s-green { stroke: var(--green); }
+.t-orange { fill: var(--orange); } .f-orange { fill: var(--orange); } .s-orange { stroke: var(--orange); }
+.t-verm { fill: var(--verm); } .f-verm { fill: var(--verm); } .s-verm { stroke: var(--verm); }
+.t-purple { fill: var(--purple); } .f-purple { fill: var(--purple); } .s-purple { stroke: var(--purple); }
+.t-pink { fill: var(--pink); } .f-pink { fill: var(--pink); } .s-pink { stroke: var(--pink); }
+</style>
+<rect class="bg" x="0" y="0" width="960" height="548"/>
+<text x="16" y="34" font-size="20" class="t-ink b" text-anchor="start">Share of each week's records that were model results</text>
+<text x="16" y="54" font-size="12" class="t-muted" text-anchor="start">Per ISO week, from the research catalog. Results: positive, negative, inconclusive or diagnostic stop.</text>
+<rect x="16" y="70" width="16" height="12" rx="2" class="f-blue"/>
+<text x="40" y="81" font-size="13" class="t-body" text-anchor="start">model results</text>
+<rect x="150" y="70" width="16" height="12" rx="2" class="f-rule s-muted" stroke-width="1"/>
+<text x="174" y="81" font-size="13" class="t-body" text-anchor="start">everything else (tooling, plans, process, review, ops)</text>
+<line x1="56" y1="384" x2="944" y2="384" class="s-rule" stroke-width="1"/>
+<text x="48" y="388" font-size="11" class="t-muted" text-anchor="end">0%</text>
+<line x1="56" y1="319" x2="944" y2="319" class="s-rule" stroke-width="1"/>
+<text x="48" y="323" font-size="11" class="t-muted" text-anchor="end">25%</text>
+<line x1="56" y1="254" x2="944" y2="254" class="s-ink" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="48" y="258" font-size="11" class="t-muted" text-anchor="end">50%</text>
+<line x1="56" y1="189" x2="944" y2="189" class="s-rule" stroke-width="1"/>
+<text x="48" y="193" font-size="11" class="t-muted" text-anchor="end">75%</text>
+<line x1="56" y1="124" x2="944" y2="124" class="s-rule" stroke-width="1"/>
+<text x="48" y="128" font-size="11" class="t-muted" text-anchor="end">100%</text>
+<rect x="67.4" y="124" width="40.6" height="260" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<text x="87.7" y="116" font-size="13" class="t-ink b" text-anchor="middle">0%</text>
+<text x="87.7" y="402" font-size="13" class="t-ink b" text-anchor="middle">W30*</text>
+<text x="87.7" y="417" font-size="11" class="t-muted" text-anchor="middle">20 Jul</text>
+<text x="87.7" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 5</text>
+<rect x="130.8" y="124" width="40.6" height="111.4" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="130.8" y="235.4" width="40.6" height="148.6" rx="0" class="f-blue"/>
+<text x="151.1" y="116" font-size="13" class="t-ink b" text-anchor="middle">57%</text>
+<text x="151.1" y="402" font-size="13" class="t-ink b" text-anchor="middle">W31</text>
+<text x="151.1" y="417" font-size="11" class="t-muted" text-anchor="middle">27 Jul</text>
+<text x="151.1" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 7</text>
+<rect x="194.3" y="124" width="40.6" height="60" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="194.3" y="184" width="40.6" height="200" rx="0" class="f-blue"/>
+<text x="214.6" y="116" font-size="13" class="t-ink b" text-anchor="middle">77%</text>
+<text x="214.6" y="402" font-size="13" class="t-ink b" text-anchor="middle">W32</text>
+<text x="214.6" y="417" font-size="11" class="t-muted" text-anchor="middle">3 Aug</text>
+<text x="214.6" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 13</text>
+<rect x="257.7" y="124" width="40.6" height="156" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="257.7" y="280" width="40.6" height="104" rx="0" class="f-blue"/>
+<text x="278" y="116" font-size="13" class="t-ink b" text-anchor="middle">40%</text>
+<text x="278" y="402" font-size="13" class="t-ink b" text-anchor="middle">W33</text>
+<text x="278" y="417" font-size="11" class="t-muted" text-anchor="middle">10 Aug</text>
+<text x="278" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 5</text>
+<rect x="321.1" y="124" width="40.6" height="112.7" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="321.1" y="236.7" width="40.6" height="147.3" rx="0" class="f-blue"/>
+<text x="341.4" y="116" font-size="13" class="t-ink b" text-anchor="middle">57%</text>
+<text x="341.4" y="402" font-size="13" class="t-ink b" text-anchor="middle">W34</text>
+<text x="341.4" y="417" font-size="11" class="t-muted" text-anchor="middle">17 Aug</text>
+<text x="341.4" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 30</text>
+<rect x="384.6" y="124" width="40.6" height="39.4" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="384.6" y="163.4" width="40.6" height="220.6" rx="0" class="f-blue"/>
+<text x="404.9" y="116" font-size="13" class="t-ink b" text-anchor="middle">85%</text>
+<text x="404.9" y="402" font-size="13" class="t-ink b" text-anchor="middle">W35</text>
+<text x="404.9" y="417" font-size="11" class="t-muted" text-anchor="middle">24 Aug</text>
+<text x="404.9" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 33</text>
+<rect x="448" y="124" width="40.6" height="105.1" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="448" y="229.1" width="40.6" height="154.9" rx="0" class="f-blue"/>
+<text x="468.3" y="116" font-size="13" class="t-ink b" text-anchor="middle">60%</text>
+<text x="468.3" y="402" font-size="13" class="t-ink b" text-anchor="middle">W36</text>
+<text x="468.3" y="417" font-size="11" class="t-muted" text-anchor="middle">31 Aug</text>
+<text x="468.3" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 99</text>
+<rect x="511.4" y="124" width="40.6" height="54.2" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="511.4" y="178.2" width="40.6" height="205.8" rx="0" class="f-blue"/>
+<text x="531.7" y="116" font-size="13" class="t-ink b" text-anchor="middle">79%</text>
+<text x="531.7" y="402" font-size="13" class="t-ink b" text-anchor="middle">W37</text>
+<text x="531.7" y="417" font-size="11" class="t-muted" text-anchor="middle">7 Sep</text>
+<text x="531.7" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 48</text>
+<rect x="574.8" y="124" width="40.6" height="162.5" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="574.8" y="286.5" width="40.6" height="97.5" rx="0" class="f-blue"/>
+<text x="595.1" y="116" font-size="13" class="t-ink b" text-anchor="middle">38%</text>
+<text x="595.1" y="402" font-size="13" class="t-ink b" text-anchor="middle">W38</text>
+<text x="595.1" y="417" font-size="11" class="t-muted" text-anchor="middle">14 Sep</text>
+<text x="595.1" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 48</text>
+<rect x="638.3" y="124" width="40.6" height="147.9" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="638.3" y="271.9" width="40.6" height="112.1" rx="0" class="f-blue"/>
+<text x="658.6" y="116" font-size="13" class="t-ink b" text-anchor="middle">43%</text>
+<text x="658.6" y="402" font-size="13" class="t-ink b" text-anchor="middle">W39</text>
+<text x="658.6" y="417" font-size="11" class="t-muted" text-anchor="middle">21 Sep</text>
+<text x="658.6" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 211</text>
+<rect x="701.7" y="124" width="40.6" height="50.9" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="701.7" y="174.9" width="40.6" height="209.1" rx="0" class="f-blue"/>
+<text x="722" y="116" font-size="13" class="t-ink b" text-anchor="middle">80%</text>
+<text x="722" y="402" font-size="13" class="t-ink b" text-anchor="middle">W40</text>
+<text x="722" y="417" font-size="11" class="t-muted" text-anchor="middle">28 Sep</text>
+<text x="722" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 92</text>
+<rect x="765.1" y="124" width="40.6" height="56.8" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="765.1" y="180.8" width="40.6" height="203.2" rx="0" class="f-blue"/>
+<text x="785.4" y="116" font-size="13" class="t-ink b" text-anchor="middle">78%</text>
+<text x="785.4" y="402" font-size="13" class="t-ink b" text-anchor="middle">W41</text>
+<text x="785.4" y="417" font-size="11" class="t-muted" text-anchor="middle">5 Oct</text>
+<text x="785.4" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 119</text>
+<rect x="828.6" y="124" width="40.6" height="231.4" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="828.6" y="355.4" width="40.6" height="28.6" rx="0" class="f-blue"/>
+<text x="848.9" y="116" font-size="13" class="t-ink b" text-anchor="middle">11%</text>
+<text x="848.9" y="402" font-size="13" class="t-ink b" text-anchor="middle">W42</text>
+<text x="848.9" y="417" font-size="11" class="t-muted" text-anchor="middle">12 Oct</text>
+<text x="848.9" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 309</text>
+<rect x="892" y="124" width="40.6" height="227.5" rx="0" class="f-rule s-muted" stroke-width="1"/>
+<rect x="892" y="351.5" width="40.6" height="32.5" rx="0" class="f-blue"/>
+<text x="912.3" y="116" font-size="13" class="t-ink b" text-anchor="middle">13%</text>
+<text x="912.3" y="402" font-size="13" class="t-ink b" text-anchor="middle">W43*</text>
+<text x="912.3" y="417" font-size="11" class="t-muted" text-anchor="middle">19 Oct</text>
+<text x="912.3" y="432" font-size="11" class="t-muted" text-anchor="middle">n = 32</text>
+<rect x="819.1" y="100" width="59.4" height="344" rx="4" fill="none" class="s-verm" stroke-width="2"/>
+<text x="944" y="92" font-size="13" class="t-ink b" text-anchor="end">W42: 34 results among 309 records; 190 of the records are tooling</text>
+<text x="16" y="466" font-size="11" class="t-muted" text-anchor="start">Part of the drop after 11 October was ordered by the owner (the softmax and matmul bans and the GPU-only and Rust-first rules forced a rebuild</text>
+<text x="16" y="482" font-size="11" class="t-muted" text-anchor="start">and many tool ports on 12 and 13 October), so the later weeks are an upper bound on discretionary process, not a verdict.</text>
+<text x="16" y="498" font-size="11" class="t-muted" text-anchor="start">Compare shares, not counts: early rows mix loose documents and lane results. * partial week: the catalog runs from 21 Jul to 19 Oct.</text>
+<text x="16" y="514" font-size="11" class="t-muted" text-anchor="start">Source: the research catalog, 1051 dated records; 122 records have no date and are not shown.</text>
+</svg>

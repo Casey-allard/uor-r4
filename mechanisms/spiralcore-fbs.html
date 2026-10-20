@@ -1,0 +1,307 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>SpiralCore transport with ternary tree binders - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="../start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="../start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="../start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="../start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="../start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="../start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="../products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="../products/web-client.html"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="../products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="../products/releases-and-artifacts.html"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="../model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="../model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="../model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="../geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="../geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="../geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="../geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="../geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="../geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="../geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="../mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="../mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="../mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="../mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="../mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="../mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="../mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/hopf-observation.html"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="../mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="../mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="../mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="../mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="../mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="../mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="../mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/pointer-key.html"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="../mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="../mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="../mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="../mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="../mechanisms/spiralcore-fbs.html" class="active"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="../mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="../mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="../mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="../mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="../research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="../research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="../research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="../research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="../research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="../research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="../research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="../research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="../research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="../research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="../research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="../research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="../research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="../research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="../rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../rules/decision-map.html"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="../rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="../CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../formal_vocabulary.html"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="../CONFIGURATION.html"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="../reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="../minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="../RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="../projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="../projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="../projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="../projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="../projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="../projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="spiralcore-transport-with-ternary-tree-binders-float-projection-form"><a class="header" href="#spiralcore-transport-with-ternary-tree-binders-float-projection-form">SpiralCore transport with ternary tree binders (float projection form)</a></h1>
+<p><strong>Status: READY.</strong> The float projection is built and was checked on a real GPU with exact test cases, and it ran inside 18 finite controls. It has never been trained, and whether its credit rule gives descent is unmeasured. Its integer form is ACTIVE: it is the core of the current model, described under <a href="discrete-learning.html"><code>discrete-learning</code></a>.</p>
+<p>Labels used below: <strong>proof</strong> means derived from definitions or code, <strong>measurement</strong> means a recorded run or test, <strong>hypothesis</strong> means an untested idea. See <a href="../formal_vocabulary.html"><code>docs/formal_vocabulary.md</code></a>.</p>
+<h2 id="in-plain-words"><a class="header" href="#in-plain-words">In plain words</a></h2>
+<p>A normal layer mixes every input into every output using learned weights. This one does something much simpler. Each output block picks one input block from a small tree of stored blocks, three branches per node, and moves it along a path of exact steps in an eight-dimensional lattice called E8. Each step only swaps coordinates and flips signs. No learned coefficient is multiplied in; the path itself does the transforming. The trade is that each output reads one input block instead of a blend of all of them, and nobody has yet measured whether that carries enough information.</p>
+<h2 id="what-it-replaces-in-a-transformer"><a class="header" href="#what-it-replaces-in-a-transformer">What it replaces in a transformer</a></h2>
+<p>The dense projections: the large weight grids that turn each vector into queries, values and layer outputs. In the float stack this replaced a dense quaternion version of the same job (<a href="spin-weights.html"><code>spin-weights</code></a>).</p>
+<p><img src="../figures/mechanisms/spiralcore-fbs.svg" alt="Left: a three-branch tree of atoms with one root-to-leaf path highlighted, beside the 16 roots of the E8 anchor orbit drawn as nodes of a 15-edge graph. As the query point moves, the nearest root changes, and the chosen atom&#39;s 8 coordinates travel along the graph edges, each edge permuting axes and flipping signs; then the path is run backward to show the exact inverse. Middle: a concrete 8-vector pushed through two edges, coordinate by coordinate, then the two steps composed into one signed action and checked against the product. Right: a dense grid where every input block connects to every output block, beside a grid with exactly one line per output block, each labelled with the atom it chose." /></p>
+<p><em>One output block, one chosen atom, a short path of signed coordinate swaps (left and middle). The dense projection connects every pair; this one connects one (right).</em></p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p><strong>The tree (Definition).</strong> Input channels are 8-dimensional integer atoms kept by a static Rust compiler in ordered base-3 binders. The compiler stores children, parent links, atom identity, support length and the incomplete frontier (at most 6,560 atoms, 16 frontier roots and 8 stages). FBS is the project's name for this tree. Exact atom identity stays separate from the geometric state.</p>
+<p><strong>The steps (Definition, from SpiralCore).</strong> SpiralCore is an external exact-geometry source (a hosted file, reviewed on 9 October). Octonion left actions give 15 generators \(B\), each a signed coordinate permutation of \(\mathbb R^8\) with \(B^2=-I\). They act on the 16 roots of one E8 anchor orbit through 64 signed operator states. A breadth-first search over these labelled edges gives an ordered history between any two roots, composed by left-composition.</p>
+<p><strong>Exact inverse (proof).</strong> From \(B^2=-I\) it follows \(B^4=I\) and so \(B^3=B^{-1}\). The inverse of a history is therefore the reversed sequence with each step cubed.</p>
+<p><strong>Forward pass (Definition).</strong> The model stores query points \(z\in\mathbb R^{[\text{output blocks},\ \text{stages},\ 8]}\). At each stage a query picks the nearest root of the fixed orbit, and the history between roots composes a signed action \(A_j\). Output block \(j\) selects one atom \(\sigma(j)\) and transports it:
+\[y_j \;=\; A_j\,x_{\sigma(j)} .\]
+The forward is a gather and a sign. The input adjoint is the exact inverse action, \(A_j^{-1}\delta_j\), scattered to the selected atom. No coefficient exists for any input-output pair (proof, by construction).</p>
+<p><strong>Credit for the query (Definition).</strong> Selecting a root is a hard choice. The query credit is a declared <strong>secant surrogate</strong> on root edges: force each lawful sibling, reroute its descendants, pair the output credit with the displacement of the carried block, and resolve along the edge. It is not the derivative of hard selection.</p>
+<p><strong>The capacity question (proof of the count, hypothesis of the consequence).</strong> Each output block reads exactly one input atom, so an output block has one connection where a dense projection has all of them. Whether one transported atom per block is enough, or whether a small routed set per block is needed, has not been compared.</p>
+<p>The path runs on the GPU only; the CPU fallback is refused.</p>
+<p><strong>Rule check.</strong></p>
+<ul>
+<li><em>D11 (integer serving):</em> the float form (32-bit and half-precision) is not servable. Sign flips, permutations and table reads need no multiplier, and the integer descendant in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-discrete/src/discrete.cu"><code>crates/uor-r4-discrete</code></a> is integer-only on the GPU.</li>
+<li><em>D23 (no softmax):</em> no probability weights, no normalised exponentials and no learned input-output coefficient grids; selection is hard by distance. The no-softmax counter was 1649 of 1649 on the delivering PR.</li>
+<li><em>D25/D30 (no dense matrix multiplication):</em> retires the dense Hamilton contraction. The no-matmul counter fell from 95 to 93. Static table construction reads no model tensors and is not model compute.</li>
+<li><em>D32/D37:</em> the float form was frozen by D32 and can return only by re-registration under D37. The integer transport is the substrate D32 names as the backbone, and it is the ACTIVE model path (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised">decisions</a>).</li>
+</ul>
+<h2 id="what-has-been-tried"><a class="header" href="#what-has-been-tried">What has been tried</a></h2>
+<p>Rows marked "integer form" test the ACTIVE descendant, not the READY float form.</p>
+<div class="table-wrapper"><table><thead><tr><th>Date</th><th>What was run</th><th>Result</th><th>Verdict</th><th>Record</th></tr></thead><tbody>
+<tr><td>9 Oct</td><td>Source review of hosted SpiralCore v69 (240 E8 roots, 15 bivectors, search routes, exact inverses)</td><td>Keep the exact finite-action machinery as an input. Not promoted as a model integration. No runtime executed. File 1,025,707 bytes</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/spiralcore-live-review-2026-10-09/README.md">review</a></td></tr>
+<tr><td>12 Oct</td><td>Persistent base-3 tree per 600-cell vertex retaining keys by learned salience (the "starling" tree), float stack with a softmax teacher from before the softmax ban, 3 seeds, context 1,536</td><td>The tree met its own target: hit rate 0.99, 0.68, 0.90 (bar 0.85 on 2 of 3 seeds). Recall missed its bar: 0.031, 0.615, 0.340, mean 0.329 against 0.54 (softmax 0.999, ring-only 0.241). The readout, not the tree, now limits</td><td>positive for the tree</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/starling-tree-2026-10-12/README.md">record</a></td></tr>
+<tr><td>12 Oct</td><td>Signed-matrix composition rewritten as direct signed-axis permutation, no generic 8×8 multiply</td><td>Static algebra checks pass. Not a shared writer, a learning rule or a GPU kernel. No throughput claim</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/native-vector-transport-2026-10-12/README.md">record</a></td></tr>
+<tr><td>12 Oct</td><td>Finite-kernel check of the float projection on a rented RTX 5090 (CUDA 12.8), no model, no training</td><td>Four GPU tests, three static-plan tests, two projection tests and the retired-dense refusal test all pass: all 27 terminal children of a three-level binder, the selected-input adjoint, a two-atom secant, shared credit, and 32-bit and half-precision controls. Exact fixtures show zero absolute error; secant controls within \(10^{-5}\). Cost about $0.17</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/spiralcore-fbs-projection-2026-10-12/README.md">record</a></td></tr>
+<tr><td>13 Oct</td><td>Product head that reads the projection through one shared embedding table</td><td>Qualified at finite GPU boundaries; at most 16 cells × 32 slots = 512 comparisons (128 by default at vocabulary 4,096). No training</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/geometric-head-shared-writer-2026-10-13/README.md">record</a></td></tr>
+<tr><td>13 Oct</td><td>18 finite controls (11 on CUDA, 7 metadata or argument checks) at the first-rung shape with this projection and the product head</td><td>18 of 18 pass on source <code>05c84bece</code>; peak GPU 9,274 MiB. No optimizer update, no quality number</td><td>positive, controls only</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/rung0-complete-path-2026-10-13/README.md">record</a></td></tr>
+<tr><td>13 Oct</td><td>Integer form: context, tree routing and rotation into a shared integer writer, learning by proposals only</td><td>All eleven construction controls pass after the test-fitness review (first attempt: 1 pass, 1 GPU launch-resource stop, 9 NOT_RUN). Virtual proposal witness 640 to 544; applying updates never ran</td><td>positive, controls only</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/discrete-driver-cost-2026-10-13/README.md">record</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/course-correction-2026-10-18/audits/mechanism-census.md">census</a></td></tr>
+<tr><td>14 Oct</td><td>Integer form: native driver and GPU evaluator, vocabulary 4,096, batch 4, context 192, 64 rows</td><td>25 controls and the operation-cost measurement pass. Forward 37.84 ms (routed read) and 40.58 ms (flock read). One counterfactual proposal 3.9 s. About 17.8 hours per fixed-batch coordinate sweep, an UNVERIFIED estimate</td><td>positive, controls only</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/discrete-driver-cost-2026-10-13/README.md">record</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/course-correction-2026-10-18/audits/mechanism-census.md">census</a></td></tr>
+<tr><td>14 Oct</td><td>Integer form: first 1,640-batch training pilot, seed 1, one RTX 5090, 236 accepted updates</td><td>Top-8 correct rows 173 to 1,169; top-1 17 to 82; but the loss numerator rose 13,816,032 to 13,884,032. Later traced to an initializer giving only 16 distinct vectors (155 of 4,096 identities after training)</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/a2-pilot-2026-10-14/README.md">record</a></td></tr>
+</tbody></table>
+</div>
+<p><strong>Reading these honestly.</strong> The float form has only correctness evidence: exact fixtures and finite controls, with zero optimizer updates. The weak recall in the tree row was a readout failure, since the tree kept the source (hit rate 0.99 on seed 1) while the table readout failed to use it (recall 0.03). The pilot rise in loss traced to the initializer, not to the transport. The ban, not a negative result, retired the dense contraction this replaced. The integer rows show the mechanism builds and runs; they do not show it helps language.</p>
+<h2 id="what-has-never-been-tested"><a class="header" href="#what-has-never-been-tested">What has never been tested</a></h2>
+<ul>
+<li><strong>Training the float projection.</strong> Zero optimizer updates have run on it, and no language measure exists.</li>
+<li><strong>Whether the secant credit yields descent.</strong> The pair credit is declared, not proved.</li>
+<li><strong>Capacity of one atom per block</strong> against an all-input mixing projection. No capacity or cost comparison was run.</li>
+<li><strong>Input-conditioned behaviour.</strong> Selection by shared learned queries does not by itself make the read depend on the input.</li>
+<li><strong>Coverage of all 240 E8 roots.</strong> Only one 16-root anchor orbit is used, with no independent partner space and not the complete external tree object.</li>
+<li><strong>Tokens per second or energy</strong> against the retired dense arm, and any integer export of the float form.</li>
+</ul>
+<h2 id="what-would-reopen-it"><a class="header" href="#what-would-reopen-it">What would reopen it</a></h2>
+<p>The float form is READY, so these are the steps to make it ACTIVE.</p>
+<ol>
+<li>A new D37 sheet in a separately scanned float module, with a fresh test-fitness review, the owner release that applies, an export gap, and the shared writer and geometric head as dependencies.</li>
+<li>Show that the secant credit gives descent (a falling loss, or a comparison with a random-refit control) and that routing is stable. Neither has been measured.</li>
+<li>Justify the total number of 8-dimensional blocks in advance, and record that each output block reads one atom, so a capacity comparison against a mixing projection is needed.</li>
+<li>Fresh transfer and D22 noise requirements for any KEEP, and tokens per second on the same GPU harness against the retired dense arm.</li>
+</ol>
+<p>Open questions: does one atom per output block lose too much against the all-pair sum, and can a small routed set per block recover it; can the secant credit be compared with the discrete counterfactual-and-choose rule on the same carrier; how many 8D blocks are enough (the 6,560-atom bound is operational, not a quality bar, and no 384-dimensional dependency is adopted); and would a float trunk add anything beyond the integer path that already runs. These are <strong>hypotheses</strong>.</p>
+<h2 id="also-known-as"><a class="header" href="#also-known-as">Also known as</a></h2>
+<p><code>projection=spiralcore_fbs</code>; SpiralCore BFS plus Atomic Ternary FBS; <code>quaternion_weights=spiralcore_fbs</code>; "OP2 native projection" (PR #2279); SpiralCore tree; the HoloBox/FBS base-3 tree (the retention tree).</p>
+<h2 id="code"><a class="header" href="#code">Code</a></h2>
+<ul>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/spiralcore_fbs.rs"><code>spiralcore_fbs.rs</code></a>: the static compiler (binders, histories, actions, inverses, artifact hashes) and the custom operation, schema <code>spiralcore-fbs-projection/1</code>.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/spiralcore_fbs.cu"><code>spiralcore_fbs.cu</code></a>: GPU forward, input adjoint and secant kernels.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-core/src/spiralcore_operator.rs"><code>spiralcore_operator.rs</code></a>: exact signed 8×8 matrices, the Clifford generators and the finite composition table.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/native_vector_writer.rs"><code>native_vector_writer.rs</code></a>: the shared vector writer fed by the projection.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-discrete/src/discrete.cu"><code>discrete.cu</code></a> and <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-discrete/build.rs"><code>build.rs</code></a>: the ACTIVE integer descendant and the exact 64-state geometry tables it imports.</li>
+<li>The dense source this replaced is preserved as an indexed patch: <code>archive/history/branch-archive/INDEX.md</code>.</li>
+</ul>
+<p>Audit source: <code>docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/spiralcore-fbs.json</code>.</p>
+<h2 id="related-mechanisms"><a class="header" href="#related-mechanisms">Related mechanisms</a></h2>
+<p><a href="discrete-learning.html">discrete-learning</a>: the integer form of the same transport is the ACTIVE model path. <a href="flock-read.html">flock-read</a>: flock reads transport payloads through the same actions, with the starling tree as the retention layer. <a href="spin-weights.html">spin-weights</a>: this projection replaced the dense quaternion contraction. <a href="hamilton-gate.html">hamilton-gate</a>: the feed-forward partner of this projection. <a href="recurrence-gates.html">recurrence-gates</a>: shares the secant credit pattern. <a href="route-read.html">route-read</a>: the routed read selects ports by comparing the transported query with fixed branch roots. <a href="e8-orbit-memory.html">e8-orbit-memory</a>: the same E8 root orbit used as exact addresses. <a href="ternary-xor.html">ternary-xor</a>: the ternary binder tree and trit gates.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../mechanisms/recurrence-gates.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../mechanisms/geometric-stack.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../mechanisms/recurrence-gates.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../mechanisms/geometric-stack.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

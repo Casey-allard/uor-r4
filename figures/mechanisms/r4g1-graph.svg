@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 892" width="960" role="img" aria-labelledby="t d">
+<title id="t">R4G1 compiled lookup graph</title>
+<desc id="d">Three stacked panels. Panel A: a teacher model reads many contexts and its preferences are copied once into the rows of a table, like an author writing a notebook. At run time a few recent tokens are hashed to a table row, the row's stored integer scores are added together with any region match, and the best token is picked; a crossed-out multiply sign shows that no multiplication happens, and the allowed operations are listed. Panel B: bars for the percent correct on 72,130 held-out positions: control without the skip-mix sections 26.07 percent, earlier runtime 28.12 percent, shipped runtime 29.52 percent, and a label-scrambled control 3.17 percent. The paired difference between shipped and earlier runtime is plus 13.988 per thousand with interval 11.057 to 16.919; this holds for the exact bundle only. Panel C: two measured points on a log axis of corpus size, 150 thousand records at the float ceiling (top-1 32.1, agreement 36.4) and 500 thousand records at the shipped integer runtime (33.4 and 37.3), with no curve between them. Notice that the table is only as good as its teacher.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); }
+.t { font-size: 20px; font-weight: 600; }
+.h { font-size: 15px; font-weight: 600; }
+.l { font-size: 13px; fill: var(--body); }
+.b { font-size: 13px; font-weight: 600; }
+.s { font-size: 12px; fill: var(--body); }
+.n { font-size: 12px; fill: var(--muted); }
+.mid { text-anchor: middle; }
+.end { text-anchor: end; }
+.c-verm { fill: var(--verm); }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+.hdr { fill: var(--rule); stroke: var(--ink); stroke-width: 1.5; }
+.thin { stroke: var(--rule); stroke-width: 1; fill: none; }
+.axis { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+.cell { stroke: var(--muted); stroke-width: 1; fill: none; }
+.f-blue { fill: var(--blue); } .f-sky { fill: var(--sky); } .f-pink { fill: var(--pink); } .f-orange { fill: var(--orange); }
+.arrow { stroke: var(--ink); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+.no { fill: var(--bg); stroke: var(--verm); stroke-width: 2; }
+.noslash { stroke: var(--verm); stroke-width: 2; fill: none; }
+.mk-hollow { fill: var(--bg); stroke: var(--blue); stroke-width: 2; }
+.mk-solid { fill: var(--blue); stroke: var(--blue); stroke-width: 2; }
+.sq-hollow { fill: var(--bg); stroke: var(--orange); stroke-width: 2; }
+.sq-solid { fill: var(--orange); stroke: var(--orange); stroke-width: 2; }
+.ah-p { fill: var(--ink); }
+</style>
+<defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-p" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="892"/>
+<text class="t" x="24" y="38">R4G1 graph: a notebook copied from a teacher, read by adding</text>
+
+<!-- Panel A -->
+<rect class="panel" x="16" y="56" width="928" height="300" rx="6"/>
+<text class="h" x="32" y="82">A. The teacher writes the notebook; a small program reads it</text>
+<text class="b" x="32" y="106">Offline, once: the teacher is the author, the table is the notebook</text>
+<rect class="box" x="32" y="120" width="220" height="56" rx="6"/>
+<text class="b mid" x="142" y="143">Teacher model</text><text class="s mid" x="142" y="162">reads many contexts</text>
+<line class="arrow" x1="254" y1="148" x2="338" y2="148"/>
+<text class="s mid" x="296" y="140">copy its</text><text class="s mid" x="296" y="166">preferences</text>
+<rect class="hdr" x="340" y="120" width="330" height="18"/>
+<rect class="box" x="340" y="138" width="330" height="38"/>
+<line class="cell" x1="490" y1="120" x2="490" y2="176"/>
+<line class="cell" x1="340" y1="157" x2="670" y2="157"/>
+<text class="s mid" x="415" y="133">hashed context code</text><text class="s mid" x="580" y="133">stored integer scores</text>
+<text class="s mid" x="415" y="152">…</text><text class="s mid" x="580" y="152">…</text>
+<text class="s mid" x="415" y="171">…</text><text class="s mid" x="580" y="171">…</text>
+<text class="n" x="690" y="136">The table is only as good as</text>
+<text class="n" x="690" y="152">what the teacher showed it.</text>
+
+<text class="b" x="32" y="212">At run time: no teacher, one lookup, only whole-number adds</text>
+<rect class="box" x="32" y="228" width="190" height="56" rx="6"/>
+<text class="b mid" x="127" y="251">Recent tokens</text><text class="s mid" x="127" y="270">a few words of context</text>
+<rect class="box" x="267" y="228" width="190" height="56" rx="6"/>
+<text class="b mid" x="362" y="251">Hash to a row</text><text class="s mid" x="362" y="270">code → table row</text>
+<rect class="box" x="502" y="228" width="190" height="56" rx="6"/>
+<text class="b mid" x="597" y="251">Add stored scores</text><text class="s mid" x="597" y="270">row plus region match</text>
+<rect class="box" x="737" y="228" width="190" height="56" rx="6"/>
+<text class="b mid" x="832" y="251">Pick the best token</text><text class="s mid" x="832" y="270">fixed tie-break rule</text>
+<line class="arrow" x1="224" y1="256" x2="265" y2="256"/>
+<line class="arrow" x1="459" y1="256" x2="500" y2="256"/>
+<line class="arrow" x1="694" y1="256" x2="735" y2="256"/>
+<circle class="no" cx="540" cy="308" r="13"/>
+<text class="b mid c-verm" x="540" y="314">×</text>
+<line class="noslash" x1="531" y1="317" x2="549" y2="299"/>
+<text class="l" x="562" y="313">no multiply, no divide, no float</text>
+<text class="l" x="32" y="342"><tspan class="b">Allowed operations:</tspan> XOR · AND · OR · shifts · rotates · bit counting · integer add and subtract · compare · table read</text>
+
+<!-- Panel B -->
+<rect class="panel" x="16" y="372" width="928" height="276" rx="6"/>
+<text class="h" x="32" y="398">B. The main held-out result: 72,130 positions</text>
+<text class="n" x="32" y="416">Percent of positions where the table's first choice matched the target. The teacher's own text was supplied as context.</text>
+<line class="thin" x1="430" y1="428" x2="430" y2="578"/>
+<line class="thin" x1="550" y1="428" x2="550" y2="578"/>
+<line class="thin" x1="670" y1="428" x2="670" y2="578"/>
+<rect class="f-sky" x="310" y="432" width="312.8" height="26"/>
+<rect class="f-sky" x="310" y="470" width="337.4" height="26"/>
+<rect class="f-blue" x="310" y="508" width="354.2" height="26"/>
+<rect class="f-pink" x="310" y="546" width="38" height="26"/>
+<line class="axis" x1="310" y1="428" x2="310" y2="578"/>
+<text class="l end" x="300" y="450">Control, skip-mix absent</text>
+<text class="l end" x="300" y="488">Earlier runtime</text>
+<text class="b end" x="300" y="526">Shipped runtime</text>
+<text class="l end" x="300" y="564">Label-scrambled control</text>
+<text class="b" x="631" y="450">26.07%  (18,806)</text>
+<text class="b" x="655" y="488">28.12%  (20,284)</text>
+<text class="b" x="672" y="526">29.52%  (21,293)</text>
+<text class="b" x="356" y="564">3.17%  (2,288)</text>
+<text class="n mid" x="310" y="594">0%</text><text class="n mid" x="430" y="594">10%</text>
+<text class="n mid" x="550" y="594">20%</text><text class="n mid" x="670" y="594">30%</text>
+<text class="b" x="32" y="620">Shipped minus earlier runtime, paired: +13.988 per thousand, interval 11.057 to 16.919</text>
+<text class="n" x="32" y="640">Exact bundle only; not a general 30% figure; teacher-supplied context.</text>
+
+<!-- Panel C -->
+<rect class="panel" x="16" y="664" width="928" height="212" rx="6"/>
+<text class="h" x="32" y="690">C. More text kept helping: corpus size</text>
+<text class="n" x="32" y="708">Two measured points on a log axis; no curve is fitted between them. The vertical axis starts at 30%.</text>
+<line class="thin" x1="100" y1="726" x2="600" y2="726"/>
+<line class="thin" x1="100" y1="766" x2="600" y2="766"/>
+<line class="axis" x1="100" y1="806" x2="600" y2="806"/>
+<line class="axis" x1="100" y1="726" x2="100" y2="806"/>
+<text class="n end" x="92" y="730">40%</text><text class="n end" x="92" y="770">35%</text><text class="n end" x="92" y="810">30%</text>
+<text class="n mid" x="100" y="824">100k</text><text class="n mid" x="188" y="824">150k</text>
+<text class="n mid" x="449.5" y="824">500k</text><text class="n mid" x="600" y="824">1M</text>
+<circle class="mk-hollow" cx="188" cy="789.2" r="5"/>
+<rect class="sq-hollow" x="183" y="749.8" width="10" height="10"/>
+<circle class="mk-solid" cx="449.5" cy="778.8" r="5"/>
+<rect class="sq-solid" x="444.5" y="742.6" width="10" height="10"/>
+<text class="b end" x="176" y="793">32.1</text><text class="b end" x="176" y="759">36.4</text>
+<text class="b" x="462" y="783">33.4</text><text class="b" x="462" y="752">37.3</text>
+<text class="s mid" x="188" y="842">float ceiling</text>
+<text class="s mid" x="449.5" y="842">shipped integer runtime</text>
+<text class="n mid" x="350" y="858">records in the corpus (log scale)</text>
+<circle class="mk-solid" cx="648" cy="742" r="5"/><text class="l" x="662" y="746">top-1</text>
+<rect class="sq-solid" x="643" y="759" width="10" height="10"/><text class="l" x="662" y="769">agreement</text>
+<text class="s" x="640" y="796">Hollow marker: float ceiling, 150 thousand records.</text>
+<text class="s" x="640" y="812">Filled marker: shipped integer runtime,</text>
+<text class="s" x="640" y="827">500 thousand records.</text>
+<text class="b" x="640" y="846">About +1.5 to +1.8 points per doubling,</text><text class="b" x="640" y="862">no knee.</text>
+</svg>

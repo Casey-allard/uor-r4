@@ -1,0 +1,309 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Releases and artifacts - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="../start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="../start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="../start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="../start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="../start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="../start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="../products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="../products/web-client.html"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="../products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="../products/releases-and-artifacts.html" class="active"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="../model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="../model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="../model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="../geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="../geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="../geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="../geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="../geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="../geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="../geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="../mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="../mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="../mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="../mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="../mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="../mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="../mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/hopf-observation.html"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="../mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="../mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="../mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="../mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="../mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="../mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="../mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/pointer-key.html"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="../mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="../mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="../mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="../mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="../mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="../mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="../mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="../mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="../mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="../research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="../research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="../research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="../research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="../research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="../research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="../research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="../research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="../research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="../research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="../research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="../research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="../research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="../research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="../rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../rules/decision-map.html"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="../rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="../CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../formal_vocabulary.html"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="../CONFIGURATION.html"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="../reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="../minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="../RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="../projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="../projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="../projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="../projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="../projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="../projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="releases-and-artifacts"><a class="header" href="#releases-and-artifacts">Releases and artifacts</a></h1>
+<p>A release is how a finished model reaches people: a numbered version, a file you can download, and a fingerprint (a checksum) that proves the file is exactly the one that was tested. For UOR-R4 the file is meant to be one integer-only model file in a format called <code>UORLUT01</code>, released at milestone M8. That release does not exist. Two old software releases are on GitHub from the summer, plus one pinned-corpus data release, but both software releases belong to an earlier engine and neither is a qualified model. The release automation still targets that older engine too. This page explains the file format, the release machinery as it is, the Hugging Face repositories, and how checksums bind them together. <strong>Nothing ships until a trained model passes M1 to M8.</strong></p>
+<p>Labels used below: <strong>proof</strong> (derived from definitions or code), <strong>measurement</strong> (a recorded run with its artifact), <strong>hypothesis</strong> (untested). See the <a href="../start/glossary.html">glossary</a>.</p>
+<pre class="mermaid">flowchart LR
+  P[&quot;Trained model&lt;br/&gt;(GPU, offline)&quot;] --&gt; E[&quot;Export to UORLUT01&lt;br/&gt;+ export gap&quot;]
+  E --&gt; H[&quot;SHA-256 of the file&quot;]
+  H --&gt; R[&quot;Versioned release&lt;br/&gt;vX.Y, notes bind scores&quot;]
+  R --&gt; W[&quot;Web client&lt;br/&gt;verifies, caches&quot;]
+  R --&gt; D[&quot;Desktop client&lt;br/&gt;verifies, stores&quot;]
+  R --&gt; C[&quot;uor-chat CLI&quot;]
+  S[(&quot;Private HF store&lt;br/&gt;MD5SUMS / SHA256SUMS&quot;)] -.inputs and results.-&gt; P
+</pre>
+<p><em>The planned path from a trained model to the clients. Every hop carries a checksum. The release box exists only as a plan for this model; the old pipeline served a different engine.</em></p>
+<h2 id="the-model-file-uorlut01"><a class="header" href="#the-model-file-uorlut01">The model file: <code>UORLUT01</code></a></h2>
+<p><code>UORLUT01</code> is the container the integer engine reads. Its layout, from the reader <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/stack/format.rs"><code>format.rs</code></a> (<strong>proof</strong> by reading the code):</p>
+<ul>
+<li>The 8-byte magic string <code>UORLUT01</code>, then the header length as a little-endian 64-bit integer.</li>
+<li>A JSON header with the schema name, the model's shape, the group size, numeric settings, a list of matrices and tables, the exporter's provenance (never read by the serving arithmetic), and an optional record of a trained-in rotation snap, with the SHA-256 of its root set.</li>
+<li>Zero padding to a 64-byte boundary, then the data sections at 64-byte-aligned offsets.</li>
+<li>Each weight matrix stored as 4-bit codes, two per byte, with one scale byte per row and group. The scale byte holds a 4-bit mantissa \(m\) and a 4-bit exponent step \(d_e\), meaning a group scale of \((16+m)\,2^{\,e_{\text{base}}+d_e-4}\).</li>
+<li>Small integer tables (16-bit or 32-bit) for the few nonlinear steps.</li>
+</ul>
+<p><strong>Three schemas</strong> exist: <code>lut-stack/1</code> (a softmax attention read), <code>/2</code> (adds a pointer head) and <code>/3</code> (a softmax-free flock rank read). The first two serve exp-table softmax reads, which the no-squashing rule bans. No schema fits today's rules as it stands: all three also carry SiLU and GELU tables and stream dense 4-bit weight maps through a table-based product, which the charter excludes, so a new table-native schema is likely needed (<a href="../mechanisms/lut-serving.html">lut-serving dossier</a>).</p>
+<p><strong>A built-in fingerprint.</strong> When the reader parses a file, it computes the SHA-256 of all its bytes and keeps it with the parsed model (<code>format.rs</code>, line 557). A release can therefore pin that hash, and a client can refuse any file that does not match.</p>
+<p><strong>Safe loading.</strong> Every offset, length and product of sizes is checked, so a malformed file returns an error rather than crashing. A file that declares a product-key memory is refused outright, because the integer kernel for it is not built (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/stack/format.rs"><code>format.rs</code></a>).</p>
+<p><strong>Saved sessions</strong> use a separate format, <code>UR4SESS1</code>, which records a conversation's state so it can be restored byte for byte (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/src/session_codec.rs"><code>session_codec.rs</code></a>).</p>
+<h2 id="the-release-pipeline-as-it-is"><a class="header" href="#the-release-pipeline-as-it-is">The release pipeline as it is</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Piece</th><th>What it does</th><th>Fits the product?</th></tr></thead><tbody>
+<tr><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/.github/workflows/release.yml"><code>.github/workflows/release.yml</code></a></td><td>On a pushed <code>v*</code> tag: creates a <strong>draft</strong> GitHub Release; builds the <code>r4</code> command-line program for Linux x86_64 and macOS arm64; builds a WebAssembly frontend with <code>wasm-pack</code>; attaches each archive with a <code>.sha256</code> file beside it</td><td>No. All three of its jobs are paused (<code>if: ${{ false }}</code>) since the legacy-crate repair (#2793, 20 October 2026): the root crate now builds only its compliant library surface, so neither the <code>r4</code> program nor the WebAssembly frontend (the retired router engine) can be built under the bans. Rewriting it for <code>UORLUT01</code> is M8 work</td></tr>
+<tr><td><a href="../RELEASE_PIPELINE.html"><code>docs/RELEASE_PIPELINE.md</code></a></td><td>The release convention adopted 19 August (<code>#741</code>): a tag <code>vX.Y</code> binds the code SHA, the inference-contract version and BLAKE3 digests of every bundle component; the maintainer attaches the model bundle by hand and publishes the draft; users install with <code>r4 install-release</code>, which verifies it</td><td>No. The document itself says it is a preserved reference for the older graph-engine (R4G1) bundle, not the product's pipeline</td></tr>
+<tr><td><code>src/release_install.rs</code>, <code>release_bundle_packager.rs</code>, <code>release_bundle_loader.rs</code></td><td>Package and install the schema-2 R4G1 bundle</td><td>No. R4G1, not <code>UORLUT01</code></td></tr>
+</tbody></table>
+</div>
+<p>Source: reading <code>release.yml</code> and the repository tree. This audit did not confirm that a tag build passes today.</p>
+<p><strong>The two software releases on GitHub are historical.</strong> <code>v0.1</code> (19 August 2026) attached <code>r4</code> binaries, a WebAssembly frontend and a model bundle compiled from a pinned SmolLM2-360M-Instruct snapshot, a converted transformer that the current serving rules exclude. <code>v0.1.0-alpha</code> (8 September 2026) is marked a pre-release: its notes say the alpha qualification was withdrawn after a recovery audit found the claims unsupported, and it is kept only for historical reproducibility. Neither is a release of the geometric model. A third GitHub release, "D3 pinned corpus: simple-wiki-20231101-sample" (29 July 2026), is a data release, not a model (release pages on <code>UOR-Foundation/uor-r4</code>, read 19 October 2026).</p>
+<p><strong>The owner has decided to repair the legacy crates, not archive them.</strong> The root crate and four others are to be repaired so that they build on the current core. Repairing restores the build only; their old mechanisms stay parked (<a href="../CHARTER.html">charter</a>, section 2.4). A repaired build would let <code>release.yml</code> run again, but it would still package the wrong format until it is changed.</p>
+<h2 id="what-an-m8-release-must-contain"><a class="header" href="#what-an-m8-release-must-contain">What an M8 release must contain</a></h2>
+<p>The M8 bar is "one versioned, checksum-pinned <code>UORLUT01</code> artifact" that meets the frozen bars of M1 to M7, with "reproducible installation, release notes binding the exact measured scores and known limitations, and independent verification on consumer hardware" (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/project-track.md">project track</a>, M8; issue <code>#2036</code>). Read as a checklist, it is a plan, not existing work:</p>
+<ol>
+<li><strong>The model file</strong> with its SHA-256, plus the tokenizer it was trained with.</li>
+<li><strong>Release notes</strong> that bind the code SHA, the file hash, the tokenizer, the training data and seed, every measured score with its panel, the export gap, and the known limits. The charter requires every artifact to bind its data, seed, configuration, parameters and format (section 3.12).</li>
+<li><strong>Binaries:</strong> <code>uor-chat</code> for each platform and the WebAssembly bundle, each with a <code>.sha256</code>, and each re-passing the zero-multiply audit (native 44 symbol ranges, WebAssembly 7 of 7 at last count; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/project-track.md">project track</a>, M4).</li>
+<li><strong>The Studio</strong>, published to <code>/studio</code> on the documentation site (<a href="../CHARTER.html">charter</a>, section 2).</li>
+<li><strong>Independent verification</strong> on consumer hardware.</li>
+</ol>
+<p>Missing today: a release workflow for <code>UORLUT01</code>, WebAssembly and desktop packaging of the integer engine in that workflow, and one inference contract. Two contracts still coexist: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/inference_contract.md"><code>docs/inference_contract.md</code></a> for the older R4G1 runtime, and D11 rules R1 to R5 for the product (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded">D11</a>).</p>
+<h2 id="hugging-face-repositories"><a class="header" href="#hugging-face-repositories">Hugging Face repositories</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Repository</th><th>Visibility</th><th>What it holds</th><th>Status</th></tr></thead><tbody>
+<tr><td><a href="https://huggingface.co/caseyallard/uor-r4-geometric-214m"><code>caseyallard/uor-r4-geometric-214m</code></a></td><td>Public (model, MIT)</td><td>Four 214M-parameter float checkpoints: <code>base-tinystories</code>, <code>base-planA</code>, <code>chat-planA-b8</code>, <code>chat-smoltalk-b16</code>, with configs, sanitized run reports and the byte-level BPE tokenizer</td><td><strong>Historical.</strong> Trained before the softmax and matmul bans; not the D11 product</td></tr>
+<tr><td><a href="https://huggingface.co/datasets/caseyallard/uor-r4-data"><code>datasets/caseyallard/uor-r4-data</code></a></td><td>Public (dataset, MIT plus CDLA-Sharing-1.0)</td><td>Project-generated data: the tokenizer, the memory-dialogue sets <code>mw-balp</code> and <code>mw-orcp</code> with the fine-tune manifest, the dev split, conversational panels, TinyStories tokenized for the native learner</td><td>Live data</td></tr>
+<tr><td><code>caseyallard/uor-r4-store</code></td><td>Private</td><td>The labs' working store: <code>data/*</code> (about 2.7 GB, checked against <code>MD5SUMS</code>), base models, pinned toolchain and crate-registry archives, project binaries <code>bin/&lt;sha&gt;</code> with <code>SHA256SUMS</code>, pod setup, and <code>results/&lt;lab&gt;/&lt;topic-date&gt;/</code></td><td>Working store; never a release channel</td></tr>
+</tbody></table>
+</div>
+<p>Both public repositories were published on 9 October 2026. Sources: the two Hugging Face repository pages; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/compute.md">compute guide</a>. The public model repository's visibility is inferred from the listing, which showed no private flag.</p>
+<h2 id="how-checksums-tie-it-together"><a class="header" href="#how-checksums-tie-it-together">How checksums tie it together</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Where</th><th>Checksum</th><th>What it proves</th></tr></thead><tbody>
+<tr><td><code>UORLUT01</code> load</td><td>SHA-256 of the whole file, computed by the reader</td><td>The file is byte-identical to a pinned release</td></tr>
+<tr><td>Rotation snap in the header</td><td>SHA-256 of the root set, checked against the engine's constant</td><td>The model was trained against the same exact geometry the engine uses</td></tr>
+<tr><td><code>release.yml</code> assets</td><td><code>.sha256</code> beside each archive</td><td>The download is intact</td></tr>
+<tr><td>Legacy R4G1 bundle</td><td>BLAKE3 digests per component in <code>release-bundle.json</code></td><td>Historical only</td></tr>
+<tr><td>Private store data</td><td><code>MD5SUMS</code></td><td>A pod's inputs match the store</td></tr>
+<tr><td>Project binaries in the store</td><td><code>SHA256SUMS</code>, plus a recorded parity pass</td><td>A prebuilt binary is the one that was checked</td></tr>
+<tr><td>Archived records</td><td><code>SHA256SUMS</code> files</td><td>Archived evidence is unchanged</td></tr>
+<tr><td>Results in iCloud</td><td>MD5 round-trip on upload</td><td>The copy matches the original</td></tr>
+</tbody></table>
+</div>
+<p>A checksum proves integrity: the bytes are the ones that were pinned. It does not prove who made them, and it says nothing about model quality.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="language-model.html">Language model</a> for the M1 to M8 path; <a href="index.html">products overview</a>.</li>
+<li><a href="../model/serving-and-export.html">Serving and export</a> for the engine and the export gap.</li>
+<li><a href="../mechanisms/lut-serving.html">Integer serving dossier</a>.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/compute.md">Compute guide</a> for the private store and <code>uor-store</code>.</li>
+<li><a href="../CHARTER.html">Charter</a>, sections 2, 3.6 and 3.12.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../products/desktop-client.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../model/architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../products/desktop-client.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../model/architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

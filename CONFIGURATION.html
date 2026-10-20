@@ -1,0 +1,610 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Configuration reference - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="products/web-client.html"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="products/releases-and-artifacts.html"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="mechanisms/hopf-observation.html"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="mechanisms/pointer-key.html"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="rules/decision-map.html"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="formal_vocabulary.html"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="CONFIGURATION.html" class="active"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="configuration-reference"><a class="header" href="#configuration-reference">Configuration reference</a></h1>
+<p><strong>September 7 direction reconciliation:</strong> the product name is <strong>UOR-R4 Geometric Language Model</strong>. Read the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/project-track.md">canonical plan</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/current-state.md">current artifact/results</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/model-direction-2026-09.md">capability assessment</a> and <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/PROJECT_MAP.md">project map</a> first. This document retains technical and dated experiment/reference material; earlier “active/next” sequences do not supersede those pointers. Native bounded inference and contextual/copy attention exist; general prose, general reasoning and frontier capability remain unqualified. Offline Rust training matmul is allowed; final serving has no matrix products or transformer backbone. No new model result was run for this documentation update.</p>
+<p>For the current Rust model, use the CLI options and examples in the
+<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/native_geometric_workflow.md">native geometric workflow</a>. The explicit
+<code>r4 geometric</code> command family configures preparation, training, evaluation,
+generation and the local service; model context and operator settings travel
+with the artifact. The <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/project-track.md">canonical plan</a> owns
+architecture and budget policy, while
+<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/current-state.md">current-state.md</a> owns implementation status.
+Native options do not wait for a historical stage or later Rust port.</p>
+<h2 id="retained-compiler-and-reference-configuration"><a class="header" href="#retained-compiler-and-reference-configuration">Retained compiler and reference configuration</a></h2>
+<p>The inventory below covers existing compiler/runtime and measurement lanes
+across earlier architectural eras. <code>TLESS_*</code>, <code>R4G1_*</code>, teacher and release
+variables apply to their named paths. Defaults for plain <code>ask</code>/<code>chat</code>, source
+tokenizers and older HTTP engines do not select the <code>r4 geometric</code> model.
+These references preserve compatibility and reproducibility; they do not
+reintroduce a Python model dependency or change the current project goal.</p>
+<p>The listed environment variables give their defaults and owning modules.
+Where a listed CLI flag and variable both exist, the flag wins.</p>
+<p><strong>Legacy override contract.</strong> The capacity and sampling helpers
+(<code>capacity_override_usize</code> / <code>capacity_override_f64</code>) share one rule: <strong>unset is
+κ-neutral — behaviour is bit-identical to not setting it. Set-but-invalid, or
+zero, panics.</strong> A knob that silently did nothing would be indistinguishable from
+a knob that does not work, and both failures are invisible. Underscore separators
+are accepted (<code>R4_GATE_C_SAMPLE=10_000</code>).</p>
+<h2 id="paths-and-inputs"><a class="header" href="#paths-and-inputs">Paths and inputs</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Meaning</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>TLESS_CHECKPOINT</code></td><td>llama2.c reference teacher checkpoint</td><td><code>/tmp/ref/out/model.bin</code></td></tr>
+<tr><td><code>TLESS_ARTIFACTS</code></td><td>TLA artifact container</td><td><code>/tmp/tless_artifacts.bin</code></td></tr>
+<tr><td><code>TLESS_STORE</code></td><td>Graded store</td><td><code>/tmp/tless_store.bin</code></td></tr>
+<tr><td><code>TLESS_TOKENIZER</code></td><td>llama2.c tokenizer</td><td><code>/tmp/ref/tokenizer.bin</code></td></tr>
+<tr><td><code>TLESS_MODEL</code></td><td>Model name or CID for <code>ask</code> / <code>chat</code></td><td>newest <code>models/*.json</code>, else <code>smollm2-135m-instruct</code></td></tr>
+<tr><td><code>TLESS_CORPUS_META</code> / <code>TLESS_CORPUS_RECS</code></td><td>Dashboard R4G1-compiler corpus</td><td>none</td></tr>
+<tr><td><code>R4G1_ARTIFACT</code></td><td>Scored R4G1 for research loading. Production admission additionally requires the schema-2 release envelope and its content-bound full-census deployed-quality report</td><td><code>graph/score.r4g1</code> beside the artifacts</td></tr>
+<tr><td><code>R4_CORPUS_META</code> / <code>R4_CORPUS_RECS</code></td><td>Override the corpus pair everywhere — compiler and every measurement harness</td><td><code>/tmp/c_meta.bin</code> / <code>/tmp/c_recs.bin</code>; harnesses default to the committed fixtures</td></tr>
+<tr><td><code>R4_ARTIFACTS</code></td><td>Override the TLA container in harnesses</td><td>the committed fixture</td></tr>
+<tr><td><code>R4_STORIES</code></td><td><code>stories.jsonl</code> giving the construction/held-out split</td><td>derived 80/20 split</td></tr>
+<tr><td><code>R4_SCORED_R4G1</code></td><td>Scored R4G1 for <code>router_reconnect</code></td><td><strong>required, no default</strong></td></tr>
+<tr><td><code>R4_CODES_PATH</code></td><td>κ-keyed per-record code sidecar</td><td><code>code_sidecar::CODES_PATH</code></td></tr>
+<tr><td><code>UOR_MODEL_STORE</code></td><td>CID object store root</td><td><code>.uor-models</code></td></tr>
+<tr><td><code>UOR_R4_HOST</code> / <code>UOR_R4_PORT</code></td><td>Server bind address</td><td><code>127.0.0.1</code> / <code>8000</code></td></tr>
+<tr><td><code>UOR_R4_MANIFOLD_CACHE</code></td><td>Router manifold cache</td><td><code>manifold_cache_rust.json</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="tokenizer-adapter-selection"><a class="header" href="#tokenizer-adapter-selection">Tokenizer adapter selection</a></h2>
+<p>Registered source tokenizers are selected by CLI/API fields, not environment
+variables. CLI commands that accept <code>--source</code> also accept the atomic pair
+<code>--tokenizer-family FAMILY --tokenizer-version N</code>. Both flags must be present
+or absent. When absent, discovery succeeds only when the source directory has
+one unambiguous supported definition; a directory containing both
+<code>tokenizer.json</code> and <code>spiece.model</code> requires the explicit pair. Unknown pairs
+and any attempt to combine a registered adapter with legacy <code>--checkpoint</code>
+input fail closed.</p>
+<p>For raw SentencePiece sources, use family <code>sentencepiece-unigram</code>. Version 2
+is the current, reference-correct adapter; automatic discovery of one
+unambiguous <code>spiece.model</code> selects it. Version 1 remains registered only as the
+immutable published behavior whose unknown id decodes to the literal model
+surface <code>&lt;unk&gt;</code>. <code>N</code> is part of the semantic identity, not a compatibility
+range: consumers do not substitute a newer or older version. Both versions
+read the pinned 32,000-piece <code>spiece.model</code>; neither applies the T5 Hugging
+Face wrapper's 100 sentinel tokens or EOS-appending post-processor.</p>
+<p>The host adapter performs text normalization and encoding. The deployed
+tagged <code>tokenizer.bin</code> is decode-only and carries the complete adapter binding
+(family, version, source-model CID, and policy digest). Serving requires a
+matching host encoder for prompt text. Missing/mismatched identity, unavailable
+encode, invalid token ids, and decode failures are errors; an explicitly tagged
+tokenizer does not fall back to a legacy tokenizer. SentencePiece observation
+records have no original-source byte anchors because normalization and unknown
+collapse do not preserve a total input-offset map.</p>
+<h2 id="determinism-and-teacher-math"><a class="header" href="#determinism-and-teacher-math">Determinism and teacher math</a></h2>
+<p>These are κ-relevant: changing them can change artifact bytes.</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Meaning</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>TLESS_CANONICAL_DETERMINISTIC</code></td><td>Any value ≠ <code>0</code> selects portable libm math and scalar reductions. <strong>Required for the cross-platform Gate E claim.</strong></td><td>off</td></tr>
+<tr><td><code>TLESS_EXACT_SCALAR</code></td><td>Deprecated compatibility input. Llama/shared projections already use pinned exact <code>uor-matmul</code>, so this variable no longer changes their arithmetic; it does not select a GPT-2 Conv1D/lm-head route.</td><td>unset</td></tr>
+<tr><td><code>TLESS_TEACHER_VFORCE_EXP</code></td><td>macOS only; <code>0</code> disables Accelerate <code>vvexpf</code></td><td>on (macOS); off under canonical mode</td></tr>
+<tr><td><code>R4_TLESS_TLA6</code></td><td><code>0</code> opts a compile out of TLA6 emission</td><td>on</td></tr>
+<tr><td><code>R4_TLESS_TLA7</code></td><td><code>0</code> opts a compile out of TLA7 (residual) emission → TLA6</td><td>on</td></tr>
+<tr><td><code>TLESS_REPIN_WRITE</code></td><td><code>=1</code> regenerates the κ fixture container. <strong>Maintainer decision only</strong> — see the κ re-pin procedure in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/AGENTS.md">AGENTS.md</a></td><td>off</td></tr>
+</tbody></table>
+</div>
+<h2 id="thread-counts"><a class="header" href="#thread-counts">Thread counts</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Meaning</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>R4_COMPILER_THREADS</code></td><td>Graph-compiler rayon pool (CLI <code>--jobs</code> overrides)</td><td>rayon default</td></tr>
+<tr><td><code>R4_CAP_THREADS</code></td><td><code>capacity_scaling</code> harness</td><td>2</td></tr>
+<tr><td><code>R4_SCALING_THREADS</code></td><td><code>cover_scaling</code> harness</td><td>2</td></tr>
+<tr><td><code>R4_TS_THREADS</code></td><td><code>two_sided_context</code> harness</td><td>env-derived</td></tr>
+<tr><td><code>R4_PARITY_WORKERS</code></td><td>Size <code>W</code> of the one persistent exact output-row worker pool. Diagnostic range is <code>1..=available_parallelism()</code>; <code>0</code>, malformed values, and requests above the host budget fail instead of being clamped. Fixture-present execution adopts the faster exact W=available/W=min(4, available) tuner result, so this input cannot force a different binding selection. The candidate widths are a bounded tuning choice, not a utilization target.</td><td>all available logical CPUs before probe selection</td></tr>
+<tr><td><code>R4_PARITY_STREAMS</code></td><td>Independent private-state trajectory and physical-batch width <code>S</code>. <code>S</code> is scientific work, not a worker bound: it may exceed or be less than <code>W</code>. The binding fixture-present workload requires the eight canonical prompt lanes.</td><td>8</td></tr>
+<tr><td><code>R4_PARITY_BATCH_PER_WORKER</code></td><td>Bounded exact output-row task fan-out per worker. This changes scheduling granularity only; it cannot select Accelerate or change exact arithmetic. Requested and effective fan-out are recorded.</td><td>4</td></tr>
+</tbody></table>
+</div>
+<h2 id="cover-induction-and-compiler-capacity"><a class="header" href="#cover-induction-and-compiler-capacity">Cover induction and compiler capacity</a></h2>
+<p>All follow the override contract above.</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>R4_COVER_DEPTHS</code></td><td>3</td></tr>
+<tr><td><code>R4_COVER_K0</code></td><td>8</td></tr>
+<tr><td><code>R4_COVER_REGIONS_BUDGET</code></td><td>256</td></tr>
+<tr><td><code>R4_COVER_MEMORY_BUDGET_MB</code></td><td>512</td></tr>
+<tr><td><code>R4_COVER_MIN_SUPPORT</code></td><td>64</td></tr>
+<tr><td><code>R4_COVER_ENTROPY_GAIN_BITS</code></td><td>0.25</td></tr>
+<tr><td><code>R4_COVER_SPLIT_CRITERION</code></td><td><code>absolute</code> (<code>absolute|relative|mdl</code>; unknown panics)</td></tr>
+<tr><td><code>R4_COVER_RELATIVE_THETA</code></td><td>—</td></tr>
+<tr><td><code>R4_COVER_MDL_PENALTY_BITS</code></td><td>—</td></tr>
+<tr><td><code>R4_COVER_SCALE_K0</code></td><td><code>0</code> (flag: <code>0/false/1/true</code>, else panics)</td></tr>
+<tr><td><code>R4_COVER_SCALE_REGIONS_BUDGET</code></td><td><code>0</code></td></tr>
+<tr><td><code>R4_COVER_CAPACITY_ALPHA</code></td><td>—</td></tr>
+<tr><td><code>R4_COVER_CAPACITY_REF_N</code></td><td>—</td></tr>
+<tr><td><code>R4_CTX_SAMPLE</code></td><td><code>CTX_SAMPLE</code></td></tr>
+<tr><td><code>R4_RVQ_SAMPLE_CAP</code></td><td>10,000</td></tr>
+</tbody></table>
+</div>
+<blockquote>
+<p><strong>Trap.</strong> <code>R4_COVER_CAPACITY_REF_N</code> defaults near the 500k fixture's train
+count, so the <code>scaled-k0</code> arm passes <em>degenerately</em> on any ~500k corpus. Use
+the <code>@ref50k</code> arms when that matters.</p>
+</blockquote>
+<h2 id="gate-c-scoring"><a class="header" href="#gate-c-scoring">Gate C scoring</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Meaning</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>R4_GATE_C_SAMPLE</code></td><td>Deterministic <strong>stride</strong> subsample of the held-out split. The sample size and binomial standard error travel with every rate, so a sampled number cannot be read as a census. Unset is the full pass, bit-identical to the pre-sampling evaluation. <code>&lt;1</code> or non-integer panics</td><td>unset (census)</td></tr>
+<tr><td><code>R4_GATE_C_SKIP_ARMS</code></td><td>Comma-separated arm-group names not to build. Only known group: <code>right_context</code> — the #446 two-sided and latent families, i.e. the closure of the whole-corpus right-context code pass (~60% of a sampled run's wall clock). <strong>Unknown names panic.</strong> Skipped arms report as absent (<code>null</code>), never as zeroed rows</td><td>unset (skip nothing)</td></tr>
+<tr><td><code>R4_TRANSITION_OUT_DEGREE</code></td><td>Per-source out-degree cap for forward edges</td><td>8</td></tr>
+<tr><td><code>R4_EMISSION_ENTRIES</code></td><td>Per-region emission list bound</td><td>64</td></tr>
+<tr><td><code>R4_ROOT_TOP_B</code> / <code>R4_EXCT_TOP_X</code></td><td>Candidate list bounds</td><td>64 / 64</td></tr>
+<tr><td><code>R4_CONTEXT_ENTRIES</code></td><td>Packed NGRAM context row entries</td><td>64</td></tr>
+<tr><td><code>R4_FWDA_ENTRY_CAP</code></td><td>Forward-anchor row cap</td><td>64</td></tr>
+<tr><td><code>R4_LATENT_CLASS_DEPTH</code></td><td>Bytes of the right code forming the latent class (clamped to <code>1..=STAGES</code>)</td><td>1</td></tr>
+</tbody></table>
+</div>
+<h2 id="certification"><a class="header" href="#certification">Certification</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Meaning</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>R4_CERTIFY_C_ONLY</code></td><td>≠<code>0</code> runs only the historical C research diagnostic, no teacher load. It is not production-admission evidence; use <code>r4 deployed-quality</code></td><td>off</td></tr>
+<tr><td><code>R4_CERTIFY_ROWS_ONLY</code></td><td>≠<code>0</code> skips the C serving row. Explicitly <strong>not</strong> a full certificate</td><td>off</td></tr>
+<tr><td><code>R4_CERTIFY_PHASE_C_ONLY</code></td><td>≠<code>0</code> certifies phase C only</td><td>off</td></tr>
+<tr><td><code>R4_CERTIFY_R4G1_BUDGET_SECS</code></td><td>Readiness-probe wall clock</td><td>120</td></tr>
+<tr><td><code>R4_CERTIFY_R4G1_EVAL_BUDGET_SECS</code></td><td>Subsampled-eval wall clock</td><td>600</td></tr>
+<tr><td><code>R4_CERTIFY_SERVING_BUNDLE</code></td><td>Bundle for the certify C row</td><td>scans under <code>.</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="normative-deployed-quality-evaluation-933"><a class="header" href="#normative-deployed-quality-evaluation-933">Normative deployed-quality evaluation (#933)</a></h2>
+<p>These knobs drive the teacher-free <code>R4G1Runtime</code> evaluator. Worker partitions
+are deterministic and reductions are replayed in canonical position order, so
+changing the worker count changes wall time but not report bytes. Once an
+evaluation phase launches it writes monotonic progress plus its phase terminal;
+a missing control, timeout, or absent identity is <code>UNAVAILABLE</code>/skipped and
+cannot authorize production.</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Meaning</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>R4_DEPLOYED_QUALITY_MODE</code></td><td><code>full</code> selects the complete held-out census; every other value selects the deterministic sample</td><td>sample</td></tr>
+<tr><td><code>R4_DEPLOYED_QUALITY_POSITIONS</code></td><td>Sample size when mode is not <code>full</code></td><td>6,000</td></tr>
+<tr><td><code>R4_DEPLOYED_QUALITY_WORKERS</code></td><td>Evaluation workers. Results are canonically ordered after parallel execution</td><td>available logical CPUs</td></tr>
+<tr><td><code>R4_CERTIFY_R4G1_BUDGET_SECS</code></td><td>Cheap readiness-probe wall-clock budget</td><td>120</td></tr>
+<tr><td><code>R4_CERTIFY_R4G1_EVAL_BUDGET_SECS</code></td><td>Sample/census wall-clock budget</td><td>3,600</td></tr>
+</tbody></table>
+</div>
+<p>The historical certify-C diagnostic above and this normative command share
+the two budget variable names but retain distinct defaults: 600 seconds for
+the non-binding diagnostic, 3,600 seconds for <code>r4 deployed-quality</code>. Explicit
+CLI flags override their environment variables.</p>
+<p>Every invocation against a valid, non-symlink bundle root first creates
+<code>evidence/deployed_quality_invocation_terminal.jsonl</code>. The create-once JSONL
+journal is synced after its <code>started</code> row and again after exactly one
+<code>completed</code>, <code>failed</code>, or best-effort <code>interrupted</code> terminal row, so argument,
+bundle-discovery, cross-surface, witness, sample-gate, projection, and evaluator
+failures are all durable. A synced <code>started</code> row without a terminal row means
+the process was externally interrupted or otherwise unresolved; signals,
+power loss, and <code>SIGKILL</code> cannot be guaranteed to run cleanup code. An absent,
+symlinked, or non-directory bundle cannot safely host in-bundle evidence and
+therefore fails before journal creation. Reusing the same staged bundle is
+refused rather than overwriting its first invocation.</p>
+<p>The invocation journal is local, non-semantic evidence. It is excluded from
+the generation CID, production admission, and release archives, as are the
+resource sidecar and terminal transcript described below. Phase progress and
+phase terminal files under <code>graph/</code> remain authoritative only after that phase
+actually launches.</p>
+<p>Production admission accepts only a schema-2 <code>release-bundle.json</code> whose
+component digests and compiler/selector identities reproduce from the loaded
+graph, teacher artifact, corpus pair, tokenizer, tokenizer adapter, score
+report, cover report, and deployed-quality report. A sampled report remains
+research evidence even when all measured rows are favorable.</p>
+<p>The release CLI exposes the same contract directly. <code>--mode full</code> cannot
+bypass the cheap instrument: it first runs the exact 6,000-position prefix of
+the canonical label-free, story-distributed order on the same bundle/evidence
+generation. Any structural, reachability,
+non-futility, planted-control, cross-surface, or witness falsifier emits
+<code>STOP:</code> and returns without starting the census. <code>PROCEED:</code> launches the
+census. A typed <code>INCONCLUSIVE:</code> extends the same immutable nested order to
+18,000 positions; if that interval still overlaps the gate, it can launch only
+the census and only when the measured reachable ceiling remains sufficient.
+Before any census launch, the authorizing stage's measured throughput is
+scaled to the full population; a projection beyond the configured evaluation
+budget or one hour refuses launch and requires a revised run contract. No
+sample report can authorize production admission.</p>
+<pre><code class="language-bash">cargo run --release -- deployed-quality \
+  --bundle .uor-models/compiled/&lt;model&gt;-staging \
+  --compiler-revision &lt;full-40-character-revision&gt; \
+  --mode sample --positions 6000 --workers 8
+</code></pre>
+<p>For a canonical run, wrap the command so host identity, effective workers,
+wall time, peak child RSS, free storage, bundle growth, exit status, and every
+graph evidence-file size are durable even when the evaluator fails. A
+create-once JSONL beside the summary samples the complete child process tree's
+CPU share, RSS, process count, host-memory headroom, and filesystem headroom
+every five seconds. The wrapped evaluator still streams its phase counters,
+throughput, and ETA. On
+the canonical macOS host, <code>/usr/bin/script -e -F</code> preserves that stream in a
+separate terminal transcript and propagates the child exit status; require a
+new transcript path before launch just as the wrapper requires a new sidecar.
+The resource summary, live-sample JSONL, and transcript are explicitly
+non-semantic and are never admission inputs. The inventory snapshot is captured
+when the child exits. If the live-sample JSONL is placed inside the bundle it is
+therefore present in that snapshot; the subsequently written resource summary
+and the outer transcript's final trailer are not. Both resource paths are
+append-only: the wrapper refuses to overwrite either one, and it verifies that
+its <code>--bundle</code> exactly matches the wrapped command's <code>--bundle</code> (evaluation) or
+<code>--bundle-root</code> (graph emission) before launch. It also records <code>--workers</code> or
+<code>--jobs</code> as the effective requested worker count. Use <code>--samples-output</code> to
+select the JSONL path; otherwise it is <code>&lt;output&gt;.samples.jsonl</code>.</p>
+<pre><code class="language-bash">test ! -e .uor-models/compiled/&lt;model&gt;-staging/graph/deployed_quality_full.log
+/usr/bin/script -q -e -F .uor-models/compiled/&lt;model&gt;-staging/graph/deployed_quality_full.log \
+  python3 scripts/run_deployed_quality.py \
+  --bundle .uor-models/compiled/&lt;model&gt;-staging \
+  --output .uor-models/compiled/&lt;model&gt;-staging/graph/deployed_quality_full_resources.json \
+  -- target/release/r4 deployed-quality \
+  --bundle .uor-models/compiled/&lt;model&gt;-staging \
+  --compiler-revision &lt;full-40-character-revision&gt; \
+  --mode full --positions 6000 --workers 8
+</code></pre>
+<h2 id="measurement-harnesses"><a class="header" href="#measurement-harnesses">Measurement harnesses</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Default</th><th>Harness</th></tr></thead><tbody>
+<tr><td><code>R4_CAPACITY_SAMPLE</code></td><td>100,000 (<code>0</code> = census)</td><td><code>capacity_scaling</code></td></tr>
+<tr><td><code>R4_CAPACITY_TRAIN_SAMPLE</code></td><td>0 (census; nonzero is the biased fast look and <strong>disables the sidecar in both directions</strong>)</td><td><code>capacity_scaling</code></td></tr>
+<tr><td><code>R4_CAP_COVER_MAX_TRAIN</code> / <code>R4_CAP_SKIP_COVER</code></td><td>0 / off</td><td><code>capacity_scaling</code></td></tr>
+<tr><td><code>R4_SCALING_FRACS</code></td><td><code>13,25,50,100</code></td><td><code>cover_scaling</code></td></tr>
+<tr><td><code>R4_SCALING_ARMS</code></td><td><code>absolute,relative,mdl,scaled-k0,relative+scaled</code></td><td><code>cover_scaling</code></td></tr>
+<tr><td><code>R4_SCALING_MAX_TRAIN</code> / <code>R4_SCALING_MAX_HELD</code></td><td>0 / 50,000</td><td><code>cover_scaling</code></td></tr>
+<tr><td><code>R4_TS_RIGHT_R</code> / <code>R4_TS_MAX_EVAL</code> / <code>R4_TS_SIG_TOP</code> / <code>R4_TS_SIG_BINS</code> / <code>R4_TS_MIN_SUP</code></td><td>4 / 250,000 / 4 / 16 / 1</td><td><code>two_sided_context</code></td></tr>
+<tr><td><code>R4_TS_GROWTH_FRACS</code></td><td><code>6,12,25,50,100</code></td><td><code>two_sided_context</code></td></tr>
+<tr><td><code>R4_RECONNECT_CONSTR_STORIES</code> / <code>R4_RECONNECT_HELD_STORIES</code></td><td>2,000 / 200</td><td><code>router_reconnect</code></td></tr>
+<tr><td><code>R4_INFILL_STRIDE</code></td><td>4</td><td><code>anchor_infill</code></td></tr>
+<tr><td><code>R4_CD_SAMPLE_EVERY</code> / <code>R4_CD_LABEL</code> / <code>R4_CD_AB_BUNDLE</code></td><td>5 / <code>unlabeled</code> / <code>/tmp/score.r4g1</code></td><td><code>r4g1_cd_ab</code></td></tr>
+<tr><td><code>R4_HOPF_CONSTR_STORIES</code> / <code>R4_HOPF_PROBES</code></td><td>2,000 / 500</td><td>all router harnesses</td></tr>
+<tr><td><code>R4_HOPF_FISHER_PAIRS</code> / <code>R4_HOPF_REDESIGN</code></td><td>10,000 / off</td><td><code>hopf_retrieval_quality</code></td></tr>
+<tr><td><code>HOPF_OCCUPANCY_REPORT_PATH</code></td><td><code>target/hopf_sector_occupancy/report.json</code></td><td><code>hopf_sector_occupancy</code></td></tr>
+<tr><td><code>R4_SELFMATCH_PROBES</code></td><td>100</td><td><code>geometry_selfmatch</code></td></tr>
+<tr><td><code>R4_LEXW_CONTENT_QUERY</code></td><td>Off in this historical harness; <code>1</code> selects the deployed content-query arm. The router itself defaults content-query mode on (#490/#502).</td><td><code>lexical_weight</code></td></tr>
+<tr><td><code>R4_ZETA_ARM</code></td><td>must be <code>1</code> or the harness no-ops</td><td><code>zeta_state_retrieval</code></td></tr>
+<tr><td><code>R4_MEMLIFT_CONSTR_STORIES</code> / <code>R4_MEMLIFT_PROBES</code></td><td>2,000 / 500</td><td><code>memory_lift_corpus</code></td></tr>
+<tr><td><code>R4_ARM_SKIP_SAMPLE</code> / <code>R4_ARM_SKIP_FIXTURE_DIR</code></td><td>10,000 / the committed fixtures</td><td><code>gate_c_arm_skip</code></td></tr>
+<tr><td><code>R4_STATUS_FIXTURE_DIR</code></td><td><code>/tmp/r4-status-fixture</code></td><td><code>status_policy</code></td></tr>
+<tr><td><code>R4_PARITY_POSITIONS</code> / <code>_GEN_TOKENS</code> / <code>_RUNS</code> / <code>_CORPUS_POSITIONS</code></td><td>256 / 8 / 1 / 1000. The binding registered work uses exactly eight lanes and an eight-token maximum; S4 starts at one causal continuation step per lane, then may extend through 2, 4, and 8 only while more work can change the verdict. Smaller generation caps are diagnostic only and cannot qualify the full run. Fixture-present execution requires one causal run. The report records actual tokenized/executed work; caps are not forward-count claims.</td><td>BDD teacher parity</td></tr>
+<tr><td><code>R4_PARITY_PREFLIGHT_ONLY</code></td><td>Off. Set to <code>1</code> to validate the schema-2 <code>release-bundle.json</code> production envelope and deployed-quality bindings, then parse and exercise the tokenizer, legacy artifact/store, graph, graph report, and all eight canonical deployed seeds without opening the live teacher. It writes a <code>uor-r4.teacher-parity-preflight/1</code> success or refusal artifact with <code>teacher_source_opened=false</code> and <code>teacher_forwards=0</code>, then exits before Cucumber. The ordinary BDD fixture loader publishes the same artifact automatically. Any missing or invalid prerequisite blocks expensive teacher work truthfully.</td><td>Teacher-free BDD preflight</td></tr>
+<tr><td><code>R4_PARITY_PREFLIGHT_REPORT</code></td><td><code>target/teacher-parity/teacher-free-preflight.json</code>. Relative paths resolve from the repository workspace root for both the BDD owner and direct tuner. Atomic deterministic output used by explicit and automatic preflight. Non-PASS artifacts retain the exact reason, selected paths, safe per-input presence/CIDs, and current <code>authorizing_contract_cid</code> before returning; an empty, non-Unicode, uncreatable, or unwritable path fails the preflight visibly. The direct tuner validates the current contract, exact report/source/bundle paths, and recomputed compiled-input plus complete production-admission CIDs before opening teacher weights.</td><td>Teacher-free BDD preflight and exact live admission probe</td></tr>
+<tr><td><code>R4_PARITY_PROGRESS_EVERY_SECS</code></td><td>10. Periodic human-readable and flushed JSONL heartbeat cadence, including while no exact forward has completed. In-flight matrix/tile/cell/scalar counters drive liveness and the ETA basis; whole-forward throughput remains separate. Zero or malformed values fail.</td><td>BDD teacher parity</td></tr>
+<tr><td><code>R4_PARITY_MAX_WALL_SECS</code></td><td>28,800 (8 h). Stops dispatching new work at the ceiling and records <code>ABORTED</code>; it never converts partial work into PASS. Values above 28,800 fail: the override may shorten but never widen the hard ceiling. The full run is also refused before launch unless the cheap probe projects completion below this ceiling.</td><td>BDD teacher parity</td></tr>
+<tr><td><code>R4_PARITY_REPORT</code></td><td><code>target/teacher-parity/parity-report.json</code>. Final versioned JSON report; the flushed event stream is written beside it as <code>parity-report.events.jsonl</code>. A create/write/flush failure is <code>FAIL</code>, not missing telemetry on a PASS.</td><td>BDD teacher parity</td></tr>
+<tr><td><code>R4_PARITY_TELEMETRY</code></td><td><code>1</code> / enabled. <code>0</code> exists only for focused planted/unit controls; fixture-present parity refuses to run without telemetry. Invalid booleans fail.</td><td>BDD teacher parity</td></tr>
+<tr><td><code>R4_EXACT_PROBE_REPORT</code></td><td><code>target/teacher-parity/exact-multicore-probe.json</code>; relative paths resolve from the repository workspace root and flushed events use <code>exact-multicore-probe.events.jsonl</code>. An empty/non-Unicode path refuses admission.</td><td>Exact live admission probe and BDD consumer</td></tr>
+<tr><td><code>R4_EXACT_PROBE_POSITIONS</code></td><td>1; valid range <code>1..=8</code>. Every configured position is exercised over the same eight canonical states at W=available and W=min(4, available), deduplicated when equal.</td><td>Exact live admission probe</td></tr>
+<tr><td><code>R4_PARITY_SOURCE</code></td><td><code>.uor-models/sources/smollm2-135m-instruct</code>. Teacher source directory used consistently by the exact probe and fixture-present BDD run. Relative paths resolve from the repository workspace root; empty or non-Unicode values fail closed. The teacher-free preflight records this selection but does not open it.</td><td>Exact live admission probe and BDD teacher parity</td></tr>
+<tr><td><code>R4_PARITY_BUNDLE</code></td><td><code>.uor-models/compiled/smollm2-135m-instruct</code>. Compiled schema-2 <code>release-bundle.json</code>/deployed-quality envelope plus tokenizer/artifact/store/graph/report bundle used consistently by teacher-free preflight and fixture-present BDD work. A pre-schema-2 bundle is refused before teacher access. Relative paths resolve from the repository workspace root; empty or non-Unicode values fail closed.</td><td>Teacher-free preflight and BDD teacher parity</td></tr>
+<tr><td><code>R4_FMM_POSITIONS</code> / <code>R4_FMM_RANK</code> / <code>R4_FMM_TOLERANCE</code></td><td>256 / — / —</td><td>BDD FMM</td></tr>
+<tr><td><code>SMOLLM2_SOURCE</code></td><td>—</td><td><code>smollm2_adapter</code> tests</td></tr>
+<tr><td><code>UOR_R4_API_E2E_SOURCE</code></td><td>—</td><td><code>uor-r4-api</code> E2E test</td></tr>
+<tr><td><code>UOR_R4_RELEASE_BUNDLE_PATH</code></td><td>—</td><td><code>release_bundle_packager</code> real-local-bundle test (<code>#[ignore]</code>d; mirrors the <code>UOR_R4_API_E2E_SOURCE</code> convention)</td></tr>
+<tr><td><code>PORT</code></td><td>8000</td><td><code>./uor-r4-cli</code> orchestrator only (shell script; the <code>r4</code> binary itself reads <code>UOR_R4_PORT</code>)</td></tr>
+</tbody></table>
+</div>
+<p>Teacher-parity controls govern host-side verification only and do not enter
+artifact identities or deployed serving. <code>S</code> private sequence states must share
+one immutable weight allocation and advance in one physical exact batch; the one
+<code>W</code>-thread pool must schedule disjoint output rows without nested
+oversubscription.
+Every output row must keep the pinned <code>uor-matmul</code> dot reduction intact;
+splitting or reassociating the reduction dimension is not permitted. Results
+return to canonical prompt/position order before metrics are reduced.</p>
+<p>The 36 logical teacher-forced positions are executed once in six physical
+batches with registered widths <code>8, 8, 8, 7, 4, 1</code>. That transcript retains each
+canonical lane at its distinct final teacher-forced prompt prefix (lengths
+<code>5, 6, 5, 4, 3, 4, 5, 4</code> for the pinned tokenizer), rather than truncating
+different prompts to a colliding common prefix. S4 clones the templates,
+appends the already-computed teacher next token to each logical seed, and times
+only new causal continuation steps. Exact batches carry the per-lane sequence
+positions explicitly, so variable histories do not serialize the cohort.
+There is no duplicate live-teacher prefill and no independent full-model S4
+warm-up. Preparation, decode, and one-shot elapsed time remain separate
+evidence fields.</p>
+<p>Before measurement, the harness reserves the bounded model-wide batch buffers,
+exact input/output transpose buffers, and one exact scratch slot per dedicated
+worker, then exercises the worker pool/backend with a tiny known product. Its
+elapsed time, retained capacity, capacity-growth event count, and actual added
+capacity bytes are recorded as excluded preparation. Measurement counters are
+reset without discarding those buffers. Every transcript and S4 physical
+forward must subsequently report zero workspace-growth events and bytes;
+otherwise the run fails rather than presenting allocation churn as steady-state
+throughput.</p>
+<p>Conditional source, artifact, store, graph, tokenizer, or corpus evidence is
+reported as <code>AVAILABLE</code>, <code>UNAVAILABLE</code>, <code>FAILED</code>, or <code>NOT_RUN</code>. An absent
+fixture is never a parity PASS merely because the enclosing test executable
+returns success. The progress/event/report schema and the launch gate are
+specified in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/teacher_parity_parallelism_932.md">the #932 run record</a>.</p>
+<p>The durable artifact set is:</p>
+<div class="table-wrapper"><table><thead><tr><th>Artifact</th><th>Schema id</th><th>Default path</th><th>Role</th></tr></thead><tbody>
+<tr><td>Progress events</td><td><code>uor-r4.teacher-parity-progress/2</code></td><td><code>target/teacher-parity/parity-report.events.jsonl</code></td><td>Flushed heartbeat, phase, work, failure, and completion snapshots</td></tr>
+<tr><td>Final run report</td><td><code>uor-r4.teacher-parity-report/2</code></td><td><code>target/teacher-parity/parity-report.json</code></td><td>Empirical timing/resource/occupancy verdict and exact reason</td></tr>
+<tr><td>Deterministic evidence</td><td><code>uor-r4.teacher-parity-evidence/2</code></td><td><code>target/teacher-parity/parity-report.evidence.json</code></td><td>Timing-free identities, exact outputs, reductions, and verdict inputs</td></tr>
+<tr><td>Exact admission probe</td><td><code>uor-r4.exact-multicore-probe/2</code></td><td><code>target/teacher-parity/exact-multicore-probe.json</code> plus <code>.events.jsonl</code></td><td>Source/host/executor-bound equal-work W=available/W=min(4, available) selection evidence</td></tr>
+</tbody></table>
+</div>
+<p>For <code>uor-r4.exact-multicore-probe/2</code>, <code>probe_deadline_policy</code> means that no new
+exact forward is admitted after 3,600 seconds; an already-active fixture load or
+exact forward may finish, then the probe records <code>ABORTED</code>, and elapsed time at
+or beyond the deadline cannot qualify. The report's required <code>events</code> object
+binds the sibling <code>file_name</code>, full-byte <code>content_cid</code>, <code>byte_len</code>,
+<code>record_count</code>, <code>final_record_number</code>, <code>final_event</code>, <code>final_status</code>,
+<code>final_qualifies_full_run</code>, and non-cyclic <code>report_body_cid</code>. FINAL is synchronized
+before the report is atomically committed, carries
+<code>sequence == final_record_number == record_count</code>, and must be the last JSONL
+record. Admission validates the current sidecar before teacher weights load;
+missing, truncated, appended, or tampered bytes refuse the run.</p>
+<p>Schema <code>/1</code> bytes describe the superseded fixed-sweep design and remain
+historical evidence. Schema <code>/2</code> binds the adaptive candidate set, fastest-exact
+selection policy, and the complete registered admission shape: 36 transcript
+logical forwards in batch widths <code>8, 8, 8, 7, 4, 1</code>; eight continuation tokens
+across eight lanes; 100 logical forwards in 14 physical shared-weight batches;
+zero-based maximum sequence position 13; and private-state capacity 14. A
+smaller operator cap may produce diagnostic evidence but cannot qualify the
+binding suite. <code>reference_workers</code> names the first measured exact candidate,
+<code>equal_to_reference</code> binds every candidate's raw trace to it, and the cheap
+worker-pool/backend <code>prestart</code> is recorded separately and excluded from timed
+forward rates. CPU and RSS fields are diagnostics: they must be structurally
+valid and truthful, but a platform-reported <code>UNAVAILABLE</code> value does not by
+itself refuse exact admission. A later change to field meaning, type,
+requiredness, units, or artifact partition requires another schema id rather
+than reinterpreting an existing record.</p>
+<h2 id="served-model-identity-655-f"><a class="header" href="#served-model-identity-655-f">Served model identity (#655-F)</a></h2>
+<p>The canonical served model id on every serving surface (OpenAI <code>/v1</code>
+routes, native <code>/api/chat</code>, WS, WASM) is <strong><code>r4</code></strong>. Requests may omit
+<code>model</code>, send <code>r4</code>, or send the deprecated pre-flip alias <code>uor-r4</code>
+(accepted for a compatibility window); responses and <code>/v1/models</code>
+always report <code>r4</code>, and OpenAI wire ids are <code>r4</code>-prefixed
+(<code>chatcmpl-r4-…</code>, <code>resp-r4-…</code>, <code>msg-r4-…</code>, <code>system_fingerprint: r4-{mode}</code>). The CLI <code>client</code> subcommand's <code>--model</code> default is <code>r4</code>.
+Per-bundle logical/physical names are metadata (<code>/uor/v1/status</code>), not
+the served identity. Engine/tier names (<code>r4g1</code>, …) are unrelated to the
+model id and unchanged.</p>
+<h2 id="runtime-state-files"><a class="header" href="#runtime-state-files">Runtime state files</a></h2>
+<p>Written under <code>.uor-models/</code> (or <code>UOR_MODEL_STORE</code>):</p>
+<div class="table-wrapper"><table><thead><tr><th>File</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>audit_log.json</code></td><td>Per-turn question, answer, UOR address, κ + PASS/DRIFT, generation mode, latency. Rendered by <code>r4 audit</code></td></tr>
+<tr><td><code>last_model.txt</code> / <code>last_model_name.txt</code></td><td>Orchestrator's last model selection</td></tr>
+<tr><td><code>last_engine.txt</code></td><td>Persisted engine preference. Under the <code>experimental</code> profile it <strong>silently pins the cascade</strong> for requests that omit <code>engine</code>; under <code>production</code> (the default) a non-r4g1 value is silently inert</td></tr>
+<tr><td><code>engine_profile.txt</code></td><td>Serving profile (#655-E2, #789): <code>production</code> or <code>experimental</code>. Absent, empty, or unparseable ⇒ <code>production</code> (fail-safe), under which only the r4g1 tier is admitted on the cascade endpoints, the <code>/api/tless/*</code> bypass endpoints are declined (#789-G1; <code>/api/r4g1/*</code> stays open), an explicit non-r4g1 <code>engine</code> request returns a typed decline echoing the requested string (#789-G3.2), and discovery counts a model active only with a text-ready R4G1 graph (#789-G2). An explicit engine name outside the recognized vocabulary is a typed decline on every profile (#789-G3.1). <code>/uor/v1/status</code> reports the active profile in its <code>profile</code> field. Read fresh on every request; since #790-6 both this file and <code>last_engine.txt</code> resolve against the store root (<code>UOR_MODEL_STORE</code>, defaulting to <code>.uor-models/</code>), superseding the 2026-08-18 audit's CWD-relative note</td></tr>
+<tr><td><code>sources/&lt;name&gt;/</code></td><td>Downloaded Hugging Face teacher sources</td></tr>
+<tr><td><code>compiled/&lt;name&gt;/</code></td><td>Base compiled bundle. It may hold legacy absence, an explicit historical attention/1+dense/1 pair, or a fresh current attention/2 bundle with dense absent. Inventory includes graph/artifact outputs, <code>tokenizer.bin</code>, <code>tokenizer_adapter.json</code>, <code>attention_operator.json</code>, optional <code>dense_operator.json</code>, <code>corpus.meta</code>, and <code>corpus.records</code>.</td></tr>
+<tr><td><code>compiled/&lt;name&gt;-attention-v2/</code></td><td>Resolver-owned current attention/2 root with dense absent, used when a historical base must remain immutable.</td></tr>
+<tr><td><code>compiled/&lt;name&gt;-attention-v2-dense-v2/</code></td><td>Resolver-owned current GPT-2 root. It must carry learned-absolute attention/2 plus <code>gpt2-source-dense/2</code>; current dense provenance is invalid in either lower-precedence root.</td></tr>
+<tr><td><code>corpora/</code></td><td>Observation corpora</td></tr>
+</tbody></table>
+</div>
+<h3 id="managed-source-execution-era-resolver-2026-08-15"><a class="header" href="#managed-source-execution-era-resolver-2026-08-15">Managed source-execution-era resolver (2026-08-15)</a></h3>
+<p><code>-attention-v2</code> and <code>-attention-v2-dense-v2</code> are reserved physical-root
+suffixes; downloaded source basenames ending in either are refused before
+mutation. Suffix stripping uses longest match. The base and exact-suffix reload
+names are aliases for one logical model, attach to <code>sources/&lt;logical-name&gt;/</code>,
+and report the selected physical root plus optional attention/dense records.
+A missing source is allowed for the #718 decode-only path; a present-invalid
+source is terminal.</p>
+<p>Every managed operation inspects all three roots before choosing one. A
+malformed/nonregular binding, an unbound populated suffix, a future version,
+an impossible attention+dense pair, duplicate semantic identities, or an
+unfinished lower-precedence identity is terminal and byte-preserving. Current
+startup/reload also requires the canonical corpus pair and
+<code>graph-cover/cover_report.json</code> to carry the same registry-exact execution pair
+as the root sidecars. Historical v1 and dense absence remain readable where
+documented. These checks reconcile metadata. The cover-graph PROV/1 byte section itself
+landed with #637 phase 3 (PR #738): <code>cover</code> now emits a PROV/1 section
+unconditionally (a deliberately-empty record when no identity flags are
+supplied).</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="formal_vocabulary.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="reproducibility.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="formal_vocabulary.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="reproducibility.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid.min.js"></script>
+        <script src="mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

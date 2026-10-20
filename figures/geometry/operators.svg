@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">The three geometric operators</title>
+<desc id="d">Left: the G2 Hamilton gate rotates a value block by a unit quaternion instead of squashing it. Middle: the SpiralCore/FBS projection routes one selected input atom to each output block through signed breadth-first transport, with no weight per input/output pair. Right: the rank-margin objective penalizes only rivals within a margin of the target's raw score, with no normalization.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
+<rect x="0.5" y="0.5" width="1199" height="599" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">The three geometric operators of the earlier float trunk (inactive)</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Each replaces a banned operation with geometry: a rotation for a squash, a selection for a dense sum, a margin for a softmax.</text>
+<rect x="40" y="108" width="360" height="452" rx="14" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
+<text x="60" y="140" font-size="16" font-weight="700" fill="#1F2328" text-anchor="start">G2 Hamilton gate (#2260)</text>
+<rect x="420" y="108" width="360" height="452" rx="14" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
+<text x="440" y="140" font-size="16" font-weight="700" fill="#1F2328" text-anchor="start">SpiralCore/FBS projection (#2279)</text>
+<rect x="800" y="108" width="360" height="452" rx="14" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="1"/>
+<text x="820" y="140" font-size="16" font-weight="700" fill="#1F2328" text-anchor="start">Rank-margin objective (#2255)</text>
+<circle cx="220" cy="300" r="92" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<path d="M220,300 L133.5,268.5" fill="none" stroke="#8C959F" stroke-width="3" marker-end="url(#ah)"/>
+<path d="M220,300 L266.0,220.3" fill="none" stroke="#0072B2" stroke-width="3.5" marker-end="url(#ah)"/>
+<path d="M163.6,279.5 A92,92 0 0 1 250.0,248.0" fill="none" stroke="#E69F00" stroke-width="2.5" marker-end="url(#ah)"/>
+<text x="125.54827888769643" y="286.5341468140385" font-size="14" font-weight="700" fill="#57606A" text-anchor="end">u</text>
+<text x="274" y="214.32566285183165" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start">q ⊗ u</text>
+<text x="214" y="260" font-size="13" font-weight="700" fill="#B87A00" text-anchor="end">q</text>
+<text x="60" y="420" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the gate block g becomes a unit</text>
+<text x="60" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">quaternion q = g / |g|, and the value</text>
+<text x="60" y="456" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">block u is rotated: out = q ⊗ u.</text>
+<text x="60" y="474" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">A rotation keeps |u|: the gate steers</text>
+<text x="60" y="492" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">direction instead of squashing size.</text>
+<text x="60" y="510" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">Exact adjoint backward; no exponential.</text>
+<path d="M610,190 L550,245" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<path d="M550,245 L532,300" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<circle cx="532" cy="300" r="6" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<path d="M550,245 L550,300" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<circle cx="550" cy="300" r="6" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<path d="M550,245 L568,300" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<circle cx="568" cy="300" r="6" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<circle cx="550" cy="245" r="8" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<path d="M610,190 L610,245" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<path d="M610,245 L592,300" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<circle cx="592" cy="300" r="6" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<path d="M610,245 L610,300" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<circle cx="610" cy="300" r="6" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<path d="M610,245 L628,300" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<circle cx="628" cy="300" r="6" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<circle cx="610" cy="245" r="8" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<path d="M610,190 L670,245" fill="none" stroke="#D55E00" stroke-width="3"/>
+<path d="M670,245 L652,300" fill="none" stroke="#D55E00" stroke-width="3"/>
+<circle cx="652" cy="300" r="6" fill="#D55E00" stroke="#D55E00" stroke-width="1.5"/>
+<path d="M670,245 L670,300" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<circle cx="670" cy="300" r="6" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<path d="M670,245 L688,300" fill="none" stroke="#B9C1CA" stroke-width="1.5"/>
+<circle cx="688" cy="300" r="6" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<circle cx="670" cy="245" r="8" fill="#D55E00" stroke="#D55E00" stroke-width="1.5"/>
+<circle cx="610" cy="190" r="10" fill="#FFFFFF" stroke="#1F2328" stroke-width="2"/>
+<text x="628" y="195" font-size="11.5" font-weight="700" fill="#57606A" text-anchor="start">binder root</text>
+<text x="600" y="326" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="middle">input atoms (8D leaves)</text>
+<rect x="560" y="344" width="100" height="34" rx="8" fill="#FDECE3" stroke="#D55E00" stroke-width="2"/>
+<text x="610" y="366" font-size="12.5" font-weight="700" fill="#1F2328" text-anchor="middle">output block</text>
+<path d="M652,306 L704,306 L704,361 L664,361" fill="none" stroke="#D55E00" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+<text x="440" y="420" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">a learned query picks a root in a fixed</text>
+<text x="440" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">E8 anchor orbit (16 roots); the actual</text>
+<text x="440" y="456" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">SpiralCore BFS edges compose the signed</text>
+<text x="440" y="474" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">action that carries one selected input</text>
+<text x="440" y="492" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">atom to each output block. No learned</text>
+<text x="440" y="510" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">weight for every input/output pair.</text>
+<rect x="856" y="240" width="30" height="120" rx="3" fill="#007A5E" stroke="#007A5E" stroke-width="1"/>
+<text x="871" y="378" font-size="11.5" font-weight="700" fill="#007A5E" text-anchor="middle">target</text>
+<rect x="900" y="280" width="30" height="80" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
+<text x="915" y="378" font-size="11" font-weight="400" fill="#57606A" text-anchor="middle">k1</text>
+<rect x="936" y="228" width="30" height="132" rx="3" fill="#D55E00" stroke="#D55E00" stroke-width="1"/>
+<text x="951" y="378" font-size="11" font-weight="400" fill="#57606A" text-anchor="middle">k2</text>
+<rect x="972" y="300" width="30" height="60" rx="3" fill="#8C959F" stroke="#8C959F" stroke-width="1"/>
+<text x="987" y="378" font-size="11" font-weight="400" fill="#57606A" text-anchor="middle">k3</text>
+<rect x="1008" y="249" width="30" height="111" rx="3" fill="#D55E00" stroke="#D55E00" stroke-width="1"/>
+<text x="1023" y="378" font-size="11" font-weight="400" fill="#57606A" text-anchor="middle">k4</text>
+<path d="M840,360 L1046,360" fill="none" stroke="#424A53" stroke-width="1.5"/>
+<path d="M840,265 L1046,265" fill="none" stroke="#E69F00" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="1052" y="269" font-size="11" font-weight="700" fill="#B87A00" text-anchor="start">z_target − 1</text>
+<text x="1086" y="188" font-size="11" font-weight="700" fill="#D55E00" text-anchor="end">red: rivals inside the margin</text>
+<text x="820" y="420" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">loss = mean over rivals k of</text>
+<text x="820" y="438" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">max(0, 1 − z_target + z_k), on raw</text>
+<text x="820" y="456" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">scores: only rivals within the margin</text>
+<text x="820" y="474" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">of the target push back. 1 or 8</text>
+<text x="820" y="492" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">declared rivals; no normalization</text>
+<text x="820" y="510" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">and no exponential, forward or back.</text>
+</svg>

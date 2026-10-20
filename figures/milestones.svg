@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">Milestones M1 to M8</title>
+<desc id="d">M1 language base in progress (reply 37 of 232 suspended, pilot 236 updates, Dose2 stopped at Q1 with admission collapse in both arms); M2 grounded reply held (437 of 512 development replies, 0 of 128 on fresh transfer); M3 durable memory paused; M4 one served model held; M5 to M8 not started.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
+<rect x="0.5" y="0.5" width="1199" height="659" rx="16" fill="#FFFFFF" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start">Progress toward the alpha</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start">Pre-alpha, 18 October 2026. No model holds a useful conversation yet. Each milestone closes only on a saved model.</text>
+<path d="M60,168 L1140,168" fill="none" stroke="#8C959F" stroke-width="4"/>
+<circle cx="100" cy="168" r="30" fill="#FFF0CC" stroke="#B87A00" stroke-width="3"/>
+<text x="100" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M1</text>
+<circle cx="243" cy="168" r="30" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="3" stroke-dasharray="9 4"/>
+<text x="243" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M2</text>
+<circle cx="386" cy="168" r="30" fill="#F6F8FA" stroke="#8C959F" stroke-width="3" stroke-dasharray="2 4"/>
+<text x="386" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M3</text>
+<circle cx="529" cy="168" r="30" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="3" stroke-dasharray="9 4"/>
+<text x="529" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M4</text>
+<circle cx="672" cy="168" r="30" fill="#FFFFFF" stroke="#6E7781" stroke-width="3" stroke-dasharray="6 5"/>
+<text x="672" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M5</text>
+<circle cx="815" cy="168" r="30" fill="#FFFFFF" stroke="#6E7781" stroke-width="3" stroke-dasharray="6 5"/>
+<text x="815" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M6</text>
+<circle cx="958" cy="168" r="30" fill="#FFFFFF" stroke="#6E7781" stroke-width="3" stroke-dasharray="6 5"/>
+<text x="958" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M7</text>
+<circle cx="1101" cy="168" r="30" fill="#FFFFFF" stroke="#6E7781" stroke-width="3" stroke-dasharray="6 5"/>
+<text x="1101" y="174" font-size="16" font-weight="700" fill="#1F2328" text-anchor="middle">M8</text>
+<path d="M100,136 L100,112 L529,112 L529,134" fill="none" stroke="#0072B2" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M243,136 L243,124 L529,124" fill="none" stroke="#0072B2" stroke-width="2"/>
+<text x="315" y="106" font-size="12.5" font-weight="700" fill="#0072B2" text-anchor="middle">M1 + M2 join at M4</text>
+<rect x="40" y="230" width="265" height="172" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="54" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M1  Language base</text>
+<text x="54" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">reply 37/232 suspended</text>
+<text x="54" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">pilot: 236 updates</text>
+<text x="54" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">Dose2 stopped at Q1;</text>
+<text x="54" y="325" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">admission collapse</text>
+<rect x="54" y="372" width="97" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="102.5" y="387" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">IN PROGRESS</text>
+<rect x="323" y="230" width="265" height="172" rx="10" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
+<text x="337" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M2  Grounded reply</text>
+<text x="337" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">437/512 dev replies,</text>
+<text x="337" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">0/128 fresh transfer;</text>
+<text x="337" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">training held</text>
+<rect x="337" y="372" width="48" height="22" rx="11" fill="#7A4FA3" stroke="#7A4FA3" stroke-width="1.5"/>
+<text x="361" y="387" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">HELD</text>
+<rect x="606" y="230" width="265" height="172" rx="10" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.75" stroke-dasharray="2 4"/>
+<text x="620" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M3  Durable memory</text>
+<text x="620" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">evaluator and session</text>
+<text x="620" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">built; waits on an</text>
+<text x="620" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">M1 or M2 model</text>
+<rect x="620" y="372" width="62" height="22" rx="11" fill="#8C959F" stroke="#8C959F" stroke-width="1.5"/>
+<text x="651" y="387" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">PAUSED</text>
+<rect x="889" y="230" width="265" height="172" rx="10" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
+<text x="903" y="256" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M4  One served model</text>
+<text x="903" y="277" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">unified D11 model</text>
+<text x="903" y="293" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">and export remain</text>
+<text x="903" y="309" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">unqualified</text>
+<rect x="903" y="372" width="48" height="22" rx="11" fill="#7A4FA3" stroke="#7A4FA3" stroke-width="1.5"/>
+<text x="927" y="387" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">HELD</text>
+<rect x="40" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="54" y="446" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M5  Laptop cost</text>
+<text x="54" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">J/token on an M1</text>
+<text x="54" y="483" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">laptop: not measured</text>
+<rect x="54" y="562" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="88.5" y="577" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="323" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="337" y="446" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M6  Reasoning &amp; coding</text>
+<text x="337" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">exact arithmetic is</text>
+<text x="337" y="483" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">the visible gap</text>
+<rect x="337" y="562" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="371.5" y="577" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="606" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="620" y="446" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M7  Distribution</text>
+<text x="620" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">API, WASM, Studio;</text>
+<text x="620" y="483" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">local API only so far</text>
+<rect x="620" y="562" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="654.5" y="577" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="889" y="420" width="265" height="172" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="903" y="446" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start">M8  Alpha release</text>
+<text x="903" y="467" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">one labelled release</text>
+<text x="903" y="483" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start">on the same model</text>
+<rect x="903" y="562" width="69" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="937.5" y="577" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<path d="M40,614 L1160,614" fill="none" stroke="#D0D7DE" stroke-width="1"/>
+<text x="40" y="636" font-size="13.5" font-weight="700" fill="#1F2328" text-anchor="start">Status</text>
+<rect x="110" y="621" width="34" height="20" rx="5" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="152" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">In progress</text>
+<rect x="260.65" y="621" width="34" height="20" rx="5" fill="#F4F0F8" stroke="#7A4FA3" stroke-width="2" stroke-dasharray="9 4"/>
+<text x="302.65" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Held by the owner</text>
+<rect x="454.2" y="621" width="34" height="20" rx="5" fill="#F6F8FA" stroke="#8C959F" stroke-width="1.75" stroke-dasharray="2 4"/>
+<text x="496.2" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Paused</text>
+<rect x="569.1" y="621" width="34" height="20" rx="5" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="611.1" y="636" font-size="13" font-weight="400" fill="#2B3138" text-anchor="start">Planned</text>
+</svg>

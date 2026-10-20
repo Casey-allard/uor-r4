@@ -1,0 +1,316 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Pointer copy with an exact identity key - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="../start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="../start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="../start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="../start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="../start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="../start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="../products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="../products/web-client.html"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="../products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="../products/releases-and-artifacts.html"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="../model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="../model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="../model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="../geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="../geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="../geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="../geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="../geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="../geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="../geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="../mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="../mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="../mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="../mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="../mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="../mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="../mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/hopf-observation.html"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="../mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="../mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="../mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="../mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="../mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="../mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="../mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/pointer-key.html" class="active"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="../mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="../mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="../mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="../mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="../mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="../mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="../mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="../mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="../mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="../research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="../research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="../research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="../research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="../research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="../research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="../research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="../research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="../research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="../research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="../research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="../research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="../research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="../research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="../rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../rules/decision-map.html"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="../rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="../CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../formal_vocabulary.html"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="../CONFIGURATION.html"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="../reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="../minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="../RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="../projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="../projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="../projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="../projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="../projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="../projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="pointer-copy-with-an-exact-identity-key"><a class="header" href="#pointer-copy-with-an-exact-identity-key">Pointer copy with an exact identity key</a></h1>
+<p><strong>Status: PARKED.</strong> Every tested form is a softmax pointer inside a dense float model, and each missed its bar or cannot be served. A real prime-based key raised the pointer's hit rate from 0.377 to 0.545, yet the answers did not reach the pre-registered bar (one seed got 23 of 40 memory rows against a bar of 25, inside the noise). The version keyed by the slot's own name was never run, nor was the forced-copy test of it on a lawful pointer.</p>
+<p>Labels used below: <strong>proof</strong> means derived from definitions or code, <strong>measurement</strong> means a recorded run, <strong>hypothesis</strong> means an untested idea. See <a href="../formal_vocabulary.html"><code>docs/formal_vocabulary.md</code></a>.</p>
+<h2 id="in-plain-words"><a class="header" href="#in-plain-words">In plain words</a></h2>
+<p>When asked "what is Ana's locker?", the model should copy the stored answer from earlier text rather than invent one. A pointer is a small part of the model that chooses which earlier word to copy. This mechanism wants the pointer to choose by the exact name of the slot (Ana plus locker), not by the surrounding wording. Measured on 9 October on 13 rows, the pointer instead lands on the repeated sentence frame ("... locker is ..."), and almost never on the changing digits.</p>
+<h2 id="what-it-replaces-in-a-transformer"><a class="header" href="#what-it-replaces-in-a-transformer">What it replaces in a transformer</a></h2>
+<p>The copy head, also called an induction head. In a transformer, a head learns to look back at an earlier word and copy it. Here the choice of which word to copy is steered by prime-number addresses, so it does not depend on how similar two stretches of text look.</p>
+<p><img src="../figures/mechanisms/pointer-key.svg" alt="A short passage &quot;My locker is 47 ... What is my locker?&quot; with a bar above every token showing the pointer&#39;s attention. One tall bar, 0.92, sits on a bare space token in the repeated frame and almost nothing on the digits 4 and 7. Beside it, the same passage with all attention forced onto the two digits. Below, two dials from the three seeds of one test: hit rate rising from 0.377 to 0.5452 while the memory score stays at 19, 21 and 23 of 40, against a control of 20." /></p>
+<p><em>Left, where the pointer actually looks, and where the forced-copy test would put it. Right, a higher hit rate did not raise the memory score.</em></p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p><strong>The copy mixture.</strong> The model's next-word distribution blends its ordinary scores with a copy distribution:</p>
+<p>\[p(v)=(1-g)\,\mathrm{softmax}(z)_v+g\sum_{j:\,x_j=v}a_j ,\]</p>
+<p>where \(g\) is a learned gate, \(x_j\) is the word at earlier position \(j\), and \(a_j\) is the pointer's attention over a window of earlier words. The first term uses a softmax, which matters for the rule check below.</p>
+<p><strong>The project-specific part is how a source is chosen.</strong></p>
+<ul>
+<li>Every word has a registered prime. A source \(j\) is admitted when the greatest common divisor of its atoms and the query's atoms exceeds 1:
+\[\gcd(q,\pi_j)&gt;1 ,\]
+or when an ordered n-let (a short ordered run of atoms) matches. These are <code>RouteAdmission::SharedAtom</code> and <code>Ngram</code>.</li>
+<li>Rarer atoms weigh more, by \(\ln\gcd\). The route score is scaled by 4.0 (<code>ROUTE_SHARPNESS</code>), and the attention is a softmax over admitted sources.</li>
+<li>An identity term (<code>PointerIdentity</code>) adds the overlap of the six words before the source with the six before the query.</li>
+<li>A fixed table folds upper and lower case and one leading space to a canonical id (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/copy_identity.rs"><code>copy_identity.rs</code></a>). It only decides matches and never changes the emitted word.</li>
+</ul>
+<p><strong>The intended key</strong> is the slot address: entity prime times attribute prime, written when the fact is stated. Not the wording around the value. That version was never built.</p>
+<p><strong>Rule check.</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>Verdict</th></tr></thead><tbody>
+<tr><td>No softmax (D23)</td><td>Broken as built. Both the mixture and the pointer attention use softmax. The form is a softmax pointer and could not be served (project history, era 28)</td></tr>
+<tr><td>No matrix multiplication (D30)</td><td>Not clean. The pointer sits inside a dense float model and its score is a dot product</td></tr>
+<tr><td>Integer-only serving (D11)</td><td>Export serves only an unrouted, unselected pointer. A pointer with an identity term is refused at export. The fold table is one table read plus integer equality</td></tr>
+<tr><td>Discrete path (D32) and offline float (D37)</td><td>No pointer exists on the discrete path. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised">D37</a> would allow an offline float re-registration in a separately scanned module, with an integer export and a reported gap. Nothing is released</td></tr>
+</tbody></table>
+</div>
+<h2 id="what-has-been-tried"><a class="header" href="#what-has-been-tried">What has been tried</a></h2>
+<p>"Memory" is the memory half of a frozen 40-row chat panel. "Wrong-value" counts rows that gave a stated but wrong value. All 2026-10 runs fine-tune one 29M-parameter chat model.</p>
+<div class="table-wrapper"><table><thead><tr><th>Date</th><th>What was run</th><th>Result</th><th>Verdict</th><th>Record</th></tr></thead><tbody>
+<tr><td>Sep (undated)</td><td>Earlier native engine: ordered occurrence correspondence between query and source words</td><td>Passed its gate; all 6,304 earlier traces preserved. The ancestor of the pointer. Authored panels</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/native_geometric_correspondence_973.md">record</a></td></tr>
+<tr><td>21 to 23 Sep</td><td>Typed session runners and a learned span-and-role decoder over exact owned spans</td><td>128 of 128 primary answers; 24 of 24 final answers; 32 of 32 authored preflight. The two geometry arms tie, so the geometry is not credited</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/relational-session-result-2026-09-21.md">session</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/ordinary-form-argument-binding-result-2026-09-22.md">argument binding</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/ordinary-lexical-result-2026-09-23.md">lexical</a></td></tr>
+<tr><td>1 Oct</td><td>Key-value recall at distances 16, 64, 200 with pointer arms</td><td>Without a pointer 1 of 109. Pointer arms scored 0.28 to 0.44, falling about as 1/N, matching an untrained "copy the latest" rule (0.36). Their misses are wrong-key answers</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/log-sieve-retrieval-design-2026-10-01.md">record</a></td></tr>
+<tr><td>1 Oct</td><td>Native integer attention with capture-credit models against same-size controls</td><td>128 of 128 answers for the capture-credit models. The controls fail. Authored key-value tasks only</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/geometric-attention-latch-2026-10-01.md">record</a></td></tr>
+<tr><td>3 Oct</td><td>Zero-update audit of the final native artifact's copy targets</td><td>54 of 74 copy targets lose to another copy action; 4 of 20 complete answers. Source boundary missing 60 of 114 target tokens</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/geometric-final-prefix-audit-2026-10-03.md">record</a></td></tr>
+<tr><td>9 Oct</td><td>Diagnostic series on the 29M chat model's pointer over 13 numeric rows</td><td>The pointer attends the repeated frame, a bare space token (attention 0.9202 and 0.9064), and rarely the digits. Second digit selected on 0 of 13 rows, first digit on 3 of 13. Failing rows: 10 reader faults, 2 emitter faults, 1 partial</td><td>positive (diagnosis)</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/pointer-selected-ids-decode-2026-10-09/README.md">record</a></td></tr>
+<tr><td>9 Oct</td><td>Serving-time knobs: top-2 selection plus a gate floor of 0.9, weights unchanged</td><td>Both digits selected on 0 of 13 (control) to 3 of 13, target 13 of 13. Missed</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/inference-path-fix-result-2026-10-09/README.md">record</a></td></tr>
+<tr><td>9 Oct</td><td>Token-identity copy stop on an 84-cell never-seen-value panel</td><td>72 of 84 exact (0.8571; Wilson interval 0.7667 to 0.9163). The rest cannot be fixed by relaxing the rule, since the opened span emits the whole premise sentence</td><td>diagnostic stop</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/token-identity-stop-open-population-2026-10-09/README.md">record</a></td></tr>
+<tr><td>9 Oct</td><td>One-shot declared test of the 29M copy-pointer stack, no memory operator</td><td>10 of 40 memory against a target of at least 34. Missed by 24 rows. A constant beat it on the "I do not know" half</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/v5-declared-acceptance-2026-10-09/README.md">record</a></td></tr>
+<tr><td>10 Oct</td><td>Gate supervision, 55% recall data mix, one seed per arm</td><td>Memory 10 to 21 of 40, but an unsupervised control reached 22 of 40. The data mix, not the gate, caused it</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/pointer-gate-finetune-2026-10-10/README.md">record</a></td></tr>
+<tr><td>10 Oct</td><td>Identity term keyed on the six words around the value</td><td>Wrong-value 17 to 12 of 40, memory 19 of 40 against an anchor of 20. The key was the context before the value, not the slot's name. Hit rate 0.003</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/pointer-identity-2026-10-10/README.md">record</a></td></tr>
+<tr><td>10 Oct</td><td><strong>Prime-ranked one-atom route</strong> (the entity-address key), 3 data orders against a learned-key control</td><td>Hit rate 0.377 to 0.5452 at reachability 0.668. Memory 19, 21, 23 of 40 against 20. Wrong-value 17, 15, 9 against 17. Bits per byte 1.17387, 1.16947, 1.17109 against the anchor's 1.17425. The pre-registered bar (wrong-value at most 12 and memory at least 25 of 40 on all seeds) was not met</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/ptr-addr-2026-10-10/README.md">record</a></td></tr>
+<tr><td>10 Oct</td><td>Recall-mixture doses of 10, 25 and 55 percent</td><td>10 percent doubled memory without hurting replies; "I do not know" needed 25 percent and cost replies. Missed the keep bar by one row</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/mixture-dose-2026-10-10/README.md">record</a></td></tr>
+<tr><td>11 Oct</td><td>Four serving-time tests on one model (23 of 40 normal)</td><td>Copy head off costs one row (22 of 40). Facts removed 0. Copy forced to half 7. The answers come from the attention read, not the copy head</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/answer-path-2026-10-11/README.md">record</a></td></tr>
+<tr><td>12 Oct</td><td>Forced-copy oracle: replace the pointer's attention with a uniform one over a supplied answer span</td><td>Instrument built and unit-tested (919 library tests pass). The run on the bound model was not done</td><td>blocked</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/copy-span-oracle-2026-10-12/README.md">record</a></td></tr>
+</tbody></table>
+</div>
+<p><strong>Reading these honestly.</strong> The key did what a key should: it found the source more often, at no cost in likelihood. The answers did not follow. The record suggests why: the pointer branch carries only about 6 percent of the output mixture, and the answer-path test shows the answers come from the attention read. So the hit-rate measurements read a minor branch, and the bottleneck is after the source is found (hypothesis). The failures are specific. The identity runs keyed on the wrong thing. The gate run had a control that did as well. The v5 run had no memory operator at all. The inference knobs changed two decode settings on fixed weights. None of them tested a key on the slot's name, and the project's own rule says a negative closes a configuration, not a mechanism (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened">D22</a>).</p>
+<h2 id="what-has-never-been-tested"><a class="header" href="#what-has-never-been-tested">What has never been tested</a></h2>
+<ul>
+<li>The forced-copy oracle: supply the true slot or span and see whether the answers follow. It has been named and left unrun since 12 October. It must not be run as a new execution of the softmax pointer artifact (D23, D30): it needs a lawful pointer, or stored outputs.</li>
+<li>A pointer keyed on the slot's name (entity prime times attribute prime), as opposed to the six words around the value or a one-atom window.</li>
+<li>Admitting a whole value span, such as the full two-digit run, instead of one token.</li>
+<li>Exact admission with a learned ranking over addresses.</li>
+<li>Any pointer on the discrete path, or with a copy distribution that has no softmax.</li>
+<li>A pointer served as integers by gcd, with the export gap measured.</li>
+<li>At least 3 seeds with at least 120 memory rows. Every pointer run was one fine-tune of one 29M model on a 40-row panel (the address-key test used three data orders).</li>
+</ul>
+<h2 id="what-would-reopen-it"><a class="header" href="#what-would-reopen-it">What would reopen it</a></h2>
+<ol>
+<li><strong>Run the forced-copy oracle on a lawful pointer.</strong> Supply the true slot address or span to bound the possible gain, using a softmax-free, matmul-free pointer or stored outputs only. A new execution of the existing softmax pointer artifact is not allowed (D23, D30; see the <a href="index.html">mechanism board</a>).</li>
+<li><strong>Then train a slot-address key.</strong> A parsed or learned key (entity prime times attribute prime), trained in from the start of the dialogue fine-tune, with matched controls, at least 3 seeds and at least 120 memory rows. The bar is a gain of at least 5 rows of 40 over the control.</li>
+<li><strong>Remove the softmax.</strong> Give the copy distribution a rank table, a hard select, or exact admission plus a learned ranking, so the head can be registered under the no-softmax and no-matrix-multiplication rules. That is a new offline float sheet (D37) or a discrete sheet (D32), with a fresh <code>TEST FITNESS: FIT</code> review and an owner release.</li>
+<li><strong>Serve it as integers.</strong> Route by gcd or n-let equality with no float score, and report the export gap.</li>
+</ol>
+<h2 id="also-known-as"><a class="header" href="#also-known-as">Also known as</a></h2>
+<p>Pointer-copy head (A1); copy head; token-identity pointer (<code>pointer_identity</code>); prime-route pointer (<code>pointer_route=prime-ranked</code>); entity-address pointer; copy-identity fold table; forced-copy oracle (copy-span oracle).</p>
+<h2 id="code"><a class="header" href="#code">Code</a></h2>
+<ul>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/geometric_stack.rs"><code>geometric_stack.rs</code></a>: <code>PointerConfig</code>, <code>PointerSelect::TopK</code>, <code>PointerIdentity</code>, <code>PrimeRoute</code>, the gate loss and the copy-span oracle switch.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/copy_identity.rs"><code>copy_identity.rs</code></a>: the fixed fold table.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/stack_prime_route.rs"><code>stack_prime_route.rs</code></a>: the prime-route addressing instrument, shared with exact memory.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/examples/bind-probe-exact.rs"><code>examples/bind-probe-exact.rs</code></a>: the exact-recall probe behind the 84-cell panel. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/bin/heldout-memory-panel.rs"><code>bin/heldout-memory-panel.rs</code></a>: the held-out memory panel builder.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs"><code>word_copy_runtime.rs</code></a>: the September engine's exact word-occurrence copy, the pointer's ancestor.</li>
+<li>Evidence: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/attention-state-2026-10-18/README.md"><code>attention-state-2026-10-18</code></a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/kimi-direction-2026-10-12/README.md"><code>kimi-direction-2026-10-12</code></a>.</li>
+</ul>
+<h2 id="related-mechanisms"><a class="header" href="#related-mechanisms">Related mechanisms</a></h2>
+<p><a href="exact-memory.html">exact-memory</a>: the store whose slot address the pointer is meant to use as its key. <a href="read-binding.html">read-binding</a>: steers the attention read toward the bound value; the answer path turned out to be that read. <a href="route-read.html">route-read</a>: a different way to read by address, with no copy mixture. <a href="relation-read.html">relation-read</a>: its copy-successor capability is the pointer's analogue on the discrete path. <a href="prime-zeta-codebook.html">prime-zeta-codebook</a>: the prime registry behind gcd and n-let admission. <a href="tokenizer.html">tokenizer</a>: the 4,096-token vocabulary has no pure multi-digit tokens, so a two-digit value is two tokens, which interacts with copying.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../mechanisms/read-binding.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../mechanisms/e8-orbit-memory.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../mechanisms/read-binding.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../mechanisms/e8-orbit-memory.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

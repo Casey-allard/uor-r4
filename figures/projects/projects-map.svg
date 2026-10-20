@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" role="img" aria-labelledby="t d">
+<title id="t">Seven side projects around the model</title>
+<desc id="d">The UOR-R4 model sits at the top. Seven side projects are shown. Four keep their source in git, drawn with a heavy border: spiralcore, prime-analysis, riemann-lean and wasm-gemm-gnaf. Three are mostly archive, drawn with a light border: ai-research, msa and research-archives. Arrows run toward the model from only three projects. Two are dashed, meaning consulted or drawn on rather than built from: spiralcore (reference material consulted for the SpiralCore/FBS mechanism) and prime-analysis (ideas the prime/zeta codebook draws on). The third, ai-research, is a solid arrow as an earlier workspace in the lineage of the Rust model. riemann-lean, msa, research-archives and wasm-gemm-gnaf have no arrow. Six of the seven came from the owner's untracked research folder, shown inside one dashed container; wasm-gemm-gnaf was already tracked in git. A dashed arrow from that container points to a cylinder, the private Hugging Face store at research-archive/2026-10-19, which holds one tar per project: the bulky originals live outside git.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.name { font-size: 13px; font-weight: 600; }
+.mname { font-size: 15px; font-weight: 700; }
+.detail { font-size: 11.5px; fill: var(--muted); }
+.tagtxt { font-size: 11px; font-weight: 700; fill: var(--body); letter-spacing: 0.02em; }
+.link { font-size: 11.5px; fill: var(--blue); font-weight: 600; }
+.small { font-size: 12px; fill: var(--muted); }
+.model { fill: var(--blue); fill-opacity: 0.1; stroke: var(--blue); stroke-width: 2.25; }
+.git { fill: var(--panel); stroke: var(--ink); stroke-width: 2.25; }
+.arch { fill: var(--panel); stroke: var(--muted); stroke-width: 1; }
+.folder { fill: none; stroke: var(--muted); stroke-width: 1.25; stroke-dasharray: 6 4; }
+.cyl { fill: var(--panel); stroke: var(--muted); stroke-width: 1.75; }
+.consult { stroke: var(--blue); stroke-width: 2; fill: none; stroke-dasharray: 6 4; }
+.into { stroke: var(--blue); stroke-width: 2; fill: none; }
+.out { stroke: var(--muted); stroke-width: 1.75; fill: none; stroke-dasharray: 6 4; }
+.ah-b { fill: var(--blue); }
+.ah { fill: var(--muted); }
+</style>
+<defs>
+  <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah-b" d="M0 0 L10 5 L0 10 z"/></marker>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="600"/>
+<text class="title" x="24" y="34">Seven side projects, and where they meet the model</text>
+<text class="sub" x="24" y="56">Arrows appear only where a project page names a link. None of the projects is on the model's training or serving path.</text>
+
+<!-- model -->
+<rect class="model" x="36" y="78" width="408" height="72" rx="12"/>
+<text class="mname" x="240" y="106" text-anchor="middle">The UOR-R4 model</text>
+<text class="detail" x="240" y="124" text-anchor="middle">pre-alpha: 0 of 8 milestones complete</text>
+<text class="detail" x="240" y="140" text-anchor="middle">crates/uor-r4-discrete</text>
+
+<!-- wasm-gemm-gnaf outside the research folder -->
+<rect class="git" x="640" y="78" width="296" height="72" rx="10"/>
+<text class="name" x="656" y="102">wasm-gemm-gnaf</text>
+<text class="tagtxt" x="656" y="119">SOURCE IN GIT</text>
+<text class="detail" x="656" y="136">Lean 4 mechanization; theorem not established</text>
+<text class="detail" x="640" y="168">already tracked in git; no link to the model</text>
+
+<!-- research folder container -->
+<rect class="folder" x="24" y="212" width="912" height="180" rx="12"/>
+<text class="small" x="40" y="383">Six of the seven came from the owner's untracked research/ folder</text>
+<rect class="git" x="36" y="248" width="138" height="116" rx="9"/>
+<text class="name" x="48" y="272">spiralcore</text>
+<text class="tagtxt" x="48" y="290">SOURCE IN GIT</text>
+<text class="detail" x="48" y="314">networking and</text>
+<text class="detail" x="48" y="329">compression</text>
+<rect class="git" x="186" y="248" width="138" height="116" rx="9"/>
+<text class="name" x="198" y="272">prime-analysis</text>
+<text class="tagtxt" x="198" y="290">SOURCE IN GIT</text>
+<text class="detail" x="198" y="314">Prime Phase notes,</text>
+<text class="detail" x="198" y="329">slides, simulations</text>
+<rect class="arch" x="336" y="248" width="138" height="116" rx="9"/>
+<text class="name" x="348" y="272">ai-research</text>
+<text class="tagtxt" x="348" y="290">MOSTLY ARCHIVE</text>
+<text class="detail" x="348" y="314">Python-era root</text>
+<text class="detail" x="348" y="329">research workspace</text>
+<rect class="git" x="486" y="248" width="138" height="116" rx="9"/>
+<text class="name" x="498" y="272">riemann-lean</text>
+<text class="tagtxt" x="498" y="290">SOURCE IN GIT</text>
+<text class="detail" x="498" y="314">Lean 4 scaffold;</text>
+<text class="detail" x="498" y="329">RH not proved</text>
+<rect class="arch" x="636" y="248" width="138" height="116" rx="9"/>
+<text class="name" x="648" y="272">msa</text>
+<text class="tagtxt" x="648" y="290">MOSTLY ARCHIVE</text>
+<text class="detail" x="648" y="314">two papers by Alex,</text>
+<text class="detail" x="648" y="329">third-party authorship</text>
+<rect class="arch" x="786" y="248" width="138" height="116" rx="9"/>
+<text class="name" x="798" y="272">research-archives</text>
+<text class="tagtxt" x="798" y="290">MOSTLY ARCHIVE</text>
+<text class="detail" x="798" y="314">Gemini-era r3/r4</text>
+<text class="detail" x="798" y="329">sandbox, history only</text>
+
+<!-- arrows into the model -->
+<path class="consult" d="M105 248 V152" marker-end="url(#ab)"/>
+<text class="link" x="113" y="188">SpiralCore/FBS refs,</text>
+<text class="link" x="113" y="203">consulted</text>
+<path class="consult" d="M255 248 V152" marker-end="url(#ab)"/>
+<text class="link" x="263" y="188">prime/zeta ideas</text>
+<text class="link" x="263" y="203">drawn on</text>
+<path class="into" d="M405 248 V152" marker-end="url(#ab)"/>
+<text class="link" x="413" y="188">ancestor of the</text>
+<text class="link" x="413" y="203">Rust model</text>
+
+<!-- note for unlinked -->
+<text class="detail" x="560" y="193">No arrow from riemann-lean, msa or</text>
+<text class="detail" x="560" y="208">research-archives: they feed nothing in.</text>
+
+<!-- HF store -->
+<path class="out" d="M480 392 V438" marker-end="url(#a)"/>
+<text class="small" x="494" y="420">bulky originals stay here, checked by hash</text>
+<path class="cyl" d="M372 456 V524 A108 14 0 0 0 588 524 V456"/>
+<ellipse class="cyl" cx="480" cy="456" rx="108" ry="14"/>
+<text class="name" x="480" y="486" text-anchor="middle">private Hugging Face store</text>
+<text class="detail" x="480" y="503" text-anchor="middle">research-archive/2026-10-19</text>
+<text class="detail" x="480" y="518" text-anchor="middle">one tar per project</text>
+
+<!-- key -->
+<rect class="git" x="24" y="558" width="30" height="16" rx="4"/>
+<text class="small" x="62" y="570">source in git</text>
+<rect class="arch" x="170" y="558" width="30" height="16" rx="4"/>
+<text class="small" x="208" y="570">mostly archive</text>
+<path class="into" d="M330 566 H362" marker-end="url(#ab)"/>
+<text class="small" x="372" y="570">feeds a model mechanism, or is an ancestor</text>
+<path class="out" d="M650 566 H682" marker-end="url(#a)"/>
+<text class="small" x="692" y="570">originals live outside git</text>
+</svg>
