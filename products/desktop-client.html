@@ -196,7 +196,7 @@
 <h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
 <p>The app is built with <strong>Tauri</strong>: a small native shell that shows a web page in the system's own webview and runs a Rust backend beside it. The page calls the backend through named commands. Rust is the project's default language (<a href="../CHARTER.html">charter</a>, section 3.11), so the backend can link the project's crates directly.</p>
 <div class="table-wrapper"><table><thead><tr><th>Component</th><th>Built from</th><th>Exists today?</th></tr></thead><tbody>
-<tr><td><strong>Interface</strong></td><td>The Studio page, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/index.html"><code>index.html</code></a>, shared with the web client</td><td>Yes, one 7,107-line file. It detects Tauri (<code>window.__TAURI__</code>) and calls <code>native_read_file</code>, <code>native_write_file</code>, <code>native_git_status</code>, <code>native_run_terminal_command</code> and <code>native_list_local_models</code>, falling back to browser APIs when they are absent</td></tr>
+<tr><td><strong>Interface</strong></td><td>The Studio page, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/web/studio/index.html"><code>index.html</code></a>, shared with the web client</td><td>Yes, one 7,107-line file. It detects Tauri (<code>window.__TAURI__</code>) and calls <code>native_read_file</code>, <code>native_write_file</code>, <code>native_git_status</code>, <code>native_run_terminal_command</code> and <code>native_list_local_models</code>, falling back to browser APIs when they are absent</td></tr>
 <tr><td><strong>Tauri project</strong></td><td><code>src-tauri/</code> with <code>tauri.conf.json</code> and the Rust commands above</td><td>No. Nothing in the repository defines those commands</td></tr>
 <tr><td><strong>Model engine</strong></td><td><a href="https://github.com/UOR-Foundation/uor-r4/tree/main/crates/uor-r4-integer"><code>crates/uor-r4-integer</code></a> linked as a library: the same code as the <code>uor-chat</code> command-line program</td><td>Yes, as a library and CLI, verified only on test and synthetic models</td></tr>
 <tr><td><strong>Memory store</strong></td><td><a href="https://github.com/UOR-Foundation/uor-r4/tree/main/crates/uor-r4-object-store"><code>crates/uor-r4-object-store</code></a></td><td>Yes, as a tested library; no crate uses it yet</td></tr>
@@ -204,7 +204,7 @@
 <tr><td><strong>Model manager</strong></td><td>New: lists, verifies and loads <code>UORLUT01</code> files; checks for updates</td><td>No</td></tr>
 </tbody></table>
 </div>
-<p>Sources: reading <code>index.html</code> and the repository tree, and the <a href="../mechanisms/object-store.html">object-store dossier</a>.</p>
+<p>Sources: reading <code>web/studio/index.html</code> and the repository tree, and the <a href="../mechanisms/object-store.html">object-store dossier</a>.</p>
 <h2 id="data-flow"><a class="header" href="#data-flow">Data flow</a></h2>
 <ol>
 <li><strong>Install.</strong> The installer carries the app and, optionally, the model file. If the model is not bundled, the first run downloads it once (<a href="#update-and-model-download">update and download</a>).</li>
