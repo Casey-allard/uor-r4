@@ -1,5 +1,5 @@
 //! `layout=fact`: the Step 2 deployment-parity MQAR bench (References #820;
-//! `docs/research/barrier-assessment-2026-10-05/final-assessment.md` Step 2
+//! `archive/research/barrier-assessment-2026-10-05/final-assessment.md` Step 2
 //! and `completeness-critique.md` points 2, 5 and 6).
 //!
 //! Each window of at most 384 tokens (the trained and served context; the

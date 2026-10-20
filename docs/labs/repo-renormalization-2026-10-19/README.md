@@ -192,3 +192,21 @@ The PR lint, the brief and doccheck now follow the owner's checkpoint-1 answers.
   - `prlint-check-pr-fixtures.json`: the 3 `record_path` messages.
   - `prlint-format-fixtures.json`: the 4 formatted checklist lines.
 - **Each narrowing is pinned by a test that fails without it.** Checked by temporarily removing the notebook-row branch, the Q2 filter and the Q1 filter.
+
+## Superseded pages and pre-18-Oct research archived (seventh unit, 20 Oct 2026)
+
+- **(a) Pre-18-Oct research records.** The research records dated before 18 October moved byte-identical from `docs/research/` to `archive/research/`, and `docs/explainers/` moved to `archive/explainers/`. The list is `git diff --stat origin/main...HEAD`.
+- **(b) `archive-verify` and cutover stubs.** `archive-verify` now allows a cutover pointer stub to be replaced only by the very record it points to: the stub's `docs/` target must be gone from the working tree, and the new content must be byte-identical to that target at the base revision (tightened after the fresh-context review of #2801). Six stubs were replaced (the seventh candidate, the 29 Sep plan, stays live; see (d)). Every real archived record stays immutable, and tests pin both sides.
+- **(c) Five superseded curated pages.** Each moved to a dated name at the same depth in `archive/`, with its links retargeted for that folder and a banner naming the exact original in git history (`00fa2935e2df3f12a454c888f2854a3939697cb3`). A pointer page stays at the live path, because code comments, generated figure descriptions and outside issues name these paths.
+
+  | Live path (now a pointer) | Archived copy | Superseded by |
+  |---|---|---|
+  | `docs/geometry.md` | `archive/geometry-2026-10-20.md` | `docs/geometry/README.md` |
+  | `docs/PROJECT_MAP.md` | `archive/PROJECT_MAP-2026-10-20.md` | `docs/README.md`, `docs/SUMMARY.md` |
+  | `docs/RESEARCH.md` | `archive/RESEARCH-2026-10-20.md` | `docs/research/README.md`, `docs/research/findings.md` |
+  | `docs/architecture.md` | `archive/architecture-2026-10-20.md` | `docs/model/architecture.md` |
+  | `docs/geometric_intelligence_programme.md` | `archive/geometric_intelligence_programme-2026-10-20.md` | `docs/research/README.md`, `docs/research/lines/README.md` |
+- **(d) The 29 September plan stays live.** `docs/plans/2026-09-29-path-to-chat.md` is not archived, because ten immutable GitHub-export records link it by `blob/main` URL.
+- **(e) Three archive-side pointer stubs.** `archive/transformerless/TRANSFORMERLESS.md`, `archive/transformerless/PROOF.md` and `archive/compute/ladder-runbook.md` point to the records they stand for.
+- **(f) One link that looks new but was already broken.** `archive/research/astra-onboarding-2026-10-07.md` links `research/spiralcore-v68/README.md`, which did not resolve before the move either; it now shows as new only because the file moved.
+- **(g) A FIT-source path.** `crates/uor-r4-core/src/bin/support/integrated_attention_data.rs` lists `docs/explainers/ELI5.md` as a `FIT_SOURCES` path checked by SHA-256. It now names `archive/explainers/ELI5.md`. The file moved R100, so its pinned hash is unchanged. Older `integrated-attention` reports record the old path; newer ones record the new one.

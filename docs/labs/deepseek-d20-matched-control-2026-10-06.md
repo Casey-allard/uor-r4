@@ -35,7 +35,7 @@ missing machinery.
 
 **Incumbent (the geometric read under test):** `pattern=rrarra`, `read=l2`, `rotation=true`,
 `width=128`, `heads=4`, `mlp=384`, `context=512`, `vocab=512`, `read_key_shift=false` — the frozen
-Step-2 recipe (`docs/research/barrier-assessment-2026-10-05/proposals-and-reviews.md:637`).
+Step-2 recipe (`archive/research/barrier-assessment-2026-10-05/proposals-and-reviews.md:637`).
 
 - **Parameters: 1,370,008** (reported by the run).
 - **Compute per token at position `t`:** 1,431,048 MACs at `t=256`, 1,563,648 at `t=511`

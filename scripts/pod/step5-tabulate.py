@@ -11,10 +11,10 @@ K (current mix with 25% knowledge corpus), seeds 1 and 2. It reads
   eval-knowledge-{base,ft}-{A,K}-s{1,2}/evaluation.json   knowledge held-out NLL
   session-{sieve,off}-{A,K}-s{1,2}/report.json  D19 grounded sessions
   grade-{A,K}-s{1,2}/report.json                open 232-request panel grades
-and the clean subsets in docs/research/step5/panel-clean (clean-ids.txt and
+and the clean subsets in archive/research/step5/panel-clean (clean-ids.txt and
 wellposed-ids.txt).
 
-Decision rule (frozen in docs/research/step5/knowledge-ab.md before any run),
+Decision rule (frozen in archive/research/step5/knowledge-ab.md before any run),
 applied in this order; the first outcome reached is the decision:
   0. Completeness (matched tokens). Every input the rule reads is present: the
      four base train reports with completed_steps == 70609 and stopped_early

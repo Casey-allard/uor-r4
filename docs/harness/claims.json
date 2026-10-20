@@ -237,10 +237,10 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/renorm-site-20261020": {
-    "branch": "claude/renorm-site-20261020",
-    "claimed_at": "2026-10-20T01:48:27-04:00",
-    "head": "db2cd48c0",
+  "claude/renorm-archive-curated-20261020": {
+    "branch": "claude/renorm-archive-curated-20261020",
+    "claimed_at": "2026-10-20T01:51:21-04:00",
+    "head": "00fa2935e",
     "lab": "claude",
     "note": ""
   },

@@ -22,11 +22,23 @@ pub enum Action {
     DirStub { dest: String, target: String },
 }
 
+/// The stub template, split at its two slots: `{target}` and `{link}`.
+const STUB_HEAD: &str = "# Moved\n\nThis page is live at [";
+const STUB_MID: &str = "](";
+const STUB_TAIL: &str = ").\n\nIt was left here as a pointer during the 2026-10 repository reorganization, so links inside archived records keep resolving.\n";
+
 /// The stub text; `link` is the relative link from the stub to the target.
 pub fn stub_text(target: &str, link: &str) -> String {
-    format!(
-        "# Moved\n\nThis page is live at [{target}]({link}).\n\nIt was left here as a pointer during the 2026-10 repository reorganization, so links inside archived records keep resolving.\n"
-    )
+    format!("{STUB_HEAD}{target}{STUB_MID}{link}{STUB_TAIL}")
+}
+
+/// The `{target}` of `content` when it is exactly a generated stub (the whole
+/// template, nothing else), else `None`.
+pub fn stub_target(content: &str) -> Option<&str> {
+    let rest = content.strip_prefix(STUB_HEAD)?.strip_suffix(STUB_TAIL)?;
+    let (target, link) = rest.split_once(STUB_MID)?;
+    let slot_ok = |s: &str| !s.is_empty() && !s.contains(['\n', ']', '(', ')']);
+    (slot_ok(target) && slot_ok(link)).then_some(target)
 }
 
 /// Relative link from the directory of `from_file` to `target`.

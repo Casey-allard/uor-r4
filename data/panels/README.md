@@ -2,7 +2,7 @@
 
 References #820. These files add two evaluation tiers to the ladder chat panel
 (`~/uor-r4-local/ladder/panel/`, graded by `chat-grade`). The original panel files are
-unchanged. Step 0a ([taxonomy](../../docs/research/step0/0a-panel-taxonomy.md)) found that
+unchanged. Step 0a ([taxonomy](../../archive/research/step0/0a-panel-taxonomy.md)) found that
 the 232-request panel is dominated by open-domain knowledge requests and that a large share of
 the failing heldout rows are ill-posed. A 30M–100M model trained mostly on TinyStories and
 chat data cannot be expected to answer open-domain knowledge requests, so on that panel a

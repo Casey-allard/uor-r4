@@ -2,7 +2,7 @@
 //! turned into static (and E8-quantized) token tables, pick the right clause
 //! of a conversation log for a memory question?
 //!
-//! Pre-registration: `docs/research/minilm-phase0/PREREG.md`. Everything the
+//! Pre-registration: `archive/research/minilm-phase0/PREREG.md`. Everything the
 //! measurement depends on is fixed here: the clause segmentation rule, the
 //! stopword list, the value-matching rule, the lexical baseline, the BERT
 //! (MiniLM-L6) forward used as an offline teacher, the static-table

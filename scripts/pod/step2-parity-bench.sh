@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Step 2 deployment-parity MQAR bench: the full grid and its decision table
-# (References #820; docs/research/barrier-assessment-2026-10-05/
+# (References #820; archive/research/barrier-assessment-2026-10-05/
 # final-assessment.md Step 2 and completeness-critique.md points 2, 5, 6).
 #
 # Runs `mqar-bench layout=fact` for patterns rararr, rrarra (production) and

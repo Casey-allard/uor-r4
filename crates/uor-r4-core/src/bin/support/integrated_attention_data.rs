@@ -62,7 +62,7 @@ const FIT_SOURCES: &[SourceSpec] = &[
         sha256: "68fd1ea74c51ae308b8dffb729aaf1b8efdaac2fb9be3f1ac03493a95f1b1e95",
     },
     SourceSpec {
-        path: "docs/explainers/ELI5.md",
+        path: "archive/explainers/ELI5.md",
         sha256: "036b9dcef8ea6f9a02b4b34106844b11e7640dbbdd3ac7adbf153a24555471b2",
     },
     SourceSpec {

@@ -1,5 +1,5 @@
 //! Phase 0 clause-retrieval probe (#820). Pre-registration:
-//! `docs/research/minilm-phase0/PREREG.md`.
+//! `archive/research/minilm-phase0/PREREG.md`.
 //!
 //! ```text
 //! clause-index-probe parity model=MINILM_DIR

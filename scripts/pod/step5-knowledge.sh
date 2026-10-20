@@ -3,7 +3,7 @@
 # matched-token 29M A/B, then the Arm C chat fine-tune, D19 grounded sessions
 # and the open 232-request panel.
 #
-# Design and frozen decision rule: docs/research/step5/knowledge-ab.md.
+# Design and frozen decision rule: archive/research/step5/knowledge-ab.md.
 # Single GPU (A100 80 GB friendly): tf32=true, data_parallel=1.
 #
 #   scripts/pod/step5-knowledge.sh STAGE
@@ -72,7 +72,7 @@ T=$D/tokenizer.json
 # Hugging Face Hub (wikimedia/wikipedia, config 20231101.simple), pinned to the
 # commit that added the file. Licence: CC BY-SA 4.0 (text also GFDL); attribution
 # and share-alike apply to the corpus and to redistributed derived text; whether
-# they reach trained weights is unsettled (docs/research/step5/knowledge-ab.md §2).
+# they reach trained weights is unsettled (archive/research/step5/knowledge-ab.md §2).
 # Keep the prepared stores on the pod/laptop; do not publish them.
 WIKI_URL=https://huggingface.co/datasets/wikimedia/wikipedia/resolve/cf26be8eef6bc935da5d2281be5aad4813e49e90/20231101.simple/train-00000-of-00001.parquet
 WIKI_FILE=$KN/raw/simplewiki-20231101-train-00000-of-00001.parquet
@@ -357,7 +357,7 @@ stage_grade() {
 
 stage_tabulate() {
   python3 "$REPO/scripts/pod/step5-tabulate.py" "$R" \
-    --clean "$REPO/docs/research/step5/panel-clean" --json "$R/step5-result-$(date -u +%Y%m%dT%H%M%SZ).json"
+    --clean "$REPO/archive/research/step5/panel-clean" --json "$R/step5-result-$(date -u +%Y%m%dT%H%M%SZ).json"
 }
 
 mkdir -p "$R"
