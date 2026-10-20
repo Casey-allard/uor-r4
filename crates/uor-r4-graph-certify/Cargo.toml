@@ -3,12 +3,56 @@ name = "uor-r4-graph-certify"
 license = "MIT"
 version = "0.1.0"
 edition = "2021"
+# Legacy-crate repair (19 Oct 2026): the other integration tests drive the
+# historical scorer/teacher surface (lib.rs) and are not built; see
+# src/native_support.rs. The tests below use only the native surface.
+autotests = false
+
+[lib]
+path = "src/native_support.rs"
+
+[[test]]
+name = "anti_degeneracy_test"
+
+[[test]]
+name = "certificate_test"
+
+[[test]]
+name = "compositional_planning_certification_846"
+
+[[test]]
+name = "compositional_planning_measurement_843"
+
+[[test]]
+name = "corpus_signed_transport_attention_986"
+
+[[test]]
+name = "geometry_probe_845"
+
+[[test]]
+name = "holographic_encoding_test"
+
+[[test]]
+name = "octeract_attention_661"
+
+[[test]]
+name = "shortlist_evaluator_test"
+
+[[test]]
+name = "w33_mapping_845"
+
+[[test]]
+name = "w33_measurement_845"
+
+[[test]]
+name = "w33_ordering_harness_845"
 
 [dependencies]
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format", default-features = false }
 uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
-uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
+# uor-r4-model-source (transformer teacher: softmax attention, dense matmul) is
+# excluded under D29; the historical modules that use it are preserved, not built.
 uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
 
 # Certificate formatting and CID hashing
@@ -30,6 +74,9 @@ serde_json = "1.0"
 # without bit-rotting. Per-mechanism granularity — one feature per claim. The
 # shipped default build is byte-identical whether or not these are enabled.
 anti-degeneracy = []
+# fairness-provenance and predictive-sufficiency now compile nothing: their
+# modules use the retired transformerless runtime/transitions and are preserved,
+# not built, outside src/native_support.rs (legacy-crate repair, 19 Oct 2026).
 fairness-provenance = []
 holographic-encoding = []
 patch-lifecycle = []

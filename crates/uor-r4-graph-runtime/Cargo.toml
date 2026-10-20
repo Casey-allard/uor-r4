@@ -3,6 +3,21 @@ name = "uor-r4-graph-runtime"
 license = "MIT"
 version = "0.1.0"
 edition = "2024"
+# Legacy-crate repair (19 Oct 2026): the r4g1_runtime_test integration test and
+# the session_signature bench build R4G1 graphs through the retired
+# `transformerless::{compiler, runtime}` and the graph compiler's historical
+# teacher surface, and are not built. The other targets are unchanged.
+autotests = false
+autobenches = false
+
+[[test]]
+name = "check_graph"
+
+[[test]]
+name = "plan_843"
+
+[[test]]
+name = "plan_allocation_census_843"
 
 [dependencies]
 uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format", default-features = false }
@@ -13,8 +28,4 @@ uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
 
 [[bench]]
 name = "vp_tree"
-harness = false
-
-[[bench]]
-name = "session_signature"
 harness = false

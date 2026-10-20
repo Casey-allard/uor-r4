@@ -10,6 +10,13 @@ compilation and proof status do not qualify those capabilities either. Use the
 [current artifact and measured behavior](../../docs/integration/current-state.md),
 and [model direction](../../archive/integration/model-direction-2026-09.md).
 
+**Build surface (legacy-crate repair, 19 October 2026):** the library now builds from
+[src/native_support.rs](src/native_support.rs). It compiles the planning, semantic-state,
+stage, budget, packing and probe modules only. The teacher-backed `compile`/`observe`
+pipeline in `src/lib.rs` and the observation, induction, route-fit and corpus modules
+are preserved and not built. See the
+[repair record](../../docs/labs/legacy-crate-repair-2026-10-19/README.md).
+
 **Preserved research lane.** This is the earlier offline R4G1 graph-compiler
 pipeline, retained for its observations, artifacts, measurements, and reusable
 mechanisms. It is not the compiler for the active route-native geometric

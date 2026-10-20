@@ -216,6 +216,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/legacy-crate-repair": {
+    "branch": "claude/legacy-crate-repair",
+    "claimed_at": "2026-10-19T22:51:54-04:00",
+    "head": "d7b39d6a9",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/public-face-reconcile-2026-10-15": {
     "branch": "claude/public-face-reconcile-2026-10-15",
     "claimed_at": "2026-10-15T18:19:36-04:00",

@@ -9,6 +9,13 @@ attention and inference execute today; general prose completion and general
 reasoning remain unqualified. The model API re-export is in
 [src/lib.rs](src/lib.rs) and uses [the native core](../uor-r4-core/src/native_geometric).
 
+**Build surface (legacy-crate repair, 19 October 2026):** the library now builds from
+[src/native_support.rs](src/native_support.rs), which only re-exports the current core's
+selected `native_geometric` support. Every module of `src/lib.rs`, both bins and both
+examples use the R4G1 engine/compile path or the pre-#2345 model API, so they are
+preserved and not built; the description below is historical. See the
+[repair record](../../docs/labs/legacy-crate-repair-2026-10-19/README.md).
+
 **Current model API (September 2026):** the native geometric re-export exposes the
 same core model/session used by the CLI/service. Follow the
 [current implementation](../../docs/integration/current-state.md) and

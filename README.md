@@ -393,12 +393,12 @@ never on a serving path, and no new comparator runs are permitted (D23).
 | [`crates/uor-r4-training`](crates/uor-r4-training) | native-only geometric CUDA stack, shared vector writer/store and train/evaluate CLI; historical teacher/export/experiment modules excluded |
 | [`crates/uor-r4-integer`](crates/uor-r4-integer) | selected fixed H4 geometry and report metadata; historical D11 model/CLI source retained inactive, compliant serving remains an obligation |
 | [`crates/uor-r4-harness`](crates/uor-r4-harness) | the Rust research harness (`uor-harness onboard`) |
-| [`crates/uor-r4-api`](crates/uor-r4-api) | typed compile and engine APIs; the `r4-native-chat` CLI |
+| [`crates/uor-r4-api`](crates/uor-r4-api) | re-export of core's selected native geometric support via `native_support.rs`; the historical compile/engine APIs and the `r4-native-chat` CLI preserved inactive |
 | [`crates/uor-r4-tokenizer`](crates/uor-r4-tokenizer) | byte-level BPE engine and tokenizer identity |
 | [`crates/uor-r4-object-store`](crates/uor-r4-object-store) | D19 exact byte storage prototype: Showcase-compatible records, bounded reconstruction and token occurrence bindings; no model integration |
 | [`crates/uor-r4-lut`](crates/uor-r4-lut), [`crates/uor-r4-simd`](crates/uor-r4-simd) | LUT selected format/grid metadata facade (**`active`**); historical comparator/SIMD model source preserved **`dormant`** outside the native training graph |
 | [`crates/uor-r4-router`](crates/uor-r4-router) | reusable routing plus historical paths |
-| `crates/uor-r4-graph-*` | the frozen R4G1 graph format, compiler, runtime, certifier and CLI |
+| `crates/uor-r4-graph-*` | the frozen R4G1 graph format and runtime; the compiler, certifier and CLI build their compliant modules via `native_support.rs`, with the teacher-backed compile/score paths preserved inactive |
 | [`crates/uor-r4-proof-model`](crates/uor-r4-proof-model), [`crates/uor-r4-naf`](crates/uor-r4-naf), [`crates/uor-r4-workbench`](crates/uor-r4-workbench) | proof specification, the UOR-NAF slice, the bounded research reference |
 | [`crates/repo-model`](crates/repo-model), [`crates/repo-conformance`](crates/repo-conformance), [`xtask`](xtask) | claim registries, honesty gates, `cargo xtask` repository tasks (including `figures`) |
 | [`scripts/`](scripts) | the harness CLI, pod tooling (`scripts/pod/`), storage hygiene, interlocks |

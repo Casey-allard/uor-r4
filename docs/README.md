@@ -343,6 +343,12 @@ Choose the shortest path that matches what you need:
 If an older roadmap disagrees with the R4 Intelligence Completion Plan or live
 GitHub dependency graph, the completion plan and live dependency graph win.
 
+> **Not built since 19 October 2026:** the `r4` binary, including the two
+> source-reference commands below, is preserved inactive by the
+> [legacy-crate repair](labs/legacy-crate-repair-2026-10-19/README.md). Executing the
+> softmax reference is prohibited under D23/D28 in any case; the commands are kept as
+> historical documentation.
+
 The qualified native source-reference CLI requires the already-local pinned
 SmolLM2 snapshot:
 

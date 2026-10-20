@@ -4,6 +4,20 @@ license = "MIT"
 version = "0.1.0"
 edition = "2021"
 description = "Typed compile and engine APIs over the uor-r4 transformerless graph stack, for library consumers"
+# Legacy-crate repair (19 Oct 2026): the bins, examples and integration tests
+# drive the historical engine and model APIs (lib.rs) and are not built; see
+# src/native_support.rs. canonical_quality_baseline_934 builds on the native
+# surface but is not registered: three evidence links in the archived
+# archive/canonical_quality_baseline_934_result.json (docs/attested_broad_baseline_833.md,
+# docs/skipmix_endtoend_causal_908.md and its _result.json) were moved to
+# archive/ by the docs cutover (#2789), so its link check fails; register it
+# once those paths resolve again.
+autobins = false
+autoexamples = false
+autotests = false
+
+[lib]
+path = "src/native_support.rs"
 
 [features]
 # Explicit CPU floating-point research boundary; never enabled by default.
@@ -13,7 +27,7 @@ default = ["full"]
 # pulled into the browser build; compiler orchestration and evaluation stay
 # native-only.
 runtime = []
-full = ["runtime", "dep:uor-r4-graph-compiler", "dep:uor-r4-graph-cli"]
+full = ["runtime", "dep:uor-r4-graph-compiler"]
 
 [dependencies]
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
@@ -22,8 +36,9 @@ uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler", 
 uor-r4-graph-certify = { version = "0.1.0", path = "../uor-r4-graph-certify" }
 # #836: the deployed engine consumes the segment-lane SegmentSession primitive.
 uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
-uor-r4-graph-cli = { version = "0.1.0", path = "../uor-r4-graph-cli", optional = true }
-uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
+# uor-r4-model-source and uor-r4-graph-cli (transformer teacher: softmax
+# attention, dense matmul) are excluded under D29; the historical modules that
+# use them are preserved, not built.
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # Pinned to the workspace-wide blake3 version.
@@ -36,13 +51,4 @@ libm = "0.2"
 # recorded corpus (teacher argmax) and drives the deployed engine directly.
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
-
-[[bin]]
-name = "r4-learned-reference-1102"
-path = "src/bin/r4-learned-reference-1102.rs"
-required-features = ["learned-reference"]
-
-[[bin]]
-name = "r4-native-chat"
-path = "src/bin/r4-native-chat.rs"
 

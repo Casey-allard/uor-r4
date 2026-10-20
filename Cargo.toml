@@ -44,33 +44,27 @@ name = "uor-r4-wasm-router"
 license = "MIT"
 version = "0.1.0"
 edition = "2021"
-default-run = "r4"
 autobins = false
+# Legacy-crate repair (19 Oct 2026): the `r4` binary (src/main.rs) and every
+# integration test except `openai_profile_pin` drive the historical R4G1
+# serving surface or the model-source teacher and are not built; see
+# src/native_support.rs.
+autotests = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "src/native_support.rs"
 
-[[bin]]
-name = "r4"
-path = "src/main.rs"
+[[test]]
+name = "openai_profile_pin"
 
 [features]
-# Historical UorR4Router engine on retired core APIs; does not build against
-# the current core (#2345); preserved as evidence. Never a default.
-legacy-engine = ["uor-r4-router/legacy-engine"]
-# CPU-native Apple Accelerate path for fast local source-backed inference on
-# macOS. This is an honest product/developer alias for the older #804 feature;
-# exact uor-matmul remains the portable default.
-#   cargo build --release --features local-inference-accelerate --bin r4
-local-inference-accelerate = ["observation-blas-exception"]
-# #804 Apple Accelerate passthrough (maintainer-approved 2026-08-18) — retained
-# as the historical feature name for local source-backed inference and
-# observation. Never a default; callers may still opt in explicitly:
-#   cargo build --release --features observation-blas-exception
-observation-blas-exception = [
-    "uor-r4-model-source/observation-blas-exception",
-    "uor-r4-graph-cli/observation-blas-exception",
-]
+# Legacy-crate repair (19 Oct 2026): the #804 `observation-blas-exception` and
+# `local-inference-accelerate` features (Apple Accelerate BLAS for the
+# source-backed `r4` binary) are removed with the model-source and graph-cli
+# links they enabled; BLAS/matmul is excluded under D29/D30. The
+# `legacy-engine` forward to uor-r4-router is removed too: the native surface
+# re-enables no historical engine (enable it on uor-r4-router directly).
 
 [dependencies]
 uor-r4-core = { version = "0.1.0", path = "crates/uor-r4-core" }
@@ -79,7 +73,8 @@ uor-r4-proof-model = { version = "0.1.0", path = "crates/uor-r4-proof-model" }
 uor-r4-graph-runtime = { version = "0.1.0", path = "crates/uor-r4-graph-runtime" }
 uor-r4-api = { version = "0.1.0", path = "crates/uor-r4-api", default-features = false, features = ["runtime"] }
 uor-r4-router = { version = "0.1.0", path = "crates/uor-r4-router" }
-uor-addr = { version = "0.2.0", git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
+# The git uor-addr (which pulls the D29-excluded uor-prism-tensor/-numerics) is
+# used only by the historical facade modules and is not linked.
 uor-foundation-sdk = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
 uor-foundation = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1", default-features = false, features = ["std", "serde"] }
 clap = { version = "4.5", default-features = false, features = ["std", "derive", "env", "help", "usage", "error-context"] }
@@ -91,10 +86,11 @@ wasm-bindgen = "0.2.92"
 blake3 = "=1.5.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-uor-r4-model-source = { version = "0.1.0", path = "crates/uor-r4-model-source" }
+# uor-r4-model-source and uor-r4-graph-cli (transformer teacher: softmax
+# attention, dense matmul) are excluded under D29; the historical modules that
+# use them are preserved, not built.
 uor-r4-graph-compiler = { version = "0.1.0", path = "crates/uor-r4-graph-compiler" }
 uor-r4-graph-certify = { version = "0.1.0", path = "crates/uor-r4-graph-certify" }
-uor-r4-graph-cli = { version = "0.1.0", path = "crates/uor-r4-graph-cli" }
 uor-r4-api = { version = "0.1.0", path = "crates/uor-r4-api", default-features = false, features = ["full"] }
 libc = "0.2"
 rustyline = "14.0"
@@ -103,10 +99,6 @@ rustyline = "14.0"
 uor-foundation-verify = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
 cucumber = "0.21"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-
-[[test]]
-name = "bdd"
-harness = false
 
 # #618: uor-addr -> uor-prism pull uor-foundation/-sdk 0.5.2 from crates.io,
 # which puts a second, type-incompatible copy of each in the lock next to our
@@ -139,26 +131,10 @@ uor-foundation-sdk = { git = "https://github.com/UOR-Foundation/UOR-Framework.gi
 # no longer depends on arrayref. Tracked in #868.
 arrayref = { path = "third_party/arrayref" }
 
-# #932: fixture-present host verification executes the exact certifier-side
-# teacher harness. These narrow overrides intentionally affect every test build
-# of the listed packages so that verification never becomes an opt-level-0 run.
-[profile.test.package.uor-r4-model-source]
-opt-level = 3
-
-[profile.test.package.uor-matmul]
-opt-level = 3
-
-[profile.test.package.uor-matmul-core]
-opt-level = 3
-
-[profile.test.package.uor-matmul-codec]
-opt-level = 3
-
-[profile.test.package.uor-matmul-gemm]
-opt-level = 3
-
-[profile.test.package.uor-matmul-kernels]
-opt-level = 3
+# #932's opt-level overrides for the certifier-side teacher harness packages
+# (uor-r4-model-source and the uor-matmul family) were removed by the
+# legacy-crate repair (19 Oct 2026): those packages are no longer in the
+# workspace graph (D29).
 
 # S4 compares the deployed compiled engines with the teacher. Leaving those
 # engines at test-profile opt-level 0 would waste wall time and turn the

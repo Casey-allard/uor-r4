@@ -11,6 +11,20 @@ name: release
 # publishes the draft by hand. Consumers fetch with the explicit
 # verified command: `r4 install-release --tag <tag>`.
 # See docs/RELEASE_PIPELINE.md for the full convention.
+#
+# PAUSED (legacy-crate repair, 19 October 2026): every job below is skipped, not
+# failing. The owner chose to repair, not archive, the six packages broken since
+# #2345 (D36 item 3, charter Q8): graph-compiler, graph-certify, api,
+# proof-model, graph-cli and the root package. The repair restores their
+# compliant library surfaces, but neither release asset can be built under the
+# D23/D25/D29/D30 bans. The `r4` CLI
+# (src/main.rs, src/server.rs) serves R4G1 through the retired
+# `transformerless::{compiler, runtime}` and the source-backed teacher in
+# uor-r4-model-source, and the wasm frontend is the R4G1 browser engine D36
+# already paused (deploy.yml). Both stay preserved as uncompiled evidence. A
+# draft release would promise assets that cannot be built, so it is skipped too.
+# Re-enable by removing these `if`s in the PR that rewrites this pipeline for a
+# D11 served artifact (M8, UORLUT01).
 
 on:
   push:
@@ -25,6 +39,7 @@ env:
 
 jobs:
   draft-release:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +58,7 @@ jobs:
             --notes "$(printf 'code: %s\ninference contract: %s\n\nAssets: r4 CLI (linux x86_64, macos arm64), wasm frontend.\nThe model bundle (release-bundle.tar.gz + release-bundle.json) is attached by the maintainer from a locally packaged compiled bundle before publishing; its manifest binds the bundle component digests to this tag.\n\nVerified install: r4 install-release --tag %s\n' "$GITHUB_SHA" "$CONTRACT" "$TAG")"
 
   cli:
+    if: ${{ false }}
     needs: draft-release
     strategy:
       matrix:
@@ -71,6 +87,7 @@ jobs:
           gh release upload "$TAG" "dist/$NAME.tar.gz" "dist/$NAME.tar.gz.sha256" --clobber
 
   wasm:
+    if: ${{ false }}
     needs: draft-release
     runs-on: ubuntu-latest
     steps:

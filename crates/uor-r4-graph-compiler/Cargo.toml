@@ -3,9 +3,23 @@ name = "uor-r4-graph-compiler"
 license = "MIT"
 version = "0.1.0"
 edition = "2024"
+# Legacy-crate repair (19 Oct 2026): induction, observe and route_fit_605 drive
+# the historical teacher pipeline (lib.rs) and are not built; see
+# src/native_support.rs. The two tests below use only the native surface.
+autotests = false
+
+[lib]
+path = "src/native_support.rs"
+
+[[test]]
+name = "amendment_a1_843"
+
+[[test]]
+name = "semantic_transitions_843"
 
 [dependencies]
-uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
+# uor-r4-model-source (transformer teacher: softmax attention, dense matmul) is
+# excluded under D29; the historical lib.rs that uses it is preserved, not built.
 uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 uor-r4-router = { version = "0.1.0", path = "../uor-r4-router" }

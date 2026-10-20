@@ -1,5 +1,14 @@
 # Release pipeline (#741)
 
+> **Paused, 19 October 2026:** `.github/workflows/release.yml` skips all three jobs. The
+> [legacy-crate repair](labs/legacy-crate-repair-2026-10-19/README.md) restored the
+> compliant library surfaces of the graph and root packages, but neither release asset
+> can be built under the D23/D25/D29/D30 bans. The `r4` CLI serves R4G1 through the
+> retired transformerless compiler/runtime and the source-backed teacher, and the wasm
+> frontend is the R4G1 browser engine D36 already paused. The commands below
+> (`r4 package-release-bundle`, `r4 install-release`) are therefore not built. The M8
+> rewrite for a D11 served artifact (UORLUT01) re-enables the pipeline.
+
 > **Preserved runtime reference:** this pipeline packages the existing
 > TLA/R4G1 frontends and bundle contracts. It is not the release pipeline for a
 > route-native geometric-intelligence product, and a successful legacy release
