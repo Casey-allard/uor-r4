@@ -9,7 +9,7 @@
 > store at100%, on an authored task and one seed. The native lowering, parameter
 > accounting, state-capacity arguments and unfetched literature reference remain
 > hypotheses. No production crate, model selector or roadmap adopts this code.
-> No new fit follows this preservation. See the active [plan](../docs/integration/project-track.md).
+> No new fit follows this preservation. See the active [plan](../../docs/integration/project-track.md).
 
 
 **delta-rule-architect** · base `origin/main` @ `38377c87` · worktree `~/uor-r4-worktrees/delta-rule-memory`. Owner checkout untouched. All stated ground truth (rrarra 6×288, mlp 749, 7,153,860 params, lane-wise λ, dead Lorentz reads, D0-b, MQAR 1/109 vs 108/109, 0 distractor hits) taken as given.

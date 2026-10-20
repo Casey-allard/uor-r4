@@ -179,5 +179,5 @@ release stage.
 
 `std` throughout; `wasm32` cfgs gate the native-only modules (fs, teacher,
 compiler CLI). External UOR standards come in as pinned **git** dependencies
-(see the root `Cargo.toml`); no code under `uor_standards/` is required to
+(see the root `Cargo.toml`); no code under `archive/vendor-snapshots/uor_standards/` is required to
 build.

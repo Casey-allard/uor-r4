@@ -210,3 +210,19 @@ The PR lint, the brief and doccheck now follow the owner's checkpoint-1 answers.
 - **(e) Three archive-side pointer stubs.** `archive/transformerless/TRANSFORMERLESS.md`, `archive/transformerless/PROOF.md` and `archive/compute/ladder-runbook.md` point to the records they stand for.
 - **(f) One link that looks new but was already broken.** `archive/research/astra-onboarding-2026-10-07.md` links `research/spiralcore-v68/README.md`, which did not resolve before the move either; it now shows as new only because the file moved.
 - **(g) A FIT-source path.** `crates/uor-r4-core/src/bin/support/integrated_attention_data.rs` lists `docs/explainers/ELI5.md` as a `FIT_SOURCES` path checked by SHA-256. It now names `archive/explainers/ELI5.md`. The file moved R100, so its pinned hash is unchanged. Older `integrated-attention` reports record the old path; newer ones record the new one.
+
+## Dead root folders archived (eighth unit, 20 Oct 2026)
+
+Byte-identical `git mv` (all R100); nothing deleted. Evidence: `git grep` for path references outside `archive/` and the folder itself found no reader in `crates/`, `src/`, `tests/`, `scripts/`, `.github/` or any `include_*!`; remaining hits were comments, the `.gitignore`/`exclude` entries (dropped) and the generic doc-scan prefix lists in `xtask` (left as-is).
+
+| From | To | Evidence |
+|---|---|---|
+| `uor_standards/` (1,121 files) | `archive/vendor-snapshots/uor_standards/` | Workspace-excluded and gitignored; real dependencies are git pins plus `third_party/uor-addr-0.2.0` (see `archive/vendor-snapshots/README.md`) |
+| `handoff/` (291 files) | `archive/handoff/` | No path reference outside docs |
+| `relation-pools/` | `archive/relation-pools/` | No path reference outside the xtask prefix list |
+| `prototypes/` | `archive/prototypes/` | Only "prototypes" as a word in code comments and strings |
+| `ops/` | `archive/ops/` | Contributor memos; only `ops/` as a word in unrelated text |
+| `tools/lab-host/` | `archive/tools/lab-host/` | No reference |
+| `tools/skills/` | `archive/tools/skills/` | No reference |
+
+Kept: `t2/`, `tools/lab-runner`, `tools/uor-knowledge`, `tools/r4-softmax-trainer`.

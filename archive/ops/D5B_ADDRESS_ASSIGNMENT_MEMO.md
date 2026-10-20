@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-18
 **Status:** design memo only. Nothing here was run; it needs their memory-store data (AERM keys) which we do not have.
-**Adoption note (2026-10-18):** the D5-a/D5-b split this memo proposes is **adopted as [D38](../docs/integration/DECISIONS.md#d38--d5-split-d5-a-residency-and-d5-b-sparsity-owner-2026-10-18)**. The QUBO formulation below remains an unimplemented instrument proposal: the co-access matrix `A[k1,k2]` does not exist, the `D[c1,c2]` distance term is defined but never used in the objective, and the codec simulated-annealing solver (`xtask/src/qubo_codec.rs`) solves a different (per-weight rounding) problem — no D5-b assignment solver exists yet. `ops/braket_qaoa_toy_receipt.json` is a Bell-state parity check, not QAOA, and is unverified.
+**Adoption note (2026-10-18):** the D5-a/D5-b split this memo proposes is **adopted as [D38](../../docs/integration/DECISIONS.md#d38--d5-split-d5-a-residency-and-d5-b-sparsity-owner-2026-10-18)**. The QUBO formulation below remains an unimplemented instrument proposal: the co-access matrix `A[k1,k2]` does not exist, the `D[c1,c2]` distance term is defined but never used in the objective, and the codec simulated-annealing solver (`xtask/src/qubo_codec.rs`) solves a different (per-weight rounding) problem — no D5-b assignment solver exists yet. `ops/braket_qaoa_toy_receipt.json` is a Bell-state parity check, not QAOA, and is unverified.
 **Attribution:** the formulation is standard quadratic assignment; the QUBO solver used elsewhere in this engagement is classical simulated annealing (SIMULATED). No quantum device expedites this today.
 
 ## The problem

@@ -1,0 +1,3 @@
+# Vendor snapshots
+
+`uor_standards/` is a snapshot of the UOR Foundation standards as vendored on 2026-10-13 (the last commit that touched it on `origin/main`). It is not built or read: the workspace never depended on it. The live upstream is the UOR-Foundation repositories, pinned in `Cargo.toml` and `Cargo.lock` by git rev: `uor-addr` (`UOR-Foundation/uor-addr`, rev `165b51e3e2113ee5d032730cde709335d4fe9b60`, with `third_party/uor-addr-0.2.0` as the vendored copy) and the `uor-foundation`, `uor-foundation-sdk` and `uor-foundation-verify` crates (`UOR-Foundation/UOR-Framework`, rev `51c01382200b0179d6640b07e9c8119364ab69a1`).
