@@ -41,8 +41,8 @@
         [
           "prlint.record_path",
           "warn",
-          "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.",
-          "add the record path to the checklist item: docs/labs/<topic>"
+          "no record path (docs/research/notebook/<line>.md, docs/labs/",
+          "add one result row to docs/research/notebook/<line>.md and n"
         ],
         [
           "prlint.checks_at_head",
@@ -66,8 +66,8 @@
         [
           "prlint.record_path",
           "warn",
-          "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.",
-          "add the record path to the checklist item: docs/labs/<topic>"
+          "no record path (docs/research/notebook/<line>.md, docs/labs/",
+          "add one result row to docs/research/notebook/<line>.md and n"
         ],
         [
           "prlint.checks_at_head",
@@ -97,8 +97,8 @@
         [
           "prlint.record_path",
           "warn",
-          "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.",
-          "add the record path to the checklist item: docs/labs/<topic>"
+          "no record path (docs/research/notebook/<line>.md, docs/labs/",
+          "add one result row to docs/research/notebook/<line>.md and n"
         ],
         [
           "prlint.checks_at_head",

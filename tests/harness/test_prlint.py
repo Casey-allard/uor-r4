@@ -205,6 +205,52 @@ class TestPreregistration(Fixtures):
         self.assertEqual(len(problems), 1)
         self.assertIn("D24", problems[0]["fix"])
 
+    def _narrow_body(self, line: str) -> str:
+        return fill(result=line + "\nDecision: KEEP")
+
+    def test_host_check_line_needs_no_preregistration(self) -> None:
+        body = self._narrow_body("ran cargo test -p x: 561 passed, 0 failed")
+        self.assertTrue(prlint.parse_pr_body(body)["compute_claims"], "the parser must see a claim")
+        self.assertNotIn("prlint.prereg_before_compute", self.rules(body))
+
+    def test_research_results_beside_a_host_word_still_need_preregistration(self) -> None:
+        """Review of #2798: a host word next to a research result does not excuse it."""
+        for line in (
+            "ran 16,404 steps on the pod, held-out test loss 2.31",
+            "fit on vast-123: top-1 463/14,287 on the test split",
+            "scored 463/14,287 on the held-out test",
+            "ran kernel qualification 463/14,287 on pod",
+            "GPU parity run vs reference 463/14,287",
+        ):
+            with self.subTest(line=line):
+                body = self._narrow_body(line)
+                self.assertTrue(prlint.parse_pr_body(body)["compute_claims"], f"no compute claim from {line!r}")
+                self.assertIn("prlint.prereg_before_compute", self.rules(body))
+
+    def test_host_fallback_or_cpu_accuracy_is_still_cpu_model_compute(self) -> None:
+        """A host-side fallback is never excused as device serving; a CPU accuracy is a result."""
+        for line in (
+            "host-side fallback serves the read path, exact 463/14,287 rows",
+            "ran on the laptop in WASM: accuracy 91% on the held-out set",
+        ):
+            with self.subTest(line=line):
+                body = self._narrow_body(line)
+                self.assertTrue(prlint.parse_pr_body(body)["cpu_claims"], f"no CPU claim from {line!r}")
+                self.assertIn("prlint.no_cpu_model_compute", self.rules(body))
+
+    def test_training_run_line_still_needs_preregistration(self) -> None:
+        body = self._narrow_body("ran 2 seeds of training to 16,404 steps, top-1 463/14,287")
+        self.assertIn("prlint.prereg_before_compute", self.rules(body))
+
+    def test_serving_on_a_device_is_not_cpu_model_compute(self) -> None:
+        body = self._narrow_body("ran on the laptop: served the D11 integer artifact in WASM at 210 tokens/s, 463/14,287 rows")
+        self.assertTrue(prlint.parse_pr_body(body)["cpu_claims"], "the parser must see a claim")
+        self.assertNotIn("prlint.no_cpu_model_compute", self.rules(body))
+
+    def test_evaluating_on_the_laptop_cpu_is_still_flagged(self) -> None:
+        body = self._narrow_body("ran on the laptop: evaluated the panel, 463/14,287 rows")
+        self.assertIn("prlint.no_cpu_model_compute", self.rules(body))
+
     def test_softmax_rule_delegates_to_the_interlock(self) -> None:
         """prlint.softmax_ban must call scripts/check_no_softmax.py, not rescan."""
         import tempfile
@@ -335,6 +381,62 @@ class TestRecordsAndChecks(Fixtures):
         problems = [p for p in self.problems(body) if p["rule"] == "prlint.record_path"]
         self.assertEqual(len(problems), 1)
         self.assertIn("does not exist", problems[0]["message"])
+
+    def test_archive_evidence_path_is_parsed_as_record(self) -> None:
+        fields = prlint.parse_pr_body("Record: archive/evidence/some-run-2026-10-01/README.md\n")
+        self.assertIn("archive/evidence/some-run-2026-10-01/README.md", fields["record_paths"])
+
+    def test_notebook_path_is_chosen_when_no_dated_path(self) -> None:
+        fields = prlint.parse_pr_body("Record: docs/research/notebook/m4-serving.md\n")
+        self.assertEqual(fields["record_path"], "docs/research/notebook/m4-serving.md")
+
+    def test_dated_path_wins_over_notebook_path(self) -> None:
+        body = "Record: docs/research/notebook/m4-serving.md and docs/labs/x-topic-2026-10-14/README.md\n"
+        fields = prlint.parse_pr_body(body)
+        self.assertEqual(fields["record_path"], "docs/labs/x-topic-2026-10-14/README.md")
+
+    def _notebook_problems(self, notebook_text: str) -> list[dict]:
+        import tempfile
+
+        rel = "docs/research/notebook/m9-test.md"
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "docs" / "research" / "notebook").mkdir(parents=True)
+            (repo / rel).write_text(notebook_text, encoding="utf-8")
+            paths = HarnessPaths.discover(repo=repo)
+            body = fill().replace("`docs/labs/pointer-gate-finetune-2026-10-10/README.md`", f"`{rel}`")
+            result = prlint.check_pr(body, paths, self.reg)
+            return [p for p in result["problems"] if p["rule"] == "prlint.record_path"]
+
+    def test_notebook_without_dated_row_warns(self) -> None:
+        problems = self._notebook_problems("# m9\n\n| Date | What ran |\n|---|---|\n")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("has no dated result row", problems[0]["message"])
+
+    def test_dated_artifact_does_not_hide_a_notebook_without_a_row(self) -> None:
+        import tempfile
+
+        rel = "docs/research/notebook/m9-test.md"
+        evidence = "archive/evidence/run-2026-10-19/README.md"
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "docs" / "research" / "notebook").mkdir(parents=True)
+            (repo / rel).write_text("# m9\n\n| Date | What ran |\n|---|---|\n", encoding="utf-8")
+            (repo / evidence).parent.mkdir(parents=True)
+            (repo / evidence).write_text("sealed", encoding="utf-8")
+            paths = HarnessPaths.discover(repo=repo)
+            body = fill().replace(
+                "`docs/labs/pointer-gate-finetune-2026-10-10/README.md`", f"`{rel}`, artifact `{evidence}`"
+            )
+            self.assertEqual(prlint.parse_pr_body(body)["record_path"], evidence)
+            result = prlint.check_pr(body, paths, self.reg)
+            problems = [p for p in result["problems"] if p["rule"] == "prlint.record_path"]
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("m9-test.md is named but has no dated result row", problems[0]["message"])
+
+    def test_notebook_with_dated_row_is_silent(self) -> None:
+        problems = self._notebook_problems("# m9\n\n| Date | What ran |\n|---|---|\n| 2026-10-20 | a run |\n")
+        self.assertEqual(problems, [])
 
     def test_no_dated_record_path_warns(self) -> None:
         body = fill().replace("`docs/labs/pointer-gate-finetune-2026-10-10/README.md`", "the research record")

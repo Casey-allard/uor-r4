@@ -51,7 +51,18 @@ r!(
 );
 r!(checkbox_line_re, r"(?m)^[ \t]*[-*+][ \t]*\[[ xX]?\][^\n]*$");
 r!(lab_record_re, r"docs/labs/([A-Za-z0-9._-]+)/README\.md");
-r!(evidence_re, r"docs/evidence/[A-Za-z0-9._/-]+");
+r!(evidence_re, r"(?:docs|archive)/evidence/[A-Za-z0-9._/-]+");
+// the charter's per-line notebook page (owner, 19 October 2026, Q4): one row per result.
+r!(notebook_re, r"docs/research/notebook/[A-Za-z0-9._-]+\.md");
+r!(
+    notebook_path_re,
+    r"^docs/research/notebook/[A-Za-z0-9._-]+\.md$"
+);
+
+/// Whether `path` is exactly a per-line notebook page (`docs/research/notebook/<line>.md`, Q4).
+pub fn is_notebook_path(path: &str) -> bool {
+    notebook_path_re().is_match(path)
+}
 r!(
     run_words_re,
     r"(?i)\b(trained|training run|fine-?tuned|fit|fits|evaluated|evaluation|scored|ran|run|runs|steps|seeds)\b"
@@ -552,12 +563,17 @@ pub fn parse_pr_body(body: &str) -> Fields {
     for m in evidence_re().find_iter(&clean) {
         f.record_paths.push(m.as_str().to_string());
     }
+    for m in notebook_re().find_iter(&clean) {
+        f.record_paths.push(m.as_str().to_string());
+    }
     f.record_paths = dedupe(&f.record_paths);
     let date_re = Regex::new(r"\d{4}-\d{2}-\d{2}").expect("valid");
+    // A dated record first (unchanged), then the line's notebook page (Q4).
     f.record_path = f
         .record_paths
         .iter()
         .find(|p| date_re.is_match(p))
+        .or_else(|| f.record_paths.iter().find(|p| is_notebook_path(p)))
         .cloned()
         .unwrap_or_default();
 

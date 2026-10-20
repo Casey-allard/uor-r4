@@ -23,7 +23,8 @@ use regex::Regex;
 use std::sync::OnceLock;
 
 /// Prefixes whose Markdown is never treated as instructions.
-const DOC_EXCLUDE_PREFIXES: [&str; 7] = [
+const DOC_EXCLUDE_PREFIXES: [&str; 8] = [
+    "archive/",
     "docs/history/",
     "research/",
     ".harness/",
@@ -310,6 +311,10 @@ mod tests {
                 "python3 scripts/harness/cli.py status",
             ),
             (
+                "archive/labs/x-2026-10-01/README.md",
+                "python3 scripts/harness/cli.py check",
+            ),
+            (
                 "docs/history/old-2026-01-01/README.md",
                 "python3 scripts/harness/cli.py check",
             ),
@@ -333,6 +338,10 @@ mod tests {
         assert!(
             !docs.iter().any(|d| d.starts_with("docs/history/")),
             "retained history"
+        );
+        assert!(
+            !docs.iter().any(|d| d.starts_with("archive/")),
+            "archived markdown is a record, not an instruction"
         );
         assert!(
             !docs.iter().any(|d| d.starts_with("crates/")),

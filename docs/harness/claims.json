@@ -216,13 +216,6 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/legacy-crate-repair": {
-    "branch": "claude/legacy-crate-repair",
-    "claimed_at": "2026-10-19T22:51:54-04:00",
-    "head": "d7b39d6a9",
-    "lab": "claude",
-    "note": ""
-  },
   "claude/public-face-reconcile-2026-10-15": {
     "branch": "claude/public-face-reconcile-2026-10-15",
     "claimed_at": "2026-10-15T18:19:36-04:00",
@@ -237,10 +230,10 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/renorm-content-20261020": {
-    "branch": "claude/renorm-content-20261020",
-    "claimed_at": "2026-10-20T01:02:39-04:00",
-    "head": "bcdc023f5",
+  "claude/renorm-harness-20261020": {
+    "branch": "claude/renorm-harness-20261020",
+    "claimed_at": "2026-10-20T01:30:59-04:00",
+    "head": "bc15f48a3",
     "lab": "claude",
     "note": ""
   },

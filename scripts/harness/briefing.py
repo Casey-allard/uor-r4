@@ -21,6 +21,7 @@ DEFAULT_BUDGET = 14000
 SECTION_LIMITS = {
     "mechanism": 2000,
     "session_goal": 5200,
+    "charter": 3000,
     "decision": 2600,
     "mistake": 700,
     "prompt": 2600,
@@ -173,6 +174,11 @@ def assemble(
         rules = [f"- **{r['id']}** - {r['rule']}" for r in reg.milestones.owner_rules]
         pack.add("Owner rules in force", "\n".join(rules), "docs/harness/milestones.json", "always in force")
 
+    # 2b. the charter
+    charter = _read(paths.repo / "CHARTER.md")
+    if charter:
+        pack.add("The charter (CHARTER.md): constraints and workflow", truncate(charter, SECTION_LIMITS["charter"]), "CHARTER.md", "binding on every lab since 19 Oct 2026")
+
     # 3. the contract -------------------------------------------------------------
     sg = _read(paths.session_goal_md)
     contract = _contract_list(sg)
@@ -258,8 +264,8 @@ def assemble(
         "How to use this brief",
         "1. Post a status card on the milestone issue before changing anything.\n"
         "2. Load the skills listed above with `skill use` so the work is visible.\n"
-        "3. Pre-register any compute with `prep new`, and get `TEST FITNESS: FIT` before running it.\n"
-        "4. When done, write the dated record and the current-state entry, then `lint check` the PR body.",
+        "3. Pre-register GPU training or evaluation, and any run a milestone claim rests on, with `prep new`, and get `TEST FITNESS: FIT` before running it.\n"
+        "4. When done, add one result row to the line's notebook (`docs/research/notebook/<line>.md`), keep a dated record folder only if the run sealed artifacts, update `docs/integration/NOW.md` if the next action changed, then `lint check` the PR body.",
         "docs/harness/README.md",
         "the loop",
     )

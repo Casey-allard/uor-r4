@@ -53,7 +53,7 @@ HARNESS_DIR = Path(__file__).resolve().parent
 #:   * `research/` — imported external material
 #:   * `.harness/`, `local/`, `target/`, `.worktrees/` — scratch and build space, not documentation
 DOC_EXCLUDE_PREFIXES = (
-    "docs/history/", "research/", ".harness/", "local/", "target/", ".worktrees/", ".git/",
+    "archive/", "docs/history/", "research/", ".harness/", "local/", "target/", ".worktrees/", ".git/",
 )
 
 #: Append-only logs that RECORD commands rather than instructing anyone to run them.

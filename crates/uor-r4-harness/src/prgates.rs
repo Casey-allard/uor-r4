@@ -775,20 +775,22 @@ pub fn pivot_at_three(f: &crate::prbody::Fields, regs: &Registries, today: &str)
     )]
 }
 
-/// `prlint.record_path` — a dated record path is named, and **it exists on disk**.
+/// `prlint.record_path` — a record path is named (a notebook page
+/// `docs/research/notebook/<line>.md` (charter Q4), a dated `docs/labs/<topic>-<date>/README.md`, or
+/// `archive/evidence/…`), **it exists on disk**, and a notebook page carries a dated result row.
 ///
 /// **This is the first gate that reads the filesystem rather than only the body and the registry**,
-/// and that is why it was not ported with the field-only group. Two different problems share the id:
-/// **no path named**, and **a path named that does not exist** — the second is the one worth having,
-/// because it catches a PR that describes a record it never wrote.
+/// and that is why it was not ported with the field-only group. Three different problems share the
+/// id: **no path named**, **a path named that does not exist** — the one worth having, because it
+/// catches a PR that describes a record it never wrote — and **a notebook named with no result row**.
 pub fn record_path(f: &crate::prbody::Fields, repo: &std::path::Path, today: &str) -> Vec<Problem> {
     let record = f.record_path.clone();
     if record.is_empty() {
         return vec![Problem::new(
             "prlint.record_path",
             "warn",
-            "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.md or docs/evidence/…) is named",
-            format!("add the record path to the checklist item: docs/labs/<topic>-{today}/README.md"),
+            "no record path (docs/research/notebook/<line>.md, docs/labs/<topic>-<YYYY-MM-DD>/README.md or archive/evidence/…) is named",
+            format!("add one result row to docs/research/notebook/<line>.md and name it in the checklist (or a dated record docs/labs/<topic>-{today}/README.md when the run seals artifacts)"),
         )];
     }
     if !repo.join(&record).exists() {
@@ -799,7 +801,45 @@ pub fn record_path(f: &crate::prbody::Fields, repo: &std::path::Path, today: &st
             format!("write {record} in this PR (delivery cadence) or correct the path"),
         )];
     }
-    Vec::new()
+    // Every named notebook must carry a dated row, not only the chosen record: a dated artifact
+    // path wins `record_path`, and must not hide a notebook that was never written (review of #2798).
+    f.record_paths
+        .iter()
+        .filter(|p| crate::prbody::is_notebook_path(p))
+        .filter(|p| {
+            let text = std::fs::read(repo.join(p))
+                .map(|b| String::from_utf8_lossy(&b).into_owned())
+                .unwrap_or_default();
+            !has_result_row(&text)
+        })
+        .map(|p| {
+            Problem::new(
+                "prlint.record_path",
+                "warn",
+                format!("notebook {p} is named but has no dated result row"),
+                "append the result as one row (Date | What ran | Number | Bar | Verdict | Artifact)",
+            )
+        })
+        .collect()
+}
+
+/// A notebook result row (Q4): a markdown table row whose first cell is a `YYYY-MM-DD` date.
+/// Mirrors `prlint._has_result_row` in the Python harness.
+fn has_result_row(text: &str) -> bool {
+    text.lines().any(|line| {
+        line.trim()
+            .strip_prefix('|')
+            .and_then(|rest| rest.split('|').next())
+            .is_some_and(|cell| {
+                let c = cell.trim().as_bytes();
+                c.len() == 10
+                    && c[4] == b'-'
+                    && c[7] == b'-'
+                    && c.iter()
+                        .enumerate()
+                        .all(|(i, b)| i == 4 || i == 7 || b.is_ascii_digit())
+            })
+    })
 }
 
 #[cfg(test)]
@@ -876,14 +916,13 @@ mod pivot_record_tests {
         let p = record_path(&fields(none), &repo(), "2026-10-14");
         assert_eq!(p.len(), 1, "{p:?}");
         assert_eq!(p[0].severity, "warn");
-        assert!(
-            p[0].message.starts_with("no dated record path"),
-            "{}",
-            p[0].message
+        assert_eq!(
+            p[0].message,
+            "no record path (docs/research/notebook/<line>.md, docs/labs/<topic>-<YYYY-MM-DD>/README.md or archive/evidence/…) is named"
         );
         assert_eq!(
             p[0].fix,
-            "add the record path to the checklist item: docs/labs/<topic>-2026-10-14/README.md",
+            "add one result row to docs/research/notebook/<line>.md and name it in the checklist (or a dated record docs/labs/<topic>-2026-10-14/README.md when the run seals artifacts)",
             "the fix names TODAY, which is why the date is a parameter"
         );
 
@@ -904,6 +943,145 @@ mod pivot_record_tests {
         let p = record_path(&fields(body), &repo(), "2026-10-14");
         assert!(p.is_empty(), "an existing record must be silent: {p:?}");
     }
+
+    const KEEP: &str =
+        "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\n";
+
+    /// Dated records moved byte-identically to `archive/evidence/…`; the parser still finds them.
+    #[test]
+    fn archive_evidence_path_is_parsed() {
+        let f = fields(&format!(
+            "{KEEP}Record: archive/evidence/k16-2026-10-14/summary.json\nReferences #2029\n"
+        ));
+        assert_eq!(
+            f.record_paths,
+            vec!["archive/evidence/k16-2026-10-14/summary.json"]
+        );
+        assert_eq!(
+            f.record_path,
+            "archive/evidence/k16-2026-10-14/summary.json"
+        );
+    }
+
+    /// With no dated path, the notebook page is the record path (Q4).
+    #[test]
+    fn notebook_path_is_parsed_and_chosen_when_no_dated_path() {
+        let f = fields(&format!(
+            "{KEEP}Record: docs/research/notebook/starling.md\nReferences #2029\n"
+        ));
+        assert_eq!(f.record_paths, vec!["docs/research/notebook/starling.md"]);
+        assert_eq!(f.record_path, "docs/research/notebook/starling.md");
+    }
+
+    /// A dated record still wins over a notebook page named first.
+    #[test]
+    fn dated_path_wins_over_notebook() {
+        let f = fields(&format!(
+            "{KEEP}Notebook: docs/research/notebook/starling.md\nRecord: docs/labs/x-2026-10-19/README.md\nReferences #2029\n"
+        ));
+        assert_eq!(f.record_path, "docs/labs/x-2026-10-19/README.md");
+    }
+
+    fn notebook_repo(page: &str) -> tempfile::TempDir {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let nb = dir.path().join("docs/research/notebook");
+        std::fs::create_dir_all(&nb).expect("mkdir");
+        std::fs::write(nb.join("starling.md"), page).expect("write");
+        dir
+    }
+
+    /// A notebook with only its header and separator has no result row: warned.
+    #[test]
+    fn notebook_without_a_dated_row_warns() {
+        let dir = notebook_repo(
+            "# starling\n\n| Date | What ran | Number | Bar | Verdict | Artifact |\n|---|---|---|---|---|---|\n| note | not a row | | | | |\n",
+        );
+        let body = format!("{KEEP}Record: docs/research/notebook/starling.md\nReferences #2029\n");
+        let p = record_path(&fields(&body), dir.path(), "2026-10-19");
+        assert_eq!(p.len(), 1, "{p:?}");
+        assert_eq!(
+            p[0].message,
+            "notebook docs/research/notebook/starling.md is named but has no dated result row"
+        );
+        assert_eq!(
+            p[0].fix,
+            "append the result as one row (Date | What ran | Number | Bar | Verdict | Artifact)"
+        );
+    }
+
+    /// A dated artifact path wins `record_path`, but must not hide a notebook with no row.
+    #[test]
+    fn a_dated_artifact_does_not_hide_a_notebook_without_a_row() {
+        let dir = notebook_repo("# starling\n\n| Date | What ran |\n|---|---|\n");
+        let ev = dir.path().join("archive/evidence/run-2026-10-19");
+        std::fs::create_dir_all(&ev).expect("evidence dir");
+        std::fs::write(ev.join("README.md"), "sealed").expect("evidence file");
+        let body = format!("{KEEP}Record: docs/research/notebook/starling.md, artifact archive/evidence/run-2026-10-19/README.md\nReferences #2029\n");
+        let f = fields(&body);
+        assert_eq!(f.record_path, "archive/evidence/run-2026-10-19/README.md");
+        let p = record_path(&f, dir.path(), "2026-10-19");
+        assert_eq!(p.len(), 1, "{p:?}");
+        assert!(p[0]
+            .message
+            .contains("starling.md is named but has no dated result row"));
+    }
+
+    /// A notebook carrying one dated row is silent.
+    #[test]
+    fn notebook_with_a_dated_row_is_silent() {
+        let dir = notebook_repo(
+            "| Date | What ran | Number | Bar | Verdict | Artifact |\n|---|---|---|---|---|---|\n| 2026-10-19 | v5 read | 20/40 | 34/40 | KEEP | archive/evidence/x |\n",
+        );
+        let body = format!("{KEEP}Record: docs/research/notebook/starling.md\nReferences #2029\n");
+        let p = record_path(&fields(&body), dir.path(), "2026-10-19");
+        assert!(p.is_empty(), "{p:?}");
+    }
+}
+
+/// Q2: builds, finite kernel tests and host checks need no pre-registration ...
+const HOST_CHECK_PATTERN: &str = r"(?i)\b(?:cargo|rustc|clippy|fmt|unittest|pytest|builds?|built|compil\w*|tests?|lint|parity|checks?|kernel|finite|host)\b";
+/// ... unless the line is about GPU training or evaluation, or a milestone claim.
+const RESEARCH_RUN_PATTERN: &str = r"(?i)\b(?:train\w*|fine-?tun\w*|evaluat\w*|eval|bpb|nll|perplexit\w*|accuracy|panel|headline|milestone|seeds?|steps?|fit|fits|fitting|scor\w*|loss|top-?\d|held-?out|qualif\w*|reference)\b";
+/// Q1: serving the exported D11 integer artifact on a client device is the product, not research compute ...
+const DEVICE_SERVING_PATTERN: &str = r"(?i)\bd11\b|\bexport(?:ed)?\b[^\n]{0,24}\bartifact\b|\binteger\s+artifact\b|\bserv(?:e|es|ed|ing)\b|\bwasm\b|\bapple\s+silicon\b|\bclient\s+devices?\b|\bon-?device\b";
+/// ... while CPU training, evaluation, qualification and reference execution stay flagged (D24).
+const RESEARCH_CPU_PATTERN: &str = r"(?i)\b(?:train\w*|fine-?tun\w*|evaluat\w*|eval|qualif\w*|reference|parity|fit|fits|fitting|scor\w*|bpb|nll|perplexit\w*|panel|headline|milestone|accuracy|recall|held-?out)\b";
+/// A host-side fallback is what D24 exists to catch; device serving never is one, so such a line
+/// is never excused.
+const HOST_FALLBACK_PATTERN: &str = r"(?i)host[- ]?(?:side[- ]?)?fall-?back";
+
+fn cached(cell: &'static OnceLock<Regex>, pattern: &str) -> &'static Regex {
+    cell.get_or_init(|| Regex::new(pattern).expect("a valid pattern"))
+}
+
+/// `_research_compute_claims`: drop host-check lines that are not about training/evaluation.
+fn research_compute_claims(claims: &[String]) -> Vec<&String> {
+    static HOST: OnceLock<Regex> = OnceLock::new();
+    static RUN: OnceLock<Regex> = OnceLock::new();
+    let (host, run) = (
+        cached(&HOST, HOST_CHECK_PATTERN),
+        cached(&RUN, RESEARCH_RUN_PATTERN),
+    );
+    claims
+        .iter()
+        .filter(|c| !(host.is_match(c) && !run.is_match(c)))
+        .collect()
+}
+
+/// `_research_cpu_claims`: drop lines that serve or benchmark the exported D11 artifact on a client device.
+fn research_cpu_claims(claims: &[String]) -> Vec<&String> {
+    static SERVING: OnceLock<Regex> = OnceLock::new();
+    static RESEARCH: OnceLock<Regex> = OnceLock::new();
+    static FALLBACK: OnceLock<Regex> = OnceLock::new();
+    let (serving, research, fallback) = (
+        cached(&SERVING, DEVICE_SERVING_PATTERN),
+        cached(&RESEARCH, RESEARCH_CPU_PATTERN),
+        cached(&FALLBACK, HOST_FALLBACK_PATTERN),
+    );
+    claims
+        .iter()
+        .filter(|c| fallback.is_match(c) || !(serving.is_match(c) && !research.is_match(c)))
+        .collect()
 }
 
 /// `prlint.prereg_before_compute` — model numbers with no pre-registration reference (D22 §5d/§5e).
@@ -913,14 +1091,17 @@ mod pivot_record_tests {
 /// a **run-word** (`ran`, `runs`, `seeds`, `steps`, `evaluated`…) **and a digit**. So a PR body that
 /// discusses its own verification commands trips it — **in a way that reads as a model-compute claim.**
 ///
-/// **I did not loosen it.** It is a fuzzy gate doing a real job (a lab reporting numbers must have
-/// pre-registered), and **narrowing it would be a behaviour change dressed as a port.** What I did was
-/// stop writing verification counts next to run-words in my own bodies.
+/// **The owner narrowed it on 19 Oct 2026 (Q2):** pre-registration is required only before GPU
+/// training or evaluation and before runs a milestone claim rests on. Builds, finite kernel tests and
+/// host checks need none, so a claim line that matches a host-check word and no research-run word no
+/// longer counts (`research_compute_claims`). The parser's `compute_claims` is unchanged; the filter
+/// lives here, mirroring `_research_compute_claims` in `scripts/harness/prlint.py`.
 pub fn prereg_before_compute(f: &crate::prbody::Fields) -> Vec<Problem> {
-    if f.compute_claims.is_empty() || !f.prereg.is_empty() {
+    let claims = research_compute_claims(&f.compute_claims);
+    if claims.is_empty() || !f.prereg.is_empty() {
         return Vec::new();
     }
-    let sample = truncate(&f.compute_claims[0], 80);
+    let sample = truncate(claims[0], 80);
     vec![Problem::new(
         "prlint.prereg_before_compute",
         "error",
@@ -937,11 +1118,17 @@ pub fn prereg_before_compute(f: &crate::prbody::Fields) -> Vec<Problem> {
 /// (`defect`, `blocked`, `forbidden`, `violat`…). **That exclusion is the whole reason the gate is
 /// usable**: a body that *reports fixing* a host fallback must not be accused of presenting one, and
 /// the port inherits that reasoning rather than re-deciding it here.
+///
+/// **Q1 (owner, 19 Oct 2026):** research compute stays GPU-only, but serving the exported D11 integer
+/// artifact on a client device (CPU, WASM, Apple silicon) is the product. A claim line that matches a
+/// device-serving word and no research-CPU word is dropped (`research_cpu_claims`), mirroring the
+/// Python filter.
 pub fn no_cpu_model_compute(f: &crate::prbody::Fields) -> Vec<Problem> {
-    if f.cpu_claims.is_empty() {
+    let claims = research_cpu_claims(&f.cpu_claims);
+    if claims.is_empty() {
         return Vec::new();
     }
-    let sample = truncate(&f.cpu_claims[0], 90);
+    let sample = truncate(claims[0], 90);
     vec![Problem::new(
         "prlint.no_cpu_model_compute",
         "warn",
@@ -1100,6 +1287,87 @@ mod body_gate_tests {
             "{:?}",
             no_cpu_model_compute(&fields(as_defect))
         );
+    }
+
+    const NARROW_HEAD: &str =
+        "Line: exact addressed memory | count 0/3 | headline 37/232 -> 37/232\nDecision: KEEP\n";
+
+    /// Q2 (a): a host check is not model compute, so it needs no pre-registration.
+    #[test]
+    fn a_host_check_line_needs_no_preregistration() {
+        let body =
+            format!("{NARROW_HEAD}ran cargo test -p x: 561 passed, 0 failed\nReferences #2029\n");
+        assert!(
+            !fields(&body).compute_claims.is_empty(),
+            "the parser must see a claim, or this test proves nothing"
+        );
+        assert!(prereg_before_compute(&fields(&body)).is_empty());
+    }
+
+    /// Q2: a host word next to a research result does not excuse it (review of #2798).
+    #[test]
+    fn research_results_beside_a_host_word_still_need_a_preregistration() {
+        for line in [
+            "ran 16,404 steps on the pod, held-out test loss 2.31",
+            "fit on vast-123: top-1 463/14,287 on the test split",
+            "scored 463/14,287 on the held-out test",
+            "ran kernel qualification 463/14,287 on pod",
+            "GPU parity run vs reference 463/14,287",
+        ] {
+            let body = format!("{NARROW_HEAD}{line}\nReferences #2029\n");
+            assert!(
+                !fields(&body).compute_claims.is_empty(),
+                "no compute claim parsed from {line:?}"
+            );
+            let p = prereg_before_compute(&fields(&body));
+            assert_eq!(p.len(), 1, "{line:?} was excused: {p:?}");
+        }
+    }
+
+    /// Q1: a host-side fallback is never excused as device serving, and a CPU accuracy is a result.
+    #[test]
+    fn a_host_fallback_or_cpu_accuracy_is_still_cpu_model_compute() {
+        for line in [
+            "host-side fallback serves the read path, exact 463/14,287 rows",
+            "ran on the laptop in WASM: accuracy 91% on the held-out set",
+        ] {
+            let body = format!("{NARROW_HEAD}{line}\nReferences #2029\n");
+            assert!(
+                !fields(&body).cpu_claims.is_empty(),
+                "no CPU claim parsed from {line:?}"
+            );
+            let p = no_cpu_model_compute(&fields(&body));
+            assert_eq!(p.len(), 1, "{line:?} was excused: {p:?}");
+        }
+    }
+
+    /// Q2 (b): training with seeds and step counts still needs one.
+    #[test]
+    fn a_training_run_line_still_needs_a_preregistration() {
+        let body = format!("{NARROW_HEAD}ran 2 seeds of training to 16,404 steps, top-1 463/14,287\nReferences #2029\n");
+        let p = prereg_before_compute(&fields(&body));
+        assert_eq!(p.len(), 1, "{p:?}");
+    }
+
+    /// Q1 (c): serving the D11 artifact on a client device is not research CPU compute.
+    #[test]
+    fn serving_the_artifact_on_a_device_is_not_cpu_model_compute() {
+        let body = format!("{NARROW_HEAD}ran on the laptop: served the D11 integer artifact in WASM at 210 tokens/s, 463/14,287 rows\nReferences #2029\n");
+        assert!(
+            !fields(&body).cpu_claims.is_empty(),
+            "the parser must see a claim, or this test proves nothing"
+        );
+        assert!(no_cpu_model_compute(&fields(&body)).is_empty());
+    }
+
+    /// Q1 (d): evaluating on the laptop CPU is still flagged.
+    #[test]
+    fn evaluating_on_the_laptop_cpu_is_still_flagged() {
+        let body = format!(
+            "{NARROW_HEAD}ran on the laptop: evaluated the panel, 463/14,287 rows\nReferences #2029\n"
+        );
+        let p = no_cpu_model_compute(&fields(&body));
+        assert_eq!(p.len(), 1, "{p:?}");
     }
 
     #[test]
@@ -1592,8 +1860,8 @@ mod check_pr_tests {
 /// than left to a reader to notice.
 const CHECKLIST: [&str; 8] = [
     "Checks run at this exact head (commands and outcomes posted on this PR)",
-    "Research record: docs/labs/<topic>-<YYYY-MM-DD>/README.md (or docs/evidence/…)",
-    "New entry at the top of docs/integration/current-state.md, with **Next:**",
+    "Result recorded: one row in docs/research/notebook/<line>.md (a dated docs/labs/<topic>-<YYYY-MM-DD>/ folder only when a run seals artifacts)",
+    "docs/integration/NOW.md updated if the next action changed",
     "Every document this change makes stale is updated",
     "STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged",
     "README updated in its existing sections, or nothing a reader relies on changed",
@@ -1689,7 +1957,7 @@ pub fn format_pr_body(f: &crate::prbody::Fields) -> String {
     };
 
     let mut lines: Vec<String> = vec![
-        "## Line and headline (D21, docs/labs/session-goal.md)".into(),
+        "## Line and headline (D21, CHARTER.md)".into(),
         String::new(),
         format!("Line: {line_name} · count {count_text} · headline {headline}"),
         String::new(),
@@ -1709,8 +1977,8 @@ pub fn format_pr_body(f: &crate::prbody::Fields) -> String {
     lines.push("## Checklist".into());
     lines.push(String::new());
     for label in CHECKLIST {
-        let rendered = if label.contains("Research record") {
-            format!("Research record: `{record}`")
+        let rendered = if label.starts_with("Result recorded") && !record.contains('<') {
+            format!("{label} - `{record}`")
         } else {
             label.to_string()
         };

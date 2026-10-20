@@ -176,3 +176,19 @@ The other rewritten files that hash themselves are historical targets that do no
 - the core `addressed-lexical-bridge` and `realtext-sparse-recall` binaries.
 
 Their old bytes are at the tag `pre-renorm-2026-10-19`.
+
+## Harness gates follow the charter (sixth unit, 20 Oct 2026)
+
+The PR lint, the brief and doccheck now follow the owner's checkpoint-1 answers. Each change is made in the Rust harness and its Python mirror, and the parity check agrees.
+
+- **Q4 notebooks.** `prlint.record_path` accepts a notebook page `docs/research/notebook/<line>.md` as the record, and an `archive/evidence/…` path as evidence. A named notebook with no dated result row warns. A dated record path still wins when both are named.
+- **Q2 pre-registration.** `prlint.prereg_before_compute` ignores lines that are builds, finite kernel tests or host checks and carry no training, evaluation or milestone word. It still fires on GPU training and evaluation numbers with no FIT reference. The filter runs in the gate, so the parser output and its byte-pinned fixtures are unchanged.
+- **Q1 on-device serving.** `prlint.no_cpu_model_compute` ignores lines that serve or benchmark the exported D11 artifact on a client device (CPU, WASM, Apple silicon) and name no research compute. CPU training, evaluation, qualification and reference runs are still flagged.
+- **Template, brief and doccheck:**
+  - The PR template checklist asks for a notebook row (with a dated folder only when a run seals artifacts) and a `NOW.md` update in place of a current-state entry.
+  - `uor-harness brief` opens with a `CHARTER.md` section, and its closing steps describe the new cadence.
+  - doccheck treats `archive/` as records, not instructions.
+- **Fixtures.** Two capture files changed only where the specified text changed:
+  - `prlint-check-pr-fixtures.json`: the 3 `record_path` messages.
+  - `prlint-format-fixtures.json`: the 4 formatted checklist lines.
+- **Each narrowing is pinned by a test that fails without it.** Checked by temporarily removing the notebook-row branch, the Q2 filter and the Q1 filter.

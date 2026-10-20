@@ -166,6 +166,21 @@ class TestDiscovery(unittest.TestCase):
                 self.assertFalse(rel.startswith(".worktrees/"), rel)
                 self.assertNotRegex(rel, r"^docs/labs/[^/]+-\d{4}-\d{2}-\d{2}/")
 
+    def test_archive_is_a_record_not_an_instruction(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel, body in (
+                ("archive/labs/x-2026-10-01/README.md", "python3 scripts/harness/cli.py check"),
+                ("AGENTS.md", "see it"),
+            ):
+                p = root / rel
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(body, encoding="utf-8")
+            self.assertEqual(doccheck.discover_docs(root), ["AGENTS.md"])
+            self.assertEqual(doccheck.stale_cli_invocations(root), [])
+
     def test_append_only_logs_are_not_checked(self) -> None:
         """`current-state.md` names the broken command it is reporting fixed. That is a record, not
         guidance, and flagging it would make this check cry wolf on the project's own log."""

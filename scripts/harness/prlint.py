@@ -79,7 +79,29 @@ _BOX_RE = re.compile(r"(?m)^\s*[-*+]\s*\[(?P<state>[ xX]?)\]\s*(?P<label>.+?)\s*
 #: pre-registration carrying `TEST FITNESS: FIT`" must not satisfy the D22 gate.
 _CHECKBOX_LINE_RE = re.compile(r"(?m)^[ \t]*[-*+][ \t]*\[[ xX]?\][^\n]*$")
 _LAB_RECORD_RE = re.compile(r"docs/labs/([A-Za-z0-9._-]+)/README\.md")
-_EVIDENCE_RE = re.compile(r"docs/evidence/[A-Za-z0-9._/-]+")
+_EVIDENCE_RE = re.compile(r"(?:docs|archive)/evidence/[A-Za-z0-9._/-]+")
+#: the charter's per-line notebook page (owner, 19 October 2026, Q4): one row per result.
+_NOTEBOOK_RE = re.compile(r"docs/research/notebook/[A-Za-z0-9._-]+\.md")
+_DATED_CELL_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+#: Q2: builds, finite kernel tests and host checks need no pre-registration ...
+_HOST_CHECK_RE = re.compile(
+    r"(?i)\b(?:cargo|rustc|clippy|fmt|unittest|pytest|builds?|built|compil\w*|tests?|lint|parity|checks?|kernel|finite|host)\b"
+)
+#: ... unless the line is about GPU training or evaluation, or a milestone claim.
+_RESEARCH_RUN_RE = re.compile(
+    r"(?i)\b(?:train\w*|fine-?tun\w*|evaluat\w*|eval|bpb|nll|perplexit\w*|accuracy|panel|headline|milestone|seeds?|steps?|fit|fits|fitting|scor\w*|loss|top-?\d|held-?out|qualif\w*|reference)\b"
+)
+#: Q1: serving the exported D11 integer artifact on a client device is the product, not research compute ...
+_DEVICE_SERVING_RE = re.compile(
+    r"(?i)\bd11\b|\bexport(?:ed)?\b[^\n]{0,24}\bartifact\b|\binteger\s+artifact\b|\bserv(?:e|es|ed|ing)\b|\bwasm\b|\bapple\s+silicon\b|\bclient\s+devices?\b|\bon-?device\b"
+)
+#: ... while CPU training, evaluation, qualification and reference execution stay flagged (D24).
+_RESEARCH_CPU_RE = re.compile(
+    r"(?i)\b(?:train\w*|fine-?tun\w*|evaluat\w*|eval|qualif\w*|reference|parity|fit|fits|fitting|scor\w*|bpb|nll|perplexit\w*|panel|headline|milestone|accuracy|recall|held-?out)\b"
+)
+#: A host-side fallback is what D24 exists to catch; device serving never is one, so such a line
+#: is never excused.
+_HOST_FALLBACK_RE = re.compile(r"(?i)host[- ]?(?:side[- ]?)?fall-?back")
 
 # D22 pre-registration references: a prep sheet id, a milestone comment link, or a verdict.
 _PREREG_MARKERS = (
@@ -282,8 +304,12 @@ def parse_pr_body(body: str) -> dict[str, Any]:
     for path in _LAB_RECORD_RE.findall(clean):
         fields.record_paths.append(f"docs/labs/{path}/README.md")
     fields.record_paths.extend(_EVIDENCE_RE.findall(clean))
+    fields.record_paths.extend(_NOTEBOOK_RE.findall(clean))
     fields.record_paths = _dedupe(fields.record_paths)
-    fields.record_path = next((p for p in fields.record_paths if re.search(r"\d{4}-\d{2}-\d{2}", p)), "")
+    # A dated record first (unchanged), then the line's notebook page (Q4).
+    fields.record_path = next((p for p in fields.record_paths if re.search(r"\d{4}-\d{2}-\d{2}", p)), "") or next(
+        (p for p in fields.record_paths if _NOTEBOOK_RE.fullmatch(p)), ""
+    )
 
     # --- issue references
     for m2 in re.finditer(r"(?i)\b(References|Closes|Fixes)\s*#?(\d{3,6})", clean):
@@ -338,6 +364,34 @@ def _claims_current_state(prose: str, checklist: list[ChecklistItem]) -> bool:
         if re.search(r"(?i)\b(entry|entries|newest|top|added|updated|new)\b", line):
             return True
     return False
+
+
+def _has_result_row(text: str) -> bool:
+    """A notebook result row (Q4): a markdown table row whose first cell is a ``YYYY-MM-DD`` date.
+
+    Mirrors ``prgates::has_result_row`` in the Rust harness."""
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        if _DATED_CELL_RE.fullmatch(line[1:].split("|", 1)[0].strip()):
+            return True
+    return False
+
+
+def _research_compute_claims(claims: list[Any]) -> list[Any]:
+    """Q2: drop build, finite-kernel-test and host-check lines that are not about training/evaluation."""
+    return [c for c in claims if not (_HOST_CHECK_RE.search(str(c)) and not _RESEARCH_RUN_RE.search(str(c)))]
+
+
+def _research_cpu_claims(claims: list[Any]) -> list[Any]:
+    """Q1: drop lines that serve or benchmark the exported D11 artifact on a client device."""
+    return [
+        c
+        for c in claims
+        if _HOST_FALLBACK_RE.search(str(c))
+        or not (_DEVICE_SERVING_RE.search(str(c)) and not _RESEARCH_CPU_RE.search(str(c)))
+    ]
 
 
 def _dedupe(items: list[Any]) -> list[Any]:
@@ -658,15 +712,17 @@ def check_pr(body: str, paths: HarnessPaths, reg: Registry) -> dict[str, Any]:
             )
         )
 
-    # --- 7. the dated record path
+    # --- 7. the record path: a notebook row (Q4), a dated record, or archived evidence
     record = str(fields.get("record_path") or "")
     if not record:
         add(
             Problem(
                 "prlint.record_path",
                 "warn",
-                "no dated record path (docs/labs/<topic>-<YYYY-MM-DD>/README.md or docs/evidence/…) is named",
-                "add the record path to the checklist item: docs/labs/<topic>-" + _today() + "/README.md",
+                "no record path (docs/research/notebook/<line>.md, docs/labs/<topic>-<YYYY-MM-DD>/README.md or archive/evidence/…) is named",
+                "add one result row to docs/research/notebook/<line>.md and name it in the checklist (or a dated record docs/labs/<topic>-"
+                + _today()
+                + "/README.md when the run seals artifacts)",
             )
         )
     elif not paths.repo.joinpath(record).exists():
@@ -678,6 +734,25 @@ def check_pr(body: str, paths: HarnessPaths, reg: Registry) -> dict[str, Any]:
                 f"write {record} in this PR (delivery cadence) or correct the path",
             )
         )
+    else:
+        # Every named notebook must carry a dated row, not only the chosen record: a dated artifact
+        # path wins record_path, and must not hide a notebook that was never written (review of #2798).
+        for notebook in fields.get("record_paths") or []:
+            if not _NOTEBOOK_RE.fullmatch(str(notebook)):
+                continue
+            try:
+                text = paths.repo.joinpath(notebook).read_bytes().decode("utf-8", errors="replace")
+            except OSError:
+                text = ""
+            if not _has_result_row(text):
+                add(
+                    Problem(
+                        "prlint.record_path",
+                        "warn",
+                        f"notebook {notebook} is named but has no dated result row",
+                        "append the result as one row (Date | What ran | Number | Bar | Verdict | Artifact)",
+                    )
+                )
 
     # --- 8. the current-state entry
     if fields.get("claims_current_state"):
@@ -726,8 +801,9 @@ def check_pr(body: str, paths: HarnessPaths, reg: Registry) -> dict[str, Any]:
                 )
 
     # --- 9. D22: pre-registration before compute
-    if fields.get("compute_claims") and not fields.get("prereg"):
-        sample = truncate(str(fields["compute_claims"][0]), 80)
+    compute_claims = _research_compute_claims(fields.get("compute_claims") or [])
+    if compute_claims and not fields.get("prereg"):
+        sample = truncate(str(compute_claims[0]), 80)
         add(
             Problem(
                 "prlint.prereg_before_compute",
@@ -742,8 +818,9 @@ def check_pr(body: str, paths: HarnessPaths, reg: Registry) -> dict[str, Any]:
     problems.extend(softmax_problems)
 
     # --- 11. D24 no CPU model compute
-    if fields.get("cpu_claims"):
-        sample = truncate(str(fields["cpu_claims"][0]), 90)
+    cpu_claims = _research_cpu_claims(fields.get("cpu_claims") or [])
+    if cpu_claims:
+        sample = truncate(str(cpu_claims[0]), 90)
         add(
             Problem(
                 "prlint.no_cpu_model_compute",
@@ -939,8 +1016,8 @@ def _softmax_scan(module: Any, script: Path) -> tuple[dict[str, int], dict[str, 
 
 _CHECKLIST = (
     ("Checks run at this exact head (commands and outcomes posted on this PR)", False),
-    ("Research record: docs/labs/<topic>-<YYYY-MM-DD>/README.md (or docs/evidence/…)", False),
-    ("New entry at the top of docs/integration/current-state.md, with **Next:**", False),
+    ("Result recorded: one row in docs/research/notebook/<line>.md (a dated docs/labs/<topic>-<YYYY-MM-DD>/ folder only when a run seals artifacts)", False),
+    ("docs/integration/NOW.md updated if the next action changed", False),
     ("Every document this change makes stale is updated", False),
     ("STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged", False),
     ("README updated in its existing sections, or nothing a reader relies on changed", False),
@@ -968,7 +1045,7 @@ def format_pr_body(fields: dict[str, Any]) -> str:
     ref = f"References #{issues[0]}" if issues else "References #<issue>"
 
     lines = [
-        "## Line and headline (D21, docs/labs/session-goal.md)",
+        "## Line and headline (D21, CHARTER.md)",
         "",
         f"Line: {line_name} · count {count_text} · headline {headline}",
         "",
@@ -988,8 +1065,8 @@ def format_pr_body(fields: dict[str, Any]) -> str:
         "",
     ]
     for label, _ in _CHECKLIST:
-        if "Research record" in label:
-            label = f"Research record: `{record}`"
+        if label.startswith("Result recorded") and "<" not in record:
+            label = f"{label} - `{record}`"
         body_tail.append(f"- [ ] {label}")
     body_tail += ["", ref, ""]
     return redact("\n".join(lines + body_tail))

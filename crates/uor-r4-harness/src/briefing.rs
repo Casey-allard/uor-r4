@@ -428,6 +428,7 @@ fn capitalize(s: &str) -> String {
 /// Section size limits, matching the Python assembler. They bound how much of a prose document the
 /// brief quotes, so the pack stays readable in one sitting.
 pub const LIMIT_SESSION_GOAL: usize = 5200;
+pub const LIMIT_CHARTER: usize = 3000;
 pub const LIMIT_DECISION: usize = 2600;
 pub const LIMIT_PROMPT: usize = 2600;
 pub const LIMIT_MECHANISM: usize = 2000;
@@ -453,6 +454,17 @@ pub fn assemble_full(
 
     let session_goal_path = paths.repo.join("docs").join("labs").join("session-goal.md");
     let session_goal = read_doc(&session_goal_path);
+
+    // 2b. the charter
+    let charter = read_doc(&paths.repo.join("CHARTER.md"));
+    if !charter.is_empty() {
+        pack.add(
+            "The charter (CHARTER.md): constraints and workflow",
+            &truncate(&charter, LIMIT_CHARTER),
+            "CHARTER.md",
+            "binding on every lab since 19 Oct 2026",
+        );
+    }
 
     // 3. the contract
     let contract = contract_list(&session_goal);
@@ -646,8 +658,8 @@ pub fn assemble_full(
         "How to use this brief",
         "1. Post a status card on the milestone issue before changing anything.\n\
          2. Load the skills listed above with `skill use` so the work is visible.\n\
-         3. Pre-register any compute with `prep new`, and get `TEST FITNESS: FIT` before running it.\n\
-         4. When done, write the dated record and the current-state entry, then `lint check` the PR body.",
+         3. Pre-register GPU training or evaluation, and any run a milestone claim rests on, with `prep new`, and get `TEST FITNESS: FIT` before running it.\n\
+         4. When done, add one result row to the line's notebook (`docs/research/notebook/<line>.md`), keep a dated record folder only if the run sealed artifacts, update `docs/integration/NOW.md` if the next action changed, then `lint check` the PR body.",
         "docs/harness/README.md",
         "the loop",
     );
