@@ -24,8 +24,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SPEC = ROOT / "profiles" / "openai" / "openapi.yaml"
-OUT = ROOT / "profiles" / "openai" / "compatibility_matrix.json"
+SPEC = ROOT / "crates" / "uor-r4-wasm-router" / "profiles" / "openai" / "openapi.yaml"
+OUT = ROOT / "crates" / "uor-r4-wasm-router" / "profiles" / "openai" / "compatibility_matrix.json"
 
 # The pinned upstream identity (recorded, byte-verified below and in the Rust
 # drift gate). git blob sha1 is `git hash-object openapi.yaml`; blake3 is the

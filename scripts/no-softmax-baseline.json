@@ -152,5 +152,16 @@
   "crates/uor-r4-training/tests/backprop_first_contribution_parity.rs": 1,
   "crates/uor-r4-training/tests/cuda_stack_ops_parity.rs": 2,
   "crates/uor-r4-training/tests/stack_softmax_free_export.rs": 11,
+  "crates/uor-r4-wasm-router/src/lib.rs": 6,
+  "crates/uor-r4-wasm-router/src/main.rs": 250,
+  "crates/uor-r4-wasm-router/src/r4_grounded_answer.rs": 24,
+  "crates/uor-r4-wasm-router/src/r4_softmax_local_generation.rs": 284,
+  "crates/uor-r4-wasm-router/src/r4_softmax_reference_generation.rs": 83,
+  "crates/uor-r4-wasm-router/src/r4_softmax_teacher_trace.rs": 350,
+  "crates/uor-r4-wasm-router/src/r4_softmax_trace_experiment.rs": 212,
+  "crates/uor-r4-wasm-router/src/r4_softmax_trace_observability_experiment.rs": 326,
+  "crates/uor-r4-wasm-router/src/r4_softmax_trace_state_experiment.rs": 260,
+  "crates/uor-r4-wasm-router/src/r4_source_span_pointer.rs": 1,
+  "crates/uor-r4-wasm-router/src/server.rs": 402,
   "docs/labs/k16-timing-2026-10-15/instrument/src/main.rs": 1
 }

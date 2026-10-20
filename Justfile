@@ -9,7 +9,7 @@ demo:
 # Build and serve the browser-only geometric router demo. The dashboard uses
 # the local WASM router when no native `/api/sysinfo` endpoint is present.
 wasm-dashboard:
-    wasm-pack build --target web
+    wasm-pack build crates/uor-r4-wasm-router --target web
     python3 -m http.server 8000
 
 # Run the Cucumber/Gherkin behavior suite.

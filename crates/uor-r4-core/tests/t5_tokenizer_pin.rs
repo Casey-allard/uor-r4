@@ -1,5 +1,5 @@
 //! #639-1: the pinned T5 SentencePiece Unigram source in
-//! `models/t5-base-tokenizer.json`.
+//! `data/tokenizers/t5-base-tokenizer.json`.
 //!
 //! Casey chose T5 (`google-t5/t5-base`, revision `a9723ea7…`) as the
 //! `sentencepiece-unigram` source for the #639 tokenizer adapter. This
@@ -31,9 +31,9 @@ fn repo_root() -> PathBuf {
 }
 
 fn t5_descriptor() -> serde_json::Value {
-    let path = repo_root().join("models").join("t5-base-tokenizer.json");
+    let path = repo_root().join("data").join("tokenizers").join("t5-base-tokenizer.json");
     let bytes = std::fs::read(&path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
-    serde_json::from_slice(&bytes).expect("models/t5-base-tokenizer.json parses")
+    serde_json::from_slice(&bytes).expect("data/tokenizers/t5-base-tokenizer.json parses")
 }
 
 /// CI-run: the source pin is present and well-formed — a `blake3:<64 hex>`
@@ -122,6 +122,6 @@ fn real_t5_spiece_matches_the_pin() {
     let measured = format!("blake3:{}", blake3::hash(&bytes).to_hex());
     assert_eq!(
         measured, kappa,
-        "the snapshot spiece.model κ must reproduce the pin in models/t5-base-tokenizer.json"
+        "the snapshot spiece.model κ must reproduce the pin in data/tokenizers/t5-base-tokenizer.json"
     );
 }

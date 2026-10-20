@@ -1,7 +1,7 @@
 //! Standalone tests of the actual source modules, with no model or Cargo downloads.
-#[path = "../crates/uor-r4-core/src/native_geometric/learner/hamilton_transport.rs"]
+#[path = "../../../crates/uor-r4-core/src/native_geometric/learner/hamilton_transport.rs"]
 mod hamilton_transport;
-#[path = "../crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs"]
+#[path = "../../../crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs"]
 mod relative_action_learning;
 
 use relative_action_learning::{CompiledRelativePath, RelativeActionModel};

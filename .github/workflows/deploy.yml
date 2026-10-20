@@ -35,7 +35,7 @@ jobs:
           cargo install wasm-pack --version 0.13.1 --locked
 
       - name: Build WebAssembly package
-        run: wasm-pack build --target web -- --locked
+        run: wasm-pack build crates/uor-r4-wasm-router --target web -- --locked
 
       - name: Prepare deployment folder
         run: |
@@ -43,7 +43,7 @@ jobs:
           cp web/studio/index.html web/studio/index.css web/studio/geometric_prime_router_webapp.html dist/
           cp web/studio/coi-serviceworker.js web/studio/r4_worker.js dist/ || true
           cp -r web/studio/assets dist/ || true
-          cp -r pkg dist/
+          cp -r crates/uor-r4-wasm-router/pkg dist/
           rm -f dist/pkg/.gitignore
 
       - name: Deploy to GitHub Pages

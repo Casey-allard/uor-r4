@@ -134,7 +134,7 @@ fn repo_root() -> PathBuf {
 }
 
 fn source_snapshot_path() -> PathBuf {
-    let descriptor_path = repo_root().join("models/t5-base-tokenizer.json");
+    let descriptor_path = repo_root().join("data/tokenizers/t5-base-tokenizer.json");
     let descriptor_bytes = std::fs::read(&descriptor_path)
         .unwrap_or_else(|error| panic!("{}: {error}", descriptor_path.display()));
     let descriptor: serde_json::Value =
@@ -244,7 +244,7 @@ fn independent_fixture_is_pinned_and_non_vacuous() {
     assert!(fixture.piece_types.byte.ids.is_empty());
     assert_eq!(fixture.generator, "scripts/gen_t5_sentencepiece_fixture.py");
 
-    let descriptor_path = repo_root().join("models/t5-base-tokenizer.json");
+    let descriptor_path = repo_root().join("data/tokenizers/t5-base-tokenizer.json");
     let descriptor_bytes = std::fs::read(&descriptor_path)
         .unwrap_or_else(|error| panic!("{}: {error}", descriptor_path.display()));
     let descriptor: serde_json::Value =

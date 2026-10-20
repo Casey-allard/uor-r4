@@ -185,7 +185,7 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |
 | --- | --- | --- | --- | --- | --- |
-| `RF-23` | `build` | `normative-runtime` | `deployed-serving` | src/tless_uor.rs, src/chat.rs (R4G1Runtime selection/fallback on the served path); docs/adr/0001-normative-r4g1-scorer.md designates the R4G1Runtime scoring path as the one normative scorer (#831) | R4G1 runtime selection and fallback policy |
+| `RF-23` | `build` | `normative-runtime` | `deployed-serving` | crates/uor-r4-wasm-router/src/tless_uor.rs, crates/uor-r4-wasm-router/src/chat.rs (R4G1Runtime selection/fallback on the served path); docs/adr/0001-normative-r4g1-scorer.md designates the R4G1Runtime scoring path as the one normative scorer (#831) | R4G1 runtime selection and fallback policy |
 
 ## rate_distortion_compression
 
@@ -209,7 +209,7 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |
 | --- | --- | --- | --- | --- | --- |
-| `RF-30` | `build` | `normative-runtime` | `deployed-serving` | conformance/features/suites/selective_prediction_surfaces.feature; src/selective.rs, src/chat.rs, src/server.rs, src/tless_uor.rs (typed spec section-5 encodings on the served path); archive/selective_prediction_spec_838.md sections 5-6 | Typed selective-prediction serving surface (legacy-coverage mode): deterministic cross-surface status schema, typed abstention cause, and fail-closed selective-calibration detection |
+| `RF-30` | `build` | `normative-runtime` | `deployed-serving` | conformance/features/suites/selective_prediction_surfaces.feature; crates/uor-r4-wasm-router/src/selective.rs, crates/uor-r4-wasm-router/src/chat.rs, crates/uor-r4-wasm-router/src/server.rs, crates/uor-r4-wasm-router/src/tless_uor.rs (typed spec section-5 encodings on the served path); archive/selective_prediction_spec_838.md sections 5-6 | Typed selective-prediction serving surface (legacy-coverage mode): deterministic cross-surface status schema, typed abstention cause, and fail-closed selective-calibration detection |
 
 ## semantic_state_space
 
@@ -233,7 +233,7 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |
 | --- | --- | --- | --- | --- | --- |
-| `RF-29` | `build` | `certifier-instrument` | `off-serving-path` | conformance/features/suites/teacher_parity_benchmarks.feature; tests/bdd.rs; tests/parity_determinism_932.rs; tests/parity_observability_932.rs; crates/uor-r4-model-source/src/exact_probe.rs (pinned-fixture-gated; adaptive exact W={4,available_parallelism} tuner with deduplication and durable UNAVAILABLE/non-PASS evidence) | Teacher parity and benchmarks for the compiled transformerless runtimes (fixture-gated empirical instrument; absent fixtures are UNAVAILABLE, never PASS) |
+| `RF-29` | `build` | `certifier-instrument` | `off-serving-path` | conformance/features/suites/teacher_parity_benchmarks.feature; crates/uor-r4-wasm-router/tests/bdd.rs; crates/uor-r4-wasm-router/tests/parity_determinism_932.rs; crates/uor-r4-wasm-router/tests/parity_observability_932.rs; crates/uor-r4-model-source/src/exact_probe.rs (pinned-fixture-gated; adaptive exact W={4,available_parallelism} tuner with deduplication and durable UNAVAILABLE/non-PASS evidence) | Teacher parity and benchmarks for the compiled transformerless runtimes (fixture-gated empirical instrument; absent fixtures are UNAVAILABLE, never PASS) |
 
 ## Cited authorities
 

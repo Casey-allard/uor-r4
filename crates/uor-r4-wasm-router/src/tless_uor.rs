@@ -1461,7 +1461,7 @@ mod tests {
     fn fixture_state() {
         let dir = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/crates/uor-r4-core/tests/fixtures"
+            "/../../crates/uor-r4-core/tests/fixtures"
         );
         let bytes = std::fs::read(format!("{dir}/tless_artifacts.bin")).unwrap();
         let art = compiler::parse_artifacts(&bytes).expect("fixture container parses");
@@ -1920,7 +1920,7 @@ mod tests {
     fn deletion_is_address_attested() {
         let dir = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/crates/uor-r4-core/tests/fixtures"
+            "/../../crates/uor-r4-core/tests/fixtures"
         );
         let bytes = std::fs::read(format!("{dir}/tless_artifacts.bin")).unwrap();
         let art = compiler::parse_artifacts(&bytes).expect("fixture container parses");

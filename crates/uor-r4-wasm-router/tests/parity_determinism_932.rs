@@ -527,7 +527,7 @@ fn derived_evidence_is_anchored_to_model_source_exact_bit_gates() {
     // This source-level link prevents the cheap mock scheduler test from being
     // mistaken for arithmetic proof. The named model-source tests execute the
     // real pinned exact owner; this file exercises only evidence derivation.
-    let model_source = include_str!("../crates/uor-r4-model-source/src/lib.rs");
+    let model_source = include_str!("../../../crates/uor-r4-model-source/src/lib.rs");
     for required_gate in [
         "exact_matmul_matches_serial_bits_for_1_2_4_8_workers",
         "exact_batched_matmul_matches_serial_bits_for_1_2_4_8_workers",
@@ -539,7 +539,7 @@ fn derived_evidence_is_anchored_to_model_source_exact_bit_gates() {
         );
     }
 
-    let executor_source = include_str!("../crates/uor-r4-model-source/src/exact_executor.rs");
+    let executor_source = include_str!("../../../crates/uor-r4-model-source/src/exact_executor.rs");
     assert!(executor_source.contains("partitioning only complete output rows"));
     assert!(executor_source.contains("full `k`-term exact accumulator"));
 }

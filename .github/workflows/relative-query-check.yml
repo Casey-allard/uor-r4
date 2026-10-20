@@ -7,7 +7,7 @@ on:
       - 'crates/uor-r4-core/src/native_geometric/learner/hamilton_transport.rs'
       - 'crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs'
       - 'crates/uor-r4-core/src/native_geometric/learner/compiled_relative_query.rs'
-      - 'tests/relative_query_standalone.rs'
+      - 'crates/uor-r4-wasm-router/tests/relative_query_standalone.rs'
   push:
     branches: ['codex/compiled-relative-query-20260924']
 
@@ -32,7 +32,7 @@ jobs:
             /crates/uor-r4-core/src/native_geometric/learner/hamilton_transport.rs
             /crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs
             /crates/uor-r4-core/src/native_geometric/learner/compiled_relative_query.rs
-            /tests/relative_query_standalone.rs
+            /crates/uor-r4-wasm-router/tests/relative_query_standalone.rs
             /rust-toolchain.toml
             /rustfmt.toml
             /.rustfmt.toml
@@ -43,7 +43,7 @@ jobs:
           git rev-parse HEAD
           uname -sm
           rustc --version
-          rustc --edition=2021 --test -C opt-level=2 tests/relative_query_standalone.rs -o "$RUNNER_TEMP/relative-query-tests"
+          rustc --edition=2021 --test -C opt-level=2 crates/uor-r4-wasm-router/tests/relative_query_standalone.rs -o "$RUNNER_TEMP/relative-query-tests"
           "$RUNNER_TEMP/relative-query-tests" --test-threads=1 --nocapture | tee "$RUNNER_TEMP/relative-query-results.txt"
           {
             echo '### Executed standalone source checks'
@@ -55,4 +55,4 @@ jobs:
       - name: Check formatting of touched Rust files
         shell: bash
         run: |
-          rustfmt --edition 2021 --check crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs tests/relative_query_standalone.rs
+          rustfmt --edition 2021 --check crates/uor-r4-core/src/native_geometric/learner/relative_action_learning.rs crates/uor-r4-wasm-router/tests/relative_query_standalone.rs

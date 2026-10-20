@@ -5,7 +5,7 @@
 #   scripts/lut-m1-chat.sh MODEL_DIR CALIBRATION_TEXT EVAL_TEXT [OUT_PARENT]
 #
 # MODEL_DIR holds config.json, model.safetensors and tokenizer.json of a Llama-architecture checkpoint, for
-# example SmolLM2-135M-Instruct at the revision registered in models/smollm2-135m-instruct.json:
+# example SmolLM2-135M-Instruct at the revision registered in data/tokenizers/smollm2-135m-instruct.json:
 #   huggingface-cli download HuggingFaceTB/SmolLM2-135M-Instruct \
 #     --revision 7e27bd9f95328f0f3b08261d1252705110c806f8 \
 #     config.json model.safetensors tokenizer.json --local-dir .uor-models/sources/smollm2-135m-instruct

@@ -300,7 +300,7 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked
       - name: wasm-pack build --target web
-        run: wasm-pack build --target web
+        run: wasm-pack build crates/uor-r4-wasm-router --target web
 
   gate-c-trend:
     name: "nightly certification: Gate C trend alarm"
@@ -418,7 +418,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/d2-manifest.json
-          key: d2-manifest-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'src/**/*.rs', 'crates/**/*.rs', 'scripts/d2_differential_compile.sh') }}
+          key: d2-manifest-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'crates/**/*.rs', 'scripts/d2_differential_compile.sh') }}
 
       - name: Run canonical differential compile
         if: steps.d2_manifest_cache.outputs.cache-hit != 'true'

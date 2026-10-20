@@ -1,0 +1,63 @@
+[package]
+name = "uor-r4-wasm-router"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+# Not published. Until 20 Oct 2026 this was the root package, outside the shipped-crate
+# audits (xtask audit-limits, audit-deferral); it stays outside them.
+publish = false
+autobins = false
+# Legacy-crate repair (19 Oct 2026): the `r4` binary (src/main.rs) and every
+# integration test except `openai_profile_pin` drive the historical R4G1
+# serving surface or the model-source teacher and are not built; see
+# src/native_support.rs.
+autotests = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/native_support.rs"
+
+[[test]]
+name = "openai_profile_pin"
+
+[features]
+# Legacy-crate repair (19 Oct 2026): the #804 `observation-blas-exception` and
+# `local-inference-accelerate` features (Apple Accelerate BLAS for the
+# source-backed `r4` binary) are removed with the model-source and graph-cli
+# links they enabled; BLAS/matmul is excluded under D29/D30. The
+# `legacy-engine` forward to uor-r4-router is removed too: the native surface
+# re-enables no historical engine (enable it on uor-r4-router directly).
+
+[dependencies]
+uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
+uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
+uor-r4-proof-model = { version = "0.1.0", path = "../uor-r4-proof-model" }
+uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
+uor-r4-api = { version = "0.1.0", path = "../uor-r4-api", default-features = false, features = ["runtime"] }
+uor-r4-router = { version = "0.1.0", path = "../uor-r4-router" }
+# The git uor-addr (which pulls the D29-excluded uor-prism-tensor/-numerics) is
+# used only by the historical facade modules and is not linked.
+uor-foundation-sdk = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
+uor-foundation = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1", default-features = false, features = ["std", "serde"] }
+clap = { version = "4.5", default-features = false, features = ["std", "derive", "env", "help", "usage", "error-context"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4.3"
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+wasm-bindgen = "0.2.92"
+blake3 = "=1.5.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# uor-r4-model-source and uor-r4-graph-cli (transformer teacher: softmax
+# attention, dense matmul) are excluded under D29; the historical modules that
+# use them are preserved, not built.
+uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
+uor-r4-graph-certify = { version = "0.1.0", path = "../uor-r4-graph-certify" }
+uor-r4-api = { version = "0.1.0", path = "../uor-r4-api", default-features = false, features = ["full"] }
+libc = "0.2"
+rustyline = "14.0"
+
+[dev-dependencies]
+uor-foundation-verify = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
+cucumber = "0.21"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

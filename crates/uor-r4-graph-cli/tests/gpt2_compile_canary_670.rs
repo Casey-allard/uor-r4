@@ -195,7 +195,7 @@ fn gpt2_cover_certifies_source_parity_rows() {
 
     // The pinned source-snapshot κ (#597) from the model descriptor (#669).
     let descriptor: serde_json::Value = serde_json::from_slice(
-        &std::fs::read(repo_root().join("models/gpt2-124m.json")).expect("read gpt2 descriptor"),
+        &std::fs::read(repo_root().join("data/tokenizers/gpt2-124m.json")).expect("read gpt2 descriptor"),
     )
     .expect("descriptor parses");
     let source_kappa = descriptor["source_kappa"]

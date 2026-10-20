@@ -14861,12 +14861,12 @@ fn optional_pinned_huggingface_source_in(
 }
 
 fn optional_pinned_huggingface_source() -> Result<Option<SourceDownload>, String> {
-    optional_pinned_huggingface_source_in(Path::new("models"))
+    optional_pinned_huggingface_source_in(Path::new("data/tokenizers"))
 }
 
 fn pinned_huggingface_source() -> Result<SourceDownload, String> {
     optional_pinned_huggingface_source()?.ok_or_else(|| {
-        "pinned Hugging Face manifest is unavailable at models/smollm2-135m-instruct.json"
+        "pinned Hugging Face manifest is unavailable at data/tokenizers/smollm2-135m-instruct.json"
             .to_owned()
     })
 }
@@ -15322,7 +15322,7 @@ fn validate_managed_source_for_serving(
     source_dir: &Path,
     logical_name: &str,
 ) -> Result<Option<crate::model::SourceManifest>, String> {
-    validate_managed_source_for_serving_in(source_dir, logical_name, Path::new("models"))
+    validate_managed_source_for_serving_in(source_dir, logical_name, Path::new("data/tokenizers"))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15454,7 +15454,7 @@ fn verify_managed_source_snapshot(
     source_dir: &Path,
     logical_name: &str,
 ) -> Result<VerifiedManagedSourceSnapshot, String> {
-    verify_managed_source_snapshot_in(source_dir, logical_name, Path::new("models"))
+    verify_managed_source_snapshot_in(source_dir, logical_name, Path::new("data/tokenizers"))
 }
 
 fn require_unchanged_managed_source_snapshot(
@@ -20120,7 +20120,7 @@ mod tests {
         );
 
         let artifact_bytes =
-            include_bytes!("../crates/uor-r4-core/tests/fixtures/tless_artifacts.bin").to_vec();
+            include_bytes!("../../../crates/uor-r4-core/tests/fixtures/tless_artifacts.bin").to_vec();
         let artifacts = compiler::parse_artifacts(&artifact_bytes).expect("parse teacher fixture");
         let regions = [RegionParams {
             node: 1,
@@ -27095,7 +27095,7 @@ mod tests {
     #[test]
     fn legacy_named_managed_source_uses_descriptor_identity_and_invalid_default_is_terminal() {
         let root = attention_provenance_test_dir("descriptor-bound-legacy-source");
-        let descriptors = root.join("models");
+        let descriptors = root.join("data/tokenizers");
         let source = root.join("sources/pinned-teacher");
         std::fs::create_dir_all(&descriptors).expect("create descriptor root");
         std::fs::create_dir_all(&source).expect("create source root");

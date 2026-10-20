@@ -1,4 +1,4 @@
-//! #669: the pinned GPT-2 tokenizer identity in `models/gpt2-124m.json`.
+//! #669: the pinned GPT-2 tokenizer identity in `data/tokenizers/gpt2-124m.json`.
 //!
 //! The source descriptor pins `tokenizer_kappa` — the blake3 of the pinned
 //! `openai-community/gpt2` `tokenizer.json` (revision `607a30d7…`) — so a
@@ -29,9 +29,9 @@ fn repo_root() -> PathBuf {
 }
 
 fn gpt2_descriptor() -> serde_json::Value {
-    let path = repo_root().join("models").join("gpt2-124m.json");
+    let path = repo_root().join("data").join("tokenizers").join("gpt2-124m.json");
     let bytes = std::fs::read(&path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
-    serde_json::from_slice(&bytes).expect("models/gpt2-124m.json parses")
+    serde_json::from_slice(&bytes).expect("data/tokenizers/gpt2-124m.json parses")
 }
 
 /// CI-run: the tokenizer pin is present and well-formed — a
@@ -94,7 +94,7 @@ fn real_gpt2_tokenizer_matches_the_pin() {
     let measured = format!("blake3:{}", blake3::hash(&bytes).to_hex());
     assert_eq!(
         measured, kappa,
-        "the snapshot tokenizer.json κ must reproduce the pin in models/gpt2-124m.json"
+        "the snapshot tokenizer.json κ must reproduce the pin in data/tokenizers/gpt2-124m.json"
     );
 
     // The #601 adapter built from it binds the SAME CID under the

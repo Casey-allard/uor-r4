@@ -7,7 +7,7 @@
 # TEXT_FILE is any plain-text corpus of at least a few MB (for example exported chat turns or TinyStories); its first
 # 95% of lines train and the last 5% validate. OUT_PARENT (default reports/kappa-m1-<timestamp>) must not exist; every
 # run below claims and seals its own report root inside it. The checkpoints are the registered sources
-# (models/smollm2-{135m,360m}-instruct.json); override with S135=... S360=....
+# (data/tokenizers/smollm2-{135m,360m}-instruct.json); override with S135=... S360=....
 #
 # Stages:
 #   1. build with Metal; tokenize with the checkpoint's own byte-level BPE

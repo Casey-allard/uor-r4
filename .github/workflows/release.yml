@@ -98,7 +98,7 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Build the wasm frontend
-        run: wasm-pack build --target web
+        run: wasm-pack build crates/uor-r4-wasm-router --target web
       - name: Package and attach
         env:
           GH_TOKEN: ${{ github.token }}
@@ -106,6 +106,6 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           NAME="r4-wasm-${TAG}"
           mkdir -p dist
-          tar -czf "dist/$NAME.tar.gz" pkg
+          tar -czf "dist/$NAME.tar.gz" -C crates/uor-r4-wasm-router pkg
           shasum -a 256 "dist/$NAME.tar.gz" | awk '{print $1}' > "dist/$NAME.tar.gz.sha256"
           gh release upload "$TAG" "dist/$NAME.tar.gz" "dist/$NAME.tar.gz.sha256" --clobber

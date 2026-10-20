@@ -787,7 +787,7 @@ pub(crate) mod tests {
     /// report identity is reproduced from these exact bytes.
     pub(crate) fn write_production_bundle(dir: &Path) -> VerifiedPackagingAdmission {
         let teacher = std::fs::read(
-            Path::new(env!("CARGO_MANIFEST_DIR"))
+            Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
                 .join("crates/uor-r4-core/tests/fixtures/tless_artifacts.bin"),
         )
         .expect("checked-in teacher fixture");

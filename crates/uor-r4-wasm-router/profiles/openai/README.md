@@ -3,13 +3,13 @@
 **UOR-R4 Geometric Language Model interface reference.** The pinned profile and
 recorded SDK checks below describe wire compatibility at their tested scope.
 The active native API and CLI share
-[the Rust core](../../crates/uor-r4-core/src/native_geometric); this pin does
+[the Rust core](../../../../crates/uor-r4-core/src/native_geometric); this pin does
 not establish that every listed route serves the retained native artifact or
 that the model has general prose completion or general reasoning. Follow the
-[project map](../../docs/PROJECT_MAP.md),
-[canonical plan](../../docs/integration/project-track.md),
-[current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../archive/integration/model-direction-2026-09.md). Historical CI references below identify available checks; current
+[project map](../../../../docs/PROJECT_MAP.md),
+[canonical plan](../../../../docs/integration/project-track.md),
+[current artifact and measured behavior](../../../../docs/integration/current-state.md),
+and [model direction](../../../../archive/integration/model-direction-2026-09.md). Historical CI references below identify available checks; current
 PR/merge-queue acknowledgements do not execute them.
 
 This directory pins the exact OpenAI REST specification the R4 server claims

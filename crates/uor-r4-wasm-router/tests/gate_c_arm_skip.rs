@@ -61,7 +61,7 @@ const EXPECTED_TO_DIFFER: [&str; 2] = ["right_context_arms", "skipped_arm_groups
 fn fixture_dir() -> PathBuf {
     match std::env::var("R4_ARM_SKIP_FIXTURE_DIR") {
         Ok(dir) if !dir.trim().is_empty() => PathBuf::from(dir),
-        _ => Path::new(env!("CARGO_MANIFEST_DIR")).join("crates/uor-r4-core/tests/fixtures"),
+        _ => Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../..")).join("crates/uor-r4-core/tests/fixtures"),
     }
 }
 

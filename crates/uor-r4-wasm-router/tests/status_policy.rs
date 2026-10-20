@@ -727,7 +727,7 @@ fn materialize_window_fixture_bundle() {
 /// `score_runtime.rs` is covered by that crate's whole-file scan).
 #[test]
 fn deployed_status_path_is_integer_only_by_source_scan() {
-    let src = include_str!("../crates/uor-r4-api/src/engine.rs");
+    let src = include_str!("../../../crates/uor-r4-api/src/engine.rs");
     let mut block = String::new();
     let mut in_block = false;
     let mut blocks = 0u32;

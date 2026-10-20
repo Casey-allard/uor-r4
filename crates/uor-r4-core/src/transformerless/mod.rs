@@ -191,7 +191,7 @@ mod witnesses {
             ("reference_state.rs", include_str!("reference_state.rs")),
             (
                 "wasm-router/r4g1.rs",
-                include_str!("../../../../src/r4g1.rs"),
+                include_str!("../../../uor-r4-wasm-router/src/r4g1.rs"),
             ),
         ];
         let mut offenders = Vec::new();

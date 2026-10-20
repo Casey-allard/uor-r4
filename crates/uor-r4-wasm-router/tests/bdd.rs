@@ -317,7 +317,7 @@ fn selected_engine_is_legacy(w: &mut R4g1World) {
     "the browser UI selects the geometric research demo, keeps R4G1 unselected, and does not offer automatic fallback"
 )]
 fn browser_selects_geometric_demo(_w: &mut R4g1World) {
-    let source = include_str!("../web/studio/index.html");
+    let source = include_str!("../../../web/studio/index.html");
     assert!(source.contains(r#"<option value="geometric" selected>"#));
     assert!(source.contains(r#"<option value="r4g1">"#));
     assert!(!source.contains(r#"<option value="r4g1" selected>"#));
@@ -448,7 +448,7 @@ fn rf31_synthetic_bundle() -> (Vec<u8>, Vec<u8>) {
     use uor_r4_core::transformerless::{convert_r4g1, runtime};
 
     let artifact_bytes = std::fs::read(
-        Path::new(env!("CARGO_MANIFEST_DIR"))
+        Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
             .join("crates/uor-r4-core/tests/fixtures/tless_artifacts.bin"),
     )
     .expect("RF-31 synthetic teacher artifact fixture is present");
@@ -1531,7 +1531,7 @@ fn u8_kernel_matches(w: &mut R4g1World) {
 
 #[then("zero floating-point operations or multiplications are executed")]
 fn u8_kernel_zero_floats(_w: &mut R4g1World) {
-    let source = include_str!("../crates/uor-r4-core/src/transformerless/lie_jordan.rs");
+    let source = include_str!("../../../crates/uor-r4-core/src/transformerless/lie_jordan.rs");
     let kernel_start = source
         .find("pub fn universal_product_u8")
         .expect("kernel function");
@@ -1542,7 +1542,7 @@ fn u8_kernel_zero_floats(_w: &mut R4g1World) {
 
 #[given("the normative inference operation contract document")]
 fn contract_document_loaded(w: &mut R4g1World) {
-    let text = include_str!("../docs/transformerless/INFERENCE_OPERATION_CONTRACT.md");
+    let text = include_str!("../../../docs/transformerless/INFERENCE_OPERATION_CONTRACT.md");
     w.contract_doc_text = text.to_string();
     let version = text
         .lines()
@@ -1901,7 +1901,7 @@ use uor_r4_graph_compiler::monograph::MonographTraceabilityVerifier;
 
 #[given("the living formal monograph document")]
 fn bdd_given_monograph_doc(w: &mut R4g1World) {
-    w.monograph_text = include_str!("../docs/hologram_r4_formal_monograph.md").to_string();
+    w.monograph_text = include_str!("../../../docs/hologram_r4_formal_monograph.md").to_string();
 }
 
 #[when("audited by the monograph traceability verifier")]
@@ -1934,7 +1934,7 @@ fn bdd_monograph_non_goals_check(w: &mut R4g1World) {
 
 #[given("a monograph draft missing section \"Section 1: Problem Statement and Non-Goals\"")]
 fn bdd_given_missing_section(w: &mut R4g1World) {
-    let full_doc = include_str!("../docs/hologram_r4_formal_monograph.md");
+    let full_doc = include_str!("../../../docs/hologram_r4_formal_monograph.md");
     w.monograph_text = full_doc.replace(
         "Section 1: Problem Statement and Non-Goals",
         "Missing Sec 1",
@@ -1952,7 +1952,7 @@ fn bdd_missing_section_error_check(w: &mut R4g1World) {
 
 #[given("a monograph draft missing non-goal \"No Human-Level Reasoning Claim\"")]
 fn bdd_given_missing_non_goal(w: &mut R4g1World) {
-    let full_doc = include_str!("../docs/hologram_r4_formal_monograph.md");
+    let full_doc = include_str!("../../../docs/hologram_r4_formal_monograph.md");
     w.monograph_text = full_doc.replace("No Human-Level Reasoning Claim", "Altered");
 }
 
@@ -4746,12 +4746,12 @@ fn parity_fixture_dirs() -> Result<&'static ParityFixtureDirs, String> {
         Ok(ParityFixtureDirs {
             source: resolve_parity_fixture_dir(
                 "R4_PARITY_SOURCE",
-                Path::new(env!("CARGO_MANIFEST_DIR"))
+                Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
                     .join(".uor-models/sources/smollm2-135m-instruct"),
             )?,
             bundle: resolve_parity_fixture_dir(
                 "R4_PARITY_BUNDLE",
-                Path::new(env!("CARGO_MANIFEST_DIR"))
+                Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
                     .join(".uor-models/compiled/smollm2-135m-instruct"),
             )?,
         })
@@ -4774,7 +4774,7 @@ fn parity_probe_report_path() -> Result<std::path::PathBuf, String> {
         Ok(path) => configured_exact_probe_report_path(Some(path))
             .map_err(|error| format!("NOT_RUN / REFUSED: {error}")),
         Err(std::env::VarError::NotPresent) => configured_exact_probe_report_path(None)
-            .map(|path| Path::new(env!("CARGO_MANIFEST_DIR")).join(path))
+            .map(|path| Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../..")).join(path))
             .map_err(|error| format!("NOT_RUN / REFUSED: {error}")),
         Err(error) => Err(format!(
             "NOT_RUN / REFUSED: R4_EXACT_PROBE_REPORT is not valid Unicode: {error}"
@@ -10045,7 +10045,7 @@ async fn main() {
     }
     R4g1World::cucumber()
         .fail_on_skipped()
-        .run_and_exit(concat!(env!("CARGO_MANIFEST_DIR"), "/conformance/features/suites"))
+        .run_and_exit(concat!(env!("CARGO_MANIFEST_DIR"), "/../../conformance/features/suites"))
         .await;
 }
 

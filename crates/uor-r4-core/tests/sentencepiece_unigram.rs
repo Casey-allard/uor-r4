@@ -107,11 +107,11 @@ const FIXTURES: &[(&str, &[u32])] = &[
 
 fn spiece_bytes() -> Option<Vec<u8>> {
     // The pinned source directory recorded by #639-1.
-    let descriptor = repo_root().join("models").join("t5-base-tokenizer.json");
+    let descriptor = repo_root().join("data").join("tokenizers").join("t5-base-tokenizer.json");
     let bytes = std::fs::read(&descriptor)
         .unwrap_or_else(|error| panic!("{}: {error}", descriptor.display()));
     let value: serde_json::Value =
-        serde_json::from_slice(&bytes).expect("models/t5-base-tokenizer.json parses");
+        serde_json::from_slice(&bytes).expect("data/tokenizers/t5-base-tokenizer.json parses");
     let source_dir = value["source_directory"]
         .as_str()
         .expect("source_directory is declared");

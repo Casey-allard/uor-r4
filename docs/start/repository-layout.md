@@ -7,8 +7,8 @@ Every top-level folder has one job. This page lists them, says which ones are ab
 | Folder | What it holds |
 |---|---|
 | `archive/` | Every dated record and retired file, byte for byte as it was. Nothing in it is edited. [`archive/CATALOG.md`](../../archive/CATALOG.md) indexes it. |
-| `crates/` | The Rust code, one crate per folder: the model, the serving runtime, the harness and the tools around them. |
-| `data/` | The small evaluation panels kept in git. Large inputs (corpora, checkpoints) live in the private Hugging Face store instead. |
+| `crates/` | The Rust code, one crate per folder: the model, the serving runtime, the harness and the tools around them. `crates/uor-r4-wasm-router/` is the browser-facing library (with its tests and server profiles); until 20 October 2026 it was the root package in `src/`, `tests/` and `profiles/`. |
+| `data/` | The small evaluation panels (`data/panels/`) and four reference tokenizer descriptors that older tests compare against (`data/tokenizers/`, the old top-level `models/`). Large inputs (corpora, checkpoints) live in the private Hugging Face store instead. |
 | `docs/` | The documentation you are reading, plus the live lab records under `docs/labs/` and the harness files under `docs/harness/`. |
 | `projects/` | Side projects related to UOR-R4 but not part of the model. See the [projects page](../../projects/README.md). |
 | `scripts/` | Shell entry points: GPU pods (`scripts/pod/`), storage and hygiene (`scripts/storage/`), harness wrappers. |
@@ -17,8 +17,7 @@ Every top-level folder has one job. This page lists them, says which ones are ab
 | `web/` | The web client. `web/studio/` is the Studio page served at `/studio/` on the documentation site. |
 | `xtask/` | Repository tooling, run as `cargo xtask <command>`: link checks, the archive check, figures, the catalog and the site build. |
 | `conformance/` | The requirements ledger (`ledger.toml`, `ids.toml`, `authorities.toml`) and its behaviour specifications (`features/suites/*.feature`). The `repo-model` and `repo-conformance` crates read it to produce `CONFORMANCE.md`. Until 20 October 2026 these were the top-level `model/` and `features/` folders. |
-| `models/` | Four reference tokenizer files that older tests compare against. **Moving to** `data/tokenizers/`. |
-| `src/`, `tests/`, `profiles/` | The root Rust package, `uor-r4-wasm-router`: its library, its tests and its server profiles. **Moving to** `crates/uor-r4-wasm-router/`, so the top level holds only workspace settings. |
+| `tests/` | The Python test suite for the harness (`tests/harness/`) and end-to-end fixtures (`tests/e2e/`). The Rust tests live with their crates. |
 
 One more change is planned: the normative reference pages that sit loose in `docs/` will gather under `docs/reference/`, except for the few that code pins by path and hash, which stay where they are.
 
@@ -42,7 +41,7 @@ One more change is planned: the normative reference pages that sit loose in `doc
 ## Names that are easy to confuse
 
 - `conformance/` is a **requirements ledger**, not a language model. It was called `model/` until 20 October 2026 and was renamed to end that confusion.
-- `models/` holds **reference tokenizers** used by older tests. It is moving to `data/tokenizers/`.
+- `data/tokenizers/` holds **reference tokenizer descriptors** used by older tests. It was the top-level `models/` until 20 October 2026.
 - `.uor-models/` is the **runtime model store** on each machine. It is gitignored; its contents come from the private Hugging Face store.
 
 ## What is not in git

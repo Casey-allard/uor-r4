@@ -847,7 +847,7 @@ el('load').onclick=()=>el('file').click();el('file').onchange=async()=>{busy(tru
 mod tests {
     mod copy_fixture {
         use uor_r4_core::native_geometric as native;
-        include!("../crates/uor-r4-core/tests/support/native_word_copy_fixture.rs");
+        include!("../../../crates/uor-r4-core/tests/support/native_word_copy_fixture.rs");
     }
     use super::*;
     use std::io::{BufRead, BufReader};
