@@ -9,7 +9,7 @@ paths: [research/**, docs/**, docs/harness/research-data.json, .gitignore]
 milestones: [m1, m2, m3, m4]
 mechanism: ""
 guard: none: the decision is "may the repository drop this", which is the owner's and is not machine-checkable
-evidence: [docs/labs/repository-integrity-2026-10-12/README.md, docs/labs/working-in-one-checkout.md, docs/mechanisms/README.md, AGENTS.md]
+evidence: [archive/labs/repository-integrity-2026-10-12/README.md, docs/labs/working-in-one-checkout.md, docs/mechanisms/README.md, AGENTS.md]
 status: active
 ---
 

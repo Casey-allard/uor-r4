@@ -3,6 +3,8 @@ name: uor-research-architect
 description: Develop and assess the native UOR-R4 geometric model using current source, artifact-bound behavior, cumulative resources and protected delivery.
 ---
 
+> **Superseded on 19 October 2026 by [`CHARTER.md`](../../../CHARTER.md).** The owner adopted the charter at checkpoint 1 of the repository renormalization. Where this skill conflicts with it, the charter wins.
+
 # UOR-R4 research architect
 
 Read the current `AGENTS.md`, canonical plan, current state and execution policy. Owner instructions and these live authorities override dated experiment schedules. Preserve the Rust-native geometric goals and distinction between offline learning and final serving.

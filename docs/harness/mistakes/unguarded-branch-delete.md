@@ -9,7 +9,7 @@ paths: [.github/**, scripts/harness/githelp.py, docs/harness/claims.json]
 milestones: [m1, m2, m3, m4, m5, m6, m7, m8]
 mechanism: ""
 guard: none: no machine check can intercept a direct `git push --delete`; the guard is the CLI refusing (`cli.py git delete-merged` proves the merge first), which only helps if it is the command you run
-evidence: [docs/labs/harness-rust-port-2026-10-13/README.md]
+evidence: [archive/labs/harness-rust-port-2026-10-13/README.md]
 status: active
 ---
 

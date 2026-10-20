@@ -262,8 +262,9 @@ mod tests {
             &docs[0], "AGENTS.md",
             "the one file every lab reads sorts first"
         );
-        assert_eq!(&docs[1], "CONFORMANCE.md");
-        assert_eq!(&docs[2], "CONTRIBUTING.md");
+        assert_eq!(&docs[1], "CHARTER.md");
+        assert_eq!(&docs[2], "CONFORMANCE.md");
+        assert_eq!(&docs[3], "CONTRIBUTING.md");
         // The exclusions, on real data rather than only in a fixture.
         assert!(
             !docs.iter().any(|d| d.starts_with("docs/history/")),

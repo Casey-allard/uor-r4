@@ -9,7 +9,7 @@ paths: [docs/harness/BOOTSTRAP.md, docs/harness/ONBOARD-PROMPT.md, scripts/harne
 milestones: [m1, m2, m3, m4, m5, m6, m7, m8]
 mechanism: ""
 guard: none: the harness reports the interpreter it found and refuses below the floor; whether a lab's shell resolves the right one is a property of that machine
-evidence: [docs/harness/BOOTSTRAP.md, docs/labs/harness-install-2026-10-13/README.md]
+evidence: [docs/harness/BOOTSTRAP.md, archive/labs/harness-install-2026-10-13/README.md]
 status: active
 ---
 

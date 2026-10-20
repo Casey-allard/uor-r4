@@ -9,7 +9,7 @@ paths: [docs/labs/**, docs/integration/DECISIONS.md, .github/pull_request_templa
 milestones: [m2]
 mechanism: protected-legal-construction
 guard: prlint.pivot_at_three
-evidence: [docs/labs/whole-path-implementation-2026-10-12/README.md, docs/labs/starling-pivot-2026-10-11/README.md, docs/labs/lab-pivot-2026-10-09/README.md]
+evidence: [archive/labs/whole-path-implementation-2026-10-12/README.md, archive/labs/starling-pivot-2026-10-11/README.md, archive/labs/lab-pivot-2026-10-09/README.md]
 status: active
 ---
 
@@ -40,7 +40,7 @@ request is not a headline move; neither is a rename, a split or a re-scope.
 - Declare the overrun in the Line, with the reason: `count 4/3 -> 5/3 on this explicitly
   requested source delivery, no reset`.
 - Name the pivot card and its comment id when the line is at 3/3
-  (`docs/labs/starling-pivot-2026-10-11/README.md` is the pattern).
+  (`archive/labs/starling-pivot-2026-10-11/README.md` is the pattern).
 - Say what the delivery is not permission for (another preparation loop, automatic
   compute, a mechanism closure).
 - Putting the pivot in the body is what clears `prlint.pivot_at_three`; do not reword the

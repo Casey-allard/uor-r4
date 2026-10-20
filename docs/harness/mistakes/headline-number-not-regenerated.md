@@ -9,7 +9,7 @@ paths: [.github/pull_request_template.md, docs/labs/**, docs/integration/current
 milestones: [m1, m2, m3, m4]
 mechanism:
 guard: prlint.headline_vs_registry
-evidence: [docs/labs/session-goal.md, docs/labs/lab-pivot-2026-10-09/README.md, docs/integration/current-state.md]
+evidence: [docs/labs/session-goal.md, archive/labs/lab-pivot-2026-10-09/README.md, docs/integration/current-state.md]
 status: active
 ---
 

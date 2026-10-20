@@ -1,5 +1,8 @@
 # Kimi Code workspace for UOR-R4
 
+> **Superseded on 19 October 2026 by [`CHARTER.md`](../CHARTER.md).** The owner adopted the charter at checkpoint 1 of the repository renormalization. Where this page conflicts with it, the charter wins. This page is kept for the harness and for history.
+
+
 **Current entry:** [docs/labs](../docs/labs/README.md) and the
 [joining goal](../docs/labs/prompts/join.md) supersede the dated leadership and
 one-milestone stopping workflow below. A returning Kimi session declares its

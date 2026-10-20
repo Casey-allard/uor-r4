@@ -9,7 +9,7 @@ paths: [docs/integration/DECISIONS.md, docs/labs/**, docs/integration/current-st
 milestones: [m1, m2, m4]
 mechanism: none
 guard: prlint.pivot_at_three
-evidence: [docs/labs/lab-pivot-2026-10-09/README.md, docs/labs/no-cpu-gpu-only-2026-10-12/README.md, docs/integration/current-state.md]
+evidence: [archive/labs/lab-pivot-2026-10-09/README.md, archive/labs/no-cpu-gpu-only-2026-10-12/README.md, docs/integration/current-state.md]
 status: active
 ---
 

@@ -5,11 +5,11 @@ date: 2026-10-12
 severity: block
 class: measurement
 trigger: [seed lottery, only 1/3 seeds learned, seeds flipped, variance, single seed, seed 2 learned, escape step]
-paths: [docs/labs/**, docs/harness/milestones.json, docs/integration/agent-execution-policy.md]
+paths: [docs/labs/**, docs/harness/milestones.json, archive/integration/agent-execution-policy.md]
 milestones: [m4]
 mechanism: starling-read
 guard: none: a person must judge whether a published number is inside its own seed spread; the panel's noise field is the witness
-evidence: [docs/labs/starling-bootstrap-2026-10-12/README.md, docs/labs/starling-read-2026-10-11/README.md, docs/labs/read-binding-margin-2026-10-11/README.md]
+evidence: [archive/labs/starling-bootstrap-2026-10-12/README.md, archive/labs/starling-read-2026-10-11/README.md, archive/labs/read-binding-margin-2026-10-11/README.md]
 status: active
 ---
 

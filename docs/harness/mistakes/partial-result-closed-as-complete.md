@@ -9,7 +9,7 @@ paths: [.github/pull_request_template.md, CONTRIBUTING.md, docs/labs/**, docs/in
 milestones: [m1, m2, m3, m4]
 mechanism:
 guard: prlint.org_rules
-evidence: [docs/labs/d22-constructor-2026-10-10/README.md, docs/labs/whole-path-implementation-2026-10-12/README.md, docs/integration/current-state.md]
+evidence: [archive/labs/d22-constructor-2026-10-10/README.md, archive/labs/whole-path-implementation-2026-10-12/README.md, docs/integration/current-state.md]
 status: active
 ---
 

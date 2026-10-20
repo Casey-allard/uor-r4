@@ -36,7 +36,7 @@ One evaluated configuration. `docs/harness/arena.json`:
   "scope": "same recipe as the parent; wrong-value failures on the 120-row set",
   "scores": {"wrong_value_failures": 34, "memory": 20},
   "notes": "-90% per-token compute on that layer, but +36.9M params and a 20x training wall",
-  "record": "docs/labs/addressed-read-2026-10-11/README.md"
+  "record": "archive/labs/addressed-read-2026-10-11/README.md"
 }
 ```
 

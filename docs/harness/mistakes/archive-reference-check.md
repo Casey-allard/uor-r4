@@ -9,7 +9,7 @@ paths: [research/**, docs/harness/research-data.json, scripts/storage/**, docs/l
 milestones: [m1, m2, m3, m4]
 mechanism: ""
 guard: none: proving no recipe depends on a path needs a scan of every retained run, which the harness does not index yet
-evidence: [docs/labs/working-in-one-checkout.md, docs/harness/research-data.json, docs/history/branch-archive/INDEX.md]
+evidence: [docs/labs/working-in-one-checkout.md, docs/harness/research-data.json, archive/history/branch-archive/INDEX.md]
 status: active
 ---
 

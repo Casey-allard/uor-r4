@@ -9,7 +9,7 @@ paths: [docs/harness/**, docs/labs/protocol.md]
 milestones: [m1, m2, m3, m4, m5, m6, m7, m8]
 mechanism: ""
 guard: none: a negative finding has nothing to intercept; the check is "does a coordination mesh exist", which the search below settles
-evidence: [docs/labs/multilab-harness-2026-10-12/README.md, docs/labs/protocol.md]
+evidence: [archive/labs/multilab-harness-2026-10-12/README.md, docs/labs/protocol.md]
 status: active
 ---
 

@@ -9,7 +9,7 @@ paths: [crates/uor-r4-core/src/native_geometric/**, docs/labs/**, docs/mechanism
 milestones: [m1, m3]
 mechanism: read-binding
 guard: none: the qualifier lives on the artifact, not in a file the engine can read; the acceptance panel and the record carry it
-evidence: [docs/labs/pointer-selected-ids-decode-2026-10-09/README.md, docs/labs/pcopy-mass-read-2026-10-09/README.md, docs/mechanisms/read-binding.md]
+evidence: [archive/labs/pointer-selected-ids-decode-2026-10-09/README.md, archive/labs/pcopy-mass-read-2026-10-09/README.md, docs/mechanisms/read-binding.md]
 status: active
 ---
 

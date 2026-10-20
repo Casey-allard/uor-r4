@@ -9,7 +9,7 @@ paths: [crates/**, docs/labs/**, docs/integration/DECISIONS.md]
 milestones: [m1, m4]
 mechanism: starling-read
 guard: prlint.no_cpu_model_compute
-evidence: [docs/labs/softmax-free-read-2026-10-10/README.md, docs/labs/no-cpu-gpu-only-2026-10-12/README.md, docs/integration/DECISIONS.md]
+evidence: [archive/labs/softmax-free-read-2026-10-10/README.md, archive/labs/no-cpu-gpu-only-2026-10-12/README.md, docs/integration/DECISIONS.md]
 status: active
 ---
 

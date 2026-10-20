@@ -9,7 +9,7 @@ paths: [docs/labs/**, docs/mechanisms/exact-addressed-memory.md, docs/integratio
 milestones: [m1]
 mechanism: exact-addressed-memory
 guard: none: a control's absence is a design decision made before compute; the pre-registration sheet is where it is caught
-evidence: [docs/labs/addressed-memory-2026-10-10/README.md, docs/labs/mixture-dose-2026-10-10/README.md, docs/labs/ptr-addr-2026-10-10/README.md]
+evidence: [archive/labs/addressed-memory-2026-10-10/README.md, archive/labs/mixture-dose-2026-10-10/README.md, archive/labs/ptr-addr-2026-10-10/README.md]
 status: active
 ---
 

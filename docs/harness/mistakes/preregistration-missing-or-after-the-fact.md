@@ -5,11 +5,11 @@ date: 2026-10-10
 severity: block
 class: compute
 trigger: [pre-registration, TEST FITNESS, NOT FIT, fit review, bar, free the GPU, before compute, cycle-8]
-paths: [docs/mechanisms/**, docs/labs/**, docs/harness/milestones.json, docs/integration/agent-execution-policy.md, scripts/harness/*.py]
+paths: [docs/mechanisms/**, docs/labs/**, docs/harness/milestones.json, archive/integration/agent-execution-policy.md, scripts/harness/*.py]
 milestones: [m1, m2, m4]
 mechanism:
 guard: prlint.prereg_before_compute
-evidence: [docs/labs/operator-phase-2026-10-12/README.md, docs/labs/margin-objective-2026-10-12/README.md, docs/mechanisms/README.md]
+evidence: [archive/labs/operator-phase-2026-10-12/README.md, archive/labs/margin-objective-2026-10-12/README.md, docs/mechanisms/README.md]
 status: active
 ---
 

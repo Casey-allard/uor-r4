@@ -121,3 +121,31 @@ The owner approved the move map at checkpoint 1. The run used the rehearsed scri
 - Compile and test results are in the PR evidence.
 
 **Running an archived script.** Check out `pre-renorm-2026-10-19` to run any archived script with its original `docs/…` paths.
+
+## Charter adoption (fourth unit)
+
+The owner (Casey) adopted the charter at checkpoint 1 on 19 October 2026, with these eight answers:
+
+| # | Answer |
+|---|---|
+| Q1 | D24 covers research compute; on-device D11 serving is the product. |
+| Q2 | A FIT pre-registration is needed only for GPU training or evaluation and for runs that milestone claims rest on. |
+| Q3 | One typed release per sheet. |
+| Q4 | One notebook per research line. |
+| Q5 | Owner plus one PM seat; the council is retired. |
+| Q6 | The M1 bar becomes "beat both count tables on two seeds, with tokens/s". |
+| Q7 | Lean harness. |
+| Q8 | The legacy crates are repaired, not archived. |
+
+Process: the draft was revised with the answers, then reviewed in a fresh context against all 258 inventoried rules. That review found three major and six minor issues, all fixed, including restoring the matmul ban's "anywhere" scope and D30's pod nvcc builds.
+
+This unit lands:
+- `CHARTER.md`;
+- a 67-line `AGENTS.md`;
+- `docs/integration/DECISIONS.md` as an index that keeps all 44 original headings, so every `#dNN` anchor still resolves, and adds D42;
+- `docs/rules/` (a plain-language guide, the D0–D42 → charter map, and a change log);
+- the first research notebooks, `docs/research/notebook/`;
+- a rewritten `CONTRIBUTING.md`;
+- "superseded" banners on `session-goal.md`, `protocol.md`, `.kimi-code`, `.codex-lab` and the `.agents` skill.
+
+The previous `AGENTS.md`, `DECISIONS.md` and `CONTRIBUTING.md` are archived byte-identical under `archive/governance/` and `archive/integration/DECISIONS-2026-10-19.md`. The harness gate changes for the notebook cadence land in their own PR.

@@ -9,7 +9,7 @@ paths: [docs/labs/**, scripts/pod/**, docs/labs/compute.md, docs/labs/*/README.m
 milestones: [m1, m4]
 mechanism: exact-addressed-memory
 guard: none: verifying a pod's binary is a run-time act; the record is the only witness
-evidence: [docs/labs/fused-memory-kernel-2026-10-11/README.md, docs/labs/context-curve-2026-10-11/README.md]
+evidence: [archive/labs/fused-memory-kernel-2026-10-11/README.md, archive/labs/context-curve-2026-10-11/README.md]
 status: active
 ---
 
@@ -46,7 +46,7 @@ neither compiles the CUDA feature.
 - Compile the feature you are measuring (`--features cuda`) at the exact head, or state
   plainly that it was not compiled.
 - If the ref turns out to be wrong, retract the number at the top of the record rather
-  than editing it away - `docs/labs/fused-memory-kernel-2026-10-11/README.md` is the
+  than editing it away - `archive/labs/fused-memory-kernel-2026-10-11/README.md` is the
   pattern to copy.
 - Every rate comparison names the artifact, the ref, the configuration and the
   comparison, including the codebook size that this retracted 12x actually measured.

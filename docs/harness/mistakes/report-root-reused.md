@@ -5,11 +5,11 @@ date: 2026-09-07
 severity: block
 class: evidence
 trigger: [report root, report_output, sealed attempt, retry, claim, derived inputs, verify]
-paths: [crates/uor-r4-core/src/**, docs/integration/handoff-2026-09-07.md, docs/mechanisms/**]
+paths: [crates/uor-r4-core/src/**, archive/integration/handoff-2026-09-07.md, docs/mechanisms/**]
 milestones: [m1, m2]
 mechanism:
 guard: none: an exclusive claim cannot be checked from the record's text after the fact; the tool's refusal is the check
-evidence: [docs/integration/handoff-2026-09-07.md, docs/mechanisms/README.md, AGENTS.md]
+evidence: [archive/integration/handoff-2026-09-07.md, docs/mechanisms/README.md, AGENTS.md]
 status: active
 ---
 

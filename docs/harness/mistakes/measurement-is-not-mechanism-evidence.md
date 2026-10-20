@@ -9,7 +9,7 @@ paths: [docs/labs/**, docs/mechanisms/**, docs/integration/current-state.md]
 milestones: [m1, m4]
 mechanism: exact-addressed-memory
 guard: none: a human must judge whether a reading tested the mechanism; the panel and the record are the check
-evidence: [docs/labs/vsa-review-2026-10-09/README.md, docs/labs/read-binding-margin-2026-10-11/README.md, docs/labs/pcopy-mass-read-2026-10-09/README.md]
+evidence: [archive/labs/vsa-review-2026-10-09/README.md, archive/labs/read-binding-margin-2026-10-11/README.md, archive/labs/pcopy-mass-read-2026-10-09/README.md]
 status: active
 ---
 

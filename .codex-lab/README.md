@@ -1,5 +1,8 @@
 # Fourth research lab — UOR-R4 Geometric Language Model
 
+> **Superseded on 19 October 2026 by [`CHARTER.md`](../CHARTER.md).** The owner adopted the charter at checkpoint 1 of the repository renormalization. Where this page conflicts with it, the charter wins. This page is kept for the harness and for history.
+
+
 > **October 1 reauthorization:** the owner's current request returns Codex for
 > [grounded-model integration and roadmap delivery](../docs/integration/project-track.md)
 > alongside Claude and OpenCode–DeepSeek. Use board #1515, current D19, and live

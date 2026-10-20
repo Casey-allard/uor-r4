@@ -9,7 +9,7 @@ paths: [docs/integration/DECISIONS.md, docs/labs/**, docs/integration/current-st
 milestones: [m2, m3]
 mechanism: protected-legal-construction
 guard: prlint.prereg_before_compute
-evidence: [docs/integration/DECISIONS.md, docs/labs/d22-constructor-2026-10-10/README.md, docs/labs/whole-path-implementation-2026-10-12/README.md]
+evidence: [docs/integration/DECISIONS.md, archive/labs/d22-constructor-2026-10-10/README.md, archive/labs/whole-path-implementation-2026-10-12/README.md]
 status: active
 ---
 

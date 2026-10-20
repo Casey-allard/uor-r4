@@ -9,7 +9,7 @@ paths: [docs/mechanisms/**, docs/harness/prep/**, docs/labs/**, crates/uor-r4-tr
 milestones: [m1, m4]
 mechanism: starling-read
 guard: prep.no_prohibited_teacher
-evidence: [docs/labs/starling-surrogate-2026-10-12/README.md, docs/labs/starling-readout-2026-10-12/README.md, docs/labs/softmax-census-2026-10-12/README.md, docs/labs/starling-bootstrap-2026-10-12/README.md]
+evidence: [archive/labs/starling-surrogate-2026-10-12/README.md, archive/labs/starling-readout-2026-10-12/README.md, archive/labs/softmax-census-2026-10-12/README.md, archive/labs/starling-bootstrap-2026-10-12/README.md]
 status: active
 ---
 

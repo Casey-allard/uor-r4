@@ -1,3 +1,18 @@
+## 2026-10-19 — Charter adopted: CHARTER.md replaces the stacked AGENTS.md directions and D0–D41 (claude)
+
+The owner adopted the charter at checkpoint 1, with eight answers recorded as D42 in the `DECISIONS.md` index. In short:
+- research compute stays on the GPU, while on-device D11 serving is the product;
+- pre-registration is needed only for GPU runs and milestone claims;
+- one release per sheet;
+- one notebook per research line;
+- the owner plus one PM seat;
+- the M1 bar becomes "beat both count tables";
+- a lean harness;
+- the legacy crates are repaired, not archived.
+
+New: `CHARTER.md`, a short `AGENTS.md`, `docs/rules/` and `docs/research/notebook/`. `DECISIONS.md` is now an index that keeps every anchor; the originals are archived byte-identical. [Record](../labs/repo-renormalization-2026-10-19/README.md).
+**Next:** the harness gate PR for the notebook cadence, then the illustrated documentation.
+
 ## 2026-10-19 — Docs cutover: dated records moved byte-identical into `archive/` (claude)
 
 This is the owner-approved move. 8,710 files moved from `docs/X` to `archive/X` at equal depth, all as `R100` renames:

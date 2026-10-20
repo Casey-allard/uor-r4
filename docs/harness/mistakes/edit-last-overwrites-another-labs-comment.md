@@ -9,7 +9,7 @@ paths: [docs/harness/**, scripts/harness/**, crates/uor-r4-harness/src/notes.rs]
 milestones: [m1]
 mechanism: ""
 guard: none: no check rule can intercept a direct `gh` call, and the harness had NO command that edits a comment - so `gh` was the only path and `--edit-last` was one flag away. The guard is `uor-harness comment edit --id <id> --body-file <f>`, which has no notion of "last", plus this lesson, which `mistakes find` surfaces when a lab touches the harness.
-evidence: [docs/labs/comment-guard-2026-10-14/README.md]
+evidence: [archive/labs/comment-guard-2026-10-14/README.md]
 status: active
 ---
 

@@ -9,7 +9,7 @@ paths: [docs/harness/prep/**, docs/mechanisms/**, docs/labs/**]
 milestones: [m1, m2, m3, m4]
 mechanism: ""
 guard: prep.no_prohibited_teacher
-evidence: [docs/labs/lab-pivot-2026-10-09/README.md, docs/labs/no-cpu-gpu-only-2026-10-12/README.md, docs/mechanisms/README.md]
+evidence: [archive/labs/lab-pivot-2026-10-09/README.md, archive/labs/no-cpu-gpu-only-2026-10-12/README.md, docs/mechanisms/README.md]
 status: active
 ---
 

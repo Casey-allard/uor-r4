@@ -1,5 +1,8 @@
 # Session goal for a lab
 
+> **Superseded on 19 October 2026 by [`CHARTER.md`](../../CHARTER.md).** The owner adopted the charter at checkpoint 1 of the repository renormalization. Where this page conflicts with it, the charter wins. This page is kept for the harness and for history.
+
+
 These are the current start prompts under
 [D25](../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction).
 Kimi is project manager; Casey retains strategic authority. Older prompts are

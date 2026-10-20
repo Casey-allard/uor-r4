@@ -65,9 +65,9 @@ come from the owner through the PM.
 ## R6 — Preservation
 
 - **Rule.** Nothing is deleted. Superseded or unmerged source lands as an indexed patch plus an INDEX
-  row in `docs/history/branch-archive/`; dated records keep their text.
+  row in `archive/history/branch-archive/`; dated records keep their text.
 - **Why.** A deleted artifact cannot be re-examined when a later result depends on it.
-- **Harness surface.** `docs/history/branch-archive/INDEX.md` is the index; preservation itself has no
+- **Harness surface.** `archive/history/branch-archive/INDEX.md` is the index; preservation itself has no
   machine check and is verified in review.
 
 ## R7 — Collision resolution

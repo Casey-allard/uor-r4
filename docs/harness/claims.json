@@ -230,6 +230,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/renorm-charter-20261020": {
+    "branch": "claude/renorm-charter-20261020",
+    "claimed_at": "2026-10-19T22:53:03-04:00",
+    "head": "d7b39d6a9",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/renorm-cutover-20261019": {
     "branch": "claude/renorm-cutover-20261019",
     "claimed_at": "2026-10-19T22:37:16-04:00",

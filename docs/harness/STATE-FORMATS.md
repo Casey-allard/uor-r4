@@ -62,7 +62,7 @@ it deliberately and review it.
 
 1. Change the code and the files together.
 2. Regenerate: the generator lives in the record for the port,
-   [`docs/labs/harness-rust-port-2026-10-13/README.md`](../../labs/harness-rust-port-2026-10-13/README.md).
+   [`archive/labs/harness-rust-port-2026-10-13/README.md`](../../archive/labs/harness-rust-port-2026-10-13/README.md).
 3. Commit the regenerated `state-formats.json` **in the same PR**, so the diff shows exactly what
    changed about the contract.
 4. Run `uor-harness check` and confirm every format passes.
