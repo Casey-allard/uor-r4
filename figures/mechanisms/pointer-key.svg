@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 642" width="960" role="img" aria-labelledby="t d">
+<title id="t">Pointer copy with an exact identity key</title>
+<desc id="d">Three parts. Top: the sentence My locker is 47, then What is my locker, drawn as twelve tokens with an attention bar above each. Measured on one 29 million parameter chat model, the pointer puts 0.92 of its attention (0.9202 and 0.9064 on two rows) on a bare space token in the repeated frame and almost nothing on the digits 4 and 7. Below it, the forced-copy test would put all attention on the two digits; that test was built but never run. Bottom left: two linked dials over three seeds. The pointer hit rate rises from 0.377 to 0.5452 while the memory score stays at 19, 21 and 23 of 40, beside a control of 20 and a bar of 25. Bottom right: of 13 numeric rows, 10 never selected the digit, 2 selected it but did not emit it, and 1 was partial.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.ti { font-size: 19px; font-weight: 600; }
+.h { font-size: 14px; font-weight: 600; }
+.big { font-size: 20px; font-weight: 600; }
+.n { font-size: 12px; fill: var(--muted); }
+.m { fill: var(--muted); }
+.b { font-weight: 600; }
+.c { text-anchor: middle; }
+.r { text-anchor: end; }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.ln { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.rl { stroke: var(--rule); stroke-width: 1; fill: none; }
+.dash { stroke-dasharray: 5 4; }
+.dot { stroke-dasharray: 2 3; }
+.fi { fill: var(--ink); } .fm { fill: var(--muted); } .fb { fill: var(--blue); } .fg { fill: var(--green); }
+.fo { fill: var(--orange); } .fv { fill: var(--verm); } .fp { fill: var(--purple); } .fs { fill: var(--sky); } .fk { fill: var(--pink); }
+.si { stroke: var(--ink); } .sm { stroke: var(--muted); } .sb { stroke: var(--blue); } .sg { stroke: var(--green); }
+.so { stroke: var(--orange); } .sv { stroke: var(--verm); } .sp { stroke: var(--purple); } .ss { stroke: var(--sky); }
+.w2 { stroke-width: 2; } .w15 { stroke-width: 1.5; } .w1 { stroke-width: 1; } .nf { fill: none; }
+.sk { stroke: var(--pink); } .sbd { stroke: var(--body); } .sr { stroke: var(--rule); }
+.t { fill: var(--body); } .bs { font-size: 13px; font-weight: 600; } .s11 { font-size: 11.5px; } .l { text-anchor: start; }
+.o3 { opacity: 0.3; } .o5 { opacity: 0.5; } .o7 { opacity: 0.7; } .fr { fill: var(--rule); } .fpn { fill: var(--panel); } .fbg { fill: var(--bg); }
+.st { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; } .stP { fill: var(--parked); } .stR { fill: var(--ready); }
+.chipP { fill: var(--bg); stroke: var(--parked); stroke-width: 1.8; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.chipR { fill: var(--bg); stroke: var(--ready); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.w3 { stroke-width: 3; } .w25 { stroke-width: 2.5; } .w05 { stroke-width: 0.6; } .rnd { stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<defs>
+<marker id="a-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+<marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<marker id="a-verm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+<marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fo"/></marker>
+<marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fg"/></marker>
+<marker id="a-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fk"/></marker>
+<marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fp"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="642"/>
+<text class="ti" x="16" y="32">Pointer copy: the key found the source, the answers did not follow</text>
+<rect class="panel" x="16" y="48" width="928" height="332" rx="8"/>
+<text class="h" x="30" y="72">1  Where the pointer looks</text>
+<text class="b" x="36" y="98">Measured: attention on each token</text><text class="n" x="262" y="98">one 29M-parameter chat model, 13 numeric rows</text>
+<line class="rl" x1="36" y1="190" x2="654" y2="190"/>
+<rect class="cell" x="36" y="194" width="46" height="24" rx="4"/><text class="n c" x="59" y="211">My</text>
+<rect class="fm" x="50" y="187" width="18" height="3"/>
+<rect class="cell" x="88" y="194" width="46" height="24" rx="4"/><text class="n c" x="111" y="211">locker</text>
+<rect class="fm" x="102" y="187" width="18" height="3"/>
+<rect class="cell" x="140" y="194" width="46" height="24" rx="4"/><text class="n c" x="163" y="211">is</text>
+<rect class="fm" x="154" y="187" width="18" height="3"/>
+<rect class="cell" x="192" y="194" width="46" height="24" rx="4"/><text class="n c" x="215" y="211">space</text>
+<rect class="fv" x="206" y="129" width="18" height="61"/><text class="b c fv" x="215" y="123">0.92</text>
+<rect class="cell sg w2" x="244" y="194" width="46" height="24" rx="4"/><text class="n c" x="267" y="211">4</text>
+<rect class="fm" x="258" y="187" width="18" height="3"/>
+<rect class="cell sg w2" x="296" y="194" width="46" height="24" rx="4"/><text class="n c" x="319" y="211">7</text>
+<rect class="fm" x="310" y="187" width="18" height="3"/>
+<rect class="cell" x="348" y="194" width="46" height="24" rx="4"/><text class="n c" x="371" y="211">...</text>
+<rect class="fm" x="362" y="187" width="18" height="3"/>
+<rect class="cell" x="400" y="194" width="46" height="24" rx="4"/><text class="n c" x="423" y="211">What</text>
+<rect class="fm" x="414" y="187" width="18" height="3"/>
+<rect class="cell" x="452" y="194" width="46" height="24" rx="4"/><text class="n c" x="475" y="211">is</text>
+<rect class="fm" x="466" y="187" width="18" height="3"/>
+<rect class="cell" x="504" y="194" width="46" height="24" rx="4"/><text class="n c" x="527" y="211">my</text>
+<rect class="fm" x="518" y="187" width="18" height="3"/>
+<rect class="cell" x="556" y="194" width="46" height="24" rx="4"/><text class="n c" x="579" y="211">locker</text>
+<rect class="fm" x="570" y="187" width="18" height="3"/>
+<rect class="cell" x="608" y="194" width="46" height="24" rx="4"/><text class="n c" x="631" y="211">?</text>
+<rect class="fm" x="622" y="187" width="18" height="3"/>
+<path class="nf sm w1" d="M36 228V232H238V228"/><text class="n c" x="137" y="246">repeated sentence frame</text>
+<path class="nf sg w1" d="M244 228V232H342V228"/><text class="n c" x="293" y="246">the value</text>
+<path class="nf sm w1" d="M400 228V232H654V228"/><text class="n c" x="527" y="246">the question</text>
+<text class="b" x="668" y="130">Looks at the frame, not the value</text>
+<text class="n" x="668" y="150">Attention 0.9202 and 0.9064 on a bare</text><text class="n" x="668" y="166">space token in the repeated frame.</text>
+<text class="n" x="668" y="188">Digits 4 and 7: almost nothing.</text>
+<text class="n" x="668" y="204">Second digit selected on 0 of 13 rows,</text><text class="n" x="668" y="220">first digit on 3 of 13.</text>
+<line class="rl" x1="30" y1="260" x2="930" y2="260"/>
+<text class="b" x="36" y="282">Forced-copy oracle: all attention forced onto the two digits</text>
+<rect class="nf sm dash w1" x="476" y="266" width="86" height="22" rx="11"/><text class="n b c" x="519" y="281">NEVER RUN</text>
+<line class="rl" x1="36" y1="332" x2="654" y2="332"/>
+<rect class="cell" x="36" y="336" width="46" height="24" rx="4"/><text class="n c" x="59" y="353">My</text>
+<rect class="fm" x="50" y="329" width="18" height="3"/>
+<rect class="cell" x="88" y="336" width="46" height="24" rx="4"/><text class="n c" x="111" y="353">locker</text>
+<rect class="fm" x="102" y="329" width="18" height="3"/>
+<rect class="cell" x="140" y="336" width="46" height="24" rx="4"/><text class="n c" x="163" y="353">is</text>
+<rect class="fm" x="154" y="329" width="18" height="3"/>
+<rect class="cell" x="192" y="336" width="46" height="24" rx="4"/><text class="n c" x="215" y="353">space</text>
+<rect class="fm" x="206" y="329" width="18" height="3"/>
+<rect class="cell sg w2" x="244" y="336" width="46" height="24" rx="4"/><text class="n c" x="267" y="353">4</text>
+<rect class="nf sg dash w2" x="258" y="299" width="18" height="33"/>
+<rect class="cell sg w2" x="296" y="336" width="46" height="24" rx="4"/><text class="n c" x="319" y="353">7</text>
+<rect class="nf sg dash w2" x="310" y="299" width="18" height="33"/>
+<rect class="cell" x="348" y="336" width="46" height="24" rx="4"/><text class="n c" x="371" y="353">...</text>
+<rect class="fm" x="362" y="329" width="18" height="3"/>
+<rect class="cell" x="400" y="336" width="46" height="24" rx="4"/><text class="n c" x="423" y="353">What</text>
+<rect class="fm" x="414" y="329" width="18" height="3"/>
+<rect class="cell" x="452" y="336" width="46" height="24" rx="4"/><text class="n c" x="475" y="353">is</text>
+<rect class="fm" x="466" y="329" width="18" height="3"/>
+<rect class="cell" x="504" y="336" width="46" height="24" rx="4"/><text class="n c" x="527" y="353">my</text>
+<rect class="fm" x="518" y="329" width="18" height="3"/>
+<rect class="cell" x="556" y="336" width="46" height="24" rx="4"/><text class="n c" x="579" y="353">locker</text>
+<rect class="fm" x="570" y="329" width="18" height="3"/>
+<rect class="cell" x="608" y="336" width="46" height="24" rx="4"/><text class="n c" x="631" y="353">?</text>
+<rect class="fm" x="622" y="329" width="18" height="3"/>
+<text class="n" x="668" y="304">Instrument built and unit-tested; the run</text><text class="n" x="668" y="320">on the bound model was not done. Bars</text><text class="n" x="668" y="336">show where attention would sit: uniform</text><text class="n" x="668" y="352">over the supplied answer span.</text>
+<text class="n" x="36" y="372">Token split and small bars are illustrative; 0.92, the near-zero digits and the 13-row counts are from the record.</text>
+<rect class="panel" x="16" y="392" width="452" height="214" rx="8"/>
+<text class="h" x="30" y="416">2  Two linked dials, three seeds</text>
+<text class="b" x="36" y="440">Pointer hit rate: rises</text>
+<rect class="cell" x="36" y="460" width="400" height="12"/>
+<rect class="fb" x="186.8" y="460" width="67.3" height="12"/>
+<circle class="cell sb w2" cx="186.8" cy="466" r="6"/><circle class="fb" cx="254.1" cy="466" r="6"/>
+<text class="n b r" x="176" y="470">0.377</text><text class="n b" x="266" y="470">0.5452</text>
+<text class="n c" x="36" y="490">0</text><text class="n c" x="236" y="490">0.5</text><text class="n c" x="436" y="490">1</text>
+<text class="b" x="36" y="516">Memory score, rows right of 40: flat</text>
+<rect class="cell" x="36" y="544" width="400" height="12"/>
+<line class="sg dash w2" x1="286" y1="536" x2="286" y2="564"/><text class="n b" x="292" y="540">bar: 25</text>
+<line class="si w2" x1="236" y1="536" x2="236" y2="564"/><text class="n b r" x="230" y="540">control: 20</text>
+<circle class="fb" cx="226" cy="550" r="6"/><text class="n c b" x="226" y="578">19</text>
+<circle class="fb" cx="246" cy="550" r="6"/><text class="n c b" x="246" y="578">21</text>
+<circle class="fb" cx="266" cy="550" r="6"/><text class="n c b" x="266" y="578">23</text>
+<text class="n c" x="36" y="596">0</text><text class="n c" x="236" y="596">20</text><text class="n c" x="436" y="596">40</text>
+<text class="n" x="296" y="580">all seeds below the bar</text>
+<rect class="panel" x="480" y="392" width="464" height="214" rx="8"/>
+<text class="h" x="494" y="416">3  Reader or emitter? 13 numeric rows</text>
+<rect class="fv" x="500" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="513" y="454">R</text>
+<rect class="fv" x="530" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="543" y="454">R</text>
+<rect class="fv" x="560" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="573" y="454">R</text>
+<rect class="fv" x="590" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="603" y="454">R</text>
+<rect class="fv" x="620" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="633" y="454">R</text>
+<rect class="fv" x="650" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="663" y="454">R</text>
+<rect class="fv" x="680" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="693" y="454">R</text>
+<rect class="fv" x="710" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="723" y="454">R</text>
+<rect class="fv" x="740" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="753" y="454">R</text>
+<rect class="fv" x="770" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="783" y="454">R</text>
+<rect class="fb" x="800" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="813" y="454">E</text>
+<rect class="fb" x="830" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="843" y="454">E</text>
+<rect class="fo" x="860" y="436" width="26" height="26" rx="4"/><text class="b c fbg" x="873" y="454">P</text>
+<rect class="fv" x="500" y="478" width="26" height="26" rx="4"/><text class="b c fbg" x="513" y="496">R</text><text class="t" x="538" y="496">10 rows: the digit was never selected (reader fault)</text>
+<rect class="fb" x="500" y="508" width="26" height="26" rx="4"/><text class="b c fbg" x="513" y="526">E</text><text class="t" x="538" y="526">2 rows: selected but not emitted (emitter fault)</text>
+<rect class="fo" x="500" y="538" width="26" height="26" rx="4"/><text class="b c fbg" x="513" y="556">P</text><text class="t" x="538" y="556">1 row: partial</text>
+<text class="n" x="500" y="582">The pointer branch carries about 6% of the output</text><text class="n" x="500" y="597">mixture (the record's reading).</text>
+<text class="n" x="16" y="630">The key found the source more often, but the memory score did not follow. Status: parked. All forms tested use a softmax pointer.</text>
+</svg>

@@ -1,0 +1,286 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 760" width="960" role="img" aria-labelledby="t d">
+<title id="t">Spin-native weights</title>
+<desc id="d">Three parts. Left: a sphere carrying 120 icosian directions as dots, drawn schematically. A trained quaternion is an arrow; snapping it to the nearest icosian leaves a mean direction error of 14.75 degrees, and adding a second residual icosian at a quarter of the size pulls the result to within 4.73 degrees. Middle: the 120 by 120 product table as a grid; picking a weight icosian and an input icosian lights one cell that reads out the product icosian, followed by a shift and at most two adds. This part is described in the records but the kernel was never built. Bottom: held-out bits per byte, lower is better: dense width 256 1.4078, quaternion width 256 1.4959, dense width 152 with equal parameters 1.5136, icosian pair with a 2-bit mantissa 1.5148, with snapped activations 1.5343, dense width 128 1.5520, and a single trained icosian snap 1.6344. The equal-parameter pair 1.5136 and 1.5148 are level within noise.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.ti { font-size: 19px; font-weight: 600; }
+.h { font-size: 14px; font-weight: 600; }
+.big { font-size: 20px; font-weight: 600; }
+.n { font-size: 12px; fill: var(--muted); }
+.m { fill: var(--muted); }
+.b { font-weight: 600; }
+.c { text-anchor: middle; }
+.r { text-anchor: end; }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.ln { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.rl { stroke: var(--rule); stroke-width: 1; fill: none; }
+.dash { stroke-dasharray: 5 4; }
+.dot { stroke-dasharray: 2 3; }
+.fi { fill: var(--ink); } .fm { fill: var(--muted); } .fb { fill: var(--blue); } .fg { fill: var(--green); }
+.fo { fill: var(--orange); } .fv { fill: var(--verm); } .fp { fill: var(--purple); } .fs { fill: var(--sky); } .fk { fill: var(--pink); }
+.si { stroke: var(--ink); } .sm { stroke: var(--muted); } .sb { stroke: var(--blue); } .sg { stroke: var(--green); }
+.so { stroke: var(--orange); } .sv { stroke: var(--verm); } .sp { stroke: var(--purple); } .ss { stroke: var(--sky); }
+.w2 { stroke-width: 2; } .w15 { stroke-width: 1.5; } .w1 { stroke-width: 1; } .nf { fill: none; }
+.sk { stroke: var(--pink); } .sbd { stroke: var(--body); } .sr { stroke: var(--rule); }
+.t { fill: var(--body); } .bs { font-size: 13px; font-weight: 600; } .s11 { font-size: 11.5px; } .l { text-anchor: start; }
+.o3 { opacity: 0.3; } .o5 { opacity: 0.5; } .o7 { opacity: 0.7; } .fr { fill: var(--rule); } .fpn { fill: var(--panel); } .fbg { fill: var(--bg); }
+.st { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; } .stP { fill: var(--parked); } .stR { fill: var(--ready); }
+.chipP { fill: var(--bg); stroke: var(--parked); stroke-width: 1.8; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.chipR { fill: var(--bg); stroke: var(--ready); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.w3 { stroke-width: 3; } .w25 { stroke-width: 2.5; } .w05 { stroke-width: 0.6; } .rnd { stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<defs>
+<marker id="a-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+<marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<marker id="a-verm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+<marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fo"/></marker>
+<marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fg"/></marker>
+<marker id="a-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fk"/></marker>
+<marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fp"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="760"/>
+<text class="ti" x="16" y="32">Spin-native weights: round to one of 120 rotations, correct once, read a table</text>
+<rect class="panel" x="16" y="48" width="450" height="332" rx="8"/>
+<text class="h" x="30" y="72">1  Snap a quaternion to a rotation, then correct it</text>
+<circle class="nf sm w15" cx="130" cy="215" r="76"/><ellipse class="nf sm w1" cx="130" cy="215" rx="76" ry="36"/>
+<circle class="fb" cx="139.8" cy="250.4" r="2.4"/>
+<circle class="fb" cx="117.5" cy="239.7" r="2.4"/>
+<circle class="fb" cx="131.9" cy="268.3" r="2.4"/>
+<circle class="fb" cx="145.6" cy="230.7" r="2.4"/>
+<circle class="fb" cx="101.6" cy="252.4" r="2.4"/>
+<circle class="fb" cx="156.8" cy="262.5" r="2.4"/>
+<circle class="fb" cx="121.1" cy="217.5" r="2.4"/>
+<circle class="fb" cx="113.0" cy="275.1" r="2.4"/>
+<circle class="fb" cx="166.6" cy="233.8" r="2.4"/>
+<circle class="fb" cx="92.1" cy="231.2" r="2.4"/>
+<circle class="fb" cx="148.2" cy="278.8" r="2.4"/>
+<circle class="fb" cx="143.4" cy="206.1" r="2.4"/>
+<circle class="fb" cx="89.8" cy="263.8" r="2.4"/>
+<circle class="fb" cx="176.9" cy="251.8" r="2.4"/>
+<circle class="fb" cx="101.5" cy="206.3" r="2.4"/>
+<circle class="fb" cx="123.4" cy="286.1" r="2.4"/>
+<circle class="fb" cx="170.0" cy="211.1" r="2.4"/>
+<circle class="fb" cx="76.4" cy="238.3" r="2.4"/>
+<circle class="fb" cx="168.9" cy="273.9" r="2.4"/>
+<circle class="fb" cx="127.4" cy="189.6" r="2.4"/>
+<circle class="fb" cx="93.3" cy="277.3" r="2.4"/>
+<circle class="fb" cx="187.8" cy="231.0" r="2.4"/>
+<circle class="fb" cx="81.3" cy="207.4" r="2.4"/>
+<circle class="fb" cx="143.2" cy="288.7" r="2.4"/>
+<circle class="fb" cx="70.8" cy="252.2" r="2.4"/>
+<circle class="fb" cx="187.2" cy="258.3" r="2.4"/>
+<circle class="fb" cx="105.3" cy="182.3" r="2.4"/>
+<circle class="fb" cx="108.1" cy="287.5" r="2.4"/>
+<circle class="fb" cx="187.9" cy="206.3" r="2.4"/>
+<circle class="fb" cx="66.0" cy="217.6" r="2.4"/>
+<circle class="fb" cx="166.2" cy="281.6" r="2.4"/>
+<circle class="fb" cx="141.4" cy="172.6" r="2.4"/>
+<circle class="fb" cx="76.1" cy="267.6" r="2.4"/>
+<circle class="fb" cx="198.6" cy="235.2" r="2.4"/>
+<circle class="fb" cx="82.9" cy="184.6" r="2.4"/>
+<circle class="fm o3" cx="130.3" cy="290.7" r="1.7"/>
+<circle class="fb" cx="177.3" cy="182.3" r="2.4"/>
+<circle class="fb" cx="59.3" cy="233.6" r="2.4"/>
+<circle class="fb" cx="186.9" cy="265.3" r="2.4"/>
+<circle class="fb" cx="117.1" cy="164.2" r="2.4"/>
+<circle class="fm o3" cx="91.5" cy="280.0" r="1.7"/>
+<circle class="fb" cx="200.1" cy="208.4" r="2.4"/>
+<circle class="fb" cx="65.0" cy="195.4" r="2.4"/>
+<circle class="fm o3" cx="155.5" cy="285.0" r="1.7"/>
+<circle class="fb" cx="157.8" cy="163.3" r="2.4"/>
+<circle class="fb" cx="63.1" cy="251.0" r="2.4"/>
+<circle class="fb" cx="201.0" cy="241.8" r="2.4"/>
+<circle class="fb" cx="92.3" cy="165.0" r="2.4"/>
+<circle class="fm o3" cx="114.3" cy="285.8" r="1.7"/>
+<circle class="fb" cx="191.2" cy="182.3" r="2.4"/>
+<circle class="fb" cx="55.3" cy="211.8" r="2.4"/>
+<circle class="fm o3" cx="178.9" cy="270.2" r="1.7"/>
+<circle class="fb" cx="132.8" cy="152.2" r="2.4"/>
+<circle class="fm o3" cx="76.9" cy="265.9" r="1.7"/>
+<circle class="fb" cx="205.7" cy="214.3" r="2.4"/>
+<circle class="fb" cx="71.5" cy="174.4" r="2.4"/>
+<circle class="fm o3" cx="140.5" cy="282.9" r="1.7"/>
+<circle class="fb" cx="173.1" cy="160.6" r="2.4"/>
+<circle class="fm o3" cx="55.9" cy="230.3" r="1.7"/>
+<circle class="fm o3" cx="196.1" cy="247.8" r="1.7"/>
+<circle class="fb" cx="106.6" cy="150.3" r="2.4"/>
+<circle class="fm o3" cx="98.5" cy="274.5" r="1.7"/>
+<circle class="fb" cx="199.8" cy="186.8" r="2.4"/>
+<circle class="fb" cx="58.6" cy="190.0" r="2.4"/>
+<circle class="fm o3" cx="165.5" cy="270.7" r="1.7"/>
+<circle class="fb" cx="148.9" cy="146.5" r="2.4"/>
+<circle class="fm o3" cx="66.8" cy="246.8" r="1.7"/>
+<circle class="fm o3" cx="204.2" cy="220.9" r="1.7"/>
+<circle class="fb" cx="83.8" cy="157.2" r="2.4"/>
+<circle class="fm o3" cx="124.2" cy="274.6" r="1.7"/>
+<circle class="fb" cx="184.5" cy="163.2" r="2.4"/>
+<circle class="fm o3" cx="55.7" cy="208.2" r="1.7"/>
+<circle class="fm o3" cx="185.1" cy="250.7" r="1.7"/>
+<circle class="fb" cx="122.8" cy="141.6" r="2.4"/>
+<circle class="fm o3" cx="85.9" cy="257.6" r="1.7"/>
+<circle class="fm o3" cx="201.8" cy="193.3" r="1.7"/>
+<circle class="fm o3" cx="68.3" cy="170.7" r="1.7"/>
+<circle class="fm o3" cx="149.4" cy="265.5" r="1.7"/>
+<circle class="fb" cx="162.5" cy="146.8" r="2.4"/>
+<circle class="fm o3" cx="63.1" cy="225.0" r="1.7"/>
+<circle class="fm o3" cx="195.8" cy="225.6" r="1.7"/>
+<circle class="fb" cx="99.5" cy="145.5" r="2.4"/>
+<circle class="fm o3" cx="109.7" cy="260.1" r="1.7"/>
+<circle class="fm o3" cx="189.7" cy="169.2" r="1.7"/>
+<circle class="fm o3" cx="62.7" cy="187.4" r="1.7"/>
+<circle class="fm o3" cx="169.8" cy="248.2" r="1.7"/>
+<circle class="fb" cx="138.0" cy="139.4" r="2.4"/>
+<circle class="fm o3" cx="79.3" cy="236.5" r="1.7"/>
+<circle class="fm o3" cx="196.1" cy="199.3" r="1.7"/>
+<circle class="fm o3" cx="83.2" cy="156.5" r="1.7"/>
+<circle class="fm o3" cx="133.6" cy="253.3" r="1.7"/>
+<circle class="fm o3" cx="170.5" cy="152.0" r="1.7"/>
+<circle class="fm o3" cx="67.6" cy="203.0" r="1.7"/>
+<circle class="fm o3" cx="181.4" cy="225.4" r="1.7"/>
+<circle class="fm o3" cx="116.0" cy="141.2" r="1.7"/>
+<circle class="fm o3" cx="100.5" cy="239.8" r="1.7"/>
+<circle class="fm o3" cx="186.3" cy="176.3" r="1.7"/>
+<circle class="fm o3" cx="76.8" cy="171.0" r="1.7"/>
+<circle class="fm o3" cx="152.6" cy="237.9" r="1.7"/>
+<circle class="fm o3" cx="148.5" cy="144.2" r="1.7"/>
+<circle class="fm o3" cx="81.7" cy="213.3" r="1.7"/>
+<circle class="fm o3" cx="182.0" cy="201.4" r="1.7"/>
+<circle class="fm o3" cx="101.3" cy="150.5" r="1.7"/>
+<circle class="fm o3" cx="121.9" cy="233.0" r="1.7"/>
+<circle class="fm o3" cx="168.9" cy="160.8" r="1.7"/>
+<circle class="fm o3" cx="82.1" cy="184.3" r="1.7"/>
+<circle class="fm o3" cx="161.9" cy="216.6" r="1.7"/>
+<circle class="fm o3" cx="129.3" cy="146.7" r="1.7"/>
+<circle class="fm o3" cx="101.5" cy="213.9" r="1.7"/>
+<circle class="fm o3" cx="170.8" cy="181.3" r="1.7"/>
+<circle class="fm o3" cx="98.7" cy="163.8" r="1.7"/>
+<circle class="fm o3" cx="136.9" cy="215.7" r="1.7"/>
+<circle class="fm o3" cx="148.0" cy="157.3" r="1.7"/>
+<circle class="fm o3" cx="99.4" cy="190.3" r="1.7"/>
+<circle class="fm o3" cx="155.8" cy="193.4" r="1.7"/>
+<circle class="fm o3" cx="120.9" cy="160.3" r="1.7"/>
+<circle class="fm o3" cx="122.0" cy="198.6" r="1.7"/>
+<circle class="fm o3" cx="145.2" cy="173.7" r="1.7"/>
+<circle class="fm o3" cx="120.6" cy="177.2" r="1.7"/>
+<circle class="fb si w15" cx="160.5" cy="189.2" r="4.6"/>
+<line class="si w2" x1="130" y1="215" x2="160.4" y2="192.2" marker-end="url(#a-verm)"/>
+<circle class="fi" cx="130" cy="215" r="2.5"/>
+<circle class="nf sv w15" cx="160.4" cy="192.2" r="14"/>
+<text class="n" x="40" y="124">trained quaternion (arrow)</text><line class="sm w1 dot" x1="112" y1="130" x2="150" y2="184"/>
+<text class="n c" x="130" y="306">120 icosian directions (schematic)</text>
+<line class="sv w1 dash" x1="168" y1="181" x2="276" y2="140"/><line class="sv w1 dash" x1="170" y1="204" x2="276" y2="288"/>
+<circle class="cell sr w1" cx="352" cy="214" r="86"/>
+<clipPath id="clip-inset"><circle cx="352" cy="214" r="86"/></clipPath><g clip-path="url(#clip-inset)">
+<circle class="nf sm w1 dot" cx="291.0" cy="191.8" r="61.8"/>
+<circle class="fk" cx="337.4" cy="232.6" r="3"/>
+<circle class="fk" cx="300.4" cy="252.9" r="3"/>
+<circle class="fk" cx="339.2" cy="153.2" r="3"/>
+<circle class="fk" cx="337.4" cy="232.6" r="3"/>
+<circle class="fk" cx="300.4" cy="252.9" r="3"/>
+<circle class="fk" cx="339.2" cy="153.2" r="3"/>
+<circle class="nf sv w15 dash" cx="352" cy="214" r="64.9"/>
+<circle class="nf sg w2" cx="352" cy="214" r="20.8"/>
+<line class="sb w1" x1="291.0" y1="191.8" x2="352" y2="214"/>
+<circle class="fg si w15" cx="352.8" cy="193.2" r="5"/>
+<circle class="fb si w15" cx="291.0" cy="191.8" r="5.5"/>
+<circle class="fbg sv w2" cx="352" cy="214" r="4.5"/>
+<text class="b c fb" x="291.0" y="180.8">g1</text>
+<text class="b c fg" x="352.8" y="183.2">g1 + g2/4</text>
+</g>
+<text class="n c" x="352" y="118">zoom on that quaternion</text>
+<text class="n c fv" x="352" y="306">error 14.75° (dashed), then 4.73°</text>
+<text class="n" x="30" y="334">Mean direction error: 14.75° with one icosian,</text><text class="n" x="30" y="350">4.73° with a residual pair (about 9 times less</text><text class="n" x="30" y="366">error energy). Single snap: mean cosine 0.965.</text>
+<rect class="panel" x="478" y="48" width="466" height="332" rx="8"/>
+<text class="h" x="492" y="72">2  One table read per product</text>
+<rect class="nf sm dash w1" x="736" y="58" width="190" height="22" rx="11"/><text class="n b c" x="831" y="73">KERNEL NEVER BUILT</text>
+<line class="rl" x1="504.0" y1="110" x2="504.0" y2="260"/>
+<line class="rl" x1="504" y1="110.0" x2="654" y2="110.0"/>
+<line class="rl" x1="516.5" y1="110" x2="516.5" y2="260"/>
+<line class="rl" x1="504" y1="122.5" x2="654" y2="122.5"/>
+<line class="rl" x1="529.0" y1="110" x2="529.0" y2="260"/>
+<line class="rl" x1="504" y1="135.0" x2="654" y2="135.0"/>
+<line class="rl" x1="541.5" y1="110" x2="541.5" y2="260"/>
+<line class="rl" x1="504" y1="147.5" x2="654" y2="147.5"/>
+<line class="rl" x1="554.0" y1="110" x2="554.0" y2="260"/>
+<line class="rl" x1="504" y1="160.0" x2="654" y2="160.0"/>
+<line class="rl" x1="566.5" y1="110" x2="566.5" y2="260"/>
+<line class="rl" x1="504" y1="172.5" x2="654" y2="172.5"/>
+<line class="rl" x1="579.0" y1="110" x2="579.0" y2="260"/>
+<line class="rl" x1="504" y1="185.0" x2="654" y2="185.0"/>
+<line class="rl" x1="591.5" y1="110" x2="591.5" y2="260"/>
+<line class="rl" x1="504" y1="197.5" x2="654" y2="197.5"/>
+<line class="rl" x1="604.0" y1="110" x2="604.0" y2="260"/>
+<line class="rl" x1="504" y1="210.0" x2="654" y2="210.0"/>
+<line class="rl" x1="616.5" y1="110" x2="616.5" y2="260"/>
+<line class="rl" x1="504" y1="222.5" x2="654" y2="222.5"/>
+<line class="rl" x1="629.0" y1="110" x2="629.0" y2="260"/>
+<line class="rl" x1="504" y1="235.0" x2="654" y2="235.0"/>
+<line class="rl" x1="641.5" y1="110" x2="641.5" y2="260"/>
+<line class="rl" x1="504" y1="247.5" x2="654" y2="247.5"/>
+<line class="rl" x1="654.0" y1="110" x2="654.0" y2="260"/>
+<line class="rl" x1="504" y1="260.0" x2="654" y2="260.0"/>
+<rect class="nf so w15" x="504" y="110" width="150" height="150"/>
+<text class="n c" x="579" y="102">input icosian j (120)</text><text class="n c" transform="rotate(-90 497 185)" x="497" y="185">weight icosian i (120)</text>
+<line class="sv w1" x1="504" y1="156.3" x2="654" y2="156.3"/><line class="sv w1" x1="606.5" y1="110" x2="606.5" y2="260"/>
+<rect class="fv si w1" x="602.5" y="152.3" width="8" height="8"/>
+<text class="n b fv" x="614" y="150">(i, j)</text>
+<path class="nf sv w15" d="M611 160C640 190 660 175 686 152" marker-end="url(#a-verm)"/>
+<rect class="box dash" x="690" y="110" width="236" height="38" rx="6"/><text class="t" x="702" y="127">read cell (i, j): the product</text><text class="t" x="702" y="142">icosian k, one of the 120</text>
+<path class="nf sm w15" d="M808 148V164" marker-end="url(#a-muted)"/>
+<rect class="box dash" x="690" y="166" width="236" height="26" rx="6"/><text class="t" x="702" y="184">scale by 2^e: one shift</text>
+<path class="nf sm w15" d="M808 192V208" marker-end="url(#a-muted)"/>
+<rect class="box dash" x="690" y="210" width="236" height="50" rx="6"/><text class="t" x="702" y="227">mantissa m in {1, 1.25, 1.5, 1.75}:</text><text class="t" x="702" y="244">one or two adds</text>
+<line class="rl" x1="492" y1="280" x2="930" y2="280"/>
+<text class="tb" x="492" y="300">Exact group table: all 14,400 products matched</text>
+<text class="n" x="492" y="316">120 × 120, in the 2026-09-20 prefix-recovery check.</text>
+<text class="n" x="492" y="338">A kernel that serves block products by table read was never</text><text class="n" x="492" y="354">written, so no speed or energy has been measured.</text>
+<rect class="panel" x="16" y="392" width="928" height="326" rx="8"/>
+<text class="h" x="30" y="416">3  Held-out bits per byte (lower is better)</text>
+<rect class="nf sg w2" x="22" y="496" width="640" height="64" rx="8"/>
+<line class="rl" x1="292" y1="428" x2="292" y2="660"/>
+<text class="t r" x="282" y="448">Dense, width 256</text>
+<rect class="fm" x="292" y="432" width="16.2" height="22"/>
+<text class="tb" x="316.2" y="448">1.4078</text>
+<text class="t r" x="282" y="482">Quaternion, width 256</text>
+<rect class="fb" x="292" y="466" width="199.5" height="22"/>
+<text class="tb" x="499.5" y="482">1.4959</text>
+<text class="t r" x="282" y="516">Dense, width 152 (equal parameters)</text>
+<rect class="fm" x="292" y="500" width="236.3" height="22"/>
+<text class="tb" x="536.3" y="516">1.5136</text>
+<text class="t r" x="282" y="550">Icosian pair, 2-bit mantissa</text>
+<rect class="fg" x="292" y="534" width="238.8" height="22"/>
+<text class="tb" x="538.8" y="550">1.5148</text>
+<text class="t r" x="282" y="584">… and snapped activations</text>
+<rect class="fg o7" x="292" y="568" width="279.3" height="22"/>
+<text class="tb" x="579.3" y="584">1.5343</text>
+<text class="t r" x="282" y="618">Dense, width 128</text>
+<rect class="fm" x="292" y="602" width="316.2" height="22"/>
+<text class="tb" x="616.2" y="618">1.5520</text>
+<text class="t r" x="282" y="652">Single icosian, trained snap</text>
+<rect class="fv" x="292" y="636" width="487.6" height="22"/>
+<text class="tb" x="787.6" y="652">1.6344</text>
+<line class="si w1" x1="292" y1="672" x2="812" y2="672"/>
+<line class="si w1" x1="292.0" y1="672" x2="292.0" y2="677"/><text class="n c" x="292.0" y="692">1.40</text>
+<line class="si w1" x1="396.0" y1="672" x2="396.0" y2="677"/><text class="n c" x="396.0" y="692">1.45</text>
+<line class="si w1" x1="500.0" y1="672" x2="500.0" y2="677"/><text class="n c" x="500.0" y="692">1.50</text>
+<line class="si w1" x1="604.0" y1="672" x2="604.0" y2="677"/><text class="n c" x="604.0" y="692">1.55</text>
+<line class="si w1" x1="708.0" y1="672" x2="708.0" y2="677"/><text class="n c" x="708.0" y="692">1.60</text>
+<line class="si w1" x1="812.0" y1="672" x2="812.0" y2="677"/><text class="n c" x="812.0" y="692">1.65</text>
+<text class="n" x="292" y="710">Axis starts at 1.40, not zero.</text>
+<text class="b" x="676" y="440">Lower is better</text>
+<text class="n" x="676" y="456">Recurrence-heavy stack, width 256,</text><text class="n" x="676" y="471">2,000 steps, 2 to 3 seeds.</text>
+<text class="b" x="676" y="498">Equal-parameter pair (outlined)</text>
+<text class="n" x="676" y="514">1.5136 and 1.5148 are 0.0012 apart,</text><text class="n" x="676" y="529">about one noise unit (noise 0.0012</text><text class="n" x="676" y="544">to 0.0041): level, not better.</text>
+<text class="n" x="676" y="570">At equal width the quaternion model</text><text class="n" x="676" y="585">is 0.088 worse (1.4959 against 1.4078).</text>
+<text class="n" x="16" y="740">Sphere and dot layout are schematic; the angles in the zoom are drawn to the stated ratio. Numbers are from the records. Status: parked.</text>
+</svg>

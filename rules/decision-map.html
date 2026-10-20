@@ -1,0 +1,316 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Where each old decision went - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="../start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="../start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="../start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="../start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="../start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="../start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="../products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="../products/web-client.html"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="../products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="../products/releases-and-artifacts.html"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="../model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="../model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="../model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="../geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="../geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="../geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="../geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="../geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="../geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="../geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="../mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="../mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="../mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="../mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="../mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="../mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="../mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/hopf-observation.html"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="../mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="../mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="../mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="../mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="../mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="../mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="../mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/pointer-key.html"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="../mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="../mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="../mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="../mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="../mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="../mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="../mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="../mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="../mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="../research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="../research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="../research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="../research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="../research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="../research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="../research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="../research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="../research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="../research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="../research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="../research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="../research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="../research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="../rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../rules/decision-map.html" class="active"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="../rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="../CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../formal_vocabulary.html"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="../CONFIGURATION.html"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="../reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="../minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="../RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="../projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="../projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="../projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="../projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="../projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="../projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="where-each-old-decision-went"><a class="header" href="#where-each-old-decision-went">Where each old decision went</a></h1>
+<p>Before 19 October 2026 the project's rules lived in 43 numbered decisions (D0 to D41, including a variant called D0-b) and in a long instruction file. The owner replaced them with one short <a href="../CHARTER.html">charter</a>. This page lists every decision and says what became of it: the rule lives on in a numbered charter clause, it was folded into a broader clause, or it is history only. Nothing was deleted. Every decision keeps its original heading in the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md">live index</a>, so old links still land, and the full original text is preserved unchanged in the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/DECISIONS-2026-10-19.md">archive</a>.</p>
+<pre class="mermaid">flowchart LR
+  old[&quot;Old decision&lt;br/&gt;D0 to D42&quot;] --&gt; q{&quot;Does the rule still&lt;br/&gt;bind today?&quot;}
+  q -- &quot;Yes, as written&quot; --&gt; kept[&quot;Kept&lt;br/&gt;own charter clause&quot;]
+  q -- &quot;Yes, as part of a wider rule&quot; --&gt; merged[&quot;Merged&lt;br/&gt;into a broader clause&quot;]
+  q -- &quot;No: superseded, one-off&lt;br/&gt;or expired&quot; --&gt; retired[&quot;Retired&lt;br/&gt;history only, in the archive&quot;]
+</pre>
+<p><em>The three fates. "Retired" applies to rules only. A research mechanism is never retired; see the <a href="../mechanisms/index.html">mechanism board</a> and D22.</em></p>
+<h2 id="how-to-read-the-table"><a class="header" href="#how-to-read-the-table">How to read the table</a></h2>
+<ul>
+<li><strong>Kept</strong> means the decision survives with its meaning and has a home in the charter.</li>
+<li><strong>Merged</strong> means its content now lives inside a clause that also covers other decisions.</li>
+<li><strong>Retired</strong> means it no longer binds. It was superseded by a later decision, was a one-off order, or had a time limit that has passed. Its text stays in the archive.</li>
+<li>Clause numbers such as 3.6 refer to sections of <code>CHARTER.md</code>. Section 1 is the mission, 2 the products, 3 the technical constraints, 4 the evidence rules, 5 the workflow and 6 the retired list.</li>
+<li>The fate column follows the final <code>DECISIONS.md</code> index adopted with the charter (decision D42). It differs from the working rule map in one place: it files D14 as merged, because its owner boundaries and GitHub authority survive while its council is retired.</li>
+</ul>
+<h2 id="the-table"><a class="header" href="#the-table">The table</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Decision</th><th>What it said (one sentence)</th><th>Fate</th><th>Charter home</th></tr></thead><tbody>
+<tr><td>D0</td><td>Serving forbids dense matrix multiplication; first form of the sparsity test, replaced the same day by D0-b.</td><td>Retired</td><td>Superseded by D0-b; its sparsity test survives as D5 (3.9).</td></tr>
+<tr><td>I1 to I5</td><td>Serving efficiency invariants: sparse access, bounded candidates, bytes per token, multiplier-free kernels, exact memory.</td><td>Kept</td><td>3.9</td></tr>
+<tr><td>D0-b</td><td>Additive linear maps adopted as a serving stepping stone.</td><td>Retired</td><td>Superseded by D11 (serving) and D25/D30 (no dense maps).</td></tr>
+<tr><td>D1</td><td>Falsify a mechanism before extending it.</td><td>Retired</td><td>Superseded by D2, D12, D20 and D22; a negative now closes only a configuration (4.1).</td></tr>
+<tr><td>D2</td><td>A mechanism's contribution is judged by measured ablation; enablers are a separate class.</td><td>Merged</td><td>4.1 (enablers survive as PARKED with reopen conditions)</td></tr>
+<tr><td>D3</td><td>Takeover clarification, including an offline matmul permission.</td><td>Retired</td><td>Superseded by D25/D30; the permission was withdrawn.</td></tr>
+<tr><td>D4</td><td>Goal decomposition and the geometry gate: advantage is measured against controls.</td><td>Merged</td><td>4.4 (lawful non-neural controls only, per 3.10)</td></tr>
+<tr><td>D5</td><td>Per-token parameter sparsity is the terminal serving invariant.</td><td>Kept</td><td>3.9 (the D5-b form)</td></tr>
+<tr><td>D6</td><td>The target objective is a long-range information probe.</td><td>Merged</td><td>4.4 (long-range probe items plus count-table controls)</td></tr>
+<tr><td>D7</td><td>Adopt the integrated attention-language programme.</td><td>Retired</td><td>Superseded by D8 and D19.</td></tr>
+<tr><td>D8</td><td>Correct the training method and reference ladder.</td><td>Retired</td><td>Superseded by D32/D37 (training) and D28 (no neural reference).</td></tr>
+<tr><td>D9</td><td>Prevent experiment loops; a repeat needs new causal evidence.</td><td>Merged</td><td>4.4 (pivot note) and 5.3 (intent note)</td></tr>
+<tr><td>D10</td><td>A converted open-weight backbone as the interim chat vehicle.</td><td>Retired</td><td>Superseded by D11.</td></tr>
+<tr><td>D11</td><td>One native, multiplier-free, transformerless integer serving contract for every lab.</td><td>Kept</td><td>3.6</td></tr>
+<tr><td>D12</td><td>Gates promote, never kill; reopen geometric candidates; keep a toolbox.</td><td>Merged</td><td>4.1 (ACTIVE, READY, PARKED; no terminal status)</td></tr>
+<tr><td>D13</td><td>Record of the 29 September two-track plan.</td><td>Retired</td><td>Superseded by D14, D18 and D19.</td></tr>
+<tr><td>D14</td><td>Durable autonomous labs, GitHub as authority, a three-seat council.</td><td>Merged</td><td>5.1 (owner boundaries) and 5.2 (GitHub authority); the council is retired (owner, 19 Oct).</td></tr>
+<tr><td>D15</td><td>Converted students may become served candidates after an audit.</td><td>Retired</td><td>Superseded by D17; excluded by D28 and D11.</td></tr>
+<tr><td>D16</td><td>Working rules from the 29 September council.</td><td>Retired</td><td>Superseded by D17; the council is retired.</td></tr>
+<tr><td>D17</td><td>Transformer-free conversion; parity decisions with paired seeds and measured tolerance.</td><td>Merged</td><td>4.3</td></tr>
+<tr><td>D18</td><td>One retrieval question for 1 to 14 October; other tracks parked.</td><td>Retired</td><td>The window expired; its re-entry gate travels with D38 (3.9).</td></tr>
+<tr><td>D19</td><td>Grounded conversation and durable memory come first; self-review allowed.</td><td>Merged</td><td>1 (mission) and 5.5 (delivery)</td></tr>
+<tr><td>D20</td><td>Geometry stays first; the no-loss rule is suspended only after exhaustion.</td><td>Merged</td><td>3.1 and 4.1 (with no terminal status, no suspension procedure is needed)</td></tr>
+<tr><td>D21</td><td>Three non-moving results on one line force a pivot; one-off lab orders of 9 October.</td><td>Merged</td><td>4.4 (pivot note); the lab orders are retired as executed or overtaken.</td></tr>
+<tr><td>D22</td><td>A negative closes a configuration, never a mechanism; power and transfer rules; five closures reopened.</td><td>Kept</td><td>4.1 and 4.3</td></tr>
+<tr><td>D23</td><td>No softmax anywhere, including losses, sampling, teachers and equivalent forms.</td><td>Kept</td><td>3.2</td></tr>
+<tr><td>D24</td><td>No CPU model compute, and no GPU on work that cannot change a decision.</td><td>Kept (scope narrowed)</td><td>3.5, now research compute only; serving on client devices is allowed (3.6).</td></tr>
+<tr><td>D25</td><td>Geometric operator phase: squash and matmul bans, GPU-only compute, rule freeze.</td><td>Retired</td><td>Superseded by D32/D37; its bans live on in 3.2 and 3.3.</td></tr>
+<tr><td>D26</td><td>Vast.ai is the default pod provider; Runpod is the emergency backup; caps of 4 pods and $8 per hour.</td><td>Kept</td><td>5.4</td></tr>
+<tr><td>D27</td><td>Rust first, with the uor-foundation crates as the shared floor.</td><td>Kept</td><td>3.11</td></tr>
+<tr><td>D28</td><td>No transformer or neural comparisons until the native system works end to end.</td><td>Kept</td><td>3.10</td></tr>
+<tr><td>D29</td><td>No banned mechanism in any compiled or loaded module, vendor content included.</td><td>Kept</td><td>3.4</td></tr>
+<tr><td>D30</td><td>No matmul or softmax anywhere without wrapper laundering; Rust only; GPU-only heavy compute; pod kernel builds.</td><td>Merged</td><td>3.2, 3.3, 3.4, 3.5 and 3.11</td></tr>
+<tr><td>D31</td><td>No result is ruled out on an instrument technicality.</td><td>Kept</td><td>4.2</td></tr>
+<tr><td>D32</td><td>Discrete ternary, Hamming and quaternion substrate; no float in model computation; zeta-phase exception.</td><td>Merged</td><td>3.7 (discrete path stays active; the float ban was revised by D37), 3.8, 3.12 and 3.1</td></tr>
+<tr><td>D33</td><td>Delegated owner release for the first A2 pilot.</td><td>Retired</td><td>One-off; superseded by D40.</td></tr>
+<tr><td>D34</td><td>Revised attention and memory sequence: reranker-first read plus a D19 object-store crate.</td><td>Merged</td><td>5.8 (the approved sequence, kept in <code>NOW.md</code>)</td></tr>
+<tr><td>D35</td><td>A seed-2 packet re-issue is required before any seed-2 go.</td><td>Retired</td><td>Superseded by D39.</td></tr>
+<tr><td>D36</td><td>GitHub Pages keeps the last good deploy until a D11 WebAssembly engine lands.</td><td>Merged</td><td>2 (web client) and 3.6; its "browser serving counts as CPU model compute" clause is replaced, and the legacy crates are repaired (2.4).</td></tr>
+<tr><td>D37</td><td>Float is legal in offline training only, with a reported export gap.</td><td>Kept</td><td>3.7; the owner's reason for the bans is quoted in 1, and archived sheets are handled in 4.5.</td></tr>
+<tr><td>D38</td><td>D5 split into D5-a (residency) and D5-b (per-token sparsity).</td><td>Kept</td><td>3.9</td></tr>
+<tr><td>D39</td><td>M1 closing bar, reachability gate, post-qualification sequence, lab self-direction.</td><td>Merged</td><td>4.8 (bar (d) replaced), 4.2, 5.8 and 5.3</td></tr>
+<tr><td>D40</td><td>Owner-identity phrases are typed by the owner personally.</td><td>Kept</td><td>5.1 (the K16 ratification is a retired one-off)</td></tr>
+<tr><td>D41</td><td>One-time offline donor corpus exception (<code>distill-d1</code>), on binding conditions.</td><td>Kept</td><td>3.10 (sole exception), 5.1 and 5.8</td></tr>
+<tr><td>D42</td><td>The owner adopts the charter and answers eight checkpoint questions.</td><td>Kept (as the adoption record)</td><td>The charter itself; see the <a href="changes.html">change log</a>.</td></tr>
+</tbody></table>
+</div>
+<h2 id="tally"><a class="header" href="#tally">Tally</a></h2>
+<p>Counting the rows above (excluding the I1 to I5 row and D42): 14 decisions kept, 15 merged and 14 retired, which is 43 decision entries from D0 to D41 including D0-b. This is a count of the table, derived from the live index in <code>DECISIONS.md</code>; it is not a separate record.</p>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Item</th><th>State</th><th>Source</th></tr></thead><tbody>
+<tr><td>Charter</td><td>Adopted 19 October 2026.</td><td><code>CHARTER.md</code>; <a href="changes.html">change log</a></td></tr>
+<tr><td>Live decision index</td><td>Each entry keeps its heading, a one-sentence summary and a fate line.</td><td><code>docs/integration/DECISIONS.md</code></td></tr>
+<tr><td>Full original text</td><td>Preserved unchanged in the archive.</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/DECISIONS-2026-10-19.md">archived original</a></td></tr>
+<tr><td>Rule-by-rule mapping</td><td>Working document of 258 individual rules to charter clauses, kept in the audit directory.</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/repo-renormalization-2026-10-19/audit/rule-map.md"><code>rule-map.md</code></a></td></tr>
+</tbody></table>
+</div>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li>Plain-language guide to the charter: <a href="index.html">the rules of the project</a>.</li>
+<li>Dated record of every charter change: <a href="changes.html">change log</a>.</li>
+<li>Mechanism statuses and what would reopen a PARKED one: <a href="../mechanisms/index.html">mechanism board</a>.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../rules/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../rules/changes.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../rules/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../rules/changes.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

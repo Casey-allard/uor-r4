@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 488" width="960" role="img" aria-labelledby="t d">
+<title id="t">From float weights to an integer file</title>
+<desc id="d">Four boxes left to right. First, a table of float weights trained offline, where float is legal (D37). Second, a snap step that rounds each weight to the nearest of 16 slots, a 4-bit code, with one scale per group of 32 weights (one byte: 4-bit mantissa, 4-bit exponent); a small gap between the exact weight and its slot is where quality can be lost. Third, the integer table file UORLUT01 holding 4-bit codes, scales and small integer tables (square root, decay, SiLU, arcosh, exp). Fourth, the serving engine, which builds 16 multiples of an activation by adding, uses each 4-bit code to pick one, then shifts and adds, with zero multiply instructions. A bracket under the first three boxes marks the export gap: the served score minus the float score, on the same evaluator and the same positions. Below, two past measurements on older float stack models, 0.00883 bits per byte on identical positions and 0.009288 bits per byte on matched runs at 512 windows, with engine differences of about 1e-6 and 2.7e-7. A dashed note says today's model has not been exported, so its gap is unmeasured.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.head { font-size: 14px; font-weight: 600; }
+.small { font-size: 11.5px; }
+.detail { font-size: 11px; fill: var(--muted); }
+.big { font-size: 17px; font-weight: 700; }
+.code { font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.num { font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.tg { font-size: 11px; font-weight: 700; fill: var(--green); }
+.tv { font-size: 11px; font-weight: 700; fill: var(--verm); }
+.box { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.slot { fill: var(--blue); fill-opacity: 0.18; stroke: var(--blue); stroke-width: 1; }
+.pick { fill: var(--blue); stroke: var(--blue); stroke-width: 1; }
+.chip { fill: var(--bg); stroke: var(--muted); stroke-width: 1.25; }
+.scale { fill: var(--orange); fill-opacity: 0.2; stroke: var(--orange); stroke-width: 1; }
+.exact { fill: var(--bg); stroke: var(--verm); stroke-width: 2; }
+.gap { stroke: var(--verm); stroke-width: 2; fill: none; }
+.flow { stroke: var(--muted); stroke-width: 1.75; fill: none; }
+.flow-b { stroke: var(--blue); stroke-width: 1.5; fill: none; }
+.bracket { stroke: var(--verm); stroke-width: 1.75; fill: none; }
+.today { fill: none; stroke: var(--verm); stroke-width: 1.75; stroke-dasharray: 5 4; }
+.past { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.ah { fill: var(--muted); }
+.ah-b { fill: var(--blue); }
+</style>
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker>
+  <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="ah-b" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="488"/>
+<text class="title" x="24" y="34">From float weights to an integer file</text>
+<text class="sub" x="24" y="56">Training may use decimals; serving may not. The snap between them is where quality can be lost.</text>
+
+<!-- box 1 -->
+<rect class="box" x="24" y="76" width="190" height="240" rx="10"/>
+<text class="head" x="119" y="98" text-anchor="middle">1  Float table</text>
+<text class="detail" x="119" y="114" text-anchor="middle">trained offline</text>
+<rect class="cell" x="42" y="128" width="52" height="28" rx="3"/><text class="num" x="68" y="147" text-anchor="middle">0.37</text>
+<rect class="cell" x="94" y="128" width="52" height="28" rx="3"/><text class="num" x="120" y="147" text-anchor="middle">-1.12</text>
+<rect class="cell" x="146" y="128" width="52" height="28" rx="3"/><text class="num" x="172" y="147" text-anchor="middle">0.04</text>
+<rect class="cell" x="42" y="156" width="52" height="28" rx="3"/><text class="num" x="68" y="175" text-anchor="middle">-0.58</text>
+<rect class="cell" x="94" y="156" width="52" height="28" rx="3"/><text class="num" x="120" y="175" text-anchor="middle">0.91</text>
+<rect class="cell" x="146" y="156" width="52" height="28" rx="3"/><text class="num" x="172" y="175" text-anchor="middle">0.26</text>
+<rect class="cell" x="42" y="184" width="52" height="28" rx="3"/><text class="num" x="68" y="203" text-anchor="middle">0.13</text>
+<rect class="cell" x="94" y="184" width="52" height="28" rx="3"/><text class="num" x="120" y="203" text-anchor="middle">-0.07</text>
+<rect class="cell" x="146" y="184" width="52" height="28" rx="3"/><text class="num" x="172" y="203" text-anchor="middle">-0.74</text>
+<text class="tg" x="119" y="246" text-anchor="middle">float is legal here (D37)</text>
+<text class="detail" x="119" y="262" text-anchor="middle">no matrix multiply, no softmax</text>
+<text class="detail" x="119" y="296" text-anchor="middle">values are illustrative</text>
+<path class="flow" d="M214 196 H264" marker-end="url(#a)"/>
+
+<!-- box 2 -->
+<rect class="box" x="264" y="76" width="190" height="240" rx="10"/>
+<text class="head" x="359" y="98" text-anchor="middle">2  Snap</text>
+<text class="detail" x="359" y="114" text-anchor="middle">round each weight to a</text>
+<text class="detail" x="359" y="127" text-anchor="middle">4-bit code</text>
+<circle class="exact" cx="350.5" cy="156" r="5"/>
+<text class="detail" x="365" y="160">exact weight</text>
+<rect class="slot" x="282" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="292" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="302" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="312" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="322" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="332" y="186" width="8" height="18" rx="1.5"/>
+<rect class="pick" x="342" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="352" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="362" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="372" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="382" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="392" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="402" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="412" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="422" y="186" width="8" height="18" rx="1.5"/>
+<rect class="slot" x="432" y="186" width="8" height="18" rx="1.5"/>
+<path class="flow-b" d="M350.5 163 C350.5 172 346 176 346 184" marker-end="url(#ab)"/>
+<path class="gap" d="M346 212 H350.5 M346 208 V216 M350.5 208 V216"/>
+<text class="tv" x="360" y="219">gap</text>
+<text class="detail" x="359" y="238" text-anchor="middle">16 slots = a 4-bit code</text>
+<text class="small" x="359" y="258" text-anchor="middle">one scale per group of 32</text>
+<text class="detail" x="359" y="272" text-anchor="middle">one byte: 4-bit mantissa,</text>
+<text class="detail" x="359" y="285" text-anchor="middle">4-bit exponent</text>
+<text class="tv" x="359" y="304" text-anchor="middle">this step can lose quality</text>
+<path class="flow" d="M454 196 H504" marker-end="url(#a)"/>
+
+<!-- box 3 -->
+<rect class="box" x="504" y="76" width="190" height="240" rx="10"/>
+<text class="head" x="599" y="98" text-anchor="middle">3  Integer table file</text>
+<text class="detail" x="599" y="114" text-anchor="middle">UORLUT01</text>
+<rect class="cell" x="520" y="128" width="36" height="24" rx="3"/><text class="code" x="538" y="144" text-anchor="middle">1011</text>
+<rect class="cell" x="556" y="128" width="36" height="24" rx="3"/><text class="code" x="574" y="144" text-anchor="middle">0011</text>
+<rect class="cell" x="592" y="128" width="36" height="24" rx="3"/><text class="code" x="610" y="144" text-anchor="middle">1000</text>
+<rect class="cell" x="520" y="152" width="36" height="24" rx="3"/><text class="code" x="538" y="168" text-anchor="middle">0100</text>
+<rect class="cell" x="556" y="152" width="36" height="24" rx="3"/><text class="code" x="574" y="168" text-anchor="middle">1110</text>
+<rect class="cell" x="592" y="152" width="36" height="24" rx="3"/><text class="code" x="610" y="168" text-anchor="middle">1001</text>
+<rect class="cell" x="520" y="176" width="36" height="24" rx="3"/><text class="code" x="538" y="192" text-anchor="middle">0111</text>
+<rect class="cell" x="556" y="176" width="36" height="24" rx="3"/><text class="code" x="574" y="192" text-anchor="middle">0110</text>
+<rect class="cell" x="592" y="176" width="36" height="24" rx="3"/><text class="code" x="610" y="192" text-anchor="middle">0010</text>
+<rect class="scale" x="634" y="128" width="40" height="24" rx="3"/><text class="code" x="654" y="144" text-anchor="middle">scale</text>
+<rect class="scale" x="634" y="152" width="40" height="24" rx="3"/><text class="code" x="654" y="168" text-anchor="middle">scale</text>
+<rect class="scale" x="634" y="176" width="40" height="24" rx="3"/><text class="code" x="654" y="192" text-anchor="middle">scale</text>
+<text class="detail" x="599" y="214" text-anchor="middle">4-bit codes, one scale per group</text>
+<rect class="chip" x="512" y="232" width="52" height="22" rx="4"/><text class="small" x="538" y="247" text-anchor="middle">sqrt</text>
+<rect class="chip" x="570" y="232" width="52" height="22" rx="4"/><text class="small" x="596" y="247" text-anchor="middle">decay</text>
+<rect class="chip" x="628" y="232" width="52" height="22" rx="4"/><text class="small" x="654" y="247" text-anchor="middle">arcosh</text>
+<text class="detail" x="599" y="272" text-anchor="middle">small integer tables for the</text>
+<text class="detail" x="599" y="285" text-anchor="middle">nonlinear steps (also SiLU, exp)</text>
+<text class="detail" x="599" y="304" text-anchor="middle">only whole numbers</text>
+<path class="flow" d="M694 196 H744" marker-end="url(#a)"/>
+
+<!-- box 4 -->
+<rect class="box" x="744" y="76" width="190" height="240" rx="10"/>
+<text class="head" x="839" y="98" text-anchor="middle">4  Serving</text>
+<text class="detail" x="839" y="114" text-anchor="middle">table look-ups, adds, shifts</text>
+<rect class="chip" x="760" y="124" width="84" height="22" rx="4"/><text class="small" x="802" y="139" text-anchor="middle">activation x</text>
+<path class="flow" d="M802 146 V160" marker-end="url(#a)"/>
+<rect class="slot" x="760" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="770" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="780" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="790" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="800" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="810" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="820" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="830" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="840" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="850" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="860" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="870" y="160" width="8" height="16" rx="1.5"/>
+<rect class="pick" x="880" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="890" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="900" y="160" width="8" height="16" rx="1.5"/>
+<rect class="slot" x="910" y="160" width="8" height="16" rx="1.5"/>
+<text class="detail" x="760" y="192">16 multiples of x,</text>
+<text class="detail" x="760" y="205">built by adding x</text>
+<rect class="chip" x="849" y="214" width="70" height="20" rx="4"/><text class="small" x="884" y="228" text-anchor="middle">4-bit code</text>
+<path class="flow-b" d="M884 214 V180" marker-end="url(#ab)"/>
+<path class="flow" d="M884 234 V250" marker-end="url(#a)"/>
+<rect class="chip" x="758" y="250" width="172" height="22" rx="4"/><text class="small" x="844" y="265" text-anchor="middle">shift, then add to the sum</text>
+<text class="tg" x="839" y="300" text-anchor="middle">multiply instructions: 0</text>
+
+<!-- export gap bracket -->
+<path class="bracket" d="M24 326 V334 H694 V326"/>
+<text class="small" x="359" y="354" text-anchor="middle" style="font-size:13px">export gap = served score minus float score, same evaluator, same positions</text>
+
+<!-- measurements -->
+<text class="head" x="24" y="388" style="font-size:13px">Past measurements of the gap (older float stack models, not today's model)</text>
+<rect class="past" x="24" y="398" width="290" height="68" rx="8"/>
+<text class="big" x="40" y="420">0.00883 BPB</text>
+<text class="detail" x="40" y="437">19.9M stack, identical positions</text>
+<text class="detail" x="40" y="452">engine difference about 1e-6</text>
+<rect class="past" x="330" y="398" width="290" height="68" rx="8"/>
+<text class="big" x="346" y="420">0.009288 BPB</text>
+<text class="detail" x="346" y="437">matched runs, 512 windows</text>
+<text class="detail" x="346" y="452">engine difference 2.7e-7</text>
+<rect class="today" x="636" y="398" width="300" height="68" rx="8"/>
+<text class="head" x="652" y="420">Today's model</text>
+<text class="small" x="652" y="437">not yet exported, gap unmeasured</text>
+<text class="detail" x="652" y="452">none built under today's rules has been exported</text>
+</svg>

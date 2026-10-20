@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 824" width="960" role="img" aria-labelledby="t d">
+<title id="t">Family tree of the 27 mechanisms</title>
+<desc id="d">A left-to-right family tree of the 22 mechanisms that have a recorded parent or child, with five more shown in a strip for having no recorded lineage, so all 27 appear. Each box carries a name and a status word: ACTIVE (solid border), READY (dashed border) or PARKED (dotted border). Edges: a solid arrow means successor, a dotted arrow means the target is the integer or discrete form of the source, and a double line means specialisation. Discrete learning is the single sink, with five incoming lineages: native geometric, carrier credit, legal construction, SpiralCore/FBS and ternary/XOR. The R4G1 graph leads to the native geometric engine and to D11 integer serving. The native geometric engine leads to the geometric stack, the prime-zeta codebook, the object store, the rank-margin hinge, discrete learning and relation read. The geometric stack leads to the Hamilton gate, recurrence gates and flock read. Routed read leads to flock read, which specialises into relation read; pointer key also feeds relation read. The prime-zeta codebook leads to address cells, spin-native weights lead to SpiralCore/FBS, and exact memory specialises into E8 orbit memory. The no-lineage strip holds admission and the tokenizer (ACTIVE) and Hopf observation, read binding and VSA (PARKED).</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.nm { font-size: 12.5px; font-weight: 600; }
+.st { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; }
+.st-a { fill: var(--active); }
+.st-r { fill: var(--ready); }
+.st-p { fill: var(--parked); }
+.note { font-size: 11.5px; fill: var(--muted); }
+.lab { font-size: 11.5px; fill: var(--body); }
+.head { font-size: 13px; font-weight: 600; }
+.n-a { fill: var(--active); fill-opacity: 0.13; stroke: var(--active); stroke-width: 2; }
+.n-r { fill: var(--ready); fill-opacity: 0.10; stroke: var(--ready); stroke-width: 2; stroke-dasharray: 7 4; }
+.n-p { fill: var(--parked); fill-opacity: 0.08; stroke: var(--parked); stroke-width: 2; stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.e { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+.e-d { stroke: var(--muted); stroke-width: 1.8; fill: none; stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.dot { fill: var(--muted); }
+.ah { fill: var(--muted); }
+.strip { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 6 4; }
+</style>
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="824"/>
+<text class="title" x="24" y="34">Family tree of the 27 mechanisms</text>
+<text class="sub" x="24" y="56">Left to right: older mechanisms to what grew out of them. Discrete learning is the one sink, with five incoming lineages.</text>
+
+<!-- edges -->
+<path class="e-d" d="M174 110 H784" marker-end="url(#a)"/>
+<path class="e" d="M174 156 H784" marker-end="url(#a)"/>
+<path class="e" d="M174 202 H784" marker-end="url(#a)"/>
+<path class="e-d" d="M364 248 H784" marker-end="url(#a)"/>
+<path class="e" d="M364 294 H784" marker-end="url(#a)"/>
+<path class="e" d="M174 248 H214" marker-end="url(#a)"/>
+<path class="e" d="M174 294 H214" marker-end="url(#a)"/>
+<path class="e" d="M99 312 V344 H214" marker-end="url(#a)"/>
+<path class="e" d="M364 294 H384 V478"/>
+<path class="e" d="M384 340 H404" marker-end="url(#a)"/>
+<path class="e" d="M384 386 H404" marker-end="url(#a)"/>
+<path class="e" d="M384 432 H404" marker-end="url(#a)"/>
+<path class="e" d="M384 478 H404" marker-end="url(#a)"/>
+<path class="e" d="M384 478 V600 H884 V544" marker-end="url(#a)"/>
+<path class="e" d="M554 332 H594" marker-end="url(#a)"/>
+<path class="e" d="M554 340 H568 V386 H594" marker-end="url(#a)"/>
+<path class="e-d" d="M554 350 H580 V524 H594" marker-end="url(#a)"/>
+<path class="e" d="M554 432 H594" marker-end="url(#a)"/>
+<path class="e" d="M174 524 H594" marker-end="url(#a)"/>
+<path class="e" d="M174 570 H859 V544" marker-end="url(#a)"/>
+<path class="e" d="M174 429 H206 M174 435 H206"/>
+<path class="ah" d="M214 432 L206 427 V437 z"/>
+<path class="e" d="M744 521 H776 M744 527 H776"/>
+<path class="ah" d="M784 524 L776 519 V529 z"/>
+<circle class="dot" cx="384" cy="294" r="3"/>
+<rect class="n-p" x="24" y="92" width="150" height="36" rx="8"/>
+<text class="nm" x="34" y="107">Carrier credit</text>
+<text class="st st-p" x="34" y="121">PARKED</text>
+<rect class="n-p" x="24" y="138" width="150" height="36" rx="8"/>
+<text class="nm" x="34" y="153">Legal construction</text>
+<text class="st st-p" x="34" y="167">PARKED</text>
+<rect class="n-p" x="24" y="184" width="150" height="36" rx="8"/>
+<text class="nm" x="34" y="199">Ternary/XOR</text>
+<text class="st st-p" x="34" y="213">PARKED</text>
+<rect class="n-p" x="24" y="230" width="150" height="36" rx="8"/>
+<text class="nm" x="34" y="245">Spin-native weights</text>
+<text class="st st-p" x="34" y="259">PARKED</text>
+<rect class="n-p" x="24" y="276" width="150" height="36" rx="8"/>
+<text class="nm" x="34" y="291">R4G1 graph</text>
+<text class="st st-p" x="34" y="305">PARKED</text>
+<rect class="n-p" x="24" y="414" width="150" height="36" rx="8"/>
+<text class="nm" x="34" y="429">Exact memory</text>
+<text class="st st-p" x="34" y="443">PARKED</text>
+<rect class="n-a" x="24" y="506" width="150" height="36" rx="8"/>
+<text class="nm" x="34" y="521">Routed read</text>
+<text class="st st-a" x="34" y="535">ACTIVE</text>
+<rect class="n-p" x="24" y="552" width="150" height="36" rx="8"/>
+<text class="nm" x="34" y="567">Pointer key</text>
+<text class="st st-p" x="34" y="581">PARKED</text>
+<rect class="n-r" x="214" y="230" width="150" height="36" rx="8"/>
+<text class="nm" x="224" y="245">SpiralCore/FBS</text>
+<text class="st st-r" x="224" y="259">READY</text>
+<rect class="n-p" x="214" y="276" width="150" height="36" rx="8"/>
+<text class="nm" x="224" y="291">Native geometric</text>
+<text class="st st-p" x="224" y="305">PARKED</text>
+<rect class="n-a" x="214" y="322" width="150" height="36" rx="8"/>
+<text class="nm" x="224" y="337">D11 integer serving</text>
+<text class="st st-a" x="224" y="351">ACTIVE</text>
+<rect class="n-p" x="214" y="414" width="150" height="36" rx="8"/>
+<text class="nm" x="224" y="429">E8 orbit memory</text>
+<text class="st st-p" x="224" y="443">PARKED</text>
+<rect class="n-p" x="404" y="322" width="150" height="36" rx="8"/>
+<text class="nm" x="414" y="337">Geometric stack</text>
+<text class="st st-p" x="414" y="351">PARKED</text>
+<rect class="n-r" x="404" y="368" width="150" height="36" rx="8"/>
+<text class="nm" x="414" y="383">Object store</text>
+<text class="st st-r" x="414" y="397">READY</text>
+<rect class="n-a" x="404" y="414" width="150" height="36" rx="8"/>
+<text class="nm" x="414" y="429">Prime-zeta codebook</text>
+<text class="st st-a" x="414" y="443">ACTIVE</text>
+<rect class="n-a" x="404" y="460" width="150" height="36" rx="8"/>
+<text class="nm" x="414" y="475">Rank-margin hinge</text>
+<text class="st st-a" x="414" y="489">ACTIVE</text>
+<rect class="n-r" x="594" y="322" width="150" height="36" rx="8"/>
+<text class="nm" x="604" y="337">Hamilton gate</text>
+<text class="st st-r" x="604" y="351">READY</text>
+<rect class="n-r" x="594" y="368" width="150" height="36" rx="8"/>
+<text class="nm" x="604" y="383">Recurrence gates</text>
+<text class="st st-r" x="604" y="397">READY</text>
+<rect class="n-a" x="594" y="414" width="150" height="36" rx="8"/>
+<text class="nm" x="604" y="429">Address cells (A8)</text>
+<text class="st st-a" x="604" y="443">ACTIVE</text>
+<rect class="n-a" x="594" y="506" width="150" height="36" rx="8"/>
+<text class="nm" x="604" y="521">Flock read</text>
+<text class="st st-a" x="604" y="535">ACTIVE</text>
+<rect class="n-a" x="784" y="506" width="150" height="36" rx="8"/>
+<text class="nm" x="794" y="521">Relation read</text>
+<text class="st st-a" x="794" y="535">ACTIVE</text>
+<!-- discrete learning (sink) -->
+<rect class="n-a" x="784" y="92" width="150" height="220" rx="10"/>
+<text class="nm" x="859" y="190" text-anchor="middle" style="font-size:14px">Discrete learning</text>
+<text class="st st-a" x="859" y="208" text-anchor="middle">ACTIVE</text>
+<text class="note" x="859" y="230" text-anchor="middle">five lineages end here</text>
+
+<!-- no-lineage strip -->
+<rect class="strip" x="24" y="624" width="912" height="78" rx="10"/>
+<text class="head" x="40" y="643">No recorded parent or child (5 mechanisms)</text>
+<rect class="n-a" x="54" y="654" width="150" height="36" rx="8"/>
+<text class="nm" x="64" y="669">Admission</text>
+<text class="st st-a" x="64" y="683">ACTIVE</text>
+<rect class="n-a" x="234" y="654" width="150" height="36" rx="8"/>
+<text class="nm" x="244" y="669">Tokenizer</text>
+<text class="st st-a" x="244" y="683">ACTIVE</text>
+<rect class="n-p" x="414" y="654" width="150" height="36" rx="8"/>
+<text class="nm" x="424" y="669">Hopf observation</text>
+<text class="st st-p" x="424" y="683">PARKED</text>
+<rect class="n-p" x="594" y="654" width="150" height="36" rx="8"/>
+<text class="nm" x="604" y="669">Read binding</text>
+<text class="st st-p" x="604" y="683">PARKED</text>
+<rect class="n-p" x="774" y="654" width="150" height="36" rx="8"/>
+<text class="nm" x="784" y="669">VSA</text>
+<text class="st st-p" x="784" y="683">PARKED</text>
+
+<!-- legend -->
+<text class="head" x="24" y="734">Status</text>
+<rect class="n-a" x="24" y="744" width="34" height="18" rx="5"/>
+<text class="lab" x="66" y="757"><tspan font-weight="700">ACTIVE</tspan>, 10: on the current model path</text>
+<rect class="n-r" x="336" y="744" width="34" height="18" rx="5"/>
+<text class="lab" x="378" y="757"><tspan font-weight="700">READY</tspan>, 4: built and tested, not yet trained in</text>
+<rect class="n-p" x="640" y="744" width="34" height="18" rx="5"/>
+<text class="lab" x="682" y="757"><tspan font-weight="700">PARKED</tspan>, 13: tried forms failed; stays open</text>
+<text class="head" x="24" y="788">Arrows</text>
+<path class="e" d="M24 802 H64" marker-end="url(#a)"/>
+<text class="lab" x="74" y="806">successor: came from, or was replaced by</text>
+<path class="e-d" d="M378 802 H418" marker-end="url(#a)"/>
+<text class="lab" x="428" y="806">integer or discrete form of</text>
+<path class="e" d="M666 799 H700 M666 805 H700"/>
+<path class="ah" d="M708 802 L700 797 V807 z"/>
+<text class="lab" x="718" y="806">specialisation</text>
+</svg>

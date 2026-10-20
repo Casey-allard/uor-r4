@@ -1,0 +1,349 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" role="img" aria-labelledby="t d">
+<title id="t">SpiralCore transport with ternary tree binders</title>
+<desc id="d">Three parts. Left: a three-branch tree of atoms with one root-to-leaf path highlighted, and below it the 16 roots of one E8 anchor orbit drawn as nodes joined by 15 edges. As a query point moves, its nearest root changes, and the chosen atom's 8 coordinates travel along the edges between the two roots, each edge permuting axes and flipping signs; the same path run backward is the exact inverse, each step cubed. Middle: a worked example on the root with 1 in axes 0 and 1: edge B0 moves the two non-zero values to axes 4 and 2, edge B1 moves them to axes 6 and 5 with sign flips, and the two steps composed into one signed action give the same final vector. Right: a dense grid where every input block connects to every output block beside a grid where each output block reads exactly one chosen atom, labelled with the atom number.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.ti { font-size: 19px; font-weight: 600; }
+.h { font-size: 14px; font-weight: 600; }
+.big { font-size: 20px; font-weight: 600; }
+.n { font-size: 12px; fill: var(--muted); }
+.m { fill: var(--muted); }
+.b { font-weight: 600; }
+.c { text-anchor: middle; }
+.r { text-anchor: end; }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.ln { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.rl { stroke: var(--rule); stroke-width: 1; fill: none; }
+.dash { stroke-dasharray: 5 4; }
+.dot { stroke-dasharray: 2 3; }
+.fi { fill: var(--ink); } .fm { fill: var(--muted); } .fb { fill: var(--blue); } .fg { fill: var(--green); }
+.fo { fill: var(--orange); } .fv { fill: var(--verm); } .fp { fill: var(--purple); } .fs { fill: var(--sky); } .fk { fill: var(--pink); }
+.si { stroke: var(--ink); } .sm { stroke: var(--muted); } .sb { stroke: var(--blue); } .sg { stroke: var(--green); }
+.so { stroke: var(--orange); } .sv { stroke: var(--verm); } .sp { stroke: var(--purple); } .ss { stroke: var(--sky); }
+.w2 { stroke-width: 2; } .w15 { stroke-width: 1.5; } .w1 { stroke-width: 1; } .nf { fill: none; }
+.sk { stroke: var(--pink); } .sbd { stroke: var(--body); } .sr { stroke: var(--rule); }
+.t { fill: var(--body); } .bs { font-size: 13px; font-weight: 600; } .s11 { font-size: 11.5px; } .l { text-anchor: start; }
+.o3 { opacity: 0.3; } .o5 { opacity: 0.5; } .o7 { opacity: 0.7; } .fr { fill: var(--rule); } .fpn { fill: var(--panel); } .fbg { fill: var(--bg); }
+.st { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; } .stP { fill: var(--parked); } .stR { fill: var(--ready); }
+.chipP { fill: var(--bg); stroke: var(--parked); stroke-width: 1.8; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.chipR { fill: var(--bg); stroke: var(--ready); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.w3 { stroke-width: 3; } .w25 { stroke-width: 2.5; } .w05 { stroke-width: 0.6; } .rnd { stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<defs>
+<marker id="a-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+<marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<marker id="a-verm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+<marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fo"/></marker>
+<marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fg"/></marker>
+<marker id="a-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fk"/></marker>
+<marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fp"/></marker>
+<marker id="s-blue" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="s-verm" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+<marker id="s-ink" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="540"/>
+<text class="ti" x="16" y="32">SpiralCore transport: each output reads one atom, moved by exact signed swaps</text>
+<rect class="panel" x="16" y="48" width="330" height="452" rx="8"/>
+<text class="h" x="30" y="72">1  Choose an atom, move it along edges</text>
+<text class="n" x="30" y="94">Tree of atoms: 3 children per node, one path chosen</text>
+<line class="rl" x1="176" y1="112" x2="86" y2="136"/>
+<line class="rl" x1="176" y1="112" x2="176" y2="136"/>
+<line class="rl" x1="176" y1="112" x2="266" y2="136"/>
+<line class="rl" x1="86" y1="136" x2="56" y2="160"/>
+<line class="rl" x1="86" y1="136" x2="86" y2="160"/>
+<line class="rl" x1="86" y1="136" x2="116" y2="160"/>
+<line class="rl" x1="176" y1="136" x2="146" y2="160"/>
+<line class="rl" x1="176" y1="136" x2="176" y2="160"/>
+<line class="rl" x1="176" y1="136" x2="206" y2="160"/>
+<line class="rl" x1="266" y1="136" x2="236" y2="160"/>
+<line class="rl" x1="266" y1="136" x2="266" y2="160"/>
+<line class="rl" x1="266" y1="136" x2="296" y2="160"/>
+<line class="rl" x1="56" y1="160" x2="46" y2="184"/>
+<line class="rl" x1="56" y1="160" x2="56" y2="184"/>
+<line class="rl" x1="56" y1="160" x2="66" y2="184"/>
+<line class="rl" x1="86" y1="160" x2="76" y2="184"/>
+<line class="rl" x1="86" y1="160" x2="86" y2="184"/>
+<line class="rl" x1="86" y1="160" x2="96" y2="184"/>
+<line class="rl" x1="116" y1="160" x2="106" y2="184"/>
+<line class="rl" x1="116" y1="160" x2="116" y2="184"/>
+<line class="rl" x1="116" y1="160" x2="126" y2="184"/>
+<line class="rl" x1="146" y1="160" x2="136" y2="184"/>
+<line class="rl" x1="146" y1="160" x2="146" y2="184"/>
+<line class="rl" x1="146" y1="160" x2="156" y2="184"/>
+<line class="rl" x1="176" y1="160" x2="166" y2="184"/>
+<line class="rl" x1="176" y1="160" x2="176" y2="184"/>
+<line class="rl" x1="176" y1="160" x2="186" y2="184"/>
+<line class="rl" x1="206" y1="160" x2="196" y2="184"/>
+<line class="rl" x1="206" y1="160" x2="206" y2="184"/>
+<line class="rl" x1="206" y1="160" x2="216" y2="184"/>
+<line class="rl" x1="236" y1="160" x2="226" y2="184"/>
+<line class="rl" x1="236" y1="160" x2="236" y2="184"/>
+<line class="rl" x1="236" y1="160" x2="246" y2="184"/>
+<line class="rl" x1="266" y1="160" x2="256" y2="184"/>
+<line class="rl" x1="266" y1="160" x2="266" y2="184"/>
+<line class="rl" x1="266" y1="160" x2="276" y2="184"/>
+<line class="rl" x1="296" y1="160" x2="286" y2="184"/>
+<line class="rl" x1="296" y1="160" x2="296" y2="184"/>
+<line class="rl" x1="296" y1="160" x2="306" y2="184"/>
+<path class="nf sb w25 rnd" d="M176 112 L86 136 L116 160 L126 184"/>
+<circle class="fb" cx="176" cy="112" r="4"/><circle class="fb" cx="86" cy="136" r="3.5"/><circle class="fb" cx="116" cy="160" r="3.5"/>
+<circle class="fm" cx="176" cy="136" r="2.6"/>
+<circle class="fm" cx="266" cy="136" r="2.6"/>
+<circle class="fm" cx="56" cy="160" r="2.4"/>
+<circle class="fm" cx="86" cy="160" r="2.4"/>
+<circle class="fm" cx="146" cy="160" r="2.4"/>
+<circle class="fm" cx="176" cy="160" r="2.4"/>
+<circle class="fm" cx="206" cy="160" r="2.4"/>
+<circle class="fm" cx="236" cy="160" r="2.4"/>
+<circle class="fm" cx="266" cy="160" r="2.4"/>
+<circle class="fm" cx="296" cy="160" r="2.4"/>
+<circle class="fm" cx="46" cy="184" r="2.6"/>
+<circle class="fm" cx="56" cy="184" r="2.6"/>
+<circle class="fm" cx="66" cy="184" r="2.6"/>
+<circle class="fm" cx="76" cy="184" r="2.6"/>
+<circle class="fm" cx="86" cy="184" r="2.6"/>
+<circle class="fm" cx="96" cy="184" r="2.6"/>
+<circle class="fm" cx="106" cy="184" r="2.6"/>
+<circle class="fm" cx="116" cy="184" r="2.6"/>
+<circle class="fm" cx="136" cy="184" r="2.6"/>
+<circle class="fm" cx="146" cy="184" r="2.6"/>
+<circle class="fm" cx="156" cy="184" r="2.6"/>
+<circle class="fm" cx="166" cy="184" r="2.6"/>
+<circle class="fm" cx="176" cy="184" r="2.6"/>
+<circle class="fm" cx="186" cy="184" r="2.6"/>
+<circle class="fm" cx="196" cy="184" r="2.6"/>
+<circle class="fm" cx="206" cy="184" r="2.6"/>
+<circle class="fm" cx="216" cy="184" r="2.6"/>
+<circle class="fm" cx="226" cy="184" r="2.6"/>
+<circle class="fm" cx="236" cy="184" r="2.6"/>
+<circle class="fm" cx="246" cy="184" r="2.6"/>
+<circle class="fm" cx="256" cy="184" r="2.6"/>
+<circle class="fm" cx="266" cy="184" r="2.6"/>
+<circle class="fm" cx="276" cy="184" r="2.6"/>
+<circle class="fm" cx="286" cy="184" r="2.6"/>
+<circle class="fm" cx="296" cy="184" r="2.6"/>
+<circle class="fm" cx="306" cy="184" r="2.6"/>
+<circle class="fv si w1" cx="126" cy="184" r="5"/>
+<text class="n" x="30" y="206">Its 8 coordinates travel along the edges:</text>
+<line class="rl" x1="28" y1="218" x2="334" y2="218"/>
+<text class="b" x="30" y="238">16 roots of one E8 anchor orbit</text><text class="n" x="30" y="254">joined by 15 SpiralCore edges B (each B² = −I)</text>
+<line class="sm w15" x1="130.0" y1="268.0" x2="161.4" y2="274.2"/>
+<line class="sm w15" x1="161.4" y1="274.2" x2="188.0" y2="292.0"/>
+<line class="sm w15" x1="188.0" y1="292.0" x2="205.8" y2="318.6"/>
+<line class="sm w15" x1="205.8" y1="318.6" x2="212.0" y2="350.0"/>
+<line class="sm w15" x1="212.0" y1="350.0" x2="205.8" y2="381.4"/>
+<line class="sm w15" x1="205.8" y1="381.4" x2="188.0" y2="408.0"/>
+<line class="sm w15" x1="188.0" y1="408.0" x2="161.4" y2="425.8"/>
+<line class="sm w15" x1="161.4" y1="425.8" x2="130.0" y2="432.0"/>
+<line class="sm w15" x1="130.0" y1="432.0" x2="98.6" y2="425.8"/>
+<line class="sm w15" x1="98.6" y1="425.8" x2="72.0" y2="408.0"/>
+<line class="sm w15" x1="72.0" y1="408.0" x2="54.2" y2="381.4"/>
+<line class="sm w15" x1="54.2" y1="381.4" x2="48.0" y2="350.0"/>
+<line class="sm w15" x1="48.0" y1="350.0" x2="54.2" y2="318.6"/>
+<line class="sm w15" x1="54.2" y1="318.6" x2="72.0" y2="292.0"/>
+<line class="sm w15" x1="72.0" y1="292.0" x2="98.6" y2="274.2"/>
+<line class="sb w25" x1="205.8" y1="318.6" x2="210.6" y2="343.1" marker-end="url(#s-blue)"/>
+<line class="sb w25" x1="212.0" y1="350.0" x2="207.1" y2="374.5" marker-end="url(#s-blue)"/>
+<line class="sb w25" x1="205.8" y1="381.4" x2="191.9" y2="402.2" marker-end="url(#s-blue)"/>
+<line class="sb w25" x1="188.0" y1="408.0" x2="167.2" y2="421.9" marker-end="url(#s-blue)"/>
+<circle class="cell sm w15" cx="130.0" cy="268.0" r="5"/>
+<circle class="cell sm w15" cx="161.4" cy="274.2" r="5"/>
+<circle class="cell sm w15" cx="188.0" cy="292.0" r="5"/>
+<circle class="fb si w1" cx="205.8" cy="318.6" r="6"/>
+<circle class="cell sb w2" cx="212.0" cy="350.0" r="5"/>
+<circle class="cell sb w2" cx="205.8" cy="381.4" r="5"/>
+<circle class="cell sb w2" cx="188.0" cy="408.0" r="5"/>
+<circle class="fb si w1" cx="161.4" cy="425.8" r="6"/>
+<circle class="cell sm w15" cx="130.0" cy="432.0" r="5"/>
+<circle class="cell sm w15" cx="98.6" cy="425.8" r="5"/>
+<circle class="cell sm w15" cx="72.0" cy="408.0" r="5"/>
+<circle class="cell sm w15" cx="54.2" cy="381.4" r="5"/>
+<circle class="cell sm w15" cx="48.0" cy="350.0" r="5"/>
+<circle class="cell sm w15" cx="54.2" cy="318.6" r="5"/>
+<circle class="cell sm w15" cx="72.0" cy="292.0" r="5"/>
+<circle class="cell sm w15" cx="98.6" cy="274.2" r="5"/>
+<line class="sm w1 dot" x1="176.2" y1="330.9" x2="205.8" y2="318.6"/><circle class="fbg si w2" cx="176.2" cy="330.9" r="4"/>
+<text class="n b" x="158.2" y="334.9">q</text>
+<line class="sm w1 dot" x1="149.1" y1="396.2" x2="161.4" y2="425.8"/><circle class="fbg si w2" cx="149.1" cy="396.2" r="4"/>
+<text class="n b" x="131.1" y="400.2">q′</text>
+<path class="nf sv w2 dash" d="M167.5 440.5 A98 98 0 0 0 220.5 312.5" marker-end="url(#s-verm)"/>
+<text class="n b" x="138.0" y="272.0">anchor</text>
+<text class="n b fb" x="238" y="296">forward path:</text><text class="n" x="238" y="312">signed swaps,</text><text class="n" x="238" y="327">composed</text>
+<text class="n b fv" x="238" y="364">backward path:</text><text class="n" x="238" y="380">reversed, each</text><text class="n" x="238" y="395">step cubed,</text><text class="n" x="238" y="410">B³ = B⁻¹, exact</text>
+<text class="n" x="30" y="462">Layout is schematic: which roots touch which edge is</text><text class="n" x="30" y="478">not drawn from the source graph.</text>
+<rect class="panel" x="358" y="48" width="300" height="452" rx="8"/>
+<text class="h" x="372" y="72">2  Two edges on a real vector</text>
+<text class="n" x="372" y="92">axis</text>
+<text class="n c" x="437" y="104">0</text>
+<text class="n c" x="465" y="104">1</text>
+<text class="n c" x="493" y="104">2</text>
+<text class="n c" x="521" y="104">3</text>
+<text class="n c" x="549" y="104">4</text>
+<text class="n c" x="577" y="104">5</text>
+<text class="n c" x="605" y="104">6</text>
+<text class="n c" x="633" y="104">7</text>
+<text class="n" x="368" y="127">start</text>
+<rect class="fb" x="424" y="110" width="26" height="26" rx="4"/><text class="t b c fbg" x="437" y="128">1</text>
+<rect class="fb" x="452" y="110" width="26" height="26" rx="4"/><text class="t b c fbg" x="465" y="128">1</text>
+<rect class="cell" x="480" y="110" width="26" height="26" rx="4"/><text class="n c" x="493" y="128">0</text>
+<rect class="cell" x="508" y="110" width="26" height="26" rx="4"/><text class="n c" x="521" y="128">0</text>
+<rect class="cell" x="536" y="110" width="26" height="26" rx="4"/><text class="n c" x="549" y="128">0</text>
+<rect class="cell" x="564" y="110" width="26" height="26" rx="4"/><text class="n c" x="577" y="128">0</text>
+<rect class="cell" x="592" y="110" width="26" height="26" rx="4"/><text class="n c" x="605" y="128">0</text>
+<rect class="cell" x="620" y="110" width="26" height="26" rx="4"/><text class="n c" x="633" y="128">0</text>
+<line class="sbd w15" x1="437" y1="138" x2="549" y2="190" marker-end="url(#s-ink)"/><line class="sbd w15" x1="465" y1="138" x2="493" y2="190" marker-end="url(#s-ink)"/>
+<text class="n b" x="566" y="150">edge B0</text><text class="n" x="566" y="165">swap axes,</text><text class="n" x="566" y="180">flip signs</text>
+<text class="n" x="368" y="209">after B0</text>
+<rect class="cell" x="424" y="192" width="26" height="26" rx="4"/><text class="n c" x="437" y="210">0</text>
+<rect class="cell" x="452" y="192" width="26" height="26" rx="4"/><text class="n c" x="465" y="210">0</text>
+<rect class="fb" x="480" y="192" width="26" height="26" rx="4"/><text class="t b c fbg" x="493" y="210">1</text>
+<rect class="cell" x="508" y="192" width="26" height="26" rx="4"/><text class="n c" x="521" y="210">0</text>
+<rect class="fb" x="536" y="192" width="26" height="26" rx="4"/><text class="t b c fbg" x="549" y="210">1</text>
+<rect class="cell" x="564" y="192" width="26" height="26" rx="4"/><text class="n c" x="577" y="210">0</text>
+<rect class="cell" x="592" y="192" width="26" height="26" rx="4"/><text class="n c" x="605" y="210">0</text>
+<rect class="cell" x="620" y="192" width="26" height="26" rx="4"/><text class="n c" x="633" y="210">0</text>
+<line class="sbd w15" x1="493" y1="220" x2="605" y2="272" marker-end="url(#s-ink)"/><line class="sbd w15" x1="549" y1="220" x2="577" y2="272" marker-end="url(#s-ink)"/>
+<text class="n b" x="372" y="232">edge B1</text><text class="n" x="372" y="247">swap axes,</text><text class="n" x="372" y="262">flip signs</text>
+<rect class="cell" x="424" y="274" width="26" height="26" rx="4"/><text class="n c" x="437" y="292">0</text>
+<rect class="cell" x="452" y="274" width="26" height="26" rx="4"/><text class="n c" x="465" y="292">0</text>
+<rect class="cell" x="480" y="274" width="26" height="26" rx="4"/><text class="n c" x="493" y="292">0</text>
+<rect class="cell" x="508" y="274" width="26" height="26" rx="4"/><text class="n c" x="521" y="292">0</text>
+<rect class="cell" x="536" y="274" width="26" height="26" rx="4"/><text class="n c" x="549" y="292">0</text>
+<rect class="fv" x="564" y="274" width="26" height="26" rx="4"/><text class="t b c fbg" x="577" y="292">−1</text>
+<rect class="fv" x="592" y="274" width="26" height="26" rx="4"/><text class="t b c fbg" x="605" y="292">−1</text>
+<rect class="cell" x="620" y="274" width="26" height="26" rx="4"/><text class="n c" x="633" y="292">0</text>
+<text class="n" x="368" y="291">after B1</text>
+<line class="rl" x1="372" y1="316" x2="644" y2="316"/>
+<text class="b" x="372" y="338">Composed into one signed action A</text>
+<text class="n" x="372" y="355">A = B1 · B0: axis 0 → 5, axis 1 → 6, both −</text>
+<rect class="cell" x="424" y="366" width="26" height="26" rx="4"/><text class="n c" x="437" y="384">0</text>
+<rect class="cell" x="452" y="366" width="26" height="26" rx="4"/><text class="n c" x="465" y="384">0</text>
+<rect class="cell" x="480" y="366" width="26" height="26" rx="4"/><text class="n c" x="493" y="384">0</text>
+<rect class="cell" x="508" y="366" width="26" height="26" rx="4"/><text class="n c" x="521" y="384">0</text>
+<rect class="cell" x="536" y="366" width="26" height="26" rx="4"/><text class="n c" x="549" y="384">0</text>
+<rect class="fv" x="564" y="366" width="26" height="26" rx="4"/><text class="t b c fbg" x="577" y="384">−1</text>
+<rect class="fv" x="592" y="366" width="26" height="26" rx="4"/><text class="t b c fbg" x="605" y="384">−1</text>
+<rect class="cell" x="620" y="366" width="26" height="26" rx="4"/><text class="n c" x="633" y="384">0</text>
+<text class="n" x="372" y="406">A applied to the start vector</text>
+<text class="tb fg" x="372" y="428">✓ equals the step-by-step result</text>
+<text class="n" x="372" y="452">All 8 axes move at each edge; only the two</text><text class="n" x="372" y="468">non-zero values are drawn. No coefficient is</text><text class="n" x="372" y="484">multiplied in anywhere.</text>
+<rect class="panel" x="670" y="48" width="274" height="452" rx="8"/>
+<text class="h" x="684" y="72">3  Dense against selected</text>
+<text class="n" x="706" y="96">8 input atoms</text><text class="n c" transform="rotate(-90 696 170)" x="696" y="170">6 output blocks</text>
+<rect class="fb" x="706" y="104" width="20" height="20" rx="3"/>
+<rect class="fb" x="728" y="104" width="20" height="20" rx="3"/>
+<rect class="fb" x="750" y="104" width="20" height="20" rx="3"/>
+<rect class="fb" x="772" y="104" width="20" height="20" rx="3"/>
+<rect class="fb" x="794" y="104" width="20" height="20" rx="3"/>
+<rect class="fb" x="816" y="104" width="20" height="20" rx="3"/>
+<rect class="fb" x="838" y="104" width="20" height="20" rx="3"/>
+<rect class="fb" x="860" y="104" width="20" height="20" rx="3"/>
+<rect class="fb" x="706" y="126" width="20" height="20" rx="3"/>
+<rect class="fb" x="728" y="126" width="20" height="20" rx="3"/>
+<rect class="fb" x="750" y="126" width="20" height="20" rx="3"/>
+<rect class="fb" x="772" y="126" width="20" height="20" rx="3"/>
+<rect class="fb" x="794" y="126" width="20" height="20" rx="3"/>
+<rect class="fb" x="816" y="126" width="20" height="20" rx="3"/>
+<rect class="fb" x="838" y="126" width="20" height="20" rx="3"/>
+<rect class="fb" x="860" y="126" width="20" height="20" rx="3"/>
+<rect class="fb" x="706" y="148" width="20" height="20" rx="3"/>
+<rect class="fb" x="728" y="148" width="20" height="20" rx="3"/>
+<rect class="fb" x="750" y="148" width="20" height="20" rx="3"/>
+<rect class="fb" x="772" y="148" width="20" height="20" rx="3"/>
+<rect class="fb" x="794" y="148" width="20" height="20" rx="3"/>
+<rect class="fb" x="816" y="148" width="20" height="20" rx="3"/>
+<rect class="fb" x="838" y="148" width="20" height="20" rx="3"/>
+<rect class="fb" x="860" y="148" width="20" height="20" rx="3"/>
+<rect class="fb" x="706" y="170" width="20" height="20" rx="3"/>
+<rect class="fb" x="728" y="170" width="20" height="20" rx="3"/>
+<rect class="fb" x="750" y="170" width="20" height="20" rx="3"/>
+<rect class="fb" x="772" y="170" width="20" height="20" rx="3"/>
+<rect class="fb" x="794" y="170" width="20" height="20" rx="3"/>
+<rect class="fb" x="816" y="170" width="20" height="20" rx="3"/>
+<rect class="fb" x="838" y="170" width="20" height="20" rx="3"/>
+<rect class="fb" x="860" y="170" width="20" height="20" rx="3"/>
+<rect class="fb" x="706" y="192" width="20" height="20" rx="3"/>
+<rect class="fb" x="728" y="192" width="20" height="20" rx="3"/>
+<rect class="fb" x="750" y="192" width="20" height="20" rx="3"/>
+<rect class="fb" x="772" y="192" width="20" height="20" rx="3"/>
+<rect class="fb" x="794" y="192" width="20" height="20" rx="3"/>
+<rect class="fb" x="816" y="192" width="20" height="20" rx="3"/>
+<rect class="fb" x="838" y="192" width="20" height="20" rx="3"/>
+<rect class="fb" x="860" y="192" width="20" height="20" rx="3"/>
+<rect class="fb" x="706" y="214" width="20" height="20" rx="3"/>
+<rect class="fb" x="728" y="214" width="20" height="20" rx="3"/>
+<rect class="fb" x="750" y="214" width="20" height="20" rx="3"/>
+<rect class="fb" x="772" y="214" width="20" height="20" rx="3"/>
+<rect class="fb" x="794" y="214" width="20" height="20" rx="3"/>
+<rect class="fb" x="816" y="214" width="20" height="20" rx="3"/>
+<rect class="fb" x="838" y="214" width="20" height="20" rx="3"/>
+<rect class="fb" x="860" y="214" width="20" height="20" rx="3"/>
+<text class="t" x="684" y="254">Dense: every input block feeds</text><text class="t" x="684" y="270">every output block, one coefficient</text><text class="t" x="684" y="286">per pair.</text>
+<line class="rl" x1="684" y1="298" x2="930" y2="298"/>
+<rect class="cell" x="706" y="314" width="20" height="20" rx="3"/>
+<rect class="cell" x="728" y="314" width="20" height="20" rx="3"/>
+<rect class="cell" x="750" y="314" width="20" height="20" rx="3"/>
+<rect class="fv" x="772" y="314" width="20" height="20" rx="3"/>
+<rect class="cell" x="794" y="314" width="20" height="20" rx="3"/>
+<rect class="cell" x="816" y="314" width="20" height="20" rx="3"/>
+<rect class="cell" x="838" y="314" width="20" height="20" rx="3"/>
+<rect class="cell" x="860" y="314" width="20" height="20" rx="3"/>
+<text class="n" x="888" y="328">atom 3</text>
+<rect class="cell" x="706" y="336" width="20" height="20" rx="3"/>
+<rect class="cell" x="728" y="336" width="20" height="20" rx="3"/>
+<rect class="cell" x="750" y="336" width="20" height="20" rx="3"/>
+<rect class="cell" x="772" y="336" width="20" height="20" rx="3"/>
+<rect class="cell" x="794" y="336" width="20" height="20" rx="3"/>
+<rect class="cell" x="816" y="336" width="20" height="20" rx="3"/>
+<rect class="fv" x="838" y="336" width="20" height="20" rx="3"/>
+<rect class="cell" x="860" y="336" width="20" height="20" rx="3"/>
+<text class="n" x="888" y="350">atom 6</text>
+<rect class="fv" x="706" y="358" width="20" height="20" rx="3"/>
+<rect class="cell" x="728" y="358" width="20" height="20" rx="3"/>
+<rect class="cell" x="750" y="358" width="20" height="20" rx="3"/>
+<rect class="cell" x="772" y="358" width="20" height="20" rx="3"/>
+<rect class="cell" x="794" y="358" width="20" height="20" rx="3"/>
+<rect class="cell" x="816" y="358" width="20" height="20" rx="3"/>
+<rect class="cell" x="838" y="358" width="20" height="20" rx="3"/>
+<rect class="cell" x="860" y="358" width="20" height="20" rx="3"/>
+<text class="n" x="888" y="372">atom 0</text>
+<rect class="cell" x="706" y="380" width="20" height="20" rx="3"/>
+<rect class="cell" x="728" y="380" width="20" height="20" rx="3"/>
+<rect class="cell" x="750" y="380" width="20" height="20" rx="3"/>
+<rect class="fv" x="772" y="380" width="20" height="20" rx="3"/>
+<rect class="cell" x="794" y="380" width="20" height="20" rx="3"/>
+<rect class="cell" x="816" y="380" width="20" height="20" rx="3"/>
+<rect class="cell" x="838" y="380" width="20" height="20" rx="3"/>
+<rect class="cell" x="860" y="380" width="20" height="20" rx="3"/>
+<text class="n" x="888" y="394">atom 3</text>
+<rect class="cell" x="706" y="402" width="20" height="20" rx="3"/>
+<rect class="cell" x="728" y="402" width="20" height="20" rx="3"/>
+<rect class="cell" x="750" y="402" width="20" height="20" rx="3"/>
+<rect class="cell" x="772" y="402" width="20" height="20" rx="3"/>
+<rect class="cell" x="794" y="402" width="20" height="20" rx="3"/>
+<rect class="fv" x="816" y="402" width="20" height="20" rx="3"/>
+<rect class="cell" x="838" y="402" width="20" height="20" rx="3"/>
+<rect class="cell" x="860" y="402" width="20" height="20" rx="3"/>
+<text class="n" x="888" y="416">atom 5</text>
+<rect class="cell" x="706" y="424" width="20" height="20" rx="3"/>
+<rect class="fv" x="728" y="424" width="20" height="20" rx="3"/>
+<rect class="cell" x="750" y="424" width="20" height="20" rx="3"/>
+<rect class="cell" x="772" y="424" width="20" height="20" rx="3"/>
+<rect class="cell" x="794" y="424" width="20" height="20" rx="3"/>
+<rect class="cell" x="816" y="424" width="20" height="20" rx="3"/>
+<rect class="cell" x="838" y="424" width="20" height="20" rx="3"/>
+<rect class="cell" x="860" y="424" width="20" height="20" rx="3"/>
+<text class="n" x="888" y="438">atom 1</text>
+<text class="t" x="684" y="464">Selected: each output block reads</text><text class="t" x="684" y="480">exactly one atom, and there is no</text><text class="t" x="684" y="496">coefficient for any pair.</text>
+<text class="n" x="16" y="522">Tree, ring layout, atom choices and grid sizes are schematic. The 8-vector example is computed from the SpiralCore octonion table. Status: ready.</text>
+</svg>

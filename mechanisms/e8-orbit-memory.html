@@ -1,0 +1,314 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>E8 orbit memory - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="../start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="../start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="../start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="../start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="../start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="../start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="../products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="../products/web-client.html"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="../products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="../products/releases-and-artifacts.html"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="../model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="../model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="../model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="../geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="../geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="../geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="../geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="../geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="../geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="../geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="../mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="../mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="../mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="../mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="../mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="../mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="../mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/hopf-observation.html"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="../mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="../mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="../mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="../mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="../mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="../mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="../mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="../mechanisms/pointer-key.html"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="../mechanisms/e8-orbit-memory.html" class="active"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="../mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="../mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="../mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="../mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="../mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="../mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="../mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="../mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="../mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="../research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="../research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="../research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="../research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="../research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="../research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="../research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="../research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="../research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="../research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="../research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="../research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="../research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="../research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="../research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="../research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="../research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="../research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="../research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="../rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../rules/decision-map.html"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="../rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="../CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../formal_vocabulary.html"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="../CONFIGURATION.html"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="../reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="../minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="../RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="../projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="../projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="../projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="../projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="../projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="../projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="../projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="e8-orbit-memory"><a class="header" href="#e8-orbit-memory">E8 orbit memory</a></h1>
+<p><strong>Status: PARKED.</strong> Replacing half of the feed-forward layers with this memory stayed inside its quality bar (+0.033 bits per byte), but a learned address book of the same size beat the fixed E8 addresses by 0.023. So the geometry earned no credit. The read weight also uses a sigmoid, which the project now bans.</p>
+<p>Labels used below: <strong>proof</strong> means derived from definitions or code, <strong>measurement</strong> means a recorded run, <strong>hypothesis</strong> means an untested idea. See <a href="../formal_vocabulary.html"><code>docs/formal_vocabulary.md</code></a>.</p>
+<h2 id="in-plain-words"><a class="header" href="#in-plain-words">In plain words</a></h2>
+<p>Instead of running a full feed-forward layer, the model reads a handful of rows from a very large table. The row addresses come from the 240 special points of the E8 lattice, an eight-dimensional pattern of points (the E8 roots). A fast exact rule finds the nearest special point to each half of the query. The hope is a fixed, exact address book that touches a few rows per token rather than running a full dense layer. In the one trial, the fixed address book did slightly worse than an address book the model learns for itself.</p>
+<h2 id="what-it-replaces-in-a-transformer"><a class="header" href="#what-it-replaces-in-a-transformer">What it replaces in a transformer</a></h2>
+<p>The feed-forward block (also called the MLP). In a transformer this is the large layer after attention that processes each word, and it holds most of the arithmetic. Here a table lookup of a few rows takes its place. The table is far larger, but only a few rows are read per token.</p>
+<p><img src="../figures/mechanisms/e8-orbit-memory.svg" alt="The 240 E8 roots drawn as a ring of 15 coloured clusters of 16. A query half snaps to its nearest root and the other 15 members of that root&#39;s orbit light up as candidates. Beside it, a 240 by 240 grid of value slots where two selections cross and the top 8 cells light up, next to a dense layer drawn as a full block. Below, a four-bar chart of held-out bits per byte with the 0.0054 noise band marked." /></p>
+<p><em>Left, how a query picks candidate rows. Right, the geometry stays inside the quality bar but behind its learned twin.</em></p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p><strong>The E8 roots (the count is proof; the integer decode was checked by measurement on 20,000 queries).</strong> The 240 roots are 112 vectors of the form \((\pm1,\pm1,0,0,0,0,0,0)\) in any arrangement, plus 128 vectors \((\pm\tfrac12,\dots,\pm\tfrac12)\) with an even number of minus signs. The code stores them in doubled integer coordinates, so they are exact integers.</p>
+<p><strong>Per head, in four steps.</strong></p>
+<ol>
+<li><strong>Cut and decode.</strong> The query is cut into two 8-dimensional halves. Each half is decoded to its nearest E8 root in \(O(8)\) operations: the two largest \(|x_i|\) with sign rules, or all signs with a parity fix for the half-integer roots. No 240-way scan is needed. It was checked against a full scan on 20,000 queries.</li>
+<li><strong>Orbits.</strong> SpiralCore's group of 64 signed axis permutations (\(\mathrm{Cl}(0,6)\)) splits the 240 roots into 15 orbits of 16 (240 = 15 × 16). A half's candidates are the 16 roots of its decoded root's orbit.</li>
+<li><strong>Slots.</strong> The two halves together address a grid of \(240\times240=57{,}600\) value slots. The head keeps the top \(k\) by combined score (\(k=8\) in the rung that ran).</li>
+<li><strong>Read.</strong> A kept slot of rank \(r\) is weighted by</li>
+</ol>
+<p>\[w_r = R[h][r]\cdot\sigma(\beta s+\gamma),\]</p>
+<p>a learned rank table \(R\) times a logistic-sigmoid gate on the score \(s\). There is no softmax. The output is the weighted sum of the kept value rows. Slot choice is detached from training, so only the query map, rank table, gate scale and the values learn.</p>
+<p><strong>Size.</strong> The value table has \(57{,}600\times256\) float values, about 59 MB per layer (proof by arithmetic: \(57{,}600\times256\times4\) bytes). A token reads 32 of its rows. The design arithmetic is about 27 thousand multiply-adds per token against 270 thousand for the dense layer it replaces, roughly tenfold. That figure is arithmetic, <strong>not</strong> a measured speed or energy saving.</p>
+<p><strong>Rule check.</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Rule</th><th>Verdict</th></tr></thead><tbody>
+<tr><td>No softmax (D23)</td><td>Broken as built. The read weight uses a sigmoid, and sigmoid is banned along with softmax</td></tr>
+<tr><td>No matrix multiplication (D30)</td><td>Not clean. The query map and value mixing are dense float operations. The static E8 and SpiralCore tables were rebuilt without a generic 8 by 8 matrix product (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/native-vector-transport-2026-10-12/README.md">record</a>)</td></tr>
+<tr><td>Integer-only serving (D11)</td><td>No served form. Export refuses, and integer serving refuses product-key memory. The value tables are float. The decode, orbit tables and route transport are exact integer lookups</td></tr>
+<tr><td>Discrete path (D32) and offline float (D37)</td><td>Not on the discrete path. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised">D37</a> would allow offline float training only as a new reviewed sheet with an integer export and a reported gap</td></tr>
+</tbody></table>
+</div>
+<h2 id="what-has-been-tried"><a class="header" href="#what-has-been-tried">What has been tried</a></h2>
+<p>BPB means bits per byte on held-out text, lower is better.</p>
+<div class="table-wrapper"><table><thead><tr><th>Date</th><th>What was run</th><th>Result</th><th>Verdict</th><th>Record</th></tr></thead><tbody>
+<tr><td>26 Sep</td><td>Associative recall with a minimal head: E8 block codes against sign-bit codes and float scores, 64 pairs for training, up to 512 pairs at test</td><td>E8 recalled 100.0% at 512 pairs. At 8 bits E8 25.8% against sign bits 21.9%. In a language model, E8 trained worse than sign bits</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/geometric-attention-2026-09-26.md">record</a></td></tr>
+<tr><td>27 Sep</td><td>Implementation of product-key layers with learned, fixed-H4 (14,400 slots) and fixed-E8 (57,600 slots) sub-keys</td><td>Selection equals brute-force top-k. Gradients match finite differences. The experiment was not run</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/memory-layers-cycle5-2026-09-27.md">record</a></td></tr>
+<tr><td>28 Sep</td><td>Addressing contest on a fitted quaternion parent: E8, H4 and k-means codes as an index over events</td><td>Not qualified. Recall at 1: k-means 0.9813, H4 0.9696, E8 0.9450. Read loss against full: +0.007201, +0.009313, +0.012083. The comparison is confounded by magnitude (the record says so)</td><td>negative</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/addressing-contest-result-2026-09-28.md">record</a></td></tr>
+<tr><td>11 Oct</td><td><strong>Rung 1.</strong> E8 replacing half (layers 1, 3, 5, 7: E8h) or all 8 (E8a) feed-forward layers. Width 256, 2,000 steps, 2 seeds, laptop CPU. Dense control D256 and a learned product-key twin P of equal capacity</td><td>BPB: D256 1.4078, P 1.4175 (+0.010), <strong>E8h 1.4406 (+0.033)</strong>, E8a 1.5237 (+0.116). Noise 0.0054. Orbit entropy 3.85 to 3.87 of 3.91 bits and 83 to 87% of slots read, so routing did not collapse. CPU speed 1,330 tokens per second (E8h), 405 (E8a), 2,140 (P)</td><td>inconclusive: keep and iterate</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/e8-orbit-memory-2026-10-11/README.md">record</a></td></tr>
+<tr><td>11 Oct</td><td>Integration ledger citing the rung</td><td>The tenfold multiply-add saving is design arithmetic. Broad entropy and coverage rule out collapse overall, not every query-level address failure</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/unified-geometric-integration-2026-10-11/README.md">record</a></td></tr>
+<tr><td>11 Oct</td><td>Whole-path source reuses the E8 tables, compiling 15,360 action images once</td><td>Source kept, no training. E8 is used as an exact route beside exact content identity, not as an MLP replacement. The saved 437 of 512 model is unchanged</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/native-bound-content-2026-10-11/README.md">record</a></td></tr>
+<tr><td>12 Oct</td><td>Removed generic 8 by 8 matrix multiplication from the static tables</td><td>3 static-algebra tests pass. All 240 doubled roots are preserved bijectively under each of the 64 actions and inverses. No model run</td><td>positive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/native-vector-transport-2026-10-12/README.md">record</a></td></tr>
+<tr><td>12 Oct</td><td>Whole-path source with a 240-way write key and 15 orbit-family profiles</td><td>Source kept. 5 E8 regression tests pass on the CPU. GPU run not done. The sampled producer was later blocked by the no-softmax rule</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/whole-path-recovery-2026-10-12/README.md">record</a></td></tr>
+<tr><td>12 Oct</td><td>Project-manager review of the lab record</td><td>Restates the outcome as keep and iterate: learned keys beat fixed E8 addresses by 0.023 BPB</td><td>inconclusive</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/kimi-direction-2026-10-12/README.md">record</a></td></tr>
+</tbody></table>
+</div>
+<p><strong>Reading these honestly.</strong> The rung's decision rule was "half the layers within the larger of 0.05 or two times the noise", and E8h (+0.033) met it. That is why the outcome is keep-and-iterate, not a failure. But the learned twin beat E8h by 0.0231 BPB, about four times the noise. Learned sub-keys addressed the slots better than fixed E8 roots at this scale. The record could not tell whether the gap comes from the fixed addresses or from the value capacity per slot (hypothesis on either side). So the geometry earned no credit. Replacing all eight layers cost +0.116, which says too much capacity was removed at width 256 for 2,000 steps. It does not say E8 addressing fails. The result is one configuration: 2,000 steps, 2 seeds, a laptop CPU, a sigmoid gate. It was the last rung of its kind on the laptop CPU; geometric-stack training now goes to rented GPUs. The speed numbers are host-side slot selection, not an integer table read.</p>
+<h2 id="what-has-never-been-tested"><a class="header" href="#what-has-never-been-tested">What has never been tested</a></h2>
+<ul>
+<li>Any E8 memory run after rung 1: no run with \(k=16\), no learned per-orbit offsets, no GPU run of the layer.</li>
+<li>E8 memory trained in from pretraining. The rung trained a 256-wide stack for 2,000 steps from scratch on its own recipe.</li>
+<li>A gate with no softmax and no sigmoid, or any discrete form of the layer.</li>
+<li>Integer value tables and a served form, with measured tokens per second and an export gap.</li>
+<li>E8 memory as the read itself ("address instead of search"). Only the feed-forward layer was replaced.</li>
+<li>E8 as the write address of facts, with prime semiprimes as the exact check.</li>
+<li>Query-level address quality. The entropy and coverage statistics are aggregates.</li>
+</ul>
+<h2 id="a-fair-test-needs"><a class="header" href="#a-fair-test-needs">A fair test needs</a></h2>
+<p><em>From the earlier brief, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/mechanisms/e8-orbit-memory-2026-10-20.md">archive/mechanisms/e8-orbit-memory-2026-10-20.md</a>.</em></p>
+<ul>
+<li>A capacity-matched learned-key control (P).</li>
+<li>Routing health (entropy and slot share), to tell collapse from capacity.</li>
+<li>Matched training steps and the same panel.</li>
+<li>GPU training: a CPU run of E8a took about 6 h.</li>
+</ul>
+<h2 id="what-would-reopen-it"><a class="header" href="#what-would-reopen-it">What would reopen it</a></h2>
+<ol>
+<li><strong>Run the next rung the record names</strong>, GPU only and pre-registered with a fresh <code>TEST FITNESS: FIT</code> review: raise \(k\) from 8 to 16, and add learned per-orbit residual offsets on the E8 frame. The offsets separate "fixed addresses" from "value capacity" as the cause of the 0.023 gap.</li>
+<li><strong>Replace the sigmoid gate</strong> with one that obeys the no-softmax rule, such as a rank table with a hard threshold or exact selection. Register it as an offline float sheet (D37) in a separately scanned module with an integer export (integer value tables, E8 decode as table lookups) and a reported export gap. An owner release is required.</li>
+<li><strong>Keep the fair-test conditions.</strong> A capacity-matched control (P, the learned-key twin, which uses a float sigmoid gate), taken from stored rung-1 outputs or replaced by a lawful count-table control because new neural controls are barred until the model works end to end (charter section 3.10); routing health (orbit entropy and slot share), matched training steps, the same panel, and at least 2 seeds.</li>
+<li><strong>Provide a served form.</strong> Integer serving refuses product-key memory today, and a multiply-add saving did not appear in tokens per second for the learned-key twin. Report tokens per second.</li>
+</ol>
+<h2 id="also-known-as"><a class="header" href="#also-known-as">Also known as</a></h2>
+<p>Exact-E8-addressed memory; E8 memory in place of the MLP; <code>e8_memory</code> (arms E8h and E8a); fixed E8 product-key memory.</p>
+<h2 id="code"><a class="header" href="#code">Code</a></h2>
+<ul>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/e8_memory.rs"><code>e8_memory.rs</code></a>: <code>e8_tables</code>, <code>E8Tables::nearest</code>, <code>e8_select</code>, <code>e8_memory_read</code>, usage logging. The training flag is <code>e8_memory=LAYERS:HEADS:K</code>.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/stack_memory.rs"><code>stack_memory.rs</code></a>: the product-key layer with fixed H4 or E8 sub-keys, and the capacity-matched learned-key control P.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-core/src/spiralcore_operator.rs"><code>spiralcore_operator.rs</code></a>: signed-axis composition and <code>apply_root_key</code>, which build the orbits and the 64 action tables without a generic matrix product.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-training/src/whole_path_learning.rs"><code>whole_path_learning.rs</code></a>: the whole-path source that reuses the E8 tables as a bounded record index (CPU fixtures only).</li>
+</ul>
+<h2 id="related-mechanisms"><a class="header" href="#related-mechanisms">Related mechanisms</a></h2>
+<p><a href="exact-memory.html">exact-memory</a>: the parent family. This is its product-key memory with fixed E8 sub-keys, replacing a feed-forward layer. <a href="spiralcore-fbs.html">spiralcore-fbs</a>: supplies the 64-element group whose actions define the 15 orbits. <a href="spin-weights.html">spin-weights</a>: the 120-icosian H4 variant of the same layer. <a href="admission.html">admission</a>: the addressing contest used E8 codes as an event index. <a href="carrier-credit.html">carrier-credit</a> and <a href="discrete-learning.html">discrete-learning</a>: the whole-path and discrete lines that reuse the exact tables. <a href="ternary-xor.html">ternary-xor</a>: E8 is a lifted Hamming code, the bridge to XOR and bit-count arithmetic.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../mechanisms/pointer-key.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../mechanisms/ternary-xor.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../mechanisms/pointer-key.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../mechanisms/ternary-xor.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

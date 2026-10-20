@@ -1,0 +1,605 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Formal vocabulary and claim classes - UOR-R4</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">UOR-R4 documentation</a></li><li class="chapter-item expanded affix "><li class="part-title">Start here</li><li class="chapter-item expanded "><a href="start/what-is-uor-r4.html"><strong aria-hidden="true">1.</strong> What UOR-R4 is</a></li><li class="chapter-item expanded "><a href="start/transformer-vs-geometry.html"><strong aria-hidden="true">2.</strong> Transformer parts and their geometric replacements</a></li><li class="chapter-item expanded "><a href="start/where-we-are.html"><strong aria-hidden="true">3.</strong> Where UOR-R4 is today</a></li><li class="chapter-item expanded "><a href="start/where-were-going.html"><strong aria-hidden="true">4.</strong> Where UOR-R4 is going</a></li><li class="chapter-item expanded "><a href="start/faq.html"><strong aria-hidden="true">5.</strong> Frequently asked questions</a></li><li class="chapter-item expanded "><a href="start/glossary.html"><strong aria-hidden="true">6.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Products</li><li class="chapter-item expanded "><a href="products/index.html"><strong aria-hidden="true">7.</strong> The three products</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="products/language-model.html"><strong aria-hidden="true">7.1.</strong> The language model</a></li><li class="chapter-item expanded "><a href="products/web-client.html"><strong aria-hidden="true">7.2.</strong> The web client</a></li><li class="chapter-item expanded "><a href="products/desktop-client.html"><strong aria-hidden="true">7.3.</strong> The desktop client (specification)</a></li><li class="chapter-item expanded "><a href="products/releases-and-artifacts.html"><strong aria-hidden="true">7.4.</strong> Releases and artifacts</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">The model</li><li class="chapter-item expanded "><a href="model/architecture.html"><strong aria-hidden="true">8.</strong> The model, end to end</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="model/training.html"><strong aria-hidden="true">8.1.</strong> How the model learns</a></li><li class="chapter-item expanded "><a href="model/data-and-tokenizer.html"><strong aria-hidden="true">8.2.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="model/serving-and-export.html"><strong aria-hidden="true">8.3.</strong> Serving and export</a></li><li class="chapter-item expanded "><a href="model/gpu-and-cuda.html"><strong aria-hidden="true">8.4.</strong> GPUs and CUDA</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Geometry</li><li class="chapter-item expanded "><a href="geometry/index.html"><strong aria-hidden="true">9.</strong> The geometry of UOR-R4</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="geometry/quaternions-and-rotation.html"><strong aria-hidden="true">9.1.</strong> Quaternions and rotation</a></li><li class="chapter-item expanded "><a href="geometry/e8-h4-and-the-600-cell.html"><strong aria-hidden="true">9.2.</strong> E8, H4 and the 600-cell</a></li><li class="chapter-item expanded "><a href="geometry/golden-integers.html"><strong aria-hidden="true">9.3.</strong> Golden integers</a></li><li class="chapter-item expanded "><a href="geometry/hopf-observation.html"><strong aria-hidden="true">9.4.</strong> The Hopf map and the kept fibre</a></li><li class="chapter-item expanded "><a href="geometry/primes-and-zeta.html"><strong aria-hidden="true">9.5.</strong> Primes and zeta phases</a></li><li class="chapter-item expanded "><a href="geometry/vsa-and-hamming.html"><strong aria-hidden="true">9.6.</strong> VSA and Hamming distance</a></li><li class="chapter-item expanded "><a href="geometry/spiralcore.html"><strong aria-hidden="true">9.7.</strong> SpiralCore</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Mechanisms</li><li class="chapter-item expanded "><a href="mechanisms/index.html"><strong aria-hidden="true">10.</strong> The mechanism board</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="mechanisms/route-read.html"><strong aria-hidden="true">10.1.</strong> Routed read</a></li><li class="chapter-item expanded "><a href="mechanisms/flock-read.html"><strong aria-hidden="true">10.2.</strong> Flock read</a></li><li class="chapter-item expanded "><a href="mechanisms/relation-read.html"><strong aria-hidden="true">10.3.</strong> Relation read</a></li><li class="chapter-item expanded "><a href="mechanisms/admission.html"><strong aria-hidden="true">10.4.</strong> Admission</a></li><li class="chapter-item expanded "><a href="mechanisms/prime-zeta-codebook.html"><strong aria-hidden="true">10.5.</strong> Prime-zeta codebook</a></li><li class="chapter-item expanded "><a href="mechanisms/address-cells.html"><strong aria-hidden="true">10.6.</strong> Address-structured cells</a></li><li class="chapter-item expanded "><a href="mechanisms/vsa.html"><strong aria-hidden="true">10.7.</strong> Vector-symbolic binding</a></li><li class="chapter-item expanded "><a href="mechanisms/hopf-observation.html"><strong aria-hidden="true">10.8.</strong> Hopf observation with a kept fibre</a></li><li class="chapter-item expanded "><a href="mechanisms/tokenizer.html"><strong aria-hidden="true">10.9.</strong> Tokenizer</a></li><li class="chapter-item expanded "><a href="mechanisms/discrete-learning.html"><strong aria-hidden="true">10.10.</strong> Discrete geometric learning</a></li><li class="chapter-item expanded "><a href="mechanisms/rank-margin.html"><strong aria-hidden="true">10.11.</strong> Rank-margin hinge objective</a></li><li class="chapter-item expanded "><a href="mechanisms/legal-construction.html"><strong aria-hidden="true">10.12.</strong> Protected legal construction</a></li><li class="chapter-item expanded "><a href="mechanisms/carrier-credit.html"><strong aria-hidden="true">10.13.</strong> Live geometric carrier credit</a></li><li class="chapter-item expanded "><a href="mechanisms/exact-memory.html"><strong aria-hidden="true">10.14.</strong> Exact addressed memory</a></li><li class="chapter-item expanded "><a href="mechanisms/object-store.html"><strong aria-hidden="true">10.15.</strong> Exact byte object store</a></li><li class="chapter-item expanded "><a href="mechanisms/read-binding.html"><strong aria-hidden="true">10.16.</strong> Read binding</a></li><li class="chapter-item expanded "><a href="mechanisms/pointer-key.html"><strong aria-hidden="true">10.17.</strong> Pointer copy with an exact identity key</a></li><li class="chapter-item expanded "><a href="mechanisms/e8-orbit-memory.html"><strong aria-hidden="true">10.18.</strong> E8 orbit memory</a></li><li class="chapter-item expanded "><a href="mechanisms/ternary-xor.html"><strong aria-hidden="true">10.19.</strong> Ternary and XOR/Hamming arithmetic</a></li><li class="chapter-item expanded "><a href="mechanisms/spin-weights.html"><strong aria-hidden="true">10.20.</strong> Spin-native weights</a></li><li class="chapter-item expanded "><a href="mechanisms/hamilton-gate.html"><strong aria-hidden="true">10.21.</strong> Hamilton rotation gate</a></li><li class="chapter-item expanded "><a href="mechanisms/recurrence-gates.html"><strong aria-hidden="true">10.22.</strong> Geometric recurrence gates</a></li><li class="chapter-item expanded "><a href="mechanisms/spiralcore-fbs.html"><strong aria-hidden="true">10.23.</strong> SpiralCore transport with ternary tree binders</a></li><li class="chapter-item expanded "><a href="mechanisms/geometric-stack.html"><strong aria-hidden="true">10.24.</strong> Geometric stack</a></li><li class="chapter-item expanded "><a href="mechanisms/r4g1-graph.html"><strong aria-hidden="true">10.25.</strong> R4G1 compiled lookup graph</a></li><li class="chapter-item expanded "><a href="mechanisms/lut-serving.html"><strong aria-hidden="true">10.26.</strong> D11 integer table serving</a></li><li class="chapter-item expanded "><a href="mechanisms/native-geometric.html"><strong aria-hidden="true">10.27.</strong> Native geometric engine</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Research</li><li class="chapter-item expanded "><a href="research/index.html"><strong aria-hidden="true">11.</strong> How research is done now</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/findings.html"><strong aria-hidden="true">11.1.</strong> What the project knows</a></li><li class="chapter-item expanded "><a href="research/open-questions.html"><strong aria-hidden="true">11.2.</strong> What is still open</a></li><li class="chapter-item expanded "><a href="research/history.html"><strong aria-hidden="true">11.3.</strong> How the project got here</a></li><li class="chapter-item expanded "><a href="research/lines/index.html"><strong aria-hidden="true">11.4.</strong> The research lines</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/lines/m1-discrete-attention.html"><strong aria-hidden="true">11.4.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="research/lines/m1-prime-zeta.html"><strong aria-hidden="true">11.4.2.</strong> The prime-zeta codebook (M1)</a></li><li class="chapter-item expanded "><a href="research/lines/m1-float-rung0.html"><strong aria-hidden="true">11.4.3.</strong> The float route to rung 0 (M1)</a></li><li class="chapter-item expanded "><a href="research/lines/m2-exact-memory.html"><strong aria-hidden="true">11.4.4.</strong> Grounded replies from exact memory (M2)</a></li><li class="chapter-item expanded "><a href="research/lines/m3-durable-memory.html"><strong aria-hidden="true">11.4.5.</strong> Durable memory and the object store (M3)</a></li><li class="chapter-item expanded "><a href="research/lines/m4-serving.html"><strong aria-hidden="true">11.4.6.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="research/lines/m5-energy.html"><strong aria-hidden="true">11.4.7.</strong> Laptop energy and cost (M5)</a></li><li class="chapter-item expanded "><a href="research/lines/m7-distribution.html"><strong aria-hidden="true">11.4.8.</strong> API, browser runtime and Studio (M7)</a></li><li class="chapter-item expanded "><a href="research/lines/geometric-stack-pretraining.html"><strong aria-hidden="true">11.4.9.</strong> The geometric stack</a></li><li class="chapter-item expanded "><a href="research/lines/native-geometric-sept.html"><strong aria-hidden="true">11.4.10.</strong> The September native geometric model</a></li><li class="chapter-item expanded "><a href="research/lines/geometric-intelligence-aug.html"><strong aria-hidden="true">11.4.11.</strong> The August geometric intelligence programme</a></li><li class="chapter-item expanded "><a href="research/lines/r4g1-transformerless.html"><strong aria-hidden="true">11.4.12.</strong> Compiling a teacher into tables (R4G1)</a></li><li class="chapter-item expanded "><a href="research/lines/spiralcore-wire.html"><strong aria-hidden="true">11.4.13.</strong> SpiralCore wire transport</a></li><li class="chapter-item expanded "><a href="research/lines/data-tokenizer.html"><strong aria-hidden="true">11.4.14.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="research/lines/eval-panels.html"><strong aria-hidden="true">11.4.15.</strong> Evaluation panels and graders</a></li><li class="chapter-item expanded "><a href="research/lines/compute-ops.html"><strong aria-hidden="true">11.4.16.</strong> GPU and pod operations</a></li><li class="chapter-item expanded "><a href="research/lines/harness-governance.html"><strong aria-hidden="true">11.4.17.</strong> Research tooling and rules</a></li></ol></li><li class="chapter-item expanded "><a href="research/notebook/index.html"><strong aria-hidden="true">11.5.</strong> Research notebooks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/notebook/m1-discrete-attention.html"><strong aria-hidden="true">11.5.1.</strong> Discrete attention for the language base (M1)</a></li><li class="chapter-item expanded "><a href="research/notebook/m1-prime-zeta.html"><strong aria-hidden="true">11.5.2.</strong> Prime and zeta starting codebook (M1)</a></li><li class="chapter-item expanded "><a href="research/notebook/m3-durable-memory.html"><strong aria-hidden="true">11.5.3.</strong> Durable memory (M3)</a></li><li class="chapter-item expanded "><a href="research/notebook/m4-serving.html"><strong aria-hidden="true">11.5.4.</strong> Integer serving (M4)</a></li><li class="chapter-item expanded "><a href="research/notebook/data-tokenizer.html"><strong aria-hidden="true">11.5.5.</strong> Data and tokenizer</a></li><li class="chapter-item expanded "><a href="research/notebook/harness-governance.html"><strong aria-hidden="true">11.5.6.</strong> Research tooling and governance</a></li></ol></li></ol></li><li class="chapter-item expanded "><li class="part-title">Rules</li><li class="chapter-item expanded "><a href="rules/index.html"><strong aria-hidden="true">12.</strong> The rules in plain language</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="rules/decision-map.html"><strong aria-hidden="true">12.1.</strong> Where each old decision went</a></li><li class="chapter-item expanded "><a href="rules/changes.html"><strong aria-hidden="true">12.2.</strong> Change log for the rules</a></li></ol></li><li class="chapter-item expanded "><a href="CHARTER.html"><strong aria-hidden="true">13.</strong> The charter</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="formal_vocabulary.html" class="active"><strong aria-hidden="true">14.</strong> Formal vocabulary and claim classes</a></li><li class="chapter-item expanded "><a href="CONFIGURATION.html"><strong aria-hidden="true">15.</strong> Configuration reference</a></li><li class="chapter-item expanded "><a href="reproducibility.html"><strong aria-hidden="true">16.</strong> Canonical artifact byte equality</a></li><li class="chapter-item expanded "><a href="minimal_client.html"><strong aria-hidden="true">17.</strong> Minimal terminal client and local API</a></li><li class="chapter-item expanded "><a href="RELEASE_PIPELINE.html"><strong aria-hidden="true">18.</strong> Release pipeline</a></li><li class="chapter-item expanded affix "><li class="part-title">Side projects</li><li class="chapter-item expanded "><a href="projects/index.html"><strong aria-hidden="true">19.</strong> Side projects</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="projects/ai-research/index.html"><strong aria-hidden="true">19.1.</strong> AI-Research: the original root research workspace</a></li><li class="chapter-item expanded "><a href="projects/msa/index.html"><strong aria-hidden="true">19.2.</strong> MSA: Modular Structural Arithmetic</a></li><li class="chapter-item expanded "><a href="projects/prime-analysis/index.html"><strong aria-hidden="true">19.3.</strong> Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></li><li class="chapter-item expanded "><a href="projects/research-archives/index.html"><strong aria-hidden="true">19.4.</strong> Research archives: the Gemini-era sandbox</a></li><li class="chapter-item expanded "><a href="projects/riemann-lean/index.html"><strong aria-hidden="true">19.5.</strong> Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></li><li class="chapter-item expanded "><a href="projects/spiralcore/index.html"><strong aria-hidden="true">19.6.</strong> SpiralCore: networking protocols and compression</a></li><li class="chapter-item expanded "><a href="projects/wasm-gemm-gnaf/index.html"><strong aria-hidden="true">19.7.</strong> WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">UOR-R4</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/UOR-Foundation/uor-r4" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="formal-vocabulary-notation-and-claim-classes"><a class="header" href="#formal-vocabulary-notation-and-claim-classes">Formal Vocabulary, Notation, and Claim Classes</a></h1>
+<ul>
+<li><strong>Version:</strong> 0.1.35</li>
+<li><strong>Status:</strong> Normative for all new specification, plan, proof-model, and certificate text.</li>
+<li><strong>Source:</strong> <code>docs/hologram_formal_analysis_direction.pdf</code> §§1, 7, 13; tracker
+<a href="https://github.com/UOR-Foundation/uor-r4/issues/122">#122</a>; issue
+<a href="https://github.com/UOR-Foundation/uor-r4/issues/123">#123</a>.</li>
+<li><strong>Related:</strong> terminology for existing graph-compiler concepts lives in
+<code>docs/transformerless/GLOSSARY.md</code>; this document governs <em>claim language</em> and
+mathematical notation. Where the two overlap, this document wins for claim
+classification and the glossary wins for structural terms. The route-scope
+decision is <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/adr/0004-geometric-intelligence-route-hierarchy.md">ADR-0004</a>,
+and current execution follows the
+<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/agent-execution-policy.md">native geometric AI policy</a>.
+<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/geometric_intelligence_evaluation.md">Geometric Intelligence Evaluation</a>
+retains historical experiment protocols. A preserved #973 terminal contract is
+<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/r4_predictive_block_delta_binding_prompt_capacity_973.md"><code>R4PredictiveBlockDeltaPromptCapacityV5</code></a>.</li>
+</ul>
+<p><strong>Current authority (2026-09-05).</strong> This document governs claim language and
+typed mathematical distinctions. The <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/project-track.md">project plan</a>
+owns the goal, and <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/current-state.md">current-state.md</a> owns the
+implemented model and next work. Dated results and table cells naming a
+"current" reference, a parked operation or an unimplemented boundary retain
+their original artifact scope; they do not select a new task or prohibit a
+versioned native successor. Preserve their measurements without importing a
+reference model's capability or runtime guarantees into the active model.</p>
+<p>This spec separates the statement classes that the research notes previously mixed —
+architectural definitions, compiler optimization objectives, empirical certification
+claims, and structural runtime guarantees — and fixes the symbols that recur across
+the compiler, artifact, certificate, and proof model.</p>
+<h2 id="1-claim-classes-role-of-a-statement"><a class="header" href="#1-claim-classes-role-of-a-statement">1. Claim classes (role of a statement)</a></h2>
+<p>Every equation and every normative mathematical statement in repository documents
+MUST carry exactly one of these role labels, written inline in bold
+(<code>**Definition**</code>, <code>**Objective**</code>, <code>**Guarantee**</code>, <code>**Assumption**</code>,
+<code>**Empirical Criterion**</code>):</p>
+<div class="table-wrapper"><table><thead><tr><th>Label</th><th>Meaning</th><th>Where it may appear</th></tr></thead><tbody>
+<tr><td><strong>Definition</strong></td><td>Introduces an architectural object or mathematical term. True by convention; never "proven".</td><td>Anywhere</td></tr>
+<tr><td><strong>Objective</strong></td><td>A quantity the offline compiler attempts to optimize. Never a runtime invariant, never a theorem.</td><td>Compiler-side docs/code only</td></tr>
+<tr><td><strong>Guarantee</strong></td><td>A structural property of the compiled artifact or runtime. Requires a claim status from §2 and a proof artifact, witness, test, or explicit <code>Unproven</code> record.</td><td>Artifact spec, runtime docs, proof model</td></tr>
+<tr><td><strong>Assumption</strong></td><td>A condition a proof or certificate requires but the implementation does not itself establish.</td><td>Proofs, certificates</td></tr>
+<tr><td><strong>Empirical Criterion</strong></td><td>A measured property with a declared distribution, protocol, sample count, and uncertainty. Never stated as a proof.</td><td>Certificates, evaluation docs</td></tr>
+</tbody></table>
+</div>
+<p>Design aspirations are not theorems: an optimization target (<code>arg max …</code>) is an
+<strong>Objective</strong>, and a measured approximation (<code>P_θ(a|c) ≈ P_θ(a|Z(c))</code>) is an
+<strong>Empirical Criterion</strong> until the protocol behind it is declared.</p>
+<h2 id="2-claim-status-evidence-behind-a-statement"><a class="header" href="#2-claim-status-evidence-behind-a-statement">2. Claim status (evidence behind a statement)</a></h2>
+<p>Every <strong>Guarantee</strong> and every <strong>Empirical Criterion</strong> MUST also carry one of these
+statuses. The statuses are the machine-readable vocabulary of the proof-status
+matrix (<code>crates/uor-r4-proof-model/src/proof_matrix.rs</code>); the mapping is normative.</p>
+<div class="table-wrapper"><table><thead><tr><th>Status</th><th>Meaning</th><th><code>ProofStatus</code> mapping</th></tr></thead><tbody>
+<tr><td><strong>Structural</strong></td><td>Established by construction or by a named machine-checked test, fuzz target, or formal proof artifact that has actually run for the declared evidence.</td><td><code>Verified</code></td></tr>
+<tr><td><strong>Witnessed</strong></td><td>Established per execution by a bounded, replayable witness an independent verifier replays without the teacher.</td><td><code>Verified</code> (witness path)</td></tr>
+<tr><td><strong>Empirical</strong></td><td>Measured on a pinned corpus with protocol, confidence intervals, and provenance identifiers, per <code>docs/transformerless/EQUIVALENCE_AND_EMPIRICAL_PROTOCOL.md</code>.</td><td><code>DifferentialPass</code></td></tr>
+<tr><td><strong>Assumed</strong></td><td>Required by a proof or certificate but not established by the implementation.</td><td>recorded as an assumption entry</td></tr>
+<tr><td><strong>Unproven</strong></td><td>Asserted as a goal but currently without evidence.</td><td><code>Unverified</code> (blocks <code>verify_all</code>)</td></tr>
+</tbody></table>
+</div>
+<p><code>ExecutableSpec</code> in the proof matrix means the obligation has a runnable
+specification but no activated binding check yet; documents must label such claims
+<strong>Unproven</strong> (or <strong>Assumed</strong> where applicable), never <strong>Structural</strong>.</p>
+<h3 id="21-wording-rule-automated-check-dormant-by-default"><a class="header" href="#21-wording-rule-automated-check-dormant-by-default">2.1 Wording rule (automated check, dormant by default)</a></h3>
+<p>The prohibited phrases are <strong>"machine-verified"</strong>, <strong>"machine verified"</strong>, <strong>"exact equivalence"</strong>, <strong>"exact teacher equivalence"</strong>, and <strong>"provably equivalent"</strong>. They are prohibited in
+normative documents (<code>docs/**</code>, crate READMEs) unless the same line links a proof
+artifact or certificate, or the phrase is explicitly disavowed on that line.
+The <code>uor-r4-claim-wording</code> gate enforces this when explicitly activated (see §6). The project does not
+claim exact teacher equivalence (disallowed per this rule), does not claim
+human-level reasoning, and does not treat plausible language output as evidence of
+coherent internal state transitions.</p>
+<h2 id="3-core-notation"><a class="header" href="#3-core-notation">3. Core notation</a></h2>
+<p>Symbols are listed with their claim role and their concrete Rust binding. Entries
+marked <em>compiler/reference-only</em> have no deployed-runtime representation yet; the
+runtime path for them lands in the issues noted.</p>
+<div class="table-wrapper"><table><thead><tr><th>Symbol</th><th>Role</th><th>Meaning</th><th>Rust / artifact binding</th></tr></thead><tbody>
+<tr><td><code>x_t^ℓ</code></td><td><strong>Definition</strong></td><td>Hidden/residual state at token position <code>t</code> and decoder layer <code>ℓ</code>.</td><td>Active geometric-decoder/source-control state; exact binding lands under #950/#952.</td></tr>
+<tr><td><code>q_t^ℓ, k_i^ℓ, v_i^ℓ</code></td><td><strong>Definition</strong></td><td>Learned query, causal prefix key, and value contribution. These predictive roles are distinct from immutable R4G1 route codes, addresses, and CIDs.</td><td>The #950/#951 G0/G1 mixer and <code>DirectCausalGeometricAttentionR4V1</code> are retained comparators. The current offline reference is <code>HELM-D-R4</code> under ADR-0005; its first parity arm leaves every learned Q/K/V and <code>W_o</code> unchanged.</td></tr>
+<tr><td><code>p_t, e_t, N_t</code></td><td><strong>Definition</strong></td><td>Registered prime route atom; canonical unordered semiprime transition expert <code>e_t = p_(t-1)*p_t</code>; and bounded ordered n-let. If adjacent atoms repeat, <code>e_t = p_t^2</code> is retained. The square-free case is the subset <code>p_(t-1) != p_t</code>. <code>N_t</code> retains order and a multiplicity-preserving sorted factor multiset rather than relying on an overflowing numeric product.</td><td>Schema-2 source-free manifest records under #958. This binding establishes representation and deterministic recall substrate only.</td></tr>
+<tr><td><code>Gamma = (gamma_0,...,gamma_(m-1))</code>, <code>theta_j(p)</code>, <code>delta_theta_j</code></td><td><strong>Definition</strong></td><td><code>Gamma</code> is a finite ordered, revisioned zeta-ordinate grid. <code>theta_j(p) = wrap(gamma_j*log(p))</code>; <code>delta_theta_j</code> is the declared local phase difference.</td><td>Compiler/reference math and bounded compiled signatures under #958. Critical-line use is an <strong>Assumption</strong>, not a proof of RH; no serving or capability claim follows.</td></tr>
+<tr><td><code>s_t in S3 subset R4</code>, <code>h(s_t) in S2 subset R3</code>, <code>tau_t in S1</code></td><td><strong>Definition</strong></td><td><code>s_t</code> is the full normalized local spin state, <code>h</code> is its many-to-one Hopf observation, and <code>tau_t</code> is retained quantized fiber/transport phase (“torsion”). <code>h(s_t)</code> alone is not a rebuild identity.</td><td>Quantized source-free route records and experimental bounded lookup under #958; no physical or quantum interpretation is claimed.</td></tr>
+<tr><td><code>theta=atan2(sin(theta),cos(theta))</code>, <code>a(theta)=sin(theta)^2</code>, <code>chi(theta)=sign(sin(theta))</code>, <code>pol(theta)=sign(cos(theta))</code></td><td><strong>Definition</strong></td><td>S3/R3 trigonometric transition contract. <code>(sin=+/-1,cos=0)</code> has activation <code>1</code>; <code>(sin=0,cos=+1)</code> is continuous-null activation <code>0</code>. Chirality and, where needed, cosine polarity preserve orientation/antipodes. <code>tan(theta)</code> is a local chart only.</td><td>At a tangent pole or declared null boundary, the architecture switches angle/cotangent chart and records a signed quarter-turn phase plus torsion shift instead of dividing by zero or terminating. Semantic value is <strong>Unproven</strong>.</td></tr>
+<tr><td><code>m_E=sqrt(2)</code>, <code>m_C=2i</code>, <code>m_R in [0,2]</code></td><td><strong>Definition</strong></td><td>Typed least-cost adapter markers: Euclidean orthogonal-unit chord, complex/discrete antipodal displacement, and declared normalized Riemannian/chord score interval. They are not literal equalities of Euclidean, complex, discrete, and Riemannian domains.</td><td>A target-specific cost profile binds chart, units, orientation, quantization, error bounds, canonical tie-break, and conversion witness before choosing the cheapest faithful operation.</td></tr>
+<tr><td><code>r_t = a_t + b_t*phi in Z[phi]</code></td><td><strong>Definition</strong></td><td>Direction-preserving golden radial shell. <code>phi:(a,b)-&gt;(b,a+b)</code> and <code>phi^-1:(a,b)-&gt;(b-a,a)</code>. Repeated steps have Fibonacci recurrence, which does not establish semantic value.</td><td>Exact coefficient updates and manifest chart profile under #958; product use remains separately qualified.</td></tr>
+<tr><td><code>I1, I2, IS</code></td><td><strong>Definition</strong></td><td>Bounded causal indexes keyed by last route, ordered previous-plus-last route, and ordered sentence-route identity.</td><td>Incremental identity, exact rows, and an off-serving geometric-attention experiment exist under #958. Exact hits are recall; attention and product claims require the evaluation policy.</td></tr>
+<tr><td><code>e^(i*pi)+pi^0 =_bridge 0^0</code>, <code>b_0</code></td><td><strong>Definition</strong></td><td>Typed zero/identity transition. <code>ContinuousNull</code> preserves the complex cancellation as <code>0</code>; <code>DiscreteEmptyProduct</code> phase-shifts/retypes the seam into the discrete identity <code>1</code>. <code>=_bridge</code> is a domain-transition operator, not ordinary numerical equality. The selected tag is part of route identity and deliberately exposes the <code>-1 / 0 / +1</code> landmarks without assigning two simultaneous values in one untyped calculation.</td><td><code>ZeroPowerBridge</code> and schema-2 manifest binding under #958 select the boundary value; the full phase-shift transition remains an architectural contract for the route hierarchy.</td></tr>
+<tr><td><code>C_lex</code></td><td><strong>Definition</strong></td><td>Deterministic lexical codec from pinned input bytes/tokenization to registered route atoms and back to output bytes where decoding is defined. Normalization, unknown-unit behavior, tokenizer CID, registry, and codec version are part of its identity.</td><td>Product binding remains <strong>Unproven</strong> until a provider-free serving path exercises the same codec end to end.</td></tr>
+<tr><td><code>B_ico : Lambda_E8 ~=_Z I -&gt; (x,x') in R4 ⊕ R4</code>, <code>Phi_E8 = H4 ⊕ φH4</code></td><td><strong>Assumption</strong></td><td><strong>Project shorthand:</strong> <code>E8 = H4 × H4</code>. The load-bearing implementation contract realizes that conceptual identity through the chosen icosian presentation: the E8 lattice and icosian ring are identified as <code>Z</code>-modules, one state is represented by golden/Galois-coupled R4 points, and the declared 600-cell folding is <code>H4 ⊕ φH4</code>. This is a typed construction, not a claim that <code>R4 = E8</code>.</td><td>Basis, glue/parity rule, conjugation, scale, orientation, root order, and inverse witness must be kappa-bound. Architectural load-bearing is <strong>assumed</strong> and is <strong>scheduled for test</strong> under <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d20--geometry-stays-first-the-no-loss-rule-is-suspended-only-after-exhaustion-so-a-measurement-can-decide">D20</a> §4, which bounds how long the assumption may stand unchallenged; held-out advantage remains unproven. Structural priority and measured advantage stay distinct claims.</td></tr>
+<tr><td><code>kappa(X)</code></td><td><strong>Definition</strong></td><td>Canonical content identity of the schema/provenance-bound byte envelope <code>X</code>. Equality identifies equal canonical envelopes under the named digest contract; digest distance has no routing meaning.</td><td>Manifest/artifact CIDs. Kappa is integrity and provenance, not a semantic code.</td></tr>
+<tr><td><code>R_t^q</code>, <code>q in {local,sentence,paragraph,conversation,global}</code></td><td><strong>Definition</strong></td><td>Identity-scoped, causal route accumulator at hierarchy scope <code>q</code>. A parent scope commits to ordered child identities and bounded geometric summaries; it does not rescan all descendant tokens at query time.</td><td>ADR-0004 contract; scopes beyond the current local/sentence substrate are <strong>Unproven</strong>.</td></tr>
+<tr><td><code>T_t^q = (v_session, w_window, E_proj, F_shared, c_res, alpha_Hopf, B_ico)</code></td><td><strong>Definition</strong></td><td>Bounded transported trajectory/harmonic summary for scope <code>q</code>: session hypersphere vector, winding/window state, projection energy, shared-prime factors, cosine resonance, accumulated Hopf phase, and paired-H4/E8 coordinate. It is updated incrementally from the full transported path, not reconstructed from only the last route.</td><td>Ancestor routing evidence motivates these fields; current held-out locality when exact hierarchy keys miss is an <strong>Empirical Criterion</strong>, status <strong>Unproven</strong> until reproduced.</td></tr>
+<tr><td><code>W_cov</code></td><td><strong>Definition</strong></td><td>Bounded coverage witness recording codec/address coverage, hierarchy rows read and hit/miss, candidates before/after admission, controls, selection or abstention, and artifact identities.</td><td>Coverage establishes reachability only; capability status comes from a separate empirical record.</td></tr>
+<tr><td><code>A_recall</code>, <code>A_geo</code></td><td><strong>Definition</strong></td><td><code>A_recall</code> retrieves a stored continuation by exact/backoff route identity. <code>A_geo</code> selects or orders admitted causal support using declared geometric terms and must be load-bearing against matched controls on anti-recall inputs.</td><td>Exact-row recall is implemented substrate. Geometric-attention advantage is an <strong>Empirical Criterion</strong>, currently not implied by implementation presence.</td></tr>
+<tr><td><code>F_i^b</code>, <code>P_(j -&gt; i)^b</code></td><td><strong>Definition</strong></td><td><code>F_i^b</code> is the exact cumulative Spin/H4 orthogonal model-frame basis for R4 head block <code>b</code>; local encoding is <code>transpose(F_i^b) x</code>, and <code>P_(j -&gt; i)^b = transpose(F_i^b) F_j^b</code> moves both locally encoded causal <code>K_j^b</code> and <code>V_j^b</code> into query frame <code>i</code>. The current vector action is a compiler-side f64/f32 oracle, not exact deployed arithmetic.</td><td><code>HELM-D-R4</code> uses this declared orthogonal gauge transport before comparison and aggregation. It is not called Levi-Civita or shortest-geodesic transport without a separate proof.</td></tr>
+<tr><td><code>B_c(g)</code>, <code>theta_x^r</code></td><td><strong>Definition</strong></td><td><code>ConnectionGaugeCovarianceV4</code> represents each predictive role by the same three local coefficients <code>theta</code> in a declared tangent frame <code>B_c(g)</code> and transports them by <code>B_c(d) transpose(B_c(s))</code>.</td><td>V4 passed construction covariance, all 120 frames/14,400 ordered pairs, and finite-difference gradients, but its protected held-out reveal scored 13/24 for every main arm with insufficient destructive-control separation. It is frozen negative evidence.</td></tr>
+<tr><td><code>alpha_(i,j)</code>, <code>r_i</code></td><td><strong>Definition</strong></td><td>In the <code>HELM-D-R4</code> parity arm, <code>alpha_(i,j)</code> is the unchanged stable causal-softmax normalization of the donor's ordinary compatibility score after K transport, and <code>r_i = F_i sum_(j&lt;=i) alpha_(i,j) P_(j -&gt; i) transpose(F_j) v_j</code> is mapped back before unchanged <code>W_o</code>.</td><td>This is the accepted gauge-equivalent reference-attention baseline. Its bounded held-out full-decoder parity result and native <code>R4SoftmaxReferenceGeneratorV1</code> gate are <strong>Pass</strong>. The dedicated opt-in, loopback-only HTTP endpoint additionally passes exact eight-token CLI token/decision-CID/state-CID parity with all 30 layers audited and zero future reads. Dashboard wiring/static native-readiness and WASM-isolation checks pass; browser interaction/E2E is <code>NOT_RUN</code>. These are numerical/behavioral source-donor/reference results, not geometric advantage or a deployed transformerless-runtime mechanism. The generator uses UOR's pinned SmolLM2 <code>HuggingFaceLlamaOracle</code> decoder path and remains Transformer-compatible and source-weight backed. HELM-D is an MIT architectural reference only at <code>7501deca8f413848bfef804be64ce874b72a3cd7</code>; no HELM checkpoint or code executed and no upstream result is inherited. See <code>helm_d_r4_softmax_decoder_973.md</code>, <code>r4_softmax_reference_generation_973.md</code>, <code>r4_softmax_reference_generation_attempt_01_result_973.json</code>, and <code>r4_softmax_reference_http_bridge_973.md</code>.</td></tr>
+<tr><td><code>R4SoftmaxTeacherTraceV1</code>, <code>R4SoftmaxTraceCompilerV1</code></td><td><strong>Definition</strong></td><td>Construction-only trace schema and compiler. The trace binds causal layerwise token, Q/K/V, attention-support, value-aggregate, decoded-output, and logit states from the exact qualified reference. The first compiler emits matched teacher-distilled, observed-count, and document-permuted Q16 suffix arms without granting future or target inputs at inference.</td><td><strong>Pass</strong> at the bounded source-free-distillation scope: context-bearing covered teacher CE was <code>2.660721</code> versus count <code>9.678894</code> and permuted <code>4.342019</code>; teacher top-1 was <code>3/9</code> versus <code>2/9</code> and <code>1/9</code>; actual-next top-1 was <code>2/9</code>, tied with count. Artifact/reveal CIDs and replay were exact, causal audits passed, and student inference made zero source calls. Decoded continuation collapsed into a <code>, Scotland</code> cycle, and the student does not use geometric trace state, so this is not geometry advantage, coherent generation, reasoning, or a deployed transformerless runtime. See <code>r4_softmax_trace_student_973.md</code>.</td></tr>
+<tr><td><code>R4SoftmaxTraceStateStudentV1</code></td><td><strong>Definition</strong></td><td>Bounded source-free state transition and next-token readout over the captured query-gauge Q, transported K/V support, weighted aggregate, and decoded model-frame trace, compared with the established suffix student, an equal-budget non-geometric recurrent state, and a transport-permuted control.</td><td><strong>Completed negative</strong> at the frozen #1011 gate. On the same nine context positions and <code>422,875</code> Q16 teacher mass, covered CE / teacher top-1 / actual-next top-1 were suffix <code>2.660721032</code>, <code>3/9</code>, <code>2/9</code>; plain <code>2.660770919</code>, <code>3/9</code>, <code>2/9</code>; geometric <code>2.660705367</code>, <code>3/9</code>, <code>2/9</code>; and transport-permuted <code>2.660729215</code>, <code>3/9</code>, <code>2/9</code>. The geometric gains of <code>0.000015665</code> nats over suffix and <code>0.000023848</code> over permutation were below the frozen <code>0.10</code> threshold; no top-1 decision changed, the control lost none, and all arms retained the period-two <code>, Scotland</code> cycle. Exact replay and causal/runtime audits passed. State/freeze/seal/result CIDs are respectively <code>blake3:b617fc38e7bef1cdea76991f6e5e7cc653118451d63bcbd595f8ffd7e247ae7b</code>, <code>blake3:67cf67bb46b94cf5644b8dde286e89adb7e49159b3749790dffb500d8047fedb</code>, <code>blake3:64587526f7883ab046e884a28b6af7e9e89818c9ead2039f8c995de7fb483060</code>, and <code>blake3:dc04a8a8b21750799db2d451c8237d1e62cf90ffa74561fb54272b1e9704c824</code>. Terminal: <code>STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION</code>. This falsifies the current 4D signed-reduction/token-derived state cell, not ordinary R4/Spin softmax attention. See <code>r4_softmax_trace_state_student_1011.md</code>.</td></tr>
+<tr><td><code>R4GroupAddressedRetentionLMV1</code>, <code>M_t^b(h)</code></td><td><strong>Definition</strong></td><td>#973's fixed-size source-free state: four banks hold an R4-block field over 120 addresses, updated through one frozen group action and read candidate-relatively with separate learned query/value tables. Exact-H4 is compared with equal-size cyclic-120 and destructive scrambled-H4 actions; a state-off intervention tests whether retention changes logits.</td><td><strong>Construction terminal:</strong> <code>UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET</code>. Geometry, population, reachability, gradients, memory, equal work, and held-out sealing passed; timing and disposable learning smoke failed. Main optimization and held-out model criteria are <code>NOT_RUN</code>; there is no attention or H4-advantage verdict. The exact cell is not retried or tuned. See <code>r4_group_addressed_retention_973.md</code>.</td></tr>
+<tr><td><code>R4GroupAddressedRetentionDecoderV1CpuRecovery</code></td><td><strong>Empirical Criterion</strong></td><td>Independently frozen complete construction run of the group-addressed retained read/write law inside an exact 3.17M-parameter, two-block decoder recipe. A state-off intervention measures whether retained state is load-bearing; exact-H4 versus scrambled transport measures geometry-specific separation.</td><td><strong>Completed:</strong> state-off on the disjoint construction-validation partition lost <code>0.967227</code> nats and 182 top-1 hits, qualifying a bounded causal retained-attention component. Aggregate validation CE moved <code>8.371911 -&gt; 8.976155</code>, so the exact data/dose/parameter recipe did not satisfy its frozen full-decoder generalization criterion. Scrambled transport was <code>0.033049</code> nats better, so no H4-specific advantage follows. Formal H4 specificity is <code>NOT_EVALUATED</code>. Result CID <code>blake3:68355ad2f61d02dc73dbf22de4c24834815a23069ed5735630dc365081cf91db</code>; see <code>r4_group_addressed_retention_decoder_cpu_recovery_973.md</code>.</td></tr>
+<tr><td><code>R4RetainedLanguagePathV1</code></td><td><strong>Definition</strong></td><td>A 252,160-parameter source-free language path using the frozen group-addressed retained-state law, compared under equal parameter budget with an ordinary causal-softmax decoder and under a state-off intervention.</td><td><strong>Qualified at its declared scope:</strong> retained NLL <code>3.899862</code>, ordinary-control NLL <code>3.903394</code>, and state-off NLL <code>4.234849</code>; state removal lost 16,660 correct next-token decisions. A separate retained-only smoke produced five valid, exactly replayed local continuations without forbidden/provider/source reads, but every output drifted from its prompt subject or scene. This establishes load-bearing retained attention and autonomous local decoding, not prompt-conditioned coherence, H4 superiority, reasoning, or exact lowering. See <code>r4_retained_language_path_v1_973.md</code>.</td></tr>
+<tr><td><code>R4PairedH4LanguagePathV1</code></td><td><strong>Definition</strong></td><td>The one frozen V1-capacity successor that holds training data, seed, schedule, parameter count, and work fixed while replacing the shared per-layer H4 token address with a deterministic paired-H4 address.</td><td>The address construction reduced repeated joint addresses by <code>97.5477%</code>. On fresh held-out language it scored NLL <code>3.8832293739</code> and top-1 <code>29.780171%</code>, versus V1 <code>3.8901151940</code> and <code>29.706357%</code>. This is construction/general-language evidence only; it does not establish prompt capacity or H4 superiority.</td></tr>
+<tr><td><code>g_d</code>, <code>G_prompt</code></td><td><strong>Empirical Criterion</strong></td><td>For each of 512 bidirectional matched-prompt contrasts sharing the final four prompt tokens, `g_d = (log P(y_d</td><td>own prompt) - log P(y_d</td></tr>
+<tr><td><code>R4LayerwiseNormalizedRetainedReadoutLanguagePathV1</code></td><td><strong>Definition</strong></td><td>#973's final zero-parameter readout variant: <code>E @ [N(h) + (g/sqrt(2))*(N(a1)+N(a2))]</code>, fixed candidate <code>g=1</code> versus matched V1 <code>g=0</code>, with recurrence, state, parameters, data/order, optimizer, 2,730-step dose, and tied vocabulary projection held fixed.</td><td><strong>Completed partial:</strong> V3 candidate <code>G_prompt = 0.0286980210</code> versus V1 <code>0.0073316237</code>, incremental <code>0.0213663973</code>, with <code>339/512</code> wins. Every fresh-language and mechanics gate passed, but the candidate missed the absolute <code>0.0433216988</code> and incremental <code>0.0253415693</code> prompt-gain floors. Terminal <code>LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL</code>; result CID <code>blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532</code>; independent verification CID <code>blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa</code>. Generation, reasoning, and exact/geometry-native lowering are <code>NOT_RUN</code>.</td></tr>
+<tr><td><code>R4LearnedCandidateLeafAssociativeReadoutV1</code>, <code>zG[t,c]</code></td><td><strong>Definition</strong></td><td>#973's completed learned readout reads V1's strict-prior transported retained value at candidate <code>c</code>'s canonical exact-H4 leaf with an independently learned <code>[2,4096,12,4]</code> candidate-query table: <code>zG[t,c] = &lt;E[c],N(h[t])&gt; + (1/(2*sqrt(48)))*sum_l &lt;qG[l,c],R(V[l,t,lambda(c)])&gt;</code>. Qualified V1 is immutable. The equal-parameter address-blind arm has an unshared, byte-identically initialized query table and reads the occupied-address mean; a fixed-leaf derangement reuses the geometric table while destroying candidate/address binding.</td><td><strong>Completed negative at the frozen prompt-capacity scope:</strong> geometric gain <code>0.00637679</code>, <code>299/512</code> wins, and own NLL <code>3.71038302</code> failed the capacity floors. Pooled gain <code>0.01026323</code>, <code>324/512</code> wins, and own NLL <code>3.68289051</code> was partial but also below both gain floors. Both fresh-language and state-load-bearing gates passed. Terminal <code>LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY</code>; result CID <code>blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1</code>; verification CID <code>blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7</code>. See <code>r4_learned_associative_readout_prompt_capacity_973.md</code>.</td></tr>
+<tr><td><code>R4LearnedAssociativeReadoutPromptCapacityV1</code></td><td><strong>Empirical Criterion</strong></td><td>Each learned arm must pass the frozen V4 absolute and incremental prompt-gain floors, <code>308/512</code> wins, own-NLL nonregression, fresh-language nonregression, load-bearing state, mechanics, replay, work, and causal audits. <code>GEOMETRY_ATTRIBUTED</code> separately requires the geometric arm to exceed both pooled and fixed-leaf-deranged controls by the frozen incremental effect and win/NLL rules.</td><td><strong>Empirical terminal:</strong> neither arm passed capacity. Geometry attribution failed: geometric-minus-pooled gain <code>-0.00388645</code> with <code>209/512</code> paired improvements and geometric-minus-deranged gain <code>-0.00028887</code> with <code>251/512</code>, below <code>+0.02534157</code> and <code>308/512</code>. All ten mechanics gates and independent replay passed; post-reveal optimizer steps were zero. No retry or generation is authorized. Its then-next separately frozen architecture had to alter the retained value write/binding law and retain pooled plus geometry-destroying controls; <code>R4PredictiveBlockDeltaPromptCapacityV5</code> below records that successor. #973 remains open and #954 blocked.</td></tr>
+<tr><td><code>R4PredictiveBlockDeltaBindingV1</code>, <code>S_t^(b,l)</code>, <code>r_t</code></td><td><strong>Definition</strong></td><td>#973's completed predictive write/binding law stores four bounded banks of 12 independent <code>4 x 4</code> R4 block memories. In the current frame, each bank transports prior state, applies either the full delta update <code>S_t = rho*P*S_(t-1)*P^-1 + eta*(v_t - rho*P*S_(t-1)*P^-1*k_bar) outer k_bar</code> or the declared additive control, and reads <code>r_t = sum_b softmax(alpha)_b*S_t*q_t</code>. The observed value and candidate scorer are anchored to immutable token H4 leaves.</td><td>Compiler-side f32 experiment only. The full-delta geometric, identity/plain, and additive arms each used <code>9,228</code> trainable values and identical <code>2,730</code>-step construction dose. This definition grants no runtime legality, geometry advantage, attention-capacity, generation, or lowering claim. See <code>r4_predictive_block_delta_binding_prompt_capacity_973.md</code>.</td></tr>
+<tr><td><code>R4PredictiveBlockDeltaPromptCapacityV5</code></td><td><strong>Empirical Criterion</strong></td><td>On the sealed 512-direction V5 population, terminal capacity requires geometric gain at least <code>0.04332169878499658</code>, at least <code>308/512</code> wins, the frozen incremental and own-NLL rules against immutable V1 and pooled, fresh-language nonregression, load-bearing state, and complete integrity. Geometry and delta overwrite are separate attributions against independently fitted plain plus transport-permuted, and independently fitted additive, using the frozen <code>0.025341569256760274</code>, paired-win, and own-NLL rules.</td><td><strong>Empirical terminal:</strong> <code>PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY</code>. Geometric gain <code>0.03896945868086732</code> with <code>375/512</code> wins missed the absolute floor. Geometric-minus-plain gain <code>0.023929811749894725</code> and worse own NLL failed geometry attribution even though the transport-permuted gates passed. Geometric-minus-additive was <code>-0.006512463228773413</code> with <code>234/512</code>, so delta superiority was not established. Fresh-language and integrity passed. Result CID <code>blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74</code>; scoring CID <code>blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6</code>; recovery CID <code>blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b</code>; exact-replay verification CID <code>blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d</code>. Action <code>STOP_WITHOUT_GENERATION</code>; only this law is retired.</td></tr>
+<tr><td><code>O_trace^(0..3)</code></td><td><strong>Objective</strong></td><td>Construction-only, leave-one-document-out observability ladder measuring the same teacher-relative candidate loss at four frozen boundaries: full ordered final-layer Q/K/V trace blocks; fixed 576-to-4 signed reduction; token-derived role maps plus recurrent state features; and fitted residual readout/logit scale.</td><td><strong>Completed</strong> in <a href="https://github.com/UOR-Foundation/uor-r4/issues/1012">#1012</a> at <code>INSUFFICIENT_SUPPORT_COVERAGE</code>: aggregate primary coverage was <code>0.6202622204224402</code>, but the minimum fold was <code>0.3469116829611222</code>, below the frozen 50% floor, so no boundary attribution is licensed. On the covered rows, full Q/K/V CE was <code>2.215410922655504</code> versus suffix <code>2.215064603216862</code> (<code>suffix - full = -0.0003463194386417179</code>, direction <code>0/4</code>); the fixed label control separated by <code>1.3807454322642605</code> nats in <code>4/4</code>. Exact replay and zero source/document-13 reads passed. The ladder will not be expanded or repeated. #1014 subsequently completed the direct-learning pivot; see <code>Delta_attn-off</code> below.</td></tr>
+<tr><td><code>d_R4</code>, <code>mu_R4</code></td><td><strong>Objective</strong></td><td>If reactivated, a separately trained intrinsic arm may score transported manifold-valued Q/K pairs and aggregate transported values with an artifact-bound equivariant geometric centroid <code>mu_R4</code>.</td><td>V1 stopped <code>UNAVAILABLE</code> before D3; learned-manifold V2 failed donor retention and matched Euclidean parity; the 8/8-contract attempt stopped at its two-document preflight and rejected tangent readout with pooled normalized audit-MSE ratio <code>1.0643688804269025</code>. Intrinsic attention remains unestablished and this objective is <strong>Parked</strong>.</td></tr>
+<tr><td><code>A_M</code>, <code>K_hat</code>, <code>N_t</code>, <code>Z_t</code></td><td><strong>Objective</strong></td><td>A finite fiber-aware resonance amplitude, its nonnegative normalized kernel <code>K_hat = floor + abs(A_M)^2</code>, and the recurrent transported value-numerator and normalization-denominator mode sums that replace dense all-pairs weighting.</td><td>ADR-0005 and the #973 multi-resonance reuse audit retain the conditional contract. The normalized sieve, recurrent factorization, and H4/Q29/integer lowering are <strong>Parked</strong>, <code>NOT_IMPLEMENTED</code>, and <code>NOT_RUN</code>.</td></tr>
+<tr><td><code>I_geo</code></td><td><strong>Definition</strong></td><td>Causal inference step mapping observed prefix plus bounded hierarchy state to next-token scores/selection and updated state, followed by lexical decoding.</td><td>A support trace alone is not inference or coherent generation.</td></tr>
+<tr><td><code>Corr(D)</code>, <code>Abst(D)</code></td><td><strong>Empirical Criterion</strong></td><td>Correctness and abstention on declared distribution <code>D</code>: correctness uses an independent oracle/constraint/source and is reported both conditional on answered cases and over all cases; abstention is a typed outcome, never silently scored correct.</td><td>Protocol and denominators are required by <code>geometric_intelligence_evaluation.md</code>.</td></tr>
+<tr><td><code>Reason(D)</code></td><td><strong>Empirical Criterion</strong></td><td>On anti-recall tasks from <code>D</code>, typed intermediate route transitions preserve constraints, compare alternatives or counterfactuals, and reach an independently checkable conclusion.</td><td>Fluent text, recalled answers, teacher agreement, or non-zero geometric activity is insufficient evidence.</td></tr>
+<tr><td><code>Serve_pf</code></td><td><strong>Definition</strong></td><td>Provider-free serving: the evaluated process performs no runtime call to Ollama, a cloud model, teacher endpoint, or other generative provider; all required artifacts and decoding are local and pinned.</td><td>Does not imply transformerless, geometry-only, multiplication-free, correct, or production-ready.</td></tr>
+<tr><td><code>M_R4^ℓ</code></td><td><strong>Definition</strong></td><td>Declared bounded causal geometric mixing operator at layer <code>ℓ</code>; its metric, chart, support rule, transport, and aggregation must be frozen by the owning issue.</td><td>ADR-0005 accepts ordinary R4/Spin softmax attention as the reference baseline. Source-backed generation/native HTTP and the first source-free suffix-distillation compiler pass at their declared scopes, but the suffix student decoded a short repetition. <code>R4SoftmaxTraceStateStudentV1</code> then completed negative without selection-bearing separation from its transport-permuted control. The construction-only <code>O_trace^(0..3)</code> ladder completed with insufficient per-fold support and no boundary attribution. #1014 then established ordinary causal attention as load-bearing at the directly learned R4/Spin scope through <code>Delta_attn-off = 2.6773925609275944</code> nats and two-arm Rust parity; its complete quality DoD failed at enabled NLL <code>2.127407277216677</code> and subject/scene retention <code>3/5</code>. Intrinsic attention replacement, resonance, reasoning, WASM promotion, and recurrent/exact lowering remain parked. A coherent geometry-native deployed realization remains <code>NOT_YET_IMPLEMENTED</code>.</td></tr>
+<tr><td><code>Delta_attn-off</code></td><td><strong>Empirical Criterion</strong></td><td>On one frozen checkpoint and one identical sealed population, enabled causal attention NLL is subtracted from NLL after zeroing every attention output after <code>W_o</code> and before residual addition. The owning issue must preserve all other weights, inputs, decoding, and work.</td><td><a href="https://github.com/UOR-Foundation/uor-r4/issues/1014">#1014</a> measured <code>4.804799838144271 - 2.127407277216677 = 2.6773925609275944</code> nats/token against a frozen <code>&gt;= 0.10</code> rule. Both policies matched Python/Rust top-1 within <code>0.005</code>; all six layers had exact causal/R4/output-policy audits and zero future reads. This establishes load-bearing ordinary causal attention for that learned R4/Spin checkpoint, not geometry advantage, coherent quality, transformerlessness, or exact deployment. See <code>r4_softmax_end_to_end_attention_1014.md</code>.</td></tr>
+<tr><td><code>d_R4^ℓ</code></td><td><strong>Definition</strong></td><td>Declared compatibility or least-energy score over factor overlap, prime-gap phase delta, R4/S3 transport, Hopf observation, and torsion.</td><td>Normative G1R objective under #958; the score and its selected-support trace are <code>NOT_YET_IMPLEMENTED</code>. The learned <code>d_R4^ℓ(q,k)</code> from #950/#951 remains a negative comparator.</td></tr>
+<tr><td><code>N_t^ℓ</code></td><td><strong>Definition</strong></td><td>Bounded causal neighborhood of prior route and memory states selected before value aggregation. Future positions are excluded.</td><td>Exact-row reachability exists in the source-free substrate; the intervention-qualified geometric neighborhood and deployed trace/census are <code>NOT_YET_IMPLEMENTED</code>.</td></tr>
+<tr><td><code>P_mem^ℓ</code></td><td><strong>Definition</strong></td><td>Deterministic, tokenizer-CID-bound projection from an identity-scoped memory span into ordered prime-route and spin/torsion state.</td><td>G0/G1 key/value adapter is historical; the factorable memory projection and product integration are <code>NOT_YET_IMPLEMENTED</code> under #958/#953.</td></tr>
+<tr><td><code>Δ_geo-null</code></td><td><strong>Empirical Criterion</strong></td><td>Difference on the predeclared held-out metric between real geometry/memory and its equal-budget disabled or permuted control. A nonzero support trace alone is reachability, not advantage.</td><td>Bounded one-layer report under #951.</td></tr>
+<tr><td><code>S</code></td><td><strong>Definition</strong></td><td>Semantic state space; every observation projects into a state <code>s ∈ S</code>. Regions are subsets <code>R_i ⊆ S</code>; beliefs are predicates over <code>S</code>; goals are desired subsets of <code>S</code>.</td><td><em>Compiler/reference-only abstraction</em> (issue #124). The deployed runtime carries a fixed-capacity approximation: the runtime state (frontier, rolling context code, token shortlist) in <code>crates/uor-r4-core</code>.</td></tr>
+<tr><td><code>G = (V, E)</code></td><td><strong>Definition</strong></td><td>Compiled semantic graph: <code>V</code> packed semantic states, <code>E</code> typed transitions.</td><td><code>crates/uor-r4-graph-format</code> <code>GraphView</code> over the R4G1 NODE/EDGE sections (<code>docs/transformerless/R4G1.md</code>).</td></tr>
+<tr><td><code>H(x)</code></td><td><strong>Definition</strong></td><td>Holographic encoding of observation <code>x</code>: a family of overlapping projections <code>{h_0, …, h_k}</code> with partial recoverability, distributed evidence, progressive fidelity. The deployed path today is still the single compiled Boolean semantic code; the certifier additionally defines and measures overlapping projection families for issue #126.</td><td>Runtime binding: sign-bit signature path in <code>crates/uor-r4-core</code> (see "Semantic code H(x)" in the glossary). Measurement contract binding: <code>crates/uor-r4-graph-certify/src/holographic_encoding.rs</code> and its deterministic fixture tests.</td></tr>
+<tr><td><code>T : S × A → S</code></td><td><strong>Definition</strong></td><td>Typed graph dynamics: transition function over states and actions/semantic operators <code>A</code>.</td><td><em>Compiler/reference-only</em> (issue #124). Deployed precursor: forward transition edges <code>E_f</code> / R4G1 ROUT section.</td></tr>
+<tr><td><code>R</code></td><td><strong>Definition</strong></td><td>Reconstruction / behavioral-recovery operator; <code>R(H(x)) ≈ x</code> read behaviorally as the divergence condition below.</td><td><em>Compiler/certifier-only</em>; exercised through the fidelity-certification harness (<code>score.rs</code>, Gate C).</td></tr>
+<tr><td><code>C : Θ → G</code></td><td><strong>Definition</strong></td><td>The compiler as a map from teacher parameter space <code>Θ</code> to the space of compiled artifacts. Compilation is lossy semantic compression: parameters → behavioral probing → latent graph induction → Boolean synthesis → packed immutable artifact.</td><td><code>crates/uor-r4-core</code> compiler pipeline; graph generalization in <code>crates/uor-r4-graph-compiler</code>.</td></tr>
+<tr><td><code>P_θ(·‖c)</code></td><td><strong>Definition</strong></td><td>Teacher distribution over next tokens for context <code>c</code>, pinned HF revision, deterministic mode.</td><td><code>TeacherOracle</code> next-token surface (<code>crates/uor-r4-core</code>).</td></tr>
+<tr><td><code>P_G(·‖H(x))</code></td><td><strong>Definition</strong></td><td>Runtime/graph distribution produced by the compiled artifact.</td><td>Graph scorer (<code>crates/uor-r4-core</code> <code>score.rs</code>; R4G1 adapter <code>src/r4g1.rs</code>).</td></tr>
+<tr><td><code>D(·, ·)</code>, <code>ε</code></td><td><strong>Definition</strong></td><td>Declared divergence measure and empirical tolerance for the behavioral reconstruction condition (below).</td><td><code>docs/transformerless/EQUIVALENCE_AND_EMPIRICAL_PROTOCOL.md</code>.</td></tr>
+</tbody></table>
+</div>
+<p>Behavioral reconstruction condition (the testable form of <code>R(H(x)) ≈ x</code>):</p>
+<blockquote>
+<p><strong>Empirical Criterion.</strong> <code>D(P_θ(· | x), P_G(· | H(x))) ≤ ε</code> for a declared
+divergence <code>D</code> and tolerance <code>ε</code>, measured on a pinned held-out distribution with
+confidence intervals. Status: <strong>Empirical</strong>; never a structural claim.</p>
+</blockquote>
+<h2 id="4-objectives-versus-runtime-invariants"><a class="header" href="#4-objectives-versus-runtime-invariants">4. Objectives versus runtime invariants</a></h2>
+<p>These are <strong>Objectives</strong> — quantities the offline compiler optimizes. They must
+never be stated as runtime properties:</p>
+<div class="table-wrapper"><table><thead><tr><th>Quantity</th><th>Role</th><th>Binding</th></tr></thead><tbody>
+<tr><td><code>J = L_teacher + λ·C_runtime + μ·C_artifact</code></td><td><strong>Objective</strong></td><td>Compiler cost model: teacher behavioral loss, inference cost, artifact size/complexity (issue #129).</td></tr>
+<tr><td><code>min_Z I(Z;X) − β·I(Z;Y_future)</code></td><td><strong>Objective</strong></td><td>Information-bottleneck compression target: discard surface detail, keep future-relevant information (issue #127).</td></tr>
+<tr><td><code>H(A | R)</code>, <code>H(S_future | R)</code></td><td><strong>Objective</strong></td><td>Predictive-entropy criteria for splitting, merging, or removing regions (issue #127).</td></tr>
+<tr><td><code>π* = arg max_π [ V(G | T(B,π)) − P(C,π) − R(U,π) ]</code></td><td><strong>Objective</strong></td><td>Plan-ranking target for bounded future-state optimization (issue #131). Not a theorem.</td></tr>
+</tbody></table>
+</div>
+<p>These are <strong>Guarantees</strong> — structural properties of artifact and runtime, each with
+a proof-model entry. Their current statuses are the proof-matrix records; a document
+citing one MUST cite the same status:</p>
+<div class="table-wrapper"><table><thead><tr><th>Guarantee</th><th>Status</th><th>Evidence</th></tr></thead><tbody>
+<tr><td>Allocation freedom on the prediction hot path</td><td><strong>Structural</strong></td><td><code>allocation_proof</code> counting-allocator harness; <code>allocation_census.rs</code> (proof matrix: PDF §16)</td></tr>
+<tr><td>Bounded packed ranges</td><td><strong>Structural</strong></td><td><code>range_bounds_proof</code> (Theorem 8)</td></tr>
+<tr><td>Deterministic top-K (canonical tie-break)</td><td><strong>Structural</strong></td><td><code>deterministic_topk_proof</code> (PDF §23)</td></tr>
+<tr><td>Forward/reverse index consistency</td><td><strong>Structural</strong></td><td><code>theorem7_proof</code> (Theorem 7)</td></tr>
+<tr><td>Score arithmetic safety (no overflow/panic)</td><td><strong>Structural</strong></td><td>Kani-1 harness (<code>kani_proofs.rs</code>)</td></tr>
+<tr><td>Fixed-capacity container invariants</td><td><strong>Structural</strong></td><td>Kani-2 harness (<code>kani_proofs.rs</code>)</td></tr>
+<tr><td>Inference operation-set conformance</td><td><strong>Witnessed</strong> (Structural after machine-code audit)</td><td><code>INFERENCE_OPERATION_CONTRACT.md</code> + P-4 source scans (<code>transformerless/mod.rs</code>)</td></tr>
+<tr><td>Termination, bounded frontier width, valid references, canonical serialization, provenance completeness</td><td>per proof matrix</td><td>R4G1 two-stage validation + proof-model entries; anything lacking an executed evidence artifact is <strong>Unproven</strong></td></tr>
+</tbody></table>
+</div>
+<h2 id="5-term-discipline-overloaded-words"><a class="header" href="#5-term-discipline-overloaded-words">5. Term discipline (overloaded words)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Avoid (unqualified)</th><th>Use instead</th><th>Rule</th></tr></thead><tbody>
+<tr><td>"intent"</td><td><strong>Future-state optimization</strong>: belief = estimated current state, goal = desired future-state subset <code>G ⊆ S</code>, constraint = forbidden subset <code>F ⊆ S</code>, action = transition operator, plan = bounded trajectory <code>π = (a_0, …, a_n)</code> with <code>T^π(s_0) ∈ G</code> and <code>T^π_i(s_0) ∉ F</code> for all intermediate <code>i</code> (<strong>Definition</strong>, PDF §12).</td><td>Unqualified "intent" is informal prose; it must not appear in a labeled statement.</td></tr>
+<tr><td>"semantic atom"</td><td><strong>Semantic region</strong> — multiresolution, overlapping, proof-addressable; explicitly not an atom (glossary).</td><td>"Semantic atom" is prohibited in normative text.</td></tr>
+<tr><td>"equivalence"</td><td>Qualified forms only: <strong>byte reproducibility</strong> (identical pinned inputs ⇒ identical artifact bytes) or <strong>behavioral equivalence</strong> (an <strong>Empirical Criterion</strong>, valid only on the declared distribution, per the equivalence protocol).</td><td>Unqualified "equivalence" is informal; "exact equivalence" hits the §2.1 wording rule.</td></tr>
+<tr><td>"reasoning"</td><td>Precise mechanisms: <strong>typed state transitions</strong>, <strong>graph navigation</strong>, <strong>bounded planning</strong> (trajectory evaluation over <code>T</code>).</td><td>Bare "reasoning" is informal; plausible language output is never evidence of it (§2.1).</td></tr>
+<tr><td>"transformerless"</td><td><strong>Zero source-attention calls and no dense full-prefix Q·K matrix/softmax kernel</strong> on the exact promoted decoder path; the replacement uses bounded geometric support shown load-bearing by disabled/permuted interventions.</td><td>Does not imply multiplication-free, integer-only, allocation-free, coherent, or production-ready. Name retained source components and the checkpoint/scope.</td></tr>
+<tr><td>"geometric intelligence"</td><td>Name the measured mechanism: <strong>geometric support change</strong>, <strong>memory-causal logit effect</strong>, <strong>student-prefix rollout</strong>, or another declared empirical result.</td><td>Geometry being present or visually structured is not evidence of intelligence.</td></tr>
+</tbody></table>
+</div>
+<p>Existing documents predate this convention. Their already-qualified uses
+("behavioral equivalence", "not semantic atoms", "equivalence-tested") conform;
+unqualified uses are hereby marked informal and are migrated opportunistically, not
+by wholesale rewrite.</p>
+<h2 id="6-enforcement"><a class="header" href="#6-enforcement">6. Enforcement</a></h2>
+<ul>
+<li>The <code>uor-r4-claim-wording</code> crate (Rust port of the retired <code>scripts/check_claim_wording.py</code>)
+scans <code>docs/**/*.md</code> and crate <code>README.md</code> files
+and fails on §2.1 violations. Run locally: <code>cargo run -q --locked -p uor-r4-claim-wording -- .</code>.</li>
+<li>Current PR and merge-group CI run the focused native checks described by the
+<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/agent-execution-policy.md#verification-and-records">execution policy</a>.
+Four historical required statuses acknowledge compatibility only. Run the
+claim-wording script when changing claims; broader legacy release checks
+remain separately activated. Neither status names nor unrun jobs are evidence.</li>
+<li>The proof-status matrix (<code>proof_matrix.rs</code>) is the machine-readable registry for
+§2 statuses; <code>verify_all</code> fails on any <code>Unverified</code> entry.</li>
+</ul>
+<h2 id="changelog"><a class="header" href="#changelog">Changelog</a></h2>
+<ul>
+<li><strong>0.1.35</strong> (2026-09-01) — Recorded the independently verified
+<code>R4PredictiveBlockDeltaPromptCapacityV5</code> terminal
+<code>PREDICTIVE_BINDING_NO_TERMINAL_CAPACITY</code>. Geometric gain
+<code>0.03896945868086732</code> with <code>375/512</code> wins missed the frozen absolute
+<code>0.04332169878499658</code> capacity floor. Geometry versus independently fitted
+plain missed the gain and own-NLL rules even though transport-permuted gates
+passed; full delta also failed attribution versus independently fitted
+additive at <code>-0.006512463228773413</code> and <code>234/512</code>. Fresh-language and
+integrity gates passed. A scoring-only recovery preserved the frozen arms,
+created no optimizer, and was independently replayed exactly. The binding
+action is <code>STOP_WITHOUT_GENERATION</code>; retire only this predictive block-delta
+law, without revising ordinary-softmax or retained-attention evidence.
+Result/scoring/recovery/verification CIDs are respectively
+<code>blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74</code>,
+<code>blake3:44f8941d24a99fc230710fd700e7a7b13cee87587bfbe4e13bf7b095222e2ee6</code>,
+<code>blake3:7b76e36e44798bebf184ece08fdd8a2065bdd370106b5d64d5fae4c59dc6d88b</code>,
+and <code>blake3:567cf336eb05c3ec562aef7135f6fb35b580d02c758b0e79f2508cae57065f5d</code>.</li>
+<li><strong>0.1.34</strong> (2026-09-01) — Recorded the independently verified
+<code>R4LearnedAssociativeReadoutPromptCapacityV1</code> terminal
+<code>LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY</code>. Geometric gain <code>0.00637679</code> and
+pooled gain <code>0.01026323</code> both missed the frozen absolute <code>0.04332170</code> and
+incremental <code>0.02534157</code> capacity effects; geometry also lost the pooled and
+fixed-leaf-deranged attribution comparisons. Both learned arms passed every
+fresh-language and state-load-bearing gate, so the pooled improvement is
+retained as a non-geometric control signal. All mechanics and independent
+replay passed. No retry or generation is authorized; the next separately
+frozen #973 architecture must change the retained value write/binding law.
+Result CID
+<code>blake3:cedba37738ee249457bb589f716ee75afb16a0c4937c2a22ae9f917dd3eb97c1</code>;
+verification CID
+<code>blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7</code>.</li>
+<li><strong>0.1.33</strong> (2026-09-01) — Froze
+<code>R4LearnedCandidateLeafAssociativeReadoutV1</code> and its independent
+<code>R4LearnedAssociativeReadoutPromptCapacityV1</code> campaign before implementation,
+V4 population creation, fitting, or outcome access. Bound the exact-leaf,
+address-blind pooled, fixed-leaf-deranged, head-off, and state-off arms plus
+the fresh-data, create-once reveal, capacity, geometry-attribution, compute,
+and divergent-action contracts. All empirical outcomes remain <code>NOT_RUN</code>;
+#973 remains open and #954 blocked.</li>
+<li><strong>0.1.32</strong> (2026-09-01) — Recorded
+<code>R4LayerwiseNormalizedRetainedReadoutLanguagePathV1</code> as terminal
+<code>LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL</code>. All
+fresh-language, state-off, causal, replay, and independent-verification gates
+passed, while prompt gain <code>0.0286980210</code> and incremental gain
+<code>0.0213663973</code> missed their frozen floors. Ended the parameter-free readout
+ladder and made a freshly frozen learned associative binding/readout the sole
+#973 successor. Candidate generation, reasoning, and exact/geometry-native
+lowering remain <code>NOT_RUN</code>; #954 remains blocked.</li>
+<li><strong>0.1.31</strong> (2026-09-01) — Recorded
+<code>R4DirectRetainedReadoutLanguagePathV1</code> as terminal
+<code>DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL</code>. The zero-parameter readout
+increased prompt gain and fresh-language quality while passing state-off,
+causal, replay, and independent-verification checks, but missed both frozen
+prompt-gain floors. Generation and lowering remain <code>NOT_RUN</code>. Froze exactly
+one layerwise-normalized, zero-parameter successor and a stop/pivot falsifier;
+no coherence, reasoning, H4-superiority, exact-runtime, browser, or release
+claim follows.</li>
+<li><strong>0.1.30</strong> (2026-09-01) — Recorded qualified
+<code>R4RetainedLanguagePathV1</code> and its terminal paired-H4 capacity successor.
+Paired addressing reduced construction repeats <code>97.5477%</code> and slightly
+improved fresh-language NLL/top-1, but prompt gain fell from <code>0.0063672952</code>
+to <code>0.0062477543</code>, with <code>282/512</code> wins. Terminal:
+<code>PAIRED_H4_PROMPT_CAPACITY_FAIL</code>; result CID
+<code>blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274</code>.
+Preserved V1, rejected candidate generation, and directed #973 to an
+independently frozen prompt-state-to-logit readout seam. The canonical
+prompt population CID is
+<code>blake3:c11a7c935139ca169460b90c01392d7c9e0929e4c10710e76e6c8f74cbdf0340</code>;
+it replaced a provisional pre-freeze scan that omitted whitespace
+normalization and overlapped training data.</li>
+<li><strong>0.1.29</strong> (2026-09-01) — Recorded #973's completed CPU-recovery boundary.
+Disabling retained state on the disjoint construction-validation partition
+lost <code>0.967227</code> nats and
+182 top-1 hits, qualifying a bounded causal retained-attention component. The
+exact 3.17M-parameter, two-block, data/dose recipe did not satisfy the frozen
+full-decoder generalization criterion; scrambled transport was
+<code>0.033049</code> nats better, so no H4-specific advantage follows. Directed #973 to
+a data-supported language-path decoder with an ordinary matched non-geometric
+control. Also made representative-step backend/thread/worker calibration the
+operating rule for substantial offline jobs; deployed runtime remains
+CPU/table-native and CUDA remains explicit-scope only.</li>
+<li><strong>0.1.28</strong> (2026-09-01) — Recorded the terminal #973 construction result
+<code>UNAVAILABLE_FRAME_POPULATION_OR_LOCAL_BUDGET</code>. Mechanical audits passed;
+timing and disposable learning smoke failed, so main and held-out model work
+stayed <code>NOT_RUN</code> with no attention or H4 verdict. Retired retries/tuning of the
+exact cell and directed #973 to select a fuller source-free decoder block.</li>
+<li><strong>0.1.27</strong> (2026-09-01) — Defined the independently re-scoped #973
+<code>R4GroupAddressedRetentionLMV1</code> and recorded only its observed construction
+boundary: geometry and population <code>PASS</code>; training and held-out model evidence
+<code>NOT_RUN</code>. Retained the older gated-delta, trace-state, intrinsic/readout, and
+resonance lanes as negative or parked history, with #954 still blocked and no
+C1-SB6 authorization.</li>
+<li><strong>0.1.26</strong> (2026-08-31) — Recorded the one bounded #1019 local fast-path
+result: an isolated exact-shape MPS test with 10 warmup plus 40 measured steps
+combined fused AdamW and deferred logging, measuring <code>4.485223 s/step</code> versus
+the signed <code>3.491307 s/step</code>. Because it was slower, <code>fused=True</code> was removed
+immediately. This is a bounded implementation negative, not a model or
+attention result. #1019 tuning/full-run work stops and remains optional/
+paused; product work and #973 no longer wait for it. The active next step is
+using and productizing the bounded #1017 generator through <code>r4 generate</code>.</li>
+<li><strong>0.1.25</strong> (2026-08-31) — Corrected #1019's active execution scope without
+rewriting its frozen contract or measured preflight: UOR's deployed
+architecture/runtime remains CPU-native; Apple Accelerate/BLAS and MPS are
+permitted only for local offline training, compilation, and bounded tests;
+CUDA and external GPU execution are out of scope. The observed
+<code>UNAVAILABLE_HARDWARE_BUDGET</code> terminal applies only to the frozen eight-hour
+offline implementation. Reuse the passed population/smoke/parity artifacts
+and proceed prototype-first on the local M1: build, demonstrate, then harden
+one working efficiency mechanism without recurring broad research gates.
+#1019 is an optional quality-capacity improvement and no longer blocks use or
+productization of the bounded #1017 generator through <code>r4 generate</code>.</li>
+<li><strong>0.1.24</strong> (2026-08-31) — Bound #1019 as the sole parameter-capacity
+successor: twelve layers, exactly 13,130,784 parameters, seed 1019, 16,800
+steps, and 275,251,200 tokens over the unchanged causal-softmax R4/Spin and
+Rust evidence path. Recorded every execution gate as <code>NOT_RUN</code>, required the
+cheap preflights and an eight-hour hardware projection, and prohibited paid
+external execution without explicit owner approval. This is a frozen
+Objective/Empirical Criterion, not a result claim.</li>
+<li><strong>0.1.23</strong> (2026-08-31) — Recorded #1017's frozen continuation at
+<code>149,995,520</code> cumulative tokens: enabled Rust parity, all mechanical gates,
+prompt retention <code>5/5</code>, and normalized replay <code>5/5</code> passed; sealed NLL
+<code>1.5727521962806827</code> failed the strict <code>&lt;1.50</code> gate. The result is negative
+solely on NLL. Preserved #1014's bounded attention conclusion, prohibited
+further 7.15M exposure/LR tuning, and advanced only one predeclared
+parameter-capacity increase.</li>
+<li><strong>0.1.22</strong> (2026-08-30) — Added <code>Delta_attn-off</code> and recorded the completed
+#1014 split verdict: ordinary causal attention established at the learned
+R4/Spin intervention/parity scope; full language-quality DoD negative at
+enabled NLL <code>2.127407277216677</code> and prompt retention <code>3/5</code>. The exact
+campaign closes without rerun or diagnostic expansion. Its #1017 exposure
+continuation then closed negative solely on sealed NLL
+<code>1.5727521962806827</code>, with retention <code>5/5</code> and all other gates passing. One
+predeclared parameter-capacity increase over the unchanged mechanism is next.</li>
+<li><strong>0.1.21</strong> (2026-08-30) — Recorded #1012
+<code>INSUFFICIENT_SUPPORT_COVERAGE</code>, forbade boundary attribution and further
+support/localization loops, and advanced <a href="https://github.com/UOR-Foundation/uor-r4/issues/1014">#1014</a>,
+direct end-to-end causal-softmax R4 attention training on a fresh untouched
+split with autonomous decoding. This stops the
+bounded current-step trace-distillation path, not all trace distillation or
+attention.</li>
+<li><strong>0.1.20</strong> (2026-08-30) — Bound the completed negative
+<code>R4SoftmaxTraceStateStudentV1</code> result, exact metrics and artifact identities;
+narrowed its falsifier to the tested 4D signed-reduction/token-derived state
+cell; and defined the construction-only leave-one-document-out
+<code>O_trace^(0..3)</code> observability ladder in #1012, the native child/blocker of
+#973, as the next gate.</li>
+<li><strong>0.1.19</strong> (2026-08-30) — Promoted <code>R4SoftmaxTeacherTraceV1</code> and
+<code>R4SoftmaxTraceCompilerV1</code> from proposed objectives to a bounded empirical
+source-free-distillation result, retained the incoherent decoded-cycle
+boundary, and defined <code>R4SoftmaxTraceStateStudentV1</code> as the next geometric
+state-compilation objective.</li>
+<li><strong>0.1.18</strong> (2026-08-30) — Recorded the exact opt-in loopback HTTP/CLI
+reference parity boundary and defined the proposed, not-yet-implemented
+<code>R4SoftmaxTeacherTraceV1</code> / <code>R4SoftmaxTraceCompilerV1</code> source-free
+trace-compilation objective.</li>
+<li><strong>0.1.15</strong> (2026-08-26) — Defined the geometric-intelligence route hierarchy
+and its claim boundaries: typed zero/identity and trigonometric chart bridges,
+lexical/prime/semiprime/n-let identities, zeta/Hopf/torsion/golden state,
+conceptual <code>E8 = H4 × H4</code> realized by the witnessed icosian
+<code>H4 ⊕ φH4</code> construction, hierarchical kappa and trajectory summaries,
+attention versus recall, inference, correctness, reasoning, and provider-free
+serving.</li>
+<li><strong>0.1.14</strong> (2026-08-20) — Added the issue-#830 register execution-scope, serving-reachability, and empirical-verdict vocabulary: a per-row execution <code>scope</code> (<code>reference-only</code> / <code>offline-compiler</code> / <code>certifier-instrument</code> / <code>dormant-portable-runtime</code> / <code>normative-runtime</code> / <code>deployed-production</code>) and a serving <code>reachability</code> (<code>deployed-serving</code> / <code>off-serving-path</code> / <code>dormant-gated</code>), plus a three-value empirical status (<code>PASS</code> / <code>FAIL</code> / <code>UNAVAILABLE</code>) kept as a separate axis from the harness-built <code>build</code> level — an absent fixture is <code>UNAVAILABLE</code>, never <code>PASS</code> (<code>crates/repo-model/src/registry.rs</code>, <code>crates/repo-model/src/empirical.rs</code>; rendered into <code>CONFORMANCE.md</code>).</li>
+<li><strong>0.1.13</strong> (2026-07-25) — Added issue-#175 compiler parallelism benchmarks and scaling certificate definitions (<code>Compiler Parallelism Scaling Report</code>, <code>Multicore Thread Sweep Matrix</code>, <code>Stage Scaling Classification Taxonomy</code>, <code>Byte-Equality Scaling Premise</code> in <code>docs/compiler_scaling_certificate.md</code> and <code>uor-r4-graph-certify::compiler_scaling</code>).</li>
+<li><strong>0.1.12</strong> (2026-07-25) — Added issue-#174 CPU-only compiler dependency and feature audit definitions (<code>Compiler Dependency Denylist Gate</code>, <code>Default Feature Unification Rule</code>, <code>Teacher-Backend Isolation Invariant</code>, <code>CPU-Only Runner Compliance</code> in <code>docs/compiler_dependency_audit.md</code> and <code>uor-r4-graph-compiler::dependency_audit</code>).</li>
+<li><strong>0.1.11</strong> (2026-07-24) — Added issue-#170 parallel observation, trace, and evaluation processing definitions (<code>Content-Addressed Shard Partitioning</code>, <code>Ordered Deterministic Reduction</code>, <code>Shard ID Determinism</code>, <code>Teacher-Backend Boundary</code> in <code>docs/parallel_observation_shards.md</code> and <code>uor-r4-graph-compiler::observation_shards</code>).</li>
+<li><strong>0.1.10</strong> (2026-07-24) — Added issue-#169 compiler memory-budget and backpressure model definitions (<code>Concurrency-Aware Memory Formula</code>, <code>Per-Stage Memory Estimate</code>, <code>In-Flight Backpressure Limiter</code>, <code>Constrained-Memory Determinism</code> in <code>docs/compiler_memory_budget.md</code> and <code>uor-r4-graph-compiler::memory_budget</code>).</li>
+<li><strong>0.1.9</strong> (2026-07-24) — Added issue-#168 compiler thread-pool and jobs configuration definitions (<code>Compiler Concurrency Control</code>, <code>Jobs Precedence Resolution</code>, <code>Dedicated Thread-Pool Ownership</code>, <code>Oversubscription Policy</code> in <code>docs/compiler_concurrency_config.md</code> and <code>uor-r4-graph-compiler::jobs_config</code>).</li>
+<li><strong>0.1.8</strong> (2026-07-24) — Added issue-#167 normative reproducibility &amp; canonical byte-equality definitions (<code>Normative Reproducibility Invariant</code>, <code>Parallel Reproducibility Harness</code>, <code>Thread-Count Invariance</code>, <code>Deterministic Reduction Policy</code> in <code>docs/reproducibility.md</code> and <code>uor-r4-graph-compiler::reproducibility</code>).</li>
+<li><strong>0.1.7</strong> (2026-07-24) — Added issue-#166 compiler stage ownership and parallelization DAG definitions (<code>Compiler Stage DAG</code>, <code>Parallel-Safe Stage</code>, <code>Deterministic Merge Stage</code>, <code>Bounded Parallel Stage</code>, <code>Sequential Canonical Finalization Spine</code> in <code>docs/compiler_stage_dag.md</code> and <code>uor-r4-graph-compiler::stage_dag</code>).</li>
+<li><strong>0.1.6</strong> (2026-07-24) — Added issue-#165 deterministic compiler executor definitions (<code>Compiler Executor Abstraction</code>, <code>Sequential Reference Executor</code>, <code>Rayon Parallel Executor</code> in <code>uor-r4-graph-compiler::executor</code>).</li>
+<li><strong>0.1.5</strong> (2026-07-24) — Added issue-#161 runtime operation, allocation, and CPU portability certificate definitions (<code>Runtime Performance Certificate</code>, <code>Evidentiary Class Schema</code>, <code>Declared-Zero Evidence Link</code>, <code>CPU Portability Record</code> in <code>uor-r4-graph-certify::performance_certificate</code>).</li>
+<li><strong>0.1.4</strong> (2026-07-24) — Added issue-#160 machine-code, allocator, and dependency CI audit definitions (<code>Machine-Code Disassembly Audit</code>, <code>Counting Allocator Witness</code>, <code>Dependency Denylist Gate</code> in <code>uor-r4-proof-model::inference_audit</code>).</li>
+<li><strong>0.1.3</strong> (2026-07-24) — Added the issue-#158 normative scoring semantics definitions (<code>Fixed-Point Scoring Semantics</code>, <code>Residual Taxonomy</code>, <code>Overlap Residualization</code>, <code>Deterministic Tie-Breaking</code> in <code>docs/scoring_semantics.md</code> and <code>uor-r4-graph-format::scoring_semantics</code>).</li>
+<li><strong>0.1.2</strong> (2026-07-24) — Added the issue-#157 normative inference contract definitions (<code>Normative Inference Contract</code>, <code>Permitted Operation Class</code>, <code>Zero-Allocation Steady State</code>, <code>CPU-Only Target Contract</code> in <code>docs/inference_contract.md</code> and <code>uor-r4-graph-format::inference_contract</code>).</li>
+<li><strong>0.1.1</strong> (2026-07-24) — Added the issue-#126 measurement-contract binding for
+<code>H(x)</code> (projection family schema, ablation semantics, and deterministic partial
+recovery/progressive-fidelity fixture in <code>uor-r4-graph-certify</code>).</li>
+<li><strong>0.1.0</strong> (2026-07-24) — Initial version. Claim classes, claim statuses, core
+notation (<code>S</code>, <code>G=(V,E)</code>, <code>H(x)</code>, <code>T</code>, <code>R</code>, <code>C</code>, <code>P_θ</code>, <code>P_G</code>), objectives vs.
+runtime invariants, term discipline, and the CI wording rule. (Issue #123.)</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="CHARTER.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="CONFIGURATION.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="CHARTER.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="CONFIGURATION.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid.min.js"></script>
+        <script src="mermaid-init.js"></script>
+
+
+    </div>
+    </body>
+</html>

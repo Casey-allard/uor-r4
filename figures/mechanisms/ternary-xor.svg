@@ -1,0 +1,371 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 490" width="960" role="img" aria-labelledby="t d">
+<title id="t">Ternary and XOR/Hamming arithmetic</title>
+<desc id="d">Three panels. Left: 16 ternary weights stored as two bit strips, plane P marking +1 and plane N marking -1, beside a 16-bit activation strip. An AND with the activation lights the surviving bits: 5 survive in P and 2 in N, and the dot product is 5 minus 2, which is 3. XOR is crossed out because it is not the ternary dot product. Middle: a query and two E8 root candidates drawn as bar rows over 8 coordinates. Both candidates sit at L1 displacement 3, a tie, and the count of differing coordinates, 2 against 1, breaks it in favour of the second; this is how the current discrete model selects routes. Right: a dense grid with every weight cell lit beside a routed grid with only a few cells lit. Removing the multiplier does not remove the dense sum.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.ti { font-size: 19px; font-weight: 600; }
+.h { font-size: 14px; font-weight: 600; }
+.big { font-size: 20px; font-weight: 600; }
+.n { font-size: 12px; fill: var(--muted); }
+.m { fill: var(--muted); }
+.b { font-weight: 600; }
+.c { text-anchor: middle; }
+.r { text-anchor: end; }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.ln { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.rl { stroke: var(--rule); stroke-width: 1; fill: none; }
+.dash { stroke-dasharray: 5 4; }
+.dot { stroke-dasharray: 2 3; }
+.fi { fill: var(--ink); } .fm { fill: var(--muted); } .fb { fill: var(--blue); } .fg { fill: var(--green); }
+.fo { fill: var(--orange); } .fv { fill: var(--verm); } .fp { fill: var(--purple); } .fs { fill: var(--sky); } .fk { fill: var(--pink); }
+.si { stroke: var(--ink); } .sm { stroke: var(--muted); } .sb { stroke: var(--blue); } .sg { stroke: var(--green); }
+.so { stroke: var(--orange); } .sv { stroke: var(--verm); } .sp { stroke: var(--purple); } .ss { stroke: var(--sky); }
+.w2 { stroke-width: 2; } .w15 { stroke-width: 1.5; } .w1 { stroke-width: 1; } .nf { fill: none; }
+.sk { stroke: var(--pink); } .sbd { stroke: var(--body); } .sr { stroke: var(--rule); }
+.t { fill: var(--body); } .bs { font-size: 13px; font-weight: 600; } .s11 { font-size: 11.5px; } .l { text-anchor: start; }
+.o3 { opacity: 0.3; } .o5 { opacity: 0.5; } .o7 { opacity: 0.7; } .fr { fill: var(--rule); } .fpn { fill: var(--panel); } .fbg { fill: var(--bg); }
+.st { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; } .stP { fill: var(--parked); } .stR { fill: var(--ready); }
+.chipP { fill: var(--bg); stroke: var(--parked); stroke-width: 1.8; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.chipR { fill: var(--bg); stroke: var(--ready); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.w3 { stroke-width: 3; } .w25 { stroke-width: 2.5; } .w05 { stroke-width: 0.6; } .rnd { stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<defs>
+<marker id="a-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+<marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<marker id="a-verm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+<marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fo"/></marker>
+<marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fg"/></marker>
+<marker id="a-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fk"/></marker>
+<marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fp"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="490"/>
+<text class="ti" x="16" y="32">Ternary arithmetic: AND and subtract, not XOR, and the dense sum stays</text>
+<rect class="panel" x="16" y="48" width="296" height="404" rx="8"/>
+<text class="h" x="30" y="72">1  AND, then subtract</text>
+<text class="n" x="28" y="111">weights w</text>
+<text class="n b c fb" x="95" y="111">+</text>
+<text class="n b c fv" x="108" y="111">−</text>
+<text class="n b c fb" x="121" y="111">+</text>
+<text class="n b c fb" x="134" y="111">+</text>
+<text class="n b c fm" x="147" y="111">0</text>
+<text class="n b c fv" x="160" y="111">−</text>
+<text class="n b c fb" x="173" y="111">+</text>
+<text class="n b c fm" x="186" y="111">0</text>
+<text class="n b c fb" x="199" y="111">+</text>
+<text class="n b c fv" x="212" y="111">−</text>
+<text class="n b c fm" x="225" y="111">0</text>
+<text class="n b c fb" x="238" y="111">+</text>
+<text class="n b c fv" x="251" y="111">−</text>
+<text class="n b c fm" x="264" y="111">0</text>
+<text class="n b c fb" x="277" y="111">+</text>
+<text class="n b c fm" x="290" y="111">0</text>
+<text class="n" x="28" y="135">P (+1)</text>
+<rect class="fb" x="90" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="103" y="124" width="11" height="13" rx="2"/>
+<rect class="fb" x="116" y="124" width="11" height="13" rx="2"/>
+<rect class="fb" x="129" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="142" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="155" y="124" width="11" height="13" rx="2"/>
+<rect class="fb" x="168" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="181" y="124" width="11" height="13" rx="2"/>
+<rect class="fb" x="194" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="207" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="220" y="124" width="11" height="13" rx="2"/>
+<rect class="fb" x="233" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="246" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="259" y="124" width="11" height="13" rx="2"/>
+<rect class="fb" x="272" y="124" width="11" height="13" rx="2"/>
+<rect class="cell" x="285" y="124" width="11" height="13" rx="2"/>
+<text class="n" x="28" y="153">N (−1)</text>
+<rect class="cell" x="90" y="142" width="11" height="13" rx="2"/>
+<rect class="fv" x="103" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="116" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="129" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="142" y="142" width="11" height="13" rx="2"/>
+<rect class="fv" x="155" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="168" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="181" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="194" y="142" width="11" height="13" rx="2"/>
+<rect class="fv" x="207" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="220" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="233" y="142" width="11" height="13" rx="2"/>
+<rect class="fv" x="246" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="259" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="272" y="142" width="11" height="13" rx="2"/>
+<rect class="cell" x="285" y="142" width="11" height="13" rx="2"/>
+<text class="n" x="28" y="181">x</text>
+<rect class="fm" x="90" y="170" width="11" height="13" rx="2"/>
+<rect class="fm" x="103" y="170" width="11" height="13" rx="2"/>
+<rect class="fm" x="116" y="170" width="11" height="13" rx="2"/>
+<rect class="fm" x="129" y="170" width="11" height="13" rx="2"/>
+<rect class="fm" x="142" y="170" width="11" height="13" rx="2"/>
+<rect class="cell" x="155" y="170" width="11" height="13" rx="2"/>
+<rect class="cell" x="168" y="170" width="11" height="13" rx="2"/>
+<rect class="cell" x="181" y="170" width="11" height="13" rx="2"/>
+<rect class="fm" x="194" y="170" width="11" height="13" rx="2"/>
+<rect class="fm" x="207" y="170" width="11" height="13" rx="2"/>
+<rect class="fm" x="220" y="170" width="11" height="13" rx="2"/>
+<rect class="fm" x="233" y="170" width="11" height="13" rx="2"/>
+<rect class="cell" x="246" y="170" width="11" height="13" rx="2"/>
+<rect class="cell" x="259" y="170" width="11" height="13" rx="2"/>
+<rect class="cell" x="272" y="170" width="11" height="13" rx="2"/>
+<rect class="cell" x="285" y="170" width="11" height="13" rx="2"/>
+<text class="n" x="28" y="215">P AND x</text>
+<rect class="fb" x="90" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="103" y="204" width="11" height="13" rx="2"/>
+<rect class="fb" x="116" y="204" width="11" height="13" rx="2"/>
+<rect class="fb" x="129" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="142" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="155" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="168" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="181" y="204" width="11" height="13" rx="2"/>
+<rect class="fb" x="194" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="207" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="220" y="204" width="11" height="13" rx="2"/>
+<rect class="fb" x="233" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="246" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="259" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="272" y="204" width="11" height="13" rx="2"/>
+<rect class="cell" x="285" y="204" width="11" height="13" rx="2"/>
+<text class="n" x="28" y="233">N AND x</text>
+<rect class="cell" x="90" y="222" width="11" height="13" rx="2"/>
+<rect class="fv" x="103" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="116" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="129" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="142" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="155" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="168" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="181" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="194" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="207" y="222" width="11" height="13" rx="2"/>
+<rect class="fv" x="220" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="233" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="246" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="259" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="272" y="222" width="11" height="13" rx="2"/>
+<rect class="cell" x="285" y="222" width="11" height="13" rx="2"/>
+<rect class="fb" x="30" y="256" width="11" height="11" rx="2"/><text class="t" x="48" y="266">popcount(P AND x) = 5</text>
+<rect class="fv" x="30" y="276" width="11" height="11" rx="2"/><text class="t" x="48" y="286">popcount(N AND x) = 2</text>
+<text class="tb" x="30" y="312">dot product = 5 − 2 = 3</text>
+<text class="n" x="30" y="330">A zero weight is skipped for free.</text>
+<line class="rl" x1="28" y1="346" x2="300" y2="346"/>
+<rect class="cell sv w2" x="30" y="360" width="50" height="26" rx="4"/><text class="tb c" x="55" y="378">XOR</text><line class="sv w2" x1="30" y1="388" x2="80" y2="358"/>
+<text class="t" x="90" y="378">is not this dot product</text>
+<text class="n" x="30" y="408">XOR counts differing bits (Hamming distance).</text><text class="n" x="30" y="424">Over GF(2), −1 and +1 are the same element,</text><text class="n" x="30" y="440">so "ternary XOR matmul" is false as stated.</text>
+<rect class="panel" x="324" y="48" width="296" height="404" rx="8"/>
+<text class="h" x="338" y="72">2  A tie broken by a count</text>
+<text class="n c" x="380" y="98">c0</text>
+<text class="n c" x="408" y="98">c1</text>
+<text class="n c" x="436" y="98">c2</text>
+<text class="n c" x="464" y="98">c3</text>
+<text class="n c" x="492" y="98">c4</text>
+<text class="n c" x="520" y="98">c5</text>
+<text class="n c" x="548" y="98">c6</text>
+<text class="n c" x="576" y="98">c7</text>
+<text class="n" x="338" y="116">coordinates of an 8-vector</text>
+<text class="tb" x="336" y="144">q</text><line class="rl" x1="364" y1="140" x2="596" y2="140"/>
+<rect class="fb" x="541" y="140" width="14" height="12"/>
+<rect class="fb" x="569" y="140" width="14" height="24"/>
+<text class="n" x="360" y="186" >query: a transported 8-vector</text>
+<text class="tb" x="336" y="240">A</text><line class="rl" x1="364" y1="236" x2="596" y2="236"/>
+<rect class="fv o3" x="367" y="202" width="26" height="68" rx="3"/>
+<rect class="fb" x="373" y="236" width="14" height="24"/>
+<rect class="fv o3" x="535" y="202" width="26" height="68" rx="3"/>
+<rect class="fb" x="569" y="236" width="14" height="24"/>
+<text class="n c fv" x="380" y="196">2</text><text class="n c fv" x="548" y="196">1</text>
+<text class="n" x="360" y="284">A: L1 = 2 + 1 = 3, Hamming = 2</text>
+<text class="tb" x="336" y="340">B</text><line class="rl" x1="364" y1="336" x2="596" y2="336"/>
+<rect class="fv o3" x="535" y="302" width="26" height="68" rx="3"/>
+<rect class="fb" x="541" y="312" width="14" height="24"/>
+<rect class="fb" x="569" y="336" width="14" height="24"/>
+<text class="n c fv" x="548" y="296">3</text>
+<text class="n" x="360" y="384">B: L1 = 3, Hamming = 1</text>
+<rect class="fv o3" x="338" y="396" width="14" height="10" rx="2"/><text class="n" x="358" y="405">differing coordinate, with its displacement</text>
+<text class="tb" x="338" y="426">Equal L1, so fewer differing coordinates</text><text class="tb" x="338" y="442">wins: B (1) beats A (2).</text>
+<rect class="panel" x="632" y="48" width="312" height="404" rx="8"/>
+<text class="h" x="646" y="72">3  Dense against routed</text>
+<text class="n c" x="772" y="94">D inputs</text><text class="n c" transform="rotate(-90 656 150)" x="656" y="150">W outputs</text>
+<rect class="fb" x="668" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="684" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="700" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="716" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="732" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="748" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="764" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="780" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="796" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="812" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="828" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="844" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="860" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="876" y="102" width="14" height="14" rx="2"/>
+<rect class="fb" x="668" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="684" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="700" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="716" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="732" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="748" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="764" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="780" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="796" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="812" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="828" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="844" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="860" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="876" y="118" width="14" height="14" rx="2"/>
+<rect class="fb" x="668" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="684" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="700" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="716" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="732" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="748" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="764" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="780" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="796" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="812" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="828" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="844" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="860" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="876" y="134" width="14" height="14" rx="2"/>
+<rect class="fb" x="668" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="684" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="700" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="716" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="732" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="748" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="764" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="780" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="796" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="812" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="828" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="844" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="860" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="876" y="150" width="14" height="14" rx="2"/>
+<rect class="fb" x="668" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="684" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="700" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="716" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="732" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="748" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="764" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="780" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="796" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="812" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="828" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="844" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="860" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="876" y="166" width="14" height="14" rx="2"/>
+<rect class="fb" x="668" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="684" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="700" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="716" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="732" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="748" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="764" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="780" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="796" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="812" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="828" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="844" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="860" y="182" width="14" height="14" rx="2"/>
+<rect class="fb" x="876" y="182" width="14" height="14" rx="2"/>
+<text class="t" x="646" y="218">Dense: every one of the W × D weights</text><text class="t" x="646" y="234">is read for every token.</text>
+<line class="rl" x1="646" y1="248" x2="930" y2="248"/>
+<rect class="cell" x="668" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="684" y="262" width="14" height="14" rx="2"/>
+<rect class="fb" x="700" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="716" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="732" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="748" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="764" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="780" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="796" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="812" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="828" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="844" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="860" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="876" y="262" width="14" height="14" rx="2"/>
+<rect class="cell" x="668" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="684" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="700" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="716" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="732" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="748" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="764" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="780" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="796" y="278" width="14" height="14" rx="2"/>
+<rect class="fb" x="812" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="828" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="844" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="860" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="876" y="278" width="14" height="14" rx="2"/>
+<rect class="cell" x="668" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="684" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="700" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="716" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="732" y="294" width="14" height="14" rx="2"/>
+<rect class="fb" x="748" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="764" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="780" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="796" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="812" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="828" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="844" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="860" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="876" y="294" width="14" height="14" rx="2"/>
+<rect class="cell" x="668" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="684" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="700" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="716" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="732" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="748" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="764" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="780" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="796" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="812" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="828" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="844" y="310" width="14" height="14" rx="2"/>
+<rect class="fb" x="860" y="310" width="14" height="14" rx="2"/>
+<rect class="cell" x="876" y="310" width="14" height="14" rx="2"/>
+<rect class="fb" x="668" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="684" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="700" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="716" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="732" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="748" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="764" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="780" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="796" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="812" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="828" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="844" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="860" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="876" y="326" width="14" height="14" rx="2"/>
+<rect class="cell" x="668" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="684" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="700" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="716" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="732" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="748" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="764" y="342" width="14" height="14" rx="2"/>
+<rect class="fb" x="780" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="796" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="812" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="828" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="844" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="860" y="342" width="14" height="14" rx="2"/>
+<rect class="cell" x="876" y="342" width="14" height="14" rx="2"/>
+<text class="t" x="646" y="378">Routed subset: only the selected cells are</text><text class="t" x="646" y="394">read (a hypothesis, never built).</text>
+<text class="tb" x="646" y="426">The multiplier goes away;</text><text class="tb" x="646" y="442">the dense sum stays.</text>
+<text class="n" x="16" y="472">Weights, activations and the query are worked examples. The AND-and-subtract identity is exact (re-checked in 5,000 random trials). Status: parked.</text>
+</svg>

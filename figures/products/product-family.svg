@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" role="img" aria-labelledby="t d">
+<title id="t">One model file, two clients</title>
+<desc id="d">One model file sits in the centre: the model artifact, a UORLUT01 file of integers only, pinned by its SHA-256 checksum, tagged "not yet shipped: 0 of 8 milestones". Two arrows leave it. The left arrow goes to a browser window, the web client, which runs the file in WebAssembly inside a tab with the Studio as its shell. The right arrow goes to a laptop, the desktop client: a Tauri app with a native engine, durable memory (D19) and offline use, tagged "spec only". The same Studio panel, an editor beside a chat, is drawn inside both clients to show one shared interface. A dashed border around everything reads "on your device, no model server".</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.title { font-size: 19px; font-weight: 600; }
+.sub { font-size: 12.5px; fill: var(--muted); }
+.name { font-size: 14px; font-weight: 600; }
+.detail { font-size: 12px; fill: var(--muted); }
+.mini { font-size: 10.5px; fill: var(--muted); }
+.mini-b { font-size: 10.5px; font-weight: 600; fill: var(--body); }
+.device { fill: none; stroke: var(--green); stroke-width: 1.75; stroke-dasharray: 8 5; }
+.device-label { font-size: 13px; font-weight: 600; fill: var(--green); }
+.file { fill: var(--panel); stroke: var(--blue); stroke-width: 2; }
+.fold { fill: var(--bg); stroke: var(--blue); stroke-width: 2; stroke-linejoin: round; }
+.fileline { stroke: var(--blue); stroke-width: 2.5; stroke-linecap: round; stroke-opacity: 0.6; }
+.window { fill: var(--bg); stroke: var(--muted); stroke-width: 1.75; }
+.window-spec { fill: var(--bg); stroke: var(--muted); stroke-width: 1.75; stroke-dasharray: 6 4; }
+.chrome { fill: var(--panel); stroke: var(--muted); stroke-width: 1.75; }
+.dot { fill: var(--muted); }
+.addr { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.base { fill: var(--panel); stroke: var(--muted); stroke-width: 1.75; stroke-linejoin: round; }
+.studio { fill: var(--panel); stroke: var(--rule); stroke-width: 1.25; }
+.pane { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.code { stroke: var(--sky); stroke-width: 3; stroke-linecap: round; }
+.code2 { stroke: var(--muted); stroke-opacity: 0.5; stroke-width: 3; stroke-linecap: round; }
+.bubble-user { fill: var(--blue); fill-opacity: 0.18; }
+.bubble-model { fill: var(--green); fill-opacity: 0.18; }
+.flow { stroke: var(--blue); stroke-width: 2; fill: none; }
+.head-fill { fill: var(--blue); }
+.tag-no { fill: var(--verm); fill-opacity: 0.08; stroke: var(--verm); stroke-width: 1.25; }
+.tag-no-text { font-size: 11.5px; font-weight: 700; fill: var(--verm); letter-spacing: 0.02em; }
+.tag-spec { fill: var(--bg); stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 2; }
+.tag-spec-text { font-size: 11px; fill: var(--muted); }
+</style>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" class="head-fill"/>
+  </marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="440"/>
+
+<text class="title" x="24" y="36">One model file, two ways to run it</text>
+<text class="sub" x="24" y="58">Both clients load the same file and share one interface. Nothing here ships yet.</text>
+
+<!-- Device boundary -->
+<rect class="device" x="24" y="76" width="912" height="346" rx="16"/>
+<rect class="bg" x="40" y="66" width="250" height="20"/>
+<text class="device-label" x="48" y="81">On your device: no model server</text>
+
+<!-- Centre: model file -->
+<rect class="tag-no" x="340" y="104" width="280" height="24" rx="12"/>
+<text class="tag-no-text" x="480" y="120" text-anchor="middle">NOT YET SHIPPED: 0 of 8 milestones</text>
+<path class="file" d="M446,146 L496,146 L516,166 L516,246 L446,246 Z"/>
+<path class="fold" d="M496,146 L496,166 L516,166 Z"/>
+<line class="fileline" x1="458" y1="184" x2="502" y2="184"/>
+<line class="fileline" x1="458" y1="198" x2="504" y2="198"/>
+<line class="fileline" x1="458" y1="212" x2="496" y2="212"/><line class="fileline" x1="458" y1="226" x2="504" y2="226"/>
+<line class="fileline" x1="458" y1="240" x2="488" y2="240"/>
+<text class="name" x="481" y="272" text-anchor="middle">Model artifact</text>
+<text class="detail" x="481" y="290" text-anchor="middle">UORLUT01, integer only</text>
+<text class="detail" x="481" y="306" text-anchor="middle">SHA-256 pinned</text>
+
+<line class="flow" x1="438" y1="200" x2="352" y2="226" marker-end="url(#arr)"/>
+<line class="flow" x1="524" y1="200" x2="610" y2="226" marker-end="url(#arr)"/>
+
+<!-- Left: browser window (web client) -->
+<rect class="window" x="60" y="122" width="284" height="214" rx="8"/>
+<path class="chrome" d="M60,148 L60,130 A8,8 0 0 1 68,122 L336,122 A8,8 0 0 1 344,130 L344,148 Z"/>
+<circle class="dot" cx="74" cy="135" r="3"/><circle class="dot" cx="84" cy="135" r="3"/><circle class="dot" cx="94" cy="135" r="3"/>
+<rect class="addr" x="110" y="128" width="180" height="14" rx="7"/>
+<text class="mini" x="120" y="139">/studio</text>
+<!-- Studio panel (shared) -->
+<g transform="translate(92,168)">
+  <rect class="studio" x="0" y="0" width="220" height="150" rx="6"/>
+  <text class="mini-b" x="8" y="13">Studio</text>
+  <rect class="pane" x="8" y="20" width="118" height="122" rx="4"/>
+  <text class="mini" x="14" y="34">editor</text>
+  <line class="code" x1="16" y1="48" x2="70" y2="48"/>
+  <line class="code2" x1="26" y1="60" x2="106" y2="60"/>
+  <line class="code2" x1="26" y1="72" x2="90" y2="72"/>
+  <line class="code" x1="16" y1="84" x2="60" y2="84"/>
+  <line class="code2" x1="26" y1="96" x2="100" y2="96"/>
+  <line class="code2" x1="26" y1="108" x2="80" y2="108"/>
+  <line class="code" x1="16" y1="120" x2="50" y2="120"/>
+  <rect class="pane" x="132" y="20" width="80" height="122" rx="4"/>
+  <text class="mini" x="138" y="34">chat</text>
+  <rect class="bubble-user" x="156" y="42" width="50" height="18" rx="6"/>
+  <rect class="bubble-model" x="138" y="66" width="62" height="30" rx="6"/>
+  <rect class="bubble-user" x="160" y="102" width="46" height="18" rx="6"/>
+</g>
+<text class="name" x="202" y="362" text-anchor="middle">Web client</text>
+<text class="detail" x="202" y="380" text-anchor="middle">WebAssembly in a browser tab</text>
+<text class="detail" x="202" y="396" text-anchor="middle">Studio as the shell</text>
+
+<!-- Right: laptop (desktop client) -->
+<rect class="window-spec" x="640" y="122" width="240" height="196" rx="8"/>
+<path class="base" d="M612,318 L908,318 L896,334 L624,334 Z"/>
+<rect class="tag-spec" x="806" y="98" width="74" height="20" rx="10"/>
+<text class="tag-spec-text" x="843" y="112" text-anchor="middle">spec only</text>
+<!-- Studio panel (shared) -->
+<g transform="translate(650,146)">
+  <rect class="studio" x="0" y="0" width="220" height="150" rx="6"/>
+  <text class="mini-b" x="8" y="13">Studio</text>
+  <rect class="pane" x="8" y="20" width="118" height="122" rx="4"/>
+  <text class="mini" x="14" y="34">editor</text>
+  <line class="code" x1="16" y1="48" x2="70" y2="48"/>
+  <line class="code2" x1="26" y1="60" x2="106" y2="60"/>
+  <line class="code2" x1="26" y1="72" x2="90" y2="72"/>
+  <line class="code" x1="16" y1="84" x2="60" y2="84"/>
+  <line class="code2" x1="26" y1="96" x2="100" y2="96"/>
+  <line class="code2" x1="26" y1="108" x2="80" y2="108"/>
+  <line class="code" x1="16" y1="120" x2="50" y2="120"/>
+  <rect class="pane" x="132" y="20" width="80" height="122" rx="4"/>
+  <text class="mini" x="138" y="34">chat</text>
+  <rect class="bubble-user" x="156" y="42" width="50" height="18" rx="6"/>
+  <rect class="bubble-model" x="138" y="66" width="62" height="30" rx="6"/>
+  <rect class="bubble-user" x="160" y="102" width="46" height="18" rx="6"/>
+</g>
+<text class="name" x="760" y="362" text-anchor="middle">Desktop client</text>
+<text class="detail" x="760" y="380" text-anchor="middle">Tauri app, native engine</text>
+<text class="detail" x="760" y="396" text-anchor="middle">durable memory (D19), works offline</text>
+</svg>

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="t d">
+<title id="t">Trained model against count tables</title>
+<desc id="d">Horizontal bars on one scale from 0 to 14,287 development-panel positions. Next-word table 6,300, unigram table 1,226, trained model seed 2 463, trained model seed 1 65. A dashed line at 6,300 marks the new M1 bar: beat both tables on each of two seeds. The trained model is far below both tables.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); }
+.b { font-weight: 600; }
+.t-ink { fill: var(--ink); } .f-ink { fill: var(--ink); } .s-ink { stroke: var(--ink); }
+.t-body { fill: var(--body); } .f-body { fill: var(--body); } .s-body { stroke: var(--body); }
+.t-muted { fill: var(--muted); } .f-muted { fill: var(--muted); } .s-muted { stroke: var(--muted); }
+.t-rule { fill: var(--rule); } .f-rule { fill: var(--rule); } .s-rule { stroke: var(--rule); }
+.t-panel { fill: var(--panel); } .f-panel { fill: var(--panel); } .s-panel { stroke: var(--panel); }
+.t-bg { fill: var(--bg); } .f-bg { fill: var(--bg); } .s-bg { stroke: var(--bg); }
+.t-blue { fill: var(--blue); } .f-blue { fill: var(--blue); } .s-blue { stroke: var(--blue); }
+.t-sky { fill: var(--sky); } .f-sky { fill: var(--sky); } .s-sky { stroke: var(--sky); }
+.t-green { fill: var(--green); } .f-green { fill: var(--green); } .s-green { stroke: var(--green); }
+.t-orange { fill: var(--orange); } .f-orange { fill: var(--orange); } .s-orange { stroke: var(--orange); }
+.t-verm { fill: var(--verm); } .f-verm { fill: var(--verm); } .s-verm { stroke: var(--verm); }
+.t-purple { fill: var(--purple); } .f-purple { fill: var(--purple); } .s-purple { stroke: var(--purple); }
+.t-pink { fill: var(--pink); } .f-pink { fill: var(--pink); } .s-pink { stroke: var(--pink); }
+</style>
+<rect class="bg" x="0" y="0" width="960" height="440"/>
+<text x="16" y="34" font-size="20" class="t-ink b" text-anchor="start">Correct first guesses on 14,287 development-panel positions</text>
+<text x="16" y="54" font-size="12" class="t-muted" text-anchor="start">The best trained model against two simple count tables, on one scale. Higher is better.</text>
+<rect x="16" y="68" width="16" height="12" rx="2" class="f-blue"/>
+<text x="40" y="79" font-size="13" class="t-body" text-anchor="start">Trained model</text>
+<rect x="160" y="68" width="16" height="12" rx="2" class="f-muted"/>
+<text x="184" y="79" font-size="13" class="t-body" text-anchor="start">Count table</text>
+<line x1="270" y1="112" x2="270" y2="348" class="s-rule" stroke-width="1"/>
+<text x="270" y="366" font-size="11" class="t-muted" text-anchor="middle">0</text>
+<line x1="490.5" y1="112" x2="490.5" y2="348" class="s-rule" stroke-width="1"/>
+<text x="490.5" y="366" font-size="11" class="t-muted" text-anchor="middle">5,000</text>
+<line x1="711" y1="112" x2="711" y2="348" class="s-rule" stroke-width="1"/>
+<text x="711" y="366" font-size="11" class="t-muted" text-anchor="middle">10,000</text>
+<line x1="900" y1="112" x2="900" y2="348" class="s-rule" stroke-width="1"/>
+<text x="900" y="366" font-size="11" class="t-muted" text-anchor="middle">14,287</text>
+<text x="585" y="384" font-size="13" class="t-body" text-anchor="middle">correct first guesses out of 14,287</text>
+<text x="16" y="139" font-size="13" class="t-ink b" text-anchor="start">Next-word table (T2)</text>
+<text x="16" y="154" font-size="11" class="t-muted" text-anchor="start">previous token → most common next</text>
+<rect x="270" y="124" width="277.8" height="34" fill-opacity="0.7" class="f-muted"/>
+<text x="555.8" y="146" font-size="13" class="t-ink b" text-anchor="start">6,300</text>
+<text x="16" y="197" font-size="13" class="t-ink b" text-anchor="start">Unigram table</text>
+<text x="16" y="212" font-size="11" class="t-muted" text-anchor="start">always the most common token</text>
+<rect x="270" y="182" width="54.1" height="34" fill-opacity="0.7" class="f-muted"/>
+<text x="332.1" y="204" font-size="13" class="t-ink b" text-anchor="start">1,226</text>
+<text x="16" y="255" font-size="13" class="t-ink b" text-anchor="start">Trained model, seed 2</text>
+<text x="16" y="270" font-size="11" class="t-muted" text-anchor="start">variant A</text>
+<rect x="270" y="240" width="20.4" height="34" rx="2" class="f-blue"/>
+<text x="298.4" y="262" font-size="13" class="t-ink b" text-anchor="start">463</text>
+<text x="16" y="313" font-size="13" class="t-ink b" text-anchor="start">Trained model, seed 1</text>
+<text x="16" y="328" font-size="11" class="t-muted" text-anchor="start">variant A</text>
+<rect x="270" y="298" width="2.9" height="34" rx="2" class="f-blue"/>
+<text x="280.9" y="320" font-size="13" class="t-ink b" text-anchor="start">65</text>
+<line x1="547.8" y1="112" x2="547.8" y2="348" class="s-verm" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="555.8" y="100" font-size="13" class="t-body" text-anchor="start">new M1 bar: beat both tables, on each of two seeds</text>
+<text x="16" y="412" font-size="11" class="t-muted" text-anchor="start">Variant R (101 and 230) is omitted: it collapsed to 19 or 20 of 256 cells.</text>
+<text x="16" y="428" font-size="11" class="t-muted" text-anchor="start">Source: docs/labs/k16-outcome-call-2026-10-19; docs/labs/host-diagnostics-2026-10-17.</text>
+</svg>

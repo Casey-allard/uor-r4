@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" role="img">
+<title>Where the error signal lands</title>
+<desc>A pipeline of seven boxes: query, compiler spans, exact store, E8 index, H4 carriers, Generate prototypes, answer, with the scoring coefficients attached to the answer. Two backward arrows show where the error signal lands. The frozen-carrier fit reaches only the scoring coefficients. The unified fit also reaches the H4 carriers and the Generate prototypes. The boxes that changed in the executed runs are shaded. Below, a bar chart of complete correct replies out of 512: the saved model scored 437, and the three completed arms (carrier credit ON seed 1001, OFF seed 1001, OFF seed 2001) all scored 0; ON seed 2001 was not run. Cross-entropy rose from 2.1828 to 7.7924, 7.7373 and 7.7373. Box sizes are illustrative.</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1f2328;--body:#2b3138;--muted:#57606a;--rule:#d0d7de;--panel:#f6f8fa;--blue:#0072b2;--sky:#56b4e9;--green:#007a5e;--orange:#e69f00;--verm:#d55e00;--purple:#7a4fa3;--pink:#cc79a7;--active:#007a5e;--ready:#b06d00;--parked:#7a4fa3}
+@media (prefers-color-scheme: dark){svg{--bg:#0d1117;--ink:#e6edf3;--body:#c9d1d9;--muted:#8b949e;--rule:#30363d;--panel:#161b22;--blue:#58a6ff;--sky:#79c0ff;--green:#3fb950;--orange:#f0b72f;--verm:#ff7b72;--purple:#bc8cff;--pink:#f778ba;--active:#3fb950;--ready:#f0b72f;--parked:#bc8cff}}
+.bg{fill:var(--bg)}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+.title{font-size:19px;font-weight:600}
+.h{font-size:14px;font-weight:600}
+.b{font-weight:600}
+.n{font-size:11.5px;fill:var(--muted)}
+.body{fill:var(--body)}
+.mut{fill:var(--muted)}
+.c{text-anchor:middle}
+.e{text-anchor:end}
+.panel{fill:var(--panel);stroke:var(--rule);stroke-width:1}
+.rule{fill:none;stroke:var(--rule);stroke-width:1}
+.dot{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.arrow{fill:none;stroke:var(--ink);stroke-width:1.5}
+.fi{fill:var(--ink)}
+.fm{fill:var(--muted)}
+.fb{fill:var(--blue)}
+.fv{fill:var(--verm)}
+.box{fill:var(--panel);stroke:var(--muted);stroke-width:1.5}
+.chg{fill:var(--blue);fill-opacity:.22;stroke:var(--blue);stroke-width:2}
+.link{fill:none;stroke:var(--muted);stroke-width:1.5}
+.back1{fill:none;stroke:var(--ink);stroke-width:2}
+.back2{fill:none;stroke:var(--blue);stroke-width:2}
+.bar{fill:var(--blue)}
+.bar0{fill:var(--muted)}
+.hatchbox{fill:url(#hatch);stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 3}
+.hl{stroke:var(--muted);stroke-width:1.5}
+.ce{fill:none;stroke:var(--orange);stroke-width:2}
+.cedot{fill:var(--orange);stroke:var(--ink);stroke-width:1.5}
+.axl{fill:none;stroke:var(--rule);stroke-width:1}
+.base{fill:none;stroke:var(--muted);stroke-width:1.5}
+</style>
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<marker id="ahi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+<marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="hl" x1="0" y1="0" x2="0" y2="6"/></pattern>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="600"/>
+<text class="title" x="22" y="32">Where the error signal lands</text>
+
+<rect class="box" x="22" y="64" width="112" height="48" rx="6"/>
+<text class="c" x="78" y="93">query</text>
+<rect class="box" x="155" y="64" width="112" height="48" rx="6"/>
+<text class="c" x="211" y="93">compiler spans</text>
+<rect class="box" x="288" y="64" width="112" height="48" rx="6"/>
+<text class="c" x="344" y="93">exact store</text>
+<rect class="box" x="421" y="64" width="112" height="48" rx="6"/>
+<text class="c" x="477" y="93">E8 index</text>
+<rect class="chg" x="554" y="64" width="112" height="48" rx="6"/>
+<text class="c" x="610" y="93">H4 carriers</text>
+<rect class="chg" x="687" y="64" width="112" height="48" rx="6"/>
+<text class="c" x="743" y="86">Generate</text>
+<text class="c" x="743" y="102">prototypes</text>
+<rect class="box" x="820" y="64" width="112" height="48" rx="6"/>
+<text class="c" x="876" y="93">answer</text>
+<path class="link" d="M136 88H153" marker-end="url(#ah)"/>
+<path class="link" d="M269 88H286" marker-end="url(#ah)"/>
+<path class="link" d="M402 88H419" marker-end="url(#ah)"/>
+<path class="link" d="M535 88H552" marker-end="url(#ah)"/>
+<path class="link" d="M668 88H685" marker-end="url(#ah)"/>
+<path class="link" d="M801 88H818" marker-end="url(#ah)"/>
+<path class="link" d="M876 112V126"/>
+<rect class="chg" x="820" y="126" width="112" height="36" rx="6"/>
+<text class="c" x="876" y="141">scoring</text>
+<text class="c" x="876" y="156">coefficients</text>
+<rect class="chg" x="22" y="134" width="16" height="12" rx="3"/>
+<text class="body" x="46" y="145">shaded = changed in the executed runs</text>
+<circle class="fi" cx="30" cy="168" r="3.5"/>
+<text class="body" x="46" y="172">dot = where the error enters, at the answer</text>
+
+<path class="back1" d="M22 198H46"/>
+<text class="b" x="54" y="202">frozen-carrier fit</text>
+<text class="n" x="54" y="219">the error reaches only the scoring coefficients</text>
+<circle class="fi" cx="926" cy="206" r="3.5"/>
+<path class="back1" d="M926 206H850V165" marker-end="url(#ahi)"/>
+
+<path class="back2" d="M22 242H46"/>
+<text class="b" x="54" y="246">unified fit</text>
+<text class="n" x="54" y="263">the error also reaches the H4 carriers and the prototypes</text>
+<circle class="fb" cx="926" cy="250" r="3.5"/>
+<path class="back2" d="M926 250H610"/>
+<path class="back2" d="M832 250V165" marker-end="url(#ahb)"/>
+<path class="back2" d="M743 250V115" marker-end="url(#ahb)"/>
+<path class="back2" d="M610 250V115" marker-end="url(#ahb)"/>
+
+<rect class="panel" x="24" y="292" width="576" height="274" rx="8"/>
+<text class="h" x="40" y="316">Complete correct replies, out of 512 (development panel)</text>
+<path class="axl" d="M64 338H580"/>
+<text class="n e" x="58" y="342">512</text>
+<path class="base" d="M64 428H580"/>
+<text class="n e" x="58" y="431">0</text>
+<rect class="bar" x="94" y="351.2" width="52" height="76.8" rx="2"/>
+<text class="b c" x="120" y="345">437</text>
+<rect class="bar0" x="189" y="426" width="52" height="2"/>
+<text class="b c" x="215" y="420">0</text>
+<rect class="bar0" x="284" y="426" width="52" height="2"/>
+<text class="b c" x="310" y="420">0</text>
+<rect class="bar0" x="379" y="426" width="52" height="2"/>
+<text class="b c" x="405" y="420">0</text>
+<rect class="hatchbox" x="474" y="398" width="52" height="30" rx="2"/>
+<text class="n c" x="500" y="392">not run</text>
+<text class="b c" x="120" y="447">saved437</text>
+<text class="b c" x="215" y="447">ON 1001</text>
+<text class="b c" x="310" y="447">OFF 1001</text>
+<text class="b c" x="405" y="447">OFF 2001</text>
+<text class="b c" x="500" y="447">ON 2001</text>
+<text class="n c" x="120" y="462">starting model</text>
+<text class="n c" x="215" y="462">credit on</text>
+<text class="n c" x="310" y="462">credit off</text>
+<text class="n c" x="405" y="462">credit off</text>
+<text class="n c" x="500" y="462">credit on</text>
+<text class="n" x="40" y="480">ON / OFF = carrier credit on or off; the number is the seed.</text>
+<text class="h" x="40" y="500">Cross-entropy (higher is worse)</text>
+<path class="axl" d="M64 510H580"/>
+<text class="n e" x="58" y="514">8</text>
+<path class="base" d="M64 550H580"/>
+<text class="n e" x="58" y="553">0</text>
+<path class="ce" d="M120 537.1L215 511.3L310 511.6L405 511.6"/>
+<circle class="cedot" cx="120" cy="537.1" r="5"/>
+<circle class="cedot" cx="215" cy="511.3" r="5"/>
+<circle class="cedot" cx="310" cy="511.6" r="5"/>
+<circle class="cedot" cx="405" cy="511.6" r="5"/>
+<text class="n c" x="120" y="526">2.1828</text>
+<text class="n c" x="215" y="531">7.7924</text>
+<text class="n c" x="310" y="531">7.7373</text>
+<text class="n c" x="405" y="531">7.7373</text>
+<text class="n c" x="500" y="535">no result</text>
+
+<rect class="panel" x="620" y="292" width="316" height="274" rx="8"/>
+<text class="h" x="636" y="316">What the four arms show</text>
+<text class="body" x="636" y="346">All three completed arms lost every</text>
+<text class="body" x="636" y="366">answer the saved model had right</text>
+<text class="body" x="636" y="386">(437 to 0 of 512), with carrier credit</text>
+<text class="body" x="636" y="406">on and off alike.</text>
+<text class="b" x="636" y="436">So the run cannot single out the</text>
+<text class="b" x="636" y="456">credit rule: it neither blames nor</text>
+<text class="b" x="636" y="476">clears it.</text>
+<text class="body" x="636" y="506">The fourth arm (ON, seed 2001) was</text>
+<text class="body" x="636" y="526">stopped by the owner before its</text>
+<text class="body" x="636" y="546">optimiser started.</text>
+<text class="n" x="22" y="588">Box sizes are illustrative; the counts and cross-entropy values are measured.</text>
+</svg>

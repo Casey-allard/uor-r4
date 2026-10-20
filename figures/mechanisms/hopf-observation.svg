@@ -1,0 +1,315 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 484" width="960" height="484" role="img">
+<title>Hopf observation with a kept fibre</title>
+<desc>Left: a unit quaternion is a point on a 3-sphere; the Hopf map casts a shadow on a 2-sphere. Moving the point around its fibre circle changes the fibre phase but leaves the shadow where it is; a kept fibre phase accumulates the winding so nothing is lost. Middle: old sector routing used 7 of 512 bins with magnitude-only inputs (at most 64 reachable) and 43 with a signed projection, and retrieval did not improve (MRR 0.0045 against 0.0743). Right: on code-scope trees a hyperbolic key found the scope for 77.5 percent of non-root queries against 0.4 percent for a flat dot product, yet as a read score in a language model it was ahead by only 0.018 nats in 3 of 4 seeds, below its 0.03 bar.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); font-size: 13px; }
+.ti { font-size: 19px; font-weight: 600; }
+.h { font-size: 14px; font-weight: 600; }
+.big { font-size: 20px; font-weight: 600; }
+.n { font-size: 12px; fill: var(--muted); }
+.m { fill: var(--muted); }
+.b { font-weight: 600; }
+.c { text-anchor: middle; }
+.r { text-anchor: end; }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+.cell { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.ln { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.rl { stroke: var(--rule); stroke-width: 1; fill: none; }
+.dash { stroke-dasharray: 5 4; }
+.dot { stroke-dasharray: 2 3; }
+.fi { fill: var(--ink); } .fm { fill: var(--muted); } .fb { fill: var(--blue); } .fg { fill: var(--green); }
+.fo { fill: var(--orange); } .fv { fill: var(--verm); } .fp { fill: var(--purple); } .fs { fill: var(--sky); } .fk { fill: var(--pink); }
+.si { stroke: var(--ink); } .sm { stroke: var(--muted); } .sb { stroke: var(--blue); } .sg { stroke: var(--green); }
+.so { stroke: var(--orange); } .sv { stroke: var(--verm); } .sp { stroke: var(--purple); } .ss { stroke: var(--sky); }
+.w2 { stroke-width: 2; } .w15 { stroke-width: 1.5; } .w1 { stroke-width: 1; } .nf { fill: none; }
+</style>
+<defs>
+<marker id="a-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fi"/></marker>
+<marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fb"/></marker>
+<marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<marker id="a-verm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fv"/></marker>
+<marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fo"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="484"/>
+<text class="ti" x="16" y="32">Hopf observation: the shadow forgets a phase, the kept fibre stores it</text>
+<rect class="panel" x="16" y="52" width="314" height="388" rx="8"/>
+<text class="h" x="30" y="76">1  The shadow forgets the fibre phase</text>
+<text class="n" x="30" y="104">S³ (schematic)</text><text class="n" x="226" y="104">S² shadow h(q)</text>
+<ellipse class="nf sb w2" cx="90" cy="206" rx="54" ry="24"/>
+<circle class="nf sm w15" cx="250" cy="186" r="46"/><ellipse class="nf sm w1" cx="250" cy="186" rx="46" ry="14"/>
+<line class="sm w1 dash" x1="39.3" y1="197.8" x2="277.5" y2="173.1"/>
+<line class="sm w1 dash" x1="131.4" y1="190.6" x2="277.5" y2="173.1"/>
+<line class="sm w1 dash" x1="99.4" y1="229.6" x2="277.5" y2="173.1"/>
+<circle class="fo" cx="39.3" cy="197.8" r="5"/>
+<circle class="fo" cx="131.4" cy="190.6" r="5"/>
+<circle class="fo" cx="99.4" cy="229.6" r="5"/>
+<circle class="fo" cx="277.5" cy="173.1" r="5"/><circle class="nf si w15" cx="277.5" cy="173.1" r="8"/>
+<text class="n c" x="90" y="252">fibre circle: three points,</text><text class="n c" x="90" y="268">three phases</text>
+<text class="n c" x="250" y="252">one shadow point</text>
+<text x="30" y="298">fibre phase φ</text>
+<line class="sm w2" x1="130" y1="294" x2="304" y2="294"/><circle class="fo" cx="186" cy="294" r="7"/><circle class="nf si w15" cx="186" cy="294" r="10"/>
+<text class="n" x="30" y="318">Sliding φ moves the point round its circle.</text><text class="n" x="30" y="334">The shadow does not move.</text>
+<rect class="box" x="30" y="350" width="286" height="78" rx="6"/>
+<text class="b" x="42" y="372">kept fibre phase</text><text class="n" x="42" y="390">running total of the wrapped changes in φ,</text><text class="n" x="42" y="406">so the lost angle is stored, not forgotten.</text>
+<rect class="panel" x="344" y="52" width="286" height="388" rx="8"/>
+<text class="h" x="358" y="76">2  Old sector routing</text>
+<text class="n" x="358" y="94">512 bins = 8 layers of 8 × 8, drawn as 8 small grids</text>
+<rect class="cell" x="358" y="104" width="48" height="48"/>
+<path class="rl" d="M364 104 V152 M358 110 H406"/>
+<path class="rl" d="M370 104 V152 M358 116 H406"/>
+<path class="rl" d="M376 104 V152 M358 122 H406"/>
+<path class="rl" d="M382 104 V152 M358 128 H406"/>
+<path class="rl" d="M388 104 V152 M358 134 H406"/>
+<path class="rl" d="M394 104 V152 M358 140 H406"/>
+<path class="rl" d="M400 104 V152 M358 146 H406"/>
+<rect class="cell" x="426" y="104" width="48" height="48"/>
+<path class="rl" d="M432 104 V152 M426 110 H474"/>
+<path class="rl" d="M438 104 V152 M426 116 H474"/>
+<path class="rl" d="M444 104 V152 M426 122 H474"/>
+<path class="rl" d="M450 104 V152 M426 128 H474"/>
+<path class="rl" d="M456 104 V152 M426 134 H474"/>
+<path class="rl" d="M462 104 V152 M426 140 H474"/>
+<path class="rl" d="M468 104 V152 M426 146 H474"/>
+<rect class="cell" x="494" y="104" width="48" height="48"/>
+<path class="rl" d="M500 104 V152 M494 110 H542"/>
+<path class="rl" d="M506 104 V152 M494 116 H542"/>
+<path class="rl" d="M512 104 V152 M494 122 H542"/>
+<path class="rl" d="M518 104 V152 M494 128 H542"/>
+<path class="rl" d="M524 104 V152 M494 134 H542"/>
+<path class="rl" d="M530 104 V152 M494 140 H542"/>
+<path class="rl" d="M536 104 V152 M494 146 H542"/>
+<rect class="cell" x="562" y="104" width="48" height="48"/>
+<path class="rl" d="M568 104 V152 M562 110 H610"/>
+<path class="rl" d="M574 104 V152 M562 116 H610"/>
+<path class="rl" d="M580 104 V152 M562 122 H610"/>
+<path class="rl" d="M586 104 V152 M562 128 H610"/>
+<path class="rl" d="M592 104 V152 M562 134 H610"/>
+<path class="rl" d="M598 104 V152 M562 140 H610"/>
+<path class="rl" d="M604 104 V152 M562 146 H610"/>
+<rect class="cell" x="358" y="162" width="48" height="48"/>
+<path class="rl" d="M364 162 V210 M358 168 H406"/>
+<path class="rl" d="M370 162 V210 M358 174 H406"/>
+<path class="rl" d="M376 162 V210 M358 180 H406"/>
+<path class="rl" d="M382 162 V210 M358 186 H406"/>
+<path class="rl" d="M388 162 V210 M358 192 H406"/>
+<path class="rl" d="M394 162 V210 M358 198 H406"/>
+<path class="rl" d="M400 162 V210 M358 204 H406"/>
+<rect class="nf sb w2" x="382" y="186" width="24" height="24"/>
+<rect class="cell" x="426" y="162" width="48" height="48"/>
+<path class="rl" d="M432 162 V210 M426 168 H474"/>
+<path class="rl" d="M438 162 V210 M426 174 H474"/>
+<path class="rl" d="M444 162 V210 M426 180 H474"/>
+<path class="rl" d="M450 162 V210 M426 186 H474"/>
+<path class="rl" d="M456 162 V210 M426 192 H474"/>
+<path class="rl" d="M462 162 V210 M426 198 H474"/>
+<path class="rl" d="M468 162 V210 M426 204 H474"/>
+<rect class="nf sb w2" x="450" y="186" width="24" height="24"/>
+<rect class="cell" x="494" y="162" width="48" height="48"/>
+<path class="rl" d="M500 162 V210 M494 168 H542"/>
+<path class="rl" d="M506 162 V210 M494 174 H542"/>
+<path class="rl" d="M512 162 V210 M494 180 H542"/>
+<path class="rl" d="M518 162 V210 M494 186 H542"/>
+<path class="rl" d="M524 162 V210 M494 192 H542"/>
+<path class="rl" d="M530 162 V210 M494 198 H542"/>
+<path class="rl" d="M536 162 V210 M494 204 H542"/>
+<rect class="nf sb w2" x="518" y="186" width="24" height="24"/>
+<rect class="cell" x="562" y="162" width="48" height="48"/>
+<path class="rl" d="M568 162 V210 M562 168 H610"/>
+<path class="rl" d="M574 162 V210 M562 174 H610"/>
+<path class="rl" d="M580 162 V210 M562 180 H610"/>
+<path class="rl" d="M586 162 V210 M562 186 H610"/>
+<path class="rl" d="M592 162 V210 M562 192 H610"/>
+<path class="rl" d="M598 162 V210 M562 198 H610"/>
+<path class="rl" d="M604 162 V210 M562 204 H610"/>
+<rect class="nf sb w2" x="586" y="186" width="24" height="24"/>
+<rect class="fo" x="394" y="192" width="6" height="6"/>
+<rect class="fo" x="382" y="204" width="6" height="6"/>
+<rect class="fo" x="456" y="198" width="6" height="6"/>
+<rect class="fo" x="536" y="186" width="6" height="6"/>
+<rect class="fo" x="530" y="198" width="6" height="6"/>
+<rect class="fo" x="586" y="192" width="6" height="6"/>
+<rect class="fo" x="604" y="204" width="6" height="6"/>
+<text x="358" y="226">Magnitude-only inputs: 7 of 512 lit</text><text class="n" x="358" y="242">outlined: the 64 cells that can be reached</text>
+<rect class="cell" x="358" y="262" width="48" height="48"/>
+<path class="rl" d="M364 262 V310 M358 268 H406"/>
+<path class="rl" d="M370 262 V310 M358 274 H406"/>
+<path class="rl" d="M376 262 V310 M358 280 H406"/>
+<path class="rl" d="M382 262 V310 M358 286 H406"/>
+<path class="rl" d="M388 262 V310 M358 292 H406"/>
+<path class="rl" d="M394 262 V310 M358 298 H406"/>
+<path class="rl" d="M400 262 V310 M358 304 H406"/>
+<rect class="cell" x="426" y="262" width="48" height="48"/>
+<path class="rl" d="M432 262 V310 M426 268 H474"/>
+<path class="rl" d="M438 262 V310 M426 274 H474"/>
+<path class="rl" d="M444 262 V310 M426 280 H474"/>
+<path class="rl" d="M450 262 V310 M426 286 H474"/>
+<path class="rl" d="M456 262 V310 M426 292 H474"/>
+<path class="rl" d="M462 262 V310 M426 298 H474"/>
+<path class="rl" d="M468 262 V310 M426 304 H474"/>
+<rect class="cell" x="494" y="262" width="48" height="48"/>
+<path class="rl" d="M500 262 V310 M494 268 H542"/>
+<path class="rl" d="M506 262 V310 M494 274 H542"/>
+<path class="rl" d="M512 262 V310 M494 280 H542"/>
+<path class="rl" d="M518 262 V310 M494 286 H542"/>
+<path class="rl" d="M524 262 V310 M494 292 H542"/>
+<path class="rl" d="M530 262 V310 M494 298 H542"/>
+<path class="rl" d="M536 262 V310 M494 304 H542"/>
+<rect class="cell" x="562" y="262" width="48" height="48"/>
+<path class="rl" d="M568 262 V310 M562 268 H610"/>
+<path class="rl" d="M574 262 V310 M562 274 H610"/>
+<path class="rl" d="M580 262 V310 M562 280 H610"/>
+<path class="rl" d="M586 262 V310 M562 286 H610"/>
+<path class="rl" d="M592 262 V310 M562 292 H610"/>
+<path class="rl" d="M598 262 V310 M562 298 H610"/>
+<path class="rl" d="M604 262 V310 M562 304 H610"/>
+<rect class="cell" x="358" y="320" width="48" height="48"/>
+<path class="rl" d="M364 320 V368 M358 326 H406"/>
+<path class="rl" d="M370 320 V368 M358 332 H406"/>
+<path class="rl" d="M376 320 V368 M358 338 H406"/>
+<path class="rl" d="M382 320 V368 M358 344 H406"/>
+<path class="rl" d="M388 320 V368 M358 350 H406"/>
+<path class="rl" d="M394 320 V368 M358 356 H406"/>
+<path class="rl" d="M400 320 V368 M358 362 H406"/>
+<rect class="cell" x="426" y="320" width="48" height="48"/>
+<path class="rl" d="M432 320 V368 M426 326 H474"/>
+<path class="rl" d="M438 320 V368 M426 332 H474"/>
+<path class="rl" d="M444 320 V368 M426 338 H474"/>
+<path class="rl" d="M450 320 V368 M426 344 H474"/>
+<path class="rl" d="M456 320 V368 M426 350 H474"/>
+<path class="rl" d="M462 320 V368 M426 356 H474"/>
+<path class="rl" d="M468 320 V368 M426 362 H474"/>
+<rect class="cell" x="494" y="320" width="48" height="48"/>
+<path class="rl" d="M500 320 V368 M494 326 H542"/>
+<path class="rl" d="M506 320 V368 M494 332 H542"/>
+<path class="rl" d="M512 320 V368 M494 338 H542"/>
+<path class="rl" d="M518 320 V368 M494 344 H542"/>
+<path class="rl" d="M524 320 V368 M494 350 H542"/>
+<path class="rl" d="M530 320 V368 M494 356 H542"/>
+<path class="rl" d="M536 320 V368 M494 362 H542"/>
+<rect class="cell" x="562" y="320" width="48" height="48"/>
+<path class="rl" d="M568 320 V368 M562 326 H610"/>
+<path class="rl" d="M574 320 V368 M562 332 H610"/>
+<path class="rl" d="M580 320 V368 M562 338 H610"/>
+<path class="rl" d="M586 320 V368 M562 344 H610"/>
+<path class="rl" d="M592 320 V368 M562 350 H610"/>
+<path class="rl" d="M598 320 V368 M562 356 H610"/>
+<path class="rl" d="M604 320 V368 M562 362 H610"/>
+<rect class="fo" x="376" y="268" width="6" height="6"/>
+<rect class="fo" x="358" y="298" width="6" height="6"/>
+<rect class="fo" x="456" y="274" width="6" height="6"/>
+<rect class="fo" x="438" y="304" width="6" height="6"/>
+<rect class="fo" x="536" y="280" width="6" height="6"/>
+<rect class="fo" x="586" y="262" width="6" height="6"/>
+<rect class="fo" x="568" y="292" width="6" height="6"/>
+<rect class="fo" x="394" y="326" width="6" height="6"/>
+<rect class="fo" x="376" y="356" width="6" height="6"/>
+<rect class="fo" x="426" y="338" width="6" height="6"/>
+<rect class="fo" x="456" y="362" width="6" height="6"/>
+<rect class="fo" x="506" y="344" width="6" height="6"/>
+<rect class="fo" x="604" y="320" width="6" height="6"/>
+<rect class="fo" x="586" y="350" width="6" height="6"/>
+<rect class="fo" x="364" y="274" width="6" height="6"/>
+<rect class="fo" x="394" y="298" width="6" height="6"/>
+<rect class="fo" x="444" y="280" width="6" height="6"/>
+<rect class="fo" x="494" y="262" width="6" height="6"/>
+<rect class="fo" x="524" y="286" width="6" height="6"/>
+<rect class="fo" x="574" y="268" width="6" height="6"/>
+<rect class="fo" x="604" y="292" width="6" height="6"/>
+<rect class="fo" x="382" y="332" width="6" height="6"/>
+<rect class="fo" x="364" y="362" width="6" height="6"/>
+<rect class="fo" x="462" y="338" width="6" height="6"/>
+<rect class="fo" x="512" y="320" width="6" height="6"/>
+<rect class="fo" x="494" y="350" width="6" height="6"/>
+<rect class="fo" x="592" y="326" width="6" height="6"/>
+<rect class="fo" x="574" y="356" width="6" height="6"/>
+<rect class="fo" x="400" y="274" width="6" height="6"/>
+<rect class="fo" x="382" y="304" width="6" height="6"/>
+<rect class="fo" x="432" y="286" width="6" height="6"/>
+<rect class="fo" x="530" y="262" width="6" height="6"/>
+<rect class="fo" x="512" y="292" width="6" height="6"/>
+<rect class="fo" x="562" y="274" width="6" height="6"/>
+<rect class="fo" x="592" y="298" width="6" height="6"/>
+<rect class="fo" x="370" y="338" width="6" height="6"/>
+<rect class="fo" x="400" y="362" width="6" height="6"/>
+<rect class="fo" x="450" y="344" width="6" height="6"/>
+<rect class="fo" x="500" y="326" width="6" height="6"/>
+<rect class="fo" x="530" y="350" width="6" height="6"/>
+<rect class="fo" x="580" y="332" width="6" height="6"/>
+<rect class="fo" x="562" y="362" width="6" height="6"/>
+<rect class="fo" x="388" y="280" width="6" height="6"/>
+<text x="358" y="384">Signed projection: 43 of 512 lit</text>
+<text class="n" x="358" y="404">Used as a retrieval filter, quality did not improve:</text><text class="n" x="358" y="420">MRR 0.0045 against 0.0743.</text>
+<rect class="panel" x="644" y="52" width="300" height="388" rx="8"/>
+<text class="h" x="658" y="76">3  Two ways to read keys</text>
+<rect class="box" style="stroke:var(--rule)" x="658" y="90" width="120" height="84" rx="4"/>
+<circle class="nf sb w1" cx="708.4" cy="118.2" r="7"/>
+<circle class="nf sb w1" cx="742.7" cy="114.3" r="7"/>
+<circle class="nf sb w1" cx="725.4" cy="123.5" r="7"/>
+<circle class="nf sb w1" cx="692.8" cy="120.7" r="7"/>
+<circle class="nf sb w1" cx="720.4" cy="134.1" r="7"/>
+<circle class="nf sb w1" cx="722.0" cy="115.6" r="7"/>
+<circle class="nf sb w1" cx="712.8" cy="109.1" r="7"/>
+<circle class="nf sb w1" cx="724.6" cy="132.5" r="7"/>
+<circle class="nf sb w1" cx="710.9" cy="118.0" r="7"/>
+<circle class="nf sb w1" cx="716.2" cy="115.2" r="7"/>
+<circle class="nf sb w1" cx="707.3" cy="112.5" r="7"/>
+<circle class="nf sb w1" cx="705.2" cy="132.6" r="7"/>
+<circle class="nf sb w1" cx="691.7" cy="146.0" r="7"/>
+<circle class="nf sb w1" cx="731.6" cy="137.7" r="7"/>
+<circle class="nf sb w1" cx="712.6" cy="139.6" r="7"/>
+<circle class="nf sb w1" cx="709.6" cy="134.7" r="7"/>
+<circle class="nf sb w1" cx="730.6" cy="130.7" r="7"/>
+<circle class="nf sb w1" cx="729.5" cy="142.8" r="7"/>
+<circle class="nf sb w1" cx="699.2" cy="147.4" r="7"/>
+<circle class="nf sb w1" cx="701.4" cy="136.5" r="7"/>
+<circle class="nf sb w1" cx="704.9" cy="135.5" r="7"/>
+<circle class="nf sb w1" cx="740.4" cy="146.3" r="7"/>
+<circle class="nf sb w1" cx="728.0" cy="143.2" r="7"/>
+<circle class="nf sb w1" cx="739.2" cy="136.1" r="7"/>
+<circle class="nf sb w1" cx="712.4" cy="154.5" r="7"/>
+<circle class="nf sb w1" cx="704.6" cy="144.0" r="7"/>
+<text class="b" x="790" y="112">Flat dot product</text>
+<rect class="nf sm w1" x="790" y="122" width="130" height="14"/><rect class="fv" x="790" y="122" width="1.5" height="14"/><text class="b" x="790" y="156" style="fill:var(--verm)">0.4%</text>
+<text class="n" x="790" y="172">nested scopes crowd</text>
+<circle class="box" style="stroke:var(--muted)" cx="718" cy="266" r="62"/>
+<line class="sg w15" x1="718" y1="266" x2="718.0" y2="246.0"/>
+<line class="sg w1" x1="718.0" y1="246.0" x2="738.4" y2="220.3"/>
+<circle class="fg" cx="738.4" cy="220.3" r="2.6"/>
+<line class="sg w1" x1="718.0" y1="246.0" x2="718.0" y2="216.0"/>
+<circle class="fg" cx="718.0" cy="216.0" r="2.6"/>
+<line class="sg w1" x1="718.0" y1="246.0" x2="697.6" y2="220.3"/>
+<circle class="fg" cx="697.6" cy="220.3" r="2.6"/>
+<circle class="fg" cx="718.0" cy="246.0" r="3.6"/>
+<line class="sg w15" x1="718" y1="266" x2="700.7" y2="276.0"/>
+<line class="sg w1" x1="700.7" y1="276.0" x2="668.3" y2="271.2"/>
+<circle class="fg" cx="668.3" cy="271.2" r="2.6"/>
+<line class="sg w1" x1="700.7" y1="276.0" x2="674.7" y2="291.0"/>
+<circle class="fg" cx="674.7" cy="291.0" r="2.6"/>
+<line class="sg w1" x1="700.7" y1="276.0" x2="688.7" y2="306.5"/>
+<circle class="fg" cx="688.7" cy="306.5" r="2.6"/>
+<circle class="fg" cx="700.7" cy="276.0" r="3.6"/>
+<line class="sg w15" x1="718" y1="266" x2="735.3" y2="276.0"/>
+<line class="sg w1" x1="735.3" y1="276.0" x2="747.3" y2="306.5"/>
+<circle class="fg" cx="747.3" cy="306.5" r="2.6"/>
+<line class="sg w1" x1="735.3" y1="276.0" x2="761.3" y2="291.0"/>
+<circle class="fg" cx="761.3" cy="291.0" r="2.6"/>
+<line class="sg w1" x1="735.3" y1="276.0" x2="767.7" y2="271.2"/>
+<circle class="fg" cx="767.7" cy="271.2" r="2.6"/>
+<circle class="fg" cx="735.3" cy="276.0" r="3.6"/>
+<circle class="fg" cx="718" cy="266" r="4.6"/>
+<text class="b" x="790" y="240">Hyperbolic keys</text>
+<rect class="nf sm w1" x="790" y="250" width="130" height="14"/><rect class="fg" x="790" y="250" width="100.8" height="14"/><text class="b" x="790" y="284" style="fill:var(--green)">77.5%</text>
+<text class="n" x="790" y="300">parents near the centre</text>
+<text class="n" x="658" y="346">Non-root queries that find their code scope,</text><text class="n" x="658" y="362">16 dimensions, 192 scopes (as keys, not a read).</text>
+<rect class="box" x="658" y="372" width="272" height="56" rx="6"/>
+<text class="b" x="670" y="392">As a read score in a language model</text><text class="n" x="670" y="408">ahead of dot in 3 of 4 seeds, mean 0.018 nats,</text><text class="n" x="670" y="422">below its 0.03 bar</text>
+<text class="n" x="16" y="466">Schematic: points, cells and trees are illustrative. The numbers are measured counts from the records. Status: parked.</text>
+</svg>

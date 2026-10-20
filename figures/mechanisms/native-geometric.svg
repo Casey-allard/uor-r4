@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 980" width="960" role="img" aria-labelledby="t d">
+<title id="t">Native geometric engine</title>
+<desc id="d">Three stacked panels. Panel A, an illustration and not a measured example: a locker number edited three times is a chain of three versions labelled initial, previous and current; a learned selector lands on a different version depending on the question (first number, the one before, last number). With the chain cut, the selector abstains and shows no answer. Panel B: complete correct replies on the 512-row development panel climb as a staircase, 8, 22, 145, 175, 177, then 437 of 512 after the pooled ranking, all on rows used in fitting; then a trapdoor drops to 0 of 128 on unseen fresh rows, where 52 of 128 were needed. Panel C: a word becomes a prime address, an ordered pair of primes names a context, a window of words is folded into one rotation, sums and products are exact pairs a plus b phi with phi squared equal to phi plus 1, and eight fixed zeta-zero phase channels supply position-like phases. Notice that a score on the set the model was fitted to is not transfer.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7;
+      --active:#007a5e; --ready:#b06d00; --parked:#7a4fa3; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba;
+      --active:#3fb950; --ready:#f0b72f; --parked:#bc8cff; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); }
+.t { font-size: 20px; font-weight: 600; }
+.h { font-size: 15px; font-weight: 600; }
+.l { font-size: 13px; fill: var(--body); }
+.b { font-size: 13px; font-weight: 600; }
+.s { font-size: 12px; fill: var(--body); }
+.n { font-size: 12px; fill: var(--muted); }
+.mid { text-anchor: middle; }
+.end { text-anchor: end; }
+.c-verm { fill: var(--verm); }
+.c-muted { fill: var(--muted); }
+.panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.box { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+.gone { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.thin { stroke: var(--rule); stroke-width: 1; fill: none; }
+.axis { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+.card { fill: var(--bg); stroke: var(--rule); stroke-width: 1; }
+.arrow { stroke: var(--ink); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+.cutline { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+.fall { stroke: var(--verm); stroke-width: 2; stroke-dasharray: 6 4; fill: none; marker-end: url(#ahv); }
+.floor { stroke: var(--ink); stroke-width: 2; fill: none; }
+.flap { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 4 3; fill: none; }
+.f-sky { fill: var(--sky); } .f-blue { fill: var(--blue); }
+.need { fill: none; stroke: var(--purple); stroke-width: 2; stroke-dasharray: 6 4; }
+.zero { stroke: var(--verm); stroke-width: 4; fill: none; }
+.brk-blue { stroke: var(--blue); stroke-width: 1.5; fill: none; }
+.brk-verm { stroke: var(--verm); stroke-width: 1.5; fill: none; }
+.sph { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+.eq { stroke: var(--rule); stroke-width: 1; fill: none; }
+.rot { stroke: var(--blue); stroke-width: 2.5; fill: none; marker-end: url(#ahb); }
+.tick { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+.dotp { fill: var(--blue); }
+.ref { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.ah-p { fill: var(--ink); } .ahv-p { fill: var(--verm); } .ahb-p { fill: var(--blue); }
+</style>
+<defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-p" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="ahv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ahv-p" d="M0,0 L10,5 L0,10 z"/></marker>
+  <marker id="ahb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="ahb-p" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="980"/>
+<text class="t" x="24" y="38">Native geometric engine: exact addresses, and a score that did not transfer</text>
+
+<!-- Panel A -->
+<rect class="panel" x="16" y="56" width="928" height="214" rx="6"/>
+<text class="h" x="32" y="82">A. A changing fact kept as a chain of versions</text>
+<text class="n end" x="928" y="82">illustration, not a measured example</text>
+<text class="b" x="32" y="108">Chain intact</text>
+<text class="b" x="490" y="108">Chain cut</text>
+<rect class="box" x="32" y="120" width="108" height="44" rx="5"/><text class="s mid" x="86" y="138">locker number</text><text class="b mid" x="86" y="156">initial</text>
+<rect class="box" x="184" y="120" width="108" height="44" rx="5"/><text class="s mid" x="238" y="138">locker number</text><text class="b mid" x="238" y="156">previous</text>
+<rect class="box" x="336" y="120" width="108" height="44" rx="5"/><text class="s mid" x="390" y="138">locker number</text><text class="b mid" x="390" y="156">current</text>
+<line class="arrow" x1="142" y1="142" x2="182" y2="142"/><text class="n mid" x="162" y="134">edit</text>
+<line class="arrow" x1="294" y1="142" x2="334" y2="142"/><text class="n mid" x="314" y="134">edit</text>
+<rect class="box" x="30" y="206" width="112" height="28" rx="14"/><text class="l mid" x="86" y="225">first number?</text>
+<rect class="box" x="174" y="206" width="128" height="28" rx="14"/><text class="l mid" x="238" y="225">the one before?</text>
+<rect class="box" x="334" y="206" width="112" height="28" rx="14"/><text class="l mid" x="390" y="225">last number?</text>
+<line class="arrow" x1="86" y1="204" x2="86" y2="168"/>
+<line class="arrow" x1="238" y1="204" x2="238" y2="168"/>
+<line class="arrow" x1="390" y1="204" x2="390" y2="168"/>
+<text class="n" x="32" y="258">The learned selector reads the question and lands on one version.</text>
+<rect class="box" x="490" y="120" width="108" height="44" rx="5"/><text class="s mid" x="544" y="138">locker number</text><text class="b mid" x="544" y="156">initial</text>
+<rect class="box" x="640" y="120" width="108" height="44" rx="5"/><text class="s mid" x="694" y="138">locker number</text><text class="b mid" x="694" y="156">previous</text>
+<rect class="gone" x="790" y="120" width="108" height="44" rx="5"/><text class="s mid" x="844" y="138">locker number</text><text class="b mid c-muted" x="844" y="156">not reached</text>
+<line class="arrow" x1="600" y1="142" x2="638" y2="142"/><text class="n mid" x="619" y="134">edit</text>
+<line class="cutline" x1="750" y1="142" x2="788" y2="142"/><text class="b mid c-verm" x="769" y="147">×</text><text class="n mid" x="769" y="134">cut</text>
+<rect class="box" x="790" y="206" width="108" height="28" rx="14"/><text class="l mid" x="844" y="225">last number?</text>
+<rect class="gone" x="640" y="206" width="108" height="28" rx="14"/><text class="b mid" x="694" y="225">no answer</text>
+<line class="arrow" x1="788" y1="220" x2="750" y2="220"/>
+<text class="n" x="490" y="258">The chain is truncated, so the selector abstains instead of guessing.</text>
+
+<!-- Panel B -->
+<rect class="panel" x="16" y="286" width="928" height="364" rx="6"/>
+<text class="h" x="32" y="312">B. The staircase and the trapdoor</text>
+<text class="n" x="32" y="330">Complete correct replies. Development panel: 512 rows, all used in fitting. Fresh draw: 128 rows never seen.</text>
+<line class="thin" x1="60" y1="480" x2="900" y2="480"/>
+<line class="thin" x1="60" y1="370" x2="900" y2="370"/>
+<line class="axis" x1="60" y1="370" x2="60" y2="590"/>
+<line class="axis" x1="60" y1="590" x2="900" y2="590"/>
+<text class="n end" x="52" y="594">0%</text><text class="n end" x="52" y="484">50%</text><text class="n end" x="52" y="374">100%</text>
+<rect class="f-sky" x="70" y="586.6" width="70" height="3.4"/>
+<rect class="f-sky" x="162" y="580.5" width="70" height="9.5"/>
+<rect class="f-sky" x="254" y="527.7" width="70" height="62.3"/>
+<rect class="f-sky" x="346" y="514.8" width="70" height="75.2"/>
+<rect class="f-sky" x="438" y="514" width="70" height="76"/>
+<rect class="f-blue" x="530" y="402.2" width="70" height="187.8"/>
+<text class="b mid" x="105" y="580">8</text><text class="b mid" x="197" y="574">22</text>
+<text class="b mid" x="289" y="521">145</text><text class="b mid" x="381" y="508">175</text>
+<text class="b mid" x="473" y="508">177</text><text class="b mid" x="565" y="396">437 of 512</text>
+<line class="floor" x1="600" y1="402.2" x2="646" y2="402.2"/>
+<path class="flap" d="M646,402.2 L668,436"/>
+<line class="fall" x1="660" y1="412" x2="660" y2="584"/>
+<text class="n" x="670" y="452">trapdoor</text>
+<text class="s" x="700" y="384">One frozen fresh draw:</text>
+<text class="s" x="700" y="399">128 rows not used in fitting</text>
+<rect class="need" x="710" y="500.6" width="70" height="89.4"/>
+<text class="b mid" x="745" y="494">needed: 52 of 128</text>
+<line class="zero" x1="810" y1="588" x2="880" y2="588"/>
+<text class="b mid c-verm" x="845" y="576">0 of 128</text>
+<line class="brk-blue" x1="70" y1="602" x2="508" y2="602"/>
+<line class="brk-blue" x1="530" y1="602" x2="600" y2="602"/>
+<line class="brk-verm" x1="710" y1="602" x2="880" y2="602"/>
+<text class="s" x="70" y="620">fitted rows: cross-state field steps</text>
+<text class="s" x="530" y="620">fitted rows: pooled ranking</text>
+<text class="n" x="530" y="636">(its objective is now banned)</text>
+<text class="s mid" x="795" y="620">unseen rows</text>
+
+<!-- Panel C -->
+<rect class="panel" x="16" y="666" width="928" height="300" rx="6"/>
+<text class="h" x="32" y="692">C. From word to address to rotation</text>
+<rect class="card" x="32" y="708" width="280" height="112" rx="6"/>
+<rect class="box" x="48" y="728" width="80" height="30" rx="5"/><text class="l mid" x="88" y="748">word</text>
+<line class="arrow" x1="130" y1="743" x2="158" y2="743"/>
+<rect class="box" x="160" y="728" width="130" height="30" rx="5"/><text class="l mid" x="225" y="748">prime address</text>
+<text class="s" x="48" y="782">Every token has a full</text><text class="s" x="48" y="797">prime address.</text>
+<rect class="card" x="340" y="708" width="280" height="112" rx="6"/>
+<rect class="box" x="356" y="728" width="62" height="30" rx="5"/><text class="l mid" x="387" y="748">prime</text>
+<line class="arrow" x1="420" y1="743" x2="444" y2="743"/>
+<rect class="box" x="446" y="728" width="62" height="30" rx="5"/><text class="l mid" x="477" y="748">prime</text>
+<line class="arrow" x1="510" y1="743" x2="534" y2="743"/>
+<rect class="box" x="536" y="728" width="70" height="30" rx="5"/><text class="l mid" x="571" y="748">context</text>
+<text class="s" x="356" y="782">An ordered pair of primes</text><text class="s" x="356" y="797">names a context.</text>
+<rect class="card" x="648" y="708" width="280" height="112" rx="6"/>
+<rect class="box" x="664" y="732" width="18" height="18" rx="2"/><rect class="box" x="688" y="732" width="18" height="18" rx="2"/>
+<rect class="box" x="712" y="732" width="18" height="18" rx="2"/><rect class="box" x="736" y="732" width="18" height="18" rx="2"/>
+<line class="arrow" x1="760" y1="741" x2="796" y2="741"/>
+<circle class="sph" cx="836" cy="741" r="28"/><ellipse class="eq" cx="836" cy="741" rx="28" ry="8"/>
+<line class="rot" x1="836" y1="741" x2="853" y2="722"/>
+<text class="s" x="664" y="782">A window of words is folded,</text><text class="s" x="664" y="797">in order, into one rotation</text><text class="s" x="664" y="812">(exact H4 coordinates).</text>
+
+<text class="b" x="32" y="858">Exact sums and products</text>
+<text class="s" x="32" y="878">An exact pair a + bφ, with φ² = φ + 1:</text>
+<text class="s" x="32" y="896">(a + bφ)(c + dφ) = (ac + bd) + (ad + bc + bd)φ</text>
+<rect class="f-sky" x="32" y="908" width="130" height="16"/>
+<rect class="f-blue" x="162" y="908" width="210" height="16"/>
+<text class="s mid" x="97" y="940">a</text><text class="s mid" x="267" y="940">bφ</text>
+<text class="b" x="490" y="858">Eight fixed zeta-zero phase channels</text>
+<circle class="sph" cx="540" cy="905" r="28"/>
+<line class="tick" x1="578" y1="905" x2="570" y2="905"/><line class="tick" x1="566.9" y1="931.9" x2="561.2" y2="926.2"/>
+<line class="tick" x1="540" y1="943" x2="540" y2="935"/><line class="tick" x1="513.1" y1="931.9" x2="518.8" y2="926.2"/>
+<line class="tick" x1="502" y1="905" x2="510" y2="905"/><line class="tick" x1="513.1" y1="878.1" x2="518.8" y2="883.8"/>
+<line class="tick" x1="540" y1="867" x2="540" y2="875"/><line class="tick" x1="566.9" y1="878.1" x2="561.2" y2="883.8"/>
+<circle class="dotp" cx="560" cy="905" r="3.5"/><circle class="dotp" cx="554.1" cy="919.1" r="3.5"/>
+<circle class="dotp" cx="540" cy="925" r="3.5"/><circle class="dotp" cx="525.9" cy="919.1" r="3.5"/>
+<circle class="dotp" cx="520" cy="905" r="3.5"/><circle class="dotp" cx="525.9" cy="890.9" r="3.5"/>
+<circle class="dotp" cx="540" cy="885" r="3.5"/><circle class="dotp" cx="554.1" cy="890.9" r="3.5"/>
+<text class="s" x="600" y="894">Compiled to 16-bit turns, they</text>
+<text class="s" x="600" y="910">supply position-like phases.</text>
+<text class="n" x="600" y="928">Dial is schematic: no values shown.</text>
+</svg>

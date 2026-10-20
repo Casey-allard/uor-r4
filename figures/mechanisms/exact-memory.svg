@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 582" width="960" height="582" role="img">
+<title>Exact memory and its cliff</title>
+<desc>Left: a conversation writes numbered slot tiles, each labelled with a product of two primes. A correction stacks a new version on the old tile, with the old one still visible beneath. A question lights the tile whose primes match (gcd above 1) and returns its latest version. Two honest failure answers are shown: Absent for a key that was never written, and Evicted for a ring slot that was overwritten. Right: accuracy of the read. It is 1.000 in distribution, between 0.000 and 0.158 on new phrasing, and 1.000 again when the true register is supplied, while a control scores 0.39 to 0.47. Among 1,905 held-out failures, the query entity tag caused 77.7%, the write key 12.7%, the query relation tag 7.5%, eviction 0 and wrong stored value 0.</desc>
+<style>
+svg{--bg:#ffffff;--ink:#1f2328;--body:#2b3138;--muted:#57606a;--rule:#d0d7de;--panel:#f6f8fa;--blue:#0072b2;--sky:#56b4e9;--green:#007a5e;--orange:#e69f00;--verm:#d55e00;--purple:#7a4fa3;--pink:#cc79a7;--active:#007a5e;--ready:#b06d00;--parked:#7a4fa3}
+@media (prefers-color-scheme: dark){svg{--bg:#0d1117;--ink:#e6edf3;--body:#c9d1d9;--muted:#8b949e;--rule:#30363d;--panel:#161b22;--blue:#58a6ff;--sky:#79c0ff;--green:#3fb950;--orange:#f0b72f;--verm:#ff7b72;--purple:#bc8cff;--pink:#f778ba;--active:#3fb950;--ready:#f0b72f;--parked:#bc8cff}}
+.bg{fill:var(--bg)}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+.title{font-size:19px;font-weight:600}
+.h{font-size:14px;font-weight:600}
+.b{font-weight:600}
+.n{font-size:11.5px;fill:var(--muted)}
+.body{fill:var(--body)}
+.mut{fill:var(--muted)}
+.c{text-anchor:middle}
+.e{text-anchor:end}
+.panel{fill:var(--panel);stroke:var(--rule);stroke-width:1}
+.rule{fill:none;stroke:var(--rule);stroke-width:1}
+.dot{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.arrow{fill:none;stroke:var(--ink);stroke-width:1.5}
+.fi{fill:var(--ink)}
+.fm{fill:var(--muted)}
+.fb{fill:var(--blue)}
+.fv{fill:var(--verm)}
+.bub{fill:var(--bg);stroke:var(--rule);stroke-width:1.5}
+.tile{fill:var(--bg);stroke:var(--ink);stroke-width:1.5}
+.tilelit{fill:var(--blue);fill-opacity:.12;stroke:var(--blue);stroke-width:2.5}
+.thead{fill:var(--muted);fill-opacity:.2}
+.newv{fill:var(--blue);fill-opacity:.2}
+.chip{fill:var(--blue);fill-opacity:.2;stroke:var(--blue);stroke-width:2}
+.chipfail{fill:var(--bg);stroke:var(--orange);stroke-width:2;stroke-dasharray:6 4}
+.link{fill:none;stroke:var(--muted);stroke-width:1.5}
+.track{fill:var(--rule);fill-opacity:.35}
+.hi{fill:var(--blue)}
+.lo{fill:var(--verm)}
+.ctl{fill:var(--muted)}
+.axl{fill:none;stroke:var(--rule);stroke-width:1}
+.axb{fill:none;stroke:var(--muted);stroke-width:1.5}
+.s1{fill:var(--blue);fill-opacity:.3;stroke:var(--blue);stroke-width:1.5}
+.s2{fill:var(--orange);fill-opacity:.35;stroke:var(--orange);stroke-width:1.5}
+.s3{fill:var(--purple);fill-opacity:.3;stroke:var(--purple);stroke-width:1.5}
+.s4{fill:url(#hatch);stroke:var(--muted);stroke-width:1}
+.hl{stroke:var(--muted);stroke-width:1.5}
+.zero{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 3}
+.lead{fill:none;stroke:var(--muted);stroke-width:1}
+</style>
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" class="fm"/></marker>
+<pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="hl" x1="0" y1="0" x2="0" y2="4"/></pattern>
+</defs>
+<rect class="bg" x="0" y="0" width="960" height="582"/>
+<text class="title" x="24" y="32">Exact memory: the store held, the address did not</text>
+
+<rect class="panel" x="24" y="52" width="476" height="480" rx="8"/>
+<rect class="panel" x="520" y="52" width="416" height="480" rx="8"/>
+
+<text class="h" x="40" y="76">Write, correct, read</text>
+<text class="n e" x="484" y="76">primes are illustrative</text>
+<text class="n c" x="277" y="98">slot 1</text>
+<text class="n c" x="399" y="98">slot 2</text>
+
+<rect class="bub" x="40" y="112" width="150" height="30" rx="15"/>
+<text class="c" x="115" y="132">Ana's locker is 47.</text>
+<path class="link" d="M192 127H219" marker-end="url(#ah)"/>
+<rect class="tile" x="222" y="104" width="110" height="44" rx="4"/>
+<rect class="thead" x="223" y="105" width="108" height="21" rx="3"/>
+<text class="b c" x="277" y="120">7 × 13 = 91</text>
+<text class="n" x="234" y="141">v1</text><text class="body" x="262" y="141">47</text>
+
+<rect class="bub" x="40" y="162" width="150" height="30" rx="15"/>
+<text class="c" x="115" y="182">Ben's bike is red.</text>
+<path class="link" d="M192 177H341" marker-end="url(#ah)"/>
+<rect class="tile" x="344" y="154" width="110" height="44" rx="4"/>
+<rect class="thead" x="345" y="155" width="108" height="21" rx="3"/>
+<text class="b c" x="399" y="170">11 × 17 = 187</text>
+<text class="n" x="356" y="191">v1</text><text class="body" x="384" y="191">red</text>
+
+<rect class="bub" x="40" y="222" width="150" height="30" rx="15"/>
+<text class="c" x="115" y="242">Actually, it's 52.</text>
+<path class="link" d="M192 237H219" marker-end="url(#ah)"/>
+<rect class="tile" x="222" y="214" width="110" height="66" rx="4"/>
+<rect class="thead" x="223" y="215" width="108" height="21" rx="3"/>
+<text class="b c" x="277" y="230">7 × 13 = 91</text>
+<rect class="newv" x="223" y="237" width="108" height="21"/>
+<text class="n" x="234" y="252">v2</text><text class="b" x="262" y="252">52</text>
+<text class="n" x="234" y="274">v1</text><text class="mut" x="262" y="274">47</text>
+<text class="n" x="340" y="262">old version</text>
+<text class="n" x="340" y="276">stays beneath</text>
+
+<rect class="bub" x="40" y="304" width="150" height="30" rx="15"/>
+<text class="c" x="115" y="324">Ana's locker?</text>
+<path class="link" d="M192 319H219" marker-end="url(#ah)"/>
+<rect class="tilelit" x="222" y="296" width="110" height="66" rx="4"/>
+<rect class="thead" x="223" y="297" width="108" height="21" rx="3"/>
+<text class="b c" x="277" y="312">7 × 13 = 91</text>
+<rect class="newv" x="223" y="319" width="108" height="21"/>
+<text class="n" x="234" y="334">v2</text><text class="b" x="262" y="334">52</text>
+<text class="n" x="234" y="356">v1</text><text class="mut" x="262" y="356">47</text>
+<path class="link" d="M334 329H352" marker-end="url(#ah)"/>
+<rect class="chip" x="355" y="314" width="118" height="32" rx="6"/>
+<text class="b c" x="414" y="335">answer: 52</text>
+<text class="n c" x="414" y="362">latest version, by gcd &gt; 1</text>
+
+<path class="rule" d="M40 378H484"/>
+<text class="n" x="40" y="394">when nothing can be answered</text>
+<rect class="bub" x="40" y="404" width="150" height="30" rx="15"/>
+<text class="c" x="115" y="424">Cy's locker?</text>
+<path class="link" d="M192 419H219" marker-end="url(#ah)"/>
+<rect class="chipfail" x="222" y="403" width="110" height="32" rx="6"/>
+<text class="b c" x="277" y="424">Absent</text>
+<text class="n" x="342" y="423">key never written</text>
+<rect class="bub" x="40" y="450" width="150" height="30" rx="15"/>
+<text class="c" x="115" y="470">Dee's bike?</text>
+<path class="link" d="M192 465H219" marker-end="url(#ah)"/>
+<rect class="chipfail" x="222" y="449" width="110" height="32" rx="6"/>
+<text class="b c" x="277" y="470">Evicted</text>
+<text class="n" x="342" y="462">its ring slot was</text>
+<text class="n" x="342" y="476">overwritten</text>
+<text class="n" x="40" y="508">A question finds its slot by shared primes (gcd &gt; 1);</text>
+<text class="n" x="40" y="522">the latest version answers.</text>
+
+<text class="h" x="536" y="76">Held-out test: accuracy of the read</text>
+<rect class="track" x="704" y="104" width="160" height="16"/>
+<rect class="hi" x="704" y="104" width="160" height="16"/>
+<text class="body" x="536" y="117">in distribution</text>
+<text class="b" x="872" y="117">1.000</text>
+<rect class="track" x="704" y="140" width="160" height="16"/>
+<rect class="lo" x="704" y="140" width="2.4" height="16"/>
+<text class="body" x="536" y="153">new phrasing: D2 probe</text>
+<text class="b" x="714" y="153">0.000 to 0.015</text>
+<rect class="track" x="704" y="176" width="160" height="16"/>
+<rect class="lo" x="708.6" y="176" width="20.7" height="16"/>
+<text class="body" x="536" y="189">new phrasing: G v1</text>
+<text class="b" x="737" y="189">0.029 to 0.158</text>
+<rect class="track" x="704" y="212" width="160" height="16"/>
+<rect class="hi" x="704" y="212" width="160" height="16"/>
+<text class="body" x="536" y="225">true register supplied</text>
+<text class="b" x="872" y="225">1.000</text>
+<rect class="track" x="704" y="248" width="160" height="16"/>
+<rect class="ctl" x="766.4" y="248" width="12.8" height="16"/>
+<text class="body" x="536" y="261">control, new phrasing</text>
+<text class="b" x="787" y="261">0.39 to 0.47</text>
+<path class="axb" d="M704 98V270"/>
+<path class="axl" d="M784 98V270M864 98V270"/>
+<text class="n c" x="704" y="286">0</text>
+<text class="n c" x="784" y="286">0.5</text>
+<text class="n c" x="864" y="286">1.0</text>
+
+<text class="h" x="536" y="322">Why G v1 missed: 1,905 held-out failures</text>
+<rect class="s1" x="536" y="340" width="295.2" height="28"/>
+<text class="c" x="683.6" y="359">query entity tag: 1,480 (77.7%)</text>
+<rect class="s2" x="831.2" y="340" width="48.3" height="28"/>
+<text class="n c" x="855.4" y="358">12.7%</text>
+<rect class="s3" x="879.5" y="340" width="28.3" height="28"/>
+<text class="n c" x="893.6" y="358">7.5%</text>
+<rect class="s4" x="907.8" y="340" width="8.2" height="28"/>
+<path class="lead" d="M855 370V381M894 370V399M912 370V417"/>
+<text class="n e" x="862" y="392">write key: 242 (12.7%)</text>
+<text class="n e" x="900" y="410">query relation tag: 142 (7.5%)</text>
+<text class="n e" x="918" y="428">not itemised: 41</text>
+<rect class="zero" x="536" y="448" width="380" height="50" rx="6"/>
+<text class="b" x="552" y="468">eviction: 0 failures</text>
+<text class="b" x="552" y="488">wrong stored value: 0 failures</text>
+
+<text class="h c" x="480" y="560">The store is never the failure. Forming the address from new phrasing is.</text>
+</svg>
