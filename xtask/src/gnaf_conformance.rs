@@ -1,5 +1,5 @@
 //! GNAF `CONFORMANCE.md` generator (SPEC 17.3), ported from the vendored
-//! `proofs/wasm-gemm-gnaf/Tools/gen_conformance.py` (#653 phase-3, sixth
+//! `projects/wasm-gemm-gnaf/proof/Tools/gen_conformance.py` (#653 phase-3, sixth
 //! `Tools/*.py` port after `gnaf_firewall.rs`/`gnaf_root.rs`/`gnaf_scan.rs`/
 //! `gnaf_release_path.rs`/`gnaf_manifest.rs`; the remaining four
 //! (`axioms.py`, `required.py`, `gate.py`, `mutation.py`) all invoke the
@@ -35,7 +35,7 @@ use crate::Fail;
 /// SPEC 17.3: `CONFORMANCE.md` is deterministically generated from
 /// `model/claims.json` and current.
 pub fn gnaf_conformance(root: &Path, check: bool) -> Result<(), Fail> {
-    let gnaf_dir = root.join("proofs/wasm-gemm-gnaf");
+    let gnaf_dir = root.join("projects/wasm-gemm-gnaf/proof");
     let base = gnaf_dir.join("WasmGemmGnaf");
     if !base.exists() {
         return Err(format!(

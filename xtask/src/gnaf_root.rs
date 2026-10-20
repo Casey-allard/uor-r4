@@ -1,5 +1,5 @@
 //! GNAF root-import module check (SPEC 5), ported from the vendored
-//! `proofs/wasm-gemm-gnaf/Tools/root.py` (#653 phase-2 follow-up, second
+//! `projects/wasm-gemm-gnaf/proof/Tools/root.py` (#653 phase-2 follow-up, second
 //! `Tools/*.py` port after `gnaf_firewall.rs`).
 //!
 //! "SPEC 5 fixes the layer structure. A file that belongs to no layer is
@@ -10,7 +10,7 @@
 //! segments deep, with its first segment naming one of the ten SPEC-5
 //! layers; a file that doesn't is reported as unowned. From the owned
 //! modules, this regenerates the root import file
-//! `proofs/wasm-gemm-gnaf/WasmGemmGnaf.lean`, grouped by layer in SPEC-5
+//! `projects/wasm-gemm-gnaf/proof/WasmGemmGnaf.lean`, grouped by layer in SPEC-5
 //! order and sorted within each layer -- byte-for-byte the same shape
 //! `Tools/root.py` produces. `--check` mode (the mode this repository's own
 //! gate ladder uses) reports staleness without writing; write mode
@@ -40,7 +40,7 @@ const LAYERS: [&str; 10] = [
 /// SPEC 5: every `.lean` file under `WasmGemmGnaf/` belongs to a named
 /// layer, and the generated root import file is current.
 pub fn gnaf_root(root: &Path, check: bool) -> Result<(), Fail> {
-    let gnaf_dir = root.join("proofs/wasm-gemm-gnaf");
+    let gnaf_dir = root.join("projects/wasm-gemm-gnaf/proof");
     let base = gnaf_dir.join("WasmGemmGnaf");
     if !base.exists() {
         return Err(format!(
@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn gnaf_root_generates_a_layer_ordered_file_and_check_agrees_with_it() {
         let root = scratch_dir("owned");
-        let gnaf = root.join("proofs/wasm-gemm-gnaf");
+        let gnaf = root.join("projects/wasm-gemm-gnaf/proof");
         std::fs::create_dir_all(gnaf.join("WasmGemmGnaf/Foundation")).unwrap();
         std::fs::create_dir_all(gnaf.join("WasmGemmGnaf/Wasm")).unwrap();
         std::fs::write(
@@ -218,7 +218,7 @@ mod tests {
     #[test]
     fn gnaf_root_rejects_an_unowned_module() {
         let root = scratch_dir("unowned");
-        let gnaf = root.join("proofs/wasm-gemm-gnaf");
+        let gnaf = root.join("projects/wasm-gemm-gnaf/proof");
         std::fs::create_dir_all(gnaf.join("WasmGemmGnaf/Scratch")).unwrap();
         std::fs::write(gnaf.join("WasmGemmGnaf/Scratch/Loose.lean"), "").unwrap();
 
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn gnaf_root_check_mode_rejects_a_stale_file_without_writing() {
         let root = scratch_dir("stale");
-        let gnaf = root.join("proofs/wasm-gemm-gnaf");
+        let gnaf = root.join("projects/wasm-gemm-gnaf/proof");
         std::fs::create_dir_all(gnaf.join("WasmGemmGnaf/Foundation")).unwrap();
         std::fs::write(gnaf.join("WasmGemmGnaf/Foundation/Types.lean"), "").unwrap();
         std::fs::write(gnaf.join("WasmGemmGnaf.lean"), "stale placeholder\n").unwrap();

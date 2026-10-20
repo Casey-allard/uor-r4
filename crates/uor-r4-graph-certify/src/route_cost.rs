@@ -3,7 +3,7 @@
 //! pattern to at least one active pipeline seam").
 //!
 //! This is an r4-native DESIGN, not a Lean-to-Rust port. It adopts the
-//! *shape* of `proofs/wasm-gemm-gnaf/WasmGemmGnaf/Cost/`'s pattern
+//! *shape* of `projects/wasm-gemm-gnaf/proof/WasmGemmGnaf/Cost/`'s pattern
 //! (static/dynamic-sum/dynamic-max cost coordinates, a declared
 //! first-order weight objective, a declared resource bound, and a
 //! composed witness carrying a claim) to the one quantity this seam

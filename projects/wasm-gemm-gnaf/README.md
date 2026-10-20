@@ -15,7 +15,7 @@ flowchart TD
 
 ## What the project is
 
-It is a Lean 4 library of 141 files (about 3.4 MB) with a normative specification (`SPEC.md`), an obligation ledger (`CERTIFICATION.md`), a claim registry (`model/claims.json`), pinned copies of its authority documents under `authority/`, fixtures, tooling and its own licences (Apache-2.0 or MIT, at your option). It currently lives at `proofs/wasm-gemm-gnaf` and moves to this folder.
+It is a Lean 4 library of 141 files (about 3.4 MB) with a normative specification (`SPEC.md`), an obligation ledger (`CERTIFICATION.md`), a claim registry (`model/claims.json`), pinned copies of its authority documents under `authority/`, fixtures, tooling and its own licences (Apache-2.0 or MIT, at your option). It lives at [`proof/`](proof/).
 
 "GNAF" is the name of the authority document the project follows, UOR-GNAF version 1 draft 2, whose text is pinned by a SHA-256 hash. The requested claim, `GlobalOptimal`, ranges over all finite byte sequences that decode and validate as a WebAssembly module under the chosen profile. It does not range over a hand-picked family of kernels.
 
@@ -25,9 +25,13 @@ The project defines a cost vector with 36 charged coordinates and a canonical sc
 
 With that, the project proves that **if** some valid program exists, a lowest-scoring one exists and satisfies the optimality statement. What is left is not a bound but an exhibition: build one concrete program with proofs that it qualifies, then show the committed binary is the program the minimum selects.
 
+## Code
+
+The Lean project lives in [`proof/`](proof/). The `gnaf-*` commands of `xtask` read it by path.
+
 ## Where it stands
 
-All rows come from the project's own README and conformance table (`proofs/wasm-gemm-gnaf/README.md`, `CONFORMANCE.md`, `CERTIFICATION.md`). They are not re-run for this page.
+All rows come from the project's own README and conformance table (`proof/README.md`, `CONFORMANCE.md`, `CERTIFICATION.md`). They are not re-run for this page.
 
 | Statement | Kind | Evidence |
 |---|---|---|

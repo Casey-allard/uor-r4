@@ -21,7 +21,7 @@ The project has two parts that arrived at different times.
 
 **1. The wire transport exploration (code).** One framing for compressed traffic, exposed four ways: a pair of proxies (a plain app talks to a local edge, the edge talks compressed to a gateway, the gateway talks to the service), a socket library the app links directly, a process interposer that makes unmodified programs use the wire (on macOS through `DYLD_INSERT_LIBRARIES`, on Linux through `LD_PRELOAD`), and opt-in multiplexing of several streams over one connection (UORADM01). The framing starts with a UORADP01 handshake, then length-prefixed frames with a raw-flag bit, so each direction can send zlib-compressed or raw data. There are 36 tool files (16 Python, 17 shell, 3 C) and a Rust crate, `wire-rs`, that is not part of the model's Cargo workspace.
 
-This work currently sits at `spiralcore-base/wire` (82 files). It was copied from a separate review repository at commit `032d903`, which keeps the full history. It will move into this folder.
+This work lives at [`wire/`](wire/) (82 files). It was copied from a separate review repository at commit `032d903`, which keeps the full history.
 
 **2. The owner-supplied references (documents).** Two sources the owner brought in on 13 September 2026, preserved byte for byte:
 
@@ -36,12 +36,16 @@ Also kept: `provenance.json` (original paths, byte counts and hashes) and a plai
 
 The HTML reference defines a fixed graph of rotations over the 16 roots of one E8 anchor orbit, and a search that returns an ordered history between two roots. The model's SpiralCore/FBS mechanism follows a related convention (the v63 reference, implemented in `crates/uor-r4-core/src/spiralcore_operator.rs`, and a hosted v69 file reviewed on 9 October), not this v68 file. The idea is the same family: an output block picks one stored atom and moves it along a short path of signed coordinate swaps (see [the mechanism page](../../docs/mechanisms/spiralcore-fbs.md) and the [geometry explainer](../../docs/geometry/spiralcore.md)). The wire transport does not use any of this yet. Its framing is plain length-prefixed zlib, chosen for interoperability.
 
+## Code
+
+The wire transport code lives in [`wire/`](wire/). It is standalone and is not a member of the repository workspace.
+
 ## Where it stands
 
 | Claim | Kind | Evidence |
 |---|---|---|
-| The wire framing, socket layer, interposer and mux interoperate: 18 of 18 legs of the interop matrix pass | measurement (loopback, one machine; a manual host regression, not CI; needs a built `objpeer`, and the Linux interposer leg needs an mvm microVM) | `spiralcore-base/wire/README.md`, `tools/wire_interop_matrix.sh`; lab record `docs/labs/wire-matrix-repro-2026-10-18/README.md` |
-| 1 KiB round trip: wire 41.8 microseconds against plain TCP 55.1 microseconds | measurement (loopback, host-load sensitive) | `spiralcore-base/wire/README.md` |
+| The wire framing, socket layer, interposer and mux interoperate: 18 of 18 legs of the interop matrix pass | measurement (loopback, one machine; a manual host regression, not CI; needs a built `objpeer`, and the Linux interposer leg needs an mvm microVM) | `wire/README.md`, `tools/wire_interop_matrix.sh`; lab record `docs/labs/wire-matrix-repro-2026-10-18/README.md` |
+| 1 KiB round trip: wire 41.8 microseconds against plain TCP 55.1 microseconds | measurement (loopback, host-load sensitive) | `wire/README.md` |
 | Rust peer, 1.25 MiB compressed: 2.10 / 2.86 / 3.30 ms (min / mean / max); plain TCP 1.52 / 1.92 / 2.16 ms | measurement (loopback) | same |
 | Compression backend `zlib-rs` matches `miniz_oxide` on ratio (0.24489 against 0.24480 on a realistic corpus) | measurement | same |
 | The framing adds no encryption or authentication | proof (by inspection of the design: none is specified) | same; use TLS, WireGuard or SSH outside it |
@@ -56,7 +60,7 @@ The two references were part of the owner's untracked `research/` folder. The fu
 
 ## Source files brought into this folder
 
-- From `spiralcore-base/wire`: all 82 files (tools, `crates/wire-rs`, `docs`, bounded `evidence`), unchanged.
+- From the former `spiralcore-base/wire`, now [`wire/`](wire/): all 82 files (tools, `crates/wire-rs`, `docs`, bounded `evidence`), unchanged.
 - From `research/spiralcore-v68`: `README.md`, `provenance.json`, the mathematics extract, the v68 HTML (placed under `reference/`) and the FBS PDF (about 3 MB; stays in the store if the size policy says so, with its hash recorded here).
 
 ## Go deeper

@@ -1,5 +1,5 @@
 //! GNAF forbidden-construct scan (SPEC 19), ported from the vendored
-//! `proofs/wasm-gemm-gnaf/Tools/scan.py` (#653 phase-2 follow-up, third
+//! `projects/wasm-gemm-gnaf/proof/Tools/scan.py` (#653 phase-2 follow-up, third
 //! `Tools/*.py` port after `gnaf_firewall.rs` and `gnaf_root.rs`).
 //!
 //! SPEC 19 bans `sorry` / `admit` / `native_decide` / a project-declared
@@ -24,7 +24,7 @@ use crate::Fail;
 /// project-declared `axiom`, no `unsafe`/`partial` declaration, in real
 /// code (comments and string literals excluded).
 pub fn gnaf_scan(root: &Path) -> Result<(), Fail> {
-    let base = root.join("proofs/wasm-gemm-gnaf/WasmGemmGnaf");
+    let base = root.join("projects/wasm-gemm-gnaf/proof/WasmGemmGnaf");
     if !base.exists() {
         return Err(format!(
             "{} not found; the vendored GNAF proof tree (#742) is expected \
@@ -321,7 +321,7 @@ mod tests {
     #[test]
     fn gnaf_scan_ignores_a_documented_mention_but_catches_a_real_sorry() {
         let root = scratch_dir("doc-mention");
-        let base = root.join("proofs/wasm-gemm-gnaf/WasmGemmGnaf/Foundation");
+        let base = root.join("projects/wasm-gemm-gnaf/proof/WasmGemmGnaf/Foundation");
         std::fs::create_dir_all(&base).unwrap();
         std::fs::write(
             base.join("Planted.lean"),

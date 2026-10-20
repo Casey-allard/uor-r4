@@ -1,5 +1,5 @@
 //! GNAF `MANIFEST.json` generator (SPEC sections 4 and 5), ported from the
-//! vendored `proofs/wasm-gemm-gnaf/Tools/manifest.py` (#653 phase-2
+//! vendored `projects/wasm-gemm-gnaf/proof/Tools/manifest.py` (#653 phase-2
 //! follow-up, fifth `Tools/*.py` port after `gnaf_firewall.rs`,
 //! `gnaf_root.rs`, `gnaf_scan.rs`, and `gnaf_release_path.rs`).
 //!
@@ -560,7 +560,7 @@ fn build(gnaf_dir: &Path) -> Result<(Json, String, String, String, usize), Fail>
 /// convention) reports staleness without writing; `check = false`
 /// (`--write`) regenerates the file.
 pub fn gnaf_manifest(root: &Path, check: bool) -> Result<(), Fail> {
-    let gnaf_dir = root.join("proofs/wasm-gemm-gnaf");
+    let gnaf_dir = root.join("projects/wasm-gemm-gnaf/proof");
     if !gnaf_dir.exists() {
         return Err(format!(
             "{} not found; the vendored GNAF proof tree (#742) is expected \
@@ -696,7 +696,7 @@ mod tests {
     #[test]
     fn gnaf_manifest_write_then_check_round_trips_on_a_synthetic_tree() {
         let root = scratch_dir("roundtrip");
-        let gnaf = root.join("proofs/wasm-gemm-gnaf");
+        let gnaf = root.join("projects/wasm-gemm-gnaf/proof");
         std::fs::create_dir_all(gnaf.join("WasmGemmGnaf/Foundation")).unwrap();
         std::fs::create_dir_all(gnaf.join("model")).unwrap();
         std::fs::write(

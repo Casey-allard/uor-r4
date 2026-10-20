@@ -1,5 +1,5 @@
 //! GNAF dependency firewall (SPEC 10.1), ported from the vendored
-//! `proofs/wasm-gemm-gnaf/Tools/firewall.py` (#653 phase-2 follow-up:
+//! `projects/wasm-gemm-gnaf/proof/Tools/firewall.py` (#653 phase-2 follow-up:
 //! `archive/gnaf_integration_653.md` classifies `Tools/*.py` as `defer-open`,
 //! recommending r4-native equivalents rather than a vendored Python
 //! dependency; this is the first such port).
@@ -30,7 +30,7 @@ use crate::Fail;
 
 /// Modules whose competitor-universe definitions must stay
 /// artifact-/selector-/conclusion-blind. Paths are relative to
-/// `proofs/wasm-gemm-gnaf/WasmGemmGnaf/`, matching `Tools/firewall.py`'s
+/// `projects/wasm-gemm-gnaf/proof/WasmGemmGnaf/`, matching `Tools/firewall.py`'s
 /// `PROTECTED` list exactly: a trailing `/` protects a whole directory, a
 /// bare `.lean` path protects one file.
 const PROTECTED: [&str; 7] = [
@@ -58,7 +58,7 @@ const FORBIDDEN: [&str; 6] = [
 
 /// SPEC 10.1: no protected module imports a forbidden one.
 pub fn gnaf_firewall(root: &Path) -> Result<(), Fail> {
-    let base = root.join("proofs/wasm-gemm-gnaf/WasmGemmGnaf");
+    let base = root.join("projects/wasm-gemm-gnaf/proof/WasmGemmGnaf");
     if !base.exists() {
         return Err(format!(
             "{} not found; the vendored GNAF proof tree (#742) is expected \
@@ -181,7 +181,7 @@ mod tests {
     /// tree with no such import must pass. Built entirely under
     /// `std::env::temp_dir()` on a synthetic layout -- never against the real
     /// vendored tree -- so this test cannot be affected by, or accidentally
-    /// mutate, `proofs/wasm-gemm-gnaf/`.
+    /// mutate, `projects/wasm-gemm-gnaf/proof/`.
     #[test]
     fn gnaf_firewall_rejects_a_planted_import_and_accepts_a_clean_tree() {
         let root = std::env::temp_dir().join(format!(
@@ -189,7 +189,7 @@ mod tests {
             std::process::id(),
             std::thread::current().id()
         ));
-        let universal = root.join("proofs/wasm-gemm-gnaf/WasmGemmGnaf/Universal");
+        let universal = root.join("projects/wasm-gemm-gnaf/proof/WasmGemmGnaf/Universal");
         std::fs::create_dir_all(&universal).unwrap();
 
         let planted = universal.join("Competitor.lean");

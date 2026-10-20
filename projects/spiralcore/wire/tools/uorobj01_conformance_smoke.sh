@@ -9,8 +9,8 @@
 #
 # No pod, no model compute. Override OBJPEER to use an existing binary.
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-ROOT=$(cd "$SCRIPT_DIR/../../.." && pwd)
-PORT_AGENT="$ROOT/spiralcore-base/wire/tools/port_agent.py"
+ROOT=$(cd "$SCRIPT_DIR/../../../.." && pwd)
+PORT_AGENT="$ROOT/projects/spiralcore/wire/tools/port_agent.py"
 OBJPEER_HINT=$OBJPEER
 if [ -z "$OBJPEER_HINT" ]; then OBJPEER="$ROOT/target/release/objpeer"; else OBJPEER=$OBJPEER_HINT; fi
 WORK="$ROOT/local/uorobj01-conformance.$$"

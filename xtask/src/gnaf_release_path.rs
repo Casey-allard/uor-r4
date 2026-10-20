@@ -1,5 +1,5 @@
 //! GNAF release-path computability check (SPEC 19 / 6.3), ported from the
-//! vendored `proofs/wasm-gemm-gnaf/Tools/releasepath.py` (#653 phase-2
+//! vendored `projects/wasm-gemm-gnaf/proof/Tools/releasepath.py` (#653 phase-2
 //! follow-up, fourth `Tools/*.py` port after `gnaf_firewall.rs`,
 //! `gnaf_root.rs`, and `gnaf_scan.rs`).
 //!
@@ -34,13 +34,13 @@ use crate::gnaf_scan::strip_comments_and_strings;
 use crate::Fail;
 
 /// The modules that constitute the release path (SPEC 19's own list),
-/// relative to `proofs/wasm-gemm-gnaf/WasmGemmGnaf/`.
+/// relative to `projects/wasm-gemm-gnaf/proof/WasmGemmGnaf/`.
 const RELEASE_PATH: [&str; 3] = ["Artifact", "Theorems", "Universal"];
 
 /// SPEC 19 / 6.3: no `noncomputable def`/`abbrev`/`instance` on the
 /// release path.
 pub fn gnaf_release_path(root: &Path) -> Result<(), Fail> {
-    let base = root.join("proofs/wasm-gemm-gnaf/WasmGemmGnaf");
+    let base = root.join("projects/wasm-gemm-gnaf/proof/WasmGemmGnaf");
     if !base.exists() {
         return Err(format!(
             "{} not found; the vendored GNAF proof tree (#742) is expected \
@@ -193,7 +193,7 @@ mod tests {
     #[test]
     fn gnaf_release_path_rejects_noncomputable_only_inside_the_release_path() {
         let root = scratch_dir("scope");
-        let base = root.join("proofs/wasm-gemm-gnaf/WasmGemmGnaf");
+        let base = root.join("projects/wasm-gemm-gnaf/proof/WasmGemmGnaf");
         std::fs::create_dir_all(base.join("Artifact")).unwrap();
         std::fs::create_dir_all(base.join("Foundation")).unwrap();
         std::fs::write(
@@ -219,7 +219,7 @@ mod tests {
     #[test]
     fn gnaf_release_path_ignores_a_commented_mention() {
         let root = scratch_dir("comment");
-        let base = root.join("proofs/wasm-gemm-gnaf/WasmGemmGnaf/Theorems");
+        let base = root.join("projects/wasm-gemm-gnaf/proof/WasmGemmGnaf/Theorems");
         std::fs::create_dir_all(&base).unwrap();
         std::fs::write(
             base.join("Doc.lean"),

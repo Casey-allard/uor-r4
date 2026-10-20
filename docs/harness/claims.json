@@ -244,6 +244,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/renorm-projects-move-20261020": {
+    "branch": "claude/renorm-projects-move-20261020",
+    "claimed_at": "2026-10-20T08:53:59-04:00",
+    "head": "0d9bbef3c",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/renorm-site-index-fix-20261020": {
     "branch": "claude/renorm-site-index-fix-20261020",
     "claimed_at": "2026-10-20T02:09:56-04:00",
