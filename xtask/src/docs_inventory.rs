@@ -226,7 +226,7 @@ pub fn scan_refs(file: &str, text: &str, prefixes: &[String]) -> Vec<CodeRef> {
     out
 }
 
-fn scanned_for_refs(path: &str) -> bool {
+pub fn scanned_for_refs(path: &str) -> bool {
     let ext = ext_of(path);
     if let Some(rest) = path.strip_prefix("docs/") {
         return (path.starts_with("docs/harness/") && ext == "json")

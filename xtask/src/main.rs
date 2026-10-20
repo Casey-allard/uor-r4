@@ -12,9 +12,13 @@ use repo_model::{codegen, Model};
 
 mod archive_verify;
 mod audit;
+mod docs_catalog;
 mod docs_inventory;
 mod docs_links;
 mod docs_move;
+mod docs_relink;
+mod docs_rewrite_refs;
+mod docs_stubs;
 mod figures;
 mod gate;
 mod gnaf_conformance;
@@ -63,6 +67,16 @@ fn main() -> ExitCode {
         "docs-move" => {
             docs_move::run(&root, &std::env::args().skip(2).collect::<Vec<_>>()).map_err(Into::into)
         }
+        "docs-relink" => docs_relink::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
+            .map_err(Into::into),
+        "docs-rewrite-refs" => {
+            docs_rewrite_refs::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
+                .map_err(Into::into)
+        }
+        "docs-catalog" => docs_catalog::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
+            .map_err(Into::into),
+        "docs-stubs" => docs_stubs::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
+            .map_err(Into::into),
         "archive-verify" => {
             archive_verify::run(&root, &std::env::args().skip(2).collect::<Vec<_>>())
                 .map_err(Into::into)
@@ -107,6 +121,10 @@ fn main() -> ExitCode {
                  links [..]        docs reorganization: tracked-markdown link check (--json OUT, --baseline FILE, --renames-from REV, --simulate MAP.tsv)\n\
                  docs-inventory --out FILE.json [--prefix P ..]  docs reorganization: docs file inventory and by-string code references\n\
                  docs-move         move files/dirs with git mv from --map MAP.tsv (dry run unless --apply)\n\
+                 docs-relink       rewrite live markdown links into moved paths from --map MAP.tsv [--exclude P ..] [--json OUT] (dry run unless --apply)\n\
+                 docs-rewrite-refs rewrite by-string code references into moved paths from --map MAP.tsv [--exclude P ..] [--json OUT] (dry run unless --apply)\n\
+                 docs-catalog      generate archive/CATALOG.md and archive/catalog/*.md from archive/catalog.jsonl [--input FILE] [--check]\n\
+                 docs-stubs        pointer stubs at archive/ positions from --list FILE (dry run unless --apply)\n\
                  archive-verify    SHA256SUMS manifests vs the tree [--json OUT] [--baseline FILE]; archive/ immutability [--base REV]\n\
                  \n\
                  --write           check-model/gnaf-root/gnaf-manifest/gnaf-conformance/figures: rewrite the generated file instead of checking it"

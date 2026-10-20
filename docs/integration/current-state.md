@@ -1,3 +1,14 @@
+## 2026-10-19 — Docs cutover tools: relink, rewrite-refs, catalog, stubs (claude)
+
+Second unit of the owner-directed reorganization. It adds four `xtask` tasks that make the move mechanical:
+- `docs-relink` rewrites link targets in live markdown only;
+- `docs-rewrite-refs` rewrites `docs/…` path literals in live code;
+- `docs-catalog` renders `archive/CATALOG.md` and per-line pages from 1,173 catalogued records;
+- `docs-stubs` writes pointer stubs where archived records link to live files.
+
+A full rehearsal in a throwaway clone moved 8,733 files, all as R100 renames, with 0 archived bytes changed and 0 new broken links in live content. 365 permanent breaks remain, all inside archived records, pinned FIT sheets or 18–19 Oct records. Nothing moves in this unit. [Record](../labs/repo-renormalization-2026-10-19/README.md).
+**Next:** freeze notice on #2029, then the cutover PR.
+
 ## 2026-10-19 — Repository renormalization: link, inventory, move and archive-verify tooling (claude)
 
 The owner asked for a full audit, reorganization and illustrated rewrite of the repository, with nothing deleted and archived records kept byte-identical. This unit adds the Rust safety net, run before anything moves.

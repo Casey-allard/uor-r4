@@ -169,7 +169,7 @@ fn fence_marker(line: &str) -> Option<(u8, usize, bool)> {
 }
 
 /// Replace every inline code span (matching backtick runs) with spaces.
-fn blank_code_spans(line: &str) -> String {
+pub fn blank_code_spans(line: &str) -> String {
     let mut b = line.as_bytes().to_vec();
     let mut i = 0;
     while i < b.len() {
@@ -599,6 +599,18 @@ impl PathMap {
                     self.entries.insert(od, nd);
                 }
             }
+        }
+    }
+
+    /// The longest entry `(old, new)` whose `old` is `path` or a segment
+    /// prefix of it, as used by [`PathMap::map`].
+    pub fn matched(&self, path: &str) -> Option<(&str, &str)> {
+        let mut end = path.len();
+        loop {
+            if let Some((old, new)) = self.entries.get_key_value(&path[..end]) {
+                return Some((old.as_str(), new.as_str()));
+            }
+            end = path[..end].rfind('/')?;
         }
     }
 
