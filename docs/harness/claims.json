@@ -1,74 +1,4 @@
 {
-  "antigravity/a8-audited-source-consumer-binding-20261019": {
-    "branch": "antigravity/a8-audited-source-consumer-binding-20261019",
-    "claimed_at": "2026-10-19T07:52:15-04:00",
-    "head": "fd409fcdf",
-    "lab": "antigravity",
-    "note": "Bind integrated admission-preserving controller & finite qualification source/schemas (PR #2782, fd409fcdf) in verify_a8_address_cells_dose.py (64/64 PASS)"
-  },
-  "claude/a8-dose-outcome-20261019": {
-    "branch": "claude/a8-dose-outcome-20261019",
-    "claimed_at": "2026-10-19T01:37:23-04:00",
-    "head": "4d3ae4f6b",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/a8-runbook-20261019": {
-    "branch": "claude/a8-runbook-20261019",
-    "claimed_at": "2026-10-18T23:52:31-04:00",
-    "head": "50ed2977f",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/a8-runbook-controls-20261019": {
-    "branch": "claude/a8-runbook-controls-20261019",
-    "claimed_at": "2026-10-19T00:01:05-04:00",
-    "head": "32c3af547",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/a8-runbook-reconcile-20261019": {
-    "branch": "claude/a8-runbook-reconcile-20261019",
-    "claimed_at": "2026-10-19T00:17:26-04:00",
-    "head": "13ea42d42",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/a8-runbook-review-fixes-20261019": {
-    "branch": "claude/a8-runbook-review-fixes-20261019",
-    "claimed_at": "2026-10-19T00:08:12-04:00",
-    "head": "b57dd0b40",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/a8-training-sheet-20261019": {
-    "branch": "claude/a8-training-sheet-20261019",
-    "claimed_at": "2026-10-18T23:30:55-04:00",
-    "head": "502ef6d14",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/address-cells-fit-prep-20261019": {
-    "branch": "claude/address-cells-fit-prep-20261019",
-    "claimed_at": "2026-10-18T22:24:14-04:00",
-    "head": "b8f834b19",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/address-cells-preflight-receipt-20261019": {
-    "branch": "claude/address-cells-preflight-receipt-20261019",
-    "claimed_at": "2026-10-18T23:22:03-04:00",
-    "head": "232b67a6a",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/address-cells-registration-20261019": {
-    "branch": "claude/address-cells-registration-20261019",
-    "claimed_at": "2026-10-18T22:35:02-04:00",
-    "head": "05b90b4e5",
-    "lab": "claude",
-    "note": ""
-  },
   "claude/batched-coordinates-draft-20261018": {
     "branch": "claude/batched-coordinates-draft-20261018",
     "claimed_at": "2026-10-18T02:18:32-04:00",
@@ -181,13 +111,6 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/graph-format-cbor-port": {
-    "branch": "claude/graph-format-cbor-port",
-    "claimed_at": "2026-10-20T01:39:54-04:00",
-    "head": "fb639e3e7",
-    "lab": "claude",
-    "note": ""
-  },
   "claude/injective-fit-fixes-20261018": {
     "branch": "claude/injective-fit-fixes-20261018",
     "claimed_at": "2026-10-18T18:32:44-04:00",
@@ -237,24 +160,10 @@
     "lab": "claude",
     "note": ""
   },
-  "claude/renorm-archive-curated-20261020": {
-    "branch": "claude/renorm-archive-curated-20261020",
-    "claimed_at": "2026-10-20T01:51:21-04:00",
-    "head": "00fa2935e",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/renorm-projects-move-20261020": {
-    "branch": "claude/renorm-projects-move-20261020",
-    "claimed_at": "2026-10-20T08:53:59-04:00",
+  "claude/renorm-dead-dirs-20261020": {
+    "branch": "claude/renorm-dead-dirs-20261020",
+    "claimed_at": "2026-10-20T08:50:44-04:00",
     "head": "0d9bbef3c",
-    "lab": "claude",
-    "note": ""
-  },
-  "claude/renorm-site-index-fix-20261020": {
-    "branch": "claude/renorm-site-index-fix-20261020",
-    "claimed_at": "2026-10-20T02:09:56-04:00",
-    "head": "7f38be8d0",
     "lab": "claude",
     "note": ""
   },
@@ -321,13 +230,6 @@
     "lab": "codex",
     "note": ""
   },
-  "codex/cf1-admission-anchor-audit": {
-    "branch": "codex/cf1-admission-anchor-audit",
-    "claimed_at": "2026-10-19T05:11:16-04:00",
-    "head": "258dc3ef9",
-    "lab": "codex",
-    "note": ""
-  },
   "codex/cf1-attention-battery3-result": {
     "branch": "codex/cf1-attention-battery3-result",
     "claimed_at": "2026-10-17T19:25:30-04:00",
@@ -356,20 +258,6 @@
     "lab": "codex",
     "note": ""
   },
-  "codex/cf1-bpe-policy-fix": {
-    "branch": "codex/cf1-bpe-policy-fix",
-    "claimed_at": "2026-10-19T01:59:38-04:00",
-    "head": "2b6c8b333",
-    "lab": "codex",
-    "note": ""
-  },
-  "codex/cf1-injective-attention-packet": {
-    "branch": "codex/cf1-injective-attention-packet",
-    "claimed_at": "2026-10-18T20:45:59-04:00",
-    "head": "4cca1e03f",
-    "lab": "codex",
-    "note": ""
-  },
   "codex/cf1-k16-cuda-snapshot-fix": {
     "branch": "codex/cf1-k16-cuda-snapshot-fix",
     "claimed_at": "2026-10-18T11:24:34-04:00",
@@ -395,13 +283,6 @@
     "branch": "codex/cf1-reuse-timing-uuid-blocker",
     "claimed_at": "2026-10-16T22:35:15-04:00",
     "head": "66154156d",
-    "lab": "codex",
-    "note": ""
-  },
-  "codex/cf1-rust-bpe-trainer": {
-    "branch": "codex/cf1-rust-bpe-trainer",
-    "claimed_at": "2026-10-19T01:07:50-04:00",
-    "head": "65451d828",
     "lab": "codex",
     "note": ""
   },

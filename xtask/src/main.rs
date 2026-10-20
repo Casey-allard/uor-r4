@@ -133,7 +133,7 @@ fn main() -> ExitCode {
                  figures           D27: the README/geometry status diagrams are generated and current\n\
                  figures-math      D27: computed geometry figures (E8, 600-cell, flock, SpiralCore, route) are current [--write] [--out DIR]\n\
                  figures-charts    D27: the docs data charts (status vs baselines, results share, timelines) drawn from the research catalog [--write] [--catalog FILE] [--out DIR]\n\
-                 links [..]        docs reorganization: tracked-markdown link check (--json OUT, --baseline FILE, --renames-from REV, --simulate MAP.tsv)\n\
+                 links [..]        docs reorganization: tracked-markdown link check (--json OUT, --baseline FILE, --renames-from REV, --simulate MAP.tsv); a moved target linked from an unchanged archive/ or prep record is reported as MOVED, not failed\n\
                  docs-inventory --out FILE.json [--prefix P ..]  docs reorganization: docs file inventory and by-string code references\n\
                  docs-move         move files/dirs with git mv from --map MAP.tsv (dry run unless --apply)\n\
                  docs-relink       rewrite live markdown links into moved paths from --map MAP.tsv [--exclude P ..] [--json OUT] (dry run unless --apply)\n\

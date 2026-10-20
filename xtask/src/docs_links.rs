@@ -29,6 +29,19 @@
 //! either mapped or unmapped. The unmapped alternative is needed because a
 //! file that did not move keeps its link text, so its already-broken target
 //! does not move with the directory.
+//!
+//! Replaced stubs: when a cutover pointer stub at `archive/X` is replaced by
+//! the record it named, git reports `D docs/X` plus `M archive/X`, not a
+//! rename. A deleted path is paired with a modified path whose working-tree
+//! blob equals the deleted path's blob at REV; the pair maps baseline entries
+//! only, and only byte-equal pairs count.
+//!
+//! Moved targets: records under `archive/` and `docs/harness/prep/` are
+//! immutable, so a PR that moves a live target into `archive/` cannot fix the
+//! links they hold. A NEW broken link is reported as `MOVED` (count line
+//! `moved (immutable source)`) and does not fail the gate when its source is
+//! immutable, unchanged since REV (`git diff --quiet REV -- source`) and its
+//! target is the old side of an R100 rename. Every other NEW link fails.
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -109,11 +122,21 @@ impl Universe {
     }
 }
 
+/// A git command bound to `root` only: an inherited `GIT_DIR` (set inside git
+/// hooks) would otherwise point every call at another repository.
+fn git_command(root: &Path) -> Command {
+    let mut c = Command::new("git");
+    c.env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .arg("-C")
+        .arg(root);
+    c
+}
+
 /// Run git at the repository root and return its stdout.
 pub fn git(root: &Path, args: &[&str]) -> Result<Vec<u8>, String> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(root)
+    let out = git_command(root)
         .args(args)
         .output()
         .map_err(|e| format!("git {}: {e}", args.join(" ")))?;
@@ -637,6 +660,191 @@ impl PathMap {
     }
 }
 
+/// Paths an immutable record may keep even when its target moved away.
+pub fn is_immutable_source(path: &str) -> bool {
+    path.starts_with("archive/") || path.starts_with("docs/harness/prep/")
+}
+
+/// `D` and `M` paths of `git diff --name-status -z` output.
+pub fn parse_deleted_modified_z(out: &[u8]) -> (Vec<String>, Vec<String>) {
+    let (mut deleted, mut modified) = (Vec::new(), Vec::new());
+    let mut tok = out
+        .split(|b| *b == 0)
+        .map(|s| String::from_utf8_lossy(s).into_owned());
+    while let Some(status) = tok.next() {
+        if status.is_empty() {
+            continue;
+        }
+        if status.starts_with('R') || status.starts_with('C') {
+            tok.next();
+            tok.next();
+        } else if let Some(path) = tok.next() {
+            match status.as_str() {
+                "D" => deleted.push(path),
+                "M" => modified.push(path),
+                _ => {}
+            }
+        }
+    }
+    (deleted, modified)
+}
+
+fn basename(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
+}
+
+/// Pair each deleted `(path, blob at REV)` with a modified `(path, working
+/// blob)` of byte-equal content: the replaced-stub case, where a record
+/// takes the place of the pointer stub that named it. Each path pairs once.
+/// When several deleted or several modified paths share a blob, only a pair
+/// with the same file name that is unique on both sides is taken; any other
+/// shape is ambiguous and that blob is left unpaired.
+pub fn pair_replaced_stubs(
+    deleted: &[(String, String)],
+    modified: &[(String, String)],
+) -> Vec<(String, String)> {
+    let mut taken = HashSet::new();
+    let mut pairs = Vec::new();
+    for (old, blob) in deleted {
+        let dels: Vec<&String> = deleted
+            .iter()
+            .filter(|(_, b)| b == blob)
+            .map(|(p, _)| p)
+            .collect();
+        let mods: Vec<&String> = modified
+            .iter()
+            .filter(|(_, b)| b == blob)
+            .map(|(p, _)| p)
+            .collect();
+        let hit = if dels.len() == 1 && mods.len() == 1 {
+            Some(mods[0])
+        } else {
+            let same = |ps: &[&String]| -> Vec<String> {
+                ps.iter()
+                    .filter(|p| basename(p) == basename(old))
+                    .map(|p| (*p).clone())
+                    .collect()
+            };
+            let (d, m) = (same(&dels), same(&mods));
+            if d.len() == 1 && m.len() == 1 {
+                mods.iter().copied().find(|p| **p == m[0])
+            } else {
+                None
+            }
+        };
+        if let Some(new) = hit {
+            if !taken.contains(new.as_str()) {
+                taken.insert(new.as_str());
+                pairs.push((old.clone(), new.clone()));
+            }
+        }
+    }
+    pairs
+}
+
+/// Build the replaced-stub map from the `--renames-from` diff output.
+fn replaced_stub_map(root: &Path, rev: &str, out: &[u8]) -> Result<PathMap, String> {
+    let (del, modi) = parse_deleted_modified_z(out);
+    let mut map = PathMap::default();
+    if del.is_empty() {
+        return Ok(map);
+    }
+    let mut deleted = Vec::new();
+    for p in del {
+        let blob = git(root, &["rev-parse", &format!("{rev}:{p}")])?;
+        deleted.push((p, String::from_utf8_lossy(&blob).trim().to_string()));
+    }
+    let mut modified = Vec::new();
+    if !modi.is_empty() {
+        let mut child = git_command(root)
+            .args(["hash-object", "--stdin-paths"])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("git hash-object: {e}"))?;
+        let input = modi.join("\n") + "\n";
+        let mut stdin = child.stdin.take().ok_or("git hash-object: no stdin")?;
+        let writer = std::thread::spawn(move || {
+            use std::io::Write;
+            stdin.write_all(input.as_bytes())
+        });
+        let res = child
+            .wait_with_output()
+            .map_err(|e| format!("git hash-object: {e}"))?;
+        writer
+            .join()
+            .map_err(|_| "git hash-object: writer panicked".to_string())?
+            .map_err(|e| format!("git hash-object: {e}"))?;
+        if !res.status.success() {
+            return Err(format!(
+                "git hash-object failed: {}",
+                String::from_utf8_lossy(&res.stderr).trim()
+            ));
+        }
+        let text = String::from_utf8_lossy(&res.stdout).into_owned();
+        let blobs: Vec<&str> = text.lines().collect();
+        if blobs.len() != modi.len() {
+            return Err("git hash-object: unexpected output length".into());
+        }
+        modified = modi
+            .into_iter()
+            .zip(blobs)
+            .map(|(p, b)| (p, b.to_string()))
+            .collect();
+    }
+    for (old, new) in pair_replaced_stubs(&deleted, &modified) {
+        map.insert(&old, &new);
+    }
+    Ok(map)
+}
+
+/// A record is "unchanged since REV" only if it exists at REV and now, and
+/// `git diff --quiet` is clean. A nonexistent path makes `diff --quiet` exit 0,
+/// so existence is checked separately.
+pub fn source_unchanged(exists_at_rev: bool, exists_now: bool, diff_clean: bool) -> bool {
+    exists_at_rev && exists_now && diff_clean
+}
+
+/// Split NEW broken links into real failures and `MOVED` ones: the source is
+/// immutable and unchanged since REV (`unchanged`), the target is the old
+/// side of an R100 rename (or inferred directory rename), and the renamed
+/// path exists in `now_tracked`. Returns `(new, moved)`; each moved link
+/// carries the target's new path.
+pub fn split_moved(
+    new: Vec<Broken>,
+    renames: &PathMap,
+    now_tracked: &Universe,
+    unchanged: impl Fn(&str) -> bool,
+) -> (Vec<Broken>, Vec<(Broken, String)>) {
+    let (mut fail, mut moved) = (Vec::new(), Vec::new());
+    for b in new {
+        let now = renames.map(&b.resolved);
+        if is_immutable_source(&b.source)
+            && now != b.resolved
+            && now_tracked.exists(&now)
+            && unchanged(&b.source)
+        {
+            moved.push((b, now));
+        } else {
+            fail.push(b);
+        }
+    }
+    (fail, moved)
+}
+
+/// Compare against the baseline through every map: renames, replaced stubs
+/// and the simulation, in that order.
+pub fn compare_with_maps(
+    baseline: &[(String, String)],
+    renames: &PathMap,
+    stubs: &PathMap,
+    sim: &PathMap,
+    current: &[Broken],
+) -> Comparison {
+    compare(baseline, &[renames, stubs, sim], current)
+}
+
 /// Outcome of comparing current broken links with a mapped baseline.
 #[derive(Debug)]
 pub struct Comparison {
@@ -760,6 +968,16 @@ pub fn check_repo(root: &Path, tracked: &[String], sim: &PathMap) -> Result<Repo
     Ok(report)
 }
 
+/// True when git exits 0 for `args` (used with `diff --quiet`); any other
+/// outcome, including a spawn failure, reads as "changed".
+fn git_env_clean(root: &Path, args: &[&str]) -> bool {
+    git_command(root)
+        .args(args)
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
 /// `cargo xtask links [--json OUT] [--baseline FILE] [--renames-from REV] [--simulate MAP.tsv]`
 pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
     let mut json_out = None;
@@ -808,7 +1026,7 @@ pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
         return Ok(());
     };
     let base = load_baseline(&base_path)?;
-    let renames = match &renames_from {
+    let (renames, stubs) = match &renames_from {
         Some(rev) => {
             let out = git(
                 root,
@@ -816,15 +1034,38 @@ pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
             )?;
             let mut m = PathMap::parse_renames_z(&out);
             m.add_dir_renames(&Universe::new(tracked.iter().cloned()));
-            m
+            (m, replaced_stub_map(root, rev, &out)?)
         }
-        None => PathMap::default(),
+        None => (PathMap::default(), PathMap::default()),
     };
-    let cmp = compare(&base, &[&renames, &sim], &report.broken);
-    println!("new broken: {}", cmp.new.len());
+    let cmp = compare_with_maps(&base, &renames, &stubs, &sim, &report.broken);
+    let now_tracked = Universe::new(tracked.iter().cloned());
+    // Under --simulate the tree is hypothetical: nothing may pass as MOVED.
+    let (mut new, mut moved) = match (&renames_from, &simulate) {
+        (Some(rev), None) => split_moved(cmp.new, &renames, &now_tracked, |src| {
+            let spec = format!("{rev}:{src}");
+            source_unchanged(
+                git_env_clean(root, &["cat-file", "-e", &spec]),
+                now_tracked.exists(src),
+                git_env_clean(
+                    root,
+                    &["--literal-pathspecs", "diff", "--quiet", rev, "--", src],
+                ),
+            )
+        }),
+        _ => (cmp.new, Vec::new()),
+    };
+    println!("new broken: {}", new.len());
     println!("fixed: {}", cmp.fixed);
-    let mut new = cmp.new;
+    println!("moved (immutable source): {}", moved.len());
     new.sort();
+    moved.sort_by(|a, b| a.0.cmp(&b.0));
+    for (b, now) in &moved {
+        println!(
+            "  MOVED {}:{} {} -> {} (now {})",
+            b.source, b.line, b.target, b.resolved, now
+        );
+    }
     for b in &new {
         println!(
             "  NEW {}:{} {} -> {}",
@@ -1042,5 +1283,180 @@ mod tests {
         assert_eq!(m.map("docs/historyx/c.md"), "docs/historyx/c.md");
         assert_eq!(m.map("docs/history"), "archive/history");
         assert!(PathMap::parse_tsv("only-one-field\n").is_err());
+    }
+
+    fn broken(source: &str, resolved: &str) -> Broken {
+        Broken {
+            source: source.to_string(),
+            line: 1,
+            target: resolved.to_string(),
+            resolved: resolved.to_string(),
+        }
+    }
+
+    fn rename_map() -> PathMap {
+        PathMap::parse_renames_z(b"R100\0docs/old/a.md\0archive/old/a.md\0")
+    }
+
+    fn now_universe() -> Universe {
+        Universe::new(["archive/old/a.md".to_string(), "archive/rec.md".to_string()])
+    }
+
+    #[test]
+    fn unchanged_immutable_source_with_renamed_target_is_moved() {
+        let (fail, moved) = split_moved(
+            vec![broken("archive/rec.md", "docs/old/a.md")],
+            &rename_map(),
+            &now_universe(),
+            |_| true,
+        );
+        assert!(fail.is_empty());
+        assert_eq!(moved.len(), 1);
+        assert_eq!(moved[0].1, "archive/old/a.md");
+        let (fail, moved) = split_moved(
+            vec![broken("docs/harness/prep/p.md", "docs/old/a.md")],
+            &rename_map(),
+            &now_universe(),
+            |_| true,
+        );
+        assert!((fail.len(), moved.len()) == (0, 1));
+    }
+
+    #[test]
+    fn changed_immutable_source_with_renamed_target_is_new() {
+        let (fail, moved) = split_moved(
+            vec![broken("archive/rec.md", "docs/old/a.md")],
+            &rename_map(),
+            &now_universe(),
+            |_| false,
+        );
+        assert_eq!((fail.len(), moved.len()), (1, 0));
+    }
+
+    #[test]
+    fn live_source_with_renamed_target_is_new() {
+        let (fail, moved) = split_moved(
+            vec![broken("docs/live.md", "docs/old/a.md")],
+            &rename_map(),
+            &now_universe(),
+            |_| true,
+        );
+        assert_eq!((fail.len(), moved.len()), (1, 0));
+        // An unmoved target stays NEW even from an unchanged record.
+        let (fail, moved) = split_moved(
+            vec![broken("archive/rec.md", "docs/never/b.md")],
+            &rename_map(),
+            &now_universe(),
+            |_| true,
+        );
+        assert_eq!((fail.len(), moved.len()), (1, 0));
+    }
+
+    #[test]
+    fn replaced_stub_pairs_only_byte_equal_blobs() {
+        let del = vec![("docs/X.md".to_string(), "aaa".to_string())];
+        let same = vec![("archive/X.md".to_string(), "aaa".to_string())];
+        let diff = vec![("archive/X.md".to_string(), "bbb".to_string())];
+        assert_eq!(
+            pair_replaced_stubs(&del, &same),
+            vec![("docs/X.md".to_string(), "archive/X.md".to_string())]
+        );
+        assert!(pair_replaced_stubs(&del, &diff).is_empty());
+        let (d, m) = parse_deleted_modified_z(b"D\0docs/X.md\0M\0archive/X.md\0R100\0a\0b\0A\0n\0");
+        assert_eq!(
+            (d, m),
+            (
+                vec!["docs/X.md".to_string()],
+                vec!["archive/X.md".to_string()]
+            )
+        );
+    }
+
+    #[test]
+    fn directory_inferred_rename_with_deleted_sibling_stays_new() {
+        // `a.md` was renamed, so `docs/old` -> `archive/old` is inferred; `b.md`
+        // was deleted, and the inferred map must not turn its link into MOVED.
+        let mut m = rename_map();
+        m.add_dir_renames(&Universe::new(["archive/rec.md".to_string()]));
+        assert_eq!(m.map("docs/old/b.md"), "archive/old/b.md");
+        let (fail, moved) = split_moved(
+            vec![
+                broken("archive/rec.md", "docs/old/b.md"),
+                broken("archive/rec.md", "docs/old/a.md"),
+            ],
+            &m,
+            &now_universe(),
+            |_| true,
+        );
+        assert_eq!(fail.len(), 1);
+        assert_eq!(fail[0].resolved, "docs/old/b.md");
+        assert_eq!(moved.len(), 1);
+        assert_eq!(moved[0].1, "archive/old/a.md");
+    }
+
+    #[test]
+    fn source_unchanged_needs_existence_at_rev_and_now() {
+        assert!(source_unchanged(true, true, true));
+        // An added file: absent at REV, where `diff --quiet` still exits 0.
+        assert!(!source_unchanged(false, true, true));
+        // A nonexistent path.
+        assert!(!source_unchanged(false, false, true));
+        // Deleted since REV.
+        assert!(!source_unchanged(true, false, true));
+        assert!(!source_unchanged(true, true, false));
+    }
+
+    #[test]
+    fn stub_pairing_is_one_to_one_and_unambiguous() {
+        let d = |p: &str, b: &str| (p.to_string(), b.to_string());
+        // One modified path never pairs with two deletions.
+        let pairs = pair_replaced_stubs(
+            &[d("docs/X.md", "aaa"), d("docs/Y.md", "aaa")],
+            &[d("archive/X.md", "aaa")],
+        );
+        assert_eq!(
+            pairs,
+            vec![("docs/X.md".to_string(), "archive/X.md".to_string())]
+        );
+        // Two identical deleted files with the same name: ambiguous, unpaired.
+        let pairs = pair_replaced_stubs(
+            &[d("docs/a/X.md", "aaa"), d("docs/b/X.md", "aaa")],
+            &[d("archive/X.md", "aaa")],
+        );
+        assert!(pairs.is_empty());
+        // Several modified paths: the same-name one wins.
+        let pairs = pair_replaced_stubs(
+            &[d("docs/X.md", "aaa")],
+            &[d("archive/X.md", "aaa"), d("archive/Z.md", "aaa")],
+        );
+        assert_eq!(
+            pairs,
+            vec![("docs/X.md".to_string(), "archive/X.md".to_string())]
+        );
+        // Several modified paths, none with the same name: unpaired.
+        let pairs = pair_replaced_stubs(
+            &[d("docs/X.md", "aaa")],
+            &[d("archive/P.md", "aaa"), d("archive/Q.md", "aaa")],
+        );
+        assert!(pairs.is_empty());
+    }
+
+    #[test]
+    fn compare_uses_the_stub_map() {
+        let cur = Broken {
+            source: "archive/X.md".into(),
+            line: 1,
+            target: "t.md".into(),
+            resolved: "t.md".into(),
+        };
+        // The baseline knew the link under the stub's old path.
+        let base = vec![("docs/X.md".to_string(), "t.md".to_string())];
+        let mut stubs = PathMap::default();
+        stubs.insert("docs/X.md", "archive/X.md");
+        let none = PathMap::default();
+        let cmp = compare_with_maps(&base, &none, &stubs, &none, std::slice::from_ref(&cur));
+        assert_eq!((cmp.new.len(), cmp.fixed), (0, 0));
+        let cmp = compare_with_maps(&base, &none, &none, &none, std::slice::from_ref(&cur));
+        assert_eq!(cmp.new.len(), 1);
     }
 }
