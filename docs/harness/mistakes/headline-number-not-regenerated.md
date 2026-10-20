@@ -5,7 +5,7 @@ date: 2026-10-12
 severity: warn
 class: delivery
 trigger: [headline unchanged, declare the headline, headline before after, count n/3, session goal, status card]
-paths: [.github/pull_request_template.md, docs/labs/**, docs/integration/current-state.md, docs/harness/milestones.json, scripts/harness/*.py]
+paths: [.github/pull_request_template.md, docs/labs/**, docs/integration/current-state.md, docs/harness/milestones.json, crates/uor-r4-harness/src/*.rs]
 milestones: [m1, m2, m3, m4]
 mechanism:
 guard: prlint.headline_vs_registry

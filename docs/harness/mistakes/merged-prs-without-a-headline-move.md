@@ -5,7 +5,7 @@ date: 2026-10-09
 severity: block
 class: process
 trigger: [48 merged PRs, no milestone moved, rabbit hole, count 3/3, pivot card, narrower next step, line counts]
-paths: [docs/integration/DECISIONS.md, docs/labs/**, docs/integration/current-state.md, .github/pull_request_template.md, scripts/harness/*.py]
+paths: [docs/integration/DECISIONS.md, docs/labs/**, docs/integration/current-state.md, .github/pull_request_template.md, crates/uor-r4-harness/src/*.rs]
 milestones: [m1, m2, m4]
 mechanism: none
 guard: prlint.pivot_at_three

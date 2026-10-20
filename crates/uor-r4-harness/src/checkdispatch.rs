@@ -12,6 +12,7 @@
 use crate::preprules::Finding;
 use crate::registries::Registries;
 use crate::state::StatePaths;
+use crate::statusdelivery::Github;
 
 /// Every rule `check` runs, with the severity the registry gives it.
 ///
@@ -186,20 +187,23 @@ fn severity_rank(s: &str) -> u8 {
 ///
 /// **Firing rules keep their own severity and message; the `ok` records take the table's severity**,
 /// which is what Python does when a rule's results carry no severity of their own.
-pub fn run(paths: &StatePaths, regs: &Registries, only: &[String], now: i64) -> Vec<Finding> {
-    run_scoped(paths, regs, only, Scope::Repo, now)
+pub fn run(
+    paths: &StatePaths,
+    regs: &Registries,
+    only: &[String],
+    now: i64,
+    gh: Github,
+) -> Vec<Finding> {
+    run_scoped(paths, regs, only, Scope::Repo, now, gh)
 }
 
-/// The rules a **scope** selects. Python declares a scope per rule (`repo` is the default, plus
-/// `staged` and `pr`) and `check --staged` runs `rules(scope="staged")` - **the scope decides
-/// which rules RUN; it is not a filter applied to results afterwards.**
+/// The rules a **scope** selects. `check --staged` runs the staged-scoped rules - **the scope
+/// decides which rules RUN; it is not a filter applied to results afterwards.**
 ///
-/// **`STAGED_RULES` is empty today and that is a measurement, not a shortcut.** Every rule in
-/// Python's registry declares the default `repo` scope, so `check --staged` legitimately checks
-/// nothing - Python prints `0 rules, 0 failed` for it too. **A table plus a live test that
-/// compares it against `checkrules.rules(scope="staged")` is what keeps that emptiness honest:**
-/// if Python ever gains a staged rule, the test fails instead of this port silently skipping it,
-/// which is the defect class `checkdispatch` exists to catch.
+/// **`STAGED_RULES` is empty, and that is a measurement, not a shortcut.** Every rule declares
+/// the default `repo` scope, as every rule in the retired Python registry did, so `check --staged`
+/// legitimately checks nothing and prints `0 rules, 0 failed`. A rule meant for the pre-commit
+/// hook is added here.
 pub const STAGED_RULES: [&str; 0] = [];
 
 /// Which rule set a `check` invocation runs.
@@ -222,42 +226,48 @@ impl Scope {
 }
 
 /// `check` with a rule-set scope, which is what `--staged` changes.
+///
+/// **A module runs only when the scope and `only` select one of its rules.** `check --staged`
+/// selects none, and it runs from the pre-commit hook, so evaluating every module would put the
+/// status rules' GitHub calls on every commit. `gh` says whether those rules may ask GitHub; the
+/// command asks, tests do not.
 pub fn run_scoped(
     paths: &StatePaths,
     regs: &Registries,
     only: &[String],
     scope: Scope,
     now: i64,
+    gh: Github,
 ) -> Vec<Finding> {
-    let mut per_module: Vec<(&str, Vec<Finding>)> = vec![
-        ("arena", crate::arenarules::all(paths)),
-        ("briefing", crate::briefingrules::all(paths, regs)),
-        ("budget", crate::budgetrules::all(paths)),
-        ("harness", crate::harnessrules::all(paths, regs)),
-        ("mistakes", {
-            let mut v = crate::mistakes::registry_valid(paths);
-            v.extend(crate::mistakes::evidence_exists(paths));
-            v.extend(crate::mistakes::guard_covered(paths));
-            v.extend(crate::mistakes::stale_check(paths));
-            v
-        }),
-        ("multilab", crate::multilabrules::all(paths, now)),
-        ("prep", crate::preprules::all(paths, regs)),
-        ("prlint", crate::prlintrules::all(paths, &[])),
-        ("receipts", crate::receiptsrules::all(paths)),
-        ("status", crate::statusrules::all(paths, regs, now)),
-    ];
-
+    let selected = |id: &str| {
+        scope.includes(id) && (only.is_empty() || only.iter().any(|o| id.starts_with(o.as_str())))
+    };
     let mut out: Vec<Finding> = Vec::new();
-    for (module, findings) in per_module.drain(..) {
-        let Some((_, ids)) = MODULE_RULES.iter().find(|(m, _)| *m == module) else {
+    for (module, ids) in MODULE_RULES.iter() {
+        if !ids.iter().any(|id| selected(id)) {
             continue;
+        }
+        let findings: Vec<Finding> = match *module {
+            "arena" => crate::arenarules::all(paths),
+            "briefing" => crate::briefingrules::all(paths, regs),
+            "budget" => crate::budgetrules::all(paths),
+            "harness" => crate::harnessrules::all(paths, regs),
+            "mistakes" => {
+                let mut v = crate::mistakes::registry_valid(paths);
+                v.extend(crate::mistakes::evidence_exists(paths));
+                v.extend(crate::mistakes::guard_covered(paths));
+                v.extend(crate::mistakes::stale_check(paths));
+                v
+            }
+            "multilab" => crate::multilabrules::all(paths, now),
+            "prep" => crate::preprules::all(paths, regs),
+            "prlint" => crate::prlintrules::all(paths, &[]),
+            "receipts" => crate::receiptsrules::all(paths),
+            "status" => crate::statusrules::all(paths, regs, now, gh),
+            _ => Vec::new(),
         };
         for id in ids.iter() {
-            if !scope.includes(id) {
-                continue;
-            }
-            if !only.is_empty() && !only.iter().any(|o| id.starts_with(o.as_str())) {
+            if !selected(id) {
                 continue;
             }
             let fired: Vec<Finding> = findings
@@ -379,50 +389,6 @@ mod tests {
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
     }
 
-    /// **The dispatcher's rule set is exactly Python's `checkrules.rules()`.**
-    ///
-    /// **Ignored by default** (it runs Python). **It asserts the ID SETS are equal, not the result
-    /// counts**: Python returns one result per firing (57 results over 41 ids), while a Rust rule
-    /// returns its violations — **so counting results would compare two different things and call it
-    /// agreement.**
-    ///
-    /// **This is the comparison that matters for dispatch**, and it is the one whose absence let
-    /// `cmd_check` run no rules while `parity` reported the set complete.
-    #[test]
-    #[ignore = "needs python3 and the full doc set"]
-    fn the_table_matches_pythons_checkrules() {
-        let repo = repo();
-        let script = repo.join("scripts/.parity-checkdispatch.py");
-        std::fs::write(
-            &script,
-            r#"
-import sys, json
-sys.path.insert(0, "scripts/harness")
-import checkrules
-print(json.dumps(sorted(r.id for r in checkrules.rules())))
-"#,
-        )
-        .expect("write the probe");
-        let out = std::process::Command::new("python3")
-            .arg(&script)
-            .current_dir(&repo)
-            .output()
-            .expect("run python");
-        let _ = std::fs::remove_file(&script);
-        let py: Vec<String> =
-            serde_json::from_str(String::from_utf8_lossy(&out.stdout).trim()).expect("json");
-        let rust: Vec<String> = RULES.iter().map(|(r, _)| r.to_string()).collect();
-        let rs: std::collections::BTreeSet<&String> = rust.iter().collect();
-        let ps: std::collections::BTreeSet<&String> = py.iter().collect();
-        assert_eq!(
-            rs,
-            ps,
-            "only rust: {:?}\nonly python: {:?}",
-            rs.difference(&ps).collect::<Vec<_>>(),
-            ps.difference(&rs).collect::<Vec<_>>()
-        );
-    }
-
     /// **Every module id in the table is reachable**, so a rule cannot be in `RULES` and in no
     /// module's bucket — which would make it an `ok` record that nothing ever runs.
     #[test]
@@ -442,7 +408,7 @@ print(json.dumps(sorted(r.id for r in checkrules.rules())))
         let repo = repo();
         let paths = StatePaths::resolve(repo, None, Some("/nonexistent-live"));
         let regs = Registries::load(&paths).expect("registry");
-        let out = run(&paths, &regs, &[], 1_800_000_000);
+        let out = run(&paths, &regs, &[], 1_800_000_000, Github::Offline);
         let ids: std::collections::BTreeSet<&str> = out.iter().map(|f| f.rule_id).collect();
         assert_eq!(
             ids.len(),
@@ -463,7 +429,13 @@ print(json.dumps(sorted(r.id for r in checkrules.rules())))
         let repo = repo();
         let paths = StatePaths::resolve(repo, None, Some("/nonexistent-live"));
         let regs = Registries::load(&paths).expect("registry");
-        let out = run(&paths, &regs, &["status".to_string()], 1_800_000_000);
+        let out = run(
+            &paths,
+            &regs,
+            &["status".to_string()],
+            1_800_000_000,
+            Github::Offline,
+        );
         assert!(!out.is_empty(), "the status rules are present");
         assert!(
             out.iter().all(|f| f.rule_id.starts_with("status.")),
@@ -525,7 +497,14 @@ print(json.dumps(sorted(r.id for r in checkrules.rules())))
         let repo = repo();
         let paths = StatePaths::resolve(repo, None, Some("/nonexistent-live"));
         let regs = Registries::load(&paths).expect("registry");
-        let out = run_scoped(&paths, &regs, &[], Scope::Staged, 1_800_000_000);
+        let out = run_scoped(
+            &paths,
+            &regs,
+            &[],
+            Scope::Staged,
+            1_800_000_000,
+            Github::Offline,
+        );
         assert!(
             out.iter().all(|f| STAGED_RULES.contains(&f.rule_id)),
             "a non-staged rule ran under --staged"
@@ -539,38 +518,17 @@ print(json.dumps(sorted(r.id for r in checkrules.rules())))
         let repo = repo();
         let paths = StatePaths::resolve(repo, None, Some("/nonexistent-live"));
         let regs = Registries::load(&paths).expect("registry");
-        let out = run_scoped(&paths, &regs, &[], Scope::Repo, 1_800_000_000);
+        let out = run_scoped(
+            &paths,
+            &regs,
+            &[],
+            Scope::Repo,
+            1_800_000_000,
+            Github::Offline,
+        );
         let seen: std::collections::BTreeSet<&str> = out.iter().map(|f| f.rule_id).collect();
         for (id, _) in RULES.iter() {
             assert!(seen.contains(id), "{id} did not run in the repo scope");
         }
-    }
-
-    /// Live and `#[ignore]`d: the staged set is Python's, and this compares the two rather than
-    /// trusting that the table above stayed right.
-    #[test]
-    #[ignore = "imports the Python harness; compare explicitly, not on every CI run"]
-    fn the_staged_rule_set_is_pythons() {
-        let repo = repo();
-        let out = std::process::Command::new("python3")
-            .arg("-c")
-            .arg(
-                "import sys; sys.path.insert(0,'scripts/harness'); import checkrules; \
-                 print(chr(10).join(sorted(r.id for r in checkrules.rules(scope='staged'))))",
-            )
-            .current_dir(&repo)
-            .output()
-            .expect("python3 runs");
-        assert!(out.status.success(), "python exited {}", out.status);
-        let python: Vec<String> = String::from_utf8_lossy(&out.stdout)
-            .lines()
-            .filter(|l| !l.trim().is_empty())
-            .map(|l| l.trim().to_string())
-            .collect();
-        let rust: Vec<String> = STAGED_RULES.iter().map(|s| s.to_string()).collect();
-        assert_eq!(
-            python, rust,
-            "python and rust disagree about the staged scope"
-        );
     }
 }

@@ -32,20 +32,16 @@ that fails or reads as confusing — a confusing result is the finding.
 
      export UOR_LAB=<LAB>
 
-2. Verify your machine, in Rust. The build is seconds — the crate depends only on serde.
+2. Verify your machine. The harness is one Rust binary; the build takes seconds.
 
      cd <repo>
-     CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness
-     UOR_LAB=<LAB> ./local/harness-target/debug/uor-harness onboard --repo "$PWD"
+     CARGO_TARGET_DIR=local/harness-target ~/.cargo/bin/cargo build -p uor-r4-harness
+     export PATH="$PWD/local/harness-target/debug:$PATH"
+     UOR_LAB=<LAB> uor-harness onboard --repo "$PWD"
 
    Report the full output. It exits 0 when ready and 3 when something FAILs.
-   If you have no Rust toolchain, say so and use the Python fallback instead — the harness
-   itself is Python, so you are not blocked:
-
-     export UOR_LAB=<LAB>
-     uor-harness check --only arena
-     uor-harness multilab presence
-     uor-harness multilab claims
+   If you have no Rust toolchain, stop and say so: there is no other implementation (the
+   Python mirror was retired on 20 October 2026).
 
 3. Look at the state you now share with the other labs:
 
@@ -94,8 +90,8 @@ that fails or reads as confusing — a confusing result is the finding.
    you are not going to use it, and leave the tree otherwise as you found it.
 
 REPORT BACK, in this order:
-  a. your interpreter version, and whether every command exited 0
-  b. the exact `onboard` output (or the Python fallback output)
+  a. whether every command exited 0
+  b. the exact `onboard` output
   c. step 4: what `prep new` produced and whether it was clear what to fill in
   d. step 5: whether `team dispatch` did what you expected
   e. the `multilab presence` output after step 7
@@ -114,7 +110,7 @@ REPORT BACK, in this order:
 | `team dispatch` has no role you would use | the expert team registry is missing something; report which |
 | a command exits non-zero | the exact error identifies the fix; report it verbatim |
 | a lab appears in `presence` that did not check in | **stop and report** — that is the misattribution failure that produced the fabricated records removed in #2275 |
-| `cargo` is missing | not a blocker; use the Python fallback and say so |
+| `cargo` is missing | a blocker: install rustup's toolchain; there is no fallback implementation |
 
 ## Why step 4 is the important one
 

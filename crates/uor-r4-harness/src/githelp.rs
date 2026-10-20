@@ -1082,7 +1082,13 @@ mod delete_merged_tests {
 
 /// The marker that proves the harness wrote an existing hook.
 pub const HOOK_START: &str =
-    "# >>> uor-harness pre-commit v1 (managed by scripts/harness/githelp.py) >>>";
+    "# >>> uor-harness pre-commit v2 (managed by crates/uor-r4-harness) >>>";
+
+/// Markers of earlier harness hooks. **A hook carrying one is the harness's own and is upgraded**,
+/// not refused as foreign: v1 ran the retired Python entry point and, once that file moved to
+/// `archive/`, silently passed every commit.
+pub const LEGACY_HOOK_STARTS: [&str; 1] =
+    ["# >>> uor-harness pre-commit v1 (managed by scripts/harness/githelp.py) >>>"];
 
 /// The hook body, **carried as a data file rather than a Rust literal**.
 ///
@@ -1187,7 +1193,9 @@ pub fn install_hooks(paths: &StatePaths) -> (i32, Vec<String>, Vec<String>) {
                 return (2, out, err);
             }
         }
-        if !previous.contains(HOOK_START) {
+        if !previous.contains(HOOK_START)
+            && !LEGACY_HOOK_STARTS.iter().any(|m| previous.contains(m))
+        {
             let first = previous.lines().next().unwrap_or("(empty file)");
             err.push(format!(
                 "CONFLICT: {} already exists and was not written by the harness (no marker line).",
@@ -1230,7 +1238,7 @@ pub fn install_hooks(paths: &StatePaths) -> (i32, Vec<String>, Vec<String>) {
     };
     out.push(format!("{action}: {}", hook.display()));
     out.push("  runs: uor-harness check --staged".into());
-    out.push("  blocks: error severity only (warn/info print and pass); exits 0 without python3 or the harness".into());
+    out.push("  blocks: error severity only (warn/info print and pass); exits 0 without uor-harness on PATH".into());
     if existed && action == "unchanged" {
         out.push("  already up to date; nothing was appended".into());
     }
@@ -1373,6 +1381,89 @@ mod install_hooks_tests {
         assert_eq!(code, 0, "{err:?}");
         assert!(out[0].starts_with("updated:"), "{out:?}");
         assert_eq!(std::fs::read_to_string(&hook).expect("read"), HOOK_SCRIPT);
+    }
+
+    /// **The v1 hook that ran the retired Python entry point is upgraded, not refused.** Refusing it
+    /// would leave every checkout that installed v1 with a hook that passes every commit unchecked.
+    #[test]
+    fn a_v1_python_hook_is_upgraded_to_the_rust_hook() {
+        let (_d, paths) = scratch();
+        let hook = hook_of(&paths);
+        std::fs::create_dir_all(hook.parent().expect("parent")).expect("mkdir");
+        let v1 = format!(
+            "#!/bin/sh\n{}\npython3 \"$root/scripts/harness/cli.py\" check --staged --json\n",
+            LEGACY_HOOK_STARTS[0]
+        );
+        std::fs::write(&hook, v1).expect("write");
+        let (code, out, err) = install_hooks(&paths);
+        assert_eq!(code, 0, "{err:?}");
+        assert!(out[0].starts_with("updated:"), "{out:?}");
+        let body = std::fs::read_to_string(&hook).expect("read");
+        assert_eq!(body, HOOK_SCRIPT);
+        assert!(
+            !body.contains("python3"),
+            "the installed hook must not call Python"
+        );
+    }
+
+    /// Runs the hook body in a scratch repo with `bin` first on PATH; returns (exit code, stdout).
+    #[cfg(unix)]
+    fn run_hook(paths: &StatePaths, bin: &std::path::Path) -> (i32, String) {
+        let hook = paths.repo.join("hook.sh");
+        std::fs::write(&hook, HOOK_SCRIPT).expect("write hook");
+        let mut cmd = std::process::Command::new("/bin/sh");
+        cmd.arg(&hook).current_dir(&paths.repo);
+        for (k, _) in std::env::vars_os() {
+            if k.to_string_lossy().starts_with("GIT_") {
+                cmd.env_remove(&k);
+            }
+        }
+        cmd.env("PATH", format!("{}:/usr/bin:/bin", bin.display()));
+        let out = cmd.output().expect("run hook");
+        (
+            out.status.code().unwrap_or(-1),
+            String::from_utf8_lossy(&out.stdout).to_string(),
+        )
+    }
+
+    /// A stand-in `uor-harness` that prints `text` and exits `code`.
+    #[cfg(unix)]
+    fn fake_harness(dir: &std::path::Path, text: &str, code: i32) {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::create_dir_all(dir).expect("mkdir");
+        let exe = dir.join("uor-harness");
+        std::fs::write(&exe, format!("#!/bin/sh\necho '{text}'\nexit {code}\n")).expect("write");
+        std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+    }
+
+    /// **The hook blocks on exit 1 and only on exit 1.** A missing binary or an infrastructure exit
+    /// (2) lets the commit through, and a clean run prints nothing.
+    #[cfg(unix)]
+    #[test]
+    fn the_hook_blocks_only_when_the_check_reports_an_error() {
+        let (d, paths) = scratch();
+        let bin = d.path().join("bin");
+
+        let (code, out) = run_hook(&paths, &bin);
+        assert_eq!(code, 0, "no uor-harness on PATH must not block: {out}");
+
+        fake_harness(&bin, "0 rules, 0 failed (0 error, 0 warn)", 0);
+        let (code, out) = run_hook(&paths, &bin);
+        assert_eq!((code, out.as_str()), (0, ""), "a clean check is silent");
+
+        fake_harness(&bin, "3 rules, 1 failed (0 error, 1 warn)", 0);
+        let (code, out) = run_hook(&paths, &bin);
+        assert_eq!(code, 0, "a warning passes");
+        assert!(out.contains("1 failed"), "and is printed: {out}");
+
+        fake_harness(&bin, "3 rules, 1 failed (1 error, 0 warn)", 1);
+        let (code, out) = run_hook(&paths, &bin);
+        assert_eq!(code, 1, "an error blocks: {out}");
+        assert!(out.contains("commit blocked"), "{out}");
+
+        fake_harness(&bin, "uor-harness: unknown option", 2);
+        let (code, _) = run_hook(&paths, &bin);
+        assert_eq!(code, 0, "an infrastructure exit never blocks");
     }
 }
 

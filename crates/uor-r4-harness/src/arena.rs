@@ -232,7 +232,7 @@ pub fn render_board(arena: &Arena) -> String {
         }
     ));
     out.push('\n');
-    out.push_str("compare one against its parent:  cli.py arena compare <id>\n");
+    out.push_str("compare one against its parent:  uor-harness arena compare <id>\n");
     out
 }
 
@@ -424,7 +424,7 @@ mod tests {
         assert!(text.contains("limits: a stated limit"), "{text}");
         assert!(
             text.trim_end()
-                .ends_with("compare one against its parent:  cli.py arena compare <id>"),
+                .ends_with("compare one against its parent:  uor-harness arena compare <id>"),
             "{text}"
         );
         // A root row prints `-` where its parent would be, in the last column.

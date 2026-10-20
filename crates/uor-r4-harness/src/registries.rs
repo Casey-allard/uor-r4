@@ -1406,37 +1406,4 @@ mod role_tests {
             );
         }
     }
-
-    /// Live, `#[ignore]`d: it runs the Python harness, so CI does not depend on one. Run it with
-    /// `cargo test -p uor-r4-harness -- --ignored roster_matches_python`.
-    #[test]
-    #[ignore = "runs the Python harness; compare explicitly, not on every CI run"]
-    fn roster_matches_python_byte_for_byte() {
-        let repo = repo();
-        let roles = load_roles(&paths_for(&repo)).expect("roles load");
-        assert!(!roles.is_empty(), "the registry has roles");
-        let cases: [(Vec<&str>, String); 2] = [
-            (vec!["team", "roster"], render_roster(&roles)),
-            (
-                vec!["--json", "team", "roster"],
-                format!("{}\n", roster_json(&roles)),
-            ),
-        ];
-        for (args, rust) in cases {
-            let out = std::process::Command::new("python3")
-                .arg(repo.join("scripts").join("harness").join("cli.py"))
-                .arg("--repo")
-                .arg(&repo)
-                .args(&args)
-                .output()
-                .expect("python3 runs");
-            assert!(
-                out.status.success(),
-                "python exited {} for {args:?}",
-                out.status
-            );
-            let python = String::from_utf8_lossy(&out.stdout).to_string();
-            assert_eq!(python, rust, "python and rust disagree for {args:?}");
-        }
-    }
 }

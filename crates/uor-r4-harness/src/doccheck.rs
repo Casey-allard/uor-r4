@@ -152,9 +152,9 @@ fn walk_markdown(repo: &std::path::Path) -> Vec<String> {
 
 /// `doccheck.stale_cli_invocations` — normative docs that still invoke `python3 scripts/harness/cli.py`.
 ///
-/// **`uor-harness` is the interface.** `cli.py` still exists as an implementation and the Rust entry
-/// point delegates to it for unported commands — **but a doc telling a lab to run it puts Python back
-/// in front of them, which is what the port was for.**
+/// **`uor-harness` is the interface, and the only implementation.** `cli.py` is archived under
+/// `archive/scripts/harness/`, **so a doc telling a lab to run it sends them to a file that no longer
+/// runs anything.**
 ///
 /// **A rule rather than a note, because "remember to use the new command" is exactly the kind of
 /// instruction that decays.**
@@ -943,10 +943,6 @@ pub fn documented_commands_rule(repo: &std::path::Path, known: &[&str]) -> Vec<F
 mod documented_commands_tests {
     use super::*;
 
-    fn repo() -> std::path::PathBuf {
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
-    }
-
     #[test]
     fn subcommands_and_flags_are_validated_against_groups_and_flags() {
         // Valid top-level command + valid flag
@@ -984,83 +980,5 @@ mod documented_commands_tests {
         assert_eq!(r6.len(), 1);
         assert!(!r6[0].1, "{r6:?}");
         assert!(r6[0].2.contains("unknown flag \"--bad-flag\""), "{r6:?}");
-    }
-
-    /// **Every documented command, resolved by BOTH implementations, compared row by row** — the
-    /// comparison that decides whether this table is the interface or a guess at it.
-    ///
-    /// **Ignored by default** (it runs Python and walks every doc). **It asserts AGREEMENT, not what
-    /// the rows say**: a passing row count changes with the docs, which is the "true of the tree when
-    /// written" mistake this port has made three times.
-    #[test]
-    #[ignore = "needs python3 and the full doc set"]
-    fn the_table_agrees_with_pythons_live_parser() {
-        let repo = repo();
-        let known = ACCEPTED.to_vec();
-        let rust = documented_commands(&repo, &known);
-
-        let script = repo.join("scripts/.parity-documented-commands.py");
-        std::fs::write(
-            &script,
-            r#"
-import sys, json, pathlib
-sys.path.insert(0, "scripts/harness")
-import doccheck
-rows = doccheck.documented_commands()
-print(json.dumps([[r["doc"], r["line"], r["command"], bool(r["ok"])] for r in rows]))
-"#,
-        )
-        .expect("write the probe");
-        let out = std::process::Command::new("python3")
-            .arg(&script)
-            .current_dir(&repo)
-            .output()
-            .expect("run python");
-        let _ = std::fs::remove_file(&script);
-        let text = String::from_utf8_lossy(&out.stdout);
-        let py: Vec<serde_json::Value> =
-            serde_json::from_str(text.trim()).expect("python printed json");
-
-        // Compare on the (doc, command) key: **line numbers move when a doc is edited**, and a
-        // comparison that included them would fail for a reason that is not a divergence.
-        let key = |doc: &str, cmd: &str| format!("{doc}|{cmd}");
-        let rust_map: std::collections::BTreeMap<String, bool> =
-            rust.iter().map(|r| (key(&r.0, &r.2), r.3)).collect();
-        let py_map: std::collections::BTreeMap<String, bool> = py
-            .iter()
-            .map(|r| {
-                let a = r.as_array().expect("a row");
-                (
-                    key(a[0].as_str().unwrap_or(""), a[2].as_str().unwrap_or("")),
-                    a[3].as_bool().unwrap_or(false),
-                )
-            })
-            .collect();
-
-        let only_rust: Vec<&String> = rust_map
-            .keys()
-            .filter(|k| !py_map.contains_key(*k))
-            .collect();
-        let only_py: Vec<&String> = py_map
-            .keys()
-            .filter(|k| !rust_map.contains_key(*k))
-            .collect();
-        let disagree: Vec<(&String, bool, bool)> = rust_map
-            .iter()
-            .filter_map(|(k, v)| py_map.get(k).filter(|p| *p != v).map(|p| (k, *v, *p)))
-            .collect();
-
-        assert!(
-            only_rust.is_empty() && only_py.is_empty() && disagree.is_empty(),
-            "rust {} rows, python {} rows\nonly rust ({}): {:#?}\nonly python ({}): {:#?}\ndisagree ({}): {:#?}",
-            rust_map.len(),
-            py_map.len(),
-            only_rust.len(),
-            only_rust.iter().take(8).collect::<Vec<_>>(),
-            only_py.len(),
-            only_py.iter().take(8).collect::<Vec<_>>(),
-            disagree.len(),
-            disagree.iter().take(8).collect::<Vec<_>>()
-        );
     }
 }

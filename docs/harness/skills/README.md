@@ -3,7 +3,7 @@
 A **skill** here is a reusable research protocol a lab loads and follows: what to
 read, what to do in order, what it must output and what is forbidden. Each one
 lives at `docs/harness/skills/<id>/SKILL.md` with Agent Skills front matter that
-`scripts/harness/registries.py` parses (scalars, inline lists, block lists).
+`crates/uor-r4-harness/src/skills.rs` parses (scalars, inline lists, block lists).
 
 Load one by id; the body is the protocol, the front matter is what the harness
 matches:
@@ -35,5 +35,7 @@ stay authoritative, and a skill cannot change a criterion, a panel or a cap.
 
 The dispatchable roles that carry these skills, with their default model routes,
 are in [roles.json](../roles.json) (`uor-harness team roster`).
-The harness as a whole is described in [docs/harness/README.md](../README.md) and
-frozen in [CONTRACT.md](../CONTRACT.md).
+The harness as a whole is described in [docs/harness/README.md](../README.md); its persisted
+formats are frozen in [STATE-FORMATS.md](../STATE-FORMATS.md). The retired Python package's
+interface contract is archived at
+[archive/harness/CONTRACT.md](../../../archive/harness/CONTRACT.md).

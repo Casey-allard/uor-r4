@@ -111,6 +111,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/harness-rust-only-20261020": {
+    "branch": "claude/harness-rust-only-20261020",
+    "claimed_at": "2026-10-20T12:30:44-04:00",
+    "head": "15ae76295",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/injective-fit-fixes-20261018": {
     "branch": "claude/injective-fit-fixes-20261018",
     "claimed_at": "2026-10-18T18:32:44-04:00",

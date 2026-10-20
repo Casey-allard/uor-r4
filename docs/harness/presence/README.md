@@ -1,6 +1,7 @@
 # Lab presence
 
-One file per lab, `<lab>.json`, refreshed by `cli.py heartbeat`. Committed on purpose: a
+One file per lab, `<lab>.json`, refreshed by `uor-harness multilab sync-live` (a `heartbeat` writes
+the live tier). Committed on purpose: a
 presence file another lab cannot read is not presence.
 
 ```sh

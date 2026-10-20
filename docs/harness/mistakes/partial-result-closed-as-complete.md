@@ -5,7 +5,7 @@ date: 2026-10-10
 severity: warn
 class: delivery
 trigger: [UNFINISHED_NOT_NEGATIVE, NOT TRAINING READY, Closes, References, partial result, unmerged, delivery cadence]
-paths: [.github/pull_request_template.md, CONTRIBUTING.md, docs/labs/**, docs/integration/current-state.md, scripts/harness/*.py]
+paths: [.github/pull_request_template.md, CONTRIBUTING.md, docs/labs/**, docs/integration/current-state.md, crates/uor-r4-harness/src/*.rs]
 milestones: [m1, m2, m3, m4]
 mechanism:
 guard: prlint.org_rules

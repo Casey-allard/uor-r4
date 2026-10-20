@@ -33,8 +33,7 @@ handle both. **A value outside `types` is drift.** An empty array matches any it
 
 That last clause was added after the parity check caught both implementations accepting an object
 for `count`: treating `mixed` as "anything" is not the same as "these types", and a real reader
-cannot handle a type that was never observed. See
-[the parity check](#two-implementations-one-contract) below.
+cannot handle a type that was never observed. See [One implementation](#one-implementation) below.
 
 | format | file | holds |
 |---|---|---|
@@ -71,39 +70,25 @@ it deliberately and review it.
 precisely the drift this file exists to catch, and the check is wired into `check`, so it runs
 wherever the harness runs.
 
-## Two implementations, one contract
+## One implementation
 
-The Rust port reads the same contract file. `scripts/harness/parity.py` is the regression test that
-the two agree:
+The Rust harness (`crates/uor-r4-harness`) is the only reader and writer of these formats. Until
+20 October 2026 a Python mirror read the same contract, and `scripts/harness/parity.py` checked that
+the two agreed on every format, the ledger roll-up, the presence board and six controlled accept and
+reject cases. The owner retired the mirror (rule: Rust only, D27, CHARTER §3.11); both it and the
+parity script are kept byte-identical under `archive/scripts/harness/`.
 
-```
-$ python3 scripts/harness/parity.py
-parity: rust (uor-harness) vs python, 8 formats, 46 receipts, 2 lab(s) with presence
-  agree on every format, the ledger roll-up, and the presence board
-  agree on all 6 controlled cases (accept and reject)
-```
-
-It compares **structured output**, not prose, and it includes controlled cases with verdicts known
-in advance — a valid row, a timestamp as a number, a missing required key, `count` as a number, and
-`count` as an object. Agreement on whatever state happens to be in the working tree would only prove
-both can read a *valid* file; the controlled cases prove both **reject** the same things.
-
-Both implementations also accept `--repo`, so either can be pointed at any checkout. That is what
-makes a controlled comparison possible at all, and it is how the controlled cases below are built.
-
-The format check now has **one implementation**, so parity no longer compares it against a second —
-there is nothing to compare. What parity still asserts is that the checker runs, that the state is
-valid, that it accepts and rejects six known inputs correctly, and that a Rust-written receipt is
-read back intact by Python.
-
-**What parity does not prove.** Agreement about *reading* state is not agreement about behaviour.
-The Python harness owns behaviour — writing claims, publishing presence, the rule engine — until
-those are ported and compared the same way. This is the first such comparison, not the last.
+What the comparison guarded is now asserted in the crate: the contract tests in
+`crates/uor-r4-harness/src/contract.rs` run every format against the real state and assert the
+reject cases with verdicts known in advance (a missing required key, a kind change, a type a mixed
+field never observed), because agreement on whatever state happens to be in the working tree only
+proves a checker can read a *valid* file. `uor-harness check` runs the format check as
+`harness.state_formats` wherever the harness runs.
 
 ## What the freeze guarantees, and what it does not
 
-It guarantees that a reader written against the contract can read the state, and that the Python and
-Rust implementations agree about what the state means.
+It guarantees that a reader written against the contract can read the state, and that a change to
+what the state means shows up as a reviewed diff of `state-formats.json` rather than as drift.
 
 It does **not** guarantee that the labs' state is correct, that a lab checked in, or that a
 record is truthful. Those are different problems with different checks — presence freshness is

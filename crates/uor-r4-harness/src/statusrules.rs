@@ -31,6 +31,7 @@
 use crate::githelp;
 use crate::registries::Registries;
 use crate::state::StatePaths;
+use crate::statusdelivery::{self, Github};
 use crate::team;
 
 pub use crate::preprules::Finding;
@@ -79,10 +80,159 @@ pub fn branch_claimed(paths: &StatePaths) -> Vec<Finding> {
 /// the merges the project actually performs. `githelp::merge_state` does the content comparison, and
 /// this rule reports only `Merged` — an `Unknown` branch is left alone, because **a rule that guesses
 /// "merged" tells a lab to delete work that may be live.**
-pub fn no_orphan_branches(paths: &StatePaths) -> Vec<Finding> {
+///
+/// **GitHub adds what content cannot see** (Python's three findings, in its order): a local branch
+/// whose PR merged, even when main has since moved past its content; a remote branch with work main
+/// lacks and no PR; and a worktree left behind at a merged PR head or idle for 24h. A branch reported
+/// through its PR is not reported again by content.
+///
+/// **A check that could not run says so**, as an `info` note naming the reason (Python's "check
+/// skipped"): offline, without `gh`, or with lookups cut short by the per-run cap. Without the note
+/// the dispatcher would record a pass for a check that never asked. A worktree is still judged
+/// offline, by containment in origin/main plus 24h idle.
+pub fn no_orphan_branches(paths: &StatePaths, gh: Github, now: i64) -> Vec<Finding> {
+    orphan_findings(
+        &paths.repo.display().to_string(),
+        &statusdelivery::gather_here(paths, gh, now),
+        &statusdelivery::remote_branches_without_pr(paths, gh, 20, now),
+        &githelp::branch_states(&paths.repo),
+    )
+}
+
+fn skipped(what: &str, reason: &str, repo: &str) -> Finding {
+    Finding {
+        rule_id: "status.no_orphan_branches",
+        severity: "info",
+        message: format!("{what}: {}", statusdelivery::unavailable(reason)),
+        path: repo.to_string(),
+        fix: "uor-harness status --refresh, with `gh` installed and authenticated".to_string(),
+    }
+}
+
+/// The rule's decision over gathered facts, so the findings can be tested without git or GitHub.
+pub fn orphan_findings(
+    repo: &str,
+    facts: &statusdelivery::DeliveryExtras,
+    remote: &statusdelivery::RemoteBranches,
+    states: &[githelp::BranchState],
+) -> Vec<Finding> {
     let mut out = Vec::new();
-    for b in githelp::branch_states(&paths.repo) {
+    let repo = repo.to_string();
+    if !facts.pr_check.available {
+        out.push(skipped(
+            "merged-PR branch check skipped",
+            &facts.pr_check.reason,
+            &repo,
+        ));
+    } else if !facts.pr_check.reason.is_empty() {
+        out.push(skipped(
+            "merged-PR branch check incomplete",
+            &facts.pr_check.reason,
+            &repo,
+        ));
+    }
+    if !remote.available {
+        out.push(skipped(
+            "remote-branch check skipped",
+            &remote.reason,
+            &repo,
+        ));
+    } else if !remote.reason.is_empty() {
+        out.push(skipped(
+            "remote-branch check incomplete",
+            &remote.reason,
+            &repo,
+        ));
+    }
+    if !facts.worktrees.available {
+        out.push(skipped(
+            "worktree check skipped",
+            &facts.worktrees.reason,
+            &repo,
+        ));
+    }
+    if facts.pr_check.available {
+        for o in &facts.merged {
+            let moved = if o.head_matches {
+                ""
+            } else {
+                " (its head has moved on since that merge)"
+            };
+            let place = if o.checked_out_in.is_empty() {
+                String::new()
+            } else {
+                format!("; checked out in {}", o.checked_out_in.join(", "))
+            };
+            out.push(warn(
+                "status.no_orphan_branches",
+                format!(
+                    "local branch {} still exists but PR #{} merged {}{moved}{place}",
+                    o.branch,
+                    o.pr,
+                    o.merged_at.chars().take(10).collect::<String>()
+                ),
+                repo.clone(),
+                o.fix.clone(),
+            ));
+        }
+    }
+    for rb in &remote.branches {
+        out.push(warn(
+            "status.no_orphan_branches",
+            format!(
+                "remote branch {} has no PR and is not merged into main ({} commit(s) ahead, {} \
+                 behind, last updated {}) - it needs a decision, not deletion",
+                rb.branch, rb.ahead, rb.behind, rb.updated
+            ),
+            repo.clone(),
+            format!(
+                "archive it (archive/history/branch-archive/ + an INDEX row) or open a PR; do not \
+                 delete unmerged work. Local copy: git branch -D {}",
+                rb.branch
+            ),
+        ));
+    }
+    if facts.worktrees.available {
+        for c in facts.worktrees.candidates() {
+            let here = if c.current {
+                " (this worktree; run the command from another checkout)"
+            } else {
+                ""
+            };
+            let why = if c.reapable_reason == "merged-pr-head" {
+                "its HEAD is the exact head of a merged PR"
+            } else {
+                "it holds no commits beyond origin/main and nothing has been written in it for 24h"
+            };
+            let branch_delete = if c.branch.is_empty() {
+                String::new()
+            } else {
+                format!(" && git branch -D {}", c.branch)
+            };
+            out.push(warn(
+                "status.no_orphan_branches",
+                format!(
+                    "worktree {} [{}] is clean and completed work was left behind: {why}{here}",
+                    c.path,
+                    if c.branch.is_empty() {
+                        "detached"
+                    } else {
+                        &c.branch
+                    }
+                ),
+                c.path.clone(),
+                format!(
+                    "git worktree remove {}{branch_delete} && scripts/storage/uor-hygiene --apply",
+                    c.path
+                ),
+            ));
+        }
+    }
+    for b in states {
         if b.state != githelp::MergeState::Merged {
+            continue;
+        }
+        if facts.merged.iter().any(|m| m.branch == b.branch) {
             continue;
         }
         // A branch that is checked out somewhere is not an orphan: it is in use, and deleting it
@@ -187,7 +337,7 @@ pub fn protected_branches_present(paths: &StatePaths) -> Vec<Finding> {
         .collect()
 }
 /// Every `status` rule ported in this unit.
-pub fn all(paths: &StatePaths, regs: &Registries, now: i64) -> Vec<Finding> {
+pub fn all(paths: &StatePaths, regs: &Registries, now: i64, gh: Github) -> Vec<Finding> {
     // **The ledger spans two months**, because a heartbeat at 00:05 on the 1st belongs to the month
     // that just ended as much as to the one that started - `status` reads both, and a rule that read
     // one would report a missing heartbeat that exists in the other file. **Computed here rather than
@@ -196,7 +346,7 @@ pub fn all(paths: &StatePaths, regs: &Registries, now: i64) -> Vec<Finding> {
     let previous = crate::status::previous_month(&month);
     let rows = crate::status::receipt_rows(paths, &month, &previous);
     let mut out = branch_claimed(paths);
-    out.extend(no_orphan_branches(paths));
+    out.extend(no_orphan_branches(paths, gh, now));
     out.extend(protected_branches_present(paths));
     // **`heartbeat_receipts` was registered with NO IMPLEMENTATION AT ALL**, and
     // **`registry_vs_github` was ported and never dispatched.** Both reported `ok` on every run
@@ -402,7 +552,7 @@ mod tests {
             d.path(),
             &["update-ref", "refs/remotes/origin/main", "HEAD"],
         );
-        let f = no_orphan_branches(&p);
+        let f = no_orphan_branches(&p, Github::Offline, 0);
         assert!(
             f.iter().any(|x| x.message.contains("merged/by-content")),
             "a branch with nothing ahead of main is an orphan: {f:?}"
@@ -422,7 +572,7 @@ mod tests {
             d.path(),
             &["update-ref", "refs/remotes/origin/main", "main"],
         );
-        let f = no_orphan_branches(&p);
+        let f = no_orphan_branches(&p, Github::Offline, 0);
         assert!(
             !f.iter().any(|x| x.message.contains("live/work")),
             "unmerged work must not be called an orphan: {f:?}"
@@ -438,7 +588,7 @@ mod tests {
             d.path(),
             &["update-ref", "refs/remotes/origin/main", "HEAD"],
         );
-        let f = no_orphan_branches(&p);
+        let f = no_orphan_branches(&p, Github::Offline, 0);
         assert!(
             !f.iter().any(|x| x.message.contains("checked/out")),
             "a branch that is checked out is in use: {f:?}"
@@ -453,7 +603,7 @@ mod tests {
         // path rather than a stub. A stub here would have hidden exactly the wiring defect these
         // three units were about.
         let regs = Registries::load(&p).expect("registry");
-        let _ = all(&p, &regs, 1_800_000_000);
+        let _ = all(&p, &regs, 1_800_000_000, Github::Offline);
     }
 
     /// **A protected name absent from the remote heads is reported; present ones are not.**
@@ -473,5 +623,128 @@ mod tests {
 
     fn paths_of_repo() -> StatePaths {
         StatePaths::resolve(repo(), None, Some("/nonexistent-live"))
+    }
+
+    /// **The three GitHub findings carry Python's text**, and a branch reported through its merged
+    /// PR is not reported a second time by the content check.
+    #[test]
+    fn orphan_findings_report_merged_prs_prless_remotes_and_left_worktrees() {
+        use crate::statusdelivery::{
+            BranchPrCheck, DeliveryExtras, MergedPrBranch, RemoteBranch, RemoteBranches,
+            WorktreeItem, WorktreesView,
+        };
+        let facts = DeliveryExtras {
+            pr_check: BranchPrCheck {
+                available: true,
+                ..BranchPrCheck::default()
+            },
+            merged: vec![MergedPrBranch {
+                branch: "a/done".into(),
+                head: "h".into(),
+                pr: 12,
+                pr_title: "t".into(),
+                merged_at: "2026-10-19T08:00:00Z".into(),
+                head_matches: false,
+                current: false,
+                fix: "git branch -D a/done && git push origin --delete a/done".into(),
+                checked_out_in: vec!["/w/a".into()],
+            }],
+            worktrees: WorktreesView {
+                available: true,
+                reason: String::new(),
+                items: vec![WorktreeItem {
+                    path: "/w/b".into(),
+                    branch: "b".into(),
+                    cleanup_candidate: true,
+                    reapable_reason: "merged-pr-head".into(),
+                    ..WorktreeItem::default()
+                }],
+            },
+            ..DeliveryExtras::default()
+        };
+        let remote = RemoteBranches {
+            available: true,
+            reason: String::new(),
+            branches: vec![RemoteBranch {
+                branch: "r/x".into(),
+                ahead: 2,
+                behind: 5,
+                updated: "2026-10-18".into(),
+            }],
+        };
+        let state = |b: &str| githelp::BranchState {
+            branch: b.into(),
+            state: githelp::MergeState::Merged,
+            checked_out: false,
+            removable: true,
+            reason: String::new(),
+        };
+        let f = orphan_findings("/repo", &facts, &remote, &[state("a/done"), state("c/old")]);
+        let messages: Vec<&str> = f.iter().map(|x| x.message.as_str()).collect();
+        assert_eq!(
+            messages,
+            [
+                "local branch a/done still exists but PR #12 merged 2026-10-19 (its head has moved \
+                 on since that merge); checked out in /w/a",
+                "remote branch r/x has no PR and is not merged into main (2 commit(s) ahead, 5 \
+                 behind, last updated 2026-10-18) - it needs a decision, not deletion",
+                "worktree /w/b [b] is clean and completed work was left behind: its HEAD is the \
+                 exact head of a merged PR",
+                "local branch \"c/old\" whose work is already in origin/main",
+            ]
+        );
+        assert_eq!(f[2].path, "/w/b");
+        assert_eq!(
+            f[2].fix,
+            "git worktree remove /w/b && git branch -D b && scripts/storage/uor-hygiene --apply"
+        );
+        // A check that could not run is never a silent pass: each says so, as info.
+        let offline = orphan_findings(
+            "/repo",
+            &DeliveryExtras::default(),
+            &RemoteBranches::default(),
+            &[],
+        );
+        let notes: Vec<(&str, &str)> = offline
+            .iter()
+            .map(|f| (f.severity, f.message.split(':').next().unwrap_or("")))
+            .collect();
+        assert_eq!(
+            notes,
+            [
+                ("info", "merged-PR branch check skipped"),
+                ("info", "remote-branch check skipped"),
+                ("info", "worktree check skipped"),
+            ]
+        );
+        // Lookups cut short by the per-run cap are reported as incomplete, not as a pass.
+        let capped = DeliveryExtras {
+            pr_check: BranchPrCheck {
+                available: true,
+                reason: "only the first 25 branches were queried this run".into(),
+                ..BranchPrCheck::default()
+            },
+            worktrees: WorktreesView {
+                available: true,
+                ..WorktreesView::default()
+            },
+            ..DeliveryExtras::default()
+        };
+        let f = orphan_findings(
+            "/repo",
+            &capped,
+            &RemoteBranches {
+                available: true,
+                ..RemoteBranches::default()
+            },
+            &[],
+        );
+        assert_eq!(f.len(), 1, "{f:?}");
+        assert!(
+            f[0].message
+                .starts_with("merged-PR branch check incomplete: UNAVAILABLE: only the first 25"),
+            "{}",
+            f[0].message
+        );
     }
 }

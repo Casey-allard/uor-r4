@@ -607,6 +607,7 @@ mod tests {
             &["prlint.gates_declared".to_string()],
             crate::checkdispatch::Scope::Repo,
             0,
+            crate::statusdelivery::Github::Offline,
         );
         assert_eq!(
             GATES_DECLARED_CALLS.with(|c| c.get()),
@@ -628,6 +629,7 @@ mod tests {
             &["prlint.gates_declared".to_string()],
             crate::checkdispatch::Scope::Repo,
             0,
+            crate::statusdelivery::Github::Offline,
         );
         GATES_DECLARED_TEST_EXTRA.with(|c| c.set(None));
 

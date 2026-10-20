@@ -92,9 +92,8 @@ impl ContextPack {
             parts.push(String::new());
         }
         parts.push("---".to_string());
-        parts.push(
-            "*Context selected by `scripts/harness/cli.py`. Sources, in load order:*".to_string(),
-        );
+        parts
+            .push("*Context selected by `uor-harness brief`. Sources, in load order:*".to_string());
         for s in &self.sources {
             let extra = if s.reason.is_empty() {
                 String::new()
@@ -447,7 +446,9 @@ pub fn assemble_full(
     regs: &Registries,
     paths: &crate::state::StatePaths,
     milestone: Option<&str>,
+    files: &[String],
     query: &str,
+    budget_tokens: usize,
 ) -> ContextPack {
     let ms = milestone.and_then(|m| regs.milestone(m));
     let mut pack = assemble(regs, milestone, query);
@@ -581,6 +582,80 @@ pub fn assemble_full(
         }
     }
 
+    // 7. what went wrong here before
+    let lessons = crate::mistakes::load(paths);
+    let topic = if query.is_empty() {
+        ms.map(|m| m.title.clone()).unwrap_or_default()
+    } else {
+        query.to_string()
+    };
+    let ms_keys: Vec<String> = ms.map(|m| vec![m.key.clone()]).unwrap_or_default();
+    let matches = crate::mistakes::match_lessons(&lessons, files, &topic, &ms_keys);
+    if !matches.is_empty() {
+        let blocks: Vec<String> = matches
+            .iter()
+            .take(8)
+            .map(|hit| {
+                let m = &hit.mistake;
+                let text = read_doc(&m.path);
+                let guard = if m.guard.is_empty() { "none" } else { &m.guard };
+                format!(
+                    "**[{}] {}** ({}, why: {})\n\n- Symptom: {}\n- Lesson: {}\n- Guard: `{guard}`\n- Full text: `{}`",
+                    m.id,
+                    m.title,
+                    m.severity,
+                    hit.why,
+                    body_paragraph(&text, "Symptom"),
+                    body_paragraph(&text, "Lesson"),
+                    rel(&m.path, &paths.repo)
+                )
+            })
+            .collect();
+        pack.add(
+            "Lessons that apply here (docs/harness/mistakes/)",
+            &blocks.join("\n\n"),
+            "docs/harness/mistakes/",
+            &format!("{} lessons match these files/topic", matches.len()),
+        );
+    }
+
+    // 8. the skills
+    let all_skills = crate::skills::load(paths);
+    let mut hits = crate::skills::rank(&all_skills, &topic);
+    if !files.is_empty() {
+        for (s, why) in crate::skills::rank(&all_skills, &files.join(" ")) {
+            if !hits.iter().any(|(h, _)| h.id == s.id) {
+                hits.push((s, why));
+            }
+        }
+    }
+    if !hits.is_empty() {
+        let rows: Vec<String> = hits
+            .iter()
+            .take(6)
+            .map(|(s, why)| {
+                format!(
+                    "- `{}` - {}  \n  (matched on {why}; path `{}`)",
+                    s.id,
+                    s.description,
+                    rel(&s.path, &paths.repo)
+                )
+            })
+            .collect();
+        pack.add(
+            "Skills for this task (docs/harness/skills/)",
+            &rows.join("\n"),
+            "docs/harness/skills/",
+            "routed from the task description and files",
+        );
+        pack.add(
+            "Loading a skill",
+            "Run `uor-harness skill show <id>` for the full protocol, and `skill use <id>` to record that you loaded it. A skill that is loaded but not receipted is invisible to the owner.",
+            "docs/harness/README.md",
+            "visibility",
+        );
+    }
+
     // 9. what is being worked on right now
     let now = crate::receipt::now_rfc3339();
     let recent =
@@ -646,6 +721,15 @@ pub fn assemble_full(
     }
 
     // 10. the task itself, and the loop
+    if !files.is_empty() {
+        let rows: Vec<String> = files.iter().map(|f| format!("- `{f}`")).collect();
+        pack.add(
+            "Files in scope for this task",
+            &rows.join("\n"),
+            "cli --files",
+            "supplied by the caller",
+        );
+    }
     if !query.is_empty() {
         pack.add(
             "The task as stated",
@@ -664,17 +748,56 @@ pub fn assemble_full(
         "the loop",
     );
 
-    if pack.tokens() > DEFAULT_BUDGET {
+    if pack.tokens() > budget_tokens {
         pack.dropped.push((
             "budget".to_string(),
             format!(
-                "pack is ~{} tokens against a {DEFAULT_BUDGET} budget; drop the lowest-value section \
+                "pack is ~{} tokens against a {budget_tokens} budget; drop the lowest-value section \
                  (mechanism detail first) or raise --budget-tokens",
                 pack.tokens()
             ),
         ));
     }
     pack
+}
+
+/// The first paragraph under `## <heading>` in a lesson body, whitespace collapsed.
+fn body_paragraph(text: &str, heading: &str) -> String {
+    let mut lines = text.lines();
+    let found = lines.by_ref().any(|l| {
+        l.strip_prefix("##")
+            .filter(|r| r.starts_with(char::is_whitespace))
+            .is_some_and(|r| r.trim() == heading)
+    });
+    if !found {
+        return String::new();
+    }
+    let section: Vec<&str> = lines
+        .take_while(|l| {
+            !l.strip_prefix("##")
+                .is_some_and(|r| r.starts_with(char::is_whitespace))
+        })
+        .collect();
+    section
+        .split(|l| l.trim().is_empty())
+        .map(|para| {
+            para.join(" ")
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .find(|p| !p.is_empty())
+        .unwrap_or_default()
+}
+
+/// Repo-relative when it can be, as Python's `_rel` prints it.
+fn rel(path: &std::path::Path, repo: &std::path::Path) -> String {
+    let (Ok(p), Ok(r)) = (path.canonicalize(), repo.canonicalize()) else {
+        return path.display().to_string();
+    };
+    p.strip_prefix(&r)
+        .map(|x| x.display().to_string())
+        .unwrap_or_else(|_| path.display().to_string())
 }
 
 #[cfg(test)]
@@ -830,6 +953,27 @@ mod tests {
             !text.contains("## Session contract"),
             "not ported yet, so not claimed: {text}"
         );
+    }
+
+    /// Sections 7 and 8 were the unported half: a harness task must now carry lessons and skills.
+    #[test]
+    fn the_full_brief_carries_lessons_skills_and_files() {
+        let paths = crate::state::StatePaths::resolve(repo(), None, Some("/nonexistent-live"));
+        let r = Registries::load(&paths).expect("registry");
+        let files = vec!["crates/uor-r4-harness/src/main.rs".to_string()];
+        let pack = assemble_full(&r, &paths, Some("m1"), &files, "harness", DEFAULT_BUDGET);
+        let headings: Vec<&str> = pack.blocks.iter().map(|b| b.heading.as_str()).collect();
+        for h in [
+            "Lessons that apply here (docs/harness/mistakes/)",
+            "Skills for this task (docs/harness/skills/)",
+            "Loading a skill",
+            "Files in scope for this task",
+        ] {
+            assert!(headings.contains(&h), "{h} missing from {headings:?}");
+        }
+        let text = pack.render();
+        assert!(text.contains("- Symptom: "), "{text}");
+        assert!(!text.contains("cli.py"), "{text}");
     }
 
     #[test]

@@ -6,7 +6,8 @@
 //! `uor-harness comment edit --id <id> --body-file <f>`.
 //!
 //! **What this test reaches, and what it does not.** It scans the executable workflow roots whose changes this
-//! job actually runs on: `scripts/harness/**` and `.github/workflows/**`. It **cannot intercept a hand-typed
+//! job actually runs on: the harness's shell scripts (`crates/uor-r4-harness/rules/`, which replaced the
+//! retired `scripts/harness/` Python) and `.github/workflows/**`. It **cannot intercept a hand-typed
 //! `gh` call** - which is exactly why the safe path had to be BUILT rather than merely documented - and a
 //! change to a script outside these roots will not run this test. Both limits are stated rather than implied,
 //! because a guard that overstates its reach is worse than a narrow one that names it.
@@ -52,8 +53,8 @@ fn no_executable_workflow_edits_a_comment_by_position() {
     let root = harness_root();
     let mut files = Vec::new();
     files_with_ext(
-        &root.join("scripts").join("harness"),
-        &[".py", ".sh", ".bash"],
+        &root.join("crates").join("uor-r4-harness").join("rules"),
+        &[".sh", ".bash"],
         &mut files,
     );
     files_with_ext(
@@ -93,8 +94,8 @@ fn the_scan_covers_both_roots() {
     let root = harness_root();
     let mut scripts = Vec::new();
     files_with_ext(
-        &root.join("scripts").join("harness"),
-        &[".py", ".sh", ".bash"],
+        &root.join("crates").join("uor-r4-harness").join("rules"),
+        &[".sh", ".bash"],
         &mut scripts,
     );
     let mut workflows = Vec::new();
@@ -103,7 +104,10 @@ fn the_scan_covers_both_roots() {
         &[".yml", ".yaml"],
         &mut workflows,
     );
-    assert!(!scripts.is_empty(), "scripts/harness has nothing to scan");
+    assert!(
+        !scripts.is_empty(),
+        "crates/uor-r4-harness/rules has no shell script to scan"
+    );
     assert!(
         !workflows.is_empty(),
         ".github/workflows has nothing to scan"

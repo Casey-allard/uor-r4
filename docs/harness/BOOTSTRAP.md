@@ -27,9 +27,9 @@ reads as confusing - a confusing result is the finding.
    Without it, your receipts are recorded but attributed to nobody, and the harness will print a
    warning saying so. Tell me if you see that warning.
 
-2. Confirm the tool runs on your interpreter. Report the version and the exit code:
+2. Confirm the tool runs in your shell. Report the build commit and the exit code:
 
-     python3 -V
+     uor-harness --repo "$(git rev-parse --show-toplevel)" version
      uor-harness --repo "$(git rev-parse --show-toplevel)" check --only arena
 
 3. Read the state you now share with the other labs:
@@ -61,7 +61,7 @@ reads as confusing - a confusing result is the finding.
    from the receipts, which are expected.
 
 REPORT BACK, in this order:
-  a. your interpreter version and whether every command above exited 0
+  a. the `version` line and whether every command above exited 0
   b. the exact output of `multilab presence` at step 5
   c. anything that was confusing, mislabelled, or looked wrong
   d. whether you would want this tool in your normal session, and what would have to change first
@@ -83,7 +83,7 @@ REPORT BACK, in this order:
 ## Success
 
 One foreign lab, one session: claims visible to peers, presence published and visible, the tool
-running on that lab's own interpreter, and no record anywhere attributed to a lab that did not run
+running in that lab's own shell, and no record anywhere attributed to a lab that did not run
 it. That is the whole test. Anything else is a finding.
 
 ---
@@ -111,8 +111,8 @@ Verify:
 uor-harness --repo <repo> heartbeat -m m1 --print
 ```
 
-`--print` shows the card without recording a receipt. If you see the `NO LAB IDENTITY` warning, the
-export did not reach that shell.
+`--print` shows the card without recording a receipt. If you see the `WARNING - no lab identity`
+message, the export did not reach that shell.
 
 ## Optional: the liveness hook (Kimi only, so far)
 
@@ -120,7 +120,7 @@ Kimi is the only runtime on this machine with a per-prompt hook, so it is the on
 appear live without anyone typing anything. If your runtime has an equivalent, this is the shape:
 
 ```
-UserPromptSubmit  ->  python3 <repo>/scripts/harness/cli.py multilab touch --lab <your-lab>
+UserPromptSubmit  ->  uor-harness --repo <repo> multilab touch --lab <your-lab>
 ```
 
 `touch` refreshes your timestamp, **preserves** the intent your last `heartbeat` published, and
@@ -150,24 +150,25 @@ UOR_LAB=<your-lab> ./local/harness-target/debug/uor-harness onboard --repo <repo
 ```
 
 `onboard` **verifies** rather than prints a checklist, and it is **read-only** — it records no
-receipt, claims no branch, writes no presence. Run it as often as you like. It reports four things
-about the machine it is standing on:
+receipt, claims no branch, writes no presence. Run it as often as you like. It reports what it finds
+about the machine it is standing on, for example:
 
 ```
 uor-harness onboard - can this machine use the harness?
   repo:      <repo>
   live tier: ~/.local/share/uor-r4/harness
 
-  ok   python     3.15 found (floor 3.9)
-  ok   identity   UOR_LAB=claude
-  ok   claims     2 claim(s) visible, 0 held by this lab
-  ok   ledger     46 receipts, other labs visible: codex, kimi
-  ok   harness    harness check: 4 rules, all pass
+  ok   cargo        ~/.cargo/bin/cargo is the Rust toolchain cargo
+  ok   entry point  on PATH: <path>/uor-harness
+  ok   identity     UOR_LAB=claude
+  ok   claims       2 claim(s) visible, 0 held by this lab
+  ok   ledger       46 receipts, other labs visible: codex, kimi
+  ok   harness      state formats ok (8 format(s))
 
 READY. Nothing failed. Next:
-  - run one real task with the harness: `cli.py brief -m <milestone>` then `cli.py check`
-  - claim your branch before you start: `cli.py team claim --branch <name> --lab <lab>`
-  - check in at least every five minutes: `cli.py heartbeat -m <milestone>`, which also publishes your presence (it runs the Rust harness, so build it first)
+  - run one real task with the harness: `uor-harness brief -m <milestone>` then `uor-harness check`
+  - claim your branch before you start: `uor-harness team claim --branch <name> --lab <lab>`
+  - check in at least every five minutes: `uor-harness heartbeat -m <milestone>`, which also publishes your presence
   - after your merge, delete your branch on both sides — there is no auto-delete
 ```
 
@@ -179,7 +180,7 @@ The order is deliberate, because it is the order things fail in:
 
 | check | what it means when it fails |
 |---|---|
-| **python** | Python owns behaviour in this port, so a lab with no working `python3` cannot use the harness yet, however good the Rust binary is |
+| **cargo** / **entry point** | the wrong `cargo` builds nothing, and a `uor-harness` that is not on `PATH` makes every documented command fail with "command not found" |
 | **identity** | without `UOR_LAB`, receipts are recorded but attributed to **nobody** |
 | **claims** | a lab that cannot read the board is working blind |
 | **ledger** | it names the other labs it can see — if that list is empty, you may be the first lab here, or the shards have not been fetched |
@@ -192,16 +193,14 @@ uor-harness --repo <repo> heartbeat -m <milestone>
 uor-harness --repo <repo> multilab presence      # you now appear "via live"
 ```
 
-Success is: the tool runs on **your** interpreter, you can see the other labs, and after your
+Success is: the tool runs in **your** shell, you can see the other labs, and after your
 heartbeat you appear on the board yourself. Then read
 [BOOTSTRAP.md](BOOTSTRAP.md) above and run it once.
 
-## Python version
+## No Python
 
-Declared floor **3.9**. Verified on 3.9.6 and 3.15.0. Note `python3` differs by shell on this
-machine — `/etc/zprofile` reorders PATH, so a login shell gets Homebrew's and an agent shell may get
-`/usr/bin`. Both work; if you hit a version error, the tool names the requirement rather than
-failing obscurely.
+The harness is the Rust binary alone. The Python mirror was retired on 20 October 2026 (owner rule:
+Rust only) and is kept byte-identical under `archive/scripts/harness/`; nothing runs it.
 
 ## Where the shared state lives
 

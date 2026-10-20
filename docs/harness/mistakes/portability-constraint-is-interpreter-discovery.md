@@ -5,7 +5,7 @@ date: 2026-10-13
 severity: info
 class: assumption
 trigger: [portability, bootstrap, python version, 3.9, 3.11, 3.12, interpreter, python3, zshrc, login shell, agent shell, install, onboarding, fromisoformat, Z suffix]
-paths: [docs/harness/BOOTSTRAP.md, docs/harness/ONBOARD-PROMPT.md, scripts/harness/**, crates/uor-r4-harness/**]
+paths: [docs/harness/BOOTSTRAP.md, docs/harness/ONBOARD-PROMPT.md, crates/uor-r4-harness/**]
 milestones: [m1, m2, m3, m4, m5, m6, m7, m8]
 mechanism: ""
 guard: none: the harness reports the interpreter it found and refuses below the floor; whether a lab's shell resolves the right one is a property of that machine
@@ -59,13 +59,15 @@ The fix was to normalise `Z` to `+00:00` before parsing, not to raise the floor.
 
 ## How to apply
 
-Pin the interpreter whenever a check matters, and run the suite on **both** versions:
+The Python harness was retired on 20 October 2026, so the interpreter case is closed. The same
+failure now shows up as **tool discovery for `cargo`**: on the owner's laptop `/opt/homebrew/bin/cargo`
+is a Node CLI that shadows rustup's whenever Homebrew precedes `~/.cargo/bin` on `PATH`. Pin the tool
+whenever a check matters:
 
 ```sh
-python3 -V          # what the agent shell gives you
-/usr/bin/python3 -V # what a login shell gives you
-python3 -m unittest discover -s tests/harness -t .            # the new one
-/usr/bin/python3 -m unittest discover -s tests/harness -t .   # the floor
+which -a cargo                 # which cargo each shell finds first
+~/.cargo/bin/cargo --version   # rustup's, always
+uor-harness onboard            # reports which cargo it found
 ```
 
 Do not raise the declared floor to dodge a compatibility bug. **A floor is a promise to the labs,

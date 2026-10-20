@@ -5,7 +5,7 @@ date: 2026-10-12
 severity: warn
 class: coordination
 trigger: [4/3, 5/3, past three, owner request, no reset, explicit request, pivot card, count exceeded]
-paths: [docs/labs/**, docs/integration/DECISIONS.md, .github/pull_request_template.md, docs/harness/milestones.json, scripts/harness/*.py]
+paths: [docs/labs/**, docs/integration/DECISIONS.md, .github/pull_request_template.md, docs/harness/milestones.json, crates/uor-r4-harness/src/*.rs]
 milestones: [m2]
 mechanism: protected-legal-construction
 guard: prlint.pivot_at_three

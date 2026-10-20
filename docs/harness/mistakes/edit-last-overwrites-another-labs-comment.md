@@ -5,7 +5,7 @@ date: 2026-10-14
 severity: block
 class: coordination
 trigger: [edit comment, edit last, gh issue comment, edit-last, fix a typo, update a note, amend a post, correct a comment, edit body]
-paths: [docs/harness/**, scripts/harness/**, crates/uor-r4-harness/src/notes.rs]
+paths: [docs/harness/**, crates/uor-r4-harness/**]
 milestones: [m1]
 mechanism: ""
 guard: none: no check rule can intercept a direct `gh` call, and the harness had NO command that edits a comment - so `gh` was the only path and `--edit-last` was one flag away. The guard is `uor-harness comment edit --id <id> --body-file <f>`, which has no notion of "last", plus this lesson, which `mistakes find` surfaces when a lab touches the harness.
@@ -65,7 +65,7 @@ uor-harness comment edit --id <comment-id> --body-file <path>   # the safe path,
   position-based form in the harness, deliberately.
 * **Editing anything else shared** — a claim, a presence row, a ledger shard — name the target explicitly and
   never let a tool infer it from what happened most recently.
-* **If you find `--edit-last` in `scripts/harness/**` or `.github/workflows/**`**, it fails
+* **If you find `--edit-last` in `crates/uor-r4-harness/rules/` or `.github/workflows/**`**, it fails
   `no_position_based_edits` in the harness test suite unless the entire line is a comment;
   replace executable uses with the id-addressed call. Scripts outside these roots are not scanned.
 * **If it is already too late** — a comment was overwritten — post a correction naming the comment id and

@@ -713,6 +713,8 @@ pub fn github_issues(
                     .join(", ")
             )
         } else {
+            // The same failure per issue (no `gh`, no network) is reported once.
+            errors.dedup();
             errors.join("; ")
         };
         return IssueSnapshot {
@@ -725,6 +727,208 @@ pub fn github_issues(
         available: true,
         reason: String::new(),
         issues: Value::Object(items),
+    }
+}
+
+/// `status.OPEN_PR_LIMIT` / `MERGED_PR_LIMIT` — how many PRs one `gh pr list` call asks for.
+pub const OPEN_PR_LIMIT: usize = 50;
+pub const MERGED_PR_LIMIT: usize = 100;
+/// `status.BRANCH_PR_LIMIT` — at most this many branches get a `gh` call per run.
+pub const BRANCH_PR_LIMIT: usize = 25;
+
+/// Seconds since an entry's `fetched_at`, or 0 when it cannot be read.
+fn age_seconds(item: &Value, now: i64) -> i64 {
+    item.get("fetched_at")
+        .and_then(Value::as_str)
+        .and_then(crate::multilabrules::parse_claimed_at)
+        .map(|then| (now - then).max(0))
+        .unwrap_or(0)
+}
+
+/// `status.github_prs` — open and merged PRs, from `gh` or from a cache younger than the TTL.
+///
+/// Returns Python's section shape (`available`, `reason`, `fetched_at`, `from_cache`,
+/// `age_seconds`, `open`, `merged`, the two limits). **A failed fetch is cached too**, as Python
+/// does, so an offline lab is not re-billed a `gh` timeout on every view; `--refresh` overrides.
+pub fn github_prs(paths: &crate::state::StatePaths, refresh: bool, now: i64) -> Value {
+    let mut cache = cache_load(paths);
+    if let Some(cached) = cache.get("prs") {
+        if !refresh && fresh(Some(cached), now) {
+            let mut out = cached.clone();
+            out["from_cache"] = Value::Bool(true);
+            out["age_seconds"] = Value::from(age_seconds(cached, now));
+            return out;
+        }
+    }
+    let stamp = crate::receipt::now_rfc3339();
+    let open_limit = OPEN_PR_LIMIT.to_string();
+    let merged_limit = MERGED_PR_LIMIT.to_string();
+    let (open_ok, open_prs, open_err) = gh_json(
+        &[
+            "pr",
+            "list",
+            "--state",
+            "open",
+            "--limit",
+            &open_limit,
+            "--json",
+            "number,title,headRefName,url,createdAt,updatedAt",
+        ],
+        &paths.repo,
+    );
+    let (merged_ok, merged_prs, merged_err) = gh_json(
+        &[
+            "pr",
+            "list",
+            "--state",
+            "merged",
+            "--limit",
+            &merged_limit,
+            "--json",
+            "number,title,headRefName,headRefOid,url,mergedAt",
+        ],
+        &paths.repo,
+    );
+    let ok = open_ok && merged_ok;
+    let reason = if ok {
+        String::new()
+    } else if !open_err.is_empty() {
+        open_err
+    } else if !merged_err.is_empty() {
+        merged_err
+    } else {
+        "gh failed with no error text".to_string()
+    };
+    let list = |v: Value| {
+        Value::Array(if ok {
+            v.as_array().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        })
+    };
+    let section = serde_json::json!({
+        "available": ok,
+        "reason": reason,
+        "fetched_at": stamp,
+        "from_cache": false,
+        "open": list(open_prs),
+        "merged": list(merged_prs),
+        "open_limit": OPEN_PR_LIMIT,
+        "merged_limit": MERGED_PR_LIMIT,
+    });
+    if !cache.is_object() {
+        cache = Value::Object(Default::default());
+    }
+    cache["schema"] = Value::from(SCHEMA);
+    cache["prs"] = section.clone();
+    cache_save(paths, &cache);
+    let mut out = section;
+    out["age_seconds"] = Value::from(0);
+    out
+}
+
+/// What `github_branch_prs` returns: the PR (any state) per local branch, where one is known.
+#[derive(Debug, Clone, Default)]
+pub struct BranchPrs {
+    /// **True when at least one branch has an answer, or nothing failed.** A partial answer is
+    /// still used; only "every call failed" makes the check unavailable.
+    pub available: bool,
+    pub reason: String,
+    pub queried: usize,
+    /// Branch name to `{"fetched_at", "pr"}`, for branches with an entry.
+    pub items: serde_json::Map<String, Value>,
+}
+
+/// `status.github_branch_prs` — the PR whose head is each local branch, cached per branch.
+///
+/// **One bounded call per branch** because older merged PRs fall outside the newest-100 window of
+/// `gh pr list --state merged`, so a branch can look clean while its PR merged long ago. At most
+/// `BRANCH_PR_LIMIT` calls per run; a merged PR is preferred over an open one for the same head.
+pub fn github_branch_prs(
+    paths: &crate::state::StatePaths,
+    branches: &[String],
+    refresh: bool,
+    now: i64,
+) -> BranchPrs {
+    let mut cache = cache_load(paths);
+    let mut store: serde_json::Map<String, Value> = cache
+        .get("branch_prs")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    let mut queried = 0usize;
+    let mut errors: Vec<String> = Vec::new();
+    for name in branches.iter().filter(|n| !n.is_empty()) {
+        if !refresh && fresh(store.get(name), now) {
+            continue;
+        }
+        if queried >= BRANCH_PR_LIMIT {
+            errors.push(format!(
+                "only the first {BRANCH_PR_LIMIT} branches were queried this run"
+            ));
+            break;
+        }
+        let (ok, data, err) = gh_json(
+            &[
+                "pr",
+                "list",
+                "--head",
+                name,
+                "--state",
+                "all",
+                "--limit",
+                "3",
+                "--json",
+                "number,title,state,headRefOid,mergedAt,url",
+            ],
+            &paths.repo,
+        );
+        queried += 1;
+        if !ok {
+            errors.push(if err.is_empty() {
+                format!("`gh pr list --head {name}` failed")
+            } else {
+                err
+            });
+            continue;
+        }
+        let rows: Vec<Value> = data
+            .as_array()
+            .map(|a| a.iter().filter(|r| r.is_object()).cloned().collect())
+            .unwrap_or_default();
+        let merged = rows.iter().find(|r| {
+            r.get("state")
+                .and_then(Value::as_str)
+                .is_some_and(|s| s.eq_ignore_ascii_case("MERGED"))
+        });
+        let pr = merged.or(rows.first()).cloned().unwrap_or(Value::Null);
+        store.insert(
+            name.clone(),
+            serde_json::json!({"fetched_at": crate::receipt::now_rfc3339(), "pr": pr}),
+        );
+    }
+    if !cache.is_object() {
+        cache = Value::Object(Default::default());
+    }
+    cache["schema"] = Value::from(SCHEMA);
+    cache["branch_prs"] = Value::Object(store.clone());
+    cache_save(paths, &cache);
+    let items: serde_json::Map<String, Value> = branches
+        .iter()
+        .filter_map(|n| {
+            store
+                .get(n)
+                .filter(|v| v.as_object().is_some_and(|o| !o.is_empty()))
+                .map(|v| (n.clone(), v.clone()))
+        })
+        .collect();
+    // The same failure repeated per branch (no `gh`, no network) is reported once.
+    errors.dedup();
+    BranchPrs {
+        available: !items.is_empty() || errors.is_empty(),
+        reason: errors.join("; "),
+        queried,
+        items,
     }
 }
 
@@ -1101,76 +1305,4 @@ pub fn registry_vs_github(
         });
     }
     out
-}
-
-#[cfg(test)]
-mod decision_tests {
-    use super::*;
-
-    /// **The decision against Python on the SAME live data** — the only comparison that tests the
-    /// branches rather than the helpers they call.
-    ///
-    /// **Ignored by default** because it fetches from GitHub, and because an issue's comments change:
-    /// **it asserts what the two implementations AGREE, not what the findings say**, since the latter
-    /// would be the "true of the tree when written" mistake this port has made three times.
-    #[test]
-    #[ignore = "needs gh and a network"]
-    fn the_decision_matches_python_on_live_data() {
-        let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let dir = tempfile::tempdir().expect("tempdir");
-        let state = crate::state::StatePaths {
-            repo: repo.clone(),
-            live: dir.path().join("live"),
-        };
-        let a = crate::state::StatePaths {
-            repo: repo.clone(),
-            live: dir.path().join("live-python"),
-        };
-        let regs = crate::registries::Registries::load(&state).expect("registry");
-        let now =
-            crate::multilabrules::parse_claimed_at(&crate::receipt::now_rfc3339()).expect("now");
-
-        let rust = registry_vs_github(&state, &regs.milestones, true, now);
-        // The Python side runs the same rule against the same repository, so a disagreement is a
-        // branch difference rather than a data difference.
-        let script = repo.join("scripts/.parity-registry-vs-github.py");
-        std::fs::write(
-            &script,
-            r#"
-import sys, pathlib, json, tempfile
-sys.path.insert(0, "scripts/harness")
-import status, core, registries
-repo = pathlib.Path(".").resolve()
-tmp = pathlib.Path(tempfile.mkdtemp())
-paths = core.HarnessPaths(repo=repo, harness=repo / "docs/harness", state=tmp)
-reg = registries.Registry.load(paths)
-out = status._rule_registry_vs_github(paths, reg)
-print(json.dumps([[r.severity, bool(r.ok), r.message, r.fix] for r in out]))
-"#,
-        )
-        .expect("write the probe");
-        let out = std::process::Command::new("python3")
-            .arg(&script)
-            .current_dir(&repo)
-            .output()
-            .expect("run python");
-        let _ = std::fs::remove_file(&script);
-        let text = String::from_utf8_lossy(&out.stdout);
-        let py: Vec<Value> = serde_json::from_str(text.trim()).expect("python printed json");
-        let _ = a;
-
-        assert_eq!(
-            rust.len(),
-            py.len(),
-            "finding count: rust {} vs python {}",
-            rust.len(),
-            py.len()
-        );
-        for (i, (r, p)) in rust.iter().zip(py.iter()).enumerate() {
-            let p = p.as_array().expect("a row");
-            assert_eq!(r.severity, p[0].as_str().unwrap_or(""), "[{i}] severity");
-            assert_eq!(r.ok, p[1].as_bool().unwrap_or(false), "[{i}] ok");
-            assert_eq!(r.message, p[2].as_str().unwrap_or(""), "[{i}] message");
-        }
-    }
 }

@@ -11,14 +11,14 @@
 //! would look complete while checking less. That is the exact failure this whole line keeps producing:
 //! *a guard that stops firing is indistinguishable from a guard that passes.*
 //!
-//! So the port keeps its own inventory, and `parity.py` compares it against Python's registered rules.
-//! **Without this, the last module landing is not evidence that the port is complete.**
+//! So the port kept its own inventory, and the retired `parity.py` compared it against Python's
+//! registered rules until the Python mirror was archived (20 October 2026).
 //!
 //! # Editing this file
 //!
-//! Add a rule id here **in the same commit that implements it**. An id listed here that is not
-//! implemented is the one mistake this file can make, so `parity.check_rule_inventory` reports both
-//! directions: a Python rule with no Rust implementation, and a listed id Python does not register.
+//! Add a rule id here **in the same commit that implements it**, and to the dispatch table in
+//! `checkdispatch.rs`. An id listed here that is not implemented is the one mistake this file can
+//! make.
 
 /// Rules implemented in Rust, by the Python module prefix they belong to.
 ///

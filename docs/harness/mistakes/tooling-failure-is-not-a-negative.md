@@ -5,7 +5,7 @@ date: 2026-10-10
 severity: block
 class: process
 trigger: [numerical failure, solver tolerance, crash, replay failed, run did not qualify, tooling interruption, UNFINISHED_NOT_NEGATIVE]
-paths: [docs/integration/DECISIONS.md, docs/labs/**, docs/integration/current-state.md, scripts/harness/*.py]
+paths: [docs/integration/DECISIONS.md, docs/labs/**, docs/integration/current-state.md, crates/uor-r4-harness/src/*.rs]
 milestones: [m2, m3]
 mechanism: protected-legal-construction
 guard: prlint.prereg_before_compute

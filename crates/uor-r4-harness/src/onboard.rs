@@ -3,29 +3,24 @@
 //! **Why this is Rust rather than a shell script or a page of prose.** D27 makes Rust the default
 //! for new project code including tooling. More importantly, a checklist in a document cannot tell
 //! you whether *your* session satisfies it. This runs the checks and reports facts about the
-//! machine it is standing on: the interpreter it finds, whether the harness responds with it,
+//! machine it is standing on: whether the `uor-harness` entry point is reachable and current,
 //! whether this lab has an identity, and what the other labs are doing.
 //!
 //! **It checks rather than assumes, and it never mutates.** Everything here is read-only — no
 //! receipt, no claim, no presence write, no commit. A lab runs it as many times as it likes.
 //!
-//! The four things that must be true, in the order they fail:
+//! The three things that must be true, in the order they fail (the Python interpreter check went
+//! when the Python mirror was archived; the harness is this binary alone):
 //!
-//! 1. **A Python interpreter that runs the harness.** Python owns behaviour in this port, so a lab
-//!    with no working `python3` cannot use the harness yet no matter how good this binary is.
-//! 2. **An identity.** Without `UOR_LAB`, receipts are recorded but attributed to nobody, and the
+//! 1. **An identity.** Without `UOR_LAB`, receipts are recorded but attributed to nobody, and the
 //!    other labs cannot see who did the work.
-//! 3. **A readable shared record.** Claims and presence are the point of the plane; a lab that
+//! 2. **A readable shared record.** Claims and presence are the point of the plane; a lab that
 //!    cannot read them is working blind.
-//! 4. **The harness answers.** `check` is the contract every lab runs.
+//! 3. **The harness answers.** `check` is the contract every lab runs.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use crate::state::{read_ledger, StatePaths};
-
-/// The minimum interpreter the harness supports (declared floor: Python 3.9).
-pub const MIN_PYTHON: (u32, u32) = (3, 9);
 
 /// Labs that may hold an identity. Not a closed set — a new lab is a decision, not a code change —
 /// but an unrecognised value is worth saying out loud so a typo does not quietly become its own
@@ -122,37 +117,6 @@ impl Report {
     }
 }
 
-/// Run `python3 -V` in the repository and return the version it reports.
-///
-/// A missing interpreter and an interpreter that refuses to run are the same problem to a lab, so
-/// both come back as `Err` with the reason.
-pub fn python_version(repo: &Path) -> Result<(u32, u32), String> {
-    let out = Command::new("python3")
-        .arg("-V")
-        .current_dir(repo)
-        .output()
-        .map_err(|e| format!("python3 not runnable: {e}"))?;
-    // Python prints its version to stdout at 3.4+, but older builds used stderr, so read both.
-    let text = format!(
-        "{}{}",
-        String::from_utf8_lossy(&out.stdout),
-        String::from_utf8_lossy(&out.stderr)
-    );
-    parse_python_version(&text).ok_or_else(|| format!("could not read a version from {text:?}"))
-}
-
-/// Parse `Python 3.9.6` (or any string containing `X.Y`) into a version pair.
-pub fn parse_python_version(text: &str) -> Option<(u32, u32)> {
-    let digits = text.split_whitespace().find_map(|word| {
-        let core = word.trim_start_matches("Python").trim();
-        let mut parts = core.split('.');
-        let major: u32 = parts.next()?.parse().ok()?;
-        let minor: u32 = parts.next()?.parse().ok()?;
-        Some((major, minor))
-    })?;
-    Some(digits)
-}
-
 /// Whether the harness answers IN THIS REPOSITORY - checked in-process, not by shelling out.
 ///
 /// This used to run `python3 scripts/harness/cli.py check --only arena` and read its output. Two
@@ -181,39 +145,6 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
     let paths = StatePaths::from_env(repo);
     let mut findings = Vec::new();
 
-    // 1. the interpreter
-    let python_ok = match python_version(repo) {
-        Ok(version) if version >= MIN_PYTHON => {
-            findings.push(Finding::ok(
-                "python",
-                format!(
-                    "{}.{} found (floor {}.{})",
-                    version.0, version.1, MIN_PYTHON.0, MIN_PYTHON.1
-                ),
-            ));
-            true
-        }
-        Ok(version) => {
-            findings.push(Finding::fail(
-                "python",
-                format!(
-                    "{}.{} is below the {}.{} floor; the harness will not run",
-                    version.0, version.1, MIN_PYTHON.0, MIN_PYTHON.1
-                ),
-                "install a newer python3, or point PATH at one that is >= 3.9",
-            ));
-            false
-        }
-        Err(reason) => {
-            findings.push(Finding::fail(
-                "python",
-                reason,
-                "the harness runs on Python; without a working python3 there is nothing to onboard onto",
-            ));
-            false
-        }
-    };
-
     // 0. is `cargo` the RUST cargo?
     //
     // **Antigravity found this on the owner's laptop:** `/opt/homebrew/bin/cargo` is a symlink to
@@ -238,14 +169,13 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
 
     // 1b. is the entry point reachable?
     //
-    // `uor-harness` is the harness's interface now; `python3 scripts/harness/cli.py` is an
-    // implementation behind it. A lab that has not built the binary, or whose shell cannot find it,
-    // has NO harness - and every documented command would fail with "command not found" rather than
+    // `uor-harness` is the harness; there is no other implementation behind it. A lab that has not
+    // built the binary, or whose shell cannot find it, has NO harness - and every documented command would fail with "command not found" rather than
     // a diagnosis. This is the check that turns that into an instruction.
     match which_uor_harness() {
         Some(path) => findings.push(Finding::ok(
             "entry point",
-            format!("uor-harness is on PATH ({})", path.display()),
+            format!("on PATH: {}", path.display()),
         )),
         None => findings.push(Finding::warn(
             "entry point",
@@ -370,15 +300,13 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
     }
 
     // 4. the harness answers
-    if python_ok {
-        match harness_answers(repo) {
-            Ok(line) => findings.push(Finding::ok("harness", line)),
-            Err(line) => findings.push(Finding::fail(
-                "harness",
-                format!("the format check did not pass: {line}"),
-                "run `uor-harness check` for the full list and the fix for each",
-            )),
-        }
+    match harness_answers(repo) {
+        Ok(line) => findings.push(Finding::ok("harness", line)),
+        Err(line) => findings.push(Finding::fail(
+            "harness",
+            format!("the format check did not pass: {line}"),
+            "run `uor-harness check` for the full list and the fix for each",
+        )),
     }
 
     let mut next_steps = Vec::new();
@@ -496,26 +424,16 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
     }
 
+    /// **Onboarding does not ask for Python**: the harness is the Rust binary alone, so a machine
+    /// without `python3` must not fail it.
     #[test]
-    fn python_versions_parse_from_the_forms_python_prints() {
-        assert_eq!(parse_python_version("Python 3.9.6"), Some((3, 9)));
-        assert_eq!(parse_python_version("Python 3.15.0"), Some((3, 15)));
-        assert_eq!(parse_python_version("  Python 3.11.7\n"), Some((3, 11)));
-        assert_eq!(parse_python_version("nonsense"), None);
-        assert_eq!(parse_python_version(""), None);
-    }
-
-    #[test]
-    fn a_two_digit_minor_is_not_truncated() {
-        // 3.15 is newer than 3.9; a naive string compare would call it older.
-        let v = parse_python_version("Python 3.15.0").expect("parse");
-        assert!(v >= MIN_PYTHON, "3.15 must satisfy the 3.9 floor");
-    }
-
-    #[test]
-    fn onboarding_finds_a_real_interpreter_here() {
-        let version = python_version(&repo()).expect("python3 present in this checkout");
-        assert!(version >= MIN_PYTHON, "{version:?}");
+    fn onboarding_never_checks_for_a_python_interpreter() {
+        let r = onboard(&repo(), Some("claude".to_string()));
+        assert!(
+            r.findings.iter().all(|f| f.name != "python"),
+            "{:?}",
+            r.findings
+        );
     }
 
     #[test]

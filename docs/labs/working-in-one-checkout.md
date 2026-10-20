@@ -16,7 +16,7 @@ shared. What it duplicates is the *working tree*: every tracked file, checked ou
 ## The rules
 
 1. **One branch, one owner, at a time.** Before you start, claim the branch you will work
-   on. `scripts/harness/cli.py team claim --branch <name> --lab <lab>` records it and
+   on. `uor-harness team claim --branch <name> --lab <lab>` records it and
    refuses if another lab holds a live claim. Release it when you merge.
 2. **Never switch a branch you do not hold.** `git checkout` changes what every process in
    the directory sees, including another lab's build.
@@ -57,12 +57,12 @@ a worktree only when it is clean, has no ignored data, and its HEAD is already i
 
 ## Guardrails
 
-- `scripts/harness/cli.py check` includes `status.no_orphan_branches`, which reports a
+- `uor-harness check` includes `status.no_orphan_branches`, which reports a
   branch whose PR merged but which still exists.
 - `scripts/storage/worktree-audit --plan` prints, for every worktree, whether it is
   removable, whether it holds unmerged commits, and the exact `format-patch` command to
   preserve them first. It never removes anything itself.
-- The pre-commit hook (opt-in, `scripts/harness/cli.py git install-hooks`) blocks a commit
+- The pre-commit hook (opt-in, `uor-harness git install-hooks`) blocks a commit
   on a branch held by another lab. It installs into the shared `.git/hooks`, so install it
   deliberately, not by default.
 

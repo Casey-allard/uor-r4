@@ -388,6 +388,7 @@ mod skill_usage_tests {
             &["receipts.skill_usage_recorded".to_string()],
             crate::checkdispatch::Scope::Repo,
             0,
+            crate::statusdelivery::Github::Offline,
         );
         assert_eq!(
             super::SKILL_USAGE_RECORDED_CALLS.with(|c| c.get()),

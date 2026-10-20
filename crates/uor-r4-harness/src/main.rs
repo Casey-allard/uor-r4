@@ -1,11 +1,11 @@
-//! `uor-harness` — the Rust side of the harness port.
+//! `uor-harness` — the multi-lab research harness, and its only implementation.
 //!
-//! Today this reads and validates harness state against the frozen contract. It does not write, and
-//! it is not on the labs' path: the Python harness owns behaviour until this passes the same checks.
+//! The Python mirror (`scripts/harness/`) was archived on 20 October 2026 (owner rule: Rust only,
+//! D27, CHARTER §3.11); its source is kept byte-identical under `archive/scripts/harness/`.
 //!
 //! ```text
-//! uor-harness check [--repo DIR] [--json]   # state against the frozen contract
-//! uor-harness presence [--repo DIR]         # what each lab is doing, live tier first
+//! uor-harness check [--only PREFIX] [--json]   # every machine-checkable rule
+//! uor-harness status [--refresh] [--json]      # what is true now
 //! ```
 
 use std::path::{Path, PathBuf};
@@ -16,6 +16,7 @@ use uor_r4_harness::arenacompare;
 use uor_r4_harness::briefing;
 use uor_r4_harness::budget;
 use uor_r4_harness::githelp;
+use uor_r4_harness::heartbeatcard;
 use uor_r4_harness::hygiene;
 use uor_r4_harness::mistakes;
 use uor_r4_harness::multilab;
@@ -38,15 +39,14 @@ use uor_r4_harness::status;
 use uor_r4_harness::team;
 use uor_r4_harness::Contract;
 
-/// Flags that only a subcommand understands, forwarded rather than rejected at the top level.
-/// Flags a PORTED command shares with its Python original, forwarded rather than interpreted.
+/// Flags forwarded to the subcommand with their value rather than interpreted at the top level.
 ///
-/// `check` is delegated (57 rules), so `check --only <rule>` must reach Python intact. Without this
-/// the flag was forwarded alone and its value became the next command word.
-const PYTHON_PASSTHROUGH_FLAGS: [&str; 1] = ["--only"];
-const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
+/// `check --only <rule>` must reach `check`'s own parser intact. Without this the flag was
+/// forwarded alone and its value became the next command word.
+const PASSTHROUGH_FLAGS: [&str; 1] = ["--only"];
+const PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 
-/// Commands this binary implements. Anything else is delegated to the Python harness verbatim.
+/// Commands this binary implements. Anything else is a usage error (D30: no command reaches Python).
 ///
 /// Declared here rather than inferred from the dispatch below, because the decision must be made
 /// BEFORE flag parsing: an unported command's flags are unknown to this binary, and rejecting one
@@ -54,7 +54,9 @@ const PYTHON_PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
 use uor_r4_harness::ruleinventory::PORTED_COMMANDS;
 
-const SUBCOMMAND_FLAGS: [&str; 33] = [
+const SUBCOMMAND_FLAGS: [&str; 35] = [
+    // `status --refresh`: re-read GitHub instead of the 15-minute cache.
+    "--refresh",
     "--kind",
     "--milestone",
     "-m",
@@ -83,6 +85,8 @@ const SUBCOMMAND_FLAGS: [&str; 33] = [
     "--cached",
     "--mark-seen",
     "--no-notes",
+    // `heartbeat --print`: the card alone, recording nothing.
+    "--print",
     "--update-baseline",
     "--list",
     "--quiet",
@@ -93,7 +97,7 @@ const SUBCOMMAND_FLAGS: [&str; 33] = [
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 53] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 57] = [
     "--kind",
     "--milestone",
     "-m",
@@ -151,6 +155,11 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 53] = [
     "--panel",
     "--value",
     "--label",
+    // `brief`.
+    "--query",
+    "-q",
+    "--budget-tokens",
+    "--write",
 ];
 
 /// Per-command help, for the commands whose flags are not guessable from the global usage.
@@ -183,6 +192,7 @@ FLAGS:
         --session S     which session of this lab is checking in
         --lab L         the lab identity (default: $UOR_LAB)
         --dry-run       print the record instead of publishing it
+        --print         show the card without recording a receipt
         --no-notes      do not read the unread-notes cache
 
 WHAT IT WRITES:
@@ -234,7 +244,7 @@ ENVIRONMENT:
 ";
 
 const USAGE: &str = "\
-uor-harness - the multi-lab research harness (Rust side of the port)
+uor-harness - the multi-lab research harness
 
 USAGE:
     uor-harness <COMMAND> [--repo DIR]
@@ -243,10 +253,10 @@ COMMANDS:
     onboard     Verify this machine can use the harness, and say what to do
                 next. Read-only: records nothing, claims nothing. Exits 1 if
                 anything FAILs.
-    check       RUNS THE FULL RULE SET (delegated to Python until every rule
-                is ported). 57 rules; exits 1 on any error.
+    check       Runs every registered rule; exits 1 on any error. --only PREFIX
+                narrows the set; --staged runs the pre-commit set.
     check-formats  Check only the state formats against the frozen contract
-                (docs/harness/state-formats.json). One rule of the 57 - use
+                (docs/harness/state-formats.json). One rule of the set - use
                 `check` unless you specifically want this one.
     presence    What each lab is doing now. Live tier first, durable as the
                 fallback, reporting which answered.
@@ -289,18 +299,17 @@ COMMANDS:
                 sheet to FIT on the milestone before any compute.
     prep-check  Read every pre-registration sheet: its TEST FITNESS verdict and
                 which required blocks are missing. The read half of the D22 gate.
-    registry    The milestone registry as this implementation reads it: headline,
-                panel and line counts per milestone. Compared against Python by
-                parity.py, because the headline is the number a run is scored on.
+    registry    The milestone registry as the harness reads it: headline, panel
+                and line counts per milestone - the number a run is scored on.
     prep-render Render a pre-registration sheet to stdout without writing it. The
-                WRITE half of the D22 gate, checked byte-for-byte against Python.
-    brief       The context pack for a task. Section 1 (state) and the owner rules
-                are ported; the rest is listed as unported rather than omitted.
+                WRITE half of the D22 gate.
+    brief       The context pack for a task: state, rules, contract, lessons,
+                skills and receipts. [-m M] [-f FILE..] [-q TEXT] [--write PATH]
     shard-check Refuse a ledger shard that lost lines. A shard may grow and
                 may never shrink; exits 1 on a lost receipt. Compares the
                 working tree against --base (default origin/main).
-    status      What is true now. Sections 1 (milestones) and 2 (receipts) are
-                ported; section 3 (delivery) says so rather than rendering blank.
+    status      What is true now: milestones, receipts, delivery (branches,
+                worktrees, disk) and GitHub PRs. --refresh re-reads GitHub.
     ratchet     d23|d25|d32   (or the banned word each one counts) [--update-baseline] [--list] [--quiet]
                 The D23/D25/D32 ratchets (Rust port of the scripts/check_no_*.py pair
                 plus the D32 discrete-float gate). Exits 1 when a count grew;
@@ -311,8 +320,7 @@ COMMANDS:
                 unlinked machine-verified/exact-equivalence phrase.
     help        This text.
 
-The Python harness owns behaviour until this path passes the same checks; the
-formats are frozen so the two agree about what the shared record says.
+The shared record's formats are frozen in docs/harness/state-formats.json.
 ";
 
 fn main() -> ExitCode {
@@ -394,7 +402,7 @@ fn main() -> ExitCode {
                 } else if command
                     .as_deref()
                     .is_none_or(|c| !PORTED_COMMANDS.contains(&c))
-                    || PYTHON_PASSTHROUGH_FLAGS.contains(&other)
+                    || PASSTHROUGH_FLAGS.contains(&other)
                 {
                     // An unported command's flags are the PYTHON parser's business, and so are the
                     // few flags a ported command shares with its Python original. Forward the token
@@ -402,7 +410,7 @@ fn main() -> ExitCode {
                     // command word, so `check --only harness.state_formats` delegated the command
                     // `harness.state_formats`.
                     rest.push(other.to_string());
-                    if PYTHON_PASSTHROUGH_VALUE_FLAGS.contains(&other) {
+                    if PASSTHROUGH_VALUE_FLAGS.contains(&other) {
                         if let Some(v) = args.get(i + 1) {
                             rest.push(v.clone());
                             i += 1;
@@ -494,16 +502,15 @@ fn main() -> ExitCode {
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
         Some("prep-render") => cmd_prep_render(&repo, &rest),
-        Some("brief") => cmd_brief(&repo, &rest),
+        Some("brief") => cmd_brief(&repo, &rest, json),
         Some("shard-check") => cmd_shard_check(&repo, &rest, json),
-        Some("status") => cmd_status(&repo, &rest),
+        Some("status") => cmd_status(&repo, &rest, json),
         Some("ratchet") => cmd_ratchet(&repo, &rest),
         Some("claim-wording") => cmd_claim_wording(&repo),
         Some("lint") => cmd_lint(&repo, &rest, json),
         Some("check-rules") => {
-            // The port's coverage record. `parity.py` compares this against Python's registered
-            // rules, because `check`'s rule set changes while the port is in progress and a module
-            // that matched once can fall behind silently.
+            // The coverage record: which rule ids are implemented, by module. The retired
+            // `parity.py` compared it against Python's registered rules during the port.
             if json {
                 print!("{}", uor_r4_harness::ruleinventory::to_json());
             } else {
@@ -517,17 +524,6 @@ fn main() -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        // A command this binary has not ported yet runs the Python implementation BENEATH this
-        // entry point, and says so on every call.
-        //
-        // This is the half of the port that was missing: `cli.py` was still the front door, so four
-        // labs typed `python3` forty times a day and could not tell whether they were using the Rust
-        // harness or not. Now `uor-harness` is the interface and Python is an implementation detail
-        // that announces itself - the same honesty `brief` uses for its unported sections.
-        //
-        // The notice goes to stderr and is not suppressible, deliberately: a lab should know when it
-        // is still on the old path, and a silent delegation would make the remaining work invisible
-        // again - which is exactly how it stayed unfinished.
         // **D30: no command reaches Python.** Every subcommand has an arm above, so an
         // unrecognised one is a plain usage error. This arm used to forward to
         // scripts/harness/cli.py, which was the last live Python path in the harness.
@@ -939,8 +935,8 @@ fn cmd_mistakes(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 "  severity {severity}, class {class}, guard {}",
                 check.guard
             );
-            println!("  read it back: python3 scripts/harness/cli.py mistakes show {id}");
-            println!("  check: python3 scripts/harness/cli.py check --only mistakes");
+            println!("  read it back: uor-harness mistakes show {id}");
+            println!("  check: uor-harness check --only mistakes");
             ExitCode::SUCCESS
         }
         "" => {
@@ -1971,10 +1967,7 @@ fn cmd_multilab(repo: &Path, args: &[String], json: bool) -> ExitCode {
 
 /// `team <action>` - branch claims (D30 port of the Python `team`).
 ///
-/// `claim` / `release` / `claims` are here; `roster` and `dispatch` still delegate, because they read
-/// the roles registry and the port is landing in the order labs use it. **`team` is NOT in the
-/// delegated set**, so the "not ported yet" notice stays off for the actions that are Rust and each
-/// remaining action says so individually.
+/// `claim`, `release`, `claims`, `roster` and `dispatch`.
 fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     // The action is the first bare word that is NOT the value of a preceding value-taking flag.
@@ -2537,6 +2530,37 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
         );
         return ExitCode::from(2);
     }
+    let card_for = |key: &str| -> Result<heartbeatcard::Card, String> {
+        let regs = Registries::load(&paths)?;
+        let m = regs
+            .milestone(key)
+            .ok_or_else(|| heartbeatcard::unknown_milestone(&regs, key))?;
+        // `--doing` is the presence alias of `--line`, so the card names the line the check-in records.
+        Ok(heartbeatcard::build(
+            m,
+            flag_value(args, "--line")
+                .or_else(|| flag_value(args, "--doing"))
+                .as_deref(),
+            flag_value(args, "--count").as_deref(),
+            flag_value(args, "--next").as_deref(),
+        ))
+    };
+    // `--print` is the documented way to verify an identity, so it must leave no trace of one.
+    if args.iter().any(|a| a == "--print") {
+        let key = flag_value(args, "--milestone")
+            .or_else(|| flag_value(args, "-m"))
+            .unwrap_or_default();
+        return match card_for(&key) {
+            Ok(card) => {
+                println!("{}", card.text);
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                ExitCode::from(2)
+            }
+        };
+    }
     // **A check-in must not ERASE what the lab already said.** `heartbeat -m m1` with no `--line`
     // and no `--next` used to rewrite presence with both fields empty, so a lab checking in with
     // the documented command read as live-and-idle on every board - including its own last intent,
@@ -2625,6 +2649,17 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
             return ExitCode::from(1);
         }
     };
+    // A registry this checkout lacks costs the card, never the check-in.
+    let card = match card_for(&p.milestone) {
+        Ok(c) => Some(c.text),
+        Err(e) => {
+            eprintln!("uor-harness: no card: {e}");
+            None
+        }
+    };
+    if let (Some(text), false) = (&card, json) {
+        println!("{text}");
+    }
     // Surface unread notes as part of the check-in: presence without awareness is half the plane.
     // ALWAYS from the live-tier cache, never from GitHub: a five-minute check-in must stay instant, and
     // it used to phone the API here whenever the cache looked stale. Refreshing is the notes command
@@ -2657,11 +2692,12 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
     }
     if json {
         println!(
-            "{{\"lab\": {:?}, \"presence\": {:?}, \"receipt\": {:?}, \"live_tier\": {}}}",
+            "{{\"lab\": {:?}, \"presence\": {:?}, \"receipt\": {:?}, \"live_tier\": {}, \"card\": {}}}",
             lab,
             durable.display().to_string(),
             shard.display().to_string(),
-            live_ok
+            live_ok,
+            serde_json::to_string(&card).unwrap_or_else(|_| "null".to_string())
         );
     } else {
         println!("checked in: {} at {}", durable.display(), p.updated);
@@ -2675,7 +2711,14 @@ fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn cmd_brief(repo: &Path, args: &[String]) -> ExitCode {
+/// `brief -f a b c`: Python's `--files` is `nargs="*"`, so every value counts, not just the first.
+fn brief_files(args: &[String]) -> Vec<String> {
+    let mut files = flag_all_values(args, "--files");
+    files.extend(flag_all_values(args, "-f"));
+    files
+}
+
+fn cmd_brief(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     let regs = match Registries::load(&paths) {
         Ok(r) => r,
@@ -2688,20 +2731,59 @@ fn cmd_brief(repo: &Path, args: &[String]) -> ExitCode {
     let query = flag_value(args, "--query")
         .or_else(|| flag_value(args, "-q"))
         .unwrap_or_default();
+    let files = brief_files(args);
+    // A budget that does not parse is a usage error, as argparse's `type=int` makes it: a typo must
+    // not silently become the default.
+    let budget = match flag_value(args, "--budget-tokens") {
+        None => briefing::DEFAULT_BUDGET,
+        Some(v) => match v.parse() {
+            Ok(n) => n,
+            Err(_) => {
+                eprintln!("uor-harness brief: argument --budget-tokens: invalid int value: {v:?}");
+                return ExitCode::from(2);
+            }
+        },
+    };
     let pack = if flag_value(args, "--section1-only").is_some() {
         briefing::assemble(&regs, milestone.as_deref(), &query)
     } else {
-        briefing::assemble_full(&regs, &paths, milestone.as_deref(), &query)
+        briefing::assemble_full(&regs, &paths, milestone.as_deref(), &files, &query, budget)
     };
-    print!("{}", pack.render());
-    // The sections this port does not provide are STATED, not silently absent: a brief that omitted
-    // the session contract would read as a brief with no session contract.
-    println!();
-    println!(
-        "*Not ported to Rust yet:* the lessons that apply (7) and the skills (8), which need the \
-         mistakes and skills registries. `scripts/harness/cli.py brief` remains authoritative for \
-         those two."
-    );
+    let text = pack.render();
+    if json {
+        // Python's shape: the pack's provenance plus the rendered markdown.
+        let body = serde_json::json!({
+            "title": pack.title,
+            "tokens": pack.tokens(),
+            "sources": pack.sources.iter().map(|s| serde_json::json!({
+                "path": s.path, "reason": s.reason, "tokens": s.tokens, "section": "",
+            })).collect::<Vec<_>>(),
+            "dropped": pack.dropped,
+            "markdown": text,
+        });
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&body).unwrap_or_default()
+        );
+    } else if text.ends_with('\n') {
+        // Python's `emit` ends the output with exactly one newline.
+        print!("{text}");
+    } else {
+        println!("{text}");
+    }
+    if let Some(out) = flag_value(args, "--write") {
+        let out = Path::new(&out);
+        if let Some(dir) = out.parent().filter(|d| !d.as_os_str().is_empty()) {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        if let Err(e) = std::fs::write(out, format!("{text}\n")) {
+            eprintln!("uor-harness: cannot write {}: {e}", out.display());
+            return ExitCode::from(2);
+        }
+        if !args.iter().any(|a| a == "--quiet") {
+            eprintln!("wrote {}", out.display());
+        }
+    }
     ExitCode::SUCCESS
 }
 
@@ -2751,14 +2833,31 @@ fn cmd_shard_check(repo: &Path, args: &[String], json: bool) -> ExitCode {
     }
 }
 
-fn cmd_status(repo: &Path, args: &[String]) -> ExitCode {
+fn cmd_status(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     // A caller may pin the timestamp so two implementations can be compared; otherwise it is now.
     let now = flag_value(args, "--at").unwrap_or_else(uor_r4_harness::receipt::now_rfc3339);
+    // The view slices the instant into month and day, so a value that is not a full ISO-8601
+    // instant is a usage error rather than a panic.
+    if uor_r4_harness::state::parse_iso_unix(&now).is_none() || now.len() < 10 {
+        eprintln!("uor-harness status: --at must be an ISO-8601 instant, got {now:?}");
+        return ExitCode::from(2);
+    }
     // No `--lab`: section 2 aggregates EVERY lab's shard, so the view has no "whose receipts"
     // question to answer.
     let regs = Registries::load(&paths).ok();
-    print!("{}", status::render(&paths, regs.as_ref(), &now));
+    let gh = uor_r4_harness::statusdelivery::Github::Ask {
+        refresh: args.iter().any(|a| a == "--refresh"),
+    };
+    if json {
+        let data = status::status_json(&paths, regs.as_ref(), &now, gh);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&data).unwrap_or_else(|_| "{}".to_string())
+        );
+    } else {
+        print!("{}", status::render_with(&paths, regs.as_ref(), &now, gh));
+    }
     ExitCode::SUCCESS
 }
 
@@ -3085,7 +3184,14 @@ fn cmd_check_rules(
     } else {
         uor_r4_harness::checkdispatch::Scope::Repo
     };
-    let findings = uor_r4_harness::checkdispatch::run_scoped(&paths, &regs, &args.only, scope, now);
+    let findings = uor_r4_harness::checkdispatch::run_scoped(
+        &paths,
+        &regs,
+        &args.only,
+        scope,
+        now,
+        uor_r4_harness::statusdelivery::Github::Ask { refresh: false },
+    );
     let (checked, failed, errors, warnings) = uor_r4_harness::checkdispatch::summarize(&findings);
 
     // The frozen formats, in the same shape `check-formats` prints.
@@ -3388,12 +3494,10 @@ fn cmd_ledger(repo: &Path, json: bool) -> ExitCode {
 /// **This is the command that makes the thirteen ported gates reachable.** Everything it needs is
 /// `arena board|compare|lineage` — the regression arena.
 ///
-/// **`lineage` is Rust; `board` and `compare` are not yet and say so.** They share `arena::load`, which
-/// landed with this one, so the next unit is the rendering rather than the reading. This is a
-/// **regression** arena: the report is row by row against the parent, never an aggregate, because a
-/// candidate that gains 0.02 BPB while losing three memory rows is a regression with a headline.
-// The `--json` flag is deliberately unused here: Python's `lineage` action ignores it, because the
-// chain is already a list of ids); `board` honours it; `compare` is still delegated.
+/// `board`, `compare` and `lineage` share `arena::load`. This is a **regression** arena: the report
+/// is row by row against the parent, never an aggregate, because a candidate that gains 0.02 BPB
+/// while losing three memory rows is a regression with a headline.
+// `lineage` ignores `--json`, as Python's did, because the chain is already a list of ids.
 fn cmd_arena(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     let arena = arena::load(&paths.repo);
@@ -3940,5 +4044,25 @@ fn cmd_comment(repo: &Path, args: &[String], _json: bool) -> ExitCode {
             eprintln!("uor-harness comment edit: {e}");
             ExitCode::from(1)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn argv(s: &[&str]) -> Vec<String> {
+        s.iter().map(|a| a.to_string()).collect()
+    }
+
+    /// Keeping only the first file would brief a two-file task on one file, silently.
+    #[test]
+    fn brief_files_keeps_every_value_up_to_the_next_flag() {
+        let args = argv(&["-m", "m1", "-f", "a.rs", "b.md", "c.json", "-q", "harness"]);
+        assert_eq!(brief_files(&args), argv(&["a.rs", "b.md", "c.json"]));
+        assert_eq!(
+            brief_files(&argv(&["--files", "x", "y"])),
+            argv(&["x", "y"])
+        );
     }
 }

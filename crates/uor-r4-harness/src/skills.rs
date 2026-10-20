@@ -186,6 +186,66 @@ pub fn matching(skills: &[Skill], files: &[String]) -> Vec<Skill> {
         .collect()
 }
 
+/// Rank skills against a task description, as Python's `match_skills` does.
+///
+/// A `when` trigger outranks an incidental description-word overlap; weak matches show only when
+/// nothing triggered, or a generic word would route every skill.
+pub fn rank(skills: &[Skill], query: &str) -> Vec<(Skill, String)> {
+    let q = query.trim().to_lowercase();
+    let mut tokens: Vec<&str> = q
+        .split(|c: char| !(c.is_ascii_lowercase() || c.is_ascii_digit() || "_.-/".contains(c)))
+        .filter(|t| t.chars().count() > 2)
+        .collect();
+    tokens.sort_unstable();
+    tokens.dedup();
+    let mut strong: Vec<(usize, Skill, String)> = Vec::new();
+    let mut weak: Vec<(usize, Skill, String)> = Vec::new();
+    for s in skills {
+        let when_text = s.when.join(" ").to_lowercase();
+        let hay_desc = format!("{} {} {}", s.name, s.description, s.id).to_lowercase();
+        let mut hits: Vec<String> = Vec::new();
+        let mut weight = 0;
+        for trigger in &s.when {
+            let t = trigger.to_lowercase();
+            let t = t.trim();
+            if !q.is_empty() && !t.is_empty() && q.contains(t) {
+                hits.push(format!("when:{t}"));
+                weight += 60 + t.split_whitespace().count();
+            }
+        }
+        for t in &tokens {
+            if when_text.contains(t) {
+                hits.push(format!("when~{t}"));
+                weight += 10;
+            } else if hay_desc.contains(t) {
+                hits.push(format!("desc~{t}"));
+                weight += 1;
+            } else if let Some(pat) = s.applies_to.iter().find(|p| {
+                let p = p.to_lowercase();
+                crate::mistakes::fnmatch(&p, t) || crate::mistakes::fnmatch(&format!("*{t}*"), &p)
+            }) {
+                hits.push(format!("path~{pat}"));
+                weight += 8;
+            }
+        }
+        if hits.is_empty() {
+            continue;
+        }
+        hits.sort();
+        hits.dedup();
+        hits.truncate(4);
+        let entry = (weight, s.clone(), hits.join(", "));
+        if weight >= 10 {
+            strong.push(entry);
+        } else {
+            weak.push(entry);
+        }
+    }
+    let mut ranked = if strong.is_empty() { weak } else { strong };
+    ranked.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.id.cmp(&b.1.id)));
+    ranked.into_iter().map(|(_, s, why)| (s, why)).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -209,6 +269,18 @@ mod tests {
         .expect("write");
         let paths = StatePaths::resolve(repo, None, Some("/nonexistent-live"));
         (dir, paths)
+    }
+
+    /// A `when` trigger in the task text routes its skill and says why; unrelated text routes none.
+    #[test]
+    fn rank_routes_on_a_when_trigger_and_not_on_noise() {
+        let (_d, p) = fixture_repo();
+        let skills = load(&p);
+        let hits = rank(&skills, "please start a session for m1");
+        assert_eq!(hits.len(), 1, "{hits:?}");
+        assert_eq!(hits[0].0.id, "context-hydration");
+        assert!(hits[0].1.contains("when:start a session"), "{}", hits[0].1);
+        assert!(rank(&skills, "zebra quantum").is_empty());
     }
 
     #[test]

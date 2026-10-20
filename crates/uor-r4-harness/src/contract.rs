@@ -1,9 +1,9 @@
 //! The frozen state-format contract, and a checker that holds state to it.
 //!
 //! `docs/harness/state-formats.json` is the interface between the harness and its persisted state.
-//! The Python implementation enforces it (`scripts/harness/statecheck.py`, wired into `check` as
-//! `harness.state_formats`); this module enforces the same file the same way, so a state file that
-//! one implementation accepts cannot be silently rejected by the other.
+//! This module enforces it, wired into `check` as `harness.state_formats`. (A Python checker,
+//! `statecheck.py`, enforced the same file until it was removed; the Python mirror as a whole was
+//! archived on 20 October 2026.)
 //!
 //! The contract's rules, and why each exists:
 //!

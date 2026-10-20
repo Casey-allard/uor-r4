@@ -562,7 +562,7 @@ pub fn path_matches(pattern: &str, file: &str) -> bool {
 ///
 /// Verified against Python: `fnmatch('src/*.rs', 'src/deep/team.rs')` is True, and
 /// `fnmatch('a?c', 'a/c')` is True.
-fn fnmatch(pattern: &str, text: &str) -> bool {
+pub(crate) fn fnmatch(pattern: &str, text: &str) -> bool {
     fn go(p: &[u8], t: &[u8]) -> bool {
         if p.is_empty() {
             return t.is_empty();

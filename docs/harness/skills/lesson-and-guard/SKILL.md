@@ -4,7 +4,7 @@ description: Turn a mistake into a guard — capture the trigger, symptom, lesso
 version: 1
 harness: 1
 kind: research
-applies-to: [docs/harness/mistakes/*.md, scripts/harness/checkrules.py, docs/integration/DECISIONS.md]
+applies-to: [docs/harness/mistakes/*.md, crates/uor-r4-harness/src/checkdispatch.rs, docs/integration/DECISIONS.md]
 when: [we made a mistake, repeated failure, capture a lesson, add a guard, negative result, close a mechanism, regression]
 requires: [evidence-record]
 outputs: [a docs/harness/mistakes/<id>.md file with trigger symptom lesson and guard, a check rule id that fires on the mistake, a short note in the dated record that cites the mistake id]
@@ -42,8 +42,8 @@ The closure rules are D22 §1–§2 in
    looks like in a log, a review or a record), `## Lesson` (the instruction that
    prevents it), `## Guard` (the rule id, plus the command that runs it).
 4. **Write the guard as a machine check, not a resolution.** Add a rule to the
-   harness rule engine (`scripts/harness/checkrules.py` or a feature module's
-   `register_rules()`) whose id is dotted, e.g. `prlint.record` or
+   harness rule engine (a module's rules in `crates/uor-r4-harness/src/`, registered in the
+   `checkdispatch.rs` table and `ruleinventory.rs`) whose id is dotted, e.g. `prlint.record` or
    `skills.frontmatter`, and whose result names the exact fixing command in
    `fix`. The guard field in the mistake file must name that rule id; if no rule
    can express it, write `guard: none: <reason>` so the gap is visible instead of

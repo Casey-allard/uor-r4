@@ -49,7 +49,8 @@ trigger, symptom and lesson and names the rule that will catch it next time.
 
 The harness is a view over the authorities below, never a replacement for them; it runs no model
 compute, and its own output is never model evidence. [docs/harness/README.md](../harness/README.md)
-has the surface, [docs/harness/CONTRACT.md](../harness/CONTRACT.md) every rule and its rationale.
+has the surface, and `uor-harness check` lists every rule with the fix for each (the rule table is
+[`checkdispatch.rs`](../../crates/uor-r4-harness/src/checkdispatch.rs)).
 
 ## The contract
 

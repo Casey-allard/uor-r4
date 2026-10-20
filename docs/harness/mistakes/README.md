@@ -45,7 +45,7 @@ refuses to overwrite an existing lesson without `--force`.
 
 ## File format
 
-Front matter is the strict subset `scripts/harness/core.py` parses: scalars, inline lists
+Front matter is the strict subset `crates/uor-r4-harness/src/mistakes.rs` parses: scalars, inline lists
 (`[a, b]`) and block lists. Nothing else.
 
 ```yaml
@@ -87,7 +87,7 @@ not learned.
 | `warn` | expensive but survivable | preferably a guard |
 | `info` | worth knowing, cheap to ignore | no guard required |
 
-Rules this registry is checked by (all in `scripts/harness/mistakes.py`):
+Rules this registry is checked by (all in `crates/uor-r4-harness/src/mistakes.rs`):
 
 - `mistakes.registry_valid` (error): every file parses, ids are unique and equal their file
   names, severity/class/status/date are valid, and the required fields are present.
@@ -105,7 +105,7 @@ Rules this registry is checked by (all in `scripts/harness/mistakes.py`):
 2. **A trigger is a phrase someone would actually type** when they are about to repeat the
    mistake: `host fallback`, `only 1/3 seeds learned`, `report root`. Not a topic label.
 3. **A path is a glob for the files the mistake would touch again**, so the lesson is
-   recalled by file: `crates/**`, `docs/labs/**`, `scripts/harness/*.py`.
+   recalled by file: `crates/**`, `docs/labs/**`, `crates/uor-r4-harness/src/*.rs`.
 4. **If a rule can decide it, write the rule.** Then `guard:` names the rule id and the
    lesson stops depending on anyone's memory. `mistakes.guard_covered` warns when a
    `block` lesson claims a guard that does not exist.

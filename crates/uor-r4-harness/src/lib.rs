@@ -1,15 +1,10 @@
-//! The multi-lab research harness, on the Rust side of the port.
+//! The multi-lab research harness, and its only implementation.
 //!
 //! **Why this exists.** D27 (owner, 13 October 2026) makes Rust the default for all new project
-//! code *including tooling*, and grandfathers the Python harness in `scripts/harness/`. The
-//! formats that harness persists are frozen in `docs/harness/state-formats.json`, and this crate
-//! reads the same files, checks them against the same contract, and must agree with Python about
-//! what they mean. Two implementations checking one contract is what makes the port verifiable
-//! rather than a rewrite.
-//!
-//! **What it does not do yet.** The Python harness owns behaviour until this path passes the same
-//! checks. This crate currently reads and validates state; it does not write, and it is not on the
-//! labs' path. Claiming otherwise would be the mistake this project has made before.
+//! code *including tooling*. The harness began as Python in `scripts/harness/`; this crate ported
+//! it command by command against the formats frozen in `docs/harness/state-formats.json`, and on
+//! 20 October 2026 the owner retired the Python mirror (rule: Rust only). Its source is kept
+//! byte-identical under `archive/scripts/harness/` as the record the port was checked against.
 //!
 //! ```
 //! # use std::path::Path;
@@ -35,6 +30,7 @@ pub mod githelp;
 pub mod githubcards;
 pub mod harnessrules;
 pub mod harnessrules_stateformats;
+pub mod heartbeatcard;
 pub mod hygiene;
 pub mod mistakes;
 pub mod multilab;
@@ -59,6 +55,7 @@ pub mod shards;
 pub mod skills;
 pub mod state;
 pub mod status;
+pub mod statusdelivery;
 pub mod statusrules;
 pub mod statusrules_heartbeat;
 pub mod team;

@@ -5,10 +5,10 @@ date: 2026-10-13
 severity: block
 class: delivery
 trigger: [delete branch, remove branch, git push origin --delete, gh pr merge, auto merge, merge queue, clean up, after merge, orphan branch]
-paths: [.github/**, scripts/harness/githelp.py, docs/harness/claims.json]
+paths: [.github/**, crates/uor-r4-harness/src/githelp.rs, docs/harness/claims.json]
 milestones: [m1, m2, m3, m4, m5, m6, m7, m8]
 mechanism: ""
-guard: none: no machine check can intercept a direct `git push --delete`; the guard is the CLI refusing (`cli.py git delete-merged` proves the merge first), which only helps if it is the command you run
+guard: none: no machine check can intercept a direct `git push --delete`; the guard is the CLI refusing (`uor-harness git delete-merged` proves the merge first), which only helps if it is the command you run
 evidence: [archive/labs/harness-rust-port-2026-10-13/README.md]
 status: active
 ---

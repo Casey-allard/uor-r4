@@ -27,10 +27,9 @@ come from the owner through the PM.
 
 - **Rule.** Check in **at least every five minutes** while active: `heartbeat -m <milestone>` (the
   session contract's `--line` and `--count` flags are carried); the card carries headline · count ·
-  blocker · next dependency. Presence is live-tier since [#2327](https://github.com/UOR-Foundation/uor-r4/pull/2327):
-  the Python `cli.py heartbeat` delegates to the Rust `uor-harness heartbeat`, which is the only
-  implementation, and a missing binary is a usage error naming the build command
-  (`CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness`).
+  blocker · next dependency. Presence is live-tier since [#2327](https://github.com/UOR-Foundation/uor-r4/pull/2327),
+  and `uor-harness heartbeat` is the only implementation (build it with
+  `CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness`).
 - **Why.** The board marks a lab **STALE** once it has been quiet longer than the five-minute window —
   stale means working without checking in, which is worse than being visibly absent.
 - **Harness surface.** Live-tier presence at `~/.local/share/uor-r4/harness` (no checkout writes);
@@ -109,7 +108,7 @@ come from the owner through the PM.
 - **Coordination writes never need a checkout.** Since [#2326](https://github.com/UOR-Foundation/uor-r4/pull/2326)
   and [#2327](https://github.com/UOR-Foundation/uor-r4/pull/2327), `heartbeat` publishes presence and
   appends its receipt to the **live tier** (`~/.local/share/uor-r4/harness/`), which every lab on this
-  machine shares. `cli.py heartbeat` delegates to `uor-harness heartbeat`, the only implementation.
+  machine shares. `uor-harness heartbeat` is the only implementation.
   `uor-harness ledger-sync` appends your live receipts into the committed shard before you open a PR,
   so the record still reaches review. A check-in therefore dirties nothing, which is the property R10
   exists to protect. **As of 15 October, `receipt`, `skill use`, `prep fit` and `team dispatch` write the

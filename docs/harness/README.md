@@ -6,9 +6,12 @@ but almost nothing that **instruments** it. A session cannot tell from the repo 
 skill it used, which agents it dispatched, what the milestone headline is right now,
 what it cost, or which past failure applies to the file it is about to edit.
 
-`scripts/harness/cli.py` is that instrument. It is a zero-dependency Python CLI
-(and importable library) that turns the repo's existing authorities into one
-queryable surface and emits **receipts** so orchestration is visible after the fact.
+`uor-harness` is that instrument. It is one Rust binary (the crate
+[`crates/uor-r4-harness`](../../crates/uor-r4-harness)) that turns the repo's existing authorities
+into one queryable surface and emits **receipts** so orchestration is visible after the fact. It
+is the only implementation: the Python mirror it was ported from was retired on 20 October 2026
+(owner rule: Rust only, D27, CHARTER §3.11) and is kept byte-identical under
+`archive/scripts/harness/`.
 
 ## What it is not
 
@@ -95,38 +98,29 @@ catalogue and the archive INDEX are reachable only by already knowing they exist
 `current-state.md` is chronological. `docs/harness/mistakes/` is the topic index, and
 it is deliberately small: one entry per lesson that has a guard or a named trigger.
 
-## Getting started (any lab, no install)
+## Getting started (any lab)
 
-The harness is standard-library Python with **no dependencies and no setup step**. From a
-checkout of this repository:
+The harness is one Rust binary with no runtime dependencies. Build it once from a checkout of this
+repository and put it on `PATH`:
 
 ```sh
-export UOR_LAB=<your lab>          # kimi | claude | codex | deepseek
+CARGO_TARGET_DIR=local/harness-target ~/.cargo/bin/cargo build --release -p uor-r4-harness
+export PATH="$PWD/local/harness-target/release:$PATH"
+export UOR_LAB=<your lab>          # kimi | claude | codex | deepseek | antigravity
+uor-harness onboard
 uor-harness status
 ```
 
-That is the whole bootstrap. Two details are worth knowing because they are the only things
-that ever go wrong:
+Two details are worth knowing because they are the only things that ever go wrong:
 
-**Interpreter discovery, not Python version, is the real risk.** On this machine `python3`
-resolves to **3.9.6 in a login shell** (`/etc/zprofile` puts `/usr/bin` first) and **3.15.0 in a
-non-login shell** (an agent tool's PATH puts `/opt/homebrew/bin` first). Both work — the
-declared floor is 3.9 and every interpreter present is above it — but if you want one
-reproducible answer, pin it:
+**Use rustup's `cargo`.** On the owner's laptop `/opt/homebrew/bin/cargo` is a Node CLI that
+shadows the Rust toolchain whenever Homebrew precedes `~/.cargo/bin` on `PATH`; `uor-harness
+onboard` reports which `cargo` it found.
 
-```sh
-/usr/bin/uor-harness status        # system python, always 3.9+
-uv run --python 3.12 scripts/harness/cli.py status    # or a uv-managed 3.12
-```
-
-An interpreter below 3.9 now gets an explicit message naming the interpreter and the fix,
-instead of a raw traceback.
-
-**`--repo` is a global option and must come before the subcommand.** `cli.py check --repo X`
-fails; `cli.py --repo X check` works. From a directory that is not a checkout, the tool fails
-loudly rather than guessing.
-
-Verified: all 269 tests pass on both 3.9.6 and 3.15.0.
+**A stale binary rejects new flags.** `unknown option <flag>` usually means the binary predates the
+source; `uor-harness version` says which commit it was built from and whether `origin/main` is
+ahead. `--repo DIR` works before or after the subcommand; from a directory that is not a checkout,
+the tool fails loudly rather than guessing.
 
 **Joining for the first time?** [BOOTSTRAP.md](BOOTSTRAP.md) is a ten-minute, no-compute check that proves the tool runs on your runtime and that your claims and presence are visible to the other labs.
 
@@ -228,7 +222,7 @@ which is what the contract forbids.
 **Identity.** Set `UOR_LAB` once per session, or pass `--lab`:
 
 ```
-export UOR_LAB=kimi        # or: cli.py --lab kimi ...
+export UOR_LAB=kimi        # or: uor-harness --lab kimi ...
 ```
 
 Without it, receipts land in `ledger/unknown-<month>.jsonl` and are attributed to nobody. They
@@ -289,8 +283,10 @@ why a release rides a PR rather than sitting in a mirror nobody reviews.
 
 ## Rule engine
 
-`crates/uor-r4-harness` (and `scripts/harness/checkrules.py`) holds the rules; each rule has an id,
-a severity and a message that names the exact fix. `--staged` mode is used by the pre-commit hook.
+`crates/uor-r4-harness` holds the rules; each rule has an id, a severity and a message that names
+the exact fix. `--staged` mode is used by the pre-commit hook. `uor-harness status --refresh` and the
+`status.*` rules read GitHub through `gh` (cached for 15 minutes in the live tier); without `gh` they
+say what they could not check rather than reporting a pass.
 A rule added for a mistake cites that mistake's id, so a lesson becomes a guard rather than a note.
 `prlint.d23_interlock` runs both `uor-harness ratchet d23` (`softmax`, `softplus`, `sigmoid`, `tanh`,
 `gelu`, `silu`, `rope`, `ropei`, `rotary`) and `uor-harness ratchet d25` (`.matmul(`, `MatMul`, `cublas`,
@@ -307,4 +303,7 @@ worktree. Installing there changes commit behaviour for labs that never asked fo
 - it is **not installed by default**. Run `check` and `lint` yourself, or install the hook
   deliberately after telling the other active labs.
 
-The hook only ever blocks on `error` severity; `warn` and `info` print and pass.
+The hook runs `uor-harness check --staged`, so `uor-harness` must be on `PATH` for it to check
+anything; without it the hook lets the commit through. It only ever blocks on `error` severity;
+`warn` and `info` print and pass. A hook installed before 20 October 2026 (v1) ran the retired
+Python entry point; `uor-harness git install-hooks` upgrades it in place.
