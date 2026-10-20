@@ -9,13 +9,11 @@
 //! The realization is a small Merkle skeleton.  A section address commits to
 //! its semantic table identity (`id` and `flags`) and payload.  The artifact
 //! address then commits to the sorted list of section identities and section
-//! addresses.  Both levels are fed through the pinned CBOR realization of
-//! `uor-addr` on its BLAKE3 axis.
+//! addresses.  Both levels are fed through the CBOR realization on its BLAKE3
+//! axis: [`crate::cbor_address`], a prism-free port of the pinned `uor-addr`
+//! CBOR re-encoder that yields the same κ-labels.
 
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{string::String, vec::Vec};
 
 use crate::{GraphView, SectionId};
 
@@ -92,9 +90,7 @@ pub fn section_kappa(bytes: &[u8], id: SectionId) -> Option<String> {
 }
 
 fn address_cbor(skeleton: &[u8]) -> Option<String> {
-    uor_addr::cbor::address_blake3(skeleton)
-        .map(|outcome| outcome.address.to_string())
-        .ok()
+    crate::cbor_address::address_blake3(skeleton).ok()
 }
 
 fn section_skeleton(id: SectionId, flags: u32, payload: &[u8]) -> Vec<u8> {
@@ -171,5 +167,39 @@ mod tests {
         cbor_uint(&mut out, 24);
         cbor_uint(&mut out, 256);
         assert_eq!(out, [0x17, 0x18, 0x18, 0x19, 0x01, 0x00]);
+    }
+
+    /// The private skeleton builders, across every CBOR head width for ids,
+    /// flags, payload lengths and section counts, give the same κ through the
+    /// port as through the pinned upstream realization (a dev-dependency).
+    #[test]
+    fn skeleton_addresses_match_upstream_at_every_head_width() {
+        use alloc::{string::ToString, vec};
+
+        let upstream = |raw: &[u8]| {
+            uor_addr::cbor::address_blake3(raw)
+                .expect("upstream addresses the skeleton")
+                .address
+                .to_string()
+        };
+        let values = [0u32, 1, 23, 24, 255, 256, 65_535, 65_536, u32::MAX];
+        let mut sections = Vec::new();
+        for (i, &value) in values.iter().enumerate() {
+            for length in [0usize, 23, 24, 255, 256, 65_535, 65_536] {
+                let payload = vec![(i + length) as u8; length];
+                let skeleton = section_skeleton(SectionId(value), value, &payload);
+                let kappa = address_cbor(&skeleton).expect("port addresses the skeleton");
+                assert_eq!(kappa, upstream(&skeleton));
+                sections.push(SectionAddress {
+                    id: SectionId(value),
+                    flags: value,
+                    kappa,
+                });
+            }
+        }
+        for count in [0usize, 1, 23, 24, sections.len()] {
+            let skeleton = artifact_skeleton(&sections[..count]);
+            assert_eq!(address_cbor(&skeleton), Some(upstream(&skeleton)));
+        }
     }
 }

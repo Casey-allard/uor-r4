@@ -28,6 +28,12 @@ version gate).
 
 ## What it provides
 
+- **Representation-level address** (`r4g1.rs`, `cbor_address.rs`): the section and
+  artifact κ-labels used in manifests and attestations. `cbor_address` is a prism-free
+  port of the pinned `uor-addr` CBOR realization (BLAKE3 axis) for the CBOR subset an
+  R4G1 skeleton uses. `tests/cbor_address_parity.rs` checks it byte-for-byte against
+  the upstream crate, which is a dev-dependency only (20 Oct 2026; see the
+  [legacy-crate repair record](../../docs/labs/legacy-crate-repair-2026-10-19/README.md)).
 - **Newtypes** (`types.rs`): `NodeId`, `SectionOffset`, `TokenId`, `ScoreQ`
   (Q16.16 carrier), `Depth`, `Radius`, `ArtifactCid`, `SectionId` with the
   section inventory (HEAD/CODE/NODE/EDGE/ROUT/EMIT/EXCT/PROV/CERT/PTCH/SECT/

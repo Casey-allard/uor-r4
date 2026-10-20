@@ -181,6 +181,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/graph-format-cbor-port": {
+    "branch": "claude/graph-format-cbor-port",
+    "claimed_at": "2026-10-20T01:39:54-04:00",
+    "head": "fb639e3e7",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/injective-fit-fixes-20261018": {
     "branch": "claude/injective-fit-fixes-20261018",
     "claimed_at": "2026-10-18T18:32:44-04:00",

@@ -64,6 +64,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+#[cfg(feature = "alloc")]
+pub mod cbor_address;
 mod code;
 mod error;
 mod fmm;

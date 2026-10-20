@@ -56,7 +56,8 @@ Manifest changes:
 
 `Cargo.lock` loses `uor-r4-model-source`, the five `uor-matmul*` packages and `bytemuck`.
 None of them remains in the workspace graph. The git `uor-addr` and the two prism packages
-remain, reached only through `uor-r4-graph-format` (see *Not done*).
+remained, reached only through `uor-r4-graph-format`, until the 20 October follow-up below
+removed that path.
 
 `graph-cli`'s two kept modules name their error type as
 `uor_r4_model_source::SourceUnavailable`, which that crate re-exports unchanged from
@@ -105,8 +106,8 @@ not registered. Three evidence links in the archived
 `archive/canonical_quality_baseline_934_result.json` (`docs/attested_broad_baseline_833.md`,
 `docs/skipmix_endtoend_causal_908.md` and its `_result.json`) were moved to `archive/` by
 the cutover, so its link check fails (1 pass, 1 fail, 1 ignored when run). The archived
-result must not be edited; the manifest says to register the test once those paths resolve
-again.
+result must not be edited. The 20 October follow-up below registers it with a move-map
+resolver.
 
 ## Not done, for the owner
 
@@ -121,7 +122,8 @@ again.
   under the bans, so `.github/workflows/release.yml` skips all three jobs (`if: ${{ false }}`,
   reason and re-enable condition in-file), as D36 did for `deploy.yml`. Rewriting it for
   the UORLUT01 artifact is the separate M8 task.
-- **`uor-r4-graph-format` still links the D29-excluded prism packages.** It depends on
+- **Closed 20 Oct 2026; see the follow-up below.** *`uor-r4-graph-format` still links the
+  D29-excluded prism packages.* It depended on
   the git `uor-addr@165b51e3` (`default-features = false, features = ["alloc"]`), whose
   unconditional `uor-prism` dependency brings in `uor-prism-tensor` (a dense i8 matrix
   product at `tensor.rs:133` and a quantized sigmoid at `activation.rs:115`, crate
@@ -150,3 +152,62 @@ again.
   were already failing before this unit.
 - `uor-r4-core`, `uor-r4-integer`, `uor-r4-router` and `uor-r4-workbench` still fail
   `--all-targets` on historical bins and tests.
+
+## Follow-up, 20 October 2026: prism-free R4G1 κ and the #934 link fix
+
+**Owner decision (Casey, 20 Oct 2026): merge #2793, then port.** This follow-up closes the
+prism exception above.
+
+**The port.** `uor-r4-graph-format` no longer depends on the git `uor-addr`.
+- **New module:** [`src/cbor_address.rs`](../../../crates/uor-r4-graph-format/src/cbor_address.rs)
+  (no_std + `alloc`, 221 lines) ports upstream's CBOR re-encoder for exactly the four
+  major types an R4G1 skeleton uses: unsigned integers, byte strings, text strings and arrays.
+  It follows upstream's rules for them: minimal re-emission of non-minimal heads, definite
+  re-emission of indefinite strings and arrays, UTF-8, reserved values, trailing bytes, the
+  1,024-level depth bound, and additional information 31 on an integer read as 0.
+- **Label:** `blake3:` plus the BLAKE3 hex of the canonical bytes.
+- **Other major types:** refused. Upstream accepts them, but no skeleton contains one.
+- **Call site:** `r4g1.rs` calls the module instead of `uor_addr::cbor::address_blake3`.
+- **Upstream crate:** kept only as a dev-dependency, for the parity tests.
+- **Type identity (#618):** unaffected. The function returns a `String`, and no
+  `uor-foundation` type crosses the boundary.
+
+**Byte identity, checked against upstream (rev `165b51e3`):**
+- **`tests/cbor_address_parity.rs`, 9 tests:**
+  - every unsigned-integer boundary in every head width;
+  - byte and text strings at every length boundary up to 70,000 bytes;
+  - indefinite and chunked forms, including a character split across chunks;
+  - nested and non-minimal arrays;
+  - malformed input and every prefix of a valid item;
+  - the depth bound at 1,023, 1,024 and 1,025 levels;
+  - 20,000 generated subset items, each also with a 1-bit mutation;
+  - 48 built R4G1 artifacts, compared at the artifact and section level.
+
+  For each input, both implementations give the same label or both refuse it.
+- **`r4g1::tests::skeleton_addresses_match_upstream_at_every_head_width`:** the private
+  section and artifact skeleton builders, at every id, flags, payload-length and section-count
+  head width.
+- **No committed R4G1 artifacts:** the repository has none (no `R4G1` magic in any tracked
+  file), so the artifacts are built in-test with `ArtifactBuilder`.
+- **The tests catch real faults:** removing the port's UTF-8 check fails 3 parity tests, and
+  moving its depth bound to 1,023 fails 1.
+
+**#934.** `canonical_quality_baseline_934` is registered. Its link check now follows a
+missing `docs/…` path through the cutover move map
+(`docs/labs/repo-renormalization-2026-10-19/cutover/move-map.tsv`) to its byte-identical
+`archive/…` copy. The archived result is not edited. Without the resolver the test fails on
+`docs/attested_broad_baseline_833.md`; with it, 2 pass and 1 is ignored (that one needs the
+local #833 bundle).
+
+**Checks at the follow-up head (owner's laptop; no model compute):**
+
+| Check | Result |
+|---|---|
+| `cargo tree -e normal,build -p <pkg> \| grep -cE 'uor-prism-(tensor\|numerics)'` for root, `graph-format`, `graph-compiler`, `graph-certify`, `api`, `proof-model`, `graph-cli`, `graph-runtime`, `router` | 0 for every package; no normal or build graph links the git `uor-addr` |
+| `cargo check --keep-going -p <pkg> --all-targets` for the eight packages above (router excepted) | pass, with 0 errors and 0 own warnings; `router` keeps its 40 historical-target errors |
+| `cargo check -p uor-r4-graph-format --no-default-features` / `--features alloc` | pass |
+| `cargo test -p <pkg> --no-fail-fast` | `graph-format` 197/197; `graph-compiler` 91/91; `graph-certify` 63 pass, 3 ignored; `proof-model` 10/10; `graph-cli` 17/17; `graph-runtime` 30 pass, 1 ignored; root 6/6; `api` 2 pass, 1 ignored |
+| `uor-harness ratchet d23` / `d25` | 2,253 across 154 files and 93 across 26 files, equal to baseline |
+| `cargo run -q --locked -p uor-r4-claim-wording -- .` | pass |
+| `cargo fmt --check` | pass |
+| `uor-harness check` | 0 errors |

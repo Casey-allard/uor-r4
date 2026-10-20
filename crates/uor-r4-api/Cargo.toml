@@ -4,20 +4,20 @@ license = "MIT"
 version = "0.1.0"
 edition = "2021"
 description = "Typed compile and engine APIs over the uor-r4 transformerless graph stack, for library consumers"
-# Legacy-crate repair (19 Oct 2026): the bins, examples and integration tests
-# drive the historical engine and model APIs (lib.rs) and are not built; see
-# src/native_support.rs. canonical_quality_baseline_934 builds on the native
-# surface but is not registered: three evidence links in the archived
-# archive/canonical_quality_baseline_934_result.json (docs/attested_broad_baseline_833.md,
-# docs/skipmix_endtoend_causal_908.md and its _result.json) were moved to
-# archive/ by the docs cutover (#2789), so its link check fails; register it
-# once those paths resolve again.
+# Legacy-crate repair (19 Oct 2026): the bins, examples and the other integration
+# tests drive the historical engine and model APIs (lib.rs) and are not built;
+# see src/native_support.rs. canonical_quality_baseline_934 uses only the native
+# surface; it follows evidence links the docs cutover (#2789) moved to archive/
+# through the cutover move map.
 autobins = false
 autoexamples = false
 autotests = false
 
 [lib]
 path = "src/native_support.rs"
+
+[[test]]
+name = "canonical_quality_baseline_934"
 
 [features]
 # Explicit CPU floating-point research boundary; never enabled by default.

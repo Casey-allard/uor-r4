@@ -602,10 +602,32 @@ fn committed_diagnostic_has_valid_schema_arithmetic_scope_and_links() {
             "evidence link escapes the repository: {relative}"
         );
         assert!(
-            repo_root().join(path).is_file(),
+            resolve_evidence(relative).is_some(),
             "evidence link does not resolve to a file: {relative}"
         );
     }
+}
+
+/// The docs cutover's move map (#2789): `docs/…` paths moved byte-identical
+/// to `archive/…`, one `from<TAB>to` row per file.
+const CUTOVER_MOVE_MAP: &str = "docs/labs/repo-renormalization-2026-10-19/cutover/move-map.tsv";
+
+/// Resolve a committed evidence link to a file. The archived diagnostic is
+/// immutable, so a link to a path the docs cutover moved is followed through
+/// the cutover's move map rather than rewritten.
+fn resolve_evidence(relative: &str) -> Option<PathBuf> {
+    let root = repo_root();
+    let direct = root.join(relative);
+    if direct.is_file() {
+        return Some(direct);
+    }
+    let map = std::fs::read_to_string(root.join(CUTOVER_MOVE_MAP))
+        .expect("the docs cutover move map is readable");
+    map.lines()
+        .filter_map(|row| row.split_once('\t'))
+        .find(|(from, _)| *from == relative)
+        .map(|(_, to)| root.join(to))
+        .filter(|moved| moved.is_file())
 }
 
 #[test]
