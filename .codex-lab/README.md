@@ -51,7 +51,7 @@ state. It neither launches a model nor certifies complete understanding.
 Read the actual documents and source linked by the receipt.
 
 Use the [architecture audit](../archive/integration/architecture-2026-09/README.md),
-[research archive](../research/README.md), and `uor_knowledge` for navigation.
+[research archive](../projects/README.md), and `uor_knowledge` for navigation.
 The knowledge service is a historical snapshot, including old current-state
 copies. Verify every decision-relevant result at its source revision. Follow a
 mechanism recursively through caller, representation, training objective,

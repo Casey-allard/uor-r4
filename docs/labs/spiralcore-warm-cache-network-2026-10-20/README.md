@@ -5,7 +5,7 @@ No model compute, training, serving or dose-path change.
 
 ## Delivered
 
-[spiralcore-base/warm-cache](../../../spiralcore-base/warm-cache/README.md)
+[projects/spiralcore/warm-cache](../../../projects/spiralcore/warm-cache/README.md)
 contains:
 
 - F F F F four-oscillator Kuramoto clock with a 24-byte forward time header;
@@ -35,12 +35,12 @@ contains:
 - Emulated WAN at 60 ms one-way: warm identity ~63-122 ms; repair ~62-118 ms.
 
 Evidence lives in
-[results](../../../spiralcore-base/warm-cache/rust/results/) and is described in
-[PROTOTYPE_RESULTS.md](../../../spiralcore-base/warm-cache/PROTOTYPE_RESULTS.md).
+[results](../../../projects/spiralcore/warm-cache/rust/results/) and is described in
+[PROTOTYPE_RESULTS.md](../../../projects/spiralcore/warm-cache/PROTOTYPE_RESULTS.md).
 
 ## Verify
 
-    cd spiralcore-base/warm-cache/rust/warm-cache-proto
+    cd projects/spiralcore/warm-cache/rust/warm-cache-proto
     CARGO_TARGET_DIR=../../local-target cargo test --offline
 
 QUIC binaries load test certificates from WARM_CERT_DIR; generate them with

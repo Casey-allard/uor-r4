@@ -7,7 +7,7 @@ mechanisms, measured results, mathematical foundations and future integration?
 **Decision: documentation reconciliation; no model promotion or scientific verdict.**
 Work began from fetched main `9a343425949939c4d02668c8583c56dedaf1254f`,
 which includes the original Dose1 custody record at `c7cfc2e1`.
-The [plan](../../superpowers/plans/2026-10-18-documentation-reconciliation.md)
+The [plan](../../../archive/superpowers/plans/2026-10-18-documentation-reconciliation.md)
 tracks this bounded deliverable. The parent arranges independent review; delivery is draft-only.
 
 ## Primary sources and corrections

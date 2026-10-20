@@ -10,6 +10,7 @@
 - [Where UOR-R4 is going](start/where-were-going.md)
 - [Frequently asked questions](start/faq.md)
 - [Glossary](start/glossary.md)
+- [How the repository is laid out](start/repository-layout.md)
 
 # Products
 

@@ -6,7 +6,7 @@ by the CLI and API. Use the [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
 and [model direction](../../archive/integration/model-direction-2026-09.md).
-[Research storage](../../research/README.md) and the
+[Research storage](../../projects/README.md) and the
 [local knowledge index](../uor-knowledge/README.md) locate preserved experiments,
 checkpoints and negative results. Bounded native attention and inference have
 artifact-scoped evidence; general prose completion and general reasoning remain

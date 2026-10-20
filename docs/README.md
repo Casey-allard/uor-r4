@@ -35,6 +35,7 @@ sources.*
 | Know where the project stands, with numbers | [Where we are](start/where-we-are.md) and the short [STATUS](../STATUS.md) page |
 | Know where it is going | [Where we're going](start/where-were-going.md) and the milestone table in [ROADMAP](../ROADMAP.md) |
 | See which transformer part each mechanism replaces | [Transformer vs geometry](start/transformer-vs-geometry.md) |
+| Find your way around the folders | [How the repository is laid out](start/repository-layout.md) |
 | Learn what will ship | [The three products](products/README.md): the [model](products/language-model.md), the [web client](products/web-client.md) and the [desktop client](products/desktop-client.md) |
 | Follow the model from text in to word out | [The model, end to end](model/architecture.md), then [training](model/training.md), [data and tokenizer](model/data-and-tokenizer.md), [serving and export](model/serving-and-export.md) and [GPUs and CUDA](model/gpu-and-cuda.md) |
 | Check whether a mechanism is alive and what would reopen it | The [mechanism board](mechanisms/README.md): ACTIVE, READY or PARKED, one page per mechanism |

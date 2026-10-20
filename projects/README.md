@@ -16,6 +16,8 @@ Three rules keep the side projects from being mistaken for model results:
 2. **Old claims keep their original scope.** Files imported from the owner's earlier workspaces carry labels such as "canonical" that applied to their own old repository, not to this one.
 3. **Source goes to git, bulk goes to the store.** Code, Lean files, LaTeX and short notes come into the project folder. Images, PDFs, corpora and run outputs stay in the private store and are checked by hash.
 
+Until 20 October 2026 the owner's laptop kept working copies of these projects in a gitignored `research/` folder at the top of the repository. That folder is retired. The source is here, and the full tree is in the private store under `research-archive/2026-10-19/`, which was checked file by file against the laptop copy on 20 October. The folder's old README is kept in [`archive/research-root-README.md`](../archive/research-root-README.md).
+
 ## The projects
 
 | Folder | What it is | Where it stands | Model link |

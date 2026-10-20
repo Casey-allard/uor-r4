@@ -41,14 +41,12 @@ pub const DEFAULT_PREFIXES: &[&str] = &[
     "models/",
     "tools/",
     "proofs/",
-    "spiralcore-base/",
+    "projects/spiralcore/",
     "research/",
     "profiles/",
     "ops/",
     "relation-pools/",
-    "t2/",
     "prototypes/",
-    "assets/",
 ];
 
 const CODE_EXTS: &[&str] = &[

@@ -35,7 +35,7 @@ Claude outputs/
 .zed/
 
 # Finished numeric run output lives on canonical /workspace or cloud-store.
-/t2/run*/
+/archive/t2/run*/
 /archive/research/minilm-phase0/run*/
 
 # Local-only data and tool state (owner, 9 October 2026): never committed.
@@ -57,8 +57,7 @@ __pycache__/
 # 30 GB disk floor. The bytes live in `icloud:UOR-R4/results/owner-docs/` and restore with
 # `scripts/storage/research-data restore <name> --run`. The owner checkout keeps a working copy;
 # worktrees must not carry one.
-/research/*
-!/research/README.md
+/research/
 
 # macOS AppleDouble files (ExFAT external drives)
 ._*

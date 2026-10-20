@@ -40,6 +40,8 @@ The HTML reference defines a fixed graph of rotations over the 16 roots of one E
 
 The wire transport code lives in [`wire/`](wire/). It is standalone and is not a member of the repository workspace.
 
+A separate warm-cache networking exploration (DeepSeek, #2808) lives in [`warm-cache/`](warm-cache/README.md); it does not share code with `wire/` and is not a workspace member either.
+
 ## Where it stands
 
 | Claim | Kind | Evidence |
