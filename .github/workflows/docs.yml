@@ -97,3 +97,10 @@ jobs:
 
       - name: Claim-wording gate
         run: cargo run -q --locked -p uor-r4-claim-wording -- .
+
+      - name: Generated catalog and figures are current
+        run: |
+          set -euo pipefail
+          cargo run -q --locked -p xtask -- docs-catalog --check
+          cargo run -q --locked -p xtask -- figures-math
+          cargo run -q --locked -p xtask -- figures-charts

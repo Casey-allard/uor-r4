@@ -110,14 +110,14 @@ impl St {
     }
 }
 
-fn esc(s: &str) -> String {
+pub(crate) fn esc(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
 }
 
 /// Rough rendered width of `s` at `size` px in the figures' sans-serif face.
-fn text_width(s: &str, size: f64, bold: bool) -> f64 {
+pub(crate) fn text_width(s: &str, size: f64, bold: bool) -> f64 {
     let per = if bold { 0.6 } else { 0.55 };
     s.chars().count() as f64 * size * per
 }

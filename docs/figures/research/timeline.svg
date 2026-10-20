@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 568" width="960" height="568" role="img" aria-labelledby="t d">
+<title id="t">Phases and weekly activity, June to October 2026</title>
+<desc id="d">A time axis from 10 June to 19 October 2026. Two rows of bands mark the five phases A to E. Below, an area chart of catalog records per day: nothing before 21 Jul (GitHub items only), then a rise to a peak of 74 records on 13 Oct.</desc>
+<style>
+svg { --bg:#ffffff; --ink:#1f2328; --body:#2b3138; --muted:#57606a; --rule:#d0d7de; --panel:#f6f8fa;
+      --blue:#0072b2; --sky:#56b4e9; --green:#007a5e; --orange:#e69f00; --verm:#d55e00; --purple:#7a4fa3; --pink:#cc79a7; }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --ink:#e6edf3; --body:#c9d1d9; --muted:#8b949e; --rule:#30363d; --panel:#161b22;
+      --blue:#58a6ff; --sky:#79c0ff; --green:#3fb950; --orange:#f0b72f; --verm:#ff7b72; --purple:#bc8cff; --pink:#f778ba; } }
+.bg { fill: var(--bg); }
+text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--ink); }
+.b { font-weight: 600; }
+.t-ink { fill: var(--ink); } .f-ink { fill: var(--ink); } .s-ink { stroke: var(--ink); }
+.t-body { fill: var(--body); } .f-body { fill: var(--body); } .s-body { stroke: var(--body); }
+.t-muted { fill: var(--muted); } .f-muted { fill: var(--muted); } .s-muted { stroke: var(--muted); }
+.t-rule { fill: var(--rule); } .f-rule { fill: var(--rule); } .s-rule { stroke: var(--rule); }
+.t-panel { fill: var(--panel); } .f-panel { fill: var(--panel); } .s-panel { stroke: var(--panel); }
+.t-bg { fill: var(--bg); } .f-bg { fill: var(--bg); } .s-bg { stroke: var(--bg); }
+.t-blue { fill: var(--blue); } .f-blue { fill: var(--blue); } .s-blue { stroke: var(--blue); }
+.t-sky { fill: var(--sky); } .f-sky { fill: var(--sky); } .s-sky { stroke: var(--sky); }
+.t-green { fill: var(--green); } .f-green { fill: var(--green); } .s-green { stroke: var(--green); }
+.t-orange { fill: var(--orange); } .f-orange { fill: var(--orange); } .s-orange { stroke: var(--orange); }
+.t-verm { fill: var(--verm); } .f-verm { fill: var(--verm); } .s-verm { stroke: var(--verm); }
+.t-purple { fill: var(--purple); } .f-purple { fill: var(--purple); } .s-purple { stroke: var(--purple); }
+.t-pink { fill: var(--pink); } .f-pink { fill: var(--pink); } .s-pink { stroke: var(--pink); }
+</style>
+<rect class="bg" x="0" y="0" width="960" height="568"/>
+<text x="16" y="34" font-size="20" class="t-ink b" text-anchor="start">Five approaches in sequence, and the records each day left behind</text>
+<text x="16" y="54" font-size="12" class="t-muted" text-anchor="start">Catalog records per day, 10 June to 19 October 2026, under the five phases A to E.</text>
+<rect x="64" y="76" width="520" height="20" fill-opacity="0.28" class="f-blue s-blue" stroke-width="1.5"/>
+<text x="324" y="91" font-size="13" class="t-ink b" text-anchor="middle">A</text>
+<rect x="570.7" y="100" width="100" height="20" fill-opacity="0.28" class="f-orange s-orange" stroke-width="1.5"/>
+<text x="620.7" y="115" font-size="13" class="t-ink b" text-anchor="middle">B</text>
+<rect x="664" y="76" width="120" height="20" fill-opacity="0.28" class="f-green s-green" stroke-width="1.5"/>
+<text x="724" y="91" font-size="13" class="t-ink b" text-anchor="middle">C</text>
+<rect x="784" y="100" width="106.7" height="20" fill-opacity="0.28" class="f-purple s-purple" stroke-width="1.5"/>
+<text x="837.3" y="115" font-size="13" class="t-ink b" text-anchor="middle">D</text>
+<rect x="877.3" y="76" width="66.7" height="20" fill-opacity="0.28" class="f-verm s-verm" stroke-width="1.5"/>
+<text x="910.7" y="91" font-size="13" class="t-ink b" text-anchor="middle">E</text>
+<text x="64" y="140" font-size="11" class="t-muted" text-anchor="start">records per day</text>
+<line x1="64" y1="330" x2="944" y2="330" class="s-rule" stroke-width="1"/>
+<text x="56" y="334" font-size="11" class="t-muted" text-anchor="end">0</text>
+<line x1="64" y1="285" x2="944" y2="285" class="s-rule" stroke-width="1"/>
+<text x="56" y="289" font-size="11" class="t-muted" text-anchor="end">20</text>
+<line x1="64" y1="240" x2="944" y2="240" class="s-rule" stroke-width="1"/>
+<text x="56" y="244" font-size="11" class="t-muted" text-anchor="end">40</text>
+<line x1="64" y1="195" x2="944" y2="195" class="s-rule" stroke-width="1"/>
+<text x="56" y="199" font-size="11" class="t-muted" text-anchor="end">60</text>
+<line x1="64" y1="150" x2="944" y2="150" class="s-rule" stroke-width="1"/>
+<text x="56" y="154" font-size="11" class="t-muted" text-anchor="end">80</text>
+<line x1="97.3" y1="150" x2="97.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="144" y1="150" x2="144" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="190.7" y1="150" x2="190.7" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="237.3" y1="150" x2="237.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="284" y1="150" x2="284" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="330.7" y1="150" x2="330.7" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="377.3" y1="150" x2="377.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="424" y1="150" x2="424" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="470.7" y1="150" x2="470.7" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="517.3" y1="150" x2="517.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="564" y1="150" x2="564" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="610.7" y1="150" x2="610.7" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="657.3" y1="150" x2="657.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="704" y1="150" x2="704" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="750.7" y1="150" x2="750.7" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="797.3" y1="150" x2="797.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="844" y1="150" x2="844" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="890.7" y1="150" x2="890.7" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="937.3" y1="150" x2="937.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<rect x="64" y="150" width="273.3" height="180" fill-opacity="1" class="f-panel"/>
+<text x="200.7" y="240" font-size="11" class="t-muted" text-anchor="middle">GitHub items only</text>
+<text x="200.7" y="254" font-size="11" class="t-muted" text-anchor="middle">no catalog records</text>
+<path d="M337.3,330 L337.3,327.8 L344,327.8 L344,330 L350.7,330 L350.7,330 L357.3,330 L357.3,321 L364,321 L364,330 L370.7,330 L370.7,330 L377.3,330 L377.3,330 L384,330 L384,327.8 L390.7,327.8 L390.7,325.5 L397.3,325.5 L397.3,330 L404,330 L404,325.5 L410.7,325.5 L410.7,327.8 L417.3,327.8 L417.3,327.8 L424,327.8 L424,330 L430.7,330 L430.7,327.8 L437.3,327.8 L437.3,325.5 L444,325.5 L444,330 L450.7,330 L450.7,309.8 L457.3,309.8 L457.3,327.8 L464,327.8 L464,330 L470.7,330 L470.7,327.8 L477.3,327.8 L477.3,330 L484,330 L484,330 L490.7,330 L490.7,330 L497.3,330 L497.3,327.8 L504,327.8 L504,327.8 L510.7,327.8 L510.7,325.5 L517.3,325.5 L517.3,327.8 L524,327.8 L524,323.2 L530.7,323.2 L530.7,323.2 L537.3,323.2 L537.3,318.8 L544,318.8 L544,312 L550.7,312 L550.7,307.5 L557.3,307.5 L557.3,330 L564,330 L564,327.8 L570.7,327.8 L570.7,327.8 L577.3,327.8 L577.3,318.8 L584,318.8 L584,321 L590.7,321 L590.7,300.8 L597.3,300.8 L597.3,323.2 L604,323.2 L604,316.5 L610.7,316.5 L610.7,325.5 L617.3,325.5 L617.3,312 L624,312 L624,294 L630.7,294 L630.7,240 L637.3,240 L637.3,316.5 L644,316.5 L644,298.5 L650.7,298.5 L650.7,300.8 L657.3,300.8 L657.3,294 L664,294 L664,316.5 L670.7,316.5 L670.7,323.2 L677.3,323.2 L677.3,327.8 L684,327.8 L684,330 L690.7,330 L690.7,298.5 L697.3,298.5 L697.3,312 L704,312 L704,330 L710.7,330 L710.7,330 L717.3,330 L717.3,330 L724,330 L724,330 L730.7,330 L730.7,330 L737.3,330 L737.3,300.8 L744,300.8 L744,251.2 L750.7,251.2 L750.7,217.5 L757.3,217.5 L757.3,269.2 L764,269.2 L764,289.5 L770.7,289.5 L770.7,235.5 L777.3,235.5 L777.3,271.5 L784,271.5 L784,305.2 L790.7,305.2 L790.7,246.8 L797.3,246.8 L797.3,289.5 L804,289.5 L804,309.8 L810.7,309.8 L810.7,327.8 L817.3,327.8 L817.3,298.5 L824,298.5 L824,298.5 L830.7,298.5 L830.7,303 L837.3,303 L837.3,276 L844,276 L844,307.5 L850.7,307.5 L850.7,327.8 L857.3,327.8 L857.3,330 L864,330 L864,330 L870.7,330 L870.7,199.5 L877.3,199.5 L877.3,280.5 L884,280.5 L884,267 L890.7,267 L890.7,269.2 L897.3,269.2 L897.3,163.5 L904,163.5 L904,181.5 L910.7,181.5 L910.7,262.5 L917.3,262.5 L917.3,282.8 L924,282.8 L924,249 L930.7,249 L930.7,206.2 L937.3,206.2 L937.3,258 L944,258 L944,330 Z" fill-opacity="0.35" stroke-width="1.5" stroke-linejoin="round" class="f-blue s-blue"/>
+<line x1="64" y1="330" x2="944" y2="330" class="s-muted" stroke-width="1"/>
+<text x="894.7" y="157.5" font-size="11" class="t-muted" text-anchor="end">peak: 74 records on 13 Oct</text>
+<text x="64" y="348" font-size="11" class="t-muted" text-anchor="start">10 Jun</text>
+<line x1="204" y1="330" x2="204" y2="335" class="s-muted" stroke-width="1"/>
+<text x="204" y="348" font-size="13" class="t-body" text-anchor="middle">1 Jul</text>
+<line x1="410.7" y1="330" x2="410.7" y2="335" class="s-muted" stroke-width="1"/>
+<text x="410.7" y="348" font-size="13" class="t-body" text-anchor="middle">1 Aug</text>
+<line x1="617.3" y1="330" x2="617.3" y2="335" class="s-muted" stroke-width="1"/>
+<text x="617.3" y="348" font-size="13" class="t-body" text-anchor="middle">1 Sep</text>
+<line x1="817.3" y1="330" x2="817.3" y2="335" class="s-muted" stroke-width="1"/>
+<text x="817.3" y="348" font-size="13" class="t-body" text-anchor="middle">1 Oct</text>
+<text x="944" y="348" font-size="11" class="t-muted" text-anchor="end">19 Oct</text>
+<text x="16" y="378" font-size="13" class="t-ink b" text-anchor="start">Phases</text>
+<rect x="16" y="381" width="24" height="16" fill-opacity="0.28" class="f-blue s-blue" stroke-width="1.5"/>
+<text x="28" y="393" font-size="12" class="t-body" text-anchor="middle">A</text>
+<text x="52" y="393" font-size="13" class="t-body" text-anchor="start">Compile a teacher into tables  (10 Jun to 26 Aug)</text>
+<rect x="16" y="405" width="24" height="16" fill-opacity="0.28" class="f-orange s-orange" stroke-width="1.5"/>
+<text x="28" y="417" font-size="12" class="t-body" text-anchor="middle">B</text>
+<text x="52" y="417" font-size="13" class="t-body" text-anchor="start">Learned geometric decoder  (25 Aug to 8 Sep)</text>
+<rect x="16" y="429" width="24" height="16" fill-opacity="0.28" class="f-green s-green" stroke-width="1.5"/>
+<text x="28" y="441" font-size="12" class="t-body" text-anchor="middle">C</text>
+<text x="52" y="441" font-size="13" class="t-body" text-anchor="start">Native learner and exact memory  (8 Sep to 25 Sep)</text>
+<rect x="16" y="453" width="24" height="16" fill-opacity="0.28" class="f-purple s-purple" stroke-width="1.5"/>
+<text x="28" y="465" font-size="12" class="t-body" text-anchor="middle">D</text>
+<text x="52" y="465" font-size="13" class="t-body" text-anchor="start">Geometric stack, labs, chat and memory  (26 Sep to 11 Oct)</text>
+<rect x="16" y="477" width="24" height="16" fill-opacity="0.28" class="f-verm s-verm" stroke-width="1.5"/>
+<text x="28" y="489" font-size="12" class="t-body" text-anchor="middle">E</text>
+<text x="52" y="489" font-size="13" class="t-body" text-anchor="start">Lawful operators and the discrete substrate  (10 Oct to 19 Oct)</text>
+<text x="16" y="532" font-size="11" class="t-muted" text-anchor="start">Phase spans are those of the research history page; phases overlap by a day or two where one hands over to the next.</text>
+<text x="16" y="548" font-size="11" class="t-muted" text-anchor="start">Daily counts: the research catalog, 1051 dated records; 122 records have no date and are not shown.</text>
+</svg>
