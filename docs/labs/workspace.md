@@ -4,7 +4,7 @@ This page says where every kind of file lives, and how the laptop is kept tidy. 
 
 ## Where files live
 
-Sizes as of 20 October 2026.
+Sizes as of 20 October 2026. To find a particular file, or a folder removed from the laptop, use [Storage indexes](../reference/storage.md).
 
 | Place | Size | What is there |
 |---|---|---|

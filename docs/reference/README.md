@@ -26,3 +26,9 @@ Many of these documents date from earlier stages of the project, and some descri
 | [`specs/`](specs/2026-10-19-rust-bpe-trainer-design.md) | Design specifications: the Rust BPE trainer and the admission anchor audit (both 19 Oct 2026) |
 
 The ADRs and specifications moved here from `docs/adr/` and `docs/specs/` on 20 October 2026.
+
+## Storage
+
+| Document | What it covers |
+|---|---|
+| [Storage indexes](storage.md) | Where every stored file is: the HF store index, the map of folders removed from the laptop on 20 Oct 2026, the old research tree, pod results and the iCloud archive |
