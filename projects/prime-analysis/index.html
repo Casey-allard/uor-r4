@@ -179,6 +179,63 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="prime-analysis-the-prime-phase-and-chebyshev-psi-spectral-program"><a class="header" href="#prime-analysis-the-prime-phase-and-chebyshev-psi-spectral-program">Prime Analysis: the Prime Phase and Chebyshev psi spectral program</a></h1>
+<p>Prime numbers look random, but their running count wobbles around a smooth curve in a way that has long been tied to the zeros of the Riemann zeta function. This project asked whether that wobble (the Chebyshev residual \(\psi(x)-x\)) carries a structure that can be recovered and used to predict where primes fall. It is a pile of research notes, slide decks, simulations and scripts. Its own README calls it a late, concluding collection of the prime-router studies; the ancestry runs from the AI-Research workspace to a Python prime router, to this program, to the Rust model. The model's ideas about prime addresses and zeta phases draw on it. It is <strong>not a proof of the Riemann hypothesis, and not evidence that the language model works.</strong></p>
+<pre class="mermaid">flowchart LR
+    A[&quot;Primes up to x&quot;] --&gt; B[&quot;Residual: psi of x minus x&quot;]
+    B --&gt; C[&quot;Detrend, resample on a log grid&quot;]
+    C --&gt; D[&quot;Hilbert transform: phase of the signal&quot;]
+    D --&gt; E[&quot;Look for stable frequencies and compare with zeta zeros&quot;]
+    E --&gt; F[&quot;Time-ordered 70/30 split: predict the held-out part&quot;]
+    E -.-&gt; G[&quot;Idea the model draws on: prime log-phases and zeta zeros as fixed phases&quot;]
+</pre>
+<p><em>The program's pipeline as its own notes describe it. The dashed arrow is a transfer of an idea, not a transfer of a result.</em></p>
+<h2 id="the-question-and-the-method"><a class="header" href="#the-question-and-the-method">The question and the method</a></h2>
+<p>Let \(\psi(x)=\sum_{n\le x}\Lambda(n)\) be the Chebyshev function, where \(\Lambda\) is the von Mangoldt function. The explicit formula writes the residual as a sum over the non-trivial zeros \(\rho=\tfrac12+i\gamma\) of the zeta function:</p>
+<p>\[\psi(x)-x \;=\; -\sum_{\rho}\frac{x^{\rho}}{\rho}\;+\;\text{small terms}.\]</p>
+<p>Each zero contributes an oscillation whose frequency is set by \(\gamma\). The program treats the residual as a signal and asks whether those oscillations can be seen and extrapolated. The notes describe a fixed ("fingerprint-locked") pipeline: causal detrending (no use of future data), resampling on a uniform log grid, analytic phase through a Hilbert transform, and time-ordered 70% train / 30% test splits so that prediction is judged out of sample.</p>
+<p>The program also developed a geometric side: the R4 Prime Router, Hopf-base sector discretization, and an H4 x H4 coupled field. Those briefings are one source of the model's prime-routing language.</p>
+<h2 id="what-is-in-the-project"><a class="header" href="#what-is-in-the-project">What is in the project</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Folder</th><th>Size</th><th>What it holds</th></tr></thead><tbody>
+<tr><td><code>research/</code></td><td>about 201 MB</td><td>About 30 briefings and study guides in Markdown, two CSV tables, manuscripts, and <code>theoretical-mathematics/</code> with six sub-collections (ramsey-divisor-study, prime-number-theory, formal-math-lean, golden-harmonics, geometric-routing-hopf, theoretical-physics-uor)</td></tr>
+<tr><td><code>images/</code></td><td>about 229 MB</td><td>Slide exports, mind maps and diagrams (JPG and PNG)</td></tr>
+<tr><td><code>photos/</code></td><td>about 104 MB</td><td>Mostly the same images again under the same names</td></tr>
+<tr><td><code>simulations/</code></td><td>small</td><td>Six interactive HTML pages (router visualizer, 3D zeta explorer, dissertation simulator and others)</td></tr>
+</tbody></table>
+</div>
+<p>In total: 7,708 files, of which 2,644 are Python (about 1,390 are the program's own; 1,257 are vendored third-party packages such as numpy and numba under <code>formal-math-lean/.vendor</code>), 363 are LaTeX, and 3,167 are Markdown (<code>research-archive/2026-10-19/files.sha256</code> in the store; counts from the folder inventory). Despite the name, <code>simulations/</code> holds only the six HTML pages. Almost all of the Python is under <code>research/theoretical-mathematics/</code>.</p>
+<p><strong>Caution on provenance.</strong> Many of the Markdown briefings appear to be AI-generated study guides built from the owner's papers and slides. The collection also contains third-party papers, personal documents and a provisional patent filing. Those need a licensing and privacy review before any of them is committed; until then they stay in the store.</p>
+<h2 id="duplicates-to-remove-at-import"><a class="header" href="#duplicates-to-remove-at-import">Duplicates to remove at import</a></h2>
+<ul>
+<li>The 185 Python files in <code>formal-math-lean/</code> are byte-identical to the 185 in <a href="../riemann-lean/index.html"><code>riemann-lean/</code></a> (measurement: byte comparison of the local copies, 19 October 2026). That folder holds no Lean files. Keep one copy, in <code>riemann-lean</code>.</li>
+<li><code>photos/</code> repeats <code>images/</code> by name for at least some files (for example one 4.9 MB dashboard image appears in both).</li>
+<li>1,799 of the 3,117 distinct file hashes in <a href="../ai-research/index.html"><code>ai-research/</code></a> also appear here (measurement from <code>files.sha256</code>). The overlap includes folders with the same names (for example Ramsey and MUDBench material). Import by hash, not by path.</li>
+</ul>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Statement</th><th>Kind</th><th>Evidence</th></tr></thead><tbody>
+<tr><td>Peaks extracted from the residual beat phase-randomized surrogate signals (\(p\approx0.039\))</td><td>reported claim, unverified: the cited note is a prose synthesis, not a run output, and the underlying run outputs were not inspected for this page</td><td><code>research/Spectral-Phase Dynamics in Prime Density Modeling_ A Synthesis of Research Outcomes and Validation Rigor.md</code></td></tr>
+<tr><td>The peaks align with zeta zeros no better than with random frequencies of the same density (\(p\approx0.62\))</td><td>reported claim, unverified (same note)</td><td>same</td></tr>
+<tr><td>A truncation to about 300 zeros restores the phase geometry of the signal</td><td>same</td><td>same</td></tr>
+<tr><td>The residual's structure can predict primes out of sample</td><td>hypothesis. This page cites no final held-out prediction result</td><td>same</td></tr>
+<tr><td>The Riemann hypothesis follows</td><td>not claimed. The project's own README says it is scoped research</td><td><code>research/prime-analysis/README.md</code></td></tr>
+<tr><td>Relevance to the model</td><td>The zeta-phase and prime-address ideas fed <a href="../../mechanisms/prime-zeta-codebook.html">the prime/zeta codebook</a>; the model's results are separate</td><td>mechanism page</td></tr>
+</tbody></table>
+</div>
+<p>The second row matters for the model: the program's own controls found no special link between its spectral peaks and the zeta zeros beyond their density. The model uses zeta zeros as fixed phases, which does not depend on that link, but it should not be sold as one.</p>
+<h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
+<p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/prime-analysis.tar</code> (566,219,264 bytes, 7,708 files, SHA-256 <code>25747ed4345b510f85187d119db17cc5b2ee01f2f8f791f8a952d9a44970f36e</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>. The project's own README names GitHub repositories and hosted pages under <code>Casey-allard</code>; no separate remote is recorded in the folder itself.</p>
+<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
+<ul>
+<li><code>README.md</code> and the Markdown briefings and specifications in <code>research/</code> (the curated set; the rest stays in the store)</li>
+<li><code>research/theoretical-mathematics/**/*.py</code> and <code>**/*.tex</code>, except the 185 duplicates of <code>riemann-lean</code> and anything under <code>.vendor/</code>, <code>output/</code> or <code>external/</code> (vendored or regenerable third-party code, which is not committed before review)</li>
+<li><code>simulations/*.html</code> (six pages)</li>
+</ul>
+<p>Stay in the store: <code>images/</code>, <code>photos/</code>, PDFs, DOCX files and the manuscripts under <code>published-manuscripts/</code>. The slide decks may later serve as figures for the documentation, subject to the licensing review.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="../../geometry/primes-and-zeta.html">Primes and zeta</a> and the <a href="../../mechanisms/prime-zeta-codebook.html">prime/zeta codebook mechanism</a>.</li>
+<li><a href="../riemann-lean/index.html">Riemann-Lean</a> for the Lean scaffold built from this program's probes.</li>
+<li><a href="../../start/glossary.html">Glossary</a>.</li>
+</ul>
 
                     </main>
 

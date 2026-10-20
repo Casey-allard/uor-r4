@@ -179,6 +179,65 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="research-notebooks"><a class="header" href="#research-notebooks">Research notebooks</a></h1>
+<p>A notebook is one page per line of research, and each page is a table with one row for every result. Instead of a new folder and a new status entry for every pull request, the project now adds one row to the right notebook when a run produces a number. You can read a page top to bottom and see what was tried, what it measured, what bar it had to clear and what was concluded.</p>
+<pre class="mermaid">flowchart LR
+  A[&quot;A run or check&lt;br/&gt;produces a number&quot;] --&gt; B[&quot;One new row at the&lt;br/&gt;bottom of its notebook&quot;]
+  B --&gt; C{&quot;Did the run seal&lt;br/&gt;artifacts?&quot;}
+  C -- yes --&gt; D[&quot;Dated evidence folder&lt;br/&gt;linked from the row&quot;]
+  C -- no --&gt; E[&quot;The row is the record&quot;]
+  D --&gt; F[&quot;Older folders move to archive/&quot;]
+</pre>
+<p><em>How a result becomes a row. Only a run that seals artifacts keeps its own dated folder.</em></p>
+<h2 id="the-format"><a class="header" href="#the-format">The format</a></h2>
+<p>Each notebook lives at <code>docs/research/notebook/&lt;line&gt;.md</code>. A <em>line</em> is one sustained question, such as "how the discrete model reads context". The charter sets this format (<code>CHARTER.md</code>, section 5.6), and the owner chose it in answer to question 4 of the 19 October 2026 review.</p>
+<p>Every result is one row with six columns:</p>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>What goes in it</th></tr></thead><tbody>
+<tr><td><strong>Date</strong></td><td>The ISO date the result was recorded (<code>YYYY-MM-DD</code>).</td></tr>
+<tr><td><strong>What ran</strong></td><td>One or two plain sentences: the test or check, on what, with what budget.</td></tr>
+<tr><td><strong>Number</strong></td><td>The measured value, with its denominator and the baseline it is read against.</td></tr>
+<tr><td><strong>Bar</strong></td><td>The pass line that was fixed before the run, or "none registered" when the run was a diagnostic or a qualification check.</td></tr>
+<tr><td><strong>Verdict</strong></td><td>One of the five words below, with a short qualifier.</td></tr>
+<tr><td><strong>Artifact</strong></td><td>A link to the record or the sealed evidence folder that holds the proof.</td></tr>
+</tbody></table>
+</div>
+<p>Rules for keeping a notebook:</p>
+<ul>
+<li><strong>Append at the bottom.</strong> The newest row is last. Rows from one day appear in the order the work ran where the records show it.</li>
+<li><strong>One row per result.</strong> A repeat of an earlier run gets its own row. A change of plan, a review or a tooling step is not a result and gets no row.</li>
+<li><strong>A dated evidence folder only when a run seals artifacts</strong> (checkpoints, receipts, logs with checksums). The row links to it. A result with nothing to seal needs no folder.</li>
+<li><strong>Numbers are measurements</strong> from a recorded run, unless the row says proof or hypothesis, as defined in <a href="../../formal_vocabulary.html"><code>formal_vocabulary.md</code></a>. A passing control is not a language result, and <code>NOT_RUN</code> is not a pass.</li>
+<li><strong>Rows are never edited to change a verdict.</strong> If a later run corrects an earlier one, add a new row that names the earlier one.</li>
+</ul>
+<h3 id="the-five-verdict-words"><a class="header" href="#the-five-verdict-words">The five verdict words</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Verdict</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><strong>positive</strong></td><td>The run met the bar or passed the controls it registered, at the scope stated in the row.</td></tr>
+<tr><td><strong>negative</strong></td><td>The run missed a registered bar. It closes that exact configuration (recipe, dose, window, objective) and never the mechanism (D22).</td></tr>
+<tr><td><strong>inconclusive</strong></td><td>The run produced a number, but no bar was decided, or the evidence cannot separate the explanations.</td></tr>
+<tr><td><strong>diagnostic stop</strong></td><td>A registered stop rule or the owner ended the run early so the cause could be found. It is not a negative.</td></tr>
+<tr><td><strong>blocked</strong></td><td>A fault in the tooling, the machine or the source stopped the run before it could measure. It is not a negative, and it is not a result about the model.</td></tr>
+</tbody></table>
+</div>
+<h2 id="the-notebooks"><a class="header" href="#the-notebooks">The notebooks</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Line</th><th>Page</th><th>What it asks</th><th style="text-align: right">Result rows</th></tr></thead><tbody>
+<tr><td><code>m1-discrete-attention</code></td><td><a href="m1-discrete-attention.html">m1-discrete-attention.md</a></td><td>Can the integer model learn to read earlier text well enough to predict the next word?</td><td style="text-align: right">30</td></tr>
+<tr><td><code>m1-prime-zeta</code></td><td><a href="m1-prime-zeta.html">m1-prime-zeta.md</a></td><td>Can prime numbers and zeta-zero phases give every token a distinct starting vector?</td><td style="text-align: right">1</td></tr>
+<tr><td><code>m3-durable-memory</code></td><td><a href="m3-durable-memory.html">m3-durable-memory.md</a></td><td>Can conversation be stored and rebuilt exactly, so memory lasts across sessions?</td><td style="text-align: right">1</td></tr>
+<tr><td><code>m4-serving</code></td><td><a href="m4-serving.html">m4-serving.md</a></td><td>Can the trained model be served with integers and tables only?</td><td style="text-align: right">0</td></tr>
+<tr><td><code>data-tokenizer</code></td><td><a href="data-tokenizer.html">data-tokenizer.md</a></td><td>Which data and which tokenizer does the model train on?</td><td style="text-align: right">0</td></tr>
+<tr><td><code>harness-governance</code></td><td><a href="harness-governance.html">harness-governance.md</a></td><td>Is the research tooling and process worth its cost?</td><td style="text-align: right">0</td></tr>
+</tbody></table>
+</div>
+<p><em>Source of the counts: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/catalog.jsonl"><code>archive/catalog.jsonl</code></a>, records dated 12 October 2026 or later whose outcome is positive, negative, inconclusive, diagnostic-stop or blocked, counted with <code>jq</code>. Pages with 0 rows have records on those dates, but all of them are tooling, planning or process records. The page says so.</em></p>
+<p>The other fourteen lines in the audit catalog (for example <code>m2-exact-memory</code> and <code>m1-float-rung0</code>) have no notebook yet. Each gets one the next time it produces a result. The project is pre-alpha: 0 of 8 milestones are complete, and no row on any page is a language result.</p>
+<h2 id="where-the-rows-came-from"><a class="header" href="#where-the-rows-came-from">Where the rows came from</a></h2>
+<p>The first rows were seeded from the audit catalog, which read every lab record in the repository. The seed covers 12 October 2026 to 19 October 2026. Earlier work is summarised in <a href="../history.html">How the project got here</a> and sits in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md"><code>archive/</code></a>. Records dated before 18 October 2026 link to their archived path; records of 18 and 19 October stay in <code>docs/labs/</code>.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="../index.html">How research is done now</a>, including the sheet, review and release rules.</li>
+<li><a href="../findings.html">What the project knows</a> and <a href="../open-questions.html">what is still open</a>.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/NOW.md"><code>docs/integration/NOW.md</code></a>: the current plan, which with these notebooks replaces the old running state log.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md"><code>archive/CATALOG.md</code></a>: every archived record, by date, lab, line and verdict.</li>
+</ul>
 
                     </main>
 

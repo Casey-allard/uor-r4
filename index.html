@@ -179,6 +179,91 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="uor-r4-documentation"><a class="header" href="#uor-r4-documentation">UOR-R4 documentation</a></h1>
+<p>Read online (planned; live once the site workflow deploys): <a href="https://uor-foundation.github.io/uor-r4/">https://uor-foundation.github.io/uor-r4/</a>. The earlier Studio web app moves to <a href="https://uor-foundation.github.io/uor-r4/studio/">https://uor-foundation.github.io/uor-r4/studio/</a>.</p>
+<p><strong>In one paragraph.</strong> This is the map of the UOR-R4 documentation. UOR-R4 is an open research
+project building a language model that predicts text with geometry and whole-number arithmetic
+instead of a transformer's large grids of decimal multiplications, so that it can run fast on a
+laptop or in a browser. It is <strong>pre-alpha</strong>: 0 of its 8 milestones are complete, and no model built
+under its rules holds a useful conversation yet (<a href="start/where-we-are.html">where we are</a>). The pages
+here explain what the project is, where it stands and where it is going in plain words first, then
+give the evidence for every claim so an expert can check it. Use the table below to jump to the page
+that answers your question. The same pages build into a book site, whose table of contents is
+<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/SUMMARY.md">SUMMARY.md</a>.</p>
+<pre class="mermaid">flowchart LR
+  S[&quot;Start here&lt;br/&gt;what, where, where next&quot;] --&gt; P[&quot;Products&lt;br/&gt;model, web, desktop&quot;]
+  S --&gt; M[&quot;The model&lt;br/&gt;end to end&quot;]
+  M --&gt; MB[&quot;Mechanism board&lt;br/&gt;27 parts, one page each&quot;]
+  MB --&gt; G[&quot;Geometry&lt;br/&gt;the mathematics&quot;]
+  M --&gt; R[&quot;Research&lt;br/&gt;findings, open questions,&lt;br/&gt;history, lines, notebooks&quot;]
+  R --&gt; A[&quot;Archive&lt;br/&gt;every dated record&quot;]
+  S --&gt; RU[&quot;Rules&lt;br/&gt;the charter explained&quot;]
+  RU --&gt; REF[&quot;Reference&lt;br/&gt;vocabulary, configuration&quot;]
+</pre>
+<p><em>How the sections connect. Read left to right for more depth; every section links back to its
+sources.</em></p>
+<h2 id="find-your-way"><a class="header" href="#find-your-way">Find your way</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>You want to…</th><th>Start here</th></tr></thead><tbody>
+<tr><td>Understand the project in five minutes</td><td><a href="start/what-is-uor-r4.html">What UOR-R4 is</a>, then the <a href="start/glossary.html">glossary</a> and <a href="start/faq.html">FAQ</a></td></tr>
+<tr><td>Know where the project stands, with numbers</td><td><a href="start/where-we-are.html">Where we are</a> and the short <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/STATUS.md">STATUS</a> page</td></tr>
+<tr><td>Know where it is going</td><td><a href="start/where-were-going.html">Where we're going</a> and the milestone table in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/ROADMAP.md">ROADMAP</a></td></tr>
+<tr><td>See which transformer part each mechanism replaces</td><td><a href="start/transformer-vs-geometry.html">Transformer vs geometry</a></td></tr>
+<tr><td>Learn what will ship</td><td><a href="products/index.html">The three products</a>: the <a href="products/language-model.html">model</a>, the <a href="products/web-client.html">web client</a> and the <a href="products/desktop-client.html">desktop client</a></td></tr>
+<tr><td>Follow the model from text in to word out</td><td><a href="model/architecture.html">The model, end to end</a>, then <a href="model/training.html">training</a>, <a href="model/data-and-tokenizer.html">data and tokenizer</a>, <a href="model/serving-and-export.html">serving and export</a> and <a href="model/gpu-and-cuda.html">GPUs and CUDA</a></td></tr>
+<tr><td>Check whether a mechanism is alive and what would reopen it</td><td>The <a href="mechanisms/index.html">mechanism board</a>: ACTIVE, READY or PARKED, one page per mechanism</td></tr>
+<tr><td>Learn the mathematics</td><td><a href="geometry/index.html">The geometry of UOR-R4</a>: primes and zeta phases, golden integers, quaternions, E8/H4 and the 600-cell, SpiralCore, the Hopf map, VSA and Hamming distance</td></tr>
+<tr><td>Know what has been learned, and what is still open</td><td><a href="research/findings.html">What the project knows</a> and <a href="research/open-questions.html">what is still open</a></td></tr>
+<tr><td>Read how the project got here</td><td><a href="research/history.html">History</a> and the <a href="research/lines/index.html">research lines</a></td></tr>
+<tr><td>Follow results as they land</td><td>The <a href="research/notebook/index.html">research notebooks</a>, one page per line, and the live plan <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/NOW.md">NOW.md</a></td></tr>
+<tr><td>Know the rules and who decides</td><td>The <a href="CHARTER.html">charter</a>, explained in <a href="rules/index.html">the rules in plain language</a>; old decisions in the <a href="rules/decision-map.html">decision map</a>; changes in the <a href="rules/changes.html">rule change log</a></td></tr>
+<tr><td>Find an old record</td><td>The <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md">archive catalog</a>: every dated record, kept byte-identical</td></tr>
+<tr><td>Contribute</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/CONTRIBUTING.md">CONTRIBUTING</a>; AI labs also read <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/AGENTS.md">AGENTS.md</a></td></tr>
+<tr><td>Look up a term or a specification</td><td><a href="start/glossary.html">Glossary</a>, <a href="formal_vocabulary.html">formal vocabulary</a>, <a href="CONFIGURATION.html">configuration</a></td></tr>
+</tbody></table>
+</div>
+<h2 id="how-the-sections-are-organised"><a class="header" href="#how-the-sections-are-organised">How the sections are organised</a></h2>
+<ul>
+<li><strong>Start</strong> (<code>start/</code>): six short pages for newcomers. Each opens in plain words and ends with sources.</li>
+<li><strong>Products</strong> (<code>products/</code>): the three things the project means to ship, and the release format.</li>
+<li><strong>The model</strong> (<code>model/</code>): the current model path, stage by stage, with what is built and what is missing.</li>
+<li><strong>Mechanisms</strong> (<code>mechanisms/</code>): the board and 27 mechanism pages, each with the same template: the idea, how it works, where it stands, and what would reopen it if PARKED.</li>
+<li><strong>Geometry</strong> (<code>geometry/</code>): the mathematics behind the mechanisms, illustrated.</li>
+<li><strong>Research</strong> (<code>research/</code>): how research is done now, findings, open questions, the history, 17 research-line pages and the notebooks.</li>
+<li><strong>Rules</strong> (<code>rules/</code>): the charter explained, where each old decision went, and the change log.</li>
+</ul>
+<p>Three directories stay at their old paths because code and tooling read them, and they are not part
+of the book: <code>integration/</code> (the live plan <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/NOW.md">NOW.md</a> and the decision index),
+<code>harness/</code> (the research harness) and <code>labs/</code> (governance files and records dated 18 or 19 October
+2026). Records dated before 18 October 2026 have moved, unchanged, to <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md"><code>archive/</code></a>.</p>
+<h2 id="conventions-used-on-every-page"><a class="header" href="#conventions-used-on-every-page">Conventions used on every page</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Convention</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><strong>proof</strong></td><td>Follows from definitions or code</td></tr>
+<tr><td><strong>measurement</strong></td><td>From a recorded run, with its artifact linked</td></tr>
+<tr><td><strong>hypothesis</strong></td><td>An idea not yet tested</td></tr>
+<tr><td>ACTIVE / READY / PARKED</td><td>On the current model path / built and tested but never trained in / the tested forms failed or broke a rule, and the mechanism stays open</td></tr>
+<tr><td><code>NOT_RUN</code></td><td>Never run; it is not a pass</td></tr>
+</tbody></table>
+</div>
+<p>The labels follow <a href="formal_vocabulary.html">formal_vocabulary.md</a>, section 2. A passing test shows
+that code does what it says; it is not a trained capability. There is no "retired" mechanism status:
+a failed run closes one configuration, never a mechanism (<a href="CHARTER.html">charter</a> §4.1).</p>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Item</th><th>State</th><th>Source</th></tr></thead><tbody>
+<tr><td>Milestones complete</td><td>0 of 8</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/STATUS.md">STATUS</a></td></tr>
+<tr><td>Model that holds a conversation</td><td>None</td><td><a href="start/where-we-are.html">where we are</a></td></tr>
+<tr><td>Mechanisms</td><td>27: 10 ACTIVE, 4 READY, 13 PARKED</td><td><a href="mechanisms/index.html">mechanism board</a></td></tr>
+<tr><td>Research lines with their own page</td><td>17</td><td><a href="research/lines/index.html">research lines</a></td></tr>
+<tr><td>Records in the archive catalog</td><td>1,173</td><td><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md">archive catalog</a></td></tr>
+</tbody></table>
+</div>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li>The repository front page: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/README.md">README</a>.</li>
+<li>The rules: <a href="CHARTER.html">CHARTER</a>.</li>
+<li>The live one-page plan: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/NOW.md">NOW.md</a>; live tracker
+<a href="https://github.com/UOR-Foundation/uor-r4/issues/2028">#2028</a>.</li>
+<li>Code: the active model crate <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-discrete/README.md"><code>crates/uor-r4-discrete</code></a> and the
+integer serving crate <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-integer/README.md"><code>crates/uor-r4-integer</code></a>.</li>
+</ul>
 
                     </main>
 

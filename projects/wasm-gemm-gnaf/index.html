@@ -179,6 +179,49 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="wasm-gemm-gnaf-a-lean-proof-project-about-a-matrix-multiply-kernel"><a class="header" href="#wasm-gemm-gnaf-a-lean-proof-project-about-a-matrix-multiply-kernel">WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel</a></h1>
+<p>This project tries to prove, with a proof assistant called Lean 4, that one specific small program is the best possible program of its kind. The program is a matrix-multiplication kernel (GEMM) written for WebAssembly, the portable code format that runs in browsers. "Best possible" has a precise meaning set by the project: lowest score on a fixed cost formula, among every program that does the same job. The proof is <strong>not finished</strong>. The project's own result today is the honest answer "incomplete". It is a side project: it does not train, serve or test the language model, and the model's own rules forbid dense matrix multiplication, so this work is unrelated to how the model computes. It is outside every model build and every loaded path; whether the model ratchet's scan scope covers this folder was not checked for this page.</p>
+<pre class="mermaid">flowchart TD
+    A[&quot;Authority: pinned UOR-GNAF draft.2 spec and the fixed claim WGG-GO-1&quot;] --&gt; B[&quot;Lean model of WebAssembly: encode, decode, step, cost&quot;]
+    B --&gt; C[&quot;Cost objective: 36 charged coordinates, weight one each&quot;]
+    C --&gt; D[&quot;Proved: a best program exists if any program exists&quot;]
+    D --&gt; E[&quot;Still to show: a concrete program exists, and it equals the committed binary&quot;]
+    E -.-&gt; F[&quot;Release theorem: global optimality. Not established&quot;]
+</pre>
+<p><em>The proof structure. Solid boxes are done; the last arrow is the goal, which has not been reached.</em></p>
+<h2 id="what-the-project-is"><a class="header" href="#what-the-project-is">What the project is</a></h2>
+<p>It is a Lean 4 library of 141 files (about 3.4 MB) with a normative specification (<code>SPEC.md</code>), an obligation ledger (<code>CERTIFICATION.md</code>), a claim registry (<code>model/claims.json</code>), pinned copies of its authority documents under <code>authority/</code>, fixtures, tooling and its own licences (Apache-2.0 or MIT, at your option). It currently lives at <code>proofs/wasm-gemm-gnaf</code> and moves to this folder.</p>
+<p>"GNAF" is the name of the authority document the project follows, UOR-GNAF version 1 draft 2, whose text is pinned by a SHA-256 hash. The requested claim, <code>GlobalOptimal</code>, ranges over all finite byte sequences that decode and validate as a WebAssembly module under the chosen profile. It does not range over a hand-picked family of kernels.</p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>The project defines a cost vector with 36 charged coordinates and a canonical score, the weight-one sum of those coordinates. It models the binary format and the step relation of a subset of WebAssembly, and shows that its cost instrumentation does not change what a program computes. One key fact: each coordinate is at most the score, so every set of programs below a given score is finite. That lets a minimum exist.</p>
+<p>With that, the project proves that <strong>if</strong> some valid program exists, a lowest-scoring one exists and satisfies the optimality statement. What is left is not a bound but an exhibition: build one concrete program with proofs that it qualifies, then show the committed binary is the program the minimum selects.</p>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<p>All rows come from the project's own README and conformance table (<code>proofs/wasm-gemm-gnaf/README.md</code>, <code>CONFORMANCE.md</code>, <code>CERTIFICATION.md</code>). They are not re-run for this page.</p>
+<div class="table-wrapper"><table><thead><tr><th>Statement</th><th>Kind</th><th>Evidence</th></tr></thead><tbody>
+<tr><td>The library has 97 Lean modules, 55,504 lines and 3,146 proved theorems</td><td>measurement (generated inventory, Lean 4.30.0)</td><td><code>CONFORMANCE.md</code>, first line</td></tr>
+<tr><td>The proved results contain no <code>sorry</code>; their axioms are the three Lean core axioms</td><td>measurement (stated by the project, not re-checked here)</td><td><code>README.md</code></td></tr>
+<tr><td>A lowest-scoring valid program exists, given that at least one exists (<code>exists_globalOptimal_of_nonempty</code>)</td><td>proof (kernel-checked in Lean, per the README)</td><td><code>README.md</code>, table of proved declarations</td></tr>
+<tr><td>Cost instrumentation is transparent: instrumented and plain runs agree (<code>costed_run_iff_plain_run</code>)</td><td>proof (same)</td><td>same</td></tr>
+<tr><td>Global optimality of the committed binary</td><td><strong>not established</strong></td><td><code>README.md</code> Status block; terminal answer <code>WorkloadIncomplete</code> in <code>CERTIFICATION.md</code></td></tr>
+<tr><td>Open obligations: a concrete nonempty witness (GO-006), identifying the committed bytes with the minimizer (GO-007), full WebAssembly 3.0 semantics beyond the modelled <code>i32</code> subset (WS-001), covering all four arithmetic modes (BI-002)</td><td>open</td><td><code>README.md</code></td></tr>
+<tr><td>The WebAssembly core 3.0 specification is vendored</td><td>no</td><td>pinned by commit, marked not vendored</td></tr>
+<tr><td>"Optimal" means faster on a real machine</td><td>no. It means lowest on the abstract cost formula, and says nothing about latency on any engine</td><td><code>README.md</code>, scope section</td></tr>
+<tr><td>The gate <code>just vv</code> fails at step 9</td><td>by design. A green gate in this state would mean the gate had been weakened</td><td><code>README.md</code></td></tr>
+</tbody></table>
+</div>
+<p>The README forbids editing its status paragraph while the proof is open, and the project rule is: if you cannot prove it, omit it. No unproved statement is stubbed or assumed.</p>
+<h2 id="how-it-connects-to-this-repository"><a class="header" href="#how-it-connects-to-this-repository">How it connects to this repository</a></h2>
+<p>The root repository's <code>xtask</code> tool has <code>gnaf-*</code> subcommands (<code>xtask/src/gnaf_*.rs</code>, six files on main) that read this tree, and about 26 documents mention it. Those files move together with the project. The repository's manually dispatched workflow <code>formal_verification.yml</code> (not scheduled) runs the Kani model checker over a different crate, <code>uor-r4-proof-model</code>, not this Lean tree, and no CI step builds the Lean project (folder audit, <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code>). Do not read a green CI run as a check on these proofs.</p>
+<h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
+<p>This project is already tracked in git, so it has no Hugging Face tar. It is not part of the 19 October backup of the untracked <code>research/</code> folder. The source is preserved by <code>origin/main</code> itself.</p>
+<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
+<p>All 141 files move with their history by <code>git mv</code>, together with the matching <code>xtask/src/gnaf_*.rs</code> subcommands and the <code>xtask</code> entries that reference the old path. No file is dropped.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li>Inside the project: <code>SPEC.md</code> (the contract), <code>CERTIFICATION.md</code> (the obligation ledger), <code>VERIFICATION.md</code>, <code>CONFORMANCE.md</code>.</li>
+<li><a href="../index.html">Project index</a> for the other side projects.</li>
+<li><a href="../../CHARTER.html">Charter</a> for the model's own rules, which are separate from this project.</li>
+<li><a href="../../start/glossary.html">Glossary</a>.</li>
+</ul>
 
                     </main>
 

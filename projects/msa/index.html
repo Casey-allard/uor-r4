@@ -179,6 +179,49 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="msa-modular-structural-arithmetic"><a class="header" href="#msa-modular-structural-arithmetic">MSA: Modular Structural Arithmetic</a></h1>
+<p>Modular Structural Arithmetic (MSA) is a small formal system for arithmetic with a few special numbers in it. It was written by Alex, a collaborator, and given to this project with his consent as source reading. The folder holds two short papers and nothing else: no code, no data, no experiments. It is a third-party idea that earlier route-attention and selector work in this repository pointed to. It is not part of the language model, and no result here measures anything about the model.</p>
+<pre class="mermaid">flowchart LR
+    G[&quot;gamma = 24, the generator&quot;] -- &quot;doubling&quot; --&gt; M[&quot;mu = 48, the mediator&quot;]
+    M -- &quot;doubling&quot; --&gt; E[&quot;epsilon = 96, the manifestation&quot;]
+    G -. &quot;mu x mu = gamma x epsilon = 2304&quot; .- E
+    E --&gt; P[&quot;Reduce modulo a prime p: do the roles and doublings survive?&quot;]
+</pre>
+<p><em>The three constants of Structural Arithmetic and the question Modular Structural Arithmetic asks about them.</em></p>
+<h2 id="what-the-papers-contain"><a class="header" href="#what-the-papers-contain">What the papers contain</a></h2>
+<p><strong>Structural Arithmetic (SA), 10 pages.</strong> SA starts from ordinary arithmetic (Peano-style axioms for successor, addition and multiplication) and adds three named constants: \(\gamma=24\) (the generator), \(\mu=48\) (the mediator) and \(\varepsilon=96\) (the manifestation). Each doubles into the next, \(\delta(\gamma)=\mu\) and \(\delta(\mu)=\varepsilon\), which the paper calls the doubling cascade. It also states the "fundamental equation" \(\mu\times\mu=\gamma\times\varepsilon\). Numbers are classed by role as generators, mediators or manifestations, with axioms about how the roles are closed under operations such as greatest common divisor and least common multiple, and an induction schema over the structures built this way.</p>
+<p><strong>Modular Structural Arithmetic (MSA), 6 pages.</strong> MSA is described as a conservative extension of SA: it adds reduction modulo a number \(p\) and asks which moduli keep the structure intact. Three predicates carry the idea:</p>
+<ul>
+<li>\(\mathrm{DP}(p)\), doubling-preserving: the reduced doubled constant equals the doubled residue, with no second reduction (for example mod 7 it fails: \(2\times6=12\) is not 5).</li>
+<li>\(\mathrm{RP}(p)\), role-preserving: the three constants stay distinct mod \(p\).</li>
+<li>\(\mathrm{SP}(p)\), structural-preserving: both of the above.</li>
+</ul>
+<p>The paper then states special cases as axioms. For example, mod 11 the constants become 2, 4 and 8 (the "11-theorem"), and mod 7 they become 3, 6 and 5, which sum to a multiple of 7 (the "7-vanishing"). It also axiomatizes a "modular resonance" and a resonance period.</p>
+<p><strong>Checks anyone can do by hand (proof, by arithmetic).</strong> \(48^2=2304=24\times96\); \(24,48,96 \bmod 11 = 2,4,8\); \(24,48,96 \bmod 7 = 3,6,5\) and \(24+48+96=168=7\times24\). These confirm the numerical facts the axioms state. They do not show that the axiom system is consistent or that its larger claims, such as the characterization of doubling-preserving primes (axiom MSA9), hold; the papers present these as axioms, and this page has not checked that they follow from the others.</p>
+<h2 id="why-it-is-here"><a class="header" href="#why-it-is-here">Why it is here</a></h2>
+<p>The repository's earlier route-attention and selector work referenced MSA as part of a modular-structure research direction (<code>research/msa/README.md</code>). This page claims no tie to the model's geometry, and none has been tested. Any such link would be a hypothesis needing its own experiment.</p>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Statement</th><th>Kind</th><th>Evidence</th></tr></thead><tbody>
+<tr><td>The folder contains two PDFs (6 and 10 pages) and a README, 3 files in all</td><td>measurement</td><td><code>files.sha256</code></td></tr>
+<tr><td>The constants and special-modulus facts above are true arithmetic</td><td>proof (direct calculation)</td><td>shown above</td></tr>
+<tr><td>MSA is a conservative extension of SA, and the rest of its axiom claims</td><td>not checked here; the README asserts the extension property</td><td><code>research/msa/README.md</code></td></tr>
+<tr><td>MSA helps the model</td><td>hypothesis, untested</td><td>none</td></tr>
+</tbody></table>
+</div>
+<h2 id="permission-and-attribution"><a class="header" href="#permission-and-attribution">Permission and attribution</a></h2>
+<p>Both papers are by Alex. The README states they are included "with the author's consent" and were contributed to the research archive by Casey Allard. The folder inventory flags that redistribution permission should be confirmed before the PDFs are committed to a public repository. Until the owner confirms it, the PDFs remain in the store and the folder holds the README and a hash-and-pointer file; once confirmed they can be committed with attribution (they total about 0.3 MB).</p>
+<h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
+<p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/msa.tar</code> (338,432 bytes, 3 files, SHA-256 <code>73be0abc4ff823d00b35bab447e4f1928b45a478f9479dec84efa9504f1dd0b0</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>.</p>
+<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
+<ul>
+<li><code>README.md</code> (the original, kept as written)</li>
+<li><code>Structural_Arithmetic.pdf</code> and <code>Modular_Structural_Arithmetic_MSA__A_Formal_System.pdf</code>, after the permission check above</li>
+</ul>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="../index.html">Project index</a> for the other side projects.</li>
+<li><a href="../../start/glossary.html">Glossary</a> for terms used on this page.</li>
+<li>Earlier route-attention records that cite MSA are in <code>archive/</code> (see the mechanism pages under <code>docs/mechanisms/</code> for the current status of routing mechanisms).</li>
+</ul>
 
                     </main>
 

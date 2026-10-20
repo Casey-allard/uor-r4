@@ -179,6 +179,48 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="side-projects"><a class="header" href="#side-projects">Side projects</a></h1>
+<p>This folder holds research projects that are related to UOR-R4 but are not part of the language model. Some feed ideas into the model (the model's prime and zeta-zero geometry draws on one of them). Others, like a network transport or a Lean proof of a matrix kernel, run alongside it. None of them is on the model's training or serving path, and none of them is evidence that the model works. The model itself is pre-alpha: 0 of 8 milestones are complete and no model holds a useful conversation yet (<code>STATUS.md</code>).</p>
+<p><img src="../figures/projects/projects-map.svg" alt="Seven side projects shown as boxes around the central model. Four are marked as live source kept in git (spiralcore, riemann-lean, prime-analysis, wasm-gemm-gnaf), three as mostly archive (ai-research, research-archives, msa). Dashed arrows show where a project was consulted or drawn on by the model, and a dashed line to a private Hugging Face store shows where the bulky originals live." /></p>
+<p><em>The seven projects and where each connects to the model. Solid boxes keep their source in git. Dashed arrows into the model mean consulted or drawn on; the dashed arrow to the cylinder points to the large originals kept outside git.</em></p>
+<h2 id="why-these-projects-live-in-this-repository"><a class="header" href="#why-these-projects-live-in-this-repository">Why these projects live in this repository</a></h2>
+<p>The owner decided (19 October 2026) that side projects stay in this repository under <code>projects/</code>, with one README each, rather than moving to separate repositories. Two reasons follow from that decision. First, the history of the model cannot be read without them: the model's prime-routing and zeta-phase ideas draw on the Prime Analysis program, and the SpiralCore references were consulted when the SpiralCore/FBS mechanism was designed (the mechanism itself follows a separate v63 reference and a hosted v69 file; see <a href="../mechanisms/spiralcore-fbs.html">the mechanism page</a>). Second, most of this material existed only on one laptop, with no version control and no remote. Putting the source in git and the bulky files in a checksummed store fixes that.</p>
+<p>Three rules keep the side projects from being mistaken for model results:</p>
+<ol>
+<li><strong>Nothing here changes the model's status.</strong> A proof scaffold, a transport benchmark or a Python probe is not a trained capability. See the claim rules in <a href="../formal_vocabulary.html"><code>docs/formal_vocabulary.md</code></a>.</li>
+<li><strong>Old claims keep their original scope.</strong> Files imported from the owner's earlier workspaces carry labels such as "canonical" that applied to their own old repository, not to this one.</li>
+<li><strong>Source goes to git, bulk goes to the store.</strong> Code, Lean files, LaTeX and short notes come into the project folder. Images, PDFs, corpora and run outputs stay in the private store and are checked by hash.</li>
+</ol>
+<h2 id="the-projects"><a class="header" href="#the-projects">The projects</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Folder</th><th>What it is</th><th>Where it stands</th><th>Model link</th></tr></thead><tbody>
+<tr><td><a href="spiralcore/index.html"><code>spiralcore/</code></a></td><td>Wire-transport exploration (plain zlib framing, no SpiralCore routing yet) plus two owner-supplied SpiralCore references</td><td>Wire transport works on loopback; not wired into the model</td><td>Related reference material, consulted but not the build source of the <a href="../mechanisms/spiralcore-fbs.html">SpiralCore/FBS mechanism</a></td></tr>
+<tr><td><a href="riemann-lean/index.html"><code>riemann-lean/</code></a></td><td>Lean 4 scaffold for a prime/Riemann theorem chain, plus the Python probes behind it</td><td>Scaffold. The Riemann hypothesis is not proved</td><td>None on the model path</td></tr>
+<tr><td><a href="prime-analysis/index.html"><code>prime-analysis/</code></a></td><td>The Prime Phase / Chebyshev psi spectral program: notes, slides and simulations</td><td>Research notes. Not a proof of anything</td><td>A late, concluding collection of the prime-router studies that the <a href="../mechanisms/prime-zeta-codebook.html">prime/zeta codebook</a> draws on</td></tr>
+<tr><td><a href="ai-research/index.html"><code>ai-research/</code></a></td><td>Snapshot of the original root research workspace (router research, MUDBench, Ramsey experiments)</td><td>Historical, Python era</td><td>Earlier workspace in the lineage of the Rust model</td></tr>
+<tr><td><a href="msa/index.html"><code>msa/</code></a></td><td>Two papers on Modular Structural Arithmetic by Alex</td><td>Papers only, third-party authorship</td><td>Cited in earlier route-attention work</td></tr>
+<tr><td><a href="research-archives/index.html"><code>research-archives/</code></a></td><td>The Gemini-era r3/r4 sandbox</td><td>Archive, not a live project</td><td>History only</td></tr>
+<tr><td><a href="wasm-gemm-gnaf/index.html"><code>wasm-gemm-gnaf/</code></a></td><td>Lean 4 mechanization aimed at an optimality theorem for a WebAssembly matrix kernel</td><td>Theorem <strong>not</strong> established</td><td>None. Separate project</td></tr>
+</tbody></table>
+</div>
+<h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
+<p>Six of the seven projects came from the owner's untracked <code>research/</code> folder (the seventh, <code>wasm-gemm-gnaf</code>, is already tracked in git). On 19 October 2026 the whole folder was backed up to a private Hugging Face dataset before any file was moved.</p>
+<div class="table-wrapper"><table><thead><tr><th>Item</th><th>Value</th><th>Source</th></tr></thead><tbody>
+<tr><td>Dataset</td><td><code>caseyallard/uor-r4-store</code> (private)</td><td><code>docs/labs/repo-renormalization-2026-10-19/backup/README.md</code></td></tr>
+<tr><td>Path</td><td><code>research-archive/2026-10-19/</code></td><td>same</td></tr>
+<tr><td>Layout</td><td>eight tars under <code>tars/</code>: one per project (seven pages here, with <code>archives.tar</code> holding research-archives and <code>spiralcore-v68.tar</code> holding spiralcore), plus <code>causal-continuation-2026-09-24.tar</code> (a September 2026 causal-continuation experiment folder: scripts, plans and freeze files) and <code>root-files.tar</code> (the old <code>research/</code> README and two value-faith panel JSON files), which have no project page; <code>tars.sha256</code> and <code>files.sha256</code> sit one level above <code>tars/</code></td><td>verified by listing the dataset on 19 October 2026</td></tr>
+<tr><td>Tar integrity</td><td>SHA-256 of each tar in <code>tars.sha256</code></td><td>same</td></tr>
+<tr><td>File integrity</td><td>SHA-256 of every file inside each tar in <code>files.sha256</code> (11,456 lines for all tars, including the loose files)</td><td><code>research-archive/2026-10-19/files.sha256</code> in the store</td></tr>
+</tbody></table>
+</div>
+<p>To restore one project, fetch its tar, check it against <code>tars.sha256</code>, unpack it, and check individual files against <code>files.sha256</code>. Each project README lists its own tar, size and checksum (<code>wasm-gemm-gnaf</code> has none: it is already in git). The folder sizes quoted on the project pages come from the audit inventory <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code>, which is an audit working file; <code>files.sha256</code> holds hashes only.</p>
+<h2 id="what-happens-to-the-code"><a class="header" href="#what-happens-to-the-code">What happens to the code</a></h2>
+<p>The plan for each project is the same: the source files named in that project's README are copied into its folder here, byte for byte, and the originals stay in the tar. Where the same file appears in two projects, one copy is kept and the other is recorded as a duplicate by hash (see <a href="prime-analysis/index.html"><code>prime-analysis/</code></a> and <a href="ai-research/index.html"><code>ai-research/</code></a>). Third-party and personal documents are not committed until the owner has reviewed their licensing or privacy. The folder inventory behind this plan is <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code> (research_projects).</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="../CHARTER.html">Charter</a> for what counts as the model and what does not.</li>
+<li><a href="../start/glossary.html">Glossary</a> for terms such as SpiralCore, E8 and zeta zero.</li>
+<li><a href="../geometry/index.html">Geometry overview</a>, including <a href="../geometry/spiralcore.html">SpiralCore</a> and <a href="../geometry/primes-and-zeta.html">primes and zeta</a>.</li>
+<li>Older records that mention these projects are in <code>archive/</code> (see the catalog under <code>docs/</code>).</li>
+</ul>
 
                     </main>
 

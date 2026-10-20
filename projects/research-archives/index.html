@@ -179,6 +179,57 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="research-archives-the-gemini-era-sandbox"><a class="header" href="#research-archives-the-gemini-era-sandbox">Research archives: the Gemini-era sandbox</a></h1>
+<p>This folder is a time capsule. In an early stage of the project (the "r3/r4 era"), the owner built a development sandbox with an AI assistant: text corpora, small Python tools that generate and index them, a first "prime router" prototype, and an early Rust checkout of a WebAssembly router. It is kept because it shows how the ideas started. It is not a live project, it does not run the current model, and it contains no result that the current model relies on.</p>
+<pre class="mermaid">flowchart TD
+    S[&quot;gemini-dev sandbox, r3/r4 era&quot;] --&gt; C[&quot;Text corpora: about 63% of the bytes&quot;]
+    S --&gt; T[&quot;Python tools: corpus generation, GloVe loader, indexing, server, CLI&quot;]
+    S --&gt; P[&quot;prime-router prototype: Python, with a web page&quot;]
+    S --&gt; R[&quot;Early Rust wasm-router checkout, vendored UOR standards&quot;]
+    S --&gt; X[&quot;scratch notes and extra_reading PDFs&quot;]
+    R --&gt; N[&quot;Superseded by crates/ in the current repository&quot;]
+</pre>
+<p><em>What the sandbox contains. The Rust part has been replaced by the current workspace.</em></p>
+<h2 id="what-is-in-the-project"><a class="header" href="#what-is-in-the-project">What is in the project</a></h2>
+<p>All of it sits under <code>gemini-dev/</code>. The folder is 99 MB in 128 files (<code>research-archive/2026-10-19/files.sha256</code> in the store; sizes from the audit inventory <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code>). About 65 MB of that is data (JSON, NPZ, token files and text corpora) and about 37 MB is documents.</p>
+<div class="table-wrapper"><table><thead><tr><th>Part</th><th>Size</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>wikitext2_proxy/</code></td><td>about 62 MB</td><td>A stand-in for the WikiText-2 language-modelling corpus</td></tr>
+<tr><td>Corpora (<code>complex_corpus.txt</code>, <code>universal_corpus.txt</code>, <code>wiki_corpus.txt</code>, world-model corpora)</td><td>about 12 MB, 11 MB, 3 MB and smaller</td><td>Text used by the prototype tools</td></tr>
+<tr><td><code>prime-router/</code></td><td>about 3.4 MB</td><td>A Python prototype: "Evolving Hypersphere Brain World Model" with a web page and a CLI</td></tr>
+<tr><td><code>extra_reading/</code></td><td>about 2.9 MB</td><td>Research PDFs with text extracts</td></tr>
+<tr><td><code>rust/</code></td><td>about 0.6 MB</td><td>An early <code>uor-r4-wasm-router</code> checkout with vendored UOR standards; its engine file is <code>uor_r4_router_engine.rs</code></td></tr>
+<tr><td>Python tools</td><td>55 <code>.py</code> files overall</td><td>Corpus generation, a GloVe loader, large-corpus indexing, a server and a CLI</td></tr>
+<tr><td><code>scratch/</code>, <code>zeta_data/</code></td><td>small</td><td>Working notes and zeta-zero data</td></tr>
+</tbody></table>
+</div>
+<p>The original README says the GloVe and manifold caches (about 490 MB) and a nested copy of the AI-Research workspace were left out of this snapshot.</p>
+<p><strong>One thing to know before reading the code.</strong> The prototype describes a "zero-weight" geometric text generator, and it also offers a mode that connects to a locally running transformer through Ollama for comparison. The current charter forbids neural comparators and controls, so nothing in this folder is run or revived; it is preserved as history only.</p>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Statement</th><th>Kind</th><th>Evidence</th></tr></thead><tbody>
+<tr><td>The sandbox is 128 files, about 99 MB</td><td>measurement</td><td><code>files.sha256</code> (count); sizes from the audit inventory <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code></td></tr>
+<tr><td>The prototype's "zero-weight" generation worked as described</td><td>hypothesis, not tested for this page</td><td><code>gemini-dev/prime-router/README.md</code> is the only source</td></tr>
+<tr><td>Any part of it is on the current model path</td><td>no</td><td>The Rust checkout is superseded by the current crates; the folder is marked archive</td></tr>
+<tr><td>Overlap with other projects</td><td>10 file hashes are shared with <code>ai-research</code> and 10 with <code>prime-analysis</code></td><td><code>files.sha256</code> comparison, 19 October 2026</td></tr>
+</tbody></table>
+</div>
+<h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
+<p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/archives.tar</code> (103,435,776 bytes, 128 files, SHA-256 <code>2553007578044fa4f5f7000714a633b0693d7714f80cb999e0671e7ee71e78b2</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>. The tar is named <code>archives</code>; the folder here is called <code>research-archives</code>.</p>
+<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
+<p>Only scripts and notes come in, as an index of what existed:</p>
+<ul>
+<li><code>README.md</code></li>
+<li><code>gemini-dev/*.py</code></li>
+<li><code>gemini-dev/prime-router/**</code></li>
+<li><code>gemini-dev/scratch/**/*.md</code></li>
+<li>an index (a listing, not the files) of <code>gemini-dev/rust/**/*.rs</code>, since the current crates replace it</li>
+</ul>
+<p>Stay in the store: <code>wikitext2_proxy/</code>, the corpora, all NPZ and token files, the <code>extra_reading</code> PDFs and <code>zeta_data/</code>.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="../ai-research/index.html">AI-Research</a>, the workspace that grew alongside this sandbox.</li>
+<li><a href="../prime-analysis/index.html">Prime Analysis</a>, the research collection that took these ideas further.</li>
+<li><a href="../../mechanisms/index.html">Mechanism index</a> for what the current model actually uses.</li>
+<li><a href="../../start/glossary.html">Glossary</a>.</li>
+</ul>
 
                     </main>
 
