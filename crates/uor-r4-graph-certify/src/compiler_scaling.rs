@@ -1,6 +1,6 @@
 //! Compiler Parallelism Benchmarks and Scaling Certificate Engine
 //!
-//! Specification: `docs/compiler_scaling_certificate.md` (Issue #175).
+//! Specification: `archive/compiler_scaling_certificate.md` (Issue #175).
 //!
 //! Measures, classifies, and certifies compiler stage parallelism across multicore thread sweeps
 //! ($T=1, 2, 4, N$) on CPU-only benchmark environments.

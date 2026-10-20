@@ -19,7 +19,7 @@ test, not a sample of a training distribution. Models have replied to v4 since (
 the Step 11 binding probe, which inspected the misses), so **v4 is a development panel too
 from 2026-10-09**: its 31/40 `exact` check pass was reproduced from the artifact and its nine
 misses classified by mechanism
-([record](../../docs/labs/v4-memory-panel-reproduction-2026-10-09/README.md)), so a future
+([record](../../archive/labs/v4-memory-panel-reproduction-2026-10-09/README.md)), so a future
 held-out acceptance number needs a freshly frozen panel: `conversational-v5*` below is that
 fresh draw, made on 2026-10-09 before any model had replied to it. The five hashed files
 below are unchanged; only this README gained the status note and the pointer.
@@ -105,7 +105,7 @@ Step 6c acceptance run; after that run v4 became a development panel, as recorde
 **Status.** `conversational-v5*` was drawn and sealed on 2026-10-09, before any model had
 replied to any of its requests, as the held-out acceptance panel for acceptance criterion 1
 of #2029. Its acceptance criteria are frozen in the
-[canonical record](../../docs/labs/panel-freeze-2026-10-09/README.md) and in its own checks
+[canonical record](../../archive/labs/panel-freeze-2026-10-09/README.md) and in its own checks
 file. `conversational-v4*` above is a development panel from 2026-10-09 — its misses were
 read and classified by name — so no held-out acceptance number can be measured on it any
 more; v5 is the fresh draw that replaces it for that purpose.
@@ -201,7 +201,7 @@ open-ended requests with no expected content, so no deterministic check exists f
 control was run and passes: **zero of the eighty-eight checks are passed by any of the 13 memorised strings**,
 including the greeting that carries 18.6 % of accepted rows at 29M and 23.9 % at 100M. Validation and
 the frozen target are in
-[docs/labs/reply-panel-deterministic-checks-2026-10-09](../../docs/labs/reply-panel-deterministic-checks-2026-10-09/README.md).
+[docs/labs/reply-panel-deterministic-checks-2026-10-09](../../archive/labs/reply-panel-deterministic-checks-2026-10-09/README.md).
 The panel's requests are unchanged; these files add checks over them.
 
 
@@ -592,4 +592,4 @@ row checks** — no checks file lists its `talk-*`/`do-*`/`ask-*`/`follow-*`/`he
 against, unlike every panel on this page. Its files are in the `ladder.tar` archive above and in
 `icloud:UOR-R4/results/deepseek/reply-panel-open-2026-10-09.tar`; the classification of its 189
 failures, which are diffuse, is in
-[docs/labs/open-reply-panel-2026-10-09](../../docs/labs/open-reply-panel-2026-10-09/README.md).
+[docs/labs/open-reply-panel-2026-10-09](../../archive/labs/open-reply-panel-2026-10-09/README.md).

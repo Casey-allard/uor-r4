@@ -3,7 +3,7 @@
 > **Historical empirical model.** This sizing law applies only to its named
 > teacher-observation substrate and evidence. It is not a reason to launch a
 > corpus-scale route-native run. Current long-run decisions follow the
-> [Geometric Intelligence Evaluation Policy](geometric_intelligence_evaluation.md).
+> [Geometric Intelligence Evaluation Policy](../archive/geometric_intelligence_evaluation.md).
 
 How much corpus does a teacher of a given weight class need before the substrate
 can cash its ceiling? This turns that question from a guess into a calculator:

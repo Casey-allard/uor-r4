@@ -1,8 +1,8 @@
 //! Optional finite geometric read kernel: a learned signed relative-group score.
 //!
 //! This module implements the first operator designed in
-//! `docs/integration/fourth-lab-geometric-attention-2026-09-26.md` and frozen in
-//! `docs/integration/geometric-read-plan-2026-09-27.md`: an absent-by-default
+//! `archive/integration/fourth-lab-geometric-attention-2026-09-26.md` and frozen in
+//! `archive/integration/geometric-read-plan-2026-09-27.md`: an absent-by-default
 //! replacement for the dense query/key dot score. For each of 16 four-coordinate
 //! lanes the query and key are L2-normalized, quantized to the signed nearest
 //! element of the 120-root binary icosahedral group `2I`, composed through the

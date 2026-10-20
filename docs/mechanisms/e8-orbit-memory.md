@@ -17,7 +17,7 @@ It uses no softmax: a plain rank table and a gate.
 
 ## Tried
 
-- **Rung 1, row 3, keep and iterate** ([record](../labs/e8-orbit-memory-2026-10-11/README.md)):
+- **Rung 1, row 3, keep and iterate** ([record](../../archive/labs/e8-orbit-memory-2026-10-11/README.md)):
   - Replacing half the MLPs costs +0.033 BPB at width 256, at about 10× fewer multiply-adds per replaced layer.
   - A learned product-key memory of equal capacity is 0.023 better, so the geometry is not credited yet.
   - Routing is healthy: 3.85 of 3.91 bits of entropy, and 85% of slots read.

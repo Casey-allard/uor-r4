@@ -1,6 +1,6 @@
 # Offline Rust training foundation
 
-> **Selected API, 13 October — D29:** the default native graph selects `src/geometric_stack_native.rs`, the shared vector writer/store/channel and `examples/geometric-stack-native.rs` registered as `geometric-stack`. CUDA `train` and masked `evaluate` retain content-bound TRAIN reference/DEV oracle and checkpoint lineage `/2`; incompatible model/optimizer/reference metadata refuses. Historical learner, teacher, bank and export modules/targets below remain source evidence, excluded from this build. Corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090; protected delivery is pending. Earlier setup/clipping blockers remain preserved; no optimizer update/corpus/training/CPU model ran. Training and M2 holds remain HELD. [Boundary record](../../docs/labs/d29-vendor-boundary-2026-10-13/README.md).
+> **Selected API, 13 October — D29:** the default native graph selects `src/geometric_stack_native.rs`, the shared vector writer/store/channel and `examples/geometric-stack-native.rs` registered as `geometric-stack`. CUDA `train` and masked `evaluate` retain content-bound TRAIN reference/DEV oracle and checkpoint lineage `/2`; incompatible model/optimizer/reference metadata refuses. Historical learner, teacher, bank and export modules/targets below remain source evidence, excluded from this build. Corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090; protected delivery is pending. Earlier setup/clipping blockers remain preserved; no optimizer update/corpus/training/CPU model ran. Training and M2 holds remain HELD. [Boundary record](../../archive/labs/d29-vendor-boundary-2026-10-13/README.md).
 
 ## Historical implementation and evidence
 
@@ -22,23 +22,23 @@ through a BASE Copy softmax surrogate. It preserves factual Copy aliases, frozen
 factual Generate coefficient credit and the native constructor. The corrected mode
 requires fresh gradients and cannot inherit historical gradients or exports.
 
-The [implementation record](../../docs/labs/occurrence-joint-credit-2026-10-09/README.md)
+The [implementation record](../../archive/labs/occurrence-joint-credit-2026-10-09/README.md)
 binds the native pair fixture, gradient isolation checks and compatibility scope.
 This is an offline credit correction, not a hard-argmax derivative or a measured
 conversation improvement. The original 15-position episode, 17 references and
-380 winner guards are retained in the [original-parent run](../../docs/labs/full-donor-run-2026-10-09/README.md):
+380 winner guards are retained in the [original-parent run](../../archive/labs/full-donor-run-2026-10-09/README.md):
 Prefix gradients change, factual Generate gradients remain bitwise identical to
 legacy, and the complete conditional gate stays negative at 9/15. The candidate
 remains unselected; accepted whole-answer performance stays 8/512.
 
-The opt-in [coordinated Prefix policy](../../docs/labs/prefix-vector-transaction-2026-10-09/README.md)
+The opt-in [coordinated Prefix policy](../../archive/labs/prefix-vector-transaction-2026-10-09/README.md)
 is configured with `coupled_episode_learning.prefix_transaction: "gradient_vector_prefix"`.
 It uses four quantized full-gradient vectors from the original initializer, followed
 by the existing Generate coordinate pass. It requires fresh `full_pool_utility`
 credit and preserves the combined-loss, seventeen-reference and 380-guard gates.
 All vector trials use one original epoch; a selected trial is restaged and
 verified before atomic commit to retain the existing cache cap. Omission keeps
-the historical adjacent-coordinate policy. The [original-parent run](../../docs/labs/prefix-vector-run-2026-10-09/README.md)
+the historical adjacent-coordinate policy. The [original-parent run](../../archive/labs/prefix-vector-run-2026-10-09/README.md)
 rejects all four Prefix vectors under the unchanged protections. The subsequent
 Generate pass reaches 6/15 conditional positions; it is unselected and does not
 improve the accepted 8/512 complete-answer result.
@@ -49,8 +49,8 @@ probabilities as CE. Its forward is the native integer log-mass ratio; its
 surrogate Jacobian is CE(rival) minus CE(winner), including every Generate/Copy
 alias and the chosen clipped/raw score credit. The complete token mass table
 is checked against physical action subtotals. This is the [shared margin
-boundary](../../docs/labs/protected-margin-credit-2026-10-09/README.md) for the
-opt-in [protected joint constructor](../../docs/labs/protected-joint-construction-2026-10-09/README.md).
+boundary](../../archive/labs/protected-margin-credit-2026-10-09/README.md) for the
+opt-in [protected joint constructor](../../archive/labs/protected-joint-construction-2026-10-09/README.md).
 `coupled_episode_learning.prefix_transaction: "protected_joint_vector"` selects
 mechanical original winners and strongest other pooled tokens, computes explicit
 unweighted protected Jacobians and margin-specific donor credit, and forms one
@@ -70,7 +70,7 @@ producer, with `full_pool_utility` and no legacy recovery fields. It imports
 original31 objective/380 protected derivatives and performs no new training graphs.
 A fixed32-round feedback quantizer forms joint legal Prefix/Generate updates;
 only distinct destinations satisfying actual-displacement protection and descent
-reach the unchanged native391-row gates. See the [saved-credit record](../../docs/labs/protected-discrete-feedback-2026-10-09/README.md)
+reach the unchanged native391-row gates. See the [saved-credit record](../../archive/labs/protected-discrete-feedback-2026-10-09/README.md)
 for exact policy, resource admission and execution status. Historical modes and
 the full conditional/own-feedback qualification boundary remain unchanged.
 
@@ -80,16 +80,16 @@ all 1920 integer/fractional-noop destinations jointly under a zero-margin linear
 target with 4096 branch nodes and no time cutoff. That target is numerically
 stricter than the unchanged norm-tolerant actual-bit screen; all native gates and
 positive-only own-feedback qualification still apply. Solver termination is not
-a mathematical certificate. See the [direct construction record](../../docs/labs/direct-legal-construction-2026-10-09/README.md)
+a mathematical certificate. See the [direct construction record](../../archive/labs/direct-legal-construction-2026-10-09/README.md)
 for the fixed mechanism, exact evidence and execution status. It adds no serving
 dependency or new gradient pass. The centered integer-displacement encoding preserves
 the original legal domain. Both tested encodings returned a backend singular-matrix
 error with no native proposal; this constructor remains operationally unqualified.
-The [saved basis diagnostic](../../docs/labs/legal-basis-diagnosis-2026-10-09/README.md)
+The [saved basis diagnostic](../../archive/labs/legal-basis-diagnosis-2026-10-09/README.md)
 localizes the centered failure to small-pivot rejection during branch feasibility
 refactorization, including its existing slack recovery. It adds no production
 solver policy or model change. The subsequent
-[residual-qualified repair](../../docs/labs/basis-residual-repair-2026-10-09/README.md)
+[residual-qualified repair](../../archive/labs/basis-residual-repair-2026-10-09/README.md)
 passes all unit solves on both original bases but the unchanged saved constructor
 rejects two later bases and still returns no assignment. That local offline
 backend patch is archived, not activated in this package; native and language
@@ -100,9 +100,9 @@ qualification remain unchanged.
 `dialogue-prefix-fit` connects the strict retained R1d parameter import to exact
 complete-response episodes, token-counted gradient shards, fresh Adam learning,
 sealed offline checkpoint reload and actual exact-token replies. The
-[executed integration](../../docs/integration/dialogue-prefix-implementation-2026-09-27.md)
+[executed integration](../../archive/integration/dialogue-prefix-implementation-2026-09-27.md)
 contains the two-update campaigns and complete evidence. The separately
-[frozen paired study](../../docs/integration/dialogue-prefix-study-2026-09-27.md)
+[frozen paired study](../../archive/integration/dialogue-prefix-study-2026-09-27.md)
 is running; useful chat remains open.
 
 ```sh
@@ -157,8 +157,8 @@ TRAIN_TOKENS=... DEV_TOKENS=... TOKENIZER=... scripts/geometric-stack-chat-m1.sh
 ```
 
 Results are development measurements on code, in the
-[cycle-4 note](../../docs/integration/geometric-stack-cycle4-2026-09-27.md) with
-its [packet](../../docs/evidence/geometric-stack-cycle4-2026-09-27/README.md).
+[cycle-4 note](../../archive/integration/geometric-stack-cycle4-2026-09-27.md) with
+its [packet](../../archive/evidence/geometric-stack-cycle4-2026-09-27/README.md).
 The dialogue path is checked on synthetic data only. The stack engine uses the
 hardware multiplier on runtime values (D10), not D0-b's multiplier-free kernel.
 
@@ -181,7 +181,7 @@ floating comparator and historical floating seeded sampler are outside the
 integer numerical kernel. Integer greedy source selection is separate. This
 crate is still offline infrastructure; it is not the standalone serving product.
 
-[Executed result](../../docs/integration/integer-execution-result-2026-09-25.md):
+[Executed result](../../archive/integration/integer-execution-result-2026-09-25.md):
 source28/24 retained, numerical bounds met on four exposed development windows,
 compiled numerical-value audit scoped explicitly, about28–29x slower measured
 steps than F32. Existing float build features must match the original parent:
@@ -189,13 +189,13 @@ steps than F32. Existing float build features must match the original parent:
 integer target hashes match across the two builds; float accumulation does not.
 No new learning, general language or energy qualification follows.
 
-The [standalone successor](../../docs/integration/integer-serving-result-2026-09-25.md) removes the serving dependency on this crate and adds integer categorical selection. Its exact signed4 optimization is shared here. The timings above describe the preserved predecessor.
+The [standalone successor](../../archive/integration/integer-serving-result-2026-09-25.md) removes the serving dependency on this crate and adds integer categorical selection. Its exact signed4 optimization is shared here. The timings above describe the preserved predecessor.
 
 ## Joint recurrent-memory learning
 
-The [September 25 result](../../docs/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../docs/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../docs/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. The [completed fixed-checkpoint precision comparison](../../docs/integration/precision-factorial-result-2026-09-25.md) reproduces retained endpoints and finds parameter-family cost dominant. The [learned-code successor](../../docs/integration/learned-rounding-result-2026-09-25.md) now passes all five original hard-artifact gates in both arms. Its packed-minus-continuous gaps are+0.023708/+0.046477; both candidates are retained for trained bounded admission/transport. Individual complete-answer regressions and unreliable prose remain.
+The [September 25 result](../../archive/integration/joint-recurrent-result-2026-09-25.md) completes the full paired campaign: 29,999,104 target visits per arm, including 21,381,120 at context 256. Both learners pass the frozen development likelihood/noncollapse/combined read-effect engineering gates. Ordinary has lower natural NLL; generated stories remain semantically unreliable. Integer export and geometric advantage remain unqualified. The [subsequent quantized continuation](../../archive/integration/quantized-recurrent-result-2026-09-25.md) completed all four matched branches but failed both likelihood-retention gates; ordinary packed generation also short-cycles. The [projected-shadow successor](../../archive/integration/projected-recurrent-result-2026-09-25.md) is also complete: both likelihood gates fail (+0.059801/+0.083525 versus continuous), while its other four limited gates pass. All negative candidates remain retained. The [completed fixed-checkpoint precision comparison](../../archive/integration/precision-factorial-result-2026-09-25.md) reproduces retained endpoints and finds parameter-family cost dominant. The [learned-code successor](../../archive/integration/learned-rounding-result-2026-09-25.md) now passes all five original hard-artifact gates in both arms. Its packed-minus-continuous gaps are+0.023708/+0.046477; both candidates are retained for trained bounded admission/transport. Individual complete-answer regressions and unreliable prose remain.
 
-The [bounded-admission successor](../../docs/integration/bounded-admission-result-2026-09-25.md) is complete: both orthant64 arms recover numerical retention but fail source retention (17/32 complete answers each). Same-weights recent64 restores27/25 at lower NLL, but its proposed training follow-up is withdrawn under [D9](../../docs/integration/DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract). The integer numerical bridge below preserves full256 access; the [active contract](../../docs/history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract) owns that work. The sign index has measured utility versus recent32; this does not override its failure. Accepted learned-code parents remain preserved, and no diagnostic policy override is promoted.
+The [bounded-admission successor](../../archive/integration/bounded-admission-result-2026-09-25.md) is complete: both orthant64 arms recover numerical retention but fail source retention (17/32 complete answers each). Same-weights recent64 restores27/25 at lower NLL, but its proposed training follow-up is withdrawn under [D9](../../docs/integration/DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract). The integer numerical bridge below preserves full256 access; the [active contract](../../archive/history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract) owns that work. The sign index has measured utility versus recent32; this does not override its failure. Accepted learned-code parents remain preserved, and no diagnostic policy override is promoted.
 
 ```text
 uor-r4-training joint-fit CAMPAIGN_JSON NEW_REPORT_ROOT {cpu|metal} [SEALED_RESUME_CHECKPOINT]
@@ -214,7 +214,7 @@ uor-r4-training joint-emission-trace CAMPAIGN_JSON SEALED_CHECKPOINT RETAINED_GE
 uor-r4-training joint-selection-replay CAMPAIGN_JSON SEALED_CHECKPOINT RETAINED_EVALUATE_ROOT NEW_REPORT_ROOT cpu
 ```
 
-The [frozen campaign](../../docs/integration/joint-recurrent-campaign-2026-09-24.md) specifies the graph, training exposure, resource ceilings, checkpoint selection and capability criteria. `JointModel` exposes the same causal core for differentiable unrolls and detached incremental sessions. It reads only earlier occurrences, updates recurrent state using the read, then writes the current contextual key/value. Exact observed token/occurrence identity is retained alongside learned vector compatibility. A normalized vocabulary/copy mixture supplies the language loss; targets enter only that loss.
+The [frozen campaign](../../archive/integration/joint-recurrent-campaign-2026-09-24.md) specifies the graph, training exposure, resource ceilings, checkpoint selection and capability criteria. `JointModel` exposes the same causal core for differentiable unrolls and detached incremental sessions. It reads only earlier occurrences, updates recurrent state using the read, then writes the current contextual key/value. Exact observed token/occurrence identity is retained alongside learned vector compatibility. A normalized vocabulary/copy mixture supplies the language loss; targets enter only that loss.
 
 The quaternion and Householder-pair arms share dimensions, parameter initialization and data windows. Their local transport scales are matched; their global function families differ. These floating-point offline learners do not establish exact Hamiltonian dynamics or the final integer serving cost. Prime/zeta admission and typed integer execution remain subsequent integration work. Both earlier packed recipes fail likelihood retention. The learned neighboring-code successor passes the original five engineering gates; its numerical execution remains F32.
 
@@ -235,7 +235,7 @@ training, saving/export and cross-mode session reuse are rejected. Mixed modes
 report both switches rather than one quantization-strength scalar. FF and QQ
 must reproduce the retained shadow and packed endpoints before interpreting
 QF/FQ. None of these views implements integer serving. See the
-[fixed-checkpoint plan](../../docs/integration/precision-factorial-plan-2026-09-25.md).
+[fixed-checkpoint plan](../../archive/integration/precision-factorial-plan-2026-09-25.md).
 
 ### Bounded admission in the shared recurrent graph
 
@@ -274,7 +274,7 @@ the common target and generated-output evaluator. `recent64` and `recent32` are
 literal recency controls. `exact_cache64` unions recent32 with up to32 historical
 followers of the currently observed token; targets never enter the cache.
 All bounded policies currently maintain the control indexes, so their actual
-storage and insertion work are counted. The [prospective plan](../../docs/integration/bounded-admission-plan-2026-09-25.md)
+storage and insertion work are counted. The [prospective plan](../../archive/integration/bounded-admission-plan-2026-09-25.md)
 separates retention from the indexed complement's utility and preserves the
 ordinary transport control. No index or geometric superiority follows from a
 retention pass.
@@ -291,7 +291,7 @@ clipping statistics. Its typed `calibrated_for_rounding` mode distinguishes
 preparation from completed quantization-aware training; the one-step ramp field
 is unused compatibility metadata. Ordinary model fitting and clock advancement
 reject this prepared state. Resume language training from the original
-continuous parent. See the [integrated continuation plan](../../docs/integration/language-continuation-plan-2026-09-25.md).
+continuous parent. See the [integrated continuation plan](../../archive/integration/language-continuation-plan-2026-09-25.md).
 
 `joint-round-calibrate` resolves the declared training-only gradient-norm
 normalization before any optimizer update. `joint-round-fit` learns one shared
@@ -300,7 +300,7 @@ codes while preserving the original dyadic grids and interface quantizers.
 Exact-grid coordinates have one choice. Full recurrent language gradients reach
 the soft parameter values without a second parameter quantization. Final hard
 codes use alpha's sign, with the original away-from-zero tie convention.
-The [frozen recipe](../../docs/integration/learned-rounding-plan-2026-09-25.md)
+The [frozen recipe](../../archive/integration/learned-rounding-plan-2026-09-25.md)
 declares the global coordinate-mean penalty, schedule and exact normalization.
 
 Rounding checkpoints store alpha, new Adam moments/clocks, the immutable parent
@@ -320,10 +320,10 @@ full-context probabilities, optimizer moments/clocks and next sampled batch.
 interior values are preserved rather than rounded. The policy is retained in
 checkpoints, export/evaluation and paired comparison, with incompatible policy
 removal, rebinding or schedules rejected. Missing policy preserves historical
-behavior. See the [projection plan](../../docs/integration/projected-recurrent-plan-2026-09-25.md)
+behavior. See the [projection plan](../../archive/integration/projected-recurrent-plan-2026-09-25.md)
 for the executed 512-update continuation and unchanged five gates.
 
-The [rung 2 plan](../../docs/integration/quantized-recurrent-plan-2026-09-25.md)
+The [rung 2 plan](../../archive/integration/quantized-recurrent-plan-2026-09-25.md)
 specifies frozen parent-calibrated dyadic scales, signed four-bit multiplicative
 parameters, wider signed sixteen-bit additive offsets and fixed-point recurrent
 interfaces. `quantization_transition` binds the exact continuous parent,
@@ -351,7 +351,7 @@ size does not establish measured process RAM or serving speed.
 
 The descriptive `joint-state-drift` example accepts `QAT_CHECKPOINT PACKED_EXPORT EVALUATOR_JSON NEW_REPORT_ROOT`. It claims and seals an independent root, verifies bitwise packed-parameter agreement with the quantized selected shadows, and records finite coordinate/norm differences by all 256 positions on the original 64 tune windows. It uses the shared model implementation with quantizers enabled/disabled; it does not isolate transport error or add an acceptance threshold. The result receipt binds the executed source and binary.
 
-The exploratory `joint-read-geometry` example trains the joint learner from scratch on u16 token files for one read geometry (`dot` or `lorentz`, in the campaign JSON `read_geometry`) and reports development likelihood with the read enabled and disabled, the mean NoRead mass, and bits per byte when a token byte-length file is given. Two runs that differ only in `geometry=` share their seed, initial arrays, sampled windows and evaluation windows. It claims and seals its report root. It is not a frozen campaign: it has no evaluator manifest, source-edit panel, generation panel, checkpoint selection or resume. The optional Lorentz read scores `exp(read.lorentz_log_beta)*(read.lorentz_offset - arcosh(z))`; both scalars are initialized so that the initial score matches the Dot read to first order (`lorentz_start=flat` starts the scale at 1 instead). `read_dropout=P` trains a share of every batch with the read disabled. `checkpoint_every` and `resume` continue an interrupted run exactly, in a new report root. Quantization, packed export and integer serving refuse Lorentz models. Reduced-scale results: [cycle 3](../../docs/integration/hyperbolic-cycle3-2026-09-26.md).
+The exploratory `joint-read-geometry` example trains the joint learner from scratch on u16 token files for one read geometry (`dot` or `lorentz`, in the campaign JSON `read_geometry`) and reports development likelihood with the read enabled and disabled, the mean NoRead mass, and bits per byte when a token byte-length file is given. Two runs that differ only in `geometry=` share their seed, initial arrays, sampled windows and evaluation windows. It claims and seals its report root. It is not a frozen campaign: it has no evaluator manifest, source-edit panel, generation panel, checkpoint selection or resume. The optional Lorentz read scores `exp(read.lorentz_log_beta)*(read.lorentz_offset - arcosh(z))`; both scalars are initialized so that the initial score matches the Dot read to first order (`lorentz_start=flat` starts the scale at 1 instead). `read_dropout=P` trains a share of every batch with the read disabled. `checkpoint_every` and `resume` continue an interrupted run exactly, in a new report root. Quantization, packed export and integer serving refuse Lorentz models. Reduced-scale results: [cycle 3](../../archive/integration/hyperbolic-cycle3-2026-09-26.md).
 
 ### Curvature-homotopy conversion of a Llama checkpoint
 
@@ -411,7 +411,7 @@ uor-r4-training reference-generate EVALUATOR_JSON NEW_REPORT_DIR {cpu|metal}
 uor-r4-training verify SEALED_REPORT_DIR
 ```
 
-[Evaluator v2](../../docs/integration/reference-evaluator-v2.json) pins the two inherited training stores, the #1017 checkpoint/tokenizer, exact development positions, calibration grid, generation prompts and historical output identities. Every input is rehashed. Each new report directory is claimed before loading a model, and its complete file set is sealed and verified on success or failure. Preserve the fitted `model.ng5` and its separate `count-selection.json`: the latter fixes the calibrated discount and cache mixture.
+[Evaluator v2](../../archive/integration/reference-evaluator-v2.json) pins the two inherited training stores, the #1017 checkpoint/tokenizer, exact development positions, calibration grid, generation prompts and historical output identities. Every input is rehashed. Each new report directory is claimed before loading a model, and its complete file set is sealed and verified on success or failure. Preserve the fitted `model.ng5` and its separate `count-selection.json`: the latter fixes the calibrated discount and cache mixture.
 
 The count comparator uses raw five-gram counts, lower-order distinct left extensions from unpruned raw types, a fixed interpolated discount, deterministic count pruning and a normalized unigram floor. Pruned and discounted mass backs off. It is not the multi-discount modified Kneser–Ney algorithm. Training sequences remain separate; evaluation history and the token cache reset at the declared 256-position boundaries. The first 64 development blocks choose the pure-count discount, then the cache mixture with that discount held fixed. Settings are saved before scoring the comparison tail. This tail is separate from current count calibration but was previously exposed during neural checkpoint selection.
 
@@ -425,4 +425,4 @@ The old safetensors/config/tokenizer and Rust reference loader are reused direct
 
 Primary implementation references: [Candle 0.9.2 API](https://docs.rs/candle-core/0.9.2/candle_core/), [Candle training example](https://github.com/huggingface/candle/blob/main/candle-examples/examples/mnist-training/main.rs), [tensor operations and inference-only softmax](https://github.com/huggingface/candle/blob/main/candle-nn/src/ops.rs). The actual retained architecture is implemented in `tools/r4-softmax-trainer/src/r4_softmax_trainer/model.py`; this crate reproduces it in Rust as an offline comparator.
 
-Executed September 24: the pinned 32-position reference check passed on CPU and Metal; see [the compact evidence](../../docs/evidence/reference-autodiff-integrity-2026-09-24.json) and [evaluator manifest](../../docs/integration/reference-evaluator-v1.json). That integrity mode enforces reference weights and architecture and emits full input identities; its complete manifest was verified independently. The comparison modes enforce evaluator v2 directly. The [current state](../../docs/integration/current-state.md) owns the reference results and the separate recurrent learner's outcome and next execution.
+Executed September 24: the pinned 32-position reference check passed on CPU and Metal; see [the compact evidence](../../archive/evidence/reference-autodiff-integrity-2026-09-24.json) and [evaluator manifest](../../archive/integration/reference-evaluator-v1.json). That integrity mode enforces reference weights and architecture and emits full input identities; its complete manifest was verified independently. The comparison modes enforce evaluator v2 directly. The [current state](../../docs/integration/current-state.md) owns the reference results and the separate recurrent learner's outcome and next execution.

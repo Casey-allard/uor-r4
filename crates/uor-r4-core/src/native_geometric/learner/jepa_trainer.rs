@@ -662,7 +662,7 @@ pub struct ExportedGeometricModel {
     /// each token's code is its learned root code bound (XOR) with the locality-sensitive hash of
     /// its own `discrete_s2_readout` vector. This removes the 120-code aliasing ceiling that mode
     /// `1` is bounded by, because two tokens in the same root no longer share a code. Stage 3(b)
-    /// of [the native core transition plan](../../../../docs/integration/native-core-transition-plan.md).
+    /// of [the native core transition plan](../../../../archive/integration/native-core-transition-plan.md).
     ///
     /// `serde(default)` keeps artifacts written before this field loadable.
     #[serde(default)]

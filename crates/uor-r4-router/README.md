@@ -11,7 +11,7 @@ not the current model's serving architecture or work queue.
 Use the [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../docs/integration/model-direction-2026-09.md). This exploratory floating-point router is preserved as research
+and [model direction](../../archive/integration/model-direction-2026-09.md). This exploratory floating-point router is preserved as research
 and reusable mechanism source. Accepted native bounded attention and inference
 run in [the native core](../uor-r4-core/src/native_geometric); neither this
 router's dashboard nor its dense references establish general prose completion
@@ -46,15 +46,15 @@ visualization only; it is not the donor decoder or attention implementation. See
 [ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) and the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 The binding parity record is
-[`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
+[`docs/helm_d_r4_softmax_decoder_973.md`](../../archive/helm_d_r4_softmax_decoder_973.md).
 The V2 result is recorded in
-[`docs/helm_d_learned_manifold_r4_construction_973.md`](../../docs/helm_d_learned_manifold_r4_construction_973.md).
+[`docs/helm_d_learned_manifold_r4_construction_973.md`](../../archive/helm_d_learned_manifold_r4_construction_973.md).
 The localization result is recorded in
-[`docs/helm_d_score_centroid_localization_973.md`](../../docs/helm_d_score_centroid_localization_973.md).
+[`docs/helm_d_score_centroid_localization_973.md`](../../archive/helm_d_score_centroid_localization_973.md).
 The generator PASS is recorded in
-[`docs/r4_softmax_reference_generation_973.md`](../../docs/r4_softmax_reference_generation_973.md)
+[`docs/r4_softmax_reference_generation_973.md`](../../archive/r4_softmax_reference_generation_973.md)
 with its
-[`compact aggregate`](../../docs/r4_softmax_reference_generation_attempt_01_result_973.json).
+[`compact aggregate`](../../archive/r4_softmax_reference_generation_attempt_01_result_973.json).
 This router contributes no result to those records; intrinsic/readout,
 resonance, recurrence, and exact lowering are parked, while #954 and serving
 work remain blocked here.
@@ -97,9 +97,9 @@ overrides default off:
 `set_lexical_weight`, `set_unscaled_geometric_term`, `set_full_width_query`,
 and `set_banded_storage`.
 
-Records: [`docs/geometry_selfmatch_486.md`](../../docs/geometry_selfmatch_486.md),
-[`docs/lexical_weight_484.md`](../../docs/lexical_weight_484.md),
-[`docs/query_projection_480.md`](../../docs/query_projection_480.md).
+Records: [`docs/geometry_selfmatch_486.md`](../../archive/geometry_selfmatch_486.md),
+[`docs/lexical_weight_484.md`](../../archive/lexical_weight_484.md),
+[`docs/query_projection_480.md`](../../archive/query_projection_480.md).
 
 **Gotchas that have cost real measurements.** Retrieval is *identity-scoped* —
 query under the same identity `index_corpus` used, or the index is empty and

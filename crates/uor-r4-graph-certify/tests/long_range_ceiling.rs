@@ -1,7 +1,7 @@
 //! Long-range context ceiling (issue #424).
 //!
 //! Front: the shipped runtime's context is a hard 8-token window, and
-//! `bott_fock.rs` is named in `docs/r4_furey_quantum_geometric_plan.md` as
+//! `bott_fock.rs` is named in `archive/r4_furey_quantum_geometric_plan.md` as
 //! the priority candidate for closing "the long-context gap". Before
 //! activating any carrier behind a feature flag and paying a Gate C A/B,
 //! this harness answers the question that gates that spend: **how much
@@ -112,7 +112,7 @@
 //! it is about 0.16pp, so a 0.5pp threshold is roughly 3 SE.
 //!
 //! Recorded outcome (2026-08-07, corpus `blake3:194db0ee…`, 3,000 stories
-//! / 361,693 positions) is in `docs/context_horizon_424.md`.
+//! / 361,693 positions) is in `archive/context_horizon_424.md`.
 
 use std::collections::HashMap;
 

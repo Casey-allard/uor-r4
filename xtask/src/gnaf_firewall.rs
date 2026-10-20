@@ -1,6 +1,6 @@
 //! GNAF dependency firewall (SPEC 10.1), ported from the vendored
 //! `proofs/wasm-gemm-gnaf/Tools/firewall.py` (#653 phase-2 follow-up:
-//! `docs/gnaf_integration_653.md` classifies `Tools/*.py` as `defer-open`,
+//! `archive/gnaf_integration_653.md` classifies `Tools/*.py` as `defer-open`,
 //! recommending r4-native equivalents rather than a vendored Python
 //! dependency; this is the first such port).
 //!

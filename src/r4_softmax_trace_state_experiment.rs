@@ -2006,7 +2006,7 @@ mod tests {
     #[test]
     fn frozen_causal_input_is_exact_and_contains_no_judge_fields() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("docs/r4_softmax_trace_state_causal_input_1011.json");
+            .join("archive/r4_softmax_trace_state_causal_input_1011.json");
         let bytes = fs::read(path).expect("frozen causal input");
         assert_eq!(bytes_cid(&bytes), CAUSAL_INPUT_CID);
         let input: CausalInput = serde_json::from_slice(&bytes).expect("strict causal input");

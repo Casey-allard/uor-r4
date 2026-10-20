@@ -2205,7 +2205,7 @@ pub fn parse_pointer_route(text: &str) -> Result<Option<PrimeRoute>> {
 /// of the pointer route's key match: unordered and count-based, so a repeated
 /// premise scores even when the order or the surrounding words differ, which is
 /// exactly the case where the route's exact n-let admission froze
-/// (docs/evidence/routed_pointer_frozen_2026-10-09.txt) and where a novel value
+/// (archive/evidence/routed_pointer_frozen_2026-10-09.txt) and where a novel value
 /// shares no n-gram with the question asking about it. A source whose window
 /// would overlap the query's own window (`j + W > t`) scores 0: an overlapping
 /// window shares the query's own positions rather than an earlier occurrence,

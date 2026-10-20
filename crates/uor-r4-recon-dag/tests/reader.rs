@@ -327,7 +327,7 @@ fn malformed_public_nodes_return_errors() {
 }
 
 // Retained external known answers, not expectations calculated from this crate:
-// docs/labs/spiralcore-native-attention-review-2026-10-14/evidence/cs/construction.json
+// archive/labs/spiralcore-native-attention-review-2026-10-14/evidence/cs/construction.json
 // Generator recipes: evidence/cs/make-fixtures.cjs. Order is first insertion in DFS postorder.
 fn known_answer(
     raw: &[u8],

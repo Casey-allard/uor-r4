@@ -715,7 +715,7 @@ struct GeometricDecoderSpikeArgs {
     )]
     source_revision: String,
     /// Retained control/treatment transcript and operator report.
-    #[arg(long, default_value = "docs/geometric_decoder_spike_950_raw.json")]
+    #[arg(long, default_value = "archive/geometric_decoder_spike_950_raw.json")]
     output: PathBuf,
     /// Reloadable router state used for the persistence/restart probe.
     #[arg(long, default_value = "/tmp/uor-r4-issue-950-router-state.json")]
@@ -920,7 +920,7 @@ struct R4SoftmaxTraceStudentArgs {
     )]
     freeze_output: PathBuf,
     /// Decision-bearing held-out result and replay audit.
-    #[arg(long, default_value = "docs/r4_softmax_trace_student_973_raw.json")]
+    #[arg(long, default_value = "archive/r4_softmax_trace_student_973_raw.json")]
     result_output: PathBuf,
 }
 
@@ -978,7 +978,7 @@ struct R4SoftmaxTraceStateSealArgs {
     /// Frozen held-out causal token inputs containing no labels or teacher rows.
     #[arg(
         long,
-        default_value = "docs/r4_softmax_trace_state_causal_input_1011.json"
+        default_value = "archive/r4_softmax_trace_state_causal_input_1011.json"
     )]
     causal_input: PathBuf,
     /// Immutable prediction/state/provenance seal output.
@@ -998,12 +998,12 @@ struct R4SoftmaxTraceStateRevealArgs {
     )]
     seal: PathBuf,
     /// Frozen #1010 held-out judge JSON, hard-bound by its result CID.
-    #[arg(long, default_value = "docs/r4_softmax_trace_student_973_raw.json")]
+    #[arg(long, default_value = "archive/r4_softmax_trace_student_973_raw.json")]
     judge: PathBuf,
     /// Decision-bearing #1011 result output.
     #[arg(
         long,
-        default_value = "docs/r4_softmax_trace_state_student_1011_raw.json"
+        default_value = "archive/r4_softmax_trace_state_student_1011_raw.json"
     )]
     result_output: PathBuf,
 }
@@ -1028,7 +1028,7 @@ struct R4SoftmaxTraceObservabilityArgs {
     /// Construction-only four-fold observability result.
     #[arg(
         long,
-        default_value = "docs/r4_softmax_trace_observability_1012_raw.json"
+        default_value = "archive/r4_softmax_trace_observability_1012_raw.json"
     )]
     result_output: PathBuf,
 }
@@ -1083,16 +1083,16 @@ struct GeometricMixerQualificationArgs {
     )]
     preflight_checkpoint: PathBuf,
     /// Authoritative retained G0 report and student-prefix transcript.
-    #[arg(long, default_value = "docs/geometric_decoder_spike_950_raw.json")]
+    #[arg(long, default_value = "archive/geometric_decoder_spike_950_raw.json")]
     g0_report: PathBuf,
     /// Compact G1 metrics, controls, and rollout report.
     #[arg(
         long,
-        default_value = "docs/geometric_mixer_qualification_951_raw.json"
+        default_value = "archive/geometric_mixer_qualification_951_raw.json"
     )]
     output: PathBuf,
     /// Accepted or retained-negative deterministic mixer checkpoint.
-    #[arg(long, default_value = "docs/geometric_mixer_checkpoint_951.json")]
+    #[arg(long, default_value = "archive/geometric_mixer_checkpoint_951.json")]
     checkpoint: PathBuf,
     /// Identity scope used for each matched persistent-memory rollout.
     #[arg(long, default_value = "issue-951-qualification")]

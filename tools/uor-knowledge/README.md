@@ -11,7 +11,7 @@ The index is a snapshot, so refresh native GitHub before execution decisions.
 Start with the [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../docs/integration/model-direction-2026-09.md). The
+and [model direction](../../archive/integration/model-direction-2026-09.md). The
 [research index](../../research/README.md) distinguishes tracked imported source,
 append-only evidence, LFS payloads and ignored local `.uor-models/` artifacts.
 Index those sources with exact revisions and explicit evidence status, preserving

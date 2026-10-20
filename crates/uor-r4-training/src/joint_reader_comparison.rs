@@ -21,7 +21,7 @@ use crate::joint_optimizer::AdamConfig;
 use crate::joint_transfer::TransferReceipt;
 use crate::{invalid, sha256_file, Result};
 
-const EVALUATOR: &[u8] = include_bytes!("../../../docs/integration/reference-evaluator-v2.json");
+const EVALUATOR: &[u8] = include_bytes!("../../../archive/integration/reference-evaluator-v2.json");
 const EVALUATOR_SHA: &str = "d2432fbba0e24ba51d7568700d6718c4e85d01ccc08e4fc3cc3fa2a77e928a62";
 const PARENT_MODEL: &str = "6defec21fc2be395a9505b9f10301c03aeb3c23529c6e1be4e2e1639c7ce6d79";
 const PARENT_CHECKPOINT: &str = "490922decefee3e6036331dd0bc112746f24662d4bddfbe540b59c1d00820571";

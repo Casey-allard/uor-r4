@@ -102,3 +102,22 @@ The rehearsal also caught problems in the cutover inputs, all fixed before any r
 - I compared the rehearsed tree with unmodified `main`, package by package, for every crate whose code the cutover rewrites: `cargo check -p … --all-targets` and `--keep-going` full error sets. They are identical. For example, `uor-r4-core`, `uor-r4-integer` and `uor-r4-router` show the same 1,156 pre-existing messages on both sides, so the cutover adds no compile error.
 - The discrete crate checks clean with and without CUDA (stub `nvcc`), and its 198 library tests pass.
 - The harness keeps only its one failure, which `main` already has.
+
+## Cutover (third unit): the move
+
+The owner approved the move map at checkpoint 1. The run used the rehearsed script `cutover/cutover.sh` on a fresh branch from `97e0eec43`, tagged `pre-renorm-2026-10-19` (freeze notice: #2029). It ran in four commits:
+1. **Live links and code paths.** 1,003 link targets in 75 live documents and 380 path literals in live code now point at `archive/`. Three literals inside protected records were deliberately not edited: two `git show {rev}:` reads that are correct at their revision, and one comment.
+2. **The move.** 8,710 files, all `R100` renames: `docs/history`, `docs/evidence`, `docs/r4_*_evidence`, every `docs/integration` file except the four hubs, the loose result files in `docs/`, and dated lab records older than 2026-10-18. The map is `cutover/move-map.tsv`, which is also the old→new path table. Seven records stay live because live code or the harness names them; see `PINNED_LABS` in `cutover/make-map.sh`.
+3. **Pointer stubs.** 106 stubs and figure snapshots, listed in `cutover/stubs.txt`, so links inside archived records to the four hubs, the harness, the mechanism briefs and the figures keep resolving.
+4. **The catalog.** `archive/catalog.jsonl` holds 1,173 records, 360 of them verified by a full read. `archive/CATALOG.md` and the 20 per-line pages are generated from it by `cargo run -q -p xtask -- docs-catalog`.
+
+**Gates at the branch head**
+- The move commit contains only `R100` renames.
+- `archive-verify` against the base: all 405 pre-existing `archive/` files unchanged, 0 manifest regressions (744 ok).
+- `links` against the base: 0 new broken links in live content. 367 permanent breaks remain, all inside protected files and listed in `cutover/permanent-link-breaks.txt`:
+  - 318 inside archived records, mostly absolute `blob/main` URLs that cannot be edited;
+  - 42 in SHA-pinned FIT sheets;
+  - 7 in records dated 18–19 October, which resolve once those records are archived at equal depth.
+- Compile and test results are in the PR evidence.
+
+**Running an archived script.** Check out `pre-renorm-2026-10-19` to run any archived script with its original `docs/…` paths.

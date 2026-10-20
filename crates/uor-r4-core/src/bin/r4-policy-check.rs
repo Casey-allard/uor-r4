@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::path::Path;
 
 fn check(root: &Path) -> Result<(), String> {
-    let path = root.join("docs/integration/agent-execution-policy.json");
+    let path = root.join("archive/integration/agent-execution-policy.json");
     let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let policy: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
     for (pointer, expected) in [
@@ -149,7 +149,7 @@ mod tests {
     fn stale_training_matmul_true_is_rejected() {
         let root = repo_root();
         let src =
-            std::fs::read_to_string(root.join("docs/integration/agent-execution-policy.json"))
+            std::fs::read_to_string(root.join("archive/integration/agent-execution-policy.json"))
                 .expect("read policy");
         let mut val: Value = serde_json::from_str(&src).expect("parse policy");
         val["architecture"]["training_matrix_multiplication_allowed"] = Value::from(true);
@@ -163,7 +163,7 @@ mod tests {
         ));
         std::fs::create_dir_all(dir.join("docs/integration")).expect("mkdir");
         std::fs::write(
-            dir.join("docs/integration/agent-execution-policy.json"),
+            dir.join("archive/integration/agent-execution-policy.json"),
             serde_json::to_string_pretty(&val).expect("serialize"),
         )
         .expect("write");
@@ -179,7 +179,7 @@ mod tests {
     fn served_float_true_is_rejected() {
         let root = repo_root();
         let src =
-            std::fs::read_to_string(root.join("docs/integration/agent-execution-policy.json"))
+            std::fs::read_to_string(root.join("archive/integration/agent-execution-policy.json"))
                 .expect("read policy");
         let mut val: Value = serde_json::from_str(&src).expect("parse policy");
         val["architecture"]["served_model_floating_point_allowed"] = Value::from(true);
@@ -193,7 +193,7 @@ mod tests {
         ));
         std::fs::create_dir_all(dir.join("docs/integration")).expect("mkdir");
         std::fs::write(
-            dir.join("docs/integration/agent-execution-policy.json"),
+            dir.join("archive/integration/agent-execution-policy.json"),
             serde_json::to_string_pretty(&val).expect("serialize"),
         )
         .expect("write");

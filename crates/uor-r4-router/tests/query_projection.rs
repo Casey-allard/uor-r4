@@ -86,7 +86,7 @@
 //!   void.
 //! - Positive if `full` beats `banded` by >= 0.05 MRR.
 //!
-//! Recorded outcome: `docs/query_projection_480.md`.
+//! Recorded outcome: `archive/query_projection_480.md`.
 
 use std::collections::{HashMap, HashSet};
 

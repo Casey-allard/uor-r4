@@ -1,6 +1,6 @@
 //! Graph Invariant Ownership & Loader Validation Matrix
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §9;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §9;
 //! `docs/transformerless/R4G1.md` §6; GitHub Issue #135.
 //!
 //! This module formalizes the versioned ownership and validation matrix for all 8 normative graph invariants:

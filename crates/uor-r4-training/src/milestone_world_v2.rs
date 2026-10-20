@@ -2250,7 +2250,7 @@ pub enum Rule {
     /// with no such occurrence, reply "I don't know.".
     Nlet,
     /// R-sieve: the untrained identity channel of the log-sieve design
-    /// (`docs/integration/log-sieve-retrieval-design-2026-10-01.md` §2.2,
+    /// (`archive/integration/log-sieve-retrieval-design-2026-10-01.md` §2.2,
     /// E1), [`sieve_value`]: "It's {value}." or "I don't know.". It is a
     /// retrieval route under test, **not** one of the instrument's freeze rules
     /// ([`Rule::ALL`]), which it is built to pass.
@@ -2290,7 +2290,7 @@ impl Rule {
 }
 
 /// The untrained identity channel of the log-sieve design (§2.2 of
-/// `docs/integration/log-sieve-retrieval-design-2026-10-01.md`): the value
+/// `archive/integration/log-sieve-retrieval-design-2026-10-01.md`): the value
 /// an exact log of the user turns in `history` gives for `query`, or `None`.
 ///
 /// - **Log.** Each earlier *user* turn, split into clauses at punctuation;

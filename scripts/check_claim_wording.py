@@ -48,14 +48,14 @@ def candidate_files():
     files = sorted(ROOT.glob("docs/**/*.md"))
     files += sorted(ROOT.glob("crates/*/README.md"))
     files += sorted(ROOT.glob("README.md"))
-    # Verbatim evidence archives (docs/history/github-archive-*) preserve
+    # Verbatim evidence archives (archive/history/github-archive-*) preserve
     # historical comments byte-identically; editing them to satisfy current
     # claim wording would falsify the record. The gate governs normative
     # documents, not preserved evidence.
     return [
         path
         for path in files
-        if "docs/history/github-archive-" not in path.as_posix()
+        if "archive/history/github-archive-" not in path.as_posix()
     ]
 
 

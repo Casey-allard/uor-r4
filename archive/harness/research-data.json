@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "note": "Large binary research material archived to the iCloud store on 12 October 2026 and untracked from git so every checkout stops carrying ~1 GB it rarely reads. The bytes are MD5-verified in the store; restore with scripts/storage/research-data restore <name> --run. Owner direction, 12 October 2026: labs work in one checkout and duplicate no data.",
+  "store": "icloud:UOR-R4/results/owner-docs/",
+  "index": "icloud:UOR-R4/index/<name>.tsv",
+  "entries": [
+    {
+      "name": "prime-analysis",
+      "path": "research/prime-analysis",
+      "lab": "owner-docs",
+      "bytes": 566265344,
+      "md5": "37ed68370cc13b1c7f4dc3afd7bcce8f",
+      "remote": "results/owner-docs/prime-analysis.tar",
+      "uploaded": "2026-10-13T01:43:19Z",
+      "files": 7713
+    },
+    {
+      "name": "ai-research",
+      "path": "research/ai-research",
+      "lab": "owner-docs",
+      "bytes": 377614336,
+      "md5": "316f79c6cf17eba6b0dbf06b2fce2433",
+      "remote": "results/owner-docs/ai-research.tar",
+      "uploaded": "2026-10-13T01:44:48Z",
+      "files": 3337
+    },
+    {
+      "name": "archives",
+      "path": "research/archives",
+      "lab": "owner-docs",
+      "bytes": 103444992,
+      "md5": "7af2d66d3ee86d5cff21ca12762953e7",
+      "remote": "results/owner-docs/archives.tar",
+      "uploaded": "2026-10-13T01:45:56Z",
+      "files": 129
+    }
+  ],
+  "restored_check": {
+    "what": "prime-analysis restored from the store and compared against the local copy before removal",
+    "files": 7713,
+    "content_digest_md5": "0c3f8aa677d8536f4c6914b3443437b6",
+    "result": "content identical; two non-ASCII filenames differ in encoding only"
+  }
+}

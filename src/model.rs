@@ -677,7 +677,7 @@ impl uor_r4_core::transformerless::region_store::RegionResolver for ModelStore {
 
 /// One predicate for "this directory is a locally compiled bundle",
 /// recognizing BOTH bundle eras (#655-C1e decision record in
-/// `docs/serving_shared_loader_655_c1.md`):
+/// `archive/serving_shared_loader_655_c1.md`):
 ///
 /// - the legacy plain-path shape: `tless_artifacts.bin` +
 ///   `tless_store.bin` + `tokenizer.bin` (unchanged);

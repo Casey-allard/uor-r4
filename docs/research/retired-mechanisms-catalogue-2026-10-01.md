@@ -23,7 +23,7 @@ file that reflects any of it.
   OK; kill rules attached to earlier gates (e.g. B1's) are **withdrawn**.
 - **D17 §2** (2026-09-30): prospective parity rule — two paired seeds/draws frozen *before* observation; one
   seed over tolerance ⇒ **one more predeclared seed**; mean of three decides. Equality belongs to retention.
-- **D19 §3** (2026-10-01): the [October admissibility policy](../../docs/integration/mechanism-admissibility-2026-10.md)
+- **D19 §3** (2026-10-01): the [October admissibility policy](../../archive/integration/mechanism-admissibility-2026-10.md)
   makes D12/D17/D9 operational — a failed promotion stays failed, a materially changed successor may re-enter.
 - **`docs/integration/geometric-toolbox-2026-09-28.md`** is the register of "kept available" mechanisms.
 

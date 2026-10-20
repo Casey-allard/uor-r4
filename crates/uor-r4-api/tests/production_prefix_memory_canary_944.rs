@@ -25,7 +25,7 @@ use uor_r4_router::TokenHistorySignature;
 const MAX_CASES: usize = 512;
 const RESULT_SCHEMA: &str = "uor-r4-production-prefix-memory-canary/1";
 const DEFAULT_ISSUE: u32 = 944;
-const DEFAULT_REPORT: &str = "docs/production_prefix_memory_canary_944_result.json";
+const DEFAULT_REPORT: &str = "archive/production_prefix_memory_canary_944_result.json";
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

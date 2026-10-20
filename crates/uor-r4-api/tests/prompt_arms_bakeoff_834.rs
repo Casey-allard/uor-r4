@@ -2,7 +2,7 @@
 //! prompt-conditioned evidence arms (#834 — research/#822-B, item B of tracker
 //! #822, programme #820).
 //!
-//! Companion record: `docs/prompt_arms_bakeoff_834.md`.
+//! Companion record: `archive/prompt_arms_bakeoff_834.md`.
 //!
 //! ## What this file is (and is not)
 //!
@@ -16,7 +16,7 @@
 //!   > arithmetic must exceed the effect floor."
 //!
 //! It builds on the frozen S1 substrate: the persistent prompt-state reference
-//! model and controls of #835 (`docs/prompt_state_spec_835.md`,
+//! model and controls of #835 (`archive/prompt_state_spec_835.md`,
 //! `tests/prompt_state_spec_835.rs`) and the frozen #832 evaluation vocabulary
 //! (`ControlKind`, `MetricStatus`, `ResolutionPath`, `AttributionHistogram`,
 //! `is_degenerate_control`, `compute_cid`, `detect_document_leakage`,
@@ -43,7 +43,7 @@ use uor_r4_api::capability_suite::{
     MetricStatus, ResolutionPath, NORMATIVE_SCORER_ID,
 };
 
-/// Canonical fixed-point score type (`ScoreQ`, i32) per `docs/scoring_semantics.md`.
+/// Canonical fixed-point score type (`ScoreQ`, i32) per `archive/scoring_semantics.md`.
 type ScoreQ = i32;
 
 // --- fixture substrate constants ---------------------------------------------

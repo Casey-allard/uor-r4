@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """idstop-span-extract: score the serving-time SPAN-EXTRACTION read-out on the
 pointer panel and replay it offline over the recorded traces. Companion to
-docs/evidence/span-extraction-preregistration-2026-10-09.md, to
-docs/evidence/span-extraction-2026-10-09.txt (the result) and to
+archive/evidence/span-extraction-preregistration-2026-10-09.md, to
+archive/evidence/span-extraction-2026-10-09.txt (the result) and to
 crates/uor-r4-training/examples/bind-probe-exact.rs (the driver).
 
 The rule (`pointer_span_extract` in the driver, `SpanExtract` in the library)

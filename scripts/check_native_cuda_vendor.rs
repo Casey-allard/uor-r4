@@ -72,16 +72,16 @@ const BANNED_FEATURES: [&str; 8] = [
     "cusparse",
 ];
 const STANDALONE_INSTRUMENT_MANIFESTS: [&str; 5] = [
-    "docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/Cargo.toml",
-    "docs/labs/admission-redirect-packet-2026-10-15/instrument/Cargo.toml",
-    "docs/labs/fresh-scoring-eval-2026-10-15/instrument/Cargo.toml",
+    "archive/labs/admission-rank-fixture-runner-2026-10-15/instrument/Cargo.toml",
+    "archive/labs/admission-redirect-packet-2026-10-15/instrument/Cargo.toml",
+    "archive/labs/fresh-scoring-eval-2026-10-15/instrument/Cargo.toml",
     "docs/labs/k16-timing-2026-10-15/instrument/Cargo.toml",
-    "docs/labs/stage-a-admission-instrument-2026-10-15/instrument/Cargo.toml",
+    "archive/labs/stage-a-admission-instrument-2026-10-15/instrument/Cargo.toml",
 ];
 const APPROVED_BUILD_SCRIPTS: [&str; 3] = [
     "crates/uor-r4-training/build.rs",
     "crates/uor-r4-discrete/build.rs",
-    "docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/build.rs",
+    "archive/labs/admission-rank-fixture-runner-2026-10-15/instrument/build.rs",
 ];
 const MAX_FILE: u64 = 64 * 1024 * 1024;
 
@@ -830,7 +830,7 @@ fn check_standalone_instrument_inventory(repo: &Path) -> Result<(), String> {
         ));
     }
     let expected_build_scripts: BTreeSet<String> = [
-        "docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/build.rs".to_string(),
+        "archive/labs/admission-rank-fixture-runner-2026-10-15/instrument/build.rs".to_string(),
     ]
     .into_iter()
     .collect();
@@ -1138,7 +1138,7 @@ fn verify(
         ));
     }
     let historical = read(&repo.join(
-        "docs/history/d29-excluded-kernels-2026-10-13/cuda_stack_historical.cu",
+        "archive/history/d29-excluded-kernels-2026-10-13/cuda_stack_historical.cu",
     ))?;
     let historical_names = global_entries(&code_cuda(&historical), true)?;
     if historical_names.len() < 30 {
@@ -1197,7 +1197,7 @@ fn verify(
             return Err(format!("quarantined {module}.cu returned to training src"));
         }
         let q_src = read(&repo.join(format!(
-            "docs/history/d29-excluded-kernels-2026-10-13/{evidence}"
+            "archive/history/d29-excluded-kernels-2026-10-13/{evidence}"
         )))?;
         let q_names = global_entries(&code_cuda(&q_src), false)?;
         if q_names.is_empty() {
@@ -1369,7 +1369,7 @@ fn verify(
         "third_party/float8-0.6.1/Cargo.toml",
         "crates/uor-r4-training/Cargo.toml",
         "crates/uor-r4-discrete/Cargo.toml",
-        "docs/labs/admission-rank-fixture-runner-2026-10-15/instrument/Cargo.toml",
+        "archive/labs/admission-rank-fixture-runner-2026-10-15/instrument/Cargo.toml",
     ] {
         let manifest = read(&repo.join(rel))?;
         let dep = if manifest.contains("[dependencies.cudarc]") {
@@ -1634,7 +1634,7 @@ fn main() {
         );
         let historical_training_build = valid_training_build.replace(
             "\"src/cuda_stack.cu\"",
-            "\"docs/history/d29-excluded-kernels-2026-10-13/cuda_stack_historical.cu\"",
+            "\"archive/history/d29-excluded-kernels-2026-10-13/cuda_stack_historical.cu\"",
         );
         assert!(
             check_training_build_sources(&code_rust(&historical_training_build)).is_err(),

@@ -1,6 +1,6 @@
 # Shared autonomous lab protocol
 
-> **Current coordination, October 12:** [D25](../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) appoints Kimi project manager; the owner retains strategy, holds and mechanism-stop authority. The shared immediate dependency is the [operator phase](operator-phase-2026-10-12/README.md). No prohibited squashing/dense matrix multiplication/CPU model execution. **Training and M2 training/rental holds remain; FIT does not release them.** Preserve peer work and limit cleanup to the deliverer's verified redundant material. Older organization/admission clauses below cannot override this direction.
+> **Current coordination, October 12:** [D25](../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) appoints Kimi project manager; the owner retains strategy, holds and mechanism-stop authority. The shared immediate dependency is the [operator phase](../../archive/labs/operator-phase-2026-10-12/README.md). No prohibited squashing/dense matrix multiplication/CPU model execution. **Training and M2 training/rental holds remain; FIT does not release them.** Preserve peer work and limit cleanup to the deliverer's verified redundant material. Older organization/admission clauses below cannot override this direction.
 > **Owner direction, October 9 — main consolidation and workspace cleanup:**
 > `origin/main` is the shared source of truth for every participant. Finish and
 > verify the protected merge of each deliverable before starting its successor,

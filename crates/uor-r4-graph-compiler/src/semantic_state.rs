@@ -1,6 +1,6 @@
 //! Semantic State Space ($S$) and Typed Dynamics ($T: S \times A \to S$)
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §§2, 3, 12;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §§2, 3, 12;
 //! `docs/formal_vocabulary.md` §3; GitHub Issue #124.
 //!
 //! This module provides the compiler/reference representation for:

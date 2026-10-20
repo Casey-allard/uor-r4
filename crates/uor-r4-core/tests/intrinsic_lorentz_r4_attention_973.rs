@@ -58,9 +58,9 @@ const COMPILED_MODEL_SOURCE: &[u8] = include_bytes!("../../uor-r4-model-source/s
 const COMPILED_EXACT_EXECUTOR_SOURCE: &[u8] =
     include_bytes!("../../uor-r4-model-source/src/exact_executor.rs");
 const COMPILED_CONTRACT: &[u8] =
-    include_bytes!("../../../docs/intrinsic_lorentz_r4_attention_manifest_973.json");
+    include_bytes!("../../../archive/intrinsic_lorentz_r4_attention_manifest_973.json");
 const COMPILED_PARTITION: &[u8] =
-    include_bytes!("../../../docs/intrinsic_lorentz_r4_attention_partition_973.json");
+    include_bytes!("../../../archive/intrinsic_lorentz_r4_attention_partition_973.json");
 
 const DEFAULT_MODEL: &str = "/Users/casey.allard/uor-r4/.uor-models/sources/smollm2-135m-instruct";
 const DEFAULT_TOKENIZER: &str =
@@ -1589,11 +1589,11 @@ fn verify_committed_implementation(identity: &ImplementationIdentity) -> TestRes
             identity.exact_executor_source_cid.as_str(),
         ),
         (
-            "docs/intrinsic_lorentz_r4_attention_manifest_973.json",
+            "archive/intrinsic_lorentz_r4_attention_manifest_973.json",
             identity.contract_cid.as_str(),
         ),
         (
-            "docs/intrinsic_lorentz_r4_attention_partition_973.json",
+            "archive/intrinsic_lorentz_r4_attention_partition_973.json",
             identity.compiled_partition_bytes_cid.as_str(),
         ),
     ] {

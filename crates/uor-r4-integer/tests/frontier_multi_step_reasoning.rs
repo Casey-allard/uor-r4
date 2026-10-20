@@ -13,8 +13,8 @@ use uor_r4_integer::{
 };
 
 const LORENTZ_MODEL_PATH: &str =
-    "../../docs/evidence/native-lorentz-packet-2026-09-26/packed/qat-lorentzflat_s1";
-const TABLES_PATH: &str = "../../docs/evidence/native-lorentz-packet-2026-09-26/packed/tables";
+    "../../archive/evidence/native-lorentz-packet-2026-09-26/packed/qat-lorentzflat_s1";
+const TABLES_PATH: &str = "../../archive/evidence/native-lorentz-packet-2026-09-26/packed/tables";
 
 #[test]
 fn test_m4_multi_hop_logical_deduction_and_holonomy() {

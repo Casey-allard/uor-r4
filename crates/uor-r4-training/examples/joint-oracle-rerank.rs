@@ -6,7 +6,7 @@
 //! distractor with a rank/age-matched control; focus the full non-NoRead mass on
 //! the entity) and records the greedy continuation and verdict per arm, with the
 //! read masses before and after to prove the intervention applied. See
-//! `docs/integration/read-localization-result-2026-09-27.md` and the director
+//! `archive/integration/read-localization-result-2026-09-27.md` and the director
 //! ROADMAP §4.2. Output is written only beneath a freshly claimed report root.
 #![forbid(unsafe_code)]
 

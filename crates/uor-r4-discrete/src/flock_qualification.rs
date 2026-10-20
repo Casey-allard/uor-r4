@@ -1,5 +1,5 @@
 //! Finite, exact CUDA construction controls for the flock read and Gate (kind 3).
-//! Design: docs/labs/discrete-murmuration-read-2026-10-13 (merged 5e85f696e).
+//! Design: archive/labs/discrete-murmuration-read-2026-10-13 (merged 5e85f696e).
 //! No apply/optimizer/corpus run. Every expectation is a literal derived by hand
 //! from the generated anchor orbit (build.rs ROOTS/BFS at the pinned source):
 //! root 0 = a = [2,2,0,0,0,0,0,0], root 1 = -a, root 14 = b = B12*a =

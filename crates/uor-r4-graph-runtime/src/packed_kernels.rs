@@ -1,6 +1,6 @@
 //! Packed No-Alloc CPU Inference Kernels over Immutable Graph Arrays
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` §§1, 9, 13;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` §§1, 9, 13;
 //! `crates/uor-r4-graph-format/src/inference_contract.rs`; GitHub Issue #159.
 //!
 //! This module provides a complete suite of `#![no_std]`, zero-allocation, multiplication-free

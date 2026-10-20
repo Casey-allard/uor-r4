@@ -9,7 +9,7 @@ that the model has general prose completion or general reasoning. Follow the
 [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../docs/integration/model-direction-2026-09.md). Historical CI references below identify available checks; current
+and [model direction](../../archive/integration/model-direction-2026-09.md). Historical CI references below identify available checks; current
 PR/merge-queue acknowledgements do not execute them.
 
 This directory pins the exact OpenAI REST specification the R4 server claims

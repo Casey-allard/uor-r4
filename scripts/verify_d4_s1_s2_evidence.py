@@ -82,10 +82,10 @@ def main():
         repo_root = here
     else:
         repo_root = os.path.dirname(here)
-    s1_json_path = os.path.join(repo_root, "docs/evidence/d4-geometric-s1-qat-2026-09-29.json")
-    s2_json_path = os.path.join(repo_root, "docs/evidence/d4-s2-dialogue-qat-2026-09-29.json")
-    s1_md_path = os.path.join(repo_root, "docs/integration/d4-geometric-s1-qat-result-2026-09-29.md")
-    s2_md_path = os.path.join(repo_root, "docs/integration/d4-s2-dialogue-qat-result-2026-09-29.md")
+    s1_json_path = os.path.join(repo_root, "archive/evidence/d4-geometric-s1-qat-2026-09-29.json")
+    s2_json_path = os.path.join(repo_root, "archive/evidence/d4-s2-dialogue-qat-2026-09-29.json")
+    s1_md_path = os.path.join(repo_root, "archive/integration/d4-geometric-s1-qat-result-2026-09-29.md")
+    s2_md_path = os.path.join(repo_root, "archive/integration/d4-s2-dialogue-qat-result-2026-09-29.md")
 
     failures = 0
     passes = 0

@@ -11,7 +11,7 @@
 //!
 //! Two facts make this worth a measurement rather than an assumption.
 //!
-//! First, `docs/capacity_scaling_432.md` §3.1 argues that issue #407's
+//! First, `archive/capacity_scaling_432.md` §3.1 argues that issue #407's
 //! `CTX_SAMPLE` 6,000 → 50,000 raise "did not change the codebook's
 //! training-set size at all", so the +0.5–0.7pp #407 attributed to sample
 //! starvation was never delivered. **That claim is one step too strong, and
@@ -305,7 +305,7 @@ fn codebook_fit_sweep() {
     println!(
         "{}",
         if a_spread < 2.0 * shipped.standard_error {
-            "CONFIRMS the operative half of docs/capacity_scaling_432.md §3.1: \
+            "CONFIRMS the operative half of archive/capacity_scaling_432.md §3.1: \
              widening the draw pool ABOVE the cap does not move the codebook's \
              quality. Note what this does NOT say — #407 raised CTX_SAMPLE from \
              6,000, below the 10,000 cap, so its raise did move the training set \

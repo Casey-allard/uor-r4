@@ -1,6 +1,6 @@
 //! Bounded semantic-planning primitives and frozen capacities (#843).
 //!
-//! Frozen contract: `docs/bounded_semantic_transitions_spec_843.md` §4. These
+//! Frozen contract: `archive/bounded_semantic_transitions_spec_843.md` §4. These
 //! are the *deployed-form* shapes the offline compiler emits into and the
 //! runtime reads out of, so they are `core`-only and allocation-free: fixed
 //! arrays, no owned collections, no strings, no floating point. Every operation

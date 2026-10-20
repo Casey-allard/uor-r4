@@ -8,7 +8,7 @@
   [#820](https://github.com/UOR-Foundation/uor-r4/issues/820)
 - **Implementation tracker:**
   [#949](https://github.com/UOR-Foundation/uor-r4/issues/949)
-- **Roadmap:** [Geometric Causal Decoder Roadmap](../geometric_causal_decoder_plan.md)
+- **Roadmap:** [Geometric Causal Decoder Roadmap](../../archive/geometric_causal_decoder_plan.md)
 
 ## Context
 

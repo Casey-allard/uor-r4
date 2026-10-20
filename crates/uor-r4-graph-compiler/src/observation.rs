@@ -983,7 +983,7 @@ pub struct ObservationManifest {
     /// `experimental-r4-source-attention/2`; GPT-2 declares
     /// `learned-absolute-source-attention/2`. Immutable v1 records remain
     /// accepted. `None` marks the implicit historical standard/1
-    /// interpretation documented in `docs/MODEL_LIFECYCLE.md`. Optional with
+    /// interpretation documented in `archive/MODEL_LIFECYCLE.md`. Optional with
     /// a serde default so every legacy manifest stays readable and legacy
     /// manifest bytes are unchanged when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]

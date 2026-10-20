@@ -28,7 +28,7 @@ Line:  · count /3 · headline  →
 - [ ] `uor-harness check` passes, and `uor-harness lint check --body <this body>` reports no unresolved finding
 - [ ] Any model compute here is covered by a linked pre-registration carrying `TEST FITNESS: FIT` (D22)
 - [ ] Checks run at this exact head (commands and outcomes posted on this PR)
-- [ ] Research record: `docs/labs/<topic>-<YYYY-MM-DD>/README.md` (or `docs/evidence/…`)
+- [ ] Research record: `docs/labs/<topic>-<YYYY-MM-DD>/README.md` (or `archive/evidence/…`)
 - [ ] New entry at the top of `docs/integration/current-state.md`, with **Next:**
 - [ ] Every document this change makes stale is updated (`git grep -n -i '<what changed>' -- '*.md'`)
 - [ ] STATUS.md / ROADMAP.md / #2028 table updated, or state unchanged

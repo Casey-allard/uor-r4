@@ -1,0 +1,14 @@
+# m7-distribution
+
+8 records.
+
+| Date | Record | Lab | Outcome | Summary | PRs |
+|---|---|---|---|---|---|
+| 2026-09-03 | [Publication readiness and arXiv workflow audit](../integration/publication-readiness.md) |  | review | Audit finding the browser-product arXiv package not ready: stale bibliography, unverified benchmark constants, overstated formal-verification scope; no decision notice located. |  |
+| 2026-09-03 | [Independent specification review - #1105](../r4_service_contract_1105_review.md) |  | review | Independent acceptance of the native workbench service API specification; no implementation, runtime or model result. | [#1105](https://github.com/UOR-Foundation/uor-r4/pull/1105), [#1084](https://github.com/UOR-Foundation/uor-r4/pull/1084) |
+| 2026-09-03 | [#1105 service/API and artifact-ownership source audit](../r4_service_contract_1105_sources.md) |  | review | Source-inspected manifest of original and R4 sources for the 1105 service contract; nothing executed or copied. | [#1105](https://github.com/UOR-Foundation/uor-r4/pull/1105), [#1084](https://github.com/UOR-Foundation/uor-r4/pull/1084) |
+| 2026-09-04 | [Proposed product boundary and component transfer](../integration/frontend-port-plan.md) |  | plan | Historical product boundary: one local Rust service owns model identity, inference and the static web workbench; component-transfer reference, nothing built or run. | [#1105](https://github.com/UOR-Foundation/uor-r4/pull/1105), [#1107](https://github.com/UOR-Foundation/uor-r4/pull/1107), [#1084](https://github.com/UOR-Foundation/uor-r4/pull/1084) |
+| 2026-10-15 | [Studio Shell Cleanup per D36 — Dead WASM Export Removal, `native_geometric_finish_generation` Guard, Engine-Status Banner, and Provenance Note](../labs/studio-shell-d36-cleanup-2026-10-15/README.md) | antigravity | tooling | Source-only cleanup of the web Studio: removed five dead WASM calls, guarded a missing WASM function, and added a banner saying no served WASM engine exists yet. |  |
+|  | [Service ownership source notes - #1105 under #1084](../r4_service_contract_1105_service_audit.md) |  | review | Source-only audit of existing learned-reference seams for the service; nothing built, loaded or executed. | [#1105](https://github.com/UOR-Foundation/uor-r4/pull/1105), [#1084](https://github.com/UOR-Foundation/uor-r4/pull/1084) |
+|  | [Native Four-fact workbench source candidate — #1107](../r4_workbench_candidate_1107.md) |  | tooling | Frozen the workbench service source as reviewable but unbuilt; no compile, test, model or browser run was performed. | [#1107](https://github.com/UOR-Foundation/uor-r4/pull/1107) |
+|  | [Independent static review — #1107 workbench source candidate](../r4_workbench_candidate_1107_review.md) |  | review | Static-only acceptance of the workbench source contract after five corrections; compilation, tests and behaviour explicitly not run. | [#1107](https://github.com/UOR-Foundation/uor-r4/pull/1107) |

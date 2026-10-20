@@ -1,7 +1,7 @@
 //! Amendment A1 gate instruments (#843 increment 2).
 //!
-//! Frozen contract: `docs/bounded_semantic_transitions_spec_843.md` §2, which
-//! implements `docs/compositional_planning_spec_844.md` §11 (Amendment A1).
+//! Frozen contract: `archive/bounded_semantic_transitions_spec_843.md` §2, which
+//! implements `archive/compositional_planning_spec_844.md` §11 (Amendment A1).
 //!
 //! These four instruments are the binding gate that #843's run contract places
 //! *before* any packed section is written or any arm is fitted. Run against the

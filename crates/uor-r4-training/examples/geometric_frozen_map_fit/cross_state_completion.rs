@@ -1334,7 +1334,7 @@ mod tests {
         // Exercise the actual published checkpoint receipts, including their
         // original fractional-master inventory and objective metadata.
         let artifacts: Value = serde_json::from_str(include_str!(
-            "../../../../docs/labs/m2-bottleneck-2026-10-10/artifact-receipts.json"
+            "../../../../archive/labs/m2-bottleneck-2026-10-10/artifact-receipts.json"
         ))?;
         let receipt = artifacts["final"].clone();
         let report = json!({
@@ -1715,7 +1715,7 @@ mod tests {
     #[test]
     fn pooled_rank_saved177_authenticates_saved175_ancestry_and_fractional_master() -> Result<()> {
         let artifacts: Value = serde_json::from_str(include_str!(
-            "../../../../docs/labs/m2-bottleneck-resume-2026-10-10/artifact-receipts.json"
+            "../../../../archive/labs/m2-bottleneck-resume-2026-10-10/artifact-receipts.json"
         ))?;
         let receipt = artifacts["final"].clone();
         let report = json!({"updates":256,"prior_updates":576,"lineage_step":832,"fresh_adam":true,

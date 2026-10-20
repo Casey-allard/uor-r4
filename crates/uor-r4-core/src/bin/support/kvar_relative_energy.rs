@@ -387,7 +387,7 @@ pub(super) fn run(args: &[String]) -> Result<(), String> {
         });
     let report = json!({
         "schema":"uor-r4.kvar-relative-energy/1", "mode":mode,
-        "plan":"docs/integration/kvar-relative-energy-plan-2026-09-24.md",
+        "plan":"archive/integration/kvar-relative-energy-plan-2026-09-24.md",
         "parent_pr":1380, "parent_commit":"a6c4ace5",
         "source_parameters":source, "source_sha256":SOURCE_SHA256,
         "panel":{"train_seed_group":1,"held_seed_group":held_group,"train_per_cell":train_per_cell,"held_per_cell":held_per_cell,"cells":cells},

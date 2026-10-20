@@ -88,10 +88,10 @@ Gate C Rule 1+2 and #908's **29.702%** skip-mix row are compiler-side
 normative deployed selector, `R4G1Runtime`, served those tokens. #908 remains
 valid teacher-free reference/off-serving evidence; its gate was a paired
 skip-mix delta whose 95% lower bound had to clear **+20‰**, not an absolute
-top-1 floor. See [the #934 audit](../canonical_quality_baseline_934.md), which
+top-1 floor. See [the #934 audit](../../archive/canonical_quality_baseline_934.md), which
 owns remediation ordering. RF-31 remains **NOT ESTABLISHED** at deployed-serving
 scope until the content-bound normative-runtime report in
-[`normative_r4g1_quality_933.md`](../normative_r4g1_quality_933.md) receives an
+[`normative_r4g1_quality_933.md`](../../archive/normative_r4g1_quality_933.md) receives an
 evidence-backed verdict; #932's BDD parity harness remains downstream.
 
 **Current normative outcome (#933, 2026-08-25; appended correction).** The
@@ -123,7 +123,7 @@ floor. The BDD suite was 124 / 124, but live-teacher parity fixtures were absent
 and those scenarios vacuously skipped. #932 subsequently landed the structural
 host instrument on an `UNAVAILABLE` / `NOT_RUN` live branch; live parity remains
 **NOT ESTABLISHED** (see
-[`teacher_parity_parallelism_932.md`](../teacher_parity_parallelism_932.md)).
+[`teacher_parity_parallelism_932.md`](../../archive/teacher_parity_parallelism_932.md)).
 
 **Canonical bits/token (issue #76, resolved 2026-07-22):** one definition — mean cross-entropy of
 the true next token under a scorer's predicted distribution, `(1/N) Σ −log2 P_scorer(v_i|c_i)`

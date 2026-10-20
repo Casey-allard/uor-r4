@@ -1,6 +1,6 @@
 //! KVAR — keyed variable-lag retrieval with rebinding (synthetic harness).
 //!
-//! Executes the frozen pre-registration `docs/integration/kvar-plan-2026-09-24.md`
+//! Executes the frozen pre-registration `archive/integration/kvar-plan-2026-09-24.md`
 //! (M1 Part B′). It is a **self-contained** synthetic panel plus controls plus
 //! three trainable arms sharing one model struct with two boolean flags:
 //!
@@ -1774,7 +1774,7 @@ fn run() -> Result<(), String> {
     let receipt = json!({
         "schema": "uor-r4.kvar-receipt/2",
         "base_commit": "552d847d",
-        "plan": "docs/integration/kvar-plan-2026-09-24.md",
+        "plan": "archive/integration/kvar-plan-2026-09-24.md",
         "panel": {
             "content_vocab": CONTENT, "keys": KS, "lags": LAGS,
             "cells": cells.iter().map(|&(k,l)| format!("K{k}_L{l}")).collect::<Vec<_>>(),

@@ -113,7 +113,7 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 if [[ -z "$OUT" ]]; then
   OUT="/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-energy-${TIMESTAMP}"
 fi
-SUMMARY_JSON="$REPO_ROOT/docs/evidence/energy-summary-${TIMESTAMP}.json"
+SUMMARY_JSON="$REPO_ROOT/archive/evidence/energy-summary-${TIMESTAMP}.json"
 
 BUNDLE_DIR="${BUNDLE_DIR:-/Users/casey.allard/uor-r4/.uor-models/investigations/integer-serving-20260925/bundle-quaternion-1}"
 if [[ ! -d "$BUNDLE_DIR" ]]; then

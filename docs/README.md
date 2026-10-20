@@ -16,7 +16,7 @@ results determine which mechanisms are actually integrated.
 | Contribute | [Contributor guide](../CONTRIBUTING.md), [project map](PROJECT_MAP.md), [agent instructions](../AGENTS.md) |
 | Check a changing claim | [Current state](integration/current-state.md), [M1 issue](https://github.com/UOR-Foundation/uor-r4/issues/2029), [lab records](labs/README.md) |
 | Read the plan and rules | [Roadmap](../ROADMAP.md), [canonical plan](integration/project-track.md), [decisions](integration/DECISIONS.md) |
-| Recover older research | [Research index](../research/README.md), [architecture audit](integration/architecture-2026-09/README.md), [branch archive](history/branch-archive/INDEX.md) |
+| Recover older research | [Research index](../research/README.md), [architecture audit](../archive/integration/architecture-2026-09/README.md), [branch archive](../archive/history/branch-archive/INDEX.md) |
 
 ## Current policy and evidence
 
@@ -69,7 +69,7 @@ action is `STOP_WITHOUT_GENERATION`: retire this write/binding law. No
 generation, reasoning, or integer/table lowering is authorized. Ordinary
 softmax/retained attention remain established and the larger programme
 continues, but #954 remains blocked. See the
-[#973 V5 result](r4_predictive_block_delta_binding_prompt_capacity_973.md).
+[#973 V5 result](../archive/r4_predictive_block_delta_binding_prompt_capacity_973.md).
 
 The immediately preceding gate was #973's separately frozen learned-
 associative campaign. It completed `LEARNED_ASSOCIATIVE_READOUT_NO_CAPACITY` at result CID
@@ -91,10 +91,10 @@ Geometry attribution failed against pooled (`-0.0038864491366036808` gain,
 `251/512`), both below the required `308/512`. Mechanics, replay, causal access,
 and independent verification passed, but associative prompt capacity and
 geometry advantage did not. See the
-[#973 learned-associative result](r4_learned_associative_readout_prompt_capacity_973.md).
+[#973 learned-associative result](../archive/r4_learned_associative_readout_prompt_capacity_973.md).
 
 Before that, #973's sole layerwise-normalized candidate,
-[`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
+[`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`](../archive/r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
 It completed `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`.
 With every qualified V1 budget fixed, its exact formula
 `E @ [N(h) + (g / sqrt(2)) * (N(a1) + N(a2))]` used fixed `g=1` versus
@@ -242,9 +242,9 @@ but capacity, geometry attribution, and delta-overwrite attribution did not.
 Retire that law and `STOP_WITHOUT_GENERATION`; do not retry or run generation.
 CUDA and external
 GPU execution are out of scope. See the
-[#1017 record](r4_softmax_quality_capacity_continuation_1017.md),
-[#1019 frozen contract](r4_softmax_parameter_capacity_1019.md), and
-[#1019 signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json). This stops
+[#1017 record](../archive/r4_softmax_quality_capacity_continuation_1017.md),
+[#1019 frozen contract](../archive/r4_softmax_parameter_capacity_1019.md), and
+[#1019 signed preflight/admission result](../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json). This stops
 one bounded model-capacity rung, not ordinary attention.
 #1017 remains the current working 7.15M raw-continuation reference prototype:
 `r4 generate --prompt "..."` defaults to
@@ -255,10 +255,10 @@ the strict NLL target; it is not geometry advantage, transformerlessness,
 correctness, reasoning, frontier quality, browser/WASM readiness, or release
 readiness.
 
-[#1039](r4_softmax_local_reference_surface_1039.md) exposes that exact frozen
+[#1039](../archive/r4_softmax_local_reference_surface_1039.md) exposes that exact frozen
 checkpoint through a disabled-by-default loopback raw-completion endpoint and
 the native-served dashboard. Its required normal-use follow-up,
-[#1041](r4_softmax_local_normal_use_1041.md), passed every dashboard/endpoint
+[#1041](../archive/r4_softmax_local_normal_use_1041.md), passed every dashboard/endpoint
 mechanical condition and retained fresh narrative scenes on `2/3` probes, but
 both supplied-history bindings failed. Terminal:
 `KEEP_RAW_CONTINUATION_ONLY`. The endpoint remains a bounded source-backed
@@ -274,8 +274,8 @@ The run stopped before Rust parity, checkpoint emission, development, or its
 four committed unopened products; do not retry C1-SB4. C1-SB5 then fit all
 `56/56` paired records but reached only `14/28` sealed and retired without
 checkpoint, Rust, development, or product work; do not retry it. See
-the [#954 record](r4_grounded_correctness_954.md) and
-[C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json).
+the [#954 record](../archive/r4_grounded_correctness_954.md) and
+[C1-SB4 aggregate](../archive/r4_joint_candidate_margin_954_raw.json).
 
 No tag, release, hosted promotion, or static-WASM claim is authorized. D3
 remains `NOT_RUN`; #973 remains open and continues to block #954's final
@@ -283,20 +283,20 @@ source-free terminal. #955 remains blocked on positive correctness.
 
 Pinned-source provenance, ordinary-donor reproduction, transported-R4 parity,
 the frame-permutation control, and the causal audit now pass; see the
-[`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md). Upstream checkpoint
+[`HELM-D-R4` record](../archive/helm_d_r4_softmax_decoder_973.md). Upstream checkpoint
 parity remains `NOT_RUN`; the intrinsic V1 outcome is recorded in the
-[intrinsic Lorentz R4 record](intrinsic_lorentz_r4_attention_973.md). Resonance-
+[intrinsic Lorentz R4 record](../archive/intrinsic_lorentz_r4_attention_973.md). Resonance-
 based softmax replacement, full-model recurrent lowering, and exact deployment
 are parked; #954 remains blocked.
 The binding autonomous-generation evidence is the
-[generation record](r4_softmax_reference_generation_973.md) and
-[compact attempt-01 aggregate](r4_softmax_reference_generation_attempt_01_result_973.json).
+[generation record](../archive/r4_softmax_reference_generation_973.md) and
+[compact attempt-01 aggregate](../archive/r4_softmax_reference_generation_attempt_01_result_973.json).
 The endpoint and dashboard-wiring result is recorded in
-[the native bridge record](r4_softmax_reference_http_bridge_973.md). The bounded
+[the native bridge record](../archive/r4_softmax_reference_http_bridge_973.md). The bounded
 suffix-distillation result and its nonclaim boundary are recorded in the
-[trace-student record](r4_softmax_trace_student_973.md); the terminal
+[trace-student record](../archive/r4_softmax_trace_student_973.md); the terminal
 observability result and direct-training pivot are recorded in the
-[#1012 record](r4_softmax_trace_observability_1012.md).
+[#1012 record](../archive/r4_softmax_trace_observability_1012.md).
 
 ## Historical programme entry points
 
@@ -305,18 +305,18 @@ Choose the shortest path that matches what you need:
 - **Understand the project:** read the
   [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 - **Understand the current geometric mechanism:** read the
-  [#973 retained-language-path record](r4_retained_language_path_v1_973.md),
-  then the [paired-H4 capacity result](r4_paired_h4_prompt_capacity_result_973_raw.json),
-  then the [direct retained-readout result](r4_direct_retained_readout_prompt_capacity_973.md),
-  then the [layerwise-normalized result](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md),
-  then the [learned-associative result](r4_learned_associative_readout_prompt_capacity_973.md),
-  then the [terminal V5 predictive write/binding result](r4_predictive_block_delta_binding_prompt_capacity_973.md),
-  then the [group-addressed retention record](r4_group_addressed_retention_973.md),
+  [#973 retained-language-path record](../archive/r4_retained_language_path_v1_973.md),
+  then the [paired-H4 capacity result](../archive/r4_paired_h4_prompt_capacity_result_973_raw.json),
+  then the [direct retained-readout result](../archive/r4_direct_retained_readout_prompt_capacity_973.md),
+  then the [layerwise-normalized result](../archive/r4_layerwise_normalized_retained_readout_prompt_capacity_973.md),
+  then the [learned-associative result](../archive/r4_learned_associative_readout_prompt_capacity_973.md),
+  then the [terminal V5 predictive write/binding result](../archive/r4_predictive_block_delta_binding_prompt_capacity_973.md),
+  then the [group-addressed retention record](../archive/r4_group_addressed_retention_973.md),
   then [ADR-0005](adr/0005-predictive-geometric-connection-memory.md) and
   [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md), and use the
   [glossary](transformerless/GLOSSARY.md) for unfamiliar terms.
 - **Advance grounded correctness:** start from the append-only
-  [#954 record](r4_grounded_correctness_954.md). C1-SB5 paired-query binding is
+  [#954 record](../archive/r4_grounded_correctness_954.md). C1-SB5 paired-query binding is
   the latest frozen negative (`56/56` fit, `14/28` sealed) and is retired without
   retry. No C1-SB6 is authorized; #954's final source-free terminal remains
   blocked after #973's V5 write/binding law stopped
@@ -380,7 +380,7 @@ ladder.
 The following list records the earlier reference programme authority. The
 canonical plan and current-state links at the top govern present work:
 
-1. [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md) —
+1. [R4 Intelligence Completion Plan](../archive/r4_intelligence_completion_plan.md) —
    authoritative post-v0.1 work order and readable mirror of programme root
    #820.
 2. [Geometric Intelligence Programme](geometric_intelligence_programme.md) —
@@ -391,31 +391,31 @@ canonical plan and current-state links at the top govern present work:
    qualified autonomous-generation gate, verified native HTTP endpoint plus
    dashboard wiring/isolation checks, source-free
    trace/compiler successor, and parked replacement research. The bounded
-   [HELM-D-R4 full-decoder result](helm_d_r4_softmax_decoder_973.md) closes the
+   [HELM-D-R4 full-decoder result](../archive/helm_d_r4_softmax_decoder_973.md) closes the
    first parity gate. The
-   [intrinsic Lorentz V1 record](intrinsic_lorentz_r4_attention_973.md) preserves
+   [intrinsic Lorentz V1 record](../archive/intrinsic_lorentz_r4_attention_973.md) preserves
    its unavailable boundary, while the
-   [learned-manifold V2 record](helm_d_learned_manifold_r4_construction_973.md)
+   [learned-manifold V2 record](../archive/helm_d_learned_manifold_r4_construction_973.md)
    and completed
-   [score-by-readout localization](helm_d_score_centroid_localization_973.md)
+   [score-by-readout localization](../archive/helm_d_score_centroid_localization_973.md)
    define the prior evidence. The
-   [generation record](r4_softmax_reference_generation_973.md) and
-   [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json)
+   [generation record](../archive/r4_softmax_reference_generation_973.md) and
+   [compact aggregate](../archive/r4_softmax_reference_generation_attempt_01_result_973.json)
    bind the generation PASS; the
-   [native bridge record](r4_softmax_reference_http_bridge_973.md) binds the
+   [native bridge record](../archive/r4_softmax_reference_http_bridge_973.md) binds the
    subsequent endpoint CLI-parity canary. The hosted Pages build remains static
    and lacks a working chat backend/artifact lowering. The
-   [trace-student record](r4_softmax_trace_student_973.md) binds the completed
+   [trace-student record](../archive/r4_softmax_trace_student_973.md) binds the completed
    source-free Q16 suffix distillation and its looping-output nonclaim boundary;
-   the [state-student record](r4_softmax_trace_state_student_1011.md) binds the
+   the [state-student record](../archive/r4_softmax_trace_state_student_1011.md) binds the
    subsequent recurrent negative, and the
-   [#1012 observability record](r4_softmax_trace_observability_1012.md) binds the
+   [#1012 observability record](../archive/r4_softmax_trace_observability_1012.md) binds the
    insufficient-support terminal and direct end-to-end training direction. The
-   [#1014 record](r4_softmax_end_to_end_attention_1014.md) binds the positive
+   [#1014 record](../archive/r4_softmax_end_to_end_attention_1014.md) binds the positive
    attention intervention and negative first quality gate; the
-   [#1017 record](r4_softmax_quality_capacity_continuation_1017.md) binds the
+   [#1017 record](../archive/r4_softmax_quality_capacity_continuation_1017.md) binds the
    completed NLL-only-negative continuation; the
-   [#1019 contract](r4_softmax_parameter_capacity_1019.md) binds the optional,
+   [#1019 contract](../archive/r4_softmax_parameter_capacity_1019.md) binds the optional,
    partially executed parameter-capacity campaign: preliminary gates passed,
    MPS admission stopped `UNAVAILABLE_HARDWARE_BUDGET` for the frozen eight-hour
    offline implementation, and the full campaign remains `NOT_RUN`. Its fused-
@@ -430,14 +430,14 @@ canonical plan and current-state links at the top govern present work:
    CUDA and
    external GPU execution are out of scope.
    The bounded
-   [multi-resonance reuse audit](multi_resonance_attention_sieve_audit_973.md)
+   [multi-resonance reuse audit](../archive/multi_resonance_attention_sieve_audit_973.md)
    distinguishes the implemented sin/cos and Spin substrate from the still
    unimplemented normalized attention sieve.
 4. [ADR-0003: fixed-zeta prime routes](adr/0003-fixed-zeta-prime-route-attention.md)
    — the retained storage/recall substrate.
 5. [ADR-0004: recursive route hierarchy](adr/0004-geometric-intelligence-route-hierarchy.md)
    — attention scopes, geometric transport, and reconstruction requirements.
-6. [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md) —
+6. [Geometric Intelligence Evaluation](../archive/geometric_intelligence_evaluation.md) —
    the minimal decision-bearing evidence policy.
 7. [Glossary](transformerless/GLOSSARY.md) and
    [formal vocabulary](formal_vocabulary.md) — shared language and disciplined

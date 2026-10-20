@@ -25,7 +25,7 @@ and candidate-join kernels already landed ([#2203](https://github.com/UOR-Founda
 - **`read=l2` in the deployed model** — the flat Euclidean control of Lorentz, inherited by every arm this lab has trained; the
   [geometry audit](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6105227220) found geometric operations at **0.05 %** of the
   stack's arithmetic because of it.
-- **The geometric read itself**, now measured properly ([record](../labs/geometric-read-2026-10-11/README.md)): `lorentz` against `l2`, three
+- **The geometric read itself**, now measured properly ([record](../../archive/labs/geometric-read-2026-10-11/README.md)): `lorentz` against `l2`, three
   matched seeds — **ahead on every seed** (wrong-value 49 → 32 of 120, memory 48 → 59) but **below its pre-registered per-seed margin**. So the
   score is worth having and is not the whole story.
 - **Addressing attempts that were aimed at the wrong place**: the identity pointer was keyed on the six tokens around the value

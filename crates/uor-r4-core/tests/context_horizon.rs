@@ -21,7 +21,7 @@
 //! already has — and reaches *exactly zero* by k=64. The fold is therefore
 //! structurally incapable of carrying context beyond 63 tokens at the
 //! shipped decay constant, independent of how many tokens are folded in.
-//! See `docs/context_horizon_424.md` for the corpus-side ceiling this was
+//! See `archive/context_horizon_424.md` for the corpus-side ceiling this was
 //! measured against.
 
 use uor_r4_core::transformerless::bott_fock::{BottFockContextStore, CONTEXT_DIM, STATE_ENTRIES};
@@ -96,7 +96,7 @@ fn influence_horizon_is_bounded_and_reaches_zero() {
         vanished, 0,
         "at the shipped decay constant a token 64 positions back must leave \
          no trace; got L1 {vanished}. If this constant is retuned, update \
-         docs/context_horizon_424.md — the horizon is the mechanism's reach."
+         archive/context_horizon_424.md — the horizon is the mechanism's reach."
     );
 }
 

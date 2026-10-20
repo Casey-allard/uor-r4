@@ -1,7 +1,7 @@
 //! Normative Fixed-Point Scoring Semantics Module
 //!
-//! Specification & Source: `docs/scoring_semantics.md`; `docs/inference_contract.md`;
-//! `docs/hologram_formal_analysis_direction.md` PDF §§7, 12, 13; `docs/formal_vocabulary.md`; GitHub Issue #158.
+//! Specification & Source: `archive/scoring_semantics.md`; `docs/inference_contract.md`;
+//! `archive/hologram_formal_analysis_direction.md` PDF §§7, 12, 13; `docs/formal_vocabulary.md`; GitHub Issue #158.
 //!
 //! This module provides a machine-readable, `no_std`, `alloc`-free implementation of the
 //! normative fixed-point scoring semantics:

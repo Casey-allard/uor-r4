@@ -35,9 +35,9 @@ These three counts describe different objects. The orbit is not full E8 coverage
 
 The earlier float operator path, including G2 Hamilton gates, geometric recurrence
 and the delivered OP3a head, is preserved in the
-[operator record](labs/operator-phase-2026-10-12/README.md),
-[head record](labs/geometric-head-shared-writer-2026-10-13/README.md) and
-[historical geometry tour](history/geometry-float-form-2026-10.md).
+[operator record](../archive/labs/operator-phase-2026-10-12/README.md),
+[head record](../archive/labs/geometric-head-shared-writer-2026-10-13/README.md) and
+[historical geometry tour](../archive/history/geometry-float-form-2026-10.md).
 Its earlier sheets are inactive pending D37 re-registration/FIT. It is not the
 current discrete token path. The dated [operator diagram](figures/geometry/operators.svg)
 illustrates those retained operators.
@@ -106,7 +106,7 @@ explicitly says this invertible coefficient representation does **not** establis
 an orthogonal Euclidean E8 embedding or independent extra state. The present
 carrier generation has its own concrete basis and orbit in `build.rs`.
 
-Retained experiments include [icosian snap](labs/icosian-qat-2026-10-11/README.md),
+Retained experiments include [icosian snap](../archive/labs/icosian-qat-2026-10-11/README.md),
 [spin-native weights](mechanisms/spin-native-weights.md) and
 [E8 orbit memory](mechanisms/e8-orbit-memory.md). Their positive or negative
 results concern those configurations; they do not settle the full geometry programme.
@@ -165,7 +165,7 @@ constructor uses **four complex channels per block (C⁴)**, θ = γ·ln(p), the
 
 Thus C⁴ becomes **R⁴ + R⁴ per block**, not C⁸ or R¹⁶ per block. Allocation
 controls are part of the assignment; it is not simply an unconstrained nearest-root snap.
-See the [construction record](labs/prime-zeta-construction-2026-10-14/README.md)
+See the [construction record](../archive/labs/prime-zeta-construction-2026-10-14/README.md)
 and [mechanism brief](mechanisms/prime-zeta-complex-routing.md).
 
 The retained M2 learner instead accumulates fixed phase bins as policy inputs
@@ -213,9 +213,9 @@ are trainable and refresh during training. Mode 2 binds the root code with a rea
 
 **Status.** Built and tested. The native VSA test is done: trained codes improve held-out BPB by
 0.014–0.023, and codes built from icosian roots alone collapse token identity
-([record](labs/vsa-native-test-2026-10-09/README.md); a historical float-form measurement). VSA is not
+([record](../archive/labs/vsa-native-test-2026-10-09/README.md); a historical float-form measurement). VSA is not
 tied to SpiralCore (next section).
-- **Post-D30/D32/D34 label:** **`active`** for discrete ternary/E8 Hamming distance as one routing factor alongside SpiralCore/FBS geometry in `crates/uor-r4-discrete` ([D32](integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning), [discrete-geometric-learning.md](mechanisms/discrete-geometric-learning.md), [finite-relational-head.md](mechanisms/finite-relational-head.md)); **`dormant`** for trained Mode 1/2 VSA codes in the held Line B native prose learner (`crates/uor-r4-core/src/native_geometric/vsa_codes.rs`, [record](labs/vsa-native-test-2026-10-09/README.md)) and dense ternary/XOR weight contractions ([ternary-xor-arithmetic.md](mechanisms/ternary-xor-arithmetic.md), [evidence sheet](mechanisms/ternary-xor-evidence-factsheet.md)); **`archived-negative (D22 scope)`** for Mode 0 disconnected token-id hash and icosian-root-only VSA codes without token-identity preservation ([record](labs/vsa-native-test-2026-10-09/README.md)).
+- **Post-D30/D32/D34 label:** **`active`** for discrete ternary/E8 Hamming distance as one routing factor alongside SpiralCore/FBS geometry in `crates/uor-r4-discrete` ([D32](integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning), [discrete-geometric-learning.md](mechanisms/discrete-geometric-learning.md), [finite-relational-head.md](mechanisms/finite-relational-head.md)); **`dormant`** for trained Mode 1/2 VSA codes in the held Line B native prose learner (`crates/uor-r4-core/src/native_geometric/vsa_codes.rs`, [record](../archive/labs/vsa-native-test-2026-10-09/README.md)) and dense ternary/XOR weight contractions ([ternary-xor-arithmetic.md](mechanisms/ternary-xor-arithmetic.md), [evidence sheet](mechanisms/ternary-xor-evidence-factsheet.md)); **`archived-negative (D22 scope)`** for Mode 0 disconnected token-id hash and icosian-root-only VSA codes without token-identity preservation ([record](../archive/labs/vsa-native-test-2026-10-09/README.md)).
 
 ## 9. What carries route history (and what SpiralCore is)
 
@@ -224,7 +224,7 @@ tied to SpiralCore (next section).
 | What carries route order? | Current M1 uses ordered FBS plans and composed 8D signed transport. The retained float stack uses noncommuting quaternion recurrence; these are distinct implementations. | `crates/uor-r4-discrete`, `geometric_stack.rs` |
 | What tracks accumulated phase? | `hopf_metric.rs` tracks a cumulative U(1) holonomy phase and a geodesic distance (Line B only, **`dormant`** in held M2 learner; `SpinTorsionState` in `prime_route_attention.rs` uses Q30 storage with float-backed Hopf/fibre helpers outside M1). Under the D32 Oct 14 addendum, `crates/uor-r4-discrete/src/prime_zeta.rs` uses offline complex-plane zeta-zero phases to construct `Snapshot.table` (**`active`**, [#2473](https://github.com/UOR-Foundation/uor-r4/pull/2473)/[#2477](https://github.com/UOR-Foundation/uor-r4/pull/2477), [brief](mechanisms/prime-zeta-complex-routing.md)). | `native_geometric/`, `prime_route_attention.rs`, `uor-r4-discrete/src/prime_zeta.rs` |
 | What are chirality and polarity? | Exact signs on Z[φ] (**`active`** fixed integer tables in `native_geometric/anchors.rs`). Line B only. | `native_geometric/` |
-| What is SpiralCore? | `spiralcore_operator.rs` reproduces the SpiralCore v63 octonion/Cl(0,6) convention exactly: the oriented Fano cycles (124)(235)(346)(457)(561)(672)(713), 15 bivectors ↔ 15 semiprimes, and a 64-state composition table. **Since #2279 its signed BFS action is the trunk's projection** (`spiralcore_fbs.rs`, **`dormant`** in pre-D32 F32/BF16 form, [brief](mechanisms/spiralcore-fbs-projection.md); **`active`** in discrete integer/CUDA form in `crates/uor-r4-discrete` [#2379](https://github.com/UOR-Foundation/uor-r4/pull/2379)/[#2395](https://github.com/UOR-Foundation/uor-r4/pull/2395)/[#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400), [discrete brief](mechanisms/discrete-geometric-learning.md), [discrete record](labs/discrete-geometric-learning-2026-10-13/README.md)). One anchor orbit holds 16 roots and 64 signed operator states, and an output block's carrier is moved by the composed edge history. The orientation in Mark (N3mesis)'s later substrate sketch is different and inconsistent, and it must not replace this canonical table (see the review in section 10). | `uor-r4-core/src/spiralcore_operator.rs`, `uor-r4-discrete/src/{lib.rs,discrete.cu}`, `uor-r4-training/src/spiralcore_fbs.rs` |
+| What is SpiralCore? | `spiralcore_operator.rs` reproduces the SpiralCore v63 octonion/Cl(0,6) convention exactly: the oriented Fano cycles (124)(235)(346)(457)(561)(672)(713), 15 bivectors ↔ 15 semiprimes, and a 64-state composition table. **Since #2279 its signed BFS action is the trunk's projection** (`spiralcore_fbs.rs`, **`dormant`** in pre-D32 F32/BF16 form, [brief](mechanisms/spiralcore-fbs-projection.md); **`active`** in discrete integer/CUDA form in `crates/uor-r4-discrete` [#2379](https://github.com/UOR-Foundation/uor-r4/pull/2379)/[#2395](https://github.com/UOR-Foundation/uor-r4/pull/2395)/[#2400](https://github.com/UOR-Foundation/uor-r4/pull/2400), [discrete brief](mechanisms/discrete-geometric-learning.md), [discrete record](../archive/labs/discrete-geometric-learning-2026-10-13/README.md)). One anchor orbit holds 16 roots and 64 signed operator states, and an output block's carrier is moved by the composed edge history. The orientation in Mark (N3mesis)'s later substrate sketch is different and inconsistent, and it must not replace this canonical table (see the review in section 10). | `uor-r4-core/src/spiralcore_operator.rs`, `uor-r4-discrete/src/{lib.rs,discrete.cu}`, `uor-r4-training/src/spiralcore_fbs.rs` |
 | What was tried earlier? | Recursive geometric attention over earlier tokens (A1) was stopped on 1 October (D18) because a reusable state erased order (**`archived-negative (D22 scope)`**; under D22 that closes the configuration, not the mechanism). A route-holonomy read and an octonion-signed binding remain **`dormant`** designs (see [Historical research designs](#historical-research-designs)). | #2029 |
 
 ## 10. How the geometric pieces connect
@@ -258,7 +258,7 @@ Matthew (SpiralCore v63/v69); the octonion and Fano material to Mark (N3mesis, N
 | Cl(0,6) bivectors | Standard-coordinate E8 | the signed matrices preserve the 240 standard-coordinate roots (check E1), independently of the reduced-metric icosian realization | forced for the specified coordinates | `verify_connections.py` E1, `spiralcore_operator.rs` | current M1 uses a 16-root orbit in this coordinate convention |
 | 2I ∪ φ·2I | E8 | 240 roots under the reduced rational-part metric defined in section3, not ordinary quaternion Euclidean distance (check E2); no intertwiner to the E1 signed-action representation is established | forced | E8 notes in `AGENTS.md`, `uor-r4-discrete` | current M1 separately uses a 16-root standard-coordinate carrier; no basis bridge to this icosian realization is asserted; **`dormant`** float E8 orbit memory ([brief](mechanisms/e8-orbit-memory.md)) |
 | 2I | Hopf S² | S³ → S² maps the 120 icosians onto one orbit of 30 points, every fibre of size 4 (a two-fold-type orbit, not literally the axes of the chosen frame) | forced | `prime_route_attention.rs`, `hopf_metric.rs` | float-backed offline Hopf utility with Q30 storage, outside current M1; **`dormant`** held Line B learner |
-| 2I | VSA bit codes | the learned token → icosian-root assignment builds the codes | learned | `vsa_codes.rs` (since #2077) | **`dormant`** in held Line B learner (trained VSA helps); **`archived-negative (D22 scope)`** Mode 0 & root-only codes ([record](labs/vsa-native-test-2026-10-09/README.md)) |
+| 2I | VSA bit codes | the learned token → icosian-root assignment builds the codes | learned | `vsa_codes.rs` (since #2077) | **`dormant`** in held Line B learner (trained VSA helps); **`archived-negative (D22 scope)`** Mode 0 & root-only codes ([record](../archive/labs/vsa-native-test-2026-10-09/README.md)) |
 
 **Cautions for anyone building on this.**
 1. **Half-turns don't compose like bivectors.** Two half-turns whose K6 edges share a vertex multiply to an order-5 rotation, never a half-turn. The prime ↔ half-turn match is a correspondence of sets, not of products.
@@ -278,7 +278,7 @@ and its packing function returns empty bytes. A pre-route embed/project inverse 
 establish post-route preservation. Modular `ZMod(2^256)` coefficients are neither the real
 normed division algebra nor a replacement for exact `Z[φ]` pairs. These findings concern the
 supplied draft, not a negative language experiment or retirement of octonion binding.
-The [full review and executable counterexamples](labs/octonion-substrate-review-2026-10-09/README.md)
+The [full review and executable counterexamples](../archive/labs/octonion-substrate-review-2026-10-09/README.md)
 record the exact documents, source, decisions and limits. The 29 connection checks above
 continue to concern the repository's specified structures, not certification of external PDFs.
 
@@ -288,12 +288,12 @@ K6, five perfect matchings that together cover all 15 edges.
 ## Historical research designs
 
 Three integer-only, softmax-free designs follow from the connections above. They have figures and full
-descriptions on the [archived page](history/geometry-float-form-2026-10.md#11-pre-registered-mechanisms-not-yet-measured).
+descriptions on the [archived page](../archive/history/geometry-float-form-2026-10.md#11-pre-registered-mechanisms-not-yet-measured).
 Under D22 each needs its own pre-registration and a `TEST FITNESS: FIT` review before compute.
 
 - **Exact icosian holonomy lanes** (**`dormant`** design; earlier single reusable-state recursive attention A1 configuration is **`archived-negative (D22 scope)`** under [D18](integration/DECISIONS.md#d18--one-retrieval-question-for-114-october-track-b-cost-and-memory-port-work-parked-with-re-entry-conditions) / [D22](integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened)). A lane state is a product in the 120-element group, updated by a
   120 × 120 table. Earlier positions are ranked by the shell index of the relative product.
-- **Octonion-signed binding** (**`dormant`** design; the inconsistent N3mesis draft cycle orientation is **`archived-negative (D22 scope)`** as a draft convention defect in [octonion substrate review](labs/octonion-substrate-review-2026-10-09/README.md), while the canonical v63 Fano table in `spiralcore_operator.rs` is **`active`**). On the Fano plane, e_a · e_b = ±e_(a⊕b): a signed XOR whose sign depends
+- **Octonion-signed binding** (**`dormant`** design; the inconsistent N3mesis draft cycle orientation is **`archived-negative (D22 scope)`** as a draft convention defect in [octonion substrate review](../archive/labs/octonion-substrate-review-2026-10-09/README.md), while the canonical v63 Fano table in `spiralcore_operator.rs` is **`active`**). On the Fano plane, e_a · e_b = ±e_(a⊕b): a signed XOR whose sign depends
   on operand order, unlike plain XOR.
 - **Hamming-rank read** is a historical sign-bit/popcount design with fixed rank-table weights. The [historical float configuration](mechanisms/flock-rank-reads.md) trained beside a softmax stack measured +0.259 BPB against softmax; that result closes only that configuration. It is not the current discrete Flock/Relation algorithm.
 
@@ -321,7 +321,7 @@ an add chain is not folded back into a multiply. Products are taken modulo 2⁶�
 earlier integer engine. Code: `crates/uor-r4-integer/src/stack/kernels.rs` (`stack_mul_u64`,
 `stack_div_u64`, `stack_isqrt`); the ARM64 audit is `scripts/audit_zero_matmul_serving.py --stack`.
 (The numbers in the example are illustrative, not taken from the code.)
-- **Post-D30/D32/D34 label:** The [D11](integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded)/D5 multiplier-free serving contract and fixed integer geometry in `crates/uor-r4-integer` are **`active`**; historical pre-D29/D32 exported float-stack executors (`stack_214m_step4000`, 19.9M chat stack, 29M M1 stack) are **`dormant`** (excluded from the selected native build under [D29](integration/DECISIONS.md#d29--no-banned-mechanism-in-any-compiled-or-loaded-module-vendor-runtime-content-counts) and preserved as evidence in [D11 serving](labs/d11-serving-2026-10-10/README.md)); the 29M M1 Criterion-2 configuration (`1.20138` BPB vs `≤ 0.90` target) and the superseded D10 converted-transformer track (#1518) are **`archived-negative (D22 scope)`**.
+- **Post-D30/D32/D34 label:** The [D11](integration/DECISIONS.md#d11--native-multiplier-free-transformerless-serving-for-every-lab-d10-superseded)/D5 multiplier-free serving contract and fixed integer geometry in `crates/uor-r4-integer` are **`active`**; historical pre-D29/D32 exported float-stack executors (`stack_214m_step4000`, 19.9M chat stack, 29M M1 stack) are **`dormant`** (excluded from the selected native build under [D29](integration/DECISIONS.md#d29--no-banned-mechanism-in-any-compiled-or-loaded-module-vendor-runtime-content-counts) and preserved as evidence in [D11 serving](../archive/labs/d11-serving-2026-10-10/README.md)); the 29M M1 Criterion-2 configuration (`1.20138` BPB vs `≤ 0.90` target) and the superseded D10 converted-transformer track (#1518) are **`archived-negative (D22 scope)`**.
 
 ## Reproduce the figures
 

@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model: integer serving
 
-> **Selected API, 13 October — D29:** Cargo selects `src/native_geometry.rs`, exposing fixed H4 geometry, checked integer primitives and report/config metadata. The historical model/stack/sampling executors and generation binaries described below remain source evidence and are excluded; `historical-runtime` fails compilation. The composed native CUDA graph at `1f1547bfd` passes 31 finite controls on RTX4090, pending protected delivery. No compliant D11 language-serving model is qualified by this facade or those controls; all training holds remain. [Boundary record](../../docs/labs/d29-vendor-boundary-2026-10-13/README.md).
+> **Selected API, 13 October — D29:** Cargo selects `src/native_geometry.rs`, exposing fixed H4 geometry, checked integer primitives and report/config metadata. The historical model/stack/sampling executors and generation binaries described below remain source evidence and are excluded; `historical-runtime` fails compilation. The composed native CUDA graph at `1f1547bfd` passes 31 finite controls on RTX4090, pending protected delivery. No compliant D11 language-serving model is qualified by this facade or those controls; all training holds remain. [Boundary record](../../archive/labs/d29-vendor-boundary-2026-10-13/README.md).
 
 ## Historical implementation and evidence
 
@@ -29,19 +29,19 @@ libraries. It has no dependency on Candle, the training crate, the core crate,
 model-source, a transformer implementation, or an external model provider.
 Training evaluation re-exports the same integer computation used here.
 
-The [packed coefficient candidate](../../docs/integration/packed-integer-preparation-2026-09-27.md)
+The [packed coefficient candidate](../../archive/integration/packed-integer-preparation-2026-09-27.md)
 keeps signed4 arrays in shared `Arc<[u8]>` storage after loading and consumes
 packed rows directly. Signed16 arrays are shared separately.
 `IntegerModel::coefficient_storage()` reports unique coefficient payload bytes,
 excluding metadata, loading temporaries and session state. Artifact formats and
-supported dimensions are unchanged. The [completed comparison](../../docs/integration/packed-integer-comparison-2026-09-27.md)
+supported dimensions are unchanged. The [completed comparison](../../archive/integration/packed-integer-comparison-2026-09-27.md)
 preserves every declared stable field across eight paired workloads on the two
 retained width-256 artifacts. Logical retained coefficient payload falls from
 6,702,340 to 847,876 bytes; observed peak child RSS is 13.04–16.83% lower.
 Timing changes are small and mixed in this single pass. Dense access and the
 artifacts' language limitations remain; no general speed or energy gain is established.
 
-The separate [width-576 dialogue development profile](../../docs/integration/dialogue-child-native-observation-2026-09-27.md)
+The separate [width-576 dialogue development profile](../../archive/integration/dialogue-child-native-observation-2026-09-27.md)
 now accepts a verified complete-prefix child through its own conversion schema.
 Use the training example `dialogue-child-integer-bridge` to construct its packed
 model and `pack-dialogue576` to package it. This keeps the selected child's
@@ -191,7 +191,7 @@ success telemetry on a terminal error and reports the actual stop on success.
 Existing stream-construction errors still print and return to the prompt, so
 exit status zero alone does not establish that all earlier commands succeeded.
 A failed model step may have changed state; this reporting provides no rollback
-or recovery. The [focused validation](../../docs/evidence/chat-stream-error-validation-2026-09-27.json)
+or recovery. The [focused validation](../../archive/evidence/chat-stream-error-validation-2026-09-27.json)
 uses synthetic library and CLI-helper checks plus a release build, with no
 learned-model execution, spawned CLI exit-status test or chat-quality claim.
 

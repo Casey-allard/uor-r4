@@ -295,7 +295,7 @@ Qualitative fluency and relevance are scored by a local judge (`qwen2.5:7b` host
 The panel is frozen in `~/uor-r4-local/ladder/panel/` before model evaluation (that directory is archived
 as `icloud:UOR-R4/results/deepseek/ladder.tar`, md5 `ed9456d63472b7a424fe6ca62d36baa8`, since 2026-10-09;
 restore with `cloud-store fetch ladder <dest>` — see
-[docs/labs/open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md) for this panel's
+[docs/labs/open-reply-panel-2026-10-09](../../archive/labs/open-reply-panel-2026-10-09/README.md) for this panel's
 sha256 identities and its recorded 43/232):
 1. `everyday-32.json`: 32 requests in everyday conversational register (smalltalk, simple questions, simple instructions, two-turn follow-ups; 8 each).
 2. `heldout-200-a.json` (100 requests) & `heldout-200-b.json` (100 requests): held-out single-turn requests sampled from chat-v0 held-out split (`count=200`, `max_words=24`, seed 1; split into two files to observe the 128 requests/file panel cap).
@@ -335,7 +335,7 @@ RAYON_NUM_THREADS=2 target/release/chat-grade grade \
 - **The panel is judge-only.** It has no frozen row checks, so `check_pass` is 0 and `acceptable` is the only
   reading, carrying the judge's instability with it (4 of 64 rows changed verdict at the same digest in the v4
   work). Details and the full per-category tables:
-  [open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md) Results 4 and 5.
+  [open-reply-panel-2026-10-09](../../archive/labs/open-reply-panel-2026-10-09/README.md) Results 4 and 5.
 
 **Deterministic checks now exist for part of this panel (2026-10-09, #2029).** Only **88 of the 232
 rows** have a judge-free criterion — 21 content rows (`any`, required content) and 67 ill-posed rows
@@ -348,7 +348,7 @@ of 168 of 384. Five of the content rows use the additive `reply_exact` kind (req
 forbidden distractors and keys, with `history=none`) and 27 ill-posed rows use `clarify` (a question
 that **names the missing material**), neither of which `exact` can express on a single-turn row: run
 `cargo test -p uor-r4-training --bin chat-grade` after touching either. The four adversarial controls
-live in `reply-panel-controls.txt` and must all score zero, as must the thirteen memorised strings. Details: [reply-panel-deterministic-checks-2026-10-09](../labs/reply-panel-deterministic-checks-2026-10-09/README.md).
+live in `reply-panel-controls.txt` and must all score zero, as must the thirteen memorised strings. Details: [reply-panel-deterministic-checks-2026-10-09](../../archive/labs/reply-panel-deterministic-checks-2026-10-09/README.md).
 
 ### 6.3 Grader questions, controls, and McNemar test
 

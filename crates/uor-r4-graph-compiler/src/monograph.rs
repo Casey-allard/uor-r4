@@ -1,6 +1,6 @@
 //! Hologram/R4 Formal Monograph Validator & Traceability Harness
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §§14–17;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §§14–17;
 //! `docs/formal_vocabulary.md`; GitHub Issue #133.
 //!
 //! This module provides programmatic validation for the formal monograph:

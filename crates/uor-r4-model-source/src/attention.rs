@@ -656,7 +656,7 @@ impl AttentionOperatorParams {
 /// and the cover/compile report wherever the operator is known, so an
 /// operator change is visible in provenance instead of silent. `None`
 /// wherever the record is carried means the legacy interpretation
-/// documented in `docs/MODEL_LIFECYCLE.md` (produced before #602; for
+/// documented in `archive/MODEL_LIFECYCLE.md` (produced before #602; for
 /// teacher paths the default-off switch always computed
 /// `standard-source-attention/1`).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

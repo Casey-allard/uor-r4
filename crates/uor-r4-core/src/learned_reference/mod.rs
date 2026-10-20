@@ -18,7 +18,7 @@ pub const CONTRACT_SHA256: &str =
 pub const OPERATOR_PROFILE: &str = "cpu-scalar-f32-f64-1086/1";
 pub const OPERATION: &str = "answer_four_fact_raw_text/v1";
 pub(super) const CONTRACT: &str =
-    include_str!("../../../../docs/r4_native_reference_1086_contract.json");
+    include_str!("../../../../archive/r4_native_reference_1086_contract.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

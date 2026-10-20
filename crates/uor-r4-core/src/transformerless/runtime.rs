@@ -599,7 +599,7 @@ pub fn assign_code_for_bundle(art: &Compiled, bundle: &[i64; D]) -> [u8; STAGES]
 // ------------- integer residual wiring (#318 Phase B, TLA7) ------------
 //
 // The kernel form of the certifier's Phase A.5 rows
-// (docs/dot_residual_phase_b_design.md): the po2 norm fold replaces f32
+// (archive/dot_residual_phase_b_design.md): the po2 norm fold replaces f32
 // division (row a), and per-stage i8 centroid copies carry the residual
 // subtraction (row b). Everything below is add/sub, shifts, compares,
 // and table reads — the P-4 scan covers this module.

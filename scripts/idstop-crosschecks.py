@@ -3,7 +3,7 @@
 copy stop at arm-ptr / gate floor 0.5 -- the class x 2x2 crosstab, whether the
 non-firing cells keep the same-floor reply without the stop, the anatomy of the
 23 firings against the value's own span, and the (d) cells in three floors of
-context. Companion to docs/evidence/idstop_nonfiring_classification_2026-10-09.txt.
+context. Companion to archive/evidence/idstop_nonfiring_classification_2026-10-09.txt.
 
     idstop-crosschecks.py [PATH OPTIONS] [TAG OPTIONS]
 

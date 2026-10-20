@@ -21,7 +21,7 @@ archived as `icloud:UOR-R4/results/deepseek/ladder.tar` (3,306,919,424 B, md5
 `<dest>/ladder/grades/`. The sha256 values in the table are unchanged, and the panel files the reports graded
 are in the same archive under `ladder/panel/`. The two reports, the panel and a re-runnable classifier are
 also in `icloud:UOR-R4/results/deepseek/reply-panel-open-2026-10-09.tar`; see the
-[open reply panel diagnostic](../../labs/open-reply-panel-2026-10-09/README.md), which reproduces 43/232 and
+[open reply panel diagnostic](../../../archive/labs/open-reply-panel-2026-10-09/README.md), which reproduces 43/232 and
 46/232 from these reports and confirms this taxonomy's diffusion finding on the grader's own verdict fields.
 
 ## Method

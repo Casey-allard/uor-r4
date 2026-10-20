@@ -4,7 +4,7 @@
 # on identical windows. Each trained model is then scored with the retained evaluator's block protocol on the
 # development store, where #1017 itself scores 1.574024 nats on the 912-block comparison tail and the retained
 # native model's continuation finals score 1.975-1.996 (docs/integration/current-state.md). See
-# docs/integration/geometric-stack-cycle4-2026-09-27.md.
+# archive/integration/geometric-stack-cycle4-2026-09-27.md.
 #
 # Usage, from the repository root:
 #   scripts/geometric-stack-m1.sh TRAIN.u16[,TRAIN2.u16] DEV.u16 TOKENIZER.json [OUT_PARENT]

@@ -21,7 +21,7 @@ What they are not:
   measured.
 - The geometry tour in [docs/geometry.md](../../docs/geometry.md) carries its own
   **historical float form (pre-D23)** banner where it describes the pre-ban path (archived at
-  [docs/history/geometry-float-form-2026-10.md](../../docs/history/geometry-float-form-2026-10.md))
+  [docs/history/geometry-float-form-2026-10.md](../../archive/history/geometry-float-form-2026-10.md))
   and explicit post-D30/D32/D34 mechanism labels (`active` / `dormant` / `archived-negative (D22 scope)`)
   matching [README.md](../../README.md#mechanisms-under-test) and
   [docs/mechanisms/README.md](../../docs/mechanisms/README.md); these images are

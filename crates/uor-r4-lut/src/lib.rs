@@ -1,7 +1,7 @@
 //! Retained LUT artifact metadata and exact grid helpers only (owner D29).
 //!
 //! Historical dense/table-normalized engines, sampling and runtime kernels are
-//! preserved under docs/history/d29-excluded-lut-2026-10-13/src/ and excluded from this compiled facade.
+//! preserved under archive/history/d29-excluded-lut-2026-10-13/src/ and excluded from this compiled facade.
 //! No feature can reactivate them. This crate claims no serving capability.
 #![forbid(unsafe_code)]
 

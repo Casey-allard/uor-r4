@@ -4,7 +4,7 @@
 //! `gnaf_release_path.rs`/`gnaf_manifest.rs`; the remaining four
 //! (`axioms.py`, `required.py`, `gate.py`, `mutation.py`) all invoke the
 //! Lean toolchain and stay out of scope for this port -- see
-//! `docs/gnaf_integration_653.md`).
+//! `archive/gnaf_integration_653.md`).
 //!
 //! Renders `CONFORMANCE.md` deterministically from `model/claims.json`: a
 //! live inventory (Lean module/line/theorem-line counts under

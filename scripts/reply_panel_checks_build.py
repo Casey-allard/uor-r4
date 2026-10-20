@@ -298,7 +298,7 @@ def main():
                      "the open reply panel (#2029). Checked rows are the ones where a "
                      "judge-free criterion exists: content rows (`any`, required content) and "
                      "the recorded ill-posed rows (`abstain_exact`, which rejects a fabricated "
-                     "specific). See docs/labs/reply-panel-deterministic-checks-2026-10-09/.\n")
+                     "specific). See archive/labs/reply-panel-deterministic-checks-2026-10-09/.\n")
         for check in checks:
             handle.write("\t".join(check) + "\n")
     with open(args.out_provenance, "w") as handle:

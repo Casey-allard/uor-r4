@@ -11,10 +11,10 @@
   classification and the glossary wins for structural terms. The route-scope
   decision is [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md),
   and current execution follows the
-  [native geometric AI policy](integration/agent-execution-policy.md).
-  [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md)
+  [native geometric AI policy](../archive/integration/agent-execution-policy.md).
+  [Geometric Intelligence Evaluation](../archive/geometric_intelligence_evaluation.md)
   retains historical experiment protocols. A preserved #973 terminal contract is
-  [`R4PredictiveBlockDeltaPromptCapacityV5`](r4_predictive_block_delta_binding_prompt_capacity_973.md).
+  [`R4PredictiveBlockDeltaPromptCapacityV5`](../archive/r4_predictive_block_delta_binding_prompt_capacity_973.md).
 
 **Current authority (2026-09-05).** This document governs claim language and
 typed mathematical distinctions. The [project plan](integration/project-track.md)
@@ -195,7 +195,7 @@ by wholesale rewrite.
   scans `docs/**/*.md` and crate `README.md` files
   and fails on §2.1 violations. Run locally: `cargo run -q --locked -p uor-r4-claim-wording -- .`.
 - Current PR and merge-group CI run the focused native checks described by the
-  [execution policy](integration/agent-execution-policy.md#verification-and-records).
+  [execution policy](../archive/integration/agent-execution-policy.md#verification-and-records).
   Four historical required statuses acknowledge compatibility only. Run the
   claim-wording script when changing claims; broader legacy release checks
   remain separately activated. Neither status names nor unrun jobs are evidence.

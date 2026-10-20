@@ -1,6 +1,6 @@
 //! Von Neumann maximum-entropy quantum density operator and quantum
 //! cover induction (issue #108; spec:
-//! `docs/r4_furey_quantum_geometric_plan.md` §Phase 5).
+//! `archive/r4_furey_quantum_geometric_plan.md` §Phase 5).
 //!
 //! Compiler-side only: f32/f64 math is confined to cover evaluation and
 //! residual quantization; nothing here runs in the deployed integer

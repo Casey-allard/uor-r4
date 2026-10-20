@@ -28,8 +28,8 @@
 //!            (`R4_PROBE_N`, default 6000) reporting the reachability ceiling
 //!            (changed/n) and the subsample net delta; no null, no record.
 //!   full  -- all held-out positions + the label-shuffle null + paired 95%
-//!            CIs; writes `docs/skipmix_endtoend_causal_908.md` and
-//!            `docs/skipmix_endtoend_causal_908_result.json`.
+//!            CIs; writes `archive/skipmix_endtoend_causal_908.md` and
+//!            `archive/skipmix_endtoend_causal_908_result.json`.
 //!
 //! Off-serving harness; gated behind `--ignored` (same discipline as
 //! #897/#904/#906). Needs the attested #833 bundle.

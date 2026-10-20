@@ -16,7 +16,7 @@
 //! ## Arms (pre-registered on #897; lambda fixed at 1.0 before evaluation)
 //!
 //! Reproduction arms recomputed on their ORIGINAL D1 constructions
-//! (`docs/joint_conditional_822_result.json`) as harness-correctness gates:
+//! (`archive/joint_conditional_822_result.json`) as harness-correctness gates:
 //!   * `base` — suffix rate over suffix candidates (the suffix-local floor).
 //!     Recorded 246.6permille.
 //!   * `mix` — the D1-SELECTED backed-off mix: joint residual keyed by
@@ -90,7 +90,7 @@ const CAUSAL_FLOOR_PERMILLE: f64 = 20.0;
 /// Positions re-scored by the in-harness double-run determinism check.
 const DOUBLE_RUN_N: usize = 2_000;
 /// Reproduction gates: recorded D1 values this harness must reproduce
-/// (`docs/joint_conditional_822_result.json`).
+/// (`archive/joint_conditional_822_result.json`).
 const REPRO_BASE_PERMILLE: f64 = 246.6;
 const REPRO_MIX_PERMILLE: f64 = 277.2;
 const REPRO_D4SKIP_PERMILLE: f64 = 296.2;

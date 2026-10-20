@@ -1,6 +1,6 @@
 //! #844 (S4 item A) — compositional-planning benchmark constitution and typed
 //! state/action reference semantics. Frozen contract:
-//! `docs/compositional_planning_spec_844.md`.
+//! `archive/compositional_planning_spec_844.md`.
 //!
 //! This is the machine-checked record for #844. Increment 1 (this file) freezes
 //! the `s4-compositional-reasoning` benchmark constitution in the #832

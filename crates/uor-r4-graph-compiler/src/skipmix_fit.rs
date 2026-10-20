@@ -9,7 +9,7 @@
 //! Faithfulness. This reproduces the exact fold and formulas the off-serving
 //! reference harness already validated
 //! (`crates/uor-r4-api/tests/skipmix_confirm_897.rs`,
-//! `docs/skipmix_confirm_897_result.json`, verdict `SELECT-1-token`):
+//! `archive/skipmix_confirm_897_result.json`, verdict `SELECT-1-token`):
 //! per-distinct-window-token bump (the same "seen" dedup pattern
 //! `fit_segment_table` uses), joint counts keyed by `(content_token,
 //! last_token)`, the same cap-`DEFAULT_TOP_K` and `quantize_rate` the #836

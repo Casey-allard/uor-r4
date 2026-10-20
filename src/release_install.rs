@@ -35,7 +35,7 @@ use crate::release_bundle_loader::{
 pub const RELEASE_BUNDLE_ARCHIVE_ASSET: &str = "release-bundle.tar.gz";
 
 /// The component relative paths inside a packaged bundle —
-/// `docs/serving_release_packaging_655_d.md`'s field-to-file mapping,
+/// `archive/serving_release_packaging_655_d.md`'s field-to-file mapping,
 /// mirrored from `release_bundle_packager`.
 const GRAPH_RELATIVE_PATH: &str = "graph/score.r4g1";
 const SECTIONS_ABSENT_GRAPH_RELATIVE_PATH: &str = "graph/score_sections_absent.r4g1";

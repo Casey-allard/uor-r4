@@ -126,11 +126,11 @@ def main():
         if parent and parent['number'] in ids:
             edge(ids[row['number']],'child_of',ids[parent['number']], 'Native GitHub parent relationship at this snapshot')
     fixed_paths=['AGENTS.md','README.md','ROADMAP.md',
-                 'docs/r4_intelligence_completion_plan.md',
+                 'archive/r4_intelligence_completion_plan.md',
                  'docs/geometric_intelligence_programme.md',
-                 'docs/uor_productization_integration_plan.md',
-                 'docs/integration/claim-ledger.json','docs/integration/adopted-issues.json',
-                 'docs/integration/tooling-status.json','docs/integration/source-catalog.json']
+                 'archive/uor_productization_integration_plan.md',
+                 'archive/integration/claim-ledger.json','archive/integration/adopted-issues.json',
+                 'archive/integration/tooling-status.json','archive/integration/source-catalog.json']
     paths=[root/p for p in fixed_paths]+sorted((root/'docs/integration').glob('*.md'))
     for p in paths:
         if not p.exists():
@@ -139,7 +139,7 @@ def main():
             raise RuntimeError(f'Public document symlink escapes the selected checkout: {p}')
         text=p.read_text();rev='sha256:'+hashlib.sha256(text.encode()).hexdigest()
         document('current_plan_document',p.relative_to(root).as_posix(),text,str(p),rev,'LOCAL_CHECKOUT_SNAPSHOT')
-    ledger_path=root/'docs/integration/claim-ledger.json'
+    ledger_path=root/'archive/integration/claim-ledger.json'
     if ledger_path.exists():
         text=ledger_path.read_text();ledger=json.loads(text)
         refs={}

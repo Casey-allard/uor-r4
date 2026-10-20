@@ -35,7 +35,7 @@
         }
       ],
       "grader_blocked_by": "D28",
-      "grader_deterministic_alternative": "chat-grade grade-replies (crates/uor-r4-training/src/bin/chat-grade.rs; data/panels/reply-panel-checks.tsv + data/panels/conversational-v5-checks.tsv; docs/labs/m1-deterministic-reply-grader-2026-10-13/README.md) — grader code audited FIT (#2365 comment 6154574078); M1 reply headline suspended under R14 (#2029 comment 6154755982) with no target pending the v2 check table"
+      "grader_deterministic_alternative": "chat-grade grade-replies (crates/uor-r4-training/src/bin/chat-grade.rs; data/panels/reply-panel-checks.tsv + data/panels/conversational-v5-checks.tsv; archive/labs/m1-deterministic-reply-grader-2026-10-13/README.md) — grader code audited FIT (#2365 comment 6154574078); M1 reply headline suspended under R14 (#2029 comment 6154755982) with no target pending the v2 check table"
     }
   }
 }

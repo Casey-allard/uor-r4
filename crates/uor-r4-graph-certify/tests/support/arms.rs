@@ -1,5 +1,5 @@
 //! The #845 ordering arms and controls — one scorer per roster entry of
-//! `docs/w33_geometry_qualification_spec_845.md` §4, each a frontier-retention
+//! `archive/w33_geometry_qualification_spec_845.md` §4, each a frontier-retention
 //! functional for the reference skeleton in [`super::ordering`].
 //!
 //! Pinned constants live here and are mirrored in the spec's §4-A appendix.

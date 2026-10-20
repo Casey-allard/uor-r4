@@ -2,7 +2,7 @@
 //! against the REAL production serving path, not a simulated harness.
 //!
 //! #904 diagnosed the #897 LOWERING-FIDELITY GAP
-//! (`docs/skipmix_lane_897_result.json`: deployed-lane follow 41/87, below
+//! (`archive/skipmix_lane_897_result.json`: deployed-lane follow 41/87, below
 //! the predeclared 53/87 = 60% bar) as breadth-bound: 35/87 favorable
 //! pairs have at least one side's teacher target absent from the base
 //! engine's own decided candidate list (`StepCandidates::ranked()`,
@@ -31,7 +31,7 @@
 //!
 //! Off-serving; gated behind `--ignored`, same discipline as
 //! `skipmix_gap_diagnostic_904.rs`. Result written to
-//! `docs/skipmix_candidate_injection_906_result.json`.
+//! `archive/skipmix_candidate_injection_906_result.json`.
 //!
 //! Run:
 //!   cargo test -p uor-r4-api --release --test skipmix_candidate_injection_906 \
@@ -70,7 +70,7 @@ const FIDELITY_BAR: u64 = 53;
 /// The #906 confirmed deployed-lane follow count under the new
 /// candidate-injection combine, against the real production code path
 /// (measured by this test's own first clean run; see
-/// `docs/skipmix_candidate_injection_906_result.json`).
+/// `archive/skipmix_candidate_injection_906_result.json`).
 const NEW_DEPLOYED_FOLLOW_EXPECTED: u64 = 58;
 const ATTESTED_CORPUS_CID_PREFIX: &str = "blake3:aa9d1767";
 

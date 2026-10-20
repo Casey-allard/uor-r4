@@ -9,7 +9,7 @@ is right and this page is the thing to fix.
 sections that each called themselves the active plan**, a D8 rung ladder written for a
 substrate D32 froze, and a September 12 implementation sequence. All of it is preserved
 verbatim in
-[project-track-archive-2026-10-18](../history/project-track-archive-2026-10-18.md),
+[project-track-archive-2026-10-18](../../archive/history/project-track-archive-2026-10-18.md),
 with five `Superseded` banners at the head of the sections they govern. Nothing was
 deleted. Three headings that other documents link to by anchor are kept as stubs at the
 bottom of this page, pointing into the archive.
@@ -207,7 +207,7 @@ D39 item 4 releases no hold.
 ## Superseded sections — original anchors preserved
 
 These four headings are linked by anchor from other documents. Their bodies moved to
-[project-track-archive-2026-10-18](../history/project-track-archive-2026-10-18.md) on
+[project-track-archive-2026-10-18](../../archive/history/project-track-archive-2026-10-18.md) on
 2026-10-18; the headings are kept here so the inbound links still resolve to a pointer
 instead of a 404.
 
@@ -253,19 +253,19 @@ October 18 path and D39's W1–W4 are the lineage; tonight's evidence moved the 
    export gap reported.
 
 Archived October 18 text:
-[Post-dose optimization path  owner direction, October 18](https://github.com/UOR-Foundation/uor-r4/blob/main/docs/history/project-track-archive-2026-10-18.md#post-dose-optimization-path--owner-direction-october-18).
+[Post-dose optimization path  owner direction, October 18](https://github.com/UOR-Foundation/uor-r4/blob/main/archive/history/project-track-archive-2026-10-18.md#post-dose-optimization-path--owner-direction-october-18).
 
 ## Research dependencies and exit conditions
 
 Archived 2026-10-18. Text:
-[Research dependencies and exit conditions](../history/project-track-archive-2026-10-18.md#research-dependencies-and-exit-conditions).
+[Research dependencies and exit conditions](../../archive/history/project-track-archive-2026-10-18.md#research-dependencies-and-exit-conditions).
 
 ## Historical implementation sequence — owner adopted September 12
 
 Archived 2026-10-18. Text:
-[Historical implementation sequence — owner adopted September 12](../history/project-track-archive-2026-10-18.md#historical-implementation-sequence--owner-adopted-september-12).
+[Historical implementation sequence — owner adopted September 12](../../archive/history/project-track-archive-2026-10-18.md#historical-implementation-sequence--owner-adopted-september-12).
 
 ## Structural memory and geometric representation follow-up
 
 Archived 2026-10-18. Text:
-[Structural memory and geometric representation follow-up](../history/project-track-archive-2026-10-18.md#structural-memory-and-geometric-representation-follow-up).
+[Structural memory and geometric representation follow-up](../../archive/history/project-track-archive-2026-10-18.md#structural-memory-and-geometric-representation-follow-up).

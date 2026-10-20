@@ -64,7 +64,7 @@
 //! cosine term (`sim`) at chance on this path (the query vector is the routing
 //! vector, not the content vector). So this arm's score is word overlap, not
 //! spectral geometry, and it cannot be read on the same scale as 0.8948. See
-//! `docs/geometry_ablation_434.md` (correction block) and #487.
+//! `archive/geometry_ablation_434.md` (correction block) and #487.
 //!
 //! # Two harness traps, recorded because both look exactly like a finding
 //!
@@ -86,7 +86,7 @@
 //! entirely false "measured indifferent" verdict over two zeros. An all-zero
 //! result across every arm is a harness bug until proven otherwise.
 //!
-//! Recorded outcome: `docs/geometry_ablation_434.md`.
+//! Recorded outcome: `archive/geometry_ablation_434.md`.
 
 use std::collections::HashSet;
 

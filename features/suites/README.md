@@ -12,7 +12,7 @@ hand.
 
 The [project map](../../docs/PROJECT_MAP.md),
 [current-state](../../docs/integration/current-state.md) and
-[model direction](../../docs/integration/model-direction-2026-09.md) distinguish
+[model direction](../../archive/integration/model-direction-2026-09.md) distinguish
 accepted native bounded attention/inference from these historical contracts.
 A conformance marker does not establish general prose completion or reasoning.
 

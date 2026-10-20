@@ -1,8 +1,8 @@
 # Research: what is measured, what is closed, what is open
 
-**September 7 direction reconciliation:** the product name is **UOR-R4 Geometric Language Model**. Read the [canonical plan](integration/project-track.md), [current artifact/results](integration/current-state.md), [capability assessment](integration/model-direction-2026-09.md) and [project map](PROJECT_MAP.md) first. This document retains technical and dated experiment/reference material; earlier “active/next” sequences do not supersede those pointers. Native bounded inference and contextual/copy attention exist; general prose, general reasoning and frontier capability remain unqualified. Offline Rust training matmul is allowed; final serving has no matrix products or transformer backbone. No new model result was run for this documentation update.
+**September 7 direction reconciliation:** the product name is **UOR-R4 Geometric Language Model**. Read the [canonical plan](integration/project-track.md), [current artifact/results](integration/current-state.md), [capability assessment](../archive/integration/model-direction-2026-09.md) and [project map](PROJECT_MAP.md) first. This document retains technical and dated experiment/reference material; earlier “active/next” sequences do not supersede those pointers. Native bounded inference and contextual/copy attention exist; general prose, general reasoning and frontier capability remain unqualified. Offline Rust training matmul is allowed; final serving has no matrix products or transformer backbone. No new model result was run for this documentation update.
 
-The owner-requested [September architecture/source reconciliation](integration/architecture-2026-09/README.md)
+The owner-requested [September architecture/source reconciliation](../archive/integration/architecture-2026-09/README.md)
 indexes the mathematical mechanisms, historical engines, contributor sources
 and Studio. It preserves results below and distinguishes available definitions,
 implemented operations, measured behavior and proposed integration. The native
@@ -11,8 +11,8 @@ rerun for that review.
 
 ## Contextual writer boundaries — bounded positive, 2026-09-07
 
-The [result](native_geometric_writer_refinement_1139.md) and
-[evidence](evidence/native_geometric_writer_refinement_1139.json) select
+The [result](../archive/native_geometric_writer_refinement_1139.md) and
+[evidence](../archive/evidence/native_geometric_writer_refinement_1139.json) select
 `79710468`. It refines the existing writer with learned separator/adjacency
 features and a complete exact NoWrite cache signature. All 232 construction
 writer labels, 32 new answers, twelve open answers and 76 prior phrases pass.
@@ -27,8 +27,8 @@ Shared causal state transitions and compositional emission are the next model wo
 
 ## Contextual phrase starts — bounded positive after transfer corrections, 2026-09-07
 
-The [result](native_geometric_contextual_start_1139.md) and
-[evidence](evidence/native_geometric_contextual_start_1139.json) retain
+The [result](../archive/native_geometric_contextual_start_1139.md) and
+[evidence](../archive/evidence/native_geometric_contextual_start_1139.json) retain
 `50dc0d23` with unchanged complete `321e990f` parent parameters. Ten
 construction-prompt words shared across distinct exact writer-selected owners
 address contextual signed-H4 codes. Supported construction improves 12/50 to
@@ -50,7 +50,7 @@ the actual interface/check evidence, cumulative resources and next writer repair
 
 ## Learned relation starts — construction fit, open transfer negative, 2026-09-07
 
-The [result](native_geometric_relation_start_1140.md) implements shared signed-H4
+The [result](../archive/native_geometric_relation_start_1140.md) implements shared signed-H4
 ranking over unchanged admitted reverse starts plus the singleton endpoint.
 Candidate `bb6b8ba4` binds the complete `321e990f` parent. Construction
 improves 2/8 to 8/8 and open answers 2/8 to 6/8; all selected prior preservation
@@ -68,7 +68,7 @@ complete resource projection. See current-state for the cumulative balance.
 
 ## Reverse relation endpoints — bounded positive, 2026-09-07
 
-The [result](native_geometric_reverse_spans_1140.md) retains `321e990f` over
+The [result](../archive/native_geometric_reverse_spans_1140.md) retains `321e990f` over
 `0b12b604` without fitting. The learned writer supplies a terminal endpoint;
 the existing geometric continuation operator admits earlier bounded starts.
 Construction improves 3/6 to 6/6, open passes 6/6, short reads 3/3 and fresh
@@ -82,7 +82,7 @@ tracked separately. Current-state records the remaining cumulative allocation.
 
 ## Retained relation spans — bounded positive after runtime correction, 2026-09-07
 
-The [result](native_geometric_retained_spans_1140.md) retains `0b12b604` with the
+The [result](../archive/native_geometric_retained_spans_1140.md) retains `0b12b604` with the
 corrected forward-only runtime. It reuses the accepted geometric extent operator
 without fitting. Complete values survive eviction, repeated assertions,
 same-prefix corrections and conflicts on 6/6 construction and 6/6 open session
@@ -97,7 +97,7 @@ pointer records remaining resources and the role-aware endpoint successor.
 
 ## Context-sensitive source extent — bounded positive, 2026-09-07
 
-The [result](native_geometric_span_context_1139.md) retains `419ba3a7` over
+The [result](../archive/native_geometric_span_context_1139.md) retains `419ba3a7` over
 `c6a98c04`. The existing H4 learner uses a construction-only exact prime registry
 and a next-word/original-source-cue pair. Construction improves 5/14 to 14/14,
 open 2/6 to 6/6 and fresh 3/9 to 9/9; pair removal gives 11/14, 4/6 and 6/9.
@@ -111,7 +111,7 @@ eviction and later reads, with new data and a refreshed projection.
 
 ## Source-span transport — implemented, candidate rejected, 2026-09-07
 
-The [result](native_geometric_source_span_1139.md) preserves the active
+The [result](../archive/native_geometric_source_span_1139.md) preserves the active
 `c6a98c04` parent. Experimental `7e928bd2` uses the existing signed-H4 learner
 for separator-conditioned Continue/Finish and exact bounded adjacent-word copying.
 Open complete answers improve 1/6 to 6/6 and fresh 3/10 to 9/10, but construction
@@ -124,7 +124,7 @@ repeat the same feature-only fit or infer general language/energy capability.
 
 ## Retained source context — current bounded checkpoint, 2026-09-07
 
-The [source-context result](native_geometric_source_context_1139.md) retains
+The [source-context result](../archive/native_geometric_source_context_1139.md) retains
 `c6a98c04`. Four exact predecessor identities stay with each word candidate.
 The existing H4 selector can then see an owner that has left its shared query
 window. Construction improves 654/663 to 663/663, open 12/16 to 16/16 and fresh
@@ -141,7 +141,7 @@ identity and committed results; native API/model quality precedes Studio lowerin
 
 ## Literal operand binding — previous bounded checkpoint, 2026-09-07
 
-The [literal continuation](native_geometric_literal_binding_1139.md) retains
+The [literal continuation](../archive/native_geometric_literal_binding_1139.md) retains
 `e1ef0a5d`. Exact entity bytes already survive capture; the learned literal
 router omitted a relevant query/cue provenance code. It now retains all 567
 old codes, admits all 52 newly observed codes, and continues the same signed-H4
@@ -160,7 +160,7 @@ whole-model laptop advantage. Next is order-sensitive source/NoRead selection.
 
 ## Literal numeric admission — previous bounded checkpoint, 2026-09-07 UTC
 
-The [admission result](native_geometric_joint_admission_1139.md) retains
+The [admission result](../archive/native_geometric_joint_admission_1139.md) retains
 `433e3807` with the complete d590 parent fixed. Reused signed-H4 selection
 learns Numeric versus DeferToLexical before literal execution. Construction
 improves 558/615 to 563/615 with zero lost correct or changed remaining wrong
@@ -179,7 +179,7 @@ reasoning remain unqualified.
 
 ## Supported-source and NoRead selection — previous bounded checkpoint, 2026-09-06
 
-The [source refinement](native_geometric_source_noread_1139.md) retains
+The [source refinement](../archive/native_geometric_source_noread_1139.md) retains
 `d59070c2`, replacing the existing router while preserving every downstream
 parameter and the exact `e7c14c99` training parent through a nonexecuting witness.
 Warm continuation with128 features reaches384/384 eligible construction choices
@@ -200,7 +200,7 @@ feeding the existing selected operators, then broader #1139/#1140 composition.
 
 ## Literal-context NoRead completion — previous bounded checkpoint, 2026-09-06
 
-The [committed continuation](native_geometric_no_read_completion_1139.md)
+The [committed continuation](../archive/native_geometric_no_read_completion_1139.md)
 retains `e7c14c99` at literal-numeric NoRead scope, with the complete `c29ab982`
 parent unchanged. It reuses existing word-binding features and sparse lexical
 scoring after an actually observed NoRead. Exposed answers improve12/16 to14/16;
@@ -216,7 +216,7 @@ No new angular-distance advantage or general abstention capability is claimed.
 
 ## Protected literal admission — previous bounded checkpoint, 2026-09-06
 
-The [admission repair](native_geometric_literal_admission_1139.md) retains
+The [admission repair](../archive/native_geometric_literal_admission_1139.md) retains
 `c29ab982`, with the entire accepted parent unchanged and a separate bounded
 literal table. New complete transfer improves12/16 to 16/16; new identifier
 answers stay8/8 and their functions pass24 executed assertions. Earlier
@@ -227,7 +227,7 @@ next. The preceding shared-fit candidates remain unpromoted historical evidence.
 
 ## Literal selection — previous preservation negative, 2026-09-06
 
-The [literal extension](native_geometric_literal_selection_1139.md) improves
+The [literal extension](../archive/native_geometric_literal_selection_1139.md) improves
 new three-turn generation8/16 to 16/16 and literal answers7/16 to12/16, with the
 same results for angular and exact-code. Four abstention texts fail. Shared
 fitting also regresses computed-result and identifier-copy cases; neither new
@@ -238,7 +238,7 @@ word-answer alternatives. The record binds complete costs and limitations.
 
 ## Independent-result provenance — retained checkpoint, 2026-09-06
 
-The [operand-provenance record](native_geometric_operand_provenance_1139.md)
+The [operand-provenance record](../archive/native_geometric_operand_provenance_1139.md)
 retains `af337c28`:58/58 construction,8/8 reachable development and 12/16 complete
 changed-name/computation-order transfers versus 3/16 parent. Exact-code also
 gets 12/16; this is no new angular-distance advantage. All 12 reached selections
@@ -249,7 +249,7 @@ negative. Its prior checks remain the preservation baseline for the later litera
 
 ## Competing derived values — previous checkpoint, 2026-09-06
 
-The [typed-role record](native_geometric_typed_roles_1139.md) retains `43c54db3`
+The [typed-role record](../archive/native_geometric_typed_roles_1139.md) retains `43c54db3`
 at bounded causal-depth scope: 12/12 complete new four-turn operand/refresh
 transfers versus 2/12 for the matched exact-code fit. Exact derivation depth,
 Copy-alias admission and query metadata cut at explicit response boundaries
@@ -262,7 +262,7 @@ and the later operand-provenance implementation.
 
 ## NoWrite reuse — previous checkpoint, 2026-09-06
 
-The [corrected-writer cache](native_geometric_writer_admission_1139.md) retains
+The [corrected-writer cache](../archive/native_geometric_writer_admission_1139.md) retains
 `2600b95b`. All learned parameters remain fixed; construction contributes 140
 certified NoWrite signatures and one exactly certified periodic phase. On the
 same 28 long-context prompts, skips are 21,799/21,907 and writer row comparisons
@@ -276,7 +276,7 @@ use, subject to the remaining cumulative allowance in current-state.md.
 
 ## Writer binding — previous checkpoint, 2026-09-06
 
-The [writer repair](native_geometric_writer_binding_1139.md) retains `8dbf1367`
+The [writer repair](../archive/native_geometric_writer_binding_1139.md) retains `8dbf1367`
 as a functional development artifact, preserving `8070c006` as the reader/cost
 comparator. It gets 48/48 dependent answers and exact writes, preserves 62/62
 earlier answers, 24/24 transfer, 28/28 long-context answers/writes and 5/5
@@ -293,7 +293,7 @@ opened first reserve remain explicitly OPEN evidence. The record and
 
 ## Dependent source result — previous checkpoint, 2026-09-06
 
-The [native dependent-source read](native_geometric_dependent_source_1139.md)
+The [native dependent-source read](../archive/native_geometric_dependent_source_1139.md)
 connects a learned H4 first-source/operator choice to one exact dependent owner
 lookup and committed copy. Angular `8070c006` gets **40/48** complete changed-name
 answers versus exact-code **32/48** and parent **20/48**, preserving **62/62**
@@ -313,7 +313,7 @@ controls, checks and resource limits are in the record and
 
 ## Latest native result — 2026-09-06
 
-[#1139 retained-source routing](native_geometric_source_routing_1139.md) now
+[#1139 retained-source routing](../archive/native_geometric_source_routing_1139.md) now
 selects an exact recent-word source and Copy/NoRead action through two learned
 signed H4 states. Its role-context revision fits 320/320 reachable construction
 choices and preserves 62/62 earlier responses, 24/24 earlier transfer and 24/24
@@ -333,7 +333,7 @@ Retain it for the next dependent-source development, preserving comparator
 
 ## Dependent-read result — prior checkpoint, 2026-09-06
 
-[#1139 dependent reads and shared output](native_geometric_learned_routing_1139.md#dependent-read-result--2026-09-06)
+[#1139 dependent reads and shared output](../archive/native_geometric_learned_routing_1139.md#dependent-read-result--2026-09-06)
 are implemented and exercised, with a generation/preservation negative. On the
 same 735 authored OPEN positions, parent gets 45 correct, recurrent angular
 120 and exact-code selection 144. Angular gets 53 with its intermediate
@@ -347,12 +347,12 @@ limitation, not the sole established cause of all failures. No wider fit, beam,
 directional metric or new memory subsystem is justified by this result alone.
 A first-decision check confirms identical new-block inputs for three prompts
 requiring different answers; those distinctions are absent from this feature
-map. The [evidence](evidence/native_geometric_recurrent_routing_1139.json) preserves
+map. The [evidence](../archive/evidence/native_geometric_recurrent_routing_1139.json) preserves
 the failed first fit, correction, complete costs and replay boundaries.
 
 ## First learned routing result — prior checkpoint, 2026-09-05
 
-[#1139's first learned H4 routing block](native_geometric_learned_routing_1139.md)
+[#1139's first learned H4 routing block](../archive/native_geometric_learned_routing_1139.md)
 is implemented and exercised but remains development only. On 735 authored
 OPEN prose/Rust next-token positions: parent 45 correct, learned angular 182,
 matched exact-code selector 223, fixed placement 177. The corpus substantially
@@ -366,7 +366,7 @@ All prior evidence remains at its original scope.
 
 ## Prior native admission result — 2026-09-05
 
-[#1139 exact NoWrite admission](native_geometric_relation_admission_1139.md)
+[#1139 exact NoWrite admission](../archive/native_geometric_relation_admission_1139.md)
 preserves 112/112 prior and 28/28 longer-context answers and exact writes.
 Both useful arms preserve 62+24 earlier responses, eight binding outputs and
 five restored/isolated session reads. A 64-entry exact shortcut table removes
@@ -380,7 +380,7 @@ the complete #1139 handoff. Learned geometric routing remains immediate before
 
 ## Prior native relation transfer — 2026-09-05
 
-[#1138 participant-independent role paths](native_geometric_relation_role_path_1138.md)
+[#1138 participant-independent role paths](../archive/native_geometric_relation_role_path_1138.md)
 pass the bounded relation handoff with unchanged 112-document construction:
 84/84 OPEN answers/write sequences, then 28/28 reserved answers/writes against
 24/28 answers and 14/28 writes for the preceding relation artifact. All 62+24
@@ -394,7 +394,7 @@ unqualified. All earlier negatives below retain their artifact scope.
 
 ## Prior exact-relation transfer negative — 2026-09-05
 
-[#1138 exact relation memory](native_geometric_relation_memory_1138.md) is a
+[#1138 exact relation memory](../archive/native_geometric_relation_memory_1138.md) is a
 working development extension with an unmet transfer handoff. The final fit
 reaches 56/56 OPEN answers and exact write sequences, preserves 62+24 prior
 responses and eight binding outputs, and passes five isolated/restored session
@@ -408,7 +408,7 @@ as the dominant new work; no geometric efficiency advantage is established.
 
 ## Prior bounded role-selection result — 2026-09-05
 
-[#1137 role-aware source/entry selection](native_geometric_role_read_1137.md)
+[#1137 role-aware source/entry selection](../archive/native_geometric_role_read_1137.md)
 passes its bounded handoff: 62/62 preserved responses, 8/8 binding, 24/24 first-use
 answers versus 13/24 parent, and four generated Rust functions passing 28 assertions.
 Earlier OPEN sets improve to 16/16 and 30/32; two cases still abstain incorrectly.
@@ -419,7 +419,7 @@ or matched geometric superiority is qualified. PR #1142 delivered this handoff; 
 ## Plan-adoption and prior #1136 checkpoint — 2026-09-05
 
 The owner-adopted [immediate sequence](integration/project-track.md#immediate-build-sequence)
-now governs development. Its [research synthesis](native_geometric_direction_review_973.md)
+now governs development. Its [research synthesis](../archive/native_geometric_direction_review_973.md)
 recovers the controlled role-learning positives, exact-association losses and
 archival routing evidence limits. The latest executed change is PR #1136's
 zero-match entry correction: 16/16 wording diagnostic, 16/32 open transfer
@@ -450,7 +450,7 @@ allows open development iteration under configurable cumulative machine budgets.
 
 ## Native retained-word selection and completed-word suffix (2026-09-05)
 
-The [retained-word record](native_geometric_word_copy_973.md) connects learned
+The [retained-word record](../archive/native_geometric_word_copy_973.md) connects learned
 bounded occurrence selection to exact causal byte copying. Its first model
 selects and copies all twelve transfer parameter names, but only two responses
 finish. Reframing suffix features at the actual observed final copied byte
@@ -485,7 +485,7 @@ replacement advantage is inferred from the smaller learned suffix table.
 
 ## Native response entry (2026-09-05)
 
-The [response-entry record](native_geometric_response_entry_973.md) adds optional
+The [response-entry record](../archive/native_geometric_response_entry_973.md) adds optional
 learned lexical-token/EOS selection at a captured query boundary after actual
 typed NoWrite. Continuation fitting begins only after a quantized selected Enter
 is observed. The unchanged 192-pair source supplies 32 entry and 224 continuation
@@ -512,7 +512,7 @@ final held-out qualification and alpha remain open.
 
 ## Native typed-value completion (2026-09-05)
 
-The [completion record](native_geometric_value_completion_973.md) adds a learned
+The [completion record](../archive/native_geometric_value_completion_973.md) adds a learned
 continuation/stop head after actual typed numeral emission, preserving the stronger
 occurrence reader and typed-value `/2` weights. It fits 720/720 eligible positions
 from the unchanged 192 raw construction pairs. On reused open development, Full
@@ -535,7 +535,7 @@ storage margin before another checked implementation cycle.
 
 ## Native typed-value development (2026-09-05)
 
-The [typed-value record](native_geometric_typed_value_973.md) adds an optional
+The [typed-value record](../archive/native_geometric_typed_value_973.md) adds an optional
 bounded literal store, learned operand/action selection, exact integer-domain
 addition and causal decimal emission on the stronger `/4` model. Its first fit
 produces correct numerals on 12/12 prose and 8/12 Rust numeric development cases,
@@ -557,7 +557,7 @@ general geometric advantage and both alpha capability groups remain unqualified.
 
 ## Native response-state development negatives (2026-09-05)
 
-The [response-state record](native_geometric_response_state_973.md) adds
+The [response-state record](../archive/native_geometric_response_state_973.md) adds
 explicit `/5` query persistence, model-selected occurrence commitment and a
 bounded source-successor alternative. On the same corrected source and readout,
 capturing the endpoint yields 5/32 exact prose versus `/4`'s 6/32; advancing
@@ -574,9 +574,9 @@ useful composition and computed-value writes remain unfinished.
 
 ## Native occurrence-selection checkpoint (2026-09-05)
 
-The [source-to-response mechanism map](native_geometric_mechanism_map_973.md)
+The [source-to-response mechanism map](../archive/native_geometric_mechanism_map_973.md)
 distinguishes current native mechanisms from historical prototypes and missing
-assembly work. The [occurrence-selection record](native_geometric_occurrence_selection_973.md)
+assembly work. The [occurrence-selection record](../archive/native_geometric_occurrence_selection_973.md)
 adds explicit memory `/4`: local H4/zeta source/query paths and a unique-feature
 union at each retained occurrence. On the same corrected source and baseline,
 it improves exact prose from 5/32 to 6/32 against newly fitted `/3`, while Rust
@@ -643,9 +643,9 @@ reference; design targets remain explicitly labeled as definitions,
 assumptions, or objectives rather than measured results.
 
 > **Current two-stage R4 result (2026-09-02):** #1079 completed
-> `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](r4_zoology_language_interface_1077.md)
+> `LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](../archive/r4_zoology_language_interface_1077.md)
 > and frozen binding core preserve both full soft mixtures through R4 transport.
-> See the [#1079 record](r4_zoology_language_r4_1079.md).
+> See the [#1079 record](../archive/r4_zoology_language_r4_1079.md).
 >
 > All **156/156 preservation criteria** passed across six observed views:
 > **25,600 identical answer predictions**, **358,400 correct role decisions** and
@@ -697,7 +697,7 @@ assumptions, or objectives rather than measured results.
 > Modulo-256 remains relevant
 > to categorical roles, discrete tables, and later lowering, not continuous
 > probability normalization. See the
-> [#1045 record](r4_role_tagged_associative_curriculum_1045.md).
+> [#1045 record](../archive/r4_role_tagged_associative_curriculum_1045.md).
 
 > **Position-preserving causal K/V result (2026-09-02).** #1043 completed its
 > sole frozen 2,730-step CPU/Apple-Accelerate fit and reveal. The create-once
@@ -721,8 +721,8 @@ assumptions, or objectives rather than measured results.
 > lower it. That requirement led to #1045's open role/curriculum ladder, which
 > missed assignment-disjoint development as reported above; no new sealed
 > successor is authorized. See the
-> [#1043 record](r4_position_kv_binding_1043.md) and
-> [structured result](r4_position_kv_binding_1043_result_raw.json).
+> [#1043 record](../archive/r4_position_kv_binding_1043.md) and
+> [structured result](../archive/r4_position_kv_binding_1043_result_raw.json).
 
 > **Normal-use product decision (2026-09-01).** #1041 ran the merged #1039
 > dashboard plus seven direct endpoint observations: three fresh narrative
@@ -740,7 +740,7 @@ assumptions, or objectives rather than measured results.
 > authorized for this checkpoint. This does not revise ordinary-attention
 > evidence, activate #962, unblock #954, or establish correctness or reasoning.
 > See the
-> [#1041 normal-use record](r4_softmax_local_normal_use_1041.md).
+> [#1041 normal-use record](../archive/r4_softmax_local_normal_use_1041.md).
 
 > **Bounded source-backed product/reference result (2026-09-01).** #1039
 > exercised the immutable #1017 export on a predeclared fresh narrative prompt
@@ -768,7 +768,7 @@ assumptions, or objectives rather than measured results.
 > geometry advantage, transformerlessness, correctness, reasoning, standalone
 > browser/WASM operation, release, or frontier quality. Apple Accelerate/BLAS
 > is CPU-native here; CUDA and external GPU execution remain out of scope. See the
-> [#1039 result and interface record](r4_softmax_local_reference_surface_1039.md).
+> [#1039 result and interface record](../archive/r4_softmax_local_reference_surface_1039.md).
 
 > **Current forward decision (2026-09-01).** The independently frozen
 > `R4PredictiveBlockDeltaBindingV1` V5 campaign completed
@@ -795,7 +795,7 @@ assumptions, or objectives rather than measured results.
 > write/binding law. Do not enlarge, tune, generate from, or lower it. Ordinary
 > causal softmax and qualified retained-attention evidence remain intact; #954
 > and C1-SB6 remain blocked. See the
-> [predictive block-delta result and evidence ledger](r4_predictive_block_delta_binding_prompt_capacity_973.md).
+> [predictive block-delta result and evidence ledger](../archive/r4_predictive_block_delta_binding_prompt_capacity_973.md).
 
 > **Prior learned-associative decision (2026-09-01).** The independently frozen
 > `R4LearnedCandidateLeafAssociativeReadoutV1` campaign completed
@@ -822,7 +822,7 @@ assumptions, or objectives rather than measured results.
 > verification CID:
 > `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
 > See the
-> [binding result and evidence ledger](r4_learned_associative_readout_prompt_capacity_973.md).
+> [binding result and evidence ledger](../archive/r4_learned_associative_readout_prompt_capacity_973.md).
 >
 > Do not run generation or retry another readout over the same retained values.
 > Preserve qualified V1 and the pooled arm as the matched control. The next #973
@@ -831,7 +831,7 @@ assumptions, or objectives rather than measured results.
 > C1-SB6 remain blocked.
 
 > **Prior layerwise terminal and decision (2026-09-01).** Preserve the qualified
-> [`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md). Its sole
+> [`R4RetainedLanguagePathV1`](../archive/r4_retained_language_path_v1_973.md). Its sole
 > layerwise-normalized candidate,
 > `R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`, completed
 > `LAYERWISE_NORMALIZED_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`. V1
@@ -867,7 +867,7 @@ assumptions, or objectives rather than measured results.
 > result `blake3:35396bd6e64fc2c0bc7d86a84cc9e212ed913ce28e5353f5f2b8212b4cf2c532`,
 > and independent verification
 > `blake3:3f316541dbab8061ed5ba891bf6a47ef22c55bca21fba01f6f97dbb3cb8497aa`.
-> See the [binding result and evidence ledger](r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
+> See the [binding result and evidence ledger](../archive/r4_layerwise_normalized_retained_readout_prompt_capacity_973.md).
 > The result is a directional positive but not a capacity pass. Generation,
 > reasoning, lowering, and geometry-native lowering remain `NOT_RUN`. It does
 > not establish prompt-coherent generation, H4 superiority, an exact/table
@@ -924,7 +924,7 @@ assumptions, or objectives rather than measured results.
 > learned-Euclidean parity (`4.483153905078387`). The controls establish
 > sensitivity only, not useful Lorentz attention or curvature advantage. The
 > 8/8-contract score/readout
-> [localization](helm_d_score_centroid_localization_973.md) stopped at its
+> [localization](../archive/helm_d_score_centroid_localization_973.md) stopped at its
 > two-document preflight with
 > `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`: tangent readout increased
 > normalized audit MSE on both documents (pooled ratio
@@ -1059,27 +1059,27 @@ assumptions, or objectives rather than measured results.
 > #955 remains blocked on a
 > positive correctness result, and #954's final source-free terminal remains
 > blocked behind #973. CUDA and external GPU execution are out of scope. See
-> the [signed preflight/admission result](r4_softmax_parameter_capacity_preflight_1019_raw.json),
-> [#954 correctness campaign](r4_grounded_correctness_954.md),
-> [corrected C1-SB3 aggregate](r4_attended_relation_adapter_954_raw.json),
-> [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json), and
-> [C1-SB5 aggregate](r4_paired_query_binding_954_raw.json).
+> the [signed preflight/admission result](../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json),
+> [#954 correctness campaign](../archive/r4_grounded_correctness_954.md),
+> [corrected C1-SB3 aggregate](../archive/r4_attended_relation_adapter_954_raw.json),
+> [C1-SB4 aggregate](../archive/r4_joint_candidate_margin_954_raw.json), and
+> [C1-SB5 aggregate](../archive/r4_paired_query_binding_954_raw.json).
 > Offline floats, matrix
 > operations, and softmax remain allowed while establishing language quality;
 > the deployed destination remains exact and source-free. Resonance substitutes
 > and product/release promotion remain parked. See the
-> [generation record](r4_softmax_reference_generation_973.md),
-> [compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
-> [native bridge record](r4_softmax_reference_http_bridge_973.md), and
-> [trace-student record](r4_softmax_trace_student_973.md),
-> [state-student record](r4_softmax_trace_state_student_1011.md),
-> [#1012 observability record](r4_softmax_trace_observability_1012.md), and
-> [#1014 end-to-end record](r4_softmax_end_to_end_attention_1014.md), then the
-> [#1017 continuation record](r4_softmax_quality_capacity_continuation_1017.md),
-> the [#954 campaign record](r4_grounded_correctness_954.md),
-> [C1-SB2 compact aggregate](r4_source_relation_head_954_raw.json),
-> [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json), and
-> [C1-SB5 aggregate](r4_paired_query_binding_954_raw.json).
+> [generation record](../archive/r4_softmax_reference_generation_973.md),
+> [compact aggregate](../archive/r4_softmax_reference_generation_attempt_01_result_973.json),
+> [native bridge record](../archive/r4_softmax_reference_http_bridge_973.md), and
+> [trace-student record](../archive/r4_softmax_trace_student_973.md),
+> [state-student record](../archive/r4_softmax_trace_state_student_1011.md),
+> [#1012 observability record](../archive/r4_softmax_trace_observability_1012.md), and
+> [#1014 end-to-end record](../archive/r4_softmax_end_to_end_attention_1014.md), then the
+> [#1017 continuation record](../archive/r4_softmax_quality_capacity_continuation_1017.md),
+> the [#954 campaign record](../archive/r4_grounded_correctness_954.md),
+> [C1-SB2 compact aggregate](../archive/r4_source_relation_head_954_raw.json),
+> [C1-SB4 aggregate](../archive/r4_joint_candidate_margin_954_raw.json), and
+> [C1-SB5 aggregate](../archive/r4_paired_query_binding_954_raw.json).
 >
 > **Measured evidence status:** HELM-D pinned-source provenance `PASS`;
 > ordinary-donor reproduction `PASS`; transported-R4 parity, destructive
@@ -1129,10 +1129,10 @@ assumptions, or objectives rather than measured results.
 > and products unopened;
 > D3 `NOT_RUN`; multi-resonance replacement `NOT_RUN` and parked; whole-decoder
 > recurrent factorization/lowering `NOT_RUN` and parked. See the
-> [`HELM-D-R4` record](helm_d_r4_softmax_decoder_973.md) and the
-> [intrinsic R4 record](intrinsic_lorentz_r4_attention_973.md), then the
-> [learned-manifold construction record](helm_d_learned_manifold_r4_construction_973.md)
-> and [localization record](helm_d_score_centroid_localization_973.md).
+> [`HELM-D-R4` record](../archive/helm_d_r4_softmax_decoder_973.md) and the
+> [intrinsic R4 record](../archive/intrinsic_lorentz_r4_attention_973.md), then the
+> [learned-manifold construction record](../archive/helm_d_learned_manifold_r4_construction_973.md)
+> and [localization record](../archive/helm_d_score_centroid_localization_973.md).
 
 > **Prior forward decision after direct-attention V3
 > (2026-08-28).** Preserve exact R4/spin routes as identity, causal state, frame,
@@ -1163,9 +1163,9 @@ assumptions, or objectives rather than measured results.
 > multi-resonance sieve, then factors the band-limited mode sums into bounded
 > recurrence. More scale, route families, or exact lowering are not the next
 > action. The architecture and outcome branches are frozen in
-> [V4 record](connection_gauge_covariance_v4_973.md) and
+> [V4 record](../archive/connection_gauge_covariance_v4_973.md) and
 > [ADR-0005](adr/0005-predictive-geometric-connection-memory.md). The focused
-> [reuse audit](multi_resonance_attention_sieve_audit_973.md) confirms that the
+> [reuse audit](../archive/multi_resonance_attention_sieve_audit_973.md) confirms that the
 > repository contains fixed-point Spin/fiber state and historical sin/cos and
 > spherical-harmonic feature probes, but no normalized multi-resonance
 > attention implementation yet.
@@ -1185,7 +1185,7 @@ assumptions, or objectives rather than measured results.
 > parameterization/conditioning combination,
 > not dense attention, softmax, all R4 tangent connections, or the planned
 > resonance kernel. See the
-> [direct-attention record](direct_causal_geometric_attention_973.md).
+> [direct-attention record](../archive/direct_causal_geometric_attention_973.md).
 
 > **Connection-gauge V4 Phase-I result, 2026-08-29.** The new artifact stores
 > unconstrained local three-coordinate Q/K/V/O parameters and separately trains
@@ -1203,7 +1203,7 @@ assumptions, or objectives rather than measured results.
 > not the held-out V4 verdict or an H4 advantage. Phase-II inputs are frozen and
 > labels integrity-sealed; labels remain unrevealed, while predictions, scores,
 > paired E8, resonance, recurrence, and lowering remain `NOT_RUN`.
-> See the [V4 record](connection_gauge_covariance_v4_973.md).
+> See the [V4 record](../archive/connection_gauge_covariance_v4_973.md).
 
 > **Connection-gauge V4 Phase-III result, 2026-08-29.** The protected one-time
 > reveal reproduced the Phase-I and Phase-II identities, emitted two identical
@@ -1214,7 +1214,7 @@ assumptions, or objectives rather than measured results.
 > `FAIL_CONNECTION_GAUGE_COVARIANCE_V4_HELD_OUT_FUNCTIONAL_PARITY_STOP_BEFORE_PAIRED_H4_E8`.
 > This retains construction covariance but does not establish held-out causal
 > attention, H4 advantage, paired E8, resonance, recurrence, or lowering. The
-> complete append-only evidence remains in the [V4 record](connection_gauge_covariance_v4_973.md).
+> complete append-only evidence remains in the [V4 record](../archive/connection_gauge_covariance_v4_973.md).
 
 > **Bounded gated-delta core result, 2026-08-28.** The construction-only core
 > compiled separate K/V/Q placements, four multirate last-context banks, H4
@@ -1230,7 +1230,7 @@ assumptions, or objectives rather than measured results.
 > `blake3:6bf22c9c5283b971d8a9e5e7f4bce067424064a49394f5c7b02a2174e6f38973`
 > and
 > `blake3:f99b9815044f139ec0380b5a82502aaf4e159e25761626c0c25eee39173816e1`.
-> See the [bounded core record](geometric_gated_delta_retention_973.md).
+> See the [bounded core record](../archive/geometric_gated_delta_retention_973.md).
 
 > **Negative #973 document-scope corpus-induction result, 2026-08-28.** The
 > independently frozen `CorpusInducedDocumentSpinPlacementR4V1` target-free
@@ -1258,7 +1258,7 @@ assumptions, or objectives rather than measured results.
 > path; the later bounded-core result and current forward decision above
 > supersede that action without rewriting this negative. Conversation and task scope for this
 > corpus operator are `NOT_RUN`. See the
-> [corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
+> [corpus-induced document placement record](../archive/corpus_induced_document_spin_placement_973.md).
 
 > **Positive #973 bounded-global V2 result, 2026-08-28.** The independently
 > frozen `BoundedGlobalNoncommutingExactSpinR4V2` contract reached
@@ -1283,7 +1283,7 @@ assumptions, or objectives rather than measured results.
 > rule failed its frozen held-out gate and is recorded above. General semantics,
 > correctness, reasoning, and product readiness remain unestablished; #973
 > remains open and #954 remains blocked. See the
-> [bounded-global record](bounded_global_exact_spin_attention_973.md).
+> [bounded-global record](../archive/bounded_global_exact_spin_attention_973.md).
 
 > **Earlier target-free #973 bounded-global V1 negative, 2026-08-28.** The frozen
 > `BoundedGlobalExactSpinLeftFoldR4V1` contrast stopped at
@@ -1303,7 +1303,7 @@ assumptions, or objectives rather than measured results.
 > is append-only history; the independently frozen V2 repair above subsequently
 > qualified one bounded-global mechanism. The first subsequent document-scope
 > corpus placement failed its held-out promotion gate as recorded above.
-> See the [bounded-global record](bounded_global_exact_spin_attention_973.md).
+> See the [bounded-global record](../archive/bounded_global_exact_spin_attention_973.md).
 
 > **Retained #973 conversation mechanism, 2026-08-28.** The independently
 > frozen two-case synthetic contract retained `ConversationEntitySpinPathR4V1`
@@ -1328,7 +1328,7 @@ assumptions, or objectives rather than measured results.
 > gate; the independently frozen V2 repair later passed its bounded decoded
 > contract. The subsequent first document-scope corpus-induced placement failed
 > its held-out gate; #973 remains open and #954 remains blocked. See the
-> [#973 conversation record](conversation_entity_spin_path_attention_973.md).
+> [#973 conversation record](../archive/conversation_entity_spin_path_attention_973.md).
 
 > **Retained #973 paragraph mechanism, 2026-08-28.** The frozen two-case
 > synthetic paragraph contract retained `ParagraphEntitySpinPathR4V1` at
@@ -1356,7 +1356,7 @@ assumptions, or objectives rather than measured results.
 > bounded decoded contract. The subsequent first document-scope corpus-induced
 > placement failed its held-out gate. Its replacement and final requalification
 > remain inside #973; #954 remains blocked.
-> See the [#973 paragraph record](paragraph_entity_spin_path_attention_973.md).
+> See the [#973 paragraph record](../archive/paragraph_entity_spin_path_attention_973.md).
 
 > **Retained #973 Gate 0 mechanism, 2026-08-28.**
 > `PriorSentenceCountRadiusR4V1` reached
@@ -1374,7 +1374,7 @@ assumptions, or objectives rather than measured results.
 > paragraph/conversation/global attention, correctness, reasoning, coherence,
 > chat, performance, formal closure, or release readiness. #973 remains open;
 > #954 remains blocked. See the
-> [#973 Gate 0 record](prior_sentence_count_radius_attention_973.md).
+> [#973 Gate 0 record](../archive/prior_sentence_count_radius_attention_973.md).
 
 > **Accepted geometric increment, 2026-08-28 (#953).** The one frozen
 > `MultiscaleCountRadiusR4V1` comparison reached
@@ -1393,7 +1393,7 @@ assumptions, or objectives rather than measured results.
 > not semantic geometry, attention, correctness, reasoning, broad coherence, chat, performance, or
 > release readiness. It is the accepted local input to #973's retained bounded
 > scope evidence and current direct-attention reference sequence. See the
-> [#953 table-tie evidence record](source_free_table_geometric_intervention_953.md).
+> [#953 table-tie evidence record](../archive/source_free_table_geometric_intervention_953.md).
 
 > **Established capability-first result, 2026-08-28 (#989).** #989 reached
 > `ESTABLISH_TABLE_NATIVE_LEXICAL_BASELINE`. Its deterministic construction-only
@@ -1408,7 +1408,7 @@ assumptions, or objectives rather than measured results.
 > correctness, reasoning, chat, performance, or release readiness. It remains
 > the frozen non-geometric reference used by the accepted #953 intervention.
 > See the
-> [#989 evidence record](source_free_table_baseline_989.md). This notice
+> [#989 evidence record](../archive/source_free_table_baseline_989.md). This notice
 > supersedes forward-looking actions in the dated ledger below without
 > rewriting their measurements or terminals.
 
@@ -1515,9 +1515,9 @@ assumptions, or objectives rather than measured results.
 > resonance-based softmax replacement, whole-decoder recurrent lowering, and
 > exact deployment are parked. D3 remains `NOT_RUN`; #954's final source-free
 > terminal remains blocked behind #973, and #955 remains blocked on a positive
-> correctness result. See the [#954 campaign record](r4_grounded_correctness_954.md),
-> [C1-SB2 compact aggregate](r4_source_relation_head_954_raw.json), and
-> [C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json).
+> correctness result. See the [#954 campaign record](../archive/r4_grounded_correctness_954.md),
+> [C1-SB2 compact aggregate](../archive/r4_source_relation_head_954_raw.json), and
+> [C1-SB4 aggregate](../archive/r4_joint_candidate_margin_954_raw.json).
 > Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
@@ -1550,7 +1550,7 @@ assumptions, or objectives rather than measured results.
 > Other trajectory, hypersphere, winding/window, factor, resonance, and Hopf
 > channels remain future hypotheses rather than mandatory preflight. Source
 > weights are offline teachers only. See the
-> [#958 qualification](prime_route_attention_qualification_958.md).
+> [#958 qualification](../archive/prime_route_attention_qualification_958.md).
 
 > **A1.0 decision, 2026-08-27.** #961 is closed. The frozen #952 probe reached
 > its predeclared terminal verdict `REDESIGN_ORDERED_ROUTE_SUMMARY` before a
@@ -1570,7 +1570,7 @@ assumptions, or objectives rather than measured results.
 > revision and does not expose #973. Paragraph, conversation, and global
 > influence remain unqualified, while #962 owns product chat and persisted
 > identity-scoped hive memory. See the
-> [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
+> [#952 A1.0 record](../archive/recursive_geometric_attention_a1_952.md).
 >
 > **A1R decision, 2026-08-27.** #967's exact ordered fold satisfied the frozen
 > scope mask, independent-global intervention, fold/group laws, incremental
@@ -1586,7 +1586,7 @@ assumptions, or objectives rather than measured results.
 > scorer. At that checkpoint, #970's exact preflight followed and #969 still
 > blocked #953.
 > See the
-> [#967 A1R record](associative_ordered_route_summaries_a1r_967.md).
+> [#967 A1R record](../archive/associative_ordered_route_summaries_a1r_967.md).
 >
 > **A1P decision, 2026-08-27.** The six visible A1R labels remain unchanged
 > regression/root-cause evidence and cannot qualify a new readout. Construction
@@ -1626,7 +1626,7 @@ assumptions, or objectives rather than measured results.
 > `STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE` and are excluded
 > from the scorer. #970 is closed through protected PR #972; #969's accepted
 > mechanism result advances to #953. See the
-> [#970 A1P record](candidate_relative_identifiability_a1p_970.md).
+> [#970 A1P record](../archive/candidate_relative_identifiability_a1p_970.md).
 >
 > **#969 mechanism-first pivot, 2026-08-27.** The programme returned to the
 > original route-attention objective: natural sparse schema-2 adjacency, causal
@@ -1657,7 +1657,7 @@ assumptions, or objectives rather than measured results.
 > natural choice. The terminal is `REVISE_I1_GENERATOR_IN_PLACE`. The core loop
 > is real partial implementation, but #953 remains open and #973 remains
 > blocked. See the
-> [#953 record](local_geometric_generation_953.md).
+> [#953 record](../archive/local_geometric_generation_953.md).
 >
 > **#953 natural agreement support preflight, 2026-08-27.** One exact shared
 > construction input froze `one athlete near athletes generally -> still runs`
@@ -1749,7 +1749,7 @@ assumptions, or objectives rather than measured results.
 > `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. No deployed selector, payload
 > inversion, or #953 generation ran. The raw census and sealed outcome are
 > recorded in
-> [`construction_causal_return_attention_983.md`](construction_causal_return_attention_983.md).
+> [`construction_causal_return_attention_983.md`](../archive/construction_causal_return_attention_983.md).
 > The predeclared positive terminal was
 > `PROCEED_TO_I1_WITH_CONSTRUCTION_TRANSFERRED_LOCAL_GEOMETRIC_ATTENTION`.
 > The negative result stops before selection and does not authorize a second
@@ -1805,7 +1805,7 @@ assumptions, or objectives rather than measured results.
 > ordinates are reused, never recalculated. Compiler-side float and richer Rust
 > algebra are permitted for qualification; base-256/integer/LUT lowering is
 > deferred until causal transfer. See the
-> [#986 plan](corpus_induced_signed_transport_attention_plan_986.md).
+> [#986 plan](../archive/corpus_induced_signed_transport_attention_plan_986.md).
 >
 > **Observed A1Q-L3 result.** The raw corpus bytes and 3,000-document D3 census
 > reproduced, but no source-free corpus-scale codec or exact three-way pair
@@ -1816,11 +1816,11 @@ assumptions, or objectives rather than measured results.
 > records `UNAVAILABLE_FRAME_OR_POPULATION`. Placement, link state, diffusion,
 > Gate 0, calibration, sealed labels, full/table/control arms, payload replay,
 > and #953 were `NOT_RUN`. See the
-> [#986 evidence record](corpus_signed_transport_attention_986.md). Any repair
+> [#986 evidence record](../archive/corpus_signed_transport_attention_986.md). Any repair
 > is a newly frozen successor, not a #986 retry.
 
 The current quality-baseline reconciliation is recorded by #933 and the
-[append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
+[append-only #934 genealogy](../archive/canonical_quality_baseline_934.md). The historical
 **29.7%** fixed tolerance applies only to pinned/legacy reports; it is not a
 universal 30% requirement. On `smollm2-360m-broad-clean`, the new CID-bound
 `R4G1Runtime` full census records **21,293 / 72,130 = 29.5203%** versus
@@ -1838,7 +1838,7 @@ selected canonical 135M bundle because it has no schema-2 `release-bundle.json`
 envelope. The tuner and fixture-present measurement were `NOT_RUN` with zero
 teacher work. The structural harness gates pass; live exact-multicore
 throughput, speedup, and parity remain **NOT ESTABLISHED**. See the
-[append-only #932 record](teacher_parity_parallelism_932.md).
+[append-only #932 record](../archive/teacher_parity_parallelism_932.md).
 
 ## Historical measurement discipline and costly-run boundary
 
@@ -1867,7 +1867,7 @@ Two further rules were earned the hard way and are worth stating up front:
   measurement serialises as `null`, never as a zeroed row, and a pre-declared
   exit-rule verdict is suppressed rather than printed as NOT MET.
 
-The evaluation constitution (#832, [`docs/capability_suites_832.md`](capability_suites_832.md))
+The evaluation constitution (#832, [`docs/capability_suites_832.md`](../archive/capability_suites_832.md))
 makes these rules schema-level objects: committed capability-suite manifests bind every score to
 pinned identities, document-disjoint splits, declared negative controls, and a per-token
 resolution-path attribution tied to the normative scorer (ADR-0001), with an absent fixture
@@ -1900,7 +1900,7 @@ rule, while timed output parity and the allocation/fallback census remained
 clean. That result adopts `gpt2-source-dense/2` for Conv1D, MLP, and tied
 `lm_head` source execution without changing the deployed table runtime. The
 run contract, hashes, negative canaries, and census are in
-[gpt2_dense_704.md](gpt2_dense_704.md).
+[gpt2_dense_704.md](../archive/gpt2_dense_704.md).
 
 > **Reading the 0.8948 correctly.** It is a **cosine-ranked** figure. For a long
 > time it did not describe `get_top_resonances_native`, whose ordering is word
@@ -1908,7 +1908,7 @@ run contract, hashes, negative canaries, and census are in
 > against the stored *content* vector, so its cosine was at chance. With the
 > comparison corrected, the serving path reaches 0.8763 MRR. The number was
 > always real; it was unreachable at serving. See
-> [geometry_selfmatch_486.md](geometry_selfmatch_486.md).
+> [geometry_selfmatch_486.md](../archive/geometry_selfmatch_486.md).
 
 **A-mode infill serving** is validated and shipped: the FWDA forward-anchor
 artifact section plus `score_candidates_infill`, `infill_fill`, and the
@@ -1937,7 +1937,7 @@ baseline fell alongside (26.4 → 25.4). Exact-context dominance barely responde
 That fall was originally read as thinner per-key evidence, full stop. The
 codebook-fit measurement narrows it: raising the codebook's training set also
 lowers records-per-key (5.04 → 4.68) and top-1 *rises* (+0.44pp,
-[codebook_fit_460.md](codebook_fit_460.md)). So records-per-key is a **symptom,
+[codebook_fit_460.md](../archive/codebook_fit_460.md)). So records-per-key is a **symptom,
 not the binding quantity** — thinning is harmful when it comes from added key
 *resolution*, which splits evidence that belonged together, and harmless or
 better when it comes from improved *fit*, which moves evidence onto the key that
@@ -1954,7 +1954,7 @@ scale", 8 → 22 regions at mass-kept 0.0006 — was recorded as a property of t
 geometry. It is a property of the shipped *configuration*: turning on the
 already-implemented scaled capacity takes regions 48 → 110 on the 500k fixture
 and lifts region-path held-out top-1 by 5.0pp (#460 lever 1,
-[cover_scaling_460.md](cover_scaling_460.md)).
+[cover_scaling_460.md](../archive/cover_scaling_460.md)).
 
 **Hopf sector transport as a router-quality lever (#422/#306).** The #306
 remediation's occupancy gain (16 → 456 of 512 sectors) does not translate into
@@ -2001,7 +2001,7 @@ one site (`retrieve_geometric_resonance`, reachable only via
 the score pipeline never reads it, so the #421 anchor rows are invariant. The
 +0.022 MRR sits below #484's pre-registered +0.05 retune bar; adoption rests on
 the simplification plus the strict top-1/recall dominance, not on the MRR margin,
-and is recorded as such. See #500. [lexical_weight_484.md](lexical_weight_484.md)
+and is recorded as such. See #500. [lexical_weight_484.md](../archive/lexical_weight_484.md)
 
 **The serving path compared the wrong objects (#486).** A category error, not a
 tuning or shape problem. `retrieve_geometric_resonance` built its query vector
@@ -2013,7 +2013,7 @@ the same `content_state_vector` construction the stored side uses takes retrieva
 from 0.7179 to **0.8542** MRR with the weight unchanged, and **0.8763** with the
 lexical term dropped; recall rises 0.9720 → 0.9900. The content-query path was
 adopted as the router default by #490, and #502 subsequently made its lexical
-weight zero. [geometry_selfmatch_486.md](geometry_selfmatch_486.md)
+weight zero. [geometry_selfmatch_486.md](../archive/geometry_selfmatch_486.md)
 
 **Cayley–Dickson syntactic morphism (#400), FMM far-field (#290), granularity
 (#393), E8 group-keying (#395).** Each measured dead with a scoped record; the CD
@@ -2205,10 +2205,10 @@ development/product remain `NOT_RUN`, and no retry is authorized. C1-SB5 then
 fit `56/56` pairs but reached `14/28` sealed and retired before checkpoint/head/
 Rust/development, with products unopened.
 #954 remains open; #955 remains blocked, and the final source-free #954 terminal
-remains behind #973. See the [campaign record](r4_grounded_correctness_954.md),
-[C1-SB2 aggregate](r4_source_relation_head_954_raw.json),
-[C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json), and
-[C1-SB5 aggregate](r4_paired_query_binding_954_raw.json).
+remains behind #973. See the [campaign record](../archive/r4_grounded_correctness_954.md),
+[C1-SB2 aggregate](../archive/r4_source_relation_head_954_raw.json),
+[C1-SB4 aggregate](../archive/r4_joint_candidate_margin_954_raw.json), and
+[C1-SB5 aggregate](../archive/r4_paired_query_binding_954_raw.json).
 CUDA and external GPU execution remain out of scope. Fiber-preserving
 multi-resonance replacement, whole-decoder recurrent factorization, capacity
 expansion, and final source-free requalification are parked. Dependable broad
@@ -2229,7 +2229,7 @@ floor to 10.2% (Rule 1+2) / 29.0% (latent-mix, causal), a ~100–290× lift,
 entirely inside the transformerless/R4G1 table-native kernel. Deployed
 inference is machine-checked matmul-free
 (`p4_contract_owned_graph_runtime_source_scan`,
-[matrix_operation_census.md](matrix_operation_census.md)); only the *offline
+[matrix_operation_census.md](../archive/matrix_operation_census.md)); only the *offline
 teacher-compile* step performs matrix multiplication, and even that now runs
 through the project's own `uor-matmul` exact GEMM rather than platform BLAS.
 That is genuine, replicated, goal-aligned signal, and it is why the
@@ -2318,9 +2318,9 @@ presence does not qualify the other stored fields for ranking. Product chat and
 persisted hive memory remain GI-6/#962 responsibilities. The
 retained #951 negative
 checkpoint and exact population remain in
-[`geometric_mixer_qualification_951.md`](geometric_mixer_qualification_951.md),
+[`geometric_mixer_qualification_951.md`](../archive/geometric_mixer_qualification_951.md),
 and the #958 boundary remains in
-[`prime_route_attention_qualification_958.md`](prime_route_attention_qualification_958.md).
+[`prime_route_attention_qualification_958.md`](../archive/prime_route_attention_qualification_958.md).
 The older source-free table-native continuation/candidate and pointwise evidence
 remains useful as an offline substrate or fixed count-only comparator, not the product
 sequencing authority. (As of #831, the one normative scorer for the
@@ -2393,7 +2393,7 @@ maintainer-approved contract; the standing first step is the roadmap's
 recompile-with-#755 + fresh quality read.
 
 **S1 item A — the persistent prompt-state contract is frozen (#835, 2026-08-20).**
-[`docs/prompt_state_spec_835.md`](prompt_state_spec_835.md) specifies a bounded,
+[`docs/prompt_state_spec_835.md`](../archive/prompt_state_spec_835.md) specifies a bounded,
 integer, witness-replayable persistent prompt/session state — six lanes each justified
 by a causal intervention, a whole-prompt initial fold and a causal per-token transition
 that reads no future token, a decode-independent `ScoreQ` contribution lowering, and
@@ -2408,7 +2408,7 @@ does **not** establish that persistent state improves prompt causality — that 
 measured in #834, and the deployed lowering/certification is #836.
 
 **S1 item B — the causal-relevance bake-off instrument is frozen (#834, 2026-08-20).**
-[`docs/prompt_arms_bakeoff_834.md`](prompt_arms_bakeoff_834.md) lands the *binding cheap
+[`docs/prompt_arms_bakeoff_834.md`](../archive/prompt_arms_bakeoff_834.md) lands the *binding cheap
 instrument* #834's run contract requires before any long run: an offline, integer,
 reference-only bake-off over the five prompt-conditioned arms (current-scoring,
 longer-local-context, persistent-state, conditional-residuals, candidate-support-expansion)
@@ -2467,10 +2467,10 @@ the #822 decision comment and the plan's S1 stage-verdict entry.)*
 
 **S1 redesign — Q1 answered and the D1 instrument measured: first floor-clearing
 off-serving arm (#822, 2026-08-21).** Executing the approved redesign RFC
-([`s1_redesign_rfc_822.md`](s1_redesign_rfc_822.md)); both records live in
-[`s1_redesign_instruments_822.md`](s1_redesign_instruments_822.md) (harness
+([`s1_redesign_rfc_822.md`](../archive/s1_redesign_rfc_822.md)); both records live in
+[`s1_redesign_instruments_822.md`](../archive/s1_redesign_instruments_822.md) (harness
 `crates/uor-r4-api/tests/joint_conditional_run_822.rs`, CID-bound record
-[`joint_conditional_822_result.json`](joint_conditional_822_result.json)). **Q1:** the
+[`joint_conditional_822_result.json`](../archive/joint_conditional_822_result.json)). **Q1:** the
 recorded `t_argmax` labels condition on the full article prefix hard-capped at 128
 positions (`--sequence-length 128`; mean prefix 62.7 tokens; 85.4% of stories truncated
 at the cap) — so the measured suffix-locality is a property of the compiled key space,
@@ -2503,7 +2503,7 @@ design input only. The §6-4 re-entry decision consumes Q1 + D1 + D2 on #822
 
 **S2 item A — the typed selective-prediction contract and the answerability benchmark
 constitution are frozen (#838, 2026-08-21).**
-[`docs/selective_prediction_spec_838.md`](selective_prediction_spec_838.md) separates
+[`docs/selective_prediction_spec_838.md`](../archive/selective_prediction_spec_838.md) separates
 coverage, answerability, and calibrated confidence into eight typed statuses with one
 meaning and one deterministic representation each across the CLI, native HTTP,
 OpenAI-compatible (non-streaming and streaming), and WASM surfaces — an abstention is
@@ -2527,7 +2527,7 @@ and its calibrated phase `NOT TRIGGERED`.
 
 **S2 item B — the artifact-only confidence calibrator was fitted and did not qualify
 (#837, 2026-08-21): `NO CALIBRATOR ESTABLISHED`.**
-[`docs/selective_calibration_837.md`](selective_calibration_837.md) (record
+[`docs/selective_calibration_837.md`](../archive/selective_calibration_837.md) (record
 `docs/calibrator_837_result.json`; harness
 `crates/uor-r4-api/tests/calibrator_fit_837.rs`). Under the #838 frozen gates
 (false-answer UCB95 ≤ 10‰ release / ≤ 50‰ research at coverage floors 20‰/50‰), on
@@ -2551,7 +2551,7 @@ See the #823 decision comment and the plan's S2 stage-verdict entry.)*
 
 **S2 item B2 — the sanctioned RF-31 content-evidence calibrator re-entry was completed
 (#931, 2026-08-22): `NO CALIBRATOR ESTABLISHED`.**
-[`docs/content_evidence_calibrator_931.md`](content_evidence_calibrator_931.md) (record
+[`docs/content_evidence_calibrator_931.md`](../archive/content_evidence_calibrator_931.md) (record
 `docs/selective_calibrator_reentry_931_result.json`; harness
 `crates/uor-r4-api/tests/selective_calibrator_reentry_931.rs`) reads the deployed packed
 SKMX/PSIB rows with RF-31's exact primary/fallback, saturating-add, candidate-injection,
@@ -2586,7 +2586,7 @@ explicit maintainer decision under the frozen #838 gates. The historical `REVISE
 records the completed redesign attempt; `LIMIT` is the current S2 disposition.
 
 **S3 item A — the free-running trajectory gap is quantified (#841, 2026-08-21): the gap
-is total.** [`docs/free_running_eval_841.md`](free_running_eval_841.md) freezes the
+is total.** [`docs/free_running_eval_841.md`](../archive/free_running_eval_841.md) freezes the
 sequence-level evaluation (prompt-family v1, horizon ladder, trace schema v1 with
 per-step path attribution, deterministic primary metrics, planted early-drift and
 repetition-only negatives, the corrective-round stopping rule for #840) and run-1
@@ -2609,7 +2609,7 @@ decisions recorded on #824 and #840)*.
 
 **S3 item B — corrective student-prefix observation is not launched; free-running
 generation is not established under the promoted skip-mix representation (#840,
-2026-08-22).** [`docs/free_running_reachability_840.md`](free_running_reachability_840.md)
+2026-08-22).** [`docs/free_running_reachability_840.md`](../archive/free_running_reachability_840.md)
 executes the #840 run contract's binding cheap instrument before any corrective compile
 (harness `crates/uor-r4-api/tests/free_running_reachability_840.rs`; CID-bound record
 `docs/free_running_reachability_840_result.json`, `result_cid blake3:e9f48e20…`). It
@@ -2638,7 +2638,7 @@ remains gated on that verdict.
 
 **S3 item C — a bounded trajectory-state mechanism is NOT TRIGGERED; the S3 free-running
 generation claim is not established (#842, 2026-08-22).**
-[`docs/state_trajectory_gate_842.md`](state_trajectory_gate_842.md) is the authoritative
+[`docs/state_trajectory_gate_842.md`](../archive/state_trajectory_gate_842.md) is the authoritative
 S3 generation verdict (harness `crates/uor-r4-api/tests/state_trajectory_gate_842.rs`;
 CID-bound record `docs/state_trajectory_gate_842_result.json`, `result_cid
 blake3:86376394…`). It defines a predeclared, non-vacuous diagnostic that classifies every
@@ -2671,7 +2671,7 @@ behaviorally non-vacuous on the exact #933 production envelope and returned `INE
 cases resolved through an explicit context row and all remaining 20 primary context-signature
 probes admitted a node, so the secondary session probe was attempted 0 times; candidate lists
 changed 0 times and served tokens changed 0 times. The larger #841 rerun is therefore `NOT_RUN`
-by contract. See [`docs/production_prefix_memory_canary_944.md`](production_prefix_memory_canary_944.md)
+by contract. See [`docs/production_prefix_memory_canary_944.md`](../archive/production_prefix_memory_canary_944.md)
 and the CID-bound result JSON. A further S3 re-entry must first make complete-prefix information
 behaviorally reachable in the compiled representation.
 
@@ -2685,24 +2685,24 @@ positive (1,549 trajectory admissions and candidate differences), authorizing on
 its reachable fallback cases, but different earlier prefixes changed **0/512** candidate lists
 and **0/512** served tokens. Verdict: **`INERT`**. The frozen #841 evaluation remains
 **NOT_RUN**, and no coherence, semantic relevance, planning, or generative-engine claim is
-promoted. See [`docs/trajectory_routing_946.md`](trajectory_routing_946.md) and its bound
+promoted. See [`docs/trajectory_routing_946.md`](../archive/trajectory_routing_946.md) and its bound
 result JSON.
 
 **S4 — bounded typed planning is LIMITED; geometry adds no advantage; untouched final-partition
 reasoning is not established (#843/#845/#846, 2026-08-22).**
-[`docs/bounded_semantic_transitions_843.md`](bounded_semantic_transitions_843.md) establishes
+[`docs/bounded_semantic_transitions_843.md`](../archive/bounded_semantic_transitions_843.md) establishes
 RF-33 only for the portable `R4G1Runtime::plan_bounded` API and its certifier harness: the
 fixed-capacity, allocation-free, P-4-only `bounded-breadth-first` planner reaches
 correct-outcome rate 1.0000 in all 20 development joint-split cells and clears the frozen
 effect floor over the strongest non-oracle null in **12/20**. It remains `LIMITED` because
 direct continuation also solves the other eight cells. No deployed serving surface calls the
 planner, so this evidence is off-serving and does not establish deployed planning reachability.
-[`docs/w33_geometry_qualification_845.md`](w33_geometry_qualification_845.md) then records
+[`docs/w33_geometry_qualification_845.md`](../archive/w33_geometry_qualification_845.md) then records
 `NO GEOMETRIC ADVANTAGE`: the pinned mapping loses to informed non-geometric ordering under equal
 budgets and behaves like its randomized/relabelled/phase controls, so it stays offline/reference.
 
 The final-certification access audit
-([`docs/compositional_planning_certification_846.md`](compositional_planning_certification_846.md))
+([`docs/compositional_planning_certification_846.md`](../archive/compositional_planning_certification_846.md))
 found that the benchmark identity contains no non-empty seal, partition CID, access-log binding, or
 materialized operator-composition cell. Fitting opened topology cells 0–3 and prior evaluation
 opened 4–7, leaving `0 x 512 = 0` certifiable final samples. The binding instrument therefore
@@ -2788,7 +2788,7 @@ passed target-free but failed the held-out promotion gate. The first bounded
 gated-delta core also trailed plain delta. Ordinary transported Q/K/V/O softmax
 attention remains the bounded qualified reference. Intrinsic V1 is closed
 unavailable before D3. The source-faithful
-[`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
+[`HelmDLearnedManifoldR4ConstructionV2`](../archive/helm_d_learned_manifold_r4_construction_973.md)
 qualifier is now a valid non-D3 construction-validation negative: learned
 Lorentz failed retention and matched parity, while its controls established
 sensitivity only. The 8/8-contract attempt stopped at its two-document
@@ -2839,10 +2839,10 @@ not be retried. C1-SB5 then fit `56/56` pairs but reached `14/28` sealed and
 retired before checkpoint/head/Rust/development, with products unopened. Its
 final source-free terminal remains blocked behind
 #973, and #955 remains blocked on a positive correctness result. See the
-[#954 campaign record](r4_grounded_correctness_954.md),
-[C1-SB2 aggregate](r4_source_relation_head_954_raw.json),
-[C1-SB4 aggregate](r4_joint_candidate_margin_954_raw.json), and
-[C1-SB5 aggregate](r4_paired_query_binding_954_raw.json).
+[#954 campaign record](../archive/r4_grounded_correctness_954.md),
+[C1-SB2 aggregate](../archive/r4_source_relation_head_954_raw.json),
+[C1-SB4 aggregate](../archive/r4_joint_candidate_margin_954_raw.json), and
+[C1-SB5 aggregate](../archive/r4_paired_query_binding_954_raw.json).
 #955 invokes that accepted selector/
 #953/#973/#954 consumer; #962 integrates the accepted selector/#953/#973 path
 into product chat with persisted identity-scoped hive memory. #963 retains
@@ -2858,12 +2858,12 @@ in their original prose are not the live backlog. GitHub native issue state wins
 |---|---|---|
 | #488 | Phase timing across the score pipeline | **Closed** (this record). Instrument landed (PR #495): `PhaseLog` covers the whole `score` pipeline, verified on the 500k fixture (phases sum to wall clock with zero remainder; Gate C scoring dominates at 247s, cover induction is the largest pre-Gate-C stage at 27.9s) — DoD met. The at-scale attribution on a real 2.11M corpus (gone from disk) is spun out as **#503** |
 | #457 | IPF-consistent reconstruction operator | Cheap-check (#499) then Arm B **landed NEGATIVE** (this record). On 5000 held-out: naive backoff+sum blows up to 23.92 bits / 0.18% top-1 (reproducing #64's Σ-over-cloud collapse); IPF drives the per-region marginal inconsistency 5.40 → 0.096 bits — it genuinely reconciles the overlapping blocks — but the consistent joint lands **at the unigram floor** (8.60 bits, 0.062 top-1 = the null). The regions carry no reconcilable next-token signal; the consistency operator is not the missing lever, corroborating #456 (sub-unigram) and #459 (k≥3 counting noise). [marginal_reconstruction_457](../crates/uor-r4-graph-cli/tests/marginal_reconstruction_457.rs) |
-| #456 | Reconstructability objective | Certificate + sweep **landed** (PR #462); the null arm now **landed** too (this record): deranging the emission tables degrades the reconstruction by ~3 bits (the mutation guard holds), but the EXCT-disabled graph reconstruction is **sub-unigram** (16.3 bits / 1.5% top-1 vs the unigram floor 8.7 / 6.4%) — a recorded NEGATIVE for item 3 (recon bits as a compiler split criterion). [reconstruction_null_456.md](reconstruction_null_456.md) |
+| #456 | Reconstructability objective | Certificate + sweep **landed** (PR #462); the null arm now **landed** too (this record): deranging the emission tables degrades the reconstruction by ~3 bits (the mutation guard holds), but the EXCT-disabled graph reconstruction is **sub-unigram** (16.3 bits / 1.5% top-1 vs the unigram floor 8.7 / 6.4%) — a recorded NEGATIVE for item 3 (recon bits as a compiler split criterion). [reconstruction_null_456.md](../archive/reconstruction_null_456.md) |
 | #460 | Cover split criterion and codebook fit | Both levers measured. Codebook fit +0.44pp, saturates near `N/10`, below the exit rule. Cover: the shipped absolute floor does not scale (regions 50→48→46→48 over an 8× data range); scaled capacity fixes it — regions 48→110, region-path top-1 **+5.0pp**. Serving impact capped near 0.15pp because the graph path answers ~1–3% of positions, so this arms the broad-corpus directions rather than paying today |
-| #424 | Bott-Fock O(1) context fold | Ceiling measured, A/B not reachable. Long-range signal is worth +1.02pp of top-1 (two thirds order-carried); the shipped decay `>> 2` retains 16%, so the lossless upper bound as shipped is +0.16pp — one standard error. Retuning to `>> 7` would recover the ceiling. [context_horizon_424.md](context_horizon_424.md) |
-| #496 | VSA: real encoder + facet-index built — now matches Spectral | **Built and closed** (owner decision was "build it, don't deprecate"). Two stages: (1) the real encoder (#507) grounds the hypervector from the zeta word-sum content signal, not a content hash — VSA went from dead 0.0000 to functional but lost to Spectral, recall 0.53, because the coarse `type=sum%100` / `entity=[100,200]` facets dropped ~47% of targets. (2) the real facet-index (this change): each item stores its VSA vector at index time and is indexed under its **salient content dimensions** (top-16 magnitude dims); retrieval UNIONs the query's salient dims for a high-recall content-addressed candidate set. Result on `geometry_ablation` (deranged null dead in both arms), the recall bottleneck **fixed to parity**: at full caps (2000 stories/200 probes/46,342 windows) VSA **0.73 top-1 / 0.81 MRR / 0.98 recall** vs Spectral 0.85 / 0.89 / 0.98 (small corpus 300/30: VSA 0.87/0.92/1.00 vs 0.90/0.93/1.00, indifferent). So the facet-index collapsed the gap from **0.43 → 0.08 MRR** and lifted VSA recall **0.53 → 0.98** (now equal to Spectral), and it is fast (stored vectors). Spectral still edges VSA at full scale (+0.08, just over the 0.05 gate), so it remains the default — but VSA is now a genuinely competitive, facet-structured retriever rather than a placeholder, so it **stays (not deprecated)**. Further closing the 0.08 (slice-norm-style scaling on the VSA cosine, salient-dim tuning) is optional optimization, not a blocker. [geometry_ablation_434.md](geometry_ablation_434.md) |
-| #320 | Teacher upgrade (SmolLM2) | P1/P2 rehearsal recorded; **P3 decided POSITIVE** (#509, this record). Repeatedly named the **binding constraint on absolute accuracy** — the stories15M argmax is near-degenerate on broad text (6.4% next==argmax on wiki10k vs 70.2% on its home corpus). P3 tested the prediction directly: swap only the teacher (SmolLM2-360M) on the same Simple-Wiki D3 partition and broad-text held-out top-1 moves from the recorded ~0.1% off-distribution floor to **10.2% (Rule 1+2) / 29.0% (latent-mix #446 M2)**, both causal. Teacher breadth was the constraint; the broad-corpus program is warranted. The baseline re-pin stays a maintainer step per AGENTS.md. [smollm2_teacher_baseline_320.md](smollm2_teacher_baseline_320.md#p3--broad-corpus-program-509-smollm2-360m-observed-on-simple-wiki) |
-| #509 | Broad-corpus decider (P3 for #320) | **Landed POSITIVE & closed** (this record). One end-to-end broad-text pass — observe SmolLM2-360M on Simple-Wiki (3,000 articles → 21,235 records) → recorded compile → cover (46 regions) → score `relative_tla` → Gate C on 4,358 held-out D3 positions. Rule 1+2 **10.2%** / 12.72 bits, latent-mix (#446 M2, causal) **29.0%** / 11.71 bits, vs the narrow-teacher ~0.1% off-distribution floor — a ~100–290× lift on the causal rows, clearing the unigram null and shuffled-class control. Absolute accuracy is still compiler-/data-bound, far below the teacher floor, so this licenses the program, not substrate parity. All native, no GPU. [smollm2_teacher_baseline_320.md](smollm2_teacher_baseline_320.md#p3--broad-corpus-program-509-smollm2-360m-observed-on-simple-wiki) |
+| #424 | Bott-Fock O(1) context fold | Ceiling measured, A/B not reachable. Long-range signal is worth +1.02pp of top-1 (two thirds order-carried); the shipped decay `>> 2` retains 16%, so the lossless upper bound as shipped is +0.16pp — one standard error. Retuning to `>> 7` would recover the ceiling. [context_horizon_424.md](../archive/context_horizon_424.md) |
+| #496 | VSA: real encoder + facet-index built — now matches Spectral | **Built and closed** (owner decision was "build it, don't deprecate"). Two stages: (1) the real encoder (#507) grounds the hypervector from the zeta word-sum content signal, not a content hash — VSA went from dead 0.0000 to functional but lost to Spectral, recall 0.53, because the coarse `type=sum%100` / `entity=[100,200]` facets dropped ~47% of targets. (2) the real facet-index (this change): each item stores its VSA vector at index time and is indexed under its **salient content dimensions** (top-16 magnitude dims); retrieval UNIONs the query's salient dims for a high-recall content-addressed candidate set. Result on `geometry_ablation` (deranged null dead in both arms), the recall bottleneck **fixed to parity**: at full caps (2000 stories/200 probes/46,342 windows) VSA **0.73 top-1 / 0.81 MRR / 0.98 recall** vs Spectral 0.85 / 0.89 / 0.98 (small corpus 300/30: VSA 0.87/0.92/1.00 vs 0.90/0.93/1.00, indifferent). So the facet-index collapsed the gap from **0.43 → 0.08 MRR** and lifted VSA recall **0.53 → 0.98** (now equal to Spectral), and it is fast (stored vectors). Spectral still edges VSA at full scale (+0.08, just over the 0.05 gate), so it remains the default — but VSA is now a genuinely competitive, facet-structured retriever rather than a placeholder, so it **stays (not deprecated)**. Further closing the 0.08 (slice-norm-style scaling on the VSA cosine, salient-dim tuning) is optional optimization, not a blocker. [geometry_ablation_434.md](../archive/geometry_ablation_434.md) |
+| #320 | Teacher upgrade (SmolLM2) | P1/P2 rehearsal recorded; **P3 decided POSITIVE** (#509, this record). Repeatedly named the **binding constraint on absolute accuracy** — the stories15M argmax is near-degenerate on broad text (6.4% next==argmax on wiki10k vs 70.2% on its home corpus). P3 tested the prediction directly: swap only the teacher (SmolLM2-360M) on the same Simple-Wiki D3 partition and broad-text held-out top-1 moves from the recorded ~0.1% off-distribution floor to **10.2% (Rule 1+2) / 29.0% (latent-mix #446 M2)**, both causal. Teacher breadth was the constraint; the broad-corpus program is warranted. The baseline re-pin stays a maintainer step per AGENTS.md. [smollm2_teacher_baseline_320.md](../archive/smollm2_teacher_baseline_320.md#p3--broad-corpus-program-509-smollm2-360m-observed-on-simple-wiki) |
+| #509 | Broad-corpus decider (P3 for #320) | **Landed POSITIVE & closed** (this record). One end-to-end broad-text pass — observe SmolLM2-360M on Simple-Wiki (3,000 articles → 21,235 records) → recorded compile → cover (46 regions) → score `relative_tla` → Gate C on 4,358 held-out D3 positions. Rule 1+2 **10.2%** / 12.72 bits, latent-mix (#446 M2, causal) **29.0%** / 11.71 bits, vs the narrow-teacher ~0.1% off-distribution floor — a ~100–290× lift on the causal rows, clearing the unigram null and shuffled-class control. Absolute accuracy is still compiler-/data-bound, far below the teacher floor, so this licenses the program, not substrate parity. All native, no GPU. [smollm2_teacher_baseline_320.md](../archive/smollm2_teacher_baseline_320.md#p3--broad-corpus-program-509-smollm2-360m-observed-on-simple-wiki) |
 | #273 | Template rebase / claim register | **Landed & closed** (PR #511). Adopted the UOR-Foundation/template register machinery (`repo-model`, `repo-conformance`, `xtask`, `model/`) and brought uor-r4's real BDD under it: 29 feature suites / 101 scenarios tagged `@RF-NN @build`, registered in `model/ids.toml` with explicit marker tests, cucumber unbroken. R1–R3 gates wired and advisory in CI; R4/R5/R6 spun out as **#510**. The r4 scenarios supersede the template's empty scaffolding — the goal was to beef up the BDD, not replace it |
 | #744 | `instruction_eval_passed` quality gate self-consistency | **Landed (PR #749); closed** (the #750 follow-up below also landed and closed; issue states reconciled 2026-08-18). Root cause: the three quality fields were never computed anywhere — `r4 import` accepted them as hand-typed CLI flags copied verbatim into the manifest, which is why two manifests over identical bytes could disagree and both pass. Fixed: `import` now derives them from a live probe run (fixed question set through the real `ask` path, scored with a full-generation repetition-rate metric reusing Gate C's precedent). A false positive was caught and fixed during verification (window too narrow to detect the #745 bundle's degenerate output; widened + bar recalibrated). Left open because the gate still only probes the plain TLA path, not a bundle's R4G1 beam-search path, which can be *worse* on identical bytes (see #750) |
 | #750 | #744 follow-up: live quality gate never probes a bundle's R4G1 graph | **Closed** — `import --r4g1` now runs the probe set through the R4G1 beam path too, and `instruction_eval_passed` requires both paths to pass independently (MODEL_LIFECYCLE §6; state reconciled 2026-08-18). Historical finding: `ask`/`chat` prefer a manifest-name-keyed `compiled.r4g1` graph over the plain path when one exists, but #744's new live-probe gate only ever constructs a plain-path `ChatEngine`. Confirmed divergent: the same `smollm2-1-7b-instruct` bytes produce word-salad on the plain path but literal `"cut cut cut ..."` single-token degenerate repetition on the R4G1 path. A manifest that passes today's gate is not thereby shown non-degenerate under R4G1 |
@@ -2905,7 +2905,7 @@ That profile went on to overturn its own issue twice: the table builds it named
 were 0.8% of a sampled run, and the 2.11M follow-up found Gate C costs 51.94s
 there, not 85 minutes, with per-record cost *falling* as the corpus grows. The
 85 minutes was never Gate C — which is why #488 exists.
-[gate_c_arm_skip_471.md](gate_c_arm_skip_471.md)
+[gate_c_arm_skip_471.md](../archive/gate_c_arm_skip_471.md)
 
 ## Instruments that could not fail
 

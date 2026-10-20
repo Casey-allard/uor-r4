@@ -3,7 +3,7 @@
 See the [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../docs/integration/model-direction-2026-09.md)
+and [model direction](../../archive/integration/model-direction-2026-09.md)
 for repository navigation and the consumer-laptop objective. Native bounded
 attention and inference execute today; general prose completion and general
 reasoning remain unqualified. The model API re-export is in
@@ -20,7 +20,7 @@ their teacher/reference measurements do not qualify native model behavior.
 artifact/backend identity, context use, generation/streaming, limits/errors,
 session isolation, persistence and declared capabilities. Attention, prose,
 reasoning and coding are measured model behaviors; naming API methods does not
-implement them. See the [audit's capability map](../../docs/integration/architecture-2026-09/README.md#capabilityapi-sequence-toward-the-studio).
+implement them. See the [audit's capability map](../../archive/integration/architecture-2026-09/README.md#capabilityapi-sequence-toward-the-studio).
 The same accepted native artifact should later serve the WASM/GitHub Pages Studio.
 Final inference executes no matrix products or transformer backbone; offline
 Rust training may use matmul. This is a direction, not a completed API claim.

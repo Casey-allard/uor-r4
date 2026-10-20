@@ -1,7 +1,7 @@
 //! Typed selective-prediction surface vocabulary (#839 phase 1, RF-30).
 //!
 //! The shared, dependency-free vocabulary of the #838 typed status schema
-//! (`docs/selective_prediction_spec_838.md` §2/§5/§6) as served in
+//! (`archive/selective_prediction_spec_838.md` §2/§5/§6) as served in
 //! **legacy-coverage mode**: canonical kebab-case labels, the OpenAI-surface
 //! snake-case rewrite, the deployed-policy → coverage mapping, and the
 //! fail-closed selective-calibration presence probe. Every production surface

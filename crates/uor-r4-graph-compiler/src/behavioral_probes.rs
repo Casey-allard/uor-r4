@@ -1,6 +1,6 @@
 //! Unsupervised Intervention and Counterfactual Behavioral Probes
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §§7, 11, 17;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §§7, 11, 17;
 //! `docs/formal_vocabulary.md` §3; GitHub Issue #128.
 //!
 //! This module provides the behavioral-probing layer needed to distinguish reusable

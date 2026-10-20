@@ -119,7 +119,7 @@ fn compiled_sources_carry_no_banned_operation() {
 #[test]
 fn no_excluded_historical_kernel_is_compiled() {
     let historical = fs::read_to_string(crate_path(
-        "../../docs/history/d29-excluded-kernels-2026-10-13/cuda_stack_historical.cu",
+        "../../archive/history/d29-excluded-kernels-2026-10-13/cuda_stack_historical.cu",
     ))
     .expect("D29 evidence file");
     let names: Vec<&str> = historical
@@ -222,7 +222,7 @@ fn quarantined_dense_contraction_modules_stay_out_of_the_build() {
             "build.rs compiles quarantined {module}"
         );
         let source = fs::read_to_string(crate_path(&format!(
-            "../../docs/history/d29-excluded-kernels-2026-10-13/{evidence}"
+            "../../archive/history/d29-excluded-kernels-2026-10-13/{evidence}"
         )))
         .expect("quarantined evidence file");
         let names: Vec<&str> = source

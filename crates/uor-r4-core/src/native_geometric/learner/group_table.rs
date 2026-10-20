@@ -7,7 +7,7 @@
 //! product. That is on the order of **1,000 multiplies per generated token** — roughly 40x the
 //! next largest multiplier site in the serving path, and outside the arithmetic scan that the
 //! multiplier-free invariant actually covered (see
-//! `docs/evidence/native_geometric_d0a_multiplier_census_2026-09-19.txt`).
+//! `archive/evidence/native_geometric_d0a_multiplier_census_2026-09-19.txt`).
 //!
 //! # Why a table is the *correct* fix, not a workaround
 //!

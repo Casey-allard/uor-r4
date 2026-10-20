@@ -1,7 +1,7 @@
 //! Executable reference model and machine-checked evidence for the persistent
 //! prompt-conditioned predictive state specification (#835).
 //!
-//! Companion document: `docs/prompt_state_spec_835.md`. This is a
+//! Companion document: `archive/prompt_state_spec_835.md`. This is a
 //! **reference-only / off-serving-path** model in the RF-27/RF-28 sense: an
 //! owned integer realization of the specified state semantics used to prove the
 //! contract is deterministic, bounded, and benchmarkable. It is not the deployed
@@ -17,7 +17,7 @@
 use uor_r4_api::capability_suite::{is_degenerate_control, ControlKind, MetricStatus};
 
 /// Canonical fixed-point score type (`ScoreQ`, i32 Q16.16) per
-/// `docs/scoring_semantics.md`.
+/// `archive/scoring_semantics.md`.
 type ScoreQ = i32;
 
 const NUM_LANES: usize = 6;
@@ -94,7 +94,7 @@ impl Ring {
 
     /// The eviction victim under the canonical order (weight descending, key
     /// ascending): the least-weight slot, ties broken by the *larger* key so
-    /// the lower id is retained (`docs/scoring_semantics.md` §6).
+    /// the lower id is retained (`archive/scoring_semantics.md` §6).
     fn victim_index(&self) -> usize {
         let mut best = 0usize;
         for (i, s) in self.slots.iter().enumerate().skip(1) {

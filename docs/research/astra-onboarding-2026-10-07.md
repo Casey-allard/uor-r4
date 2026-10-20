@@ -95,10 +95,10 @@ intervention can and cannot change.
 ## Historical mechanisms and their actual status
 
 The [project map](../PROJECT_MAP.md),
-[architecture inventory](../integration/architecture-2026-09/engines.md),
+[architecture inventory](../../archive/integration/architecture-2026-09/engines.md),
 [history survey](barrier-assessment-2026-10-05/surveys/history.md),
 [retired catalogue](retired-mechanisms-catalogue-2026-10-01.md), and
-[toolbox](../integration/geometric-toolbox-2026-09-28.md) are navigation and
+[toolbox](../../archive/integration/geometric-toolbox-2026-09-28.md) are navigation and
 scoped evidence. Their dated “main line”, priority and retirement statements do
 not override current owner direction or the current artifact.
 
@@ -140,7 +140,7 @@ exhaustion procedure has not been established by this onboarding.
 | Exact `Z[phi]` and paired H4 | Exact finite group construction and golden/Galois-coupled coefficient representation with inverse witness. | Project `H4 ⊕ phi H4` is a specific construction, not two freely learned H4 memories; ambient R8 is not synonymous with the E8 lattice. Compiler arithmetic and served table operations have different contracts. |
 | Shared typed operators | Learned finite transition/read/action choices, followed by exact table execution. | A lawful action vocabulary does not choose the relevant action without learning. Having a composition table is not evidence of grounded selection or useful output. |
 
-See [the mathematical source inventory](../integration/architecture-2026-09/mathematics.md)
+See [the mathematical source inventory](../../archive/integration/architecture-2026-09/mathematics.md)
 and the current [H4 field implementation](../../crates/uor-r4-core/src/native_geometric/learner/geometric_continuation_field.rs).
 The historical one-root information bound cannot be applied as though the
 present model had only one root: it has multiple lanes, factual bank state and
@@ -176,7 +176,7 @@ usefulness `OPTIONAL_CONTROL_PENDING`. This review inspected source and the
 retained import account; rendered HTML/script execution is **NOT_RUN** here.
 No FBS theorem or reported route-count experiment was independently reproduced.
 
-**JEPA.** The September 12 [research proposal](../native_geometric_jepa_research_973.md)
+**JEPA.** The September 12 [research proposal](../../archive/native_geometric_jepa_research_973.md)
 says NOT_IMPLEMENTED/NOT_RUN, but later current source contains
 [`JepaTrainer`](../../crates/uor-r4-core/src/native_geometric/learner/jepa_trainer.rs)
 and callers in `train-native-prose.rs` / `binary_model.rs`. Its implemented

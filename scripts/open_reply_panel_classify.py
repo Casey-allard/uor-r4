@@ -17,7 +17,7 @@ Usage:
 
 The open reply panel is `everyday-32.json` + `heldout-200-a.json` +
 `heldout-200-b.json` (232 rows), which are not tracked in this repository; see
-docs/labs/open-reply-panel-2026-10-09/README.md for their sha256 and where the
+archive/labs/open-reply-panel-2026-10-09/README.md for their sha256 and where the
 sealed report and panel bytes are stored.
 """
 import collections

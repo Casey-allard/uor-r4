@@ -1,6 +1,6 @@
 //! #845 increment 3 — the reference ordering skeleton, its deployed-parity
 //! proof-by-test, the arm/control roster, and the equal-bytes audit, per
-//! `docs/w33_geometry_qualification_spec_845.md` §4 and §4-A.
+//! `archive/w33_geometry_qualification_spec_845.md` §4 and §4-A.
 //!
 //! The load-bearing property is counter-exact parity: the reference skeleton
 //! with the incumbent scorer must reproduce the deployed planner — outcome,

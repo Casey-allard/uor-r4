@@ -4,7 +4,7 @@
 //! scorer, `SELECT-1-token`, S1 redesign #822).
 //!
 //! Two bounded, fixed-offset tables, read with P-4-legal operations only
-//! (`docs/prompt_state_spec_835.md` §5: XOR/AND/OR/NOT, shift/rotate,
+//! (`archive/prompt_state_spec_835.md` §5: XOR/AND/OR/NOT, shift/rotate,
 //! popcount/cttz/ctlz, saturating/wrapping add-sub, integer compare,
 //! fixed-offset table reads — no multiply/divide/float):
 //!

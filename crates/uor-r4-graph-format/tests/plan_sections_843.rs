@@ -1,7 +1,7 @@
 //! Packed bounded-planning sections — the machine-checked record for #843
 //! increment 4.
 //!
-//! Frozen contract: `docs/bounded_semantic_transitions_spec_843.md` §5 and §7.
+//! Frozen contract: `archive/bounded_semantic_transitions_spec_843.md` §5 and §7.
 //! Every guarantee those sections state is asserted here, including the
 //! planted-mutation table: each mutation is planted and the named detector must
 //! fire, and a mutation that fires no detector fails the suite.

@@ -1,11 +1,11 @@
 # Glossary — R⁴ Geometric Decoder and Historical Graph Runtime
 
 Originally the Phase 0 graph-compiler glossary; expanded by #948 for the now-
-historical [geometric causal decoder](../geometric_causal_decoder_plan.md).
+historical [geometric causal decoder](../../archive/geometric_causal_decoder_plan.md).
 Current architecture and development live in the
 [native geometric AI plan](../integration/project-track.md); the
 [implementation pointer](../integration/current-state.md) names actual model
-work. The [native workflow](../native_geometric_workflow.md) describes the
+work. The [native workflow](../../archive/native_geometric_workflow.md) describes the
 Rust data, training, artifact and inference path. Dated mechanism entries below
 retain their mathematical definitions and measured scope. Their earlier
 "current", "next" and stage instructions do not select new work.
@@ -173,7 +173,7 @@ substituted for one another.
   timing and disposable learning smoke failed. Main and held-out model scoring
   are `NOT_RUN`; therefore attention, H4 advantage, generation, reasoning, and
   deployment remain unestablished. The exact cell is not retried or tuned. See the
-  [canonical record](../r4_group_addressed_retention_973.md).
+  [canonical record](../../archive/r4_group_addressed_retention_973.md).
 - **`R4GroupAddressedRetentionDecoderV1CpuRecovery`** — #973's independently
   frozen complete construction run over the same retained read/write law. It
   uses one deterministic Apple Accelerate CPU process with a configured PyTorch
@@ -185,7 +185,7 @@ substituted for one another.
   full-decoder generalization criterion, and scrambled transport was
   `0.033049` nats better, so the recipe is not promoted and no H4-specific
   advantage is claimed. See the
-  [terminal record](../r4_group_addressed_retention_decoder_cpu_recovery_973.md).
+  [terminal record](../../archive/r4_group_addressed_retention_decoder_cpu_recovery_973.md).
 - **`R4RetainedLanguagePathV1`** — #973's qualified 252,160-parameter
   source-free retained-attention language path. It generalized, remained
   load-bearing under state removal, and stayed competitive with its equal-
@@ -195,7 +195,7 @@ substituted for one another.
   subject or scene. It establishes retained attention and autonomous local
   decoding at that scope, not prompt-conditioned coherence, H4 superiority,
   reasoning, or exact lowering. See the
-  [binding record](../r4_retained_language_path_v1_973.md).
+  [binding record](../../archive/r4_retained_language_path_v1_973.md).
 - **`R4PositionPreservingCausalKVBindingV1`** — #1043's exact-cache successor
   over the same 252,160-parameter ordinary two-layer language model. It keeps
   one causal K/V record per position, uses learned Q/K/V plus stable softmax,
@@ -208,7 +208,7 @@ substituted for one another.
   that the fitted weights had not learned associative retrieval (`30/87,360`
   MQAR and `578/8,190` English history) despite perfect no-history abstention.
   No parity-only recovery, generation, recurrence, or lowering follows. See the
-  [terminal record](../r4_position_kv_binding_1043.md).
+  [terminal record](../../archive/r4_position_kv_binding_1043.md).
 - **`R4PairedH4LanguagePathV1` / `R4PairedH4PromptCapacityV1`** — the one
   frozen V1 capacity successor that changes only the per-layer exact-H4 token
   address while holding training data, seed, schedule, parameter count, and
@@ -219,7 +219,7 @@ substituted for one another.
   causal/replay/reveal checks passed. Terminal
   `PAIRED_H4_PROMPT_CAPACITY_FAIL`; preserve V1 and do not generate from the
   paired candidate. See the
-  [machine result](../r4_paired_h4_prompt_capacity_result_973_raw.json).
+  [machine result](../../archive/r4_paired_h4_prompt_capacity_result_973_raw.json).
 - **`R4RetainedPromptSwapContrastV1`** — the sealed prompt-conditioning
   criterion used by the paired-H4 campaign. Each of 256 pairs supplies two
   bidirectional directions whose prompts differ globally but share their last
@@ -237,7 +237,7 @@ substituted for one another.
   gates, and was strongly state-load-bearing, but missed both frozen gain
   floors. Terminal `DIRECT_RETAINED_READOUT_PROMPT_CAPACITY_PARTIAL`; it is not
   a generation, coherence, reasoning, H4-advantage, or exact-runtime result.
-  See the [canonical record](../r4_direct_retained_readout_prompt_capacity_973.md).
+  See the [canonical record](../../archive/r4_direct_retained_readout_prompt_capacity_973.md).
 - **`R4LayerwiseNormalizedRetainedReadoutLanguagePathV1`** — #973's completed
   final parameter-free readout variant. It changed only the normalization
   placement to
@@ -280,7 +280,7 @@ substituted for one another.
   `blake3:6c67544d675eafcb8eb9c0dabb93617e3f6c3295af812e8acbb687107c010a74`.
   This retires only this law, not ordinary-softmax or qualified retained
   attention. See the
-  [canonical record](../r4_predictive_block_delta_binding_prompt_capacity_973.md).
+  [canonical record](../../archive/r4_predictive_block_delta_binding_prompt_capacity_973.md).
 - **`DirectCausalGeometricAttentionR4V1`** — #973's offline gold-standard
   reference for the literal attention function: learned Q/K/V/O roles, local
   S3 tangent projection, causal H4-frame transport of every prior key and
@@ -370,7 +370,7 @@ substituted for one another.
   Terminal: `STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`.
   The result falsifies this 4D signed-reduction/token-derived cell, not
   ordinary R4/Spin softmax attention. See the
-  [authoritative #1011 record](../r4_softmax_trace_state_student_1011.md).
+  [authoritative #1011 record](../../archive/r4_softmax_trace_state_student_1011.md).
 - **Trace-state observability ladder** — the completed construction-only
   [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) successor to
   the #1011 negative. A
@@ -408,7 +408,7 @@ substituted for one another.
   the active next step was the #1017 `r4 generate` path; #1041 later bounded
   its presentation to raw single-turn story continuation after `2/3` narrative
   and `0/2` supplied-history results (see the
-  [#1041 record](../r4_softmax_local_normal_use_1041.md)). CUDA and external GPU
+  [#1041 record](../../archive/r4_softmax_local_normal_use_1041.md)). CUDA and external GPU
   execution are out of scope.
 - **`R4SoftmaxQualityCapacityContinuationV1`** — #1017's completed, independently
   frozen continuation of the exact #1014 7,155,360-parameter model to
@@ -419,7 +419,7 @@ substituted for one another.
   strict `<1.50` criterion, while all five prompt-retention grades and all five
   normalized replays passed. It is an NLL-only negative and does not reopen the
   bounded #1014 attention conclusion. See the
-  [authoritative #1017 record](../r4_softmax_quality_capacity_continuation_1017.md).
+  [authoritative #1017 record](../../archive/r4_softmax_quality_capacity_continuation_1017.md).
 - **#1019 parameter-capacity campaign** — the frozen quality campaign over the
   unchanged ordinary causal-softmax R4/Spin mechanism. It changes only decoder
   depth from six to twelve layers: exactly 13,130,784 parameters, seed 1019,
@@ -444,8 +444,8 @@ substituted for one another.
   scope. The MPS stop is not a model-quality negative, leaves the
   full-scale capacity hypothesis untested, and does not revoke the established
   attention result. See the
-  [authoritative #1019 contract](../r4_softmax_parameter_capacity_1019.md) and
-  [observed preflight](../r4_softmax_parameter_capacity_preflight_1019_raw.json).
+  [authoritative #1019 contract](../../archive/r4_softmax_parameter_capacity_1019.md) and
+  [observed preflight](../../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 - **H4 frame connection** — the exact object is the relative H4 group element;
   the current compiler-side f64 matrix represents its left-quaternion action
   and is numerically orthogonal under the tested finite-group law. It does not
@@ -802,7 +802,7 @@ superiority, prompt-conditioned coherence, reasoning, and exact lowering do
 not follow. Its then-next readout-seam experiment is the partial direct result
 above; this paragraph is historical. #973 remains open, #954 remains blocked,
 and no C1-SB6 is authorized.
-See the [machine result](../r4_paired_h4_prompt_capacity_result_973_raw.json).
+See the [machine result](../../archive/r4_paired_h4_prompt_capacity_result_973_raw.json).
 
 ## Historical #973 state-student outcome — 2026-08-30
 
@@ -812,7 +812,7 @@ At implementation revision
 `STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`.
 Its artifact and protocol identities, exact matched-arm metrics, causal and
 replay integrity, and decoded-cycle boundary are recorded in the term above
-and the [authoritative #1011 record](../r4_softmax_trace_state_student_1011.md).
+and the [authoritative #1011 record](../../archive/r4_softmax_trace_state_student_1011.md).
 The subsequent construction-only trace-state observability ladder in
 [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012) completed at
 `INSUFFICIENT_SUPPORT_COVERAGE` without boundary attribution and will not be

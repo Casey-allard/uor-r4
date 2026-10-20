@@ -27,8 +27,8 @@ printf '\n## Worktree changes\n'
 git status --short --branch
 printf '\n## Authority and operating-file SHA256\n'
 for path in AGENTS.md README.md docs/integration/project-track.md \
-  docs/integration/current-state.md docs/integration/model-direction-2026-09.md \
-  docs/PROJECT_MAP.md docs/integration/agent-execution-policy.json \
+  docs/integration/current-state.md archive/integration/model-direction-2026-09.md \
+  docs/PROJECT_MAP.md archive/integration/agent-execution-policy.json \
   .codex-lab/README.md; do
   if [[ -f "$path" ]]; then shasum -a 256 "$path";
   else printf 'UNAVAILABLE %s\n' "$path"; fi

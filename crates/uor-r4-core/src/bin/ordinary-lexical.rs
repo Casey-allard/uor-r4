@@ -9441,7 +9441,7 @@ const ADJ_BASE_ASSERT_SAMPLE: usize = 256;
 const ADJ_LADDER_LAGS: [usize; 4] = [1, 2, 3, 4];
 const ADJ_LADDER_CORRECT_PCT: [f64; 4] = [97.84, 74.86, 18.69, 0.60];
 const ADJ_LADDER_PROVENANCE: &str = "crates/uor-r4-core/src/bin/support/principal_continuation.rs::depth_probe \
-on origin/main f6f0d3ac, recorded in docs/integration/direction-decision-2026-09-24.md (full 5,376-position \
+on origin/main f6f0d3ac, recorded in archive/integration/direction-decision-2026-09-24.md (full 5,376-position \
 development population, cur-peeled transported-prototype decode); arm (iv) is cited from this record and is \
 not re-run by this mode";
 
@@ -11037,7 +11037,7 @@ fn readout_adjudication_mode(args: &Args) -> Result<ExitCode, String> {
                     "merged_p_ridge_dev": 7.7575,
                     "merged_a_dev": 6.055956,
                     "merged_p_softmax_minus_a": -0.5423,
-                    "source": "docs/integration/ordinary-lexical-state-probe-result-2026-09-23.md",
+                    "source": "archive/integration/ordinary-lexical-state-probe-result-2026-09-23.md",
                 },
             },
             "i_ridge_closed_form": arm_i_ridge.json(&held_names),

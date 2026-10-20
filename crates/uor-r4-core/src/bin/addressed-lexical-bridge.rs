@@ -598,7 +598,7 @@ fn run() -> Result<(), String> {
     );
     let receipt = json!({
         "schema":"uor-r4.addressed-lexical-bridge/1",
-        "plan":"docs/integration/addressed-lexical-bridge-plan-2026-09-24.md",
+        "plan":"archive/integration/addressed-lexical-bridge-plan-2026-09-24.md",
         "mode":if expected.is_some(){"replay"}else{"run"},
         "replay_source":replay_source,
         "artifact":{"path":model_path,"sha256":MODEL_SHA},

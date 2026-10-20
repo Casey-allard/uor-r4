@@ -324,7 +324,7 @@ Owner-approved 7 October 2026 (#1750).
   and other required pod setup material. Bind source/image/compiler/architecture
   and checksum manifests; verify download round-trips. This is storage permission,
   not a training-hold release or permission for compute outside `uor-pod`.
-  [Qualified SpiralCore/FBS setup](spiralcore-fbs-projection-2026-10-12/README.md)
+  [Qualified SpiralCore/FBS setup](../../archive/labs/spiralcore-fbs-projection-2026-10-12/README.md)
   is stored under `pod-setup/spiralcore-fbs/20261012-0a889bb19`; CUDA comes from
   the verified12.8 devel Ubuntu24 image. Its bootstrap recipe is build-only,
   and the broad historical CPU-reference parity suite is excluded.

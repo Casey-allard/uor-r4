@@ -40,7 +40,7 @@
 //!    (same 2-token suffix, different story, different teacher argmax, one pair
 //!    per suffix key — the §6.2 recipe), and collect exactly the pairs the
 //!    reference Ψ scorer FOLLOWED. This reproduces the recorded
-//!    `psi_follow = 10 / 4722` (`docs/psi_arm_834_result.json`); the count is
+//!    `psi_follow = 10 / 4722` (`archive/psi_arm_834_result.json`); the count is
 //!    asserted — a reproduction control.
 //! 2. **Fit + emit the deployed table.** `segment_fit::fit_segment_table`
 //!    (top-`CAP`=64/key, the §6.2 cap, quantized to integer ScoreQ) over the same
@@ -102,7 +102,7 @@ const LAMBDA_DEN: f64 = 1.0;
 /// key, not by key count); the vocab is ~49k so this is effectively unbounded.
 const FIT_MAX_KEYS: usize = 1 << 20;
 /// The §6.2 reference arm's recorded favorable-pair count
-/// (`docs/psi_arm_834_result.json` minimal_pairs.psi_follow) — a reproduction
+/// (`archive/psi_arm_834_result.json` minimal_pairs.psi_follow) — a reproduction
 /// control: the mined favorable set must match it exactly.
 const REFERENCE_FAVORABLE_EXPECTED: u64 = 10;
 /// Predeclared read threshold: the deployed lane must follow at least this many
@@ -585,7 +585,7 @@ fn segment_lane_spotcheck_886() {
     // psi_follow exactly.
     assert_eq!(
         reference_favorable, REFERENCE_FAVORABLE_EXPECTED,
-        "the reproduced §6.2 favorable-pair count must match docs/psi_arm_834_result.json"
+        "the reproduced §6.2 favorable-pair count must match archive/psi_arm_834_result.json"
     );
     // Control degeneracy: the suffix baseline cannot follow identical-suffix
     // pairs (§6.2 baseline_follow = 0).

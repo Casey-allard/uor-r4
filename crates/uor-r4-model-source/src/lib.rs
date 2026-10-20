@@ -2331,7 +2331,7 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
     /// `experimental-r4-source-attention/2` when on — see
     /// [`attention::operator_for_r4_switch`]). `None` means the oracle
     /// predates the record (the legacy interpretation documented in
-    /// `docs/MODEL_LIFECYCLE.md`); the default keeps every existing
+    /// `archive/MODEL_LIFECYCLE.md`); the default keeps every existing
     /// oracle unaffected, mirroring
     /// [`TeacherOracle::geometry_projection`].
     fn attention_operator_spec(&self) -> Option<attention::AttentionOperatorSpec> {

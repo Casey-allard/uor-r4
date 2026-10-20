@@ -38,27 +38,27 @@ const FIT_SOURCES: &[SourceSpec] = &[
         sha256: "14f9bf9eed2560fadc74a8474679c6c6315a357e71de279118a7958530535295",
     },
     SourceSpec {
-        path: "docs/addr_prism_correspondence.md",
+        path: "archive/addr_prism_correspondence.md",
         sha256: "fccf9b4251ce57fe710269f12f578fa9fc1a2d788e2a1af65bba0d24108bac58",
     },
     SourceSpec {
-        path: "docs/codebook_fit_460.md",
+        path: "archive/codebook_fit_460.md",
         sha256: "8ee5714ed2a866432035e042df967711abf0157aeaac923fd24e0411701eaf79",
     },
     SourceSpec {
-        path: "docs/compiler_concurrency_config.md",
+        path: "archive/compiler_concurrency_config.md",
         sha256: "18cbb6a83301e4934a48e997fa86a426726316cd2b74982a8e495a1c1d8d9737",
     },
     SourceSpec {
-        path: "docs/compiler_memory_budget.md",
+        path: "archive/compiler_memory_budget.md",
         sha256: "fc0541462077ba829802fcf8f8990a6c09e76cc1e946dafe869e8392923860d7",
     },
     SourceSpec {
-        path: "docs/compositional_planning_certification_spec_846.md",
+        path: "archive/compositional_planning_certification_spec_846.md",
         sha256: "ffabb86d6fb2e222a3d98ceffd3d4fd4191c81b89f139d9a08fad65adabb4857",
     },
     SourceSpec {
-        path: "docs/cover_scaling_460.md",
+        path: "archive/cover_scaling_460.md",
         sha256: "68fd1ea74c51ae308b8dffb729aaf1b8efdaac2fb9be3f1ac03493a95f1b1e95",
     },
     SourceSpec {
@@ -85,7 +85,7 @@ const FIT_SOURCES: &[SourceSpec] = &[
 
 const DEV_SOURCES: &[SourceSpec] = &[
     SourceSpec {
-        path: "docs/prime_router_geometric_context_evidence.md",
+        path: "archive/prime_router_geometric_context_evidence.md",
         sha256: "d197972c903dd61464dc604fe53ae2357a0ae732e3ec4b827f9cbdb89da04195",
     },
     SourceSpec {

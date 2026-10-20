@@ -2,7 +2,7 @@
 """
 Compiler GPU/Tensor/BLAS Dependency and Default Feature Audit Script
 
-Specification: docs/compiler_dependency_audit.md (Issue #174).
+Specification: archive/compiler_dependency_audit.md (Issue #174).
 Enforces zero GPU, tensor, or BLAS accelerator dependencies across the
 compiler dependency graph (Cargo.lock and Cargo.toml manifests).
 """

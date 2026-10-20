@@ -55,7 +55,7 @@ from blake3 import blake3
 __all__ = ["ExportError", "canonical_ascii", "export_artifact", "runtime_identity"]
 
 _CONTRACT_SHA256 = "e3565728dfa872d9c260dd3d391ae59e0b0d454ebead20cd15cb075b24796115"
-_CONTRACT_PATH = "docs/r4_native_reference_1086_contract.json"
+_CONTRACT_PATH = "archive/r4_native_reference_1086_contract.json"
 _EXPORTER_PATH = "scripts/r4_native_bridge_1102_export.py"
 _REPOSITORY = "UOR-Foundation/uor-r4"
 _PROFILE = "cpu-scalar-f32-f64-1086/1"
@@ -224,7 +224,7 @@ def _read_bound(path: Path, expected: dict, label: str) -> bytes:
 
 def _required_sources(root: Path, lock_path: str) -> set[str]:
     required = {
-        _EXPORTER_PATH, _CONTRACT_PATH, "docs/r4_native_reference_1086.md",
+        _EXPORTER_PATH, _CONTRACT_PATH, "archive/r4_native_reference_1086.md",
         "Cargo.toml", "Cargo.lock", "rust-toolchain.toml",
         "crates/uor-r4-core/Cargo.toml", "crates/uor-r4-core/src/lib.rs",
         "crates/uor-r4-api/Cargo.toml", "crates/uor-r4-api/src/lib.rs",

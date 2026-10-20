@@ -2,7 +2,7 @@
 
 **Milestone:** M1 #2029 (the training objective the compliant trunk runs). **Lab:** Kimi (objective layer).
 Registered for rung 0 by the sheet this brief points at. Implements the objective column of the
-[D23 replacement law](../labs/d23-learning-law-design-2026-10-12/README.md).
+[D23 replacement law](../../archive/labs/d23-learning-law-design-2026-10-12/README.md).
 
 ## The idea (first principles)
 
@@ -33,13 +33,13 @@ configurations must use the same scale and the same rival count.
 
 The consequence for evaluation is as important as the training change: a compliant rung cannot report NLL or
 BPB at all. Its reports carry raw-score measures with their exact panel, unit and tie rule
-([operator card § Whole-path admission](../labs/operator-phase-2026-10-12/README.md#whole-path-admission-and-quality-measures)).
+([operator card § Whole-path admission](../../archive/labs/operator-phase-2026-10-12/README.md#whole-path-admission-and-quality-measures)).
 
 ## Current native implementation
 
 The selected `geometric_stack_native.rs` keeps `Objective::MarginHinge { rivals }` metadata and dispatches native learning through `NativeVectorWriter::margin_rows`/`margin`: CUDA raw negative mean-L1 token scores at fixed scale1, with an independently labelled address margin, coefficient1 each. Omitted targets receive explicit score credit without insertion into the candidate set; exact ties use smallest token IDs. The training objective is token plus address margin; the rung0 quality/anti-vacuity bars read token margin alone. Candidate-selection credit remains the declared geometric surrogate, not a derivative of hard top-K.
 
-The registered CLI is `examples/geometric-stack-native.rs`, reusing its native rung0 evaluator. Its primary reference counts response-masked **TRAIN** targets on CUDA; the masked **DEV** oracle is diagnostic only. TRAIN/mask/tokenizer content identities and policy bind lineage `/2` and artifacts; mismatched model config or optimizer settings refuse before resumed evaluation/update. NLL/BPB, host count arithmetic, sampling and historical raw-logit/CPU margin implementations are excluded from this path. Independent sheet Amendment6 FIT retains unchanged bars and paired seeds; corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090, pending protected delivery. Failed setup/clipping attempts remain preserved; no optimizer update, corpus evaluation, training or CPU model/reference ran. Training holds remain HELD. [Boundary record](../labs/d29-vendor-boundary-2026-10-13/README.md).
+The registered CLI is `examples/geometric-stack-native.rs`, reusing its native rung0 evaluator. Its primary reference counts response-masked **TRAIN** targets on CUDA; the masked **DEV** oracle is diagnostic only. TRAIN/mask/tokenizer content identities and policy bind lineage `/2` and artifacts; mismatched model config or optimizer settings refuse before resumed evaluation/update. NLL/BPB, host count arithmetic, sampling and historical raw-logit/CPU margin implementations are excluded from this path. Independent sheet Amendment6 FIT retains unchanged bars and paired seeds; corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090, pending protected delivery. Failed setup/clipping attempts remain preserved; no optimizer update, corpus evaluation, training or CPU model/reference ran. Training holds remain HELD. [Boundary record](../../archive/labs/d29-vendor-boundary-2026-10-13/README.md).
 
 ## Historical implementation locations (inactive)
 

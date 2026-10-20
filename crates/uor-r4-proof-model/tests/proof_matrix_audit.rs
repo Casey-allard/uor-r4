@@ -1,6 +1,6 @@
 //! CI Audit Test for Proof Status Matrix Verification
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §13;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §13;
 //! `docs/formal_vocabulary.md` §7; GitHub Issue #132.
 
 use uor_r4_graph_certify::target_operator_certificate::route_attention_obligation_links;

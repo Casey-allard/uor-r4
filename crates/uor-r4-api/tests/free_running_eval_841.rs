@@ -1,7 +1,7 @@
 //! Free-running trajectory-gap evaluation — frozen instrument + first
 //! quantification (#841, item A of S3 tracker #824).
 //!
-//! Companion contract: `docs/free_running_eval_841.md`. The S3 tracker
+//! Companion contract: `archive/free_running_eval_841.md`. The S3 tracker
 //! explicitly sanctions preparing this first offline gap instrument once the
 //! S0 evaluation is frozen (it is: #832/#833); S3 STAGE closure remains gated
 //! on the #822/#823 stage verdicts, which this issue does not touch.

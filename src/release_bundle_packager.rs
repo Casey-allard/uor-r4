@@ -1,6 +1,6 @@
 //! #655-D1: an additive, pure helper that builds a `ReleaseBundleManifest`
 //! by digesting an already-compiled R4G1 bundle's files on disk
-//! (`docs/serving_release_packaging_655_d.md`, #655-D0).
+//! (`archive/serving_release_packaging_655_d.md`, #655-D0).
 //!
 //! [`package_release_bundle`] reads and blake3-hashes the real component
 //! files the existing CLI `compile` / `transformerless cover` /
@@ -51,12 +51,12 @@ use uor_r4_api::{
 use uor_r4_core::transformerless::compiler;
 
 /// Standing #655 `uor-matmul` pin (`serving_655.md` project memory,
-/// mirroring `docs/matrix_operation_census.md`). Bump only via the
+/// mirroring `archive/matrix_operation_census.md`). Bump only via the
 /// project's κ/artifact-era re-pin process.
 pub const UOR_MATMUL_REVISION: &str = "b13c98449948174f590e337c4dc25dfc394a07d0";
 
 /// Relative paths within a resolved R4G1 bundle's `physical_root`, per
-/// `docs/serving_release_packaging_655_d.md`'s field-to-file mapping.
+/// `archive/serving_release_packaging_655_d.md`'s field-to-file mapping.
 const GRAPH_RELATIVE_PATH: &str = "graph/score.r4g1";
 pub const SECTIONS_ABSENT_GRAPH_RELATIVE_PATH: &str = "graph/score_sections_absent.r4g1";
 pub const LABEL_SHUFFLED_GRAPH_RELATIVE_PATH: &str = "graph/score_label_shuffled.r4g1";
@@ -452,7 +452,7 @@ pub(crate) mod tests {
 
     /// Writes every required (and the optional tokenizer) component into
     /// `dir`, mirroring the real CLI pipeline's layout
-    /// (`docs/serving_release_packaging_655_d.md`).
+    /// (`archive/serving_release_packaging_655_d.md`).
     fn write_full_bundle(dir: &Path) {
         write(dir, GRAPH_RELATIVE_PATH, b"graph bytes");
         write(

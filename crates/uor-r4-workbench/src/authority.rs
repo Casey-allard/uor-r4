@@ -6,9 +6,9 @@ use crate::{BoxError, ORIGINAL_BINDING_SOURCE_SHA256, PRIVATE_RELEASE_CONTRACT_S
 use serde_json::Value;
 
 const ORIGINAL_BINDING_SOURCE: &[u8] =
-    include_bytes!("../../../docs/r4_native_bridge_1102_evidence/qualification-handoff.json");
+    include_bytes!("../../../archive/r4_native_bridge_1102_evidence/qualification-handoff.json");
 const PRIVATE_RELEASE_CONTRACT: &[u8] =
-    include_bytes!("../../../docs/r4_workbench_private_release_1107.json");
+    include_bytes!("../../../archive/r4_workbench_private_release_1107.json");
 
 pub fn frozen_accepted_binding() -> Result<Value, BoxError> {
     if sha256(ORIGINAL_BINDING_SOURCE) != ORIGINAL_BINDING_SOURCE_SHA256 {

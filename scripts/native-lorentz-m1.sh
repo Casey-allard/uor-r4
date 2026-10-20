@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The native D8 model with the hyperbolic (Lorentz) read, from training to integer serving, on an Apple-silicon
-# Mac. It runs the full-scale comparison proposed in docs/integration/hyperbolic-cycle3-2026-09-26.md §9.2 and
+# Mac. It runs the full-scale comparison proposed in archive/integration/hyperbolic-cycle3-2026-09-26.md §9.2 and
 # serves each trained model with integers (§11).
 #
 # Usage, from the repository root:

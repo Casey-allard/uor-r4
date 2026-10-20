@@ -1,6 +1,6 @@
 //! #845 increment 2 — the normative W(3,3) object and the state mapping mu,
 //! verified against the frozen Definitions of
-//! `docs/w33_geometry_qualification_spec_845.md` §2–§3.
+//! `archive/w33_geometry_qualification_spec_845.md` §2–§3.
 //!
 //! Reference mathematics checks (Definition scope): these tests verify that
 //! the constructed object *is* the symplectic generalized quadrangle of order

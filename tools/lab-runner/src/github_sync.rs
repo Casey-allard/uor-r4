@@ -399,7 +399,7 @@ pub fn sync_github(repository: &str, output_root: &Path) -> Result<SyncReceipt> 
         "README.md",
         "ROADMAP.md",
         "STATUS.md",
-        "docs/integration/agent-execution-policy.md",
+        "archive/integration/agent-execution-policy.md",
         "docs/integration/DECISIONS.md",
         "docs/integration/current-state.md",
         "docs/integration/project-track.md",

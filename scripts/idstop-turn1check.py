@@ -4,7 +4,7 @@ changes turn 2's window for the cells where the stop does not fire at turn 2.
 The probe generates turn 1 greedily when the panel row pins none, so the rule
 runs there too; this script counts the cells whose turn-1 ids differ with the
 rule on, and prints the stop / no-stop / floor-0 replies of those cells.
-Companion to docs/evidence/idstop_nonfiring_classification_2026-10-09.txt.
+Companion to archive/evidence/idstop_nonfiring_classification_2026-10-09.txt.
 
     idstop-turn1check.py [PATH OPTIONS] [TAG OPTIONS]
 

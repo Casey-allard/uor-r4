@@ -347,7 +347,7 @@ def main():
     parser.add_argument("--optimized-bin", help="Path to optimized integer binary for provenance")
     parser.add_argument("--bundle-dir", help="Path to integer bundle for identity binding")
     parser.add_argument("--checkpoint-dir", help="Path to FF checkpoint for identity binding")
-    parser.add_argument("--summary-out", help="Path to write JSON summary (e.g. under docs/evidence/)")
+    parser.add_argument("--summary-out", help="Path to write JSON summary (e.g. under archive/evidence/)")
     parser.add_argument("--json", action="store_true", help="Print JSON summary to stdout")
     args = parser.parse_args()
 
@@ -377,7 +377,7 @@ def main():
     except Exception as e:
         eprint(f"Warning: could not write {summary_json_path}: {e}")
 
-    # If requested, write summary JSON to destination (e.g. docs/evidence)
+    # If requested, write summary JSON to destination (e.g. archive/evidence)
     if args.summary_out:
         os.makedirs(os.path.dirname(os.path.abspath(args.summary_out)), exist_ok=True)
         with open(args.summary_out, "w", encoding="utf-8") as f:

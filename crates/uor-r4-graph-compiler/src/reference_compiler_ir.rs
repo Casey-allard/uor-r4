@@ -1,6 +1,6 @@
 //! Reference Floating-Point Semantic Compiler & Intermediate Representation (IR)
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §§7, 11, 17;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §§7, 11, 17;
 //! `docs/formal_vocabulary.md` §5; GitHub Issue #129.
 //!
 //! This module provides the primary research surface for compiler optimization:

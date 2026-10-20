@@ -1,0 +1,368 @@
+{
+  "schema": 1,
+  "note": "Cache reconciled after protected masked TRAIN count-reference source PR2328 merge9e904a834 (source2fd6358bb); 11 finite controls PASS (9 metadata,2 CUDA) and Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet PENDING for Kimi mechanical pins/verdict restoration. GitHub and main authorities remain authoritative. Historical counts/headlines are not reset; all training holds remain.",
+  "tracker": {
+    "issue": 2028,
+    "title": "[Roadmap] UOR-R4 - path to a native conversation and memory alpha"
+  },
+  "milestones": {
+    "m1": {
+      "issue": 2029,
+      "id": "M1",
+      "title": "Language base: a geometric stack language model good enough to carry chat",
+      "lab": "deepseek",
+      "status": "in-progress",
+      "headline": {
+        "label": "reply acceptable",
+        "current": 37,
+        "target": 116,
+        "of": 232,
+        "unit": "acceptable replies"
+      },
+      "secondary": [
+        {
+          "label": "v5 memory check_pass",
+          "current": 20,
+          "target": 34,
+          "of": 40
+        }
+      ],
+      "panel": "v5-reply",
+      "base_artifact": "D10 (10% recall dose, adopted under D22 5f)",
+      "mechanisms": [
+        "exact-addressed-memory",
+        "pointer-identity-key",
+        "read-binding",
+        "spiralcore-fbs-projection"
+      ],
+      "lines": [
+        {
+          "name": "exact addressed memory",
+          "count": 0,
+          "of": 3
+        },
+        {
+          "name": "evaluation integrity",
+          "count": 1,
+          "of": 3,
+          "lab": "kimi",
+          "note": "Recorded operator card6134571032; no reset by instruction repair."
+        }
+      ],
+      "next": "Rung-0 sheet Amendment2 TEST FITNESS: FIT (design) — Claude 6159328025 confirmed on merged blob 6159394631, Codex 6159308818 exact-head 6159343268 (PR2415 5c189cf59). FIT lifts no hold. Execution gates in order: Codex implements+qualifies the admission diff (controller wiring, trained-checkpoint eval, per-kind sensitivity counters, P1/P2 pilot reporting) at e7d926fbe+only-that-diff; Claude reviews that exact diff; Kimi binds final executable/PTX/source identities + resource admission; owner alone releases D4. Pilot scope preserved: seed1, 1640 batches, VectorBlock 0..1639 only, Route NOT_RUN, ~1.784h/$1.62 UNVERIFIED known-component subtotal; fresh transfer UNAVAILABLE/NOT_RUN; full two-seed run is a later owner decision. M1 reply headline SUSPENDED under R14.",
+      "project_manager": "kimi",
+      "training_hold": true
+    },
+    "m2": {
+      "issue": 2030,
+      "id": "M2",
+      "title": "Grounded reply from exact memory: the native learner completes correct replies",
+      "lab": "codex",
+      "status": "blocked-on-owner",
+      "headline": {
+        "label": "complete correct replies (dev)",
+        "current": 437,
+        "target": 256,
+        "of": 512,
+        "unit": "replies",
+        "direction": "open"
+      },
+      "secondary": [
+        {
+          "label": "opened transfer diagnostic (not fresh qualification)",
+          "current": 0,
+          "target": null,
+          "of": 128,
+          "note": "40% genuinely fresh acceptance remains; the opened0/128 cannot qualify it."
+        }
+      ],
+      "panel": "m2-reply512",
+      "base_artifact": "saved437 parent; linked unified-bound-content-437 NOT_RUN",
+      "mechanisms": [
+        "protected-legal-construction",
+        "unified-geometric-carrier-credit",
+        "spiralcore-fbs-projection"
+      ],
+      "lines": [
+        {
+          "name": "unified geometric route/action/learning integration",
+          "count": 12,
+          "of": 3,
+          "note": "Projection PR2279 count8, head/writer PR2301 count9, complete-path PR2318 count10, metadata PR2319 count11; masked TRAIN-reference repair count12 in protected source PR2328 merge9e904a834; documentation closeout is the same integrated unit, no additional increment. No model-quality gain or headline reset; all prior source/results and training/M2 holds preserved."
+        }
+      ],
+      "next": "Masked TRAIN count-reference repair at2fd6358bb implemented; 11 finite controls PASS (9 metadata,2 CUDA), Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet PENDING. Protected PR2328 merge9e904a834 verified; next Kimi mechanical TRAIN-mask/SHA/CLI/source pins and FIT verdict restoration per PM6146134405; global training and separate M2 training/rental holds HELD. Full M2 learned intent/compiler, fresh transfer and D11 remain unqualified; no automatic campaign.",
+      "training_hold": true,
+      "rental_hold": true,
+      "projection_kernel_authorization": "Current Codex claim2029#6136794551 only; build and finite GPU tests authorized, completed, own pod deleted. Training remains held."
+    },
+    "m3": {
+      "issue": 2031,
+      "id": "M3",
+      "title": "Durable conversation memory: provenance, conflict, abstention, reset and restart",
+      "lab": "codex",
+      "status": "paused",
+      "headline": {
+        "label": "typed outcomes qualified on the saved model",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "panel": "m3-memory",
+      "base_artifact": "stack_grounded_session (#1568) + typed-script evaluator (#1578)",
+      "mechanisms": [
+        "exact-addressed-memory"
+      ],
+      "lines": [
+        {
+          "name": "learned grounding and abstention",
+          "count": 0,
+          "of": 3
+        }
+      ],
+      "next": "Preserve durable-memory interfaces and known defects; no automatic qualification campaign while shared compliance dependencies and holds remain."
+    },
+    "m4": {
+      "issue": 2032,
+      "id": "M4",
+      "title": "One served model: the chosen model through D11 integer serving and a CLI",
+      "lab": "claude",
+      "status": "blocked-on-owner",
+      "headline": {
+        "label": "softmax at runtime",
+        "text": "softmax at runtime: yes",
+        "target": 0,
+        "target_display": "no (D23 prohibits softmax project-wide)",
+        "of": 1,
+        "unit": "prohibited site",
+        "note": "the live prompt's qualitative headline; D23 makes \"no\" the only accepted value. Acceptance items 1-3 (D11 parity, kernel audit, fresh-process restore) remain open."
+      },
+      "secondary": [
+        {
+          "label": "served BPB at 512 windows",
+          "current": 0.886838,
+          "target": 0.9,
+          "of": null
+        }
+      ],
+      "panel": "m4-served",
+      "base_artifact": "19.9M chat stack, 0.933 BPB served",
+      "mechanisms": [
+        "starling-read",
+        "flock-rank-reads",
+        "e8-orbit-memory",
+        "spin-native-weights"
+      ],
+      "lines": [
+        {
+          "name": "starling read",
+          "count": 3,
+          "of": 3,
+          "note": "3/3 after #2338 (rung-0b source; headline unchanged). D21 pivot card #2032 6150703214: continue with ONE decisive run (design card section 5 + P1-P3), gated on rung 0, the key-address credit FIT and the owner hold release."
+        },
+        {
+          "name": "wide learned flock read",
+          "count": 0,
+          "of": 3,
+          "note": "Historical line/cache dispute retained; inactive old campaign. Inherit exact count from live milestone before a materially amended registration; no reset by repair."
+        }
+      ],
+      "next": "Murmuration read (card #2032 6151093135, owner-approved 13 Oct): S1 flock transport mean + S2 FBS tree source and section-4 finite controls (FIT), then the decisive run after rung 0 and the owner hold release. Rung-0b rank read retired as evidence.",
+      "training_hold": true
+    },
+    "m5": {
+      "issue": 2033,
+      "id": "M5",
+      "title": "Laptop cost (D5): full-path M1 cost and selected parameter access",
+      "lab": "",
+      "status": "not-started",
+      "headline": {
+        "label": "full-path cost and selected parameter access qualified",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "secondary": [],
+      "panel": "m5-cost",
+      "base_artifact": "depends on M4; accounting may advance with #1512, performance qualification needs a useful saved artifact from #973/#964",
+      "mechanisms": [],
+      "lines": [],
+      "next": "Design/accounting can advance now against #1512. Measure ingestion, compiler/router/... on the selected model once a useful saved artifact exists (D5). Note: the owner's current constraint set (D23/D24/D25) changes what 'full-path cost' can be measured on; no CPU model compute.",
+      "carried_from": "#963"
+    },
+    "m6": {
+      "issue": 2034,
+      "id": "M6",
+      "title": "Reasoning and coding on the same native model",
+      "lab": "",
+      "status": "not-started",
+      "headline": {
+        "label": "unseen compositions and changed constraints on one model",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "secondary": [],
+      "panel": "m6-reasoning",
+      "base_artifact": "depends on #973 shared usable model, #954 grounding, #962 memory",
+      "mechanisms": [],
+      "lines": [],
+      "next": "Evaluate unseen compositions and changed constraints with causal intermediate-state controls and independent task checks. Early small reasoning probes may guide representation, but familiar arithmetic is not generalised reasoning. No second model is adopted.",
+      "carried_from": "#955, #1088"
+    },
+    "m7": {
+      "issue": 2035,
+      "id": "M7",
+      "title": "Distribution: capability API, WASM runtime and the Pages Studio",
+      "lab": "",
+      "status": "not-started",
+      "headline": {
+        "label": "native model served through the API, WASM and Studio",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "secondary": [],
+      "panel": "m7-distribution",
+      "base_artifact": "a local Rust API exists (capability API tests in uor-r4-integer); WASM qualification not started; no Studio deployment of the native model",
+      "mechanisms": [],
+      "lines": [],
+      "next": "WASM qualification and a Studio deployment of the native model; depends on M4 serving under D11.",
+      "carried_from": "#1172, #1173"
+    },
+    "m8": {
+      "issue": 2036,
+      "id": "M8",
+      "title": "Alpha release: the same model for conversation, memory and coding",
+      "lab": "",
+      "status": "not-started",
+      "headline": {
+        "label": "one labelled release on the same native path",
+        "current": 0,
+        "target": 1,
+        "of": 1,
+        "unit": "qualified milestone",
+        "vacuous": true
+      },
+      "secondary": [],
+      "panel": "m8-alpha",
+      "base_artifact": "follows #962/#954/#964 and #955/#1088 on the same native path, with #963 cost evidence and #1172/#1173 distribution scope",
+      "mechanisms": [],
+      "lines": [],
+      "next": "A clearly labelled release; depends on M3-M7. Not startable under the current training hold.",
+      "carried_from": "#965"
+    }
+  },
+  "owner_rules": [
+    {
+      "id": "D21",
+      "rule": "Three consecutive merged PRs on one line that do not move the milestone headline force a pivot card.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D22",
+      "rule": "A negative closes a configuration, never a mechanism. Decisive runs use >=2 seeds or >=200 fresh rows, train the mechanism in, and carry a TEST FITNESS: FIT review on the milestone before compute.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D23",
+      "rule": "No softmax anywhere in the active project: training, serving, sampling, objectives, auxiliary losses, teachers, comparators. No table/renamed equivalent. Interlock: `uor-harness ratchet d23|d25` (Rust, #2346) - `scripts/check_no_softmax.py` is retired and kept only as dated evidence; a pre-registration sheet that names the Python script sends a lab to a file that no longer enforces anything.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D24",
+      "rule": "No CPU model compute; no GPU on work that cannot change a decision. A host-side fallback is a defect, not a cost to report.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "OWNER-2026-10-12-NO-ACTIVATIONS",
+      "rule": "No softplus, sigmoid or tanh anywhere: the scalar-activation carve-out is closed.",
+      "scope": "all",
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
+    },
+    {
+      "id": "OWNER-2026-10-12-NO-MATMUL",
+      "rule": "No matmul and no softmax anywhere, including GPU training: the owner ruled on 12 October 'no matmul at all anywhere, same with softmax - there is a ternary alternative with xor that may work'. The earlier conflict with agent-execution-policy.json is resolved by that ruling; the policy file's 'training may use matrix multiplication' sentence is stale and should be corrected.",
+      "scope": "all",
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346; owner ruling recorded in DECISIONS.md D25 (harness session, 12 October 2026)"
+    },
+    {
+      "id": "OWNER-2026-10-12-GEOMETRY-ONLY",
+      "rule": "OP1 runs the Hamilton rotation gate G2 only; the rectified-square arm G1 is withdrawn as non-geometric. A G2 miss closes that configuration only (D22); there is no non-geometric fallback.",
+      "scope": "m1",
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
+    },
+    {
+      "id": "OWNER-2026-10-12-NO-MLP-SCOPE",
+      "rule": "The ban is on the dense SwiGLU MLP, not on a feed-forward block built from the project's geometry; a Hamilton gate plus Hamilton projections is acceptable.",
+      "scope": "all",
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
+    },
+    {
+      "id": "OWNER-2026-10-12-RULE-FREEZE",
+      "rule": "The rules as of 2026-10-12 21:55 are the COMPLETE constraint set until the first compliant training run (rung 0 on the compliant trunk) reports. New concerns need a proposal card and take effect only after that run; cost or safety problems are the only exception. A result that needed softmax anywhere is not progress on any line.",
+      "scope": "all",
+      "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
+    },
+    {
+      "id": "D25",
+      "rule": "Current geometric operator phase: OP2 first -> OP1 G2 only -> OP3a -> lawful rung0 after hold release -> OP4/rung0b; OP3b later research. Training and independent M2 rental hold remain. FIT lifts no hold; preserve peer work and frozen constraint set.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "OWNER-2026-10-12-TERNARY-XOR",
+      "rule": "Ternary/XOR is an owner-suggested candidate replacement arithmetic, not an adopted mechanism and not yet shown to be geometric. It enters as a proposal under the D25 rule freeze; it is unimplemented, unmeasured and must pass a prospective TEST FITNESS review before any compute. See docs/mechanisms/ternary-xor-arithmetic.md.",
+      "scope": "all",
+      "source": "Owner ruling, 12 October 2026 (harness session); DECISIONS.md D25"
+    },
+    {
+      "id": "D28",
+      "rule": "No transformer or neural-network comparisons of ANY kind - comparators, controls, baselines, teachers, neural graders - until the owner declares the native model works end to end; that declaration is the owner's, not a lab's. Panels are scored with DETERMINISTIC checks only (membership checks, exact-answer oracles); a bar scorable only by a neural grader is recorded BLOCKED and is NOT RUN. This includes the v5 reply panel's grade-replies qwen2.5:7b grader.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D29",
+      "rule": "No banned mechanism may exist in any compiled or loaded module - presence counts, not only execution. NVRTC (runtime compilation) is banned project-wide; all CUDA kernels compile ahead of time via nvcc into named PTX/cubin modules. Interlock: `uor-harness ratchet d25` and the d29_compiled_modules test.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D31",
+      "rule": "No result is ruled out on an instrument technicality. A check must answer the four authority questions in pm-rules.md R12 before it has veto power; when a check fails anyway, the instrument artefact is diagnosed and repaired rather than reported as a model negative. Supersedes older text that allows a first-failure stop or treats an instrument artefact as a code blocker.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D32",
+      "rule": "Active discrete geometric substrate (`crates/uor-r4-discrete`, Dose 1): model computation and its instruments are discrete/exact and GPU-only - no floating-point forward, gradients, optimizer or numerical model instrument on that path, and no matrix multiplication. Use native SpiralCore/E8/FBS geometry with one integer input/carry/output writer. D37 revises D32's offline-training float ban in separately scanned float modules; the discrete path, D11 serving and the October 14 zeta-zero exception are unchanged. Both training holds remain HELD; a FIT review releases neither.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    },
+    {
+      "id": "D37",
+      "rule": "Floating point is legal in offline training only: float forward passes, gradients and optimizers, and offline numerical training instruments, in a separately scanned float module that names its pre-registration (R12/D31), remains geometric (SpiralCore/E8/FBS, icosian/quaternion, prime/zeta), has its own scanned allowlist entry added and reviewed with that pre-registration (never by widening the discrete crate's scan), and reports its export gap. Softmax/squashing (D23/D25) and dense matrix multiplication (D25/D30) stay banned everywhere; model compute stays GPU-only (D24); the exported/served artifact is D11 integer/table only, with no float, transcendental or multiplier instruction; the October 14 complex-plane zeta-zero exception stays separate; archived float sheets return only by re-registration and a fresh FIT; the active discrete Dose 1 and all holds are unchanged. Releases no hold, FIT or compute.",
+      "scope": "all",
+      "source": "docs/integration/DECISIONS.md"
+    }
+  ],
+  "constraint_freeze": {
+    "as_of": "2026-10-12T21:55 local (owner, Claude session)",
+    "exit": "the first compliant training run (rung 0 on the compliant trunk) reports",
+    "note": "The constraint set changed four times on 12 October; about 40 PRs merged that day and the M1 headline did not move. This block makes a brief state the frozen set rather than whichever subset happened to be in DECISIONS.md.",
+    "source": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6135511346"
+  }
+}

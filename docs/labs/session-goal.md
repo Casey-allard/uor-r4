@@ -59,7 +59,7 @@ has the surface, [docs/harness/CONTRACT.md](../harness/CONTRACT.md) every rule a
    model/learning/output/teacher/comparator path; no dense matrix multiplication;
    GPU-only model compute, no host fallback. Scalar float geometric GPU learning
    is distinct from D11 integer/table, multiplier-free serving.
-4. Pick one bounded source dependency in the [operator plan](operator-phase-2026-10-12/README.md).
+4. Pick one bounded source dependency in the [operator plan](../../archive/labs/operator-phase-2026-10-12/README.md).
    OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a geometric head precede integrated
    training. G1 is withdrawn; geometric feed-forward blocks are permitted. OP3b
    is later research. Constraints are frozen through the first compliant rung0
@@ -99,7 +99,7 @@ has the surface, [docs/harness/CONTRACT.md](../harness/CONTRACT.md) every rule a
     This rule repair changes no milestone acceptance or research count.
 
 The previous seven-hour/48-PR/no-headline episode remains recorded in
-[the pivot review](lab-pivot-2026-10-09/README.md). This correction creates no new
+[the pivot review](../../archive/labs/lab-pivot-2026-10-09/README.md). This correction creates no new
 campaign, threshold, model result or automatic preparation-loop permission.
 
 ## Common start prompt

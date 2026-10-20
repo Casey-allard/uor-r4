@@ -34,7 +34,7 @@ remain explicit, and no prototype is promoted by this policy statement.
 Read the root [AGENTS.md](../AGENTS.md), [README](../README.md),
 [canonical roadmap](../docs/integration/project-track.md),
 [current state](../docs/integration/current-state.md),
-[direction](../docs/integration/model-direction-2026-09.md), and
+[direction](../archive/integration/model-direction-2026-09.md), and
 [project map](../docs/PROJECT_MAP.md). Refresh `origin/main` and live issues
 [#820](https://github.com/UOR-Foundation/uor-r4/issues/820) and
 [#973](https://github.com/UOR-Foundation/uor-r4/issues/973). The current owner
@@ -47,7 +47,7 @@ dirty paths, authority hashes, worktrees, physical space and recent issue/PR
 state. It neither launches a model nor certifies complete understanding.
 Read the actual documents and source linked by the receipt.
 
-Use the [architecture audit](../docs/integration/architecture-2026-09/README.md),
+Use the [architecture audit](../archive/integration/architecture-2026-09/README.md),
 [research archive](../research/README.md), and `uor_knowledge` for navigation.
 The knowledge service is a historical snapshot, including old current-state
 copies. Verify every decision-relevant result at its source revision. Follow a
@@ -186,9 +186,9 @@ Return: conclusion, contrary evidence, exact source/results, uncertainty,
 decision changed, preserved artifacts and the next implementable step.
 ```
 
-First source reviews: [geometric attention](../docs/integration/fourth-lab-geometric-attention-2026-09-26.md),
-[cross-lab integration](../docs/integration/fourth-lab-integration-review-2026-09-26.md),
-and [shared dialogue protocol](../docs/integration/dialogue-protocol-contract-2026-09-26.md).
-The [establishment receipt](../docs/evidence/fourth-lab-establishment-2026-09-26.json)
+First source reviews: [geometric attention](../archive/integration/fourth-lab-geometric-attention-2026-09-26.md),
+[cross-lab integration](../archive/integration/fourth-lab-integration-review-2026-09-26.md),
+and [shared dialogue protocol](../archive/integration/dialogue-protocol-contract-2026-09-26.md).
+The [establishment receipt](../archive/evidence/fourth-lab-establishment-2026-09-26.json)
 binds the first executed protocol checks, actual tokenizer witness and resource
 accounting. It is a dated receipt; refresh live state before successive work.

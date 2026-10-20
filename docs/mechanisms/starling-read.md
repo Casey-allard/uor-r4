@@ -10,7 +10,7 @@ Real starlings respond to about seven neighbours chosen topologically, not by di
 - It never scans the whole context and never normalises with a softmax.
 - Coherence across the sequence comes from layers and the quaternion state passing information one hop further each time.
 
-SpiralCore v69 runs an unnormalised Kuramoto phase coupling, `dθᵢ/dt = ωᵢ + K Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)`, over fixed geometric graphs: 60 edges on the H2 icosidodecahedron, a 15-cell signed quotient, or an FBS chain. Its test SYNC-10 shows only that the 60-edge and 435-edge graphs give *different* trajectories, not equal synchrony; an earlier wording here overstated it. SpiralCore contains no flock or 7-neighbour rule. That rule comes from the starling biology ([read-through](../labs/murmuration-design-2026-10-13/README.md)).
+SpiralCore v69 runs an unnormalised Kuramoto phase coupling, `dθᵢ/dt = ωᵢ + K Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)`, over fixed geometric graphs: 60 edges on the H2 icosidodecahedron, a 15-cell signed quotient, or an FBS chain. Its test SYNC-10 shows only that the 60-edge and 435-edge graphs give *different* trajectories, not equal synchrony; an earlier wording here overstated it. SpiralCore contains no flock or 7-neighbour rule. That rule comes from the starling biology ([read-through](../../archive/labs/murmuration-design-2026-10-13/README.md)).
 
 ## In code
 
@@ -25,7 +25,7 @@ SpiralCore v69 runs an unnormalised Kuramoto phase coupling, `dθᵢ/dt = ωᵢ 
   - **Status:**
     - Six finite CUDA construction controls PASS (`crates/uor-r4-discrete/src/flock_qualification.rs`; #2395, #2400).
     - Never trained on the corpus; training is held (`lib.rs:212-214`).
-    - Design record: [discrete murmuration read](../labs/discrete-murmuration-read-2026-10-13/README.md).
+    - Design record: [discrete murmuration read](../../archive/labs/discrete-murmuration-read-2026-10-13/README.md).
   - **Relation to Dose 1:**
     - `ReadSpec::Relation` (`lib.rs:103`) is Flock plus an exact-relation rerank with 5 edge-type Gate trits per level. "Relation-off ≡ Flock" is its rollback identity.
     - Dose 1 (`docs/harness/prep/m1-learned-attention-link-2026-10-17.md`) compares learned against frozen relation trits **on top of Flock**. No arm tests the transported-consensus read itself against `Route`.
@@ -38,23 +38,23 @@ SpiralCore v69 runs an unnormalised Kuramoto phase coupling, `dθᵢ/dt = ωᵢ 
 
 ## Tried
 
-- **Rung 1: recall at chance when trained from scratch** ([record](../labs/starling-read-2026-10-11/README.md)). Hard selection gives no gradient to keys outside the kept set. The cost saving is confirmed: 7× fewer positions scored.
-- **Rung 2: the addresses learn, the readout does not** ([record](../labs/starling-anneal-2026-10-11/README.md)). A training-only dense helper is annealed to zero. With it, the true source enters the kept 7 neighbours 73% of the time at peak, against 10% at initialisation. On the pure hard read it stays at 43–56%. Recall is still at chance: the rank table and gate do not pick the right value among the 7.
-- **Rung 3: a content gate does not help** ([record](../labs/starling-content-2026-10-11/README.md)). Gating the kept 7 by the read's q·k leaves recall at chance (0.010), with the source kept 47–56% of the time. The gate was not the bottleneck; the value path, or per-head availability of the source, is suspect. Note: content logits need a tanh-form sigmoid (the exp form overflowed).
-- **Pivot diagnostics** ([record](../labs/starling-pivot-2026-10-11/README.md)):
+- **Rung 1: recall at chance when trained from scratch** ([record](../../archive/labs/starling-read-2026-10-11/README.md)). Hard selection gives no gradient to keys outside the kept set. The cost saving is confirmed: 7× fewer positions scored.
+- **Rung 2: the addresses learn, the readout does not** ([record](../../archive/labs/starling-anneal-2026-10-11/README.md)). A training-only dense helper is annealed to zero. With it, the true source enters the kept 7 neighbours 73% of the time at peak, against 10% at initialisation. On the pure hard read it stays at 43–56%. Recall is still at chance: the rank table and gate do not pick the right value among the 7.
+- **Rung 3: a content gate does not help** ([record](../../archive/labs/starling-content-2026-10-11/README.md)). Gating the kept 7 by the read's q·k leaves recall at chance (0.010), with the source kept 47–56% of the time. The gate was not the bottleneck; the value path, or per-head availability of the source, is suspect. Note: content logits need a tanh-form sigmoid (the exp form overflowed).
+- **Pivot diagnostics** ([record](../../archive/labs/starling-pivot-2026-10-11/README.md)):
   - Velocity routing adds nothing beyond token identity.
   - With the source at a fixed slot, recall is 1.000, so the value path works.
   - A shared kept set raises per-head availability to 61–72%, but recall stays at chance.
   - Content ranking does not learn to rank the source first (0.03–0.29). The likely cause is the missing competitive gradient.
   - Recommended: a training-only softmax surrogate (owner decision).
-- **Softmax surrogate (training only)** ([record](../labs/starling-surrogate-2026-10-12/README.md)):
+- **Softmax surrogate (training only)** ([record](../../archive/labs/starling-surrogate-2026-10-12/README.md)):
   - It teaches content selection: the source is ranked first 0.55–0.78 of the time when kept, against 0.03–0.12 without it.
   - With a shared kept set, recall lifts off chance unevenly (0.044, 0.288, 0.091).
   - Below the pre-registered reading-2 bar, so the line goes to the owner.
 
 Rungs 1–3, the pivot and the surrogate were measured beside softmax helpers, surrogates or teachers. Under D23 they are inactive evidence: they stay recorded and are not to be rerun.
 
-- **Rung 0b, the lawful native read: design and source.** Card [#2032 6146209361](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6146209361), amendment [A1](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6147797508), §4 finite controls [FIT](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6148141029); [record](../labs/starling-rung0b-source-2026-10-13/README.md).
+- **Rung 0b, the lawful native read: design and source.** Card [#2032 6146209361](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6146209361), amendment [A1](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6147797508), §4 finite controls [FIT](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6148141029); [record](../../archive/labs/starling-rung0b-source-2026-10-13/README.md).
   - It replaces the softmax surrogate's competitive gradient with a rank-consistent hinge whose order comes from each slot's stopped-gradient utility `u = -<g, v>`.
   - The null is a utility-0 candidate, so abstention is learned through truncation.
   - Exploration slots (zero forward weight) give near-miss keys credit, fixing rung 1's "keys outside the kept set get no gradient".
@@ -66,7 +66,7 @@ Rungs 1–3, the pivot and the surrogate were measured beside softmax helpers, s
 
   The run is gated on rung 0, P2 and the owner's hold release.
 
-- **Murmuration read, 13 October (owner-approved). This is now the line's mechanism.** [Card #2032 6151093135](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6151093135), [pivot retarget 6151096178](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6151096178), [record](../labs/murmuration-design-2026-10-13/README.md).
+- **Murmuration read, 13 October (owner-approved). This is now the line's mechanism.** [Card #2032 6151093135](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6151093135), [pivot retarget 6151096178](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6151096178), [record](../../archive/labs/murmuration-design-2026-10-13/README.md).
   - **The read:** alignment, not selection. Each token reads its 7-token topological flock (K1), moves every neighbour's value into its own frame by the exact icosian quotient `c_t·c_j⁻¹`, and takes `Δ = K_h·(mean − v_t)`, the Vicsek/Kuramoto rule.
   - **One shared address per token,** used both to store and to query, which closes the key-address gap.
   - **An FBS ternary tree for O(log n):** parents hold the transported means of their children.

@@ -1,6 +1,6 @@
 # OpenCode–DeepSeek: persistent autonomous research lab
 
-> **Historical client packet, superseded operationally on 12 October.** Use [current session prompts](../session-goal.md), [D25](../../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) and the [operator plan](../operator-phase-2026-10-12/README.md). Kimi is current PM; no prohibited squashing/dense matrix multiplication/CPU model reference. **Training and the separate M2 training/rental hold remain.** Old fits, comparators, assignments and permission clauses below cannot execute themselves. Preserve the packet as recovery/history; do not paste its obsolete campaign.
+> **Historical client packet, superseded operationally on 12 October.** Use [current session prompts](../session-goal.md), [D25](../../integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction) and the [operator plan](../../../archive/labs/operator-phase-2026-10-12/README.md). Kimi is current PM; no prohibited squashing/dense matrix multiplication/CPU model reference. **Training and the separate M2 training/rental hold remain.** Old fits, comparators, assignments and permission clauses below cannot execute themselves. Preserve the packet as recovery/history; do not paste its obsolete campaign.
 
 > **Active restart, October 1:** read the [canonical plan](../../integration/project-track.md),
 > [current state](../../integration/current-state.md), live #1552 and your board
@@ -11,7 +11,7 @@
 > prompt. The owner authorizes protected merges after recorded exact-head review
 > (self-review allowed) and actual relevant checks; advisory coordinator gates
 > do not supersede that rule. D11/D5, unique artifacts and resource admission
-> remain. The [admissibility policy](../../integration/mechanism-admissibility-2026-10.md)
+> remain. The [admissibility policy](../../../archive/integration/mechanism-admissibility-2026-10.md)
 > governs successor experiments. These instructions do not assert client liveness.
 
 Paste this whole packet into the existing lab session. It supersedes the old

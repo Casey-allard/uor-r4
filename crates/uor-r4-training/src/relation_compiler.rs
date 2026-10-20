@@ -1,4 +1,4 @@
-//! E3 of the log-sieve design (`docs/integration/log-sieve-retrieval-design-2026-10-01.md`
+//! E3 of the log-sieve design (`archive/integration/log-sieve-retrieval-design-2026-10-01.md`
 //! §2.3): can a learned head name the relation and the act of a user turn
 //! under paraphrase? This is the language-to-atom compiler #958 lacked.
 //!

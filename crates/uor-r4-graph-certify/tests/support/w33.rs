@@ -1,6 +1,6 @@
 //! The normative W(3,3) reference object for #845 — the symplectic generalized
 //! quadrangle over GF(3) — exactly as frozen in
-//! `docs/w33_geometry_qualification_spec_845.md` §2–§3.
+//! `archive/w33_geometry_qualification_spec_845.md` §2–§3.
 //!
 //! Reference mathematics (Definition scope): nothing here asserts semantic
 //! usefulness, activation, or empirical superiority. Certifier-instrument /

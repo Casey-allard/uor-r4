@@ -1,5 +1,5 @@
 //! One-pass D6 information audit, frozen in
-//! `docs/integration/whole-project-synthesis-2026-09-28.md` §4.
+//! `archive/integration/whole-project-synthesis-2026-09-28.md` §4.
 //!
 //! Evaluation only: the `fit-quaternion-2i-screen-off-8a6d` parent is loaded with fixed
 //! weights and the evaluator's development population is read once. The harness first

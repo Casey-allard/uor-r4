@@ -1,6 +1,6 @@
 //! CPU-Only Compiler Dependency and Feature Auditor
 //!
-//! Specification: `docs/compiler_dependency_audit.md` (Issue #174).
+//! Specification: `archive/compiler_dependency_audit.md` (Issue #174).
 //!
 //! Audits workspace lockfiles, crate manifests, and default feature flags to verify
 //! that no GPU, tensor, or BLAS accelerator dependencies enter the compiler tree.

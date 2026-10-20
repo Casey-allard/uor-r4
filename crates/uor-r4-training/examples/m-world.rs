@@ -133,7 +133,7 @@
 //!   `corpus world=v2` redraws any conversation that shares an 8-word user-turn
 //!   n-gram with the probe, and drops any `chat=` document whose user turns do.
 //!
-//! The log-sieve design (`docs/integration/log-sieve-retrieval-design-2026-10-01.md`,
+//! The log-sieve design (`archive/integration/log-sieve-retrieval-design-2026-10-01.md`,
 //! D18 outcome D), without training:
 //!
 //! - `route` (E1) scores R-sieve, the untrained identity channel, and the
@@ -430,7 +430,7 @@ impl World {
 }
 
 /// `recall=` of `evaluate world=v2`: the emission of the log-sieve design
-/// (`docs/integration/log-sieve-retrieval-design-2026-10-01.md` §2.4, E2).
+/// (`archive/integration/log-sieve-retrieval-design-2026-10-01.md` §2.4, E2).
 /// Before each MQAR and relation query's reply, one system turn states a
 /// value: none (`off`, the default), the oracle's own (`oracle`), or what the
 /// untrained identity channel finds (`sieve`, [`sieve_value`]); "none" when
@@ -2723,7 +2723,7 @@ fn route(args: &Args, out: &Path) -> Result<()> {
         "cells_run": to_run.iter().map(|c| c.key()).collect::<Vec<_>>(),
         "history": "reference: every retrieval turn is answered after the episode's own earlier replies",
         "routes": {
-            "R-sieve": "the identity channel of docs/integration/log-sieve-retrieval-design-2026-10-01.md §2.2, untrained: the latest user clause sharing the most query content words (outside the world's fixed vocabulary) gives the words after the first shared one, as \"It's {value}.\"; otherwise \"I don't know.\"",
+            "R-sieve": "the identity channel of archive/integration/log-sieve-retrieval-design-2026-10-01.md §2.2, untrained: the latest user clause sharing the most query content words (outside the world's fixed vocabulary) gives the words after the first shared one, as \"It's {value}.\"; otherwise \"I don't know.\"",
             "reference": "the world's own reference replies through the oracle: 1.0 unless the harness is broken",
         },
         "scope": "an untrained route over the instrument: it tests whether the instrument's keys repeat verbatim, not a model; no freeze is computed",

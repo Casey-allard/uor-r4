@@ -75,7 +75,7 @@ graph TD
     D --> D1[Update crates/uor-r4-api/README.md]
     D --> D2[Update docs/transformerless/GLOSSARY.md]
 
-    E --> E1[Update docs/r4_graph_compiler_implementation_plan.md]
+    E --> E1[Update archive/r4_graph_compiler_implementation_plan.md]
     E --> E2[Update docs/transformerless/BASELINE.md]
 ```
 
@@ -96,7 +96,7 @@ graph TD
 - [ ] Document `POST /api/uor/verify` payload format and validation rules.
 - [ ] Update `GLOSSARY.md` with terms: `FallbackRouter`, `EngineStatus`, `TokenizerCid`, `UorAttestationResult`, `W(3,3) Phase Field`.
 
-### Module 5: Roadmap & Baseline Metrics Alignment (`docs/r4_graph_compiler_implementation_plan.md`, `docs/transformerless/BASELINE.md`)
+### Module 5: Roadmap & Baseline Metrics Alignment (`archive/r4_graph_compiler_implementation_plan.md`, `docs/transformerless/BASELINE.md`)
 - [ ] Mark Phase 1–4 PRs (#206–#215) as completed in the Implementation Plan.
 - [ ] Document `instruction-eval.json` schema and Gate C evaluation metrics in `BASELINE.md`.
 

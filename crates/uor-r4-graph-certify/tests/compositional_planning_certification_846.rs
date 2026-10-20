@@ -26,9 +26,9 @@ const FORMAT_SOURCE: &str = include_str!("../../uor-r4-graph-format/src/plan_sec
 const RUNTIME_SOURCE: &str = include_str!("../../uor-r4-graph-runtime/src/plan.rs");
 const PRIOR_HARNESS: &str = include_str!("compositional_planning_measurement_843.rs");
 const SHARED_EPISODE: &str = include_str!("support/episode.rs");
-const PRIOR_RECORD: &str = include_str!("../../../docs/bounded_semantic_transitions_843.md");
+const PRIOR_RECORD: &str = include_str!("../../../archive/bounded_semantic_transitions_843.md");
 const COMMITTED_RESULT: &str =
-    include_str!("../../../docs/compositional_planning_certification_846_result.json");
+    include_str!("../../../archive/compositional_planning_certification_846_result.json");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct AccessAudit {

@@ -704,7 +704,7 @@ mod tests {
     use super::*;
     fn config() -> Result<DriverConfig> {
         let mut config: DriverConfig = serde_json::from_str(include_str!(
-            "../../../docs/labs/discrete-driver-cost-2026-10-13/driver-config.json"
+            "../../../archive/labs/discrete-driver-cost-2026-10-13/driver-config.json"
         ))
         .map_err(|e| invalid(e.to_string()))?;
         config.seed = 1;

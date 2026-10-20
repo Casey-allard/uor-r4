@@ -1,7 +1,7 @@
 //! #832 — CID-bound capability suites and per-token resolution
 //! attribution: fail-closed evidence for the evaluation constitution.
 //!
-//! Record: `docs/capability_suites_832.md`. Decision it binds to:
+//! Record: `archive/capability_suites_832.md`. Decision it binds to:
 //! ADR-0001 (`docs/adr/0001-normative-r4g1-scorer.md`, #831).
 //!
 //! These tests exercise the committed constitution

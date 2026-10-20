@@ -18,7 +18,7 @@
 //! facts — facet store populated, relevances non-zero, and content-ranked
 //! retrieval (the fox query returns the fox sentence first, which the
 //! content-hash grounding ranked last). See #493/#496 and
-//! `docs/geometry_ablation_434.md`.
+//! `archive/geometry_ablation_434.md`.
 
 use uor_r4_router::UorR4Router;
 

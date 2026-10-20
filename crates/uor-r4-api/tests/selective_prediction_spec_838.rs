@@ -2,7 +2,7 @@
 //! selective-prediction contract and answerability benchmark constitution
 //! (#838, item A of S2 tracker #823).
 //!
-//! Companion document: `docs/selective_prediction_spec_838.md`. This is a
+//! Companion document: `archive/selective_prediction_spec_838.md`. This is a
 //! **reference-only / off-serving-path** model in the #830 sense: an owned,
 //! integer realization of the specified status space, decision table, surface
 //! encodings, fail-closed calibration semantics, benchmark categories,

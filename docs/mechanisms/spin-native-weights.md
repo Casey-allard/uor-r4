@@ -22,22 +22,22 @@ The model's dense projection matrices are 87.6 % of its per-token arithmetic, wh
 
 ## Tried
 
-- **Rung 0, quaternion weights, KEEP** ([record](../labs/quaternion-weights-2026-10-11/README.md)). At width 256, it beats dense at equal total parameters by 0.018 BPB (6× noise, equal weight bytes). Against dense at equal width it uses 4× fewer matrix weights for +0.088 BPB. It does not yet save arithmetic.
-- **Rung 1, icosian snap** ([record](../labs/icosian-qat-2026-10-11/README.md)):
+- **Rung 0, quaternion weights, KEEP** ([record](../../archive/labs/quaternion-weights-2026-10-11/README.md)). At width 256, it beats dense at equal total parameters by 0.018 BPB (6× noise, equal weight bytes). Against dense at equal width it uses 4× fewer matrix weights for +0.088 BPB. It does not yet save arithmetic.
+- **Rung 1, icosian snap** ([record](../../archive/labs/icosian-qat-2026-10-11/README.md)):
   - Post-hoc, snapping the weights to norm × nearest icosian costs +0.141 BPB; snapping the activations too costs +0.475.
   - Trained in with a straight-through gradient, the cost is still +0.140 with a power-of-two norm and +0.103 with an f32 norm.
   - So the 120 directions, about 15° apart, are too coarse. The norm needs only 3 bits.
   - Row 4 next: a finer exact set (residual icosian pairs, or the second E8 shell).
-- **Rung 2, residual icosian pairs** 2^e (g₁ + g₂/4) ([record](../labs/icosian-pair-2026-10-11/README.md)):
+- **Rung 2, residual icosian pairs** 2^e (g₁ + g₂/4) ([record](../../archive/labs/icosian-pair-2026-10-11/README.md)):
   - With an f32 norm, the cost is **+0.016**: the direction is fixed.
   - With a power-of-two norm it is +0.071, so the norm costs +0.055.
   - Next: a finer exact norm set. The host-side snap made training 11× slower, so it moves to the GPU first.
-- **Rung 3, KEEP: 2-bit-mantissa norms** ([record](../labs/icosian-mantissa-2026-10-11/README.md)):
+- **Rung 3, KEEP: 2-bit-mantissa norms** ([record](../../archive/labs/icosian-mantissa-2026-10-11/README.md)):
   - m·2^e·(g₁ + g₂/4) reaches 1.5148 BPB, level with dense at equal parameters.
   - About 19–20 bits per quaternion, multiplier-free on the weight side.
   - The snap runs on the GPU, bit-identical and 7.8× faster.
   - Next: activation snapping.
-- **Rung 4, activations** ([record](../labs/activation-snap-2026-10-11/README.md)):
+- **Rung 4, activations** ([record](../../archive/labs/activation-snap-2026-10-11/README.md)):
   - Snapping every map input to the same exact set after training costs +0.0196: fully exact maps at +0.021 against dense.
   - Trained in with a straight-through gradient it is slightly worse (+0.0231).
   - Next: a soft-to-hard schedule.

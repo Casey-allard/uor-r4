@@ -1,7 +1,7 @@
 //! Machine-Code and Dependency Audit ENGINE — reference fixtures only.
 //!
-//! Specification & Source: `docs/inference_contract.md`; `docs/scoring_semantics.md`;
-//! `docs/hologram_formal_analysis_direction.md` PDF §13; GitHub Issue #160.
+//! Specification & Source: `docs/inference_contract.md`; `archive/scoring_semantics.md`;
+//! `archive/hologram_formal_analysis_direction.md` PDF §13; GitHub Issue #160.
 //!
 //! **What this module IS (#787, honest scope):** the audit *engine* — a
 //! mnemonic scanner over disassembly text and a denylist scanner over

@@ -2111,7 +2111,7 @@ pub fn compile_from_representation(
 /// Loaded pre-TLA7 artifacts keep the non-residual dot path; loaded TLA7
 /// artifacts (and fresh in-memory compiles) take the residual-wired dot
 /// path. The κ re-pin this implies is a Phase C maintainer decision
-/// (docs/dot_residual_phase_b_design.md) — the pinned baseline is
+/// (archive/dot_residual_phase_b_design.md) — the pinned baseline is
 /// TLA5-era and remains a valid address for TLA5-era bytes.
 pub fn artifact_bytes(a: &Compiled) -> Vec<u8> {
     let emit_tla6 = !a.dot_cb.is_empty()

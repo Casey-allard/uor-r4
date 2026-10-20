@@ -8,7 +8,7 @@ compilation and proof status do not qualify those capabilities either. Use the
 [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../docs/integration/model-direction-2026-09.md).
+and [model direction](../../archive/integration/model-direction-2026-09.md).
 
 **Preserved formal lane.** These executable obligations describe the earlier
 R4G1 graph compiler. They remain useful research evidence, but they do not prove

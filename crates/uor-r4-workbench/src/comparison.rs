@@ -518,7 +518,7 @@ mod tests {
 
     #[test]
     fn private_protocol_is_not_a_public_or_worker_command() {
-        let contract = include_str!("../../../docs/r4_workbench_private_release_1107.json");
+        let contract = include_str!("../../../archive/r4_workbench_private_release_1107.json");
         assert!(contract.contains("--private-compare-host"));
         assert!(!["load", "answer", "unload"].contains(&"compare"));
     }

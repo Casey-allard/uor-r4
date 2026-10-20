@@ -44,7 +44,7 @@ pub mod cuda {
     /// carry softmax, sigmoid, softplus, tanh-GELU, exp/log normalisation or
     /// tensor-core contractions, or belong to the softmax read and pointer
     /// mixture families D29 names. Their source is evidence only, in
-    /// docs/history/d29-excluded-kernels-2026-10-13/ (never compiled); a launch is refused here,
+    /// archive/history/d29-excluded-kernels-2026-10-13/ (never compiled); a launch is refused here,
     /// loudly, rather than failing on a missing symbol.
     pub const HISTORICAL_KERNELS: [&str; 33] = [
         "cross_entropy_grad",

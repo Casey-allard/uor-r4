@@ -4,7 +4,7 @@
 //! tokens.
 //!
 //! This is the S1.4 parity vehicle, decomposed as in
-//! `docs/integration/s1-stack-serving-measurements-2026-09-28.md`:
+//! `archive/integration/s1-stack-serving-measurements-2026-09-28.md`:
 //!
 //! - `kernel`: the D11 engine against the artifact's own dequantized float
 //!   reference (same weights, snap set). Weights and snap are shared, so a

@@ -106,11 +106,11 @@ pub(super) fn utilities(
 /// D29 quarantine (Codex review, #2028 comment 6149477404, accepted 13 October
 /// 2026): `selected_utilities` applies 16 freely learned coefficients as a dense
 /// 4x4 contraction. The module is no longer compiled; its source is evidence in
-/// `docs/history/d29-excluded-kernels-2026-10-13/selected_potential_quarantined.cu`
+/// `archive/history/d29-excluded-kernels-2026-10-13/selected_potential_quarantined.cu`
 /// until a geometric replacement is designed.
 fn ptx() -> Result<&'static str> {
     Err(invalid(
         "D29: the selected-potential CUDA module is quarantined (a learned dense 4x4 \
-         contraction); see docs/history/d29-excluded-kernels-2026-10-13/",
+         contraction); see archive/history/d29-excluded-kernels-2026-10-13/",
     ))
 }

@@ -394,11 +394,11 @@ pub(crate) mod metadata_controls {
     ) -> Result<(CompletionCheckpoint, CompletionPlan, FilePin, String)> {
         // Synthetic stored observations and storage bytes, not a CPU reference or model.
         let mut plan: CompletionPlan = serde_json::from_str(include_str!(
-            "../../../docs/labs/rung0-completion-release-2026-10-14/SEED2_PLAN.json"
+            "../../../archive/labs/rung0-completion-release-2026-10-14/SEED2_PLAN.json"
         ))
         .map_err(|e| invalid(e.to_string()))?;
         let summary: Value = serde_json::from_str(include_str!(
-            "../../../docs/labs/a2-pilot-2026-10-14/report-summary.json"
+            "../../../archive/labs/a2-pilot-2026-10-14/report-summary.json"
         ))
         .map_err(|e| invalid(e.to_string()))?;
         let mut lineage: training::Lineage =

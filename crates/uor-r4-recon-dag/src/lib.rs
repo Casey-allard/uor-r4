@@ -1,7 +1,7 @@
 //! Production reader for the reconstruction byte-DAG.
 //!
 //! **What this replaces.** The experiment at
-//! `docs/labs/spiralcore-native-attention-review-2026-10-14/evidence/cs/range_reader.rs` reads the whole
+//! `archive/labs/spiralcore-native-attention-review-2026-10-14/evidence/cs/range_reader.rs` reads the whole
 //! records file into a `HashMap<Id, Node>` before answering any range query, and its own README says so:
 //! `whole_object_sha256_in_rust=NOT_CHECKED`. Two things follow, and they are the two halves of this crate:
 //!

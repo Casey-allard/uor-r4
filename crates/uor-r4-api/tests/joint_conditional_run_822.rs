@@ -2,7 +2,7 @@
 //! (#822).
 //!
 //! Mandated by the S1 REVISE verdict (#822, 2026-08-21) through the approved
-//! redesign RFC (`docs/s1_redesign_rfc_822.md` §4-D1, §6 step 2); the run
+//! redesign RFC (`archive/s1_redesign_rfc_822.md` §4-D1, §6 step 2); the run
 //! contract was posted to #822 before this run. The #834 five-arm space
 //! re-weighted evidence whose table keys were fixed (2-token-suffix tables +
 //! unigram content tables): its best content arms measured +17.5‰ (Ψ, #875)
@@ -24,7 +24,7 @@
 //! ## Arms (pre-registered on #822; λ fixed at 1.0 before evaluation)
 //!
 //! Reproduction arms on the exact #891 candidate sets (harness gates; their
-//! recorded values in `docs/conditional_residuals_834_result.json` must
+//! recorded values in `archive/conditional_residuals_834_result.json` must
 //! reproduce before the verdict binds):
 //!   * `base`  — suffix rate over suffix candidates (the suffix-local floor).
 //!   * `psi`   — the #875 segment lane (264.1‰ recorded).
@@ -103,7 +103,7 @@ const OPENING_BAR_PERMILLE: f64 = 25.0;
 /// Positions re-scored by the in-harness double-run determinism check.
 const DOUBLE_RUN_N: usize = 2_000;
 /// Reproduction gates: recorded values this harness must reproduce
-/// (`docs/conditional_residuals_834_result.json`, #891 / #875).
+/// (`archive/conditional_residuals_834_result.json`, #891 / #875).
 const REPRO_BASE_PERMILLE: f64 = 246.6;
 const REPRO_PSI_PERMILLE: f64 = 264.1;
 const REPRO_CR_PERMILLE: f64 = 262.8;

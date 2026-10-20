@@ -7,7 +7,7 @@
 //!
 //! The historical probe is an additive, best-effort verification layer for a
 //! resolved R4G1 bundle's optional `release-bundle.json` sidecar
-//! (`docs/serving_shared_loader_655_c1.md`, #655-C0/C1a/C1b).
+//! (`archive/serving_shared_loader_655_c1.md`, #655-C0/C1a/C1b).
 //!
 //! This module does the filesystem I/O and digesting that
 //! `uor_r4_api::release_bundle` deliberately does not (that crate is

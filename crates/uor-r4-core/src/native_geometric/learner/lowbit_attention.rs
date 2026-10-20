@@ -56,7 +56,7 @@
 //!
 //! This is one layer at tens to hundreds of dimensions, trained on synthetic tasks. It is a mechanism
 //! with a measured falsification test, not a chat model. The scaling path is recorded in
-//! `docs/integration/geometric-core-architecture-2026-09-19.md`.
+//! `archive/integration/geometric-core-architecture-2026-09-19.md`.
 
 #![forbid(unsafe_code)]
 

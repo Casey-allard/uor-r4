@@ -24,7 +24,7 @@ pub fn implementation_digest() -> [u8; 32] {
         ("training",include_bytes!("training.rs").as_slice()),
         ("native_geometry",include_bytes!("../training.rs").as_slice()),
         ("anchors",include_bytes!("../anchors.rs").as_slice()),
-        ("contract",include_bytes!("../../../../../docs/evidence/native_geometric_addressed_attention_contract_973.json").as_slice()),
+        ("contract",include_bytes!("../../../../../archive/evidence/native_geometric_addressed_attention_contract_973.json").as_slice()),
     ] { h.update(&(name.len() as u64).to_le_bytes());h.update(name.as_bytes());h.update(&(bytes.len() as u64).to_le_bytes());h.update(bytes); }
     *h.finalize().as_bytes()
 }

@@ -1,6 +1,6 @@
 # UOR-R4 Geometric Language Model — core
 
-> **Selected API, 13 October — D29:** Cargo now selects `src/native_support.rs`: fixed geometry, raw tokenizer/source-ingest metadata, exact scoped storage and report interfaces for the native CUDA stack. Historical core model/learner/session sources below are retained unchanged but excluded from this library build. They are not callable active APIs or a fallback. The selected composed graph at `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090, pending protected delivery. These controls establish neither model quality nor serving and lift no training hold. [Boundary record](../../docs/labs/d29-vendor-boundary-2026-10-13/README.md).
+> **Selected API, 13 October — D29:** Cargo now selects `src/native_support.rs`: fixed geometry, raw tokenizer/source-ingest metadata, exact scoped storage and report interfaces for the native CUDA stack. Historical core model/learner/session sources below are retained unchanged but excluded from this library build. They are not callable active APIs or a fallback. The selected composed graph at `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090, pending protected delivery. These controls establish neither model quality nor serving and lift no training hold. [Boundary record](../../archive/labs/d29-vendor-boundary-2026-10-13/README.md).
 
 ## Historical implementation and evidence
 
@@ -18,9 +18,9 @@ reasoning remain unqualified. The CLI and native API expose this same core;
 artifact-specific evidence and remaining failures are in the [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../docs/integration/model-direction-2026-09.md).
+and [model direction](../../archive/integration/model-direction-2026-09.md).
 
-The current natural-text experiment uses separate CPL2/CPX3 artifacts under `native_geometric/learner/`; these are not interchangeable with the older Model/word-memory artifact. The [post-#1312 review](../../docs/integration/occurrence-reader-review-2026-09-20.md) selects a bounded learned exact-occurrence reader through that BPE token path, reusing the older occurrence/version contracts explicitly. [Next execution prompt](../../docs/integration/deepseek-occurrence-reader-step-2026-09-20.md).
+The current natural-text experiment uses separate CPL2/CPX3 artifacts under `native_geometric/learner/`; these are not interchangeable with the older Model/word-memory artifact. The [post-#1312 review](../../archive/integration/occurrence-reader-review-2026-09-20.md) selects a bounded learned exact-occurrence reader through that BPE token path, reusing the older occurrence/version contracts explicitly. [Next execution prompt](../../archive/integration/deepseek-occurrence-reader-step-2026-09-20.md).
 
 ## Historical substrate and reference status
 
@@ -33,7 +33,7 @@ prime/semiprime routes, spin and torsion state, Hopf projection with a retained
 fiber, golden-radial structure, exact transport controls, and bounded route
 operators. They are the retained address/frame/transport substrate, not a
 semantic language model. #973's subsequently qualified
-[`R4RetainedLanguagePathV1`](../../docs/r4_retained_language_path_v1_973.md)
+[`R4RetainedLanguagePathV1`](../../archive/r4_retained_language_path_v1_973.md)
 establishes one bounded, source-free, causally load-bearing retained-attention
 path, not H4 superiority or prompt-coherent generation. Its direct and sole
 layerwise-normalized parameter-free readout successors each improved prompt and
@@ -86,15 +86,15 @@ authoritative sequence is the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 HELM-D pinned-source provenance, donor reproduction, and transported-R4 parity
 are `PASS`; see
-[`docs/helm_d_r4_softmax_decoder_973.md`](../../docs/helm_d_r4_softmax_decoder_973.md).
+[`docs/helm_d_r4_softmax_decoder_973.md`](../../archive/helm_d_r4_softmax_decoder_973.md).
 The intrinsic V1 record is
-[`docs/intrinsic_lorentz_r4_attention_973.md`](../../docs/intrinsic_lorentz_r4_attention_973.md).
+[`docs/intrinsic_lorentz_r4_attention_973.md`](../../archive/intrinsic_lorentz_r4_attention_973.md).
 The localization preflight-result record is
-[`docs/helm_d_score_centroid_localization_973.md`](../../docs/helm_d_score_centroid_localization_973.md).
+[`docs/helm_d_score_centroid_localization_973.md`](../../archive/helm_d_score_centroid_localization_973.md).
 The binding generator result and compact aggregate are
-[`docs/r4_softmax_reference_generation_973.md`](../../docs/r4_softmax_reference_generation_973.md)
+[`docs/r4_softmax_reference_generation_973.md`](../../archive/r4_softmax_reference_generation_973.md)
 and
-[`docs/r4_softmax_reference_generation_attempt_01_result_973.json`](../../docs/r4_softmax_reference_generation_attempt_01_result_973.json).
+[`docs/r4_softmax_reference_generation_attempt_01_result_973.json`](../../archive/r4_softmax_reference_generation_attempt_01_result_973.json).
 Upstream checkpoint parity remains `NOT_RUN`; intrinsic/readout, resonance
 replacement, recurrence, and exact lowering are parked; #954 remains blocked.
 

@@ -10,7 +10,7 @@
 //! R4Engine reconstruct the lane deterministically with caller-owned state.
 //!
 //! `PSTATE` therefore carries, in fixed field order (per
-//! `docs/prompt_state_spec_835.md` §8): a schema version, the lane kind, the
+//! `archive/prompt_state_spec_835.md` §8): a schema version, the lane kind, the
 //! per-lane capacity and decay shift, the score constants (`base_w`, `boost`),
 //! the key-quantization identity, and an **optional** residual-weight table for
 //! future table-bearing lanes (empty for the pure segment lane). All integer;

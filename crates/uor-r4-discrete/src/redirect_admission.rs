@@ -315,7 +315,7 @@ mod tests {
 
     fn config() -> Result<DriverConfig> {
         serde_json::from_str(include_str!(
-            "../../../docs/labs/admission-redirect-packet-2026-10-15/configs/k16-R-seed1.json"
+            "../../../archive/labs/admission-redirect-packet-2026-10-15/configs/k16-R-seed1.json"
         ))
         .map_err(|error| invalid(error.to_string()))
     }

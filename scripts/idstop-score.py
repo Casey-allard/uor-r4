@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """idstop: score the token-identity copy stop's 84-cell panel and classify the
 cells where it does not fire. Companion to
-docs/evidence/idstop_nonfiring_classification_2026-10-09.txt (the idstop3 round:
+archive/evidence/idstop_nonfiring_classification_2026-10-09.txt (the idstop3 round:
 arm-ptr, gate floor 0.5, identity stop min_span=2) and to
 crates/uor-r4-training/examples/bind-probe-exact.rs, the driver that produced
 the runs.

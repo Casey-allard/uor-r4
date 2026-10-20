@@ -11,7 +11,7 @@
 //! The authoritative specification is `docs/transformerless/R4G1.md`
 //! (wire-format RFC, DRAFT); terminology lives in
 //! `docs/transformerless/GLOSSARY.md`. This crate implements the first
-//! Phase-1 slices of `docs/r4_graph_compiler_implementation_plan.md`:
+//! Phase-1 slices of `archive/r4_graph_compiler_implementation_plan.md`:
 //!
 //! - fixed-width domain newtypes ([`NodeId`], [`SectionOffset`],
 //!   [`TokenId`], [`ScoreQ`], [`Depth`], [`Radius`], [`ArtifactCid`],

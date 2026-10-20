@@ -13,7 +13,7 @@ use serde_json::Value;
 use uor_r4_graph_format::{GraphView, SectionId};
 
 const COMMITTED_DIAGNOSTIC: &str =
-    include_str!("../../../docs/canonical_quality_baseline_934_result.json");
+    include_str!("../../../archive/canonical_quality_baseline_934_result.json");
 const SCHEMA: &str = "uor-r4-canonical-quality-diagnostic/1";
 const POPULATION: u64 = 72_130;
 

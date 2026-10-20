@@ -8,7 +8,7 @@ compilation and proof status do not qualify those capabilities either. Use the
 [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../docs/integration/model-direction-2026-09.md).
+and [model direction](../../archive/integration/model-direction-2026-09.md).
 
 **Preserved research lane.** This is the earlier offline R4G1 graph-compiler
 pipeline, retained for its observations, artifacts, measurements, and reusable

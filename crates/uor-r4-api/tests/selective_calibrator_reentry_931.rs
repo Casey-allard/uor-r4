@@ -870,7 +870,7 @@ fn feature_evidence(observations: &[Observation]) -> Value {
 
 fn verify_prior_records() {
     let prior_837: Value = serde_json::from_slice(
-        &std::fs::read(repo_root().join("docs/calibrator_837_result.json"))
+        &std::fs::read(repo_root().join("archive/calibrator_837_result.json"))
             .expect("#837 predecessor record"),
     )
     .expect("parse #837 record");
@@ -907,7 +907,7 @@ fn verify_prior_records() {
     );
 
     let prior_908: Value = serde_json::from_slice(
-        &std::fs::read(repo_root().join("docs/skipmix_endtoend_causal_908_result.json"))
+        &std::fs::read(repo_root().join("archive/skipmix_endtoend_causal_908_result.json"))
             .expect("#908 predecessor record"),
     )
     .expect("parse #908 record");
@@ -2153,7 +2153,7 @@ fn selective_calibrator_reentry_full_931() {
     });
     let mut bytes = serde_json::to_vec_pretty(&report).expect("pretty result JSON");
     bytes.push(b'\n');
-    let out = repo_root().join("docs/selective_calibrator_reentry_931_result.json");
+    let out = repo_root().join("archive/selective_calibrator_reentry_931_result.json");
     std::fs::write(&out, &bytes).expect("write #931 result record");
     println!("VERDICT             : {}", report["result"]["verdict"]);
     println!("result CID          : {result_cid}");

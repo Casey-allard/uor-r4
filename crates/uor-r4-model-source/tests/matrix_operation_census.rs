@@ -17,7 +17,7 @@
 //! The full classified inventory (including the remaining hand-rolled GPT-2
 //! `conv1d` / attention accumulations this mechanical guard does not
 //! keyword-match, tracked for a follow-up) lives in
-//! `docs/matrix_operation_census.md`.
+//! `archive/matrix_operation_census.md`.
 #![cfg(not(target_arch = "wasm32"))]
 
 use std::path::{Path, PathBuf};
@@ -126,7 +126,7 @@ fn no_conventional_blas_matrix_op_outside_the_sanctioned_teacher_site() {
                 if line.contains(marker) {
                     leaks.push(format!(
                         "{}:{}: conventional library-BLAS matrix marker `{marker}` — migrate to \
-                         uor-matmul (#655-B) or record + classify it in docs/matrix_operation_census.md",
+                         uor-matmul (#655-B) or record + classify it in archive/matrix_operation_census.md",
                         file.display(),
                         lineno + 1
                     ));

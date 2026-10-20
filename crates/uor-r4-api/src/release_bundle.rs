@@ -61,7 +61,7 @@ pub enum BundleCapability {
 
 /// Pinned `uor-matmul` provenance the bundle's compile-time arithmetic ran
 /// against (#655-B). Field values mirror
-/// `docs/matrix_operation_census.md`'s pinned rev/codec description.
+/// `archive/matrix_operation_census.md`'s pinned rev/codec description.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct UorMatmulProvenance {
@@ -71,7 +71,7 @@ pub struct UorMatmulProvenance {
     pub rev: String,
     /// Name of the operation/codec profile the bundle's compile-time
     /// arithmetic used, e.g. `"exact-gemm-float"` or
-    /// `"certified-exact-fold"` (see `docs/matrix_operation_census.md`).
+    /// `"certified-exact-fold"` (see `archive/matrix_operation_census.md`).
     pub operation_profile: String,
     /// SPDX license identifier of the pinned dependency source.
     pub license: String,
@@ -225,7 +225,7 @@ impl ReleaseBundleManifest {
     /// caller's behalf, and `uor-matmul` provenance is not yet computed
     /// anywhere in the compile pipeline (see [`UorMatmulProvenance`]'s
     /// `source_digest` field doc) — the caller supplies whatever it
-    /// already has pinned (e.g. from `docs/matrix_operation_census.md`)
+    /// already has pinned (e.g. from `archive/matrix_operation_census.md`)
     /// until a future slice wires an automatic digest.
     ///
     /// The result is a field copy, not a validating constructor: an

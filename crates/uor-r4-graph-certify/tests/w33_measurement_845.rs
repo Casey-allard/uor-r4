@@ -1,6 +1,6 @@
 //! #845 increment 4 — the equal-budget geometry measurement on both A2 axes,
-//! per `docs/w33_geometry_qualification_spec_845.md` §5/§5-A/§6 and
-//! `docs/compositional_planning_spec_844.md` §12.
+//! per `archive/w33_geometry_qualification_spec_845.md` §5/§5-A/§6 and
+//! `archive/compositional_planning_spec_844.md` §12.
 //!
 //! The full grids are `#[ignore]`d (measurements, not gates); the default
 //! tests assert the instrument's own non-vacuity. Run with
@@ -517,7 +517,7 @@ fn print_arm_rates(cell: &CellData) {
 
 /// The full A2 measurement — both axes, every cell, the pre-registered
 /// readings, and the axis verdict inputs. `--ignored` because it is the
-/// measurement; the record is `docs/w33_geometry_qualification_845.md`.
+/// measurement; the record is `archive/w33_geometry_qualification_845.md`.
 #[test]
 #[ignore = "the #845 measurement: run explicitly with --ignored --nocapture"]
 fn geometry_qualification_measurement() {

@@ -1,6 +1,6 @@
 # Discrete geometric learning through exact SpiralCore/FBS moves
 
-**Latest cost diagnosis, 16 October:** the [original-checkpoint K16 decomposition](../labs/counterfactual-decomposition-run-2026-10-16/README.md)
+**Latest cost diagnosis, 16 October:** the [original-checkpoint K16 decomposition](../../archive/labs/counterfactual-decomposition-run-2026-10-16/README.md)
 completed 32 matched U/D proposals, zero apply. Across all four policy/operation
 cells, writer phases occupy 99.979269–99.979452% of lane cycles; repeated baseline
 read/writer/eligibility occupies 46.921799–47.220974%. Every retained lane passes
@@ -9,24 +9,24 @@ the prospective H2/H3 routing bars, with incremental-clock E/S bounds below
 retaining the same geometric writer, eligibility, virtual moves and ties.
 The [baseline-reuse sheet](../harness/prep/m1-counterfactual-baseline-reuse-2026-10-16.md)
 now specifies that bounded change and its exact controls; [design FIT is recorded](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6226136376),
-the [opt-in source implementation](../labs/counterfactual-baseline-reuse-implementation-2026-10-16/README.md)
+the [opt-in source implementation](../../archive/labs/counterfactual-baseline-reuse-implementation-2026-10-16/README.md)
 is delivered with exact audit and image binding.
-The [resource-refusal evidence repair](../labs/counterfactual-reuse-resource-refusal-2026-10-16/README.md)
-is delivered. The [first finite startup](../labs/counterfactual-baseline-reuse-controls-2026-10-17/README.md)
+The [resource-refusal evidence repair](../../archive/labs/counterfactual-reuse-resource-refusal-2026-10-16/README.md)
+is delivered. The [first finite startup](../../archive/labs/counterfactual-baseline-reuse-controls-2026-10-17/README.md)
 stopped at the driver gate before model initialization. A separately reviewed
-and released replacement [finite invocation passed](../labs/counterfactual-baseline-reuse-finite-pass-2026-10-17/README.md)
+and released replacement [finite invocation passed](../../archive/labs/counterfactual-baseline-reuse-finite-pass-2026-10-17/README.md)
 on17 October:32 exact U/R pairs,16 typed refusals,512 R lane records and414
 producer-row outcomes, unchanged state/epoch and zero apply. Runtime R shared512
 was observed on RTX5090/driver580.95.05 without subtraction or waiver.
 Driver580.105.08 parity and original-checkpoint R timing remain NOT_RUN.
-Finite record #2565 is protected. The separately released [timing startup](../labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md)
+Finite record #2565 is protected. The separately released [timing startup](../../archive/labs/counterfactual-baseline-reuse-timing-startup-2026-10-17/README.md)
 refused actual595.71.05 before any instrument command; that zero-dose setup record
-is preserved. The [exact-driver selector](../labs/driver-aware-pod-selection-2026-10-17/README.md)
-is now protected and a separately reviewed/released [595.71.05 finite qualification](../labs/counterfactual-baseline-reuse-driver-595-2026-10-17/README.md)
+is preserved. The [exact-driver selector](../../archive/labs/driver-aware-pod-selection-2026-10-17/README.md)
+is now protected and a separately reviewed/released [595.71.05 finite qualification](../../archive/labs/counterfactual-baseline-reuse-driver-595-2026-10-17/README.md)
 passes the unchanged32 U/R pairs,16 typed refusals and18 strict resource admissions,
 with unchanged state/epoch and apply0 on the recorded RTX5090 environment.
 That finite result is protected in #2568. A separately reviewed and released
-[timing2 attempt](../labs/counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md)
+[timing2 attempt](../../archive/labs/counterfactual-baseline-reuse-timing-uuid-blocker-2026-10-17/README.md)
 refused a different actual GPU UUID before any instrument execution, despite
 the matching driver. The archive-copy omission was recovered with exact hashes
 and full cloud verification before teardown. Timing and checkpoint0 parity remain
@@ -51,7 +51,7 @@ six flock in2.833462330s and eight driver in2.948602761s. The controller started
 eleven isolated authored fixture apply calls produced eight updates, with zero
 corpus updates. D2 operation-cost measurement **PASS**, completed at
 `2026-10-14T00:43:57Z` in66.633432500s:30/30 timed API calls,12/12 proposal
-samples, applied updates0. [Raw measurement](../labs/discrete-driver-cost-2026-10-13/receipts/measurement.json).
+samples, applied updates0. [Raw measurement](../../archive/labs/discrete-driver-cost-2026-10-13/receipts/measurement.json).
 
 At the authored V4096/B4/context192/64-row shape, synchronized native API medians
 (three timed repetitions after separate warm-up) are:
@@ -84,17 +84,17 @@ Claude's original conditional review is preserved; its follow-up was unavailable
 attributed to Claude. The earlier seventeen-control result below retains its
 prior source scope and Claude FIT attribution.
 
-**Prior integration result, 13 October 2026 (source76198c3b5):** optional `ReadSpec::Flock { kept }` and ternary `Parameter::Gate` proposals are integrated with the same integer codebook and geometric writer under snapshot schema2. At exact source `76198c3b5321cc42ced8a0b4a3728aebfd89c2a4`, eleven Route regressions and six new flock controls passed **17/17**, exit0, from23:14:21Z to23:14:36Z after [prospective Claude FIT](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6157157748). Applied updates0; training and M2 remain **HELD**, and M1's reply-quality target remains **SUSPENDED** under R14. Delivered by [PR #2395](https://github.com/UOR-Foundation/uor-r4/pull/2395), merged at `69206d854e4920dc21765345618db8cbfe78ebb1`. [Integration and finite qualification record](../labs/discrete-flock-writer-integration-2026-10-13/README.md).
+**Prior integration result, 13 October 2026 (source76198c3b5):** optional `ReadSpec::Flock { kept }` and ternary `Parameter::Gate` proposals are integrated with the same integer codebook and geometric writer under snapshot schema2. At exact source `76198c3b5321cc42ced8a0b4a3728aebfd89c2a4`, eleven Route regressions and six new flock controls passed **17/17**, exit0, from23:14:21Z to23:14:36Z after [prospective Claude FIT](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6157157748). Applied updates0; training and M2 remain **HELD**, and M1's reply-quality target remains **SUSPENDED** under R14. Delivered by [PR #2395](https://github.com/UOR-Foundation/uor-r4/pull/2395), merged at `69206d854e4920dc21765345618db8cbfe78ebb1`. [Integration and finite qualification record](../../archive/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
 The following #2379 status and finite result retain their prior **Route-only** scope; they do not qualify the new flock read.
 
-**Status, 13 October 2026:** source `a2a5b89cdddd1b32bf32f0e3c18d6b21e994e523` passes all eleven admitted CUDA construction controls after [Claude FIT](https://github.com/UOR-Foundation/uor-r4/pull/2379#issuecomment-6156328158) and [PM acceptance](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6156348413). Attempt3 finished at22:24:58Z, exit0; source/executable and exact bars are unchanged. Three host metadata tests pass. Attempts1/2 remain **OUT_OF_REQUIRED_REVIEW_ORDER** observations. Delivery: [PR #2379](https://github.com/UOR-Foundation/uor-r4/pull/2379). All training holds remain **HELD**, `apply` has never executed, and M1's quality target remains **SUSPENDED** pending a discriminating reply grader under R14. [Canonical source/qualification record](../labs/discrete-geometric-learning-2026-10-13/README.md).
+**Status, 13 October 2026:** source `a2a5b89cdddd1b32bf32f0e3c18d6b21e994e523` passes all eleven admitted CUDA construction controls after [Claude FIT](https://github.com/UOR-Foundation/uor-r4/pull/2379#issuecomment-6156328158) and [PM acceptance](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6156348413). Attempt3 finished at22:24:58Z, exit0; source/executable and exact bars are unchanged. Three host metadata tests pass. Attempts1/2 remain **OUT_OF_REQUIRED_REVIEW_ORDER** observations. Delivery: [PR #2379](https://github.com/UOR-Foundation/uor-r4/pull/2379). All training holds remain **HELD**, `apply` has never executed, and M1's quality target remains **SUSPENDED** pending a discriminating reply grader under R14. [Canonical source/qualification record](../../archive/labs/discrete-geometric-learning-2026-10-13/README.md).
 
 **Idea:** learn integer carriers, categorical geometric frames and optional ternary read gates directly. For a selected geometric parameter, replay the bounded context-to-writer path under identity and each of15 actual bivector moves, over baseline-fixed eligible rows. Choose minimum integer cost, identity first on ties, then lowest resulting port identity, then declared enumeration index. A flock gate instead compares its current trit and the two siblings in `[0,-1,+1]` order with the current value skipped; ties retain the earliest ordinal. The source commit rule permits only an improving move; eight disposable fixture updates now qualify its finite boundary, while corpus commits remain held. This replaces a floating-point optimizer/surrogate proposal with a finite exact geometric neighborhood; it does not establish that this neighborhood is sufficient for language learning.
 
 **Implemented roles:** the existing exact 64-state signed-axis group supplies action/composition/inverse tables and actual BFS transport; its sixteen-root anchor orbit supplies 8D integer vector blocks. Ordered ternary FBS children/frontier retain the supplied context. In `ReadSpec::Route`, **selection is query-addressed:** the transformed query is compared with fixed branch/frontier roots, not leaf contents. Coordinate L1 orders route ports, coordinate Hamming breaks displacement ties, and stable port identity resolves remaining route ties. Leaf contents determine the carried payload. The query's own leaf can be selected; it is causal because that leaf belongs to the supplied prefix, not the next-token target. A shared CUDA codebook is used natively at token input and output, including codebook counterfactuals at all repeated input and target/candidate occurrences. Exact token identity resolves output ties; no hash-bit semantic metric is adopted.
 
-In optional `ReadSpec::Flock { kept }`, the integrated [Claude design](../labs/discrete-murmuration-read-2026-10-13/README.md) selects up to1–8 earlier atoms or eligible same-level FBS binders by their own frame contents: frame L1, coordinate Hamming, recency, then stable node identity. Every binder descendant must precede the last valid query. A payload block uses another block of the same vector as its frame (`f(0)=blocks-1`, otherwise `f(b)=0`); actual BFS actions between source/query frames carry the payload rather than mapping every payload to the query. Binder summaries transport children into the first child's frame. An exact integer snap chooses an orbit root from the sum using the actual kept count. Ternary gates add, ignore or subtract each present level consensus, followed by an exact residual snap. All-zero gates return the query vector. This construction retains the same carrier and writer; gate monotonicity under L1 remains open, and neither collision freedom nor universal sensitivity is claimed.
+In optional `ReadSpec::Flock { kept }`, the integrated [Claude design](../../archive/labs/discrete-murmuration-read-2026-10-13/README.md) selects up to1–8 earlier atoms or eligible same-level FBS binders by their own frame contents: frame L1, coordinate Hamming, recency, then stable node identity. Every binder descendant must precede the last valid query. A payload block uses another block of the same vector as its frame (`f(0)=blocks-1`, otherwise `f(b)=0`); actual BFS actions between source/query frames carry the payload rather than mapping every payload to the query. Binder summaries transport children into the first child's frame. An exact integer snap chooses an orbit root from the sum using the actual kept count. Ternary gates add, ignore or subtract each present level consensus, followed by an exact residual snap. All-zero gates return the query vector. This construction retains the same carrier and writer; gate monotonicity under L1 remains open, and neither collision freedom nor universal sensitivity is claimed.
 
 The writer derives every token's product cell from its **current first/last vector root indices**, ranks admitted identities and separately scores omitted targets. Cells change with real or virtual codebook moves; token numbers do not define geometric admission. Bounded full-vocabulary scans preserve all identities in crowded cells and skip empty cells. The integer numerator is `8*token_hinge + width*address_hinge` over `8*width`, with one best token/address rival and margins `width`/`8`. An absent comparison contributes zero and an explicit zero rival count. Learning fixes eligibility from the baseline, skips baseline-ineligible rows, refuses wholly ineligible batches and makes rival-removing moves noncompetitive. A learned zero cannot be inferred from a vacuous comparison. This is a new objective, not a renamed old multi-rival or normalized-exponential law.
 
@@ -115,7 +115,7 @@ and TRAIN-masked count reference, with DEV oracle diagnostic only; zero-rival ze
 loss is not eligible learning. Reports distinguish evaluation lineage and actual
 snapshot identity. The complete transition loop accepts an opaque owner-admission
 capability; default requests return `TrainingHeld`. The
-[A2 admission controller](../labs/discrete-admission-2026-10-14/README.md) adds an
+[A2 admission controller](../../archive/labs/discrete-admission-2026-10-14/README.md) adds an
 explicitly released seed1/1640-batch diagnostic pilot and trained-checkpoint
 evaluation, gated by pinned source/artifact/data, Claude review and Casey D4
 release records. Its changed receipt ABI passed all25 finite CUDA controls

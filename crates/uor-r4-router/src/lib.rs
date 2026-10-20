@@ -627,7 +627,7 @@ impl UorR4Router {
         // semantic embedding, so re-grounded scoring ranks at chance (a "fox"
         // query ranks the fox sentence last). Until VSA has a real encoder,
         // Spectral is the semantic retrieval path. See
-        // `docs/geometry_ablation_434.md` and #493.
+        // `archive/geometry_ablation_434.md` and #493.
         if self.geometry_type == GeometryType::Vsa {
             eprintln!(
                 "warning: geometry_type=Vsa — VSA retrieval does NOT rank by content \
@@ -1139,7 +1139,7 @@ impl UorR4Router {
     }
 
     /// Build the query projection full-width rather than band-only
-    /// (issue #480). Default off — see `docs/query_projection_480.md` for
+    /// (issue #480). Default off — see `archive/query_projection_480.md` for
     /// why the symmetric shape was measured and NOT adopted.
     pub fn set_full_width_query(&mut self, full_width: bool) {
         self.full_width_query = full_width;
@@ -2159,7 +2159,7 @@ impl UorR4Router {
         // zeroed query coordinates contribute nothing to a dot product, so
         // the cosine only ever sees the band however wide the stored vector
         // is — and it is **deliberately retained**. Do not "fix" it without
-        // reading `docs/query_projection_480.md` first.
+        // reading `archive/query_projection_480.md` first.
         //
         // Measured at 46,342 windows / 500 probes: making the shapes
         // symmetric is worth +0.006 MRR and +0.008 top-1 while costing

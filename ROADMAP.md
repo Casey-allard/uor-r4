@@ -24,9 +24,9 @@ This work recomputes no admission and establishes no causal admission-loss
 conclusion. There is no paired DEV verdict, KEEP or fresh success; fresh remains sealed.
 
 **Historical M1 path, 18 October:** the
-[minimal device token-cell input producer](docs/labs/attention-token-cell-export-2026-10-17/README.md),
+[minimal device token-cell input producer](archive/labs/attention-token-cell-export-2026-10-17/README.md),
 is delivered in #2601 with reviewed Gate9 construction. The separately released
-[Battery3 preflight](docs/labs/attention-preflight-2026-10-17/README.md) now passes
+[Battery3 preflight](archive/labs/attention-preflight-2026-10-17/README.md) now passes
 its actual device export, initial admission, sensitivity and9-control
 qualification gates with zero applies; all26 steps and original operator exit0.
 The original paired Relation/frozen-zero learning test under the
@@ -84,7 +84,7 @@ landed; the D33-released seed-1 pilot completed 1,640 batches and 236 accepted
 vector updates. DEV top-1/top-8 counts increased 17/173 → 82/1,169 over 14,287
 targets, while aggregate loss increased. This is diagnostic only; the next
 dependency is Kimi/Claude's prospective successor-sheet review, not another
-launch. [Result and preserved artifacts](docs/labs/a2-pilot-2026-10-14/README.md).
+launch. [Result and preserved artifacts](archive/labs/a2-pilot-2026-10-14/README.md).
 The historical reply-quality target remains SUSPENDED pending
 a discriminating grader; D39's current interim headline and closing conditions
 are separate, as recorded above. Earlier operator/31/18-control float entries
@@ -94,7 +94,7 @@ an explicitly released scope and the separate M2 training/rental hold remain
 HELD; completed experiments do not authorize later work. Each unreleased
 successor needs its own applicable authorization and gates. Kimi owns the
 discrete successor sheet; a FIT review releases no hold.
-[Discrete flock/writer record](docs/labs/discrete-flock-writer-integration-2026-10-13/README.md).
+[Discrete flock/writer record](archive/labs/discrete-flock-writer-integration-2026-10-13/README.md).
 
 Updated 18 October 2026. **Pre-alpha.** Useful conversation, broad reasoning, coding, frontier
 capability and lower complete-path energy are not established.
@@ -104,9 +104,9 @@ tracker [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028); each mile
 [current state](docs/integration/current-state.md). Owner decisions:
 [DECISIONS](docs/integration/DECISIONS.md). Long-form plan and history:
 [canonical plan](docs/integration/project-track.md). The 29 September roadmap is preserved in
-[docs/history/roadmap-2026-09-29-snapshot.md](docs/history/roadmap-2026-09-29-snapshot.md).
+[docs/history/roadmap-2026-09-29-snapshot.md](archive/history/roadmap-2026-09-29-snapshot.md).
 
-The [artifact hash-domain repair](docs/labs/attention-hash-domains-2026-10-17/README.md)
+The [artifact hash-domain repair](archive/labs/attention-hash-domains-2026-10-17/README.md)
 is protected-delivered at23d5 after Gate10 five-command construction/host PASS;
 Battery3 remains accepted as-is, no rerun/rescore. The
 [Dose 1 selected packet](docs/labs/attention-dose1-packet-2026-10-18/README.md)
@@ -147,13 +147,13 @@ Fresh transfer remains before KEEP, rather than a training-start gate.
 
 ## Earlier operator qualification (pre-D32, inactive)
 
-**D29 compiled-source dependency:** corrected native-only source `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c` passes the CUDA build and all 31 exact finite controls on RTX4090, nvcc12.8.93, compute_89, Rust1.97.1. The registered `geometric-stack` example uses the new native train/evaluate path. Historical core/integer model executors, model-source/GEMM, retired LUT engines and exporter/teacher modules are excluded. Static vendor PTX/dependency/import checks and all five project interlocks pass; exactly three project PTX modules remain. Failed driver, registration/controller and clipping attempts are preserved as corrected blockers. Earlier qualification receipts below remain source-scoped history. Independent Amendment6 FIT is recorded; protected delivery and explicit owner hold release remain. No optimizer update, corpus/training/CPU model execution or S1 read activation occurred. [Record](docs/labs/d29-vendor-boundary-2026-10-13/README.md).
+**D29 compiled-source dependency:** corrected native-only source `1f1547bfd70f01edc9aa36d34a46e5bc43edc34c` passes the CUDA build and all 31 exact finite controls on RTX4090, nvcc12.8.93, compute_89, Rust1.97.1. The registered `geometric-stack` example uses the new native train/evaluate path. Historical core/integer model executors, model-source/GEMM, retired LUT engines and exporter/teacher modules are excluded. Static vendor PTX/dependency/import checks and all five project interlocks pass; exactly three project PTX modules remain. Failed driver, registration/controller and clipping attempts are preserved as corrected blockers. Earlier qualification receipts below remain source-scoped history. Independent Amendment6 FIT is recorded; protected delivery and explicit owner hold release remain. No optimizer update, corpus/training/CPU model execution or S1 read activation occurred. [Record](archive/labs/d29-vendor-boundary-2026-10-13/README.md).
 
 [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction):
 Kimi is project manager; no softmax/softplus/sigmoid/tanh or equivalent squashing,
 no dense matrix multiplication in training/serving, GPU-only model/reference
 compute and no host fallback. **Training and M2 training/rental remain held.**
-[OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a geometric head](docs/labs/operator-phase-2026-10-12/README.md)
+[OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a geometric head](archive/labs/operator-phase-2026-10-12/README.md)
 are source dependencies, followed by complete-path/device qualification, amended
 prospective FIT and explicit release of the applicable owner hold before training.
 No partial-trunk fit or fresh prohibited comparator. Rung0 is suspended; rung0b
@@ -161,15 +161,15 @@ follows the operator phase/resumed rung0, then teacher-free starling.
 Both lines must learn/use one native vector representation and writer under the
 owner's current clarification (E8/SpiralCore/icosian/FSB and flock/murmuration).
 Existing 8D structural blocks do not freeze total width or import a MiniLM 384D
-dependency. The [OP3a/shared writer](docs/labs/geometric-head-shared-writer-2026-10-13/README.md)
+dependency. The [OP3a/shared writer](archive/labs/geometric-head-shared-writer-2026-10-13/README.md)
 uses one learned table across Stack and compiler/store/emitter adapters; finite
 CUDA controls pass and protected #2301 delivery is verified at `d41dc422f`.
-The [complete-path repair](docs/labs/rung0-complete-path-2026-10-13/README.md)
+The [complete-path repair](archive/labs/rung0-complete-path-2026-10-13/README.md)
 implements ordinary recurrence dispatch, rate credit, CLI/row-cap/dev-metric
 repairs at `05c84bece50789163bd0f049a2ae76b8a314ef45`;18 finite controls pass at the
 actual rung-0 shape, delivered in protected #2318 merge
 `5b22739a31eafb131d25e098bb7f02ab803d4fe7`. The new
-[masked TRAIN count-reference repair](docs/labs/count-reference-2026-10-13/README.md)
+[masked TRAIN count-reference repair](archive/labs/count-reference-2026-10-13/README.md)
 is implemented at frozen source `2fd6358bbc52d2a202a872ad0954ebb12894606f`;
 11 new finite controls PASS (9 metadata,2 CUDA); protected [PR #2328](https://github.com/UOR-Foundation/uor-r4/pull/2328) merged at `9e904a83448c451f738d5c1d45224dfdf73eb84e`. Amendment5
 has independent scientific [Claude CONFIRM FIT6146716704](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6146716704), with unchanged bars.
@@ -187,7 +187,7 @@ closes only when its acceptance is met on the saved model.
 
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
-| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi PM; Codex executor; independent reviewers) | [K16 rows qualification](docs/labs/k16-rows-qualification-2026-10-18/README.md): declared GPU gates and two checkpoint-0 A/R100+1 timing cells passed at 21224b446. DATA/operator custody verified; Claude ACCEPT; PM dispatch ISSUED_GATED_START; four-init coverage census POSTED_PASS; census report custody retrieved/hash-verified; K16-A/seed1 COMPLETED 16,404/407 (20:58:35Z); K16-R-seed1 COMPLETED 16,404/130 (22:02:38Z); A-seed2 COMPLETED 16,404/410 (22:39:16Z); R-seed2 COMPLETED 16,404/129 (exit 0 23:16:56Z; report 6ed5d05d, final eval 0dfd6fa5). Rows Q1 diagnosis remains a separate consumed configuration. | D39 interim headline: injective codebook + Q4 target admission ≥ 4,894. M1 closes on one saved artifact with G-Pre ≥ 4,894, G-Adm both seeds, G-Occ > 16 occupied cells and an actual R > 0 row, ≤0.90 BPB through D11 export with gap reported, and fresh pre-registered transfer. Historical reply37/232 stays SUSPENDED under R14; it is not a closing condition. The four-config measured packet is accepted; owner gated release6254435225, PM dispatch6254457591 and GO6254507680 are issued. K16-A/seed1 COMPLETED 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); R-seed1 COMPLETED 16,404/130, exit 0 22:02:38Z (report 2c0ccad5, eval bb6885e8); A-seed2 COMPLETED 16,404/410, exit 0 22:39:16Z (report 3d4d17fe, final eval d7976a0b); R-seed2 COMPLETED 16,404/129 (exit 0 23:16:56Z; report 6ed5d05d, final eval 0dfd6fa5); registered paired interpretation pending. | P_succ target admission2,034/3,847 initially →225 treatment/205 frozen-zero, both below500 and halfinitial with nonzero sensitivity. No full-dose efficacy, fresh result, mechanism verdict or KEEP. [Historical D33 pilot](docs/labs/a2-pilot-2026-10-14/README.md):1,640 batches/236 accepted vectors, DEV top-1/top-8 17/173→82/1,169 with increased loss; mixed diagnosis, not useful-language qualification. |
+| M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Kimi PM; Codex executor; independent reviewers) | [K16 rows qualification](docs/labs/k16-rows-qualification-2026-10-18/README.md): declared GPU gates and two checkpoint-0 A/R100+1 timing cells passed at 21224b446. DATA/operator custody verified; Claude ACCEPT; PM dispatch ISSUED_GATED_START; four-init coverage census POSTED_PASS; census report custody retrieved/hash-verified; K16-A/seed1 COMPLETED 16,404/407 (20:58:35Z); K16-R-seed1 COMPLETED 16,404/130 (22:02:38Z); A-seed2 COMPLETED 16,404/410 (22:39:16Z); R-seed2 COMPLETED 16,404/129 (exit 0 23:16:56Z; report 6ed5d05d, final eval 0dfd6fa5). Rows Q1 diagnosis remains a separate consumed configuration. | D39 interim headline: injective codebook + Q4 target admission ≥ 4,894. M1 closes on one saved artifact with G-Pre ≥ 4,894, G-Adm both seeds, G-Occ > 16 occupied cells and an actual R > 0 row, ≤0.90 BPB through D11 export with gap reported, and fresh pre-registered transfer. Historical reply37/232 stays SUSPENDED under R14; it is not a closing condition. The four-config measured packet is accepted; owner gated release6254435225, PM dispatch6254457591 and GO6254507680 are issued. K16-A/seed1 COMPLETED 16,404/407, exit 0 at 20:58:35Z (report fa863063, final 6936cf99); R-seed1 COMPLETED 16,404/130, exit 0 22:02:38Z (report 2c0ccad5, eval bb6885e8); A-seed2 COMPLETED 16,404/410, exit 0 22:39:16Z (report 3d4d17fe, final eval d7976a0b); R-seed2 COMPLETED 16,404/129 (exit 0 23:16:56Z; report 6ed5d05d, final eval 0dfd6fa5); registered paired interpretation pending. | P_succ target admission2,034/3,847 initially →225 treatment/205 frozen-zero, both below500 and halfinitial with nonzero sensitivity. No full-dose efficacy, fresh result, mechanism verdict or KEEP. [Historical D33 pilot](archive/labs/a2-pilot-2026-10-14/README.md):1,640 batches/236 accepted vectors, DEV top-1/top-8 17/173→82/1,169 with increased loss; mixed diagnosis, not useful-language qualification. |
 | M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | held | Saved≥256/512 AND genuinely fresh≥40%, existing panels/graders unchanged | Saved437/512 + opened0/128 remain panel fitting; fresh NOT_RUN. Whole-path recovery source delivered; sampled law refuses; shared vector infrastructure finite CUDA-qualified, full M2 unqualified, count12/3 after masked TRAIN-reference #2328 delivery (prior11/3 retained; closeout is the same unit), no reset; new evaluator qualification11 controls PASS (9 metadata,2 CUDA) and Amendment5 independentCONFIRMFIT; Amendment6 sheetFIT; repaired compiled boundary 31 controls PASS at `1f1547bfd`; protected delivery pending |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | paused | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) (Claude read source) | held | One model under D11 and full D23–D25 compliance; old runtime-only/metric clauses require prospective owner amendment | Historical artifacts/components retained inactive; model/stack executors are excluded from the selected integer facade. No old SoftSort/dense-bootstrap/teacher follow-up; compliant trunk/rung0b precede teacher-free starling |
@@ -206,7 +206,7 @@ Standing issues: compute board [#2037](https://github.com/UOR-Foundation/uor-r4/
 
 | Experiment | Milestone | Status | Question |
 | --- | --- | --- | --- |
-| Native VSA retraining (4 arms × 2 seeds) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **done: KEEP** ([record](docs/labs/vsa-native-test-2026-10-09/README.md)) | Trained VSA (fixed codes) improves held-out BPB by 0.014–0.023. Icosian-root codes don't: they collapse token identity. Mode 2 (root + per-token residual) is worse than fixed codes on all 4 cells: not KEEP |
+| Native VSA retraining (4 arms × 2 seeds) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **done: KEEP** ([record](archive/labs/vsa-native-test-2026-10-09/README.md)) | Trained VSA (fixed codes) improves held-out BPB by 0.014–0.023. Icosian-root codes don't: they collapse token identity. Mode 2 (root + per-token residual) is worse than fixed codes on all 4 cells: not KEEP |
 | Softmax-free reads: soft (A), flock rank (B), B + prime-route copy (C), Hamming-rank (D), learned rank (L, W), SoftSort (S) | M4 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | inactive historical evidence; no rerun under D23–D25 | Can served reads drop the table-emulated softmax with no loss? Not yet: the best is +0.017 BPB |
 | Ring-product read (Z/256 byte ring; quaternion/icosian arm) | M4 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | retained proposal; no compute admission | Can a read scored and admitted by exact ring arithmetic, with no softmax and no multiplier, match the softmax read? |
 | Spin-native model: quaternion and icosian weights, starling read, E8 orbit memory ([design](https://github.com/UOR-Foundation/uor-r4/issues/2032#issuecomment-6104974064)) | M4 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | inactive historical evidence; prior rung 0 KEEP; exact weights at dense quality (KEEP); exact activations post-hoc +0.020, trained-in no better (historical proposed successor, held); starling: a training-time softmax surrogate teaches content ranking; starling read + base-3 tree + dense bootstrap: 3/5 seeds match softmax at 1536 (0.96–0.999), no softmax at runtime (historical proposed successor, held); E8 rung 1: half the MLPs +0.033 BPB at ~10× fewer ops, but learned keys beat E8 addresses (historical proposed successor, held) | Can SpiralCore's finite spin geometry (exact icosian table products, 600-cell neighbours, E8 orbits) replace the dense matrices, the softmax read and the MLPs at much lower compute per token? |
@@ -242,4 +242,4 @@ the mission path.
 | **R2: no multiplier** | No integer multiply or divide instruction in served kernels ([D0-b](docs/integration/DECISIONS.md#d0-b--what-no-matmul-at-serving-means-adopted)). Products of runtime values use product or quarter-square tables, or exact geometric structure (signed permutations, ℤ[φ] shift-add). D10's hardware-multiplier exception is not adopted by any lab. | The same audit. |
 | **R3: no matmul** | End state: no dense per-token access to a learned weight store ([D5](docs/integration/DECISIONS.md#d5--per-token-parameter-sparsity-is-the-terminal-serving-invariant), split into D5-a residency and D5-b sparsity by [D38](docs/integration/DECISIONS.md#d38--d5-split-d5-a-residency-and-d5-b-sparsity-owner-2026-10-18)). D25 supersedes the earlier dense-map stepping stone: geometric/addressed operators are required in training and serving; a handwritten dense contraction is not a substitute. Preserve old maps as inactive evidence. | Report the D38 halves separately: D5-a needs post-warmup hardware-counter cache/DRAM bytes per token; when the model exceeds cache, D5-b needs measured selected parameter access per token. Residency does not establish sparsity. |
 | **R4: no transformer** | No served backbone whose primary mechanism is stacked dense all-pairs attention plus MLP. A model counts as a transformer when most of its token-mixing layers are dense all-pairs reads. Converted open-weight transformers (D10's SmolLM2) remain inactive historical evidence; D23–D25 prohibit new comparator/teacher execution through banned operations. Recurrence-primary hybrids (most token mixing recurrent) are interim, and their reads move to bounded geometric or exact addressing (D5/D6). | An architecture statement in the PR. |
-| **R5: honest cost** | An integer path is not an efficiency result. Energy may be claimed only when measured on the M1 in J/token. Bytes touched per token set the energy floor, not multiplier count ([first-principles review §5](docs/integration/first-principles-review-2026-09-25.md)). | Measured J/token, RSS and tokens/s, plus separate [D38](docs/integration/DECISIONS.md#d38--d5-split-d5-a-residency-and-d5-b-sparsity-owner-2026-10-18) evidence: D5-a post-warmup hardware-counter cache/DRAM bytes per token and, when the model exceeds cache, D5-b measured selected parameter access per token. |
+| **R5: honest cost** | An integer path is not an efficiency result. Energy may be claimed only when measured on the M1 in J/token. Bytes touched per token set the energy floor, not multiplier count ([first-principles review §5](archive/integration/first-principles-review-2026-09-25.md)). | Measured J/token, RSS and tokens/s, plus separate [D38](docs/integration/DECISIONS.md#d38--d5-split-d5-a-residency-and-d5-b-sparsity-owner-2026-10-18) evidence: D5-a post-warmup hardware-counter cache/DRAM bytes per token and, when the model exceeds cache, D5-b measured selected parameter access per token. |

@@ -1,6 +1,6 @@
 //! Semantic Compression & Rate-Distortion Analyzer
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §7;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §7;
 //! `docs/formal_vocabulary.md` §4; GitHub Issue #136.
 //!
 //! This module formalizes compilation $C: \Theta \to G$ as lossy semantic compression:

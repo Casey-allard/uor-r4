@@ -4872,7 +4872,7 @@ fn persisted_engine_preference() -> Option<String> {
 
 /// #655-E: whether ordinary requests may reach any tier beyond r4g1
 /// (`Production`), or the full issue-#248 cascade as it exists today
-/// (`Experimental`). See `docs/serving_engine_profiles_655_e.md` for the
+/// (`Experimental`). See `archive/serving_engine_profiles_655_e.md` for the
 /// full design record, including why "Production" means `TIER_R4G1`
 /// specifically and not the separately-pathed `TIER_TRANSFORMERLESS`
 /// tier of the same colloquial adjective.
@@ -28891,7 +28891,7 @@ mod tests {
     /// constructing a real `ServingModelState`/router/tless triple:
     /// under `Production`, only `TIER_R4G1` is ever admitted, regardless
     /// of what `pinned` names -- this is exactly decision #3 from
-    /// `docs/serving_engine_profiles_655_e.md` ("a persisted preference
+    /// `archive/serving_engine_profiles_655_e.md` ("a persisted preference
     /// for a disallowed tier stays silently inert"): a stale
     /// `last_engine.txt="attention"` reaching `run_serving_cascade` as
     /// `pinned = Some(TIER_ATTENTION)` still admits r4g1 and nothing else.

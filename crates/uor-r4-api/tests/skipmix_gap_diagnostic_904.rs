@@ -1,12 +1,12 @@
 //! #904 -- cheap, off-serving diagnostic decomposing the #897
-//! LOWERING-FIDELITY GAP (`docs/skipmix_lane_897_result.json`:
+//! LOWERING-FIDELITY GAP (`archive/skipmix_lane_897_result.json`:
 //! deployed-lane follow 41/87, below the predeclared 53/87 bar) into its
 //! candidate causes, before any fix is chosen (Casey's "diagnose the gap
 //! first" sign-off on #897/#903's follow-up).
 //!
 //! ## Correction to the #897 record
 //!
-//! `docs/skipmix_lane_897_spotcheck.md` named "the per-key top-64 cap" as a
+//! `archive/skipmix_lane_897_spotcheck.md` named "the per-key top-64 cap" as a
 //! suspect. It is not: the reference `Tables` here and the deployed
 //! `skipmix_fit::fit_skipmix_tables` both cap at the identical
 //! `CAP = DEFAULT_TOP_K = 64`. This harness does not re-test the cap.
@@ -46,7 +46,7 @@
 //!
 //! A fourth quantity, `deployed_follow`, is recomputed here as a
 //! reproduction control: it must equal the recorded 41/87
-//! (`docs/skipmix_lane_897_result.json`), and a per-position manual
+//! (`archive/skipmix_lane_897_result.json`), and a per-position manual
 //! re-derivation (base `ScoreQ.raw()` + this harness's own contribution
 //! replica, additive, same as production) must equal the engine's actual
 //! served token on every one of the 174 positions -- an instrument-fidelity
@@ -72,7 +72,7 @@
 //! No production code changes. Off-serving; gated behind `--ignored`, same
 //! discipline as `skipmix_lane_spotcheck_897.rs` and `segment_lane_
 //! spotcheck_886.rs`. Result written to
-//! `docs/skipmix_gap_diagnostic_904_result.json`.
+//! `archive/skipmix_gap_diagnostic_904_result.json`.
 //!
 //! Run:
 //!   cargo test -p uor-r4-api --release --test skipmix_gap_diagnostic_904 \
@@ -574,7 +574,7 @@ fn skipmix_gap_diagnostic_904() {
     assert_eq!(
         reference_favorable, REFERENCE_FAVORABLE_EXPECTED,
         "the reproduced skipmix favorable-pair count must match \
-         docs/skipmix_confirm_897_result.json's minimal_pairs.skipmix_follow"
+         archive/skipmix_confirm_897_result.json's minimal_pairs.skipmix_follow"
     );
     assert_eq!(
         base_follow, 0,
@@ -776,7 +776,7 @@ fn skipmix_gap_diagnostic_904() {
     assert_eq!(
         deployed_follow, DEPLOYED_FOLLOW_EXPECTED,
         "this harness's recomputed deployed-lane follow count must match \
-         docs/skipmix_lane_897_result.json's deployed_lane_follow exactly \
+         archive/skipmix_lane_897_result.json's deployed_lane_follow exactly \
          (same fit, same emitter, same engine, same replay) -- a mismatch \
          means something about the bundle or code changed since #897/#903"
     );

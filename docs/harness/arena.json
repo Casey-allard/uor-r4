@@ -22,7 +22,7 @@
         "wrong_value_failures": 47
       },
       "notes": "The adopted base for M1. Root row: there is no parent to regress against.",
-      "record": "docs/labs/mixture-dose-2026-10-10/README.md"
+      "record": "archive/labs/mixture-dose-2026-10-10/README.md"
     },
     {
       "id": "addressed-read",
@@ -42,7 +42,7 @@
         "memory": 20
       },
       "notes": "-90% per-token compute on that layer, but +36.9M params and a 20x training wall as implemented; BPB pending because the pod was reaped before its evaluations.",
-      "record": "docs/labs/addressed-read-2026-10-11/README.md"
+      "record": "archive/labs/addressed-read-2026-10-11/README.md"
     },
     {
       "id": "starling-tree",
@@ -63,7 +63,7 @@
         "candidates_per_query": 36
       },
       "notes": "Root row for the murmuration ladder: retention fixed (recall flat to d1000) but the readout limits. The tree met its own mechanism target, so it is KEEP under D22 section 2.",
-      "record": "docs/labs/starling-tree-2026-10-12/README.md"
+      "record": "archive/labs/starling-tree-2026-10-12/README.md"
     },
     {
       "id": "starling-readout-distill",
@@ -84,7 +84,7 @@
         "candidates_per_query": 69
       },
       "notes": "One seed reaches 0.964 (softmax-level, flat to d1000, held-out 0.955) at 68.9 candidates per query; two seeds never learn the task. Mean 0.377 against WT 0.329. The limit is learning reliability, not the mechanism.",
-      "record": "docs/labs/starling-readout-2026-10-12/README.md"
+      "record": "archive/labs/starling-readout-2026-10-12/README.md"
     },
     {
       "id": "m2-whole-path",
@@ -101,7 +101,7 @@
       "scope": "connected CPU source reference; 15 tiny whole-path fixtures and 7 native-bank regressions pass; no optimizer or training was run",
       "scores": {},
       "notes": "Recorded so the lineage is honest rather than empty: this is a source reference, not a trained model, language or transfer result. The training hold is in force.",
-      "record": "docs/labs/whole-path-implementation-2026-10-12/README.md"
+      "record": "archive/labs/whole-path-implementation-2026-10-12/README.md"
     }
   ],
   "bars": {

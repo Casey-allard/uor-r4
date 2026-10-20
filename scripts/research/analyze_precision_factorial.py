@@ -163,7 +163,7 @@ def parent(arm):
 
 def load_evaluator():
     global DEV, EVALUATOR_DOCUMENT
-    path = WORK / 'docs/integration/reference-evaluator-v2.json'
+    path = WORK / 'archive/integration/reference-evaluator-v2.json'
     require(identity(path)['sha256'] == EVALUATOR_SHA, 'Evaluator identity differs')
     evaluator = read_json(path)
     EVALUATOR_DOCUMENT = evaluator
@@ -303,7 +303,7 @@ def endpoint_check(new, old):
 
 
 def verify_frozen_inputs():
-    path = WORK / 'docs/evidence/precision-factorial-inputs-2026-09-25.json'
+    path = WORK / 'archive/evidence/precision-factorial-inputs-2026-09-25.json'
     receipt = read_json(path)
     require(receipt['schema'] == 'uor-r4.precision-factorial-inputs/1' and set(receipt['arms']) == set(ARMS), 'Input receipt schema/arms differ')
     checked = []

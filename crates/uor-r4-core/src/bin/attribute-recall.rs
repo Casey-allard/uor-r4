@@ -8,7 +8,7 @@
 //!
 //! # Method: the index is inverted on purpose
 //!
-//! `docs/integration/native-core-transition-plan.md` (E1.4) describes indexing
+//! `archive/integration/native-core-transition-plan.md` (E1.4) describes indexing
 //! every k-gram of `tinystories_train.u16`. That index does not fit in memory
 //! (555M tokens, 9 values of k). This tool inverts it: the **small** side — the
 //! generated sequence, typically 64..4096 tokens — is built into a

@@ -1,0 +1,1634 @@
+{
+  "schema": 2,
+  "note": "The frozen interface between the harness and its persisted state. A Rust port (owner decision, 13 October 2026, D27) must read and produce exactly these, so the two implementations are interchangeable. A key marked optional is present in some documents and absent in others; a key WITHOUT that mark must be present in every one. An empty array matches any item shape. scripts/harness/statecheck.py checks this against the real files. A kind of 'mixed' means the key carries more than one JSON type across records, listed in `types`; a value whose type is not in that list is drift (for example `count` is a string in heartbeat receipts and a number in team receipts); a reader must handle both.",
+  "formats": {
+    "milestones": {
+      "pattern": "docs/harness/milestones.json",
+      "files": 1,
+      "shape": {
+        "type": "object",
+        "keys": {
+          "constraint_freeze": {
+            "type": "object",
+            "keys": {
+              "as_of": {
+                "type": "string"
+              },
+              "exit": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            }
+          },
+          "milestones": {
+            "type": "object",
+            "keys": {
+              "m1": {
+                "type": "object",
+                "keys": {
+                  "base_artifact": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "issue": {
+                    "type": "number"
+                  },
+                  "lab": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "mechanisms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "project_manager": {
+                    "type": "string"
+                  },
+                  "secondary": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "training_hold": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "m2": {
+                "type": "object",
+                "keys": {
+                  "base_artifact": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "issue": {
+                    "type": "number"
+                  },
+                  "lab": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "mechanisms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "rental_hold": {
+                    "type": "boolean"
+                  },
+                  "secondary": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "training_hold": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "m3": {
+                "type": "object",
+                "keys": {
+                  "base_artifact": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "issue": {
+                    "type": "number"
+                  },
+                  "lab": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "mechanisms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              },
+              "m4": {
+                "type": "object",
+                "keys": {
+                  "base_artifact": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "issue": {
+                    "type": "number"
+                  },
+                  "lab": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "mechanisms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "secondary": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "training_hold": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "m5": {
+                "type": "object",
+                "keys": {
+                  "base_artifact": {
+                    "type": "string"
+                  },
+                  "carried_from": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "issue": {
+                    "type": "number"
+                  },
+                  "lab": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array"
+                  },
+                  "mechanisms": {
+                    "type": "array"
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "secondary": {
+                    "type": "array"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              },
+              "m6": {
+                "type": "object",
+                "keys": {
+                  "base_artifact": {
+                    "type": "string"
+                  },
+                  "carried_from": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "issue": {
+                    "type": "number"
+                  },
+                  "lab": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array"
+                  },
+                  "mechanisms": {
+                    "type": "array"
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "secondary": {
+                    "type": "array"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              },
+              "m7": {
+                "type": "object",
+                "keys": {
+                  "base_artifact": {
+                    "type": "string"
+                  },
+                  "carried_from": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "issue": {
+                    "type": "number"
+                  },
+                  "lab": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array"
+                  },
+                  "mechanisms": {
+                    "type": "array"
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "secondary": {
+                    "type": "array"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              },
+              "m8": {
+                "type": "object",
+                "keys": {
+                  "base_artifact": {
+                    "type": "string"
+                  },
+                  "carried_from": {
+                    "type": "string"
+                  },
+                  "headline": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "issue": {
+                    "type": "number"
+                  },
+                  "lab": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array"
+                  },
+                  "mechanisms": {
+                    "type": "array"
+                  },
+                  "next": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "secondary": {
+                    "type": "array"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "note": {
+            "type": "string"
+          },
+          "owner_rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "keys": {
+                "id": {
+                  "type": "string"
+                },
+                "rule": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "schema": {
+            "type": "number"
+          },
+          "tracker": {
+            "type": "object",
+            "keys": {
+              "issue": {
+                "type": "number"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "documents_observed": 1
+    },
+    "roles": {
+      "pattern": "docs/harness/roles.json",
+      "files": 1,
+      "shape": {
+        "type": "object",
+        "keys": {
+          "note": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "object",
+            "keys": {
+              "architecture-reviewer": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "delivery-reviewer": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "evidence-auditor": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "experiment-designer": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "history-curator": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "instrumenter": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "source-falsifier": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "systems-cost": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "test-methodologist": {
+                "type": "object",
+                "keys": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "route": {
+                    "type": "object",
+                    "keys": {}
+                  },
+                  "seat": {
+                    "type": "string"
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "when": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "schema": {
+            "type": "number"
+          }
+        }
+      },
+      "documents_observed": 1
+    },
+    "arena": {
+      "pattern": "docs/harness/arena.json",
+      "files": 1,
+      "shape": {
+        "type": "object",
+        "keys": {
+          "bars": {
+            "type": "object",
+            "keys": {
+              "bpb": {
+                "type": "object",
+                "keys": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "unit": {
+                    "type": "string"
+                  }
+                }
+              },
+              "candidates_per_query": {
+                "type": "object",
+                "keys": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "unit": {
+                    "type": "string"
+                  }
+                }
+              },
+              "hit_rate": {
+                "type": "object",
+                "keys": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "unit": {
+                    "type": "string"
+                  }
+                }
+              },
+              "memory": {
+                "type": "object",
+                "keys": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "unit": {
+                    "type": "string"
+                  }
+                }
+              },
+              "recall": {
+                "type": "object",
+                "keys": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "unit": {
+                    "type": "string"
+                  }
+                }
+              },
+              "reply": {
+                "type": "object",
+                "keys": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "unit": {
+                    "type": "string"
+                  }
+                }
+              },
+              "tokens_per_second": {
+                "type": "object",
+                "keys": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "unit": {
+                    "type": "string"
+                  }
+                }
+              },
+              "wrong_value_failures": {
+                "type": "object",
+                "keys": {
+                  "direction": {
+                    "type": "string"
+                  },
+                  "panel": {
+                    "type": "string"
+                  },
+                  "unit": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "keys": {
+                "artifact": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "mechanism": {
+                  "type": "string"
+                },
+                "milestone": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "panel": {
+                  "type": "string"
+                },
+                "parent": {
+                  "type": "nullable"
+                },
+                "record": {
+                  "type": "string"
+                },
+                "rows": {
+                  "type": "number"
+                },
+                "scope": {
+                  "type": "string"
+                },
+                "scores": {
+                  "type": "object",
+                  "keys": {}
+                },
+                "seeds": {
+                  "type": "number"
+                },
+                "verdict": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "limits": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "number"
+          }
+        }
+      },
+      "documents_observed": 1
+    },
+    "claims": {
+      "pattern": "docs/harness/claims.json",
+      "files": 1,
+      "shape": {
+        "type": "object",
+        "keys": {
+          "kimi/pm-rules-2026-10-13": {
+            "type": "object",
+            "keys": {
+              "branch": {
+                "type": "string"
+              },
+              "claimed_at": {
+                "type": "string"
+              },
+              "head": {
+                "type": "string"
+              },
+              "lab": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "optional": true
+          }
+        }
+      },
+      "documents_observed": 1
+    },
+    "research-data": {
+      "pattern": "docs/harness/research-data.json",
+      "files": 1,
+      "shape": {
+        "type": "object",
+        "keys": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "keys": {
+                "bytes": {
+                  "type": "number"
+                },
+                "files": {
+                  "type": "number"
+                },
+                "lab": {
+                  "type": "string"
+                },
+                "md5": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "remote": {
+                  "type": "string"
+                },
+                "uploaded": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "index": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "restored_check": {
+            "type": "object",
+            "keys": {
+              "content_digest_md5": {
+                "type": "string"
+              },
+              "files": {
+                "type": "number"
+              },
+              "result": {
+                "type": "string"
+              },
+              "what": {
+                "type": "string"
+              }
+            }
+          },
+          "schema": {
+            "type": "number"
+          },
+          "store": {
+            "type": "string"
+          }
+        }
+      },
+      "documents_observed": 1
+    },
+    "presence": {
+      "pattern": "docs/harness/presence/*.json",
+      "files": 1,
+      "shape": {
+        "type": "object",
+        "keys": {
+          "branch": {
+            "type": "string"
+          },
+          "doing": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "lab": {
+            "type": "string"
+          },
+          "milestone": {
+            "type": "string"
+          },
+          "next": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "number"
+          },
+          "session": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "updated": {
+            "type": "string"
+          },
+          "worktree": {
+            "type": "string"
+          }
+        }
+      },
+      "documents_observed": 1
+    },
+    "panels": {
+      "pattern": "docs/harness/panels/*.json",
+      "files": 8,
+      "shape": {
+        "type": "object",
+        "keys": {
+          "note": {
+            "type": "string"
+          },
+          "panels": {
+            "type": "object",
+            "keys": {
+              "m2-reply512": {
+                "type": "object",
+                "keys": {
+                  "bars": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "frozen": {
+                    "type": "boolean"
+                  },
+                  "grader": {
+                    "type": "string"
+                  },
+                  "milestone": {
+                    "type": "string"
+                  },
+                  "noise": {
+                    "type": "string"
+                  },
+                  "rows": {
+                    "type": "string"
+                  },
+                  "seeds": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "optional": true
+              },
+              "m3-memory": {
+                "type": "object",
+                "keys": {
+                  "bars": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "frozen": {
+                    "type": "boolean"
+                  },
+                  "grader": {
+                    "type": "string"
+                  },
+                  "milestone": {
+                    "type": "string"
+                  },
+                  "noise": {
+                    "type": "string"
+                  },
+                  "rows": {
+                    "type": "string"
+                  },
+                  "seeds": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "optional": true
+              },
+              "m4-served": {
+                "type": "object",
+                "keys": {
+                  "bars": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "frozen": {
+                    "type": "boolean"
+                  },
+                  "grader": {
+                    "type": "string"
+                  },
+                  "milestone": {
+                    "type": "string"
+                  },
+                  "noise": {
+                    "type": "string"
+                  },
+                  "rows": {
+                    "type": "string"
+                  },
+                  "seeds": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "optional": true
+              },
+              "m5-cost": {
+                "type": "object",
+                "keys": {
+                  "bars": {
+                    "type": "array"
+                  },
+                  "frozen": {
+                    "type": "boolean"
+                  },
+                  "grader": {
+                    "type": "string"
+                  },
+                  "milestone": {
+                    "type": "string"
+                  },
+                  "noise": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "rows": {
+                    "type": "string"
+                  },
+                  "seeds": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "optional": true
+              },
+              "m6-reasoning": {
+                "type": "object",
+                "keys": {
+                  "bars": {
+                    "type": "array"
+                  },
+                  "frozen": {
+                    "type": "boolean"
+                  },
+                  "grader": {
+                    "type": "string"
+                  },
+                  "milestone": {
+                    "type": "string"
+                  },
+                  "noise": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "rows": {
+                    "type": "string"
+                  },
+                  "seeds": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "optional": true
+              },
+              "m7-distribution": {
+                "type": "object",
+                "keys": {
+                  "bars": {
+                    "type": "array"
+                  },
+                  "frozen": {
+                    "type": "boolean"
+                  },
+                  "grader": {
+                    "type": "string"
+                  },
+                  "milestone": {
+                    "type": "string"
+                  },
+                  "noise": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "rows": {
+                    "type": "string"
+                  },
+                  "seeds": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "optional": true
+              },
+              "m8-alpha": {
+                "type": "object",
+                "keys": {
+                  "bars": {
+                    "type": "array"
+                  },
+                  "frozen": {
+                    "type": "boolean"
+                  },
+                  "grader": {
+                    "type": "string"
+                  },
+                  "milestone": {
+                    "type": "string"
+                  },
+                  "noise": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "rows": {
+                    "type": "string"
+                  },
+                  "seeds": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "optional": true
+              },
+              "v5-reply": {
+                "type": "object",
+                "keys": {
+                  "bars": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "keys": {}
+                    }
+                  },
+                  "frozen": {
+                    "type": "boolean"
+                  },
+                  "grader": {
+                    "type": "string"
+                  },
+                  "milestone": {
+                    "type": "string"
+                  },
+                  "noise": {
+                    "type": "string"
+                  },
+                  "rows": {
+                    "type": "string"
+                  },
+                  "seeds": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "optional": true
+              }
+            }
+          },
+          "schema": {
+            "type": "number"
+          }
+        }
+      },
+      "panel_shape": {
+        "type": "object",
+        "keys": {
+          "bars": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "keys": {
+                "current": {
+                  "type": "number"
+                },
+                "direction": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": "string",
+                  "optional": true
+                },
+                "of": {
+                  "type": "number"
+                },
+                "target": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "frozen": {
+            "type": "boolean"
+          },
+          "grader": {
+            "type": "string"
+          },
+          "milestone": {
+            "type": "string"
+          },
+          "noise": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "optional": true
+          },
+          "rows": {
+            "type": "string"
+          },
+          "seeds": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "documents_observed": 8
+    },
+    "ledger": {
+      "pattern": "docs/harness/ledger/*.jsonl",
+      "files": 3,
+      "row": {
+        "type": "object",
+        "keys": {
+          "actor": {
+            "type": "string",
+            "optional": true
+          },
+          "bar": {
+            "type": "string",
+            "optional": true
+          },
+          "branch": {
+            "type": "string",
+            "optional": true
+          },
+          "count": {
+            "type": "mixed",
+            "optional": true,
+            "types": [
+              "number",
+              "string"
+            ]
+          },
+          "event": {
+            "type": "string",
+            "optional": true
+          },
+          "headline": {
+            "type": "string",
+            "optional": true
+          },
+          "kind": {
+            "type": "string"
+          },
+          "lab": {
+            "type": "string"
+          },
+          "line": {
+            "type": "string",
+            "optional": true
+          },
+          "mechanism": {
+            "type": "string",
+            "optional": true
+          },
+          "milestone": {
+            "type": "string",
+            "optional": true
+          },
+          "next": {
+            "type": "string",
+            "optional": true
+          },
+          "note": {
+            "type": "string",
+            "optional": true
+          },
+          "outcome": {
+            "type": "string",
+            "optional": true
+          },
+          "posted": {
+            "type": "boolean",
+            "optional": true
+          },
+          "role": {
+            "type": "string",
+            "optional": true
+          },
+          "route": {
+            "type": "string",
+            "optional": true
+          },
+          "run": {
+            "type": "string",
+            "optional": true
+          },
+          "schema": {
+            "type": "number"
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "optional": true
+          },
+          "seeds": {
+            "type": "number",
+            "optional": true
+          },
+          "sheet": {
+            "type": "string",
+            "optional": true
+          },
+          "skill": {
+            "type": "string",
+            "optional": true
+          },
+          "state": {
+            "type": "string",
+            "optional": true
+          },
+          "task": {
+            "type": "string",
+            "optional": true
+          },
+          "ts": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string",
+            "optional": true
+          }
+        }
+      },
+      "required_always": [
+        "kind",
+        "lab",
+        "schema",
+        "ts"
+      ],
+      "rows_observed": 43
+    }
+  }
+}

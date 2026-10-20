@@ -2,7 +2,7 @@
 import hashlib, json, os, shutil, subprocess, sys
 S = os.environ["S"]
 REPO = "/home/user/uor-r4"
-OUT = f"{REPO}/docs/evidence/native-lorentz-packet-2026-09-26"
+OUT = f"{REPO}/archive/evidence/native-lorentz-packet-2026-09-26"
 C3, C3B, LEAD = f"{S}/c3", f"{S}/lab/exp/c3b", f"{S}/lab/exp/lead_ctx256"
 
 def sha(path):

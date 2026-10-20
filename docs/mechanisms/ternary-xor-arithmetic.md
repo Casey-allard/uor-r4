@@ -70,7 +70,7 @@ That is XNOR-Net's regime, not a ternary one.**
 
 ## What it replaces and why that matters
 
-D25 bans dense matrix multiplication in training and serving. The [geometry audit](../integration/geometry-audit-2026-10-11/README.md)
+D25 bans dense matrix multiplication in training and serving. The [geometry audit](../../archive/integration/geometry-audit-2026-10-11/README.md)
 prices the current 29M stack at **30.27 M MACs/token**, of which quaternion transport — the only geometric
 operation in the forward — is **0.05 %**, and the dense projections, MLP and head are ~97 %. There is a real
 target here, and ternary touches exactly it. But three things must be said plainly.
@@ -79,17 +79,17 @@ target here, and ternary touches exactly it. But three things must be said plain
    "replacing a library call with a handwritten dense matrix contraction is not a geometric replacement").
    A ternary contraction is still a W×D dense contraction: dense weight access, every weight touched, O(W·D)
    work per token. It removes the *multiplier instruction*, which is a D11 concern. The
-   [operator plan](../labs/operator-phase-2026-10-12/README.md) already names this boundary for OP2: "the
+   [operator plan](../../archive/labs/operator-phase-2026-10-12/README.md) already names this boundary for OP2: "the
    existing `quaternion_weights=all` expresses Hamilton blocks through dense GEMM."
 2. **Operation substitution has already measured as a loss here.** The multiplier-free D11 integer engine ran
    **68.0 tok/s against the float path's 127.5** on the same artifact and windows at identical NLL
-   ([d11-serving-2026-10-10](../labs/d11-serving-2026-10-10/README.md), cited by the audit's B5). Weight
+   ([d11-serving-2026-10-10](../../archive/labs/d11-serving-2026-10-10/README.md), cited by the audit's B5). Weight
    bytes, not multipliers, are what this laptop is short of. That loss is the baseline any ternary claim must
    beat.
 3. **The project already has a better-justified multiplier-free weight representation.** Residual icosian
    pairs with a 2-bit mantissa norm reach 1.5148 BPB against dense's 1.5136 at equal parameters — about
    19–20 bits per quaternion, multiplier-free on the weight side
-   ([icosian-mantissa](../labs/icosian-mantissa-2026-10-11/README.md)). A ternary weight is ~1.58 bits and is
+   ([icosian-mantissa](../../archive/labs/icosian-mantissa-2026-10-11/README.md)). A ternary weight is ~1.58 bits and is
    *not* in `Z[φ]`: it is a 3-point scalar quantiser that discards the exact coefficients the project treats
    as primary.
 
@@ -167,7 +167,7 @@ engine ran ~1.9× slower.
   to conditional adds) does not recover it. Then the mechanism is a quantiser with a popcount tax, and the
   icosian-mantissa arm already dominates it.
 - The gain exists only in MACs and bytes touched, not in tokens/s — exactly the product-key memory result
-  (−90 % MACs at the replaced layer, 1.65× *slower*; [kimi-direction](../labs/kimi-direction-2026-10-12/README.md) §3)
+  (−90 % MACs at the replaced layer, 1.65× *slower*; [kimi-direction](../../archive/labs/kimi-direction-2026-10-12/README.md) §3)
   and the D11 engine result.
 - A result produced with a float master holding the ternary weights during training, or with one arm's
   activations float and the other's planar. That compares quantisers, not arithmetic.

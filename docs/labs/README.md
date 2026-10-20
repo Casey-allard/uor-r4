@@ -53,8 +53,8 @@ Read these in order:
    [decisions](../integration/DECISIONS.md).
 4. Your task's actual source, callers, data, artifact manifests and nearest
    historical positive/negative attempts. The [project map](../PROJECT_MAP.md),
-   [source audit](../integration/architecture-2026-09/README.md) and
-   [geometric toolbox](../integration/geometric-toolbox-2026-09-28.md) are indexes.
+   [source audit](../../archive/integration/architecture-2026-09/README.md) and
+   [geometric toolbox](../../archive/integration/geometric-toolbox-2026-09-28.md) are indexes.
 
 Start with the [extended joining goal](prompts/join.md). Available client packets
 are [Codex](prompts/codex.md), [Claude](prompts/claude.md),

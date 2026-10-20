@@ -1,0 +1,5 @@
+# Moved
+
+This page is live at [docs/adr/0003-fixed-zeta-prime-route-attention.md](../../docs/adr/0003-fixed-zeta-prime-route-attention.md).
+
+It was left here as a pointer during the 2026-10 repository reorganization, so links inside archived records keep resolving.

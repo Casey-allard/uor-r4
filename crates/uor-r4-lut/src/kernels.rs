@@ -1,5 +1,5 @@
 //! Artifact grid/geometry metadata helpers only. No model execution kernels.
-//! Original numeric kernels are retained under docs/history/d29-excluded-lut-2026-10-13/src/kernels.rs.
+//! Original numeric kernels are retained under archive/history/d29-excluded-lut-2026-10-13/src/kernels.rs.
 
 /// Bias of the retained grid code's exponent field.
 const GRID_EXP_BIAS: i32 = 64;

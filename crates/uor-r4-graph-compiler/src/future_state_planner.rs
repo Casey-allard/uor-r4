@@ -1,6 +1,6 @@
 //! Bounded Future-State Optimization & Planning Over Graph Transitions
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §§3, 10, 12, 17;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §§3, 10, 12, 17;
 //! `docs/formal_vocabulary.md` §5; GitHub Issue #131.
 //!
 //! This module replaces overloaded intent framing with an explicit bounded future-state optimizer:

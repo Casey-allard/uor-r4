@@ -2,10 +2,10 @@ use std::path::Path;
 use uor_r4_integer::{IntegerModel, ReadGeometry, ReadMode};
 
 const LORENTZ_MODEL_PATH: &str =
-    "../../docs/evidence/native-lorentz-packet-2026-09-26/packed/qat-lorentzflat_s1";
+    "../../archive/evidence/native-lorentz-packet-2026-09-26/packed/qat-lorentzflat_s1";
 const DOT_MODEL_PATH: &str =
-    "../../docs/evidence/native-lorentz-packet-2026-09-26/packed/qat-dot_s1";
-const TABLES_PATH: &str = "../../docs/evidence/native-lorentz-packet-2026-09-26/packed/tables";
+    "../../archive/evidence/native-lorentz-packet-2026-09-26/packed/qat-dot_s1";
+const TABLES_PATH: &str = "../../archive/evidence/native-lorentz-packet-2026-09-26/packed/tables";
 const TOTAL: u64 = 1u64 << 48;
 
 #[test]
@@ -150,9 +150,9 @@ fn test_cross_lab_lorentz_causal_nll_advantage() {
 fn test_cross_lab_radial_transfer_witness_invariants() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let radial_evidence_path = manifest_dir
-        .join("../../docs/evidence/radial-parameter-transfer-validation-2026-09-27.json");
+        .join("../../archive/evidence/radial-parameter-transfer-validation-2026-09-27.json");
     let dot_evidence_path =
-        manifest_dir.join("../../docs/evidence/dot-reset-validation-2026-09-27.json");
+        manifest_dir.join("../../archive/evidence/dot-reset-validation-2026-09-27.json");
 
     assert!(
         radial_evidence_path.exists(),

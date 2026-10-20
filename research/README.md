@@ -13,10 +13,10 @@ The [contributor guide](../CONTRIBUTING.md#data-artifacts-and-compute) and
 
 | Collection | Provenance and recovery navigation |
 |---|---|
-| Prime Analysis and Riemann/Lean work | [Mathematics audit](../docs/integration/architecture-2026-09/mathematics.md) |
-| AI-Research and older router experiments | [Engine/history audit](../docs/integration/architecture-2026-09/engines.md) |
-| NEMESIS, W33, GoldSnnail and other contributors | [Import audit](../docs/integration/architecture-2026-09/imports.md), [source catalog](../docs/integration/afflom-ecosystem-sources.json) |
-| Inactive project source and earlier lab state | [Branch archive](../docs/history/branch-archive/INDEX.md), [lab-state archive](../docs/history/lab-state-20261009/README.md) |
+| Prime Analysis and Riemann/Lean work | [Mathematics audit](../archive/integration/architecture-2026-09/mathematics.md) |
+| AI-Research and older router experiments | [Engine/history audit](../archive/integration/architecture-2026-09/engines.md) |
+| NEMESIS, W33, GoldSnnail and other contributors | [Import audit](../archive/integration/architecture-2026-09/imports.md), [source catalog](../archive/integration/afflom-ecosystem-sources.json) |
+| Inactive project source and earlier lab state | [Branch archive](../archive/history/branch-archive/INDEX.md), [lab-state archive](../archive/history/lab-state-20261009/README.md) |
 
 These are research foundations and preserved evidence. A theorem, imported design,
 or historical experiment does not establish current model integration or language quality.

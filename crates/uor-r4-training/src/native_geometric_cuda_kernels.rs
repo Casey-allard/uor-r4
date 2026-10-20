@@ -68,12 +68,12 @@ pub(crate) const HISTORICAL_KERNELS: [&str; 3] = ["action_credit", "emit", "whol
 /// 2026): the native-context module's class-bank readout dots the query with
 /// freely learned per-class coefficients over the 120/120/33 banks, a learned
 /// dense 4 -> 120/33 projection. The module is no longer compiled; its source is
-/// evidence in `docs/history/d29-excluded-kernels-2026-10-13/native_context_quarantined.cu`
+/// evidence in `archive/history/d29-excluded-kernels-2026-10-13/native_context_quarantined.cu`
 /// until a typed geometric replacement is designed. Line B stays unfinished, not
 /// negative (D22).
 fn ptx() -> Result<&'static str> {
     candle_core::bail!(
         "D29: the native-context CUDA module is quarantined (its class-bank readout is a learned \
-         dense 4->120/33 projection); see docs/history/d29-excluded-kernels-2026-10-13/"
+         dense 4->120/33 projection); see archive/history/d29-excluded-kernels-2026-10-13/"
     )
 }

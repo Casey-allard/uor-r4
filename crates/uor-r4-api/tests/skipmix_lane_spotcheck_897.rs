@@ -5,7 +5,7 @@
 //! ## What this is (and is not)
 //!
 //! The #897 phase-0 confirmation (`skipmix_confirm_897.rs`,
-//! `docs/skipmix_confirm_897_result.json`) recorded verdict `SELECT-1-token`:
+//! `archive/skipmix_confirm_897_result.json`) recorded verdict `SELECT-1-token`:
 //! the `skipmix` arm clears the 25‰ opening bar (+56.2‰ vs base, CI
 //! [53.6, 58.7]) and beats the D1-selected 2-token `mix` arm (paired lower
 //! bound +23.1‰). That is an off-serving measurement over the reference
@@ -51,7 +51,7 @@
 //!    2-token suffix, different story, different teacher target, one pair
 //!    per suffix key), and keep exactly the pairs the `skipmix` arm
 //!    FOLLOWED. This reproduces the recorded `skipmix_follow = 87 / 4722`
-//!    (`docs/skipmix_confirm_897_result.json`); the count is asserted — a
+//!    (`archive/skipmix_confirm_897_result.json`); the count is asserted — a
 //!    reproduction control.
 //! 2. **Fit + emit the deployed tables into a real bundle.**
 //!    `skipmix_fit::fit_skipmix_tables` (top-64/key, the phase-0 `CAP`,
@@ -118,7 +118,7 @@ const CAND_JOINT: usize = 32;
 const LAMBDA_NUM: f64 = 1.0;
 const LAMBDA_DEN: f64 = 1.0;
 /// The phase-0 `skipmix` arm's recorded favorable-pair count
-/// (`docs/skipmix_confirm_897_result.json` minimal_pairs.skipmix_follow) — a
+/// (`archive/skipmix_confirm_897_result.json` minimal_pairs.skipmix_follow) — a
 /// reproduction control: the mined favorable set must match it exactly.
 const REFERENCE_FAVORABLE_EXPECTED: u64 = 87;
 /// Predeclared read threshold: ceil(0.6 * 87) — the #886 60% bar, scaled to
@@ -762,7 +762,7 @@ fn skipmix_lane_spotcheck_897() {
     assert_eq!(
         reference_favorable, REFERENCE_FAVORABLE_EXPECTED,
         "the reproduced skipmix favorable-pair count must match \
-         docs/skipmix_confirm_897_result.json's minimal_pairs.skipmix_follow"
+         archive/skipmix_confirm_897_result.json's minimal_pairs.skipmix_follow"
     );
     assert_eq!(
         base_follow, 0,

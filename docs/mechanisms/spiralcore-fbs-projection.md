@@ -1,6 +1,6 @@
 # SpiralCore BFS plus retained ternary FBS projection
 
-**Milestones:** M1 #2029 and M2 #2030. **Record:** [native projection](../labs/spiralcore-fbs-projection-2026-10-12/README.md).
+**Milestones:** M1 #2029 and M2 #2030. **Record:** [native projection](../../archive/labs/spiralcore-fbs-projection-2026-10-12/README.md).
 
 ## Idea and implemented role
 

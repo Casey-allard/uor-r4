@@ -3,7 +3,7 @@ import hashlib, json, os, shutil, sys
 
 S = "/tmp/claude-0/-home-user-uor-r4/e71805df-3dbc-5124-8067-d8a48084429c/scratchpad"
 REPO = "/home/user/uor-r4"
-PKT = f"{REPO}/docs/evidence/geometric-stack-cycle4-2026-09-27"
+PKT = f"{REPO}/archive/evidence/geometric-stack-cycle4-2026-09-27"
 M = f"{S}/c4/runs/main"
 ARMS = ["transformer_s1", "geometric_s1"]
 

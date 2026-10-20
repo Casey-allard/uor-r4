@@ -5,7 +5,7 @@
 //! Ranking by bare cosine through `retrieve_geometric_resonance`, the target
 //! sits at median rank 21,082 of 46,342 **even when the probe is the exact
 //! stored sentence** — against a random median of 23,171. Not the probe form,
-//! not subsampling, not word order; `docs/lexical_weight_484.md` ruled those
+//! not subsampling, not word order; `archive/lexical_weight_484.md` ruled those
 //! out. What it did not do is say WHY.
 //!
 //! That matters because the same stack has a measurement showing cosine

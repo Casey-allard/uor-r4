@@ -1,7 +1,7 @@
 //! Typed transition observations and deterministic induction — the machine-
 //! checked record for #843 increment 3.
 //!
-//! Frozen contract: `docs/bounded_semantic_transitions_spec_843.md` §3. Every
+//! Frozen contract: `archive/bounded_semantic_transitions_spec_843.md` §3. Every
 //! guarantee that section states is asserted here. Compiler /
 //! off-serving-path: nothing in this file is deployed-serving evidence and no
 //! result here establishes any planning capability.

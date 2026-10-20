@@ -1,6 +1,6 @@
 //! Read-only read-side localization instrument for the mainline joint learner.
 //! It trains nothing, changes no weight and writes only beneath its own freshly
-//! claimed report root. See `docs/integration/read-localization-plan-2026-09-27.md`.
+//! claimed report root. See `archive/integration/read-localization-plan-2026-09-27.md`.
 #![forbid(unsafe_code)]
 
 use std::fs;

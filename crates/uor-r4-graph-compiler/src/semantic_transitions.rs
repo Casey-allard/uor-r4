@@ -1,6 +1,6 @@
 //! Typed transition observations and deterministic induction (#843, S4 item B).
 //!
-//! Frozen contract: `docs/bounded_semantic_transitions_spec_843.md` §3. This is
+//! Frozen contract: `archive/bounded_semantic_transitions_spec_843.md` §3. This is
 //! the *offline compiler* half of the issue: it turns typed observations of
 //! attempted state transitions into a bounded **operator rule set** the packed
 //! sections carry and the deployed planner executes.

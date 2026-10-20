@@ -150,7 +150,7 @@
 //!
 //! `evaluate` scores consecutive 256-input blocks with a fresh state per
 //! block (257 stored ids, 256 targets), the retained evaluator's protocol
-//! (`docs/integration/reference-evaluator-v2.json`): it reports the first
+//! (`archive/integration/reference-evaluator-v2.json`): it reports the first
 //! `tune_blocks` blocks, the remaining comparison blocks and all blocks
 //! separately. On the retained TinyStories development store that is 976
 //! blocks, 64 tune and 912 comparison (233,472 targets), where #1017 scores
@@ -511,7 +511,7 @@ fn identity(path: &Path) -> Result<Value> {
 }
 
 // ---------------------------------------------------------------------------
-// The lab's byte-level BPE (docs/evidence/native-lorentz-packet-2026-09-26/
+// The lab's byte-level BPE (archive/evidence/native-lorentz-packet-2026-09-26/
 // sources/c3-harness/src/bin/bpe.rs): identical pre-tokenization and merges.
 
 const MAX_PUNCT: usize = 8;

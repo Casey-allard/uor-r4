@@ -10,7 +10,7 @@ if [[ -n "$(git status --porcelain=v1 --untracked-files=no)" ]]; then
   exit 1
 fi
 
-experiment_partition="${experiment_repo}/docs/helm_d_learned_manifold_r4_construction_partition_973.json"
+experiment_partition="${experiment_repo}/archive/helm_d_learned_manifold_r4_construction_partition_973.json"
 experiment_attempt="${UOR_R4_973_SCORE_CENTROID_ATTEMPT:-attempt-01}"
 if [[ ! "${experiment_attempt}" =~ ^attempt-[0-9][0-9]$ ]]; then
   echo "refusing to run: attempt must have the form attempt-NN" >&2

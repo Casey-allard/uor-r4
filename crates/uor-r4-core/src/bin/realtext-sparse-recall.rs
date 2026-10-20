@@ -502,7 +502,7 @@ fn run() -> Result<(), String> {
     };
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let receipt = json!({
-        "schema":"uor-r4.realtext-sparse-recall/1","plan":"docs/integration/realtext-sparse-recall-plan-2026-09-24.md",
+        "schema":"uor-r4.realtext-sparse-recall/1","plan":"archive/integration/realtext-sparse-recall-plan-2026-09-24.md",
         "decision":if decision{"ADVANCE_EXACT_PAIR_CACHE_COMPONENT"}else{"DO_NOT_ADVANCE_EXACT_PAIR_CACHE"},
         "population":{"collected":collected,"duplicate_groups":duplicates,"fit":identity(&fit),"tune":identity(&tune),"dev":identity(&dev),
             "scored_positions":rows.len(),"retained_dev_population_exposed":true},

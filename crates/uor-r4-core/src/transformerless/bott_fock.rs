@@ -1,5 +1,5 @@
 //! Bott periodic Fock space context abstraction (issue #107; spec:
-//! `docs/r4_furey_quantum_geometric_plan.md` §Phase 4).
+//! `archive/r4_furey_quantum_geometric_plan.md` §Phase 4).
 //!
 //! Folds an arbitrary N-token context window into one fixed 16x16 integer
 //! state matrix. The construction is O(1) in space and update time **by

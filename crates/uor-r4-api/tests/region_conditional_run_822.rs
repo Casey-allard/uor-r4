@@ -1,7 +1,7 @@
 //! `region-conditional` D2 reference instrument — S1 representation redesign
 //! (#822).
 //!
-//! Mandated by the approved redesign RFC (`docs/s1_redesign_rfc_822.md`
+//! Mandated by the approved redesign RFC (`archive/s1_redesign_rfc_822.md`
 //! §4-D2, §6 step 3); the run contract was posted to #822 before this run.
 //! The holographic bet stated plainly: the compiled geometry already
 //! summarizes the whole window (0.0% full-depth context-code collisions,

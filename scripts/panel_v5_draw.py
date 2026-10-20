@@ -53,7 +53,7 @@ This is a v4-equivalent instrument in form and rule: 64 rows, 40 `multi_turn_mem
 binding-swap control and a sha256 manifest. It deliberately draws only personal names,
 place names and numbers, because those are the value classes for which this workspace has
 a named, hashable, non-invented source; the deviation from v4's wider subject matter is
-recorded in the panel README and in docs/labs/panel-freeze-2026-10-09/README.md.
+recorded in the panel README and in archive/labs/panel-freeze-2026-10-09/README.md.
 """
 import hashlib
 import json
@@ -566,7 +566,7 @@ def main():
                   'sha256(SEED|slot) with SEED = ' + SEED + ', the digest that selects '
                   'the value under the rule in scripts/panel_v5_draw.py. The source line, '
                   'the pool index, the pool size and the rule for every row are in '
-                  'docs/labs/panel-freeze-2026-10-09/provenance-draw.tsv. The sentence '
+                  'archive/labs/panel-freeze-2026-10-09/provenance-draw.tsv. The sentence '
                   'frames, the keys and the scene catalogue are authored in '
                   'scripts/panel_v5_draw.py; they are not values. Every reply phrasing in '
                   'the forbid list of an impossible-action unknowable row is authored '

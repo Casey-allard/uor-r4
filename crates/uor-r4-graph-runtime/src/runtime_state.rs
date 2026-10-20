@@ -197,7 +197,7 @@ pub struct SegmentSlot {
 /// bounded ring with halving (arithmetic-right-shift) decay and saturating
 /// `ScoreQ` accumulation. Caller-owned fixed-capacity state; **no allocation,
 /// no multiply/divide/float** (P-4). Bit-equivalent to the #835 reference ring
-/// semantics (`docs/prompt_state_spec_835.md` §6 / `docs/scoring_semantics.md`
+/// semantics (`archive/prompt_state_spec_835.md` §6 / `archive/scoring_semantics.md`
 /// §6): saturating upsert, canonical eviction victim (least weight, ties broken
 /// by the larger key so the lower id is retained), division-free decay, and a
 /// decode-independent candidate contribution.
@@ -337,7 +337,7 @@ impl<const CAP: usize> SegmentRing<CAP> {
 
 /// The #835 segment lane as a **session** (#836): a fold-once-then-decay
 /// lifecycle over a [`SegmentRing`], matching the reference `Psi` segment lane
-/// (`docs/prompt_state_spec_835.md` §3). The initial fold Φ₀ records every
+/// (`archive/prompt_state_spec_835.md` §3). The initial fold Φ₀ records every
 /// prompt content token into the ring (saturating accumulation, no decay
 /// between prompt tokens); each generation transition T_ps decays the lane. A
 /// candidate present in the ring receives the descriptor `boost`.
@@ -610,7 +610,7 @@ mod tests {
     }
 
     /// Oracle mirroring the #835 reference segment-lane ring semantics
-    /// (`docs/prompt_state_spec_835.md` §6): a `Vec`-backed ring with identical
+    /// (`archive/prompt_state_spec_835.md` §6): a `Vec`-backed ring with identical
     /// decay / eviction / upsert / contribution rules. The hot-path
     /// `SegmentRing` must match it bit-for-bit (reference-to-packed teeth).
     #[derive(Clone)]

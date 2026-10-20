@@ -1,7 +1,7 @@
 //! The deployed bounded planner — the machine-checked record for #843
 //! increment 5.
 //!
-//! Frozen contract: `docs/bounded_semantic_transitions_spec_843.md` §6 and §7.
+//! Frozen contract: `archive/bounded_semantic_transitions_spec_843.md` §6 and §7.
 //! Normative deployed-serving scope: the planner runs on packed sections with
 //! caller-owned scratch, executes only P-4 operations, and allocates nothing.
 //! Nothing here claims a planning *capability* — that is increment 6's

@@ -482,7 +482,7 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     // Certifier-side instrumentation ONLY (f32 permitted here, never in
     // the kernel): attribute the A-f32 ceiling's gap among the three
     // losses — normalization (#3), magnitude (#2), residuals (#1) —
-    // before committing to a design. docs/graded_signature_address_design.md.
+    // before committing to a design. archive/graded_signature_address_design.md.
 
     let centered: Vec<[f32; D]> = bundles
         .iter()
@@ -938,7 +938,7 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         );
     }
 
-    // ---- Phase A.5 rows (#318, docs/dot_residual_phase_b_design.md):
+    // ---- Phase A.5 rows (#318, archive/dot_residual_phase_b_design.md):
     // validate the two kernel-form candidates before any runtime work.
     //
     // (a) po2 norm fold — the measurement rows above normalize by true
@@ -1167,7 +1167,7 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     }
     // ---- A-W(b): learned per-dimension importance weighting on the
     // shipped sign-Hamming assignment (issue #310;
-    // docs/learned_signature_weighting_design.md). Signal: threshold-margin
+    // archive/learned_signature_weighting_design.md). Signal: threshold-margin
     // reliability — per dimension, the median of |bundle − threshold| over
     // a deterministic stride-8 TRAIN-split subsample (no held-out leakage).
     // Dimensions are ranked by median margin and bucketed into b quantile
@@ -1245,7 +1245,7 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     }
     // ============ Design P rows (issue #276; flags resolved 2026-08-03) ============
     // Lane (b): transport-composed phase-clock addressing — cyclic graded
-    // codes on the zeta torus (docs/phase_clock_address_design.md).
+    // codes on the zeta torus (archive/phase_clock_address_design.md).
     // Certifier-side instrumentation ONLY (floats permitted here): the
     // analytic completion stores (cos, sin) per frequency — the imaginary
     // half the shipped sign signature discards — and the context phasor is

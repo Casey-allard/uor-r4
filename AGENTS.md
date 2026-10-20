@@ -25,7 +25,7 @@
 > language or full-model claim follows. Prior F32/F64/31/18-control evidence is
 > preserved inactive through #2370. Both training holds remain HELD; FIT releases
 > neither. See [D32](docs/integration/DECISIONS.md#d32--discrete-geometric-substrate-ternaryhammingquaternion-computation-no-floating-point-in-model-computation-including-learning)
-> and the [discrete record](docs/labs/discrete-geometric-learning-2026-10-13/README.md).
+> and the [discrete record](archive/labs/discrete-geometric-learning-2026-10-13/README.md).
 >
 > **Historical October 12 operator phase — retained context, superseded by D32.**
 > [D25](docs/integration/DECISIONS.md#d25---geometric-operator-phase-and-current-lab-direction)
@@ -36,7 +36,7 @@
 > scalar floating-point allowance is now superseded by D32; D11 serving
 > remains integer/table based with no floating point or multiplier instruction.
 > Kimi is the current project manager; the owner retains strategic authority.
-> The [operator plan](docs/labs/operator-phase-2026-10-12/README.md) is the one
+> The [operator plan](archive/labs/operator-phase-2026-10-12/README.md) is the one
 > immediate dependency: implement OP2 SpiralCore/FBS projection → OP1 G2 gate → OP3a
 > geometric head, then review the complete executed learning/output path before
 > any training. G2 is the only OP1 arm; G1 is withdrawn. Geometric feed-forward
@@ -48,7 +48,7 @@
 > For this Codex projection claim, the owner explicitly authorized development,
 > build and finite kernel tests on a CUDA 12.8+ Ubuntu24 pod. This scoped
 > permission uses both SpiralCore BFS and Atomic Ternary FBS; it releases no
-> training hold or unrelated rental campaign. See the [projection record](docs/labs/spiralcore-fbs-projection-2026-10-12/README.md).
+> training hold or unrelated rental campaign. See the [projection record](archive/labs/spiralcore-fbs-projection-2026-10-12/README.md).
 > The owner also authorizes the private HF store for bootstrap fixes, verified
 > binaries/toolchains, training models and other needed pod setup material.
 > Preserve source identities/checksums and verify round-trips; storage permission
@@ -133,7 +133,7 @@
 > Scientific integrity, D11/D5, unique-material preservation, live job ownership
 > and resource admission remain. See [D19](docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
 
-**Owner clarification, September 19:** D0-b, D1 and D2 in [DECISIONS.md](docs/integration/DECISIONS.md) are owner-approved. D0-b supersedes the old blanket prohibition on additive mathematical linear maps. That September permission is historical: D25 now prohibits dense matrix multiplication in training and serving. The [takeover review](docs/integration/takeover-review-2026-09-19.md) and latest current-state entry reconcile the three model paths and the next bounded task; dated experiment instructions do not override them.
+**Owner clarification, September 19:** D0-b, D1 and D2 in [DECISIONS.md](docs/integration/DECISIONS.md) are owner-approved. D0-b supersedes the old blanket prohibition on additive mathematical linear maps. That September permission is historical: D25 now prohibits dense matrix multiplication in training and serving. The [takeover review](archive/integration/takeover-review-2026-09-19.md) and latest current-state entry reconcile the three model paths and the next bounded task; dated experiment instructions do not override them.
 
 The owner-directed mode is `native_geometric_ai`. Build a learned local language model using the project's prime/zeta/R4 geometry, exact addressed memory and shared typed operators. The objective is useful conversation/memory and coding/reasoning, ultimately frontier capability on consumer M1-class laptops with lower energy and wasted compute. The model remains pre-alpha.
 
@@ -147,14 +147,14 @@ Read [README](README.md) → [STATUS](STATUS.md) → [lab entry](docs/labs/READM
 
 Register and claim work before mutation; heartbeat every five minutes, use twenty-minute leases and checkpoint recoverable source/jobs/artifacts at least every thirty minutes and before quota/compaction/disconnect. Expiry means suspect: verify worker liveness before takeover. Use the admitted runner only after its deployment is verified; adapter/manual/UNVERIFIED status must be explicit. Check live recovery issue #1520 before affected SSD work. Resource admission limits jobs, not the number of labs. Publish completed work and the next dependency on GitHub continuously, using protected PRs and exact-head independent review. README remains a curated research overview, not the running journal.
 
-Refresh `origin/main`, the relevant live issues/PRs, artifact identities and cumulative resource/storage receipts. Choose a workspace that respects current file ownership; an isolated worktree is optional. Preserve the owner's original checkout and all unique research/artifacts. Reuse the [source audit](docs/integration/architecture-2026-09/README.md) and inspect the particular mechanism source; do not repeat the broad audit for routine development. Coordinate independent subtasks with explicit file ownership when useful.
+Refresh `origin/main`, the relevant live issues/PRs, artifact identities and cumulative resource/storage receipts. Choose a workspace that respects current file ownership; an isolated worktree is optional. Preserve the owner's original checkout and all unique research/artifacts. Reuse the [source audit](archive/integration/architecture-2026-09/README.md) and inspect the particular mechanism source; do not repeat the broad audit for routine development. Coordinate independent subtasks with explicit file ownership when useful.
 
 ## Native geometric AI agent policy
 
 <!-- agent-execution-policy:start -->
 The repository-wide mode is `native_geometric_ai`. Its stable machine contract
-is [agent-execution-policy.json](docs/integration/agent-execution-policy.json),
-with the readable [execution policy](docs/integration/agent-execution-policy.md).
+is [agent-execution-policy.json](archive/integration/agent-execution-policy.json),
+with the readable [execution policy](archive/integration/agent-execution-policy.md).
 This section overrides historical process and scheduling rules below. Technical
 invariants still apply to the runtime where they are declared.
 
@@ -232,8 +232,8 @@ three and never reset it; only a change in the headline number does.
 Every lab session follows the [session-goal contract](docs/labs/session-goal.md): the
 owner pastes its prompt at session start, and each PR declares its line, count and headline.
 
-Apply the [progress-control rules](docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25)
-and the active contract in [current state](docs/history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract--durable-labs-september-29).
+Apply the [progress-control rules](archive/integration/agent-execution-policy.md#progress-control--owner-correction-september-25)
+and the active contract in [current state](archive/history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract--durable-labs-september-29).
 Keep one short work card in the existing issue: integrated deliverable, observed
 blocker, causal change, distinct outcome decisions, fixed conditions, necessary
 checks and complete cost. Reject a repeat without new causal evidence and a
@@ -397,7 +397,7 @@ Bounded inference and contextual/copy attention exist. General prose, general re
 - `crates/uor-r4-router/` includes reusable routing plus historical/exploratory paths; it is not interchangeable with the retained native model.
 - Graph format/compiler/runtime/certifier, model-source and proof crates retain their scoped contracts. The `no_std` R4G1 kernel is a separate frozen contract, not blanket language evidence.
 - `docs/integration/project-track.md` owns roadmap responsibilities; `current-state.md` owns changing artifact/results/next action. Update claims where asserted, without creating duplicate stage mirrors.
-- Per-experiment records and imports are preserved. A dated “next” inside them does not override the live plan. See the [complete README disposition](docs/integration/readme-inventory-2026-09.json).
+- Per-experiment records and imports are preserved. A dated “next” inside them does not override the live plan. See the [complete README disposition](archive/integration/readme-inventory-2026-09.json).
 
 ## Specialist routing and research cadence
 
@@ -456,7 +456,7 @@ Preserve `E8 = H4 x H4` as project shorthand for the concrete golden/Galois-coup
 
 Chain traversal: a rejected or unfollowed link is not proof that a record is absent; prove eviction separately (an overwritten ring slot) before offering an abstention, and cover the cross-product of interacting supported behaviors (for example same-value reassertions with initial/previous/current intents) before qualifying a change. Compare candidates row by row against each prior artifact, not only against the frozen parent or an aggregate score. Freeze independent acceptance criteria before a fresh draw. Create every report directory exclusively (`uor_r4_core::report_output::claim`) immediately after argument validation and before loading any model; seal completed attempts and verify the complete file set (`report_output::verify`); write derived inputs into their own claimed attempt, never beneath a sealed root; never reuse a report root for a retry. Author accepted answers from typed intent once (`uor_r4_core::answer_oracle`) and judge membership only. Run the cheap actual-artifact multi-turn check as soon as a candidate passes construction, before the preservation, comparison and final-fresh campaign.
 
-Missing `/tmp` teacher artifacts make historical parity unavailable, even if a conditional test exits zero. Debug build timing is not optimized serving performance. Shared build caches can retain paths from old worktrees; diagnose the affected crate instead of deleting all caches. Never remove unique research, ignored model parents or intentional dirty checkout material during routine cleanup. Read [the takeover record](docs/integration/handoff-2026-09-07.md) for the latest preserved local paths and budget snapshot.
+Missing `/tmp` teacher artifacts make historical parity unavailable, even if a conditional test exits zero. Debug build timing is not optimized serving performance. Shared build caches can retain paths from old worktrees; diagnose the affected crate instead of deleting all caches. Never remove unique research, ignored model parents or intentional dirty checkout material during routine cleanup. Read [the takeover record](archive/integration/handoff-2026-09-07.md) for the latest preserved local paths and budget snapshot.
 
 
 **Standing owner authorization (2026-09-06):** necessary local model/time/storage allowance extensions are already authorized. Record the complete projection, reason, increment and updated cumulative limit before using each extension; retain cumulative charges and the 128 MiB storage stop margin. Do not ask the owner to approve the same class of necessary increase again. This authorizes no destructive deletion and does not require spending unused allowance. Paid GPU compute is governed by the later, more specific owner rules of 5 October 2026 ("GPU pods" above): `uor-pod up` within the caps is authorized without asking; any other paid or external compute still needs the owner.

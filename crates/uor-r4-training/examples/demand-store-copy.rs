@@ -7,7 +7,7 @@
 //! ```
 //!
 //! Why this store (measured, 2026-10-08): `docs/reviews/cross-turn-binding-diagnosis-2026-10-08.md`
-//! and `docs/evidence/binding_probe_p1_report_2026-10-08.txt`. The P1 probe found that the
+//! and `archive/evidence/binding_probe_p1_report_2026-10-08.txt`. The P1 probe found that the
 //! store-armed models DO put read mass above TAU on the expected value's span and then answer with
 //! the store's own surface families instead (`Noted.`, `I see.`, `3.`); in the worst case turn 1 and
 //! turn 2 were both `Noted.` — a self-conditioned register loop created by the training data. The

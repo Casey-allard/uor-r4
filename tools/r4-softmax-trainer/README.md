@@ -5,7 +5,7 @@ The active implementation is
 by the CLI and API. Use the [project map](../../docs/PROJECT_MAP.md),
 [canonical plan](../../docs/integration/project-track.md),
 [current artifact and measured behavior](../../docs/integration/current-state.md),
-and [model direction](../../docs/integration/model-direction-2026-09.md).
+and [model direction](../../archive/integration/model-direction-2026-09.md).
 [Research storage](../../research/README.md) and the
 [local knowledge index](../uor-knowledge/README.md) locate preserved experiments,
 checkpoints and negative results. Bounded native attention and inference have
@@ -69,7 +69,7 @@ CPU/table-native deployed-runtime target. The normative rule is in the root
 ## Completed #1045 role-tagged associative ladder
 
 The canonical contract and append-only evidence record are
-[`docs/r4_role_tagged_associative_curriculum_1045.md`](../../docs/r4_role_tagged_associative_curriculum_1045.md).
+[`docs/r4_role_tagged_associative_curriculum_1045.md`](../../archive/r4_role_tagged_associative_curriculum_1045.md).
 This campaign starts from #1043's ordinary initialization and open construction
 population only. It never reads #1043's fitted artifact or sealed evaluation
 payloads. Its create-once lifecycle is:
@@ -109,7 +109,7 @@ execution; exact evidence and CIDs are in the canonical records.
 ## #1047 released Zoology MQAR control
 
 The credited source port and frozen contract are documented in
-[`docs/r4_zoology_mqar_control_1047.md`](../../docs/r4_zoology_mqar_control_1047.md).
+[`docs/r4_zoology_mqar_control_1047.md`](../../archive/r4_zoology_mqar_control_1047.md).
 Its create-once lifecycle is exposed as a module:
 
 ```bash
@@ -135,7 +135,7 @@ No training artifact or scientific attention verdict was produced.
 ## #1049 measured-wall Zoology MQAR execution
 
 The frozen continuation and executed result are documented in
-[`docs/r4_zoology_mqar_measured_wall_1049.md`](../../docs/r4_zoology_mqar_measured_wall_1049.md).
+[`docs/r4_zoology_mqar_measured_wall_1049.md`](../../archive/r4_zoology_mqar_measured_wall_1049.md).
 #1049 preserved the #1047 source-derived cell, loader, RNG namespaces, batch
 64, optimizer, schedule, and thresholds, changing only execution provenance
 and the CPU wall from 900 to 1,200 seconds.
@@ -160,7 +160,7 @@ rerun interface. Do not tune #1049 or proceed to C2 from its result.
 ## #1050 released-configuration Zoology reproduction
 
 The canonical contract and executed result are documented in
-[`docs/r4_zoology_release_reproduction_1050.md`](../../docs/r4_zoology_release_reproduction_1050.md).
+[`docs/r4_zoology_release_reproduction_1050.md`](../../archive/r4_zoology_release_reproduction_1050.md).
 This sibling package preserves #1049's immutable implementation and reproduces
 the executable Figure-2 T=64 configuration and training semantics: 100,000
 training rows, 3,000 source test/early-stop rows, batch 512, seed 123, the
@@ -275,7 +275,7 @@ evidence rather than a model failure.
 
 ## #1061 exact-data coherent R4 inference
 
-[#1061](../../docs/r4_zoology_exact_coherent_inference_1061.md) applies the unchanged
+[#1061](../../archive/r4_zoology_exact_coherent_inference_1061.md) applies the unchanged
 #1059 adapter to #1057's retained final block-40 model without training. Reuse
 the existing #1059 frame directory; do not rebuild or reexport native geometry.
 Preparation reads the dataset root from #1057's preparation envelope. Inference
@@ -311,7 +311,7 @@ binding-control status `NOT_RUN_PRIMARY_MISS` unchanged.
 ## Terminal #973 group-retention and decoder paths
 
 The canonical contract and evidence log are
-[`docs/r4_group_addressed_retention_973.md`](../../docs/r4_group_addressed_retention_973.md).
+[`docs/r4_group_addressed_retention_973.md`](../../archive/r4_group_addressed_retention_973.md).
 The Rust `r4-group-geometry-export` binary emits the bound exact-H4,
 cyclic-120, scrambled-H4, and prime-leaf artifact. This package exposes
 `prepare-group-retention --geometry <artifact>` and
@@ -325,7 +325,7 @@ authorized retry or tuning surface, and the terminal package exposes no
 held-out-open API. It was not retried or reinterpreted as a model negative.
 
 The independently frozen
-[`R4GroupAddressedRetentionDecoderV1CpuRecovery`](../../docs/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
+[`R4GroupAddressedRetentionDecoderV1CpuRecovery`](../../archive/r4_group_addressed_retention_decoder_cpu_recovery_973.md)
 then used deterministic Apple Accelerate CPU BLAS with one process and a
 configured PyTorch intra/inter-op thread count of four. It completed all 512 construction steps in
 `438.117083 s`. State-off on the disjoint construction-validation partition
@@ -338,7 +338,7 @@ There is no authorized retry, CUDA path, sweep, or C1-SB6.
 
 ## Frozen #973 retained language-path rung
 
-[`R4RetainedLanguagePathV1`](../../docs/r4_retained_language_path_v1_973.md)
+[`R4RetainedLanguagePathV1`](../../archive/r4_retained_language_path_v1_973.md)
 is one from-scratch two-arm comparison: the qualified exact-H4 retained cell
 versus ordinary full-prefix causal RoPE Q/K/V softmax. Both arms have exactly
 252,160 learned parameters, two width-48 blocks, four 12-wide heads, equal
@@ -517,7 +517,7 @@ serving behavior.
 
 ## Terminal #973 paired-H4 prompt-capacity rung
 
-[`R4PairedH4PromptCapacityV1`](../../docs/r4_paired_h4_prompt_capacity_973.md)
+[`R4PairedH4PromptCapacityV1`](../../archive/r4_paired_h4_prompt_capacity_973.md)
 changes only the qualified retained cell's token addressing: token zero remains
 the canonical exact-H4 identity, while every other token receives a reversible
 two-coordinate radix address, one coordinate per decoder layer. The V1
@@ -550,7 +550,7 @@ generation retry, parameter sweep, CUDA path, or C1-SB6.
 
 ## Terminal #973 direct retained-readout rung
 
-[`R4DirectRetainedReadoutLanguagePathV1`](../../docs/r4_direct_retained_readout_prompt_capacity_973.md)
+[`R4DirectRetainedReadoutLanguagePathV1`](../../archive/r4_direct_retained_readout_prompt_capacity_973.md)
 keeps qualified V1's exact-H4 recurrence, parameter/state counts, data/order,
 seed, optimizer dose, and tied output matmul fixed. It exposes the two
 already-computed retained layer outputs only at the final head:
@@ -674,13 +674,13 @@ and MPS are local offline accelerators only; CUDA and external GPU execution
 are out of scope. The MPS stop is not a model-quality negative,
 leaves the full-scale capacity hypothesis untested, and does not revoke the
 established attention result. See the
-[#1017 record](../../docs/r4_softmax_quality_capacity_continuation_1017.md) and
-[#1019 frozen contract](../../docs/r4_softmax_parameter_capacity_1019.md) plus
-its [observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+[#1017 record](../../archive/r4_softmax_quality_capacity_continuation_1017.md) and
+[#1019 frozen contract](../../archive/r4_softmax_parameter_capacity_1019.md) plus
+its [observed preflight](../../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 The #954 evidence is in the
-[#954 record](../../docs/r4_grounded_correctness_954.md) and
-[C1-SB4 aggregate](../../docs/r4_joint_candidate_margin_954_raw.json), followed
-by the [C1-SB5 aggregate](../../docs/r4_paired_query_binding_954_raw.json).
+[#954 record](../../archive/r4_grounded_correctness_954.md) and
+[C1-SB4 aggregate](../../archive/r4_joint_candidate_margin_954_raw.json), followed
+by the [C1-SB5 aggregate](../../archive/r4_paired_query_binding_954_raw.json).
 
 For fast local #1017 inference on Apple Silicon, build the Rust CLI with
 `--features local-inference-accelerate`. The observed four-token comparison
@@ -752,8 +752,8 @@ artifact was emitted, and all three committed product probes remain `NOT_RUN`.
 Do not rerun, tune, or use the preflight head as a product head. The retained
 state-capture and parity seams subsequently supported the independently frozen
 C1-SB2 source-relative relation probe below.
-See the [#954 record](../../docs/r4_grounded_correctness_954.md) and
-[structured C1-SB1 result](../../docs/r4_source_span_pointer_954_raw.json).
+See the [#954 record](../../archive/r4_grounded_correctness_954.md) and
+[structured C1-SB1 result](../../archive/r4_source_span_pointer_954_raw.json).
 
 ## C1-SB2 source-relative relation-head result
 
@@ -777,7 +777,7 @@ No Python/Rust parity report, 512-step full fit, final head, development result,
 or product evaluation exists. Do not rerun or tune the frozen probe. The
 preserved trainer/runtime seam is for replay and for a future independently
 frozen mechanism that trains relation semantics into the representation. See
-the [structured C1-SB2 result](../../docs/r4_source_relation_head_954_raw.json).
+the [structured C1-SB2 result](../../archive/r4_source_relation_head_954_raw.json).
 
 ## C1-SB3 attended-relation adapter result
 
@@ -789,7 +789,7 @@ specificity `234/239`, and only the 24 attention tensors changed—but the exact
 fit/sealed record gates failed at `124/126` and `56/63`. No merged checkpoint,
 Rust parity, full fit, development, or product reveal followed. Do not retry
 this independent-candidate BCE mechanism. See the
-[corrected C1-SB3 aggregate](../../docs/r4_attended_relation_adapter_954_raw.json).
+[corrected C1-SB3 aggregate](../../archive/r4_attended_relation_adapter_954_raw.json).
 
 ## C1-SB4 joint-candidate structured-margin result
 
@@ -822,8 +822,8 @@ PYTHONPATH="$PWD/tools/r4-softmax-trainer/src" \
 ```
 
 The started/result markers intentionally reject a second invocation. See the
-[#954 record](../../docs/r4_grounded_correctness_954.md) and
-[C1-SB4 aggregate](../../docs/r4_joint_candidate_margin_954_raw.json).
+[#954 record](../../archive/r4_grounded_correctness_954.md) and
+[C1-SB4 aggregate](../../archive/r4_joint_candidate_margin_954_raw.json).
 
 ## C1-SB5 paired-query binding result
 
@@ -858,8 +858,8 @@ The exclusive start marker forbids a second training invocation. The product
 population remained unopened, and the negative branch emitted no checkpoint or
 binding-head artifact and ran no Rust parity, development, or product stage.
 Retire C1-SB5 without retry. See the
-[#954 record](../../docs/r4_grounded_correctness_954.md) and
-[C1-SB5 aggregate](../../docs/r4_paired_query_binding_954_raw.json).
+[#954 record](../../archive/r4_grounded_correctness_954.md) and
+[C1-SB5 aggregate](../../archive/r4_paired_query_binding_954_raw.json).
 
 ## Isolated environment
 
@@ -998,7 +998,7 @@ fused-AdamW/deferred-logging fast path was slower (`4.485223` versus signed
 `3.491307 s/step`), so #1019 closed without a full run. #954's six bounded
 source-grounding mechanisms through C1-SB5 subsequently closed negative. CUDA
 and external GPU execution are out of scope. See the
-[#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+[#1019 observed preflight](../../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
 The Rust qualifier has a separate shape-bound campaign mode. After a #1019
 export and Python development-prefix fixture exist, it rejects the legacy
@@ -1112,10 +1112,10 @@ evidence does.
 
 The authoritative model, population, optimization, admission, reveal,
 positive/negative branch, and nonclaim definitions live in the
-[#1019 record](../../docs/r4_softmax_parameter_capacity_1019.md) and its
-[structured contract](../../docs/r4_softmax_parameter_capacity_1019_raw.json).
+[#1019 record](../../archive/r4_softmax_parameter_capacity_1019.md) and its
+[structured contract](../../archive/r4_softmax_parameter_capacity_1019_raw.json).
 The consumed preflight evidence lives in the
-[#1019 observed preflight](../../docs/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+[#1019 observed preflight](../../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 
 ## Local verification
 

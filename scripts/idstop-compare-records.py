@@ -8,7 +8,7 @@ the new record has are reported separately as additions, never as differences,
 so a new channel (copy_stop, reply_trace, reply_stopped_at) does not show up as
 a change. Used for the idstop3 default proof: 3 arms x 3 conditions = 9 files,
 288 records, 0 differing fields. Companion to
-docs/evidence/idstop_nonfiring_classification_2026-10-09.txt.
+archive/evidence/idstop_nonfiring_classification_2026-10-09.txt.
 
     idstop-compare-records.py SEALED.json=NEW.json [SEALED2.json=NEW2.json ...]
 

@@ -216,14 +216,14 @@ Owner: Casey · Confirmed directly in the September 19, 2026 takeover conversati
 
 The owner reconfirmed that offline training may use matrix products, all recorded decisions are owner decisions, and add/subtract implementations are allowed while geometric routing should remain the focused attempt. D0-b remains adopted; D1 is interpreted together with D2. The stable policy, AGENTS and live entry documents are synchronized through protected delivery. Frozen runtime contracts retain their scope.
 
-This ratification does not turn the historical rationale into a theorem: not every possible learned representation requires a linear map, and a small failed recurrent experiment does not prove local training or an entire mechanism family impossible. See the [source/literature corrections](takeover-review-2026-09-19.md). The arithmetic allowance is an owner engineering decision independent of those broader claims.
+This ratification does not turn the historical rationale into a theorem: not every possible learned representation requires a linear map, and a small failed recurrent experiment does not prove local training or an entire mechanism family impossible. See the [source/literature corrections](../../archive/integration/takeover-review-2026-09-19.md). The arithmetic allowance is an owner engineering decision independent of those broader claims.
 
 ---
 
 ## D4 — Goal decomposition and the geometry gate
 
 Owner: Casey · Drafted by: the run lead · Date: 2026-09-24 · **Ratified by owner instruction, 2026-09-24 session.**
-Full rationale and the staged plan: [direction-decision-2026-09-24.md](direction-decision-2026-09-24.md).
+Full rationale and the staged plan: [direction-decision-2026-09-24.md](../../archive/integration/direction-decision-2026-09-24.md).
 
 Two goals had been conflated. They are now separated.
 
@@ -270,13 +270,13 @@ prior (`C`) is retained as a **standing local control**, not a target: beating a
 project's own docs is not a language milestone. Each panel must include a natural-text long-range companion, an
 equal-work stateful n-gram control, source-disjoint held-out episodes, and a *verified* (not asserted) at-chance
 count control. This replaces the proxy objective identified in
-[repo-review-direction-2026-09-23.md](repo-review-direction-2026-09-23.md) §0.3.
+[repo-review-direction-2026-09-23.md](../../archive/integration/repo-review-direction-2026-09-23.md) §0.3.
 
 ## D7 — Adopt the integrated attention-language programme
 
 Owner: Casey · **Ratified by direct owner instruction, September 24, 2026:** “solidify your above plan as the goforward plan (in github so other contributors know it is too) and then proceed with the steps you recommended above”.
 
-The [principal attention programme](principal-attention-plan-2026-09-24.md) is the go-forward implementation roadmap. Its next milestone is **one jointly learned attention-language artifact**, combining exact event history, learned geometric candidate admission, a mutable relative-frame energy, shared sparse state operators and normalized sparse Generate/Copy/Stop output. Develop the ordinary and geometric paths together on the same information, episodes and measured access budget. The roadmap continues through compositional sessions, quality scaling, complete-path laptop qualification and replacement by useful workload.
+The [principal attention programme](../../archive/integration/principal-attention-plan-2026-09-24.md) is the go-forward implementation roadmap. Its next milestone is **one jointly learned attention-language artifact**, combining exact event history, learned geometric candidate admission, a mutable relative-frame energy, shared sparse state operators and normalized sparse Generate/Copy/Stop output. Develop the ordinary and geometric paths together on the same information, episodes and measured access budget. The roadmap continues through compositional sessions, quality scaling, complete-path laptop qualification and replacement by useful workload.
 
 This decision supersedes the earlier sequencing that deferred geometric implementation behind further isolated metadata/cache gates. It does not change D0-b, D4's requirement for evidence before a geometric-advantage claim, D5's terminal sparsity constraint, or D6's long-range information objective and controls. Geometric code can be developed and trained from the start; promotion still requires the declared comparisons. Focused correctness checks and diagnoses serve the integrated endpoint. They are not successive substitute capability milestones.
 
@@ -287,7 +287,7 @@ The owner also authorized local HDD cleanup. Remove specifically identified rege
 September 24, 2026. **Implementation decision under the owner's direct request**
 to assess the supplied stuck-point review holistically and make warranted
 updates. This adopts the supported correction in the
-[independent assessment](stuck-point-review-response-2026-09-24.md), not every
+[independent assessment](../../archive/integration/stuck-point-review-response-2026-09-24.md), not every
 threshold, claim or policy suggested in the attachment.
 
 The [canonical plan](project-track.md) now owns a persistent reference → native
@@ -335,7 +335,7 @@ orthant64 artifacts remain evidence at their original scope; no result becomes
 PASS and no diagnostic override is promoted.
 
 **Operational correction:** apply the mandatory
-[progress-control rules](agent-execution-policy.md#progress-control--owner-correction-september-25)
+[progress-control rules](../../archive/integration/agent-execution-policy.md#progress-control--owner-correction-september-25)
 through root AGENTS, the machine policy, the research skill and the DeepSeek
 workflow. One short existing-issue work card names the integrated deliverable,
 blocker, causal change, distinct outcome decisions, fixed conditions, necessary
@@ -360,7 +360,7 @@ This refines D8 sequencing after the completed admission decision. The useful
 transformerless geometric-model goal, D0-b arithmetic contract, D4–D6 evidence and
 terminal sparsity requirements, exact memory, language learning and matched
 ordinary controls remain in force. No new model training is part of this process
-correction. The [current execution contract](../history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract)
+correction. The [current execution contract](../../archive/history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract)
 is authoritative for the next implementation; historical experiment schedules do
 not override it.
 
@@ -370,7 +370,7 @@ not override it.
 
 Owner: Casey · Drafted by: the lab lead · Date: 2026-09-26 · **Owner decision in the 2026-09-26 lab session, recorded on
 branch `claude/blissful-wozniak-girwwq`; it reaches `main` only through protected delivery.** Context:
-[lab phase 2](geometric-lab-phase2-2026-09-26.md) §6.
+[lab phase 2](../../archive/integration/geometric-lab-phase2-2026-09-26.md) §6.
 
 **Scope clarification, September 27:** the owner subsequently answered the
 fourth lab's explicit D10 question: **“Keep the native, multiplier-free serving
@@ -379,7 +379,7 @@ serving-multiplier exceptions below; offline Rust learning remains permitted
 under D0-b. The numbered record below preserves the September 26 decision in the
 other lab session, not a global revocation or restatement of that session's
 instructions. See the [shared owner clarification](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279)
-and [current execution direction](../history/current-state-2026-09-25-to-2026-10-02.md#fourth-lab-shared-research-and-integration).
+and [current execution direction](../../archive/history/current-state-2026-09-25-to-2026-10-02.md#fourth-lab-shared-research-and-integration).
 
 1. **Backbone.** A converted open-weight instruct model (SmolLM2, Apache-2.0) is accepted as the chat backbone. The
    rule "no transformer backbone at serving" is restated as: **no floating point and no dense float matmul at serving,
@@ -470,7 +470,7 @@ Context. Near misses on one configuration of mechanisms still under construction
 
    > leave closed mechanisms that demonstrated real geometric capabilities that are absent from the rest of our mechanisms so that we have their tools and pieces available to fix other problems later - use your context and project understanding synthesis to evaluate them and their novelty
 
-   Lab 1 keeps such mechanisms' code building and documented, with their demonstrated capability, novelty and reuse points, in the [geometric toolbox](geometric-toolbox-2026-09-28.md).
+   Lab 1 keeps such mechanisms' code building and documented, with their demonstrated capability, novelty and reuse points, in the [geometric toolbox](../../archive/integration/geometric-toolbox-2026-09-28.md).
 
 ---
 
@@ -596,7 +596,7 @@ Authority: the owner's answers to three prompts in the Claude-lab session on 30 
 decision function and coordination authority. The originally merged wording is
 retained below; its merge did not establish the missing council/delivery gates.
 
-Authority: proposed by the Claude lab from the adversarial council of 29 September (23 agents: evidence briefs, four proposals, twelve red-team verdicts, a judge and a completeness critic). **These rules take effect when the D14 council records two approving votes from non-author seats on the PR that carries this entry.** They change working rules only, prospectively. The evidence and the recommended experiments are in the [council verdict](council-verdict-2026-09-29.md), which feeds the [lab plan](../labs/plan-2026-09-29.md).
+Authority: proposed by the Claude lab from the adversarial council of 29 September (23 agents: evidence briefs, four proposals, twelve red-team verdicts, a judge and a completeness critic). **These rules take effect when the D14 council records two approving votes from non-author seats on the PR that carries this entry.** They change working rules only, prospectively. The evidence and the recommended experiments are in the [council verdict](../../archive/integration/council-verdict-2026-09-29.md), which feeds the [lab plan](../labs/plan-2026-09-29.md).
 
 1. **Applying the parity rule so that it always decides.**
    - For each seed or disjoint draw i, **d_i** is the geometric arm's metric minus its paired ordinary arm's metric, with loss in nats or the accuracy drop.
@@ -690,7 +690,7 @@ does not retroactively claim that #1522 passed its pre-merge gates.
 
 **Owner-approved on 30 September 2026** (menu choice "Approve", recorded on [#820](https://github.com/UOR-Foundation/uor-r4/issues/820)). In force for 1–14 October. Tracked on [#1552](https://github.com/UOR-Foundation/uor-r4/issues/1552).
 
-**Authority.** Proposed by the Claude lab from the 30 September direction review: four evidence briefs, three proposals, capability and cost critiques, and a judge. The review was carried out by the Claude lab alone under the owner's 20:20 UTC ruling that a lab may review its own work. The full review is kept in [direction-review-2026-09-30.md](direction-review-2026-09-30.md).
+**Authority.** Proposed by the Claude lab from the 30 September direction review: four evidence briefs, three proposals, capability and cost critiques, and a judge. The review was carried out by the Claude lab alone under the owner's 20:20 UTC ruling that a lab may review its own work. The full review is kept in [direction-review-2026-09-30.md](../../archive/integration/direction-review-2026-09-30.md).
 
 It changes the programme's priorities for 1–14 October only, prospectively. It changes no measurement and no earlier verdict.
 
@@ -834,7 +834,7 @@ direction; it does not attribute every implementation detail to an owner quote.
    shared-interface research. D11/D0-b/D5, Rust-native implementation, exact
    identity and typed geometry are unchanged. Full alpha still requires useful
    coding/reasoning; frontier capability remains an objective.
-3. **Admissibility.** The [October policy](mechanism-admissibility-2026-10.md)
+3. **Admissibility.** The [October policy](../../archive/integration/mechanism-admissibility-2026-10.md)
    makes D12/D17/D9 operational: assess the learning opportunity, instrument,
    information, control and consumer before interpreting a negative. A failed
    promotion stays failed. A materially changed successor may re-enter with a
@@ -1167,7 +1167,7 @@ The direction is relayed on [#2028](https://github.com/UOR-Foundation/uor-r4/iss
 - NVRTC is a compiler, not a mathematical operator. Compliance depends on what
   the complete program computes, irrespective of compilation backend.
 
-The [delivery record](../labs/no-softmax-2026-10-12/README.md) records scope and
+The [delivery record](../../archive/labs/no-softmax-2026-10-12/README.md) records scope and
 limitations. This policy is mandatory agent governance, not a comprehensive
 Rust/CLI interlock or a claim of completed project-wide softmax removal.
 
@@ -1290,7 +1290,7 @@ training hold and preserve everyone's work. The reconciliation claim is
   - No result that needs matmul or softmax anywhere counts as progress on any line.
     Historical measurements keep their scope as inactive evidence.
 
-The [repaired operator plan](../labs/operator-phase-2026-10-12/README.md) defines
+The [repaired operator plan](../../archive/labs/operator-phase-2026-10-12/README.md) defines
 the preparation/admission boundary. This is agent governance, not a claim that
 existing executables enforce all prohibitions or that a compliant model exists.
 
@@ -1302,7 +1302,7 @@ binder/frontier abstraction; a dense quaternion sum over every input remains
 prohibited. The owner explicitly authorizes developing, building and testing
 this mechanism on a CUDA 12.8+ devel Ubuntu24 pod through `uor-pod`. This named
 build/kernel qualification permission releases no training hold or unrelated
-rental campaign. [The projection record](../labs/spiralcore-fbs-projection-2026-10-12/README.md)
+rental campaign. [The projection record](../../archive/labs/spiralcore-fbs-projection-2026-10-12/README.md)
 binds implementation, prospective finite-kernel FIT, preservation and limits.
 The OP2 dependency is native SpiralCore/FBS geometry; local OP1 G2 rotation
 remains, and OP3a/full-path/shared-writer qualification still follows.
@@ -1334,7 +1334,7 @@ a one-hour trial, which passed (13 October, 01:07–01:15Z).
   retiring the volume is a later owner step, after its data is confirmed in
   iCloud or the HF store.
 
-The [delivery record](../labs/vast-provider-2026-10-13/README.md) has the
+The [delivery record](../../archive/labs/vast-provider-2026-10-13/README.md) has the
 trial and live-smoke measurements and the limits.
 
 ## D27 - Rust first, and the uor-foundation ecosystem as the shared floor
@@ -1355,7 +1355,7 @@ reason."* Drafted by the Kimi lab (project manager).
 - **The uor-foundation sibling repositories are the shared ecosystem floor**: reuse
   them before rewriting them, at the pinned revisions in `Cargo.toml`/`Cargo.lock`
   (a repin is its own compatibility decision, and
-  [the source audit](uor-source-audit.md) records the upstream deltas).
+  [the source audit](../../archive/integration/uor-source-audit.md) records the upstream deltas).
   - **`uor-addr`** - canonical content addressing. Already pinned
     (rev `165b51e3e`), and the `uor-r4-core` address/identity paths already use it.
   - **`UOR-Framework`** - the typed UOR ontology. Already pinned as

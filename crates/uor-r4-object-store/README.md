@@ -20,7 +20,7 @@ prove canonical tokenization merely by containing matching identity fields.
 
 The eager `RecordBackend` is a reference store. DeepSeek owns production lazy
 DAG reading. Its provisional adapter seam and exact-source check are in the
-[implementation record](../../docs/labs/d19-object-store-2026-10-15/README.md).
+[implementation record](../../archive/labs/d19-object-store-2026-10-15/README.md).
 No model integration, attention change or training permission follows.
 
 ```sh

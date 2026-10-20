@@ -63,7 +63,7 @@ def main():
                             locator(start), revision, status, visibility))
         return ids
 
-    catalog = json.loads((project/'docs/integration/source-catalog.json').read_text())
+    catalog = json.loads((project/'archive/integration/source-catalog.json').read_text())
     repo_ids = {}
     for row in catalog['repositories']:
         repo_ids[row['full_name']] = item('repository', row['full_name'],
@@ -140,14 +140,14 @@ def main():
                          f"https://github.com/{row['repo']}/blob/{row['head_sha']}/{rel}", row['head_sha'], 'PINNED_SOURCE_NOT_EXECUTED'):
                 edge(chunk, 'part_of', repo_ids[row['repo']], 'Selected local source snapshot; execution not claimed')
 
-    paths = [project/'docs/uor_productization_integration_plan.md'] + sorted((project/'docs/integration').glob('*.md'))
+    paths = [project/'archive/uor_productization_integration_plan.md'] + sorted((project/'docs/integration').glob('*.md'))
     paths += sorted((project/'docs/integration').glob('*ledger.json'))
     for path in paths:
         text = path.read_text()
         document('project_plan' if path.name == 'uor_productization_integration_plan.md' else 'project_review',
                  path.name, text, str(path.resolve()), 'sha256:' + digest(text), 'LOCAL_PROPOSAL_AND_AUDIT')
 
-    ledger_path = project/'docs/integration/claim-ledger.json'
+    ledger_path = project/'archive/integration/claim-ledger.json'
     if ledger_path.exists():
         ledger = json.loads(ledger_path.read_text())
         source_ids = {}

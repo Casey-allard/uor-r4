@@ -10,7 +10,7 @@ if [[ -n "$(git status --porcelain=v1 --untracked-files=no)" ]]; then
   exit 1
 fi
 
-experiment_manifest="${experiment_repo}/docs/intrinsic_lorentz_r4_attention_partition_973.json"
+experiment_manifest="${experiment_repo}/archive/intrinsic_lorentz_r4_attention_partition_973.json"
 experiment_output="/Users/casey.allard/uor-r4/.uor-models/research/issue-973-intrinsic-lorentz-r4/cad3dfd17159fdacc5c40e38753109c11764117e3c960f42b9b198d5731272a1/result.attempt-02-checkpoint-float-roundtrip.json"
 experiment_events="$(mktemp -t uor-r4-973-build.XXXXXX)"
 trap 'rm -f "${experiment_events}"' EXIT

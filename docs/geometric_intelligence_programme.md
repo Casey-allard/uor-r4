@@ -1,6 +1,6 @@
 # Geometric Intelligence Programme
 
-**September 7 direction reconciliation:** the product name is **UOR-R4 Geometric Language Model**. Read the [canonical plan](integration/project-track.md), [current artifact/results](integration/current-state.md), [capability assessment](integration/model-direction-2026-09.md) and [project map](PROJECT_MAP.md) first. This document retains technical and dated experiment/reference material; earlier “active/next” sequences do not supersede those pointers. Native bounded inference and contextual/copy attention exist; general prose, general reasoning and frontier capability remain unqualified. Offline Rust training matmul is allowed; final serving has no matrix products or transformer backbone. No new model result was run for this documentation update.
+**September 7 direction reconciliation:** the product name is **UOR-R4 Geometric Language Model**. Read the [canonical plan](integration/project-track.md), [current artifact/results](integration/current-state.md), [capability assessment](../archive/integration/model-direction-2026-09.md) and [project map](PROJECT_MAP.md) first. This document retains technical and dated experiment/reference material; earlier “active/next” sequences do not supersede those pointers. Native bounded inference and contextual/copy attention exist; general prose, general reasoning and frontier capability remain unqualified. Offline Rust training matmul is allowed; final serving has no matrix products or transformer backbone. No new model result was run for this documentation update.
 
 **Owner-directed architecture recovery (2026-09-04):** The
 [native geometric AI plan](integration/project-track.md) owns current goals and
@@ -34,7 +34,7 @@ prioritizes deterministic geometric address/page selection and shared typed
 operators with no serving matrix products. Expert gates remain a conditional
 future option, requiring a concrete capability/cost rationale; a dense
 transformer hidden behind routing remains outside the target. The
-[architecture reconciliation](integration/architecture-2026-09/README.md) maps
+[architecture reconciliation](../archive/integration/architecture-2026-09/README.md) maps
 trigonometry, fibers/bundles, spin, zeta/prime and contributor mechanisms to their
 actual implemented roles and missing connections.
 
@@ -78,9 +78,9 @@ lane is superseded by the build-first override above.
 ## Historical R4 preservation — token control misses three views
 
 **Current two-stage R4 result (2026-09-02):** #1079 completed
-`LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](r4_zoology_language_interface_1077.md)
+`LANGUAGE_R4_PRESERVED_CONTROL_WEAK`. The retained [#1077 learned interface](../archive/r4_zoology_language_interface_1077.md)
 and frozen binding core preserve both full soft mixtures through R4 transport.
-See the [#1079 record](r4_zoology_language_r4_1079.md).
+See the [#1079 record](../archive/r4_zoology_language_r4_1079.md).
 
 All **156/156 preservation criteria** passed across six observed views:
 **25,600 identical answer predictions**, **358,400 correct role decisions** and
@@ -136,7 +136,7 @@ campaign, require an open role-tagged associative-first curriculum to fit and
 transfer, followed by English binding and language replay. Generation,
 recurrence compression, resonance replacement, exact lowering, correctness,
 and reasoning remain unauthorized; #954 remains blocked. See the
-[#1043 record](r4_position_kv_binding_1043.md).
+[#1043 record](../archive/r4_position_kv_binding_1043.md).
 
 ## Historical #973 decision — stop this predictive block-delta law
 
@@ -177,7 +177,7 @@ only that harness failure. This result retires this exact predictive block-
 delta write/binding law, not ordinary R4/Spin softmax attention or qualified
 retained attention. No generation, reasoning, exact/geometry-native lowering,
 #954, C1-SB6, browser promotion, or release is authorized. See the
-[predictive block-delta record](r4_predictive_block_delta_binding_prompt_capacity_973.md).
+[predictive block-delta record](../archive/r4_predictive_block_delta_binding_prompt_capacity_973.md).
 
 ## Primary direction after protected localization — 2026-08-30
 
@@ -324,7 +324,7 @@ Accelerate/BLAS and MPS are local offline accelerators only; CUDA and external
 GPU execution are out of scope. The MPS stop is not a
 model-quality negative, leaves the full-scale capacity hypothesis untested, and
 does not revoke the established attention result. See the
-[#1019 observed preflight](r4_softmax_parameter_capacity_preflight_1019_raw.json).
+[#1019 observed preflight](../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json).
 This is not another attention diagnostic or geometry substitute.
 Offline floats, matrix operations, and softmax remain allowed at the
 teacher/compiler boundary; the deployed destination remains exact,
@@ -335,25 +335,25 @@ transformer-compatible and `f32`/multiply/alloc/source-weight backed, not the
 final serving architecture. The binding
 architecture is in
 [ADR-0005](adr/0005-predictive-geometric-connection-memory.md); the PASS is in
-the [generation record](r4_softmax_reference_generation_973.md) and
-[compact aggregate](r4_softmax_reference_generation_attempt_01_result_973.json),
+the [generation record](../archive/r4_softmax_reference_generation_973.md) and
+[compact aggregate](../archive/r4_softmax_reference_generation_attempt_01_result_973.json),
 and the learned intervention/quality boundary is in the
-[#1014 record](r4_softmax_end_to_end_attention_1014.md); the completed successor
-is in the [#1017 record](r4_softmax_quality_capacity_continuation_1017.md).
+[#1014 record](../archive/r4_softmax_end_to_end_attention_1014.md); the completed successor
+is in the [#1017 record](../archive/r4_softmax_quality_capacity_continuation_1017.md).
 The endpoint/dashboard-wiring checkpoint is in
-[its evidence record](r4_softmax_reference_http_bridge_973.md) and
-[structured result](r4_softmax_reference_http_bridge_result_973.json). The
+[its evidence record](../archive/r4_softmax_reference_http_bridge_973.md) and
+[structured result](../archive/r4_softmax_reference_http_bridge_result_973.json). The
 bounded suffix-distillation result and looping-output boundary are in the
-[trace-student record](r4_softmax_trace_student_973.md). The recurrent negative,
+[trace-student record](../archive/r4_softmax_trace_student_973.md). The recurrent negative,
 its exact metrics, and the observability successor are in the
-[`R4SoftmaxTraceStateStudentV1` record](r4_softmax_trace_state_student_1011.md)
+[`R4SoftmaxTraceStateStudentV1` record](../archive/r4_softmax_trace_state_student_1011.md)
 and
-[`structured result`](r4_softmax_trace_state_student_1011_raw.json).
+[`structured result`](../archive/r4_softmax_trace_state_student_1011_raw.json).
 
 The measured evidence ledger now records `PASS` for HELM-D pinned-source
 provenance, ordinary-donor deterministic reproduction, transported-R4 parity,
 the source-frame-permuted liveness control, and the zero-future-read audit. See
-[`helm_d_r4_softmax_decoder_973.md`](helm_d_r4_softmax_decoder_973.md).
+[`helm_d_r4_softmax_decoder_973.md`](../archive/helm_d_r4_softmax_decoder_973.md).
 Upstream checkpoint parity remains `NOT_RUN`. Intrinsic R4 attempt 01 stopped
 `UNAVAILABLE_PRE_REVEAL` on a checkpoint JSON round-trip defect without opening
 D3; attempt 02 reached construction validation and stopped
@@ -366,9 +366,9 @@ Localization attempt 01 returned
 `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`, result CID
 `blake3:79792c1a6e38733fd3eb925e364c87308ce26e02bea951f338466ab93481b374`.
 D3 remains `NOT_RUN`. Resonance replacement and bounded recurrence/lowering
-remain `NOT_RUN` and parked. See the [intrinsic R4 record](intrinsic_lorentz_r4_attention_973.md),
-the [learned-manifold record](helm_d_learned_manifold_r4_construction_973.md),
-and the [localization record](helm_d_score_centroid_localization_973.md).
+remain `NOT_RUN` and parked. See the [intrinsic R4 record](../archive/intrinsic_lorentz_r4_attention_973.md),
+the [learned-manifold record](../archive/helm_d_learned_manifold_r4_construction_973.md),
+and the [localization record](../archive/helm_d_score_centroid_localization_973.md).
 
 ## Established capability-first delivery baseline — #953
 
@@ -380,7 +380,7 @@ scored 99,362 (22.261404%) versus 24,163 (5.413561%) for unigram, an uplift of
 Two complete executions produced identical report bytes and packed artifacts.
 The fixed prompt emitted 16 valid UTF-8 units and stopped at the cap without a
 period-1/2 cycle. See the
-[#989 record](source_free_table_baseline_989.md).
+[#989 record](../archive/source_free_table_baseline_989.md).
 
 That table remains the frozen non-geometric reference. The one permitted #953
 intervention, `MultiscaleCountRadiusR4V1`, is now accepted at
@@ -394,7 +394,7 @@ teacher-forced positions and through the first free-running divergence. The
 structural source-closure counters were zero, and two complete runs reproduced
 table, overlay, and report bytes exactly. External byte comparison promoted the
 reports' pending verdict to the frozen positive terminal.
-See the [#953 record](source_free_table_geometric_intervention_953.md).
+See the [#953 record](../archive/source_free_table_geometric_intervention_953.md).
 
 This establishes a bounded source-free geometric increment over a statistical
 lexical baseline. It does not establish semantics, broad attention, general
@@ -409,7 +409,7 @@ mechanism. PR #997 then rejected the first natural componentwise placement,
 and the first bounded gated-delta core trailed its plain-delta comparator. The
 ordinary R4/Spin softmax oracle remains qualified. Intrinsic V1 is closed
 unavailable before D3. Source-faithful
-[`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
+[`HelmDLearnedManifoldR4ConstructionV2`](../archive/helm_d_learned_manifold_r4_construction_973.md)
 is now a valid non-D3 construction-validation negative: learned Lorentz failed
 retention and matched parity, while its controls established sensitivity only.
 The 8/8-contract attempt stopped at its two-document preflight and rejected
@@ -459,7 +459,7 @@ retained the following source-free mechanisms:
   occupancy and a 1.484x measured compile-stage speedup.
 
 The programme also carries forward the ancestor's scoped
-[geometric-context evidence](prime_router_geometric_context_evidence.md): its
+[geometric-context evidence](../archive/prime_router_geometric_context_evidence.md): its
 context signal lived in the transported trajectory, session hypersphere state,
 winding/window classification, window projection energy, shared-prime-factor
 retrieval, cosine resonance, and accumulated Hopf phase—not only in an exact
@@ -482,7 +482,7 @@ all matched earlier-order contrasts collided in every exposed non-digest field
 at all seven hierarchy levels. Exact identities still differed, and the natural
 two-candidate admission, address-to-payload inverse, and incremental next-state
 path remained reachable. See the
-[#952 A1.0 record](recursive_geometric_attention_a1_952.md).
+[#952 A1.0 record](../archive/recursive_geometric_attention_a1_952.md).
 
 #967 added the narrow A1R associative, noncommutative ordered-summary repair.
 Its exact scope, independent-global, fold/group, incremental, and support
@@ -492,7 +492,7 @@ shortest Cayley distance collapsed the distinct states to energy 2 and tied on
 6/6. The terminal verdict is `RETAIN_STATE_ONLY`, bound by report kappa
 `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
 This establishes ordered state only, not full attention or generation.
-See the [#967 A1R record](associative_ordered_route_summaries_a1r_967.md).
+See the [#967 A1R record](../archive/associative_ordered_route_summaries_a1r_967.md).
 
 #970 closed through protected PR #972 with the local paired-H4-derived
 R4-heatmap result `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. #969's
@@ -540,7 +540,7 @@ construction-bound exact-descriptor selector at each of paragraph and
   `HELM-D-R4` architecture audit, ordinary donor reproduction, and
   gauge-equivalent full-decoder softmax parity on real causal language now
   pass. Intrinsic V1 is closed unavailable before D3. Source-faithful
-  [`HelmDLearnedManifoldR4ConstructionV2`](helm_d_learned_manifold_r4_construction_973.md)
+  [`HelmDLearnedManifoldR4ConstructionV2`](../archive/helm_d_learned_manifold_r4_construction_973.md)
   is now a valid non-D3 construction-validation negative. Its controls
   established sensitivity, but learned Lorentz failed retention and parity.
   The 8/8-contract attempt stopped at its two-document preflight and rejected
@@ -1286,7 +1286,7 @@ searched, no readout was compiled, and every downstream control was
 `NOT_RUN_IDENTIFIABILITY_HARD_STOP`. This is a readout-identifiability negative
 only. The byte-identical local report kappa is
 `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`;
-see the [#970 A1P record](candidate_relative_identifiability_a1p_970.md). #970
+see the [#970 A1P record](../archive/candidate_relative_identifiability_a1p_970.md). #970
 is closed; the exact measurements above remain append-only history.
 
 #969 now implements exactly one mechanism: the natural schema-2 union is hard
@@ -1321,7 +1321,7 @@ state-disabled chooses `rr` on both. Exact candidate payload inversion,
 incremental causal-path reproduction, and byte-identical double execution pass.
 The canonical smoke record kappa is
 `blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`;
-see the [#969 record](local_geometric_attention_969.md).
+see the [#969 record](../archive/local_geometric_attention_969.md).
 
 ### GI-2 A1Q-L2 / #983 — construction-transferred candidate-conditioned local attention
 
@@ -1393,7 +1393,7 @@ the fixed count-only comparator were each 0/6. Outcome
 therefore records `UNAVAILABLE_ZERO_CONSTRUCTION_TRANSFER`. Only offline
 coverage/ceiling lookups ran; the deployed selector, payload inversion, #953,
 and decoded generation were `NOT_RUN`. See the
-[#983 evidence record](construction_causal_return_attention_983.md).
+[#983 evidence record](../archive/construction_causal_return_attention_983.md).
 
 ### GI-2 A1Q-L3 / #986 — corpus-induced harmonic signed local transport
 
@@ -1498,7 +1498,7 @@ allocation, Cayley-Dickson, endomorphism, and Lie-Jordan research operations are
 permitted here; integer/base-256/LUT lowering is deferred until causal transfer
 and must later reproduce the same decisions. The complete mechanism,
 thresholds, controls, related work, and nonclaims are frozen in the
-[#986 plan](corpus_induced_signed_transport_attention_plan_986.md).
+[#986 plan](../archive/corpus_induced_signed_transport_attention_plan_986.md).
 
 **Observed #986 result, 2026-08-28.** The raw corpus bytes and 3,000-document
 D3 census reproduced, but the repository had no source-free corpus-scale codec
@@ -1510,7 +1510,7 @@ identity existed. The prerequisite certificate
 therefore records `UNAVAILABLE_FRAME_OR_POPULATION`. Placement, link-state,
 diffusion, Gate 0, calibration, sealed labels, all full/table/control arms,
 payload replay, and #953 were `NOT_RUN`. The
-[#986 evidence record](corpus_signed_transport_attention_986.md) is the
+[#986 evidence record](../archive/corpus_signed_transport_attention_986.md) is the
 binding claim boundary. Any next local qualifier must be a freshly frozen
 population/frame successor; #986 does not retry.
 
@@ -1624,7 +1624,7 @@ rank, output rank, and cost reproduces #969 under a lexical relabel. Because no
 contextual row hits and neither prompt naturally requires one adverb over the
 other, the smoke cannot qualify grammar. #953 therefore records
 `REVISE_I1_GENERATOR_IN_PLACE`; see the
-[#953 record](local_geometric_generation_953.md). A subsequent independently
+[#953 record](../archive/local_geometric_generation_953.md). A subsequent independently
 motivated agreement contrast was frozen before selection. Its support preflight
 found the intended direct candidates but an adjacent-spin fallback row expanded
 both steps to five candidates, so H4 selection and all four generator arms were
@@ -1669,7 +1669,7 @@ frozen prompt diverged at emitted unit 12 and ended
 with distinct 16-unit valid UTF-8 continuations without a period-1/2 cycle.
 The accepted terminal is
 `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; the complete
-record is [here](source_free_table_geometric_intervention_953.md).
+record is [here](../archive/source_free_table_geometric_intervention_953.md).
 
 This result does not rehabilitate the historical #953 selector, #983, or #986,
 and does not establish semantics, broad attention, general coherence,
@@ -1694,7 +1694,7 @@ decoded ` coffee.` / ` tea.` (0/2). Support/work mismatches and structural
 source/future reads were zero, and the operator/census/smoke identities replayed
 exactly. The terminal is
 `RETAIN_GATE0_PRIOR_SENTENCE_ATTENTION_CONTINUE_PARAGRAPH_CONVERSATION`; see the
-[#973 Gate 0 record](prior_sentence_count_radius_attention_973.md).
+[#973 Gate 0 record](../archive/prior_sentence_count_radius_attention_973.md).
 
 This retains one bounded exact-candidate prior-prefix lexical copy-attention
 mechanism. It does not establish semantic or anti-recall transfer, general
@@ -1729,7 +1729,7 @@ target-free census
 and decoded smoke
 `blake3:0ba32e5fe26f1280ec2eef2b115023de52f2ef946882352311dcecc531d76a32`.
 The complete contract, artifact ledger, and claim boundary are in the
-[#973 paragraph SpinTorsion-path record](paragraph_entity_spin_path_attention_973.md).
+[#973 paragraph SpinTorsion-path record](../archive/paragraph_entity_spin_path_attention_973.md).
 
 The retained mechanism is exact descriptor recurrence with prototype-leaf
 reuse, not an induced semantic relation. In construction, the ` amber`
@@ -1800,7 +1800,7 @@ Canonical serialization/reload, target-free replay, and decoded-report replay
 were byte-identical. Tampering, binding-byte drift, malformed scope inputs, and
 bound overruns failed closed. The complete contract, identity ledger, and
 claim boundary are in the
-[#973 conversation SpinTorsion-path record](conversation_entity_spin_path_attention_973.md).
+[#973 conversation SpinTorsion-path record](../archive/conversation_entity_spin_path_attention_973.md).
 
 The recurrent prototype measured `(Coincident,0,0)` and the competitor was
 strictly larger in each real case. The complete lexicographic stored-spin path
@@ -1855,7 +1855,7 @@ Target loads were zero; decoded evaluation remains `NOT_RUN`. The binding
 terminal is
 `RETAIN_CONVERSATION_ONLY_REDESIGN_BOUNDED_GLOBAL_EXACT_SPIN_RELATION`.
 See the
-[#973 bounded-global exact-spin record](bounded_global_exact_spin_attention_973.md).
+[#973 bounded-global exact-spin record](../archive/bounded_global_exact_spin_attention_973.md).
 
 This preserves the paragraph/conversation results and the exact snapshot/
 reuse machinery, but V1 did not establish bounded-global attention. Its
@@ -1901,7 +1901,7 @@ witness, not corpus induction, general semantics, correctness, reasoning, or
 product readiness. The subsequent first document-scope corpus-induced
 placement passed target-free but failed its held-out promotion gate; #973
 remains open and #954 remains blocked. See the
-[#973 bounded-global exact-spin record](bounded_global_exact_spin_attention_973.md).
+[#973 bounded-global exact-spin record](../archive/bounded_global_exact_spin_attention_973.md).
 
 ##### Historical V1 repair direction, superseded by V2
 
@@ -2008,7 +2008,7 @@ H4 connection against a working plain arm and a strong coherent-tangent
   `r4 generate` path. CUDA
   and external GPU execution are out of scope.
 See ADR-0005 and the
-[#973 corpus-induced document placement record](corpus_induced_document_spin_placement_973.md).
+[#973 corpus-induced document placement record](../archive/corpus_induced_document_spin_placement_973.md).
 
 This ladder and its final requalification are part of #973's definition of done
 and terminal; #973 cannot close and #954 cannot start without them. The HELM-D
@@ -2267,7 +2267,7 @@ evidence and missing roles are recorded in
 ## #973 retained baseline and historical readout chain (2026-09-01)
 
 The independently frozen
-[`R4RetainedLanguagePathV1`](r4_retained_language_path_v1_973.md) supersedes
+[`R4RetainedLanguagePathV1`](../archive/r4_retained_language_path_v1_973.md) supersedes
 older present-tense #973 next-action prose while preserving every earlier
 result as history. Its 252,160-parameter exact-H4 retained arm generalized,
 remained causally load-bearing under state removal, and stayed competitive with
@@ -2334,7 +2334,7 @@ checkpoint, the sole active #973 successor was frozen as
 retained-attention substrate, with an equal-parameter address-blind learned
 control and a fixed-leaf geometry-destroying intervention. Its completed result
 is recorded below; this paragraph preserves the pre-run decision. See the
-[learned associative freeze](r4_learned_associative_readout_prompt_capacity_973.md).
+[learned associative freeze](../archive/r4_learned_associative_readout_prompt_capacity_973.md).
 For the layerwise candidate, generation, reasoning, and exact/geometry-native
 lowering are `NOT_RUN`. #973 remains open and #954 remains blocked; correctness,
 reasoning, C1-SB6, browser, and release work are not authorized by this result.
@@ -2421,7 +2421,7 @@ They may serve as comparators or components only when a new stage explicitly
 names them. They no longer decide forward intelligence sequencing.
 
 The ancestor
-[prime-router geometric-context record](prime_router_geometric_context_evidence.md)
+[prime-router geometric-context record](../archive/prime_router_geometric_context_evidence.md)
 remains `some-true` evidence for structural context routing, not source-free
 token generation. Its overlapping trajectory mechanism is carried forward here
 without importing its Ollama language output as product evidence.

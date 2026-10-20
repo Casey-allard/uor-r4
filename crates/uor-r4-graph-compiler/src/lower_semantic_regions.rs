@@ -1,6 +1,6 @@
 //! Lowering Reference Semantic Regions into Boolean, Mask, Popcount, and Fixed-Point Programs
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §§5, 7, 17;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §§5, 7, 17;
 //! `docs/formal_vocabulary.md` §6; GitHub Issue #130.
 //!
 //! This module implements the lowering boundary from the reference floating-point graph

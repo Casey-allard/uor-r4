@@ -1,15 +1,15 @@
 # Unified Geometric Carrier Credit
 
-> **Current compiled boundary, 13 October — D29:** the selected path retains the same shared writer through `native_vector_channel.rs`, reexported under `whole_path_learning::device` for existing callers. The historical bank/learning modules named below are now excluded, rather than runtime fallbacks. Earlier writer controls keep their source scope; corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090, pending protected delivery. This extraction does not implement or qualify a trained intent compiler, full M2 or D11. [Boundary record](../labs/d29-vendor-boundary-2026-10-13/README.md).
+> **Current compiled boundary, 13 October — D29:** the selected path retains the same shared writer through `native_vector_channel.rs`, reexported under `whole_path_learning::device` for existing callers. The historical bank/learning modules named below are now excluded, rather than runtime fallbacks. Earlier writer controls keep their source scope; corrected source `1f1547bfd` passes CUDA compilation and all 31 finite controls on RTX4090, pending protected delivery. This extraction does not implement or qualify a trained intent compiler, full M2 or D11. [Boundary record](../../archive/labs/d29-vendor-boundary-2026-10-13/README.md).
 
 **October 12, D23:** the delivered whole-path sampled-choice law uses softmax and
 is BLOCKED pending compliant replacement. Prior source fixtures are historical
 implementation evidence, not compliance or permission to execute. The absolute
-[no-softmax policy](../labs/no-softmax-2026-10-12/README.md) applies to the complete
+[no-softmax policy](../../archive/labs/no-softmax-2026-10-12/README.md) applies to the complete
 learning/output path, not just geometric routing. No training is authorized.
 It is re-registrable as an offline float sheet under [D37](../integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised) (fresh FIT + owner release; separately scanned module; D11 integer export with export gap; softmax/matmul bans unchanged); this releases no hold, and the sampled-choice producer remains blocked because softmax is still banned.
 
-**Earlier October 13 implementation status (pre-D29 extraction):** The [OP3a/common native vector writer](../labs/geometric-head-shared-writer-2026-10-13/README.md)
+**Earlier October 13 implementation status (pre-D29 extraction):** The [OP3a/common native vector writer](../../archive/labs/geometric-head-shared-writer-2026-10-13/README.md)
 shares the same learned embedding Tensor/Var across token input, raw-distance
 output and actual compiler/exact-store/emitter vector adapters. Product-cell
 addressing preserves exact IDs/masks separately from geometry; omitted-target
@@ -42,13 +42,13 @@ masters and fits Context/prototypes on the existing full pooled-ranking/EOS
 objective. `native_geometric/learner/geometric_continuation_field.rs` factors
 repeated native computation onto at most120 encountered prototypes per lane.
 
-**Source connection repair:** [native bound content](../labs/native-bound-content-2026-10-11/README.md)
+**Source connection repair:** [native bound content](../../archive/labs/native-bound-content-2026-10-11/README.md)
 joins predicted compiler spans, versioned memory and the native bank; learning
 uses the same admitted inputs. Opt-in finite Copy observation credit includes
 neighbor effects, reuses full120 Prefix and freezes observation masters. Mapped
 Hamming replaces optional ID arithmetic, and Claude/SpiralCore E8 actions carry
 coarse routes beside exact records. No E8/H4 cast, model score or energy result
-follows. The [supplied arithmetic paper](../labs/native-bound-content-2026-10-11/MURMURATIONS.md)
+follows. The [supplied arithmetic paper](../../archive/labs/native-bound-content-2026-10-11/MURMURATIONS.md)
 is not implemented by the current biological-neighbor Starling route.
 
 **Evidence:** Host conditional-credit and actual-bank fixtures preserve exact
@@ -58,7 +58,7 @@ artifact bytes while reducing repeated coefficient reads/products. These are
 source arithmetic/count checks, not language, transfer, speed or energy results.
 Actual CUDA, full512 baseline and model fitting remain NOT_RUN at preparation.
 
-**Whole-path learning design and source reference:** the [joint contract](../labs/whole-path-learning-2026-10-11/DESIGN.md)
+**Whole-path learning design and source reference:** the [joint contract](../../archive/labs/whole-path-learning-2026-10-11/DESIGN.md)
 removes the frozen compiler/shared-encoder boundary and requires all learned
 field families to coadapt in one revision. Compiler/write/query, E8 root/family
 admission and consumed donor decisions get delayed episode credit through an
@@ -67,12 +67,12 @@ qualification authority. Existing finite120 tools are local conditional credit,
 not an episode posterior, and cannot be added a second time to the same node's
 score-function estimator. Exact content survives beside bounded geometric
 summaries and SpiralCore frame transport. No trainer, run or efficiency result
-is activated by this design; the owner training hold stays. The [source result](../labs/whole-path-implementation-2026-10-12/README.md)
+is activated by this design; the owner training hold stays. The [source result](../../archive/labs/whole-path-implementation-2026-10-12/README.md)
 now joins actual native compiler/store/E8/emitter decisions with one shared Var
 inventory, pooled complete-answer/EOS and terminal episode credit, actual
 stochastic branch laws, fresh whole-revision bindings and greedy snapshots.
 Fifteen tiny fixtures exercise these connections, not language or efficiency.
-The [producer/recovery extension](../labs/whole-path-recovery-2026-10-12/README.md)
+The [producer/recovery extension](../../archive/labs/whole-path-recovery-2026-10-12/README.md)
 adds CUDA numerical graph source, sampled replay recovery and equal-episode
 batch credit. Its28 whole-path CPU-reference fixtures include native Q24 parity,
 15 shared parameter groups, replayed gradients/next outputs, cross-episode
@@ -85,13 +85,13 @@ independently reproduce the saved437 baseline, then score0/512 at their fixed
 128-update endpoints (OFF1001, ON1001, OFF2001). ON2001 is unfinished before its
 optimizer, not-negative; opened128 and genuinely fresh qualification are NOT_RUN.
 Saved437 is retained, no endpoint promoted, no mechanism closed. The [whole-path
-audit](../labs/unified-geometric-integration-2026-10-11/AUDIT.md) distinguishes a
+audit](../../archive/labs/unified-geometric-integration-2026-10-11/AUDIT.md) distinguishes a
 coherent literal-emission panel from a full unified-model test. It identifies
 changing carriers/prototypes under frozen learned factors and mixed finite/ambient
 credit as unresolved integration risks, not established causes. Old FIT does not
 clear a rerun; further model compute is held pending coherent path qualification.
 
-**Fair test:** The [registered comparison](../labs/unified-geometric-integration-2026-10-11/PREREGISTRATION.md)
+**Fair test:** The [registered comparison](../../archive/labs/unified-geometric-integration-2026-10-11/PREREGISTRATION.md)
 historically used matched ON/OFF credit, identical active parameters/ordinary credit,
 two seeds and two all512 epochs. All4096 Generate choices and physical Copy
 aliases retain common clipping/pooling; EOS is trained and scored. Both factual

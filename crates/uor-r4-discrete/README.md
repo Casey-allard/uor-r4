@@ -40,7 +40,7 @@ and [integer manifest](../uor-r4-integer/Cargo.toml). Do not substitute old mode
 
 ## Evidence to start with
 
-- [D33 pilot](../../docs/labs/a2-pilot-2026-10-14/README.md): 1,640 batches, 236 accepted updates; mixed DEV measurements.
+- [D33 pilot](../../archive/labs/a2-pilot-2026-10-14/README.md): 1,640 batches, 236 accepted updates; mixed DEV measurements.
 - [Original paired attention dose](../../docs/labs/attention-dose1-strategic-stop-2026-10-18/README.md): owner-stopped before Q1, partials preserved.
 - [Rows parity attempt3](../../docs/labs/counterfactual-rows-parity-2026-10-18/evidence/attempt3/rows-parity.json): 1,085 finite cases, zero updates; proposal timing is non-gating (`qualified=false`).
 - [Live M1 issue](https://github.com/UOR-Foundation/uor-r4/issues/2029): successor dispatch and actual outcomes.

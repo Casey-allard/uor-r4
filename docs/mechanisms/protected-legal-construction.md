@@ -13,7 +13,7 @@
 **11 October owner pivot:** the generic constructor is deferred, not rejected
 as a mechanism. The source6 exact-cost replay was interrupted with partial
 receipts retained as unfinished/not-negative; its owned pod was released and
-deleted. Numerical sources3/6/7 are [indexed INACTIVE patches](../history/branch-archive/INDEX.md#deferred-numerical-sources-11-october).
+deleted. Numerical sources3/6/7 are [indexed INACTIVE patches](../../archive/history/branch-archive/INDEX.md#deferred-numerical-sources-11-october).
 No full savedLP result or serialized solver checkpoint is claimed. The active
 M2 work connects [live geometric carrier credit](unified-geometric-carrier-credit.md)
 at identical saved437, preserving panels/objective and the later genuinely

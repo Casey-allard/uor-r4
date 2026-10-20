@@ -13,7 +13,7 @@
 //!
 //! The decisive audit is still `#print axioms` over the compiled
 //! environment (`Tools/axioms.py`, which needs the Lean toolchain and so
-//! isn't ported here per `docs/gnaf_integration_653.md`); this is defence
+//! isn't ported here per `archive/gnaf_integration_653.md`); this is defence
 //! in depth, same as the Python original says of itself.
 
 use std::path::{Path, PathBuf};

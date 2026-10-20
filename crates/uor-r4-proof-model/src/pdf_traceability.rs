@@ -1,6 +1,6 @@
 //! Living PDF-to-Implementation Traceability Matrix Verifier
 //!
-//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §§1–17;
+//! Specification & Source: `archive/hologram_formal_analysis_direction.md` PDF §§1–17;
 //! `docs/formal_vocabulary.md`; GitHub Issues #11–#34, #122–#137.
 //!
 //! This module provides executable audit capabilities for the living traceability matrix:
@@ -37,7 +37,7 @@ pub struct TraceabilityAuditReport {
 pub struct PdfTraceabilityVerifier;
 
 impl PdfTraceabilityVerifier {
-    /// Return the static 17-section traceability matrix matching `docs/pdf_traceability_matrix.md`.
+    /// Return the static 17-section traceability matrix matching `archive/pdf_traceability_matrix.md`.
     pub fn get_matrix() -> [PdfTraceabilityRow; 17] {
         [
             PdfTraceabilityRow {
@@ -195,8 +195,8 @@ impl PdfTraceabilityVerifier {
                 pdf_section: "§16",
                 concept_name: "Comprehensive PDF Traceability Matrix",
                 issue_id: "#137",
-                code_location: "docs/pdf_traceability_matrix.md",
-                evidence_artifact: "docs/pdf_traceability_matrix.md",
+                code_location: "archive/pdf_traceability_matrix.md",
+                evidence_artifact: "archive/pdf_traceability_matrix.md",
                 claim_class: "Definition",
                 status: ProofStatus::Verified,
                 owner: "Casey Allard",
@@ -205,8 +205,8 @@ impl PdfTraceabilityVerifier {
                 pdf_section: "§17",
                 concept_name: "Research Sequence & Roadmap Integration",
                 issue_id: "#137",
-                code_location: "docs/hologram_formal_analysis_direction.md",
-                evidence_artifact: "docs/hologram_formal_analysis_direction.md",
+                code_location: "archive/hologram_formal_analysis_direction.md",
+                evidence_artifact: "archive/hologram_formal_analysis_direction.md",
                 claim_class: "Definition",
                 status: ProofStatus::Verified,
                 owner: "Casey Allard",

@@ -8,7 +8,7 @@
 //! *saturates*: it keeps the same number of cells and simply puts more records
 //! in each one. A saturated structure still produces numbers, and the numbers
 //! look like a model — they are a lookup table. The 500k -> 2.11M measurement
-//! of 2026-08-05 (see `docs/capacity_scaling_432.md`) is the worked example:
+//! of 2026-08-05 (see `archive/capacity_scaling_432.md`) is the worked example:
 //! a 4.2x data increase produced *fewer* cover regions (38 -> 14), contrast
 //! fell 0.5012 -> 0.0915, and Gate C stopped being able to measure
 //! generalization at all.

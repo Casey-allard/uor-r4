@@ -34,7 +34,7 @@
 //! Still a synthetic-task measurement, not a language model. The address assignment is fixed, not
 //! learned. Capacity is `n_addr = 120^order`; dense buffers make `order ≥ 3` (1.7M+ addresses) a
 //! sparse-store problem. The `dv` scaling, the read activation result and the negative controls are in
-//! `docs/evidence/native_geometric_geometric_attention_2026-09-19.txt`.
+//! `archive/evidence/native_geometric_geometric_attention_2026-09-19.txt`.
 
 #![forbid(unsafe_code)]
 

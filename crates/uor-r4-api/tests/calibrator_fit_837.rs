@@ -1,9 +1,9 @@
 //! Artifact-only confidence-calibrator fit against powered selective-risk
 //! controls (#837, item B of S2 tracker #823).
 //!
-//! Companion record: `docs/selective_calibration_837.md`. Executes the #837
+//! Companion record: `archive/selective_calibration_837.md`. Executes the #837
 //! study on the #833 canonical bundle under the constitution frozen by #838
-//! (`docs/selective_prediction_spec_838.md`): thresholds are chosen ONLY on
+//! (`archive/selective_prediction_spec_838.md`): thresholds are chosen ONLY on
 //! the calibration partition by the frozen rule (maximize coverage subject to
 //! a false-answer UCB95 bound), and the untouched test partition is evaluated
 //! exactly once for the selected candidate. Everything is offline

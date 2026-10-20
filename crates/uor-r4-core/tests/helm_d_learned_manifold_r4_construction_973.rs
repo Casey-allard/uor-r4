@@ -132,18 +132,18 @@ const LOCALIZATION_REVISE_TERMINAL: &str = "REVISE_PROJECTION_OR_FITTER";
 const LOCALIZATION_UNAVAILABLE_TERMINAL: &str = "UNAVAILABLE_OPERATOR_LOCALIZATION_EVIDENCE";
 
 const COMPILED_CONTRACT: &[u8] =
-    include_bytes!("../../../docs/helm_d_learned_manifold_r4_construction_973.md");
+    include_bytes!("../../../archive/helm_d_learned_manifold_r4_construction_973.md");
 const COMPILED_LOCALIZATION_CONTRACT: &[u8] =
-    include_bytes!("../../../docs/helm_d_score_centroid_localization_973.md");
+    include_bytes!("../../../archive/helm_d_score_centroid_localization_973.md");
 const COMPILED_LOCALIZATION_RUNNER: &[u8] =
     include_bytes!("../../../scripts/run_helm_d_score_centroid_localization_973.sh");
 const COMPILED_PREDECESSOR_PARTITION: &[u8] =
-    include_bytes!("../../../docs/intrinsic_lorentz_r4_attention_partition_973.json");
+    include_bytes!("../../../archive/intrinsic_lorentz_r4_attention_partition_973.json");
 const COMPILED_PREDECESSOR_RESULT: &[u8] = include_bytes!(
-    "../../../docs/helm_d_learned_manifold_r4_construction_attempt_02_result_973.json"
+    "../../../archive/helm_d_learned_manifold_r4_construction_attempt_02_result_973.json"
 );
 const COMPILED_PREDECESSOR_CHECKPOINT: &[u8] = include_bytes!(
-    "../../../docs/helm_d_learned_manifold_r4_construction_attempt_02_checkpoint_973.json"
+    "../../../archive/helm_d_learned_manifold_r4_construction_attempt_02_checkpoint_973.json"
 );
 const COMPILED_CORE_SOURCE: &[u8] = include_bytes!("../src/helm_d_r4_attention.rs");
 const COMPILED_HARNESS_SOURCE: &[u8] =
