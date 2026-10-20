@@ -179,6 +179,64 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="how-research-is-done-now"><a class="header" href="#how-research-is-done-now">How research is done now</a></h1>
+<p>UOR-R4 is a research project, and for months it ran research the heavy way: one folder per pull request, a written plan before almost every step, and a review before each run. In the week of 12 to 18 October only 11% of the recorded lab work was a model result (see <a href="history.html">history</a>). Since 19 October 2026 the owner's charter keeps the rigour but drops the bulk. Each line of research has one notebook page with one row per result. A written plan is required only before a GPU run or a run that a milestone claim rests on. Old records are kept, untouched, in <code>archive/</code>.</p>
+<pre class="mermaid">flowchart LR
+  A[&quot;Question or idea&quot;] --&gt; B[&quot;Notebook page&lt;br/&gt;for its research line&quot;]
+  B --&gt; C{&quot;GPU training or&lt;br/&gt;evaluation, or a&lt;br/&gt;milestone claim?&quot;}
+  C -- no --&gt; D[&quot;Build, test, run&lt;br/&gt;host checks&quot;]
+  C -- yes --&gt; E[&quot;One-page sheet&quot;]
+  E --&gt; F[&quot;Review by someone&lt;br/&gt;who is not the author&quot;]
+  F --&gt; G[&quot;Owner releases&lt;br/&gt;the sheet once&quot;]
+  G --&gt; H[&quot;Run on the GPU&quot;]
+  D --&gt; I[&quot;New notebook row&quot;]
+  H --&gt; I
+  I --&gt; J[&quot;Sealed artifacts and&lt;br/&gt;old records go to archive/&quot;]
+</pre>
+<p><em>The path of one piece of work. Only the right-hand branch needs a sheet, a review and an owner release.</em></p>
+<p>Terms follow the <a href="../start/glossary.html">glossary</a>. Claims are labelled <strong>proof</strong>, <strong>measurement</strong> or <strong>hypothesis</strong> as defined in <a href="../formal_vocabulary.html"><code>formal_vocabulary.md</code></a>. The rules below are the research clauses of the <a href="../CHARTER.html">charter</a>; section numbers point there.</p>
+<h2 id="the-working-rules"><a class="header" href="#the-working-rules">The working rules</a></h2>
+<p><strong>One notebook per research line (charter §5.6).</strong> A <em>line</em> is one sustained question, such as "how the discrete model reads context". Its notebook lives at <code>docs/research/notebook/&lt;line&gt;.md</code>. Each result is one row: date, what ran, the number, the bar it was tested against, the verdict and a link to the artifact. A dated evidence folder is kept only when a run seals artifacts. The one-page plan for the whole project is <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/NOW.md"><code>NOW.md</code></a>; with the notebooks, it replaces the old running log (<code>current-state.md</code>).</p>
+<p><strong>A sheet only where it decides spend (§4.5).</strong> A <em>sheet</em> is a pre-registration of one page: the bar, the noise, the controls, the seeds, the cost and what each outcome would decide. It needs a review by a non-author, called a FIT review, before:</p>
+<ul>
+<li>any GPU training or evaluation, and</li>
+<li>any run that a milestone claim rests on.</li>
+</ul>
+<p>A fresh-context subagent counts as a non-author. Builds, finite kernel tests and host checks need no sheet. Old float sheets come back only as new sheets with a new FIT. A FIT review releases nothing by itself.</p>
+<p><strong>One owner release per sheet (§5.1).</strong> The owner types one release phrase personally for each sheet. It covers all the sheet's arms, seeds and registered stop rules. Labs stage the commands and then check the records; no lab types a release for the owner.</p>
+<p><strong>Mechanism statuses (§4.1).</strong> Every mechanism is <strong>ACTIVE</strong> (on the model path), <strong>READY</strong> (built and tested but not yet trained in) or <strong>PARKED</strong> (the tested forms failed or broke a rule). A PARKED page lists what would reopen it. There is no terminal status. The <a href="../mechanisms/index.html">mechanism board</a> shows the current state. This is the rule from decision D22 (a negative closes a configuration, never a mechanism).</p>
+<p><strong>What a verdict closes.</strong> A negative result closes the exact tested configuration: the recipe, dose, window, key and objective. It never closes the mechanism, and stopping a novel mechanism takes an owner decision. A run that meets its own pre-registered mechanism target without a significant headline loss is a KEEP, and the work iterates. A tooling or numerical failure is a blocker to fix, not a negative. Source: D22 sections 1 and 2 in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/DECISIONS-2026-10-19.md"><code>archive/integration/DECISIONS-2026-10-19.md</code></a>.</p>
+<p><strong>Instrument first (§4.2).</strong> Before calling a result, decide whether the check itself is faulty. An instrument defect is a fix, never a negative. No target is set from a vacuous instrument, and no single number rules out a line. <a href="findings.html">Findings</a> shows why: a metric that read zero, a control that checked zero rows and a typed-in number each misled the project once.</p>
+<p><strong>Power and transfer (§4.3).</strong> A decisive run uses at least two seeds or at least 200 fresh rows. Its bar is never narrower than the measured noise. The mechanism must be trained in, not bolted on. Every gain on a development panel is reported together with a fresh transfer number.</p>
+<p><strong>Controls and pivots (§4.4).</strong> Compare against lawful non-neural baselines, which today means count tables. After three results on one line that do not move its headline number, write a pivot note: stop, or run one decisive test.</p>
+<p><strong>Plain verdict words.</strong> <em>NOT_RUN</em> means nothing ran; it is not a pass. <em>UNAVAILABLE</em> means a needed input was missing; it is not a negative. A passing test is not trained capability, and a passing control is not a language result (§4.6).</p>
+<p><strong>Preserve everything (§4.7).</strong> Nothing is deleted. Negatives, unique source and other labs' work go to the archive, byte-identical.</p>
+<h2 id="the-lines-of-research"><a class="header" href="#the-lines-of-research">The lines of research</a></h2>
+<p>The catalog groups its 1,173 records into 20 lines. The ten largest are below. Counts are catalog records, which mix lab records and lane results, so they show where effort went and not how many experiments ran.</p>
+<div class="table-wrapper"><table><thead><tr><th>Line (catalog id)</th><th style="text-align: right">Records</th><th>First to last date</th><th>What it covers</th></tr></thead><tbody>
+<tr><td><code>native-geometric-sept</code></td><td style="text-align: right">294</td><td>31 Jul to 28 Sep</td><td>The September native Rust geometric model and its memory and attention variants</td></tr>
+<tr><td><code>m1-discrete-attention</code></td><td style="text-align: right">199</td><td>7 Aug to 19 Oct</td><td>The current discrete model: reads, address cells and the K16 and A8 runs</td></tr>
+<tr><td><code>harness-governance</code></td><td style="text-align: right">185</td><td>24 Jul to 19 Oct</td><td>Research tooling, rules and process</td></tr>
+<tr><td><code>m2-exact-memory</code></td><td style="text-align: right">151</td><td>3 Sep to 12 Oct</td><td>Exact memory and grounded replies</td></tr>
+<tr><td><code>geometric-stack-pretraining</code></td><td style="text-align: right">84</td><td>20 Sep to 11 Oct</td><td>The deeper float "geometric stack" trained on GPUs</td></tr>
+<tr><td><code>r4g1-transformerless</code></td><td style="text-align: right">74</td><td>21 Jul to 27 Sep</td><td>The first compile-a-teacher-into-tables work</td></tr>
+<tr><td><code>m4-serving</code></td><td style="text-align: right">42</td><td>7 Aug to 18 Oct</td><td>Integer serving (decision D11)</td></tr>
+<tr><td><code>m1-float-rung0</code></td><td style="text-align: right">38</td><td>31 Aug to 13 Oct</td><td>The float route to the first milestone rung (rung 0)</td></tr>
+<tr><td><code>m3-durable-memory</code></td><td style="text-align: right">33</td><td>3 Oct to 18 Oct</td><td>The durable-memory session and evaluator</td></tr>
+<tr><td><code>compute-ops</code></td><td style="text-align: right">15</td><td>3 Sep to 18 Oct</td><td>Pod and GPU operations</td></tr>
+</tbody></table>
+</div>
+<p>Source: <code>archive/catalog.jsonl</code> (fields <code>line</code>, <code>date</code>), counted with <code>jq</code>. The remaining ten lines hold 14 records or fewer each. The descriptions come from the line names and milestone titles, not from a field in the catalog. Every line becomes a notebook page as it is touched.</p>
+<h2 id="where-old-records-live"><a class="header" href="#where-old-records-live">Where old records live</a></h2>
+<p>Every dated record before 18 October 2026 now sits under <code>archive/</code>, at the same relative path it had under <code>docs/</code>, except the reference documents that stayed in <code>docs/</code> (such as <code>docs/scaling_law.md</code> and <code>docs/inference_contract.md</code>). Records dated 18 and 19 October stay in <code>docs/labs/</code>. The archive never changes: many experiment sheets are pinned by hash, and <code>SHA256SUMS</code> files cover the records. So read an archived record as a faithful copy of the day it was written, including any claim that was corrected later.</p>
+<p>To find a record, use the generated index <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md"><code>archive/CATALOG.md</code></a>, with the same data in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/catalog.jsonl"><code>archive/catalog.jsonl</code></a>. Its columns are date, lab, line, milestone, mechanism, verdict and path. It also holds the old-path to new-path map, so an old link still resolves. The catalog is an index, not a verdict. Follow its path and read the record before you rely on a number.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="findings.html">What the project knows</a>: the lessons and the measured results behind them.</li>
+<li><a href="open-questions.html">What is still open</a>: the tests nobody has run and the cheapest decisive ones.</li>
+<li><a href="history.html">How the project got here</a>: five phases and 32 eras, 10 June to 15 October.</li>
+<li><a href="../mechanisms/index.html">Mechanism board</a> and the <a href="../CHARTER.html">charter</a>.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/NOW.md"><code>NOW.md</code></a> for the current plan, and <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/harness/README.md"><code>docs/harness/README.md</code></a> for the research harness.</li>
+</ul>
 
                     </main>
 

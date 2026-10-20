@@ -178,7 +178,102 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="the-rules-in-plain-language"><a class="header" href="#the-rules-in-plain-language">The rules in plain language</a></h1>
+                        <h1 id="the-rules-of-the-project-in-plain-language"><a class="header" href="#the-rules-of-the-project-in-plain-language">The rules of the project, in plain language</a></h1>
+<p>UOR-R4 is trying to build a fast language model that runs on an ordinary laptop and does not use the expensive machinery inside today's chat AIs. A short rulebook, the <a href="../CHARTER.html">charter</a>, keeps every contributor pointed at that goal. This page explains what the charter says, why each rule exists, what the project's labs may and may not do, and who makes which decision. It is a guide to the charter, not a replacement: if the two ever disagree, the charter wins.</p>
+<pre class="mermaid">flowchart TD
+  idea[&quot;Idea or experiment&quot;] --&gt; rules{&quot;Inside the constraints?&lt;br/&gt;Geometry only, no squashing,&lt;br/&gt;no matmul&quot;}
+  rules -- &quot;No&quot; --&gt; owner[&quot;Only the owner can&lt;br/&gt;change the charter&quot;]
+  rules -- &quot;Yes&quot; --&gt; need{&quot;Needs GPU training or evaluation,&lt;br/&gt;or will a milestone claim rest on it?&quot;}
+  need -- &quot;No: builds, kernel tests,&lt;br/&gt;host checks&quot; --&gt; doit[&quot;Just do it&quot;]
+  need -- &quot;Yes&quot; --&gt; sheet[&quot;Pre-registration: one-page sheet&lt;br/&gt;bar, noise, controls, seeds,&lt;br/&gt;cost, what each outcome decides&quot;]
+  sheet --&gt; fit{&quot;FIT review by someone&lt;br/&gt;other than the author&quot;}
+  fit -- &quot;Not fit&quot; --&gt; sheet
+  fit -- &quot;FIT&quot; --&gt; release[&quot;Owner release:&lt;br/&gt;one per sheet, typed by Casey&quot;]
+  release --&gt; run[&quot;Run on the GPU via uor-pod&quot;]
+  run --&gt; row[&quot;Notebook row: date, what ran,&lt;br/&gt;number, bar, verdict, artifact&quot;]
+  doit --&gt; row
+</pre>
+<p><em>How work moves from an idea to a recorded result. Only the Yes branch that needs GPU spend or a milestone claim goes through a sheet, a review and an owner release.</em></p>
+<h2 id="why-there-are-rules-at-all"><a class="header" href="#why-there-are-rules-at-all">Why there are rules at all</a></h2>
+<p>The owner's stated goal behind every ban, in his own words from 18 October 2026, is "to ban expensive operations" and to optimise for "fast local ai that can train fast and run fast" and reaches "almost frontier level capability" (<code>CHARTER.md</code> §1, from decision D37). Each rule removes a cost that a dense neural network pays, or protects the evidence that tells the project whether its geometric replacement works. When a case is unclear, the charter says to choose what trains and serves fastest on a laptop through the geometric path, and to write the choice down.</p>
+<p>The project's headline metric is tokens per second: how fast the model reads and writes text, with decode speed and context speed measured separately. A small quality gap is acceptable (<code>CHARTER.md</code> §1). The project is pre-alpha, 0 of its 8 milestones are complete, and no model holds a useful conversation yet (<code>STATUS.md</code>; see <a href="../mechanisms/index.html">the mechanism board</a>).</p>
+<p>These are rules, so the labels "proof", "measurement" and "hypothesis" from <code>docs/formal_vocabulary.md</code> do not apply to them. The "why" given for each rule below is the reason the charter itself states. It is not a measured result.</p>
+<h2 id="the-constraints-and-the-reason-for-each"><a class="header" href="#the-constraints-and-the-reason-for-each">The constraints and the reason for each</a></h2>
+<p>The charter's section 3 lists thirteen technical constraints. Here they are in everyday terms. Terms are defined in the <a href="../start/glossary.html">glossary</a>.</p>
+<div class="table-wrapper"><table><thead><tr><th>#</th><th>Rule</th><th>What it means in practice</th><th>Why the charter gives</th></tr></thead><tbody>
+<tr><td>3.1</td><td>Geometry only</td><td>Every mechanism, training signal and fix comes from the project's geometry (prime addresses, rotations, E8/H4 structures). The flock rule for attention looks at about 7 nearest neighbours, not a dense teacher.</td><td>The bet is that geometry replaces expensive dense operations.</td></tr>
+<tr><td>3.2</td><td>No squashing functions</td><td>No softmax, log-softmax, cross-entropy, softplus, sigmoid, tanh or GELU anywhere, including in losses, sampling and comparators, and including renamed or lookup-table versions.</td><td>They are expensive and hide a dense global normalisation.</td></tr>
+<tr><td>3.3</td><td>No matrix multiplication</td><td>No dense matmul in training, evaluation, tooling or serving, including wrappers and hand-written loops. A geometric feed-forward block is allowed; a dense MLP is not.</td><td>Matmul is the cost the project exists to remove.</td></tr>
+<tr><td>3.4</td><td>Presence counts</td><td>Banned code may not sit in any compiled or loaded module. NVRTC (runtime GPU compilation) is banned. The checks <code>uor-harness ratchet d23</code> and <code>d25</code> only ever tighten.</td><td>Code that is present eventually runs.</td></tr>
+<tr><td>3.5</td><td>Research compute is GPU-only</td><td>Training, evaluation, qualification and reference runs use the GPU. Spend GPU only where a run can change a decision.</td><td>Host runs gave wrong timing and wrong evidence, and the GPU is where the speed is.</td></tr>
+<tr><td>3.6</td><td>Serving is integer, on your device</td><td>The shipped model uses no float, transcendental, multiplier or integer-divide instruction. Running it on a laptop CPU, in a browser (WebAssembly) or on Apple silicon is allowed, and so is measuring its speed and energy. Panel scoring, qualification and milestone evaluation of an exported artifact remain GPU research compute; only product serving and measuring its tokens/s and energy run on client devices.</td><td>The product is fast local AI on ordinary hardware.</td></tr>
+<tr><td>3.7</td><td>Float only offline, with an export gap</td><td>Float training is legal offline in a separately scanned module. Every float candidate reports how much accuracy it loses when exported to integers; a loss above the two-seed noise band disqualifies it.</td><td>Float trains faster, but only the integer artifact ships.</td></tr>
+<tr><td>3.8</td><td>Zeta exception</td><td>Float is allowed for complex-plane zeta-zero parts and prime log-phases. Everything downstream is discrete.</td><td>Zeta phases are complex numbers by nature.</td></tr>
+<tr><td>3.9</td><td>Efficiency is measured</td><td>Report sparse access, bytes per token, bounded candidates and exact memory together.</td><td>Unmeasured efficiency is not efficiency.</td></tr>
+<tr><td>3.10</td><td>No neural comparisons</td><td>No neural comparators, controls, teachers or graders until the owner says the model works end to end. Panels are graded by deterministic checks. The one exception is a one-time donor pass (D41) with binding conditions.</td><td>A neural comparator would hide a dense model behind the geometry.</td></tr>
+<tr><td>3.11</td><td>Rust first</td><td>New code is Rust, built on the uor-foundation crates. Python only where Rust cannot do the job.</td><td>One fast, checked language keeps training and serving on one path.</td></tr>
+<tr><td>3.12</td><td>Exact identity stays separate from address</td><td>One shared vector writer serves input, carry and output. Every artifact binds its data, seed, configuration and parameters.</td><td>One representation avoids translation costs, and exact identity cannot be recovered from a geometric address.</td></tr>
+<tr><td>3.13</td><td>Hygiene</td><td>Typed errors instead of panics, no committed binaries, corpora or secrets, and API keys are never read or printed.</td><td>It keeps the repository small and the keys out of it.</td></tr>
+</tbody></table>
+</div>
+<p>Source: <code>CHARTER.md</code> §3; the first column gives its clause numbers.</p>
+<h2 id="what-labs-may-do-and-what-they-may-not"><a class="header" href="#what-labs-may-do-and-what-they-may-not">What labs may do, and what they may not</a></h2>
+<p>A <strong>lab</strong> is any contributor, human or AI, working under the charter. The rules in sections 3 and 5 give these limits.</p>
+<p><strong>Labs may:</strong></p>
+<ul>
+<li>Choose their own work from <code>NOW.md</code>, post a one-line intent note, claim a branch and carry on unless redirected (<code>CHARTER.md</code> §5.3).</li>
+<li>Build, run finite kernel tests and run host checks without any pre-registration (§4.5).</li>
+<li>Train in float offline once a sheet, FIT and typed release exist (training is currently held; §3.7, §4.5, §5.1), and report the export gap on the same evaluator.</li>
+<li>Serve the integer model on a user's device and measure it (§3.6).</li>
+<li>Review their own pull request at the exact head, from a fresh context (§5.5), and use a fresh-context subagent as the non-author FIT reviewer (§4.5).</li>
+</ul>
+<p><strong>Labs may not:</strong></p>
+<ul>
+<li>Use a banned operation anywhere, including in comparators, or in renamed form (§3.2, §3.3).</li>
+<li>Run research compute on the CPU, or spend GPU on work that cannot change a decision (§3.5).</li>
+<li>Start GPU training or a milestone-bearing run without a sheet, a FIT review and a typed owner release (§4.5, §5.1).</li>
+<li>Use a neural comparator, teacher or grader, apart from the single D41 donor pass (§3.10).</li>
+<li>Type an owner release themselves. Casey types it personally with <code>UOR_LAB</code> unset; labs only stage the commands (§5.1, from D40).</li>
+<li>Cancel a healthy run because a self-set budget ran out, or touch another session's GPU or files (§5.4).</li>
+<li>Stop a mechanism. That needs the owner (§4.1).</li>
+<li>Delete research. Negatives, unique source and other labs' work go to the archive unchanged (§4.7).</li>
+<li>Exceed 4 pods or $8 per hour across all labs (§5.4).</li>
+</ul>
+<h2 id="who-decides-what"><a class="header" href="#who-decides-what">Who decides what</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Who</th><th>Decides</th><th>Source</th></tr></thead><tbody>
+<tr><td>The owner (Casey)</td><td>The charter, the technical constraints, holds, spending caps, milestone bars and exceptions. Releases each pre-registered run. Stops a mechanism.</td><td><code>CHARTER.md</code> §5.1</td></tr>
+<tr><td>The project-manager seat (Kimi, with a cover lab named by the owner when Kimi is offline)</td><td>The order of work. Keeps <code>NOW.md</code> with the roster. Operating notes may never contradict the charter.</td><td><code>CHARTER.md</code> §5.2</td></tr>
+<tr><td>Labs</td><td>Which task to pick from <code>NOW.md</code>, how to implement it, and the exact-head review of pull requests.</td><td><code>CHARTER.md</code> §5.3, §5.5</td></tr>
+<tr><td>Subagents</td><td>Reviews, adversarial tests and research. They never make critical decisions: a change to a bar, a status, a constraint or a spend goes to the manager or the owner as a decision card.</td><td><code>CHARTER.md</code> §5.2</td></tr>
+</tbody></table>
+</div>
+<p>Two rules guard the owner's role. A pending owner question means wait. And Casey's own words beat any written acceptance text, with his directions recorded verbatim the same day (<code>CHARTER.md</code> §5.1). The training hold, the M2 hold and the Stage B hold remain until the owner releases them, and a passing FIT review releases none of them.</p>
+<h2 id="how-evidence-is-judged"><a class="header" href="#how-evidence-is-judged">How evidence is judged</a></h2>
+<p>Section 4 of the charter is about not fooling ourselves.</p>
+<ul>
+<li><strong>A negative closes one configuration, never a mechanism.</strong> Mechanisms carry one of three statuses: ACTIVE (on the model path), READY (built and tested, not yet trained in) or PARKED (a tested form failed or broke a rule; the reopen conditions are listed). There is no "retired" status for a mechanism (§4.1). Rules can be retired; mechanisms cannot.</li>
+<li><strong>Instrument before verdict.</strong> If a check fails, first ask whether the measuring tool or the mechanism is at fault. A broken instrument is a fix, not a negative (§4.2).</li>
+<li><strong>Power.</strong> A decisive run uses at least 2 seeds or at least 200 fresh rows, with bars no narrower than the measured noise, and reports a fresh transfer number with every development gain (§4.3).</li>
+<li><strong>Controls and pivots.</strong> Compare against lawful non-neural baselines such as count tables. After three results on one line that do not move its headline number, write a pivot note: stop, or run one decisive experiment (§4.4).</li>
+<li><strong>Claims.</strong> Write "measured X on Y against Z". A test pass is not trained capability, and <code>NOT_RUN</code> is not a pass (§4.6).</li>
+<li><strong>The first-milestone closing bar.</strong> For milestone M1, the integer model's top-1 accuracy through the D11 export must beat both the unigram table (1,226 of 14,287) and the T2 successor table (6,300 of 14,287) on the same development panel, on each of two seeds, with tokens per second reported (§4.8).</li>
+</ul>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Item</th><th>State</th><th>Source</th></tr></thead><tbody>
+<tr><td>Charter</td><td>Adopted 19 October 2026 by the owner at checkpoint 1 of the repository renormalisation.</td><td><code>CHARTER.md</code>; <a href="changes.html">change log</a></td></tr>
+<tr><td>Old rules D0 to D41 and the long <code>AGENTS.md</code></td><td>Replaced by the charter. Each decision keeps its heading and a one-sentence fate in the live index; full text is preserved unchanged in the archive.</td><td><a href="decision-map.html"><code>decision-map.md</code></a>; <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/DECISIONS-2026-10-19.md">archived original</a></td></tr>
+<tr><td>Training, M2 and Stage B</td><td>Remain HELD until the owner releases them.</td><td><code>CHARTER.md</code> §5.1</td></tr>
+<tr><td>Pre-alpha status</td><td>0 of 8 milestones complete; no useful conversation yet.</td><td><code>STATUS.md</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li>The rulebook: <a href="../CHARTER.html"><code>CHARTER.md</code></a>. What happened to each old decision: <a href="decision-map.html">decision map</a>. When the rules changed: <a href="changes.html">change log</a>.</li>
+<li>Live index of decisions with one-line fates: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md"><code>docs/integration/DECISIONS.md</code></a>.</li>
+<li>Original full decision text: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/integration/DECISIONS-2026-10-19.md">archive</a>.</li>
+<li>Where the mechanisms stand: <a href="../mechanisms/index.html">mechanism board</a>.</li>
+<li>Term definitions: <a href="../start/glossary.html">glossary</a>.</li>
+</ul>
 
                     </main>
 

@@ -179,6 +179,57 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="the-research-lines"><a class="header" href="#the-research-lines">The research lines</a></h1>
+<p>A research line is one sustained question the project worked on, such as "how does the discrete model read earlier text". The audit sorted all 1,173 recorded pieces of work into 20 lines. This page lists them, shows when each ran, and says in a word where each stands. Seventeen lines have at least three records and get their own page. None of them has produced a model that holds a useful conversation: the project is pre-alpha and 0 of its 8 milestones are complete (<code>docs/integration/NOW.md</code>).</p>
+<p><img src="../../figures/research-lines-timeline.svg" alt="A timeline from July to October 2026 of the 12 largest of the 20 research lines, with one dot per dated record; the 8 smaller lines are not shown" /></p>
+<p><em>When each line ran. The September lines end as the October discrete line begins; the tooling and operations lines run alongside.</em></p>
+<h2 id="how-to-read-the-table"><a class="header" href="#how-to-read-the-table">How to read the table</a></h2>
+<ul>
+<li><strong>Records</strong> are catalog entries. They mix lab records, lane results, reviews and plans, so they show where effort went and not how many experiments ran. Source: <code>archive/catalog.jsonl</code>, counted with <code>jq</code> on the field <code>line</code>.</li>
+<li><strong>Results</strong> are the records whose outcome is positive, negative, inconclusive or diagnostic-stop. The rest are plans, tooling, process, review, operations and blocked runs. A <em>blocked</em> record is a run that could not start; it is not a negative.</li>
+<li><strong>Span</strong> is the first to last dated record in 2026. Some records carry no date and are left out of the span.</li>
+<li>A positive record reports that the target the record itself set was met, at the scope it states. Many are narrow, scored on a panel the authors wrote, and none is a language result.</li>
+<li><strong>State</strong> follows the project's vocabulary. <em>Active</em> means on the current model path. <em>Parked</em> means the tested forms failed or broke a rule and the mechanism stays open (decision D22). <em>Closed</em> means the line stopped (a line label only: its mechanisms keep their board status); a negative closes a configuration and never a mechanism. <em>Preserved</em> is evidence kept inactive.</li>
+</ul>
+<h2 id="all-lines"><a class="header" href="#all-lines">All lines</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Line</th><th>Span</th><th style="text-align: right">Records</th><th style="text-align: right">Results</th><th>State</th></tr></thead><tbody>
+<tr><td><a href="native-geometric-sept.html"><code>native-geometric-sept</code></a>: the September native geometric model</td><td>31 Jul to 28 Sep</td><td style="text-align: right">294</td><td style="text-align: right">224</td><td>Closed; whole model parked</td></tr>
+<tr><td><a href="m1-discrete-attention.html"><code>m1-discrete-attention</code></a>: discrete attention for the language base</td><td>7 Aug to 19 Oct</td><td style="text-align: right">199</td><td style="text-align: right">73</td><td>Active; M1 not met</td></tr>
+<tr><td><a href="harness-governance.html"><code>harness-governance</code></a>: research tooling and rules</td><td>24 Jul to 19 Oct</td><td style="text-align: right">185</td><td style="text-align: right">0</td><td>Active support, slimmer since 19 Oct</td></tr>
+<tr><td><a href="m2-exact-memory.html"><code>m2-exact-memory</code></a>: grounded replies from exact memory</td><td>3 Sep to 12 Oct</td><td style="text-align: right">151</td><td style="text-align: right">93</td><td>Held; fresh test failed (0 of 128)</td></tr>
+<tr><td><a href="geometric-stack-pretraining.html"><code>geometric-stack-pretraining</code></a>: the geometric stack</td><td>20 Sep to 11 Oct</td><td style="text-align: right">84</td><td style="text-align: right">50</td><td>Parked as a whole model</td></tr>
+<tr><td><a href="r4g1-transformerless.html"><code>r4g1-transformerless</code></a>: compiling a teacher into tables</td><td>21 Jul to 27 Sep</td><td style="text-align: right">74</td><td style="text-align: right">40</td><td>Parked</td></tr>
+<tr><td><a href="m4-serving.html"><code>m4-serving</code></a>: integer serving</td><td>7 Aug to 18 Oct</td><td style="text-align: right">42</td><td style="text-align: right">23</td><td>Engine active; no lawful model exported</td></tr>
+<tr><td><a href="m1-float-rung0.html"><code>m1-float-rung0</code></a>: the float route to rung 0</td><td>31 Aug to 13 Oct</td><td style="text-align: right">38</td><td style="text-align: right">18</td><td>Preserved; parts ready, never trained</td></tr>
+<tr><td><a href="m3-durable-memory.html"><code>m3-durable-memory</code></a>: durable memory and the object store</td><td>3 Oct to 18 Oct</td><td style="text-align: right">33</td><td style="text-align: right">3</td><td>Store ready; nothing consumes it</td></tr>
+<tr><td><a href="compute-ops.html"><code>compute-ops</code></a>: GPU and pod operations</td><td>3 Sep to 18 Oct</td><td style="text-align: right">15</td><td style="text-align: right">0</td><td>Active support</td></tr>
+<tr><td><a href="eval-panels.html"><code>eval-panels</code></a>: evaluation panels and graders</td><td>7 Aug to 14 Oct</td><td style="text-align: right">14</td><td style="text-align: right">5</td><td>Panels frozen; reply headline suspended</td></tr>
+<tr><td><a href="geometric-intelligence-aug.html"><code>geometric-intelligence-aug</code></a>: the August geometric programme</td><td>25 to 30 Aug</td><td style="text-align: right">9</td><td style="text-align: right">7</td><td>Closed</td></tr>
+<tr><td><a href="data-tokenizer.html"><code>data-tokenizer</code></a>: data and tokenizer</td><td>16 Aug to 19 Oct</td><td style="text-align: right">8</td><td style="text-align: right">1</td><td>Active tokenizer; 16,384-piece trainer and donor corpus prepared, not run</td></tr>
+<tr><td><a href="m7-distribution.html"><code>m7-distribution</code></a>: API, browser runtime and Studio</td><td>3 Sep to 15 Oct</td><td style="text-align: right">8</td><td style="text-align: right">0</td><td>Runtime delivered; no model to serve</td></tr>
+<tr><td><a href="spiralcore-wire.html"><code>spiralcore-wire</code></a>: SpiralCore wire transport</td><td>18 Oct</td><td style="text-align: right">7</td><td style="text-align: right">0</td><td>Side exploration, off the model path</td></tr>
+<tr><td><a href="m5-energy.html"><code>m5-energy</code></a>: laptop energy and cost</td><td>25 Sep to 18 Oct</td><td style="text-align: right">4</td><td style="text-align: right">1</td><td>Not started; no joules per token measured</td></tr>
+<tr><td><a href="m1-prime-zeta.html"><code>m1-prime-zeta</code></a>: the prime-zeta codebook</td><td>14 Oct</td><td style="text-align: right">3</td><td style="text-align: right">2</td><td>Active as baseline start</td></tr>
+<tr><td><code>vsa-native-prose</code></td><td>9 Oct</td><td style="text-align: right">2</td><td style="text-align: right">1</td><td>No page (fewer than three records)</td></tr>
+<tr><td><code>m6-reasoning-coding</code></td><td>22 Aug</td><td style="text-align: right">2</td><td style="text-align: right">1</td><td>No page (fewer than three records)</td></tr>
+<tr><td><code>e8-orbit-memory</code></td><td>11 Oct</td><td style="text-align: right">1</td><td style="text-align: right">1</td><td>No page (fewer than three records)</td></tr>
+<tr><td><strong>Total</strong></td><td>21 Jul to 19 Oct</td><td style="text-align: right"><strong>1,173</strong></td><td style="text-align: right"><strong>543</strong></td><td></td></tr>
+</tbody></table>
+</div>
+<p>The three short lines are listed in the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md">generated archive catalog</a> with all their records. The <code>vsa-native-prose</code> records are in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/vsa-native-test-2026-10-09/README.md"><code>archive/labs/vsa-native-test-2026-10-09/README.md</code></a>, the E8 record is in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/e8-orbit-memory-2026-10-11/README.md"><code>archive/labs/e8-orbit-memory-2026-10-11/README.md</code></a>, and the <code>m6-reasoning-coding</code> record is <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/w33_geometry_qualification_845.md"><code>archive/w33_geometry_qualification_845.md</code></a>. The VSA and E8 orbit memory mechanisms have pages on <a href="../../mechanisms/index.html">the mechanism board</a>.</p>
+<h2 id="what-the-whole-table-shows"><a class="header" href="#what-the-whole-table-shows">What the whole table shows</a></h2>
+<ul>
+<li><strong>Two lines hold 42% of the records.</strong> <code>native-geometric-sept</code> (294) and <code>m1-discrete-attention</code> (199) together hold 493 of 1,173 (arithmetic from the table).</li>
+<li><strong>The "Results" column counts every recorded result, including ones scored on authored or exposed panels.</strong> Read it with <a href="../findings.html">what the project knows</a>: development is not fresh, and a pass on a built panel is not a language result.</li>
+<li><strong>Tooling and operations records are large.</strong> <code>harness-governance</code>, <code>compute-ops</code> and <code>spiralcore-wire</code> hold 207 records and no model result. Part of that came from owner decisions that forced a rebuild in October (<code>docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md</code>, section 3).</li>
+<li><strong>The only active modelling line is <code>m1-discrete-attention</code>.</strong> Its best trained artifact is below a word-count table (65 and 463 of 14,287 development rows against 1,226).</li>
+</ul>
+<h2 id="where-to-go-next"><a class="header" href="#where-to-go-next">Where to go next</a></h2>
+<ul>
+<li><a href="../index.html">How research is done now</a>, the rules for notebooks, sheets and releases.</li>
+<li><a href="../findings.html">What the project knows</a>, <a href="../open-questions.html">what is still open</a> and <a href="../history.html">how the project got here</a>.</li>
+<li><a href="../../mechanisms/index.html">Mechanism board</a>: the 27 mechanisms with ACTIVE, READY or PARKED status.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md">Archive catalog</a>: every dated record, with one generated page per line under <code>archive/catalog/</code>.</li>
+</ul>
 
                     </main>
 

@@ -179,6 +179,96 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="the-geometry-of-uor-r4"><a class="header" href="#the-geometry-of-uor-r4">The geometry of UOR-R4</a></h1>
+<p>Most chat AIs predict the next word by multiplying very large grids of decimal numbers. UOR-R4 is a bet that a different set of tools can do the same job more cheaply: rotations in a few dimensions, exact whole-number addresses built from primes, and lookup tables. This section explains those tools one chapter at a time, with pictures. It also says which ones the model uses today and which are research that has not yet been put to work. The project is pre-alpha: 0 of its 8 milestones are complete, and no model holds a useful conversation yet (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/STATUS.md"><code>STATUS.md</code></a>).</p>
+<p><img src="../figures/geometry/connections.svg" alt="A map of the geometric pieces and how they connect: the six-prime registry, semiprimes, the complete graph K6, the icosahedral axes, the 120 icosians, quaternions, Z[phi], octonions and the Fano plane, Cl(0,6) bivectors, E8, the Hopf map and VSA codes, with each link marked as verified maths, used in a model, pre-registered, or a labelling choice" /></p>
+<p><em>How the geometric pieces connect. Each arrow is one correspondence, and the table below says whether the link is forced by the mathematics or was chosen.</em></p>
+<h2 id="why-geometry"><a class="header" href="#why-geometry">Why geometry</a></h2>
+<p>The owner's rule for this project is that the core of the model is built from geometric mechanisms. The reason is a cost hypothesis. A transformer's expensive parts are dense matrix multiplication, a score for every possible next word, and storing every earlier position. Rotations, exact addresses and tables may be much cheaper on a laptop (a hypothesis: no efficiency has been measured yet). Whether they are also good enough to model language is the open question.</p>
+<p>These rules shape how the geometry is used.</p>
+<ul>
+<li><strong>No softmax or squashing, no matrix multiplication.</strong> Softmax, sigmoid, tanh and softplus are banned in every executed model path (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d23---no-softmax-anywhere-in-the-active-project">D23</a>, D25), and so is matrix multiplication in training and serving (D25, D30). Attention itself is not banned: bounded geometric reads replace it.</li>
+<li><strong>Research compute is GPU-only</strong> (D24). Serving the exported D11 integer artifact on a client device (CPU, WASM, Apple silicon) is the product and is allowed. It uses no floating point and no multiplier instruction.</li>
+<li><strong>Floating point is for offline training only</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d37--floating-point-is-legal-in-offline-training-only-d32s-learning-path-float-ban-is-revised">D37</a>). Float never re-admits softmax, squashing or matrix multiplication. The active discrete path and the served model stay integer (D11), and every float-trained candidate must report its export gap, the quality lost when converting to the integer artifact.</li>
+<li><strong>Geometry is a design priority, not a measured advantage.</strong> A failed experiment closes one configuration, never a whole mechanism (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened">D22</a>). A passing check on a piece of mathematics does not show that the piece helps a language model.</li>
+</ul>
+<p>Labels on this page follow <a href="../formal_vocabulary.html"><code>docs/formal_vocabulary.md</code></a>: <strong>proof</strong> means derived from definitions or code, <strong>measurement</strong> means a recorded run, and <strong>hypothesis</strong> means an untested idea. Mechanism status is ACTIVE (on the current model path), READY (built and tested, not yet trained in) or PARKED (the tried forms failed or broke a rule, and the mechanism stays open). The <a href="../mechanisms/index.html">mechanism board</a> holds the full list. It replaces the older labels active, dormant and archived-negative.</p>
+<h2 id="the-compliant-next-token-path"><a class="header" href="#the-compliant-next-token-path">The compliant next-token path</a></h2>
+<p>This is the path the current integer model (<code>crates/uor-r4-discrete</code>, called M1) follows for each token. Source for each step is in the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/architecture.md#follow-one-token">architecture table</a>.</p>
+<pre class="mermaid">flowchart LR
+  tok[&quot;Token ID&quot;] --&gt; tab[&quot;Shared table:&lt;br/&gt;blocks of 8 integers&quot;]
+  tab --&gt; ctx[&quot;Ordered context&lt;br/&gt;(ternary FBS plan)&quot;]
+  ctx --&gt; read[&quot;Read:&lt;br/&gt;Route, Flock or Relation&quot;]
+  read --&gt; wr[&quot;Shared writer:&lt;br/&gt;admission + exact distances&quot;]
+  wr --&gt; out[&quot;Next token&quot;]
+  out -. &quot;learning&quot; .-&gt; tab
+</pre>
+<p><em>The five steps of one token. The dotted arrow is learning, which changes the shared table by exact moves.</em></p>
+<ol>
+<li><strong>Input.</strong> A token ID selects blocks from <code>Snapshot.table</code>.</li>
+<li><strong>Context.</strong> Ordered ternary FBS plans (a three-branch tree over earlier tokens; see the <a href="../start/glossary.html">glossary</a>) preserve context order for the read.</li>
+<li><strong>Read.</strong> Route selects one carrier per block and transports it without summing or snapping. Flock ranks eligible nodes, transports them, sums and snaps. Relation adds finite relational reranking before the Flock selection. See <a href="../mechanisms/route-read.html">route read</a>, <a href="../mechanisms/flock-read.html">flock read</a> and <a href="../mechanisms/relation-read.html">relation read</a>.</li>
+<li><strong>Shared writer.</strong> Product-address admission and exact distances select a token using the same table. The writer is implemented (<a href="../mechanisms/admission.html">admission</a>).</li>
+<li><strong>Learning.</strong> The learner compares virtual exact moves on a fixed batch and accepts objective improvements through the admitted driver. <code>rows_v1</code> parallelizes proposal work (<a href="../mechanisms/discrete-learning.html">discrete learning</a>).</li>
+</ol>
+<p>Each block is <strong>8D</strong>, and four blocks give <strong>width32</strong>. The carrier has <strong>16 roots</strong>, acted on by <strong>64 signed transport actions</strong> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/crates/uor-r4-discrete/build.rs"><code>build.rs</code></a>). These three counts describe different objects. The orbit is not full E8 coverage.</p>
+<p>The earlier float operator path is preserved as evidence and is not the current token path. It includes the Hamilton gates (G2), the geometric recurrence and the delivered head (OP3a). See the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/operator-phase-2026-10-12/README.md">operator record</a>, the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/geometric-head-shared-writer-2026-10-13/README.md">head record</a> and the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/history/geometry-float-form-2026-10.md">historical geometry tour</a>. Its earlier sheets are inactive until they are re-registered and reviewed under D37. The dated <a href="../figures/geometry/operators.svg">operator diagram</a> illustrates those retained operators.</p>
+<h2 id="reading-order"><a class="header" href="#reading-order">Reading order</a></h2>
+<p>Each chapter opens in plain words, shows its figure, gives the mathematics, and ends with where the model uses the idea.</p>
+<div class="table-wrapper"><table><thead><tr><th>Chapter</th><th>What it covers</th><th>Used on the current path?</th></tr></thead><tbody>
+<tr><td><a href="quaternions-and-rotation.html">Quaternions and rotation</a></td><td>Four-number rotations, and why rotating keeps length but adding does not</td><td>Lineage, plus unit quaternions in the table constructor. M1's kernel uses signed actions on 8D blocks</td></tr>
+<tr><td><a href="e8-h4-and-the-600-cell.html">E8, H4 and the 600-cell</a></td><td>The 120 icosians, the 600-cell, and the 240 roots of E8</td><td>A 16-root piece of E8 is the carrier</td></tr>
+<tr><td><a href="golden-integers.html">Golden integers</a></td><td>Exact arithmetic with \(a+b\varphi\), no rounding</td><td>Fixed integer arithmetic in <code>uor-r4-core</code>, used by retained research code</td></tr>
+<tr><td><a href="hopf-observation.html">The Hopf map and the kept fibre</a></td><td>A 3D shadow of a 4D rotation, and the angle it forgets</td><td>No (PARKED)</td></tr>
+<tr><td><a href="primes-and-zeta.html">Primes and zeta phases</a></td><td>Prime addresses, zeta-zero angles, and the starting table</td><td>Yes: the starting table (ACTIVE)</td></tr>
+<tr><td><a href="vsa-and-hamming.html">VSA and Hamming distance</a></td><td>Long bit codes, XOR, and counting differing bits</td><td>Hamming is a tie-break in the reads; trained VSA codes are PARKED</td></tr>
+<tr><td><a href="spiralcore.html">SpiralCore</a></td><td>The octonion table, the 64-state action, and the ternary tree</td><td>Yes: the integer transport (ACTIVE)</td></tr>
+</tbody></table>
+</div>
+<p>Read them in that order if the mathematics is new. The first two build the vocabulary, and the last two are closest to the running code.</p>
+<h2 id="how-the-pieces-connect"><a class="header" href="#how-the-pieces-connect">How the pieces connect</a></h2>
+<p>The figure above has fifteen links. Each has its own metric, convention or labelling assumption, and the chapter named in the last column gives the full statement. Every link is investigated by finite exact enumerations and sampled numerical consistency checks in <a href="../figures/geometry/verify_connections.py"><code>verify_connections.py</code></a>, which runs 29 checks with differing evidence scopes. These checks support the stated identities within their enumerated or sampled domains. They are not 29 general mathematical proofs, and they do not establish predictive value. Whether any link helps the model is the subject of the pre-registered experiments on M1 (<a href="https://github.com/UOR-Foundation/uor-r4/issues/2029">#2029</a>). The SpiralCore material is credited to Matthew (SpiralCore v63/v69). The octonion and Fano material is credited to Mark (N3mesis, NEMESIS-Theory).</p>
+<div class="table-wrapper"><table><thead><tr><th>From</th><th>To</th><th>Forced or chosen</th><th>Chapter</th></tr></thead><tbody>
+<tr><td>Six-prime registry {5, 7, 11, 13, 17, 19}</td><td>15 semiprimes \(p\cdot q\)</td><td>forced</td><td><a href="spiralcore.html">SpiralCore</a></td></tr>
+<tr><td>15 semiprimes</td><td>15 edges of the complete graph K6</td><td>forced (unique factorisation)</td><td><a href="spiralcore.html">SpiralCore</a></td></tr>
+<tr><td>15 edges of K6</td><td>15 half-turn axes of the icosahedral group</td><td>forced, once the six five-fold axes carry the six labels</td><td><a href="e8-h4-and-the-600-cell.html">E8, H4 and the 600-cell</a></td></tr>
+<tr><td>Six primes</td><td>six five-fold axes</td><td><strong>chosen</strong>: 720 labellings, 12 inequivalent under rotation</td><td><a href="e8-h4-and-the-600-cell.html">E8, H4 and the 600-cell</a></td></tr>
+<tr><td>Semiprimes</td><td>Cl(0,6) bivectors</td><td>forced</td><td><a href="spiralcore.html">SpiralCore</a></td></tr>
+<tr><td>Cl(0,6) bivectors</td><td>octonions</td><td>forced</td><td><a href="spiralcore.html">SpiralCore</a></td></tr>
+<tr><td>Fano plane</td><td>XOR on 3-bit indices</td><td>forced, up to relabelling (168 relabellings)</td><td><a href="spiralcore.html">SpiralCore</a></td></tr>
+<tr><td>Octonions</td><td>quaternions</td><td>forced</td><td><a href="quaternions-and-rotation.html">Quaternions</a> and <a href="spiralcore.html">SpiralCore</a></td></tr>
+<tr><td>Quaternions (S³)</td><td>the 120 unit icosians (2I)</td><td>forced</td><td><a href="e8-h4-and-the-600-cell.html">E8, H4 and the 600-cell</a></td></tr>
+<tr><td>2I</td><td>icosahedral rotations</td><td>forced</td><td><a href="e8-h4-and-the-600-cell.html">E8, H4 and the 600-cell</a></td></tr>
+<tr><td>2I</td><td>exact Z[φ]</td><td>forced</td><td><a href="golden-integers.html">Golden integers</a></td></tr>
+<tr><td>Cl(0,6) bivectors</td><td>standard-coordinate E8</td><td>forced for the specified coordinates</td><td><a href="e8-h4-and-the-600-cell.html">E8, H4 and the 600-cell</a></td></tr>
+<tr><td>2I ∪ φ·2I</td><td>E8</td><td>forced, under the reduced rational-part metric</td><td><a href="e8-h4-and-the-600-cell.html">E8, H4 and the 600-cell</a></td></tr>
+<tr><td>2I</td><td>Hopf S²</td><td>forced</td><td><a href="hopf-observation.html">The Hopf map</a></td></tr>
+<tr><td>2I</td><td>VSA bit codes</td><td><strong>learned</strong></td><td><a href="vsa-and-hamming.html">VSA and Hamming distance</a></td></tr>
+</tbody></table>
+</div>
+<p><strong>Two cautions for anyone building on this.</strong></p>
+<ol>
+<li><strong>Half-turns do not compose like bivectors.</strong> Two half-turns whose K6 edges share a vertex multiply to an order-5 rotation, never a half-turn. The match between primes and half-turns is a correspondence of sets, not of products.</li>
+<li><strong>Labelling primes to axes is a choice.</strong> A design that routes primes through icosian rotations must say which of the 12 inequivalent labellings it uses.</li>
+</ol>
+<h2 id="serving-without-multiplication"><a class="header" href="#serving-without-multiplication">Serving without multiplication</a></h2>
+<p>Under D11 a served kernel has no floating point and no multiplier instruction. A product of two runtime values is read from a table instead. Build the sixteen multiples (0 to 15) of one operand by repeated addition, index that table with the radix-16 digits of the other operand, and combine the results with shifts and adds. For example, to compute \(37 \times 43\), the table holds 0, 37, 74, …, 555. Write 43 as hex <code>0x2B</code>, with digits 2 and 11. Then</p>
+<p>\[37 \times 43 = (T[2] \ll 4) + T[11] = (74 \ll 4) + 407 = 1184 + 407 = 1591.\]</p>
+<p>A 4-bit weight is a single digit, so one product is one table read. Division is restoring long division, square root is digit-by-digit, and the kernels are kept opaque to the optimiser so that an add chain is not folded back into a multiply. Products are taken modulo \(2^{64}\) or \(2^{128}\) to match the earlier integer engine. The code is in <code>crates/uor-r4-integer/src/stack/kernels.rs</code> (<code>stack_mul_u64</code>, <code>stack_div_u64</code>, <code>stack_isqrt</code>), and the ARM64 audit is <code>scripts/audit_zero_matmul_serving.py --stack</code>. The numbers in the example are illustrative and are not taken from the code. The serving contract is described on the <a href="../mechanisms/lut-serving.html">D11 integer serving page</a>. It is ACTIVE as the export boundary, but no lawful trained model has been exported through it yet.</p>
+<h2 id="reproduce-the-figures"><a class="header" href="#reproduce-the-figures">Reproduce the figures</a></h2>
+<p>The status diagrams (architecture, milestones, pipelines, the geometry stack, the compliant path and the operators) are generated in Rust, and CI-style checks confirm that they are current:</p>
+<pre><code class="language-sh">cargo run -p xtask -- figures            # check
+cargo run -p xtask -- figures --write    # regenerate
+</code></pre>
+<p>The mathematical figures in the chapters are drawn by a standard-library script. Porting it to Rust (D27) is a recorded follow-up:</p>
+<pre><code class="language-sh">python3 docs/figures/geometry/generate.py
+</code></pre>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/architecture.md">Architecture source map</a> and the <a href="../mechanisms/index.html">mechanism board</a>.</li>
+<li>Checks for the maths: <a href="../figures/geometry/verify_connections.py"><code>verify_connections.py</code></a>.</li>
+<li>The previous single-page version of this guide, with the retained float designs: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/history/geometry-float-form-2026-10.md">historical geometry tour</a>.</li>
+<li>Live numbers: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/STATUS.md"><code>STATUS.md</code></a>.</li>
+</ul>
 
                     </main>
 

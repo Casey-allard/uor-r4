@@ -179,6 +179,160 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="the-mechanism-board"><a class="header" href="#the-mechanism-board">The mechanism board</a></h1>
+<p>Most chat AIs are built from a few standard parts: a way to look back at earlier words (attention), a block that processes each word (a feed-forward layer), big grids of multiplications, and a function that scores every possible next word. UOR-R4 is trying to replace each of those parts with something built from geometry, such as rotations, exact addresses and lookup tables. Each replacement is called a <strong>mechanism</strong>. This page lists all 27 of them and says where each one stands today. Status here means how far a mechanism has been built and tested. No mechanism has produced a useful conversation yet: the project is pre-alpha, and 0 of its 8 milestones are complete (<code>STATUS.md</code>).</p>
+<p><img src="../figures/mechanisms-family.svg" alt="A family tree of the 27 mechanisms, coloured by status, showing which mechanism grew out of which" /></p>
+<p><em>The 22 mechanisms with a recorded parent or child, drawn as a family tree. Most of the live ones descend from earlier, parked attempts.</em></p>
+<h2 id="what-the-three-statuses-mean"><a class="header" href="#what-the-three-statuses-mean">What the three statuses mean</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Status</th><th>Meaning</th><th>Count</th></tr></thead><tbody>
+<tr><td><strong>ACTIVE</strong></td><td>On the current model path, <code>crates/uor-r4-discrete</code>.</td><td>10</td></tr>
+<tr><td><strong>READY</strong></td><td>Built and tested, but not yet trained into a model.</td><td>4</td></tr>
+<tr><td><strong>PARKED</strong></td><td>The forms tried so far failed or broke a project rule. The mechanism stays open, and its page lists what would reopen it.</td><td>13</td></tr>
+</tbody></table>
+</div>
+<p>There is no "retired" status. Owner decision D22 says a negative result closes one tested configuration, never the mechanism, and stopping a mechanism needs the owner (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened">D22</a>). This board replaces the 18 October labels (active, dormant, archived-negative), which did not map one to one onto these three and had no rows for ten mechanisms.</p>
+<p>Every number in the tables is a <strong>measurement</strong> from a recorded run or test, linked in its row, unless the cell says otherwise. The "Next" column is a <strong>hypothesis</strong> about what would help, not a result. A passing test is not a trained capability, and <code>NOT_RUN</code> is not a pass. BPB means bits per byte of text (lower is better). "FIT" means a pre-registered test was reviewed and judged able to answer its question.</p>
+<h2 id="the-family-tree"><a class="header" href="#the-family-tree">The family tree</a></h2>
+<p>An arrow means "came from" or "was replaced by". A solid arrow is a successor, a dotted arrow means the target is the integer form of the source, and a double arrow means the target is a specialisation of the source.</p>
+<pre class="mermaid">flowchart TD
+  r4g1[&quot;R4G1 graph&lt;br/&gt;PARKED&quot;]
+  nat[&quot;Native geometric engine&lt;br/&gt;PARKED&quot;]
+  lut[&quot;D11 integer serving&lt;br/&gt;ACTIVE&quot;]
+  stack[&quot;Geometric stack&lt;br/&gt;PARKED&quot;]
+  disc[&quot;Discrete learning&lt;br/&gt;ACTIVE&quot;]
+  pz[&quot;Prime-zeta codebook&lt;br/&gt;ACTIVE&quot;]
+  rel[&quot;Relation read&lt;br/&gt;ACTIVE&quot;]
+  obj[&quot;Object store&lt;br/&gt;READY&quot;]
+  rank[&quot;Rank-margin hinge&lt;br/&gt;ACTIVE&quot;]
+  cc[&quot;Carrier credit&lt;br/&gt;PARKED&quot;]
+  lc[&quot;Legal construction&lt;br/&gt;PARKED&quot;]
+  sfbs[&quot;SpiralCore/FBS&lt;br/&gt;READY&quot;]
+  tx[&quot;Ternary/XOR&lt;br/&gt;PARKED&quot;]
+  spin[&quot;Spin-native weights&lt;br/&gt;PARKED&quot;]
+  ham[&quot;Hamilton gate&lt;br/&gt;READY&quot;]
+  rec[&quot;Recurrence gates&lt;br/&gt;READY&quot;]
+  flock[&quot;Flock read&lt;br/&gt;ACTIVE&quot;]
+  route[&quot;Routed read&lt;br/&gt;ACTIVE&quot;]
+  ptr[&quot;Pointer key&lt;br/&gt;PARKED&quot;]
+  cells[&quot;Address cells (A8)&lt;br/&gt;ACTIVE&quot;]
+  mem[&quot;Exact memory&lt;br/&gt;PARKED&quot;]
+  e8[&quot;E8 orbit memory&lt;br/&gt;PARKED&quot;]
+
+  r4g1 --&gt; nat
+  r4g1 --&gt; lut
+  nat --&gt; stack
+  nat --&gt; disc
+  nat --&gt; pz
+  nat --&gt; rel
+  nat --&gt; obj
+  nat --&gt; rank
+  cc -.-&gt; disc
+  lc --&gt; disc
+  sfbs -.-&gt; disc
+  tx --&gt; disc
+  spin --&gt; sfbs
+  stack --&gt; ham
+  stack --&gt; rec
+  stack -.-&gt; flock
+  route --&gt; flock
+  flock ==&gt; rel
+  ptr --&gt; rel
+  pz --&gt; cells
+  mem ==&gt; e8
+
+  classDef ACTIVE fill:#d7f0e0,stroke:#1a7f4b,color:#0b2e1a,stroke-width:2px
+  classDef READY fill:#dbe8fb,stroke:#1d4ed8,color:#0b1f4d,stroke-width:2px,stroke-dasharray:6 3
+  classDef PARKED fill:#e5e7eb,stroke:#4b5563,color:#111827,stroke-width:2px,stroke-dasharray:2 3
+  class lut,disc,pz,rel,rank,flock,route,cells ACTIVE
+  class obj,sfbs,ham,rec READY
+  class r4g1,nat,stack,cc,lc,tx,spin,ptr,mem,e8 PARKED
+</pre>
+<p>Five mechanisms have no recorded parent or child, so they are not drawn: admission, the tokenizer, Hopf observation, read binding and VSA. Source for all edges: the <code>family_tree</code> field of the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/board.json">mechanism board</a> (19 October 2026).</p>
+<h2 id="active-on-the-current-model-path-10"><a class="header" href="#active-on-the-current-model-path-10">ACTIVE: on the current model path (10)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Mechanism</th><th>In plain words</th><th>Replaces</th><th>Why this status</th><th>Next step</th></tr></thead><tbody>
+<tr><td><a href="discrete-learning.html">Discrete geometric learning</a></td><td>Tries every legal rotation of one table entry and keeps it only if the whole-number loss strictly drops. No gradients, no floating point.</td><td>optimizer</td><td>Learning rule of the only live model. A pilot and four large runs (K16) finished and no arm passed the bars (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/k16-outcome-call-2026-10-19/README.md">K16 outcome</a>).</td><td>First trained model that beats its frozen control</td></tr>
+<tr><td><a href="prime-zeta-codebook.html">Prime-zeta codebook</a></td><td>Gives each word a fixed, unique starting address built from primes and zeta-zero phases.</td><td>embedding</td><td>Wired in as the start for new lineages, and the baseline arm P8; no trained artifact has started from it. The trained comparison against its two null controls is <code>NOT_RUN</code> (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/prime-zeta-construction-2026-10-14/README.md">record</a>).</td><td>Run that comparison</td></tr>
+<tr><td><a href="address-cells.html">Address cells (A8)</a></td><td>Puts each word on a 16-by-16 board, next to the words that usually come just before it.</td><td>embedding</td><td>Raised successor admission from 127 to 1,351 of 3,847 before training. Learning then eroded it, and a first test stopped when Relation admission fell to 551 against the control's 857 (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/a8-dose-2026-10-19/README.md">A8 dose</a>).</td><td>Run the real CUDA qualification of the merged guard (<code>NOT_RUN</code>), then rerun</td></tr>
+<tr><td><a href="route-read.html">Routed read</a></td><td>Sends a query down a small tree of addresses and picks up the one earlier word at the end.</td><td>attention</td><td>Base read of every trained artifact, but its own effect is unattributed: 20 proposals in 16,404 updates (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/attention-state-2026-10-18/README.md">attention state</a>).</td><td>Read-off versus read-on test with enough proposals</td></tr>
+<tr><td><a href="flock-read.html">Flock read</a></td><td>Looks at a few nearest earlier positions, rotates them into its own frame and moves toward their consensus.</td><td>attention</td><td>Passes its 6 Flock controls (25 of 25 in the combined Route, Flock and driver run) and runs inside every Relation arm, but its own value was never isolated (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/discrete-driver-cost-2026-10-13/README.md">driver cost</a>).</td><td>Get the coupling test sheet to FIT, with zero and random controls</td></tr>
+<tr><td><a href="relation-read.html">Relation read</a></td><td>Lets the read follow links, such as "the word after the earlier copy of this word" (copying).</td><td>attention scoring</td><td>9/9 controls and two trained runs, both stopped by admission loss. No paired verdict yet (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/a8-dose-2026-10-19/README.md">A8 dose</a>).</td><td>Paired verdict; it must beat a lookup table (6,300 of 14,287)</td></tr>
+<tr><td><a href="admission.html">Admission</a></td><td>Narrows 4,096 words to those in a few opened "drawers". A word in an unopened drawer can never be chosen.</td><td>softmax output head</td><td>The first measured limit, seen on rung 0 (the cause of weak ranking after K16 is open): one run fell from 5,680 to 1,920 admitted rows (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/attention-state-2026-10-18/README.md">attention state</a>).</td><td>Admission-preserving A8 rerun</td></tr>
+<tr><td><a href="rank-margin.html">Rank-margin hinge</a></td><td>The loss only asks whether the right answer beats its strongest rivals by a fixed gap.</td><td>cross-entropy loss</td><td>Integer hinge is the discrete writer's loss. One variant (K16-R) collapsed cell occupancy (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/k16-outcome-call-2026-10-19/README.md">K16 outcome</a>).</td><td>Occupancy-regularised version</td></tr>
+<tr><td><a href="lut-serving.html">D11 integer serving</a></td><td>Runs a finished model with whole numbers, adds, shifts and tables only. An audit proves no multiply instruction.</td><td>arithmetic (matmul)</td><td>Zero-multiply audits are green (44 native symbol ranges, 7 of 7 WebAssembly), but no lawful trained model has been exported (<code>docs/integration/project-track.md</code>).</td><td>Export one discrete model and measure its export gap</td></tr>
+<tr><td><a href="tokenizer.html">Tokenizer</a></td><td>Cuts text into 4,096 numbered pieces and back.</td><td>tokenizer</td><td>Every corpus, test and artifact is pinned to it. A 16,384-piece trainer exists as tooling only (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/rust-bpe-trainer-2026-10-19/README.md">record</a>).</td><td>Matched 4,096 versus 16,384 comparison</td></tr>
+</tbody></table>
+</div>
+<h2 id="ready-built-and-tested-not-yet-trained-in-4"><a class="header" href="#ready-built-and-tested-not-yet-trained-in-4">READY: built and tested, not yet trained in (4)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Mechanism</th><th>In plain words</th><th>Replaces</th><th>Why this status</th><th>Next step</th></tr></thead><tbody>
+<tr><td><a href="hamilton-gate.html">Hamilton gate (G2)</a></td><td>Turns the gate signal into a rotation and rotates the value, so no sigmoid is needed.</td><td>feed-forward gate</td><td>944 tests, GPU parity 43 passed and 0 failed, 18 CUDA controls. Never trained (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/cuda-parity-gate-import-2026-10-13/README.md">parity</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/rung0-complete-path-2026-10-13/README.md">controls</a>).</td><td>Offline-float (D37) sheet with language fit and export gap</td></tr>
+<tr><td><a href="recurrence-gates.html">Recurrence gates</a></td><td>Fade rate from a table of powers of two, input opened by a clamped line, state carried by rotation.</td><td>sigmoid, exp and tanh gates</td><td>Table errors at most 5.5e-8, 18 CUDA controls. The six-recurrence fit never ran (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/rung0-complete-path-2026-10-13/README.md">record</a>).</td><td>Show the learning surrogate gives descent</td></tr>
+<tr><td><a href="spiralcore-fbs.html">SpiralCore/FBS projection</a></td><td>Each output block picks one stored block and moves it along exact steps in 8-dimensional E8 space. No learned weight is multiplied.</td><td>dense projections (matmul)</td><td>Exact fixtures pass on an RTX 5090. Never trained. Its integer form is ACTIVE inside discrete learning (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/spiralcore-fbs-projection-2026-10-12/README.md">record</a>).</td><td>Descent and tokens per second in an offline-float sheet</td></tr>
+<tr><td><a href="object-store.html">Object store (D19)</a></td><td>Keeps bytes exactly in a hashed tree: repeats are stored once and any range can be checked.</td><td>none (durable memory)</td><td>60 tests and a client conformance pass. Nothing consumes it; the durable-memory bars have not run (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/d19-object-store-2026-10-15/README.md">D19</a>, <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/uorobj01-conformance-2026-10-18/README.md">conformance</a>).</td><td>Wire it in and run those bars (milestone M3)</td></tr>
+</tbody></table>
+</div>
+<h2 id="parked-tested-forms-failed-or-broke-a-rule-still-open-13"><a class="header" href="#parked-tested-forms-failed-or-broke-a-rule-still-open-13">PARKED: tested forms failed or broke a rule, still open (13)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Mechanism</th><th>In plain words</th><th>Replaces</th><th>Why this status</th><th>Next step</th></tr></thead><tbody>
+<tr><td><a href="carrier-credit.html">Carrier credit</a></td><td>Sends learning credit back to the geometric objects that carried the information.</td><td>optimizer</td><td>Three fixed arms fell from 437/512 to 0/512. The sampled-choice step uses softmax (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/unified-geometric-integration-2026-10-11/README.md">record</a>).</td><td>Hard-selection step; needs the M2 training hold released</td></tr>
+<tr><td><a href="legal-construction.html">Legal construction</a></td><td>Picks each parameter change from values the integer model can hold, protecting answers already correct.</td><td>optimizer</td><td>Never scored. Every attempt stopped on solver numerics (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/direct-legal-construction-2026-10-09/README.md">record</a>).</td><td>Solve the saved case (1,960 variables) in exact arithmetic</td></tr>
+<tr><td><a href="e8-orbit-memory.html">E8 orbit memory</a></td><td>Replaces a feed-forward layer with a few rows of a large table addressed by E8 lattice points.</td><td>feed-forward layer (MLP)</td><td>Half-MLP form cost +0.033 BPB, within its bar, but learned keys beat E8 by 0.023. The gate is a sigmoid (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/e8-orbit-memory-2026-10-11/README.md">record</a>).</td><td>Sigmoid-free gate and the named next iteration</td></tr>
+<tr><td><a href="exact-memory.html">Exact memory</a></td><td>Writes a fact once under an exact prime address and reads it back exactly.</td><td>key-value memory</td><td>Trained forms scored 19/40 against a 27/40 bar, or used softmax. The address-as-read form was never built (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/addressed-memory-2026-10-10/README.md">record</a>).</td><td>Build the address as the read, oracle first</td></tr>
+<tr><td><a href="pointer-key.html">Pointer key</a></td><td>Copies the answer by the slot's exact name, not by the surrounding wording.</td><td>copy head</td><td>A softmax pointer. Hit rate rose from 0.377 to 0.545, but memory missed its bar (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/ptr-addr-2026-10-10/README.md">record</a>).</td><td>Lawful oracle, then a prime entity key</td></tr>
+<tr><td><a href="read-binding.html">Read binding</a></td><td>A teacher marks which earlier value the question asks for, and the read is rewarded for landing on it.</td><td>auxiliary loss</td><td>Wrong-value errors fell from 47 to 30 of 120 over 3 seeds, but on a softmax read (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/read-binding-powered-2026-10-11/README.md">record</a>).</td><td>Port it to a Flock or Relation read</td></tr>
+<tr><td><a href="hopf-observation.html">Hopf observation</a></td><td>Views a 4D rotation through a 3D shadow while keeping the lost angle separately.</td><td>attention scoring</td><td>Telemetry only. Sector routing used 7 of 512 sectors (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/hopf_sector_occupancy_d3.md">occupancy record</a>); the kept-fibre language test was never run (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/course-correction-2026-10-18/audits/mechanism-census.md">census</a>).</td><td>Retained-fibre test</td></tr>
+<tr><td><a href="vsa.html">VSA</a></td><td>4,096-bit codes glued by XOR and compared by counting differing bits.</td><td>key-value memory</td><td>Improved BPB by 0.014 to 0.023 on 2 seeds, but on the banned CPU learner (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/vsa-native-test-2026-10-09/README.md">record</a>).</td><td>GPU Hamming binding in the discrete model</td></tr>
+<tr><td><a href="spin-weights.html">Spin-native weights</a></td><td>Each 4-by-4 weight block is one quaternion, snapped to 120 icosian rotations.</td><td>arithmetic (matmul)</td><td>Reached 1.5148 BPB, level with dense, but only through matmul (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/icosian-mantissa-2026-10-11/README.md">record</a>).</td><td>Owner architecture decision</td></tr>
+<tr><td><a href="ternary-xor.html">Ternary/XOR</a></td><td>Weights of -1, 0 or +1, with similarity by counting differing bits.</td><td>arithmetic (matmul)</td><td>A dense ternary sum is still dense (D25). Export lost: 7.416 versus 7.171 bits. Its parts run inside discrete learning.</td><td>Owner ruling, or a geometric alphabet</td></tr>
+<tr><td><a href="geometric-stack.html">Geometric stack</a></td><td>The old 7M to 214M-parameter layered model with quaternion recurrence.</td><td>whole model</td><td>Trained form used softmax and matmul and served 1.20 to 1.24 BPB against a 0.90 bar (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/d11-serving-2026-10-10/README.md">record</a>).</td><td>Rebuild from lawful parts (D37)</td></tr>
+<tr><td><a href="native-geometric.html">Native geometric engine</a></td><td>A from-scratch Rust model with prime addresses and version chains. It answered authored questions only.</td><td>whole model</td><td>No prose. 437/512 fell to 0/128 on fresh rows (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/labs/m2-fresh-437-2026-10-10/README.md">record</a>).</td><td>Re-register with the hinge loss once the M2 hold lifts</td></tr>
+<tr><td><a href="r4g1-graph.html">R4G1 graph</a></td><td>Compiled a teacher model's preferences into integer lookup tables.</td><td>whole model</td><td>Never wrote coherent free text, and needs a banned transformer teacher.</td><td>Owner decision on repairing or removing the crates (D36)</td></tr>
+</tbody></table>
+</div>
+<h2 id="which-mechanism-covers-each-part-of-a-transformer"><a class="header" href="#which-mechanism-covers-each-part-of-a-transformer">Which mechanism covers each part of a transformer</a></h2>
+<p>Each row names a part of a standard transformer, says what it does, and lists the mechanisms aimed at it (A = ACTIVE, R = READY, P = PARKED). Source: the <code>slot_map</code> of the <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/board.json">mechanism board</a> (19 October 2026).</p>
+<div class="table-wrapper"><table><thead><tr><th>Transformer part</th><th>What it does</th><th>Our mechanisms</th></tr></thead><tbody>
+<tr><td>Tokenizer</td><td>Cuts text into pieces</td><td><a href="tokenizer.html">tokenizer</a> (A)</td></tr>
+<tr><td>Token embedding table</td><td>Gives each piece a starting vector</td><td><a href="prime-zeta-codebook.html">prime-zeta-codebook</a> (A), <a href="address-cells.html">address-cells</a> (A)</td></tr>
+<tr><td><strong>Positional encoding</strong></td><td>Tells the model the order of words</td><td><strong>GAP: none.</strong> No record names a mechanism for this.</td></tr>
+<tr><td>Attention: choosing what to read</td><td>Picks which earlier words matter</td><td><a href="route-read.html">route-read</a> (A), <a href="flock-read.html">flock-read</a> (A), <a href="relation-read.html">relation-read</a> (A), <a href="admission.html">admission</a> (A), <a href="hopf-observation.html">hopf-observation</a> (P)</td></tr>
+<tr><td>Attention: mixing what was read</td><td>Combines the chosen words</td><td><a href="flock-read.html">flock-read</a> (A)</td></tr>
+<tr><td>Copy and induction heads</td><td>Repeats what appeared earlier</td><td><a href="relation-read.html">relation-read</a> (A), <a href="pointer-key.html">pointer-key</a> (P)</td></tr>
+<tr><td>Context memory (KV cache)</td><td>Holds earlier words ready to read</td><td><a href="exact-memory.html">exact-memory</a> (P), <a href="vsa.html">vsa</a> (P), <a href="read-binding.html">read-binding</a> (P)</td></tr>
+<tr><td>Durable memory outside the model</td><td>Stores facts between chats</td><td><a href="object-store.html">object-store</a> (R)</td></tr>
+<tr><td>Feed-forward block (MLP)</td><td>Processes each word</td><td><a href="spiralcore-fbs.html">spiralcore-fbs</a> (R), <a href="hamilton-gate.html">hamilton-gate</a> (R), <a href="e8-orbit-memory.html">e8-orbit-memory</a> (P)</td></tr>
+<tr><td>Activation and gating</td><td>Decides how much signal passes</td><td><a href="hamilton-gate.html">hamilton-gate</a> (R), <a href="recurrence-gates.html">recurrence-gates</a> (R)</td></tr>
+<tr><td>Recurrent sequence mixing</td><td>Carries a running memory along</td><td><a href="recurrence-gates.html">recurrence-gates</a> (R), <a href="geometric-stack.html">geometric-stack</a> (P)</td></tr>
+<tr><td>Projections and matmul</td><td>The big grids of multiplications</td><td><a href="lut-serving.html">lut-serving</a> (A), <a href="spiralcore-fbs.html">spiralcore-fbs</a> (R), <a href="spin-weights.html">spin-weights</a> (P), <a href="ternary-xor.html">ternary-xor</a> (P)</td></tr>
+<tr><td><strong>Normalization</strong></td><td>Keeps numbers in a stable range</td><td><strong>GAP: none.</strong> Snapping to an E8 root may serve, but no record says so.</td></tr>
+<tr><td>Output head</td><td>Scores every word and picks one</td><td><a href="admission.html">admission</a> (A), <a href="discrete-learning.html">discrete-learning</a> (A)</td></tr>
+<tr><td>Loss</td><td>Measures how wrong a guess was</td><td><a href="rank-margin.html">rank-margin</a> (A), <a href="read-binding.html">read-binding</a> (P)</td></tr>
+<tr><td>Optimizer</td><td>Decides how to change the model</td><td><a href="discrete-learning.html">discrete-learning</a> (A), <a href="carrier-credit.html">carrier-credit</a> (P), <a href="legal-construction.html">legal-construction</a> (P)</td></tr>
+<tr><td>Inference runtime</td><td>Runs the finished model</td><td><a href="lut-serving.html">lut-serving</a> (A), <a href="r4g1-graph.html">r4g1-graph</a> (P)</td></tr>
+<tr><td>Whole-model engine</td><td>The complete model</td><td><a href="geometric-stack.html">geometric-stack</a> (P), <a href="native-geometric.html">native-geometric</a> (P), <a href="r4g1-graph.html">r4g1-graph</a> (P)</td></tr>
+</tbody></table>
+</div>
+<p>The two gaps matter. The only position-related result is about recurrent state transport, not word order, and it was measured in a model that used banned parts. The live discrete model has no position mechanism, no normalization and no feed-forward block, and it scores below a unigram baseline (audit synthesis, section 1). Having a mechanism for a slot does not mean it works: a row can list four mechanisms and no trained result.</p>
+<h2 id="where-the-audit-questions-a-status"><a class="header" href="#where-the-audit-questions-a-status">Where the audit questions a status</a></h2>
+<p>Statuses are left as the audit dossiers set them (<code>docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/</code>). Two are open to challenge:</p>
+<ul>
+<li><strong>D11 integer serving</strong> is ACTIVE as the end-of-pipeline contract, but no lawful model has ever been exported through it, so READY may be more accurate.</li>
+<li><strong>Hopf observation</strong> is PARKED, but its kept-fibre map is built and unit-tested and its language test never ran. Only sector routing failed, so splitting the two forms may be more accurate.</li>
+</ul>
+<h2 id="how-to-read-a-mechanism-page"><a class="header" href="#how-to-read-a-mechanism-page">How to read a mechanism page</a></h2>
+<p>Each page follows the same order:</p>
+<ol>
+<li><strong>In one paragraph</strong>: the idea and what it replaces, in plain words.</li>
+<li><strong>Figure</strong>: a picture of the mechanism at work.</li>
+<li><strong>How it works</strong>: the mechanism and its maths, labelled as definition, measurement or hypothesis.</li>
+<li><strong>Where it stands</strong>: its status, the evidence behind it with sources, and for a PARKED mechanism what would reopen it.</li>
+<li><strong>Go deeper</strong>: the code, the archived records and the nearest neighbours in the tree above.</li>
+</ol>
+<p>Read the status first, then the "Where it stands" table. A claim there is a measurement only if it names a recorded run.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="../start/glossary.html">Glossary</a> for terms such as admission, FIT and export gap.</li>
+<li><a href="../geometry/index.html">The geometry page</a> for pictures of the operators.</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md">Decisions log</a> for D22 (nothing is closed for good), D37 (offline float training) and D11 (integer serving).</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/tree/main/archive/labs">Archived lab records</a> for everything dated before 18 October 2026.</li>
+</ul>
 
                     </main>
 

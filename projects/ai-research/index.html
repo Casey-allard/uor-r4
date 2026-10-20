@@ -179,6 +179,57 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="ai-research-the-original-root-research-workspace"><a class="header" href="#ai-research-the-original-root-research-workspace">AI-Research: the original root research workspace</a></h1>
+<p>Before there was a Rust language model, there was a Python workspace called AI-Research. It held the first experiments on routing information by geometry instead of by dense attention, a benchmark for AI agents in a game world, and some small mathematics studies. This project is a snapshot of that workspace, kept so the history can be traced. The claims inside it are from the Python era and belong to that workspace; they are not claims about the current model, which is pre-alpha.</p>
+<pre class="mermaid">flowchart TD
+    W[&quot;AI-Research workspace, Python era&quot;] --&gt; R[&quot;ai-router: routing research and paper drafts&quot;]
+    W --&gt; M[&quot;MUDBench: agent benchmark and game world&quot;]
+    W --&gt; Q[&quot;ramsey: Ramsey-style math experiments&quot;]
+    W --&gt; D[&quot;deepermath and loose notes, plots, CSVs&quot;]
+    R --&gt; N[&quot;Later: R4 prime router in Rust, then the UOR-R4 geometric model&quot;]
+</pre>
+<p><em>The workspace's four parts. Only the router line leads to the current model.</em></p>
+<h2 id="what-is-in-the-project"><a class="header" href="#what-is-in-the-project">What is in the project</a></h2>
+<p>The snapshot has 3,335 files and about 358 MB (<code>research-archive/2026-10-19/files.sha256</code> in the store; sizes from the audit inventory <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code>). The inventory counts about 10 MB of code across 678 code-like files (669 of them Python), around 207 MB of JSON, CSV, log and NPZ data, about 28 MB of images and about 119 MB of documents (1,037 Markdown files, 123 LaTeX files, 93 PDFs).</p>
+<div class="table-wrapper"><table><thead><tr><th>Part</th><th>Size</th><th>What it is</th></tr></thead><tbody>
+<tr><td><code>ai-router/</code></td><td>about 335 MB (router-research about 229 MB, preprints about 101 MB)</td><td>Geometry-native routing research: transport laws, wheel-based experiments on prime admissibility, run outputs, a staged "kill list" tracker, and the paper 1 manuscript rebuilds (versions 1 to 4 and a submission bundle) with a <code>claims_to_evidence_table.md</code></td></tr>
+<tr><td><code>MUDBench/</code></td><td>about 3.7 MB</td><td>A benchmark and game-world runtime for evaluating agents: specifications, source in <code>src/</code>, tests, scenarios, a scoring spec</td></tr>
+<tr><td><code>ramsey/</code></td><td>about 2.2 MB</td><td>Scripts and result tables for recursive Ramsey-style studies</td></tr>
+<tr><td><code>deepermath/</code></td><td>about 1.8 MB</td><td>Early prime-router scripts and a few papers</td></tr>
+<tr><td>loose files</td><td>the rest</td><td>Plots and CSVs from wheel experiments (moduli 210, 2310 and 30030), base-fiber admissibility, and transport-error comparisons across three configurations</td></tr>
+</tbody></table>
+</div>
+<p>The workspace's own entry points are <code>README.md</code>, <code>PROJECT_MAP.md</code> and the router's <code>docs/research/KILL_LIST_TRACKER.md</code> and <code>ACTIVE_STATE.md</code>. Its paths in <code>PROJECT_MAP.md</code> point to a different machine and no longer resolve.</p>
+<h2 id="what-it-claimed"><a class="header" href="#what-it-claimed">What it claimed</a></h2>
+<p>The workspace's <code>EVIDENCE_SUMMARY.md</code> lists what it had explored, each with "Observed" and "Unknown" lines. For example, geometric routing produced sparse activation in prototypes, with long-range stability and scaling listed as unknown. In its prime admissibility work, a shared transport law fitted on wheel sizes 2310, 30030 and 510510 is described as generalizing to the unseen size 9699690 with only small degradation, and the note itself says this is evidence for reusable structure and not for exact closure or a "prime oracle".</p>
+<p>Treat these as the old workspace's statements. This page reports what the files say, not what was reproduced. Several nested copies of the same material exist inside the snapshot; the labels such as "canonical" apply to the old source repository.</p>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Statement</th><th>Kind</th><th>Evidence</th></tr></thead><tbody>
+<tr><td>The snapshot is 3,335 files and about 358 MB</td><td>measurement</td><td><code>files.sha256</code> (count); sizes from the audit inventory <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code></td></tr>
+<tr><td>It contains router experiments, an agent benchmark and small math studies</td><td>measurement (file listing)</td><td><code>research/ai-research/README.md</code></td></tr>
+<tr><td>The router results transfer to the Rust model</td><td>hypothesis. The model's own tests are the evidence</td><td>see <a href="../../mechanisms/index.html">the mechanisms</a></td></tr>
+<tr><td>Any quality claim about language</td><td>none. Nothing here trains or scores a language model for conversation</td><td>project README</td></tr>
+<tr><td>Duplicates</td><td>1,799 of its 3,117 distinct file hashes also appear in <code>prime-analysis</code>; 10 appear in <code>research-archives</code></td><td><code>files.sha256</code> comparison, 19 October 2026</td></tr>
+</tbody></table>
+</div>
+<h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
+<p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/ai-research.tar</code> (377,595,904 bytes, 3,335 files, SHA-256 <code>dbdb1fa6f09712b9faba207a0188d23d0a591c9773cdcbb7ec6aeb21b8ddf1ce</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>.</p>
+<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
+<p>Only source and short notes come in; all data stays in the store.</p>
+<ul>
+<li><code>README.md</code>, <code>PROJECT_MAP.md</code>, and the loose <code>*_note.md</code> files</li>
+<li><code>MUDBench/src/**</code> and <code>MUDBench/tests/**</code></li>
+<li><code>ai-router/**/*.py</code>, after removing files that duplicate <code>research-archives</code>, and <code>ai-router/preprints/paper1_arxiv_rebuild_v4/**/*.tex</code></li>
+<li><code>claims_to_evidence_table.md</code> files</li>
+<li><code>ramsey/**/*.py</code> and <code>deepermath/**/*.py</code></li>
+</ul>
+<p>Stay in the store: all CSV, NPZ, PNG and PDF files, large run outputs under <code>router-research/</code>, preprint build artifacts, and <code>1608.04200v2.pdf</code> (a third-party arXiv paper).</p>
+<p>The owner's inventory suggests splitting this project into three folders later (router research, MUDBench, Ramsey). That is a proposal and is not decided; this page treats the snapshot as one project.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="../prime-analysis/index.html">Prime Analysis</a>, which overlaps heavily with this snapshot.</li>
+<li><a href="../research-archives/index.html">Research archives</a>, the Gemini-era sandbox.</li>
+<li><a href="../../geometry/primes-and-zeta.html">Primes and zeta</a> and the <a href="../../mechanisms/index.html">mechanism index</a> for what carried into the current model.</li>
+</ul>
 
                     </main>
 

@@ -179,6 +179,53 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="riemann-lean-a-lean-4-scaffold-for-a-prime-number-proof-chain"><a class="header" href="#riemann-lean-a-lean-4-scaffold-for-a-prime-number-proof-chain">Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain</a></h1>
+<p>This project is an attempt to write a proof about prime numbers in a proof assistant called Lean 4, where a computer checks every step. The goal was to connect how primes are spread out to the Riemann hypothesis, a famous open problem about the zeros of the zeta function. The result is a scaffold: a chain of statements with the pieces needed to prove them, plus 185 Python scripts that probe whether the needed inequalities hold. <strong>The Riemann hypothesis is not proved here, and nothing in this folder is evidence about the language model.</strong></p>
+<pre class="mermaid">flowchart TD
+    P[&quot;Python probes: a1 to a4, o1 to o5, k1, tau12, fixed_error_psi&quot;] --&gt; C[&quot;Constants and majorant checks&quot;]
+    C --&gt; L[&quot;Lean files: PrimeRiemannBridge spine, 17 files (plus 6 scratch probes)&quot;]
+    L --&gt; T[&quot;Theorem chain: O1 to O5, L1 to L3&quot;]
+    X[&quot;Pinned in lake-manifest.json: mathlib and its own dependencies, Lean v4.28.0&quot;] --&gt; L
+    T -.-&gt; G[&quot;Goal: bridge to the Riemann hypothesis, not reached&quot;]
+</pre>
+<p><em>Probes feed constants into the Lean spine. Mathlib is pinned, not copied; the project README also names Lean-RH, PhysLean, Carleson and PrimeNumberTheoremAnd, which are not pinned and not imported. The last arrow is the goal, not a result.</em></p>
+<h2 id="what-is-in-the-project"><a class="header" href="#what-is-in-the-project">What is in the project</a></h2>
+<ul>
+<li><code>formal/lean/</code>: the <code>PrimeRiemannBridge</code> theorem spine. The folder holds 23 <code>.lean</code> files: 17 spine files plus 6 small scratch probes (dot-prefixed <code>.codex_*</code> files, a few lines each). The project README states no axioms; a search of the 23 files finds no <code>axiom</code> declaration (two comment lines only). It comes with <code>lakefile.toml</code> (which requires only mathlib), <code>lake-manifest.json</code> (mathlib and its transitive packages), a Lean v4.28.0 <code>lean-toolchain</code>, and three verification scripts.</li>
+<li>185 Python scripts at the top level: probes, ledgers, majorant checkers and proof-obligation tooling, grouped by prefix (<code>a1</code> to <code>a4</code>, <code>o1</code> to <code>o5</code>, <code>k1</code>, <code>tau12</code>, <code>fixed_error_psi</code>, <code>spinning_top</code>, <code>build_*</code>).</li>
+<li><code>data/</code>: reference data (19 JSON files: 12 arXiv listings and 7 zeta-zero tables from LMFDB and Odlyzko; sizes not re-checked here).</li>
+</ul>
+<p>A "majorant" is an upper bound that dominates the quantity being studied; most scripts check numerically that such a bound holds in a range, or turn a bound into a constant for the Lean files. A numerical check in a range is not a proof for all numbers.</p>
+<p>Casey Allard started this as a standalone local project. It was never part of the AI-Research or Prime-Analysis repositories (<code>research/riemann-lean/README.md</code>). The external Lean dependencies are fetched with <code>lake exe cache get</code> or <code>lake update</code>; their sources are not stored here because they are third-party, large and regenerable.</p>
+<h2 id="relationship-to-prime-analysis"><a class="header" href="#relationship-to-prime-analysis">Relationship to Prime Analysis</a></h2>
+<p>The <a href="../prime-analysis/index.html"><code>prime-analysis/</code></a> project holds a folder named <code>formal-math-lean</code>, which contains 185 Python files. Comparing the two trees byte by byte shows all 185 are identical to the ones here (measurement, checked on the local copies on 19 October 2026). The folder in Prime Analysis contains no <code>.lean</code> files. So <strong>this project is the canonical home of the Lean spine and of the probe scripts</strong>, and the Prime Analysis copy is a duplicate to be recorded, not imported twice. Which of the two the owner wants as canonical is an open decision; the inventory favours this one because it is small and holds the Lean source.</p>
+<h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Statement</th><th>Kind</th><th>Evidence</th></tr></thead><tbody>
+<tr><td>The folder holds 23 <code>.lean</code> files (17 spine plus 6 scratch probes)</td><td>measurement (file count)</td><td>hash listing in <code>files.sha256</code></td></tr>
+<tr><td>No <code>axiom</code> declaration in those files; the chain is conditional on imported-result hypotheses</td><td>measurement (text search, scope: the 23 files) plus the project's own statement</td><td><code>formal/lean/README.md</code>, which says transfer assumptions are still to be replaced</td></tr>
+<tr><td>The spine builds against the pinned libraries</td><td>not established by this page</td><td>Verification scripts exist (<code>verify_formal_proof*.sh</code>); no build log was inspected for this page</td></tr>
+<tr><td>The Riemann hypothesis follows from this chain</td><td>hypothesis, unproved</td><td>The goal of the scaffold; the project itself does not claim it</td></tr>
+<tr><td>Probe scripts show the inequalities hold on the ranges tested</td><td>measurement for the ranges tested only, if the scripts are run</td><td>The scripts are in the project; their outputs were not inspected for this page</td></tr>
+<tr><td>Relevance to the model</td><td>none on the model path</td><td>Charter: side project</td></tr>
+</tbody></table>
+</div>
+<p>The words "formalization scaffold" in the README are the correct reading. Treat any numerical agreement as exploration.</p>
+<h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
+<p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/riemann-lean.tar</code> (7,279,616 bytes, 248 files, SHA-256 <code>45b4a16ed2fbca6d99595299b697e09569747d468de39bb94a33ee3307cd455d</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>.</p>
+<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
+<p>All of it is source and small, so nearly everything comes in:</p>
+<ul>
+<li><code>README.md</code></li>
+<li><code>formal/lean/**/*.lean</code>, <code>lakefile.toml</code>, <code>lake-manifest.json</code>, <code>lean-toolchain</code>, and the three <code>verify_formal_proof*.sh</code> scripts</li>
+<li>the 185 top-level <code>*.py</code> files</li>
+<li><code>data/**/*.json</code> (optional; moves to the store if the owner prefers)</li>
+</ul>
+<p>Not brought in: <code>.lake</code> build cache, <code>.olean</code> files, vendored Python binaries and <code>.npz</code> caches. They were already excluded from the original and can be rebuilt.</p>
+<h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
+<ul>
+<li><a href="../prime-analysis/index.html">Prime Analysis</a> for the manuscripts and the theory notes behind this scaffold.</li>
+<li><a href="../../geometry/primes-and-zeta.html">Primes and zeta</a> for how the model uses zeta zeros (a fixed list of phases), which is a different use from proving a statement about all of them.</li>
+<li><a href="../../start/glossary.html">Glossary</a>.</li>
+</ul>
 
                     </main>
 
