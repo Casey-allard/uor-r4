@@ -32,152 +32,152 @@ These items are ready and open to anyone.
 
 | Item | Milestone | Issue |
 |---|---|---|
-| [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | infra | not yet synced |
-| [Solve the saved legal-construction case in exact arithmetic](items/legal-construction-exact-solve.md) | research | not yet synced |
-| [Register the finite qualification and stage the admission-preserving A8 runbook](items/m1-a8-registration-and-runbook-staging.md) | M1 | not yet synced |
-| [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | M1 | not yet synced |
-| [Write the exporter from a trained discrete model to a D11 file](items/m1-d11-exporter-discrete.md) | M1 | not yet synced |
-| [Design a lawful normalization mechanism](items/m1-normalization-mechanism.md) | M1 | not yet synced |
-| [Design a lawful position mechanism](items/m1-position-mechanism.md) | M1 | not yet synced |
-| [Build a genuinely fresh held-out reply panel for M2](items/m2-fresh-heldout-panel.md) | M2 | not yet synced |
-| [Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it](items/m2-pin-train-mask-sheet.md) | M2 | not yet synced |
-| [Close the remaining R14 gaps in the deterministic reply grader](items/m2-reply-grading-instrument-r14.md) | M2 | not yet synced |
-| [Retire or complete legacy width-576 ChatSession persistence](items/m3-legacy-chatsession-persistence.md) | M3 | not yet synced |
-| [Build a pre-registered non-relation prose panel](items/m3-nonrelation-prose-panel.md) | M3 | not yet synced |
-| [Pin OpPolicy precedence and store-miss sieve coupling with tests](items/m3-policy-precedence-and-sieve-tests.md) | M3 | not yet synced |
-| [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | M4 | not yet synced |
-| [Measure M1-class laptop cost on the accepted served model](items/m5-laptop-full-path-measurement.md) | M5 | not yet synced |
-| [Design exact arithmetic on the geometric path](items/m6-exact-arithmetic-mechanism.md) | M6 | not yet synced |
-| [Build and freeze the m6-reasoning panel and oracles](items/m6-reasoning-panel-freeze.md) | M6 | not yet synced |
-| [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | M7 | not yet synced |
-| [Connect the Studio to the browser WASM engine](items/m7-studio-connect-wasm-engine.md) | M7 | not yet synced |
-| [Independently verify the alpha on consumer hardware](items/m8-independent-verification.md) | M8 | not yet synced |
-| [Prepare the checksummed alpha release package and install path](items/m8-release-packaging.md) | M8 | not yet synced |
-| [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | M3 | not yet synced |
-| [Settle whether a norm-preserving Hamilton gate can suppress a signal](items/r-hamilton-gate-suppression.md) | research | not yet synced |
+| [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | infra | [#2826](https://github.com/UOR-Foundation/uor-r4/issues/2826) |
+| [Solve the saved legal-construction case in exact arithmetic](items/legal-construction-exact-solve.md) | research | [#2828](https://github.com/UOR-Foundation/uor-r4/issues/2828) |
+| [Register the finite qualification and stage the admission-preserving A8 runbook](items/m1-a8-registration-and-runbook-staging.md) | M1 | [#2832](https://github.com/UOR-Foundation/uor-r4/issues/2832) |
+| [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | M1 | [#2833](https://github.com/UOR-Foundation/uor-r4/issues/2833) |
+| [Write the exporter from a trained discrete model to a D11 file](items/m1-d11-exporter-discrete.md) | M1 | [#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838) |
+| [Design a lawful normalization mechanism](items/m1-normalization-mechanism.md) | M1 | [#2842](https://github.com/UOR-Foundation/uor-r4/issues/2842) |
+| [Design a lawful position mechanism](items/m1-position-mechanism.md) | M1 | [#2843](https://github.com/UOR-Foundation/uor-r4/issues/2843) |
+| [Build a genuinely fresh held-out reply panel for M2](items/m2-fresh-heldout-panel.md) | M2 | [#2849](https://github.com/UOR-Foundation/uor-r4/issues/2849) |
+| [Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it](items/m2-pin-train-mask-sheet.md) | M2 | [#2851](https://github.com/UOR-Foundation/uor-r4/issues/2851) |
+| [Close the remaining R14 gaps in the deterministic reply grader](items/m2-reply-grading-instrument-r14.md) | M2 | [#2852](https://github.com/UOR-Foundation/uor-r4/issues/2852) |
+| [Retire or complete legacy width-576 ChatSession persistence](items/m3-legacy-chatsession-persistence.md) | M3 | [#2854](https://github.com/UOR-Foundation/uor-r4/issues/2854) |
+| [Build a pre-registered non-relation prose panel](items/m3-nonrelation-prose-panel.md) | M3 | [#2856](https://github.com/UOR-Foundation/uor-r4/issues/2856) |
+| [Pin OpPolicy precedence and store-miss sieve coupling with tests](items/m3-policy-precedence-and-sieve-tests.md) | M3 | [#2857](https://github.com/UOR-Foundation/uor-r4/issues/2857) |
+| [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | M4 | [#2860](https://github.com/UOR-Foundation/uor-r4/issues/2860) |
+| [Measure M1-class laptop cost on the accepted served model](items/m5-laptop-full-path-measurement.md) | M5 | [#2862](https://github.com/UOR-Foundation/uor-r4/issues/2862) |
+| [Design exact arithmetic on the geometric path](items/m6-exact-arithmetic-mechanism.md) | M6 | [#2864](https://github.com/UOR-Foundation/uor-r4/issues/2864) |
+| [Build and freeze the m6-reasoning panel and oracles](items/m6-reasoning-panel-freeze.md) | M6 | [#2866](https://github.com/UOR-Foundation/uor-r4/issues/2866) |
+| [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | M7 | [#2867](https://github.com/UOR-Foundation/uor-r4/issues/2867) |
+| [Connect the Studio to the browser WASM engine](items/m7-studio-connect-wasm-engine.md) | M7 | [#2868](https://github.com/UOR-Foundation/uor-r4/issues/2868) |
+| [Independently verify the alpha on consumer hardware](items/m8-independent-verification.md) | M8 | [#2869](https://github.com/UOR-Foundation/uor-r4/issues/2869) |
+| [Prepare the checksummed alpha release package and install path](items/m8-release-packaging.md) | M8 | [#2870](https://github.com/UOR-Foundation/uor-r4/issues/2870) |
+| [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | M3 | [#2873](https://github.com/UOR-Foundation/uor-r4/issues/2873) |
+| [Settle whether a norm-preserving Hamilton gate can suppress a signal](items/r-hamilton-gate-suppression.md) | research | [#2879](https://github.com/UOR-Foundation/uor-r4/issues/2879) |
 
 ## M1
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | ready | a lab | no | none | not yet synced |
-| [Register the finite qualification and stage the admission-preserving A8 runbook](items/m1-a8-registration-and-runbook-staging.md) | ready | anyone | no | none | not yet synced |
-| [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | ready | anyone | no | none | not yet synced |
-| [Replace the 5-value address key with a full-vector metric](items/m1-address-key-full-vector.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md) | not yet synced |
-| [Draft the BVG-K Stage T pre-registration sheet (C2 has passed)](items/m1-bvg-k-block-apply-c2.md) | ready | a lab | yes | none | not yet synced |
-| [Write the exporter from a trained discrete model to a D11 file](items/m1-d11-exporter-discrete.md) | ready | anyone | no | none | not yet synced |
-| [Measure export gap and tokens per second on a trained model](items/m1-export-gap-and-toks.md) | ready | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | not yet synced |
-| [Replace the full-vocabulary writer scan](items/m1-faster-writer.md) | ready | a lab | yes | none | not yet synced |
-| [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | not yet synced |
-| [Design a lawful normalization mechanism](items/m1-normalization-mechanism.md) | ready | anyone | no | none | not yet synced |
-| [Design a lawful position mechanism](items/m1-position-mechanism.md) | ready | anyone | no | none | not yet synced |
-| [Prototype a wider code carrier (more roots or blocks)](items/m1-wider-code-carrier.md) | ready | a lab | yes | [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | not yet synced |
-| [Train a number-aware tokenizer and pin its identity](items/number-aware-tokenizer.md) | ready | a lab | no | none | not yet synced |
-| [Run A8 admission-anchor controller CUDA qualification and restoration](items/m1-a8-finite-cuda-qualification.md) | held | a lab | yes | [m1-a8-registration-and-runbook-staging](items/m1-a8-registration-and-runbook-staging.md) | not yet synced |
-| [Run the full A8 dose with reach protected](items/m1-a8-full-dose-rerun.md) | held | a lab | yes | [m1-a8-finite-cuda-qualification](items/m1-a8-finite-cuda-qualification.md) | not yet synced |
-| [Train the BVG-K batched-coordinate law on two seeds](items/m1-bvg-k-stage-t-training.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-block-apply-c2](items/m1-bvg-k-block-apply-c2.md) | not yet synced |
-| [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md), [m1-fresh-panel-transfer](items/m1-fresh-panel-transfer.md) | not yet synced |
-| [Assemble and train the full lawful trunk (Stage 3)](items/m1-trunk-assembly-and-training.md) | held | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md), [m1-normalization-mechanism](items/m1-normalization-mechanism.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | not yet synced |
-| [Run the W2 read-code capacity capture](items/m1-w2-capacity-capture.md) | held | a lab | yes | none | not yet synced |
-| [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | not yet synced |
-| [Decide whether a float (D37) path may count toward M1, M2 and the product](items/owner-decision-float-path-scope.md) | decision | a lab | no | none | not yet synced |
+| [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | ready | a lab | no | none | [#2829](https://github.com/UOR-Foundation/uor-r4/issues/2829) |
+| [Register the finite qualification and stage the admission-preserving A8 runbook](items/m1-a8-registration-and-runbook-staging.md) | ready | anyone | no | none | [#2832](https://github.com/UOR-Foundation/uor-r4/issues/2832) |
+| [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | ready | anyone | no | none | [#2833](https://github.com/UOR-Foundation/uor-r4/issues/2833) |
+| [Replace the 5-value address key with a full-vector metric](items/m1-address-key-full-vector.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md) | [#2834](https://github.com/UOR-Foundation/uor-r4/issues/2834) |
+| [Draft the BVG-K Stage T pre-registration sheet (C2 has passed)](items/m1-bvg-k-block-apply-c2.md) | ready | a lab | yes | none | [#2835](https://github.com/UOR-Foundation/uor-r4/issues/2835) |
+| [Write the exporter from a trained discrete model to a D11 file](items/m1-d11-exporter-discrete.md) | ready | anyone | no | none | [#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838) |
+| [Measure export gap and tokens per second on a trained model](items/m1-export-gap-and-toks.md) | ready | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2839](https://github.com/UOR-Foundation/uor-r4/issues/2839) |
+| [Replace the full-vocabulary writer scan](items/m1-faster-writer.md) | ready | a lab | yes | none | [#2840](https://github.com/UOR-Foundation/uor-r4/issues/2840) |
+| [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
+| [Design a lawful normalization mechanism](items/m1-normalization-mechanism.md) | ready | anyone | no | none | [#2842](https://github.com/UOR-Foundation/uor-r4/issues/2842) |
+| [Design a lawful position mechanism](items/m1-position-mechanism.md) | ready | anyone | no | none | [#2843](https://github.com/UOR-Foundation/uor-r4/issues/2843) |
+| [Prototype a wider code carrier (more roots or blocks)](items/m1-wider-code-carrier.md) | ready | a lab | yes | [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2847](https://github.com/UOR-Foundation/uor-r4/issues/2847) |
+| [Train a number-aware tokenizer and pin its identity](items/number-aware-tokenizer.md) | ready | a lab | no | none | [#2872](https://github.com/UOR-Foundation/uor-r4/issues/2872) |
+| [Run A8 admission-anchor controller CUDA qualification and restoration](items/m1-a8-finite-cuda-qualification.md) | held | a lab | yes | [m1-a8-registration-and-runbook-staging](items/m1-a8-registration-and-runbook-staging.md) | [#2830](https://github.com/UOR-Foundation/uor-r4/issues/2830) |
+| [Run the full A8 dose with reach protected](items/m1-a8-full-dose-rerun.md) | held | a lab | yes | [m1-a8-finite-cuda-qualification](items/m1-a8-finite-cuda-qualification.md) | [#2831](https://github.com/UOR-Foundation/uor-r4/issues/2831) |
+| [Train the BVG-K batched-coordinate law on two seeds](items/m1-bvg-k-stage-t-training.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-block-apply-c2](items/m1-bvg-k-block-apply-c2.md) | [#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836) |
+| [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md), [m1-fresh-panel-transfer](items/m1-fresh-panel-transfer.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
+| [Assemble and train the full lawful trunk (Stage 3)](items/m1-trunk-assembly-and-training.md) | held | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md), [m1-normalization-mechanism](items/m1-normalization-mechanism.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2844](https://github.com/UOR-Foundation/uor-r4/issues/2844) |
+| [Run the W2 read-code capacity capture](items/m1-w2-capacity-capture.md) | held | a lab | yes | none | [#2845](https://github.com/UOR-Foundation/uor-r4/issues/2845) |
+| [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
+| [Decide whether a float (D37) path may count toward M1, M2 and the product](items/owner-decision-float-path-scope.md) | decision | a lab | no | none | [#2875](https://github.com/UOR-Foundation/uor-r4/issues/2875) |
 
 ## M2
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Build a genuinely fresh held-out reply panel for M2](items/m2-fresh-heldout-panel.md) | ready | anyone | no | none | not yet synced |
-| [Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it](items/m2-pin-train-mask-sheet.md) | ready | anyone | no | none | not yet synced |
-| [Close the remaining R14 gaps in the deterministic reply grader](items/m2-reply-grading-instrument-r14.md) | ready | anyone | no | none | not yet synced |
-| [Optimize the driver math and run the ~1M-token pilot (D41 item 3)](items/d41-driver-math-pilot.md) | held | a lab | yes | none | not yet synced |
-| [Generate the one-time offline donor answer corpus (distill-d1)](items/m2-donor-corpus-generation.md) | held | a lab | yes | [d41-driver-math-pilot](items/d41-driver-math-pilot.md) | not yet synced |
-| [Train the student for grounded replies from exact memory](items/m2-train-grounded-replies.md) | held | a lab | yes | [m2-donor-corpus-generation](items/m2-donor-corpus-generation.md), [m2-fresh-heldout-panel](items/m2-fresh-heldout-panel.md), [m2-pin-train-mask-sheet](items/m2-pin-train-mask-sheet.md), [m1-close-saved-model](items/m1-close-saved-model.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | not yet synced |
-| [Register a number for the multi-turn reply bar blocked under R14](items/m2-multi-turn-bar-number.md) | decision | a lab | no | none | not yet synced |
+| [Build a genuinely fresh held-out reply panel for M2](items/m2-fresh-heldout-panel.md) | ready | anyone | no | none | [#2849](https://github.com/UOR-Foundation/uor-r4/issues/2849) |
+| [Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it](items/m2-pin-train-mask-sheet.md) | ready | anyone | no | none | [#2851](https://github.com/UOR-Foundation/uor-r4/issues/2851) |
+| [Close the remaining R14 gaps in the deterministic reply grader](items/m2-reply-grading-instrument-r14.md) | ready | anyone | no | none | [#2852](https://github.com/UOR-Foundation/uor-r4/issues/2852) |
+| [Optimize the driver math and run the ~1M-token pilot (D41 item 3)](items/d41-driver-math-pilot.md) | held | a lab | yes | none | [#2821](https://github.com/UOR-Foundation/uor-r4/issues/2821) |
+| [Generate the one-time offline donor answer corpus (distill-d1)](items/m2-donor-corpus-generation.md) | held | a lab | yes | [d41-driver-math-pilot](items/d41-driver-math-pilot.md) | [#2848](https://github.com/UOR-Foundation/uor-r4/issues/2848) |
+| [Train the student for grounded replies from exact memory](items/m2-train-grounded-replies.md) | held | a lab | yes | [m2-donor-corpus-generation](items/m2-donor-corpus-generation.md), [m2-fresh-heldout-panel](items/m2-fresh-heldout-panel.md), [m2-pin-train-mask-sheet](items/m2-pin-train-mask-sheet.md), [m1-close-saved-model](items/m1-close-saved-model.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2853](https://github.com/UOR-Foundation/uor-r4/issues/2853) |
+| [Register a number for the multi-turn reply bar blocked under R14](items/m2-multi-turn-bar-number.md) | decision | a lab | no | none | [#2850](https://github.com/UOR-Foundation/uor-r4/issues/2850) |
 
 ## M3
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Retire or complete legacy width-576 ChatSession persistence](items/m3-legacy-chatsession-persistence.md) | ready | anyone | no | none | not yet synced |
-| [Add a memory-turn discriminator or margin gate](items/m3-memory-turn-discriminator-gate.md) | ready | a lab | yes | [m3-nonrelation-prose-panel](items/m3-nonrelation-prose-panel.md) | not yet synced |
-| [Build a pre-registered non-relation prose panel](items/m3-nonrelation-prose-panel.md) | ready | anyone | no | none | not yet synced |
-| [Pin OpPolicy precedence and store-miss sieve coupling with tests](items/m3-policy-precedence-and-sieve-tests.md) | ready | anyone | no | none | not yet synced |
-| [Qualify durable memory on the selected native model](items/m3-qualify-memory.md) | ready | a lab | yes | [m2-train-grounded-replies](items/m2-train-grounded-replies.md), [m3-memory-turn-discriminator-gate](items/m3-memory-turn-discriminator-gate.md), [m3-policy-precedence-and-sieve-tests](items/m3-policy-precedence-and-sieve-tests.md) | not yet synced |
-| [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | ready | anyone | no | none | not yet synced |
+| [Retire or complete legacy width-576 ChatSession persistence](items/m3-legacy-chatsession-persistence.md) | ready | anyone | no | none | [#2854](https://github.com/UOR-Foundation/uor-r4/issues/2854) |
+| [Add a memory-turn discriminator or margin gate](items/m3-memory-turn-discriminator-gate.md) | ready | a lab | yes | [m3-nonrelation-prose-panel](items/m3-nonrelation-prose-panel.md) | [#2855](https://github.com/UOR-Foundation/uor-r4/issues/2855) |
+| [Build a pre-registered non-relation prose panel](items/m3-nonrelation-prose-panel.md) | ready | anyone | no | none | [#2856](https://github.com/UOR-Foundation/uor-r4/issues/2856) |
+| [Pin OpPolicy precedence and store-miss sieve coupling with tests](items/m3-policy-precedence-and-sieve-tests.md) | ready | anyone | no | none | [#2857](https://github.com/UOR-Foundation/uor-r4/issues/2857) |
+| [Qualify durable memory on the selected native model](items/m3-qualify-memory.md) | ready | a lab | yes | [m2-train-grounded-replies](items/m2-train-grounded-replies.md), [m3-memory-turn-discriminator-gate](items/m3-memory-turn-discriminator-gate.md), [m3-policy-precedence-and-sieve-tests](items/m3-policy-precedence-and-sieve-tests.md) | [#2858](https://github.com/UOR-Foundation/uor-r4/issues/2858) |
+| [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | ready | anyone | no | none | [#2873](https://github.com/UOR-Foundation/uor-r4/issues/2873) |
 
 ## M4
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Write the D11 exporter for a D37 float trunk](items/d11-exporter-float-trunk.md) | ready | a lab | no | [float-training-module](items/float-training-module.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | not yet synced |
-| [Serve the chosen model as UORLUT01 through the uor-chat CLI](items/m4-export-uorlut01-cli.md) | ready | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [m4-lawful-likelihood-bpb](items/m4-lawful-likelihood-bpb.md), [m1-close-saved-model](items/m1-close-saved-model.md), [m3-qualify-memory](items/m3-qualify-memory.md) | not yet synced |
-| [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | ready | anyone | no | none | not yet synced |
-| [Build a lawful likelihood so bits per byte can be scored](items/m4-lawful-likelihood-bpb.md) | ready | a lab | no | none | not yet synced |
+| [Write the D11 exporter for a D37 float trunk](items/d11-exporter-float-trunk.md) | ready | a lab | no | [float-training-module](items/float-training-module.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2820](https://github.com/UOR-Foundation/uor-r4/issues/2820) |
+| [Serve the chosen model as UORLUT01 through the uor-chat CLI](items/m4-export-uorlut01-cli.md) | ready | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md), [m4-lawful-likelihood-bpb](items/m4-lawful-likelihood-bpb.md), [m1-close-saved-model](items/m1-close-saved-model.md), [m3-qualify-memory](items/m3-qualify-memory.md) | [#2859](https://github.com/UOR-Foundation/uor-r4/issues/2859) |
+| [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | ready | anyone | no | none | [#2860](https://github.com/UOR-Foundation/uor-r4/issues/2860) |
+| [Build a lawful likelihood so bits per byte can be scored](items/m4-lawful-likelihood-bpb.md) | ready | a lab | no | none | [#2861](https://github.com/UOR-Foundation/uor-r4/issues/2861) |
 
 ## M5
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Measure M1-class laptop cost on the accepted served model](items/m5-laptop-full-path-measurement.md) | ready | anyone | no | [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md) | not yet synced |
+| [Measure M1-class laptop cost on the accepted served model](items/m5-laptop-full-path-measurement.md) | ready | anyone | no | [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md) | [#2862](https://github.com/UOR-Foundation/uor-r4/issues/2862) |
 
 ## M6
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Build the intermediate-state ablation instrument for M6](items/m6-causal-ablation-instrument.md) | ready | a lab | no | [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | not yet synced |
-| [Design exact arithmetic on the geometric path](items/m6-exact-arithmetic-mechanism.md) | ready | anyone | no | none | not yet synced |
-| [Qualify reasoning and coding on the served model](items/m6-qualify-reasoning-coding.md) | ready | a lab | yes | [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md), [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m6-causal-ablation-instrument](items/m6-causal-ablation-instrument.md), [m6-exact-arithmetic-mechanism](items/m6-exact-arithmetic-mechanism.md) | not yet synced |
-| [Build and freeze the m6-reasoning panel and oracles](items/m6-reasoning-panel-freeze.md) | ready | anyone | no | none | not yet synced |
+| [Build the intermediate-state ablation instrument for M6](items/m6-causal-ablation-instrument.md) | ready | a lab | no | [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | [#2863](https://github.com/UOR-Foundation/uor-r4/issues/2863) |
+| [Design exact arithmetic on the geometric path](items/m6-exact-arithmetic-mechanism.md) | ready | anyone | no | none | [#2864](https://github.com/UOR-Foundation/uor-r4/issues/2864) |
+| [Qualify reasoning and coding on the served model](items/m6-qualify-reasoning-coding.md) | ready | a lab | yes | [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md), [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m6-causal-ablation-instrument](items/m6-causal-ablation-instrument.md), [m6-exact-arithmetic-mechanism](items/m6-exact-arithmetic-mechanism.md) | [#2865](https://github.com/UOR-Foundation/uor-r4/issues/2865) |
+| [Build and freeze the m6-reasoning panel and oracles](items/m6-reasoning-panel-freeze.md) | ready | anyone | no | none | [#2866](https://github.com/UOR-Foundation/uor-r4/issues/2866) |
 
 ## M7
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md), [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md) | not yet synced |
-| [Connect the Studio to the browser WASM engine](items/m7-studio-connect-wasm-engine.md) | ready | anyone | no | none | not yet synced |
+| [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md), [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md) | [#2867](https://github.com/UOR-Foundation/uor-r4/issues/2867) |
+| [Connect the Studio to the browser WASM engine](items/m7-studio-connect-wasm-engine.md) | ready | anyone | no | none | [#2868](https://github.com/UOR-Foundation/uor-r4/issues/2868) |
 
 ## M8
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Independently verify the alpha on consumer hardware](items/m8-independent-verification.md) | ready | anyone | yes | [m8-release-packaging](items/m8-release-packaging.md) | not yet synced |
-| [Prepare the checksummed alpha release package and install path](items/m8-release-packaging.md) | ready | anyone | no | [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md), [m5-laptop-full-path-measurement](items/m5-laptop-full-path-measurement.md), [m6-qualify-reasoning-coding](items/m6-qualify-reasoning-coding.md), [m7-parity-library-cli-browser](items/m7-parity-library-cli-browser.md) | not yet synced |
+| [Independently verify the alpha on consumer hardware](items/m8-independent-verification.md) | ready | anyone | yes | [m8-release-packaging](items/m8-release-packaging.md) | [#2869](https://github.com/UOR-Foundation/uor-r4/issues/2869) |
+| [Prepare the checksummed alpha release package and install path](items/m8-release-packaging.md) | ready | anyone | no | [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md), [m5-laptop-full-path-measurement](items/m5-laptop-full-path-measurement.md), [m6-qualify-reasoning-coding](items/m6-qualify-reasoning-coding.md), [m7-parity-library-cli-browser](items/m7-parity-library-cli-browser.md) | [#2870](https://github.com/UOR-Foundation/uor-r4/issues/2870) |
 
 ## Research
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Solve the saved legal-construction case in exact arithmetic](items/legal-construction-exact-solve.md) | ready | anyone | no | none | not yet synced |
-| [Settle whether a norm-preserving Hamilton gate can suppress a signal](items/r-hamilton-gate-suppression.md) | ready | anyone | no | none | not yet synced |
-| [Build a lawful pointer, then run the forced-copy oracle](items/r-lawful-pointer-forced-copy-oracle.md) | ready | a lab | yes | none | not yet synced |
-| [Test the prime-zeta code against injective nulls at zero updates](items/r-prime-zeta-vs-nulls.md) | ready | a lab | yes | none | not yet synced |
-| [Compare read-off and read-on for Route and Flock on checkpoints](items/r-read-off-vs-read-on.md) | ready | a lab | yes | none | not yet synced |
-| [Build a hard-selection step for carrier credit](items/carrier-credit-hard-selection.md) | held | a lab | yes | none | not yet synced |
-| [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | not yet synced |
-| [Run a Hamilton gate offline-float sheet with language fit and export gap](items/hamilton-gate-offline-float-sheet.md) | held | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | not yet synced |
-| [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | not yet synced |
-| [Re-register the native geometric engine with the hinge loss](items/native-geometric-reregister-hinge.md) | held | a lab | yes | none | not yet synced |
-| [Train the finite relational head](items/r-finite-relational-head.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | not yet synced |
-| [Test full-epoch and frequent-token revisit schedules](items/r-full-epoch-revisit-schedules.md) | held | a lab | yes | none | not yet synced |
-| [De-confound the quaternion-transport ordering result](items/r-quaternion-transport-order.md) | held | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md) | not yet synced |
-| [Design a rank objective that keeps cells occupied](items/r-rank-objective-keeps-cells.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | not yet synced |
-| [Test ranking with admission intact](items/r-ranking-with-admission-intact.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | not yet synced |
-| [Check whether a secant surrogate gives descent for recurrence gates](items/r-secant-surrogate-descent.md) | held | a lab | yes | none | not yet synced |
-| [Compare 4,096 and 16,384 tokenizer pieces](items/r-vocab-4096-vs-16384.md) | held | a lab | yes | [m1-faster-writer](items/m1-faster-writer.md) | not yet synced |
-| [Test discrete Hamming binding (VSA) on the current writer](items/r-vsa-hamming-binding.md) | held | a lab | yes | none | not yet synced |
-| [Port read binding to a Flock or Relation read](items/read-binding-on-lawful-read.md) | held | a lab | yes | none | not yet synced |
-| [Run the six-recurrence fit for the recurrence gates](items/recurrence-gates-six-recurrence-fit.md) | held | a lab | yes | [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | not yet synced |
-| [Measure SpiralCore/FBS descent and tokens per second in a float sheet](items/spiralcore-fbs-offline-float-sheet.md) | held | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | not yet synced |
-| [Rule on spin-native weights and ternary/XOR, or build a geometric alphabet](items/owner-ruling-spin-ternary-arithmetic.md) | decision | a lab | no | none | not yet synced |
+| [Solve the saved legal-construction case in exact arithmetic](items/legal-construction-exact-solve.md) | ready | anyone | no | none | [#2828](https://github.com/UOR-Foundation/uor-r4/issues/2828) |
+| [Settle whether a norm-preserving Hamilton gate can suppress a signal](items/r-hamilton-gate-suppression.md) | ready | anyone | no | none | [#2879](https://github.com/UOR-Foundation/uor-r4/issues/2879) |
+| [Build a lawful pointer, then run the forced-copy oracle](items/r-lawful-pointer-forced-copy-oracle.md) | ready | a lab | yes | none | [#2880](https://github.com/UOR-Foundation/uor-r4/issues/2880) |
+| [Test the prime-zeta code against injective nulls at zero updates](items/r-prime-zeta-vs-nulls.md) | ready | a lab | yes | none | [#2881](https://github.com/UOR-Foundation/uor-r4/issues/2881) |
+| [Compare read-off and read-on for Route and Flock on checkpoints](items/r-read-off-vs-read-on.md) | ready | a lab | yes | none | [#2885](https://github.com/UOR-Foundation/uor-r4/issues/2885) |
+| [Build a hard-selection step for carrier credit](items/carrier-credit-hard-selection.md) | held | a lab | yes | none | [#2819](https://github.com/UOR-Foundation/uor-r4/issues/2819) |
+| [Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU](items/e8-orbit-memory-sigmoid-free-iteration.md) | held | a lab | yes | [float-training-module](items/float-training-module.md) | [#2822](https://github.com/UOR-Foundation/uor-r4/issues/2822) |
+| [Run a Hamilton gate offline-float sheet with language fit and export gap](items/hamilton-gate-offline-float-sheet.md) | held | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2824](https://github.com/UOR-Foundation/uor-r4/issues/2824) |
+| [Run the Hopf retained-fibre language test](items/hopf-retained-fibre-test.md) | held | a lab | yes | none | [#2825](https://github.com/UOR-Foundation/uor-r4/issues/2825) |
+| [Re-register the native geometric engine with the hinge loss](items/native-geometric-reregister-hinge.md) | held | a lab | yes | none | [#2871](https://github.com/UOR-Foundation/uor-r4/issues/2871) |
+| [Train the finite relational head](items/r-finite-relational-head.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | [#2877](https://github.com/UOR-Foundation/uor-r4/issues/2877) |
+| [Test full-epoch and frequent-token revisit schedules](items/r-full-epoch-revisit-schedules.md) | held | a lab | yes | none | [#2878](https://github.com/UOR-Foundation/uor-r4/issues/2878) |
+| [De-confound the quaternion-transport ordering result](items/r-quaternion-transport-order.md) | held | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md) | [#2882](https://github.com/UOR-Foundation/uor-r4/issues/2882) |
+| [Design a rank objective that keeps cells occupied](items/r-rank-objective-keeps-cells.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | [#2883](https://github.com/UOR-Foundation/uor-r4/issues/2883) |
+| [Test ranking with admission intact](items/r-ranking-with-admission-intact.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | [#2884](https://github.com/UOR-Foundation/uor-r4/issues/2884) |
+| [Check whether a secant surrogate gives descent for recurrence gates](items/r-secant-surrogate-descent.md) | held | a lab | yes | none | [#2886](https://github.com/UOR-Foundation/uor-r4/issues/2886) |
+| [Compare 4,096 and 16,384 tokenizer pieces](items/r-vocab-4096-vs-16384.md) | held | a lab | yes | [m1-faster-writer](items/m1-faster-writer.md) | [#2887](https://github.com/UOR-Foundation/uor-r4/issues/2887) |
+| [Test discrete Hamming binding (VSA) on the current writer](items/r-vsa-hamming-binding.md) | held | a lab | yes | none | [#2888](https://github.com/UOR-Foundation/uor-r4/issues/2888) |
+| [Port read binding to a Flock or Relation read](items/read-binding-on-lawful-read.md) | held | a lab | yes | none | [#2889](https://github.com/UOR-Foundation/uor-r4/issues/2889) |
+| [Run the six-recurrence fit for the recurrence gates](items/recurrence-gates-six-recurrence-fit.md) | held | a lab | yes | [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2890](https://github.com/UOR-Foundation/uor-r4/issues/2890) |
+| [Measure SpiralCore/FBS descent and tokens per second in a float sheet](items/spiralcore-fbs-offline-float-sheet.md) | held | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2891](https://github.com/UOR-Foundation/uor-r4/issues/2891) |
+| [Rule on spin-native weights and ternary/XOR, or build a geometric alphabet](items/owner-ruling-spin-ternary-arithmetic.md) | decision | a lab | no | none | [#2876](https://github.com/UOR-Foundation/uor-r4/issues/2876) |
 
 ## Infrastructure
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Create the separate scanned D37 float training module](items/float-training-module.md) | ready | a lab | no | [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | not yet synced |
-| [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md) | not yet synced |
-| [Record K16 normal close and final resource accounting](items/infra-k16-normal-close-accounting.md) | ready | a lab | no | none | not yet synced |
-| [Settle the disputed D11 and Hopf observation statuses on the board](items/owner-decision-board-status-disputes.md) | decision | a lab | no | none | not yet synced |
+| [Create the separate scanned D37 float training module](items/float-training-module.md) | ready | a lab | no | [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2823](https://github.com/UOR-Foundation/uor-r4/issues/2823) |
+| [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md) | [#2826](https://github.com/UOR-Foundation/uor-r4/issues/2826) |
+| [Record K16 normal close and final resource accounting](items/infra-k16-normal-close-accounting.md) | ready | a lab | no | none | [#2827](https://github.com/UOR-Foundation/uor-r4/issues/2827) |
+| [Settle the disputed D11 and Hopf observation statuses on the board](items/owner-decision-board-status-disputes.md) | decision | a lab | no | none | [#2874](https://github.com/UOR-Foundation/uor-r4/issues/2874) |
 
 ## Waiting on the owner
 
