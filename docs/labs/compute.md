@@ -62,14 +62,15 @@ all present at base — so the transcript records the lint list; compile errors
 still fail the gate). Set `HOURS=0.5` for that manifest (30 minutes, cold
 training-crate plus vendored candle CUDA builds) and `HOURS=0.25` otherwise.
 Do not reuse a session or another lab's pod. Check status/caps before `up`.
-The laptop needs `gh`, `jq`, `tar`, `shasum` and the configured `cloud-store`;
-the latter lives at `$HOME/.local/share/uor-r4/bin/cloud-store` on the owner host.
+The laptop needs `gh`, `jq`, `tar`, `shasum` and `hf` (logged in to the private HF store);
+results go to `results/<lab>/<topic-date>/` in `caseyallard/uor-r4-store`, not to iCloud.
 No secret is printed or copied by this recipe.
 
 ```bash
 export UOR_LAB="$LAB" PATH="$HOME/.cargo/bin:$HOME/.local/share/uor-r4/bin:$PATH"
 set -euo pipefail
 POD_TOOL="$PWD/scripts/pod/uor-pod"
+ARCHIVE="$HOME/uor-r4/local/$LAB/cuda-check-$SESSION"
 REMOTE_SCRIPT="$PWD/scripts/pod/uor-cuda-check-remote"
 "$POD_TOOL" status
 "$POD_TOOL" up --provider vast --gpu 5090 --count 1 --lab "$LAB" \
@@ -79,7 +80,8 @@ REMOTE_SCRIPT="$PWD/scripts/pod/uor-cuda-check-remote"
 
 Set `POD` to the **new pod ID printed by this successful up**, never a peer ID.
 Install the following EXIT trap before lease/setup. It archives even a failed
-build, verifies SHA256 locally and cloud MD5 round-trip, then releases/deletes
+build, verifies SHA256 locally, uploads to the HF store and reads the upload back
+against its SHA256SUMS, then releases/deletes
 only that pod. If archival fails it deliberately does **not** destroy the sole
 remote evidence: repair storage immediately, retain the lease, and alert PM;
 do not mark it archived. On normal paths there must be no live pod afterwards.
@@ -99,7 +101,10 @@ cleanup() {
   "$POD_TOOL" ssh "$POD" "tar -C /workspace/uor-r4/evals/$SESSION -cf - ." | tar -C "$ARCHIVE" -xf -
   copied=$?
   if [ "$copied" -eq 0 ] && (cd "$ARCHIVE" && shasum -a 256 -c SHA256SUMS) && \
-     cloud-store put "$LAB" "$ARCHIVE"; then
+     hf upload caseyallard/uor-r4-store "$ARCHIVE" "results/$LAB/$(basename "$ARCHIVE")" --repo-type dataset && \
+     hf download caseyallard/uor-r4-store --repo-type dataset --include "results/$LAB/$(basename "$ARCHIVE")/*" \
+       --local-dir "$ARCHIVE.check" && \
+     (cd "$ARCHIVE.check/results/$LAB/$(basename "$ARCHIVE")" && shasum -a 256 -c SHA256SUMS); then
     "$POD_TOOL" release "$POD" --lab "$LAB" --session "$SESSION"
     "$POD_TOOL" down "$POD" --lab "$LAB" --session "$SESSION" --confirm-archived
     "$POD_TOOL" status
@@ -377,8 +382,8 @@ remaining volume and for Runpod-only accounts); every command takes either kind 
   Runpod hot-set relay is skipped for Vast pods.
 - **Results.** `down` copies `/workspace/uor-r4/{jobs,pods,runs,evals}` to
   `~/.local/share/uor-r4/compute/vast-archive/<pod>/` before it destroys the
-  instance, and records the archive in the ledger; move it to iCloud with
-  `cloud-store put`. Above 5 GB (`UOR_POD_VAST_ARCHIVE_MAX_MB`) it refuses;
+  instance, and records the archive in the ledger; upload it to the HF store with
+  `hf upload` under `results/<lab>/<topic-date>/` (the archive path is the code's own default). Above 5 GB (`UOR_POD_VAST_ARCHIVE_MAX_MB`) it refuses;
   `down --to-store` instead has the pod upload them to the HF store under
   `vast-archive/<pod>/` (no laptop copy, no size cap). Each upload is then read
   back before the pod may be destroyed: the store must list the same file count

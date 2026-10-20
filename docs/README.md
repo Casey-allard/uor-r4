@@ -44,6 +44,7 @@ sources.*
 | Follow results as they land | The [research notebooks](research/notebook/README.md), one page per line, and the live plan [NOW.md](integration/NOW.md) |
 | Know the rules and who decides | The [charter](../CHARTER.md), explained in [the rules in plain language](rules/README.md); old decisions in the [decision map](rules/decision-map.md); changes in the [rule change log](rules/changes.md) |
 | Find an old record | The [archive catalog](../archive/CATALOG.md): every dated record, kept byte-identical |
+| Know where files live and how the laptop is kept | [Workspace, storage and hygiene](labs/workspace.md) |
 | Contribute | [CONTRIBUTING](../CONTRIBUTING.md); AI labs also read [AGENTS.md](../AGENTS.md) |
 | Look up a term or a specification | [Glossary](start/glossary.md), [formal vocabulary](formal_vocabulary.md), [configuration](CONFIGURATION.md) |
 

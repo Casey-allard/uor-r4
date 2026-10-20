@@ -14,6 +14,17 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 20 October 2026: workspace reset
+
+**Decided by:** the owner (Casey), in chat, on the workspace-reset review page. Source: [`docs/labs/workspace.md`](../labs/workspace.md) and `archive/storage/README.md`.
+
+The owner approved four decisions. One line each, with the clause it touches:
+
+1. **Results storage.** iCloud `UOR-R4/results/` and `X10 Pro backup 2026-10-01/workspace/` (198 GB together) become a read-only cold archive with its index committed to GitHub in `archive/storage/`. All new results go to the private HF store `caseyallard/uor-r4-store` under `results/<lab>/<topic-date>/`, with a `SHA256SUMS`. (Clause 5.6.)
+2. **One clone.** One local clone, `~/uor-r4`, with the owner checkout on clean `main`. Each lab works in `~/uor-r4/.worktrees/<lab>-<topic>`, keeps scratch in `~/uor-r4/local/<lab>/<topic>/` and builds into `~/uor-r4/target/<lab>`. Nothing project-related lives elsewhere on the laptop. After a task merges, upload what is worth keeping, then remove the worktree, the branch (both sides), the claim and the scratch. `uor-hygiene` runs after every merge. (Clause 5.9, new.)
+3. **Branches.** `main`, `gh-pages` and `gh-pages-preview` are long-lived and never deleted, and are listed in the registry `docs/harness/branches.json`. Every other branch is `<lab>/<topic>`, one per open PR, deleted after its merge. (Clause 5.5.)
+4. **Freeze exception.** The freeze on discretionary harness features is lifted for the hygiene tooling only, at the owner's request. The freeze is otherwise unchanged, and its wording in clause 5.3 is not edited. (Clause 5.3.)
+
 ## 19 October 2026: charter adopted at checkpoint 1
 
 **Decided by:** the owner (Casey), in chat, at checkpoint 1 of the repository renormalisation. The charter replaces the stacked directions in `AGENTS.md` and decisions D0 to D41 as the project's rules (decision D42). Source: `CHARTER.md`, the final `DECISIONS.md` index, and the checkpoint notes in [`charter-diff-notes.md`](../labs/repo-renormalization-2026-10-19/audit/charter-diff-notes.md).
@@ -46,7 +57,7 @@ The owner answered eight questions. One line each, with the clause it changed:
 | Item | State | Source |
 |---|---|---|
 | Charter in force | Yes, since 19 October 2026. | `CHARTER.md` |
-| Entries in this log | 1 | this page |
+| Entries in this log | 2 | this page |
 | Open owner questions on the charter | None recorded at adoption: all 16 rows marked "owner decision needed" in the working rule map were resolved by the eight answers. | `charter-diff-notes.md` |
 
 ## Go deeper
