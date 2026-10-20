@@ -44,7 +44,10 @@ impl Book {
         for target in summary_targets(summary) {
             let repo = normalize(&format!("docs/{target}"))
                 .map_err(|p| format!("SUMMARY entry {target} climbs above the repository: {p}"))?;
-            let staged = repo.strip_prefix("docs/").unwrap_or(&repo).to_string();
+            // A README page is staged as index.md, so the file, its SUMMARY entry and every
+            // link to it agree: mdBook would otherwise create an empty index.md chapter for
+            // an entry that names index.md (the live site had empty section pages, 20 Oct).
+            let staged = index_page(repo.strip_prefix("docs/").unwrap_or(&repo));
             if let Some((other, _)) = pages.iter().find(|(r, s)| **s == staged && **r != repo) {
                 return Err(format!(
                     "SUMMARY entries {other} and {repo} would both stage as {staged}"
@@ -149,7 +152,9 @@ fn rewrite_dest(
     let from = book.staged(src)?;
     let dir_link = path.ends_with('/') || path.is_empty() || is_dir(&repo);
     if !dir_link {
-        if let Some(to) = book.staged(&repo) {
+        // SUMMARY.md is staged (mdBook reads it) but never rendered as a page, so a
+        // link to it goes to GitHub like any other out-of-book file.
+        if let Some(to) = book.staged(&repo).filter(|_| repo != "docs/SUMMARY.md") {
             return Some(format!("{}{anchor}", index_page(&relative(&from, &to))));
         }
         let kind = if IMAGE_EXTS
@@ -582,9 +587,15 @@ mod tests {
         let b = book();
         assert_eq!(b.staged("docs/start/a.md").as_deref(), Some("start/a.md"));
         assert_eq!(b.staged("CHARTER.md").as_deref(), Some("CHARTER.md"));
+        // README pages stage as index.md, matching their SUMMARY entries and links.
         assert_eq!(
             b.staged("projects/p/README.md").as_deref(),
-            Some("projects/p/README.md")
+            Some("projects/p/index.md")
+        );
+        assert_eq!(b.staged("docs/README.md").as_deref(), Some("index.md"));
+        assert_eq!(
+            b.staged("docs/mechanisms/README.md").as_deref(),
+            Some("mechanisms/index.md")
         );
         assert_eq!(
             b.staged("docs/figures/x/y.svg").as_deref(),
@@ -659,6 +670,16 @@ mod tests {
         assert_eq!(
             stage("[p](../../projects/p/README.md#x)", "docs/start/a.md"),
             "[p](../projects/p/index.md#x)"
+        );
+    }
+
+    /// SUMMARY.md is the book's table of contents, never a rendered page.
+    #[test]
+    fn a_link_to_summary_goes_to_github() {
+        let out = stage("[toc](SUMMARY.md)", "docs/README.md");
+        assert!(
+            out.contains("github.com/UOR-Foundation/uor-r4/blob/main/docs/SUMMARY.md"),
+            "{out}"
         );
     }
 

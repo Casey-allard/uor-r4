@@ -244,6 +244,13 @@
     "lab": "claude",
     "note": ""
   },
+  "claude/renorm-site-index-fix-20261020": {
+    "branch": "claude/renorm-site-index-fix-20261020",
+    "claimed_at": "2026-10-20T02:09:56-04:00",
+    "head": "7f38be8d0",
+    "lab": "claude",
+    "note": ""
+  },
   "claude/resume-message-20261018": {
     "branch": "claude/resume-message-20261018",
     "claimed_at": "2026-10-18T12:25:57-04:00",
