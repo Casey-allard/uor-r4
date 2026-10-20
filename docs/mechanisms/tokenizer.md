@@ -24,7 +24,7 @@ It fills the same slot as a transformer's tokenizer; it replaces no transformer 
 
 **Encoding (Definition).** Apply the merges to a text's bytes in rank order. This is a table lookup with no learned arithmetic.
 
-**Identity (Definition).** The tokenizer is stored as a `tokenizer.json`. Its raw-byte blake3 hash is the tokenizer's identity, and that hash is bound into every prepared corpus and artifact. A different tokenizer is therefore a different corpus.
+**Identity (Definition).** The tokenizer is stored as a `tokenizer.json`. Its raw-byte BLAKE3 hash is the runtime content address returned by [`ByteBpeTokenizer::address`](../../crates/uor-r4-tokenizer/src/lib.rs). The [discrete controller](../../crates/uor-r4-discrete/src/controller.rs) separately uses a SHA-256 file pin (`config.tokenizer.sha256`, verified by [`FilePin::read`](../../crates/uor-r4-discrete/src/corpus.rs)). Prepared corpora and artifacts bind the tokenizer using their declared hash domain. A different tokenizer is therefore a different corpus.
 
 **Prepared corpora.** The `UORT` v1 format is a 64-byte header followed by 16-bit token ids, with start markers and an optional binary response mask. Before reading a target, the discrete driver verifies the file hash, the token count and the tokenizer identity.
 

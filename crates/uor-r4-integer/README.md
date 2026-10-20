@@ -53,10 +53,12 @@ The linked result supplies complete CLI arguments, artifact identity and costs.
 
 ## Build and package
 
+**Current build clarification:** The [manifest](Cargo.toml) requires `serving-wasm` for this binary; the implementation and qualification evidence above remain historical.
+
 From the repository root:
 
 ```sh
-cargo build --release --offline -p uor-r4-integer --bin uor-r4-integer
+cargo build --release --offline -p uor-r4-integer --features serving-wasm --bin uor-r4-integer
 target/release/uor-r4-integer pack PACKED TABLES TOKENIZER_JSON NEW_BUNDLE
 ```
 
