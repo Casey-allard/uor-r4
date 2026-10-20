@@ -43,7 +43,7 @@ accepted baseline within this historical reference lane. Provider-free autonomou
 and its explicit opt-in native HTTP/dashboard bridge is active. This router
 supplies substrate and
 visualization only; it is not the donor decoder or attention implementation. See
-[ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) and the
+[ADR-0005](../../docs/reference/adr/0005-predictive-geometric-connection-memory.md) and the
 [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
 The binding parity record is
 [`docs/helm_d_r4_softmax_decoder_973.md`](../../archive/helm_d_r4_softmax_decoder_973.md).

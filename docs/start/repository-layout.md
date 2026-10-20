@@ -9,7 +9,7 @@ Every top-level folder has one job. This page lists them, says which ones are ab
 | `archive/` | Every dated record and retired file, byte for byte as it was. Nothing in it is edited. [`archive/CATALOG.md`](../../archive/CATALOG.md) indexes it. |
 | `crates/` | The Rust code, one crate per folder: the model, the serving runtime, the harness and the tools around them. `crates/uor-r4-wasm-router/` is the browser-facing library (with its tests and server profiles); until 20 October 2026 it was the root package in `src/`, `tests/` and `profiles/`. |
 | `data/` | The small evaluation panels (`data/panels/`) and four reference tokenizer descriptors that older tests compare against (`data/tokenizers/`, the old top-level `models/`). Large inputs (corpora, checkpoints) live in the private Hugging Face store instead. |
-| `docs/` | The documentation you are reading, plus the live lab records under `docs/labs/` and the harness files under `docs/harness/`. |
+| `docs/` | The documentation you are reading, the reference documents (indexed in `docs/reference/`), the live lab records under `docs/labs/` and the harness files under `docs/harness/`. |
 | `projects/` | Side projects related to UOR-R4 but not part of the model. See the [projects page](../../projects/README.md). |
 | `scripts/` | Shell entry points: GPU pods (`scripts/pod/`), storage and hygiene (`scripts/storage/`), harness wrappers. |
 | `third_party/` | Copies of outside Rust crates the build patches in. Their contents are pinned by hash. |
@@ -19,7 +19,7 @@ Every top-level folder has one job. This page lists them, says which ones are ab
 | `conformance/` | The requirements ledger (`ledger.toml`, `ids.toml`, `authorities.toml`) and its behaviour specifications (`features/suites/*.feature`). The `repo-model` and `repo-conformance` crates read it to produce `CONFORMANCE.md`. Until 20 October 2026 these were the top-level `model/` and `features/` folders. |
 | `tests/` | The Python test suite for the harness (`tests/harness/`) and end-to-end fixtures (`tests/e2e/`). The Rust tests live with their crates. |
 
-One more change is planned: the normative reference pages that sit loose in `docs/` will gather under `docs/reference/`, except for the few that code pins by path and hash, which stay where they are.
+Reference documents (definitions, contracts, decision records and design specifications) are indexed in [`docs/reference/`](../reference/README.md). The decision records and design specifications moved there on 20 October 2026. The normative pages that code compiles in, or that evidence tables pin by path and hash, stay at their original paths in `docs/`, and the index links them where they are.
 
 `tools/r4-softmax-trainer/` stays for now. It is a historical trainer that uses a banned method. One file in it is compiled into the core crate, and that core source file is itself pinned by hash in a recorded evidence table. Moving the trainer would break that record. It will move once that binding is retired.
 

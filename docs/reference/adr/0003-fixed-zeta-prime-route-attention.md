@@ -3,7 +3,7 @@
 - **Status:** Retained as a source-free storage/recall substrate; geometric
   attention and product behavior are not promoted
   (`RETAIN_STORAGE_RECALL_ONLY`; see the
-  [qualification record](../../archive/prime_route_attention_qualification_958.md))
+  [qualification record](../../../archive/prime_route_attention_qualification_958.md))
 - **Date:** 2026-08-26
 - **Current attention-stage result:** this ADR's route identities and state
   remain substrate. #969 retained one bounded causal local path mechanism;
@@ -520,7 +520,7 @@ teacher or product run.
    workers must improve release-mode wall time. Otherwise stop and profile.
    The current source-free substrate has passed this worker-only portion; the
    complete-manifest portion remains open. Its append-only evidence is
-   [`prime_route_worker_canary_958.md`](../../archive/prime_route_worker_canary_958.md).
+   [`prime_route_worker_canary_958.md`](../../../archive/prime_route_worker_canary_958.md).
 3. Separate source-free operator proof: deterministically reproduce the v63
    Fano convention, six generators, fifteen bivectors, 64-state table, and
    `J(6,2)` correspondence in Rust. Bind every convention and compare against

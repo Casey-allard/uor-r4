@@ -2281,7 +2281,7 @@ pub struct PointerConfig {
 }
 
 /// Exact prime routing for the pointer (the prime router of ADR-0003,
-/// `docs/adr/0003-fixed-zeta-prime-route-attention.md`): its sources come from
+/// `docs/reference/adr/0003-fixed-zeta-prime-route-attention.md`): its sources come from
 /// arithmetic on registered primes, not from learned query/key scores.
 ///
 /// Every token id has a registered prime ([`token_prime`]; frequent, low ids

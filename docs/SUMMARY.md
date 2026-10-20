@@ -111,6 +111,7 @@
 
 # Reference
 
+- [Reference documents](reference/README.md)
 - [Formal vocabulary and claim classes](formal_vocabulary.md)
 - [Configuration reference](CONFIGURATION.md)
 - [Canonical artifact byte equality](reproducibility.md)

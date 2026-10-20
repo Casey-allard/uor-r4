@@ -54,7 +54,7 @@ non-promotable because of a raw-manifold-parameter mismatch. Fresh equal-manifol
 returned full H4 3/12, matched plain 12/12, current-only 6/12, and an
 inference-time coherent alternative-connection swap 10/12. The current
 reference in
-[ADR-0005](../../docs/adr/0005-predictive-geometric-connection-memory.md) is
+[ADR-0005](../../docs/reference/adr/0005-predictive-geometric-connection-memory.md) is
 `HELM-D-R4`: V4 preserved construction covariance but failed held-out
 functional binding, so #973 pins the HELM-D architecture, freezes an ordinary
 decoder donor, and builds full-decoder gauge-equivalent softmax in exact

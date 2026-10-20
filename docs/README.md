@@ -47,7 +47,7 @@ sources.*
 | Find an old record | The [archive catalog](../archive/CATALOG.md): every dated record, kept byte-identical |
 | Know where files live and how the laptop is kept | [Workspace, storage and hygiene](labs/workspace.md) |
 | Contribute | [CONTRIBUTING](../CONTRIBUTING.md); AI labs also read [AGENTS.md](../AGENTS.md) |
-| Look up a term or a specification | [Glossary](start/glossary.md), [formal vocabulary](formal_vocabulary.md), [configuration](CONFIGURATION.md) |
+| Look up a term or a specification | [Glossary](start/glossary.md), [formal vocabulary](formal_vocabulary.md), [configuration](CONFIGURATION.md), and every [reference document](reference/README.md) |
 
 ## How the sections are organised
 

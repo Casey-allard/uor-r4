@@ -12,9 +12,9 @@
 - **Builds on:** [ADR-0003](0003-fixed-zeta-prime-route-attention.md)
 - **Extended by:** [ADR-0005](0005-predictive-geometric-connection-memory.md)
 - **Evaluation:**
-  [Geometric Intelligence Evaluation](../../archive/geometric_intelligence_evaluation.md)
-- **Terminology:** [Glossary](../transformerless/GLOSSARY.md) and
-  [Formal Vocabulary](../formal_vocabulary.md)
+  [Geometric Intelligence Evaluation](../../../archive/geometric_intelligence_evaluation.md)
+- **Terminology:** [Glossary](../../transformerless/GLOSSARY.md) and
+  [Formal Vocabulary](../../formal_vocabulary.md)
 
 ## Context
 
@@ -32,7 +32,7 @@ global context mechanism that scans the corpus or serializes the entire prefix
 at every token would defeat the intended compute advantage.
 
 The ancestor evidence record
-[`prime_router_geometric_context_evidence.md`](../../archive/prime_router_geometric_context_evidence.md)
+[`prime_router_geometric_context_evidence.md`](../../../archive/prime_router_geometric_context_evidence.md)
 also constrains the design. Its reported ablations locate routed signal in the
 full transported trajectory rather than one coordinate: masking the initial
 trajectory or retaining only the last state sharply reduced coordinate-

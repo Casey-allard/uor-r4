@@ -2,7 +2,7 @@
 //! attribution: fail-closed evidence for the evaluation constitution.
 //!
 //! Record: `archive/capability_suites_832.md`. Decision it binds to:
-//! ADR-0001 (`docs/adr/0001-normative-r4g1-scorer.md`, #831).
+//! ADR-0001 (`docs/reference/adr/0001-normative-r4g1-scorer.md`, #831).
 //!
 //! These tests exercise the committed constitution
 //! (`uor_r4_api::capability_suite`) as the acceptance evidence for #832:

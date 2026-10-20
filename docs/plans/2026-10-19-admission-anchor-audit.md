@@ -1,7 +1,7 @@
 # Admission-anchor audit source implementation plan
 
 Source-only unit under owner autonomous-source direction and PM6263591101 Option A.
-Design: ../specs/2026-10-19-admission-anchor-audit.md.
+Design: ../reference/specs/2026-10-19-admission-anchor-audit.md.
 DeepSeek owns PR2777 sheet; AGY owns consumer. No CUDA qualification, rental, model evaluation
 or training release follows from this plan. The exact final FIT sheet and source will be bound
 before any numerical operation.

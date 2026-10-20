@@ -2,8 +2,8 @@
 
 **Historical scope (clarified 2026-09-05):** this document preserves its dated
 reference/contract/audit and then-current scheduling. Follow the
-[current native plan](../integration/project-track.md#immediate-build-sequence) and
-[current implementation](../integration/current-state.md) for new work. Existing technical
+[current native plan](../../integration/project-track.md#immediate-build-sequence) and
+[current implementation](../../integration/current-state.md) for new work. Existing technical
 contracts and measured outcomes remain scoped evidence; old global next-action
 instructions and superseded issue ownership do not override the adopted plan.
 
@@ -12,7 +12,7 @@ instructions and superseded issue ownership do not override the adopted plan.
 **Date:** 2026-09-03. **Decision owner:** Casey-allard through protected review.
 **Base:** `85d9eb8beca2a59ccda47e290afd483f7838982c`.
 
-This ADR and its [machine contract](../../archive/r4_service_contract_1105.json) specify
+This ADR and its [machine contract](../../../archive/r4_service_contract_1105.json) specify
 the next implementation. They contain no executed service, browser, build or
 model result. **Definition:** the interfaces, states and transition rules below
 are architectural definitions. Their implementation guarantees are **Unproven**
@@ -86,7 +86,7 @@ Its native-state SHA256 is
 `4f453da12a9346356e64b6c16abfbaad1ca99e3966173cd79e9ddbc8c2d9341b`.
 The loader's accepted binding, original export-release identity, codec, policy,
 reader/core and frame identities remain exactly those in the
-[#1102 handoff](../../archive/r4_native_bridge_1102_evidence/qualification-handoff.json).
+[#1102 handoff](../../../archive/r4_native_bridge_1102_evidence/qualification-handoff.json).
 The service must use that `ExpectedBinding`, never reconstruct it from untrusted
 artifact declarations or browser fields.
 
@@ -234,7 +234,7 @@ An integrity, budget or reference failure retains evidence without promotion.
 
 ## HTTP and provider boundary
 
-The [machine companion](../../archive/r4_service_contract_1105.json) is normative for exact
+The [machine companion](../../../archive/r4_service_contract_1105.json) is normative for exact
 field sets, methods, status codes and limits. Prose governs ownership, races and
 evidence meaning. Any conflict is a specification defect to resolve before
 implementation; neither document silently overrides the other.
@@ -465,7 +465,7 @@ default; local diagnostic records can retain identity, stages and typed errors.
 
 ## Evidence, consequences and handoff
 
-The [source audit](../../archive/r4_service_contract_1105_sources.md) records original donor,
+The [source audit](../../../archive/r4_service_contract_1105_sources.md) records original donor,
 NEMESIS, W33 and UOR sources. NEMESIS carrying criteria motivate explicit state,
 encoding, update, operation and readout obligations; W33 CAS/receipt examples
 motivate immutable payload/lineage separation. Neither establishes this service
@@ -486,15 +486,15 @@ result, #1079's weak control, #1082's descriptive result and all unavailable
 preparation history. #973 stays open and #954 blocked; #1083/#1087 and
 #954/#955/#962 retain their own obligations.
 
-The [metadata checker](../../archive/r4_service_contract_1105_check.py) reads only source
+The [metadata checker](../../../archive/r4_service_contract_1105_check.py) reads only source
 files and JSON, using the original paths/pins in the
-[source manifest](../../archive/r4_service_contract_1105_source_manifest.json). Its
-[receipt](../../archive/r4_service_contract_1105_checks.json) establishes source identities,
+[source manifest](../../../archive/r4_service_contract_1105_source_manifest.json). Its
+[receipt](../../../archive/r4_service_contract_1105_checks.json) establishes source identities,
 field/reference consistency and illustrative object shapes, not transition
 implementation or a model result. The
-[independent review](../../archive/r4_service_contract_1105_review.md) records the corrected
+[independent review](../../../archive/r4_service_contract_1105_review.md) records the corrected
 lifecycle and qualification findings. The
-[storage review](../../archive/r4_service_contract_1105_storage.json) retains source,
+[storage review](../../../archive/r4_service_contract_1105_storage.json) retains source,
 models, sealed inputs and unique evidence; no cleanup ran.
 
 After protected acceptance, close only #1105 with

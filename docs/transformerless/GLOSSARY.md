@@ -106,7 +106,7 @@ substituted for one another.
   no geometric meaning. Kappa identifies a route artifact but does not replace
   its factorable route coordinates.
 - **Route hierarchy** — five identity-scoped causal accumulators, defined in
-  [ADR-0004](../adr/0004-geometric-intelligence-route-hierarchy.md):
+  [ADR-0004](../reference/adr/0004-geometric-intelligence-route-hierarchy.md):
   **local** (current/previous bounded route), **sentence** (ordered lexical
   routes in one sentence), **paragraph** (ordered sentence-route identities),
   **conversation** (ordered turns/paragraphs for one session), and **global**

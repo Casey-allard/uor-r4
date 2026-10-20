@@ -1,6 +1,6 @@
 //! Prime-route addressing for the relation store: an evaluation instrument
 //! for the memory port's address (ROADMAP §2b), after the prime router of
-//! ADR-0003 (`docs/adr/0003-fixed-zeta-prime-route-attention.md`).
+//! ADR-0003 (`docs/reference/adr/0003-fixed-zeta-prime-route-attention.md`).
 //!
 //! G v1 ([`crate::stack_aerm`]) keys a fact by the ordered, typed pair
 //! (entity token, relation token). A tag head that swaps the two roles on an

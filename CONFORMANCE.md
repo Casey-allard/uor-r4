@@ -185,7 +185,7 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |
 | --- | --- | --- | --- | --- | --- |
-| `RF-23` | `build` | `normative-runtime` | `deployed-serving` | crates/uor-r4-wasm-router/src/tless_uor.rs, crates/uor-r4-wasm-router/src/chat.rs (R4G1Runtime selection/fallback on the served path); docs/adr/0001-normative-r4g1-scorer.md designates the R4G1Runtime scoring path as the one normative scorer (#831) | R4G1 runtime selection and fallback policy |
+| `RF-23` | `build` | `normative-runtime` | `deployed-serving` | crates/uor-r4-wasm-router/src/tless_uor.rs, crates/uor-r4-wasm-router/src/chat.rs (R4G1Runtime selection/fallback on the served path); docs/reference/adr/0001-normative-r4g1-scorer.md designates the R4G1Runtime scoring path as the one normative scorer (#831) | R4G1 runtime selection and fallback policy |
 
 ## rate_distortion_compression
 
@@ -227,7 +227,7 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |
 | --- | --- | --- | --- | --- | --- |
-| `RF-31` | `build` | `normative-runtime` | `deployed-serving` | conformance/features/suites/skipmix_serving_lane.feature; crates/uor-r4-graph-format/src/skipmix.rs; crates/uor-r4-graph-runtime/src/engine.rs; crates/uor-r4-api/src/deployed_quality.rs; crates/uor-r4-api/src/production_envelope.rs; src/cross_surface_parity.rs; docs/adr/0001-normative-r4g1-scorer.md; archive/skipmix_endtoend_causal_908.md; archive/normative_r4g1_quality_933.md | Empirical RATIFY on the exact CID-bound #933 canonical schema-2 bundle: bounded SKMX/PSIB contribution is reached through the sole R4G1Runtime production selector; 21,293/72,130 versus TLA 20,284/72,130 and sections absent 18,806/72,130, with paired 95% lower bounds +11.057 and +31.681 permille and zero surface, identity, or witness failures. Scope is the bound artifact, population, and greedy decode, not a universal quality floor |
+| `RF-31` | `build` | `normative-runtime` | `deployed-serving` | conformance/features/suites/skipmix_serving_lane.feature; crates/uor-r4-graph-format/src/skipmix.rs; crates/uor-r4-graph-runtime/src/engine.rs; crates/uor-r4-api/src/deployed_quality.rs; crates/uor-r4-api/src/production_envelope.rs; src/cross_surface_parity.rs; docs/reference/adr/0001-normative-r4g1-scorer.md; archive/skipmix_endtoend_causal_908.md; archive/normative_r4g1_quality_933.md | Empirical RATIFY on the exact CID-bound #933 canonical schema-2 bundle: bounded SKMX/PSIB contribution is reached through the sole R4G1Runtime production selector; 21,293/72,130 versus TLA 20,284/72,130 and sections absent 18,806/72,130, with paired 95% lower bounds +11.057 and +31.681 permille and zero surface, identity, or witness failures. Scope is the bound artifact, population, and greedy decode, not a universal quality floor |
 
 ## teacher_parity_benchmarks
 

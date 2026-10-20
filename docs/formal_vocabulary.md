@@ -9,7 +9,7 @@
   `docs/transformerless/GLOSSARY.md`; this document governs *claim language* and
   mathematical notation. Where the two overlap, this document wins for claim
   classification and the glossary wins for structural terms. The route-scope
-  decision is [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md),
+  decision is [ADR-0004](reference/adr/0004-geometric-intelligence-route-hierarchy.md),
   and current execution follows the
   [native geometric AI policy](../archive/integration/agent-execution-policy.md).
   [Geometric Intelligence Evaluation](../archive/geometric_intelligence_evaluation.md)

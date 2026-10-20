@@ -1,6 +1,6 @@
 //! #831 — normative R4G1 scorer designation: machine-checked evidence.
 //!
-//! Decision record: `docs/adr/0001-normative-r4g1-scorer.md`; evidence record:
+//! Decision record: `docs/reference/adr/0001-normative-r4g1-scorer.md`; evidence record:
 //! `archive/normative_scorer_831.md`.
 //!
 //! These tests are the fail-closed teeth behind ADR-0001. They exercise real

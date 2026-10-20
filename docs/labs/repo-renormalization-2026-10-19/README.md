@@ -241,6 +241,12 @@ The owner approved a layout pass that takes the top level from 20 folders toward
 
 Deferred: `tools/r4-softmax-trainer/` stays. The core crate compiles its `policy.json`, and the core source that does so (`learned_reference/adapter.rs`) is pinned by sha256 in the A2 evidence table. Moving the trainer would break that binding.
 
-Next: `model/` and `features/` → `conformance/`; the root package (`src/`, `tests/`, `profiles/`) → `crates/uor-r4-wasm-router/`, with `models/` → `data/tokenizers/`; and the unpinned loose reference pages → `docs/reference/`.
+The three later steps, all on 20 Oct 2026:
+
+- **Step 2 (#2812).** `model/` (the requirements ledger) and `features/` became `conformance/`. `repo-model` now finds the repository root by `conformance/ledger.toml`. Nine files that evidence code compiles in or pins by hash keep their old comments.
+- **Step 3.** The root package became `crates/uor-r4-wasm-router/`: `src/`, `profiles/` and its Rust tests moved there, and the root `Cargo.toml` is now workspace-only. `models/` became `data/tokenizers/`. `tests/` stays at the top level for the Python harness suite and end-to-end fixtures. The D23 ratchet scans only `crates/`, so the historical modules that moved in (11 files, 2,198 occurrences; all but one, a doc comment in the built `r4_source_span_pointer.rs`, are in modules that are not built) newly entered its scope. **Owner decision, in chat, 20 Oct 2026: move all and raise the baseline.** The new baseline rows carry exactly the measured counts (2,253 → 4,451).
+- **Step 4.** The decision records and design specifications moved to `docs/reference/adr/` and `docs/reference/specs/`. A new index, [`docs/reference/`](../../reference/README.md), lists every reference document. The ones that code compiles in or evidence tables pin by path stay in `docs/`; so do `reproducibility.md` and `scaling_law.md`, which 22 archived records link. The index links all of them where they are.
+
+The top level now holds `archive/ conformance/ crates/ data/ docs/ projects/ scripts/ tests/ third_party/ tools/ web/ xtask/`. Two folders were kept on purpose: `tools/r4-softmax-trainer/` (described above) and `tests/` (the Python harness suite).
 
 Every move is byte-identical (`R100`). The two folder READMEs went to paths at the same folder depth as before (`assets/images/README.md` → `archive/assets/README.md`, `research/README.md` → `archive/research-root-README.md`), so their relative links still resolve without edits. A workspace-wide `cargo check --workspace --all-targets` fails on `main` before and after this change (a historical core feature is unified in; the CI job that runs it has not run on `main` since 30 Sep); this change touches no build file.

@@ -2,8 +2,8 @@
 
 **Historical scope (clarified 2026-09-05):** this document preserves its dated
 reference/contract/audit and then-current scheduling. Follow the
-[current native plan](../integration/project-track.md#immediate-build-sequence) and
-[current implementation](../integration/current-state.md) for new work. Existing technical
+[current native plan](../../integration/project-track.md#immediate-build-sequence) and
+[current implementation](../../integration/current-state.md) for new work. Existing technical
 contracts and measured outcomes remain scoped evidence; old global next-action
 instructions and superseded issue ownership do not override the adopted plan.
 
@@ -21,7 +21,7 @@ instructions and superseded issue ownership do not override the adopted plan.
   passed, narrative continuation passed `2/3`, and both supplied-history
   bindings failed. Terminal `KEEP_RAW_CONTINUATION_ONLY` retains it as a raw
   single-turn reference and forbids a source-backed history/multi-turn adapter
-  (see the [#1041 record](../../archive/r4_softmax_local_normal_use_1041.md)).
+  (see the [#1041 record](../../../archive/r4_softmax_local_normal_use_1041.md)).
   `R4SoftmaxTeacherTraceV1` and the first source-free suffix compiler now pass
   their bounded distillation gate, while decoded continuation remains
   incoherent. `R4SoftmaxTraceStateStudentV1` completed negative at its frozen
@@ -60,7 +60,7 @@ instructions and superseded issue ownership do not override the adopted plan.
   external GPU execution are out of scope. The MPS stop is not a
   model-quality negative, leaves the full-scale capacity hypothesis untested,
   and does not revoke the established attention result. See the
-  [#1019 observed preflight](../../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json).
+  [#1019 observed preflight](../../../archive/r4_softmax_parameter_capacity_preflight_1019_raw.json).
   More 7.15M exposure or LR tuning remains prohibited.
   #973's later compact retained-language path passed its frozen language,
   state-off, and matched-control gates and completed deterministic autonomous
@@ -89,24 +89,24 @@ instructions and superseded issue ownership do not override the adopted plan.
   identities and [ADR-0004](0004-geometric-intelligence-route-hierarchy.md)
   scope/transport boundaries
 - **Evaluation:**
-  [Geometric Intelligence Evaluation](../../archive/geometric_intelligence_evaluation.md)
-- **Evidence:** [Research ledger](../RESEARCH.md)
+  [Geometric Intelligence Evaluation](../../../archive/geometric_intelligence_evaluation.md)
+- **Evidence:** [Research ledger](../../RESEARCH.md)
 - **HELM-D source identity/license/hash audit:** `PASS_PINNED_SOURCE_PROVENANCE`
-  ([manifest](../../third_party/helm-d-reference/UPSTREAM.toml),
-  [audit boundary](../../third_party/helm-d-reference/README.md))
+  ([manifest](../../../third_party/helm-d-reference/UPSTREAM.toml),
+  [audit boundary](../../../third_party/helm-d-reference/README.md))
 - **Upstream HELM-D checkpoint/executable parity:** `NOT_RUN`
 - **Ordinary-donor deterministic reproduction:**
   `PASS_BOUNDED_HELD_OUT_FULL_DECODER_REPLAY`
 - **Transported-R4 parity result:**
   `PASS_HELM_D_R4_GAUGE_SOFTMAX_FULL_DECODER_PARITY_ADVANCE_TO_INTRINSIC_R4`
-  ([record](../../archive/helm_d_r4_softmax_decoder_973.md),
-  [machine result](../../archive/helm_d_r4_softmax_decoder_result_973.json))
+  ([record](../../../archive/helm_d_r4_softmax_decoder_973.md),
+  [machine result](../../../archive/helm_d_r4_softmax_decoder_result_973.json))
 - **Intrinsic R4 attention result:** attempt 01 `UNAVAILABLE_PRE_REVEAL` from
   checkpoint JSON round-trip identity; attempt 02
   `UNAVAILABLE_INTRINSIC_LORENTZ_R4_STOP_BEFORE_HELD_OUT` from the frozen
   covariance audit, with D3 still sealed
-  ([record](../../archive/intrinsic_lorentz_r4_attention_973.md),
-  [summary](../../archive/intrinsic_lorentz_r4_attention_attempt_02_summary_973.json))
+  ([record](../../../archive/intrinsic_lorentz_r4_attention_973.md),
+  [summary](../../../archive/intrinsic_lorentz_r4_attention_attempt_02_summary_973.json))
 - **Source-faithful learned-manifold construction result:** attempt 01
   `UNAVAILABLE_HELM_D_MANIFOLD_CONSTRUCTION_EVIDENCE` before validation;
   attempt 02
@@ -115,37 +115,37 @@ instructions and superseded issue ownership do not override the adopted plan.
   three destructive-control separations passed, but learned Lorentz failed
   donor retention and matched Euclidean parity; the controls establish
   sensitivity only
-  ([record](../../archive/helm_d_learned_manifold_r4_construction_973.md),
-  [machine result](../../archive/helm_d_learned_manifold_r4_construction_attempt_02_result_973.json),
-  [localization preflight result](../../archive/helm_d_score_centroid_localization_973.md))
+  ([record](../../../archive/helm_d_learned_manifold_r4_construction_973.md),
+  [machine result](../../../archive/helm_d_learned_manifold_r4_construction_attempt_02_result_973.json),
+  [localization preflight result](../../../archive/helm_d_score_centroid_localization_973.md))
 - **Score/readout localization result:**
   `REJECT_TANGENT_READOUT_SELECT_SCORE_PREFLIGHT`; tangent readout increased
   normalized audit MSE on both documents, with pooled ratio
   `1.0643688804269025`
-  ([record](../../archive/helm_d_score_centroid_localization_973.md),
-  [machine result](../../archive/helm_d_score_centroid_localization_attempt_01_result_973.json))
+  ([record](../../../archive/helm_d_score_centroid_localization_973.md),
+  [machine result](../../../archive/helm_d_score_centroid_localization_attempt_01_result_973.json))
 - **Multi-resonance replacement result:** `NOT_RUN`, parked
 - **Recurrent factorization/lowering result:** `NOT_RUN`, parked
 - **Autonomous reference-generation result:**
   `PASS_R4_SOFTMAX_REFERENCE_GENERATION_ADVANCE_NATIVE_PRODUCT_BRIDGE`
-  ([record](../../archive/r4_softmax_reference_generation_973.md),
-  [compact aggregate](../../archive/r4_softmax_reference_generation_attempt_01_result_973.json))
+  ([record](../../../archive/r4_softmax_reference_generation_973.md),
+  [compact aggregate](../../../archive/r4_softmax_reference_generation_attempt_01_result_973.json))
 - **Native HTTP endpoint result:** exact frozen eight-token CLI token,
   decision-CID, and state-CID parity; all 30 layers audited exactly; zero future
   reads; dedicated, explicit opt-in and loopback-only; no default-engine change
-  ([record](../../archive/r4_softmax_reference_http_bridge_973.md),
-  [structured result](../../archive/r4_softmax_reference_http_bridge_result_973.json))
+  ([record](../../../archive/r4_softmax_reference_http_bridge_973.md),
+  [structured result](../../../archive/r4_softmax_reference_http_bridge_result_973.json))
 - **Dashboard integration result:** wiring/static native-readiness and
   WASM-isolation checks `PASS`; browser interaction/E2E `NOT_RUN`
 - **Source-free trace/compiler result:**
   `PASS_SOURCE_FREE_TRACE_STUDENT_ADVANCE_GEOMETRIC_STATE_COMPILER`
-  ([record](../../archive/r4_softmax_trace_student_973.md),
-  [structured result](../../archive/r4_softmax_trace_student_973_raw.json)); decoded
+  ([record](../../../archive/r4_softmax_trace_student_973.md),
+  [structured result](../../../archive/r4_softmax_trace_student_973_raw.json)); decoded
   continuation repeats `, Scotland` and is not coherent generation
 - **Source-free geometric state-student result:**
   `STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`
-  ([record](../../archive/r4_softmax_trace_state_student_1011.md),
-  [structured result](../../archive/r4_softmax_trace_state_student_1011_raw.json)); exact
+  ([record](../../../archive/r4_softmax_trace_state_student_1011.md),
+  [structured result](../../../archive/r4_softmax_trace_state_student_1011_raw.json)); exact
   matched-arm metrics and artifact identities are bound in the current outcome
   amendment below
 - **Directly trained end-to-end attention result:** ordinary causal attention
@@ -153,8 +153,8 @@ instructions and superseded issue ownership do not override the adopted plan.
   Enabled sealed NLL `2.127407277216677`; attention-off NLL
   `4.804799838144271`; penalty `2.6773925609275944`; two-arm Rust parity
   `PASS`; exact seeded replay `5/5`; subject/scene retention `3/5`
-  ([record](../../archive/r4_softmax_end_to_end_attention_1014.md),
-  [structured aggregate](../../archive/r4_softmax_end_to_end_attention_1014_raw.json))
+  ([record](../../../archive/r4_softmax_end_to_end_attention_1014.md),
+  [structured aggregate](../../../archive/r4_softmax_end_to_end_attention_1014_raw.json))
 
 ## Decision
 
@@ -780,8 +780,8 @@ serving, correctness, reasoning, frontier capability, release readiness, or a
 static-WASM decoder. #973 remains open and #954 remains blocked. The next
 authorized action is the explicit opt-in native bridge above; no tag, release,
 or static-web promotion is authorized. See the
-[generation record](../../archive/r4_softmax_reference_generation_973.md) and
-[compact aggregate](../../archive/r4_softmax_reference_generation_attempt_01_result_973.json).
+[generation record](../../../archive/r4_softmax_reference_generation_973.md) and
+[compact aggregate](../../../archive/r4_softmax_reference_generation_attempt_01_result_973.json).
 
 ## Native bridge outcome and trace-rung amendment — 2026-08-30 (EDT)
 
@@ -792,8 +792,8 @@ persistent state CID for the frozen prompt. All 30 layers retained exact
 causal, projection, and R4 audits; future reads were zero. The default engine
 was unchanged. Dashboard wiring/static native-readiness and WASM-isolation
 checks passed; browser interaction/E2E was `NOT_RUN`. See the
-[bridge record](../../archive/r4_softmax_reference_http_bridge_973.md) and
-[structured result](../../archive/r4_softmax_reference_http_bridge_result_973.json).
+[bridge record](../../../archive/r4_softmax_reference_http_bridge_973.md) and
+[structured result](../../../archive/r4_softmax_reference_http_bridge_result_973.json).
 
 This establishes only an operator-access path to the already qualified
 source-weight-backed reference. It does not establish source-free,
@@ -852,8 +852,8 @@ The binding terminal is
 `STOP_R4_SOFTMAX_TRACE_STATE_STUDENT_REPAIR_OR_RETIRE_REPRESENTATION`. It
 falsifies the current 4D signed-reduction/token-derived state cell at this gate,
 not ordinary R4/Spin softmax attention. See the
-[authoritative record](../../archive/r4_softmax_trace_state_student_1011.md) and
-[structured result](../../archive/r4_softmax_trace_state_student_1011_raw.json).
+[authoritative record](../../../archive/r4_softmax_trace_state_student_1011.md) and
+[structured result](../../../archive/r4_softmax_trace_state_student_1011_raw.json).
 
 The next action at #1011 close was
 [#1012](https://github.com/UOR-Foundation/uor-r4/issues/1012), the native
@@ -895,9 +895,9 @@ audits, and all five seeded reports replayed exactly. Prompt subject/scene
 retention was `3/5`, below the frozen `4/5` gate. This establishes ordinary
 causal attention as load-bearing at the declared learned R4/Spin scope while
 closing the full #1014 quality DoD negative. Do not rerun or tune the campaign.
-See the [#1012 record](../../archive/r4_softmax_trace_observability_1012.md) and the
-[#1014 record](../../archive/r4_softmax_end_to_end_attention_1014.md), followed by the
-[#1017 record](../../archive/r4_softmax_quality_capacity_continuation_1017.md).
+See the [#1012 record](../../../archive/r4_softmax_trace_observability_1012.md) and the
+[#1014 record](../../../archive/r4_softmax_end_to_end_attention_1014.md), followed by the
+[#1017 record](../../../archive/r4_softmax_quality_capacity_continuation_1017.md).
 
 ### #1014 outcome amendment — attention established, quality unresolved
 
@@ -926,7 +926,7 @@ path was slower, so the active next step is the #1017 `r4 generate` product
 path. CUDA and external GPU execution are out of scope. It must not reopen
 folds, probes, transport permutations, alternative attention architectures,
 intrinsic geometry, resonance, or exact lowering. The
-[#1014 structured aggregate](../../archive/r4_softmax_end_to_end_attention_1014_raw.json)
+[#1014 structured aggregate](../../../archive/r4_softmax_end_to_end_attention_1014_raw.json)
 binds the five exact outputs, rubric grades, CIDs, audits, and replay results.
 
 ## Retained-language and paired-H4 capacity amendment — 2026-09-01 (EDT)
@@ -943,7 +943,7 @@ passed. A separately frozen five-prompt smoke then completed provider-free,
 fresh-load deterministic autonomous retained decoding. This qualifies a compact
 retained-attention language path, not H4-specific superiority, reasoning,
 correctness, exact lowering, browser readiness, or release readiness. See the
-[V1 record](../../archive/r4_retained_language_path_v1_973.md).
+[V1 record](../../../archive/r4_retained_language_path_v1_973.md).
 
 The next frozen rung changed only V1's token addressing. It gave the two layers
 separate canonical exact-H4 radix coordinates while preserving parameters,
@@ -967,8 +967,8 @@ exactly zero prompt gain and paired-logit difference; replay, causal, and
 forbidden-read audits passed. The terminal is
 `PAIRED_H4_PROMPT_CAPACITY_FAIL`, result CID
 `blake3:508a4ff352f1e533d669d9616f65b972b0f13e8efe35867b7b095281ad940274`.
-See the [canonical result](../../archive/r4_paired_h4_prompt_capacity_973.md) and
-[structured aggregate](../../archive/r4_paired_h4_prompt_capacity_result_973_raw.json).
+See the [canonical result](../../../archive/r4_paired_h4_prompt_capacity_973.md) and
+[structured aggregate](../../../archive/r4_paired_h4_prompt_capacity_result_973_raw.json).
 
 This negative is local to the paired-address capacity seam. It does not revoke
 the established ordinary attention intervention or V1's qualified retained
@@ -1164,7 +1164,7 @@ joint objective; a double capacity miss rejects this exact readout law and
 returns only to retained-value representation/binding; invalid mechanics carry
 no model claim; and unavailable compute preserves only an identical
 pre-reveal trajectory. See the
-[canonical freeze](../../archive/r4_learned_associative_readout_prompt_capacity_973.md).
+[canonical freeze](../../../archive/r4_learned_associative_readout_prompt_capacity_973.md).
 
 No V4 population, learned artifact, reveal, result, or verification exists at
 this amendment. A future positive would establish only bounded learned
@@ -1213,7 +1213,7 @@ result
 and verification
 `blake3:443d711ce9a228e26e2eb2eebb55c582848424e2677c3473d41deaf8afd69ec7`.
 The complete lifecycle ledger is in the
-[canonical record](../../archive/r4_learned_associative_readout_prompt_capacity_973.md).
+[canonical record](../../../archive/r4_learned_associative_readout_prompt_capacity_973.md).
 
 The predeclared branch now controls the programme: do not retry or tune this
 candidate-query readout, do not add another readout over the same frozen V1
@@ -1269,4 +1269,4 @@ revoke established ordinary causal-softmax attention or qualified retained
 attention. Coherent generation from this cell, reasoning, integer/table
 lowering, browser/release promotion, and #954/C1-SB6 progression remain
 `NOT_RUN`, not established, or blocked. See the
-[canonical terminal record](../../archive/r4_predictive_block_delta_binding_prompt_capacity_973.md).
+[canonical terminal record](../../../archive/r4_predictive_block_delta_binding_prompt_capacity_973.md).

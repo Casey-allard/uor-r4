@@ -13,7 +13,7 @@
 > [`docs/RESEARCH.md`](../docs/RESEARCH.md), and the
 > [`Geometric Intelligence Programme`](../docs/geometric_intelligence_programme.md)
 > with
-> [`ADR-0005`](../docs/adr/0005-predictive-geometric-connection-memory.md).
+> [`ADR-0005`](../docs/reference/adr/0005-predictive-geometric-connection-memory.md).
 >
 > **Live-assertion corrections** (the "Ground-Truth Architectural Findings" in §2 are
 > point-in-time; some have since drifted — the history below is not rewritten):
