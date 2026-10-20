@@ -796,8 +796,7 @@ integer serving crate <a href="https://github.com/UOR-Foundation/uor-r4/blob/mai
 <tr><td><code>tools/</code></td><td><code>lab-runner</code> (a workspace crate), notes for the <code>uor-knowledge</code> server, and one historical trainer (below).</td></tr>
 <tr><td><code>web/</code></td><td>The web client. <code>web/studio/</code> is the Studio page served at <code>/studio/</code> on the documentation site.</td></tr>
 <tr><td><code>xtask/</code></td><td>Repository tooling, run as <code>cargo xtask &lt;command&gt;</code>: link checks, the archive check, figures, the catalog and the site build.</td></tr>
-<tr><td><code>model/</code></td><td>The requirements ledger: requirement ids, authorities and <code>ledger.toml</code>. The <code>repo-model</code> and <code>repo-conformance</code> crates read it to produce <code>CONFORMANCE.md</code>. <strong>Moving to</strong> <code>conformance/</code>.</td></tr>
-<tr><td><code>features/</code></td><td>Behaviour specifications (<code>.feature</code> files) for those requirements. <strong>Moving to</strong> <code>conformance/features/</code>.</td></tr>
+<tr><td><code>conformance/</code></td><td>The requirements ledger (<code>ledger.toml</code>, <code>ids.toml</code>, <code>authorities.toml</code>) and its behaviour specifications (<code>features/suites/*.feature</code>). The <code>repo-model</code> and <code>repo-conformance</code> crates read it to produce <code>CONFORMANCE.md</code>. Until 20 October 2026 these were the top-level <code>model/</code> and <code>features/</code> folders.</td></tr>
 <tr><td><code>models/</code></td><td>Four reference tokenizer files that older tests compare against. <strong>Moving to</strong> <code>data/tokenizers/</code>.</td></tr>
 <tr><td><code>src/</code>, <code>tests/</code>, <code>profiles/</code></td><td>The root Rust package, <code>uor-r4-wasm-router</code>: its library, its tests and its server profiles. <strong>Moving to</strong> <code>crates/uor-r4-wasm-router/</code>, so the top level holds only workspace settings.</td></tr>
 </tbody></table>
@@ -816,9 +815,9 @@ integer serving crate <a href="https://github.com/UOR-Foundation/uor-r4/blob/mai
 </div>
 <h2 id="files-at-the-top"><a class="header" href="#files-at-the-top">Files at the top</a></h2>
 <p><code>README.md</code>, <code>CHARTER.md</code> (the rules), <code>AGENTS.md</code> (onboarding for agents), <code>CONTRIBUTING.md</code>, <code>STATUS.md</code>, <code>ROADMAP.md</code>, <code>SECURITY.md</code>, <code>LICENSE</code>, <code>CITATION.cff</code> and the generated <code>CONFORMANCE.md</code>, plus build settings: <code>Cargo.toml</code>, <code>Cargo.lock</code>, <code>rust-toolchain.toml</code>, <code>deny.toml</code>, <code>Justfile</code> and <code>book.toml</code> (the documentation site).</p>
-<h2 id="three-names-that-are-easy-to-confuse"><a class="header" href="#three-names-that-are-easy-to-confuse">Three names that are easy to confuse</a></h2>
+<h2 id="names-that-are-easy-to-confuse"><a class="header" href="#names-that-are-easy-to-confuse">Names that are easy to confuse</a></h2>
 <ul>
-<li><code>model/</code> is a <strong>requirements ledger</strong>, not a language model. It is moving to <code>conformance/</code> to end the confusion.</li>
+<li><code>conformance/</code> is a <strong>requirements ledger</strong>, not a language model. It was called <code>model/</code> until 20 October 2026 and was renamed to end that confusion.</li>
 <li><code>models/</code> holds <strong>reference tokenizers</strong> used by older tests. It is moving to <code>data/tokenizers/</code>.</li>
 <li><code>.uor-models/</code> is the <strong>runtime model store</strong> on each machine. It is gitignored; its contents come from the private Hugging Face store.</li>
 </ul>
