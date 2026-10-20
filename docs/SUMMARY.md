@@ -106,6 +106,7 @@
 - [The rules in plain language](rules/README.md)
   - [Where each old decision went](rules/decision-map.md)
   - [Change log for the rules](rules/changes.md)
+- [The charter](../CHARTER.md)
 
 # Reference
 
@@ -114,3 +115,14 @@
 - [Canonical artifact byte equality](reproducibility.md)
 - [Minimal terminal client and local API](minimal_client.md)
 - [Release pipeline](RELEASE_PIPELINE.md)
+
+# Side projects
+
+- [Side projects](../projects/README.md)
+  - [AI-Research: the original root research workspace](../projects/ai-research/README.md)
+  - [MSA: Modular Structural Arithmetic](../projects/msa/README.md)
+  - [Prime Analysis: the Prime Phase and Chebyshev psi spectral program](../projects/prime-analysis/README.md)
+  - [Research archives: the Gemini-era sandbox](../projects/research-archives/README.md)
+  - [Riemann-Lean: a Lean 4 scaffold for a prime-number proof chain](../projects/riemann-lean/README.md)
+  - [SpiralCore: networking protocols and compression](../projects/spiralcore/README.md)
+  - [WASM-GEMM-GNAF: a Lean proof project about a matrix-multiply kernel](../projects/wasm-gemm-gnaf/README.md)

@@ -1,5 +1,7 @@
 # UOR-R4 documentation
 
+Read online (planned; live once the site workflow deploys): <https://uor-foundation.github.io/uor-r4/>. The earlier Studio web app moves to <https://uor-foundation.github.io/uor-r4/studio/>.
+
 **In one paragraph.** This is the map of the UOR-R4 documentation. UOR-R4 is an open research
 project building a language model that predicts text with geometry and whole-number arithmetic
 instead of a transformer's large grids of decimal multiplications, so that it can run fast on a

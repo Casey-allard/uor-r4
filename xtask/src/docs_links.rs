@@ -147,7 +147,7 @@ pub fn is_md(path: &str) -> bool {
 
 /// A fence line: its character, run length and whether only whitespace
 /// follows the run. Up to three leading spaces are allowed.
-fn fence_marker(line: &str) -> Option<(u8, usize, bool)> {
+pub fn fence_marker(line: &str) -> Option<(u8, usize, bool)> {
     let b = line.as_bytes();
     let indent = b.iter().take_while(|c| **c == b' ').count();
     if indent > 3 {

@@ -1,0 +1,136 @@
+name: docs-site
+
+# Builds the mdBook site from the same markdown GitHub renders and publishes it
+# to a gh-pages branch. A push to main only updates gh-pages-preview; only a
+# manual dispatch can choose gh-pages (the live site and the /studio app).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'CHARTER.md'
+      - 'README.md'
+      - 'projects/**'
+      - 'book.toml'
+      - 'xtask/**'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Branch to publish to'
+        type: choice
+        options:
+          - gh-pages-preview
+          - gh-pages
+        default: gh-pages-preview
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-site
+  cancel-in-progress: false
+
+jobs:
+  site:
+    name: build and publish the docs site
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'gh-pages-preview' }}
+    steps:
+      - name: Only main publishes live
+        run: |
+          if [ "$TARGET" = gh-pages ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::gh-pages may only be published from main (ref is $GITHUB_REF)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-docs-site-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-docs-site-${{ runner.os }}-
+
+      - name: Cache mdBook tools
+        id: tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/mdbook
+            ~/.cargo/bin/mdbook-mermaid
+          key: mdbook-0.4.40-mermaid-0.13.0-${{ runner.os }}
+
+      - name: Install mdBook and mdbook-mermaid
+        run: |
+          set -euo pipefail
+          command -v mdbook >/dev/null || cargo install --locked mdbook --version 0.4.40
+          command -v mdbook-mermaid >/dev/null || cargo install --locked mdbook-mermaid --version 0.13.0
+
+      - name: Stage the book source
+        run: |
+          set -euo pipefail
+          cargo run -q --locked -p xtask -- book-stage
+          # The mermaid assets are generated, not committed (no vendored blobs, charter §3.13).
+          mdbook-mermaid install .
+
+      - name: Build the book
+        run: |
+          set -euo pipefail
+          mdbook build 2>&1 | tee build.log
+          if grep -q ERROR build.log; then
+            echo "::error::mdbook reported ERROR"
+            exit 1
+          fi
+
+      - name: Check the built links
+        run: cargo run -q --locked -p xtask -- book-check
+
+      - name: Publish
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          set -euo pipefail
+          git fetch origin "$TARGET" || true
+          if git rev-parse --verify --quiet "refs/remotes/origin/$TARGET" >/dev/null; then
+            git worktree add -B "$TARGET" site "origin/$TARGET"
+          else
+            git fetch origin gh-pages
+            git worktree add -B "$TARGET" site origin/gh-pages
+          fi
+          # One time: the old Studio web app moves to studio/.
+          if [ ! -d site/studio ]; then
+            mkdir site/studio
+            git -C site ls-tree --name-only -z HEAD | while IFS= read -r -d '' e; do
+              git -C site mv "$e" "studio/$e"
+            done
+          fi
+          # The book replaces everything except .git and studio/.
+          find site -mindepth 1 -maxdepth 1 ! -name .git ! -name studio -exec rm -rf {} +
+          cp -R book/. site/
+          # Returning visitors still have the old Studio worker at this scope.
+          cat > site/coi-serviceworker.js <<'JS'
+          self.addEventListener('install', () => self.skipWaiting());
+          self.addEventListener('activate', (e) => e.waitUntil(self.registration.unregister().then(() => self.clients.matchAll()).then((cs) => cs.forEach((c) => c.navigate(c.url)))));
+          JS
+          touch site/.nojekyll
+          git -C site add -A
+          if git -C site diff --cached --quiet; then
+            echo "nothing changed"
+            exit 0
+          fi
+          git -C site commit -q -m "docs site from ${GITHUB_SHA}"
+          git -C site push origin HEAD:"$TARGET"

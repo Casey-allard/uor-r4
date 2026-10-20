@@ -69,3 +69,6 @@ __pycache__/
 librust_out.rlib
 synthetic-stack.lut
 
+/book/
+/mermaid.min.js
+/mermaid-init.js

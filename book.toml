@@ -1,0 +1,15 @@
+[book]
+title = "UOR-R4"
+src = "target/book-src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+git-repository-url = "https://github.com/UOR-Foundation/uor-r4"
+site-url = "/uor-r4/"
+mathjax-support = true
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
