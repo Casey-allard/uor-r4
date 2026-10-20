@@ -1,167 +1,31 @@
 #!/usr/bin/env bash
-# uor-hygiene: keep the laptop lean (owner direction, 9 October 2026; one-clone layout, 20 October 2026).
-# origin/main is the source of truth and the HF store holds results (iCloud is a read-only
-# archive); the laptop holds one clone, ~/uor-r4, and only live work (docs/labs/workspace.md).
+# uor-hygiene: keep the laptop lean (owner direction, 9 October 2026; one-clone layout, 20 October 2026;
+# CHARTER section 5 item 9; docs/labs/workspace.md).
 #
 #   uor-hygiene            report what would be freed (dry run, the default)
 #   uor-hygiene --apply    do it
+#   uor-hygiene --help     every rule and the guard on each
 #
-# What it removes, and the guard on each:
-#   1. Worktrees whose HEAD is in origin/main or is the head of a merged PR,
-#      and that have no uncommitted or untracked files; their local branch too.
-#   2. Rust build folders (~/.cache/uor-*, ~/uor-r4/target/<lab>/, target/ inside worktrees) that no
-#      file was written to for IDLE_HOURS and that no running cargo/rustc uses.
-#   3. ~/uor-r4/local/<lab>/<topic>/ scratch holding an UPLOADED marker (written after the
-#      lab uploads it to the HF store and reads it back) and idle for IDLE_HOURS: moved to the Trash.
-#   4. Stale temporary folders: direct children of /private/tmp (and /tmp if
-#      different) owned by you, directories or files > 50 MB, idle for
-#      IDLE_HOURS and not open in any process: moved to the Trash.
-#   5. git gc --auto, and `uv cache prune` when uv is idle.
-#   6. Report only: project folders outside the layout (~/uor-r4-local, other clones of the
-#      repository, worktrees outside ~/uor-r4/.worktrees/) and free space under 30 GB.
-# Protected branches (docs/harness/branches.json: main, gh-pages, gh-pages-preview) are never deleted.
-# It never touches the main checkout's files, a dirty worktree, anything
-# written within IDLE_HOURS, a running process's open files, claude-* session dirs, ~/.local/share/uor-r4 (runner, ledger, tooling),
-# scratch without an UPLOADED marker, or any
-# folder holding a .keep-local marker. It never empties the Trash.
-set -uo pipefail
+# The rules and their guards live in the Rust harness, crates/uor-r4-harness/src/hygiene.rs
+# (`uor-harness hygiene`). This path stays because the charter names it. The harness is built from
+# the checkout this script is in, so the rules that run are the ones beside it.
+set -euo pipefail
 
-APPLY=0; [ "${1:-}" = "--apply" ] && APPLY=1
-REPO=${UOR_REPO:-$HOME/uor-r4}
-LOCAL=${UOR_LOCAL:-$REPO/local}
-IDLE_HOURS=${UOR_IDLE_HOURS:-24}
-# Branches that are never deleted: the built-in three plus anything listed in the registry.
-PROTECTED="main gh-pages gh-pages-preview $(jq -r '.protected[].name' "$REPO/docs/harness/branches.json" 2>/dev/null | tr '\n' ' ')"
-TRASH="$HOME/.Trash/uor-hygiene-$(date +%Y%m%d-%H%M%S)"
-freed=0
-
-say() { printf '%s\n' "$*"; }
-kb() { du -sk "$1" 2>/dev/null | cut -f1; }
-# A path is idle when nothing beneath it was modified in the last IDLE_HOURS.
-idle() { [ -z "$(find "$1" -type f -mmin "-$((IDLE_HOURS * 60))" -print -quit 2>/dev/null)" ]; }
-# A build folder is busy when a running cargo/rustc names it on its command line
-# or runs from inside it.
-busy() {
-  ps -axo pid=,comm=,args= | awk '$2 ~ /(^|\/)(cargo|rustc)$/' | grep -qF -- "$1" && return 0
-  local p
-  for p in $(pgrep -x cargo; pgrep -x rustc); do
-    case "$(lsof -a -p "$p" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')" in "$1"*) return 0 ;; esac
-  done
-  # Any other process with an open file or working directory inside the path (a training run,
-  # a shell, a copy) also makes it busy; ignore this script's own process tree.
-  local pid
-  for pid in $(lsof -t +D "$1" 2>/dev/null | sort -u); do
-    [ "$pid" = "$$" ] || [ "$pid" = "$PPID" ] && continue
-    # System indexers and backups touch every file briefly; they are not live work.
-    case "$(ps -o comm= -p "$pid" 2>/dev/null)" in
-      *mdworker*|*mds*|*mdsync*|*Spotlight*|*fseventsd*|*backupd*|*revisiond*|*bird*|*cloudd*) continue ;;
-    esac
-    return 0
-  done
-  return 1
-}
-act() {  # act <kb> <description> <command...>
-  local k=$1 d=$2; shift 2
-  if [ $APPLY = 1 ]; then "$@" && { freed=$((freed + k)); say "done   $d"; } || say "FAILED $d"
-  else freed=$((freed + k)); say "would  $d"; fi
-}
-
-say "== uor-hygiene $([ $APPLY = 1 ] && echo apply || echo dry-run)  free before: $(df -h / | awk 'NR==2{print $4}')"
-git -C "$REPO" fetch -q --prune origin || say "warn: fetch failed; worktree checks use the last fetched origin/main"
-
-# 1. Merged, clean worktrees
-main_wt=$(git -C "$REPO" rev-parse --show-toplevel)
-while IFS=$'\t' read -r wt head br; do
-  [ "$wt" = "$main_wt" ] && continue
-  [ -d "$wt" ] || continue
-  br=${br#refs/heads/}
-  [ -n "$br" ] && case " $PROTECTED " in *" $br "*) say "keep   worktree $wt ($br is a protected branch)"; continue ;; esac
-  if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then say "keep   worktree $wt (uncommitted or untracked files)"; continue; fi
-  # Gitignored local-only data (e.g. local/) is where the rules keep work data; never delete it
-  # with the worktree. Build output under target/ is regenerable and does not count.
-  if git -C "$wt" status --porcelain --ignored 2>/dev/null | awk '$1=="!!"{print $2}' | grep -qv '^target/'; then
-    say "keep   worktree $wt (gitignored local data present; upload it to the HF store first)"; continue
-  fi
-  # Main squash-merges, so a merged branch's HEAD is not an ancestor of main:
-  # accept either ancestry or a merged PR whose head is exactly this HEAD.
-  if ! git -C "$REPO" merge-base --is-ancestor "$head" origin/main 2>/dev/null &&
-     ! { [ -n "$br" ] && gh pr list -R "$(git -C "$REPO" remote get-url origin | sed -E 's#.*github.com[:/]##; s#\.git$##')" --head "$br" --state merged --json headRefOid -q '.[].headRefOid' 2>/dev/null | grep -qx "$head"; }; then
-    say "keep   worktree $wt (${br:-detached} not merged into origin/main)"; continue
-  fi
-  if busy "$wt"; then say "keep   worktree $wt (in use by a running process)"; continue; fi
-  k=$(kb "$wt")
-  act "$k" "remove worktree $wt ($((k / 1024)) MB, ${br:-detached}, in origin/main)" \
-    sh -c "git -C '$REPO' worktree remove '$wt' && { [ -z '$br' ] || git -C '$REPO' branch -D -q '$br'; }"
-done < <(git -C "$REPO" worktree list --porcelain | awk '/^worktree /{w=$2} /^HEAD /{h=$2} /^branch /{b=$2} /^$/{print w"\t"h"\t"b; w=h=b=""} END{if(w)print w"\t"h"\t"b}')
-[ $APPLY = 1 ] && git -C "$REPO" worktree prune
-
-# 2. Idle build folders
-for d in "$HOME"/.cache/uor-* "$REPO"/target/* $(git -C "$REPO" worktree list --porcelain | sed -n 's/^worktree //p' | sed 's#$#/target#'); do
-  [ -d "$d" ] || continue
-  if busy "$d"; then say "keep   build $d (in use by a running process)"; continue; fi
-  if ! idle "$d"; then say "keep   build $d (written within ${IDLE_HOURS} h)"; continue; fi
-  k=$(kb "$d"); act "$k" "remove build folder $d ($((k / 1024)) MB, regenerated by the next build)" rm -rf "$d"
+# Follow symbolic links to this script (e.g. ~/bin/uor-hygiene), so the checkout is the real one.
+src=$0
+while [ -L "$src" ]; do
+  dir=$(cd -P "$(dirname "$src")" && pwd)
+  src=$(readlink "$src")
+  case $src in /*) ;; *) src=$dir/$src ;; esac
 done
-
-# 3. Lab scratch already uploaded: <repo>/local/<lab>/<topic>/ with an UPLOADED marker
-#    (the lab writes it after uploading to the HF store and reading the upload back).
-if [ -d "$LOCAL" ]; then
-  for d in "$LOCAL"/*/*/; do
-    d=${d%/}; [ -d "$d" ] || continue
-    [ -e "$d/.keep-local" ] && { say "keep   $d (.keep-local marker)"; continue; }
-    if [ ! -e "$d/UPLOADED" ]; then
-      [ -n "$(find "$d" -type f -mtime -7 -print -quit 2>/dev/null)" ] ||
-        say "note   $d (idle 7 days, no UPLOADED marker: upload what is worth keeping, then remove it)"
-      continue
-    fi
-    if busy "$d"; then say "keep   $d (in use by a running process)"; continue; fi
-    if ! idle "$d"; then say "keep   $d (written within ${IDLE_HOURS} h)"; continue; fi
-    k=$(kb "$d"); act "$k" "move $d to the Trash ($((k / 1024)) MB, uploaded: $(head -1 "$d/UPLOADED"))" \
-      sh -c "mkdir -p '$TRASH' && mv '$d' '$TRASH/'"
-  done
-fi
-
-# 4. Stale temporary folders (/private/tmp, and /tmp if it is a different directory)
-tmp_roots=/private/tmp
-[ "$(cd -P /tmp 2>/dev/null && pwd)" != "$(cd -P /private/tmp 2>/dev/null && pwd)" ] && [ -d /tmp ] && tmp_roots="$tmp_roots /tmp"
-for root in $tmp_roots; do
-  [ -d "$root" ] || continue
-  while IFS= read -r -d '' p; do
-    n=$(basename "$p")
-    case "$n" in claude-*|com.apple.*|.X11-unix|.font-unix|powerlog|*.sock|*\'*) continue ;; esac
-    if [ -d "$p" ]; then
-      [ -n "$(lsof +D "$p" 2>/dev/null | head -n 1)" ] && { say "keep   temp $p (in use by a running process)"; continue; }
-    else
-      [ -n "$(lsof "$p" 2>/dev/null | head -n 1)" ] && { say "keep   temp $p (in use by a running process)"; continue; }
-    fi
-    if ! idle "$p"; then say "keep   temp $p (written within ${IDLE_HOURS} h)"; continue; fi
-    k=$(kb "$p")
-    act "$k" "move stale temp $p to the Trash ($((k / 1024)) MB, idle > ${IDLE_HOURS} h)" sh -c "mkdir -p '$TRASH' && mv '$p' '$TRASH/'"
-  done < <(find "$root" -mindepth 1 -maxdepth 1 -user "$(id -un)" \( -type d -o \( -type f -size +50M \) \) -print0 2>/dev/null)
-done
-
-# 6. Report only: project material outside the one-clone layout, and low free space.
-[ -d "$HOME/uor-r4-local" ] && say "note   $HOME/uor-r4-local exists (retired 20 Oct 2026: upload what is worth keeping, then remove it)"
-origin_url=$(git -C "$REPO" remote get-url origin 2>/dev/null)
-find "$HOME" -maxdepth 3 -name .git -type d -not -path "$REPO/*" -not -path "$HOME/Library/*" -not -path "$HOME/.Trash/*" 2>/dev/null |
-  while read -r g; do
-    d=$(dirname "$g")
-    [ "$(git -C "$d" remote get-url origin 2>/dev/null)" = "$origin_url" ] && say "note   second clone of the repository at $d (the layout has one clone, $REPO)"
-  done
-git -C "$REPO" worktree list --porcelain | sed -n 's/^worktree //p' | while read -r wt; do
-  case "$wt" in "$REPO"|"$REPO"/.worktrees/*) ;; *) say "note   worktree outside $REPO/.worktrees: $wt" ;; esac
-done
-free_gb=$(df -g "$REPO" | awk 'NR==2{print $4}')
-[ "${free_gb:-0}" -lt 30 ] && say "WARN   only ${free_gb} GB free; keep at least 30 GB"
-
-# 5. Git and package caches
-if [ $APPLY = 1 ]; then
-  git -C "$REPO" gc --auto --quiet && say "done   git gc --auto"
-  if command -v uv >/dev/null; then UV_LOCK_TIMEOUT=5 uv cache prune >/dev/null 2>&1 && say "done   uv cache prune" || say "skip   uv cache prune (uv busy)"; fi
-else
-  say "would  git gc --auto; uv cache prune"
-fi
-
-say "== $([ $APPLY = 1 ] && echo freed || echo 'would free') about $((freed / 1024 / 1024)) GB; free now: $(df -h / | awk 'NR==2{print $4}')"
-[ $APPLY = 1 ] && [ -d "$TRASH" ] && say "   moved to the Trash: $TRASH (empty the Trash to reclaim it; until then it can be restored from there)"
-exit 0
+root=$(cd -P "$(dirname "$src")/../.." && pwd)
+# ~/.cargo/bin first: /opt/homebrew/bin/cargo shadows the Rust toolchain's cargo on this Mac.
+cargo=$HOME/.cargo/bin/cargo
+[ -x "$cargo" ] || cargo=cargo
+target=${CARGO_TARGET_DIR:-$root/target/hygiene}
+bin=$target/debug/uor-harness
+[ -x "$bin" ] || echo "uor-hygiene: building the harness into $target (first run only)" >&2
+# --locked: building the tool must never rewrite Cargo.lock in the checkout it tidies.
+"$cargo" build -q --locked --manifest-path "$root/Cargo.toml" -p uor-r4-harness --bin uor-harness \
+  --target-dir "$target"
+exec "$bin" hygiene "$@"

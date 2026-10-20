@@ -16,6 +16,7 @@ use uor_r4_harness::arenacompare;
 use uor_r4_harness::briefing;
 use uor_r4_harness::budget;
 use uor_r4_harness::githelp;
+use uor_r4_harness::hygiene;
 use uor_r4_harness::mistakes;
 use uor_r4_harness::multilab;
 use uor_r4_harness::notes;
@@ -161,6 +162,7 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 53] = [
 fn command_help(command: &str) -> Option<&'static str> {
     match command {
         "heartbeat" => Some(HEARTBEAT_HELP),
+        "hygiene" => Some(HYGIENE_HELP),
         _ => None,
     }
 }
@@ -198,6 +200,39 @@ WHAT IT WRITES:
 See docs/harness/README.md and docs/labs/session-goal.md.
 ";
 
+const HYGIENE_HELP: &str = "\
+uor-harness hygiene - keep the laptop lean (CHARTER section 5 item 9)
+
+USAGE:
+    scripts/storage/uor-hygiene [--apply] [--json]   the name the charter uses; runs this
+    uor-harness hygiene [--apply] [--json]
+
+A dry run unless --apply: it reports what it would remove and changes nothing.
+
+WHAT IT REMOVES, AND THE GUARD ON EACH:
+    1. Worktrees that are clean and merged into origin/main (or are the head of a merged
+       PR), and their local branch. Never a protected branch (docs/harness/branches.json),
+       a branch with an open PR, a locked worktree, one in use, or one holding gitignored
+       data other than target/.
+    2. Build folders (~/.cache/uor-*, <repo>/target/*, each worktree's target/) idle for
+       the idle window and not in use.
+    3. <repo>/local/<lab>/<topic>/ scratch with an UPLOADED marker, idle and not in use:
+       moved to the Trash. Without the marker it is only reported, after 7 idle days.
+    4. Direct children of /private/tmp you own (folders, files over 50 MB), idle and not
+       open: moved to the Trash.
+    5. git gc --auto, and uv cache prune when uv is idle.
+    6. Reported only: ~/uor-r4-local, second clones, worktrees outside <repo>/.worktrees/,
+       and free space under 30 GB.
+
+It never deletes lab data (scratch and temp go to the Trash), never empties the Trash,
+and never touches a folder holding a .keep-local marker.
+
+ENVIRONMENT:
+    UOR_REPO         the one clone (default ~/uor-r4)
+    UOR_LOCAL        the scratch root (default <repo>/local)
+    UOR_IDLE_HOURS   hours without a write before something is idle (default 24)
+";
+
 const USAGE: &str = "\
 uor-harness - the multi-lab research harness (Rust side of the port)
 
@@ -224,6 +259,9 @@ COMMANDS:
                 tier, so a check-in never dirties a working checkout (R10).
     git         Branch hygiene: clean-merged lists local branches already
                 merged into origin/main, --apply deletes the proven ones.
+    hygiene     Keep the laptop lean: merged worktrees, idle build folders,
+                uploaded scratch, stale temp. A dry run unless --apply; run it
+                as scripts/storage/uor-hygiene. `hygiene --help` lists the guards.
     multilab    The shared board: presence, claims, touch. `touch` refreshes
                 liveness for hooks WITHOUT changing what the lab is doing.
     mistakes    Lessons from what went wrong here before: list, find -f <files>.
@@ -451,6 +489,7 @@ fn main() -> ExitCode {
         Some("mistakes") => cmd_mistakes(&repo, &rest, json),
         Some("multilab") => cmd_multilab(&repo, &rest, json),
         Some("git") => cmd_git(&repo, &rest, json),
+        Some("hygiene") => cmd_hygiene(&rest, json),
         Some("prep") => cmd_prep(&repo, &rest, json),
         Some("prep-check") => cmd_prep_check(&repo, json),
         Some("registry") => cmd_registry(&repo, json),
@@ -500,6 +539,57 @@ fn main() -> ExitCode {
 
         None => {
             eprint!("{USAGE}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+/// `hygiene`: what `scripts/storage/uor-hygiene` runs. The repository is the one clone
+/// (`UOR_REPO`, default `~/uor-r4`) rather than the working directory, unless `--repo` names one:
+/// the script is run from anywhere, and a worktree is not the clone it tidies.
+fn cmd_hygiene(args: &[String], json: bool) -> ExitCode {
+    let mut apply = false;
+    let mut dry_run = false;
+    let mut repo: Option<PathBuf> = None;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--apply" => apply = true,
+            "--dry-run" => dry_run = true,
+            // Forwarded globals: `--repo` names the clone; `--lab` means nothing here.
+            "--repo" => {
+                repo = args.get(i + 1).map(PathBuf::from);
+                i += 1;
+            }
+            "--lab" => i += 1,
+            other => {
+                eprintln!("uor-harness hygiene: unexpected argument {other:?}\n\n{HYGIENE_HELP}");
+                return ExitCode::from(2);
+            }
+        }
+        i += 1;
+    }
+    if apply && dry_run {
+        eprintln!("uor-harness hygiene: --apply and --dry-run contradict each other");
+        return ExitCode::from(2);
+    }
+    let cfg = match hygiene::Config::from_env(apply, repo) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("uor-harness hygiene: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let sys = hygiene::LiveSystem::new(&cfg.repo);
+    match hygiene::run(&cfg, &sys, !json) {
+        Ok(report) => {
+            if json {
+                println!("{}", report.to_json());
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("uor-harness hygiene: {e}");
             ExitCode::from(2)
         }
     }

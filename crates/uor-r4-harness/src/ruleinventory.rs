@@ -208,7 +208,7 @@ pub fn to_json() -> String {
 /// `main`. **Deriving it from the binary is what stops that recurring** - adding a command to
 /// `main.rs` and forgetting this list is still possible, but the list now sits beside the rule
 /// inventory that has the same job, rather than in the file a port edits.
-pub const PORTED_COMMANDS: [&str; 26] = [
+pub const PORTED_COMMANDS: [&str; 27] = [
     // **`check` is the LAST to leave the delegated set.** It is the command labs trust most, and it
     // left only when `checkdispatch` existed - before that, a Rust `check` would have run the format
     // contract while a lab believed every rule had run.
@@ -240,6 +240,9 @@ pub const PORTED_COMMANDS: [&str; 26] = [
     // Declared so an unknown flag to `comment` is refused here rather than forwarded silently - the
     // gap `arena`, `panel` and `budget` still share.
     "comment",
+    // The Rust port of scripts/storage/uor-hygiene, which now only runs it. Declared so a mistyped
+    // flag is refused rather than silently ignored on the command that removes things.
+    "hygiene",
 ];
 
 #[cfg(test)]

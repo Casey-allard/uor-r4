@@ -42,7 +42,7 @@ Nothing project-related lives anywhere else: no `~/uor-r4-local`, no second clon
 
 ## After every merge
 
-Run `uor-hygiene`. It is a dry run and shows what it would remove. Then run `uor-hygiene --apply`. The script is being ported into the Rust harness; `uor-hygiene` stays the name to run.
+Run `uor-hygiene`. It is a dry run and shows what it would remove. Then run `uor-hygiene --apply`. The rules live in the Rust harness (`crates/uor-r4-harness/src/hygiene.rs`); the script builds the harness from the checkout it is in and runs it, and `uor-hygiene --help` lists every rule and its guard. It never removes a branch with an open PR or a folder holding a `.keep-local` marker, and it moves scratch and temp files to the Trash rather than deleting them.
 
 ## Weekly
 
