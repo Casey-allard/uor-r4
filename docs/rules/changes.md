@@ -14,6 +14,15 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 20 October 2026: roadmap issues and outside contributors
+
+**Decided by:** the owner (Casey), in chat, on the roadmap-plan review page.
+
+1. **Roadmap as issues.** The 73 gaps the documentation names (the stitching map, the transformer-to-geometry map, the mechanism board, the milestone issues, `NOW.md` and the open questions) each become one item file in `docs/roadmap/items/`, written as a planned issue. `cargo xtask roadmap` checks them, turns them into GitHub issues with milestones and labels, keeps a checklist of child issues on each milestone issue, and renders `docs/roadmap/README.md`. Every piece of work has an issue before it starts, a newly found gap is a new item file in a PR, and the PM runs `sync` and `render` weekly. The tooling freeze is lifted for this tool only. (Clause 5.3.)
+2. **Outside contributors and GPU work.** The owner's words: "I'm open to letting people run it on gpu's as long as they have the specs sent with it, not everyone will have a 5090, so we can let them submit whatever, but if they don't have the equivalent of our baseline we will just do another run after they submit their PR with the FIT". Outsiders may run GPU steps on their own GPU with the hardware specs attached; when the hardware is not equivalent to the RTX 5090 baseline, a maintainer re-runs the step under the same FIT. A CPU run is still not research compute. (Clause 5.3.)
+3. **Published inputs.** The inputs of the sealed S1.4 snap-parity record are public in the HF dataset `caseyallard/uor-r4-data` (`s1-4-parity-2026-09-29/`, with SHA256SUMS) so outside contributors can reproduce it.
+4. **Owner decisions as issues.** The owner's open decisions are issues labelled `owner-decision`, assigned to the owner.
+
 ## 20 October 2026: workspace reset
 
 **Decided by:** the owner (Casey), in chat, on the workspace-reset review page. Source: [`docs/labs/workspace.md`](../labs/workspace.md) and `archive/storage/README.md`.
@@ -57,7 +66,7 @@ The owner answered eight questions. One line each, with the clause it changed:
 | Item | State | Source |
 |---|---|---|
 | Charter in force | Yes, since 19 October 2026. | `CHARTER.md` |
-| Entries in this log | 2 | this page |
+| Entries in this log | 3 | this page |
 | Open owner questions on the charter | None recorded at adoption: all 16 rows marked "owner decision needed" in the working rule map were resolved by the eight answers. | `charter-diff-notes.md` |
 
 ## Go deeper

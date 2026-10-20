@@ -1,0 +1,43 @@
+---
+id: float-training-module
+title: Create the separate scanned D37 float training module
+milestone: infra
+area: architecture
+status: ready
+open_to: lab
+needs_gpu: false
+depends_on: [owner-decision-float-path-scope]
+---
+
+## Why it matters
+
+It is the prerequisite for W4 and for any trunk built from lawful parts (Stage 3). D37 makes floating point legal in offline training only, with a reported export gap. This module is the one place that float code may live. See [the geometric stack](../../mechanisms/geometric-stack.md) for the parts a trunk would be built from. No trunk of lawful parts has been trained yet.
+
+## What is missing
+
+D37 float training is legal but unused. It must live in a separate module with its own scanned allowlist entry (D37 item 6), never `crates/uor-r4-training`, which carries the historical dense and sigmoid stack and is listed as held. No such module exists, and the 24-kernel extract is qualified at finite controls only. The chief architect's review names the likeliest mistake: reusing `crates/uor-r4-training` because D29 counts presence and D37 asks for a separate allowlist entry. Its guard is a distinct crate plus a `uor-harness` check that the float build graph excludes `uor-r4-training`.
+
+## Done when
+
+A new module builds on the laptop with CPU tests, passes the banned-token scan under its own allowlist entry, and compiles the 24-kernel extract without crates/uor-r4-training.
+
+## How to start
+
+1. Confirm `owner-decision-float-path-scope` is recorded; the scope of the float path is the owner's call. Read D37 in `docs/integration/DECISIONS.md` (it points to CHARTER §3.7), then `docs/labs/course-correction-2026-10-18/audits/d37-reactivation-architect.md` (the W4 section and risk 1 at its line 179) and `docs/mechanisms/geometric-stack.md`.
+2. Post a design note on the issue first. It must give: the crate name and its place in the root `Cargo.toml` members list; the list of the 24 kernels in the extract and where their source comes from (start at `docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/geometric-stack.json`); how the extract enters the new crate with no dependency edge on `crates/uor-r4-training`; and why nothing in it needs softmax, squashing or dense matrix multiplication.
+3. Find how the banned-token scan keys its allowlist: `scripts/check_no_softmax.py`, `scripts/check_no_matmul.py` and `uor-harness ratchet d23 --list`. Add one entry for the new crate path and no other. Add no new Python.
+4. Write a failing test first. The guard from the architect's review is a CPU check that `~/.cargo/bin/cargo tree -p <new-crate>` lists no `uor-r4-training`. Add finite CPU controls for each kernel in the extract, so the module is qualified at the same finite level as before and no further.
+5. Build and check: `~/.cargo/bin/cargo build -p <new-crate>`, `~/.cargo/bin/cargo test -p <new-crate>`, `uor-harness ratchet d23 --list` and `uor-harness check`. Build CUDA kernels ahead of time with nvcc only; never NVRTC. GPU qualification is out of scope here.
+6. Open a PR that says `Closes #<this issue>`, or `References` if partial. No existing notebook covers the float path, so add one row on a new page `docs/research/notebook/<line>.md` in the format of `docs/research/notebook/README.md` and name the line in the design note.
+
+## Rules that apply
+
+- **Geometry only** (CHARTER §3.1–§3.3): every mechanism, training signal and fix comes from the project's geometry. No softmax or squashing anywhere, including losses, gradients, sampling and renamed or table forms. No dense matrix multiplication or GEMM, including wrappers and hand loops.
+- **Rust first** (§3.11): new code is Rust, and no new Python is added.
+- **Records** (§4.1, §5.6): each result is one row in its line's research notebook (`docs/research/notebook/<line>.md`). A negative result closes a configuration, never a mechanism.
+
+## Sources
+
+- [`docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md:112`](../../../docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md)
+- [`docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md:130`](../../../docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md)
+- [`docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md:53`](../../../docs/labs/repo-renormalization-2026-10-19/audit/synthesis.md)

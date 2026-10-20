@@ -55,12 +55,15 @@ Beyond the gate, write the way the project's evidence rules require
 - `NOT_RUN` is not a pass. A passing test shows code does what it says; it is not a trained capability.
 - Make no frontier, general-prose, reasoning or energy-saving claims. The model is pre-alpha.
 
-### What changes are welcome
+### Find something to work on
+
+The [roadmap](docs/roadmap/README.md) lists every known gap between today and the alpha, one planned issue each. Its "Start here" table lists the items anyone can take now, and the same items carry the `help wanted` label on GitHub. Each issue says why it matters, what is missing, when it is done, how to start and which rules apply. To take one, comment on the issue so it can be assigned to you, then open a PR that says `Closes #N` when the item is done, or `References #N` when it is partial. If you find a gap the roadmap does not list, open an issue and a maintainer will add it as an item.
+
+Also welcome:
 
 - **Documentation and claim-wording fixes**: a wrong number, a broken link, an unclear page. Open an issue first for anything larger than a typo.
-- **Reproducing a recorded result**, including a negative one, and reporting any discrepancy.
+- **Reproducing a recorded result**, including a negative one, and reporting any discrepancy. Public inputs are in the HF dataset [`caseyallard/uor-r4-data`](https://huggingface.co/datasets/caseyallard/uor-r4-data), with checksums.
 - **Tooling and CI** that do not touch the model path.
-- **Issues labelled `good first issue`**: ask on an issue and one will be seeded for you.
 
 Code is Rust first, building on the uor-foundation crates; do not add a Python model implementation or
 dependency ([charter](CHARTER.md) §3.11). Never commit model weights, corpora, binaries or secrets
@@ -77,9 +80,10 @@ Training is held. Any GPU training or evaluation, and any run a milestone claim 
 needs a one-page pre-registration, a review by someone who did not write it, and a release typed by
 the owner ([charter](CHARTER.md) §4.5, §5.1). The model must also obey the technical rules: geometry
 only, no softmax or other squashing function, no matrix multiplication, research compute on GPUs and
-an integer-only served model (§3). So please do not start model work until a maintainer says a slot
-is open. The [mechanism board](docs/mechanisms/README.md) and
-[open questions](docs/research/open-questions.md) show where help would matter.
+an integer-only served model (§3). Roadmap items marked "held" wait for that release; items marked
+"ready" can start now.
+
+**GPU runs by outside contributors (owner, 20 Oct 2026).** You may run a GPU step on your own GPU, never a CPU. Attach the hardware specs (GPU model and memory, driver and CUDA version, CPU and RAM) to the PR with the results. When your hardware is not equivalent to the project baseline, an RTX 5090, a maintainer re-runs the step on the baseline under the same FIT after you submit the PR, so a different GPU is not a reason to wait.
 
 ### How to send a change
 
