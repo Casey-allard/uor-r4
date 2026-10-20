@@ -6832,6 +6832,8 @@ maintainer sign-off.</li>
 <p>To restore one project, fetch its tar, check it against <code>tars.sha256</code>, unpack it, and check individual files against <code>files.sha256</code>. Each project README lists its own tar, size and checksum (<code>wasm-gemm-gnaf</code> has none: it is already in git). The folder sizes quoted on the project pages come from the audit inventory <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code>, which is an audit working file; <code>files.sha256</code> holds hashes only.</p>
 <h2 id="what-happens-to-the-code"><a class="header" href="#what-happens-to-the-code">What happens to the code</a></h2>
 <p>The plan for each project is the same: the source files named in that project's README are copied into its folder here, byte for byte, and the originals stay in the tar. Where the same file appears in two projects, one copy is kept and the other is recorded as a duplicate by hash (see <a href="projects/prime-analysis/index.html"><code>prime-analysis/</code></a> and <a href="projects/ai-research/index.html"><code>ai-research/</code></a>). Third-party and personal documents are not committed until the owner has reviewed their licensing or privacy. The folder inventory behind this plan is <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code> (research_projects).</p>
+<h2 id="compliance-scope"><a class="header" href="#compliance-scope">Compliance scope</a></h2>
+<p>Code under <code>projects/</code> is preserved research. The repository never runs it, and it is outside the model's compliance scope: the no-softmax, no-matmul and GPU-only rules (<a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md">D23</a>, D24, D25) govern the model, not these side projects.</p>
 <h2 id="go-deeper-40"><a class="header" href="#go-deeper-40">Go deeper</a></h2>
 <ul>
 <li><a href="projects/../CHARTER.html">Charter</a> for what counts as the model and what does not.</li>
@@ -6874,17 +6876,21 @@ maintainer sign-off.</li>
 </div>
 <h2 id="where-the-originals-are-1"><a class="header" href="#where-the-originals-are-1">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/ai-research.tar</code> (377,595,904 bytes, 3,335 files, SHA-256 <code>dbdb1fa6f09712b9faba207a0188d23d0a591c9773cdcbb7ec6aeb21b8ddf1ce</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>.</p>
-<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
-<p>Only source and short notes come in; all data stays in the store.</p>
+<h2 id="source-files"><a class="header" href="#source-files">Source files</a></h2>
+<p>The owner decided on 20 October 2026 that this project's code stays in the store, because it is too large to commit: about 10 MB of source in 809 files. This folder holds two things instead:</p>
 <ul>
-<li><code>README.md</code>, <code>PROJECT_MAP.md</code>, and the loose <code>*_note.md</code> files</li>
-<li><code>MUDBench/src/**</code> and <code>MUDBench/tests/**</code></li>
-<li><code>ai-router/**/*.py</code>, after removing files that duplicate <code>research-archives</code>, and <code>ai-router/preprints/paper1_arxiv_rebuild_v4/**/*.tex</code></li>
-<li><code>claims_to_evidence_table.md</code> files</li>
-<li><code>ramsey/**/*.py</code> and <code>deepermath/**/*.py</code></li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/ai-research/INDEX.tsv"><code>INDEX.tsv</code></a>, which lists every file with its size and SHA-256 (3,335 rows);</li>
+<li>the restore commands in <strong>Restore</strong> below.</li>
 </ul>
-<p>Stay in the store: all CSV, NPZ, PNG and PDF files, large run outputs under <code>router-research/</code>, preprint build artifacts, and <code>1608.04200v2.pdf</code> (a third-party arXiv paper).</p>
-<p>The owner's inventory suggests splitting this project into three folders later (router research, MUDBench, Ramsey). That is a proposal and is not decided; this page treats the snapshot as one project.</p>
+<p>The data (CSV, NPZ, images and PDFs) also stays in the store.</p>
+<h2 id="restore"><a class="header" href="#restore">Restore</a></h2>
+<p>The code is not committed here. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/ai-research/INDEX.tsv"><code>INDEX.tsv</code></a> lists all 3335 files of the project, one row each: <code>path&lt;TAB&gt;size&lt;TAB&gt;sha256</code>, with the path relative to the project folder, the size in bytes from the owner's local copy (20 October 2026) and the hash from <code>files.sha256</code>. To restore the files (the tar sits under <code>tars/</code> in the dataset; the two checksum files sit one level above it):</p>
+<pre><code class="language-sh">hf download caseyallard/uor-r4-store research-archive/2026-10-19/tars/ai-research.tar research-archive/2026-10-19/tars.sha256 research-archive/2026-10-19/files.sha256 --repo-type dataset --local-dir .
+cd research-archive/2026-10-19/tars
+grep ' ai-research.tar$' ../tars.sha256 | shasum -a 256 -c -
+tar xf ai-research.tar
+grep '  ./ai-research/' ../files.sha256 | shasum -a 256 -c --quiet -
+</code></pre>
 <h2 id="go-deeper-41"><a class="header" href="#go-deeper-41">Go deeper</a></h2>
 <ul>
 <li><a href="projects/ai-research/../prime-analysis/index.html">Prime Analysis</a>, which overlaps heavily with this snapshot.</li>
@@ -6924,11 +6930,8 @@ maintainer sign-off.</li>
 <p>Both papers are by Alex. The README states they are included "with the author's consent" and were contributed to the research archive by Casey Allard. The folder inventory flags that redistribution permission should be confirmed before the PDFs are committed to a public repository. Until the owner confirms it, the PDFs remain in the store and the folder holds the README and a hash-and-pointer file; once confirmed they can be committed with attribution (they total about 0.3 MB).</p>
 <h2 id="where-the-originals-are-2"><a class="header" href="#where-the-originals-are-2">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/msa.tar</code> (338,432 bytes, 3 files, SHA-256 <code>73be0abc4ff823d00b35bab447e4f1928b45a478f9479dec84efa9504f1dd0b0</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>.</p>
-<h2 id="source-files-brought-into-this-folder-1"><a class="header" href="#source-files-brought-into-this-folder-1">Source files brought into this folder</a></h2>
-<ul>
-<li><code>README.md</code> (the original, kept as written)</li>
-<li><code>Structural_Arithmetic.pdf</code> and <code>Modular_Structural_Arithmetic_MSA__A_Formal_System.pdf</code>, after the permission check above</li>
-</ul>
+<h2 id="code-27"><a class="header" href="#code-27">Code</a></h2>
+<p><code>code/</code> holds 1 file (777 bytes) copied byte for byte on 20 October 2026 from <code>research/msa</code> (backed up as <code>msa.tar</code>): the original <code>README.md</code>. The folder has no code; the two papers are PDFs and stay in the store pending the permission check above. No absolute paths, no licence file.</p>
 <h2 id="go-deeper-42"><a class="header" href="#go-deeper-42">Go deeper</a></h2>
 <ul>
 <li><a href="projects/msa/../index.html">Project index</a> for the other side projects.</li>
@@ -6980,13 +6983,21 @@ maintainer sign-off.</li>
 <p>The second row matters for the model: the program's own controls found no special link between its spectral peaks and the zeta zeros beyond their density. The model uses zeta zeros as fixed phases, which does not depend on that link, but it should not be sold as one.</p>
 <h2 id="where-the-originals-are-3"><a class="header" href="#where-the-originals-are-3">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/prime-analysis.tar</code> (566,219,264 bytes, 7,708 files, SHA-256 <code>25747ed4345b510f85187d119db17cc5b2ee01f2f8f791f8a952d9a44970f36e</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>. The project's own README names GitHub repositories and hosted pages under <code>Casey-allard</code>; no separate remote is recorded in the folder itself.</p>
-<h2 id="source-files-brought-into-this-folder-2"><a class="header" href="#source-files-brought-into-this-folder-2">Source files brought into this folder</a></h2>
+<h2 id="source-files-1"><a class="header" href="#source-files-1">Source files</a></h2>
+<p>The owner decided on 20 October 2026 that this project's code stays in the store, because it is too large to commit: about 46 MB of Python and TeX in 3,034 files. This folder holds two things instead:</p>
 <ul>
-<li><code>README.md</code> and the Markdown briefings and specifications in <code>research/</code> (the curated set; the rest stays in the store)</li>
-<li><code>research/theoretical-mathematics/**/*.py</code> and <code>**/*.tex</code>, except the 185 duplicates of <code>riemann-lean</code> and anything under <code>.vendor/</code>, <code>output/</code> or <code>external/</code> (vendored or regenerable third-party code, which is not committed before review)</li>
-<li><code>simulations/*.html</code> (six pages)</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/prime-analysis/INDEX.tsv"><code>INDEX.tsv</code></a>, which lists every file with its size and SHA-256 (7,708 rows);</li>
+<li>the restore commands in <strong>Restore</strong> below.</li>
 </ul>
-<p>Stay in the store: <code>images/</code>, <code>photos/</code>, PDFs, DOCX files and the manuscripts under <code>published-manuscripts/</code>. The slide decks may later serve as figures for the documentation, subject to the licensing review.</p>
+<p>The images, photos, PDFs, DOCX files and manuscripts also stay in the store.</p>
+<h2 id="restore-1"><a class="header" href="#restore-1">Restore</a></h2>
+<p>The code is not committed here. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/prime-analysis/INDEX.tsv"><code>INDEX.tsv</code></a> lists all 7708 files of the project, one row each: <code>path&lt;TAB&gt;size&lt;TAB&gt;sha256</code>, with the path relative to the project folder, the size in bytes from the owner's local copy (20 October 2026) and the hash from <code>files.sha256</code>. To restore the files (the tar sits under <code>tars/</code> in the dataset; the two checksum files sit one level above it):</p>
+<pre><code class="language-sh">hf download caseyallard/uor-r4-store research-archive/2026-10-19/tars/prime-analysis.tar research-archive/2026-10-19/tars.sha256 research-archive/2026-10-19/files.sha256 --repo-type dataset --local-dir .
+cd research-archive/2026-10-19/tars
+grep ' prime-analysis.tar$' ../tars.sha256 | shasum -a 256 -c -
+tar xf prime-analysis.tar
+grep '  ./prime-analysis/' ../files.sha256 | shasum -a 256 -c --quiet -
+</code></pre>
 <h2 id="go-deeper-43"><a class="header" href="#go-deeper-43">Go deeper</a></h2>
 <ul>
 <li><a href="projects/prime-analysis/../../geometry/primes-and-zeta.html">Primes and zeta</a> and the <a href="projects/prime-analysis/../../mechanisms/prime-zeta-codebook.html">prime/zeta codebook mechanism</a>.</li>
@@ -7028,16 +7039,10 @@ maintainer sign-off.</li>
 </div>
 <h2 id="where-the-originals-are-4"><a class="header" href="#where-the-originals-are-4">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/archives.tar</code> (103,435,776 bytes, 128 files, SHA-256 <code>2553007578044fa4f5f7000714a633b0693d7714f80cb999e0671e7ee71e78b2</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>. The tar is named <code>archives</code>; the folder here is called <code>research-archives</code>.</p>
-<h2 id="source-files-brought-into-this-folder-3"><a class="header" href="#source-files-brought-into-this-folder-3">Source files brought into this folder</a></h2>
-<p>Only scripts and notes come in, as an index of what existed:</p>
-<ul>
-<li><code>README.md</code></li>
-<li><code>gemini-dev/*.py</code></li>
-<li><code>gemini-dev/prime-router/**</code></li>
-<li><code>gemini-dev/scratch/**/*.md</code></li>
-<li>an index (a listing, not the files) of <code>gemini-dev/rust/**/*.rs</code>, since the current crates replace it</li>
-</ul>
-<p>Stay in the store: <code>wikitext2_proxy/</code>, the corpora, all NPZ and token files, the <code>extra_reading</code> PDFs and <code>zeta_data/</code>.</p>
+<h2 id="code-28"><a class="header" href="#code-28">Code</a></h2>
+<p><code>code/</code> holds 65 files (598,361 bytes) copied byte for byte on 20 October 2026 from <code>research/archives</code> (backed up as <code>archives.tar</code>): <code>README.md</code>, the <code>gemini-dev/*.py</code> tools and <code>run.sh</code>, <code>gemini-dev/prime-router/</code> (with its <code>tests/vv_test_vectors.json</code>, which the tests read), the Rust sources and <code>Cargo.toml</code> files under <code>gemini-dev/rust/</code>, and the <code>gemini-dev/scratch/</code> notes and scripts. Excluded: text corpora and logs (<code>.txt</code>, <code>.log</code>, <code>.tokens</code>), NPZ files, PDFs, HTML, CSS, YAML, a lock file, <code>.gitignore</code> files, the devcontainer JSON and four <code>wikitext2_proxy</code> metadata JSON files that no code reads.</p>
+<p><code>causal-continuation-2026-09-24/</code> holds 13 files (23,339 bytes) from <code>research/causal-continuation-2026-09-24</code> (backed up as <code>causal-continuation-2026-09-24.tar</code>): the scripts, plans and the three JSON plan/freeze files the scripts read. One <code>.txt</code> file stays in the store.</p>
+<p>No licence file or vendored third-party source was found. Absolute <code>/Users/</code> paths appear 24 times in 17 files of <code>code/</code> and 26 times in 9 files of <code>causal-continuation-2026-09-24/</code>; they are left unchanged because these are archive copies. The code is preserved research and is not run by this repository.</p>
 <h2 id="go-deeper-44"><a class="header" href="#go-deeper-44">Go deeper</a></h2>
 <ul>
 <li><a href="projects/research-archives/../ai-research/index.html">AI-Research</a>, the workspace that grew alongside this sandbox.</li>
@@ -7078,15 +7083,8 @@ maintainer sign-off.</li>
 <p>The words "formalization scaffold" in the README are the correct reading. Treat any numerical agreement as exploration.</p>
 <h2 id="where-the-originals-are-5"><a class="header" href="#where-the-originals-are-5">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/riemann-lean.tar</code> (7,279,616 bytes, 248 files, SHA-256 <code>45b4a16ed2fbca6d99595299b697e09569747d468de39bb94a33ee3307cd455d</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>.</p>
-<h2 id="source-files-brought-into-this-folder-4"><a class="header" href="#source-files-brought-into-this-folder-4">Source files brought into this folder</a></h2>
-<p>All of it is source and small, so nearly everything comes in:</p>
-<ul>
-<li><code>README.md</code></li>
-<li><code>formal/lean/**/*.lean</code>, <code>lakefile.toml</code>, <code>lake-manifest.json</code>, <code>lean-toolchain</code>, and the three <code>verify_formal_proof*.sh</code> scripts</li>
-<li>the 185 top-level <code>*.py</code> files</li>
-<li><code>data/**/*.json</code> (optional; moves to the store if the owner prefers)</li>
-</ul>
-<p>Not brought in: <code>.lake</code> build cache, <code>.olean</code> files, vendored Python binaries and <code>.npz</code> caches. They were already excluded from the original and can be rebuilt.</p>
+<h2 id="code-29"><a class="header" href="#code-29">Code</a></h2>
+<p><code>code/</code> holds 234 files (2,102,410 bytes) copied byte for byte on 20 October 2026 from <code>research/riemann-lean</code> (backed up as <code>riemann-lean.tar</code>): the Lean sources under <code>formal/lean/</code> with <code>lakefile.toml</code>, <code>lake-manifest.json</code> and <code>lean-toolchain</code>, the top-level Python probes and shell scripts, the Markdown notes, and the five <code>data/*.json</code> files the probes read (all under 64 KB). Excluded: 14 data JSON files (11 that no code reads, one between 64 KB and 512 KB, and two zeta-zero tables over 512 KB), and every file under <code>.lake/</code>. No licence file or vendored third-party source was found. One file contains 2 absolute <code>/Users/</code> paths, left unchanged. The code is preserved research and is not run by this repository.</p>
 <h2 id="go-deeper-45"><a class="header" href="#go-deeper-45">Go deeper</a></h2>
 <ul>
 <li><a href="projects/riemann-lean/../prime-analysis/index.html">Prime Analysis</a> for the manuscripts and the theory notes behind this scaffold.</li>
@@ -7118,7 +7116,7 @@ maintainer sign-off.</li>
 <p>Also kept: <code>provenance.json</code> (original paths, byte counts and hashes) and a plain-text extract of the mathematics. The scripts in the HTML file were not executed during import, and its embedded fixture claims were not re-run (<code>research/spiralcore-v68/README.md</code>).</p>
 <h2 id="how-the-pieces-fit"><a class="header" href="#how-the-pieces-fit">How the pieces fit</a></h2>
 <p>The HTML reference defines a fixed graph of rotations over the 16 roots of one E8 anchor orbit, and a search that returns an ordered history between two roots. The model's SpiralCore/FBS mechanism follows a related convention (the v63 reference, implemented in <code>crates/uor-r4-core/src/spiralcore_operator.rs</code>, and a hosted v69 file reviewed on 9 October), not this v68 file. The idea is the same family: an output block picks one stored atom and moves it along a short path of signed coordinate swaps (see <a href="projects/spiralcore/../../mechanisms/spiralcore-fbs.html">the mechanism page</a> and the <a href="projects/spiralcore/../../geometry/spiralcore.html">geometry explainer</a>). The wire transport does not use any of this yet. Its framing is plain length-prefixed zlib, chosen for interoperability.</p>
-<h2 id="code-27"><a class="header" href="#code-27">Code</a></h2>
+<h2 id="code-30"><a class="header" href="#code-30">Code</a></h2>
 <p>The wire transport code lives in <a href="https://github.com/UOR-Foundation/uor-r4/tree/main/projects/spiralcore/wire"><code>wire/</code></a>. It is standalone and is not a member of the repository workspace.</p>
 <h2 id="where-it-stands-26"><a class="header" href="#where-it-stands-26">Where it stands</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Claim</th><th>Kind</th><th>Evidence</th></tr></thead><tbody>
@@ -7134,11 +7132,13 @@ maintainer sign-off.</li>
 <p>Limits stated by the project itself: loopback numbers depend on machine load; the interposer is macOS and Linux only, numeric IPv4 only, with blocking connect; the residual cost measured is compression CPU, not framing copies or threads.</p>
 <h2 id="where-the-originals-are-6"><a class="header" href="#where-the-originals-are-6">Where the originals are</a></h2>
 <p>The two references were part of the owner's untracked <code>research/</code> folder. The full original tree is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/spiralcore-v68.tar</code> (3,796,480 bytes, 5 files, SHA-256 <code>dfcb839d896d47d5eda0afe646da72331a03b080acfa55607bf331e9f8091a05</code>). Every file inside is listed in <code>files.sha256</code> in the parent folder, and the tar is listed in <code>tars.sha256</code> there. Copies of the originals also remain in the owner's Downloads folder.</p>
-<h2 id="source-files-brought-into-this-folder-5"><a class="header" href="#source-files-brought-into-this-folder-5">Source files brought into this folder</a></h2>
+<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
 <ul>
 <li>From the former <code>spiralcore-base/wire</code>, now <a href="https://github.com/UOR-Foundation/uor-r4/tree/main/projects/spiralcore/wire"><code>wire/</code></a>: all 82 files (tools, <code>crates/wire-rs</code>, <code>docs</code>, bounded <code>evidence</code>), unchanged.</li>
 <li>From <code>research/spiralcore-v68</code>: <code>README.md</code>, <code>provenance.json</code>, the mathematics extract, the v68 HTML (placed under <code>reference/</code>) and the FBS PDF (about 3 MB; stays in the store if the size policy says so, with its hash recorded here).</li>
 </ul>
+<h2 id="code-31"><a class="header" href="#code-31">Code</a></h2>
+<p><code>v68/</code> holds 1 file (8,080 bytes) copied byte for byte on 20 October 2026 from <code>research/spiralcore-v68</code> (backed up as <code>spiralcore-v68.tar</code>): its <code>README.md</code>. That folder has no code. The HTML reference (about 1 MB) and the FBS PDF are over the 512 KB limit or not source, the mathematics extract is plain text, and <code>provenance.json</code> is not read by any code, so all four stay in the store and are checked by <code>files.sha256</code>. No absolute paths, no licence file.</p>
 <h2 id="go-deeper-46"><a class="header" href="#go-deeper-46">Go deeper</a></h2>
 <ul>
 <li>Records: <code>docs/labs/spiralcore-wire-side-2026-10-18/README.md</code>, <code>docs/labs/wire-counter-aggregation-2026-10-18/README.md</code>, <code>docs/labs/wire-matrix-repro-2026-10-18/README.md</code>, <code>docs/labs/uorobj01-conformance-2026-10-18/README.md</code>.</li>
@@ -7161,7 +7161,7 @@ maintainer sign-off.</li>
 <h2 id="how-it-works-29"><a class="header" href="#how-it-works-29">How it works</a></h2>
 <p>The project defines a cost vector with 36 charged coordinates and a canonical score, the weight-one sum of those coordinates. It models the binary format and the step relation of a subset of WebAssembly, and shows that its cost instrumentation does not change what a program computes. One key fact: each coordinate is at most the score, so every set of programs below a given score is finite. That lets a minimum exist.</p>
 <p>With that, the project proves that <strong>if</strong> some valid program exists, a lowest-scoring one exists and satisfies the optimality statement. What is left is not a bound but an exhibition: build one concrete program with proofs that it qualifies, then show the committed binary is the program the minimum selects.</p>
-<h2 id="code-28"><a class="header" href="#code-28">Code</a></h2>
+<h2 id="code-32"><a class="header" href="#code-32">Code</a></h2>
 <p>The Lean project lives in <a href="https://github.com/UOR-Foundation/uor-r4/tree/main/projects/wasm-gemm-gnaf/proof"><code>proof/</code></a>. The <code>gnaf-*</code> commands of <code>xtask</code> read it by path.</p>
 <h2 id="where-it-stands-27"><a class="header" href="#where-it-stands-27">Where it stands</a></h2>
 <p>All rows come from the project's own README and conformance table (<code>proof/README.md</code>, <code>CONFORMANCE.md</code>, <code>CERTIFICATION.md</code>). They are not re-run for this page.</p>
@@ -7182,7 +7182,7 @@ maintainer sign-off.</li>
 <p>The root repository's <code>xtask</code> tool has <code>gnaf-*</code> subcommands (<code>xtask/src/gnaf_*.rs</code>, six files on main) that read this tree, and about 26 documents mention it. Those files move together with the project. The repository's manually dispatched workflow <code>formal_verification.yml</code> (not scheduled) runs the Kani model checker over a different crate, <code>uor-r4-proof-model</code>, not this Lean tree, and no CI step builds the Lean project (folder audit, <code>docs/labs/repo-renormalization-2026-10-19/audit/folders.json</code>). Do not read a green CI run as a check on these proofs.</p>
 <h2 id="where-the-originals-are-7"><a class="header" href="#where-the-originals-are-7">Where the originals are</a></h2>
 <p>This project is already tracked in git, so it has no Hugging Face tar. It is not part of the 19 October backup of the untracked <code>research/</code> folder. The source is preserved by <code>origin/main</code> itself.</p>
-<h2 id="source-files-brought-into-this-folder-6"><a class="header" href="#source-files-brought-into-this-folder-6">Source files brought into this folder</a></h2>
+<h2 id="source-files-brought-into-this-folder-1"><a class="header" href="#source-files-brought-into-this-folder-1">Source files brought into this folder</a></h2>
 <p>All 141 files move with their history by <code>git mv</code>, together with the matching <code>xtask/src/gnaf_*.rs</code> subcommands and the <code>xtask</code> entries that reference the old path. No file is dropped.</p>
 <h2 id="go-deeper-47"><a class="header" href="#go-deeper-47">Go deeper</a></h2>
 <ul>

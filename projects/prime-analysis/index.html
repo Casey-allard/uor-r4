@@ -223,13 +223,21 @@
 <p>The second row matters for the model: the program's own controls found no special link between its spectral peaks and the zeta zeros beyond their density. The model uses zeta zeros as fixed phases, which does not depend on that link, but it should not be sold as one.</p>
 <h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/prime-analysis.tar</code> (566,219,264 bytes, 7,708 files, SHA-256 <code>25747ed4345b510f85187d119db17cc5b2ee01f2f8f791f8a952d9a44970f36e</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>. The project's own README names GitHub repositories and hosted pages under <code>Casey-allard</code>; no separate remote is recorded in the folder itself.</p>
-<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
+<h2 id="source-files"><a class="header" href="#source-files">Source files</a></h2>
+<p>The owner decided on 20 October 2026 that this project's code stays in the store, because it is too large to commit: about 46 MB of Python and TeX in 3,034 files. This folder holds two things instead:</p>
 <ul>
-<li><code>README.md</code> and the Markdown briefings and specifications in <code>research/</code> (the curated set; the rest stays in the store)</li>
-<li><code>research/theoretical-mathematics/**/*.py</code> and <code>**/*.tex</code>, except the 185 duplicates of <code>riemann-lean</code> and anything under <code>.vendor/</code>, <code>output/</code> or <code>external/</code> (vendored or regenerable third-party code, which is not committed before review)</li>
-<li><code>simulations/*.html</code> (six pages)</li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/prime-analysis/INDEX.tsv"><code>INDEX.tsv</code></a>, which lists every file with its size and SHA-256 (7,708 rows);</li>
+<li>the restore commands in <strong>Restore</strong> below.</li>
 </ul>
-<p>Stay in the store: <code>images/</code>, <code>photos/</code>, PDFs, DOCX files and the manuscripts under <code>published-manuscripts/</code>. The slide decks may later serve as figures for the documentation, subject to the licensing review.</p>
+<p>The images, photos, PDFs, DOCX files and manuscripts also stay in the store.</p>
+<h2 id="restore"><a class="header" href="#restore">Restore</a></h2>
+<p>The code is not committed here. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/prime-analysis/INDEX.tsv"><code>INDEX.tsv</code></a> lists all 7708 files of the project, one row each: <code>path&lt;TAB&gt;size&lt;TAB&gt;sha256</code>, with the path relative to the project folder, the size in bytes from the owner's local copy (20 October 2026) and the hash from <code>files.sha256</code>. To restore the files (the tar sits under <code>tars/</code> in the dataset; the two checksum files sit one level above it):</p>
+<pre><code class="language-sh">hf download caseyallard/uor-r4-store research-archive/2026-10-19/tars/prime-analysis.tar research-archive/2026-10-19/tars.sha256 research-archive/2026-10-19/files.sha256 --repo-type dataset --local-dir .
+cd research-archive/2026-10-19/tars
+grep ' prime-analysis.tar$' ../tars.sha256 | shasum -a 256 -c -
+tar xf prime-analysis.tar
+grep '  ./prime-analysis/' ../files.sha256 | shasum -a 256 -c --quiet -
+</code></pre>
 <h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
 <ul>
 <li><a href="../../geometry/primes-and-zeta.html">Primes and zeta</a> and the <a href="../../mechanisms/prime-zeta-codebook.html">prime/zeta codebook mechanism</a>.</li>

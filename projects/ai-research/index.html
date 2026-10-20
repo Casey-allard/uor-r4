@@ -213,17 +213,21 @@
 </div>
 <h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/ai-research.tar</code> (377,595,904 bytes, 3,335 files, SHA-256 <code>dbdb1fa6f09712b9faba207a0188d23d0a591c9773cdcbb7ec6aeb21b8ddf1ce</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>.</p>
-<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
-<p>Only source and short notes come in; all data stays in the store.</p>
+<h2 id="source-files"><a class="header" href="#source-files">Source files</a></h2>
+<p>The owner decided on 20 October 2026 that this project's code stays in the store, because it is too large to commit: about 10 MB of source in 809 files. This folder holds two things instead:</p>
 <ul>
-<li><code>README.md</code>, <code>PROJECT_MAP.md</code>, and the loose <code>*_note.md</code> files</li>
-<li><code>MUDBench/src/**</code> and <code>MUDBench/tests/**</code></li>
-<li><code>ai-router/**/*.py</code>, after removing files that duplicate <code>research-archives</code>, and <code>ai-router/preprints/paper1_arxiv_rebuild_v4/**/*.tex</code></li>
-<li><code>claims_to_evidence_table.md</code> files</li>
-<li><code>ramsey/**/*.py</code> and <code>deepermath/**/*.py</code></li>
+<li><a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/ai-research/INDEX.tsv"><code>INDEX.tsv</code></a>, which lists every file with its size and SHA-256 (3,335 rows);</li>
+<li>the restore commands in <strong>Restore</strong> below.</li>
 </ul>
-<p>Stay in the store: all CSV, NPZ, PNG and PDF files, large run outputs under <code>router-research/</code>, preprint build artifacts, and <code>1608.04200v2.pdf</code> (a third-party arXiv paper).</p>
-<p>The owner's inventory suggests splitting this project into three folders later (router research, MUDBench, Ramsey). That is a proposal and is not decided; this page treats the snapshot as one project.</p>
+<p>The data (CSV, NPZ, images and PDFs) also stays in the store.</p>
+<h2 id="restore"><a class="header" href="#restore">Restore</a></h2>
+<p>The code is not committed here. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/projects/ai-research/INDEX.tsv"><code>INDEX.tsv</code></a> lists all 3335 files of the project, one row each: <code>path&lt;TAB&gt;size&lt;TAB&gt;sha256</code>, with the path relative to the project folder, the size in bytes from the owner's local copy (20 October 2026) and the hash from <code>files.sha256</code>. To restore the files (the tar sits under <code>tars/</code> in the dataset; the two checksum files sit one level above it):</p>
+<pre><code class="language-sh">hf download caseyallard/uor-r4-store research-archive/2026-10-19/tars/ai-research.tar research-archive/2026-10-19/tars.sha256 research-archive/2026-10-19/files.sha256 --repo-type dataset --local-dir .
+cd research-archive/2026-10-19/tars
+grep ' ai-research.tar$' ../tars.sha256 | shasum -a 256 -c -
+tar xf ai-research.tar
+grep '  ./ai-research/' ../files.sha256 | shasum -a 256 -c --quiet -
+</code></pre>
 <h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
 <ul>
 <li><a href="../prime-analysis/index.html">Prime Analysis</a>, which overlaps heavily with this snapshot.</li>

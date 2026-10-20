@@ -211,15 +211,8 @@
 <p>The words "formalization scaffold" in the README are the correct reading. Treat any numerical agreement as exploration.</p>
 <h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/riemann-lean.tar</code> (7,279,616 bytes, 248 files, SHA-256 <code>45b4a16ed2fbca6d99595299b697e09569747d468de39bb94a33ee3307cd455d</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>.</p>
-<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
-<p>All of it is source and small, so nearly everything comes in:</p>
-<ul>
-<li><code>README.md</code></li>
-<li><code>formal/lean/**/*.lean</code>, <code>lakefile.toml</code>, <code>lake-manifest.json</code>, <code>lean-toolchain</code>, and the three <code>verify_formal_proof*.sh</code> scripts</li>
-<li>the 185 top-level <code>*.py</code> files</li>
-<li><code>data/**/*.json</code> (optional; moves to the store if the owner prefers)</li>
-</ul>
-<p>Not brought in: <code>.lake</code> build cache, <code>.olean</code> files, vendored Python binaries and <code>.npz</code> caches. They were already excluded from the original and can be rebuilt.</p>
+<h2 id="code"><a class="header" href="#code">Code</a></h2>
+<p><code>code/</code> holds 234 files (2,102,410 bytes) copied byte for byte on 20 October 2026 from <code>research/riemann-lean</code> (backed up as <code>riemann-lean.tar</code>): the Lean sources under <code>formal/lean/</code> with <code>lakefile.toml</code>, <code>lake-manifest.json</code> and <code>lean-toolchain</code>, the top-level Python probes and shell scripts, the Markdown notes, and the five <code>data/*.json</code> files the probes read (all under 64 KB). Excluded: 14 data JSON files (11 that no code reads, one between 64 KB and 512 KB, and two zeta-zero tables over 512 KB), and every file under <code>.lake/</code>. No licence file or vendored third-party source was found. One file contains 2 absolute <code>/Users/</code> paths, left unchanged. The code is preserved research and is not run by this repository.</p>
 <h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
 <ul>
 <li><a href="../prime-analysis/index.html">Prime Analysis</a> for the manuscripts and the theory notes behind this scaffold.</li>

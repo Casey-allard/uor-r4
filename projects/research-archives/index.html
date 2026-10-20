@@ -213,16 +213,10 @@
 </div>
 <h2 id="where-the-originals-are"><a class="header" href="#where-the-originals-are">Where the originals are</a></h2>
 <p>The full project is preserved in the private Hugging Face dataset <code>caseyallard/uor-r4-store</code> under <code>research-archive/2026-10-19/tars/archives.tar</code> (103,435,776 bytes, 128 files, SHA-256 <code>2553007578044fa4f5f7000714a633b0693d7714f80cb999e0671e7ee71e78b2</code>). Every file inside is listed in <code>files.sha256</code>, and the tar is listed in <code>tars.sha256</code>. The tar is named <code>archives</code>; the folder here is called <code>research-archives</code>.</p>
-<h2 id="source-files-brought-into-this-folder"><a class="header" href="#source-files-brought-into-this-folder">Source files brought into this folder</a></h2>
-<p>Only scripts and notes come in, as an index of what existed:</p>
-<ul>
-<li><code>README.md</code></li>
-<li><code>gemini-dev/*.py</code></li>
-<li><code>gemini-dev/prime-router/**</code></li>
-<li><code>gemini-dev/scratch/**/*.md</code></li>
-<li>an index (a listing, not the files) of <code>gemini-dev/rust/**/*.rs</code>, since the current crates replace it</li>
-</ul>
-<p>Stay in the store: <code>wikitext2_proxy/</code>, the corpora, all NPZ and token files, the <code>extra_reading</code> PDFs and <code>zeta_data/</code>.</p>
+<h2 id="code"><a class="header" href="#code">Code</a></h2>
+<p><code>code/</code> holds 65 files (598,361 bytes) copied byte for byte on 20 October 2026 from <code>research/archives</code> (backed up as <code>archives.tar</code>): <code>README.md</code>, the <code>gemini-dev/*.py</code> tools and <code>run.sh</code>, <code>gemini-dev/prime-router/</code> (with its <code>tests/vv_test_vectors.json</code>, which the tests read), the Rust sources and <code>Cargo.toml</code> files under <code>gemini-dev/rust/</code>, and the <code>gemini-dev/scratch/</code> notes and scripts. Excluded: text corpora and logs (<code>.txt</code>, <code>.log</code>, <code>.tokens</code>), NPZ files, PDFs, HTML, CSS, YAML, a lock file, <code>.gitignore</code> files, the devcontainer JSON and four <code>wikitext2_proxy</code> metadata JSON files that no code reads.</p>
+<p><code>causal-continuation-2026-09-24/</code> holds 13 files (23,339 bytes) from <code>research/causal-continuation-2026-09-24</code> (backed up as <code>causal-continuation-2026-09-24.tar</code>): the scripts, plans and the three JSON plan/freeze files the scripts read. One <code>.txt</code> file stays in the store.</p>
+<p>No licence file or vendored third-party source was found. Absolute <code>/Users/</code> paths appear 24 times in 17 files of <code>code/</code> and 26 times in 9 files of <code>causal-continuation-2026-09-24/</code>; they are left unchanged because these are archive copies. The code is preserved research and is not run by this repository.</p>
 <h2 id="go-deeper"><a class="header" href="#go-deeper">Go deeper</a></h2>
 <ul>
 <li><a href="../ai-research/index.html">AI-Research</a>, the workspace that grew alongside this sandbox.</li>
