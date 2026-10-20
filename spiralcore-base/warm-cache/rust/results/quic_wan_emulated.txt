@@ -1,0 +1,6 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running `../target/debug/quic_wan_emulated 60`
+delay_ms,size,cold_ms,warm_ms,repair_ms,warm_bytes,repair_bytes
+60,4096,63.1,63.1,62.4,134,4238
+60,65536,66.6,65.3,74.9,134,4238
+60,1048576,159.5,122.1,118.1,134,4238

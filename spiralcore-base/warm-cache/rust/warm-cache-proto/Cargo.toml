@@ -1,0 +1,14 @@
+[package]
+name = "warm-cache-proto"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal four-oscillator Kuramoto time + warm-cache network prototype"
+default-run = "warm-cache-proto"
+
+[dependencies]
+sha2 = "0.10"
+quinn = "0.11"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time"] }
+
+[workspace]

@@ -1,0 +1,49 @@
+WAN TCP-over-SSH test
+Pod: vast-56894372 180.189.55.43 (Vast.ai, 1x RTX 5090, bootstrap ok)
+Transport: TCP over SSH -L tunnel (Vast exposes only port 22; direct QUIC UDP blocked)
+Server: target/release/warm_wan_server 127.0.0.1:39411 (persistent; one cold seed, repeated warm frames)
+Client: target/debug/warm_wan_client (one cold seed, 3-5 warm sends)
+Each warm frame is 134 B identity or 4,238 B one-page repair; server output hash matched client payload for every case.
+
+identity (zero payload, 134 B wire)
+size,iter,warm_ms,wire_bytes,payload_bytes,repairs
+4096,1,211.5,134,0,0
+4096,2,208.8,134,0,0
+4096,3,209.3,134,0,0
+1048576,1,211.3,134,0,0
+1048576,2,211.3,134,0,0
+1048576,3,215.7,134,0,0
+4194304,1,217.3,134,0,0
+4194304,2,213.9,134,0,0
+4194304,3,210.6,134,0,0
+
+one-page repair (4,238 B wire)
+4096,1,265.7,4238,4104,1
+4096,2,207.6,4238,4104,1
+4096,3,212.7,4238,4104,1
+4096,4,206.1,4238,4104,1
+4096,5,208.2,4238,4104,1
+65536,1,208.6,4238,4104,1
+65536,2,207.9,4238,4104,1
+65536,3,209.5,4238,4104,1
+1048576,1,221.6,4238,4104,1
+1048576,2,216.4,4238,4104,1
+1048576,3,209.2,4238,4104,1
+4194304,1,262.8,4238,4104,1
+4194304,2,218.5,4238,4104,1
+4194304,3,214.6,4238,4104,1
+
+total client wall time including cold seed upload:
+4K identity 1178.4 ms (seed+3 warm)
+4K repair 1641.1 ms (seed+5 warm)
+64K repair 1078.9 ms (seed+3 warm)
+1M identity 1433.3 ms (seed+3 warm)
+1M repair 1684.1 ms (seed+3 warm)
+4M identity 2824.4 ms (seed+3 warm)
+4M repair 2517.1 ms (seed+3 warm)
+
+Output hashes matched:
+4K cba9a0e354d6... / 4096 identity f1a9116e...
+64K 790dedba...
+1M 935a029a... / identity 470952a0...
+4M 597cd5ef... / identity eeda19cb...

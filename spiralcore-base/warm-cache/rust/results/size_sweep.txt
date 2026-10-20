@@ -1,0 +1,10 @@
+   Compiling warm-cache-proto v0.1.0 (/Users/casey.allard/uor-r4/local/warm-cache-network-20261019/rust/warm-cache-proto)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running `../target/debug/size_sweep`
+size,cold_bytes,pages,manifest_bytes,warm_identity_bytes,warm_payload,repair_bytes,repair_payload
+4096,4132,1,121,124,0,4228,4104
+65536,65572,16,601,124,0,4228,4104
+262144,262180,64,2137,124,0,4228,4104
+1048576,1048612,256,8377,124,0,4228,4104
+4194304,4194340,1024,33337,124,0,4228,4104
+16777216,16777252,4096,133177,124,0,4228,4104

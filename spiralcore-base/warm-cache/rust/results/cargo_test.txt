@@ -1,0 +1,108 @@
+   Compiling warm-cache-proto v0.1.0 (/Users/casey.allard/uor-r4/local/warm-cache-network-20261019/rust/warm-cache-proto)
+warning: function `write_u32` is never used
+  --> src/bin/warm_recv.rs:16:4
+   |
+16 | fn write_u32(s: &mut std::net::TcpStream, n: u32) -> std::io::Result<()> { s.write_all(&n.to_le_bytes()) }
+   |    ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `warm-cache-proto` (bin "warm_recv" test) generated 1 warning
+warning: `warm-cache-proto` (bin "warm_recv") generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+     Running unittests src/lib.rs (../target/debug/deps/warm_cache_proto-3fadb1909897e367)
+
+running 30 tests
+test calibration::tests::calibration_is_derived_from_offsets ... ok
+test replay::tests::ring_is_bounded_and_keeps_latest ... ok
+test mux::tests::control_preempts_bulk_and_fifo_within_class ... ok
+test mux::tests::frame_roundtrip_and_wire_len ... ok
+test replay::tests::ring_replay_is_exact_for_retained_window ... ok
+test tests::calibrated_header_uses_derived_phase_bits ... ok
+test tests::forward_reverse_forward_reverse_replay_is_exact ... ok
+test tests::content_mismatch_is_detected ... ok
+test tests::content_and_temporal_roots_split ... ok
+test tests::headers_are_forward_monotonic ... ok
+test tests::identical_warm_is_zero_payload ... ok
+test session::tests::session_page_repair ... ok
+test tests::page_merkle_proofs_verify_and_tamper_fails ... ok
+test session::tests::session_sends_and_receives_warm ... ok
+test tests::four_oscillators_synchronize ... ok
+test tests::patch_warm_moves_only_corrections ... ok
+test tests::one_cold_is_much_larger_than_two_warm_frames ... ok
+test tests::replay_is_exact ... ok
+test tests::paired_witness_separates_pass ... ok
+test tests::seed_mismatch_is_detected ... ok
+test tests::one_cold_many_warm ... ok
+test wire::tests::bad_magic_and_payload_length_are_rejected ... ok
+test tests::stale_clock_is_clock_mismatch_not_content ... ok
+test manifest::tests::manifest_roundtrip_and_groups ... ok
+test wire::tests::identity_wire_roundtrip ... ok
+test wire::tests::patch_and_page_repair_wire_roundtrip ... ok
+test tests::page_repair_moves_one_page_not_the_seed ... ok
+test tests::multi_page_repair_moves_only_changed_pages ... ok
+test wire::tests::group_repair_frame_contains_and_verifies_group_proof ... ok
+test tests::warm_frame_size_is_constant_across_seed_sizes ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
+
+     Running unittests src/bin/loopback.rs (../target/debug/deps/loopback-4d787e2f255a4ff4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/quic_loopback.rs (../target/debug/deps/quic_loopback-3129b8cbe6e53aa9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/quic_wan.rs (../target/debug/deps/quic_wan-2c431d30e9954c91)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/quic_wan_emulated.rs (../target/debug/deps/quic_wan_emulated-e24129352a4fc988)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/size_sweep.rs (../target/debug/deps/size_sweep-940088f50ecef8bf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (../target/debug/deps/warm_cache_proto-27bcd38604cb6057)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/warm_recv.rs (../target/debug/deps/warm_recv-96ebc438fea4c4c5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/warm_send.rs (../target/debug/deps/warm_send-290f2fc97cb914a1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/wirewarm_composition.rs (../target/debug/deps/wirewarm_composition-06e5353cee5faf8a)
+
+running 1 test
+test warm_wire_composes_with_existing_raw_frame ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+   Doc-tests warm_cache_proto
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

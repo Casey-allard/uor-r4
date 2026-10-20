@@ -1,3 +1,19 @@
+## 2026-10-20 — SpiralCore warm-cache network side exploration (deepseek)
+
+Delivered a standalone warm-cache network prototype under
+[spiralcore-base/warm-cache](../../spiralcore-base/warm-cache/README.md):
+FFFF four-oscillator Kuramoto time, 4 KiB page/group Merkle manifests, content
+vs temporal roots, WarmWire/WGR1 frames, WMX1 mux, WarmSession library, CLI,
+TCP/QUIC loopback, QUIC WAN harness and a real remote TCP/SSH WAN campaign.
+Local tests: 30 in the committed crate (31 including the local wire-warm
+composition test). Warm identity is 134 B on the wire (124 B frame); one-page
+repair is 4,238 B wire; on the remote pod identity was ~209-217 ms and repair
+~206-263 ms for 4 KiB to 4 MiB with exact hashes. QUIC direct WAN was blocked
+by the pod's SSH-only port policy. Record:
+[spiralcore-warm-cache-network-2026-10-20](../labs/spiralcore-warm-cache-network-2026-10-20/README.md).
+**Next:** reviewed choice of warm body in the wire-warm crate, transparent
+sidecar packaging, and a UDP-reachable QUIC WAN run.
+
 ## 2026-10-20 — NOW/ROADMAP yield to CHARTER release scope and retain the A8 source binding (codex)
 
 NOW yields to CHARTER; NOW/ROADMAP state one Casey-typed release per
@@ -62,6 +78,7 @@ Second unit of the owner-directed reorganization. It adds four `xtask` tasks tha
 
 A full rehearsal in a throwaway clone moved 8,733 files, all as R100 renames, with 0 archived bytes changed and 0 new broken links in live content. 365 permanent breaks remain, all inside archived records, pinned FIT sheets or 18–19 Oct records. Nothing moves in this unit. [Record](../labs/repo-renormalization-2026-10-19/README.md).
 **Next:** freeze notice on #2029, then the cutover PR.
+
 
 ## 2026-10-19 — Repository renormalization: link, inventory, move and archive-verify tooling (claude)
 
