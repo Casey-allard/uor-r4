@@ -64,7 +64,7 @@ rolling "brain state" to one of 16 scale windows by norm, indexes sentences
 into per-identity corpus manifolds, retrieves by prime-overlap + cosine
 resonance, and retains a historical geometric Markov baseline (bigram/trigram
 transitions). It ships thought-stream visualization for the browser dashboard
-(`index.html`, `geometric_prime_router_webapp.html` at the repo root).
+(`index.html`, `geometric_prime_router_webapp.html` in `web/studio/`).
 
 The active [geometric intelligence programme](../../docs/geometric_intelligence_programme.md)
 may reuse the identity state, content-bearing memory, retrieval, R⁴/Hopf math,

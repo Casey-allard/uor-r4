@@ -261,7 +261,7 @@ mod facade_smoke_tests {
     fn static_wasm_r4g1_is_complete_envelope_only_and_fail_closed() {
         // The strict historical R4G1 worker retains its own scoped contract;
         // the current Studio uses the artifact-bound native worker below.
-        let frontends = [("worker", include_str!("../r4_worker.js"))];
+        let frontends = [("worker", include_str!("../web/studio/r4_worker.js"))];
         for (label, source) in frontends {
             assert!(
                 source.contains("set_r4g1_production_bundle"),
@@ -305,7 +305,7 @@ mod facade_smoke_tests {
 
     #[test]
     fn active_studio_worker_has_no_implicit_model_or_provider_fallback() {
-        let worker = include_str!("../assets/js/uor_model_worker.js");
+        let worker = include_str!("../web/studio/assets/js/uor_model_worker.js");
         assert!(!worker.contains("native_geometric_init(new Uint8Array())"));
         assert!(!worker.contains("UorR4Router"));
         assert!(!worker.contains("@huggingface/transformers"));

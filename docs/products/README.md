@@ -34,7 +34,7 @@ A fourth page, [Releases and artifacts](./releases-and-artifacts.md), covers the
 | Integer serving engine, native | Built; zero-multiply audit green on 44 symbol ranges (**measurement**) | [project track](../integration/project-track.md), M4 |
 | Integer serving engine, WebAssembly | Built; 7 of 7 serving functions with zero multiply, divide and float instructions; save and restore reload identically on a synthetic model (**measurement**) | [record](../labs/wasm-serving-runtime-2026-10-18/README.md) |
 | A trained model in that engine | None. Training is held, and no model built under today's rules has been exported | [NOW](../integration/NOW.md), [lut-serving dossier](../mechanisms/lut-serving.md) |
-| Studio connected to the new engine | No. It still imports an older engine that was retired on 15 October | [`index.html`](../../index.html), [D36](../integration/DECISIONS.md#d36--github-pages-keep-the-last-good-deploy-live-deploy-job-skipped-until-a-d11-served-wasm-engine-lands) |
+| Studio connected to the new engine | No. It still imports an older engine that was retired on 15 October | [`index.html`](../../web/studio/index.html), [D36](../integration/DECISIONS.md#d36--github-pages-keep-the-last-good-deploy-live-deploy-job-skipped-until-a-d11-served-wasm-engine-lands) |
 | Public website deploy | Paused since 15 October; the live site is the 13 October build | [`deploy.yml`](../../.github/workflows/deploy.yml) |
 | Desktop app project | Not started; no `src-tauri/` folder exists | the repository tree (no `src-tauri/` folder) |
 

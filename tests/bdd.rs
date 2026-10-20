@@ -317,7 +317,7 @@ fn selected_engine_is_legacy(w: &mut R4g1World) {
     "the browser UI selects the geometric research demo, keeps R4G1 unselected, and does not offer automatic fallback"
 )]
 fn browser_selects_geometric_demo(_w: &mut R4g1World) {
-    let source = include_str!("../index.html");
+    let source = include_str!("../web/studio/index.html");
     assert!(source.contains(r#"<option value="geometric" selected>"#));
     assert!(source.contains(r#"<option value="r4g1">"#));
     assert!(!source.contains(r#"<option value="r4g1" selected>"#));

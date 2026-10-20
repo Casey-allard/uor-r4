@@ -26,14 +26,14 @@ The app is built with **Tauri**: a small native shell that shows a web page in t
 
 | Component | Built from | Exists today? |
 |---|---|---|
-| **Interface** | The Studio page, [`index.html`](../../index.html), shared with the web client | Yes, one 7,107-line file. It detects Tauri (`window.__TAURI__`) and calls `native_read_file`, `native_write_file`, `native_git_status`, `native_run_terminal_command` and `native_list_local_models`, falling back to browser APIs when they are absent |
+| **Interface** | The Studio page, [`index.html`](../../web/studio/index.html), shared with the web client | Yes, one 7,107-line file. It detects Tauri (`window.__TAURI__`) and calls `native_read_file`, `native_write_file`, `native_git_status`, `native_run_terminal_command` and `native_list_local_models`, falling back to browser APIs when they are absent |
 | **Tauri project** | `src-tauri/` with `tauri.conf.json` and the Rust commands above | No. Nothing in the repository defines those commands |
 | **Model engine** | [`crates/uor-r4-integer`](../../crates/uor-r4-integer/) linked as a library: the same code as the `uor-chat` command-line program | Yes, as a library and CLI, verified only on test and synthetic models |
 | **Memory store** | [`crates/uor-r4-object-store`](../../crates/uor-r4-object-store/) | Yes, as a tested library; no crate uses it yet |
 | **File-access layer** | New Rust commands limited to folders the user grants | No |
 | **Model manager** | New: lists, verifies and loads `UORLUT01` files; checks for updates | No |
 
-Sources: reading `index.html` and the repository tree, and the [object-store dossier](../mechanisms/object-store.md).
+Sources: reading `web/studio/index.html` and the repository tree, and the [object-store dossier](../mechanisms/object-store.md).
 
 ## Data flow
 

@@ -40,9 +40,9 @@ jobs:
       - name: Prepare deployment folder
         run: |
           mkdir dist
-          cp index.html index.css geometric_prime_router_webapp.html dist/
-          cp coi-serviceworker.js r4_worker.js dist/ || true
-          cp -r assets dist/ || true
+          cp web/studio/index.html web/studio/index.css web/studio/geometric_prime_router_webapp.html dist/
+          cp web/studio/coi-serviceworker.js web/studio/r4_worker.js dist/ || true
+          cp -r web/studio/assets dist/ || true
           cp -r pkg dist/
           rm -f dist/pkg/.gitignore
 
