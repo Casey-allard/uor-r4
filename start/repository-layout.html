@@ -183,8 +183,8 @@
 <h2 id="folders"><a class="header" href="#folders">Folders</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Folder</th><th>What it holds</th></tr></thead><tbody>
 <tr><td><code>archive/</code></td><td>Every dated record and retired file, byte for byte as it was. Nothing in it is edited. <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/archive/CATALOG.md"><code>archive/CATALOG.md</code></a> indexes it.</td></tr>
-<tr><td><code>crates/</code></td><td>The Rust code, one crate per folder: the model, the serving runtime, the harness and the tools around them.</td></tr>
-<tr><td><code>data/</code></td><td>The small evaluation panels kept in git. Large inputs (corpora, checkpoints) live in the private Hugging Face store instead.</td></tr>
+<tr><td><code>crates/</code></td><td>The Rust code, one crate per folder: the model, the serving runtime, the harness and the tools around them. <code>crates/uor-r4-wasm-router/</code> is the browser-facing library (with its tests and server profiles); until 20 October 2026 it was the root package in <code>src/</code>, <code>tests/</code> and <code>profiles/</code>.</td></tr>
+<tr><td><code>data/</code></td><td>The small evaluation panels (<code>data/panels/</code>) and four reference tokenizer descriptors that older tests compare against (<code>data/tokenizers/</code>, the old top-level <code>models/</code>). Large inputs (corpora, checkpoints) live in the private Hugging Face store instead.</td></tr>
 <tr><td><code>docs/</code></td><td>The documentation you are reading, plus the live lab records under <code>docs/labs/</code> and the harness files under <code>docs/harness/</code>.</td></tr>
 <tr><td><code>projects/</code></td><td>Side projects related to UOR-R4 but not part of the model. See the <a href="../projects/index.html">projects page</a>.</td></tr>
 <tr><td><code>scripts/</code></td><td>Shell entry points: GPU pods (<code>scripts/pod/</code>), storage and hygiene (<code>scripts/storage/</code>), harness wrappers.</td></tr>
@@ -193,8 +193,7 @@
 <tr><td><code>web/</code></td><td>The web client. <code>web/studio/</code> is the Studio page served at <code>/studio/</code> on the documentation site.</td></tr>
 <tr><td><code>xtask/</code></td><td>Repository tooling, run as <code>cargo xtask &lt;command&gt;</code>: link checks, the archive check, figures, the catalog and the site build.</td></tr>
 <tr><td><code>conformance/</code></td><td>The requirements ledger (<code>ledger.toml</code>, <code>ids.toml</code>, <code>authorities.toml</code>) and its behaviour specifications (<code>features/suites/*.feature</code>). The <code>repo-model</code> and <code>repo-conformance</code> crates read it to produce <code>CONFORMANCE.md</code>. Until 20 October 2026 these were the top-level <code>model/</code> and <code>features/</code> folders.</td></tr>
-<tr><td><code>models/</code></td><td>Four reference tokenizer files that older tests compare against. <strong>Moving to</strong> <code>data/tokenizers/</code>.</td></tr>
-<tr><td><code>src/</code>, <code>tests/</code>, <code>profiles/</code></td><td>The root Rust package, <code>uor-r4-wasm-router</code>: its library, its tests and its server profiles. <strong>Moving to</strong> <code>crates/uor-r4-wasm-router/</code>, so the top level holds only workspace settings.</td></tr>
+<tr><td><code>tests/</code></td><td>The Python test suite for the harness (<code>tests/harness/</code>) and end-to-end fixtures (<code>tests/e2e/</code>). The Rust tests live with their crates.</td></tr>
 </tbody></table>
 </div>
 <p>One more change is planned: the normative reference pages that sit loose in <code>docs/</code> will gather under <code>docs/reference/</code>, except for the few that code pins by path and hash, which stay where they are.</p>
@@ -214,7 +213,7 @@
 <h2 id="names-that-are-easy-to-confuse"><a class="header" href="#names-that-are-easy-to-confuse">Names that are easy to confuse</a></h2>
 <ul>
 <li><code>conformance/</code> is a <strong>requirements ledger</strong>, not a language model. It was called <code>model/</code> until 20 October 2026 and was renamed to end that confusion.</li>
-<li><code>models/</code> holds <strong>reference tokenizers</strong> used by older tests. It is moving to <code>data/tokenizers/</code>.</li>
+<li><code>data/tokenizers/</code> holds <strong>reference tokenizer descriptors</strong> used by older tests. It was the top-level <code>models/</code> until 20 October 2026.</li>
 <li><code>.uor-models/</code> is the <strong>runtime model store</strong> on each machine. It is gitignored; its contents come from the private Hugging Face store.</li>
 </ul>
 <h2 id="what-is-not-in-git"><a class="header" href="#what-is-not-in-git">What is not in git</a></h2>
