@@ -34,7 +34,7 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "`loop
 - **When it ends.** D59 ends when the other labs run the loop. The gate reads this from a switch the owner sets, so ending the exemption needs no code change.
   - **Where the switch lives.** It sits in a file listed in `docs/harness/owner-paths.json`, so no lab can flip it with an ordinary PR. Adding that path is an owner step. This PR's ORDER proposes the file and nothing more.
   - **Who flips it.** The owner decides when it flips, and a flip records the owner's words verbatim with the time.
-  - **The default.** If the switch is missing or unreadable, D59 is in force.
+  - **The default.** If the switch is missing or unreadable, D59 is in force. Until the owner has listed the switch's path in `docs/harness/owner-paths.json`, the gate also treats D59 as in force, whatever the file says.
 
 Identity is by tags: there is no signing, no key and no signer list (D55). The planted fault turns the check red: **an untagged review record, a same-vendor record on a code or model PR outside D59, or a setup-PR record from a lab other than Claude is refused.** Two cases are part of that fault:
 - A Claude-built code PR whose ORDER names no build-plan row is outside D59, so a Claude review of it is refused.
