@@ -11,6 +11,32 @@ Markers used below: **(exists)** means the tool or file is in `main` today; **(t
 The loop is adapted from **the Loop Kit by Ron Brazil**. His kit keeps one AI agent on course with a written order for each task, changes that can be undone, a few short notes that carry memory between sessions, and checks anyone can rerun.
 UOR-R4 keeps those ideas and adapts them for five labs from five vendors working at once. The kit's own text is private to the owner and is not in this repository. Everything here is written in our own words.
 
+## Kit-to-loop map
+
+Each part of the kit, what it is for, and what takes its place here. "Private skill" means the kit's file is installed only in each client's local skills folder, as D44 sets out.
+
+| Kit part | What it is for | In the UOR loop | Where it stands |
+|---|---|---|---|
+| start-here (skill) | A first-run interview that sets up the notes and the plan | Done once, by the owner on 20 Oct 2026; the answers are D43–D58 | Done. Not installed, so it cannot start a second setup |
+| Safe copy of the original | Keeping the starting point recoverable | GitHub `main`, the protected branches, the immutable `archive/` and the HF store | Dropped (D44) |
+| scope-guard (skill) | Giving each task an edge and making it reversible | The ORDER's scope, stop-and-ask, one worktree per task, and the cross-vendor review (§5.5) | The ORDER exists now. `loop scope` and the policy check come in PR 5 |
+| A line budget per task | Catching oversized changes | Size is reported in the REPORT, never capped | Dropped as a cap (D48) |
+| session-close (skill) | Ending a session so the next one loses nothing | The REPORT, the lab's PICKUP, and the rendered STATE and HANDOFF | By hand now. `loop close` comes in PR 7b |
+| holding-the-goal (skill) | Questions to ask before saying no, and before proposing a fix | The opener in every launch prompt, and a stop-and-ask card that names the limiter | Private skill now. `loop ask` comes in PR 7a |
+| solution-integrity (skill) | Questions to ask before, during and after a change | The opener; the REPORT names the parts used | Private skill now |
+| working-discipline (skill) | Habits for arriving, reading, measuring and reporting | The arrival check against the repository, and the REPORT's order (negatives first) | By hand now. `loop arrive` comes in PR 7b |
+| gates (skill) | A single command for all the checks, a log of past runs, a planted fault for each check, and a live view of a long run | `loop gates`, with its ledger and its planted faults, and `loop board` | PR 4 and PR 11 |
+| House rules file | The short rules every session reads first | `AGENTS.md`, with CHARTER §5.10 | Exists |
+| PLAN | The route from today to done | `PLAN.md`, built from `ROADMAP.md` and the roadmap items | PR 8 |
+| STATE | What is true now | `STATE.md`, rendered by the harness | PR 3 |
+| HANDOFF | The next few tasks | `HANDOFF.md`, rendered by the harness | PR 3 |
+| DECISIONS | The reasons behind each choice | The append-only table in `docs/integration/DECISIONS.md`, from D43 on | Exists |
+| LESSONS | Lessons the project paid for | `LESSONS.md`, rendered from the mistakes store; L-001 is records drift | PR 3 and PR 8 |
+| PICKUP | The note that resumes the next session | `local/<lab>/PICKUP.md`, not committed (D47) | By hand now. `loop close` comes in PR 7b |
+| FILEMAP | What each folder holds | `docs/start/FILEMAP.md` | PR 8 |
+| ORDER and REPORT | One task's order, and its account | `docs/loop/tasks/<item>/<lab>-<n>/`, committed with the PR | Exists |
+| Archive | Finished work, moved unchanged, leaving a pointer behind | `archive/`, byte-identical and never edited | Exists |
+
 ## What the loop is
 
 Each lab runs in a loop. A small supervisor program starts a fresh session. The session does one unit of work, then ends. The supervisor then starts the next session.

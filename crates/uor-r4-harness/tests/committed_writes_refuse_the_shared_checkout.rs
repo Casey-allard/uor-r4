@@ -24,6 +24,23 @@ fn harness_docs() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/harness")
 }
 
+/// Register this fixture's lab in the fixture's own copy of `labs.json`.
+///
+/// An unregistered lab is refused before R10 is reached, so without this every case here would fail
+/// for the wrong reason. A real lab name is not used instead because the copied ledger already holds
+/// real labs' shards, and `the_lab_shard` needs the probe's shard to be the only one with its name.
+fn register_probe_lab(path: &Path) {
+    let text = std::fs::read_to_string(path).expect("labs.json reads");
+    let mut doc: serde_json::Value = serde_json::from_str(&text).expect("labs.json parses");
+    let template = doc["labs"]["claude"].clone();
+    doc["labs"]["r10probe"] = template;
+    std::fs::write(
+        path,
+        serde_json::to_string_pretty(&doc).expect("serialises"),
+    )
+    .expect("write");
+}
+
 fn copy_tree(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).expect("mkdir");
     for entry in std::fs::read_dir(from).expect("read_dir").flatten() {
@@ -62,6 +79,7 @@ impl Shared {
         std::fs::create_dir_all(&primary).expect("primary");
         std::fs::create_dir_all(&live).expect("live");
         copy_tree(&harness_docs(), &primary.join("docs/harness"));
+        register_probe_lab(&primary.join("docs/harness/labs.json"));
         let git = |args: &[&str]| {
             let out = Command::new("git")
                 .args(args)

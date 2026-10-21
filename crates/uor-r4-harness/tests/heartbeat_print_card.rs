@@ -29,6 +29,12 @@ impl Scratch {
         let live = dir.path().join("live");
         std::fs::create_dir_all(repo.join("docs/harness")).expect("repo");
         std::fs::write(repo.join("docs/harness/milestones.json"), REGISTRY).expect("registry");
+        // The lab registry: a recording command refuses a lab it cannot check.
+        std::fs::copy(
+            concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/harness/labs.json"),
+            repo.join("docs/harness/labs.json"),
+        )
+        .expect("labs.json");
         Scratch {
             _dir: dir,
             repo,
@@ -78,7 +84,19 @@ fn print_shows_the_card_and_writes_nothing() {
     assert_eq!(String::from_utf8_lossy(&out.stdout).trim_end(), CARD);
     assert_eq!(files_under(&s.live), Vec::<PathBuf>::new(), "the live tier");
     let repo_files = files_under(&s.repo);
-    assert_eq!(repo_files.len(), 1, "only the registry: {repo_files:?}");
+    let names: Vec<_> = repo_files
+        .iter()
+        .filter_map(|p| p.file_name().and_then(|n| n.to_str()))
+        .collect();
+    assert_eq!(
+        names.len(),
+        2,
+        "only the two registries the fixture wrote: {repo_files:?}"
+    );
+    assert!(
+        names.contains(&"milestones.json") && names.contains(&"labs.json"),
+        "{repo_files:?}"
+    );
 }
 
 #[test]

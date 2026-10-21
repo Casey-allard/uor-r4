@@ -31,6 +31,14 @@ impl Scratch {
         let repo = dir.path().join("repo");
         let live = dir.path().join("live");
         std::fs::create_dir_all(&repo).expect("repo");
+        // The probe lab is registered in the scratch repo's own registry: a recording command
+        // refuses a lab that `docs/harness/labs.json` does not list.
+        std::fs::create_dir_all(repo.join("docs/harness")).expect("harness dir");
+        std::fs::write(
+            repo.join("docs/harness/labs.json"),
+            r#"{"schema": 1, "labs": {"receiptprobe": {"vendor": "v", "client": "c", "headless": "h", "open_pr_limit": 3}}}"#,
+        )
+        .expect("labs.json");
         std::fs::create_dir_all(&live).expect("live");
         Scratch {
             _dir: dir,

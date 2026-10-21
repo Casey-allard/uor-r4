@@ -130,7 +130,10 @@ impl Receipt {
 /// Once per process, on stderr, in Python's words - the wording is the fix instruction, and two
 /// implementations telling a lab different things about the same mistake is a divergence in the
 /// only place it matters.
-pub const UNATTRIBUTED_WARNING: &str = "uor-harness: WARNING - no lab identity, so this record is attributed to nobody and no\n             other lab can see who did it. Fix it for this session with:\n             export UOR_LAB=<kimi|claude|codex|deepseek>";
+pub const UNATTRIBUTED_WARNING: &str = "uor-harness: WARNING - no lab identity, so this record is attributed to nobody and no\n             other lab can see who did it. Fix it for this session with:\n             export UOR_LAB=<antigravity|claude|codex|deepseek|kimi>";
+
+/// The refusal `heartbeat` prints when no lab identity is set (it cannot publish a check-in for nobody).
+pub const HEARTBEAT_UNATTRIBUTED_WARNING: &str = "uor-harness: WARNING - no lab identity. This check-in would be attributed to nobody.\n             export UOR_LAB=<antigravity|claude|codex|deepseek|kimi>";
 
 /// `json.dumps(value, ensure_ascii=False, sort_keys=True)` - Python's DEFAULT separators.
 ///

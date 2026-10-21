@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "note": "The only files allowed to state a rule. This list is recorded now; its enforcement (refusing a rule stated anywhere else) comes in a later loop PR. Only the owner changes this file (docs/harness/owner-paths.json).",
+  "files": [
+    "CHARTER.md",
+    "AGENTS.md",
+    "docs/loop/README.md",
+    "docs/rules/changes.md",
+    "docs/integration/DECISIONS.md",
+    "docs/harness/pm-rules.md",
+    "docs/harness/mistakes/README.md"
+  ]
+}

@@ -160,9 +160,7 @@ pub fn slug_stem(lab: &str) -> String {
 /// presence and the ledger from the shared checkout is exactly what R10 permits.
 pub fn shared_primary_checkout(repo: &Path) -> Option<PathBuf> {
     // The working directory may be a SUBDIRECTORY of a worktree; compare roots, not the literal path.
-    let top = git_out(repo, &["rev-parse", "--show-toplevel"])?;
-    let top = PathBuf::from(top);
-    let top = top.canonicalize().unwrap_or(top);
+    let top = toplevel(repo)?;
     let listing = git_out(repo, &["worktree", "list", "--porcelain"])?;
     let worktrees: Vec<PathBuf> = listing
         .lines()
@@ -217,6 +215,14 @@ pub fn refuse_shared_checkout_at(repo: &Path, what: &str) -> Result<(), String> 
         shared.display()
     );
     Err(msg)
+}
+
+/// The top level of the working tree containing `repo`, canonicalised, or None outside a git
+/// checkout. The one place the harness asks git for the repository root; `repo` may be any
+/// subdirectory of the tree.
+pub fn toplevel(repo: &Path) -> Option<PathBuf> {
+    let top = PathBuf::from(git_out(repo, &["rev-parse", "--show-toplevel"])?);
+    Some(top.canonicalize().unwrap_or(top))
 }
 
 /// Trimmed stdout of a git command, or None when it fails or is not a repository.

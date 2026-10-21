@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 44 |
+| ready | 57 |
 | held | 26 |
 | decision | 4 |
 | done | 0 |
-| total | 74 |
+| total | 87 |
 
 ## Start here
 
@@ -178,6 +178,19 @@ These items are ready and open to anyone.
 | [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md) | [#2826](https://github.com/UOR-Foundation/uor-r4/issues/2826) |
 | [Record K16 normal close and final resource accounting](items/infra-k16-normal-close-accounting.md) | ready | a lab | no | none | [#2827](https://github.com/UOR-Foundation/uor-r4/issues/2827) |
 | [Build the five-lab loop harness (the loop subcommands of uor-harness)](items/infra-loop-harness.md) | ready | a lab | no | none | not yet synced |
+| [Loop PR 2: item keys, Cancel if, done-when class and validator](items/infra-loop-pr02-item-keys.md) | ready | a lab | no | none | not yet synced |
+| [Loop PR 3: loop render for every view, with --check at the stamp](items/infra-loop-pr03-render.md) | ready | a lab | no | [infra-loop-pr02-item-keys](items/infra-loop-pr02-item-keys.md) | not yet synced |
+| [Loop PR 4: loop gates runner, gates.json, ledger and breaks](items/infra-loop-pr04-gates.md) | ready | a lab | no | none | not yet synced |
+| [Loop PR 5: loop pr-check and a policy job feeding the required checks](items/infra-loop-pr05-policy-check.md) | ready | a lab | no | [infra-loop-pr02-item-keys](items/infra-loop-pr02-item-keys.md), [infra-loop-pr03-render](items/infra-loop-pr03-render.md), [infra-loop-pr04-gates](items/infra-loop-pr04-gates.md) | not yet synced |
+| [Loop PR 6: loop review with tagged review records](items/infra-loop-pr06-review-records.md) | ready | a lab | no | [infra-loop-pr05-policy-check](items/infra-loop-pr05-policy-check.md) | not yet synced |
+| [Loop PR 7a: loop claim, suborder and ask](items/infra-loop-pr07a-claim.md) | ready | a lab | no | [infra-loop-pr02-item-keys](items/infra-loop-pr02-item-keys.md) | not yet synced |
+| [Loop PR 7b: loop next, arrive, report and close](items/infra-loop-pr07b-session.md) | ready | a lab | no | [infra-loop-pr03-render](items/infra-loop-pr03-render.md), [infra-loop-pr07a-claim](items/infra-loop-pr07a-claim.md) | not yet synced |
+| [Loop PR 7c: loop queue and loop board](items/infra-loop-pr07c-queue-board.md) | ready | a lab | no | [infra-loop-pr05-policy-check](items/infra-loop-pr05-policy-check.md), [infra-loop-pr06-review-records](items/infra-loop-pr06-review-records.md) | not yet synced |
+| [Loop PR 8: migrate the notes to STATE, HANDOFF and PLAN](items/infra-loop-pr08-migration.md) | ready | a lab | no | [infra-loop-pr03-render](items/infra-loop-pr03-render.md) | not yet synced |
+| [Loop PR 9: loop guard, install and onboard for each client](items/infra-loop-pr09-client-adapters.md) | ready | a lab | no | [infra-loop-pr07b-session](items/infra-loop-pr07b-session.md) | not yet synced |
+| [Loop PR 10: loop drive, watchers, kill switch and the soft check-in](items/infra-loop-pr10-supervisor.md) | ready | a lab | no | [infra-loop-pr07b-session](items/infra-loop-pr07b-session.md), [infra-loop-pr07c-queue-board](items/infra-loop-pr07c-queue-board.md), [infra-loop-pr09-client-adapters](items/infra-loop-pr09-client-adapters.md) | not yet synced |
+| [Loop PR 11: loop gates --watch and warnings raised to errors](items/infra-loop-pr11-progress-window.md) | ready | a lab | no | [infra-loop-pr04-gates](items/infra-loop-pr04-gates.md) | not yet synced |
+| [Loop PR 12: git hooks, pr-check before push, Lab and Order trailers](items/infra-loop-pr12-git-hooks.md) | ready | a lab | no | [infra-loop-pr05-policy-check](items/infra-loop-pr05-policy-check.md), [infra-loop-pr06-review-records](items/infra-loop-pr06-review-records.md) | not yet synced |
 | [Settle the disputed D11 and Hopf observation statuses on the board](items/owner-decision-board-status-disputes.md) | decision | a lab | no | none | [#2874](https://github.com/UOR-Foundation/uor-r4/issues/2874) |
 
 ## Waiting on the owner
@@ -201,6 +214,19 @@ flowchart LR
   n_float_training_module["float-training-module"]
   n_hamilton_gate_offline_float_sheet["hamilton-gate-offline-float-sheet"]
   n_infra_desktop_client_tauri["infra-desktop-client-tauri"]
+  n_infra_loop_pr02_item_keys["infra-loop-pr02-item-keys"]
+  n_infra_loop_pr03_render["infra-loop-pr03-render"]
+  n_infra_loop_pr04_gates["infra-loop-pr04-gates"]
+  n_infra_loop_pr05_policy_check["infra-loop-pr05-policy-check"]
+  n_infra_loop_pr06_review_records["infra-loop-pr06-review-records"]
+  n_infra_loop_pr07a_claim["infra-loop-pr07a-claim"]
+  n_infra_loop_pr07b_session["infra-loop-pr07b-session"]
+  n_infra_loop_pr07c_queue_board["infra-loop-pr07c-queue-board"]
+  n_infra_loop_pr08_migration["infra-loop-pr08-migration"]
+  n_infra_loop_pr09_client_adapters["infra-loop-pr09-client-adapters"]
+  n_infra_loop_pr10_supervisor["infra-loop-pr10-supervisor"]
+  n_infra_loop_pr11_progress_window["infra-loop-pr11-progress-window"]
+  n_infra_loop_pr12_git_hooks["infra-loop-pr12-git-hooks"]
   n_m1_a8_finite_cuda_qualification["m1-a8-finite-cuda-qualification"]
   n_m1_a8_full_dose_rerun["m1-a8-full-dose-rerun"]
   n_m1_a8_registration_and_runbook_staging["m1-a8-registration-and-runbook-staging"]
@@ -251,6 +277,24 @@ flowchart LR
   n_float_training_module --> n_e8_orbit_memory_sigmoid_free_iteration
   n_float_training_module --> n_hamilton_gate_offline_float_sheet
   n_float_training_module --> n_spiralcore_fbs_offline_float_sheet
+  n_infra_loop_pr02_item_keys --> n_infra_loop_pr03_render
+  n_infra_loop_pr02_item_keys --> n_infra_loop_pr05_policy_check
+  n_infra_loop_pr02_item_keys --> n_infra_loop_pr07a_claim
+  n_infra_loop_pr03_render --> n_infra_loop_pr05_policy_check
+  n_infra_loop_pr03_render --> n_infra_loop_pr07b_session
+  n_infra_loop_pr03_render --> n_infra_loop_pr08_migration
+  n_infra_loop_pr04_gates --> n_infra_loop_pr05_policy_check
+  n_infra_loop_pr04_gates --> n_infra_loop_pr11_progress_window
+  n_infra_loop_pr05_policy_check --> n_infra_loop_pr06_review_records
+  n_infra_loop_pr05_policy_check --> n_infra_loop_pr07c_queue_board
+  n_infra_loop_pr05_policy_check --> n_infra_loop_pr12_git_hooks
+  n_infra_loop_pr06_review_records --> n_infra_loop_pr07c_queue_board
+  n_infra_loop_pr06_review_records --> n_infra_loop_pr12_git_hooks
+  n_infra_loop_pr07a_claim --> n_infra_loop_pr07b_session
+  n_infra_loop_pr07b_session --> n_infra_loop_pr09_client_adapters
+  n_infra_loop_pr07b_session --> n_infra_loop_pr10_supervisor
+  n_infra_loop_pr07c_queue_board --> n_infra_loop_pr10_supervisor
+  n_infra_loop_pr09_client_adapters --> n_infra_loop_pr10_supervisor
   n_m1_a8_finite_cuda_qualification --> n_m1_a8_full_dose_rerun
   n_m1_a8_full_dose_rerun --> n_m1_close_saved_model
   n_m1_a8_full_dose_rerun --> n_r_finite_relational_head

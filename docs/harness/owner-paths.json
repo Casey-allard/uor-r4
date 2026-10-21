@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "note": "The files only the owner changes. A path ending in /** covers everything below it; every other path must exist, and a harness test checks that it does.",
+  "paths": [
+    {"path": "CHARTER.md", "why": "the single rule book (AGENTS.md: only the owner changes it)"},
+    {"path": "AGENTS.md", "why": "onboarding that summarizes the charter for every agent"},
+    {"path": "docs/rules/changes.md", "why": "the log of charter changes"},
+    {"path": "docs/integration/DECISIONS.md", "why": "the owner decision index"},
+    {"path": ".github/**", "why": "CI workflows, templates and the merge path"},
+    {"path": "docs/harness/labs.json", "why": "the lab registry; the harness refuses a lab not listed in it"},
+    {"path": "docs/harness/owner-paths.json", "why": "this list"},
+    {"path": "docs/harness/rule-sources.json", "why": "the files allowed to state a rule"},
+    {"path": "docs/harness/branches.json", "why": "protected branches that are never deleted"},
+    {"path": "scripts/pod/uor-pod", "why": "the GPU caps: at most 4 pods and $8/h across all labs"}
+  ]
+}

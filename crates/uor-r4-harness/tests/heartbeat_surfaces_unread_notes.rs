@@ -24,6 +24,12 @@ impl Scratch {
         let repo = dir.path().join("repo");
         let live = dir.path().join("live");
         std::fs::create_dir_all(repo.join("docs/harness")).expect("repo");
+        // The lab registry: a recording command refuses a lab it cannot check.
+        std::fs::copy(
+            concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/harness/labs.json"),
+            repo.join("docs/harness/labs.json"),
+        )
+        .expect("labs.json");
         std::fs::create_dir_all(live.join("notes")).expect("notes dir");
         Scratch {
             _dir: dir,

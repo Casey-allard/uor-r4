@@ -29,7 +29,7 @@ use uor_r4_harness::presence;
 use uor_r4_harness::presence::{heartbeat, Presence};
 use uor_r4_harness::receipt::{
     append_live, current_month, plan_sync, sync_live_to_committed, Receipt as NewReceipt,
-    UNATTRIBUTED_WARNING,
+    HEARTBEAT_UNATTRIBUTED_WARNING, UNATTRIBUTED_WARNING,
 };
 use uor_r4_harness::registries::Registries;
 use uor_r4_harness::shards;
@@ -1042,9 +1042,10 @@ fn cmd_skill(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 eprintln!("  list them with: uor-harness skill list");
                 return ExitCode::from(2);
             };
-            let lab = flag_value(args, "--lab")
-                .or_else(|| std::env::var("UOR_LAB").ok())
-                .unwrap_or_default();
+            let lab = match lab_or_refuse(repo, args) {
+                Ok(l) => l,
+                Err(code) => return code,
+            };
             if lab.trim().is_empty() {
                 // The Python harness warns loudly rather than refusing, and the receipt is still
                 // written - an unattributed record is worse than an absent one, but refusing here
@@ -1246,9 +1247,10 @@ fn cmd_prep(repo: &Path, args: &[String], json: bool) -> ExitCode {
             let mechanism = flag_value(args, "--mechanism").unwrap_or_default();
             let body = prep::render_fit(&verdict, m, &sheet, &reviewer, &note, &mechanism);
 
-            let lab = flag_value(args, "--lab")
-                .or_else(|| std::env::var("UOR_LAB").ok())
-                .unwrap_or_default();
+            let lab = match lab_or_refuse(repo, args) {
+                Ok(l) => l,
+                Err(code) => return code,
+            };
             let mut r = NewReceipt::new("prep", lab.clone());
             r = r.with("milestone", m.id.clone());
             r = r.with("verdict", verdict.clone());
@@ -1785,9 +1787,16 @@ fn cmd_git(repo: &Path, args: &[String], json: bool) -> ExitCode {
 fn cmd_multilab(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     let action = action_word(args);
-    let lab = flag_value(args, "--lab")
-        .or_else(|| std::env::var("UOR_LAB").ok())
-        .unwrap_or_default();
+    // Only `touch` records under a lab; the reads (and `sync-live`, which copies every lab's
+    // presence and names none) work with any `UOR_LAB`.
+    let lab = if action == "touch" {
+        match lab_or_refuse(repo, args) {
+            Ok(l) => l,
+            Err(code) => return code,
+        }
+    } else {
+        String::new()
+    };
 
     match action {
         "touch" => {
@@ -1978,9 +1987,16 @@ fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
     // treated as a candidate.
     let action = action_word(args);
     let branch = flag_value(args, "--branch").unwrap_or_default();
-    let lab = flag_value(args, "--lab")
-        .or_else(|| std::env::var("UOR_LAB").ok())
-        .unwrap_or_default();
+    // Only claim, release and dispatch record under a lab; roster, claims and presence are reads and
+    // work with any `UOR_LAB`.
+    let lab = if matches!(action, "claim" | "release" | "dispatch") {
+        match lab_or_refuse(repo, args) {
+            Ok(l) => l,
+            Err(code) => return code,
+        }
+    } else {
+        String::new()
+    };
     let note = flag_value(args, "--note").unwrap_or_default();
 
     match action {
@@ -2177,7 +2193,7 @@ fn cmd_team(repo: &Path, args: &[String], json: bool) -> ExitCode {
                 &paths,
                 "team",
                 fields,
-                std::env::var("UOR_LAB").ok().as_deref(),
+                Some(lab.as_str()).filter(|l| !l.trim().is_empty()),
             ) {
                 Ok(r) => r,
                 Err(e) => {
@@ -2271,7 +2287,10 @@ fn cmd_version(repo: &Path) -> ExitCode {
 /// notes have been read.
 fn cmd_notes(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
-    let lab = match flag_value(args, "--lab").or_else(|| std::env::var("UOR_LAB").ok()) {
+    let lab = match Some(match lab_or_refuse(repo, args) {
+        Ok(l) => l,
+        Err(code) => return code,
+    }) {
         Some(l) if !l.trim().is_empty() => l,
         _ => {
             eprintln!(
@@ -2461,7 +2480,10 @@ fn watch_list(
 fn cmd_ledger_sync(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
     let month = flag_value(args, "--month").unwrap_or_else(current_month);
-    let lab = match flag_value(args, "--lab").or_else(|| std::env::var("UOR_LAB").ok()) {
+    let lab = match Some(match lab_or_refuse(repo, args) {
+        Ok(l) => l,
+        Err(code) => return code,
+    }) {
         Some(l) if !l.trim().is_empty() => l,
         _ => {
             eprintln!(
@@ -2518,16 +2540,32 @@ fn cmd_ledger_sync(repo: &Path, args: &[String], json: bool) -> ExitCode {
     }
 }
 
+/// The lab a recording command attributes its record to: `--lab`, then `$UOR_LAB`, checked against
+/// `docs/harness/labs.json`.
+///
+/// **Every recording command goes through this one function**, so none can skip the check. No lab
+/// resolves to an empty string and each command keeps its own warning or refusal for that case; an
+/// unregistered lab, or a registry that cannot be read, is refused with exit 2 and the five names.
+fn lab_or_refuse(repo: &Path, args: &[String]) -> Result<String, ExitCode> {
+    uor_r4_harness::labs::resolve_lab(
+        repo,
+        flag_value(args, "--lab"),
+        std::env::var("UOR_LAB").ok(),
+    )
+    .map_err(|e| {
+        eprintln!("uor-harness: {e}");
+        ExitCode::from(2)
+    })
+}
+
 fn cmd_heartbeat(repo: &Path, args: &[String], json: bool) -> ExitCode {
     let paths = StatePaths::from_env(repo);
-    let lab = flag_value(args, "--lab")
-        .or_else(|| std::env::var("UOR_LAB").ok())
-        .unwrap_or_default();
+    let lab = match lab_or_refuse(repo, args) {
+        Ok(l) => l,
+        Err(code) => return code,
+    };
     if lab.trim().is_empty() {
-        eprintln!(
-            "uor-harness: WARNING - no lab identity. This check-in would be attributed to nobody.\n\
-             \x20            export UOR_LAB=<kimi|claude|codex|deepseek>"
-        );
+        eprintln!("{HEARTBEAT_UNATTRIBUTED_WARNING}");
         return ExitCode::from(2);
     }
     let card_for = |key: &str| -> Result<heartbeatcard::Card, String> {
@@ -3080,9 +3118,10 @@ fn cmd_receipt(repo: &Path, args: &[String], json: bool) -> ExitCode {
         return ExitCode::from(2);
     }
     let paths = StatePaths::from_env(repo);
-    let lab = flag_value(args, "--lab")
-        .or_else(|| std::env::var("UOR_LAB").ok())
-        .unwrap_or_default();
+    let lab = match lab_or_refuse(repo, args) {
+        Ok(l) => l,
+        Err(code) => return code,
+    };
     // An unnamed lab is WARNED about, never refused: Python records the receipt in the `unknown`
     // shard and says so, because a record that cannot name its author still says what happened.
     // Refusing lost the record entirely, which is the opposite of what the warning is for.

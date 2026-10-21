@@ -22,22 +22,6 @@ use std::path::{Path, PathBuf};
 
 use crate::state::{read_ledger, StatePaths};
 
-/// Labs that may hold an identity. Not a closed set — a new lab is a decision, not a code change —
-/// but an unrecognised value is worth saying out loud so a typo does not quietly become its own
-/// shard. Compared AFTER slugging, because the harness slugs a lab name into every path it touches,
-/// so `DeepSeek` and `deepseek` are one lab — warning on case would be nagging about nothing.
-/// **Kept in step with R9's roster by hand, and that is a defect waiting to happen.**
-///
-/// Antigravity onboarded and this list still named four labs, so `onboard` warned a correctly-identified
-/// new lab that it was "not one of kimi, claude, codex, deepseek" - **while `docs/harness/pm-rules.md`
-/// R9 listed five.** A roster in the code and a roster in the rules will always drift; the honest
-/// short-term fix is to include the fifth and to say in the warning that R9 is the authority, so the
-/// next lab reads the rule rather than the constant.
-///
-/// A lab that is not listed here is still **allowed** - `UOR_LAB=antigravity` works and its receipts
-/// record - so this list only decides whether a note is printed.
-pub const KNOWN_LABS: [&str; 5] = ["kimi", "claude", "codex", "deepseek", "antigravity"];
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Level {
     Ok,
@@ -208,16 +192,14 @@ pub fn onboard(repo: &Path, lab_env: Option<String>) -> Report {
             "export UOR_LAB=<lab>  — once per session, before any other command. R9 in \
              docs/harness/pm-rules.md is the roster.",
         ));
-    } else if !KNOWN_LABS.contains(&slug.as_str()) {
-        findings.push(Finding::warn(
+    } else if let Err(why) = crate::labs::check_lab(repo, &lab) {
+        // The registry (`docs/harness/labs.json`) is the one roster. A recording command refuses a
+        // lab it does not list, so onboarding must not call that identity ready.
+        findings.push(Finding::fail(
             "identity",
-            format!(
-                "UOR_LAB={lab:?} is not in this binary's roster ({}) - R9 in \
-                 docs/harness/pm-rules.md is the authority on which labs exist",
-                KNOWN_LABS.join(", ")
-            ),
-            "a new lab is a decision, not an error — but make sure this spelling is intentional, \
-             because a different spelling becomes a second lab in the ledger",
+            format!("UOR_LAB={lab:?} cannot record: {why}"),
+            "export UOR_LAB=<one of the registered labs above>; a new lab is an owner decision \
+             recorded in docs/harness/labs.json",
         ));
     } else {
         findings.push(Finding::ok("identity", format!("UOR_LAB={slug}")));
@@ -485,17 +467,21 @@ mod tests {
         }
     }
 
-    /// A genuinely unfamiliar lab warns rather than failing: joining is a decision, not an error.
+    /// A lab the registry does not list FAILS onboarding and names the five, matching the refusal a
+    /// recording command gives: calling that identity ready would send the lab on to be refused.
     #[test]
-    fn an_unknown_lab_warns_rather_than_failing() {
+    fn an_unknown_lab_fails_and_names_the_registered_labs() {
         let r = onboard(&repo(), Some("opencode".into()));
         let identity = r
             .findings
             .iter()
             .find(|f| f.name == "identity")
             .expect("identity");
-        assert_eq!(identity.level, Level::Warn);
-        assert!(r.ready(), "an unfamiliar lab is still ready to work");
+        assert_eq!(identity.level, Level::Fail);
+        for lab in ["antigravity", "claude", "codex", "deepseek", "kimi"] {
+            assert!(identity.detail.contains(lab), "{lab}: {}", identity.detail);
+        }
+        assert!(!r.ready(), "an unregistered lab is not ready to work");
     }
 
     /// The whole point: it must not write anything a lab would have to clean up.
