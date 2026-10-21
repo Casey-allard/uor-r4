@@ -12,7 +12,7 @@
 //!   over discovered docs and there is nothing to weaken.
 //! * **`documented_commands` (`harness.documented_commands`) resolves against explicit static tables
 //!   ([`ACCEPTED`], [`GROUPS`], and [`FLAGS`])** rather than introspecting Python's live `argparse`
-//!   tree. It checks the top-level command word against [`ACCEPTED`], the subcommand word for the 11
+//!   tree. It checks the top-level command word against [`ACCEPTED`], the subcommand word for the 12
 //!   grouped commands against [`GROUPS`], and every option token against the global [`FLAGS`] union
 //!   (mirroring Python's `_all_options(parser, deep=True)`, while exempting bare prose `"-"` after
 //!   [`RUST_ONLY_COMMANDS`] so `the_table_agrees_with_pythons_live_parser` stays in 1-to-1 agreement
@@ -482,6 +482,7 @@ const ACCEPTED: &[&str] = &[
     "notes",
     "ratchet",
     "version",
+    "loop",
     // `comment edit` edits a note by id. It moved with the lesson that names it: the two tables have to
     // move together, and only one side updated diverges the #[ignore]d cross-check.
     "comment",
@@ -504,12 +505,13 @@ const RUST_ONLY_COMMANDS: &[&str] = &[
     "notes",
     "ratchet",
     "version",
+    "loop",
     "comment",
 ];
 
 /// Subcommands of the top-level groups, as **this binary** accepts them.
 ///
-/// **11 groups, taken from the runtime's own subparsers rather than curated by hand.**
+/// **12 groups, taken from the runtime's own subparsers rather than curated by hand.**
 ///
 /// # Why a table rather than introspection
 ///
@@ -524,7 +526,7 @@ const RUST_ONLY_COMMANDS: &[&str] = &[
 /// **The one thing it cannot do that Python can**: Python's table IS the parser, so it cannot drift.
 /// **This one can**, and the test below resolves every documented command through both
 /// implementations to catch exactly that.
-const GROUPS: [(&str, &[&str]); 11] = [
+const GROUPS: [(&str, &[&str]); 12] = [
     ("arena", &["board", "compare", "lineage"]),
     ("budget", &["scan", "show"]),
     ("comment", &["edit"]),
@@ -539,6 +541,7 @@ const GROUPS: [(&str, &[&str]); 11] = [
         ],
     ),
     ("lint", &["check", "format"]),
+    ("loop", &["gates"]),
     ("mistakes", &["capture", "find", "list", "show"]),
     (
         "multilab",
@@ -573,6 +576,7 @@ const FLAGS: &[&str] = &[
     "--body",
     "--body-file",
     "--branch",
+    "--break",
     "--budget-tokens",
     "--cached",
     "--class",
@@ -585,11 +589,13 @@ const FLAGS: &[&str] = &[
     "--evidence",
     "--files",
     "--force",
+    "--full",
     "--guard",
     "--headline",
     "--help",
     "--id",
     "--json",
+    "--keep-going",
     "--kind",
     "--lab",
     "--label",
@@ -609,6 +615,7 @@ const FLAGS: &[&str] = &[
     "--paths",
     "--print",
     "--query",
+    "--quick",
     "--quiet",
     "--refresh",
     "--repo",
@@ -626,6 +633,7 @@ const FLAGS: &[&str] = &[
     "--split",
     "--staged",
     "--state",
+    "--status",
     "--steps",
     "--stop",
     "--symptom",

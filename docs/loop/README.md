@@ -110,7 +110,7 @@ Notes carry memory between sessions. Most are rendered, so nobody types them.
 
 A gate is a check anyone can rerun. Each gate names what it proves, and a planted fault that must turn it red.
 
-**The runner (to build).** `loop gates [--quick|--full|--keep-going|--status|--break G|all|--watch]` reads `docs/harness/gates.json`.
+**The runner (built, loop PR 4).** `loop gates [--quick|--full|--keep-going|--status|--break G|all]` reads `docs/harness/gates.json`, which lists three gates today: `cargo fmt --check` for the claim-wording and harness crates, and claim-wording. `--watch` is loop PR 11.
 
 **Gates that exist today:** `cargo fmt`; clippy and library tests for changed crates; `uor-harness check`; `lint check`; the d23, d25 and d32 ratchets; claim-wording; `cargo xtask links`, `archive-verify --base`, `roadmap check` and `docs-catalog --check`; `shard-check`.
 **Gates to build:** `render --check`, `scope`, `order --check`, `report --check`, `budget`, rule sources, milestone bars against CHARTER §4.8, and the local private-text check.

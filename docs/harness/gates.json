@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "gates": [
+    {
+      "id": "fmt-claim-wording",
+      "proves": "The claim-wording crate is rustfmt-clean.",
+      "command": ["cargo", "fmt", "-p", "uor-r4-claim-wording", "--check"],
+      "reads": ["crates/uor-r4-claim-wording/**/*.rs", "rustfmt.toml", ".rustfmt.toml"],
+      "quick": true,
+      "break": {
+        "file": "crates/uor-r4-claim-wording/src/lib.rs",
+        "append": "\nfn  planted_break( ) { }\n",
+        "expect": "+fn planted_break() {}"
+      }
+    },
+    {
+      "id": "fmt-harness",
+      "proves": "The harness crate is rustfmt-clean.",
+      "command": ["cargo", "fmt", "-p", "uor-r4-harness", "--check"],
+      "reads": ["crates/uor-r4-harness/**/*.rs", "rustfmt.toml", ".rustfmt.toml"],
+      "quick": true,
+      "break": {
+        "file": "crates/uor-r4-harness/src/labs.rs",
+        "append": "\nfn  planted_break( ) { }\n",
+        "expect": "+fn planted_break() {}"
+      }
+    },
+    {
+      "id": "claim-wording",
+      "proves": "No document uses prohibited claim wording without a linked proof artifact.",
+      "command": ["cargo", "run", "-q", "--locked", "-p", "uor-r4-claim-wording", "--", "."],
+      "reads": ["**/*.md", "crates/uor-r4-claim-wording/**"],
+      "quick": true,
+      "break": {
+        "file": "docs/README.md",
+        "append": "\nThis result is machine-verified.\n",
+        "expect": "This result is machine-verified."
+      }
+    }
+  ]
+}

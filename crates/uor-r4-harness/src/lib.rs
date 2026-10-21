@@ -33,6 +33,7 @@ pub mod harnessrules_stateformats;
 pub mod heartbeatcard;
 pub mod hygiene;
 pub mod labs;
+pub mod loopgates;
 pub mod mistakes;
 pub mod multilab;
 pub mod multilabrules;
