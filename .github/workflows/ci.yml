@@ -109,6 +109,38 @@ jobs:
         if: steps.scope.outputs.code == 'true'
         run: cargo test --workspace --lib
 
+  # The loop's policy check (loop PR 5): `uor-harness loop pr-check` built from the base branch,
+  # reading the PR's commits as data. It is advisory: required-transport records its verdict in
+  # the five acknowledgements' summaries and never changes their colour (owner, 21 Oct 2026,
+  # "Record only"; docs/loop/tasks/infra-loop-harness/claude-16/ORDER.md). `loop pr-check --pr`
+  # refuses at queue time when the verdict is not a pass.
+  policy:
+    name: loop policy
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/gate.yml
+    with:
+      job: policy
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+      head_ref: ${{ github.event.pull_request.head.ref }}
+      pr_number: ${{ format('{0}', github.event.pull_request.number) }}
+
+  # `loop gates --full` on the PR's own code with a read-only token. Nothing waits for it.
+  gate-tests:
+    name: loop gates
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/gate.yml
+    with:
+      job: tests
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+      head_ref: ${{ github.event.pull_request.head.ref }}
+      pr_number: ${{ format('{0}', github.event.pull_request.number) }}
+
   # The ruleset's five required status names are compatibility acknowledgements:
   # they run no formatting, Clippy, tests, audit, fuzzing, WASM build or model
   # evaluation (owner-approved, 3 October 2026). One job publishes all five as
@@ -117,6 +149,9 @@ jobs:
   # instead of five. Real validation is the exact-head evidence posted on the PR.
   required-transport:
     name: required acknowledgements (5 ruleset names, no tests)
+    # Runs after the policy job whatever its result (`always()`), so a failed, cancelled or
+    # skipped policy job can never stop the five acknowledgements from being published.
+    needs: [policy]
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
     runs-on: ubuntu-latest
     permissions:
@@ -126,11 +161,26 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          EVENT: ${{ github.event_name }}
+          POLICY_VERDICT: ${{ needs.policy.outputs.verdict }}
+          POLICY_RESULT: ${{ needs.policy.result }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           # NOT `set -e`: one transient API failure must not abort the loop. The required statuses
           # that were never published are exactly what WEDGE a merge-queue entry - it waits for a
           # context that will never arrive. Every outcome is handled explicitly below instead.
           set -uo pipefail
+
+          # The policy record each summary carries. `loop pr-check --pr` reads it back and accepts
+          # only `policy: pass (run <id>)` from this app (crates/uor-r4-harness/src/loopprcheck.rs).
+          if [ "$EVENT" = "merge_group" ]; then
+            POLICY="policy: not run on a merge group; the PR's own run is the record."
+          elif [ -n "$POLICY_VERDICT" ]; then
+            POLICY="policy: ${POLICY_VERDICT} (run ${RUN_ID})"
+          else
+            POLICY="policy: error, the policy job ended ${POLICY_RESULT} (run ${RUN_ID})"
+          fi
+          echo "$POLICY"
 
           # One publish attempt: non-zero on any failure, including the `gh api` transport error
           # seen twice in production (`unexpected end of JSON input`).
@@ -149,7 +199,7 @@ jobs:
           publish() {
             local name="$1" summary="$2" attempt delay=3
             for attempt in 1 2 3; do
-              if publish_once "$name" "$summary" success; then
+              if publish_once "$name" "${summary} ${POLICY}" success; then
                 echo "published: ${name} (attempt ${attempt})"
                 return 0
               fi

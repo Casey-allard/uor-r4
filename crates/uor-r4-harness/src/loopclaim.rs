@@ -316,6 +316,8 @@ pub struct ItemFields {
     pub status: Option<String>,
     /// `None` when the item has no `scope:` line.
     pub scope: Option<Vec<String>>,
+    /// The item's notebook page, from an unquoted-or-quoted `notebook:` line.
+    pub notebook: Option<String>,
 }
 
 fn unquote(s: &str) -> &str {
@@ -328,7 +330,7 @@ fn unquote(s: &str) -> &str {
     s
 }
 
-/// Read `status:` and the inline-list `scope:` from an item's `---` frontmatter.
+/// Read `status:`, `notebook:` and the inline-list `scope:` from an item's `---` frontmatter.
 pub fn parse_item(text: &str) -> Result<ItemFields, String> {
     let mut lines = text.lines();
     if lines.next().map(str::trim) != Some("---") {
@@ -341,6 +343,8 @@ pub fn parse_item(text: &str) -> Result<ItemFields, String> {
         }
         if let Some(v) = line.strip_prefix("status:") {
             fields.status = Some(unquote(v).to_string());
+        } else if let Some(v) = line.strip_prefix("notebook:") {
+            fields.notebook = Some(unquote(v).to_string());
         } else if let Some(v) = line.strip_prefix("scope:") {
             let v = v.trim();
             let inner = v

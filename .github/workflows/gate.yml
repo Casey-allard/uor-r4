@@ -1,0 +1,162 @@
+name: gate
+
+# The loop's gate workflow (loop PR 5). ci.yml calls it on pull requests, once per job, so the
+# five required acknowledgements wait only for the policy job. The policy verdict is recorded
+# in those acknowledgements' summaries and never changes their colour: the owner chose
+# "Record only" on 21 Oct 2026 (docs/loop/tasks/infra-loop-harness/claude-16/ORDER.md). The
+# lock is local: `uor-harness loop pr-check` refuses at queue time.
+on:
+  workflow_call:
+    inputs:
+      job:
+        description: 'Which job to run: policy or tests'
+        required: true
+        type: string
+      base_sha:
+        required: true
+        type: string
+      head_sha:
+        required: true
+        type: string
+      head_ref:
+        required: true
+        type: string
+      pr_number:
+        required: true
+        type: string
+    outputs:
+      verdict:
+        description: 'pass, fail, or error when pr-check could not run; empty for the tests job'
+        value: ${{ jobs.policy.outputs.verdict }}
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  policy:
+    name: policy (base code, advisory)
+    if: ${{ inputs.job == 'policy' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      verdict: ${{ steps.check.outputs.verdict }}
+    steps:
+      # The base branch's code judges the PR: the PR's commits are fetched only as data.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch the PR head as data
+        env:
+          PR: ${{ inputs.pr_number }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags "https://github.com/${GITHUB_REPOSITORY}.git" "+refs/pull/${PR}/head:refs/remotes/pr/head"
+          git cat-file -e "${HEAD_SHA}^{commit}"
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      # No cache here, deliberately. The tests job builds the PR's own code (build scripts
+      # included) and saves its cache; restoring any cache the PR can write would let it plant
+      # compiled dependencies in this "base" build. The harness builds cold in about a minute.
+      - name: Build uor-harness from the base
+        run: cargo build --locked -p uor-r4-harness --bin uor-harness
+
+      - name: loop pr-check
+        id: check
+        env:
+          BASE_SHA: ${{ inputs.base_sha }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+          HEAD_REF: ${{ inputs.head_ref }}
+        run: |
+          # A failed rule is a verdict to record, not a job failure. GitHub runs this step as
+          # `bash -e`, so `-e` must be switched off explicitly, or a non-zero pr-check exit would
+          # end the step before the verdict is written.
+          set +e
+          set -uo pipefail
+          ./target/debug/uor-harness loop pr-check --ci --base "$BASE_SHA" --head "$HEAD_SHA" --head-ref "$HEAD_REF" > pr-check.out 2>&1
+          code=$?
+          cat pr-check.out
+          case "$code" in
+            0) verdict=pass ;;
+            1) verdict=fail ;;
+            *) verdict=error ;;
+          esac
+          # Bootstrap: a base commit older than loop PR 5 has no pr-check, and this job never runs
+          # the PR's own code. Recorded as unavailable, which `required-checks` does not accept.
+          if [ "$code" -eq 2 ] && grep -q 'loop pr-check: not built yet' pr-check.out; then
+            verdict=unavailable
+          fi
+          echo "verdict=${verdict}" >> "$GITHUB_OUTPUT"
+          echo "policy: ${verdict} (exit ${code})" >> "$GITHUB_STEP_SUMMARY"
+          # Advisory: the job fails only when pr-check could not run at all.
+          [ "$code" -le 1 ] || [ "$verdict" = "unavailable" ]
+
+  tests:
+    name: tests (loop gates --full, PR code, read-only token)
+    if: ${{ inputs.job == 'tests' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Find the PR's lab from its ORDER
+        id: lab
+        env:
+          BASE_SHA: ${{ inputs.base_sha }}
+        run: |
+          set -euo pipefail
+          # fetch-depth 0 brings every branch, so the base commit on main is already here.
+          git cat-file -e "${BASE_SHA}^{commit}"
+          # A failed merge-base must fail the job, not read as "no ORDER" (`set -e` stops here).
+          mb="$(git merge-base "$BASE_SHA" HEAD)"
+          added="$(git diff --name-only --diff-filter=A "$mb" HEAD)"
+          # grep exits 1 when nothing matches, which only means this PR adds no ORDER.
+          order="$(printf '%s\n' "$added" | grep -E '^docs/loop/tasks/[^/]+/[a-z]+-[0-9]+/ORDER\.md$' | head -n 1 || true)"
+          lab=""
+          if [ -n "$order" ]; then
+            lab="$(basename "$(dirname "$order")")"
+            lab="${lab%-*}"
+          fi
+          echo "lab=${lab}" >> "$GITHUB_OUTPUT"
+          if [ -z "$lab" ]; then
+            echo "No ORDER in this PR, so it is outside the loop: loop gates needs a lab and is skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Install Rust (stable)
+        if: ${{ steps.lab.outputs.lab != '' }}
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache cargo
+        if: ${{ steps.lab.outputs.lab != '' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-gate-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-gate-${{ runner.os }}-
+
+      - name: loop gates --full
+        if: ${{ steps.lab.outputs.lab != '' }}
+        env:
+          LAB: ${{ steps.lab.outputs.lab }}
+        run: cargo run -q --locked -p uor-r4-harness --bin uor-harness -- loop gates --full --lab "$LAB"

@@ -126,10 +126,10 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 
 **Breaks.** `--break G` plants the gate's declared fault in a scratch worktree. The gate must go red with its declared failure text. Red for another reason, such as a build failure, is REFUSED. Every gate must declare a break. When a PR changes a gate, the old breaks also run against the new gate, so a gate and its break cannot be loosened together. A break that stays green is a gate defect: add the case, never relax the check. A bug that escapes every gate becomes a new gate whose break is that bug.
 
-**CI (to build).** One workflow, `gate.yml`, with no path filters:
-- `tests` runs the full gates with a read-only token.
-- `policy` checks order, scope, commit order, review record, REPORT, owner paths, rule sources, the rendered-file lock, read path and FILEMAP. On PR events it runs the base branch's code, never the PR's code.
-- **The policy gate is advisory on GitHub.** There is no org admin, so there is no GitHub App and no ruleset change. The policy is enforced locally: a supervisor queues a PR only when the policy gate is green and the review it accepts is at the head: Claude's for a setup PR under D59; otherwise another vendor's. Where it can, the policy result feeds into the checks that are already required.
+**CI (built, loop PR 5).** One workflow, `gate.yml`, which `ci.yml` calls on every pull request, with no path filters:
+- `tests` runs `loop gates --full` with a read-only token. It takes the lab from the PR's ORDER; a PR with no ORDER is outside the loop and is skipped with a notice.
+- `policy` runs `uor-harness loop pr-check --ci`. It checks order, scope, commit order, REPORT, owner paths, rule sources, the rendered-file lock, read path and FILEMAP. On PR events it builds the base branch's code and reads the PR's commits only as data, never running the PR's code. The review record and the required checks are checked at queue time, because they do not exist yet when the job runs.
+- **The policy gate is advisory on GitHub.** There is no org admin, so there is no GitHub App and no ruleset change. `required-transport` runs after the policy job, always. It records `policy: <verdict> (run <id>)` in each of the five required checks' summaries and leaves them green (owner, 21 Oct 2026: "Record only"). The policy is enforced locally: `loop pr-check --pr <n>` refuses a PR whose required checks lack `policy: pass` from GitHub Actions, or carry a commit status of the same name. A supervisor queues a PR only when that check is green and the review it accepts is at the head: Claude's for a setup PR under D59; otherwise another vendor's.
 
 ## The five labs
 
@@ -228,7 +228,7 @@ P-5 is dropped: Codex keeps full access.
 | 2 | Item keys, "Cancel if", done-when class, validator | an item scoped `**` is refused |
 | 3 | `loop render` for every view, `--check` at the stamp, determinism tests | a hand-edited STATE fails |
 | 4 | `loop gates`: runner, `gates.json`, ledger with working-tree hashes, REFUSED and UNKNOWN, breaks | `--break all` turns each gate red for its own reason |
-| 5 | `loop pr-check`; `gate.yml` with the policy job advisory | one fixture PR per rule fails |
+| 5 | `loop pr-check`; `gate.yml` with the policy job advisory (built) | one fixture PR per rule fails |
 | 6 | `loop review` with tagged review records | an untagged review record, a same-vendor record on a code or model PR outside D59, or a setup-PR record from a lab other than Claude is refused |
 | 7a | `claim`, `suborder`, `ask` | an overlapping claim is refused |
 | 7b | `next`, `arrive`, `report`, `close`; templates in our words; per-task receipts | a REPORT missing a section is refused |
