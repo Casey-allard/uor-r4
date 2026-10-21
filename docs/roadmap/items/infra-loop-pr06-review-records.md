@@ -3,7 +3,7 @@ id: infra-loop-pr06-review-records
 title: Loop PR 6: loop review with tagged review records
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr05-policy-check]

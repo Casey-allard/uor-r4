@@ -3,7 +3,7 @@ id: infra-loop-pr07b-session
 title: Loop PR 7b: loop next, arrive, report and close
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr03-render, infra-loop-pr07a-claim]

@@ -3,7 +3,7 @@ id: infra-loop-pr04-gates
 title: Loop PR 4: loop gates runner, gates.json, ledger and breaks
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []

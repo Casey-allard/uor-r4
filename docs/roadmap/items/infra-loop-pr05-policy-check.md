@@ -3,7 +3,7 @@ id: infra-loop-pr05-policy-check
 title: Loop PR 5: loop pr-check and a policy job feeding the required checks
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr02-item-keys, infra-loop-pr03-render, infra-loop-pr04-gates]

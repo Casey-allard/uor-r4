@@ -3,7 +3,7 @@ id: infra-loop-pr07a-claim
 title: Loop PR 7a: loop claim, suborder and ask
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr02-item-keys]

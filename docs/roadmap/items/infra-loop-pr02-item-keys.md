@@ -3,7 +3,7 @@ id: infra-loop-pr02-item-keys
 title: Loop PR 2: item keys, Cancel if, done-when class and validator
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []
