@@ -29,7 +29,7 @@ Only the owner changes it; changes are logged in [docs/rules/changes.md](docs/ru
 | The loop: sessions, orders, reports, review, build plan | [docs/loop/README.md](docs/loop/README.md) (§5.10) |
 | Mechanism board (ACTIVE / READY / PARKED) | [docs/mechanisms/README.md](docs/mechanisms/README.md) |
 | Research notebooks, one page per line | [docs/research/notebook/](docs/research/notebook/) |
-| Decision index (D0–D58) | [docs/integration/DECISIONS.md](docs/integration/DECISIONS.md) |
+| Decision index (D0–D59) | [docs/integration/DECISIONS.md](docs/integration/DECISIONS.md) |
 | Workspace, storage and hygiene | [docs/labs/workspace.md](docs/labs/workspace.md) |
 | Archive of retired text and records | [archive/CATALOG.md](archive/CATALOG.md) |
 

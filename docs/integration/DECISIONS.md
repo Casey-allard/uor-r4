@@ -261,5 +261,6 @@ From D43 on, each decision gets one row here: what was decided, the reason, the 
 | D56 | 2026-10-20 | An owner release is approved by the owner in the asking lab's own chat and recorded verbatim with the time. The typed phrase is retired (§5.1). | The owner's choice. | The typed phrase; a hardware signing key. | Low. |
 | D57 | 2026-10-20 | Private client memories keep only pointers to the rules, and Codex memories are off for this repository. | Private copies of rules drifted; one already contradicted D46. | Turning all memories off; leaving them as they were. | Low. |
 | D58 | 2026-10-20 | Codex keeps full sandbox access. | The owner's choice. | Workspace-write with network. | Low. |
+| D59 | 2026-10-21 | Until the other labs are running the loop, the loop's setup PRs get fresh-context reviews from the authoring lab, never from the other labs. This is an exception to D46 for the setup only. | A lab that does not run the loop yet cannot meaningfully review the setup that installs it. | Asking Kimi or another lab to review the setup. | Low: it ends when the other labs run the loop. |
 
 [orig]: ../../archive/integration/DECISIONS-2026-10-19.md

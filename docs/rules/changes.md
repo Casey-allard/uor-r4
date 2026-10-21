@@ -14,6 +14,12 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 21 October 2026: no lab review of the loop setup (D59)
+
+**Decided by:** the owner (Casey), in chat, twice. First: "none of the other labs are onboarded yet so having them review the onboarding will be problematic - anyway, go". Then, after Claude had asked Kimi to review loop PR 1 (#2898) anyway: "I TOLD YOU NOT TO ASK OTHER LABS FOR REVIEWS ON THE SETUP THAT THEY AREN'T RUNNING YET".
+
+1. **The setup is reviewed without the other labs (D59).** Until the other labs are running the loop, the loop's own setup PRs (the build plan in [docs/loop/README.md](../loop/README.md)) are reviewed by fresh-context reviewers of the authoring lab, not by the other labs. This is an exception to D46 for the setup only; once the other labs run the loop, D46 applies again. The Kimi review requests for #2898 were withdrawn on #2898 and #2028. (Clause 5.5.)
+
 ## 20 October 2026: the loop harness, adapted from the Loop Kit
 
 **Decided by:** the owner (Casey), in chat. He answered the Loop Kit's own start-here interview, confirmed the read-back as "Accurate", then answered ten design questions on the loop-harness review page. The Loop Kit is by Ron Brazil and was given to the owner. Its text is not for redistribution, so this repository holds only our own words (D44). Details and the build plan: [docs/loop/README.md](../loop/README.md). Decision rows D43–D58: [the decision index](../integration/DECISIONS.md#decisions-after-the-charter-from-d43).

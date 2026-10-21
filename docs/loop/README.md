@@ -207,6 +207,8 @@ All Rust. Small PRs, through today's delivery path. From PR A on, every PR carri
 
 **Teams.** Claude leads the architecture, with Kimi as PM reviewing. Codex and DeepSeek build PRs 2–7 and 10–12. Antigravity builds PR 9. Every review comes from a different vendor than the author.
 
+**Review of the setup itself (D59).** Until the other labs are running the loop, the setup PRs in this plan are reviewed by fresh-context reviewers of the authoring lab, never by another lab (charter §5.5; owner, 21 Oct). The cross-vendor reviews above, Kimi's included, start once the other labs run the loop.
+
 **PR 0, probes.** Scratch tests; results go to PLAN's premise table.
 
 | Premise | Probe | If it fails | Result (21 Oct 2026; details in [claude-2's REPORT](tasks/infra-loop-harness/claude-2/REPORT.md)) |
