@@ -54,7 +54,7 @@ const PASSTHROUGH_VALUE_FLAGS: [&str; 1] = ["--only"];
 /// failed with "unknown option --only" before it could delegate. Which defeats the point.
 use uor_r4_harness::ruleinventory::PORTED_COMMANDS;
 
-const SUBCOMMAND_FLAGS: [&str; 35] = [
+const SUBCOMMAND_FLAGS: [&str; 36] = [
     // `status --refresh`: re-read GitHub instead of the 15-minute cache.
     "--refresh",
     "--kind",
@@ -94,10 +94,12 @@ const SUBCOMMAND_FLAGS: [&str; 35] = [
     // `check --staged` selects the staged rule SET. It was missing from this list, so the top-level
     // parser rejected it as an unknown option before `check` could see it.
     "--staged",
+    // `loop ask --blocked`.
+    "--blocked",
 ];
 
 /// The subset that takes a value, so the value is not mistaken for a command.
-const SUBCOMMAND_VALUE_FLAGS: [&str; 57] = [
+const SUBCOMMAND_VALUE_FLAGS: [&str; 67] = [
     "--kind",
     "--milestone",
     "-m",
@@ -160,6 +162,17 @@ const SUBCOMMAND_VALUE_FLAGS: [&str; 57] = [
     "-q",
     "--budget-tokens",
     "--write",
+    // `loop claim`, `loop suborder` and `loop ask`.
+    "--lab-topic",
+    "--parent",
+    "--order",
+    "--file",
+    "--reason",
+    "--lines",
+    "--own-code",
+    "--limit",
+    "--measured",
+    "--command",
 ];
 
 /// Per-command help, for the commands whose flags are not guessable from the global usage.

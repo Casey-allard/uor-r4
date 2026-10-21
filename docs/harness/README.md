@@ -92,6 +92,22 @@ UOR_LAB=claude uor-harness loop gates --break all  # plant each declared fault i
 
 Verdicts: GREEN, RED, REFUSED (could not run, or its reads match no file), UNKNOWN (not run after an earlier non-green result), VOID (a read file changed during the run). A break run is CAUGHT (green at HEAD, then red with its declared text), REFUSED (already not green before the break, or red for another reason) or DEFECT (stayed green); `--break` refuses an uncommitted `docs/harness/gates.json`, since breaks run against the committed tree. Logs and exit codes go under `local/<lab>/gates/<run-id>/`; the ledger is `local/<lab>/gates.jsonl`. A leading `cargo` in a gate command resolves to `$CARGO`, then `~/.cargo/bin/cargo`, then `PATH`.
 
+### `loop claim`, `loop suborder` and `loop ask` (loop PR 7a)
+
+```sh
+UOR_LAB=claude uor-harness loop claim <item-id> [--lab-topic <topic>]
+UOR_LAB=claude uor-harness loop suborder --parent <ORDER> --scope <glob>[,<glob>...]
+UOR_LAB=claude uor-harness loop ask --scope --order <ORDER> --file <path> --reason <text> --lines <n> --own-code <yes|no>
+UOR_LAB=claude uor-harness loop ask --blocked --order <ORDER> --limit <text> --measured <text> --command <text> --state <refused|not-reached>
+```
+
+`loop claim` refuses unless the item is ready and unclaimed, has a `scope:` line, overlaps no open order's scope (notebook pages excepted) and the lab is under its `open_pr_limit`. It then creates `.worktrees/<lab>-<topic>` from fresh `origin/main`, commits a skeleton ORDER at `docs/loop/tasks/<item-id>/<lab>-<n>/ORDER.md` (the folder is the item id), opens a draft PR and lists the PRs again. It refuses if the branch already exists on `origin` or `origin` cannot be checked, and pushes only while the branch is absent there. Any failure after the worktree exists, and a lost race, runs one rollback that attempts every step: close our PR, delete our branch from `origin` only while it is still at the commit we pushed, remove our worktree and branch by exact path and name. Exit codes: 0 claimed; 1 lost the race to a lower-numbered open PR for the same item and the rollback was clean; 2 refused, a write failed, or a rollback left something, which is named so a person can remove it.
+For `loop claim`, `<topic>` is `--lab-topic`, which defaults to the item id; for `loop suborder` and `loop ask` it is the parent ORDER's folder name.
+
+`loop suborder` refuses, with exit 2, any glob not inside the parent ORDER's scope (its item's `scope:`): a child glob is contained when it equals the parent glob, or the parent is `<dir>/**` and the child lies under `<dir>/`. The parent item is read from `origin/main`. It writes `local/<lab>/<topic>/orders/<n>.md` (created with `create_new`, so a concurrent card takes the next number), where `<topic>` is the parent ORDER's folder name, and prints the subagent's block with the stop rules. `loop ask` writes a stop-and-ask card to `local/<lab>/<topic>/asks/<n>.md` and posts nothing; a missing field exits 2.
+
+Tests only: `UOR_LOOP_GH_FAKE=<file>` replaces `gh` entirely. The file holds either the array `gh pr list --json number,headRefName,isDraft,files` prints, or an object `{"prs": [...], "nextPrNumber": n, "afterCreate": [...]}`; `afterCreate` PRs join the list once the draft PR exists, and each PR may carry `"orderTexts": {path: text}` for the ORDER files it changes. `"createFails": true` makes `create_draft_pr` fail without recording anything. Each GitHub write the claim makes (`create_draft_pr`, `close_pr`) is appended as one JSON line to `<file>.calls.jsonl`. Never set it outside tests.
+
 ## Where it sits against what already exists
 
 The repo did not lack for machinery; it lacked a front door. This harness is the front

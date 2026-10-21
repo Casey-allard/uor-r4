@@ -22,7 +22,7 @@ Each part of the kit, what it is for, and what takes its place here. "Private sk
 | scope-guard (skill) | Giving each task an edge and making it reversible | The ORDER's scope, stop-and-ask, one worktree per task, and the cross-vendor review (§5.5) | The ORDER exists now. `loop scope` and the policy check come in PR 5 |
 | A line budget per task | Catching oversized changes | Size is reported in the REPORT, never capped | Dropped as a cap (D48) |
 | session-close (skill) | Ending a session so the next one loses nothing | The REPORT, the lab's PICKUP, and the rendered STATE and HANDOFF | By hand now. `loop close` comes in PR 7b |
-| holding-the-goal (skill) | Questions to ask before saying no, and before proposing a fix | The opener in every launch prompt, and a stop-and-ask card that names the limiter | Private skill now. `loop ask` comes in PR 7a |
+| holding-the-goal (skill) | Questions to ask before saying no, and before proposing a fix | The opener in every launch prompt, and a stop-and-ask card that names the limiter | Private skill now. `loop ask` is built in loop PR 7a |
 | solution-integrity (skill) | Questions to ask before, during and after a change | The opener; the REPORT names the parts used | Private skill now |
 | working-discipline (skill) | Habits for arriving, reading, measuring and reporting | The arrival check against the repository, and the REPORT's order (negatives first) | By hand now. `loop arrive` comes in PR 7b |
 | gates (skill) | A single command for all the checks, a log of past runs, a planted fault for each check, and a live view of a long run | `loop gates`, with its ledger and its planted faults, and `loop board` | PR 4 and PR 11 |
@@ -54,7 +54,7 @@ Steps that need no judgement run in the supervisor, without a model.
 | 1 | Next | Decide go or stop, and which kind of session. Order of preference: owner direction, repairs to the lab's own PRs, reviews, GPU collections, premise probes, the top of the lab's lane, then `any`. Stop on a pending owner decision, held work, an empty queue or the kill switch. | `loop next` (to build) | supervisor |
 | 2 | Arrive | Fetch; check the binary, hooks, notes and read path; render the views locally. If the repository disagrees with a note, the repository wins. | `loop arrive` (to build) | session |
 | 3 | Opener | Read the opener and the thinking skills the task needs. Name the parts used in REPORT. | — | session |
-| 4 | Claim | Refused unless the item is ready and unclaimed, its scope overlaps no open order (notebook pages excepted), and the lab is under its open-PR limit. Create a worktree `.worktrees/<lab>-<topic>` from fresh `origin/main`, commit the ORDER, open a draft PR, then list again: of two racing drafts, the higher PR number closes before any work. Post the §5.3 intent note. | `loop claim` (to build) | session |
+| 4 | Claim | Refused unless the item is ready and unclaimed, its scope overlaps no open order (notebook pages excepted), and the lab is under its open-PR limit. Create a worktree `.worktrees/<lab>-<topic>` from fresh `origin/main`, commit the ORDER, open a draft PR, then list again: of two racing drafts, the higher PR number closes before any work. Post the §5.3 intent note. | `loop claim` (built in loop PR 7a) | session |
 | 5 | Probe | Run the cancel probe first. Commit its result, classed `instrument` or `mechanism`, before any commit outside the task folder. If more than three files are expected, commit a plan first too. A cancel closes this order or configuration only, never a mechanism (§4.1, §4.2). | gate (to build) | session |
 | 6 | Work | Work in scope with WIP commits. GPU work still needs a prep sheet, a non-author FIT, an owner release and `scripts/pod/uor-pod`. | `prep` (exists) | session, subagents |
 | 7 | Gates | Quick gates during work, the full set before review. | `loop gates` (to build) | session |
@@ -183,7 +183,7 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 
 ## Subagents
 
-A subagent gets a narrower order. `loop suborder --parent <order> --scope <globs>` (to build) refuses a scope outside the parent's and writes `local/<lab>/<topic>/orders/<n>.md`. It prints the subagent's block: the opener, the order, the narrowed scope, the stop list, and this clause: never claim, open, review or merge a PR; never post as the lab or push; never decide (§5.2); report to the parent. The top session lists every suborder and writes REPORT itself.
+A subagent gets a narrower order. `loop suborder --parent <order> --scope <globs>` (built in loop PR 7a) refuses a scope outside the parent's and writes `local/<lab>/<topic>/orders/<n>.md`. It prints the subagent's block: the opener, the order, the narrowed scope, the stop list, and this clause: never claim, open, review or merge a PR; never post as the lab or push; never decide (§5.2); report to the parent. The top session lists every suborder and writes REPORT itself.
 
 A marker file in the worktree names the active ORDER, so the parent's scope holds at any depth where hooks fire inside subagents.
 Per client: Claude Code fires hooks inside subagents, and a SubagentStart hook injects the rules and the ORDER. Codex, Antigravity, Kimi and DeepSeek are unverified; probe P-1 checks them. Until then their subagents follow the order as an instruction, and the policy gate checks the result.
