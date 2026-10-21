@@ -2541,7 +2541,8 @@ fn cmd_ledger_sync(repo: &Path, args: &[String], json: bool) -> ExitCode {
     }
 }
 
-/// `loop gates ...`: the gate runner (loop PR 4). A bad `UOR_LAB` exits 2 like every recorder.
+/// `loop gates ...`: the gate runner (loop PR 4); `loop render ...`: the views (loop PR 3). A bad
+/// `UOR_LAB` exits 2 like every recorder.
 fn cmd_loop(repo: &Path, args: &[String]) -> ExitCode {
     let lab = match lab_or_refuse(repo, args) {
         Ok(l) => l,
