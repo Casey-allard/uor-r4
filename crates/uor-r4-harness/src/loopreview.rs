@@ -476,6 +476,28 @@ pub fn counted(input: &GateInput) -> Vec<(String, Verdict)> {
         .collect()
 }
 
+/// The index in `comments` of the last counted record when it is an APPROVE; `None` when the
+/// last counted record is CHANGES or nothing counts. `loop queue` refuses any comment after it
+/// that it cannot attribute to a lab other than the PM.
+pub fn last_counted_approve(input: &GateInput) -> Option<usize> {
+    let setup_pr = is_setup_pr(input.setup_row, input.rows, input.order_item);
+    if bad_loop_item(input, setup_pr).is_some() {
+        return None;
+    }
+    let mut last = None;
+    for (i, body) in input.comments.iter().enumerate() {
+        if let Parsed::Record(r) = parse(body) {
+            if refusal(input, setup_pr, &r).is_none() {
+                last = Some((i, r.verdict));
+            }
+        }
+    }
+    match last {
+        Some((i, Verdict::Approve)) => Some(i),
+        _ => None,
+    }
+}
+
 /// Whether a record from `lab` at this PR and head would count. The record is taken to carry
 /// `context: fresh`, which any reviewer may state, so on a doc-only PR the ORDER lab may review,
 /// and on a setup PR under D59 claude may. A loop item whose ORDER names no valid setup row is

@@ -544,8 +544,8 @@ const GROUPS: [(&str, &[&str]); 12] = [
     (
         "loop",
         &[
-            "arrive", "ask", "claim", "close", "gates", "next", "pr-check", "render", "report",
-            "review", "suborder",
+            "arrive", "ask", "board", "claim", "close", "gates", "next", "pr-check", "queue",
+            "render", "report", "review", "suborder",
         ],
     ),
     ("mistakes", &["capture", "find", "list", "show"]),

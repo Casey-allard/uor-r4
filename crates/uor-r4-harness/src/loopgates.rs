@@ -688,6 +688,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
     match args.first().map(String::as_str) {
         Some("gates") => {}
         Some("arrive") => return crate::looparrive::cli(root, lab, &args[1..]),
+        Some("board") => return crate::loopboard::cli(root, &args[1..]),
         Some("claim") => return crate::loopclaim::cli(root, lab, &args[1..]),
         Some("close") => return crate::loopclose::cli(root, lab, &args[1..]),
         Some("next") => return crate::loopnext::cli(root, lab, &args[1..]),
@@ -695,6 +696,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         Some(a @ ("suborder" | "ask")) => return crate::loopsub::cli(root, lab, a, &args[1..]),
         Some("render") => return crate::looprender::cli(root, &args[1..]),
         Some("pr-check") => return crate::loopprcheck::cli(root, &args[1..]),
+        Some("queue") => return crate::loopqueue::cli(root, lab, &args[1..]),
         Some("report") => return crate::loopreport::cli(root, lab, &args[1..]),
         Some(other) => {
             eprintln!("uor-harness: loop {other}: not built yet (see the build plan)");

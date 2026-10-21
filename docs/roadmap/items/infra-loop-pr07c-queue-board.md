@@ -3,7 +3,7 @@ id: infra-loop-pr07c-queue-board
 title: Loop PR 7c: loop queue and loop board
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr05-policy-check, infra-loop-pr06-review-records]

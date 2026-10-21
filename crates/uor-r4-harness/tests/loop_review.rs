@@ -274,6 +274,80 @@ fn the_last_counted_record_decides() {
     assert!(has(&out, "fail: no counted record"), "{:?}", out.details);
 }
 
+/// `last_counted_approve` over the same input as [`run`].
+fn approve_at(c: &Case, comments: &[String]) -> Option<usize> {
+    let (rows, vendors) = (rows(), vendors());
+    last_counted_approve(&GateInput {
+        pr: PR,
+        head: HEAD,
+        order_path: ORDER_PATH,
+        order_lab: c.order_lab,
+        order_item: c.item,
+        setup_row: c.setup_row,
+        rows: &rows,
+        vendors: &vendors,
+        d59_in_force: c.d59,
+        doc_only: c.doc_only,
+        comments,
+    })
+}
+
+/// A loop item whose ORDER names no valid setup row counts no record, so a claude APPROVE gives
+/// no standing approval.
+#[test]
+fn last_counted_approve_is_none_for_a_loop_item_without_a_valid_setup_row() {
+    let approve = fresh("claude", Verdict::Approve);
+    for setup_row in [None, Some("99")] {
+        let c = Case {
+            item: "infra-loop-pr06-review-records",
+            setup_row,
+            ..SETUP_PR
+        };
+        assert_eq!(approve_at(&c, std::slice::from_ref(&approve)), None);
+    }
+    assert_eq!(
+        approve_at(&SETUP_PR, std::slice::from_ref(&approve)),
+        Some(0)
+    );
+}
+
+/// The index of the last counted record when it is an APPROVE; records that do not count and
+/// plain comments are skipped; a last counted CHANGES or no counted record gives `None`.
+#[test]
+fn last_counted_approve_finds_the_standing_approval() {
+    let approve = body("codex", Verdict::Approve);
+    let changes = body("codex", Verdict::Changes);
+    let note = "LGTM".to_string();
+    assert_eq!(
+        approve_at(&CODE_PR, std::slice::from_ref(&approve)),
+        Some(0)
+    );
+    assert_eq!(
+        approve_at(
+            &CODE_PR,
+            &[changes.clone(), note.clone(), approve.clone(), note.clone()]
+        ),
+        Some(2)
+    );
+    assert_eq!(
+        approve_at(&CODE_PR, &[approve.clone(), changes.clone()]),
+        None
+    );
+    assert_eq!(approve_at(&CODE_PR, std::slice::from_ref(&note)), None);
+    // A same-vendor CHANGES on a code PR does not count, so the APPROVE before it stands.
+    let same = body("claude", Verdict::Changes);
+    assert_eq!(approve_at(&CODE_PR, &[approve, same]), Some(0));
+    // On a setup PR under D59, a later kimi CHANGES does not count; a later claude CHANGES does.
+    let claude_ok = fresh("claude", Verdict::Approve);
+    let kimi_no = fresh("kimi", Verdict::Changes);
+    let claude_no = fresh("claude", Verdict::Changes);
+    assert_eq!(
+        approve_at(&SETUP_PR, &[claude_ok.clone(), kimi_no]),
+        Some(0)
+    );
+    assert_eq!(approve_at(&SETUP_PR, &[claude_ok, claude_no]), None);
+}
+
 #[test]
 fn the_switch_ends_d59_only_when_listed_and_ended() {
     let unlisted = r#"{"schema":1,"paths":[{"path":"CHARTER.md"}]}"#;

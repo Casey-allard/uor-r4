@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 51 |
+| ready | 50 |
 | held | 26 |
 | decision | 4 |
-| done | 6 |
+| done | 7 |
 | total | 87 |
 
 ## Start here
@@ -179,7 +179,6 @@ These items are ready and open to anyone.
 | [Record K16 normal close and final resource accounting](items/infra-k16-normal-close-accounting.md) | ready | a lab | no | none | [#2827](https://github.com/UOR-Foundation/uor-r4/issues/2827) |
 | [Build the five-lab loop harness (the loop subcommands of uor-harness)](items/infra-loop-harness.md) | ready | a lab | no | none | [#2904](https://github.com/UOR-Foundation/uor-r4/issues/2904) |
 | [Loop PR 3: loop render for every view, with --check at the stamp](items/infra-loop-pr03-render.md) | ready | a lab | no | [infra-loop-pr02-item-keys](items/infra-loop-pr02-item-keys.md) | [#2906](https://github.com/UOR-Foundation/uor-r4/issues/2906) |
-| [Loop PR 7c: loop queue and loop board](items/infra-loop-pr07c-queue-board.md) | ready | a lab | no | [infra-loop-pr05-policy-check](items/infra-loop-pr05-policy-check.md), [infra-loop-pr06-review-records](items/infra-loop-pr06-review-records.md) | [#2912](https://github.com/UOR-Foundation/uor-r4/issues/2912) |
 | [Loop PR 8: migrate the notes to STATE, HANDOFF and PLAN](items/infra-loop-pr08-migration.md) | ready | a lab | no | [infra-loop-pr03-render](items/infra-loop-pr03-render.md) | [#2913](https://github.com/UOR-Foundation/uor-r4/issues/2913) |
 | [Loop PR 9: loop guard, install and onboard for each client](items/infra-loop-pr09-client-adapters.md) | ready | a lab | no | [infra-loop-pr07b-session](items/infra-loop-pr07b-session.md) | [#2914](https://github.com/UOR-Foundation/uor-r4/issues/2914) |
 | [Loop PR 10: loop drive, watchers, kill switch and the soft check-in](items/infra-loop-pr10-supervisor.md) | ready | a lab | no | [infra-loop-pr07b-session](items/infra-loop-pr07b-session.md), [infra-loop-pr07c-queue-board](items/infra-loop-pr07c-queue-board.md), [infra-loop-pr09-client-adapters](items/infra-loop-pr09-client-adapters.md) | [#2915](https://github.com/UOR-Foundation/uor-r4/issues/2915) |
@@ -192,6 +191,7 @@ These items are ready and open to anyone.
 | [Loop PR 6: loop review with tagged review records](items/infra-loop-pr06-review-records.md) | done | a lab | no | [infra-loop-pr05-policy-check](items/infra-loop-pr05-policy-check.md) | [#2909](https://github.com/UOR-Foundation/uor-r4/issues/2909) |
 | [Loop PR 7a: loop claim, suborder and ask](items/infra-loop-pr07a-claim.md) | done | a lab | no | [infra-loop-pr02-item-keys](items/infra-loop-pr02-item-keys.md) | [#2910](https://github.com/UOR-Foundation/uor-r4/issues/2910) |
 | [Loop PR 7b: loop next, arrive, report and close](items/infra-loop-pr07b-session.md) | done | a lab | no | [infra-loop-pr03-render](items/infra-loop-pr03-render.md), [infra-loop-pr07a-claim](items/infra-loop-pr07a-claim.md) | [#2911](https://github.com/UOR-Foundation/uor-r4/issues/2911) |
+| [Loop PR 7c: loop queue and loop board](items/infra-loop-pr07c-queue-board.md) | done | a lab | no | [infra-loop-pr05-policy-check](items/infra-loop-pr05-policy-check.md), [infra-loop-pr06-review-records](items/infra-loop-pr06-review-records.md) | [#2912](https://github.com/UOR-Foundation/uor-r4/issues/2912) |
 
 ## Waiting on the owner
 
