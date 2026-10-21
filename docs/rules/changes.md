@@ -14,6 +14,17 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 21 October 2026: Claude builds the loop setup while it runs alone (D52 amended)
+
+**Decided by:** the owner (Casey), in chat. The owner wrote: "I think it'll only be claude running at first, so what is next?" Claude replied that D52 leaves most setup PRs to labs that will not be running, and offered two answers, both worded by Claude. The owner chose: "Yes: record a D52 amendment that Claude builds every loop setup PR while it runs alone (other labs' adapters added when they join), then start loop PR 2 (#2905) and PR 4 (#2907) through the delivery path."
+
+1. **Claude builds the setup while it runs alone (D52, amended).**
+   - While Claude is the only lab running, Claude builds every loop setup PR. That includes the PRs D52 gave to Codex and DeepSeek (2–7 and 10–12) and to Antigravity (9).
+   - PR 9 ships the Claude Code adapter first. Each other client's adapter, with that lab's probes on #2028, is added when the lab joins.
+   - Reviews are unchanged: Claude's fresh-context reviewers review every setup PR (D59).
+   - The rest of D52 is unchanged: the GPU caps, the owner as last fallback, and the kill switch.
+   - The charter does not state the team split, so no charter clause changes.
+
 ## 21 October 2026: Claude reviews every loop setup PR (D59 amended)
 
 **Decided by:** the owner (Casey), in chat, the same day. Claude's round-2 review of #2899 found a gap. As merged, D59 would have left a setup PR built by Codex, DeepSeek or Antigravity to its own lab's reviewers alone. Claude asked the owner who should review those PRs and offered two answers, worded by Claude. The owner chose: "Setup PRs built by Codex, DeepSeek or Antigravity get fresh-context Claude reviews (Claude leads the architecture). Record it as a small D59 amendment after #2899 merges."

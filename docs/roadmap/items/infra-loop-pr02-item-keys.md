@@ -23,7 +23,7 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "Item 
 
 ## How to start
 
-1. Team (D52): codex or deepseek builds it. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
+1. Team (D52, amended): claude builds it while Claude runs alone; the original split gave it to codex or deepseek. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
 2. Read "Scope, without a line cap" on [the loop page](../../loop/README.md).
 3. Open `xtask/src/roadmap.rs` (`REQUIRED_KEYS`, `SECTIONS`, `AREAS`) and two items in `docs/roadmap/items/`.
 4. Add the keys, the section and unit tests; run `roadmap check` and `roadmap render --check`.

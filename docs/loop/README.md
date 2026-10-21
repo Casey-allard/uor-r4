@@ -205,7 +205,7 @@ PR A carries the charter changes: the new CHARTER §5.10 "The loop", the §5.5 r
 
 All Rust. Small PRs, through today's delivery path. From PR A on, every PR carries an ORDER and REPORT in `docs/loop/tasks/` and a review from another vendor.
 
-**Teams.** Claude leads the architecture, with Kimi as PM reviewing. Codex and DeepSeek build PRs 2–7 and 10–12. Antigravity builds PR 9. Every review comes from a different vendor than the author.
+**Teams.** Claude leads the architecture, with Kimi as PM reviewing. Codex and DeepSeek build PRs 2–7 and 10–12. Antigravity builds PR 9. Every review comes from a different vendor than the author. While Claude runs alone, Claude builds every setup PR, and each other client's adapter is added when that lab joins (D52, amended 21 Oct).
 
 **Review of the setup itself (D59).** Until the other labs are running the loop, every setup PR in this plan, whichever lab built it, gets its exact-head review from Claude's fresh-context reviewers, and no other lab is asked to review it (charter §5.5; owner, 21 Oct, amended the same day). The cross-vendor reviews above, Kimi's included, start once the other labs run the loop.
 

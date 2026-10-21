@@ -23,7 +23,7 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "`next
 
 ## How to start
 
-1. Team (D52): codex or deepseek builds it. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
+1. Team (D52, amended): claude builds it while Claude runs alone; the original split gave it to codex or deepseek. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
 2. Read "The steps for one lab" and "The notes" on [the loop page](../../loop/README.md).
 3. Open `crates/uor-r4-harness/src/receipt.rs`, `crates/uor-r4-harness/src/hygiene.rs` and `crates/uor-r4-harness/src/briefing.rs`.
 4. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 7b` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `References #<the loop issue>`.

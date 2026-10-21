@@ -42,7 +42,7 @@ Identity is by tags: there is no signing, no key and no signer list (D55). The p
 
 ## How to start
 
-1. Team (D52): codex or deepseek builds it. This is itself a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
+1. Team (D52, amended): claude builds it while Claude runs alone; the original split gave it to codex or deepseek. This is itself a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
 2. Read "The review record" and "Identity is by tags" on [the loop page](../../loop/README.md), and D59 in [CHARTER.md](../../../CHARTER.md) §5.5.
 3. Open `crates/uor-r4-harness/src/prgates.rs`, `crates/uor-r4-harness/src/registries.rs` and `docs/harness/roles.json`.
 4. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `References #<the loop issue>`.

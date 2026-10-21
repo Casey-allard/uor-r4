@@ -23,7 +23,7 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "`driv
 
 ## How to start
 
-1. Team (D52): codex or deepseek builds it. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
+1. Team (D52, amended): claude builds it while Claude runs alone; the original split gave it to codex or deepseek. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
 2. Test first, and record in REPORT: a foreground tool's process group, signalling a whole group, and Claude Code's after-stop summary session (the P-2 gaps).
 3. Read "The 2-hour check-in and the stops" on [the loop page](../../loop/README.md).
 4. Open `scripts/pod/uor-pod` (leases), `crates/uor-r4-harness/src/heartbeatcard.rs` and `crates/uor-r4-harness/src/githubcards.rs`.

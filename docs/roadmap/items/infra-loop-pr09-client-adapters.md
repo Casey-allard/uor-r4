@@ -19,11 +19,11 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "`guar
 
 ## Done when
 
-`loop guard` is the one hook entry point and exits at once outside the repository and its worktrees. In Claude Code it scopes subagents, because the tool hook names the calling subagent (P-1). `loop install` is run by the owner, backs up each config it edits and writes only to gitignored `local/`. `loop onboard` prints PASS, FAIL or REFUSED per check, with a committed receipt per client. The guard never runs a release command for a lab (D56). The copyright check runs on the laptop only. The planted fault turns the check red: **each client's canary write is refused.**
+`loop guard` is the one hook entry point and exits at once outside the repository and its worktrees. In Claude Code it scopes subagents, because the tool hook names the calling subagent (P-1). `loop install` is run by the owner, backs up each config it edits and writes only to gitignored `local/`. `loop onboard` prints PASS, FAIL or REFUSED per check, with a committed receipt per client. While Claude runs alone, this PR ships the Claude Code adapter and its receipt; each other client's adapter and receipt are added when that lab joins (D52, amended). The guard never runs a release command for a lab (D56). The copyright check runs on the laptop only. The planted fault turns the check red: **each client's canary write is refused.**
 
 ## How to start
 
-1. Team (D52): antigravity builds it. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
+1. Team (D52, amended): claude builds it while Claude runs alone, starting with the Claude Code adapter; the original split gave it to antigravity. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
 2. Read "Install and onboarding" and the P-1 and P-2 results on [the loop page](../../loop/README.md). Codex, Kimi, Antigravity and DeepSeek still owe their client probes (#2028); an adapter for an unprobed client waits for its probe.
 3. Open `crates/uor-r4-harness/src/presence.rs`, `crates/uor-r4-harness/src/onboard.rs` and `crates/uor-r4-harness/src/skills.rs`.
 4. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 9` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `References #<the loop issue>`.
