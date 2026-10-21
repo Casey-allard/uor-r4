@@ -109,7 +109,7 @@ pub struct RealGh {
     pub root: PathBuf,
 }
 
-fn run_gh(root: &Path, args: &[&str]) -> Result<String, String> {
+pub(crate) fn run_gh(root: &Path, args: &[&str]) -> Result<String, String> {
     let out = Command::new("gh")
         .args(args)
         .current_dir(root)
@@ -140,7 +140,7 @@ fn percent_encode(s: &str, keep: &[u8]) -> String {
 
 /// The contents API endpoint for `path` on PR `pr`'s head, read through `refs/pull/<pr>/head` so a
 /// PR from a fork, or a branch name that needs escaping, still resolves.
-fn contents_endpoint(path: &str, pr: u64) -> String {
+pub(crate) fn contents_endpoint(path: &str, pr: u64) -> String {
     format!(
         "repos/{{owner}}/{{repo}}/contents/{}?ref={}",
         percent_encode(path, b"/"),
@@ -422,7 +422,7 @@ fn git(root: &Path, args: &[&str]) -> Result<String, String> {
 
 /// The main checkout of the repository at `root`: the parent of its common git directory, so a
 /// claim run from a linked worktree still places and finds worktrees under the main checkout.
-fn main_checkout(root: &Path) -> Result<PathBuf, String> {
+pub(crate) fn main_checkout(root: &Path) -> Result<PathBuf, String> {
     let common = git(
         root,
         &["rev-parse", "--path-format=absolute", "--git-common-dir"],

@@ -51,19 +51,19 @@ Steps that need no judgement run in the supervisor, without a model.
 
 | # | Step | What happens | Command | Who |
 |---|---|---|---|---|
-| 1 | Next | Decide go or stop, and which kind of session. Order of preference: owner direction, repairs to the lab's own PRs, reviews, GPU collections, premise probes, the top of the lab's lane, then `any`. Stop on a pending owner decision, held work, an empty queue or the kill switch. | `loop next` (to build) | supervisor |
-| 2 | Arrive | Fetch; check the binary, hooks, notes and read path; render the views locally. If the repository disagrees with a note, the repository wins. | `loop arrive` (to build) | session |
+| 1 | Next | Decide go or stop, and which kind of session. Order of preference: owner direction, repairs to the lab's own PRs, reviews, GPU collections, premise probes, the top of the lab's lane, then `any`. Stop on a pending owner decision, held work, an empty queue or the kill switch. | `loop next` (built, loop PR 7b) | supervisor |
+| 2 | Arrive | Fetch; check the binary, hooks, notes and read path; render the views locally. If the repository disagrees with a note, the repository wins. | `loop arrive` (built, loop PR 7b) | session |
 | 3 | Opener | Read the opener and the thinking skills the task needs. Name the parts used in REPORT. | — | session |
 | 4 | Claim | Refused unless the item is ready and unclaimed, its scope overlaps no open order (notebook pages excepted), and the lab is under its open-PR limit. Create a worktree `.worktrees/<lab>-<topic>` from fresh `origin/main`, commit the ORDER, open a draft PR, then list again: of two racing drafts, the higher PR number closes before any work. Post the §5.3 intent note. | `loop claim` (built in loop PR 7a) | session |
 | 5 | Probe | Run the cancel probe first. Commit its result, classed `instrument` or `mechanism`, before any commit outside the task folder. If more than three files are expected, commit a plan first too. A cancel closes this order or configuration only, never a mechanism (§4.1, §4.2). | gate (to build) | session |
 | 6 | Work | Work in scope with WIP commits. GPU work still needs a prep sheet, a non-author FIT, an owner release and `scripts/pod/uor-pod`. | `prep` (exists) | session, subagents |
 | 7 | Gates | Quick gates during work, the full set before review. | `loop gates` (to build) | session |
-| 8 | Report | Write REPORT, a notebook row for any result, and receipts, all in the task folder. | `loop report --check` (to build) | session |
-| 9 | Ready | Build the PR body from REPORT, size first; mark the PR ready; write PICKUP; end the session. | `loop close --session` (to build) | session |
+| 8 | Report | Write REPORT, a notebook row for any result, and receipts, all in the task folder. | `loop report --check` (built, loop PR 7b) | session |
+| 9 | Ready | Build the PR body from REPORT, size first; mark the PR ready; write PICKUP; end the session. | `loop close --session` (built, loop PR 7b) | session |
 | 10 | Review | A lab from another vendor (for a loop setup PR while D59 is in force, Claude), in a fresh session, reads only the ORDER and the diff. A `host` done-when is re-run at the head. A `gpu` done-when is checked by the sealed artifact's checksum and run receipt, never re-run on the laptop (§3.5). | `loop review` (to build) | other lab (D59: Claude for setup PRs) |
-| 11 | Repair | Requested changes, a red gate or a queue ejection give the author lab a new order `<lab>-<n+1>`. It lists finished steps in the past tense with their commits. The first ORDER is history. | `loop next` (to build) | session |
+| 11 | Repair | Requested changes, a red gate or a queue ejection give the author lab a new order `<lab>-<n+1>`. It lists finished steps in the past tense with their commits. The first ORDER is history. | `loop next` finds repairs (loop PR 7b); the repair ORDER is still written by hand | session |
 | 12 | Queue | Only when the policy gate is green at the head, the approval the policy gate accepts is at the head (Claude's for a setup PR under D59; otherwise another vendor's), no later "changes requested" that the gate counts exists, and no owner or PM comment came after the approval. | `loop queue` (to build) | supervisor |
-| 13 | Verify | Find the `(#N)` squash commit on `main`; re-run a `host` done-when on fresh `main`; delete the branch and worktree only when GitHub reports MERGED; run `uor-hygiene --apply`. A failure becomes a repair. | `loop close --verify` (to build) | supervisor |
+| 13 | Verify | Find the `(#N)` squash commit on `main`; re-run a `host` done-when on fresh `main`; delete the branch and worktree only when GitHub reports MERGED; run `uor-hygiene --apply`. A failure becomes a repair. | `loop close --verify` (built, loop PR 7b; it prints the hygiene plan and does not apply it, see claude-17 REPORT) | supervisor |
 | 14 | Render | Refresh the render PR. | `loop render --pr` (to build) | Kimi; a cover lab after 2 hours red |
 | 15 | Restart | Start the next fresh session. | `loop drive` (to build) | supervisor |
 
@@ -231,7 +231,7 @@ P-5 is dropped: Codex keeps full access.
 | 5 | `loop pr-check`; `gate.yml` with the policy job advisory (built) | one fixture PR per rule fails |
 | 6 | `loop review` with tagged review records | an untagged review record, a same-vendor record on a code or model PR outside D59, or a setup-PR record from a lab other than Claude is refused |
 | 7a | `claim`, `suborder`, `ask` | an overlapping claim is refused |
-| 7b | `next`, `arrive`, `report`, `close`; templates in our words; per-task receipts | a REPORT missing a section is refused |
+| 7b | `next`, `arrive`, `report`, `close`; templates in our words; per-task receipts (built) | a REPORT missing a section is refused |
 | 7c | `queue`, `board` | a later CHANGES record blocks queueing, unless it comes from a lab other than Claude on a setup PR (D59) |
 | 8 | Migration of the notes; AGENTS.md under the 80-line gate; DECISIONS columns; lesson ids; FILEMAP; `pm-rules.md`; bars reconciled | `xtask links` fails a planted broken link |
 | 9 | `guard`, `install`, `onboard`; the local copyright check; committed onboarding receipts | each client's canary write is refused |

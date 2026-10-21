@@ -2557,9 +2557,25 @@ fn cmd_ledger_sync(repo: &Path, args: &[String], json: bool) -> ExitCode {
 /// `loop gates ...`: the gate runner (loop PR 4); `loop render ...`: the views (loop PR 3). A bad
 /// `UOR_LAB` exits 2 like every recorder.
 fn cmd_loop(repo: &Path, args: &[String], json: bool) -> ExitCode {
-    // The top-level parser consumes `--json`; `loop pr-check` is the one loop action that reads it.
+    // The top-level parser consumes `--json`; `loop pr-check`, `loop arrive` and `loop next` read it.
+    // The action word is the first argument that is neither a flag nor the value of `--repo` or
+    // `--lab`; a later argument that happens to read `next` is a value, not the action.
     let mut args = args.to_vec();
-    if json && args.iter().any(|a| a == "pr-check") {
+    let mut action = None;
+    let mut i = 0;
+    while i < args.len() {
+        let a = args[i].as_str();
+        if a == "--repo" || a == "--lab" {
+            i += 2;
+            continue;
+        }
+        if !a.starts_with('-') {
+            action = Some(a);
+            break;
+        }
+        i += 1;
+    }
+    if json && matches!(action, Some("pr-check" | "arrive" | "next")) {
         args.push("--json".to_string());
     }
     let args = &args[..];

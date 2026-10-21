@@ -1,0 +1,444 @@
+//! `uor-harness loop next` pinned against a temporary git repository with a bare `origin`, GitHub
+//! replaced by the test-only `UOR_LOOP_NEXT_GH_FAKE` and `UOR_LOOP_GH_FAKE` files. Every child
+//! process has every `GIT_*` variable removed, and each repository sits inside its temp directory.
+
+use std::path::PathBuf;
+use std::process::{Command, Output};
+
+use serde_json::{json, Value};
+
+const BIN: &str = env!("CARGO_BIN_EXE_uor-harness");
+const HEAD: &str = "1111111111111111111111111111111111111111";
+const OLD: &str = "2222222222222222222222222222222222222222";
+
+fn clean(cmd: &mut Command) -> &mut Command {
+    for (k, _) in std::env::vars_os() {
+        if k.to_string_lossy().starts_with("GIT_") {
+            cmd.env_remove(k);
+        }
+    }
+    cmd.env_remove("UOR_LAB")
+        .env_remove("UOR_LOOP_GH_FAKE")
+        .env_remove("UOR_LOOP_NEXT_GH_FAKE")
+}
+
+fn item(status: &str, scope: Option<&str>) -> String {
+    let scope = scope.map(|s| format!("scope: {s}\n")).unwrap_or_default();
+    format!("---\nid: x\nstatus: {status}\n{scope}---\n\n## Why\n")
+}
+
+struct Repo {
+    tmp: tempfile::TempDir,
+    root: PathBuf,
+}
+
+impl Repo {
+    /// A repository with `items` (id, status, scope) on `origin/main`.
+    fn new(items: &[(&str, &str, Option<&str>)]) -> Repo {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().canonicalize().unwrap().join("repo");
+        assert!(root.starts_with(tmp.path().canonicalize().unwrap()));
+        std::fs::create_dir_all(&root).unwrap();
+        let r = Repo { tmp, root };
+        r.git(&["init", "-q", "-b", "main"]);
+        r.git(&["config", "user.email", "t@example.invalid"]);
+        r.git(&["config", "user.name", "t"]);
+        r.write(".gitignore", "/local/\n/.worktrees/\n");
+        r.write(
+            "docs/harness/labs.json",
+            r#"{"labs":{
+              "claude":{"vendor":"Anthropic","client":"b","headless":"c","open_pr_limit":3},
+              "anthro":{"vendor":"Anthropic","client":"b","headless":"c","open_pr_limit":3},
+              "codex":{"vendor":"OpenAI","client":"b","headless":"c","open_pr_limit":3}}}"#,
+        );
+        r.write("docs/roadmap/items/.keep", "");
+        for (id, status, scope) in items {
+            r.write(
+                &format!("docs/roadmap/items/{id}.md"),
+                &item(status, *scope),
+            );
+        }
+        r.git(&["add", "-A"]);
+        r.git(&["commit", "-q", "-m", "init"]);
+        let remote = r.tmp.path().canonicalize().unwrap().join("remote.git");
+        let st = clean(&mut Command::new("git"))
+            .args(["init", "-q", "--bare", "-b", "main"])
+            .arg(&remote)
+            .output()
+            .unwrap();
+        assert!(st.status.success(), "{st:?}");
+        r.git(&["remote", "add", "origin", remote.to_str().unwrap()]);
+        r.git(&["push", "-q", "origin", "main"]);
+        r.git(&["fetch", "-q", "origin"]);
+        r
+    }
+
+    fn git(&self, args: &[&str]) {
+        let st = clean(&mut Command::new("git"))
+            .args(args)
+            .current_dir(&self.root)
+            .output()
+            .expect("git runs");
+        assert!(st.status.success(), "git {args:?}: {st:?}");
+    }
+
+    fn write(&self, rel: &str, text: &str) {
+        let p = self.root.join(rel);
+        assert!(
+            p.starts_with(&self.root),
+            "write stays inside the temp repo"
+        );
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, text).unwrap();
+    }
+
+    /// `loop next` as `lab` (none when empty) with `next` as the next fake and `claim` as the
+    /// claim fake.
+    fn next_as(&self, lab: &str, next: &Value, claim: &Value, json_out: bool) -> Output {
+        let nf = self.tmp.path().join("next-fake.json");
+        let cf = self.tmp.path().join("claim-fake.json");
+        std::fs::write(&nf, next.to_string()).unwrap();
+        std::fs::write(&cf, claim.to_string()).unwrap();
+        let mut cmd = Command::new(BIN);
+        clean(&mut cmd);
+        cmd.arg("--repo").arg(&self.root);
+        if json_out {
+            cmd.arg("--json");
+        }
+        cmd.args(["loop", "next"])
+            .env("UOR_LOOP_NEXT_GH_FAKE", &nf)
+            .env("UOR_LOOP_GH_FAKE", &cf)
+            .current_dir(&self.root);
+        if !lab.is_empty() {
+            cmd.env("UOR_LAB", lab);
+        }
+        cmd.output().expect("uor-harness runs")
+    }
+
+    fn next(&self, next: &Value) -> Output {
+        self.next_as("claude", next, &json!([]), false)
+    }
+}
+
+fn stdout(o: &Output) -> String {
+    String::from_utf8_lossy(&o.stdout).into_owned()
+}
+
+fn decision(o: &Output) -> String {
+    stdout(o).lines().last().unwrap_or("").to_string()
+}
+
+/// An open PR from `branch` adding `<order_lab>-<n>/ORDER.md` for `item`, with its ORDER text.
+fn pr(n: u64, branch: &str, order_lab: &str, item: &str) -> (Value, (String, String)) {
+    let path = format!("docs/loop/tasks/{item}/{order_lab}-1/ORDER.md");
+    let order = format!(
+        "# ORDER\n\nLab: {order_lab}. Item: [{item}](../../../../roadmap/items/{item}.md) (#1).\n"
+    );
+    (
+        json!({"number": n, "headRefName": branch, "headRefOid": HEAD, "isDraft": false,
+               "mergeable": "MERGEABLE", "files": [{"path": path}], "checks": []}),
+        (format!("{n}:{path}"), order),
+    )
+}
+
+fn fake(prs: Vec<(Value, (String, String))>, comments: Value) -> Value {
+    let mut files = serde_json::Map::new();
+    let mut list = Vec::new();
+    for (p, (k, v)) in prs {
+        list.push(p);
+        files.insert(k, Value::String(v));
+    }
+    json!({"prs": list, "comments": comments, "files": files, "labels": {}})
+}
+
+fn record(lab: &str, sha: &str, verdict: &str) -> Value {
+    json!({"author": "x", "body": format!(
+        "[{lab}] Exact-head review record for `{sha}`\n\n**Verdict: {verdict}**\n")})
+}
+
+#[test]
+fn a_stop_file_stops_on_the_kill_switch() {
+    let r = Repo::new(&[("a", "ready", Some("[crates/a/**]"))]);
+    r.write("local/loop/STOP", "");
+    let o = r.next(&fake(vec![], json!({})));
+    assert_eq!(o.status.code(), Some(1), "{o:?}");
+    assert!(decision(&o).starts_with("STOP kill switch"), "{o:?}");
+}
+
+#[test]
+fn the_pause_label_on_2028_stops() {
+    let r = Repo::new(&[("a", "ready", Some("[crates/a/**]"))]);
+    let mut f = fake(vec![], json!({}));
+    f["labels"] = json!({"2028": ["loop:pause"]});
+    let o = r.next(&f);
+    assert_eq!(o.status.code(), Some(1), "{o:?}");
+    assert!(decision(&o).contains("loop:pause"), "{o:?}");
+}
+
+#[test]
+fn an_own_pr_with_a_failing_check_is_a_repair() {
+    let r = Repo::new(&[]);
+    let (mut p, f) = pr(7, "claude/x", "claude", "it-1");
+    p["checks"] = json!([{"name": "ci", "conclusion": "FAILURE"}]);
+    let o = r.next(&fake(vec![(p, f)], json!({})));
+    assert_eq!(o.status.code(), Some(0), "{o:?}");
+    assert!(decision(&o).starts_with("GO repair #7 — "), "{o:?}");
+}
+
+#[test]
+fn an_own_pr_with_a_counted_request_changes_is_a_repair() {
+    let r = Repo::new(&[]);
+    let o = r.next(&fake(
+        vec![pr(7, "claude/x", "claude", "it-1")],
+        json!({"7": [record("codex", HEAD, "APPROVE"), record("codex", HEAD, "REQUEST CHANGES")]}),
+    ));
+    assert!(decision(&o).starts_with("GO repair #7"), "{o:?}");
+    // A REQUEST CHANGES at an older head does not count.
+    let o = r.next(&fake(
+        vec![pr(7, "claude/x", "claude", "it-1")],
+        json!({"7": [record("codex", OLD, "REQUEST CHANGES")]}),
+    ));
+    assert!(!decision(&o).contains("repair"), "{o:?}");
+}
+
+#[test]
+fn a_conflicting_own_pr_is_a_repair() {
+    let r = Repo::new(&[]);
+    let (mut p, f) = pr(9, "claude/y", "claude", "it-1");
+    p["mergeable"] = json!("CONFLICTING");
+    let o = r.next(&fake(vec![(p, f)], json!({})));
+    assert!(decision(&o).starts_with("GO repair #9"), "{o:?}");
+}
+
+#[test]
+fn another_labs_setup_pr_needs_a_claude_review_until_claude_approves() {
+    let r = Repo::new(&[]);
+    let o = r.next(&fake(
+        vec![pr(11, "codex/s", "codex", "infra-loop-pr09")],
+        json!({}),
+    ));
+    assert_eq!(o.status.code(), Some(0), "{o:?}");
+    assert!(decision(&o).starts_with("GO review #11 — "), "{o:?}");
+    let o = r.next(&fake(
+        vec![pr(11, "codex/s", "codex", "infra-loop-pr09")],
+        json!({"11": [record("claude", HEAD, "APPROVE")]}),
+    ));
+    assert!(!decision(&o).contains("review"), "{o:?}");
+}
+
+#[test]
+fn a_non_setup_pr_needs_a_review_only_from_another_vendor() {
+    let r = Repo::new(&[]);
+    let o = r.next(&fake(vec![pr(12, "anthro/z", "anthro", "it-2")], json!({})));
+    assert!(!decision(&o).contains("review"), "same vendor: {o:?}");
+    let o = r.next(&fake(vec![pr(12, "codex/z", "codex", "it-2")], json!({})));
+    assert!(decision(&o).starts_with("GO review #12"), "{o:?}");
+}
+
+#[test]
+fn a_ready_scoped_unclaimed_item_is_claimed_and_a_claimed_one_is_skipped() {
+    let r = Repo::new(&[
+        ("a-claimed", "ready", Some("[crates/a/**]")),
+        ("b-free", "ready", Some("[crates/b/**]")),
+        ("c-noscope", "ready", None),
+    ]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert_eq!(o.status.code(), Some(0), "{o:?}");
+    assert!(decision(&o).starts_with("GO item a-claimed — "), "{o:?}");
+    // A draft codex PR whose ORDER names a-claimed: no review (draft), no repair (not ours).
+    let order =
+        "# ORDER\n\nLab: codex. Item: [a-claimed](../../../../roadmap/items/a-claimed.md) (#1).\n";
+    let path = "docs/loop/tasks/a-claimed/codex-1/ORDER.md";
+    let claim = json!([{"number": 3, "headRefName": "codex/a", "isDraft": true,
+                        "files": [{"path": path}], "orderTexts": {path: order}}]);
+    let next = json!({"prs": [{"number": 3, "headRefName": "codex/a", "headRefOid": HEAD,
+                               "isDraft": true, "files": [{"path": path}]}],
+                      "files": {(format!("3:{path}")): order}});
+    let o = r.next_as("claude", &next, &claim, false);
+    assert!(decision(&o).starts_with("GO item b-free — "), "{o:?}");
+}
+
+#[test]
+fn no_ready_scoped_item_stops_empty_or_held() {
+    let r = Repo::new(&[("a", "ready", None), ("b", "draft", Some("[x/**]"))]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert_eq!(o.status.code(), Some(1), "{o:?}");
+    assert_eq!(decision(&o), "STOP empty queue", "{o:?}");
+    let r = Repo::new(&[("a", "held", Some("[x/**]")), ("b", "held", None)]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert_eq!(
+        decision(&o),
+        "STOP held work: 2 item(s) held, none ready and claimable",
+        "{o:?}"
+    );
+}
+
+#[test]
+fn the_not_built_sources_are_printed_with_their_loop_prs() {
+    let r = Repo::new(&[]);
+    let out = stdout(&r.next(&fake(vec![], json!({}))));
+    for line in [
+        "owner-direction: not built — owner directions live in PLAN, loop PR 8",
+        "gpu-collections: not built — watchers are loop PR 10",
+        "premise-probes: not built — PLAN's premise table is loop PR 8",
+        "lane: not built — no lab has a lane and no item has `lane:`/`rank:` yet",
+    ] {
+        assert!(out.lines().any(|l| l == line), "missing {line:?} in {out}");
+    }
+}
+
+#[test]
+fn repairs_come_before_reviews() {
+    let r = Repo::new(&[]);
+    let (mut own, f) = pr(20, "claude/r", "claude", "it-1");
+    own["checks"] = json!([{"name": "ci", "conclusion": "TIMED_OUT"}]);
+    let o = r.next(&fake(
+        vec![pr(5, "codex/s", "codex", "infra-loop-pr09"), (own, f)],
+        json!({}),
+    ));
+    assert!(decision(&o).starts_with("GO repair #20"), "{o:?}");
+}
+
+#[test]
+fn no_lab_exits_2_and_json_parses() {
+    let r = Repo::new(&[]);
+    let o = r.next_as("", &fake(vec![], json!({})), &json!([]), false);
+    assert_eq!(o.status.code(), Some(2), "{o:?}");
+    assert!(String::from_utf8_lossy(&o.stderr).contains("set UOR_LAB or pass --lab"));
+    let o = r.next_as(
+        "claude",
+        &fake(
+            vec![pr(11, "codex/s", "codex", "infra-loop-pr09")],
+            json!({}),
+        ),
+        &json!([]),
+        true,
+    );
+    assert_eq!(o.status.code(), Some(0), "{o:?}");
+    let v: Value = serde_json::from_str(stdout(&o).trim()).expect("one JSON document");
+    assert_eq!(v["lab"], "claude");
+    assert_eq!(v["decision"]["go"], true);
+    assert_eq!(v["decision"]["kind"], "review");
+    assert_eq!(v["decision"]["target"], "#11");
+    assert_eq!(v["sources"][0]["source"], "kill-switch");
+}
+
+#[test]
+fn a_pr_is_judged_by_the_order_it_adds_not_another_labs_existing_one() {
+    let r = Repo::new(&[]);
+    // claude-9's ORDER is already on origin/main; the codex PR edits it and adds its own.
+    let existing = "docs/loop/tasks/a/claude-9/ORDER.md";
+    r.write(existing, "# ORDER\n\nLab: claude. Item: [a](x) (#1).\n");
+    r.git(&["add", "-A"]);
+    r.git(&["commit", "-q", "-m", "claude-9"]);
+    r.git(&["push", "-q", "origin", "main"]);
+    r.git(&["fetch", "-q", "origin"]);
+    let (mut p, f) = pr(13, "codex/x", "codex", "it-2");
+    let own = p["files"][0].clone();
+    p["files"] = json!([{"path": existing}, own]);
+    let mut next = fake(vec![(p, f)], json!({}));
+    next["files"][format!("13:{existing}")] = json!("# ORDER\n\nLab: claude. Item: [a](x) (#1).\n");
+    let o = r.next(&next);
+    assert!(decision(&o).starts_with("GO review #13 — "), "{o:?}");
+}
+
+#[test]
+fn a_pr_that_deletes_an_order_is_skipped_with_a_note_not_fatal() {
+    let r = Repo::new(&[]);
+    let gone = "docs/loop/tasks/z/codex-2/ORDER.md";
+    let next = json!({"prs": [{"number": 14, "headRefName": "codex/d", "headRefOid": HEAD,
+                               "isDraft": false, "files": [{"path": gone}]}]});
+    let o = r.next(&next);
+    assert_eq!(o.status.code(), Some(1), "{o:?}");
+    assert!(
+        stdout(&o)
+            .lines()
+            .any(|l| l.starts_with("reviews: ") && l.contains("#14 adds no ORDER")),
+        "{o:?}"
+    );
+}
+
+#[test]
+fn a_pr_with_a_hundred_listed_files_is_judged_by_its_order_from_every_page() {
+    let r = Repo::new(&[]);
+    let (mut p, f) = pr(14, "codex/big", "codex", "it-2");
+    let order_path = p["files"][0]["path"].as_str().unwrap().to_string();
+    // The listing stops at 100 files, and the ORDER is not among them.
+    p["files"] = Value::Array(
+        (0..100)
+            .map(|i| json!({"path": format!("crates/x/f{i}.rs")}))
+            .collect(),
+    );
+    let mut next = fake(vec![(p, f)], json!({}));
+    next["allFiles"] = json!({"14": [order_path]});
+    let o = r.next(&next);
+    assert!(decision(&o).starts_with("GO review #14 — "), "{o:?}");
+}
+
+#[test]
+fn the_vendors_come_from_origin_main_not_the_working_tree() {
+    let r = Repo::new(&[]);
+    // This branch's labs.json makes claude and codex the same vendor; origin/main still differs.
+    r.write(
+        "docs/harness/labs.json",
+        r#"{"labs":{
+          "claude":{"vendor":"OpenAI","client":"b","headless":"c","open_pr_limit":3},
+          "codex":{"vendor":"OpenAI","client":"b","headless":"c","open_pr_limit":3}}}"#,
+    );
+    let o = r.next(&fake(vec![pr(12, "codex/z", "codex", "it-2")], json!({})));
+    assert!(decision(&o).starts_with("GO review #12"), "{o:?}");
+}
+
+#[test]
+fn a_review_comes_before_a_ready_claimable_item() {
+    let r = Repo::new(&[("b-free", "ready", Some("[crates/b/**]"))]);
+    let o = r.next(&fake(vec![pr(12, "codex/z", "codex", "it-2")], json!({})));
+    assert!(decision(&o).starts_with("GO review #12"), "{o:?}");
+    assert!(!stdout(&o).contains("GO item"), "{o:?}");
+}
+
+#[test]
+fn a_stop_file_beats_an_own_pr_that_needs_repair() {
+    let r = Repo::new(&[]);
+    r.write("local/loop/STOP", "");
+    let (mut p, f) = pr(7, "claude/x", "claude", "it-1");
+    p["checks"] = json!([{"name": "ci", "conclusion": "FAILURE"}]);
+    let o = r.next(&fake(vec![(p, f)], json!({})));
+    assert_eq!(o.status.code(), Some(1), "{o:?}");
+    assert!(decision(&o).starts_with("STOP kill switch"), "{o:?}");
+}
+
+#[test]
+fn an_own_pr_whose_comments_cannot_be_read_cannot_run() {
+    let r = Repo::new(&[]);
+    let mut f = fake(vec![pr(7, "claude/x", "claude", "it-1")], json!({}));
+    f["failComments"] = json!([7]);
+    let o = r.next(&f);
+    assert_eq!(o.status.code(), Some(2), "{o:?}");
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(
+        err.contains("cannot run: could not read own PR #7"),
+        "{err}"
+    );
+}
+
+#[test]
+fn an_own_pr_adding_two_orders_is_a_repair() {
+    let r = Repo::new(&[]);
+    let (mut p, mut f) = pr(7, "claude/x", "claude", "it-1");
+    let second = "docs/loop/tasks/it-2/claude-1/ORDER.md";
+    p["files"] = json!([
+        {"path": "docs/loop/tasks/it-1/claude-1/ORDER.md"},
+        {"path": second}
+    ]);
+    let mut fk = fake(vec![(p, f.clone())], json!({}));
+    fk["files"][format!("7:{second}")] = json!(f.1.clone());
+    f.0.clear();
+    let o = r.next(&fk);
+    assert_eq!(o.status.code(), Some(0), "{o:?}");
+    assert!(
+        decision(&o).contains("GO repair #7")
+            && decision(&o).contains("its ORDER is missing or ambiguous"),
+        "{o:?}"
+    );
+}

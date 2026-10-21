@@ -543,7 +543,10 @@ const GROUPS: [(&str, &[&str]); 12] = [
     ("lint", &["check", "format"]),
     (
         "loop",
-        &["ask", "claim", "gates", "pr-check", "render", "suborder"],
+        &[
+            "arrive", "ask", "claim", "close", "gates", "next", "pr-check", "render", "report",
+            "suborder",
+        ],
     ),
     ("mistakes", &["capture", "find", "list", "show"]),
     (
@@ -621,7 +624,9 @@ const FLAGS: &[&str] = &[
     "--mechanism",
     "--milestone",
     "--milestones",
+    "--new",
     "--next",
+    "--no-gates",
     "--no-notes",
     "--note",
     "--only",
@@ -638,6 +643,7 @@ const FLAGS: &[&str] = &[
     "--quick",
     "--quiet",
     "--reason",
+    "--receipts",
     "--refresh",
     "--repo",
     "--reviewer",
@@ -664,6 +670,7 @@ const FLAGS: &[&str] = &[
     "--update-baseline",
     "--value",
     "--verdict",
+    "--verify",
     "--write",
     "-f",
     "-h",

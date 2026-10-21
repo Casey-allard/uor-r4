@@ -132,6 +132,92 @@ Tests only: `UOR_PRCHECK_GH_FAKE=<file>` replaces `gh` for these two rules with 
 
 **In CI.** `ci.yml` calls `.github/workflows/gate.yml` on every pull request. Its `policy` job builds `uor-harness` from the base commit and runs `loop pr-check --ci` against the PR's head, which it reads as data. `required-transport` then writes `policy: <pass|fail|error> (run <id>)` into the five required checks' summaries and leaves them green. That record is what `required-checks` reads back. Its `tests` job runs `loop gates --full` on the PR's code with a read-only token. The [loop page](../loop/README.md#gates) gives the reasons.
 
+### `loop report` (loop PR 7b)
+
+```sh
+UOR_LAB=claude uor-harness loop report --check      # check <task folder>/REPORT.md in the working tree
+UOR_LAB=claude uor-harness loop report --new        # write REPORT.md from the template; never overwrites
+UOR_LAB=claude uor-harness loop report --receipts   # copy HEAD's gate results into <task folder>/receipts.jsonl
+UOR_LAB=claude uor-harness loop report --check --order docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md
+```
+
+The task folder holds the one `docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md` this branch adds against `git merge-base origin/main HEAD` (added, or the new side of a rename); none or several exit 2 and name them, and `--order <path>` names it instead. Exit codes: 0 ok; 1 a check failed; 2 cannot run (usage, no ORDER found, git failure, an existing REPORT for `--new`).
+
+- `--check` reads `REPORT.md` from the working tree, so uncommitted text counts. It prints `PASS report` or `FAIL report` with one indented line per problem: the problems `loop pr-check`'s `report` rule finds (the same function), each `<!-- fill:` template line still present (naming its section), or a missing file.
+- `--new` copies `docs/loop/templates/REPORT.md` into the task folder without its first line, filling in `{id}` (the ORDER's `Item:`), `{task}` (`<lab>-<n>`) and `{lab}`. It opens the file with `create_new`, so an existing REPORT is never touched. The fresh REPORT fails `--check` until every fill line is replaced.
+- `--receipts` needs a lab (`UOR_LAB` or `--lab`; none exits 2). From `local/<lab>/gates.jsonl` it keeps the lines whose `commit` is the full `HEAD` sha and whose `tree` is the hash of a clean working tree at `HEAD` (a row recorded on a dirty tree is not a receipt for `HEAD`), takes the latest per `gate`, and writes them sorted by gate name, each byte-for-byte as recorded, to `<task folder>/receipts.jsonl` through a temporary file and a rename. No such result exits 1: run `loop gates` on a clean tree first.
+
+Templates in `docs/loop/templates/`: `REPORT.md` (the seven sections, one fill line each), `ORDER.md` (the `Lab:`, `Item:`, `Setup row:` and `Base:` lines, then Goal, Cancel probe, Files in scope, Done when, Stop and ask if) and `PICKUP.md` (branch, head, task folder, open items and next step for the next session).
+
+### `loop arrive` (loop PR 7b)
+
+```sh
+UOR_LAB=claude uor-harness loop arrive          # loop step 2: one line per check, then arrive: OK|FAIL
+UOR_LAB=claude uor-harness --json loop arrive   # {"lab","checks":[{"check","verdict","summary","details"}],"ok"}
+```
+
+Needs a lab (`UOR_LAB` or `--lab`). Exit codes: 0 every check PASS, WARN or N/A; 1 a check FAILs; 2 cannot run (usage, no lab, not a git repository). The checks, in order:
+
+- `fetch`: `git fetch origin main`; a failure FAILs with git's message, and the later checks read the `origin/main` already present.
+- `checkout`: HEAD against `origin/main`; behind or unplaceable WARNs.
+- `binary`: the running binary against the newest build in this checkout, by age (no commit is baked into the binary; `build.rs` says why); older WARNs with the install command.
+- `hooks`: the git `pre-commit` hook must be the exact text `uor-harness git install-hooks` writes and executable; otherwise WARN (a matching hook without an execute bit WARNs "not executable"). `client-hooks` is N/A until loop PR 9.
+- `views`: renders STATE, HANDOFF and LESSONS from `origin/main` into `local/<lab>/views/`; a view committed at `origin/main` whose text below the stamp line differs from its render FAILs, because the repository's inputs win (run `loop render`).
+- `pickup`: `local/<lab>/PICKUP.md` under the main checkout, where `loop close --session` writes it (so a linked worktree reads the same file); absent is N/A, an unlocatable main checkout FAILs; 8,192 bytes or more FAILs, and so does each non-blank line under `## Standing references` that cites no `§<n>`, `D<n>` or `L-<nnn>` (fenced code blocks and `#` subheading lines are skipped; only a `## ` heading outside a fence ends the section).
+- `read-path`: AGENTS.md, CHARTER.md, STATE.md and HANDOFF.md at `origin/main` (a view not committed there is measured as its render in `local/<lab>/views/`) plus the PICKUP the `pickup` check read; AGENTS.md over 80 lines, STATE.md or HANDOFF.md at 24,576 bytes or more, or a total above 128,000 bytes FAILs; a total above 76,800 bytes WARNs.
+
+### `loop next` (loop PR 7b)
+
+```sh
+UOR_LAB=claude uor-harness loop next          # loop step 1: one line per source, then GO <kind> <target> — <why> | STOP <reason>
+UOR_LAB=claude uor-harness --json loop next   # {"lab","sources":[{"source","status","detail"}],"decision":{"go","kind","target","reason"}}
+```
+
+Needs a lab (`UOR_LAB` or `--lab`). Exit codes: 0 GO, 1 STOP, 2 cannot run (usage, no lab, a git or `gh` error). It reads GitHub only; the `any` source runs `loop claim`'s checks, which fetch `origin main`. The sources, in order; the first that yields work decides:
+
+- `kill-switch`: STOP when `local/loop/STOP` exists in the main checkout or issue #2028 carries the label `loop:pause`.
+- `owner-direction`: not built (owner directions live in PLAN, loop PR 8).
+- `repairs`: the lab's own open PRs (head `<lab>/...`) that conflict, have a check at the head with conclusion FAILURE or TIMED_OUT, or whose last counted review record at the head says REQUEST CHANGES; GO `repair #<n>`, lowest number first.
+- `reviews`: open non-draft PRs this lab may review (a setup PR, item `infra-loop-pr*`: `claude` only, D59; any other: a lab of another vendor than the ORDER lab, D46) with no counted record from this lab at the head; GO `review #<n>`, lowest number first. A PR without an ORDER is skipped.
+- `gpu-collections`: not built (watchers are loop PR 10). `premise-probes`: not built (PLAN's premise table is loop PR 8). `lane`: not built (no lab has a lane and no item has `lane:`/`rank:` yet).
+- `any`: the first `status: ready` item at `origin/main` with a `scope:`, in id order, that `loop claim` would accept; GO `item <id>`.
+
+Then STOP `held work` when some item is `status: held`, else STOP `empty queue`.
+
+### `loop close` (loop PR 7b)
+
+```sh
+UOR_LAB=claude uor-harness loop close --session              # loop step 9: PR body from REPORT, mark ready, write PICKUP
+UOR_LAB=claude uor-harness loop close --session --pr <n>     # name the PR instead of finding it by branch
+UOR_LAB=claude uor-harness loop close --session --dry-run    # print the body and the PICKUP; write nothing
+UOR_LAB=claude uor-harness loop close --verify --pr <n>      # loop step 13: prove the merge, then delete this lab's worktree and branches
+UOR_LAB=claude uor-harness loop close --verify --pr <n> --no-gates   # the same without the done-when gates
+```
+
+Needs a lab (`UOR_LAB` or `--lab`). Give exactly one of `--session` or `--verify`. `--session` exit codes: 0 done; 1 refused (a check failed, nothing written); 2 cannot run (usage, no lab, no ORDER, no PR or several, a git or `gh` failure). `--session`, in order:
+
+- The task folder is `loop report`'s: the one ORDER this branch adds. Its `REPORT.md` must pass `loop report --check` (the same function), else exit 1 naming the problems.
+- The PR is `--pr <n>` (exit 1 unless `gh` reports it `OPEN` with the current branch as its head branch), else the one open PR whose head branch is the current branch. Its head must equal local `HEAD`, else exit 1 `push first: the PR head is <x>, HEAD is <y>`.
+- The body: the `size: …` line `loop pr-check` prints (the same function) for `git merge-base origin/main HEAD` to `HEAD`, a blank line, the REPORT without its `# ` title line, then `References #<issue>` when `docs/roadmap/issues.json` maps the ORDER's `Item:` to an issue, then the Claude Code footer when the lab is `claude`.
+- The PICKUP is `docs/loop/templates/PICKUP.md` filled with the branch, the head sha, the task folder, the REPORT's "Still open" section verbatim under `## Open items` and "Await the exact-head review of PR #<n>" under `## Next step`; `## Standing references` is left empty. 8,192 bytes or more exits 1 before any write.
+- Writes, in order: the PR body (`gh pr edit <n> --body-file`), `gh pr ready <n>` only for a draft, then `local/<lab>/PICKUP.md` under the main checkout (the parent of `git rev-parse --git-common-dir`; overwritten), never inside the task worktree, which `--verify` removes. A failed body write exits 2 with nothing else written; a failed `ready` exits 2 saying the body was already set, and writes no PICKUP.
+
+`--verify --pr <n> [--no-gates]` (loop step 13) prints one `PASS|FAIL|SKIP|N/A <step> <detail>` line per step. Exit codes: 0 verified and cleaned up; 1 refused or not verified, or something kept; 2 cannot run. Every proof must pass before anything is deleted, and nothing is deleted when a proof fails:
+
+- `state`: `gh pr view <n> --json state,mergeCommit,headRefName,headRefOid` reports `MERGED`.
+- `squash`: after `git fetch origin main`, the merge commit is an ancestor of `origin/main` and its subject ends with `(#<n>)`.
+- `content`: after `git fetch origin refs/pull/<n>/head`, for the files the PR changed (`git diff --name-only --no-renames` from the merge base of the head and the merge commit's first parent), either each is identical between the merge commit and the PR head, or the PR's patch (merge base to head) and the merge's patch (first parent to merge commit) over those files have the same `git patch-id --stable` (main may have changed another part of a shared file before the squash).
+- `done-when` (`SKIP` with `--no-gates`): `loop gates --full` in a detached worktree of `origin/main` at `<main checkout>/local/<lab>/verify-<n>`, removed with `git worktree remove --force` afterwards whatever the result. Red is a FAIL: a failure becomes a repair.
+
+Then, only for this lab's own branch (`<lab>/...`; another lab's PR prints `SKIP cleanup` and exits 0), three independent steps, each with its own guard, every one attempted (a kept worktree does not stop the remote delete, which is still leased to the PR head):
+
+- `worktree`: the worktree on the branch, under `.worktrees/<lab>-*`, removed with `git worktree remove` (never `--force`) only when clean. A change to `docs/harness/claims.json` alone is reverted first; any other change keeps it. Because removal deletes ignored files too, any ignored file other than `target/`, `local/<lab>/views/` and `local/<lab>/gates.jsonl` (from `git ls-files --others --ignored --exclude-standard --directory`) keeps it with `FAIL worktree holds ignored files: <first 10 paths>`. None is `N/A`.
+- `local-branch`: kept while a worktree has it checked out; otherwise one atomic `git update-ref -d refs/heads/<b> <head>`, which fails, keeping it, when the branch has moved off the PR head.
+- `remote-branch`: `git push origin --force-with-lease=refs/heads/<b>:<head> :refs/heads/<b>`, so a branch that moved is kept; already gone is `N/A`.
+- `hygiene`: prints the dry-run plan of `uor-hygiene` (this binary's `hygiene` action, run as a subprocess in the main checkout) and never passes `--apply`, because `--apply` removes every clean merged worktree, other labs' included, which the lab boundary forbids (a decision against the loop page's literal step 13).
+
+Tests replace `gh` with `UOR_LOOP_CLOSE_GH_FAKE=<json>`, and every run with it set prints `FAKE GitHub: UOR_LOOP_CLOSE_GH_FAKE=<path> (tests only)` first (`prs`, each with an optional `state` defaulting to `OPEN`, optional `failSetBody`/`failReady`, `merged` keyed by PR number for `--verify`); never set it outside tests. Tests also set `UOR_LOOP_CLOSE_NO_HYGIENE=1`, which prints `SKIP hygiene` instead of running hygiene.
+
 ## Where it sits against what already exists
 
 The repo did not lack for machinery; it lacked a front door. This harness is the front

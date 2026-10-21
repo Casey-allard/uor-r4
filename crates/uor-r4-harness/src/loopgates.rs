@@ -313,6 +313,16 @@ pub fn tree_hash(root: &Path) -> Result<String, String> {
     git_hash(root, &h)
 }
 
+/// The hash [`tree_hash`] records for a clean working tree at HEAD: no status lines, an empty diff
+/// and no untracked files. `loop report --receipts` keeps only ledger rows with this tree.
+pub(crate) fn clean_head_tree_hash(root: &Path) -> Result<String, String> {
+    let mut h: Vec<u8> = Vec::new();
+    section(&mut h, &git(root, &["rev-parse", "HEAD"])?);
+    section(&mut h, b"");
+    section(&mut h, b"");
+    git_hash(root, &h)
+}
+
 fn git_hash(root: &Path, bytes: &[u8]) -> Result<String, String> {
     let mut child = Command::new("git")
         .args(["hash-object", "--stdin"])
@@ -677,10 +687,14 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
     }
     match args.first().map(String::as_str) {
         Some("gates") => {}
+        Some("arrive") => return crate::looparrive::cli(root, lab, &args[1..]),
         Some("claim") => return crate::loopclaim::cli(root, lab, &args[1..]),
+        Some("close") => return crate::loopclose::cli(root, lab, &args[1..]),
+        Some("next") => return crate::loopnext::cli(root, lab, &args[1..]),
         Some(a @ ("suborder" | "ask")) => return crate::loopsub::cli(root, lab, a, &args[1..]),
         Some("render") => return crate::looprender::cli(root, &args[1..]),
         Some("pr-check") => return crate::loopprcheck::cli(root, &args[1..]),
+        Some("report") => return crate::loopreport::cli(root, lab, &args[1..]),
         Some(other) => {
             eprintln!("uor-harness: loop {other}: not built yet (see the build plan)");
             return 2;

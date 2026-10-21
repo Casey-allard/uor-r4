@@ -255,7 +255,8 @@ fn watch_and_other_actions_are_refused() {
         "{w:?}"
     );
     let o = clean(&mut Command::new(BIN))
-        .args(["--repo", r.root.to_str().unwrap(), "loop", "next"])
+        // `next` was the example until loop PR 7b built it; `drive` is loop PR 10.
+        .args(["--repo", r.root.to_str().unwrap(), "loop", "drive"])
         .env("UOR_LAB", "claude")
         .output()
         .unwrap();

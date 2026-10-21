@@ -79,6 +79,17 @@ pub fn load_labs(repo: &Path) -> Result<BTreeMap<String, Lab>, String> {
     Ok(doc.labs)
 }
 
+/// The labs in registry `text` (the same checks as [`load_labs`], for text read from elsewhere,
+/// such as `git show origin/main:docs/harness/labs.json`).
+pub(crate) fn parse_labs(text: &str) -> Result<BTreeMap<String, Lab>, String> {
+    let doc: LabsFile =
+        serde_json::from_str(text).map_err(|e| format!("the lab registry is malformed: {e}"))?;
+    if doc.labs.is_empty() {
+        return Err("the lab registry lists no labs".to_string());
+    }
+    Ok(doc.labs)
+}
+
 /// Accept `name` only if the registry lists it.
 ///
 /// The refusal names the unknown lab and lists every registered one, so the fix is on screen.
