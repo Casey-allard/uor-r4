@@ -19,7 +19,7 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "`queu
 
 ## Done when
 
-`loop queue` queues a PR only when the policy check is green at the head, the APPROVE that PR 6's gate accepts is at the head (another vendor's, or Claude's for a loop setup PR under D59), no later CHANGES that the gate counts exists, and no owner or PM comment came after the approval. It refuses required checks that did not come from the policy job, and `.github/**` changes made without the owner's approval. `loop board` is a read-only view of the five labs. The planted fault turns the check red: **a later CHANGES record blocks queueing, unless it comes from a lab other than Claude on a setup PR (D59).**
+`loop queue` queues a PR only when the policy check is green at the head, the APPROVE that PR 6's gate accepts is at the head (Claude's for a loop setup PR under D59; otherwise another vendor's), no later CHANGES that the gate counts exists, and no owner or PM comment came after the approval. It refuses required checks that did not come from the policy job, and `.github/**` changes made without the owner's approval. `loop board` is a read-only view of the five labs. The planted fault turns the check red: **a later CHANGES record blocks queueing, unless it comes from a lab other than Claude on a setup PR (D59).**
 
 ## How to start
 

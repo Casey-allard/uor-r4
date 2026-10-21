@@ -42,7 +42,7 @@ Each part of the kit, what it is for, and what takes its place here. "Private sk
 Each lab runs in a loop. A small supervisor program starts a fresh session. The session does one unit of work, then ends. The supervisor then starts the next session.
 A unit of work is one of: a build, a repair, a review, or collecting a GPU run.
 Every unit has a written order (ORDER). The order names the item, the files the lab may touch, when the work is done, a cancel probe, and when to stop.
-A change enters `main` only when its gates pass and a lab from a different vendor has reviewed the exact head.
+A change enters `main` only when its gates pass and a lab from a different vendor has reviewed the exact head. During the setup, until the other labs run the loop, Claude's fresh-context reviewers review the setup PRs instead (D59).
 Shared status pages are rendered by the harness from committed inputs. Nobody edits them by hand, so they cannot quietly drift. Drifting records cost this project more than any other failure.
 
 ## The steps for one lab
@@ -62,7 +62,7 @@ Steps that need no judgement run in the supervisor, without a model.
 | 9 | Ready | Build the PR body from REPORT, size first; mark the PR ready; write PICKUP; end the session. | `loop close --session` (to build) | session |
 | 10 | Review | A lab from another vendor (for a loop setup PR while D59 is in force, Claude), in a fresh session, reads only the ORDER and the diff. A `host` done-when is re-run at the head. A `gpu` done-when is checked by the sealed artifact's checksum and run receipt, never re-run on the laptop (§3.5). | `loop review` (to build) | other lab (D59: Claude for setup PRs) |
 | 11 | Repair | Requested changes, a red gate or a queue ejection give the author lab a new order `<lab>-<n+1>`. It lists finished steps in the past tense with their commits. The first ORDER is history. | `loop next` (to build) | session |
-| 12 | Queue | Only when the policy gate is green at the head, the approval the policy gate accepts is at the head (another vendor's, or Claude's for a setup PR under D59), no later "changes requested" that the gate counts exists, and no owner or PM comment came after the approval. | `loop queue` (to build) | supervisor |
+| 12 | Queue | Only when the policy gate is green at the head, the approval the policy gate accepts is at the head (Claude's for a setup PR under D59; otherwise another vendor's), no later "changes requested" that the gate counts exists, and no owner or PM comment came after the approval. | `loop queue` (to build) | supervisor |
 | 13 | Verify | Find the `(#N)` squash commit on `main`; re-run a `host` done-when on fresh `main`; delete the branch and worktree only when GitHub reports MERGED; run `uor-hygiene --apply`. A failure becomes a repair. | `loop close --verify` (to build) | supervisor |
 | 14 | Render | Refresh the render PR. | `loop render --pr` (to build) | Kimi; a cover lab after 2 hours red |
 | 15 | Restart | Start the next fresh session. | `loop drive` (to build) | supervisor |
@@ -129,7 +129,7 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 **CI (to build).** One workflow, `gate.yml`, with no path filters:
 - `tests` runs the full gates with a read-only token.
 - `policy` checks order, scope, commit order, review record, REPORT, owner paths, rule sources, the rendered-file lock, read path and FILEMAP. On PR events it runs the base branch's code, never the PR's code.
-- **The policy gate is advisory on GitHub.** There is no org admin, so there is no GitHub App and no ruleset change. The policy is enforced locally: a supervisor queues a PR only when the policy gate is green and the review it accepts is at the head: another vendor's, or Claude's for a setup PR under D59. Where it can, the policy result feeds into the checks that are already required.
+- **The policy gate is advisory on GitHub.** There is no org admin, so there is no GitHub App and no ruleset change. The policy is enforced locally: a supervisor queues a PR only when the policy gate is green and the review it accepts is at the head: Claude's for a setup PR under D59; otherwise another vendor's. Where it can, the policy result feeds into the checks that are already required.
 
 ## The five labs
 
