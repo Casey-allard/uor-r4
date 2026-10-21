@@ -14,6 +14,42 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 20 October 2026: the loop harness, adapted from the Loop Kit
+
+**Decided by:** the owner (Casey), in chat. He answered the Loop Kit's own start-here interview, confirmed the read-back as "Accurate", then answered ten design questions on the loop-harness review page. The Loop Kit is by Ron Brazil and was given to the owner. Its text is not for redistribution, so this repository holds only our own words (D44). Details and the build plan: [docs/loop/README.md](../loop/README.md). Decision rows D43–D58: [the decision index](../integration/DECISIONS.md#decisions-after-the-charter-from-d43).
+
+The interview:
+
+1. **Adopt the loop for every lab and subagent (D43).** All four failure modes had happened: tooling over research, rules broken quietly, records drifting, and work lost or duplicated. The costliest was records drifting, which becomes lesson L-001. (Clause 5.10, new.)
+2. **The kit's text stays private (D44).** Ron's skills are installed only in each client's local skills folder on the owner's laptop. The repository gets our own rules in our own words and credits the Loop Kit by name. The kit's sealed local snapshot is not used, because GitHub `main`, the protected branches, the immutable archive and the HF store already do that job. (Clause 5.10.)
+3. **Continuous autonomy (D45).** After each close, a lab starts the next ready task by itself in a fresh session from its PICKUP. It stops only for a pending owner decision, held work or an empty queue. (Clause 5.10.)
+4. **Cross-vendor review (D46).** Every code or model PR needs an exact-head review from a lab of a different vendor before the queue. A fresh-context self-review is enough only for a doc-only or generated-file PR. (Clause 5.5.)
+5. **The kit's note names, rendered by the harness (D47).** The notes are STATE, HANDOFF, PLAN, DECISIONS, LESSONS and FILEMAP. The harness renders STATE and HANDOFF, and `NOW.md` and `STATUS.md` fold into them. Each lab has its own PICKUP, ORDER and REPORT. The owner also approved four refinements:
+   - the rendered views on `main` may lag one refresh;
+   - claims are draft PRs;
+   - PICKUP stays local;
+   - ORDER and REPORT are committed in task folders.
+
+   (Clauses 5.6 and 5.10.)
+6. **No line cap (D48).** The owner's words: "I don't think we can do our work honestly with a 200 line cap on PR's. Please allow any length since this is a research project and bookkeeping is the key". Size is reported, never capped; scope is still enforced. (Clause 5.10.)
+7. **No agent-usage budget (D49).** Only the GPU cap applies: 4 pods and $8 an hour. (No clause change; clause 5.4 keeps the GPU cap.)
+8. **Subagents inherit the order (D50).** The same or a narrower scope, at any depth. A subagent never claims, opens or merges a PR, posts as the lab or decides. (Clause 5.10.)
+9. **The harness freeze is lifted entirely (D51).** (Clause 5.3.)
+
+The design questions:
+
+10. **The charter edits and the teams (D52).**
+    - The owner approved all the charter edits. Labs can no longer lift the GPU caps themselves. NOW, STATUS, ROADMAP, `current-state.md` and `claims.json` move to the archive when the migration lands. The owner is the last fallback when the PM and its cover lab are both offline. The owner's kill switch stops every lab at once.
+    - Teams: architecture is led by Claude, with Kimi as PM reviewing. Codex and DeepSeek build the automation. Antigravity builds the client adapters and onboarding. Every review comes from a different vendor.
+
+    (Clauses 5.2, 5.4, 5.5 and 5.10.)
+11. **The 2-hour check-in (D53).** The owner's words: "2 hour limit should actually be a soft limit. If there is truly good work being done, it may be continue past 2 hours, but otherwise, the 2 hour cap is a checkin to close out sessions that have spiraled and/or stopped. (Although the PM should be prompting anyone stopped.)" (Clause 5.10.)
+12. **No org admin (D54).** The owner's words: "I do not have a admin, so we must work around it". The policy gate stays advisory on GitHub and is enforced locally: a lab queues a PR only when the gate is green and the review §5.5 requires is at the head (another vendor's review for code and model PRs; a fresh-context self-review is enough for doc-only or generated PRs). (No clause change; the loop page describes it.)
+13. **Identity by tags (D55).** The owner's words: "each lab is just a session from that vendor on my laptop, so maybe just have them all tag what they are doing as themselves so others will know not to pick it up unless it needs to be". There are no signing keys. (Clause 5.3.)
+14. **Releases approved in chat (D56).** The owner's words: "you prompt for authority and i approve, no typed phrase needed". A lab asks the owner in its own chat, the owner approves there, and the lab records his words verbatim with the time. Only that approval counts. (Clause 5.1; the typed phrase is retired.)
+15. **One rulebook (D57).** Client private memories keep only pointers to the charter, this log, the decision index and the lessons. Codex memories are off for this repository. A local check, run before each push, keeps the kit's text out of the repository; no hashes of it are stored. (Clause 5.10.)
+16. **Codex keeps full access (D58).** Codex's sandbox is not narrowed.
+
 ## 20 October 2026: roadmap issues and outside contributors
 
 **Decided by:** the owner (Casey), in chat, on the roadmap-plan review page.

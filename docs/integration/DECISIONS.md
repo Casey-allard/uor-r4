@@ -1,6 +1,6 @@
 # DECISIONS
 
-Index. On 19 October 2026 the owner adopted [CHARTER.md](../../CHARTER.md), which replaces D0–D41 as the rules (D42). Each entry below keeps its original heading, so every existing `#dNN…` link still lands here, and gives the decision in one sentence and where it now lives: `→ CHARTER.md §x` (kept), `merged into §x`, or `retired (reason)`. The full original text is preserved byte-identical at [archive/integration/DECISIONS-2026-10-19.md][orig]. New decisions are charter changes, recorded in [docs/rules/changes.md](../rules/changes.md).
+Index. On 19 October 2026 the owner adopted [CHARTER.md](../../CHARTER.md), which replaces D0–D41 as the rules (D42). Each entry below keeps its original heading, so every existing `#dNN…` link still lands here, and gives the decision in one sentence and where it now lives: `→ CHARTER.md §x` (kept), `merged into §x`, or `retired (reason)`. The full original text is preserved byte-identical at [archive/integration/DECISIONS-2026-10-19.md][orig]. New decisions are charter changes, recorded in [docs/rules/changes.md](../rules/changes.md); from D43 on, each also gets a row in [the table at the end](#decisions-after-the-charter-from-d43).
 
 ---
 
@@ -238,5 +238,28 @@ The owner (Casey) adopted CHARTER.md at checkpoint 1 of the repository renormali
 8. Q8 legacy crates: `uor-r4-graph-compiler`, `uor-r4-graph-certify`, `uor-r4-api`, `uor-r4-proof-model` and root `src/` are repaired on the current core, not archived; r4g1-graph and native-geometric stay PARKED (§2.4).
 
 The same session approved the renormalization decisions: archive byte-identical with nothing deleted; `projects/` for side projects; GitHub markdown plus an mdBook site with the Studio at `/studio`; web client is a local in-browser WASM integer model; desktop client is a Tauri app sharing the web UI; D22 kept with ACTIVE/READY/PARKED and no terminal state.
+
+## Decisions after the charter (from D43)
+
+From D43 on, each decision gets one row here: what was decided, the reason, the alternatives turned down, and what it would cost to undo. This table is append-only. An old row is never edited; a later row supersedes it and says so. The owner's words and the full reasoning are in the dated entry in [docs/rules/changes.md](../rules/changes.md).
+
+| Id | Date | Decision | Reason | Alternatives turned down | Cost to undo |
+|---|---|---|---|---|---|
+| D43 | 2026-10-20 | Every lab and subagent works in the loop adapted from Ron Brazil's Loop Kit (CHARTER §5.10). Records drifting is lesson L-001. | All four failure modes had happened, and records drifting cost the most. | Keeping the old process with more written rules. | Medium: drop §5.10 and the loop tooling. |
+| D44 | 2026-10-20 | The kit's text stays in local skills folders only. The repository holds our own words, crediting the kit. A local check guards this, and no local snapshot is taken. | The kit is not for redistribution and the repository is public. GitHub, the archive and the HF store already cover backup. | Publishing the kit; hashes of its text in CI; the kit's snapshot step. | Low. |
+| D45 | 2026-10-20 | Labs run continuously, one unit of work per fresh session, until an owner decision, held work or an empty queue. | Autonomy toward the research goal, with no single session growing until it drifts. | One task, then waiting for a go. | Low: turn the supervisor off. |
+| D46 | 2026-10-20 | A code or model PR needs an exact-head review from a different vendor's lab. Doc-only and generated PRs may use a fresh-context self-review (§5.5). | Rules were broken quietly under same-lab review. | Same-lab self-review for everything; PM approval of every merge. | Low. |
+| D47 | 2026-10-20 | The kit's note names are used, with STATE and HANDOFF rendered by the harness. `NOW.md` and `STATUS.md` fold in. Each lab keeps its own PICKUP, ORDER and REPORT. | Hand-kept shared status drifted, and five labs cannot safely edit one file. | Hand-written notes; keeping `NOW.md` and `STATUS.md`. | Medium: restore the archived pages. |
+| D48 | 2026-10-20 | No line cap on PRs. Size is reported and scope is enforced. | A cap would block honest research PRs; bookkeeping matters more. | The kit's line budget, with oversized changes rejected unread. | Low. |
+| D49 | 2026-10-20 | No agent-usage budget. The GPU cap is unchanged. | The owner's choice. | A weekly budget per lab. | Low. |
+| D50 | 2026-10-20 | Subagents inherit their parent's order, with the same or a narrower scope, at any depth. They never claim, open or merge a PR, post as the lab or decide. | The same rules must reach every level. | Depth limits; read-only subagents. | Low. |
+| D51 | 2026-10-20 | The harness freeze in §5.3 is lifted entirely. | The loop harness is the next priority. | Lifting it for the loop only. | Low: restore the sentence. |
+| D52 | 2026-10-20 | All charter edits for the loop are approved: labs can no longer lift the GPU caps, the owner is the last fallback when the PM and its cover lab are both offline, and the owner's kill switch stops every lab. Teams: Claude leads architecture with Kimi reviewing; Codex and DeepSeek build the automation; Antigravity builds the client adapters. | Cross-vendor work from the first PR. | Approving only part of the edits; one pooled team. | Low. |
+| D53 | 2026-10-20 | The 2-hour task limit is a soft check-in. Real progress continues, a spiraled or stalled session closes, and the PM prompts any lab that stopped. | The owner's words in the change log. | A hard 2-hour stop. | Low. |
+| D54 | 2026-10-20 | The policy gate stays advisory on GitHub and is enforced locally at queue time. | There is no org admin to change the ruleset or add a GitHub App. | A required check pinned to a GitHub App. | Low: require it once an admin can. |
+| D55 | 2026-10-20 | Lab identity is shown by tags on claims, PRs, reviews and comments. There are no signing keys. | Each lab is one vendor session on the owner's laptop. | Per-lab keys; a GitHub user or macOS user per lab. | Low. |
+| D56 | 2026-10-20 | An owner release is approved by the owner in the asking lab's own chat and recorded verbatim with the time. The typed phrase is retired (§5.1). | The owner's choice. | The typed phrase; a hardware signing key. | Low. |
+| D57 | 2026-10-20 | Private client memories keep only pointers to the rules, and Codex memories are off for this repository. | Private copies of rules drifted; one already contradicted D46. | Turning all memories off; leaving them as they were. | Low. |
+| D58 | 2026-10-20 | Codex keeps full sandbox access. | The owner's choice. | Workspace-write with network. | Low. |
 
 [orig]: ../../archive/integration/DECISIONS-2026-10-19.md

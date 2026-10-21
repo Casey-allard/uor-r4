@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 43 |
+| ready | 44 |
 | held | 26 |
 | decision | 4 |
 | done | 0 |
-| total | 73 |
+| total | 74 |
 
 ## Start here
 
@@ -177,6 +177,7 @@ These items are ready and open to anyone.
 | [Create the separate scanned D37 float training module](items/float-training-module.md) | ready | a lab | no | [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2823](https://github.com/UOR-Foundation/uor-r4/issues/2823) |
 | [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md) | [#2826](https://github.com/UOR-Foundation/uor-r4/issues/2826) |
 | [Record K16 normal close and final resource accounting](items/infra-k16-normal-close-accounting.md) | ready | a lab | no | none | [#2827](https://github.com/UOR-Foundation/uor-r4/issues/2827) |
+| [Build the five-lab loop harness (the loop subcommands of uor-harness)](items/infra-loop-harness.md) | ready | a lab | no | none | not yet synced |
 | [Settle the disputed D11 and Hopf observation statuses on the board](items/owner-decision-board-status-disputes.md) | decision | a lab | no | none | [#2874](https://github.com/UOR-Foundation/uor-r4/issues/2874) |
 
 ## Waiting on the owner
