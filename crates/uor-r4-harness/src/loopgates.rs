@@ -691,6 +691,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         Some("claim") => return crate::loopclaim::cli(root, lab, &args[1..]),
         Some("close") => return crate::loopclose::cli(root, lab, &args[1..]),
         Some("next") => return crate::loopnext::cli(root, lab, &args[1..]),
+        Some("review") => return crate::loopreview::cli(root, lab, &args[1..]),
         Some(a @ ("suborder" | "ask")) => return crate::loopsub::cli(root, lab, a, &args[1..]),
         Some("render") => return crate::looprender::cli(root, &args[1..]),
         Some("pr-check") => return crate::loopprcheck::cli(root, &args[1..]),

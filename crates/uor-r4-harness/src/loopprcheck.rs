@@ -1068,7 +1068,7 @@ fn segment_match(pat: &[u8], s: &[u8]) -> bool {
 }
 
 /// The size class of a changed path.
-fn size_class(path: &str) -> &'static str {
+pub(crate) fn size_class(path: &str) -> &'static str {
     let name = path.rsplit('/').next().unwrap_or(path);
     if path.split('/').any(|s| s == "tests")
         || name.ends_with("_test.rs")
@@ -1384,43 +1384,13 @@ fn github<'p>(pr: &'p Pr, rule: &'static str) -> Result<(u64, &'p dyn PrGh), Rul
     }
 }
 
-/// `{lab: vendor}` from `docs/harness/labs.json` at the merge base; a lab without a vendor maps
-/// to `""`.
-fn base_lab_vendors(pr: &Pr) -> Result<std::collections::BTreeMap<String, String>, String> {
-    let text = pr
-        .at_base("docs/harness/labs.json")
-        .ok_or("docs/harness/labs.json is missing at the merge base")?;
-    let v: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| format!("docs/harness/labs.json at the merge base: {e}"))?;
-    let labs = v
-        .get("labs")
-        .and_then(|l| l.as_object())
-        .ok_or("docs/harness/labs.json at the merge base has no `labs` object")?;
-    Ok(labs
-        .iter()
-        .map(|(k, l)| (k.clone(), str_at(l, &["vendor"]).to_string()))
-        .collect())
-}
-
-/// A review record's `(lab, sha, verdict)` when `body` starts `[<lab>] Exact-head review record for
-/// \`<40-hex sha>\``; the verdict is its first line starting `**Verdict: APPROVE` (`Some(true)`) or
-/// `**Verdict: REQUEST CHANGES` (`Some(false)`), `None` when it states neither.
-pub(crate) fn parse_review_record(body: &str) -> Option<(String, String, Option<bool>)> {
-    let re =
-        regex::Regex::new(r"^\[([A-Za-z0-9_-]+)\] Exact-head review record for `([0-9a-f]{40})`")
-            .expect("a valid pattern");
-    let verdict_re =
-        regex::Regex::new(r"(?m)^\*\*Verdict: (APPROVE|REQUEST CHANGES)").expect("a valid pattern");
-    let cap = re.captures(body)?;
-    let verdict = verdict_re.captures(body).map(|v| &v[1] == "APPROVE");
-    Some((cap[1].to_string(), cap[2].to_string(), verdict))
-}
-
-/// A PR comment starting `[<lab>] Exact-head review record for \`<head sha>\`` from a registered
-/// lab that may review this PR: `claude` alone for an `infra-loop-pr*` setup item (D59), else a
-/// lab whose vendor differs from the ORDER lab's (D46). A record's verdict is its first line
-/// starting `**Verdict: APPROVE` or `**Verdict: REQUEST CHANGES`. It passes when a counted
-/// record says APPROVE and no later counted record says REQUEST CHANGES. The `[<lab>]` label is
+/// The PR's `uor-review v1` records, judged by [`crate::loopreview::gate`]: it passes when a
+/// counted record is an APPROVE and the last counted record is an APPROVE. What the gate reads
+/// about the repository comes from the merge base (the build-plan rows of `docs/loop/README.md`,
+/// the vendors of `docs/harness/labs.json`, D59 from `docs/harness/owner-paths.json` and the
+/// switch); the ORDER lab, item and `Setup row:` come from the PR's ORDER at the head; the PR is
+/// doc-only when every changed path is `docs` or `generated`. Each record's line, and why it
+/// counted or not, is a detail line. Free-text records no longer count. The `[<lab>]` label is
 /// self-declared: every lab posts from the same GitHub account (loop page, P-3/P-4), so the
 /// comment author cannot bind it.
 fn rule_review_record(pr: &Pr) -> RuleResult {
@@ -1434,86 +1404,64 @@ fn rule_review_record(pr: &Pr) -> RuleResult {
         Err(e) => return fail(R, format!("cannot check the review record: {e}")),
     };
     let (_, order_lab, _) = order_parts(order).expect("an added ORDER path parses");
-    let Some(item) = pr
-        .at_head(order)
-        .and_then(|t| crate::loopclaim::order_item(&t))
-    else {
+    let Some(text) = pr.at_head(order) else {
+        return fail(R, format!("{order} is unreadable at the head"));
+    };
+    let Some(item) = crate::loopclaim::order_item(&text) else {
         return fail(R, format!("{order} names no item at the head"));
     };
-    let vendors = match base_lab_vendors(pr) {
-        Ok(v) => v,
+    let Some(page) = pr.at_base("docs/loop/README.md") else {
+        return fail(R, "docs/loop/README.md is missing at the merge base".into());
+    };
+    let rows = crate::loopreview::build_rows(&page);
+    let vendors = match pr
+        .at_base("docs/harness/labs.json")
+        .ok_or("docs/harness/labs.json is missing at the merge base".to_string())
+        .and_then(|t| crate::labs::parse_labs(&t))
+    {
+        Ok(labs) => labs.into_iter().map(|(k, l)| (k, l.vendor)).collect(),
         Err(e) => return fail(R, e),
     };
-    let comments = match gh.comments(number) {
-        Ok(c) => c,
+    // Unreadable owner paths or a missing switch keep D59 in force.
+    let d59_in_force = crate::loopreview::d59_in_force(
+        &pr.at_base("docs/harness/owner-paths.json")
+            .unwrap_or_default(),
+        pr.at_base(crate::loopreview::D59_SWITCH).as_deref(),
+    );
+    let comments: Vec<String> = match gh.comments(number) {
+        Ok(c) => c.into_iter().map(|c| c.body).collect(),
         Err(e) => return fail(R, e),
     };
-    let setup = item.starts_with("infra-loop-pr");
-    let order_vendor = vendors.get(&order_lab).cloned().unwrap_or_default();
-    let mut details = Vec::new();
-    let mut last: Option<bool> = None;
-    for (i, c) in comments.iter().enumerate() {
-        let Some((lab, sha, verdict)) = parse_review_record(&c.body) else {
-            continue;
-        };
-        let (lab, sha) = (lab.as_str(), sha.as_str());
-        let said = match verdict {
-            Some(true) => "APPROVE",
-            Some(false) => "REQUEST CHANGES",
-            None => "no verdict",
-        };
-        let seen = format!("comment {} by {}: [{lab}] {said} at {sha}", i + 1, c.author);
-        let lab_vendor = vendors.get(lab);
-        let reject = if sha != pr.head {
-            Some(format!("not the head {}", pr.head))
-        } else if lab_vendor.is_none() {
-            Some(format!(
-                "lab {lab} is not in docs/harness/labs.json at the merge base"
-            ))
-        } else if setup && lab != "claude" {
-            Some(format!(
-                "item {item} is a loop setup PR, which only claude reviews (D59)"
-            ))
-        } else if !setup
-            && (order_vendor.is_empty()
-                || lab_vendor.is_some_and(|v| v.is_empty() || *v == order_vendor))
-        {
-            Some(format!(
-                "lab {lab} (vendor {:?}) is not of another vendor than the ORDER lab {order_lab} (vendor {order_vendor:?}) (D46)",
-                lab_vendor.map(String::as_str).unwrap_or_default()
-            ))
-        } else if verdict.is_none() {
-            Some("it states no verdict".to_string())
-        } else {
-            None
-        };
-        match reject {
-            Some(why) => details.push(format!("{seen}: rejected, {why}")),
-            None => {
-                details.push(format!("{seen}: counted"));
-                last = verdict;
-            }
-        }
-    }
-    let (verdict, summary) = match last {
-        Some(true) => (
+    let setup_row = crate::loopreview::setup_row(&text);
+    let outcome = crate::loopreview::gate(&crate::loopreview::GateInput {
+        pr: number,
+        head: &pr.head,
+        order_path: order,
+        order_lab: &order_lab,
+        order_item: &item,
+        setup_row: setup_row.as_deref(),
+        rows: &rows,
+        vendors: &vendors,
+        d59_in_force,
+        doc_only: crate::loopreview::doc_only(pr.changed_paths().map(|(_, p)| p)),
+        comments: &comments,
+    });
+    let (verdict, summary) = if outcome.pass {
+        (
             Verdict::Pass,
-            format!("an exact-head APPROVE at {} stands", pr.head),
-        ),
-        Some(false) => (
+            format!("a counted uor-review v1 APPROVE at {} stands", pr.head),
+        )
+    } else {
+        (
             Verdict::Fail,
-            "a counted REQUEST CHANGES follows the last counted APPROVE".to_string(),
-        ),
-        None => (
-            Verdict::Fail,
-            format!("no counted exact-head review record at {}", pr.head),
-        ),
+            format!("no standing counted uor-review v1 APPROVE at {}", pr.head),
+        )
     };
     RuleResult {
         rule: R,
         verdict,
         summary,
-        details,
+        details: outcome.details,
     }
 }
 

@@ -52,6 +52,10 @@ impl Repo {
               "codex":{"vendor":"OpenAI","client":"b","headless":"c","open_pr_limit":3}}}"#,
         );
         r.write("docs/roadmap/items/.keep", "");
+        r.write(
+            "docs/loop/README.md",
+            "# Loop\n\n## Build plan\n\n| PR | What it builds |\n|---|---|\n| 9 | x |\n",
+        );
         for (id, status, scope) in items {
             r.write(
                 &format!("docs/roadmap/items/{id}.md"),
@@ -131,8 +135,14 @@ fn decision(o: &Output) -> String {
 /// An open PR from `branch` adding `<order_lab>-<n>/ORDER.md` for `item`, with its ORDER text.
 fn pr(n: u64, branch: &str, order_lab: &str, item: &str) -> (Value, (String, String)) {
     let path = format!("docs/loop/tasks/{item}/{order_lab}-1/ORDER.md");
+    // A setup item names its build-plan row (row 9 is on the fixture's loop page).
+    let setup = if item.starts_with("infra-loop-pr09-") {
+        "Setup row: 9.\n"
+    } else {
+        ""
+    };
     let order = format!(
-        "# ORDER\n\nLab: {order_lab}. Item: [{item}](../../../../roadmap/items/{item}.md) (#1).\n"
+        "# ORDER\n\nLab: {order_lab}. Item: [{item}](../../../../roadmap/items/{item}.md) (#1).\n{setup}"
     );
     (
         json!({"number": n, "headRefName": branch, "headRefOid": HEAD, "isDraft": false,
@@ -151,9 +161,35 @@ fn fake(prs: Vec<(Value, (String, String))>, comments: Value) -> Value {
     json!({"prs": list, "comments": comments, "files": files, "labels": {}})
 }
 
-fn record(lab: &str, sha: &str, verdict: &str) -> Value {
-    json!({"author": "x", "body": format!(
-        "[{lab}] Exact-head review record for `{sha}`\n\n**Verdict: {verdict}**\n")})
+/// A `uor-review v1` record by `lab` on PR `n` at `sha` saying `verdict` (APPROVE or CHANGES), for
+/// the ORDER that [`pr`] adds for `item` by `order_lab`, with `context: fresh`.
+fn record(lab: &str, n: u64, sha: &str, verdict: &str, (item, order_lab): (&str, &str)) -> Value {
+    use uor_r4_harness::loopreview::{render, DoneWhen, Record, Verdict};
+    let body = render(&Record {
+        lab: lab.to_string(),
+        pr: n,
+        head: sha.to_string(),
+        model: "m".to_string(),
+        launch: "l".to_string(),
+        verdict: if verdict == "APPROVE" {
+            Verdict::Approve
+        } else {
+            Verdict::Changes
+        },
+        order: format!("docs/loop/tasks/{item}/{order_lab}-1/ORDER.md"),
+        fresh_context: true,
+        done_when: DoneWhen::Host("cargo test: ok".to_string()),
+    });
+    json!({"author": "x", "body": body})
+}
+
+/// The PR also changes code, so it is not doc-only.
+fn with_code((mut p, f): (Value, (String, String))) -> (Value, (String, String)) {
+    p["files"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"path": "crates/a/src/lib.rs"}));
+    (p, f)
 }
 
 #[test]
@@ -190,13 +226,13 @@ fn an_own_pr_with_a_counted_request_changes_is_a_repair() {
     let r = Repo::new(&[]);
     let o = r.next(&fake(
         vec![pr(7, "claude/x", "claude", "it-1")],
-        json!({"7": [record("codex", HEAD, "APPROVE"), record("codex", HEAD, "REQUEST CHANGES")]}),
+        json!({"7": [record("codex", 7, HEAD, "APPROVE", ("it-1", "claude")), record("codex", 7, HEAD, "CHANGES", ("it-1", "claude"))]}),
     ));
     assert!(decision(&o).starts_with("GO repair #7"), "{o:?}");
     // A REQUEST CHANGES at an older head does not count.
     let o = r.next(&fake(
         vec![pr(7, "claude/x", "claude", "it-1")],
-        json!({"7": [record("codex", OLD, "REQUEST CHANGES")]}),
+        json!({"7": [record("codex", 7, OLD, "CHANGES", ("it-1", "claude"))]}),
     ));
     assert!(!decision(&o).contains("repair"), "{o:?}");
 }
@@ -214,25 +250,54 @@ fn a_conflicting_own_pr_is_a_repair() {
 fn another_labs_setup_pr_needs_a_claude_review_until_claude_approves() {
     let r = Repo::new(&[]);
     let o = r.next(&fake(
-        vec![pr(11, "codex/s", "codex", "infra-loop-pr09")],
+        vec![pr(11, "codex/s", "codex", "infra-loop-pr09-x")],
         json!({}),
     ));
     assert_eq!(o.status.code(), Some(0), "{o:?}");
     assert!(decision(&o).starts_with("GO review #11 — "), "{o:?}");
     let o = r.next(&fake(
-        vec![pr(11, "codex/s", "codex", "infra-loop-pr09")],
-        json!({"11": [record("claude", HEAD, "APPROVE")]}),
+        vec![pr(11, "codex/s", "codex", "infra-loop-pr09-x")],
+        json!({"11": [record("claude", 11, HEAD, "APPROVE", ("infra-loop-pr09-x", "codex"))]}),
     ));
     assert!(!decision(&o).contains("review"), "{o:?}");
+}
+
+/// Under D59 only claude reviews a setup PR: codex, of another vendor than the ORDER lab, owes
+/// no review on it, while claude does.
+#[test]
+fn on_a_setup_pr_only_claude_owes_the_review() {
+    let r = Repo::new(&[]);
+    let setup = || {
+        fake(
+            vec![pr(11, "anthro/s", "anthro", "infra-loop-pr09-x")],
+            json!({}),
+        )
+    };
+    let o = r.next_as("codex", &setup(), &json!([]), false);
+    assert!(!decision(&o).contains("review"), "{o:?}");
+    let o = r.next_as("claude", &setup(), &json!([]), false);
+    assert!(decision(&o).starts_with("GO review #11"), "{o:?}");
 }
 
 #[test]
 fn a_non_setup_pr_needs_a_review_only_from_another_vendor() {
     let r = Repo::new(&[]);
-    let o = r.next(&fake(vec![pr(12, "anthro/z", "anthro", "it-2")], json!({})));
+    let o = r.next(&fake(
+        vec![with_code(pr(12, "anthro/z", "anthro", "it-2"))],
+        json!({}),
+    ));
     assert!(!decision(&o).contains("review"), "same vendor: {o:?}");
-    let o = r.next(&fake(vec![pr(12, "codex/z", "codex", "it-2")], json!({})));
+    let o = r.next(&fake(
+        vec![with_code(pr(12, "codex/z", "codex", "it-2"))],
+        json!({}),
+    ));
     assert!(decision(&o).starts_with("GO review #12"), "{o:?}");
+    // Once this lab's counted APPROVE is at the head, no review is owed.
+    let o = r.next(&fake(
+        vec![with_code(pr(12, "codex/z", "codex", "it-2"))],
+        json!({"12": [record("claude", 12, HEAD, "APPROVE", ("it-2", "codex"))]}),
+    ));
+    assert!(!decision(&o).contains("review"), "{o:?}");
 }
 
 #[test]
@@ -293,7 +358,7 @@ fn repairs_come_before_reviews() {
     let (mut own, f) = pr(20, "claude/r", "claude", "it-1");
     own["checks"] = json!([{"name": "ci", "conclusion": "TIMED_OUT"}]);
     let o = r.next(&fake(
-        vec![pr(5, "codex/s", "codex", "infra-loop-pr09"), (own, f)],
+        vec![pr(5, "codex/s", "codex", "infra-loop-pr09-x"), (own, f)],
         json!({}),
     ));
     assert!(decision(&o).starts_with("GO repair #20"), "{o:?}");
@@ -308,7 +373,7 @@ fn no_lab_exits_2_and_json_parses() {
     let o = r.next_as(
         "claude",
         &fake(
-            vec![pr(11, "codex/s", "codex", "infra-loop-pr09")],
+            vec![pr(11, "codex/s", "codex", "infra-loop-pr09-x")],
             json!({}),
         ),
         &json!([]),
@@ -441,4 +506,23 @@ fn an_own_pr_adding_two_orders_is_a_repair() {
             && decision(&o).contains("its ORDER is missing or ambiguous"),
         "{o:?}"
     );
+}
+
+#[test]
+fn an_own_doc_only_pr_owes_a_fresh_self_review_and_an_own_code_pr_does_not() {
+    let r = Repo::new(&[]);
+    let (mut p, f) = pr(13, "claude/d", "claude", "it-3");
+    for path in ["docs/x.md", "docs/loop/tasks/it-3/claude-1/REPORT.md"] {
+        p["files"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"path": path}));
+    }
+    let o = r.next(&fake(vec![(p, f)], json!({})));
+    assert!(decision(&o).starts_with("GO review #13"), "{o:?}");
+    let o = r.next(&fake(
+        vec![with_code(pr(13, "claude/d", "claude", "it-3"))],
+        json!({}),
+    ));
+    assert!(!decision(&o).contains("review #13"), "{o:?}");
 }

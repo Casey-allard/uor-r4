@@ -125,12 +125,47 @@ Checks a loop PR: the diff from `git merge-base <base> <head>` to `<head>` (`--b
 - `rendered-lock`: `STATE.md`, `HANDOFF.md`, `docs/harness/LESSONS.md` and AGENTS.md between the `loop:lessons-top-ten` markers change only when the head ref is `kimi/render` (or `origin/kimi/render`); N/A while none exists. `--head-ref <branch>` names the head ref; it defaults to `--head` when that is a branch, else the current branch.
 - `read-path`: AGENTS.md at most 80 lines; `STATE.md`, `HANDOFF.md` under 24,576 B each; the ORDER under 4,096 B; AGENTS + CHARTER + STATE + HANDOFF + ORDER warn above 76,800 B and stop above 128,000 B. Over budget and grown fails; over budget and not grown warns. The whole path's growth compares AGENTS + CHARTER + STATE + HANDOFF alone, since the base never has the ORDER. Any of AGENTS.md, CHARTER.md, STATE.md, HANDOFF.md or the ORDER that is a symlink at the head (mode `120000`) fails.
 - `filemap`: when `docs/start/FILEMAP.md` exists at the head, it has a row (first cell a backticked path) for every depth-1 and depth-2 directory (not dot-names, nothing under `archive/`), and every row names a directory at the head.
-- `review-record` (`--pr <n>`): among the PR's comments (`gh api repos/{owner}/{repo}/issues/<n>/comments --paginate`), a record is a body starting ``[<lab>] Exact-head review record for `<40-hex sha>` ``; its verdict is its first line starting `**Verdict: APPROVE` or `**Verdict: REQUEST CHANGES`; a body with neither states no verdict. The `[<lab>]` label is self-declared: every lab posts from the same GitHub account (loop page, P-3/P-4), so the comment author cannot bind it. A record counts when its sha is the full head sha, its lab is in `docs/harness/labs.json` at the merge base, and the lab may review: `claude` alone for an `infra-loop-pr*` item (a setup PR, D59), else a lab whose `vendor` differs from the ORDER lab's (D46). It passes when a counted APPROVE has no later counted REQUEST CHANGES; the details name every record seen and why each was rejected. A `gh` error fails the rule.
+- `review-record` (`--pr <n>`): runs the review gate of [`loop review`](#loop-review-loop-pr-6) on the PR's comments (`gh api repos/{owner}/{repo}/issues/<n>/comments --paginate`); only `uor-review v1` records count, and free-text records no longer do. The gate's context comes from the merge base: the build-plan rows of `docs/loop/README.md` (missing fails the rule), the vendors of `docs/harness/labs.json`, and D59 from `docs/harness/owner-paths.json` and the switch. The ORDER lab, item and `Setup row:` come from the PR's ORDER at the head; the PR is doc-only when every changed path is `docs` or `generated`. It passes when the gate passes; the details are the gate's, naming every record and why it counted or not. The `[<lab>]` tag is self-declared: every lab posts from the same GitHub account (loop page, P-3/P-4), so the comment author cannot bind it. A `gh` error fails the rule.
 - `required-checks` (`--pr <n>`): at the head sha, each of `fmt / clippy / tests / no_std / κ`, `cargo audit`, `fuzz smoke (nightly libfuzzer)`, `wasm-pack build (dashboard facade, deploy.yml parity)` and `Gate C trend alarm` has its newest check run (the highest id, from any app) from the `github-actions` app with a summary ending `policy: pass (run <digits>)` (written by `required-transport` in `.github/workflows/ci.yml`), and no commit status uses one of those names, since any token can post a status (loop page, P-4). Check runs and statuses are read in full (`gh api repos/{owner}/{repo}/commits/<sha>/check-runs?per_page=100 --paginate`, and `.../statuses?per_page=100 --paginate`). A `gh` error fails the rule.
 
 Tests only: `UOR_PRCHECK_GH_FAKE=<file>` replaces `gh` for these two rules with `{"comments": [{"author", "body"}], "checkRuns": [{"name", "app", "summary"}], "statuses": [{"context", "state"}]}`, answered for every PR and sha; a check run without `id` takes its list position. While it is set, the text output prints `FAKE GitHub: UOR_PRCHECK_GH_FAKE=<path> (tests only)` before the rules and `--json` carries `"fake_github": true`. Never set it outside tests.
 
 **In CI.** `ci.yml` calls `.github/workflows/gate.yml` on every pull request. Its `policy` job builds `uor-harness` from the base commit and runs `loop pr-check --ci` against the PR's head, which it reads as data. `required-transport` then writes `policy: <pass|fail|error> (run <id>)` into the five required checks' summaries and leaves them green. That record is what `required-checks` reads back. Its `tests` job runs `loop gates --full` on the PR's code with a read-only token. The [loop page](../loop/README.md#gates) gives the reasons.
+
+### `loop review` (loop PR 6)
+
+The pure core is built in `crates/uor-r4-harness/src/loopreview.rs`; `pr-check`'s `review-record` rule and `loop next` count records through its gate. A review record is a PR comment in this form:
+
+```text
+[<lab>] uor-review v1
+pr: <number>
+head: <40 lowercase hex>
+lab: <lab>
+model: <model id or "unknown">
+launch: <launch id or "manual">
+verdict: APPROVE | CHANGES
+order: docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md
+context: fresh            (optional)
+done-when: host: <what was re-run and its result>   |   done-when: gpu: sha256:<64 hex>
+```
+
+Free text (the findings) may follow after a blank line. A comment that does not contain `uor-review v1` is not a record; one that contains it only below its first line is refused (a record must start the comment). One whose first line contains it but is wrong is refused and named in the gate's details: an untagged first line, a tag that differs from `lab:`, a missing, duplicated or unknown field, or a bad `pr`, `head`, `verdict`, `order`, `context` or `done-when`.
+
+The gate counts a record only when its `pr` and `head` are the PR's current ones, its `order` is the ORDER the PR adds, and its lab is registered. On a setup PR while D59 is in force, only `claude` records with `context: fresh` count (D59: Claude's fresh-context reviewers). Otherwise the record's lab must be of another vendor than the ORDER lab's (D46), or the PR is doc-only and the record comes from the ORDER lab itself with `context: fresh`. It passes when the last counted record is an APPROVE, so a later counted CHANGES blocks and a later APPROVE clears it. A setup PR is one whose ORDER `Setup row:` names a row of the [loop page](../loop/README.md#build-plan) build-plan table and whose item is `infra-loop-harness` or that row's own item (`6` → `infra-loop-pr06-…`). The row is the token right after `Setup row:` (`[0-9]+[a-z]?` or `A`, then `.`, a space or the end of the line); other text after the label names no row. An `infra-loop-…` item whose ORDER names no valid row, a row not in the table, or a row that is not its own fails the gate with no record counted, and no review is owed on it until the ORDER is fixed. D59 stays in force unless `docs/harness/owner-paths.json` at the merge base lists `docs/harness/d59.json` exactly and that file reads `"d59": "ended"`. The claude-18 ORDER proposes the file; the owner adds it and lists it.
+
+```sh
+UOR_LAB=claude uor-harness loop review --pr <n> --verdict APPROVE --host "<what you re-ran>: ok" --dry-run
+UOR_LAB=claude uor-harness loop review --pr <n> --verdict CHANGES --gpu <64 hex> --body-file findings.md
+UOR_LAB=claude uor-harness loop review --pr <n> --verdict APPROVE --host "<check>" --context fresh
+UOR_LAB=claude uor-harness loop review --check --pr <n>
+```
+
+`loop review` needs a lab (`UOR_LAB` or `--lab`; none exits 2). It reads the PR's head and changed files and its one added ORDER (as `loop next` resolves it: a `docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md` readable at the head and absent from `origin/main`; none or several exit 2). After `git fetch origin main` it reads the build-plan rows, the lab registry, `owner-paths.json` and the D59 switch from `origin/main`. A PR is doc-only when every changed file's size class is `docs` or `generated`.
+
+- With `--verdict`, it writes one record at the PR's head: `model` from `--model`, else `UOR_LOOP_MODEL`, else `unknown`; `launch` from `--launch`, else `UOR_LOOP_LAUNCH`, else `manual`; `done-when` from exactly one of `--host` and `--gpu`. It refuses (exit 1, nothing posted) a record the gate would not count, and prints why: a non-claude record, or a claude record without `--context fresh`, on a setup PR under D59, a loop item whose ORDER names no valid setup row, a same-vendor record on a code PR, `context: fresh` on a code PR. `--body-file` text follows the record after a blank line. `--dry-run` prints the comment; otherwise it is posted with `gh pr comment` and the command prints `review: posted <verdict> on PR #<n> at <head>`.
+- With `--check`, it runs the gate over the PR's comments and prints each detail line: exit 0 when it passes, 1 when it does not.
+
+Exit 2 also covers a usage error and a git or `gh` failure, a failed post included.
 
 ### `loop report` (loop PR 7b)
 
@@ -177,8 +212,8 @@ Needs a lab (`UOR_LAB` or `--lab`). Exit codes: 0 GO, 1 STOP, 2 cannot run (usag
 
 - `kill-switch`: STOP when `local/loop/STOP` exists in the main checkout or issue #2028 carries the label `loop:pause`.
 - `owner-direction`: not built (owner directions live in PLAN, loop PR 8).
-- `repairs`: the lab's own open PRs (head `<lab>/...`) that conflict, have a check at the head with conclusion FAILURE or TIMED_OUT, or whose last counted review record at the head says REQUEST CHANGES; GO `repair #<n>`, lowest number first.
-- `reviews`: open non-draft PRs this lab may review (a setup PR, item `infra-loop-pr*`: `claude` only, D59; any other: a lab of another vendor than the ORDER lab, D46) with no counted record from this lab at the head; GO `review #<n>`, lowest number first. A PR without an ORDER is skipped.
+- `repairs`: the lab's own open PRs (head `<lab>/...`) that conflict, have a check at the head with conclusion FAILURE or TIMED_OUT, or whose last `uor-review v1` record counted by the review gate at the head says CHANGES; GO `repair #<n>`, lowest number first.
+- `reviews`: open non-draft PRs on which the review gate would count a `uor-review v1` record from this lab (taken to carry `context: fresh`: on a setup PR under D59 `claude` only; else a lab of another vendor than the ORDER lab, D46, or the ORDER lab itself on a doc-only PR) and that have no counted record from this lab at the head; GO `review #<n>`, lowest number first. The gate's context (build-plan rows, vendors, D59) comes from `origin/main`, as in `loop review`. A PR without an ORDER is skipped.
 - `gpu-collections`: not built (watchers are loop PR 10). `premise-probes`: not built (PLAN's premise table is loop PR 8). `lane`: not built (no lab has a lane and no item has `lane:`/`rank:` yet).
 - `any`: the first `status: ready` item at `origin/main` with a `scope:`, in id order, that `loop claim` would accept; GO `item <id>`.
 

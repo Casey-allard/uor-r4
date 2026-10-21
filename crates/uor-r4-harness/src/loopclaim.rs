@@ -109,8 +109,24 @@ pub struct RealGh {
     pub root: PathBuf,
 }
 
+/// The `GIT_*` variables among `names` that a child must not inherit: every one but those that only
+/// say how to reach a remote. A `GIT_DIR` from a hook would otherwise point `gh` at another repository.
+fn git_vars_to_strip(names: impl IntoIterator<Item = String>) -> Vec<String> {
+    names
+        .into_iter()
+        .filter(|k| {
+            k.starts_with("GIT_")
+                && !["GIT_SSH_COMMAND", "GIT_SSH", "GIT_ASKPASS"].contains(&k.as_str())
+        })
+        .collect()
+}
+
 pub(crate) fn run_gh(root: &Path, args: &[&str]) -> Result<String, String> {
-    let out = Command::new("gh")
+    let mut cmd = Command::new("gh");
+    for k in git_vars_to_strip(std::env::vars_os().map(|(k, _)| k.to_string_lossy().into_owned())) {
+        cmd.env_remove(k);
+    }
+    let out = cmd
         .args(args)
         .current_dir(root)
         .output()
@@ -1031,6 +1047,24 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn run_gh_strips_git_vars_but_the_remote_ones() {
+        let names = [
+            "GIT_DIR",
+            "GIT_WORK_TREE",
+            "GIT_INDEX_FILE",
+            "GIT_SSH_COMMAND",
+            "GIT_SSH",
+            "GIT_ASKPASS",
+            "HOME",
+            "GH_TOKEN",
+        ];
+        assert_eq!(
+            super::git_vars_to_strip(names.iter().map(|s| s.to_string())),
+            ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"]
+        );
+    }
 
     #[test]
     fn contents_endpoint_reads_the_pull_ref_url_encoded() {

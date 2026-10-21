@@ -41,6 +41,7 @@ pub mod loopnext;
 pub mod loopprcheck;
 pub mod looprender;
 pub mod loopreport;
+pub mod loopreview;
 pub mod loopsub;
 pub mod mistakes;
 pub mod multilab;
