@@ -14,6 +14,12 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 21 October 2026: Claude reviews every loop setup PR (D59 amended)
+
+**Decided by:** the owner (Casey), in chat, the same day. Claude's round-2 review of #2899 found a gap. As merged, D59 would have left a setup PR built by Codex, DeepSeek or Antigravity to its own lab's reviewers alone. Claude asked the owner who should review those PRs and offered two answers, worded by Claude. The owner chose: "Setup PRs built by Codex, DeepSeek or Antigravity get fresh-context Claude reviews (Claude leads the architecture). Record it as a small D59 amendment after #2899 merges."
+
+1. **Claude reviews the setup, whichever lab builds it (D59, amended).** Until the other labs are running the loop, every loop setup PR gets its exact-head review from Claude's fresh-context reviewers, because Claude leads the architecture (D52). No other lab is asked to review the setup. D59's scope and end condition are unchanged. Once the other labs run the loop, D46 applies again. (Clause 5.5.)
+
 ## 21 October 2026: no lab review of the loop setup (D59)
 
 **Decided by:** the owner (Casey), in chat, twice. First: "none of the other labs are onboarded yet so having them review the onboarding will be problematic - anyway, go". Then, after Claude had asked Kimi to review loop PR 1 (#2898) anyway: "I TOLD YOU NOT TO ASK OTHER LABS FOR REVIEWS ON THE SETUP THAT THEY AREN'T RUNNING YET".
