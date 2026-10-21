@@ -187,6 +187,92 @@
 <p><em>The charter replaced the older rules in one step on 19 October 2026. Later changes are added to this log as dated entries.</em></p>
 <h2 id="how-an-entry-is-written"><a class="header" href="#how-an-entry-is-written">How an entry is written</a></h2>
 <p>An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the <code>archive/</code> folder, and the live decision index keeps one line saying where each decision went (see the <a href="decision-map.html">decision map</a>).</p>
+<h2 id="21-october-2026-claude-reviews-every-loop-setup-pr-d59-amended"><a class="header" href="#21-october-2026-claude-reviews-every-loop-setup-pr-d59-amended">21 October 2026: Claude reviews every loop setup PR (D59 amended)</a></h2>
+<p><strong>Decided by:</strong> the owner (Casey), in chat, the same day. Claude's round-2 review of #2899 found a gap. As merged, D59 would have left a setup PR built by Codex, DeepSeek or Antigravity to its own lab's reviewers alone. Claude asked the owner who should review those PRs and offered two answers, worded by Claude. The owner chose: "Setup PRs built by Codex, DeepSeek or Antigravity get fresh-context Claude reviews (Claude leads the architecture). Record it as a small D59 amendment after #2899 merges."</p>
+<ol>
+<li><strong>Claude reviews the setup, whichever lab builds it (D59, amended).</strong> Until the other labs are running the loop, every loop setup PR gets its exact-head review from Claude's fresh-context reviewers, because Claude leads the architecture (D52). No other lab is asked to review the setup. D59's scope and end condition are unchanged. Once the other labs run the loop, D46 applies again. (Clause 5.5.)</li>
+</ol>
+<h2 id="21-october-2026-no-lab-review-of-the-loop-setup-d59"><a class="header" href="#21-october-2026-no-lab-review-of-the-loop-setup-d59">21 October 2026: no lab review of the loop setup (D59)</a></h2>
+<p><strong>Decided by:</strong> the owner (Casey), in chat, twice. First: "none of the other labs are onboarded yet so having them review the onboarding will be problematic - anyway, go". Then, after Claude had asked Kimi to review loop PR 1 (#2898) anyway: "I TOLD YOU NOT TO ASK OTHER LABS FOR REVIEWS ON THE SETUP THAT THEY AREN'T RUNNING YET".</p>
+<ol>
+<li><strong>The setup is reviewed without the other labs (D59).</strong> Until the other labs are running the loop, the loop's own setup PRs (the build plan in <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/README.md">docs/loop/README.md</a>) are reviewed by fresh-context reviewers of the authoring lab, not by the other labs. This is an exception to D46 for the setup only; once the other labs run the loop, D46 applies again. The Kimi review requests for #2898 were withdrawn on #2898 and #2028. (Clause 5.5.)</li>
+</ol>
+<h2 id="20-october-2026-the-loop-harness-adapted-from-the-loop-kit"><a class="header" href="#20-october-2026-the-loop-harness-adapted-from-the-loop-kit">20 October 2026: the loop harness, adapted from the Loop Kit</a></h2>
+<p><strong>Decided by:</strong> the owner (Casey), in chat. He answered the Loop Kit's own start-here interview, confirmed the read-back as "Accurate", then answered ten design questions on the loop-harness review page. The Loop Kit is by Ron Brazil and was given to the owner. Its text is not for redistribution, so this repository holds only our own words (D44). Details and the build plan: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/loop/README.md">docs/loop/README.md</a>. Decision rows D43–D58: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/integration/DECISIONS.md#decisions-after-the-charter-from-d43">the decision index</a>.</p>
+<p>The interview:</p>
+<ol>
+<li>
+<p><strong>Adopt the loop for every lab and subagent (D43).</strong> All four failure modes had happened: tooling over research, rules broken quietly, records drifting, and work lost or duplicated. The costliest was records drifting, which becomes lesson L-001. (Clause 5.10, new.)</p>
+</li>
+<li>
+<p><strong>The kit's text stays private (D44).</strong> Ron's skills are installed only in each client's local skills folder on the owner's laptop. The repository gets our own rules in our own words and credits the Loop Kit by name. The kit's sealed local snapshot is not used, because GitHub <code>main</code>, the protected branches, the immutable archive and the HF store already do that job. (Clause 5.10.)</p>
+</li>
+<li>
+<p><strong>Continuous autonomy (D45).</strong> After each close, a lab starts the next ready task by itself in a fresh session from its PICKUP. It stops only for a pending owner decision, held work or an empty queue. (Clause 5.10.)</p>
+</li>
+<li>
+<p><strong>Cross-vendor review (D46).</strong> Every code or model PR needs an exact-head review from a lab of a different vendor before the queue. A fresh-context self-review is enough only for a doc-only or generated-file PR. (Clause 5.5.)</p>
+</li>
+<li>
+<p><strong>The kit's note names, rendered by the harness (D47).</strong> The notes are STATE, HANDOFF, PLAN, DECISIONS, LESSONS and FILEMAP. The harness renders STATE and HANDOFF, and <code>NOW.md</code> and <code>STATUS.md</code> fold into them. Each lab has its own PICKUP, ORDER and REPORT. The owner also approved four refinements:</p>
+<ul>
+<li>the rendered views on <code>main</code> may lag one refresh;</li>
+<li>claims are draft PRs;</li>
+<li>PICKUP stays local;</li>
+<li>ORDER and REPORT are committed in task folders.</li>
+</ul>
+<p>(Clauses 5.6 and 5.10.)</p>
+</li>
+<li>
+<p><strong>No line cap (D48).</strong> The owner's words: "I don't think we can do our work honestly with a 200 line cap on PR's. Please allow any length since this is a research project and bookkeeping is the key". Size is reported, never capped; scope is still enforced. (Clause 5.10.)</p>
+</li>
+<li>
+<p><strong>No agent-usage budget (D49).</strong> Only the GPU cap applies: 4 pods and $8 an hour. (No clause change; clause 5.4 keeps the GPU cap.)</p>
+</li>
+<li>
+<p><strong>Subagents inherit the order (D50).</strong> The same or a narrower scope, at any depth. A subagent never claims, opens or merges a PR, posts as the lab or decides. (Clause 5.10.)</p>
+</li>
+<li>
+<p><strong>The harness freeze is lifted entirely (D51).</strong> (Clause 5.3.)</p>
+</li>
+</ol>
+<p>The design questions:</p>
+<ol start="10">
+<li>
+<p><strong>The charter edits and the teams (D52).</strong></p>
+<ul>
+<li>The owner approved all the charter edits. Labs can no longer lift the GPU caps themselves. NOW, STATUS, ROADMAP, <code>current-state.md</code> and <code>claims.json</code> move to the archive when the migration lands. The owner is the last fallback when the PM and its cover lab are both offline. The owner's kill switch stops every lab at once.</li>
+<li>Teams: architecture is led by Claude, with Kimi as PM reviewing. Codex and DeepSeek build the automation. Antigravity builds the client adapters and onboarding. Every review comes from a different vendor.</li>
+</ul>
+<p>(Clauses 5.2, 5.4, 5.5 and 5.10.)</p>
+</li>
+<li>
+<p><strong>The 2-hour check-in (D53).</strong> The owner's words: "2 hour limit should actually be a soft limit. If there is truly good work being done, it may be continue past 2 hours, but otherwise, the 2 hour cap is a checkin to close out sessions that have spiraled and/or stopped. (Although the PM should be prompting anyone stopped.)" (Clause 5.10.)</p>
+</li>
+<li>
+<p><strong>No org admin (D54).</strong> The owner's words: "I do not have a admin, so we must work around it". The policy gate stays advisory on GitHub and is enforced locally: a lab queues a PR only when the gate is green and the review §5.5 requires is at the head (another vendor's review for code and model PRs; a fresh-context self-review is enough for doc-only or generated PRs). (No clause change; the loop page describes it.)</p>
+</li>
+<li>
+<p><strong>Identity by tags (D55).</strong> The owner's words: "each lab is just a session from that vendor on my laptop, so maybe just have them all tag what they are doing as themselves so others will know not to pick it up unless it needs to be". There are no signing keys. (Clause 5.3.)</p>
+</li>
+<li>
+<p><strong>Releases approved in chat (D56).</strong> The owner's words: "you prompt for authority and i approve, no typed phrase needed". A lab asks the owner in its own chat, the owner approves there, and the lab records his words verbatim with the time. Only that approval counts. (Clause 5.1; the typed phrase is retired.)</p>
+</li>
+<li>
+<p><strong>One rulebook (D57).</strong> Client private memories keep only pointers to the charter, this log, the decision index and the lessons. Codex memories are off for this repository. A local check, run before each push, keeps the kit's text out of the repository; no hashes of it are stored. (Clause 5.10.)</p>
+</li>
+<li>
+<p><strong>Codex keeps full access (D58).</strong> Codex's sandbox is not narrowed.</p>
+</li>
+</ol>
+<h2 id="20-october-2026-roadmap-issues-and-outside-contributors"><a class="header" href="#20-october-2026-roadmap-issues-and-outside-contributors">20 October 2026: roadmap issues and outside contributors</a></h2>
+<p><strong>Decided by:</strong> the owner (Casey), in chat, on the roadmap-plan review page.</p>
+<ol>
+<li><strong>Roadmap as issues.</strong> The 73 gaps the documentation names (the stitching map, the transformer-to-geometry map, the mechanism board, the milestone issues, <code>NOW.md</code> and the open questions) each become one item file in <code>docs/roadmap/items/</code>, written as a planned issue. <code>cargo xtask roadmap</code> checks them, turns them into GitHub issues with milestones and labels, keeps a checklist of child issues on each milestone issue, and renders <code>docs/roadmap/README.md</code>. Every piece of work has an issue before it starts, a newly found gap is a new item file in a PR, and the PM runs <code>sync</code> and <code>render</code> weekly. The tooling freeze is lifted for this tool only. (Clause 5.3.)</li>
+<li><strong>Outside contributors and GPU work.</strong> The owner's words: "I'm open to letting people run it on gpu's as long as they have the specs sent with it, not everyone will have a 5090, so we can let them submit whatever, but if they don't have the equivalent of our baseline we will just do another run after they submit their PR with the FIT". Outsiders may run GPU steps on their own GPU with the hardware specs attached; when the hardware is not equivalent to the RTX 5090 baseline, a maintainer re-runs the step under the same FIT. A CPU run is still not research compute. (Clause 5.3.)</li>
+<li><strong>Published inputs.</strong> The inputs of the sealed S1.4 snap-parity record are public in the HF dataset <code>caseyallard/uor-r4-data</code> (<code>s1-4-parity-2026-09-29/</code>, with SHA256SUMS) so outside contributors can reproduce it.</li>
+<li><strong>Owner decisions as issues.</strong> The owner's open decisions are issues labelled <code>owner-decision</code>, assigned to the owner.</li>
+</ol>
 <h2 id="20-october-2026-workspace-reset"><a class="header" href="#20-october-2026-workspace-reset">20 October 2026: workspace reset</a></h2>
 <p><strong>Decided by:</strong> the owner (Casey), in chat, on the workspace-reset review page. Source: <a href="https://github.com/UOR-Foundation/uor-r4/blob/main/docs/labs/workspace.md"><code>docs/labs/workspace.md</code></a> and <code>archive/storage/README.md</code>.</p>
 <p>The owner approved four decisions. One line each, with the clause it touches:</p>
@@ -222,7 +308,7 @@
 <h2 id="where-it-stands"><a class="header" href="#where-it-stands">Where it stands</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Item</th><th>State</th><th>Source</th></tr></thead><tbody>
 <tr><td>Charter in force</td><td>Yes, since 19 October 2026.</td><td><code>CHARTER.md</code></td></tr>
-<tr><td>Entries in this log</td><td>2</td><td>this page</td></tr>
+<tr><td>Entries in this log</td><td>3</td><td>this page</td></tr>
 <tr><td>Open owner questions on the charter</td><td>None recorded at adoption: all 16 rows marked "owner decision needed" in the working rule map were resolved by the eight answers.</td><td><code>charter-diff-notes.md</code></td></tr>
 </tbody></table>
 </div>
