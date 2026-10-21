@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: true
 depends_on: [m8-release-packaging]
+scope: [xtask/**, docs/products/**, docs/labs/m8-independent-verification/**]
 ---
 
 ## Why it matters

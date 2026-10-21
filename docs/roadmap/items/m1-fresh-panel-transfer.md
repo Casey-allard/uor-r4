@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m1-export-gap-and-toks]
+scope: [crates/uor-r4-discrete/**, docs/harness/prep/m1-fresh-panel-transfer*, docs/labs/m1-fresh-panel-transfer/**, docs/research/open-questions.md, docs/start/faq.md]
 ---
 
 ## Why it matters

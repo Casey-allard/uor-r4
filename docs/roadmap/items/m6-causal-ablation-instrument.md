@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [m6-reasoning-panel-freeze, m1-trunk-assembly-and-training]
+scope: [crates/uor-r4-training/**, crates/uor-r4-integer/**, docs/mechanisms/exact-memory.md, docs/mechanisms/geometric-stack.md, docs/model/architecture.md, docs/labs/m6-causal-ablation-instrument/**]
 ---
 
 ## Why it matters

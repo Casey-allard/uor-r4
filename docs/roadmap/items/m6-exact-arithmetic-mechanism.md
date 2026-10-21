@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
+scope: [crates/uor-r4-core/**, crates/uor-r4-integer/**, docs/geometry/spiralcore.md, docs/mechanisms/exact-addressed-memory.md, docs/mechanisms/spiralcore-fbs.md, docs/mechanisms/ternary-xor.md, docs/labs/m6-exact-arithmetic-mechanism/**]
 ---
 
 ## Why it matters

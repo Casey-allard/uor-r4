@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
+scope: [crates/uor-r4-training/**, docs/formal_vocabulary.md, docs/geometry/quaternions-and-rotation.md, docs/mechanisms/hamilton-gate.md, docs/harness/prep/r-hamilton-gate-suppression*, docs/labs/r-hamilton-gate-suppression/**]
 ---
 
 ## Why it matters

@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
+scope: [crates/uor-r4-training/**, docs/labs/m3-policy-precedence-and-sieve-tests/**]
 ---
 
 ## Why it matters

@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr05-policy-check, infra-loop-pr06-review-records]
+scope: [crates/uor-r4-harness/src/githelp.rs, crates/uor-r4-harness/src/version.rs, crates/uor-r4-harness/src/loophooks*.rs, crates/uor-r4-harness/tests/loop_hooks*.rs]
 ---
 
 ## Why it matters
@@ -26,7 +27,7 @@ A commit hook checks that the binary is current and that `Lab:` and `Order:` tra
 1. Team (D52, amended): claude builds it while Claude runs alone; the original split gave it to codex or deepseek. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
 2. Read the P-3 result and "Identity is by tags" on [the loop page](../../loop/README.md).
 3. Open `crates/uor-r4-harness/src/githelp.rs` and `crates/uor-r4-harness/src/version.rs`.
-4. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 12` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `References #<the loop issue>`.
+4. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 12` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `Closes #2917` and `References #2904`.
 
 ## Rules that apply
 

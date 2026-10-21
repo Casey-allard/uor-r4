@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [float-training-module, m1-d11-exporter-discrete, owner-decision-float-path-scope]
+scope: [crates/uor-r4-training/**, crates/uor-r4-integer/**, docs/mechanisms/lut-serving.md]
 ---
 
 ## Why it matters

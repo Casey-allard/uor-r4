@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: []
+scope: [docs/harness/prep/m1-a8-erosion-diagnosis*, docs/labs/m1-a8-erosion-diagnosis/**, docs/reference/storage.md]
 ---
 
 ## Why it matters

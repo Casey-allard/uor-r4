@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: [m4-export-uorlut01-cli, m5-laptop-full-path-measurement, m6-qualify-reasoning-coding, m7-parity-library-cli-browser]
+scope: [.github/workflows/release.yml, docs/RELEASE_PIPELINE.md, docs/inference_contract.md, docs/products/**, crates/uor-r4-integer/**, docs/labs/m8-release-packaging/**]
 ---
 
 ## Why it matters
@@ -32,6 +33,7 @@ M8 bar ([`ROADMAP.md`](../../../ROADMAP.md) line 21): "One versioned, checksum-p
 
 ## Rules that apply
 
+- **Owner paths in scope:** `.github/workflows/release.yml` is under the owner path `.github/**` (`docs/harness/owner-paths.json`); a PR that changes it needs the owner's approval recorded in its ORDER (`pr-check`'s `owner-paths` rule).
 - **Geometry only** (CHARTER §3.1–§3.3): every mechanism, training signal and fix comes from the project's geometry. No softmax or squashing anywhere, including losses, gradients, sampling and renamed or table forms. No dense matrix multiplication or GEMM, including wrappers and hand loops.
 - **Rust first** (§3.11): new code is Rust, and no new Python is added.
 - **Records** (§4.1, §5.6): each result is one row in its line's research notebook (`docs/research/notebook/<line>.md`). A negative result closes a configuration, never a mechanism.

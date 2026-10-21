@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m3-nonrelation-prose-panel]
+scope: [crates/uor-r4-training/**, docs/compute/**, docs/labs/m3-memory-turn-discriminator-gate/**]
 ---
 
 ## Why it matters

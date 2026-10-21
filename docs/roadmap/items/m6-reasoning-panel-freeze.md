@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
+scope: [crates/uor-r4-harness/src/panel*.rs, crates/uor-r4-harness/tests/panel*.rs, docs/harness/panels/**, docs/reference/storage.md, docs/labs/m6-reasoning-panel-freeze/**]
 ---
 
 ## Why it matters

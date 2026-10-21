@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
+scope: [web/**, crates/uor-r4-integer/**, docs/products/**, docs/labs/m7-studio-connect-wasm-engine/**]
 ---
 
 ## Why it matters

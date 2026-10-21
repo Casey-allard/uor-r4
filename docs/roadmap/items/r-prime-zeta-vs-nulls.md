@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: []
+scope: [crates/uor-r4-discrete/**, docs/harness/prep/r-prime-zeta-vs-nulls*, docs/labs/r-prime-zeta-vs-nulls/**]
 ---
 
 ## Why it matters

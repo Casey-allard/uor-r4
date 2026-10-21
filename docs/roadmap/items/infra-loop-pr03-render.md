@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr02-item-keys]
+scope: [crates/uor-r4-harness/src/looprender*.rs, crates/uor-r4-harness/tests/loop_render*.rs, xtask/src/roadmap.rs, STATE.md, HANDOFF.md, docs/harness/LESSONS.md, AGENTS.md, archive/state/**, docs/loop/baseline.json]
 ---
 
 ## Why it matters
@@ -27,10 +28,11 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "`loop
 2. Read "The notes" on [the loop page](../../loop/README.md), including the renderer's inputs.
 3. Open `xtask/src/roadmap.rs` (today's roadmap render), `crates/uor-r4-harness/src/main.rs`, `crates/uor-r4-harness/src/status.rs` and `STATUS.md`.
 4. Add the subcommand with determinism tests.
-5. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 3` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `References #<the loop issue>`.
+5. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 3` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `Closes #2906` and `References #2904`.
 
 ## Rules that apply
 
+- **Owner paths in scope:** `AGENTS.md` is an owner path (`docs/harness/owner-paths.json`); a PR that changes it needs the owner's approval recorded in its ORDER (`pr-check`'s `owner-paths` rule).
 - **Rust first** (CHARTER §3.11): the harness is Rust, and no new Python is added.
 - **Delivery path** (§5.5): PR, exact-head review (for this setup PR, from Claude's fresh-context reviewers under D59), merge queue, verify on fresh `main`, then delete the branch and worktree.
 - **Owner-only boundaries** (§5.1, §5.2): the charter, owner-only registries, caps and releases stay the owner's. An owner release is approved in the lab's own chat and recorded verbatim with the time.

@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: []
+scope: [docs/roadmap/items/*.md, docs/roadmap/README.md]
 ---
 
 ## Why it matters

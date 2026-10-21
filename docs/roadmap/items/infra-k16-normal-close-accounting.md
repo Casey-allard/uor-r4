@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: []
+scope: [docs/harness/ledger/**, docs/labs/infra-k16-normal-close-accounting/**, docs/reference/storage.md]
 ---
 
 ## Why it matters

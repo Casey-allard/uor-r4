@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m4-export-uorlut01-cli, m6-reasoning-panel-freeze, m6-causal-ablation-instrument, m6-exact-arithmetic-mechanism]
+scope: [docs/harness/panels/**, docs/harness/prep/m6-qualify-reasoning-coding*, docs/harness/milestones.json, docs/labs/m6-qualify-reasoning-coding/**]
 ---
 
 ## Why it matters

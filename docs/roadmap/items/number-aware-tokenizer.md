@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: []
+scope: [crates/uor-r4-tokenizer/**, models/**, docs/mechanisms/tokenizer.md, docs/harness/prep/number-aware-tokenizer*, docs/labs/number-aware-tokenizer/**]
 ---
 
 ## Why it matters

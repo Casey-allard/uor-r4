@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr07b-session, infra-loop-pr07c-queue-board, infra-loop-pr09-client-adapters]
+scope: [crates/uor-r4-harness/src/loopdrive*.rs, crates/uor-r4-harness/src/githubcards.rs, crates/uor-r4-harness/src/heartbeatcard.rs, crates/uor-r4-harness/tests/loop_drive*.rs]
 ---
 
 ## Why it matters
@@ -27,7 +28,7 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "`driv
 2. Test first, and record in REPORT: a foreground tool's process group, signalling a whole group, and Claude Code's after-stop summary session (the P-2 gaps).
 3. Read "The 2-hour check-in and the stops" on [the loop page](../../loop/README.md).
 4. Open `scripts/pod/uor-pod` (leases), `crates/uor-r4-harness/src/heartbeatcard.rs` and `crates/uor-r4-harness/src/githubcards.rs`.
-5. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 10` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `References #<the loop issue>`.
+5. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 10` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `Closes #2915` and `References #2904`.
 
 ## Rules that apply
 

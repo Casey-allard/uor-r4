@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
+scope: [crates/uor-r4-training/**, data/panels/**, docs/labs/m2-reply-grading-instrument-r14/**]
 ---
 
 ## Why it matters

@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
+scope: [docs/harness/prep/m1-a8-registration-and-runbook-staging*, docs/labs/m1-a8-registration-and-runbook-staging/**]
 ---
 
 ## Why it matters

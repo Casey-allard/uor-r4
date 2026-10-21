@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr07b-session]
+scope: [crates/uor-r4-harness/src/loopguard*.rs, crates/uor-r4-harness/src/loopinstall*.rs, crates/uor-r4-harness/src/looponboard*.rs, crates/uor-r4-harness/src/onboard.rs, crates/uor-r4-harness/src/presence.rs, crates/uor-r4-harness/src/skills.rs, crates/uor-r4-harness/tests/loop_guard*.rs, crates/uor-r4-harness/tests/loop_install*.rs, crates/uor-r4-harness/tests/loop_onboard*.rs, docs/harness/onboarding/**]
 ---
 
 ## Why it matters
@@ -26,7 +27,7 @@ The build plan's row on [the loop page](../../loop/README.md#build-plan): "`guar
 1. Team (D52, amended): claude builds it while Claude runs alone, starting with the Claude Code adapter; the original split gave it to antigravity. This is a loop setup PR, so its exact-head review comes from Claude's fresh-context reviewers (D59).
 2. Read "Install and onboarding" and the P-1 and P-2 results on [the loop page](../../loop/README.md). Codex, Kimi, Antigravity and DeepSeek still owe their client probes (#2028); an adapter for an unprobed client waits for its probe.
 3. Open `crates/uor-r4-harness/src/presence.rs`, `crates/uor-r4-harness/src/onboard.rs` and `crates/uor-r4-harness/src/skills.rs`.
-4. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 9` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `References #<the loop issue>`.
+4. Carry an ORDER and REPORT in `docs/loop/tasks/infra-loop-harness/<lab>-<n>/`, build and test on the laptop with `~/.cargo/bin/cargo`, put `Setup row: 9` in the ORDER (PR 6's gate reads it), ask Claude for the exact-head review (D59: no other lab is asked), and open the PR with `Closes #2914` and `References #2904`.
 
 ## Rules that apply
 

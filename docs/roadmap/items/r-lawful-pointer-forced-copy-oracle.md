@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: []
+scope: [crates/uor-r4-training/**, docs/harness/prep/r-lawful-pointer-forced-copy-oracle*, docs/labs/r-lawful-pointer-forced-copy-oracle/**]
 ---
 
 ## Why it matters

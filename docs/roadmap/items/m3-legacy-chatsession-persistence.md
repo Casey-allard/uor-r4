@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
+scope: [crates/uor-r4-integer/**, docs/labs/m3-legacy-chatsession-persistence/**]
 ---
 
 ## Why it matters

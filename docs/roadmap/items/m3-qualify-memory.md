@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m2-train-grounded-replies, m3-memory-turn-discriminator-gate, m3-policy-precedence-and-sieve-tests]
+scope: [crates/uor-r4-integer/**, crates/uor-r4-training/**, docs/labs/m3-qualify-memory/**]
 ---
 
 ## Why it matters

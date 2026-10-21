@@ -7,6 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: [m7-studio-connect-wasm-engine]
+scope: [src-tauri/**, web/**, crates/uor-r4-integer/**, crates/uor-r4-object-store/**, docs/products/**, Cargo.toml, docs/labs/infra-desktop-client-tauri/**]
 ---
 
 ## Why it matters

@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m1-d11-exporter-discrete]
+scope: [crates/uor-r4-integer/**, docs/mechanisms/lut-serving.md, docs/harness/prep/m1-export-gap-and-toks*, docs/labs/m1-export-gap-and-toks/**]
 ---
 
 ## Why it matters

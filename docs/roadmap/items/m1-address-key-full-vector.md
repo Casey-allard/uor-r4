@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m1-w2-capacity-capture]
+scope: [crates/uor-r4-discrete/**, docs/mechanisms/discrete-learning.md, docs/harness/prep/m1-address-key-full-vector*, docs/labs/m1-address-key-full-vector/**]
 ---
 
 ## Why it matters
