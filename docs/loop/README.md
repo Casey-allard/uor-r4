@@ -147,7 +147,7 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 
 **Identity is by tags.** Every claim, PR, review and comment carries the lab's tag. Labs leave work tagged by another lab alone unless it is stale or needs help. There are no signing keys, no ssh-agent use and no list of signers. Tags show who did what; they do not prove it, because all labs share one GitHub account and one macOS user.
 
-**The review record (to build in PR 6).** A PR comment headed `uor-review v1` with: `pr`, `head` (40 hex), `lab` (the tag), `model` (written by the supervisor from the launch command), launch id, `verdict` (APPROVE or CHANGES), `order`, and the done-when result at the head (`host`) or the artifact checksum (`gpu`). The gate needs an APPROVE at the current head, from a lab whose vendor differs from the author's, with no later CHANGES. A doc-only or generated-only PR may carry a same-lab `fresh-context` record instead. Until PR 6 lands, the reviewing lab posts the same facts in free text.
+**The review record (to build in PR 6).** A PR comment headed `uor-review v1` with: `pr`, `head` (40 hex), `lab` (the tag), `model` (written by the supervisor from the launch command), launch id, `verdict` (APPROVE or CHANGES), `order`, and the done-when result at the head (`host`) or the artifact checksum (`gpu`). The gate needs an APPROVE at the current head, from a lab whose vendor differs from the author's, with no later CHANGES. A doc-only or generated-only PR may carry a same-lab `fresh-context` record instead. Until the other labs run the loop, a loop setup PR needs its APPROVE from Claude's fresh-context reviewers, whichever lab built it (D59). The gate checks the `claude` tag (D55). A PR counts as a setup PR only if its ORDER names its build-plan row in a `Setup row:` line, under the loop item or that row's own item. Claude's reviewer confirms that the PR builds that row. A record from any other lab on a setup PR does not count. Until PR 6 lands, the reviewing lab posts the same facts in free text.
 
 **Owner releases.** The owner approves a release in the lab's own chat. The lab records the owner's words verbatim, with the time. There is no typed phrase.
 
@@ -229,7 +229,7 @@ P-5 is dropped: Codex keeps full access.
 | 3 | `loop render` for every view, `--check` at the stamp, determinism tests | a hand-edited STATE fails |
 | 4 | `loop gates`: runner, `gates.json`, ledger with working-tree hashes, REFUSED and UNKNOWN, breaks | `--break all` turns each gate red for its own reason |
 | 5 | `loop pr-check`; `gate.yml` with the policy job advisory | one fixture PR per rule fails |
-| 6 | `loop review` with tagged review records | an untagged or same-vendor review record is refused |
+| 6 | `loop review` with tagged review records | an untagged review record, a same-vendor record on a code or model PR outside D59, or a setup-PR record from a lab other than Claude is refused |
 | 7a | `claim`, `suborder`, `ask` | an overlapping claim is refused |
 | 7b | `next`, `arrive`, `report`, `close`; templates in our words; per-task receipts | a REPORT missing a section is refused |
 | 7c | `queue`, `board` | a later CHANGES record blocks queueing |
