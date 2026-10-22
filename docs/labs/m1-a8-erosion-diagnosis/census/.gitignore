@@ -1,0 +1,2 @@
+# The census build output: a local cache, never evidence.
+/target/

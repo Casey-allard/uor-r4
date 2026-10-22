@@ -1,0 +1,23 @@
+[package]
+name = "a8-census"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose, so this
+# instrument can never change what the workspace builds. Host only: no `cuda`.
+[workspace]
+
+[[bin]]
+name = "census"
+path = "src/main.rs"
+
+[dependencies]
+uor-r4-discrete = { path = "../../../../crates/uor-r4-discrete" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[patch.crates-io]
+cudarc = { path = "../../../../third_party/cudarc-0.19.10" }
+arrayref = { path = "../../../../third_party/arrayref" }
