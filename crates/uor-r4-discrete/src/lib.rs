@@ -23,6 +23,7 @@ pub mod driver_qualification;
 #[cfg(feature = "cuda")]
 pub mod measurement;
 pub mod metadata;
+pub mod normalization_mechanism;
 pub mod objective;
 pub mod position_mechanism;
 pub mod proposal_timing;
