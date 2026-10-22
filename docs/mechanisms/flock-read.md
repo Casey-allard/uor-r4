@@ -77,7 +77,7 @@ Almost all evidence below is from the **float era**, on a synthetic 512-to-1,536
 
 The mechanism is ACTIVE, so this is a plan, not a reopening.
 
-1. **Coupling sheet (C1).** Train a float coupling strength per head and level over the fixed integer Flock topology. Export it to a trit or small integer. Include zero-coupling and random-coupling controls, 2 seeds or 200 fresh rows, and a reported export gap. It is a draft ([sheet](../harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md)) and is not registered.
+1. **Coupling sheet (C1).** Train a float coupling strength per head and level over the fixed integer Flock topology. Export it to a trit or small integer. Include zero-coupling and random-coupling controls, 2 seeds or 200 fresh rows, and a reported export gap. The re-derived pre-registration sheet ([`m4-flock-coupling-prereg-DRAFT-2026-10-22.md`](../harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md), superseding [`m4-c1-flock-coupling-DRAFT-2026-10-18.md`](../harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md); [lab record](../labs/m4-flock-coupling-prereg/README.md)) has all finite controls (`C0`, `X1`–`X12`, `F1`–`F7`) verified on the host and awaits PM/owner registration of the 5 open items on [`#2860`](https://github.com/UOR-Foundation/uor-r4/issues/2860#issuecomment-6352562539).
 2. **Soft-to-hard selection (C2).** Use a rank-consistent hinge and a linear anneal, with no temperature exponential, ending at the exact integer rank. Score it by how often the source is in the flock, and by rank-1-when-kept by distance bucket.
 3. **Tree read (C3).** Use the tree for $O(\log n)$ reads, only after C1 shows the coupling learns, and with tokens per second reported first.
 
@@ -92,6 +92,7 @@ Any retry of the float starling or rank-table forms needs a fresh fitness review
 - [`crates/uor-r4-discrete/src/discrete.cu`](../../crates/uor-r4-discrete/src/discrete.cu): kernel `flock_vector` (lines 125-269) and `snap` (102-110).
 - [`lib.rs`](../../crates/uor-r4-discrete/src/lib.rs): `ReadSpec::Flock { kept }`, the gate trit parameter, and `ReadInitialization::ActiveLeafV1`, which sets gates to +1 so the read is not causally dead at the start.
 - [`flock_qualification.rs`](../../crates/uor-r4-discrete/src/flock_qualification.rs): six finite CUDA controls.
+- [`flock_coupling_controls.rs`](../../crates/uor-r4-discrete/tests/flock_coupling_controls.rs): seven finite host controls verifying `C0`, `X1`–`X12`, `F1`–`F7`, `F5b`, and `F5c` against `build.rs` `ROOTS`/`BFS`.
 - Inactive evidence: `crates/uor-r4-training/src/starling_native.{rs,cu}`, `flock.rs`, `geometric_stack.rs`. The served integer selector for the older lookup stack is `crates/uor-r4-integer/src/stack/flock.rs`.
 
 ## Related mechanisms
