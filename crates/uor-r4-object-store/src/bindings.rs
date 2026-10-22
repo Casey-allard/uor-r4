@@ -34,7 +34,7 @@ impl<'a> PinnedTokenizer<'a> {
     pub fn identity(&self) -> TokenizerIdentity {
         self.identity
     }
-    fn token_bytes(&self, id: u32, limit: u64) -> Result<Vec<u8>> {
+    pub(crate) fn token_bytes(&self, id: u32, limit: u64) -> Result<Vec<u8>> {
         let length = self
             .tokenizer
             .token_byte_len(id)

@@ -90,6 +90,7 @@ Exact addressed memory; prime-keyed exact log and gcd sieve (log-sieve retrieval
 
 ## Code
 
+- [`address_read.rs`](../../crates/uor-r4-object-store/src/address_read.rs): exact prime/semiprime address directory (`PrimeAddress`, `AddressDirectory`, `ObjectTarget`, `AddressReadOutcome`) and sorted-merge GCD sieve consumer over `uor-r4-object-store`, with finite CPU controls in [`tests/address_read.rs`](../../crates/uor-r4-object-store/tests/address_read.rs) and the serving-time oracle pre-registration sheet [`m1-address-as-read-oracle-DRAFT-2026-10-22.md`](../harness/prep/m1-address-as-read-oracle-DRAFT-2026-10-22.md).
 - [`stack_aerm.rs`](../../crates/uor-r4-training/src/stack_aerm.rs): the exact relation store simulator and the G v1 always-on read.
 - [`stack_prime_route.rs`](../../crates/uor-r4-training/src/stack_prime_route.rs): the prime-route and semiprime store, with `ReadPolicy::{Tagged,Sieve}`.
 - [`stack_store.rs`](../../crates/uor-r4-training/src/stack_store.rs): the token-level bridge to the exact versioned store (version order, predecessor chain, conflict marking, capacity eviction).
