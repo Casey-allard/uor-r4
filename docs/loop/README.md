@@ -61,7 +61,7 @@ Steps that need no judgement run in the supervisor, without a model.
 | 8 | Report | Write REPORT, a notebook row for any result, and receipts, all in the task folder. | `loop report --check` (built, loop PR 7b) | session |
 | 9 | Ready | Build the PR body from REPORT, size first; mark the PR ready; write PICKUP; end the session. | `loop close --session` (built, loop PR 7b) | session |
 | 10 | Review | A lab from another vendor (for a loop setup PR while D59 is in force, Claude), in a fresh session, reads only the ORDER and the diff. A `host` done-when is re-run at the head. A `gpu` done-when is checked by the sealed artifact's checksum and run receipt, never re-run on the laptop (§3.5). | `loop review` (built, loop PR 6) | other lab (D59: Claude for setup PRs) |
-| 11 | Repair | Requested changes, a red gate or a queue ejection give the author lab a new order `<lab>-<n+1>`. It lists finished steps in the past tense with their commits. The first ORDER is history. | `loop next` finds repairs (loop PR 7b); the repair ORDER is still written by hand | session |
+| 11 | Repair | Requested changes, a red gate or a queue ejection give the author lab a new order `<lab>-<n+1>` in the same task folder, added to the same PR in a commit that touches only its own folder. It lists finished steps in the past tense with their commits. The highest `n` is the active ORDER every tool judges; the earlier ones are history, and a review record for one of them no longer counts (claude-22). | `loop next` finds repairs (loop PR 7b); the repair ORDER is still written by hand | session |
 | 12 | Queue | Only when the policy gate is green at the head, the approval the policy gate accepts is at the head (Claude's for a setup PR under D59; otherwise another vendor's), no later "changes requested" that the gate counts exists, and no owner or PM comment came after the approval. | `loop queue` (built, loop PR 7c) | supervisor |
 | 13 | Verify | Find the `(#N)` squash commit on `main`; re-run a `host` done-when on fresh `main`; delete the branch and worktree only when GitHub reports MERGED; run `uor-hygiene --apply`. A failure becomes a repair. | `loop close --verify` (built, loop PR 7b; it prints the hygiene plan and does not apply it, see claude-17 REPORT) | supervisor |
 | 14 | Render | Refresh the render PR. | `loop render --pr` (to build) | Kimi; a cover lab after 2 hours red |
@@ -180,6 +180,15 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 - the kill switch: the file `local/loop/STOP`, or the label `loop:pause` on issue #2028, which works from a phone.
 
 **Reroutes.** Three sessions without movement turn the item into a `decision` with a pivot note (§4.4). Full GPU caps skip GPU items. A REFUSED gate becomes a repair or a card.
+
+## Shared registration files
+
+A few files are where every loop PR registers its piece: dispatch, documentation, gates and the rendered roadmap page. If item scopes listed them, `loop claim` would let only one lab hold a harness item at a time. So these nine are shared. No item scope lists them, `pr-check`'s `scope` rule always allows them, and `loop claim` refuses an item whose scope covers one:
+
+- `crates/uor-r4-harness/src/lib.rs`, `main.rs`, `loopgates.rs` (the dispatcher), `doccheck.rs` and `loopprcheck.rs`;
+- `docs/harness/README.md`, `docs/loop/README.md`, `docs/harness/gates.json` and `docs/roadmap/README.md`.
+
+Casey decided this in Claude's chat. On 2026-10-21 at 23:43Z he answered "Exempt them (Recommended)" for the first six. On 2026-10-22 at 00:05Z he answered "Add all three (Recommended)" for `loopprcheck.rs`, `gates.json` and the roadmap page. Keep edits there small and additive, and merge `origin/main` into your branch whenever it moves. A test for a change to a shared module goes in the PR's own test file.
 
 ## Subagents
 

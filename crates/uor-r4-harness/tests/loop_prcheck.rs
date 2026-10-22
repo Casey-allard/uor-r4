@@ -575,12 +575,13 @@ fn order_fails_for_each_broken_condition() {
             }),
         ),
         (
-            "the PR adds 2 ORDERs",
+            // One lab's repair chain is allowed (loop step 11); two labs are not.
+            "the PR adds 2 ORDERs that are not one lab's repairs in one task folder",
             Box::new(|r: &Repo| {
                 r.order_a();
                 r.write(
-                    "docs/loop/tasks/item-a/claude-2/ORDER.md",
-                    &order("claude", "item-a", ""),
+                    "docs/loop/tasks/item-a/codex-2/ORDER.md",
+                    &order("codex", "item-a", ""),
                 );
             }),
         ),

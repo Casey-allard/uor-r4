@@ -58,7 +58,7 @@ fn git(root: &Path, args: &[&str]) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-/// The ORDER this branch adds (status `A`, or the new side of an `R`), relative to `root`.
+/// The active ORDER this branch adds (status `A`, or the new side of an `R`), relative to `root`.
 pub(crate) fn find_order(root: &Path) -> Result<String, String> {
     let mb = git(root, &["merge-base", "origin/main", "HEAD"])?;
     let mb = mb.trim();
@@ -74,8 +74,6 @@ pub(crate) fn find_order(root: &Path) -> Result<String, String> {
             "HEAD",
         ],
     )?;
-    let pattern = regex::Regex::new(r"^docs/loop/tasks/[^/]+/[^/]+-[0-9]+/ORDER\.md$")
-        .expect("a valid pattern");
     let mut fields = out.split('\0').filter(|f| !f.is_empty());
     let mut found = Vec::new();
     while let Some(status) = fields.next() {
@@ -85,21 +83,18 @@ pub(crate) fn find_order(root: &Path) -> Result<String, String> {
         } else {
             fields.next()
         };
-        if let Some(p) = path.filter(|p| pattern.is_match(p)) {
+        if let Some(p) = path.filter(|p| crate::loopprcheck::order_parts(p).is_some()) {
             found.push(p.to_string());
         }
     }
-    match found.len() {
-        1 => Ok(found.remove(0)),
-        0 => Err(format!(
+    if found.is_empty() {
+        return Err(format!(
             "this branch adds no docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md against {mb}; pass --order <path>"
-        )),
-        _ => Err(format!(
-            "this branch adds {} ORDERs ({}); pass --order <path>",
-            found.len(),
-            found.join(", ")
-        )),
+        ));
     }
+    // A repair chain resolves to its highest `<lab>-<n>` (loop step 11).
+    crate::loopprcheck::active_order(&found)
+        .map_err(|e| format!("this branch adds {e}; pass --order <path>"))
 }
 
 /// Each problem `--check` reports for this REPORT text; empty when it passes.

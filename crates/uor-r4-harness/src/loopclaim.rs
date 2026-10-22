@@ -14,11 +14,12 @@
 //!    warns and counts as an open order of unknown item. An ORDER names its item in the `Item:`
 //!    line link `roadmap/items/<id>.md`.
 //! 3. The item has a `scope:` line. Without one the claim is refused; it never guesses. Each of its
-//!    globs passes [`scope_glob_ok`].
+//!    globs passes [`scope_glob_ok`] and covers none of the [`SHARED_FILES`].
 //! 4. No scope glob overlaps a glob of an open order's item (see [`globs_overlap`]); that item's
 //!    globs must pass [`scope_glob_ok`] too. An open order whose item is missing or has no `scope:`
 //!    is skipped here with a printed warning (it still counts for check 2). Globs under
-//!    `docs/research/notebook/` never count.
+//!    `docs/research/notebook/` never count, nor does a glob that is exactly one of the
+//!    [`SHARED_FILES`].
 //! 5. The lab's open PRs (head branch `<lab>/...`) are fewer than its `open_pr_limit` in
 //!    `docs/harness/labs.json`.
 //!
@@ -58,6 +59,31 @@ use serde::Deserialize;
 pub const GH_FAKE_ENV: &str = "UOR_LOOP_GH_FAKE";
 
 const NOTEBOOK: &str = "docs/research/notebook/";
+
+/// The shared registration files: any loop PR may change them, and no item's `scope:` may list
+/// them. `pr-check`'s `scope` rule always allows them, and `loop claim` refuses an item whose scope
+/// has a glob covering one. Casey's decisions in Claude's chat (ORDER
+/// `docs/loop/tasks/infra-loop-harness/claude-22/ORDER.md`): 2026-10-21T23:43Z, "Exempt them
+/// (Recommended)", for the first six; 2026-10-22T00:05Z, "Add all three (Recommended)", for
+/// `loopprcheck.rs`, `gates.json` and `docs/roadmap/README.md`.
+pub const SHARED_FILES: [&str; 9] = [
+    "crates/uor-r4-harness/src/lib.rs",
+    "crates/uor-r4-harness/src/main.rs",
+    "crates/uor-r4-harness/src/loopgates.rs",
+    "crates/uor-r4-harness/src/doccheck.rs",
+    "crates/uor-r4-harness/src/loopprcheck.rs",
+    "docs/harness/README.md",
+    "docs/loop/README.md",
+    "docs/harness/gates.json",
+    "docs/roadmap/README.md",
+];
+
+/// The first shared file `glob` covers, matched as `pr-check`'s `scope` rule matches paths.
+pub fn covered_shared_file(glob: &str) -> Option<&'static str> {
+    SHARED_FILES
+        .into_iter()
+        .find(|f| crate::loopprcheck::glob_match(glob, f))
+}
 
 /// One file a PR changes, as `gh pr list --json files` prints it.
 #[derive(Debug, Clone, Deserialize)]
@@ -573,8 +599,9 @@ pub fn globs_overlap(a: &str, b: &str) -> bool {
     prefix_of(a, b) || prefix_of(b, a)
 }
 
+/// A glob counts for overlap unless it is under the notebook or is exactly a shared file.
 fn counts(glob: &str) -> bool {
-    !literal(glob).0.starts_with(NOTEBOOK)
+    !literal(glob).0.starts_with(NOTEBOOK) && !SHARED_FILES.contains(&glob)
 }
 
 /// A refusal: the reason printed after `loop claim: refused: `.
@@ -610,6 +637,11 @@ pub fn check(root: &Path, lab: &str, item: &str, gh: &dyn Gh) -> Result<(), Refu
     };
     for g in &scope {
         scope_glob_ok(g).map_err(|e| format!("item {item}: {e}"))?;
+        if let Some(f) = covered_shared_file(g) {
+            return Err(format!(
+                "item {item}: scope glob `{g}` covers the shared file {f}; Casey (21-22 Oct, \"Exempt them (Recommended)\", \"Add all three (Recommended)\") made the nine shared registration files open to every loop PR, so no item scope may list them"
+            ));
+        }
     }
     // (d) no glob overlaps an open order's scope; notebook pages never count. An open order whose
     // item is missing or has no scope: is skipped with a warning (it still counted in (b)); one whose

@@ -183,6 +183,39 @@ fn record(lab: &str, n: u64, sha: &str, verdict: &str, (item, order_lab): (&str,
     json!({"author": "x", "body": body})
 }
 
+/// A claude APPROVE at HEAD whose `order:` is `order_path`.
+fn approve_for(n: u64, order_path: &str) -> Value {
+    use uor_r4_harness::loopreview::{render, DoneWhen, Record, Verdict};
+    let body = render(&Record {
+        lab: "claude".to_string(),
+        pr: n,
+        head: HEAD.to_string(),
+        model: "m".to_string(),
+        launch: "l".to_string(),
+        verdict: Verdict::Approve,
+        order: order_path.to_string(),
+        fresh_context: true,
+        done_when: DoneWhen::Host("cargo test: ok".to_string()),
+    });
+    json!({"author": "x", "body": body})
+}
+
+/// A fake with one non-setup codex PR `n` (code plus every ORDER in `orders`, each readable at the
+/// PR head as `docs/loop/tasks/it-2/<order>/ORDER.md`).
+fn chain_fake(n: u64, orders: &[&str], comments: Value) -> Value {
+    let (mut p, (_, text)) = pr(n, "codex/chain", "codex", "it-2");
+    let mut files = vec![json!({"path": "crates/a/src/lib.rs"})];
+    let mut next = fake(vec![], comments);
+    for o in orders {
+        let path = format!("docs/loop/tasks/it-2/{o}/ORDER.md");
+        files.push(json!({"path": path}));
+        next["files"][format!("{n}:{path}")] = json!(text.clone());
+    }
+    p["files"] = Value::Array(files);
+    next["prs"] = json!([p]);
+    next
+}
+
 /// The PR also changes code, so it is not doc-only.
 fn with_code((mut p, f): (Value, (String, String))) -> (Value, (String, String)) {
     p["files"]
@@ -504,6 +537,44 @@ fn an_own_pr_adding_two_orders_is_a_repair() {
     assert!(
         decision(&o).contains("GO repair #7")
             && decision(&o).contains("its ORDER is missing or ambiguous"),
+        "{o:?}"
+    );
+}
+
+#[test]
+fn a_repair_chain_is_judged_by_its_highest_order() {
+    let r = Repo::new(&[]);
+    let one = "docs/loop/tasks/it-2/codex-1/ORDER.md";
+    let two = "docs/loop/tasks/it-2/codex-2/ORDER.md";
+    let orders = ["codex-1", "codex-2"];
+    // No review yet: the PR needs claude's.
+    let o = r.next(&chain_fake(21, &orders, json!({})));
+    assert!(decision(&o).starts_with("GO review #21 — "), "{o:?}");
+    // An APPROVE naming the superseded codex-1 ORDER does not count, so the review is still owed.
+    let o = r.next(&chain_fake(
+        21,
+        &orders,
+        json!({"21": [approve_for(21, one)]}),
+    ));
+    assert!(decision(&o).starts_with("GO review #21 — "), "{o:?}");
+    // An APPROVE naming the active codex-2 ORDER counts, so no review is owed.
+    let o = r.next(&chain_fake(
+        21,
+        &orders,
+        json!({"21": [approve_for(21, two)]}),
+    ));
+    assert!(!decision(&o).contains("review #21"), "{o:?}");
+}
+
+#[test]
+fn orders_of_two_labs_in_one_pr_are_refused_not_resolved() {
+    let r = Repo::new(&[]);
+    let o = r.next(&chain_fake(22, &["codex-1", "anthro-1"], json!({})));
+    assert!(!decision(&o).contains("review #22"), "{o:?}");
+    assert!(
+        stdout(&o).lines().any(|l| l.starts_with("reviews: ")
+            && l.contains("#22 adds 2 ORDERs that are not one lab's repairs")
+            && l.contains("labs: anthro, codex")),
         "{o:?}"
     );
 }

@@ -326,6 +326,23 @@ fn the_order_is_found_from_the_branch_or_named() {
 }
 
 #[test]
+fn a_repair_chain_checks_the_highest_numbered_report() {
+    let first = "docs/loop/tasks/item-a/claude-1";
+    let second = "docs/loop/tasks/item-a/claude-2";
+    let r = Repo::new(&[&format!("{first}/ORDER.md"), &format!("{second}/ORDER.md")]);
+    // claude-1 is deliberately invalid: checking it would fail.
+    r.write(&format!("{first}/REPORT.md"), "# REPORT\n\nNo sections.\n");
+    r.write(&format!("{second}/REPORT.md"), VALID);
+    let (code, out) = r.report(Some("claude"), &["--check"]);
+    assert_eq!(code, 0, "{out}");
+    assert!(
+        out.contains("PASS report") && out.contains("claude-2/REPORT.md"),
+        "{out}"
+    );
+    assert!(!out.contains("claude-1"), "{out}");
+}
+
+#[test]
 fn the_real_report_template_has_the_seven_sections_in_order() {
     let t = real("docs/loop/templates/REPORT.md");
     let headings: Vec<&str> = t.lines().filter(|l| l.starts_with("## ")).collect();

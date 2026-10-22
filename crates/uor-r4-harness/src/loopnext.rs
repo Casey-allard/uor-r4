@@ -302,13 +302,11 @@ pub(crate) fn added_order(
     listed: &[String],
     read: &dyn Fn(&str) -> Result<String, String>,
 ) -> Result<(String, String, String), OrderErr> {
-    let pattern = regex::Regex::new(r"^docs/loop/tasks/[^/]+/[^/]+-[0-9]+/ORDER\.md$")
-        .expect("a valid pattern");
     let mut added = Vec::new();
     for path in listed
         .iter()
         .map(String::as_str)
-        .filter(|p| pattern.is_match(p))
+        .filter(|p| crate::loopprcheck::order_parts(p).is_some())
     {
         let text = match read(path) {
             Ok(t) => t,
@@ -321,17 +319,17 @@ pub(crate) fn added_order(
         }
         added.push((path, text));
     }
-    let (path, text) = match added.len() {
-        1 => added.remove(0),
-        0 => return Err(OrderErr::Missing(format!("#{n} adds no ORDER"))),
-        k => {
-            let paths: Vec<&str> = added.iter().map(|(p, _)| *p).collect();
-            return Err(OrderErr::Missing(format!(
-                "#{n} adds {k} ORDERs ({})",
-                paths.join(", ")
-            )));
-        }
-    };
+    if added.is_empty() {
+        return Err(OrderErr::Missing(format!("#{n} adds no ORDER")));
+    }
+    // A repair chain resolves to its highest `<lab>-<n>` (loop step 11).
+    let paths: Vec<&str> = added.iter().map(|(p, _)| *p).collect();
+    let active = crate::loopprcheck::active_order(&paths)
+        .map_err(|e| OrderErr::Missing(format!("#{n} adds {e}")))?;
+    let (path, text) = added
+        .into_iter()
+        .find(|(p, _)| *p == active)
+        .expect("the active ORDER is one of the added ORDERs");
     let dir = path.trim_end_matches("/ORDER.md");
     let lab = dir
         .rsplit('/')

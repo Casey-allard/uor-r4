@@ -194,26 +194,80 @@ impl<'a> Pr<'a> {
             .collect()
     }
 
-    /// The single ORDER the PR adds, or the reason there is not exactly one.
+    /// The ORDERs the PR adds as one repair chain, oldest first (see [`order_chain`]).
+    fn the_chain(&self) -> Result<Vec<String>, String> {
+        order_chain(&self.added_orders()).map_err(|e| format!("the PR adds {e}"))
+    }
+
+    /// The active ORDER the PR adds (see [`active_order`]), or why there is none.
     fn the_order(&self) -> Result<&str, String> {
-        match self.added_orders().as_slice() {
-            [one] => Ok(one),
-            [] => Err("the PR adds no docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md".into()),
-            many => Err(format!(
-                "the PR adds {} ORDERs: {}",
-                many.len(),
-                many.join(", ")
-            )),
-        }
+        let added = self.added_orders();
+        let active = active_order(&added).map_err(|e| format!("the PR adds {e}"))?;
+        Ok(added
+            .into_iter()
+            .find(|p| *p == active)
+            .expect("the active ORDER is one of the added ORDERs"))
     }
 }
 
 /// `(folder, lab, n)` of `docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md`.
-fn order_parts(path: &str) -> Option<(String, String, String)> {
+pub(crate) fn order_parts(path: &str) -> Option<(String, String, String)> {
     let re = regex::Regex::new(r"^docs/loop/tasks/([^/]+)/([A-Za-z0-9_-]+)-([0-9]+)/ORDER\.md$")
         .expect("a valid pattern");
     let c = re.captures(path)?;
     Some((c[1].to_string(), c[2].to_string(), c[3].to_string()))
+}
+
+/// The ORDERs a PR adds, oldest first, when they are one lab's repair chain in one task
+/// folder (loop step 11): every path is `docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md` with
+/// the same `<folder>` and `<lab>`, ordered by `n` read as a number (`kimi-10` after
+/// `kimi-9`). The last is the active ORDER; the rest are history. The error names the
+/// count, so a caller can prefix who adds them ("the PR adds ...").
+pub fn order_chain<S: AsRef<str>>(paths: &[S]) -> Result<Vec<String>, String> {
+    let all: Vec<&str> = paths.iter().map(AsRef::as_ref).collect();
+    if all.is_empty() {
+        return Err("no docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md".into());
+    }
+    let mut chain = Vec::new();
+    for p in &all {
+        let parsed = order_parts(p).and_then(|(f, l, n)| Some((f, l, n.parse::<u64>().ok()?)));
+        let Some((folder, lab, n)) = parsed else {
+            return Err(format!(
+                "{p}, which is not docs/loop/tasks/<folder>/<lab>-<n>/ORDER.md"
+            ));
+        };
+        chain.push((folder, lab, n, p.to_string()));
+    }
+    let set = |i: fn(&(String, String, u64, String)) -> &String| {
+        let mut v: Vec<&str> = chain.iter().map(|c| i(c).as_str()).collect();
+        v.sort_unstable();
+        v.dedup();
+        v
+    };
+    let (folders, labs) = (set(|c| &c.0), set(|c| &c.1));
+    if folders.len() > 1 || labs.len() > 1 {
+        return Err(format!(
+            "{} ORDERs that are not one lab's repairs in one task folder (folders: {}; labs: {}): {}",
+            all.len(),
+            folders.join(", "),
+            labs.join(", "),
+            all.join(", ")
+        ));
+    }
+    chain.sort_by_key(|c| c.2);
+    if chain.windows(2).any(|w| w[0].2 == w[1].2) {
+        return Err(format!(
+            "{} ORDERs, two with the same number: {}",
+            all.len(),
+            all.join(", ")
+        ));
+    }
+    Ok(chain.into_iter().map(|c| c.3).collect())
+}
+
+/// The active ORDER of a PR's added ORDERs: the highest `n` of [`order_chain`].
+pub fn active_order<S: AsRef<str>>(paths: &[S]) -> Result<String, String> {
+    order_chain(paths).map(|mut c| c.pop().expect("a chain is never empty"))
 }
 
 fn result(rule: &'static str, details: Vec<String>, pass: &str, fail: &str) -> RuleResult {
@@ -304,7 +358,51 @@ fn rule_order(pr: &Pr) -> RuleResult {
             }
         }
     }
+    match pr.the_chain() {
+        Ok(chain) => details.extend(chain_identity_problems(pr, &chain, path, &text)),
+        Err(e) => details.push(e),
+    }
     result(R, details, path, &format!("{path} is not a valid ORDER"))
+}
+
+/// What differs across a repair chain: every earlier ORDER's `Lab:` matches its folder's lab,
+/// and its `Lab:`, `Item:` and `Setup row:` at the head equal the active ORDER's, so a repair
+/// ORDER can never re-point the PR at another item, lab or setup row.
+fn chain_identity_problems(pr: &Pr, chain: &[String], active: &str, text: &str) -> Vec<String> {
+    let identity = |t: &str| {
+        [
+            ("Lab:", order_lab(t)),
+            ("Item:", crate::loopclaim::order_item(t)),
+            ("Setup row:", crate::loopreview::setup_row(t)),
+        ]
+    };
+    let want = identity(text);
+    let mut details = Vec::new();
+    for order in chain.iter().map(String::as_str).filter(|p| *p != active) {
+        let (_, lab, _) = order_parts(order).expect("a chain ORDER path parses");
+        let Some(t) = pr.at_head(order) else {
+            details.push(format!("{order} cannot be read at the head"));
+            continue;
+        };
+        let got = identity(&t);
+        if got[0].1.as_deref() != Some(lab.as_str()) {
+            details.push(format!(
+                "{order} says `Lab: {}` but its folder is lab {lab}",
+                got[0].1.as_deref().unwrap_or("(none)")
+            ));
+        }
+        for ((field, g), (_, w)) in got.iter().zip(&want) {
+            if g != w {
+                let show = |v: &Option<String>| v.clone().unwrap_or_else(|| "(none)".into());
+                details.push(format!(
+                    "{order} has `{field} {}` but the active ORDER {active} has `{field} {}`",
+                    show(g),
+                    show(w)
+                ));
+            }
+        }
+    }
+    details
 }
 
 /// Every changed path lies inside the ORDER item's `scope:` (read at the base) or is always allowed.
@@ -354,11 +452,18 @@ fn rule_scope(pr: &Pr) -> RuleResult {
             details: bad_globs,
         };
     }
-    let folder = order.trim_end_matches("ORDER.md");
+    // The active ORDER's folder and its history ORDERs' folders (loop step 11).
+    let folders: Vec<String> = pr
+        .the_chain()
+        .unwrap_or_default()
+        .iter()
+        .map(|o| o.trim_end_matches("ORDER.md").to_string())
+        .collect();
     let mut details = Vec::new();
     for (change, path) in pr.changed_paths() {
         let allowed = scope.iter().any(|g| glob_match(g, path))
-            || path.starts_with(folder)
+            || crate::loopclaim::SHARED_FILES.contains(&path)
+            || folders.iter().any(|f| path.starts_with(f.as_str()))
             || (path == item_path && status_only_edit(pr, path))
             || (item.notebook.as_deref() == Some(path) && append_only(pr, path))
             || (change.status == 'A' && path.starts_with("docs/harness/mistakes/"))
@@ -423,13 +528,16 @@ fn commit_changes(pr: &Pr, sha: &str) -> Result<Vec<Change>, String> {
     name_status(&z_fields(&raw))
 }
 
-/// The first non-merge commit adds the ORDER, and that commit changes nothing outside its folder.
+/// The first non-merge commit adds the lowest-numbered ORDER, and that commit changes nothing
+/// outside its folder; each later (repair) ORDER is added by a commit that changes nothing
+/// outside its own folder.
 fn rule_commit_order(pr: &Pr) -> RuleResult {
     const R: &str = "commit-order";
-    let order = match pr.the_order() {
-        Ok(p) => p,
+    let chain = match pr.the_chain() {
+        Ok(c) => c,
         Err(e) => return fail(R, format!("cannot check the commit order: {e}")),
     };
+    let order = chain[0].as_str();
     let folder = order.trim_end_matches("ORDER.md");
     let commits = match pr_commits(pr) {
         Ok(c) => c,
@@ -483,14 +591,75 @@ fn rule_commit_order(pr: &Pr) -> RuleResult {
                 "the ORDER's `Lab:` or `Item:` at the head differs from the ORDER as {short} added it"
             ));
         }
+        match repair_order_problems(pr, &chain[1..], &commits) {
+            Ok(p) => details.extend(p),
+            Err(e) => return fail(R, e),
+        }
+        let pass = match chain.len() {
+            1 => format!("{short} adds {order} first, alone in its folder"),
+            k => format!(
+                "{short} adds {order} first, alone in its folder; each of the {} repair ORDERs is added alone in its folder",
+                k - 1
+            ),
+        };
         return result(
             R,
             details,
-            &format!("{short} adds {order} first, alone in its folder"),
-            "the ORDER commit does not come first, alone",
+            &pass,
+            "the ORDER commits do not come first, alone",
         );
     }
     fail(R, format!("no non-merge commit adds {order}"))
+}
+
+/// What is wrong with how each repair ORDER (every ORDER after the first) was added: one
+/// non-merge commit adds it, that commit changes nothing outside its folder, and its `Lab:`
+/// and `Item:` are the same at the head.
+fn repair_order_problems(
+    pr: &Pr,
+    repairs: &[String],
+    commits: &[(String, bool)],
+) -> Result<Vec<String>, String> {
+    let mut details = Vec::new();
+    for order in repairs.iter().map(String::as_str) {
+        let folder = order.trim_end_matches("ORDER.md");
+        let mut found = false;
+        for (sha, _) in commits.iter().filter(|(_, merge)| !merge) {
+            let short = &sha[..sha.len().min(9)];
+            let changes =
+                commit_changes(pr, sha).map_err(|e| format!("cannot read commit {short}: {e}"))?;
+            let adds = changes.iter().any(|c| {
+                matches!(c.status, 'A' | 'R' | 'C')
+                    && c.paths.last().map(String::as_str) == Some(order)
+            });
+            if !adds {
+                continue;
+            }
+            found = true;
+            let outside: Vec<&str> = changes
+                .iter()
+                .flat_map(|c| c.paths.iter().map(String::as_str))
+                .filter(|p| !p.starts_with(folder))
+                .collect();
+            if !outside.is_empty() {
+                details.push(format!(
+                    "{short} adds the repair ORDER {order} but also changes {}, outside {folder}",
+                    outside.join(", ")
+                ));
+            }
+            let first = pr.show(sha, order).map(|t| order_identity(&t));
+            if first != pr.at_head(order).map(|t| order_identity(&t)) {
+                details.push(format!(
+                    "the `Lab:` or `Item:` of {order} at the head differs from the ORDER as {short} added it"
+                ));
+            }
+            break;
+        }
+        if !found {
+            details.push(format!("no non-merge commit adds the repair ORDER {order}"));
+        }
+    }
+    Ok(details)
 }
 
 /// The `## ` sections a REPORT needs, in this order (each heading starts with one, any case).
@@ -1721,6 +1890,34 @@ pub fn cli(root: &Path, args: &[String]) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn o(folder: &str, dir: &str) -> String {
+        format!("docs/loop/tasks/{folder}/{dir}/ORDER.md")
+    }
+
+    #[test]
+    fn active_order_is_the_highest_of_one_lab_in_one_folder() {
+        let one = [o("f", "kimi-1")];
+        assert_eq!(active_order(&one), Ok(o("f", "kimi-1")));
+        let three = [o("f", "kimi-2"), o("f", "kimi-3"), o("f", "kimi-1")];
+        assert_eq!(active_order(&three), Ok(o("f", "kimi-3")));
+        assert_eq!(
+            order_chain(&three).unwrap(),
+            vec![o("f", "kimi-1"), o("f", "kimi-2"), o("f", "kimi-3")]
+        );
+        let numeric = [o("f", "kimi-10"), o("f", "kimi-9")];
+        assert_eq!(active_order(&numeric), Ok(o("f", "kimi-10")));
+        let labs = active_order(&[o("f", "kimi-1"), o("f", "deepseek-1")]).unwrap_err();
+        assert!(labs.contains("labs: deepseek, kimi"), "{labs}");
+        let folders = active_order(&[o("f", "kimi-1"), o("g", "kimi-2")]).unwrap_err();
+        assert!(folders.contains("folders: f, g"), "{folders}");
+        let same_n = active_order(&[o("f", "kimi-01"), o("f", "kimi-1")]).unwrap_err();
+        assert!(same_n.contains("two with the same number"), "{same_n}");
+        let none: [String; 0] = [];
+        assert!(active_order(&none)
+            .unwrap_err()
+            .starts_with("no docs/loop/tasks/"));
+    }
 
     #[test]
     fn gh_endpoints() {
