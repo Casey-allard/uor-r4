@@ -107,7 +107,8 @@ supervisor replaces with the session prompt (the caller's `--prompt`, or a defau
 `loop next` decision). The client runs in its own process group; the pid, pgid, client, model,
 prompt SHA-256 and start time are written under `local/loop/drive/<lab>/last-session.json`, and only
 that recorded pid/group is ever signalled, so another lab's worktree and a client's after-stop
-summary process are never touched. `--order <ORDER.md>` names the active ORDER for the scoped WIP
+summary process are never touched. `--model` must appear in the client command: the drive refuses a
+model the launch argv does not carry, so the recorded model is the one actually launched. `--order <ORDER.md>` names the active ORDER for the scoped WIP
 commit a stalled close makes (staging only its task folder, with the `Order:` trailer); `--exempt-lease`
 marks a session whose lease covers it so the check-in never closes it; the command and the signals are
 unix-only, and the flag has no meaning on other targets.
@@ -119,7 +120,9 @@ UOR_LAB=claude uor-harness loop drive --watch --lease --interval 300
 ```
 
 **The 2-hour check-in is soft (D53).** A session under two hours continues. Past it, real progress -
-new commits, new gate runs or a changed working tree - continues **with a note**; a stalled or
+new commits, new gate runs or a changed working tree - continues **with a note** posted on the work
+issue (the PR the decision names, or #2028 for an item or command target) through `gh`, with a copy
+kept under `local/loop/drive/<lab>/note-<time>.md`; a stalled or
 spiraled session is closed with a REPORT stub and a PICKUP written from git state and a card to the
 PM (in `local/loop/drive/<lab>/close-<time>/`, and posted on #2028 when `gh` succeeds). `--watch` is
 the session-bound watcher: while its recorded pid is alive it runs the renew command given after

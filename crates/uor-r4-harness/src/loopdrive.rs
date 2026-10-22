@@ -897,6 +897,106 @@ pub fn commit_and_push_wip(
     Ok(())
 }
 
+/// The body a check-in progress note posts on the work issue: the lab tag, the D53 reason and the
+/// session target, and the explicit no-claim line.
+pub fn note_body(lab: &str, target: Option<&str>, note: &str) -> String {
+    let mut body = format!("[{lab}] drive check-in (soft 2-hour, D53): {note}");
+    if let Some(target) = target {
+        body.push_str(&format!("\n\n- session target: {target}"));
+    }
+    body.push_str("\n\nNo result is claimed; the session continues.");
+    body
+}
+
+/// Post one check-in note on `issue` with the given `gh` program. The CLI passes `gh`; tests pass
+/// a fake script, so the post pipeline (argv, body file, exit status) is asserted without a network.
+pub fn post_note_with(
+    root: &Path,
+    gh: &Path,
+    lab: &str,
+    issue: u64,
+    target: Option<&str>,
+    note: &str,
+) -> Result<()> {
+    let directory = root.join(DRIVE_DIR).join(crate::state::slug(lab));
+    std::fs::create_dir_all(&directory).map_err(|error| {
+        DriveError::Io(format!("cannot create {}: {error}", directory.display()))
+    })?;
+    let path = {
+        let mut path = directory.join(format!("note-{}.md", unix_now()));
+        let mut suffix = 1;
+        while path.exists() {
+            path = directory.join(format!("note-{}-{suffix}.md", unix_now()));
+            suffix += 1;
+        }
+        path
+    };
+    std::fs::write(&path, format!("{}\n", note_body(lab, target, note)))
+        .map_err(|error| DriveError::Io(format!("cannot write {}: {error}", path.display())))?;
+    let status = Command::new(gh)
+        .args(["issue", "comment", &issue.to_string(), "--body-file"])
+        .arg(&path)
+        .current_dir(root)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map_err(|error| DriveError::Io(format!("cannot run {}: {error}", gh.display())))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(DriveError::Io(format!(
+            "{} issue comment {issue} exited with {status}",
+            gh.display()
+        )))
+    }
+}
+
+/// Post one check-in note through the real `gh`.
+pub fn post_note(
+    root: &Path,
+    lab: &str,
+    issue: u64,
+    target: Option<&str>,
+    note: &str,
+) -> Result<()> {
+    post_note_with(root, Path::new("gh"), lab, issue, target, note)
+}
+
+/// True when the model recorded for the session is actually carried by the launch command, so the
+/// pin is checked rather than free text that only claims to be the model. Whole arguments only: an
+/// argument equal to the model, `--model=<model>` or `-m=<model>`, or the value right after
+/// `--model`/`-m`. A substring (`--model deepseek` against `deepseek-flash`, or `prompt` inside
+/// `{prompt}`) never counts.
+pub fn model_in_launch(model: &str, launch: &[String]) -> bool {
+    if model.is_empty() {
+        return false;
+    }
+    let mut after_flag = false;
+    for arg in launch {
+        if after_flag && arg == model {
+            return true;
+        }
+        after_flag = arg == "--model" || arg == "-m";
+        if arg == model {
+            return true;
+        }
+        for prefix in ["--model=", "-m="] {
+            if arg.strip_prefix(prefix) == Some(model) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// The issue a check-in note posts on: the number of a `#<pr>` target, else the tracker #2028
+/// (an item id, a command or no target are not an issue number).
+pub fn note_issue(target: Option<&str>) -> u64 {
+    target
+        .and_then(|value| value.strip_prefix('#'))
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(2028)
+}
 /// The PM card for a closed session: what the PM reads to prompt the lab. Pure so the wording is
 /// tested; [`post_pm_card`] sends it on #2028.
 pub fn pm_card_text(lab: &str, reason: &str, head: &str, commits: u64) -> String {
@@ -1132,6 +1232,12 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         eprintln!("loop drive: the launch command must contain exactly one {{prompt}} placeholder");
         return 2;
     }
+    if !model_in_launch(&model, &launch) {
+        eprintln!(
+            "loop drive: --model {model:?} is not carried by the launch command; put the pinned model in the --launch argv"
+        );
+        return 2;
+    }
     if let Some(path) = &prompt_file {
         match std::fs::read_to_string(path) {
             Ok(text) => prompt = Some(text),
@@ -1155,10 +1261,17 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         root: root.to_path_buf(),
     };
     // WAIT is not a stop: `run_sessions` pauses `--poll` seconds through its hook and asks again.
+    // The last GO target rides along so a check-in note knows which issue to post on (#<pr> when the
+    // decision names a PR; the tracker #2028 for an item id, a command or a stop).
+    let last_target: std::cell::RefCell<Option<String>> = std::cell::RefCell::new(None);
     let decision = || -> std::result::Result<Next, String> {
         match crate::loopnext::run(root, lab, &next_gh, &claim_gh) {
-            Ok((_, crate::loopnext::Decision::Wait(reason))) => Ok(Next::Wait(reason)),
+            Ok((_, crate::loopnext::Decision::Wait(reason))) => {
+                *last_target.borrow_mut() = None;
+                Ok(Next::Wait(reason))
+            }
             Ok((_, crate::loopnext::Decision::Stop(reason))) => {
+                *last_target.borrow_mut() = None;
                 println!("STOP {reason}");
                 Ok(Next::Stop)
             }
@@ -1169,14 +1282,24 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
                     target,
                     reason,
                 },
-            )) => Ok(Next::Go(format!("GO {kind} {target} - {reason}"))),
+            )) => {
+                *last_target.borrow_mut() = Some(target.clone());
+                Ok(Next::Go(format!("GO {kind} {target} - {reason}")))
+            }
             Err(error) => Err(error),
         }
     };
     let card = |reason: &str| post_pm_card(root, lab, reason).map_err(|error| error.to_string());
     let now = || unix_now();
     let pause = |seconds: u64| std::thread::sleep(std::time::Duration::from_secs(seconds));
-    let notice = |note: &str| println!("{note}");
+    let notice = |note: &str| {
+        println!("{note}");
+        let target = last_target.borrow().clone();
+        let issue = note_issue(target.as_deref());
+        if let Err(error) = post_note(root, lab, issue, target.as_deref(), note) {
+            eprintln!("loop drive: cannot post the check-in note: {error}");
+        }
+    };
     let spec = DriveSpec {
         root,
         lab,
