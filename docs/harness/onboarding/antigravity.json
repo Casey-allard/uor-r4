@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "client": "antigravity",
+  "lab": "antigravity",
+  "vendor": "Google",
+  "headless": "agy -p",
+  "skills_dir": "~/.gemini/config/skills",
+  "skills_installed": [
+    "gates",
+    "holding-the-goal",
+    "scope-guard",
+    "session-close",
+    "solution-integrity",
+    "working-discipline"
+  ],
+  "start_here_excluded": true,
+  "hook_entry": "uor-harness loop guard --client antigravity --lab antigravity --event <Event>",
+  "canary_target": "CHARTER.md",
+  "canary_outcome": "REFUSED",
+  "checks": [
+    {
+      "check": "rules",
+      "verdict": "PASS",
+      "detail": "CHARTER.md §5.10, AGENTS.md and docs/loop/README.md reachable"
+    },
+    {
+      "check": "skills",
+      "verdict": "N/A",
+      "detail": "N/A until owner runs uor-harness loop install --all --apply --replace (6 allowed skills present in ~/.gemini/config/skills; YAML frontmatter normalization staged for gates)"
+    },
+    {
+      "check": "hooks",
+      "verdict": "N/A",
+      "detail": "N/A until owner runs uor-harness loop install --all --apply --replace (target: ~/.gemini/config/plugins/uor-r4-loop/hooks.json; P-1 pass: SessionStart root conversationId, PreToolUse subagent conversationId, Stop)"
+    },
+    {
+      "check": "canary",
+      "verdict": "PASS",
+      "detail": "in-process loop guard evaluation refused canary write to CHARTER.md (CHARTER.md is an owner-only path (CHARTER.md in docs/harness/owner-paths.json))"
+    },
+    {
+      "check": "identity",
+      "verdict": "PASS",
+      "detail": "UOR_LAB=antigravity registered in docs/harness/labs.json"
+    },
+    {
+      "check": "binary",
+      "verdict": "PASS",
+      "detail": "uor-harness binary is current with origin/main"
+    }
+  ],
+  "lane": "client adapters: loop guard, install, onboard and copyright (PR 9)",
+  "pickup": "local/antigravity/PICKUP.md (run `uor-harness loop next` then `uor-harness loop arrive`)"
+}

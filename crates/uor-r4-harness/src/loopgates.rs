@@ -763,6 +763,9 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         Some("pr-check") => return crate::loopprcheck::cli(root, &args[1..]),
         Some("queue") => return crate::loopqueue::cli(root, lab, &args[1..]),
         Some("report") => return crate::loopreport::cli(root, lab, &args[1..]),
+        Some(a @ ("guard" | "install" | "onboard" | "copyright")) => {
+            return crate::loopguard::cli(root, lab, a, &args[1..]);
+        }
         Some(other) => {
             eprintln!("uor-harness: loop {other}: not built yet (see the build plan)");
             return 2;

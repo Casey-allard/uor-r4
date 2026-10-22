@@ -39,6 +39,7 @@ pub mod loopboard;
 pub mod loopclaim;
 pub mod loopclose;
 pub mod loopgates;
+pub mod loopguard;
 pub mod loopnext;
 pub mod loopprcheck;
 pub mod loopqueue;

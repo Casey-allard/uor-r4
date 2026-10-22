@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "client": "codex",
+  "lab": "codex",
+  "vendor": "OpenAI",
+  "headless": "codex exec",
+  "skills_dir": "~/.codex/skills",
+  "skills_installed": [],
+  "start_here_excluded": true,
+  "hook_entry": "uor-harness loop guard --client codex --lab codex --event <Event>",
+  "canary_target": "CHARTER.md",
+  "canary_outcome": "REFUSED",
+  "checks": [
+    {
+      "check": "rules",
+      "verdict": "PASS",
+      "detail": "CHARTER.md §5.10, AGENTS.md and docs/loop/README.md reachable"
+    },
+    {
+      "check": "skills",
+      "verdict": "N/A",
+      "detail": "N/A until owner runs uor-harness loop install --all --apply (target: ~/.codex/skills; 6 allowed skills staged, start-here excluded)"
+    },
+    {
+      "check": "hooks",
+      "verdict": "N/A",
+      "detail": "N/A until owner runs uor-harness loop install --all --apply --replace (target: ~/.codex/hooks.json + ~/.codex/rules/uor-r4.rules; subagents read-only without suborder)"
+    },
+    {
+      "check": "canary",
+      "verdict": "PASS",
+      "detail": "in-process loop guard evaluation refused canary write to CHARTER.md (CHARTER.md is an owner-only path (CHARTER.md in docs/harness/owner-paths.json))"
+    },
+    {
+      "check": "identity",
+      "verdict": "PASS",
+      "detail": "UOR_LAB=codex registered in docs/harness/labs.json"
+    },
+    {
+      "check": "binary",
+      "verdict": "PASS",
+      "detail": "uor-harness binary is current with origin/main"
+    }
+  ],
+  "lane": "item validator, gates runner, policy check and review records (PRs 2, 4, 5, 6)",
+  "pickup": "local/codex/PICKUP.md (run `uor-harness loop next` then `uor-harness loop arrive`)"
+}

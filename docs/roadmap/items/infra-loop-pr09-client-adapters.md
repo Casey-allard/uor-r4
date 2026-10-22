@@ -3,7 +3,7 @@ id: infra-loop-pr09-client-adapters
 title: Loop PR 9: loop guard, install and onboard for each client
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr07b-session]

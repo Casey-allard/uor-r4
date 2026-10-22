@@ -2643,15 +2643,31 @@ fn cmd_loop(repo: &Path, args: &[String], json: bool) -> ExitCode {
         }
         i += 1;
     }
+    let is_guard = action == Some("guard");
     if json
         && matches!(
             action,
-            Some("pr-check" | "arrive" | "next" | "queue" | "board")
+            Some(
+                "pr-check"
+                    | "arrive"
+                    | "next"
+                    | "queue"
+                    | "board"
+                    | "install"
+                    | "onboard"
+                    | "copyright"
+            )
         )
     {
         args.push("--json".to_string());
     }
     let args = &args[..];
+    if is_guard && !uor_r4_harness::loopguard::in_uor_repo(repo) {
+        let raw_lab = flag_value(args, "--lab")
+            .or_else(|| std::env::var("UOR_LAB").ok())
+            .unwrap_or_default();
+        return ExitCode::from(uor_r4_harness::loopgates::cli(repo, &raw_lab, args));
+    }
     let lab = match lab_or_refuse(repo, args) {
         Ok(l) => l,
         Err(code) => return code,

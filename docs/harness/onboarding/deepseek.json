@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "client": "deepseek",
+  "lab": "deepseek",
+  "vendor": "DeepSeek",
+  "headless": "dsh",
+  "skills_dir": "~/.dsh/skills",
+  "skills_installed": [
+    "gates",
+    "holding-the-goal",
+    "scope-guard",
+    "session-close",
+    "solution-integrity",
+    "working-discipline"
+  ],
+  "start_here_excluded": true,
+  "hook_entry": "uor-harness loop guard --client deepseek --lab deepseek --event <Event>",
+  "canary_target": "CHARTER.md",
+  "canary_outcome": "REFUSED",
+  "checks": [
+    {
+      "check": "rules",
+      "verdict": "PASS",
+      "detail": "CHARTER.md §5.10, AGENTS.md and docs/loop/README.md reachable"
+    },
+    {
+      "check": "skills",
+      "verdict": "N/A",
+      "detail": "N/A until owner runs uor-harness loop install --all --apply --replace (6 allowed skills present in ~/.dsh/skills; YAML frontmatter normalization staged for gates)"
+    },
+    {
+      "check": "hooks",
+      "verdict": "N/A",
+      "detail": "N/A until owner runs uor-harness loop install --all --apply --replace (target: ~/.dsh/hooks.json + ~/.dsh/profiles/headless/cordis.patch.yml; P-1: dsh has no native hook runner; headless overlay + supervisor stream guard + read-only subagent fallback)"
+    },
+    {
+      "check": "canary",
+      "verdict": "PASS",
+      "detail": "in-process loop guard evaluation refused canary write to CHARTER.md (CHARTER.md is an owner-only path (CHARTER.md in docs/harness/owner-paths.json))"
+    },
+    {
+      "check": "identity",
+      "verdict": "PASS",
+      "detail": "UOR_LAB=deepseek registered in docs/harness/labs.json"
+    },
+    {
+      "check": "binary",
+      "verdict": "PASS",
+      "detail": "uor-harness binary is current with origin/main"
+    }
+  ],
+  "lane": "claim, suborder, ask, session loop, queue and watch (PRs 7a, 7b, 7c, 11, 12)",
+  "pickup": "local/deepseek/PICKUP.md (run `uor-harness loop next` then `uor-harness loop arrive`)"
+}
