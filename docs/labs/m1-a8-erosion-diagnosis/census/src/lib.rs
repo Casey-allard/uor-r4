@@ -111,9 +111,96 @@ pub fn join_mismatches(changed: &BTreeSet<u32>, accepted_vector: &BTreeSet<u32>)
     changed.symmetric_difference(accepted_vector).count()
 }
 
+/// The P_succ copy rule, copied from the private
+/// `crates/uor-r4-discrete/src/attention_evidence.rs:7-20` (`is_copy_successor`):
+/// the window's last token is the query; only its NEAREST earlier occurrence in
+/// the window decides, and the row is P_succ when the token after it is the target.
+pub fn is_copy_successor(window: &[uor_r4_discrete::Identity], target: u32) -> bool {
+    let Some(query) = window.last() else {
+        return false;
+    };
+    window[..window.len() - 1]
+        .iter()
+        .rposition(|identity| identity.token == query.token)
+        .is_some_and(|index| window[index + 1].token == target)
+}
+
+/// Gate coordinates below this index are combine gates; 20..45 are relation
+/// gates (`attention_learning.rs` test `family_and_resume_checkpoint_bounds_are_fail_closed`).
+pub const COMBINE_GATES: u64 = 20;
+
+/// Cell-to-cell address distance in the writer's root metric (`discrete.cu:274-276`
+/// `address_distance` over `root_cost`): L1 over the 8 words of the two block-0
+/// roots plus L1 over the 8 words of the two last-block roots.
+pub fn cell_distance(a: u8, b: u8) -> u32 {
+    let r = roots();
+    let l1 = |x: &[i32; WORDS], y: &[i32; WORDS]| -> u32 {
+        x.iter().zip(y).map(|(p, q)| (p - q).unsigned_abs()).sum()
+    };
+    l1(&r[usize::from(a / 16)], &r[usize::from(b / 16)])
+        + l1(&r[usize::from(a % 16)], &r[usize::from(b % 16)])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn window(tokens: &[u32]) -> Vec<uor_r4_discrete::Identity> {
+        tokens
+            .iter()
+            .map(|&token| uor_r4_discrete::Identity {
+                token,
+                occurrence: 0,
+                record: 0,
+                version: 0,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn copy_rule_nearest_occurrence_wins() {
+        // query 7 occurs at 0 (followed by 1) and at 3 (followed by 2): nearest is 3.
+        let w = window(&[7, 1, 9, 7, 2, 5, 7]);
+        assert!(is_copy_successor(&w, 2));
+        assert!(
+            !is_copy_successor(&w, 1),
+            "oldest occurrence must not decide"
+        );
+    }
+
+    #[test]
+    fn copy_rule_no_occurrence_or_empty_is_false() {
+        assert!(!is_copy_successor(&window(&[1, 2, 3, 4]), 2));
+        assert!(!is_copy_successor(&window(&[4]), 4));
+        assert!(!is_copy_successor(&[], 0));
+    }
+
+    #[test]
+    fn copy_rule_successor_may_be_the_query_itself() {
+        // 3 at index 1 is followed by the last token (the query) itself.
+        assert!(is_copy_successor(&window(&[5, 3, 3]), 3));
+        assert!(!is_copy_successor(&window(&[5, 3, 3]), 5));
+    }
+
+    #[test]
+    fn cell_distance_is_l1_over_both_root_pairs() {
+        let r = roots();
+        let l1 = |x: usize, y: usize| -> u32 {
+            (0..WORDS).map(|d| (r[x][d] - r[y][d]).unsigned_abs()).sum()
+        };
+        assert_eq!(cell_distance(0x35, 0x35), 0);
+        assert_eq!(cell_distance(0x35, 0x75), l1(3, 7));
+        assert_eq!(cell_distance(0x35, 0x3a), l1(5, 10));
+        assert_eq!(cell_distance(0x35, 0x7a), l1(3, 7) + l1(5, 10));
+        assert_eq!(cell_distance(0x7a, 0x35), cell_distance(0x35, 0x7a));
+        assert!(l1(3, 7) > 0 && l1(5, 10) > 0);
+        // Agrees with the crate's endpoint distance on a vector built from cell a.
+        let blocks = [r[3], r[1], r[2], r[5]];
+        let want =
+            uor_r4_discrete::normalization_mechanism::endpoint_address_distance(&blocks, 0x7a)
+                .expect("four blocks");
+        assert_eq!(cell_distance(0x35, 0x7a), want);
+    }
 
     /// A B = 4 table whose tokens use the given root ids per block.
     fn table_of(tokens: &[[usize; BLOCKS]]) -> Vec<i32> {

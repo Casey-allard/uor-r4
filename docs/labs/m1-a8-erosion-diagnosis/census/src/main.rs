@@ -1,14 +1,19 @@
-//! `census <runs-dir> <out.json>`: the five controls, then Q1 and Q3, for both
+//! `census <runs-dir> <corpus-dir> <out.json>`: controls c1-c7, then Q1-Q5, for both
 //! A8 dose arms to Q1. Host only. A placement census is not admission.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 
-use a8_census::{cells, changed_slots, join_mismatches, occupancy, slot_token_block, words_sha256};
+use a8_census::{
+    cell_distance, cells, changed_slots, is_copy_successor, join_mismatches, occupancy,
+    slot_token_block, words_sha256, COMBINE_GATES,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
+use uor_r4_discrete::address_cells::BigramCounts;
+use uor_r4_discrete::corpus::{BosIdentity, CorpusSource, FilePin, PreparedCorpus, Split};
 
 const G_INIT: &str = "4122cbab44bd88658743984fc1ab79059bf032c3e2fe526ffcf4ea5f95d9cd74";
 const INTERVAL: u64 = 64;
@@ -163,8 +168,8 @@ fn pass(ok: bool) -> &'static str {
 
 fn main() -> Res<()> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() != 3 {
-        return Err("usage: census <runs-dir> <out.json>".into());
+    if args.len() != 4 {
+        return Err("usage: census <runs-dir> <corpus-dir> <out.json>".into());
     }
     let root = Path::new(&args[1]);
     let arms = ARMS
@@ -336,6 +341,11 @@ fn main() -> Res<()> {
             );
         }
     }
+    let tq = if gate_open {
+        targets(&arms, Path::new(&args[2]))?
+    } else {
+        Value::Null
+    };
     let out = json!({
         "schema": "uor-r4.a8-placement-census/1",
         "scope": "A placement census is not admission: no reach or admission value is recomputed here.",
@@ -350,18 +360,243 @@ fn main() -> Res<()> {
         "stopped_before_q1_q3": !gate_open,
         "q1": if gate_open { Value::Object(q1) } else { Value::Null },
         "q3": if gate_open { Value::Object(q3) } else { Value::Null },
+        "targets": tq,
     });
     let text = serde_json::to_string_pretty(&out).map_err(|e| e.to_string())? + "\n";
-    fs::write(&args[2], &text).map_err(|e| e.to_string())?;
+    fs::write(&args[3], &text).map_err(|e| e.to_string())?;
     println!(
-        "controls: c1 {} c2 {} c3 {} c4 {} c5 {}; wrote {} sha256 {}",
+        "controls: c1 {} c2 {} c3 {} c4 {} c5 {} c6 {} c7 {}; wrote {} sha256 {}",
         pass(c1),
         pass(c2),
         pass(c3),
         pass(c4),
         pass(c5),
-        args[2],
+        tq["controls"]["c6_dev_psucc_rows"]["result"],
+        tq["controls"]["c7_corpus_counts"]["result"],
+        args[3],
         sha256_hex(text.as_bytes())
     );
     Ok(())
+}
+
+const TRAIN_TOKENS: &str = "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8";
+const TRAIN_MASK: &str = "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3";
+const DEV_TOKENS: &str = "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b";
+const DEV_MASK: &str = "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078";
+// A8 config `a8-relation-seed1.json`: spec.context, batch_rows, vocabulary, BOS.
+const CONTEXT: u32 = 192;
+const BATCH_ROWS: u32 = 64;
+const VOCABULARY: u32 = 4096;
+const DEV_ROWS: usize = 14_287;
+const DEV_PSUCC: usize = 3_847;
+const TRAIN_PAYLOAD: u64 = 7_512_797;
+const TRAIN_ELIGIBLE: u64 = 2_425_925;
+
+/// The A8 config's TRAIN or DEV source, with paths under `corpus_dir`.
+fn source(
+    dir: &Path,
+    split: Split,
+    sub: &str,
+    pins: (&str, &str),
+    payload: u64,
+    eligible: u64,
+) -> CorpusSource {
+    let pin = |name: &str, sha: &str| FilePin {
+        path: dir.join(sub).join(name),
+        sha256: sha.into(),
+    };
+    CorpusSource {
+        split,
+        tokens: pin("tokens.u16", pins.0),
+        mask: pin("response_mask.u8", pins.1),
+        expected_payload_tokens: payload,
+        expected_eligible_targets: eligible,
+    }
+}
+
+fn bos() -> BosIdentity {
+    BosIdentity {
+        token: "<|bos|>".into(),
+        id: 0,
+    }
+}
+
+/// DEV rows as `dev_row_identities` (`attention_learning.rs:620-651`) enumerates
+/// them: from target 0, `batch(first, context, rows)` stepping by `next_target`.
+fn dev_rows(dev: &PreparedCorpus) -> Res<Vec<(u32, bool)>> {
+    let mut rows = Vec::with_capacity(dev.eligible_len());
+    let mut first = 0;
+    while first < dev.eligible_len() as u64 {
+        let batch = dev
+            .batch(first, CONTEXT, BATCH_ROWS)
+            .map_err(|e| e.to_string())?;
+        for (window, &target) in batch.windows.iter().zip(&batch.targets) {
+            rows.push((target, is_copy_successor(window, target)));
+        }
+        first = batch.next_target;
+    }
+    Ok(rows)
+}
+
+fn cell(c: &[Option<u8>], t: u32) -> u8 {
+    c[t as usize].expect("Q1 found no ABSENT token")
+}
+
+/// Controls 6 and 7, then Q2, Q4 and Q5 per arm.
+fn targets(arms: &[Arm], corpus: &Path) -> Res<Value> {
+    let train = PreparedCorpus::load(
+        &source(
+            corpus,
+            Split::Train,
+            "mw-balp/train",
+            (TRAIN_TOKENS, TRAIN_MASK),
+            TRAIN_PAYLOAD,
+            TRAIN_ELIGIBLE,
+        ),
+        VOCABULARY,
+        &bos(),
+    )
+    .map_err(|e| format!("TRAIN: {e}"))?;
+    let dev = PreparedCorpus::load(
+        &source(
+            corpus,
+            Split::Dev,
+            "ft/dev",
+            (DEV_TOKENS, DEV_MASK),
+            42_856,
+            DEV_ROWS as u64,
+        ),
+        VOCABULARY,
+        &bos(),
+    )
+    .map_err(|e| format!("DEV: {e}"))?;
+    let rows = dev_rows(&dev)?;
+    let psucc_rows: Vec<u32> = rows.iter().filter(|r| r.1).map(|r| r.0).collect();
+    let c6 = rows.len() == DEV_ROWS && psucc_rows.len() == DEV_PSUCC;
+    let tb = train.binding();
+    let c7 = tb.payload_tokens == TRAIN_PAYLOAD
+        && tb.eligible_targets == TRAIN_ELIGIBLE
+        && train.eligible_len() as u64 == TRAIN_ELIGIBLE
+        && dev.eligible_len() == DEV_ROWS;
+    let controls = json!({
+        "c6_dev_psucc_rows": {"result": pass(c6), "rows": rows.len(), "psucc_rows": psucc_rows.len(),
+            "expected": [DEV_ROWS, DEV_PSUCC], "context": CONTEXT, "batch_rows": BATCH_ROWS},
+        "c7_corpus_counts": {"result": pass(c7), "train_payload_tokens": tb.payload_tokens,
+            "train_eligible_targets": tb.eligible_targets, "train_documents": tb.documents,
+            "dev_eligible_targets": dev.eligible_len(),
+            "pins_checked": [TRAIN_TOKENS, TRAIN_MASK, DEV_TOKENS, DEV_MASK]},
+    });
+    if !(c6 && c7) {
+        return Ok(json!({"controls": controls, "stopped_before_q2_q4_q5": true}));
+    }
+    let bigrams = BigramCounts::count(train.tokens(), train.eligible_positions(), VOCABULARY)
+        .map_err(|e| e.to_string())?;
+    let target_set: BTreeSet<u32> = psucc_rows.iter().copied().collect();
+    let preds: BTreeSet<u32> = target_set
+        .iter()
+        .flat_map(|&t| {
+            bigrams.by_target[t as usize]
+                .iter()
+                .filter(|p| p.1 >= 1)
+                .map(|p| p.0)
+        })
+        .collect();
+    let rows_without_preds = psucc_rows
+        .iter()
+        .filter(|&&t| bigrams.by_target[t as usize].is_empty())
+        .count();
+    let (mut q2, mut q4, mut q5) = (
+        serde_json::Map::new(),
+        serde_json::Map::new(),
+        serde_json::Map::new(),
+    );
+    for a in arms {
+        let all_cells: Vec<Vec<Option<u8>>> = a.tables.iter().map(|t| cells(t)).collect();
+        let c0 = &all_cells[0];
+        // Q2: per checkpoint at every 512 batches (Q1 = 4096 included).
+        let mut q2_rows = Vec::new();
+        for (k, c) in all_cells
+            .iter()
+            .enumerate()
+            .filter(|(k, _)| a.batches[*k] % 512 == 0)
+        {
+            let moved: BTreeSet<u32> = target_set
+                .iter()
+                .copied()
+                .filter(|&t| cell(c, t) != cell(c0, t))
+                .collect();
+            let pred_distance = |t: u32| -> Option<f64> {
+                let p = &bigrams.by_target[t as usize];
+                let n: u64 = p.iter().map(|x| x.1).sum();
+                (n > 0).then(|| {
+                    p.iter()
+                        .map(|&(s, m)| m * u64::from(cell_distance(cell(c, t), cell(c, s))))
+                        .sum::<u64>() as f64
+                        / n as f64
+                })
+            };
+            let per_target: BTreeMap<u32, f64> = target_set
+                .iter()
+                .filter_map(|&t| Some((t, pred_distance(t)?)))
+                .collect();
+            let weighted: Vec<f64> = psucc_rows
+                .iter()
+                .filter_map(|t| per_target.get(t).copied())
+                .collect();
+            q2_rows.push(json!({
+                "batch": a.batches[k], "psucc_targets": target_set.len(),
+                "psucc_targets_moved_vs_checkpoint0": moved.len(),
+                "psucc_rows_with_moved_target": psucc_rows.iter().filter(|t| moved.contains(t)).count(),
+                "row_weighted_mean_predecessor_distance": weighted.iter().sum::<f64>() / weighted.len() as f64,
+                "rows_in_mean": weighted.len(),
+            }));
+        }
+        q2.insert(a.name.into(), Value::Array(q2_rows));
+        // Q4 and Q5 over the 64-batch intervals to Q1.
+        let (mut on_targets, mut on_preds, mut on_all) = (0u64, 0u64, 0u64);
+        let mut moved_by_write = BTreeSet::new();
+        let mut timeline = Vec::new();
+        for i in 0..a.batches.len() - 1 {
+            let (lo, hi) = (a.batches[i], a.batches[i + 1]);
+            let mut gates = [0u64; 2];
+            for s in a
+                .steps
+                .iter()
+                .filter(|s| s.applied && (lo..hi).contains(&s.cursor_before.completed_batches))
+            {
+                match s.coordinate.kind.as_str() {
+                    "gate" => gates[usize::from(s.coordinate.index >= COMBINE_GATES)] += 1,
+                    "vector_block" => {
+                        let (t, b) = slot_token_block(s.coordinate.index as u32);
+                        if (b == 0 || b == 3)
+                            && all_cells[i][t as usize] != all_cells[i + 1][t as usize]
+                        {
+                            on_all += 1;
+                            on_targets += u64::from(target_set.contains(&t));
+                            on_preds += u64::from(preds.contains(&t));
+                            if target_set.contains(&t) {
+                                moved_by_write.insert(t);
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            timeline.push(json!({"interval": [lo, hi], "combine": gates[0], "relation": gates[1]}));
+        }
+        q4.insert(a.name.into(), json!({
+            "i_cell_changing_block03_writes_on_psucc_targets": on_targets,
+            "ii_cell_changing_block03_writes_on_train_predecessors": on_preds,
+            "iii_cell_changing_block03_writes_all_tokens": on_all,
+            "psucc_targets_with_such_a_write": moved_by_write.len(),
+            "psucc_rows_whose_target_is_in_that_moved_set": psucc_rows.iter().filter(|t| moved_by_write.contains(t)).count(),
+        }));
+        q5.insert(a.name.into(), Value::Array(timeline));
+    }
+    Ok(json!({
+        "controls": controls, "stopped_before_q2_q4_q5": false,
+        "psucc_target_tokens": target_set.len(), "train_predecessor_tokens": preds.len(),
+        "psucc_rows_without_train_predecessor": rows_without_preds,
+        "q2": q2, "q4": q4, "q5_applied_gate_writes_per_interval": q5,
+    }))
 }

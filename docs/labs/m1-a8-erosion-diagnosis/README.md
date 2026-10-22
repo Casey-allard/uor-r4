@@ -1,4 +1,4 @@
-# A8 reach erosion: host placement census, controls, Q1 and Q3
+# A8 reach erosion: host placement census, controls, Q1 to Q5
 
 Item `m1-a8-erosion-diagnosis` (#2829). Lab: claude. The design is in [DESIGN.md](DESIGN.md) (#2992).
 
@@ -11,10 +11,12 @@ Nothing in this page says why reach fell. It reports where tokens sit and which 
 ```sh
 cd docs/labs/m1-a8-erosion-diagnosis/census
 CARGO_TARGET_DIR=<target> ~/.cargo/bin/cargo run --locked --release --bin census -- \
-  <store>/vast-archive/vast-56670997/uor-r4/runs/claude  <out>/census.json
+  <store>/vast-archive/vast-56670997/uor-r4/runs/claude \
+  <corpus>  <out>/census-targets.json
 ```
 
-- **Output:** `census.json`, sha256 `8f8555e28df3cf42047a3e075e4bdb73899d7fb6ee21b444e42092582dfacc4a`. It runs host-only in about 56 s.
+- **Output:** `census-targets.json`, sha256 `789e3aa848d2b00e746d439da43ab79f385d88af4c35ba12d4f40acdef6a261d`. It runs host-only in about 6 s (release build).
+- **Corpus inputs (`<corpus>`):** `mw-balp/train/{tokens.u16,response_mask.u8}` and `ft/dev/{tokens.u16,response_mask.u8}`, loaded through `PreparedCorpus::load`, which refuses any file whose sha256 differs from the A8 config pins (TRAIN `3dee858f…` / `b5e7352d…`, DEV `0919e90f…` / `a838bb1a…`).
 - **Inputs:** 65 checkpoints per arm (`checkpoint-00000` … `04096`), both `steps.jsonl`, and both GPU cell receipts.
   - The checkpoints and `steps.jsonl` were downloaded from the HF store `caseyallard/uor-r4-store`.
   - The binary re-verified each one against its run's `FILES.sha256`: 66 files per arm.
@@ -23,7 +25,7 @@ CARGO_TARGET_DIR=<target> ~/.cargo/bin/cargo run --locked --release --bin census
 - **Reading the tables:** only `.checkpoint.model.table` is read (131,072 words = 4,096 tokens × 4 blocks × 8).
 - **The cell rule:** the cell is the kernel's (`discrete.cu:286-290`), with ABSENT for a non-root end block. The roots come from `normalization_mechanism::orbit_root_coords`, because `geometry` is private.
 
-## Controls (all must pass before Q1 and Q3)
+## Controls (c1–c5 gate Q1 and Q3; c6–c7 gate Q2, Q4 and Q5)
 
 | # | Control | Result |
 |---|---|---|
@@ -32,6 +34,8 @@ CARGO_TARGET_DIR=<target> ~/.cargo/bin/cargo run --locked --release --bin census
 | 3 | Checkpoint 0: 256 occupied cells, max occupancy 16, 0 ABSENT; the host cells equal the GPU receipt `token_cells.u16` | **PASS**, both arms: 0 of 4,096 entries differ. Both receipts hash to `f249902d…`. |
 | 4 | For every 64-batch interval, the changed table slots equal the union of applied `vector_block` indices; gate writes change no slot | **PASS**: 64 intervals per arm, 0 mismatches |
 | 5 | The interval count | **64 intervals per arm**, from 65 contiguous checkpoints (0 to 4,096). The "66 intervals" in the attribution correction (6261186285) **does not hold**. The join it describes holds on all 64. |
+| 6 | The P_succ copy rule (copied from `attention_evidence.rs:7-20`), over the DEV rows enumerated as `dev_row_identities` does (context 192, 64 rows per batch), gives 14,287 rows and 3,847 P_succ | **PASS**: 14,287 rows, 3,847 P_succ |
+| 7 | TRAIN payload 7,512,797 tokens and 2,425,925 eligible targets; DEV 14,287 eligible targets | **PASS**: all three exact (TRAIN has 60,000 documents) |
 
 ## Q1: placement per checkpoint
 
@@ -63,20 +67,71 @@ CARGO_TARGET_DIR=<target> ~/.cargo/bin/cargo run --locked --release --bin census
 - **The census's own "cell-changing writes" field is wider:** 142 for Relation and 160 for FrozenZero. It counts every applied write to a token whose cell changed within that interval, block 1/2 writes included, because receipts carry no values. The block 0 + 3 count is the direct one.
 - The vector and gate totals equal the Q1 summaries (`evidence/*-q1-summary.json`).
 
+## P_succ targets and TRAIN predecessors
+
+- **P_succ rows:** the 3,847 DEV rows of control 6. They have **448 distinct target tokens**.
+- **TRAIN predecessors:** for each target t, every s with a nonzero TRAIN bigram count s → t (`BigramCounts::count` over the 2,425,925 eligible TRAIN positions). Their union over the 448 targets is **1,325 tokens**. Every P_succ row's target has at least one predecessor.
+- **Cell distance:** the writer's root metric (`discrete.cu:274-276`, `address_distance` over `root_cost`). It is the L1 over the 8 words of the two block-0 roots plus the L1 over the 8 words of the two block-3 roots. A unit test checks it against `endpoint_address_distance`.
+
+## Q2: P_succ targets per checkpoint
+
+- `moved` counts the distinct P_succ targets whose cell differs from checkpoint 0.
+- `rows` counts the P_succ rows whose target is moved.
+- `pred. dist.` is the mean over all 3,847 P_succ rows of the target's predecessor distance. That is the bigram-weighted mean, over the target's TRAIN predecessors, of the cell distance between target and predecessor. A rise means placement drifted away from the bigram relation A8 built on.
+
+| Batch | Relation: moved / rows / pred. dist. | FrozenZero: moved / rows / pred. dist. |
+|---|---|---|
+| 0 | 0 / 0 / 8.564 | 0 / 0 / 8.564 |
+| 512 | 20 / 884 / 9.038 | 19 / 700 / 8.632 |
+| 1,024 | 20 / 884 / 9.038 | 19 / 700 / 8.632 |
+| 1,536 | 32 / 1,018 / 9.300 | 39 / 934 / 8.958 |
+| 2,048 | 47 / 1,306 / 9.832 | 54 / 1,182 / 9.407 |
+| 2,560 | 52 / 1,365 / 9.933 | 59 / 1,241 / 9.542 |
+| 3,072 | 57 / 1,401 / 10.096 | 64 / 1,277 / 9.732 |
+| 3,584 | 59 / 1,444 / 10.111 | 67 / 1,321 / 9.739 |
+| **4,096 (Q1)** | **63 / 1,461 / 10.123** | **71 / 1,369 / 9.799** |
+
+## Q4: cell-changing writes on the sets P_succ rows depend on
+
+These are applied block-0/3 `vector_block` writes, to Q1, whose token's cell changed in that interval.
+
+| Set | Relation | FrozenZero |
+|---|---|---|
+| (i) P_succ target tokens (448) | **69** writes on 63 targets | **77** writes on 71 targets |
+| (ii) TRAIN predecessors of P_succ targets (1,325) | **81** | **94** |
+| (iii) all tokens, for reference (= Q3) | 91 | 103 |
+| P_succ rows whose target took such a write | **1,461** | **1,369** |
+
+Sets (i) and (ii) overlap, so their counts do not add.
+
+## Q5: applied gate writes per 64-batch interval
+
+The timeline is listed in the output as `targets.q5_applied_gate_writes_per_interval`, one combine/relation pair per interval, 64 intervals per arm. Gate indices 0–19 are combine and 20–44 are relation.
+
+- **Relation:** 117 combine and 87 relation. Relation-gate writes start in the third interval (batches 128–192) and recur throughout to Q1.
+- **FrozenZero:** 120 combine and 0 relation.
+
+These totals equal Q3's. Q5 is a timeline only; it says nothing about what a gate write did to `q`.
+
 ## What this supports, and what it does not
 
 **Supported, as placement facts:**
 - **The occupied-set route is absent to Q1** (DESIGN §2, Q4 set iii). No cell was emptied or filled, so no row's admitted cells changed through the occupied set.
-- **Whole-vocabulary placement churn is not higher in Relation.** FrozenZero moved more tokens (91 against 80) with more cell-changing writes (103 against 91), yet lost less reach (857 against 551).
-- **What does separate the arms, among the writes counted here, is the gate writes.** Relation has 87 applied relation-gate writes; FrozenZero has none.
+- **By token count, Relation moves fewer of the tokens P_succ rows depend on.** Relation has fewer cell-changing writes than FrozenZero on P_succ targets (69 against 77) and on their TRAIN predecessors (81 against 94). It also moves fewer distinct targets (63 against 71).
+- **By row weight, Relation's placement damage is larger.** The targets Relation moves carry more P_succ rows (1,461 against 1,369, at Q1). The mean predecessor distance rose more in Relation: by 1.559, against 1.235 for FrozenZero, from the same 8.564 at checkpoint 0. Relation's lead is already present at batch 512 (884 against 700 rows).
+- **Among the writes counted here, the arms still differ in gate writes.** Relation has 87 applied relation-gate writes; FrozenZero has none.
+
+**What this means for the suspects:**
+- **Placement remains a suspect** for Relation's extra loss, on the row-weighted measures, though not on the token counts. Relation moved fewer target and predecessor tokens, but they were the heavier ones for P_succ rows, and the target-to-predecessor relation drifted further.
+- **The read is not cleared either.** The row-weighted gap is moderate: 92 rows (about 2.4% of the P_succ rows) and 0.32 in mean distance. Whether that covers the reach gap between the arms is not something placement counts can say.
 
 **Not supported:**
-- Any statement that a given row lost admission.
-- That the gate writes caused Relation's extra loss. That is co-occurrence: gates act through `q`, which only a device run can measure.
-- That placement is cleared for the extra loss. Q4 sets (i) targets and (ii) TRAIN predecessors are not yet counted: Relation could move fewer tokens overall but more of the ones P_succ rows depend on.
+- Any statement that a given row lost admission. A moved target or a larger predecessor distance is not a lost admission.
+- That the gate writes, or the placement drift, caused Relation's extra loss. Both are co-occurrence. Gates act through `q`, and admission depends on `q` and the cells together, which only a device run can measure.
+- That "the read" means gate writes alone. `q` is computed over the context window's token vectors, so a table write to any block of a context or query token also changes `q`, not only a gate write.
 
 No KEEP, paired-DEV or fresh claim is made.
 
 ## Next
 
-**Q2, Q4 (i) and (ii), and Q5** need the P_succ target tokens and their TRAIN predecessors from the dose's DEV and TRAIN pins. That is the next unit. If Relation does not move more targets or predecessors either, the remaining suspect for its extra loss is the read. Testing the read needs a device run under its own FIT'd sheet.
+Separating placement from the read needs admission itself. One option is a device run under its own FIT'd sheet: replay Relation's Q1 table with FrozenZero's gates, and the reverse.
