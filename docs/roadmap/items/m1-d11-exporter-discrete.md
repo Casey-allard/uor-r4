@@ -3,7 +3,7 @@ id: m1-d11-exporter-discrete
 title: Write the exporter from a trained discrete model to a D11 file
 milestone: M1
 area: serving
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []

@@ -92,6 +92,7 @@ fn with_slot<R>(handle: u32, f: impl FnOnce(&Slot) -> Result<R, String>) -> Resu
 
 /// Load a `UORLUT01` stack artifact from bytes (the host fetches it).
 /// Returns the model/session handle, or an error string.
+#[inline(never)]
 pub fn wasm_load_stack(artifact: &[u8]) -> Result<u32, String> {
     let model = IntegerStackModel::parse(artifact).map_err(take_error)?;
     SLOTS.with(|t| {

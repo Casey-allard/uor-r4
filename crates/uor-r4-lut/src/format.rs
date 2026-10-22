@@ -26,6 +26,10 @@ pub const STACK_SCHEMA: &str = "uor-r4.lut-stack/1";
 /// the pointer port ignores the unknown `pointer` field and would serve the
 /// plain output distribution, so it must refuse the artifact instead.
 pub const STACK_POINTER_SCHEMA: &str = "uor-r4.lut-stack/2";
+/// Header schema of a discrete SpiralCore/FBS checkpoint exported into the
+/// `UORLUT01` integer table container (`matrices` is empty; `tables` holds
+/// `discrete.table`, `discrete.cells`, `discrete.routes` and `discrete.gates`).
+pub const DISCRETE_SCHEMA: &str = "uor-r4.lut-discrete/1";
 
 /// The stack schema for a shape: [`STACK_POINTER_SCHEMA`] exactly when it has a
 /// pointer head.
@@ -461,6 +465,160 @@ impl Sections for StackHeader {
     }
 }
 
+/// Dimensions and read/writer metadata of a discrete SpiralCore/FBS checkpoint.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DiscreteShape {
+    pub vocabulary: u32,
+    pub blocks: u32,
+    pub context: u32,
+    pub kept_cells: u32,
+    pub stages: u32,
+    /// `"route"`, `"flock"` or `"relation"`.
+    pub read_mode: String,
+    /// Kept candidates per level (`1..=8`) in `"flock"` or `"relation"` mode, `0` in `"route"`.
+    pub read_kept: u32,
+    /// Message-passing sweeps (`1..=5`) in `"relation"` mode, `0` otherwise.
+    pub read_sweeps: u32,
+    /// `"nearest_address_margin_v1"` or `"occupied_cell_rank_hinge_v1"`.
+    pub objective_policy: String,
+    /// `"zero_gates_v1"` or `"active_leaf_v1"`.
+    pub read_initialization: String,
+    pub seed: u32,
+    pub epoch: u64,
+}
+
+impl DiscreteShape {
+    /// Ternary binder stages for a bounded context length (`1..=243`).
+    pub fn expected_stages(context: u32) -> Option<u32> {
+        if !(1..=243).contains(&context) {
+            return None;
+        }
+        let mut stages = 1u32;
+        let mut span = 3u32;
+        while span <= context {
+            stages += 1;
+            span *= 3;
+        }
+        Some(stages)
+    }
+
+    /// Expected ternary gate count for this discrete shape.
+    pub fn gate_count(&self) -> usize {
+        let base = (self.blocks as usize) * (self.stages as usize);
+        if self.read_mode == "relation" {
+            base + 5 * (self.stages as usize)
+        } else {
+            base
+        }
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        if !(2..=8192).contains(&self.vocabulary)
+            || !(2..=16).contains(&self.blocks)
+            || !(1..=243).contains(&self.context)
+            || !(1..=16).contains(&self.kept_cells)
+            || self.kept_cells > self.vocabulary
+            || Self::expected_stages(self.context) != Some(self.stages)
+        {
+            return Err(format_error("inconsistent or unsupported discrete shape"));
+        }
+        let mode_ok = match self.read_mode.as_str() {
+            "route" => self.read_kept == 0 && self.read_sweeps == 0,
+            "flock" => (1..=8).contains(&self.read_kept) && self.read_sweeps == 0,
+            "relation" => (1..=8).contains(&self.read_kept) && (1..=5).contains(&self.read_sweeps),
+            _ => false,
+        };
+        if !mode_ok {
+            return Err(format_error("unsupported discrete read mode or parameters"));
+        }
+        if !matches!(
+            self.objective_policy.as_str(),
+            "nearest_address_margin_v1" | "occupied_cell_rank_hinge_v1"
+        ) {
+            return Err(format_error("unsupported discrete objective policy"));
+        }
+        let init_ok = match self.read_initialization.as_str() {
+            "zero_gates_v1" => true,
+            "active_leaf_v1" => matches!(self.read_mode.as_str(), "flock" | "relation"),
+            _ => false,
+        };
+        if !init_ok {
+            return Err(format_error("unsupported discrete read initialization"));
+        }
+        Ok(())
+    }
+}
+
+/// Header of a discrete SpiralCore/FBS `UORLUT01` artifact (`uor-r4.lut-discrete/1`).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DiscreteHeader {
+    pub schema: String,
+    pub shape: DiscreteShape,
+    pub matrices: Vec<MatrixSpec>,
+    pub tables: Vec<TableSpec>,
+    /// Provenance recorded by the exporter; never read by serving arithmetic.
+    pub source: serde_json::Value,
+}
+
+impl Sections for DiscreteHeader {
+    fn validate(&self) -> Result<()> {
+        if self.schema != DISCRETE_SCHEMA || !self.matrices.is_empty() {
+            return Err(format_error(
+                "discrete UORLUT01 artifact requires schema uor-r4.lut-discrete/1 and empty matrices",
+            ));
+        }
+        self.shape.validate()?;
+        let expected = [
+            (
+                "discrete.table",
+                TableKind::I32,
+                (self.shape.vocabulary as usize) * (self.shape.blocks as usize) * 8,
+            ),
+            (
+                "discrete.cells",
+                TableKind::U32,
+                self.shape.vocabulary as usize,
+            ),
+            (
+                "discrete.routes",
+                TableKind::U32,
+                (self.shape.blocks as usize) * (self.shape.stages as usize),
+            ),
+            ("discrete.gates", TableKind::I32, self.shape.gate_count()),
+        ];
+        if self.tables.len() != expected.len() {
+            return Err(format_error(
+                "discrete UORLUT01 artifact requires exact four-table inventory",
+            ));
+        }
+        for ((name, kind, len), spec) in expected.iter().zip(&self.tables) {
+            if spec.name != *name || spec.kind != *kind || spec.len != *len {
+                return Err(format_error(format!(
+                    "discrete table {} differs from expected ({name}, {kind:?}, {len})",
+                    spec.name
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn matrices(&self) -> &[MatrixSpec] {
+        &self.matrices
+    }
+
+    fn tables(&self) -> &[TableSpec] {
+        &self.tables
+    }
+
+    fn matrices_mut(&mut self) -> &mut Vec<MatrixSpec> {
+        &mut self.matrices
+    }
+
+    fn tables_mut(&mut self) -> &mut Vec<TableSpec> {
+        &mut self.tables
+    }
+}
+
 /// Values of one sealed table.
 pub enum TableValues<'a> {
     I16(&'a [i16]),
@@ -478,6 +636,8 @@ pub struct Builder<H> {
 pub type ArtifactBuilder = Builder<Header>;
 /// Builder of a geometric stack's artifact.
 pub type StackArtifactBuilder = Builder<StackHeader>;
+/// Builder of a discrete SpiralCore/FBS checkpoint's artifact.
+pub type DiscreteArtifactBuilder = Builder<DiscreteHeader>;
 
 impl Builder<Header> {
     pub fn new(shape: Shape, numerics: Numerics, source: serde_json::Value) -> Result<Self> {
@@ -533,6 +693,22 @@ impl Builder<StackHeader> {
             roots,
             roots_sha256,
         });
+    }
+}
+
+impl Builder<DiscreteHeader> {
+    pub fn new(shape: DiscreteShape, source: serde_json::Value) -> Result<Self> {
+        shape.validate()?;
+        Ok(Self {
+            header: DiscreteHeader {
+                schema: DISCRETE_SCHEMA.to_owned(),
+                shape,
+                matrices: Vec::new(),
+                tables: Vec::new(),
+                source,
+            },
+            blob: Vec::new(),
+        })
     }
 }
 
@@ -636,6 +812,8 @@ pub struct Container<H> {
 pub type Artifact = Container<Header>;
 /// A geometric stack's artifact.
 pub type StackArtifact = Container<StackHeader>;
+/// A discrete SpiralCore/FBS checkpoint's artifact.
+pub type DiscreteArtifact = Container<DiscreteHeader>;
 
 /// The schema string of an artifact's header, without validating the rest.
 pub fn schema_of(bytes: &[u8]) -> Result<String> {
@@ -1007,5 +1185,91 @@ mod tests {
         assert!(header(STACK_POINTER_SCHEMA, stack_shape())
             .validate()
             .is_err());
+    }
+
+    fn discrete_shape() -> DiscreteShape {
+        DiscreteShape {
+            vocabulary: 4,
+            blocks: 2,
+            context: 3,
+            kept_cells: 2,
+            stages: 2,
+            read_mode: "relation".to_owned(),
+            read_kept: 2,
+            read_sweeps: 1,
+            objective_policy: "nearest_address_margin_v1".to_owned(),
+            read_initialization: "active_leaf_v1".to_owned(),
+            seed: 7,
+            epoch: 3,
+        }
+    }
+
+    #[test]
+    fn discrete_artifact_roundtrips_four_tables_and_refuses_matrices_or_wrong_schema() {
+        let shape = discrete_shape();
+        assert_eq!(DiscreteShape::expected_stages(2), Some(1));
+        assert_eq!(DiscreteShape::expected_stages(3), Some(2));
+        assert_eq!(DiscreteShape::expected_stages(9), Some(3));
+        assert_eq!(DiscreteShape::expected_stages(243), Some(6));
+        assert_eq!(shape.gate_count(), 14);
+        let mut builder = DiscreteArtifactBuilder::new(
+            shape.clone(),
+            serde_json::json!({"snapshot_schema": "uor-r4.discrete-spiralcore-fbs/2"}),
+        )
+        .unwrap();
+        let table = vec![2i32; 4 * 2 * 8];
+        let cells = vec![0u32, 1, 2, 3];
+        let routes = vec![0u32; 4];
+        let gates = vec![0i32; 14];
+        builder
+            .add_table("discrete.table", TableValues::I32(&table))
+            .unwrap();
+        builder
+            .add_table("discrete.cells", TableValues::U32(&cells))
+            .unwrap();
+        builder
+            .add_table("discrete.routes", TableValues::U32(&routes))
+            .unwrap();
+        builder
+            .add_table("discrete.gates", TableValues::I32(&gates))
+            .unwrap();
+        let bytes = builder.finish().unwrap();
+        assert_eq!(schema_of(&bytes).unwrap(), DISCRETE_SCHEMA);
+        let parsed = DiscreteArtifact::parse(bytes.clone()).unwrap();
+        assert_eq!(parsed.header.shape, shape);
+        assert_eq!(parsed.table_i32("discrete.table").unwrap(), table);
+        assert_eq!(parsed.table_u32("discrete.cells").unwrap(), cells);
+        assert_eq!(parsed.table_u32("discrete.routes").unwrap(), routes);
+        assert_eq!(parsed.table_i32("discrete.gates").unwrap(), gates);
+        assert!(StackArtifact::parse(bytes.clone()).is_err());
+        assert!(Artifact::parse(bytes).is_err());
+
+        // Missing or extra tables and non-empty matrices are refused.
+        let mut incomplete =
+            DiscreteArtifactBuilder::new(shape.clone(), serde_json::json!({})).unwrap();
+        incomplete
+            .add_table("discrete.table", TableValues::I32(&table))
+            .unwrap();
+        let bad_bytes = incomplete.finish().unwrap();
+        assert!(DiscreteArtifact::parse(bad_bytes).is_err());
+
+        let mut with_matrix = DiscreteArtifactBuilder::new(shape, serde_json::json!({})).unwrap();
+        with_matrix
+            .add_table("discrete.table", TableValues::I32(&table))
+            .unwrap();
+        with_matrix
+            .add_table("discrete.cells", TableValues::U32(&cells))
+            .unwrap();
+        with_matrix
+            .add_table("discrete.routes", TableValues::U32(&routes))
+            .unwrap();
+        with_matrix
+            .add_table("discrete.gates", TableValues::I32(&gates))
+            .unwrap();
+        with_matrix
+            .add_matrix("unexpected", 1, 32, -4, &[0x88; 16], &[0])
+            .unwrap();
+        let matrix_bytes = with_matrix.finish().unwrap();
+        assert!(DiscreteArtifact::parse(matrix_bytes).is_err());
     }
 }

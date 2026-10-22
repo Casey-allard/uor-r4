@@ -13,6 +13,7 @@ pub mod bvgk_source;
 pub mod controller;
 pub mod corpus;
 pub mod coverage_census;
+pub mod d11_export;
 pub mod decomposition;
 #[cfg(test)]
 mod decomposition_source;
