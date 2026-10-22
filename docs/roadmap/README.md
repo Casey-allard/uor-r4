@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 44 |
+| ready | 43 |
 | held | 26 |
 | decision | 4 |
-| done | 14 |
+| done | 15 |
 | total | 88 |
 
 ## Start here
@@ -41,7 +41,6 @@ These items are ready and open to anyone.
 | [Design a lawful position mechanism](items/m1-position-mechanism.md) | M1 | [#2843](https://github.com/UOR-Foundation/uor-r4/issues/2843) |
 | [Build a genuinely fresh held-out reply panel for M2](items/m2-fresh-heldout-panel.md) | M2 | [#2849](https://github.com/UOR-Foundation/uor-r4/issues/2849) |
 | [Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it](items/m2-pin-train-mask-sheet.md) | M2 | [#2851](https://github.com/UOR-Foundation/uor-r4/issues/2851) |
-| [Close the remaining R14 gaps in the deterministic reply grader](items/m2-reply-grading-instrument-r14.md) | M2 | [#2852](https://github.com/UOR-Foundation/uor-r4/issues/2852) |
 | [Build a pre-registered non-relation prose panel](items/m3-nonrelation-prose-panel.md) | M3 | [#2856](https://github.com/UOR-Foundation/uor-r4/issues/2856) |
 | [Pin OpPolicy precedence and store-miss sieve coupling with tests](items/m3-policy-precedence-and-sieve-tests.md) | M3 | [#2857](https://github.com/UOR-Foundation/uor-r4/issues/2857) |
 | [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | M4 | [#2860](https://github.com/UOR-Foundation/uor-r4/issues/2860) |
@@ -86,11 +85,11 @@ These items are ready and open to anyone.
 |---|---|---|---|---|---|
 | [Build a genuinely fresh held-out reply panel for M2](items/m2-fresh-heldout-panel.md) | ready | anyone | no | none | [#2849](https://github.com/UOR-Foundation/uor-r4/issues/2849) |
 | [Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it](items/m2-pin-train-mask-sheet.md) | ready | anyone | no | none | [#2851](https://github.com/UOR-Foundation/uor-r4/issues/2851) |
-| [Close the remaining R14 gaps in the deterministic reply grader](items/m2-reply-grading-instrument-r14.md) | ready | anyone | no | none | [#2852](https://github.com/UOR-Foundation/uor-r4/issues/2852) |
 | [Optimize the driver math and run the ~1M-token pilot (D41 item 3)](items/d41-driver-math-pilot.md) | held | a lab | yes | none | [#2821](https://github.com/UOR-Foundation/uor-r4/issues/2821) |
 | [Generate the one-time offline donor answer corpus (distill-d1)](items/m2-donor-corpus-generation.md) | held | a lab | yes | [d41-driver-math-pilot](items/d41-driver-math-pilot.md) | [#2848](https://github.com/UOR-Foundation/uor-r4/issues/2848) |
 | [Train the student for grounded replies from exact memory](items/m2-train-grounded-replies.md) | held | a lab | yes | [m2-donor-corpus-generation](items/m2-donor-corpus-generation.md), [m2-fresh-heldout-panel](items/m2-fresh-heldout-panel.md), [m2-pin-train-mask-sheet](items/m2-pin-train-mask-sheet.md), [m1-close-saved-model](items/m1-close-saved-model.md), [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2853](https://github.com/UOR-Foundation/uor-r4/issues/2853) |
 | [Register a number for the multi-turn reply bar blocked under R14](items/m2-multi-turn-bar-number.md) | decision | a lab | no | none | [#2850](https://github.com/UOR-Foundation/uor-r4/issues/2850) |
+| [Close the remaining R14 gaps in the deterministic reply grader](items/m2-reply-grading-instrument-r14.md) | done | anyone | no | none | [#2852](https://github.com/UOR-Foundation/uor-r4/issues/2852) |
 
 ## M3
 

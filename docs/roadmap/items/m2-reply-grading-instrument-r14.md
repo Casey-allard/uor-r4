@@ -3,7 +3,7 @@ id: m2-reply-grading-instrument-r14
 title: Close the remaining R14 gaps in the deterministic reply grader
 milestone: M2
 area: evaluation
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
