@@ -333,6 +333,24 @@ fn a_non_setup_pr_needs_a_review_only_from_another_vendor() {
     assert!(!decision(&o).contains("review"), "{o:?}");
 }
 
+/// One counted record at the head settles a review, whichever lab made it: another lab's
+/// APPROVE passes the gate and its CHANGES waits on the author, so this lab is not sent to
+/// review the same head again (#2974 was offered after Kimi's APPROVE on 22 Oct).
+#[test]
+fn a_pr_with_another_labs_counted_record_at_its_head_is_not_offered_for_review() {
+    let r = Repo::new(&[]);
+    for verdict in ["APPROVE", "CHANGES"] {
+        let o = r.next(&fake(
+            vec![with_code(pr(12, "codex/z", "codex", "it-2"))],
+            json!({"12": [record("anthro", 12, HEAD, verdict, ("it-2", "codex"))]}),
+        ));
+        assert!(
+            !decision(&o).starts_with("GO review"),
+            "anthro's counted {verdict} at the head settles #12: {o:?}"
+        );
+    }
+}
+
 #[test]
 fn a_ready_scoped_unclaimed_item_is_claimed_and_a_claimed_one_is_skipped() {
     let r = Repo::new(&[

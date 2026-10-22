@@ -765,8 +765,10 @@ pub fn run(
                 continue;
             }
         };
+        // One counted record at the head settles the review, whichever lab made it: an APPROVE
+        // passes the gate and a CHANGES waits on the author's repair, which is a new head.
         let records = crate::loopreview::counted(&gate_input(pr, &order, &main, &bodies));
-        if records.iter().any(|(l, _)| l == lab) {
+        if !records.is_empty() {
             continue;
         }
         let reason = format!(
