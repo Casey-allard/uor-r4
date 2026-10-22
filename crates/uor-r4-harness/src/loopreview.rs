@@ -20,7 +20,7 @@
 //! `Setup row:` names a row of the loop page's build-plan table, and whose item is
 //! `infra-loop-harness` or that row's own item) counts only `claude` records while D59 is in
 //! force. D59 ends only by an owner switch: the file [`D59_SWITCH`] reading `"d59": "ended"`,
-//! with that exact path listed in `docs/harness/owner-paths.json` at the merge base. The
+//! with that exact path listed in `docs/harness/owner-paths.json` (`pr-check` reads both at the merge base; `loop review`, `loop next` and the bench at `origin/main`). The
 //! claude-18 ORDER proposes the switch file; the owner adds it and lists it. Until both hold,
 //! [`d59_in_force`] answers `true`.
 //!

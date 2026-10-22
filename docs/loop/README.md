@@ -51,7 +51,7 @@ Steps that need no judgement run in the supervisor, without a model.
 
 | # | Step | What happens | Command | Who |
 |---|---|---|---|---|
-| 1 | Next | Decide go or stop, and which kind of session. Order of preference: owner direction, repairs to the lab's own PRs, reviews, GPU collections, premise probes, the top of the lab's lane, then `any`. Stop on a pending owner decision, held work, an empty queue or the kill switch. | `loop next` (built, loop PR 7b) | supervisor |
+| 1 | Next | Decide go, wait or stop, and which kind of session. Order of preference: owner direction, repairs to the lab's own PRs, reviews, GPU collections, premise probes, the top of the lab's lane, then `any`. Only the kill switch stops. Every other no-work case is WAIT, naming what is pending and when to look again; `loop next --wait` and `loop drive` sleep and ask again. | `loop next` (built, loop PR 7b; WAIT and `--wait`, claude-31) | supervisor |
 | 2 | Arrive | Fetch; check the binary, hooks, notes and read path; render the views locally. If the repository disagrees with a note, the repository wins. | `loop arrive` (built, loop PR 7b) | session |
 | 3 | Opener | Read the opener and the thinking skills the task needs. Name the parts used in REPORT. | — | session |
 | 4 | Claim | Refused unless the item is ready and unclaimed, its scope overlaps no open order (notebook pages excepted), and the lab is under its open-PR limit. Create a worktree `.worktrees/<lab>-<topic>` from fresh `origin/main`, commit the ORDER, open a draft PR, then list again: of two racing drafts, the higher PR number closes before any work. Post the §5.3 intent note. | `loop claim` (built in loop PR 7a) | session |
@@ -172,14 +172,16 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 **The 2-hour check-in is soft.** At 2 hours on a task (cumulative across sessions), the supervisor (`loop drive`, loop PR 10) checks progress:
 - **Real progress continues**, with a note on the owning issue. Real progress means new commits, gates turning green, changes inside scope, and no repeated failure.
 - **A spiraled or stalled session closes.** Stalled means no commits and no tool calls; spiraled means the same failure again and again. On close the supervisor commits and pushes the WIP, writes a REPORT stub and a PICKUP from git state, and posts a card to the PM.
-- **The PM prompts any lab that stopped.**
+- **No lab ends a session on WAIT without a timer.** It holds `uor-harness loop next --wait --max <its client's command limit>`, or arms its client's own timer, and continues on GO. The PM still prompts any lab that went silent.
 - Leased GPU runs are exempt. A watcher outlives the session, renews the lease, notes it on the issue and never cancels a healthy run.
 
-**Stops.** The supervisor stops a lab on:
-- a pending owner decision on its lane's top item;
+**Stops and waits.** Only the kill switch stops a lab: the file `local/loop/STOP`, or the label `loop:pause` on issue #2028, which works from a phone. Every other case that leaves a lab without work is `WAIT`, printed with what is pending and when to look again (600 s), with exit 3:
+- its own PRs awaiting review, once `open_pr_limit` refuses claims (the PRs are named);
 - held work;
-- an empty queue (it then polls GitHub every 10 minutes, without a model);
-- the kill switch: the file `local/loop/STOP`, or the label `loop:pause` on issue #2028, which works from a phone.
+- items waiting on dependencies;
+- an empty queue.
+
+`loop drive` sleeps `--poll` seconds and asks `loop next` again on WAIT. A lab running its own session holds `loop next --wait` instead. A pending owner decision or decision card parks only its own item: the lab takes other claimable work meanwhile, and never acts on its own reading of the question.
 
 **Reroutes.** Three sessions without movement turn the item into a `decision` with a pivot note (§4.4). Full GPU caps skip GPU items. A REFUSED gate becomes a repair or a card.
 
@@ -218,7 +220,7 @@ All Rust. Small PRs, through today's delivery path. From PR A on, every PR carri
 
 **Teams.** Claude leads the architecture, with Kimi as PM reviewing. Codex and DeepSeek build PRs 2–7 and 10–12. Antigravity builds PR 9. Every review comes from a different vendor than the author. While Claude runs alone, Claude builds every setup PR, and each other client's adapter is added when that lab joins (D52, amended 21 Oct).
 
-**Review of the setup itself (D59, ended 22 Oct 2026).** From 21 Oct every setup PR, whichever lab built it, got its exact-head review from Claude's fresh-context reviewers alone (charter §5.5; owner, 21 Oct, amended the same day). With no timeout, one blocked reviewer stalled every setup PR, so the owner ended it on 22 Oct ("End D59 now"). Setup PRs now take any other-vendor fresh-context review, like every PR. The switch is `docs/harness/d59.json`, listed in `docs/harness/owner-paths.json`, and `loop review` reads both at the merge base.
+**Review of the setup itself (D59, ended 22 Oct 2026).** From 21 Oct every setup PR, whichever lab built it, got its exact-head review from Claude's fresh-context reviewers alone (charter §5.5; owner, 21 Oct, amended the same day). With no timeout, one blocked reviewer stalled every setup PR, so the owner ended it on 22 Oct ("End D59 now"). Setup PRs now take any other-vendor fresh-context review, like every PR. The switch is `docs/harness/d59.json`, listed in `docs/harness/owner-paths.json`. `loop review`, `loop next` and the bench read both at `origin/main`; `pr-check`'s review-record rule reads them at the merge base.
 
 **PR 0, probes.** Scratch tests; results go to PLAN's premise table.
 

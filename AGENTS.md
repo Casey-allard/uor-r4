@@ -67,5 +67,5 @@ Build it with `CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harne
 - The charter, the technical constraints, milestone bars, holds, spending caps and exceptions are the owner's to change.
 - Training, M2 and Stage B stay HELD until the owner releases them; a FIT review releases nothing.
 - One owner release, approved by Casey in your own chat, covers one pre-registered sheet, with all its arms, seeds and stop rules.
-- A pending owner question means wait; do not act on your own reading of it.
+- A pending owner question parks only its own item: take other claimable work meanwhile, and do not act on your own reading of it. Never end a session on `loop next`'s WAIT without a timer: hold `uor-harness loop next --wait`, or arm your client's own.
 - Nothing is deleted: negatives, unique source and other labs' work move byte-identical to `archive/`.

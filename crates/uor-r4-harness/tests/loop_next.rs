@@ -357,16 +357,20 @@ fn a_ready_scoped_unclaimed_item_is_claimed_and_a_claimed_one_is_skipped() {
 }
 
 #[test]
-fn no_ready_scoped_item_stops_empty_or_held() {
+fn no_ready_scoped_item_waits_empty_or_held() {
     let r = Repo::new(&[("a", "ready", None), ("b", "draft", Some("[x/**]"))]);
     let o = r.next(&fake(vec![], json!({})));
-    assert_eq!(o.status.code(), Some(1), "{o:?}");
-    assert_eq!(decision(&o), "STOP empty queue", "{o:?}");
+    assert_eq!(o.status.code(), Some(3), "{o:?}");
+    assert_eq!(
+        decision(&o),
+        "WAIT empty queue — check again in 600s",
+        "{o:?}"
+    );
     let r = Repo::new(&[("a", "held", Some("[x/**]")), ("b", "held", None)]);
     let o = r.next(&fake(vec![], json!({})));
     assert_eq!(
         decision(&o),
-        "STOP held work: 2 item(s) held, none ready and claimable",
+        "WAIT held work: 2 item(s) held — check again in 600s",
         "{o:?}"
     );
 }
@@ -388,8 +392,11 @@ fn an_item_waits_until_every_dependency_is_done() {
         ),
     ]);
     let o = r.next(&fake(vec![], json!({})));
-    assert_eq!(o.status.code(), Some(1), "{o:?}");
-    assert_eq!(decision(&o), "STOP empty queue", "{o:?}");
+    assert_eq!(o.status.code(), Some(3), "{o:?}");
+    assert!(
+        decision(&o).contains("waiting on dependencies — check again in 600s"),
+        "{o:?}"
+    );
     let out = stdout(&o);
     assert!(out.contains("a-waits waits on b-dep (decision)"), "{o:?}");
     assert!(
@@ -428,7 +435,10 @@ fn a_malformed_or_unreadable_dependency_waits_and_says_why() {
         ("d-broken", "done", Some("[crates/d/**")),
     ]);
     let o = r.next(&fake(vec![], json!({})));
-    assert_eq!(decision(&o), "STOP empty queue", "{o:?}");
+    assert!(
+        decision(&o).contains("waiting on dependencies — check again in 600s"),
+        "{o:?}"
+    );
     let out = stdout(&o);
     assert!(
         out.contains("a-bad-list waits: depends_on `b-dep` is not a `[a, b]` list"),
@@ -455,7 +465,10 @@ fn only_unfinished_dependencies_are_named_and_quoted_done_or_empty_lists_pass() 
         ("d-quoted", "\"done\"", Some("[crates/d/**]")),
     ]);
     let o = r.next(&fake(vec![], json!({})));
-    assert_eq!(decision(&o), "STOP empty queue", "{o:?}");
+    assert!(
+        decision(&o).contains("waiting on dependencies — check again in 600s"),
+        "{o:?}"
+    );
     assert!(
         stdout(&o).contains("(a-mixed waits on c-open (decision))"),
         "{o:?}"
@@ -551,7 +564,7 @@ fn a_pr_that_deletes_an_order_is_skipped_with_a_note_not_fatal() {
     let next = json!({"prs": [{"number": 14, "headRefName": "codex/d", "headRefOid": HEAD,
                                "isDraft": false, "files": [{"path": gone}]}]});
     let o = r.next(&next);
-    assert_eq!(o.status.code(), Some(1), "{o:?}");
+    assert_eq!(o.status.code(), Some(3), "{o:?}");
     assert!(
         stdout(&o)
             .lines()
@@ -700,4 +713,40 @@ fn an_own_doc_only_pr_owes_a_fresh_self_review_and_an_own_code_pr_does_not() {
         json!({}),
     ));
     assert!(!decision(&o).contains("review #13"), "{o:?}");
+}
+
+#[test]
+fn a_lab_at_its_open_pr_limit_waits_naming_its_prs_awaiting_review() {
+    let r = Repo::new(&[("a-free", "ready", Some("[crates/a/**]"))]);
+    // Three open codex PRs, none ours to repair or review: codex is at open_pr_limit 3.
+    let claim = json!([
+        {"number": 41, "headRefName": "codex/x", "files": []},
+        {"number": 42, "headRefName": "codex/y", "files": []},
+        {"number": 43, "headRefName": "codex/z", "files": []},
+    ]);
+    // Each carries a valid ORDER for another item, so none needs a repair.
+    let mut next = fake(
+        vec![
+            pr(41, "codex/x", "codex", "x-done"),
+            pr(42, "codex/y", "codex", "y-done"),
+            pr(43, "codex/z", "codex", "z-done"),
+        ],
+        json!({}),
+    );
+    // Drafts here, so this lab owes none of them a review itself.
+    for p in next["prs"].as_array_mut().unwrap() {
+        p["isDraft"] = json!(true);
+    }
+    let o = r.next_as("codex", &next, &claim, false);
+    assert_eq!(
+        o.status.code(),
+        Some(3),
+        "a lab at its open_pr_limit must WAIT, not STOP: {o:?}"
+    );
+    let d = decision(&o);
+    assert!(
+        d.starts_with("WAIT open_pr_limit reached: own PRs #41, #42, #43 await review"),
+        "{o:?}"
+    );
+    assert!(d.ends_with("— check again in 600s"), "{o:?}");
 }

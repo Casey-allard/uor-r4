@@ -175,7 +175,8 @@ fn missing_plan_and_missing_lane_are_named_not_guessed() {
     let r = Repo::new(&[("docs/harness/labs.json", &labs(None))], &[]);
     let o = r.next();
     let out = stdout(&o);
-    assert_eq!(o.status.code(), Some(1), "{o:?}");
+    // An empty queue waits with a re-check time; only the kill switch stops (claude-31).
+    assert_eq!(o.status.code(), Some(3), "{o:?}");
     assert!(
         out.contains("not built — PLAN.md is not on origin/main yet"),
         "{out}"
@@ -184,5 +185,5 @@ fn missing_plan_and_missing_lane_are_named_not_guessed() {
         out.contains("no lane is assigned to deepseek in docs/harness/labs.json"),
         "{out}"
     );
-    assert!(decision(&o).starts_with("STOP empty queue"), "{o:?}");
+    assert!(decision(&o).starts_with("WAIT empty queue"), "{o:?}");
 }

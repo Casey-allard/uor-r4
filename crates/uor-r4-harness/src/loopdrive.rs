@@ -3,7 +3,7 @@
 //! # What it does
 //!
 //! One invocation runs one or more **fresh sessions**. Before each session the loop's own
-//! [`loopnext::run`] decides go or stop: the kill switch (`local/loop/STOP` or the `loop:pause`
+//! [`loopnext::run`] decides go, wait (sleep `--poll` seconds and ask again) or stop: the kill switch (`local/loop/STOP` or the `loop:pause`
 //! label on #2028), held work, an empty queue and the rest of the loop page's stops are **not
 //! re-implemented here**. The headless client is launched from the caller's explicit argv with one
 //! `{prompt}` element, in its own process group, and only that recorded pid/process group is ever
@@ -250,7 +250,7 @@ pub fn compose_prompt(caller_prompt: Option<&str>, decision: &str) -> String {
         }
     }
     format!(
-        "You are one fresh session of the UOR-R4 five-lab loop. `loop next` decided: {decision}.\n\nRun one unit of work per the loop cycle: read local/claude/onboarding/run-<lab>.txt, the bench inbox (main checkout local/bench/INBOX.md) and your PICKUP; claim, work inside the ORDER's scope, run gates, write the REPORT, push and request the exact-head review; stop cleanly at the end."
+        "You are one fresh session of the UOR-R4 five-lab loop. `loop next` decided: {decision}.\n\nRun one unit of work per the loop cycle: read local/claude/onboarding/run-<lab>.txt, the bench inbox (main checkout local/bench/INBOX.md) and your PICKUP; claim, work inside the ORDER's scope, run gates, write the REPORT, push and request the exact-head review; then run `uor-harness loop next` again and take what it offers. End cleanly only when `loop next` prints WAIT or STOP."
     )
 }
 
@@ -647,6 +647,19 @@ pub struct DriveSpec<'a> {
     pub order: Option<&'a Path>,
     /// A leased session is never closed by the check-in.
     pub exempt_lease: bool,
+    /// Seconds to wait through `pause` on a WAIT before asking `loop next` again.
+    pub poll: u64,
+}
+
+/// What `loop next` told the drive.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Next {
+    /// Start a session with this decision line.
+    Go(String),
+    /// Nothing to take yet: pause `poll` seconds and ask again; no session is started.
+    Wait(String),
+    /// A clean stop (the kill switch and the loop page's other stops).
+    Stop,
 }
 
 /// The impure edges of a drive run, injectable for the fake-clock tests.
@@ -655,8 +668,9 @@ pub struct DriveHooks<'a> {
     pub now: &'a dyn Fn() -> u64,
     /// Wait between liveness polls.
     pub pause: &'a dyn Fn(u64),
-    /// `loop next`: `Ok(Some(go))` starts a session, `Ok(None)` is a clean stop, `Err` refuses.
-    pub decision: &'a dyn Fn() -> std::result::Result<Option<String>, String>,
+    /// `loop next`: `Go` starts a session, `Wait` pauses and asks again, `Stop` is a clean stop,
+    /// `Err` refuses.
+    pub decision: &'a dyn Fn() -> std::result::Result<Next, String>,
     /// Post the PM card for a close; the CLI implementation posts on #2028.
     pub card: &'a dyn Fn(&str) -> std::result::Result<(), String>,
     /// Notes a person should see (a check-in note, a lease skip); printed by the CLI, recorded by tests.
@@ -671,16 +685,23 @@ pub fn run_sessions(spec: &DriveSpec, hooks: &DriveHooks) -> Result<u8> {
     let mut last_code = 0u8;
     let mut stalls: u32 = 0;
     for session in 0..spec.max_sessions.max(1) {
-        let decision = match (hooks.decision)() {
-            Ok(Some(decision)) => decision,
-            Ok(None) => {
-                println!("STOP");
-                return Ok(0);
-            }
-            Err(error) => {
-                return Err(DriveError::Io(format!(
-                    "cannot decide with loop next: {error}"
-                )));
+        // WAIT is not a stop and does not use a session: pause and ask `loop next` again.
+        let decision = loop {
+            match (hooks.decision)() {
+                Ok(Next::Go(decision)) => break decision,
+                Ok(Next::Wait(reason)) => {
+                    println!("WAIT {reason} — check again in {}s", spec.poll);
+                    (hooks.pause)(spec.poll);
+                }
+                Ok(Next::Stop) => {
+                    println!("STOP");
+                    return Ok(0);
+                }
+                Err(error) => {
+                    return Err(DriveError::Io(format!(
+                        "cannot decide with loop next: {error}"
+                    )));
+                }
             }
         };
         let prompt = compose_prompt(spec.prompt, &decision);
@@ -990,6 +1011,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
     let mut exempt_lease = false;
     let mut pid: Option<u32> = None;
     let mut interval: u64 = 60;
+    let mut poll: u64 = crate::loopnext::RECHECK_SECS;
     let mut launch: Vec<String> = Vec::new();
     let mut index = 0;
     let mut after_separator = false;
@@ -1006,7 +1028,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
             "--lease" => lease = true,
             "--exempt-lease" => exempt_lease = true,
             "--client" | "--model" | "--prompt" | "--prompt-file" | "--max-sessions" | "--pid"
-            | "--interval" | "--order" => {
+            | "--interval" | "--order" | "--poll" => {
                 let Some(value) = args.get(index + 1) else {
                     eprintln!("loop drive: {argument} needs a value");
                     return 2;
@@ -1019,6 +1041,15 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
                     "--order" => order = Some(PathBuf::from(value)),
                     "--pid" => pid = value.parse().ok(),
                     "--interval" => interval = value.parse().unwrap_or(60),
+                    "--poll" => match value.parse::<u64>() {
+                        Ok(seconds) if seconds > 0 => poll = seconds,
+                        _ => {
+                            eprintln!(
+                                "loop drive: --poll needs a whole number of seconds above 0, got {value:?}"
+                            );
+                            return 2;
+                        }
+                    },
                     _ => max_sessions = value.parse().ok(),
                 }
                 index += 2;
@@ -1123,11 +1154,13 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
     let claim_gh = crate::loopclaim::RealGh {
         root: root.to_path_buf(),
     };
-    let decision = || -> std::result::Result<Option<String>, String> {
+    // WAIT is not a stop: `run_sessions` pauses `--poll` seconds through its hook and asks again.
+    let decision = || -> std::result::Result<Next, String> {
         match crate::loopnext::run(root, lab, &next_gh, &claim_gh) {
+            Ok((_, crate::loopnext::Decision::Wait(reason))) => Ok(Next::Wait(reason)),
             Ok((_, crate::loopnext::Decision::Stop(reason))) => {
                 println!("STOP {reason}");
-                Ok(None)
+                Ok(Next::Stop)
             }
             Ok((
                 _,
@@ -1136,7 +1169,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
                     target,
                     reason,
                 },
-            )) => Ok(Some(format!("GO {kind} {target} - {reason}"))),
+            )) => Ok(Next::Go(format!("GO {kind} {target} - {reason}"))),
             Err(error) => Err(error),
         }
     };
@@ -1154,6 +1187,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         max_sessions: max_sessions.unwrap_or(DEFAULT_MAX_SESSIONS),
         order: order.as_deref(),
         exempt_lease,
+        poll,
     };
     let hooks = DriveHooks {
         now: &now,

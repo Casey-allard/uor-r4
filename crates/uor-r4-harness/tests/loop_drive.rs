@@ -10,8 +10,8 @@ use std::process::Command;
 use uor_r4_harness::loopdrive::{
     check_in, classify, close_stalled_session, commit_and_push_wip, compose_prompt, launch_argv,
     pm_card_text, read_record, run_sessions, session_alive, start_session, terminate_session,
-    watch_lease_until_renew_fails, watch_until_exit, CheckIn, DriveHooks, DriveSpec, Observation,
-    Progress, SessionRecord, CHECK_IN_SECONDS,
+    watch_lease_until_renew_fails, watch_until_exit, CheckIn, DriveHooks, DriveSpec, Next,
+    Observation, Progress, SessionRecord, CHECK_IN_SECONDS,
 };
 
 fn observation(head: &str, commits: u64, gate_runs: u64, changed_paths: usize) -> Observation {
@@ -322,8 +322,8 @@ fn the_fake_clock_closes_a_silent_client_and_cards_it() {
         "{prompt}".to_string(),
     ];
     let cards: RefCell<Vec<String>> = RefCell::new(Vec::new());
-    let decision = || -> std::result::Result<Option<String>, String> {
-        Ok(Some("GO item fake - ready".to_string()))
+    let decision = || -> std::result::Result<Next, String> {
+        Ok(Next::Go("GO item fake - ready".to_string()))
     };
     let card = |reason: &str| {
         cards.borrow_mut().push(reason.to_string());
@@ -341,6 +341,7 @@ fn the_fake_clock_closes_a_silent_client_and_cards_it() {
         max_sessions: 1,
         order: None,
         exempt_lease: false,
+        poll: 600,
     };
     let notice = |_note: &str| {};
     let hooks = DriveHooks {
@@ -376,8 +377,8 @@ fn the_fake_clock_continues_a_committing_client_with_a_note() {
         "{prompt}".to_string(),
     ];
     let cards: RefCell<Vec<String>> = RefCell::new(Vec::new());
-    let decision = || -> std::result::Result<Option<String>, String> {
-        Ok(Some("GO item fake - ready".to_string()))
+    let decision = || -> std::result::Result<Next, String> {
+        Ok(Next::Go("GO item fake - ready".to_string()))
     };
     let card = |reason: &str| {
         cards.borrow_mut().push(reason.to_string());
@@ -412,6 +413,7 @@ fn the_fake_clock_continues_a_committing_client_with_a_note() {
         max_sessions: 1,
         order: None,
         exempt_lease: false,
+        poll: 600,
     };
     let notice = |_note: &str| {};
     let hooks = DriveHooks {
@@ -536,8 +538,8 @@ fn a_productive_then_silent_client_is_closed_at_the_second_window() {
         "{prompt}".to_string(),
     ];
     let cards: RefCell<Vec<String>> = RefCell::new(Vec::new());
-    let decision = || -> std::result::Result<Option<String>, String> {
-        Ok(Some("GO item fake - ready".to_string()))
+    let decision = || -> std::result::Result<Next, String> {
+        Ok(Next::Go("GO item fake - ready".to_string()))
     };
     let card = |reason: &str| {
         cards.borrow_mut().push(reason.to_string());
@@ -568,6 +570,7 @@ fn a_productive_then_silent_client_is_closed_at_the_second_window() {
         max_sessions: 1,
         order: None,
         exempt_lease: false,
+        poll: 600,
     };
     let notice = |_note: &str| {};
     let hooks = DriveHooks {
@@ -606,8 +609,8 @@ fn a_leased_session_is_never_closed_and_notes_exactly_once_per_window() {
     ];
     let cards: RefCell<Vec<String>> = RefCell::new(Vec::new());
     let notices: RefCell<Vec<String>> = RefCell::new(Vec::new());
-    let decision = || -> std::result::Result<Option<String>, String> {
-        Ok(Some("GO item lease - ready".to_string()))
+    let decision = || -> std::result::Result<Next, String> {
+        Ok(Next::Go("GO item lease - ready".to_string()))
     };
     let card = |reason: &str| {
         cards.borrow_mut().push(reason.to_string());
@@ -644,6 +647,7 @@ fn a_leased_session_is_never_closed_and_notes_exactly_once_per_window() {
         max_sessions: 1,
         order: None,
         exempt_lease: true,
+        poll: 600,
     };
     let hooks = DriveHooks {
         now: &now,
@@ -670,6 +674,146 @@ fn a_leased_session_is_never_closed_and_notes_exactly_once_per_window() {
         notices.len(),
         2,
         "one skip note per two-hour window, not one per poll: {notices:?}"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// A fake `loop next` that answers from a script, one answer per ask, and counts the asks.
+fn scripted_next(
+    answers: Vec<Next>,
+) -> (
+    impl Fn() -> std::result::Result<Next, String>,
+    std::rc::Rc<std::cell::Cell<usize>>,
+) {
+    let asked = std::rc::Rc::new(std::cell::Cell::new(0usize));
+    let counter = asked.clone();
+    let next = move || {
+        let index = counter.get();
+        counter.set(index + 1);
+        Ok(answers.get(index).cloned().unwrap_or(Next::Stop))
+    };
+    (next, asked)
+}
+
+fn sessions_started(root: &Path) -> usize {
+    std::fs::read_dir(root.join("local/loop/drive/deepseek"))
+        .map(|entries| {
+            entries
+                .filter_map(|entry| entry.ok())
+                .filter(|entry| entry.file_name().to_string_lossy().starts_with("session-"))
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+#[test]
+fn a_wait_pauses_by_the_poll_and_asks_again_then_stop_ends_cleanly() {
+    let root = init_repo("wait-stop");
+    let launch = vec![
+        "sh".to_string(),
+        "-c".to_string(),
+        "exit 0".to_string(),
+        "{prompt}".to_string(),
+    ];
+    let (decision, asked) = scripted_next(vec![
+        Next::Wait("nothing claimable".to_string()),
+        Next::Stop,
+    ]);
+    let pauses: RefCell<Vec<u64>> = RefCell::new(Vec::new());
+    let pause = |seconds: u64| pauses.borrow_mut().push(seconds);
+    let now = || 1_000_000u64;
+    let card = |_reason: &str| Ok(());
+    let notice = |_note: &str| {};
+    let spec = DriveSpec {
+        root: &root,
+        lab: "deepseek",
+        client: "fake-client",
+        model: "pinned-model-1",
+        launch: &launch,
+        prompt: Some("fake session"),
+        max_sessions: 1,
+        order: None,
+        exempt_lease: false,
+        poll: 37,
+    };
+    let hooks = DriveHooks {
+        now: &now,
+        pause: &pause,
+        decision: &decision,
+        card: &card,
+        notice: &notice,
+    };
+    let code = run_sessions(&spec, &hooks).expect("WAIT then STOP is a clean run");
+    assert_eq!(code, 0, "STOP after a WAIT ends the drive with 0");
+    assert_eq!(
+        pauses.into_inner(),
+        vec![37],
+        "one pause, by the poll value"
+    );
+    assert_eq!(asked.get(), 2, "loop next is asked again after the WAIT");
+    assert_eq!(sessions_started(&root), 0, "a WAIT starts no session");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_wait_then_go_starts_exactly_one_session() {
+    let root = init_repo("wait-go");
+    let launch = vec![
+        "sh".to_string(),
+        "-c".to_string(),
+        "exit 0".to_string(),
+        "{prompt}".to_string(),
+    ];
+    let (decision, asked) = scripted_next(vec![
+        Next::Wait("nothing claimable".to_string()),
+        Next::Go("GO item fake - ready".to_string()),
+    ]);
+    let pauses: RefCell<Vec<u64>> = RefCell::new(Vec::new());
+    let pause = |seconds: u64| {
+        pauses.borrow_mut().push(seconds);
+        if seconds != 37 {
+            std::thread::sleep(std::time::Duration::from_millis(15));
+        }
+    };
+    let now = || {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_secs())
+            .unwrap_or(0)
+    };
+    let card = |_reason: &str| Ok(());
+    let notice = |_note: &str| {};
+    let spec = DriveSpec {
+        root: &root,
+        lab: "deepseek",
+        client: "fake-client",
+        model: "pinned-model-1",
+        launch: &launch,
+        prompt: Some("fake session"),
+        max_sessions: 1,
+        order: None,
+        exempt_lease: false,
+        poll: 37,
+    };
+    let hooks = DriveHooks {
+        now: &now,
+        pause: &pause,
+        decision: &decision,
+        card: &card,
+        notice: &notice,
+    };
+    let code = run_sessions(&spec, &hooks).expect("WAIT then GO runs one session");
+    assert_eq!(code, 0, "the fake session exited cleanly");
+    assert_eq!(asked.get(), 2, "loop next is asked again after the WAIT");
+    assert_eq!(
+        pauses.into_inner().first(),
+        Some(&37),
+        "the WAIT paused by the poll value first"
+    );
+    assert_eq!(
+        sessions_started(&root),
+        1,
+        "exactly one session after the GO"
     );
     let _ = std::fs::remove_dir_all(&root);
 }
