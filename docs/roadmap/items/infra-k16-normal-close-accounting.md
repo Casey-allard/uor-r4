@@ -3,7 +3,7 @@ id: infra-k16-normal-close-accounting
 title: Record K16 normal close and final resource accounting
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []

@@ -13,6 +13,15 @@ The project keeps its bytes in three places outside git. The indexes in [`archiv
 | A run or workspace tar from before 20 Oct 2026 | [`icloud-index-2026-10-20.tsv`](../../archive/storage/icloud-index-2026-10-20.tsv) | iCloud `UOR-R4/results/` (read-only) |
 | The released 214M model and its data | the model and dataset cards | HF public `caseyallard/uor-r4-geometric-214m`, `caseyallard/uor-r4-data` |
 
+## K16 after-down closure custody
+
+The K16 run's after-down closure custody is recorded in the
+[normal-close record](../labs/infra-k16-normal-close-accounting/README.md):
+`k16-afterdown-closure-0038z.tar`, 13 files, 131,072 B, MD5 `9f7368ac…`, reported with full cloud
+readback in #2029 [6257225762](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6257225762).
+Its storage and transfer charges are **unmeasured**, so this page adds no index row for them; the
+tar is not in the 20 October HF store index snapshot.
+
 ## The private HF store
 
 `caseyallard/uor-r4-store` is a private HF dataset, so links to it work only when you are signed in to an account with access. The store's own [README](https://huggingface.co/datasets/caseyallard/uor-r4-store/blob/main/README.md) repeats the prefix table below.

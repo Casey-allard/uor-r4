@@ -1,0 +1,54 @@
+{
+  "schema": "uor-r4.k16-normal-close-accounting/1",
+  "status": "CLOSED_ACCOUNTED",
+  "experiment": "K16 four-role execution (K16-A/K16-R, seeds 1-2)",
+  "started_utc": "2026-10-18T15:01:18Z",
+  "updated_utc": "2026-10-19T00:38:33Z",
+  "increment_seconds": 34633,
+  "increment_hours": 9.620277777777778,
+  "rate_usd_per_hour": 0.908,
+  "approx_gpu_cost_usd": 8.735212222,
+  "cost_kind": "resource-cost proxy, not an invoice",
+  "storage_transfer": "unmeasured",
+  "previous_ledger": "",
+  "new_pods": [
+    {
+      "pod": "vast-56571294",
+      "provider": "Vast.ai",
+      "gpu": "RTX 5090",
+      "count": 1,
+      "datacenter": "Vast Alberta, CA",
+      "lab": "codex",
+      "session": "cf1-k16-qual-20261018-145509z",
+      "up_utc": "2026-10-18T15:01:18Z",
+      "release_utc": "2026-10-19T00:38:29Z",
+      "down_utc": "2026-10-19T00:38:33Z",
+      "expiry_utc": "2026-10-19T00:39:22Z",
+      "uptime_s": 34633,
+      "usd_per_h": 0.908
+    }
+  ],
+  "normal_close": {
+    "release_utc": "2026-10-19T00:38:29Z",
+    "native_down_utc": "2026-10-19T00:38:33Z",
+    "force_or_discard": false,
+    "renewal_after_release": false,
+    "remaining_idle_lease_or_cost": "none",
+    "replacement_allocation": "none"
+  },
+  "after_down_closure_custody": {
+    "archive": "k16-afterdown-closure-0038z.tar",
+    "bytes": 131072,
+    "md5": "9f7368accd2d29395f7833cd0be79fb5",
+    "files": 13,
+    "manifest_sha256": "9dd0ee27140a789f1778ca5758b961f0f0c2944258a7d838d5bd951f3d55911d",
+    "cloud_readback": "reported complete"
+  },
+  "sources": {
+    "item": "https://github.com/UOR-Foundation/uor-r4/issues/2827",
+    "resource_closure_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6257200048",
+    "custody_comment": "https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6257225762",
+    "record": "docs/labs/infra-k16-normal-close-accounting/README.md",
+    "compute_ledger": "~/.local/share/uor-r4/compute/ledger.jsonl (local machine state, not committed evidence)"
+  }
+}
