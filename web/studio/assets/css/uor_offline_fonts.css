@@ -1,0 +1,27 @@
+/* Self-hosted offline typography and math styling for UOR-R4 Studio (web & Tauri desktop client).
+   Zero external CDN or Google Fonts requests. */
+
+:root {
+    --uor-font-sans-offline: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    --uor-font-mono-offline: 'Fira Code', 'SF Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+
+.katex-display-wrapper {
+    display: block;
+    margin: 0.75rem 0;
+    padding: 0.5rem 0.75rem;
+    overflow-x: auto;
+    font-family: var(--uor-font-mono-offline);
+    font-size: 0.92rem;
+    color: #e2e8f0;
+    background: rgba(15, 23, 42, 0.55);
+    border-left: 2px solid #00d8ff;
+    border-radius: 4px;
+}
+
+.katex-inline-wrapper {
+    font-family: var(--uor-font-mono-offline);
+    font-size: 0.9em;
+    color: #bae6fd;
+    padding: 0 0.15rem;
+}

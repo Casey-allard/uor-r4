@@ -14,7 +14,7 @@ Labels used below: **proof** means derived from definitions or code, **measureme
 |---|---|---|---|
 | [Language model](./language-model.md) | A geometric language model exported as one checksum-pinned integer file (`UORLUT01`) | The serving engine, tested on a synthetic stand-in model. No trained model has been exported to it | M1 to M4, then M8 |
 | [Web client](./web-client.md) | A local model in the browser: download the file once, run it in WebAssembly on the device | The Studio interface (`index.html`), a WebAssembly build of the engine (`UOR-Foundation/uor-r4#2654`), and a paused Pages deploy | M7 |
-| [Desktop client](./desktop-client.md) | A Tauri app sharing the web interface, with the native engine, file access, durable memory and offline use on M1-class laptops | A specification only. Fragments exist: Tauri hooks in the Studio, the memory store crate, a command-line engine | M3, M5, M7 |
+| [Desktop client](./desktop-client.md) | A Tauri app sharing the web interface, with the native engine, file access, durable memory and offline use on M1-class laptops | [`src-tauri/`](../../src-tauri/) native Rust backend + `--stdio` / `--serve-studio` Studio host (`#2826`, in progress: `tauri` WebView crate linking awaits vendor-fetching Tauri v2 into `Cargo.lock`) linking `uor-r4-integer` + `uor-r4-object-store`, offline Studio shims, and 6 integration tests on the synthetic stand-in ([record](../labs/infra-desktop-client-tauri/README.md)) | M3, M5, M7 |
 
 A fourth page, [Releases and artifacts](./releases-and-artifacts.md), covers the model file format, how a release would be cut, the Hugging Face repositories and how checksums tie them together.
 
@@ -34,9 +34,9 @@ A fourth page, [Releases and artifacts](./releases-and-artifacts.md), covers the
 | Integer serving engine, native | Built; zero-multiply audit green on 44 symbol ranges (**measurement**) | [project track](../integration/project-track.md), M4 |
 | Integer serving engine, WebAssembly | Built; 7 of 7 serving functions with zero multiply, divide and float instructions; save and restore reload identically on a synthetic model (**measurement**) | [record](../labs/wasm-serving-runtime-2026-10-18/README.md) |
 | A trained model in that engine | None. Training is held, and no model built under today's rules has been exported | [NOW](../integration/NOW.md), [lut-serving dossier](../mechanisms/lut-serving.md) |
-| Studio connected to the new engine | No. It still imports an older engine that was retired on 15 October | [`index.html`](../../web/studio/index.html), [D36](../integration/DECISIONS.md#d36--github-pages-keep-the-last-good-deploy-live-deploy-job-skipped-until-a-d11-served-wasm-engine-lands) |
+| Studio connected to the new engine | In progress — web worker (`#2818`) and native desktop backend + offline Studio shim (`#2826`) verified on the synthetic stand-in; no trained model exists | [`index.html`](../../web/studio/index.html), [desktop client record](../labs/infra-desktop-client-tauri/README.md) |
 | Public website deploy | Paused since 15 October; the live site is the 13 October build | [`deploy.yml`](../../.github/workflows/deploy.yml) |
-| Desktop app project | Not started; no `src-tauri/` folder exists | the repository tree (no `src-tauri/` folder) |
+| Desktop app project | Native Rust backend + `--stdio` / `--serve-studio` host built in [`src-tauri/`](../../src-tauri/) (`#2826`); verified on the `seed = 5` synthetic stand-in (`6` integration controls); `tauri` WebView crate linking awaits vendor-fetching Tauri v2 into `Cargo.lock` | [desktop client record](../labs/infra-desktop-client-tauri/README.md) |
 
 A passing audit shows that a forbidden instruction is absent. It is not a trained capability, and it says nothing about how well a model answers.
 

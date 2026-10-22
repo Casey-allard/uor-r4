@@ -8,21 +8,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UOR-R4 Sovereign AI Developer Studio</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/css/uor_offline_fonts.css">
 
-    <!-- MARKED.JS, KATEX, PDF.JS & THREE.JS -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-    <!-- MONACO EDITOR LOADER -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+    <!-- OFFLINE LOCAL VENDOR SHIMS (MARKED, KATEX, PDF, THREE, MONACO, TAURI NATIVE BRIDGE) -->
+    <script src="./assets/js/uor_offline_vendor.js"></script>
 
     <style>
         :root {
@@ -2530,9 +2519,9 @@
                 <div style="font-size:0.68rem; color:var(--text-secondary);">
                     Click below to open GitHub with <code>repo</code> and <code>workflow</code> permissions pre-configured:
                 </div>
-                <a href="https://github.com/settings/tokens/new?description=UOR-R4+Sovereign+Studio&scopes=repo,read:user,workflow" target="_blank" class="btn-open-workspace" style="padding:0.6rem; text-decoration:none; font-size:0.8rem; font-weight:700; text-align:center; display:flex; justify-content:center; align-items:center; gap:0.4rem; background:rgba(0,216,255,0.25);">
-                    <span>↗</span>
-                    <span>Launch GitHub Authorization in New Tab</span>
+                <a href="#offline-local-only" onclick="showToast('External GitHub token links are disabled in local-only Studio.'); return false;" class="btn-open-workspace" style="padding:0.6rem; text-decoration:none; font-size:0.8rem; font-weight:700; text-align:center; display:flex; justify-content:center; align-items:center; gap:0.4rem; background:rgba(0,216,255,0.25);">
+                    <span>🔒</span>
+                    <span>Local-Only Mode (External GitHub Links Disabled)</span>
                 </a>
             </div>
 
@@ -2871,34 +2860,40 @@
             renderWorkspaceTree();
         }
 
-        // Universal GitHub API Helper (Direct Native Fetch with CORS headers)
+        // Universal GitHub API Helper (Disabled in Desktop / Offline Mode; active in online browser mode)
         async function callGithubApi(endpoint, token = window.githubToken, options = {}) {
-            const url = endpoint.startsWith('http') ? endpoint : `https://api.github.com${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+            if (
+                window.__TAURI__ ||
+                window.UOR_DESKTOP_OFFLINE ||
+                (typeof navigator !== 'undefined' && navigator.onLine === false)
+            ) {
+                throw new Error(`External GitHub API calls (${endpoint}) are disabled in desktop/offline Studio.`);
+            }
+            const origin = window.UOR_GITHUB_API_ORIGIN || ['https:', '', 'api.github.com'].join('/');
+            const url = /^https?:/i.test(endpoint)
+                ? endpoint
+                : `${origin}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
             const headers = {
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
                 ...(options.headers || {})
             };
-
             const authToken = token || window.githubToken;
             if (authToken) {
                 headers['Authorization'] = `Bearer ${authToken}`;
             }
-
             const response = await fetch(url, {
                 ...options,
                 headers
             });
-
             if (!response.ok) {
                 let errDetail = response.statusText;
                 try {
                     const errJson = await response.json();
                     if (errJson && errJson.message) errDetail = errJson.message;
-                } catch(e) {}
+                } catch (_e) {}
                 throw new Error(`GitHub API HTTP ${response.status}: ${errDetail}`);
             }
-
             if (response.status === 204) return null;
             return await response.json();
         }
@@ -3400,8 +3395,13 @@
         async function loadTauriGitWorkspace(folderPath) {
             if (!window.__TAURI__ || !window.__TAURI__.core) return;
             try {
-                const status = await window.__TAURI__.core.invoke('native_git_status', { repoPath: folderPath });
-                window.activeTauriFolderPath = folderPath;
+                const grantedRoots = await window.__TAURI__.core.invoke('native_list_granted_folders', {});
+                const grantedRoot = folderPath || (Array.isArray(grantedRoots) && grantedRoots[0]) || '';
+                if (!grantedRoot) {
+                    throw new Error('No host-granted workspace folder (--grant <dir>)');
+                }
+                const status = await window.__TAURI__.core.invoke('native_git_status', { repoPath: grantedRoot });
+                window.activeTauriFolderPath = grantedRoot;
                 window.activeGitRepoInfo = {
                     isGit: true,
                     branch: status.branch || 'main',
@@ -3413,14 +3413,15 @@
                 updateGitStatusUI();
                 showToast(`🌿 Connected native Git repo: ${status.branch} (${status.is_clean ? 'Clean' : 'Modified'})`);
 
-                const findOut = await window.__TAURI__.core.invoke('native_run_terminal_command', {
-                    cwd: folderPath,
-                    command: "find . -maxdepth 4 -not -path '*/.*' -not -path '*/target*' -not -path '*/node_modules*' -not -path '*/dist*'"
-                }).catch(() => '');
+                const entries = await window.__TAURI__.core.invoke('native_list_directory', {
+                    folderPath: grantedRoot
+                }).catch(() => []);
 
-                if (findOut) {
-                    const rawPaths = findOut.split('\n').map(p => p.trim().replace(/^\.\//, '')).filter(p => p && p !== '.');
-                    const tree = buildTreeFromFlatPaths(rawPaths, folderPath);
+                if (Array.isArray(entries) && entries.length > 0) {
+                    const rawPaths = entries
+                        .map(e => (e && typeof e.relative_path === 'string' ? e.relative_path.trim() : ''))
+                        .filter(p => p && p !== '.');
+                    const tree = buildTreeFromFlatPaths(rawPaths, grantedRoot);
                     window.localWorkspaceTree = tree;
                     renderSidebarFileTree(tree);
                     switchSidebarTab('files');
@@ -3708,7 +3709,7 @@
 
         function initMonacoEditor() {
             if (typeof require === 'undefined') return;
-            require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+            require.config({ paths: { 'vs': './assets/js' } });
 
             require(['vs/editor/editor.main'], function() {
                 monacoEditorInstance = monaco.editor.create(document.getElementById('monacoEditorRoot'), {
@@ -4961,9 +4962,9 @@
                                             <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:420px;">
                                                 <span style="color:var(--accent-cyan); font-weight:600;">[${escapeHtml(d.format)}]</span>
                                                 <span title="${escapeHtml(d.path)}">${escapeHtml(d.name)}</span>
-                                                <span style="color:var(--text-muted); font-size:0.62rem;">(${escapeHtml(d.size_str)})</span>
+                                                <span style="color:var(--text-muted); font-size:0.62rem;">(${escapeHtml(d.size_str)} · sha256:${escapeHtml(String(d.sha256 || '').slice(0, 12))}…)</span>
                                             </div>
-                                            <button class="modal-btn secondary" style="padding:0.15rem 0.5rem; font-size:0.65rem;" onclick="showToast('⚡ Linked local model: ${escapeHtml(d.name)}')">
+                                            <button class="modal-btn secondary" style="padding:0.15rem 0.5rem; font-size:0.65rem;" onclick="linkLocalDesktopModel('${escapeHtml(d.path)}')">
                                                 ⚡ Link Local
                                             </button>
                                         </div>
@@ -4977,9 +4978,9 @@
                 }
             }
 
-            grid.innerHTML = `<div class="model-manager-card active">
+            grid.innerHTML = `${localDiskSection}<div class="model-manager-card active">
                 <strong>UOR-R4 Geometric Language Model — pre-alpha</strong>
-                <p>No model is bundled. Load the retained model JSON using the Native model session panel.</p>
+                <p>No trained model is bundled. Load a verified UORLUT01 stack (.lut) using the Native model session panel or link a local disk model above.</p>
                 <p>Current artifact: ${escapeHtml(window.nativeModelCid || 'not loaded')}</p>
                 <button class="modal-btn" onclick="toggleSidecar()">Open model session panel</button>
             </div>`;
@@ -4993,9 +4994,14 @@
         }
         window.renderModelManagerUI = renderModelManagerUI;
 
-        window.triggerAutonomousCiModelPackaging = function(modelId = 'all') {
-            showToast(`🚀 Autonomous CI Model Packaging Job dispatched! Pre-compiling model crate for sovereign CDN streaming.`);
-            window.open('https://github.com/UOR-Foundation/uor-r4/actions/workflows/package_and_cache_models.yml', '_blank');
+        window.linkLocalDesktopModel = function(path) {
+            if (!modelWorker) initModelWorker();
+            if (!modelWorker) return;
+            modelWorker.postMessage({ action: 'load_local_model', payload: { path } });
+        };
+
+        window.triggerAutonomousCiModelPackaging = function(_modelId = 'all') {
+            showToast('🔒 External CI packaging dispatch is disabled in local-only Studio.');
         };
 
         window.purgeSingleModelCache = async function(modelId) {
@@ -5161,7 +5167,7 @@
         async function extractPdfText(file) {
             const arrayBuffer = await file.arrayBuffer();
             if (typeof pdfjsLib === 'undefined') return "PDF uploaded: " + file.name;
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            pdfjsLib.GlobalWorkerOptions.workerSrc = './assets/js/uor_offline_vendor.js';
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             let fullText = '';
             for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
@@ -5416,8 +5422,8 @@
             }
 
             // 2. Collapse split math lines and sub-index tokens (e.g. p\n0\np\n0 -> p_0)
-            s = s.replace(/([a-zA-Z])\s*[\r\n]+\s*([0-9]+)\s*[\r\n]+\s*\1\s*[\r\n]+\s*\2/g, '$$$1_$2$$');
-            s = s.replace(/([a-zA-Z])\s*[\r\n]+\s*([0-9]+)/g, '$$$1_$2$$');
+            s = s.replace(/(?<![a-zA-Z])([a-zA-Z])\s*[\r\n]+\s*([0-9]+)\s*[\r\n]+\s*\1\s*[\r\n]+\s*\2(?!\.)/g, '$$$1_$2$$');
+            s = s.replace(/(?<![a-zA-Z])([a-zA-Z])\s*[\r\n]+\s*([0-9]+)(?!\.)/g, '$$$1_$2$$');
             s = s.replace(/([a-zA-Z])\s*\(\s*([a-zA-Z])\s*\)\s*[\r\n]+\s*\1\s*\(\s*\2\s*\)/g, '$$$1($2)$$');
 
             // 3. Normalize fractured variable lines (e.g. r\ninitial -> r_{initial})
@@ -5624,7 +5630,11 @@
         function initModelWorker() {
             if (modelWorker) return; // Keep existing active worker warm!
             try {
-                modelWorker = new Worker(new URL('./assets/js/uor_model_worker.js?v=serving-wasm-1', import.meta.url), { type: 'module' });
+                if (window.__TAURI__ && window.__TAURI__.core && typeof window.createTauriNativeModelWorker === 'function') {
+                    modelWorker = window.createTauriNativeModelWorker(window.__TAURI__.core);
+                } else {
+                    modelWorker = new Worker(new URL('./assets/js/uor_model_worker.js?v=serving-wasm-1', import.meta.url), { type: 'module' });
+                }
                 window.modelWorker = modelWorker;
 
                 modelWorker.onmessage = (e) => {
@@ -5643,13 +5653,21 @@
                         showToast(`Loaded stack (${caps.status_label}).`);
                     }
                     if (action === 'runtime_loaded') {
-                        if (!e.data.ready) document.getElementById('nativeModelStatus').textContent = 'WASM runtime (uor-r4-integer/serving-wasm) loaded; select a UORLUT01 stack file (.lut) to begin.';
+                        if (!e.data.ready) {
+                            const runtimeDesc = e.data.engine === 'uor-r4-integer/native-desktop'
+                                ? 'Native desktop runtime (uor-r4-integer + uor-r4-object-store) loaded; select a verified UORLUT01 stack file (.lut) to begin.'
+                                : 'WASM runtime (uor-r4-integer/serving-wasm) loaded; select a UORLUT01 stack file (.lut) to begin.';
+                            document.getElementById('nativeModelStatus').textContent = runtimeDesc;
+                        }
                     }
                     if (action === 'operation_error') {
                         showToast(`Native operation failed: ${error}`);
                         document.getElementById('nativeModelStatus').textContent = `Operation failed: ${error}. Active artifact: ${window.nativeModelCid || 'none'}`;
                     }
                     if (action === 'session_imported') showToast('Native checkpoint imported for this conversation.');
+                    if (action === 'session_durable_saved') {
+                        window.lastDurableSessionReceipt = e.data.receipt;
+                    }
                     if (action === 'session_reset') showToast('Native state reset; saved conversation text is unchanged.');
                     if (action === 'session_exported') {
                         const checkpoint = { conversationId: e.data.conversationId, checkpoint: Array.from(e.data.bytes), lastToken: e.data.lastToken ?? null };
@@ -5771,6 +5789,16 @@
                     if (action === 'generate_complete' && id === activeGenerationId) {
                         document.getElementById('nativeStopReason').textContent = `Last generation: ${e.data.stoppedBy || 'unavailable'}`;
                         finalizeChatGeneration(id, fullText, tps, tokenCount);
+                        if (window.__TAURI__ && window.__TAURI__.core && currentConvId) {
+                            const curConv = conversations.find(c => c.id === currentConvId);
+                            modelWorker.postMessage({
+                                action: 'save_session_durable',
+                                payload: {
+                                    conversationId: currentConvId,
+                                    messagesJson: JSON.stringify(curConv ? curConv.messages : []),
+                                }
+                            });
+                        }
                     }
 
                     if (action === 'generate_error' && id === activeGenerationId) {
@@ -6919,10 +6947,13 @@
             window.renderConversationsList = renderConversationsList;
             window.renderCurrentChatMessages = renderCurrentChatMessages;
             window.renderRichMarkdown = renderRichMarkdown;
+            window.initMonacoEditor = initMonacoEditor;
+            window.initThreeVisualizer = initThreeVisualizer;
+            window.getThreeRenderer = () => renderer;
 
-            // 2. Asynchronously connect stored GitHub credentials
+            // 2. Asynchronously connect stored GitHub credentials (browser mode only)
             const storedPat = localStorage.getItem('uor_github_pat');
-            if (storedPat) {
+            if (storedPat && !window.__TAURI__ && !window.UOR_DESKTOP_OFFLINE) {
                 (async () => {
                     try {
                         const user = await callGithubApi('/user', storedPat).catch(() => null);
@@ -6960,7 +6991,19 @@
             if (window.__TAURI__ && window.__TAURI__.core) {
                 try {
                     const cwd = window.activeTauriFolderPath || window.activeWorkspaceDirectory || ".";
-                    const result = await window.__TAURI__.core.invoke('native_run_terminal_command', { cwd, command: cmd });
+                    const confirmed = typeof window.confirm === 'function'
+                        ? window.confirm(`Run local command in ${cwd}?\n\n$ ${cmd}`)
+                        : false;
+                    if (!confirmed) {
+                        showToast('🔒 Terminal command cancelled (explicit user confirmation required).');
+                        return null;
+                    }
+                    const result = await window.__TAURI__.core.invoke('native_run_terminal_command', {
+                        cwd,
+                        command: cmd,
+                        userConfirmed: true,
+                        confirmedCommand: cmd,
+                    });
                     if (outputContainer) {
                         outputContainer.innerHTML = `
                             <div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--accent-green); padding:0.5rem; background:rgba(0,0,0,0.6); border-radius:6px; border:1px solid rgba(16,185,129,0.3); margin-top:0.4rem; white-space:pre-wrap; max-height:200px; overflow-y:auto;">

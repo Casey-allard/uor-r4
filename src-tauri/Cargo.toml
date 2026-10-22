@@ -1,0 +1,33 @@
+[workspace]
+members = ["."]
+resolver = "2"
+
+[package]
+name = "uor-r4-desktop-client"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Tauri native desktop client backend for the UOR-R4 geometric language model (D11 integer stack + D19 object-store durable memory)"
+publish = false
+
+[lib]
+name = "uor_r4_desktop_client"
+path = "src/lib.rs"
+
+[[bin]]
+name = "uor-desktop-client"
+path = "src/main.rs"
+
+[dependencies]
+uor-r4-integer = { path = "../crates/uor-r4-integer", features = ["serving-wasm"] }
+uor-r4-object-store = { path = "../crates/uor-r4-object-store" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10.8"
+hex = "0.4.3"
+
+[patch.crates-io]
+arrayref = { path = "../third_party/arrayref" }
+
+[profile.test.package.uor-r4-integer]
+opt-level = 3
