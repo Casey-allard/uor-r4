@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 35 |
+| ready | 34 |
 | held | 26 |
 | decision | 4 |
-| done | 23 |
+| done | 24 |
 | total | 88 |
 
 ## Start here
