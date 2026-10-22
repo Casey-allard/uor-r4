@@ -24,6 +24,7 @@ pub mod driver_qualification;
 pub mod measurement;
 pub mod metadata;
 pub mod objective;
+pub mod position_mechanism;
 pub mod proposal_timing;
 pub mod rows_source;
 pub mod rowsk_source;
