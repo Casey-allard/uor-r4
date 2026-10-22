@@ -890,6 +890,23 @@ impl CheckKind {
             CheckKind::WordCount(_) => "word_count",
         }
     }
+
+    /// Whether this check requires the reply to abstain (`Some(true)`), to
+    /// supply required content (`Some(false)`), or neither (`None` for
+    /// `Question`, `Clarify`, and `Salutation`). Used by R14
+    /// abstention-as-discrimination scoring (`AbstentionDiscrimination`).
+    fn abstention_role(&self) -> Option<bool> {
+        match self {
+            CheckKind::Abstain | CheckKind::AbstainExact => Some(true),
+            CheckKind::Any(_)
+            | CheckKind::Exact(_)
+            | CheckKind::ReplyExact(_)
+            | CheckKind::ExactText { .. }
+            | CheckKind::OneOf(_)
+            | CheckKind::WordCount(_) => Some(false),
+            CheckKind::Question | CheckKind::Clarify(_) | CheckKind::Salutation => None,
+        }
+    }
 }
 
 /// How a multi-turn row's last turn depends on the earlier ones.
@@ -1991,6 +2008,7 @@ impl Judging<'_> {
             "best_constant",
             "check_only_controls",
             "best_control_or_copy",
+            "abstention_discrimination",
         ] {
             fields.insert(key.into(), overall[key].clone());
         }
@@ -2045,6 +2063,7 @@ fn headline_of(per_tier: &Value) -> Value {
     json!({
         "categories_model_beats_best_constant": extract("categories_model_beats_best_constant"),
         "categories_model_beats_best_control_or_copy": extract("categories_model_beats_best_control_or_copy"),
+        "tiers_abstention_discriminates": extract("abstention_discriminates"),
         "rule": BEST_CONSTANT_RULE,
         "detail": "per_tier.<tier>.headline.per_category",
     })
@@ -2853,6 +2872,227 @@ struct Accumulator {
     echo_last: CheckTally,
     echo_history: CheckTally,
     copy: CopyTally,
+    abstention_discrimination: AbstentionDiscrimination,
+}
+
+/// R14 abstention-as-discrimination scoring across `abstain_target`
+/// (`CheckKind::Abstain | CheckKind::AbstainExact`) and `answer_target`
+/// (`CheckKind::Any | CheckKind::Exact | CheckKind::ReplyExact |
+/// CheckKind::ExactText | CheckKind::OneOf | CheckKind::WordCount`) rows.
+///
+/// On `abstain_target` rows alone (`unknowable_or_impossible` 24 rows on `v5`,
+/// 32 `abstain_exact` rows on the open panel under `v2`), `constant[0]`
+/// ("I'm not sure. Can you tell me more about what you mean?") passes 100% of
+/// rows, so no model — not even an exact oracle — can beat `constant[0]` on the
+/// abstention category alone. Conversely, `constant[0]` achieves that 100%
+/// abstention score by falsely abstaining on 100% of `answer_target` rows
+/// (0/40 on `v5` `multi_turn_memory`, 0/28 on open-panel `v2` content/recall
+/// rows). Scoring abstention as a joint discrimination task over
+/// `abstain_target ∪ answer_target` catches both constant-abstention vacuity
+/// and copy-control confounding in exact integer arithmetic.
+#[derive(Default)]
+struct AbstentionDiscrimination {
+    abstain_rows: usize,
+    true_abstain: usize,
+    false_answer: usize,
+    answer_rows: usize,
+    true_answer: usize,
+    false_abstain: usize,
+    wrong_answer: usize,
+    constants_acceptable: Vec<usize>,
+    constants_paired: Vec<Paired>,
+    has_copy_rows: bool,
+    copy_first_acceptable: usize,
+    copy_first_paired: Paired,
+    copy_last_acceptable: usize,
+    copy_last_paired: Paired,
+}
+
+impl AbstentionDiscrimination {
+    fn add(&mut self, view: &RowView, checks: &Checks, constants: &[String], model_ok: bool) {
+        let Some(check_def) = checks.rows.get(view.id) else {
+            return;
+        };
+        let Some(is_abstain_target) = check_def.kind.abstention_role() else {
+            return;
+        };
+        let v2 = checks.is_v2();
+        if is_abstain_target {
+            self.abstain_rows += 1;
+            if model_ok {
+                self.true_abstain += 1;
+            } else {
+                self.false_answer += 1;
+            }
+        } else {
+            self.answer_rows += 1;
+            if model_ok {
+                self.true_answer += 1;
+            } else if abstains_mode(&words(view.reply), v2) {
+                self.false_abstain += 1;
+            } else {
+                self.wrong_answer += 1;
+            }
+        }
+        self.constants_acceptable.resize(view.constants.len(), 0);
+        self.constants_paired
+            .resize_with(view.constants.len(), Default::default);
+        for (i, (grades, text)) in view.constants.iter().zip(constants).enumerate() {
+            let const_check = checks.of(view.id, &view.users, text);
+            let const_ok = acceptable(grades, const_check);
+            if const_ok {
+                self.constants_acceptable[i] += 1;
+            }
+            self.constants_paired[i].add(model_ok, const_ok);
+        }
+        let (first_pass, last_pass) = if !is_abstain_target {
+            match copy_replies(check_def, &view.users) {
+                Some([first, last]) => {
+                    self.has_copy_rows = true;
+                    (
+                        check_def.passes_mode(&view.users, &first, v2),
+                        check_def.passes_mode(&view.users, &last, v2),
+                    )
+                }
+                None => (false, false),
+            }
+        } else {
+            (false, false)
+        };
+        if first_pass {
+            self.copy_first_acceptable += 1;
+        }
+        if last_pass {
+            self.copy_last_acceptable += 1;
+        }
+        self.copy_first_paired.add(model_ok, first_pass);
+        self.copy_last_paired.add(model_ok, last_pass);
+    }
+
+    fn record(&self, constants: &[String]) -> Value {
+        let total_rows = self.abstain_rows + self.answer_rows;
+        let model_correct = self.true_abstain + self.true_answer;
+        let applicable = self.abstain_rows > 0 && self.answer_rows > 0;
+        let selective_determinant = (self.true_abstain as i64) * (self.answer_rows as i64)
+            - (self.false_abstain as i64) * (self.abstain_rows as i64);
+
+        let best_constant = self
+            .constants_acceptable
+            .iter()
+            .zip(&self.constants_paired)
+            .enumerate()
+            .rev()
+            .max_by_key(|(_, (acc, _))| **acc)
+            .map(|(index, (&acc, paired))| {
+                let p = mcnemar_exact(paired.actual_only, paired.control_only);
+                let beats = paired.actual_only > paired.control_only && p < 0.05;
+                (
+                    beats,
+                    json!({
+                        "index": index,
+                        "reply": constants.get(index),
+                        "rows": total_rows,
+                        "model_acceptable": model_correct,
+                        "constant_acceptable": acc,
+                        "model_minus_constant": model_correct as i64 - acc as i64,
+                        "model_only": paired.actual_only,
+                        "constant_only": paired.control_only,
+                        "both": paired.both,
+                        "neither": paired.neither,
+                        "mcnemar_exact_p": p,
+                        "model_beats_constant": beats,
+                    }),
+                )
+            });
+
+        struct Candidate<'a> {
+            kind: &'static str,
+            label: String,
+            acceptable: usize,
+            paired: &'a Paired,
+        }
+        let mut candidates: Vec<Candidate<'_>> = self
+            .constants_acceptable
+            .iter()
+            .zip(&self.constants_paired)
+            .enumerate()
+            .map(|(i, (&acc, paired))| Candidate {
+                kind: "constant",
+                label: constants.get(i).cloned().unwrap_or_default(),
+                acceptable: acc,
+                paired,
+            })
+            .collect();
+        if self.has_copy_rows {
+            candidates.push(Candidate {
+                kind: "copy_first_stated",
+                label: "copy_first_stated".to_owned(),
+                acceptable: self.copy_first_acceptable,
+                paired: &self.copy_first_paired,
+            });
+            candidates.push(Candidate {
+                kind: "copy_last_stated",
+                label: "copy_last_stated".to_owned(),
+                acceptable: self.copy_last_acceptable,
+                paired: &self.copy_last_paired,
+            });
+        }
+        let best_control_or_copy = candidates
+            .iter()
+            .rev()
+            .max_by_key(|c| (c.acceptable, c.paired.both))
+            .map(|best| {
+                let p = mcnemar_exact(best.paired.actual_only, best.paired.control_only);
+                let beats = best.paired.actual_only > best.paired.control_only && p < 0.05;
+                (
+                    beats,
+                    json!({
+                        "kind": best.kind,
+                        "control": best.label,
+                        "rows": total_rows,
+                        "model_acceptable": model_correct,
+                        "control_acceptable": best.acceptable,
+                        "model_minus_control": model_correct as i64 - best.acceptable as i64,
+                        "model_only": best.paired.actual_only,
+                        "control_only": best.paired.control_only,
+                        "both": best.paired.both,
+                        "neither": best.paired.neither,
+                        "mcnemar_exact_p": p,
+                        "model_beats_best_control_or_copy": beats,
+                    }),
+                )
+            });
+
+        let beats_const = best_constant.as_ref().is_some_and(|(b, _)| *b);
+        let beats_cc = best_control_or_copy.as_ref().is_some_and(|(b, _)| *b);
+        let discriminates = applicable
+            && self.true_abstain > 0
+            && self.true_answer > 0
+            && selective_determinant > 0
+            && beats_const
+            && beats_cc;
+
+        json!({
+            "applicable": applicable,
+            "discrimination_rows": total_rows,
+            "abstain_target": {
+                "rows": self.abstain_rows,
+                "true_abstain": self.true_abstain,
+                "false_answer": self.false_answer,
+            },
+            "answer_target": {
+                "rows": self.answer_rows,
+                "true_answer": self.true_answer,
+                "false_abstain": self.false_abstain,
+                "wrong_answer": self.wrong_answer,
+            },
+            "model_correct": model_correct,
+            "selective_abstention_determinant": selective_determinant,
+            "best_constant": best_constant.map(|(_, v)| v),
+            "best_control_or_copy": best_control_or_copy.map(|(_, v)| v),
+            "abstention_discriminates": discriminates,
+        })
+    }
 }
 
 /// One constant reply's grades over a set of rows, paired with the actual
@@ -2913,6 +3153,8 @@ impl Accumulator {
             .add(checks.of(view.id, &view.users, &view.users.join(" ")));
         self.copy
             .add_with_actual(checks, view.id, &view.users, Some(ok));
+        self.abstention_discrimination
+            .add(view, checks, constants, ok);
     }
 
     /// The best constant of these rows (most acceptable, ties to the lower
@@ -3023,6 +3265,7 @@ impl Accumulator {
             })).collect::<Vec<_>>(),
             "best_constant": self.best_constant(constants),
             "best_control_or_copy": self.best_control_or_copy(constants),
+            "abstention_discrimination": self.abstention_discrimination.record(constants),
             "check_only_controls": {
                 "echo_last": self.echo_last.record(),
                 "echo_history": self.echo_history.record(),
@@ -3078,12 +3321,16 @@ impl Group {
                 categories_control_or_copy.insert(name.clone(), best_cc);
             }
         }
+        let abstention_disc = self.all.abstention_discrimination.record(constants);
+        let discriminates = abstention_disc["abstention_discriminates"] == true;
         json!({
             "rule": BEST_CONSTANT_RULE,
             "per_category": categories,
             "per_category_vs_control_or_copy": categories_control_or_copy,
             "categories_model_beats_best_constant": beats,
             "categories_model_beats_best_control_or_copy": beats_control_or_copy,
+            "abstention_discrimination": abstention_disc,
+            "abstention_discriminates": discriminates,
         })
     }
 }
@@ -6109,6 +6356,127 @@ mod tests {
                 .verdict("heldout-125", &[h125_turn], "The roots are 4.37 and 1.37")
                 .status,
             "FAIL"
+        );
+    }
+
+    #[test]
+    fn r14_abstention_as_discrimination_scoring_and_controls() {
+        let checks_v2 = embedded_checks_v2().expect("embedded_checks_v2");
+        let v5_all: Vec<Request> = serde_json::from_str(include_str!(
+            "../../../../data/panels/conversational-v5.json"
+        ))
+        .unwrap();
+        assert_eq!(v5_all.len(), 64);
+
+        let ill = IdList {
+            ids: BTreeSet::new(),
+            source: json!("none"),
+        };
+        let default_constants = Constants {
+            replies: DEFAULT_CONSTANTS.iter().map(|s| (*s).to_owned()).collect(),
+            source: json!("default"),
+        };
+        let judging = Judging {
+            ill: &ill,
+            checks: &checks_v2,
+            constants: &default_constants,
+        };
+
+        let make_panel = |reply_fn: &dyn Fn(&Request, &RowCheck) -> String| -> Value {
+            let rows: Vec<Value> = v5_all
+                .iter()
+                .map(|r| {
+                    let check = &checks_v2.rows[&r.id];
+                    let reply = reply_fn(r, check);
+                    let turns: Vec<Value> = r
+                        .user_turns
+                        .iter()
+                        .enumerate()
+                        .map(|(i, u)| {
+                            json!({
+                                "user": u,
+                                "reply": if i + 1 == r.user_turns.len() { reply.as_str() } else { "Okay." }
+                            })
+                        })
+                        .collect();
+                    json!({"id": r.id, "category": r.category, "turns": turns})
+                })
+                .collect();
+            json!({"rows": rows})
+        };
+
+        // 1. Constant-abstention control (`DEFAULT_CONSTANTS[0]`):
+        // Passes 24/24 on `abstain_target`, 0/40 on `answer_target` (`false_abstain = 40`),
+        // `selective_abstention_determinant = 24*40 - 40*24 = 0`, `abstention_discriminates = false`.
+        let const0_panel = make_panel(&|_, _| DEFAULT_CONSTANTS[0].to_owned());
+        let const0_report = Value::Object(judging.judge(&const0_panel).unwrap());
+        let const0_disc = &const0_report["abstention_discrimination"];
+        assert_eq!(const0_disc["applicable"], true);
+        assert_eq!(const0_disc["discrimination_rows"], 64);
+        assert_eq!(const0_disc["abstain_target"]["rows"], 24);
+        assert_eq!(const0_disc["abstain_target"]["true_abstain"], 24);
+        assert_eq!(const0_disc["abstain_target"]["false_answer"], 0);
+        assert_eq!(const0_disc["answer_target"]["rows"], 40);
+        assert_eq!(const0_disc["answer_target"]["true_answer"], 0);
+        assert_eq!(const0_disc["answer_target"]["false_abstain"], 40);
+        assert_eq!(const0_disc["answer_target"]["wrong_answer"], 0);
+        assert_eq!(const0_disc["model_correct"], 24);
+        assert_eq!(const0_disc["selective_abstention_determinant"], 0);
+        assert_eq!(const0_disc["best_constant"]["model_beats_constant"], false);
+        assert_eq!(const0_disc["abstention_discriminates"], false);
+        assert_eq!(
+            const0_report["headline"]["tiers_abstention_discriminates"]["C"],
+            false
+        );
+
+        // 2. Pure `copy_last_stated` control (copies the last stated value on `exact` rows,
+        // and emits a non-abstention assertion on `abstain_exact` rows):
+        // Passes 0/24 on `abstain_target`, 20/40 on `answer_target`, `selective_abstention_determinant = 0`,
+        // `abstention_discriminates = false`.
+        let copy_last_panel = make_panel(&|r, check| {
+            let users: Vec<&str> = r.user_turns.iter().map(String::as_str).collect();
+            copy_replies(check, &users)
+                .map(|[_, last]| format!("{last}."))
+                .unwrap_or_else(|| "Yes! I can't wait to play with you!".to_owned())
+        });
+        let copy_last_report = Value::Object(judging.judge(&copy_last_panel).unwrap());
+        let copy_last_disc = &copy_last_report["abstention_discrimination"];
+        assert_eq!(copy_last_disc["abstain_target"]["true_abstain"], 0);
+        assert_eq!(copy_last_disc["answer_target"]["true_answer"], 20);
+        assert_eq!(copy_last_disc["answer_target"]["false_abstain"], 0);
+        assert_eq!(copy_last_disc["model_correct"], 20);
+        assert_eq!(copy_last_disc["selective_abstention_determinant"], 0);
+        assert_eq!(copy_last_disc["abstention_discriminates"], false);
+
+        // 3. Selective abstaining + answering oracle control (abstains cleanly on `abstain_target`
+        // rows and supplies the expected value on `answer_target` rows):
+        // Passes 24/24 on `abstain_target` and 40/40 on `answer_target`, `false_abstain = 0`,
+        // `selective_abstention_determinant = 960 > 0`, beats `constant[0]` (64 vs 24, p = 1.82e-12)
+        // and `copy_last_stated` (64 vs 20, p = 1.14e-13), `abstention_discriminates = true`.
+        let selective_panel = make_panel(&|_, check| match &check.kind {
+            CheckKind::Exact(terms) => format!("{}.", terms[0].join(" ")),
+            CheckKind::AbstainExact => DEFAULT_CONSTANTS[0].to_owned(),
+            _ => unreachable!(),
+        });
+        let selective_report = Value::Object(judging.judge(&selective_panel).unwrap());
+        let selective_disc = &selective_report["abstention_discrimination"];
+        assert_eq!(selective_disc["abstain_target"]["true_abstain"], 24);
+        assert_eq!(selective_disc["answer_target"]["true_answer"], 40);
+        assert_eq!(selective_disc["answer_target"]["false_abstain"], 0);
+        assert_eq!(selective_disc["model_correct"], 64);
+        assert_eq!(selective_disc["selective_abstention_determinant"], 960);
+        assert_eq!(
+            selective_disc["best_constant"]["model_beats_constant"],
+            true
+        );
+        assert_eq!(
+            selective_disc["best_control_or_copy"]["model_beats_best_control_or_copy"],
+            true
+        );
+        assert_eq!(selective_disc["abstention_discriminates"], true);
+        assert_eq!(
+            selective_report["headline"]["tiers_abstention_discriminates"]["C"],
+            true
         );
     }
 }
