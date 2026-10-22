@@ -17,6 +17,9 @@ use serde_json::Value;
 
 use crate::registries::{Bar, Panel};
 
+#[path = "panel_m6_reasoning.rs"]
+pub mod m6_reasoning;
+
 /// `util.MISSING` — the word the harness prints where a field is absent.
 pub const MISSING: &str = "MISSING";
 
