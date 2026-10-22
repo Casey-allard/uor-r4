@@ -549,7 +549,8 @@ pub fn run(
         "lane",
         "no lab has a lane and no item has `lane:`/`rank:` yet",
     ));
-    // 8. any: ready, scoped items `loop claim` would accept, in id order.
+    // 8. any: ready, scoped items whose dependencies are all done and that `loop claim` would
+    // accept, in id order.
     git(root, &["fetch", "-q", "origin", "main"])
         .map_err(|e| format!("cannot fetch origin main: {e}"))?;
     let listing = git(
@@ -561,7 +562,7 @@ pub fn run(
             "docs/roadmap/items/",
         ],
     )?;
-    let (mut held, mut ready) = (0usize, Vec::new());
+    let (mut held, mut ready, mut waiting) = (0usize, Vec::new(), Vec::new());
     for id in listing
         .lines()
         .filter_map(|p| p.strip_prefix("docs/roadmap/items/")?.strip_suffix(".md"))
@@ -571,7 +572,26 @@ pub fn run(
         };
         match item.status.as_deref() {
             Some("held") => held += 1,
-            Some("ready") if item.scope.is_some() => ready.push(id.to_string()),
+            Some("ready") if item.scope.is_some() => {
+                // An item waits while any dependency is missing or not done on origin/main.
+                let unmet: Vec<String> = item
+                    .depends_on
+                    .iter()
+                    .filter_map(|dep| match crate::loopclaim::read_item(root, dep) {
+                        Ok(d) if d.status.as_deref() == Some("done") => None,
+                        Ok(d) => Some(format!(
+                            "{dep} ({})",
+                            d.status.as_deref().unwrap_or("no status")
+                        )),
+                        Err(_) => Some(format!("{dep} (missing)")),
+                    })
+                    .collect();
+                if unmet.is_empty() {
+                    ready.push(id.to_string());
+                } else {
+                    waiting.push(format!("{id} waits on {}", unmet.join(", ")));
+                }
+            }
             _ => {}
         }
     }
@@ -596,6 +616,13 @@ pub fn run(
     let mut detail = format!("{} ready scoped item(s), none claimable", ready.len());
     if !refused.is_empty() {
         detail.push_str(&format!(" ({})", refused.join("; ")));
+    }
+    if !waiting.is_empty() {
+        detail.push_str(&format!(
+            "; {} waiting on dependencies ({})",
+            waiting.len(),
+            waiting.join("; ")
+        ));
     }
     out.push(source("any", "none", detail));
     let stop = if held > 0 {

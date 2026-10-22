@@ -360,6 +360,20 @@ pub struct ItemFields {
     pub scope: Option<Vec<String>>,
     /// The item's notebook page, from an unquoted-or-quoted `notebook:` line.
     pub notebook: Option<String>,
+    /// The ids in the inline-list `depends_on:` line; empty when there is none.
+    pub depends_on: Vec<String>,
+}
+
+/// The entries of an inline `[a, b]` list, or `None` when `v` is not one.
+fn inline_list(v: &str) -> Option<Vec<String>> {
+    let inner = v.trim().strip_prefix('[')?.strip_suffix(']')?;
+    Some(
+        inner
+            .split(',')
+            .map(|s| unquote(s).to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
+    )
 }
 
 fn unquote(s: &str) -> &str {
@@ -372,7 +386,8 @@ fn unquote(s: &str) -> &str {
     s
 }
 
-/// Read `status:`, `notebook:` and the inline-list `scope:` from an item's `---` frontmatter.
+/// Read `status:`, `notebook:` and the inline-list `scope:` and `depends_on:` from an item's `---`
+/// frontmatter.
 pub fn parse_item(text: &str) -> Result<ItemFields, String> {
     let mut lines = text.lines();
     if lines.next().map(str::trim) != Some("---") {
@@ -388,18 +403,13 @@ pub fn parse_item(text: &str) -> Result<ItemFields, String> {
         } else if let Some(v) = line.strip_prefix("notebook:") {
             fields.notebook = Some(unquote(v).to_string());
         } else if let Some(v) = line.strip_prefix("scope:") {
-            let v = v.trim();
-            let inner = v
-                .strip_prefix('[')
-                .and_then(|v| v.strip_suffix(']'))
-                .ok_or_else(|| format!("scope `{v}` is not a `[a, b]` list"))?;
             fields.scope = Some(
-                inner
-                    .split(',')
-                    .map(|s| unquote(s).to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect(),
+                inline_list(v)
+                    .ok_or_else(|| format!("scope `{}` is not a `[a, b]` list", v.trim()))?,
             );
+        } else if let Some(v) = line.strip_prefix("depends_on:") {
+            fields.depends_on = inline_list(v)
+                .ok_or_else(|| format!("depends_on `{}` is not a `[a, b]` list", v.trim()))?;
         }
     }
     Err("frontmatter is not closed by `---`".into())

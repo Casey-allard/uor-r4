@@ -372,6 +372,44 @@ fn no_ready_scoped_item_stops_empty_or_held() {
 }
 
 #[test]
+fn an_item_waits_until_every_dependency_is_done() {
+    // The fixture writes `scope: <s>`, so a second line puts `depends_on:` in the frontmatter.
+    let r = Repo::new(&[
+        (
+            "a-waits",
+            "ready",
+            Some("[crates/a/**]\ndepends_on: [b-dep]"),
+        ),
+        ("b-dep", "decision", Some("[crates/b/**]")),
+        (
+            "c-missing",
+            "ready",
+            Some("[crates/c/**]\ndepends_on: [no-such-item]"),
+        ),
+    ]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert_eq!(o.status.code(), Some(1), "{o:?}");
+    assert_eq!(decision(&o), "STOP empty queue", "{o:?}");
+    let out = stdout(&o);
+    assert!(out.contains("a-waits waits on b-dep (decision)"), "{o:?}");
+    assert!(
+        out.contains("c-missing waits on no-such-item (missing)"),
+        "{o:?}"
+    );
+    // With the dependency done, the item is offered.
+    let r = Repo::new(&[
+        (
+            "a-waits",
+            "ready",
+            Some("[crates/a/**]\ndepends_on: [b-dep]"),
+        ),
+        ("b-dep", "done", Some("[crates/b/**]")),
+    ]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert!(decision(&o).starts_with("GO item a-waits — "), "{o:?}");
+}
+
+#[test]
 fn the_not_built_sources_are_printed_with_their_loop_prs() {
     let r = Repo::new(&[]);
     let out = stdout(&r.next(&fake(vec![], json!({}))));
