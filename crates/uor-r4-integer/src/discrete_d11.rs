@@ -410,6 +410,9 @@ pub struct IntegerDiscreteModel {
     level_gates: Vec<Vec<i32>>,
     /// `[stage][edge_type]` relation-edge gate trits in `-1..=1` (empty unless `Relation`).
     relation_gates: Vec<[i32; EDGE_TYPES]>,
+    /// When `true`, projects intermediate tree/frame state transport to the identity frame
+    /// (`A_0 = I_8`) on the local query token block and zeroes all level and relation gates.
+    state_transport_knockout: bool,
 }
 
 fn expected_stages(context: u32) -> Option<u32> {
@@ -754,7 +757,35 @@ impl IntegerDiscreteModel {
             routes,
             level_gates,
             relation_gates,
+            state_transport_knockout: false,
         })
+    }
+
+    /// Return a copy of this model with intermediate state transport knocked out:
+    /// every binder-route action is projected to the identity element (`A_0 = 0`),
+    /// level transport gates and relation transport gates are zeroed, and `Route`
+    /// reads return the un-transported local query token blocks on the 16-root orbit.
+    pub fn with_state_transport_knockout(&self) -> Self {
+        let mut copy = self.clone();
+        for b in &mut copy.routes {
+            for r in b.iter_mut() {
+                *r = u32::from(IDENTITY);
+            }
+        }
+        for b in &mut copy.level_gates {
+            for g in b.iter_mut() {
+                *g = 0;
+            }
+        }
+        for s in &mut copy.relation_gates {
+            *s = [0; EDGE_TYPES];
+        }
+        copy.state_transport_knockout = true;
+        copy
+    }
+
+    pub fn is_state_transport_knocked_out(&self) -> bool {
+        self.state_transport_knockout
     }
 
     pub fn shape(&self) -> &DiscreteLutShape {
@@ -781,6 +812,11 @@ impl IntegerDiscreteModel {
         let blocks = self.shape.blocks as usize;
         let stages = self.shape.stages as usize;
         let last_token = prefix[prefix.len() - 1] as usize;
+        if self.state_transport_knockout {
+            return Ok((0..blocks)
+                .map(|block| self.token_blocks[last_token][block])
+                .collect());
+        }
         let mut out = Vec::with_capacity(blocks);
         for block in 0..blocks {
             let query = &self.token_blocks[last_token][block];

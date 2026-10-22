@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 40 |
+| ready | 39 |
 | held | 26 |
 | decision | 4 |
-| done | 18 |
+| done | 19 |
 | total | 88 |
 
 ## Start here
@@ -120,10 +120,10 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Build the intermediate-state ablation instrument for M6](items/m6-causal-ablation-instrument.md) | ready | a lab | no | [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | [#2863](https://github.com/UOR-Foundation/uor-r4/issues/2863) |
 | [Design exact arithmetic on the geometric path](items/m6-exact-arithmetic-mechanism.md) | ready | anyone | no | none | [#2864](https://github.com/UOR-Foundation/uor-r4/issues/2864) |
 | [Qualify reasoning and coding on the served model](items/m6-qualify-reasoning-coding.md) | ready | a lab | yes | [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md), [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m6-causal-ablation-instrument](items/m6-causal-ablation-instrument.md), [m6-exact-arithmetic-mechanism](items/m6-exact-arithmetic-mechanism.md) | [#2865](https://github.com/UOR-Foundation/uor-r4/issues/2865) |
 | [Build and freeze the m6-reasoning panel and oracles](items/m6-reasoning-panel-freeze.md) | ready | anyone | no | none | [#2866](https://github.com/UOR-Foundation/uor-r4/issues/2866) |
+| [Build the intermediate-state ablation instrument for M6](items/m6-causal-ablation-instrument.md) | done | a lab | no | [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | [#2863](https://github.com/UOR-Foundation/uor-r4/issues/2863) |
 
 ## M7
 

@@ -89,6 +89,6 @@ Two further things are also not built: using an address *as* the read (memory by
 
 - Training: [how the model learns](./training.md).
 - Mechanism pages: [discrete-learning](../mechanisms/discrete-learning.md), [admission](../mechanisms/admission.md), [the mechanism board](../mechanisms/README.md).
-- Code: [`discrete.cu`](../../crates/uor-r4-discrete/src/discrete.cu) holds the reads, the writer and the learning kernels. [`metadata.rs`](../../crates/uor-r4-discrete/src/metadata.rs) builds the context plans. [`device.rs`](../../crates/uor-r4-discrete/src/device.rs) is the GPU boundary.
+- Code: [`discrete.cu`](../../crates/uor-r4-discrete/src/discrete.cu) holds the reads, the writer and the learning kernels. [`metadata.rs`](../../crates/uor-r4-discrete/src/metadata.rs) builds the context plans. [`device.rs`](../../crates/uor-r4-discrete/src/device.rs) is the GPU boundary. [`discrete_d11.rs`](../../crates/uor-r4-integer/src/discrete_d11.rs) and [`m6_ablation.rs`](../../crates/uor-r4-integer/src/m6_ablation.rs) serve `uor-r4.lut-discrete/1` integer artifacts and run the M6 four-arm causal intermediate-state ablation instrument ([lab record](../labs/m6-causal-ablation-instrument/README.md)).
 - Audit: the [renormalization audit record](../labs/repo-renormalization-2026-10-19/README.md), which holds the stitching map and the code inventory.
 - Terms: [glossary](../start/glossary.md).

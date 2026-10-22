@@ -108,6 +108,7 @@ rrarra / rrarrarr / rrarrarrar stack; cycle-4 stack (`geometric_s1`); chat-29m-B
 - [`joint_model.rs`](../../crates/uor-r4-training/src/joint_model.rs): the September precursor. [`chat-grade.rs`](../../crates/uor-r4-training/src/bin/chat-grade.rs): the chat and memory scorer.
 - [`geometric-stack-native.rs`](../../crates/uor-r4-training/examples/geometric-stack-native.rs): the current example entry.
 - [`session.rs`](../../crates/uor-r4-integer/src/stack/session.rs): the integer engine that served these stacks.
+- [`discrete_d11.rs`](../../crates/uor-r4-integer/src/discrete_d11.rs) and [`m6_ablation.rs`](../../crates/uor-r4-integer/src/m6_ablation.rs): the `uor-r4.lut-discrete/1` integer discrete evaluator and M6 four-arm causal intermediate-state ablation instrument ([lab record](../labs/m6-causal-ablation-instrument/README.md)).
 - Evidence: [served stacks](../../archive/labs/d11-serving-2026-10-10/README.md), [module split](../../archive/labs/d29-module-split-2026-10-13/README.md), [cycle 4](../../archive/integration/geometric-stack-cycle4-2026-09-27.md).
 
 ## Related mechanisms

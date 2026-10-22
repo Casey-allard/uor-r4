@@ -3,7 +3,7 @@ id: m6-causal-ablation-instrument
 title: Build the intermediate-state ablation instrument for M6
 milestone: M6
 area: evaluation
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [m6-reasoning-panel-freeze, m1-trunk-assembly-and-training]

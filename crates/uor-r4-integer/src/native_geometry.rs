@@ -33,6 +33,8 @@ pub mod h4_tables;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod lawful_likelihood;
 #[cfg(not(feature = "serving-wasm"))]
+pub mod m6_ablation;
+#[cfg(not(feature = "serving-wasm"))]
 pub mod math;
 
 #[cfg(not(feature = "serving-wasm"))]
