@@ -81,7 +81,7 @@ with $m$ the score masses. That function is banned. The allowed replacement is t
 
 - The engine at matched capacity against an ordinary control. It was set aside at 1.68 million parameters.
 - Free-running prose from this engine; continuous loss improved, generated prose scored 0 of 5.
-- A genuinely fresh qualification of any October model after the exposed-panel critique. The one fresh draw scored 0 of 128, and no successor ran.
+- A genuinely fresh qualification of any October model after the exposed-panel critique. The one fresh draw scored 0 of 128, and no successor ran. The replacement 256-row fresh held-out panel (`m2-fresh256`, [`docs/harness/panels/m2-fresh256.json`](../harness/panels/m2-fresh256.json), [`docs/labs/m2-fresh-heldout-panel/README.md`](../labs/m2-fresh-heldout-panel/README.md)) is now staged (`NOT_RUN`, `TEST FITNESS: PENDING`, owner-registered bar `pairs_both_complete_distinct >= 52/128` (`complete >= 104/256`) alongside `>= 256/512` on `m2-reply512`).
 - A rank-margin or other allowed objective for the cross-state banks.
 - GPU execution of the September engine. Its fitting was recorded as host Rust.
 - Whether version-chain selectors transfer to free-form edited facts, not authored wording.
@@ -92,7 +92,7 @@ with $m$ the score masses. That function is banned. The allowed replacement is t
 ## What would reopen it
 
 1. **A new pre-registration with a `TEST FITNESS: FIT` review**, after the owner lifts the separate hold on this line's training and rental. It replaces the softplus ranking with an allowed hinge and runs on GPU in its own scanned module (D37).
-2. **A genuinely unexposed decisive panel**: at least 200 fresh rows or at least 2 seeds (D22), not the 512-row practice panel.
+2. **A genuinely unexposed decisive panel**: at least 200 fresh rows or at least 2 seeds (D22), not the 512-row practice panel. The 256-row `m2-fresh256` panel ([`docs/harness/panels/m2-fresh256.json`](../harness/panels/m2-fresh256.json)) is now staged (`inputs.json` `sha256:1de2fc28…`, `labels.json` `sha256:3b5c5477…`, `TEST FITNESS: PENDING`) and remains `NOT_RUN` until a non-author `TEST FITNESS: FIT` review freezes it and a compliant candidate is owner-released.
 3. **Rebuild and re-qualify the quarantined kernels** without the hidden dense contraction (D29).
 4. **Join the line to the shared integer vector writer**, so the language path and the compile-and-emit path use one geometric representation.
 5. **A result from the relation-read reranker** ([relation-read](./relation-read.md), D34) that needs exact multi-version identity memory. That is the natural route back for the version-chain selectors.

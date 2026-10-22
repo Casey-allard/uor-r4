@@ -7,10 +7,10 @@
       "milestone": "m2",
       "frozen": true,
       "grader": "the saved native learner's own complete-reply evaluator (uor-r4-core::native_geometric compiler -> exact store -> emitter; the frozen 512 development panel and the fresh 128-row draw)",
-      "source": "issue #2030 acceptance 1-2 and current state (10 October); docs/harness/milestones.json",
-      "noise": "unstated. No panel sigma or seed-to-seed spread is stated for the 512 panel anywhere read (issue #2030, milestones.json, session-goal.md). A bar must not be narrower than it; measure it before claiming a real difference.",
+      "source": "issue #2030 acceptance 1-2 and current state (10 October); docs/harness/milestones.json; docs/labs/m2-fresh-heldout-panel/README.md",
+      "noise": "single-model within-panel spread on saved437 (de4a3234..., not multi-seed training spread): saved 2026-10-10 replay audit (development-replay-audit-summary.json) records 0/512 mismatches across 7908 checked steps (PASS_SAVED_EVIDENCE); computed by docs/labs/m2-fresh-heldout-panel/instrument from reviewer-rank177.json (.endpoints.final.complete_ids, 437 IDs), the stratified half-panel split (16 even vs 16 odd blocks of 256 rows) is 219/256 vs 218/256 (|delta| = 1 row), paired-variant spreads across 256 pairs are chronology 212 vs 225 (|delta| = 13), role-swap 215 vs 222 (|delta| = 7), query-wording 214 vs 223 (|delta| = 9), queried-role 219 vs 218 (|delta| = 1, 186/256 histories complete on both roles), and the 16-block (256-row) cluster-sampling SE is 6.24 rows (244 bps) at p=85.35% and 8.64 rows (338 bps) at the 40% bar. See docs/harness/panels/m2-fresh256.json for the staged 256-row replacement fresh panel.",
       "seeds": ">= 2 for a decisive run (D22 section 3); D22 section 5b names >= 2 seeds for joint learning",
-      "rows": ">= 200 fresh rows for a decisive run (D22 section 3); the fresh transfer draw is 128 rows, so the seed floor applies there",
+      "rows": ">= 200 fresh rows for a decisive run (D22 section 3); the 10 October 128-row draw was opened and is superseded for future qualification by m2-fresh256 (256 fresh rows, docs/harness/panels/m2-fresh256.json)",
       "bars": [
         {
           "id": "complete-correct-512",

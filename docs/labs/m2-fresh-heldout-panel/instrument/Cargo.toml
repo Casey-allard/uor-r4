@@ -1,0 +1,19 @@
+[package]
+name = "m2-fresh-heldout-panel-instrument"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose, so this
+# instrument can never change what the workspace builds.
+[workspace]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+uor-r4-core = { path = "../../../../crates/uor-r4-core" }
+uor-r4-tokenizer = { path = "../../../../crates/uor-r4-tokenizer" }
+
+[dev-dependencies]
+tempfile = "3"

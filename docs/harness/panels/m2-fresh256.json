@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "note": "Staged M2 fresh held-out acceptance panel (issue #2849, milestone #2030). Registered and sealed in advance of any candidate scoring (NOT_RUN). Graded by the existing deterministic complete-reply evaluator unchanged.",
+  "panels": {
+    "m2-fresh256": {
+      "title": "M2 grounded reply: 256-row genuinely fresh held-out acceptance panel",
+      "milestone": "m2",
+      "frozen": false,
+      "grader": "the saved native learner's own complete-reply evaluator unchanged (crates/uor-r4-core/examples/native-bank-generalization.rs under uor-r4.literal-role-dialogue/2, membership_only exact match on accepted plus opposite-query history-pair completion pairs_both_complete_distinct via pair_id)",
+      "source": "issue #2030 comments 6347165682 and 6350135678, issue #2849, docs/labs/m2-fresh-heldout-panel/README.md; deterministic generator docs/labs/m2-fresh-heldout-panel/instrument with pinned ByteBpeTokenizer d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89 (plan.json 122268 B sha256:0ed1ab98ab50bbad6c484c4e7e4ffeeb8bb7ad17d162251826302efe86d75715; unscored inputs.json 524850 B sha256:1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a; sealed labels.json 68000 B sha256:3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be; manifest.json 1384 B sha256:7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964)",
+      "noise": "single-model within-panel spread on saved437 (de4a3234...) over m2-reply512 (b9661606..., not multi-seed training spread): saved 2026-10-10 replay audit (development-replay-audit-summary.json) records 0/512 mismatches across 7908 checked steps (PASS_SAVED_EVIDENCE); computed by docs/labs/m2-fresh-heldout-panel/instrument from reviewer-rank177.json (.endpoints.final.complete_ids, 437 IDs), the stratified half-panel split (16 even vs 16 odd blocks of 256 rows) is 219/256 vs 218/256 (|delta| = 1 row), paired-variant spreads across 256 pairs are chronology 212 vs 225 (|delta| = 13), role-swap 215 vs 222 (|delta| = 7), query-wording 214 vs 223 (|delta| = 9), queried-role 219 vs 218 (|delta| = 1, 186/256 histories complete on both roles), and the 16-block (256-row) cluster-sampling SE is 6.24 rows (244 bps) at p=85.35% and 8.64 rows (338 bps, vs 7.83 rows floor / 7.84 rows rounded i.i.d. binomial) at the 40% bar; under history-pair completion (pair_id / pairs_both_complete_distinct) through the real FrozenAnswers + ByteBpeTokenizer grader, every question-blind and role-swap control (copy_first_stated, copy_last_stated, role_swap_distractor, best_constant_reply) scores 0/128 pairs (0/256 pair-verified rows).",
+      "seeds": ">= 2 for a decisive run (D22 section 3); D22 section 5b names >= 2 seeds for joint learning",
+      "rows": "256 fresh rows (128 histories x 2 opposite-role queries across 16 unordered bank blocks and 32 ordered role-value banks: length2 64, length4 64, length8 64, update 32, reassert 32; 0 exact, 0 content-word, and 0 word 2-gram overlaps against all 74 historical curriculum and transfer literals on disk, and 0 intra-panel content-word duplicates across all 34 fresh literals)",
+      "bars": [
+        {
+          "id": "complete-correct-512",
+          "label": "complete correct replies on the frozen 512-row development panel",
+          "current": 437,
+          "target": 256,
+          "of": 512,
+          "unit": "correct replies",
+          "direction": "open",
+          "note": "retained from m2-reply512; any candidate must simultaneously hold >= 256/512 on the saved development questions and pairs_both_complete_distinct >= 52/128 (40.625%, with single-row complete >= 104/256) on m2-fresh256"
+        },
+        {
+          "id": "fresh-transfer-256",
+          "label": "pairs_both_complete_distinct (opposite-role history pairs both complete and distinct) on the sealed 256-row fresh held-out panel (m2-fresh256)",
+          "current": 0,
+          "target": 52,
+          "of": 128,
+          "unit": "complete distinct history pairs",
+          "direction": "open",
+          "note": "registered by the owner on #2030 (comment 6350135678): pairs_both_complete_distinct >= 52/128 (40.625% of the 128 opposite-role history pairs, with single-row complete >= 104/256); current is 0/128 (NOT_RUN; no candidate has been scored on m2-fresh256, and every question-blind and role-swap control scores 0/128 pairs and 0/256 pair-verified rows through the real FrozenAnswers + ByteBpeTokenizer + pair_id grader), exceeding 0/128 by 12.0x the cluster-adjusted standard error (8.64 rows / 4.32 pairs)"
+        }
+      ],
+      "note": "Staged under m2-fresh-heldout-panel (#2849) prior to any M2 evaluation run (NOT_RUN). TEST FITNESS: PENDING — remains frozen: false until a non-author lab's TEST FITNESS: FIT review lands and a maintainer uploads the sealed files (plan.json, inputs.json, labels.json, manifest.json) to hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/."
+    }
+  }
+}
