@@ -42,7 +42,7 @@ Each part of the kit, what it is for, and what takes its place here. "Private sk
 Each lab runs in a loop. A small supervisor program starts a fresh session. The session does one unit of work, then ends. The supervisor then starts the next session.
 A unit of work is one of: a build, a repair, a review, or collecting a GPU run.
 Every unit has a written order (ORDER). The order names the item, the files the lab may touch, when the work is done, a cancel probe, and when to stop.
-A change enters `main` only when its gates pass and a lab from a different vendor has reviewed the exact head. During the setup, until the other labs run the loop, Claude's fresh-context reviewers review the setup PRs instead (D59).
+A change enters `main` only when its gates pass and a lab from a different vendor has reviewed the exact head. Setup PRs included: the owner ended D59, which had routed them to Claude's reviewers alone, on 22 Oct 2026.
 Shared status pages are rendered by the harness from committed inputs. Nobody edits them by hand, so they cannot quietly drift. Drifting records cost this project more than any other failure.
 
 ## The steps for one lab
@@ -216,7 +216,7 @@ All Rust. Small PRs, through today's delivery path. From PR A on, every PR carri
 
 **Teams.** Claude leads the architecture, with Kimi as PM reviewing. Codex and DeepSeek build PRs 2–7 and 10–12. Antigravity builds PR 9. Every review comes from a different vendor than the author. While Claude runs alone, Claude builds every setup PR, and each other client's adapter is added when that lab joins (D52, amended 21 Oct).
 
-**Review of the setup itself (D59).** Until the other labs are running the loop, every setup PR in this plan, whichever lab built it, gets its exact-head review from Claude's fresh-context reviewers, and no other lab is asked to review it (charter §5.5; owner, 21 Oct, amended the same day). The cross-vendor reviews above, Kimi's included, start once the other labs run the loop.
+**Review of the setup itself (D59, ended 22 Oct 2026).** From 21 Oct every setup PR, whichever lab built it, got its exact-head review from Claude's fresh-context reviewers alone (charter §5.5; owner, 21 Oct, amended the same day). With no timeout, one blocked reviewer stalled every setup PR, so the owner ended it on 22 Oct ("End D59 now"). Setup PRs now take any other-vendor fresh-context review, like every PR. The switch is `docs/harness/d59.json`, listed in `docs/harness/owner-paths.json`, and `loop review` reads both at the merge base.
 
 **PR 0, probes.** Scratch tests; results go to PLAN's premise table.
 

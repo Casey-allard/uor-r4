@@ -11,6 +11,7 @@
     {"path": "docs/harness/owner-paths.json", "why": "this list"},
     {"path": "docs/harness/rule-sources.json", "why": "the files allowed to state a rule"},
     {"path": "docs/harness/branches.json", "why": "protected branches that are never deleted"},
+    {"path": "docs/harness/d59.json", "why": "the owner's switch that ended D59 (Claude-only review of loop setup PRs)"},
     {"path": "scripts/pod/uor-pod", "why": "the GPU caps: at most 4 pods and $8/h across all labs"}
   ]
 }

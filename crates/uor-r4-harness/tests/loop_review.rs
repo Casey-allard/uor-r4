@@ -358,8 +358,11 @@ fn the_switch_ends_d59_only_when_listed_and_ended() {
     assert!(d59_in_force(listed, Some("{not json")));
     assert!(d59_in_force(listed, None));
     assert!(d59_in_force(listed, Some(r#"{"d59":"in force"}"#)));
+    // The owner ended D59 on 2026-10-22 ("End D59 now"); the repository's own listing and switch say so.
     let real = include_str!("../../../docs/harness/owner-paths.json");
-    assert!(d59_in_force(real, Some(ended)));
+    let real_switch = include_str!("../../../docs/harness/d59.json");
+    assert!(!d59_in_force(real, Some(real_switch)));
+    assert!(!d59_in_force(real, Some(ended)));
 
     let off = Case {
         d59: d59_in_force(listed, Some(ended)),

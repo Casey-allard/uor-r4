@@ -16,7 +16,7 @@ Only the owner changes it; changes are logged in [docs/rules/changes.md](docs/ru
 3. **No matmul.** No dense matrix multiplication or GEMM in training or serving, including wrappers and hand loops (§3.3).
 4. **GPU-only research compute.** Training, evaluation and qualification run on the GPU; serving the exported integer artifact on client devices is the product and is allowed (§3.5, §3.6).
 5. **Never grant or assume an owner release yourself.** Ask Casey in your own chat; only his approval there counts, and you record his words verbatim with the time (§5.1).
-6. **Deliver through the full path:** PR → exact-head review by another vendor's lab (loop setup PRs, whichever lab built them, until the other labs run the loop: Claude's fresh-context reviewers, D59; other doc-only or generated PRs: a fresh-context self-review) → merge queue → verify on fresh `main` → delete the branch and worktree (§5.5).
+6. **Deliver through the full path:** PR → exact-head review by another vendor's lab, loop setup PRs included since the owner ended D59 on 22 Oct 2026 (doc-only or generated PRs: a fresh-context self-review) → merge queue → verify on fresh `main` → delete the branch and worktree (§5.5).
 
 ## Where things are
 
