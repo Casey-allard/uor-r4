@@ -38,6 +38,7 @@ pub mod loopbench;
 pub mod loopboard;
 pub mod loopclaim;
 pub mod loopclose;
+pub mod loopdrive;
 pub mod loopgates;
 pub mod loopguard;
 pub mod loopnext;

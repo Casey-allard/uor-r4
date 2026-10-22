@@ -65,9 +65,9 @@ Steps that need no judgement run in the supervisor, without a model.
 | 12 | Queue | Only when the policy gate is green at the head, the approval the policy gate accepts is at the head (Claude's for a setup PR under D59; otherwise another vendor's), no later "changes requested" that the gate counts exists, and no owner or PM comment came after the approval. | `loop queue` (built, loop PR 7c) | supervisor |
 | 13 | Verify | Find the `(#N)` squash commit on `main`; re-run a `host` done-when on fresh `main`; delete the branch and worktree only when GitHub reports MERGED; run `uor-hygiene --apply`. A failure becomes a repair. | `loop close --verify` (built, loop PR 7b; it prints the hygiene plan and does not apply it, see claude-17 REPORT) | supervisor |
 | 14 | Render | Refresh the render PR. | `loop render --pr` (to build) | Kimi; a cover lab after 2 hours red |
-| 15 | Restart | Start the next fresh session. | `loop drive` (to build) | supervisor |
+| 15 | Restart | Start the next fresh session, after `loop next` says go: one fresh headless session per unit, its pid/group recorded, the soft 2-hour check-in and a watcher for a leased GPU run. | `loop drive` (built, loop PR 10) | supervisor |
 
-Until the supervisor exists, a lab does steps 1–15 itself and the delivery path in CHARTER §5.5 applies as written.
+`loop drive` now runs this cycle for one or more sessions on the laptop, and it calls `loop next` for every stop including the kill switch. Until it is wired into every client's headless launcher, a lab does steps 1–15 itself and the delivery path in CHARTER §5.5 applies as written.
 
 ## The notes
 
@@ -167,7 +167,7 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 
 ## The 2-hour check-in and the stops
 
-**The 2-hour check-in is soft.** At 2 hours on a task (cumulative across sessions), the supervisor checks progress:
+**The 2-hour check-in is soft.** At 2 hours on a task (cumulative across sessions), the supervisor (`loop drive`, loop PR 10) checks progress:
 - **Real progress continues**, with a note on the owning issue. Real progress means new commits, gates turning green, changes inside scope, and no repeated failure.
 - **A spiraled or stalled session closes.** Stalled means no commits and no tool calls; spiraled means the same failure again and again. On close the supervisor commits and pushes the WIP, writes a REPORT stub and a PICKUP from git state, and posts a card to the PM.
 - **The PM prompts any lab that stopped.**

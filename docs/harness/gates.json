@@ -97,6 +97,33 @@
       }
     },
     {
+      "id": "loop-drive",
+      "proves": "The supervisor runs a session only when loop next says Go, tracks and signals only its recorded pid/process group, records a closed session from git state, keeps the soft 2-hour check-in (a fake progressing client continues with a note), and its watcher never cancels a healthy run; the planted fault removes the stalled-session close.",
+      "command": [
+        "cargo",
+        "test",
+        "-q",
+        "--locked",
+        "-p",
+        "uor-r4-harness",
+        "--test",
+        "loop_drive"
+      ],
+      "reads": [
+        "crates/uor-r4-harness/**/*.rs",
+        "docs/harness/gates.json"
+      ],
+      "quick": false,
+      "break": {
+        "file": "crates/uor-r4-harness/src/loopdrive.rs",
+        "replace": {
+          "from": "        Progress::Stalled => CheckIn::Close {\n            reason: format!(\n                \"stalled: no commits, gate runs or edits for {elapsed_seconds}s of the 2-hour task\"\n            ),\n        },\n    }",
+          "to": "        _ => CheckIn::Continue {\n            note: \"planted: a stalled client is never closed\".to_string(),\n        },\n    }"
+        },
+        "expect": "a fake stalled client past 2 hours is closed and carded"
+      }
+    },
+    {
       "id": "git-hooks",
       "proves": "The three managed git hooks plan and install owner-only, replace the stock LFS pre-push with its backup, check Lab and Order trailers on lab branches, and run pr-check --local before a push.",
       "command": [

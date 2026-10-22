@@ -97,6 +97,37 @@ Verdicts: GREEN, RED, REFUSED (could not run, or its reads match no file), UNKNO
 
 **The progress window (built, loop PR 11).** `--watch` writes a status file after every gate under `local/<lab>/gates/<run-id>/status.json` and draws it on stderr: `gate N of M`, the gate running now, each red as it lands, and a finish estimate from the latest seconds per gate in the ledger ("no estimate yet" on a first run). It opens only for a full run in a terminal, never in CI (`CI` set) and never in a headless or piped run, and it closes after the run. It gives up after five minutes without a change to the status file and says so; a single gate that runs longer than five minutes therefore closes the window while the run continues, unchanged. Nothing in the run depends on it: if it is off, crashes or gives up, the gates and the exit code are the same.
 
+### `loop drive` (loop PR 10)
+
+The supervisor. It asks `loop next` first and starts a session **only on `Go`**: the kill switch
+(`local/loop/STOP`, or the `loop:pause` label on #2028), held work, an empty queue and the other
+stops are the loop page's, and `drive` calls them rather than re-implementing them. The headless
+client command follows a `--` separator and carries exactly one `{prompt}` element, which the
+supervisor replaces with the session prompt (the caller's `--prompt`, or a default built from the
+`loop next` decision). The client runs in its own process group; the pid, pgid, client, model,
+prompt SHA-256 and start time are written under `local/loop/drive/<lab>/last-session.json`, and only
+that recorded pid/group is ever signalled, so another lab's worktree and a client's after-stop
+summary process are never touched. `--order <ORDER.md>` names the active ORDER for the scoped WIP
+commit a stalled close makes (staging only its task folder, with the `Order:` trailer); `--exempt-lease`
+marks a session whose lease covers it so the check-in never closes it; the command and the signals are
+unix-only, and the flag has no meaning on other targets.
+
+```sh
+UOR_LAB=claude uor-harness loop drive --client claude --model <id> --prompt-file <path> --max-sessions 2
+UOR_LAB=claude uor-harness loop drive --watch --pid <pid> --interval 60
+UOR_LAB=claude uor-harness loop drive --watch --lease --interval 300
+```
+
+**The 2-hour check-in is soft (D53).** A session under two hours continues. Past it, real progress -
+new commits, new gate runs or a changed working tree - continues **with a note**; a stalled or
+spiraled session is closed with a REPORT stub and a PICKUP written from git state and a card to the
+PM (in `local/loop/drive/<lab>/close-<time>/`, and posted on #2028 when `gh` succeeds). `--watch` is
+the session-bound watcher: while its recorded pid is alive it runs the renew command given after
+`--`, notes it, and ends when the run ends; it never cancels a healthy run. `--watch --lease` is the
+watcher for a leased GPU run and **outlives the lab session** when started detached: it renews while
+the renew command succeeds, notes each renewal, and stops when that command reports the lease ended. The `loop-drive` gate proves these with a fake stalled client
+past two hours (closed and carded) and a fake progressing one (continues with a note); its planted
+fault removes the stalled-session close.
 ### `loop claim`, `loop suborder` and `loop ask` (loop PR 7a)
 
 ```sh
