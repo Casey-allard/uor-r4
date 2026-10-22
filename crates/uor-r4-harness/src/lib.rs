@@ -34,6 +34,7 @@ pub mod heartbeatcard;
 pub mod hygiene;
 pub mod labs;
 pub mod looparrive;
+pub mod loopbench;
 pub mod loopboard;
 pub mod loopclaim;
 pub mod loopclose;

@@ -281,9 +281,12 @@ Tests replace `gh` with `UOR_LOOP_QUEUE_GH_FAKE=<json>` (`pr` with `headRefOid`,
 ```sh
 uor-harness loop board          # every registered lab: vendor, client, role, presence, claims held, open PRs
 uor-harness --json loop board   # the same as JSON, one entry per lab, plus the untagged PRs
+uor-harness loop board --bench local/bench [--every 60]   # write the bench's STATE, HANDOFF, PLAN, DECISIONS and .gates.jsonl
 ```
 
 Read-only. For each lab in `docs/harness/labs.json`, sorted by name, it shows vendor, client and role (`-` when none); presence from the live tier, falling back to the committed copy, with the tier named (`no check-in` when the lab has none); the number of claims held by the lab, live and committed (`multilab::claims` merges `docs/harness/claims.json` with the live tier, so stale committed claims count too); and its open PRs, those whose title starts with `[<lab>]` exactly, each with number, draft or ready and a 7-character head, from `gh pr list --state open --limit 200 --json number,title,headRefOid,isDraft`. Open PRs with no registered lab tag are listed under `untagged`. It makes no GitHub write: its GitHub trait has no write method. No hook canary yet: that is loop PR 9. Exit 0 rendered, 2 cannot run. Tests replace `gh` with `UOR_LOOP_BOARD_GH_FAKE=<json>`, holding the array `gh pr list --json` prints.
+
+`--bench DIR [--every N]` (`loopbench.rs`, claude-25) writes five files into DIR in the CorvusWing bench's shape (`.gates.jsonl` and the decisions, plan, handoff and state pages), each as a temp file then a rename. Every repo file is read from `origin/main` after `git fetch -q origin main`: roadmap items become Tasks rows whose Status word sets the lane (`done`, `in progress: <lab>-<n>, PR #N, <review>` for an item an open lab PR's ORDER names, `held`, `decision pending (owner)`, `ready, waits on <id>`, `ready`); each open lab PR that adds an ORDER becomes a Next row (CHANGES first, then needs review, APPROVE, draft) with the ORDER's first Done when and Stop and ask if bullets; `docs/integration/DECISIONS.md` rows map column by column; committed `receipts.jsonl` and each `local/<lab>/gates.jsonl` become one gate line per run. DIR must sit outside the repository or under `local/` (else exit 2); `INBOX.md` is never written. Without `--every` it writes once (exit 0, 1 on a failed refresh); `--every N` (N >= 30) loops and keeps going after an error. GitHub reads only; tests replace `gh` with `UOR_LOOP_BENCH_GH_FAKE=<json>`.
 
 ## Where it sits against what already exists
 
