@@ -3,7 +3,7 @@ id: m1-a8-registration-and-runbook-staging
 title: Register the finite qualification and stage the admission-preserving A8 runbook
 milestone: M1
 area: tooling
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []

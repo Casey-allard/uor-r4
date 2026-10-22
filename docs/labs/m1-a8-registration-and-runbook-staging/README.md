@@ -1,0 +1,214 @@
+# Admission-Preserving A8 Finite Qualification & Audited-Dose Staged Runbook (`#2832`)
+
+- **Lab:** `antigravity` ([`#2832`](https://github.com/UOR-Foundation/uor-r4/issues/2832#issuecomment-6343653097))
+- **Milestone:** M1 (`#2029`) — `m1-discrete-attention`
+- **Status:** **STAGED (host-only, `$0.00` spend, training HELD).** Nothing has executed on GPU.
+- **Immutable Admission-Preserving Dose Sheet (unchanged):** [`../../harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md`](../../harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md) — **TEST FITNESS: FIT**, SHA-256 `fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450` (`17,745` B, restored byte-identical in `#2785` `c6eb0526566b976ca8cc281c867a1d0c4c3f0b40`, pinned in [`../../../crates/uor-r4-discrete/src/attention_anchor_device.rs`](../../../crates/uor-r4-discrete/src/attention_anchor_device.rs) as `FIT_SHEET_SHA256`).
+- **Registered Finite-Qualification Sheet:** [`../../harness/prep/m1-a8-registration-and-runbook-staging-2026-10-22.md`](../../harness/prep/m1-a8-registration-and-runbook-staging-2026-10-22.md) — **TEST FITNESS: FIT**, binding [`../admission-preserving-qualification-2026-10-19/README.md`](../admission-preserving-qualification-2026-10-19/README.md) (`train61-synthetic1-interval64-two-arm-throughput-v1`, scope `m1-attention-active-audit-finite-source-qualification-v1`).
+- **Parent A8 Learning Sheet:** [`../../harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md`](../../harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md) — **TEST FITNESS: FIT**, SHA-256 `3e622bebd7c468c6cd3d15a38486768c7902807998f71cae039a4341ab55da2b` (`12,697` B, `A8_SHEET_SHA256`).
+- **Bound Source Commit:** `fd409fcdf3bc43d607e768bae6f8cf403aa75901` (`#2782`, [`../admission-anchor-controller-2026-10-19/README.md`](../admission-anchor-controller-2026-10-19/README.md)), consumer-verified on host by [`../address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py`](../address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py) (`82f29cdcbd387ba19597b9dea79711eb54dcbd1df49ec8c0b74e623d080b8223`, `#2783`, `64/64` self-tests PASS).
+
+---
+
+## 1. Pinned Inputs & Identity Table
+
+| Artifact / Field | Path / Identifier | SHA-256 / Value |
+| :--- | :--- | :--- |
+| **Admission-Preserving Dose Sheet** | [`../../harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md`](../../harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md) | `fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450` (`17,745` B, `FIT_SHEET_SHA256`) |
+| **Parent A8 Learning Sheet** | [`../../harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md`](../../harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md) | `3e622bebd7c468c6cd3d15a38486768c7902807998f71cae039a4341ab55da2b` (`12,697` B, `A8_SHEET_SHA256`) |
+| **Bound Source Commit (`#2782`)** | `fd409fcdf3bc43d607e768bae6f8cf403aa75901` | `driver_source_sha256 = 0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d`, `compiled_source_sha256 = a5d59806d7aa12ce7bed05bacc8cffa700da717a172efbe787075cce78c60831`, `geometry_sha256 = 46ddbb76d4f7f509fa9d8e5ee326b1cc8e882a20d532ce514a6a7cc80f37eb5a` |
+| **Treatment Config (`Relation`, `LearnV1`)** | [`../a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json`](../a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json) | File `469a2ff0fe17a6a80f5875a077b3e6a9436553efdf1c6e7884541220553e9d5e` (`1,924` B); `config_sha256 = f223d78f45fe26dee4080ae7ca9a5b9ff12d9ef0df847375671d52db733fbecd`; `lineage_sha256 = f22ebd7129f194c7b3089a3b647b3d174d8c0c95fb18395611bba77036fa3cf3` |
+| **Control Config (`FrozenZero`, `FrozenZeroV1`)** | [`../a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json`](../a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json) | File `cf7ebcc85d2e463ae8f6691b63d90a0e005701cb38b8249a8d0d5460d8508479` (`1,930` B); `config_sha256 = c3fbffe08d13008b8b7ab400a4ef946f2c49632906d88e431d5e80314b9f5536`; `lineage_sha256 = e4c3efc99f51bc3eb4c13844cc3e7dc12e9e42d32a2cde39603e6052d649e79a` |
+| **Unpinned Treatment Initializer** | [`../injective-attention-runbook-2026-10-19/evidence/parent-rows-relation-seed1.json`](../injective-attention-runbook-2026-10-19/evidence/parent-rows-relation-seed1.json) | `52b32dc8747148e0cd385d309dbfb1c3cc750569d11ff3932745313e134cc670` |
+| **Unpinned Control Initializer** | [`../injective-attention-runbook-2026-10-19/evidence/parent-rows-frozen-zero-seed1.json`](../injective-attention-runbook-2026-10-19/evidence/parent-rows-frozen-zero-seed1.json) | `6a035717130a5e7106e19ca585b4de4383506b425ce403d8a13d7ab44622e1cf` |
+| **`PrimeZeta` Table (`P8`)** | [`../injective-attention-runbook-2026-10-19/evidence/prime-zeta-v4096-b4-c192-k8.json`](../injective-attention-runbook-2026-10-19/evidence/prime-zeta-v4096-b4-c192-k8.json) | `83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b` (`table_sha256 = e9e03bcd…`) |
+| **Pinned `A8` Table (`address_structured_v1`)** | Rebuilt on pod via `address-cells-codebook` | File `6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1`; `table_sha256 = 4122cbab44bd88658743984fc1ab79059bf032c3e2fe526ffcf4ea5f95d9cd74`; `counts_sha256 = 755a5a81ddbf0f9d81b4d0bd88e54435b96f5485f87ad92a22d235651fe6ca44` |
+| **`G-Init` Negative (b) Non-Root Table** | [`../a8-dose-runbook-2026-10-19/evidence/neg-b-a8-nonroot-table.json`](../a8-dose-runbook-2026-10-19/evidence/neg-b-a8-nonroot-table.json) | `e35bb48d800cd41e5e6b0b48d4b41b8b61fc147f4fde98c54e8dff919d15f90e` (`table_sha256 = f9e1ea54…`) |
+| **Fixed TRAIN Audit Anchor (`3,847` rows)** | `uor-r4.train-copy-successor-anchor/v1` (`start_eligible_index = 1,049,856`, `count = 3,847`, `context = 192`) | `REGISTERED_CSV_SHA256 = 8c1b80e9b15e4e2bcc765037afa7800b785418be3e20b8cc80ce13ee2e32b3c1` (`61` device batches: `60 x 64` + `1 x 7` tail) |
+| **Host Consumer Verifier (`64/64` PASS)** | [`../address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py`](../address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py) | `82f29cdcbd387ba19597b9dea79711eb54dcbd1df49ec8c0b74e623d080b8223` (`417,600` B) |
+
+---
+
+## 2. Stage 1 Runbook & Executor — Finite Source Qualification & Calibration (`m1-attention-active-audit-finite-source-qualification-v1`)
+
+Finite qualification runs **before** any full-dose release. It requires its own FIT sheet ([`../../harness/prep/m1-a8-registration-and-runbook-staging-2026-10-22.md`](../../harness/prep/m1-a8-registration-and-runbook-staging-2026-10-22.md)), owner cost/scope approval (`APPROVE_EXACT_FINITE_QUALIFICATION_SCOPE_AND_COST`), PM dispatch (`DISPATCH_FINITE_SOURCE_QUALIFICATION_ONLY`), independent plan review (`APPROVE_EXACT_QUALIFICATION_PLAN`), and Casey's personal qualification release (`RELEASE_FINITE_AUDITED_SOURCE_QUALIFICATION_ONLY`).
+
+### Step 1.1 — Pod Checkout, CUDA Build & Identity Verification (Lab Side, After PM Dispatch)
+
+On a leased `2 x RTX 5090` pod (`uor-pod up --ref fd409fcdf3bc43d607e768bae6f8cf403aa75901`, `<= 4` pods, `<= $8.00/h`, `>= 30 GiB` free disk plus reserve):
+
+```sh
+git checkout --detach fd409fcdf3bc43d607e768bae6f8cf403aa75901
+test "$(git rev-parse HEAD)" = "fd409fcdf3bc43d607e768bae6f8cf403aa75901"
+
+cargo build --release --locked -p uor-r4-discrete --features cuda
+BIN="$(pwd)/target/release/discrete-stack"
+CODEBOOK_BIN="$(pwd)/target/release/address-cells-codebook"
+
+# Verify data pins (mw-balp TRAIN, DEV, tokenizer, PrimeZeta P8, and rebuilt A8)
+"$CODEBOOK_BIN" docs/labs/address-cells-preflight-configs-2026-10-19/evidence/p8.json \
+  /workspace/uor-r4/local/driver/data/address-cells/address-structured-v1.json structured
+
+"$BIN" attention-audit-build-identity docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json \
+  > "$STAGE1_DIR/build-identity-relation.json"
+"$BIN" attention-audit-build-identity docs/labs/a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json \
+  > "$STAGE1_DIR/build-identity-frozen-zero.json"
+```
+
+Both `attention-audit-build-identity` outputs must report:
+- `driver_source_sha256 == "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d"`
+- `compiled_identity.source_sha256 == "a5d59806d7aa12ce7bed05bacc8cffa700da717a172efbe787075cce78c60831"`
+- `compiled_identity.geometry_sha256 == "46ddbb76d4f7f509fa9d8e5ee326b1cc8e882a20d532ce514a6a7cc80f37eb5a"`
+- `cuda_context_created == false`, `training == "HELD"`
+- `scope == "m1-attention-active-whole-interval-rejection-v1-relation-seed1-attempts0..16404"` (treatment) and `"m1-attention-active-whole-interval-rejection-v1-frozen-zero-seed1-attempts0..16404"` (control).
+
+### Step 1.2 — Zero-Update Inherited Observations (`16` Records: `8` per Arm)
+
+Produce the `8` `uor-r4.attention-audit-inherited-command/1` records per arm (`16` total) pinned by `QualificationPlan.inherited_observations`:
+1. `canonical_initlock_c2`: `"$BIN" qualify-relation "$STAGE1_DIR/relation-qual"` (`9/9` PASS, `applied_updates == 0`, `training == "HELD"`).
+2. `negative_k16`: `"$BIN" attention-build-identity docs/labs/address-cells-preflight-configs-2026-10-19/evidence/a16.json` (`native_exit == 2`, stderr `"invalid discrete model: attention requires K8, nearest-address objective, active-leaf initialization and interleaved read-every-8 schedule"`).
+3. `negative_nonroot`: `"$BIN" init-corpus "$STAGE1_DIR/neg-b-config.json" "$STAGE1_DIR/neg-b-out"` (`native_exit == 2`, stderr `"invalid discrete model: discrete CUDA snapshot validation refused with status 6"`, report `status == "FAILED"`).
+4. `initial_checkpoint`: `"$BIN" init-corpus CONFIG "$STAGE1_DIR/$ARM/init"` (`completed_batches == 0`, `accepted_updates == 0`, `epoch == 0`).
+5. `unpinned_checkpoint`: `"$BIN" init-corpus UNPINNED_CONFIG "$STAGE1_DIR/$ARM/unpinned-init"` (`routes`, `gates`, `seed`, `epoch` equal to `initial_checkpoint`).
+6. `initial_dev_evaluation`: `"$BIN" eval-corpus CONFIG "$STAGE1_DIR/$ARM/init/report.json" "$STAGE1_DIR/$ARM/eval"` (`b3_psucc == 1,351`, `b3_full == 4,244`, `top1 == 133`, `occupied_cells == 256`, `distinct_vectors == 4,096`, `tie_mass == 0`, `1,351 - psucc_reference_top1 > 500`).
+7. `combine_probe`: `"$BIN" propose "$STAGE1_DIR/$ARM/snapshot.json" "$STAGE1_DIR/$ARM/probe-request.json" gate 0` (`any_candidate_cost_differs_from_identity == true`, `epoch == 0`, `applied == false`).
+8. `relation_probe`: `"$BIN" propose "$STAGE1_DIR/$ARM/snapshot.json" "$STAGE1_DIR/$ARM/probe-request.json" gate 22` (`any_candidate_cost_differs_from_identity == true`, `epoch == 0`, `applied == false`).
+
+### Step 1.3 — Qualification Plan Validation (`attention-audit-qualification-check-plan`)
+
+Write `qualification.plan.json` (`schema = "uor-r4.attention-audit-source-qualification-plan/1"`, `scope = "m1-attention-active-audit-finite-source-qualification-v1"`, `status = "HELD_FINITE_QUALIFICATION_OWNER_ACTION_REQUIRED"`, `dose_sheet.sha256 = "fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450"`, `anchor_csv_sha256 = "8c1b80e9b15e4e2bcc765037afa7800b785418be3e20b8cc80ce13ee2e32b3c1"`, `limits.protocol = "train61-synthetic1-interval64-two-arm-throughput-v1"`) with its 4 `uor-r4.attention-audit-qualification-authorization/1` pins (`qualification_fit`, `owner_scope_cost`, `pm_dispatch`, `independent_review`) and fresh `0600`-under-`0700` `resource_admission` (`uor-r4.attention-audit-resource-observation/1`), then run:
+
+```sh
+"$BIN" attention-audit-qualification-check-plan "<ABS>/qualification.plan.json"
+```
+
+Required output: `status: "QUALIFICATION_PLAN_METADATA_VALID"`, `cuda_context_created: false`, `dose_release: false`, `qualification_executed: false`.
+
+### Step 1.4 — Staged Finite-Qualification Owner Release Command (Casey Personally, `UOR_LAB` Unset)
+
+> **Owner boundary (CHARTER §5.1, D40):** No lab or subagent may type this command or phrase. Casey runs it personally in an interactive terminal with `UOR_LAB` unset after owner cost/scope approval and PM dispatch.
+
+```sh
+env -u UOR_LAB <ABS>/target/release/discrete-stack attention-audit-qualification-owner-release \
+  <ABS>/qualification.plan.json \
+  <ABS>/release-qualification
+```
+
+The binary prints `Finite source qualification; dose training remains held.` and prompts `Type exactly:`. The exact phrase from `crates/uor-r4-discrete/src/attention_audit_qualification.rs:1993-1996` is:
+
+```text
+I am Casey; release finite audited source qualification only for plan <PLAN_FILE_SHA256>
+```
+
+where `<PLAN_FILE_SHA256>` is `shasum -a 256 <ABS>/qualification.plan.json` (printed by `attention-audit-qualification-check-plan` as `plan_file_sha256` and echoed by `attention-audit-qualification-owner-release` after `Type exactly:`). This writes `<ABS>/release-qualification/owner.json` (`uor-r4.attention-audit-source-qualification-owner-decision/1`) and `<ABS>/release-qualification/admission.json` (`uor-r4.attention-audit-source-qualification-admission/1`).
+
+### Step 1.5 — Execute Finite Qualification & Consumer-Verify Bundle (Lab Side)
+
+```sh
+"$BIN" attention-audit-qualify \
+  docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json \
+  "<ABS>/release-qualification/admission.json" \
+  "<ABS>/qualification-report"
+
+python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py \
+  --verify-qualification-bundle "<ABS>/qualification-bundle.json"
+```
+
+If any qualification stage fails, if `baseline_admitted < 500`, or if `R = projected_added_gate_ns / ungated_two_arm_dose_ns > 0.15`, **stop before training (`INSTRUMENT_UNREACHABLE`, D31)** and replan.
+
+---
+
+## 3. Stage 2 Runbook & Executor — Audited Whole-Interval Rejection Dose (`m1-attention-active-whole-interval-rejection-v1`)
+
+Stage 2 starts **only after** Stage 1 passes (`qualification.json` `5/5` stages PASS and `calibration.json` `R <= 0.15`), a `CostedDoseDecision` (`uor-r4.attention-audit-costed-dose-decision/1`) is bound with Casey's `APPROVE_EXACT_COSTED_DOSE_PLAN` and Kimi's `DISPATCH_EXACT_COSTED_DOSE_PLAN` attestations (`uor-r4.attention-audit-dose-cost-attestation/1`), and each arm's `AuditedPlan` (`uor-r4.attention-audit-owner-plan/1`) has an independent exact-plan review (`APPROVE_ACTIVE_WHOLE_INTERVAL_ADMISSION_PLAN`).
+
+### Step 2.1 — Audited Dose Plans & Metadata Check (Lab Side)
+
+Write one `uor-r4.attention-audit-owner-plan/1` per arm (`a8-audited-relation-seed1.plan.json` and `a8-audited-frozen-zero-seed1.plan.json`) binding:
+- `sheet`: `docs/harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md` (`fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450`)
+- `parent_sheet`: `docs/harness/prep/m1-attention-a8-address-cells-learning-2026-10-19.md` (`3e622bebd7c468c6cd3d15a38486768c7902807998f71cae039a4341ab55da2b`)
+- `anchor_csv_sha256`: `8c1b80e9b15e4e2bcc765037afa7800b785418be3e20b8cc80ce13ee2e32b3c1` (`AnchorPolicy { start_eligible_index: 1_049_856, count: 3_847, context: 192 }`)
+- `policy`: `AuditPolicy { cadence: 64, max_batches: 16_404, final_tail_batches: 20, margin: 24, minimum_baseline: 500, reject_whole_interval: true, consecutive_full_rejections: 3, audits_per_arm: 258 }`
+- `qualification`, `calibration`, `resource_admission`, `costed_dose_decision`, `independent_review`
+- `transfer`: sealed fresh V2 (`tokens.u16` `0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8`, `response_mask.u8` `a1cda5295547bb641b1ea71ba4ebabb58d58c40e6c048cda91f35a878fecbf5e`, seal `df5d074a…`).
+
+Validate both plans before presenting them to Casey:
+
+```sh
+"$BIN" attention-audit-check-plan "<ABS>/a8-audited-relation-seed1.plan.json"
+"$BIN" attention-audit-check-plan "<ABS>/a8-audited-frozen-zero-seed1.plan.json"
+```
+
+Both must print `status: "PLAN_METADATA_VALID"`, `cuda_context_created: false`, `fresh_content_read: false`, `owner_release: "STILL_REQUIRED"`, `training: "HELD"`, `readiness_is_pretraining_only: true`.
+
+### Step 2.2 — Staged Audited-Dose Owner Release Commands (Casey Personally, `UOR_LAB` Unset)
+
+> **Owner boundary (CHARTER §5.1, D40):** Casey types these personally in an interactive terminal on the pod with `UOR_LAB` unset. No lab or subagent types them.
+
+1. **Treatment arm (`Relation`, `LearnV1`, seed `1`):**
+
+```sh
+env -u UOR_LAB <ABS>/target/release/discrete-stack attention-audit-owner-release \
+  <ABS>/a8-audited-relation-seed1.plan.json \
+  <ABS>/release-a8-audited-relation-seed1
+```
+
+Exact confirmation phrase (`crates/uor-r4-discrete/src/attention_audited.rs:577`):
+
+```text
+I am Casey; release D40 for m1-attention-active-whole-interval-rejection-v1-relation-seed1-attempts0..16404 only with the pinned active whole-interval audit through attempted batch 16404
+```
+
+2. **Control arm (`FrozenZero`, `FrozenZeroV1`, seed `1`):**
+
+```sh
+env -u UOR_LAB <ABS>/target/release/discrete-stack attention-audit-owner-release \
+  <ABS>/a8-audited-frozen-zero-seed1.plan.json \
+  <ABS>/release-a8-audited-frozen-zero-seed1
+```
+
+Exact confirmation phrase (`crates/uor-r4-discrete/src/attention_audited.rs:577`):
+
+```text
+I am Casey; release D40 for m1-attention-active-whole-interval-rejection-v1-frozen-zero-seed1-attempts0..16404 only with the pinned active whole-interval audit through attempted batch 16404
+```
+
+### Step 2.3 — Execute Two-Arm Audited Dose & Consumer-Verify Bundle (Lab Side)
+
+Run one arm per GPU (`CUDA_VISIBLE_DEVICES=0` and `CUDA_VISIBLE_DEVICES=1`):
+
+```sh
+CUDA_VISIBLE_DEVICES=0 "$BIN" attention-audit \
+  docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json \
+  "<ABS>/release-a8-audited-relation-seed1/admission.json" \
+  "<ABS>/run-relation-seed1"
+
+CUDA_VISIBLE_DEVICES=1 "$BIN" attention-audit \
+  docs/labs/a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json \
+  "<ABS>/release-a8-audited-frozen-zero-seed1/admission.json" \
+  "<ABS>/run-frozen-zero-seed1"
+
+python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py \
+  --verify-audited-dose-bundle "<ABS>/audited-dose-bundle.json"
+```
+
+---
+
+## 4. Host Verification Receipts (`antigravity-19`)
+
+1. **Immutable admission-preserving sheet SHA-256 (`shasum -a 256 docs/harness/prep/m1-attention-admission-preserving-DRAFT-2026-10-19.md`):**
+   - Before & after: `fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450` (`17,745` B, unchanged).
+2. **`#2785` merge verification (`gh pr view 2785 --json state,mergedAt,mergeCommit`):**
+   - `state = "MERGED"`, `mergedAt = "2026-10-20T16:48:41Z"`, `mergeCommit = "c6eb0526566b976ca8cc281c867a1d0c4c3f0b40"`.
+3. **Sheet-bound source check (`verify_a8_address_cells_dose.py`):**
+   - Running `python3 docs/labs/address-cells-consumer-verifier-2026-10-19/verify_a8_address_cells_dose.py --self-test` against later `main` (`767f653b2`) refuses `driver_source_sha256 = b13d4920d37a49dd0b1c2305ceaf406e51d5baadd058572cbf481f534bdf9b24 != 0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d`, confirming the source-pinning guard (`NOW.md` lines 32–34) and why Step 1.1 checks out `fd409fcdf3bc43d607e768bae6f8cf403aa75901` before building or running `verify_a8_address_cells_dose.py`.
+4. **Harness check (`uor-harness check`):**
+   - `0 error` across all rules; `docs/harness/prep/m1-a8-registration-and-runbook-staging-2026-10-22.md` passes `check_sheet` with all `8/8` `REQUIRED_BLOCKS` present and `TEST FITNESS: FIT`.
+
+---
+
+## 5. Research Notebook Row (`m1-discrete-attention`)
+
+| Date | Commit | Change | Metric / Result | Classification | Verdict |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-10-22 | `fd409fcdf` (`#2832`) | Registered prospective finite source-qualification sheet (`m1-a8-registration-and-runbook-staging-2026-10-22.md`, protocol `train61-synthetic1-interval64-two-arm-throughput-v1`, scope `m1-attention-active-audit-finite-source-qualification-v1`) with `TEST FITNESS: FIT` while preserving `m1-attention-admission-preserving-DRAFT-2026-10-19.md` byte-exact (`fcb770e6…`, `#2785`), and staged the two-stage qualification + audited-dose runbook, executor sequence, and exact D40 owner-release commands for Casey. | `fcb770e6…` SHA-256 unchanged (`17,745` B); `8/8` prep blocks `FIT`; `64/64` consumer verifier self-tests `PASS`; `$0.00` GPU spend | instrument / registration staging (not a mechanism negative) | **STAGED (`#2832` closed; GPU execution HELD pending owner cost approval, PM dispatch, and Casey's personal D40 release)** |
