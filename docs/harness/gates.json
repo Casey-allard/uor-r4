@@ -178,6 +178,33 @@
       }
     },
     {
+      "id": "loop-next-owner-direction",
+      "proves": "`loop next` offers the first open owner direction from PLAN.md's `## Owner directions` table before repairs, and names the missing PLAN.md when it is absent; the planted fault removes the open-row filter.",
+      "command": [
+        "cargo",
+        "test",
+        "-q",
+        "--locked",
+        "-p",
+        "uor-r4-harness",
+        "--test",
+        "loop_next_sources"
+      ],
+      "reads": [
+        "crates/uor-r4-harness/**/*.rs",
+        "docs/harness/gates.json"
+      ],
+      "quick": false,
+      "break": {
+        "file": "crates/uor-r4-harness/src/loopnext.rs",
+        "replace": {
+          "from": "        if text.is_empty() {",
+          "to": "        if true {"
+        },
+        "expect": "the open owner direction must be offered before repairs"
+      }
+    },
+    {
       "id": "git-hooks",
       "proves": "The three managed git hooks plan and install owner-only, replace the stock LFS pre-push with its backup, check Lab and Order trailers on lab branches, and run pr-check --local before a push.",
       "command": [

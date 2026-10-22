@@ -86,9 +86,14 @@ impl Repo {
     }
 
     fn next(&self) -> Output {
+        self.next_fake(&empty_next_fake())
+    }
+
+    /// `loop next` with a scripted GitHub fake.
+    fn next_fake(&self, fake: &Value) -> Output {
         let nf = self.tmp.path().join("next-fake.json");
         let cf = self.tmp.path().join("claim-fake.json");
-        std::fs::write(&nf, empty_next_fake().to_string()).unwrap();
+        std::fs::write(&nf, fake.to_string()).unwrap();
         std::fs::write(&cf, "[]").unwrap();
         let mut cmd = Command::new(BIN);
         clean(&mut cmd);
@@ -150,6 +155,30 @@ fn the_top_of_the_lab_lane_is_offered_before_any() {
 }
 
 #[test]
+fn an_open_owner_direction_is_offered_before_repairs() {
+    let plan = "# PLAN\n\n## Owner directions\n\n| Direction | Status | Date | Note |\n|---|---|---|---|\n| D1 build the GPU collection record | open | 2026-10-22 | x |\n";
+    let r = Repo::new(
+        &[("PLAN.md", plan), ("docs/harness/labs.json", &labs(None))],
+        &[],
+    );
+    let o = r.next();
+    assert_eq!(
+        o.status.code(),
+        Some(0),
+        "the open owner direction must be offered before repairs: {o:?}"
+    );
+    assert!(
+        decision(&o).starts_with("GO owner-direction D1 build the GPU collection record"),
+        "the open owner direction must be offered before repairs: {}",
+        decision(&o)
+    );
+    assert!(
+        stdout(&o).contains("owner-direction: PLAN owner direction"),
+        "{}",
+        stdout(&o)
+    );
+}
+#[test]
 fn an_open_premise_probe_is_offered_from_plan() {
     let plan = "# PLAN\n\n## Premises\n\n| Premise | Probe | Status | Cancel if |\n|---|---|---|---|\n| P1 memory beats search | `cargo test -p x` | open | if y |\n| P2 already probed | `cargo test -p y` | probed | z |\n";
     let r = Repo::new(
@@ -178,6 +207,10 @@ fn missing_plan_and_missing_lane_are_named_not_guessed() {
     // An empty queue waits with a re-check time; only the kill switch stops (claude-31).
     assert_eq!(o.status.code(), Some(3), "{o:?}");
     assert!(
+        out.contains("owner-direction: not built — PLAN.md is not on origin/main yet"),
+        "{out}"
+    );
+    assert!(
         out.contains("not built — PLAN.md is not on origin/main yet"),
         "{out}"
     );
@@ -186,4 +219,123 @@ fn missing_plan_and_missing_lane_are_named_not_guessed() {
         "{out}"
     );
     assert!(decision(&o).starts_with("WAIT empty queue"), "{o:?}");
+}
+
+#[test]
+fn the_open_owner_direction_is_offered_before_an_own_repair() {
+    let plan = "# PLAN\n\n## Owner directions\n\n| Direction | Status | Date | Note |\n|---|---|---|---|\n| D1 build the GPU collection record | open | 2026-10-22 | x |\n";
+    let r = Repo::new(
+        &[("PLAN.md", plan), ("docs/harness/labs.json", &labs(None))],
+        &[],
+    );
+    let order_path = "docs/loop/tasks/infra-loop-harness/deepseek-99/ORDER.md";
+    let order = "# ORDER\n\nLab: deepseek. Item: [it](../../../../roadmap/items/it.md) (#1).\n";
+    let fake = json!({
+        "prs": [{
+            "number": 9,
+            "headRefName": "deepseek/repair-me",
+            "headRefOid": "aaaa",
+            "isDraft": false,
+            "mergeable": "MERGEABLE",
+            "files": [{"path": order_path}],
+            "checks": [{"name": "ci", "conclusion": "FAILURE"}]
+        }],
+        "comments": {},
+        "files": {format!("9:{order_path}"): order},
+        "labels": {},
+        "failComments": [],
+        "allFiles": {}
+    });
+    let o = r.next_fake(&fake);
+    assert_eq!(
+        o.status.code(),
+        Some(0),
+        "the open owner direction must be offered before repairs: {o:?}"
+    );
+    assert!(
+        decision(&o).starts_with("GO owner-direction D1 build the GPU collection record"),
+        "the open owner direction must be offered before repairs: {}",
+        decision(&o)
+    );
+}
+
+#[test]
+fn a_note_cell_that_says_open_is_not_a_status() {
+    let plan = "# PLAN\n\n## Owner directions\n\n| Direction | Status | Date | Note |\n|---|---|---|---|\n| D3 done thing | done | 2026-10-22 | open |\n";
+    let r = Repo::new(
+        &[("PLAN.md", plan), ("docs/harness/labs.json", &labs(None))],
+        &[],
+    );
+    let o = r.next();
+    assert!(!stdout(&o).contains("GO owner-direction"), "{}", stdout(&o));
+    assert!(
+        stdout(&o).contains("owner-direction: PLAN.md has no open owner direction"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+#[test]
+fn a_malformed_owner_open_row_is_skipped_and_named() {
+    let plan = "# PLAN\n\n## Owner directions\n\n| Direction | Status | Date | Note |\n|---|---|---|---|\n|  | open | 2026-10-22 | x |\n| D2 valid thing | open | 2026-10-22 | y |\n";
+    let r = Repo::new(
+        &[("PLAN.md", plan), ("docs/harness/labs.json", &labs(None))],
+        &[],
+    );
+    let o = r.next();
+    assert_eq!(o.status.code(), Some(0), "{o:?}");
+    assert!(
+        decision(&o).starts_with("GO owner-direction D2 valid thing"),
+        "{}",
+        decision(&o)
+    );
+    assert!(
+        decision(&o).contains("skipped malformed")
+            && decision(&o).contains("Direction cell is empty"),
+        "{}",
+        decision(&o)
+    );
+}
+
+#[test]
+fn a_malformed_premise_open_row_is_named_not_hidden() {
+    let plan = "# PLAN\n\n## Premises\n\n| Premise | Probe | Status | Cancel if |\n|---|---|---|---|\n| P1 no command | not-backticked | open | x |\n";
+    let r = Repo::new(
+        &[("PLAN.md", plan), ("docs/harness/labs.json", &labs(None))],
+        &[],
+    );
+    let o = r.next();
+    assert!(
+        stdout(&o).contains("not built — the Premises table has malformed open row(s): table row 2: no probe command in backticks"),
+        "{}",
+        stdout(&o)
+    );
+    assert!(
+        !stdout(&o).contains("premise-probes: PLAN premise"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+#[test]
+fn a_missing_plan_table_is_named_not_guessed() {
+    let r = Repo::new(
+        &[
+            ("PLAN.md", "# PLAN\n"),
+            ("docs/harness/labs.json", &labs(None)),
+        ],
+        &[],
+    );
+    let o = r.next();
+    assert!(
+        stdout(&o)
+            .contains("owner-direction: not built — PLAN.md has no `## Owner directions` table"),
+        "{}",
+        stdout(&o)
+    );
+    assert!(
+        stdout(&o).contains("premise-probes: not built — PLAN.md has no `## Premises` table"),
+        "{}",
+        stdout(&o)
+    );
 }

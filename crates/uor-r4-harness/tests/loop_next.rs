@@ -493,7 +493,7 @@ fn the_not_built_sources_are_printed_with_their_loop_prs() {
     let r = Repo::new(&[]);
     let out = stdout(&r.next(&fake(vec![], json!({}))));
     for line in [
-        "owner-direction: not built — owner directions live in PLAN, loop PR 8",
+        "owner-direction: not built — PLAN.md is not on origin/main yet (the PM writes it)",
         "gpu-collections: not built — a GPU run needs a collection record the watcher (loop PR 10) does not write yet",
         "premise-probes: not built — PLAN.md is not on origin/main yet (the PM writes it)",
         "lane: not built — no lane is assigned to claude in docs/harness/labs.json (the owner adds it)",

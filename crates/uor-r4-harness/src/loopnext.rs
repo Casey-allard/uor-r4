@@ -416,62 +416,149 @@ fn origin_file(root: &Path, path: &str) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-/// The premise probe PLAN.md offers next: the first row of its `## Premises` table whose status
-/// cell reads `open` and whose probe cell holds a command in backticks. `Ok(None)` means the file
-/// exists with such a table but no open row; `Err` names what is missing.
-fn premise_probe(root: &Path) -> Result<Option<(String, String)>, String> {
+/// A Markdown table under one `## <heading>` section of PLAN.md: the header row and its data
+/// rows. Columns are found by header name, never by position.
+struct PlanTable {
+    heading: String,
+    headers: Vec<String>,
+    rows: Vec<Vec<String>>,
+}
+
+impl PlanTable {
+    /// The index of the column whose header reads `name` exactly (case-insensitive).
+    fn column(&self, name: &str) -> Result<usize, String> {
+        self.headers
+            .iter()
+            .position(|h| h.eq_ignore_ascii_case(name))
+            .ok_or_else(|| {
+                format!(
+                    "PLAN.md table `## {}` has no `{name}` column header",
+                    self.heading
+                )
+            })
+    }
+
+    /// The rows whose status cell reads `open`, with their 1-based data row number.
+    fn open_rows(&self, status: usize) -> Vec<(usize, &Vec<String>)> {
+        self.rows
+            .iter()
+            .enumerate()
+            .filter(|(_, row)| {
+                row.get(status)
+                    .is_some_and(|c| c.eq_ignore_ascii_case("open"))
+            })
+            .map(|(n, row)| (n + 2, row))
+            .collect()
+    }
+}
+
+/// The table under the `## <heading>` section of PLAN.md. `Err` names a missing PLAN.md, a
+/// missing section/table, or a table with no rows; the header row is the first table row.
+fn plan_table(root: &Path, heading: &str) -> Result<PlanTable, String> {
     let Some(text) = origin_file(root, "PLAN.md") else {
         return Err("PLAN.md is not on origin/main yet (the PM writes it)".to_string());
     };
-    let mut inside = false;
+    let wanted = format!("## {}", heading.to_ascii_lowercase());
+    let (mut inside, mut header, mut rows) = (false, None, Vec::new());
     for line in text.lines() {
         let trimmed = line.trim();
         if trimmed.starts_with("# ") || trimmed.starts_with("## ") {
-            inside = trimmed.to_ascii_lowercase().starts_with("## premises");
+            if inside && header.is_some() {
+                break;
+            }
+            inside = trimmed.to_ascii_lowercase().starts_with(&wanted);
             continue;
         }
         if !inside || !trimmed.starts_with('|') {
             continue;
         }
-        let cells: Vec<&str> = trimmed
+        let cells: Vec<String> = trimmed
             .trim_matches('|')
             .split('|')
-            .map(str::trim)
+            .map(|c| c.trim().to_string())
             .collect();
-        if cells.len() < 3 {
-            continue;
-        }
-        // The header row and the `|---|` separator are not data.
-        if cells.iter().any(|c| c.eq_ignore_ascii_case("premise"))
-            || cells
+        // The `|---|` separator carries no data.
+        if !cells.is_empty()
+            && cells
                 .iter()
-                .all(|c| c.chars().all(|ch| ch == '-' || ch == ':'))
+                .all(|c| c.chars().all(|ch| ch == '-' || ch == ':' || ch == ' '))
         {
             continue;
         }
-        let Some(status) = cells.iter().position(|c| c.eq_ignore_ascii_case("open")) else {
-            continue;
-        };
-        let Some(probe_cell) = cells
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| *i != status)
-            .map(|(_, c)| *c)
-            .find(|c| c.contains('`'))
-        else {
-            continue;
-        };
-        let Some(command) = probe_cell.split('`').nth(1).map(str::trim) else {
-            continue;
-        };
-        if command.is_empty() {
-            continue;
+        if header.is_none() {
+            header = Some(cells);
+        } else {
+            rows.push(cells);
         }
-        return Ok(Some((cells[0].to_string(), command.to_string())));
+    }
+    let Some(headers) = header else {
+        return Err(format!(
+            "PLAN.md has no `## {heading}` table (add one with the documented headers)"
+        ));
+    };
+    Ok(PlanTable {
+        heading: heading.to_string(),
+        headers,
+        rows,
+    })
+}
+
+/// The first open premise probe: `(premise, command)`. A malformed open row (no backticked
+/// command in the Probe column) is skipped, named if no valid row follows, never hidden.
+fn premise_probe(root: &Path) -> Result<Option<(String, String)>, String> {
+    let table = plan_table(root, "Premises")?;
+    let premise = table.column("Premise")?;
+    let probe = table.column("Probe")?;
+    let status = table.column("Status")?;
+    let mut malformed = Vec::new();
+    for (line, row) in table.open_rows(status) {
+        let premise_text = row.get(premise).map(String::as_str).unwrap_or("").trim();
+        let Some(command) = row
+            .get(probe)
+            .and_then(|c| c.split('`').nth(1))
+            .map(str::trim)
+            .filter(|c| !c.is_empty())
+        else {
+            malformed.push(format!(
+                "table row {line}: no probe command in backticks in the Probe column"
+            ));
+            continue;
+        };
+        return Ok(Some((premise_text.to_string(), command.to_string())));
+    }
+    if !malformed.is_empty() {
+        return Err(format!(
+            "the Premises table has malformed open row(s): {}",
+            malformed.join("; ")
+        ));
     }
     Ok(None)
 }
 
+/// The first open owner direction: `(direction, malformed notes)`. The Direction and Status
+/// columns are found by header name, so a `| done | ... | open |` note cell cannot be read as a
+/// status; a malformed open row is skipped and named rather than hidden.
+fn owner_direction(root: &Path) -> Result<Option<(String, Vec<String>)>, String> {
+    let table = plan_table(root, "Owner directions")?;
+    let direction = table.column("Direction")?;
+    let status = table.column("Status")?;
+    let mut malformed = Vec::new();
+    for (line, row) in table.open_rows(status) {
+        let text = row.get(direction).map(String::as_str).unwrap_or("").trim();
+        if text.is_empty() {
+            malformed.push(format!("table row {line}: the Direction cell is empty"));
+            continue;
+        }
+        return Ok(Some((text.to_string(), malformed)));
+    }
+    if !malformed.is_empty() {
+        return Err(format!(
+            "the Owner directions table has malformed open row(s): {}",
+            malformed.join("; ")
+        ));
+    }
+    Ok(None)
+}
 /// The lane the owner assigned this lab in the owner-only registry, if any.
 fn lab_lane(root: &Path, lab: &str) -> Result<String, String> {
     let Some(text) = origin_file(root, "docs/harness/labs.json") else {
@@ -573,11 +660,30 @@ pub fn run(
         "none",
         format!("off (no local/loop/STOP, no {PAUSE_LABEL} on #{PAUSE_ISSUE})"),
     ));
-    // 2. owner direction.
-    out.push(not_built(
-        "owner-direction",
-        "owner directions live in PLAN, loop PR 8",
-    ));
+    // 2. owner direction: the first open row of PLAN.md's `## Owner directions` table.
+    match owner_direction(root) {
+        Ok(Some((target, malformed))) => {
+            let mut reason = format!("PLAN owner direction {target:?} is open");
+            if !malformed.is_empty() {
+                reason.push_str(&format!(" (skipped malformed: {})", malformed.join("; ")));
+            }
+            out.push(source("owner-direction", "work", reason.clone()));
+            return Ok((
+                out,
+                Decision::Go {
+                    kind: "owner-direction",
+                    target,
+                    reason,
+                },
+            ));
+        }
+        Ok(None) => out.push(source(
+            "owner-direction",
+            "none",
+            "PLAN.md has no open owner direction",
+        )),
+        Err(why) => out.push(not_built("owner-direction", &why)),
+    }
     // The build-plan rows, vendors and D59 come from `origin/main`, not from this branch's
     // working tree.
     let main = crate::loopreview::main_context(root)
