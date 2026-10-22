@@ -42,6 +42,17 @@
 //! `moved (immutable source)`) and does not fail the gate when its source is
 //! immutable, unchanged since REV (`git diff --quiet REV -- source`) and its
 //! target is the old side of an R100 rename. Every other NEW link fails.
+//!
+//! Archived copies: §4.7 copies a live file byte for byte into `archive/` and
+//! leaves the original in place as a pointer stub, so there is no rename and
+//! the copy's relative links break at the archive depth. A NEW broken link is
+//! reported as `COPIED` (count line `copied (archived copy)`) and does not
+//! fail the gate when its source is under `archive/`, did not exist at REV,
+//! has a working-tree blob equal to the blob of a path `O` at REV (one
+//! `git ls-tree -r REV` index by blob id; the lexicographically first path
+//! wins), and the same link resolved from `O` names a path that exists now.
+//! An edited copy, or a copy whose link is broken from `O` too, still fails.
+//! Neither `MOVED` nor `COPIED` applies under `--simulate`.
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -754,49 +765,143 @@ fn replaced_stub_map(root: &Path, rev: &str, out: &[u8]) -> Result<PathMap, Stri
         let blob = git(root, &["rev-parse", &format!("{rev}:{p}")])?;
         deleted.push((p, String::from_utf8_lossy(&blob).trim().to_string()));
     }
-    let mut modified = Vec::new();
-    if !modi.is_empty() {
-        let mut child = git_command(root)
-            .args(["hash-object", "--stdin-paths"])
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("git hash-object: {e}"))?;
-        let input = modi.join("\n") + "\n";
-        let mut stdin = child.stdin.take().ok_or("git hash-object: no stdin")?;
-        let writer = std::thread::spawn(move || {
-            use std::io::Write;
-            stdin.write_all(input.as_bytes())
-        });
-        let res = child
-            .wait_with_output()
-            .map_err(|e| format!("git hash-object: {e}"))?;
-        writer
-            .join()
-            .map_err(|_| "git hash-object: writer panicked".to_string())?
-            .map_err(|e| format!("git hash-object: {e}"))?;
-        if !res.status.success() {
-            return Err(format!(
-                "git hash-object failed: {}",
-                String::from_utf8_lossy(&res.stderr).trim()
-            ));
-        }
-        let text = String::from_utf8_lossy(&res.stdout).into_owned();
-        let blobs: Vec<&str> = text.lines().collect();
-        if blobs.len() != modi.len() {
-            return Err("git hash-object: unexpected output length".into());
-        }
-        modified = modi
-            .into_iter()
-            .zip(blobs)
-            .map(|(p, b)| (p, b.to_string()))
-            .collect();
-    }
+    let blobs = hash_working_files(root, &modi)?;
+    let modified: Vec<(String, String)> = modi.into_iter().zip(blobs).collect();
     for (old, new) in pair_replaced_stubs(&deleted, &modified) {
         map.insert(&old, &new);
     }
     Ok(map)
+}
+
+/// The blob id of each working-tree file in `paths`, in order
+/// (`git hash-object --stdin-paths`).
+fn hash_working_files(root: &Path, paths: &[String]) -> Result<Vec<String>, String> {
+    if paths.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut child = git_command(root)
+        .args(["hash-object", "--stdin-paths"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("git hash-object: {e}"))?;
+    let input = paths.join("\n") + "\n";
+    let mut stdin = child.stdin.take().ok_or("git hash-object: no stdin")?;
+    let writer = std::thread::spawn(move || {
+        use std::io::Write;
+        stdin.write_all(input.as_bytes())
+    });
+    let res = child
+        .wait_with_output()
+        .map_err(|e| format!("git hash-object: {e}"))?;
+    writer
+        .join()
+        .map_err(|_| "git hash-object: writer panicked".to_string())?
+        .map_err(|e| format!("git hash-object: {e}"))?;
+    if !res.status.success() {
+        return Err(format!(
+            "git hash-object failed: {}",
+            String::from_utf8_lossy(&res.stderr).trim()
+        ));
+    }
+    let text = String::from_utf8_lossy(&res.stdout).into_owned();
+    let blobs: Vec<String> = text.lines().map(str::to_string).collect();
+    if blobs.len() != paths.len() {
+        return Err("git hash-object: unexpected output length".into());
+    }
+    Ok(blobs)
+}
+
+/// The paths of `git ls-tree -r -z REV` output, and an index from blob id to
+/// the lexicographically first path holding it. Non-blob entries are skipped.
+pub fn parse_ls_tree_z(out: &[u8]) -> (HashSet<String>, HashMap<String, String>) {
+    let (mut paths, mut by_blob) = (HashSet::new(), HashMap::<String, String>::new());
+    for rec in out.split(|b| *b == 0).filter(|s| !s.is_empty()) {
+        let rec = String::from_utf8_lossy(rec);
+        let Some((meta, path)) = rec.split_once('\t') else {
+            continue;
+        };
+        let mut f = meta.split(' ');
+        let (Some(_mode), Some(kind), Some(blob)) = (f.next(), f.next(), f.next()) else {
+            continue;
+        };
+        if kind != "blob" {
+            continue;
+        }
+        paths.insert(path.to_string());
+        by_blob
+            .entry(blob.to_string())
+            .and_modify(|p| {
+                if path < p.as_str() {
+                    *p = path.to_string();
+                }
+            })
+            .or_insert_with(|| path.to_string());
+    }
+    (paths, by_blob)
+}
+
+/// One `COPIED` link: the broken link, the original `O` it was copied from,
+/// and the path the link resolves to from `O`.
+pub type Copied = (Broken, String, String);
+
+/// Split NEW broken links into real failures and `COPIED` ones: the source is
+/// under `archive/`, did not exist at REV (`existed_at_rev`), its bytes equal
+/// a file `O` at REV (`originals`), and the link resolved from `O` exists now
+/// (`exists_now`). Returns `(new, copied)`.
+pub fn split_copied(
+    new: Vec<Broken>,
+    originals: &impl Fn(&str) -> Option<String>,
+    existed_at_rev: &impl Fn(&str) -> bool,
+    exists_now: &impl Fn(&str) -> bool,
+) -> (Vec<Broken>, Vec<Copied>) {
+    let (mut fail, mut copied) = (Vec::new(), Vec::new());
+    for b in new {
+        let hit = if b.source.starts_with("archive/") && !existed_at_rev(&b.source) {
+            originals(&b.source).and_then(|o| match resolve(&o, &b.target) {
+                Resolved::Repo(p) if exists_now(&p) => Some((o, p)),
+                _ => None,
+            })
+        } else {
+            None
+        };
+        match hit {
+            Some((o, p)) => copied.push((b, o, p)),
+            None => fail.push(b),
+        }
+    }
+    (fail, copied)
+}
+
+/// `split_copied` against the repository: one `ls-tree` of REV and one
+/// `hash-object` batch for the candidate sources.
+fn split_copied_in_repo(
+    root: &Path,
+    rev: &str,
+    new: Vec<Broken>,
+    now_tracked: &Universe,
+) -> Result<(Vec<Broken>, Vec<Copied>), String> {
+    let mut cands: Vec<String> = new
+        .iter()
+        .filter(|b| b.source.starts_with("archive/"))
+        .map(|b| b.source.clone())
+        .collect();
+    if cands.is_empty() {
+        return Ok((new, Vec::new()));
+    }
+    let (rev_paths, by_blob) = parse_ls_tree_z(&git(root, &["ls-tree", "-r", "-z", rev])?);
+    cands.sort();
+    cands.dedup();
+    cands.retain(|s| !rev_paths.contains(s));
+    let blobs = hash_working_files(root, &cands)?;
+    let blob_of: HashMap<String, String> = cands.into_iter().zip(blobs).collect();
+    Ok(split_copied(
+        new,
+        &|src| blob_of.get(src).and_then(|b| by_blob.get(b)).cloned(),
+        &|src| rev_paths.contains(src),
+        &|p| now_tracked.exists(p),
+    ))
 }
 
 /// A record is "unchanged since REV" only if it exists at REV and now, and
@@ -1055,15 +1160,28 @@ pub fn run(root: &Path, args: &[String]) -> Result<(), String> {
         }),
         _ => (cmp.new, Vec::new()),
     };
+    // The same hold applies to COPIED: a simulated tree has no real copies.
+    let mut copied = Vec::new();
+    if let (Some(rev), None) = (&renames_from, &simulate) {
+        (new, copied) = split_copied_in_repo(root, rev, new, &now_tracked)?;
+    }
     println!("new broken: {}", new.len());
     println!("fixed: {}", cmp.fixed);
     println!("moved (immutable source): {}", moved.len());
+    println!("copied (archived copy): {}", copied.len());
     new.sort();
     moved.sort_by(|a, b| a.0.cmp(&b.0));
+    copied.sort_by(|a, b| a.0.cmp(&b.0));
     for (b, now) in &moved {
         println!(
             "  MOVED {}:{} {} -> {} (now {})",
             b.source, b.line, b.target, b.resolved, now
+        );
+    }
+    for (b, original, path) in &copied {
+        println!(
+            "  COPIED {}:{} {} (original {}, resolves to {})",
+            b.source, b.line, b.target, original, path
         );
     }
     for b in &new {
@@ -1439,6 +1557,72 @@ mod tests {
             &[d("archive/P.md", "aaa"), d("archive/Q.md", "aaa")],
         );
         assert!(pairs.is_empty());
+    }
+
+    /// `archive/live/deep/a.md` is a new byte-equal copy of `docs/live/a.md`;
+    /// `archive/edited.md` matches nothing at REV; `archive/old.md` existed.
+    fn copy_split(b: Broken) -> (Vec<Broken>, Vec<Copied>) {
+        let now = Universe::new(["docs/live/b.md".to_string(), "docs/live/a.md".to_string()]);
+        split_copied(
+            vec![b],
+            &|src| (src != "archive/edited.md").then(|| "docs/live/a.md".to_string()),
+            &|src| src == "archive/old.md",
+            &|p| now.exists(p),
+        )
+    }
+
+    fn copy_link(source: &str, target: &str) -> Broken {
+        let Resolved::Repo(resolved) = resolve(source, target) else {
+            panic!("{target} does not resolve inside the repository");
+        };
+        Broken {
+            source: source.into(),
+            line: 3,
+            target: target.into(),
+            resolved,
+        }
+    }
+
+    #[test]
+    fn faithful_archive_copy_link_resolving_from_original_is_copied() {
+        let (fail, copied) = copy_split(copy_link("archive/live/deep/a.md", "b.md"));
+        assert!(fail.is_empty());
+        assert_eq!(copied.len(), 1);
+        assert_eq!(copied[0].1, "docs/live/a.md");
+        assert_eq!(copied[0].2, "docs/live/b.md");
+    }
+
+    #[test]
+    fn archive_copy_link_broken_from_original_too_fails() {
+        let (fail, copied) = copy_split(copy_link("archive/live/deep/a.md", "gone.md"));
+        assert_eq!((fail.len(), copied.len()), (1, 0));
+    }
+
+    #[test]
+    fn archive_file_matching_no_rev_blob_fails() {
+        let (fail, copied) = copy_split(copy_link("archive/edited.md", "b.md"));
+        assert_eq!((fail.len(), copied.len()), (1, 0));
+    }
+
+    #[test]
+    fn archive_source_that_existed_at_rev_is_not_copied() {
+        let (fail, copied) = copy_split(copy_link("archive/old.md", "b.md"));
+        assert_eq!((fail.len(), copied.len()), (1, 0));
+    }
+
+    #[test]
+    fn source_outside_archive_is_never_copied() {
+        let (fail, copied) = copy_split(copy_link("docs/other/deep/a.md", "b.md"));
+        assert_eq!((fail.len(), copied.len()), (1, 0));
+    }
+
+    #[test]
+    fn ls_tree_index_keeps_blobs_only_and_first_path() {
+        let out = b"100644 blob aa\tz/x.md\x00100644 blob aa\tb/x.md\x00160000 commit cc\tsub\x00";
+        let (paths, by_blob) = parse_ls_tree_z(out);
+        assert_eq!(paths.len(), 2);
+        assert!(!paths.contains("sub"));
+        assert_eq!(by_blob["aa"], "b/x.md");
     }
 
     #[test]
