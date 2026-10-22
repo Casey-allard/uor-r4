@@ -1,0 +1,15 @@
+[package]
+name = "legal-exact-solver"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose, so this
+# offline instrument can never change what the workspace builds.
+[workspace]
+
+[dependencies]
+num-bigint = "0.4"
+num-rational = "0.4"
+num-traits = "0.2"
+num-integer = "0.1"
