@@ -29,6 +29,8 @@ pub mod h4_classifier;
 #[cfg(not(feature = "serving-wasm"))]
 pub mod h4_tables;
 #[cfg(not(feature = "serving-wasm"))]
+pub mod lawful_likelihood;
+#[cfg(not(feature = "serving-wasm"))]
 pub mod math;
 
 #[cfg(not(feature = "serving-wasm"))]

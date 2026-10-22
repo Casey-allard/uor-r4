@@ -73,6 +73,16 @@ The current integer model does produce Q48 masses — but only through an intege
 - Does: the revised design note and its record, the issue post, ORDER and REPORT, the cancel probe, and the owner's Card 1 decision recorded verbatim.
 - Does not: change code or tests, run any model or GPU work, name the held-out stream, register an instrument, or claim BPB numbers. The item stays `ready`; implementation and registered scoring are later units.
 
+## Implementation (deepseek-17)
+
+The host-only scoring core is `crates/uor-r4-integer/src/lawful_likelihood.rs`, wired into the selected crate root (`src/native_geometry.rs`, D29):
+
+- `masses_from_scores(&[i64]) -> Result<Vec<u64>>` — the base-1 Q48 ratio: `phi = s - min + 1`, `R = 2^48 - V`, `quota = phi * R / sum(phi)` in u128, the remainder units by the largest fractional remainder (ties by lowest index), so every mass is at least 1 and the sum is exactly `2^48`.
+- `mle_masses_from_counts(&[u64]) -> Result<Vec<u64>>` — the exact maximum-likelihood baseline: `floor(count * 2^48 / total)` plus the same remainder rule, with zero counts left at zero.
+- `bits_q12(mass) -> Result<u64>` — integer fixed-point `-log2(mass / 2^48)` (bit length plus 12 squaring rounds), and `total_bits_q12`/`bits_per_byte` for exact integer BPB fractions.
+
+Nine lib tests cover the seven finite host controls: tiny alphabet; V=4096 worst case (minimum mass exactly 1, exactly 48 bits); uniform power-of-two vocabulary; non-power-of-two ±1 remainders; token-id ties; monotonicity/argmax over 64 deterministic random vectors; permutation equivariance; analytic BPB and MLE; and the zero-count-is-unscorable rule. The module runs no model and reads no artifact; the registration unit (held-out stream, pre-registration, FIT, GPU scoring) is still open.
+
 ## Sources
 
 - Item: [m4-lawful-likelihood-bpb](../../roadmap/items/m4-lawful-likelihood-bpb.md) (#2861); CHARTER §3.2, §3.6, §3.7, §4.8.
