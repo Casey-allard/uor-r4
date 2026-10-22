@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 37 |
+| ready | 36 |
 | held | 26 |
 | decision | 4 |
-| done | 21 |
+| done | 22 |
 | total | 88 |
 
 ## Start here
@@ -172,7 +172,6 @@ These items are ready and open to anyone.
 | [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md) | [#2826](https://github.com/UOR-Foundation/uor-r4/issues/2826) |
 | [Build the five-lab loop harness (the loop subcommands of uor-harness)](items/infra-loop-harness.md) | ready | a lab | no | none | [#2904](https://github.com/UOR-Foundation/uor-r4/issues/2904) |
 | [Loop PR 8: migrate the notes to STATE, HANDOFF and PLAN](items/infra-loop-pr08-migration.md) | ready | a lab | no | [infra-loop-pr03-render](items/infra-loop-pr03-render.md) | [#2913](https://github.com/UOR-Foundation/uor-r4/issues/2913) |
-| [Loop PR 10: loop drive, watchers, kill switch and the soft check-in](items/infra-loop-pr10-supervisor.md) | ready | a lab | no | [infra-loop-pr07b-session](items/infra-loop-pr07b-session.md), [infra-loop-pr07c-queue-board](items/infra-loop-pr07c-queue-board.md), [infra-loop-pr09-client-adapters](items/infra-loop-pr09-client-adapters.md) | [#2915](https://github.com/UOR-Foundation/uor-r4/issues/2915) |
 | [Settle the disputed D11 and Hopf observation statuses on the board](items/owner-decision-board-status-disputes.md) | decision | a lab | no | none | [#2874](https://github.com/UOR-Foundation/uor-r4/issues/2874) |
 | [Bench inbox rule: each lab reads the bench messages addressed to it](items/infra-bench-inbox-rule.md) | done | a lab | no | none | not yet synced |
 | [Record K16 normal close and final resource accounting](items/infra-k16-normal-close-accounting.md) | done | a lab | no | none | [#2827](https://github.com/UOR-Foundation/uor-r4/issues/2827) |
@@ -185,6 +184,7 @@ These items are ready and open to anyone.
 | [Loop PR 7b: loop next, arrive, report and close](items/infra-loop-pr07b-session.md) | done | a lab | no | [infra-loop-pr03-render](items/infra-loop-pr03-render.md), [infra-loop-pr07a-claim](items/infra-loop-pr07a-claim.md) | [#2911](https://github.com/UOR-Foundation/uor-r4/issues/2911) |
 | [Loop PR 7c: loop queue and loop board](items/infra-loop-pr07c-queue-board.md) | done | a lab | no | [infra-loop-pr05-policy-check](items/infra-loop-pr05-policy-check.md), [infra-loop-pr06-review-records](items/infra-loop-pr06-review-records.md) | [#2912](https://github.com/UOR-Foundation/uor-r4/issues/2912) |
 | [Loop PR 9: loop guard, install and onboard for each client](items/infra-loop-pr09-client-adapters.md) | done | a lab | no | [infra-loop-pr07b-session](items/infra-loop-pr07b-session.md) | [#2914](https://github.com/UOR-Foundation/uor-r4/issues/2914) |
+| [Loop PR 10: loop drive, watchers, kill switch and the soft check-in](items/infra-loop-pr10-supervisor.md) | done | a lab | no | [infra-loop-pr07b-session](items/infra-loop-pr07b-session.md), [infra-loop-pr07c-queue-board](items/infra-loop-pr07c-queue-board.md), [infra-loop-pr09-client-adapters](items/infra-loop-pr09-client-adapters.md) | [#2915](https://github.com/UOR-Foundation/uor-r4/issues/2915) |
 | [Loop PR 11: loop gates --watch and warnings raised to errors](items/infra-loop-pr11-progress-window.md) | done | a lab | no | [infra-loop-pr04-gates](items/infra-loop-pr04-gates.md) | [#2916](https://github.com/UOR-Foundation/uor-r4/issues/2916) |
 | [Loop PR 12: git hooks, pr-check before push, Lab and Order trailers](items/infra-loop-pr12-git-hooks.md) | done | a lab | no | [infra-loop-pr05-policy-check](items/infra-loop-pr05-policy-check.md), [infra-loop-pr06-review-records](items/infra-loop-pr06-review-records.md) | [#2917](https://github.com/UOR-Foundation/uor-r4/issues/2917) |
 

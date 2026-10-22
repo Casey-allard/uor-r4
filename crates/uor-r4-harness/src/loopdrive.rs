@@ -695,6 +695,11 @@ pub fn run_sessions(spec: &DriveSpec, hooks: &DriveHooks) -> Result<u8> {
                 }
                 Ok(Next::Stop) => {
                     println!("STOP");
+                    // A supervisor stop is exactly the case the PM must prompt the lab for; a
+                    // clean session exit is the supervisor's restart path and stays uncarded.
+                    let _ = (hooks.card)(
+                        "STOP: loop next asked the supervisor to stop; the lab needs the next prompt",
+                    );
                     return Ok(0);
                 }
                 Err(error) => {
@@ -790,6 +795,15 @@ pub fn run_sessions(spec: &DriveSpec, hooks: &DriveHooks) -> Result<u8> {
                 }
             }
         }
+    }
+    // Reaching an explicit multi-session limit is a supervisor stop, so the PM gets the prompt
+    // card. The default single session (DEFAULT_MAX_SESSIONS) is a normal restart unit and is not
+    // carded, which is what keeps the pinned progressing-client test at zero cards.
+    if spec.max_sessions > 1 {
+        let _ = (hooks.card)(&format!(
+            "reached --max-sessions ({} sessions): the lab needs the next prompt",
+            spec.max_sessions
+        ));
     }
     Ok(last_code)
 }
@@ -1323,6 +1337,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         Ok(0) => 0,
         Ok(_) => 1,
         Err(error) => {
+            let _ = (card)(&format!("drive failed: {error}"));
             eprintln!("loop drive: {error}");
             2
         }

@@ -3,7 +3,7 @@ id: infra-loop-pr10-supervisor
 title: Loop PR 10: loop drive, watchers, kill switch and the soft check-in
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr07b-session, infra-loop-pr07c-queue-board, infra-loop-pr09-client-adapters]

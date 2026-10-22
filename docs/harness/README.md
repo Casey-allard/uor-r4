@@ -119,6 +119,8 @@ UOR_LAB=claude uor-harness loop drive --watch --pid <pid> --interval 60
 UOR_LAB=claude uor-harness loop drive --watch --lease --interval 300
 ```
 
+**Supervisor stops card the PM.** `STOP` (the loop next asked the supervisor to stop), an explicit multi-session `--max-sessions` limit being reached, and an error exit each post a card asking the PM to prompt the lab; a clean session exit that the supervisor restarts, and the default single-session unit, are not stops and post no card.
+
 **The 2-hour check-in is soft (D53).** A session under two hours continues. Past it, real progress -
 new commits, new gate runs or a changed working tree - continues **with a note** posted on the work
 issue (the PR the decision names, or #2028 for an item or command target) through `gh`, with a copy

@@ -925,3 +925,104 @@ fn a_check_in_note_targets_the_named_pr_else_the_tracker() {
     assert_eq!(note_issue(Some("item infra-loop-pr10")), 2028);
     assert_eq!(note_issue(None), 2028);
 }
+
+#[test]
+fn a_supervisor_stop_cards_the_pm_for_the_next_prompt() {
+    let root = init_repo("stop-card");
+    let launch = vec!["sh".to_string(), "-c".to_string(), "exit 0".to_string()];
+    let (decision, _asked) = scripted_next(vec![Next::Stop]);
+    let cards: RefCell<Vec<String>> = RefCell::new(Vec::new());
+    let card = |reason: &str| {
+        cards.borrow_mut().push(reason.to_string());
+        Ok(())
+    };
+    let now = || 1_000_000u64;
+    let pause = |_seconds: u64| {};
+    let notice = |_note: &str| {};
+    let spec = DriveSpec {
+        root: &root,
+        lab: "deepseek",
+        client: "fake-client",
+        model: "pinned-model-1",
+        launch: &launch,
+        prompt: Some("fake session"),
+        max_sessions: 1,
+        order: None,
+        exempt_lease: false,
+        poll: 37,
+    };
+    let hooks = DriveHooks {
+        now: &now,
+        pause: &pause,
+        decision: &decision,
+        card: &card,
+        notice: &notice,
+    };
+    let code = run_sessions(&spec, &hooks).expect("a STOP is a clean supervisor stop");
+    assert_eq!(code, 0);
+    let cards = cards.into_inner();
+    assert_eq!(cards.len(), 1, "a STOP cards the PM once: {cards:?}");
+    assert!(
+        cards[0].starts_with("STOP: loop next asked the supervisor to stop"),
+        "{cards:?}"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn reaching_an_explicit_multi_session_limit_cards_the_pm() {
+    let root = init_repo("max-card");
+    let launch = vec![
+        "sh".to_string(),
+        "-c".to_string(),
+        "exit 0".to_string(),
+        "{prompt}".to_string(),
+    ];
+    let (decision, asked) = scripted_next(vec![
+        Next::Go("GO item fake - ready".to_string()),
+        Next::Go("GO item fake - ready".to_string()),
+    ]);
+    let cards: RefCell<Vec<String>> = RefCell::new(Vec::new());
+    let card = |reason: &str| {
+        cards.borrow_mut().push(reason.to_string());
+        Ok(())
+    };
+    let now = || {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_secs())
+            .unwrap_or(0)
+    };
+    let pause = |_seconds: u64| std::thread::sleep(std::time::Duration::from_millis(10));
+    let notice = |_note: &str| {};
+    let spec = DriveSpec {
+        root: &root,
+        lab: "deepseek",
+        client: "fake-client",
+        model: "pinned-model-1",
+        launch: &launch,
+        prompt: Some("fake session"),
+        max_sessions: 2,
+        order: None,
+        exempt_lease: false,
+        poll: 37,
+    };
+    let hooks = DriveHooks {
+        now: &now,
+        pause: &pause,
+        decision: &decision,
+        card: &card,
+        notice: &notice,
+    };
+    let code = run_sessions(&spec, &hooks).expect("two clean sessions then the limit");
+    assert_eq!(code, 0);
+    assert_eq!(asked.get(), 2, "two sessions were asked for");
+    assert_eq!(sessions_started(&root), 2, "two sessions started");
+    let cards = cards.into_inner();
+    assert_eq!(cards.len(), 1, "the limit cards the PM once: {cards:?}");
+    assert!(
+        cards[0].starts_with("reached --max-sessions (2 sessions)"),
+        "{cards:?}"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
