@@ -1147,7 +1147,7 @@ fn review_record_counts_exact_head_records_from_allowed_labs() {
         &o,
         1,
         "FAIL review-record",
-        "fail: the last counted record is CHANGES",
+        "fail: a counted CHANGES from claude stands",
     );
 
     let o = r.check_gh(&h, &fake(vec![]));

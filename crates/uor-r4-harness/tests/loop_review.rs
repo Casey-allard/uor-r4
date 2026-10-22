@@ -247,7 +247,7 @@ fn the_last_counted_record_decides() {
     let out = run(&CODE_PR, &[approve.clone(), changes.clone()]);
     assert!(!out.pass);
     assert!(
-        has(&out, "fail: the last counted record is CHANGES"),
+        has(&out, "fail: a counted CHANGES from codex stands"),
         "{:?}",
         out.details
     );
@@ -272,6 +272,60 @@ fn the_last_counted_record_decides() {
     let out = run(&CODE_PR, &["LGTM".to_string()]);
     assert!(!out.pass);
     assert!(has(&out, "fail: no counted record"), "{:?}", out.details);
+}
+
+/// `standing_changes` over the same input as [`run`].
+fn standing(c: &Case, comments: &[String]) -> Vec<String> {
+    let (rows, vendors) = (rows(), vendors());
+    standing_changes(&GateInput {
+        pr: PR,
+        head: HEAD,
+        order_path: ORDER_PATH,
+        order_lab: c.order_lab,
+        order_item: c.item,
+        setup_row: c.setup_row,
+        rows: &rows,
+        vendors: &vendors,
+        d59_in_force: c.d59,
+        doc_only: c.doc_only,
+        comments,
+    })
+}
+
+/// Planted fault: another lab's later APPROVE at the same head clears a counted CHANGES. Owner,
+/// 22 Oct 2026 17:51Z ("No: CHANGES blocks"): it stands until a new head or the same lab's own
+/// later APPROVE.
+#[test]
+fn planted_fault_another_lab_s_approve_does_not_clear_a_counted_changes() {
+    let codex_changes = body("codex", Verdict::Changes);
+    let kimi_approve = body("kimi", Verdict::Approve);
+    let codex_approve = body("codex", Verdict::Approve);
+
+    let comments = [codex_changes.clone(), kimi_approve.clone()];
+    let out = run(&CODE_PR, &comments);
+    assert!(
+        !out.pass,
+        "another lab's APPROVE cleared a counted CHANGES: {:?}",
+        out.details
+    );
+    assert!(
+        has(&out, "fail: a counted CHANGES from codex stands"),
+        "{:?}",
+        out.details
+    );
+    assert_eq!(standing(&CODE_PR, &comments), ["codex"]);
+
+    // The same lab's own later APPROVE clears it.
+    let comments = [codex_changes, kimi_approve.clone(), codex_approve];
+    assert!(run(&CODE_PR, &comments).pass);
+    assert!(standing(&CODE_PR, &comments).is_empty());
+
+    // A new head clears it: a record counts only at the current head.
+    let stale = render(&Record {
+        head: OTHER_HEAD.to_string(),
+        ..record("codex", Verdict::Changes)
+    });
+    assert!(run(&CODE_PR, &[stale, kimi_approve]).pass);
 }
 
 /// `last_counted_approve` over the same input as [`run`].

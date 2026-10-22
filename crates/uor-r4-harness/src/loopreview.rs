@@ -406,13 +406,14 @@ fn refusal(input: &GateInput, setup_pr: bool, r: &Record) -> Option<String> {
     ))
 }
 
-/// Passes when a counted record is an APPROVE and the last counted record is an APPROVE.
-/// `details` names every record, malformed ones included, and why it counted or not.
+/// Passes when a record counts and no counted CHANGES stands ([`standing_changes`]), so every
+/// lab with a counted record at the head last said APPROVE. `details` names every record,
+/// malformed ones included, and why it counted or not.
 pub fn gate(input: &GateInput) -> GateOutcome {
     let setup_pr = is_setup_pr(input.setup_row, input.rows, input.order_item);
     let bad_item = bad_loop_item(input, setup_pr);
     let mut details = Vec::new();
-    let mut last: Option<Verdict> = None;
+    let mut any_counted = false;
     for (i, body) in input.comments.iter().enumerate() {
         let n = i + 1;
         match parse(body) {
@@ -438,20 +439,23 @@ pub fn gate(input: &GateInput) -> GateOutcome {
                     Some(why) => details.push(format!("{seen}: not counted, {why}")),
                     None => {
                         details.push(format!("{seen}: counted"));
-                        last = Some(r.verdict);
+                        any_counted = true;
                     }
                 }
             }
         }
     }
-    let pass = last == Some(Verdict::Approve);
-    details.push(match (bad_item, last) {
-        (Some(why), _) => why,
-        (None, Some(Verdict::Approve)) => {
-            format!("pass: a counted APPROVE at {} stands", input.head)
-        }
-        (None, Some(Verdict::Changes)) => "fail: the last counted record is CHANGES".to_string(),
-        (None, None) => format!("fail: no counted record at {}", input.head),
+    let standing = standing_changes(input);
+    let pass = any_counted && standing.is_empty();
+    details.push(match bad_item {
+        Some(why) => why,
+        None if !any_counted => format!("fail: no counted record at {}", input.head),
+        None if !standing.is_empty() => format!(
+            "fail: a counted CHANGES from {} stands at {}; a new head or that lab's own later APPROVE clears it",
+            standing.join(", "),
+            input.head
+        ),
+        None => format!("pass: a counted APPROVE at {} stands", input.head),
     });
     GateOutcome {
         pass,
@@ -473,6 +477,20 @@ pub fn counted(input: &GateInput) -> Vec<(String, Verdict)> {
             Parsed::Record(r) if refusal(input, setup_pr, &r).is_none() => Some((r.lab, r.verdict)),
             _ => None,
         })
+        .collect()
+}
+
+/// The labs whose last counted record at the head is CHANGES, by name. Owner, 22 Oct 2026 17:51Z
+/// ("No: CHANGES blocks"): a counted CHANGES stands until a new head, where no record counts yet,
+/// or the same lab's own later APPROVE. Another lab's APPROVE does not clear it.
+pub fn standing_changes(input: &GateInput) -> Vec<String> {
+    let mut last = BTreeMap::new();
+    for (lab, verdict) in counted(input) {
+        last.insert(lab, verdict);
+    }
+    last.into_iter()
+        .filter(|(_, v)| *v == Verdict::Changes)
+        .map(|(lab, _)| lab)
         .collect()
 }
 

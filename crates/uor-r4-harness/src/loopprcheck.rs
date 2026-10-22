@@ -1552,7 +1552,8 @@ fn github<'p>(pr: &'p Pr, rule: &'static str) -> Result<(u64, &'p dyn PrGh), Rul
 }
 
 /// The PR's `uor-review v1` records, judged by [`crate::loopreview::gate`]: it passes when a
-/// counted record is an APPROVE and the last counted record is an APPROVE. What the gate reads
+/// record counts and no counted CHANGES stands (each lab's last counted record is an APPROVE;
+/// another lab's APPROVE does not clear a CHANGES). What the gate reads
 /// about the repository comes from the merge base (the build-plan rows of `docs/loop/README.md`,
 /// the vendors of `docs/harness/labs.json`, D59 from `docs/harness/owner-paths.json` and the
 /// switch); the ORDER lab, item and `Setup row:` come from the PR's ORDER at the head; the PR is

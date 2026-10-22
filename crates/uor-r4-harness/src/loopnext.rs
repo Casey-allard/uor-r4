@@ -718,10 +718,12 @@ pub fn run(
             }
             Ok(o) => {
                 let bodies = comment_bodies(gh, pr.number).map_err(unreadable)?;
-                let records = crate::loopreview::counted(&gate_input(pr, &o, &main, &bodies));
-                if let Some((rlab, crate::loopreview::Verdict::Changes)) = records.last() {
+                let standing =
+                    crate::loopreview::standing_changes(&gate_input(pr, &o, &main, &bodies));
+                if !standing.is_empty() {
                     why.push(format!(
-                        "the last counted review record at its head ({rlab}) says CHANGES"
+                        "a counted CHANGES at its head stands ({})",
+                        standing.join(", ")
                     ));
                 }
             }

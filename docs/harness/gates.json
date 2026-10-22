@@ -178,6 +178,33 @@
       }
     },
     {
+      "id": "loop-review-changes-blocks",
+      "proves": "a counted CHANGES at a PR's head stands until a new head or the same lab's own later APPROVE (owner, 22 Oct 2026 17:51Z): another lab's later APPROVE at that head does not pass the review gate; the planted fault restores the last-record-wins rule.",
+      "command": [
+        "cargo",
+        "test",
+        "-q",
+        "--locked",
+        "-p",
+        "uor-r4-harness",
+        "--test",
+        "loop_review"
+      ],
+      "reads": [
+        "crates/uor-r4-harness/**/*.rs",
+        "docs/harness/gates.json"
+      ],
+      "quick": false,
+      "break": {
+        "file": "crates/uor-r4-harness/src/loopreview.rs",
+        "replace": {
+          "from": "        last.insert(lab, verdict);",
+          "to": "        last.clear();\n        last.insert(lab, verdict);"
+        },
+        "expect": "another lab's APPROVE cleared a counted CHANGES"
+      }
+    },
+    {
       "id": "loop-next-owner-direction",
       "proves": "`loop next` offers the first open owner direction from PLAN.md's `## Owner directions` table before repairs, and names the missing PLAN.md when it is absent; the planted fault removes the open-row filter.",
       "command": [

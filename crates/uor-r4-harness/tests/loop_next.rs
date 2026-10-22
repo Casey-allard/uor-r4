@@ -49,7 +49,8 @@ impl Repo {
             r#"{"labs":{
               "claude":{"vendor":"Anthropic","client":"b","headless":"c","open_pr_limit":3},
               "anthro":{"vendor":"Anthropic","client":"b","headless":"c","open_pr_limit":3},
-              "codex":{"vendor":"OpenAI","client":"b","headless":"c","open_pr_limit":3}}}"#,
+              "codex":{"vendor":"OpenAI","client":"b","headless":"c","open_pr_limit":3},
+              "kimi":{"vendor":"Moonshot","client":"b","headless":"c","open_pr_limit":3}}}"#,
         );
         r.write("docs/roadmap/items/.keep", "");
         r.write(
@@ -262,6 +263,15 @@ fn an_own_pr_with_a_counted_request_changes_is_a_repair() {
         json!({"7": [record("codex", 7, HEAD, "APPROVE", ("it-1", "claude")), record("codex", 7, HEAD, "CHANGES", ("it-1", "claude"))]}),
     ));
     assert!(decision(&o).starts_with("GO repair #7"), "{o:?}");
+    // Another lab's later APPROVE does not clear codex's CHANGES (owner, 22 Oct 17:51Z).
+    let o = r.next(&fake(
+        vec![pr(7, "claude/x", "claude", "it-1")],
+        json!({"7": [record("codex", 7, HEAD, "CHANGES", ("it-1", "claude")), record("kimi", 7, HEAD, "APPROVE", ("it-1", "claude"))]}),
+    ));
+    assert!(
+        decision(&o).starts_with("GO repair #7"),
+        "a standing CHANGES must stay a repair: {o:?}"
+    );
     // A REQUEST CHANGES at an older head does not count.
     let o = r.next(&fake(
         vec![pr(7, "claude/x", "claude", "it-1")],
