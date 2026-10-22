@@ -3,7 +3,7 @@ id: m1-a8-erosion-diagnosis
 title: Diagnose A8 reach erosion from retained checkpoints
 milestone: M1
 area: evaluation
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []
