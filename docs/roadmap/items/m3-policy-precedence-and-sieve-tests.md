@@ -3,7 +3,7 @@ id: m3-policy-precedence-and-sieve-tests
 title: Pin OpPolicy precedence and store-miss sieve coupling with tests
 milestone: M3
 area: tooling
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
