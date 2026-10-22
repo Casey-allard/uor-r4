@@ -52,7 +52,7 @@ impl Default for CapabilityTruthMatrix {
             causal_attention: "Implemented: causal integer-softmax reads over bounded addressed memory (persistent slots, dialogue ring, L2 pages). A structural description, not a measured capability.".into(),
             multi_step_reasoning: "UNQUALIFIED: general reasoning is not established.".into(),
             executable_coding: "UNQUALIFIED: general coding is not established.".into(),
-            durable_memory: "Implemented: bounded session memory with save and restore through uor-r4.integer-session/1. That schema omits the width-576 value stores, so a restored width-576 session does not continue identically. Durable-memory capability is not established.".into(),
+            durable_memory: "Implemented: width-256 session memory with save and restore through uor-r4.integer-session/1 (width-576 value stores are not persisted, and save_session/restore_session reject width-576 sessions); exact stack-session reload is covered by uor-r4.stack-session/1 (IntegerStackSession). Durable-memory capability is not established.".into(),
             serving_guarantees: format!("Declared contract {DECLARED_NUMERICAL_CONTRACT}: no floating point and no multiply or divide instruction in served kernels. {CONTRACT_QUALIFICATION_NOTE}"),
             m1_performance_profile: "UNQUALIFIED: no sealed M1 cost report is bound to this API.".into(),
             general_ai_disavowal: "Pre-alpha: general prose, general reasoning and frontier capability remain unproven.".into(),
@@ -300,7 +300,9 @@ impl IntegerCapabilityApi {
         Ok(self.bundle.tokenizer().decode(&generated_tokens))
     }
 
-    /// Save session state, sampler state, sampling policy and read mode.
+    /// Save a width-256 session's state, sampler state, sampling policy and
+    /// read mode. Rejects width-576 sessions because `uor-r4.integer-session/1`
+    /// does not persist width-576 value stores.
     pub fn save_session(&self, session_id: u32) -> Result<SerializedChatSession> {
         let lock = self
             .sessions
@@ -309,6 +311,12 @@ impl IntegerCapabilityApi {
         let session = lock
             .get(&session_id)
             .ok_or_else(|| invalid(format!("session {session_id} not found")))?;
+
+        if self.bundle.model().config().width == 576 || session.state.state.len() == 576 {
+            return Err(invalid(
+                "uor-r4.integer-session/1: width-576 value stores are not persisted; save_session rejects width-576 sessions",
+            ));
+        }
 
         let temp_session = ChatSession::from_parts(
             &self.bundle,
@@ -321,11 +329,18 @@ impl IntegerCapabilityApi {
         Ok(temp_session.to_serialized(Some(self.bundle.identity())))
     }
 
-    /// Restore a saved session as a new session, keeping its saved sampler
-    /// state, sampling policy and read mode. `uor-r4.integer-session/1` does
-    /// not carry the width-576 value stores, so a restored width-576 session
-    /// reads empty values and does not continue identically.
+    /// Restore a saved width-256 session as a new session, keeping its saved
+    /// sampler state, sampling policy and read mode. Rejects width-576 sessions
+    /// because `uor-r4.integer-session/1` does not persist width-576 value
+    /// stores; exact stack-session reload uses `IntegerStackSession`
+    /// (`uor-r4.stack-session/1`).
     pub fn restore_session(&self, serialized: SerializedChatSession) -> Result<u32> {
+        if self.bundle.model().config().width == 576 || serialized.session_state.state.len() == 576
+        {
+            return Err(invalid(
+                "uor-r4.integer-session/1: width-576 value stores are not persisted; restore_session rejects width-576 sessions",
+            ));
+        }
         let restored =
             ChatSession::from_serialized(&self.bundle, serialized, self.bundle.identity())?;
         let roles = restored.roles();
@@ -407,6 +422,46 @@ mod tests {
             Err(error) => error,
         };
         assert!(error.to_string().contains("identity"), "{error}");
+        Ok(())
+    }
+
+    #[test]
+    fn save_and_restore_session_reject_width_576_sessions() -> Result<()> {
+        let api = IntegerCapabilityApi::new(create_test_bundle_with_byte_vocab());
+        let id = api.create_session(SessionConfig::default())?;
+        api.ingest_user_turn(id, "hello")?;
+        let mut serialized_576 = api.save_session(id)?;
+        serialized_576.session_state.state.resize(576, 0);
+
+        let restore_err = api
+            .restore_session(serialized_576)
+            .expect_err("restore_session must reject width-576 state");
+        assert!(
+            restore_err
+                .to_string()
+                .contains("width-576 value stores are not persisted"),
+            "unexpected restore_session error: {restore_err}"
+        );
+
+        {
+            let mut lock = api
+                .sessions
+                .lock()
+                .map_err(|_| invalid("session lock poisoned"))?;
+            let session = lock
+                .get_mut(&id)
+                .ok_or_else(|| invalid("session missing"))?;
+            session.state.state.resize(576, 0);
+        }
+        let save_err = api
+            .save_session(id)
+            .expect_err("save_session must reject width-576 state");
+        assert!(
+            save_err
+                .to_string()
+                .contains("width-576 value stores are not persisted"),
+            "unexpected save_session error: {save_err}"
+        );
         Ok(())
     }
 }

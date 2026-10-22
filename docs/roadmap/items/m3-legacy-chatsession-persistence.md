@@ -3,7 +3,7 @@ id: m3-legacy-chatsession-persistence
 title: Retire or complete legacy width-576 ChatSession persistence
 milestone: M3
 area: tooling
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []

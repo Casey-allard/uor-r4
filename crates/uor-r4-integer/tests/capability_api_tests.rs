@@ -1,10 +1,10 @@
 //! Tests for the capability API (`IntegerCapabilityApi`).
 //!
-//! The synthetic byte-vocabulary bundle covers the API contract on every run.
-//! The width-576 tests need the local `dialogue-child-bundle-1` fixture; they
-//! are ignored by default and fail when run without it. The width-576
-//! continuation test is also a known failure: the session schema omits the
-//! 576-wide value stores, so a restored width-576 session diverges.
+//! The synthetic byte-vocabulary bundle covers the API contract and width-256
+//! `uor-r4.integer-session/1` save/restore continuation on every run. Exact
+//! stack-session reload is covered by the `IntegerStackSession` reload gate in
+//! `crates/uor-r4-integer/src/stack/tests.rs`. The width-576 lifecycle test
+//! needs the local `dialogue-child-bundle-1` fixture and is ignored by default.
 
 use std::path::Path;
 use uor_r4_integer::capability_api::{
@@ -88,6 +88,26 @@ fn metadata_declares_the_contract_without_certifying_it() -> Result<()> {
     for claim in ["Certified", "Qualified", "ms/tok", "MiB"] {
         assert!(!matrix.contains(claim), "truth matrix states '{claim}'");
     }
+    assert!(meta
+        .truth_matrix
+        .durable_memory
+        .contains("uor-r4.integer-session/1"));
+    assert!(meta
+        .truth_matrix
+        .durable_memory
+        .contains("width-576 value stores are not persisted"));
+    assert!(meta
+        .truth_matrix
+        .durable_memory
+        .contains("uor-r4.stack-session/1"));
+    assert!(meta
+        .truth_matrix
+        .durable_memory
+        .contains("Durable-memory capability is not established."));
+    assert!(!meta
+        .truth_matrix
+        .durable_memory
+        .contains("omits the width-576 value stores"));
     Ok(())
 }
 
@@ -122,6 +142,24 @@ fn empty_prompt_is_rejected_without_changing_the_session() -> Result<()> {
         assert!(api.ingest_user_turn(id, prompt).is_err());
     }
     assert_eq!(saved_json(&api, id)?, before);
+    Ok(())
+}
+
+#[test]
+fn restore_session_rejects_width_576_serialized_state() -> Result<()> {
+    let api = IntegerCapabilityApi::new(create_test_bundle_with_byte_vocab());
+    let id = api.create_session(SessionConfig::default())?;
+    api.ingest_user_turn(id, "hello")?;
+    let mut saved = api.save_session(id)?;
+    saved.session_state.state.resize(576, 0);
+    let err = api
+        .restore_session(saved)
+        .expect_err("restore_session must reject width-576 serialized state");
+    assert!(
+        err.to_string()
+            .contains("width-576 value stores are not persisted"),
+        "unexpected error: {err}"
+    );
     Ok(())
 }
 
@@ -161,16 +199,13 @@ fn capability_api_lifecycle_on_dialogue576_bundle() -> Result<()> {
     assert!(telemetry.active_tokens > 0);
     assert_eq!(telemetry.context_capacity, 256);
 
-    let saved = api.save_session(session_id)?;
-    assert_eq!(saved.schema, "uor-r4.integer-session/1");
-    assert_eq!(saved.session_state.state.len(), 576);
-    restore_and_compare_saved_state(&api, session_id)?;
+    let err = api
+        .save_session(session_id)
+        .expect_err("save_session must reject width-576 sessions");
+    assert!(
+        err.to_string()
+            .contains("width-576 value stores are not persisted"),
+        "unexpected error: {err}"
+    );
     Ok(())
-}
-
-#[test]
-#[ignore = "known failure, tracked in #1476: uor-r4.integer-session/1 omits the width-576 value stores (persistent_values_576, dialogue_values_576, l2_pages_576), so a restored width-576 session diverges at its first step; also requires the local dialogue-child-bundle-1 fixture"]
-fn restored_dialogue576_session_continues_identically() -> Result<()> {
-    let (api, session_id) = dialogue576_session()?;
-    assert_restore_continues_identically(&api, session_id)
 }
