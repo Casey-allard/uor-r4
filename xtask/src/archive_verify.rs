@@ -347,6 +347,79 @@ fn stub_replaced(
         })
 }
 
+/// The archive catalog's data file; it may only be appended to (#2982).
+const CATALOG_DATA: &str = "archive/catalog.jsonl";
+
+/// A pass for a modified catalog file under the append-only rule (#2982).
+#[derive(Debug, PartialEq, Eq)]
+enum CatalogChange {
+    /// `archive/catalog.jsonl` gained this many lines and nothing else changed.
+    Appended(usize),
+    /// A page equal to `docs-catalog`'s output for the catalog now.
+    Regenerated,
+}
+
+/// `archive/CATALOG.md` or `archive/catalog/<x>.md`, the only shapes
+/// `docs_catalog::render` writes.
+fn is_catalog_page(path: &str) -> bool {
+    path == "archive/CATALOG.md"
+        || path
+            .strip_prefix("archive/catalog/")
+            .and_then(|x| x.strip_suffix(".md"))
+            .is_some_and(|x| !x.contains('/'))
+}
+
+/// Lines appended when `now` is `base` followed by new lines, the cut falls
+/// on a line boundary and the whole of `now` parses as catalog records.
+/// Anything else (an edited, removed or reordered row, no growth) is `None`.
+fn catalog_appended(base: &[u8], now: &[u8]) -> Option<usize> {
+    if now.len() <= base.len() || !now.starts_with(base) {
+        return None;
+    }
+    if !(base.is_empty() || base.ends_with(b"\n")) {
+        return None;
+    }
+    let text = std::str::from_utf8(now).ok()?;
+    crate::docs_catalog::parse_records(text).ok()?;
+    Some(text[base.len()..].lines().count())
+}
+
+/// `now` is byte-identical to the page `render` produces at `path`; a path
+/// `render` does not produce, or not shaped like a catalog page, never passes.
+fn catalog_page_regenerated(path: &str, now: &[u8], rendered: &[(String, String)]) -> bool {
+    is_catalog_page(path)
+        && rendered
+            .iter()
+            .any(|(p, c)| p == path && c.as_bytes() == now)
+}
+
+/// The append-only rule for one modified base-revision archive file: `base`
+/// is its blob at REV, `now` its bytes in the working tree, and `pages` the
+/// rendered catalog for the catalog data now (`None` when that does not parse).
+fn catalog_change(
+    path: &str,
+    base: &[u8],
+    now: &[u8],
+    pages: Option<&[(String, String)]>,
+) -> Option<CatalogChange> {
+    if path == CATALOG_DATA {
+        catalog_appended(base, now).map(CatalogChange::Appended)
+    } else if pages.is_some_and(|p| catalog_page_regenerated(path, now, p)) {
+        Some(CatalogChange::Regenerated)
+    } else {
+        None
+    }
+}
+
+/// Every page `docs-catalog --check` expects for the catalog data `text`,
+/// over the same tracked-file universe it uses.
+fn render_catalog(root: &Path, text: &[u8]) -> Option<Vec<(String, String)>> {
+    let recs = crate::docs_catalog::parse_records(std::str::from_utf8(text).ok()?).ok()?;
+    // The same universe `docs-catalog --check` builds (docs_catalog::git_universe).
+    let uni = Universe::new(tracked_files(root).ok()?);
+    Some(crate::docs_catalog::render(&recs, &|p| uni.exists(p)))
+}
+
 fn part_b(root: &Path, rev: &str) -> Result<(), String> {
     let listing = git(root, &["ls-tree", "-r", "-z", rev, "--", "archive/"])?;
     // "<mode> <type> <hash>\t<path>"
@@ -391,9 +464,9 @@ fn part_b(root: &Path, rev: &str) -> Result<(), String> {
                 }
             }
             Ok(meta) => {
-                if meta.file_type().is_symlink() {
-                    modified.push(f.2.clone());
-                } else if executable(&meta).is_some_and(|x| mode_changed(&f.0, x)) {
+                if meta.file_type().is_symlink()
+                    || executable(&meta).is_some_and(|x| mode_changed(&f.0, x))
+                {
                     modified.push(f.2.clone());
                 } else {
                     to_hash.push(f);
@@ -438,9 +511,47 @@ fn part_b(root: &Path, rev: &str) -> Result<(), String> {
             to_hash.len()
         ));
     }
+    // The catalog data and its rendered pages, read once and only when needed.
+    let catalog_now: std::cell::OnceCell<Option<Vec<u8>>> = std::cell::OnceCell::new();
+    let catalog_pages: std::cell::OnceCell<Option<Vec<(String, String)>>> =
+        std::cell::OnceCell::new();
+    let read_catalog = || {
+        catalog_now
+            .get_or_init(|| std::fs::read(root.join(CATALOG_DATA)).ok())
+            .as_deref()
+    };
+    let pages = || {
+        catalog_pages
+            .get_or_init(|| render_catalog(root, read_catalog()?))
+            .as_deref()
+    };
+    let mut appended: Vec<(String, usize)> = Vec::new();
+    let mut regenerated: Vec<String> = Vec::new();
     for (f, h) in to_hash.iter().zip(&hashes) {
         if *h != f.1 {
-            let base = git(root, &["cat-file", "blob", &f.1]).unwrap_or_default();
+            let base_blob = git(root, &["cat-file", "blob", &f.1]);
+            // A base that cannot be read never earns a catalog pass.
+            let catalog = match &base_blob {
+                Ok(b) if f.2 == CATALOG_DATA => {
+                    read_catalog().and_then(|now| catalog_change(&f.2, b, now, None))
+                }
+                Ok(b) if is_catalog_page(&f.2) => std::fs::read(root.join(&f.2))
+                    .ok()
+                    .and_then(|now| catalog_change(&f.2, b, &now, pages())),
+                _ => None,
+            };
+            match catalog {
+                Some(CatalogChange::Appended(n)) => {
+                    appended.push((f.2.clone(), n));
+                    continue;
+                }
+                Some(CatalogChange::Regenerated) => {
+                    regenerated.push(f.2.clone());
+                    continue;
+                }
+                None => {}
+            }
+            let base = base_blob.unwrap_or_default();
             let rev_blob = |t: &str| {
                 git(
                     root,
@@ -464,8 +575,15 @@ fn part_b(root: &Path, rev: &str) -> Result<(), String> {
     deleted.sort();
     modified.sort();
     replaced.sort();
+    regenerated.sort();
     for p in &replaced {
         println!("archive stub replaced: {p}");
+    }
+    for (p, n) in &appended {
+        println!("archive catalog appended: {p} (+{n} lines)");
+    }
+    for p in &regenerated {
+        println!("archive catalog regenerated: {p}");
     }
     for p in &deleted {
         eprintln!("archive deleted: {p}");
@@ -781,5 +899,273 @@ mod archive_verify_tests {
         }));
         let near = format!("{exact}extra\n");
         assert!(!stub_replaced(near.as_bytes(), "b1", &|_| false, &at_rev));
+    }
+
+    // The archive catalog is append-only (#2982): catalog.jsonl may only gain
+    // lines, and its pages may only equal docs-catalog's output.
+
+    /// One catalog row on research line `l`.
+    fn row(path: &str) -> String {
+        format!(
+            "{{\"path\":\"{path}\",\"title\":\"T {path}\",\"date\":\"2026-10-01\",\"lab\":\"claude\",\"line\":\"l\",\"mechanisms\":[\"m\"],\"outcome\":\"positive\",\"one_line\":\"x\",\"prs\":[1]}}\n"
+        )
+    }
+
+    fn rendered(text: &str) -> Vec<(String, String)> {
+        let recs = crate::docs_catalog::parse_records(text).expect("parse");
+        crate::docs_catalog::render(&recs, &|_| true)
+    }
+
+    fn page<'a>(pages: &'a [(String, String)], path: &str) -> &'a str {
+        &pages.iter().find(|(p, _)| p == path).expect("page").1
+    }
+
+    #[test]
+    fn appended_row_passes() {
+        let (a, b, c) = (
+            row("archive/a.md"),
+            row("archive/b.md"),
+            row("archive/c.md"),
+        );
+        let base = format!("{a}{b}");
+        assert_eq!(
+            catalog_appended(base.as_bytes(), format!("{base}{c}").as_bytes()),
+            Some(1)
+        );
+        assert_eq!(catalog_appended(b"", a.as_bytes()), Some(1));
+        assert_eq!(
+            catalog_change(
+                CATALOG_DATA,
+                base.as_bytes(),
+                format!("{base}{c}{c}").as_bytes(),
+                None
+            ),
+            Some(CatalogChange::Appended(2))
+        );
+    }
+
+    #[test]
+    fn rewritten_rows_are_not_appends() {
+        let (a, b, c) = (
+            row("archive/a.md"),
+            row("archive/b.md"),
+            row("archive/c.md"),
+        );
+        let base = format!("{a}{b}");
+        let edited = format!("{a}{}{c}", row("archive/b2.md"));
+        assert_eq!(
+            catalog_appended(base.as_bytes(), edited.as_bytes()),
+            None,
+            "edited"
+        );
+        let removed = format!("{a}{c}{c}");
+        assert_eq!(
+            catalog_appended(base.as_bytes(), removed.as_bytes()),
+            None,
+            "removed"
+        );
+        assert_eq!(
+            catalog_appended(base.as_bytes(), a.as_bytes()),
+            None,
+            "truncated"
+        );
+        let reordered = format!("{b}{a}{c}");
+        assert_eq!(
+            catalog_appended(base.as_bytes(), reordered.as_bytes()),
+            None,
+            "reordered"
+        );
+        assert_eq!(
+            catalog_appended(base.as_bytes(), base.as_bytes()),
+            None,
+            "no growth"
+        );
+    }
+
+    #[test]
+    fn append_after_a_base_without_final_newline_fails() {
+        let a = row("archive/a.md");
+        let base = a.trim_end_matches('\n');
+        let now = format!("{a}{}", row("archive/b.md"));
+        assert_eq!(catalog_appended(base.as_bytes(), now.as_bytes()), None);
+    }
+
+    #[test]
+    fn unparseable_append_fails() {
+        let a = row("archive/a.md");
+        let bad = format!("{a}not json\n");
+        assert_eq!(catalog_appended(a.as_bytes(), bad.as_bytes()), None);
+        let no_path = format!("{a}{{\"title\":\"x\"}}\n");
+        assert_eq!(catalog_appended(a.as_bytes(), no_path.as_bytes()), None);
+    }
+
+    #[test]
+    fn page_equal_to_render_passes_and_hand_edit_fails() {
+        let text = format!("{}{}", row("archive/a.md"), row("archive/b.md"));
+        let pages = rendered(&text);
+        for path in ["archive/CATALOG.md", "archive/catalog/l.md"] {
+            let good = page(&pages, path);
+            assert!(
+                catalog_page_regenerated(path, good.as_bytes(), &pages),
+                "{path}"
+            );
+            assert_eq!(
+                catalog_change(path, b"old", good.as_bytes(), Some(&pages)),
+                Some(CatalogChange::Regenerated)
+            );
+            let hand = format!("{good}hand edit\n");
+            assert!(
+                !catalog_page_regenerated(path, hand.as_bytes(), &pages),
+                "{path}"
+            );
+            assert_eq!(
+                catalog_change(path, b"old", hand.as_bytes(), Some(&pages)),
+                None
+            );
+            // An unparseable catalog renders nothing, so nothing passes.
+            assert_eq!(catalog_change(path, b"old", good.as_bytes(), None), None);
+        }
+        // Another page's content at this path is still a hand edit.
+        let index = page(&pages, "archive/CATALOG.md");
+        assert!(!catalog_page_regenerated(
+            "archive/catalog/l.md",
+            index.as_bytes(),
+            &pages
+        ));
+    }
+
+    #[test]
+    fn paths_render_does_not_produce_get_no_pass() {
+        let text = row("archive/a.md");
+        let mut pages = rendered(&text);
+        let body = page(&pages, "archive/catalog/l.md").to_string();
+        assert!(!catalog_page_regenerated(
+            "archive/catalog/bogus.md",
+            body.as_bytes(),
+            &pages
+        ));
+        // Even a listed entry must have a catalog page's shape.
+        pages.push(("archive/catalog/sub/l.md".to_string(), body.clone()));
+        pages.push(("archive/other.md".to_string(), body.clone()));
+        for p in ["archive/catalog/sub/l.md", "archive/other.md"] {
+            assert!(!catalog_page_regenerated(p, body.as_bytes(), &pages), "{p}");
+        }
+        assert!(is_catalog_page("archive/CATALOG.md"));
+        assert!(is_catalog_page("archive/catalog/l.md"));
+        assert!(!is_catalog_page("archive/catalog.md"));
+        assert!(!is_catalog_page("archive/x/CATALOG.md"));
+    }
+
+    #[test]
+    fn lookalike_catalog_paths_get_no_pass() {
+        let a = row("archive/a.md");
+        let now = format!("{a}{}", row("archive/b.md"));
+        let pages = rendered(&now);
+        for p in [
+            "archive/catalogue.jsonl",
+            "archive/x/catalog.jsonl",
+            "archive/catalog.jsonl.bak",
+            "docs/catalog.jsonl",
+            "archive/other.md",
+        ] {
+            assert_eq!(
+                catalog_change(p, a.as_bytes(), now.as_bytes(), Some(&pages)),
+                None,
+                "{p}"
+            );
+        }
+    }
+
+    /// A throwaway repo under the gitignored `local/` whose base commit holds a
+    /// rendered catalog of one row plus the record and a non-catalog file.
+    fn catalog_repo(name: &str) -> std::path::PathBuf {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../local/archive-verify-tests")
+            .join(name);
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("archive/catalog")).expect("mkdir");
+        std::fs::write(dir.join("archive/a.md"), "record a\n").expect("w");
+        std::fs::write(dir.join("archive/b.md"), "record b\n").expect("w");
+        std::fs::write(dir.join(CATALOG_DATA), row("archive/a.md")).expect("w");
+        git_in(&dir, &["init", "-q"]);
+        let mut top = Command::new("git");
+        top.args(["rev-parse", "--show-toplevel"]).current_dir(&dir);
+        for (k, _) in std::env::vars() {
+            if k.starts_with("GIT_") {
+                top.env_remove(k);
+            }
+        }
+        let top = top.output().expect("git");
+        assert_eq!(
+            std::fs::canonicalize(String::from_utf8_lossy(&top.stdout).trim()).expect("top"),
+            std::fs::canonicalize(&dir).expect("dir"),
+            "the test repo must be its own repository"
+        );
+        git_in(&dir, &["add", "-A"]);
+        write_pages(&dir);
+        git_in(&dir, &["add", "-A"]);
+        git_in(
+            &dir,
+            &[
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@t",
+                "commit",
+                "-qm",
+                "base",
+            ],
+        );
+        dir
+    }
+
+    /// Write the pages `docs-catalog` renders for the repo's catalog now.
+    fn write_pages(dir: &Path) {
+        let text = std::fs::read(dir.join(CATALOG_DATA)).expect("read");
+        for (p, c) in render_catalog(dir, &text).expect("render") {
+            std::fs::write(dir.join(p), c).expect("w");
+        }
+    }
+
+    #[test]
+    fn part_b_passes_an_append_with_regenerated_pages() {
+        let d = catalog_repo("catalog-append");
+        let text = format!("{}{}", row("archive/a.md"), row("archive/b.md"));
+        std::fs::write(d.join(CATALOG_DATA), text).expect("w");
+        write_pages(&d);
+        assert!(part_b(&d, "HEAD").is_ok());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn part_b_fails_a_hand_edited_page_after_an_append() {
+        let d = catalog_repo("catalog-hand-edit");
+        let text = format!("{}{}", row("archive/a.md"), row("archive/b.md"));
+        std::fs::write(d.join(CATALOG_DATA), text).expect("w");
+        write_pages(&d);
+        let index = d.join("archive/CATALOG.md");
+        let mut body = std::fs::read_to_string(&index).expect("r");
+        body.push_str("hand edit\n");
+        std::fs::write(&index, body).expect("w");
+        assert!(part_b(&d, "HEAD").is_err());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn part_b_fails_an_edited_row_a_deleted_page_and_other_files() {
+        let d = catalog_repo("catalog-edit");
+        std::fs::write(d.join(CATALOG_DATA), row("archive/b.md")).expect("w");
+        assert!(part_b(&d, "HEAD").is_err(), "edited row");
+        let _ = std::fs::remove_dir_all(&d);
+
+        let d = catalog_repo("catalog-page-deleted");
+        std::fs::remove_file(d.join("archive/catalog/l.md")).expect("rm");
+        assert!(part_b(&d, "HEAD").is_err(), "deleted page");
+        let _ = std::fs::remove_dir_all(&d);
+
+        let d = catalog_repo("catalog-other-file");
+        std::fs::write(d.join("archive/a.md"), "edited\n").expect("w");
+        assert!(part_b(&d, "HEAD").is_err(), "non-catalog file");
+        let _ = std::fs::remove_dir_all(&d);
     }
 }
