@@ -7,7 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: []
-scope: [docs/roadmap/items/*.md, crates/uor-r4-harness/src/loopreview.rs, crates/uor-r4-harness/src/loopnext.rs, crates/uor-r4-harness/src/loopreport.rs, crates/uor-r4-harness/src/loopclose.rs, crates/uor-r4-harness/src/loopclaim.rs, crates/uor-r4-harness/tests/loop_review*.rs, crates/uor-r4-harness/tests/loop_next*.rs, crates/uor-r4-harness/tests/loop_report*.rs, crates/uor-r4-harness/tests/loop_close*.rs, crates/uor-r4-harness/tests/loop_claim*.rs, crates/uor-r4-harness/tests/loop_repair_orders*.rs, crates/uor-r4-harness/tests/loop_shared_files*.rs, crates/uor-r4-harness/tests/loop_prcheck.rs, crates/uor-r4-harness/src/loopbench.rs, crates/uor-r4-harness/tests/loop_bench*.rs, docs/loop/tasks/infra-loop-harness/kimi-1/REPORT.md]
+scope: [docs/roadmap/items/*.md, crates/uor-r4-harness/src/loopreview.rs, crates/uor-r4-harness/src/loopnext.rs, crates/uor-r4-harness/src/loopreport.rs, crates/uor-r4-harness/src/loopclose.rs, crates/uor-r4-harness/src/loopclaim.rs, crates/uor-r4-harness/tests/loop_review*.rs, crates/uor-r4-harness/tests/loop_next*.rs, crates/uor-r4-harness/tests/loop_report*.rs, crates/uor-r4-harness/tests/loop_close*.rs, crates/uor-r4-harness/tests/loop_claim*.rs, crates/uor-r4-harness/tests/loop_repair_orders*.rs, crates/uor-r4-harness/tests/loop_shared_files*.rs, crates/uor-r4-harness/tests/loop_prcheck.rs, crates/uor-r4-harness/src/loopbench.rs, crates/uor-r4-harness/tests/loop_bench*.rs]
 ---
 
 ## Why it matters

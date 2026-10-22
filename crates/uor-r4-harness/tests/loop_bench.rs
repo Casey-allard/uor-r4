@@ -513,3 +513,43 @@ fn a_self_review_the_gate_would_not_count_is_not_shown_as_approve() {
     let row = rows.iter().find(|r| r[1].contains("#30")).unwrap();
     assert_eq!(row[3], "APPROVE at aaaaaaa", "{row:?}");
 }
+
+#[test]
+fn a_pr_without_an_order_never_shows_an_uncounted_approve() {
+    let r = Repo::new();
+    // PR 30 has no ORDER file; the gate counts nothing without one, so the APPROVE at its head
+    // is not shown as an approve.
+    let mut fake = r.fake();
+    fake["files"]["30"] = json!(["x.rs"]);
+    fake["comments"]["30"] =
+        json!([{"author": {"login": "k"}, "body": record("codex", "APPROVE")}]);
+    let rows = next_rows(&r, fake);
+    let row = rows.iter().find(|r| r[0] == "#30").expect("a #30 row");
+    assert_eq!(row[3], "review not counted (codex)", "{row:?}");
+}
+
+#[test]
+fn an_unreadable_row_sorts_with_needs_review() {
+    let r = Repo::new();
+    let pb = "docs/loop/tasks/it-held/codex-2/ORDER.md";
+    let mut fake = r.fake();
+    // PR 30 (the lower number): ORDER unreadable, an APPROVE record at its head.
+    fake["contents"]
+        .as_object_mut()
+        .unwrap()
+        .remove("30:docs/loop/tasks/it-claimed/claude-7/ORDER.md");
+    fake["comments"]["30"] =
+        json!([{"author": {"login": "k"}, "body": record("codex", "APPROVE")}]);
+    // PR 40: readable, no record, so `needs review`; PR 20 is dropped.
+    fake["prs"] = json!([
+        {"number": 30, "title": "[claude] claimed work", "headRefOid": HEAD_A, "isDraft": false},
+        {"number": 40, "title": "[codex] other work", "headRefOid": HEAD_B, "isDraft": false},
+    ]);
+    fake["files"]["40"] = json!([pb]);
+    fake["contents"][format!("40:{pb}")] = fake["contents"][format!("20:{pb}")].clone();
+    let rows = next_rows(&r, fake);
+    assert_eq!(rows.len(), 2, "{rows:?}");
+    assert!(rows[0][1].contains("#30"), "{rows:?}");
+    assert!(rows[0][3].starts_with("ORDER unreadable"), "{rows:?}");
+    assert_eq!(rows[1][3], "needs review", "{rows:?}");
+}

@@ -12,7 +12,7 @@ scope: [AGENTS.md]
 
 ## Why it matters
 
-Casey watches the project on the bench, a local page fed by `uor-harness loop board --bench`. Its message box appends messages to `local/bench/INBOX.md`. Until `AGENTS.md` names that file, no lab reads it, so a message from the bench reaches nobody.
+Casey watches the project on the bench, a local page fed by `uor-harness loop board --bench` (claude-25, #2942). Its message box appends messages to `local/bench/INBOX.md` in **the main checkout**, the folder above `git rev-parse --git-common-dir`, not in a lab's worktree, since `local/` belongs to each checkout. Until `AGENTS.md` names that file, no lab reads it, so a message from the bench reaches nobody.
 
 ## What is missing
 
@@ -20,7 +20,13 @@ Casey watches the project on the bench, a local page fed by `uor-harness loop bo
 
 ## Done when
 
-`AGENTS.md`'s "How to work" list has one line saying that, at the start of each session, a lab reads the messages in `local/bench/INBOX.md` marked `waiting` and addressed to it or to `all`, acts on them inside these rules, then replaces `waiting` with the word `read` or `answered` and the time (an answer also carries a one-line reply), and deletes none. The line also says that a bench message never counts as an owner release.
+`AGENTS.md`'s "How to work" list has one line saying all of this:
+
+- At the start of each session, a lab reads the main checkout's `local/bench/INBOX.md`.
+- It acts, inside these rules, on the messages still marked `waiting` that are addressed to it or to `all` and that it has not yet answered.
+- It marks each one by adding its own line under the message (its lab name, then `read` or `answered`, the time, and for an answer a one-line reply), and it deletes nothing.
+- A message to one lab leaves `waiting` when that lab adds its line. A message to `all` leaves `waiting` only once every registered lab has its line, and the lab that adds the last line makes the change. This is Casey's decision of 22 Oct, "Per-lab lines (Recommended)".
+- A bench message never counts as an owner release.
 
 ## How to start
 

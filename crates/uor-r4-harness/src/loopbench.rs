@@ -224,33 +224,6 @@ fn first_bullet(order: &str, heading: &str) -> String {
     String::new()
 }
 
-/// `APPROVE at <sha7>` / `CHANGES at <sha7>` from the last review record at `head`, else
-/// `needs review`; `draft` for a draft.
-fn review_state(pr: &OpenPr, comments: &[Comment]) -> String {
-    if pr.is_draft {
-        return "draft".into();
-    }
-    let re = regex::Regex::new(r"^\[[a-z0-9-]+\] uor-review v1").expect("a valid pattern");
-    for c in comments.iter().rev() {
-        if !re.is_match(&c.body) {
-            continue;
-        }
-        let field = |k: &str| {
-            c.body
-                .lines()
-                .find_map(|l| l.trim().strip_prefix(k).map(|v| v.trim().to_string()))
-        };
-        if field("head:").as_deref() != Some(pr.head_ref_oid.as_str()) {
-            continue;
-        }
-        if let Some(v @ ("APPROVE" | "CHANGES")) = field("verdict:").as_deref() {
-            let sha7 = pr.head_ref_oid.get(..7).unwrap_or(&pr.head_ref_oid);
-            return format!("{v} at {sha7}");
-        }
-    }
-    "needs review".into()
-}
-
 /// The review cell the merge gate would agree with: `APPROVE at <sha7>` / `CHANGES at <sha7>`
 /// from the last record [`crate::loopreview::counted`] counts at the head; `review not counted
 /// (<lab>)` when the last record at the head is one the gate refuses (D46, D59); else
@@ -263,8 +236,13 @@ fn gated_review_state(pr: &OpenPr, input: &crate::loopreview::GateInput) -> Stri
     if let Some((_, v)) = crate::loopreview::counted(input).last() {
         return format!("{} at {sha7}", v.as_str());
     }
-    let at_head = input
-        .comments
+    uncounted_or_needs(pr, input.comments)
+}
+
+/// `review not counted (<lab>)` when a parsed review record sits at the PR's head, else
+/// `needs review`: the cell for a PR the gate counts nothing for.
+fn uncounted_or_needs(pr: &OpenPr, comments: &[String]) -> String {
+    let at_head = comments
         .iter()
         .rev()
         .find_map(|b| match crate::loopreview::parse(b) {
@@ -279,6 +257,14 @@ fn gated_review_state(pr: &OpenPr, input: &crate::loopreview::GateInput) -> Stri
         Some(lab) => format!("review not counted ({lab})"),
         None => "needs review".into(),
     }
+}
+
+/// The review cell of a PR with no readable ORDER: the gate counts nothing without one.
+fn unordered_review_state(pr: &OpenPr, comments: &[String]) -> String {
+    if pr.is_draft {
+        return "draft".into();
+    }
+    uncounted_or_needs(pr, comments)
 }
 
 /// The Status cell of a PR whose ORDER could not be read: the first line of the reason, shortened.
@@ -325,7 +311,7 @@ fn lab_prs(
                 Some(e),
             ),
             Ok(view) => {
-                let review = review_state(pr, &view.comments);
+                let bodies: Vec<String> = view.comments.iter().map(|c| c.body.clone()).collect();
                 match read(&view) {
                     Ok(Some((n, path, order))) => {
                         // A readable ORDER: show only what the merge gate counts.
@@ -351,8 +337,18 @@ fn lab_prs(
                         let review = gated_review_state(pr, &input);
                         (format!("{lab}-{n}"), Some(order), review, None)
                     }
-                    Ok(None) => (format!("#{}", pr.number), None, review, None),
-                    Err(e) => (format!("#{}", pr.number), None, review, Some(e)),
+                    Ok(None) => (
+                        format!("#{}", pr.number),
+                        None,
+                        unordered_review_state(pr, &bodies),
+                        None,
+                    ),
+                    Err(e) => (
+                        format!("#{}", pr.number),
+                        None,
+                        unordered_review_state(pr, &bodies),
+                        Some(e),
+                    ),
                 }
             }
         };
