@@ -67,7 +67,9 @@ Steps that need no judgement run in the supervisor, without a model.
 | 14 | Render | Refresh the render PR. | `loop render --pr` (to build) | Kimi; a cover lab after 2 hours red |
 | 15 | Restart | Start the next fresh session, after `loop next` says go: one fresh headless session per unit, its pid/group recorded, the soft 2-hour check-in and a watcher for a leased GPU run. | `loop drive` (built, loop PR 10) | supervisor |
 
-`loop drive` now runs this cycle for one or more sessions on the laptop, and it calls `loop next` for every stop including the kill switch. Until it is wired into every client's headless launcher, a lab does steps 1–15 itself and the delivery path in CHARTER §5.5 applies as written.
+`loop drive` now runs this cycle for one or more sessions on the laptop, and it calls `loop next` for every stop including the kill switch.
+
+`loop next`'s sources beyond the kill switch, repairs and reviews: `premise-probes` read PLAN's premise table (the first `open` row of a `## Premises` table whose probe cell holds a command in backticks) and `lane` reads the lab's owner-set lane plus the PM's item `lane:`/`rank:` ranking; both name what is missing when the data is absent. GPU collections still need a collection record the watcher does not write yet, which is a separate unit. Until it is wired into every client's headless launcher, a lab does steps 1–15 itself and the delivery path in CHARTER §5.5 applies as written.
 
 ## The notes
 

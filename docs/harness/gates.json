@@ -124,6 +124,33 @@
       }
     },
     {
+      "id": "loop-next-sources",
+      "proves": "`loop next` offers the top of the lab lane from the registry lane plus item `lane:`/`rank:` keys, offers the first open premise probe from PLAN.md's `## Premises` table, and names what is missing when either input is absent; the planted fault removes the lane filter.",
+      "command": [
+        "cargo",
+        "test",
+        "-q",
+        "--locked",
+        "-p",
+        "uor-r4-harness",
+        "--test",
+        "loop_next_sources"
+      ],
+      "reads": [
+        "crates/uor-r4-harness/**/*.rs",
+        "docs/harness/gates.json"
+      ],
+      "quick": false,
+      "break": {
+        "file": "crates/uor-r4-harness/src/loopnext.rs",
+        "replace": {
+          "from": "                        if item.lane.as_deref() == Some(lane.as_str()) {",
+          "to": "                        if lane.is_empty() {"
+        },
+        "expect": "the top of the lab lane must be offered before any"
+      }
+    },
+    {
       "id": "git-hooks",
       "proves": "The three managed git hooks plan and install owner-only, replace the stock LFS pre-push with its backup, check Lab and Order trailers on lab branches, and run pr-check --local before a push.",
       "command": [

@@ -362,6 +362,10 @@ pub struct ItemFields {
     pub notebook: Option<String>,
     /// The ids in the inline-list `depends_on:` line; empty when there is none.
     pub depends_on: Vec<String>,
+    /// The item lane, from an optional `lane:` line (lowercase letters, digits and hyphens).
+    pub lane: Option<String>,
+    /// The item rank inside its lane, from an optional positive-integer `rank:` line.
+    pub rank: Option<u32>,
     /// Why the `depends_on:` line is not an inline list. It is recorded, not an error, so that only
     /// `loop next`, which reads dependencies, acts on it.
     pub depends_on_error: Option<String>,
@@ -410,6 +414,13 @@ pub fn parse_item(text: &str) -> Result<ItemFields, String> {
                 inline_list(v)
                     .ok_or_else(|| format!("scope `{}` is not a `[a, b]` list", v.trim()))?,
             );
+        } else if let Some(v) = line.strip_prefix("lane:") {
+            let v = unquote(v).trim();
+            if !v.is_empty() {
+                fields.lane = Some(v.to_string());
+            }
+        } else if let Some(v) = line.strip_prefix("rank:") {
+            fields.rank = unquote(v).trim().parse().ok();
         } else if let Some(v) = line.strip_prefix("depends_on:") {
             match inline_list(v) {
                 Some(ids) => fields.depends_on = ids,

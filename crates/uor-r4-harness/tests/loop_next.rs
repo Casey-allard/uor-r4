@@ -481,9 +481,9 @@ fn the_not_built_sources_are_printed_with_their_loop_prs() {
     let out = stdout(&r.next(&fake(vec![], json!({}))));
     for line in [
         "owner-direction: not built — owner directions live in PLAN, loop PR 8",
-        "gpu-collections: not built — watchers are loop PR 10",
-        "premise-probes: not built — PLAN's premise table is loop PR 8",
-        "lane: not built — no lab has a lane and no item has `lane:`/`rank:` yet",
+        "gpu-collections: not built — a GPU run needs a collection record the watcher (loop PR 10) does not write yet",
+        "premise-probes: not built — PLAN.md is not on origin/main yet (the PM writes it)",
+        "lane: not built — no lane is assigned to claude in docs/harness/labs.json (the owner adds it)",
     ] {
         assert!(out.lines().any(|l| l == line), "missing {line:?} in {out}");
     }

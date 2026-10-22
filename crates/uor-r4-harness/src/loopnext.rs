@@ -402,6 +402,142 @@ fn git(root: &Path, args: &[&str]) -> Result<String, String> {
     crate::loopgates::git(root, args).map(|b| String::from_utf8_lossy(&b).into_owned())
 }
 
+/// The text of `path` on `origin/main`, or `None` when it is not there.
+fn origin_file(root: &Path, path: &str) -> Option<String> {
+    git(root, &["show", &format!("origin/main:{path}")])
+        .ok()
+        .map(|s| s.to_string())
+}
+
+/// The premise probe PLAN.md offers next: the first row of its `## Premises` table whose status
+/// cell reads `open` and whose probe cell holds a command in backticks. `Ok(None)` means the file
+/// exists with such a table but no open row; `Err` names what is missing.
+fn premise_probe(root: &Path) -> Result<Option<(String, String)>, String> {
+    let Some(text) = origin_file(root, "PLAN.md") else {
+        return Err("PLAN.md is not on origin/main yet (the PM writes it)".to_string());
+    };
+    let mut inside = false;
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("# ") || trimmed.starts_with("## ") {
+            inside = trimmed.to_ascii_lowercase().starts_with("## premises");
+            continue;
+        }
+        if !inside || !trimmed.starts_with('|') {
+            continue;
+        }
+        let cells: Vec<&str> = trimmed
+            .trim_matches('|')
+            .split('|')
+            .map(str::trim)
+            .collect();
+        if cells.len() < 3 {
+            continue;
+        }
+        // The header row and the `|---|` separator are not data.
+        if cells.iter().any(|c| c.eq_ignore_ascii_case("premise"))
+            || cells
+                .iter()
+                .all(|c| c.chars().all(|ch| ch == '-' || ch == ':'))
+        {
+            continue;
+        }
+        let Some(status) = cells.iter().position(|c| c.eq_ignore_ascii_case("open")) else {
+            continue;
+        };
+        let Some(probe_cell) = cells
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != status)
+            .map(|(_, c)| *c)
+            .find(|c| c.contains('`'))
+        else {
+            continue;
+        };
+        let Some(command) = probe_cell.split('`').nth(1).map(str::trim) else {
+            continue;
+        };
+        if command.is_empty() {
+            continue;
+        }
+        return Ok(Some((cells[0].to_string(), command.to_string())));
+    }
+    Ok(None)
+}
+
+/// The lane the owner assigned this lab in the owner-only registry, if any.
+fn lab_lane(root: &Path, lab: &str) -> Result<String, String> {
+    let Some(text) = origin_file(root, "docs/harness/labs.json") else {
+        return Err("no docs/harness/labs.json on origin/main".to_string());
+    };
+    let value: serde_json::Value =
+        serde_json::from_str(&text).map_err(|e| format!("labs.json is not JSON: {e}"))?;
+    value
+        .get("labs")
+        .and_then(|labs| labs.get(lab))
+        .and_then(|entry| entry.get("lane"))
+        .and_then(|lane| lane.as_str())
+        .map(str::to_string)
+        .ok_or_else(|| {
+            format!("no lane is assigned to {lab} in docs/harness/labs.json (the owner adds it)")
+        })
+}
+
+/// The ready, scoped items on `origin/main` whose dependencies are all done: `(held, ready, waiting)`.
+fn ready_items(root: &Path) -> Result<(usize, Vec<String>, Vec<String>), String> {
+    git(root, &["fetch", "-q", "origin", "main"])
+        .map_err(|e| format!("cannot fetch origin main: {e}"))?;
+    let listing = git(
+        root,
+        &[
+            "ls-tree",
+            "--name-only",
+            "origin/main",
+            "docs/roadmap/items/",
+        ],
+    )?;
+    let (mut held, mut ready, mut waiting) = (0usize, Vec::new(), Vec::new());
+    for id in listing
+        .lines()
+        .filter_map(|p| p.strip_prefix("docs/roadmap/items/")?.strip_suffix(".md"))
+    {
+        let Ok(item) = crate::loopclaim::read_item(root, id) else {
+            continue;
+        };
+        match item.status.as_deref() {
+            Some("held") => held += 1,
+            Some("ready") if item.scope.is_some() => {
+                // Dependencies that cannot be read cannot be checked, so the item waits.
+                if let Some(e) = &item.depends_on_error {
+                    waiting.push(format!("{id} waits: {e}"));
+                    continue;
+                }
+                // An item waits while any dependency is missing, unreadable or not done on
+                // origin/main.
+                let unmet: Vec<String> = item
+                    .depends_on
+                    .iter()
+                    .filter_map(|dep| match crate::loopclaim::read_item_opt(root, dep) {
+                        Ok(Some(d)) if d.status.as_deref() == Some("done") => None,
+                        Ok(Some(d)) => Some(format!(
+                            "{dep} ({})",
+                            d.status.as_deref().unwrap_or("no status")
+                        )),
+                        Ok(None) => Some(format!("{dep} (missing)")),
+                        Err(e) => Some(format!("{dep} (unreadable: {e})")),
+                    })
+                    .collect();
+                if unmet.is_empty() {
+                    ready.push(id.to_string());
+                } else {
+                    waiting.push(format!("{id} waits on {}", unmet.join(", ")));
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok((held, ready, waiting))
+}
 /// The sources in the loop page's order, stopping at the first that decides.
 pub fn run(
     root: &Path,
@@ -539,69 +675,92 @@ pub fn run(
         detail.push_str(&format!(" (skipped: {})", skipped.join(", ")));
     }
     out.push(source("reviews", "none", detail));
-    // 5-7. not built yet.
-    out.push(not_built("gpu-collections", "watchers are loop PR 10"));
+    // 5. GPU collections: a run needs a collection record. PR 10 built the watcher that
+    // notes a leased run, but no collection record is defined yet, so this source names the
+    // gap instead of guessing (it is a separate unit; the watcher file is outside this item).
     out.push(not_built(
-        "premise-probes",
-        "PLAN's premise table is loop PR 8",
+        "gpu-collections",
+        "a GPU run needs a collection record the watcher (loop PR 10) does not write yet",
     ));
-    out.push(not_built(
-        "lane",
-        "no lab has a lane and no item has `lane:`/`rank:` yet",
-    ));
+    // 6. premise probes: the first open row of PLAN.md's `## Premises` table. The probe cell
+    // holds the command in backticks; a row is offered only when its status cell reads `open`.
+    match premise_probe(root) {
+        Ok(Some((premise, probe))) => {
+            let reason = format!("PLAN premise {premise:?} has the open probe `{probe}`");
+            out.push(source("premise-probes", "work", reason.clone()));
+            return Ok((
+                out,
+                Decision::Go {
+                    kind: "premise-probe",
+                    target: probe,
+                    reason,
+                },
+            ));
+        }
+        Ok(None) => out.push(source(
+            "premise-probes",
+            "none",
+            "PLAN.md has no open premise probe",
+        )),
+        Err(why) => out.push(not_built("premise-probes", &why)),
+    }
+    // 7. lane: the top of the lab's lane. The lab's lane comes from the owner-only registry
+    // (`docs/harness/labs.json`, an optional `lane` key); the ranking comes from the PM's
+    // `lane:` and `rank:` item keys. With either absent the source says what is missing.
+    let ready_state = ready_items(root);
+    match lab_lane(root, lab) {
+        Ok(lane) => match &ready_state {
+            Err(why) => out.push(not_built(
+                "lane",
+                &format!("cannot list ready items: {why}"),
+            )),
+            Ok((_, ready, _)) => {
+                let mut in_lane: Vec<(u32, String)> = Vec::new();
+                for id in ready {
+                    if let Ok(item) = crate::loopclaim::read_item(root, id) {
+                        if item.lane.as_deref() == Some(lane.as_str()) {
+                            in_lane.push((item.rank.unwrap_or(u32::MAX), id.clone()));
+                        }
+                    }
+                }
+                in_lane.sort();
+                let mut refused = Vec::new();
+                let mut chosen = None;
+                for (_, id) in &in_lane {
+                    match crate::loopclaim::check(root, lab, id, claim_gh) {
+                        Ok(()) => {
+                            chosen = Some(id.clone());
+                            break;
+                        }
+                        Err(e) => refused.push(format!("{id}: {e}")),
+                    }
+                }
+                if let Some(id) = chosen {
+                    let reason = format!(
+                        "top of {lab}'s {lane} lane: item {id} is ready, scoped and claimable"
+                    );
+                    out.push(source("lane", "work", reason.clone()));
+                    return Ok((
+                        out,
+                        Decision::Go {
+                            kind: "item",
+                            target: id,
+                            reason,
+                        },
+                    ));
+                }
+                let mut detail = format!("no claimable item in {lab}'s {lane} lane");
+                if !refused.is_empty() {
+                    detail.push_str(&format!(" ({})", refused.join("; ")));
+                }
+                out.push(source("lane", "none", detail));
+            }
+        },
+        Err(why) => out.push(not_built("lane", &why)),
+    }
     // 8. any: ready, scoped items whose dependencies are all done and that `loop claim` would
     // accept, in id order.
-    git(root, &["fetch", "-q", "origin", "main"])
-        .map_err(|e| format!("cannot fetch origin main: {e}"))?;
-    let listing = git(
-        root,
-        &[
-            "ls-tree",
-            "--name-only",
-            "origin/main",
-            "docs/roadmap/items/",
-        ],
-    )?;
-    let (mut held, mut ready, mut waiting) = (0usize, Vec::new(), Vec::new());
-    for id in listing
-        .lines()
-        .filter_map(|p| p.strip_prefix("docs/roadmap/items/")?.strip_suffix(".md"))
-    {
-        let Ok(item) = crate::loopclaim::read_item(root, id) else {
-            continue;
-        };
-        match item.status.as_deref() {
-            Some("held") => held += 1,
-            Some("ready") if item.scope.is_some() => {
-                // Dependencies that cannot be read cannot be checked, so the item waits.
-                if let Some(e) = &item.depends_on_error {
-                    waiting.push(format!("{id} waits: {e}"));
-                    continue;
-                }
-                // An item waits while any dependency is missing, unreadable or not done on
-                // origin/main.
-                let unmet: Vec<String> = item
-                    .depends_on
-                    .iter()
-                    .filter_map(|dep| match crate::loopclaim::read_item_opt(root, dep) {
-                        Ok(Some(d)) if d.status.as_deref() == Some("done") => None,
-                        Ok(Some(d)) => Some(format!(
-                            "{dep} ({})",
-                            d.status.as_deref().unwrap_or("no status")
-                        )),
-                        Ok(None) => Some(format!("{dep} (missing)")),
-                        Err(e) => Some(format!("{dep} (unreadable: {e})")),
-                    })
-                    .collect();
-                if unmet.is_empty() {
-                    ready.push(id.to_string());
-                } else {
-                    waiting.push(format!("{id} waits on {}", unmet.join(", ")));
-                }
-            }
-            _ => {}
-        }
-    }
+    let (held, ready, waiting) = ready_state?;
     let mut refused = Vec::new();
     for id in &ready {
         match crate::loopclaim::check(root, lab, id, claim_gh) {
