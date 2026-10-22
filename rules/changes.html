@@ -187,6 +187,19 @@
 <p><em>The charter replaced the older rules in one step on 19 October 2026. Later changes are added to this log as dated entries.</em></p>
 <h2 id="how-an-entry-is-written"><a class="header" href="#how-an-entry-is-written">How an entry is written</a></h2>
 <p>An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the <code>archive/</code> folder, and the live decision index keeps one line saying where each decision went (see the <a href="decision-map.html">decision map</a>).</p>
+<h2 id="21-october-2026-claude-builds-the-loop-setup-while-it-runs-alone-d52-amended"><a class="header" href="#21-october-2026-claude-builds-the-loop-setup-while-it-runs-alone-d52-amended">21 October 2026: Claude builds the loop setup while it runs alone (D52 amended)</a></h2>
+<p><strong>Decided by:</strong> the owner (Casey), in chat. The owner wrote: "I think it'll only be claude running at first, so what is next?" Claude replied that D52 leaves most setup PRs to labs that will not be running, and offered two answers, both worded by Claude. The owner chose: "Yes: record a D52 amendment that Claude builds every loop setup PR while it runs alone (other labs' adapters added when they join), then start loop PR 2 (#2905) and PR 4 (#2907) through the delivery path."</p>
+<ol>
+<li><strong>Claude builds the setup while it runs alone (D52, amended).</strong>
+<ul>
+<li>While Claude is the only lab running, Claude builds every loop setup PR. That includes the PRs D52 gave to Codex and DeepSeek (2–7 and 10–12) and to Antigravity (9).</li>
+<li>PR 9 ships the Claude Code adapter first. Each other client's adapter, with that lab's probes on #2028, is added when the lab joins.</li>
+<li>Reviews are unchanged: Claude's fresh-context reviewers review every setup PR (D59).</li>
+<li>The rest of D52 is unchanged: the GPU caps, the owner as last fallback, and the kill switch.</li>
+<li>The charter does not state the team split, so no charter clause changes.</li>
+</ul>
+</li>
+</ol>
 <h2 id="21-october-2026-claude-reviews-every-loop-setup-pr-d59-amended"><a class="header" href="#21-october-2026-claude-reviews-every-loop-setup-pr-d59-amended">21 October 2026: Claude reviews every loop setup PR (D59 amended)</a></h2>
 <p><strong>Decided by:</strong> the owner (Casey), in chat, the same day. Claude's round-2 review of #2899 found a gap. As merged, D59 would have left a setup PR built by Codex, DeepSeek or Antigravity to its own lab's reviewers alone. Claude asked the owner who should review those PRs and offered two answers, worded by Claude. The owner chose: "Setup PRs built by Codex, DeepSeek or Antigravity get fresh-context Claude reviews (Claude leads the architecture). Record it as a small D59 amendment after #2899 merges."</p>
 <ol>
