@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 41 |
+| ready | 40 |
 | held | 26 |
 | decision | 4 |
-| done | 17 |
+| done | 18 |
 | total | 88 |
 
 ## Start here
@@ -67,7 +67,6 @@ These items are ready and open to anyone.
 | [Design a lawful normalization mechanism](items/m1-normalization-mechanism.md) | ready | anyone | no | none | [#2842](https://github.com/UOR-Foundation/uor-r4/issues/2842) |
 | [Design a lawful position mechanism](items/m1-position-mechanism.md) | ready | anyone | no | none | [#2843](https://github.com/UOR-Foundation/uor-r4/issues/2843) |
 | [Prototype a wider code carrier (more roots or blocks)](items/m1-wider-code-carrier.md) | ready | a lab | yes | [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2847](https://github.com/UOR-Foundation/uor-r4/issues/2847) |
-| [Train a number-aware tokenizer and pin its identity](items/number-aware-tokenizer.md) | ready | a lab | no | none | [#2872](https://github.com/UOR-Foundation/uor-r4/issues/2872) |
 | [Run A8 admission-anchor controller CUDA qualification and restoration](items/m1-a8-finite-cuda-qualification.md) | held | a lab | yes | [m1-a8-registration-and-runbook-staging](items/m1-a8-registration-and-runbook-staging.md) | [#2830](https://github.com/UOR-Foundation/uor-r4/issues/2830) |
 | [Run the full A8 dose with reach protected](items/m1-a8-full-dose-rerun.md) | held | a lab | yes | [m1-a8-finite-cuda-qualification](items/m1-a8-finite-cuda-qualification.md) | [#2831](https://github.com/UOR-Foundation/uor-r4/issues/2831) |
 | [Train the BVG-K batched-coordinate law on two seeds](items/m1-bvg-k-stage-t-training.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-block-apply-c2](items/m1-bvg-k-block-apply-c2.md) | [#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836) |
@@ -77,6 +76,7 @@ These items are ready and open to anyone.
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | held | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Decide whether a float (D37) path may count toward M1, M2 and the product](items/owner-decision-float-path-scope.md) | decision | a lab | no | none | [#2875](https://github.com/UOR-Foundation/uor-r4/issues/2875) |
 | [Write the exporter from a trained discrete model to a D11 file](items/m1-d11-exporter-discrete.md) | done | anyone | no | none | [#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838) |
+| [Train a number-aware tokenizer and pin its identity](items/number-aware-tokenizer.md) | done | a lab | no | none | [#2872](https://github.com/UOR-Foundation/uor-r4/issues/2872) |
 
 ## M2
 

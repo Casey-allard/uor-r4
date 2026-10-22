@@ -55,6 +55,34 @@ enum Piece<'text> {
     Special(u32),
 }
 
+/// Summary of numeric vocabulary pieces in a [`ByteBpeTokenizer`].
+///
+/// The pinned 4,096 vocabulary (`d36d3e87`, `Digits(individual_digits=true)`)
+/// contains 10 pure single-digit ASCII pieces (`'0'..'9'`) and 0 pure
+/// multi-digit ASCII pieces (`len >= 2`). A number-aware vocabulary trained
+/// under `Digits(individual_digits=false)` + `ByteLevel(add_prefix_space=false)`
+/// keeps contiguous numeric runs intact without prepending `' '` (`"Ġ"`),
+/// yielding `pure_multi_digit > 0` and `space_prefixed_digit == 0`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DigitPieceCensus {
+    /// Total model vocabulary size (`model_vocab_len`).
+    pub vocab_size: usize,
+    /// Count of pure ASCII single-digit pieces (`b"0"`..=`b"9"`).
+    pub pure_single_digit: usize,
+    /// Count of pure ASCII multi-digit pieces (`len >= 2`, all bytes in `b'0'..=b'9'`).
+    pub pure_multi_digit: usize,
+    /// Count of pure ASCII 2-digit pieces (`len == 2`).
+    pub pure_two_digit: usize,
+    /// Count of pure ASCII 3-digit pieces (`len == 3`).
+    pub pure_three_digit: usize,
+    /// Count of pure ASCII pieces of 4 or more digits (`len >= 4`).
+    pub pure_four_plus_digit: usize,
+    /// Count of space-prefixed digit pieces (`b' '` followed by 1+ ASCII digits).
+    pub space_prefixed_digit: usize,
+    /// Count of mixed pieces containing both ASCII digits and non-digit, non-leading-space bytes.
+    pub mixed_digit_other: usize,
+}
+
 /// A byte-level BPE tokenizer parsed from a Hugging Face `tokenizer.json`.
 pub struct ByteBpeTokenizer {
     /// id → token content: byte-level alphabet for vocabulary tokens,
@@ -362,6 +390,55 @@ impl ByteBpeTokenizer {
     /// Content address of the raw `tokenizer.json` bytes: `blake3:<hex>`.
     pub fn address(&self) -> String {
         self.address.clone()
+    }
+
+    /// Census of numeric pieces across the model vocabulary (`0..model_vocab_len`),
+    /// excluding atomic added tokens (`<|bos|>`, `<|eos|>`, `<|unk|>`).
+    pub fn digit_piece_census(&self) -> DigitPieceCensus {
+        let mut census = DigitPieceCensus {
+            vocab_size: self.model_vocab_len,
+            pure_single_digit: 0,
+            pure_multi_digit: 0,
+            pure_two_digit: 0,
+            pure_three_digit: 0,
+            pure_four_plus_digit: 0,
+            space_prefixed_digit: 0,
+            mixed_digit_other: 0,
+        };
+        for id in 0..self.model_vocab_len as u32 {
+            if self.added_ids.contains(&id) {
+                continue;
+            }
+            let bytes = self.decode_bytes(&[id]);
+            if bytes.is_empty() || !bytes.iter().any(u8::is_ascii_digit) {
+                continue;
+            }
+            if bytes.iter().all(u8::is_ascii_digit) {
+                match bytes.len() {
+                    1 => census.pure_single_digit += 1,
+                    2 => {
+                        census.pure_multi_digit += 1;
+                        census.pure_two_digit += 1;
+                    }
+                    3 => {
+                        census.pure_multi_digit += 1;
+                        census.pure_three_digit += 1;
+                    }
+                    _ => {
+                        census.pure_multi_digit += 1;
+                        census.pure_four_plus_digit += 1;
+                    }
+                }
+            } else if bytes.len() >= 2
+                && bytes[0] == b' '
+                && bytes[1..].iter().all(u8::is_ascii_digit)
+            {
+                census.space_prefixed_digit += 1;
+            } else {
+                census.mixed_digit_other += 1;
+            }
+        }
+        census
     }
 
     /// The versioned adapter-identity record (#601) this tokenizer

@@ -237,3 +237,111 @@ fn unsupported_trim_offsets_is_rejected_instead_of_silently_rewritten() {
         );
     }
 }
+
+#[test]
+fn number_aware_three_arm_comparison_and_digit_piece_census() {
+    use uor_r4_tokenizer::training::{
+        individual_digits_policy, number_aware_comparison_corpus, number_aware_digits_policy,
+        plain_byte_level_policy,
+    };
+
+    let render = |v: &serde_json::Value| -> Vec<u8> {
+        let mut bytes = serde_json::to_vec(v).unwrap();
+        bytes.push(b'\n');
+        bytes
+    };
+
+    let corpus = number_aware_comparison_corpus();
+    assert_eq!(corpus.len(), 170_176);
+
+    for (target_vocab, expected_ctrl1_addr, expected_ctrl2_addr, expected_trt_addr) in [
+        (
+            4_096usize,
+            "blake3:ed3f625d4fbbfbc212ff6ba511943e6130539ce8df533a355648f028b01b548a",
+            "blake3:81522e79624f40f83a85df319ef26a12f9a5d313930c9e6873763e91ec70bb5f",
+            "blake3:c38dabf516cc142e0c1974d35d807b0040b7c079be32f95c0cdc3fa452d2fc36",
+        ),
+        (
+            16_384usize,
+            "blake3:311a1e7c582be16e9620bcc82d66a80fb70d8c160201b02f5f64e5274ff248fa",
+            "blake3:ec4c2c66f6bd2a588324bd61ef73fd0be4a59cf1b60c5751bb4f597a297d8a0a",
+            "blake3:411c366d7e307a87cfe605e0a8784b7abe184bbb53ea06c455fc2b40f1641ce2",
+        ),
+    ] {
+        // Control 1: Digits(individual_digits=true) + ByteLevel(add_prefix_space=false).
+        let mut ctrl1 = BpeTrainer::new(target_vocab, 1, individual_digits_policy(false)).unwrap();
+        ctrl1.add_text(&corpus).unwrap();
+        let ctrl1_bytes = render(&ctrl1.finish().unwrap());
+        let ctrl1_tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&ctrl1_bytes).unwrap();
+        assert_eq!(ctrl1_tok.address(), expected_ctrl1_addr);
+        let ctrl1_census = ctrl1_tok.digit_piece_census();
+        assert_eq!(ctrl1_census.vocab_size, target_vocab);
+        assert_eq!(ctrl1_census.pure_single_digit, 10);
+        assert_eq!(ctrl1_census.pure_multi_digit, 0);
+        assert_eq!(ctrl1_census.space_prefixed_digit, 0);
+        assert_eq!(ctrl1_tok.encode("84").len(), 2);
+        assert_eq!(ctrl1_tok.encode("48").len(), 2);
+        assert_eq!(ctrl1_tok.encode("2026").len(), 4);
+        assert_eq!(ctrl1_tok.encode("16384").len(), 5);
+
+        // Control 2: plain ByteLevel(add_prefix_space=false).
+        // Because ("Ġ", d1) sums across all d2, it merges before (d1, d2) on space-preceded
+        // 2-digit numbers, consuming d1 into "Ġd1" so only the 5 two-digit suffixes of 3+-digit
+        // literals form pure multi-digit pieces, while 109+ space-prefixed digit pieces form
+        // and unprefixed "48" stays split into 2 single-digit tokens.
+        let mut ctrl2 = BpeTrainer::new(target_vocab, 1, plain_byte_level_policy(false)).unwrap();
+        ctrl2.add_text(&corpus).unwrap();
+        let ctrl2_bytes = render(&ctrl2.finish().unwrap());
+        let ctrl2_tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&ctrl2_bytes).unwrap();
+        assert_eq!(ctrl2_tok.address(), expected_ctrl2_addr);
+        let ctrl2_census = ctrl2_tok.digit_piece_census();
+        assert_eq!(ctrl2_census.vocab_size, target_vocab);
+        assert_eq!(ctrl2_census.pure_single_digit, 10);
+        assert_eq!(ctrl2_census.pure_multi_digit, 5);
+        assert!(ctrl2_census.space_prefixed_digit >= 109);
+        assert_eq!(ctrl2_tok.encode(" 48").len(), 1);
+        assert_eq!(ctrl2_tok.encode("48").len(), 2);
+
+        // Treatment: number-aware Digits(individual_digits=false) + ByteLevel(add_prefix_space=false).
+        // Run twice to prove byte-identical output and deterministic identity.
+        let mut trt_a =
+            BpeTrainer::new(target_vocab, 1, number_aware_digits_policy(false)).unwrap();
+        trt_a.add_text(&corpus).unwrap();
+        let trt_a_bytes = render(&trt_a.finish().unwrap());
+
+        let mut trt_b =
+            BpeTrainer::new(target_vocab, 1, number_aware_digits_policy(false)).unwrap();
+        trt_b.add_text(&corpus).unwrap();
+        let trt_b_bytes = render(&trt_b.finish().unwrap());
+        assert_eq!(trt_a_bytes, trt_b_bytes);
+
+        let trt_tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&trt_a_bytes).unwrap();
+        assert_eq!(trt_tok.address(), expected_trt_addr);
+        let trt_census = trt_tok.digit_piece_census();
+        assert_eq!(trt_census.vocab_size, target_vocab);
+        assert_eq!(trt_census.pure_single_digit, 10);
+        assert!(trt_census.pure_multi_digit >= 109);
+        assert!(trt_census.pure_two_digit >= 100);
+        assert!(trt_census.pure_three_digit >= 5);
+        assert!(trt_census.pure_four_plus_digit >= 3);
+        assert_eq!(trt_census.space_prefixed_digit, 0);
+        assert_eq!(trt_census.mixed_digit_other, 0);
+
+        let enc_84 = trt_tok.encode("84");
+        let enc_48 = trt_tok.encode("48");
+        let enc_sp_84 = trt_tok.encode(" 84");
+        let enc_2026 = trt_tok.encode("2026");
+        let enc_16384 = trt_tok.encode("16384");
+        assert_eq!(enc_84.len(), 1);
+        assert_eq!(enc_48.len(), 1);
+        assert_ne!(enc_84, enc_48);
+        assert_eq!(enc_sp_84.len(), 2);
+        assert_eq!(enc_sp_84[1], enc_84[0]);
+        assert_eq!(enc_2026.len(), 1);
+        assert_eq!(enc_16384.len(), 1);
+
+        let probe = "84 48 100 128 240 256 512 1024 2026 4096 16384 (84) [48] x=84";
+        let ids = trt_tok.encode(probe);
+        assert_eq!(trt_tok.decode(&ids), probe);
+    }
+}

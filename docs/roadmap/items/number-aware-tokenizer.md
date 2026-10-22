@@ -3,7 +3,7 @@ id: number-aware-tokenizer
 title: Train a number-aware tokenizer and pin its identity
 milestone: M1
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []

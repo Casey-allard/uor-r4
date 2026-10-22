@@ -252,6 +252,74 @@ impl BpeTrainer {
     }
 }
 
+/// Canonical `Digits(individual_digits=true)` + `ByteLevel` policy (matching the
+/// pinned `d36d3e87` pre-tokenizer structure: every numeric character is split
+/// before BPE, so zero multi-digit pieces can ever form).
+pub fn individual_digits_policy(add_prefix_space: bool) -> Value {
+    json!({
+        "type": "Sequence",
+        "pretokenizers": [
+            { "type": "Digits", "individual_digits": true },
+            { "type": "ByteLevel", "add_prefix_space": add_prefix_space, "trim_offsets": true, "use_regex": true }
+        ]
+    })
+}
+
+/// Canonical plain `ByteLevel` policy (`digits_individual = None`: GPT-2 regex
+/// ` ?\p{N}+` attaches a preceding space `' '` to space-preceded digit runs).
+pub fn plain_byte_level_policy(add_prefix_space: bool) -> Value {
+    json!({
+        "type": "ByteLevel",
+        "add_prefix_space": add_prefix_space,
+        "trim_offsets": true,
+        "use_regex": true
+    })
+}
+
+/// Canonical number-aware `Digits(individual_digits=false)` + `ByteLevel` policy:
+/// `split_digits(segment, false)` isolates contiguous numeric runs from surrounding
+/// spaces, letters, and punctuation before `ByteLevel` pre-tokenization, so BPE
+/// forms pure ASCII multi-digit pieces without leading `' '` (`"Ġ"`) or letter mixes.
+pub fn number_aware_digits_policy(add_prefix_space: bool) -> Value {
+    json!({
+        "type": "Sequence",
+        "pretokenizers": [
+            { "type": "Digits", "individual_digits": false },
+            { "type": "ByteLevel", "add_prefix_space": add_prefix_space, "trim_offsets": true, "use_regex": true }
+        ]
+    })
+}
+
+/// Deterministic host-only synthetic corpus for matched three-arm tokenizer
+/// comparison (`Digits(individual_digits=true)`, plain `ByteLevel`, and
+/// number-aware `Digits(individual_digits=false)`) at `V = 4,096` and `V = 16,384`.
+pub fn number_aware_comparison_corpus() -> String {
+    let mut out = String::with_capacity(256 * 1024);
+    for _ in 0..64 {
+        out.push_str("User: compare");
+        for n in 0..100u32 {
+            out.push_str(&format!(" {n:02}"));
+        }
+        for literal in [
+            "100", "128", "240", "256", "512", "1024", "2026", "4096", "16384",
+        ] {
+            out.push(' ');
+            out.push_str(literal);
+        }
+        out.push('\n');
+    }
+    let mut state = 7u64;
+    for _ in 0..8_192 {
+        out.push(' ');
+        for _ in 0..16 {
+            state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
+            out.push((b'a' + ((state >> 32) % 26) as u8) as char);
+        }
+        out.push('\n');
+    }
+    out
+}
+
 fn validate_policy(policy: &Value) -> Result<(), String> {
     let steps: Vec<&Value> = if policy["type"] == "Sequence" {
         let object = policy.as_object().ok_or("Sequence must be an object")?;
