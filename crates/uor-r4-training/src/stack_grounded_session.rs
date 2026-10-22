@@ -13,29 +13,43 @@
 //! adapter for those exact bytes; no fallback classifier exists here.
 //! Seals and hashes check integrity and consistency, not authentication.
 
+#[cfg(any())]
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
+#[cfg(any())]
 use std::fs;
+#[cfg(any())]
 use std::io::Write;
+#[cfg(any())]
 use std::path::Path;
 
+#[cfg(any())]
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
+#[cfg(any())]
 use uor_r4_core::native_geometric::learner::realtext_support::sha256_hex;
+#[cfg(any())]
 use uor_r4_core::native_geometric::learner::scoped_memory::Record;
+#[cfg(any())]
 use uor_r4_core::report_output;
-use uor_r4_tokenizer::dialogue::{DialogueError, Message};
+use uor_r4_tokenizer::dialogue::DialogueError;
+#[cfg(any())]
+use uor_r4_tokenizer::dialogue::Message;
+#[cfg(any())]
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
+#[cfg(any())]
 use crate::geometric_stack::StackModel;
+#[cfg(any())]
 use crate::stack_checkpoint::{
     load_checkpoint, save_checkpoint, sealed_manifest_sha256, CheckpointIdentity, StackCheckpoint,
     StackCheckpointError,
 };
+#[cfg(any())]
 use crate::stack_dialogue::{greedy_reply, Reply};
-use crate::stack_store::{
-    HistoryView, StackStore, StackStoreError, StoreRead, StoreValue, Update, Written,
-};
+use crate::stack_store::{HistoryView, StackStoreError, StoreRead, StoreValue, Written};
+#[cfg(any())]
+use crate::stack_store::{StackStore, Update};
 use crate::TrainingError;
 
 pub const SESSION_SCHEMA: &str = "uor-r4.grounded-session/1";
@@ -120,7 +134,7 @@ pub enum CompiledAction {
 }
 
 impl CompiledAction {
-    fn query(&self) -> Option<(u32, HistoryView)> {
+    pub fn query(&self) -> Option<(u32, HistoryView)> {
         match self {
             Self::QueryCurrent { relation } => Some((*relation, HistoryView::Current)),
             Self::Query { relation, view } => Some((*relation, *view)),
@@ -158,6 +172,18 @@ pub struct SessionLimits {
     pub context_policy: ContextPolicy,
 }
 
+/// The store effect of a compiled turn.
+///
+/// Current recall behaviour in [`resolve_recall_line`] (extracted from the historical
+/// `GroundedSession::emitter_suffix`, which remains `#[cfg(any())]` and unbuilt):
+/// - [`MemoryEffect::Read`] with [`StoreRead::Absent`] represents a turn resolved to a relation
+///   ID whose slot in the store is empty. [`resolve_recall_line`] returns `"Memory: none."`
+///   ([`RecallDisposition::Absent`]) and does not invoke `log_recall`.
+/// - [`MemoryEffect::Unresolved`] represents a turn that was not resolved to a store action;
+///   when `read` is enabled, [`resolve_recall_line`] consults `log_recall` and may return
+///   [`RecallDisposition::LogValue`].
+/// Whether [`StoreRead::Absent`] should also consult `log_recall` or remain strictly separate
+/// is documented here as the current code's behaviour and queued for PM decision (`#2028`).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MemoryEffect {
@@ -198,9 +224,12 @@ impl Default for TurnControls {
 pub enum RecallDisposition {
     NotRequested,
     Value,
-    /// No store recall applied; the session's log recall supplied the line
-    /// ([`GroundedSession::with_log_recall`]).
+    /// In [`resolve_recall_line`], returned when the turn is [`MemoryEffect::Unresolved`] and
+    /// `log_recall` supplies a non-sentinel value; not returned on [`MemoryEffect::Read`]
+    /// (including [`StoreRead::Absent`]).
     LogValue,
+    /// In [`resolve_recall_line`], returned on [`MemoryEffect::Read`] with [`StoreRead::Absent`],
+    /// emitting `"Memory: none."` without calling `log_recall`.
     Absent,
     Disabled,
     Unsupported {
@@ -239,6 +268,7 @@ pub struct TurnOutcome {
 
 #[derive(Debug)]
 pub enum GroundedSessionError {
+    #[cfg(any())]
     Checkpoint(StackCheckpointError),
     Store(StackStoreError),
     Protocol(DialogueError),
@@ -265,6 +295,7 @@ pub enum GroundedSessionError {
 impl fmt::Display for GroundedSessionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            #[cfg(any())]
             Self::Checkpoint(e) => write!(f, "grounded session checkpoint: {e}"),
             Self::Store(e) => write!(f, "grounded session store: {e}"),
             Self::Protocol(e) => write!(f, "grounded session protocol: {e}"),
@@ -296,6 +327,7 @@ impl fmt::Display for GroundedSessionError {
 impl std::error::Error for GroundedSessionError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            #[cfg(any())]
             Self::Checkpoint(e) => Some(e),
             Self::Store(e) => Some(e),
             Self::Protocol(e) => Some(e),
@@ -316,6 +348,7 @@ macro_rules! convert {
         }
     };
 }
+#[cfg(any())]
 convert!(StackCheckpointError, Checkpoint);
 convert!(StackStoreError, Store);
 convert!(DialogueError, Protocol);
@@ -328,8 +361,89 @@ convert!(serde_json::Error, Json);
 /// `None`. It must be deterministic, since earlier turns' lines are rebuilt.
 pub type LogRecall = std::sync::Arc<dyn Fn(&[&str], &str) -> Option<String> + Send + Sync>;
 
+/// Resolve the system recall line (`Some("Memory: ...")` or `None`) and [`RecallDisposition`]
+/// for a compiled turn's [`MemoryEffect`].
+///
+/// Extracted from the historical `GroundedSession::emitter_suffix` (`#[cfg(any())]`, which
+/// remains unbuilt in the native qualification graph) so the current recall-line rule can be
+/// unit-tested directly under `#[cfg(test)]`:
+/// - [`MemoryEffect::Read`] with [`StoreRead::Absent`] emits `Some("Memory: none.")` with
+///   [`RecallDisposition::Absent`] and does not call `log_recall`.
+/// - [`MemoryEffect::Unresolved`] (when `read` is enabled and `log_recall` is attached)
+///   consults `log_recall` against the prior user turns and returns [`RecallDisposition::LogValue`]
+///   when the sieve yields a non-sentinel value.
+/// Whether an absent store read should also consult `log_recall` is documented here as the
+/// current code's behaviour and queued for PM decision (`#2028`).
+pub fn resolve_recall_line<F>(
+    effect: &MemoryEffect,
+    read: bool,
+    prior: &[TurnOutcome],
+    source: &str,
+    log_recall: Option<&(String, LogRecall)>,
+    mut decode_found: F,
+) -> Result<(Option<String>, RecallDisposition), GroundedSessionError>
+where
+    F: FnMut(&StoreValue) -> Result<String, GroundedSessionError>,
+{
+    // Preserve emit-1's trained recall-at-reply placement: user, then
+    // System Memory, then Assistant. Only proven absence gets "none".
+    let result = match effect {
+        MemoryEffect::Read { .. } if !read => (None, RecallDisposition::Disabled),
+        MemoryEffect::Read {
+            read: StoreRead::Found(value),
+        } if value.conflict => (
+            None,
+            RecallDisposition::Unsupported {
+                reason: "the trained recall format has no conflict channel".into(),
+            },
+        ),
+        MemoryEffect::Read {
+            read: StoreRead::Found(value),
+        } => {
+            let text = decode_found(value)?;
+            if text == "none" || text.contains('\r') {
+                (
+                    None,
+                    RecallDisposition::Unsupported {
+                        reason: "stored value collides with the absence sentinel or normalizes in recall"
+                            .into(),
+                    },
+                )
+            } else {
+                (Some(format!("Memory: {text}.")), RecallDisposition::Value)
+            }
+        }
+        MemoryEffect::Read {
+            read: StoreRead::Absent,
+        } => (Some("Memory: none.".to_owned()), RecallDisposition::Absent),
+        // Unresolved, NoHistory and Evicted are not evidence of absence.
+        MemoryEffect::Read { .. } => (
+            None,
+            RecallDisposition::Unsupported {
+                reason: "the trained recall format has no history/eviction channel".into(),
+            },
+        ),
+        MemoryEffect::Unresolved if read => match log_recall {
+            Some((_, recall)) => {
+                let log: Vec<&str> = prior.iter().map(|turn| turn.source.as_str()).collect();
+                match recall(&log, source) {
+                    Some(value) if value != "none" && !value.contains('\r') => (
+                        Some(format!("Memory: {value}.")),
+                        RecallDisposition::LogValue,
+                    ),
+                    _ => (None, RecallDisposition::NotRequested),
+                }
+            }
+            None => (None, RecallDisposition::NotRequested),
+        },
+        _ => (None, RecallDisposition::NotRequested),
+    };
+    Ok(result)
+}
+
 /// Model and store are private so a caller cannot change the computation or
 /// commit memory outside the transactional turn boundary.
+#[cfg(any())]
 pub struct GroundedSession<C: TurnCompiler> {
     model: StackModel,
     identity: CheckpointIdentity,
@@ -346,6 +460,7 @@ pub struct GroundedSession<C: TurnCompiler> {
     log_recall: Option<(String, LogRecall)>,
 }
 
+#[cfg(any())]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SessionRecord {
@@ -363,6 +478,7 @@ struct SessionRecord {
     log_recall: Option<String>,
 }
 
+#[cfg(any())]
 impl<C: TurnCompiler> GroundedSession<C> {
     /// Load the emitter/store internally, rather than trusting a caller-built
     /// public `StackCheckpoint` aggregate. The compiler adapter independently
@@ -715,56 +831,19 @@ impl<C: TurnCompiler> GroundedSession<C> {
         has_history: bool,
         read: bool,
     ) -> Result<(Vec<u32>, RecallDisposition), GroundedSessionError> {
-        // Preserve emit-1's trained recall-at-reply placement: user, then
-        // System Memory, then Assistant. Only proven absence gets "none".
-        let (recall, disposition) = match effect {
-            MemoryEffect::Read { .. } if !read => (None, RecallDisposition::Disabled),
-            MemoryEffect::Read {
-                read: StoreRead::Found(value),
-            } if value.conflict => (
-                None,
-                RecallDisposition::Unsupported {
-                    reason: "the trained recall format has no conflict channel".into(),
-                },
-            ),
-            MemoryEffect::Read {
-                read: StoreRead::Found(value),
-            } => {
+        let (recall, disposition) = resolve_recall_line(
+            effect,
+            read,
+            prior,
+            source,
+            self.log_recall.as_ref(),
+            |value| {
                 validate_plain_ids(&value.tokens, &self.model, &self.identity)?;
                 let bytes = self.tokenizer.decode_bytes(&value.tokens);
-                let text = String::from_utf8(bytes)
-                    .map_err(|_| GroundedSessionError::Input("stored value is not UTF-8".into()))?;
-                if text == "none" || text.contains('\r') {
-                    (None, RecallDisposition::Unsupported { reason: "stored value collides with the absence sentinel or normalizes in recall".into() })
-                } else {
-                    (Some(format!("Memory: {text}.")), RecallDisposition::Value)
-                }
-            }
-            MemoryEffect::Read {
-                read: StoreRead::Absent,
-            } => (Some("Memory: none.".to_owned()), RecallDisposition::Absent),
-            // Unresolved, NoHistory and Evicted are not evidence of absence.
-            MemoryEffect::Read { .. } => (
-                None,
-                RecallDisposition::Unsupported {
-                    reason: "the trained recall format has no history/eviction channel".into(),
-                },
-            ),
-            MemoryEffect::Unresolved if read => match &self.log_recall {
-                Some((_, recall)) => {
-                    let log: Vec<&str> = prior.iter().map(|turn| turn.source.as_str()).collect();
-                    match recall(&log, source) {
-                        Some(value) if value != "none" && !value.contains('\r') => (
-                            Some(format!("Memory: {value}.")),
-                            RecallDisposition::LogValue,
-                        ),
-                        _ => (None, RecallDisposition::NotRequested),
-                    }
-                }
-                None => (None, RecallDisposition::NotRequested),
+                String::from_utf8(bytes)
+                    .map_err(|_| GroundedSessionError::Input("stored value is not UTF-8".into()))
             },
-            _ => (None, RecallDisposition::NotRequested),
-        };
+        )?;
         let mut messages = vec![Message {
             role: "user",
             content: source,
@@ -1258,6 +1337,7 @@ impl<C: TurnCompiler> GroundedSession<C> {
 /// instead records residency at its original commit, including preloaded
 /// records and the fixed per-chain capacity. Never use tombstone bytes to
 /// cross a predecessor that was already evicted when the turn ran.
+#[cfg(any())]
 fn read_receipt_at(
     chain: &[u64],
     records: &BTreeMap<u64, &Record>,
@@ -1328,6 +1408,7 @@ fn read_receipt_at(
     }))
 }
 
+#[cfg(any())]
 fn validate_compiler(
     compiler: &CompilerIdentity,
     bytes: &[u8],
@@ -1367,6 +1448,7 @@ fn validate_compiler(
     Ok(())
 }
 
+#[cfg(any())]
 fn is_sha256(value: &str) -> bool {
     value.len() == 64
         && value
@@ -1374,6 +1456,7 @@ fn is_sha256(value: &str) -> bool {
             .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
 
+#[cfg(any())]
 fn validate_scope(
     scope: &SessionScope,
     model: &StackModel,
@@ -1387,6 +1470,7 @@ fn validate_scope(
     validate_plain_ids(&scope.entity, model, identity)
 }
 
+#[cfg(any())]
 fn validate_plain_ids(
     ids: &[u32],
     model: &StackModel,
@@ -1404,10 +1488,12 @@ fn validate_plain_ids(
     Ok(())
 }
 
+#[cfg(any())]
 fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     fs::File::create_new(path)?.write_all(bytes)
 }
 
+#[cfg(any())]
 fn check_limit(
     resource: &'static str,
     needed: usize,
@@ -1426,6 +1512,147 @@ fn check_limit(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::stack_store::{StackStore, Update};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    #[test]
+    fn store_miss_returns_absent_without_calling_log_sieve_while_unresolved_calls_it() {
+        let mut store = StackStore::new(1, 4).expect("empty store");
+        let calls = Arc::new(AtomicUsize::new(0));
+        let calls_for_closure = Arc::clone(&calls);
+        let log_recall: (String, LogRecall) = (
+            "sieve-spy".to_owned(),
+            Arc::new(move |log: &[&str], query: &str| {
+                calls_for_closure.fetch_add(1, Ordering::SeqCst);
+                Some(format!("from-sieve:{}:{query}", log.join("|")))
+            }),
+        );
+
+        let prior_turn = TurnOutcome {
+            source: "put blue".to_owned(),
+            action: CompiledAction::Assert {
+                relation: 1,
+                span: SourceSpan { start: 4, end: 8 },
+            },
+            controls: TurnControls::default(),
+            memory: MemoryEffect::Write {
+                written: store
+                    .write_from(b"user", &[1], 1, &[10, 11], Update::Assert, 1)
+                    .expect("write relation 1"),
+                value_tokens: vec![10, 11],
+            },
+            recall: RecallDisposition::NotRequested,
+            memory_commit: store.commit(),
+            emitter_input_ids: vec![0, 10, 11],
+            retained_from_turn: 0,
+            reply_ids: vec![10, 1],
+            reply_text: "ok".to_owned(),
+            stop: TurnStop::Eos,
+            caller_eos_inserted: false,
+        };
+        let prior = [prior_turn];
+
+        // 1. A resolved query whose relation slot has never been written (relation 2 ->
+        //    StoreRead::Absent) is proven store absence: resolve_recall_line must emit
+        //    Some("Memory: none.") with RecallDisposition::Absent and must never call the
+        //    log_recall sieve.
+        let absent_read = store
+            .read(b"user", &[1], 2, HistoryView::Current)
+            .expect("read unwritten relation 2");
+        assert_eq!(absent_read, StoreRead::Absent);
+        let absent_effect = MemoryEffect::Read { read: absent_read };
+        let (line, disposition) = resolve_recall_line(
+            &absent_effect,
+            true,
+            &prior,
+            "absent",
+            Some(&log_recall),
+            |_| unreachable!("absent read decodes no store value"),
+        )
+        .expect("resolve absent read");
+        assert_eq!(line.as_deref(), Some("Memory: none."));
+        assert_eq!(disposition, RecallDisposition::Absent);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+        // 2. A resolved query whose relation slot was written (relation 1 -> StoreRead::Found)
+        //    emits RecallDisposition::Value from the store and also never calls log_recall.
+        let found_read = store
+            .read(b"user", &[1], 1, HistoryView::Current)
+            .expect("read written relation 1");
+        assert!(matches!(found_read, StoreRead::Found(_)));
+        let found_effect = MemoryEffect::Read { read: found_read };
+        let (line, disposition) = resolve_recall_line(
+            &found_effect,
+            true,
+            &prior,
+            "ask",
+            Some(&log_recall),
+            |val| {
+                assert_eq!(val.tokens, vec![10, 11]);
+                Ok("blue".to_owned())
+            },
+        )
+        .expect("resolve found read");
+        assert_eq!(line.as_deref(), Some("Memory: blue."));
+        assert_eq!(disposition, RecallDisposition::Value);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+        // 3. When read is disabled on a store read, RecallDisposition::Disabled is returned
+        //    without calling log_recall.
+        let (line, disposition) = resolve_recall_line(
+            &absent_effect,
+            false,
+            &prior,
+            "absent",
+            Some(&log_recall),
+            |_| unreachable!("disabled read decodes no store value"),
+        )
+        .expect("resolve disabled read");
+        assert_eq!(line, None);
+        assert_eq!(disposition, RecallDisposition::Disabled);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+        // 4. An Unresolved turn (MemoryEffect::Unresolved) has no store address, so when
+        //    read is enabled, resolve_recall_line consults the log_recall sieve against the
+        //    prior user turns and returns RecallDisposition::LogValue.
+        let (line, disposition) = resolve_recall_line(
+            &MemoryEffect::Unresolved,
+            true,
+            &prior,
+            "hello",
+            Some(&log_recall),
+            |_| unreachable!("unresolved turn decodes no store value"),
+        )
+        .expect("resolve unresolved turn");
+        assert_eq!(line.as_deref(), Some("Memory: from-sieve:put blue:hello."));
+        assert_eq!(disposition, RecallDisposition::LogValue);
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+        // 5. When the sieve returns the absence sentinel "none" or None on an Unresolved
+        //    turn, resolve_recall_line returns (None, RecallDisposition::NotRequested) rather
+        //    than fabricating RecallDisposition::Absent.
+        let sentinel_recall: (String, LogRecall) = (
+            "sentinel".to_owned(),
+            Arc::new(|_, _| Some("none".to_owned())),
+        );
+        let (line, disposition) = resolve_recall_line(
+            &MemoryEffect::Unresolved,
+            true,
+            &prior,
+            "hello",
+            Some(&sentinel_recall),
+            |_| unreachable!(),
+        )
+        .expect("resolve sentinel sieve");
+        assert_eq!(line, None);
+        assert_eq!(disposition, RecallDisposition::NotRequested);
+    }
+}
+
+#[cfg(any())]
+mod historical_session_tests {
     use super::*;
     use crate::geometric_stack::{Gate, RecGates};
     use crate::geometric_stack::{PointerConfig, ReadScore, StackArch, StackConfig, TransportSnap};

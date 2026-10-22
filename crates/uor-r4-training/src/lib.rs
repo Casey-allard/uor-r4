@@ -181,7 +181,8 @@ pub mod read_localize;
 pub mod reference_campaign;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod reference_eval;
-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+#[cfg(test)]
+// Compiled only under `cargo test`; excluded from the non-test native qualification graph.
 pub mod relation_compiler;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod s8_panel_count;
@@ -196,7 +197,8 @@ pub mod stack_checkpoint;
 pub mod stack_dialogue;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_export;
-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+#[cfg(test)]
+// Compiled only under `cargo test`; excluded from the non-test native qualification graph.
 pub mod stack_grounded_session;
 /// Canonical read-spec metadata; historical numerical source remains inactive.
 pub mod starling_native {
