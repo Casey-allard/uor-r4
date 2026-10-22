@@ -19,12 +19,13 @@
 //! empty one. A tracked edit, a staged edit or a new file each changes it; `local/` is ignored, so
 //! the ledger and logs never do.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::fs;
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::thread;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
@@ -49,13 +50,29 @@ pub struct Gate {
     pub brk: Break,
 }
 
-/// The planted fault: append `append` to `file` (repository-relative) in a scratch worktree.
-/// The gate must then go red with `expect` somewhere in its output.
+/// The planted fault: append text to `file`, or replace one exact text with another, in a scratch
+/// worktree (repository-relative). The gate must then go red with `expect` somewhere in its output.
+///
+/// **A `replace` break exists so a fault can remove behaviour** - delete the branch whose absence the
+/// gate should notice - instead of appending a case that can only make a test pass. Exactly one of
+/// `append` and `replace` is given.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Break {
     pub file: String,
+    /// Text appended verbatim to the file.
+    #[serde(default)]
     pub append: String,
+    /// One literal replacement: `from` must occur exactly once, and is replaced by `to`.
+    #[serde(default)]
+    pub replace: Option<Replace>,
     pub expect: String,
+}
+
+/// One literal replacement for a `replace` break.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Replace {
+    pub from: String,
+    pub to: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -147,11 +164,21 @@ pub fn load(root: &Path) -> Result<GateFile, String> {
             return Err(format!("gate {:?} needs proves, command and reads", g.id));
         }
         let b = &g.brk;
-        if b.file.trim().is_empty() || b.append.is_empty() || b.expect.trim().is_empty() {
+        let has_append = !b.append.is_empty();
+        let has_replace = b.replace.is_some();
+        if b.file.trim().is_empty() || b.expect.trim().is_empty() || has_append == has_replace {
             return Err(format!(
-                "gate {:?} must declare a break: file, append, expect",
+                "gate {:?} must declare a break: file, exactly one of append or replace, expect",
                 g.id
             ));
+        }
+        if let Some(r) = &b.replace {
+            if r.from.is_empty() {
+                return Err(format!(
+                    "gate {:?}: break.replace.from must not be empty",
+                    g.id
+                ));
+            }
         }
         if !contained_rel(&b.file) {
             return Err(format!(
@@ -466,9 +493,26 @@ fn run_logged(root: &Path, gate: &Gate, logdir: &Path, name: &str) -> Outcome {
 /// Run `gates` in order. After the first non-green verdict the rest are UNKNOWN unless
 /// `keep_going`.
 pub fn run_gates(root: &Path, gates: &[Gate], keep_going: bool, logdir: &Path) -> Vec<Outcome> {
+    run_gates_with(root, gates, keep_going, logdir, &mut |_| {})
+}
+
+/// One step of a run, for the progress window: a gate is about to start, or it just finished.
+pub enum Progress<'a> {
+    Start { index: usize, id: &'a str },
+    Finished { index: usize, outcome: &'a Outcome },
+}
+
+/// [`run_gates`] with a progress callback. The callback only observes; it never changes a verdict.
+pub fn run_gates_with(
+    root: &Path,
+    gates: &[Gate],
+    keep_going: bool,
+    logdir: &Path,
+    on_progress: &mut dyn FnMut(Progress<'_>),
+) -> Vec<Outcome> {
     let mut out = Vec::new();
     let mut stopped = false;
-    for g in gates {
+    for (index, g) in gates.iter().enumerate() {
         if stopped {
             out.push(Outcome {
                 id: g.id.clone(),
@@ -480,10 +524,12 @@ pub fn run_gates(root: &Path, gates: &[Gate], keep_going: bool, logdir: &Path) -
             });
             continue;
         }
+        on_progress(Progress::Start { index, id: &g.id });
         let o = run_one(root, g, logdir);
         if o.verdict != Verdict::Green && !keep_going {
             stopped = true;
         }
+        on_progress(Progress::Finished { index, outcome: &o });
         out.push(o);
     }
     out
@@ -563,10 +609,26 @@ pub fn run_break(root: &Path, gate: &Gate, scratch_dir: &Path, logdir: &Path) ->
     if fs::symlink_metadata(&target).is_ok_and(|m| m.file_type().is_symlink()) {
         return refused(format!("break.file {} is a symlink", gate.brk.file));
     }
-    let planted = fs::OpenOptions::new()
-        .append(true)
-        .open(&target)
-        .and_then(|mut f| f.write_all(gate.brk.append.as_bytes()));
+    let planted = if let Some(r) = &gate.brk.replace {
+        match fs::read_to_string(&target) {
+            Ok(text) => {
+                let count = text.matches(r.from.as_str()).count();
+                if count != 1 {
+                    return refused(format!(
+                        "break.replace.from occurs {count} times in {}; it must occur exactly once",
+                        gate.brk.file
+                    ));
+                }
+                fs::write(&target, text.replacen(r.from.as_str(), &r.to, 1))
+            }
+            Err(e) => Err(e),
+        }
+    } else {
+        fs::OpenOptions::new()
+            .append(true)
+            .open(&target)
+            .and_then(|mut f| f.write_all(gate.brk.append.as_bytes()))
+    };
     if let Err(e) = planted {
         return refused(format!("cannot plant the break in {}: {e}", gate.brk.file));
     }
@@ -674,8 +736,8 @@ pub fn status_rows(ledger: &Path, current_tree: &str) -> Vec<(LedgerRow, bool)> 
         .collect()
 }
 
-const USAGE: &str =
-    "usage: uor-harness loop gates [--quick|--full] [--keep-going] [--status] [--break G|all]";
+const USAGE: &str = "usage: uor-harness loop gates [--quick|--full] [--keep-going] [--status] \
+     [--watch] [--break G|all]";
 
 /// `loop <action> ...`. Returns the process exit code: 0 all green or caught, 1 otherwise,
 /// 2 for a usage error or a refusal before any gate ran.
@@ -707,7 +769,8 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
             return 2;
         }
     }
-    let (mut quick, mut keep_going, mut status, mut brk) = (false, false, false, None);
+    let (mut quick, mut keep_going, mut status, mut watch, mut brk) =
+        (false, false, false, false, None);
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -715,10 +778,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
             "--full" => quick = false,
             "--keep-going" => keep_going = true,
             "--status" => status = true,
-            "--watch" => {
-                eprintln!("uor-harness: loop gates --watch is not built yet; it is loop PR 11");
-                return 2;
-            }
+            "--watch" => watch = true,
             "--break" => match args.get(i + 1) {
                 Some(g) => {
                     brk = Some(g.clone());
@@ -739,6 +799,18 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
     if lab.trim().is_empty() {
         eprintln!("uor-harness: loop gates needs a lab: set UOR_LAB or pass --lab");
         return 2;
+    }
+    if watch && (quick || status || brk.is_some()) {
+        eprintln!(
+            "uor-harness: loop gates --watch needs a full run: drop --quick, --status and --break"
+        );
+        return 2;
+    }
+    let decision = watch_decision(watch, !quick, at_terminal(), in_ci());
+    if watch {
+        if let WatchDecision::Off(why) = decision {
+            eprintln!("uor-harness: loop gates: watch off ({why})");
+        }
     }
     let lab_dir = root.join("local").join(crate::state::slug(lab));
     let ledger = lab_dir.join("gates.jsonl");
@@ -834,7 +906,26 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         if !make_logdir() {
             return 2;
         }
-        let out = run_gates(root, &chosen, keep_going, &logdir);
+        let mut writer = None;
+        let mut watcher = None;
+        if matches!(decision, WatchDecision::Open) {
+            let path = logdir.join("status.json");
+            let last = last_seconds(&ledger);
+            writer = Some(WatchWriter::start(path.clone(), &run_id, lab, &chosen));
+            watcher = Some(thread::spawn(move || watch_draw(path, last)));
+        }
+        let out = match writer.as_mut() {
+            Some(w) => run_gates_with(root, &chosen, keep_going, &logdir, &mut |step| {
+                w.progress(step)
+            }),
+            None => run_gates(root, &chosen, keep_going, &logdir),
+        };
+        if let Some(mut w) = writer {
+            w.done();
+        }
+        if let Some(handle) = watcher {
+            let _ = handle.join();
+        }
         let ts = now();
         let rows: Vec<LedgerRow> = out
             .iter()
@@ -873,6 +964,258 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
     } else {
         1
     }
+}
+
+// --- The progress window (loop PR 11) ---------------------------------------------------------
+
+/// How often the watcher reads the status file.
+pub const WATCH_POLL: Duration = Duration::from_millis(500);
+/// The window gives up after five minutes without a change to the status file.
+pub const WATCH_GIVE_UP: Duration = Duration::from_secs(300);
+
+/// Whether the progress window opens, and when it does not, why.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WatchDecision {
+    Open,
+    Off(&'static str),
+}
+
+/// The window opens only for a full run in a terminal, never in CI and never in a headless run.
+pub fn watch_decision(asked: bool, full_run: bool, terminal: bool, ci: bool) -> WatchDecision {
+    if !asked {
+        return WatchDecision::Off("not asked");
+    }
+    if !full_run {
+        return WatchDecision::Off("not a full run");
+    }
+    if ci {
+        return WatchDecision::Off("CI");
+    }
+    if !terminal {
+        return WatchDecision::Off("not a terminal");
+    }
+    WatchDecision::Open
+}
+
+/// Whether this process is at a terminal: both stdin and stdout, so a piped or headless run is not.
+pub fn at_terminal() -> bool {
+    std::io::stdin().is_terminal() && std::io::stdout().is_terminal()
+}
+
+/// Whether the environment says CI; the window never opens there.
+pub fn in_ci() -> bool {
+    std::env::var_os("CI").is_some()
+}
+
+/// One finished gate in the status file.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WatchResult {
+    pub id: String,
+    pub verdict: Verdict,
+    pub seconds: f64,
+}
+
+/// The runner's status file, written after every gate: the window reads it, and nothing waits for
+/// a reader.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WatchStatus {
+    pub run: String,
+    pub lab: String,
+    pub gates: Vec<String>,
+    /// The gate that is running now, if one is.
+    pub current: Option<usize>,
+    /// The gates that finished, in order.
+    pub results: Vec<WatchResult>,
+    pub done: bool,
+}
+
+impl WatchStatus {
+    pub fn new(run: impl Into<String>, lab: impl Into<String>, gates: Vec<String>) -> Self {
+        WatchStatus {
+            run: run.into(),
+            lab: lab.into(),
+            gates,
+            current: None,
+            results: Vec::new(),
+            done: false,
+        }
+    }
+}
+
+/// The window's one-line status: gate N of M, the gate running now, the reds so far, and the
+/// finish estimate.
+pub fn watch_line(status: &WatchStatus, estimate: Option<f64>) -> String {
+    let total = status.gates.len();
+    let finished = status.results.len();
+    let n = match status.current {
+        Some(i) => i + 1,
+        None => finished,
+    }
+    .clamp(1, total.max(1));
+    let mut line = format!("gate {n} of {total}");
+    if let Some(id) = status.current.and_then(|i| status.gates.get(i)) {
+        line.push_str(&format!(": {id}"));
+    }
+    let reds: Vec<&str> = status
+        .results
+        .iter()
+        .filter(|r| r.verdict == Verdict::Red)
+        .map(|r| r.id.as_str())
+        .collect();
+    if !reds.is_empty() {
+        line.push_str(&format!(" | RED: {}", reds.join(", ")));
+    }
+    match estimate {
+        Some(secs) => line.push_str(&format!(" | estimate {secs:.1}s left")),
+        None => line.push_str(" | no estimate yet"),
+    }
+    line
+}
+
+/// The latest seconds per gate in a ledger, for the finish estimate.
+///
+/// **UNKNOWN rows are skipped**: they are the rows written for gates not run after an earlier red,
+/// and their `seconds` is always `0.0`. Letting one overwrite a real timing would make the next
+/// estimate read "0.0s left" precisely after an early stop, when the estimate is most useful.
+pub fn last_seconds(ledger: &Path) -> BTreeMap<String, f64> {
+    let mut last = BTreeMap::new();
+    for line in fs::read_to_string(ledger).unwrap_or_default().lines() {
+        if let Ok(r) = serde_json::from_str::<LedgerRow>(line) {
+            if r.verdict == Verdict::Unknown {
+                continue;
+            }
+            last.insert(r.gate, r.seconds);
+        }
+    }
+    last
+}
+
+/// The finish estimate: the sum of the remaining gates' latest ledger seconds. None when no
+/// remaining gate has a ledger row, so a first run says there is no estimate yet.
+pub fn estimate_left(status: &WatchStatus, last: &BTreeMap<String, f64>) -> Option<f64> {
+    let from = status.results.len().min(status.gates.len());
+    let mut sum = 0.0;
+    let mut known = false;
+    for id in &status.gates[from..] {
+        if let Some(secs) = last.get(id) {
+            sum += secs;
+            known = true;
+        }
+    }
+    known.then_some(sum)
+}
+
+/// Whether the window must give up: five minutes without a change to the status file.
+pub fn watch_gives_up(idle: Duration) -> bool {
+    idle >= WATCH_GIVE_UP
+}
+
+/// Writes the status file after every gate, atomically.
+struct WatchWriter {
+    path: PathBuf,
+    status: WatchStatus,
+}
+
+impl WatchWriter {
+    fn start(path: PathBuf, run: &str, lab: &str, gates: &[Gate]) -> WatchWriter {
+        let mut w = WatchWriter {
+            path,
+            status: WatchStatus::new(run, lab, gates.iter().map(|g| g.id.clone()).collect()),
+        };
+        w.write();
+        w
+    }
+
+    fn write(&mut self) {
+        let tmp = self.path.with_extension("json.tmp");
+        if let Ok(bytes) = serde_json::to_vec(&self.status) {
+            if fs::write(&tmp, bytes).is_ok() {
+                let _ = fs::rename(&tmp, &self.path);
+            }
+        }
+    }
+
+    fn progress(&mut self, step: Progress<'_>) {
+        match step {
+            Progress::Start { index, .. } => self.status.current = Some(index),
+            Progress::Finished { outcome, .. } => {
+                self.status.current = None;
+                self.status.results.push(WatchResult {
+                    id: outcome.id.clone(),
+                    verdict: outcome.verdict,
+                    seconds: outcome.seconds,
+                });
+            }
+        }
+        self.write();
+    }
+
+    fn done(&mut self) {
+        self.status.current = None;
+        self.status.done = true;
+        self.write();
+    }
+}
+
+/// The window loop, split from the file and the clock so it can be tested with a fake reader, a
+/// fake wait and a short give-up. It writes one line per change and returns when the run is done or
+/// when the status file has not changed for `give_up`; it never touches the run.
+pub fn watch_loop(
+    mut read: impl FnMut() -> String,
+    out: &mut dyn Write,
+    last: &BTreeMap<String, f64>,
+    give_up: Duration,
+    mut wait: impl FnMut(),
+) -> std::io::Result<()> {
+    let mut seen = String::new();
+    let mut changed_at = Instant::now();
+    let mut announced: HashSet<String> = HashSet::new();
+    let mut opened = false;
+    loop {
+        wait();
+        let text = read();
+        if !text.is_empty() && text != seen {
+            seen = text;
+            changed_at = Instant::now();
+            let Ok(status) = serde_json::from_str::<WatchStatus>(&seen) else {
+                continue;
+            };
+            if !opened {
+                opened = true;
+                writeln!(out, "watch | opened: {} gate(s)", status.gates.len())?;
+            }
+            for r in &status.results {
+                if r.verdict == Verdict::Red && announced.insert(r.id.clone()) {
+                    writeln!(out, "watch | RED {} after {:.1}s", r.id, r.seconds)?;
+                }
+            }
+            if status.done {
+                writeln!(out, "watch | {}", watch_line(&status, None))?;
+                writeln!(out, "watch | closed after the run")?;
+                return Ok(());
+            }
+            writeln!(
+                out,
+                "watch | {}",
+                watch_line(&status, estimate_left(&status, last))
+            )?;
+        } else if changed_at.elapsed() >= give_up {
+            // The give-up is timed here, not by `watch_gives_up`, so a test can inject its own
+            // threshold; `WATCH_GIVE_UP` is the five-minute value production uses.
+            writeln!(out, "watch | giving up after 5 minutes without change")?;
+            return Ok(());
+        }
+    }
+}
+
+/// Draws the window on stderr: the real reader, the real poll and the five-minute give-up.
+fn watch_draw(path: PathBuf, last: BTreeMap<String, f64>) {
+    let mut read = move || fs::read_to_string(&path).unwrap_or_default();
+    let stderr = std::io::stderr();
+    let mut out = stderr.lock();
+    let _ = watch_loop(&mut read, &mut out, &last, WATCH_GIVE_UP, || {
+        thread::sleep(WATCH_POLL)
+    });
 }
 
 #[cfg(test)]

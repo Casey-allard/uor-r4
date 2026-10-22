@@ -5,9 +5,14 @@
 //! Each of those is one check here, run in a fixed order and reported one line each, so a lab
 //! arriving in a session sees in one place what is stale before it reads or writes anything.
 //!
-//! **Verdicts.** Every check is `PASS`, `WARN`, `FAIL` or `N/A`. Exit 0 when nothing FAILs, 1 when
-//! a check FAILs, 2 when the command cannot run (usage, no lab, not a git repository). A failed
-//! fetch does not stop the run: the later checks read the `origin/main` already present.
+//! **Verdicts.** Every check is `PASS`, `WARN`, `FAIL` or `N/A`. Exit 0 when nothing FAILs, 1 when a check
+//! FAILs, 2 when the command cannot run (usage, no lab, not a git repository). A failed fetch does
+//! not stop the run: the later checks read the `origin/main` already present. Three checks that used
+//! to WARN FAIL since loop PR 11 raised the loop's named warnings to errors: a checkout behind
+//! `origin/main`, a binary older than the checkout's build, and a read path above 76,800 B. The loop
+//! relies on those, so a session may not start on a stale or oversized checkout. `hooks` stays WARN:
+//! the shared hook is opt-in until loop PR 12 sanctions installing it, and a check that is always red
+//! teaches labs to ignore FAIL.
 //!
 //! Every git subprocess this module starts has every `GIT_*` variable removed except the ones a
 //! fetch needs to authenticate (`GIT_SSH_COMMAND`, `GIT_SSH`, `GIT_ASKPASS`), so a caller's
@@ -27,9 +32,10 @@ const AGENTS_MAX_LINES: usize = 80;
 const VIEW_MAX: usize = 24_576;
 /// `GIT_*` variables a git subprocess keeps: without them `fetch` cannot authenticate.
 const GIT_KEEP: [&str; 3] = ["GIT_SSH_COMMAND", "GIT_SSH", "GIT_ASKPASS"];
-/// The read path (AGENTS, CHARTER, STATE, HANDOFF and PICKUP) above this fails ...
+/// The read path (AGENTS, CHARTER, STATE, HANDOFF and PICKUP) above this fails (loop PR 11: the
+/// 75 KB warning is an error now).
 const READ_PATH_FAIL: usize = 128_000;
-/// ... and above this warns.
+/// The former warning line: above this used to WARN, and since loop PR 11 it FAILs.
 const READ_PATH_WARN: usize = 76_800;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -204,13 +210,25 @@ fn checkout(root: &Path) -> Check {
         ),
         Staleness::Behind { .. } => check(
             "checkout",
-            Verdict::Warn,
-            "this checkout is behind origin/main",
+            Verdict::Fail,
+            "this checkout is behind origin/main; work from a fresh worktree of origin/main",
         ),
+        // `version::stale` cannot place a HEAD that is not an ancestor of `origin/main`: every task
+        // branch and every repaired PR worktree is in that state, and it is the normal one. Only a
+        // checkout it cannot read at all (no HEAD, no origin/main) is a failure.
+        Staleness::Unknown { why }
+            if why.starts_with("HEAD ") && why.ends_with("is not in origin/main") =>
+        {
+            check(
+                "checkout",
+                Verdict::Pass,
+                format!("this branch is ahead of or not in origin/main: {why}"),
+            )
+        }
         Staleness::Unknown { why } => check(
             "checkout",
-            Verdict::Warn,
-            format!("cannot place this checkout against origin/main: {why}"),
+            Verdict::Fail,
+            format!("cannot read this checkout against origin/main: {why}"),
         ),
     }
 }
@@ -226,8 +244,8 @@ fn binary(root: &Path) -> Check {
         Some(line) => {
             let mut c = check(
                 "binary",
-                Verdict::Warn,
-                "this binary is older than this checkout's newest build",
+                Verdict::Fail,
+                "this binary is older than this checkout's newest build; rebuild it before the session",
             );
             c.details.push(line);
             c
@@ -243,7 +261,8 @@ fn binary(root: &Path) -> Check {
 /// The git `pre-commit` hook against the exact text `uor-harness git install-hooks` writes
 /// ([`crate::githelp::HOOK_SCRIPT`], compiled from the crate's `rules/precommit-hook.sh`).
 fn hooks(root: &Path) -> Check {
-    const FIX: &str = "run `uor-harness git install-hooks`";
+    const FIX: &str =
+        "the shared hook is opt-in until loop PR 12; then run `uor-harness git install-hooks`";
     let dir = match git(root, &["rev-parse", "--git-path", "hooks"]) {
         Ok(out) => {
             let p = PathBuf::from(String::from_utf8_lossy(&out).trim());
@@ -529,15 +548,15 @@ fn read_path_budget(r: ReadPath) -> Check {
             "the read path is {total} bytes; the limit is {READ_PATH_FAIL}"
         ));
     }
+    if total > READ_PATH_WARN {
+        fails.push(format!(
+            "the read path is above {READ_PATH_WARN} bytes; trim it (loop PR 11 raises this warning to an error)"
+        ));
+    }
     let mut c = check("read-path", Verdict::Pass, summary);
     if !fails.is_empty() {
         c.verdict = Verdict::Fail;
         c.details = fails;
-    } else if total > READ_PATH_WARN {
-        c.verdict = Verdict::Warn;
-        c.details.push(format!(
-            "the read path is above {READ_PATH_WARN} bytes; trim it before it reaches {READ_PATH_FAIL}"
-        ));
     }
     c
 }

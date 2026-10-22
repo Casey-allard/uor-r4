@@ -3,7 +3,7 @@ id: infra-loop-pr11-progress-window
 title: Loop PR 11: loop gates --watch and warnings raised to errors
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr04-gates]

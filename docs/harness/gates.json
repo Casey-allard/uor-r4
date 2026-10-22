@@ -4,8 +4,18 @@
     {
       "id": "fmt-claim-wording",
       "proves": "The claim-wording crate is rustfmt-clean.",
-      "command": ["cargo", "fmt", "-p", "uor-r4-claim-wording", "--check"],
-      "reads": ["crates/uor-r4-claim-wording/**/*.rs", "rustfmt.toml", ".rustfmt.toml"],
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "uor-r4-claim-wording",
+        "--check"
+      ],
+      "reads": [
+        "crates/uor-r4-claim-wording/**/*.rs",
+        "rustfmt.toml",
+        ".rustfmt.toml"
+      ],
       "quick": true,
       "break": {
         "file": "crates/uor-r4-claim-wording/src/lib.rs",
@@ -16,8 +26,18 @@
     {
       "id": "fmt-harness",
       "proves": "The harness crate is rustfmt-clean.",
-      "command": ["cargo", "fmt", "-p", "uor-r4-harness", "--check"],
-      "reads": ["crates/uor-r4-harness/**/*.rs", "rustfmt.toml", ".rustfmt.toml"],
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "uor-r4-harness",
+        "--check"
+      ],
+      "reads": [
+        "crates/uor-r4-harness/**/*.rs",
+        "rustfmt.toml",
+        ".rustfmt.toml"
+      ],
       "quick": true,
       "break": {
         "file": "crates/uor-r4-harness/src/labs.rs",
@@ -28,13 +48,52 @@
     {
       "id": "claim-wording",
       "proves": "No document uses prohibited claim wording without a linked proof artifact.",
-      "command": ["cargo", "run", "-q", "--locked", "-p", "uor-r4-claim-wording", "--", "."],
-      "reads": ["**/*.md", "crates/uor-r4-claim-wording/**"],
+      "command": [
+        "cargo",
+        "run",
+        "-q",
+        "--locked",
+        "-p",
+        "uor-r4-claim-wording",
+        "--",
+        "."
+      ],
+      "reads": [
+        "**/*.md",
+        "crates/uor-r4-claim-wording/**"
+      ],
       "quick": true,
       "break": {
         "file": "docs/README.md",
         "append": "\nThis result is machine-verified.\n",
         "expect": "This result is machine-verified."
+      }
+    },
+    {
+      "id": "loop-gates-watch",
+      "proves": "The gate progress window shows gate N of M, the running gate, reds and the ledger estimate; it opens only for a full run in a terminal; and it gives up after five minutes without change.",
+      "command": [
+        "cargo",
+        "test",
+        "-q",
+        "--locked",
+        "-p",
+        "uor-r4-harness",
+        "--test",
+        "loop_gates_watch"
+      ],
+      "reads": [
+        "crates/uor-r4-harness/**/*.rs",
+        "docs/harness/gates.json"
+      ],
+      "quick": false,
+      "break": {
+        "file": "crates/uor-r4-harness/src/loopgates.rs",
+        "replace": {
+          "from": "        } else if changed_at.elapsed() >= give_up {",
+          "to": "        } else if false {"
+        },
+        "expect": "the window never gave up"
       }
     }
   ]

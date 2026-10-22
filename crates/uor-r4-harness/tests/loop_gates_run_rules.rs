@@ -246,14 +246,80 @@ fn break_all_turns_each_gate_red_for_its_own_reason() {
 }
 
 #[test]
-fn watch_and_other_actions_are_refused() {
-    let r = repo(&[OK]);
-    let w = r.run(&["--watch"]);
-    assert_eq!(w.status.code(), Some(2));
-    assert!(
-        String::from_utf8_lossy(&w.stderr).contains("loop PR 11"),
-        "{w:?}"
+fn a_replace_break_removes_a_branch_and_is_caught() {
+    // A replace break plants a REMOVED behaviour, not an appended case: the gate must turn red
+    // because the fault it names is now absent.
+    let r = repo(&[("ok", "exit 0", "x", "x")]);
+    r.write("src/flag.txt", "on\n");
+    let gate = serde_json::json!({
+        "id": "flag",
+        "proves": "the flag is on",
+        "command": ["sh", "-c", "grep -q on src/flag.txt || (echo flag-is-off; exit 1)"],
+        "reads": ["src/**"],
+        "quick": true,
+        "break": {
+            "file": "src/flag.txt",
+            "replace": {"from": "on", "to": "off"},
+            "expect": "flag-is-off"
+        }
+    });
+    r.write(
+        "docs/harness/gates.json",
+        &format!(r#"{{"version":1,"gates":[{}]}}"#, gate),
     );
+    r.git(&["add", "-A"]);
+    r.git(&["commit", "-q", "-m", "flag gate"]);
+    let o = r.run(&["--break", "all"]);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(0), "{out}");
+    assert!(line(&out, "flag").contains("CAUGHT"), "{out}");
+}
+
+#[test]
+fn a_replace_break_whose_text_is_absent_is_refused() {
+    let r = repo(&[("ok", "exit 0", "x", "x")]);
+    r.write("src/flag.txt", "on\n");
+    let gate = serde_json::json!({
+        "id": "flag",
+        "proves": "the flag is on",
+        "command": ["sh", "-c", "grep -q on src/flag.txt"],
+        "reads": ["src/**"],
+        "quick": true,
+        "break": {
+            "file": "src/flag.txt",
+            "replace": {"from": "not-here", "to": "off"},
+            "expect": "anything"
+        }
+    });
+    r.write(
+        "docs/harness/gates.json",
+        &format!(r#"{{"version":1,"gates":[{}]}}"#, gate),
+    );
+    r.git(&["add", "-A"]);
+    r.git(&["commit", "-q", "-m", "flag gate"]);
+    let o = r.run(&["--break", "all"]);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(1), "{out}");
+    assert!(line(&out, "flag").contains("REFUSED"), "{out}");
+    assert!(out.contains("occurs 0 times"), "{out}");
+}
+
+#[test]
+fn watch_needs_a_full_run_and_other_actions_are_refused() {
+    let r = repo(&[OK]);
+    // Loop PR 11 builds --watch; it is only for a full run, so a quick, status or break run refuses.
+    for args in [
+        &["--watch", "--quick"][..],
+        &["--watch", "--status"][..],
+        &["--watch", "--break", "all"][..],
+    ] {
+        let w = r.run(args);
+        assert_eq!(w.status.code(), Some(2), "{args:?}: {w:?}");
+        assert!(
+            String::from_utf8_lossy(&w.stderr).contains("needs a full run"),
+            "{args:?}: {w:?}"
+        );
+    }
     let o = clean(&mut Command::new(BIN))
         // `next` was the example until loop PR 7b built it; `drive` is loop PR 10.
         .args(["--repo", r.root.to_str().unwrap(), "loop", "drive"])

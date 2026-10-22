@@ -90,7 +90,7 @@ Notes carry memory between sessions. Most are rendered, so nobody types them.
 
 **Rule sources.** An owner-only list names the only files allowed to state a rule: CHARTER.md, AGENTS.md, this page, `pm-rules.md`, DECISIONS, the mistakes files and `docs/rules/changes.md`. Other rule-like files become generated files or short pointers.
 
-**Read-path budget.** AGENTS.md stays within about 80 lines. STATE and HANDOFF stay under 24 KB each, PICKUP under 8 KB and an ORDER under 4 KB. The whole read path warns at 75 KB and stops above 125 KB.
+**Read-path budget.** AGENTS.md stays within about 80 lines. STATE and HANDOFF stay under 24 KB each, PICKUP under 8 KB and an ORDER under 4 KB. The whole read path fails above 75 KB (76,800 bytes) since loop PR 11 raised the warning to an error, and above 125 KB the command names the hard limit.
 
 **Today.** `STATUS.md`, `docs/integration/NOW.md`, `docs/harness/claims.json` and the roadmap render all exist and are still edited the old way. The fold-in to STATE, HANDOFF and PLAN is PR 8.
 
@@ -110,7 +110,7 @@ Notes carry memory between sessions. Most are rendered, so nobody types them.
 
 A gate is a check anyone can rerun. Each gate names what it proves, and a planted fault that must turn it red.
 
-**The runner (built, loop PR 4).** `loop gates [--quick|--full|--keep-going|--status|--break G|all]` reads `docs/harness/gates.json`, which lists three gates today: `cargo fmt --check` for the claim-wording and harness crates, and claim-wording. `--watch` is loop PR 11.
+**The runner (built, loop PR 4).** `loop gates [--quick|--full|--keep-going|--status|--watch|--break G|all]` reads `docs/harness/gates.json`, which lists four gates today: `cargo fmt --check` for the claim-wording and harness crates, claim-wording, and the progress-window tests. **The progress window (built, loop PR 11):** `--watch` shows gate N of M, the gate running now, reds as they land and a finish estimate from the ledger. It opens only for a full run in a terminal, never in CI or a headless run, closes after the run, and gives up after 5 minutes without change.
 
 **Gates that exist today:** `cargo fmt`; clippy and library tests for changed crates; `uor-harness check`; `lint check`; the d23, d25 and d32 ratchets; claim-wording; `cargo xtask links`, `archive-verify --base`, `roadmap check` and `docs-catalog --check`; `shard-check`.
 **Gates to build:** `render --check`, `scope`, `order --check`, `report --check`, `budget`, rule sources, milestone bars against CHARTER §4.8, and the local private-text check.
@@ -124,7 +124,7 @@ A gate is a check anyone can rerun. Each gate names what it proves, and a plante
 
 **Ledger.** `local/<lab>/gates.jsonl` records gate, verdict, seconds, commit and the working-tree hash. An uncommitted edit makes a result STALE. The ledger is not committed; CI's result at the head is the authority.
 
-**Breaks.** `--break G` plants the gate's declared fault in a scratch worktree. The gate must go red with its declared failure text. Red for another reason, such as a build failure, is REFUSED. Every gate must declare a break. When a PR changes a gate, the old breaks also run against the new gate, so a gate and its break cannot be loosened together. A break that stays green is a gate defect: add the case, never relax the check. A bug that escapes every gate becomes a new gate whose break is that bug.
+**Breaks.** `--break G` plants the gate's declared fault in a scratch worktree. The gate must go red with its declared failure text. Red for another reason, such as a build failure, is REFUSED. Every gate must declare a break: appended text, or one exact replacement (`replace`, whose `from` must occur exactly once), so the planted fault can be a removed branch rather than an added case. When a PR changes a gate, the old breaks also run against the new gate, so a gate and its break cannot be loosened together. A break that stays green is a gate defect: add the case, never relax the check. A bug that escapes every gate becomes a new gate whose break is that bug.
 
 **CI (built, loop PR 5).** One workflow, `gate.yml`, which `ci.yml` calls on every pull request, with no path filters:
 - `tests` runs `loop gates --full` with a read-only token. It takes the lab from the PR's ORDER; a PR with no ORDER is outside the loop and is skipped with a notice.

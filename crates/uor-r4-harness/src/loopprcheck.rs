@@ -868,9 +868,11 @@ type Budget = (
     &'static str,
 );
 
-/// The read-path budgets, measured on the head and compared with the base. An item over budget
-/// fails when it grew, and warns when it did not; the whole path's growth leaves out the ORDER,
-/// which the base never has. A read-path file that is a symlink at the head fails.
+/// The read-path budgets, measured on the head and compared with the base. **Any budget overrun is
+/// a failure since loop PR 11**: the loop relies on the read path, so the former warnings (an
+/// over-budget file that did not grow, and a whole path above the 76,800 B line) are errors now.
+/// The whole path's growth leaves out the ORDER, which the base never has. A read-path file that is
+/// a symlink at the head fails.
 fn rule_read_path(pr: &Pr) -> RuleResult {
     const R: &str = "read-path";
     let bytes = |t: Option<String>| t.map_or(0, |t| t.len() as u64);
@@ -913,14 +915,13 @@ fn rule_read_path(pr: &Pr) -> RuleResult {
             fails.push(format!("{path} is a symlink at the head"));
         }
     }
-    let mut warns = Vec::new();
     for (name, (b, h), over, budget, unit) in items {
         if over(h) {
             let line = format!("{name} is {h} {unit} (base {b}), over its budget ({budget})");
             if h > b {
                 fails.push(format!("{line} and grew"));
             } else {
-                warns.push(format!("{line} but did not grow"));
+                fails.push(format!("{line} but did not grow"));
             }
         }
     }
@@ -932,11 +933,11 @@ fn rule_read_path(pr: &Pr) -> RuleResult {
         if core.1 > core.0 {
             fails.push(format!("{line} and grew"));
         } else {
-            warns.push(format!("{line} but did not grow"));
+            fails.push(format!("{line} but did not grow"));
         }
     } else if total > 76_800 {
-        warns.push(format!(
-            "the read path is {total} B (AGENTS + CHARTER + STATE + HANDOFF base {}), above the 76800 B warning line",
+        fails.push(format!(
+            "the read path is {total} B (AGENTS + CHARTER + STATE + HANDOFF base {}), above the 76800 B line",
             core.0
         ));
     }
@@ -944,14 +945,11 @@ fn rule_read_path(pr: &Pr) -> RuleResult {
         "AGENTS.md {} lines, STATE.md {} B, HANDOFF.md {} B, ORDER {} B, read path {} B (AGENTS + CHARTER + STATE + HANDOFF + ORDER)",
         agents_lines.1, state.1, handoff.1, ord.1, total
     );
-    let verdict = if !fails.is_empty() {
-        Verdict::Fail
-    } else if !warns.is_empty() {
-        Verdict::Warn
-    } else {
+    let verdict = if fails.is_empty() {
         Verdict::Pass
+    } else {
+        Verdict::Fail
     };
-    fails.extend(warns);
     RuleResult {
         rule: R,
         verdict,

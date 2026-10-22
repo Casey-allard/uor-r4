@@ -956,9 +956,10 @@ fn rendered_lock_holds_the_views_to_kimi_render() {
     );
 }
 
-/// `read-path`: growth over a budget fails; an untouched over-budget file warns and passes.
+/// `read-path`: every over-budget item fails, grown or not, and so does a whole path above the
+/// 76,800 B line (the former warnings, raised to errors in loop PR 11).
 #[test]
-fn read_path_fails_growth_over_budget_and_warns_otherwise() {
+fn read_path_fails_every_over_budget_item_and_the_warning_line() {
     let lines = |n: usize| "x\n".repeat(n);
     let r = Repo::new();
     r.git(&["checkout", "-q", "--detach", &r.base]);
@@ -984,15 +985,15 @@ fn read_path_fails_growth_over_budget_and_warns_otherwise() {
     r.git(&["commit", "-q", "-m", "agents"]);
     r.base = r.out(&["rev-parse", "HEAD"]);
     let h = r.green_a(|_| {});
-    expect(&r.check(&h, &[]), 0, "WARN read-path", "but did not grow");
+    expect(&r.check(&h, &[]), 1, "FAIL read-path", "but did not grow");
 
     let r = Repo::new();
     let big = order("claude", "item-a", &"y".repeat(5000));
     let h = r.green(ORDER_A, &big, |_| {});
     expect(&r.check(&h, &[]), 1, "FAIL read-path", "the ORDER is 50");
 
-    // A path already over its total, which the PR does not touch, warns: the ORDER it adds is
-    // not growth.
+    // A path already over its total, which the PR does not touch, fails: the ORDER it adds is not
+    // growth, and the former warning is an error now.
     let mut r = Repo::new();
     r.git(&["checkout", "-q", "--detach", &r.base]);
     r.write("CHARTER.md", &"c".repeat(130_000));
@@ -1001,7 +1002,7 @@ fn read_path_fails_growth_over_budget_and_warns_otherwise() {
     r.base = r.out(&["rev-parse", "HEAD"]);
     let h = r.green_a(|r| r.write("crates/a/src/lib.rs", "//\n"));
     let o = r.check(&h, &[]);
-    expect(&o, 0, "WARN read-path", "but did not grow");
+    expect(&o, 1, "FAIL read-path", "but did not grow");
 
     // A read-path file turned into a symlink fails.
     let r = Repo::new();
