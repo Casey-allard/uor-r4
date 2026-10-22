@@ -7,7 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr07b-session, infra-loop-pr07c-queue-board, infra-loop-pr09-client-adapters]
-scope: [crates/uor-r4-harness/src/loopdrive*.rs, crates/uor-r4-harness/src/githubcards.rs, crates/uor-r4-harness/src/heartbeatcard.rs, crates/uor-r4-harness/tests/loop_drive*.rs]
+scope: [crates/uor-r4-harness/src/loopdrive*.rs, crates/uor-r4-harness/src/githubcards.rs, crates/uor-r4-harness/src/heartbeatcard.rs, crates/uor-r4-harness/tests/loop_drive*.rs, crates/uor-r4-harness/tests/loop_gates_run_rules.rs]
 ---
 
 ## Why it matters
