@@ -410,6 +410,72 @@ fn an_item_waits_until_every_dependency_is_done() {
 }
 
 #[test]
+fn a_malformed_or_unreadable_dependency_waits_and_says_why() {
+    let r = Repo::new(&[
+        // Not an inline list, so the dependencies cannot be checked.
+        (
+            "a-bad-list",
+            "ready",
+            Some("[crates/a/**]\ndepends_on: b-dep"),
+        ),
+        ("b-dep", "done", Some("[crates/b/**]")),
+        // The dependency is on origin/main but does not parse: its scope list is not closed.
+        (
+            "c-on-broken",
+            "ready",
+            Some("[crates/c/**]\ndepends_on: [d-broken]"),
+        ),
+        ("d-broken", "done", Some("[crates/d/**")),
+    ]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert_eq!(decision(&o), "STOP empty queue", "{o:?}");
+    let out = stdout(&o);
+    assert!(
+        out.contains("a-bad-list waits: depends_on `b-dep` is not a `[a, b]` list"),
+        "{o:?}"
+    );
+    assert!(
+        out.contains(
+            "c-on-broken waits on d-broken (unreadable: scope `[crates/d/**` is not a `[a, b]` list)"
+        ),
+        "{o:?}"
+    );
+}
+
+#[test]
+fn only_unfinished_dependencies_are_named_and_quoted_done_or_empty_lists_pass() {
+    let r = Repo::new(&[
+        (
+            "a-mixed",
+            "ready",
+            Some("[crates/a/**]\ndepends_on: [b-done, c-open, d-quoted]"),
+        ),
+        ("b-done", "done", Some("[crates/b/**]")),
+        ("c-open", "decision", Some("[crates/c/**]")),
+        ("d-quoted", "\"done\"", Some("[crates/d/**]")),
+    ]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert_eq!(decision(&o), "STOP empty queue", "{o:?}");
+    assert!(
+        stdout(&o).contains("(a-mixed waits on c-open (decision))"),
+        "{o:?}"
+    );
+    let r = Repo::new(&[("a-empty", "ready", Some("[crates/a/**]\ndepends_on: []"))]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert!(decision(&o).starts_with("GO item a-empty — "), "{o:?}");
+    let r = Repo::new(&[
+        (
+            "a-quoted",
+            "ready",
+            Some("[crates/a/**]\ndepends_on: [\"d-quoted\"]"),
+        ),
+        ("d-quoted", "\"done\"", Some("[crates/d/**]")),
+    ]);
+    let o = r.next(&fake(vec![], json!({})));
+    assert!(decision(&o).starts_with("GO item a-quoted — "), "{o:?}");
+}
+
+#[test]
 fn the_not_built_sources_are_printed_with_their_loop_prs() {
     let r = Repo::new(&[]);
     let out = stdout(&r.next(&fake(vec![], json!({}))));

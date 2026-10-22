@@ -54,6 +54,11 @@ impl Repo {
             ("noscope-c", item("ready", None)),
             ("other-d", item("ready", Some("[crates/a/src/*.rs]"))),
             ("nb-e", item("ready", Some("[docs/research/notebook/a.md]"))),
+            // `scope:` then a `depends_on:` that is not an inline list.
+            (
+                "baddeps-f",
+                item("ready", Some("[crates/f/**]\ndepends_on: other-d")),
+            ),
         ];
         for (id, text) in items {
             r.write(&format!("docs/roadmap/items/{id}.md"), &text);
@@ -204,6 +209,14 @@ fn an_overlapping_claim_is_refused() {
         &r.claim("ready-a", prs),
         "scope crates/a/** overlaps crates/a/src/*.rs",
     );
+}
+
+#[test]
+fn a_malformed_depends_on_does_not_stop_a_claim() {
+    // `loop claim` does not check dependencies, so a `depends_on:` it cannot read is not its call.
+    let r = Repo::new();
+    let o = r.claim("baddeps-f", serde_json::json!([]));
+    assert_eq!(o.status.code(), Some(0), "{o:?}");
 }
 
 #[test]

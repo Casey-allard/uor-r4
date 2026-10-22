@@ -573,17 +573,24 @@ pub fn run(
         match item.status.as_deref() {
             Some("held") => held += 1,
             Some("ready") if item.scope.is_some() => {
-                // An item waits while any dependency is missing or not done on origin/main.
+                // Dependencies that cannot be read cannot be checked, so the item waits.
+                if let Some(e) = &item.depends_on_error {
+                    waiting.push(format!("{id} waits: {e}"));
+                    continue;
+                }
+                // An item waits while any dependency is missing, unreadable or not done on
+                // origin/main.
                 let unmet: Vec<String> = item
                     .depends_on
                     .iter()
-                    .filter_map(|dep| match crate::loopclaim::read_item(root, dep) {
-                        Ok(d) if d.status.as_deref() == Some("done") => None,
-                        Ok(d) => Some(format!(
+                    .filter_map(|dep| match crate::loopclaim::read_item_opt(root, dep) {
+                        Ok(Some(d)) if d.status.as_deref() == Some("done") => None,
+                        Ok(Some(d)) => Some(format!(
                             "{dep} ({})",
                             d.status.as_deref().unwrap_or("no status")
                         )),
-                        Err(_) => Some(format!("{dep} (missing)")),
+                        Ok(None) => Some(format!("{dep} (missing)")),
+                        Err(e) => Some(format!("{dep} (unreadable: {e})")),
                     })
                     .collect();
                 if unmet.is_empty() {

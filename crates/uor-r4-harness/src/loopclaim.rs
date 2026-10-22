@@ -362,6 +362,9 @@ pub struct ItemFields {
     pub notebook: Option<String>,
     /// The ids in the inline-list `depends_on:` line; empty when there is none.
     pub depends_on: Vec<String>,
+    /// Why the `depends_on:` line is not an inline list. It is recorded, not an error, so that only
+    /// `loop next`, which reads dependencies, acts on it.
+    pub depends_on_error: Option<String>,
 }
 
 /// The entries of an inline `[a, b]` list, or `None` when `v` is not one.
@@ -408,8 +411,13 @@ pub fn parse_item(text: &str) -> Result<ItemFields, String> {
                     .ok_or_else(|| format!("scope `{}` is not a `[a, b]` list", v.trim()))?,
             );
         } else if let Some(v) = line.strip_prefix("depends_on:") {
-            fields.depends_on = inline_list(v)
-                .ok_or_else(|| format!("depends_on `{}` is not a `[a, b]` list", v.trim()))?;
+            match inline_list(v) {
+                Some(ids) => fields.depends_on = ids,
+                None => {
+                    fields.depends_on_error =
+                        Some(format!("depends_on `{}` is not a `[a, b]` list", v.trim()))
+                }
+            }
         }
     }
     Err("frontmatter is not closed by `---`".into())
@@ -417,9 +425,14 @@ pub fn parse_item(text: &str) -> Result<ItemFields, String> {
 
 /// The item parsed from `origin/main`, the same source `check` reads; never the working tree.
 pub(crate) fn read_item(root: &Path, id: &str) -> Result<ItemFields, String> {
-    let text = main_item_text(root, id)
-        .ok_or_else(|| format!("item {id} does not exist on origin/main"))?;
-    parse_item(&text).map_err(|e| format!("item {id}: {e}"))
+    read_item_opt(root, id)
+        .map_err(|e| format!("item {id}: {e}"))?
+        .ok_or_else(|| format!("item {id} does not exist on origin/main"))
+}
+
+/// The item parsed from `origin/main`: `Ok(None)` when it is not there, `Err` when it does not parse.
+pub(crate) fn read_item_opt(root: &Path, id: &str) -> Result<Option<ItemFields>, String> {
+    main_item_text(root, id).map(|t| parse_item(&t)).transpose()
 }
 
 /// The item's text on `origin/main`, or `None` when it is not there.
