@@ -2323,7 +2323,7 @@
         <div class="d36-engine-status-banner" id="d36EngineStatusBanner" role="status" aria-live="polite" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.4rem 1rem; padding:0.45rem 1.25rem; background:rgba(245, 158, 11, 0.08); border-bottom:1px solid rgba(245, 158, 11, 0.28); font-size:0.74rem; line-height:1.4; color:var(--text-secondary);">
             <div>
                 <strong style="color:#fbbf24; font-family:var(--font-mono);">Engine Status (D36):</strong>
-                No D11 served wasm engine exists yet — GitHub Pages deploy is frozen per D36, and the live site is the last good deploy (13 Oct 2026, pre-#2345).
+                Pre-alpha (<code>0/8</code> milestones complete; A8 preflight checkpoint-0 admission <code>P_succ = 35.1%</code> in <code>docs/labs/address-cells-preflight-2026-10-19/README.md:71</code>; D11 decode <code>tok/s</code> on a qualified model is unmeasured). Model worker wired to <code>uor-r4-integer</code> (<code>serving-wasm</code>: <code>loadStack</code>, <code>step</code>, <code>saveSession</code>, <code>restoreSession</code>; prompt tokenizer is a UTF-8 byte-mod stand-in); no qualified model is bundled, page-level UI CDN scripts remain external, and GitHub Pages deploy remains frozen per D36.
             </div>
             <div id="studioProvenanceNote" style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-mono);">
                 Provenance: Studio source is an import of companion repo <code>Casey-allard/uor-r4-wasm-chat</code>
@@ -2495,17 +2495,18 @@
     <aside class="telemetry-sidecar" id="telemetrySidecar">
         <div class="sidecar-header"><span>Native model session</span><button class="icon-btn" onclick="toggleSidecar()">✕</button></div>
         <div class="sidecar-content">
-            <p id="sidecarD36Status"><strong>Engine status (D36):</strong> No D11 served wasm engine exists yet; GitHub Pages deploy is frozen per D36, and the live site is the last good deploy (13 Oct 2026, pre-#2345). Provenance: Studio source is an import of companion repo <code>Casey-allard/uor-r4-wasm-chat</code>.</p>
-            <p id="nativeModelStatus">No model loaded. Select a retained native model JSON file.</p>
-            <input id="nativeModelFile" type="file" accept=".json,application/json" aria-label="Load retained model" onchange="loadNativeModelFile(this.files[0])">
+            <p id="sidecarD36Status"><strong>Engine status (D36):</strong> Pre-alpha (<code>0/8</code> milestones complete; A8 preflight checkpoint-0 <code>P_succ = 35.1%</code>; D11 decode <code>tok/s</code> unmeasured). Worker connects to <code>uor-r4-integer</code> (<code>serving-wasm</code>; UTF-8 byte-mod stand-in tokenizer); GitHub Pages deploy remains frozen per D36. Provenance: Studio source is an import of companion repo <code>Casey-allard/uor-r4-wasm-chat</code>.</p>
+            <p id="nativeModelStatus">No stack loaded. Select a UORLUT01 stack file (.lut or .bin).</p>
+            <input id="nativeModelFile" type="file" accept=".lut,.bin,application/octet-stream" aria-label="Load UORLUT01 stack" onchange="loadNativeModelFile(this.files[0])">
+            <p id="nativeCapabilitiesPanel">Capabilities: none loaded (load a UORLUT01 stack to inspect header and engine counters).</p>
             <p>Pre-alpha: bounded copying and typed operations. General prose, broad reasoning, energy savings and browser capability qualification are not established.</p>
             <p>Model geometry and energy telemetry: unavailable in this view.</p>
             <p id="eegTpsMeter">Throughput: unavailable until generation</p>
-            <p id="activePhaseTag">Awaiting model</p>
-            <label>Maximum output tokens <input id="nativeTokenLimit" type="number" min="1" max="4096" value="256"></label>
+            <p id="activePhaseTag">Awaiting stack</p>
+            <label>Maximum output tokens <input id="nativeTokenLimit" type="number" min="1" max="4096" value="32"></label>
             <p id="nativeStopReason">Last generation: unavailable</p>
             <button class="modal-btn" onclick="exportNativeSession()">Export checkpoint</button>
-            <label>Import checkpoint <input id="nativeCheckpointFile" type="file" accept=".json" onchange="importNativeSessionFile(this.files[0])"></label>
+            <label>Import checkpoint <input id="nativeCheckpointFile" type="file" accept=".json,.bin,application/json,application/octet-stream" onchange="importNativeSessionFile(this.files[0])"></label>
             <button class="modal-btn secondary" onclick="resetNativeSession()">Reset current model session</button>
             <p>Conversation text is saved by the browser. Native state survives while this page remains open; export a checkpoint to preserve it across reloads.</p>
         </div>
@@ -2763,15 +2764,15 @@
         window.MODEL_CONFIGS = {
             'uor-r4-api': {
                 id: 'uor-r4-api',
-                name: 'uor-r4 api',
-                fullName: 'UOR-R4 API (Native Geometric Language Model)',
+                name: 'uor-r4 integer stack',
+                fullName: 'UOR-R4 Integer Stack Engine (serving-wasm)',
                 icon: '⚡',
-                source: 'uor:native-geometric/api/1',
-                localPath: './pkg/uor_r4_wasm_router_bg.wasm',
+                source: 'uor-r4-integer/serving-wasm',
+                localPath: './pkg/uor_r4_integer_bg.wasm',
                 size_mb: null,
-                tier: 'Native Geometric Pre-alpha',
-                dtype: 'Z[phi] golden integer ring, zero-matmul',
-                desc: 'Experimental native geometric model. Load an artifact to inspect its identity; general prose and broad reasoning remain unqualified.'
+                tier: 'Pre-alpha (0/8 milestones complete; synthetic stand-in only)',
+                dtype: 'UORLUT01 integer lookup-table stack',
+                desc: 'Browser Web Worker integer stack runtime (model path only; UI assets load from CDNs). Load a UORLUT01 stack file (.lut) to step tokens locally with zero remote model calls and a UTF-8 byte-mod stand-in prompt tokenizer.'
             }
         };
 
@@ -5250,6 +5251,10 @@
         };
 
         window.deleteConversation = function(id) {
+            if (window.isGenerating) {
+                showToast('Stop generation before closing a conversation.');
+                return;
+            }
             modelWorker?.postMessage({action: 'close_session', payload: {conversationId: id}});
             conversations = conversations.filter(c => c.id !== id);
             if (currentConvId === id) {
@@ -5583,48 +5588,62 @@
 
         window.loadNativeModelFile = async function(file) {
             if (!file) return;
-            if (file.size > 64 * 1024 * 1024) { showToast('Model file exceeds the 64 MiB browser load limit.'); return; }
+            if (file.size > 64 * 1024 * 1024) { showToast('Stack file exceeds the 64 MiB browser load limit.'); return; }
             initModelWorker();
-            document.getElementById('nativeModelStatus').textContent = 'Validating retained artifact…';
-            try { modelWorker.postMessage({action: 'load_model', payload: {bytes: await file.arrayBuffer()}}); }
-            catch(error) { showToast(`Model load failed: ${error}`); }
+            document.getElementById('nativeModelStatus').textContent = 'Validating UORLUT01 stack artifact…';
+            try { modelWorker.postMessage({action: 'load_model', payload: {bytes: await file.arrayBuffer(), fileName: file.name}}); }
+            catch(error) { showToast(`Stack load failed: ${error}`); }
         };
         window.exportNativeSession = function() {
             modelWorker?.postMessage({action: 'export_session', payload: {conversationId: currentConvId}});
         };
         window.resetNativeSession = function() {
+            if (window.isGenerating) {
+                showToast('Stop generation before resetting a model session.');
+                return;
+            }
             modelWorker?.postMessage({action: 'reset_session', payload: {conversationId: currentConvId}});
         };
         window.importNativeSessionFile = async function(file) {
             if (!file) return;
             if (file.size > 64 * 1024 * 1024) { showToast('Checkpoint exceeds the 64 MiB browser import limit.'); return; }
             try {
+                if (file.name.endsWith('.bin')) {
+                    const rawBytes = new Uint8Array(await file.arrayBuffer());
+                    modelWorker.postMessage({action: 'import_session', payload: {conversationId: currentConvId, bytes: rawBytes}});
+                    return;
+                }
                 const saved = JSON.parse(await file.text());
                 if (typeof saved.conversationId !== 'string' || !Array.isArray(saved.checkpoint)) throw new Error('Expected an exported Studio checkpoint.');
                 if (!conversations.some(c => c.id === saved.conversationId)) conversations.unshift({id: saved.conversationId, title: 'Imported native session', messages: [], timestamp: Date.now()});
                 loadConversation(saved.conversationId);
-                modelWorker.postMessage({action: 'import_session', payload: {conversationId: saved.conversationId, bytes: saved.checkpoint}});
+                modelWorker.postMessage({action: 'import_session', payload: {conversationId: saved.conversationId, bytes: saved.checkpoint, lastToken: saved.lastToken ?? null}});
             } catch(error) { showToast(`Checkpoint import failed: ${error}`); }
         };
 
         function initModelWorker() {
-            if (modelWorker) return; // Keep existing active worker and compiled shaders warm!
+            if (modelWorker) return; // Keep existing active worker warm!
             try {
-                modelWorker = new Worker(new URL('./assets/js/uor_model_worker.js?v=recovery-1', import.meta.url), { type: 'module' });
+                modelWorker = new Worker(new URL('./assets/js/uor_model_worker.js?v=serving-wasm-1', import.meta.url), { type: 'module' });
                 window.modelWorker = modelWorker;
 
                 modelWorker.onmessage = (e) => {
                     const { action, id, modelId, chunk, fullText, tokenCount, durationSec, tps, storage, error, stage, text, progress } = e.data;
 
                     if (action === 'model_loaded') {
-                        const caps = e.data.capabilities;
-                        window.nativeModelCid = caps.artifact_cid || caps.model_cid || caps.model_id;
-                        document.getElementById('nativeModelStatus').textContent = `Loaded artifact ${window.nativeModelCid || JSON.stringify(caps)} (${e.data.bytes} bytes).`;
-                        document.getElementById('activePhaseTag').textContent = 'Model loaded';
-                        showToast('Native artifact loaded. Start a new session or import its checkpoint.');
+                        const caps = e.data.capabilities || {};
+                        window.nativeModelCapabilities = caps;
+                        window.nativeModelCid = `${caps.schema || 'uor-r4.lut-stack/1'} [${caps.status_label || 'unqualified stack artifact'}]`;
+                        document.getElementById('nativeModelStatus').textContent = `Loaded ${window.nativeModelCid} (${e.data.bytes} bytes).`;
+                        const capPanel = document.getElementById('nativeCapabilitiesPanel');
+                        if (capPanel && caps.shape) {
+                            capPanel.textContent = `Status: ${caps.status_label} · schema=${caps.schema} · vocab=${caps.shape.vocab}, width=${caps.shape.width}, heads=${caps.shape.heads}, context=${caps.shape.context} · tokenizer=${caps.tokenizer_label || 'UTF-8 byte-mod stand-in'} · weights/tok=${caps.weights_per_token} B · alloc_events=${caps.alloc_events} · leaked_models=${caps.leaked_models}`;
+                        }
+                        document.getElementById('activePhaseTag').textContent = caps.synthetic ? 'Loaded (synthetic stand-in)' : 'Stack loaded';
+                        showToast(`Loaded stack (${caps.status_label}).`);
                     }
                     if (action === 'runtime_loaded') {
-                        if (!e.data.ready) document.getElementById('nativeModelStatus').textContent = 'WASM runtime loaded; select a retained model JSON file to begin.';
+                        if (!e.data.ready) document.getElementById('nativeModelStatus').textContent = 'WASM runtime (uor-r4-integer/serving-wasm) loaded; select a UORLUT01 stack file (.lut) to begin.';
                     }
                     if (action === 'operation_error') {
                         showToast(`Native operation failed: ${error}`);
@@ -5633,7 +5652,7 @@
                     if (action === 'session_imported') showToast('Native checkpoint imported for this conversation.');
                     if (action === 'session_reset') showToast('Native state reset; saved conversation text is unchanged.');
                     if (action === 'session_exported') {
-                        const checkpoint = { conversationId: e.data.conversationId, checkpoint: Array.from(e.data.bytes) };
+                        const checkpoint = { conversationId: e.data.conversationId, checkpoint: Array.from(e.data.bytes), lastToken: e.data.lastToken ?? null };
                         const url = URL.createObjectURL(new Blob([JSON.stringify(checkpoint)], {type: 'application/json'}));
                         const link = document.createElement('a'); link.href = url; link.download = `uor-session-${e.data.conversationId}.json`; link.click();
                         setTimeout(() => URL.revokeObjectURL(url), 0);
@@ -5798,138 +5817,31 @@
         };
 
 
-        // ================= 🌐 LIVE WEB SEARCH & GROUNDING ENGINE =================
-        window.isWebSearchActive = false; // Explicit native model evaluation does not inject external search material
+        // ================= 🌐 LIVE WEB SEARCH & GROUNDING ENGINE (DISABLED FOR LOCAL-ONLY SERVING) =================
+        window.isWebSearchActive = false; // Model worker evaluation never sends user prompts to external web search APIs
 
         window.toggleWebSearch = function() {
-            window.isWebSearchActive = !window.isWebSearchActive;
-            localStorage.setItem('uor_web_search', window.isWebSearchActive ? 'true' : 'false');
+            window.isWebSearchActive = false;
+            localStorage.setItem('uor_web_search', 'false');
             updateWebSearchBtnUI();
-            showToast(window.isWebSearchActive ? "🌐 Web Search & Knowledge Grounding: ENABLED" : "🌐 Web Search: DISABLED");
+            showToast("🌐 External web search is disabled; the Studio model worker makes zero remote prompt calls.");
         };
 
         function updateWebSearchBtnUI() {
             const btn = document.getElementById('btnToggleWebSearch');
             if (!btn) return;
-            if (window.isWebSearchActive) {
-                btn.classList.add('active');
-                btn.innerHTML = `<span id="webSearchIcon">🌐</span> <span>Search</span>`;
-            } else {
-                btn.classList.remove('active');
-                btn.innerHTML = `<span id="webSearchIcon" style="opacity:0.5;">🌐</span> <span style="opacity:0.5;">Search</span>`;
-            }
+            btn.classList.remove('active');
+            btn.innerHTML = `<span id="webSearchIcon" style="opacity:0.5;">🌐</span> <span style="opacity:0.5;">Offline</span>`;
         }
         window.updateWebSearchBtnUI = updateWebSearchBtnUI;
 
         function extractSearchQuery(prompt) {
-            if (!prompt) return '';
-            let q = prompt.trim();
-
-            // Strip conversational preambles
-            q = q.replace(/^(please\s+)?(can\s+you\s+|could\s+you\s+|would\s+you\s+)?(please\s+)?/i, '');
-            q = q.replace(/^(search\s+(wikipedia|the\s+web|web|google|online)?\s+(for|about)?|look\s+up(\s+on\s+wikipedia)?|find(\s+out)?|tell\s+me\s+about|what\s+is|who\s+is|where\s+is|give\s+me|show\s+me|get\s+me)\s+/i, '');
-            q = q.replace(/^(the\s+)?(wikipedia\s+article\s+(on|for|about)?|wikipedia\s+page\s+(on|for|about)?|wikipedia\s+(on|for|about)?|article\s+(on|for|about)?|info\s+(on|for|about)?|information\s+(on|for|about)?)\s+/i, '');
-            q = q.replace(/\s+(on\s+wikipedia|in\s+wikipedia|wikipedia\s+article|wikipedia\s+page|wikipedia)$/i, '');
-
-            q = q.replace(/^[\"'`]+|[\"'`?.!]+$/g, '').trim();
-            return q || prompt.trim();
+            return (prompt || '').trim();
         }
         window.extractSearchQuery = extractSearchQuery;
 
         async function fetchLiveWebKnowledge(prompt) {
-            const cleanQuery = extractSearchQuery(prompt);
-            const sources = [];
-
-            try {
-                // 1. Wikipedia OpenSearch API (Finds exact canonical title & URL)
-                const opensearchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(cleanQuery)}&limit=3&namespace=0&format=json&origin=*`;
-                const openRes = await fetch(opensearchUrl);
-                const openData = await openRes.json();
-
-                if (openData && Array.isArray(openData[1]) && openData[1].length > 0) {
-                    const titles = openData[1];
-                    const urls = openData[3] || [];
-
-                    for (let i = 0; i < Math.min(titles.length, 2); i++) {
-                        const title = titles[i];
-                        const pageUrl = urls[i] || `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
-
-                        try {
-                            const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`;
-                            const sumRes = await fetch(summaryUrl);
-                            const sumData = await sumRes.json();
-
-                            sources.push({
-                                title: sumData.title || title,
-                                snippet: sumData.extract || sumData.description || ('Wikipedia Encyclopedia Article for ' + title),
-                                url: (sumData.content_urls && sumData.content_urls.desktop) ? sumData.content_urls.desktop.page : pageUrl,
-                                domain: 'en.wikipedia.org',
-                                thumbnail: sumData.thumbnail ? sumData.thumbnail.source : null
-                            });
-                        } catch(err) {
-                            sources.push({
-                                title: title,
-                                snippet: 'Wikipedia article for ' + title,
-                                url: pageUrl,
-                                domain: 'en.wikipedia.org'
-                            });
-                        }
-                    }
-                }
-            } catch(e) {
-                console.warn("Wikipedia opensearch failed:", e);
-            }
-
-            // 2. Wikipedia Full-Text Search Fallback
-            if (sources.length === 0) {
-                try {
-                    const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanQuery)}&utf8=&format=json&origin=*`;
-                    const wikiRes = await fetch(wikiUrl);
-                    const wikiData = await wikiRes.json();
-
-                    if (wikiData?.query?.search?.length > 0) {
-                        for (const hit of wikiData.query.search.slice(0, 2)) {
-                            const snippetClean = hit.snippet.replace(/<[^>]*>?/gm, '').trim();
-                            sources.push({
-                                title: hit.title,
-                                snippet: snippetClean,
-                                url: `https://en.wikipedia.org/wiki/${encodeURIComponent(hit.title.replace(/ /g, '_'))}`,
-                                domain: 'en.wikipedia.org'
-                            });
-                        }
-                    }
-                } catch(e) {}
-            }
-
-            // 3. DuckDuckGo Instant Answers
-            try {
-                const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(cleanQuery)}&format=json&origin=*`;
-                const ddgRes = await fetch(ddgUrl);
-                const ddgData = await ddgRes.json();
-                if (ddgData.AbstractText) {
-                    sources.push({
-                        title: ddgData.Heading || cleanQuery,
-                        snippet: ddgData.AbstractText,
-                        url: ddgData.AbstractURL || ('https://duckduckgo.com/?q=' + encodeURIComponent(cleanQuery)),
-                        domain: 'duckduckgo.com'
-                    });
-                }
-            } catch (e) {}
-
-            if (sources.length === 0) {
-                return { text: '', sources: [], cleanQuery };
-            }
-
-            let groundingContext = `\n\n--- 🌐 VERIFIED LIVE WEB SOURCES FOR "${cleanQuery.toUpperCase()}" ---\n`;
-            sources.forEach((src, idx) => {
-                groundingContext += `[Source ${idx + 1}]: "${src.title}"\nVerified URL: ${src.url}\nSummary: ${src.snippet}\n\n`;
-            });
-            groundingContext += `CRITICAL INSTRUCTIONS FOR AI:
-1. Answer the user's question accurately using the verified live source information above.
-2. If providing URLs or references, ONLY use the exact Verified URLs above. NEVER hallucinate or output unverified links.
-3. You can cite sources as [1], [2] or link directly using the exact URL.\n`;
-
-            return { text: groundingContext, sources, cleanQuery };
+            return { text: '', sources: [], cleanQuery: extractSearchQuery(prompt), disabled: true };
         }
         window.fetchLiveWebKnowledge = fetchLiveWebKnowledge;
 
