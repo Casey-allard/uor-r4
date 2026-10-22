@@ -321,8 +321,9 @@ fn watch_needs_a_full_run_and_other_actions_are_refused() {
         );
     }
     let o = clean(&mut Command::new(BIN))
-        // `next` was the example until loop PR 7b built it; `drive` is loop PR 10.
-        .args(["--repo", r.root.to_str().unwrap(), "loop", "drive"])
+        // `next` was the example until loop PR 7b built it, and `drive` until loop PR 10 built
+        // it; every named action now dispatches, so the only "not built yet" path is an unknown word.
+        .args(["--repo", r.root.to_str().unwrap(), "loop", "not-an-action"])
         .env("UOR_LAB", "claude")
         .output()
         .unwrap();

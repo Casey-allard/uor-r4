@@ -470,7 +470,7 @@ fn signal_group(pgid: u32, signal: &str) -> std::io::Result<std::process::ExitSt
         ));
     }
     Command::new("kill")
-        .args([&format!("-{signal}"), &format!("--"), &format!("-{pgid}")])
+        .args([&format!("-{signal}"), "--", &format!("-{pgid}")])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
