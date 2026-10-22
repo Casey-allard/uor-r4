@@ -1090,6 +1090,54 @@ pub const HOOK_START: &str =
 pub const LEGACY_HOOK_STARTS: [&str; 1] =
     ["# >>> uor-harness pre-commit v1 (managed by scripts/harness/githelp.py) >>>"];
 
+/// The marker that proves the harness wrote the commit-msg hook.
+pub const COMMIT_MSG_START: &str =
+    "# >>> uor-harness commit-msg v1 (managed by crates/uor-r4-harness) >>>";
+
+/// The marker that proves the harness wrote the pre-push hook.
+pub const PREPUSH_START: &str =
+    "# >>> uor-harness pre-push v1 (managed by crates/uor-r4-harness) >>>";
+
+/// The commit-msg hook body, carried as a data file for the same reasons as [`HOOK_SCRIPT`].
+pub const COMMIT_MSG_SCRIPT: &str = include_str!("../../../rules/commit-msg-hook.sh");
+
+/// The pre-push hook body, carried as a data file for the same reasons as [`HOOK_SCRIPT`].
+pub const PREPUSH_SCRIPT: &str = include_str!("../../../rules/prepush-hook.sh");
+
+/// One git hook the harness manages: file name, body, marker and a one-line runs description.
+pub struct ManagedHook {
+    pub name: &'static str,
+    pub script: &'static str,
+    pub marker: &'static str,
+    pub runs: &'static str,
+}
+
+/// Every hook `git install-hooks` writes, in the order it reports them.
+///
+/// Since loop PR 12 that is three: the pre-commit check, the commit-msg trailer check (on lab
+/// branches only) and the pre-push policy check. They are tags and warnings, not proof (D55); the
+/// owner decides whether they are installed, and no lab may bypass one with `--no-verify`.
+pub const MANAGED_HOOKS: [ManagedHook; 3] = [
+    ManagedHook {
+        name: "pre-commit",
+        script: HOOK_SCRIPT,
+        marker: HOOK_START,
+        runs: "uor-harness check --staged",
+    },
+    ManagedHook {
+        name: "commit-msg",
+        script: COMMIT_MSG_SCRIPT,
+        marker: COMMIT_MSG_START,
+        runs: "uor-harness git check-message $1",
+    },
+    ManagedHook {
+        name: "pre-push",
+        script: PREPUSH_SCRIPT,
+        marker: PREPUSH_START,
+        runs: "uor-harness git push-check",
+    },
+];
+
 /// The hook body, **carried as a data file rather than a Rust literal**.
 ///
 /// # Why a data file
@@ -1136,28 +1184,47 @@ fn hooks_dir(paths: &StatePaths) -> Result<std::path::PathBuf, String> {
     })
 }
 
-/// `githelp.install_hooks` — install or refresh the marked pre-commit hook.
+/// `githelp.install_hooks` — plan, then write, the three managed git hooks.
 ///
-/// # It never clobbers a foreign hook, and that is three separate refusals
+/// # Owner-only
 ///
-/// * **A SYMLINK is refused outright.** A symlinked `pre-commit` is somebody's deliberate wiring —
-///   often a shared hook manager — and `write_text` through it would **write to the target**.
+/// The hooks change commit behaviour for every worktree of this repository, so a lab session never
+/// writes them: `main.rs` refuses when `UOR_LAB` is set, and loop PR 9's guard adds the same refusal
+/// at the client. `write` false prints the plan and changes nothing; writing needs `--install`.
+///
+/// # All three or none, and a backup first
+///
+/// Every refusal is checked before anything is written, so a foreign `commit-msg` hook cannot leave
+/// a half-installed set. Every hook that is replaced is copied to
+/// `local/loop/install-backups/<unix-seconds>/<hook>` first.
+///
+/// * **A SYMLINK is refused outright.** A symlinked hook is deliberate wiring, often a shared hook
+///   manager, and writing through it would write to the target.
 /// * **An existing file with no marker is refused**, with the marker it looked for and the first line
-///   of what it found, **because those two lines are what a reader needs to decide whether to merge by
-///   hand or delete it.**
+///   of what it found, because those two lines are what a reader needs to decide whether to merge by
+///   hand or delete it.
 /// * **An unreadable file is refused** rather than replaced: not being able to see what is there is
 ///   not permission to overwrite it.
-///
-/// **Every refusal returns 2 and names the command to re-run**, so the reader is not left to guess.
-/// **`unchanged` is reported when the bytes are already right**, which is what makes a re-run safe.
-pub fn install_hooks(paths: &StatePaths) -> (i32, Vec<String>, Vec<String>) {
+pub fn install_hooks(
+    paths: &StatePaths,
+    write: bool,
+    from_lab_session: bool,
+) -> (i32, Vec<String>, Vec<String>) {
     let mut out: Vec<String> = Vec::new();
     let mut err: Vec<String> = Vec::new();
-    // R10: this writes `pre-commit` into the repository, so it is a checkout write. A lab running it
-    // from its OWN worktree still installs into the shared hooks directory - that is how every
-    // worktree is guarded - but the shared checkout itself is not a place a lab mutates.
+    // R10: this writes hooks into the repository, so it is a checkout write. A lab running it from
+    // its OWN worktree still installs into the shared hooks directory - that is how every worktree is
+    // guarded - but the shared checkout itself is not a place a lab mutates.
     if let Err(e) = crate::state::refuse_shared_checkout(paths, "the git hooks") {
         err.push(e);
+        return (2, out, err);
+    }
+    // The guard: a lab session may read the plan, but never write the shared hooks.
+    if write && from_lab_session {
+        err.push(
+            "REFUSED: the shared git hooks are the owner's to install; unset UOR_LAB and run it"
+                .into(),
+        );
         return (2, out, err);
     }
     let dir = match hooks_dir(paths) {
@@ -1167,82 +1234,479 @@ pub fn install_hooks(paths: &StatePaths) -> (i32, Vec<String>, Vec<String>) {
             return (1, out, err);
         }
     };
-    let hook = dir.join("pre-commit");
-    let symlink = std::fs::symlink_metadata(&hook).is_ok_and(|m| m.file_type().is_symlink());
-    let existed = hook.exists() || symlink;
-    let mut previous = String::new();
-
-    if symlink {
-        err.push(format!(
-            "CONFLICT: {} is a symlink; refusing to replace it.",
-            hook.display()
-        ));
-        err.push(
-            "  resolve it yourself, or remove it and re-run: uor-harness git install-hooks".into(),
-        );
-        return (2, out, err);
-    }
-    if existed {
-        match std::fs::read_to_string(&hook) {
-            Ok(t) => previous = t,
-            Err(e) => {
-                err.push(format!(
-                    "CONFLICT: cannot read the existing pre-commit hook {}: {e}",
-                    hook.display()
-                ));
-                return (2, out, err);
+    // Plan every hook before writing any of them: all three install or none does.
+    let mut planned: Vec<(&'static ManagedHook, std::path::PathBuf, &'static str)> = Vec::new();
+    for hook in MANAGED_HOOKS.iter() {
+        match plan_one_hook(&dir, hook) {
+            Ok((action, path)) => planned.push((hook, path, action)),
+            Err((code, lines)) => {
+                err.extend(lines);
+                return (code, out, err);
             }
         }
-        if !previous.contains(HOOK_START)
-            && !LEGACY_HOOK_STARTS.iter().any(|m| previous.contains(m))
-        {
-            let first = previous.lines().next().unwrap_or("(empty file)");
-            err.push(format!(
-                "CONFLICT: {} already exists and was not written by the harness (no marker line).",
-                hook.display()
-            ));
-            err.push(format!("  marker looked for: {HOOK_START}"));
-            err.push(format!(
-                "  existing file starts: {}",
-                crate::prbody::truncate(first, 120)
-            ));
-            err.push(
-                "  merge it by hand, or remove it and re-run: uor-harness git install-hooks".into(),
-            );
-            return (2, out, err);
+    }
+    if !write {
+        for (hook, path, action) in &planned {
+            out.push(format!("would {action}: {}", path.display()));
+            out.push(format!("  runs: {}", hook.runs));
         }
+        out.push("dry run: pass --install to write; the owner installs the shared hooks".into());
+        return (0, out, err);
     }
-
+    let backup = paths
+        .repo
+        .join("local")
+        .join("loop")
+        .join("install-backups")
+        .join(format!("{}-{}", unix_seconds(), std::process::id()));
+    let mut backups: Vec<(&'static str, std::path::PathBuf)> = Vec::new();
+    for (hook, path, action) in &planned {
+        if *action == "install" || *action == "unchanged" {
+            continue;
+        }
+        let dest = backup.join(hook.name);
+        if let Some(p) = dest.parent() {
+            let _ = std::fs::create_dir_all(p);
+        }
+        if let Err(e) = std::fs::copy(path, &dest) {
+            err.push(format!(
+                "cannot back up {} to {}: {e}",
+                path.display(),
+                dest.display()
+            ));
+            return (1, out, err);
+        }
+        out.push(format!("backup: {}", dest.display()));
+        backups.push((hook.name, dest));
+    }
     if let Err(e) = std::fs::create_dir_all(&dir) {
-        err.push(format!("cannot write {}: {e}", hook.display()));
+        err.push(format!(
+            "cannot create the hooks directory {}: {e}",
+            dir.display()
+        ));
         return (1, out, err);
     }
-    if let Err(e) = std::fs::write(&hook, HOOK_SCRIPT) {
-        err.push(format!("cannot write {}: {e}", hook.display()));
-        return (1, out, err);
+    // **All hooks that change are staged under temporary names first**, so a failure while staging
+    // writes nothing, and a hook that is already current is neither staged nor renamed. A failure
+    // during the renames restores each replaced hook from its backup and removes each freshly
+    // installed one; no temporary file survives the failure.
+    let mut staged: Vec<(
+        &'static ManagedHook,
+        std::path::PathBuf,
+        std::path::PathBuf,
+        &'static str,
+    )> = Vec::new();
+    for (hook, path, action) in &planned {
+        if *action == "unchanged" {
+            continue;
+        }
+        let tmp = dir.join(format!(".{}.uor-tmp-{}", hook.name, std::process::id()));
+        if let Err(e) = std::fs::write(&tmp, hook.script) {
+            for (_, t, _, _) in &staged {
+                let _ = std::fs::remove_file(t);
+            }
+            err.push(format!("cannot stage {}: {e}", tmp.display()));
+            return (1, out, err);
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o755));
+        }
+        staged.push((hook, tmp, path.clone(), action));
     }
-    // **The executable bit is part of the artifact** - a hook that is not executable is a file git
-    // silently ignores, and reporting "installed" for one would be the worst outcome here.
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755));
+    let mut staged = staged.into_iter();
+    let mut done: Vec<(&'static str, std::path::PathBuf)> = Vec::new();
+    let mut created: Vec<&'static str> = Vec::new();
+    while let Some((hook, tmp, path, action)) = staged.next() {
+        if let Err(e) = std::fs::rename(&tmp, &path) {
+            restore_replaced(&done, &backups, &created);
+            let _ = std::fs::remove_file(&tmp);
+            for (_, t, _, _) in staged {
+                let _ = std::fs::remove_file(t);
+            }
+            err.push(format!("cannot install {}: {e}", path.display()));
+            return (1, out, err);
+        }
+        if action == "install" {
+            created.push(hook.name);
+        }
+        done.push((hook.name, path.clone()));
+        let past = match action {
+            "install" => "installed",
+            "update" => "updated",
+            _ => "unchanged",
+        };
+        out.push(format!("{past}: {}", path.display()));
+        out.push(format!("  runs: {}", hook.runs));
     }
-
-    let action = if existed && previous != HOOK_SCRIPT {
-        "updated"
-    } else if existed {
-        "unchanged"
-    } else {
-        "installed"
-    };
-    out.push(format!("{action}: {}", hook.display()));
-    out.push("  runs: uor-harness check --staged".into());
-    out.push("  blocks: error severity only (warn/info print and pass); exits 0 without uor-harness on PATH".into());
-    if existed && action == "unchanged" {
-        out.push("  already up to date; nothing was appended".into());
+    for (hook, path, action) in &planned {
+        if *action != "unchanged" {
+            continue;
+        }
+        out.push(format!("unchanged: {}", path.display()));
+        out.push(format!("  runs: {}", hook.runs));
     }
     (0, out, err)
+}
+/// Put back every hook already renamed before a failure: from its backup when one exists, and by
+/// removal only when it was freshly installed. A hook that was not staged (already current) is
+/// never in `done`, so it is never touched.
+fn restore_replaced(
+    done: &[(&'static str, std::path::PathBuf)],
+    backups: &[(&'static str, std::path::PathBuf)],
+    created: &[&'static str],
+) {
+    for (name, replaced) in done {
+        match backups.iter().find(|(n, _)| n == name) {
+            Some((_, dest)) => {
+                let _ = std::fs::copy(dest, replaced);
+            }
+            None => {
+                if created.contains(name) {
+                    let _ = std::fs::remove_file(replaced);
+                }
+            }
+        }
+    }
+}
+
+/// The unix time, for the backup directory name.
+fn unix_seconds() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+/// What installing `hook` would do and where it goes; the refusals are described in
+/// [`install_hooks`]. Returns `install`, `update` or `unchanged`.
+fn plan_one_hook(
+    dir: &Path,
+    hook: &ManagedHook,
+) -> Result<(&'static str, std::path::PathBuf), (i32, Vec<String>)> {
+    let path = dir.join(hook.name);
+    let symlink = std::fs::symlink_metadata(&path).is_ok_and(|m| m.file_type().is_symlink());
+    let existed = path.exists() || symlink;
+    if symlink {
+        return Err((
+            2,
+            vec![
+                format!(
+                    "CONFLICT: {} is a symlink; refusing to replace it.",
+                    path.display()
+                ),
+                "  resolve it yourself, or remove it and re-run: uor-harness git install-hooks --install"
+                    .into(),
+            ],
+        ));
+    }
+    if !existed {
+        return Ok(("install", path));
+    }
+    let previous = match std::fs::read_to_string(&path) {
+        Ok(t) => t,
+        Err(e) => {
+            return Err((
+                2,
+                vec![format!(
+                    "CONFLICT: cannot read the existing {} hook {}: {e}",
+                    hook.name,
+                    path.display()
+                )],
+            ))
+        }
+    };
+    // Only the pre-commit hook has a legacy body worth upgrading in place.
+    let legacy =
+        hook.name == "pre-commit" && LEGACY_HOOK_STARTS.iter().any(|m| previous.contains(m));
+    // **Git LFS's stock pre-push hook is replaceable**: the managed hook chains to LFS itself, so
+    // replacing the stock body (after its backup) is the decision's intent, not a conflict.
+    let stock_lfs = hook.name == "pre-push" && is_stock_lfs_pre_push(&previous);
+    if !previous.contains(hook.marker) && !legacy && !stock_lfs {
+        let first = previous.lines().next().unwrap_or("(empty file)");
+        return Err((
+            2,
+            vec![
+                format!(
+                    "CONFLICT: {} already exists and was not written by the harness (no marker line).",
+                    path.display()
+                ),
+                format!("  marker looked for: {}", hook.marker),
+                format!(
+                    "  existing file starts: {}",
+                    crate::prbody::truncate(first, 120)
+                ),
+                "  merge it by hand, or remove it and re-run: uor-harness git install-hooks --install"
+                    .into(),
+            ],
+        ));
+    }
+    let action = if previous == hook.script {
+        "unchanged"
+    } else {
+        "update"
+    };
+    Ok((action, path))
+}
+
+/// `git check-message <file>`: the commit-msg hook check. Exit 0 allows the commit, 1 refuses it,
+/// 2 cannot run. Trailers are tags, not proof (D55).
+///
+/// **Owner decision of 22 Oct 2026, recorded by Claude:** the trailers are checked only on a
+/// `<registered-lab>/...` branch while `UOR_LAB` is set. Merge, Revert, fixup! and squash! messages
+/// pass, and the owner's commits and non-loop work are never checked. A binary the harness can
+/// prove older is a **warning**, not a refusal: the hook is installed by the owner, and a stale copy
+/// on PATH must not block every commit.
+pub fn check_commit_message(paths: &StatePaths, message: &Path) -> (i32, Vec<String>, Vec<String>) {
+    let text = match std::fs::read_to_string(message) {
+        Ok(t) => t,
+        Err(e) => {
+            return (
+                2,
+                Vec::new(),
+                vec![format!(
+                    "cannot read the commit message {}: {e}",
+                    message.display()
+                )],
+            )
+        }
+    };
+    // Git runs this hook BEFORE it strips comments, so an editor message ends with git's
+    // `# Please enter...` block; strip comment lines and the scissors block first, honouring
+    // `core.commentChar`.
+    let text = strip_git_comments(&text, comment_char(&paths.repo, &text));
+    let first = text.lines().next().unwrap_or("");
+    if skips_check(first) {
+        return (0, Vec::new(), Vec::new());
+    }
+    let Some(lab) = std::env::var("UOR_LAB")
+        .ok()
+        .filter(|l| !l.trim().is_empty())
+    else {
+        return (0, Vec::new(), Vec::new());
+    };
+    // A lab name the registry does not know is not a loop branch; the owner's work is not checked.
+    if crate::labs::check_lab(&paths.repo, &lab).is_err() {
+        return (0, Vec::new(), Vec::new());
+    }
+    let branch = match git_raw(&paths.repo, &["rev-parse", "--abbrev-ref", "HEAD"]) {
+        (0, out) => out.trim().to_string(),
+        _ => return (0, Vec::new(), Vec::new()),
+    };
+    let Some(topic) = branch.strip_prefix(&format!("{lab}/")) else {
+        return (0, Vec::new(), Vec::new());
+    };
+    if topic.is_empty() {
+        return (0, Vec::new(), Vec::new());
+    }
+    let mut out: Vec<String> = Vec::new();
+    if let Some(line) = crate::version::placement_line(&paths.repo) {
+        out.push(format!(
+            "warning: the running uor-harness may be older than this checkout: {line}"
+        ));
+    }
+    let mut err: Vec<String> = Vec::new();
+    match trailer_final(&text, "lab") {
+        None => err.push("the message has no Lab: trailer; every loop commit names its lab".into()),
+        Some(v) if !v.eq_ignore_ascii_case(&lab) => err.push(format!(
+            "the Lab: trailer {v:?} does not match UOR_LAB {lab:?}"
+        )),
+        Some(_) => {}
+    }
+    match trailer_final(&text, "order") {
+        None => err.push("the message has no Order: trailer; it names the task ORDER path".into()),
+        Some(o) if !(o.starts_with("docs/loop/tasks/") && o.ends_with("ORDER.md")) => err.push(
+            format!("the Order: trailer {o:?} must name a docs/loop/tasks/.../ORDER.md path"),
+        ),
+        Some(_) => {}
+    }
+    if err.is_empty() {
+        (0, out, Vec::new())
+    } else {
+        err.push(
+            "add the trailers as the last paragraph of the message (they are tags, not proof, D55)"
+                .into(),
+        );
+        (1, out, err)
+    }
+}
+
+/// The value of a `Key: value` trailer in the message's FINAL paragraph; keys are matched
+/// case-insensitively and values keep their case. Only the last paragraph is read, so a quoted
+/// example higher in the body cannot satisfy the check.
+fn trailer_final(text: &str, key: &str) -> Option<String> {
+    let mut paragraph: Vec<&str> = Vec::new();
+    for line in text.lines().rev() {
+        if line.trim().is_empty() {
+            if paragraph.is_empty() {
+                continue;
+            }
+            break;
+        }
+        paragraph.push(line);
+    }
+    paragraph.reverse();
+    let mut found = None;
+    for line in paragraph {
+        let Some((k, value)) = line.split_once(':') else {
+            continue;
+        };
+        if k.trim().eq_ignore_ascii_case(key) {
+            let value = value.trim();
+            if !value.is_empty() {
+                found = Some(value.to_string());
+            }
+        }
+    }
+    found
+}
+
+/// The forms git itself generates: a real merge, a real revert, a fixup/squash. A hand-written
+/// subject that merely starts with "Merge " is not exempt.
+fn skips_check(first: &str) -> bool {
+    first.starts_with("Merge branch ")
+        || first.starts_with("Merge pull request ")
+        || first.starts_with("Merge remote-tracking branch ")
+        || first.starts_with("Revert \"")
+        || first.starts_with("fixup! ")
+        || first.starts_with("squash! ")
+}
+
+/// The comment character git uses for this repository: `core.commentChar`, or `#`. Under
+/// `core.commentChar=auto` git picks a character of its own, so the character is read from the
+/// comment block it inserted (the "Please enter the commit message" or scissors line).
+fn comment_char(repo: &Path, text: &str) -> char {
+    match git_raw(repo, &["config", "--get", "core.commentChar"]) {
+        (0, out) => {
+            let value = out.trim();
+            if value.eq_ignore_ascii_case("auto") {
+                auto_comment_char(text).unwrap_or('#')
+            } else {
+                value
+                    .chars()
+                    .next()
+                    .filter(|c| !c.is_whitespace())
+                    .unwrap_or('#')
+            }
+        }
+        _ => '#',
+    }
+}
+
+/// The first character of the comment line git inserted under `core.commentChar=auto`.
+fn auto_comment_char(text: &str) -> Option<char> {
+    for line in text.lines() {
+        let inserted = line.contains("Please enter the commit message")
+            || line.contains("------------------------ >8 ------------------------");
+        if !inserted {
+            continue;
+        }
+        if let Some(c) = line
+            .chars()
+            .next()
+            .filter(|c| !c.is_alphanumeric() && !c.is_whitespace())
+        {
+            return Some(c);
+        }
+    }
+    None
+}
+
+/// Drop comment lines and the scissors block, as git does after the editor closes.
+fn strip_git_comments(text: &str, comment: char) -> String {
+    let scissors = format!("{comment} ------------------------ >8 ------------------------");
+    let mut out = String::new();
+    for line in text.lines() {
+        if line == scissors {
+            break;
+        }
+        if line.starts_with(comment) {
+            continue;
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    out
+}
+
+/// `git push-check`: the pre-push hook check. Reads git's ref lines on stdin
+/// (`<local ref> <local sha> <remote ref> <remote sha>`) and runs `loop pr-check --local` for every
+/// pushed `<lab>/...` branch. A **delete** is a local sha of all zeros and is skipped; a **new
+/// branch** still has its local sha and is checked. Exit 0 allows the push, 1 refuses it because
+/// `pr-check` reported a policy failure, 2 cannot run. A `pr-check` that cannot run (exit 2) does
+/// not block the push, as the hook header promises.
+pub fn push_check(paths: &StatePaths, stdin_text: &str) -> (i32, Vec<String>, Vec<String>) {
+    let mut out: Vec<String> = Vec::new();
+    let mut blocked = false;
+    let mut checked = 0;
+    let labs = crate::labs::load_labs(&paths.repo).ok();
+    for line in stdin_text.lines() {
+        let cols: Vec<&str> = line.split_whitespace().collect();
+        let (Some(_local_ref), Some(local_sha), Some(remote_ref), Some(remote_sha)) =
+            (cols.first(), cols.get(1), cols.get(2), cols.get(3))
+        else {
+            continue;
+        };
+        if local_sha.chars().all(|c| c == '0') {
+            out.push(format!("skip {remote_ref}: deleting a branch"));
+            continue;
+        }
+        let Some(branch) = remote_ref.strip_prefix("refs/heads/") else {
+            out.push(format!("skip {remote_ref}: not a branch"));
+            continue;
+        };
+        let Some((lab, topic)) = branch.split_once('/') else {
+            out.push(format!("skip {branch}: not a <lab>/<topic> branch"));
+            continue;
+        };
+        let registered = labs.as_ref().is_some_and(|l| l.contains_key(lab));
+        if lab.is_empty() || topic.is_empty() || !registered {
+            out.push(format!(
+                "skip {branch}: {lab:?} is not a registered lab in docs/harness/labs.json"
+            ));
+            continue;
+        }
+        checked += 1;
+        let kind = if remote_sha.chars().all(|c| c == '0') {
+            " (new branch)"
+        } else {
+            ""
+        };
+        out.push(format!(
+            "check {branch} at {}{kind}",
+            crate::version::short(local_sha)
+        ));
+        let code = crate::loopprcheck::cli(
+            &paths.repo,
+            &[
+                "--local".to_string(),
+                "--head".to_string(),
+                local_sha.to_string(),
+            ],
+        );
+        match code {
+            0 => {}
+            1 => blocked = true,
+            _ => out.push(format!(
+                "cannot run pr-check for {branch} (exit {code}); the push is allowed"
+            )),
+        }
+    }
+    if checked == 0 && out.is_empty() {
+        out.push("no lab branch in this push; nothing to check".into());
+    }
+    if blocked {
+        (1, out, Vec::new())
+    } else {
+        (0, out, Vec::new())
+    }
+}
+/// Whether `text` is Git LFS's stock `pre-push` hook, which the managed hook replaces and chains.
+fn is_stock_lfs_pre_push(text: &str) -> bool {
+    text.contains("git lfs pre-push")
+        && (text.contains("command -v git-lfs")
+            || text.contains("This repository is configured for Git LFS"))
 }
 
 #[cfg(test)]
@@ -1283,9 +1747,9 @@ mod install_hooks_tests {
     #[test]
     fn it_installs_executable_and_a_rerun_is_unchanged() {
         let (_d, paths) = scratch();
-        let (code, out, err) = install_hooks(&paths);
+        let (code, out, err) = install_hooks(&paths, true, false);
         assert_eq!(code, 0, "{out:?} {err:?}");
-        assert!(out[0].starts_with("installed:"), "{out:?}");
+        assert!(out.iter().any(|l| l.starts_with("installed:")), "{out:?}");
         let hook = hook_of(&paths);
         let body = std::fs::read_to_string(&hook).expect("read");
         assert_eq!(
@@ -1303,9 +1767,9 @@ mod install_hooks_tests {
                 "the hook must be executable, mode {mode:o}"
             );
         }
-        let (code2, out2, _) = install_hooks(&paths);
+        let (code2, out2, _) = install_hooks(&paths, true, false);
         assert_eq!(code2, 0);
-        assert!(out2[0].starts_with("unchanged:"), "{out2:?}");
+        assert!(out2.iter().any(|l| l.starts_with("unchanged:")), "{out2:?}");
     }
 
     /// **A foreign hook is REFUSED, not clobbered**, and the refusal names the marker and the first
@@ -1317,7 +1781,7 @@ mod install_hooks_tests {
         std::fs::create_dir_all(hook.parent().expect("parent")).expect("mkdir");
         std::fs::write(&hook, "#!/bin/sh\n# somebody else's hook\necho hi\n").expect("write");
 
-        let (code, _out, err) = install_hooks(&paths);
+        let (code, _out, err) = install_hooks(&paths, true, false);
         assert_eq!(code, 2, "a conflict is a refusal, not a success: {err:?}");
         assert!(
             err.iter()
@@ -1356,7 +1820,7 @@ mod install_hooks_tests {
         std::fs::write(&target, "#!/bin/sh\necho target\n").expect("write");
         std::os::unix::fs::symlink(&target, &hook).expect("symlink");
 
-        let (code, _out, err) = install_hooks(&paths);
+        let (code, _out, err) = install_hooks(&paths, true, false);
         assert_eq!(code, 2, "{err:?}");
         assert!(err.iter().any(|l| l.contains("is a symlink")), "{err:?}");
         // **The target is byte-identical** — this is the assertion that makes the symlink guard real.
@@ -1377,9 +1841,9 @@ mod install_hooks_tests {
         std::fs::create_dir_all(hook.parent().expect("parent")).expect("mkdir");
         std::fs::write(&hook, format!("#!/bin/sh\n{HOOK_START}\n# an older body\n"))
             .expect("write");
-        let (code, out, err) = install_hooks(&paths);
+        let (code, out, err) = install_hooks(&paths, true, false);
         assert_eq!(code, 0, "{err:?}");
-        assert!(out[0].starts_with("updated:"), "{out:?}");
+        assert!(out.iter().any(|l| l.starts_with("updated:")), "{out:?}");
         assert_eq!(std::fs::read_to_string(&hook).expect("read"), HOOK_SCRIPT);
     }
 
@@ -1395,9 +1859,9 @@ mod install_hooks_tests {
             LEGACY_HOOK_STARTS[0]
         );
         std::fs::write(&hook, v1).expect("write");
-        let (code, out, err) = install_hooks(&paths);
+        let (code, out, err) = install_hooks(&paths, true, false);
         assert_eq!(code, 0, "{err:?}");
-        assert!(out[0].starts_with("updated:"), "{out:?}");
+        assert!(out.iter().any(|l| l.starts_with("updated:")), "{out:?}");
         let body = std::fs::read_to_string(&hook).expect("read");
         assert_eq!(body, HOOK_SCRIPT);
         assert!(
@@ -1464,6 +1928,98 @@ mod install_hooks_tests {
         fake_harness(&bin, "uor-harness: unknown option", 2);
         let (code, _) = run_hook(&paths, &bin);
         assert_eq!(code, 0, "an infrastructure exit never blocks");
+    }
+
+    #[test]
+    fn a_current_hook_is_not_staged_or_backed_up() {
+        let (d, paths) = scratch();
+        let (code, _out, _err) = install_hooks(&paths, true, false);
+        assert_eq!(code, 0);
+        let before = backups_count(&paths);
+        let (code, out, _err) = install_hooks(&paths, true, false);
+        assert_eq!(code, 0);
+        assert_eq!(
+            out.iter().filter(|l| l.starts_with("unchanged:")).count(),
+            3,
+            "{out:?}"
+        );
+        assert_eq!(
+            before,
+            backups_count(&paths),
+            "no backup for a current hook"
+        );
+        let hooks = hooks_dir(&paths).expect("hooks dir");
+        let temps: Vec<String> = std::fs::read_dir(&hooks)
+            .expect("hooks")
+            .filter_map(|e| e.ok()?.file_name().into_string().ok())
+            .filter(|n| n.contains(".uor-tmp-"))
+            .collect();
+        assert!(temps.is_empty(), "no temporary files: {temps:?}");
+        let _ = d;
+    }
+
+    fn backups_count(paths: &StatePaths) -> usize {
+        let root = paths.repo.join("local/loop/install-backups");
+        match std::fs::read_dir(root) {
+            Ok(entries) => entries.count(),
+            Err(_) => 0,
+        }
+    }
+
+    #[test]
+    fn restore_replaced_keeps_an_untouched_hook_restores_a_backup_and_removes_a_fresh_one() {
+        let (d, paths) = scratch();
+        let dir = hooks_dir(&paths).expect("hooks dir");
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        let current = dir.join("pre-commit");
+        std::fs::write(&current, "current").expect("write");
+        restore_replaced(&[("pre-commit", current.clone())], &[], &[]);
+        assert_eq!(std::fs::read_to_string(&current).unwrap(), "current");
+        let fresh = dir.join("commit-msg");
+        std::fs::write(&fresh, "fresh").expect("write");
+        restore_replaced(&[("commit-msg", fresh.clone())], &[], &["commit-msg"]);
+        assert!(!fresh.exists(), "a fresh hook is removed on failure");
+        let replaced = dir.join("pre-push");
+        std::fs::write(&replaced, "new").expect("write");
+        let backup = d.path().join("backup");
+        std::fs::write(&backup, "old").expect("write");
+        restore_replaced(
+            &[("pre-push", replaced.clone())],
+            &[("pre-push", backup)],
+            &[],
+        );
+        assert_eq!(std::fs::read_to_string(&replaced).unwrap(), "old");
+    }
+
+    #[test]
+    fn comment_char_reads_custom_auto_and_default() {
+        let (_d, paths) = scratch();
+        assert_eq!(comment_char(&paths.repo, "x"), '#');
+        for (value, text, want) in [
+            (";", "x", ';'),
+            (
+                "auto",
+                "# Please enter the commit message for your changes.\n",
+                '#',
+            ),
+            (
+                "auto",
+                "; ------------------------ >8 ------------------------\n",
+                ';',
+            ),
+        ] {
+            let _ = std::process::Command::new("git")
+                .current_dir(&paths.repo)
+                .args(["config", "core.commentChar", value])
+                .output();
+            assert_eq!(comment_char(&paths.repo, text), want, "{value}: {text:?}");
+        }
+        let stripped = strip_git_comments(
+            "subject\n\nLab: deepseek\n; a comment\n; ------------------------ >8 ------------------------\n; Lab: fake\n",
+            ';',
+        );
+        assert!(stripped.contains("Lab: deepseek"), "{stripped}");
+        assert!(!stripped.contains("fake"), "{stripped}");
     }
 }
 

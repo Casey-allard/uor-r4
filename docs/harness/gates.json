@@ -95,6 +95,33 @@
         },
         "expect": "the window never gave up"
       }
+    },
+    {
+      "id": "git-hooks",
+      "proves": "The three managed git hooks plan and install owner-only, replace the stock LFS pre-push with its backup, check Lab and Order trailers on lab branches, and run pr-check --local before a push.",
+      "command": [
+        "cargo",
+        "test",
+        "-q",
+        "--locked",
+        "-p",
+        "uor-r4-harness",
+        "--test",
+        "git_hooks"
+      ],
+      "reads": [
+        "crates/uor-r4-harness/**/*.rs",
+        "rules/*-hook.sh"
+      ],
+      "quick": false,
+      "break": {
+        "file": "crates/uor-r4-harness/src/githelp.rs",
+        "replace": {
+          "from": "    let mut err: Vec<String> = Vec::new();\n    match trailer_final(&text, \"lab\") {",
+          "to": "    let mut err: Vec<String> = Vec::new();\n    if true {\n        return (0, Vec::new(), Vec::new());\n    }\n    match trailer_final(&text, \"lab\") {"
+        },
+        "expect": "a message without trailers must be refused"
+      }
     }
   ]
 }

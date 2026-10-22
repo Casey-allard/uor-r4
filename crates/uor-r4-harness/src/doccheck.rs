@@ -533,9 +533,11 @@ const GROUPS: [(&str, &[&str]); 12] = [
     (
         "git",
         &[
+            "check-message",
             "clean-merged",
             "delete-merged",
             "install-hooks",
+            "push-check",
             "status",
             "switch",
         ],
@@ -562,7 +564,7 @@ const GROUPS: [(&str, &[&str]); 12] = [
     ),
 ];
 
-/// The flags this binary accepts, wherever they appear — **79 of them, taken from Python's parser
+/// The flags this binary accepts, wherever they appear — **80 of them, taken from Python's parser
 /// and `main.rs`'s `SUBCOMMAND_FLAGS` / `SUBCOMMAND_VALUE_FLAGS` rather than curated by hand.**
 ///
 /// **My first list was written from memory and was missing `--apply`, `--refresh`, `--dry-run` and
@@ -610,6 +612,7 @@ const FLAGS: &[&str] = &[
     "--help",
     "--host",
     "--id",
+    "--install",
     "--json",
     "--keep-going",
     "--kind",

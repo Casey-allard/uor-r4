@@ -3,7 +3,7 @@ id: infra-loop-pr12-git-hooks
 title: Loop PR 12: git hooks, pr-check before push, Lab and Order trailers
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr05-policy-check, infra-loop-pr06-review-records]

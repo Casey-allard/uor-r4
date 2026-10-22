@@ -62,7 +62,9 @@ uor-harness budget show|scan            cumulative cost, and the pod specs of ru
 uor-harness lint check|format           lint a PR body against the contract; render a compliant one
 uor-harness ratchet d23|d25             the D23 (norm-exp/squashing/activation/rotary) and D25 (matmul/tensor-core) ratchets
 uor-harness heartbeat --milestone m1    check in (live tier; 5-minute window)
-uor-harness git install-hooks|status    the pre-commit guard, and this branch's delivery state
+uor-harness git install-hooks|status    the three managed git hooks (owner-only), and this branch's delivery state
+uor-harness git check-message <file>    the commit-msg hook: Lab: and Order: trailers on a lab branch
+uor-harness git push-check              the pre-push hook: pr-check --local for each pushed lab branch
 uor-harness check [--staged]            every machine-checkable rule in one pass
 ```
 
@@ -509,21 +511,35 @@ A rule added for a mistake cites that mistake's id, so a lesson becomes a guard 
 `gelu`, `silu`, `rope`, `ropei`, `rotary`) and `uor-harness ratchet d25` (`.matmul(`, `MatMul`, `cublas`,
 `gemm`, `wmma`, `mma_sync`) in process across `crates/` and `docs/labs/*/instrument/`.
 
-## Before you install the hook
+## Before you install the hooks
 
-`uor-harness git install-hooks` resolves the hooks directory with
-`git rev-parse --git-path hooks`, which in a linked worktree points at the **shared**
-`.git/hooks` of the whole repository — including the owner's checkout and every other lab's
-worktree. Installing there changes commit behaviour for labs that never asked for it, so:
+`uor-harness git install-hooks` manages three hooks: `pre-commit` (runs `uor-harness check --staged`),
+`commit-msg` (calls `uor-harness git check-message <file>`), and `pre-push` (calls
+`uor-harness git push-check`). It resolves the hooks directory with `git rev-parse --git-path hooks`,
+which in a linked worktree points at the **shared** `.git/hooks` of the whole repository — including
+the owner's checkout and every other lab's worktree. Installing there changes commit behaviour for
+every worktree, so the command is **owner-only**: it refuses when `UOR_LAB` is set, and loop PR 9's
+guard repeats the refusal at the client.
 
-- the installer refuses to overwrite a `pre-commit` hook it did not write, and
-- it is **not installed by default**. Run `check` and `lint` yourself, or install the hook
-  deliberately after telling the other active labs.
+By default it **prints the plan and writes nothing**; `--install` writes. Every refusal is checked
+before anything is written, all three hooks are staged under temporary names and renamed into place
+(so a failure during the run restores what was replaced), and the installer refuses to overwrite a
+hook it did not write, a symlink, or an unreadable file. Every hook it replaces is copied first to
+`local/loop/install-backups/<unix-seconds>-<pid>/<hook>`, which also covers the pre-v2 `pre-commit`.
+**Git LFS's stock `pre-push` body is the one foreign hook it replaces by design**, because the
+managed hook chains to LFS itself; the stock body is backed up like any other.
 
-The hook runs `uor-harness check --staged`, so `uor-harness` must be on `PATH` for it to check
-anything; without it the hook lets the commit through. It only ever blocks on `error` severity;
-`warn` and `info` print and pass. A hook installed before 20 October 2026 (v1) ran the retired
-Python entry point; `uor-harness git install-hooks` upgrades it in place.
+| Hook | Runs | Blocks |
+|---|---|---|
+| `pre-commit` | `uor-harness check --staged` | `error` severity only; `warn` and `info` print and pass |
+| `commit-msg` | `uor-harness git check-message <file>` | on a `<registered-lab>/...` branch with `UOR_LAB` set: a message whose final paragraph (after git's comment block is stripped) has no `Lab:` or `Order:` trailer, or whose `Lab:` does not equal `UOR_LAB`. Git-generated merge, revert, fixup! and squash! subjects pass, and the owner's commits and non-loop work are never checked |
+| `pre-push` | Git LFS's own `pre-push` first, on the same stdin (exiting 2 when `git-lfs` is missing), then `uor-harness git push-check` | a pushed `<lab>/...` branch whose `loop pr-check --local` fails; a new branch is checked, a delete is skipped, and a `pr-check` that cannot run is allowed |
 
-`loop arrive` reports a missing, different or non-executable hook as **WARN**, not FAIL, until loop
-PR 12 sanctions installing the shared hook: a check that is always red teaches labs to ignore FAIL.
+Every hook lets the commit or push through when `uor-harness` is not on `PATH`, and when the harness
+itself cannot produce a result (any exit other than 0 or 1). The trailers are tags, not proof (D55):
+they record the lab and the ORDER, and no lab may bypass a hook with `--no-verify`. A provably older
+binary is printed as a warning by `check-message`; it does not block the commit. The lab-session
+detection is `UOR_LAB` only, the charter's convention: `env -u UOR_LAB` is outside what a hook can
+govern. `loop arrive` checks only the `pre-commit` hook today and reports a missing or different one
+as **WARN**, not FAIL: installing the hooks is the owner's act, and a check that is always red
+teaches labs to ignore FAIL. Extending arrive to all three needs `looparrive.rs` in pr12's scope.
