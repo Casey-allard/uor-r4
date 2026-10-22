@@ -7,6 +7,7 @@ status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
+notebook: docs/research/notebook/m3-durable-memory.md
 scope: [crates/uor-r4-training/**, docs/labs/m3-policy-precedence-and-sieve-tests/**]
 ---
 
