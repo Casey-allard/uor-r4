@@ -7,7 +7,7 @@ status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr04-gates]
-scope: [crates/uor-r4-harness/src/loopwatch*.rs, crates/uor-r4-harness/src/mistakes.rs, crates/uor-r4-harness/src/preprules.rs, crates/uor-r4-harness/src/prlintrules.rs, crates/uor-r4-harness/tests/loop_watch*.rs, crates/uor-r4-harness/tests/loop_gates_watch*.rs]
+scope: [crates/uor-r4-harness/src/loopwatch*.rs, crates/uor-r4-harness/src/looparrive.rs, crates/uor-r4-harness/src/mistakes.rs, crates/uor-r4-harness/src/preprules.rs, crates/uor-r4-harness/src/prlintrules.rs, crates/uor-r4-harness/tests/loop_watch*.rs, crates/uor-r4-harness/tests/loop_arrive*.rs, crates/uor-r4-harness/tests/loop_gates_watch*.rs]
 ---
 
 ## Why it matters

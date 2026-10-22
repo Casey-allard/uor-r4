@@ -7,7 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr05-policy-check, infra-loop-pr06-review-records]
-scope: [crates/uor-r4-harness/src/githelp.rs, crates/uor-r4-harness/src/version.rs, crates/uor-r4-harness/src/loophooks*.rs, crates/uor-r4-harness/tests/loop_hooks*.rs]
+scope: [crates/uor-r4-harness/src/githelp.rs, crates/uor-r4-harness/src/version.rs, crates/uor-r4-harness/src/loophooks*.rs, crates/uor-r4-harness/tests/loop_hooks*.rs, crates/uor-r4-harness/tests/git_hooks*.rs, rules/*-hook.sh]
 ---
 
 ## Why it matters
