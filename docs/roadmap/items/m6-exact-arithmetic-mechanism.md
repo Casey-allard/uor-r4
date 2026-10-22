@@ -3,7 +3,7 @@ id: m6-exact-arithmetic-mechanism
 title: Design exact arithmetic on the geometric path
 milestone: M6
 area: mechanism
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []

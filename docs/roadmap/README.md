@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 39 |
+| ready | 38 |
 | held | 26 |
 | decision | 4 |
-| done | 19 |
+| done | 20 |
 | total | 88 |
 
 ## Start here
@@ -44,7 +44,6 @@ These items are ready and open to anyone.
 | [Pin OpPolicy precedence and store-miss sieve coupling with tests](items/m3-policy-precedence-and-sieve-tests.md) | M3 | [#2857](https://github.com/UOR-Foundation/uor-r4/issues/2857) |
 | [Finish the flock-coupling pre-registration](items/m4-flock-coupling-prereg.md) | M4 | [#2860](https://github.com/UOR-Foundation/uor-r4/issues/2860) |
 | [Measure M1-class laptop cost on the accepted served model](items/m5-laptop-full-path-measurement.md) | M5 | [#2862](https://github.com/UOR-Foundation/uor-r4/issues/2862) |
-| [Design exact arithmetic on the geometric path](items/m6-exact-arithmetic-mechanism.md) | M6 | [#2864](https://github.com/UOR-Foundation/uor-r4/issues/2864) |
 | [Build and freeze the m6-reasoning panel and oracles](items/m6-reasoning-panel-freeze.md) | M6 | [#2866](https://github.com/UOR-Foundation/uor-r4/issues/2866) |
 | [Build the library, CLI and browser bit-identity parity harness](items/m7-parity-library-cli-browser.md) | M7 | [#2867](https://github.com/UOR-Foundation/uor-r4/issues/2867) |
 | [Connect the Studio to the browser WASM engine](items/m7-studio-connect-wasm-engine.md) | M7 | [#2868](https://github.com/UOR-Foundation/uor-r4/issues/2868) |
@@ -120,10 +119,10 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Design exact arithmetic on the geometric path](items/m6-exact-arithmetic-mechanism.md) | ready | anyone | no | none | [#2864](https://github.com/UOR-Foundation/uor-r4/issues/2864) |
 | [Qualify reasoning and coding on the served model](items/m6-qualify-reasoning-coding.md) | ready | a lab | yes | [m4-export-uorlut01-cli](items/m4-export-uorlut01-cli.md), [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m6-causal-ablation-instrument](items/m6-causal-ablation-instrument.md), [m6-exact-arithmetic-mechanism](items/m6-exact-arithmetic-mechanism.md) | [#2865](https://github.com/UOR-Foundation/uor-r4/issues/2865) |
 | [Build and freeze the m6-reasoning panel and oracles](items/m6-reasoning-panel-freeze.md) | ready | anyone | no | none | [#2866](https://github.com/UOR-Foundation/uor-r4/issues/2866) |
 | [Build the intermediate-state ablation instrument for M6](items/m6-causal-ablation-instrument.md) | done | a lab | no | [m6-reasoning-panel-freeze](items/m6-reasoning-panel-freeze.md), [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | [#2863](https://github.com/UOR-Foundation/uor-r4/issues/2863) |
+| [Design exact arithmetic on the geometric path](items/m6-exact-arithmetic-mechanism.md) | done | anyone | no | none | [#2864](https://github.com/UOR-Foundation/uor-r4/issues/2864) |
 
 ## M7
 

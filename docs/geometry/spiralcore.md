@@ -84,5 +84,5 @@ These findings concern the supplied draft. They are not a negative language expe
 
 ## Go deeper
 
-- Code: `spiralcore_operator.rs`, [`discrete.cu`](../../crates/uor-r4-discrete/src/discrete.cu), [`build.rs`](../../crates/uor-r4-discrete/build.rs), [`spiralcore_fbs.rs`](../../crates/uor-r4-training/src/spiralcore_fbs.rs).
+- Code: `spiralcore_operator.rs`, [`discrete.cu`](../../crates/uor-r4-discrete/src/discrete.cu), [`build.rs`](../../crates/uor-r4-discrete/build.rs), [`spiralcore_fbs.rs`](../../crates/uor-r4-training/src/spiralcore_fbs.rs), [`m6_exact_arithmetic.rs`](../../crates/uor-r4-integer/src/m6_exact_arithmetic.rs) ([M6 exact arithmetic lab record](../labs/m6-exact-arithmetic-mechanism/README.md)).
 - Back to the [overview](./README.md), or on to the [mechanism board](../mechanisms/README.md).

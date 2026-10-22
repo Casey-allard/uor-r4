@@ -89,6 +89,7 @@ Open questions: does one atom per output block lose too much against the all-pai
 - [`spiralcore_operator.rs`](../../crates/uor-r4-core/src/spiralcore_operator.rs): exact signed 8×8 matrices, the Clifford generators and the finite composition table.
 - [`native_vector_writer.rs`](../../crates/uor-r4-training/src/native_vector_writer.rs): the shared vector writer fed by the projection.
 - [`discrete.cu`](../../crates/uor-r4-discrete/src/discrete.cu) and [`build.rs`](../../crates/uor-r4-discrete/build.rs): the ACTIVE integer descendant and the exact 64-state geometry tables it imports.
+- [`m6_exact_arithmetic.rs`](../../crates/uor-r4-integer/src/m6_exact_arithmetic.rs): M6 exact multi-digit arithmetic on the 16-root $E_8$ anchor orbit, 64-state $\mathrm{Cl}(0,6)$ `BFS`/`COMPOSE` actions, ternary carry/borrow trits, and `IntegerAddressedMemory` ([lab record](../labs/m6-exact-arithmetic-mechanism/README.md)).
 - The dense source this replaced is preserved as an indexed patch: `archive/history/branch-archive/INDEX.md`.
 
 Audit source: `docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/spiralcore-fbs.json`.

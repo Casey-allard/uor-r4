@@ -559,6 +559,51 @@ fn build_row_plan(length: usize) -> Result<RowPlan> {
     Ok(RowPlan { nodes, frontier })
 }
 
+pub(crate) fn orbit_root_coords(root: usize) -> [i32; 8] {
+    let r = &ROOTS[root];
+    [
+        i32::from(r[0]),
+        i32::from(r[1]),
+        i32::from(r[2]),
+        i32::from(r[3]),
+        i32::from(r[4]),
+        i32::from(r[5]),
+        i32::from(r[6]),
+        i32::from(r[7]),
+    ]
+}
+
+pub(crate) fn orbit_root_id(block: &[i32; 8]) -> Option<usize> {
+    root_id(block)
+}
+
+pub(crate) fn orbit_snap(block: &[i32; 8], n: usize) -> usize {
+    snap(block, n)
+}
+
+pub(crate) fn cl06_action(a: usize, x: &[i32; 8]) -> [i32; 8] {
+    action(a, x)
+}
+
+pub(crate) fn cl06_compose(a: usize, b: usize) -> usize {
+    compose(a, b)
+}
+
+pub(crate) fn cl06_bfs(src: usize, dst: usize) -> usize {
+    usize::from(BFS[(src << 4) + dst])
+}
+
+pub(crate) fn cl06_inverse(a: usize) -> usize {
+    compose(a, compose(a, a))
+}
+
+pub(crate) fn fbs_binder_summary(length: usize) -> Result<(usize, usize, u32)> {
+    let plan = build_row_plan(length)?;
+    let stages =
+        expected_stages(length as u32).ok_or_else(|| invalid("invalid FBS binder length"))?;
+    Ok((plan.nodes.len(), plan.frontier.len(), stages))
+}
+
 impl IntegerDiscreteModel {
     /// Load and validate a `UORLUT01` (`uor-r4.lut-discrete/1`) file from disk.
     pub fn load(path: &Path) -> Result<Self> {

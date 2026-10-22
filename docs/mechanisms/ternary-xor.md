@@ -115,6 +115,7 @@ Ternary weights; XOR matmul; bit-sliced ternary contraction; Hamming or popcount
 - [`hamming_refinement/metric.rs`](../../crates/uor-r4-core/src/native_geometric/hamming_refinement/metric.rs) and [`hamming_policy/policy.rs`](../../crates/uor-r4-core/src/native_geometric/hamming_policy/policy.rs): XOR, popcount and integer add over a 240-bit code.
 - [`vsa/hypervector.rs`](../../crates/uor-r4-core/src/native_geometric/vsa/hypervector.rs): XOR binding of codes, a code operation rather than a weighted sum.
 - [`discrete.cu`](../../crates/uor-r4-discrete/src/discrete.cu): the active use, the coordinate Hamming tie-break and the ternary gate parameter.
+- [`m6_exact_arithmetic.rs`](../../crates/uor-r4-integer/src/m6_exact_arithmetic.rs): three-valued carry/borrow trit switch (`{-1, 0, +1}`) and coordinate-Hamming root tie-break inside M6 exact geometric arithmetic ([lab record](../labs/m6-exact-arithmetic-mechanism/README.md)).
 
 Audit source: `docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/ternary-xor.json`.
 
