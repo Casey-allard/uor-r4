@@ -4,6 +4,7 @@
 //! Executes with strictly zero transformers and zero hardware matrix multiplication in the served runtime.
 //! Persistent dialogue continuity via exact-token history and literal-role protocol.
 
+use sha2::{Digest, Sha256};
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process;
@@ -16,7 +17,9 @@ use uor_r4_integer::generation::conversation::{
 use uor_r4_integer::generation::Stop;
 use uor_r4_integer::model::{IntegerModel, IntegerSession, IntegerStep};
 use uor_r4_integer::sampling::SamplePolicy;
-use uor_r4_integer::stack::{IntegerStackModel, StackChat, StackChatError, StackError, StackReply};
+use uor_r4_integer::stack::{
+    stack_argmax, IntegerStackModel, StackChat, StackChatError, StackError, StackReply,
+};
 use uor_r4_integer::{IntegerError, Result};
 use uor_r4_tokenizer::dialogue::{DialogueProtocol, Message};
 
@@ -40,6 +43,12 @@ struct CliArgs {
     threads: usize,
     /// One-shot turn: answer this message, print the record and exit.
     say: Option<String>,
+    /// One-shot raw token-ID prompt (`--prompt-ids 0,7,19,31`) for `--stack` parity verification.
+    prompt_ids: Option<Vec<u32>>,
+    /// Path to write a `UR4SESS1` binary session snapshot after a `--stack` step batch.
+    save_session: Option<PathBuf>,
+    /// Path to read a `UR4SESS1` binary session snapshot before a `--stack` step batch.
+    restore_session: Option<PathBuf>,
     system_prompt: Option<String>,
     temperature: f64,
     top_k: usize,
@@ -58,6 +67,9 @@ impl Default for CliArgs {
             protocol: 1,
             threads: 1,
             say: None,
+            prompt_ids: None,
+            save_session: None,
+            restore_session: None,
             system_prompt: None,
             temperature: 0.0,
             top_k: 16,
@@ -87,6 +99,15 @@ fn print_usage() {
     );
     eprintln!("      --threads <INT>         worker threads for --stack steps (default: 1)");
     eprintln!("      --say <TEXT>            answer one turn, print a JSON record and exit");
+    eprintln!(
+        "      --prompt-ids <CSV>      step comma-separated token IDs on --stack, print JSON and exit"
+    );
+    eprintln!(
+        "      --save-session <PATH>   write UR4SESS1 session snapshot bytes after --prompt-ids"
+    );
+    eprintln!(
+        "      --restore-session <P>   restore UR4SESS1 session snapshot bytes before --prompt-ids"
+    );
     eprintln!("  -s, --system <PROMPT>       Initial persistent system persona");
     eprintln!(
         "  -t, --temperature <FLOAT>   Sampling temperature (0.0 = greedy, >0.0 = categorical)"
@@ -197,6 +218,61 @@ fn parse_cli_args() -> CliArgs {
                     args.say = Some(raw[idx].clone());
                 } else {
                     eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--say'");
+                    process::exit(1);
+                }
+            }
+            "--prompt-ids" => {
+                idx += 1;
+                if idx < raw.len() {
+                    let mut parsed = Vec::new();
+                    for piece in raw[idx].split(',') {
+                        let trimmed = piece.trim();
+                        if trimmed.is_empty() {
+                            continue;
+                        }
+                        match trimmed.parse::<u32>() {
+                            Ok(id) => parsed.push(id),
+                            Err(_) => {
+                                eprintln!(
+                                    "{ANSI_RED_BOLD}error:{ANSI_RESET} invalid token id '{trimmed}' in '--prompt-ids'"
+                                );
+                                process::exit(1);
+                            }
+                        }
+                    }
+                    if parsed.is_empty() {
+                        eprintln!(
+                            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--prompt-ids' requires at least one integer token id"
+                        );
+                        process::exit(1);
+                    }
+                    args.prompt_ids = Some(parsed);
+                } else {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--prompt-ids'"
+                    );
+                    process::exit(1);
+                }
+            }
+            "--save-session" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.save_session = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--save-session'"
+                    );
+                    process::exit(1);
+                }
+            }
+            "--restore-session" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.restore_session = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--restore-session'"
+                    );
                     process::exit(1);
                 }
             }
@@ -314,6 +390,20 @@ fn parse_cli_args() -> CliArgs {
     }
     if args.tokenizer_path.is_some() && args.stack_path.is_none() {
         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--tokenizer' is only used with '--stack'");
+        process::exit(1);
+    }
+    if (args.prompt_ids.is_some() || args.save_session.is_some() || args.restore_session.is_some())
+        && args.stack_path.is_none()
+    {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--prompt-ids', '--save-session', and '--restore-session' require '--stack'"
+        );
+        process::exit(1);
+    }
+    if args.say.is_some() && args.prompt_ids.is_some() {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--say' and '--prompt-ids' are mutually exclusive; pass one"
+        );
         process::exit(1);
     }
     if args.bundle_path.is_none() && args.stack_path.is_none() && !args.verify_kernel {
@@ -865,6 +955,7 @@ mod tests {
 enum StackCliError {
     Chat(StackChatError),
     Model(StackError),
+    Codec(String),
     Io(std::io::Error),
     Json(serde_json::Error),
     Usage(String),
@@ -875,6 +966,7 @@ impl std::fmt::Display for StackCliError {
         match self {
             Self::Chat(error) => write!(formatter, "{error}"),
             Self::Model(error) => write!(formatter, "{error}"),
+            Self::Codec(error) => write!(formatter, "{error}"),
             Self::Io(error) => write!(formatter, "I/O: {error}"),
             Self::Json(error) => write!(formatter, "JSON: {error}"),
             Self::Usage(message) => formatter.write_str(message),
@@ -1079,6 +1171,60 @@ fn run_stack_chat(cli: &CliArgs) -> std::result::Result<(), StackCliError> {
     }
     let initial = stack_initial_history(&chat, cli.system_prompt.as_deref())?;
     chat.seed(&initial)?;
+
+    if let Some(prompt_ids) = cli.prompt_ids.as_deref() {
+        let vocab = model.shape().vocab as u32;
+        for &id in prompt_ids {
+            if id >= vocab {
+                return Err(StackCliError::Usage(format!(
+                    "token id {id} is outside the stack vocabulary 0..{}",
+                    vocab.saturating_sub(1)
+                )));
+            }
+        }
+        let mut session = model.session();
+        if let Some(restore_path) = cli.restore_session.as_deref() {
+            let raw = std::fs::read(restore_path)?;
+            let parsed =
+                uor_r4_integer::session_codec::decode(&raw).map_err(StackCliError::Codec)?;
+            session.restore_state(&parsed)?;
+        }
+        let mut tok = prompt_ids[0];
+        for &next_prompt_tok in &prompt_ids[1..] {
+            session.step(tok)?;
+            tok = next_prompt_tok;
+        }
+        let mut generated_ids = Vec::with_capacity(cli.max_tokens);
+        for _ in 0..cli.max_tokens {
+            let logits = session.step(tok)?;
+            tok = stack_argmax(logits) as u32;
+            generated_ids.push(tok);
+        }
+        let saved_bytes = uor_r4_integer::session_codec::encode(&session.save_state());
+        let session_sha256 = hex::encode(Sha256::digest(&saved_bytes));
+        if let Some(save_path) = cli.save_session.as_deref() {
+            std::fs::write(save_path, &saved_bytes)?;
+        }
+        let record = serde_json::json!({
+            "schema": "uor-r4.uor-chat-stack-parity/1",
+            "artifact": artifact,
+            "artifact_sha256": model.artifact_sha256(),
+            "tokenizer": tokenizer_path,
+            "tokenizer_cid": chat.protocol().tokenizer_cid,
+            "protocol": chat.protocol(),
+            "context": chat.context(),
+            "decoding": "greedy stack_argmax",
+            "prompt_ids": prompt_ids,
+            "generated_ids": generated_ids,
+            "last_token": tok,
+            "position": session.position(),
+            "weights_per_token": model.weights_per_token(),
+            "session_bytes_len": saved_bytes.len(),
+            "session_sha256": session_sha256,
+        });
+        println!("{}", serde_json::to_string_pretty(&record)?);
+        return Ok(());
+    }
 
     if let Some(text) = cli.say.as_deref() {
         let started = std::time::Instant::now();
