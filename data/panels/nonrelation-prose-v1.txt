@@ -1,0 +1,52 @@
+# nonrelation-prose-v1.txt — frozen M3 non-relation prose panel (#2856)
+# Format: id<TAB>split<TAB>category<TAB>text
+nrp-001	in_domain	small_talk	Hello there, I hope your morning has been peaceful so far.
+nrp-002	in_domain	small_talk	Good afternoon! The breeze outside feels brisk today.
+nrp-003	in_domain	small_talk	Thanks for waiting while I sorted out my desk notes.
+nrp-004	in_domain	small_talk	It has been a long week of meetings and errands.
+nrp-005	in_domain	small_talk	I should probably wrap up soon and get some rest tonight.
+nrp-006	in_domain	opinion	I think autumn evenings have the clearest light for walking.
+nrp-007	in_domain	opinion	In my view, handwritten notebooks are easier to browse than folders.
+nrp-008	in_domain	opinion	Acoustic guitar recordings sound warmer to me than studio mixes.
+nrp-009	in_domain	opinion	Quiet train rides feel more productive than short flights.
+nrp-010	in_domain	opinion	Old stone bridges look better when moss covers the arches.
+nrp-011	in_domain	nonrelation_question	Why do distant hills look pale during humid afternoons?
+nrp-012	in_domain	nonrelation_question	How many sides does a regular dodecagon have in geometry?
+nrp-013	in_domain	nonrelation_question	Which ocean current flows northward along the eastern coast?
+nrp-014	in_domain	nonrelation_question	Can cedar timber season outdoors without splitting in winter?
+nrp-015	in_domain	nonrelation_question	What causes frost patterns to branch across a cold windowpane?
+nrp-016	in_domain	anaphoric	Actually, let us set that topic aside for another conversation.
+nrp-017	in_domain	anaphoric	Sorry, I meant the earlier paragraph about the timetable.
+nrp-018	in_domain	anaphoric	Actually, that explanation cleared up the confusion right away.
+nrp-019	in_domain	anaphoric	Wait, I meant the second example rather than the first one.
+nrp-020	in_domain	anaphoric	These days that old method is rarely used in workshops.
+nrp-021	in_domain	statement_near_miss	The harbor lighthouse was painted white before the storm arrived.
+nrp-022	in_domain	statement_near_miss	Our neighbor across the lane works at the municipal archive.
+nrp-023	in_domain	statement_near_miss	The village bakery closes at noon every Tuesday in winter.
+nrp-024	in_domain	statement_near_miss	That brass compass on the shelf belonged to a retired captain.
+nrp-025	in_domain	statement_near_miss	The stray terrier by the gate barked at the passing wagon.
+nrp-026	heldout_v2_disjoint	small_talk	Rain tapped steadily against the skylight throughout the lecture.
+nrp-027	heldout_v2_disjoint	small_talk	The hallway clock chimed twice before the curtain rose.
+nrp-028	heldout_v2_disjoint	small_talk	Everyone on the veranda paused when the distant thunder rumbled.
+nrp-029	heldout_v2_disjoint	small_talk	A brisk gust scattered dry leaves across the courtyard flagstones.
+nrp-030	heldout_v2_disjoint	small_talk	Lantern light flickered softly along the wet cobblestone alley.
+nrp-031	heldout_v2_disjoint	opinion	Linen bindings endure heavy library handling better than paperbacks.
+nrp-032	heldout_v2_disjoint	opinion	Cast iron skillets distribute campfire heat more evenly than tinware.
+nrp-033	heldout_v2_disjoint	opinion	Sailing barges handle shallow estuaries more gracefully than steamers.
+nrp-034	heldout_v2_disjoint	opinion	Slate shingles weather coastal gales better than cedar shakes.
+nrp-035	heldout_v2_disjoint	opinion	Charcoal sketches capture dramatic shadows faster than watercolors.
+nrp-036	heldout_v2_disjoint	nonrelation_question	Why do migratory geese form echelons during autumn crossings?
+nrp-037	heldout_v2_disjoint	nonrelation_question	How does barometric pressure shift ahead of a squall line?
+nrp-038	heldout_v2_disjoint	nonrelation_question	Which mineral gives raw malachite its banded emerald hue?
+nrp-039	heldout_v2_disjoint	nonrelation_question	Where do alpine glaciers deposit terminal moraine boulders?
+nrp-040	heldout_v2_disjoint	nonrelation_question	When did movable metal type reach northern printing houses?
+nrp-041	heldout_v2_disjoint	anaphoric	Nevertheless, the preceding theorem requires one additional lemma.
+nrp-042	heldout_v2_disjoint	anaphoric	Consequently, neither alternative resolves the boundary discrepancy.
+nrp-043	heldout_v2_disjoint	anaphoric	Instead, reconsider the former hypothesis under stricter assumptions.
+nrp-044	heldout_v2_disjoint	anaphoric	Meanwhile, those earlier measurements remained within instrument tolerance.
+nrp-045	heldout_v2_disjoint	anaphoric	Otherwise, the aforementioned schedule remains unchanged until Friday.
+nrp-046	heldout_v2_disjoint	statement_near_miss	The conservatory orchestra rehearsed three symphonies before intermission.
+nrp-047	heldout_v2_disjoint	statement_near_miss	Seventeen freight cars waited beside the grain elevator siding.
+nrp-048	heldout_v2_disjoint	statement_near_miss	The botanical greenhouse cultivates rare orchids from cloud forests.
+nrp-049	heldout_v2_disjoint	statement_near_miss	An antique astrolabe rested inside the velvet display cabinet.
+nrp-050	heldout_v2_disjoint	statement_near_miss	The watchmaker calibrated the pendulum with a brass micrometer.

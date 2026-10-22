@@ -173,6 +173,9 @@ pub mod native_starling_spec;
 pub mod native_vector_writer;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod ngram;
+#[cfg(test)]
+// Compiled only under `cargo test`; excluded from the non-test native qualification graph.
+pub mod nonrelation_prose_panel;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod paraphrase_review;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
