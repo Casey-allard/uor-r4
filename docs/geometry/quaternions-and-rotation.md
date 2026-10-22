@@ -38,7 +38,7 @@ The same split shows up in the current reads. Flock and Relation reads sum trans
 
 | Mechanism | Status | How it uses quaternions |
 |---|---|---|
-| [Hamilton gate](../mechanisms/hamilton-gate.md) | READY | Turns a gate signal into a unit quaternion and rotates the value block by it, so no sigmoid is needed. Built and tested, never trained |
+| [Hamilton gate](../mechanisms/hamilton-gate.md) | READY | Turns a gate signal into a unit quaternion and rotates the value block by it, so no sigmoid is needed. Built and tested, never trained; cannot suppress per-block amplitude outside its $10^{-12}$ division-by-zero guard core (`#2879`, **proof**) |
 | [Recurrence gates](../mechanisms/recurrence-gates.md) | READY | Carries state by rotation, with a fade rate read from a table of powers of two. Built and tested, never trained |
 | [Spin-native weights](../mechanisms/spin-weights.md) | PARKED | Each 4×4 weight block is one quaternion. The single-icosian snap (one of 120 rotations) lost. A two-icosian pair with a 2-bit scale matched an equal-parameter dense model, but only through dense matrix multiplication, which a project rule bars |
 | [Prime-zeta codebook](../mechanisms/prime-zeta-codebook.md) | ACTIVE | Builds the starting table from unit quaternions on $S^3$ (a one-time offline step), then stores integers |
@@ -52,6 +52,7 @@ The same split shows up in the current reads. Flock and Relation reads sum trans
 |---|---|---|
 | Conjugation by $q$ rotates $\mathbb{R}^3$, and $q$, $-q$ give the same rotation | proof | standard identity |
 | Left multiplication by a unit quaternion preserves the norm on $\mathbb{R}^4$ | proof | $\lvert qh\rvert=\lvert q\rvert\lvert h\rvert$ |
+| Norm-preserving Hamilton gate ($q = g/\sqrt{\lvert g\rvert^2+10^{-12}}$) cannot suppress a 4-block's amplitude ($\lvert\text{out}\rvert/\lvert u\rvert \le 0.5$) outside $\lvert g\rvert \le 10^{-6}/\sqrt{3}$, where $1/r \ge 8.66\times 10^5$ | proof | [`geometric_stack_native.rs`](../../crates/uor-r4-training/src/geometric_stack_native.rs) (`#2879`) |
 | The additive recurrence can leave $S^3$ | proof | derivation above |
 | Quaternion recurrence helps language | not shown | the float stack that used it also used softmax and dense maps; see the [board](../mechanisms/README.md) |
 | M1 kernel runs on quaternions | no | M1 uses signed actions on 8D carrier blocks ([`discrete.cu`](../../crates/uor-r4-discrete/src/discrete.cu)) |

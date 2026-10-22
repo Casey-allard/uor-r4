@@ -28,7 +28,7 @@ where $\otimes$ is the Hamilton product (the quaternion product) and $q\otimes u
 $$\partial u=\bar q\otimes d,\qquad \partial q=d\otimes\bar u,\qquad \partial g=\frac{\partial q-q\,(q\cdot\partial q)}{r},$$
 with $d$ the incoming adjoint and $\bar q$ the quaternion conjugate. No `exp`, sigmoid, tanh or softmax appears in either direction.
 
-**The hazard (proof, from the formula).** Because $\partial g$ divides by $r$, a gate block near zero gives a gradient of about $1/r\approx10^{6}$. Weight decay can push a block toward zero. No real run has checked this.
+**The hazard and per-block suppression (`Supp_Hamilton`, proof).** Define intrinsic per-block suppression (**Definition**, `Supp_Hamilton`) as achieving amplitude ratio $\rho(g,u):=\|\text{out}\|_2/\|u\|_2 \le \tau$ (registered at $\tau=0.5$) with bounded backward Jacobian norm $\|\partial q/\partial g\|_2 \le 10$. Because $\rho(g,u)=\|g\|_2/\sqrt{\|g\|_2^2+10^{-12}}$ and $\rho^2 + 10^{-12}/r^2 = 1$, we have $\rho(g,u)\le\tau$ if and only if $\|g\|_2 \le \frac{\tau}{\sqrt{1-\tau^2}}\times 10^{-6}$ ($\approx 5.7735\times 10^{-7}$ at $\tau=0.5$), where the orthogonal backward scale is $1/r = 10^6\sqrt{1-\rho^2} \ge \frac{\sqrt{3}}{2}\times 10^6 \approx 8.6603\times 10^5$ and the radial derivative is $\frac{d\|q\|_2}{d\|g\|_2} = 10^6(1-\rho^2)^{3/2} \ge 6.4952\times 10^5$ (**Guarantee**, Status: **Structural**, [`geometric_stack_native.rs`](../../crates/uor-r4-training/src/geometric_stack_native.rs) `hamilton_gate_suppression_closed_form_and_backward_hazard_proof`). Thus a norm-preserving Hamilton gate cannot suppress per-block amplitude outside the $10^{-12}$ division-by-zero guard core, and inside that core any amplitude reduction is algebraically locked to a $\sim 10^6$ backward gradient blow-up. Weight decay can push a block toward zero; no real training run has checked this.
 
 **Wiring.** The hidden width must be divisible by 4. One GPU thread handles one block. The setting `gate=hamilton` selects it; the default stays the sigmoid SwiGLU gate so old artifacts load byte for byte. Export for integer serving and quantisation-aware training refuse any non-default gate. The same operation is also the output gate of the [geometric recurrence](./recurrence-gates.md).
 
@@ -48,8 +48,9 @@ with $d$ the incoming adjoint and $\bar q$ the quaternion conjugate. No `exp`, s
 | 12 Oct | The gate (arm G2): CPU reference, GPU kernels, trainer flag, saved-config field. A rectified-square arm (G1) was removed before delivery | 944 library tests pass, 0 fail, 7 ignored. Host-executed kernel against an independent reference within $9.3\times10^{-7}$, hand-computed blocks exact. A missing half-precision dispatch was found and fixed. No run, no device receipt, no model numbers | inconclusive | [record](../../archive/labs/gate-ops-2026-10-12/README.md) |
 | 13 Oct | Vast.ai RTX 5090 parity run, after a missing import broke every pod's parity step | 43 passed, 0 failed, 3 ignored (38 before the gate work). The summary line does not name the tests | inconclusive | [record](../../archive/labs/cuda-parity-gate-import-2026-10-13/README.md) |
 | 13 Oct | 18 finite controls (11 on CUDA, 7 metadata or argument checks) of the declared first-rung configuration (recurrence-only trunk with this gate, SpiralCore/FBS projection, product head, margin objective) at batch 16 by context 384 | 18 of 18 pass on source `05c84bece`; peak GPU 9,274 MiB. No optimizer update, no quality number | positive, controls only | [record](../../archive/labs/rung0-complete-path-2026-10-13/README.md) |
+| 22 Oct | Analytic **proof** and finite `f32` check (`r-hamilton-gate-suppression`, `#2879`) under registered definition `Supp_Hamilton` ($\rho(g,u)=\|\text{out}\|_2/\|u\|_2 \le 0.5$ with bounded backward Jacobian $\|\partial q/\partial g\|_2 \le 10$), swept across $\|g\|_2 \in \{0\}\cup[10^{-9},10^3]$ | $\rho(g,u)=\|g\|_2/\sqrt{\|g\|_2^2+10^{-12}} \le 0.5$ holds iff $\|g\|_2 \le 10^{-6}/\sqrt{3} \approx 5.7735\times 10^{-7}$, where $1/r = 10^6\sqrt{1-\rho^2} \ge 8.6603\times 10^5$ (smallest decade ratio $9.999995\times 10^{-4}$ at $\|g\|_2=10^{-9}$; $1.0\text{f32}$ exact for $\|g\|_2\ge 10^{-2}$). Single-direction orthogonal steering ($\langle w,q\otimes u\rangle=0$) preserves full block norm $\|\text{out}\|_2=\|u\|_2$ | negative for per-block amplitude suppression (**proof**; closes un-scaled unit-norm amplitude shutoff per D22, not rotation mechanism) | [record](../labs/r-hamilton-gate-suppression/README.md) |
 
-**Reading these honestly.** Every row is a correctness check. None says the gate helps a language model, and the parity count does not name which tests ran. The rectified-square arm G1 was withdrawn by the owner as non-geometric, not tested and found wanting, so no fallback arm exists. The missing import was a test-source blocker, not a mechanism result. Together the parity run and the 18 controls (11 of them on CUDA) are the device evidence that makes the status READY rather than a source-only draft.
+**Reading these honestly.** Every earlier row is a correctness check, and the 22 October row settles the per-block amplitude-suppression question by **proof** (**Guarantee**, Status: **Structural**): a norm-preserving Hamilton gate cannot attenuate a 4-block's length outside the $10^{-12}$ division-by-zero guard core, and inside that core any amplitude reduction is locked to a $\sim 10^6$ backward gradient factor. None says whether pure directional steering helps a language model, and the parity count does not name which tests ran. The rectified-square arm G1 was withdrawn by the owner as non-geometric, not tested and found wanting, so no fallback arm exists. The missing import was a test-source blocker, not a mechanism result. Together the parity run and the 18 controls (11 of them on CUDA) are the device evidence that makes the status READY rather than a source-only draft.
 
 ## What has never been tested
 
@@ -57,7 +58,7 @@ with $d$ the incoming adjoint and $\bar q$ the quaternion conjugate. No `exp`, s
 - **The icosian snap of $q$** and the hard-forward with its gradient bridge.
 - **A table-served form** for integer serving, and its export gap.
 - **The $1/r$ gradient near a zero gate block** in a real run.
-- **Whether a norm-preserving gate can suppress a signal at all.** The formula says the output length equals $|u|$ for any gate except a near-zero block. This is a reading of the formula; the records do not discuss it (**hypothesis** that it matters).
+- **Whether pure directional steering suffices in a trained language model** now that per-block amplitude suppression (`Supp_Hamilton`) is proved impossible outside the $10^{-12}$ guard core (`#2879`, **proof**; whether steering into downstream cancellation suffices in training remains a **hypothesis** for `hamilton-gate-offline-float-sheet`).
 - **A standalone named device parity result** for the gate.
 
 ## What would reopen it
@@ -70,7 +71,7 @@ The gate is READY, so these are the steps to make it ACTIVE.
 4. A real-run check of the near-zero gate hazard.
 5. A named, device-qualified parity receipt for the gate tests.
 
-Open questions: does a rotation gate express enough, since a sigmoid gate can shut a channel and a unit rotation cannot; how $q$ can be snapped to one of 120 rotations without losing the cost advantage seen for weights (+0.0196 bits per byte for exact activations in the [activation-snap study](../../archive/labs/activation-snap-2026-10-11/README.md)); and whether it adds anything over the discrete model's own ternary gating, or only duplicates it at higher cost (architect audit, 18 October). These are **hypotheses**.
+Open questions: does a rotation gate express enough in a language run given that it cannot attenuate a 4-block's amplitude outside the $10^{-12}$ guard core (**proof**, `#2879`); how $q$ can be snapped to one of 120 rotations without losing the cost advantage seen for weights (+0.0196 bits per byte for exact activations in the [activation-snap study](../../archive/labs/activation-snap-2026-10-11/README.md)); and whether it adds anything over the discrete model's own ternary gating, or only duplicates it at higher cost (architect audit, 18 October). These are **hypotheses**.
 
 ## Also known as
 
@@ -78,10 +79,10 @@ G2; OP1; `Gate::Hamilton`; $q(g)\otimes u$; geometric feed-forward gate; `gate=h
 
 ## Code
 
-- [`geometric_stack.rs`](../../crates/uor-r4-training/src/geometric_stack.rs): the `Gate` setting, the `HamiltonGate` operation, `hamilton_gate`, and the divisible-by-4 check.
-- [`cuda_stack.cu`](../../crates/uor-r4-training/src/cuda_stack.cu): `hamilton_gate_fwd` and `hamilton_gate_bwd`, one thread per 4-block.
+- [`geometric_stack_native.rs`](../../crates/uor-r4-training/src/geometric_stack_native.rs): the compiled `geometric_stack` module (`crates/uor-r4-training/src/lib.rs:110`), including `Gate`, `HamiltonGate`, `hamilton_gate` (line 317), `StackModel::mlp` (line 990), and `tests::hamilton_gate_suppression_closed_form_and_backward_hazard_proof`. (The older [`geometric_stack.rs`](../../crates/uor-r4-training/src/geometric_stack.rs) is retained inactive source from which the native module was extracted.)
+- [`cuda_stack.cu`](../../crates/uor-r4-training/src/cuda_stack.cu): `hamilton_gate_fwd` (line 172) and `hamilton_gate_bwd` (line 192), one thread per 4-block.
 - [`geometric_stack/cuda_ops.rs`](../../crates/uor-r4-training/src/geometric_stack/cuda_ops.rs): the launcher; it errors rather than falling back to the host.
-- [`tests/cuda_stack_ops_parity.rs`](../../crates/uor-r4-training/tests/cuda_stack_ops_parity.rs): `test_hamilton_gate_parity` and `test_hamilton_gate_model_parity`.
+- [`tests/cuda_stack_ops_parity.rs`](../../crates/uor-r4-training/tests/cuda_stack_ops_parity.rs): retained historical parity source (`#![cfg(any())]`, excluded from builds).
 - [`examples/geometric-stack.rs`](../../crates/uor-r4-training/examples/geometric-stack.rs): the trainer flag `gate=swiglu|hamilton`.
 - The frozen first-rung sheet: [`m1-rank-margin-rung0-2026-10-13.md`](../../archive/harness/prep/m1-rank-margin-rung0-2026-10-13.md).
 

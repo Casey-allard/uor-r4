@@ -3,7 +3,7 @@ id: r-hamilton-gate-suppression
 title: Settle whether a norm-preserving Hamilton gate can suppress a signal
 milestone: research
 area: mechanism
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []

@@ -1558,6 +1558,194 @@ pub fn rate_index(score: f32) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Scalar 4-vector Hamilton product `p ⊗ q` matching `hamilton_gate_fwd` in `cuda_stack.cu:184-187`.
+    #[inline]
+    fn hamilton_product_4(p: [f32; 4], q: [f32; 4]) -> [f32; 4] {
+        let ([a1, b1, c1, d1], [a2, b2, c2, d2]) = (p, q);
+        [
+            a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2,
+            a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2,
+            a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2,
+            a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2,
+        ]
+    }
+
+    #[inline]
+    fn norm4(v: [f32; 4]) -> f32 {
+        (v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]).sqrt()
+    }
+
+    /// Closed-form scalar amplitude ratio `|g| / sqrt(|g|^2 + 1e-12)` in `f32`.
+    #[inline]
+    fn hamilton_gate_scalar_ratio(g_norm: f32) -> f32 {
+        let r = (g_norm * g_norm + 1e-12_f32).sqrt();
+        g_norm / r
+    }
+
+    /// Exact per-4-block forward arithmetic of `hamilton_gate_fwd` (`cuda_stack.cu:178-187`).
+    #[inline]
+    fn hamilton_gate_block_fwd(g: [f32; 4], u: [f32; 4]) -> ([f32; 4], f32, [f32; 4]) {
+        let r = (g[0] * g[0] + g[1] * g[1] + g[2] * g[2] + g[3] * g[3] + 1e-12_f32).sqrt();
+        let q = [g[0] / r, g[1] / r, g[2] / r, g[3] / r];
+        let out = hamilton_product_4(q, u);
+        (out, r, q)
+    }
+
+    /// Exact per-4-block backward arithmetic of `hamilton_gate_bwd` (`cuda_stack.cu:199-219`).
+    #[inline]
+    fn hamilton_gate_block_bwd(g: [f32; 4], u: [f32; 4], d: [f32; 4]) -> ([f32; 4], [f32; 4], f32) {
+        let r = (g[0] * g[0] + g[1] * g[1] + g[2] * g[2] + g[3] * g[3] + 1e-12_f32).sqrt();
+        let q = [g[0] / r, g[1] / r, g[2] / r, g[3] / r];
+        let d_up = [
+            q[0] * d[0] + q[1] * d[1] + q[2] * d[2] + q[3] * d[3],
+            q[0] * d[1] - q[1] * d[0] - q[2] * d[3] + q[3] * d[2],
+            q[0] * d[2] + q[1] * d[3] - q[2] * d[0] - q[3] * d[1],
+            q[0] * d[3] - q[1] * d[2] + q[2] * d[1] - q[3] * d[0],
+        ];
+        let s = [
+            d[0] * u[0] + d[1] * u[1] + d[2] * u[2] + d[3] * u[3],
+            -d[0] * u[1] + d[1] * u[0] - d[2] * u[3] + d[3] * u[2],
+            -d[0] * u[2] + d[1] * u[3] + d[2] * u[0] - d[3] * u[1],
+            -d[0] * u[3] - d[1] * u[2] + d[2] * u[1] + d[3] * u[0],
+        ];
+        let dot = q[0] * s[0] + q[1] * s[1] + q[2] * s[2] + q[3] * s[3];
+        let d_gate = [
+            (s[0] - q[0] * dot) / r,
+            (s[1] - q[1] * dot) / r,
+            (s[2] - q[2] * dot) / r,
+            (s[3] - q[3] * dot) / r,
+        ];
+        (d_gate, d_up, r)
+    }
+
+    #[test]
+    fn hamilton_gate_suppression_closed_form_and_backward_hazard_proof() -> Result<()> {
+        let gate_dirs: [[f32; 4]; 5] = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.5, 0.5, 0.5, 0.5],
+            [
+                1.0 / 10.0_f32.sqrt(),
+                -2.0 / 10.0_f32.sqrt(),
+                2.0 / 10.0_f32.sqrt(),
+                -1.0 / 10.0_f32.sqrt(),
+            ],
+            [3.0 / 13.0, 4.0 / 13.0, -12.0 / 13.0, 0.0],
+        ];
+        let value_blocks: [[f32; 4]; 4] = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.5, -1.5, 2.0, -0.5],
+            [-3.0, 0.25, 1.25, 4.0],
+            [0.125, 0.25, -0.375, 0.5],
+        ];
+        let decades: [f32; 13] = [
+            1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3,
+        ];
+
+        let mut min_decade_ratio = f32::INFINITY;
+        for &g_norm in &decades {
+            let expected_ratio = hamilton_gate_scalar_ratio(g_norm);
+            for &g_dir in &gate_dirs {
+                let g = [
+                    g_dir[0] * g_norm,
+                    g_dir[1] * g_norm,
+                    g_dir[2] * g_norm,
+                    g_dir[3] * g_norm,
+                ];
+                for &u in &value_blocks {
+                    let (out, r, q) = hamilton_gate_block_fwd(g, u);
+                    let u_norm = norm4(u);
+                    let measured_ratio = norm4(out) / u_norm;
+                    let q_norm = norm4(q);
+                    assert!(
+                        (measured_ratio - expected_ratio).abs() <= 1e-6,
+                        "measured ratio {measured_ratio} != closed-form {expected_ratio} at |g|={g_norm}"
+                    );
+                    assert!(
+                        (q_norm - expected_ratio).abs() <= 1e-6,
+                        "|q| {q_norm} != closed-form {expected_ratio} at |g|={g_norm}"
+                    );
+                    let coupling = q_norm * q_norm + 1e-12_f32 / (r * r);
+                    assert!(
+                        (coupling - 1.0).abs() <= 2e-6,
+                        "algebraic coupling |q|^2 + 1e-12/r^2 = {coupling} != 1 at |g|={g_norm}"
+                    );
+                    min_decade_ratio = min_decade_ratio.min(measured_ratio);
+                }
+            }
+            if g_norm >= 1e-2 {
+                // In f32, for |g| >= 1e-2, |g|^2 >= 1e-4 so adding 1e-12 is below 1 ULP.
+                assert_eq!(
+                    (g_norm * g_norm + 1e-12_f32).to_bits(),
+                    (g_norm * g_norm).to_bits()
+                );
+                assert!((expected_ratio - 1.0).abs() <= 1e-7);
+            }
+        }
+        println!(
+            "hamilton_gate decade sweep [1e-9..1e3]: smallest ratio reached = {min_decade_ratio:.7e} (at |g|=1e-9); at |g|=0 ratio = 0.0"
+        );
+        assert!((min_decade_ratio - 1e-3).abs() <= 1e-6);
+
+        // Exact zero gate block gives zero output and backward scale 1/r = 1e6.
+        let (zero_out, zero_r, _) = hamilton_gate_block_fwd([0.0; 4], value_blocks[1]);
+        assert_eq!(zero_out, [0.0; 4]);
+        assert!((1.0 / zero_r - 1e6).abs() <= 1.0);
+
+        // At |g| = 1e-6, ratio = 1/sqrt(2) ~= 0.70710677.
+        let ratio_1e6 = hamilton_gate_scalar_ratio(1e-6_f32);
+        assert!((ratio_1e6 - std::f32::consts::FRAC_1_SQRT_2).abs() <= 1e-6);
+
+        // Registered Supp_Hamilton threshold tau = 0.5:
+        // |out|/|u| <= 0.5 iff |g| <= 1e-6 / sqrt(3) ~= 5.7735027e-7,
+        // where backward Jacobian norm on q^perp is 1/r >= (sqrt(3)/2) * 1e6 ~= 8.660254e5.
+        let g_half = 1e-6_f32 / 3.0_f32.sqrt();
+        let ratio_half = hamilton_gate_scalar_ratio(g_half);
+        assert!((ratio_half - 0.5).abs() <= 1e-6);
+        assert!(hamilton_gate_scalar_ratio(g_half * 1.01) > 0.5);
+
+        for &scale in &[0.0_f32, 0.25, 0.5, 1.0] {
+            let g = [g_half * scale, 0.0, 0.0, 0.0];
+            let u = [1.0_f32, 0.0, 0.0, 0.0];
+            let (out, r, _) = hamilton_gate_block_fwd(g, u);
+            assert!(norm4(out) <= 0.5 + 1e-6);
+            // Incoming gradient d = [0, 1, 0, 0] is orthogonal to q = [|q|, 0, 0, 0] when u = [1, 0, 0, 0],
+            // so s = d ⊗ conj(u) = [0, 1, 0, 0] has q . s = 0 and |d_gate| = |s| / r = 1 / r.
+            let (d_gate, d_up, _) = hamilton_gate_block_bwd(g, u, [0.0, 1.0, 0.0, 0.0]);
+            let grad_norm = norm4(d_gate);
+            let min_hazard = 0.5_f32 * 3.0_f32.sqrt() * 1e6_f32;
+            assert!(
+                (grad_norm - 1.0 / r).abs() <= 1.0,
+                "|d_gate| {grad_norm} != 1/r {}",
+                1.0 / r
+            );
+            assert!(
+                grad_norm >= min_hazard - 1.0,
+                "suppression region |g|<={g_half} must have |d_gate| >= {min_hazard}, got {grad_norm}"
+            );
+            assert!((norm4(d_up) - norm4(out)).abs() <= 1e-6);
+        }
+
+        // Candidate (b) contrast: unit gate q = [0, 1, 0, 0] steers u = [1, 0, 0, 0] orthogonal to
+        // a single scalar read direction w = [1, 0, 0, 0] (<w, out> = 0), but preserves full 4-block norm |out| = |u| = 1.
+        let (steered, _, _) = hamilton_gate_block_fwd([0.0, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]);
+        let w = [1.0_f32, 0.0, 0.0, 0.0];
+        let dot_w = w[0] * steered[0] + w[1] * steered[1] + w[2] * steered[2] + w[3] * steered[3];
+        assert_eq!(dot_w, 0.0);
+        assert!((norm4(steered) - 1.0).abs() <= 1e-6);
+
+        // Tensor entry point validation and D24 host refusal.
+        let cpu = Device::Cpu;
+        let g_tensor = Tensor::from_vec(vec![1.0_f32, 0.0, 0.0, 0.0], 4, &cpu)?;
+        let u_tensor = Tensor::from_vec(vec![1.0_f32, 0.0, 0.0, 0.0], 4, &cpu)?;
+        assert!(hamilton_gate(&g_tensor, &u_tensor).is_err());
+        let bad_len = Tensor::from_vec(vec![1.0_f32, 0.0, 0.0], 3, &cpu)?;
+        assert!(hamilton_gate(&bad_len, &bad_len).is_err());
+
+        Ok(())
+    }
+
     #[cfg(feature = "cuda")]
     #[test]
     fn geometric_rate_cuda_uses_signed_edges_and_exact_keep_table() -> Result<()> {
