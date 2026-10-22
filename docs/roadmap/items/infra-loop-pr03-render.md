@@ -3,7 +3,7 @@ id: infra-loop-pr03-render
 title: Loop PR 3: loop render for every view, with --check at the stamp
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr02-item-keys]
