@@ -386,6 +386,63 @@ fn bench_gate_lines_parse_and_inbox_is_untouched() {
 }
 
 #[test]
+fn bench_checks_say_pass_or_fail_one_row_per_gate_preferring_main_head() {
+    let r = Repo::new();
+    let out = clean(&mut Command::new("git"))
+        .args(["rev-parse", "origin/main"])
+        .current_dir(&r.root)
+        .output()
+        .unwrap();
+    let head = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    assert_eq!(head.len(), 40, "{out:?}");
+    // The codex receipt runs G1 at commit `abc`; this ledger runs G1 again at main's head, G3
+    // red at an older commit, and a planted-fault G3 run that caught its fault at the head.
+    r.write(
+        "local/claude/gates.jsonl",
+        &format!(
+            "{{\"gate\":\"G1\",\"verdict\":\"GREEN\",\"seconds\":1,\"commit\":\"{head}\",\"ts\":1792000000}}\n\
+             {{\"gate\":\"G3\",\"verdict\":\"RED\",\"seconds\":1,\"commit\":\"old\",\"ts\":1792000000}}\n\
+             {{\"gate\":\"G3\",\"verdict\":\"CAUGHT\",\"seconds\":1,\"commit\":\"{head}\",\"ts\":1792000001}}\n"
+        ),
+    );
+    let dir = r.run_ok();
+    let lines: Vec<Value> = read(&dir, ".gates.jsonl")
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    let g1: Vec<&Value> = lines
+        .iter()
+        .filter(|v| v["name"].as_str().unwrap().ends_with("/G1"))
+        .collect();
+    assert_eq!(
+        g1.len(),
+        1,
+        "one row per gate, the run at main's head: {lines:?}"
+    );
+    assert_eq!(g1[0]["name"], "claude/G1", "{lines:?}");
+    assert_eq!(
+        g1[0]["result"], "PASS",
+        "the bench counts PASS, not GREEN: {lines:?}"
+    );
+    assert_eq!(g1[0]["commit"], head.as_str(), "{lines:?}");
+    let g3: Vec<&Value> = lines
+        .iter()
+        .filter(|v| v["name"].as_str().unwrap().ends_with("/G3"))
+        .collect();
+    assert_eq!(g3.len(), 1, "{lines:?}");
+    assert_eq!(
+        g3[0]["result"], "FAIL",
+        "RED is FAIL, and a CAUGHT planted-fault run is not a gate result: {lines:?}"
+    );
+    assert!(
+        lines
+            .iter()
+            .all(|v| !["GREEN", "RED", "CAUGHT"].contains(&v["result"].as_str().unwrap())),
+        "{lines:?}"
+    );
+}
+
+#[test]
 fn bench_refuses_tracked_dir_and_short_interval() {
     let r = Repo::new();
     let o = r.bench(&["--bench", "docs/x"]);

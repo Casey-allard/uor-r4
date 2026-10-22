@@ -474,33 +474,68 @@ fn decisions_rows(text: &str) -> Vec<Vec<String>> {
     Vec::new()
 }
 
-fn gate_line(lab: &str, v: &Value) -> Option<String> {
+/// The bench counts `PASS` and `FAIL`; the loop's ledgers say `GREEN` and `RED`. A `CAUGHT`
+/// line is a planted-fault run (`loop gates --break`), not the gate's own result, so it is dropped.
+fn bench_result(verdict: &str) -> Option<String> {
+    match verdict.to_uppercase().as_str() {
+        "GREEN" | "PASS" => Some("PASS".into()),
+        "RED" | "FAIL" | "REFUSED" => Some("FAIL".into()),
+        "CAUGHT" => None,
+        other => Some(other.to_string()),
+    }
+}
+
+fn gate_line(lab: &str, v: &Value) -> Option<(String, Value)> {
     let gate = v.get("gate").or_else(|| v.get("name"))?.as_str()?;
     let verdict = v.get("verdict").or_else(|| v.get("result"))?.as_str()?;
-    Some(
+    Some((
+        gate.to_string(),
         json!({
             "name": format!("{lab}/{gate}"),
-            "result": verdict.to_uppercase(),
+            "result": bench_result(verdict)?,
             "seconds": v.get("seconds").cloned().unwrap_or(Value::Null),
             "time": v.get("ts").or_else(|| v.get("time")).cloned().unwrap_or(Value::Null),
             "commit": v.get("commit").cloned().unwrap_or(Value::Null),
-        })
-        .to_string(),
-    )
+        }),
+    ))
 }
 
+/// Whether run `a` is newer than run `b`: by `time` when both are numbers or both are strings,
+/// else the later-read run wins.
+fn newer(a: &Value, b: &Value) -> bool {
+    match (&a["time"], &b["time"]) {
+        (Value::Number(x), Value::Number(y)) => x.as_f64() >= y.as_f64(),
+        (Value::String(x), Value::String(y)) => x >= y,
+        _ => true,
+    }
+}
+
+/// One row per gate: the newest run at `origin/main`'s head when there is one, else the newest run.
+/// Every lab's PR-branch run is at an older commit than `main`, so listing them all would read as
+/// no gate passing at the head.
 fn gates(root: &Path, labs: &BTreeMap<String, crate::labs::Lab>) -> String {
     let re = regex::Regex::new(r"^docs/loop/tasks/[^/]+/([a-z0-9]+)-[0-9]+/receipts\.jsonl$")
         .expect("a valid pattern");
-    let mut out = String::new();
+    let head = git(root, &["rev-parse", "origin/main"])
+        .ok()
+        .map(|h| h.trim().to_string());
+    let at_head = |v: &Value| head.is_some() && v["commit"].as_str() == head.as_deref();
+    let mut best: BTreeMap<String, Value> = BTreeMap::new();
     let mut push = |lab: &str, text: &str| {
         for l in text.lines().filter(|l| !l.trim().is_empty()) {
-            if let Some(g) = serde_json::from_str::<Value>(l)
+            let Some((gate, row)) = serde_json::from_str::<Value>(l)
                 .ok()
                 .and_then(|v| gate_line(lab, &v))
-            {
-                out.push_str(&g);
-                out.push('\n');
+            else {
+                continue;
+            };
+            let keep = match best.get(&gate) {
+                None => true,
+                Some(cur) if at_head(cur) != at_head(&row) => at_head(&row),
+                Some(cur) => newer(&row, cur),
+            };
+            if keep {
+                best.insert(gate, row);
             }
         }
     };
@@ -517,7 +552,7 @@ fn gates(root: &Path, labs: &BTreeMap<String, crate::labs::Lab>) -> String {
             push(lab, &text);
         }
     }
-    out
+    best.values().map(|row| format!("{row}\n")).collect()
 }
 
 fn write_atomic(dir: &Path, name: &str, text: &str) -> Result<(), String> {
