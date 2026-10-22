@@ -3,7 +3,7 @@ id: infra-bench-inbox-rule
 title: Bench inbox rule: each lab reads the bench messages addressed to it
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []

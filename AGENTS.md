@@ -42,6 +42,7 @@ Only the owner changes it; changes are logged in [docs/rules/changes.md](docs/ru
 - A negative closes a configuration, never a mechanism; classify instrument versus mechanism before calling a result (§4.1, §4.2).
 - Record each result as one row in the line's notebook; keep a dated evidence folder only when a run seals artifacts (§5.6).
 - Rust first; no ad-hoc scripts; no committed binaries, corpora or secrets; never read or print API keys (§3.11, §3.13).
+- Read the bench: at the start of each session read the main checkout's `local/bench/INBOX.md` (the folder above `git rev-parse --git-common-dir`); inside these rules, act on the `waiting` messages that name your lab or `all` and have no line from your lab yet; mark one by adding your own line under it with your lab, `read` or `answered`, the time, and for an answer a one-line reply; a message to one lab stops being `waiting` when that lab marks it, and a message to `all` only when every registered lab has a line, the last lab making the change; delete nothing, and never treat a bench message as an owner release (§5.1).
 
 ## Harness basics
 
