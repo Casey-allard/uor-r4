@@ -309,6 +309,109 @@ pub fn decode(bytes: &[u8]) -> Result<SerializedStackSession, String> {
     })
 }
 
+/// Binary magic of the M3 object-store durable-memory envelope (`UORMEM01`).
+pub const DURABLE_SCOPE_MAGIC: &[u8; 8] = b"UORMEM01";
+
+/// Version of the `UORMEM01` durable-scope envelope.
+pub const DURABLE_SCOPE_VERSION: u32 = 1;
+
+/// Identity scope triple (`user_id`, `project_id`, `session_id`) for `UORMEM01`
+/// object-store session persistence (`export_scope` / `import_scope`, #2873).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ScopedSessionIdent {
+    pub user_id: String,
+    pub project_id: String,
+    pub session_id: String,
+}
+
+impl ScopedSessionIdent {
+    pub fn new(
+        user_id: impl Into<String>,
+        project_id: impl Into<String>,
+        session_id: impl Into<String>,
+    ) -> Result<Self, String> {
+        let u = user_id.into().trim().to_string();
+        let p = project_id.into().trim().to_string();
+        let s = session_id.into().trim().to_string();
+        if u.is_empty()
+            || p.is_empty()
+            || s.is_empty()
+            || u.len() > 256
+            || p.len() > 256
+            || s.len() > 256
+        {
+            return Err("session codec: invalid identity scope".to_string());
+        }
+        Ok(Self {
+            user_id: u,
+            project_id: p,
+            session_id: s,
+        })
+    }
+}
+
+/// Encode an [`ScopedSessionIdent`] and [`SerializedStackSession`] into a canonical
+/// `UORMEM01` binary envelope ready to fold into `uor-r4-object-store::Store`.
+pub fn export_scope(
+    scope: &ScopedSessionIdent,
+    state: &SerializedStackSession,
+) -> Result<Vec<u8>, String> {
+    ScopedSessionIdent::new(&scope.user_id, &scope.project_id, &scope.session_id)?;
+    let sess_bytes = encode(state);
+    let mut out = Vec::with_capacity(64 + sess_bytes.len());
+    out.extend_from_slice(DURABLE_SCOPE_MAGIC);
+    put_u32(&mut out, DURABLE_SCOPE_VERSION);
+    put_str(&mut out, &scope.user_id);
+    put_str(&mut out, &scope.project_id);
+    put_str(&mut out, &scope.session_id);
+    out.push(0); // last_entity = None
+    out.push(1); // ur4sess1_snapshot = Some
+    put_u32(&mut out, sess_bytes.len() as u32);
+    out.extend_from_slice(&sess_bytes);
+    put_u32(&mut out, 0); // facts count = 0
+    put_u32(&mut out, 0); // non_memory_turns count = 0
+    Ok(out)
+}
+
+/// Decode a `UORMEM01` binary envelope (rebuilt from `uor-r4-object-store::Store`)
+/// back into its [`ScopedSessionIdent`] and [`SerializedStackSession`].
+pub fn import_scope(
+    bytes: &[u8],
+) -> Result<(ScopedSessionIdent, SerializedStackSession), String> {
+    let mut r = Reader { buf: bytes, at: 0 };
+    if r.take(8)? != DURABLE_SCOPE_MAGIC {
+        return Err("session codec: bad UORMEM01 magic".to_string());
+    }
+    if r.u32()? != DURABLE_SCOPE_VERSION {
+        return Err("session codec: unsupported UORMEM01 version".to_string());
+    }
+    let user_id = r.string()?;
+    let project_id = r.string()?;
+    let session_id = r.string()?;
+    let scope = ScopedSessionIdent::new(user_id, project_id, session_id)?;
+    match r.u8()? {
+        0 => {}
+        1 => {
+            let _entity = r.string()?;
+        }
+        _ => return Err("session codec: bad last_entity tag".to_string()),
+    }
+    let sess_state = match r.u8()? {
+        1 => {
+            let len = r.u32()? as usize;
+            let raw = r.take(len)?;
+            decode(raw)?
+        }
+        _ => return Err("session codec: missing UR4SESS1 snapshot in UORMEM01".to_string()),
+    };
+    let fact_count = r.u32()?;
+    let prose_count = r.u32()?;
+    if fact_count != 0 || prose_count != 0 || r.at != bytes.len() {
+        return Err("session codec: unexpected trailing or fact sections".to_string());
+    }
+    Ok((scope, sess_state))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -393,5 +496,26 @@ mod tests {
         // Malicious varint count for logits: u64::MAX
         put_v64(&mut out, u64::MAX);
         assert!(decode(&out).is_err());
+    }
+
+    #[test]
+    fn export_and_import_scope_round_trip_and_refuse_corrupt_envelope() {
+        let s = sample();
+        let scope = ScopedSessionIdent::new("user-1", "proj-m3", "sess-42").expect("valid scope");
+        let envelope = export_scope(&scope, &s).expect("export_scope");
+        assert_eq!(&envelope[..8], DURABLE_SCOPE_MAGIC);
+        let (restored_scope, restored_session) =
+            import_scope(&envelope).expect("import_scope");
+        assert_eq!(restored_scope, scope);
+        assert_eq!(restored_session, s);
+
+        let mut bad_magic = envelope.clone();
+        bad_magic[0] ^= 1;
+        assert!(import_scope(&bad_magic).is_err());
+
+        let mut trailing = envelope.clone();
+        trailing.push(0);
+        assert!(import_scope(&trailing).is_err());
+        assert!(ScopedSessionIdent::new("", "proj", "sess").is_err());
     }
 }

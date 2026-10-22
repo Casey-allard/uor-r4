@@ -4,6 +4,7 @@
 
 pub mod address_read;
 pub mod bindings;
+pub mod durable_consumer;
 mod hash;
 mod manifest;
 pub mod peer;
