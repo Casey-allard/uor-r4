@@ -23,7 +23,9 @@ fn clean(cmd: &mut Command) -> &mut Command {
 }
 
 const ITEM_A: &str = "---\nid: item-a\nstatus: ready\nscope: [crates/a/**, docs/a.md, .github/**, CHARTER.md]\nnotebook: docs/research/notebook/a.md\n---\n\n## Why\n\nBecause.\n";
-const NOTEBOOK: &str = "# A notebook\n\n| row | result |\n|---|---|\n| 1 | first |\n";
+/// Like the real pages, prose follows the results table, so a new row lands mid-file.
+const NOTEBOOK: &str =
+    "# A notebook\n\n| row | result |\n|---|---|\n| 1 | first |\n\n## What the rows say\n\nProse.\n";
 const FILEMAP: &str = "# FILEMAP\n\n| path | what |\n|---|---|\n| crates/a | the a crate |\n| `crates/` | crates |\n| `crates/a` | a |\n| `docs` | docs |\n| `docs/harness` | h |\n| `docs/loop` | loop |\n| `docs/research` | r |\n| `docs/roadmap` | rm |\n| `docs/start` | s |\n";
 const OWNER_PATHS: &str = r#"{"schema": 1, "paths": [
   {"path": "CHARTER.md", "why": "rules"},
@@ -666,6 +668,13 @@ fn scope_always_allows_status_notebook_append_mistakes_and_filemap_rows() {
             r.write(
                 "docs/research/notebook/a.md",
                 &format!("{NOTEBOOK}| 2 | second |\n"),
+            )
+        }),
+        // Planted fault: a row added inside the table, before the trailing prose, was refused.
+        Box::new(|r: &Repo| {
+            r.write(
+                "docs/research/notebook/a.md",
+                &NOTEBOOK.replace("| 1 | first |\n", "| 1 | first |\n| 2 | second |\n"),
             )
         }),
         Box::new(|r: &Repo| r.write("docs/harness/mistakes/2026-10-21-x.md", "# x\n")),

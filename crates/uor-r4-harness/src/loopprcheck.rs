@@ -465,7 +465,7 @@ fn rule_scope(pr: &Pr) -> RuleResult {
             || crate::loopclaim::SHARED_FILES.contains(&path)
             || folders.iter().any(|f| path.starts_with(f.as_str()))
             || (path == item_path && status_only_edit(pr, path))
-            || (item.notebook.as_deref() == Some(path) && append_only(pr, path))
+            || (item.notebook.as_deref() == Some(path) && keeps_base_lines(pr, path))
             || (change.status == 'A' && path.starts_with("docs/harness/mistakes/"))
             || (path == "docs/start/FILEMAP.md" && keeps_base_lines(pr, path));
         if !allowed {
@@ -1187,15 +1187,8 @@ fn status_only_edit(pr: &Pr, path: &str) -> bool {
             .all(|(x, y)| x == y || (x.starts_with("status:") && y.starts_with("status:")))
 }
 
-/// The head text starts with the base text; a page absent at the base counts as empty.
-fn append_only(pr: &Pr, path: &str) -> bool {
-    let Some(h) = pr.at_head(path) else {
-        return false;
-    };
-    h.starts_with(&pr.at_base(path).unwrap_or_default())
-}
-
-/// Every base line is still present at the head, in order (rows added only).
+/// Every base line is still present at the head, in order (rows added only). Used for the
+/// item's notebook page, whose results table is followed by prose, so a new row lands mid-file.
 fn keeps_base_lines(pr: &Pr, path: &str) -> bool {
     let Some(h) = pr.at_head(path) else {
         return false;
