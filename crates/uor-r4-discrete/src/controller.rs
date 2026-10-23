@@ -160,6 +160,7 @@ fn validate_registered_data(config: &DriverConfig) -> Result<()> {
     if config.read_spec != ReadSpec::Route
         || config.schedule != training::SchedulePolicy::CanonicalVectorThenReadV1
         || !config.read_initialization.is_zero_gates()
+        || !config.normalization_mode.is_scale_matched_snap()
         || config.relation_learning_policy != training::RelationLearningPolicy::LearnV1
     {
         return Err(invalid(
@@ -838,6 +839,10 @@ mod tests {
     #[test]
     fn legacy_pilot_and_redirect_cannot_inherit_attention_schedule() -> Result<()> {
         let mut c = config()?;
+        validate_pilot_config(&c)?;
+        c.normalization_mode = crate::normalization_mechanism::NormalizationMode::UnitSnapControlV1;
+        assert!(validate_pilot_config(&c).is_err());
+        c.normalization_mode = crate::normalization_mechanism::NormalizationMode::default();
         validate_pilot_config(&c)?;
         c.schedule = training::SchedulePolicy::InterleavedReadEvery8V1;
         assert!(validate_pilot_config(&c).is_err());

@@ -1567,6 +1567,7 @@ fn baseline_facts(
     if checkpoint.cursor != driver.initial_cursor()
         || checkpoint.model["epoch"] != 0
         || checkpoint.model["read_initialization"] != json!(crate::ReadInitialization::ActiveLeafV1)
+        || !crate::normalization_mechanism::stored_mode_is_default(&checkpoint.model)
         || gates.len()
             != config
                 .read_spec

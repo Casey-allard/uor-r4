@@ -79,6 +79,15 @@ impl NormalizationMode {
     }
 }
 
+/// Whether a stored snapshot JSON value carries the default normalization mode.
+/// The key is omitted when default, so a missing key is the default; any other
+/// value (including an unknown one) is not.
+pub(crate) fn stored_mode_is_default(model: &serde_json::Value) -> bool {
+    model
+        .get("normalization_mode")
+        .is_none_or(|value| *value == serde_json::json!(NormalizationMode::default()))
+}
+
 /// Exact per-block integer norm invariants measured on an 8D integer block.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -700,5 +709,20 @@ mod tests {
         let d_raw = endpoint_address_distance(&raw_blocks, 0)?;
         assert!(d_raw > 16);
         Ok(())
+    }
+    #[test]
+    fn stored_mode_missing_key_is_default_and_other_modes_are_not() {
+        use serde_json::json;
+        assert!(stored_mode_is_default(&json!({})));
+        assert!(stored_mode_is_default(
+            &json!({"normalization_mode": "scale_matched_snap_v1"})
+        ));
+        assert!(!stored_mode_is_default(
+            &json!({"normalization_mode": "unit_snap_control_v1"})
+        ));
+        assert!(!stored_mode_is_default(
+            &json!({"normalization_mode": "unnormalized_control_v1"})
+        ));
+        assert!(!stored_mode_is_default(&json!({"normalization_mode": 7})));
     }
 }

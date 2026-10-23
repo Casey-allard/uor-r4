@@ -195,6 +195,7 @@ pub fn validate_config(config: &DriverConfig) -> Result<()> {
         || config.objective_policy != crate::ObjectivePolicy::NearestAddressMarginV1
         || config.schedule != training::SchedulePolicy::InterleavedReadEvery8V1
         || config.read_initialization != ReadInitialization::ActiveLeafV1
+        || !config.normalization_mode.is_scale_matched_snap()
     {
         return Err(invalid("attention requires K8, nearest-address objective, active-leaf initialization and interleaved read-every-8 schedule"));
     }
@@ -809,6 +810,7 @@ pub(super) fn validate_initial_storage(config: &DriverConfig, model: &Value) -> 
         .ok_or_else(|| invalid("initial checkpoint lacks gates"))?;
     if model["epoch"] != json!(0)
         || model["read_initialization"] != json!(ReadInitialization::ActiveLeafV1)
+        || !crate::normalization_mechanism::stored_mode_is_default(model)
         || gates.len() != total as usize
         || gates.iter().enumerate().any(|(index, word)| {
             word.as_i64()
@@ -1458,6 +1460,11 @@ mod tests {
         }
         let mut wrong = p.config.clone();
         wrong.read_initialization = ReadInitialization::ZeroGatesV1;
+        assert!(validate_config(&wrong).is_err());
+        wrong = p.config.clone();
+        wrong.normalization_mode =
+            crate::normalization_mechanism::NormalizationMode::UnitSnapControlV1;
+        assert!(wrong.validate().is_ok());
         assert!(validate_config(&wrong).is_err());
         wrong = p.config.clone();
         wrong.schedule = training::SchedulePolicy::CanonicalVectorThenReadV1;

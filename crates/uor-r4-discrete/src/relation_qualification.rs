@@ -993,6 +993,7 @@ fn active_leaf_initialization_and_matched_off_path() -> Result<serde_json::Value
             require(snapshot.spec == spec && snapshot.read_spec == read_spec
                 && snapshot.seed == seed && snapshot.epoch == 0
                 && snapshot.read_initialization == crate::ReadInitialization::ActiveLeafV1
+                && snapshot.normalization_mode.is_scale_matched_snap()
                 && snapshot.gates == expected,
                 "INIT LOCK requires exact V4096/B4/C192/K8 gates0/5/10/15=+1 and every other gate zero")?;
         }
