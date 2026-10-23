@@ -23,10 +23,15 @@ use crate::loopprcheck::{Comment, PrGh as _};
 
 const USAGE: &str = "usage: uor-harness loop next [--json] [--wait [--poll SECS] [--max SECS]]";
 
+/// The gh pr list --json fields loop next needs. isCrossRepository is included so the render
+/// sentinel can tell a same-repository kimi/render PR from a fork; a test pins this list.
+const PR_LIST_FIELDS: &str =
+    "number,headRefName,headRefOid,isDraft,isCrossRepository,mergeable,files,statusCheckRollup";
+
 /// TEST-ONLY: a JSON file standing in for `gh`: `{"prs": [{number, headRefName, headRefOid,
 /// isDraft, mergeable, files: [{path}], checks: [{name, conclusion}]}], "comments": {"<n>":
 /// [{author, body}]}, "files": {"<n>:<path>": text}, "labels": {"<n>": [name]}}`.
-pub const NEXT_GH_FAKE_ENV: &str = "UOR_LOOP_NEXT_GH_FAKE";
+const NEXT_GH_FAKE_ENV: &str = "UOR_LOOP_NEXT_GH_FAKE";
 
 /// The issue whose `loop:pause` label pauses every lab's loop.
 const PAUSE_ISSUE: u64 = 2028;
@@ -54,6 +59,9 @@ pub struct NextPr {
     pub head_ref_oid: String,
     #[serde(default)]
     pub is_draft: bool,
+    /// Whether the PR head comes from a fork; the render sentinel requires `Some(false)`.
+    #[serde(default)]
+    pub is_cross_repository: Option<bool>,
     #[serde(default)]
     pub mergeable: String,
     #[serde(default)]
@@ -92,7 +100,7 @@ impl NextGh for RealNextGh {
                 "--limit",
                 "200",
                 "--json",
-                "number,headRefName,headRefOid,isDraft,mergeable,files,statusCheckRollup",
+                PR_LIST_FIELDS,
             ],
         )?;
         let v: Vec<serde_json::Value> = serde_json::from_str(&text)
@@ -348,6 +356,12 @@ pub(crate) fn added_order(
 }
 
 /// The ORDER a PR adds, or why the PR is skipped (see [`added_order`]).
+/// A views-only, same-repository render refresh (branch `kimi/render`, only rendered views).
+fn is_render_pr(pr: &NextPr) -> bool {
+    let files: Vec<String> = pr.files.iter().map(|f| f.path.clone()).collect();
+    crate::loopreview::render_sentinel(&pr.head_ref_name, &files, pr.is_cross_repository)
+}
+
 fn pr_order(root: &Path, gh: &dyn NextGh, pr: &NextPr) -> Result<PrOrder, OrderErr> {
     // The listed files stop at 100; a PR that reaches it may have more, so read every page.
     let listed: Vec<String> = if pr.files.len() >= 100 {
@@ -752,6 +766,36 @@ pub fn run(
     for pr in prs.iter().filter(|p| !p.is_draft) {
         let order = match pr_order(root, gh, pr) {
             Ok(o) => o,
+            // A views-only render PR has no ORDER by design (the `kimi/render` sentinel path).
+            // It still needs another lab's exact-head record, so offer it here rather than
+            // skipping it: the loop previously never assigned a render refresh for review.
+            Err(OrderErr::Missing(_note)) if lab != "kimi" && is_render_pr(pr) => {
+                let bodies = match comment_bodies(gh, pr.number) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        skipped.push(format!("#{}: {e}", pr.number));
+                        continue;
+                    }
+                };
+                if !crate::loopreview::records_at_head(pr.number, &pr.head_ref_oid, &bodies)
+                    .is_empty()
+                {
+                    continue;
+                }
+                let reason = format!(
+                    "#{} needs {lab}'s views-only render review at {}",
+                    pr.number, pr.head_ref_oid
+                );
+                out.push(source("reviews", "work", reason.clone()));
+                return Ok((
+                    out,
+                    Decision::Go {
+                        kind: "review",
+                        target: format!("#{}", pr.number),
+                        reason,
+                    },
+                ));
+            }
             Err(note) => {
                 skipped.push(note.note());
                 continue;

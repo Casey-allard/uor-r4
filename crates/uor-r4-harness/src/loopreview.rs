@@ -489,6 +489,19 @@ pub fn counted(input: &GateInput) -> Vec<(String, Verdict)> {
 /// The labs whose last counted record at the head is CHANGES, by name. Owner, 22 Oct 2026 17:51Z
 /// ("No: CHANGES blocks"): a counted CHANGES stands until a new head, where no record counts yet,
 /// or the same lab's own later APPROVE. Another lab's APPROVE does not clear it.
+/// The `uor-review v1` records at one PR head, regardless of ORDER. The render sentinel PR has no
+/// ORDER (it is views-only by design), so its review records carry the `kimi/render` sentinel and
+/// are counted here for `loop next`'s assignment only; the render gate still checks the views.
+pub fn records_at_head(pr: u64, head: &str, bodies: &[String]) -> Vec<Record> {
+    bodies
+        .iter()
+        .filter_map(|body| match parse(body) {
+            Parsed::Record(r) if r.pr == pr && r.head == head => Some(r),
+            _ => None,
+        })
+        .collect()
+}
+
 pub fn standing_changes(input: &GateInput) -> Vec<String> {
     let mut last = BTreeMap::new();
     for (lab, verdict) in counted(input) {
