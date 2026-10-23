@@ -1,7 +1,7 @@
 # Prefix-holonomy position mechanism on the discrete M1 orbit (`PositionHolonomyV1`)
 
-- **Status:** draft pre-registration, `TEST FITNESS: PENDING` (see the end of the sheet).
-  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review (CHARTER §4.5), the owner's bar confirmation on `#2028` (`https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6337522273`), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
+- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author review `deepseek-36`, 2026-10-22; see the Verdict at the end). No compute is cleared.
+  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review at a later head (CHARTER §4.5), the owner's answer to the bar decision card on `#2028` (`https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6337522273` — a decision card, no owner answer yet), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
 - **Line:** M1 learned attention and sequence position (#2029, item `m1-position-mechanism` #2843). **Lab:** antigravity.
 - **Parent:** [`m1-attention-a8-address-cells-learning-2026-10-19.md`](m1-attention-a8-address-cells-learning-2026-10-19.md) (the A8 address-structured cells sheet).
   - **What changes from the parent:** replaces the endpoint-only candidate transport in `Flock` / `Relation` (`discrete.cu` `flock_vector`) with causal prefix-holonomy transport `PositionHolonomyV1` (`crates/uor-r4-discrete/src/position_mechanism.rs`) and adds two matched controls (`EndpointControlV1` and shuffled-prefix evaluation `C_shuf`) to isolate sequence-order credit at equal parameter count.
@@ -59,7 +59,7 @@ Three arms share the identical A8 initialization (`address_structured_v1`, file 
 ## 6. Steps
 
 1. Land `crates/uor-r4-discrete/src/position_mechanism.rs` with its 5 finite CPU controls (`cargo test -p uor-r4-discrete --lib`).
-2. Obtain a non-author `TEST FITNESS: FIT` review on this sheet and owner confirmation of the §3 numeric bar on `#2028`.
+2. Obtain a non-author `TEST FITNESS: FIT` review on this sheet and the owner's answer to the §3 bar decision card on `#2028`.
 3. Wire the 64-entry `PositionStepTable` kernel step into the discrete GPU read path (`discrete.cu`) behind `PositionMode` and qualify its PTX admission (`build.rs` `admit_ptx`).
 4. After PM dispatch and Casey's typed D40 release, run `H_pos` and `C_match` across seeds 1 and 2 on GPU, plus `C_shuf` evaluation on the trained `H_pos` checkpoints.
 5. Score the paired contrasts on DEV (`P_succ` and multi-occurrence order slice) and, if DEV passes, on the sealed fresh V2 draw.
@@ -84,4 +84,28 @@ Three arms share the identical A8 initialization (`address_structured_v1`, file 
   - Rows: $14{,}287$ DEV rows ($3{,}847$ `P_succ` rows; $\ge 200$ multi-occurrence order-sensitive rows) plus sealed fresh V2 transfer draw ($\ge 200$ rows).
   - Decisive run: YES ($\ge 2$ seeds and $\ge 200$ fresh rows, trained in from step 0 rather than bolted on).
 
-TEST FITNESS: PENDING
+## Verdict
+
+### Why NOT_FIT (prerequisites in priority order)
+
+1. **The owner bar is not registered.** The top Status line called comment `6337522273` "the owner's bar confirmation"; it is **antigravity's decision card** proposing `F_order`. No owner answer exists (the PM's routing note lists this card among those awaiting the owner), so no compute is cleared. Quote the owner's registered bar verbatim with an **ISO-UTC time**, or keep the card as `PENDING`.
+2. **The DEV pin is ambiguous, so the inherited split is not actually pinned.** The sheet carries only prefixes (`0919e90f…`). The repo holds two conflicting full pairs:
+   - the **authoritative code pin** in [`crates/uor-r4-discrete/src/attention_learning.rs`](../../../crates/uor-r4-discrete/src/attention_learning.rs) — tokens `0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b`, mask `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078` (archive `a2-pilot` matches, and the expected `42,856` payload tokens / `14,287` targets match);
+   - the staging sheet's `0919e90f813bf02f6f0528ebcf1f34c97987113b679619b0b44e065fa90b2546` / `a838bb1ae20c05a1b68265a7aa11c3dd146200b7d1ff6ef185ff999e442f5327`, which appears nowhere else.
+   Pin the full code-pin pair in §5 and file an errata for the staging sheet, or show which file each pair belongs to.
+3. **The new evaluation slice is unpinned.** The bar's "multi-occurrence order-sensitive slice (`N ≥ 200` rows)" has no deterministic definition (selection rule), row count or SHA-256. Pin the construction and the hash before a run; the inherited `14,287`-row DEV panel is pinned through the DEV tokens hash once finding 2 is settled.
+
+Everything else checked and holds: all 8 blocks are present (`prep-check` `complete=yes`); `cargo test -p uor-r4-discrete --lib position_mechanism` = **5 passed**; the path has no float, no dense matmul and no squashing form; the step table exports as `16 × B` `u8` words; the A8 parent sheet is `TEST FITNESS: FIT`; the proxy trunk is named; seeds, rows, cost and stop rules are present.
+
+Re-request FIT only when 1–3 are pinned in this sheet; this verdict clears no compute (D22).
+
+### Recorded review
+
+```text
+TEST FITNESS: NOT_FIT - M1 #2029 PositionHolonomyV1
+sheet: docs/harness/prep/m1-position-mechanism-DRAFT-2026-10-22.md
+reviewer: deepseek (non-author; fresh-context FIT review for #2843)
+note: Configuration not yet pinnable: (1) the sheet's 'owner bar confirmation' link is antigravity's decision card 6337522273, not an owner answer - the owner bar with ISO-UTC time is absent (PM routing lists the bar cards as waiting on the owner), so no compute is cleared; (2) the DEV pin is ambiguous - the sheet carries only prefixes, while the repo holds two conflicting full DEV pairs: the authoritative code pin in attention_learning.rs (tokens 0919e90f953e..., mask a838bb1a67e9..., matching expected 42,856/14,287 and archived a2-pilot) versus the staging sheet's 0919e90f813b.../a838bb1ae20c... which appears nowhere else; pin the full code-pin pair and file an errata for the staging sheet; (3) the new multi-occurrence order-sensitive slice (N>=200 rows) has no deterministic definition or SHA-256 and must be pinned. Everything else holds: 8/8 blocks, 5 finite CPU controls pass, no float/matmul/softmax on the path, D11 export as 16xB u8 words, parent A8 sheet is FIT-registered, proxy trunk named, seeds/rows/cost/stop rules present.
+date: 2026-10-22
+A FIT verdict clears compute for the configuration in that sheet only (D22).
+```

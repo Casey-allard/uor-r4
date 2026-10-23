@@ -29,3 +29,12 @@ This record delivers:
 - `~/.cargo/bin/cargo test -p uor-r4-discrete --lib position_mechanism::tests`: `5 passed; 0 failed`.
 - `~/.cargo/bin/cargo test -p uor-r4-discrete --lib`: `203 passed; 0 failed; 1 ignored` in an unsandboxed host worktree (from `198 passed; 0 failed; 1 ignored` at base); in a sandboxed review worktree where `ps -p` is restricted, the pre-existing test `controller::tests::explicit_unlock_refuses_live_or_foreign_holders_and_preserves_dead_lock` fails both at base and at head (`202 passed; 1 failed; 1 ignored` vs `197 passed; 1 failed; 1 ignored` at base).
 - `uor-harness ratchet d23`, `d25`, and `d32`: all green (0 growth).
+
+## 3. Non-author FIT review (deepseek-36, 2026-10-22)
+
+Non-author `TEST FITNESS` review of the draft sheet: **NOT_FIT**, recorded in the sheet's `## Verdict`. No compute is cleared. The three pinned prerequisites:
+1. owner-registered bar (the linked `#2028` comment is antigravity's decision card `6337522273`, not an owner answer);
+2. the full DEV token/mask pin — the sheet must use the authoritative code pin in `attention_learning.rs` (`0919e90f953e…` / `a838bb1a67e9…`; the staging sheet's `0919e90f813b…` / `a838bb1ae20c…` pair appears nowhere else and needs an errata);
+3. a deterministic definition and SHA-256 for the new multi-occurrence order-sensitive slice (`N ≥ 200`).
+
+Verified at the review head: `cargo test -p uor-r4-discrete --lib position_mechanism` = 5 passed; no float, dense matmul or squashing form on the path; the step table exports as `16 × B` `u8` words; the parent A8 sheet is `TEST FITNESS: FIT`; all 8 blocks present.
