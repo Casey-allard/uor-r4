@@ -38,3 +38,43 @@ Non-author `TEST FITNESS` review of the draft sheet: **NOT_FIT**, recorded in th
 3. a deterministic definition and SHA-256 for the new multi-occurrence order-sensitive slice (`N ≥ 200`).
 
 Verified at the review head: `cargo test -p uor-r4-discrete --lib position_mechanism` = 5 passed; no float, dense matmul or squashing form on the path; the step table exports as `16 × B` `u8` words; the parent A8 sheet is `TEST FITNESS: FIT`; all 8 blocks present.
+
+## 4. Frozen order-sensitive slice (claude-58, 2026-10-23)
+
+The position sheet's §5 rule for the multi-occurrence order-sensitive DEV slice is now frozen.
+
+- **File:** [`order-slice-v1.tsv`](order-slice-v1.tsv)
+  - SHA-256 `f76dc5c7ff6c359dd4c9158abc280ff29105cb611f6c4c2bdba6fdfed0035b3a`, 17,789 bytes.
+  - A `row_ordinal<TAB>target_position` header, then one line per selected row, in ascending row order.
+- **Count:** **N = 1,620** of the 14,287 DEV rows. The sheet needs `N ≥ 200`.
+- **Rule:** [`order_slice.rs`](../../../crates/uor-r4-discrete/src/order_slice.rs), policy `query-occurs-twice-in-prefix/pairwise-distinct-successors/C192-window/ascending-rows/v1`.
+  - A row's window is the one `PreparedCorpus::batch` builds at `context = 192`: it stays inside the document, and its last token is the query.
+  - The row is selected when the query token occurs at least twice earlier in the window and the tokens following those occurrences are pairwise distinct.
+  - The occurrence just before the query has the query itself as its successor, as in `is_copy_successor`.
+  - The row ordinal is the index in the eligible inventory, the same ordinal the DEV evaluation's batches use.
+- **Looser reading, a diagnostic only:** requiring at least two distinct successors, with repeats allowed, would select 3,277 rows. It is not the frozen slice.
+- **Input:** `data/ft-dev.tar` from the HF store (`caseyallard/uor-r4-store`, sha256 `45e93e32918f8ad5c977ad3a98926b561173049aacd8bfce2b6e2e49a0390b5c`, 143,360 bytes).
+  - `ft/dev/tokens.u16` is UORT sha256 `0919e90f…`, and `ft/dev/response_mask.u8` is `a838bb1a…`.
+  - The binary loads only under these registered digests and the pinned inventory: 42,856 payload tokens, 14,287 eligible targets, vocabulary 4096, BOS id 0.
+
+To reproduce:
+
+```sh
+hf download caseyallard/uor-r4-store data/ft-dev.tar --repo-type dataset --local-dir <dir>
+tar -xf <dir>/data/ft-dev.tar -C <dir>/x
+cargo run --release --locked -p uor-r4-discrete --bin order-slice-freeze -- \
+  <dir>/x/ft/dev/tokens.u16 <dir>/x/ft/dev/response_mask.u8 <out>.tsv
+```
+
+Two runs gave byte-identical files, both printing `selected 1620` and the SHA-256 above.
+
+**Tests:** `cargo test -p uor-r4-discrete --lib order_slice` gives 6 passed. They cover:
+- two occurrences with distinct successors are selected;
+- a repeated successor, a single occurrence, an absent occurrence and an empty window are each rejected;
+- the occurrence just before the query counts;
+- three occurrences need every successor distinct;
+- an end-to-end corpus fixture, through `PreparedCorpus::from_bytes` and `select`.
+
+**Negative gate:** dropping the distinctness check fails 3 of the 6 tests.
+
+This freeze clears no compute. The sheet still needs Kimi's non-author FIT, since Claude has now authored sheet text, plus the assembled trunk, PM dispatch and Casey's release.

@@ -26,6 +26,7 @@ pub mod measurement;
 pub mod metadata;
 pub mod normalization_mechanism;
 pub mod objective;
+pub mod order_slice;
 pub mod position_mechanism;
 pub mod proposal_timing;
 pub mod rows_source;

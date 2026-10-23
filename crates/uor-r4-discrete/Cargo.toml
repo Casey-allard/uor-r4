@@ -45,3 +45,7 @@ path = "src/bin/bvgk-qualify.rs"
 [[bin]]
 name = "coverage-census"
 path = "src/bin/coverage-census.rs"
+
+[[bin]]
+name = "order-slice-freeze"
+path = "src/bin/order-slice-freeze.rs"
