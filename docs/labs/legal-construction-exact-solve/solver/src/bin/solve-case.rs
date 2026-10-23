@@ -40,7 +40,7 @@ fn main() -> ExitCode {
         .unwrap_or(4096);
 
     let t = Instant::now();
-    let case = match case::load(&dir) {
+    let (case, verified) = match case::load_verified(&dir) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("load failed: {e}");
@@ -49,12 +49,13 @@ fn main() -> ExitCode {
     };
     let n = case.problem.n();
     println!(
-        "load case={} seconds={:.3} n={} guards={} fractional={}",
+        "load case={} seconds={:.3} n={} guards={} fractional={} hashes_verified={}",
         dir.display(),
         t.elapsed().as_secs_f64(),
         n,
         case.guard_rows,
-        case.fractional
+        case.fractional,
+        verified.len()
     );
 
     let zero = bb::Assignment::zero(n);

@@ -9,9 +9,11 @@
 //! legal-code bounds and disjunction rows of the design note.
 
 pub mod bb;
+pub mod blp;
 pub mod brute;
 pub mod case;
 pub mod check;
 pub mod exact;
 pub mod lp;
 pub mod problem;
+pub mod receipts;

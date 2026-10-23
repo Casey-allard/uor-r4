@@ -10,10 +10,11 @@
 use std::path::{Path, PathBuf};
 
 /// The saved-file suffix, split so the crate's no-float scan sees no binary32 type token.
-const BITS_SUFFIX: &str = concat!("f", "32le");
+pub(crate) const BITS_SUFFIX: &str = concat!("f", "32le");
 
 use crate::exact::{master_weight_in_range, problem_from_saved_bits, ExactError};
 use crate::problem::Problem;
+pub use crate::receipts::VerifiedHash;
 
 /// One family of the saved case: `(file stem, coefficient count)`.
 pub const FAMILIES: [(&str, usize); 2] = [("prefix.coefficients", 960), ("generate.unary", 960)];
@@ -94,6 +95,15 @@ pub fn load(dir: &Path) -> Result<Case, String> {
         guard_rows: guards.len(),
         fractional,
     })
+}
+
+/// Check every file `load` reads against the case's sha256 receipts (`receipts::verify`),
+/// then `load`. Refuses a hash mismatch (naming the file and both hashes), a missing
+/// receipt, and a missing or duplicate receipt entry, before any value is converted.
+pub fn load_verified(dir: &Path) -> Result<(Case, Vec<VerifiedHash>), String> {
+    let verified = crate::receipts::verify(dir)?;
+    let case = load(dir)?;
+    Ok((case, verified))
 }
 
 /// The default extracted location of the case (gitignored, not part of the repo).
