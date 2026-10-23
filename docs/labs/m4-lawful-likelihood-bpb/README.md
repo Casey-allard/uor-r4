@@ -91,3 +91,10 @@ Nine lib tests cover the seven finite host controls: tiny alphabet; V=4096 worst
 - Read-weight normalization precedent: `archive/mechanisms/flock-rank-reads-2026-10-20.md`; `crates/uor-r4-integer/src/stack/flock.rs:382-470`; board gap: `docs/mechanisms/README.md:142`.
 - Owner decision on Card 1: #2028 comment 2026-10-22T04:17:03Z (Claude, recording Casey's chat answer at ~04:15Z).
 - Open question: `docs/research/open-questions.md:102`.
+
+## Pre-registration sheet (deepseek-49, 2026-10-23)
+
+The one-page pre-registration for the registered scoring run is [`docs/harness/prep/m4-lawful-likelihood-bpb-2026-10-23.md`](../../harness/prep/m4-lawful-likelihood-bpb-2026-10-23.md), `TEST FITNESS: PENDING` pending a non-author review (Claude, Kimi or antigravity; deepseek authored it).
+
+- It names and freezes the chat held-out stream (`heldout.u16`, 12,389,242 bytes, sha256 `e5f400b0…`, 6,194,589 tokens / 17,576,697 stream bytes), fixes the PRLL scoring formula and both byte bases, the 512-window primary arm (196,608 targets) and the 64-window diagnostic, the arms A0/B0/C0/U, the owner's 0.90 bar (not set or changed here) and the two registration conditions already in the design note (uncalibrated-likelihood reading and stream confirmation).
+- It charges nothing: no GPU is used, no model is exported yet (`m4-export-uorlut01-cli`), no bar is registered, and the item stays `ready` until the FIT and the owner registration land.
