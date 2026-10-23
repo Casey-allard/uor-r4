@@ -17,7 +17,8 @@
         "current": 37,
         "target": 116,
         "of": 232,
-        "unit": "acceptable replies"
+        "unit": "acceptable replies",
+        "suspended": true
       },
       "secondary": [
         {

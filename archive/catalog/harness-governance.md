@@ -1,6 +1,6 @@
 # harness-governance
 
-185 records.
+187 records.
 
 | Date | Record | Lab | Outcome | Summary | PRs |
 |---|---|---|---|---|---|
@@ -179,6 +179,8 @@
 | 2026-10-19 | [Front-door correction: normal close complete; Q4 alias correction — 2026-10-19](../../docs/labs/k16-frontdoor-close-sync-2026-10-19/README.md) | claude | process | Docs-only correction: the K16 pod normal close is complete (not pending), and initial aliasing is not the sole cause of arm A's low top-1; outcome label unchanged. |  |
 | 2026-10-19 | [K16 outcome synced into README and lab entry — 2026-10-19](../../docs/labs/k16-outcome-docs-sync-2026-10-19/README.md) | claude | process | Docs-only fix so README and lab index report the completed K16 verdict (occupancy collapse, no KEEP) instead of calling the interpretation pending. |  |
 | 2026-10-19 | [Restore the Post-dose optimization path anchor — 2026-10-19](../../docs/labs/post-dose-anchor-hygiene-2026-10-19/README.md) | unknown | process | Docs-only fix: restored a missing heading in project-track that DECISIONS and a prep draft referenced, pointing to the archived text; no claims, bars or compute changed. |  |
+| 2026-10-22 | [STATUS.md — hand-written status page, retired by loop PR 8](../STATUS.md) | kimi | ops | The hand-written status page moved byte-identical to archive/STATUS.md; the rendered STATE.md replaces it. | [#2982](https://github.com/UOR-Foundation/uor-r4/pull/2982), [#2913](https://github.com/UOR-Foundation/uor-r4/pull/2913) |
+| 2026-10-22 | [NOW.md — hand-written current-work page, retired by loop PR 8](../integration/NOW-2026-10-22.md) | kimi | ops | The hand-written NOW page moved byte-identical to archive/integration/NOW-2026-10-22.md; PLAN.md and the rendered STATE/HANDOFF replace it. | [#2982](https://github.com/UOR-Foundation/uor-r4/pull/2982), [#2913](https://github.com/UOR-Foundation/uor-r4/pull/2913) |
 |  | [#830 — execution scope, serving reachability, and non-vacuous empirical verdicts](../conformance_execution_scope_830.md) |  | tooling | Defines the register evidence-scope taxonomy (reference-only, certifier, deployed-serving) so structural harnesses cannot be over-read as production results. | [#830](https://github.com/UOR-Foundation/uor-r4/pull/830) |
 |  | [GNAF vendor-in provenance (#653 phase 1)](../gnaf_import_provenance.md) |  | ops | Provenance record for vendoring the WASM-GEMM-GNAF Lean proof at a pinned commit; inert, not wired to r4 serving or certificates. | [#653](https://github.com/UOR-Foundation/uor-r4/pull/653), [#742](https://github.com/UOR-Foundation/uor-r4/pull/742) |
 |  | [GNAF integration matrix (#653 phase 2)](../gnaf_integration_653.md) |  | process | Classifies every layer of the vendored GNAF proof tree as adopt, retain, defer or reject; its Wasm GEMM results do not prove r4 kernel correctness. | [#653](https://github.com/UOR-Foundation/uor-r4/pull/653) |

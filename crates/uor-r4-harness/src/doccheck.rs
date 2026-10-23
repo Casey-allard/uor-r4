@@ -560,6 +560,7 @@ const GROUPS: [(&str, &[&str]); 12] = [
             "onboard",
             "pr-check",
             "queue",
+            "migrate",
             "render",
             "report",
             "review",

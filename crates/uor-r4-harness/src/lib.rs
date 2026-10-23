@@ -41,6 +41,7 @@ pub mod loopclose;
 pub mod loopdrive;
 pub mod loopgates;
 pub mod loopguard;
+pub mod loopmigrate;
 pub mod loopnext;
 pub mod loopprcheck;
 pub mod loopqueue;

@@ -214,8 +214,13 @@ pub fn validation_errors(stem: &str, text: &str, fm: &[(String, String)]) -> Vec
     errors
 }
 
-/// `^[a-z0-9][a-z0-9-]{2,63}$` — at least three characters, kebab-case.
+/// `^[a-z0-9][a-z0-9-]{2,63}$` — at least three characters, kebab-case — or a permanent
+/// lesson key `L-NNN` (loop PR 8): the loop renderer reads lesson keys from the `id:` line
+/// (`looprender.rs` `lesson_id`), and the store keeps each lesson under its key.
 pub fn kebab_case_id(id: &str) -> bool {
+    if id.len() == 5 && id.starts_with("L-") && id[2..].bytes().all(|b| b.is_ascii_digit()) {
+        return true;
+    }
     let b = id.as_bytes();
     if b.len() < 3 || b.len() > 64 {
         return false;
@@ -672,6 +677,20 @@ mod tests {
     fn a_closed_lesson_never_surfaces() {
         let ms = vec![lesson("a", "block", "closed")];
         assert!(match_lessons(&ms, &[], "stale binary", &[]).is_empty());
+    }
+
+    /// Loop PR 8: permanent lesson keys `L-NNN` are valid ids; kebab-case still applies
+    /// to every other id.
+    #[test]
+    fn lesson_keys_are_valid_ids_and_kebab_still_rules() {
+        assert!(kebab_case_id("L-001"));
+        assert!(kebab_case_id("L-024"));
+        assert!(!kebab_case_id("L-01"));
+        assert!(!kebab_case_id("L-1000"));
+        assert!(!kebab_case_id("L-0a1"));
+        assert!(kebab_case_id("l-001")); // valid kebab-case, but not a lesson key the renderer reads
+        assert!(kebab_case_id("archive-is-not-deletion"));
+        assert!(!kebab_case_id("Archive-Is-Not-Deletion"));
     }
 
     #[test]

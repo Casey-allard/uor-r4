@@ -966,6 +966,45 @@ fn rendered_lock_holds_the_views_to_kimi_render() {
     );
 }
 
+/// `rendered-lock`: the views' first commit passes on any branch while no view exists at the
+/// base (loop PR 8's migration); once one view exists at the base, adding another view is an
+/// edit, and the kimi/render rule applies.
+#[test]
+fn rendered_lock_passes_the_views_first_commit_only() {
+    let r = Repo::new();
+    // No view at the base; the head adds every view on a feature branch: the first commit passes.
+    let h = r.head(|r| {
+        r.order_a();
+        r.write("STATE.md", "# State\n");
+        r.write("HANDOFF.md", "# Handoff\n");
+        r.write("docs/harness/LESSONS.md", "# Lessons\n");
+        r.write(
+            "AGENTS.md",
+            "# Agents\n<!-- loop:lessons-top-ten:start -->\n1. one\n<!-- loop:lessons-top-ten:end -->\n",
+        );
+    });
+    let o = r.check(&h, &[]);
+    assert!(stdout(&o).contains("PASS rendered-lock"), "{}", stdout(&o));
+
+    // One view at the base; the head adds a second on a feature branch: not a first commit.
+    let mut r = Repo::new();
+    r.git(&["checkout", "-q", "--detach", &r.base]);
+    r.write("STATE.md", "# State\n");
+    r.git(&["add", "-A"]);
+    r.git(&["commit", "-q", "-m", "state view"]);
+    r.base = r.out(&["rev-parse", "HEAD"]);
+    let h = r.head(|r| {
+        r.order_a();
+        r.write("HANDOFF.md", "# Handoff\n");
+    });
+    expect(
+        &r.check_against(&r.base.clone(), &h, &[]),
+        1,
+        "FAIL rendered-lock",
+        "HANDOFF.md changed",
+    );
+}
+
 /// `read-path`: every over-budget item fails, grown or not, and so does a whole path above the
 /// 76,800 B line (the former warnings, raised to errors in loop PR 11).
 #[test]

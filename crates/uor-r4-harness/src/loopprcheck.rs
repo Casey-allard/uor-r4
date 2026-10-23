@@ -1002,6 +1002,17 @@ fn rule_rendered_lock(pr: &Pr) -> RuleResult {
     if views.iter().all(|(_, b, h)| b.is_none() && h.is_none()) {
         return not_applicable(R, "no rendered view exists yet (loop PR 8 commits them)");
     }
+    // The views' first commit is the migration (loop PR 8): while none exists at the base,
+    // the PR that commits them is allowed on any branch; once they exist at the base, only
+    // kimi/render changes them (the steady-state render PR, loop page "The render PR").
+    if views.iter().all(|(_, b, _)| b.is_none()) {
+        return result(
+            R,
+            Vec::new(),
+            "no rendered view at the base: the first commit of the views (loop PR 8)",
+            "",
+        );
+    }
     let changed: Vec<String> = views
         .iter()
         .filter(|(_, b, h)| b != h)

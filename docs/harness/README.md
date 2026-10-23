@@ -83,6 +83,10 @@ It reads committed files only, at one commit, and prints that commit in a stamp 
 - **Roadmap view.** `docs/roadmap/README.md` comes from `cargo run -q --locked -p xtask -- roadmap render [--check]`, which this command runs. Any xtask or cargo failure, a signal or a missing cargo prints `docs/roadmap/README.md: REFUSED` and exits 2; only exit 1 under `--check` is a difference (exit 1). The child runs without `GIT_*`, `CARGO_TARGET_DIR`, `RUSTFLAGS` and `CARGO_BUILD_*`. With `--out` the step is skipped with a note, because xtask renders inside the repository; with `--at`, or a `--check` whose stamp names a commit other than HEAD, it is skipped because xtask renders the working tree.
 - **Before loop PR 8.** Until loop PR 8 commits the views, run `loop render --out <dir>` on the real repository: an in-place `--check` there exits 2 because the views are not committed yet, and an in-place render would write untracked view files.
 
+### `loop migrate --check` (loop PR 8)
+
+Verifies the notes-migration invariants: retired notes carry pointers to byte-identical archive copies, AGENTS.md carries the lessons markers, every lesson is keyed `id: L-NNN`, the after-charter DECISIONS table keeps its two columns, FILEMAP covers every tracked directory two levels deep, the read-path budget holds, and every link in the migrated views resolves. Read-only: exit 0 pass, 1 with each failure named, 2 on a usage error.
+
 ### `loop gates` (loop PR 4)
 
 ```sh

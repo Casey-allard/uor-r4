@@ -170,6 +170,50 @@ fn front_get<'t>(front: &'t str, key: &str) -> Option<&'t str> {
 }
 
 /// The first paragraph of a `## <name>` section, joined onto one line.
+/// Item files live in `docs/roadmap/items/`; their relative links must be re-rooted when the
+/// view that quotes them sits at the repository root (`../../loop/README.md` in an item is
+/// `docs/loop/README.md` in the view). Hand-rendered roots only: the items' home is fixed.
+fn reroot_item_links(text: &str) -> String {
+    let mut out = String::with_capacity(text.len() + 16);
+    let mut rest = text;
+    while let Some(start) = rest.find("](") {
+        out.push_str(&rest[..start + 2]);
+        let after = &rest[start + 2..];
+        let Some(end) = after.find(')') else {
+            out.push_str(after);
+            return out;
+        };
+        let target = &after[..end];
+        // URI schemes (`mailto:`, `tel:`) and absolute/anchor links are not item-relative.
+        let has_scheme = target
+            .find(':')
+            .is_some_and(|c| c < target.find('/').unwrap_or(usize::MAX));
+        if target.starts_with("http")
+            || target.starts_with('#')
+            || target.starts_with('/')
+            || has_scheme
+        {
+            out.push_str(target);
+        } else {
+            let mut parts: Vec<&str> = vec!["docs", "roadmap", "items"];
+            for seg in target.split('/') {
+                match seg {
+                    ".." => {
+                        parts.pop();
+                    }
+                    "." | "" => {}
+                    other => parts.push(other),
+                }
+            }
+            out.push_str(&parts.join("/"));
+        }
+        out.push(')');
+        rest = &after[end + 1..];
+    }
+    out.push_str(rest);
+    out
+}
+
 fn section_first_paragraph(text: &str, name: &str) -> Option<String> {
     let head = format!("## {name}");
     let mut lines = text.lines().skip_while(|l| l.trim_end() != head).skip(1);
@@ -243,10 +287,10 @@ pub fn render_handoff(c: &AtCommit) -> Result<String, String> {
             open_to: get("open_to"),
             depends_on: deps.to_string(),
             done_when: section_first_paragraph(&text, "Done when")
-                .map(|p| first_sentence(&p).to_string())
+                .map(|p| reroot_item_links(first_sentence(&p)).to_string())
                 .unwrap_or_else(|| NR.into()),
             cancel_if: section_first_paragraph(&text, "Cancel if")
-                .map(|p| first_sentence(&p).to_string())
+                .map(|p| reroot_item_links(first_sentence(&p)).to_string())
                 .unwrap_or_else(|| NR.into()),
             size: if size.is_empty() { NR.into() } else { size },
             status,
@@ -687,16 +731,35 @@ pub fn render_state(c: &AtCommit) -> Result<String, String> {
         let m = &ms[k];
         let field = |f: &str| m.get(f).map(value_text).unwrap_or_else(|| "none".into());
         let bar = match m.get("headline") {
-            Some(h) if h.is_object() => {
-                let h = |f: &str| h.get(f).map(value_text).unwrap_or_else(|| "none".into());
-                format!(
-                    "{}: {} of target {} (out of {} {})",
-                    h("label"),
-                    h("current"),
-                    h("target"),
-                    h("of"),
-                    h("unit")
-                )
+            Some(hv) if hv.is_object() => {
+                let h = |f: &str| hv.get(f).map(value_text).unwrap_or_else(|| "none".into());
+                let mut s = if hv.get("current").is_none() && hv.get("text").is_some() {
+                    // No measured value: print the declared text, never a fake "none" count.
+                    let mut t = h("text");
+                    if hv.get("target_display").is_some() {
+                        t = format!("{t}; target {}", h("target_display"));
+                    }
+                    t
+                } else {
+                    format!(
+                        "{}: {} of target {} (out of {} {})",
+                        h("label"),
+                        h("current"),
+                        h("target"),
+                        h("of"),
+                        h("unit")
+                    )
+                };
+                if hv.get("direction").is_some() {
+                    s = format!("{s} (direction: {})", h("direction"));
+                }
+                if hv.get("vacuous") == Some(&serde_json::Value::Bool(true)) {
+                    s = format!("{s} (vacuous)");
+                }
+                if hv.get("suspended") == Some(&serde_json::Value::Bool(true)) {
+                    s = format!("{s} (suspended)");
+                }
+                s
             }
             _ => "none".into(),
         };
@@ -1055,4 +1118,33 @@ fn roadmap_or_skip(root: &Path, out_given: bool, check: bool) -> u8 {
         return 0;
     }
     roadmap(root, check)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reroot_item_links;
+
+    #[test]
+    fn reroot_rebases_item_relative_links_and_leaves_schemes_alone() {
+        // A repo-escaping relative link from docs/roadmap/items/ lands inside docs/.
+        assert_eq!(
+            reroot_item_links("see [the plan](../../loop/README.md#build-plan)"),
+            "see [the plan](docs/loop/README.md#build-plan)"
+        );
+        assert_eq!(
+            reroot_item_links("[x](../harness/README.md)"),
+            "[x](docs/roadmap/harness/README.md)"
+        );
+        // http, anchors, absolute paths and URI schemes pass through untouched.
+        for target in [
+            "https://example.com/x",
+            "#section",
+            "/abs/path",
+            "mailto:a@b.invalid",
+            "tel:+10000000000",
+        ] {
+            let text = format!("[x]({target})");
+            assert_eq!(reroot_item_links(&text), text, "{target} untouched");
+        }
+    }
 }

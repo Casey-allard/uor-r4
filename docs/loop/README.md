@@ -27,13 +27,13 @@ Each part of the kit, what it is for, and what takes its place here. "Private sk
 | working-discipline (skill) | Habits for arriving, reading, measuring and reporting | The arrival check against the repository, and the REPORT's order (negatives first) | By hand now. `loop arrive` comes in PR 7b |
 | gates (skill) | A single command for all the checks, a log of past runs, a planted fault for each check, and a live view of a long run | `loop gates`, with its ledger and its planted faults, and `loop board` | PR 4 and PR 11 |
 | House rules file | The short rules every session reads first | `AGENTS.md`, with CHARTER §5.10 | Exists |
-| PLAN | The route from today to done | `PLAN.md`, built from `ROADMAP.md` and the roadmap items | PR 8 |
+| PLAN | The route from today to done | `PLAN.md`, PM-written | Built, loop PR 8 |
 | STATE | What is true now | `STATE.md`, rendered by the harness | PR 3 |
 | HANDOFF | The next few tasks | `HANDOFF.md`, rendered by the harness | PR 3 |
 | DECISIONS | The reasons behind each choice | The append-only table in `docs/integration/DECISIONS.md`, from D43 on | Exists |
 | LESSONS | Lessons the project paid for | `LESSONS.md`, rendered from the mistakes store; L-001 is records drift | PR 3 and PR 8 |
 | PICKUP | The note that resumes the next session | `local/<lab>/PICKUP.md`, not committed (D47) | By hand now. `loop close` comes in PR 7b |
-| FILEMAP | What each folder holds | `docs/start/FILEMAP.md` | PR 8 |
+| FILEMAP | What each folder holds | `docs/start/FILEMAP.md` | Built, loop PR 8 |
 | ORDER and REPORT | One task's order, and its account | `docs/loop/tasks/<item>/<lab>-<n>/`, committed with the PR | Exists |
 | Archive | Finished work, moved unchanged, leaving a pointer behind | `archive/`, byte-identical and never edited | Exists |
 
@@ -86,7 +86,7 @@ Notes carry memory between sessions. Most are rendered, so nobody types them.
 | ORDER, REPORT, receipts | `docs/loop/tasks/<item>/<lab>-<n>/` | the lab's top session | Committed in the task's PR and never changed after merge. At milestone close the PM moves folders byte-identical to `archive/loop/`. |
 | PICKUP | `local/<lab>/PICKUP.md` (gitignored) | `loop close` | What the next session needs. A standing-rule line may only cite a charter section, a decision row or a lesson id, so no lab keeps a private rulebook. |
 
-**What is rendered.** STATE, HANDOFF, LESSONS, the top-ten block in AGENTS.md, `docs/roadmap/README.md` and `docs/loop/baseline.json`. Loop PR 3 builds `uor-harness loop render`: STATE, HANDOFF and LESSONS are rendered and checked, the AGENTS block is rendered between markers that PR 8 adds, the roadmap view goes through xtask, and `baseline.json` is deferred to PR 5. The renderer reads committed files only: roadmap items, milestone bars and holds, the newest notebook row per line, mechanism status lines, the lab registry, the mistakes files and files at one commit. It reads no clock and no GitHub, so a render is repeatable.
+**What is rendered.** STATE, HANDOFF, LESSONS, the top-ten block in AGENTS.md, `docs/roadmap/README.md` and `docs/loop/baseline.json`. Loop PR 3 builds `uor-harness loop render`: STATE, HANDOFF and LESSONS are rendered and checked, the AGENTS block is rendered between the markers PR 8 added, the roadmap view goes through xtask, and `baseline.json` is deferred to PR 5. The renderer reads committed files only: roadmap items, milestone bars and holds, the newest notebook row per line, mechanism status lines, the lab registry, the mistakes files and files at one commit. It reads no clock and no GitHub, so a render is repeatable.
 
 **The render PR.** One PR, on branch `kimi/render`, changes the rendered views. A lab PR that touches a rendered view fails. The refresh merges `origin/main` forward, renders, commits and pushes, never by force. A freshness check goes red when views lag their inputs by more than 2 hours.
 
@@ -94,7 +94,7 @@ Notes carry memory between sessions. Most are rendered, so nobody types them.
 
 **Read-path budget.** AGENTS.md stays within about 80 lines. STATE and HANDOFF stay under 24 KB each, PICKUP under 8 KB and an ORDER under 4 KB. The whole read path fails above 75 KB (76,800 bytes) since loop PR 11 raised the warning to an error, and above 125 KB the command names the hard limit.
 
-**Today.** `STATUS.md`, `docs/integration/NOW.md`, `docs/harness/claims.json` and the roadmap render all exist and are still edited the old way. The fold-in to STATE, HANDOFF and PLAN is PR 8.
+**Today.** `docs/harness/claims.json` is still edited the old way. `STATUS.md` and `docs/integration/NOW.md` are retired with pointers (loop PR 8): STATE.md, HANDOFF.md and PLAN.md carry their functions.
 
 ## Scope, without a line cap
 

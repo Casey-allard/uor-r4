@@ -8,7 +8,7 @@ from `archive/catalog.jsonl`; edit the catalog data, not these pages.
 
 ## Totals
 
-1173 records.
+1175 records.
 
 | Outcome | Records |
 |---|---|
@@ -16,7 +16,7 @@ from `archive/catalog.jsonl`; edit the catalog data, not these pages.
 | diagnostic-stop | 33 |
 | inconclusive | 103 |
 | negative | 193 |
-| ops | 16 |
+| ops | 18 |
 | plan | 148 |
 | positive | 214 |
 | process | 90 |
@@ -33,7 +33,7 @@ from `archive/catalog.jsonl`; edit the catalog data, not these pages.
 | eval-panels | 14 | 2026-08-07 | 2026-10-14 | 0 | 3 | [eval-panels](catalog/eval-panels.md) |
 | geometric-intelligence-aug | 9 | 2026-08-25 | 2026-08-30 | 2 | 3 | [geometric-intelligence-aug](catalog/geometric-intelligence-aug.md) |
 | geometric-stack-pretraining | 84 | 2026-09-20 | 2026-10-11 | 18 | 20 | [geometric-stack-pretraining](catalog/geometric-stack-pretraining.md) |
-| harness-governance | 185 | 2026-07-24 | 2026-10-19 | 0 | 0 | [harness-governance](catalog/harness-governance.md) |
+| harness-governance | 187 | 2026-07-24 | 2026-10-22 | 0 | 0 | [harness-governance](catalog/harness-governance.md) |
 | m1-discrete-attention | 199 | 2026-08-07 | 2026-10-19 | 27 | 14 | [m1-discrete-attention](catalog/m1-discrete-attention.md) |
 | m1-float-rung0 | 38 | 2026-08-31 | 2026-10-13 | 4 | 7 | [m1-float-rung0](catalog/m1-float-rung0.md) |
 | m1-prime-zeta | 3 | 2026-10-14 | 2026-10-14 | 1 | 0 | [m1-prime-zeta](catalog/m1-prime-zeta.md) |
@@ -65,7 +65,7 @@ from `archive/catalog.jsonl`; edit the catalog data, not these pages.
 | legal-construction | 23 |
 | lut-serving | 101 |
 | native-geometric | 96 |
-| none | 217 |
+| none | 219 |
 | object-store | 34 |
 | pointer-key | 80 |
 | prime-zeta-codebook | 37 |
