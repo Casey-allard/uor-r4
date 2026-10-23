@@ -1,7 +1,7 @@
 # Prefix-holonomy position mechanism on the discrete M1 orbit (`PositionHolonomyV1`)
 
-- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author review `deepseek-36`, 2026-10-22; see the Verdict at the end). No compute is cleared. **Sheet update 2026-10-23 (deepseek-39):** the owner's standing-direction decision registered the §3 bar at **2026-10-23T02:36:36Z** (`#2028` comment `6356034555`; card `6337522273`), §5 now pins the full DEV pair from the code pin, and the order-sensitive slice rule is defined. **Sheet update 2026-10-23 (claude-58):** the slice is frozen (`N = 1,620`, SHA-256 `f76dc5c7…`; see §5). Claude has now authored sheet text, so the non-author FIT must come from Kimi.
-  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review at a later head (CHARTER §4.5) from Kimi (Claude has authored sheet text since claude-58), the bar registered by the owner's standing-direction decision on `#2028` (`2026-10-23T02:36:36Z`, comment `6356034555`; card `6337522273`), the frozen order-sensitive slice hash (pinned in §5 by claude-58), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
+- **Status:** pre-registration, `TEST FITNESS: FIT` (non-author post-freeze review `kimi-32`, 2026-10-23; see the Verdict at the end). No compute is cleared. **Sheet update 2026-10-23 (deepseek-39):** the owner's standing-direction decision registered the §3 bar at **2026-10-23T02:36:36Z** (`#2028` comment `6356034555`; card `6337522273`), §5 now pins the full DEV pair from the code pin, and the order-sensitive slice rule is defined. **Sheet update 2026-10-23 (claude-58):** the slice is frozen (`N = 1,620`, SHA-256 `f76dc5c7…`; see §5).
+  - Training and GPU evaluation remain HELD. Kimi's non-author FIT resolves the three recorded prerequisites only. A run still needs `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release (CHARTER §5.1).
 - **Line:** M1 learned attention and sequence position (#2029, item `m1-position-mechanism` #2843). **Lab:** antigravity.
 - **Parent:** [`m1-attention-a8-address-cells-learning-2026-10-19.md`](m1-attention-a8-address-cells-learning-2026-10-19.md) (the A8 address-structured cells sheet).
   - **What changes from the parent:** replaces the endpoint-only candidate transport in `Flock` / `Relation` (`discrete.cu` `flock_vector`) with causal prefix-holonomy transport `PositionHolonomyV1` (`crates/uor-r4-discrete/src/position_mechanism.rs`) and adds two matched controls (`EndpointControlV1` and shuffled-prefix evaluation `C_shuf`) to isolate sequence-order credit at equal parameter count.
@@ -123,4 +123,24 @@ reviewer: deepseek (non-author; fresh-context FIT review for #2843)
 note: Configuration not yet pinnable: (1) the sheet's 'owner bar confirmation' link is antigravity's decision card 6337522273, not an owner answer - the owner bar with ISO-UTC time is absent (PM routing lists the bar cards as waiting on the owner), so no compute is cleared; (2) the DEV pin is ambiguous - the sheet carries only prefixes, while the repo holds two conflicting full DEV pairs: the authoritative code pin in attention_learning.rs (tokens 0919e90f953e..., mask a838bb1a67e9..., matching expected 42,856/14,287 and archived a2-pilot) versus the staging sheet's 0919e90f813b.../a838bb1ae20c... which appears nowhere else; pin the full code-pin pair and file an errata for the staging sheet; (3) the new multi-occurrence order-sensitive slice (N>=200 rows) has no deterministic definition or SHA-256 and must be pinned. Everything else holds: 8/8 blocks, 5 finite CPU controls pass, no float/matmul/softmax on the path, D11 export as 16xB u8 words, parent A8 sheet is FIT-registered, proxy trunk named, seeds/rows/cost/stop rules present.
 date: 2026-10-22
 A FIT verdict clears compute for the configuration in that sheet only (D22).
+```
+
+### Post-freeze non-author FIT review (kimi-32, 2026-10-23)
+
+The three prerequisites in the recorded `NOT_FIT` verdict are now resolved. The earlier verdict and DeepSeek's post-registration update remain above as history.
+
+1. **Bar — REGISTERED.** Casey's owner decision, recorded at **2026-10-23T02:36:36Z** in `#2028` comment `6356034555`, says **"Yes, register all six (Recommended)"** and registers card `6337522273` exactly as proposed. §3 quotes the registered paired bar, including `Δadmitted ≥ 0` and the order-shuffle drop.
+2. **DEV pin — PINNED AND REPRODUCED.** Kimi hashed the preserved `data/ft-dev.tar` as `45e93e32918f8ad5c977ad3a98926b561173049aacd8bfce2b6e2e49a0390b5c`; its extracted DEV tokens and mask hash to the full §5 pair `0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b` and `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078`. The registered loader scanned 14,287 rows.
+3. **Order-sensitive slice — FROZEN AND REPRODUCED.** Kimi reran `order-slice-freeze` on that pinned DEV pair. It selected 1,620 rows, wrote 17,789 bytes, and produced SHA-256 `f76dc5c7ff6c359dd4c9158abc280ff29105cb611f6c4c2bdba6fdfed0035b3a`, byte-identical to §5's frozen file from #3046 (`aac963833`).
+
+The unchanged finite position controls pass **5/5** (`cargo test -p uor-r4-discrete --lib position_mechanism`). The eight sheet sections, matched controls, proxy trunk, seeds, row counts, costs and stop rules remain present; the A8 parent remains FIT. **TEST FITNESS: FIT** applies only to this pinned configuration. It does not wire the GPU path, run the order test, complete #2843, or release any hold; GPU work still requires the named trunk dependency, PM dispatch and Casey's D40 release.
+
+```text
+TEST FITNESS: FIT - M1 #2029 PositionHolonomyV1
+sheet: docs/harness/prep/m1-position-mechanism-DRAFT-2026-10-22.md
+reviewer: kimi (non-author post-freeze FIT review for #2843)
+resolved: owner bar 6356034555 at 2026-10-23T02:36:36Z; full DEV pair reproduced from tar 45e93e32918f8ad5c977ad3a98926b561173049aacd8bfce2b6e2e49a0390b5c; 1620-row slice reproduced byte-identically at f76dc5c7ff6c359dd4c9158abc280ff29105cb611f6c4c2bdba6fdfed0035b3a
+controls: position_mechanism 5 passed, 0 failed
+date: 2026-10-23
+scope: configuration fitness only; no GPU run, mechanism result, item completion or owner release
 ```
