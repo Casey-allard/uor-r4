@@ -25,7 +25,7 @@ The arithmetic. A transformer runs on large matrix multiplications. Here the sam
 - **12 to 13 October.** The bans on softmax and matrix multiplication moved the older multiplier-allowing engines out of every build (D29).
 - **18 October.** D37 made the integer export the boundary: training may use float, serving may not. The native zero-multiply audit went green (#2655) and a contributor-built WebAssembly runtime followed (#2654).
 - **22 October.** A table-native schema (`uor-r4.lut-discrete/1`) landed for `DiscreteModel` snapshots (#2838): [`d11_export.rs`](../../crates/uor-r4-discrete/src/d11_export.rs) packs and reconstructs `discrete.table`, `discrete.cells`, `discrete.routes`, and `discrete.gates` inside `UORLUT01`, and [`discrete_d11.rs`](../../crates/uor-r4-integer/src/discrete_d11.rs) evaluates `Route`, `Flock`, and `Relation` prefixes in `uor-r4-integer` with exact integer parity against the CUDA-qualified witnesses.
-- **Next.** Export one trained discrete model checkpoint through the container and measure its served evaluation score (milestone M4).
+- **Next.** Export one trained discrete model checkpoint through the container and measure its served evaluation score and prompt-reading / reply-writing throughput ([Stage 4 pre-registration sheet](../harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md), [Stage 4 lab record](../labs/m1-export-gap-and-toks/README.md), milestone M1 #2839 / M4 #2032).
 
 Under the [charter](../../CHARTER.md), serving this artifact on client devices (CPU, browser WebAssembly, Apple silicon) is the product and is allowed.
 
