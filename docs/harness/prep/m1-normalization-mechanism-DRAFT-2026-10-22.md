@@ -1,6 +1,6 @@
 # Scale-matched E8 orbit-root normalization on the discrete M1 trunk (`OrbitRootSnapNormV1`)
 
-- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author review `deepseek-37`, 2026-10-22; see the Verdict at the end). No compute is cleared. **Sheet update 2026-10-23 (deepseek-40):** the owner's standing-direction decision registered the §3 bar at **2026-10-23T02:36:36Z** (`#2028` comment `6356034555`; card `6338596024`), and §5 now pins the full TRAIN/DEV digests from the code pin.
+- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author reviews `deepseek-37`, 2026-10-22, and `claude-57`, 2026-10-23, the review the registration asks for from Claude or Kimi; see the Verdict at the end). No compute is cleared. **Sheet update 2026-10-23 (deepseek-40):** the owner's standing-direction decision registered the §3 bar at **2026-10-23T02:36:36Z** (`#2028` comment `6356034555`; card `6338596024`), and §5 now pins the full TRAIN/DEV digests from the code pin.
   - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review at a later head (CHARTER §4.5) from Claude or Kimi, the bar registered by the owner's standing-direction decision on `#2028` (`2026-10-23T02:36:36Z`, comment `6356034555`; card `6338596024`), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
 - **Line:** M1 discrete normalization and trunk stability (#2029, item `m1-normalization-mechanism` #2842). **Lab:** antigravity.
 - **Parent:** [`m1-attention-a8-address-cells-learning-2026-10-19.md`](m1-attention-a8-address-cells-learning-2026-10-19.md) (the A8 address-structured cells sheet).
@@ -117,4 +117,60 @@ reviewer: deepseek (non-author; fresh-context FIT review for #2842)
 note: Configuration not yet pinnable: (1) the sheet's 'owner bar confirmation' link is antigravity's decision card 6338596024, not an owner answer - the owner bar with ISO-UTC time is absent (PM routing lists it among the cards awaiting the owner), so no compute is cleared; (2) the DEV pin is ambiguous - the sheet carries only prefixes, while the repo holds two conflicting full DEV pairs: the authoritative code pin in attention_learning.rs (tokens 0919e90f953e..., mask a838bb1a67e9..., matching 42,856/14,287 and archived a2-pilot) versus the runbook staging sheet's 0919e90f813b.../a838bb1ae20c... which appears nowhere else; pin the full code-pin pair and file a staging errata. Everything else holds: 8/8 blocks, 6 finite CPU controls pass, no float/matmul/squashing on the path, 4-bit-per-block D11 export, parent A8 sheet FIT-registered, proxy trunk named, two seeds and >=200 fresh rows, cost and stop rules present.
 date: 2026-10-22
 A FIT verdict clears compute for the configuration in that sheet only (D22).
+```
+
+### Non-author FIT review (claude-57, 2026-10-23)
+
+Claude has authored no text in this sheet. Reviewed in a fresh context at `dea171338`, and each point below re-checked by command at that commit. **Verdict: `NOT_FIT`.** It clears no compute (D22).
+
+#### Prerequisites, in priority order
+
+1. **The configuration is not runnable yet.**
+   - The three arms (`ScaleMatchedSnapV1`, `UnitSnapControlV1`, `UnnormalizedControlV1`) exist only in `crates/uor-r4-discrete/src/normalization_mechanism.rs`.
+   - At `dea171338`, `git grep` outside `third_party/` and `docs/` finds no `NormalizationMode`, `ScaleMatchedSnap` or `OrbitRootSnapNorm` reference anywhere else, including the `.cu` kernels.
+   - So no commit runs the GPU arms, and §6 names no command, binary or argv for them. Its only command is step 1's CPU test.
+   - **Clears when** §6 specifies the wiring: the source change, the binary, and the argv for each arm and seed. That is how the parent A8 sheet was cleared before its §6 change was merged. The run itself then waits for that change to land with its PTX admission.
+2. **The sheet holds two configurations.**
+   - §4 runs on the discrete proxy trunk now and says the test is "re-executed unchanged" once `m1-trunk-assembly-and-training` (#2844) lands. That item is `held`, needs a GPU and depends on this item. A FIT clears one configuration (D22).
+   - The proxy's code commit is not pinned; only the A8 initialization file is (`6600bdb1…`, with the full hash in §2).
+   - **Clears when** §4 names the one configuration this sheet tests, pinned by its code commit and the initialization hash, and the run on the assembled trunk gets its own sheet.
+3. **Two registered bar terms cannot be scored mechanically.** The bar registered at 2026-10-23T02:36:36Z (`#2028` comment `6356034555`) is card `6338596024` exactly as proposed. In its item 2:
+   - the threshold `b − c ≥ F_I` attaches to "beats", but "non-inferior to … `C_unscaled`" has no margin;
+   - "replicating on the sealed fresh V2 draw" has no threshold: the same `F_I` on at least 200 rows, or the sign only?
+
+   A review sets no bar values. **Clears when** the PM or the owner answers a card that fixes both terms, and §3 quotes the answer with its time.
+4. **The sheet does not say what each outcome decides.** CHARTER §4 asks a sheet for "what each outcome decides".
+   - §7 has the instrument stops and the hard caps, but no line on outcomes.
+   - It should say that a DEV miss closes this configuration (D22) and the fresh V2 draw stays sealed, and what a DEV `KEEP` followed by a fresh-V2 miss decides.
+   - **Clears when** §7 or §3 gives one line per outcome.
+
+#### Not blocking
+
+5. **Noise and power.** `F_I = max(24, ⌈2√(b+c)⌉)` is the noise threshold, but the sheet names no expected effect, so a miss cannot be told apart from an underpowered test. One line would settle it.
+6. **The fresh-V2 citation is wrong.** §5 says the full digests are "there" in the parent sheet, but the parent carries only prefixes (its line 87). Pin the full digests in §5:
+   - tokens `0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8` and mask `a1cda5295547bb641b1ea71ba4ebabb58d58c40e6c048cda91f35a878fecbf5e`, both in `docs/labs/a8-dose-2026-10-19/evidence/frozen-zero-report.json`;
+   - seal `df5d074ae09c743aa586e3463ffe87faca5703f44f7802bff8ac49ee2990395f`, in `docs/labs/attention-dose1-dispatch-2026-10-18/README.md`.
+7. **§6 step 2 is stale.** The bar is registered, and this is the non-author review.
+
+#### What holds, checked at `dea171338`
+
+- **Bar:** §3 quotes the registered card, including its item 1 condition that the endpoint address distance lies in `{0, 4, 8, 12, 16}`.
+- **Data:** §5 carries the full TRAIN and DEV pins.
+- **Controls:** `cargo test -p uor-r4-discrete --lib normalization_mechanism` gives **6 passed**.
+- **Lawfulness:** the module has no `f32` or `f64`, no `exp` and no matmul, GEMM, softmax or squashing token.
+- **Export:** to D11 at 4 bits per block.
+- **Cost:** about USD 26, within the caps.
+- **Power inputs:** 2 seeds, the 14,287-row DEV panel and at least 200 fresh rows.
+
+#### Recorded review (claude-57)
+
+```text
+TEST FITNESS: NOT_FIT - M1 #2029 OrbitRootSnapNormV1
+sheet: docs/harness/prep/m1-normalization-mechanism-DRAFT-2026-10-22.md
+reviewer: claude (non-author; fresh-context FIT review claude-57 for #2842, at dea171338)
+note: Configuration not yet runnable or fully scoreable: (1) the three NormalizationMode arms are not wired into the GPU read/trunk kernel (no reference outside normalization_mechanism.rs at dea171338), so no commit runs the configuration and section 6 names no command; (2) section 4 tests the proxy trunk now and says it re-executes unchanged on the held m1-trunk-assembly-and-training (#2844): two configurations in one sheet, and the proxy code commit is unpinned; (3) two registered bar terms cannot be scored mechanically - the non-inferiority margin against C_unscaled and the fresh-V2 replication threshold - which is a PM/owner card, not a review value; (4) the sheet does not say what each outcome decides (CHARTER section 4), e.g. that a DEV miss closes this configuration and fresh V2 stays sealed. Holds: bar registered and quoted (card 6338596024, address-distance condition included), full TRAIN/DEV pins, 6/6 CPU controls pass, no float/matmul/squashing in the module, 4-bit-per-block D11 export, cost about 26 USD, 2 seeds, 14,287 DEV and >=200 fresh rows.
+date: 2026-10-23
+A FIT verdict clears compute for the configuration in that sheet only (D22).
+
+         Every mechanism pre-registration gets a TEST FITNESS review on its milestone before compute.
 ```
