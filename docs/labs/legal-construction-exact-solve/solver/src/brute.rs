@@ -74,16 +74,44 @@ pub fn solve(p: &Problem) -> BruteResult {
         let (lo, hi) = (-7 - c.q0, 7 - c.q0);
         let mut v = Vec::new();
         if c.fractional {
-            v.push((Choice { k: 0, l: false, r: false }, BigRational::zero()));
+            v.push((
+                Choice {
+                    k: 0,
+                    l: false,
+                    r: false,
+                },
+                BigRational::zero(),
+            ));
             for k in lo..=-1 {
-                v.push((Choice { k, l: true, r: false }, quarter(k) + &c.shift));
+                v.push((
+                    Choice {
+                        k,
+                        l: true,
+                        r: false,
+                    },
+                    quarter(k) + &c.shift,
+                ));
             }
             for k in 1..=hi {
-                v.push((Choice { k, l: false, r: true }, quarter(k) + &c.shift));
+                v.push((
+                    Choice {
+                        k,
+                        l: false,
+                        r: true,
+                    },
+                    quarter(k) + &c.shift,
+                ));
             }
         } else {
             for k in lo..=hi {
-                v.push((Choice { k, l: false, r: false }, quarter(k)));
+                v.push((
+                    Choice {
+                        k,
+                        l: false,
+                        r: false,
+                    },
+                    quarter(k),
+                ));
             }
         }
         choices.push(v);
@@ -95,7 +123,9 @@ pub fn solve(p: &Problem) -> BruteResult {
             choices[i]
                 .iter()
                 .map(|(_, d)| {
-                    std::iter::once(&p.g[i] * d).chain(p.guards.iter().map(|row| &row[i] * d)).collect()
+                    std::iter::once(&p.g[i] * d)
+                        .chain(p.guards.iter().map(|row| &row[i] * d))
+                        .collect()
                 })
                 .collect()
         })
@@ -110,14 +140,24 @@ pub fn solve(p: &Problem) -> BruteResult {
             ch.iter()
                 .map(|vals| {
                     vals.iter()
-                        .map(|v| (v.numer() * (&scale / v.denom())).to_i128().expect("scaled value fits i128"))
+                        .map(|v| {
+                            (v.numer() * (&scale / v.denom()))
+                                .to_i128()
+                                .expect("scaled value fits i128")
+                        })
                         .collect()
                 })
                 .collect()
         })
         .collect();
 
-    let mut s = Search { ints: &ints, acc: vec![0; p.guards.len() + 1], pick: vec![0; n], best: None, feasible: 0 };
+    let mut s = Search {
+        ints: &ints,
+        acc: vec![0; p.guards.len() + 1],
+        pick: vec![0; n],
+        best: None,
+        feasible: 0,
+    };
     s.dfs(0);
     let (best, pick) = s.best.expect("δ = 0 is always feasible");
     let mut a = Assignment::zero(n);
@@ -127,5 +167,9 @@ pub fn solve(p: &Problem) -> BruteResult {
         a.l[i] = ch.l;
         a.r[i] = ch.r;
     }
-    BruteResult { objective: BigRational::new(BigInt::from(best), scale), assignment: a, feasible: s.feasible }
+    BruteResult {
+        objective: BigRational::new(BigInt::from(best), scale),
+        assignment: a,
+        feasible: s.feasible,
+    }
 }

@@ -37,7 +37,13 @@ fn instance(seed: u64, n_fixed: Option<usize>) -> Problem {
     let n = n_fixed.unwrap_or_else(|| rng.range(1, 5) as usize);
     let rows = rng.range(0, 4) as usize;
     let masters: Vec<BigRational> = (0..n)
-        .map(|_| if rng.range(0, 1) == 0 { q(rng.range(-7, 7), 4) } else { q(rng.range(-30, 30), 16) })
+        .map(|_| {
+            if rng.range(0, 1) == 0 {
+                q(rng.range(-7, 7), 4)
+            } else {
+                q(rng.range(-30, 30), 16)
+            }
+        })
         .collect();
     let g: Vec<BigRational> = (0..n).map(|_| q(rng.range(-8, 8), 4)).collect();
     let probe = Problem::new(masters.clone(), g.clone(), vec![]);
@@ -60,7 +66,10 @@ fn instance(seed: u64, n_fixed: Option<usize>) -> Problem {
     let guards = (0..rows)
         .map(|_| {
             let row: Vec<BigRational> = (0..n).map(|_| q(rng.range(-4, 4), 2)).collect();
-            let v = row.iter().zip(&planted).fold(BigRational::zero(), |s, (a, b)| s + a * b);
+            let v = row
+                .iter()
+                .zip(&planted)
+                .fold(BigRational::zero(), |s, (a, b)| s + a * b);
             if v.is_negative() {
                 row.into_iter().map(|a| -a).collect()
             } else {
@@ -80,13 +89,27 @@ fn random_dyadic_agree_with_brute_force() {
         let o = bb::solve(&p, 100_000);
         assert_eq!(o.status, Status::Optimal, "seed {seed}");
         let b = brute::solve(&p);
-        assert_eq!(o.objective, b.objective, "seed {seed}: solver vs brute force");
+        assert_eq!(
+            o.objective, b.objective,
+            "seed {seed}: solver vs brute force"
+        );
         let c = check::check(&p, &o.assignment);
-        assert!(c.legal, "seed {seed}: illegal assignment {:?}", o.assignment);
-        assert!(c.guards_hold, "seed {seed}: guard broken {:?}", c.guard_values);
+        assert!(
+            c.legal,
+            "seed {seed}: illegal assignment {:?}",
+            o.assignment
+        );
+        assert!(
+            c.guards_hold,
+            "seed {seed}: guard broken {:?}",
+            c.guard_values
+        );
         assert_eq!(c.objective, o.objective, "seed {seed}: check objective");
         let cb = check::check(&p, &b.assignment);
-        assert!(cb.legal && cb.guards_hold && cb.objective == b.objective, "seed {seed}: oracle");
+        assert!(
+            cb.legal && cb.guards_hold && cb.objective == b.objective,
+            "seed {seed}: oracle"
+        );
         improving += usize::from(o.objective.is_negative());
         frac_moves += usize::from(o.assignment.l.iter().chain(&o.assignment.r).any(|&x| x));
         with_guards += usize::from(!p.guards.is_empty() && o.objective.is_negative());

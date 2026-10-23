@@ -26,7 +26,11 @@ pub struct Coeff {
 }
 
 impl Problem {
-    pub fn new(masters: Vec<BigRational>, g: Vec<BigRational>, guards: Vec<Vec<BigRational>>) -> Self {
+    pub fn new(
+        masters: Vec<BigRational>,
+        g: Vec<BigRational>,
+        guards: Vec<Vec<BigRational>>,
+    ) -> Self {
         assert_eq!(masters.len(), g.len(), "masters and g differ in length");
         for row in &guards {
             assert_eq!(row.len(), masters.len(), "guard row length differs from N");
@@ -58,7 +62,11 @@ impl Problem {
                 } else {
                     BigRational::zero()
                 };
-                Coeff { q0, fractional, shift }
+                Coeff {
+                    q0,
+                    fractional,
+                    shift,
+                }
             })
             .collect()
     }

@@ -10,6 +10,7 @@
 
 pub mod bb;
 pub mod brute;
+pub mod case;
 pub mod check;
 pub mod exact;
 pub mod lp;

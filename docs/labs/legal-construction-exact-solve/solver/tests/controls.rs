@@ -15,7 +15,11 @@ fn rv(v: &[(i64, i64)]) -> Vec<BigRational> {
 }
 
 fn ks(o: &bb::Outcome) -> Vec<i64> {
-    o.assignment.k.iter().map(|k| i64::try_from(k).unwrap()).collect()
+    o.assignment
+        .k
+        .iter()
+        .map(|k| i64::try_from(k).unwrap())
+        .collect()
 }
 
 /// Solve, require a proved optimum that passes the independent check and
@@ -24,8 +28,16 @@ fn solve_checked(p: &Problem) -> bb::Outcome {
     let o = bb::solve(p, 4096);
     assert_eq!(o.status, Status::Optimal);
     let c = check::check(p, &o.assignment);
-    assert!(c.legal, "solver assignment is not legal: {:?}", o.assignment);
-    assert!(c.guards_hold, "solver assignment breaks a guard: {:?}", c.guard_values);
+    assert!(
+        c.legal,
+        "solver assignment is not legal: {:?}",
+        o.assignment
+    );
+    assert!(
+        c.guards_hold,
+        "solver assignment breaks a guard: {:?}",
+        c.guard_values
+    );
     assert_eq!(c.objective, o.objective);
     assert_eq!(brute::solve(p).objective, o.objective);
     o
@@ -37,7 +49,11 @@ fn solve_checked(p: &Problem) -> bb::Outcome {
 /// with equality only at k1 = 6, k0 = 6. Optimum -3/2 at k = (6, 6).
 #[test]
 fn hand_two_on_grid() {
-    let p = Problem::new(rv(&[(0, 1), (1, 4)]), rv(&[(1, 1), (-2, 1)]), vec![rv(&[(1, 1), (-1, 1)])]);
+    let p = Problem::new(
+        rv(&[(0, 1), (1, 4)]),
+        rv(&[(1, 1), (-2, 1)]),
+        vec![rv(&[(1, 1), (-1, 1)])],
+    );
     let o = solve_checked(&p);
     assert_eq!(o.objective, q(-3, 2));
     assert_eq!(ks(&o), vec![6, 6]);
@@ -53,11 +69,19 @@ fn hand_two_on_grid() {
 /// Optimum -7/8 (two optimal points; either is accepted).
 #[test]
 fn hand_fractional_lower() {
-    let p = Problem::new(rv(&[(3, 8), (0, 1)]), rv(&[(1, 1), (1, 1)]), vec![rv(&[(1, 1), (2, 1)])]);
+    let p = Problem::new(
+        rv(&[(3, 8), (0, 1)]),
+        rv(&[(1, 1), (1, 1)]),
+        vec![rv(&[(1, 1), (2, 1)])],
+    );
     let o = solve_checked(&p);
     assert_eq!(o.objective, q(-7, 8));
     assert!(o.assignment.l[0] && !o.assignment.r[0]);
-    assert!(ks(&o) == vec![-9, 5] || ks(&o) == vec![-8, 4], "{:?}", ks(&o));
+    assert!(
+        ks(&o) == vec![-9, 5] || ks(&o) == vec![-8, 4],
+        "{:?}",
+        ks(&o)
+    );
 }
 
 /// Hand-solved 3. m = 5/16: 4m = 5/4, q0 = 1, shift = 1/4 - 5/16 = -1/16.
@@ -133,7 +157,10 @@ fn guard_forbids_every_move() {
     let o = solve_checked(&p);
     assert_eq!(o.objective, q(0, 1));
     assert_eq!(o.assignment, bb::Assignment::zero(3));
-    assert!(check::check(&p, &o.assignment).delta.iter().all(|d| *d == q(0, 1)));
+    assert!(check::check(&p, &o.assignment)
+        .delta
+        .iter()
+        .all(|d| *d == q(0, 1)));
 }
 
 /// A guard equal to g forbids every strictly improving move.
@@ -147,7 +174,11 @@ fn guard_equal_to_objective() {
 
 #[test]
 fn node_cap_is_reported() {
-    let p = Problem::new(rv(&[(3, 8), (0, 1)]), rv(&[(1, 1), (1, 1)]), vec![rv(&[(1, 1), (2, 1)])]);
+    let p = Problem::new(
+        rv(&[(3, 8), (0, 1)]),
+        rv(&[(1, 1), (1, 1)]),
+        vec![rv(&[(1, 1), (2, 1)])],
+    );
     let o = bb::solve(&p, 1);
     assert_eq!(o.status, Status::CapReached);
     assert_eq!(o.nodes, 1);
@@ -158,7 +189,10 @@ fn node_cap_is_reported() {
 fn f32_conversion_is_bit_exact() {
     // Smallest subnormal: 2^-149.
     let tiny = f32_to_rational(1).unwrap();
-    assert_eq!(tiny, BigRational::new(BigInt::from(1), BigInt::from(1) << 149usize));
+    assert_eq!(
+        tiny,
+        BigRational::new(BigInt::from(1), BigInt::from(1) << 149usize)
+    );
     assert_eq!(from_f32(f32::from_bits(1)).unwrap(), tiny);
     // Largest subnormal: (2^23 - 1) · 2^-149.
     assert_eq!(
@@ -170,7 +204,10 @@ fn f32_conversion_is_bit_exact() {
     assert_eq!(from_f32(-0.3125).unwrap(), q(-5, 16));
     assert_eq!(from_f32(-0.0).unwrap(), q(0, 1));
     // 0.1f32 is exactly 13421773 / 2^27.
-    assert_eq!(from_f32(0.1).unwrap(), BigRational::new(BigInt::from(13_421_773), BigInt::from(1) << 27usize));
+    assert_eq!(
+        from_f32(0.1).unwrap(),
+        BigRational::new(BigInt::from(13_421_773), BigInt::from(1) << 27usize)
+    );
     // Large normal: 2^127 · (2 - 2^-23).
     assert_eq!(
         from_f32(f32::MAX).unwrap(),
@@ -181,12 +218,20 @@ fn f32_conversion_is_bit_exact() {
 #[test]
 fn f32_nan_and_infinity_refused() {
     for x in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
-        assert_eq!(from_f32(x), Err(ExactError::NotFinite { bits: x.to_bits() }));
+        assert_eq!(
+            from_f32(x),
+            Err(ExactError::NotFinite { bits: x.to_bits() })
+        );
     }
     assert!(f32_to_rational(0x7fc0_0001).is_err());
     let bad = problem_from_f32_bits(&[0.25f32.to_bits()], &[f32::NAN.to_bits()], &[]);
     assert!(bad.is_err());
-    let ok = problem_from_f32_bits(&[0.25f32.to_bits()], &[(-1.0f32).to_bits()], &[vec![0.5f32.to_bits()]]).unwrap();
+    let ok = problem_from_f32_bits(
+        &[0.25f32.to_bits()],
+        &[(-1.0f32).to_bits()],
+        &[vec![0.5f32.to_bits()]],
+    )
+    .unwrap();
     assert_eq!(ok.masters, vec![q(1, 4)]);
     assert_eq!(ok.guards, vec![vec![q(1, 2)]]);
 }

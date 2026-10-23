@@ -69,9 +69,53 @@ pub fn problem_from_f32_bits(
     g: &[u32],
     guards: &[Vec<u32>],
 ) -> Result<Problem, ExactError> {
-    let conv = |v: &[u32]| v.iter().map(|&b| f32_to_rational(b)).collect::<Result<Vec<_>, _>>();
+    let conv = |v: &[u32]| {
+        v.iter()
+            .map(|&b| f32_to_rational(b))
+            .collect::<Result<Vec<_>, _>>()
+    };
     let masters = conv(masters)?;
     let g = conv(g)?;
-    let guards = guards.iter().map(|row| conv(row)).collect::<Result<Vec<_>, _>>()?;
+    let guards = guards
+        .iter()
+        .map(|row| conv(row))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(Problem::new(masters, g, guards))
+}
+
+/// Load a problem from saved bit patterns (loader-facing alias; the bits are the
+/// binary32 patterns of masters, objective and guard rows).
+pub fn problem_from_saved_bits(
+    masters: &[u32],
+    g: &[u32],
+    guards: &[Vec<u32>],
+) -> Result<Problem, ExactError> {
+    problem_from_f32_bits(masters, g, guards)
+}
+
+/// True when the bit-exact binary32 accumulation of the per-term files, in the
+/// stored order, equals the aggregate file's bits. This is the original source's own
+/// replay check (protected_joint_vector.rs: f32 sum then bit comparison). Binary
+/// floating point is allowed here, the crate's only float file.
+pub fn term_aggregate_matches(terms: &[Vec<u32>], aggregate: &[u32]) -> bool {
+    if terms.iter().any(|t| t.len() != aggregate.len()) {
+        return false;
+    }
+    for (j, want) in aggregate.iter().enumerate() {
+        let mut sum = 0f32;
+        for term in terms {
+            sum += f32::from_bits(term[j]);
+        }
+        if sum.to_bits() != *want {
+            return false;
+        }
+    }
+    true
+}
+
+/// The original protected_legal_set refuses a master outside the legal quarter grid
+/// (|m| > 1.75); the loader refuses it too instead of clamping q0.
+pub fn master_weight_in_range(bits: u32) -> bool {
+    let x = f32::from_bits(bits);
+    x.is_finite() && x.abs() <= 1.75
 }

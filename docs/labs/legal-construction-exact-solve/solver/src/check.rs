@@ -56,7 +56,10 @@ pub fn check(p: &Problem, a: &Assignment) -> CheckReport {
         let q = &q0 + k;
         let in_range = q >= -seven.clone() && q <= seven;
         let (ok, d) = if t.is_integer() {
-            (in_range && !a.l[i] && !a.r[i], BigRational::new(k.clone(), four.clone()))
+            (
+                in_range && !a.l[i] && !a.r[i],
+                BigRational::new(k.clone(), four.clone()),
+            )
         } else {
             let moved = BigRational::new(q.clone(), four.clone()) - m;
             match (a.l[i], a.r[i]) {
@@ -71,10 +74,18 @@ pub fn check(p: &Problem, a: &Assignment) -> CheckReport {
     }
 
     let dot = |row: &[BigRational]| {
-        row.iter().zip(&delta).fold(BigRational::zero(), |s, (x, y)| s + x * y)
+        row.iter()
+            .zip(&delta)
+            .fold(BigRational::zero(), |s, (x, y)| s + x * y)
     };
     let guard_values: Vec<BigRational> = p.guards.iter().map(|row| dot(row)).collect();
     let guards_hold = guard_values.iter().all(|v| !v.is_negative());
     let objective = dot(&p.g);
-    CheckReport { legal, delta, guard_values, guards_hold, objective }
+    CheckReport {
+        legal,
+        delta,
+        guard_values,
+        guards_hold,
+        objective,
+    }
 }

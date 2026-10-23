@@ -22,7 +22,10 @@ pub struct Lp {
 #[derive(Debug, Clone)]
 pub enum LpResult {
     Infeasible,
-    Optimal { x: Vec<BigRational>, objective: BigRational },
+    Optimal {
+        x: Vec<BigRational>,
+        objective: BigRational,
+    },
 }
 
 struct Tableau {
@@ -100,7 +103,9 @@ impl Tableau {
                 let ratio = &self.rhs[i] / a;
                 let better = match &best {
                     None => true,
-                    Some((bi, br)) => ratio < *br || (ratio == *br && self.basis[i] < self.basis[*bi]),
+                    Some((bi, br)) => {
+                        ratio < *br || (ratio == *br && self.basis[i] < self.basis[*bi])
+                    }
                 };
                 if better {
                     best = Some((i, ratio));
@@ -143,7 +148,12 @@ pub fn solve(lp: &Lp) -> LpResult {
     let n_art = rows.iter().filter(|(_, b)| b.is_negative()).count();
     let width = n + m + n_art;
 
-    let mut tab = Tableau { t: Vec::with_capacity(m), rhs: Vec::with_capacity(m), basis: Vec::with_capacity(m), d: Vec::new() };
+    let mut tab = Tableau {
+        t: Vec::with_capacity(m),
+        rhs: Vec::with_capacity(m),
+        basis: Vec::with_capacity(m),
+        d: Vec::new(),
+    };
     let mut art = 0;
     for (i, (a, b)) in rows.into_iter().enumerate() {
         let mut row = vec![zero.clone(); width];
@@ -173,7 +183,11 @@ pub fn solve(lp: &Lp) -> LpResult {
         tab.price(&cost1);
         let bounded = tab.run(width);
         assert!(bounded, "phase 1 is bounded below by 0");
-        let infeasible = tab.basis.iter().zip(&tab.rhs).any(|(&b, v)| b >= n + m && v.is_positive());
+        let infeasible = tab
+            .basis
+            .iter()
+            .zip(&tab.rhs)
+            .any(|(&b, v)| b >= n + m && v.is_positive());
         if infeasible {
             return LpResult::Infeasible;
         }

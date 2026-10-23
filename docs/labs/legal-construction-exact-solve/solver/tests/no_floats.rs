@@ -21,7 +21,10 @@ fn floats_only_in_exact_conversion() {
             continue;
         }
         for token in ["f32", "f64"] {
-            assert!(!text.contains(token), "{name} contains `{token}`; floats belong only in exact.rs");
+            assert!(
+                !text.contains(token),
+                "{name} contains `{token}`; floats belong only in exact.rs"
+            );
         }
     }
     assert!(saw_exact, "exact.rs not found");

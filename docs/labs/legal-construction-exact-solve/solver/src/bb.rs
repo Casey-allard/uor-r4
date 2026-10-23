@@ -21,7 +21,11 @@ pub struct Assignment {
 impl Assignment {
     /// The noop move: every `k = 0`, every `l = r = 0`, so `δ = 0`.
     pub fn zero(n: usize) -> Self {
-        Assignment { k: vec![BigInt::zero(); n], l: vec![false; n], r: vec![false; n] }
+        Assignment {
+            k: vec![BigInt::zero(); n],
+            l: vec![false; n],
+            r: vec![false; n],
+        }
     }
 }
 
@@ -133,7 +137,12 @@ pub fn relaxation(p: &Problem) -> Lp {
         a[r] = int(-(7 - ci.q0));
         rows.push((a, zero.clone()));
     }
-    Lp { c, rows, lower, upper }
+    Lp {
+        c,
+        rows,
+        lower,
+        upper,
+    }
 }
 
 struct Node {
@@ -150,7 +159,11 @@ pub fn solve(p: &Problem, node_cap: usize) -> Outcome {
 
     let mut best_obj = BigRational::zero();
     let mut best = Assignment::zero(n);
-    let mut stack = vec![Node { lower: lp.lower.clone(), upper: lp.upper.clone(), bound: None }];
+    let mut stack = vec![Node {
+        lower: lp.lower.clone(),
+        upper: lp.upper.clone(),
+        bound: None,
+    }];
     let mut nodes = 0usize;
 
     while let Some(node) = stack.pop() {
@@ -189,21 +202,41 @@ pub fn solve(p: &Problem, node_cap: usize) -> Outcome {
                 let f = x[v].floor();
                 let mut up_lower = node.lower.clone();
                 up_lower[v] = &f + BigRational::one();
-                stack.push(Node { lower: up_lower, upper: node.upper.clone(), bound: Some(obj.clone()) });
+                stack.push(Node {
+                    lower: up_lower,
+                    upper: node.upper.clone(),
+                    bound: Some(obj.clone()),
+                });
                 let mut down_upper = node.upper;
                 down_upper[v] = f;
-                stack.push(Node { lower: node.lower, upper: down_upper, bound: Some(obj) });
+                stack.push(Node {
+                    lower: node.lower,
+                    upper: down_upper,
+                    bound: Some(obj),
+                });
             }
         }
     }
 
     stack.retain(|nd| nd.bound.as_ref().is_none_or(|b| *b < best_obj));
     if stack.is_empty() {
-        return Outcome { status: Status::Optimal, assignment: best, best_bound: best_obj.clone(), objective: best_obj, nodes };
+        return Outcome {
+            status: Status::Optimal,
+            assignment: best,
+            best_bound: best_obj.clone(),
+            objective: best_obj,
+            nodes,
+        };
     }
     let best_bound = stack
         .iter()
         .filter_map(|nd| nd.bound.clone())
         .fold(best_obj.clone(), |acc, b| if b < acc { b } else { acc });
-    Outcome { status: Status::CapReached, assignment: best, objective: best_obj, best_bound, nodes }
+    Outcome {
+        status: Status::CapReached,
+        assignment: best,
+        objective: best_obj,
+        best_bound,
+        nodes,
+    }
 }
