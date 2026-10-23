@@ -23,7 +23,8 @@
 
 ## Open items before closing `#2856`
 
-- Non-author FIT review of [`preregistration-DRAFT-2026-10-22.md`](preregistration-DRAFT-2026-10-22.md), owner decision on the proposed pass bar (`#2028`), and typed owner release (CHARTER §4.5, §5.1, §5.2) to run the saved `world=v2` compiler over `data/panels/nonrelation-prose-v1.txt` on a leased GPU and record the baseline `false_assert` and `false_overwrite` rates in `docs/research/notebook/m3-durable-memory.md`.
+- **Artifact pin (deepseek-58, 2026-10-23): DONE.** The sheet's §2b now names the saved `world=v2` compiler artifact, its SHA-256 (`34cdf896…`), `label_schema`, tokenizer digest (`d36d3e87…`) and tokenizer file, the trunk files and the HF-store bundle members with sizes and SHA-256 (verified on the host from `caseyallard/uor-r4-store`; host-only, no GPU). This resolves the remaining `NOT_FIT` prerequisite from the deepseek-41 review.
+- **Still open:** a fresh non-author `TEST FITNESS` review of the pinned sheet (not antigravity, not deepseek), PM/owner confirmation that the pinned configuration is the intended one, and Casey's typed D40 release (CHARTER §4.5, §5.1, §5.2) to run the saved `world=v2` compiler over `data/panels/nonrelation-prose-v1.txt` on a leased GPU and record the baseline `false_assert` and `false_overwrite` rates in `docs/research/notebook/m3-durable-memory.md`.
 
 ## Non-author FIT review (deepseek-41, 2026-10-23)
 
@@ -32,3 +33,7 @@ Non-author `TEST FITNESS` review of [`preregistration-DRAFT-2026-10-22.md`](prer
 - **Resolved in the review:** the owner's bar is registered (`2026-10-23T02:36:36Z`, `#2028` comment `6356034555`, card `6337042887`) and §4 now quotes it with the time; the status line no longer says PENDING; the grader is cited by commit `b0430d40`.
 - **Remaining prerequisite:** the saved `world=v2` compiler artifact is unpinned — the sheet must name the artifact file/path and its `artifact_sha256`, tokenizer digest and `label_schema` before a FIT can release the baseline run.
 - **Verified:** panel hash `7c29c665…` matches the file and `MANIFEST.sha256`; four finite controls pass; held-out disjointness control present; cost, pre-run gate and negative rules stated.
+
+## Artifact pin (deepseek-58, 2026-10-23)
+
+The `NOT_FIT` prerequisite is resolved: `preregistration-DRAFT-2026-10-22.md` §2b now pins the saved `world=v2` compiler and tokenizer by file, size and SHA-256, re-downloadable from the private HF store with `hf download caseyallard/uor-r4-store <path> --repo-type dataset`. Verified on the host (no GPU): bundle `data/hot/sieve-panel.tar` `9d8da125…`; `sieve/compiler-save-op-v25-rawtable/compiler.json` 5,861,613 B `34cdf896…` with `label_schema = m-world-v2.relations-acts/1` and `tokenizer_sha256 = d36d3e87…`; `sieve/op-model-v25/model/model.safetensors` 8,439,228 B `04ce0d7a…` (config `e1009111…`); `data/tokenizer.json.tar` `2893ab5c…` whose `tokenizer.json` is 109,457 B `d36d3e87…`, matching the compiler's tokenizer digest. A pre-run hash gate is added to the sheet; the pin releases nothing.

@@ -1,6 +1,6 @@
 # Non-relation prose panel baseline evaluation on `world=v2` (`m3-nonrelation-prose-panel`)
 
-- **Status:** draft pre-registration, **`TEST FITNESS: NOT_FIT`** (non-author review `deepseek-41`, 2026-10-23; see [Verdict](#verdict)). No compute is cleared.
+- **Status:** draft pre-registration, **`TEST FITNESS: NOT_FIT`** (non-author review `deepseek-41`, 2026-10-23; see [Verdict](#verdict)); **the artifact-pin prerequisite is now addressed in §2b (deepseek-58, 2026-10-23) and a fresh non-author FIT is requested.** No compute is cleared.
   - Running the `world=v2` compiler over the panel is a GPU evaluation run and stays HELD until a non-author FIT review passes, the owner decides the pass bar (`#2028`), and Casey types the D40 release.
 - **Line:** M3 durable conversation memory (`#2031`, item `m3-nonrelation-prose-panel` `#2856`, folds `#1718`). **Lab:** antigravity.
 - **Design note:** `https://github.com/UOR-Foundation/uor-r4/issues/2856#issuecomment-6337042540`
@@ -28,6 +28,22 @@ This sheet registers:
   - `statement_near_miss` (`nrp-021..025`, `nrp-046..050`): declarative third-party or object statements sharing surface syntax with relation assertions without stating a user profile relation.
 - **Disjointness guarantee:** the 25 `heldout_v2_disjoint` rows (`nrp-026..050`) share zero 4-word consecutive runs with `crates/uor-r4-training/src/milestone_world.rs` and `crates/uor-r4-training/src/milestone_world_v2.rs` (checked on every `cargo test -p uor-r4-training` run by `heldout_v2_disjoint_slice_shares_no_four_word_run_with_world_v2_sources`).
 
+## 2b. Base artifact pin (added 2026-10-23, deepseek-58)
+
+The FIT prerequisite that the saved `world=v2` compiler and tokenizer be named by file, path and digest is resolved here. Every pin below was verified on the host from a downloaded copy (no GPU, no training, no model execution): `hf download caseyallard/uor-r4-store <path> --repo-type dataset` (private dataset, access required), then `shasum -a 256` on the members. The bundle's own `manifest.json` records blake3 digests; the sha256 values below were computed from the extracted files and are the digests a re-run must match.
+
+| Object | Where it lives | Bytes | SHA-256 |
+|---|---|---:|---|
+| Sieve bundle (contains the three objects below) | HF store `caseyallard/uor-r4-store`, `data/hot/sieve-panel.tar` | 14,571,520 | `9d8da1253ebd8cdc62780afe54de418c811088b63f6dcac9ac8daf9a7b3d234a` |
+| **Saved compiler artifact** (`compiler=`) | member `sieve/compiler-save-op-v25-rawtable/compiler.json` (manifest root `/Users/casey.allard/uor-r4-local/claude-log-sieve/compiler-save-op-v25-rawtable`) | 5,861,613 | `34cdf896abf5d823e185edc269454c6ad92d97b083ad7ef8f093944931783f06` |
+| **Trunk** (`trunk=`) | member `sieve/op-model-v25/model/model.safetensors` | 8,439,228 | `04ce0d7a253cca6aeedbcf8d38837fed9fcf3a6b430e13f10eb098ac055db4ce` |
+| Trunk config | member `sieve/op-model-v25/model/config.json` | 227 | `e1009111a801518160db3b58a1c9981302ad2649fda296f3cf35e6d0af567627` |
+| Tokenizer tar (`tokenizer=`) | HF store `caseyallard/uor-r4-store`, `data/tokenizer.json.tar` | 112,640 | `2893ab5ce68aaae1624e12aa6f8b5c0b117529fc2388058645a6af018bd3d8bb` |
+| **Tokenizer file** | member `tokenizer.json` of that tar | 109,457 | `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` |
+
+- **Compiler identity fields (read from the pinned `compiler.json`):** `schema = uor-r4.relation-compiler/1`, `label_schema = m-world-v2.relations-acts/1`, `tokenizer_sha256 = d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89`. The `artifact_sha256` that `TurnCompiler::identity()` carries is the SHA-256 of the `compiler.json` bytes above, `34cdf896…`; the tokenizer digest the compiler expects is exactly the tokenizer file's digest, so the pair is self-consistent.
+- **Run configuration is therefore fixed:** `world=v2`, `compiler=<the compiler.json>`, `trunk=<the model directory containing model.safetensors and config.json>`, `tokenizer=<the tokenizer.json>`, `op_policy=unless_query`, `log_recall` irrelevant to this single-pass grading.
+- **Pre-run pin gate (add to §6):** before the GPU run, extract the bundle and the tokenizer tar and `shasum -a 256` every file named in the table above (the two tars and the four extracted members), comparing sizes and digests; any mismatch aborts before a checkpoint is loaded. This pin releases nothing: the run still needs the non-author FIT and Casey's typed D40 release.
 ## 3. Grader and measured rates (`crates/uor-r4-training/src/nonrelation_prose_panel.rs`, commit `b0430d40`)
 
 For each turn $i \in \{1, \dots, 50\}$ in `nonrelation-prose-v1.txt`:
@@ -78,6 +94,11 @@ Primary rates (reported as exact `(numerator, 50)` integer pairs, overall, per c
 
 Re-request FIT once the artifact pin is in the sheet; this verdict clears no compute (D22).
 
+### Re-review request after the artifact pin (deepseek-58, 2026-10-23)
+
+- **Prerequisite 2 is addressed:** §2b now names the saved compiler artifact, its SHA-256, `label_schema`, tokenizer digest and the tokenizer file, the trunk files and every bundle member's size and SHA-256, all verified on the host from the HF store copies.
+- **Prerequisite 1 was already resolved** by the same earlier repair: §4 quotes the owner-registered bar with its ISO-UTC time.
+- **Request:** a non-author (not antigravity, who authored the design/panel/grader, and not deepseek, who wrote this pin) `TEST FITNESS` review of this sheet at its current head. A FIT would clear only the configuration pinned in §2b, and still releases nothing until Casey types the D40 release (CHARTER §5.1). The historical `NOT_FIT` record below is kept unchanged as history.
 ### Recorded review
 
 ```text
