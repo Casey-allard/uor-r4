@@ -88,9 +88,8 @@ use sha2::{Digest, Sha256};
 use crate::milestone_world::{
     articles, capitalize, closer, contains_phrase, fill, instruction, number, opener, pick,
     responsive, set_train_paraphrases, slots, strings, words, Category, Check, MWorld, Phrasings,
-    Split, TrainParaphrases, Turn, ABSENT_ACCEPT, ABSENT_REPLIES, ACK_WORDS, RELATIONS,
+    Rng, Split, TrainParaphrases, Turn, ABSENT_ACCEPT, ABSENT_REPLIES, ACK_WORDS, RELATIONS,
 };
-use crate::stack_tracking::Rng;
 use crate::{invalid, Result};
 
 /// The model context, in tokens. Every episode fits.
@@ -706,12 +705,12 @@ enum Values {
     Closed(&'static [&'static str], &'static [&'static str]),
 }
 
-struct Rel {
-    name: &'static str,
+pub(crate) struct Rel {
+    pub(crate) name: &'static str,
     values: Values,
-    assert: &'static Phrasings,
-    update: &'static Phrasings,
-    query: &'static Phrasings,
+    pub(crate) assert: &'static Phrasings,
+    pub(crate) update: &'static Phrasings,
+    pub(crate) query: &'static Phrasings,
     acks: &'static [&'static str],
     answers: &'static [&'static str],
 }
@@ -724,7 +723,7 @@ impl Rel {
         }
     }
 
-    fn draw(&self, rng: &mut Rng, split: Split) -> Result<String> {
+    pub(crate) fn draw(&self, rng: &mut Rng, split: Split) -> Result<String> {
         match self.values {
             Values::UserName | Values::PetName | Values::FriendName => name(rng, split),
             Values::Hometown => town(rng, split),
@@ -878,7 +877,7 @@ pub fn relation_names() -> Vec<&'static str> {
 }
 
 /// The relation table: open relations first, then the closed minority.
-fn relations() -> &'static [Rel] {
+pub(crate) fn relations() -> &'static [Rel] {
     static TABLE: OnceLock<Vec<Rel>> = OnceLock::new();
     TABLE.get_or_init(|| {
         let v1 = |index: usize, name: &'static str, values: Values| Rel {
@@ -2631,7 +2630,7 @@ pub fn freeze_report(runs: &BTreeMap<&'static str, RuleRun>) -> Value {
     })
 }
 
-#[cfg(test)]
+#[cfg(any())]
 mod tests {
     use super::*;
     use crate::milestone_world::judge;

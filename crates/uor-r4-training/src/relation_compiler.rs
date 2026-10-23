@@ -1605,6 +1605,677 @@ pub fn resolve_op_policy(
     }
 }
 
+/// Additive integer score-gap margins observed at the turn-compiler decision boundary
+/// before emitting a memory write (`Assert` or `Correct`).
+///
+/// All quantities are represented in integer milli-units (1,000 = 1.0 additive score unit)
+/// and computed with pure integer subtraction (`saturating_sub`) and `max`, with zero
+/// matrix multiplications and zero squashing functions (CHARTER §3.1–§3.3).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StatementMargin {
+    /// Gap $\Delta_{\text{rel}} = s_{r^\star} - \max_{c \ne r^\star} s_c$ between the top
+    /// relation score and the highest competing relation (including `NONE`).
+    pub relation_gap_milli: i64,
+    /// Gap $\Delta_{\text{act}} = s_{a^\star} - \max(s_{\text{query}}, s_{\text{none}})$
+    /// between the chosen write act (`assert` or `update`) and the best non-write act.
+    pub act_write_gap_milli: i64,
+    /// Sum $\Delta_{\text{span}} = (s_{\text{start}}(i^\star) - s_{\text{out}}(i^\star))
+    /// + (s_{\text{end}}(j^\star) - s_{\text{out}}(j^\star))$ of the boundary margins at the
+    /// decoded value span endpoints.
+    pub span_margin_milli: i64,
+}
+
+impl StatementMargin {
+    /// Compute the integer score-gap margins directly from additive linear class scores.
+    pub fn from_linear_scores(
+        relation_scores_milli: &[i64],
+        chosen_relation: usize,
+        act_scores_milli: &[i64],
+        chosen_act: usize,
+        non_write_acts: &[usize],
+        span_start_margin_milli: i64,
+        span_end_margin_milli: i64,
+    ) -> Option<Self> {
+        let &top_rel = relation_scores_milli.get(chosen_relation)?;
+        let runner_up_rel = relation_scores_milli
+            .iter()
+            .enumerate()
+            .filter(|&(idx, _)| idx != chosen_relation)
+            .map(|(_, &s)| s)
+            .max()?;
+        let &top_act = act_scores_milli.get(chosen_act)?;
+        let best_non_write_act = non_write_acts
+            .iter()
+            .filter_map(|&idx| act_scores_milli.get(idx).copied())
+            .max()?;
+        Some(Self {
+            relation_gap_milli: top_rel.saturating_sub(runner_up_rel),
+            act_write_gap_milli: top_act.saturating_sub(best_non_write_act),
+            span_margin_milli: span_start_margin_milli.saturating_add(span_end_margin_milli),
+        })
+    }
+}
+
+/// Canonical closed-world relation name for a 1-based `world=v1` / `world=v2` relation ID.
+pub fn canonical_relation_name(relation_id: u32) -> Option<&'static str> {
+    match relation_id {
+        1 => Some("user_name"),
+        2 => Some("pet_name"),
+        3 => Some("friend_name"),
+        4 => Some("hometown"),
+        5 => Some("lucky_number"),
+        6 => Some("code_word"),
+        7 => Some("job"),
+        8 => Some("home"),
+        9 => Some("favorite_food"),
+        10 => Some("favorite_color"),
+        _ => None,
+    }
+}
+
+/// Integer / additive memory-turn discriminator and margin gate (`#2855`).
+///
+/// Sits on the turn-compiler write boundary so a turn is compiled to `CompiledAction::Assert`
+/// or `CompiledAction::Correct` only when:
+/// 1. Its additive score gaps clear `(min_relation_gap_milli, min_act_write_gap_milli,
+///    min_span_margin_milli)` whenever a [`StatementMargin`] is supplied; and
+/// 2. Its surface structure outside the value span is a non-interrogative, speaker-grounded
+///    memory statement for the target relation.
+///
+/// Any candidate write that fails the gate is converted to `CompiledAction::Unresolved` with
+/// an explicit diagnostic reason. `QueryCurrent`, `Query`, and `Unresolved` actions pass
+/// through unchanged, and a rejected write is **never** converted into a read.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MemoryTurnGate {
+    pub min_relation_gap_milli: i64,
+    pub min_act_write_gap_milli: i64,
+    pub min_span_margin_milli: i64,
+    pub require_speaker_frame: bool,
+}
+
+impl Default for MemoryTurnGate {
+    fn default() -> Self {
+        Self {
+            min_relation_gap_milli: 250,
+            min_act_write_gap_milli: 250,
+            min_span_margin_milli: 500,
+            require_speaker_frame: true,
+        }
+    }
+}
+
+impl MemoryTurnGate {
+    /// A gate with all thresholds and structural checks disabled (used as the negative
+    /// control / deliberate-break probe).
+    pub const fn disabled() -> Self {
+        Self {
+            min_relation_gap_milli: i64::MIN,
+            min_act_write_gap_milli: i64::MIN,
+            min_span_margin_milli: i64::MIN,
+            require_speaker_frame: false,
+        }
+    }
+
+    /// Verify that the additive score gaps clear the minimum statement margins.
+    pub fn check_margin(&self, margin: &StatementMargin) -> std::result::Result<(), &'static str> {
+        if margin.relation_gap_milli < self.min_relation_gap_milli {
+            return Err("the relation score gap is below the memory-turn margin gate");
+        }
+        if margin.act_write_gap_milli < self.min_act_write_gap_milli {
+            return Err("the write-act score gap is below the memory-turn margin gate");
+        }
+        if margin.span_margin_milli < self.min_span_margin_milli {
+            return Err("the span boundary margin is below the memory-turn margin gate");
+        }
+        Ok(())
+    }
+
+    /// Verify that a candidate write (`Assert` or `Correct`) is grounded in a non-interrogative,
+    /// speaker-anchored relation frame outside the value span.
+    pub fn check_turn_structure(
+        &self,
+        source: &str,
+        action: &crate::stack_grounded_session::CompiledAction,
+        relation_name: Option<&str>,
+    ) -> std::result::Result<(), &'static str> {
+        use crate::stack_grounded_session::CompiledAction;
+        let (relation, span) = match action {
+            CompiledAction::Assert { relation, span }
+            | CompiledAction::Correct { relation, span } => (*relation, *span),
+            CompiledAction::QueryCurrent { .. }
+            | CompiledAction::Query { .. }
+            | CompiledAction::Unresolved { .. } => return Ok(()),
+        };
+        if span.start >= span.end
+            || span.end > source.len()
+            || !source.is_char_boundary(span.start)
+            || !source.is_char_boundary(span.end)
+        {
+            return Err("the candidate write span is empty or out of bounds");
+        }
+        let value_slice = &source[span.start..span.end];
+        if word_spans(value_slice).is_empty() {
+            return Err("the candidate write span holds no word");
+        }
+        if !self.require_speaker_frame {
+            return Ok(());
+        }
+        let trimmed = source.trim();
+        if trimmed.ends_with('?') {
+            return Err("the turn is interrogative and cannot write memory");
+        }
+        let all_words: Vec<String> = word_spans(source)
+            .into_iter()
+            .map(|w| w.word.to_ascii_lowercase())
+            .collect();
+        if let Some(first) = all_words.first().map(String::as_str) {
+            if matches!(
+                first,
+                "what"
+                    | "what's"
+                    | "where"
+                    | "where's"
+                    | "who"
+                    | "who's"
+                    | "which"
+                    | "when"
+                    | "why"
+                    | "how"
+                    | "can"
+                    | "could"
+                    | "would"
+                    | "will"
+                    | "do"
+                    | "does"
+                    | "did"
+                    | "is"
+                    | "are"
+                    | "was"
+                    | "were"
+                    | "remind"
+                    | "tell"
+            ) {
+                return Err(
+                    "the turn opens with a question or request cue and cannot write memory",
+                );
+            }
+        }
+        let prefix = &source[..span.start];
+        let suffix = &source[span.end..];
+        let prefix_words: Vec<String> = word_spans(prefix)
+            .into_iter()
+            .map(|w| w.word.to_ascii_lowercase())
+            .collect();
+        let suffix_words: Vec<String> = word_spans(suffix)
+            .into_iter()
+            .map(|w| w.word.to_ascii_lowercase())
+            .collect();
+        let mut frame_words: Vec<&str> = prefix_words
+            .iter()
+            .chain(suffix_words.iter())
+            .map(String::as_str)
+            .collect();
+        if frame_words.is_empty() {
+            return Err("the turn has no relation frame outside the candidate value span");
+        }
+        // Reject negated statements ("My favorite color is not blue.").
+        if frame_words.iter().any(|&w| {
+            matches!(
+                w,
+                "not"
+                    | "never"
+                    | "isn't"
+                    | "aren't"
+                    | "wasn't"
+                    | "weren't"
+                    | "don't"
+                    | "doesn't"
+                    | "didn't"
+                    | "cannot"
+                    | "can't"
+                    | "won't"
+                    | "wouldn't"
+                    | "shouldn't"
+                    | "couldn't"
+                    | "neither"
+                    | "nor"
+            )
+        }) {
+            return Err("the turn is negated and cannot write memory");
+        }
+        // Reject conditional or hypothetical turns ("If my name were Bob, I'd sign it Bob.").
+        if frame_words.iter().any(|&w| {
+            matches!(
+                w,
+                "if" | "whether" | "unless" | "suppose" | "assuming" | "hypothetically" | "were"
+            )
+        }) {
+            return Err("the turn is conditional or hypothetical and cannot write memory");
+        }
+        // Reject third-person reported speech ("She said my name is Bob.").
+        if frame_words.iter().any(|&w| {
+            matches!(
+                w,
+                "said" | "says" | "told" | "asked" | "claimed" | "thought" | "mentioned" | "wrote"
+            )
+        }) {
+            return Err("the turn reports speech rather than stating a speaker fact");
+        }
+        // Reject third-person kinship, entity, or pronoun possessors where the subject is
+        // another person or entity rather than a speaker relation.
+        if has_third_person_possessor(&frame_words) {
+            return Err("the turn attributes the relation to a third-person subject");
+        }
+
+        let resolved_name = relation_name.or_else(|| canonical_relation_name(relation));
+        match resolved_name {
+            Some(name) if relation < DERIVED_RELATION_ID_BASE => {
+                if !matches_closed_relation_frame(
+                    name,
+                    value_slice,
+                    &prefix_words,
+                    &suffix_words,
+                    &frame_words,
+                ) {
+                    return Err(
+                        "the turn states no speaker-grounded frame for the target relation",
+                    );
+                }
+            }
+            _ => {
+                // Open / derived relation statement: must extract a copular relation phrase
+                // introduced by a first-person possessive ("my") whose derived address matches
+                // `relation` and where the copula ("is") immediately precedes the value span.
+                let Some(phrase) = relation_phrase(source) else {
+                    return Err("the turn states no copular relation phrase");
+                };
+                if derived_relation_id(&phrase) != relation {
+                    return Err("the derived relation address does not match the turn's phrase");
+                }
+                if prefix_words.last().map(String::as_str) != Some("is") {
+                    return Err("the open-relation value span is not preceded by a copula");
+                }
+                frame_words.retain(|w| !w.is_empty());
+                if !frame_words.contains(&"my") {
+                    return Err("the open-relation turn has no first-person possessive determiner");
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn has_third_person_possessor(frame_words: &[&str]) -> bool {
+    for &w in frame_words {
+        // Any third-person subject or possessive pronoun attributes the fact outside the speaker.
+        if matches!(
+            w,
+            "his"
+                | "her"
+                | "their"
+                | "he"
+                | "she"
+                | "they"
+                | "he's"
+                | "she's"
+                | "they're"
+                | "someone"
+                | "someone's"
+                | "everyone"
+                | "everyone's"
+                | "nobody"
+                | "nobody's"
+        ) {
+            return true;
+        }
+        // Any possessive noun token `<noun>'s` outside the closed-relation slot possessives
+        // (`name's`, `dog's`, `cat's`, `pet's`, `friend's`) and standard contractions is an
+        // entity/third-person possessor (`sister's`, `brother's`, `cousin's`, `grandfather's`,
+        // `neighbor's`, `team's`, `company's`, etc.).
+        if w.ends_with("'s")
+            && !matches!(
+                w,
+                "name's"
+                    | "dog's"
+                    | "cat's"
+                    | "pet's"
+                    | "friend's"
+                    | "what's"
+                    | "where's"
+                    | "who's"
+                    | "it's"
+                    | "that's"
+                    | "there's"
+                    | "let's"
+            )
+        {
+            return true;
+        }
+    }
+    for window in frame_words.windows(2) {
+        if matches!(window[0], "my" | "our")
+            && matches!(
+                window[1],
+                "grandfather"
+                    | "grandmother"
+                    | "mother"
+                    | "father"
+                    | "mom"
+                    | "dad"
+                    | "sister"
+                    | "brother"
+                    | "cousin"
+                    | "uncle"
+                    | "aunt"
+                    | "son"
+                    | "daughter"
+                    | "wife"
+                    | "husband"
+                    | "partner"
+                    | "boss"
+                    | "teacher"
+                    | "doctor"
+                    | "neighbor"
+                    | "colleague"
+            )
+        {
+            return true;
+        }
+    }
+    false
+}
+
+fn strip_correction_prefix<'a>(words: &'a [String]) -> Vec<&'a str> {
+    let mut slice: Vec<&'a str> = words.iter().map(String::as_str).collect();
+    while let Some(&first) = slice.first() {
+        if matches!(
+            first,
+            "actually"
+                | "wait"
+                | "no"
+                | "sorry"
+                | "instead"
+                | "scratch"
+                | "that"
+                | "correction"
+                | "please"
+        ) {
+            slice.remove(0);
+        } else {
+            break;
+        }
+    }
+    slice
+}
+
+fn matches_closed_relation_frame(
+    relation_name: &str,
+    value_slice: &str,
+    prefix_words: &[String],
+    suffix_words: &[String],
+    frame_words: &[&str],
+) -> bool {
+    let has = |word: &str| frame_words.contains(&word);
+    let has_any = |words: &[&str]| words.iter().any(|&w| has(w));
+    let has_pair = |a: &str, b: &str| frame_words.windows(2).any(|w| w[0] == a && w[1] == b);
+    match relation_name {
+        "user_name" => {
+            let lead = strip_correction_prefix(prefix_words);
+            let is_proper_name = value_slice
+                .trim()
+                .chars()
+                .next()
+                .is_some_and(char::is_uppercase);
+            let bare_copular_intro = (lead.as_slice() == ["i", "am"] || lead.as_slice() == ["i'm"])
+                && suffix_words
+                    .iter()
+                    .all(|w| matches!(w.as_str(), "now" | "instead"));
+            (has("name")
+                && has_any(&["my", "i", "me"])
+                && !has_any(&[
+                    "pet", "pet's", "dog", "dog's", "cat", "cat's", "friend", "friend's",
+                ]))
+                || has("name's")
+                || has_pair("call", "me")
+                || (has_pair("go", "by") && has("i"))
+                || (has("called") && has_any(&["i", "i'm"]))
+                || (has_pair("referred", "to") && has_any(&["i", "i'm"]))
+                || (bare_copular_intro && is_proper_name)
+        }
+        "pet_name" => {
+            has_any(&["pet", "pet's", "dog", "dog's", "cat", "cat's"])
+                && has_any(&["my", "i", "we", "our"])
+        }
+        "friend_name" => {
+            has_any(&["friend", "friend's", "buddy", "pal"]) && has_any(&["my", "i", "mine", "our"])
+        }
+        "hometown" => {
+            (has("hometown") && has("my"))
+                || (has_pair("grew", "up") && has("i"))
+                || (has("from") && has_any(&["i", "i'm"]))
+                || (has("raised") && has("i"))
+                || (has_pair("home", "for") && has("me"))
+        }
+        "lucky_number" => {
+            (has("lucky") && has("number") && has_any(&["my", "i", "me"]))
+                || (has("number") && has("luck") && has_any(&["my", "i", "me"]))
+        }
+        "code_word" => {
+            has_pair("code", "word")
+                && (has_pair("word", "is")
+                    || has_pair("word", "be")
+                    || (has("use") && has_any(&["my", "we", "our"])))
+                && !has_any(&["was", "were"])
+        }
+        "job" => {
+            has_any(&["job", "jobs", "work", "trade", "living", "earn"])
+                && has_any(&["i", "i'm", "my"])
+        }
+        "home" => {
+            (has("home") && has_any(&["my", "me"]))
+                || (has_any(&["live", "based", "reside", "moved"]) && has_any(&["i", "i'm"]))
+        }
+        "favorite_food" => {
+            (has("food") && has_any(&["my", "i"]))
+                || (has_any(&["eating", "eat"]) && has("i"))
+                || (has("dish") && has("my"))
+                || (has_pair("changed", "my")
+                    && has_pair("mind", "i")
+                    && has("like")
+                    && has("best")
+                    && !has_any(&["color", "colors"]))
+        }
+        "favorite_color" => has_any(&["color", "colors"]) && has_any(&["my", "i"]),
+        _ => false,
+    }
+}
+
+/// True when `source` and `action` satisfy the structural speaker-grounded memory-turn
+/// discriminator under [`MemoryTurnGate::default`].
+pub fn has_memory_turn_cue(
+    source: &str,
+    action: &crate::stack_grounded_session::CompiledAction,
+    relation_name: Option<&str>,
+) -> bool {
+    MemoryTurnGate::default()
+        .check_turn_structure(source, action, relation_name)
+        .is_ok()
+}
+
+/// Apply [`MemoryTurnGate`] to a compiled turn action.
+///
+/// Leaves `QueryCurrent`, `Query`, and `Unresolved` actions untouched. If `action` is an
+/// `Assert` or `Correct` that fails either the additive score-gap check (`margin`) or the
+/// structural memory-turn discriminator, returns `CompiledAction::Unresolved { reason }` and
+/// never turns a write into a read.
+pub fn gate_compiled_action(
+    gate: &MemoryTurnGate,
+    source: &str,
+    action: crate::stack_grounded_session::CompiledAction,
+    margin: Option<&StatementMargin>,
+    relation_name: impl Fn(u32) -> Option<&'static str>,
+) -> crate::stack_grounded_session::CompiledAction {
+    use crate::stack_grounded_session::CompiledAction;
+    let rel_id = match &action {
+        CompiledAction::Assert { relation, .. } | CompiledAction::Correct { relation, .. } => {
+            *relation
+        }
+        CompiledAction::QueryCurrent { .. }
+        | CompiledAction::Query { .. }
+        | CompiledAction::Unresolved { .. } => return action,
+    };
+    if let Some(m) = margin {
+        if let Err(reason) = gate.check_margin(m) {
+            return CompiledAction::Unresolved {
+                reason: reason.to_owned(),
+            };
+        }
+    }
+    if let Err(reason) = gate.check_turn_structure(source, &action, relation_name(rel_id)) {
+        return CompiledAction::Unresolved {
+            reason: reason.to_owned(),
+        };
+    }
+    action
+}
+
+/// Combine a table action and an op-model action under `policy`, then apply [`MemoryTurnGate`]
+/// so ungrounded or low-margin candidate writes become `CompiledAction::Unresolved` (and never
+/// become reads).
+pub fn resolve_op_policy_gated(
+    policy: OpPolicy,
+    gate: &MemoryTurnGate,
+    source: &str,
+    table_margin: Option<&StatementMargin>,
+    relation_name: impl Fn(u32) -> Option<&'static str>,
+    table: impl FnOnce() -> Result<crate::stack_grounded_session::CompiledAction>,
+    op: impl FnOnce() -> Result<crate::stack_grounded_session::CompiledAction>,
+) -> Result<crate::stack_grounded_session::CompiledAction> {
+    let gated_table = || {
+        let act = table()?;
+        Ok(gate_compiled_action(
+            gate,
+            source,
+            act,
+            table_margin,
+            &relation_name,
+        ))
+    };
+    let gated_op = || {
+        let act = op()?;
+        Ok(gate_compiled_action(
+            gate,
+            source,
+            act,
+            None,
+            &relation_name,
+        ))
+    };
+    resolve_op_policy(policy, gated_table, gated_op)
+}
+
+type MarginFn = dyn Fn(&str, &crate::stack_grounded_session::CompiledAction) -> Option<StatementMargin>
+    + Send
+    + Sync;
+
+/// Compiled, integer-only [`crate::stack_grounded_session::TurnCompiler`] wrapper that
+/// enforces [`MemoryTurnGate`] (both additive integer [`StatementMargin`] thresholds when an
+/// integer margin source is attached and the structural speaker-grounded statement
+/// discriminator) at the `TurnCompiler::compile` write boundary (`#2855`).
+#[derive(Clone)]
+pub struct GatedTurnCompiler<C> {
+    inner: C,
+    gate: MemoryTurnGate,
+    margin_fn: Option<std::sync::Arc<MarginFn>>,
+}
+
+impl<C> GatedTurnCompiler<C> {
+    /// Wrap `inner` with [`MemoryTurnGate::default`].
+    pub fn new(inner: C) -> Self {
+        Self {
+            inner,
+            gate: MemoryTurnGate::default(),
+            margin_fn: None,
+        }
+    }
+
+    /// Return a copy of this wrapper with `gate` as its memory-turn discriminator and margin
+    /// gate (pass [`MemoryTurnGate::disabled`] for the ungated baseline arm).
+    pub fn with_memory_turn_gate(mut self, gate: MemoryTurnGate) -> Self {
+        self.gate = gate;
+        self
+    }
+
+    /// Update the memory-turn discriminator and margin gate in place.
+    pub fn set_memory_turn_gate(&mut self, gate: MemoryTurnGate) {
+        self.gate = gate;
+    }
+
+    /// The active [`MemoryTurnGate`] configuration.
+    pub fn memory_turn_gate(&self) -> &MemoryTurnGate {
+        &self.gate
+    }
+
+    /// Attach an integer [`StatementMargin`] source evaluated on each candidate write.
+    pub fn with_margin_fn(
+        mut self,
+        f: impl Fn(&str, &crate::stack_grounded_session::CompiledAction) -> Option<StatementMargin>
+            + Send
+            + Sync
+            + 'static,
+    ) -> Self {
+        self.margin_fn = Some(std::sync::Arc::new(f));
+        self
+    }
+
+    /// Shared reference to the wrapped compiler.
+    pub fn inner(&self) -> &C {
+        &self.inner
+    }
+}
+
+impl<C: crate::stack_grounded_session::TurnCompiler> crate::stack_grounded_session::TurnCompiler
+    for GatedTurnCompiler<C>
+{
+    fn identity(&self) -> &crate::stack_grounded_session::CompilerIdentity {
+        self.inner.identity()
+    }
+
+    fn artifact_bytes(&self) -> &[u8] {
+        self.inner.artifact_bytes()
+    }
+
+    fn compile(
+        &self,
+        source: &str,
+    ) -> std::result::Result<
+        crate::stack_grounded_session::CompiledAction,
+        crate::stack_grounded_session::GroundedSessionError,
+    > {
+        let candidate = self.inner.compile(source)?;
+        let margin = self.margin_fn.as_ref().and_then(|f| f(source, &candidate));
+        let identity = self.inner.identity();
+        Ok(gate_compiled_action(
+            &self.gate,
+            source,
+            candidate,
+            margin.as_ref(),
+            |rel_id| {
+                identity
+                    .relations
+                    .iter()
+                    .find(|r| r.id == rel_id)
+                    .map(|r| r.name.as_str())
+                    .and_then(|name| {
+                        (1u32..=10)
+                            .find_map(|id| canonical_relation_name(id).filter(|&c| c == name))
+                    })
+                    .or_else(|| canonical_relation_name(rel_id))
+            },
+        ))
+    }
+}
+
 pub const COMPILER_SCHEMA: &str = "uor-r4.relation-compiler/1";
 pub const COMPILER_LABEL_SCHEMA: &str = "m-world-v2.relations-acts/1";
 #[cfg(any())]
@@ -1838,6 +2509,7 @@ pub struct SavedCompiler {
     op: Option<std::sync::Arc<Trunk>>,
     act_rule: ActRule,
     op_policy: OpPolicy,
+    gate: MemoryTurnGate,
     identity: crate::stack_grounded_session::CompilerIdentity,
 }
 
@@ -2132,8 +2804,26 @@ impl SavedCompiler {
             op: op.map(std::sync::Arc::new),
             act_rule: settings.act_rule,
             op_policy: OpPolicy::Op,
+            gate: MemoryTurnGate::default(),
             identity,
         })
+    }
+
+    /// Return a copy of this compiler with `gate` as its memory-turn discriminator
+    /// and margin gate (`MemoryTurnGate::disabled()` runs the ungated baseline).
+    pub fn with_memory_turn_gate(mut self, gate: MemoryTurnGate) -> Self {
+        self.gate = gate;
+        self
+    }
+
+    /// Update the memory-turn discriminator and margin gate in place.
+    pub fn set_memory_turn_gate(&mut self, gate: MemoryTurnGate) {
+        self.gate = gate;
+    }
+
+    /// The active [`MemoryTurnGate`] configuration.
+    pub fn memory_turn_gate(&self) -> &MemoryTurnGate {
+        &self.gate
     }
 
     /// The same compiler combining its op model and its table by `policy`
@@ -2350,8 +3040,12 @@ impl SavedCompiler {
         if self.op.is_none() {
             return self.table_action(source);
         }
-        resolve_op_policy(
+        resolve_op_policy_gated(
             self.op_policy,
+            &self.gate,
+            source,
+            None,
+            canonical_relation_name,
             || self.table_action(source),
             || self.op_action(source),
         )
@@ -2379,11 +3073,18 @@ impl SavedCompiler {
                 None => CompiledAction::QueryCurrent { relation: id },
                 Some((start, end)) => {
                     let span = SourceSpan { start, end };
-                    if self.statement_act(source, row.as_deref())? == "update" {
+                    let candidate = if self.statement_act(source, row.as_deref())? == "update" {
                         CompiledAction::Correct { relation: id, span }
                     } else {
                         CompiledAction::Assert { relation: id, span }
-                    }
+                    };
+                    gate_compiled_action(
+                        &self.gate,
+                        source,
+                        candidate,
+                        None,
+                        canonical_relation_name,
+                    )
                 }
             });
         }
@@ -2393,11 +3094,18 @@ impl SavedCompiler {
                 None => unresolved("the span head marks no value"),
                 Some((start, end)) => {
                     let span = SourceSpan { start, end };
-                    Ok(if act == "assert" {
+                    let candidate = if act == "assert" {
                         CompiledAction::Assert { relation: id, span }
                     } else {
                         CompiledAction::Correct { relation: id, span }
-                    })
+                    };
+                    Ok(gate_compiled_action(
+                        &self.gate,
+                        source,
+                        candidate,
+                        None,
+                        canonical_relation_name,
+                    ))
                 }
             },
             _ => unresolved("the heads name no act"),
@@ -3773,5 +4481,652 @@ mod tests {
             relation_phrase("What is mousbror's name?").map(|p| derived_relation_id(&p)),
             "the question must derive its statement's address"
         );
+    }
+
+    #[test]
+    fn memory_turn_discriminator_and_margin_gate_controls() {
+        use crate::stack_grounded_session::{CompiledAction, SourceSpan};
+        use crate::stack_store::HistoryView;
+
+        let gate = MemoryTurnGate::default();
+
+        // 1. Additive linear score-gap margins (relation gap, write-act gap, span margin).
+        let passing_margin = StatementMargin::from_linear_scores(
+            &[100, 950, 400, 200],
+            1,
+            &[850, 200, 300, 450],
+            0,
+            &[2, 3],
+            350,
+            300,
+        )
+        .expect("valid margin");
+        assert_eq!(passing_margin.relation_gap_milli, 550);
+        assert_eq!(passing_margin.act_write_gap_milli, 400);
+        assert_eq!(passing_margin.span_margin_milli, 650);
+        assert!(gate.check_margin(&passing_margin).is_ok());
+
+        let low_rel_margin = StatementMargin {
+            relation_gap_milli: 150,
+            ..passing_margin
+        };
+        assert_eq!(
+            gate.check_margin(&low_rel_margin),
+            Err("the relation score gap is below the memory-turn margin gate")
+        );
+        let low_act_margin = StatementMargin {
+            act_write_gap_milli: 100,
+            ..passing_margin
+        };
+        assert_eq!(
+            gate.check_margin(&low_act_margin),
+            Err("the write-act score gap is below the memory-turn margin gate")
+        );
+        let low_span_margin = StatementMargin {
+            span_margin_milli: 300,
+            ..passing_margin
+        };
+        assert_eq!(
+            gate.check_margin(&low_span_margin),
+            Err("the span boundary margin is below the memory-turn margin gate")
+        );
+
+        // 2. Non-writes (QueryCurrent, Query, Unresolved) pass through untouched even with
+        //    a sub-threshold margin, and rejected writes become Unresolved (never a read).
+        let q_current = CompiledAction::QueryCurrent { relation: 1 };
+        let q_initial = CompiledAction::Query {
+            relation: 4,
+            view: HistoryView::Initial,
+        };
+        let unresolved = CompiledAction::Unresolved {
+            reason: "the op is none".into(),
+        };
+        for non_write in [q_current.clone(), q_initial.clone(), unresolved.clone()] {
+            assert_eq!(
+                gate_compiled_action(
+                    &gate,
+                    "What is my name?",
+                    non_write.clone(),
+                    Some(&low_rel_margin),
+                    canonical_relation_name,
+                ),
+                non_write
+            );
+        }
+
+        // A false write on a question must become Unresolved, NEVER QueryCurrent or Query.
+        let false_write_on_question = CompiledAction::Assert {
+            relation: 1,
+            span: SourceSpan { start: 0, end: 5 },
+        };
+        let gated_question = gate_compiled_action(
+            &gate,
+            "Where am I from?",
+            false_write_on_question.clone(),
+            Some(&passing_margin),
+            canonical_relation_name,
+        );
+        assert!(
+            matches!(gated_question, CompiledAction::Unresolved { .. }),
+            "expected Unresolved, got {gated_question:?}"
+        );
+        let gated_remind = gate_compiled_action(
+            &gate,
+            "Remind me what my job is.",
+            CompiledAction::Correct {
+                relation: 7,
+                span: SourceSpan { start: 18, end: 21 },
+            },
+            Some(&passing_margin),
+            canonical_relation_name,
+        );
+        assert!(
+            matches!(gated_remind, CompiledAction::Unresolved { .. }),
+            "expected Unresolved, got {gated_remind:?}"
+        );
+
+        // 3. #1718 non-relation prose and synthetic conversational controls are rejected
+        //    under both gate_compiled_action and resolve_op_policy_gated(UnlessQuery),
+        //    including third-person possessors with nouns that do not appear anywhere in
+        //    `data/panels/nonrelation-prose-v1.txt`, negated statements, conditional/hypothetical
+        //    statements, reported speech, past-tense code-word prose, and lowercase small-talk.
+        let non_relation_controls = [
+            (
+                "The weather has been unusually warm this week.",
+                "Op: assert home week",
+            ),
+            (
+                "I enjoy walking in the park after dinner.",
+                "Op: assert favorite_food dinner",
+            ),
+            (
+                "Actually, let us set that topic aside for another conversation.",
+                "Op: update user_name topic",
+            ),
+            (
+                "By trade, my uncle restored antique clocks in Vienna.",
+                "Op: assert job Vienna",
+            ),
+            (
+                "My cousin's favorite dish at the bistro is mushroom pasta.",
+                "Op: assert favorite_food pasta",
+            ),
+            (
+                "For me, a cup of tea in the afternoon is relaxing.",
+                "Op: assert lucky_number tea",
+            ),
+            (
+                "My favorite color is not blue.",
+                "Op: assert favorite_color blue",
+            ),
+            ("My name is not Alice.", "Op: assert user_name Alice"),
+            ("I'm tired.", "Op: assert user_name tired"),
+            ("I am hungry.", "Op: assert user_name hungry"),
+            (
+                "The code word in the film was Rosebud.",
+                "Op: assert code_word Rosebud",
+            ),
+            (
+                "Yesterday the code word was lantern.",
+                "Op: assert code_word lantern",
+            ),
+            (
+                "If my name were Bob, I'd sign it Bob.",
+                "Op: assert user_name Bob",
+            ),
+            (
+                "If my favorite color is blue, I will buy that shirt.",
+                "Op: assert favorite_color blue",
+            ),
+            ("She said my name is Bob.", "Op: assert user_name Bob"),
+            (
+                "He said my favorite color is teal.",
+                "Op: assert favorite_color teal",
+            ),
+            (
+                "The baker's specialty dish is sourdough.",
+                "Op: assert favorite_food sourdough",
+            ),
+            (
+                "Our landlord's cat is named Cleo.",
+                "Op: assert pet_name Cleo",
+            ),
+            (
+                "My brother's favorite color is green.",
+                "Op: assert favorite_color green",
+            ),
+        ];
+        let ids = |name: &str| (1u32..=10).find(|&id| canonical_relation_name(id) == Some(name));
+        for (turn, hallucinated_op) in non_relation_controls {
+            let raw_op = parse_op(hallucinated_op, turn, ids);
+            assert!(
+                matches!(
+                    raw_op,
+                    CompiledAction::Assert { .. } | CompiledAction::Correct { .. }
+                ),
+                "control must produce an unguarded write first: {turn}"
+            );
+            assert!(
+                !has_memory_turn_cue(turn, &raw_op, None),
+                "non-relation control must fail has_memory_turn_cue: {turn}"
+            );
+            let unguarded = resolve_op_policy_gated(
+                OpPolicy::UnlessQuery,
+                &MemoryTurnGate::disabled(),
+                turn,
+                Some(&passing_margin),
+                canonical_relation_name,
+                || {
+                    Ok(CompiledAction::Unresolved {
+                        reason: "the heads name no relation".into(),
+                    })
+                },
+                || Ok(raw_op.clone()),
+            )
+            .expect("disabled policy resolves");
+            assert_eq!(unguarded, raw_op);
+            let resolved = resolve_op_policy_gated(
+                OpPolicy::UnlessQuery,
+                &gate,
+                turn,
+                Some(&passing_margin),
+                canonical_relation_name,
+                || {
+                    Ok(CompiledAction::Unresolved {
+                        reason: "the heads name no relation".into(),
+                    })
+                },
+                || Ok(raw_op.clone()),
+            )
+            .expect("policy resolves");
+            assert!(
+                matches!(resolved, CompiledAction::Unresolved { .. }),
+                "non-relation control leaked a write on {turn:?}: {resolved:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn memory_turn_gate_preserves_all_world_v2_relation_statement_templates() {
+        use crate::milestone_world::{Rng, Split};
+        use crate::milestone_world_v2::relations;
+        use crate::stack_grounded_session::{CompiledAction, SourceSpan};
+
+        let gate = MemoryTurnGate::default();
+        let passing_margin = StatementMargin {
+            relation_gap_milli: 600,
+            act_write_gap_milli: 500,
+            span_margin_milli: 700,
+        };
+
+        // 1. Iterate directly over the `milestone_world_v2::relations()` table across
+        //    both `Split::Train` and `Split::Development` so every single generator
+        //    statement template (`assert` + `update`, 79 templates total across the
+        //    10 relations) is verified against values drawn from the generator's pools.
+        let rel_table = relations();
+        assert_eq!(rel_table.len(), 10);
+        let mut rng = Rng::new(2026_1023);
+        let mut generator_template_count = 0usize;
+
+        for (idx, rel) in rel_table.iter().enumerate() {
+            let rel_id = u32::try_from(idx + 1).expect("1-based relation id");
+            assert_eq!(canonical_relation_name(rel_id), Some(rel.name));
+
+            for (split, assert_templates, update_templates) in [
+                (Split::Train, rel.assert.train, rel.update.train),
+                (
+                    Split::Development,
+                    rel.assert.development,
+                    rel.update.development,
+                ),
+            ] {
+                for &template in assert_templates {
+                    let sample_value = rel.draw(&mut rng, split).expect("draw value");
+                    let text = template.replace("{v}", &sample_value);
+                    let start = match_at_word_start(&text, &sample_value).expect("value in assert");
+                    let (start, end) = align_to_words(&text, start, start + sample_value.len());
+                    let candidate = CompiledAction::Assert {
+                        relation: rel_id,
+                        span: SourceSpan { start, end },
+                    };
+                    let gated = gate_compiled_action(
+                        &gate,
+                        &text,
+                        candidate.clone(),
+                        Some(&passing_margin),
+                        canonical_relation_name,
+                    );
+                    assert_eq!(
+                        gated, candidate,
+                        "gate rejected world=v2 {split:?} assert template for {}: {template} -> {text}",
+                        rel.name
+                    );
+                    generator_template_count += 1;
+                }
+
+                for &template in update_templates {
+                    let sample_value = rel.draw(&mut rng, split).expect("draw value");
+                    let text = template.replace("{v}", &sample_value);
+                    let start = match_at_word_start(&text, &sample_value).expect("value in update");
+                    let (start, end) = align_to_words(&text, start, start + sample_value.len());
+                    let candidate = CompiledAction::Correct {
+                        relation: rel_id,
+                        span: SourceSpan { start, end },
+                    };
+                    let gated = gate_compiled_action(
+                        &gate,
+                        &text,
+                        candidate.clone(),
+                        Some(&passing_margin),
+                        canonical_relation_name,
+                    );
+                    assert_eq!(
+                        gated, candidate,
+                        "gate rejected world=v2 {split:?} update template for {}: {template} -> {text}",
+                        rel.name
+                    );
+                    generator_template_count += 1;
+                }
+            }
+        }
+        assert_eq!(generator_template_count, 79);
+
+        // 2. Also verify the teacher-paraphrase statement templates (`paraphrase_review.rs`
+        //    and extended paraphrase corpus).
+        let paraphrase_specs: &[(u32, &str, &str, &[&str], &[&str])] = &[
+            (
+                1,
+                "user_name",
+                "Zorvak",
+                &[
+                    "I am {value}.",
+                    "I go by {value}.",
+                    "I am called {value}.",
+                    "I'm referred to as {value}.",
+                ],
+                &[
+                    "Actually, I am {value}.",
+                    "Actually, I'm {value}.",
+                    "No, I'm {value} now.",
+                    "Actually, I go by {value} now.",
+                ],
+            ),
+            (
+                2,
+                "pet_name",
+                "Plimbo",
+                &["My pet is {value}.", "My cat is {value}."],
+                &[
+                    "Actually, my pet is {value}.",
+                    "Actually, my cat is {value}.",
+                ],
+            ),
+            (
+                8,
+                "home",
+                "Bergen",
+                &["I'm based in {value}.", "I am based in {value}."],
+                &["Actually, I'm based in {value} now."],
+            ),
+            (
+                9,
+                "favorite_food",
+                "risotto",
+                &[
+                    "Given a choice, I eat {value}.",
+                    "My go-to dish is {value}.",
+                ],
+                &[
+                    "Actually, I eat {value} instead.",
+                    "Sorry, my go-to dish is {value} now.",
+                ],
+            ),
+        ];
+
+        for &(rel_id, rel_name, sample_value, asserts, updates) in paraphrase_specs {
+            for &template in asserts {
+                let text = template.replace("{value}", sample_value);
+                let start = match_at_word_start(&text, sample_value).expect("value in assert");
+                let (start, end) = align_to_words(&text, start, start + sample_value.len());
+                let candidate = CompiledAction::Assert {
+                    relation: rel_id,
+                    span: SourceSpan { start, end },
+                };
+                let gated = gate_compiled_action(
+                    &gate,
+                    &text,
+                    candidate.clone(),
+                    Some(&passing_margin),
+                    canonical_relation_name,
+                );
+                assert_eq!(
+                    gated, candidate,
+                    "gate rejected paraphrase assert template for {rel_name}: {text}"
+                );
+            }
+            for &template in updates {
+                let text = template.replace("{value}", sample_value);
+                let start = match_at_word_start(&text, sample_value).expect("value in update");
+                let (start, end) = align_to_words(&text, start, start + sample_value.len());
+                let candidate = CompiledAction::Correct {
+                    relation: rel_id,
+                    span: SourceSpan { start, end },
+                };
+                let gated = gate_compiled_action(
+                    &gate,
+                    &text,
+                    candidate.clone(),
+                    Some(&passing_margin),
+                    canonical_relation_name,
+                );
+                assert_eq!(
+                    gated, candidate,
+                    "gate rejected paraphrase update template for {rel_name}: {text}"
+                );
+            }
+        }
+
+        // 3. Open-relation copular statements (derived relation IDs >= DERIVED_RELATION_ID_BASE)
+        //    are also preserved.
+        for (text, phrase, value) in [
+            ("My sculptor is Klisttritse.", "sculptor", "Klisttritse"),
+            ("I'd say my plumber is Ola.", "plumber", "Ola"),
+            (
+                "My mortar and pestle is Granite.",
+                "mortar and pestle",
+                "Granite",
+            ),
+        ] {
+            let rel_id = derived_relation_id(phrase);
+            let start = match_at_word_start(text, value).expect("value in open statement");
+            let (start, end) = align_to_words(text, start, start + value.len());
+            let candidate = CompiledAction::Assert {
+                relation: rel_id,
+                span: SourceSpan { start, end },
+            };
+            let gated = gate_compiled_action(
+                &gate,
+                text,
+                candidate.clone(),
+                Some(&passing_margin),
+                canonical_relation_name,
+            );
+            assert_eq!(gated, candidate, "open relation rejected: {text}");
+        }
+    }
+
+    #[test]
+    fn gated_turn_compiler_wires_configurable_gate_and_integer_margin() {
+        use crate::nonrelation_prose_panel::world_v2_relation_labels;
+        use crate::stack_grounded_session::{
+            CompiledAction, CompilerIdentity, GroundedSessionError, SourceSpan, TurnCompiler,
+        };
+
+        #[derive(Clone)]
+        struct OpStubCompiler {
+            identity: CompilerIdentity,
+            bytes: Vec<u8>,
+        }
+
+        impl TurnCompiler for OpStubCompiler {
+            fn identity(&self) -> &CompilerIdentity {
+                &self.identity
+            }
+
+            fn artifact_bytes(&self) -> &[u8] {
+                &self.bytes
+            }
+
+            fn compile(
+                &self,
+                source: &str,
+            ) -> std::result::Result<CompiledAction, GroundedSessionError> {
+                let ids =
+                    |name: &str| (1u32..=10).find(|&id| canonical_relation_name(id) == Some(name));
+                let op_text = match source {
+                    "My name is Zorvak." => "Op: assert user_name Zorvak",
+                    "I'm tired." => "Op: assert user_name tired",
+                    _ => "Op: none",
+                };
+                Ok(parse_op(op_text, source, ids))
+            }
+        }
+
+        let base_identity = CompilerIdentity {
+            schema: COMPILER_SCHEMA.to_owned(),
+            artifact_sha256: "0".repeat(64),
+            tokenizer_sha256: "0".repeat(64),
+            label_schema: COMPILER_LABEL_SCHEMA.to_owned(),
+            relations: world_v2_relation_labels(),
+            encoder: None,
+        };
+        let inner = OpStubCompiler {
+            identity: base_identity,
+            bytes: b"op-stub".to_vec(),
+        };
+        let integer_margin = StatementMargin {
+            relation_gap_milli: 480,
+            act_write_gap_milli: 410,
+            span_margin_milli: 620,
+        };
+        let gated = GatedTurnCompiler::new(inner).with_margin_fn(move |_, _| Some(integer_margin));
+
+        // 1. A genuine statement passes both the integer StatementMargin check and the
+        //    structural discriminator through `GatedTurnCompiler::compile`.
+        assert_eq!(
+            gated.compile("My name is Zorvak.").expect("compile"),
+            CompiledAction::Assert {
+                relation: 1,
+                span: SourceSpan { start: 11, end: 17 },
+            }
+        );
+
+        // 2. Raising `min_relation_gap_milli` above the integer margin via
+        //    `with_memory_turn_gate` rejects the write as `Unresolved`.
+        let strict = gated.clone().with_memory_turn_gate(MemoryTurnGate {
+            min_relation_gap_milli: integer_margin.relation_gap_milli + 100,
+            ..MemoryTurnGate::default()
+        });
+        assert_eq!(
+            strict.compile("My name is Zorvak.").expect("compile"),
+            CompiledAction::Unresolved {
+                reason: "the relation score gap is below the memory-turn margin gate".to_owned(),
+            }
+        );
+
+        // 3. On `"I'm tired." -> Op: assert user_name tired`, the default gate blocks the
+        //    write as `Unresolved`, while `with_memory_turn_gate(MemoryTurnGate::disabled())`
+        //    lets the ungated baseline arm through.
+        let blocked = gated.compile("I'm tired.").expect("compile");
+        assert!(
+            matches!(blocked, CompiledAction::Unresolved { .. }),
+            "default GatedTurnCompiler must block small-talk write, got {blocked:?}"
+        );
+        let ungated = gated
+            .clone()
+            .with_memory_turn_gate(MemoryTurnGate::disabled());
+        assert_eq!(
+            ungated.compile("I'm tired.").expect("compile"),
+            CompiledAction::Assert {
+                relation: 1,
+                span: SourceSpan { start: 4, end: 9 },
+            }
+        );
+    }
+
+    #[test]
+    fn memory_turn_gate_achieves_zero_false_writes_on_frozen_nonrelation_prose_panel() {
+        use crate::nonrelation_prose_panel::{
+            grade_prose_panel, world_v2_relation_labels, ProsePanel,
+        };
+        use crate::stack_grounded_session::{
+            CompiledAction, CompilerIdentity, GroundedSessionError, SourceSpan, TurnCompiler,
+        };
+
+        #[derive(Clone)]
+        struct RawAdversarialCompiler {
+            identity: CompilerIdentity,
+            bytes: Vec<u8>,
+            rel_id: u32,
+            is_update: bool,
+        }
+
+        impl TurnCompiler for RawAdversarialCompiler {
+            fn identity(&self) -> &CompilerIdentity {
+                &self.identity
+            }
+
+            fn artifact_bytes(&self) -> &[u8] {
+                &self.bytes
+            }
+
+            fn compile(
+                &self,
+                source: &str,
+            ) -> std::result::Result<CompiledAction, GroundedSessionError> {
+                let words = word_spans(source);
+                let last = words.last().expect("non-empty row");
+                let span = SourceSpan {
+                    start: last.start,
+                    end: last.end,
+                };
+                Ok(if self.is_update {
+                    CompiledAction::Correct {
+                        relation: self.rel_id,
+                        span,
+                    }
+                } else {
+                    CompiledAction::Assert {
+                        relation: self.rel_id,
+                        span,
+                    }
+                })
+            }
+        }
+
+        let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let repo_root = manifest_dir
+            .parent()
+            .and_then(|p| p.parent())
+            .expect("workspace root");
+        let panel = ProsePanel::load_frozen(repo_root).expect("frozen panel loads");
+        let passing_margin = StatementMargin {
+            relation_gap_milli: 600,
+            act_write_gap_milli: 500,
+            span_margin_milli: 700,
+        };
+
+        let base_identity = CompilerIdentity {
+            schema: COMPILER_SCHEMA.to_owned(),
+            artifact_sha256: "0".repeat(64),
+            tokenizer_sha256: "0".repeat(64),
+            label_schema: COMPILER_LABEL_SCHEMA.to_owned(),
+            relations: world_v2_relation_labels(),
+            encoder: None,
+        };
+
+        // Sweep every closed relation (1..=10) and derived relation IDs against an
+        // adversarial upstream compiler wrapped in `GatedTurnCompiler`.
+        for rel_id in (1u32..=10).chain(std::iter::once(derived_relation_id("sculptor"))) {
+            for is_update in [false, true] {
+                let raw = RawAdversarialCompiler {
+                    identity: base_identity.clone(),
+                    bytes: b"adversarial-raw".to_vec(),
+                    rel_id,
+                    is_update,
+                };
+                let compiler = GatedTurnCompiler::new(raw.clone())
+                    .with_margin_fn(move |_, _| Some(passing_margin));
+                let report = grade_prose_panel(&panel, &compiler, true, true)
+                    .expect("grade frozen prose panel");
+                assert!(
+                    report.is_all_clean(),
+                    "false actions for relation {rel_id} (update={is_update}): \
+                     assert={} correct={} overwrite={} query={}",
+                    report.false_assert_count,
+                    report.false_correct_action_count,
+                    report.false_overwrite_count,
+                    report.false_query_count,
+                );
+                assert_eq!(report.clean_unresolved_count, 50);
+                assert_eq!(report.false_assert_count, 0);
+                assert_eq!(report.false_correct_action_count, 0);
+                assert_eq!(report.false_overwrite_count, 0);
+                assert_eq!(report.false_query_count, 0);
+            }
+        }
+
+        // Deliberate-break control: disabling the gate on `GatedTurnCompiler` causes all 50
+        // panel rows to fail with false writes.
+        let ungated = GatedTurnCompiler::new(RawAdversarialCompiler {
+            identity: base_identity,
+            bytes: b"adversarial-raw".to_vec(),
+            rel_id: 1,
+            is_update: false,
+        })
+        .with_memory_turn_gate(MemoryTurnGate::disabled());
+        let ungated_report =
+            grade_prose_panel(&panel, &ungated, true, true).expect("grade ungated prose panel");
+        assert_eq!(ungated_report.false_assert_count, 50);
     }
 }

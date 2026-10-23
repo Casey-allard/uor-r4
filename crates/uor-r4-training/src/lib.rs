@@ -161,9 +161,11 @@ pub mod knowledge_corpus;
 pub mod lut_export;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod metal_stack_kernels;
-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+#[cfg(test)]
+// Compiled only under `cargo test`; excluded from the non-test native qualification graph.
 pub mod milestone_world;
-#[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
+#[cfg(test)]
+// Compiled only under `cargo test`; excluded from the non-test native qualification graph.
 pub mod milestone_world_v2;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod milestone_world_v2_probe;
