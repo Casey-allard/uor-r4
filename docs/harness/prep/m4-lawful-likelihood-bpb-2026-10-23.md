@@ -1,6 +1,6 @@
 # M4 — Lawful likelihood for bits-per-byte scoring (`m4-lawful-likelihood-bpb`)
 
-- **Status:** DRAFT pre-registration, `TEST FITNESS: PENDING`. No compute is cleared. Authored by deepseek (`deepseek-49`) from the owner-approved design (`#2028` 2026-10-22T04:17:03Z, Card 1 "Yes, a linear ratio (Recommended)") and the merged design (PR #2940) and instrument (`crates/uor-r4-integer/src/lawful_likelihood.rs`, PR #2945).
+- **Status:** DRAFT pre-registration, `TEST FITNESS: NOT_FIT` (non-author review by claude at `fb6156b46`, 2026-10-23; recorded verbatim in section 10). No compute is cleared. Authored by deepseek (`deepseek-49`) from the owner-approved design (`#2028` 2026-10-22T04:17:03Z, Card 1 "Yes, a linear ratio (Recommended)") and the merged design (PR #2940) and instrument (`crates/uor-r4-integer/src/lawful_likelihood.rs`, PR #2945).
 - **Milestone / Line:** M4 ([#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032), item [`m4-lawful-likelihood-bpb`](../../roadmap/items/m4-lawful-likelihood-bpb.md), [#2861](https://github.com/UOR-Foundation/uor-r4/issues/2861)); serving path [lut-serving](../../mechanisms/lut-serving.md).
 - **Lab:** deepseek. **Class:** instrument (host-only); the registered scoring run is later research compute (GPU) and stays HELD until FIT + owner registration + an exported model.
 
@@ -29,8 +29,8 @@
 - **Context and stride:** `context = 384`; `stride = (6,194,589 - 384 - 1) / 512 = 12,098` (matches the archived protocol pin).
 - **Primary arm: 512 windows / 196,608 targets** (exceeds the >= 200 fresh-row floor of CHARTER §4.3 rule 3, D22 §3).
 - **Secondary diagnostic: 64 windows / 24,576 targets**, reported separately; the two counts are never compared as one number (the archived 0.045935 BPB movement between window counts is why).
-- **Measured noise (CHARTER §4.3):** the archived 512-window re-sampling standard error is **0.014525 BPB** ([criterion2 protocol pin](../../../archive/labs/criterion2-protocol-pin-2026-10-09/README.md)); the archived matched 0.886838 margin (0.013162) is itself inside that SE. A point estimate whose 95% interval straddles 0.90 is therefore **INCONCLUSIVE** and extends the window count (1024, then 2048) instead of deciding (the exact mapping is in the next bullet).
-- **What each outcome decides (one interval partitions every reading):** with `se = 0.014525` and `z = 1.96`, let `lo = estimate - z*se` and `hi = estimate + z*se`. **PASS** iff `hi <= 0.90` (the whole interval is at or below the bar) records the M4 bar as met for this artifact/stream and becomes a notebook row; **FAIL** iff `lo > 0.90` (the whole interval is above the bar) closes this artifact/stream configuration (not the mechanism); **INCONCLUSIVE** iff the interval straddles 0.90, in which case the window count extends (1024, then 2048) rather than deciding. None of these outcomes releases training or changes the bar.
+- **Measured noise (CHARTER §4.3) and the per-window rule:** the archived 512-window re-sampling standard error is **0.014525 BPB** ([criterion2 protocol pin](../../../archive/labs/criterion2-protocol-pin-2026-10-09/README.md)). This sheet scales it by window count as `se_n = 0.014525 * sqrt(512 / n)` (the resampling method the archive used; the alternative is to re-measure `se` at each n with that method and use the measured value): **n=1024 -> 0.010270**, **n=2048 -> 0.007262**. The archived matched 0.886838 margin (0.013162) is itself inside the 512-window SE. A point estimate whose 95% interval straddles 0.90 is **INCONCLUSIVE** and extends the window count (1024, then 2048) instead of deciding (the exact mapping is in the next bullet).
+- **What each outcome decides (one interval partitions every reading, at every window count n):** with `se_n = 0.014525 * sqrt(512 / n)` (or the re-measured value) and `z = 1.96`, let `lo = estimate - z*se_n` and `hi = estimate + z*se_n`. **PASS** iff `hi <= 0.90` (the whole interval is at or below the bar) records the M4 bar as met for this artifact/stream and becomes a notebook row; **FAIL** iff `lo > 0.90` (the whole interval is above the bar) closes this artifact/stream configuration (not the mechanism); **INCONCLUSIVE** iff the interval straddles 0.90, in which case the window count extends (1024, then 2048) rather than deciding. **INCONCLUSIVE at 2048 windows is a configuration result, not a bar claim:** the run is recorded as an underpowered/undecided configuration for that artifact/stream, no PASS or FAIL is recorded, and re-testing the bar needs either the owner lowering the required power or a new pre-registration with a larger window budget. None of these outcomes releases training or changes the bar.
 - Re-scoring the same stream twice must reproduce `bits_q12` totals bit-for-bit (determinism control).
 
 ## 4. Arms
@@ -44,11 +44,11 @@
 
 ## 5. Bar (the owner's; not set or changed here)
 
-The M4 bar is **held-out quality at or below 0.90 bits per byte** (`ROADMAP.md:17`, owner's). This sheet makes it scoreable on the frozen stream above; it does not register the bar and releases nothing. Two PM/owner conditions the design note already carries are repeated for the registration card: (i) whether the 0.90 bar may be read through an uncalibrated lawful likelihood (PRLL is lawful but not temperature-calibrated), and (ii) confirmation that the stream above is the chat held-out stream the bar means.
+The M4 bar is **held-out quality at or below 0.90 bits per byte** (`ROADMAP.md:17`, owner's). This sheet makes it scoreable on the frozen stream above; it does not register the bar and releases nothing. Two PM/owner conditions the design note already carries are repeated for the registration card: (i) whether the 0.90 bar may be read through an uncalibrated lawful likelihood (PRLL is lawful but not temperature-calibrated), and (ii) confirmation that the stream above is the chat held-out stream the bar means. **Both are FIT prerequisites and remain open and owner-only** (section 10, prerequisite 2); a FIT cannot clear them and this sheet does not claim them.
 
 ## 6. Base artifact (pending, and why)
 
-Scoring needs a trained discrete model exported through `UORLUT01` — item `m4-export-uorlut01-cli` ([#2859](https://github.com/UOR-Foundation/uor-r4/issues/2859)) — plus the owner's release recorded verbatim in the lab's own chat (CHARTER §5.1; no typed phrase is needed). The archived 19.9M chat stack's original LUT is gone (criterion-2 lab); the retrain (`cbef6906…` checkpoint, `721d4bdb…` LUT) is the only matched artifact that exists and is recorded in the archive, not served. **No model is exported and no run is cleared by this sheet**; the scoring arm lands when the export exists.
+Scoring needs a trained discrete model exported through `UORLUT01` — item `m4-export-uorlut01-cli` ([#2859](https://github.com/UOR-Foundation/uor-r4/issues/2859)) — plus the owner's release recorded verbatim in the lab's own chat (CHARTER §5.1; no typed phrase is needed). The archived 19.9M chat stack's original LUT is gone (criterion-2 lab); the retrain (`cbef6906…` checkpoint, `721d4bdb…` LUT) is the only matched artifact that exists and is recorded in the archive, not served. **No model is exported and no run is cleared by this sheet**; the scoring arm lands when the export exists. **REQUIRED PIN before any FIT:** this section must name the export file path and its SHA-256 (`artifact_sha256`) and the model training seeds it was trained with (section 10, prerequisite 1). Until `m4-export-uorlut01-cli` (#2859) produces that export the FIT cannot pass; the sheet stays NOT_FIT.
 
 ## 7. Finite host controls (already green on main)
 
@@ -66,4 +66,17 @@ Any stream-hash or token-count mismatch, any mass below 1 or sum != 2^48, any fl
 
 ## 10. Recorded FIT review
 
-TEST FITNESS: PENDING (non-author review to come; the sheet is authored by deepseek, so the FIT must come from Claude, Kimi or antigravity).
+Non-author review by claude, **`TEST FITNESS: NOT_FIT`**, sheet read at `main fb6156b46`; recorded verbatim:
+
+```text
+TEST FITNESS: NOT_FIT - M4 #2032 PRLL
+sheet: docs/harness/prep/m4-lawful-likelihood-bpb-2026-10-23.md
+reviewer: claude (non-author; the sheet was authored by deepseek), read at main fb6156b46
+note: Not runnable or fully decidable yet: (1) the base artifact is unpinned - no discrete model is exported through UORLUT01 (m4-export-uorlut01-cli, #2859), so section 6 must name the export's SHA-256 and its training seeds before a FIT; (2) the owner's two section 5 conditions (reading the 0.90 bar through an uncalibrated lawful likelihood; confirming the stream is the chat held-out stream) are pending on #2028/#2861; (3) the extension rule cannot resolve an INCONCLUSIVE: se stays at the 512-window 0.014525 for 1024 and 2048 windows, so the interval never narrows - re-measure se at each window count with the archive's resampling method (or scale it by sqrt(512/n)), and state what an INCONCLUSIVE at 2048 windows decides. Unchanged since the #3060 review, which verified them: stream pins, context 384 / stride 12,098, the zero-count C0 rule, the 4.2292 uniform floor, the nine host controls.
+date: 2026-10-23
+A FIT verdict clears compute for the configuration in that sheet only (D22).
+
+Every mechanism pre-registration gets a TEST FITNESS review on its milestone before compute.
+```
+
+**Disposition of the three prerequisites:** (3) is fixed in this revision (per-window `se_n`, the 2048 INCONCLUSIVE rule in section 3, and the open owner registration in section 5); (1) and (2) remain open and are owner/workstream prerequisites, recorded here and in sections 5 and 6 - no FIT is claimed and no compute is cleared.

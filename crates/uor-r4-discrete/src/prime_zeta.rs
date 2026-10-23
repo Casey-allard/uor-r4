@@ -1325,7 +1325,7 @@ mod tests {
     fn driver_source_identity_changes_with_rank_objective_metadata() {
         assert_eq!(
             uor_r4_discrete::training::driver_source_sha256(),
-            "b13d4920d37a49dd0b1c2305ceaf406e51d5baadd058572cbf481f534bdf9b24"
+            "791a555d001c1f7a0c313474d0410f52cf2006fd61faa67410316a52cc401882"
         );
     }
 }
