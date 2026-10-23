@@ -847,13 +847,35 @@ fn the_render_owner_lab_is_not_asked_to_review_its_own_render_pr() {
 #[test]
 fn the_production_listing_requests_the_render_sentinel_field() {
     // The fixture supplies isCrossRepository directly; this pins that the real query asks for
-    // it too, so the fixture cannot pass while production deserializes None.
+    // it too, so the fixture cannot pass while production deserializes None. Read the constant's
+    // own value line, not the whole file: the doc comment above it also names the field, so a
+    // whole-file contains() would stay green if the value lost it.
     let source =
         std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/loopnext.rs"))
             .unwrap();
+    // The definition may wrap (rustfmt puts the value on its own line), so read from the
+    // declaration through the terminating semicolon.
+    let mut definition = String::new();
+    let mut after_start = false;
+    for line in source.lines() {
+        if !after_start {
+            after_start = line.trim_start().starts_with("const PR_LIST_FIELDS");
+        }
+        if after_start {
+            definition.push_str(line);
+            definition.push('\n');
+            if line.trim_end().ends_with(';') {
+                break;
+            }
+        }
+    }
     assert!(
-        source.contains("isCrossRepository"),
-        "the production gh pr list --json field list must request isCrossRepository"
+        definition.contains("isCrossRepository"),
+        "PR_LIST_FIELDS must request isCrossRepository, got: {definition:?}"
+    );
+    assert!(
+        source.contains("PR_LIST_FIELDS,"),
+        "the gh pr list query must pass PR_LIST_FIELDS, not an inline field string"
     );
     let decoded: uor_r4_harness::loopnext::NextPr = serde_json::from_value(json!({
         "number": 30,
