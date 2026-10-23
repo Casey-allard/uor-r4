@@ -3,7 +3,7 @@ id: infra-loop-render-review
 title: Let loop review count the render PR (or exempt it at the queue)
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-harness]
@@ -39,3 +39,9 @@ A `kimi/render` PR can earn a counted review record without an ORDER — either 
 - [`docs/loop/README.md`](../../loop/README.md)
 - [`crates/uor-r4-harness/src/loopreview.rs`](../../../crates/uor-r4-harness/src/loopreview.rs)
 - issue#2904
+
+## Delivered (2026-10-23)
+
+- **#3035 merged as `6e9d6db41`**: the render branch can earn a counted `uor-review v1` record with the sentinel `order: kimi/render` and no ORDER; the covered views are STATE, HANDOFF and LESSONS, with the AGENTS top-ten block marker-gated (outside bytes equal the merge base, the block stamp equals the merge base, the block equals `render_top_ten` at that stamp); every stamp must equal the PR merge base with `origin/main`; forks are refused; the gate reads the explicit head sha; and `ReviewContext::of` mirrors the sentinel so the queue's review-record and after-approval rules work. Hand-edited views are refused by name (the planted fault).
+- **#3038 merged as `885df8f3e`**: the first real render PR reviewed through the path (stale-base refusal, refresh, counted record).
+- Remaining hardening (context fixture, roadmap-README gating, loop-page wording) is carded as [`loop-render-review-hardening`](loop-render-review-hardening.md).
