@@ -3,7 +3,7 @@ id: loop-render-review-hardening
 title: Harden the render-PR review path
 milestone: infra
 area: tooling
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-render-review]
@@ -42,3 +42,11 @@ A `context()` fake-git fixture fails when the render check is removed and when `
 
 - [`docs/roadmap/items/infra-loop-render-review.md`](infra-loop-render-review.md) (#3035 `6e9d6db41`, #3038 `885df8f3e`)
 - reviews on #3035 (Claude 06:26Z, Kimi 05:24Z) and the follow-ups carded on #2028 comment 6358961404
+
+## Delivered (2026-10-23, #3048)
+
+- **Queue-mirror fork check:** `loopprcheck::Pr` carries `is_cross_repository`, `PrGh::is_cross_repository` reads it, and `ReviewContext::of` requires a known same-repository head via `loopreview::render_sentinel` (fork and unknown both refuse); the pr-check `--pr` path fills the flag. `loopprcheck.rs` is a shared registration file, so the test lives in `tests/loop_review.rs`.
+- **Render-at-merge-base:** `looprender::default_at(root, branch)` returns `git merge-base origin/main HEAD` on `kimi/render` and `HEAD` elsewhere; `loop render` uses it, so the documented merge-forward refresh passes.
+- **`context()` fixture with negative gates:** a temp-git repository plus fake gh and fake render files drive `render_gate` offline; it fails if the render check is removed (tampered view/block pass) or the stamp rule is disabled (branch-only stamp passes). Cases: clean, hand-edited view, fork, AGENTS edit outside the block, hand-edited top-ten block, branch-only stamp. The canned renderer is injected as a Rust `RenderSource` through `cli_with_renderer`; there is no environment hook in the shipped binary.
+- **Roadmap README:** recorded as **exempt with reason** - xtask renders the working tree, the views-only set keeps it out of the no-ORDER path, and the docs job gates it advisably. The loop-page wording is owner-only and carded on #2028.
+- **REPORT nit:** the doubled `infra-infra-` prefix in deepseek-42's REPORT is recorded here for the report owner; that file is outside any claimable item scope, so a lab PR cannot edit it (the PM can fix it when next touching the folder).

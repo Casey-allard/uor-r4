@@ -851,10 +851,75 @@ struct Context {
     doc_only: bool,
 }
 
+/// The mirror's answer to "may this PR use the render sentinel?": the branch and the views
+/// only, **and** a known same-repository head (`Some(false)`). `None` (the source did not say)
+/// and `Some(true)` (a fork) both refuse.
+pub fn render_sentinel(head_ref: &str, files: &[String], cross_repository: Option<bool>) -> bool {
+    cross_repository == Some(false) && render_pr_without_order(head_ref, files)
+}
+
+/// The renderer the tamper gate compares against: the real one in production, a canned one in
+/// the fixture. It is a parameter, never an environment variable, so a shipped binary cannot be
+/// pointed at fake renders.
+pub trait RenderSource {
+    fn render_all(&self, at: &crate::looprender::AtCommit)
+        -> Result<Vec<(String, String)>, String>;
+    fn render_top_ten(&self, at: &crate::looprender::AtCommit) -> Result<String, String>;
+}
+
+/// The production renderer: the same functions `loop render` uses.
+pub struct RealRender;
+
+impl RenderSource for RealRender {
+    fn render_all(
+        &self,
+        at: &crate::looprender::AtCommit,
+    ) -> Result<Vec<(String, String)>, String> {
+        crate::looprender::render_all(at)
+    }
+    fn render_top_ten(&self, at: &crate::looprender::AtCommit) -> Result<String, String> {
+        crate::looprender::render_top_ten(at)
+    }
+}
+
+/// The expected text of `path` at commit `at`, from the injected renderer.
+fn expected_render(
+    renderer: &dyn RenderSource,
+    path: &str,
+    at: &crate::looprender::AtCommit,
+) -> Result<String, String> {
+    if path == "AGENTS.md" {
+        return renderer.render_top_ten(at);
+    }
+    renderer
+        .render_all(at)?
+        .into_iter()
+        .find(|(p, _)| p == path)
+        .map(|(_, t)| t)
+        .ok_or_else(|| format!("{path}: the renderer names no such view"))
+}
+/// The render-gate half of `context()`: sentinel eligibility, then the tamper/stamp gate.
+pub fn render_gate(
+    root: &Path,
+    gh: &dyn ReviewGh,
+    pr: &ReviewPr,
+    renderer: &dyn RenderSource,
+) -> Result<(), String> {
+    if !render_sentinel(&pr.head_ref_name, &pr.files, Some(pr.cross_repository)) {
+        return Err("the head is not a known same-repository render branch".to_string());
+    }
+    verify_render_views(root, gh, pr, renderer)
+}
+
 /// The tamper gate for the render PR: fetch its explicit head, require each view's stamp to be
 /// the PR's merge base with `origin/main`, render the view at that stamp and compare byte for
 /// byte. A hand-edited view keeps its stamp but differs from its render, so it is refused.
-fn verify_render_views(root: &Path, _gh: &dyn ReviewGh, pr: &ReviewPr) -> Result<(), String> {
+fn verify_render_views(
+    root: &Path,
+    _gh: &dyn ReviewGh,
+    pr: &ReviewPr,
+    renderer: &dyn RenderSource,
+) -> Result<(), String> {
     git(root, &["fetch", "-q", "origin", &pr.head_sha])?;
     let head = pr.head_sha.trim().to_string();
     let main = git(root, &["rev-parse", "origin/main"])?.trim().to_string();
@@ -873,12 +938,7 @@ fn verify_render_views(root: &Path, _gh: &dyn ReviewGh, pr: &ReviewPr) -> Result
             ));
         }
         let at = crate::looprender::AtCommit::resolve(root, &stamp)?;
-        let rendered = crate::looprender::render_all(&at)?;
-        let want = rendered
-            .into_iter()
-            .find(|(p, _)| p == path)
-            .map(|(_, t)| t)
-            .ok_or_else(|| format!("{path}: the renderer names no such view"))?;
+        let want = expected_render(renderer, path, &at)?;
         expected.push((path.to_string(), want));
         actual.insert(path.to_string(), text);
     }
@@ -907,7 +967,7 @@ fn verify_render_views(root: &Path, _gh: &dyn ReviewGh, pr: &ReviewPr) -> Result
         ));
     }
     let at = crate::looprender::AtCommit::resolve(root, &stamp)?;
-    let want = crate::looprender::render_top_ten(&at)?;
+    let want = expected_render(renderer, "AGENTS.md", &at)?;
     if block != want {
         return Err(
             "AGENTS.md top-ten block differs from its render (hand-edited view)".to_string(),
@@ -934,15 +994,20 @@ fn top_ten_markers(text: &str, what: &str) -> Result<(usize, usize), String> {
     }
     Ok((s, e))
 }
-fn context(root: &Path, gh: &dyn ReviewGh, n: u64) -> Result<Context, String> {
+fn context(
+    root: &Path,
+    gh: &dyn ReviewGh,
+    n: u64,
+    renderer: &dyn RenderSource,
+) -> Result<Context, String> {
     git(root, &["fetch", "-q", "origin", "main"])?;
     let pr = gh.pr(n)?;
-    let render_pr = render_pr_without_order(&pr.head_ref_name, &pr.files) && !pr.cross_repository;
+    let render_pr = render_sentinel(&pr.head_ref_name, &pr.files, Some(pr.cross_repository));
     let (order, text, order_lab) =
         match crate::loopnext::added_order(root, n, &pr.files, &|p| gh.file_at_pr(n, p)) {
             Ok(v) => v,
             Err(crate::loopnext::OrderErr::Missing(_)) if render_pr => {
-                verify_render_views(root, gh, &pr)?;
+                render_gate(root, gh, &pr, renderer)?;
                 (RENDER_ORDER.to_string(), String::new(), "kimi".to_string())
             }
             Err(e) => return Err(e.note()),
@@ -1061,6 +1126,16 @@ fn or_env(flag: &Option<String>, env: &str, default: &str) -> String {
 /// `loop review ...`: exit 0 posted (or printed, or the gate passes), 1 refused (the record would
 /// not count, or the gate fails), 2 cannot run (usage, no lab, no ORDER, git or `gh` error).
 pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
+    cli_with_renderer(root, lab, args, &RealRender)
+}
+
+/// `loop review` with an injected renderer; the fixture calls this, production calls [`cli`].
+pub fn cli_with_renderer(
+    root: &Path,
+    lab: &str,
+    args: &[String],
+    renderer: &dyn RenderSource,
+) -> u8 {
     let a = match parse_args(args) {
         Ok(a) => a,
         Err(e) => {
@@ -1091,7 +1166,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
         }),
     };
     let n = a.pr.unwrap_or_default();
-    let c = match context(root, gh.as_ref(), n) {
+    let c = match context(root, gh.as_ref(), n, renderer) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("uor-harness: loop review: {e}");

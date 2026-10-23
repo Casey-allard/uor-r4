@@ -994,6 +994,29 @@ fn check_one(root: &Path, file: &Path, view: &str) -> u8 {
 }
 
 /// `loop render ...` (arguments after `render`). Returns the process exit code.
+/// The commit `loop render` writes views for when `--at` is absent: on the steady-state
+/// `kimi/render` branch, the merge base with `origin/main` (the render-review gate requires
+/// each stamp to equal the merge base); on every other branch, HEAD.
+pub fn default_at(root: &Path, branch: &str) -> Result<String, String> {
+    if branch != "kimi/render" {
+        return Ok("HEAD".to_string());
+    }
+    git(root, &["fetch", "-q", "origin", "main"])?;
+    let out = git(root, &["merge-base", "origin/main", "HEAD"])?;
+    let sha = String::from_utf8_lossy(&out).trim().to_string();
+    if sha.is_empty() {
+        return Err("git merge-base origin/main HEAD printed nothing".to_string());
+    }
+    Ok(sha)
+}
+
+/// The current branch name, or `""` when detached; only the render default reads it.
+fn current_branch(root: &Path) -> String {
+    git(root, &["symbolic-ref", "--short", "HEAD"])
+        .ok()
+        .map(|b| String::from_utf8_lossy(&b).trim().to_string())
+        .unwrap_or_default()
+}
 pub fn cli(root: &Path, args: &[String]) -> u8 {
     let (mut check, mut out, mut at): (bool, Option<PathBuf>, Option<String>) = (false, None, None);
     let mut i = 0;
@@ -1060,7 +1083,17 @@ pub fn cli(root: &Path, args: &[String]) -> u8 {
         });
         return code;
     }
-    let c = match AtCommit::resolve(root, at.as_deref().unwrap_or("HEAD")) {
+    let branch = current_branch(root);
+    let at_default = if at.is_none() && branch == "kimi/render" {
+        default_at(root, &branch).ok()
+    } else {
+        None
+    };
+    let at_owned = at
+        .clone()
+        .or_else(|| at_default.clone())
+        .unwrap_or_else(|| "HEAD".to_string());
+    let c = match AtCommit::resolve(root, &at_owned) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("uor-harness: loop render: {e}");
@@ -1106,6 +1139,10 @@ pub fn cli(root: &Path, args: &[String]) -> u8 {
     }
     if at.is_some() {
         println!("{ROADMAP}: skipped with --at; xtask renders the working tree");
+        return 0;
+    }
+    if at_default.is_some() {
+        println!("{ROADMAP}: skipped; xtask renders the working tree, and the render branch stamps the merge base");
         return 0;
     }
     roadmap_or_skip(root, out_given, false)

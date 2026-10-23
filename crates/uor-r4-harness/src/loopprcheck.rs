@@ -71,6 +71,9 @@ pub struct Pr<'a> {
     pub changes: Vec<Change>,
     /// The branch the head is on (`--head-ref`), `""` when unknown; only `rendered-lock` reads it.
     pub head_ref: String,
+    /// Whether the PR head comes from a fork; `None` when the source did not say. The render
+    /// sentinel path requires `Some(false)`.
+    pub is_cross_repository: Option<bool>,
     /// How `review-record` and `required-checks` reach GitHub; [`Github::Missing`] until set.
     pub github: Github,
 }
@@ -157,6 +160,7 @@ impl<'a> Pr<'a> {
             head,
             changes,
             head_ref: String::new(),
+            is_cross_repository: None,
             github: Github::Missing,
         })
     }
@@ -1371,6 +1375,8 @@ pub trait PrGh {
     fn check_runs(&self, sha: &str) -> Result<Vec<CheckRun>, String>;
     /// Every commit status on commit `sha`, every page read.
     fn statuses(&self, sha: &str) -> Result<Vec<Status>, String>;
+    /// Whether the PR head comes from a fork; the render sentinel path requires `false`.
+    fn is_cross_repository(&self, pr: u64) -> Result<bool, String>;
 }
 
 /// How the GitHub-backed rules run: `--pr <n>` reads GitHub, `--local` and `--ci` skip them,
@@ -1448,6 +1454,17 @@ fn str_at<'v>(v: &'v serde_json::Value, path: &[&str]) -> &'v str {
 }
 
 impl PrGh for RealPrGh {
+    fn is_cross_repository(&self, pr: u64) -> Result<bool, String> {
+        let out = crate::loopclaim::run_gh(
+            &self.root,
+            &["pr", "view", &pr.to_string(), "--json", "isCrossRepository"],
+        )?;
+        let v: serde_json::Value = serde_json::from_str(&out)
+            .map_err(|e| format!("gh pr view {pr} printed unreadable JSON: {e}"))?;
+        v.get("isCrossRepository")
+            .and_then(|b| b.as_bool())
+            .ok_or_else(|| format!("gh pr view {pr} printed no isCrossRepository"))
+    }
     fn comments(&self, pr: u64) -> Result<Vec<Comment>, String> {
         let pages = self.api(&comments_args(pr))?;
         Ok(pages
@@ -1495,6 +1512,8 @@ impl PrGh for RealPrGh {
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FakePrGh {
+    #[serde(default, rename = "is_cross_repository")]
+    is_cross_repository: bool,
     #[serde(default)]
     comments: Vec<Comment>,
     #[serde(default)]
@@ -1521,6 +1540,9 @@ impl FakePrGh {
 }
 
 impl PrGh for FakePrGh {
+    fn is_cross_repository(&self, _pr: u64) -> Result<bool, String> {
+        Ok(self.is_cross_repository)
+    }
     fn comments(&self, _pr: u64) -> Result<Vec<Comment>, String> {
         Ok(self.comments.clone())
     }
@@ -1633,12 +1655,18 @@ impl ReviewContext {
         );
         let rows = crate::loopreview::build_rows(&page);
         let doc_only = crate::loopreview::doc_only(pr.changed_paths().map(|(_, p)| p));
+        // The queue mirror learns fork provenance from the same GitHub handle it already has;
+        // an unreadable source leaves it unknown, which the sentinel path refuses.
+        let cross = pr.is_cross_repository.or_else(|| match &pr.github {
+            Github::Pr(n, gh) => gh.is_cross_repository(*n).ok(),
+            _ => None,
+        });
         let order = match pr.the_order() {
             Ok(o) => o.to_string(),
             Err(e) => {
                 // The render PR carries no ORDER by design; its record uses the sentinel path.
                 let paths: Vec<String> = pr.changed_paths().map(|(_, p)| p.to_string()).collect();
-                if crate::loopreview::render_pr_without_order(&pr.head_ref, &paths) {
+                if crate::loopreview::render_sentinel(&pr.head_ref, &paths, cross) {
                     return Ok(ReviewContext {
                         order: crate::loopreview::RENDER_ORDER.to_string(),
                         order_lab: "kimi".to_string(),
@@ -1826,10 +1854,10 @@ pub fn cli(root: &Path, args: &[String]) -> u8 {
         }
     };
     pr.head_ref = head_ref.unwrap_or_else(|| default_head_ref(root, &head));
-    pr.github = match (modes.as_slice(), pr_number) {
-        ([], _) => Github::Missing,
-        (["--local"], _) => Github::Local,
-        (["--ci"], _) => Github::Ci,
+    let (github, cross) = match (modes.as_slice(), pr_number) {
+        ([], _) => (Github::Missing, None),
+        (["--local"], _) => (Github::Local, None),
+        (["--ci"], _) => (Github::Ci, None),
         (["--pr"], Some(n)) => {
             let gh: Box<dyn PrGh> = match std::env::var_os(PRCHECK_GH_FAKE_ENV) {
                 Some(p) => match FakePrGh::from_file(Path::new(&p)) {
@@ -1843,13 +1871,16 @@ pub fn cli(root: &Path, args: &[String]) -> u8 {
                     root: root.to_path_buf(),
                 }),
             };
-            Github::Pr(n, gh)
+            let cross = gh.is_cross_repository(n).ok();
+            (Github::Pr(n, gh), cross)
         }
         _ => {
             eprintln!("uor-harness: loop pr-check: give at most one of --pr <n>, --local, --ci");
             return 2;
         }
     };
+    pr.github = github;
+    pr.is_cross_repository = cross;
     let size = match size(&pr) {
         Ok(s) => s,
         Err(e) => {

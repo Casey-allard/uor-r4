@@ -1056,3 +1056,434 @@ fn a_follow_up_loop_item_is_ordinary_but_a_build_plan_item_still_needs_its_setup
         outcome.details
     );
 }
+
+#[test]
+fn default_render_at_is_the_merge_base_on_the_render_branch() {
+    fn run(dir: &std::path::Path, args: &[&str]) -> String {
+        let out = std::process::Command::new("git")
+            .arg("-C")
+            .arg(dir)
+            .args(args)
+            .output()
+            .expect("git runs");
+        assert!(
+            out.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8_lossy(&out.stdout).trim().to_string()
+    }
+    let dir = std::env::temp_dir().join(format!(
+        "uor-looprender-default-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    run(&dir, &["init", "-q", "-b", "main"]);
+    run(&dir, &["remote", "add", "origin", dir.to_str().unwrap()]);
+    run(&dir, &["config", "uploadpack.allowAnySHA1InWant", "true"]);
+    run(
+        &dir,
+        &["config", "uploadpack.allowReachableSHA1InWant", "true"],
+    );
+    std::fs::write(dir.join("a"), "a").unwrap();
+    run(&dir, &["add", "."]);
+    run(
+        &dir,
+        &[
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@t",
+            "commit",
+            "-q",
+            "-m",
+            "a",
+        ],
+    );
+    let a = run(&dir, &["rev-parse", "HEAD"]);
+    run(&dir, &["update-ref", "refs/remotes/origin/main", &a]);
+    run(&dir, &["checkout", "-q", "-b", "kimi/render"]);
+    std::fs::write(dir.join("b"), "b").unwrap();
+    run(&dir, &["add", "."]);
+    run(
+        &dir,
+        &[
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@t",
+            "commit",
+            "-q",
+            "-m",
+            "b",
+        ],
+    );
+    assert_eq!(
+        uor_r4_harness::looprender::default_at(&dir, "kimi/render").unwrap(),
+        a,
+        "the render branch stamps the merge base"
+    );
+    assert_eq!(
+        uor_r4_harness::looprender::default_at(&dir, "feature").unwrap(),
+        "HEAD",
+        "other branches keep HEAD"
+    );
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn render_sentinel_requires_a_known_same_repository_head() {
+    let views = vec![
+        "STATE.md".to_string(),
+        "docs/harness/LESSONS.md".to_string(),
+    ];
+    assert!(render_sentinel(RENDER_BRANCH, &views, Some(false)));
+    assert!(
+        !render_sentinel(RENDER_BRANCH, &views, Some(true)),
+        "a fork must not take the sentinel path"
+    );
+    assert!(
+        !render_sentinel(RENDER_BRANCH, &views, None),
+        "an unknown repository must not take the sentinel path"
+    );
+    assert!(!render_sentinel("kimi/other", &views, Some(false)));
+    assert!(!render_sentinel(
+        RENDER_BRANCH,
+        &["crates/uor-r4-harness/src/lib.rs".to_string()],
+        Some(false)
+    ));
+}
+
+/// Offline fixture: a temp git repo (base commit, `kimi/render` head), a fake gh file and an
+/// injected renderer drive `loopreview::cli_with_renderer`; exit 1 means the render gate passed
+/// and only the record was missing, exit 2 means the gate refused. The cases pin the planted
+/// faults: removing `render_gate` from `context()` or disabling the view/block/stamp checks
+/// turns a refusal into exit 1 and fails the assertions.
+#[test]
+fn render_gate_fixture_refuses_tampered_branch_only_forks_and_unknown() {
+    use std::path::{Path, PathBuf};
+    use uor_r4_harness::looprender::AtCommit;
+    use uor_r4_harness::loopreview::{cli_with_renderer, RenderSource, REVIEW_GH_FAKE_ENV};
+
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+
+    struct TestRender {
+        views: std::collections::BTreeMap<String, Vec<(String, String)>>,
+        blocks: std::collections::BTreeMap<String, String>,
+    }
+    impl RenderSource for TestRender {
+        fn render_all(&self, at: &AtCommit) -> Result<Vec<(String, String)>, String> {
+            self.views
+                .get(&at.sha)
+                .cloned()
+                .ok_or_else(|| format!("no fake render at {}", at.sha))
+        }
+        fn render_top_ten(&self, at: &AtCommit) -> Result<String, String> {
+            self.blocks
+                .get(&at.sha)
+                .cloned()
+                .ok_or_else(|| format!("no fake block at {}", at.sha))
+        }
+    }
+
+    fn git_at(dir: &Path, args: &[&str]) -> String {
+        let mut cmd = std::process::Command::new("git");
+        for (k, _) in std::env::vars_os() {
+            if k.to_string_lossy().starts_with("GIT_") {
+                cmd.env_remove(k);
+            }
+        }
+        let out = cmd
+            .arg("-C")
+            .arg(dir)
+            .args(args)
+            .output()
+            .expect("git runs");
+        assert!(
+            out.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8_lossy(&out.stdout).trim().to_string()
+    }
+    fn commit(dir: &Path) -> String {
+        git_at(dir, &["add", "."]);
+        git_at(
+            dir,
+            &[
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@t",
+                "commit",
+                "-q",
+                "-m",
+                "c",
+            ],
+        );
+        git_at(dir, &["rev-parse", "HEAD"])
+    }
+
+    // case: 0 clean, 1 hand-edited view, 2 fork, 3 AGENTS outside block, 4 altered block, 5 wrong stamp.
+    fn setup(tag: &str, case: u8) -> (PathBuf, String, TestRender) {
+        let dir = std::env::temp_dir().join(format!(
+            "uor-render-gate-{tag}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        git_at(&dir, &["init", "-q", "-b", "main"]);
+        git_at(&dir, &["remote", "add", "origin", dir.to_str().unwrap()]);
+        git_at(&dir, &["config", "uploadpack.allowAnySHA1InWant", "true"]);
+        git_at(
+            &dir,
+            &["config", "uploadpack.allowReachableSHA1InWant", "true"],
+        );
+        std::fs::write(
+            dir.join("AGENTS.md"),
+            "top\n<!-- loop:lessons-top-ten:start -->\nold\n<!-- loop:lessons-top-ten:end -->\ntail\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(dir.join("docs/loop")).unwrap();
+        std::fs::create_dir_all(dir.join("docs/harness")).unwrap();
+        std::fs::write(
+            dir.join("docs/loop/README.md"),
+            "## Build plan\n\n| PR | What it builds |\n|---|---|\n| 6 | harness |\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("docs/harness/labs.json"),
+            r#"{"schema":1,"labs":{"antigravity":{"vendor":"Google","client":"A","headless":"a -p","open_pr_limit":3},"claude":{"vendor":"Anthropic","client":"C","headless":"c -p","open_pr_limit":3},"codex":{"vendor":"OpenAI","client":"X","headless":"x exec","open_pr_limit":3},"deepseek":{"vendor":"DeepSeek","client":"D","headless":"d","open_pr_limit":3},"kimi":{"vendor":"Moonshot AI","client":"K","headless":"k -p","open_pr_limit":3,"role":"pm"}}}"#,
+        )
+        .unwrap();
+        std::fs::write(dir.join("docs/harness/owner-paths.json"), r#"{"paths":[]}"#).unwrap();
+        for p in ["STATE.md", "HANDOFF.md", "docs/harness/LESSONS.md"] {
+            let path = dir.join(p);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, "base\n").unwrap();
+        }
+        let a = commit(&dir);
+        git_at(&dir, &["checkout", "-q", "-b", "kimi/render"]);
+        let base_stamp = uor_r4_harness::looprender::stamp(&a);
+        let mut views = std::collections::BTreeMap::new();
+        let mut blocks = std::collections::BTreeMap::new();
+        let mut per = Vec::new();
+        for p in ["STATE.md", "HANDOFF.md", "docs/harness/LESSONS.md"] {
+            let text = format!("{base_stamp}\n# {p}\n");
+            per.push((p.to_string(), text.clone()));
+            std::fs::write(dir.join(p), &text).unwrap();
+        }
+        views.insert(a.clone(), per.clone());
+        blocks.insert(a.clone(), format!("\n{base_stamp}\n- one\n"));
+        let mut block = format!("\n{base_stamp}\n- one\n");
+        if case == 4 {
+            block = format!("\n{base_stamp}\n- altered\n");
+        }
+        let mut agents = format!(
+            "top\n<!-- loop:lessons-top-ten:start -->{block}<!-- loop:lessons-top-ten:end -->\ntail\n"
+        );
+        if case == 3 {
+            agents = format!(
+                "top\n<!-- loop:lessons-top-ten:start -->{block}<!-- loop:lessons-top-ten:end -->\ntail\nextra\n"
+            );
+        }
+        std::fs::write(dir.join("AGENTS.md"), agents).unwrap();
+        let head = commit(&dir);
+        let mut head_sha = head.clone();
+        if case == 5 {
+            // Commit views whose stamp is the branch head, and a correct base-stamped AGENTS block.
+            let hstamp = uor_r4_harness::looprender::stamp(&head);
+            for p in ["STATE.md", "HANDOFF.md", "docs/harness/LESSONS.md"] {
+                std::fs::write(dir.join(p), format!("{hstamp}\n# {p}\n")).unwrap();
+            }
+            head_sha = commit(&dir);
+        }
+        if case == 1 {
+            std::fs::write(
+                dir.join("STATE.md"),
+                format!("{base_stamp}\n# STATE hand-edited\n"),
+            )
+            .unwrap();
+            head_sha = commit(&dir);
+        }
+        if case == 5 {
+            // The canned renderer must serve the commit the committed views actually stamp, so
+            // that disabling ONLY the views' stamp check still passes the render comparison and
+            // turns the refusal into exit 1 - which the test asserts against.
+            let text = std::fs::read_to_string(dir.join("STATE.md")).unwrap();
+            let stamp_sha = text
+                .lines()
+                .next()
+                .and_then(uor_r4_harness::looprender::parse_stamp)
+                .expect("committed view is stamped")
+                .to_string();
+            let mut served = Vec::new();
+            for p in ["STATE.md", "HANDOFF.md", "docs/harness/LESSONS.md"] {
+                served.push((p.to_string(), std::fs::read_to_string(dir.join(p)).unwrap()));
+            }
+            views.insert(stamp_sha, served);
+        }
+        git_at(&dir, &["update-ref", "refs/remotes/origin/main", &a]);
+        let cross = case == 2;
+        let gh = serde_json::json!({
+            "pr": {
+                "headRefOid": head_sha,
+                "headRefName": "kimi/render",
+                "isCrossRepository": cross,
+                "files": ["STATE.md", "HANDOFF.md", "docs/harness/LESSONS.md", "AGENTS.md"],
+            },
+            "files": {},
+            "comments": [],
+        });
+        std::fs::write(dir.join("gh.json"), gh.to_string()).unwrap();
+        (dir, head_sha, TestRender { views, blocks })
+    }
+
+    for (case, want) in [(0u8, 1), (1, 2), (2, 2), (3, 2), (4, 2), (5, 2)] {
+        let (dir, _head, render) = setup(&format!("c{case}"), case);
+        std::env::set_var(REVIEW_GH_FAKE_ENV, dir.join("gh.json"));
+        let args: Vec<String> = ["--check", "--pr", "7"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        let got = cli_with_renderer(&dir, "deepseek", &args, &render);
+        std::env::remove_var(REVIEW_GH_FAKE_ENV);
+        assert_eq!(got, want, "case {case}: expected exit {want}, got {got}");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+}
+
+/// The queue mirror must ask for a known same-repository head. The built binary is run with a
+/// fake GitHub file whose `is_cross_repository` is true/false; the `review-record` detail differs
+/// if `ReviewContext::of` ever passes `Some(false)` instead of the real flag.
+#[test]
+fn queue_mirror_requires_a_known_same_repository_head() {
+    use std::path::Path;
+    fn git_at(dir: &Path, args: &[&str]) -> String {
+        let mut cmd = std::process::Command::new("git");
+        for (k, _) in std::env::vars_os() {
+            if k.to_string_lossy().starts_with("GIT_") {
+                cmd.env_remove(k);
+            }
+        }
+        let out = cmd
+            .arg("-C")
+            .arg(dir)
+            .args(args)
+            .output()
+            .expect("git runs");
+        assert!(
+            out.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8_lossy(&out.stdout).trim().to_string()
+    }
+    fn commit(dir: &Path) -> String {
+        git_at(dir, &["add", "."]);
+        git_at(
+            dir,
+            &[
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@t",
+                "commit",
+                "-q",
+                "-m",
+                "c",
+            ],
+        );
+        git_at(dir, &["rev-parse", "HEAD"])
+    }
+    let dir = std::env::temp_dir().join(format!(
+        "uor-mirror-cross-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    std::fs::create_dir_all(dir.join("docs/loop")).unwrap();
+    std::fs::create_dir_all(dir.join("docs/harness")).unwrap();
+    std::fs::write(
+        dir.join("docs/loop/README.md"),
+        "## Build plan\n\n| PR | What it builds |\n|---|---|\n| 6 | harness |\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("docs/harness/labs.json"),
+        r#"{"schema":1,"labs":{"antigravity":{"vendor":"Google","client":"A","headless":"a","open_pr_limit":3},"claude":{"vendor":"Anthropic","client":"C","headless":"c","open_pr_limit":3},"codex":{"vendor":"OpenAI","client":"X","headless":"x","open_pr_limit":3},"deepseek":{"vendor":"DeepSeek","client":"D","headless":"d","open_pr_limit":3},"kimi":{"vendor":"Moonshot AI","client":"K","headless":"k","open_pr_limit":3}}}"#,
+    )
+    .unwrap();
+    std::fs::write(dir.join("docs/harness/owner-paths.json"), r#"{"paths":[]}"#).unwrap();
+    for view in ["STATE.md", "HANDOFF.md", "docs/harness/LESSONS.md"] {
+        let path = dir.join(view);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, "base\n").unwrap();
+    }
+    std::fs::write(
+        dir.join("AGENTS.md"),
+        "<!-- loop:lessons-top-ten:start -->\n<!-- loop:lessons-top-ten:end -->\n",
+    )
+    .unwrap();
+    git_at(&dir, &["init", "-q", "-b", "main"]);
+    let a = commit(&dir);
+    git_at(&dir, &["checkout", "-q", "-b", "kimi/render"]);
+    for view in ["STATE.md", "HANDOFF.md", "docs/harness/LESSONS.md"] {
+        std::fs::write(
+            dir.join(view),
+            format!("{}\n# \n", uor_r4_harness::looprender::stamp(&a)),
+        )
+        .unwrap();
+    }
+    commit(&dir);
+    git_at(&dir, &["update-ref", "refs/remotes/origin/main", &a]);
+    for cross in [true, false] {
+        let fake = dir.join(format!("gh-{cross}.json"));
+        std::fs::write(
+            &fake,
+            format!("{{\"is_cross_repository\":{cross},\"comments\":[]}}"),
+        )
+        .unwrap();
+        let out = std::process::Command::new(env!("CARGO_BIN_EXE_uor-harness"))
+            .args(["loop", "pr-check", "--pr", "7", "--json"])
+            .current_dir(&dir)
+            .env("UOR_LAB", "deepseek")
+            .env("UOR_PRCHECK_GH_FAKE", &fake)
+            .output()
+            .expect("binary runs");
+        let text = String::from_utf8_lossy(&out.stdout);
+        let err_text = String::from_utf8_lossy(&out.stderr);
+        let v: serde_json::Value = serde_json::from_str(text.trim()).unwrap_or_else(|e| {
+            panic!("pr-check --json printed {text:?} (stderr {err_text:?}): {e}");
+        });
+        let details = v["rules"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["rule"] == "review-record")
+            .map(|r| format!("{}{}", r["summary"], r["details"]))
+            .unwrap_or_default();
+        if cross {
+            assert!(
+                details.contains("cannot check the review record"),
+                "fork must leave the sentinel untouched: {details}"
+            );
+        } else {
+            assert!(
+                details.contains("no counted record"),
+                "same-repo render PR reaches the counted-record gate: {details}"
+            );
+        }
+    }
+    std::fs::remove_dir_all(&dir).ok();
+}
