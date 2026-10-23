@@ -16,7 +16,7 @@ node web/studio/verify_studio_page.mjs --strict-router
 ```
 The strict failure is the **evidence the claim was asserted-only before**: the demo page still loads three CDNs.
 
-**The runtime page-load trap is still owed.** A static scan cannot see requests a script computes at load time (for example `index.html:2872` assembles `api.github.com` from string pieces). The item's done-when asks for "checked by the extended trap verification", so this unit records the static check as landed and the runtime trap as a remaining part (extend `verify_studio_worker.mjs`'s traps to a page-load harness, or add a headless page harness without a new dependency).
+**Runtime page-load trap (deepseek-53):** `web/studio/verify_studio_page_load.mjs` loads the pages in headless Chrome through the DevTools protocol (Node's global WebSocket plus a built-in static http server; no npm dependency) and records every network request the page makes while loading. A planted-external self-test proves the trap fires. Result on the current tree: **index.html loaded with 6 requests and 0 external**; the router demo page made **9 requests with 8 external URLs** (Tailwind plus its build, Font Awesome css + webfont, Google Fonts css + 3 font files), reported as the legacy residual, and `--strict-router` exits 1 on it. The trap auto-attaches to worker targets and waits a settle window, and its self-test plants an inline fetch, a blob-Web-Worker fetch and a deferred fetch to prove all three channels are captured. Chrome is required and the harness fails closed when it cannot launch; the static scan (`verify_studio_page.mjs`) remains the dependency-free companion.
 
 ## 2. Open decision (PM/owner) — demo page
 
