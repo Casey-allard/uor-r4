@@ -246,6 +246,11 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
     let read_initialization = match snapshot.read_initialization {
         ReadInitialization::ZeroGatesV1 => "zero_gates_v1".to_owned(),
         ReadInitialization::ActiveLeafV1 => "active_leaf_v1".to_owned(),
+        ReadInitialization::RouteBypassV1 | ReadInitialization::RoutePermutedActionsV1 => {
+            return Err(invalid(
+                "D11 export refuses a Route read-off or permuted control arm",
+            ))
+        }
     };
     let snapshot_bytes = serde_json::to_vec(snapshot).map_err(|e| invalid(e.to_string()))?;
     let source = DiscreteLutSource {
@@ -585,6 +590,15 @@ mod tests {
             crate::normalization_mechanism::NormalizationMode::UnitSnapControlV1;
         let error = export_d11(&control).unwrap_err().to_string();
         assert!(error.contains("normalization_mode"), "{error}");
+        for route_control in [
+            ReadInitialization::RouteBypassV1,
+            ReadInitialization::RoutePermutedActionsV1,
+        ] {
+            let err = export_d11(&sample_snapshot(ReadSpec::Route, route_control))
+                .unwrap_err()
+                .to_string();
+            assert!(err.contains("Route read-off or permuted control"), "{err}");
+        }
         // The default path is unchanged by the refusal.
         assert_eq!(export_d11(&default).unwrap(), bytes);
     }

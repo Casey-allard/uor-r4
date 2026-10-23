@@ -1,9 +1,11 @@
-# `r-read-off-vs-read-on` — Route & Flock Read-Off vs Read-On Comparison (`antigravity-45`)
+# `r-read-off-vs-read-on` — Route & Flock Read-Off vs Read-On Comparison (`antigravity-45`..`antigravity-46`)
 
 - **Roadmap item:** [`docs/roadmap/items/r-read-off-vs-read-on.md`](../../roadmap/items/r-read-off-vs-read-on.md) ([`#2885`](https://github.com/UOR-Foundation/uor-r4/issues/2885))
 - **Pre-registration sheet:** [`docs/harness/prep/r-read-off-vs-read-on-DRAFT-2026-10-23.md`](../../harness/prep/r-read-off-vs-read-on-DRAFT-2026-10-23.md) (`DRAFT`, `TEST FITNESS: PENDING`)
-- **Host finite controls:** [`crates/uor-r4-discrete/tests/read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs) (`6 / 6` unit tests pass on the host)
-- **Status:** Host design note, retained-checkpoint inventory, finite controls, and pre-registration sheet delivered. No GPU compute has been run (`needs_gpu: true` execution awaits non-author `TEST FITNESS: FIT`, PM/owner registration on `#2885`, and Casey's approval in chat per CHARTER §4.5 / §5.1).
+- **Host finite controls:** [`crates/uor-r4-discrete/tests/read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs) (`7 / 7` unit tests pass on the host)
+- **Kernel & driver switch (`antigravity-46`):** [`crates/uor-r4-discrete/src/lib.rs`](../../../crates/uor-r4-discrete/src/lib.rs), [`discrete.cu`](../../../crates/uor-r4-discrete/src/discrete.cu), [`device.rs`](../../../crates/uor-r4-discrete/src/device.rs), [`training.rs`](../../../crates/uor-r4-discrete/src/training.rs), [`attention_preflight.rs`](../../../crates/uor-r4-discrete/src/attention_preflight.rs), and [`d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs)
+- **Staged battery & configs (`antigravity-46`):** [`docs/labs/r-read-off-vs-read-on/evidence/read-off-battery.sh`](evidence/read-off-battery.sh) and the 10 zero-update arm configs (`{a8,p8}-{r-on,r-off,r-perm,f-on,f-off}.json`)
+- **Status:** Steps 1–4 of [`docs/roadmap/items/r-read-off-vs-read-on.md`](../../roadmap/items/r-read-off-vs-read-on.md) are complete on the host. No GPU compute has been run (`needs_gpu: true` Step 5 execution awaits non-author `TEST FITNESS: FIT`, PM/owner registration on `#2885`, and Casey's approval in chat per CHARTER §4.5 / §5.1).
 
 ---
 
@@ -106,8 +108,24 @@ Before any result from the paired GPU evaluation is interpreted as a finding abo
    - **Read-on reproduction discrepancy:** If `Flock` read-on (`ActiveLeafV1` on `A8` cp0) fails to reproduce `target_admitted_rows = 4,244 / 14,287`, `P_succ = 1,351 / 3,847`, `top1_correct = 133`, and `P_succ top1 = 62` (`P8` cp0: `427 / 127 / 38`), or if any retained post-update checkpoint fails to reproduce its sealed evaluation receipt (`Rung-0 Q4`: `1,920 / 149 / 747`; `K16-A s1/s2`: `2,237 / 65 / 547` and `3,167 / 463 / 1,295`), the run stops as an instrument fault.
    - **Pin or determinism failure:** Any mismatch in `DEV` corpus SHA-256 (`0919e90f…` / `a838bb1a…`), codebook table SHA-256, or bit-for-bit repeatability across two consecutive `eval-corpus` runs.
 
-2. **Mechanism classification (when all instrument gates pass):**
-   - Paired row-by-row contrasts on the `14,287` DEV rows and the `3,847` `P_succ` copy-successor subset between `Read-On` and `Read-Off` (and between `Read-On` and `Read-Permuted` `RoutePermutedActionsV1`), judged against the paired McNemar discordance floor $F = \max(24, 2\sqrt{b + c})$:
-     - **Positive (`READ_ADDS_SIGNAL`):** `Read-On` exceeds both `Read-Off` and `Read-Permuted` on `top1_correct` (or `target_admitted_rows` at fixed occupancy) by more than $F = \max(24, 2\sqrt{b + c})$ without triggering `G-Occ`.
-     - **Null / Inactive (`READ_INERT_AT_CHECKPOINT`):** $|b - c| \le F$ between `Read-On` and `Read-Off` — the read adds no statistically distinguishable signal above the unrouted last-position token carrier at that checkpoint (closing that checkpoint/schedule configuration under D22, and routing effort to admission/codebook/writer or an interleaved read schedule).
-     - **Destructive interference (`READ_HURTS_ADMISSION_OR_RANKING`):** `Read-Off` exceeds `Read-On` by more than $F$ (`c - b > F`), showing that uncalibrated tree transport / neighbour consensus moves queries away from their predecessor-placed target cells at that checkpoint.
+    - **Mechanism classification (when all instrument gates pass):**
+       - Paired row-by-row contrasts on the `14,287` DEV rows and the `3,847` `P_succ` copy-successor subset between `Read-On` and `Read-Off` (and between `Read-On` and `Read-Permuted` `RoutePermutedActionsV1`), judged against the paired McNemar discordance floor $F = \max(24, 2\sqrt{b + c})$:
+         - **Positive (`READ_ADDS_SIGNAL`):** `Read-On` exceeds both `Read-Off` and `Read-Permuted` on `top1_correct` (or `target_admitted_rows` at fixed occupancy) by more than $F = \max(24, 2\sqrt{b + c})$ without triggering `G-Occ`.
+         - **Null / Inactive (`READ_INERT_AT_CHECKPOINT`):** $|b - c| \le F$ between `Read-On` and `Read-Off` — the read adds no statistically distinguishable signal above the unrouted last-position token carrier at that checkpoint (closing that checkpoint/schedule configuration under D22, and routing effort to admission/codebook/writer or an interleaved read schedule).
+         - **Destructive interference (`READ_HURTS_ADMISSION_OR_RANKING`):** `Read-Off` exceeds `Read-On` by more than $F$ (`c - b > F`), showing that uncalibrated tree transport / neighbour consensus moves queries away from their predecessor-placed target cells at that checkpoint.
+
+---
+
+## 3. Switch Implementation & Staged Battery Script (Step 4, `antigravity-46`)
+
+Per Step 4 of [`docs/roadmap/items/r-read-off-vs-read-on.md`](../../roadmap/items/r-read-off-vs-read-on.md):
+
+1. **`ReadInitialization` variants & kernel switch (`s[13]`):**
+   - [`crates/uor-r4-discrete/src/lib.rs`](../../../crates/uor-r4-discrete/src/lib.rs) adds `ReadInitialization::RouteBypassV1` (`route_bypass_word() == 1`, `ReadSpec::Route` only) and `ReadInitialization::RoutePermutedActionsV1` (`permuted_route_action(a) = (5 * a + 1) % 64`, `ReadSpec::Route` only). `is_zero_gates()` remains true only for `ZeroGatesV1`, keeping all existing `Snapshot` and `DriverConfig` serializations and training-release guards (`controller.rs:162`) unchanged.
+   - [`crates/uor-r4-discrete/src/discrete.cu`](../../../crates/uor-r4-discrete/src/discrete.cu) (`route_vector` and `discrete_validate`) validates `s[13] <= 1` and `(s[13] == 0 || s[8] == 0)`, refuses `Parameter::Route` (`kind == 0`) proposals when `s[13] == 1`, and when `s[13] == 1` writes `input_block(..., length - 1, block, ...)` directly into `output + block * 8`.
+   - [`crates/uor-r4-discrete/src/device.rs`](../../../crates/uor-r4-discrete/src/device.rs) passes `read_initialization.route_bypass_word()` as the 14th device spec word `s[13]`, applies and readback-verifies `permuted_route_action` on `routes` when `read_initialization == RoutePermutedActionsV1`, refuses `Parameter::Route` in `Device::parameter` under `RouteBypassV1`, and adds the `#[ignore = "requires a CUDA GPU"]` device test `route_read_off_and_permuted_controls_run_and_refuse`.
+   - [`crates/uor-r4-discrete/src/d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs) refuses `RouteBypassV1` and `RoutePermutedActionsV1` so research control arms are never exported as `UORLUT01` artifacts.
+   - [`crates/uor-r4-discrete/src/attention_preflight.rs`](../../../crates/uor-r4-discrete/src/attention_preflight.rs) (`validate_dev_b3_config`) admits the paired `Route` (`ZeroGatesV1`, `RouteBypassV1`, `RoutePermutedActionsV1`) and `Flock`/`Relation` (`ActiveLeafV1`, `ZeroGatesV1`) arms in `attention-dev-b3` while keeping `capture_dev` strictly gated by `attention_learning::validate_config`.
+2. **Staged 10-arm zero-update configs & battery script (`docs/labs/r-read-off-vs-read-on/evidence/`):**
+   - Ten `DriverConfig` files (`a8-r-on.json`, `a8-r-off.json`, `a8-r-perm.json`, `a8-f-on.json`, `a8-f-off.json`, `p8-r-on.json`, `p8-r-off.json`, `p8-r-perm.json`, `p8-f-on.json`, `p8-f-off.json`) are committed and verified by control `C7` (`c7_committed_ten_arm_battery_configs_are_valid_and_distinct` in [`read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs)).
+   - [`docs/labs/r-read-off-vs-read-on/evidence/read-off-battery.sh`](evidence/read-off-battery.sh) runs `G-Qual` (`route_read_off_and_permuted_controls_run_and_refuse`), `init-corpus`, `eval-corpus`, and `attention-dev-b3` across all 10 arms, checks `G-Repro` (`4,244 / 1,351 / 133` on `a8-f-on` and `427 / 127 / 38` on `p8-f-on`) and `G-CrossMode` (`r-off == f-off` across all `14,287` rows on both `a8` and `p8`), and writes `FILES.sha256`.

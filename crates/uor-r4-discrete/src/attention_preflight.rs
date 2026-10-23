@@ -262,6 +262,46 @@ struct DevInputs {
     b3: evidence::B3Summary,
 }
 
+#[cfg(any(feature = "cuda", test))]
+fn validate_dev_b3_config(config: &DriverConfig) -> Result<()> {
+    config.validate()?;
+    validate_registered_corpus(config)?;
+    if config.spec.kept_cells != 8
+        || config.objective_policy != crate::ObjectivePolicy::NearestAddressMarginV1
+        || !matches!(config.seed, 1 | 2)
+        || !config.normalization_mode.is_scale_matched_snap()
+    {
+        return Err(invalid(
+            "DEV B3 requires registered K8 seed-1 or seed-2 nearest-address scale-matched config",
+        ));
+    }
+    let valid_arm = match config.read_spec {
+        ReadSpec::Flock { kept: 8 } | ReadSpec::Relation { kept: 8, sweeps: 1 } => {
+            config.schedule == training::SchedulePolicy::InterleavedReadEvery8V1
+                && matches!(
+                    config.read_initialization,
+                    ReadInitialization::ActiveLeafV1 | ReadInitialization::ZeroGatesV1
+                )
+        }
+        ReadSpec::Route => {
+            config.schedule == training::SchedulePolicy::CanonicalVectorThenReadV1
+                && matches!(
+                    config.read_initialization,
+                    ReadInitialization::ZeroGatesV1
+                        | ReadInitialization::RouteBypassV1
+                        | ReadInitialization::RoutePermutedActionsV1
+                )
+        }
+        _ => false,
+    };
+    if !valid_arm {
+        return Err(invalid(
+            "DEV B3 requires a registered Flock8/Relation8 or Route8 read-on/read-off/permuted arm",
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(feature = "cuda")]
 fn dev_inputs(
     config_path: &Path,
@@ -269,7 +309,7 @@ fn dev_inputs(
     evaluation_path: &Path,
 ) -> Result<DevInputs> {
     let (config, config_file): (DriverConfig, _) = input(config_path)?;
-    validate_config(&config)?;
+    validate_dev_b3_config(&config)?;
     let driver = PreparedDriver::load(config.clone())?;
     let (checkpoint, checkpoint_file): (training::DriverCheckpoint, _) = input(checkpoint_path)?;
     driver.validate_checkpoint(&checkpoint)?;
@@ -328,6 +368,7 @@ pub fn capture_dev(
     // identities are validated before restore creates the first CUDA context.
     let inputs = dev_inputs(config_path, checkpoint_path, evaluation_path)?;
     let config = &inputs.config;
+    validate_config(config)?;
     let source = corpus::PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)?;
     if source.eligible_len() != inputs.rows.len() {
         return Err(invalid(
@@ -500,6 +541,34 @@ mod tests {
         crossed_document[1].record = 2;
         assert!(validate_window(&crossed_document, 13, 192).is_err());
         assert!(validate_window(&window, 13, 2).is_err());
+        Ok(())
+    }
+    #[test]
+    fn dev_b3_admits_paired_read_on_read_off_and_permuted_arms() -> Result<()> {
+        let base: DriverConfig = serde_json::from_slice(include_bytes!(
+            "../../../docs/labs/address-cells-preflight-configs-2026-10-19/evidence/a8.json"
+        ))
+        .map_err(|e| invalid(e.to_string()))?;
+        validate_dev_b3_config(&base)?;
+        let mut f_off = base.clone();
+        f_off.read_initialization = ReadInitialization::ZeroGatesV1;
+        validate_dev_b3_config(&f_off)?;
+        for init in [
+            ReadInitialization::ZeroGatesV1,
+            ReadInitialization::RouteBypassV1,
+            ReadInitialization::RoutePermutedActionsV1,
+        ] {
+            let mut route = base.clone();
+            route.read_spec = ReadSpec::Route;
+            route.schedule = training::SchedulePolicy::CanonicalVectorThenReadV1;
+            route.read_initialization = init;
+            validate_dev_b3_config(&route)?;
+        }
+        let mut bad_route = base.clone();
+        bad_route.read_spec = ReadSpec::Route;
+        bad_route.schedule = training::SchedulePolicy::InterleavedReadEvery8V1;
+        bad_route.read_initialization = ReadInitialization::ZeroGatesV1;
+        assert!(validate_dev_b3_config(&bad_route).is_err());
         Ok(())
     }
 }

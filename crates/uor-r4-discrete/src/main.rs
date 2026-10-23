@@ -152,6 +152,7 @@ fn device_command(args: &[String]) -> Result<()> {
             snapshot.read_spec.validate(snapshot.spec)?;
             match (snapshot.read_spec,parameter) {
                 (ReadSpec::Route,Some(Parameter::Gate(index)))=>return Err(Error::UnimplementedParameter {kind:3,index}),
+                (ReadSpec::Route,Some(Parameter::Route(_))) if snapshot.read_initialization==uor_r4_discrete::ReadInitialization::RouteBypassV1=>return Err(invalid("route parameters are inactive under route_bypass_v1")),
                 (ReadSpec::Flock{..},Some(Parameter::Route(_)))=>return Err(invalid("route parameters are inactive in a flock model")),
                 (ReadSpec::Relation{..},Some(Parameter::Route(_)))=>return Err(invalid("route parameters are inactive in a relation model")),
                 _=>{}

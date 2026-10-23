@@ -41,7 +41,8 @@ __device__ void root_cost(const int* x,const U* g,U root,U* distance,U* hamming)
 __device__ bool route_vector(const int* input,const U* ids,const U* routes,const U* plan,const U* g,const U* s,U row,U kind,U index,U candidate,int* output) {
     plan+=row*(3+s[6]*4+16);
     U length=plan[0],nodes=plan[1],frontier=plan[2];plan+=3;
-    if(length==0 || length>s[2] || nodes>s[6] || frontier==0 || frontier>16)return false;
+    if(length==0 || length>s[2] || nodes>s[6] || frontier==0 || frontier>16 || s[13]>1u || (s[13]==1u && kind==0u))return false;
+    if(s[13]==1u){for(U block=0;block<s[1];++block)input_block(input,ids,g,row,length-1,block,s,kind,index,candidate,output+block*8);return true;}
     for(U block=0;block<s[1];++block) {
         int query[8];input_block(input,ids,g,row,length-1,block,s,kind,index,candidate,query);
         U node=ABSENT,root=0,total=g[IDENTITY];
@@ -78,7 +79,8 @@ __device__ bool route_vector(const int* input,const U* ids,const U* routes,const
 // ---- Flock & Relation read (Claude; Antigravity ReadSpec::Relation extension) ----
 // Device spec words appended after s[0..7]: s[8] read mode (0 Route, 1 Flock, 2 Relation),
 // s[9] kept K, s[10] sweeps S, s[12] snap scale (0 snap_n, 1 unit snap_1 control, 2 raw C_raw control:
-// the output block is the unsnapped Z^8 residual u, traced output root ABSENT; 1 and 2 Flock/Relation only).
+// the output block is the unsnapped Z^8 residual u, traced output root ABSENT; 1 and 2 Flock/Relation only),
+// s[13] route bypass (0 normal Route, 1 R-Off query-block bypass; Route only, refuses kind 0 proposals).
 // Gates are i32 trits: block*stages+level (level 0 = atoms),
 // plus in Relation mode 5*stages relation gates at blocks*stages + level*5 + edge_type.
 #define MODE_FLOCK 1u
@@ -461,7 +463,7 @@ extern "C" __global__ void discrete_validate(const int* table,const U* routes,co
     }
     if(i<s[1]*s[5] && routes[i]>=64)atomicExch(status,7u);
     if(i<gate_count(s) && (gates[i]<-1 || gates[i]>1))atomicExch(status,10u);
-    if(i==0 && (s[11]>1 || s[8]>MODE_RELATION || s[12]>2 || (s[12]!=0 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION)
+    if(i==0 && (s[11]>1 || s[8]>MODE_RELATION || s[12]>2 || (s[12]!=0 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION) || s[13]>1 || (s[13]!=0 && s[8]!=0)
         || (s[8]==MODE_FLOCK && (s[9]==0 || s[9]>MAX_KEPT || s[10]!=0 || s[1]<2))
         || (s[8]==MODE_RELATION && (s[9]==0 || s[9]>MAX_KEPT || s[10]==0 || s[10]>MAX_SWEEPS || s[1]<2))))atomicExch(status,10u);
 }

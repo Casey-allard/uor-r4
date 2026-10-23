@@ -21,7 +21,6 @@ const ABSENT: u32 = u32::MAX;
 const WIDTH: usize = 8;
 const CELLS: usize = 256;
 const EDGE_TYPES: usize = 5;
-const MODE_ROUTE: u32 = 0;
 const MODE_FLOCK: u32 = 1;
 const MODE_RELATION: u32 = 2;
 const GATE_KIND: u32 = 3;
@@ -972,4 +971,129 @@ fn geometric_permuted_read_control_breaks_route_alignment_without_leaving_group(
     let w_on = writer_reference(&out_on, &vocab, 4, 6, NO_MOVE).unwrap();
     let w_perm = writer_reference(&out_perm, &vocab, 4, 6, NO_MOVE).unwrap();
     assert_ne!(w_on.prediction, w_perm.prediction);
+}
+
+// ============================================================================
+// C7: Committed 10-arm zero-update battery configs and lineage separation
+// ============================================================================
+
+#[test]
+fn c7_committed_ten_arm_battery_configs_are_valid_and_distinct() {
+    use std::collections::BTreeSet;
+    use uor_r4_discrete::{
+        corpus,
+        training::{CodebookInitialization, DriverConfig, SchedulePolicy},
+        ReadInitialization, ReadSpec,
+    };
+
+    let arms: [(
+        &str,
+        &[u8],
+        &str,
+        ReadSpec,
+        ReadInitialization,
+        SchedulePolicy,
+    ); 10] = [
+        (
+            "a8-r-on",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/a8-r-on.json"),
+            "6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1",
+            ReadSpec::Route,
+            ReadInitialization::ZeroGatesV1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ),
+        (
+            "a8-r-off",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/a8-r-off.json"),
+            "6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1",
+            ReadSpec::Route,
+            ReadInitialization::RouteBypassV1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ),
+        (
+            "a8-r-perm",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/a8-r-perm.json"),
+            "6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1",
+            ReadSpec::Route,
+            ReadInitialization::RoutePermutedActionsV1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ),
+        (
+            "a8-f-on",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/a8-f-on.json"),
+            "6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1",
+            ReadSpec::Relation { kept: 8, sweeps: 1 },
+            ReadInitialization::ActiveLeafV1,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        ),
+        (
+            "a8-f-off",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/a8-f-off.json"),
+            "6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1",
+            ReadSpec::Relation { kept: 8, sweeps: 1 },
+            ReadInitialization::ZeroGatesV1,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        ),
+        (
+            "p8-r-on",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/p8-r-on.json"),
+            "83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b",
+            ReadSpec::Route,
+            ReadInitialization::ZeroGatesV1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ),
+        (
+            "p8-r-off",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/p8-r-off.json"),
+            "83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b",
+            ReadSpec::Route,
+            ReadInitialization::RouteBypassV1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ),
+        (
+            "p8-r-perm",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/p8-r-perm.json"),
+            "83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b",
+            ReadSpec::Route,
+            ReadInitialization::RoutePermutedActionsV1,
+            SchedulePolicy::CanonicalVectorThenReadV1,
+        ),
+        (
+            "p8-f-on",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/p8-f-on.json"),
+            "83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b",
+            ReadSpec::Relation { kept: 8, sweeps: 1 },
+            ReadInitialization::ActiveLeafV1,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        ),
+        (
+            "p8-f-off",
+            include_bytes!("../../../docs/labs/r-read-off-vs-read-on/evidence/p8-f-off.json"),
+            "83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b",
+            ReadSpec::Relation { kept: 8, sweeps: 1 },
+            ReadInitialization::ZeroGatesV1,
+            SchedulePolicy::InterleavedReadEvery8V1,
+        ),
+    ];
+
+    let mut config_shas = BTreeSet::new();
+    for (name, bytes, expected_table_sha, expected_read, expected_init, expected_schedule) in arms {
+        let config: DriverConfig = serde_json::from_slice(bytes).expect(name);
+        config.validate().expect(name);
+        assert_eq!(config.read_spec, expected_read, "{name}");
+        assert_eq!(config.read_initialization, expected_init, "{name}");
+        assert_eq!(config.schedule, expected_schedule, "{name}");
+        match &config.codebook_initialization {
+            CodebookInitialization::PinnedTableV1 { table } => {
+                assert_eq!(table.sha256, expected_table_sha, "{name}");
+            }
+            CodebookInitialization::SeededDeviceV1 => panic!("{name} must pin a table"),
+        }
+        let config_sha = corpus::sha256(&serde_json::to_vec(&config).expect(name));
+        assert!(
+            config_shas.insert(config_sha),
+            "{name} config_sha256 must be distinct"
+        );
+    }
+    assert_eq!(config_shas.len(), 10);
 }

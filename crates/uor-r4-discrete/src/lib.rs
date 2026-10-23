@@ -83,24 +83,49 @@ pub const RELATION_EDGE_TYPES: u32 = 5;
 /// Initial read connectivity is a declared experiment setting. The historical
 /// zero-gate default remains unchanged; active leaves carry no target-derived
 /// information and must be matched between Relation and its frozen-zero control.
+/// `RouteBypassV1` (`R-Off`, device spec word `s[13] = 1`) bypasses `Route`'s
+/// tree walk so the query block `t_{n-1,b}` passes directly to the writer, and
+/// `RoutePermutedActionsV1` (`R-Perm`) applies the fixed-point-free signed-axis
+/// group derangement `g'(a) = (5 * a + 1) % 64` to initial `routes`.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReadInitialization {
     #[default]
     ZeroGatesV1,
     ActiveLeafV1,
+    RouteBypassV1,
+    RoutePermutedActionsV1,
 }
 impl ReadInitialization {
     pub fn is_zero_gates(&self) -> bool {
         *self == Self::ZeroGatesV1
     }
-    pub fn validate(self, read_spec: ReadSpec) -> Result<()> {
-        if self == Self::ActiveLeafV1 && read_spec == ReadSpec::Route {
-            return Err(Error::Invalid(
-                "active leaf initialization requires Flock or Relation".into(),
-            ));
+    pub const fn route_bypass_word(self) -> u32 {
+        match self {
+            Self::RouteBypassV1 => 1,
+            Self::ZeroGatesV1 | Self::ActiveLeafV1 | Self::RoutePermutedActionsV1 => 0,
         }
-        Ok(())
+    }
+    pub fn permuted_route_action(action: u32) -> Result<u32> {
+        if action >= 64 {
+            return Err(Error::Invalid("route action index must be in 0..64".into()));
+        }
+        Ok((5 * action + 1) % 64)
+    }
+    pub fn validate(self, read_spec: ReadSpec) -> Result<()> {
+        match self {
+            Self::ZeroGatesV1 => Ok(()),
+            Self::ActiveLeafV1 if read_spec != ReadSpec::Route => Ok(()),
+            Self::ActiveLeafV1 => Err(Error::Invalid(
+                "active leaf initialization requires Flock or Relation".into(),
+            )),
+            Self::RouteBypassV1 | Self::RoutePermutedActionsV1 if read_spec == ReadSpec::Route => {
+                Ok(())
+            }
+            Self::RouteBypassV1 | Self::RoutePermutedActionsV1 => Err(Error::Invalid(
+                "route bypass and route permuted-action controls require Route".into(),
+            )),
+        }
     }
 }
 
@@ -484,6 +509,33 @@ mod tests {
             r#"{"spec":{"vocabulary":4,"blocks":2,"context":3,"kept_cells":2}}"#
         )
         .is_err());
+        assert_eq!(ReadInitialization::ZeroGatesV1.route_bypass_word(), 0);
+        assert_eq!(ReadInitialization::ActiveLeafV1.route_bypass_word(), 0);
+        assert_eq!(ReadInitialization::RouteBypassV1.route_bypass_word(), 1);
+        assert_eq!(
+            ReadInitialization::RoutePermutedActionsV1.route_bypass_word(),
+            0
+        );
+        assert!(ReadInitialization::RouteBypassV1
+            .validate(ReadSpec::Route)
+            .is_ok());
+        assert!(ReadInitialization::RoutePermutedActionsV1
+            .validate(ReadSpec::Route)
+            .is_ok());
+        assert!(ReadInitialization::RouteBypassV1
+            .validate(ReadSpec::Flock { kept: 2 })
+            .is_err());
+        assert!(ReadInitialization::RoutePermutedActionsV1
+            .validate(ReadSpec::Relation { kept: 2, sweeps: 1 })
+            .is_err());
+        let mut seen = [false; 64];
+        for action in 0..64u32 {
+            let mapped = ReadInitialization::permuted_route_action(action).unwrap();
+            assert!(mapped < 64 && mapped != action);
+            assert!(!seen[mapped as usize]);
+            seen[mapped as usize] = true;
+        }
+        assert!(ReadInitialization::permuted_route_action(64).is_err());
     }
 }
 

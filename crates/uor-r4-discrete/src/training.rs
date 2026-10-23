@@ -220,12 +220,23 @@ impl DriverConfig {
         if let CodebookInitialization::PinnedTableV1 { table } = &self.codebook_initialization {
             corpus::validate_sha256(&table.sha256)?;
         }
-        if !self.read_initialization.is_zero_gates()
+        self.read_initialization.validate(self.read_spec)?;
+        if self.read_initialization == ReadInitialization::ActiveLeafV1
             && (self.read_spec == ReadSpec::Route
                 || self.schedule != SchedulePolicy::InterleavedReadEvery8V1)
         {
             return Err(invalid(
                 "active-leaf initialization requires an explicitly interleaved Flock or Relation driver",
+            ));
+        }
+        if matches!(
+            self.read_initialization,
+            ReadInitialization::RouteBypassV1 | ReadInitialization::RoutePermutedActionsV1
+        ) && (self.read_spec != ReadSpec::Route
+            || self.schedule != SchedulePolicy::CanonicalVectorThenReadV1)
+        {
+            return Err(invalid(
+                "route read-off and permuted controls require canonical Route schedule",
             ));
         }
         if self.normalization_mode.device_word()? != 0 && self.read_spec == ReadSpec::Route {
@@ -1542,6 +1553,24 @@ mod tests {
                 ["read_initialization"],
             "active_leaf_v1"
         );
+        let route_base = metadata_fixture(1, ReadSpec::Route)?;
+        let base_lineage = route_base.lineage_sha256()?;
+        for control in [
+            ReadInitialization::RouteBypassV1,
+            ReadInitialization::RoutePermutedActionsV1,
+        ] {
+            let mut route_control = metadata_fixture(1, ReadSpec::Route)?;
+            route_control.config.read_initialization = control;
+            route_control.config.validate()?;
+            route_control.lineage.config = route_control.config.clone();
+            assert_ne!(route_control.lineage_sha256()?, base_lineage);
+            let mut bad_mode = route_control.config.clone();
+            bad_mode.read_spec = ReadSpec::Flock { kept: 2 };
+            assert!(bad_mode.validate().is_err());
+            let mut bad_schedule = route_control.config.clone();
+            bad_schedule.schedule = SchedulePolicy::InterleavedReadEvery8V1;
+            assert!(bad_schedule.validate().is_err());
+        }
         Ok(())
     }
     #[test]

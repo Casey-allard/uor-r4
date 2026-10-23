@@ -911,6 +911,7 @@ impl Device {
                 words[2],
                 objective_policy.word(),
                 snap_word,
+                read_initialization.route_bypass_word(),
             ])
             .map_err(cuda)?;
         let mut status = stream.alloc_zeros::<u32>(1).map_err(cuda)?;
@@ -938,6 +939,27 @@ impl Device {
                 declared[block * metadata.stages()] = 1;
             }
             stream.memcpy_htod(&declared, &mut gates).map_err(cuda)?;
+        }
+        if read_initialization == ReadInitialization::RoutePermutedActionsV1 {
+            let seeded_routes = stream.clone_dtoh(&routes).map_err(cuda)?;
+            let permuted_routes = seeded_routes
+                .iter()
+                .map(|&action| ReadInitialization::permuted_route_action(action))
+                .collect::<Result<Vec<u32>>>()?;
+            stream
+                .memcpy_htod(&permuted_routes, &mut routes)
+                .map_err(cuda)?;
+            let verified_routes = stream.clone_dtoh(&routes).map_err(cuda)?;
+            if verified_routes != permuted_routes
+                || verified_routes
+                    .iter()
+                    .zip(&seeded_routes)
+                    .any(|(&after, &before)| after >= 64 || after == before)
+            {
+                return Err(invalid(
+                    "CUDA permuted route storage differs from declared derangement",
+                ));
+            }
         }
         // Storage validation of a declared literal initialization, never a host
         // read/score/reference. Only declared atom combine gates may be nonzero.
@@ -1174,6 +1196,7 @@ impl Device {
                 words[2],
                 self.objective_policy().word(),
                 self.binding.normalization_mode.device_word()?,
+                self.binding.read_initialization.route_bypass_word(),
             ])
             .map_err(cuda)
     }
@@ -1675,6 +1698,13 @@ impl Device {
             }
             Parameter::Route(_) if matches!(self.read_spec(), ReadSpec::Relation { .. }) => {
                 Err(invalid("route parameters are inactive in a relation model"))
+            }
+            Parameter::Route(_)
+                if self.read_initialization() == ReadInitialization::RouteBypassV1 =>
+            {
+                Err(invalid(
+                    "route parameters are inactive under route_bypass_v1",
+                ))
             }
             Parameter::Route(index) if (index as usize) < self.routes.len() => Ok((0, index)),
             Parameter::VectorBlock(index)
@@ -2271,6 +2301,81 @@ mod unit_snap_device_tests {
         assert!(multi_term, "an active leaf gate adds a residual term");
         let snapped = active_leaf_forward(NormalizationMode::ScaleMatchedSnapV1)?;
         assert_ne!(vectors, snapped.vectors()?);
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires a CUDA GPU"]
+    fn route_read_off_and_permuted_controls_run_and_refuse() -> Result<()> {
+        let route_on = Device::new_with_initialization(
+            SPEC,
+            ReadSpec::Route,
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::ZeroGatesV1,
+            7,
+            0,
+        )?;
+        let route_off = Device::new_with_initialization(
+            SPEC,
+            ReadSpec::Route,
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::RouteBypassV1,
+            7,
+            0,
+        )?;
+        let route_perm = Device::new_with_initialization(
+            SPEC,
+            ReadSpec::Route,
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::RoutePermutedActionsV1,
+            7,
+            0,
+        )?;
+        let flock_off = Device::new_with_initialization(
+            SPEC,
+            ReadSpec::Flock { kept: 2 },
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::ZeroGatesV1,
+            7,
+            0,
+        )?;
+        canonical_forward(&route_on)?;
+        canonical_forward(&route_off)?;
+        canonical_forward(&route_perm)?;
+        let row: Vec<Identity> = (0..3u32)
+            .map(|token| Identity {
+                token,
+                occurrence: u64::from(token),
+                record: 17,
+                version: 9,
+            })
+            .collect();
+        let off_vecs = route_off
+            .forward(&route_off.carry(&row)?, &[0])?
+            .vectors()?;
+        let flock_off_vecs = flock_off
+            .forward(&flock_off.carry(&row)?, &[0])?
+            .vectors()?;
+        assert_eq!(
+            off_vecs, flock_off_vecs,
+            "R-Off and F-Off must produce identical query-block outputs"
+        );
+        let on_snap = route_on.snapshot()?;
+        let perm_snap = route_perm.snapshot()?;
+        for (&before, &after) in on_snap.routes.iter().zip(&perm_snap.routes) {
+            assert_eq!(after, ReadInitialization::permuted_route_action(before)?);
+            assert_ne!(after, before);
+        }
+        assert!(route_off
+            .propose(&route_off.carry(&row)?, &[0], Parameter::Route(0))
+            .is_err());
+        let off_snap = route_off.snapshot()?;
+        assert_eq!(
+            off_snap.read_initialization,
+            ReadInitialization::RouteBypassV1
+        );
+        let reloaded_off = Device::from_snapshot(off_snap, 0)?;
+        canonical_forward(&reloaded_off)?;
         Ok(())
     }
 }

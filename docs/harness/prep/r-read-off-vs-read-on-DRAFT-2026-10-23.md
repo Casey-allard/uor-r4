@@ -2,7 +2,8 @@
 
 - **Status:** `DRAFT`, pre-registration (`zero training updates`). No compute is cleared.
 - **Roadmap item:** [`docs/roadmap/items/r-read-off-vs-read-on.md`](../../roadmap/items/r-read-off-vs-read-on.md) ([`#2885`](https://github.com/UOR-Foundation/uor-r4/issues/2885), Milestone `#2029` / `research`)
-- **Design note, checkpoint inventory & finite controls:** [`docs/labs/r-read-off-vs-read-on/README.md`](../../labs/r-read-off-vs-read-on/README.md) (`6 / 6` host controls pass in [`crates/uor-r4-discrete/tests/read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs))
+- **Design note, checkpoint inventory & finite controls:** [`docs/labs/r-read-off-vs-read-on/README.md`](../../labs/r-read-off-vs-read-on/README.md) (`7 / 7` host controls pass in [`crates/uor-r4-discrete/tests/read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs))
+- **Staged battery & configs:** [`docs/labs/r-read-off-vs-read-on/evidence/read-off-battery.sh`](../../labs/r-read-off-vs-read-on/evidence/read-off-battery.sh) (`{a8,p8}-{r-on,r-off,r-perm,f-on,f-off}.json`)
 - **Template & parent sheet:** [`docs/harness/prep/m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](m1-attention-address-structured-cells-DRAFT-2026-10-19.md) (executed in [`docs/labs/address-cells-preflight-2026-10-19/README.md`](../../labs/address-cells-preflight-2026-10-19/README.md))
 - **Rules:**
   - CHARTER §3.1–§3.3 (D23, D25, D30, D32): geometry only; zero softmax, squashing, dense matmul, or floats anywhere.
@@ -69,16 +70,15 @@ If the PM/owner selects **Option B** on [`#2885`](https://github.com/UOR-Foundat
 
 1. **Host design note, checkpoint audit & finite controls (completed in `antigravity-45`):**
    - [`docs/labs/r-read-off-vs-read-on/README.md`](../../labs/r-read-off-vs-read-on/README.md) documents the checkpoint inventory, the `eval-corpus` refusal audit (`main.rs:108-110`), and the `RouteBypassV1` / `ZeroGatesV1` design.
-   - [`crates/uor-r4-discrete/tests/read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs) verifies all 6 finite controls (`C1`–`C6`) on the host via `~/.cargo/bin/cargo test -p uor-r4-discrete --test read_off_ablation_controls` without touching `source_sha256()` or `driver_source_sha256()`.
-2. **Non-author `TEST FITNESS: FIT` & PM/owner registration on `#2885`:**
+   - [`crates/uor-r4-discrete/tests/read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs) verifies finite controls `C1`–`C7` on the host via `~/.cargo/bin/cargo test -p uor-r4-discrete --test read_off_ablation_controls`.
+2. **Kernel switch, device tests & staged battery script (completed in `antigravity-46`):**
+   - `ReadInitialization::RouteBypassV1` (`s[13] == 1`) and `ReadInitialization::RoutePermutedActionsV1` (`g'(a) = (5a + 1) mod 64`) are wired in `crates/uor-r4-discrete/src/{lib.rs,discrete.cu,device.rs,training.rs,attention_preflight.rs,d11_export.rs}` with the `#[ignore = "requires a CUDA GPU"]` device test `route_read_off_and_permuted_controls_run_and_refuse`.
+   - [`docs/labs/r-read-off-vs-read-on/evidence/read-off-battery.sh`](../../labs/r-read-off-vs-read-on/evidence/read-off-battery.sh) and the 10 zero-update arm configs (`{a8,p8}-{r-on,r-off,r-perm,f-on,f-off}.json`) are staged under `docs/labs/r-read-off-vs-read-on/evidence/`.
+3. **Non-author `TEST FITNESS: FIT` & PM/owner registration on `#2885`:**
    - Obtain a non-author `TEST FITNESS: FIT` review on this sheet, PM/owner decision on Option A vs Option B (Section 1.3 of the design note) and bar registration on `#2885`, and Casey's approval in chat (`CHARTER §5.1`, `#2895`).
-3. **Kernel switch & finite CUDA qualification (after FIT and before the battery):**
-   - Wire `s[13]` (`RouteBypassV1`) into `crates/uor-r4-discrete/src/discrete.cu` (`route_vector`, `discrete_validate`, `discrete_counterfactual`) and add the finite CUDA qualification controls mirroring `C1`–`C6`.
 4. **GPU evaluation battery on one leased RTX 5090 (`scripts/pod/uor-pod`):**
-   - Run `scripts/pod/uor-pod status` first, lease one RTX 5090 pod, and build with `nvcc` (`--features cuda`).
-   - Verify all input file SHA-256s and run the finite CUDA qualification controls (`qualify`, `qualify-flock`, and the `RouteBypassV1` controls).
-   - Run `eval-corpus` (and `attention-dev-b3` for paired per-row `14,287` / `3,847` `P_succ` join) once per arm (`R-On`, `R-Off`, `R-Perm`, `F-On`, `F-Off`) on `A8` cp0 and `P8` cp0 (plus Phase 2 checkpoints if Option B is selected).
-   - Verify `G-CrossMode` (`R-Off == F-Off` on `14,287 / 14,287` rows) and `G-Repro` (`F-On` == `4,244 / 1,351 / 133` on `A8` cp0 and `427 / 127 / 38` on `P8` cp0).
+   - Run `scripts/pod/uor-pod status` first, lease one RTX 5090 pod, and execute [`docs/labs/r-read-off-vs-read-on/evidence/read-off-battery.sh`](../../labs/r-read-off-vs-read-on/evidence/read-off-battery.sh).
+   - Verify all input file SHA-256s, `G-Qual` (`route_read_off_and_permuted_controls_run_and_refuse`), `G-Repro` (`F-On` == `4,244 / 1,351 / 133` on `A8` cp0 and `427 / 127 / 38` on `P8` cp0), and `G-CrossMode` (`R-Off == F-Off` on `14,287 / 14,287` rows).
    - Archive all reports and `FILES.sha256` to the HF store before `uor-pod down`, and record one row per paired comparison in `docs/research/notebook/m1-discrete-attention.md`.
 
 ---
