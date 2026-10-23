@@ -5,8 +5,8 @@
 - mechanism: rank-margin-objective; mechanism brief `docs/mechanisms/rank-margin-objective.md`.
 - old sheet: [`m1-rank-margin-rung0-2026-10-13.md`](m1-rank-margin-rung0-2026-10-13.md) (Amendments 1-7; Amendment 7 froze it under D32).
 - **legal basis: D37 + CHARTER §4 rule 5** - floating point is legal in **offline training only**, every float candidate reports its **export gap on the same evaluator**, and **a gap above the two-seed noise band disqualifies it** (CHARTER §3.7). D37 revises D32's learning-path float ban; serving stays integer (§3.1-§3.3, §3.6).
-- **this is a NEW sheet, not a revival.** CHARTER §4 rule 5: "Archived float sheets return only as new sheets with a fresh FIT." The old Amendment 6 sheet stays an archived design record; this page is the new D37-basis sheet and carries its own `TEST FITNESS: PENDING` (and needs its own non-author FIT).
-- status: **refresh, `TEST FITNESS: PENDING`** - it needs the PM's recorded live/superseded answer and a non-author FIT before the milestone can treat it as the live pre-registration. It runs nothing and releases no hold; training and rental stay HELD.
+- **this is a NEW sheet, not a revival.** CHARTER §4 rule 5: "Archived float sheets return only as new sheets with a fresh FIT." The old Amendment 6 sheet stays an archived design record; this page is the new D37-basis sheet and carries `TEST FITNESS: NOT_FIT` (`antigravity-33` non-author review; four prerequisites recorded below).
+- status: **refresh, `TEST FITNESS: NOT_FIT`** - it needs the PM's recorded live/superseded answer and the four `FIT` prerequisites below before the milestone can treat it as a live executable pre-registration. It runs nothing and releases no hold; training and rental stay HELD.
 - scope: this refresh re-pins the old sheet's four Amendment 6 mechanical pins against current `main` and re-states its bars unchanged. No bar, hold or spend is changed here; a bar change is a decision card (CHARTER §5.2).
 
 ## Bar
@@ -70,6 +70,22 @@ geometric-stack train arch=geometric pattern=rrrrrr width=256 heads=4 stack_mlp=
 
 ## TEST FITNESS line
 
-TEST FITNESS: PENDING
+```text
+TEST FITNESS: NOT_FIT - M2 #2030 rank-margin-objective
+sheet: docs/harness/prep/m2-pin-train-mask-sheet-2026-10-23.md
+reviewer: antigravity (fresh-context subagent 40c9d939-5725-4a06-b791-5d7c7f3aa071)
+note: Four Amendment 6 pins verified against main and archive; NOT_FIT for compute until (1) PM/owner live-vs-superseded decision (#2851) is recorded, (2) D37 export-gap statistic and numeric band are fixed in the sheet itself rather than delegated to the reviewer, (3) the separate D29-scanned float module (float-training-module) and D11 float-trunk exporter (d11-exporter-float-trunk) land and are wired into Steps, and (4) literal source SHAs (2fd6358bbc52d2a202a872ad0954ebb12894606f / 9e904a83448c451f738d5c1d45224dfdf73eb84e) and the fresh-transfer slice (>=200 rows, path + sha256) are pinned in the sheet
+date: 2026-10-23
+```
 
-This is a **refresh**, so it carries no FIT: the old sheet's Amendment 6 FIT is retained in its own record, and this page is the D37-basis restatement. A non-author FIT review (Claude, Kimi or antigravity; deepseek authored this refresh, so not deepseek) plus the PM's recorded live/superseded answer are the two prerequisites; this page clears no compute.
+### Non-Author `TEST FITNESS` Audit Summary (`antigravity-33`, 2026-10-23)
+
+1. **Four Amendment 6 mechanical pins — VERIFIED:**
+   - `mw-balp/train/response_mask.u8` (`7,512,797` bytes, sha256 `b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3`) and `expected_train_targets=2425925` match `crates/uor-r4-discrete/src/attention_learning.rs:1367-1370` and `archive/labs/count-reference-2026-10-13/README.md:32,84,95-96`.
+   - The `geometric-stack train` CLI and per-arm objectives (`objective=hinge` for M1, `objective=hinge8` for M8) match `crates/uor-r4-training/examples/geometric-stack-native.rs:361-406,449-456,492-496,535-543`, and the dose product (`7,324 × 16 × 384 = 44,998,656`) corrects the old sheet's arithmetic typo (`44,957,696`).
+   - Frozen commits `2fd6358bbc52d2a202a872ad0954ebb12894606f` and `9e904a83448c451f738d5c1d45224dfdf73eb84e` verify in git history.
+2. **Why `TEST FITNESS: NOT_FIT` for compute (four prerequisites before `FIT`):**
+   - **(a) Unresolved PM/owner scope decision (`#2851` / `owner-decision-float-path-scope`):** The PM/owner answer on whether this D37-basis float rung-0 sheet is the active successor to Amendment 6 or superseded by the discrete learning law is still pending (lines 9, 75).
+   - **(b) Unregistered D37 export-gap statistic and numeric band (Criterion 2 / CHARTER §3.7, §5.2, D39 item 5):** Line 29 delegates fixing the numeric export-gap band to the FIT reviewer (*"the non-author FIT fixes the numeric band for this sheet before any run"*). Under CHARTER §5.2 a reviewer cannot author or change a bar/band; the sheet itself must specify the exact gap statistic (e.g., `|top1_f32 - top1_int|` and `|recall8_f32 - recall8_int|` on the `14,287` DEV rows) and either a PM/owner-approved numeric band or an explicit pre-registered formula anchored by the Wilson 95% half-width (`0.83` pp / `119` rows) and two-seed spread.
+   - **(c) Missing D11 float-trunk exporter and separate D29-scanned float module (Criteria 1 & 4 / CHARTER §3.7, D37 items 3 & 6):** `## Steps` executes `geometric-stack` inside `crates/uor-r4-training` (`model.scored_in_f32(...)`) with no D11 integer export or same-evaluator integer scoring step, because `d11-exporter-float-trunk` (`#2845`) and `float-training-module` (`#2846`) are not yet built. Without integer export + same-evaluator scoring, the CLI measures only the f32 proxy and cannot evaluate the D37 export-gap gate.
+   - **(d) Missing literal source SHAs and fresh-transfer slice pin in the sheet body (Criterion 3):** The sheet body should state the literal 40-char frozen source SHAs (`2fd6358bbc52d2a202a872ad0954ebb12894606f` and `9e904a83448c451f738d5c1d45224dfdf73eb84e`, currently only in `docs/labs/m2-pin-train-mask-sheet/README.md:10`) and pin the file path, SHA-256, and `>= 200` row count for the fresh-transfer draw (lines 21, 69).
