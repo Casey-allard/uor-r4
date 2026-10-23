@@ -3,7 +3,7 @@ id: infra-loop-pr08-migration
 title: Loop PR 8: migrate the notes to STATE, HANDOFF and PLAN
 milestone: infra
 area: docs
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [infra-loop-pr03-render]
