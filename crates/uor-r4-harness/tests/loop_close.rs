@@ -795,6 +795,39 @@ fn green_gates_delete_red_gates_delete_nothing_and_the_verify_worktree_goes_eith
 }
 
 #[test]
+fn a_red_verify_keeps_the_red_gate_log_and_a_green_one_keeps_none() {
+    let m = Merged::new("false");
+    m.fake("MERGED", &m.merged_squash(), "claude/x");
+    let (code, out) = m.verify(&[]);
+    assert_eq!(code, 1, "{out}");
+    assert!(out.contains("FAIL done-when"), "{out}");
+    let kept = m.main.join("local/claude/verify-logs/7");
+    let runs: Vec<PathBuf> = std::fs::read_dir(&kept)
+        .unwrap_or_else(|e| panic!("{}: {e}\n{out}", kept.display()))
+        .map(|e| e.unwrap().path())
+        .collect();
+    assert_eq!(runs.len(), 1, "{runs:?}\n{out}");
+    let exit = std::fs::read_to_string(runs[0].join("g.exit")).unwrap();
+    assert_eq!(exit.trim(), "1", "{out}");
+    assert!(runs[0].join("g.log").is_file(), "{out}");
+    assert!(
+        out.contains(&format!(
+            "KEEP done-when red gate log(s) g copied to {}",
+            runs[0].display()
+        )),
+        "{out}"
+    );
+    assert!(!m.main.join("local/claude/verify-7").exists(), "{out}");
+
+    let m = Merged::new("true");
+    m.fake("MERGED", &m.merged_squash(), "claude/x");
+    let (code, out) = m.verify(&[]);
+    assert_eq!(code, 0, "{out}");
+    assert!(!m.main.join("local/claude/verify-logs").exists(), "{out}");
+    assert!(!out.contains("KEEP done-when"), "{out}");
+}
+
+#[test]
 fn a_squash_differing_only_in_whitespace_deletes_nothing() {
     let mut m = Merged::new("true");
     let mc = shared_file_squash(&mut m, "x = \"a b c\"", "x = \"ab c\"");

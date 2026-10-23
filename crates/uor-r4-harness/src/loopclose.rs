@@ -24,7 +24,8 @@
 //! (the merge commit is on fresh `origin/main` and its subject ends `(#<n>)`), `content` (for the
 //! files the PR changed, each is identical between the merge commit and the PR head, or the PR's patch
 //! has the merge's `git patch-id --verbatim`) and `done-when` (`loop gates --full` in a detached
-//! worktree of `origin/main`, removed afterwards whatever the result). Then, only for this lab's own
+//! worktree of `origin/main`, removed afterwards whatever the result; a red gate's `.log` and `.exit`
+//! are first copied to `local/<lab>/verify-logs/<n>/<run>/`). Then, only for this lab's own
 //! branch (`<lab>/...`), three independent steps, each with its own guard (a kept worktree does not
 //! stop the others): the clean worktree under `.worktrees/<lab>-*` holding no ignored files beyond
 //! `target/`, `local/<lab>/views/` and `local/<lab>/gates.jsonl`; the local branch when it is at the
@@ -681,7 +682,8 @@ fn prove_merge(main: &Path, n: u64, m: &MergedPr) -> Result<(), String> {
 }
 
 /// `loop gates --full` in a detached worktree of `origin/main` at `local/<lab>/verify-<n>`, removed
-/// afterwards whatever the result. `true` when the gates were green.
+/// afterwards whatever the result, once a red run's gate logs are kept (`keep_red_logs`). `true`
+/// when the gates were green.
 fn done_when(main: &Path, lab: &str, n: u64) -> bool {
     let path = main
         .join("local")
@@ -716,6 +718,9 @@ fn done_when(main: &Path, lab: &str, n: u64) -> bool {
             .status()
             .map_err(|e| format!("cannot run loop gates: {e}"))
     });
+    if matches!(&run, Ok(s) if !s.success()) {
+        keep_red_logs(main, &path, lab, n);
+    }
     let removed = git(main, &["worktree", "remove", "--force", &shown]);
     let green = match run {
         Ok(s) if s.success() => {
@@ -744,6 +749,68 @@ fn done_when(main: &Path, lab: &str, n: u64) -> bool {
         return false;
     }
     green
+}
+
+/// Copies each red gate's `<gate>.log` and `<gate>.exit` from the verify worktree's newest gate run
+/// (`local/<lab>/gates/<run>/`) to `<main>/local/<lab>/verify-logs/<n>/<run>/`, before the worktree
+/// is removed with them inside. A red gate is one whose `.exit` is not `0`. Prints where they went;
+/// a failure to copy is printed and changes nothing else.
+fn keep_red_logs(main: &Path, verify: &Path, lab: &str, n: u64) {
+    let slug = crate::state::slug(lab);
+    let runs = verify.join("local").join(&slug).join("gates");
+    let kept = (|| -> Result<Option<(PathBuf, Vec<String>)>, String> {
+        let mut dirs: Vec<PathBuf> = std::fs::read_dir(&runs)
+            .map_err(|e| format!("cannot read {}: {e}", runs.display()))?
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| p.is_dir())
+            .collect();
+        dirs.sort();
+        let Some(run) = dirs.pop() else {
+            return Ok(None);
+        };
+        let mut red: Vec<String> = std::fs::read_dir(&run)
+            .map_err(|e| format!("cannot read {}: {e}", run.display()))?
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| p.extension().is_some_and(|x| x == "exit"))
+            .filter(|p| std::fs::read_to_string(p).is_ok_and(|t| t.trim() != "0"))
+            .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
+            .collect();
+        red.sort();
+        if red.is_empty() {
+            return Ok(None);
+        }
+        let dest = main
+            .join("local")
+            .join(&slug)
+            .join("verify-logs")
+            .join(n.to_string())
+            .join(run.file_name().unwrap_or_default());
+        std::fs::create_dir_all(&dest)
+            .map_err(|e| format!("cannot create {}: {e}", dest.display()))?;
+        for gate in &red {
+            for ext in ["log", "exit"] {
+                let from = run.join(format!("{gate}.{ext}"));
+                if from.is_file() {
+                    std::fs::copy(&from, dest.join(format!("{gate}.{ext}")))
+                        .map_err(|e| format!("cannot copy {}: {e}", from.display()))?;
+                }
+            }
+        }
+        Ok(Some((dest, red)))
+    })();
+    match kept {
+        Ok(Some((dest, red))) => step(
+            "KEEP",
+            "done-when",
+            &format!(
+                "red gate log(s) {} copied to {}",
+                red.join(", "),
+                dest.display()
+            ),
+        ),
+        Ok(None) => {}
+        Err(e) => step("NOTE", "done-when", &format!("red gate logs not kept: {e}")),
+    }
 }
 
 /// The worktree checked out on `refs/heads/<branch>`, from `git worktree list --porcelain`.
