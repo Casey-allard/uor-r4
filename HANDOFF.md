@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from 2ffb517bc76e4260d05882435d0bd730a14380a9; do not edit -->
+<!-- rendered by uor-harness loop render from 1cf7de6992586cf3d409dbdacf39ff962e0f4f20; do not edit -->
 # HANDOFF
 
 Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each open-item row gives the first sentence of the item's `Done when` and `Cancel if` sections; blocked items are listed once, in the blocked table, with their owner; `not recorded` means the item has no such section or key yet.
@@ -7,7 +7,7 @@ Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each o
 
 Items not `held`, `decision` or `done`. Held and decision items are listed once, in the blocked table below.
 
-### ready (34)
+### ready (33)
 
 | Item | Title | Done when | Cancel if | Size | Stands |
 |---|---|---|---|---|---|
@@ -16,7 +16,6 @@ Items not `held`, `decision` or `done`. Held and decision items are listed once,
 | infra-desktop-client-tauri | Build the Tauri desktop client against the synthetic stand-in | A Tauri app sharing the web interface that runs the integer engine natively, offline, with durable memory, matching the written specification. | not recorded | not recorded | ready; after m7-studio-connect-wasm-engine |
 | infra-loop-harness | Build the five-lab loop harness (the loop subcommands of uor-harness) | Every PR in the build plan on [the loop page](docs/loop/README.md#build-plan) is merged, each with its planted fault turning its gate red. | not recorded | not recorded | ready |
 | legal-construction-exact-solve | Solve the saved legal-construction case in exact arithmetic | The saved 1,960-variable case is solved in exact arithmetic and the result is recorded as an optimal assignment with its objective, or as an infeasibility proof. | not recorded | not recorded | ready |
-| loop-render-review-hardening | Harden the render-PR review path | A `context()` fake-git fixture fails when the render check is removed and when `stamp == base` is disabled, and covers the cross-repo, fallback-removed, AGENTS-outside-block and hand-edited-block cases; **`ReviewContext::of` refuses a cross-repository PR named `kimi/render`**; the documented merge-main-forward refresh passes without hand-special-casing (either `loop render` defaults the stamp to the merge base on `kimi/render`, or the loop-page wording requires `--at <merge-base>`); `docs/roadmap/README.md` is either gated by an xtask render comparison at its stamp or explicitly exempted with a recorded reason; and the loop-page wording change is either made by the owner or carded. | not recorded | not recorded | ready; after infra-loop-render-review |
 | m1-address-as-read | Build the address-as-read mechanism and an object-store consumer | A read that resolves an address to stored content from the object store, with finite tests, and a registered serving-time oracle test that measures the gain from supplying the true address. | not recorded | not recorded | ready |
 | m1-address-key-full-vector | Replace the 5-value address key with a full-vector metric | Stage 1 bar: "enough distinct vectors that the number of positions still winnable clears the run bar of 1,941, and a starting reach above the address-cell model's 1,351 of 3,847", measured before any training. | not recorded | not recorded | ready; after m1-w2-capacity-capture |
 | m1-bvg-k-block-apply-c2 | Draft the BVG-K Stage T pre-registration sheet (C2 has passed) | Already met: Stage C2 finite controls PASS (block apply exact) and are recorded, with the receipt above. | not recorded | not recorded | ready |
