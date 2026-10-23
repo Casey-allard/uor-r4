@@ -26,12 +26,225 @@ const ITEM_A: &str = "---\nid: item-a\nstatus: ready\nscope: [crates/a/**, docs/
 /// Like the real pages, prose follows the results table, so a new row lands mid-file.
 const NOTEBOOK: &str =
     "# A notebook\n\n| row | result |\n|---|---|\n| 1 | first |\n\n## What the rows say\n\nProse.\n";
-const FILEMAP: &str = "# FILEMAP\n\n| path | what |\n|---|---|\n| crates/a | the a crate |\n| `crates/` | crates |\n| `crates/a` | a |\n| `docs` | docs |\n| `docs/harness` | h |\n| `docs/loop` | loop |\n| `docs/research` | r |\n| `docs/roadmap` | rm |\n| `docs/start` | s |\n";
+const FILEMAP: &str = "# FILEMAP\n\n| path | what |\n|---|---|\n| crates/a | the a crate |\n| `crates/` | crates |\n| `crates/a` | a |\n| `crates/uor-r4-discrete` | d |\n| `docs` | docs |\n| `docs/harness` | h |\n| `docs/loop` | loop |\n| `docs/research` | r |\n| `docs/roadmap` | rm |\n| `docs/start` | s |\n";
 const OWNER_PATHS: &str = r#"{"schema": 1, "paths": [
   {"path": "CHARTER.md", "why": "rules"},
   {"path": ".github/**", "why": "CI"},
   {"path": "docs/harness/owner-paths.json", "why": "this list"}
 ]}"#;
+/// A base file: one gated D23 item behind a block comment, a benign gated item, an item whose
+/// identifier is only the English word properties, a gated function whose body has char-literal
+/// braces, and a trailing function. The banned word is assembled with concat! so this test file
+/// adds no ratchet site itself.
+const GATED_BASE: &str = concat!(
+    "#[cfg(any())]\n",
+    "/* retired classifier, kept for history */\n",
+    "pub struct Soft",
+    "maxHead {\n",
+    "    pub logits: Vec<f64>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// The same file with only the D23 item un-gated.
+const GATED_HEAD_UNGATED: &str = concat!(
+    "pub struct Soft",
+    "maxHead {\n",
+    "    pub logits: Vec<f64>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// The D23 item moved to a test-only gate.
+const GATED_HEAD_TEST_ONLY: &str = concat!(
+    "#[cfg(test)]\n",
+    "pub struct Soft",
+    "maxHead {\n",
+    "    pub logits: Vec<f64>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// Only the benign item un-gated.
+const GATED_HEAD_BENIGN: &str = concat!(
+    "#[cfg(any())]\n",
+    "pub struct Soft",
+    "maxHead {\n",
+    "    pub logits: Vec<f64>,\n",
+    "}\n\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// Only the properties-named item un-gated: the identifier is English, not a D23 family.
+const GATED_HEAD_PLAIN_WORD: &str = concat!(
+    "#[cfg(any())]\n",
+    "pub struct Soft",
+    "maxHead {\n",
+    "    pub logits: Vec<f64>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// Only the char-literal-brace function un-gated.
+const GATED_HEAD_CHARLIT: &str = concat!(
+    "#[cfg(any())]\n",
+    "pub struct Soft",
+    "maxHead {\n",
+    "    pub logits: Vec<f64>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// The D23 item renamed and un-gated: the same banned code still compiles, so the site delta
+/// catches it even though no item key survives.
+const GATED_HEAD_RENAMED: &str = concat!(
+    "pub struct Soft",
+    "maxHeadRenamed {\n",
+    "    pub logits: Vec<f64>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// The D23 item deleted outright: nothing compiles, so this stays lawful.
+const GATED_HEAD_DELETED: &str = concat!(
+    "#[cfg(any())]\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// The gate moved from the item to its enclosing module: nothing compiles, so this stays lawful.
+const GATED_HEAD_PARENT_GATE: &str = concat!(
+    "#[cfg(any())]\n",
+    "pub mod retired {\n",
+    "    pub struct Soft",
+    "maxHead {\n",
+    "        pub logits: Vec<f64>,\n",
+    "    }\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct RetiredHelper {\n",
+    "    pub n: u32,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub struct ConfigProperties {\n",
+    "    pub properties: Vec<String>,\n",
+    "}\n\n",
+    "#[cfg(any())]\n",
+    "pub fn parser() -> bool {\n",
+    "    let open = '{';\n",
+    "    open == '{'\n",
+    "}\n\n",
+    "pub fn a() {}\n"
+);
+
+/// A second item's base file in the D32 scan scope: a gated float function.
+const GATED_FLOAT_BASE: &str =
+    "#[cfg(any())]\npub fn scale(x: f64) -> f64 {\n    0.5 * x\n}\n\npub fn b() {}\n";
+
+/// The same file with the float function un-gated.
+const GATED_FLOAT_HEAD: &str = "pub fn scale(x: f64) -> f64 {\n    0.5 * x\n}\n\npub fn b() {}\n";
+
+const ORDER_B: &str = "docs/loop/tasks/item-b/claude-1/ORDER.md";
+
 /// A valid REPORT, headings worded as in a real one.
 const REPORT: &str = "# REPORT\n\n## What did not work, first\n\nNothing.\n\n## What changed\n\nA.\n\n## Measurements\n\nNone.\n\n## Checks run at the head\n\n- tests\n\n## Skills used\n\nNone.\n\n## Still open\n\nNothing.\n\n## Plain summary\n\nDone.\n";
 const APPROVAL: &str = "## Owner approval for `.github/**` (an owner path)\n\nRecorded at 2026-10-21T15:25:16Z.\n- \"Approve?\" Casey: \"Approve (Recommended)\".\n";
@@ -90,6 +303,15 @@ impl Repo {
         r.write("docs/research/notebook/a.md", NOTEBOOK);
         r.write("docs/start/FILEMAP.md", FILEMAP);
         r.write("crates/a/src/lib.rs", "pub fn a() {}\n");
+        r.write("crates/a/src/gated.rs", GATED_BASE);
+        r.write(
+            "docs/roadmap/items/item-b.md",
+            "---\nid: item-b\nstatus: ready\nscope: [crates/uor-r4-discrete/**]\n---\n\n## Why\n",
+        );
+        r.write(
+            "crates/uor-r4-discrete/src/gated_float.rs",
+            GATED_FLOAT_BASE,
+        );
         r.write("docs/a.md", "# a\n");
         r.write("docs/harness/owner-paths.json", OWNER_PATHS);
         r.write(
@@ -101,6 +323,16 @@ impl Repo {
         r.git(&["commit", "-q", "-m", "base"]);
         r.base = r.out(&["rev-parse", "HEAD"]);
         r
+    }
+
+    /// The fixture with `edit` committed on top of the base, which becomes the new base.
+    fn with_base(mut self, edit: impl FnOnce(&Repo)) -> Repo {
+        self.git(&["checkout", "-q", "--detach", &self.base]);
+        edit(&self);
+        self.git(&["add", "-A"]);
+        self.git(&["commit", "-q", "-m", "base edit"]);
+        self.base = self.out(&["rev-parse", "HEAD"]);
+        self
     }
 
     fn cmd_git(&self, args: &[&str]) -> Output {
@@ -177,6 +409,11 @@ impl Repo {
     /// A green PR for `item-a` by claude, with `work` after the ORDER commit.
     fn green_a(&self, work: impl FnOnce(&Repo) + 'static) -> String {
         self.green(ORDER_A, &order("claude", "item-a", ""), work)
+    }
+
+    /// A green PR for `item-b` by claude (the D32 scan scope item).
+    fn green_b(&self, work: impl FnOnce(&Repo) + 'static) -> String {
+        self.green(ORDER_B, &order("claude", "item-b", ""), work)
     }
 
     fn check(&self, head: &str, extra: &[&str]) -> Output {
@@ -1385,4 +1622,306 @@ fn the_d59_switch_is_read_at_the_merge_base() {
     );
     let o = r.check_gh(&h, &fake(vec![record("claude", &h, "APPROVE")]));
     expect(&o, 1, "PASS review-record", "counted");
+}
+
+#[test]
+fn un_gating_a_banned_item_fails_the_presence_rule() {
+    let r = Repo::new();
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/gated.rs", GATED_HEAD_UNGATED);
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D23 sites in compiled code rise",
+    );
+}
+
+#[test]
+fn moving_a_banned_item_to_a_test_only_gate_fails_the_presence_rule() {
+    let r = Repo::new();
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/gated.rs", GATED_HEAD_TEST_ONLY);
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D23 sites in compiled code rise",
+    );
+}
+
+#[test]
+fn renaming_a_banned_item_does_not_bypass_the_presence_rule() {
+    let r = Repo::new();
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/gated.rs", GATED_HEAD_RENAMED);
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D23 sites in compiled code rise",
+    );
+}
+
+#[test]
+fn un_gating_benign_word_and_char_literal_items_passes() {
+    for head in [GATED_HEAD_BENIGN, GATED_HEAD_PLAIN_WORD, GATED_HEAD_CHARLIT] {
+        let r = Repo::new();
+        let h = r.green_a(|r| {
+            r.write("crates/a/src/gated.rs", head);
+        });
+        expect(
+            &r.check(&h, &[]),
+            0,
+            "PASS banned-presence",
+            "verdict: PASS",
+        );
+    }
+}
+
+#[test]
+fn deleting_a_banned_gated_item_passes_the_presence_rule() {
+    let r = Repo::new();
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/gated.rs", GATED_HEAD_DELETED);
+    });
+    expect(
+        &r.check(&h, &[]),
+        0,
+        "PASS banned-presence",
+        "verdict: PASS",
+    );
+}
+
+#[test]
+fn moving_the_gate_to_the_parent_module_passes_the_presence_rule() {
+    let r = Repo::new();
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/gated.rs", GATED_HEAD_PARENT_GATE);
+    });
+    expect(
+        &r.check(&h, &[]),
+        0,
+        "PASS banned-presence",
+        "verdict: PASS",
+    );
+}
+
+/// A function with one D25 site, assembled so this test file adds no ratchet site itself.
+const D25_FN: &str = concat!("pub fn dense() {\n    value.mat", "mul(other);\n}\n");
+
+#[test]
+fn removing_a_gate_with_a_trailing_comment_fails_the_presence_rule() {
+    let r = Repo::new().with_base(|r| {
+        r.write(
+            "crates/a/src/legacy.rs",
+            &format!("#[cfg(any())] // note\n{D25_FN}"),
+        );
+    });
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/legacy.rs", D25_FN);
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D25 sites in compiled code rise from 0 at the merge base to 1",
+    );
+}
+
+#[test]
+fn moving_a_gated_file_module_to_test_fails_the_presence_rule() {
+    let r = Repo::new().with_base(|r| {
+        r.write(
+            "crates/a/src/lib.rs",
+            "pub fn a() {}\n\n#[cfg(any())] // note\npub mod m;\n",
+        );
+        r.write("crates/a/src/m.rs", D25_FN);
+    });
+    let h = r.green_a(|r| {
+        r.write(
+            "crates/a/src/lib.rs",
+            "pub fn a() {}\n\n#[cfg(test)]\npub mod m;\n",
+        );
+    });
+    let o = r.check(&h, &[]);
+    expect(
+        &o,
+        1,
+        "FAIL banned-presence",
+        "D25 sites in compiled code rise",
+    );
+    assert!(
+        stdout(&o).contains("newly compiled module file(s) crates/a/src/m.rs"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+#[test]
+fn moving_a_file_module_whose_item_is_gated_inside_passes_the_presence_rule() {
+    let r = Repo::new().with_base(|r| {
+        r.write(
+            "crates/a/src/lib.rs",
+            "pub fn a() {}\n\n#[cfg(any())] // note\npub mod m;\n",
+        );
+        r.write("crates/a/src/m.rs", &format!("#[cfg(any())]\n{D25_FN}"));
+    });
+    let h = r.green_a(|r| {
+        r.write(
+            "crates/a/src/lib.rs",
+            "pub fn a() {}\n\n#[cfg(test)]\npub mod m;\n",
+        );
+    });
+    expect(
+        &r.check(&h, &[]),
+        0,
+        "PASS banned-presence",
+        "verdict: PASS",
+    );
+}
+
+#[test]
+fn un_gating_a_float_function_in_the_d32_scope_fails_the_presence_rule() {
+    let r = Repo::new();
+    let h = r.green_b(|r| {
+        r.write(
+            "crates/uor-r4-discrete/src/gated_float.rs",
+            GATED_FLOAT_HEAD,
+        );
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D32 sites in compiled code rise",
+    );
+}
+
+#[test]
+fn keeping_a_float_function_gated_in_the_d32_scope_passes() {
+    let r = Repo::new();
+    let h = r.green_b(|r| {
+        r.write(
+            "crates/uor-r4-discrete/src/gated_float.rs",
+            GATED_FLOAT_BASE,
+        );
+        r.write("crates/uor-r4-discrete/src/other.rs", "pub fn c() {}\n");
+    });
+    expect(
+        &r.check(&h, &[]),
+        0,
+        "PASS banned-presence",
+        "verdict: PASS",
+    );
+}
+
+#[test]
+fn un_gating_a_pub_crate_item_fails_the_presence_rule() {
+    let r = Repo::new().with_base(|r| {
+        r.write(
+            "crates/a/src/legacy.rs",
+            &format!(
+                "#[cfg(any())]\npub(crate) fn helper() {{\n    {}\n}}\n",
+                D25_FN
+            ),
+        );
+    });
+    let h = r.green_a(|r| {
+        r.write(
+            "crates/a/src/legacy.rs",
+            &format!("pub(crate) fn helper() {{\n    {}\n}}\n", D25_FN),
+        );
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D25 sites in compiled code rise",
+    );
+}
+
+#[test]
+fn an_inner_gate_is_respected() {
+    let r = Repo::new().with_base(|r| {
+        r.write(
+            "crates/a/src/inner.rs",
+            &format!("#![cfg(any())]\n{D25_FN}"),
+        );
+    });
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/inner.rs", D25_FN);
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D25 sites in compiled code rise",
+    );
+}
+
+#[test]
+fn un_gating_an_half_float_in_the_d32_scope_fails() {
+    let r = Repo::new().with_base(|r| {
+        r.write(
+            "crates/uor-r4-discrete/src/half.rs",
+            "#[cfg(any())]\npub fn half(x: __half) -> __half {\n    x\n}\n",
+        );
+    });
+    let h = r.green_b(|r| {
+        r.write(
+            "crates/uor-r4-discrete/src/half.rs",
+            "pub fn half(x: __half) -> __half {\n    x\n}\n",
+        );
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D32 sites in compiled code rise",
+    );
+}
+
+#[test]
+fn dense_helper_names_are_not_d25_sites() {
+    let r = Repo::new().with_base(|r| {
+        r.write(
+            "crates/a/src/helpers.rs",
+            "#[cfg(any())]\npub fn gemm_helper() {}\n",
+        );
+    });
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/helpers.rs", "pub fn gemm_helper() {}\n");
+    });
+    expect(
+        &r.check(&h, &[]),
+        0,
+        "PASS banned-presence",
+        "verdict: PASS",
+    );
+}
+
+#[test]
+fn a_raw_string_gate_does_not_hide_the_next_item() {
+    let r = Repo::new().with_base(|r| {
+        r.write(
+            "crates/a/src/raw.rs",
+            "pub fn live() {\n    value.matmul(other);\n}\n\n#[cfg(any())]\npub const KERNEL: &str = r\"{ ;\";\n",
+        );
+    });
+    let h = r.green_a(|r| {
+        r.write(
+            "crates/a/src/raw.rs",
+            "pub fn live() {\n    value.matmul(other);\n}\n",
+        );
+    });
+    expect(
+        &r.check(&h, &[]),
+        0,
+        "PASS banned-presence",
+        "verdict: PASS",
+    );
 }
