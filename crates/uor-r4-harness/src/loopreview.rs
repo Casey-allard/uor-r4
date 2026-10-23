@@ -194,7 +194,7 @@ pub fn parse(body: &str) -> Parsed {
     let order = fields["order"].clone();
     if !re(
         &ORDER,
-        r"^docs/loop/tasks/[^/\s]+/[a-z0-9-]+-[0-9]+/ORDER\.md$",
+        r"^docs/loop/tasks/[^/\s]+/[a-z0-9-]+-[0-9]+/ORDER\.md$|^kimi/render$",
     )
     .is_match(&order)
     {
@@ -301,11 +301,17 @@ pub fn is_setup_pr(setup_row: Option<&str>, rows: &[String], order_item: &str) -
         || row_item_prefix(row).is_some_and(|p| order_item.starts_with(&p))
 }
 
-/// Why no record counts on this PR: its ORDER's item is a loop setup item (`infra-loop-…`) but
-/// the ORDER names no valid build-plan row for it, so it can be neither a setup PR nor an
-/// ordinary one until the ORDER is fixed.
+/// A build-plan setup item: the umbrella `infra-loop-harness` or one of the PR-row items
+/// (`infra-loop-prNN…`). Other `infra-loop-…` items are ordinary follow-ups, not setup items.
+pub fn is_setup_item(item: &str) -> bool {
+    item == "infra-loop-harness" || item.starts_with("infra-loop-pr")
+}
+
+/// Why no record counts on this PR: its ORDER's item is a build-plan setup item but the ORDER
+/// names no valid build-plan row for it, so it can be neither a setup PR nor an ordinary one
+/// until the ORDER is fixed. A follow-up item such as `infra-loop-render-review` is ordinary.
 fn bad_loop_item(input: &GateInput, setup_pr: bool) -> Option<String> {
-    (!setup_pr && input.order_item.starts_with("infra-loop-")).then(|| {
+    (!setup_pr && is_setup_item(input.order_item)).then(|| {
         format!(
             "fail: a loop setup item's ORDER needs a valid `Setup row:` naming its build-plan row (item {}, row {})",
             input.order_item,
@@ -558,6 +564,10 @@ pub const REVIEW_GH_FAKE_ENV: &str = "UOR_LOOP_REVIEW_GH_FAKE";
 pub struct ReviewPr {
     #[serde(rename = "headRefOid")]
     pub head_sha: String,
+    #[serde(default, rename = "headRefName")]
+    pub head_ref_name: String,
+    #[serde(default, rename = "isCrossRepository")]
+    pub cross_repository: bool,
     #[serde(default)]
     pub files: Vec<String>,
 }
@@ -582,7 +592,13 @@ impl ReviewGh for RealReviewGh {
         use crate::loopnext::NextGh as _;
         let text = crate::loopclaim::run_gh(
             &self.root,
-            &["pr", "view", &n.to_string(), "--json", "headRefOid,files"],
+            &[
+                "pr",
+                "view",
+                &n.to_string(),
+                "--json",
+                "headRefOid,files,headRefName,isCrossRepository",
+            ],
         )?;
         let v: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| format!("gh pr view printed unreadable JSON: {e}"))?;
@@ -605,7 +621,21 @@ impl ReviewGh for RealReviewGh {
             }
             .pr_files(n)?;
         }
-        Ok(ReviewPr { head_sha, files })
+        let head_ref_name = v
+            .get("headRefName")
+            .and_then(|s| s.as_str())
+            .unwrap_or("")
+            .to_string();
+        let cross_repository = v
+            .get("isCrossRepository")
+            .and_then(|b| b.as_bool())
+            .unwrap_or(true);
+        Ok(ReviewPr {
+            head_sha,
+            head_ref_name,
+            cross_repository,
+            files,
+        })
     }
 
     fn file_at_pr(&self, n: u64, path: &str) -> Result<String, String> {
@@ -763,6 +793,41 @@ pub(crate) fn main_context(root: &Path) -> Result<MainContext, String> {
     })
 }
 
+/// The branch of the steady-state render PR (loop page, "The render PR").
+pub const RENDER_BRANCH: &str = "kimi/render";
+
+/// The sentinel `order:` a render PR's review record uses instead of an ORDER path.
+pub const RENDER_ORDER: &str = "kimi/render";
+
+/// A path the steady-state render PR is allowed to change: the rendered views only.
+pub fn is_rendered_view(path: &str) -> bool {
+    matches!(
+        path,
+        "STATE.md" | "HANDOFF.md" | "AGENTS.md" | "docs/harness/LESSONS.md"
+    )
+}
+
+/// True when this is the render branch and every changed path is a rendered view, so no
+/// ORDER is needed: the render comparison and the views-only rule are its gates.
+pub fn render_pr_without_order(head_ref: &str, files: &[String]) -> bool {
+    head_ref == RENDER_BRANCH && !files.is_empty() && files.iter().all(|p| is_rendered_view(p))
+}
+
+/// Compare the harness-rendered views with the PR's texts: the tamper gate for the render
+/// PR. A hand-edited view keeps its stamp but differs from its render, so it names the path.
+pub fn compare_rendered_views(
+    expected: &[(String, String)],
+    actual: &BTreeMap<String, String>,
+) -> Result<(), String> {
+    for (path, want) in expected {
+        match actual.get(path) {
+            Some(got) if got == want => {}
+            Some(_) => return Err(format!("{path} differs from its render (hand-edited view)")),
+            None => return Err(format!("{path} is missing at the head")),
+        }
+    }
+    Ok(())
+}
 /// A doc-only PR: it changes at least one path, and every path is `docs` or `generated`.
 pub fn doc_only<'p>(paths: impl IntoIterator<Item = &'p str>) -> bool {
     let mut any = false;
@@ -786,12 +851,102 @@ struct Context {
     doc_only: bool,
 }
 
+/// The tamper gate for the render PR: fetch its explicit head, require each view's stamp to be
+/// the PR's merge base with `origin/main`, render the view at that stamp and compare byte for
+/// byte. A hand-edited view keeps its stamp but differs from its render, so it is refused.
+fn verify_render_views(root: &Path, _gh: &dyn ReviewGh, pr: &ReviewPr) -> Result<(), String> {
+    git(root, &["fetch", "-q", "origin", &pr.head_sha])?;
+    let head = pr.head_sha.trim().to_string();
+    let main = git(root, &["rev-parse", "origin/main"])?.trim().to_string();
+    let base = git(root, &["merge-base", &main, &head])?.trim().to_string();
+    let mut expected = Vec::new();
+    let mut actual = BTreeMap::new();
+    for path in ["STATE.md", "HANDOFF.md", "docs/harness/LESSONS.md"] {
+        let text = git(root, &["show", &format!("{head}:{path}")])?;
+        let first = text.lines().next().unwrap_or("");
+        let stamp = crate::looprender::parse_stamp(first)
+            .ok_or_else(|| format!("{path}: first line is not a render stamp"))?
+            .to_string();
+        if stamp != base {
+            return Err(format!(
+                "{path}: stamp {stamp} is not the PR merge base {base}; the render must cover the current base"
+            ));
+        }
+        let at = crate::looprender::AtCommit::resolve(root, &stamp)?;
+        let rendered = crate::looprender::render_all(&at)?;
+        let want = rendered
+            .into_iter()
+            .find(|(p, _)| p == path)
+            .map(|(_, t)| t)
+            .ok_or_else(|| format!("{path}: the renderer names no such view"))?;
+        expected.push((path.to_string(), want));
+        actual.insert(path.to_string(), text);
+    }
+    // AGENTS.md: only the top-ten block may change, its stamp must be the merge base, and the
+    // block must equal `render_top_ten` at that stamp.
+    let agents_head = git(root, &["show", &format!("{head}:AGENTS.md")])?;
+    let agents_base = git(root, &["show", &format!("{base}:AGENTS.md")])?;
+    let (hs, he) = top_ten_markers(&agents_head, "AGENTS.md at the head")?;
+    let (bs, be) = top_ten_markers(&agents_base, "AGENTS.md at the merge base")?;
+    if agents_head[..hs] != agents_base[..bs] || agents_head[he..] != agents_base[be..] {
+        return Err(
+            "AGENTS.md changes outside the top-ten block (only the rendered block may change)"
+                .to_string(),
+        );
+    }
+    let block = &agents_head[hs..he];
+    let stamp = block
+        .lines()
+        .find(|l| !l.trim().is_empty())
+        .and_then(crate::looprender::parse_stamp)
+        .ok_or_else(|| "AGENTS.md: top-ten block has no render stamp".to_string())?
+        .to_string();
+    if stamp != base {
+        return Err(format!(
+            "AGENTS.md: block stamp {stamp} is not the PR merge base {base}"
+        ));
+    }
+    let at = crate::looprender::AtCommit::resolve(root, &stamp)?;
+    let want = crate::looprender::render_top_ten(&at)?;
+    if block != want {
+        return Err(
+            "AGENTS.md top-ten block differs from its render (hand-edited view)".to_string(),
+        );
+    }
+    compare_rendered_views(&expected, &actual)
+}
+
+/// The byte range strictly between the AGENTS top-ten markers, or why it is unusable.
+fn top_ten_markers(text: &str, what: &str) -> Result<(usize, usize), String> {
+    let start = crate::looprender::TOP_TEN_START;
+    let end = crate::looprender::TOP_TEN_END;
+    if text.matches(start).count() != 1 || text.matches(end).count() != 1 {
+        return Err(format!(
+            "{what}: top-ten markers missing, duplicated or malformed"
+        ));
+    }
+    let s = text.find(start).unwrap_or(0) + start.len();
+    let e = text.find(end).unwrap_or(0);
+    if e < s {
+        return Err(format!(
+            "{what}: top-ten end marker precedes the start marker"
+        ));
+    }
+    Ok((s, e))
+}
 fn context(root: &Path, gh: &dyn ReviewGh, n: u64) -> Result<Context, String> {
     git(root, &["fetch", "-q", "origin", "main"])?;
     let pr = gh.pr(n)?;
+    let render_pr = render_pr_without_order(&pr.head_ref_name, &pr.files) && !pr.cross_repository;
     let (order, text, order_lab) =
-        crate::loopnext::added_order(root, n, &pr.files, &|p| gh.file_at_pr(n, p))
-            .map_err(crate::loopnext::OrderErr::note)?;
+        match crate::loopnext::added_order(root, n, &pr.files, &|p| gh.file_at_pr(n, p)) {
+            Ok(v) => v,
+            Err(crate::loopnext::OrderErr::Missing(_)) if render_pr => {
+                verify_render_views(root, gh, &pr)?;
+                (RENDER_ORDER.to_string(), String::new(), "kimi".to_string())
+            }
+            Err(e) => return Err(e.note()),
+        };
     let main = main_context(root)?;
     let doc_only = doc_only(pr.files.iter().map(String::as_str));
     Ok(Context {

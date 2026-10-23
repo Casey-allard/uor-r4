@@ -903,3 +903,156 @@ fn doc_only_includes_generated_paths() {
     assert!(!doc_only(["Cargo.lock", "crates/x/src/lib.rs"]));
     assert!(run(&c, &[fresh("claude", Verdict::Approve)]).pass);
 }
+
+// ---- the steady-state render PR (branch `kimi/render`, no ORDER) ----
+
+const RENDER_HEAD: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+fn render_record(verdict: Verdict) -> Record {
+    Record {
+        head: RENDER_HEAD.to_string(),
+        order: RENDER_ORDER.to_string(),
+        ..record("claude", verdict)
+    }
+}
+
+fn render_vendors() -> BTreeMap<String, String> {
+    [
+        ("claude", "anthropic"),
+        ("deepseek", "deepseek"),
+        ("kimi", "moonshot"),
+    ]
+    .into_iter()
+    .map(|(a, b)| (a.to_string(), b.to_string()))
+    .collect()
+}
+
+#[test]
+fn render_pr_without_order_needs_the_render_branch_and_views_only() {
+    let views = vec![
+        "STATE.md".to_string(),
+        "docs/harness/LESSONS.md".to_string(),
+    ];
+    assert!(render_pr_without_order(RENDER_BRANCH, &views));
+    assert!(!render_pr_without_order("kimi/some-branch", &views));
+    assert!(!render_pr_without_order(RENDER_BRANCH, &[]));
+    assert!(!render_pr_without_order(
+        RENDER_BRANCH,
+        &["crates/uor-r4-harness/src/lib.rs".to_string()]
+    ));
+    assert!(!render_pr_without_order(
+        RENDER_BRANCH,
+        &["STATE.md".to_string(), "README.md".to_string()]
+    ));
+    assert!(render_pr_without_order(
+        RENDER_BRANCH,
+        &["AGENTS.md".to_string()]
+    ));
+    assert!(!render_pr_without_order(
+        RENDER_BRANCH,
+        &["docs/roadmap/README.md".to_string()]
+    ));
+}
+
+#[test]
+fn compare_rendered_views_catches_a_hand_edited_view() {
+    let expected = vec![
+        ("STATE.md".to_string(), "stamp\n# STATE\n".to_string()),
+        ("HANDOFF.md".to_string(), "stamp\n# HANDOFF\n".to_string()),
+    ];
+    let mut actual: BTreeMap<String, String> = expected.iter().cloned().collect();
+    assert_eq!(compare_rendered_views(&expected, &actual), Ok(()));
+    actual.insert(
+        "STATE.md".to_string(),
+        "stamp\n# STATE hand-edited\n".to_string(),
+    );
+    let err = compare_rendered_views(&expected, &actual).expect_err("hand edit must fail");
+    assert!(
+        err.contains("STATE.md") && err.contains("hand-edited"),
+        "{err}"
+    );
+}
+
+#[test]
+fn a_render_record_counts_with_the_sentinel_order_but_not_on_an_ordinary_pr() {
+    let body = render(&render_record(Verdict::Approve));
+    let parsed_order = match parse(&body) {
+        Parsed::Record(r) => r.order,
+        _ => panic!("the render record must parse"),
+    };
+    assert_eq!(parsed_order, RENDER_ORDER);
+    let comments = [body];
+    let vendors = render_vendors();
+    let render_input = GateInput {
+        pr: PR,
+        head: RENDER_HEAD,
+        order_path: RENDER_ORDER,
+        order_lab: "kimi",
+        order_item: "",
+        setup_row: None,
+        rows: &[],
+        vendors: &vendors,
+        d59_in_force: false,
+        doc_only: true,
+        comments: &comments,
+    };
+    assert!(
+        gate(&render_input).pass,
+        "a render record with the sentinel must count"
+    );
+    let ordinary = GateInput {
+        order_path: ORDER_PATH,
+        ..render_input
+    };
+    assert!(
+        !gate(&ordinary).pass,
+        "the sentinel must not count on an ordinary PR"
+    );
+}
+
+#[test]
+fn a_follow_up_loop_item_is_ordinary_but_a_build_plan_item_still_needs_its_setup_row() {
+    assert!(!is_setup_item("infra-loop-render-review"));
+    assert!(is_setup_item("infra-loop-harness"));
+    assert!(is_setup_item("infra-loop-pr08-migration"));
+    let vendors = render_vendors();
+    let body = render(&Record {
+        lab: "deepseek".to_string(),
+        head: HEAD.to_string(),
+        order: ORDER_PATH.to_string(),
+        ..record("claude", Verdict::Approve)
+    });
+    let comments = [body];
+    let rows = build_rows(LOOP_PAGE);
+    let ordinary = GateInput {
+        pr: PR,
+        head: HEAD,
+        order_path: ORDER_PATH,
+        order_lab: "claude",
+        order_item: "infra-loop-render-review",
+        setup_row: None,
+        rows: &rows,
+        vendors: &vendors,
+        d59_in_force: false,
+        doc_only: false,
+        comments: &comments,
+    };
+    assert!(
+        gate(&ordinary).pass,
+        "a follow-up infra-loop item is ordinary and needs no Setup row"
+    );
+    let build_plan = GateInput {
+        order_item: "infra-loop-pr08-migration",
+        ..ordinary
+    };
+    let outcome = gate(&build_plan);
+    assert!(
+        !outcome.pass,
+        "a build-plan item without a Setup row must not count"
+    );
+    assert!(
+        outcome.details.iter().any(|d| d.contains("Setup row")),
+        "the refusal names the Setup row: {:?}",
+        outcome.details
+    );
+}

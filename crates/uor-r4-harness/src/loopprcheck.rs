@@ -1615,15 +1615,6 @@ pub struct ReviewContext {
 impl ReviewContext {
     /// The context, or the reason `review-record` fails before it reads any comment.
     pub fn of(pr: &Pr) -> Result<ReviewContext, String> {
-        let order = pr
-            .the_order()
-            .map_err(|e| format!("cannot check the review record: {e}"))?;
-        let (_, order_lab, _) = order_parts(order).expect("an added ORDER path parses");
-        let text = pr
-            .at_head(order)
-            .ok_or_else(|| format!("{order} is unreadable at the head"))?;
-        let item = crate::loopclaim::order_item(&text)
-            .ok_or_else(|| format!("{order} names no item at the head"))?;
         let page = pr
             .at_base("docs/loop/README.md")
             .ok_or("docs/loop/README.md is missing at the merge base")?;
@@ -1640,18 +1631,45 @@ impl ReviewContext {
                 .unwrap_or_default(),
             pr.at_base(crate::loopreview::D59_SWITCH).as_deref(),
         );
+        let rows = crate::loopreview::build_rows(&page);
+        let doc_only = crate::loopreview::doc_only(pr.changed_paths().map(|(_, p)| p));
+        let order = match pr.the_order() {
+            Ok(o) => o.to_string(),
+            Err(e) => {
+                // The render PR carries no ORDER by design; its record uses the sentinel path.
+                let paths: Vec<String> = pr.changed_paths().map(|(_, p)| p.to_string()).collect();
+                if crate::loopreview::render_pr_without_order(&pr.head_ref, &paths) {
+                    return Ok(ReviewContext {
+                        order: crate::loopreview::RENDER_ORDER.to_string(),
+                        order_lab: "kimi".to_string(),
+                        item: String::new(),
+                        setup_row: None,
+                        rows,
+                        vendors,
+                        d59_in_force,
+                        doc_only,
+                    });
+                }
+                return Err(format!("cannot check the review record: {e}"));
+            }
+        };
+        let (_, order_lab, _) = order_parts(&order).expect("an added ORDER path parses");
+        let text = pr
+            .at_head(&order)
+            .ok_or_else(|| format!("{order} is unreadable at the head"))?;
+        let item = crate::loopclaim::order_item(&text)
+            .ok_or_else(|| format!("{order} names no item at the head"))?;
         Ok(ReviewContext {
-            order: order.to_string(),
+            order,
             order_lab,
             item,
             setup_row: crate::loopreview::setup_row(&text),
-            rows: crate::loopreview::build_rows(&page),
+            rows,
             vendors,
             d59_in_force,
-            doc_only: crate::loopreview::doc_only(pr.changed_paths().map(|(_, p)| p)),
+            doc_only,
         })
     }
-
     /// The gate's input for PR `number` at `head` with `comments` (bodies, oldest first).
     pub fn input<'a>(
         &'a self,
