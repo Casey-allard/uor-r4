@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "note": "Acceptance panels. A panel is frozen only when its milestone has started and its bar is pre-registered; D21/D22 freeze the panel before the run it scores.",
+  "panels": {
+    "m7-parity": {
+      "title": "M7 closing bar: bit-identical tokens and session snapshots across the Rust library, uor-chat CLI and browser worker",
+      "milestone": "m7",
+      "frozen": true,
+      "grader": "bit-identity comparator: generated tokens compared as exact u32 ids and session snapshots compared byte-for-byte (UR4SESS1 byte stream, SHA-256 digests) across the three hosts; implemented by crates/uor-r4-integer/tests/m7_parity_library_cli_browser.rs (library and CLI legs) and web/studio/verify_m7_parity.mjs (browser worker leg), with 3 tamper controls (#3008)",
+      "source": "issue #2867 comment 6352825431 (revised bar-registration request, superseding 6352106589); harness merged as #3008 (3aee6353c); preregistration draft docs/labs/m7-parity-library-cli-browser/preregistration-DRAFT-2026-10-22.md; PM registration by kimi-12",
+      "noise": "none - bit-identity equality is exact, so the bar carries no noise band (the CHARTER section 4.4 count-table spread applies to scored panels, not to a deterministic equality check)",
+      "seeds": "not applicable - deterministic protocol on one pinned artifact; the synthetic stand-in is mk-synthetic-stack seed 5 (UORLUT01, 469252 B, sha256:d60f88d6e08ac60763b35484307f9425f702b9fead4615dd8cbe5fdbbced92df, vocabulary 40, read_mode lorentz) until an accepted M4 UORLUT01 artifact (#2857) substitutes",
+      "rows": "8 fixed prompts (m7-parity-prompts-v1, token ids in 0..40): P0_bos [0] (1 token); P1_quad [0,7,19,31] (4); P2_boundary [0,1,38,39] (4); P3_fibonacci [0,1,2,3,5,8,13,21] (8); P4_primes [0,2,3,5,7,11,13,17] (8); P5_alternating [0,39,1,38,2,37,3,36] (8); P6_repeated [0,17,17,17,25,25] (6); P7_octave [0,4,8,12,16,20,24,28] (8)",
+      "bars": [
+        {
+          "id": "m7-parity-prompts-v1",
+          "label": "bit-identical tokens and UR4SESS1 snapshots across the Rust library, uor-chat CLI and browser worker: 48 tokens per prompt (384 total) plus a fresh-process 32+16 save/restore split requiring tokens_32_plus_16 == tokens_48 and snapshot_48_restored == snapshot_48 byte-for-byte on every leg; greedy integer argmax at temperature 0 (lowest token id on ties); lorentz read mode; no softmax, no matmul, no floating-point sampling",
+          "current": 0,
+          "target": 8,
+          "of": 8,
+          "unit": "prompts",
+          "direction": "open",
+          "note": "current is 0/8 on the milestone bar because no accepted M4 UORLUT01 artifact exists yet. On the pinned synthetic stand-in the harness passes 8/8 prompts, 384/384 tokens, 16/16 UR4SESS1 snapshots and 3/3 tamper controls (#3008 record); per the item's Done-when that validates the harness and is not a milestone result. Re-execute the identical protocol on the accepted artifact for the bar to count."
+        }
+      ],
+      "note": "Registers the measurement protocol for the M7 closing bar set by issue #2035 (bit-identical tokens and snapshots across the three hosts); the milestone bar itself is unchanged. Frozen at PM registration (#2867 comment 6352825431) so the synthetic stand-in check and the future accepted-artifact run use one identical protocol. Strictly zero softmax/squashing (CHARTER section 3.2 / D23), zero matmul/GEMM (section 3.3 / D25), zero floating-point sampling; host controls are finite and deterministic."
+    }
+  }
+}

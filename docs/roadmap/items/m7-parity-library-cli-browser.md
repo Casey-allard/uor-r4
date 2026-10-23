@@ -20,7 +20,7 @@ No harness yet compares tokens and session snapshots across the Rust library (`I
 
 ## Done when
 
-M7 bar: "giving bit-identical tokens across the library, command line and browser", with identical session snapshots, on the accepted `UORLUT01` artifact. Today there is no accepted artifact, so a harness that passes on the synthetic stack (`mk-synthetic-stack`) shows the harness works and is not a milestone result. The bar is not yet registered for how many prompts, how many tokens per prompt or which sampler settings the comparison covers; registering it is step 2 below.
+M7 bar: "giving bit-identical tokens across the library, command line and browser", with identical session snapshots, on the accepted `UORLUT01` artifact. The comparison protocol is registered as the bar `m7-parity-prompts-v1` in [`docs/harness/panels/m7-parity.json`](../../harness/panels/m7-parity.json): the fixed 8-prompt panel, 48 tokens per prompt with the fresh-process `32 + 16` save/restore split, greedy integer argmax at temperature 0, and byte-exact `UR4SESS1` snapshots across all three hosts. Today there is no accepted artifact, so a harness that passes on the synthetic stack (`mk-synthetic-stack`) shows the harness works and is not a milestone result; the bar counts when the identical protocol passes on the accepted artifact.
 
 ## How to start
 
