@@ -225,6 +225,13 @@ fn push_section(blob: &mut Vec<u8>, bytes: &[u8]) -> SectionSpan {
 /// Export a validated discrete [`Snapshot`] into a `UORLUT01` (`uor-r4.lut-discrete/1`)
 /// integer container.
 pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
+    // The integer serving engine has only the scale-matched snap; a control
+    // arm is a research model and is never shipped.
+    if !snapshot.normalization_mode.is_scale_matched_snap() {
+        return Err(invalid(
+            "D11 export refuses a non-default normalization_mode: the integer engine has no unit snap",
+        ));
+    }
     let cells = validate_and_extract_cells(snapshot)?;
     let stages = BinderPlan::new(snapshot.spec.context as usize)?.stages() as u32;
     let (read_mode, read_kept, read_sweeps) = match snapshot.read_spec {
@@ -458,6 +465,7 @@ pub fn import_d11(bytes: &[u8]) -> Result<Snapshot> {
         read_spec,
         objective_policy,
         read_initialization,
+        normalization_mode: crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
         seed: header.shape.seed,
         epoch: header.shape.epoch,
         table,
@@ -524,6 +532,8 @@ mod tests {
             read_spec,
             objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             read_initialization,
+            normalization_mode:
+                crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
             seed: 7,
             epoch: 3,
             table: tokens.iter().flatten().flatten().copied().collect(),
@@ -561,6 +571,22 @@ mod tests {
                 serde_json::to_value(&snapshot).unwrap()
             );
         }
+    }
+
+    #[test]
+    fn export_refuses_a_non_default_normalization_mode() {
+        let default = sample_snapshot(
+            ReadSpec::Flock { kept: 2 },
+            ReadInitialization::ActiveLeafV1,
+        );
+        let bytes = export_d11(&default).unwrap();
+        let mut control = default.clone();
+        control.normalization_mode =
+            crate::normalization_mechanism::NormalizationMode::UnitSnapControlV1;
+        let error = export_d11(&control).unwrap_err().to_string();
+        assert!(error.contains("normalization_mode"), "{error}");
+        // The default path is unchanged by the refusal.
+        assert_eq!(export_d11(&default).unwrap(), bytes);
     }
 
     #[test]

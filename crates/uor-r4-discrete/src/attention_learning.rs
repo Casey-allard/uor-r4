@@ -1350,6 +1350,8 @@ mod tests {
             read_spec,
             objective_policy: crate::ObjectivePolicy::NearestAddressMarginV1,
             read_initialization: ReadInitialization::ActiveLeafV1,
+            normalization_mode:
+                crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
             relation_learning_policy: training::RelationLearningPolicy::LearnV1,
             counterfactual_path: training::CounterfactualPath::LanesV1,
             codebook_initialization: training::CodebookInitialization::SeededDeviceV1,

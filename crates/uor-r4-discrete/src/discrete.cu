@@ -77,7 +77,8 @@ __device__ bool route_vector(const int* input,const U* ids,const U* routes,const
 }
 // ---- Flock & Relation read (Claude; Antigravity ReadSpec::Relation extension) ----
 // Device spec words appended after s[0..7]: s[8] read mode (0 Route, 1 Flock, 2 Relation),
-// s[9] kept K, s[10] sweeps S. Gates are i32 trits: block*stages+level (level 0 = atoms),
+// s[9] kept K, s[10] sweeps S, s[12] snap scale (0 snap_n, 1 unit snap_1 control; Flock/Relation only).
+// Gates are i32 trits: block*stages+level (level 0 = atoms),
 // plus in Relation mode 5*stages relation gates at blocks*stages + level*5 + edge_type.
 #define MODE_FLOCK 1u
 #define MODE_RELATION 2u
@@ -158,7 +159,7 @@ __device__ bool flock_vector(const int* input,const U* ids,const int* gates,cons
                 for(U c=0;c<3;++c){U child=plan[node*4+c];int carried[8];
                     action(g,g[BFS+frame[child]*16+frame[c0]],payload+child*8,carried);
                     for(U d=0;d<8;++d)sum[d]+=carried[d];}
-                U r=snap(sum,3,g);for(U d=0;d<8;++d)payload[node*8+d]=(int)g[ROOT+r*8+d];
+                U r=snap(sum,s[12]==1?1u:3u,g);for(U d=0;d<8;++d)payload[node*8+d]=(int)g[ROOT+r*8+d];
             }
         }
         int rel[MAX_NODES];
@@ -253,13 +254,13 @@ __device__ bool flock_vector(const int* input,const U* ids,const int* gates,cons
                 action(g,a,payload+node*8,carried);
                 for(U d=0;d<8;++d)sum[d]+=carried[d];
                 if(lv){lv[4+k]=node;lv[12+k]=a;lv[20+k]=root_id(carried,g);}}
-            U m=snap(sum,found,g);
+            U m=snap(sum,s[12]==1?1u:found,g);
             if(lv)lv[2]=m;
             if(gate==0)continue;
             for(U d=0;d<8;++d){int v=(int)g[ROOT+m*8+d];u[d]+=gate>0?v:-v;}
             ++terms;
         }
-        U out=snap(u,terms,g);
+        U out=snap(u,s[12]==1?1u:terms,g);
         if(rec){rec[1]=out;rec[2]=terms;}
         for(U d=0;d<8;++d)output[b*8+d]=(int)g[ROOT+out*8+d];
     }
@@ -458,7 +459,7 @@ extern "C" __global__ void discrete_validate(const int* table,const U* routes,co
     }
     if(i<s[1]*s[5] && routes[i]>=64)atomicExch(status,7u);
     if(i<gate_count(s) && (gates[i]<-1 || gates[i]>1))atomicExch(status,10u);
-    if(i==0 && (s[11]>1 || s[8]>MODE_RELATION
+    if(i==0 && (s[11]>1 || s[8]>MODE_RELATION || s[12]>1 || (s[12]==1 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION)
         || (s[8]==MODE_FLOCK && (s[9]==0 || s[9]>MAX_KEPT || s[10]!=0 || s[1]<2))
         || (s[8]==MODE_RELATION && (s[9]==0 || s[9]>MAX_KEPT || s[10]==0 || s[10]>MAX_SWEEPS || s[1]<2))))atomicExch(status,10u);
 }

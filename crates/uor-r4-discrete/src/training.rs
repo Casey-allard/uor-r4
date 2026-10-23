@@ -6,6 +6,7 @@ use crate::{
         self, BosIdentity, CorpusBatch, CorpusBinding, CorpusSource, FilePin, PreparedCorpus, Split,
     },
     metadata::BinderPlan,
+    normalization_mechanism::NormalizationMode,
     Error, ObjectivePolicy, ReadInitialization, ReadSpec, Result, Spec,
 };
 use serde::{Deserialize, Serialize};
@@ -189,6 +190,11 @@ pub struct DriverConfig {
     pub objective_policy: ObjectivePolicy,
     #[serde(default, skip_serializing_if = "ReadInitialization::is_zero_gates")]
     pub read_initialization: ReadInitialization,
+    #[serde(
+        default,
+        skip_serializing_if = "NormalizationMode::is_scale_matched_snap"
+    )]
+    pub normalization_mode: NormalizationMode,
     #[serde(default, skip_serializing_if = "RelationLearningPolicy::is_learn")]
     pub relation_learning_policy: RelationLearningPolicy,
     #[serde(default, skip_serializing_if = "CounterfactualPath::is_lanes")]
@@ -221,6 +227,9 @@ impl DriverConfig {
             return Err(invalid(
                 "active-leaf initialization requires an explicitly interleaved Flock or Relation driver",
             ));
+        }
+        if self.normalization_mode.device_word()? != 0 && self.read_spec == ReadSpec::Route {
+            return Err(invalid("unit snap control needs a Flock or Relation read"));
         }
         if self.relation_learning_policy == RelationLearningPolicy::FrozenZeroV1
             && (!matches!(self.read_spec, ReadSpec::Relation { .. })
@@ -833,9 +842,18 @@ impl PreparedDriver {
                 .unwrap_or_else(|| json!(ReadInitialization::default())),
         )
         .map_err(|error| invalid(error.to_string()))?;
+        let normalization: NormalizationMode = serde_json::from_value(
+            checkpoint
+                .model
+                .get("normalization_mode")
+                .cloned()
+                .unwrap_or_else(|| json!(NormalizationMode::default())),
+        )
+        .map_err(|error| invalid(error.to_string()))?;
         if spec != self.config.spec
             || objective != self.config.objective_policy
             || initialization != self.config.read_initialization
+            || normalization != self.config.normalization_mode
             || mode != self.config.read_spec
             || checkpoint.model.get("seed").and_then(Value::as_u64)
                 != Some(u64::from(self.config.seed))
@@ -1047,6 +1065,7 @@ mod tests {
         let config = DriverConfig {
             objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             read_initialization: ReadInitialization::ZeroGatesV1,
+            normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
             relation_learning_policy: RelationLearningPolicy::LearnV1,
             counterfactual_path: CounterfactualPath::LanesV1,
             codebook_initialization: CodebookInitialization::SeededDeviceV1,
@@ -1472,6 +1491,7 @@ mod tests {
         let encoded =
             serde_json::to_value(&canonical.config).map_err(|e| invalid(e.to_string()))?;
         assert!(encoded.get("read_initialization").is_none());
+        assert!(encoded.get("normalization_mode").is_none());
         let decoded: DriverConfig =
             serde_json::from_value(encoded.clone()).map_err(|e| invalid(e.to_string()))?;
         assert_eq!(decoded, canonical.config);
@@ -1522,6 +1542,49 @@ mod tests {
                 ["read_initialization"],
             "active_leaf_v1"
         );
+        Ok(())
+    }
+    #[test]
+    fn normalization_mode_round_trips_and_checkpoint_mismatch_refuses() -> Result<()> {
+        let canonical = metadata_fixture(1, ReadSpec::Relation { kept: 2, sweeps: 1 })?;
+        let model = json!({"schema":crate::SCHEMA,"spec":canonical.config.spec,"read_spec":canonical.config.read_spec,"seed":1,"epoch":0,"source_sha256":"0".repeat(64),"kernel_sha256":"1".repeat(64),"geometry_sha256":"2".repeat(64)});
+        let mut checkpoint = DriverCheckpoint {
+            schema: CHECKPOINT_SCHEMA.into(),
+            lineage: canonical.lineage.clone(),
+            cursor: Cursor::initial(),
+            model_sha256: corpus::sha256(
+                &serde_json::to_vec(&model).map_err(|e| invalid(e.to_string()))?,
+            ),
+            model,
+        };
+        canonical.validate_checkpoint(&checkpoint)?;
+        let mut control = metadata_fixture(1, ReadSpec::Relation { kept: 2, sweeps: 1 })?;
+        control.config.normalization_mode = NormalizationMode::UnitSnapControlV1;
+        control.config.validate()?;
+        control.lineage.config = control.config.clone();
+        let encoded = serde_json::to_value(&control.config).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(encoded["normalization_mode"], "unit_snap_control_v1");
+        let decoded: DriverConfig =
+            serde_json::from_value(encoded).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(decoded, control.config);
+        checkpoint.lineage = control.lineage.clone();
+        assert!(
+            control.validate_checkpoint(&checkpoint).is_err(),
+            "a checkpoint without the field is scale-matched and cannot admit the control"
+        );
+        checkpoint.model["normalization_mode"] = json!(NormalizationMode::UnitSnapControlV1);
+        checkpoint.model_sha256 = corpus::sha256(
+            &serde_json::to_vec(&checkpoint.model).map_err(|e| invalid(e.to_string()))?,
+        );
+        control.validate_checkpoint(&checkpoint)?;
+        checkpoint.lineage = canonical.lineage.clone();
+        assert!(canonical.validate_checkpoint(&checkpoint).is_err());
+        let mut route = control.config.clone();
+        route.read_spec = ReadSpec::Route;
+        assert!(route.validate().is_err());
+        let mut unnormalized = canonical.config.clone();
+        unnormalized.normalization_mode = NormalizationMode::UnnormalizedControlV1;
+        assert!(unnormalized.validate().is_err());
         Ok(())
     }
     fn frozen_relation_metadata_fixture() -> Result<PreparedDriver> {
@@ -2582,6 +2645,7 @@ impl PreparedDriver {
             || model.read_spec() != self.config.read_spec
             || model.objective_policy() != self.config.objective_policy
             || model.read_initialization() != self.config.read_initialization
+            || model.normalization_mode() != self.config.normalization_mode
             || model.binding().seed != self.config.seed
             || model.epoch()? != cursor.accepted_updates
         {
@@ -2595,11 +2659,12 @@ impl PreparedDriver {
         Ok(())
     }
     pub fn new_model(&self, ordinal: usize) -> Result<crate::device::Device> {
-        let model = crate::device::Device::new_with_initialization(
+        let model = crate::device::Device::new_with_normalization(
             self.config.spec,
             self.config.read_spec,
             self.config.objective_policy,
             self.config.read_initialization,
+            self.config.normalization_mode,
             self.config.seed,
             ordinal,
         )?;
@@ -2927,6 +2992,7 @@ impl PreparedDriver {
             || model.read_spec() != self.config.read_spec
             || model.objective_policy() != self.config.objective_policy
             || model.read_initialization() != self.config.read_initialization
+            || model.normalization_mode() != self.config.normalization_mode
             || model.binding().seed != self.config.seed
         {
             return Err(invalid(

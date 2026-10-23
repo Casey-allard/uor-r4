@@ -549,6 +549,8 @@ fn corpus_schedule_resume(context: &mut Context<'_>) -> Result<()> {
         let dev = corpus_fixture(Split::Dev, &[0, 3, 4], &[0, 1, 1], 2)?;
         let config = DriverConfig {
             read_initialization: crate::ReadInitialization::ZeroGatesV1,
+            normalization_mode:
+                crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
             objective_policy: crate::ObjectivePolicy::NearestAddressMarginV1,
             schema: DRIVER_SCHEMA.into(),
             spec: Spec {

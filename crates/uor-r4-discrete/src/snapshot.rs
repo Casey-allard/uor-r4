@@ -1,5 +1,6 @@
 //! Snapshot storage types and exact serialization hash domains; no model execution.
 
+use crate::normalization_mechanism::NormalizationMode;
 use crate::{Error, ObjectivePolicy, ReadInitialization, ReadSpec, Result, Spec};
 fn invalid(message: impl Into<String>) -> Error {
     Error::Invalid(message.into())
@@ -20,6 +21,11 @@ pub struct Snapshot {
     pub objective_policy: ObjectivePolicy,
     #[serde(default, skip_serializing_if = "ReadInitialization::is_zero_gates")]
     pub read_initialization: ReadInitialization,
+    #[serde(
+        default,
+        skip_serializing_if = "NormalizationMode::is_scale_matched_snap"
+    )]
+    pub normalization_mode: NormalizationMode,
     pub seed: u32,
     pub epoch: u64,
     pub table: Vec<i32>,
@@ -89,6 +95,8 @@ mod tests {
             serde_json::to_value(crate::ObjectivePolicy::default()).unwrap();
         explicit["read_initialization"] =
             serde_json::to_value(crate::ReadInitialization::default()).unwrap();
+        explicit["normalization_mode"] =
+            serde_json::to_value(NormalizationMode::default()).unwrap();
         let a = stored_snapshot_hash_domains(&value).unwrap();
         let b = stored_snapshot_hash_domains(&explicit).unwrap();
         assert_eq!(a.model_snapshot_sha256, crate::corpus::sha256(&typed));
@@ -118,8 +126,31 @@ mod tests {
         assert_eq!(text, golden);
         assert!(!text.contains("objective_policy"));
         assert!(!text.contains("read_initialization"));
+        assert!(!text.contains("normalization_mode"));
         value["unexpected"] = true.into();
         assert!(stored_snapshot_hash_domains(&value).is_err());
+    }
+
+    #[test]
+    fn unit_snap_control_mode_is_stored_and_reloaded() {
+        let mut value = stored();
+        value["read_spec"] = serde_json::to_value(crate::ReadSpec::Route).unwrap();
+        let mut snapshot: Snapshot = serde_json::from_value(value).unwrap();
+        assert_eq!(snapshot.normalization_mode, NormalizationMode::default());
+        let default_domains = snapshot_hash_domains(&snapshot).unwrap();
+        snapshot.normalization_mode = NormalizationMode::UnitSnapControlV1;
+        let text = serde_json::to_string(&snapshot).unwrap();
+        assert!(text.contains("\"normalization_mode\":\"unit_snap_control_v1\""));
+        let reloaded: Snapshot = serde_json::from_str(&text).unwrap();
+        assert_eq!(
+            reloaded.normalization_mode,
+            NormalizationMode::UnitSnapControlV1
+        );
+        let control_domains = snapshot_hash_domains(&snapshot).unwrap();
+        assert_ne!(
+            default_domains.model_snapshot_sha256,
+            control_domains.model_snapshot_sha256
+        );
     }
 
     #[test]

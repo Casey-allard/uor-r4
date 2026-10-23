@@ -48,17 +48,37 @@ fn invalid(msg: impl Into<String>) -> Error {
 }
 
 /// Normalization mode for multi-stage residual and read comparisons (`#2842`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NormalizationMode {
     /// Multiplicity-matched `snap_n` projection onto the 16-root E8 orbit
     /// minimizing `(L1(x, n * root), Hamming(x, n * root), root_index)`.
+    #[default]
     ScaleMatchedSnapV1,
     /// Un-scaled `snap_1` control (`n = 1`) regardless of the number of summed terms.
     UnitSnapControlV1,
     /// Un-normalized control: passes the raw integer residual sum `[i32; 8]`
     /// through without snapping back to the 16-root E8 orbit.
     UnnormalizedControlV1,
+}
+
+impl NormalizationMode {
+    pub fn is_scale_matched_snap(&self) -> bool {
+        *self == Self::ScaleMatchedSnapV1
+    }
+
+    /// Device spec word `s[12]` of the Flock/Relation read: `0` keeps
+    /// `snap_n`, `1` is the unit `snap_1` control. The un-normalized control
+    /// needs a ℤ⁸ carry the device read does not have, so it is refused.
+    pub fn device_word(self) -> Result<u32> {
+        match self {
+            Self::ScaleMatchedSnapV1 => Ok(0),
+            Self::UnitSnapControlV1 => Ok(1),
+            Self::UnnormalizedControlV1 => Err(invalid(
+                "unnormalized_control_v1 needs a Z^8 carry; the device read has none",
+            )),
+        }
+    }
 }
 
 /// Exact per-block integer norm invariants measured on an 8D integer block.
@@ -379,6 +399,50 @@ pub fn endpoint_address_distance(blocks: &[[i32; 8]], cell: u8) -> Result<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unit_snap_word_default_is_scale_matched_zero() {
+        assert_eq!(
+            NormalizationMode::default(),
+            NormalizationMode::ScaleMatchedSnapV1
+        );
+        assert!(NormalizationMode::default().is_scale_matched_snap());
+        assert_eq!(NormalizationMode::default().device_word().ok(), Some(0));
+    }
+
+    #[test]
+    fn unit_snap_word_control_is_one() {
+        assert_eq!(
+            NormalizationMode::UnitSnapControlV1.device_word().ok(),
+            Some(1)
+        );
+        assert!(!NormalizationMode::UnitSnapControlV1.is_scale_matched_snap());
+    }
+
+    #[test]
+    fn unit_snap_word_refuses_unnormalized_control() {
+        assert!(NormalizationMode::UnnormalizedControlV1
+            .device_word()
+            .is_err());
+    }
+
+    #[test]
+    fn unit_snap_word_serialized_names_unchanged() -> Result<()> {
+        let modes = [
+            NormalizationMode::ScaleMatchedSnapV1,
+            NormalizationMode::UnitSnapControlV1,
+            NormalizationMode::UnnormalizedControlV1,
+        ];
+        let text = serde_json::to_string(&modes).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(
+            text,
+            r#"["scale_matched_snap_v1","unit_snap_control_v1","unnormalized_control_v1"]"#
+        );
+        let back: Vec<NormalizationMode> =
+            serde_json::from_str(&text).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(back, modes);
+        Ok(())
+    }
 
     /// Control 1: Across arbitrary positive, negative, zero, and high-amplitude
     /// inputs `x` and multiplicities `n in 1..=16`, `OrbitRootSnapNormV1`

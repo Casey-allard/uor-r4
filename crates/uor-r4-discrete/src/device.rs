@@ -7,6 +7,7 @@
 use crate::proposal_timing::{EventDuration, HostTimings, ProposalTimings, HOST_SPANS};
 use crate::{
     metadata::{BinderPlan, ABSENT},
+    normalization_mechanism::NormalizationMode,
     objective::{self, ExactRatio, HingeDistribution},
     Error, Identity, ObjectivePolicy, Parameter, ReadInitialization, ReadSpec, Result, Spec,
     SCHEMA,
@@ -276,6 +277,7 @@ pub struct Binding {
     pub read_spec: ReadSpec,
     pub objective_policy: ObjectivePolicy,
     pub read_initialization: ReadInitialization,
+    pub normalization_mode: NormalizationMode,
     pub seed: u32,
     pub geometry_sha256: [u8; 32],
     pub source_sha256: [u8; 32],
@@ -741,6 +743,7 @@ fn make_binding(
     read_spec: ReadSpec,
     objective_policy: ObjectivePolicy,
     read_initialization: ReadInitialization,
+    normalization_mode: NormalizationMode,
     seed: u32,
     geometry: &[u32],
 ) -> Result<Binding> {
@@ -753,6 +756,7 @@ fn make_binding(
         read_spec,
         objective_policy,
         read_initialization,
+        normalization_mode,
         seed,
         geometry_sha256: geometry_digest(geometry),
         source_sha256: source_sha256(),
@@ -814,8 +818,34 @@ impl Device {
         seed: u32,
         ordinal: usize,
     ) -> Result<Self> {
+        Self::new_with_normalization(
+            spec,
+            read_spec,
+            objective_policy,
+            read_initialization,
+            NormalizationMode::ScaleMatchedSnapV1,
+            seed,
+            ordinal,
+        )
+    }
+
+    /// As `new_with_initialization`, with the Flock/Relation snap scale `s[12]`:
+    /// `UnitSnapControlV1` (the `C_unscaled` arm) needs a Flock or Relation read.
+    pub fn new_with_normalization(
+        spec: Spec,
+        read_spec: ReadSpec,
+        objective_policy: ObjectivePolicy,
+        read_initialization: ReadInitialization,
+        normalization_mode: NormalizationMode,
+        seed: u32,
+        ordinal: usize,
+    ) -> Result<Self> {
         read_spec.validate(spec)?;
         read_initialization.validate(read_spec)?;
+        let snap_word = normalization_mode.device_word()?;
+        if snap_word != 0 && read_spec == ReadSpec::Route {
+            return Err(invalid("unit snap control needs a Flock or Relation read"));
+        }
         let metadata = BinderPlan::new(spec.context as usize)?;
         let packed = packed_geometry();
         if packed.len() != 5120 {
@@ -826,6 +856,7 @@ impl Device {
             read_spec,
             objective_policy,
             read_initialization,
+            normalization_mode,
             seed,
             &packed,
         )?;
@@ -879,6 +910,7 @@ impl Device {
                 words[1],
                 words[2],
                 objective_policy.word(),
+                snap_word,
             ])
             .map_err(cuda)?;
         let mut status = stream.alloc_zeros::<u32>(1).map_err(cuda)?;
@@ -946,6 +978,9 @@ impl Device {
     }
     pub fn read_spec(&self) -> ReadSpec {
         self.binding.read_spec
+    }
+    pub fn normalization_mode(&self) -> NormalizationMode {
+        self.binding.normalization_mode
     }
     pub fn objective_policy(&self) -> ObjectivePolicy {
         self.binding.objective_policy
@@ -1041,6 +1076,7 @@ impl Device {
             read_spec: self.read_spec(),
             objective_policy: self.objective_policy(),
             read_initialization: self.read_initialization(),
+            normalization_mode: self.normalization_mode(),
             seed: self.binding.seed,
             epoch: self.epoch()?,
             table: self.stream.clone_dtoh(&self.table).map_err(cuda)?,
@@ -1083,11 +1119,12 @@ impl Device {
         }
         // Fresh process identity even for byte-identical reloads. No carried
         // batch/proposal from another model instance becomes valid by loading.
-        let mut model = Self::new_with_initialization(
+        let mut model = Self::new_with_normalization(
             snapshot.spec,
             snapshot.read_spec,
             snapshot.objective_policy,
             snapshot.read_initialization,
+            snapshot.normalization_mode,
             snapshot.seed,
             ordinal,
         )?;
@@ -1136,6 +1173,7 @@ impl Device {
                 words[1],
                 words[2],
                 self.objective_policy().word(),
+                self.binding.normalization_mode.device_word()?,
             ])
             .map_err(cuda)
     }
@@ -2035,6 +2073,7 @@ mod snapshot_hash_tests {
             read_spec: ReadSpec::Route,
             objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             read_initialization: ReadInitialization::ZeroGatesV1,
+            normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
             seed: 1,
             epoch: 0,
             table: vec![0; 16],
@@ -2086,6 +2125,90 @@ mod snapshot_hash_tests {
         stored["unexpected"] = serde_json::json!(true);
         assert!(stored_snapshot_hash_domains(&stored).is_err());
         assert!(stored_snapshot_hash_domains(&serde_json::json!({})).is_err());
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod unit_snap_device_tests {
+    use super::*;
+    use crate::normalization_mechanism::BlockNormInvariants;
+
+    const SPEC: Spec = Spec {
+        vocabulary: 3,
+        blocks: 2,
+        context: 3,
+        kept_cells: 3,
+    };
+
+    fn flock_device(mode: NormalizationMode) -> Result<Device> {
+        Device::new_with_normalization(
+            SPEC,
+            ReadSpec::Flock { kept: 2 },
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::ZeroGatesV1,
+            mode,
+            7,
+            0,
+        )
+    }
+
+    /// One row through the production forward; a non-zero status is an `Err`.
+    /// Every output block is checked against the orbit-root invariants only.
+    fn canonical_forward(device: &Device) -> Result<()> {
+        let row: Vec<Identity> = (0..3u32)
+            .map(|token| Identity {
+                token,
+                occurrence: u64::from(token),
+                record: 17,
+                version: 9,
+            })
+            .collect();
+        let batch = device.carry(&row)?;
+        let vectors = device.forward(&batch, &[0])?.vectors()?;
+        assert_eq!(vectors.len(), SPEC.blocks as usize * 8);
+        for chunk in vectors.chunks_exact(8) {
+            let block: [i32; 8] = chunk
+                .try_into()
+                .map_err(|_| invalid("output block is not 8 words"))?;
+            assert!(BlockNormInvariants::measure(&block).is_canonical_unit_root());
+        }
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires a CUDA GPU"]
+    fn unit_snap_device_word_runs_and_refuses() -> Result<()> {
+        let control = flock_device(NormalizationMode::UnitSnapControlV1)?;
+        assert_eq!(
+            control.normalization_mode(),
+            NormalizationMode::UnitSnapControlV1
+        );
+        canonical_forward(&control)?;
+        canonical_forward(&flock_device(NormalizationMode::ScaleMatchedSnapV1)?)?;
+        assert!(Device::new_with_normalization(
+            SPEC,
+            ReadSpec::Route,
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::ZeroGatesV1,
+            NormalizationMode::UnitSnapControlV1,
+            7,
+            0,
+        )
+        .is_err());
+        assert!(flock_device(NormalizationMode::UnnormalizedControlV1).is_err());
+        // The control mode is stored in the snapshot and survives a reload.
+        let snapshot = control.snapshot()?;
+        assert_eq!(
+            snapshot.normalization_mode,
+            NormalizationMode::UnitSnapControlV1
+        );
+        let reloaded = Device::from_snapshot(snapshot, 0)?;
+        assert_eq!(
+            reloaded.normalization_mode(),
+            NormalizationMode::UnitSnapControlV1
+        );
+        canonical_forward(&reloaded)?;
         Ok(())
     }
 }

@@ -34,3 +34,18 @@ Non-author `TEST FITNESS` review of the draft sheet: **NOT_FIT**, recorded in th
 2. the full DEV token/mask pin — the sheet must use the authoritative code pin in `attention_learning.rs` (`0919e90f953e…` / `a838bb1a67e9…`; the staging sheet's `0919e90f813b…` / `a838bb1ae20c…` pair appears nowhere else and needs an errata).
 
 Verified at the review head: `cargo test -p uor-r4-discrete --lib normalization_mechanism` = 6 passed; no float, dense matmul or squashing form on the path; `4 × B`-bit norm-table export; the parent A8 sheet is `TEST FITNESS: FIT`; all 8 blocks present.
+
+## `C_unscaled` device wiring (claude-60, PR #3071)
+
+- **What changed.** The GPU read kernel takes the `C_unscaled` control (`NormalizationMode::UnitSnapControlV1`) through spec word `s[12]`.
+  - `1` sets `n := 1` at the three snap sites: tree, consensus and output.
+  - `0` keeps `snap_n`, so the default path is unchanged.
+  - `C_raw` is refused on the device path, because it needs a ℤ⁸ carry.
+- **Carried end to end (claude-61, same PR).**
+  - Snapshots record `normalization_mode`. The field is omitted when it is the default, so existing snapshots and their hashes are byte-identical.
+  - `DriverConfig.normalization_mode` selects the arm (`unit_snap_control_v1`). A checkpoint whose mode differs from the config is refused.
+  - `export_d11` refuses a non-default mode, because the integer engine has no unit snap.
+- **GPU-verified on 2026-10-23,** on one RTX 5090 with Casey's approval. The run was zero-update: no training.
+  - `device::unit_snap_device_tests::unit_snap_device_word_runs_and_refuses` passed.
+  - At this head, the default path reproduced the A8 checkpoint-0 identity exactly: `b3_psucc` 1,351, `b3_full` 4,244, top-1 133, 256 occupied cells, 4,096 distinct vectors, tie mass 0.
+  - The results are in the HF store at `results/claude/unit-snap-3071-20261023/`, with `SHA256SUMS`. Details are in the claude-61 REPORT.
