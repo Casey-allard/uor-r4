@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from f0dfca2b014405cd343676c6468796ff93873f81; do not edit -->
+<!-- rendered by uor-harness loop render from 2ffb517bc76e4260d05882435d0bd730a14380a9; do not edit -->
 # STATE
 
 Rendered from committed inputs at the commit in the stamp above.
@@ -25,10 +25,10 @@ Source: `docs/roadmap/items/*.md` frontmatter.
 | Status | Items |
 |---|---|
 | decision | 4 |
-| done | 25 |
+| done | 26 |
 | held | 26 |
 | ready | 34 |
-| **total** | 89 |
+| **total** | 90 |
 
 ## Newest notebook row per research line
 
