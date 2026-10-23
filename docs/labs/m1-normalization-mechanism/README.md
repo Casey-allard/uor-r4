@@ -26,3 +26,11 @@ Every normalized block $\hat{x}_b$ satisfies:
 | `deterministic_tie_breaking_on_zero_and_midpoints` | $x = \mathbf{0} \mapsto \text{root } 0$; all $\binom{16}{2} = 120$ pairwise sums $\rho_{r_1} + \rho_{r_2}$ break ties deterministically and commute under addition | PASS |
 | `cl06_frame_equivariance_across_all_64_actions` | $\operatorname{Norm}_n(A_a(n\rho_r)) = A_a(\operatorname{Norm}_n(n\rho_r))$ across all 64 `Cl(0,6)` frames, 16 roots, and $n \in \{1, 4, 8\}$; `NormFrameTable` exports 4 bits/block | PASS |
 | `multistage_residual_accumulation_vs_unnormalized_drift` | Across $S = 16$ residual stages, `UnnormalizedControlV1` drifts to $\|x\|_1 = 68$ and `address_distance > 16`, while `ScaleMatchedSnapV1` holds $\|\hat{x}\|_1 = 4$ and `address_distance` $\in \{0, 4, 8, 12, 16\}$ at every stage | PASS |
+
+## Non-author FIT review (deepseek-37, 2026-10-22)
+
+Non-author `TEST FITNESS` review of the draft sheet: **NOT_FIT**, recorded in the sheet's `## Verdict`. No compute is cleared. The two pinned prerequisites:
+1. owner-registered bar (the linked `#2028` comment is antigravity's decision card `6338596024`, not an owner answer);
+2. the full DEV token/mask pin — the sheet must use the authoritative code pin in `attention_learning.rs` (`0919e90f953e…` / `a838bb1a67e9…`; the staging sheet's `0919e90f813b…` / `a838bb1ae20c…` pair appears nowhere else and needs an errata).
+
+Verified at the review head: `cargo test -p uor-r4-discrete --lib normalization_mechanism` = 6 passed; no float, dense matmul or squashing form on the path; `4 × B`-bit norm-table export; the parent A8 sheet is `TEST FITNESS: FIT`; all 8 blocks present.

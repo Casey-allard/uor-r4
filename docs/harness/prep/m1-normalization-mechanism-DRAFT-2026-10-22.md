@@ -1,7 +1,7 @@
 # Scale-matched E8 orbit-root normalization on the discrete M1 trunk (`OrbitRootSnapNormV1`)
 
-- **Status:** draft pre-registration, `TEST FITNESS: PENDING` (see the end of the sheet).
-  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review (CHARTER §4.5), the owner's bar confirmation on `#2028` (`https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6338596024`), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
+- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author review `deepseek-37`, 2026-10-22; see the Verdict at the end). No compute is cleared.
+  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review at a later head (CHARTER §4.5), the owner's answer to the bar decision card on `#2028` (`https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6338596024` — a decision card, no owner answer yet), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
 - **Line:** M1 discrete normalization and trunk stability (#2029, item `m1-normalization-mechanism` #2842). **Lab:** antigravity.
 - **Parent:** [`m1-attention-a8-address-cells-learning-2026-10-19.md`](m1-attention-a8-address-cells-learning-2026-10-19.md) (the A8 address-structured cells sheet).
   - **What changes from the parent:** evaluates scale-matched integer E8 orbit-root normalization `OrbitRootSnapNormV1` (`crates/uor-r4-discrete/src/normalization_mechanism.rs`, `NormalizationMode::ScaleMatchedSnapV1`) against two matched controls (`UnitSnapControlV1` and `UnnormalizedControlV1`) at equal parameter count.
@@ -59,7 +59,7 @@ Three arms share the identical A8 initialization (`address_structured_v1`, file 
 ## 6. Steps
 
 1. Land `crates/uor-r4-discrete/src/normalization_mechanism.rs` with its 6 finite CPU controls (`cargo test -p uor-r4-discrete --lib`).
-2. Obtain a non-author `TEST FITNESS: FIT` review on this sheet and owner confirmation of the §3 numeric bar on `#2028`.
+2. Obtain a non-author `TEST FITNESS: FIT` review on this sheet and the owner's answer to the §3 bar decision card on `#2028`.
 3. Wire `NormalizationMode` (`ScaleMatchedSnapV1`, `UnitSnapControlV1`, `UnnormalizedControlV1`) into the GPU read/trunk kernel (`discrete.cu`) and qualify its PTX admission (`build.rs` `admit_ptx`).
 4. After PM dispatch and Casey's typed D40 release, run `N_snap`, `C_unscaled`, and `C_raw` across seeds 1 and 2 on GPU.
 5. Score the paired contrasts on DEV (`P_succ` and all 14,287 rows) and, if DEV passes, on the sealed fresh V2 draw.
@@ -84,4 +84,27 @@ Three arms share the identical A8 initialization (`address_structured_v1`, file 
   - Rows: $14{,}287$ DEV rows ($3{,}847$ `P_succ` rows) plus sealed fresh V2 transfer draw ($\ge 200$ rows).
   - Decisive run: YES ($\ge 2$ seeds and $\ge 200$ fresh rows, trained in from step 0 rather than bolted on).
 
-TEST FITNESS: PENDING
+## Verdict
+
+### Why NOT_FIT (prerequisites in priority order)
+
+1. **The owner bar is not registered.** The top Status line called comment `6338596024` "the owner's bar confirmation"; it is **antigravity's decision card** proposing the `OrbitRootSnapNormV1` bar. No owner answer exists (the PM's routing notes list this card among those awaiting the owner), so no compute is cleared. Quote the owner's registered bar verbatim with an **ISO-UTC time**, or keep the card as `PENDING`.
+2. **The DEV pin is ambiguous, so the inherited split is not actually pinned.** The sheet carries only prefixes (`0919e90f…`). The repo holds two conflicting full pairs:
+   - the **authoritative code pin** in [`crates/uor-r4-discrete/src/attention_learning.rs`](../../../crates/uor-r4-discrete/src/attention_learning.rs) — tokens `0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b`, mask `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078` (archive `a2-pilot` matches, and the pinned `42,856` payload tokens / `14,287` targets match);
+   - the runbook staging sheet's `0919e90f813bf02f6f0528ebcf1f34c97987113b679619b0b44e065fa90b2546` / `a838bb1ae20c05a1b68265a7aa11c3dd146200b7d1ff6ef185ff999e442f5327`, which appears nowhere else.
+   Pin the full code-pin pair in §5 and file an errata for the staging sheet, or show which file each pair belongs to. The fresh-V2 prefixes should likewise be tied to the parent's registered pin or given full digests (non-blocking if the parent record governs them).
+
+Everything else checked and holds: all 8 blocks are present (`prep-check` `complete=yes`); `cargo test -p uor-r4-discrete --lib normalization_mechanism` = **6 passed**; the path has no float, no dense matmul and no squashing form; the norm table exports as `4 × B` bits (`NormFrameTable::export_words`/`information_bits`); the A8 parent sheet is `TEST FITNESS: FIT`; the proxy trunk is named; two seeds, the `14,287`-row DEV panel and `>= 200` fresh-transfer rows, cost and stop rules are present.
+
+Re-request FIT only when 1–2 are pinned in this sheet; this verdict clears no compute (D22).
+
+### Recorded review
+
+```text
+TEST FITNESS: NOT_FIT - M1 #2029 OrbitRootSnapNormV1
+sheet: docs/harness/prep/m1-normalization-mechanism-DRAFT-2026-10-22.md
+reviewer: deepseek (non-author; fresh-context FIT review for #2842)
+note: Configuration not yet pinnable: (1) the sheet's 'owner bar confirmation' link is antigravity's decision card 6338596024, not an owner answer - the owner bar with ISO-UTC time is absent (PM routing lists it among the cards awaiting the owner), so no compute is cleared; (2) the DEV pin is ambiguous - the sheet carries only prefixes, while the repo holds two conflicting full DEV pairs: the authoritative code pin in attention_learning.rs (tokens 0919e90f953e..., mask a838bb1a67e9..., matching 42,856/14,287 and archived a2-pilot) versus the runbook staging sheet's 0919e90f813b.../a838bb1ae20c... which appears nowhere else; pin the full code-pin pair and file a staging errata. Everything else holds: 8/8 blocks, 6 finite CPU controls pass, no float/matmul/squashing on the path, 4-bit-per-block D11 export, parent A8 sheet FIT-registered, proxy trunk named, two seeds and >=200 fresh rows, cost and stop rules present.
+date: 2026-10-22
+A FIT verdict clears compute for the configuration in that sheet only (D22).
+```
