@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from 26e19ac5bef700c6d095746989f3bc2c6baa8dad; do not edit -->
+<!-- rendered by uor-harness loop render from f0dfca2b014405cd343676c6468796ff93873f81; do not edit -->
 # STATE
 
 Rendered from committed inputs at the commit in the stamp above.
@@ -27,8 +27,8 @@ Source: `docs/roadmap/items/*.md` frontmatter.
 | decision | 4 |
 | done | 25 |
 | held | 26 |
-| ready | 33 |
-| **total** | 88 |
+| ready | 34 |
+| **total** | 89 |
 
 ## Newest notebook row per research line
 
@@ -38,7 +38,7 @@ Source: `docs/research/notebook/*.md`; the row with the latest date, the last su
 |---|---|---|---|---|
 | data-tokenizer | no rows yet | | | |
 | harness-governance | no rows yet | | | |
-| legal-construction | 2026-10-23 | 775 pivots in 7,800 s (`timeout` exit 124), all phase 2, 2 bound flips; `D` at most 22,846 bits; objective 0 through pivot 275, negative from pivot 300; no result line and no certificate | none registered (instrument run, not a scoring run) | blocked (instrument stop: the exact search exceeds its time budget; no optimum or sign claimed) |
+| legal-construction | 2026-10-23 | 48,025 pivots in 7,800 s (`timeout` exit 124; `blp`: 775), all phase 2, 37 bound flips; objective 0 through pivot 325, negative from pivot 350, magnitude `⌈log₂\|z\|⌉` = 5 from pivot 14,000 to the end; no basis returned, so no certificate ran | none registered (instrument run, not a scoring run) | blocked (instrument stop: the search does not reach an optimal basis in the budget; pivot cost about 60× lower than exact, pivot count is the open problem; no optimum or sign claimed) |
 | m1-discrete-attention | 2026-10-22 | Relation against the frozen-zero control: tokens whose cell moved 80 against 91; P_succ rows whose target moved 1,461 against 1,369; row-weighted target-to-predecessor distance 8.564 to 10.123 against 9.799; all 256 cells stay occupied | None (diagnosis; the item registers no bar) | inconclusive (placement remains a suspect on the row-weighted measures and the read is not cleared; separating them needs a device admission run under its own FIT sheet) |
 | m1-prime-zeta | 2026-10-14 | 4,096 of 4,096 tokens get distinct vectors (0 collisions, 256 of 256 writer cells occupied); 17 of 17 base and 6 of 6 prime-zeta CUDA controls pass; 0 updates applied, 0 corpus rows | Bit-exact table across seeds 0, 1 and 2; no floating-point instruction in the GPU code; 0 collisions over all 4,096 tokens; 17 of 17 base controls; the codebook must separate structurally from both nulls | positive (construction only; the learned comparison against the nulls is deferred to a training sheet) |
 | m3-durable-memory | 2026-10-15 | 20 object-store integration tests and 13 existing tokenizer tests pass; a repeated fixture of 7,776 raw bytes is held in 380 record bytes | `rebuild(fold(bytes)).bytes()` equals the input and a fresh whole-object hash matches. The numeric limits (16 MiB per object, 1,000,000 records) are resource ceilings, not acceptance bars | positive (kept as a source and data-structure prototype; not promoted into the model; no language result) |
