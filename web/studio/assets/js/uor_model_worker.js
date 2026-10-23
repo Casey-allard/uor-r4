@@ -5,18 +5,22 @@
 //
 // Zero remote network calls are made by this model worker. Every capability field
 // comes directly from the loaded `UORLUT01` stack header or the WASM exports.
-// Prompt text is mapped to token IDs by a deterministic UTF-8 byte-mod stand-in
-// (`rawBytes[i] % vocabSize`) until a stack-bound tokenizer artifact is bundled.
+// Prompt text is mapped to token IDs by a stack-bound byte-mod tokenizer artifact
+// (pkg/tokenizer.json, generated from the shipped UORLUT01 header by
+// web/studio/tools/make_tokenizer.mjs). Without that artifact the worker falls
+// back to the same mapping but labels it explicitly unbound.
+
+import { TOKENIZER_SCHEMA, validateTokenizerArtifact, tokenizerLabel, encodeBytesWithArtifact, sha256Hex } from './uor_tokenizer_artifact.js';
 
 const ENGINE_TAG = 'uor-r4-integer/serving-wasm';
 const LUT_MAGIC = 'UORLUT01';
 const LUT_SCHEMA = 'uor-r4.lut-stack/1';
-const PROMPT_TOKENIZER_LABEL = 'UTF-8 byte-mod stand-in (rawBytes[i] % vocabSize)';
 const MAX_SESSIONS = 32;
 
 let wasmModule = null;
 let wasmInitPromise = null;
 let capabilities = null;
+let tokenizerArtifact = null;
 let activeHandle = null;
 let initialSessionBytes = null;
 let activeJob = null;
@@ -119,7 +123,7 @@ function cancelActive() {
     }
 }
 
-function encodePromptTokens(payload, vocabSize) {
+function encodePromptTokens(payload, vocabSize, artifact) {
     if (Array.isArray(payload.tokenIds) && payload.tokenIds.length > 0) {
         return payload.tokenIds.map((t) => {
             const id = Number(t);
@@ -135,15 +139,26 @@ function encodePromptTokens(payload, vocabSize) {
         throw new Error('A non-empty prompt or tokenIds array is required.');
     }
     const rawBytes = new TextEncoder().encode(text);
-    const out = new Array(rawBytes.length);
-    for (let i = 0; i < rawBytes.length; i++) {
-        out[i] = rawBytes[i] % vocabSize;
-    }
-    return out;
+    return encodeBytesWithArtifact(rawBytes, vocabSize, artifact);
 }
 
 function formatTokenChunk(tokenId, index) {
     return index === 0 ? `${tokenId}` : ` ${tokenId}`;
+}
+
+async function loadTokenizerArtifact(stackBytes, headerInfo) {
+    try {
+        const mod = await import('../../pkg/tokenizer.json', { with: { type: 'json' } });
+        const artifact = mod.default || mod;
+        if (!artifact || artifact.schema !== TOKENIZER_SCHEMA) return null;
+        const sha = await sha256Hex(stackBytes);
+        const vocab = headerInfo.shape && headerInfo.shape.vocab;
+        if (!validateTokenizerArtifact(artifact, sha, vocab)) return null;
+        return artifact;
+    } catch (_error) {
+        // No artifact next to the bundle: keep the explicit unbound-stand-in label.
+        return null;
+    }
 }
 
 self.onmessage = async ({ data }) => {
@@ -193,6 +208,7 @@ self.onmessage = async ({ data }) => {
                 throw new Error('The selected stack file is empty.');
             }
             const headerInfo = parseUorLutHeader(raw);
+            tokenizerArtifact = await loadTokenizerArtifact(raw, headerInfo);
             wasmModule.tickClock(1n);
             const handle = wasmModule.loadStack(raw);
             const blankState = wasmModule.saveSession(handle);
@@ -215,7 +231,7 @@ self.onmessage = async ({ data }) => {
                 group: headerInfo.group,
                 synthetic: headerInfo.synthetic,
                 status_label: headerInfo.status_label,
-                tokenizer_label: PROMPT_TOKENIZER_LABEL,
+                tokenizer_label: tokenizerLabel(tokenizerArtifact, headerInfo.shape.vocab),
                 weights_per_token: wpt,
                 checkpoint_bytes: initialSessionBytes.byteLength,
                 alloc_events: allocCount,
@@ -307,7 +323,7 @@ self.onmessage = async ({ data }) => {
         const startEpoch = sessionEpochs.get(convId) || 1;
         wasmModule.restoreSession(activeHandle, entry.bytes);
 
-        const promptTokens = encodePromptTokens(payload, capabilities.shape.vocab);
+        const promptTokens = encodePromptTokens(payload, capabilities.shape.vocab, tokenizerArtifact);
         const maxTokens = Math.min(4096, Math.max(1, Number(payload.options?.max_new_tokens) || 32));
         const job = { id, conversationId: convId, epoch: startEpoch, cancelled: false };
         activeJob = job;

@@ -3,9 +3,11 @@
 // `web/studio/index.html` against the `crates/uor-r4-integer` (`serving-wasm`)
 // browser engine and the reference `docs/wasm-serving/verify.mjs` oracle.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { buildArtifact } from './tools/make_tokenizer.mjs';
+import { validateTokenizerArtifact, tokenizerLabel, encodeBytesWithArtifact } from './assets/js/uor_tokenizer_artifact.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +18,19 @@ const stackPath = process.env.UOR_STACK_PATH
 
 const wasmBytes = readFileSync(wasmPath);
 const stackBytes = readFileSync(stackPath);
+
+// The stack-bound tokenizer artifact is generated from the shipped stack at build
+// time (web/studio/tools/make_tokenizer.mjs). Write it next to the bundle so the
+// worker loads it exactly as it would in the browser; assert the fallback helpers
+// too, so the unbound path stays covered without a second worker process.
+const tokenizerArtifact = buildArtifact(stackBytes);
+assert(validateTokenizerArtifact(tokenizerArtifact, tokenizerArtifact.stack_sha256, tokenizerArtifact.vocab_size), 'generated tokenizer artifact must validate against the stack');
+assert(tokenizerLabel(tokenizerArtifact, tokenizerArtifact.vocab_size).includes('stand-in') && tokenizerLabel(tokenizerArtifact, tokenizerArtifact.vocab_size).includes('stack sha256'), 'generated tokenizer artifact must keep the stand-in label and name the stack digest');
+assert(tokenizerLabel(null, 40).includes('unbound'), 'missing artifact must fall back to the explicit unbound label');
+assert(JSON.stringify(encodeBytesWithArtifact(new Uint8Array([0, 1, 41]), 40, tokenizerArtifact)) === JSON.stringify([0, 1, 1]), 'stack-bound byte table encodes 41 mod 40 as 1');
+assert(JSON.stringify(encodeBytesWithArtifact(new Uint8Array([0, 1, 41]), 40, null)) === JSON.stringify([0, 1, 1]), 'unbound fallback encodes identically for the byte-mod stand-in');
+mkdirSync(resolve(__dirname, 'pkg'), { recursive: true });
+writeFileSync(resolve(__dirname, 'pkg/tokenizer.json'), JSON.stringify(tokenizerArtifact, null, 2) + '\n');
 
 function assert(cond, msg) {
     if (!cond) {
@@ -180,7 +195,7 @@ assert(loadedMsg.action === 'model_loaded', `load_model failed: ${JSON.stringify
 assert(loadedMsg.capabilities.schema === 'uor-r4.lut-stack/1', `schema mismatch: ${loadedMsg.capabilities.schema}`);
 assert(loadedMsg.capabilities.synthetic === true, 'expected synthetic === true for mk-synthetic-stack artifact');
 assert(loadedMsg.capabilities.status_label === 'synthetic stand-in', `expected "synthetic stand-in", got "${loadedMsg.capabilities.status_label}"`);
-assert(loadedMsg.capabilities.tokenizer_label === 'UTF-8 byte-mod stand-in (rawBytes[i] % vocabSize)', `unexpected tokenizer_label: ${loadedMsg.capabilities.tokenizer_label}`);
+assert(loadedMsg.capabilities.tokenizer_label.includes('stand-in') && loadedMsg.capabilities.tokenizer_label.includes('stack sha256'), `expected a stand-in label naming the stack digest, got: ${loadedMsg.capabilities.tokenizer_label}`);
 assert(loadedMsg.capabilities.weights_per_token === 15968, `expected weights_per_token=15968, got ${loadedMsg.capabilities.weights_per_token}`);
 assert(loadedMsg.capabilities.shape.vocab === 40 && loadedMsg.capabilities.shape.width === 32, 'shape mismatch');
 
