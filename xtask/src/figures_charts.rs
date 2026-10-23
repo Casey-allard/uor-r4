@@ -94,7 +94,7 @@ const PHASES: [(&str, &str, &str, &str, &str); 5] = [
     (
         "E",
         "2026-10-10",
-        "2026-10-19",
+        "2026-10-31",
         "Lawful operators and the discrete substrate",
         "verm",
     ),
@@ -102,7 +102,7 @@ const PHASES: [(&str, &str, &str, &str, &str); 5] = [
 
 /// The span of the timeline axis.
 const TIMELINE_FIRST: &str = "2026-06-10";
-const TIMELINE_LAST: &str = "2026-10-19";
+const TIMELINE_LAST: &str = "2026-10-31";
 
 /// How many research lines the swimlane chart shows.
 const LANES: usize = 12;
@@ -1274,10 +1274,18 @@ mod tests {
     #[test]
     fn a_record_outside_the_timeline_window_is_refused_not_dropped() {
         assert!(timeline(&sample()).is_ok());
-        let late = [rec(Some("2026-10-20"), "b", "positive", "late")];
+        let late = [rec(Some("2026-11-01"), "b", "positive", "late")];
         let records = parse_records(&late.join("\n")).expect("parses");
         let err = timeline(&records).expect_err("a date after the window must fail");
         assert!(err.to_string().contains("late"), "{err}");
+    }
+
+    #[test]
+    fn a_record_from_late_october_is_inside_the_window() {
+        // Loop PR 8 archives two pages dated 2026-10-22; the window must chart them.
+        let rows = [rec(Some("2026-10-22"), "harness-governance", "ops", "STATUS.md")];
+        let records = parse_records(&rows.join("\n")).expect("parses");
+        assert!(timeline(&records).is_ok());
     }
 
     #[test]

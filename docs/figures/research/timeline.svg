@@ -26,16 +26,16 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <rect class="bg" x="0" y="0" width="960" height="568"/>
 <text x="16" y="34" font-size="20" class="t-ink b" text-anchor="start">Five approaches in sequence, and the records each day left behind</text>
 <text x="16" y="54" font-size="12" class="t-muted" text-anchor="start">Catalog records per day, 10 June to 19 October 2026, under the five phases A to E.</text>
-<rect x="64" y="76" width="520" height="20" fill-opacity="0.28" class="f-blue s-blue" stroke-width="1.5"/>
-<text x="324" y="91" font-size="13" class="t-ink b" text-anchor="middle">A</text>
-<rect x="570.7" y="100" width="100" height="20" fill-opacity="0.28" class="f-orange s-orange" stroke-width="1.5"/>
-<text x="620.7" y="115" font-size="13" class="t-ink b" text-anchor="middle">B</text>
-<rect x="664" y="76" width="120" height="20" fill-opacity="0.28" class="f-green s-green" stroke-width="1.5"/>
-<text x="724" y="91" font-size="13" class="t-ink b" text-anchor="middle">C</text>
-<rect x="784" y="100" width="106.7" height="20" fill-opacity="0.28" class="f-purple s-purple" stroke-width="1.5"/>
-<text x="837.3" y="115" font-size="13" class="t-ink b" text-anchor="middle">D</text>
-<rect x="877.3" y="76" width="66.7" height="20" fill-opacity="0.28" class="f-verm s-verm" stroke-width="1.5"/>
-<text x="910.7" y="91" font-size="13" class="t-ink b" text-anchor="middle">E</text>
+<rect x="64" y="76" width="476.7" height="20" fill-opacity="0.28" class="f-blue s-blue" stroke-width="1.5"/>
+<text x="302.3" y="91" font-size="13" class="t-ink b" text-anchor="middle">A</text>
+<rect x="528.4" y="100" width="91.7" height="20" fill-opacity="0.28" class="f-orange s-orange" stroke-width="1.5"/>
+<text x="574.3" y="115" font-size="13" class="t-ink b" text-anchor="middle">B</text>
+<rect x="614" y="76" width="110" height="20" fill-opacity="0.28" class="f-green s-green" stroke-width="1.5"/>
+<text x="669" y="91" font-size="13" class="t-ink b" text-anchor="middle">C</text>
+<rect x="724" y="100" width="97.8" height="20" fill-opacity="0.28" class="f-purple s-purple" stroke-width="1.5"/>
+<text x="772.9" y="115" font-size="13" class="t-ink b" text-anchor="middle">D</text>
+<rect x="809.6" y="76" width="134.4" height="20" fill-opacity="0.28" class="f-verm s-verm" stroke-width="1.5"/>
+<text x="876.8" y="91" font-size="13" class="t-ink b" text-anchor="middle">E</text>
 <text x="64" y="140" font-size="11" class="t-muted" text-anchor="start">records per day</text>
 <line x1="64" y1="330" x2="944" y2="330" class="s-rule" stroke-width="1"/>
 <text x="56" y="334" font-size="11" class="t-muted" text-anchor="end">0</text>
@@ -47,41 +47,42 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text x="56" y="199" font-size="11" class="t-muted" text-anchor="end">60</text>
 <line x1="64" y1="150" x2="944" y2="150" class="s-rule" stroke-width="1"/>
 <text x="56" y="154" font-size="11" class="t-muted" text-anchor="end">80</text>
-<line x1="97.3" y1="150" x2="97.3" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="144" y1="150" x2="144" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="190.7" y1="150" x2="190.7" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="237.3" y1="150" x2="237.3" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="284" y1="150" x2="284" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="330.7" y1="150" x2="330.7" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="377.3" y1="150" x2="377.3" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="424" y1="150" x2="424" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="470.7" y1="150" x2="470.7" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="517.3" y1="150" x2="517.3" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="564" y1="150" x2="564" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="610.7" y1="150" x2="610.7" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="657.3" y1="150" x2="657.3" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="704" y1="150" x2="704" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="750.7" y1="150" x2="750.7" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="797.3" y1="150" x2="797.3" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="844" y1="150" x2="844" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="890.7" y1="150" x2="890.7" y2="330" class="s-rule" stroke-width="0.5"/>
-<line x1="937.3" y1="150" x2="937.3" y2="330" class="s-rule" stroke-width="0.5"/>
-<rect x="64" y="150" width="273.3" height="180" fill-opacity="1" class="f-panel"/>
-<text x="200.7" y="240" font-size="11" class="t-muted" text-anchor="middle">GitHub items only</text>
-<text x="200.7" y="254" font-size="11" class="t-muted" text-anchor="middle">no catalog records</text>
-<path d="M337.3,330 L337.3,327.8 L344,327.8 L344,330 L350.7,330 L350.7,330 L357.3,330 L357.3,321 L364,321 L364,330 L370.7,330 L370.7,330 L377.3,330 L377.3,330 L384,330 L384,327.8 L390.7,327.8 L390.7,325.5 L397.3,325.5 L397.3,330 L404,330 L404,325.5 L410.7,325.5 L410.7,327.8 L417.3,327.8 L417.3,327.8 L424,327.8 L424,330 L430.7,330 L430.7,327.8 L437.3,327.8 L437.3,325.5 L444,325.5 L444,330 L450.7,330 L450.7,309.8 L457.3,309.8 L457.3,327.8 L464,327.8 L464,330 L470.7,330 L470.7,327.8 L477.3,327.8 L477.3,330 L484,330 L484,330 L490.7,330 L490.7,330 L497.3,330 L497.3,327.8 L504,327.8 L504,327.8 L510.7,327.8 L510.7,325.5 L517.3,325.5 L517.3,327.8 L524,327.8 L524,323.2 L530.7,323.2 L530.7,323.2 L537.3,323.2 L537.3,318.8 L544,318.8 L544,312 L550.7,312 L550.7,307.5 L557.3,307.5 L557.3,330 L564,330 L564,327.8 L570.7,327.8 L570.7,327.8 L577.3,327.8 L577.3,318.8 L584,318.8 L584,321 L590.7,321 L590.7,300.8 L597.3,300.8 L597.3,323.2 L604,323.2 L604,316.5 L610.7,316.5 L610.7,325.5 L617.3,325.5 L617.3,312 L624,312 L624,294 L630.7,294 L630.7,240 L637.3,240 L637.3,316.5 L644,316.5 L644,298.5 L650.7,298.5 L650.7,300.8 L657.3,300.8 L657.3,294 L664,294 L664,316.5 L670.7,316.5 L670.7,323.2 L677.3,323.2 L677.3,327.8 L684,327.8 L684,330 L690.7,330 L690.7,298.5 L697.3,298.5 L697.3,312 L704,312 L704,330 L710.7,330 L710.7,330 L717.3,330 L717.3,330 L724,330 L724,330 L730.7,330 L730.7,330 L737.3,330 L737.3,300.8 L744,300.8 L744,251.2 L750.7,251.2 L750.7,217.5 L757.3,217.5 L757.3,269.2 L764,269.2 L764,289.5 L770.7,289.5 L770.7,235.5 L777.3,235.5 L777.3,271.5 L784,271.5 L784,305.2 L790.7,305.2 L790.7,246.8 L797.3,246.8 L797.3,289.5 L804,289.5 L804,309.8 L810.7,309.8 L810.7,327.8 L817.3,327.8 L817.3,298.5 L824,298.5 L824,298.5 L830.7,298.5 L830.7,303 L837.3,303 L837.3,276 L844,276 L844,307.5 L850.7,307.5 L850.7,327.8 L857.3,327.8 L857.3,330 L864,330 L864,330 L870.7,330 L870.7,199.5 L877.3,199.5 L877.3,280.5 L884,280.5 L884,267 L890.7,267 L890.7,269.2 L897.3,269.2 L897.3,163.5 L904,163.5 L904,181.5 L910.7,181.5 L910.7,262.5 L917.3,262.5 L917.3,282.8 L924,282.8 L924,249 L930.7,249 L930.7,206.2 L937.3,206.2 L937.3,258 L944,258 L944,330 Z" fill-opacity="0.35" stroke-width="1.5" stroke-linejoin="round" class="f-blue s-blue"/>
+<line x1="94.6" y1="150" x2="94.6" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="137.3" y1="150" x2="137.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="180.1" y1="150" x2="180.1" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="222.9" y1="150" x2="222.9" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="265.7" y1="150" x2="265.7" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="308.4" y1="150" x2="308.4" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="351.2" y1="150" x2="351.2" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="394" y1="150" x2="394" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="436.8" y1="150" x2="436.8" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="479.6" y1="150" x2="479.6" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="522.3" y1="150" x2="522.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="565.1" y1="150" x2="565.1" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="607.9" y1="150" x2="607.9" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="650.7" y1="150" x2="650.7" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="693.4" y1="150" x2="693.4" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="736.2" y1="150" x2="736.2" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="779" y1="150" x2="779" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="821.8" y1="150" x2="821.8" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="864.6" y1="150" x2="864.6" y2="330" class="s-rule" stroke-width="0.5"/>
+<line x1="907.3" y1="150" x2="907.3" y2="330" class="s-rule" stroke-width="0.5"/>
+<rect x="64" y="150" width="250.6" height="180" fill-opacity="1" class="f-panel"/>
+<text x="189.3" y="240" font-size="11" class="t-muted" text-anchor="middle">GitHub items only</text>
+<text x="189.3" y="254" font-size="11" class="t-muted" text-anchor="middle">no catalog records</text>
+<path d="M314.6,330 L314.6,327.8 L320.7,327.8 L320.7,330 L326.8,330 L326.8,330 L332.9,330 L332.9,321 L339,321 L339,330 L345.1,330 L345.1,330 L351.2,330 L351.2,330 L357.3,330 L357.3,327.8 L363.4,327.8 L363.4,325.5 L369.6,325.5 L369.6,330 L375.7,330 L375.7,325.5 L381.8,325.5 L381.8,327.8 L387.9,327.8 L387.9,327.8 L394,327.8 L394,330 L400.1,330 L400.1,327.8 L406.2,327.8 L406.2,325.5 L412.3,325.5 L412.3,330 L418.4,330 L418.4,309.8 L424.6,309.8 L424.6,327.8 L430.7,327.8 L430.7,330 L436.8,330 L436.8,327.8 L442.9,327.8 L442.9,330 L449,330 L449,330 L455.1,330 L455.1,330 L461.2,330 L461.2,327.8 L467.3,327.8 L467.3,327.8 L473.4,327.8 L473.4,325.5 L479.6,325.5 L479.6,327.8 L485.7,327.8 L485.7,323.2 L491.8,323.2 L491.8,323.2 L497.9,323.2 L497.9,318.8 L504,318.8 L504,312 L510.1,312 L510.1,307.5 L516.2,307.5 L516.2,330 L522.3,330 L522.3,327.8 L528.4,327.8 L528.4,327.8 L534.6,327.8 L534.6,318.8 L540.7,318.8 L540.7,321 L546.8,321 L546.8,300.8 L552.9,300.8 L552.9,323.2 L559,323.2 L559,316.5 L565.1,316.5 L565.1,325.5 L571.2,325.5 L571.2,312 L577.3,312 L577.3,294 L583.4,294 L583.4,240 L589.6,240 L589.6,316.5 L595.7,316.5 L595.7,298.5 L601.8,298.5 L601.8,300.8 L607.9,300.8 L607.9,294 L614,294 L614,316.5 L620.1,316.5 L620.1,323.2 L626.2,323.2 L626.2,327.8 L632.3,327.8 L632.3,330 L638.4,330 L638.4,298.5 L644.6,298.5 L644.6,312 L650.7,312 L650.7,330 L656.8,330 L656.8,330 L662.9,330 L662.9,330 L669,330 L669,330 L675.1,330 L675.1,330 L681.2,330 L681.2,300.8 L687.3,300.8 L687.3,251.2 L693.4,251.2 L693.4,217.5 L699.6,217.5 L699.6,269.2 L705.7,269.2 L705.7,289.5 L711.8,289.5 L711.8,235.5 L717.9,235.5 L717.9,271.5 L724,271.5 L724,305.2 L730.1,305.2 L730.1,246.8 L736.2,246.8 L736.2,289.5 L742.3,289.5 L742.3,309.8 L748.4,309.8 L748.4,327.8 L754.6,327.8 L754.6,298.5 L760.7,298.5 L760.7,298.5 L766.8,298.5 L766.8,303 L772.9,303 L772.9,276 L779,276 L779,307.5 L785.1,307.5 L785.1,327.8 L791.2,327.8 L791.2,330 L797.3,330 L797.3,330 L803.4,330 L803.4,199.5 L809.6,199.5 L809.6,280.5 L815.7,280.5 L815.7,267 L821.8,267 L821.8,269.2 L827.9,269.2 L827.9,163.5 L834,163.5 L834,181.5 L840.1,181.5 L840.1,262.5 L846.2,262.5 L846.2,282.8 L852.3,282.8 L852.3,249 L858.4,249 L858.4,206.2 L864.6,206.2 L864.6,258 L870.7,258 L870.7,330 Z" fill-opacity="0.35" stroke-width="1.5" stroke-linejoin="round" class="f-blue s-blue"/>
 <line x1="64" y1="330" x2="944" y2="330" class="s-muted" stroke-width="1"/>
-<text x="894.7" y="157.5" font-size="11" class="t-muted" text-anchor="end">peak: 74 records on 13 Oct</text>
+<text x="824.9" y="157.5" font-size="11" class="t-muted" text-anchor="end">peak: 74 records on 13 Oct</text>
 <text x="64" y="348" font-size="11" class="t-muted" text-anchor="start">10 Jun</text>
-<line x1="204" y1="330" x2="204" y2="335" class="s-muted" stroke-width="1"/>
-<text x="204" y="348" font-size="13" class="t-body" text-anchor="middle">1 Jul</text>
-<line x1="410.7" y1="330" x2="410.7" y2="335" class="s-muted" stroke-width="1"/>
-<text x="410.7" y="348" font-size="13" class="t-body" text-anchor="middle">1 Aug</text>
-<line x1="617.3" y1="330" x2="617.3" y2="335" class="s-muted" stroke-width="1"/>
-<text x="617.3" y="348" font-size="13" class="t-body" text-anchor="middle">1 Sep</text>
-<line x1="817.3" y1="330" x2="817.3" y2="335" class="s-muted" stroke-width="1"/>
-<text x="817.3" y="348" font-size="13" class="t-body" text-anchor="middle">1 Oct</text>
-<text x="944" y="348" font-size="11" class="t-muted" text-anchor="end">19 Oct</text>
+<line x1="192.3" y1="330" x2="192.3" y2="335" class="s-muted" stroke-width="1"/>
+<text x="192.3" y="348" font-size="13" class="t-body" text-anchor="middle">1 Jul</text>
+<line x1="381.8" y1="330" x2="381.8" y2="335" class="s-muted" stroke-width="1"/>
+<text x="381.8" y="348" font-size="13" class="t-body" text-anchor="middle">1 Aug</text>
+<line x1="571.2" y1="330" x2="571.2" y2="335" class="s-muted" stroke-width="1"/>
+<text x="571.2" y="348" font-size="13" class="t-body" text-anchor="middle">1 Sep</text>
+<line x1="754.6" y1="330" x2="754.6" y2="335" class="s-muted" stroke-width="1"/>
+<text x="754.6" y="348" font-size="13" class="t-body" text-anchor="middle">1 Oct</text>
+<text x="944" y="348" font-size="11" class="t-muted" text-anchor="end">31 Oct</text>
 <text x="16" y="378" font-size="13" class="t-ink b" text-anchor="start">Phases</text>
 <rect x="16" y="381" width="24" height="16" fill-opacity="0.28" class="f-blue s-blue" stroke-width="1.5"/>
 <text x="28" y="393" font-size="12" class="t-body" text-anchor="middle">A</text>
@@ -97,7 +98,7 @@ text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Ar
 <text x="52" y="465" font-size="13" class="t-body" text-anchor="start">Geometric stack, labs, chat and memory  (26 Sep to 11 Oct)</text>
 <rect x="16" y="477" width="24" height="16" fill-opacity="0.28" class="f-verm s-verm" stroke-width="1.5"/>
 <text x="28" y="489" font-size="12" class="t-body" text-anchor="middle">E</text>
-<text x="52" y="489" font-size="13" class="t-body" text-anchor="start">Lawful operators and the discrete substrate  (10 Oct to 19 Oct)</text>
+<text x="52" y="489" font-size="13" class="t-body" text-anchor="start">Lawful operators and the discrete substrate  (10 Oct to 31 Oct)</text>
 <text x="16" y="532" font-size="11" class="t-muted" text-anchor="start">Phase spans are those of the research history page; phases overlap by a day or two where one hands over to the next.</text>
 <text x="16" y="548" font-size="11" class="t-muted" text-anchor="start">Daily counts: the research catalog, 1051 dated records; 122 records have no date and are not shown.</text>
 </svg>
