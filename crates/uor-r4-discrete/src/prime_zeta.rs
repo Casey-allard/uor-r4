@@ -140,6 +140,14 @@ pub enum CodebookMode {
     /// D22 §3 Normal Null: seeded prime-rank permutation $\pi_{\text{seed}}(p)$ and
     /// off-critical-line amplitude perturbation $\sigma = \frac{1}{2} \pm \Delta\sigma$.
     NormalNull { seed: u32 },
+    /// Pure-integer injective null without writer-cell quota: draws distinct $B$-block
+    /// $E_8$ root vectors uniformly without replacement from a seeded integer generator.
+    RandomInjective { seed: u32 },
+    /// Pure-integer quota-balanced injective null: enforces the same writer-cell quota
+    /// ($\lceil V / 256 \rceil$ tokens per cell) and unique interior block roots as
+    /// `PrimeZeta`, but assigns tokens to cells and interior roots via a seeded integer
+    /// permutation without primes or zeta phases.
+    QuotaOnlyInjective { seed: u32 },
 }
 
 impl CodebookMode {
@@ -148,11 +156,14 @@ impl CodebookMode {
             Self::PrimeZeta => "prime_zeta".to_owned(),
             Self::TangentNull { delta } => format!("tangent_null_delta_{delta:.1}"),
             Self::NormalNull { seed } => format!("normal_null_seed_{seed}"),
+            Self::RandomInjective { seed } => format!("random_injective_seed_{seed}"),
+            Self::QuotaOnlyInjective { seed } => format!("quota_only_injective_seed_{seed}"),
         }
     }
 }
 
 /// Per-token quantized witness at the integer boundary.
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TokenQuantizationWitness {
     pub token_id: u32,
@@ -188,6 +199,7 @@ pub struct QuantizedCodebook {
 }
 
 /// Structural Hamming and L1 comparison between two quantized codebooks of the same `Spec`.
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StructuralSeparation {
     pub left_mode: String,
@@ -266,6 +278,257 @@ fn exact_root_alignment(q_b: &[i32; 8], root_idx: usize) -> i64 {
     sum
 }
 
+/// Deterministic SplitMix64 integer state step used by `RandomInjective` and
+/// `QuotaOnlyInjective` so each named seed produces a bit-exact integer table
+/// across macOS and Linux with zero non-integer operations.
+fn next_seeded_u64(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+    let mut z = *state;
+    z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    z ^ (z >> 31)
+}
+
+/// Pure-integer constructor for `CodebookMode::RandomInjective` and
+/// `CodebookMode::QuotaOnlyInjective`.
+///
+/// Note on witness fields: `phases_q29` and `spinors_s3_q30` are populated with
+/// deterministic integer XOR tags purely for `QuantizedCodebook` JSON schema
+/// compatibility and uniqueness accounting (`unique_phase_vectors`,
+/// `unique_spinor_vectors`). They are not geometric $S^1$ phases or unit-$S^3$
+/// spinors; the discrete training and evaluation battery (`pinned_table_v1`)
+/// reads only `root_indices` / `Snapshot.table`.
+fn generate_integer_injective_null(
+    spec: Spec,
+    seed: u32,
+    mode: CodebookMode,
+    null_seed: u32,
+    is_quota_only: bool,
+) -> Result<QuantizedCodebook> {
+    let vocab = spec.vocabulary as usize;
+    let blocks = spec.blocks as usize;
+    if !(3..=16).contains(&blocks) {
+        return Err(invalid(
+            "integer injective nulls require spec.blocks in 3..=16",
+        ));
+    }
+    let interior_cap: usize = if blocks == 3 { 16 } else { 256 };
+    if is_quota_only {
+        if vocab == 0 || !vocab.is_multiple_of(256) || vocab / 256 > interior_cap {
+            return Err(invalid(
+                "quota_only_injective requires vocabulary to be a positive multiple of 256 within per-cell interior capacity",
+            ));
+        }
+    } else {
+        let total_tuples = 1u128 << (4 * blocks);
+        if vocab == 0 || (vocab as u128) * 2 > total_tuples {
+            return Err(invalid(
+                "random_injective requires 0 < vocabulary <= 16^blocks / 2 for uniform rejection sampling",
+            ));
+        }
+    }
+
+    let primes = permute_primes_for_normal_null(&first_n_primes(vocab)?, null_seed);
+    let enforce_unique_full_vector = true;
+
+    let mut rng_state = if is_quota_only {
+        u64::from(null_seed) ^ 0xbb67_ae85_84ca_a73bu64
+    } else {
+        u64::from(null_seed) ^ 0x6a09_e667_f3bc_c908u64
+    };
+
+    let mut cell_counts = [0usize; 256];
+    let mut used_vectors: BTreeSet<Vec<u8>> = BTreeSet::new();
+    let mut root_indices = Vec::with_capacity(vocab * blocks);
+    let mut table = Vec::with_capacity(vocab * blocks * 8);
+    let mut phases_q29 = Vec::with_capacity(vocab * blocks * 4);
+    let mut spinors_s3_q30 = Vec::with_capacity(vocab * blocks * 2);
+
+    if is_quota_only {
+        // Quota-only injective null:
+        // 1. Build a uniform cell assignment where each of the 256 writer cells
+        //    appears exactly V / 256 times (for V = 4096, 16 tokens in each of the
+        //    256 cells), then shuffle across tokens via seeded Fisher-Yates.
+        let mut cell_schedule: Vec<u8> = (0..vocab).map(|i| (i % 256) as u8).collect();
+        for i in (1..vocab).rev() {
+            let j = (next_seeded_u64(&mut rng_state) as usize) % (i + 1);
+            cell_schedule.swap(i, j);
+        }
+
+        // 2. Pre-shuffle the interior root choices per writer cell so every token in a
+        //    cell receives a unique interior root vector.
+        let mut cell_interior_orders: Vec<Vec<u16>> = Vec::with_capacity(256);
+        for _cell in 0..256 {
+            let mut order: Vec<u16> = (0..interior_cap as u16).collect();
+            for i in (1..interior_cap).rev() {
+                let j = (next_seeded_u64(&mut rng_state) as usize) % (i + 1);
+                order.swap(i, j);
+            }
+            cell_interior_orders.push(order);
+        }
+
+        // For blocks >= 5, pre-shuffle per-cell root permutations for each additional
+        // interior block (3..blocks - 1) using SplitMix64 Fisher-Yates. When blocks <= 4,
+        // this loop does not execute, keeping B = 4 outputs bit-identical.
+        let extra_blocks = blocks.saturating_sub(4);
+        let mut extra_interior_orders: Vec<Vec<Vec<u8>>> = Vec::with_capacity(extra_blocks);
+        for _extra in 0..extra_blocks {
+            let mut per_cell: Vec<Vec<u8>> = Vec::with_capacity(256);
+            for _cell in 0..256 {
+                let mut order: Vec<u8> = (0..interior_cap).map(|k| (k & 0x0f) as u8).collect();
+                for i in (1..interior_cap).rev() {
+                    let j = (next_seeded_u64(&mut rng_state) as usize) % (i + 1);
+                    order.swap(i, j);
+                }
+                per_cell.push(order);
+            }
+            extra_interior_orders.push(per_cell);
+        }
+
+        for &cell_u8 in &cell_schedule {
+            let cell = usize::from(cell_u8);
+            let r_first = (cell / 16) as u8;
+            let r_last = (cell % 16) as u8;
+            let rank_in_cell = cell_counts[cell];
+            let interior_code = cell_interior_orders[cell][rank_in_cell];
+
+            let mut selected = Vec::with_capacity(blocks);
+            selected.push(r_first);
+            if blocks == 3 {
+                selected.push((interior_code & 0x0f) as u8);
+            } else {
+                selected.push(((interior_code >> 4) & 0x0f) as u8);
+                selected.push((interior_code & 0x0f) as u8);
+                for (extra_idx, per_cell) in extra_interior_orders.iter().enumerate() {
+                    let _ = extra_idx;
+                    selected.push(per_cell[cell][rank_in_cell]);
+                }
+            }
+            selected.push(r_last);
+
+            if enforce_unique_full_vector && !used_vectors.insert(selected.clone()) {
+                return Err(invalid(
+                    "quota_only_injective produced duplicate full E8 root vector",
+                ));
+            }
+            cell_counts[cell] += 1;
+            for &r in &selected {
+                root_indices.push(r);
+                for &coord in &geometry::ROOTS[usize::from(r)] {
+                    table.push(i32::from(coord));
+                }
+            }
+        }
+    } else {
+        // Random injective null without writer-cell quota:
+        // Draw V distinct B-block root tuples uniformly without replacement from {0..16}^B
+        // via rejection sampling (guaranteed load factor <= 1/2 by the entry guard).
+        for _t in 0..vocab {
+            let mut chosen: Option<Vec<u8>> = None;
+            for _attempt in 0..1024 {
+                let word = next_seeded_u64(&mut rng_state);
+                let mut candidate = Vec::with_capacity(blocks);
+                for b in 0..blocks {
+                    let shift = b * 4;
+                    candidate.push(((word >> shift) & 0x0f) as u8);
+                }
+                if !used_vectors.contains(&candidate) {
+                    chosen = Some(candidate);
+                    break;
+                }
+            }
+            let selected = chosen.ok_or_else(|| {
+                invalid("random_injective failed to draw unique E8 multi-block root vector")
+            })?;
+            let cell = usize::from(selected[0]) * 16 + usize::from(selected[blocks - 1]);
+            cell_counts[cell] += 1;
+            if enforce_unique_full_vector {
+                used_vectors.insert(selected.clone());
+            }
+            for &r in &selected {
+                root_indices.push(r);
+                for &coord in &geometry::ROOTS[usize::from(r)] {
+                    table.push(i32::from(coord));
+                }
+            }
+        }
+    }
+
+    // Populate integer schema witnesses (`phases_q29` and `spinors_s3_q30`) with
+    // deterministic integer XOR tags derived from the selected roots, token index,
+    // block index, and seed. The training and evaluation battery reads only
+    // `root_indices` / `Snapshot.table`.
+    let mode_tag: i32 = if is_quota_only {
+        0x1357_2468
+    } else {
+        0x2468_1357
+    };
+    for t in 0..vocab {
+        for b in 0..blocks {
+            let r = usize::from(root_indices[t * blocks + b]);
+            let coord = &geometry::ROOTS[r];
+            let token_block_tag =
+                ((t as i32) << 10) ^ ((b as i32) << 5) ^ (null_seed as i32) ^ mode_tag;
+            for c in 0..4 {
+                let plane_val = i32::from(coord[2 * c]) * 5 + i32::from(coord[2 * c + 1]) * 3;
+                let phase_word = (plane_val << 22) ^ token_block_tag ^ (c as i32);
+                phases_q29.push(phase_word);
+            }
+            let left_s3 = [
+                (i32::from(coord[0]) << 24) ^ token_block_tag,
+                (i32::from(coord[1]) << 24) ^ token_block_tag,
+                (i32::from(coord[2]) << 24) ^ token_block_tag,
+                (i32::from(coord[4]) << 24) ^ token_block_tag,
+            ];
+            let right_s3 = [
+                (i32::from(coord[3]) << 24) ^ token_block_tag,
+                (i32::from(coord[7]) << 24) ^ token_block_tag,
+                (i32::from(coord[5]) << 24) ^ token_block_tag,
+                (i32::from(coord[6]) << 24) ^ token_block_tag,
+            ];
+            spinors_s3_q30.push(left_s3);
+            spinors_s3_q30.push(right_s3);
+        }
+    }
+
+    let unique_phase_vectors = phases_q29
+        .chunks_exact(blocks * 4)
+        .collect::<BTreeSet<_>>()
+        .len();
+    let unique_spinor_vectors = spinors_s3_q30
+        .chunks_exact(blocks * 2)
+        .collect::<BTreeSet<_>>()
+        .len();
+    let unique_table_vectors = table
+        .chunks_exact(blocks * 8)
+        .collect::<BTreeSet<_>>()
+        .len();
+    let occupied_writer_cells = cell_counts.iter().filter(|&&c| c > 0).count();
+
+    let table_sha256 = sha256_i32_slice(&table);
+    let phases_sha256 = sha256_i32_slice(&phases_q29);
+    let flat_spinors: Vec<i32> = spinors_s3_q30.iter().flatten().copied().collect();
+    let spinors_sha256 = sha256_i32_slice(&flat_spinors);
+
+    Ok(QuantizedCodebook {
+        mode: mode.label(),
+        spec,
+        seed,
+        primes,
+        phases_q29,
+        spinors_s3_q30,
+        root_indices,
+        table,
+        table_sha256,
+        phases_sha256,
+        spinors_sha256,
+        unique_phase_vectors,
+        unique_spinor_vectors,
+        unique_table_vectors,
+        occupied_writer_cells,
+    })
+}
+
 /// Generate the quantized codebook for `spec` and `seed` under `mode`.
 ///
 /// All floating-point operations (`ln`, `sin`, `cos`, `sqrt`) occur strictly prior
@@ -274,6 +537,17 @@ fn exact_root_alignment(q_b: &[i32; 8], root_idx: usize) -> i64 {
 /// 100% exact integer arithmetic.
 pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<QuantizedCodebook> {
     spec.validate()?;
+    match mode {
+        CodebookMode::RandomInjective { seed: null_seed } => {
+            return generate_integer_injective_null(spec, seed, mode, null_seed, false);
+        }
+        CodebookMode::QuotaOnlyInjective { seed: null_seed } => {
+            return generate_integer_injective_null(spec, seed, mode, null_seed, true);
+        }
+        CodebookMode::PrimeZeta
+        | CodebookMode::TangentNull { .. }
+        | CodebookMode::NormalNull { .. } => {}
+    }
     let vocab = spec.vocabulary as usize;
     let blocks = spec.blocks as usize;
     let base_primes = first_n_primes(vocab)?;
@@ -281,6 +555,9 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
         CodebookMode::PrimeZeta | CodebookMode::TangentNull { .. } => base_primes,
         CodebookMode::NormalNull { seed: null_seed } => {
             permute_primes_for_normal_null(&base_primes, null_seed)
+        }
+        CodebookMode::RandomInjective { .. } | CodebookMode::QuotaOnlyInjective { .. } => {
+            unreachable!("handled before phase loop")
         }
     };
 
@@ -311,6 +588,10 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
                         ZETA_ZEROS[(channel + 17 + (null_seed as usize % 31)) % ZETA_ZEROS.len()]
                             + offset
                     }
+                    CodebookMode::RandomInjective { .. }
+                    | CodebookMode::QuotaOnlyInjective { .. } => {
+                        unreachable!("handled before phase loop")
+                    }
                 };
                 let theta = wrap_to_pi(gamma * ln_p);
                 let q29 = PhaseQ29::from_radians(theta)?;
@@ -329,6 +610,10 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
                             _ => -0.20,
                         };
                         f64::from(prime).powf(sigma_shift)
+                    }
+                    CodebookMode::RandomInjective { .. }
+                    | CodebookMode::QuotaOnlyInjective { .. } => {
+                        unreachable!("handled before phase loop")
                     }
                 };
                 complex_re[c] = modulus * theta.cos();
@@ -511,7 +796,23 @@ pub fn generate_codebook(spec: Spec, seed: u32, mode: CodebookMode) -> Result<Qu
     })
 }
 
+/// Return the exact token count in each of the 256 writer product cells
+/// `cell = root_0 * 16 + root_{B-1}` for a quantized codebook.
+#[allow(dead_code)]
+pub fn writer_cell_occupancy(codebook: &QuantizedCodebook) -> [usize; 256] {
+    let vocab = codebook.spec.vocabulary as usize;
+    let blocks = codebook.spec.blocks as usize;
+    let mut counts = [0usize; 256];
+    for t in 0..vocab {
+        let roots = &codebook.root_indices[t * blocks..(t + 1) * blocks];
+        let cell = usize::from(roots[0]) * 16 + usize::from(roots[blocks - 1]);
+        counts[cell] += 1;
+    }
+    counts
+}
+
 /// Extract the exact quantization witness for `token_id`.
+#[allow(dead_code)]
 pub fn token_witness(
     codebook: &QuantizedCodebook,
     token_id: u32,
@@ -533,6 +834,7 @@ pub fn token_witness(
 }
 
 /// Compute exact integer structural separation metrics between two quantized codebooks.
+#[allow(dead_code)]
 pub fn compare_codebooks(
     left: &QuantizedCodebook,
     right: &QuantizedCodebook,
@@ -802,6 +1104,203 @@ mod tests {
     }
 
     #[test]
+    fn random_and_quota_only_injective_nulls_satisfy_quota_uniqueness_and_census_invariants(
+    ) -> Result<()> {
+        let spec = Spec {
+            vocabulary: 4096,
+            blocks: 4,
+            context: 192,
+            kept_cells: 8,
+        };
+        let prime_zeta = generate_codebook(spec, 0, CodebookMode::PrimeZeta)?;
+        let tangent = generate_codebook(
+            spec,
+            0,
+            CodebookMode::TangentNull {
+                delta: TANGENT_NULL_DELTA,
+            },
+        )?;
+        let normal0 = generate_codebook(spec, 0, CodebookMode::NormalNull { seed: 0 })?;
+
+        let random0 = generate_codebook(spec, 0, CodebookMode::RandomInjective { seed: 0 })?;
+        let random1 = generate_codebook(spec, 1, CodebookMode::RandomInjective { seed: 1 })?;
+        let random2 = generate_codebook(spec, 2, CodebookMode::RandomInjective { seed: 2 })?;
+
+        let quota0 = generate_codebook(spec, 0, CodebookMode::QuotaOnlyInjective { seed: 0 })?;
+        let quota1 = generate_codebook(spec, 1, CodebookMode::QuotaOnlyInjective { seed: 1 })?;
+        let quota2 = generate_codebook(spec, 2, CodebookMode::QuotaOnlyInjective { seed: 2 })?;
+
+        // 1. Bit-exact reproducibility per seed and distinctness across seeds 0, 1, 2
+        let random0_again = generate_codebook(spec, 0, CodebookMode::RandomInjective { seed: 0 })?;
+        let quota0_again =
+            generate_codebook(spec, 0, CodebookMode::QuotaOnlyInjective { seed: 0 })?;
+        assert_eq!(random0.table, random0_again.table);
+        assert_eq!(random0.table_sha256, random0_again.table_sha256);
+        assert_eq!(quota0.table, quota0_again.table);
+        assert_eq!(quota0.table_sha256, quota0_again.table_sha256);
+        assert_ne!(random0.table, random1.table);
+        assert_ne!(random1.table, random2.table);
+        assert_ne!(quota0.table, quota1.table);
+        assert_ne!(quota1.table, quota2.table);
+
+        // 2. Full-vector injectivity (4096 / 4096 distinct vectors) and valid E8 roots
+        for cb in [&random0, &random1, &random2, &quota0, &quota1, &quota2] {
+            assert_eq!(cb.unique_table_vectors, 4096);
+            assert_eq!(cb.unique_phase_vectors, 4096);
+            assert_eq!(cb.unique_spinor_vectors, 4096);
+            for block_slice in cb.table.chunks_exact(8) {
+                let root_i8: [i8; 8] = block_slice
+                    .iter()
+                    .map(|&v| i8::try_from(v).unwrap())
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap();
+                assert!(geometry::ROOTS.contains(&root_i8));
+            }
+        }
+
+        // 3. Writer-cell occupancy: QuotaOnlyInjective has exactly 16 tokens in each of
+        //    the 256 writer cells (matching PrimeZeta), whereas RandomInjective has no
+        //    cell quota and exhibits natural multinomial occupancy dispersion.
+        assert_eq!(writer_cell_occupancy(&prime_zeta), [16usize; 256]);
+        for q_cb in [&quota0, &quota1, &quota2] {
+            assert_eq!(q_cb.occupied_writer_cells, 256);
+            assert_eq!(writer_cell_occupancy(q_cb), [16usize; 256]);
+        }
+        for r_cb in [&random0, &random1, &random2] {
+            let occ = writer_cell_occupancy(r_cb);
+            let total: usize = occ.iter().sum();
+            let min_occ = *occ.iter().min().unwrap();
+            let max_occ = *occ.iter().max().unwrap();
+            assert_eq!(total, 4096);
+            assert!(
+                min_occ < 16 && max_occ > 16,
+                "random_injective must not enforce flat 16 quota: min={min_occ}, max={max_occ}"
+            );
+        }
+
+        // 4. Structural separation (>3900 / 4096 differing tokens, >40000 coordinate Hamming)
+        for other in [&prime_zeta, &tangent, &normal0] {
+            let sep_random = compare_codebooks(other, &random0)?;
+            let sep_quota = compare_codebooks(other, &quota0)?;
+            assert!(sep_random.differing_tokens > 3900);
+            assert!(sep_quota.differing_tokens > 3900);
+            assert!(sep_random.coordinate_hamming_distance > 40_000);
+            assert!(sep_quota.coordinate_hamming_distance > 40_000);
+        }
+        let random_vs_quota = compare_codebooks(&random0, &quota0)?;
+        assert!(random_vs_quota.differing_tokens > 3900);
+        assert!(random_vs_quota.coordinate_hamming_distance > 40_000);
+
+        // 5. Coverage census invariance proof: raw alias ceiling and within-cell tie mass
+        //    are algebraically identical across all 4096-injective codebooks, whereas
+        //    exported cell crowding separates QuotaOnlyInjective (30,720 collision pairs,
+        //    max occupancy 16) from RandomInjective (>30,720 collision pairs, max > 16).
+        let synthetic_dev_targets: Vec<u32> = (0..14_287u32).map(|i| (i * 73) % 4096).collect();
+        let pz_cells: Vec<u16> = (0..4096)
+            .map(|t| {
+                (u16::from(prime_zeta.root_indices[t * 4]) * 16)
+                    + u16::from(prime_zeta.root_indices[t * 4 + 3])
+            })
+            .collect();
+        let q0_cells: Vec<u16> = (0..4096)
+            .map(|t| {
+                (u16::from(quota0.root_indices[t * 4]) * 16)
+                    + u16::from(quota0.root_indices[t * 4 + 3])
+            })
+            .collect();
+        let r0_cells: Vec<u16> = (0..4096)
+            .map(|t| {
+                (u16::from(random0.root_indices[t * 4]) * 16)
+                    + u16::from(random0.root_indices[t * 4 + 3])
+            })
+            .collect();
+
+        let pz_census = uor_r4_discrete::coverage_census::census(
+            &prime_zeta.table,
+            spec,
+            &synthetic_dev_targets,
+            Some(&pz_cells),
+            Some(500),
+        )?;
+        let q0_census = uor_r4_discrete::coverage_census::census(
+            &quota0.table,
+            spec,
+            &synthetic_dev_targets,
+            Some(&q0_cells),
+            Some(500),
+        )?;
+        let r0_census = uor_r4_discrete::coverage_census::census(
+            &random0.table,
+            spec,
+            &synthetic_dev_targets,
+            Some(&r0_cells),
+            Some(500),
+        )?;
+
+        for report in [&pz_census, &q0_census, &r0_census] {
+            assert_eq!(report["distinct_vectors"], 4096);
+            assert_eq!(report["dev_alias_ceiling_rows"], 14_287);
+            assert_eq!(report["within_cell_tie_mass"]["tokens_in_alias_groups"], 0);
+            assert_eq!(
+                report["within_cell_tie_mass"]["dev_rows_targeting_non_representative"],
+                0
+            );
+        }
+        assert_eq!(pz_census["cells"]["max_cell_occupancy"], 16);
+        assert_eq!(pz_census["cells"]["cell_collision_pairs"], 30_720);
+        assert_eq!(q0_census["cells"]["max_cell_occupancy"], 16);
+        assert_eq!(q0_census["cells"]["cell_collision_pairs"], 30_720);
+        assert!(r0_census["cells"]["max_cell_occupancy"].as_u64().unwrap() > 16);
+        assert!(r0_census["cells"]["cell_collision_pairs"].as_u64().unwrap() > 30_720);
+
+        // 6. Pinned B=4 table_sha256 preservation and fairness-guard / B=5 shuffle checks
+        assert_eq!(
+            quota0.table_sha256,
+            "0098d4c3df8ce101e4a2dda8d8d28a29ac64f6ed3d521430504d0bb03ffbc18f"
+        );
+        assert_eq!(
+            random0.table_sha256,
+            "35c8da6250a5d986ffa5f6758cbf761b45af6fa24d3893114b9693c1b0d9ee37"
+        );
+        let non_multiple_spec = Spec {
+            vocabulary: 500,
+            ..spec
+        };
+        assert!(generate_codebook(
+            non_multiple_spec,
+            0,
+            CodebookMode::QuotaOnlyInjective { seed: 0 }
+        )
+        .is_err());
+        let two_block_spec = Spec {
+            vocabulary: 256,
+            blocks: 2,
+            ..spec
+        };
+        assert!(generate_codebook(
+            two_block_spec,
+            0,
+            CodebookMode::QuotaOnlyInjective { seed: 0 }
+        )
+        .is_err());
+        assert!(
+            generate_codebook(two_block_spec, 0, CodebookMode::RandomInjective { seed: 0 })
+                .is_err()
+        );
+        let five_block_spec = Spec { blocks: 5, ..spec };
+        let quota_b5 = generate_codebook(
+            five_block_spec,
+            0,
+            CodebookMode::QuotaOnlyInjective { seed: 0 },
+        )?;
+        assert_eq!(quota_b5.unique_table_vectors, 4096);
+        assert_eq!(writer_cell_occupancy(&quota_b5), [16usize; 256]);
+
+        Ok(())
+    }
+
+    #[test]
     fn zero_float_ptx_verifier_accepts_integer_entries_and_rejects_float_tokens() -> Result<()> {
         let valid_ptx = "\
             .visible .entry discrete_init() { add.s32 %r1, %r2, %r3; ret; }\n\
@@ -826,7 +1325,7 @@ mod tests {
     fn driver_source_identity_changes_with_rank_objective_metadata() {
         assert_eq!(
             uor_r4_discrete::training::driver_source_sha256(),
-            "ed4655a22dbec24316cfe5df16a43407860651ce6aa7a690ee8fcd5bedaf05d8"
+            "b13d4920d37a49dd0b1c2305ceaf406e51d5baadd058572cbf481f534bdf9b24"
         );
     }
 }
