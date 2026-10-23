@@ -19,13 +19,19 @@
 //! `IntegerStackSession::step` and `stack_argmax`; argument parsing, file reading, timing, hashing and JSON
 //! are outside it. The instruction audit targets this binary:
 //! `python3 scripts/audit_zero_matmul_serving.py target/release/uor-r4-stack --stack`.
+#![forbid(unsafe_code)]
+#![recursion_limit = "256"]
 
 use std::path::Path;
 use std::time::Instant;
 
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use uor_r4_integer::stack::{stack_argmax, IntegerStackModel, StackError};
+use uor_r4_integer::stack::{
+    sample_mean_sd_t_ci95, stack_argmax, student_t_0975,
+    validate_protocol_v3_energy_receipt_with_mode, verify_step_objdump_zero_mul_zero_float,
+    IntegerStackModel, StackError,
+};
 
 /// Nominal bits per weight for 4-bit signed symmetric weight representation.
 pub const D11_NOMINAL_BITS_PER_WEIGHT: f64 = 4.0;
@@ -79,7 +85,7 @@ impl From<uor_r4_integer::IntegerError> for CliError {
     }
 }
 
-const USAGE: &str = "usage: uor-r4-stack generate ARTIFACT PROMPT_IDS NEW_TOKENS | digest ARTIFACT TOKENS.u16 WINDOWS | cost ARTIFACT TOKENS.u16 WINDOWS PROMPT_TOKENS [OUT_DIR]";
+const USAGE: &str = "usage: uor-r4-stack generate ARTIFACT PROMPT_IDS NEW_TOKENS | digest ARTIFACT TOKENS.u16 WINDOWS | cost ARTIFACT TOKENS.u16 WINDOWS PROMPT_TOKENS [OUT_DIR] [--energy-receipt PATH] [--allow-provisional]";
 
 fn usage(message: &str) -> CliError {
     CliError::Usage(format!("{message}\n{USAGE}"))
@@ -283,6 +289,107 @@ fn process_rss_mb() -> Option<f64> {
     Some(kib / 1024.0)
 }
 
+fn parse_vmmap_size_bytes(token: &str) -> Option<u64> {
+    let token = token.trim().trim_end_matches('.');
+    let (num_str, mult) = if let Some(s) = token
+        .strip_suffix("KB")
+        .or_else(|| token.strip_suffix("KiB"))
+        .or_else(|| token.strip_suffix('K'))
+    {
+        (s, 1024.0)
+    } else if let Some(s) = token
+        .strip_suffix("MB")
+        .or_else(|| token.strip_suffix("MiB"))
+        .or_else(|| token.strip_suffix('M'))
+    {
+        (s, 1024.0 * 1024.0)
+    } else if let Some(s) = token
+        .strip_suffix("GB")
+        .or_else(|| token.strip_suffix("GiB"))
+        .or_else(|| token.strip_suffix('G'))
+    {
+        (s, 1024.0 * 1024.0 * 1024.0)
+    } else if let Some(s) = token.strip_suffix('B') {
+        (s, 1.0)
+    } else {
+        (token, 1.0)
+    };
+    let val: f64 = num_str.trim().parse().ok()?;
+    if val <= 0.0 {
+        return None;
+    }
+    Some((val * mult).round() as u64)
+}
+
+/// Kernel high-water-mark memory footprint in bytes.
+///
+/// Because this binary forbids unsafe code, it cannot invoke FFI
+/// `libc::getrusage(RUSAGE_SELF)` (`ru_maxrss`). Instead, it queries the OS kernel's
+/// high-water-mark physical footprint via `vmmap -summary <pid>` (`Physical footprint (peak)`)
+/// on macOS and `/proc/self/status` (`VmHWM`) on Linux.
+fn kernel_peak_memory_bytes() -> Option<u64> {
+    if cfg!(target_os = "macos") {
+        let output = std::process::Command::new("vmmap")
+            .args(["-summary", &std::process::id().to_string()])
+            .output()
+            .ok()?;
+        let text = std::str::from_utf8(&output.stdout).ok()?;
+        for line in text.lines() {
+            if let Some(rest) = line.trim().strip_prefix("Physical footprint (peak):") {
+                let first_token = rest.split_whitespace().next()?;
+                if let Some(bytes) = parse_vmmap_size_bytes(first_token) {
+                    return Some(bytes);
+                }
+            }
+        }
+        None
+    } else if cfg!(target_os = "linux") {
+        let status = std::fs::read_to_string("/proc/self/status").ok()?;
+        for line in status.lines() {
+            if let Some(rest) = line.strip_prefix("VmHWM:") {
+                let kib: u64 = rest.split_whitespace().next()?.parse().ok()?;
+                return Some(kib.saturating_mul(1024));
+            }
+        }
+        None
+    } else {
+        None
+    }
+}
+
+fn detect_external_inference_daemons() -> Vec<String> {
+    const FORBIDDEN_DAEMONS: &[&str] = &[
+        "ollama",
+        "llama-server",
+        "llama-cli",
+        "vllm",
+        "lmstudio",
+        "mlx_lm",
+    ];
+    let Ok(output) = std::process::Command::new("ps")
+        .args(["-axo", "comm="])
+        .output()
+    else {
+        return Vec::new();
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
+    let Ok(text) = std::str::from_utf8(&output.stdout) else {
+        return Vec::new();
+    };
+    let mut detected = Vec::new();
+    for line in text.lines() {
+        let base = line.trim().rsplit('/').next().unwrap_or("");
+        for &daemon in FORBIDDEN_DAEMONS {
+            if base == daemon && !detected.iter().any(|d| d == daemon) {
+                detected.push(daemon.to_string());
+            }
+        }
+    }
+    detected
+}
+
 fn sysctl_loadavg() -> String {
     std::process::Command::new("sysctl")
         .args(["-n", "vm.loadavg"])
@@ -316,7 +423,7 @@ fn estimate_analytical_bytes_per_token(model: &IntegerStackModel) -> u64 {
     let tables_d_bytes = (d * 16 * 4) as u64; // b.tables[..d]
     let pairs_d_bytes = ((d / 2) * 256 * 4) as u64; // b.pairs
 
-    for (_l, kind) in s.pattern.bytes().enumerate() {
+    for kind in s.pattern.bytes() {
         // Mixer block:
         // RMSNorm
         bytes += x_bytes + norm_bytes + scratch_norm_bytes;
@@ -419,30 +526,107 @@ fn estimate_analytical_bytes_per_token(model: &IntegerStackModel) -> u64 {
 }
 
 fn cost(args: &[String]) -> Result<(), CliError> {
-    let (artifact, tokens, windows, prompt_len, out_dir) = match args {
+    let mut positional: Vec<&String> = Vec::new();
+    let mut energy_receipt_path: Option<String> = None;
+    let mut allow_provisional = false;
+    let mut i = 0usize;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--allow-provisional" => {
+                allow_provisional = true;
+                i += 1;
+            }
+            "--energy-receipt" => {
+                let Some(path) = args.get(i + 1) else {
+                    return Err(usage("--energy-receipt requires a PATH argument"));
+                };
+                energy_receipt_path = Some(path.clone());
+                i += 2;
+            }
+            arg if arg.starts_with("--") => {
+                return Err(usage(&format!("unrecognized cost flag: {arg}")));
+            }
+            _ => {
+                positional.push(&args[i]);
+                i += 1;
+            }
+        }
+    }
+
+    let (artifact, tokens, windows, prompt_len, out_dir) = match positional.as_slice() {
         [a, t, w, p] => (
-            a,
-            t,
+            *a,
+            *t,
             number(w, "WINDOWS")?,
             number(p, "PROMPT_TOKENS")?,
             None,
         ),
         [a, t, w, p, o] => (
-            a,
-            t,
+            *a,
+            *t,
             number(w, "WINDOWS")?,
             number(p, "PROMPT_TOKENS")?,
-            Some(Path::new(o)),
+            Some(Path::new(o.as_str())),
         ),
         _ => {
             return Err(usage(
-                "cost takes ARTIFACT TOKENS.u16 WINDOWS PROMPT_TOKENS [OUT_DIR]",
+                "cost takes ARTIFACT TOKENS.u16 WINDOWS PROMPT_TOKENS [OUT_DIR] [--energy-receipt PATH] [--allow-provisional]",
             ))
         }
     };
     if let Some(out) = out_dir {
-        uor_r4_integer::report_output::claim(out)?;
+        if out.exists() {
+            return Err(CliError::Io(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                format!(
+                    "report directory {} already exists; choose a new attempt path instead of reusing or overwriting an existing report",
+                    out.display()
+                ),
+            )));
+        }
     }
+
+    // 0. If an external energy receipt is supplied via `--energy-receipt`, validate it against
+    // Protocol v3 (`work_rate_w == gross_j_per_tok * tokens_per_s`, Student-t CI95, required v3
+    // fields, and in strict mode `work_rate_w > idle_rate_w` and empty `external_inference_daemons_detected`).
+    // In strict qualification mode (`!allow_provisional`), `--energy-receipt` is required so the
+    // physical work-rate identity `W = (J/tok) * (tok/s)` is always verified.
+    let validated_energy_receipt = if let Some(ref receipt_path) = energy_receipt_path {
+        let receipt_bytes = std::fs::read(receipt_path)?;
+        let receipt_json: serde_json::Value = serde_json::from_slice(&receipt_bytes)?;
+        let errors =
+            validate_protocol_v3_energy_receipt_with_mode(&receipt_json, allow_provisional);
+        if !errors.is_empty() {
+            return Err(CliError::Usage(format!(
+                "Protocol v3 energy receipt validation failed on {receipt_path}: {errors:?}"
+            )));
+        }
+        Some(receipt_json)
+    } else if !allow_provisional {
+        return Err(CliError::Usage(
+            "refusing strict M5 cost qualification without --energy-receipt <PATH> to verify W = (J/tok) * (tok/s) (pass --allow-provisional for latency/memory-only rehearsal)".to_owned(),
+        ));
+    } else {
+        None
+    };
+
+    // 0b. Static disassembly gate: verify via `objdump --demangle -d` (or `otool -tV`) on the
+    // running executable that `IntegerStackSession::step`, `stack_step`, and all emitted
+    // `uor_r4_integer::stack` mixer and kernel symbols contain zero multiply, divide, or
+    // floating-point instructions.
+    let current_exe = std::env::current_exe()?;
+    let (disasm_symbols_checked, disasm_instructions_checked) =
+        verify_step_objdump_zero_mul_zero_float(&current_exe)
+            .map_err(|e| CliError::Usage(format!("step disassembly audit failed: {e}")))?;
+
+    // 0c. Pre-flight external inference daemon refusal (before model work or claiming out_dir).
+    let external_daemons_before = detect_external_inference_daemons();
+    if !allow_provisional && !external_daemons_before.is_empty() {
+        return Err(CliError::Usage(format!(
+            "refusing cost qualification while external inference daemons are running: {external_daemons_before:?} (pass --allow-provisional for non-qualification rehearsal)"
+        )));
+    }
+
     let started_unix_s = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|elapsed| elapsed.as_secs())
@@ -468,18 +652,20 @@ fn cost(args: &[String]) -> Result<(), CliError> {
     if let Some(&id) = ids.iter().find(|&&id| id as usize >= vocab) {
         return Err(CliError::Stack(StackError::Token { token: id, vocab }));
     }
-    let _expected_steps = windows
+    let expected_steps = windows
         .checked_mul(context)
         .ok_or_else(|| usage("WINDOWS times the context overflows"))?;
+    if expected_steps < 2 {
+        return Err(usage(
+            "cost requires at least 2 total steps (WINDOWS * context >= 2) for Student-t confidence intervals",
+        ));
+    }
 
-    let binary_sha256 = std::env::current_exe()
-        .ok()
-        .and_then(|p| std::fs::read(&p).ok())
-        .map(|bytes| {
-            let mut hasher = Sha256::new();
-            hasher.update(&bytes);
-            format!("{:x}", hasher.finalize())
-        });
+    let binary_sha256 = std::fs::read(&current_exe).ok().map(|bytes| {
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes);
+        format!("{:x}", hasher.finalize())
+    });
     let data_sha256 = std::fs::read(tokens).ok().map(|bytes| {
         let mut hasher = Sha256::new();
         hasher.update(&bytes);
@@ -490,6 +676,7 @@ fn cost(args: &[String]) -> Result<(), CliError> {
     let prompt_tokens = prompt_len.min(ids.len() / 2).min(context);
     let prompt = &ids[..prompt_tokens];
     let mut session = model.session();
+    let post_session_alloc_rss_mb = process_rss_mb();
     let prompt_clock = Instant::now();
     for &id in prompt {
         session.step(id)?;
@@ -504,45 +691,181 @@ fn cost(args: &[String]) -> Result<(), CliError> {
     let stride = (ids.len() - context - 1) / windows;
     let mut step_us: Vec<f64> = Vec::with_capacity(windows * context);
     let mut total_steps = 0usize;
+    let mut unphased_hash = Sha256::new();
     let eval_clock = Instant::now();
     for window in 0..windows {
         let start = window * stride;
         session.reset();
         for &id in &ids[start..start + context] {
             let step_start = Instant::now();
-            session.step(id)?;
+            let logits = session.step(id)?;
             step_us.push(step_start.elapsed().as_nanos() as f64 / 1000.0);
+            for value in logits {
+                unphased_hash.update(value.to_le_bytes());
+            }
             total_steps += 1;
         }
     }
     let total_eval_seconds = eval_clock.elapsed().as_secs_f64();
+    let unphased_logits_sha256 = hex::encode(unphased_hash.finalize());
     let post_eval_rss_mb = process_rss_mb();
 
+    // 2b. Four-phase latency breakdown over the identical WINDOWS * context steps
+    // using `measure_step_phases` (outside the audited `IntegerStackSession::step` call graph),
+    // verifying bit-identical logits against the unphased pass.
+    let mut ingestion_us: Vec<f64> = Vec::with_capacity(windows * context);
+    let mut routing_us: Vec<f64> = Vec::with_capacity(windows * context);
+    let mut memory_lookup_us: Vec<f64> = Vec::with_capacity(windows * context);
+    let mut emission_us: Vec<f64> = Vec::with_capacity(windows * context);
+    let mut phased_total_us: Vec<f64> = Vec::with_capacity(windows * context);
+    let mut phased_hash = Sha256::new();
+    for window in 0..windows {
+        let start = window * stride;
+        session.reset();
+        for &id in &ids[start..start + context] {
+            let timing = session.measure_step_phases(id)?;
+            ingestion_us.push(timing.ingestion_ns as f64 / 1000.0);
+            routing_us.push(timing.routing_ns as f64 / 1000.0);
+            memory_lookup_us.push(timing.memory_lookup_ns as f64 / 1000.0);
+            emission_us.push(timing.emission_ns as f64 / 1000.0);
+            phased_total_us.push(timing.total_ns as f64 / 1000.0);
+            for value in session.logits() {
+                phased_hash.update(value.to_le_bytes());
+            }
+        }
+    }
+    let phased_logits_sha256 = hex::encode(phased_hash.finalize());
+    let phase_instrumentation_logits_match = unphased_logits_sha256 == phased_logits_sha256;
+    if !phase_instrumentation_logits_match {
+        return Err(CliError::Usage(format!(
+            "phase instrumentation logits drift: unphased={unphased_logits_sha256} vs phased={phased_logits_sha256}"
+        )));
+    }
+
+    let max_sampled_rss_mb = [
+        initial_rss_mb,
+        post_load_rss_mb,
+        post_session_alloc_rss_mb,
+        post_eval_rss_mb,
+    ]
+    .into_iter()
+    .flatten()
+    .reduce(f64::max);
+    let kernel_peak_bytes = kernel_peak_memory_bytes();
+    if !allow_provisional && kernel_peak_bytes.is_none() {
+        return Err(CliError::Usage(
+            "refusing cost qualification because kernel high-water-mark footprint (vmmap on macOS / VmHWM on Linux) is unavailable; pass --allow-provisional to permit ps RSS fallback".to_owned(),
+        ));
+    }
+    let kernel_peak_mb = kernel_peak_bytes.map(|b| (b as f64) / (1024.0 * 1024.0));
+    let peak_rss_mb = kernel_peak_mb.or(max_sampled_rss_mb);
+    let mut external_daemons = external_daemons_before;
+    for d in detect_external_inference_daemons() {
+        if !external_daemons.contains(&d) {
+            external_daemons.push(d);
+        }
+    }
+    if !allow_provisional && !external_daemons.is_empty() {
+        return Err(CliError::Usage(format!(
+            "refusing cost qualification while external inference daemons are running: {external_daemons:?} (pass --allow-provisional for non-qualification rehearsal)"
+        )));
+    }
+
     step_us.sort_by(f64::total_cmp);
-    let n = step_us.len() as f64;
-    let mean_us = step_us.iter().sum::<f64>() / n;
-    let stddev_us = (step_us.iter().map(|&x| (x - mean_us).powi(2)).sum::<f64>() / n).sqrt();
+    ingestion_us.sort_by(f64::total_cmp);
+    routing_us.sort_by(f64::total_cmp);
+    memory_lookup_us.sort_by(f64::total_cmp);
+    emission_us.sort_by(f64::total_cmp);
+    phased_total_us.sort_by(f64::total_cmp);
+
+    let df = step_us.len().saturating_sub(1);
+    let t_crit = student_t_0975(df);
+    let (mean_us, stddev_us, ci95_us) = sample_mean_sd_t_ci95(&step_us).ok_or_else(|| {
+        CliError::Usage("insufficient step samples (< 2) for Student-t CI95".to_owned())
+    })?;
     let p50_ms = percentile(&step_us, 50) / 1000.0;
     let p90_ms = percentile(&step_us, 90) / 1000.0;
     let p95_ms = percentile(&step_us, 95) / 1000.0;
     let p99_ms = percentile(&step_us, 99) / 1000.0;
 
+    let (ing_mean_us, ing_sd_us, ing_ci95_us) =
+        sample_mean_sd_t_ci95(&ingestion_us).ok_or_else(|| {
+            CliError::Usage("insufficient ingestion samples (< 2) for Student-t CI95".to_owned())
+        })?;
+    let (rout_mean_us, rout_sd_us, rout_ci95_us) =
+        sample_mean_sd_t_ci95(&routing_us).ok_or_else(|| {
+            CliError::Usage("insufficient routing samples (< 2) for Student-t CI95".to_owned())
+        })?;
+    let (mem_mean_us, mem_sd_us, mem_ci95_us) = sample_mean_sd_t_ci95(&memory_lookup_us)
+        .ok_or_else(|| {
+            CliError::Usage(
+                "insufficient memory_lookup samples (< 2) for Student-t CI95".to_owned(),
+            )
+        })?;
+    let (em_mean_us, em_sd_us, em_ci95_us) =
+        sample_mean_sd_t_ci95(&emission_us).ok_or_else(|| {
+            CliError::Usage("insufficient emission samples (< 2) for Student-t CI95".to_owned())
+        })?;
+    let (phased_total_mean_us, phased_total_sd_us, phased_total_ci95_us) =
+        sample_mean_sd_t_ci95(&phased_total_us).ok_or_else(|| {
+            CliError::Usage("insufficient phased_total samples (< 2) for Student-t CI95".to_owned())
+        })?;
+    let phase_sum_mean_us = (ing_mean_us + rout_mean_us + mem_mean_us + em_mean_us).max(1e-9);
+    let measured_total_denom_us = phased_total_mean_us.max(phase_sum_mean_us);
+    let unaccounted_overhead_us = (phased_total_mean_us - phase_sum_mean_us).max(0.0);
+
+    let mean_s = (mean_us / 1_000_000.0).max(1e-12);
+    let step_implied_tokens_per_second = 1.0 / mean_s;
+    let work_rate_identity_verified = validated_energy_receipt.is_some();
+
     let load_avg_after = sysctl_loadavg();
 
-    // 3. Analytical bytes per token estimate
+    // 3. Analytical bytes per token estimate & dynamic parameter breakdown
     let bytes_touched_per_token = estimate_analytical_bytes_per_token(&model);
+    let param_breakdown = model.parameter_breakdown();
+    let active_4bit_ratio = if param_breakdown.total_4bit_weights > 0 {
+        (param_breakdown.weights_per_token as f64) / (param_breakdown.total_4bit_weights as f64)
+    } else {
+        0.0
+    };
+    let active_total_param_ratio = if param_breakdown.total_learned_parameters > 0 {
+        (param_breakdown.active_learned_parameters_per_token as f64)
+            / (param_breakdown.total_learned_parameters as f64)
+    } else {
+        0.0
+    };
+    let weights_notes = format!(
+        "analytical shape-based count: {} 4-bit weights read per token out of {} total 4-bit weights ({:.4}% active; {} bytes active weights/scales out of {} total bytes; {:.2} effective bits per weight; {} active / {} total learned scalars, {} B)",
+        param_breakdown.weights_per_token,
+        param_breakdown.total_4bit_weights,
+        active_4bit_ratio * 100.0,
+        param_breakdown.active_4bit_weight_and_scale_bytes_per_token,
+        param_breakdown.total_4bit_weight_and_scale_bytes,
+        D11_EFFECTIVE_BITS_PER_WEIGHT,
+        param_breakdown.active_learned_scalars_per_token,
+        param_breakdown.total_learned_scalars,
+        param_breakdown.total_learned_scalar_bytes,
+    );
     let input_driven_forward_throughput = total_steps as f64 / total_eval_seconds;
 
-    let record = json!({
+    let mut record = json!({
         "schema": "uor-r4.stack-d11-cost/1",
         "started_unix_s": started_unix_s,
+        "allow_provisional": allow_provisional,
         "artifact": {
             "path": artifact,
             "sha256": model.artifact_sha256(),
         },
         "binary": {
-            "path": std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_default(),
+            "path": current_exe.display().to_string(),
             "sha256": binary_sha256,
+        },
+        "disassembly_audit": {
+            "step_objdump_zero_mul_zero_float": true,
+            "scope": "Transitive call graph from IntegerStackSession::step and stack::kernels::stack_argmax across all 43 mandatory uor_r4_integer::stack symbols, stack closure instantiations, and reachable non-formatting core/alloc/compiler_builtins callees; indirect calls (blr/call *) are rejected; 64-bit d0..d31 loads/stores are permitted solely for AArch64 NEON 2xi32 integer SIMD (sqadd.2s) while h0..h31/s0..s31 scalar float loads/stores and all float/multiply/divide opcodes are banned",
+            "legacy_ratchet_note": "stack_exp_neg and stack_sigmoid_q31 are D11 sealed integer-table kernels tracked as legacy sites by the D23 ratchet; this disassembly check certifies zero hardware multiply/divide/float opcodes, not CHARTER §3.2 mechanism compliance",
+            "symbols_checked": disasm_symbols_checked,
+            "instructions_checked": disasm_instructions_checked,
         },
         "tokens": {
             "path": tokens,
@@ -550,27 +873,42 @@ fn cost(args: &[String]) -> Result<(), CliError> {
             "windows": windows,
             "context": context,
             "total_steps": total_steps,
+            "logits_sha256": unphased_logits_sha256,
+            "phase_instrumentation_logits_match": phase_instrumentation_logits_match,
         },
         "machine": {
             "threads": 1,
             "load_average_before": load_avg_before,
             "load_average_after": load_avg_after,
+            "external_inference_daemons_detected": external_daemons,
         },
         "memory": {
             "initial_rss_mb": initial_rss_mb,
             "post_load_rss_mb": post_load_rss_mb,
+            "post_session_alloc_rss_mb": post_session_alloc_rss_mb,
             "post_eval_rss_mb": post_eval_rss_mb,
-            "peak_rss_mb": post_eval_rss_mb,
+            "max_sampled_rss_mb": max_sampled_rss_mb,
+            "kernel_peak_footprint_bytes": kernel_peak_bytes,
+            "kernel_peak_footprint_mb": kernel_peak_mb,
+            "peak_rss_mb": peak_rss_mb,
             "weights_read_per_token": model.weights_per_token(),
             "analytical_weights_read_per_token": model.weights_per_token(),
+            "total_4bit_weights": param_breakdown.total_4bit_weights,
+            "weights_read_over_total_4bit_weights": active_4bit_ratio,
+            "active_learned_scalars_per_token": param_breakdown.active_learned_scalars_per_token,
+            "total_learned_scalars": param_breakdown.total_learned_scalars,
+            "total_learned_parameters": param_breakdown.total_learned_parameters,
+            "active_learned_parameters_per_token": param_breakdown.active_learned_parameters_per_token,
+            "active_over_total_learned_parameters": active_total_param_ratio,
+            "parameter_breakdown": param_breakdown,
             "nominal_bits_per_weight": D11_NOMINAL_BITS_PER_WEIGHT,
             "scale_bits_per_weight": D11_SCALE_BITS_PER_WEIGHT,
             "bits_per_weight": D11_EFFECTIVE_BITS_PER_WEIGHT,
             "effective_bits_per_weight": D11_EFFECTIVE_BITS_PER_WEIGHT,
-            "weights_notes": "analytical shape-based count: 7,238,304 weights read per token (3,845,349 bytes weights/scales; 4.25 effective bits per weight)",
+            "weights_notes": weights_notes,
             "bytes_touched_per_token": bytes_touched_per_token,
             "analytical_bytes_touched_per_token_estimate": bytes_touched_per_token,
-            "rss_notes": "peak_rss_mb / post_eval_rss_mb is a single post-evaluation RSS sample via ps, not a continuous high-water mark",
+            "rss_notes": "kernel_peak_footprint_bytes / kernel_peak_footprint_mb is the kernel high-water-mark footprint (vmmap Physical footprint (peak) on macOS, /proc/self/status VmHWM on Linux; forbid(unsafe_code) forbids libc::getrusage FFI); strict mode refuses if kernel_peak_footprint_bytes is None; max_sampled_rss_mb is the maximum across initial, post-load, post-session-alloc, and post-eval ps -o rss= samples",
             "traffic_notes": "bytes_touched is an analytical estimate derived from tensor shapes, not hardware-instrumented memory traffic",
         },
         "bits_per_weight": D11_EFFECTIVE_BITS_PER_WEIGHT,
@@ -588,6 +926,9 @@ fn cost(args: &[String]) -> Result<(), CliError> {
         "step_latency": {
             "mean_ms": mean_us / 1000.0,
             "stddev_ms": stddev_us / 1000.0,
+            "ci95_student_t_ms": ci95_us / 1000.0,
+            "student_t_0975_df": df,
+            "student_t_0975": t_crit,
             "min_ms": step_us[0] / 1000.0,
             "p50_ms": p50_ms,
             "p90_ms": p90_ms,
@@ -595,15 +936,71 @@ fn cost(args: &[String]) -> Result<(), CliError> {
             "p99_ms": p99_ms,
             "max_ms": step_us[step_us.len() - 1] / 1000.0,
             "tokens_per_second": input_driven_forward_throughput,
+            "step_implied_tokens_per_second": step_implied_tokens_per_second,
+            "work_rate_identity_verified": work_rate_identity_verified,
             "input_driven_forward_throughput_tokens_per_second": input_driven_forward_throughput,
-            "throughput_mode": "input-driven teacher-forced stepping over dataset tokens (1 thread, 2,048 steps across 8 windows of context 256), not free-running autoregressive generation",
+            "throughput_mode": format!(
+                "input-driven teacher-forced stepping over dataset tokens (1 thread, {} steps across {} windows of context {}), not free-running autoregressive generation",
+                total_steps, windows, context
+            ),
             "threads": 1,
+            "phase_latency_us": {
+                "measured_total_step_us": phased_total_mean_us,
+                "measured_total_step_stddev_us": phased_total_sd_us,
+                "measured_total_step_ci95_student_t_us": phased_total_ci95_us,
+                "phase_sum_us": phase_sum_mean_us,
+                "unaccounted_overhead_us": unaccounted_overhead_us,
+                "ingestion": {
+                    "mean_us": ing_mean_us,
+                    "stddev_us": ing_sd_us,
+                    "ci95_student_t_us": ing_ci95_us,
+                    "p50_us": percentile(&ingestion_us, 50),
+                    "p90_us": percentile(&ingestion_us, 90),
+                    "p99_us": percentile(&ingestion_us, 99),
+                    "share_of_step": ing_mean_us / phase_sum_mean_us,
+                    "share_of_measured_step": ing_mean_us / measured_total_denom_us,
+                },
+                "routing": {
+                    "mean_us": rout_mean_us,
+                    "stddev_us": rout_sd_us,
+                    "ci95_student_t_us": rout_ci95_us,
+                    "p50_us": percentile(&routing_us, 50),
+                    "p90_us": percentile(&routing_us, 90),
+                    "p99_us": percentile(&routing_us, 99),
+                    "share_of_step": rout_mean_us / phase_sum_mean_us,
+                    "share_of_measured_step": rout_mean_us / measured_total_denom_us,
+                },
+                "memory_lookup": {
+                    "mean_us": mem_mean_us,
+                    "stddev_us": mem_sd_us,
+                    "ci95_student_t_us": mem_ci95_us,
+                    "p50_us": percentile(&memory_lookup_us, 50),
+                    "p90_us": percentile(&memory_lookup_us, 90),
+                    "p99_us": percentile(&memory_lookup_us, 99),
+                    "share_of_step": mem_mean_us / phase_sum_mean_us,
+                    "share_of_measured_step": mem_mean_us / measured_total_denom_us,
+                },
+                "emission": {
+                    "mean_us": em_mean_us,
+                    "stddev_us": em_sd_us,
+                    "ci95_student_t_us": em_ci95_us,
+                    "p50_us": percentile(&emission_us, 50),
+                    "p90_us": percentile(&emission_us, 90),
+                    "p99_us": percentile(&emission_us, 99),
+                    "share_of_step": em_mean_us / phase_sum_mean_us,
+                    "share_of_measured_step": em_mean_us / measured_total_denom_us,
+                },
+            },
         },
     });
+    if let Some(energy_json) = validated_energy_receipt {
+        record["validated_energy_receipt"] = energy_json;
+    }
 
     println!("{}", serde_json::to_string_pretty(&record).unwrap());
 
     if let Some(out) = out_dir {
+        uor_r4_integer::report_output::claim(out)?;
         std::fs::write(out.join("cost.json"), serde_json::to_vec_pretty(&record)?)?;
         uor_r4_integer::report_output::seal(out)?;
         uor_r4_integer::report_output::verify(out)?;

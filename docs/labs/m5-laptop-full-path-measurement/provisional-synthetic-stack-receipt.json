@@ -1,0 +1,217 @@
+{
+  "artifact": {
+    "path": "local/antigravity/m5-rehearsal/synthetic-stack.lut",
+    "sha256": "d60f88d6e08ac60763b35484307f9425f702b9fead4615dd8cbe5fdbbced92df"
+  },
+  "binary": {
+    "path": "/Users/casey.allard/uor-r4/.worktrees/antigravity-m5-laptop-full-path-measurement/local/antigravity/target/release/uor-r4-stack",
+    "sha256": "e59b7a822028c33799303a80da8efe7d8c943b5772ddbbe6efc61e9462c4bf83"
+  },
+  "disassembly_audit": {
+    "instructions_checked": 13801,
+    "legacy_ratchet_note": "stack_exp_neg and stack_sigmoid_q31 are D11 sealed integer-table kernels tracked as legacy sites by the D23 ratchet; this disassembly check certifies zero hardware multiply/divide/float opcodes, not CHARTER §3.2 mechanism compliance",
+    "scope": "Transitive call graph from IntegerStackSession::step and stack::kernels::stack_argmax across all 43 mandatory uor_r4_integer::stack symbols, stack closure instantiations, and reachable non-formatting core/alloc/compiler_builtins callees; indirect calls (blr/call *) are rejected; 64-bit d0..d31 loads/stores are permitted solely for AArch64 NEON 2xi32 integer SIMD (sqadd.2s) while h0..h31/s0..s31 scalar float loads/stores and all float/multiply/divide opcodes are banned",
+    "step_objdump_zero_mul_zero_float": true,
+    "symbols_checked": 107
+  },
+  "bits_per_weight": 4.25,
+  "cold_load": {
+    "ms": 3.426458,
+    "seconds": 0.003426458
+  },
+  "effective_bits_per_weight": 4.25,
+  "machine": {
+    "external_inference_daemons_detected": [
+      "ollama"
+    ],
+    "load_average_after": "{ 31.07 34.46 32.25 }",
+    "load_average_before": "{ 31.69 34.64 32.30 }",
+    "threads": 1
+  },
+  "memory": {
+    "active_learned_parameters_per_token": 16247,
+    "active_learned_scalars_per_token": 279,
+    "active_over_total_learned_parameters": 0.9253331814557467,
+    "analytical_bytes_touched_per_token_estimate": 341531,
+    "analytical_weights_read_per_token": 15968,
+    "bits_per_weight": 4.25,
+    "bytes_touched_per_token": 341531,
+    "effective_bits_per_weight": 4.25,
+    "initial_rss_mb": 1.96875,
+    "kernel_peak_footprint_bytes": 3784704,
+    "kernel_peak_footprint_mb": 3.609375,
+    "max_sampled_rss_mb": 4.578125,
+    "nominal_bits_per_weight": 4.0,
+    "parameter_breakdown": {
+      "active_4bit_weight_and_scale_bytes_per_token": 8483,
+      "active_learned_parameters_per_token": 16247,
+      "active_learned_scalars_per_token": 279,
+      "emission": {
+        "active_4bit_weight_and_scale_bytes_per_token": 680,
+        "active_4bit_weights_per_token": 1280,
+        "active_learned_scalars_per_token": 0,
+        "learned_scalar_bytes_total": 0,
+        "learned_scalars_total": 0,
+        "total_4bit_weight_and_scale_bytes": 680,
+        "total_4bit_weights": 1280
+      },
+      "ingestion": {
+        "active_4bit_weight_and_scale_bytes_per_token": 17,
+        "active_4bit_weights_per_token": 32,
+        "active_learned_scalars_per_token": 0,
+        "learned_scalar_bytes_total": 0,
+        "learned_scalars_total": 0,
+        "total_4bit_weight_and_scale_bytes": 680,
+        "total_4bit_weights": 1280
+      },
+      "memory_lookup": {
+        "active_4bit_weight_and_scale_bytes_per_token": 3842,
+        "active_4bit_weights_per_token": 7232,
+        "active_learned_scalars_per_token": 71,
+        "learned_scalar_bytes_total": 532,
+        "learned_scalars_total": 134,
+        "total_4bit_weight_and_scale_bytes": 3842,
+        "total_4bit_weights": 7232
+      },
+      "routing": {
+        "active_4bit_weight_and_scale_bytes_per_token": 3944,
+        "active_4bit_weights_per_token": 7424,
+        "active_learned_scalars_per_token": 208,
+        "learned_scalar_bytes_total": 560,
+        "learned_scalars_total": 208,
+        "total_4bit_weight_and_scale_bytes": 3944,
+        "total_4bit_weights": 7424
+      },
+      "total_4bit_weight_and_scale_bytes": 9146,
+      "total_4bit_weights": 17216,
+      "total_learned_parameters": 17558,
+      "total_learned_scalar_bytes": 1092,
+      "total_learned_scalars": 342,
+      "weights_per_token": 15968
+    },
+    "peak_rss_mb": 4.578125,
+    "post_eval_rss_mb": 4.578125,
+    "post_load_rss_mb": 3.25,
+    "post_session_alloc_rss_mb": 4.515625,
+    "rss_notes": "kernel_peak_footprint_bytes / kernel_peak_footprint_mb is the kernel high-water-mark footprint (vmmap Physical footprint (peak) on macOS, /proc/self/status VmHWM on Linux); max_sampled_rss_mb is the maximum across initial, post-load, post-session-alloc, and post-eval ps -o rss= samples",
+    "scale_bits_per_weight": 0.25,
+    "total_4bit_weights": 17216,
+    "total_learned_parameters": 17558,
+    "total_learned_scalars": 342,
+    "traffic_notes": "bytes_touched is an analytical estimate derived from tensor shapes, not hardware-instrumented memory traffic",
+    "weights_notes": "analytical shape-based count: 15968 4-bit weights read per token out of 17216 total 4-bit weights (92.7509% active; 8483 bytes active weights/scales out of 9146 total bytes; 4.25 effective bits per weight; 342 learned scalars / 1092 B)",
+    "weights_read_over_total_4bit_weights": 0.9275092936802974,
+    "weights_read_per_token": 15968
+  },
+  "prompt_ingestion": {
+    "ms_per_token": 0.102790375,
+    "seconds": 0.003289292,
+    "tokens": 32,
+    "tokens_per_second": 9728.537326573622
+  },
+  "schema": "uor-r4.stack-d11-cost/1",
+  "started_unix_s": 1792710951,
+  "step_latency": {
+    "input_driven_forward_throughput_tokens_per_second": 9524.8208273304,
+    "max_ms": 2.210833,
+    "mean_ms": 0.10384219726562494,
+    "min_ms": 0.024292,
+    "p50_ms": 0.10004099999999999,
+    "p90_ms": 0.139417,
+    "p95_ms": 0.149334,
+    "p99_ms": 0.350041,
+    "phase_latency_us": {
+      "emission": {
+        "mean_us": 3.4488242187500053,
+        "p50_us": 4.375,
+        "p90_us": 4.667,
+        "p99_us": 5.042,
+        "share_of_step": 0.026494276326582626
+      },
+      "ingestion": {
+        "mean_us": 0.30508984375,
+        "p50_us": 0.416,
+        "p90_us": 0.459,
+        "p99_us": 0.625,
+        "share_of_step": 0.0023437363321683223
+      },
+      "memory_lookup": {
+        "mean_us": 53.284287109374986,
+        "p50_us": 31.625,
+        "p90_us": 77.708,
+        "p99_us": 135.458,
+        "share_of_step": 0.4093362076459825
+      },
+      "routing": {
+        "mean_us": 73.13422460937498,
+        "p50_us": 51.167,
+        "p90_us": 54.75,
+        "p99_us": 1702.541,
+        "share_of_step": 0.5618257796952665
+      }
+    },
+    "stddev_ms": 0.14093462417034805,
+    "threads": 1,
+    "throughput_mode": "input-driven teacher-forced stepping over dataset tokens (1 thread, 512 steps across 8 windows of context 64), not free-running autoregressive generation",
+    "tokens_per_second": 9524.8208273304
+  },
+  "tokens": {
+    "context": 64,
+    "logits_sha256": "10ff4339c329138e8352cd96c646580c0de082ac3924efb8df366063653524ba",
+    "path": "local/antigravity/m5-rehearsal/tokens.u16",
+    "phase_instrumentation_logits_match": true,
+    "sha256": "5861d6f37385848a1434d69fb3111bf6f808d54d6a18edafae484c3c28b761d0",
+    "total_steps": 512,
+    "windows": 8
+  },
+  "protocol_version": "uor-r4.energy-measurement-protocol/3",
+  "qualification_status": "PROVISIONAL_SYNTHETIC_FIXTURE_NOT_M5_ACCEPTANCE",
+  "power": {
+    "sampler": "macmon pipe -s 0 -i 100 (sys_power whole-system Watts on Apple M1)",
+    "idle_window_s": 5.005,
+    "idle_samples": 43,
+    "idle_rate_w": 24.255221,
+    "work_rate_w": 23.319112,
+    "trial_work_rate_w_samples": [
+      22.820597,
+      23.686897,
+      22.366327
+    ]
+  },
+  "throughput": {
+    "tokens_per_trial": 32768,
+    "trials": 3,
+    "tokens_per_s": 21858.645,
+    "trial_tokens_per_s_samples": [
+      23089.828,
+      24558.571,
+      17927.535
+    ]
+  },
+  "energy_per_token": {
+    "gross_j_per_tok": 0.001066814,
+    "net_j_per_tok": 0.0,
+    "student_t_df": 2,
+    "student_t_975": 4.30265272991,
+    "gross_mj_per_tok": {
+      "samples": [
+        0.98834,
+        0.964506,
+        1.247596
+      ],
+      "mean": 1.066814,
+      "sd": 0.157015,
+      "ci95": 0.390046
+    },
+    "net_mj_per_tok": {
+      "samples": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": 0.0
+    }
+  }
+}

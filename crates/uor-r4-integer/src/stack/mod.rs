@@ -77,9 +77,14 @@ pub use format::{
 };
 pub use kernels::{stack_argmax, stack_memory_select, stack_snap_select, MAX_SELECT_SIDE};
 pub use session::{
-    IntegerStackModel, IntegerStackSession, SerializedStackLayerState, SerializedStackSession,
-    SnapTraceEntry, CONVOLUTION_WIDTH, STACK_SESSION_SCHEMA,
+    sample_mean_sd_t_ci95, student_t_0975, student_t_975, validate_protocol_v3_energy_receipt,
+    validate_protocol_v3_energy_receipt_with_mode, verify_step_disassembly_text,
+    IntegerStackModel, IntegerStackSession, ProtocolV3ValidationError, SerializedStackLayerState,
+    SerializedStackSession, SnapTraceEntry, StackParameterBreakdown, StackPhaseParameters,
+    StepPhaseTimingNs, CONVOLUTION_WIDTH, STACK_SESSION_SCHEMA,
 };
+#[cfg(not(target_arch = "wasm32"))]
+pub use session::verify_step_objdump_zero_mul_zero_float;
 
 /// SHA-256 of the 120 unit icosians of 2I (the transport snap's roots) as
 /// little-endian f32 bytes row by row, in `canonical_h4_roots` order. Equals
