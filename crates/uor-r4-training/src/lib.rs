@@ -157,6 +157,7 @@ pub mod joint_transfer;
 pub mod kappa_llama;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod knowledge_corpus;
+pub mod lawful_pointer;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod lut_export;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
