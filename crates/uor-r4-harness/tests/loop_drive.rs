@@ -598,14 +598,17 @@ fn a_productive_then_silent_client_is_closed_at_the_second_window() {
 
 #[test]
 fn a_leased_session_is_never_closed_and_notes_exactly_once_per_window() {
-    // Deterministic: the fake clock steps 600 s per read (so a 7,200 s window needs exactly 12
-    // reads), the client ends when the pause hook counts 30 polls, and the notice count is exact.
-    // With the two lease-skip lines removed the count becomes ~19, so this test pins them.
+    // Deterministic: the fake clock steps 600 s per read up to the 30-poll horizon (18,000 s = 2.5
+    // two-hour windows, so a 7,200 s window opens at read 12 and 14,400 s at read 24), and the stop
+    // sentinel lives under `local/loop/drive/` (ignored by `Observation::take`) with a 40 ms child
+    // teardown delay so parallel-load reap latency never opens a spurious third window or pollutes
+    // `git status --porcelain`. With the `next_check` advance in `loopdrive.rs` removed, every poll
+    // from read 12 onward notes and the exact count of 2 fails.
     let root = init_repo("lease-exempt");
     let launch = vec![
         "sh".to_string(),
         "-c".to_string(),
-        "while [ ! -f stop ]; do sleep 0.01; done".to_string(),
+        "while [ ! -f local/loop/drive/stop ]; do sleep 0.01; done; sleep 0.04".to_string(),
         "{prompt}".to_string(),
     ];
     let cards: RefCell<Vec<String>> = RefCell::new(Vec::new());
@@ -625,11 +628,11 @@ fn a_leased_session_is_never_closed_and_notes_exactly_once_per_window() {
             .map(|duration| duration.as_secs())
             .unwrap_or(0);
         let seconds = jump.get();
-        jump.set(seconds + 600);
+        jump.set((seconds + 600).min(18_000));
         real + seconds
     };
     let polls = std::cell::Cell::new(0u32);
-    let stop = root.join("stop");
+    let stop = root.join("local/loop/drive/stop");
     let pause = |_seconds: u64| {
         let count = polls.get() + 1;
         polls.set(count);
