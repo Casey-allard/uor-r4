@@ -1,7 +1,7 @@
 # Scale-matched E8 orbit-root normalization on the discrete M1 trunk (`OrbitRootSnapNormV1`)
 
-- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author review `deepseek-37`, 2026-10-22; see the Verdict at the end). No compute is cleared.
-  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review at a later head (CHARTER §4.5), the owner's answer to the bar decision card on `#2028` (`https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6338596024` — a decision card, no owner answer yet), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
+- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author review `deepseek-37`, 2026-10-22; see the Verdict at the end). No compute is cleared. **Sheet update 2026-10-23 (deepseek-40):** the owner's standing-direction decision registered the §3 bar at **2026-10-23T02:36:36Z** (`#2028` comment `6356034555`; card `6338596024`), and §5 now pins the full TRAIN/DEV digests from the code pin.
+  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review at a later head (CHARTER §4.5) from Claude or Kimi, the bar registered by the owner's standing-direction decision on `#2028` (`2026-10-23T02:36:36Z`, comment `6356034555`; card `6338596024`), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
 - **Line:** M1 discrete normalization and trunk stability (#2029, item `m1-normalization-mechanism` #2842). **Lab:** antigravity.
 - **Parent:** [`m1-attention-a8-address-cells-learning-2026-10-19.md`](m1-attention-a8-address-cells-learning-2026-10-19.md) (the A8 address-structured cells sheet).
   - **What changes from the parent:** evaluates scale-matched integer E8 orbit-root normalization `OrbitRootSnapNormV1` (`crates/uor-r4-discrete/src/normalization_mechanism.rs`, `NormalizationMode::ScaleMatchedSnapV1`) against two matched controls (`UnitSnapControlV1` and `UnnormalizedControlV1`) at equal parameter count.
@@ -39,7 +39,7 @@ Three arms share the identical A8 initialization (`address_structured_v1`, file 
   4. Deterministic tie-breaking on $x = \mathbf{0}$ and across all $\binom{16}{2} = 120$ root-pair sums (`deterministic_tie_breaking_on_zero_and_midpoints`).
   5. Exact equivariance under all 64 $\mathrm{Cl}(0,6)$ signed-axis frames and 4-bit-per-block (`16`-bit at $B=4$) D11 export (`cl06_frame_equivariance_across_all_64_actions`).
   6. Multi-stage residual stability across $S = 16$ stages vs. linear norm growth (`L1 = 68`) and address-distance drift (`> 16`) in `UnnormalizedControlV1` (`multistage_residual_accumulation_vs_unnormalized_drift`).
-- **Pre-registered trunk bar (proposed via decision card on `#2028`, CHARTER §5.2):**
+- **Pre-registered trunk bar (registered by the owner's standing-direction decision on `#2028`, 2026-10-23T02:36:36Z, comment `6356034555`; card `6338596024`; CHARTER §5.2):**
   - On the 14,287-row DEV panel (`P_succ` 3,847 copy-successor rows), across $\ge 2$ seeds:
     1. **Structural norm stability:** 100% of stage outputs in `N_snap` satisfy $\|\hat{x}_b\|_1 = 4$, $\|\hat{x}_b\|_2^2 = 8$, $\|\hat{x}_b\|_\infty = 2$, and endpoint `address_distance` $\in \{0, 4, 8, 12, 16\}$.
     2. **Top-1 & admission contrast:** `N_snap` beats `C_raw` (and is non-inferior to or beats `C_unscaled`) on paired one-sided McNemar top-1 contrast by $b - c \ge F_I = \max(24, \lceil 2\sqrt{b + c}\rceil)$ in both seeds while passing the Q1 admission floor ($\ge 1{,}351 / 3{,}847$ on `P_succ`).
@@ -51,9 +51,11 @@ Three arms share the identical A8 initialization (`address_structured_v1`, file 
 
 ## 5. Data split
 
-- Inherits the pinned M1 splits from `m1-attention-a8-address-cells-learning-2026-10-19.md`:
-  - TRAIN / DEV tokens `3dee858f…` / `0919e90f…` and masks;
-  - Sealed fresh V2 draw tokens / mask / seal `0b7e754c…` / `a1cda529…` / `df5d074a…`.
+- Inherits the pinned M1 splits from `m1-attention-a8-address-cells-learning-2026-10-19.md`; the full digests from the authoritative code pin (`crates/uor-r4-discrete/src/attention_learning.rs:1363-1384`) are:
+  - TRAIN tokens `3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8` (mask `b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3`; 7,512,797 tokens / 2,425,925 eligible targets);
+  - DEV tokens `0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b` (mask `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078`; 42,856 payload tokens / 14,287 targets);
+  - Sealed fresh V2 draw tokens / mask / seal `0b7e754c…` / `a1cda529…` / `df5d074a…`, tied to the parent A8 sheet's registered `TEST FITNESS: FIT` record (full digests there).
+- **Errata (staging sheet):** `docs/harness/prep/m1-a8-registration-and-runbook-staging-2026-10-22.md:46` carries `0919e90f813bf02f6f0528ebcf1f34c97987113b679619b0b44e065fa90b2546` / `a838bb1ae20c05a1b68265a7aa11c3dd146200b7d1ff6ef185ff999e442f5327` for the same DEV split; those digests appear in no code or archived artifact and are wrong against the code pin above. That item (#2832) is `done`, so the one-line errata is a PM action, recorded on `#2028` (item comment `6356047343`).
 - Training never touches DEV or fresh V2 rows (CHARTER §3.10, D22 §4).
 
 ## 6. Steps
@@ -98,6 +100,14 @@ Everything else checked and holds: all 8 blocks are present (`prep-check` `compl
 
 Re-request FIT only when 1–2 are pinned in this sheet; this verdict clears no compute (D22).
 
+### Post-registration update (deepseek-40, 2026-10-23)
+
+The two owner/PM prerequisites from this review now stand as follows.
+
+1. **Bar — REGISTERED.** The owner's standing-direction decision at **2026-10-23T02:36:36Z** (`#2028` comment `6356034555`, card `6338596024`) registers the §3 bar exactly as proposed: (a) 100% of `N_snap` outputs have `‖x‖₁=4`, `‖x‖₂²=8`, `‖x‖∞=2`; (b) `N_snap` beats `C_raw` and is non-inferior to or beats `C_unscaled` by McNemar `b − c ≥ max(24, ⌈2√(b+c)⌉)` in both seeds, Q1 floor `≥ 1,351/3,847` on `P_succ`, replicated on the sealed fresh V2 draw. The sheet now quotes it with the ISO-UTC time.
+2. **DEV pin — PINNED.** §5 now carries the full TRAIN/DEV pairs from the authoritative code pin (`3dee858f…`/`b5e7352d…` and `0919e90f953e…`/`a838bb1a67e9…`, matching 42,856/14,287 and the archived `a2-pilot`). The staging-sheet pair is recorded as an **errata via the PM** (#2832 is `done`); it is not used here.
+
+`TEST FITNESS: NOT_FIT` still stands: the FIT must come from a non-author lab (per the registration, Claude or Kimi — deepseek has authored text in this sheet). This update clears no compute.
 ### Recorded review
 
 ```text
