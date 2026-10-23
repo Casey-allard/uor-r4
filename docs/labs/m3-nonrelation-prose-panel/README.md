@@ -24,3 +24,11 @@
 ## Open items before closing `#2856`
 
 - Non-author FIT review of [`preregistration-DRAFT-2026-10-22.md`](preregistration-DRAFT-2026-10-22.md), owner decision on the proposed pass bar (`#2028`), and typed owner release (CHARTER §4.5, §5.1, §5.2) to run the saved `world=v2` compiler over `data/panels/nonrelation-prose-v1.txt` on a leased GPU and record the baseline `false_assert` and `false_overwrite` rates in `docs/research/notebook/m3-durable-memory.md`.
+
+## Non-author FIT review (deepseek-41, 2026-10-23)
+
+Non-author `TEST FITNESS` review of [`preregistration-DRAFT-2026-10-22.md`](preregistration-DRAFT-2026-10-22.md): **NOT_FIT**, recorded in the sheet's `## Verdict`. No compute is cleared.
+
+- **Resolved in the review:** the owner's bar is registered (`2026-10-23T02:36:36Z`, `#2028` comment `6356034555`, card `6337042887`) and §4 now quotes it with the time; the status line no longer says PENDING; the grader is cited by commit `b0430d40`.
+- **Remaining prerequisite:** the saved `world=v2` compiler artifact is unpinned — the sheet must name the artifact file/path and its `artifact_sha256`, tokenizer digest and `label_schema` before a FIT can release the baseline run.
+- **Verified:** panel hash `7c29c665…` matches the file and `MANIFEST.sha256`; four finite controls pass; held-out disjointness control present; cost, pre-run gate and negative rules stated.
