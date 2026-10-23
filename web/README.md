@@ -12,6 +12,7 @@ Build the `crates/uor-r4-integer` (`serving-wasm`) WebAssembly bundle into the g
 RUSTFLAGS="-C target-feature=-simd128" wasm-pack build crates/uor-r4-integer --target web --no-opt --out-dir ../../web/studio/pkg -- --features serving-wasm
 ~/.cargo/bin/cargo run -p uor-r4-integer --features serving-wasm --bin mk-synthetic-stack -- 5 web/studio/pkg/synthetic-stack.lut
 node web/studio/verify_studio_worker.mjs
+node web/studio/verify_studio_page.mjs   # page-load: no external load references; --strict-router also covers the demo page
 python3 scripts/audit_zero_matmul_wasm.py web/studio/pkg/uor_r4_integer_bg.wasm --serving --call-graph --tap
 ```
 
