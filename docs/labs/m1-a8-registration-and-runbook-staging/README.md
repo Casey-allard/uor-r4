@@ -57,8 +57,14 @@ CODEBOOK_BIN="$(pwd)/target/release/address-cells-codebook"
 
 Both `attention-audit-build-identity` outputs must report:
 - `driver_source_sha256 == "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d"`
-- `compiled_identity.source_sha256 == "a5d59806d7aa12ce7bed05bacc8cffa700da717a172efbe787075cce78c60831"`
-- `compiled_identity.geometry_sha256 == "46ddbb76d4f7f509fa9d8e5ee326b1cc8e882a20d532ce514a6a7cc80f37eb5a"`
+- `compiled_identity.source_sha256 == "177f1b3da11eddbe2cf90d8172c48d33fafca95b533ef8898f3e8d2c245edcfc"`
+- `compiled_identity.geometry_sha256 == "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327"`
+
+**Erratum (claude-64, 2026-10-23).** The two lines above replace the earlier pins `a5d59806…` and `46ddbb76d4f7…`, which this commit's binary does not report.
+- **How they were measured.** `fd409fcdf` was built on an RTX 5090 pod with `--features cuda` (nvcc 12.8.93, `sm_120`), and `discrete-stack build-identity` was run, with no model run (Casey's approval: #2842, 6372197194). The results are in the HF store at `results/claude/craw-a8id-20261023/` (`a8-build-identity.json`, `SHA256SUMS`).
+- **The geometry digest** matches 134 other records on main, including `verify_a8_address_cells_dose.py:453`.
+- **`a5d59806…` is a different quantity.** It is the dose verifier's 3-file `compiled_source_sha256` (`verify_a8_address_cells_dose.py:1417`, and row "Bound Source Commit" above), not `compiled_identity.source_sha256`.
+- **The source digest depends on the compiler.** It covers the nvcc PTX, so a different nvcc version can change it. Build with the bootstrap's nvcc 12.8.
 - `cuda_context_created == false`, `training == "HELD"`
 - `scope == "m1-attention-active-whole-interval-rejection-v1-relation-seed1-attempts0..16404"` (treatment) and `"m1-attention-active-whole-interval-rejection-v1-frozen-zero-seed1-attempts0..16404"` (control).
 

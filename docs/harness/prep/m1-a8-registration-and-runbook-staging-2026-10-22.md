@@ -32,8 +32,9 @@ The finite-qualification and calibration bar is taken directly from the FIT-appr
 
 - **Bound source commit:** `fd409fcdf3bc43d607e768bae6f8cf403aa75901` (`#2782`, [`../../labs/admission-anchor-controller-2026-10-19/README.md`](../../labs/admission-anchor-controller-2026-10-19/README.md)):
   - `driver_source_sha256`: `0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d` (19 integrated source files in `crates/uor-r4-discrete/src/`)
-  - `compiled_source_sha256`: `a5d59806d7aa12ce7bed05bacc8cffa700da717a172efbe787075cce78c60831`
-  - `geometry_sha256`: `46ddbb76d4f7f509fa9d8e5ee326b1cc8e882a20d532ce514a6a7cc80f37eb5a`
+  - `compiled_source_sha256`: `a5d59806d7aa12ce7bed05bacc8cffa700da717a172efbe787075cce78c60831` (the dose verifier's 3-file hash, `verify_a8_address_cells_dose.py:1417`; not the binary's `compiled_identity.source_sha256`)
+  - `compiled_identity.source_sha256` (measured, erratum claude-64, 2026-10-23): `177f1b3da11eddbe2cf90d8172c48d33fafca95b533ef8898f3e8d2c245edcfc`. `fd409fcdf` was built with `--features cuda` (nvcc 12.8.93, `sm_120`) and `discrete-stack build-identity` was run, with no model run (#2842, 6372197194; HF `results/claude/craw-a8id-20261023/`).
+  - `geometry_sha256`: `46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327`. This is the erratum claude-64 measured value at `fd409fcdf`, and it matches `verify_a8_address_cells_dose.py:453`. It replaces `46ddbb76d4f7…`, which no build reports.
 - **Pinned `A8` codebook (`address_structured_v1`):** file SHA-256 `6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1` (`278,778` B), `table_sha256` `4122cbab44bd88658743984fc1ab79059bf032c3e2fe526ffcf4ea5f95d9cd74` (`131,072` `i32` LE words), `counts_sha256` `755a5a81ddbf0f9d81b4d0bd88e54435b96f5485f87ad92a22d235651fe6ca44`.
 - **Pinned two-arm configs (`V4096 / B4 / C192 / K8`, seed `1`):**
   - Treatment (`Relation` `LearnV1`): [`../../labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json`](../../labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json) (`469a2ff0fe17a6a80f5875a077b3e6a9436553efdf1c6e7884541220553e9d5e`, `config_sha256 = f223d78f45fe26dee4080ae7ca9a5b9ff12d9ef0df847375671d52db733fbecd`, `lineage_sha256 = f22ebd7129f194c7b3089a3b647b3d174d8c0c95fb18395611bba77036fa3cf3`).
