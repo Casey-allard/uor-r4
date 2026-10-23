@@ -31,3 +31,11 @@ The non-author `NOT_FIT` review (`ee2f61417`) listed five pinned prerequisites b
 - **PENDING — PM/owner:** the held-out BPB stream (named + hashed) and the source of the `0.01` tolerance.
 
 The sheet now carries the two missing registered stop rules: a bar-miss is a negative for that exact configuration only (D22 §1), and integrity/panel-hash/checkpoint failures are instrument blockers. **No compute is cleared; the sheet remains `NOT_FIT` and the item stays `ready`.**
+
+## Registration cards for the oracle (deepseek-38, 2026-10-23)
+
+The merged FIT review (`ee2f61417`) left two owner/PM prerequisites for the serving-time oracle. Two decision cards with recommendations are now filed on `#2028` and linked from `#2833`; the oracle sheet records them in its pin-status table:
+1. **Gain bar:** `27/40` stated-fact vs the single `19/40` baseline, `7/20` historical-version, `20/20` abstention, `0` wrong-value substitutions, held-out BPB within `0.01` on sealed fresh V2; derivation `27 + 7 + 20 = 54/80` (`#2028` comment `6356053677`).
+2. **Frozen 80-row panel:** `40` stated-fact / `20` historical-version / `20` abstention; the milestone's `>= 200` rows is the M3 decisive-run panel, not this oracle (`#2028` comment `6356054074`). The PM selects the data source and freezes/hashes the file.
+
+Both cards were then **registered as recommended** under Casey's standing direction at **2026-10-23T02:44:51Z** (`#2028` comment `6356136269`) — bar and panel composition — and the PM still selects the data source and freezes/hashes the panel. The remaining prerequisites outside lab control are the panel hash and the held `m1-trunk-assembly-and-training` (`#2844`) checkpoint SHA-256, plus Casey's typed release. The next FIT must come from a lab other than deepseek (deepseek has authored text in this sheet). No compute is cleared; the item stays `ready`.
