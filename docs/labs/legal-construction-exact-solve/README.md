@@ -131,3 +131,36 @@ CARGO_TARGET_DIR=/tmp/legal-case-target ~/.cargo/bin/cargo build --release --loc
 - Original source: commit `ebd6ecaa`, `crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs` and `protected_legal_set.rs`.
 - Saved case: `codex-direct-legal-centered-20261009` (`md5 5a965dade6ed7b04b8238b4d1e020be3`), read from the gitignored local extraction; it is not committed.
 - Item: [`legal-construction-exact-solve`](../../roadmap/items/legal-construction-exact-solve.md); mechanism page: [`docs/mechanisms/legal-construction.md`](../../mechanisms/legal-construction.md).
+
+## Unit 4: exact single-coefficient census and a feasible legal change (deepseek-57, 2026-10-23)
+
+**Classification: instrument.** The PM ruling on #2828 (Kimi, 6342969530) classes an exact host solve as an instrument, and the owner direction recorded at 6355973721 keeps it there. This unit runs no GPU and no training; all decisions are arbitrary-precision rational arithmetic. It produces a **feasible improving legal change**, not an optimality or infeasibility proof, so the item stays `ready`.
+
+**Method.** If only coefficient `i` moves by `delta_i`, every guard sees `J_j . delta = J[j][i] * delta_i`, so a positive `delta_i` is legal exactly when every entry of column `i` is `>= 0` and a negative one exactly when every entry is `<= 0` (exact sign test). The unit enumerates the legal destination set per coefficient from the design note's encoding, reports the exact best single move, then runs a greedy joint pass with exact rational slack: it derives the exact feasible delta interval per column from the current slack, picks the best improving destination inside it, applies it, and repeats until no improving single-coefficient re-destination remains. Every coefficient may be re-destined, so the stop is a single-coefficient local optimum, not a global one. Every accepted move is checked on all 380 guard rows; the returned assignment is recomputed from scratch from `g` and `J`, and the **full 380-entry guard vector** must equal the incremental one exactly.
+
+**Result on the saved case** (input `attempt2`, `load_verified` 384 of 384 hashes, 1.68 s):
+
+- Census: 1,920 columns; **1,883 columns have both signs** (no single-coefficient move possible), 11 positive-only, 17 negative-only, 9 all-zero; only **37 columns admit any single-coefficient move**.
+- Exact best single move: coefficient 959 to code `q = 7`, `delta = 2/1`, objective change `-8791175/67108864` (about -0.131), all 380 guard rows exactly non-negative with minimum `0/1`.
+- Greedy joint pass: **48 accepted moves on 40 distinct coefficients, no improving single-coefficient re-destination remains**; objective **-426088804491/549755813888 (about -0.775051)**; exact guard minimum `0/1`; **320 of 380 guards active (exactly zero)**; 48.0 s including the independent recomputation.
+- Independent recomputation from `g` and `J` equals the incremental objective and **the full guard vector is identical** (`full_guard_vector_matches=true`); a second run produced the same assignment and numbers.
+
+**Independent replication and the correction it forced.** A fresh-context reviewer independently reloaded the raw binary32 files with its own bit-exact rational conversion and its own encoding implementation: it confirmed the earlier 41-move assignment's objective, guard minimum, zero-guard count and legality exactly, and it found that the earlier version's claim of no improving move was false because the search never revisited already-chosen coefficients (21 feasible improving re-destinations existed; the best alone reached about -0.72195). The search now permits re-destinations, which produced the stronger result above, and the independent check now compares the full guard vector rather than only its minimum. That reviewer's finding is the reason this record does not claim a local optimum in the full assignment space.
+
+**Returned assignment** (coefficient index `i`, final code `q`, exact `delta`; 40 distinct coefficients):
+
+```json
+{"i":27,"q":-7,"delta":"-3/2"},{"i":45,"q":-7,"delta":"-3/2"},{"i":56,"q":-7,"delta":"-3/2"},{"i":93,"q":-7,"delta":"-3/2"},{"i":195,"q":-7,"delta":"-3/2"},{"i":239,"q":-7,"delta":"-7/4"},{"i":248,"q":-3,"delta":"-1/2"},{"i":263,"q":-7,"delta":"-7/4"},{"i":269,"q":-7,"delta":"-3/2"},{"i":316,"q":-5,"delta":"-1/1"},{"i":318,"q":-7,"delta":"-7/4"},{"i":322,"q":-7,"delta":"-3/2"},{"i":349,"q":-7,"delta":"-3/2"},{"i":355,"q":7,"delta":"2/1"},{"i":359,"q":7,"delta":"2/1"},{"i":372,"q":-7,"delta":"-3/2"},{"i":466,"q":-7,"delta":"-3/2"},{"i":486,"q":7,"delta":"2/1"},{"i":498,"q":-7,"delta":"-3/2"},{"i":505,"q":7,"delta":"7/4"},{"i":521,"q":-7,"delta":"-3/2"},{"i":533,"q":2,"delta":"1/2"},{"i":548,"q":-7,"delta":"-3/2"},{"i":591,"q":-2,"delta":"-1/4"},{"i":592,"q":-7,"delta":"-3/2"},{"i":614,"q":-1,"delta":"-1/4"},{"i":625,"q":7,"delta":"2/1"},{"i":633,"q":-3,"delta":"-1/2"},{"i":646,"q":-7,"delta":"-3/2"},{"i":661,"q":-7,"delta":"-7/4"},{"i":671,"q":-7,"delta":"-7/4"},{"i":757,"q":-4,"delta":"-3/4"},{"i":777,"q":-7,"delta":"-3/2"},{"i":808,"q":-7,"delta":"-7/4"},{"i":834,"q":-7,"delta":"-3/2"},{"i":851,"q":7,"delta":"7/4"},{"i":874,"q":7,"delta":"7/4"},{"i":908,"q":-7,"delta":"-7/4"},{"i":917,"q":5,"delta":"3/2"},{"i":959,"q":7,"delta":"2/1"}
+```
+
+**What this establishes.** Prior units had never produced a legal move on the saved case: the exact dense tableau and the bounded-variable revised simplex did not finish, and the bounded-precision search returned no basis. This unit exhibits, in exact arithmetic, a legal code change that lowers the saved linearised objective (`g . delta < 0`) and satisfies every guard row exactly (`min J.delta = 0`). The discrete optimum is therefore **at most -426088804491/549755813888 (about -0.77505)**; it is not shown to be optimal. This is consistent with the negative phase-2 objective claude-50 observed on the relaxation.
+
+**Limits.** The greedy pass stops when no single-coefficient re-destination improves the objective; a multi-coefficient joint improvement may still exist, so no optimality certificate, dual bound or infeasibility proof is produced. The actual commit rule (native scoring, 17 reference cases, strict-loss lowering) is not evaluated here; the unit only solves the saved guard-constrained linear problem. Training and rental remain HELD.
+
+**Re-run** (from `docs/labs/legal-construction-exact-solve/solver/`, case extracted read-only):
+
+```sh
+CARGO_TARGET_DIR=/tmp/legal-target ~/.cargo/bin/cargo test --locked
+CARGO_TARGET_DIR=/tmp/legal-target ~/.cargo/bin/cargo build --release --locked --bin single-move
+/tmp/legal-target/release/single-move --case <attempt2 dir> --max-moves 256
+```
