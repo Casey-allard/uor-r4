@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 33 |
+| ready | 34 |
 | held | 26 |
 | decision | 4 |
 | done | 25 |
-| total | 88 |
+| total | 89 |
 
 ## Start here
 
@@ -170,6 +170,7 @@ These items are ready and open to anyone.
 | [Create the separate scanned D37 float training module](items/float-training-module.md) | ready | a lab | no | [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2823](https://github.com/UOR-Foundation/uor-r4/issues/2823) |
 | [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | ready | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md) | [#2826](https://github.com/UOR-Foundation/uor-r4/issues/2826) |
 | [Build the five-lab loop harness (the loop subcommands of uor-harness)](items/infra-loop-harness.md) | ready | a lab | no | none | [#2904](https://github.com/UOR-Foundation/uor-r4/issues/2904) |
+| [Let loop review count the render PR (or exempt it at the queue)](items/infra-loop-render-review.md) | ready | a lab | no | [infra-loop-harness](items/infra-loop-harness.md) | not yet synced |
 | [Settle the disputed D11 and Hopf observation statuses on the board](items/owner-decision-board-status-disputes.md) | decision | a lab | no | none | [#2874](https://github.com/UOR-Foundation/uor-r4/issues/2874) |
 | [Bench inbox rule: each lab reads the bench messages addressed to it](items/infra-bench-inbox-rule.md) | done | a lab | no | none | not yet synced |
 | [Record K16 normal close and final resource accounting](items/infra-k16-normal-close-accounting.md) | done | a lab | no | none | [#2827](https://github.com/UOR-Foundation/uor-r4/issues/2827) |
@@ -208,6 +209,7 @@ flowchart LR
   n_float_training_module["float-training-module"]
   n_hamilton_gate_offline_float_sheet["hamilton-gate-offline-float-sheet"]
   n_infra_desktop_client_tauri["infra-desktop-client-tauri"]
+  n_infra_loop_harness["infra-loop-harness"]
   n_infra_loop_pr02_item_keys["infra-loop-pr02-item-keys"]
   n_infra_loop_pr03_render["infra-loop-pr03-render"]
   n_infra_loop_pr04_gates["infra-loop-pr04-gates"]
@@ -221,6 +223,7 @@ flowchart LR
   n_infra_loop_pr10_supervisor["infra-loop-pr10-supervisor"]
   n_infra_loop_pr11_progress_window["infra-loop-pr11-progress-window"]
   n_infra_loop_pr12_git_hooks["infra-loop-pr12-git-hooks"]
+  n_infra_loop_render_review["infra-loop-render-review"]
   n_m1_a8_finite_cuda_qualification["m1-a8-finite-cuda-qualification"]
   n_m1_a8_full_dose_rerun["m1-a8-full-dose-rerun"]
   n_m1_a8_registration_and_runbook_staging["m1-a8-registration-and-runbook-staging"]
@@ -271,6 +274,7 @@ flowchart LR
   n_float_training_module --> n_e8_orbit_memory_sigmoid_free_iteration
   n_float_training_module --> n_hamilton_gate_offline_float_sheet
   n_float_training_module --> n_spiralcore_fbs_offline_float_sheet
+  n_infra_loop_harness --> n_infra_loop_render_review
   n_infra_loop_pr02_item_keys --> n_infra_loop_pr03_render
   n_infra_loop_pr02_item_keys --> n_infra_loop_pr05_policy_check
   n_infra_loop_pr02_item_keys --> n_infra_loop_pr07a_claim
