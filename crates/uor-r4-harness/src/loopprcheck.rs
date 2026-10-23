@@ -458,6 +458,21 @@ fn rule_scope(pr: &Pr) -> RuleResult {
             details: bad_globs,
         };
     }
+    let new_notebooks: Vec<String> = pr
+        .changed_paths()
+        .filter(|(_, path)| path.starts_with("docs/roadmap/items/") && path.ends_with(".md"))
+        .filter_map(|(_, path)| {
+            let base_notebook = crate::loopclaim::parse_item(&pr.at_base(path)?)
+                .ok()?
+                .notebook;
+            if base_notebook.is_some() {
+                return None;
+            }
+            crate::loopclaim::parse_item(&pr.at_head(path)?)
+                .ok()?
+                .notebook
+        })
+        .collect();
     // The active ORDER's folder and its history ORDERs' folders (loop step 11).
     let folders: Vec<String> = pr
         .the_chain()
@@ -472,6 +487,9 @@ fn rule_scope(pr: &Pr) -> RuleResult {
             || folders.iter().any(|f| path.starts_with(f.as_str()))
             || (path == item_path && status_only_edit(pr, path))
             || (item.notebook.as_deref() == Some(path) && keeps_base_lines(pr, path))
+            || (change.status == 'A'
+                && new_notebooks.iter().any(|notebook| notebook == path)
+                && keeps_base_lines(pr, path))
             || (change.status == 'A' && path.starts_with("docs/harness/mistakes/"))
             || (path == "docs/start/FILEMAP.md" && keeps_base_lines(pr, path));
         if !allowed {

@@ -7,6 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m1-d11-exporter-discrete, m4-lawful-likelihood-bpb, m1-close-saved-model, m3-qualify-memory]
+notebook: docs/research/notebook/m4-serving.md
 scope: [crates/uor-r4-integer/**, crates/uor-r4-lut/**, docs/mechanisms/lut-serving.md, docs/model/serving-and-export.md, docs/labs/m4-export-uorlut01-cli/**]
 ---
 
