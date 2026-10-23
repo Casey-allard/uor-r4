@@ -77,7 +77,8 @@ __device__ bool route_vector(const int* input,const U* ids,const U* routes,const
 }
 // ---- Flock & Relation read (Claude; Antigravity ReadSpec::Relation extension) ----
 // Device spec words appended after s[0..7]: s[8] read mode (0 Route, 1 Flock, 2 Relation),
-// s[9] kept K, s[10] sweeps S, s[12] snap scale (0 snap_n, 1 unit snap_1 control; Flock/Relation only).
+// s[9] kept K, s[10] sweeps S, s[12] snap scale (0 snap_n, 1 unit snap_1 control, 2 raw C_raw control:
+// the output block is the unsnapped Z^8 residual u, traced output root ABSENT; 1 and 2 Flock/Relation only).
 // Gates are i32 trits: block*stages+level (level 0 = atoms),
 // plus in Relation mode 5*stages relation gates at blocks*stages + level*5 + edge_type.
 #define MODE_FLOCK 1u
@@ -260,6 +261,7 @@ __device__ bool flock_vector(const int* input,const U* ids,const int* gates,cons
             for(U d=0;d<8;++d){int v=(int)g[ROOT+m*8+d];u[d]+=gate>0?v:-v;}
             ++terms;
         }
+        if(s[12]==2){if(rec){rec[1]=ABSENT;rec[2]=terms;}for(U d=0;d<8;++d)output[b*8+d]=u[d];continue;}
         U out=snap(u,s[12]==1?1u:terms,g);
         if(rec){rec[1]=out;rec[2]=terms;}
         for(U d=0;d<8;++d)output[b*8+d]=(int)g[ROOT+out*8+d];
@@ -459,7 +461,7 @@ extern "C" __global__ void discrete_validate(const int* table,const U* routes,co
     }
     if(i<s[1]*s[5] && routes[i]>=64)atomicExch(status,7u);
     if(i<gate_count(s) && (gates[i]<-1 || gates[i]>1))atomicExch(status,10u);
-    if(i==0 && (s[11]>1 || s[8]>MODE_RELATION || s[12]>1 || (s[12]==1 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION)
+    if(i==0 && (s[11]>1 || s[8]>MODE_RELATION || s[12]>2 || (s[12]!=0 && s[8]!=MODE_FLOCK && s[8]!=MODE_RELATION)
         || (s[8]==MODE_FLOCK && (s[9]==0 || s[9]>MAX_KEPT || s[10]!=0 || s[1]<2))
         || (s[8]==MODE_RELATION && (s[9]==0 || s[9]>MAX_KEPT || s[10]==0 || s[10]>MAX_SWEEPS || s[1]<2))))atomicExch(status,10u);
 }

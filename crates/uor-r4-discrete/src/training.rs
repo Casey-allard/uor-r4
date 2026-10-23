@@ -229,7 +229,7 @@ impl DriverConfig {
             ));
         }
         if self.normalization_mode.device_word()? != 0 && self.read_spec == ReadSpec::Route {
-            return Err(invalid("unit snap control needs a Flock or Relation read"));
+            return Err(invalid("snap-scale control needs a Flock or Relation read"));
         }
         if self.relation_learning_policy == RelationLearningPolicy::FrozenZeroV1
             && (!matches!(self.read_spec, ReadSpec::Relation { .. })
@@ -1584,6 +1584,8 @@ mod tests {
         assert!(route.validate().is_err());
         let mut unnormalized = canonical.config.clone();
         unnormalized.normalization_mode = NormalizationMode::UnnormalizedControlV1;
+        unnormalized.validate()?;
+        unnormalized.read_spec = ReadSpec::Route;
         assert!(unnormalized.validate().is_err());
         Ok(())
     }

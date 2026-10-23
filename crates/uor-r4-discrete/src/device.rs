@@ -844,7 +844,7 @@ impl Device {
         read_initialization.validate(read_spec)?;
         let snap_word = normalization_mode.device_word()?;
         if snap_word != 0 && read_spec == ReadSpec::Route {
-            return Err(invalid("unit snap control needs a Flock or Relation read"));
+            return Err(invalid("snap-scale control needs a Flock or Relation read"));
         }
         let metadata = BinderPlan::new(spec.context as usize)?;
         let packed = packed_geometry();
@@ -2196,7 +2196,17 @@ mod unit_snap_device_tests {
             0,
         )
         .is_err());
-        assert!(flock_device(NormalizationMode::UnnormalizedControlV1).is_err());
+        assert!(Device::new_with_normalization(
+            SPEC,
+            ReadSpec::Route,
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::ZeroGatesV1,
+            NormalizationMode::UnnormalizedControlV1,
+            7,
+            0,
+        )
+        .is_err());
+        flock_device(NormalizationMode::UnnormalizedControlV1)?;
         // The control mode is stored in the snapshot and survives a reload.
         let snapshot = control.snapshot()?;
         assert_eq!(
@@ -2209,6 +2219,58 @@ mod unit_snap_device_tests {
             NormalizationMode::UnitSnapControlV1
         );
         canonical_forward(&reloaded)?;
+        Ok(())
+    }
+
+    fn active_leaf_forward(mode: NormalizationMode) -> Result<Forward> {
+        let device = Device::new_with_normalization(
+            SPEC,
+            ReadSpec::Flock { kept: 2 },
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::ActiveLeafV1,
+            mode,
+            7,
+            0,
+        )?;
+        let row: Vec<Identity> = (0..3u32)
+            .map(|token| Identity {
+                token,
+                occurrence: u64::from(token),
+                record: 17,
+                version: 9,
+            })
+            .collect();
+        device.forward_traced(&device.carry(&row)?, &[0])
+    }
+
+    /// `C_raw` (`s[12] = 2`): the output block is the unsnapped residual, so
+    /// each block is bounded by `2 * terms` and the traced output root is
+    /// ABSENT. Invariants only; the read is never recomputed on the host.
+    #[test]
+    #[ignore = "requires a CUDA GPU"]
+    fn raw_control_device_word_runs_unsnapped() -> Result<()> {
+        let raw = active_leaf_forward(NormalizationMode::UnnormalizedControlV1)?;
+        let vectors = raw.vectors()?;
+        assert_eq!(vectors.len(), SPEC.blocks as usize * 8);
+        let trace = raw
+            .flock_trace()?
+            .ok_or_else(|| invalid("a Flock forward has a trace"))?;
+        let stride = raw
+            .trace_stride()
+            .ok_or_else(|| invalid("a Flock forward has a trace stride"))?;
+        let mut multi_term = false;
+        for (block, chunk) in vectors.chunks_exact(8).enumerate() {
+            let header = trace
+                .get(block * stride..block * stride + 4)
+                .ok_or_else(|| invalid("trace header truncated"))?;
+            assert_eq!(header[1], u32::MAX, "C_raw traces no output root");
+            let terms = header[2];
+            multi_term |= terms >= 2;
+            assert!(chunk.iter().all(|x| x.unsigned_abs() <= 2 * terms));
+        }
+        assert!(multi_term, "an active leaf gate adds a residual term");
+        let snapped = active_leaf_forward(NormalizationMode::ScaleMatchedSnapV1)?;
+        assert_ne!(vectors, snapped.vectors()?);
         Ok(())
     }
 }

@@ -68,15 +68,13 @@ impl NormalizationMode {
     }
 
     /// Device spec word `s[12]` of the Flock/Relation read: `0` keeps
-    /// `snap_n`, `1` is the unit `snap_1` control. The un-normalized control
-    /// needs a ℤ⁸ carry the device read does not have, so it is refused.
+    /// `snap_n`, `1` is the unit `snap_1` control, `2` is the `C_raw` control
+    /// whose output block is the unsnapped integer residual in ℤ⁸.
     pub fn device_word(self) -> Result<u32> {
         match self {
             Self::ScaleMatchedSnapV1 => Ok(0),
             Self::UnitSnapControlV1 => Ok(1),
-            Self::UnnormalizedControlV1 => Err(invalid(
-                "unnormalized_control_v1 needs a Z^8 carry; the device read has none",
-            )),
+            Self::UnnormalizedControlV1 => Ok(2),
         }
     }
 }
@@ -420,10 +418,11 @@ mod tests {
     }
 
     #[test]
-    fn unit_snap_word_refuses_unnormalized_control() {
-        assert!(NormalizationMode::UnnormalizedControlV1
-            .device_word()
-            .is_err());
+    fn unit_snap_word_maps_unnormalized_control_to_raw() {
+        assert_eq!(
+            NormalizationMode::UnnormalizedControlV1.device_word().ok(),
+            Some(2)
+        );
     }
 
     #[test]
