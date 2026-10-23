@@ -24,5 +24,5 @@ Address the exact-head review findings on PR `#3079` (`1ddfa1cbabb066ffa2c19cb27
 
 ## Cancel probe
 
-- Probe: `uor-harness loop gates --quick --cancel-probe`
+- Probe: `uor-harness loop gates --quick` (cancelled with SIGINT)
 - Cancel signal: `SIGINT` (`exit 130`), clean exit in `< 1s`.
