@@ -21,7 +21,7 @@
 - **Four prerequisites before `TEST FITNESS: FIT` can be granted:**
   1. **PM/owner scope answer (`#2851` / `owner-decision-float-path-scope`):** Settle whether this D37 float rung-0 sheet is the active successor to Amendment 6 or superseded by the discrete learning law.
   2. **Pre-registered D37 export-gap statistic and numeric band (CHARTER §3.7, §5.2, D39 item 5):** Specify the exact gap metric (`|top1_f32 - top1_int|` and `|recall8_f32 - recall8_int|` on the `14,287` DEV rows) and fix the numeric band in the sheet itself rather than delegating it to the FIT reviewer.
-  3. **D11 float-trunk exporter (`#2845`) and separate D29-scanned float module (`#2846`):** Land both items and wire integer export + same-evaluator integer scoring into `## Steps`.
+  3. **D11 float-trunk exporter (`#2820`) and separate D29-scanned float module (`#2823`):** Land both items and wire integer export + same-evaluator integer scoring into `## Steps`.
   4. **Literal source SHAs and fresh-transfer slice pin:** State the literal 40-char frozen source SHAs (`2fd6358bbc52d2a202a872ad0954ebb12894606f` / `9e904a83448c451f738d5c1d45224dfdf73eb84e`) and pin the file path, SHA-256, and `>= 200` row count for the fresh-transfer draw in the sheet body.
 
 ## Open items before closing `#2851`
