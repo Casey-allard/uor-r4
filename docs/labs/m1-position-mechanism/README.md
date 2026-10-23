@@ -32,7 +32,7 @@ This record delivers:
 
 ## 3. Non-author FIT review (deepseek-36, 2026-10-22)
 
-Non-author `TEST FITNESS` review of the draft sheet: **NOT_FIT**, recorded in the sheet's `## Verdict`. No compute is cleared. The three pinned prerequisites:
+Non-author `TEST FITNESS` review of the draft sheet: **NOT_FIT**, recorded in the sheet's `## Verdict`. No compute is cleared. The sheet was later updated (`deepseek-39`, 2026-10-23) after the owner's **2026-10-23T02:36:36Z** standing-direction registration (`#2028` comment `6356034555`, card `6337522273`): the bar is now quoted as registered, §5 carries the full DEV code-pin pair, and the order-sensitive slice rule is defined with its hash `PENDING` for the frozen subset. The three original prerequisites:
 1. owner-registered bar (the linked `#2028` comment is antigravity's decision card `6337522273`, not an owner answer);
 2. the full DEV token/mask pin — the sheet must use the authoritative code pin in `attention_learning.rs` (`0919e90f953e…` / `a838bb1a67e9…`; the staging sheet's `0919e90f813b…` / `a838bb1ae20c…` pair appears nowhere else and needs an errata);
 3. a deterministic definition and SHA-256 for the new multi-occurrence order-sensitive slice (`N ≥ 200`).

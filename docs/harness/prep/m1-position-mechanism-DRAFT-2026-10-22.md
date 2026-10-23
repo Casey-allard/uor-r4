@@ -1,7 +1,7 @@
 # Prefix-holonomy position mechanism on the discrete M1 orbit (`PositionHolonomyV1`)
 
-- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author review `deepseek-36`, 2026-10-22; see the Verdict at the end). No compute is cleared.
-  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review at a later head (CHARTER §4.5), the owner's answer to the bar decision card on `#2028` (`https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6337522273` — a decision card, no owner answer yet), `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
+- **Status:** draft pre-registration, `TEST FITNESS: NOT_FIT` (non-author review `deepseek-36`, 2026-10-22; see the Verdict at the end). No compute is cleared. **Sheet update 2026-10-23 (deepseek-39):** the owner's standing-direction decision registered the §3 bar at **2026-10-23T02:36:36Z** (`#2028` comment `6356034555`; card `6337522273`), §5 now pins the full DEV pair from the code pin, and the order-sensitive slice rule is defined with its hash slot `PENDING` for the frozen subset.
+  - Training and GPU evaluation remain HELD. A run needs a non-author `TEST FITNESS: FIT` review at a later head (CHARTER §4.5) from Claude or Kimi, the bar registered by the owner's standing-direction decision on `#2028` (`2026-10-23T02:36:36Z`, comment `6356034555`; card `6337522273`), the frozen order-sensitive slice hash, `m1-trunk-assembly-and-training`, PM dispatch, and Casey's typed D40 release.
 - **Line:** M1 learned attention and sequence position (#2029, item `m1-position-mechanism` #2843). **Lab:** antigravity.
 - **Parent:** [`m1-attention-a8-address-cells-learning-2026-10-19.md`](m1-attention-a8-address-cells-learning-2026-10-19.md) (the A8 address-structured cells sheet).
   - **What changes from the parent:** replaces the endpoint-only candidate transport in `Flock` / `Relation` (`discrete.cu` `flock_vector`) with causal prefix-holonomy transport `PositionHolonomyV1` (`crates/uor-r4-discrete/src/position_mechanism.rs`) and adds two matched controls (`EndpointControlV1` and shuffled-prefix evaluation `C_shuf`) to isolate sequence-order credit at equal parameter count.
@@ -39,7 +39,7 @@ Three arms share the identical A8 initialization (`address_structured_v1`, file 
   2. Prefix holonomy $F_t \circ F_s^{-1}$ matches direct step composition across $1..=243$ and composes transitively $H_{t \leftarrow m} \circ H_{m \leftarrow s} = H_{t \leftarrow s}$ (`prefix_holonomy_matches_direct_composition_and_transitivity`).
   3. All 64 frames $\times$ 16 roots remain in `0..64` and `0..16` with exact coordinates in $\{-2, 0, 2\}^8$, L1 norm 4, squared norm 8 (`states_and_coordinates_stay_within_exact_integer_bounds`).
   4. Non-commutative generators distinguish interior token swaps that `EndpointControlV1` cannot distinguish (`noncommutative_holonomy_detects_order_swaps_while_endpoint_control_is_blind`).
-- **Pre-registered "helps order" bar (proposed via decision card on `#2028`, CHARTER §5.2):**
+- **Pre-registered "helps order" bar (registered by the owner's standing-direction decision on `#2028`, 2026-10-23T02:36:36Z, comment `6356034555`; card `6337522273`; CHARTER §5.2):**
   - On the 14,287-row DEV panel (`P_succ` 3,847 copy-successor rows, plus the multi-occurrence order-sensitive slice $N \ge 200$ rows where the query token appears $\ge 2$ times in the prefix with distinct successors), across $\ge 2$ seeds:
     1. **Gain over matched-parameter control:** `H_pos(ordered)` beats `C_match(ordered)` on paired one-sided McNemar contrast by $b - c \ge F_I = \max(24, \lceil 2\sqrt{b + c}\rceil)$ in both seeds, with non-inferior admission ($\Delta\text{admitted} \ge 0$).
     2. **Order-destruction drop:** Shuffling the prefix order on the trained `H_pos` model (`H_pos(ordered)` vs `C_shuf`) reduces top-1 hits by at least $F_I = \max(24, \lceil 2\sqrt{b + c}\rceil)$ in both seeds.
@@ -51,9 +51,12 @@ Three arms share the identical A8 initialization (`address_structured_v1`, file 
 
 ## 5. Data split
 
-- Inherits the pinned M1 splits from `m1-attention-a8-address-cells-learning-2026-10-19.md`:
-  - TRAIN / DEV tokens `3dee858f…` / `0919e90f…` and masks;
-  - Sealed fresh V2 draw tokens / mask / seal `0b7e754c…` / `a1cda529…` / `df5d074a…`.
+- Inherits the pinned M1 splits from `m1-attention-a8-address-cells-learning-2026-10-19.md`; the full digests from the authoritative code pin (`crates/uor-r4-discrete/src/attention_learning.rs:1372-1384`) are:
+  - TRAIN tokens `3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8` (mask `b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3`; 7,512,797 tokens / 2,425,925 eligible targets);
+  - DEV tokens `0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b` (mask `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078`; 42,856 payload tokens / 14,287 targets);
+  - Sealed fresh V2 draw tokens / mask / seal `0b7e754c…` / `a1cda529…` / `df5d074a…` (full digests from the parent's registered record; the parent sheet is `TEST FITNESS: FIT`).
+- **Errata (staging sheet):** `docs/harness/prep/m1-a8-registration-and-runbook-staging-2026-10-22.md:46` carries `0919e90f813bf02f6f0528ebcf1f34c97987113b679619b0b44e065fa90b2546` / `a838bb1ae20c05a1b68265a7aa11c3dd146200b7d1ff6ef185ff999e442f5327` for the same DEV split; those digests appear in no code or archived artifact and are wrong against the code pin above. That item (#2832) is `done`, so the one-line errata is a PM action, recorded on `#2028` (the item comment `6356047343`).
+- **Order-sensitive slice (rule pinned; hash `PENDING — frozen subset`):** on the pinned DEV tokens, select every row whose query token appears at least twice in its causal prefix with pairwise-distinct successor tokens; require `N ≥ 200` such rows in the frozen subset. The selection is a deterministic function of the pinned DEV tokens and the model's tokenizer, so its row set and SHA-256 are fixed when the subset is frozen; the sheet's `SHA-256` slot stays `PENDING` until that frozen file exists.
 - Training never touches DEV or fresh V2 rows (CHARTER §3.10, D22 §4).
 
 ## 6. Steps
@@ -99,6 +102,15 @@ Everything else checked and holds: all 8 blocks are present (`prep-check` `compl
 
 Re-request FIT only when 1–3 are pinned in this sheet; this verdict clears no compute (D22).
 
+### Post-registration update (deepseek-39, 2026-10-23)
+
+The two owner/PM prerequisites from this review now stand as follows.
+
+1. **Bar — REGISTERED.** The owner's standing-direction decision at **2026-10-23T02:36:36Z** (`#2028` comment `6356034555`, card `6337522273`) registers the §3 bar exactly as proposed: DEV 14,287 rows, ≥ 2 seeds, `H_pos(ordered)` vs `C_match(ordered)` McNemar `b − c ≥ max(24, ⌈2√(b+c)⌉)` in both seeds with `Δadmitted ≥ 0`, and the order-shuffle drop ≥ `F_I`. The sheet now quotes it with the ISO-UTC time.
+2. **DEV pin — PINNED.** §5 now carries the full pair from the authoritative code pin (`0919e90f953e…`, `a838bb1a67e9…`, matching 42,856/14,287 and the archived `a2-pilot`). The staging-sheet pair is recorded as an **errata via the PM** (#2832 is `done`); it is not used here.
+3. **Order-sensitive slice — RULE PINNED, HASH `PENDING`.** §5 states the deterministic selection rule and `N ≥ 200`; the frozen subset's SHA-256 stays `PENDING` because the frozen file is data a lab/PM must file.
+
+`TEST FITNESS: NOT_FIT` still stands: the slice hash is not yet pinned and the FIT must come from a non-author lab (per the registration, Claude or Kimi — deepseek has authored text in this sheet). This update clears no compute.
 ### Recorded review
 
 ```text
