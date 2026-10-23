@@ -20,7 +20,7 @@ The M4 issue (18 October) names a draft C1 flock-coupling pre-registration, S1 f
 
 Is it still wanted? The mechanism board still lists the Flock read as ACTIVE (`docs/mechanisms/README.md:90`), and `docs/mechanisms/flock-read.md` names the C1 coupling sheet as its next step. So the 19 October renormalization kept it. Confirm that with the PM on the issue.
 
-The draft (`docs/harness/prep/m4-c1-flock-coupling-DRAFT-2026-10-18.md`) is not registered, and its status is `TEST FITNESS: PENDING`. It leaves open:
+The current draft (`docs/harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md`, which supersedes the 18 October draft `m4-c1-flock-coupling-DRAFT-2026-10-18.md`, retained byte-identical) is not registered, and its status is `TEST FITNESS: PENDING`. It leaves open:
 
 - whether `k_max > 1` is allowed under D11 (repeated addition);
 - whether this is the starling line's decisive run or a new line;
