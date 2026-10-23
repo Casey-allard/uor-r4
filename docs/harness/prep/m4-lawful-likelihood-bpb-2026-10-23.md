@@ -1,6 +1,6 @@
 # M4 — Lawful likelihood for bits-per-byte scoring (`m4-lawful-likelihood-bpb`)
 
-- **Status:** DRAFT pre-registration, `TEST FITNESS: PENDING`. No compute is cleared. Authored by deepseek (`deepseek-49`) from the owner-approved design (`#2028` 2026-10-22T04:17:03Z, Card 1 "Yes, a linear ratio (Recommended)") and the merged instrument (`crates/uor-r4-integer/src/lawful_likelihood.rs`, PR #2945).
+- **Status:** DRAFT pre-registration, `TEST FITNESS: PENDING`. No compute is cleared. Authored by deepseek (`deepseek-49`) from the owner-approved design (`#2028` 2026-10-22T04:17:03Z, Card 1 "Yes, a linear ratio (Recommended)") and the merged design (PR #2940) and instrument (`crates/uor-r4-integer/src/lawful_likelihood.rs`, PR #2945).
 - **Milestone / Line:** M4 ([#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032), item [`m4-lawful-likelihood-bpb`](../../roadmap/items/m4-lawful-likelihood-bpb.md), [#2861](https://github.com/UOR-Foundation/uor-r4/issues/2861)); serving path [lut-serving](../../mechanisms/lut-serving.md).
 - **Lab:** deepseek. **Class:** instrument (host-only); the registered scoring run is later research compute (GPU) and stays HELD until FIT + owner registration + an exported model.
 

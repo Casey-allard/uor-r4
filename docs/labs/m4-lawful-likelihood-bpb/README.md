@@ -53,7 +53,7 @@ The current integer model does produce Q48 masses — but only through an intege
 4. **Ties**: equal-score candidates across the remainder split, asserted in both slot orders.
 5. **Monotonicity/argmax** and **permutation equivariance** over random Q24 vectors.
 6. **BPB arithmetic**: a synthetic sequence with known masses yields exactly the analytic `bits_q12`; a uniform baseline over V tokens scores `log2(V)` bits per token.
-7. **Count-table baseline**: primary MLE baseline converts counts exactly — `mass_i = floor(count_i * 2^48 / total)` with remainder units by token id — and **zero-count tokens get mass 0, whose contribution is infinite and is reported as such** (the count model cannot score unseen targets). Secondary: add-one-smoothed counts through the same normalization, labelled "add-one".
+7. **Count-table baseline**: primary MLE baseline converts counts exactly — `mass_i = floor(count_i * 2^48 / total)` with remainder units by token id — and **zero-count tokens get mass 0, which the merged module returns as `MassZero`: their bits are unscorable and the cell is reported as not comparable, never as an infinite-bits result** (the count model cannot score unseen targets; `a_zero_count_is_unscorable_not_infinite` holds this). Secondary: add-one-smoothed counts through the same normalization, labelled "add-one".
 
 ## Crate choice
 
