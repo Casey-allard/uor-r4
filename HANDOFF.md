@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from 4f17e96965015b2cde102603b70b8a9c21922e10; do not edit -->
+<!-- rendered by uor-harness loop render from 26e19ac5bef700c6d095746989f3bc2c6baa8dad; do not edit -->
 # HANDOFF
 
 Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each open-item row gives the first sentence of the item's `Done when` and `Cancel if` sections; blocked items are listed once, in the blocked table, with their owner; `not recorded` means the item has no such section or key yet.
@@ -7,7 +7,7 @@ Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each o
 
 Items not `held`, `decision` or `done`. Held and decision items are listed once, in the blocked table below.
 
-### ready (34)
+### ready (33)
 
 | Item | Title | Done when | Cancel if | Size | Stands |
 |---|---|---|---|---|---|
@@ -15,7 +15,6 @@ Items not `held`, `decision` or `done`. Held and decision items are listed once,
 | float-training-module | Create the separate scanned D37 float training module | A new module builds CPU-only on the laptop with CPU tests, passes the banned-token scan under its own scanned entry, and carries the 24-kernel extract with no dependency on `crates/uor-r4-training`. | not recorded | not recorded | ready; after owner-decision-float-path-scope |
 | infra-desktop-client-tauri | Build the Tauri desktop client against the synthetic stand-in | A Tauri app sharing the web interface that runs the integer engine natively, offline, with durable memory, matching the written specification. | not recorded | not recorded | ready; after m7-studio-connect-wasm-engine |
 | infra-loop-harness | Build the five-lab loop harness (the loop subcommands of uor-harness) | Every PR in the build plan on [the loop page](docs/loop/README.md#build-plan) is merged, each with its planted fault turning its gate red. | not recorded | not recorded | ready |
-| infra-loop-pr08-migration | Loop PR 8: migrate the notes to STATE, HANDOFF and PLAN | STATE, HANDOFF and PLAN replace `STATUS.md`, `NOW.md` and the roadmap page, with the old files moved byte-identical to the archive with pointers (§4.7). | not recorded | not recorded | ready; after infra-loop-pr03-render |
 | legal-construction-exact-solve | Solve the saved legal-construction case in exact arithmetic | The saved 1,960-variable case is solved in exact arithmetic and the result is recorded as an optimal assignment with its objective, or as an infeasibility proof. | not recorded | not recorded | ready |
 | m1-address-as-read | Build the address-as-read mechanism and an object-store consumer | A read that resolves an address to stored content from the object store, with finite tests, and a registered serving-time oracle test that measures the gain from supplying the true address. | not recorded | not recorded | ready |
 | m1-address-key-full-vector | Replace the 5-value address key with a full-vector metric | Stage 1 bar: "enough distinct vectors that the number of positions still winnable clears the run bar of 1,941, and a starting reach above the address-cell model's 1,351 of 3,847", measured before any training. | not recorded | not recorded | ready; after m1-w2-capacity-capture |
