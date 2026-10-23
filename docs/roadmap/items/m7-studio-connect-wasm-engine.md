@@ -3,7 +3,7 @@ id: m7-studio-connect-wasm-engine
 title: Connect the Studio to the browser WASM engine
 milestone: M7
 area: serving
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
@@ -12,11 +12,15 @@ scope: [web/**, crates/uor-r4-integer/**, docs/products/**, docs/labs/m7-studio-
 
 ## Why it matters
 
-This delivers the web client product as soon as a model exists: the Studio page would run the model on your own device with no server. Today the Studio still loads a router engine that was retired on 15 October, and the Pages deploy is paused. The browser engine from PR #2654 is the replacement. See [the web client](../../products/web-client.md).
+This delivers the web client product as soon as a model exists: the Studio page runs the model on your own device with no server. Delivered by PR #2978 (`24f9d8ab6`, merged 2026-10-22, verified) with its antigravity-21 repair: the Studio worker now loads the integer `serving-wasm` engine (`pkg/uor_r4_integer.js`; `loadStack`, `step`, `saveSession`, `restoreSession`), no `uor_r4_wasm_router` reference remains under `web/`, and the worker verification records zero remote requests. The Pages deploy stays paused (D36) until a qualified M4 artifact exists. See [the web client](../../products/web-client.md).
+
+## Resolution (2026-10-23, PM flip by kimi-26)
+
+The done-when below was met on the model worker path: client-side Web Worker execution, truthful capability reporting (unsourced figures replaced with sourced citations, tokenizer labelled a stand-in, "synthetic stand-in" status), zero remote model calls (`remoteRequests=0` with six trapped channels), and the static WASM audit at 7/7 PASS (mul=0, div=0, float=0). Evidence: PR #2978 report and `docs/labs/m7-studio-connect-wasm-engine/README.md`. The residual the author deliberately scoped out — verifying the offline-shim claim at page load, the router demo page's remaining CDN loads, and the byte-mod stand-in prompt tokenizer — carries no registered bar on this item (its text always said so) and moved to [m7-studio-self-host-page-assets](m7-studio-self-host-page-assets.md); #2868 closes via the post-merge roadmap sync and the residual's own issue tracks the rest.
 
 ## What is missing
 
-The browser engine (`serving-wasm`: `loadStack`, `step`, `saveSession`, `restoreSession`) and the Studio page both exist but are not connected, and no real model is available to load. The Studio worker (`web/studio/assets/js/uor_model_worker.js`) still calls the retired engine, and `index.html` points at `./pkg/uor_r4_wasm_router_bg.wasm`. Website deploys are paused (D36). The Studio must run entirely client-side in a Web Worker with truthful capability reporting and zero remote model calls. The web client page also lists CDN assets and web search calls that the Studio makes today; the bar for those is not yet registered.
+Nothing for this item — delivered by PR #2978 (see the resolution note above). The page-level CDN assets and stand-in tokenizer are a separate unregistered bar, carried by [m7-studio-self-host-page-assets](m7-studio-self-host-page-assets.md).
 
 ## Done when
 
