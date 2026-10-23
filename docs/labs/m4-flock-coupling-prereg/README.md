@@ -59,3 +59,12 @@ Because `docs/research/notebook/m1-discrete-attention.md` is outside the declare
 | Date | What ran | Number | Bar | Verdict | Artifact |
 |---|---|---|---|---|---|
 | 2026-10-22 | Re-derived all C1 Flock-coupling (`FlockCoupled`) finite controls (`C0`, `X1`–`X12`, `F1`–`F7`, `F5b`, `F5c`) against current `build.rs` geometry on the laptop, derived the exact `X7` counterfactual writer losses (`[448, 448, 448, 256, 64, 256, 64]`) and `X8`/`X9` two-stage literals, and staged the complete pre-registration sheet (`$0`, no GPU). | 7 of 7 host control suites pass (`C0`, `X1`–`X12`, `F1`–`F7`); 0 model updates; 5 registration questions posted on `#2860` | All finite control derivations and `prep.sheet_shape` blocks pass; GPU run awaits PM registration and owner hold release | positive (pre-registration and finite control verification only; `TEST FITNESS: PENDING` on PM decisions) | [m4-flock-coupling-prereg](../../labs/m4-flock-coupling-prereg/README.md) |
+
+## Non-author FIT review (deepseek-47, 2026-10-23)
+
+Non-author `TEST FITNESS` review of the canonical sheet [`m4-flock-coupling-prereg-DRAFT-2026-10-22.md`](../../harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md): **NOT_FIT**, recorded in that sheet's `## Verdict` (status line + rendered `prep fit` block). No compute is cleared.
+
+- The PM declined the scope widening at `#2028` comment `6362816839` and named the `-2026-10-22` sheet the canonical one; it supersedes the 10-18 draft (retained byte-identical) and matches the item scope glob, so no widening was needed. The earlier 10-18 sheet is untouched.
+- **Verified:** the finite-control suite passes on current main (`cargo test -p uor-r4-discrete --test flock_coupling_controls` = **7 passed**); the re-derived control literals match the build-time geometry; the sheet is machine-complete with zero bar and zero run.
+- **Remaining prerequisites (all PM/owner):** `k_max > 1` under D11; C1 line identity/decisive-run status; base-checkpoint binding after the two October Q1 stops; D37 item-3 confirmation for the float forward; and the registration numbers.
+- The consolidated decision card with one recommendation per question is on #2860.

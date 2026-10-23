@@ -1,6 +1,6 @@
 # M4 C1 — Float-Trained Flock Coupling Exported as Integer Gate Weights (`m4-flock-coupling-prereg`, DRAFT)
 
-- **Status:** Complete specification and re-derived finite-control sheet (**PROPOSED, NOT REGISTERED**; `TEST FITNESS: PENDING` awaiting PM/owner registration of the 5 decisions in [§7](#7-open-pm--owner-decisions-blocking-registration) and [`#2860` comment `6352562539`](https://github.com/UOR-Foundation/uor-r4/issues/2860#issuecomment-6352562539)).
+- **Status:** Complete specification and re-derived finite-control sheet (**PROPOSED, NOT REGISTERED**; `TEST FITNESS: NOT_FIT`, non-author review `deepseek-47`, 2026-10-23 - see the Verdict at the end. The five PM/owner decisions in [§7](#7-open-pm--owner-decisions-blocking-registration) and [`#2860` comment `6352562539`](https://github.com/UOR-Foundation/uor-r4/issues/2860#issuecomment-6352562539) are still open; no compute is cleared.)
 - **Supersedes draft:** [`m4-c1-flock-coupling-DRAFT-2026-10-18.md`](./m4-c1-flock-coupling-DRAFT-2026-10-18.md) (retained byte-identical).
 - **Milestone / Line:** M4 (`#2032`, item [`m4-flock-coupling-prereg`](../../roadmap/items/m4-flock-coupling-prereg.md)); mechanism [`flock-read.md`](../../mechanisms/flock-read.md); notebook [`m1-discrete-attention.md`](../../research/notebook/m1-discrete-attention.md).
 - **Lab:** `antigravity` (`antigravity-25`).
@@ -174,4 +174,27 @@ To earn `KEEP`, an exported integer coupling arm (`A1`, `A2`, `A2-int`, or `A2-p
 - **Noise floor:** Binomial standard error on `P_succ` (`3,847` rows) near `p = 0.05..0.35` is `8.4..14.8` rows; the `24`-row minimum floor plus `max(24, two-seed range of A0)` ensures the keep threshold is never narrower than two-seed noise (CHARTER §4.3, D22).
 - **Controls:** Explicit zero-coupling ablation (`Z`, $K \equiv 0$), distribution-matched random integer coupling control (`R`), trit baseline (`A0`), and D37 item-3 float-to-integer export-gap witness.
 
-TEST FITNESS: PENDING
+## Verdict
+
+### Why NOT_FIT (prerequisites in priority order; each needs the PM or owner)
+
+These are exactly the five open decisions in §7; a lab must not answer them on the owner's behalf.
+
+1. **`k_max > 1` under D11.** The construction applies `K ∈ [-k_max, k_max]` by `|K|` repeated additions, so `|K| > 1` exports no multiply, but D11's wording is the owner's to interpret. Answer: allow `k_max ∈ {2,3}` (with the restricted `k_max = 1` arm as fallback), or restrict the sheet.
+2. **Line identity and status.** Confirm C1 is still wanted (board: Flock read ACTIVE; dossier names this sheet as next step) and whether it registers as the M4 starling/murmuration decisive run or a sub-rung of `m1-discrete-attention`; this fixes the milestone the later FIT is recorded on.
+3. **Base-checkpoint binding after the two October Q1 stops.** Choose (a) the post-admission-guard A8 rerun checkpoint once `#2832` runs, or (b) the retained A8 `FrozenZero` 16,404-batch / preflight checkpoint (`1,351 / 3,847` admitted); this fills the Base-artifact block.
+4. **D37 item-3 confirmation.** The §5.2 offline GPU float forward reports the float-minus-integer export gap on the unchanged integer writer; it is never served and never promotes. The owner/PM must confirm it is the D37 item-3 instrument.
+5. **Registration numbers.** C0 tuple-cache sample (`1,024` stratified TRAIN rows, zero cached-vs-live disagreements), pre-run TRAIN proxy-agreement threshold (`≥ 0.70` top-1 vs the integer writer's prediction; below it halts as a D31 instrument stop), and the numeric keep bar (the owner's, CHARTER §5.2).
+
+**Verified by this review (no answer needed):** the sheet is machine-complete, the finite-control suite passes on current main (`cargo test -p uor-r4-discrete --test flock_coupling_controls` = **7 passed**), the re-derived literals match the build-time geometry at the pinned source, and the sheet has zero bar, zero run and no compute cleared.
+
+### Recorded review
+
+```text
+TEST FITNESS: NOT_FIT - M4 #2032 FlockCoupled
+sheet: docs/harness/prep/m4-flock-coupling-prereg-DRAFT-2026-10-22.md
+reviewer: deepseek (non-author FIT review; antigravity authored the design, and Claude wrote the superseded 10-18 draft)
+note: Configuration is not yet registrable: five PM/owner answers are still open (k_max>1 admissibility under D11; C1 line identity/decisive-run status; base checkpoint binding after the two October Q1 stops; D37 item-3 confirmation for the float export-gap forward; and the registration numbers C0 sample size, proxy-agreement threshold and numeric bar). Everything else verifies: the sheet is machine-complete, the finite-control suite passes on current main (--test flock_coupling_controls = 7 passed), the re-derived literals match the build-time geometry, and the sheet has zero bar, zero run and no compute cleared. Re-request FIT once the five answers are recorded and the NOT_REGISTERED blocks are filled from them.
+date: 2026-10-23
+A FIT verdict clears compute for the configuration in that sheet only (D22).
+```
