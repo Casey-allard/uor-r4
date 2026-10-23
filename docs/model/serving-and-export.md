@@ -44,6 +44,8 @@ which is exact by the definition of base-16 digits, and each term is a table rea
 
 **A saved conversation (definition).** The `UR4SESS1` format saves a session's state and restores it byte for byte ([`session_codec.rs`](../../crates/uor-r4-integer/src/session_codec.rs)).
 
+**Discrete raw-token CLI.** `uor-chat --discrete MODEL.lut --prompt-ids CSV` loads the table-native artifact through `IntegerDiscreteModel` and appends its integer top-1 prediction for a fixed generation budget. The initial prompt must fit the declared context, which then slides during decode. No tokenizer or sampler is used; text chat and discrete `UR4SESS1` sessions are not implemented. The finite control compares two fresh processes with direct `evaluate_prefix` output. This is deterministic artifact-reload evidence, not conversational persistence, trained-model quality, or machine-code coverage of the new CLI root. The existing audit symbol sets do not name that root; the gap and the remaining quality inputs are registered in the [M4 draft sheet](../labs/m4-export-uorlut01-cli/PRE-REGISTRATION.md).
+
 ## The zero-multiply audit
 
 The audit disassembles the compiled release program and counts three kinds of instruction over the serving functions: Class I multiply, Class II divide, Class III floating point. The scripts are [`audit_zero_matmul_serving.py`](../../scripts/audit_zero_matmul_serving.py) (native) and [`audit_zero_matmul_wasm.py`](../../scripts/audit_zero_matmul_wasm.py) (WebAssembly, with a call-graph mode). They are existing Python scripts; porting them to Rust is an open question.

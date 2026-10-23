@@ -37,6 +37,8 @@ struct CliArgs {
     /// A `UORLUT01` geometric-stack artifact (`--stack`): served directly by
     /// the D11 stack engine instead of a sealed bundle.
     stack_path: Option<PathBuf>,
+    /// A `UORLUT01` discrete SpiralCore/FBS artifact (`--discrete`).
+    discrete_path: Option<PathBuf>,
     tokenizer_path: Option<PathBuf>,
     /// Literal-role dialogue version for the stack artifact (default 1).
     protocol: u8,
@@ -63,6 +65,7 @@ impl Default for CliArgs {
         Self {
             bundle_path: None,
             stack_path: None,
+            discrete_path: None,
             tokenizer_path: None,
             protocol: 1,
             threads: 1,
@@ -84,6 +87,7 @@ impl Default for CliArgs {
 fn print_usage() {
     eprintln!("Usage: uor-chat --bundle <PATH> [OPTIONS]");
     eprintln!("       uor-chat --stack <ARTIFACT.lut> --tokenizer <TOKENIZER.json> [OPTIONS]");
+    eprintln!("       uor-chat --discrete <ARTIFACT.lut> --prompt-ids <CSV> [OPTIONS]");
     eprintln!();
     eprintln!("Options:");
     eprintln!(
@@ -93,6 +97,8 @@ fn print_usage() {
         "      --stack <ARTIFACT>      UORLUT01 geometric-stack artifact (model.lut); served"
     );
     eprintln!("                              directly by the D11 integer stack engine");
+    eprintln!("      --discrete <ARTIFACT>   UORLUT01 discrete SpiralCore/FBS artifact; one-shot");
+    eprintln!("                              raw-token serving through IntegerDiscreteModel");
     eprintln!("      --tokenizer <PATH>      tokenizer.json for --stack (required with it)");
     eprintln!(
         "      --protocol <1|2>        literal-role dialogue version for --stack (default: 1)"
@@ -100,8 +106,9 @@ fn print_usage() {
     eprintln!("      --threads <INT>         worker threads for --stack steps (default: 1)");
     eprintln!("      --say <TEXT>            answer one turn, print a JSON record and exit");
     eprintln!(
-        "      --prompt-ids <CSV>      step comma-separated token IDs on --stack, print JSON and exit"
+        "      --prompt-ids <CSV>      step comma-separated token IDs on --stack or --discrete,"
     );
+    eprintln!("                              print JSON and exit");
     eprintln!(
         "      --save-session <PATH>   write UR4SESS1 session snapshot bytes after --prompt-ids"
     );
@@ -167,6 +174,17 @@ fn parse_cli_args() -> CliArgs {
                     args.stack_path = Some(PathBuf::from(&raw[idx]));
                 } else {
                     eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--stack'");
+                    process::exit(1);
+                }
+            }
+            "--discrete" => {
+                idx += 1;
+                if idx < raw.len() {
+                    args.discrete_path = Some(PathBuf::from(&raw[idx]));
+                } else {
+                    eprintln!(
+                        "{ANSI_RED_BOLD}error:{ANSI_RESET} missing argument for '--discrete'"
+                    );
                     process::exit(1);
                 }
             }
@@ -376,9 +394,12 @@ fn parse_cli_args() -> CliArgs {
         idx += 1;
     }
 
-    if args.bundle_path.is_some() && args.stack_path.is_some() {
+    let artifact_count = usize::from(args.bundle_path.is_some())
+        + usize::from(args.stack_path.is_some())
+        + usize::from(args.discrete_path.is_some());
+    if artifact_count > 1 {
         eprintln!(
-            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--bundle' and '--stack' are different serving paths; pass one"
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--bundle', '--stack', and '--discrete' are different serving paths; pass one"
         );
         process::exit(1);
     }
@@ -392,11 +413,16 @@ fn parse_cli_args() -> CliArgs {
         eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} '--tokenizer' is only used with '--stack'");
         process::exit(1);
     }
-    if (args.prompt_ids.is_some() || args.save_session.is_some() || args.restore_session.is_some())
-        && args.stack_path.is_none()
+    if args.prompt_ids.is_some() && args.stack_path.is_none() && args.discrete_path.is_none() {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--prompt-ids' requires '--stack' or '--discrete'"
+        );
+        process::exit(1);
+    }
+    if (args.save_session.is_some() || args.restore_session.is_some()) && args.stack_path.is_none()
     {
         eprintln!(
-            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--prompt-ids', '--save-session', and '--restore-session' require '--stack'"
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--save-session' and '--restore-session' require '--stack'"
         );
         process::exit(1);
     }
@@ -406,9 +432,33 @@ fn parse_cli_args() -> CliArgs {
         );
         process::exit(1);
     }
-    if args.bundle_path.is_none() && args.stack_path.is_none() && !args.verify_kernel {
+    if args.discrete_path.is_some() && args.say.is_some() {
         eprintln!(
-            "{ANSI_RED_BOLD}error:{ANSI_RESET} missing required argument '--bundle <path>' or '--stack <artifact.lut>'"
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} discrete text chat is not available; use one-shot '--prompt-ids'"
+        );
+        process::exit(1);
+    }
+    if args.discrete_path.is_some() && args.prompt_ids.is_none() {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--discrete' currently requires one-shot '--prompt-ids'; text chat and REPL are not available"
+        );
+        process::exit(1);
+    }
+    if args.discrete_path.is_some() && args.threads != 1 {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} the discrete evaluator is single-threaded; '--threads' must be 1"
+        );
+        process::exit(1);
+    }
+    if args.discrete_path.is_some() && args.system_prompt.is_some() {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} '--system' requires text chat; use only raw '--prompt-ids' with '--discrete'"
+        );
+        process::exit(1);
+    }
+    if artifact_count == 0 && !args.verify_kernel {
+        eprintln!(
+            "{ANSI_RED_BOLD}error:{ANSI_RESET} missing required argument '--bundle <path>', '--stack <artifact.lut>', or '--discrete <artifact.lut>'"
         );
         print_usage();
         process::exit(1);
@@ -944,6 +994,59 @@ mod tests {
     }
 }
 
+fn run_discrete_parity(cli: &CliArgs) -> Result<()> {
+    let artifact = cli
+        .discrete_path
+        .as_deref()
+        .ok_or_else(|| IntegerError::Invalid("--discrete requires an artifact path".to_owned()))?;
+    if cli.temperature != 0.0 {
+        return Err(IntegerError::Invalid(
+            "the discrete path serves greedy IntegerDiscreteModel predictions only; --temperature must be 0"
+                .to_owned(),
+        ));
+    }
+    let prompt = cli.prompt_ids.as_deref().ok_or_else(|| {
+        IntegerError::Invalid("--discrete requires one-shot --prompt-ids".to_owned())
+    })?;
+    let model = uor_r4_integer::discrete_d11::IntegerDiscreteModel::load(artifact)?;
+    let context_limit = model.shape().context as usize;
+    if prompt.len() > context_limit {
+        return Err(IntegerError::Invalid(format!(
+            "prompt length {} exceeds discrete context {context_limit}",
+            prompt.len()
+        )));
+    }
+    if let Some(&id) = prompt.iter().find(|&&id| id >= model.shape().vocabulary) {
+        return Err(IntegerError::Invalid(format!(
+            "token id {id} is outside the discrete vocabulary 0..{}",
+            model.shape().vocabulary.saturating_sub(1)
+        )));
+    }
+
+    let mut context = prompt.to_vec();
+    let mut generated_ids = Vec::with_capacity(cli.max_tokens);
+    for _ in 0..cli.max_tokens {
+        let prediction = model.evaluate_prefix(&context)?.prediction;
+        generated_ids.push(prediction);
+        if context.len() == context_limit {
+            context.remove(0);
+        }
+        context.push(prediction);
+    }
+    let record = serde_json::json!({
+        "schema": "uor-r4.uor-chat-discrete-parity/1",
+        "artifact": artifact,
+        "artifact_sha256": model.artifact_sha256(),
+        "model_schema": uor_r4_integer::discrete_d11::DISCRETE_SCHEMA,
+        "context": context_limit,
+        "decoding": "greedy IntegerDiscreteModel::evaluate_prefix",
+        "prompt_ids": prompt,
+        "generated_ids": generated_ids,
+    });
+    println!("{}", serde_json::to_string_pretty(&record)?);
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // Stack serving path (`--stack`): a `UORLUT01` geometric-stack artifact served
 // directly by the D11 integer stack engine, under the literal-role dialogue
@@ -1331,6 +1434,20 @@ fn main() {
     retain_kernel_symbols();
 
     let cli = parse_cli_args();
+
+    if cli.discrete_path.is_some() {
+        if cli.verify_kernel {
+            eprintln!(
+                "{ANSI_RED_BOLD}error:{ANSI_RESET} '--verify-kernel' verifies the retained bundle kernel; it does not apply to the discrete path"
+            );
+            process::exit(1);
+        }
+        if let Err(error) = run_discrete_parity(&cli) {
+            eprintln!("{ANSI_RED_BOLD}error:{ANSI_RESET} {error}");
+            process::exit(1);
+        }
+        process::exit(0);
+    }
 
     if cli.stack_path.is_some() {
         if cli.verify_kernel {
