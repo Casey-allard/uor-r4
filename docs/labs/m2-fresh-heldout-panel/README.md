@@ -82,13 +82,30 @@ CARGO_TARGET_DIR=local/harness-target ~/.cargo/bin/cargo run \
 
 ## 5. Non-author TEST FITNESS status
 
-Per `CHARTER.md` §4.5 and `#2849` steps 4–5, `docs/harness/panels/m2-fresh256.json` is registered with `"frozen": false` and `TEST FITNESS: PENDING` until:
+Per `CHARTER.md` §4.5 and `#2849` steps 4–5, `docs/harness/panels/m2-fresh256.json` was registered with `"frozen": false` and `TEST FITNESS: PENDING` until:
 
 1. A separate non-author lab session records a formal `TEST FITNESS: FIT` review of the overlap exclusion (`0` exact/word/2-gram overlaps against all `74` historical literals, `0` intra-panel duplicate content words), the exact `ByteBpeTokenizer` (`d36d3e87…`) encoding, the history-pair completion control audit (`0 / 256` across all 4 question-blind and role-swap controls), and the content seal; and
 2. A maintainer with HF write access uploads `plan.json`, `inputs.json`, `labels.json`, and `manifest.json` from `local/antigravity/m2-fresh256-sealed/` to `hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/`.
 
 M2 training and evaluation remain `HELD` (`NOT_RUN`) until the owner releases a pre-registered M2 sheet.
 
+
+### Non-author FIT review (deepseek-43, 2026-10-23): prerequisite 1 PASSES
+
+A **non-author** lab session reproduced the instrument from `main` and records `TEST FITNESS: FIT` for the construction/overlap/control/seal half. Commands and results (host-only, no GPU):
+
+```text
+cargo test -q --locked          # in docs/labs/m2-fresh-heldout-panel/instrument: 5 passed
+cargo run -q --locked -- --emit-dir /tmp/m2-fresh256-check
+plan   122268  0ed1ab98ab50bbad6c484c4e7e4ffeeb8bb7ad17d162251826302efe86d75715
+inputs 524850  1de2fc28607eff6bc412eee41a259d806ee1479b7c925059f00e9d3b54afa99a
+labels  68000  3b5c54771b8dc62e3c30aef2b30de28c09dfe79625f333854af046e6e354e2be
+manifest 1384  7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964
+```
+
+All four sizes and sha256 values match the registered panel JSON exactly. The instrument's audit output (same run) reports: `74` historical literals parsed from disk; `0` exact literal, `0` content-word and `0` 2-gram overlaps; `0` intra-panel content-word duplicates; minimum same-stratum edit distance `10`; `128` histories / `256` rows / `16` unordered blocks / `32` ordered banks; literal role balance and initial-position balance both `true`; `unscored_inputs_leak_count` `0`; and `0` hits for each of the four question-blind/role-swap controls (`copy_first_stated`, `copy_last_stated`, `role_swap_distractor`, `best_constant_reply`). The panel pins `ByteBpeTokenizer` `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` and the grader unchanged, as the JSON records.
+
+`TEST FITNESS: FIT` (non-author `deepseek-43`; the reviewer is not the antigravity author of the panel). This clears **prerequisite 1 only**; prerequisite 2 (a maintainer uploads `plan.json`, `inputs.json`, `labels.json`, `manifest.json` to `hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/`) is still open, so the panel stays `"frozen": false` and no candidate has been scored. M2 training and evaluation remain `HELD`/`NOT_RUN` until the owner releases a pre-registered M2 sheet; a FIT releases nothing.
 ## 6. Research notebook row (M2 grounded reply)
 
 *(Recorded here under `docs/labs/m2-fresh-heldout-panel/README.md` because `docs/roadmap/items/m2-fresh-heldout-panel.md` scopes paths to `[data/**, docs/harness/panels/**, docs/mechanisms/native-geometric.md, docs/labs/m2-fresh-heldout-panel/**, docs/reference/storage.md]`; ready to copy verbatim into `docs/research/notebook/m2-grounded-reply.md` once that path is added to an item scope.)*

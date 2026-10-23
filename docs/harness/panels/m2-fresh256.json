@@ -33,7 +33,7 @@
           "note": "registered by the owner on #2030 (comment 6350135678): pairs_both_complete_distinct >= 52/128 (40.625% of the 128 opposite-role history pairs, with single-row complete >= 104/256); current is 0/128 (NOT_RUN; no candidate has been scored on m2-fresh256, and every question-blind and role-swap control scores 0/128 pairs and 0/256 pair-verified rows through the real FrozenAnswers + ByteBpeTokenizer + pair_id grader), exceeding 0/128 by 12.0x the cluster-adjusted standard error (8.64 rows / 4.32 pairs)"
         }
       ],
-      "note": "Staged under m2-fresh-heldout-panel (#2849) prior to any M2 evaluation run (NOT_RUN). TEST FITNESS: PENDING — remains frozen: false until a non-author lab's TEST FITNESS: FIT review lands and a maintainer uploads the sealed files (plan.json, inputs.json, labels.json, manifest.json) to hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/."
+      "note": "Staged under m2-fresh-heldout-panel (#2849) prior to any M2 evaluation run (NOT_RUN). TEST FITNESS: FIT (non-author deepseek-43, 2026-10-23: instruments reproduced all four seals and the overlap/control audit) — stays frozen: false only until a maintainer uploads the sealed files (plan.json, inputs.json, labels.json, manifest.json) to hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/."
     }
   }
 }
