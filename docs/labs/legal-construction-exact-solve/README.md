@@ -71,6 +71,60 @@ CARGO_TARGET_DIR=/tmp/legal-case-target ~/.cargo/bin/cargo build --release --loc
 
 **Next.** Claude's design note (6354250887) separates the search from the proof. A fixed-point integer search (no floats) finds a candidate basis, and `blp`'s exact certificate proves or rejects it. That is claude-54.
 
+## Unit 3b: a fixed-width search, proved by the exact certificate (claude-54, 2026-10-23)
+
+**Classification: instrument,** as in Unit 3a.
+- Under Casey's standing direction (#2028, 6355948874), recorded on this issue (6355973721), the search counts as an exact-arithmetic host instrument.
+- A result is reported only with a passing exact certificate. The search's numbers never enter the proof; only its basis does.
+
+**The search (`search::search::<P>`).** It is `blp`'s bounded-variable revised simplex, run on `Dy<P>` (`src/dyadic.rs`):
+- `Dy<P>` is an `i128` mantissa of at most `P` bits plus an `i32` exponent, rounded to nearest once per operation. `P = 120` here.
+- There is no `f32` or `f64`, and `no_floats` still passes.
+- It returns a proposed optimal basis: the basic indices, plus each nonbasic variable's position (`Lower` or `Upper`).
+
+**The proof (`blp::certify_basis`).** From the basis it solves `B·x_B = b − N·x_N` and `πᵀB = c_B` exactly, by fraction-free (Bareiss) elimination on the integer-scaled data. It then runs `blp`'s certificate on every input row and bound, and on every reduced cost's sign.
+
+**The repair (`blp::solve_from_basis`).** If the certificate fails, `blp` starts its exact pivots from that basis (a warm start) and certifies again. `blp::solve_search_certify_repair` runs search, proof and repair in turn.
+
+**Controls** (`tests/search_certify.rs`, `tests/certify_basis.rs`):
+- On the controls, the random suite and the tightened-bound node LPs:
+  - search plus certificate gives the same status and the exactly equal objective as `lp::solve`, at `P = 120`;
+  - at `P = 12` it never returns a wrong optimum;
+  - search, certificate and repair equal `blp` on every LP, at both widths.
+- A planted corrupted basis (one basic index swapped) is rejected by the certificate, and the warm start recovers the exact optimum.
+- A planted wrong reduced-cost sign is rejected.
+- Bad bases are errors, not panics.
+
+**The root run (`root-search`, binary at `2115180e1`): an instrument stop.**
+- **Input:** the saved case's root relaxation (1,960 variables, 440 rows), loaded through `case::load_verified` (384 of 384 sha256 checks).
+- **Timing:** started 2026-10-23T03:08:21Z under the declared 7,800 s cap. Ended 05:18:21Z with `timeout` exit 124, no result line and an empty JSON.
+- **Pivots:** 48,025, against `blp`'s 775 in the same budget. The last progress line was at 7,795 s. All were in phase 2 (δ = 0 is feasible), with 37 bound flips.
+- **Objective:**
+  - 0 at every progress line through pivot 325, and negative from pivot 350 on (`blp` went negative from pivot 300);
+  - its magnitude (`⌈log₂|z|⌉`) reached 4 by pivot 1,825 and 5 by pivot 14,000, and was still 5 at the end.
+- **Pivot rate**, in pivots per second:
+
+  | Window | Rate |
+  |---|---|
+  | first 1,000 s | about 4.6 |
+  | next 1,000 s | about 3.1 |
+  | 2,000 s to 6,000 s | about 8–10 |
+  | last 1,800 s | about 2.5 |
+
+  From about 6,500 s on, this session's own cargo builds shared the CPU, so the late slowdown is not a property of the search.
+- **The certificate never ran,** because the search returned no basis.
+- **To re-run:** `cargo run --offline --locked --release --bin root-search -- <attempt2 dir>`.
+
+**What it establishes:** only that this bounded-precision search does not reach an optimal basis on this laptop within the ORDER's time budget.
+- No basis was proposed, so no certificate ran, and no optimum (nor its sign) is claimed.
+- Each pivot is about 60 times cheaper than an exact one (48,025 against 775 in the same time), so pivot cost is no longer the bottleneck it was in unit 3a. The pivot count is.
+- After pivot 14,000 the objective's magnitude stayed in one power of two for about 34,000 pivots. That is consistent with long degenerate stretches under Dantzig pricing with Bland's fallback (50 degenerate steps).
+- That reading is not measured: `SearchStats` counts no degenerate steps.
+
+**Next.** All of these stay inside the search, so the certificate keeps the result exact:
+- count degenerate steps and Bland switches in `SearchStats`, so the stall is measured rather than inferred;
+- then a degeneracy-aware rule inside the search: bound perturbation or steepest-edge pricing on `Dy`.
+
 ## Sources
 
 - Design note: [#2828 comment 6351533475](https://github.com/UOR-Foundation/uor-r4/issues/2828#issuecomment-6351533475).
