@@ -1,6 +1,6 @@
 # Bucketed CUDA writer: finite qualification against the full scan (DRAFT)
 
-- **Status:** DRAFT, TEST FITNESS: PENDING. Nothing is trained. A FIT releases nothing; the GPU run needs FIT plus the registered bar.
+- **Status:** DRAFT, `TEST FITNESS: NOT_FIT` (non-author audit recorded below; awaits owner/PM bar registration and pinning of the §5/§6 configuration choices). Nothing is trained. A FIT releases nothing; the GPU run needs FIT plus the registered bar.
 - **Line:** M1 (#2029). **Item:** `m1-faster-writer` (#2840), step 4. **Lab:** claude.
 - **Parent:** none. **Design note:** #2840 comment 6346787358. **Host controls:** `e10d109` (#2983), `crates/uor-r4-discrete/tests/writer_bucket_controls.rs`, 6 tests, and `docs/loop/tasks/m1-faster-writer/claude-34/REPORT.md`.
 - **Rules:** CHARTER §3.1–3.6 (geometry only; no normalized-exponential read and no squashing; no dense matrix product; GPU-only research compute; integer artifact) and §3.9 (D5-b per-token sparsity); §4.5 pre-registration with a non-author FIT.
@@ -121,4 +121,29 @@ On the host (#2983), the flipped tie rule fails 4 of the 6 tests and an ignored 
 
 **Test power.** Equality is exhaustive on its rows, so power is coverage. Every edge case in §5 has a row, all four kinds and both `s[11]` modes run, and the four planted faults must each be caught.
 
-TEST FITNESS: PENDING (no review yet)
+## 11. Verdict
+
+### Why NOT_FIT (prerequisites in priority order)
+
+1. **The §3 bar is not registered (`PROPOSED, NOT REGISTERED`).** Under CHARTER §5.1 and §5.2, a reviewer cannot register a bar; the owner/PM must register the §3 `B1`/`B2` bar with an ISO-UTC timestamp and §3 must quote that registration before `FIT` can be granted.
+2. **§5 leaves open design choices that change the tested configuration.** Under D22, a `FIT` verdict clears one single, unambiguous configuration. §5 currently leaves two explicit open choices (`Open choice for the reviewer and owner`, plus the optional `PrimeZeta` table):
+   - **Reviewer recommendation on Choice 1 (`V = 16,384` vocabulary source):** Pin the **seeded `V = 16,384` table** (`random_vocab`, seeds 1, 2, 3) in this sheet. `B1` and `B2` are exact algorithmic invariants over arbitrary CSR bucket distributions, whereas building a real 16,384-piece tokenizer and corpus is a separate held item (`#2872`).
+   - **Reviewer recommendation on Choice 2 (Real-read `DEV` panel & `PrimeZeta`):** Pin **both** the 14,287-row DEV real-read panel (`q` from `read_vector`) on pinned `A8` (`6600bdb1306dbaea4d77f5bf021e717a6bef791e44c1ec7d7c9bb9f0e8cd3cd1`) **and** the pinned `PrimeZeta` table (`83c1380a8f507e51d0342faa1b089dea6a20561a03552208c093fa640afc124b`), and include the authoritative full DEV token/mask SHA-256 digests (`0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b` / `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078`) from `crates/uor-r4-discrete/src/attention_learning.rs`. That tests the GPU bucketed writer on real read vectors across both predecessor-crowded (`A8`) and quota-uniform (`PrimeZeta`) cell distributions at negligible extra GPU time.
+3. **Concrete PTX entry inventory and CLI wiring in §6, plus `:326` target `ad` clarification in §3:**
+   - In §6, list the exact `.entry` kernel names that `src/bucket_source.rs` will admit via `admit_ptx_inventory` and the exact `writer-bucket-qualify` CLI invocation.
+   - In §3 ("What B2 counts"), state explicitly whether `ad = address_distance(q, g, s, target_cell)` at `discrete.cu:326` reuses the admission pass's `distance[target_cell]` (0 extra calls) or is counted outside the 256-call admission-pass bar alongside `:330-333`.
+
+Everything else checked and holds: all 8 required blocks are present (`prep.sheet_shape`); every `discrete.cu` line number (`:20-34`, `:270-496`), call-count formula (`V + 1 + A*V = 69,633` at `V = 4,096, A = K = 16`), and table SHA-256 (`6600bdb1…` and `83c1380a…` in `attention_learning.rs:31-33`; `16384` parameter inventory in `measurement.rs:213`) matches `origin/main` verbatim; `crates/uor-r4-discrete/tests/writer_bucket_controls.rs` (`e10d10926`, `#2983`) passes all 6 finite host controls; the path uses pure integer math compiled ahead-of-time via `nvcc` (`build.rs`) with zero float, squashing, or matmul instructions; and the 4 planted faults in §8 are each verified to fail `B1` or `B2`.
+
+Re-request FIT once the bar is registered and §§3, 5, and 6 pin one configuration; this verdict clears no compute (D22).
+
+### Recorded review
+
+```text
+TEST FITNESS: NOT_FIT - M1 #2029 m1-faster-writer
+sheet: docs/harness/prep/m1-faster-writer-DRAFT-2026-10-22.md
+reviewer: antigravity (non-author; fresh-context FIT review for #2840 at 47d781a49)
+note: Prospective finite qualification design, math, citations, and 4 planted faults are sound and verified line-by-line against discrete.cu (lines 20-34, 270-496), writer_bucket_controls.rs (6/6 host controls in e10d10926), attention_learning.rs, measurement.rs, and build.rs. NOT_FIT because the configuration and bar are not yet pinned: (1) section 3's B1/B2 bar is marked PROPOSED, NOT REGISTERED and awaits owner/PM registration with an ISO-UTC timestamp (CHARTER 5.1/5.2); (2) section 5 leaves two open design choices (seeded V=16,384 vs a built 16,384-piece table; including the 14,287-row DEV real-read panel on A8 vs seeded queries only, plus optional PrimeZeta 83c1380a...) - reviewer recommends pinning seeded V=16,384 plus the 14,287-row DEV real-read panel (with full DEV token/mask SHA-256 pins) on both A8 and PrimeZeta; (3) section 6 names src/bucket_source.rs and src/bin/writer-bucket-qualify.rs (to be built in Unit 3) without listing the exact admitted PTX .entry inventory or CLI argv, and section 3 should state whether target ad = address_distance(q,g,s,target_cell) at discrete.cu:326 reuses the admission distance array or is counted outside the 256-call admission bar. Re-request FIT once the bar is registered and sections 3, 5, and 6 pin one configuration; this verdict clears no compute (D22).
+date: 2026-10-23
+A FIT verdict clears compute for the configuration in that sheet only (D22).
+```
