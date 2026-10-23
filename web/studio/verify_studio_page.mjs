@@ -157,7 +157,7 @@ const strictPages = new Set(['index.html']);
 if (strictRouter) strictPages.add('geometric_prime_router_webapp.html');
 
 let failed = false;
-const report = { strictPages: [...strictPages], clean: [], legacyResidual: [], failures: [], note: 'static scan; runtime page-load trap still owed (see lab record)' };
+const report = { strictPages: [...strictPages], clean: [], legacyResidual: [], failures: [], note: 'static scan; runtime page-load trap in verify_studio_page_load.mjs' };
 
 for (const page of pages) {
     const html = readFileSync(resolve(__dirname, page), 'utf8');

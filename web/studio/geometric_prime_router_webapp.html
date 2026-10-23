@@ -5,46 +5,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>R⁴ Tangent Space Router & Web4 Protocol Explorer</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        cyber: {
-                            bg: '#08090d',
-                            panel: '#10121a',
-                            border: '#1f2433',
-                            accent: '#00f2fe',
-                            accentDim: 'rgba(0, 242, 254, 0.15)',
-                            purple: '#9b51e0',
-                            purpleDim: 'rgba(155, 81, 224, 0.15)',
-                            amber: '#f5a623',
-                            text: '#e2e8f0',
-                            muted: '#64748b'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Font Awesome for sleek icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link
-        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
+    <!-- Self-hosted styles (no CDN; Tailwind v3.4.17 static build, see the CSS header) -->
+    <link rel="stylesheet" href="assets/css/router_demo_offline.css">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: #08090d;
         }
 
         .code-font {
-            font-family: 'Fira Code', monospace;
+            font-family: 'Fira Code', ui-monospace, monospace;
         }
+
+        /* Local icon fallbacks: the page no longer loads Font Awesome. */
+        .fa-solid {
+            font-style: normal;
+            font-family: inherit;
+        }
+
+        .fa-atom::before { content: "⚛"; }
+        .fa-bezier-curve::before { content: "✒"; }
+        .fa-brain::before { content: "🧠"; }
+        .fa-calculator::before { content: "🧮"; }
+        .fa-circle-exclamation::before { content: "⚠"; }
+        .fa-circle-nodes::before { content: "🕸"; }
+        .fa-comments::before { content: "💬"; }
+        .fa-compass-drafting::before { content: "🧭"; }
+        .fa-globe::before { content: "🌐"; }
+        .fa-grip::before { content: "⠿"; }
+        .fa-layer-group::before { content: "🗂"; }
+        .fa-list-check::before { content: "✅"; }
+        .fa-lock::before { content: "🔒"; }
+        .fa-moon::before { content: "🌙"; }
+        .fa-play::before { content: "▶"; }
+        .fa-plus::before { content: "➕"; }
+        .fa-shapes::before { content: "⬠"; }
+        .fa-terminal::before { content: "⌨"; }
+        .fa-trash-can::before { content: "🗑"; }
+        .fa-triangle-exclamation::before { content: "⚠"; }
+        .fa-xmark::before { content: "✕"; }
+
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar {

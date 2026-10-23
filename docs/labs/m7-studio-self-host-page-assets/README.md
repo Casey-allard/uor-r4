@@ -6,21 +6,29 @@ Residual item of `m7-studio-connect-wasm-engine` (#2868); see the closure note i
 
 `web/studio/verify_studio_page.mjs` is a **static** scan of every load-time reference in the Studio HTML pages — `script[src]`, `img[src/srcset]`, `link[href]` for loading `rel`s, `iframe/source/video/audio/object` load attributes, and CSS `url(...)` — and asserts each resolves on-origin. Navigation links (`<a href>`) are not load requests and are deliberately excluded (the GitHub links on the page are navigation). The scanner has a fixture self-test that plants four external references (including a protocol-relative script and a `url()` in inline CSS) and proves it reports exactly those while ignoring an `<a href>` navigation link.
 
-At the current head:
+At the current head (after deepseek-61):
 ```text
-node web/studio/verify_studio_page.mjs
-  index.html: clean (zero page-load external references)
-  geometric_prime_router_webapp.html: 3 load references reported as the known legacy residual
 node web/studio/verify_studio_page.mjs --strict-router
-  FAIL (by design today): cdn.tailwindcss.com, cdnjs Font Awesome, fonts.googleapis.com
+  index.html: clean (zero page-load external references)
+  geometric_prime_router_webapp.html: clean (zero page-load external references)
+node web/studio/verify_studio_page_load.mjs --strict-router
+  index.html: 6 requests, 0 external
+  geometric_prime_router_webapp.html: 2 requests, 0 external
 ```
-The strict failure is the **evidence the claim was asserted-only before**: the demo page still loads three CDNs.
+Both the static scan and the headless-Chrome runtime trap now prove the claim on both Studio pages; the planted-external self-test still proves the traps fire.
 
-**Runtime page-load trap (deepseek-53):** `web/studio/verify_studio_page_load.mjs` loads the pages in headless Chrome through the DevTools protocol (Node's global WebSocket plus a built-in static http server; no npm dependency) and records every network request the page makes while loading. A planted-external self-test proves the trap fires. Result on the current tree: **index.html loaded with 6 requests and 0 external**; the router demo page made **9 requests with 8 external URLs** (Tailwind plus its build, Font Awesome css + webfont, Google Fonts css + 3 font files), reported as the legacy residual, and `--strict-router` exits 1 on it. The trap auto-attaches to worker targets and waits a settle window, and its self-test plants an inline fetch, a blob-Web-Worker fetch and a deferred fetch to prove all three channels are captured. Chrome is required and the harness fails closed when it cannot launch; the static scan (`verify_studio_page.mjs`) remains the dependency-free companion.
+**Runtime page-load trap (deepseek-53):** `web/studio/verify_studio_page_load.mjs` loads the pages in headless Chrome through the DevTools protocol (Node's global WebSocket plus a built-in static http server; no npm dependency) and records every network request the page makes while loading. A planted-external self-test proves the trap fires. Result on the current tree: **index.html 6 requests and 0 external; the router demo page 2 requests and 0 external.** Before deepseek-61 the demo page made 9 requests with 8 external URLs (Tailwind plus its build, Font Awesome css + webfont, Google Fonts css + 3 font files) and `--strict-router` exited 1 on it; that legacy residual is gone. The trap auto-attaches to worker targets and waits a settle window, and its self-test plants an inline fetch, a blob-Web-Worker fetch and a deferred fetch to prove all three channels are captured. Chrome is required and the harness fails closed when it cannot launch; the static scan (`verify_studio_page.mjs`) remains the dependency-free companion.
 
-## 2. Open decision (PM/owner) — demo page
+## 2. Demo-page decision — resolved by self-hosting (deepseek-61)
 
-The demo page is 1,647 lines with **263 distinct utility classes**, including a custom `cyber-*` Tailwind palette with opacity variants, gradients, animations and Font Awesome icon classes; faithful self-hosting is a large bespoke CSS/SVG rewrite, not the "three CDN links" the item text implies. Decision card on #2028 and #2868 asks for one of: (a) owner retires the page (archive step needed, outside this item's scope), (b) PM rules the page-load bar covers `web/studio/index.html` only and the demo page is a documented legacy residual, or (c) a follow-up item funds the demo page rewrite. Recommended: (b).
+The earlier decision card offered retire/bypass/rewrite because faithful self-hosting was believed to be a bespoke CSS/SVG rewrite. **self-hosting turned out tractable**, so none of those owner/product steps is needed:
+
+- The page's **own inline `tailwind.config`** (the custom `cyber-*` palette) was compiled with the Tailwind v3.4.17 standalone CLI against the page's source, producing `web/studio/assets/css/router_demo_offline.css` (**20,091 B**) containing the utilities used by the page's 263 class tokens (the CSS has 249 unique class selectors). The generated file carries a header naming the build and MIT attribution.
+- The **Font Awesome** dependency became local `::before` unicode rules for the 21 icon classes the page uses (no webfont, no external font).
+- The **Google Fonts** dependency became the same system-font fallback pattern `uor_offline_fonts.css` already uses for the main page (`'Inter', system-ui...`, `'Fira Code', ui-monospace...`), so installed fonts still apply and offline machines fall back gracefully.
+- The Tailwind CDN tag, the Font Awesome CSS link and the Google Fonts link are gone; the page makes **2 local requests, 0 external** in the runtime trap.
+
+**Caveats recorded:** the icon glyphs are unicode substitutes rather than Font Awesome's artwork, and fonts fall back to system families when Inter/Fira Code are not installed. A future unit can vendor the woff2 files under SIL OFL if visual parity is required. The item's other leg — a **real corpus tokenizer** — still needs an accepted M4 export, so the item stays `ready`.
 
 ## 3. Stack-bound tokenizer artifact (implemented, deepseek-52)
 
