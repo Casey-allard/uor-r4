@@ -102,4 +102,29 @@ About 15 minutes on one RTX 5090 pod (`~$0.20` at `$0.80/h`): ~8 minutes for the
 
 ## Verdict
 
-TEST FITNESS: PENDING — drafted by `antigravity` (`antigravity-27`, PR `#3014`); awaiting non-author `TEST FITNESS: FIT` review and owner/PM bar registration and pod-spend approval on [`#2881`](https://github.com/UOR-Foundation/uor-r4/issues/2881).
+```text
+TEST FITNESS: NOT_FIT - M1 #2029 prime-zeta-codebook
+sheet: docs/harness/prep/r-prime-zeta-vs-nulls-DRAFT-2026-10-22.md
+reviewer: kimi (non-author; the sheet was authored by antigravity)
+note: All mechanical content verified on host (audit summary below). NOT_FIT for compute until (1) the owner/PM registers the comparison bar and approves the ~$0.20 pod spend on #2881 (the sheet's own step 2; CHARTER §5.1/§5.2 — a reviewer cannot do either), and (2) the outcome rule is made total: any discordance pattern other than "b - c > F against all six nulls" or "|b - c| <= F against Q0..Q2" (for example P8 clearing Q0..Q2 but not all of R0..R2) is currently unnamed; one sentence recording that the residual pattern is reported descriptively and decides nothing (D22) closes this
+date: 2026-10-23
+```
+
+### Non-author `TEST FITNESS` audit summary (`kimi-25`, 2026-10-23)
+
+Verified at base `259f9b9b2` on host (`$0`, no GPU); every check is repeatable by another lab:
+
+1. **Null modes and CLI present as described:** `CodebookMode::RandomInjective { seed }` / `QuotaOnlyInjective { seed }` (`crates/uor-r4-discrete/src/prime_zeta.rs:145,150`) and the CLI parsers `random_injective:SEED` / `quota_only_injective:SEED` (`crates/uor-r4-discrete/src/bin/prime-zeta-codebook.rs:34-44`).
+2. **Tests:** `cargo test -p uor-r4-discrete --bin prime-zeta-codebook` passes `7 / 7` — the six sheet-named unit tests plus the CLI mode parser test. Note for future readers: the module is compiled into the binary target (`mod prime_zeta;` at `prime-zeta-codebook.rs:14`), so `--lib` runs do not include it; the sheet's "6 / 6 unit tests" is correct under the bin target.
+3. **Ratchets clean:** `uor-harness ratchet d32` reports `31` float sites in `prime_zeta.rs` against the frozen baseline of `31` (zero added); `ratchet d23` and `ratchet d25` report zero added sites.
+4. **All seven pinned tables regenerate bit-exact on host:** `prime-zeta-codebook spec-v4096-b4-c192-k8.json 0 <out> <mode>` for `prime_zeta`, `quota_only_injective:0..2` and `random_injective:0..2`; every `file_sha256` matches the sheet's pin table exactly (`83c1380a…`, `33b4e459…`, `57225bbb…`, `e03d6aef…`, `229e93f5…`, `36fec632…`, `25ec9bd2…`). The uniqueness / quota / census invariants behind the capacity columns are covered by the merged `random_and_quota_only_injective_nulls_satisfy_quota_uniqueness_and_census_invariants` test.
+5. **Archive and precedent consistency:** the P8 exactness gate (`B3_full 427 / 14,287`, `B3_init(P_succ) 127 / 3,847`, `top1 38 / 14,287`) matches `docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md:46-47`; the floor `F = max(24, 2·sqrt(b+c))` matches `m1-attention-address-structured-cells-DRAFT-2026-10-19.md:122,173` verbatim; the DEV pins (`0919e90f…` / `a838bb1a…`, `14,287` eligible rows) match `crates/uor-r4-discrete/src/attention_learning.rs` (`dev:` block).
+6. **Capacity arithmetic:** `256 × C(16,2) = 30,720` recomputed; the R-arm crowding range `32,493–32,802` is consistent with the pin table's occupancy columns (`min 3–8 / max 26–27`).
+7. **CHARTER §4.5 contents all present:** bar (fixed formula, explicitly `PROPOSED, NOT REGISTERED`), noise (paired floor `F ≈ 2σ`; capacity metrics are exact counts needing no SE), controls (D31 rebuild and P8 exactness gates), seeds (`3 × 2`, exceeding the `>= 2` / `>= 200` row minima), cost (`~$0.20`), and stop rules that classify instrument fault (D31) versus mechanism reading (D22).
+
+**Why `NOT_FIT` for compute (two prerequisites before `FIT`):**
+
+- **(a) Bar and spend are unregistered owner/PM calls.** The comparison bar is `PROPOSED, NOT REGISTERED` and the sheet's own step 2 lists owner/PM registration and pod-spend approval before the run; under CHARTER §5.2 a reviewer can neither register the bar nor approve the spend, so this sheet cannot be stamped `FIT` while they are pending on `#2881`.
+- **(b) The outcome rule is not total.** Positive attribution requires `b - c > F` against all six null arms and the null reading covers `|b - c| <= F` against `Q0..Q2`, but a mixed pattern (for example clearing `Q0..Q2` yet failing some `R` seed, which would point at cell crowding rather than quota) is unnamed and decides nothing. One sentence recording the residual pattern as descriptive-only (D22) closes the partition.
+
+Drafted by `antigravity` (`antigravity-27`, PR `#3014`); this audit is the non-author review requested on [`#2881`](https://github.com/UOR-Foundation/uor-r4/issues/2881).
