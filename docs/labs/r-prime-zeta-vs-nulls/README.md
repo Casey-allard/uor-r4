@@ -1,11 +1,11 @@
 # Prime-zeta codebook vs random-injective and quota-only-injective nulls at zero updates (`r-prime-zeta-vs-nulls`)
 
-- **Lab / Task:** `antigravity` (`antigravity-27`)
+- **Lab / Task:** `antigravity` (`antigravity-27`, `antigravity-28`, `antigravity-36`; non-author audit by `kimi` in `kimi-25`)
 - **Roadmap item:** [`docs/roadmap/items/r-prime-zeta-vs-nulls.md`](../../roadmap/items/r-prime-zeta-vs-nulls.md) (Issue [`#2881`](https://github.com/UOR-Foundation/uor-r4/issues/2881), Milestone M1 [`#2029`](https://github.com/UOR-Foundation/uor-r4/issues/2029))
 - **Design note & decision card:** [`#2881` comment `6353762758`](https://github.com/UOR-Foundation/uor-r4/issues/2881#issuecomment-6353762758) (cross-linked on [`#2029` comment `6353766545`](https://github.com/UOR-Foundation/uor-r4/issues/2029#issuecomment-6353766545))
-- **Pre-registration sheet:** [`docs/harness/prep/r-prime-zeta-vs-nulls-DRAFT-2026-10-22.md`](../../harness/prep/r-prime-zeta-vs-nulls-DRAFT-2026-10-22.md) (`TEST FITNESS: PENDING`, bar marked `PROPOSED, NOT REGISTERED`)
+- **Pre-registration sheet:** [`docs/harness/prep/r-prime-zeta-vs-nulls-DRAFT-2026-10-22.md`](../../harness/prep/r-prime-zeta-vs-nulls-DRAFT-2026-10-22.md) (`TEST FITNESS: NOT_FIT` from `kimi-25` `#3067`; prerequisite `(b)` total outcome rule resolved in `antigravity-36`; awaits only prerequisite `(a)`, owner/PM registration of the comparison bar and `~$0.20` pod spend on `#2881`)
 - **Source modules:** [`crates/uor-r4-discrete/src/prime_zeta.rs`](../../../crates/uor-r4-discrete/src/prime_zeta.rs), [`crates/uor-r4-discrete/src/bin/prime-zeta-codebook.rs`](../../../crates/uor-r4-discrete/src/bin/prime-zeta-codebook.rs)
-- **Status:** Steps 1–4 of [`r-prime-zeta-vs-nulls.md`](../../roadmap/items/r-prime-zeta-vs-nulls.md) complete (design note posted, pure-integer `RandomInjective` and `QuotaOnlyInjective` modes implemented and host-verified, 7-arm zero-update GPU battery and DRAFT pre-registration sheet staged). Step 5 (zero-update GPU battery on RTX 5090, `~$0.20`) awaits non-author `TEST FITNESS: FIT` review and owner/PM bar registration and pod-spend approval on [`#2881`](https://github.com/UOR-Foundation/uor-r4/issues/2881).
+- **Status:** Steps 1–4 of [`r-prime-zeta-vs-nulls.md`](../../roadmap/items/r-prime-zeta-vs-nulls.md) complete and host-verified by Kimi (`kimi-25`) and DeepSeek (`#3067`: `7 / 7` tests in `--bin prime-zeta-codebook`, all 7 table SHAs regenerated bit-exact on host, zero added `d32`/`d23`/`d25` ratchet sites, total outcome rule in `## Bar`). Step 5 (zero-update GPU battery on RTX 5090, `~$0.20`) awaits owner/PM bar registration and pod-spend approval on [`#2881`](https://github.com/UOR-Foundation/uor-r4/issues/2881) followed by the final `TEST FITNESS: FIT` stamp.
 
 ---
 

@@ -63,6 +63,7 @@ All seven arms share the identical checkpoint-0 model configuration from [`docs/
   - Let $b$ be `P_succ` rows admitted by `P8` only and $c$ be `P_succ` rows admitted by control arm $X \in \{Q_0, Q_1, Q_2, R_0, R_1, R_2\}$ only, with one-sided paired floor $F = \max(24, 2\sqrt{b+c})$ (matching [`m1-attention-address-structured-cells-DRAFT-2026-10-19.md`](m1-attention-address-structured-cells-DRAFT-2026-10-19.md)).
   - **Positive zero-update zeta-phase attribution:** `P8` clears $b - c > F$ against all three `QuotaOnlyInjective` seeds (`Q0, Q1, Q2`) and all three `RandomInjective` seeds (`R0, R1, R2`).
   - **Null / quota-equivalence reading (configuration result under D22):** If $|b - c| \le F$ between `P8` and `QuotaOnlyInjective` across seeds `0, 1, 2`, the zero-update test records that **at checkpoint 0 (`K = 8`), `PrimeZeta`'s reach (`~3.1%`) is governed by its `256 × 16` cell quota and full-vector injectivity rather than by log-prime zeta-phase angles**, closing only the zero-update configuration claim that zeta phases alone raise `K = 8` admission without corpus predecessor placement.
+  - **Mixed / residual discordance pattern (descriptive-only under D22):** Any discordance pattern that satisfies neither the positive attribution rule ($b - c > F$ against all six nulls `Q0..Q2, R0..R2`) nor the quota-equivalence reading ($|b - c| \le F$ against all three `Q0..Q2`) — for example clearing `Q0..Q2` while missing one or more `R0..R2` seeds, or clearing `R0..R2` while tied with `Q0..Q2` — is reported descriptively in the notebook row (separating cell-crowding variance from quota-matched phase placement) and decides nothing under D22.
 
 ## Base artifact
 
@@ -76,7 +77,7 @@ None. Every arm is initialized at checkpoint 0 (`discrete-stack init-corpus`, `n
 
 ## Steps
 
-1. Host constructor and CLI exporter (`crates/uor-r4-discrete/src/prime_zeta.rs` and `crates/uor-r4-discrete/src/bin/prime-zeta-codebook.rs`) and finite host unit tests are implemented and verified on macOS (`6 / 6` unit tests in `prime_zeta.rs` + CLI mode parser test, `0` new `D23`/`D25`/`D32` sites).
+1. Host constructor and CLI exporter (`crates/uor-r4-discrete/src/prime_zeta.rs` and `crates/uor-r4-discrete/src/bin/prime-zeta-codebook.rs`) and finite host unit tests are implemented and verified on macOS via `~/.cargo/bin/cargo test -p uor-r4-discrete --bin prime-zeta-codebook` (`7 / 7` passed = `6 / 6` unit tests in `prime_zeta.rs` + the CLI mode parser test, `0` new `D23`/`D25`/`D32` sites).
 2. Obtain a non-author `TEST FITNESS: FIT` review of this sheet (CHARTER §4.5) and owner / PM registration of the comparison bar and pod spend on [`#2881`](https://github.com/UOR-Foundation/uor-r4/issues/2881).
 3. On one RTX 5090 pod via `scripts/pod/uor-pod` (`uor-pod status` first), execute [`docs/labs/r-prime-zeta-vs-nulls/evidence/pz-nulls-battery.sh`](../../labs/r-prime-zeta-vs-nulls/evidence/pz-nulls-battery.sh):
    - Rebuild all seven tables (`P8`, `Q0..Q2`, `R0..R2`) with `prime-zeta-codebook` and verify exact match against the pinned `file_sha256` and `table_sha256` digests above.
@@ -128,3 +129,8 @@ Verified at base `259f9b9b2` on host (`$0`, no GPU); every check is repeatable b
 - **(b) The outcome rule is not total.** Positive attribution requires `b - c > F` against all six null arms and the null reading covers `|b - c| <= F` against `Q0..Q2`, but a mixed pattern (for example clearing `Q0..Q2` yet failing some `R` seed, which would point at cell crowding rather than quota) is unnamed and decides nothing. One sentence recording the residual pattern as descriptive-only (D22) closes the partition.
 
 Drafted by `antigravity` (`antigravity-27`, PR `#3014`); this audit is the non-author review requested on [`#2881`](https://github.com/UOR-Foundation/uor-r4/issues/2881).
+
+### Post-review author update (`antigravity-36`, 2026-10-23)
+
+- **Prerequisite `(b)` (total outcome rule) — RESOLVED.** `## Bar` now includes the explicit residual clause (`Mixed / residual discordance pattern (descriptive-only under D22)`), making the outcome partition total across all six null arms (`Q0..Q2`, `R0..R2`), and `## Steps` step 1 explicitly names `--bin prime-zeta-codebook` (`7 / 7` passed).
+- **Prerequisite `(a)` (owner/PM bar and spend registration) — STILL OPEN.** `TEST FITNESS: NOT_FIT` remains in force until the owner/PM registers the comparison bar and approves the `~$0.20` pod spend on `#2881` (`6353762758`), after which a non-author reviewer can stamp `TEST FITNESS: FIT`.
