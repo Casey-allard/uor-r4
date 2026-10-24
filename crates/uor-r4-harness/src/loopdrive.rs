@@ -333,6 +333,240 @@ pub fn read_record(root: &Path, lab: &str) -> Option<SessionRecord> {
     })
 }
 
+/// The directory, under a lab's local state, that holds GPU collection records.
+pub const GPU_COLLECTION_DIR: &str = "gpu-collections";
+
+/// One GPU collection: a leased GPU run whose artifacts must be collected before the pod is down.
+///
+/// The lease watcher writes it when it starts renewing and updates it when the lease ends, so
+/// `loop next` can offer the collection as work instead of guessing from a pod list.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GpuCollection {
+    /// Stable id: `<lab>-<renew program slug>-<started unix>`.
+    pub id: String,
+    /// The lab that owns the run.
+    pub lab: String,
+    /// The command the watcher ran to renew the lease.
+    pub renew: Vec<String>,
+    /// Unix start time.
+    pub started_unix: u64,
+    /// Unix end time, once the watcher stopped.
+    pub ended_unix: Option<u64>,
+    /// `running`, `finished` (the lease ended) or `stopped` (a test/limit bound).
+    pub status: String,
+    /// True once a session has recorded where the artifacts went.
+    pub collected: bool,
+    /// Paths, relative to the repo or absolute, named when the collection was recorded.
+    pub artifacts: Vec<String>,
+    /// The watcher's notes, in order.
+    pub notes: Vec<String>,
+}
+
+/// The GPU collection directory for one lab, under the gitignored `local/` tree.
+pub fn collection_dir(root: &Path, lab: &str) -> PathBuf {
+    root.join("local")
+        .join(crate::state::slug(lab))
+        .join(GPU_COLLECTION_DIR)
+}
+
+/// A filesystem-safe id for a new collection, deterministic given the renew program and start time.
+pub fn collection_id(lab: &str, renew: &[String], started_unix: u64) -> String {
+    let program = renew
+        .first()
+        .map(|argument| {
+            Path::new(argument)
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| argument.clone())
+        })
+        .unwrap_or_else(|| "run".to_string());
+    let mut slug = String::new();
+    for character in program.chars() {
+        if character.is_ascii_alphanumeric() {
+            slug.push(character.to_ascii_lowercase());
+        }
+    }
+    if slug.is_empty() {
+        slug = "run".to_string();
+    }
+    format!("{}-{}-{}", crate::state::slug(lab), slug, started_unix)
+}
+
+/// The record path for one collection id.
+pub fn collection_path(root: &Path, lab: &str, id: &str) -> PathBuf {
+    collection_dir(root, lab).join(format!("{}.json", crate::state::slug(id)))
+}
+
+fn collection_value(collection: &GpuCollection) -> serde_json::Value {
+    serde_json::json!({
+        "id": collection.id,
+        "lab": collection.lab,
+        "renew": collection.renew,
+        "started_unix": collection.started_unix,
+        "ended_unix": collection.ended_unix,
+        "status": collection.status,
+        "collected": collection.collected,
+        "artifacts": collection.artifacts,
+        "notes": collection.notes,
+    })
+}
+
+fn write_collection_at(path: &Path, collection: &GpuCollection) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            DriveError::Io(format!("cannot create {}: {error}", parent.display()))
+        })?;
+    }
+    let text = collection_value(collection).to_string();
+    let temporary = path.with_extension("json.tmp");
+    std::fs::write(&temporary, format!("{text}\n")).map_err(|error| {
+        DriveError::Io(format!("cannot write {}: {error}", temporary.display()))
+    })?;
+    std::fs::rename(&temporary, path)
+        .map_err(|error| DriveError::Io(format!("cannot record {}: {error}", path.display())))
+}
+
+fn collection_from_value(value: &serde_json::Value) -> Option<GpuCollection> {
+    let strings = |key: &str| -> Vec<String> {
+        value
+            .get(key)
+            .and_then(|v| v.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    Some(GpuCollection {
+        id: value.get("id")?.as_str()?.to_string(),
+        lab: value.get("lab")?.as_str()?.to_string(),
+        renew: strings("renew"),
+        started_unix: value.get("started_unix")?.as_u64()?,
+        ended_unix: value.get("ended_unix").and_then(|v| v.as_u64()),
+        status: value.get("status")?.as_str()?.to_string(),
+        collected: value.get("collected")?.as_bool()?,
+        artifacts: strings("artifacts"),
+        notes: strings("notes"),
+    })
+}
+
+/// Write one collection record atomically and return its path.
+pub fn write_collection(root: &Path, lab: &str, collection: &GpuCollection) -> Result<PathBuf> {
+    let path = collection_path(root, lab, &collection.id);
+    write_collection_at(&path, collection)?;
+    Ok(path)
+}
+
+/// Read every collection record for a lab, oldest id first; malformed files are skipped.
+pub fn read_collections(root: &Path, lab: &str) -> Result<Vec<GpuCollection>> {
+    let directory = collection_dir(root, lab);
+    let entries = match std::fs::read_dir(&directory) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => {
+            return Err(DriveError::Io(format!(
+                "cannot read {}: {error}",
+                directory.display()
+            )))
+        }
+    };
+    let mut collections = Vec::new();
+    for entry in entries {
+        let Ok(entry) = entry else { continue };
+        let path = entry.path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("json") {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) else {
+            continue;
+        };
+        if let Some(collection) = collection_from_value(&value) {
+            collections.push(collection);
+        }
+    }
+    collections.sort_by(|left, right| left.id.cmp(&right.id));
+    Ok(collections)
+}
+
+/// Mark a collection collected and record where its artifacts were placed.
+pub fn collect_collection(
+    root: &Path,
+    lab: &str,
+    id: &str,
+    artifacts: &[String],
+) -> Result<PathBuf> {
+    let path = collection_path(root, lab, id);
+    let text = std::fs::read_to_string(&path).map_err(|error| {
+        DriveError::Io(format!("no collection {id} at {}: {error}", path.display()))
+    })?;
+    let value: serde_json::Value = serde_json::from_str(&text)
+        .map_err(|error| DriveError::Io(format!("{} is not JSON: {error}", path.display())))?;
+    let mut collection = collection_from_value(&value)
+        .ok_or_else(|| DriveError::Io(format!("{} is not a collection record", path.display())))?;
+    collection.collected = true;
+    for artifact in artifacts {
+        if !collection.artifacts.contains(artifact) {
+            collection.artifacts.push(artifact.clone());
+        }
+    }
+    write_collection_at(&path, &collection)?;
+    Ok(path)
+}
+
+/// Watch a leased GPU run and keep a collection record: written `running` before the first
+/// renewal, updated when the lease ends (`finished`) or a bound stops the watcher (`stopped`).
+pub fn watch_lease_collect(
+    root: &Path,
+    lab: &str,
+    renew: &[String],
+    interval_seconds: u64,
+    ticks: Option<usize>,
+) -> Result<(PathBuf, Vec<String>)> {
+    let started_unix = unix_now();
+    let mut id = collection_id(lab, renew, started_unix);
+    let mut attempt = 2u32;
+    while collection_path(root, lab, &id).exists() {
+        id = format!("{}-{}", collection_id(lab, renew, started_unix), attempt);
+        attempt += 1;
+    }
+    let mut collection = GpuCollection {
+        id,
+        lab: lab.to_string(),
+        renew: renew.to_vec(),
+        started_unix,
+        ended_unix: None,
+        status: "running".to_string(),
+        collected: false,
+        artifacts: Vec::new(),
+        notes: Vec::new(),
+    };
+    let path = write_collection(root, lab, &collection)?;
+    let outcome = watch_lease_until_renew_fails(renew, interval_seconds, ticks);
+    collection.ended_unix = Some(unix_now());
+    match outcome {
+        Ok(notes) => {
+            collection.notes = notes.clone();
+            collection.status = if notes.iter().any(|note| note.contains("lease ended")) {
+                "finished".to_string()
+            } else {
+                "stopped".to_string()
+            };
+            write_collection_at(&path, &collection)?;
+            Ok((path, notes))
+        }
+        Err(error) => {
+            collection.status = "stopped".to_string();
+            collection.notes = vec![format!("watcher error: {error}")];
+            write_collection_at(&path, &collection)?;
+            Err(error)
+        }
+    }
+}
 /// `ps -o <field> -p <pid>`, trimmed; `None` when the process is gone or `ps` fails.
 fn ps_field(pid: u32, field: &str) -> Option<String> {
     let out = Command::new("ps")
@@ -1127,6 +1361,8 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
     let mut interval: u64 = 60;
     let mut poll: u64 = crate::loopnext::RECHECK_SECS;
     let mut launch: Vec<String> = Vec::new();
+    let mut collect: Option<String> = None;
+    let mut artifacts: Vec<String> = Vec::new();
     let mut index = 0;
     let mut after_separator = false;
     while index < args.len() {
@@ -1142,7 +1378,7 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
             "--lease" => lease = true,
             "--exempt-lease" => exempt_lease = true,
             "--client" | "--model" | "--prompt" | "--prompt-file" | "--max-sessions" | "--pid"
-            | "--interval" | "--order" | "--poll" => {
+            | "--interval" | "--order" | "--poll" | "--collect" | "--artifact" => {
                 let Some(value) = args.get(index + 1) else {
                     eprintln!("loop drive: {argument} needs a value");
                     return 2;
@@ -1153,6 +1389,8 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
                     "--prompt" => prompt = Some(value.clone()),
                     "--prompt-file" => prompt_file = Some(PathBuf::from(value)),
                     "--order" => order = Some(PathBuf::from(value)),
+                    "--collect" => collect = Some(value.clone()),
+                    "--artifact" => artifacts.push(value.clone()),
                     "--pid" => pid = value.parse().ok(),
                     "--interval" => interval = value.parse().unwrap_or(60),
                     "--poll" => match value.parse::<u64>() {
@@ -1183,8 +1421,9 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
     let interval = interval.max(1);
     if watch {
         if lease {
-            return match watch_lease_until_renew_fails(&launch, interval, None) {
-                Ok(notes) => {
+            return match watch_lease_collect(root, lab, &launch, interval, None) {
+                Ok((path, notes)) => {
+                    println!("collection: {}", path.display());
                     for note in notes {
                         println!("{note}");
                     }
@@ -1214,6 +1453,18 @@ pub fn cli(root: &Path, lab: &str, args: &[String]) -> u8 {
             }
             Err(error) => {
                 eprintln!("loop drive --watch: {error}");
+                2
+            }
+        };
+    }
+    if let Some(id) = &collect {
+        return match collect_collection(root, lab, id, &artifacts) {
+            Ok(path) => {
+                println!("collected {id} ({})", path.display());
+                0
+            }
+            Err(error) => {
+                eprintln!("loop drive --collect: {error}");
                 2
             }
         };

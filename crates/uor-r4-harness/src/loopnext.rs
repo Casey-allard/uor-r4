@@ -836,13 +836,55 @@ pub fn run(
         detail.push_str(&format!(" (skipped: {})", skipped.join(", ")));
     }
     out.push(source("reviews", "none", detail));
-    // 5. GPU collections: a run needs a collection record. PR 10 built the watcher that
-    // notes a leased run, but no collection record is defined yet, so this source names the
-    // gap instead of guessing (it is a separate unit; the watcher file is outside this item).
-    out.push(not_built(
-        "gpu-collections",
-        "a GPU run needs a collection record the watcher (loop PR 10) does not write yet",
-    ));
+    // 5. GPU collections: the lease watcher keeps one record per leased GPU run under
+    // `local/<lab>/gpu-collections/`. A finished record that no session has collected is work:
+    // its artifacts must be saved off the pod before it is down. Running records wait; no
+    // records is none, not an error.
+    match crate::loopdrive::read_collections(root, lab) {
+        Ok(records) => {
+            let waiting = records
+                .iter()
+                .find(|record| !record.collected && record.status != "running");
+            if let Some(record) = waiting {
+                let reason = format!(
+                    "GPU collection {} {}; save its artifacts before the pod is down",
+                    record.id, record.status
+                );
+                out.push(source("gpu-collections", "work", reason.clone()));
+                return Ok((
+                    out,
+                    Decision::Go {
+                        kind: "gpu-collection",
+                        target: record.id.clone(),
+                        reason,
+                    },
+                ));
+            }
+            let running = records
+                .iter()
+                .filter(|record| record.status == "running")
+                .count();
+            if running > 0 {
+                out.push(source(
+                    "gpu-collections",
+                    "wait",
+                    format!(
+                        "{running} GPU collection(s) running; none is finished and uncollected"
+                    ),
+                ));
+            } else {
+                out.push(source(
+                    "gpu-collections",
+                    "none",
+                    "no GPU collection record is waiting",
+                ));
+            }
+        }
+        Err(error) => out.push(not_built(
+            "gpu-collections",
+            &format!("cannot read GPU collection records: {error}"),
+        )),
+    }
     // 6. premise probes: the first open row of PLAN.md's `## Premises` table. The probe cell
     // holds the command in backticks; a row is offered only when its status cell reads `open`.
     match premise_probe(root) {

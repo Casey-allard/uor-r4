@@ -1029,3 +1029,126 @@ fn reaching_an_explicit_multi_session_limit_cards_the_pm() {
     );
     let _ = std::fs::remove_dir_all(&root);
 }
+
+mod gpu_collection_records {
+    use std::path::PathBuf;
+
+    use uor_r4_harness::loopdrive::{
+        collect_collection, collection_dir, collection_id, read_collections, watch_lease_collect,
+        write_collection, GpuCollection,
+    };
+
+    fn temp_root(name: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("uor-gc-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("temp root");
+        root
+    }
+
+    fn renew(exit: &str) -> Vec<String> {
+        vec!["sh".to_string(), "-c".to_string(), exit.to_string()]
+    }
+
+    #[test]
+    fn a_lease_watcher_writes_and_updates_a_record_and_collect_marks_it() {
+        let root = temp_root("record");
+        let (path, notes) = watch_lease_collect(&root, "deepseek", &renew("exit 0"), 1, Some(1))
+            .expect("the watcher records a bound-stopped lease");
+        assert!(
+            path.starts_with(collection_dir(&root, "deepseek")),
+            "the record lives under the lab collection dir: {}",
+            path.display()
+        );
+        assert!(
+            notes.iter().any(|note| note.contains("test bound")),
+            "{notes:?}"
+        );
+        let records = read_collections(&root, "deepseek").expect("read");
+        assert_eq!(records.len(), 1);
+        let record = &records[0];
+        assert_eq!(record.status, "stopped");
+        assert!(record.ended_unix.is_some());
+        assert!(!record.collected);
+        assert_eq!(record.lab, "deepseek");
+
+        let (_path, notes) = watch_lease_collect(&root, "deepseek", &renew("exit 1"), 1, Some(1))
+            .expect("the watcher records a lease-ended run");
+        assert!(
+            notes.iter().any(|note| note.contains("lease ended")),
+            "{notes:?}"
+        );
+        let records = read_collections(&root, "deepseek").expect("read again");
+        let finished = records
+            .iter()
+            .find(|record| record.status == "finished")
+            .expect("a finished record");
+        let artifacts = vec!["bundle/results.sha256".to_string()];
+        collect_collection(&root, "deepseek", &finished.id, &artifacts).expect("collect");
+        let after = read_collections(&root, "deepseek").expect("read after collect");
+        let collected = after
+            .iter()
+            .find(|record| record.id == finished.id)
+            .expect("the record stays");
+        assert!(collected.collected);
+        assert_eq!(collected.artifacts, artifacts);
+        collect_collection(&root, "deepseek", &finished.id, &artifacts)
+            .expect("a repeated collect is idempotent");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn malformed_and_foreign_files_are_skipped_and_ids_are_safe() {
+        let root = temp_root("skip");
+        let directory = collection_dir(&root, "deepseek");
+        std::fs::create_dir_all(&directory).expect("collection dir");
+        std::fs::write(directory.join("junk.json"), "not json").expect("junk");
+        std::fs::write(directory.join("notes.txt"), "x").expect("foreign file");
+        assert!(read_collections(&root, "deepseek").unwrap().is_empty());
+
+        let id = collection_id(
+            "deep seek",
+            &["/usr/local/bin/uor-pod".to_string(), "renew".to_string()],
+            42,
+        );
+        assert_eq!(id, "deep-seek-uorpod-42");
+        assert!(!id.contains('/'), "the id is filesystem-safe: {id}");
+
+        let record = GpuCollection {
+            id: "deepseek-uorpod-42".to_string(),
+            lab: "deepseek".to_string(),
+            renew: vec!["uor-pod".to_string()],
+            started_unix: 42,
+            ended_unix: None,
+            status: "running".to_string(),
+            collected: false,
+            artifacts: Vec::new(),
+            notes: Vec::new(),
+        };
+        write_collection(&root, "deepseek", &record).expect("write");
+        assert_eq!(read_collections(&root, "deepseek").unwrap().len(), 1);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+    #[test]
+    fn a_watcher_error_leaves_a_stopped_record_not_a_running_one() {
+        let root = temp_root("error");
+        let missing = vec!["/nonexistent/uor-pod-renew".to_string()];
+        assert!(
+            watch_lease_collect(&root, "deepseek", &missing, 1, Some(1)).is_err(),
+            "a renew program that cannot spawn is an error"
+        );
+        let records = read_collections(&root, "deepseek").expect("read");
+        assert_eq!(records.len(), 1);
+        let record = &records[0];
+        assert_eq!(record.status, "stopped");
+        assert!(
+            record
+                .notes
+                .iter()
+                .any(|note| note.contains("watcher error")),
+            "{:?}",
+            record.notes
+        );
+        assert!(record.ended_unix.is_some());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}
