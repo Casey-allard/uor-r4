@@ -646,6 +646,9 @@ struct DevPairedCount {
     f_i: u64,
     b_minus_c: i64,
     beats: bool,
+    /// `b - c > -F_I`: the non-inferiority margin Casey registered at
+    /// 2026-10-24T03:41:41Z (#2028 comment 6379430093).
+    non_inferior: bool,
 }
 
 #[cfg(any(feature = "cuda", test))]
@@ -694,6 +697,7 @@ fn dev_paired_close(mut count: DevPairedCount) -> Result<DevPairedCount> {
         .ok_or_else(|| invalid("DEV b - c overflow"))?;
     let f_i = i64::try_from(count.f_i).map_err(|_| invalid("DEV F_I exceeds i64"))?;
     count.beats = count.b_minus_c >= f_i;
+    count.non_inferior = count.b_minus_c > -f_i;
     Ok(count)
 }
 
@@ -839,12 +843,12 @@ pub fn normalization_dev_paired(
             "DEV paired P_succ rows differ from the registered panel",
         ));
     }
-    Ok(json!({"schema":"uor-r4.normalization-dev-paired/1",
+    Ok(json!({"schema":"uor-r4.normalization-dev-paired/2",
         "status":"SCORED_RETAINED_DEV_OBSERVATIONS",
         "seed":reference.config.seed,"reference":arms[0],"control":arms[1],
         "contrast":"paired one-sided McNemar top-1: b = reference correct and control wrong, c = reference wrong and control correct; beats iff b - c >= F_I = max(24, ceil(2*sqrt(b + c)))",
         "all":paired.all,"psucc":paired.psucc,
-        "non_inferiority":"UNSCORED: no margin registered (claude-57 NOT_FIT prerequisite 3)",
+        "non_inferiority":"scored per population as non_inferior iff b - c > -F_I (owner margin, 2026-10-24T03:41:41Z, #2028 comment 6379430093)",
         "structural_norm_stability":"UNSCORED: needs per-stage output traces, not in an eval-corpus report",
         "seeds":"one seed per call; the bar needs both seeds",
         "compiled_identity_checked":true,"evaluation_mutates_model":false,"updates_applied":0,
@@ -1180,6 +1184,7 @@ mod tests {
                 f_i: 24,
                 b_minus_c: 3,
                 beats: false,
+                non_inferior: true,
             }
         );
         assert_eq!(
@@ -1208,6 +1213,59 @@ mod tests {
         );
         let reverse = paired_case(0, 30, 0, 0, 0)?;
         assert_eq!((reverse.all.b_minus_c, reverse.all.beats), (-30, false));
+        Ok(())
+    }
+
+    #[test]
+    fn dev_paired_non_inferiority_margin_is_strict() -> Result<()> {
+        // At the floor, b + c <= 144 gives F_I = 24: b - c = -24 misses, -23 holds.
+        let at_floor = paired_case(0, 24, 0, 0, 0)?;
+        assert_eq!(
+            (
+                at_floor.all.f_i,
+                at_floor.all.b_minus_c,
+                at_floor.all.non_inferior
+            ),
+            (24, -24, false)
+        );
+        let inside = paired_case(0, 23, 0, 0, 0)?;
+        assert_eq!(
+            (
+                inside.all.f_i,
+                inside.all.b_minus_c,
+                inside.all.non_inferior
+            ),
+            (24, -23, true)
+        );
+        // Above the floor, b + c = 200 gives F_I = 29: b - c = -30 misses, -28 holds.
+        let behind = paired_case(85, 115, 0, 0, 0)?;
+        assert_eq!(
+            (
+                behind.all.f_i,
+                behind.all.b_minus_c,
+                behind.all.non_inferior
+            ),
+            (29, -30, false)
+        );
+        let close = paired_case(86, 114, 0, 0, 0)?;
+        assert_eq!(
+            (close.all.f_i, close.all.b_minus_c, close.all.non_inferior),
+            (29, -28, true)
+        );
+        // b + c = 196 gives F_I = 28 exactly, so b - c = -28 sits on the margin and misses.
+        let on_margin = paired_case(84, 112, 0, 0, 0)?;
+        assert_eq!(
+            (
+                on_margin.all.f_i,
+                on_margin.all.b_minus_c,
+                on_margin.all.non_inferior
+            ),
+            (28, -28, false)
+        );
+        // A contrast that beats is non-inferior; one that ties is too.
+        let ahead = paired_case(30, 0, 0, 0, 0)?;
+        assert!(ahead.all.beats && ahead.all.non_inferior);
+        assert!(paired_case(0, 0, 5, 5, 0)?.all.non_inferior);
         Ok(())
     }
 
