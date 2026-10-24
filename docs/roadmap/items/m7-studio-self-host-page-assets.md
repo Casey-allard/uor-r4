@@ -16,10 +16,9 @@ The Studio's model worker is fully client-side (m7-studio-connect-wasm-engine, P
 
 ## What is missing
 
-1. **Verification, not assertion.** Nothing checks #2990's "zero external requests on load" for `web/studio/index.html`; only the shims' comments state it. Extend the trap set in `web/studio/verify_studio_worker.mjs` to page load so zero external requests is checked, not asserted.
-2. **The router demo page.** `web/studio/geometric_prime_router_webapp.html` still loads Tailwind (`cdn.tailwindcss.com`, line 9), Font Awesome (cdnjs, line 34) and Google Fonts (line 37). Self-host them, or retire the page.
-3. **The tokenizer.** The byte-mod stand-in is real (`web/studio/assets/js/uor_model_worker.js:140`, `rawBytes[i] % vocabSize`); bundle the stack-bound tokenizer artifact in its place.
-4. **GitHub API calls, stated not changed.** `web/studio/index.html:2866-2872` calls `api.github.com`; the calls are user-initiated and already refused under Tauri/offline. The design note must say whether they fall outside the "on load" bar or need an opt-in.
+1. **Verification and both pages are done.** The page-load claim is machine-checked statically (`#3073`) and at runtime in headless Chrome (`#3080`), and the router demo page's three CDN loads are self-hosted behind the same traps (`#3110`, `0d5d6791d`). The tokenizer leg remains.
+2. **The tokenizer.** The byte-mod stand-in is real (`web/studio/assets/js/uor_model_worker.js:140`, `rawBytes[i] % vocabSize`); bundle the stack-bound tokenizer artifact in its place.
+3. **GitHub API calls, recorded.** `web/studio/index.html:2866-2872` calls `api.github.com`; the calls are user-initiated and refused under Tauri/offline. The privacy model in `docs/products/web-client.md` records them as user-initiated, **not** page-load requests, and therefore outside the "on load" bar (`#3074`); no change to the calls is needed.
 
 Website deploys stay paused (D36) regardless; this item changes assets and verification, not the deploy.
 

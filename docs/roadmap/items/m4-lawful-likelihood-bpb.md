@@ -17,7 +17,7 @@ M4 ([#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032)) asks for one 
 
 ## What is missing
 
-The current model's loss gives no probabilities, so the 0.90 BPB bar that M4 still carries cannot be scored on it. The M1 bar was changed on 19 October 2026 to integer top-1 because of this (CHARTER §4.8), and BPB "returns at a later milestone once the model gives probabilities". A lawful likelihood is still unbuilt, and the sources name no design.
+The current model's loss gives no probabilities, so the 0.90 BPB bar that M4 still carries cannot be scored on it. The M1 bar was changed on 19 October 2026 to integer top-1 because of this (CHARTER §4.8), and BPB "returns at a later milestone once the model gives probabilities". The lawful-likelihood instrument and design are delivered (`#2940`, `#2945`); the pre-registration is `TEST FITNESS: NOT_FIT` pending the export-artifact pin and the two owner `CHARTER §5.1` conditions (`#3099`), so no compute is cleared.
 
 ## Done when
 

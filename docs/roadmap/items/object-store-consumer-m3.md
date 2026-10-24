@@ -16,7 +16,7 @@ The object store is the project's exact, hashed durable storage, and M3 (durable
 
 ## What is missing
 
-The object store (D19) keeps bytes exactly in a hashed tree and has 60 tests and a client conformance pass, but nothing consumes it. The durable-memory bars have not run. No consumer exists on the model path. The store dossier says `export_scope` and `import_scope` are unchanged and unwired. The dossier's "What would make it ACTIVE" also lists open decisions: which consumer comes first (exact quotation into the emitter, or durable-session persistence), where exact identity meets geometry, and who owns range reads (the store, the separate reconstruction-tree reader, or one shared backend).
+The object store (D19) keeps bytes exactly in a hashed tree and has 60 tests and a client conformance pass. The durable-memory consumer and its finite controls are delivered (`4797ca883`, `#2960`), including `export_scope`/`import_scope`, and a cross-crate interop contract now pins the integer session bytes against the store (`#3106`). The durable-memory bars remain unrun because they need a selected M1/M2 model, a non-author FIT and the owner release.
 
 ## Done when
 
