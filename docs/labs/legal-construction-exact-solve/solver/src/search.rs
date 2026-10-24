@@ -1702,6 +1702,638 @@ pub fn certify_gap_decomposition(
     })
 }
 
+/// Basis-free exact rational Weak Duality certificate over a domain-restricted
+/// discrete box `code_bounds[i] = (q_min_i, q_max_i)` (`-7 <= q_min_i <= q_max_i <= 7`):
+/// for any `y >= 0`, every guard-feasible discrete assignment `q` with
+/// `q_i in q_min_i..=q_max_i` satisfies
+/// `g·δ(q) >= Σ_i min_{q_i in q_min_i..=q_max_i} (g_i - (J^T y)_i) δ_i(q_i)`.
+pub fn certify_domain_dual_bound(
+    p: &Problem,
+    y: &[BigRational],
+    code_bounds: &[(i64, i64)],
+) -> Result<BigRational, String> {
+    if y.len() != p.guards.len() {
+        return Err(format!(
+            "dual multiplier length {} != {} guards",
+            y.len(),
+            p.guards.len()
+        ));
+    }
+    for (r, yr) in y.iter().enumerate() {
+        if yr.is_negative() {
+            return Err(format!("dual multiplier {r} is negative"));
+        }
+    }
+    let cs = p.coeffs();
+    let n = cs.len();
+    if code_bounds.len() != n {
+        return Err(format!(
+            "code_bounds length {} != {n} coefficients",
+            code_bounds.len()
+        ));
+    }
+    let mut bound = BigRational::zero();
+    for (i, c) in cs.iter().enumerate() {
+        let (q_lo, q_hi) = code_bounds[i];
+        if q_lo < -7 || q_hi > 7 || q_lo > q_hi {
+            return Err(format!(
+                "invalid code bounds [{q_lo}, {q_hi}] for coefficient {i}"
+            ));
+        }
+        let mut rc = p.g[i].clone();
+        for (r, yr) in y.iter().enumerate() {
+            if !yr.is_zero() && !p.guards[r][i].is_zero() {
+                rc -= yr * &p.guards[r][i];
+            }
+        }
+        let mut best_i: Option<BigRational> = None;
+        for q in q_lo..=q_hi {
+            let contrib = if q == c.q0 {
+                BigRational::zero()
+            } else {
+                let delta = BigRational::new(BigInt::from(q - c.q0), BigInt::from(4)) + &c.shift;
+                &rc * &delta
+            };
+            if best_i.as_ref().is_none_or(|b| &contrib < b) {
+                best_i = Some(contrib);
+            }
+        }
+        bound += best_i.expect("non-empty code interval");
+    }
+    Ok(bound)
+}
+
+/// Certified disjunctive-split (1-level and multi-leaf) discrete lower bound summary.
+#[derive(Debug, Clone)]
+pub struct DisjunctiveSplitCertificate {
+    /// Exact rational root Lagrangian dual bound `L(y_root)` over `[-7, 7]^n`.
+    pub root_lower_bound: BigRational,
+    /// Tightest certified 1-variable disjunctive split lower bound
+    /// `max_i min(L_down(i), L_up(i)) >= root_lower_bound` when `max_leaves >= 2`
+    /// (`== root_lower_bound` when `max_leaves == 1` or no fractional basic var exists).
+    pub best_single_split_bound: BigRational,
+    /// Exact rational improvement `best_single_split_bound - root_lower_bound >= 0`.
+    pub single_split_gain: BigRational,
+    /// Coefficient index `i` achieving `best_single_split_bound` (`None` if `max_leaves == 1` or no fractional basic var).
+    pub best_split_coeff: Option<usize>,
+    /// Split threshold `q_mid` (`q <= q_mid` vs `q >= q_mid + 1`) for `best_split_coeff`.
+    pub best_split_q_down: Option<i64>,
+    /// Certified multi-leaf disjunctive branch-and-bound tree lower bound `>= best_single_split_bound`.
+    pub tree_lower_bound: BigRational,
+    /// Exact rational improvement `tree_gain = tree_lower_bound - root_lower_bound >= 0`.
+    pub tree_gain: BigRational,
+    /// Exact rational remaining optimality gap `upper_bound - tree_lower_bound`.
+    pub tree_gap: BigRational,
+    /// Number of exhaustive disjoint leaves certified in the disjunctive split tree (`1..=max_leaves`).
+    pub tree_leaves: usize,
+    /// Number of fractional basic coefficients whose disjunctive split was evaluated (`0` when `max_leaves == 1`).
+    pub evaluated_splits: usize,
+    /// Total `(i, q)` destination codes provably eliminated across all disjunctive tree leaves.
+    pub tree_eliminated_codes: usize,
+    /// Number of coefficients `i` uniquely fixed across the disjunctive tree.
+    pub tree_fixed_coeffs: usize,
+    /// Number of coefficients `i` restricted to at most 2 codes across the disjunctive tree.
+    pub tree_binary_or_fixed_coeffs: usize,
+    /// Surviving codes per coefficient `i` across the exhaustive leaf partition.
+    pub tree_surviving_codes: Vec<Vec<i64>>,
+}
+
+/// Certify an exact rational disjunctive-split discrete lower bound `>= L(y_root)`
+/// and Disjunctive Partition Reduced-Cost Fixing by branching on fractional basic
+/// variables of `delta_hull_lp(p)` across their adjacent discrete codes
+/// `(q_i <= q_down) v (q_i >= q_down + 1)`. Every leaf bound and per-leaf reduced-cost
+/// penalty in the exhaustive partition is independently certified in exact
+/// `BigRational` arithmetic.
+pub fn certify_disjunctive_split_bound<const P: u32>(
+    p: &Problem,
+    upper_bound: &BigRational,
+    max_leaves: usize,
+) -> Result<DisjunctiveSplitCertificate, String> {
+    certify_disjunctive_split_bound_with_dual::<P>(p, upper_bound, max_leaves, None)
+}
+
+/// Same as [`certify_disjunctive_split_bound`], additionally accepting an optional
+/// non-negative root dual multiplier slice `extra_root_y` (e.g. from
+/// `blp::certify_basis_with_dual`). When `extra_root_y` is provided, `root_lower_bound`
+/// and `root_y` are upgraded if `extra_root_y` certifies a tighter root bound, and
+/// every leaf's domain reduced-cost survival mask is also intersected with `extra_root_y`,
+/// guaranteeing `tree_surviving_codes[i] \subseteq rcbt(extra_root_y).surviving_codes[i]`
+/// and `tree_eliminated_codes >= rcbt(extra_root_y).eliminated_codes` for any `m`.
+pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
+    p: &Problem,
+    upper_bound: &BigRational,
+    max_leaves: usize,
+    extra_root_y: Option<&[BigRational]>,
+) -> Result<DisjunctiveSplitCertificate, String> {
+    if max_leaves == 0 {
+        return Err("max_leaves must be >= 1".into());
+    }
+    let n = p.n();
+    let m = p.guards.len();
+    if let Some(ext_y) = extra_root_y {
+        if ext_y.len() != m {
+            return Err(format!("extra_root_y len {} != guards {m}", ext_y.len()));
+        }
+        for (r, yr) in ext_y.iter().enumerate() {
+            if yr.is_negative() {
+                return Err(format!("negative extra_root_y at row {r}"));
+            }
+        }
+    }
+    let cs = p.coeffs();
+    let dy = |v: &BigRational| Dy::<P>::from_rational(v);
+
+    let mut legal_deltas: Vec<Vec<(i64, BigRational, Dy<P>)>> = Vec::with_capacity(n);
+    let mut lower = vec![BigRational::zero(); n];
+    let mut upper = vec![BigRational::zero(); n];
+    for i in 0..n {
+        let mut v = Vec::with_capacity(15);
+        for q in -7..=7 {
+            let delta = if q == cs[i].q0 {
+                BigRational::zero()
+            } else {
+                BigRational::new(BigInt::from(q - cs[i].q0), BigInt::from(4)) + &cs[i].shift
+            };
+            if delta < lower[i] {
+                lower[i] = delta.clone();
+            }
+            if delta > upper[i] {
+                upper[i] = delta.clone();
+            }
+            let d_dy = dy(&delta);
+            v.push((q, delta, d_dy));
+        }
+        legal_deltas.push(v);
+    }
+
+    let mut cols: Vec<Vec<(usize, Dy<P>)>> = vec![Vec::new(); n + m];
+    for (r, row) in p.guards.iter().enumerate() {
+        for (j, val) in row.iter().enumerate() {
+            if !val.is_zero() {
+                let neg_d = -dy(val);
+                if !neg_d.is_zero() {
+                    cols[j].push((r, neg_d));
+                }
+            }
+        }
+        cols[n + r].push((r, Dy::ONE));
+    }
+    let mut cost = vec![Dy::<P>::ZERO; n + m];
+    let mut lo = vec![Dy::<P>::ZERO; n + m];
+    let mut up: Vec<Option<Dy<P>>> = vec![None; n + m];
+    for j in 0..n {
+        cost[j] = dy(&p.g[j]);
+        lo[j] = dy(&lower[j]);
+        up[j] = Some(dy(&upper[j]));
+    }
+    let mut st = vec![State::Lower; n + m];
+    let mut x = vec![Dy::<P>::ZERO; n + m];
+    for j in 0..n {
+        if cost[j].is_negative() {
+            st[j] = State::Upper;
+            x[j] = up[j].expect("structural upper");
+        } else {
+            st[j] = State::Lower;
+            x[j] = lo[j];
+        }
+    }
+    let mut basis: Vec<usize> = (0..m).map(|i| n + i).collect();
+    for i in 0..m {
+        st[n + i] = State::Basic;
+    }
+    let mut binv = vec![vec![Dy::<P>::ZERO; m]; m];
+    for (i, row) in binv.iter_mut().enumerate() {
+        row[i] = Dy::ONE;
+    }
+    let b_rhs0 = vec![Dy::<P>::ZERO; m];
+    let mut pi = vec![Dy::<P>::ZERO; m];
+    let mut root_stats = SearchStats::default();
+    dual_simplex_run::<P>(
+        n,
+        m,
+        &cols,
+        &cost,
+        &lo,
+        &up,
+        &b_rhs0,
+        &mut basis,
+        &mut st,
+        &mut x,
+        &mut binv,
+        &mut pi,
+        100_000,
+        &mut root_stats,
+        None,
+    )?;
+
+    let extract_y = |pi_slice: &[Dy<P>]| -> Vec<BigRational> {
+        pi_slice
+            .iter()
+            .map(|&p_val| {
+                let neg_p = -p_val;
+                if neg_p.is_positive() {
+                    neg_p.to_rational()
+                } else {
+                    BigRational::zero()
+                }
+            })
+            .collect()
+    };
+
+    let root_bounds = vec![(-7i64, 7i64); n];
+    let mut root_y = extract_y(&pi);
+    let mut root_lower_bound = certify_domain_dual_bound(p, &root_y, &root_bounds)?;
+    if m <= 64 {
+        let nonbasic_pos0 = (0..(n + m))
+            .map(|j| match st[j] {
+                State::Upper => Pos::Upper,
+                State::Interior => Pos::Interior,
+                State::Lower | State::Basic => Pos::Lower,
+            })
+            .collect();
+        let root_basis = Basis {
+            basic: basis.clone(),
+            nonbasic_pos: nonbasic_pos0,
+        };
+        if let Ok((_, exact_pi)) =
+            crate::blp::certify_basis_with_dual(&delta_hull_lp(p), &root_basis)
+        {
+            let exact_y: Vec<BigRational> = exact_pi
+                .into_iter()
+                .map(|v| {
+                    let nv = -v;
+                    if nv.is_positive() {
+                        nv
+                    } else {
+                        BigRational::zero()
+                    }
+                })
+                .collect();
+            if let Ok(exact_lb) = certify_domain_dual_bound(p, &exact_y, &root_bounds) {
+                if exact_lb > root_lower_bound {
+                    root_y = exact_y;
+                    root_lower_bound = exact_lb;
+                }
+            }
+        }
+    }
+    if let Some(ext_y) = extra_root_y {
+        let ext_lb = certify_domain_dual_bound(p, ext_y, &root_bounds)?;
+        if ext_lb > root_lower_bound {
+            root_y = ext_y.to_vec();
+            root_lower_bound = ext_lb;
+        }
+    }
+
+    #[derive(Clone)]
+    struct SplitLeaf<const P: u32> {
+        code_bounds: Vec<(i64, i64)>,
+        lo: Vec<Dy<P>>,
+        up: Vec<Option<Dy<P>>>,
+        basis: Vec<usize>,
+        st: Vec<State>,
+        x: Vec<Dy<P>>,
+        binv: Vec<Vec<Dy<P>>>,
+        pi: Vec<Dy<P>>,
+        y: Vec<BigRational>,
+        certified_bound: BigRational,
+    }
+
+    let eval_branch = |parent: &SplitLeaf<P>,
+                       bv: usize,
+                       new_q_range: (i64, i64),
+                       is_down: bool|
+     -> Result<SplitLeaf<P>, String> {
+        let mut child_bounds = parent.code_bounds.clone();
+        child_bounds[bv] = new_q_range;
+        let fallback_bound = certify_domain_dual_bound(p, &parent.y, &child_bounds)?;
+
+        let mut c_lo = parent.lo.clone();
+        let mut c_up = parent.up.clone();
+        let mut c_basis = parent.basis.clone();
+        let mut c_st = parent.st.clone();
+        let mut c_x = parent.x.clone();
+        let mut c_binv = parent.binv.clone();
+        let mut c_pi = parent.pi.clone();
+        if is_down {
+            let new_u = legal_deltas[bv][(new_q_range.1 + 7) as usize].2;
+            c_up[bv] = Some(new_u);
+        } else {
+            let new_l = legal_deltas[bv][(new_q_range.0 + 7) as usize].2;
+            c_lo[bv] = new_l;
+        }
+        let mut b_stats = SearchStats::default();
+        if dual_simplex_run::<P>(
+            n,
+            m,
+            &cols,
+            &cost,
+            &c_lo,
+            &c_up,
+            &b_rhs0,
+            &mut c_basis,
+            &mut c_st,
+            &mut c_x,
+            &mut c_binv,
+            &mut c_pi,
+            5_000,
+            &mut b_stats,
+            None,
+        )
+        .is_ok()
+        {
+            let cand_y = extract_y(&c_pi);
+            if let Ok(cand_bound) = certify_domain_dual_bound(p, &cand_y, &child_bounds) {
+                if cand_bound >= fallback_bound {
+                    return Ok(SplitLeaf {
+                        code_bounds: child_bounds,
+                        lo: c_lo,
+                        up: c_up,
+                        basis: c_basis,
+                        st: c_st,
+                        x: c_x,
+                        binv: c_binv,
+                        pi: c_pi,
+                        y: cand_y,
+                        certified_bound: cand_bound,
+                    });
+                }
+            }
+        }
+        Ok(SplitLeaf {
+            code_bounds: child_bounds,
+            lo: c_lo,
+            up: c_up,
+            basis: parent.basis.clone(),
+            st: parent.st.clone(),
+            x: parent.x.clone(),
+            binv: parent.binv.clone(),
+            pi: parent.pi.clone(),
+            y: parent.y.clone(),
+            certified_bound: fallback_bound,
+        })
+    };
+
+    let find_fractional_splits = |leaf: &SplitLeaf<P>| -> Vec<(usize, i64)> {
+        let tol = Dy::<P>::ONE.ldexp(-40);
+        let mut splits = Vec::new();
+        for &bv in &leaf.basis {
+            if bv >= n {
+                continue;
+            }
+            let (q_lo, q_hi) = leaf.code_bounds[bv];
+            if q_lo >= q_hi {
+                continue;
+            }
+            let xi = leaf.x[bv];
+            for q in q_lo..q_hi {
+                let d_lo = legal_deltas[bv][(q + 7) as usize].2;
+                let d_hi = legal_deltas[bv][(q + 1 + 7) as usize].2;
+                if xi > d_lo + tol && xi < d_hi - tol {
+                    splits.push((bv, q));
+                    break;
+                }
+            }
+        }
+        splits
+    };
+
+    let root_leaf = SplitLeaf {
+        code_bounds: root_bounds,
+        lo,
+        up,
+        basis,
+        st,
+        x,
+        binv,
+        pi,
+        y: root_y.clone(),
+        certified_bound: root_lower_bound.clone(),
+    };
+
+    let root_splits = if max_leaves >= 2 {
+        find_fractional_splits(&root_leaf)
+    } else {
+        Vec::new()
+    };
+    let evaluated_splits = root_splits.len();
+    let mut best_single_split_bound = root_lower_bound.clone();
+    let mut best_split_coeff = None;
+    let mut best_split_q_down = None;
+    let mut best_root_children: Option<(SplitLeaf<P>, SplitLeaf<P>)> = None;
+
+    for &(bv, q_down) in &root_splits {
+        let (q_lo, q_hi) = root_leaf.code_bounds[bv];
+        let down_leaf = eval_branch(&root_leaf, bv, (q_lo, q_down), true)?;
+        let up_leaf = eval_branch(&root_leaf, bv, (q_down + 1, q_hi), false)?;
+        let split_lb = down_leaf
+            .certified_bound
+            .clone()
+            .min(up_leaf.certified_bound.clone());
+        if split_lb > best_single_split_bound || best_split_coeff.is_none() {
+            if split_lb > best_single_split_bound {
+                best_single_split_bound = split_lb;
+            }
+            best_split_coeff = Some(bv);
+            best_split_q_down = Some(q_down);
+            best_root_children = Some((down_leaf, up_leaf));
+        }
+    }
+
+    let mut leaves = Vec::new();
+    if let Some((dl, ul)) = best_root_children {
+        leaves.push(dl);
+        leaves.push(ul);
+    } else {
+        leaves.push(root_leaf);
+    }
+
+    while leaves.len() < max_leaves {
+        // Pick the leaf with the minimum certified bound.
+        let min_idx = leaves
+            .iter()
+            .enumerate()
+            .min_by(|(_, a), (_, b)| a.certified_bound.cmp(&b.certified_bound))
+            .map(|(idx, _)| idx)
+            .expect("non-empty leaves");
+        let cand_splits = find_fractional_splits(&leaves[min_idx]);
+        if cand_splits.is_empty() {
+            break;
+        }
+        let mut best_pair_leaves: Option<(BigRational, SplitLeaf<P>, SplitLeaf<P>)> = None;
+        for &(bv, q_down) in cand_splits.iter().take(16) {
+            let (q_lo, q_hi) = leaves[min_idx].code_bounds[bv];
+            let dl = eval_branch(&leaves[min_idx], bv, (q_lo, q_down), true)?;
+            let ul = eval_branch(&leaves[min_idx], bv, (q_down + 1, q_hi), false)?;
+            let pair_min = dl.certified_bound.clone().min(ul.certified_bound.clone());
+            if best_pair_leaves
+                .as_ref()
+                .is_none_or(|(b_min, _, _)| &pair_min > b_min)
+            {
+                best_pair_leaves = Some((pair_min, dl, ul));
+            }
+        }
+        let Some((pair_min, dl, ul)) = best_pair_leaves else {
+            break;
+        };
+        if pair_min <= leaves[min_idx].certified_bound {
+            break;
+        }
+        leaves.swap_remove(min_idx);
+        leaves.push(dl);
+        leaves.push(ul);
+    }
+
+    let tree_lower_bound = leaves
+        .iter()
+        .map(|l| &l.certified_bound)
+        .min()
+        .cloned()
+        .unwrap_or_else(|| root_lower_bound.clone())
+        .max(best_single_split_bound.clone());
+    if upper_bound < &tree_lower_bound {
+        return Err(format!(
+            "upper_bound {upper_bound} < tree_lower_bound {tree_lower_bound}"
+        ));
+    }
+    let single_split_gain = &best_single_split_bound - &root_lower_bound;
+    let tree_gain = &tree_lower_bound - &root_lower_bound;
+    let tree_gap = upper_bound - &tree_lower_bound;
+
+    // Disjunctive Partition Reduced-Cost Fixing across the exhaustive leaf partition:
+    // a code (i, q) can appear in a guard-feasible discrete assignment with objective <= U
+    // only if at least one leaf l in the partition has q in [q_lo_l, q_hi_l] and
+    // L(y, B^(l)) + pen_i(y, B^(l), q) <= U for y = root_y, y = leaf.y, and (if provided)
+    // y = extra_root_y.
+    let compute_rc = |y_slice: &[BigRational]| -> Vec<BigRational> {
+        let mut rc_vec = Vec::with_capacity(n);
+        for i in 0..n {
+            let mut rc = p.g[i].clone();
+            for (r, yr) in y_slice.iter().enumerate() {
+                if !yr.is_zero() && !p.guards[r][i].is_zero() {
+                    rc -= yr * &p.guards[r][i];
+                }
+            }
+            rc_vec.push(rc);
+        }
+        rc_vec
+    };
+    let root_rc = compute_rc(&root_y);
+    let extra_rc = extra_root_y.map(compute_rc);
+
+    let eval_rc_mask =
+        |rc_vec: &[BigRational], code_bounds: &[(i64, i64)]| -> Option<Vec<[bool; 15]>> {
+            let mut leaf_lb = BigRational::zero();
+            let mut leaf_penalties: Vec<Vec<(usize, BigRational)>> = Vec::with_capacity(n);
+            for (i, c) in cs.iter().enumerate() {
+                let (q_lo, q_hi) = code_bounds[i];
+                let rc = &rc_vec[i];
+                let mut best_i: Option<BigRational> = None;
+                let mut contribs = Vec::with_capacity((q_hi - q_lo + 1) as usize);
+                for q in q_lo..=q_hi {
+                    let contrib = if q == c.q0 {
+                        BigRational::zero()
+                    } else {
+                        let delta =
+                            BigRational::new(BigInt::from(q - c.q0), BigInt::from(4)) + &c.shift;
+                        rc * &delta
+                    };
+                    if best_i.as_ref().is_none_or(|b| &contrib < b) {
+                        best_i = Some(contrib.clone());
+                    }
+                    contribs.push(((q + 7) as usize, contrib));
+                }
+                let b_i = best_i.expect("non-empty leaf code range");
+                leaf_lb += &b_i;
+                let pens = contribs
+                    .into_iter()
+                    .map(|(q_idx, contrib)| (q_idx, contrib - &b_i))
+                    .collect();
+                leaf_penalties.push(pens);
+            }
+            if &leaf_lb > upper_bound {
+                return None;
+            }
+            let leaf_slack = upper_bound - &leaf_lb;
+            let mut mask = vec![[false; 15]; n];
+            for (i, pens) in leaf_penalties.into_iter().enumerate() {
+                for (q_idx, pen) in pens {
+                    if pen <= leaf_slack {
+                        mask[i][q_idx] = true;
+                    }
+                }
+            }
+            Some(mask)
+        };
+
+    let mut surviving_mask = vec![[false; 15]; n];
+    for leaf in &leaves {
+        let Some(root_leaf_mask) = eval_rc_mask(&root_rc, &leaf.code_bounds) else {
+            continue;
+        };
+        let leaf_rc = compute_rc(&leaf.y);
+        let Some(leaf_y_mask) = eval_rc_mask(&leaf_rc, &leaf.code_bounds) else {
+            continue;
+        };
+        let ext_leaf_mask = match &extra_rc {
+            Some(erc) => {
+                let Some(m_ext) = eval_rc_mask(erc, &leaf.code_bounds) else {
+                    continue;
+                };
+                Some(m_ext)
+            }
+            None => None,
+        };
+        for i in 0..n {
+            for q_idx in 0..15 {
+                let ext_ok = ext_leaf_mask.as_ref().is_none_or(|m_ext| m_ext[i][q_idx]);
+                if root_leaf_mask[i][q_idx] && leaf_y_mask[i][q_idx] && ext_ok {
+                    surviving_mask[i][q_idx] = true;
+                }
+            }
+        }
+    }
+
+    let mut tree_eliminated_codes = 0usize;
+    let mut tree_fixed_coeffs = 0usize;
+    let mut tree_binary_or_fixed_coeffs = 0usize;
+    let mut tree_surviving_codes = Vec::with_capacity(n);
+    for mask in &surviving_mask {
+        let mut surv = Vec::new();
+        for (q_idx, &ok) in mask.iter().enumerate() {
+            if ok {
+                surv.push((q_idx as i64) - 7);
+            }
+        }
+        let surv_cnt = surv.len();
+        tree_eliminated_codes += 15 - surv_cnt;
+        if surv_cnt == 1 {
+            tree_fixed_coeffs += 1;
+        }
+        if surv_cnt <= 2 {
+            tree_binary_or_fixed_coeffs += 1;
+        }
+        tree_surviving_codes.push(surv);
+    }
+
+    Ok(DisjunctiveSplitCertificate {
+        root_lower_bound,
+        best_single_split_bound,
+        single_split_gain,
+        best_split_coeff,
+        best_split_q_down,
+        tree_lower_bound,
+        tree_gain,
+        tree_gap,
+        tree_leaves: leaves.len(),
+        evaluated_splits,
+        tree_eliminated_codes,
+        tree_fixed_coeffs,
+        tree_binary_or_fixed_coeffs,
+        tree_surviving_codes,
+    })
+}
+
 /// Result of `lp_guided_discrete_solve`.
 #[derive(Debug, Clone)]
 pub struct DiscreteLpResult {
@@ -1842,58 +2474,54 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
         .collect();
 
     let min_slack_dy = -Dy::<P>::ONE.ldexp(-35);
+    #[derive(Clone, Copy)]
     struct SingleCand<const P: u32> {
         i: usize,
         q: i64,
-        d_rat: BigRational,
         d_dy: Dy<P>,
         gain_dy: Dy<P>,
     }
+    #[derive(Clone, Copy)]
     struct PartialComp<const P: u32> {
         i2: usize,
         q2: i64,
-        d2_rat: BigRational,
         d2_dy: Dy<P>,
         net12_dy: Dy<P>,
         rem_r0: usize,
         rem_viol_sum: Dy<P>,
     }
+    #[derive(Clone, Copy)]
     struct TripleMove<const P: u32> {
         i2: usize,
         q2: i64,
-        d2_rat: BigRational,
         d2_dy: Dy<P>,
         i3: usize,
         q3: i64,
-        d3_rat: BigRational,
         d3_dy: Dy<P>,
         net_dy: Dy<P>,
     }
+    #[derive(Clone, Copy)]
     struct PartialTriple<const P: u32> {
         i2: usize,
         q2: i64,
-        d2_rat: BigRational,
         d2_dy: Dy<P>,
         i3: usize,
         q3: i64,
-        d3_rat: BigRational,
         d3_dy: Dy<P>,
         net123_dy: Dy<P>,
         rem3_r0: usize,
         rem3_viol_sum: Dy<P>,
     }
+    #[derive(Clone, Copy)]
     struct QuadMove<const P: u32> {
         i2: usize,
         q2: i64,
-        d2_rat: BigRational,
         d2_dy: Dy<P>,
         i3: usize,
         q3: i64,
-        d3_rat: BigRational,
         d3_dy: Dy<P>,
         i4: usize,
         q4: i64,
-        d4_rat: BigRational,
         d4_dy: Dy<P>,
         net_dy: Dy<P>,
     }
@@ -1913,7 +2541,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                 }
                 let cur_d = disc_dy[i];
                 let mut best_cand: Option<SingleCand<P>> = None;
-                for &(q, ref d_rat, d_dy) in &legal_deltas[i] {
+                for &(q, _, d_dy) in &legal_deltas[i] {
                     if q == cur_q[i] {
                         continue;
                     }
@@ -1938,7 +2566,6 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                             best_cand = Some(SingleCand {
                                 i,
                                 q,
-                                d_rat: d_rat.clone(),
                                 d_dy,
                                 gain_dy,
                             });
@@ -1967,7 +2594,8 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                 if !ok {
                     continue;
                 }
-                let diff_rat = &cand.d_rat - &disc_rat[i];
+                let d_rat = &legal_deltas[i][(cand.q + 7) as usize].1;
+                let diff_rat = d_rat - &disc_rat[i];
                 if (&p.g[i] * &diff_rat).is_negative()
                     && (0..m)
                         .all(|r| !(&exact_guards[r] + &p.guards[r][i] * &diff_rat).is_negative())
@@ -1980,7 +2608,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                     }
                     *exact_obj += &p.g[i] * &diff_rat;
                     cur_q[i] = cand.q;
-                    disc_rat[i] = cand.d_rat;
+                    disc_rat[i] = d_rat.clone();
                     disc_dy[i] = cand.d_dy;
                     improved = true;
                 }
@@ -2005,29 +2633,29 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
         let mut after12_guard = vec![Dy::<P>::ZERO; m];
         for _pair_pass in 0..max_passes {
             let mut pair_improved = false;
-            let mut blocked_i1: Vec<(usize, i64, BigRational, Dy<P>, Dy<P>)> = Vec::new();
+            let mut blocked_i1: Vec<(usize, i64, Dy<P>, Dy<P>)> = Vec::new();
             for i1 in 0..n {
                 let gi1 = g_dy[i1];
                 if gi1.is_zero() {
                     continue;
                 }
                 let dir = if gi1.is_negative() { 1i64 } else { -1i64 };
-                for mult in [1i64, 2i64, 3i64] {
+                for mult in 1i64..=14i64 {
                     let step_q = cur_q[i1] + dir * mult;
                     if !(-7..=7).contains(&step_q) {
                         continue;
                     }
-                    let (q1, ref d1_rat, d1_dy) = legal_deltas[i1][(step_q + 7) as usize];
+                    let (q1, _, d1_dy) = legal_deltas[i1][(step_q + 7) as usize];
                     let diff1_dy = d1_dy - disc_dy[i1];
                     let gain1_dy = gi1 * diff1_dy;
                     if gain1_dy.is_negative() {
-                        blocked_i1.push((i1, q1, d1_rat.clone(), d1_dy, gain1_dy));
+                        blocked_i1.push((i1, q1, d1_dy, gain1_dy));
                     }
                 }
             }
-            blocked_i1.sort_by_key(|a| a.4);
+            blocked_i1.sort_by_key(|a| a.3);
 
-            for (i1, q1, d1_rat, d1_dy, _gain1_dy) in blocked_i1 {
+            for (i1, q1, d1_dy, _gain1_dy) in blocked_i1 {
                 if cur_q[i1] == q1 {
                     continue;
                 }
@@ -2044,19 +2672,20 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         viol_rows.push((r, new_s));
                     }
                 }
-                if viol_rows.is_empty() || viol_rows.len() > 20 {
+                if viol_rows.is_empty() || viol_rows.len() > 25 {
                     continue;
                 }
                 viol_rows.sort_by_key(|a| a.1);
-                let mut best_pair: Option<(usize, i64, BigRational, Dy<P>, Dy<P>)> = None;
+                let mut best_pair: Option<(usize, i64, Dy<P>, Dy<P>)> = None;
                 let mut top_partials: Vec<PartialComp<P>> = Vec::new();
                 let r0 = viol_rows[0].0;
+                let d1_rat = &legal_deltas[i1][(q1 + 7) as usize].1;
 
                 for i2 in 0..n {
                     if i2 == i1 || j_dy[r0][i2].is_zero() {
                         continue;
                     }
-                    for step2 in [-3i64, -2i64, -1i64, 1i64, 2i64, 3i64] {
+                    for step2 in [-6i64, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6] {
                         let q2 = cur_q[i2] + step2;
                         if !(-7..=7).contains(&q2) {
                             continue;
@@ -2070,11 +2699,35 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         if !net_gain_dy.is_negative() {
                             continue;
                         }
-                        if after1_guard[r0] + j_dy[r0][i2] * diff2_dy < min_slack_dy {
+                        let new_r0_s = after1_guard[r0] + j_dy[r0][i2] * diff2_dy;
+                        // Allow partial r0 repair (>= 50% of r0 deficit closed) into top_partials
+                        // when no 1-compensator pair has been found yet, so triples/quads can
+                        // cooperatively repair r0 across 2 or 3 compensators.
+                        if new_r0_s < min_slack_dy
+                            && (best_pair.is_some() || new_r0_s + new_r0_s < after1_guard[r0])
+                        {
+                            continue;
+                        }
+                        let max_rem = if best_pair.is_some() { 0 } else { 4 };
+                        // Fast exact pre-check on `viol_rows` (subset of `0..m`): if more than
+                        // `max_rem` rows of `viol_rows` remain `< min_slack_dy`, total remaining
+                        // violations across `0..m` are guaranteed `> max_rem`.
+                        let mut v_rem = usize::from(new_r0_s < min_slack_dy);
+                        if v_rem > max_rem {
+                            continue;
+                        }
+                        for &(vr, _) in &viol_rows[1..] {
+                            if after1_guard[vr] + j_dy[vr][i2] * diff2_dy < min_slack_dy {
+                                v_rem += 1;
+                                if v_rem > max_rem {
+                                    break;
+                                }
+                            }
+                        }
+                        if v_rem > max_rem {
                             continue;
                         }
                         // Scan all 380 guards so rem_r0 captures true remaining violations.
-                        let max_rem = if best_pair.is_some() { 0 } else { 3 };
                         let mut rem_count = 0usize;
                         let mut rem_r0 = 0usize;
                         let mut rem_min_s = Dy::<P>::ZERO;
@@ -2094,12 +2747,12 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                             }
                         }
                         if rem_count == 0 {
-                            if let Some((_, _, _, _, best_g)) = best_pair {
+                            if let Some((_, _, _, best_g)) = best_pair {
                                 if net_gain_dy >= best_g {
                                     continue;
                                 }
                             }
-                            let diff1_rat = &d1_rat - &disc_rat[i1];
+                            let diff1_rat = d1_rat - &disc_rat[i1];
                             let diff2_rat = d2_rat - &disc_rat[i2];
                             let net_rat = &p.g[i1] * &diff1_rat + &p.g[i2] * &diff2_rat;
                             if net_rat.is_negative()
@@ -2110,13 +2763,12 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                         .is_negative()
                                 })
                             {
-                                best_pair = Some((i2, q2, d2_rat.clone(), d2_dy, net_gain_dy));
+                                best_pair = Some((i2, q2, d2_dy, net_gain_dy));
                             }
                         } else if best_pair.is_none() && rem_count <= 4 {
                             let cand = PartialComp {
                                 i2,
                                 q2,
-                                d2_rat: d2_rat.clone(),
                                 d2_dy,
                                 net12_dy: net_gain_dy,
                                 rem_r0,
@@ -2128,15 +2780,16 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                     .cmp(&b.rem_viol_sum)
                                     .then_with(|| a.net12_dy.cmp(&b.net12_dy))
                             });
-                            if top_partials.len() > 2 {
+                            if top_partials.len() > 3 {
                                 top_partials.pop();
                             }
                         }
                     }
                 }
-                if let Some((i2, q2, d2_rat, d2_dy, _)) = best_pair {
-                    let diff1_rat = &d1_rat - &disc_rat[i1];
-                    let diff2_rat = &d2_rat - &disc_rat[i2];
+                if let Some((i2, q2, d2_dy, _)) = best_pair {
+                    let d2_rat = &legal_deltas[i2][(q2 + 7) as usize].1;
+                    let diff1_rat = d1_rat - &disc_rat[i1];
+                    let diff2_rat = d2_rat - &disc_rat[i2];
                     for r in 0..m {
                         if !p.guards[r][i1].is_zero() || !p.guards[r][i2].is_zero() {
                             exact_guards[r] +=
@@ -2146,10 +2799,10 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                     }
                     *exact_obj += &p.g[i1] * &diff1_rat + &p.g[i2] * &diff2_rat;
                     cur_q[i1] = q1;
-                    disc_rat[i1] = d1_rat;
+                    disc_rat[i1] = d1_rat.clone();
                     disc_dy[i1] = d1_dy;
                     cur_q[i2] = q2;
-                    disc_rat[i2] = d2_rat;
+                    disc_rat[i2] = d2_rat.clone();
                     disc_dy[i2] = d2_dy;
                     pair_improved = true;
                 } else if !top_partials.is_empty() {
@@ -2159,14 +2812,22 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         let i2 = bp.i2;
                         let diff2_dy = bp.d2_dy - disc_dy[i2];
                         let rem_r0 = bp.rem_r0;
+                        let mut rem12_rows = [0usize; 4];
+                        let mut rem12_len = 0usize;
                         for r in 0..m {
-                            after12_guard[r] = after1_guard[r] + j_dy[r][i2] * diff2_dy;
+                            let s = after1_guard[r] + j_dy[r][i2] * diff2_dy;
+                            after12_guard[r] = s;
+                            if s < min_slack_dy && rem12_len < 4 {
+                                rem12_rows[rem12_len] = r;
+                                rem12_len += 1;
+                            }
                         }
+                        let d2_rat = &legal_deltas[i2][(bp.q2 + 7) as usize].1;
                         for i3 in 0..n {
                             if i3 == i1 || i3 == i2 || j_dy[rem_r0][i3].is_zero() {
                                 continue;
                             }
-                            for step3 in [-2i64, -1i64, 1i64, 2i64] {
+                            for step3 in [-4i64, -3, -2, -1, 1, 2, 3, 4] {
                                 let q3 = cur_q[i3] + step3;
                                 if !(-7..=7).contains(&q3) {
                                     continue;
@@ -2185,12 +2846,27 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                         continue;
                                     }
                                 }
-                                if after12_guard[rem_r0] + j_dy[rem_r0][i3] * diff3_dy
-                                    < min_slack_dy
+                                let new_rem_r0_s =
+                                    after12_guard[rem_r0] + j_dy[rem_r0][i3] * diff3_dy;
+                                if new_rem_r0_s < min_slack_dy
+                                    && (best_triple.is_some()
+                                        || new_rem_r0_s + new_rem_r0_s < after12_guard[rem_r0])
                                 {
                                     continue;
                                 }
-                                let max_rem3 = if best_triple.is_some() { 0 } else { 1 };
+                                let max_rem3 = if best_triple.is_some() { 0 } else { 2 };
+                                let mut v3_rem = 0usize;
+                                for &rr in &rem12_rows[..rem12_len] {
+                                    if after12_guard[rr] + j_dy[rr][i3] * diff3_dy < min_slack_dy {
+                                        v3_rem += 1;
+                                        if v3_rem > max_rem3 {
+                                            break;
+                                        }
+                                    }
+                                }
+                                if v3_rem > max_rem3 {
+                                    continue;
+                                }
                                 let mut rem3_count = 0usize;
                                 let mut rem3_r0 = 0usize;
                                 let mut rem3_min_s = Dy::<P>::ZERO;
@@ -2210,8 +2886,8 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                     }
                                 }
                                 if rem3_count == 0 {
-                                    let diff1_rat = &d1_rat - &disc_rat[i1];
-                                    let diff2_rat = &bp.d2_rat - &disc_rat[i2];
+                                    let diff1_rat = d1_rat - &disc_rat[i1];
+                                    let diff2_rat = d2_rat - &disc_rat[i2];
                                     let diff3_rat = d3_rat - &disc_rat[i3];
                                     let net_rat = &p.g[i1] * &diff1_rat
                                         + &p.g[i2] * &diff2_rat
@@ -2228,11 +2904,9 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                         best_triple = Some(TripleMove {
                                             i2,
                                             q2: bp.q2,
-                                            d2_rat: bp.d2_rat.clone(),
                                             d2_dy: bp.d2_dy,
                                             i3,
                                             q3,
-                                            d3_rat: d3_rat.clone(),
                                             d3_dy,
                                             net_dy,
                                         });
@@ -2247,11 +2921,9 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                         best_partial3 = Some(PartialTriple {
                                             i2,
                                             q2: bp.q2,
-                                            d2_rat: bp.d2_rat.clone(),
                                             d2_dy: bp.d2_dy,
                                             i3,
                                             q3,
-                                            d3_rat: d3_rat.clone(),
                                             d3_dy,
                                             net123_dy: net_dy,
                                             rem3_r0,
@@ -2263,9 +2935,11 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         }
                     }
                     if let Some(bt) = best_triple {
-                        let diff1_rat = &d1_rat - &disc_rat[i1];
-                        let diff2_rat = &bt.d2_rat - &disc_rat[bt.i2];
-                        let diff3_rat = &bt.d3_rat - &disc_rat[bt.i3];
+                        let d2_rat = &legal_deltas[bt.i2][(bt.q2 + 7) as usize].1;
+                        let d3_rat = &legal_deltas[bt.i3][(bt.q3 + 7) as usize].1;
+                        let diff1_rat = d1_rat - &disc_rat[i1];
+                        let diff2_rat = d2_rat - &disc_rat[bt.i2];
+                        let diff3_rat = d3_rat - &disc_rat[bt.i3];
                         for r in 0..m {
                             if !p.guards[r][i1].is_zero()
                                 || !p.guards[r][bt.i2].is_zero()
@@ -2281,13 +2955,13 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                             + &p.g[bt.i2] * &diff2_rat
                             + &p.g[bt.i3] * &diff3_rat;
                         cur_q[i1] = q1;
-                        disc_rat[i1] = d1_rat;
+                        disc_rat[i1] = d1_rat.clone();
                         disc_dy[i1] = d1_dy;
                         cur_q[bt.i2] = bt.q2;
-                        disc_rat[bt.i2] = bt.d2_rat;
+                        disc_rat[bt.i2] = d2_rat.clone();
                         disc_dy[bt.i2] = bt.d2_dy;
                         cur_q[bt.i3] = bt.q3;
-                        disc_rat[bt.i3] = bt.d3_rat;
+                        disc_rat[bt.i3] = d3_rat.clone();
                         disc_dy[bt.i3] = bt.d3_dy;
                         pair_improved = true;
                     } else if let Some(bp3) = best_partial3 {
@@ -2296,12 +2970,14 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         let diff2_dy = bp3.d2_dy - disc_dy[i2];
                         let diff3_dy = bp3.d3_dy - disc_dy[i3];
                         let rem3_r0 = bp3.rem3_r0;
+                        let d2_rat = &legal_deltas[i2][(bp3.q2 + 7) as usize].1;
+                        let d3_rat = &legal_deltas[i3][(bp3.q3 + 7) as usize].1;
                         let mut best_quad: Option<QuadMove<P>> = None;
                         for i4 in 0..n {
                             if i4 == i1 || i4 == i2 || i4 == i3 || j_dy[rem3_r0][i4].is_zero() {
                                 continue;
                             }
-                            for step4 in [-2i64, -1i64, 1i64, 2i64] {
+                            for step4 in [-3i64, -2, -1, 1, 2, 3] {
                                 let q4 = cur_q[i4] + step4;
                                 if !(-7..=7).contains(&q4) {
                                     continue;
@@ -2342,9 +3018,9 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                     }
                                 }
                                 if all_ok {
-                                    let diff1_rat = &d1_rat - &disc_rat[i1];
-                                    let diff2_rat = &bp3.d2_rat - &disc_rat[i2];
-                                    let diff3_rat = &bp3.d3_rat - &disc_rat[i3];
+                                    let diff1_rat = d1_rat - &disc_rat[i1];
+                                    let diff2_rat = d2_rat - &disc_rat[i2];
+                                    let diff3_rat = d3_rat - &disc_rat[i3];
                                     let diff4_rat = d4_rat - &disc_rat[i4];
                                     let net_rat = &p.g[i1] * &diff1_rat
                                         + &p.g[i2] * &diff2_rat
@@ -2363,15 +3039,12 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                         best_quad = Some(QuadMove {
                                             i2,
                                             q2: bp3.q2,
-                                            d2_rat: bp3.d2_rat.clone(),
                                             d2_dy: bp3.d2_dy,
                                             i3,
                                             q3: bp3.q3,
-                                            d3_rat: bp3.d3_rat.clone(),
                                             d3_dy: bp3.d3_dy,
                                             i4,
                                             q4,
-                                            d4_rat: d4_rat.clone(),
                                             d4_dy,
                                             net_dy,
                                         });
@@ -2380,10 +3053,13 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                             }
                         }
                         if let Some(bq) = best_quad {
-                            let diff1_rat = &d1_rat - &disc_rat[i1];
-                            let diff2_rat = &bq.d2_rat - &disc_rat[bq.i2];
-                            let diff3_rat = &bq.d3_rat - &disc_rat[bq.i3];
-                            let diff4_rat = &bq.d4_rat - &disc_rat[bq.i4];
+                            let d2_rat = &legal_deltas[bq.i2][(bq.q2 + 7) as usize].1;
+                            let d3_rat = &legal_deltas[bq.i3][(bq.q3 + 7) as usize].1;
+                            let d4_rat = &legal_deltas[bq.i4][(bq.q4 + 7) as usize].1;
+                            let diff1_rat = d1_rat - &disc_rat[i1];
+                            let diff2_rat = d2_rat - &disc_rat[bq.i2];
+                            let diff3_rat = d3_rat - &disc_rat[bq.i3];
+                            let diff4_rat = d4_rat - &disc_rat[bq.i4];
                             for r in 0..m {
                                 if !p.guards[r][i1].is_zero()
                                     || !p.guards[r][bq.i2].is_zero()
@@ -2402,16 +3078,16 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                 + &p.g[bq.i3] * &diff3_rat
                                 + &p.g[bq.i4] * &diff4_rat;
                             cur_q[i1] = q1;
-                            disc_rat[i1] = d1_rat;
+                            disc_rat[i1] = d1_rat.clone();
                             disc_dy[i1] = d1_dy;
                             cur_q[bq.i2] = bq.q2;
-                            disc_rat[bq.i2] = bq.d2_rat;
+                            disc_rat[bq.i2] = d2_rat.clone();
                             disc_dy[bq.i2] = bq.d2_dy;
                             cur_q[bq.i3] = bq.q3;
-                            disc_rat[bq.i3] = bq.d3_rat;
+                            disc_rat[bq.i3] = d3_rat.clone();
                             disc_dy[bq.i3] = bq.d3_dy;
                             cur_q[bq.i4] = bq.q4;
-                            disc_rat[bq.i4] = bq.d4_rat;
+                            disc_rat[bq.i4] = d4_rat.clone();
                             disc_dy[bq.i4] = bq.d4_dy;
                             pair_improved = true;
                         }
@@ -2426,20 +3102,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
     };
 
     let schedules: &[(i32, i64, i64, usize)] = if m >= 64 {
-        &[
-            (-18, 17, 16, 0),
-            (-17, 33, 32, 0),
-            (-17, 17, 16, 0),
-            (-16, 17, 16, 0),
-            (-16, 9, 8, 0),
-            (-15, 9, 8, 0),
-            (-13, 5, 4, 0),
-            (-18, 17, 16, 25),
-            (-18, 17, 16, 45),
-            (-17, 33, 32, 30),
-            (-17, 17, 16, 45),
-            (-16, 9, 8, 45),
-        ]
+        &[(-13, 5, 4, 0), (-18, 17, 16, 25)]
     } else {
         &[(-13, 5, 4, 0)]
     };
@@ -2454,6 +3117,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
     }
 
     let mut top_sols: Vec<DiscreteCandidate<P>> = Vec::new();
+    let mut seen_post_single: Vec<Vec<i64>> = Vec::new();
     let push_sol = |top: &mut Vec<DiscreteCandidate<P>>, cand: DiscreteCandidate<P>| {
         if top.iter().any(|c| c.codes == cand.codes) {
             return;
@@ -2621,13 +3285,14 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
             }
 
             // Direct greedy guard-violation repair when only a few guards are violated.
-            if (1..=15).contains(&n_viol) {
+            let max_repair_viol = if m >= 64 { 5 } else { 25 };
+            if (1..=max_repair_viol).contains(&n_viol) {
                 let mut rep_q = cur_q.clone();
                 let mut rep_rat = disc_rat.clone();
                 let mut rep_dy = disc_dy.clone();
                 let mut rep_guard_dy = guard_dy.clone();
                 let mut repaired = false;
-                for _rep_step in 0..30 {
+                for _rep_step in 0..45 {
                     let mut worst_r = None;
                     let mut worst_s = Dy::<P>::ZERO;
                     for (r, &s) in rep_guard_dy.iter().enumerate() {
@@ -2640,17 +3305,17 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         repaired = true;
                         break;
                     };
-                    let mut best_fix: Option<(usize, i64, BigRational, Dy<P>, Dy<P>)> = None;
+                    let mut best_fix: Option<(usize, i64, Dy<P>, Dy<P>)> = None;
                     for i in 0..n {
                         if j_dy[r0][i].is_zero() {
                             continue;
                         }
-                        for step in [-1i64, 1i64] {
+                        for step in [-3i64, -2, -1, 1, 2, 3] {
                             let nq = rep_q[i] + step;
                             if !(-7..=7).contains(&nq) {
                                 continue;
                             }
-                            let (_, ref nd_rat, nd_dy) = legal_deltas[i][(nq + 7) as usize];
+                            let (_, _, nd_dy) = legal_deltas[i][(nq + 7) as usize];
                             let diff_dy = nd_dy - rep_dy[i];
                             let r0_gain = j_dy[r0][i] * diff_dy;
                             if !r0_gain.is_positive() {
@@ -2670,12 +3335,12 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                             }
                             let cost_pen = (g_dy[i] * diff_dy).max(Dy::ZERO);
                             let score = cost_pen / r0_gain;
-                            if best_fix.as_ref().is_none_or(|b| score < b.4) {
-                                best_fix = Some((i, nq, nd_rat.clone(), nd_dy, score));
+                            if best_fix.as_ref().is_none_or(|b| score < b.3) {
+                                best_fix = Some((i, nq, nd_dy, score));
                             }
                         }
                     }
-                    let Some((fi, fq, fd_rat, fd_dy, _)) = best_fix else {
+                    let Some((fi, fq, fd_dy, _)) = best_fix else {
                         break;
                     };
                     let diff_dy = fd_dy - rep_dy[fi];
@@ -2685,7 +3350,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         }
                     }
                     rep_q[fi] = fq;
-                    rep_rat[fi] = fd_rat;
+                    rep_rat[fi] = legal_deltas[fi][(fq + 7) as usize].1.clone();
                     rep_dy[fi] = fd_dy;
                     if rep_guard_dy.iter().all(|s| !s.is_negative()) {
                         repaired = true;
@@ -2713,27 +3378,38 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                 exact_obj += &p.g[i] * dr;
                             }
                         }
-                        run_polish(
+                        single_sweep(
                             &mut rep_q,
                             &mut rep_rat,
                             &mut rep_dy,
                             &mut exact_guards,
                             &mut rep_guard_dy,
                             &mut exact_obj,
-                            2,
                         );
-                        if !exact_obj.is_positive() {
-                            push_sol(
-                                &mut top_sols,
-                                DiscreteCandidate {
-                                    codes: rep_q,
-                                    deltas: rep_rat,
-                                    disc_dy: rep_dy,
-                                    guards: exact_guards,
-                                    guard_dy: rep_guard_dy,
-                                    objective: exact_obj,
-                                },
+                        if !seen_post_single.contains(&rep_q) {
+                            seen_post_single.push(rep_q.clone());
+                            run_polish(
+                                &mut rep_q,
+                                &mut rep_rat,
+                                &mut rep_dy,
+                                &mut exact_guards,
+                                &mut rep_guard_dy,
+                                &mut exact_obj,
+                                2,
                             );
+                            if !exact_obj.is_positive() {
+                                push_sol(
+                                    &mut top_sols,
+                                    DiscreteCandidate {
+                                        codes: rep_q,
+                                        deltas: rep_rat,
+                                        disc_dy: rep_dy,
+                                        guards: exact_guards,
+                                        guard_dy: rep_guard_dy,
+                                        objective: exact_obj,
+                                    },
+                                );
+                            }
                         }
                     }
                 }
@@ -2766,15 +3442,26 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         exact_obj += &p.g[i] * dr;
                     }
                 }
-                run_polish(
+                single_sweep(
                     &mut cur_q,
                     &mut disc_rat,
                     &mut disc_dy,
                     &mut exact_guards,
                     &mut guard_dy,
                     &mut exact_obj,
-                    2,
                 );
+                if !seen_post_single.contains(&cur_q) {
+                    seen_post_single.push(cur_q.clone());
+                    run_polish(
+                        &mut cur_q,
+                        &mut disc_rat,
+                        &mut disc_dy,
+                        &mut exact_guards,
+                        &mut guard_dy,
+                        &mut exact_obj,
+                        2,
+                    );
+                }
                 if exact_obj.is_positive() {
                     for (i, c) in cs.iter().enumerate() {
                         cur_q[i] = c.q0;
@@ -2843,6 +3530,20 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
     };
 
     // Independent from-scratch recomputation over BigRational.
+    for (i, c) in cs.iter().enumerate() {
+        let q = cur_q[i];
+        if !(-7..=7).contains(&q) {
+            return Err(format!("discrete code out of range at {i}: {q}"));
+        }
+        let want_delta = if q == c.q0 {
+            BigRational::zero()
+        } else {
+            BigRational::new(BigInt::from(q - c.q0), BigInt::from(4)) + &c.shift
+        };
+        if disc_rat[i] != want_delta {
+            return Err(format!("independent delta check failed at {i}"));
+        }
+    }
     let mut recomputed_guards = vec![BigRational::zero(); m];
     for (r, row) in p.guards.iter().enumerate() {
         let mut s = BigRational::zero();

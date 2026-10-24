@@ -110,6 +110,13 @@ fn main() -> ExitCode {
                 .ok()
                 .map(|b| b.to_string());
             let gap_decomp = search::certify_gap_decomposition(&p, dual_y_ref, &d.codes).ok();
+            let disj_split = search::certify_disjunctive_split_bound_with_dual::<120>(
+                &p,
+                &d.objective,
+                24,
+                Some(dual_y_ref),
+            )
+            .ok();
             let rcbt = match search::certify_reduced_cost_fixing(&p, dual_y_ref, &d.objective) {
                 Ok(r) => json!({
                     "fixed_coeffs": r.fixed_coeffs,
@@ -122,6 +129,17 @@ fn main() -> ExitCode {
                     "complementary_slackness_loss": gap_decomp.as_ref().map(|g| g.complementary_slackness_loss.to_string()),
                     "zero_reduced_cost_coeffs": gap_decomp.as_ref().map(|g| g.zero_reduced_cost_coeffs),
                     "gap_identity_holds": gap_decomp.as_ref().map(|g| g.identity_holds),
+                    "disjunctive_single_split_bound": disj_split.as_ref().map(|s| s.best_single_split_bound.to_string()),
+                    "disjunctive_single_split_gain": disj_split.as_ref().map(|s| s.single_split_gain.to_string()),
+                    "disjunctive_best_split_coeff": disj_split.as_ref().map(|s| s.best_split_coeff),
+                    "disjunctive_tree_lower_bound": disj_split.as_ref().map(|s| s.tree_lower_bound.to_string()),
+                    "disjunctive_tree_gain": disj_split.as_ref().map(|s| s.tree_gain.to_string()),
+                    "disjunctive_tree_gap": disj_split.as_ref().map(|s| s.tree_gap.to_string()),
+                    "disjunctive_tree_leaves": disj_split.as_ref().map(|s| s.tree_leaves),
+                    "disjunctive_evaluated_splits": disj_split.as_ref().map(|s| s.evaluated_splits),
+                    "disjunctive_tree_eliminated_codes": disj_split.as_ref().map(|s| s.tree_eliminated_codes),
+                    "disjunctive_tree_fixed_coeffs": disj_split.as_ref().map(|s| s.tree_fixed_coeffs),
+                    "disjunctive_tree_binary_or_fixed_coeffs": disj_split.as_ref().map(|s| s.tree_binary_or_fixed_coeffs),
                     "dual_bound_matches_delta_hull_lp": lag_bound == dlp_obj,
                 }),
                 Err(e) => json!({ "error": e }),
