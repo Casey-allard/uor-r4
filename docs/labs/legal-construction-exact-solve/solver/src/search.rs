@@ -1576,6 +1576,132 @@ pub fn certify_reduced_cost_fixing(
     })
 }
 
+/// Exact rational Lagrangian decomposition of the optimality gap `g·δ - L(y)`
+/// for a guard-feasible discrete assignment `codes` (`q_i in -7..=7`) and
+/// non-negative dual multiplier vector `y >= 0`:
+/// `g·δ - L(y) = reduced_cost_loss + complementary_slackness_loss`.
+#[derive(Debug, Clone)]
+pub struct GapDecomposition {
+    /// Exact rational primal objective `g·δ(codes)`.
+    pub primal_objective: BigRational,
+    /// Exact rational Lagrangian dual lower bound `L(y)`.
+    pub dual_lower_bound: BigRational,
+    /// Exact rational optimality gap `primal_objective - dual_lower_bound`.
+    pub gap: BigRational,
+    /// Sum of per-coefficient reduced-cost penalties `Σ_i (rc_i δ_i(q_i) - min_{q'} rc_i δ_i(q')) >= 0`.
+    pub reduced_cost_loss: BigRational,
+    /// Dual-weighted guard slack `Σ_r y_r (G_r·δ) >= 0`.
+    pub complementary_slackness_loss: BigRational,
+    /// Number of coefficients `i` whose chosen code `codes[i]` has zero reduced-cost penalty.
+    pub zero_reduced_cost_coeffs: usize,
+    /// Whether `gap == reduced_cost_loss + complementary_slackness_loss` holds in exact rational arithmetic.
+    pub identity_holds: bool,
+}
+
+/// Prove and decompose the exact rational optimality gap `g·δ(codes) - L(y)`
+/// into non-negative `reduced_cost_loss` and non-negative `complementary_slackness_loss`.
+pub fn certify_gap_decomposition(
+    p: &Problem,
+    y: &[BigRational],
+    codes: &[i64],
+) -> Result<GapDecomposition, String> {
+    if y.len() != p.guards.len() {
+        return Err(format!(
+            "dual multiplier length {} != {} guards",
+            y.len(),
+            p.guards.len()
+        ));
+    }
+    for (r, yr) in y.iter().enumerate() {
+        if yr.is_negative() {
+            return Err(format!("dual multiplier {r} is negative"));
+        }
+    }
+    let cs = p.coeffs();
+    let n = cs.len();
+    if codes.len() != n {
+        return Err(format!("codes length {} != {n} coefficients", codes.len()));
+    }
+    let mut deltas = Vec::with_capacity(n);
+    let mut primal_objective = BigRational::zero();
+    for (i, (&q, c)) in codes.iter().zip(&cs).enumerate() {
+        if !(-7..=7).contains(&q) {
+            return Err(format!("coefficient {i} code {q} outside -7..=7"));
+        }
+        let d = if q == c.q0 {
+            BigRational::zero()
+        } else {
+            BigRational::new(BigInt::from(q - c.q0), BigInt::from(4)) + &c.shift
+        };
+        if !d.is_zero() {
+            primal_objective += &p.g[i] * &d;
+        }
+        deltas.push(d);
+    }
+    let mut complementary_slackness_loss = BigRational::zero();
+    for (r, row) in p.guards.iter().enumerate() {
+        let mut s = BigRational::zero();
+        for (i, a) in row.iter().enumerate() {
+            if !deltas[i].is_zero() && !a.is_zero() {
+                s += a * &deltas[i];
+            }
+        }
+        if s.is_negative() {
+            return Err(format!("guard row {r} violated: {s} < 0"));
+        }
+        if !y[r].is_zero() && !s.is_zero() {
+            complementary_slackness_loss += &y[r] * s;
+        }
+    }
+    let mut dual_lower_bound = BigRational::zero();
+    let mut reduced_cost_loss = BigRational::zero();
+    let mut zero_reduced_cost_coeffs = 0usize;
+    for (i, c) in cs.iter().enumerate() {
+        let mut rc = p.g[i].clone();
+        for (r, yr) in y.iter().enumerate() {
+            if !yr.is_zero() && !p.guards[r][i].is_zero() {
+                rc -= yr * &p.guards[r][i];
+            }
+        }
+        let mut best_i = BigRational::zero();
+        for q in -7..=7 {
+            if q == c.q0 {
+                continue;
+            }
+            let d = BigRational::new(BigInt::from(q - c.q0), BigInt::from(4)) + &c.shift;
+            let contrib = &rc * &d;
+            if contrib < best_i {
+                best_i = contrib;
+            }
+        }
+        let chosen_i = &rc * &deltas[i];
+        let penalty_i = chosen_i - &best_i;
+        if penalty_i.is_negative() {
+            return Err(format!("coefficient {i} negative reduced-cost penalty"));
+        }
+        if penalty_i.is_zero() {
+            zero_reduced_cost_coeffs += 1;
+        } else {
+            reduced_cost_loss += penalty_i;
+        }
+        dual_lower_bound += best_i;
+    }
+    let gap = &primal_objective - &dual_lower_bound;
+    let identity_holds = gap == (&reduced_cost_loss + &complementary_slackness_loss);
+    if !identity_holds {
+        return Err("Lagrangian gap decomposition identity failed".into());
+    }
+    Ok(GapDecomposition {
+        primal_objective,
+        dual_lower_bound,
+        gap,
+        reduced_cost_loss,
+        complementary_slackness_loss,
+        zero_reduced_cost_coeffs,
+        identity_holds,
+    })
+}
+
 /// Result of `lp_guided_discrete_solve`.
 #[derive(Debug, Clone)]
 pub struct DiscreteLpResult {
@@ -1743,6 +1869,34 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
         d3_dy: Dy<P>,
         net_dy: Dy<P>,
     }
+    struct PartialTriple<const P: u32> {
+        i2: usize,
+        q2: i64,
+        d2_rat: BigRational,
+        d2_dy: Dy<P>,
+        i3: usize,
+        q3: i64,
+        d3_rat: BigRational,
+        d3_dy: Dy<P>,
+        net123_dy: Dy<P>,
+        rem3_r0: usize,
+        rem3_viol_sum: Dy<P>,
+    }
+    struct QuadMove<const P: u32> {
+        i2: usize,
+        q2: i64,
+        d2_rat: BigRational,
+        d2_dy: Dy<P>,
+        i3: usize,
+        q3: i64,
+        d3_rat: BigRational,
+        d3_dy: Dy<P>,
+        i4: usize,
+        q4: i64,
+        d4_rat: BigRational,
+        d4_dy: Dy<P>,
+        net_dy: Dy<P>,
+    }
 
     let single_sweep = |cur_q: &mut [i64],
                         disc_rat: &mut [BigRational],
@@ -1842,11 +1996,14 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                       disc_dy: &mut [Dy<P>],
                       exact_guards: &mut [BigRational],
                       guard_dy: &mut [Dy<P>],
-                      exact_obj: &mut BigRational| {
+                      exact_obj: &mut BigRational,
+                      max_passes: usize| {
         single_sweep(cur_q, disc_rat, disc_dy, exact_guards, guard_dy, exact_obj);
 
-        // Multi-compensator (k = 1 pair and k = 2 triple) exact rational repair polish.
-        for _pair_pass in 0..8 {
+        // Multi-compensator (k = 1 pair, k = 2 triple, k = 3 quad) exact rational repair polish.
+        let mut after1_guard = vec![Dy::<P>::ZERO; m];
+        let mut after12_guard = vec![Dy::<P>::ZERO; m];
+        for _pair_pass in 0..max_passes {
             let mut pair_improved = false;
             let mut blocked_i1: Vec<(usize, i64, BigRational, Dy<P>, Dy<P>)> = Vec::new();
             for i1 in 0..n {
@@ -1855,7 +2012,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                     continue;
                 }
                 let dir = if gi1.is_negative() { 1i64 } else { -1i64 };
-                for mult in [1i64, 2i64] {
+                for mult in [1i64, 2i64, 3i64] {
                     let step_q = cur_q[i1] + dir * mult;
                     if !(-7..=7).contains(&step_q) {
                         continue;
@@ -1881,25 +2038,25 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                 }
                 let mut viol_rows = Vec::new();
                 for r in 0..m {
-                    if !j_dy[r][i1].is_zero() {
-                        let new_s = guard_dy[r] + j_dy[r][i1] * diff1_dy;
-                        if new_s.is_negative() {
-                            viol_rows.push((r, new_s));
-                        }
+                    let new_s = guard_dy[r] + j_dy[r][i1] * diff1_dy;
+                    after1_guard[r] = new_s;
+                    if new_s.is_negative() {
+                        viol_rows.push((r, new_s));
                     }
                 }
-                if viol_rows.is_empty() || viol_rows.len() > 12 {
+                if viol_rows.is_empty() || viol_rows.len() > 20 {
                     continue;
                 }
+                viol_rows.sort_by_key(|a| a.1);
                 let mut best_pair: Option<(usize, i64, BigRational, Dy<P>, Dy<P>)> = None;
-                let mut best_partial: Option<PartialComp<P>> = None;
+                let mut top_partials: Vec<PartialComp<P>> = Vec::new();
                 let r0 = viol_rows[0].0;
 
                 for i2 in 0..n {
                     if i2 == i1 || j_dy[r0][i2].is_zero() {
                         continue;
                     }
-                    for step2 in [-2i64, -1i64, 1i64, 2i64] {
+                    for step2 in [-3i64, -2i64, -1i64, 1i64, 2i64, 3i64] {
                         let q2 = cur_q[i2] + step2;
                         if !(-7..=7).contains(&q2) {
                             continue;
@@ -1913,17 +2070,24 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         if !net_gain_dy.is_negative() {
                             continue;
                         }
-                        if viol_rows[0].1 + j_dy[r0][i2] * diff2_dy < min_slack_dy {
+                        if after1_guard[r0] + j_dy[r0][i2] * diff2_dy < min_slack_dy {
                             continue;
                         }
+                        // Scan all 380 guards so rem_r0 captures true remaining violations.
+                        let max_rem = if best_pair.is_some() { 0 } else { 3 };
                         let mut rem_count = 0usize;
                         let mut rem_r0 = 0usize;
+                        let mut rem_min_s = Dy::<P>::ZERO;
                         let mut rem_viol_sum = Dy::<P>::ZERO;
-                        for &(r, new_s) in &viol_rows {
-                            let s = new_s + j_dy[r][i2] * diff2_dy;
+                        for r in 0..m {
+                            let s = after1_guard[r] + j_dy[r][i2] * diff2_dy;
                             if s < min_slack_dy {
                                 rem_count += 1;
-                                if rem_count == 1 {
+                                if rem_count > max_rem {
+                                    break;
+                                }
+                                if rem_count == 1 || s < rem_min_s {
+                                    rem_min_s = s;
                                     rem_r0 = r;
                                 }
                                 rem_viol_sum = rem_viol_sum - s;
@@ -1935,46 +2099,37 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                                     continue;
                                 }
                             }
-                            let mut all_ok = true;
-                            for r in 0..m {
-                                let s =
-                                    guard_dy[r] + j_dy[r][i1] * diff1_dy + j_dy[r][i2] * diff2_dy;
-                                if s < min_slack_dy {
-                                    all_ok = false;
-                                    break;
-                                }
+                            let diff1_rat = &d1_rat - &disc_rat[i1];
+                            let diff2_rat = d2_rat - &disc_rat[i2];
+                            let net_rat = &p.g[i1] * &diff1_rat + &p.g[i2] * &diff2_rat;
+                            if net_rat.is_negative()
+                                && (0..m).all(|r| {
+                                    !(&exact_guards[r]
+                                        + &p.guards[r][i1] * &diff1_rat
+                                        + &p.guards[r][i2] * &diff2_rat)
+                                        .is_negative()
+                                })
+                            {
+                                best_pair = Some((i2, q2, d2_rat.clone(), d2_dy, net_gain_dy));
                             }
-                            if all_ok {
-                                let diff1_rat = &d1_rat - &disc_rat[i1];
-                                let diff2_rat = d2_rat - &disc_rat[i2];
-                                let net_rat = &p.g[i1] * &diff1_rat + &p.g[i2] * &diff2_rat;
-                                if net_rat.is_negative()
-                                    && (0..m).all(|r| {
-                                        !(&exact_guards[r]
-                                            + &p.guards[r][i1] * &diff1_rat
-                                            + &p.guards[r][i2] * &diff2_rat)
-                                            .is_negative()
-                                    })
-                                {
-                                    best_pair = Some((i2, q2, d2_rat.clone(), d2_dy, net_gain_dy));
-                                }
-                            }
-                        } else if best_pair.is_none() && rem_count <= 2 {
-                            let better = best_partial.as_ref().is_none_or(|bp| {
-                                rem_viol_sum < bp.rem_viol_sum
-                                    || (rem_viol_sum == bp.rem_viol_sum
-                                        && net_gain_dy < bp.net12_dy)
+                        } else if best_pair.is_none() && rem_count <= 4 {
+                            let cand = PartialComp {
+                                i2,
+                                q2,
+                                d2_rat: d2_rat.clone(),
+                                d2_dy,
+                                net12_dy: net_gain_dy,
+                                rem_r0,
+                                rem_viol_sum,
+                            };
+                            top_partials.push(cand);
+                            top_partials.sort_by(|a, b| {
+                                a.rem_viol_sum
+                                    .cmp(&b.rem_viol_sum)
+                                    .then_with(|| a.net12_dy.cmp(&b.net12_dy))
                             });
-                            if better {
-                                best_partial = Some(PartialComp {
-                                    i2,
-                                    q2,
-                                    d2_rat: d2_rat.clone(),
-                                    d2_dy,
-                                    net12_dy: net_gain_dy,
-                                    rem_r0,
-                                    rem_viol_sum,
-                                });
+                            if top_partials.len() > 2 {
+                                top_partials.pop();
                             }
                         }
                     }
@@ -1997,77 +2152,112 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                     disc_rat[i2] = d2_rat;
                     disc_dy[i2] = d2_dy;
                     pair_improved = true;
-                } else if let Some(bp) = best_partial {
-                    let i2 = bp.i2;
-                    let diff2_dy = bp.d2_dy - disc_dy[i2];
-                    let rem_r0 = bp.rem_r0;
+                } else if !top_partials.is_empty() {
                     let mut best_triple: Option<TripleMove<P>> = None;
-                    for i3 in 0..n {
-                        if i3 == i1 || i3 == i2 || j_dy[rem_r0][i3].is_zero() {
-                            continue;
+                    let mut best_partial3: Option<PartialTriple<P>> = None;
+                    for bp in &top_partials {
+                        let i2 = bp.i2;
+                        let diff2_dy = bp.d2_dy - disc_dy[i2];
+                        let rem_r0 = bp.rem_r0;
+                        for r in 0..m {
+                            after12_guard[r] = after1_guard[r] + j_dy[r][i2] * diff2_dy;
                         }
-                        for step3 in [-2i64, -1i64, 1i64, 2i64] {
-                            let q3 = cur_q[i3] + step3;
-                            if !(-7..=7).contains(&q3) {
+                        for i3 in 0..n {
+                            if i3 == i1 || i3 == i2 || j_dy[rem_r0][i3].is_zero() {
                                 continue;
                             }
-                            let (_, ref d3_rat, d3_dy) = legal_deltas[i3][(q3 + 7) as usize];
-                            let diff3_dy = d3_dy - disc_dy[i3];
-                            let net_dy = bp.net12_dy + g_dy[i3] * diff3_dy;
-                            if !net_dy.is_negative() {
-                                continue;
-                            }
-                            if let Some(ref bt) = best_triple {
-                                if net_dy >= bt.net_dy {
+                            for step3 in [-2i64, -1i64, 1i64, 2i64] {
+                                let q3 = cur_q[i3] + step3;
+                                if !(-7..=7).contains(&q3) {
                                     continue;
                                 }
-                            }
-                            if guard_dy[rem_r0]
-                                + j_dy[rem_r0][i1] * diff1_dy
-                                + j_dy[rem_r0][i2] * diff2_dy
-                                + j_dy[rem_r0][i3] * diff3_dy
-                                < min_slack_dy
-                            {
-                                continue;
-                            }
-                            let mut all_ok = true;
-                            for r in 0..m {
-                                let s = guard_dy[r]
-                                    + j_dy[r][i1] * diff1_dy
-                                    + j_dy[r][i2] * diff2_dy
-                                    + j_dy[r][i3] * diff3_dy;
-                                if s < min_slack_dy {
-                                    all_ok = false;
-                                    break;
+                                let (_, ref d3_rat, d3_dy) = legal_deltas[i3][(q3 + 7) as usize];
+                                let diff3_dy = d3_dy - disc_dy[i3];
+                                if (j_dy[rem_r0][i3] * diff3_dy).is_negative() {
+                                    continue;
                                 }
-                            }
-                            if all_ok {
-                                let diff1_rat = &d1_rat - &disc_rat[i1];
-                                let diff2_rat = &bp.d2_rat - &disc_rat[i2];
-                                let diff3_rat = d3_rat - &disc_rat[i3];
-                                let net_rat = &p.g[i1] * &diff1_rat
-                                    + &p.g[i2] * &diff2_rat
-                                    + &p.g[i3] * &diff3_rat;
-                                if net_rat.is_negative()
-                                    && (0..m).all(|r| {
-                                        !(&exact_guards[r]
-                                            + &p.guards[r][i1] * &diff1_rat
-                                            + &p.guards[r][i2] * &diff2_rat
-                                            + &p.guards[r][i3] * &diff3_rat)
-                                            .is_negative()
-                                    })
+                                let net_dy = bp.net12_dy + g_dy[i3] * diff3_dy;
+                                if !net_dy.is_negative() {
+                                    continue;
+                                }
+                                if let Some(ref bt) = best_triple {
+                                    if net_dy >= bt.net_dy {
+                                        continue;
+                                    }
+                                }
+                                if after12_guard[rem_r0] + j_dy[rem_r0][i3] * diff3_dy
+                                    < min_slack_dy
                                 {
-                                    best_triple = Some(TripleMove {
-                                        i2,
-                                        q2: bp.q2,
-                                        d2_rat: bp.d2_rat.clone(),
-                                        d2_dy: bp.d2_dy,
-                                        i3,
-                                        q3,
-                                        d3_rat: d3_rat.clone(),
-                                        d3_dy,
-                                        net_dy,
+                                    continue;
+                                }
+                                let max_rem3 = if best_triple.is_some() { 0 } else { 1 };
+                                let mut rem3_count = 0usize;
+                                let mut rem3_r0 = 0usize;
+                                let mut rem3_min_s = Dy::<P>::ZERO;
+                                let mut rem3_viol_sum = Dy::<P>::ZERO;
+                                for r in 0..m {
+                                    let s = after12_guard[r] + j_dy[r][i3] * diff3_dy;
+                                    if s < min_slack_dy {
+                                        rem3_count += 1;
+                                        if rem3_count > max_rem3 {
+                                            break;
+                                        }
+                                        if rem3_count == 1 || s < rem3_min_s {
+                                            rem3_min_s = s;
+                                            rem3_r0 = r;
+                                        }
+                                        rem3_viol_sum = rem3_viol_sum - s;
+                                    }
+                                }
+                                if rem3_count == 0 {
+                                    let diff1_rat = &d1_rat - &disc_rat[i1];
+                                    let diff2_rat = &bp.d2_rat - &disc_rat[i2];
+                                    let diff3_rat = d3_rat - &disc_rat[i3];
+                                    let net_rat = &p.g[i1] * &diff1_rat
+                                        + &p.g[i2] * &diff2_rat
+                                        + &p.g[i3] * &diff3_rat;
+                                    if net_rat.is_negative()
+                                        && (0..m).all(|r| {
+                                            !(&exact_guards[r]
+                                                + &p.guards[r][i1] * &diff1_rat
+                                                + &p.guards[r][i2] * &diff2_rat
+                                                + &p.guards[r][i3] * &diff3_rat)
+                                                .is_negative()
+                                        })
+                                    {
+                                        best_triple = Some(TripleMove {
+                                            i2,
+                                            q2: bp.q2,
+                                            d2_rat: bp.d2_rat.clone(),
+                                            d2_dy: bp.d2_dy,
+                                            i3,
+                                            q3,
+                                            d3_rat: d3_rat.clone(),
+                                            d3_dy,
+                                            net_dy,
+                                        });
+                                    }
+                                } else if best_triple.is_none() && rem3_count <= 2 {
+                                    let better = best_partial3.as_ref().is_none_or(|bp3| {
+                                        rem3_viol_sum < bp3.rem3_viol_sum
+                                            || (rem3_viol_sum == bp3.rem3_viol_sum
+                                                && net_dy < bp3.net123_dy)
                                     });
+                                    if better {
+                                        best_partial3 = Some(PartialTriple {
+                                            i2,
+                                            q2: bp.q2,
+                                            d2_rat: bp.d2_rat.clone(),
+                                            d2_dy: bp.d2_dy,
+                                            i3,
+                                            q3,
+                                            d3_rat: d3_rat.clone(),
+                                            d3_dy,
+                                            net123_dy: net_dy,
+                                            rem3_r0,
+                                            rem3_viol_sum,
+                                        });
+                                    }
                                 }
                             }
                         }
@@ -2100,6 +2290,131 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         disc_rat[bt.i3] = bt.d3_rat;
                         disc_dy[bt.i3] = bt.d3_dy;
                         pair_improved = true;
+                    } else if let Some(bp3) = best_partial3 {
+                        let i2 = bp3.i2;
+                        let i3 = bp3.i3;
+                        let diff2_dy = bp3.d2_dy - disc_dy[i2];
+                        let diff3_dy = bp3.d3_dy - disc_dy[i3];
+                        let rem3_r0 = bp3.rem3_r0;
+                        let mut best_quad: Option<QuadMove<P>> = None;
+                        for i4 in 0..n {
+                            if i4 == i1 || i4 == i2 || i4 == i3 || j_dy[rem3_r0][i4].is_zero() {
+                                continue;
+                            }
+                            for step4 in [-2i64, -1i64, 1i64, 2i64] {
+                                let q4 = cur_q[i4] + step4;
+                                if !(-7..=7).contains(&q4) {
+                                    continue;
+                                }
+                                let (_, ref d4_rat, d4_dy) = legal_deltas[i4][(q4 + 7) as usize];
+                                let diff4_dy = d4_dy - disc_dy[i4];
+                                if (j_dy[rem3_r0][i4] * diff4_dy).is_negative() {
+                                    continue;
+                                }
+                                let net_dy = bp3.net123_dy + g_dy[i4] * diff4_dy;
+                                if !net_dy.is_negative() {
+                                    continue;
+                                }
+                                if let Some(ref bq) = best_quad {
+                                    if net_dy >= bq.net_dy {
+                                        continue;
+                                    }
+                                }
+                                if guard_dy[rem3_r0]
+                                    + j_dy[rem3_r0][i1] * diff1_dy
+                                    + j_dy[rem3_r0][i2] * diff2_dy
+                                    + j_dy[rem3_r0][i3] * diff3_dy
+                                    + j_dy[rem3_r0][i4] * diff4_dy
+                                    < min_slack_dy
+                                {
+                                    continue;
+                                }
+                                let mut all_ok = true;
+                                for r in 0..m {
+                                    let s = guard_dy[r]
+                                        + j_dy[r][i1] * diff1_dy
+                                        + j_dy[r][i2] * diff2_dy
+                                        + j_dy[r][i3] * diff3_dy
+                                        + j_dy[r][i4] * diff4_dy;
+                                    if s < min_slack_dy {
+                                        all_ok = false;
+                                        break;
+                                    }
+                                }
+                                if all_ok {
+                                    let diff1_rat = &d1_rat - &disc_rat[i1];
+                                    let diff2_rat = &bp3.d2_rat - &disc_rat[i2];
+                                    let diff3_rat = &bp3.d3_rat - &disc_rat[i3];
+                                    let diff4_rat = d4_rat - &disc_rat[i4];
+                                    let net_rat = &p.g[i1] * &diff1_rat
+                                        + &p.g[i2] * &diff2_rat
+                                        + &p.g[i3] * &diff3_rat
+                                        + &p.g[i4] * &diff4_rat;
+                                    if net_rat.is_negative()
+                                        && (0..m).all(|r| {
+                                            !(&exact_guards[r]
+                                                + &p.guards[r][i1] * &diff1_rat
+                                                + &p.guards[r][i2] * &diff2_rat
+                                                + &p.guards[r][i3] * &diff3_rat
+                                                + &p.guards[r][i4] * &diff4_rat)
+                                                .is_negative()
+                                        })
+                                    {
+                                        best_quad = Some(QuadMove {
+                                            i2,
+                                            q2: bp3.q2,
+                                            d2_rat: bp3.d2_rat.clone(),
+                                            d2_dy: bp3.d2_dy,
+                                            i3,
+                                            q3: bp3.q3,
+                                            d3_rat: bp3.d3_rat.clone(),
+                                            d3_dy: bp3.d3_dy,
+                                            i4,
+                                            q4,
+                                            d4_rat: d4_rat.clone(),
+                                            d4_dy,
+                                            net_dy,
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        if let Some(bq) = best_quad {
+                            let diff1_rat = &d1_rat - &disc_rat[i1];
+                            let diff2_rat = &bq.d2_rat - &disc_rat[bq.i2];
+                            let diff3_rat = &bq.d3_rat - &disc_rat[bq.i3];
+                            let diff4_rat = &bq.d4_rat - &disc_rat[bq.i4];
+                            for r in 0..m {
+                                if !p.guards[r][i1].is_zero()
+                                    || !p.guards[r][bq.i2].is_zero()
+                                    || !p.guards[r][bq.i3].is_zero()
+                                    || !p.guards[r][bq.i4].is_zero()
+                                {
+                                    exact_guards[r] += &p.guards[r][i1] * &diff1_rat
+                                        + &p.guards[r][bq.i2] * &diff2_rat
+                                        + &p.guards[r][bq.i3] * &diff3_rat
+                                        + &p.guards[r][bq.i4] * &diff4_rat;
+                                    guard_dy[r] = dy(&exact_guards[r]);
+                                }
+                            }
+                            *exact_obj += &p.g[i1] * &diff1_rat
+                                + &p.g[bq.i2] * &diff2_rat
+                                + &p.g[bq.i3] * &diff3_rat
+                                + &p.g[bq.i4] * &diff4_rat;
+                            cur_q[i1] = q1;
+                            disc_rat[i1] = d1_rat;
+                            disc_dy[i1] = d1_dy;
+                            cur_q[bq.i2] = bq.q2;
+                            disc_rat[bq.i2] = bq.d2_rat;
+                            disc_dy[bq.i2] = bq.d2_dy;
+                            cur_q[bq.i3] = bq.q3;
+                            disc_rat[bq.i3] = bq.d3_rat;
+                            disc_dy[bq.i3] = bq.d3_dy;
+                            cur_q[bq.i4] = bq.q4;
+                            disc_rat[bq.i4] = bq.d4_rat;
+                            disc_dy[bq.i4] = bq.d4_dy;
+                            pair_improved = true;
+                        }
                     }
                 }
             }
@@ -2119,7 +2434,9 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
             (-16, 9, 8, 0),
             (-15, 9, 8, 0),
             (-13, 5, 4, 0),
+            (-18, 17, 16, 25),
             (-18, 17, 16, 45),
+            (-17, 33, 32, 30),
             (-17, 17, 16, 45),
             (-16, 9, 8, 45),
         ]
@@ -2127,14 +2444,26 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
         &[(-13, 5, 4, 0)]
     };
 
-    struct DiscreteCandidate {
+    struct DiscreteCandidate<const P: u32> {
         codes: Vec<i64>,
         deltas: Vec<BigRational>,
+        disc_dy: Vec<Dy<P>>,
         guards: Vec<BigRational>,
+        guard_dy: Vec<Dy<P>>,
         objective: BigRational,
     }
 
-    let mut best_sol: Option<DiscreteCandidate> = None;
+    let mut top_sols: Vec<DiscreteCandidate<P>> = Vec::new();
+    let push_sol = |top: &mut Vec<DiscreteCandidate<P>>, cand: DiscreteCandidate<P>| {
+        if top.iter().any(|c| c.codes == cand.codes) {
+            return;
+        }
+        top.push(cand);
+        top.sort_by(|a, b| a.objective.cmp(&b.objective));
+        if top.len() > 2 {
+            top.pop();
+        }
+    };
 
     for &(pad_exp, scale_num, scale_den, dive_batch) in schedules {
         let bump_pad = Dy::<P>::ONE.ldexp(pad_exp);
@@ -2153,7 +2482,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
 
         // Optional Warm-Started One-Sided Simplex Diving before the margin loop.
         if dive_batch > 0 {
-            for _dive_round in 0..6 {
+            for _dive_round in 0..12 {
                 let mut frac_basic: Vec<(usize, Dy<P>, Dy<P>)> = Vec::new();
                 for &bv in &s_basis {
                     if bv >= n {
@@ -2173,19 +2502,32 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                     break;
                 }
                 frac_basic.sort_by_key(|a| a.2);
+                let prev_lo = s_lo.clone();
+                let prev_up = s_up.clone();
+                let prev_basis = s_basis.clone();
+                let prev_st = s_st.clone();
+                let prev_x = s_x.clone();
+                let prev_binv = s_binv.clone();
+                let prev_pi = s_pi.clone();
+                let mut changed_bounds = false;
                 for &(bv, target_dy, _) in frac_basic.iter().take(dive_batch) {
                     if target_dy >= s_x[bv] {
                         let max_allowed = s_up[bv].unwrap_or(target_dy);
                         if target_dy <= max_allowed && target_dy > s_lo[bv] {
                             s_lo[bv] = target_dy;
+                            changed_bounds = true;
                         }
                     } else if target_dy >= s_lo[bv] {
                         if let Some(cur_u) = s_up[bv] {
                             if target_dy < cur_u {
                                 s_up[bv] = Some(target_dy);
+                                changed_bounds = true;
                             }
                         }
                     }
+                }
+                if !changed_bounds {
+                    break;
                 }
                 let mut dive_stats = SearchStats::default();
                 if dual_simplex_run::<P>(
@@ -2207,6 +2549,13 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                 )
                 .is_err()
                 {
+                    s_lo = prev_lo;
+                    s_up = prev_up;
+                    s_basis = prev_basis;
+                    s_st = prev_st;
+                    s_x = prev_x;
+                    s_binv = prev_binv;
+                    s_pi = prev_pi;
                     break;
                 }
                 total_pivots += dive_stats.pivots;
@@ -2271,6 +2620,125 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                 }
             }
 
+            // Direct greedy guard-violation repair when only a few guards are violated.
+            if (1..=15).contains(&n_viol) {
+                let mut rep_q = cur_q.clone();
+                let mut rep_rat = disc_rat.clone();
+                let mut rep_dy = disc_dy.clone();
+                let mut rep_guard_dy = guard_dy.clone();
+                let mut repaired = false;
+                for _rep_step in 0..30 {
+                    let mut worst_r = None;
+                    let mut worst_s = Dy::<P>::ZERO;
+                    for (r, &s) in rep_guard_dy.iter().enumerate() {
+                        if s < worst_s {
+                            worst_s = s;
+                            worst_r = Some(r);
+                        }
+                    }
+                    let Some(r0) = worst_r else {
+                        repaired = true;
+                        break;
+                    };
+                    let mut best_fix: Option<(usize, i64, BigRational, Dy<P>, Dy<P>)> = None;
+                    for i in 0..n {
+                        if j_dy[r0][i].is_zero() {
+                            continue;
+                        }
+                        for step in [-1i64, 1i64] {
+                            let nq = rep_q[i] + step;
+                            if !(-7..=7).contains(&nq) {
+                                continue;
+                            }
+                            let (_, ref nd_rat, nd_dy) = legal_deltas[i][(nq + 7) as usize];
+                            let diff_dy = nd_dy - rep_dy[i];
+                            let r0_gain = j_dy[r0][i] * diff_dy;
+                            if !r0_gain.is_positive() {
+                                continue;
+                            }
+                            let mut creates_new_viol = false;
+                            for r in 0..m {
+                                if !rep_guard_dy[r].is_negative()
+                                    && rep_guard_dy[r] + j_dy[r][i] * diff_dy < min_slack_dy
+                                {
+                                    creates_new_viol = true;
+                                    break;
+                                }
+                            }
+                            if creates_new_viol {
+                                continue;
+                            }
+                            let cost_pen = (g_dy[i] * diff_dy).max(Dy::ZERO);
+                            let score = cost_pen / r0_gain;
+                            if best_fix.as_ref().is_none_or(|b| score < b.4) {
+                                best_fix = Some((i, nq, nd_rat.clone(), nd_dy, score));
+                            }
+                        }
+                    }
+                    let Some((fi, fq, fd_rat, fd_dy, _)) = best_fix else {
+                        break;
+                    };
+                    let diff_dy = fd_dy - rep_dy[fi];
+                    for r in 0..m {
+                        if !j_dy[r][fi].is_zero() {
+                            rep_guard_dy[r] = rep_guard_dy[r] + j_dy[r][fi] * diff_dy;
+                        }
+                    }
+                    rep_q[fi] = fq;
+                    rep_rat[fi] = fd_rat;
+                    rep_dy[fi] = fd_dy;
+                    if rep_guard_dy.iter().all(|s| !s.is_negative()) {
+                        repaired = true;
+                        break;
+                    }
+                }
+                if repaired {
+                    let mut exact_guards = vec![BigRational::zero(); m];
+                    for (r, eg) in exact_guards.iter_mut().enumerate() {
+                        let mut s = BigRational::zero();
+                        for (i, dr) in rep_rat.iter().enumerate() {
+                            if !dr.is_zero() {
+                                s += &p.guards[r][i] * dr;
+                            }
+                        }
+                        *eg = s;
+                    }
+                    if exact_guards.iter().all(|g| !g.is_negative()) {
+                        for r in 0..m {
+                            rep_guard_dy[r] = dy(&exact_guards[r]);
+                        }
+                        let mut exact_obj = BigRational::zero();
+                        for (i, dr) in rep_rat.iter().enumerate() {
+                            if !dr.is_zero() {
+                                exact_obj += &p.g[i] * dr;
+                            }
+                        }
+                        run_polish(
+                            &mut rep_q,
+                            &mut rep_rat,
+                            &mut rep_dy,
+                            &mut exact_guards,
+                            &mut rep_guard_dy,
+                            &mut exact_obj,
+                            2,
+                        );
+                        if !exact_obj.is_positive() {
+                            push_sol(
+                                &mut top_sols,
+                                DiscreteCandidate {
+                                    codes: rep_q,
+                                    deltas: rep_rat,
+                                    disc_dy: rep_dy,
+                                    guards: exact_guards,
+                                    guard_dy: rep_guard_dy,
+                                    objective: exact_obj,
+                                },
+                            );
+                        }
+                    }
+                }
+            }
+
             if n_viol == 0 {
                 let mut exact_guards = vec![BigRational::zero(); m];
                 for (r, eg) in exact_guards.iter_mut().enumerate() {
@@ -2305,6 +2773,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                     &mut exact_guards,
                     &mut guard_dy,
                     &mut exact_obj,
+                    2,
                 );
                 if exact_obj.is_positive() {
                     for (i, c) in cs.iter().enumerate() {
@@ -2322,21 +2791,41 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                         &mut exact_guards,
                         &mut guard_dy,
                         &mut exact_obj,
+                        2,
                     );
                 }
-                if best_sol
-                    .as_ref()
-                    .is_none_or(|cand| exact_obj < cand.objective)
-                {
-                    best_sol = Some(DiscreteCandidate {
+                push_sol(
+                    &mut top_sols,
+                    DiscreteCandidate {
                         codes: cur_q,
                         deltas: disc_rat,
+                        disc_dy,
                         guards: exact_guards,
+                        guard_dy,
                         objective: exact_obj,
-                    });
-                }
+                    },
+                );
                 break;
             }
+        }
+    }
+
+    let mut best_sol: Option<DiscreteCandidate<P>> = None;
+    for mut cand in top_sols {
+        run_polish(
+            &mut cand.codes,
+            &mut cand.deltas,
+            &mut cand.disc_dy,
+            &mut cand.guards,
+            &mut cand.guard_dy,
+            &mut cand.objective,
+            8,
+        );
+        if best_sol
+            .as_ref()
+            .is_none_or(|b| cand.objective < b.objective)
+        {
+            best_sol = Some(cand);
         }
     }
 
@@ -2345,6 +2834,7 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
         deltas: disc_rat,
         guards: exact_guards,
         objective: exact_obj,
+        ..
     }) = best_sol
     else {
         return Err(

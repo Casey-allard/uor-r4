@@ -342,6 +342,16 @@ fn reduced_cost_fixing_rejects_negative_multiplier_and_invalid_upper_bound() {
     assert_eq!(valid_rcbt.total_codes, p.n() * 15);
     assert_eq!(valid_rcbt.constrained_guards, 0);
     assert_eq!(valid_rcbt.guard_max_slack.len(), p.guards.len());
+    let q0_codes: Vec<i64> = p.coeffs().iter().map(|c| c.q0).collect();
+    assert!(search::certify_gap_decomposition(p, &[q(-1, 4)], &q0_codes).is_err());
+    assert!(search::certify_gap_decomposition(p, &[q(0, 1)], &[0]).is_err());
+    assert!(search::certify_gap_decomposition(p, &[q(0, 1)], &[99, 0]).is_err());
+    let decomp = search::certify_gap_decomposition(p, &[q(0, 1)], &q0_codes).expect("valid q0");
+    assert!(decomp.identity_holds);
+    assert_eq!(decomp.primal_objective, BigRational::zero());
+    assert_eq!(decomp.dual_lower_bound, zero_bound);
+    assert_eq!(decomp.complementary_slackness_loss, BigRational::zero());
+    assert_eq!(decomp.reduced_cost_loss, decomp.gap);
 }
 
 #[test]
@@ -420,6 +430,14 @@ fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
                 .unwrap_or_else(|e| panic!("problem {idx} rcbt: {e}"));
             assert_eq!(rcbt.lower_bound, want_dlp);
             assert_eq!(rcbt.guard_max_slack.len(), p.guards.len());
+            let decomp = search::certify_gap_decomposition(p, &iter0_y, &disc.codes)
+                .unwrap_or_else(|e| panic!("problem {idx} gap_decomp: {e}"));
+            assert!(decomp.identity_holds);
+            assert_eq!(decomp.primal_objective, disc.objective);
+            assert_eq!(decomp.dual_lower_bound, want_dlp);
+            assert_eq!(decomp.gap, rcbt.gap);
+            assert!(!decomp.reduced_cost_loss.is_negative());
+            assert!(!decomp.complementary_slackness_loss.is_negative());
             total_eliminated_codes += rcbt.eliminated_codes;
             let mut opt_deltas = Vec::with_capacity(p.n());
             for (i, c) in p.coeffs().iter().enumerate() {

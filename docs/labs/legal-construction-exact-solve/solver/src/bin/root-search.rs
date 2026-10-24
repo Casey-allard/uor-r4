@@ -109,6 +109,7 @@ fn main() -> ExitCode {
             let lag_bound = search::certify_lagrangian_dual_bound(&p, dual_y_ref)
                 .ok()
                 .map(|b| b.to_string());
+            let gap_decomp = search::certify_gap_decomposition(&p, dual_y_ref, &d.codes).ok();
             let rcbt = match search::certify_reduced_cost_fixing(&p, dual_y_ref, &d.objective) {
                 Ok(r) => json!({
                     "fixed_coeffs": r.fixed_coeffs,
@@ -117,6 +118,10 @@ fn main() -> ExitCode {
                     "total_codes": r.total_codes,
                     "constrained_guards": r.constrained_guards,
                     "gap": r.gap.to_string(),
+                    "reduced_cost_loss": gap_decomp.as_ref().map(|g| g.reduced_cost_loss.to_string()),
+                    "complementary_slackness_loss": gap_decomp.as_ref().map(|g| g.complementary_slackness_loss.to_string()),
+                    "zero_reduced_cost_coeffs": gap_decomp.as_ref().map(|g| g.zero_reduced_cost_coeffs),
+                    "gap_identity_holds": gap_decomp.as_ref().map(|g| g.identity_holds),
                     "dual_bound_matches_delta_hull_lp": lag_bound == dlp_obj,
                 }),
                 Err(e) => json!({ "error": e }),
