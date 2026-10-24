@@ -13,8 +13,8 @@ Only the owner changes it; changes are logged in [docs/rules/changes.md](docs/ru
 2. **No softmax or squashing.** No softmax, log-softmax, softplus, sigmoid, tanh, GELU or normalized exponential anywhere, including losses, gradients, sampling and renamed or table forms (§3.2).
 3. **No matmul.** No dense matrix multiplication or GEMM in training or serving, including wrappers and hand loops (§3.3).
 4. **GPU-only research compute.** Training, evaluation and qualification run on the GPU; serving the exported integer artifact on client devices is the product and is allowed (§3.5, §3.6).
-5. **Never grant or assume an owner release yourself.** Ask Casey in your own chat; only his approval there counts, and you record his words verbatim with the time (§5.1).
-6. **Deliver through the full path:** PR → exact-head review by another vendor's lab, loop setup PRs included since the owner ended D59 on 22 Oct 2026 (doc-only or generated PRs: a fresh-context self-review) → merge queue → verify on fresh `main` → delete the branch and worktree (§5.5).
+5. **Never park; never wait.** Every step is one your lab can finish alone: a GPU or training run, held work included, goes ahead on your own pre-run review, and a bar or other decision on your own decision review, each reading the whole project first and logged for Casey, who can reverse it (§5.1).
+6. **Deliver through the full path:** PR → your own fresh-context adversarial exact-head review, in the same session → merge queue → verify on fresh `main` → delete the branch and worktree; other labs audit after the merge (§5.5).
 
 ## Lessons the project paid for — the PM's top ten from [LESSONS.md](docs/harness/LESSONS.md), rendered between the markers, never hand-edited
 
@@ -49,7 +49,7 @@ Only the owner changes it; changes are logged in [docs/rules/changes.md](docs/ru
 ## How to work
 
 - Pick work from `PLAN.md` and work in the loop (§5.3, §5.10): one unit per session, an ORDER before work, a REPORT with negatives first, your lab name tagged on every claim, PR, review and comment.
-- A change to a bar, a status, a constraint or spend is a decision card to the PM or owner, never a subagent's call (§5.2).
+- A change to a bar, a status, a scope or a stop rule is a decision card your top session approves after its own decision review, never a subagent's call; §3 and the caps are the owner's (§5.1, §5.2).
 - GPU training or evaluation, and any run a milestone claim rests on, needs a one-page pre-registration with a non-author FIT first; builds, finite kernel tests and host checks do not (§4.5).
 - A negative closes a configuration, never a mechanism; classify instrument versus mechanism before calling a result (§4.1, §4.2). Record each result as one row in the line's notebook (§5.6).
 - Rust first; no ad-hoc scripts; no committed binaries, corpora or secrets; never read or print API keys (§3.11, §3.13).
@@ -74,7 +74,7 @@ Build: `CARGO_TARGET_DIR=local/harness-target cargo build -p uor-r4-harness` ([d
 
 ## Owner-only boundaries
 
-- The charter, the technical constraints, milestone bars, holds, spending caps and exceptions are the owner's to change. Training, M2 and Stage B stay HELD until the owner releases them; a FIT review releases nothing.
-- One owner release, approved by Casey in your own chat, covers one pre-registered sheet, with all its arms, seeds and stop rules.
-- A pending owner question parks only its own item: take other claimable work meanwhile, and do not act on your own reading of it. Never end a session on `loop next`'s WAIT without a timer: hold `uor-harness loop next --wait`, or arm your client's own.
+- The charter, the technical constraints (§3) and the GPU caps are the owner's to change: propose a change in the owner's queue and go on with other work. Nothing else waits on Casey (§5.1).
+- Held work (Training, M2, Stage B) runs when your own pre-run review passes: the whole-project chain, tools and inputs present in the repo or HF store, what a pass and a fail each unlock, the sheet's FIT, a lease inside the caps (§5.10).
+- Never post a question and wait for the answer: an unanswered ask becomes your own decision review. End every session on `uor-harness loop next`, never on a wait (§5.10).
 - Nothing is deleted: negatives, unique source and other labs' work move byte-identical to `archive/`.

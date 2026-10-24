@@ -14,6 +14,36 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 24 October 2026: the single-lab rule (D65–D71)
+
+**Decided by:** the owner (Casey), in Claude's chat, after Claude's review of why the loop stalled. From 23 Oct 14:10Z to 24 Oct 13:43Z the labs merged 70 PRs and closed no issue. Then every lab stopped behind asks nobody answered, and when the owner restarted the laptop at 13:58Z nothing restarted the labs. Claude asked four design questions, each with options worded by Claude. The owner answered:
+
+- "One queue (Recommended)";
+- "Yes, where headless (Recommended)";
+- "The finishing PR (Recommended)";
+- on held work, in his own words: "i never see these requests for released, so I would say do not park any work at all for any reason - if there was only one single lab running what would the process be? a single lab can't park and wait for another lab or me to review. It must be able to accurately judge whether or not, with an advesareal review, whether or not the GPU run is the correct test at that time, and whether the correct tools exist in either the repo or the huggingface repo that will make them successful. We don't want to be doing runs if they are not going to unlock further work, like when we finish a mechanism and are simply waiting on the gpu training or something to happen which unlocks further work, we want to do those as highest priority. It's all about removing blockers at this point."
+
+Claude read the rule back, including that the current holds become runnable through a pre-run review within the caps; the owner answered "Accurate (Recommended)". Asked what should still wait for him, he wrote: "in theory the project structure should be build in the github issues so there should not be a point where anything is waiting on my decision - make sure before the decisions are made that the entire project is understood and that we understand from a whole project context what this step is for and what it is achieving and that it makes sense to do it - do not approve without larger context". Claude's read-back had kept a 30-minute wait for another lab's review; the owner rejected it: "Reviewers waiting 30 minutes for other labs to see it is the entire problem. Posting and waiting for an answer is where we lose." He then approved this record: "Yes, start phase 0: open the records PR with my words verbatim (single-lab rule, review inside the unit, pre-run and decision reviews, post-merge audits, owner queue as a log) and post the #2028 note with each lab's first move. I'll reopen the labs."
+
+1. **The single-lab rule (D65).** Every step is one a single lab can finish alone. Other labs and the owner speed work up or reverse it, never hold it, and no step posts a question and waits for the answer. An unanswered PM ask becomes the asking lab's own decision review. (Clauses 5.1, 5.2, 5.10.)
+2. **Review inside the unit; audits after the merge (D66).** The lab's own fresh-context adversarial review is the exact-head review, and the PR queues in the same session. Other labs audit merged work and file repairs. (Clause 5.5.)
+3. **The pre-run review replaces the owner release (D67).** A GPU or training run, held work included, goes ahead when the lab's own pre-run review passes, inside the caps, highest unblock value first. (Clauses 5.1, 5.10.)
+4. **The decision review replaces decision cards to the PM or owner (D68).** Each review reads the whole project before it approves. (Clauses 5.1, 5.2.)
+5. **The owner's queue is a log (D69).** The owner sets only the charter, §3 with its exceptions, and the GPU caps; everything done on his behalf is logged and reversible. (Clause 5.1.)
+6. **The finishing PR closes its issue (D70)** (clause 5.5), and **a supervisor restarts idle labs (D71)** (clause 5.10).
+
+**Side effects on earlier rules:**
+
+| Rule | New fate | Source |
+|---|---|---|
+| Owner release in the asking lab's own chat (D56) and the holds on Training, M2 and Stage B (D40) | Retired as gates; replaced by the pre-run review (D67) | `CHARTER.md` §5.1, §6 |
+| Decision cards to the PM or the owner (§5.2) | Replaced by the lab's own decision review (D68) | `CHARTER.md` §5.2 |
+| Pre-merge review by another vendor's lab (D46) | Replaced by the in-unit review and post-merge audits (D66) | `CHARTER.md` §5.5, §6 |
+| "A pending owner question means wait" | Retired (D65) | `CHARTER.md` §5.1, §6 |
+| D41's donor pass, §3 and the GPU caps | Unchanged: this record does not touch §3 or the caps | `CHARTER.md` §3.10, §5.4 |
+| §4.1 "Stopping a mechanism needs the owner" and §5.2's owner as the PM seat's last fallback | Not changed here (§4 was outside this record's scope), but in conflict with D65 and D68; brought in line by the next record unit | `CHARTER.md` §4.1, §5.2 |
+| The loop page, `loop review`, `loop queue`, `loop next` and `loop close` | Still state or enforce the old waits; brought in line by the next loop units | [docs/loop/README.md](../loop/README.md) |
+
 ## 21 October 2026: Claude builds the loop setup while it runs alone (D52 amended)
 
 **Decided by:** the owner (Casey), in chat. The owner wrote: "I think it'll only be claude running at first, so what is next?" Claude replied that D52 leaves most setup PRs to labs that will not be running, and offered two answers, both worded by Claude. The owner chose: "Yes: record a D52 amendment that Claude builds every loop setup PR while it runs alone (other labs' adapters added when they join), then start loop PR 2 (#2905) and PR 4 (#2907) through the delivery path."
