@@ -211,6 +211,8 @@ attention-panel CONFIG NEW_REPORT_DIR — canonical DEV row metadata and first64
 attention-export-token-cells CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR — read-only CUDA token-to-cell map from an exact checkpoint; no forward or apply.
 attention-capture-dev CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — separately released zero-apply GPU Forward slot capture.
 attention-dev-b3 CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — exact immutable DEV B3 metadata, no model.
+normalization-dev-b3 CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — DEV B3 metadata for one A8 normalization arm (any mode), no model.
+normalization-dev-paired REF_CONFIG REF_CHECKPOINT REF_DEV_EVAL CTL_CONFIG CTL_CHECKPOINT CTL_DEV_EVAL NEW_REPORT_DIR — paired McNemar top-1 contrast and Q1 floor, one seed, no model.
 attention-transfer PAIRED_DEV_DECISION NEW_REPORT_DIR — CUDA-only once-only paired fresh evaluation after sealed DEV H_geom.
 attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched active-leaf Flock/Relation learning, cap16404, separately released; training remains HELD by default.
 normalization-build-identity CONFIG — A8 learned-Relation normalization scope/mode/config/lineage identity; sheet NOT_YET_REGISTERED; no CUDA context.
@@ -301,6 +303,23 @@ normalization|normalization-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only
                 std::path::Path::new(&args[1]),
                 std::path::Path::new(&args[2]),
                 std::path::Path::new(&args[3]),
+            )
+        }),
+        Some("normalization-dev-b3") if args.len() == 5 => report_command(&args[4], || {
+            uor_r4_discrete::controller::attention_learning::preflight::normalization_dev_b3(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+                std::path::Path::new(&args[3]),
+            )
+        }),
+        Some("normalization-dev-paired") if args.len() == 8 => report_command(&args[7], || {
+            uor_r4_discrete::controller::attention_learning::preflight::normalization_dev_paired(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+                std::path::Path::new(&args[3]),
+                std::path::Path::new(&args[4]),
+                std::path::Path::new(&args[5]),
+                std::path::Path::new(&args[6]),
             )
         }),
         Some("attention-transfer") if args.len() == 3 => {

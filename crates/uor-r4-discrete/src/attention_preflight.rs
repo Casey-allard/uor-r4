@@ -223,7 +223,12 @@ pub fn dev_b3(
 /// canonical DEV rows. This only decodes stored CUDA observations and identities.
 #[cfg(feature = "cuda")]
 pub fn dev_b3(config_path: &Path, checkpoint_path: &Path, evaluation_path: &Path) -> Result<Value> {
-    let inputs = dev_inputs(config_path, checkpoint_path, evaluation_path)?;
+    let inputs = dev_inputs(
+        DevLock::Attention,
+        config_path,
+        checkpoint_path,
+        evaluation_path,
+    )?;
     let DevInputs {
         config,
         config_file,
@@ -260,6 +265,7 @@ struct DevInputs {
     evaluation_file: FilePin,
     rows: Vec<(u64, u32, bool)>,
     b3: evidence::B3Summary,
+    hits: Vec<u64>,
 }
 
 #[cfg(any(feature = "cuda", test))]
@@ -304,12 +310,13 @@ fn validate_dev_b3_config(config: &DriverConfig) -> Result<()> {
 
 #[cfg(feature = "cuda")]
 fn dev_inputs(
+    lock: DevLock,
     config_path: &Path,
     checkpoint_path: &Path,
     evaluation_path: &Path,
 ) -> Result<DevInputs> {
     let (config, config_file): (DriverConfig, _) = input(config_path)?;
-    validate_dev_b3_config(&config)?;
+    dev_config_lock(lock, &config)?;
     let driver = PreparedDriver::load(config.clone())?;
     let (checkpoint, checkpoint_file): (training::DriverCheckpoint, _) = input(checkpoint_path)?;
     driver.validate_checkpoint(&checkpoint)?;
@@ -334,6 +341,7 @@ fn dev_inputs(
     verify_evaluation(&evaluation, &checkpoint)?;
     let rows = dev_row_identities(&config)?;
     let b3 = evidence::summarize(&evaluation, &rows)?;
+    let hits = dev_hit_words(&evaluation)?;
     Ok(DevInputs {
         config,
         config_file,
@@ -343,7 +351,324 @@ fn dev_inputs(
         evaluation_file,
         rows,
         b3,
+        hits,
     })
+}
+
+/// Which registered config lock a DEV readback uses. `Attention` is the
+/// unchanged A8 DEV-B3 lock (scale-matched only); `Normalization` admits the A8
+/// learned-Relation proxy trunk in any of the three registered modes.
+#[cfg(any(feature = "cuda", test))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DevLock {
+    Attention,
+    Normalization,
+}
+
+#[cfg(any(feature = "cuda", test))]
+fn dev_config_lock(lock: DevLock, config: &DriverConfig) -> Result<()> {
+    match lock {
+        DevLock::Attention => validate_dev_b3_config(config),
+        DevLock::Normalization => validate_normalization_config(config),
+    }
+}
+
+/// Raw per-row `top1_correct` words in report order. Values are not clamped
+/// here so the paired scorer can refuse anything outside {0,1}.
+#[cfg(feature = "cuda")]
+fn dev_hit_words(evaluation: &Value) -> Result<Vec<u64>> {
+    let mut hits = Vec::new();
+    for batch in evaluation["batches"]
+        .as_array()
+        .ok_or_else(|| invalid("DEV batches missing"))?
+    {
+        for row in batch["rows"]
+            .as_array()
+            .ok_or_else(|| invalid("DEV rows missing"))?
+        {
+            hits.push(
+                row["top1_correct"]
+                    .as_u64()
+                    .ok_or_else(|| invalid("DEV top1_correct must be an unsigned integer"))?,
+            );
+        }
+    }
+    Ok(hits)
+}
+
+#[cfg(not(feature = "cuda"))]
+pub fn normalization_dev_b3(
+    _config_path: &Path,
+    _checkpoint_path: &Path,
+    _evaluation_path: &Path,
+) -> Result<Value> {
+    Err(invalid("normalization DEV B3 readback needs the CUDA build's typed Snapshot metadata; no model or CUDA context was created"))
+}
+
+/// DEV B3 readback for one normalization arm: the same immutable checks as
+/// `dev_b3`, under the normalization config lock instead of the attention one.
+#[cfg(feature = "cuda")]
+pub fn normalization_dev_b3(
+    config_path: &Path,
+    checkpoint_path: &Path,
+    evaluation_path: &Path,
+) -> Result<Value> {
+    let DevInputs {
+        config,
+        config_file,
+        driver,
+        checkpoint,
+        checkpoint_file,
+        evaluation_file,
+        b3,
+        ..
+    } = dev_inputs(
+        DevLock::Normalization,
+        config_path,
+        checkpoint_path,
+        evaluation_path,
+    )?;
+    let hashes = checkpoint_hash_domains(&checkpoint)?;
+    Ok(json!({"schema":"uor-r4.normalization-dev-b3/1",
+        "status":"VALIDATED_RETAINED_DEV_OBSERVATIONS",
+        "normalization_mode":config.normalization_mode,"normalization_scope":normalization_scope(&config)?,
+        "config_file":config_file,"config_sha256":corpus::sha256(&encode(&config)?),
+        "lineage_sha256":driver.lineage_sha256()?,"checkpoint_file":checkpoint_file,
+        "driver_checkpoint_sha256":corpus::sha256(&encode(&checkpoint)?),"evaluation_file":evaluation_file,
+        "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
+        "compiled_identity_checked":true,"model_epoch":checkpoint.cursor.accepted_updates,
+        "completed_batches":checkpoint.cursor.completed_batches,"b3":b3,
+        "admission_contract":"checked EvaluationRow.admitted_cells minus address_rivals in {0,1}",
+        "actual_admitted_slot_ids":{"status":"UNAVAILABLE","reason":"eval-corpus reports counts; slot IDs are not derived from those counts"},
+        "evaluation_mutates_model":false,"updates_applied":0,"scoring_performed_by_this_command":false,
+        "model_constructed":false,"cuda_context_created":false,"release":"STILL_REQUIRED",
+        "training":"HELD","q4":"NOT_EXECUTABLE"}))
+}
+
+/// Registered DEV panel: P_succ rows and the Q1 admission floor on them.
+#[cfg(feature = "cuda")]
+const DEV_PSUCC_ROWS: u64 = 3847;
+#[cfg(feature = "cuda")]
+const Q1_ADMISSION_FLOOR: u64 = 1351;
+
+/// Paired one-sided McNemar contrast counts on one row population.
+#[cfg(any(feature = "cuda", test))]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+struct DevPairedCount {
+    rows: u64,
+    /// Reference (claimed better) correct and control wrong.
+    b: u64,
+    /// Reference wrong and control correct.
+    c: u64,
+    both_correct: u64,
+    both_wrong: u64,
+    f_i: u64,
+    b_minus_c: i64,
+    beats: bool,
+}
+
+#[cfg(any(feature = "cuda", test))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+struct DevPaired {
+    all: DevPairedCount,
+    psucc: DevPairedCount,
+}
+
+/// `F_I = max(24, ceil(2 * sqrt(b + c)))`, exactly, via the integer square
+/// root of `4 * (b + c)`.
+#[cfg(any(feature = "cuda", test))]
+fn dev_paired_floor(discordant: u64) -> Result<u64> {
+    let square = discordant
+        .checked_mul(4)
+        .ok_or_else(|| invalid("DEV paired floor radicand overflow"))?;
+    let root = square.isqrt();
+    let exact = root
+        .checked_mul(root)
+        .ok_or_else(|| invalid("DEV paired floor square overflow"))?;
+    let ceiling = root
+        .checked_add(u64::from(exact < square))
+        .ok_or_else(|| invalid("DEV paired floor ceiling overflow"))?;
+    Ok(24.max(ceiling))
+}
+
+#[cfg(any(feature = "cuda", test))]
+fn dev_count(count: &mut u64) -> Result<()> {
+    *count = count
+        .checked_add(1)
+        .ok_or_else(|| invalid("DEV paired count overflow"))?;
+    Ok(())
+}
+
+#[cfg(any(feature = "cuda", test))]
+fn dev_paired_close(mut count: DevPairedCount) -> Result<DevPairedCount> {
+    let discordant = count
+        .b
+        .checked_add(count.c)
+        .ok_or_else(|| invalid("DEV discordance overflow"))?;
+    count.f_i = dev_paired_floor(discordant)?;
+    let b = i64::try_from(count.b).map_err(|_| invalid("DEV b exceeds i64"))?;
+    let c = i64::try_from(count.c).map_err(|_| invalid("DEV c exceeds i64"))?;
+    count.b_minus_c = b
+        .checked_sub(c)
+        .ok_or_else(|| invalid("DEV b - c overflow"))?;
+    let f_i = i64::try_from(count.f_i).map_err(|_| invalid("DEV F_I exceeds i64"))?;
+    count.beats = count.b_minus_c >= f_i;
+    Ok(count)
+}
+
+/// Pair two DEV readbacks row by row. `reference` is the arm claimed better;
+/// `control` the arm it must beat. Rows must be the identical canonical panel.
+#[cfg(any(feature = "cuda", test))]
+fn dev_paired(
+    reference: &evidence::B3Summary,
+    reference_hits: &[u64],
+    control: &evidence::B3Summary,
+    control_hits: &[u64],
+) -> Result<DevPaired> {
+    if reference.rows.len() != control.rows.len()
+        || reference_hits.len() != reference.rows.len()
+        || control_hits.len() != control.rows.len()
+    {
+        return Err(invalid("DEV paired row or hit inventories differ"));
+    }
+    let mut all = DevPairedCount::default();
+    let mut psucc = DevPairedCount::default();
+    for (((r, c), &rhit), &chit) in reference
+        .rows
+        .iter()
+        .zip(&control.rows)
+        .zip(reference_hits)
+        .zip(control_hits)
+    {
+        if (r.row_ordinal, r.target_position, r.target_token, r.is_psucc)
+            != (c.row_ordinal, c.target_position, c.target_token, c.is_psucc)
+        {
+            return Err(invalid("DEV paired row identities differ"));
+        }
+        if rhit > 1 || chit > 1 {
+            return Err(invalid("DEV top1_correct must be 0 or 1"));
+        }
+        if rhit > u64::from(r.target_admitted) || chit > u64::from(c.target_admitted) {
+            return Err(invalid(
+                "DEV correct hit cannot exceed CUDA target admission",
+            ));
+        }
+        let tally = |count: &mut DevPairedCount| -> Result<()> {
+            dev_count(&mut count.rows)?;
+            match (rhit, chit) {
+                (1, 0) => dev_count(&mut count.b),
+                (0, 1) => dev_count(&mut count.c),
+                (1, 1) => dev_count(&mut count.both_correct),
+                _ => dev_count(&mut count.both_wrong),
+            }
+        };
+        tally(&mut all)?;
+        if r.is_psucc {
+            tally(&mut psucc)?;
+        }
+    }
+    Ok(DevPaired {
+        all: dev_paired_close(all)?,
+        psucc: dev_paired_close(psucc)?,
+    })
+}
+
+/// Two normalization configs pair only when they differ in mode alone.
+#[cfg(any(feature = "cuda", test))]
+fn require_mode_only_difference(reference: &DriverConfig, control: &DriverConfig) -> Result<()> {
+    if reference.normalization_mode == control.normalization_mode {
+        return Err(invalid(
+            "DEV paired arms must use different normalization modes",
+        ));
+    }
+    if reference.seed != control.seed {
+        return Err(invalid("DEV paired arms must share one seed"));
+    }
+    let mut aligned = control.clone();
+    aligned.normalization_mode = reference.normalization_mode;
+    if &aligned != reference {
+        return Err(invalid(
+            "DEV paired configs must be equal except normalization_mode",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(not(feature = "cuda"))]
+pub fn normalization_dev_paired(
+    _reference_config: &Path,
+    _reference_checkpoint: &Path,
+    _reference_evaluation: &Path,
+    _control_config: &Path,
+    _control_checkpoint: &Path,
+    _control_evaluation: &Path,
+) -> Result<Value> {
+    Err(invalid("normalization DEV paired scoring needs the CUDA build's typed Snapshot metadata; no model or CUDA context was created"))
+}
+
+/// Paired one-sided McNemar top-1 contrast between two normalization arms of
+/// one seed on the registered DEV panel, plus each arm's Q1 admission floor.
+#[cfg(feature = "cuda")]
+pub fn normalization_dev_paired(
+    reference_config: &Path,
+    reference_checkpoint: &Path,
+    reference_evaluation: &Path,
+    control_config: &Path,
+    control_checkpoint: &Path,
+    control_evaluation: &Path,
+) -> Result<Value> {
+    let reference = dev_inputs(
+        DevLock::Normalization,
+        reference_config,
+        reference_checkpoint,
+        reference_evaluation,
+    )?;
+    let control = dev_inputs(
+        DevLock::Normalization,
+        control_config,
+        control_checkpoint,
+        control_evaluation,
+    )?;
+    require_mode_only_difference(&reference.config, &control.config)?;
+    let paired = dev_paired(&reference.b3, &reference.hits, &control.b3, &control.hits)?;
+    let mut arms = Vec::with_capacity(2);
+    for arm in [&reference, &control] {
+        if arm.b3.psucc.rows != DEV_PSUCC_ROWS {
+            return Err(invalid(format!(
+                "DEV P_succ rows {} differ from the registered {DEV_PSUCC_ROWS}",
+                arm.b3.psucc.rows
+            )));
+        }
+        let hashes = checkpoint_hash_domains(&arm.checkpoint)?;
+        arms.push(json!({"normalization_mode":arm.config.normalization_mode,
+            "normalization_scope":normalization_scope(&arm.config)?,
+            "config_file":arm.config_file,"config_sha256":corpus::sha256(&encode(&arm.config)?),
+            "lineage_sha256":arm.driver.lineage_sha256()?,"checkpoint_file":arm.checkpoint_file,
+            "driver_checkpoint_sha256":corpus::sha256(&encode(&arm.checkpoint)?),
+            "evaluation_file":arm.evaluation_file,
+            "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
+            "model_epoch":arm.checkpoint.cursor.accepted_updates,
+            "completed_batches":arm.checkpoint.cursor.completed_batches,
+            "psucc_rows":arm.b3.psucc.rows,"psucc_target_admitted":arm.b3.psucc.target_admitted,
+            "q1_admission_floor":Q1_ADMISSION_FLOOR,
+            "q1_admission_floor_met":arm.b3.psucc.target_admitted >= Q1_ADMISSION_FLOOR}));
+    }
+    if paired.psucc.rows != DEV_PSUCC_ROWS {
+        return Err(invalid(
+            "DEV paired P_succ rows differ from the registered panel",
+        ));
+    }
+    Ok(json!({"schema":"uor-r4.normalization-dev-paired/1",
+        "status":"SCORED_RETAINED_DEV_OBSERVATIONS",
+        "seed":reference.config.seed,"reference":arms[0],"control":arms[1],
+        "contrast":"paired one-sided McNemar top-1: b = reference correct and control wrong, c = reference wrong and control correct; beats iff b - c >= F_I = max(24, ceil(2*sqrt(b + c)))",
+        "all":paired.all,"psucc":paired.psucc,
+        "non_inferiority":"UNSCORED: no margin registered (claude-57 NOT_FIT prerequisite 3)",
+        "structural_norm_stability":"UNSCORED: needs per-stage output traces, not in an eval-corpus report",
+        "seeds":"one seed per call; the bar needs both seeds",
+        "compiled_identity_checked":true,"evaluation_mutates_model":false,"updates_applied":0,
+        "model_constructed":false,"cuda_context_created":false,
+        "release":"STILL_REQUIRED","training":"HELD","q4":"NOT_EXECUTABLE"}))
 }
 
 #[cfg(not(feature = "cuda"))]
@@ -366,7 +691,12 @@ pub fn capture_dev(
 ) -> Result<Value> {
     // All checkpoint, raw evaluation, compiled source and canonical ordered DEV
     // identities are validated before restore creates the first CUDA context.
-    let inputs = dev_inputs(config_path, checkpoint_path, evaluation_path)?;
+    let inputs = dev_inputs(
+        DevLock::Attention,
+        config_path,
+        checkpoint_path,
+        evaluation_path,
+    )?;
     let config = &inputs.config;
     validate_config(config)?;
     let source = corpus::PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)?;
@@ -569,6 +899,153 @@ mod tests {
         bad_route.schedule = training::SchedulePolicy::InterleavedReadEvery8V1;
         bad_route.read_initialization = ReadInitialization::ZeroGatesV1;
         assert!(validate_dev_b3_config(&bad_route).is_err());
+        Ok(())
+    }
+    #[test]
+    fn normalization_dev_b3_lock_admits_three_modes_attention_lock_does_not() -> Result<()> {
+        let base: DriverConfig = serde_json::from_slice(include_bytes!(
+            "../../../docs/labs/address-cells-preflight-configs-2026-10-19/evidence/a8.json"
+        ))
+        .map_err(|e| invalid(e.to_string()))?;
+        for mode in [
+            NormalizationMode::ScaleMatchedSnapV1,
+            NormalizationMode::UnitSnapControlV1,
+            NormalizationMode::UnnormalizedControlV1,
+        ] {
+            let mut arm = base.clone();
+            arm.normalization_mode = mode;
+            dev_config_lock(DevLock::Normalization, &arm)?;
+            let attention = dev_config_lock(DevLock::Attention, &arm);
+            assert_eq!(attention.is_ok(), mode.is_scale_matched_snap());
+        }
+        let mut route = base.clone();
+        route.read_spec = ReadSpec::Route;
+        route.schedule = training::SchedulePolicy::CanonicalVectorThenReadV1;
+        route.read_initialization = ReadInitialization::ZeroGatesV1;
+        dev_config_lock(DevLock::Attention, &route)?;
+        assert!(dev_config_lock(DevLock::Normalization, &route).is_err());
+        let mut control = base.clone();
+        control.normalization_mode = NormalizationMode::UnnormalizedControlV1;
+        require_mode_only_difference(&base, &control)?;
+        assert!(require_mode_only_difference(&base, &base).is_err());
+        let mut other_seed = control.clone();
+        other_seed.seed = 2;
+        assert!(require_mode_only_difference(&base, &other_seed).is_err());
+        let mut other_init = control;
+        other_init.read_initialization = ReadInitialization::ZeroGatesV1;
+        assert!(require_mode_only_difference(&base, &other_init).is_err());
+        Ok(())
+    }
+
+    fn summary(rows: &[(bool, bool)]) -> evidence::B3Summary {
+        evidence::B3Summary {
+            rows: rows
+                .iter()
+                .enumerate()
+                .map(|(i, &(is_psucc, target_admitted))| evidence::AdmissionRow {
+                    row_ordinal: i as u64,
+                    target_position: 10 + i as u64,
+                    target_token: 7,
+                    is_psucc,
+                    target_admitted,
+                })
+                .collect(),
+            full: evidence::B3Count::default(),
+            psucc: evidence::B3Count::default(),
+            complement: evidence::B3Count::default(),
+        }
+    }
+
+    /// `b` reference-only hits, `c` control-only, `both`, `neither`; the first
+    /// `psucc_b` of the `b` rows are P_succ, every other row is complement.
+    fn paired_case(
+        b: usize,
+        c: usize,
+        both: usize,
+        neither: usize,
+        psucc_b: usize,
+    ) -> Result<DevPaired> {
+        let n = b + c + both + neither;
+        let rows = (0..n).map(|i| (i < psucc_b, true)).collect::<Vec<_>>();
+        let s = summary(&rows);
+        let mut rh = vec![0u64; n];
+        let mut ch = vec![0u64; n];
+        rh[..b].fill(1);
+        ch[b..b + c].fill(1);
+        rh[b + c..b + c + both].fill(1);
+        ch[b + c..b + c + both].fill(1);
+        dev_paired(&s, &rh, &s, &ch)
+    }
+
+    #[test]
+    fn dev_paired_counts_and_floor() -> Result<()> {
+        assert_eq!(dev_paired_floor(0)?, 24);
+        assert_eq!(dev_paired_floor(10)?, 24);
+        assert_eq!(dev_paired_floor(143)?, 24);
+        assert_eq!(dev_paired_floor(144)?, 24);
+        assert_eq!(dev_paired_floor(145)?, 25);
+        assert_eq!(dev_paired_floor(200)?, 29);
+        assert_eq!(dev_paired_floor(225)?, 30);
+        assert!(dev_paired_floor(u64::MAX).is_err());
+        let small = paired_case(5, 2, 3, 4, 2)?;
+        assert_eq!(
+            small.all,
+            DevPairedCount {
+                rows: 14,
+                b: 5,
+                c: 2,
+                both_correct: 3,
+                both_wrong: 4,
+                f_i: 24,
+                b_minus_c: 3,
+                beats: false,
+            }
+        );
+        assert_eq!(
+            (
+                small.psucc.rows,
+                small.psucc.b,
+                small.psucc.c,
+                small.psucc.f_i
+            ),
+            (2, 2, 0, 24)
+        );
+        // b + c = 24 + 0: b - c == F_I == 24 beats at the minimum floor.
+        let at_floor = paired_case(24, 0, 0, 0, 0)?;
+        assert_eq!((at_floor.all.f_i, at_floor.all.beats), (24, true));
+        assert!(!paired_case(23, 0, 0, 0, 0)?.all.beats);
+        // b + c = 200: F_I = ceil(2*sqrt(200)) = 29 (28^2 = 784 < 800 <= 841).
+        let above = paired_case(115, 85, 0, 0, 0)?;
+        assert_eq!(
+            (above.all.f_i, above.all.b_minus_c, above.all.beats),
+            (29, 30, true)
+        );
+        let edge = paired_case(114, 86, 0, 0, 0)?;
+        assert_eq!(
+            (edge.all.f_i, edge.all.b_minus_c, edge.all.beats),
+            (29, 28, false)
+        );
+        let reverse = paired_case(0, 30, 0, 0, 0)?;
+        assert_eq!((reverse.all.b_minus_c, reverse.all.beats), (-30, false));
+        Ok(())
+    }
+
+    #[test]
+    fn dev_paired_refuses_mismatched_rows_and_impossible_hits() -> Result<()> {
+        let s = summary(&[(true, true), (false, false), (true, true)]);
+        let hits = [1, 0, 0];
+        dev_paired(&s, &hits, &s, &hits)?;
+        let short = summary(&[(true, true), (false, false)]);
+        assert!(dev_paired(&s, &hits, &short, &hits[..2]).is_err());
+        assert!(dev_paired(&s, &hits[..2], &s, &hits).is_err());
+        let mut moved = s.clone();
+        moved.rows[2].target_token = 8;
+        assert!(dev_paired(&s, &hits, &moved, &hits).is_err());
+        let mut relabelled = s.clone();
+        relabelled.rows[0].is_psucc = false;
+        assert!(dev_paired(&s, &hits, &relabelled, &hits).is_err());
+        assert!(dev_paired(&s, &[0, 1, 0], &s, &hits).is_err());
+        assert!(dev_paired(&s, &[2, 0, 0], &s, &hits).is_err());
         Ok(())
     }
 }
