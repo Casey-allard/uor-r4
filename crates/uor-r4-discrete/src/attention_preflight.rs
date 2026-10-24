@@ -328,16 +328,7 @@ fn dev_inputs(
     {
         return Err(invalid("DEV B3 requires the raw registered DEV eval-corpus report, not transfer/enveloped evidence"));
     }
-    // Compiled identity is metadata; no Device/context is constructed and no
-    // bridge can silently promote a report from another numerical source.
-    let compiled = crate::device::compiled_identity();
-    for key in ["source_sha256", "kernel_sha256", "geometry_sha256"] {
-        if checkpoint.model[key] != compiled[key] {
-            return Err(invalid(format!(
-                "DEV B3 checkpoint {key} differs from the current compiled identity"
-            )));
-        }
-    }
+    check_compiled_identity(&checkpoint, "DEV B3")?;
     verify_evaluation(&evaluation, &checkpoint)?;
     let rows = dev_row_identities(&config)?;
     let b3 = evidence::summarize(&evaluation, &rows)?;
@@ -353,6 +344,21 @@ fn dev_inputs(
         b3,
         hits,
     })
+}
+
+/// Compiled identity is metadata; no Device/context is constructed and no
+/// bridge can silently promote a report from another numerical source.
+#[cfg(feature = "cuda")]
+fn check_compiled_identity(checkpoint: &training::DriverCheckpoint, label: &str) -> Result<()> {
+    let compiled = crate::device::compiled_identity();
+    for key in ["source_sha256", "kernel_sha256", "geometry_sha256"] {
+        if checkpoint.model[key] != compiled[key] {
+            return Err(invalid(format!(
+                "{label} checkpoint {key} differs from the current compiled identity"
+            )));
+        }
+    }
+    Ok(())
 }
 
 /// Which registered config lock a DEV readback uses. `Attention` is the
@@ -443,6 +449,181 @@ pub fn normalization_dev_b3(
         "evaluation_mutates_model":false,"updates_applied":0,"scoring_performed_by_this_command":false,
         "model_constructed":false,"cuda_context_created":false,"release":"STILL_REQUIRED",
         "training":"HELD","q4":"NOT_EXECUTABLE"}))
+}
+
+#[cfg(not(feature = "cuda"))]
+pub fn normalization_dev_structure(_config_path: &Path, _checkpoint_path: &Path) -> Result<Value> {
+    Err(invalid("normalization DEV structure readback requires a CUDA traced forward pass; no host reconstruction is available; no model or CUDA context was created"))
+}
+
+/// Structural-norm stability readback for one normalization arm: restores the
+/// exact checkpoint, runs zero-apply traced Flock forwards over every DEV row,
+/// and scores the CUDA-written trace and output blocks with the pure
+/// `structural_summary`. The bar term is judged on `ScaleMatchedSnapV1` only.
+#[cfg(feature = "cuda")]
+pub fn normalization_dev_structure(config_path: &Path, checkpoint_path: &Path) -> Result<Value> {
+    use crate::normalization_mechanism::{
+        structural_summary, NormalizationMode, StructuralSummary, STRUCTURE_TRACE_HEADER_WORDS,
+        STRUCTURE_TRACE_LEVEL_WORDS,
+    };
+    if crate::device::FLOCK_TRACE_HEADER_WORDS != STRUCTURE_TRACE_HEADER_WORDS
+        || crate::device::FLOCK_TRACE_LEVEL_WORDS != STRUCTURE_TRACE_LEVEL_WORDS
+    {
+        return Err(invalid(
+            "structural scorer trace layout differs from the device Flock trace layout",
+        ));
+    }
+    let (config, config_file): (DriverConfig, _) = input(config_path)?;
+    dev_config_lock(DevLock::Normalization, &config)?;
+    let driver = PreparedDriver::load(config.clone())?;
+    let (checkpoint, checkpoint_file): (training::DriverCheckpoint, _) = input(checkpoint_path)?;
+    driver.validate_checkpoint(&checkpoint)?;
+    check_compiled_identity(&checkpoint, "DEV structure")?;
+    validate_config(&config)?;
+    let identities = dev_row_identities(&config)?;
+    let stages = BinderPlan::new(config.spec.context as usize)?.stages();
+    let blocks = config.spec.blocks as usize;
+    let source = corpus::PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)?;
+    if source.eligible_len() != identities.len() {
+        return Err(invalid(
+            "structure DEV source inventory differs from the canonical DEV rows",
+        ));
+    }
+    let epoch = checkpoint.cursor.accepted_updates;
+    let (model, cursor) = driver.restore(checkpoint.clone(), 0)?;
+    if cursor != checkpoint.cursor
+        || model.epoch()? != epoch
+        || serde_json::to_value(model.snapshot()?).map_err(|e| invalid(e.to_string()))?
+            != checkpoint.model
+    {
+        return Err(invalid(
+            "structure restore differs from the exact admitted checkpoint",
+        ));
+    }
+    let mut summary = StructuralSummary::default();
+    let mut rows = 0usize;
+    let mut first = 0;
+    let mut forward_calls = 0u64;
+    while first < source.eligible_len() as u64 {
+        let batch = source.batch(first, config.spec.context, config.batch_rows)?;
+        let count = batch.targets.len();
+        if batch.windows.len() != count
+            || batch.target_positions.len() != count
+            || count == 0
+            || count > 64
+        {
+            return Err(invalid(
+                "structure batch shape differs from the canonical DEV pass",
+            ));
+        }
+        for (index, ((window, &position), &target)) in batch
+            .windows
+            .iter()
+            .zip(&batch.target_positions)
+            .zip(&batch.targets)
+            .enumerate()
+        {
+            let ordinal = rows
+                .checked_add(index)
+                .ok_or_else(|| invalid("structure DEV row ordinal overflow"))?;
+            let &(expected_position, expected_target, _) = identities
+                .get(ordinal)
+                .ok_or_else(|| invalid("structure DEV has an extra row"))?;
+            if position != expected_position || target != expected_target {
+                return Err(invalid(
+                    "structure DEV row differs from the canonical DEV rows",
+                ));
+            }
+            validate_window(window, position, config.spec.context)?;
+        }
+        let carried = model.carry_windows(&batch.windows)?;
+        if carried.rows() as usize != count
+            || carried.valid_lengths().len() != count
+            || carried.epoch() != epoch
+            || carried
+                .valid_lengths()
+                .iter()
+                .zip(&batch.windows)
+                .any(|(&length, window)| length as usize != window.len())
+        {
+            return Err(invalid("structure carry shape/valid length/epoch differs"));
+        }
+        let forward = model.forward_traced(&carried, &batch.targets)?;
+        if forward.epoch() != epoch || model.epoch()? != epoch {
+            return Err(invalid("structure traced Forward epoch differs"));
+        }
+        let trace = forward
+            .flock_trace()?
+            .ok_or_else(|| invalid("structure traced Forward returned no Flock trace"))?;
+        let stride = forward
+            .trace_stride()
+            .ok_or_else(|| invalid("structure traced Forward returned no trace stride"))?;
+        let level_words = stride
+            .checked_sub(STRUCTURE_TRACE_HEADER_WORDS)
+            .filter(|words| words % STRUCTURE_TRACE_LEVEL_WORDS == 0)
+            .ok_or_else(|| invalid("structure trace stride is not header plus whole levels"))?;
+        if level_words / STRUCTURE_TRACE_LEVEL_WORDS != stages {
+            return Err(invalid(
+                "structure trace level count differs from the config stage count",
+            ));
+        }
+        let vectors = forward.vectors()?;
+        let expected_words = count
+            .checked_mul(blocks)
+            .and_then(|words| words.checked_mul(8))
+            .ok_or_else(|| invalid("structure output inventory overflow"))?;
+        if vectors.len() != expected_words {
+            return Err(invalid(
+                "structure output vectors differ from rows x blocks x 8",
+            ));
+        }
+        let outputs = vectors
+            .chunks_exact(8)
+            .map(<[i32; 8]>::try_from)
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| invalid(e.to_string()))?;
+        let part = structural_summary(&trace, stride, count, blocks, stages, &outputs)?;
+        summary.absorb(&part)?;
+        rows = rows
+            .checked_add(count)
+            .ok_or_else(|| invalid("structure DEV row count overflow"))?;
+        forward_calls = forward_calls
+            .checked_add(1)
+            .ok_or_else(|| invalid("structure forward call count overflow"))?;
+        first = batch.next_target;
+    }
+    if rows != identities.len()
+        || model.epoch()? != epoch
+        || serde_json::to_value(model.snapshot()?).map_err(|e| invalid(e.to_string()))?
+            != checkpoint.model
+    {
+        return Err(invalid(
+            "structure complete inventory or unchanged snapshot check failed",
+        ));
+    }
+    let judged = config.normalization_mode == NormalizationMode::ScaleMatchedSnapV1;
+    let met = if judged {
+        json!(summary.met)
+    } else {
+        Value::Null
+    };
+    let hashes = checkpoint_hash_domains(&checkpoint)?;
+    Ok(json!({"schema":"uor-r4.normalization-dev-structure/1",
+        "status":"ACTUAL_GPU_TRACED_FORWARD_STRUCTURE_SCORED_ZERO_APPLY",
+        "normalization_mode":config.normalization_mode,"normalization_scope":normalization_scope(&config)?,
+        "config_file":config_file,"config_sha256":corpus::sha256(&encode(&config)?),
+        "lineage_sha256":driver.lineage_sha256()?,"checkpoint_file":checkpoint_file,
+        "driver_checkpoint_sha256":corpus::sha256(&encode(&checkpoint)?),
+        "model_storage_sha256":hashes.model_storage_sha256,"model_snapshot_sha256":hashes.model_snapshot_sha256,
+        "compiled_identity_checked":true,"dev_binding":source.binding(),
+        "model_epoch":epoch,"completed_batches":checkpoint.cursor.completed_batches,
+        "rows":rows,"stages":stages,"blocks":blocks,"gpu_forward_calls":forward_calls,
+        "summary":summary,
+        "bar_item":"structural norm stability (judged on n_snap only)",
+        "judged":judged,"met":met,
+        "trace_source":"existing production Device::forward_traced Flock trace and output blocks; scored by the pure structural_summary",
+        "snapshot_unchanged":true,"updates_applied":0,"evaluation_mutates_model":false,
+        "release":"STILL_REQUIRED","training":"HELD"}))
 }
 
 /// Registered DEV panel: P_succ rows and the Q1 admission floor on them.

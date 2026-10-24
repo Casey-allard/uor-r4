@@ -212,6 +212,7 @@ attention-export-token-cells CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR — read-on
 attention-capture-dev CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — separately released zero-apply GPU Forward slot capture.
 attention-dev-b3 CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — exact immutable DEV B3 metadata, no model.
 normalization-dev-b3 CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — DEV B3 metadata for one A8 normalization arm (any mode), no model.
+normalization-dev-structure CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR — CUDA-only zero-apply traced Flock DEV forward; structural-norm stability counts, judged on n_snap only.
 normalization-dev-paired REF_CONFIG REF_CHECKPOINT REF_DEV_EVAL CTL_CONFIG CTL_CHECKPOINT CTL_DEV_EVAL NEW_REPORT_DIR — paired McNemar top-1 contrast and Q1 floor, one seed, no model.
 attention-transfer PAIRED_DEV_DECISION NEW_REPORT_DIR — CUDA-only once-only paired fresh evaluation after sealed DEV H_geom.
 attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched active-leaf Flock/Relation learning, cap16404, separately released; training remains HELD by default.
@@ -310,6 +311,12 @@ normalization|normalization-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only
                 std::path::Path::new(&args[1]),
                 std::path::Path::new(&args[2]),
                 std::path::Path::new(&args[3]),
+            )
+        }),
+        Some("normalization-dev-structure") if args.len() == 4 => report_command(&args[3], || {
+            uor_r4_discrete::controller::attention_learning::preflight::normalization_dev_structure(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
             )
         }),
         Some("normalization-dev-paired") if args.len() == 8 => report_command(&args[7], || {

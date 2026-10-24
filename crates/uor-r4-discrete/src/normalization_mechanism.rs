@@ -403,9 +403,231 @@ pub fn endpoint_address_distance(blocks: &[[i32; 8]], cell: u8) -> Result<u32> {
     Ok(d_first + d_last)
 }
 
+/// Words in one Flock trace record header (`discrete.cu` `TRACE_ROW`).
+pub const STRUCTURE_TRACE_HEADER_WORDS: usize = 4;
+/// Words per model level in one Flock trace record (`discrete.cu` `TRACE_LEVEL`).
+pub const STRUCTURE_TRACE_LEVEL_WORDS: usize = 28;
+/// The registered endpoint `address_distance` set `{0, 4, 8, 12, 16}`.
+pub const ENDPOINT_DISTANCE_SET: [u32; 5] = [0, 4, 8, 12, 16];
+
+/// Structural-norm stability counts over traced stage outputs. Final outputs are
+/// judged on the actual output block; level consensus roots on the root table.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct StructuralSummary {
+    pub stage_outputs: u64,
+    pub valid_root_outputs: u64,
+    pub invalid_root_outputs: u64,
+    pub norm_failures: u64,
+    /// Counts for `ENDPOINT_DISTANCE_SET`, in that order, over every row x 256 cells.
+    pub endpoint_distance_histogram: [u64; 5],
+    pub endpoint_distance_off_set: u64,
+    pub met: bool,
+}
+
+impl StructuralSummary {
+    /// Add another batch's counts (checked) and recompute `met`.
+    pub fn absorb(&mut self, other: &StructuralSummary) -> Result<()> {
+        let add = |a: u64, b: u64| a.checked_add(b).ok_or_else(|| invalid("summary overflow"));
+        self.stage_outputs = add(self.stage_outputs, other.stage_outputs)?;
+        self.valid_root_outputs = add(self.valid_root_outputs, other.valid_root_outputs)?;
+        self.invalid_root_outputs = add(self.invalid_root_outputs, other.invalid_root_outputs)?;
+        self.norm_failures = add(self.norm_failures, other.norm_failures)?;
+        for (a, &b) in self
+            .endpoint_distance_histogram
+            .iter_mut()
+            .zip(&other.endpoint_distance_histogram)
+        {
+            *a = add(*a, b)?;
+        }
+        self.endpoint_distance_off_set = add(
+            self.endpoint_distance_off_set,
+            other.endpoint_distance_off_set,
+        )?;
+        self.met = self.computed_met();
+        Ok(())
+    }
+
+    fn computed_met(&self) -> bool {
+        self.invalid_root_outputs == 0
+            && self.norm_failures == 0
+            && self.endpoint_distance_off_set == 0
+    }
+}
+
+/// A traced root id word as a root index, or `None` for `ABSENT` / out-of-table ids.
+fn trace_root(word: u32) -> Option<u8> {
+    u8::try_from(word)
+        .ok()
+        .filter(|&r| usize::from(r) < ORBIT_ROOTS)
+}
+
+fn canonical_norms(block: &[i32; 8]) -> bool {
+    let inv = BlockNormInvariants::measure(block);
+    inv.l1_norm == CANONICAL_BLOCK_L1
+        && inv.l2_norm_sq == CANONICAL_BLOCK_L2_SQ
+        && inv.linfty_norm == CANONICAL_BLOCK_LINFTY
+}
+
+/// Score the structural-norm bar term over one traced forward batch.
+///
+/// `trace` is the Flock region only (`rows * blocks * stride` words, record
+/// layout `[frame, out_root, terms, payload]` then per level
+/// `[gate+1, found, consensus, eligible, kept[8], actions[8], carried[8]]`).
+/// `outputs` is the actual `[rows, blocks]` output block vectors. Stage outputs
+/// are every final output plus every level consensus root with `found > 0`.
+pub fn structural_summary(
+    trace: &[u32],
+    stride: usize,
+    rows: usize,
+    blocks: usize,
+    stages: usize,
+    outputs: &[[i32; 8]],
+) -> Result<StructuralSummary> {
+    let records = rows
+        .checked_mul(blocks)
+        .ok_or_else(|| invalid("trace record count overflow"))?;
+    let needed = stages
+        .checked_mul(STRUCTURE_TRACE_LEVEL_WORDS)
+        .and_then(|w| w.checked_add(STRUCTURE_TRACE_HEADER_WORDS))
+        .ok_or_else(|| invalid("trace stride overflow"))?;
+    if blocks < 2
+        || stride < needed
+        || records.checked_mul(stride) != Some(trace.len())
+        || outputs.len() != records
+    {
+        return Err(invalid(
+            "structural summary trace/output shape differs from rows x blocks x stride",
+        ));
+    }
+    let mut summary = StructuralSummary::default();
+    let mut judge = |root: Option<u8>, block: Option<&[i32; 8]>| -> Result<()> {
+        summary.stage_outputs += 1;
+        let Some(root) = root else {
+            summary.invalid_root_outputs += 1;
+            return Ok(());
+        };
+        summary.valid_root_outputs += 1;
+        let vector = match block {
+            Some(b) => *b,
+            None => orbit_root_coords(root)?,
+        };
+        if !canonical_norms(&vector) {
+            summary.norm_failures += 1;
+        }
+        Ok(())
+    };
+    for (record, output) in trace.chunks_exact(stride).zip(outputs) {
+        judge(trace_root(record[1]), Some(output))?;
+        for level in 0..stages {
+            let lv = &record[STRUCTURE_TRACE_HEADER_WORDS + level * STRUCTURE_TRACE_LEVEL_WORDS..];
+            if lv[1] != 0 {
+                judge(trace_root(lv[2]), None)?;
+            }
+        }
+    }
+    for row in outputs.chunks_exact(blocks) {
+        for cell in 0..=u8::MAX {
+            let d = endpoint_address_distance(row, cell)?;
+            match ENDPOINT_DISTANCE_SET.iter().position(|&v| v == d) {
+                Some(i) => summary.endpoint_distance_histogram[i] += 1,
+                None => summary.endpoint_distance_off_set += 1,
+            }
+        }
+    }
+    summary.met = summary.computed_met();
+    Ok(summary)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::metadata::ABSENT;
+
+    /// One record: final root `out`, level 0 consensus `m0` (found 1), level 1 empty.
+    fn record(out: u32, m0: u32) -> Vec<u32> {
+        let mut r = vec![ABSENT; STRUCTURE_TRACE_HEADER_WORDS + 2 * STRUCTURE_TRACE_LEVEL_WORDS];
+        r[1] = out;
+        let l0 = STRUCTURE_TRACE_HEADER_WORDS;
+        r[l0..l0 + 4].copy_from_slice(&[1, 1, m0, 1]);
+        let l1 = l0 + STRUCTURE_TRACE_LEVEL_WORDS;
+        r[l1..l1 + 4].copy_from_slice(&[1, 0, ABSENT, 0]);
+        r
+    }
+
+    #[test]
+    fn structural_summary_counts_valid_stage_outputs() -> Result<()> {
+        let roots = [[0u8, 5], [9, 15]];
+        let mut trace = Vec::new();
+        let mut outputs = Vec::new();
+        for row in roots {
+            for r in row {
+                trace.extend(record(u32::from(r), u32::from(15 - r)));
+                outputs.push(orbit_root_coords(r)?);
+            }
+        }
+        let stride = STRUCTURE_TRACE_HEADER_WORDS + 2 * STRUCTURE_TRACE_LEVEL_WORDS;
+        let s = structural_summary(&trace, stride, 2, 2, 2, &outputs)?;
+        assert_eq!(s.stage_outputs, 8);
+        assert_eq!(s.valid_root_outputs, 8);
+        assert_eq!(s.invalid_root_outputs, 0);
+        assert_eq!(s.norm_failures, 0);
+        assert_eq!(s.endpoint_distance_off_set, 0);
+        // Histogram = per-row convolution of the per-endpoint root distance counts.
+        let mut expected = [0u64; 5];
+        for row in roots {
+            let count = |root: u8| -> Result<[u64; 5]> {
+                let mut c = [0u64; 5];
+                for r in 0..(ORBIT_ROOTS as u8) {
+                    let (d, _) = root_scaled_cost(&orbit_root_coords(root)?, 1, r)?;
+                    c[usize::try_from(d / 4).map_err(|e| invalid(e.to_string()))?] += 1;
+                }
+                Ok(c)
+            };
+            let (first, last) = (count(row[0])?, count(row[1])?);
+            for (a, &fa) in first.iter().enumerate() {
+                for (b, &lb) in last.iter().enumerate() {
+                    if fa * lb > 0 {
+                        expected[a + b] += fa * lb;
+                    }
+                }
+            }
+        }
+        assert_eq!(s.endpoint_distance_histogram, expected);
+        assert_eq!(s.endpoint_distance_histogram.iter().sum::<u64>(), 512);
+        assert_eq!(s.endpoint_distance_histogram[0], 2);
+        assert!(s.met);
+        Ok(())
+    }
+
+    #[test]
+    fn structural_summary_flags_bad_outputs() -> Result<()> {
+        let stride = STRUCTURE_TRACE_HEADER_WORDS + 2 * STRUCTURE_TRACE_LEVEL_WORDS;
+        let mut trace = Vec::new();
+        trace.extend(record(ABSENT, 1)); // ABSENT final root (C_raw-like)
+        trace.extend(record(16, 2)); // out-of-table final root
+        trace.extend(record(3, ABSENT)); // found>0 level with ABSENT consensus
+        trace.extend(record(4, 4));
+        let residual = [1, 1, 1, 0, 0, 0, 0, 0]; // L1 = 3: not a root block
+        let outputs = vec![
+            orbit_root_coords(0)?,
+            orbit_root_coords(1)?,
+            residual,
+            orbit_root_coords(4)?,
+        ];
+        let s = structural_summary(&trace, stride, 2, 2, 2, &outputs)?;
+        assert_eq!(s.stage_outputs, 8);
+        assert_eq!(s.invalid_root_outputs, 3);
+        assert_eq!(s.valid_root_outputs, 5);
+        assert_eq!(s.norm_failures, 1);
+        // Row 1 starts with the residual, so every one of its 256 cells is off-set
+        // (odd distance); row 0 is two roots and stays in the set.
+        assert_eq!(s.endpoint_distance_off_set, 256);
+        assert_eq!(s.endpoint_distance_histogram.iter().sum::<u64>(), 256);
+        assert!(!s.met);
+        assert!(structural_summary(&trace, stride, 2, 2, 2, &outputs[..3]).is_err());
+        assert!(structural_summary(&trace, stride - 1, 2, 2, 2, &outputs).is_err());
+        Ok(())
+    }
 
     #[test]
     fn unit_snap_word_default_is_scale_matched_zero() {
