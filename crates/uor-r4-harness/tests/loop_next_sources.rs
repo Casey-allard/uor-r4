@@ -480,7 +480,7 @@ fn a_stale_running_record_is_offered_not_waited_on_forever() {
         decision(&o)
     );
     assert!(
-        stdout(&o).contains("is stale running"),
+        stdout(&o).contains("is treated as stale"),
         "the reason must name staleness: {}",
         stdout(&o)
     );
@@ -503,5 +503,49 @@ fn a_stale_running_record_is_offered_not_waited_on_forever() {
         stdout(&o).contains("GPU collection(s) running"),
         "{}",
         stdout(&o)
+    );
+}
+
+#[test]
+fn the_stale_boundary_is_strict_and_clock_free() {
+    use uor_r4_harness::loopdrive::GpuCollection;
+    use uor_r4_harness::loopnext::{collection_is_stale, STALE_COLLECTION_SECS};
+
+    let now = 1_000_000u64;
+    let mut record = GpuCollection {
+        id: "deepseek-boundary-1".to_string(),
+        lab: "deepseek".to_string(),
+        renew: Vec::new(),
+        started_unix: now - STALE_COLLECTION_SECS,
+        ended_unix: None,
+        status: "running".to_string(),
+        collected: false,
+        artifacts: Vec::new(),
+        notes: Vec::new(),
+    };
+    assert!(
+        !collection_is_stale(&record, now),
+        "exactly six hours old is not stale (strict <)"
+    );
+    record.started_unix = now - STALE_COLLECTION_SECS - 1;
+    assert!(
+        collection_is_stale(&record, now),
+        "one second past six hours is stale"
+    );
+    record.started_unix = now + 60;
+    assert!(
+        !collection_is_stale(&record, now),
+        "a future start is not stale"
+    );
+    record.started_unix = 0;
+    assert!(
+        collection_is_stale(&record, now),
+        "epoch 0 is stale and must not underflow"
+    );
+    record.started_unix = now - STALE_COLLECTION_SECS - 1;
+    record.status = "finished".to_string();
+    assert!(
+        !collection_is_stale(&record, now),
+        "only running records are stale"
     );
 }
