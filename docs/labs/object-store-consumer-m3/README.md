@@ -4,7 +4,7 @@
 - **Milestone:** M3 (durable conversation memory)
 - **Mechanism:** `uor-r4-object-store` (`durable_consumer`) + `uor-r4-integer` (`session_codec::export_scope` / `import_scope`, `UR4SESS1`)
 - **Design note:** [`#2873#issuecomment-6339008473`](https://github.com/UOR-Foundation/uor-r4/issues/2873#issuecomment-6339008473)
-- **CHARTER §5.2 bar decision card:** [`#2028#issuecomment-6339008955`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6339008955)
+- **CHARTER §5.2 bar decision card:** [`#2028#issuecomment-6339008955`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6339008955) — **owner-registered 2026-10-23T02:36:36Z** ([owner decisions comment `6356034555`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6356034555)): Casey selected **"Yes, register all six (Recommended)"**, and card `6339008955` is registered exactly as proposed. This releases nothing (see the status).
 
 ## 1. Open Decisions Resolved
 
@@ -33,7 +33,7 @@ Full `uor-r4-object-store` suite: **73 passed, 0 failed** (up from 67 baseline t
 
 ## 3. Draft Pre-Registration for the M3 Durable-Memory Bars (`m3-memory`)
 
-> **Status:** DRAFT — the panel is **frozen** (above), but the sheet still awaits M1/M2 model selection, owner ratification of the CHARTER §5.2 bar decision card ([`#2028#issuecomment-6339008955`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6339008955)), a non-author `TEST FITNESS: FIT` review, and a typed owner release before any on-model serving or GPU qualification run.
+> **Status:** DRAFT — the panel is **frozen** (above) and the CHARTER §5.2 thresholds are **owner-registered** (2026-10-23T02:36:36Z, card `6339008955`; see §3). The sheet still awaits M1/M2 model selection, a non-author `TEST FITNESS: FIT` review of the frozen configuration, and a typed owner release before any on-model serving or GPU qualification run.
 
 ### Frozen Panel and Hashing Protocol
 
@@ -50,7 +50,9 @@ Full `uor-r4-object-store` suite: **73 passed, 0 failed** (up from 67 baseline t
   5. `reset_isolation` (32 explicit `reset_scope` items + 32 multi-tenant `IdentityScope` cross-query items = 64 items): Post-reset queries and cross-scope queries verifying zero retention after reset and zero cross-scope leakage.
   6. `restart_restore` (64 items): Mid-dialogue `export_scope` (`UORMEM01` + `UR4SESS1`) $\to$ `Store::save` $\to$ fresh process `Store::load` $\to$ `import_scope`, comparing post-restore greedy token generation against uninterrupted continuation over 32 generated tokens per item.
 
-### Proposed Acceptance Thresholds (Submitted via CHARTER §5.2 Decision Card)
+### Owner-Registered Acceptance Thresholds (CHARTER §5.2)
+
+**Registration record.** Casey selected **"Yes, register all six (Recommended)"** at **2026-10-23T02:36:36Z** (owner decisions comment [`6356034555`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6356034555)); card [`6339008955`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6339008955) is **registered exactly as proposed**. The registered bar text is: *"64-item frozen panels: provenance ≥ 0.90; correction ≥ 0.90 latest and ≥ 0.85 lineage; abstention ≥ 0.95 refusal with R14 (AnsweredFactHitRate ≥ 0.50, SelectiveAbstentionGap > 0); #1718 exact-zero silent overwrites; reset and scope isolation exact; UR4SESS1 restart byte-identical 64/64"*. The table below is that registration restated per sub-panel; where wording differs, the registered text above governs. Registration releases nothing: the model selection, the non-author FIT and Casey's typed release are still required.
 
 | Sub-bar | Metric | Proposed threshold |
 |---|---|---|
