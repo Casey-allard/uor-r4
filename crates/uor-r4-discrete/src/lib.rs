@@ -21,6 +21,7 @@ mod decomposition_source;
 pub mod device;
 #[cfg(feature = "cuda")]
 pub mod driver_qualification;
+pub mod driver_source_pin;
 #[cfg(feature = "cuda")]
 pub mod measurement;
 pub mod metadata;
