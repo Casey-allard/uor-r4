@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from 2b107324fe683cc470737b6a9cc8bfabdc3f5d5f; do not edit -->
+<!-- rendered by uor-harness loop render from 642674f97e608641f565ce1cb6383b5f0f2e58e9; do not edit -->
 # HANDOFF
 
 Rendered from `docs/roadmap/items/*.md` at the commit in the stamp above. Each open-item row gives the first sentence of the item's `Done when` and `Cancel if` sections; blocked items are listed once, in the blocked table, with their owner; `not recorded` means the item has no such section or key yet.
