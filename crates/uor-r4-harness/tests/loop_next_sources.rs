@@ -453,3 +453,55 @@ fn the_collect_command_marks_the_record_so_loop_next_stops_offering_it() {
         stdout(&o)
     );
 }
+
+#[test]
+fn a_stale_running_record_is_offered_not_waited_on_forever() {
+    use uor_r4_harness::loopdrive::{collection_path, unix_now, write_collection, GpuCollection};
+    use uor_r4_harness::loopnext::STALE_COLLECTION_SECS;
+
+    let r = Repo::new(&[("docs/harness/labs.json", &labs(None))], &[]);
+    let now = unix_now();
+    let stale = GpuCollection {
+        id: "deepseek-stale-1".to_string(),
+        lab: "deepseek".to_string(),
+        renew: vec!["uor-pod".to_string()],
+        started_unix: now.saturating_sub(STALE_COLLECTION_SECS + 60),
+        ended_unix: None,
+        status: "running".to_string(),
+        collected: false,
+        artifacts: Vec::new(),
+        notes: Vec::new(),
+    };
+    write_collection(&r.root, "deepseek", &stale).expect("write the stale record");
+    let o = r.next();
+    assert!(
+        decision(&o).starts_with("GO gpu-collection deepseek-stale-1 — "),
+        "a stale running record must be offered, not waited on forever: {}",
+        decision(&o)
+    );
+    assert!(
+        stdout(&o).contains("is stale running"),
+        "the reason must name staleness: {}",
+        stdout(&o)
+    );
+
+    std::fs::remove_file(collection_path(&r.root, "deepseek", "deepseek-stale-1"))
+        .expect("remove the stale record");
+    let fresh = GpuCollection {
+        id: "deepseek-fresh-1".to_string(),
+        started_unix: now,
+        ..stale
+    };
+    write_collection(&r.root, "deepseek", &fresh).expect("write the fresh record");
+    let o = r.next();
+    assert!(
+        !decision(&o).starts_with("GO gpu-collection"),
+        "a recently-running record must still wait: {}",
+        decision(&o)
+    );
+    assert!(
+        stdout(&o).contains("GPU collection(s) running"),
+        "{}",
+        stdout(&o)
+    );
+}

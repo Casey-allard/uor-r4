@@ -40,6 +40,12 @@ const PAUSE_LABEL: &str = "loop:pause";
 /// Seconds before a lab told WAIT looks again.
 pub const RECHECK_SECS: u64 = 600;
 
+/// A GPU collection record still marked `running` for longer than this has no live watcher the
+/// supervisor can see (a killed watcher leaves no note). It is offered as stale work rather than
+/// waited on forever: six hours is longer than any check-in interval, short enough to be collected
+/// before the pod is reclaimed.
+pub const STALE_COLLECTION_SECS: u64 = 6 * 60 * 60;
+
 /// One check at a PR's head: its name and conclusion (`FAILURE`, `SUCCESS`, ...).
 #[derive(Debug, Clone, Deserialize)]
 pub struct PrCheck {
@@ -842,14 +848,26 @@ pub fn run(
     // records is none, not an error.
     match crate::loopdrive::read_collections(root, lab) {
         Ok(records) => {
+            let now = crate::loopdrive::unix_now();
+            let stale_before = now.saturating_sub(STALE_COLLECTION_SECS);
+            let stale = |record: &&crate::loopdrive::GpuCollection| {
+                record.status == "running" && record.started_unix < stale_before
+            };
             let waiting = records
                 .iter()
-                .find(|record| !record.collected && record.status != "running");
+                .find(|record| !record.collected && (record.status != "running" || stale(record)));
             if let Some(record) = waiting {
-                let reason = format!(
-                    "GPU collection {} {}; save its artifacts before the pod is down",
-                    record.id, record.status
-                );
+                let reason = if stale(&record) {
+                    format!(
+                        "GPU collection {} is stale running (started {}, no live watcher); collect it or mark it before the pod is gone",
+                        record.id, record.started_unix
+                    )
+                } else {
+                    format!(
+                        "GPU collection {} {}; save its artifacts before the pod is down",
+                        record.id, record.status
+                    )
+                };
                 out.push(source("gpu-collections", "work", reason.clone()));
                 return Ok((
                     out,
@@ -862,7 +880,7 @@ pub fn run(
             }
             let running = records
                 .iter()
-                .filter(|record| record.status == "running")
+                .filter(|record| record.status == "running" && record.started_unix >= stale_before)
                 .count();
             if running > 0 {
                 out.push(source(
