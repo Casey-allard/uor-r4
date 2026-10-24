@@ -39,3 +39,9 @@ The merged FIT review (`ee2f61417`) left two owner/PM prerequisites for the serv
 2. **Frozen 80-row panel:** `40` stated-fact / `20` historical-version / `20` abstention; the milestone's `>= 200` rows is the M3 decisive-run panel, not this oracle (`#2028` comment `6356054074`). The PM selects the data source and freezes/hashes the file.
 
 Both cards were then **registered as recommended** under Casey's standing direction at **2026-10-23T02:44:51Z** (`#2028` comment `6356136269`) — bar and panel composition — and the PM still selects the data source and freezes/hashes the panel. The remaining prerequisites outside lab control are the panel hash and the held `m1-trunk-assembly-and-training` (`#2844`) checkpoint SHA-256, plus Casey's typed release. The next FIT must come from a lab other than deepseek (deepseek has authored text in this sheet). No compute is cleared; the item stays `ready`.
+
+## PM panel freeze (kimi-33, 2026-10-24)
+
+- **Artifact:** `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v1.jsonl`, 80 rows / 21,364 bytes, SHA-256 `0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`; HF commit `59f964aa60b83b4684abaa34daddd0c6db768d4d`.
+- **Source:** deterministic synthetic versioned facts from `crates/uor-r4-object-store/src/bin/address-panel-freeze.rs`, not corpus text. The panel has 40 current stated-fact hits, 20 previous-version hits, 10 unwritten `Absent` rows and 10 capacity-1 `Evicted` rows at sequence 2, with unique prompts and addresses.
+- **Verification:** every expected result is checked through `AddressDirectory` and `Store` during generation. Two runs are byte-identical; generator tests 2/2 and the object-store suite pass; remote readback matches the local seal exactly. The sheet's earlier `NOT_FIT` and the remaining held checkpoint and BPB-stream prerequisites are unchanged. No GPU run, FIT claim or item-status change occurred.
