@@ -16,7 +16,7 @@ M3 acceptance requires that non-memory prose never overwrites stored facts. Toda
 
 ## What is missing
 
-In world=v2, ordinary small talk can compile as ASSERT or CORRECT. An example in #1718 compiled to CORRECT on relation 4 and overwrote a stored fact. No pre-registered set exists to measure false-assert and false-overwrite rates.
+In world=v2, ordinary small talk can compile as ASSERT or CORRECT. An example in #1718 compiled to CORRECT on relation 4 and overwrote a stored fact. The pre-registered set now exists: `data/panels/nonrelation-prose-v1.txt` (`7c29c665…`) is frozen with 50 turns (10 per category across five categories, 25 `heldout_v2_disjoint` sharing zero 4-word runs with the training sources), and the deterministic Rust grader plus its four finite controls are merged. The pre-registration is `TEST FITNESS: NOT_FIT` with the saved `world=v2` compiler/tokenizer pinned by file, size and SHA-256 (deepseek-58, `#2856`). The false-assert and false-overwrite rates are still `NOT_RUN`: a fresh non-author FIT, PM/owner confirmation of the pinned configuration and Casey approval in chat are required before the held baseline run.
 
 ## Done when
 
