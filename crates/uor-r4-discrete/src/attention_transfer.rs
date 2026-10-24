@@ -295,9 +295,15 @@ struct Arm {
 fn admit_arm(pins: &ArmPins, compiled: &Value, executable: &str) -> Result<Arm> {
     let admission: AttentionAdmission = pinned_json(&pins.admission)?;
     let driver = PreparedDriver::load(admission.plan.config.clone())?;
-    let release = release(&driver, &admission, compiled, executable)?;
+    let release = release(
+        Registration::Attention,
+        &driver,
+        &admission,
+        compiled,
+        executable,
+    )?;
     let progress = read_progress(&pins.final_checkpoint)?;
-    validate_progress(&driver, &release, &progress)?;
+    validate_progress(Registration::Attention, &driver, &release, &progress)?;
     if progress.checkpoint.cursor.completed_batches != ATTENTION_BATCHES
         || pins.final_checkpoint.path.file_name()
             != Some(std::ffi::OsStr::new("checkpoint-16404.json"))
@@ -316,7 +322,7 @@ fn admit_arm(pins: &ArmPins, compiled: &Value, executable: &str) -> Result<Arm> 
     // label supplied alongside a selected final checkpoint.
     let initial_pin: FilePin = read_json(&state.join("initial.json"))?;
     let initial = read_progress(&initial_pin)?;
-    validate_progress(&driver, &release, &initial)?;
+    validate_progress(Registration::Attention, &driver, &release, &initial)?;
     if initial.checkpoint.cursor != driver.initial_cursor()
         || initial.counters != Counters::default()
         || initial.baseline_snapshot_metadata

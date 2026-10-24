@@ -50,6 +50,11 @@ fn device_command(args: &[String]) -> Result<()> {
             let admission=read_json::<uor_r4_discrete::controller::attention_learning::AttentionAdmission>(&args[2])?;
             uor_r4_discrete::controller::attention_learning::run(config,admission,Path::new(&args[3]),args[0]=="attention-resume")
         }
+        Some("normalization") | Some("normalization-resume") if args.len()==4=>{
+            let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
+            let admission=read_json::<uor_r4_discrete::controller::attention_learning::AttentionAdmission>(&args[2])?;
+            uor_r4_discrete::controller::attention_learning::run_registration(uor_r4_discrete::controller::attention_learning::Registration::Normalization,config,admission,Path::new(&args[3]),args[0]=="normalization-resume")
+        }
         Some("completion") | Some("completion-resume") if args.len()==4=>{
             let config=read_json::<uor_r4_discrete::training::DriverConfig>(&args[1])?;
             let admission=read_json::<uor_r4_discrete::controller::completion::CompletionAdmission>(&args[2])?;
@@ -65,7 +70,7 @@ fn device_command(args: &[String]) -> Result<()> {
             let admission=read_json::<uor_r4_discrete::controller::ReleaseManifest>(&args[2])?;
             uor_r4_discrete::controller::evaluate_pilot(config,admission,Path::new(&args[3]))
         }
-        Some("build-identity") | Some("completion-build-identity") | Some("attention-build-identity") | Some("attention-audit-build-identity") if (args.len()==1 && args[0]!="attention-audit-build-identity") || args.len()==2=>{
+        Some("build-identity") | Some("completion-build-identity") | Some("attention-build-identity") | Some("attention-audit-build-identity") | Some("normalization-build-identity") if (args.len()==1 && args[0]!="attention-audit-build-identity" && args[0]!="normalization-build-identity") || args.len()==2=>{
             let executable=std::env::current_exe().map_err(|e|invalid(e.to_string()))?;
             let mut identity=serde_json::json!({"compiled":uor_r4_discrete::device::compiled_identity(),"driver_source_sha256":uor_r4_discrete::training::driver_source_sha256(),"executable_sha256":uor_r4_discrete::corpus::sha256(&std::fs::read(executable).map_err(|e|invalid(e.to_string()))?),"cuda_context_created":false,"training":"HELD"});
             if args.len()==2 {
@@ -76,6 +81,12 @@ fn device_command(args: &[String]) -> Result<()> {
                 }
                 else if args[0]=="completion-build-identity" {uor_r4_discrete::controller::completion::validate_config(&config)?;}
                 else if args[0]=="attention-build-identity" {uor_r4_discrete::controller::attention_learning::validate_config(&config)?;}
+                else if args[0]=="normalization-build-identity" {
+                    uor_r4_discrete::controller::attention_learning::validate_normalization_config(&config)?;
+                    identity["normalization_scope"]=serde_json::json!(uor_r4_discrete::controller::attention_learning::normalization_scope(&config)?);
+                    identity["normalization_mode"]=serde_json::json!(config.normalization_mode);
+                    identity["sheet"]=serde_json::json!("NOT_YET_REGISTERED");
+                }
                 else {uor_r4_discrete::controller::validate_pilot_config(&config)?;}
                 let driver=uor_r4_discrete::training::PreparedDriver::load(config)?;
                 identity["config_sha256"]=serde_json::json!(uor_r4_discrete::corpus::sha256(&serde_json::to_vec(driver.config()).map_err(|e|invalid(e.to_string()))?));
@@ -201,7 +212,11 @@ attention-export-token-cells CONFIG DRIVER_CHECKPOINT NEW_REPORT_DIR — read-on
 attention-capture-dev CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — separately released zero-apply GPU Forward slot capture.
 attention-dev-b3 CONFIG DRIVER_CHECKPOINT DEV_EVALUATION NEW_REPORT_DIR — exact immutable DEV B3 metadata, no model.
 attention-transfer PAIRED_DEV_DECISION NEW_REPORT_DIR — CUDA-only once-only paired fresh evaluation after sealed DEV H_geom.
-attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched active-leaf Flock/Relation learning, cap16404, separately released; training remains HELD by default.");
+attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched active-leaf Flock/Relation learning, cap16404, separately released; training remains HELD by default.
+normalization-build-identity CONFIG — A8 learned-Relation normalization scope/mode/config/lineage identity; sheet NOT_YET_REGISTERED; no CUDA context.
+normalization-check-plan PLAN — normalization-scoped metadata validation only; refused until the normalization sheet is registered; no release.
+normalization-owner-release PLAN NEW_RELEASE_DIR — Casey personally at a terminal, UOR_LAB unset; one normalization mode/seed scope.
+normalization|normalization-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only A8 Relation8 normalization-mode run (n_snap, c_unscaled or c_raw), cap16404, separately released; training remains HELD by default.");
             Ok(())
         }
         Some("completion-check-plan") if args.len() == 2 => {
@@ -219,6 +234,16 @@ attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched
                 uor_r4_discrete::controller::attention_learning::check_plan(std::path::Path::new(
                     &args[1]
                 ))?
+            );
+            Ok(())
+        }
+        Some("normalization-check-plan") if args.len() == 2 => {
+            println!(
+                "{}",
+                uor_r4_discrete::controller::attention_learning::check_plan_registration(
+                    uor_r4_discrete::controller::attention_learning::Registration::Normalization,
+                    std::path::Path::new(&args[1]),
+                )?
             );
             Ok(())
         }
@@ -286,6 +311,13 @@ attention|attention-resume CONFIG ADMISSION NEW_REPORT_DIR — CUDA-only matched
         }
         Some("attention-owner-release") if args.len() == 3 => {
             uor_r4_discrete::controller::attention_learning::owner_release(
+                std::path::Path::new(&args[1]),
+                std::path::Path::new(&args[2]),
+            )
+        }
+        Some("normalization-owner-release") if args.len() == 3 => {
+            uor_r4_discrete::controller::attention_learning::owner_release_registration(
+                uor_r4_discrete::controller::attention_learning::Registration::Normalization,
                 std::path::Path::new(&args[1]),
                 std::path::Path::new(&args[2]),
             )

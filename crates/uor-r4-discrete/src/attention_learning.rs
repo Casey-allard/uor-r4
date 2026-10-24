@@ -3,6 +3,7 @@
 //! Owner records are operational safeguards, not cryptographic authentication.
 //! No lab may create a release record or inherit the earlier pilot delegation.
 use super::*;
+use crate::normalization_mechanism::NormalizationMode;
 use crate::ReadInitialization;
 #[path = "attention_evidence.rs"]
 pub mod evidence;
@@ -201,8 +202,121 @@ pub fn validate_config(config: &DriverConfig) -> Result<()> {
     }
     Ok(())
 }
-fn validate_plan_header(plan: &AttentionPlan) -> Result<()> {
-    validate_config(&plan.config)?;
+/// Which registered entry a plan, admission or run belongs to. Both reuse the
+/// attention plan/admission schemas; the scope string keeps them apart.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Registration {
+    Attention,
+    Normalization,
+}
+/// The normalization sheet
+/// (`docs/harness/prep/m1-normalization-mechanism-DRAFT-2026-10-22.md`) is
+/// NOT_FIT and still edited, so no SHA-256 or title is registered here. A later
+/// PR sets `Some((sha256, title))` once it is FIT; until then every
+/// normalization plan, release and run is refused.
+const NORMALIZATION_SHEET: Option<(&str, &str)> = None;
+fn normalization_label(mode: NormalizationMode) -> &'static str {
+    match mode {
+        NormalizationMode::ScaleMatchedSnapV1 => "n_snap",
+        NormalizationMode::UnitSnapControlV1 => "c_unscaled",
+        NormalizationMode::UnnormalizedControlV1 => "c_raw",
+    }
+}
+/// The normalization entry admits exactly the A8 learned-Relation trunk with
+/// any of the three normalization modes; every other configuration is refused.
+pub fn validate_normalization_config(config: &DriverConfig) -> Result<()> {
+    config.validate()?;
+    validate_registered_corpus(config)?;
+    if !matches!(config.read_spec, ReadSpec::Relation { kept: 8, sweeps: 1 })
+        || config.relation_learning_policy != training::RelationLearningPolicy::LearnV1
+    {
+        return Err(invalid(
+            "normalization admits only learned Relation8/sweep1 (no Flock, Route or frozen-zero relation)",
+        ));
+    }
+    match &config.codebook_initialization {
+        training::CodebookInitialization::PinnedTableV1 { table }
+            if table.sha256 == A8_TABLE_FILE_SHA256 => {}
+        _ => {
+            return Err(invalid(
+                "normalization admits only the pinned A8 codebook table",
+            ))
+        }
+    }
+    if !matches!(config.seed, 1 | 2) {
+        return Err(invalid(
+            "normalization requires a separate seed-1 or seed-2 release",
+        ));
+    }
+    if config.spec.kept_cells != 8
+        || config.objective_policy != crate::ObjectivePolicy::NearestAddressMarginV1
+        || config.read_initialization != ReadInitialization::ActiveLeafV1
+        || config.schedule != training::SchedulePolicy::InterleavedReadEvery8V1
+    {
+        return Err(invalid("normalization requires K8, nearest-address objective, active-leaf initialization and interleaved read-every-8 schedule"));
+    }
+    normalization_label(config.normalization_mode);
+    Ok(())
+}
+pub fn normalization_scope(config: &DriverConfig) -> Result<String> {
+    validate_normalization_config(config)?;
+    let prefix = A8_TABLE_FILE_SHA256
+        .get(..12)
+        .ok_or_else(|| invalid("A8 table SHA-256 is too short"))?;
+    Ok(format!(
+        "m1-normalization-{}-injective-{prefix}-relation-k8-seed{}-batches0..16404",
+        normalization_label(config.normalization_mode),
+        config.seed
+    ))
+}
+fn registration_scope(reg: Registration, config: &DriverConfig) -> Result<String> {
+    match reg {
+        Registration::Attention => scope(config),
+        Registration::Normalization => normalization_scope(config),
+    }
+}
+fn registration_sheet(
+    reg: Registration,
+    config: &DriverConfig,
+) -> Result<(&'static str, &'static str)> {
+    match reg {
+        Registration::Attention => registered_sheet(config),
+        Registration::Normalization => {
+            NORMALIZATION_SHEET.ok_or_else(|| invalid("normalization sheet not yet registered"))
+        }
+    }
+}
+fn validate_registration_config(reg: Registration, config: &DriverConfig) -> Result<()> {
+    match reg {
+        Registration::Attention => validate_config(config),
+        Registration::Normalization => validate_normalization_config(config),
+    }
+}
+/// The stored normalization mode an initial checkpoint must carry: the attention
+/// entry keeps the default, the normalization entry its configured mode.
+#[cfg(feature = "cuda")]
+fn registration_storage_mode(reg: Registration, config: &DriverConfig) -> NormalizationMode {
+    match reg {
+        Registration::Attention => NormalizationMode::default(),
+        Registration::Normalization => config.normalization_mode,
+    }
+}
+/// An admission's plan scope must be the scope this entry derives for the run config.
+#[cfg(any(feature = "cuda", test))]
+fn require_registration_scope(
+    reg: Registration,
+    config: &DriverConfig,
+    plan_scope: &str,
+) -> Result<()> {
+    if plan_scope != registration_scope(reg, config)? {
+        return Err(invalid(format!(
+            "admission scope does not belong to the {reg:?} entry for this config"
+        )));
+    }
+    Ok(())
+}
+fn validate_plan_header(reg: Registration, plan: &AttentionPlan) -> Result<()> {
+    validate_registration_config(reg, &plan.config)?;
     validate_transfer_source(plan)?;
     let e = &plan.execution;
     for hash in [
@@ -217,10 +331,10 @@ fn validate_plan_header(plan: &AttentionPlan) -> Result<()> {
     ] {
         corpus::validate_sha256(hash)?;
     }
-    let (registered_sha256, _) = registered_sheet(&plan.config)?;
+    let (registered_sha256, _) = registration_sheet(reg, &plan.config)?;
     if plan.schema != PLAN_SCHEMA
         || plan.status != "HELD_OWNER_ACTION_REQUIRED"
-        || plan.scope != scope(&plan.config)?
+        || plan.scope != registration_scope(reg, &plan.config)?
         || plan.cost_contract != AttentionCostContract::expected(&plan.config)
         || e.base_source != ATTENTION_BASE_SOURCE
         || e.reviewed_source_commit.len() != 40
@@ -292,11 +406,11 @@ fn validate_review(plan: &AttentionPlan, review: &AttentionReview) -> Result<()>
     }
     Ok(())
 }
-fn validate_plan(plan: &AttentionPlan) -> Result<()> {
-    validate_plan_header(plan)?;
+fn validate_plan(reg: Registration, plan: &AttentionPlan) -> Result<()> {
+    validate_plan_header(reg, plan)?;
     let bytes = plan.sheet.read()?;
     let sheet = std::str::from_utf8(&bytes).map_err(|e| invalid(e.to_string()))?;
-    let (_, registered_title) = registered_sheet(&plan.config)?;
+    let (_, registered_title) = registration_sheet(reg, &plan.config)?;
     if !sheet
         .lines()
         .any(|line| line.starts_with("TEST FITNESS: FIT"))
@@ -348,8 +462,12 @@ fn executable_sha256() -> Result<String> {
 }
 /// Reads pinned metadata/data and the executable; creates no CUDA context or release.
 pub fn check_plan(plan_path: &Path) -> Result<Value> {
+    check_plan_registration(Registration::Attention, plan_path)
+}
+/// [`check_plan`] for the given registered entry.
+pub fn check_plan_registration(reg: Registration, plan_path: &Path) -> Result<Value> {
     let plan: AttentionPlan = read_json(plan_path)?;
-    validate_plan(&plan)?;
+    validate_plan(reg, &plan)?;
     let driver = PreparedDriver::load(plan.config.clone())?;
     validate_execution(&plan, &driver, &executable_sha256()?)?;
     #[cfg(feature = "cuda")]
@@ -382,24 +500,36 @@ fn require_owner_terminal(lab_present: bool, stdin_tty: bool, stdout_tty: bool) 
     Ok(())
 }
 /// Casey invokes this himself. Implementing this entry point grants no agent permission to invoke it.
+pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
+    owner_release_registration(Registration::Attention, plan_path, output)
+}
+/// [`owner_release`] for the given registered entry. Casey invokes this himself.
 #[cfg(not(feature = "cuda"))]
-pub fn owner_release(_plan_path: &Path, _output: &Path) -> Result<()> {
+pub fn owner_release_registration(
+    _reg: Registration,
+    _plan_path: &Path,
+    _output: &Path,
+) -> Result<()> {
     Err(invalid("attention owner release requires the exact CUDA executable identity; no release was written"))
 }
 #[cfg(feature = "cuda")]
-pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
+pub fn owner_release_registration(
+    reg: Registration,
+    plan_path: &Path,
+    output: &Path,
+) -> Result<()> {
     use std::io::IsTerminal;
     require_owner_terminal(
         std::env::var_os("UOR_LAB").is_some(),
         std::io::stdin().is_terminal(),
         std::io::stdout().is_terminal(),
     )?;
-    let checked = check_plan(plan_path)?;
+    let checked = check_plan_registration(reg, plan_path)?;
     let plan: AttentionPlan = read_json(plan_path)?;
     if checked["plan_sha256"] != json!(corpus::sha256(&encode(&plan)?)) {
         return Err(invalid("attention plan changed after metadata preflight"));
     }
-    validate_plan(&plan)?;
+    validate_plan(reg, &plan)?;
     require_disjoint_directories(output, &plan.run_state_directory)?;
     if output.exists() || plan.run_state_directory.exists() {
         return Err(invalid(
@@ -424,7 +554,7 @@ pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
     if encode(&current)? != encode(&plan)? {
         return Err(invalid("attention plan changed during owner confirmation"));
     }
-    validate_plan(&plan)?;
+    validate_plan(reg, &plan)?;
     fs::create_dir(output).map_err(|e| invalid(e.to_string()))?;
     let output = fs::canonicalize(output).map_err(|e| invalid(e.to_string()))?;
     let path = output.join("owner.json");
@@ -449,12 +579,13 @@ pub fn owner_release(plan_path: &Path, output: &Path) -> Result<()> {
 }
 #[cfg(feature = "cuda")]
 fn release(
+    reg: Registration,
     driver: &PreparedDriver,
     admission: &AttentionAdmission,
     compiled: &Value,
     executable: &str,
 ) -> Result<ValidatedRelease> {
-    validate_plan(&admission.plan)?;
+    validate_plan(reg, &admission.plan)?;
     if admission.schema != ADMISSION_SCHEMA {
         return Err(Error::TrainingHeld);
     }
@@ -801,8 +932,22 @@ fn checkpoint_boundary(n: u64) -> Result<()> {
     }
     Ok(())
 }
-#[cfg(feature = "cuda")]
+#[cfg(any(feature = "cuda", test))]
 pub(super) fn validate_initial_storage(config: &DriverConfig, model: &Value) -> Result<()> {
+    validate_initial_storage_mode(config, model, NormalizationMode::default())
+}
+/// The initial snapshot must carry the active-leaf literal storage and store
+/// exactly `mode` (an absent field reads as the default mode).
+#[cfg(any(feature = "cuda", test))]
+fn validate_initial_storage_mode(
+    config: &DriverConfig,
+    model: &Value,
+    mode: NormalizationMode,
+) -> Result<()> {
+    let stored_mode = model
+        .get("normalization_mode")
+        .cloned()
+        .unwrap_or_else(|| json!(NormalizationMode::default()));
     let (combine, total) = gate_inventory(config)?;
     let stages = BinderPlan::new(config.spec.context as usize)?.stages();
     let gates = model["gates"]
@@ -810,7 +955,7 @@ pub(super) fn validate_initial_storage(config: &DriverConfig, model: &Value) -> 
         .ok_or_else(|| invalid("initial checkpoint lacks gates"))?;
     if model["epoch"] != json!(0)
         || model["read_initialization"] != json!(ReadInitialization::ActiveLeafV1)
-        || !crate::normalization_mechanism::stored_mode_is_default(model)
+        || stored_mode != json!(mode)
         || gates.len() != total as usize
         || gates.iter().enumerate().any(|(index, word)| {
             word.as_i64()
@@ -827,6 +972,7 @@ pub(super) fn validate_initial_storage(config: &DriverConfig, model: &Value) -> 
 }
 #[cfg(feature = "cuda")]
 fn validate_progress(
+    reg: Registration,
     driver: &PreparedDriver,
     release: &ValidatedRelease,
     p: &AttentionCheckpoint,
@@ -868,7 +1014,11 @@ fn validate_progress(
         }
     }
     if c.completed_batches == 0 {
-        validate_initial_storage(driver.config(), &p.checkpoint.model)?;
+        validate_initial_storage_mode(
+            driver.config(),
+            &p.checkpoint.model,
+            registration_storage_mode(reg, driver.config()),
+        )?;
     }
     validate_q1(driver, release, p)?;
     Ok(())
@@ -930,12 +1080,13 @@ pub(super) fn verify_evaluation(
 }
 #[cfg(feature = "cuda")]
 fn save(
+    reg: Registration,
     driver: &PreparedDriver,
     release: &ValidatedRelease,
     out: &Path,
     p: &AttentionCheckpoint,
 ) -> Result<FilePin> {
-    validate_progress(driver, release, p)?;
+    validate_progress(reg, driver, release, p)?;
     let path = out.join(format!(
         "checkpoint-{:05}.json",
         p.checkpoint.cursor.completed_batches
@@ -1101,10 +1252,25 @@ pub fn run(
     out: &Path,
     resume: bool,
 ) -> Result<()> {
+    run_registration(Registration::Attention, config, admission, out, resume)
+}
+/// [`run`] for the given registered entry. The entry's config, sheet and
+/// admission scope are checked before any driver load or CUDA work.
+#[cfg(feature = "cuda")]
+pub fn run_registration(
+    reg: Registration,
+    config: DriverConfig,
+    admission: AttentionAdmission,
+    out: &Path,
+    resume: bool,
+) -> Result<()> {
     let started = std::time::Instant::now();
-    validate_config(&config)?;
+    validate_registration_config(reg, &config)?;
+    registration_sheet(reg, &config)?;
+    require_registration_scope(reg, &config, &admission.plan.scope)?;
     let driver = PreparedDriver::load(config)?;
     let release = release(
+        reg,
         &driver,
         &admission,
         &crate::device::compiled_identity(),
@@ -1122,8 +1288,8 @@ pub fn run(
             let initial_pin: FilePin = read_json(&state.join("initial.json"))?;
             let initial = read_progress(&initial_pin)?;
             // All admission, cursor, counters and initial baseline checks precede CUDA.
-            validate_progress(&driver, &release, &p)?;
-            validate_progress(&driver, &release, &initial)?;
+            validate_progress(reg, &driver, &release, &p)?;
+            validate_progress(reg, &driver, &release, &initial)?;
             if initial.checkpoint.cursor != driver.initial_cursor()
                 || initial.counters != Counters::default()
                 || initial.baseline_snapshot_metadata
@@ -1147,7 +1313,11 @@ pub fn run(
         } else {
             let model = driver.new_model(0)?;
             let checkpoint = driver.checkpoint(&model, driver.initial_cursor())?;
-            validate_initial_storage(driver.config(), &checkpoint.model)?;
+            validate_initial_storage_mode(
+                driver.config(),
+                &checkpoint.model,
+                registration_storage_mode(reg, driver.config()),
+            )?;
             let baseline_snapshot_metadata = training::snapshot_metadata(&checkpoint.model)?;
             let baseline_evaluation = driver.evaluate_checkpoint(&model, &checkpoint)?;
             verify_evaluation(&baseline_evaluation, &checkpoint)?;
@@ -1168,7 +1338,7 @@ pub fn run(
             )
         };
         // Checkpoint0 and its complete baseline are durable before capability issuance.
-        let mut final_pin = save(&driver, &release, out, &progress)?;
+        let mut final_pin = save(reg, &driver, &release, out, &progress)?;
         let capability = training::issue_corpus_update_admission(&driver, &release)?;
         let mut receipts = OpenOptions::new()
             .write(true)
@@ -1219,7 +1389,7 @@ pub fn run(
                 if completed == 4096 {
                     capture_q1(&driver, &release, &mut progress, &model)?;
                 }
-                final_pin = save(&driver, &release, out, &progress)?;
+                final_pin = save(reg, &driver, &release, out, &progress)?;
                 if completed == 4096
                     && validate_q1(&driver, &release, &progress)?
                         .is_some_and(|q| q.decision.diagnostic_stop)
@@ -1439,16 +1609,16 @@ mod tests {
     #[test]
     fn attention_requires_its_own_scope_initialization_and_pins() -> Result<()> {
         let p = plan()?;
-        validate_plan_header(&p)?;
+        validate_plan_header(Registration::Attention, &p)?;
         let mut unrelated_sheet = p.clone();
         unrelated_sheet.sheet.sha256 = "5".repeat(64);
         unrelated_sheet.execution.sheet_sha256 = unrelated_sheet.sheet.sha256.clone();
-        assert!(validate_plan_header(&unrelated_sheet).is_err());
+        assert!(validate_plan_header(Registration::Attention, &unrelated_sheet).is_err());
         assert!(validate_pilot_config(&p.config).is_err());
         for old_scope in [PILOT_SCOPE, "m1-a2-completion-seed1-checkpoint1640..16404"] {
             let mut wrong = p.clone();
             wrong.scope = old_scope.into();
-            assert!(validate_plan_header(&wrong).is_err());
+            assert!(validate_plan_header(Registration::Attention, &wrong).is_err());
         }
         for old_schema in [
             "uor-r4.pilot-owner-release-plan/1",
@@ -1456,7 +1626,7 @@ mod tests {
         ] {
             let mut wrong = p.clone();
             wrong.schema = old_schema.into();
-            assert!(validate_plan_header(&wrong).is_err());
+            assert!(validate_plan_header(Registration::Attention, &wrong).is_err());
         }
         let mut wrong = p.config.clone();
         wrong.read_initialization = ReadInitialization::ZeroGatesV1;
@@ -1553,7 +1723,7 @@ mod tests {
         );
         let mut wrong = p.clone();
         wrong.cost_contract.q1_dev_evaluations = 0;
-        assert!(validate_plan_header(&wrong).is_err());
+        assert!(validate_plan_header(Registration::Attention, &wrong).is_err());
         wrong = p.clone();
         wrong.transfer.tokens.sha256 = p.config.dev.tokens.sha256.clone();
         assert!(validate_transfer_source(&wrong).is_err());
@@ -1568,10 +1738,10 @@ mod tests {
         assert!(validate_transfer_source(&wrong).is_err());
         wrong = p.clone();
         wrong.cost_contract.relation_off_transfer_evaluations = 1;
-        assert!(validate_plan_header(&wrong).is_err());
+        assert!(validate_plan_header(Registration::Attention, &wrong).is_err());
         wrong = p;
         wrong.cost_contract.max_batches = ATTENTION_BATCHES + 1;
-        assert!(validate_plan_header(&wrong).is_err());
+        assert!(validate_plan_header(Registration::Attention, &wrong).is_err());
         Ok(())
     }
     #[test]
@@ -1641,18 +1811,27 @@ mod tests {
     #[test]
     fn seeded_plan_binds_parent_sheet_only() -> Result<()> {
         let seeded = plan()?;
-        validate_plan_header(&seeded)?;
-        let refused = validate_plan_header(&with_sheet(seeded, INJECTIVE_SHEET_SHA256));
+        validate_plan_header(Registration::Attention, &seeded)?;
+        let refused = validate_plan_header(
+            Registration::Attention,
+            &with_sheet(seeded, INJECTIVE_SHEET_SHA256),
+        );
         assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
         Ok(())
     }
     #[test]
     fn pinned_plan_binds_injective_sheet_only() -> Result<()> {
         let pinned = pinned_plan(PRIME_ZETA_TABLE_FILE_SHA256)?;
-        validate_plan_header(&pinned)?;
-        let refused = validate_plan_header(&with_sheet(pinned.clone(), ATTENTION_SHEET_SHA256));
+        validate_plan_header(Registration::Attention, &pinned)?;
+        let refused = validate_plan_header(
+            Registration::Attention,
+            &with_sheet(pinned.clone(), ATTENTION_SHEET_SHA256),
+        );
         assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
-        let refused = validate_plan_header(&with_sheet(pinned, A8_SHEET_SHA256));
+        let refused = validate_plan_header(
+            Registration::Attention,
+            &with_sheet(pinned, A8_SHEET_SHA256),
+        );
         assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
         Ok(())
     }
@@ -1690,9 +1869,10 @@ mod tests {
     #[test]
     fn a8_plan_binds_a8_sheet_only() -> Result<()> {
         let a8 = with_sheet(pinned_plan(A8_TABLE_FILE_SHA256)?, A8_SHEET_SHA256);
-        validate_plan_header(&a8)?;
+        validate_plan_header(Registration::Attention, &a8)?;
         for other in [INJECTIVE_SHEET_SHA256, ATTENTION_SHEET_SHA256] {
-            let refused = validate_plan_header(&with_sheet(a8.clone(), other));
+            let refused =
+                validate_plan_header(Registration::Attention, &with_sheet(a8.clone(), other));
             assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
         }
         Ok(())
@@ -1703,7 +1883,10 @@ mod tests {
         // fall back to the PrimeZeta sheet.
         let s8 = "a185bdca07077fe7157e947ff1fa80919e6f99165a4dd5a04061a97873c92718";
         for sheet in [INJECTIVE_SHEET_SHA256, A8_SHEET_SHA256] {
-            let refused = validate_plan_header(&with_sheet(pinned_plan(s8)?, sheet));
+            let refused = validate_plan_header(
+                Registration::Attention,
+                &with_sheet(pinned_plan(s8)?, sheet),
+            );
             assert!(refused.is_err_and(|e| e.to_string().contains("registered pinned table")));
         }
         Ok(())
@@ -1893,6 +2076,193 @@ mod tests {
             let mut wrong = identity.clone();
             wrong[key] = json!("f".repeat(64));
             assert!(validate_compiled(&p, &wrong).is_err());
+        }
+        Ok(())
+    }
+    fn a8_config(mode: NormalizationMode) -> DriverConfig {
+        let mut c = config(ReadSpec::Relation { kept: 8, sweeps: 1 });
+        c.codebook_initialization = training::CodebookInitialization::PinnedTableV1 {
+            table: FilePin {
+                path: PathBuf::from("/metadata/codebook.json"),
+                sha256: A8_TABLE_FILE_SHA256.into(),
+            },
+        };
+        c.normalization_mode = mode;
+        c
+    }
+    const MODES: [NormalizationMode; 3] = [
+        NormalizationMode::ScaleMatchedSnapV1,
+        NormalizationMode::UnitSnapControlV1,
+        NormalizationMode::UnnormalizedControlV1,
+    ];
+    #[test]
+    fn normalization_admits_three_modes_on_a8_trunk_only() -> Result<()> {
+        for mode in MODES {
+            for seed in [1, 2] {
+                let mut c = a8_config(mode);
+                c.seed = seed;
+                validate_normalization_config(&c)?;
+            }
+        }
+        let a8 = a8_config(NormalizationMode::UnitSnapControlV1);
+        let mut refused = Vec::new();
+        let mut wrong = a8.clone();
+        wrong.read_spec = ReadSpec::Flock { kept: 8 };
+        refused.push(wrong);
+        let mut wrong = a8.clone();
+        wrong.read_spec = ReadSpec::Route;
+        refused.push(wrong);
+        let mut wrong = a8.clone();
+        wrong.relation_learning_policy = training::RelationLearningPolicy::FrozenZeroV1;
+        refused.push(wrong);
+        let mut wrong = a8.clone();
+        wrong.seed = 3;
+        refused.push(wrong);
+        let mut wrong = a8.clone();
+        wrong.codebook_initialization = training::CodebookInitialization::SeededDeviceV1;
+        refused.push(wrong);
+        let mut wrong = a8.clone();
+        wrong.codebook_initialization = training::CodebookInitialization::PinnedTableV1 {
+            table: FilePin {
+                path: PathBuf::from("/metadata/codebook.json"),
+                sha256: PRIME_ZETA_TABLE_FILE_SHA256.into(),
+            },
+        };
+        refused.push(wrong);
+        let mut wrong = a8.clone();
+        wrong.read_initialization = ReadInitialization::ZeroGatesV1;
+        refused.push(wrong);
+        let mut wrong = a8.clone();
+        wrong.schedule = training::SchedulePolicy::CanonicalVectorThenReadV1;
+        refused.push(wrong);
+        let mut wrong = a8.clone();
+        wrong.train.mask.sha256 = "a".repeat(64);
+        refused.push(wrong);
+        for wrong in refused {
+            assert!(validate_normalization_config(&wrong).is_err());
+            assert!(normalization_scope(&wrong).is_err());
+        }
+        Ok(())
+    }
+    #[test]
+    fn normalization_scope_differs_per_mode_and_from_attention() -> Result<()> {
+        let mut scopes = Vec::new();
+        for (mode, label) in MODES.into_iter().zip(["n_snap", "c_unscaled", "c_raw"]) {
+            let c = a8_config(mode);
+            let s = normalization_scope(&c)?;
+            assert_eq!(
+                s,
+                format!(
+                    "m1-normalization-{label}-injective-6600bdb1306d-relation-k8-seed1-batches0..16404"
+                )
+            );
+            assert_ne!(Some(s.clone()), scope(&c).ok());
+            assert!(!scopes.contains(&s));
+            scopes.push(s);
+        }
+        Ok(())
+    }
+    #[test]
+    fn attention_scope_strings_unchanged() -> Result<()> {
+        let parent = config(ReadSpec::Relation { kept: 8, sweeps: 1 });
+        assert_eq!(
+            scope(&parent)?,
+            "m1-attention-learning-relation-k8-seed1-batches0..16404"
+        );
+        assert_eq!(
+            pinned_plan(PRIME_ZETA_TABLE_FILE_SHA256)?.scope,
+            "m1-attention-learning-injective-83c1380a8f50-relation-k8-seed1-batches0..16404"
+        );
+        assert_eq!(
+            scope(&a8_config(NormalizationMode::ScaleMatchedSnapV1))?,
+            "m1-attention-learning-injective-6600bdb1306d-relation-k8-seed1-batches0..16404"
+        );
+        Ok(())
+    }
+    #[test]
+    fn normalization_refuses_not_yet_registered() -> Result<()> {
+        let a8 = a8_config(NormalizationMode::ScaleMatchedSnapV1);
+        let refused = registration_sheet(Registration::Normalization, &a8);
+        assert!(refused.is_err_and(|e| e.to_string().contains("not yet registered")));
+        let mut p = with_sheet(pinned_plan(A8_TABLE_FILE_SHA256)?, A8_SHEET_SHA256);
+        p.scope = normalization_scope(&p.config)?;
+        let refused = validate_plan_header(Registration::Normalization, &p);
+        assert!(refused.is_err_and(|e| e.to_string().contains("not yet registered")));
+        Ok(())
+    }
+    #[test]
+    fn normalization_plan_scope_separates_entries() -> Result<()> {
+        let a8 = with_sheet(pinned_plan(A8_TABLE_FILE_SHA256)?, A8_SHEET_SHA256);
+        validate_plan_header(Registration::Attention, &a8)?;
+        require_registration_scope(Registration::Attention, &a8.config, &a8.scope)?;
+        // An attention-scoped plan never admits a normalization run.
+        let refused =
+            require_registration_scope(Registration::Normalization, &a8.config, &a8.scope);
+        assert!(refused.is_err_and(|e| e.to_string().contains("Normalization")));
+        assert!(validate_plan_header(Registration::Normalization, &a8).is_err());
+        // A normalization-scoped plan never admits an attention run.
+        let mut n = a8.clone();
+        n.scope = normalization_scope(&n.config)?;
+        require_registration_scope(Registration::Normalization, &n.config, &n.scope)?;
+        let refused = require_registration_scope(Registration::Attention, &n.config, &n.scope);
+        assert!(refused.is_err_and(|e| e.to_string().contains("Attention")));
+        let refused = validate_plan_header(Registration::Attention, &n);
+        assert!(refused.is_err_and(|e| e.to_string().contains("mismatch")));
+        // One mode's scope never admits another mode's run.
+        let raw = a8_config(NormalizationMode::UnnormalizedControlV1);
+        assert!(require_registration_scope(Registration::Normalization, &raw, &n.scope).is_err());
+        Ok(())
+    }
+    fn initial_model(config: &DriverConfig, stored: Option<NormalizationMode>) -> Result<Value> {
+        let (combine, total) = gate_inventory(config)?;
+        let stages = BinderPlan::new(config.spec.context as usize)?.stages();
+        let gates: Vec<i64> = (0..total as usize)
+            .map(|index| i64::from(index < combine as usize && index.is_multiple_of(stages)))
+            .collect();
+        let mut model =
+            json!({"epoch":0,"read_initialization":ReadInitialization::ActiveLeafV1,"gates":gates});
+        if let Some(mode) = stored {
+            model["normalization_mode"] = json!(mode);
+        }
+        Ok(model)
+    }
+    #[test]
+    fn initial_storage_requires_the_entry_mode() -> Result<()> {
+        let n_snap = a8_config(NormalizationMode::ScaleMatchedSnapV1);
+        let unit = Some(NormalizationMode::UnitSnapControlV1);
+        // The unchanged attention wrapper still refuses any stored non-default mode.
+        assert!(validate_initial_storage(&n_snap, &initial_model(&n_snap, unit)?).is_err());
+        validate_initial_storage(&n_snap, &initial_model(&n_snap, None)?)?;
+        validate_initial_storage(
+            &n_snap,
+            &initial_model(&n_snap, Some(NormalizationMode::ScaleMatchedSnapV1))?,
+        )?;
+        // The normalization entry requires exactly its configured mode.
+        let c_unscaled = a8_config(NormalizationMode::UnitSnapControlV1);
+        validate_initial_storage_mode(
+            &c_unscaled,
+            &initial_model(&c_unscaled, unit)?,
+            NormalizationMode::UnitSnapControlV1,
+        )?;
+        validate_initial_storage_mode(
+            &n_snap,
+            &initial_model(&n_snap, None)?,
+            NormalizationMode::ScaleMatchedSnapV1,
+        )?;
+        for (stored, mode) in [
+            (None, NormalizationMode::UnitSnapControlV1),
+            (unit, NormalizationMode::UnnormalizedControlV1),
+            (
+                Some(NormalizationMode::UnnormalizedControlV1),
+                NormalizationMode::ScaleMatchedSnapV1,
+            ),
+        ] {
+            let refused = validate_initial_storage_mode(
+                &c_unscaled,
+                &initial_model(&c_unscaled, stored)?,
+                mode,
+            );
+            assert!(refused.is_err());
         }
         Ok(())
     }
