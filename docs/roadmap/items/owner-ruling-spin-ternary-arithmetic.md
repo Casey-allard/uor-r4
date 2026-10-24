@@ -3,7 +3,7 @@ id: owner-ruling-spin-ternary-arithmetic
 title: Rule on spin-native weights and ternary/XOR, or build a geometric alphabet
 milestone: research
 area: mechanism
-status: decision
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: []
@@ -16,7 +16,9 @@ Both are PARKED replacements for the matrix-arithmetic slot.
 
 ## What is missing
 
-Spin-native weights reached 1.5148 BPB, level with dense, but only through matmul, and the board's next step is an owner architecture decision. Ternary/XOR weights lost on export (7.416 versus 7.171 bits), a dense ternary sum is still dense (D25), and the next step is an owner ruling or a geometric alphabet. Neither ruling exists.
+Recorded on 24 Oct 2026: D74 in [DECISIONS](../../integration/DECISIONS.md) (the owner's ruling of 2026-10-24T03:41:41Z).
+
+Before the ruling, spin-native weights had reached 1.5148 BPB, level with dense, but only through matmul. Ternary/XOR weights lost on export (7.416 versus 7.171 bits), and a dense ternary sum is still dense (D25). The owner ruled both READY (D74); those caveats stand.
 
 ## Done when
 

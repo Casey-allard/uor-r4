@@ -1,8 +1,8 @@
 # The mechanism board
 
-Most chat AIs are built from a few standard parts: a way to look back at earlier words (attention), a block that processes each word (a feed-forward layer), big grids of multiplications, and a function that scores every possible next word. UOR-R4 is trying to replace each of those parts with something built from geometry, such as rotations, exact addresses and lookup tables. Each replacement is called a **mechanism**. This page lists all 27 of them and says where each one stands today. Status here means how far a mechanism has been built and tested. No mechanism has produced a useful conversation yet: the project is pre-alpha, and 0 of its 8 milestones are complete (`STATUS.md`).
+Most chat AIs are built from a few standard parts: a way to look back at earlier words (attention), a block that processes each word (a feed-forward layer), big grids of multiplications, and a function that scores every possible next word. UOR-R4 is trying to replace each of those parts with something built from geometry, such as rotations, exact addresses and lookup tables. Each replacement is called a **mechanism**. This page lists 28 rows for them, because Hopf observation is split into its two forms (owner ruling D72), and says where each one stands today. Status here means how far a mechanism has been built and tested. No mechanism has produced a useful conversation yet: the project is pre-alpha, and 0 of its 8 milestones are complete (`STATUS.md`).
 
-![A family tree of the 27 mechanisms, coloured by status, showing which mechanism grew out of which](../figures/mechanisms-family.svg)
+![A family tree of the 27 mechanisms as of 19 October 2026, coloured by their status before the 24 October rulings (D72, D74), showing which mechanism grew out of which](../figures/mechanisms-family.svg)
 
 *The 22 mechanisms with a recorded parent or child, drawn as a family tree. Most of the live ones descend from earlier, parked attempts.*
 
@@ -10,9 +10,9 @@ Most chat AIs are built from a few standard parts: a way to look back at earlier
 
 | Status | Meaning | Count |
 |---|---|---|
-| **ACTIVE** | On the current model path, `crates/uor-r4-discrete`. | 10 |
-| **READY** | Built and tested, but not yet trained into a model. | 4 |
-| **PARKED** | The forms tried so far failed or broke a project rule. The mechanism stays open, and its page lists what would reopen it. | 13 |
+| **ACTIVE** | On the current model path, `crates/uor-r4-discrete`. | 9 |
+| **READY** | Built and tested, but not yet trained into a model. | 8 |
+| **PARKED** | The forms tried so far failed or broke a project rule. The mechanism stays open, and its page lists what would reopen it. | 11 |
 
 There is no "retired" status. Owner decision D22 says a negative result closes one tested configuration, never the mechanism, and stopping a mechanism needs the owner ([D22](../integration/DECISIONS.md#d22--a-negative-closes-a-configuration-never-a-mechanism-five-closures-reopened)). This board replaces the 18 October labels (active, dormant, archived-negative), which did not map one to one onto these three and had no rows for ten mechanisms.
 
@@ -26,7 +26,7 @@ An arrow means "came from" or "was replaced by". A solid arrow is a successor, a
 flowchart TD
   r4g1["R4G1 graph<br/>PARKED"]
   nat["Native geometric engine<br/>PARKED"]
-  lut["D11 integer serving<br/>ACTIVE"]
+  lut["D11 integer serving<br/>READY"]
   stack["Geometric stack<br/>PARKED"]
   disc["Discrete learning<br/>ACTIVE"]
   pz["Prime-zeta codebook<br/>ACTIVE"]
@@ -36,8 +36,8 @@ flowchart TD
   cc["Carrier credit<br/>PARKED"]
   lc["Legal construction<br/>PARKED"]
   sfbs["SpiralCore/FBS<br/>READY"]
-  tx["Ternary/XOR<br/>PARKED"]
-  spin["Spin-native weights<br/>PARKED"]
+  tx["Ternary/XOR<br/>READY"]
+  spin["Spin-native weights<br/>READY"]
   ham["Hamilton gate<br/>READY"]
   rec["Recurrence gates<br/>READY"]
   flock["Flock read<br/>ACTIVE"]
@@ -72,14 +72,14 @@ flowchart TD
   classDef ACTIVE fill:#d7f0e0,stroke:#1a7f4b,color:#0b2e1a,stroke-width:2px
   classDef READY fill:#dbe8fb,stroke:#1d4ed8,color:#0b1f4d,stroke-width:2px,stroke-dasharray:6 3
   classDef PARKED fill:#e5e7eb,stroke:#4b5563,color:#111827,stroke-width:2px,stroke-dasharray:2 3
-  class lut,disc,pz,rel,rank,flock,route,cells ACTIVE
-  class obj,sfbs,ham,rec READY
-  class r4g1,nat,stack,cc,lc,tx,spin,ptr,mem,e8 PARKED
+  class disc,pz,rel,rank,flock,route,cells ACTIVE
+  class obj,sfbs,ham,rec,lut,tx,spin READY
+  class r4g1,nat,stack,cc,lc,ptr,mem,e8 PARKED
 ```
 
 Five mechanisms have no recorded parent or child, so they are not drawn: admission, the tokenizer, Hopf observation, read binding and VSA. Source for all edges: the `family_tree` field of the [mechanism board](../labs/repo-renormalization-2026-10-19/audit/mechanisms/board.json) (19 October 2026).
 
-## ACTIVE: on the current model path (10)
+## ACTIVE: on the current model path (9)
 
 | Mechanism | In plain words | Replaces | Why this status | Next step |
 |---|---|---|---|---|
@@ -91,10 +91,9 @@ Five mechanisms have no recorded parent or child, so they are not drawn: admissi
 | [Relation read](relation-read.md) | Lets the read follow links, such as "the word after the earlier copy of this word" (copying). | attention scoring | 9/9 controls and two trained runs, both stopped by admission loss. No paired verdict yet ([A8 dose](../labs/a8-dose-2026-10-19/README.md)). | Paired verdict; it must beat a lookup table (6,300 of 14,287) |
 | [Admission](admission.md) | Narrows 4,096 words to those in a few opened "drawers". A word in an unopened drawer can never be chosen. | softmax output head | The first measured limit, seen on rung 0 (the cause of weak ranking after K16 is open): one run fell from 5,680 to 1,920 admitted rows ([attention state](../labs/attention-state-2026-10-18/README.md)). | Admission-preserving A8 rerun |
 | [Rank-margin hinge](rank-margin.md) | The loss only asks whether the right answer beats its strongest rivals by a fixed gap. | cross-entropy loss | Integer hinge is the discrete writer's loss. One variant (K16-R) collapsed cell occupancy ([K16 outcome](../labs/k16-outcome-call-2026-10-19/README.md)). | Occupancy-regularised version |
-| [D11 integer serving](lut-serving.md) | Runs a finished model with whole numbers, adds, shifts and tables only. An audit proves no multiply instruction. | arithmetic (matmul) | Zero-multiply audits are green (44 native symbol ranges, 7 of 7 WebAssembly), but no lawful trained model has been exported (`docs/integration/project-track.md`). | Export one discrete model and measure its export gap |
 | [Tokenizer](tokenizer.md) | Cuts text into 4,096 numbered pieces and back. | tokenizer | Every corpus, test and artifact is pinned to it. A 16,384-piece trainer exists as tooling only ([record](../labs/rust-bpe-trainer-2026-10-19/README.md)). | Matched 4,096 versus 16,384 comparison |
 
-## READY: built and tested, not yet trained in (4)
+## READY: built and tested, not yet trained in (8)
 
 | Mechanism | In plain words | Replaces | Why this status | Next step |
 |---|---|---|---|---|
@@ -102,8 +101,12 @@ Five mechanisms have no recorded parent or child, so they are not drawn: admissi
 | [Recurrence gates](recurrence-gates.md) | Fade rate from a table of powers of two, input opened by a clamped line, state carried by rotation. | sigmoid, exp and tanh gates | Table errors at most 5.5e-8, 18 CUDA controls. The six-recurrence fit never ran ([record](../../archive/labs/rung0-complete-path-2026-10-13/README.md)). | Show the learning surrogate gives descent |
 | [SpiralCore/FBS projection](spiralcore-fbs.md) | Each output block picks one stored block and moves it along exact steps in 8-dimensional E8 space. No learned weight is multiplied. | dense projections (matmul) | Exact fixtures pass on an RTX 5090. Never trained. Its integer form is ACTIVE inside discrete learning ([record](../../archive/labs/spiralcore-fbs-projection-2026-10-12/README.md)). | Descent and tokens per second in an offline-float sheet |
 | [Object store (D19)](object-store.md) | Keeps bytes exactly in a hashed tree: repeats are stored once and any range can be checked. | none (durable memory) | 60 tests and a client conformance pass. Nothing consumes it; the durable-memory bars have not run ([D19](../../archive/labs/d19-object-store-2026-10-15/README.md), [conformance](../labs/uorobj01-conformance-2026-10-18/README.md)). | Wire it in and run those bars (milestone M3) |
+| [D11 integer serving](lut-serving.md) | Runs a finished model with whole numbers, adds, shifts and tables only. An audit proves no multiply instruction. | arithmetic (matmul) | Zero-multiply audits are green (44 native symbol ranges, 7 of 7 WebAssembly), but no lawful trained model has been exported (`docs/integration/project-track.md`). READY by owner ruling D72 until a lawful trained model is exported through it. | Export one discrete model and measure its export gap |
+| [Hopf observation: kept-fibre map](hopf-observation.md) | Views a 4D rotation through a 3D shadow while keeping the lost angle separately. | attention scoring | Built and unit-tested, telemetry only. Its language test was never run ([census](../labs/course-correction-2026-10-18/audits/mechanism-census.md)). READY by owner ruling D72. | Retained-fibre test |
+| [Spin-native weights](spin-weights.md) | Each 4-by-4 weight block is one quaternion, snapped to 120 icosian rotations. | arithmetic (matmul) | Reached 1.5148 BPB, level with dense, but only through matmul ([record](../../archive/labs/icosian-mantissa-2026-10-11/README.md)). READY by owner ruling D74. | A lawful Hamilton-block trunk without dense multiplication |
+| [Ternary/XOR](ternary-xor.md) | Weights of -1, 0 or +1, with similarity by counting differing bits. | arithmetic (matmul) | A dense ternary sum is still dense (D25). Export lost: 7.416 versus 7.171 bits. Its parts run inside discrete learning. READY by owner ruling D74. | A geometric alphabet without a dense sum |
 
-## PARKED: tested forms failed or broke a rule, still open (13)
+## PARKED: tested forms failed or broke a constraint, still open (11)
 
 | Mechanism | In plain words | Replaces | Why this status | Next step |
 |---|---|---|---|---|
@@ -113,10 +116,8 @@ Five mechanisms have no recorded parent or child, so they are not drawn: admissi
 | [Exact memory](exact-memory.md) | Writes a fact once under an exact prime address and reads it back exactly. | key-value memory | Trained forms scored 19/40 against a 27/40 bar, or used softmax. The address-as-read form was never built ([record](../../archive/labs/addressed-memory-2026-10-10/README.md)). | Build the address as the read, oracle first |
 | [Pointer key](pointer-key.md) | Copies the answer by the slot's exact name, not by the surrounding wording. | copy head | A softmax pointer. Hit rate rose from 0.377 to 0.545, but memory missed its bar ([record](../../archive/labs/ptr-addr-2026-10-10/README.md)). | Lawful oracle, then a prime entity key |
 | [Read binding](read-binding.md) | A teacher marks which earlier value the question asks for, and the read is rewarded for landing on it. | auxiliary loss | Wrong-value errors fell from 47 to 30 of 120 over 3 seeds, but on a softmax read ([record](../../archive/labs/read-binding-powered-2026-10-11/README.md)). | Port it to a Flock or Relation read |
-| [Hopf observation](hopf-observation.md) | Views a 4D rotation through a 3D shadow while keeping the lost angle separately. | attention scoring | Telemetry only. Sector routing used 7 of 512 sectors ([occupancy record](../../archive/hopf_sector_occupancy_d3.md)); the kept-fibre language test was never run ([census](../labs/course-correction-2026-10-18/audits/mechanism-census.md)). | Retained-fibre test |
+| [Hopf observation: sector routing](hopf-observation.md) | Bins three Hopf coordinates 8 by 8 by 8, into 512 sectors, to pick a route. | attention scoring | Telemetry only. Sector routing used 7 of 512 sectors ([occupancy record](../../archive/hopf_sector_occupancy_d3.md)). Stays PARKED by owner ruling D72. | The reopen conditions on its page |
 | [VSA](vsa.md) | 4,096-bit codes glued by XOR and compared by counting differing bits. | key-value memory | Improved BPB by 0.014 to 0.023 on 2 seeds, but on the banned CPU learner ([record](../../archive/labs/vsa-native-test-2026-10-09/README.md)). | GPU Hamming binding in the discrete model |
-| [Spin-native weights](spin-weights.md) | Each 4-by-4 weight block is one quaternion, snapped to 120 icosian rotations. | arithmetic (matmul) | Reached 1.5148 BPB, level with dense, but only through matmul ([record](../../archive/labs/icosian-mantissa-2026-10-11/README.md)). | Owner architecture decision |
-| [Ternary/XOR](ternary-xor.md) | Weights of -1, 0 or +1, with similarity by counting differing bits. | arithmetic (matmul) | A dense ternary sum is still dense (D25). Export lost: 7.416 versus 7.171 bits. Its parts run inside discrete learning. | Owner ruling, or a geometric alphabet |
 | [Geometric stack](geometric-stack.md) | The old 7M to 214M-parameter layered model with quaternion recurrence. | whole model | Trained form used softmax and matmul and served 1.20 to 1.24 BPB against a 0.90 bar ([record](../../archive/labs/d11-serving-2026-10-10/README.md)). | Rebuild from lawful parts (D37) |
 | [Native geometric engine](native-geometric.md) | A from-scratch Rust model with prime addresses and version chains. It answered authored questions only. | whole model | No prose. 437/512 fell to 0/128 on fresh rows ([record](../../archive/labs/m2-fresh-437-2026-10-10/README.md)). | Re-register with the hinge loss once the M2 hold lifts |
 | [R4G1 graph](r4g1-graph.md) | Compiled a teacher model's preferences into integer lookup tables. | whole model | Never wrote coherent free text, and needs a banned transformer teacher. | Owner decision on repairing or removing the crates (D36) |
@@ -130,7 +131,7 @@ Each row names a part of a standard transformer, says what it does, and lists th
 | Tokenizer | Cuts text into pieces | [tokenizer](tokenizer.md) (A) |
 | Token embedding table | Gives each piece a starting vector | [prime-zeta-codebook](prime-zeta-codebook.md) (A), [address-cells](address-cells.md) (A) |
 | **Positional encoding** | Tells the model the order of words | **GAP: none.** No record names a mechanism for this. |
-| Attention: choosing what to read | Picks which earlier words matter | [route-read](route-read.md) (A), [flock-read](flock-read.md) (A), [relation-read](relation-read.md) (A), [admission](admission.md) (A), [hopf-observation](hopf-observation.md) (P) |
+| Attention: choosing what to read | Picks which earlier words matter | [route-read](route-read.md) (A), [flock-read](flock-read.md) (A), [relation-read](relation-read.md) (A), [admission](admission.md) (A), [hopf-observation](hopf-observation.md) (R, P) |
 | Attention: mixing what was read | Combines the chosen words | [flock-read](flock-read.md) (A) |
 | Copy and induction heads | Repeats what appeared earlier | [relation-read](relation-read.md) (A), [pointer-key](pointer-key.md) (P) |
 | Context memory (KV cache) | Holds earlier words ready to read | [exact-memory](exact-memory.md) (P), [vsa](vsa.md) (P), [read-binding](read-binding.md) (P) |
@@ -138,22 +139,23 @@ Each row names a part of a standard transformer, says what it does, and lists th
 | Feed-forward block (MLP) | Processes each word | [spiralcore-fbs](spiralcore-fbs.md) (R), [hamilton-gate](hamilton-gate.md) (R), [e8-orbit-memory](e8-orbit-memory.md) (P) |
 | Activation and gating | Decides how much signal passes | [hamilton-gate](hamilton-gate.md) (R), [recurrence-gates](recurrence-gates.md) (R) |
 | Recurrent sequence mixing | Carries a running memory along | [recurrence-gates](recurrence-gates.md) (R), [geometric-stack](geometric-stack.md) (P) |
-| Projections and matmul | The big grids of multiplications | [lut-serving](lut-serving.md) (A), [spiralcore-fbs](spiralcore-fbs.md) (R), [spin-weights](spin-weights.md) (P), [ternary-xor](ternary-xor.md) (P) |
+| Projections and matmul | The big grids of multiplications | [lut-serving](lut-serving.md) (R), [spiralcore-fbs](spiralcore-fbs.md) (R), [spin-weights](spin-weights.md) (R), [ternary-xor](ternary-xor.md) (R) |
 | **Normalization** | Keeps numbers in a stable range | **GAP: none.** Snapping to an E8 root may serve, but no record says so. |
 | Output head | Scores every word and picks one | [admission](admission.md) (A), [discrete-learning](discrete-learning.md) (A) |
 | Loss | Measures how wrong a guess was | [rank-margin](rank-margin.md) (A), [read-binding](read-binding.md) (P) |
 | Optimizer | Decides how to change the model | [discrete-learning](discrete-learning.md) (A), [carrier-credit](carrier-credit.md) (P), [legal-construction](legal-construction.md) (P) |
-| Inference runtime | Runs the finished model | [lut-serving](lut-serving.md) (A), [r4g1-graph](r4g1-graph.md) (P) |
+| Inference runtime | Runs the finished model | [lut-serving](lut-serving.md) (R), [r4g1-graph](r4g1-graph.md) (P) |
 | Whole-model engine | The complete model | [geometric-stack](geometric-stack.md) (P), [native-geometric](native-geometric.md) (P), [r4g1-graph](r4g1-graph.md) (P) |
 
 The two gaps matter. The only position-related result is about recurrent state transport, not word order, and it was measured in a model that used banned parts. The live discrete model has no position mechanism, no normalization and no feed-forward block, and it scores below a unigram baseline (audit synthesis, section 1). Having a mechanism for a slot does not mean it works: a row can list four mechanisms and no trained result.
 
 ## Where the audit questions a status
 
-Statuses are left as the audit dossiers set them (`docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/`). Two are open to challenge:
+Statuses started as the audit dossiers set them (`docs/labs/repo-renormalization-2026-10-19/audit/mechanisms/`). The owner ruled on the two the audit questioned, and on two PARKED rows, on 24 Oct 2026:
 
-- **D11 integer serving** is ACTIVE as the end-of-pipeline contract, but no lawful model has ever been exported through it, so READY may be more accurate.
-- **Hopf observation** is PARKED, but its kept-fibre map is built and unit-tested and its language test never ran. Only sector routing failed, so splitting the two forms may be more accurate.
+- **D11 integer serving** moved from ACTIVE to READY (D72), because no lawful model has ever been exported through it.
+- **Hopf observation** was split in two (D72): its kept-fibre map is READY, because it is built and unit-tested and its language test never ran, and sector routing, the form that failed, stays PARKED.
+- **Spin-native weights** and **Ternary/XOR** moved from PARKED to READY (D74), with their caveats kept.
 
 ## How to read a mechanism page
 

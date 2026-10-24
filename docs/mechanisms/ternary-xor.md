@@ -1,6 +1,6 @@
 # Ternary and XOR/Hamming arithmetic
 
-**Status: PARKED.** As proposed, a dense layer of −1/0/+1 weights removes the multiplier but not the sum over every weight, which the owner's no-dense-matrix-multiplication rule still counts against it. It was never trained in. Its two small pieces, bit counting and three-valued switches, already run inside the current model ([`discrete-learning`](./discrete-learning.md)).
+**Status: READY (owner ruling, 24 Oct 2026, D74).** As proposed, a dense layer of −1/0/+1 weights removes the multiplier but not the sum over every weight, which the owner's no-dense-matrix-multiplication rule still counts against it. It was never trained in. Its two small pieces, bit counting and three-valued switches, already run inside the current model ([`discrete-learning`](./discrete-learning.md)).
 
 Labels used below: **proof** means derived from definitions or code, **measurement** means a recorded run, **hypothesis** means an untested idea. See [`docs/formal_vocabulary.md`](../formal_vocabulary.md).
 

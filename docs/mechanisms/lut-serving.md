@@ -1,6 +1,6 @@
 # D11 integer table serving (UORLUT01)
 
-**Status: ACTIVE.** It is the end-of-pipeline contract: the finished model must ship as one integer artifact, and this engine runs it. The engine reproduces its reference answers exactly, and its zero-multiply audits are green. A table-native schema (`uor-r4.lut-discrete/1`) exports `DiscreteModel` snapshots into `UORLUT01` (`discrete.table`, `discrete.cells`, `discrete.routes`, `discrete.gates`) and evaluates `Route`, `Flock`, and `Relation` prefixes in `uor-r4-integer` with exact integer parity against the CUDA-qualified witnesses (#2838). No trained checkpoint built under today's rules has been exported and scored on the held-out evaluation stream yet (training is HELD under D40).
+**Status: READY (owner ruling, 24 Oct 2026, D72).** It stays READY until a lawful trained model is exported through it. It is the end-of-pipeline contract: the finished model must ship as one integer artifact, and this engine runs it. The engine reproduces its reference answers exactly, and its zero-multiply audits are green. A table-native schema (`uor-r4.lut-discrete/1`) exports `DiscreteModel` snapshots into `UORLUT01` (`discrete.table`, `discrete.cells`, `discrete.routes`, `discrete.gates`) and evaluates `Route`, `Flock`, and `Relation` prefixes in `uor-r4-integer` with exact integer parity against the CUDA-qualified witnesses (#2838). No trained checkpoint built under today's rules has been exported and scored on the held-out evaluation stream yet (training is HELD under D40).
 
 Labels used below: **proof** means derived from definitions or code, **measurement** means a recorded run, **hypothesis** means an untested idea. See [`docs/formal_vocabulary.md`](../formal_vocabulary.md).
 
@@ -88,7 +88,7 @@ Under the [charter](../../CHARTER.md), serving this artifact on client devices (
 
 ## What stays frozen, and what would restore it
 
-This mechanism is active, so nothing here needs reopening. Two sub-parts are held:
+This mechanism is READY (D72), so nothing here needs reopening. Two sub-parts are held:
 
 1. **The D10 engine and its SIMD crate** stay frozen, non-mission comparators. They return only if an owner decision restores a serving tier that allows multipliers, which D11 withdrew.
 2. **Serving of product-key or addressed memory** needs an integer read kernel. The exporter refuses it today.
