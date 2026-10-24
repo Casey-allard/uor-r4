@@ -22,14 +22,14 @@
 //!      `rustc --test` / `cargo test` verification.
 //! 3. **Corpus & control overlap exclusion:** [`M6ReasoningPanel::verify_zero_overlap`] enforces
 //!    zero collision with the finite CPU control literals in `m6_exact_arithmetic.rs` and
-//!    `m6_ablation.rs`, zero duplicate prompts/targets inside the panel, and zero overlap across
-//!    independent seeds.
+//!    `m6_ablation.rs`, zero duplicate row ids and prompts inside the panel (targets may repeat:
+//!    altered-constraint answers recur), and zero overlap across independent seeds.
 //! 4. **Lawful count-table baseline & noise measurement (CHARTER §4.4):**
 //!    [`evaluate_count_table_baseline_noise`] trains a deterministic integer count table across
-//!    independent seeded draws and measures the unconditioned numeric count-table score (`0..=2 / 240`
+//!    independent seeded draws and measures the unconditioned numeric count-table score (`1..=3 / 240`
 //!    from small-modulus residue collisions on `ModularStepCap`), the context-keyed count-table
-//!    scores (`12..=18 / 240`, empirical half-band `+-3 rows`), and the family-conditioned
-//!    count-table / best-constant ceiling (`20 / 240` from the `20` `ABSTAIN:UNSATISFIABLE` rows).
+//!    scores (`10..=12 / 240`, empirical half-band `+-1 rows`), and the family-conditioned modal
+//!    count-table ceiling (`10 / 240` from the `10` `ABSTAIN:UNSATISFIABLE` rows).
 
 use std::collections::{BTreeMap, BTreeSet};
 

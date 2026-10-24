@@ -1,6 +1,6 @@
 # M6 Reasoning and Coding Panel & Oracles (`m6-reasoning-panel-freeze` #2866)
 
-- **Status:** Staged and verified on finite host controls ([`crates/uor-r4-harness/src/panel_m6_reasoning.rs`](../../../crates/uor-r4-harness/src/panel_m6_reasoning.rs), [`crates/uor-r4-harness/tests/panel_m6_reasoning.rs`](../../../crates/uor-r4-harness/tests/panel_m6_reasoning.rs), [`docs/harness/panels/m6-reasoning.json`](../../harness/panels/m6-reasoning.json) with `"frozen": false` pending owner bar confirmation on [`#2028` comment `6344266280`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6344266280) and non-author `TEST FITNESS: FIT`); GPU qualification (`m6-qualify-reasoning-coding` `#2865`) remains HELD pending M1 trunk training (`m1-trunk-assembly-and-training` `#2845`) and Casey's typed D40 release.
+- **Status:** Frozen 2026-10-24 (`"frozen": true`) after the owner bar registration recorded under Casey's standing direction (2026-10-24T13:01Z; [`#2028`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6384497995) comment `6384497995`, [`#2866`](https://github.com/UOR-Foundation/uor-r4/issues/2866#issuecomment-6384498201) comment `6384498201`) and the non-author `TEST FITNESS: FIT` review by deepseek (2026-10-24; [`#2866`](https://github.com/UOR-Foundation/uor-r4/issues/2866#issuecomment-6384549808) comment `6384549808`). GPU qualification (`m6-qualify-reasoning-coding` `#2865`) remains HELD pending M1 trunk training (`m1-trunk-assembly-and-training` `#2845`) and Casey's typed D40 release; no scoring has run.
 - **Milestone:** M6 (`#2034`). **Item:** [`m6-reasoning-panel-freeze`](../../roadmap/items/m6-reasoning-panel-freeze.md) (`#2866`). **Lab:** antigravity.
 - **Design note:** [`#2034` comment `6344264079`](https://github.com/UOR-Foundation/uor-r4/issues/2034#issuecomment-6344264079), [`#2866` comment `6344265209`](https://github.com/UOR-Foundation/uor-r4/issues/2866#issuecomment-6344265209). **Bar decision card:** [`#2028` comment `6344266280`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6344266280).
 
@@ -81,7 +81,7 @@ Every row is graded by `grade_m6_row` / `grade_m6_panel` in [`crates/uor-r4-harn
 ### Steps
 
 1. Run `cargo test --locked -p uor-r4-harness --test panel_m6_reasoning` (`7/7` integration tests) and `cargo test --locked -p uor-r4-harness --lib panel_m6` (`3/3` unit tests) to verify byte-exact SHA-256 seals (`5cf15b8c…` and `a52f3b03…`), overlap exclusion, positive/negative oracle controls (`240/240` vs `0/240`), feasibility keyword-leakage defense (`10/20`), `ModularStepCap` branch balance (`10/10`), and the 8-seed prompt-only `M6CountTableBaseline` noise band (`+-1 rows`).
-2. Obtain other-vendor non-author `TEST FITNESS: FIT` review on PR `#2977` and owner confirmation of the numeric bars on [`#2028`](https://github.com/UOR-Foundation/uor-r4/issues/2028#issuecomment-6344266280) before flipping `"frozen": true` and `status: done`.
+2. **Done 2026-10-24:** the owner bar registration is recorded under the standing direction (`#2028` `6384497995`, `#2866` `6384498201`) and the non-author `TEST FITNESS: FIT` by deepseek is recorded (`#2866` `6384549808`); `docs/harness/panels/m6-reasoning.json` is now `"frozen": true`.
 3. Keep M6 GPU qualification (`m6-qualify-reasoning-coding` `#2865`) HELD until M1 trunk training (`#2845`), owner bar confirmation on `#2028`, PM dispatch, and Casey's typed D40 release.
 
 ### Stop conditions
@@ -100,4 +100,4 @@ Every row is graded by `grade_m6_row` / `grade_m6_panel` in [`crates/uor-r4-harn
 - **Minimum test power (D22 §3):**
   - `240` fresh rows (`>= 200` D22 §3 floor), `80` rows per family, evaluated across `>= 2` independent seeds against the measured `+-1 rows` noise band and paired McNemar discordant floor $F_I = \max(16, \lceil 2\sqrt{b + c}\rceil)$.
 
-TEST FITNESS: PENDING (awaiting non-author review on PR #2977 and owner bar confirmation on #2028)
+TEST FITNESS: FIT (deepseek, non-author, 2026-10-24; #2866 comment 6384549808)

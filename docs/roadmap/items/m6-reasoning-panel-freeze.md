@@ -3,7 +3,7 @@ id: m6-reasoning-panel-freeze
 title: Build and freeze the m6-reasoning panel and oracles
 milestone: M6
 area: evaluation
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
