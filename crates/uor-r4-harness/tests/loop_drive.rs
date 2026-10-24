@@ -1070,6 +1070,10 @@ mod gpu_collection_records {
         assert!(record.ended_unix.is_some());
         assert!(!record.collected);
         assert_eq!(record.lab, "deepseek");
+        assert!(
+            record.last_renewed_unix.is_some(),
+            "a successful renewal writes a liveness heartbeat"
+        );
 
         let (_path, notes) = watch_lease_collect(&root, "deepseek", &renew("exit 1"), 1, Some(1))
             .expect("the watcher records a lease-ended run");
@@ -1118,6 +1122,7 @@ mod gpu_collection_records {
             lab: "deepseek".to_string(),
             renew: vec!["uor-pod".to_string()],
             started_unix: 42,
+            last_renewed_unix: None,
             ended_unix: None,
             status: "running".to_string(),
             collected: false,
@@ -1128,6 +1133,22 @@ mod gpu_collection_records {
         assert_eq!(read_collections(&root, "deepseek").unwrap().len(), 1);
         let _ = std::fs::remove_dir_all(&root);
     }
+    #[test]
+    fn an_old_record_without_a_heartbeat_still_reads() {
+        let root = temp_root("compat");
+        let directory = collection_dir(&root, "deepseek");
+        std::fs::create_dir_all(&directory).expect("collection dir");
+        std::fs::write(
+            directory.join("old.json"),
+            r#"{"id":"old-1","lab":"deepseek","renew":["uor-pod"],"started_unix":5,"ended_unix":null,"status":"running","collected":false,"artifacts":[],"notes":[]}"#,
+        )
+        .expect("old record");
+        let records = read_collections(&root, "deepseek").expect("read");
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].last_renewed_unix, None);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
     #[test]
     fn a_watcher_error_leaves_a_stopped_record_not_a_running_one() {
         let root = temp_root("error");

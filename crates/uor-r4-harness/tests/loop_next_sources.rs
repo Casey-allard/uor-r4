@@ -350,6 +350,7 @@ fn a_finished_gpu_collection_is_offered_and_a_collected_one_is_not() {
         lab: "deepseek".to_string(),
         renew: vec!["uor-pod".to_string()],
         started_unix: 1,
+        last_renewed_unix: None,
         ended_unix: Some(2),
         status: "finished".to_string(),
         collected: false,
@@ -396,6 +397,7 @@ fn the_collect_command_marks_the_record_so_loop_next_stops_offering_it() {
         lab: "deepseek".to_string(),
         renew: vec!["uor-pod".to_string()],
         started_unix: 1,
+        last_renewed_unix: None,
         ended_unix: Some(2),
         status: "finished".to_string(),
         collected: false,
@@ -466,6 +468,7 @@ fn a_stale_running_record_is_offered_not_waited_on_forever() {
         lab: "deepseek".to_string(),
         renew: vec!["uor-pod".to_string()],
         started_unix: now.saturating_sub(STALE_COLLECTION_SECS + 60),
+        last_renewed_unix: None,
         ended_unix: None,
         status: "running".to_string(),
         collected: false,
@@ -517,6 +520,7 @@ fn the_stale_boundary_is_strict_and_clock_free() {
         lab: "deepseek".to_string(),
         renew: Vec::new(),
         started_unix: now - STALE_COLLECTION_SECS,
+        last_renewed_unix: None,
         ended_unix: None,
         status: "running".to_string(),
         collected: false,
@@ -547,5 +551,58 @@ fn the_stale_boundary_is_strict_and_clock_free() {
     assert!(
         !collection_is_stale(&record, now),
         "only running records are stale"
+    );
+
+    // A live watcher's renewals extend liveness: an old start with a recent renewal is not stale,
+    // and an old renewal is stale even when the start is older.
+    record.status = "running".to_string();
+    record.started_unix = now - 10 * 60 * 60;
+    record.last_renewed_unix = Some(now - 60 * 60);
+    assert!(
+        !collection_is_stale(&record, now),
+        "a record renewed an hour ago is not stale even if started ten hours ago"
+    );
+    record.last_renewed_unix = Some(now - 7 * 60 * 60);
+    assert!(
+        collection_is_stale(&record, now),
+        "a record not renewed for seven hours is stale"
+    );
+    record.last_renewed_unix = None;
+    record.started_unix = now - 60 * 60;
+    assert!(
+        !collection_is_stale(&record, now),
+        "a record without a heartbeat falls back to its recent start"
+    );
+}
+
+#[test]
+fn a_long_running_record_with_a_recent_heartbeat_is_counted_as_running() {
+    use uor_r4_harness::loopdrive::{unix_now, write_collection, GpuCollection};
+
+    let r = Repo::new(&[("docs/harness/labs.json", &labs(None))], &[]);
+    let now = unix_now();
+    let record = GpuCollection {
+        id: "deepseek-live-1".to_string(),
+        lab: "deepseek".to_string(),
+        renew: vec!["uor-pod".to_string()],
+        started_unix: now.saturating_sub(7 * 60 * 60),
+        last_renewed_unix: Some(now.saturating_sub(60 * 60)),
+        ended_unix: None,
+        status: "running".to_string(),
+        collected: false,
+        artifacts: Vec::new(),
+        notes: Vec::new(),
+    };
+    write_collection(&r.root, "deepseek", &record).expect("write the live record");
+    let o = r.next();
+    assert!(
+        !decision(&o).starts_with("GO gpu-collection"),
+        "a live long run must not be offered as stale: {}",
+        decision(&o)
+    );
+    assert!(
+        stdout(&o).contains("1 GPU collection(s) running"),
+        "the live long run must be counted as running, not reported as none: {}",
+        stdout(&o)
     );
 }

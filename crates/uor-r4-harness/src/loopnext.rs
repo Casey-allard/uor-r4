@@ -49,7 +49,8 @@ pub const STALE_COLLECTION_SECS: u64 = 6 * 60 * 60;
 /// Whether `record` is a `running` collection older than [`STALE_COLLECTION_SECS`] at `now`.
 /// Exposed so the boundary rule can be tested without a clock race.
 pub fn collection_is_stale(record: &crate::loopdrive::GpuCollection, now: u64) -> bool {
-    record.status == "running" && record.started_unix < now.saturating_sub(STALE_COLLECTION_SECS)
+    let last_liveness = record.last_renewed_unix.unwrap_or(record.started_unix);
+    record.status == "running" && last_liveness < now.saturating_sub(STALE_COLLECTION_SECS)
 }
 
 /// One check at a PR's head: its name and conclusion (`FAILURE`, `SUCCESS`, ...).
@@ -856,7 +857,6 @@ pub fn run(
     match crate::loopdrive::read_collections(root, lab) {
         Ok(records) => {
             let now = crate::loopdrive::unix_now();
-            let stale_before = now.saturating_sub(STALE_COLLECTION_SECS);
             let stale =
                 |record: &&crate::loopdrive::GpuCollection| collection_is_stale(record, now);
             let waiting = records
@@ -865,8 +865,14 @@ pub fn run(
             if let Some(record) = waiting {
                 let reason = if stale(&record) {
                     format!(
-                        "GPU collection {} has been {} since epoch {} and is treated as stale; collect it or mark it collected if its watcher is gone",
-                        record.id, record.status, record.started_unix
+                        "GPU collection {} has been {} since epoch {} (last renewal: {}); it is treated as stale; collect it or mark it collected if its watcher is gone",
+                        record.id,
+                        record.status,
+                        record.started_unix,
+                        record
+                            .last_renewed_unix
+                            .map(|tick| tick.to_string())
+                            .unwrap_or_else(|| "none".to_string())
                     )
                 } else {
                     format!(
@@ -886,11 +892,7 @@ pub fn run(
             }
             let running = records
                 .iter()
-                .filter(|record| {
-                    !record.collected
-                        && record.status == "running"
-                        && record.started_unix >= stale_before
-                })
+                .filter(|record| !record.collected && record.status == "running" && !stale(record))
                 .count();
             if running > 0 {
                 out.push(source(

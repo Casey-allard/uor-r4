@@ -350,6 +350,8 @@ pub struct GpuCollection {
     pub renew: Vec<String>,
     /// Unix start time.
     pub started_unix: u64,
+    /// Unix time of the most recent successful lease renewal a live watcher wrote, if any.
+    pub last_renewed_unix: Option<u64>,
     /// Unix end time, once the watcher stopped.
     pub ended_unix: Option<u64>,
     /// `running`, `finished` (the lease ended) or `stopped` (a test/limit bound).
@@ -403,6 +405,7 @@ fn collection_value(collection: &GpuCollection) -> serde_json::Value {
         "lab": collection.lab,
         "renew": collection.renew,
         "started_unix": collection.started_unix,
+        "last_renewed_unix": collection.last_renewed_unix,
         "ended_unix": collection.ended_unix,
         "status": collection.status,
         "collected": collection.collected,
@@ -444,6 +447,7 @@ fn collection_from_value(value: &serde_json::Value) -> Option<GpuCollection> {
         lab: value.get("lab")?.as_str()?.to_string(),
         renew: strings("renew"),
         started_unix: value.get("started_unix")?.as_u64()?,
+        last_renewed_unix: value.get("last_renewed_unix").and_then(|v| v.as_u64()),
         ended_unix: value.get("ended_unix").and_then(|v| v.as_u64()),
         status: value.get("status")?.as_str()?.to_string(),
         collected: value.get("collected")?.as_bool()?,
@@ -539,6 +543,7 @@ pub fn watch_lease_collect(
         lab: lab.to_string(),
         renew: renew.to_vec(),
         started_unix,
+        last_renewed_unix: None,
         ended_unix: None,
         status: "running".to_string(),
         collected: false,
@@ -546,7 +551,10 @@ pub fn watch_lease_collect(
         notes: Vec::new(),
     };
     let path = write_collection(root, lab, &collection)?;
-    let outcome = watch_lease_until_renew_fails(renew, interval_seconds, ticks);
+    let outcome = watch_lease_until_renew_fails_with(renew, interval_seconds, ticks, |_| {
+        collection.last_renewed_unix = Some(unix_now());
+        write_collection_at(&path, &collection)
+    });
     collection.ended_unix = Some(unix_now());
     match outcome {
         Ok(notes) => {
@@ -794,6 +802,17 @@ pub fn watch_lease_until_renew_fails(
     interval_seconds: u64,
     ticks: Option<usize>,
 ) -> Result<Vec<String>> {
+    watch_lease_until_renew_fails_with(renew, interval_seconds, ticks, |_| Ok(()))
+}
+
+/// Like [`watch_lease_until_renew_fails`], but calls `on_renewed` after each successful renewal so a
+/// caller can write a liveness heartbeat. The callback sees the notes so far and may fail the watch.
+pub fn watch_lease_until_renew_fails_with(
+    renew: &[String],
+    interval_seconds: u64,
+    ticks: Option<usize>,
+    mut on_renewed: impl FnMut(&[String]) -> Result<()>,
+) -> Result<Vec<String>> {
     if renew.is_empty() {
         return Err(DriveError::MissingFlag("a renew command after --"));
     }
@@ -826,6 +845,7 @@ pub fn watch_lease_until_renew_fails(
             unix_now(),
             String::from_utf8_lossy(&out.stdout).trim()
         ));
+        on_renewed(&notes)?;
         rounds += 1;
         std::thread::sleep(std::time::Duration::from_secs(interval_seconds));
     }
