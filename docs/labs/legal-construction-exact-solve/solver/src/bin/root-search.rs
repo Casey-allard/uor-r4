@@ -115,6 +115,7 @@ fn main() -> ExitCode {
                     "binary_or_fixed_coeffs": r.binary_or_fixed_coeffs,
                     "eliminated_codes": r.eliminated_codes,
                     "total_codes": r.total_codes,
+                    "constrained_guards": r.constrained_guards,
                     "gap": r.gap.to_string(),
                     "dual_bound_matches_delta_hull_lp": lag_bound == dlp_obj,
                 }),

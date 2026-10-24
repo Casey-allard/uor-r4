@@ -340,6 +340,8 @@ fn reduced_cost_fixing_rejects_negative_multiplier_and_invalid_upper_bound() {
         search::certify_reduced_cost_fixing(p, &[q(0, 1)], &u).expect("y=0, u=0 valid");
     assert_eq!(valid_rcbt.lower_bound, zero_bound);
     assert_eq!(valid_rcbt.total_codes, p.n() * 15);
+    assert_eq!(valid_rcbt.constrained_guards, 0);
+    assert_eq!(valid_rcbt.guard_max_slack.len(), p.guards.len());
 }
 
 #[test]
@@ -417,7 +419,9 @@ fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
             let rcbt = search::certify_reduced_cost_fixing(p, &iter0_y, &disc.objective)
                 .unwrap_or_else(|e| panic!("problem {idx} rcbt: {e}"));
             assert_eq!(rcbt.lower_bound, want_dlp);
+            assert_eq!(rcbt.guard_max_slack.len(), p.guards.len());
             total_eliminated_codes += rcbt.eliminated_codes;
+            let mut opt_deltas = Vec::with_capacity(p.n());
             for (i, c) in p.coeffs().iter().enumerate() {
                 let opt_k = i64::try_from(&bb_res.assignment.k[i]).expect("i64 step");
                 let opt_q = c.q0 + opt_k;
@@ -426,6 +430,24 @@ fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
                     "problem {idx} coeff {i}: optimal code {opt_q} eliminated by rcbt {:?}",
                     rcbt.surviving_codes[i]
                 );
+                let opt_d = if opt_k == 0 {
+                    BigRational::zero()
+                } else {
+                    q(opt_k, 4) + &c.shift
+                };
+                opt_deltas.push(opt_d);
+            }
+            for (r, max_s_opt) in rcbt.guard_max_slack.iter().enumerate() {
+                if let Some(max_s) = max_s_opt {
+                    let s = p.guards[r]
+                        .iter()
+                        .zip(&opt_deltas)
+                        .fold(BigRational::zero(), |acc, (a, d)| acc + a * d);
+                    assert!(
+                        !s.is_negative() && &s <= max_s,
+                        "problem {idx} guard {r}: optimal guard slack {s} outside [0, {max_s}]"
+                    );
+                }
             }
             discrete_checked += 1;
         }
