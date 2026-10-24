@@ -1,0 +1,48 @@
+{
+  "schema": "uor-r4.attention-audit-inherited-command/1",
+  "name": "canonical_initlock_c2",
+  "execution": {
+    "base_source": "ef9d30999700be11e103f96590e9e3b83b6807c7",
+    "reviewed_source_commit": "fd409fcdf3bc43d607e768bae6f8cf403aa75901",
+    "source_sha256": "81651081145fd4712046a8158a26c3bd6940ff5a60e5cdddf666057cb9fc0084",
+    "kernel_sha256": "5cd0e73241fd895f2dd0004c83af3d1eb9f89e00ec2e933c1acc44fc7127bfd6",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "executable_sha256": "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c",
+    "driver_source_sha256": "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d",
+    "config_sha256": "c3fbffe08d13008b8b7ab400a4ef946f2c49632906d88e431d5e80314b9f5536",
+    "lineage_sha256": "e4c3efc99f51bc3eb4c13844cc3e7dc12e9e42d32a2cde39603e6052d649e79a",
+    "sheet_sha256": "fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450"
+  },
+  "executable": {
+    "path": "/workspace/a8s1/target/release/discrete-stack",
+    "sha256": "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c"
+  },
+  "context_config": {
+    "path": "/workspace/a8s1/src/docs/labs/a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json",
+    "sha256": "cf7ebcc85d2e463ae8f6691b63d90a0e005701cb38b8249a8d0d5460d8508479"
+  },
+  "producer_command": "qualify-relation",
+  "argv": [
+    "qualify-relation",
+    "/workspace/a8s1/stage1/frozen-zero/canonical_initlock_c2"
+  ],
+  "inputs": [
+    {
+      "path": "/workspace/a8s1/src/docs/labs/a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json",
+      "sha256": "cf7ebcc85d2e463ae8f6691b63d90a0e005701cb38b8249a8d0d5460d8508479"
+    }
+  ],
+  "native_exit": 0,
+  "stdout": {
+    "path": "/workspace/a8s1/stage1/frozen-zero/canonical_initlock_c2.stdout",
+    "sha256": "62e99140aa642ae1877a7d49eb3b0916db0668c9b9a8e24af33c67c57ad6a657"
+  },
+  "stderr": {
+    "path": "/workspace/a8s1/stage1/frozen-zero/canonical_initlock_c2.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "report": {
+    "path": "/workspace/a8s1/stage1/frozen-zero/canonical_initlock_c2/relation-controls.json",
+    "sha256": "805867f56549d9c92273d4e868bcdf98f006c063377a1654f40c44d540bd3aeb"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "schema": "uor-r4.attention-audit-inherited-command/1",
+  "name": "unpinned_checkpoint",
+  "execution": {
+    "base_source": "ef9d30999700be11e103f96590e9e3b83b6807c7",
+    "reviewed_source_commit": "fd409fcdf3bc43d607e768bae6f8cf403aa75901",
+    "source_sha256": "81651081145fd4712046a8158a26c3bd6940ff5a60e5cdddf666057cb9fc0084",
+    "kernel_sha256": "5cd0e73241fd895f2dd0004c83af3d1eb9f89e00ec2e933c1acc44fc7127bfd6",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "executable_sha256": "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c",
+    "driver_source_sha256": "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d",
+    "config_sha256": "f223d78f45fe26dee4080ae7ca9a5b9ff12d9ef0df847375671d52db733fbecd",
+    "lineage_sha256": "f22ebd7129f194c7b3089a3b647b3d174d8c0c95fb18395611bba77036fa3cf3",
+    "sheet_sha256": "fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450"
+  },
+  "executable": {
+    "path": "/workspace/a8s1/target/release/discrete-stack",
+    "sha256": "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c"
+  },
+  "context_config": {
+    "path": "/workspace/a8s1/src/docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json",
+    "sha256": "469a2ff0fe17a6a80f5875a077b3e6a9436553efdf1c6e7884541220553e9d5e"
+  },
+  "producer_command": "init-corpus",
+  "argv": [
+    "init-corpus",
+    "/workspace/a8s1/src/docs/labs/injective-attention-runbook-2026-10-19/evidence/parent-rows-relation-seed1.json",
+    "/workspace/a8s1/stage1/relation/unpinned_checkpoint"
+  ],
+  "inputs": [
+    {
+      "path": "/workspace/a8s1/src/docs/labs/injective-attention-runbook-2026-10-19/evidence/parent-rows-relation-seed1.json",
+      "sha256": "52b32dc8747148e0cd385d309dbfb1c3cc750569d11ff3932745313e134cc670"
+    },
+    {
+      "path": "/workspace/uor-r4/local/driver/data/ft/dev/response_mask.u8",
+      "sha256": "a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078"
+    },
+    {
+      "path": "/workspace/uor-r4/local/driver/data/ft/dev/tokens.u16",
+      "sha256": "0919e90f953e988edf05cbb8a69e24bafda0cb8b8ddbbb5d1e9d808c81a6555b"
+    },
+    {
+      "path": "/workspace/uor-r4/local/driver/data/mw-balp/train/response_mask.u8",
+      "sha256": "b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3"
+    },
+    {
+      "path": "/workspace/uor-r4/local/driver/data/mw-balp/train/tokens.u16",
+      "sha256": "3dee858f84b750f507ceb3dc3f393711741950954735efaaf61bf704c017a4c8"
+    },
+    {
+      "path": "/workspace/uor-r4/local/driver/data/tokenizer.json",
+      "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+    }
+  ],
+  "native_exit": 0,
+  "stdout": {
+    "path": "/workspace/a8s1/stage1/relation/unpinned_checkpoint.stdout",
+    "sha256": "3ff4399e13e16cf228c84a1fe61b16f6a7cf5b02eb6ed28442effbfc939108dd"
+  },
+  "stderr": {
+    "path": "/workspace/a8s1/stage1/relation/unpinned_checkpoint.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "report": {
+    "path": "/workspace/a8s1/stage1/relation/unpinned_checkpoint/report.json",
+    "sha256": "24016f0fb334915d622e94c2e994e7191ea8a2cf45643d7965f71142bb58c0b1"
+  }
+}

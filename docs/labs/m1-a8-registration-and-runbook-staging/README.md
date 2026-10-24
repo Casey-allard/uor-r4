@@ -57,8 +57,15 @@ CODEBOOK_BIN="$(pwd)/target/release/address-cells-codebook"
 
 Both `attention-audit-build-identity` outputs must report:
 - `driver_source_sha256 == "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d"`
-- `compiled_identity.source_sha256 == "177f1b3da11eddbe2cf90d8172c48d33fafca95b533ef8898f3e8d2c245edcfc"`
-- `compiled_identity.geometry_sha256 == "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327"`
+- `compiled.geometry_sha256 == "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327"`
+- `compiled.kernel_sha256 == "5cd0e73241fd895f2dd0004c83af3d1eb9f89e00ec2e933c1acc44fc7127bfd6"` and `compiled.decomposition_kernel_sha256 == "29615646becefc333c697f685157a4c124847b5022e070ab00d7b9c749bc8506"`
+- `compiled.cuda_images.ordinary_sha256 == "19306ffdc323eb29b0e8ce971f2724f0ee27a5e133b8fc7552c58b8886437ee6"`, `compiled.cuda_images.decomposition_sha256 == "e03d01314f0d1eddf2b5cb02cae25d9d6231316dc14ba7af4f4db0997ea2fb8b"`, `compiled.baseline_reuse_image.ptx_sha256 == "2ec171013d10f14ed4552436c0fdc33ccd8005eeba80f146f8c4c8016f71c3b0"` and `compiled.baseline_reuse_image.cubin_sha256 == "6749bfe3c8dcab20c1628ce342fb654589461d442ecdc60edfb39bace401aabe"`
+- The run binary: the saved `discrete-stack` with `executable_sha256 == "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c"` and `compiled.source_sha256 == "81651081145fd4712046a8158a26c3bd6940ff5a60e5cdddf666057cb9fc0084"`. It is restored from the HF store (`results/claude/a8-stage1-pod1-20261024-r2/a8s1-pod1.tar`, sha256 `01ac2067506abd9a79c9645775075e07137a36c93ea09ee763dedde37fcf0360`), never rebuilt.
+
+**Erratum 2 (claude-70, 2026-10-24).** The lines above replace the claude-64 pin `compiled_identity.source_sha256 == 177f1b3d…`, which no rebuild can reproduce.
+- **Why.** `compiled.source_sha256` hashes the three ptxas resource reports in `OUT_DIR` (`ordinary-`, `decomposition-` and `baseline-reuse-resources.txt`). Those reports carry wall-clock lines (`ptxas info : Compile time = 10.726 ms`), so the hash changes on every build.
+- **Measured.** A8 pod 1 rebuilt `fd409fcdf` on 2026-10-24 with the same nvcc 12.8.93 and `sm_120`. It reported `source_sha256 81651081…`, against `177f1b3d…` on 23 Oct, while every PTX, cubin, kernel, geometry and driver digest above was byte-identical to 23 Oct. Only the three `*_report_sha256` values differed (#2842 6379702498 and 6379753507).
+- **So.** Step 1.1 pins the deterministic digests plus the one saved binary that every Stage 1 and Stage 2 step must use. The JSON keys are `compiled.*` and `audited_scope`, as `attention-audit-build-identity` prints them.
 
 **Erratum (claude-64, 2026-10-23).** The two lines above replace the earlier pins `a5d59806…` and `46ddbb76d4f7…`, which this commit's binary does not report.
 - **How they were measured.** `fd409fcdf` was built on an RTX 5090 pod with `--features cuda` (nvcc 12.8.93, `sm_120`), and `discrete-stack build-identity` was run, with no model run (Casey's approval: #2842, 6372197194). The results are in the HF store at `results/claude/craw-a8id-20261023/` (`a8-build-identity.json`, `SHA256SUMS`).
@@ -89,6 +96,15 @@ Write `qualification.plan.json` (`schema = "uor-r4.attention-audit-source-qualif
 ```
 
 Required output: `status: "QUALIFICATION_PLAN_METADATA_VALID"`, `cuda_context_created: false`, `dose_release: false`, `qualification_executed: false`.
+
+**Template approval (owner ruling, Casey, 2026-10-24, #2842 6379923206: "Template approval (Recommended)").**
+
+`validate_plan` refuses a `resource_admission` observation older than 300 s, at `check-plan`, at the owner release and at `attention-audit-qualify` (`attention_audit_qualification.rs`, `validate_resource(…, fresh = true)`). The plan payload covers that observation, so signing the exact final payload ahead of time is impossible. For this Stage 1 run only:
+
+1. **Template.** Claude commits the plan template (`evidence/qualification.plan.template.json`). It is every plan field, with the live resource fields (`resource_admission`, `rate_usd_micros_per_hour`, `gpu_count`, `host_available_bytes`, `staging_archive_reserve_bytes`) set to the placeholder documented beside the file, together with its template hash. The template hash is the payload hash computed exactly as `payload_sha256` does, with those five fields also removed.
+2. **Template sign-offs.** Each signer approves the template hash, with these bounds: `gpu_count == 2`, `rate_usd_micros_per_hour <= 2_500_000`, `host_available_bytes >= staging_archive_reserve_bytes + the binary's reserve rule`. The signers are a non-author reviewer (`TEST FITNESS: FIT` and `APPROVE_EXACT_QUALIFICATION_PLAN`), Kimi (`DISPATCH_FINITE_SOURCE_QUALIFICATION_ONLY`) and Casey (`APPROVE_EXACT_FINITE_QUALIFICATION_SCOPE_AND_COST`). Each approval is a GitHub comment that quotes the template hash.
+3. **Binding.** On pod 2, the operator (Claude) restores the pod-1 tar and takes the fresh `uor-r4.attention-audit-resource-observation/1` (`0600` under `0700`). It checks the observation against the bounds, fills the five fields, computes the final payload hash, and writes the four `…-authorization/1` records with that hash. Each record's `receipt_url` is the signer's template-approval comment. The operator posts the final hash and the observation on #2842.
+4. **Release and run.** `check-plan` runs, Casey types the release phrase personally (Step 1.4, `UOR_LAB` unset, over SSH), and Step 1.5 starts. All of this happens within 300 s of the observation. If the window lapses, the observation is retaken and step 3 is repeated; the template approvals still hold while the bounds hold.
 
 ### Step 1.4 — Staged Finite-Qualification Owner Release Command (Casey Personally, `UOR_LAB` Unset)
 

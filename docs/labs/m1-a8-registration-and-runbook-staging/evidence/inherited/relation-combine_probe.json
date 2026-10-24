@@ -1,0 +1,55 @@
+{
+  "schema": "uor-r4.attention-audit-inherited-command/1",
+  "name": "combine_probe",
+  "execution": {
+    "base_source": "ef9d30999700be11e103f96590e9e3b83b6807c7",
+    "reviewed_source_commit": "fd409fcdf3bc43d607e768bae6f8cf403aa75901",
+    "source_sha256": "81651081145fd4712046a8158a26c3bd6940ff5a60e5cdddf666057cb9fc0084",
+    "kernel_sha256": "5cd0e73241fd895f2dd0004c83af3d1eb9f89e00ec2e933c1acc44fc7127bfd6",
+    "geometry_sha256": "46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327",
+    "executable_sha256": "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c",
+    "driver_source_sha256": "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d",
+    "config_sha256": "f223d78f45fe26dee4080ae7ca9a5b9ff12d9ef0df847375671d52db733fbecd",
+    "lineage_sha256": "f22ebd7129f194c7b3089a3b647b3d174d8c0c95fb18395611bba77036fa3cf3",
+    "sheet_sha256": "fcb770e66d38f607d25e16dade14ac7a6223dd8af0ccc9ec22c80db71f2c3450"
+  },
+  "executable": {
+    "path": "/workspace/a8s1/target/release/discrete-stack",
+    "sha256": "fb4493253d3e26dc7cc5fbcbcf7fa4dc882d93a5c7b02d340b25918a2d25b00c"
+  },
+  "context_config": {
+    "path": "/workspace/a8s1/src/docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json",
+    "sha256": "469a2ff0fe17a6a80f5875a077b3e6a9436553efdf1c6e7884541220553e9d5e"
+  },
+  "producer_command": "propose",
+  "argv": [
+    "propose",
+    "/workspace/a8s1/stage1/relation/snapshot.json",
+    "/workspace/a8s1/stage1/relation/probe-request.json",
+    "gate",
+    "0"
+  ],
+  "inputs": [
+    {
+      "path": "/workspace/a8s1/stage1/relation/snapshot.json",
+      "sha256": "a0b25cd8621a32efc358ee0d7c4968e9be5c098970c67f2cd4385487f5a1923a"
+    },
+    {
+      "path": "/workspace/a8s1/stage1/relation/probe-request.json",
+      "sha256": "c919ac5f0ac442983f3dd89e457956dd5c6e8b7a5542c171854f4c58d4940ac6"
+    }
+  ],
+  "native_exit": 0,
+  "stdout": {
+    "path": "/workspace/a8s1/stage1/relation/combine_probe.stdout",
+    "sha256": "e433f996a34f65950b04891fb539bcae006a13e6f7e75e2d86a9c95419df0618"
+  },
+  "stderr": {
+    "path": "/workspace/a8s1/stage1/relation/combine_probe.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "report": {
+    "path": "/workspace/a8s1/stage1/relation/combine_probe.stdout",
+    "sha256": "e433f996a34f65950b04891fb539bcae006a13e6f7e75e2d86a9c95419df0618"
+  }
+}
