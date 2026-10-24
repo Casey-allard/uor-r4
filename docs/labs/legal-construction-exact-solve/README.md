@@ -274,3 +274,40 @@ Multi-lab reviews (`claude`, `kimi`, `deepseek`) of Unit 9 (`#3130`) identified 
 3. **CLI `--disjunctive-leaves <N>` and `"disjunctive_ms"` runtime reporting (`src/bin/root-search.rs`)**:
    - Adds `--disjunctive-leaves <N>` (default `24`, `0` to skip the disjunctive split tree) and records `"disjunctive_ms"` in `"reduced_cost_fixing"`.
    - On `attempt2`, the exact dyadic shift-accumulation and extreme-delta optimizations cut `disjunctive_ms` by **`368,438 ms` (`6m08s`, `-24.81%`)**, from `1,484,988 ms` (`24m45s`) to **`1,116,550 ms` (`18m37s`)**, while producing **100% bit-for-bit identical rational outputs** across every field of `root-search` (`diff -u` excluding `*_ms` is empty).
+
+## Unit 11 — Root-split-ranked candidate branching, Cross-Branch Dual Pool Tightening, `pi_matches_rc` guard, and `arj`-first dual simplex pricing (`antigravity-54`, 2026-10-24)
+
+Unit 10's disjunctive split tree evaluated `cand_splits.iter().take(16)` in arbitrary basis-row order `0..m` (ignoring the exact single-split bounds already certified across all 67 fractional basic variables at the root), discarded the exact `BigRational` reduced-cost vectors `cand_rc` computed on non-winning branches, computed `paj = pi · col_j` in `dual_simplex_run::<P>` on every nonbasic column `j` before checking whether `s_arj` allowed `j` to enter the basis, and took the `if c_pi == parent.pi` shortcut even when the root leaf held an upgraded non-`Dy<P>` root dual (`claude` review note on `#3151`). Unit 11 resolves all four:
+
+1. **Root-split-ranked candidate branching and Cross-Branch Dual Pool Tightening (`search::certify_disjunctive_split_bound_with_dual`)**:
+   - Records `root_split_score[bv]` across all root fractional splits and sorts each leaf's `cand_splits` by descending `root_split_score[bv]` before `.take(16)`, so every tree level branches on the highest-impact fractional basic variables first rather than basis-row order `0..m`.
+   - Collects distinct `(c_pi, cand_rc)` pairs evaluated during root and tree branching into `dual_rc_pool` (capped at `160`), and uses `dual_rc_pool` to tighten both per-leaf exact Weak Duality bounds ($\max_{r \in \text{pool}} L(r, B^{(l)})$) and per-leaf Disjunctive Partition RCBT survival masks (`tighten_leaf_mask`) with zero additional LP solves or `compute_rc` calls.
+   - On `attempt2`, this tightens the 24-leaf disjunctive lower bound from `-69206643834381985661770419441753875297126864236382476036143436075 / 3291009114642412084309938365114701009965471731267159726697218048` (`~ -21.02900400`, `tree_gain ≈ +0.00026367`) to **`-141734088016952714342525764033724082710340210011323135211531386253129 / 6739986666787659948666753771754907668409286105635143120275902562304` (`~ -21.02883804`, `tree_gain ≈ +0.00042963` — `1.63×` the tree gain of Unit 9/10)**, driving the certified discrete optimality gap **below `0.007` for the first time**, to **`46347140678114331169372457776064247475410789788503394750996180809 / 6739986666787659948666753771754907668409286105635143120275902562304` (`~ 0.00687644`, `0.03270%` relative gap)**.
+   - Disjunctive Partition RCBT eliminates **`6,395 of 28,800` discrete codes (`22.20%`, `+141` over Unit 9/10 and `+273` over root RCBT)**, fixes **`115 of 1,920` coefficients** to a single optimal destination code (`+3` over Unit 9/10), and restricts **`185 of 1,920` coefficients** to $\le 2$ surviving codes (`+6` over Unit 9/10).
+2. **Guard on `c_pi == parent.pi` under upgraded root duals (`pi_matches_rc` on `SplitLeaf<P>`)**:
+   - Tracks `pi_matches_rc: bool` (`true` iff `leaf.rc` was computed from `extract_y(&leaf.pi)`, `false` when `leaf.rc` came from an upgraded `exact_y` or `ext_y`) and seeds `dual_rc_pool` with `compute_rc(&extract_y(&pi))` when `!root_pi_matches_rc`, so `if parent.pi_matches_rc && c_pi == parent.pi` never skips `extract_y(&c_pi)` when the parent holds an upgraded non-`Dy<P>` root dual.
+3. **Two-stage `arj`-first pricing in `dual_simplex_run::<P>` (`src/search.rs:686-718`)**:
+   - Computes `arj = rho · col_j` first and evaluates `paj = pi · col_j` only for nonbasic columns `j` that pass the dual-simplex sign test, cutting `lp_guided_discrete_solve` runtime `solve_ms` on `attempt2` from `264,832 ms` to **`200,929 ms` (`-24.13%`)** while preserving the exact discrete incumbent (`-94674498416698555 / 4503599627370496`).
+
+## Unit 12 — Incremental dyadic pool bounds, and the corrected candidate sort (`antigravity-55`, 2026-10-24)
+
+Unit 11's tree-level sort visited unscored candidates first, the reverse of its stated intent (found by `kimi` in review of #3152). Its pool tightening also slowed `disjunctive_ms` to `1,809,808 ms`, because each of the 24 leaves re-summed all 1,920 `BigRational` terms for every pool dual.
+
+1. **Incremental dyadic pool bounds (`search.rs`, antigravity's work, `2b463ff89`).**
+   - `dyadic_to_rational` builds the result with `BigRational::new_raw` after stripping shared factors of two, so there is no GCD.
+   - `sum_rationals` adds dyadic terms by shift-and-add.
+   - Pool entries cache `root_terms`, `root_lb` and `root_span`. Leaf bounds and `tighten_leaf_mask` update only over the at most 23 split coordinates.
+
+   On `attempt2` this alone reproduces every Unit 11 rational output bit-for-bit, with `solve_ms = 69,140` and `disjunctive_ms = 146,897`. Both timings were taken under machine load.
+2. **Corrected sort (`split_candidate_order`).** Scored candidates now come first, by descending root split score, then unscored ones. On `attempt2`:
+   - the 24-leaf lower bound tightens to **`-4429184874126167436154938361970246199537836886330785620806862298897 / 210624583337114373395836055367340864637790190801098222508621955072`** (`≈ -21.02881252`; tree gain `+0.00045516`, 1.73× Unit 9/10's);
+   - the certified gap narrows to **`≈ 0.00685092` (`0.03259%`)**;
+   - Disjunctive Partition RCBT eliminates **`6,406 / 28,800`** codes (+11), fixes `115` coefficients, and restricts **`186`** coefficients to at most two codes (+1);
+   - `solve_ms = 57,057` and `disjunctive_ms = 148,896`, which against Unit 10 are -78.46% and -86.66%.
+3. **Tests.**
+   - `split_candidate_sort_visits_scored_before_unscored` uses 24 candidates, 16 of them scored.
+   - `dual_pool_strictly_tightens_tree_bound_and_eliminations` compares the certifier with and without the pool through the `certify_disjunctive_split_bound_without_pool` ablation.
+
+   Each test fails with its fault planted.
+
+The item stays `ready`. The remaining certified gap is about `0.00685092`.

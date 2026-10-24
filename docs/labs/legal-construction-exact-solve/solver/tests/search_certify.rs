@@ -682,6 +682,8 @@ fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
     assert!(split66.tree_leaves > 1, "m=66 must branch into >1 leaves");
     assert!(split66.best_single_split_bound >= split66.root_lower_bound);
     assert!(split66.tree_lower_bound >= split66.best_single_split_bound);
+    assert!(split66.tree_lower_bound >= split66_none.tree_lower_bound);
+    assert!(split66.tree_eliminated_codes >= split66_none.tree_eliminated_codes);
     assert!(split66.tree_eliminated_codes >= rcbt66.eliminated_codes);
     for i in 0..n66 {
         assert!(rcbt66.surviving_codes[i].contains(&disc66.codes[i]));
@@ -723,6 +725,78 @@ fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
         assert!(split66_ext.tree_surviving_codes[i].contains(&disc66.codes[i]));
         for &q_surv in &split66_ext.tree_surviving_codes[i] {
             assert!(rcbt_ext66.surviving_codes[i].contains(&q_surv));
+        }
+    }
+}
+
+/// The disjunctive tree evaluates only the first 16 sorted split candidates, so
+/// the sort must put every root-scored candidate first, best exact score first,
+/// and every unscored candidate after them (kimi's addendum on PR #3152).
+#[test]
+fn split_candidate_sort_visits_scored_before_unscored() {
+    // 24 candidates: 8 unscored (every third index, starting at 0) and 16 scored
+    // with repeated values, so exactly the scored ones fill the 16 evaluated slots.
+    let scores: Vec<Option<BigRational>> = (0..24i64)
+        .map(|k| (k % 3 != 0).then(|| q((k * 7) % 11 - 5, 4)))
+        .collect();
+    let mut cands: Vec<usize> = (0..scores.len()).collect();
+    cands.sort_by(|&a, &b| search::split_candidate_order(scores[a].as_ref(), scores[b].as_ref()));
+    let scored = scores.iter().filter(|s| s.is_some()).count();
+    assert_eq!(scored, 16);
+    assert!(cands.len() > 16);
+    for (pos, &c) in cands.iter().enumerate() {
+        assert_eq!(
+            scores[c].is_some(),
+            pos < scored,
+            "position {pos}: candidate {c} with score {:?} is out of order",
+            scores[c]
+        );
+    }
+    for w in cands[..scored].windows(2) {
+        assert!(
+            scores[w[0]] >= scores[w[1]],
+            "scored candidates must be non-increasing: {:?} before {:?}",
+            scores[w[0]],
+            scores[w[1]]
+        );
+    }
+    assert!(cands.iter().take(16).all(|&c| scores[c].is_some()));
+}
+
+/// The cross-branch dual pool lifts leaf bounds and tightens per-leaf
+/// reduced-cost masks; without it both are strictly weaker on this instance
+/// (random seed 689, n = 4, m = 4, 3 leaves), and the true optimum survives both.
+#[test]
+fn dual_pool_strictly_tightens_tree_bound_and_eliminations() {
+    let p = instance(689);
+    let disc = search::lp_guided_discrete_solve::<120>(&p).expect("seed 689 discrete solve");
+    let with_pool =
+        search::certify_disjunctive_split_bound_with_dual::<120>(&p, &disc.objective, 3, None)
+            .expect("seed 689 split with pool");
+    let without_pool =
+        search::certify_disjunctive_split_bound_without_pool::<120>(&p, &disc.objective, 3, None)
+            .expect("seed 689 split without pool");
+    assert_eq!(with_pool.tree_leaves, without_pool.tree_leaves);
+    assert!(
+        with_pool.tree_lower_bound > without_pool.tree_lower_bound,
+        "pool must lift the tree bound: {} vs {}",
+        with_pool.tree_lower_bound,
+        without_pool.tree_lower_bound
+    );
+    assert!(
+        with_pool.tree_eliminated_codes > without_pool.tree_eliminated_codes,
+        "pool must eliminate more codes: {} vs {}",
+        with_pool.tree_eliminated_codes,
+        without_pool.tree_eliminated_codes
+    );
+    let bb_res = bb::solve(&p, 100_000);
+    assert_eq!(bb_res.status, bb::Status::Optimal);
+    assert!(with_pool.tree_lower_bound <= bb_res.objective);
+    for (i, c) in p.coeffs().iter().enumerate() {
+        let opt_q = c.q0 + i64::try_from(&bb_res.assignment.k[i]).expect("i64 step");
+        assert!(with_pool.tree_surviving_codes[i].contains(&opt_q));
+        for q_surv in &with_pool.tree_surviving_codes[i] {
+            assert!(without_pool.tree_surviving_codes[i].contains(q_surv));
         }
     }
 }
