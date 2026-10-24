@@ -61,7 +61,7 @@ The standalone pure-integer Rust instrument in [`instrument/`](./instrument) rec
 
 ## 4. Sealed artifact digests and storage custody
 
-Per [`docs/reference/storage.md`](../../reference/storage.md) and `#2849` step 4, the corpus bytes are not committed to git; the repository carries the panel entry ([`docs/harness/panels/m2-fresh256.json`](../../harness/panels/m2-fresh256.json)) and the deterministic Rust generator/verifier ([`instrument/`](./instrument)), while the sealed bytes are staged at `local/antigravity/m2-fresh256-sealed/` for maintainer upload to `hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/`:
+Per [`docs/reference/storage.md`](../../reference/storage.md) and `#2849` step 4, the corpus bytes are not committed to git; the repository carries the panel entry ([`docs/harness/panels/m2-fresh256.json`](../../harness/panels/m2-fresh256.json)) and the deterministic Rust generator/verifier ([`instrument/`](./instrument)), while the sealed bytes are uploaded at `hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/` at HF commit `fb8c5e4fcd3568cc59be8be3073151295b98069c` and read back byte-identically:
 
 | Artifact | Bytes | SHA-256 | Purpose |
 |---|---:|---|---|
@@ -85,7 +85,7 @@ CARGO_TARGET_DIR=local/harness-target ~/.cargo/bin/cargo run \
 Per `CHARTER.md` §4.5 and `#2849` steps 4–5, `docs/harness/panels/m2-fresh256.json` was registered with `"frozen": false` and `TEST FITNESS: PENDING` until:
 
 1. A separate non-author lab session records a formal `TEST FITNESS: FIT` review of the overlap exclusion (`0` exact/word/2-gram overlaps against all `74` historical literals, `0` intra-panel duplicate content words), the exact `ByteBpeTokenizer` (`d36d3e87…`) encoding, the history-pair completion control audit (`0 / 256` across all 4 question-blind and role-swap controls), and the content seal; and
-2. A maintainer with HF write access uploads `plan.json`, `inputs.json`, `labels.json`, and `manifest.json` from `local/antigravity/m2-fresh256-sealed/` to `hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/`.
+2. A maintainer with HF write access has uploaded `plan.json`, `inputs.json`, `labels.json`, and `manifest.json` to `hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/` at commit `fb8c5e4fcd3568cc59be8be3073151295b98069c` and read them back byte-identically.
 
 M2 training and evaluation remain `HELD` (`NOT_RUN`) until the owner releases a pre-registered M2 sheet.
 
@@ -105,7 +105,7 @@ manifest 1384  7c33f3f7e19edcb4b1a7aa5e5eab3bb0056db9351067d809f62f97b4a8880964
 
 All four sizes and sha256 values match the registered panel JSON exactly. The instrument's audit output (same run) reports: `74` historical literals parsed from disk; `0` exact literal, `0` content-word and `0` 2-gram overlaps; `0` intra-panel content-word duplicates; minimum same-stratum edit distance `10`; `128` histories / `256` rows / `16` unordered blocks / `32` ordered banks; literal role balance and initial-position balance both `true`; `unscored_inputs_leak_count` `0`; and `0` hits for each of the four question-blind/role-swap controls (`copy_first_stated`, `copy_last_stated`, `role_swap_distractor`, `best_constant_reply`). The panel pins `ByteBpeTokenizer` `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` and the grader unchanged, as the JSON records.
 
-`TEST FITNESS: FIT` (non-author `deepseek-43`; the reviewer is not the antigravity author of the panel). This clears **prerequisite 1 only**; prerequisite 2 (a maintainer uploads `plan.json`, `inputs.json`, `labels.json`, `manifest.json` to `hf://datasets/caseyallard/uor-r4-store/data/m2-fresh256/`) is still open, so the panel stays `"frozen": false` and no candidate has been scored. M2 training and evaluation remain `HELD`/`NOT_RUN` until the owner releases a pre-registered M2 sheet; a FIT releases nothing.
+`TEST FITNESS: FIT` (non-author `deepseek-43`; the reviewer is not the antigravity author of the panel). Prerequisite 1 passed on that evidence. Prerequisite 2 is now closed at HF commit `fb8c5e4fcd3568cc59be8be3073151295b98069c`, with all four files read back byte-identically, so the panel is `"frozen": true`. No candidate has been scored. M2 training and evaluation remain `HELD`/`NOT_RUN` until the owner releases a pre-registered M2 sheet; a FIT releases nothing.
 ## 6. Research notebook row (M2 grounded reply)
 
 *(Recorded here under `docs/labs/m2-fresh-heldout-panel/README.md` because `docs/roadmap/items/m2-fresh-heldout-panel.md` scopes paths to `[data/**, docs/harness/panels/**, docs/mechanisms/native-geometric.md, docs/labs/m2-fresh-heldout-panel/**, docs/reference/storage.md]`; ready to copy verbatim into `docs/research/notebook/m2-grounded-reply.md` once that path is added to an item scope.)*
@@ -113,3 +113,5 @@ All four sizes and sha256 values match the registered panel JSON exactly. The in
 | Date | Base -> new | Mechanism | Numbers (before -> after) | Cost | Verdict & evidence |
 |---|---|---|---|---|---|
 | 2026-10-22 | `m2-reply512` (`b9661606…`) + opened `fresh128` (`c5a643ff…`) -> staged `m2-fresh256` (`1de2fc28…`) | [native-geometric](../../mechanisms/native-geometric.md) | `saved437` dev512 saved replay audit `0/512` (`7,908` steps), computed half-panel split `219/256` vs `218/256`, single-model 16-block cluster SE `6.24` rows (`8.64` rows at `40%` bar); `m2-fresh256` staged at `256` rows (`128` histories, `16` blocks, `0` exact/word/2-gram overlaps against `74` historical literals, `0` intra-panel duplicate content words, min edit distance `10`, `0/128` pairs on all 4 controls through real `FrozenAnswers` + `ByteBpeTokenizer` + `pair_id` grader), owner-registered bar `pairs_both_complete_distinct >= 52/128` (`complete >= 104/256`, `NOT_RUN`, `TEST FITNESS: PENDING`) | $0 (host Rust) | **instrument staged** — [`m2-fresh256.json`](../../harness/panels/m2-fresh256.json), [`#2030`](https://github.com/UOR-Foundation/uor-r4/issues/2030#issuecomment-6350135678), `#2849` |
+
+This dated row records the pre-upload staging state. The current frozen/upload status in §§4–5 supersedes its `TEST FITNESS: PENDING` and "instrument staged" labels.
