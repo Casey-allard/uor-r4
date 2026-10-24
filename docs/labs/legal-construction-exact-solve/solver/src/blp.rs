@@ -701,6 +701,16 @@ fn bareiss_solve(mut a: Vec<Vec<BigInt>>, mut r: Vec<BigInt>) -> Result<Vec<BigR
 /// position (Lower ≥ 0, Upper ≤ 0, Interior = 0; fixed variables skipped, as
 /// in the solver's own certificate). Never panics on a bad basis.
 pub fn certify_basis(lp: &Lp, basis: &Basis) -> Result<LpResult, String> {
+    certify_basis_with_dual(lp, basis).map(|(res, _)| res)
+}
+
+/// Like `certify_basis`, and also returns the exact rational unscaled dual
+/// multiplier vector `π` (one entry per row of `lp`, with `π_i <= 0` on
+/// active `<= b_i` rows) satisfying `B_unscaledᵀ π = c_unscaled_B`.
+pub fn certify_basis_with_dual(
+    lp: &Lp,
+    basis: &Basis,
+) -> Result<(LpResult, Vec<BigRational>), String> {
     let n = lp.c.len();
     let m = lp.rows.len();
     let total = n + m;
@@ -727,6 +737,30 @@ pub fn certify_basis(lp: &Lp, basis: &Basis) -> Result<LpResult, String> {
         is_basic[j] = true;
     }
     let Scaled { mut cols, b, c } = scaled(lp);
+    let mut row_scale = vec![BigRational::zero(); m];
+    for (j, col) in cols.iter().enumerate() {
+        for (i, a_scaled) in col {
+            if row_scale[*i].is_zero() && !lp.rows[*i].0[j].is_zero() {
+                row_scale[*i] = rat(a_scaled) / &lp.rows[*i].0[j];
+            }
+        }
+    }
+    for (i, (_, bi)) in lp.rows.iter().enumerate() {
+        if row_scale[i].is_zero() {
+            row_scale[i] = if !bi.is_zero() {
+                rat(&b[i]) / bi
+            } else {
+                BigRational::one()
+            };
+        }
+    }
+    let c_scale =
+        lp.c.iter()
+            .enumerate()
+            .find(|(_, cj)| !cj.is_zero())
+            .map(|(j0, cj)| rat(&c[j0]) / cj)
+            .unwrap_or_else(BigRational::one);
+
     for i in 0..m {
         cols.push(vec![(i, BigInt::one())]);
     }
@@ -856,11 +890,16 @@ pub fn certify_basis(lp: &Lp, basis: &Basis) -> Result<LpResult, String> {
             ));
         }
     }
+    let pi_unscaled: Vec<BigRational> = pi
+        .iter()
+        .enumerate()
+        .map(|(i, p_val)| p_val * &row_scale[i] / &c_scale)
+        .collect();
     let objective =
         lp.c.iter()
             .zip(&xs)
             .fold(BigRational::zero(), |s, (c, v)| s + c * v);
-    Ok(LpResult::Optimal { x: xs, objective })
+    Ok((LpResult::Optimal { x: xs, objective }, pi_unscaled))
 }
 
 pub fn solve(lp: &Lp) -> LpResult {

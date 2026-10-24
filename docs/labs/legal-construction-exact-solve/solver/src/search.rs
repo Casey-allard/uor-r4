@@ -1443,6 +1443,121 @@ pub fn certify_lagrangian_dual_bound(
     Ok(bound)
 }
 
+/// Exact rational Reduced-Cost Bound Tightening (RCBT) certificate.
+#[derive(Debug, Clone)]
+pub struct ReducedCostFixing {
+    /// Exact rational Lagrangian dual lower bound `L(y)`.
+    pub lower_bound: BigRational,
+    /// Exact rational optimality gap `upper_bound - lower_bound` (`>= 0`).
+    pub gap: BigRational,
+    /// Surviving legal destination codes `q in -7..=7` for each coefficient `i`.
+    pub surviving_codes: Vec<Vec<i64>>,
+    /// Number of coefficients `i` uniquely fixed (`surviving_codes[i].len() == 1`).
+    pub fixed_coeffs: usize,
+    /// Number of coefficients `i` restricted to at most 2 codes (`<= 2`).
+    pub binary_or_fixed_coeffs: usize,
+    /// Total `(i, q)` destination codes provably eliminated out of `15 * n`.
+    pub eliminated_codes: usize,
+    /// Total `(i, q)` destination codes before reduction (`15 * n`).
+    pub total_codes: usize,
+}
+
+/// Prove in exact rational arithmetic which discrete codes `q in -7..=7` cannot
+/// appear in any guard-feasible discrete assignment with objective `<= upper_bound`.
+/// By Weak Duality, for any `y >= 0`, every guard-feasible discrete assignment `δ`
+/// with `g·δ <= upper_bound` satisfies
+/// `L(y) + Σ_i ((g_i - (J^T y)_i) δ_i(q_i) - min_{q'} (g_i - (J^T y)_i) δ_i(q')) <= upper_bound`.
+/// Hence any code `q` whose exact reduced-cost penalty exceeds `upper_bound - L(y)`
+/// is provably eliminated.
+pub fn certify_reduced_cost_fixing(
+    p: &Problem,
+    y: &[BigRational],
+    upper_bound: &BigRational,
+) -> Result<ReducedCostFixing, String> {
+    if y.len() != p.guards.len() {
+        return Err(format!(
+            "dual multiplier length {} != {} guards",
+            y.len(),
+            p.guards.len()
+        ));
+    }
+    for (r, yr) in y.iter().enumerate() {
+        if yr.is_negative() {
+            return Err(format!("dual multiplier {r} is negative"));
+        }
+    }
+    let cs = p.coeffs();
+    let n = cs.len();
+    let mut lower_bound = BigRational::zero();
+    let mut per_coeff: Vec<(BigRational, Vec<(i64, BigRational)>)> = Vec::with_capacity(n);
+
+    for (i, c) in cs.iter().enumerate() {
+        let mut rc = p.g[i].clone();
+        for (r, yr) in y.iter().enumerate() {
+            if !yr.is_zero() && !p.guards[r][i].is_zero() {
+                rc -= yr * &p.guards[r][i];
+            }
+        }
+        let mut best_i = BigRational::zero();
+        let mut contribs = Vec::with_capacity(15);
+        for q in -7..=7 {
+            let contrib = if q == c.q0 {
+                BigRational::zero()
+            } else {
+                let delta = BigRational::new(BigInt::from(q - c.q0), BigInt::from(4)) + &c.shift;
+                &rc * &delta
+            };
+            if contrib < best_i {
+                best_i = contrib.clone();
+            }
+            contribs.push((q, contrib));
+        }
+        lower_bound += &best_i;
+        per_coeff.push((best_i, contribs));
+    }
+
+    if upper_bound < &lower_bound {
+        return Err(format!(
+            "upper_bound {upper_bound} < lower_bound {lower_bound}"
+        ));
+    }
+    let gap = upper_bound - &lower_bound;
+    let total_codes = 15 * n;
+    let mut surviving_codes = Vec::with_capacity(n);
+    let mut fixed_coeffs = 0usize;
+    let mut binary_or_fixed_coeffs = 0usize;
+    let mut eliminated_codes = 0usize;
+
+    for (best_i, contribs) in per_coeff {
+        let mut surv = Vec::with_capacity(15);
+        for (q, contrib) in contribs {
+            let penalty = contrib - &best_i;
+            if penalty <= gap {
+                surv.push(q);
+            } else {
+                eliminated_codes += 1;
+            }
+        }
+        if surv.len() == 1 {
+            fixed_coeffs += 1;
+        }
+        if surv.len() <= 2 {
+            binary_or_fixed_coeffs += 1;
+        }
+        surviving_codes.push(surv);
+    }
+
+    Ok(ReducedCostFixing {
+        lower_bound,
+        gap,
+        surviving_codes,
+        fixed_coeffs,
+        binary_or_fixed_coeffs,
+        eliminated_codes,
+        total_codes,
+    })
+}
+
 /// Result of `lp_guided_discrete_solve`.
 #[derive(Debug, Clone)]
 pub struct DiscreteLpResult {
@@ -1535,190 +1650,354 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
     for (i, row) in binv.iter_mut().enumerate() {
         row[i] = Dy::ONE;
     }
-    let mut b_rhs = vec![Dy::<P>::ZERO; m];
-
-    let bump_pad = Dy::<P>::ONE.ldexp(-13);
-    let bump_scale = Dy::<P>::from_rational(&BigRational::new(BigInt::from(5), BigInt::from(4)));
-
-    let mut total_pivots = 0u64;
-    let mut basis_iter0: Option<Basis> = None;
-    let mut dual_y_iter0: Vec<BigRational> = vec![BigRational::zero(); m];
+    let b_rhs0 = vec![Dy::<P>::ZERO; m];
     let mut pi = vec![Dy::<P>::ZERO; m];
+    let mut total_pivots = 0u64;
 
-    for iter in 0..60 {
-        let mut iter_stats = SearchStats::default();
-        dual_simplex_run::<P>(
-            n,
-            m,
-            &cols,
-            &cost,
-            &lo,
-            &up,
-            &b_rhs,
-            &mut basis,
-            &mut st,
-            &mut x,
-            &mut binv,
-            &mut pi,
-            100_000,
-            &mut iter_stats,
-            None,
-        )?;
-        total_pivots += iter_stats.pivots;
+    let mut iter0_stats = SearchStats::default();
+    dual_simplex_run::<P>(
+        n,
+        m,
+        &cols,
+        &cost,
+        &lo,
+        &up,
+        &b_rhs0,
+        &mut basis,
+        &mut st,
+        &mut x,
+        &mut binv,
+        &mut pi,
+        100_000,
+        &mut iter0_stats,
+        None,
+    )?;
+    total_pivots += iter0_stats.pivots;
 
-        if iter == 0 {
-            let nonbasic_pos = (0..(n + m))
-                .map(|j| match st[j] {
-                    State::Upper => Pos::Upper,
-                    State::Interior => Pos::Interior,
-                    State::Lower | State::Basic => Pos::Lower,
-                })
-                .collect();
-            basis_iter0 = Some(Basis {
-                basic: basis.clone(),
-                nonbasic_pos,
-            });
-            dual_y_iter0 = pi
-                .iter()
-                .map(|&p_val| {
-                    let neg_p = -p_val;
-                    if neg_p.is_positive() {
-                        neg_p.to_rational()
-                    } else {
-                        BigRational::zero()
-                    }
-                })
-                .collect();
-        }
-
-        let mut cur_q = vec![0i64; n];
-        let mut disc_rat = Vec::with_capacity(n);
-        let mut disc_dy = vec![Dy::<P>::ZERO; n];
-        for i in 0..n {
-            let xi = x[i];
-            let best = legal_deltas[i]
-                .iter()
-                .min_by(|a, b| (a.2 - xi).abs().cmp(&(b.2 - xi).abs()))
-                .expect("15 legal deltas");
-            cur_q[i] = best.0;
-            disc_rat.push(best.1.clone());
-            disc_dy[i] = best.2;
-        }
-
-        let mut n_viol = 0usize;
-        let mut guard_dy = vec![Dy::<P>::ZERO; m];
-        for r in 0..m {
-            let mut s = Dy::<P>::ZERO;
-            for i in 0..n {
-                if !disc_dy[i].is_zero() && !j_dy[r][i].is_zero() {
-                    s = s + j_dy[r][i] * disc_dy[i];
-                }
-            }
-            guard_dy[r] = s;
-            if s.is_negative() {
-                n_viol += 1;
-                let bump = (-s) * bump_scale + bump_pad;
-                b_rhs[r] = b_rhs[r] - bump;
-            }
-        }
-
-        if n_viol == 0 {
-            let mut exact_guards = vec![BigRational::zero(); m];
-            for (r, eg) in exact_guards.iter_mut().enumerate() {
-                let mut s = BigRational::zero();
-                for (i, dr) in disc_rat.iter().enumerate() {
-                    if !dr.is_zero() {
-                        s += &p.guards[r][i] * dr;
-                    }
-                }
-                *eg = s;
-            }
-            if exact_guards.iter().any(|g| g.is_negative()) {
-                continue;
-            }
-            let mut exact_obj = BigRational::zero();
-            for (i, dr) in disc_rat.iter().enumerate() {
-                if !dr.is_zero() {
-                    exact_obj += &p.g[i] * dr;
-                }
-            }
-            let min_slack_dy = if m >= 64 {
-                Dy::<P>::ONE.ldexp(-30)
+    let nonbasic_pos0 = (0..(n + m))
+        .map(|j| match st[j] {
+            State::Upper => Pos::Upper,
+            State::Interior => Pos::Interior,
+            State::Lower | State::Basic => Pos::Lower,
+        })
+        .collect();
+    let basis_iter0 = Basis {
+        basic: basis.clone(),
+        nonbasic_pos: nonbasic_pos0,
+    };
+    let dual_y_iter0: Vec<BigRational> = pi
+        .iter()
+        .map(|&p_val| {
+            let neg_p = -p_val;
+            if neg_p.is_positive() {
+                neg_p.to_rational()
             } else {
-                Dy::<P>::ZERO
-            };
-            let run_polish = |cur_q: &mut [i64],
-                              disc_rat: &mut [BigRational],
-                              disc_dy: &mut [Dy<P>],
-                              exact_guards: &mut [BigRational],
-                              guard_dy: &mut [Dy<P>],
-                              exact_obj: &mut BigRational| {
-                for _pass in 0..20 {
-                    let mut improved = false;
-                    for i in 0..n {
-                        let gi = g_dy[i];
-                        let cur_d = disc_dy[i];
-                        for &(q, ref d_rat, d_dy) in &legal_deltas[i] {
-                            if q == cur_q[i] {
+                BigRational::zero()
+            }
+        })
+        .collect();
+
+    let min_slack_dy = -Dy::<P>::ONE.ldexp(-35);
+    let run_polish = |cur_q: &mut [i64],
+                      disc_rat: &mut [BigRational],
+                      disc_dy: &mut [Dy<P>],
+                      exact_guards: &mut [BigRational],
+                      guard_dy: &mut [Dy<P>],
+                      exact_obj: &mut BigRational| {
+        for _pass in 0..25 {
+            let mut improved = false;
+            for i in 0..n {
+                let gi = g_dy[i];
+                let cur_d = disc_dy[i];
+                let mut best_cand: Option<(i64, BigRational, Dy<P>, Dy<P>)> = None;
+                for &(q, ref d_rat, d_dy) in &legal_deltas[i] {
+                    if q == cur_q[i] {
+                        continue;
+                    }
+                    let diff_dy = d_dy - cur_d;
+                    let gain_dy = gi * diff_dy;
+                    if gain_dy.is_negative() {
+                        if let Some((_, _, _, best_gain)) = best_cand {
+                            if gain_dy >= best_gain {
                                 continue;
                             }
-                            let diff_dy = d_dy - cur_d;
-                            if (gi * diff_dy).is_negative() {
-                                let mut ok = true;
-                                for r in 0..m {
-                                    if !j_dy[r][i].is_zero()
-                                        && guard_dy[r] + j_dy[r][i] * diff_dy < min_slack_dy
-                                    {
-                                        ok = false;
-                                        break;
-                                    }
-                                }
-                                if ok {
-                                    let diff_rat = d_rat - &disc_rat[i];
-                                    if (&p.g[i] * &diff_rat).is_negative()
-                                        && (0..m).all(|r| {
-                                            !(&exact_guards[r] + &p.guards[r][i] * &diff_rat)
-                                                .is_negative()
-                                        })
-                                    {
-                                        for r in 0..m {
-                                            if !p.guards[r][i].is_zero() {
-                                                exact_guards[r] += &p.guards[r][i] * &diff_rat;
-                                                guard_dy[r] = dy(&exact_guards[r]);
-                                            }
-                                        }
-                                        *exact_obj += &p.g[i] * &diff_rat;
-                                        cur_q[i] = q;
-                                        disc_rat[i] = d_rat.clone();
-                                        disc_dy[i] = d_dy;
-                                        improved = true;
-                                    }
-                                }
+                        }
+                        let mut ok = true;
+                        for r in 0..m {
+                            if !j_dy[r][i].is_zero()
+                                && guard_dy[r] + j_dy[r][i] * diff_dy < min_slack_dy
+                            {
+                                ok = false;
+                                break;
+                            }
+                        }
+                        if ok {
+                            let diff_rat = d_rat - &disc_rat[i];
+                            if (&p.g[i] * &diff_rat).is_negative()
+                                && (0..m).all(|r| {
+                                    !(&exact_guards[r] + &p.guards[r][i] * &diff_rat).is_negative()
+                                })
+                            {
+                                best_cand = Some((q, d_rat.clone(), d_dy, gain_dy));
                             }
                         }
                     }
-                    if !improved {
-                        break;
+                }
+                if let Some((q, d_rat, d_dy, _)) = best_cand {
+                    let diff_rat = &d_rat - &disc_rat[i];
+                    for r in 0..m {
+                        if !p.guards[r][i].is_zero() {
+                            exact_guards[r] += &p.guards[r][i] * &diff_rat;
+                            guard_dy[r] = dy(&exact_guards[r]);
+                        }
+                    }
+                    *exact_obj += &p.g[i] * &diff_rat;
+                    cur_q[i] = q;
+                    disc_rat[i] = d_rat;
+                    disc_dy[i] = d_dy;
+                    improved = true;
+                }
+            }
+            if !improved {
+                break;
+            }
+        }
+
+        // 2-coefficient (pair) exact polish on blocked improving columns.
+        for _pair_pass in 0..6 {
+            let mut pair_improved = false;
+            let mut blocked_i1: Vec<(usize, i64, BigRational, Dy<P>, Dy<P>)> = Vec::new();
+            for i1 in 0..n {
+                let gi1 = g_dy[i1];
+                if gi1.is_zero() {
+                    continue;
+                }
+                let step_q = if gi1.is_negative() {
+                    cur_q[i1] + 1
+                } else {
+                    cur_q[i1] - 1
+                };
+                if !(-7..=7).contains(&step_q) {
+                    continue;
+                }
+                let (q1, ref d1_rat, d1_dy) = legal_deltas[i1][(step_q + 7) as usize];
+                let diff1_dy = d1_dy - disc_dy[i1];
+                let gain1_dy = gi1 * diff1_dy;
+                if gain1_dy.is_negative() {
+                    blocked_i1.push((i1, q1, d1_rat.clone(), d1_dy, gain1_dy));
+                }
+            }
+            blocked_i1.sort_by_key(|a| a.4);
+
+            for (i1, q1, d1_rat, d1_dy, gain1_dy) in blocked_i1 {
+                let diff1_dy = d1_dy - disc_dy[i1];
+                let mut viol_rows = Vec::new();
+                for r in 0..m {
+                    if !j_dy[r][i1].is_zero() {
+                        let new_s = guard_dy[r] + j_dy[r][i1] * diff1_dy;
+                        if new_s.is_negative() {
+                            viol_rows.push((r, new_s));
+                        }
                     }
                 }
-            };
-            run_polish(
-                &mut cur_q,
-                &mut disc_rat,
-                &mut disc_dy,
-                &mut exact_guards,
-                &mut guard_dy,
-                &mut exact_obj,
-            );
-            if exact_obj.is_positive() {
-                for (i, c) in cs.iter().enumerate() {
-                    cur_q[i] = c.q0;
-                    disc_rat[i] = BigRational::zero();
-                    disc_dy[i] = Dy::ZERO;
+                if viol_rows.is_empty() || viol_rows.len() > 8 {
+                    continue;
                 }
-                exact_guards.fill(BigRational::zero());
-                guard_dy.fill(Dy::ZERO);
-                exact_obj = BigRational::zero();
+                let mut best_pair: Option<(usize, i64, BigRational, Dy<P>, Dy<P>)> = None;
+                for i2 in 0..n {
+                    if i2 == i1 {
+                        continue;
+                    }
+                    let r0 = viol_rows[0].0;
+                    if j_dy[r0][i2].is_zero() {
+                        continue;
+                    }
+                    for step2 in [-1i64, 1i64] {
+                        let q2 = cur_q[i2] + step2;
+                        if !(-7..=7).contains(&q2) {
+                            continue;
+                        }
+                        let (_, ref d2_rat, d2_dy) = legal_deltas[i2][(q2 + 7) as usize];
+                        let diff2_dy = d2_dy - disc_dy[i2];
+                        let net_gain_dy = gain1_dy + g_dy[i2] * diff2_dy;
+                        if !net_gain_dy.is_negative() {
+                            continue;
+                        }
+                        if let Some((_, _, _, _, best_g)) = best_pair {
+                            if net_gain_dy >= best_g {
+                                continue;
+                            }
+                        }
+                        if viol_rows
+                            .iter()
+                            .any(|&(r, new_s)| new_s + j_dy[r][i2] * diff2_dy < min_slack_dy)
+                        {
+                            continue;
+                        }
+                        let mut all_ok = true;
+                        for r in 0..m {
+                            let s = guard_dy[r] + j_dy[r][i1] * diff1_dy + j_dy[r][i2] * diff2_dy;
+                            if s < min_slack_dy {
+                                all_ok = false;
+                                break;
+                            }
+                        }
+                        if all_ok {
+                            let diff1_rat = &d1_rat - &disc_rat[i1];
+                            let diff2_rat = d2_rat - &disc_rat[i2];
+                            let net_rat = &p.g[i1] * &diff1_rat + &p.g[i2] * &diff2_rat;
+                            if net_rat.is_negative()
+                                && (0..m).all(|r| {
+                                    !(&exact_guards[r]
+                                        + &p.guards[r][i1] * &diff1_rat
+                                        + &p.guards[r][i2] * &diff2_rat)
+                                        .is_negative()
+                                })
+                            {
+                                best_pair = Some((i2, q2, d2_rat.clone(), d2_dy, net_gain_dy));
+                            }
+                        }
+                    }
+                }
+                if let Some((i2, q2, d2_rat, d2_dy, _)) = best_pair {
+                    let diff1_rat = &d1_rat - &disc_rat[i1];
+                    let diff2_rat = &d2_rat - &disc_rat[i2];
+                    for r in 0..m {
+                        if !p.guards[r][i1].is_zero() || !p.guards[r][i2].is_zero() {
+                            exact_guards[r] +=
+                                &p.guards[r][i1] * &diff1_rat + &p.guards[r][i2] * &diff2_rat;
+                            guard_dy[r] = dy(&exact_guards[r]);
+                        }
+                    }
+                    *exact_obj += &p.g[i1] * &diff1_rat + &p.g[i2] * &diff2_rat;
+                    cur_q[i1] = q1;
+                    disc_rat[i1] = d1_rat;
+                    disc_dy[i1] = d1_dy;
+                    cur_q[i2] = q2;
+                    disc_rat[i2] = d2_rat;
+                    disc_dy[i2] = d2_dy;
+                    pair_improved = true;
+                }
+            }
+            if !pair_improved {
+                break;
+            }
+        }
+    };
+
+    let schedules: &[(i32, i64, i64)] = if m >= 64 {
+        &[(-17, 17, 16), (-16, 9, 8), (-15, 9, 8), (-13, 5, 4)]
+    } else {
+        &[(-13, 5, 4)]
+    };
+
+    struct DiscreteCandidate {
+        codes: Vec<i64>,
+        deltas: Vec<BigRational>,
+        guards: Vec<BigRational>,
+        objective: BigRational,
+    }
+
+    let mut best_sol: Option<DiscreteCandidate> = None;
+
+    for &(pad_exp, scale_num, scale_den) in schedules {
+        let bump_pad = Dy::<P>::ONE.ldexp(pad_exp);
+        let bump_scale = Dy::<P>::from_rational(&BigRational::new(
+            BigInt::from(scale_num),
+            BigInt::from(scale_den),
+        ));
+        let mut s_basis = basis.clone();
+        let mut s_st = st.clone();
+        let mut s_x = x.clone();
+        let mut s_binv = binv.clone();
+        let mut s_pi = pi.clone();
+        let mut b_rhs = vec![Dy::<P>::ZERO; m];
+
+        for iter in 0..60 {
+            if iter > 0 {
+                let mut iter_stats = SearchStats::default();
+                if dual_simplex_run::<P>(
+                    n,
+                    m,
+                    &cols,
+                    &cost,
+                    &lo,
+                    &up,
+                    &b_rhs,
+                    &mut s_basis,
+                    &mut s_st,
+                    &mut s_x,
+                    &mut s_binv,
+                    &mut s_pi,
+                    100_000,
+                    &mut iter_stats,
+                    None,
+                )
+                .is_err()
+                {
+                    break;
+                }
+                total_pivots += iter_stats.pivots;
+            }
+
+            let mut cur_q = vec![0i64; n];
+            let mut disc_rat = Vec::with_capacity(n);
+            let mut disc_dy = vec![Dy::<P>::ZERO; n];
+            for i in 0..n {
+                let xi = s_x[i];
+                let best = legal_deltas[i]
+                    .iter()
+                    .min_by(|a, b| (a.2 - xi).abs().cmp(&(b.2 - xi).abs()))
+                    .expect("15 legal deltas");
+                cur_q[i] = best.0;
+                disc_rat.push(best.1.clone());
+                disc_dy[i] = best.2;
+            }
+
+            let mut n_viol = 0usize;
+            let mut guard_dy = vec![Dy::<P>::ZERO; m];
+            for r in 0..m {
+                let mut s = Dy::<P>::ZERO;
+                for i in 0..n {
+                    if !disc_dy[i].is_zero() && !j_dy[r][i].is_zero() {
+                        s = s + j_dy[r][i] * disc_dy[i];
+                    }
+                }
+                guard_dy[r] = s;
+                if s.is_negative() {
+                    n_viol += 1;
+                    let bump = (-s) * bump_scale + bump_pad;
+                    b_rhs[r] = b_rhs[r] - bump;
+                }
+            }
+
+            if n_viol == 0 {
+                let mut exact_guards = vec![BigRational::zero(); m];
+                for (r, eg) in exact_guards.iter_mut().enumerate() {
+                    let mut s = BigRational::zero();
+                    for (i, dr) in disc_rat.iter().enumerate() {
+                        if !dr.is_zero() {
+                            s += &p.guards[r][i] * dr;
+                        }
+                    }
+                    *eg = s;
+                }
+                if exact_guards.iter().any(|g| g.is_negative()) {
+                    for (r, eg) in exact_guards.iter().enumerate() {
+                        if eg.is_negative() {
+                            let s_dy = dy(eg);
+                            let bump = (-s_dy) * bump_scale + bump_pad;
+                            b_rhs[r] = b_rhs[r] - bump;
+                        }
+                    }
+                    continue;
+                }
+                let mut exact_obj = BigRational::zero();
+                for (i, dr) in disc_rat.iter().enumerate() {
+                    if !dr.is_zero() {
+                        exact_obj += &p.g[i] * dr;
+                    }
+                }
                 run_polish(
                     &mut cur_q,
                     &mut disc_rat,
@@ -1727,53 +2006,94 @@ pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpR
                     &mut guard_dy,
                     &mut exact_obj,
                 );
-            }
-
-            // Independent from-scratch recomputation over BigRational.
-            let mut recomputed_guards = vec![BigRational::zero(); m];
-            for (r, row) in p.guards.iter().enumerate() {
-                let mut s = BigRational::zero();
-                for (i, jv) in row.iter().enumerate() {
-                    if !disc_rat[i].is_zero() && !jv.is_zero() {
-                        s += jv * &disc_rat[i];
+                if exact_obj.is_positive() {
+                    for (i, c) in cs.iter().enumerate() {
+                        cur_q[i] = c.q0;
+                        disc_rat[i] = BigRational::zero();
+                        disc_dy[i] = Dy::ZERO;
                     }
+                    exact_guards.fill(BigRational::zero());
+                    guard_dy.fill(Dy::ZERO);
+                    exact_obj = BigRational::zero();
+                    run_polish(
+                        &mut cur_q,
+                        &mut disc_rat,
+                        &mut disc_dy,
+                        &mut exact_guards,
+                        &mut guard_dy,
+                        &mut exact_obj,
+                    );
                 }
-                if s.is_negative() {
-                    return Err(format!("independent guard check failed on row {r}"));
+                if best_sol
+                    .as_ref()
+                    .is_none_or(|cand| exact_obj < cand.objective)
+                {
+                    best_sol = Some(DiscreteCandidate {
+                        codes: cur_q,
+                        deltas: disc_rat,
+                        guards: exact_guards,
+                        objective: exact_obj,
+                    });
                 }
-                recomputed_guards[r] = s;
+                break;
             }
-            let full_guard_vector_matches = recomputed_guards == exact_guards;
-            if !full_guard_vector_matches {
-                return Err("independent guard vector differs from incremental".into());
-            }
-            let recomputed_obj =
-                p.g.iter()
-                    .zip(&disc_rat)
-                    .fold(BigRational::zero(), |s, (gi, di)| s + gi * di);
-            if recomputed_obj != exact_obj {
-                return Err("independent objective differs from incremental".into());
-            }
-            let active_guards = recomputed_guards.iter().filter(|g| g.is_zero()).count();
-            let guard_min = recomputed_guards
-                .into_iter()
-                .min()
-                .unwrap_or_else(BigRational::zero);
-            let moved_coeffs = disc_rat.iter().filter(|d| !d.is_zero()).count();
-
-            return Ok(DiscreteLpResult {
-                delta_lp_basis: basis_iter0.expect("iter 0 ran"),
-                dual_y: dual_y_iter0,
-                codes: cur_q,
-                deltas: disc_rat,
-                objective: recomputed_obj,
-                guard_min,
-                active_guards,
-                moved_coeffs,
-                full_guard_vector_matches,
-                total_pivots,
-            });
         }
     }
-    Err("LP-guided margin loop did not reach a guard-feasible discrete assignment".into())
+
+    let Some(DiscreteCandidate {
+        codes: cur_q,
+        deltas: disc_rat,
+        guards: exact_guards,
+        objective: exact_obj,
+    }) = best_sol
+    else {
+        return Err(
+            "LP-guided margin loop did not reach a guard-feasible discrete assignment".into(),
+        );
+    };
+
+    // Independent from-scratch recomputation over BigRational.
+    let mut recomputed_guards = vec![BigRational::zero(); m];
+    for (r, row) in p.guards.iter().enumerate() {
+        let mut s = BigRational::zero();
+        for (i, jv) in row.iter().enumerate() {
+            if !disc_rat[i].is_zero() && !jv.is_zero() {
+                s += jv * &disc_rat[i];
+            }
+        }
+        if s.is_negative() {
+            return Err(format!("independent guard check failed on row {r}"));
+        }
+        recomputed_guards[r] = s;
+    }
+    let full_guard_vector_matches = recomputed_guards == exact_guards;
+    if !full_guard_vector_matches {
+        return Err("independent guard vector differs from incremental".into());
+    }
+    let recomputed_obj =
+        p.g.iter()
+            .zip(&disc_rat)
+            .fold(BigRational::zero(), |s, (gi, di)| s + gi * di);
+    if recomputed_obj != exact_obj {
+        return Err("independent objective differs from incremental".into());
+    }
+    let active_guards = recomputed_guards.iter().filter(|g| g.is_zero()).count();
+    let guard_min = recomputed_guards
+        .into_iter()
+        .min()
+        .unwrap_or_else(BigRational::zero);
+    let moved_coeffs = disc_rat.iter().filter(|d| !d.is_zero()).count();
+
+    Ok(DiscreteLpResult {
+        delta_lp_basis: basis_iter0,
+        dual_y: dual_y_iter0,
+        codes: cur_q,
+        deltas: disc_rat,
+        objective: recomputed_obj,
+        guard_min,
+        active_guards,
+        moved_coeffs,
+        full_guard_vector_matches,
+        total_pivots,
+    })
 }

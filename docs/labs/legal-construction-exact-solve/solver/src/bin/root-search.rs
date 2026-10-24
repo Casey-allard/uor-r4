@@ -85,23 +85,41 @@ fn main() -> ExitCode {
     let disc = search::lp_guided_discrete_solve::<120>(&p);
     let disc_ms = t_disc.elapsed().as_millis() as u64;
 
-    let (delta_lp_json, lagrangian_bound_str, discrete_json) = match disc {
+    let (delta_lp_json, lagrangian_bound_str, rcbt_json, discrete_json) = match disc {
         Ok(d) => {
             let t_dlp = Instant::now();
-            let dlp_cert = blp::certify_basis(&delta_lp, &d.delta_lp_basis);
+            let dlp_cert = blp::certify_basis_with_dual(&delta_lp, &d.delta_lp_basis);
             let dlp_ms = t_dlp.elapsed().as_millis() as u64;
-            let (dlp_ok, dlp_obj, dlp_err) = match dlp_cert {
-                Ok(LpResult::Optimal { objective, .. }) => {
-                    (true, Some(objective.to_string()), None)
-                }
-                Ok(LpResult::Infeasible) => {
-                    (false, None, Some("certificate: infeasible".to_string()))
-                }
-                Err(e) => (false, None, Some(format!("certificate: {e}"))),
+            let (dlp_ok, dlp_obj, dlp_err, exact_y) = match dlp_cert {
+                Ok((LpResult::Optimal { objective, .. }, pi)) => (
+                    true,
+                    Some(objective.to_string()),
+                    None,
+                    Some(pi.into_iter().map(|v| -v).collect::<Vec<_>>()),
+                ),
+                Ok((LpResult::Infeasible, _)) => (
+                    false,
+                    None,
+                    Some("certificate: infeasible".to_string()),
+                    None,
+                ),
+                Err(e) => (false, None, Some(format!("certificate: {e}")), None),
             };
-            let lag_bound = search::certify_lagrangian_dual_bound(&p, &d.dual_y)
+            let dual_y_ref = exact_y.as_deref().unwrap_or(&d.dual_y);
+            let lag_bound = search::certify_lagrangian_dual_bound(&p, dual_y_ref)
                 .ok()
                 .map(|b| b.to_string());
+            let rcbt = match search::certify_reduced_cost_fixing(&p, dual_y_ref, &d.objective) {
+                Ok(r) => json!({
+                    "fixed_coeffs": r.fixed_coeffs,
+                    "binary_or_fixed_coeffs": r.binary_or_fixed_coeffs,
+                    "eliminated_codes": r.eliminated_codes,
+                    "total_codes": r.total_codes,
+                    "gap": r.gap.to_string(),
+                    "dual_bound_matches_delta_hull_lp": lag_bound == dlp_obj,
+                }),
+                Err(e) => json!({ "error": e }),
+            };
             let changed: Vec<serde_json::Value> = d
                 .codes
                 .iter()
@@ -122,6 +140,7 @@ fn main() -> ExitCode {
                     "reason": dlp_err,
                 }),
                 lag_bound,
+                rcbt,
                 json!({
                     "solve_ms": disc_ms,
                     "total_pivots": d.total_pivots,
@@ -137,6 +156,7 @@ fn main() -> ExitCode {
         Err(e) => (
             json!({ "certified": false, "reason": e }),
             None,
+            json!({ "error": e }),
             json!({ "error": e }),
         ),
     };
@@ -156,6 +176,7 @@ fn main() -> ExitCode {
         "reason": reason,
         "delta_hull_lp": delta_lp_json,
         "lagrangian_dual_bound": lagrangian_bound_str,
+        "reduced_cost_fixing": rcbt_json,
         "discrete_solution": discrete_json,
     });
     println!("{}", serde_json::to_string_pretty(&out).expect("json"));

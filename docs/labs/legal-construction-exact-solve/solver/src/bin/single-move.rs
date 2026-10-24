@@ -106,7 +106,7 @@ fn main() -> ExitCode {
     let mut census = Census::default();
     let mut best_single: Option<(usize, i64, BigRational, BigRational)> = None;
     let t = Instant::now();
-    for i in 0..n {
+    for (i, coeff) in coeffs.iter().enumerate() {
         let (has_pos, has_neg) = column_has(&problem.guards, i);
         let pos_ok = !has_neg;
         let neg_ok = !has_pos;
@@ -119,7 +119,7 @@ fn main() -> ExitCode {
         if pos_ok || neg_ok {
             census.movable += 1;
         }
-        for (q, delta) in destinations(&coeffs[i]) {
+        for (q, delta) in destinations(coeff) {
             if delta.is_zero() {
                 continue;
             }
@@ -128,10 +128,7 @@ fn main() -> ExitCode {
                 continue;
             }
             let contribution = &problem.g[i] * &delta;
-            if contribution.is_negative()
-                && best_single
-                    .as_ref()
-                    .is_none_or(|b| contribution < b.3)
+            if contribution.is_negative() && best_single.as_ref().is_none_or(|b| contribution < b.3)
             {
                 best_single = Some((i, q, delta, contribution));
             }
@@ -186,16 +183,16 @@ fn main() -> ExitCode {
             let mut low: Option<BigRational> = None;
             let mut high: Option<BigRational> = None;
             let mut infeasible = false;
-            for j in 0..guards {
+            for (j, sj) in slack.iter().enumerate() {
                 let a = &problem.guards[j][i];
                 if a.is_zero() {
-                    if slack[j].is_negative() {
+                    if sj.is_negative() {
                         infeasible = true;
                         break;
                     }
                     continue;
                 }
-                let bound = -&slack[j] / a;
+                let bound = -sj / a;
                 if a.is_positive() {
                     if low.as_ref().is_none_or(|l| bound > *l) {
                         low = Some(bound);
@@ -219,9 +216,7 @@ fn main() -> ExitCode {
                     continue;
                 }
                 let contribution = &problem.g[i] * &change;
-                if contribution.is_negative()
-                    && best.as_ref().is_none_or(|b| contribution < b.3)
-                {
+                if contribution.is_negative() && best.as_ref().is_none_or(|b| contribution < b.3) {
                     best = Some((i, q, destination, contribution));
                 }
             }
@@ -236,8 +231,8 @@ fn main() -> ExitCode {
             .map(|(_, d)| d.clone())
             .unwrap_or_else(BigRational::zero);
         let change = &destination - &current;
-        for j in 0..guards {
-            slack[j] += &problem.guards[j][i] * &change;
+        for (j, sj) in slack.iter_mut().enumerate() {
+            *sj += &problem.guards[j][i] * &change;
         }
         objective += &contribution;
         chosen[i] = Some((q, destination));
@@ -300,9 +295,8 @@ fn main() -> ExitCode {
         .iter()
         .enumerate()
         .filter_map(|(i, c)| {
-            c.as_ref().map(|(q, delta)| {
-                format!("{{\"i\":{i},\"q\":{q},\"delta\":\"{}\"}}", frac(delta))
-            })
+            c.as_ref()
+                .map(|(q, delta)| format!("{{\"i\":{i},\"q\":{q},\"delta\":\"{}\"}}", frac(delta)))
         })
         .collect();
     println!("assignment_moved={} {}", moved.len(), moved.join(","));

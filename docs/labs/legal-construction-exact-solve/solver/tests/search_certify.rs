@@ -328,16 +328,32 @@ fn lagrangian_dual_bound_rejects_negative_multiplier_and_wrong_length() {
 }
 
 #[test]
+fn reduced_cost_fixing_rejects_negative_multiplier_and_invalid_upper_bound() {
+    let p = &controls()[0];
+    let u = BigRational::zero();
+    assert!(search::certify_reduced_cost_fixing(p, &[q(-1, 4)], &u).is_err());
+    assert!(search::certify_reduced_cost_fixing(p, &[], &u).is_err());
+    let zero_bound = search::certify_lagrangian_dual_bound(p, &[q(0, 1)]).expect("y=0 valid");
+    let invalid_u = &zero_bound - q(1, 4);
+    assert!(search::certify_reduced_cost_fixing(p, &[q(0, 1)], &invalid_u).is_err());
+    let valid_rcbt =
+        search::certify_reduced_cost_fixing(p, &[q(0, 1)], &u).expect("y=0, u=0 valid");
+    assert_eq!(valid_rcbt.lower_bound, zero_bound);
+    assert_eq!(valid_rcbt.total_codes, p.n() * 15);
+}
+
+#[test]
 fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
     let mut problems = controls();
     problems.extend((0..60).map(instance));
     let mut certified_delta_hull = 0usize;
     let mut discrete_checked = 0usize;
+    let mut total_eliminated_codes = 0usize;
     for (idx, p) in problems.iter().enumerate() {
         let dlp = search::delta_hull_lp(p);
         let (found_dual, _stats) = search::search_dual::<120>(&dlp, MAX_PIVOTS, None);
         let found_dual = found_dual.unwrap_or_else(|e| panic!("problem {idx} dual search: {e}"));
-        let cert = blp::certify_basis(&dlp, &found_dual.basis)
+        let (cert, pi) = blp::certify_basis_with_dual(&dlp, &found_dual.basis)
             .unwrap_or_else(|e| panic!("problem {idx} delta_hull_lp certify: {e}"));
         let LpResult::Optimal {
             objective: dlp_obj, ..
@@ -353,6 +369,13 @@ fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
             panic!("problem {idx}: blp delta_hull_lp not optimal");
         };
         assert_eq!(dlp_obj, want_dlp, "problem {idx}: delta_hull_lp mismatch");
+        let exact_y: Vec<BigRational> = pi.into_iter().map(|v| -v).collect();
+        let exact_lag = search::certify_lagrangian_dual_bound(p, &exact_y)
+            .unwrap_or_else(|e| panic!("problem {idx} exact_y lagrangian bound: {e}"));
+        assert_eq!(
+            exact_lag, want_dlp,
+            "problem {idx}: exact Lagrangian dual bound {exact_lag} != delta_hull_lp {want_dlp}"
+        );
         certified_delta_hull += 1;
 
         let bb_res = bb::solve(p, 100_000);
@@ -385,10 +408,24 @@ fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
                 "problem {idx}: lagrangian bound {lag} > discrete optimum {}",
                 bb_res.objective
             );
-            let iter0_cert = blp::certify_basis(&dlp, &disc.delta_lp_basis)
+            let (iter0_cert, iter0_pi) = blp::certify_basis_with_dual(&dlp, &disc.delta_lp_basis)
                 .expect("iter0 delta_lp basis must certify");
             if let LpResult::Optimal { objective, .. } = iter0_cert {
                 assert_eq!(objective, want_dlp);
+            }
+            let iter0_y: Vec<BigRational> = iter0_pi.into_iter().map(|v| -v).collect();
+            let rcbt = search::certify_reduced_cost_fixing(p, &iter0_y, &disc.objective)
+                .unwrap_or_else(|e| panic!("problem {idx} rcbt: {e}"));
+            assert_eq!(rcbt.lower_bound, want_dlp);
+            total_eliminated_codes += rcbt.eliminated_codes;
+            for (i, c) in p.coeffs().iter().enumerate() {
+                let opt_k = i64::try_from(&bb_res.assignment.k[i]).expect("i64 step");
+                let opt_q = c.q0 + opt_k;
+                assert!(
+                    rcbt.surviving_codes[i].contains(&opt_q),
+                    "problem {idx} coeff {i}: optimal code {opt_q} eliminated by rcbt {:?}",
+                    rcbt.surviving_codes[i]
+                );
             }
             discrete_checked += 1;
         }
@@ -397,5 +434,9 @@ fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
     assert!(
         discrete_checked > 50,
         "only {discrete_checked} discrete solves"
+    );
+    assert!(
+        total_eliminated_codes > 0,
+        "rcbt eliminated 0 codes across suite"
     );
 }
