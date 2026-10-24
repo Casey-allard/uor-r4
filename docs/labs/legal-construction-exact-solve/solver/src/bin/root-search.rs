@@ -19,9 +19,23 @@ const MAX_PIVOTS: usize = 10_000_000;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() != 2 {
-        eprintln!("usage: root-search <dir>");
+    if args.len() != 2 && args.len() != 4 {
+        eprintln!("usage: root-search <dir> [--disjunctive-leaves <N>]");
         return ExitCode::from(2);
+    }
+    let mut disjunctive_leaves: usize = 24;
+    if args.len() == 4 {
+        if args[2] != "--disjunctive-leaves" {
+            eprintln!("usage: root-search <dir> [--disjunctive-leaves <N>]");
+            return ExitCode::from(2);
+        }
+        match args[3].parse::<usize>() {
+            Ok(n) => disjunctive_leaves = n,
+            Err(e) => {
+                eprintln!("error: invalid --disjunctive-leaves {}: {e}", args[3]);
+                return ExitCode::from(2);
+            }
+        }
     }
     let (loaded, verified_files) = match case::load_verified(Path::new(&args[1])) {
         Ok(v) => v,
@@ -110,13 +124,19 @@ fn main() -> ExitCode {
                 .ok()
                 .map(|b| b.to_string());
             let gap_decomp = search::certify_gap_decomposition(&p, dual_y_ref, &d.codes).ok();
-            let disj_split = search::certify_disjunctive_split_bound_with_dual::<120>(
-                &p,
-                &d.objective,
-                24,
-                Some(dual_y_ref),
-            )
-            .ok();
+            let t_disj = Instant::now();
+            let disj_split = if disjunctive_leaves > 0 {
+                search::certify_disjunctive_split_bound_with_dual::<120>(
+                    &p,
+                    &d.objective,
+                    disjunctive_leaves,
+                    Some(dual_y_ref),
+                )
+                .ok()
+            } else {
+                None
+            };
+            let disj_ms = t_disj.elapsed().as_millis() as u64;
             let rcbt = match search::certify_reduced_cost_fixing(&p, dual_y_ref, &d.objective) {
                 Ok(r) => json!({
                     "fixed_coeffs": r.fixed_coeffs,
@@ -129,6 +149,7 @@ fn main() -> ExitCode {
                     "complementary_slackness_loss": gap_decomp.as_ref().map(|g| g.complementary_slackness_loss.to_string()),
                     "zero_reduced_cost_coeffs": gap_decomp.as_ref().map(|g| g.zero_reduced_cost_coeffs),
                     "gap_identity_holds": gap_decomp.as_ref().map(|g| g.identity_holds),
+                    "disjunctive_ms": disj_ms,
                     "disjunctive_single_split_bound": disj_split.as_ref().map(|s| s.best_single_split_bound.to_string()),
                     "disjunctive_single_split_gain": disj_split.as_ref().map(|s| s.single_split_gain.to_string()),
                     "disjunctive_best_split_coeff": disj_split.as_ref().map(|s| s.best_split_coeff),

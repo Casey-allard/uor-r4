@@ -1732,6 +1732,11 @@ pub fn certify_domain_dual_bound(
             code_bounds.len()
         ));
     }
+    let nz_y: Vec<(usize, &BigRational)> = y
+        .iter()
+        .enumerate()
+        .filter(|(_, yr)| !yr.is_zero())
+        .collect();
     let mut bound = BigRational::zero();
     for (i, c) in cs.iter().enumerate() {
         let (q_lo, q_hi) = code_bounds[i];
@@ -1741,9 +1746,10 @@ pub fn certify_domain_dual_bound(
             ));
         }
         let mut rc = p.g[i].clone();
-        for (r, yr) in y.iter().enumerate() {
-            if !yr.is_zero() && !p.guards[r][i].is_zero() {
-                rc -= yr * &p.guards[r][i];
+        for &(r, yr) in &nz_y {
+            let g_ri = &p.guards[r][i];
+            if !g_ri.is_zero() {
+                rc -= yr * g_ri;
             }
         }
         let mut best_i: Option<BigRational> = None;
@@ -1830,16 +1836,11 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
     }
     let n = p.n();
     let m = p.guards.len();
-    if let Some(ext_y) = extra_root_y {
-        if ext_y.len() != m {
-            return Err(format!("extra_root_y len {} != guards {m}", ext_y.len()));
-        }
-        for (r, yr) in ext_y.iter().enumerate() {
-            if yr.is_negative() {
-                return Err(format!("negative extra_root_y at row {r}"));
-            }
-        }
-    }
+    let root_bounds = vec![(-7i64, 7i64); n];
+    let ext_root_lb = match extra_root_y {
+        Some(ext_y) => Some(certify_domain_dual_bound(p, ext_y, &root_bounds)?),
+        None => None,
+    };
     let cs = p.coeffs();
     let dy = |v: &BigRational| Dy::<P>::from_rational(v);
 
@@ -1940,7 +1941,6 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
             .collect()
     };
 
-    let root_bounds = vec![(-7i64, 7i64); n];
     let mut root_y = extract_y(&pi);
     let mut root_lower_bound = certify_domain_dual_bound(p, &root_y, &root_bounds)?;
     if m <= 64 {
@@ -1977,13 +1977,192 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
             }
         }
     }
-    if let Some(ext_y) = extra_root_y {
-        let ext_lb = certify_domain_dual_bound(p, ext_y, &root_bounds)?;
+    if let (Some(ext_y), Some(ext_lb)) = (extra_root_y, ext_root_lb) {
         if ext_lb > root_lower_bound {
             root_y = ext_y.to_vec();
             root_lower_bound = ext_lb;
         }
     }
+
+    fn dyadic_decomp(q: &BigRational) -> Option<(&BigInt, u64)> {
+        if q.is_zero() {
+            return Some((q.numer(), 0));
+        }
+        let d = q.denom();
+        let tz = d.trailing_zeros()?;
+        if d.bits() == tz + 1 {
+            Some((q.numer(), tz))
+        } else {
+            None
+        }
+    }
+
+    fn dyadic_to_rational(num: BigInt, exp: u64) -> BigRational {
+        if num.is_zero() || exp == 0 {
+            return BigRational::from_integer(num);
+        }
+        let tz = num.trailing_zeros().unwrap_or(0);
+        let common = tz.min(exp);
+        let shifted_num = if common > 0 { num >> common } else { num };
+        let rem_exp = exp - common;
+        if rem_exp == 0 {
+            BigRational::from_integer(shifted_num)
+        } else {
+            BigRational::new(shifted_num, BigInt::from(1u8) << rem_exp)
+        }
+    }
+
+    struct DyadicProblem {
+        max_g_exp: u64,
+        g_scaled: Vec<BigInt>,
+        guards_scaled: Vec<Vec<(usize, BigInt)>>,
+    }
+
+    let dyadic_prob: Option<DyadicProblem> = (|| {
+        let mut max_g_exp = 0u64;
+        for g_i in &p.g {
+            let (_, exp) = dyadic_decomp(g_i)?;
+            if exp > 256 {
+                return None;
+            }
+            max_g_exp = max_g_exp.max(exp);
+        }
+        for row in &p.guards {
+            for g_ri in row {
+                if !g_ri.is_zero() {
+                    let (_, exp) = dyadic_decomp(g_ri)?;
+                    if exp > 256 {
+                        return None;
+                    }
+                    max_g_exp = max_g_exp.max(exp);
+                }
+            }
+        }
+        let g_scaled: Vec<BigInt> =
+            p.g.iter()
+                .map(|g_i| {
+                    let (num, exp) = dyadic_decomp(g_i).expect("checked dyadic g");
+                    if num.is_zero() {
+                        BigInt::zero()
+                    } else {
+                        num << (max_g_exp - exp)
+                    }
+                })
+                .collect();
+        let guards_scaled: Vec<Vec<(usize, BigInt)>> = p
+            .guards
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .enumerate()
+                    .filter(|(_, g_ri)| !g_ri.is_zero())
+                    .map(|(i, g_ri)| {
+                        let (num, exp) = dyadic_decomp(g_ri).expect("checked dyadic guard");
+                        (i, num << (max_g_exp - exp))
+                    })
+                    .collect()
+            })
+            .collect();
+        Some(DyadicProblem {
+            max_g_exp,
+            g_scaled,
+            guards_scaled,
+        })
+    })();
+
+    let compute_rc = |y_slice: &[BigRational]| -> Vec<BigRational> {
+        if let Some(dp) = &dyadic_prob {
+            let mut dyadic_y: Vec<(usize, &BigInt, u64)> = Vec::new();
+            let mut non_dyadic_y: Vec<(usize, &BigRational)> = Vec::new();
+            let mut max_y_exp = 0u64;
+            for (r, yr) in y_slice.iter().enumerate() {
+                if yr.is_zero() {
+                    continue;
+                }
+                if let Some((num, exp)) = dyadic_decomp(yr) {
+                    if exp <= 512 {
+                        max_y_exp = max_y_exp.max(exp);
+                        dyadic_y.push((r, num, exp));
+                        continue;
+                    }
+                }
+                non_dyadic_y.push((r, yr));
+            }
+            let mut acc: Vec<BigInt> = dp
+                .g_scaled
+                .iter()
+                .map(|g_i| {
+                    if g_i.is_zero() {
+                        BigInt::zero()
+                    } else {
+                        g_i << max_y_exp
+                    }
+                })
+                .collect();
+            for (r, yr_num, yr_exp) in dyadic_y {
+                let y_scaled: BigInt = yr_num << (max_y_exp - yr_exp);
+                for &(i, ref a_scaled) in &dp.guards_scaled[r] {
+                    acc[i] -= &y_scaled * a_scaled;
+                }
+            }
+            let total_exp = dp.max_g_exp + max_y_exp;
+            let mut rc_vec: Vec<BigRational> = acc
+                .into_iter()
+                .map(|num| dyadic_to_rational(num, total_exp))
+                .collect();
+            for (r, yr) in non_dyadic_y {
+                let row = &p.guards[r];
+                for (i, g_ri) in row.iter().enumerate() {
+                    if !g_ri.is_zero() {
+                        rc_vec[i] -= yr * g_ri;
+                    }
+                }
+            }
+            return rc_vec;
+        }
+        let nz_y: Vec<(usize, &BigRational)> = y_slice
+            .iter()
+            .enumerate()
+            .filter(|(_, yr)| !yr.is_zero())
+            .collect();
+        let mut rc_vec = p.g.clone();
+        for &(r, yr) in &nz_y {
+            let row = &p.guards[r];
+            for (i, g_ri) in row.iter().enumerate() {
+                if !g_ri.is_zero() {
+                    rc_vec[i] -= yr * g_ri;
+                }
+            }
+        }
+        rc_vec
+    };
+
+    let term_best_for = |i: usize, rc_i: &BigRational, (q_lo, q_hi): (i64, i64)| -> BigRational {
+        if rc_i.is_zero() {
+            return BigRational::zero();
+        }
+        let slice = &legal_deltas[i][((q_lo + 7) as usize)..=((q_hi + 7) as usize)];
+        let extreme_delta = if rc_i.is_positive() {
+            slice
+                .iter()
+                .map(|(_, d, _)| d)
+                .min()
+                .expect("non-empty code interval")
+        } else {
+            slice
+                .iter()
+                .map(|(_, d, _)| d)
+                .max()
+                .expect("non-empty code interval")
+        };
+        if extreme_delta.is_zero() {
+            BigRational::zero()
+        } else {
+            rc_i * extreme_delta
+        }
+    };
+
+    let root_rc = compute_rc(&root_y);
 
     #[derive(Clone)]
     struct SplitLeaf<const P: u32> {
@@ -1995,7 +2174,7 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
         x: Vec<Dy<P>>,
         binv: Vec<Vec<Dy<P>>>,
         pi: Vec<Dy<P>>,
-        y: Vec<BigRational>,
+        rc: Vec<BigRational>,
         certified_bound: BigRational,
     }
 
@@ -2006,7 +2185,9 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
      -> Result<SplitLeaf<P>, String> {
         let mut child_bounds = parent.code_bounds.clone();
         child_bounds[bv] = new_q_range;
-        let fallback_bound = certify_domain_dual_bound(p, &parent.y, &child_bounds)?;
+        let old_term_bv = term_best_for(bv, &parent.rc[bv], parent.code_bounds[bv]);
+        let new_term_bv = term_best_for(bv, &parent.rc[bv], new_q_range);
+        let fallback_bound = &parent.certified_bound - &old_term_bv + &new_term_bv;
 
         let mut c_lo = parent.lo.clone();
         let mut c_up = parent.up.clone();
@@ -2042,22 +2223,39 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
         )
         .is_ok()
         {
+            if c_pi == parent.pi {
+                return Ok(SplitLeaf {
+                    code_bounds: child_bounds,
+                    lo: c_lo,
+                    up: c_up,
+                    basis: c_basis,
+                    st: c_st,
+                    x: c_x,
+                    binv: c_binv,
+                    pi: c_pi,
+                    rc: parent.rc.clone(),
+                    certified_bound: fallback_bound,
+                });
+            }
             let cand_y = extract_y(&c_pi);
-            if let Ok(cand_bound) = certify_domain_dual_bound(p, &cand_y, &child_bounds) {
-                if cand_bound >= fallback_bound {
-                    return Ok(SplitLeaf {
-                        code_bounds: child_bounds,
-                        lo: c_lo,
-                        up: c_up,
-                        basis: c_basis,
-                        st: c_st,
-                        x: c_x,
-                        binv: c_binv,
-                        pi: c_pi,
-                        y: cand_y,
-                        certified_bound: cand_bound,
-                    });
-                }
+            let cand_rc = compute_rc(&cand_y);
+            let mut cand_bound = BigRational::zero();
+            for i in 0..n {
+                cand_bound += term_best_for(i, &cand_rc[i], child_bounds[i]);
+            }
+            if cand_bound >= fallback_bound {
+                return Ok(SplitLeaf {
+                    code_bounds: child_bounds,
+                    lo: c_lo,
+                    up: c_up,
+                    basis: c_basis,
+                    st: c_st,
+                    x: c_x,
+                    binv: c_binv,
+                    pi: c_pi,
+                    rc: cand_rc,
+                    certified_bound: cand_bound,
+                });
             }
         }
         Ok(SplitLeaf {
@@ -2069,7 +2267,7 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
             x: parent.x.clone(),
             binv: parent.binv.clone(),
             pi: parent.pi.clone(),
-            y: parent.y.clone(),
+            rc: parent.rc.clone(),
             certified_bound: fallback_bound,
         })
     };
@@ -2107,7 +2305,7 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
         x,
         binv,
         pi,
-        y: root_y.clone(),
+        rc: root_rc.clone(),
         certified_bound: root_lower_bound.clone(),
     };
 
@@ -2205,20 +2403,6 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
     // only if at least one leaf l in the partition has q in [q_lo_l, q_hi_l] and
     // L(y, B^(l)) + pen_i(y, B^(l), q) <= U for y = root_y, y = leaf.y, and (if provided)
     // y = extra_root_y.
-    let compute_rc = |y_slice: &[BigRational]| -> Vec<BigRational> {
-        let mut rc_vec = Vec::with_capacity(n);
-        for i in 0..n {
-            let mut rc = p.g[i].clone();
-            for (r, yr) in y_slice.iter().enumerate() {
-                if !yr.is_zero() && !p.guards[r][i].is_zero() {
-                    rc -= yr * &p.guards[r][i];
-                }
-            }
-            rc_vec.push(rc);
-        }
-        rc_vec
-    };
-    let root_rc = compute_rc(&root_y);
     let extra_rc = extra_root_y.map(compute_rc);
 
     let eval_rc_mask =
@@ -2231,12 +2415,10 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
                 let mut best_i: Option<BigRational> = None;
                 let mut contribs = Vec::with_capacity((q_hi - q_lo + 1) as usize);
                 for q in q_lo..=q_hi {
-                    let contrib = if q == c.q0 {
+                    let contrib = if q == c.q0 || rc.is_zero() {
                         BigRational::zero()
                     } else {
-                        let delta =
-                            BigRational::new(BigInt::from(q - c.q0), BigInt::from(4)) + &c.shift;
-                        rc * &delta
+                        rc * &legal_deltas[i][(q + 7) as usize].1
                     };
                     if best_i.as_ref().is_none_or(|b| &contrib < b) {
                         best_i = Some(contrib.clone());
@@ -2271,8 +2453,7 @@ pub fn certify_disjunctive_split_bound_with_dual<const P: u32>(
         let Some(root_leaf_mask) = eval_rc_mask(&root_rc, &leaf.code_bounds) else {
             continue;
         };
-        let leaf_rc = compute_rc(&leaf.y);
-        let Some(leaf_y_mask) = eval_rc_mask(&leaf_rc, &leaf.code_bounds) else {
+        let Some(leaf_y_mask) = eval_rc_mask(&leaf.rc, &leaf.code_bounds) else {
             continue;
         };
         let ext_leaf_mask = match &extra_rc {
