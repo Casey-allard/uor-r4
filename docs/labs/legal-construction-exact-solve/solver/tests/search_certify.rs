@@ -317,3 +317,85 @@ fn planted_corrupted_basis_is_repaired_exactly() {
     assert!(planted > 100, "only {planted} planted repairs");
     assert!(warm > 0 && warm_pivots > 0, "no warm start did any work");
 }
+
+#[test]
+fn lagrangian_dual_bound_rejects_negative_multiplier_and_wrong_length() {
+    let p = &controls()[0];
+    assert!(search::certify_lagrangian_dual_bound(p, &[q(-1, 4)]).is_err());
+    assert!(search::certify_lagrangian_dual_bound(p, &[]).is_err());
+    let zero_bound = search::certify_lagrangian_dual_bound(p, &[q(0, 1)]).expect("y=0 valid");
+    assert!(zero_bound <= BigRational::zero());
+}
+
+#[test]
+fn dual_search_and_lp_guided_discrete_solve_respect_exact_bounds() {
+    let mut problems = controls();
+    problems.extend((0..60).map(instance));
+    let mut certified_delta_hull = 0usize;
+    let mut discrete_checked = 0usize;
+    for (idx, p) in problems.iter().enumerate() {
+        let dlp = search::delta_hull_lp(p);
+        let (found_dual, _stats) = search::search_dual::<120>(&dlp, MAX_PIVOTS, None);
+        let found_dual = found_dual.unwrap_or_else(|e| panic!("problem {idx} dual search: {e}"));
+        let cert = blp::certify_basis(&dlp, &found_dual.basis)
+            .unwrap_or_else(|e| panic!("problem {idx} delta_hull_lp certify: {e}"));
+        let LpResult::Optimal {
+            objective: dlp_obj, ..
+        } = cert
+        else {
+            panic!("problem {idx}: delta_hull_lp not optimal");
+        };
+        let LpResult::Optimal {
+            objective: want_dlp,
+            ..
+        } = blp::solve(&dlp)
+        else {
+            panic!("problem {idx}: blp delta_hull_lp not optimal");
+        };
+        assert_eq!(dlp_obj, want_dlp, "problem {idx}: delta_hull_lp mismatch");
+        certified_delta_hull += 1;
+
+        let bb_res = bb::solve(p, 100_000);
+        assert_eq!(
+            bb_res.status,
+            bb::Status::Optimal,
+            "problem {idx}: bb status {:?}",
+            bb_res.status
+        );
+        assert!(
+            dlp_obj <= bb_res.objective,
+            "problem {idx}: delta_hull_lp {dlp_obj} > discrete optimum {}",
+            bb_res.objective
+        );
+
+        if let Ok(disc) = search::lp_guided_discrete_solve::<120>(p) {
+            assert!(disc.full_guard_vector_matches);
+            assert!(!disc.guard_min.is_negative());
+            assert!(disc.objective <= BigRational::zero());
+            assert!(
+                disc.objective >= bb_res.objective,
+                "problem {idx}: discrete solve {} < exact optimum {}",
+                disc.objective,
+                bb_res.objective
+            );
+            let lag = search::certify_lagrangian_dual_bound(p, &disc.dual_y)
+                .expect("non-negative dual multipliers");
+            assert!(
+                lag <= bb_res.objective,
+                "problem {idx}: lagrangian bound {lag} > discrete optimum {}",
+                bb_res.objective
+            );
+            let iter0_cert = blp::certify_basis(&dlp, &disc.delta_lp_basis)
+                .expect("iter0 delta_lp basis must certify");
+            if let LpResult::Optimal { objective, .. } = iter0_cert {
+                assert_eq!(objective, want_dlp);
+            }
+            discrete_checked += 1;
+        }
+    }
+    assert_eq!(certified_delta_hull, problems.len());
+    assert!(
+        discrete_checked > 50,
+        "only {discrete_checked} discrete solves"
+    );
+}

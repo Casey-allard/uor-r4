@@ -3,25 +3,32 @@
 //! The search only proposes a basis; `blp::certify_basis` proves or rejects
 //! it exactly against the input LP. Nothing the search computes is trusted.
 //!
-//! * Data. `blp`'s integer-scaled rows and costs, converted to `Dy<P>`.
-//! * Method. Bounded-variable revised simplex with `blp`'s conventions:
-//!   slacks start basic, structurals nonbasic at Lower, Upper or Interior
-//!   (start value 0 when lower < 0 < upper), bound flips, Dantzig pricing
-//!   with Bland's rule after 50 consecutive degenerate steps.
-//! * Phase 1. Rows the start point violates get an artificial with column
-//!   `−e_i`, as in `blp`. After phase 1 every basic artificial is swapped
-//!   for the non-artificial column with the largest entry in its basis row.
-//! * Basis inverse. Dense `B⁻¹` in `Dy<P>`, rank-one (product-form) updates,
-//!   refactored by Gauss-Jordan elimination every 50 pivots.
-//! * Tolerance, for pivot choice only: a value below `2^-s` times the
-//!   magnitude it is compared with counts as zero, `s = max(P − 30, P / 2)`.
+//! * Data. `blp`'s integer-scaled rows and costs (for primal simplex) or
+//!   direct dyadic conversion (for bounded-variable dual simplex), in `Dy<P>`.
+//! * Primal method (`search_primal`). Bounded-variable revised simplex with
+//!   `blp`'s conventions: slacks start basic, structurals nonbasic at Lower,
+//!   Upper or Interior (start value 0 when lower < 0 < upper), bound flips,
+//!   Dantzig pricing with Bland's rule after 50 consecutive degenerate steps.
+//! * Dual method (`search_dual`). Bounded-variable Dual Simplex with the
+//!   Bound-Flipping Ratio Test (BFRT) in `Dy<P>`: all `m` slacks start basic
+//!   (`π = 0`) and each structural variable starts at its dual-feasible bound
+//!   (`Upper` when `c_j < 0`, `Lower` when `c_j >= 0`), eliminating primal
+//!   degeneracy at `δ = 0`. When `lp` carries `bb::relaxation`'s 3-row
+//!   fractional disjunction blocks with `q0 = ±7`, `search` projects them onto
+//!   the guard space, solves the projected LP with `search_dual`, and lifts
+//!   the optimal basis back to the full relaxation.
+//! * Basis-free Lagrangian dual bound (`certify_lagrangian_dual_bound`) and
+//!   warm-started `Dy<P>` LP-guided discrete legal search
+//!   (`lp_guided_discrete_solve`).
 
+use num_bigint::BigInt;
 use num_rational::BigRational;
-use num_traits::Zero;
+use num_traits::{One, Signed, Zero};
 
 use crate::blp::{self, Basis, Pos, Scaled};
 use crate::dyadic::Dy;
 use crate::lp::{Lp, LpResult};
+use crate::problem::Problem;
 
 const REPORT_EVERY: u64 = 25;
 const DEGENERATE_LIMIT: u32 = 50;
@@ -33,6 +40,8 @@ const REFACTOR_EVERY: u64 = 50;
 pub struct SearchStats {
     pub pivots: u64,
     pub flips: u64,
+    pub degenerate_pivots: u64,
+    pub bland_switches: u64,
     pub phase: u8,
     pub objective_sign: i8,
     pub objective_bits: i64,
@@ -122,7 +131,7 @@ impl<const P: u32> Search<'_, P> {
                 *v = *v / piv;
             }
             for v in &mut inv[k] {
-                *v = *v / piv;
+                *v = *v / pv_nonzero(piv);
             }
             let (ak, ik) = (a[k].clone(), inv[k].clone());
             for i in (0..m).filter(|&i| i != k) {
@@ -239,15 +248,29 @@ impl<const P: u32> Search<'_, P> {
             }
             let rate = if dir > 0 { -a } else { a };
             let bv = self.basis[r];
-            let (theta, to_upper) = if rate.is_negative() {
-                ((self.x[bv] - self.lower[bv]) / (-rate), false)
+            let (raw_gap, bound_scale, to_upper) = if rate.is_negative() {
+                let gap = self.x[bv] - self.lower[bv];
+                let sc = self.x[bv].abs().max(self.lower[bv].abs()).max(Dy::ONE);
+                (gap, sc, false)
             } else {
                 match self.upper[bv] {
-                    Some(u) => ((u - self.x[bv]) / rate, true),
+                    Some(u) => {
+                        let gap = u - self.x[bv];
+                        let sc = self.x[bv].abs().max(u.abs()).max(Dy::ONE);
+                        (gap, sc, true)
+                    }
                     None => continue,
                 }
             };
-            let theta = theta.max(Dy::ZERO);
+            // Clamp refactor rounding dust (~2^-110) at a tight bound to exact zero so
+            // consecutive degeneracy and tie-breaking are not broken by refactor noise.
+            let theta = if raw_gap <= Dy::ZERO || negligible(raw_gap, bound_scale) {
+                Dy::ZERO
+            } else if rate.is_negative() {
+                raw_gap / (-rate)
+            } else {
+                raw_gap / rate
+            };
             let better = match best {
                 None => true,
                 Some((bt, br, _, ba)) => {
@@ -333,7 +356,15 @@ impl<const P: u32> Search<'_, P> {
             let theta = match block {
                 Block::Own(t) | Block::Row(_, _, t) => t,
             };
-            degenerate = if theta.is_zero() { degenerate + 1 } else { 0 };
+            if theta.is_zero() {
+                self.stats.degenerate_pivots += 1;
+                degenerate += 1;
+                if degenerate == DEGENERATE_LIMIT {
+                    self.stats.bland_switches += 1;
+                }
+            } else {
+                degenerate = 0;
+            }
             let step = if dir > 0 { theta } else { -theta };
             self.x[j] = self.x[j] + step;
             for (r, &a) in alpha.iter().enumerate() {
@@ -410,8 +441,12 @@ impl<const P: u32> Search<'_, P> {
     }
 }
 
-/// Run the search; `progress` is called every 25 pivots.
-pub fn search<const P: u32>(
+fn pv_nonzero<const P: u32>(v: Dy<P>) -> Dy<P> {
+    v
+}
+
+/// Bounded-variable primal revised simplex search in `Dy<P>`.
+pub fn search_primal<const P: u32>(
     lp: &Lp,
     max_pivots: usize,
     progress: Progress<'_>,
@@ -554,6 +589,710 @@ pub fn search<const P: u32>(
     (outcome, sx.stats)
 }
 
+#[allow(clippy::too_many_arguments)]
+fn dual_simplex_run<const P: u32>(
+    n: usize,
+    m: usize,
+    cols: &[Vec<(usize, Dy<P>)>],
+    cost: &[Dy<P>],
+    lo: &[Dy<P>],
+    up: &[Option<Dy<P>>],
+    b_rhs: &[Dy<P>],
+    basis: &mut [usize],
+    st: &mut [State],
+    x: &mut [Dy<P>],
+    binv: &mut Vec<Vec<Dy<P>>>,
+    pi: &mut [Dy<P>],
+    max_pivots: usize,
+    stats: &mut SearchStats,
+    mut progress: Option<&mut Progress<'_>>,
+) -> Result<(), String> {
+    let recompute_xb =
+        |basis: &[usize], st: &[State], x: &mut [Dy<P>], binv: &[Vec<Dy<P>>], b_rhs: &[Dy<P>]| {
+            let mut rhs = b_rhs.to_vec();
+            for j in 0..(n + m) {
+                if st[j] != State::Basic && !x[j].is_zero() {
+                    let xj = x[j];
+                    for &(i, a) in &cols[j] {
+                        rhs[i] = rhs[i] - a * xj;
+                    }
+                }
+            }
+            for r in 0..m {
+                let mut s = Dy::<P>::ZERO;
+                for (k, &rk) in rhs.iter().enumerate() {
+                    if !rk.is_zero() && !binv[r][k].is_zero() {
+                        s = s + binv[r][k] * rk;
+                    }
+                }
+                x[basis[r]] = s;
+            }
+        };
+    recompute_xb(basis, st, x, binv, b_rhs);
+
+    let tol_exp = -((P as i32 / 2).min(38));
+    let tol = Dy::<P>::ONE.ldexp(tol_exp);
+    let calc_obj = |x: &[Dy<P>]| -> Dy<P> {
+        let mut s = Dy::<P>::ZERO;
+        for j in 0..n {
+            if !cost[j].is_zero() && !x[j].is_zero() {
+                s = s + cost[j] * x[j];
+            }
+        }
+        s
+    };
+
+    let mut local_pivots = 0usize;
+    loop {
+        let mut best_r = None;
+        let mut max_viol = tol;
+        let mut leave_to_upper = false;
+        for (r, &bv) in basis.iter().enumerate() {
+            if x[bv] < lo[bv] - max_viol {
+                max_viol = lo[bv] - x[bv];
+                best_r = Some(r);
+                leave_to_upper = false;
+            } else if let Some(u) = up[bv] {
+                if x[bv] > u + max_viol {
+                    max_viol = x[bv] - u;
+                    best_r = Some(r);
+                    leave_to_upper = true;
+                }
+            }
+        }
+        pi.fill(Dy::ZERO);
+        for (k, &bk) in basis.iter().enumerate() {
+            let cb = cost[bk];
+            if !cb.is_zero() {
+                for (i, pii) in pi.iter_mut().enumerate() {
+                    if !binv[k][i].is_zero() {
+                        *pii = *pii + cb * binv[k][i];
+                    }
+                }
+            }
+        }
+        let Some(r) = best_r else {
+            break;
+        };
+        if (stats.pivots + stats.flips) as usize >= max_pivots {
+            return Err(format!(
+                "out of pivots ({} pivots, {} flips)",
+                stats.pivots, stats.flips
+            ));
+        }
+
+        let rho = &binv[r];
+        let mut cands: Vec<(Dy<P>, usize, Dy<P>)> = Vec::new();
+        for j in 0..(n + m) {
+            if st[j] == State::Basic || up[j] == Some(lo[j]) {
+                continue;
+            }
+            let mut arj = Dy::<P>::ZERO;
+            let mut paj = Dy::<P>::ZERO;
+            for &(i, a) in &cols[j] {
+                if !rho[i].is_zero() {
+                    arj = arj + rho[i] * a;
+                }
+                if !pi[i].is_zero() {
+                    paj = paj + pi[i] * a;
+                }
+            }
+            let dj = cost[j] - paj;
+            let s_arj = if leave_to_upper { -arj } else { arj };
+            if st[j] == State::Lower && s_arj < -tol {
+                let ratio = dj.max(Dy::ZERO) / (-s_arj);
+                cands.push((ratio, j, arj));
+            } else if st[j] == State::Upper && s_arj > tol {
+                let ratio = (-dj).max(Dy::ZERO) / s_arj;
+                cands.push((ratio, j, arj));
+            }
+        }
+        if cands.is_empty() {
+            return Err(format!(
+                "dual unbounded (primal infeasible) at basis row {r}"
+            ));
+        }
+        cands.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| b.2.abs().cmp(&a.2.abs())));
+
+        let mut rem_viol = max_viol;
+        let mut enter_j = cands[0].1;
+        let mut enter_ratio = cands[0].0;
+        for &(ratio, j, arj) in &cands {
+            enter_j = j;
+            enter_ratio = ratio;
+            if let Some(u) = up[j] {
+                let width = u - lo[j];
+                let gain = arj.abs() * width;
+                if gain + tol < rem_viol {
+                    if st[j] == State::Lower {
+                        st[j] = State::Upper;
+                        let dx = u - x[j];
+                        x[j] = u;
+                        for &(i, a) in &cols[j] {
+                            let adx = a * dx;
+                            for k in 0..m {
+                                if !binv[k][i].is_zero() {
+                                    x[basis[k]] = x[basis[k]] - binv[k][i] * adx;
+                                }
+                            }
+                        }
+                    } else {
+                        st[j] = State::Lower;
+                        let dx = lo[j] - x[j];
+                        x[j] = lo[j];
+                        for &(i, a) in &cols[j] {
+                            let adx = a * dx;
+                            for k in 0..m {
+                                if !binv[k][i].is_zero() {
+                                    x[basis[k]] = x[basis[k]] - binv[k][i] * adx;
+                                }
+                            }
+                        }
+                    }
+                    rem_viol = rem_viol - gain;
+                    stats.flips += 1;
+                    continue;
+                }
+            }
+            break;
+        }
+        if enter_ratio <= tol {
+            stats.degenerate_pivots += 1;
+        }
+
+        let mut alpha = vec![Dy::<P>::ZERO; m];
+        for &(i, a) in &cols[enter_j] {
+            for (k, ak) in alpha.iter_mut().enumerate() {
+                if !binv[k][i].is_zero() {
+                    *ak = *ak + binv[k][i] * a;
+                }
+            }
+        }
+        let piv_val = alpha[r];
+        let leave_bv = basis[r];
+        let target_leave = if leave_to_upper {
+            up[leave_bv].expect("leave to upper")
+        } else {
+            lo[leave_bv]
+        };
+        let dx_enter = (x[leave_bv] - target_leave) / piv_val;
+        x[enter_j] = x[enter_j] + dx_enter;
+        for k in 0..m {
+            if k != r && !alpha[k].is_zero() {
+                x[basis[k]] = x[basis[k]] - alpha[k] * dx_enter;
+            }
+        }
+        x[leave_bv] = target_leave;
+        st[leave_bv] = if leave_to_upper {
+            State::Upper
+        } else {
+            State::Lower
+        };
+        st[enter_j] = State::Basic;
+        basis[r] = enter_j;
+        stats.pivots += 1;
+        local_pivots += 1;
+
+        if local_pivots.is_multiple_of(40) {
+            let mut a_mat = vec![vec![Dy::<P>::ZERO; m]; m];
+            let mut inv = vec![vec![Dy::<P>::ZERO; m]; m];
+            for (i, row) in inv.iter_mut().enumerate() {
+                row[i] = Dy::ONE;
+            }
+            for (col_idx, &bv) in basis.iter().enumerate() {
+                for &(row_idx, v) in &cols[bv] {
+                    a_mat[row_idx][col_idx] = v;
+                }
+            }
+            for k in 0..m {
+                let p_row = (k..m)
+                    .max_by(|&i1, &i2| a_mat[i1][k].abs().cmp(&a_mat[i2][k].abs()))
+                    .expect("k < m");
+                if a_mat[p_row][k].is_zero() {
+                    return Err("singular basis at dual refactor".into());
+                }
+                a_mat.swap(k, p_row);
+                inv.swap(k, p_row);
+                let pv = a_mat[k][k];
+                for v in &mut a_mat[k][k..m] {
+                    *v = *v / pv;
+                }
+                for v in &mut inv[k] {
+                    *v = *v / pv;
+                }
+                let (ak, ik) = (a_mat[k].clone(), inv[k].clone());
+                for i in 0..m {
+                    if i == k {
+                        continue;
+                    }
+                    let f = a_mat[i][k];
+                    if f.is_zero() {
+                        continue;
+                    }
+                    for c_idx in k..m {
+                        if !ak[c_idx].is_zero() {
+                            a_mat[i][c_idx] = a_mat[i][c_idx] - f * ak[c_idx];
+                        }
+                    }
+                    for c_idx in 0..m {
+                        if !ik[c_idx].is_zero() {
+                            inv[i][c_idx] = inv[i][c_idx] - f * ik[c_idx];
+                        }
+                    }
+                }
+            }
+            *binv = inv;
+            recompute_xb(basis, st, x, binv, b_rhs);
+        } else {
+            let inv_row: Vec<Dy<P>> = binv[r].iter().map(|&v| v / piv_val).collect();
+            for k in 0..m {
+                if k == r {
+                    continue;
+                }
+                let ak = alpha[k];
+                if ak.is_zero() {
+                    continue;
+                }
+                for c_idx in 0..m {
+                    if !inv_row[c_idx].is_zero() {
+                        binv[k][c_idx] = binv[k][c_idx] - ak * inv_row[c_idx];
+                    }
+                }
+            }
+            binv[r] = inv_row;
+        }
+
+        if let Some(p_opt) = progress.as_mut() {
+            if stats.pivots.is_multiple_of(REPORT_EVERY) {
+                let obj = calc_obj(x);
+                stats.objective_sign = obj.sign();
+                stats.objective_bits = bits(obj);
+                if let Some(p) = p_opt.as_mut() {
+                    p(stats);
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Bounded-variable Dual Simplex with Bound-Flipping Ratio Test (BFRT) in `Dy<P>`.
+/// Starts with all `m` slacks basic (`π = 0`) and each structural variable at
+/// its dual-feasible bound (`Upper` if `c_j < 0`, `Lower` if `c_j >= 0`).
+pub fn search_dual<const P: u32>(
+    lp: &Lp,
+    max_pivots: usize,
+    mut progress: Progress<'_>,
+) -> (Result<Found<P>, String>, SearchStats) {
+    let n = lp.c.len();
+    let m = lp.rows.len();
+    let mut stats = SearchStats {
+        phase: 2,
+        ..SearchStats::default()
+    };
+    if lp.lower.iter().zip(&lp.upper).any(|(l, u)| l > u) {
+        return (Err("infeasible: empty bounds".into()), stats);
+    }
+    let dy = |v: &BigRational| Dy::<P>::from_rational(v);
+    let mut cols: Vec<Vec<(usize, Dy<P>)>> = vec![Vec::new(); n + m];
+    for (i, (row, _)) in lp.rows.iter().enumerate() {
+        for (j, val) in row.iter().enumerate() {
+            if !val.is_zero() {
+                let a = dy(val);
+                if !a.is_zero() {
+                    cols[j].push((i, a));
+                }
+            }
+        }
+        cols[n + i].push((i, Dy::ONE));
+    }
+    let b_rhs: Vec<Dy<P>> = lp.rows.iter().map(|(_, bi)| dy(bi)).collect();
+    let mut cost = vec![Dy::<P>::ZERO; n + m];
+    let mut lo = vec![Dy::<P>::ZERO; n + m];
+    let mut up: Vec<Option<Dy<P>>> = vec![None; n + m];
+    for j in 0..n {
+        cost[j] = dy(&lp.c[j]);
+        lo[j] = dy(&lp.lower[j]);
+        up[j] = Some(dy(&lp.upper[j]));
+    }
+
+    let mut st = vec![State::Lower; n + m];
+    let mut x = vec![Dy::<P>::ZERO; n + m];
+    for j in 0..n {
+        if cost[j].is_negative() {
+            st[j] = State::Upper;
+            x[j] = up[j].expect("structural upper");
+        } else {
+            st[j] = State::Lower;
+            x[j] = lo[j];
+        }
+    }
+    let mut basis: Vec<usize> = (0..m).map(|i| n + i).collect();
+    for i in 0..m {
+        st[n + i] = State::Basic;
+    }
+    let mut binv = vec![vec![Dy::<P>::ZERO; m]; m];
+    for (i, row) in binv.iter_mut().enumerate() {
+        row[i] = Dy::ONE;
+    }
+    let mut pi = vec![Dy::<P>::ZERO; m];
+
+    let outcome = dual_simplex_run::<P>(
+        n,
+        m,
+        &cols,
+        &cost,
+        &lo,
+        &up,
+        &b_rhs,
+        &mut basis,
+        &mut st,
+        &mut x,
+        &mut binv,
+        &mut pi,
+        max_pivots,
+        &mut stats,
+        Some(&mut progress),
+    )
+    .map(|()| {
+        let mut obj = Dy::<P>::ZERO;
+        for j in 0..n {
+            if !cost[j].is_zero() && !x[j].is_zero() {
+                obj = obj + cost[j] * x[j];
+            }
+        }
+        stats.objective_sign = obj.sign();
+        stats.objective_bits = bits(obj);
+        if let Some(p) = progress.as_mut() {
+            p(&stats);
+        }
+        let nonbasic_pos = (0..(n + m))
+            .map(|j| match st[j] {
+                State::Upper => Pos::Upper,
+                State::Interior => Pos::Interior,
+                State::Lower | State::Basic => Pos::Lower,
+            })
+            .collect();
+        Found {
+            basis: Basis {
+                basic: basis,
+                nonbasic_pos,
+            },
+            x: x[..n].to_vec(),
+            objective: obj,
+        }
+    });
+    (outcome, stats)
+}
+
+#[derive(Debug, Clone)]
+struct DisjSpec {
+    coeff_idx: usize,
+    q0: i64,
+    four_shift: BigRational,
+}
+
+/// Detect `bb::relaxation`'s 3-row fractional disjunction blocks at the tail
+/// of `lp` (when `q0 = ±7`), project them onto the `m0 × n0` structural guard
+/// LP, and return `(proj_lp, specs)` for lifting the basis back to `lp`.
+fn try_project_disjunction_lp(lp: &Lp) -> Option<(Lp, Vec<DisjSpec>)> {
+    let nv = lp.c.len();
+    let m = lp.rows.len();
+    let one = BigRational::one();
+    let neg_one = -BigRational::one();
+    let zero = BigRational::zero();
+    let fourteen = BigRational::from_integer(BigInt::from(14));
+    let neg_fourteen = -fourteen.clone();
+
+    // Count trailing 3-row disjunction triples from the end of `lp.rows`.
+    let mut f_rev = Vec::new();
+    let mut cur_m = m;
+    let mut cur_n = nv;
+    while cur_m >= 3 && cur_n >= 2 {
+        let l_var = cur_n - 2;
+        let r_var = cur_n - 1;
+        if lp.lower[l_var] != zero
+            || lp.upper[l_var] != one
+            || lp.lower[r_var] != zero
+            || lp.upper[r_var] != one
+        {
+            break;
+        }
+        let (a0, b0) = &lp.rows[cur_m - 3];
+        let (a1, b1) = &lp.rows[cur_m - 2];
+        let (a2, b2) = &lp.rows[cur_m - 1];
+        if *b0 != one || !b1.is_zero() || !b2.is_zero() {
+            break;
+        }
+        if a0[l_var] != one
+            || a0[r_var] != one
+            || a0
+                .iter()
+                .enumerate()
+                .any(|(j, v)| j != l_var && j != r_var && !v.is_zero())
+        {
+            break;
+        }
+        if a1[r_var] != one || a2[l_var] != one {
+            break;
+        }
+        // Find unique structural index `i < l_var` with `a1[i] == -1` and `a2[i] == 1`.
+        let mut i_cand = None;
+        let mut ok = true;
+        for j in 0..nv {
+            if j == l_var || j == r_var {
+                continue;
+            }
+            if !a1[j].is_zero() || !a2[j].is_zero() {
+                if i_cand.is_none() && j < l_var && a1[j] == neg_one && a2[j] == one {
+                    i_cand = Some(j);
+                } else {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        let Some(coeff_idx) = i_cand else {
+            break;
+        };
+        if !ok {
+            break;
+        }
+        let q0 = if a1[l_var] == neg_fourteen
+            && a2[r_var].is_zero()
+            && lp.lower[coeff_idx] == neg_fourteen
+            && lp.upper[coeff_idx].is_zero()
+        {
+            7i64
+        } else if a1[l_var].is_zero()
+            && a2[r_var] == neg_fourteen
+            && lp.lower[coeff_idx].is_zero()
+            && lp.upper[coeff_idx] == fourteen
+        {
+            -7i64
+        } else {
+            break;
+        };
+        // Recover `four_shift = 4 * shift_f` from `c[l_var] / c[coeff_idx]` or a guard row.
+        let four_shift = if !lp.c[coeff_idx].is_zero() {
+            &lp.c[l_var] / &lp.c[coeff_idx]
+        } else {
+            let mut fs = None;
+            for (arow, _) in &lp.rows[..cur_m - 3] {
+                if !arow[coeff_idx].is_zero() {
+                    fs = Some(&arow[l_var] / &arow[coeff_idx]);
+                    break;
+                }
+            }
+            fs?
+        };
+        if (q0 == 7 && four_shift.is_negative()) || (q0 == -7 && four_shift.is_positive()) {
+            break;
+        }
+        f_rev.push(DisjSpec {
+            coeff_idx,
+            q0,
+            four_shift,
+        });
+        cur_m -= 3;
+        cur_n -= 2;
+    }
+
+    if f_rev.is_empty() {
+        return None;
+    }
+    f_rev.reverse();
+    let m0 = cur_m;
+    let n0 = cur_n;
+    let inv14 = BigRational::new(BigInt::from(1), BigInt::from(14));
+    let neg_inv14 = -inv14.clone();
+
+    let mut lower: Vec<BigRational> = lp.lower[..n0].to_vec();
+    let mut upper: Vec<BigRational> = lp.upper[..n0].to_vec();
+    for spec in &f_rev {
+        let i = spec.coeff_idx;
+        if spec.q0 == 7 {
+            let edge = &neg_inv14 + &spec.four_shift;
+            lower[i] = &neg_fourteen + &spec.four_shift;
+            upper[i] = edge.max(zero.clone());
+        } else {
+            let edge = &inv14 + &spec.four_shift;
+            lower[i] = edge.min(zero.clone());
+            upper[i] = &fourteen + &spec.four_shift;
+        }
+    }
+    let rows: Vec<(Vec<BigRational>, BigRational)> = lp.rows[..m0]
+        .iter()
+        .map(|(a, b)| (a[..n0].to_vec(), b.clone()))
+        .collect();
+    let proj_lp = Lp {
+        c: lp.c[..n0].to_vec(),
+        rows,
+        lower,
+        upper,
+    };
+    Some((proj_lp, f_rev))
+}
+
+fn lift_projected_found<const P: u32>(
+    lp: &Lp,
+    found_proj: Found<P>,
+    specs: &[DisjSpec],
+) -> Option<Found<P>> {
+    let f_count = specs.len();
+    let n0 = lp.c.len() - 2 * f_count;
+    let m0 = lp.rows.len() - 3 * f_count;
+    let nv = lp.c.len();
+    let m = lp.rows.len();
+
+    let mut is_frac = vec![false; n0];
+    for spec in specs {
+        is_frac[spec.coeff_idx] = true;
+    }
+    for &bv in &found_proj.basis.basic {
+        if bv < n0 && is_frac[bv] {
+            return None;
+        }
+    }
+
+    let mut basic = Vec::with_capacity(m);
+    let mut nonbasic_pos = vec![Pos::Lower; nv + m];
+    for &bv in &found_proj.basis.basic {
+        if bv < n0 {
+            basic.push(bv);
+        } else {
+            basic.push(bv + 2 * f_count);
+        }
+    }
+    for j in 0..n0 {
+        if !is_frac[j] {
+            nonbasic_pos[j] = found_proj.basis.nonbasic_pos[j];
+        }
+    }
+    nonbasic_pos[nv..(nv + m0)].copy_from_slice(&found_proj.basis.nonbasic_pos[n0..(n0 + m0)]);
+
+    let mut x_full = vec![Dy::<P>::ZERO; nv];
+    x_full[..n0].copy_from_slice(&found_proj.x[..n0]);
+    let inv14 = BigRational::new(BigInt::from(1), BigInt::from(14));
+    let thirteen14 = BigRational::new(BigInt::from(13), BigInt::from(14));
+    let dy = |v: &BigRational| Dy::<P>::from_rational(v);
+
+    for (f, spec) in specs.iter().enumerate() {
+        let i = spec.coeff_idx;
+        let l_var = n0 + 2 * f;
+        let r_var = n0 + 2 * f + 1;
+        let s0 = nv + m0 + 3 * f;
+        let s1 = nv + m0 + 3 * f + 1;
+        let s2 = nv + m0 + 3 * f + 2;
+        let at_lower = found_proj.basis.nonbasic_pos[i] == Pos::Lower;
+
+        if spec.q0 == 7 && at_lower {
+            basic.push(s0);
+            basic.push(l_var);
+            basic.push(s2);
+            nonbasic_pos[i] = Pos::Lower;
+            nonbasic_pos[l_var] = Pos::Lower;
+            nonbasic_pos[r_var] = Pos::Lower;
+            nonbasic_pos[s0] = Pos::Lower;
+            nonbasic_pos[s1] = Pos::Lower;
+            nonbasic_pos[s2] = Pos::Lower;
+            x_full[i] = dy(&lp.lower[i]);
+            x_full[l_var] = Dy::ONE;
+            x_full[r_var] = Dy::ZERO;
+        } else if spec.q0 == 7 && !at_lower {
+            let edge = -&inv14 + &spec.four_shift;
+            if edge.is_positive() {
+                basic.push(i);
+                basic.push(l_var);
+                basic.push(r_var);
+                nonbasic_pos[i] = Pos::Lower;
+                x_full[i] = dy(&(-&inv14));
+                x_full[l_var] = dy(&inv14);
+                x_full[r_var] = dy(&thirteen14);
+            } else {
+                basic.push(s0);
+                basic.push(l_var);
+                basic.push(r_var);
+                nonbasic_pos[i] = Pos::Upper;
+                x_full[i] = Dy::ZERO;
+                x_full[l_var] = Dy::ZERO;
+                x_full[r_var] = Dy::ZERO;
+            }
+            nonbasic_pos[l_var] = Pos::Lower;
+            nonbasic_pos[r_var] = Pos::Lower;
+            nonbasic_pos[s0] = Pos::Lower;
+            nonbasic_pos[s1] = Pos::Lower;
+            nonbasic_pos[s2] = Pos::Lower;
+        } else if spec.q0 == -7 && at_lower {
+            let edge = &inv14 + &spec.four_shift;
+            if edge.is_negative() {
+                basic.push(i);
+                basic.push(l_var);
+                basic.push(r_var);
+                x_full[i] = dy(&inv14);
+                x_full[l_var] = dy(&thirteen14);
+                x_full[r_var] = dy(&inv14);
+            } else {
+                basic.push(s0);
+                basic.push(l_var);
+                basic.push(r_var);
+                x_full[i] = Dy::ZERO;
+                x_full[l_var] = Dy::ZERO;
+                x_full[r_var] = Dy::ZERO;
+            }
+            nonbasic_pos[i] = Pos::Lower;
+            nonbasic_pos[l_var] = Pos::Lower;
+            nonbasic_pos[r_var] = Pos::Lower;
+            nonbasic_pos[s0] = Pos::Lower;
+            nonbasic_pos[s1] = Pos::Lower;
+            nonbasic_pos[s2] = Pos::Lower;
+        } else {
+            basic.push(s0);
+            basic.push(s1);
+            basic.push(r_var);
+            nonbasic_pos[i] = Pos::Upper;
+            nonbasic_pos[l_var] = Pos::Lower;
+            nonbasic_pos[r_var] = Pos::Lower;
+            nonbasic_pos[s0] = Pos::Lower;
+            nonbasic_pos[s1] = Pos::Lower;
+            nonbasic_pos[s2] = Pos::Lower;
+            x_full[i] = dy(&lp.upper[i]);
+            x_full[l_var] = Dy::ZERO;
+            x_full[r_var] = Dy::ONE;
+        }
+    }
+
+    Some(Found {
+        basis: Basis {
+            basic,
+            nonbasic_pos,
+        },
+        x: x_full,
+        objective: found_proj.objective,
+    })
+}
+
+/// Run the search; `progress` is called every 25 pivots.
+pub fn search<const P: u32>(
+    lp: &Lp,
+    max_pivots: usize,
+    progress: Progress<'_>,
+) -> (Result<Found<P>, String>, SearchStats) {
+    if lp.rows.len() >= 64 {
+        if let Some((proj_lp, specs)) = try_project_disjunction_lp(lp) {
+            let (res, stats) = search_dual::<P>(&proj_lp, max_pivots, progress);
+            if let Ok(found_proj) = res {
+                if let Some(lifted) = lift_projected_found(lp, found_proj, &specs) {
+                    return (Ok(lifted), stats);
+                }
+            }
+            return search_primal::<P>(lp, max_pivots, None);
+        }
+        return search_dual::<P>(lp, max_pivots, progress);
+    }
+    search_primal::<P>(lp, max_pivots, progress)
+}
+
 /// Propose a basis in `blp`'s index space, or `None` when the search runs
 /// out of pivots or finds the LP infeasible.
 pub fn search_basis<const P: u32>(lp: &Lp, max_pivots: usize) -> Option<Basis> {
@@ -619,4 +1358,422 @@ pub fn solve_search_certify_repair<const P: u32>(
     stats.exact_pivots = exact.pivots;
     stats.exact_start = Some(exact.start);
     (result, stats)
+}
+
+/// Convex-hull `δ`-relaxation of `p`: `minimise g·δ` subject to `-J·δ <= 0`
+/// and `min_{q in -7..=7} δ_i(q) <= δ_i <= max_{q in -7..=7} δ_i(q)`.
+pub fn delta_hull_lp(p: &Problem) -> Lp {
+    let n = p.n();
+    let cs = p.coeffs();
+    let mut lower = vec![BigRational::zero(); n];
+    let mut upper = vec![BigRational::zero(); n];
+    for i in 0..n {
+        for q in -7..=7 {
+            let delta = if q == cs[i].q0 {
+                BigRational::zero()
+            } else {
+                BigRational::new(BigInt::from(q - cs[i].q0), BigInt::from(4)) + &cs[i].shift
+            };
+            if delta < lower[i] {
+                lower[i] = delta.clone();
+            }
+            if delta > upper[i] {
+                upper[i] = delta;
+            }
+        }
+    }
+    let rows: Vec<(Vec<BigRational>, BigRational)> = p
+        .guards
+        .iter()
+        .map(|row| {
+            let neg_row: Vec<BigRational> = row.iter().map(|v| -v).collect();
+            (neg_row, BigRational::zero())
+        })
+        .collect();
+    Lp {
+        c: p.g.clone(),
+        rows,
+        lower,
+        upper,
+    }
+}
+
+/// Basis-free exact rational Weak Duality certificate: for any non-negative
+/// dual multiplier vector `y >= 0` on the guard rows `J·δ >= 0`, every guard-
+/// feasible discrete assignment `δ` satisfies
+/// `g·δ >= g·δ - y·(J·δ) >= Σ_i min_{q in -7..=7} (g_i - (J^T y)_i) δ_i(q)`.
+pub fn certify_lagrangian_dual_bound(
+    p: &Problem,
+    y: &[BigRational],
+) -> Result<BigRational, String> {
+    if y.len() != p.guards.len() {
+        return Err(format!(
+            "dual multiplier length {} != {} guards",
+            y.len(),
+            p.guards.len()
+        ));
+    }
+    for (r, yr) in y.iter().enumerate() {
+        if yr.is_negative() {
+            return Err(format!("dual multiplier {r} is negative"));
+        }
+    }
+    let cs = p.coeffs();
+    let mut bound = BigRational::zero();
+    for (i, c) in cs.iter().enumerate() {
+        let mut rc = p.g[i].clone();
+        for (r, yr) in y.iter().enumerate() {
+            if !yr.is_zero() && !p.guards[r][i].is_zero() {
+                rc -= yr * &p.guards[r][i];
+            }
+        }
+        let mut best_i = BigRational::zero();
+        for q in -7..=7 {
+            if q == c.q0 {
+                continue;
+            }
+            let delta = BigRational::new(BigInt::from(q - c.q0), BigInt::from(4)) + &c.shift;
+            let contrib = &rc * &delta;
+            if contrib < best_i {
+                best_i = contrib;
+            }
+        }
+        bound += best_i;
+    }
+    Ok(bound)
+}
+
+/// Result of `lp_guided_discrete_solve`.
+#[derive(Debug, Clone)]
+pub struct DiscreteLpResult {
+    pub delta_lp_basis: Basis,
+    pub dual_y: Vec<BigRational>,
+    pub codes: Vec<i64>,
+    pub deltas: Vec<BigRational>,
+    pub objective: BigRational,
+    pub guard_min: BigRational,
+    pub active_guards: usize,
+    pub moved_coeffs: usize,
+    pub full_guard_vector_matches: bool,
+    pub total_pivots: u64,
+}
+
+/// Warm-started `Dy<P>` Dual Simplex margin-tightening + exact rational
+/// single-coefficient polish. Returns the `iter 0` basis and dual multipliers
+/// of `delta_hull_lp(p)` together with an exact guard-feasible discrete
+/// assignment verified by independent recomputation over `BigRational`.
+pub fn lp_guided_discrete_solve<const P: u32>(p: &Problem) -> Result<DiscreteLpResult, String> {
+    let n = p.n();
+    let m = p.guards.len();
+    let cs = p.coeffs();
+    let dy = |v: &BigRational| Dy::<P>::from_rational(v);
+
+    let mut legal_deltas: Vec<Vec<(i64, BigRational, Dy<P>)>> = Vec::with_capacity(n);
+    let mut lower = vec![BigRational::zero(); n];
+    let mut upper = vec![BigRational::zero(); n];
+    for i in 0..n {
+        let mut v = Vec::with_capacity(15);
+        for q in -7..=7 {
+            let delta = if q == cs[i].q0 {
+                BigRational::zero()
+            } else {
+                BigRational::new(BigInt::from(q - cs[i].q0), BigInt::from(4)) + &cs[i].shift
+            };
+            if delta < lower[i] {
+                lower[i] = delta.clone();
+            }
+            if delta > upper[i] {
+                upper[i] = delta.clone();
+            }
+            let d_dy = dy(&delta);
+            v.push((q, delta, d_dy));
+        }
+        legal_deltas.push(v);
+    }
+
+    let mut cols: Vec<Vec<(usize, Dy<P>)>> = vec![Vec::new(); n + m];
+    let mut j_dy: Vec<Vec<Dy<P>>> = vec![vec![Dy::<P>::ZERO; n]; m];
+    for (r, row) in p.guards.iter().enumerate() {
+        for (j, val) in row.iter().enumerate() {
+            if !val.is_zero() {
+                let d = dy(val);
+                j_dy[r][j] = d;
+                let neg_d = -d;
+                if !neg_d.is_zero() {
+                    cols[j].push((r, neg_d));
+                }
+            }
+        }
+        cols[n + r].push((r, Dy::ONE));
+    }
+    let g_dy: Vec<Dy<P>> = p.g.iter().map(dy).collect();
+    let mut cost = vec![Dy::<P>::ZERO; n + m];
+    let mut lo = vec![Dy::<P>::ZERO; n + m];
+    let mut up: Vec<Option<Dy<P>>> = vec![None; n + m];
+    for j in 0..n {
+        cost[j] = g_dy[j];
+        lo[j] = dy(&lower[j]);
+        up[j] = Some(dy(&upper[j]));
+    }
+
+    let mut st = vec![State::Lower; n + m];
+    let mut x = vec![Dy::<P>::ZERO; n + m];
+    for j in 0..n {
+        if cost[j].is_negative() {
+            st[j] = State::Upper;
+            x[j] = up[j].expect("structural upper");
+        } else {
+            st[j] = State::Lower;
+            x[j] = lo[j];
+        }
+    }
+    let mut basis: Vec<usize> = (0..m).map(|i| n + i).collect();
+    for i in 0..m {
+        st[n + i] = State::Basic;
+    }
+    let mut binv = vec![vec![Dy::<P>::ZERO; m]; m];
+    for (i, row) in binv.iter_mut().enumerate() {
+        row[i] = Dy::ONE;
+    }
+    let mut b_rhs = vec![Dy::<P>::ZERO; m];
+
+    let bump_pad = Dy::<P>::ONE.ldexp(-13);
+    let bump_scale = Dy::<P>::from_rational(&BigRational::new(BigInt::from(5), BigInt::from(4)));
+
+    let mut total_pivots = 0u64;
+    let mut basis_iter0: Option<Basis> = None;
+    let mut dual_y_iter0: Vec<BigRational> = vec![BigRational::zero(); m];
+    let mut pi = vec![Dy::<P>::ZERO; m];
+
+    for iter in 0..60 {
+        let mut iter_stats = SearchStats::default();
+        dual_simplex_run::<P>(
+            n,
+            m,
+            &cols,
+            &cost,
+            &lo,
+            &up,
+            &b_rhs,
+            &mut basis,
+            &mut st,
+            &mut x,
+            &mut binv,
+            &mut pi,
+            100_000,
+            &mut iter_stats,
+            None,
+        )?;
+        total_pivots += iter_stats.pivots;
+
+        if iter == 0 {
+            let nonbasic_pos = (0..(n + m))
+                .map(|j| match st[j] {
+                    State::Upper => Pos::Upper,
+                    State::Interior => Pos::Interior,
+                    State::Lower | State::Basic => Pos::Lower,
+                })
+                .collect();
+            basis_iter0 = Some(Basis {
+                basic: basis.clone(),
+                nonbasic_pos,
+            });
+            dual_y_iter0 = pi
+                .iter()
+                .map(|&p_val| {
+                    let neg_p = -p_val;
+                    if neg_p.is_positive() {
+                        neg_p.to_rational()
+                    } else {
+                        BigRational::zero()
+                    }
+                })
+                .collect();
+        }
+
+        let mut cur_q = vec![0i64; n];
+        let mut disc_rat = Vec::with_capacity(n);
+        let mut disc_dy = vec![Dy::<P>::ZERO; n];
+        for i in 0..n {
+            let xi = x[i];
+            let best = legal_deltas[i]
+                .iter()
+                .min_by(|a, b| (a.2 - xi).abs().cmp(&(b.2 - xi).abs()))
+                .expect("15 legal deltas");
+            cur_q[i] = best.0;
+            disc_rat.push(best.1.clone());
+            disc_dy[i] = best.2;
+        }
+
+        let mut n_viol = 0usize;
+        let mut guard_dy = vec![Dy::<P>::ZERO; m];
+        for r in 0..m {
+            let mut s = Dy::<P>::ZERO;
+            for i in 0..n {
+                if !disc_dy[i].is_zero() && !j_dy[r][i].is_zero() {
+                    s = s + j_dy[r][i] * disc_dy[i];
+                }
+            }
+            guard_dy[r] = s;
+            if s.is_negative() {
+                n_viol += 1;
+                let bump = (-s) * bump_scale + bump_pad;
+                b_rhs[r] = b_rhs[r] - bump;
+            }
+        }
+
+        if n_viol == 0 {
+            let mut exact_guards = vec![BigRational::zero(); m];
+            for (r, eg) in exact_guards.iter_mut().enumerate() {
+                let mut s = BigRational::zero();
+                for (i, dr) in disc_rat.iter().enumerate() {
+                    if !dr.is_zero() {
+                        s += &p.guards[r][i] * dr;
+                    }
+                }
+                *eg = s;
+            }
+            if exact_guards.iter().any(|g| g.is_negative()) {
+                continue;
+            }
+            let mut exact_obj = BigRational::zero();
+            for (i, dr) in disc_rat.iter().enumerate() {
+                if !dr.is_zero() {
+                    exact_obj += &p.g[i] * dr;
+                }
+            }
+            let min_slack_dy = if m >= 64 {
+                Dy::<P>::ONE.ldexp(-30)
+            } else {
+                Dy::<P>::ZERO
+            };
+            let run_polish = |cur_q: &mut [i64],
+                              disc_rat: &mut [BigRational],
+                              disc_dy: &mut [Dy<P>],
+                              exact_guards: &mut [BigRational],
+                              guard_dy: &mut [Dy<P>],
+                              exact_obj: &mut BigRational| {
+                for _pass in 0..20 {
+                    let mut improved = false;
+                    for i in 0..n {
+                        let gi = g_dy[i];
+                        let cur_d = disc_dy[i];
+                        for &(q, ref d_rat, d_dy) in &legal_deltas[i] {
+                            if q == cur_q[i] {
+                                continue;
+                            }
+                            let diff_dy = d_dy - cur_d;
+                            if (gi * diff_dy).is_negative() {
+                                let mut ok = true;
+                                for r in 0..m {
+                                    if !j_dy[r][i].is_zero()
+                                        && guard_dy[r] + j_dy[r][i] * diff_dy < min_slack_dy
+                                    {
+                                        ok = false;
+                                        break;
+                                    }
+                                }
+                                if ok {
+                                    let diff_rat = d_rat - &disc_rat[i];
+                                    if (&p.g[i] * &diff_rat).is_negative()
+                                        && (0..m).all(|r| {
+                                            !(&exact_guards[r] + &p.guards[r][i] * &diff_rat)
+                                                .is_negative()
+                                        })
+                                    {
+                                        for r in 0..m {
+                                            if !p.guards[r][i].is_zero() {
+                                                exact_guards[r] += &p.guards[r][i] * &diff_rat;
+                                                guard_dy[r] = dy(&exact_guards[r]);
+                                            }
+                                        }
+                                        *exact_obj += &p.g[i] * &diff_rat;
+                                        cur_q[i] = q;
+                                        disc_rat[i] = d_rat.clone();
+                                        disc_dy[i] = d_dy;
+                                        improved = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if !improved {
+                        break;
+                    }
+                }
+            };
+            run_polish(
+                &mut cur_q,
+                &mut disc_rat,
+                &mut disc_dy,
+                &mut exact_guards,
+                &mut guard_dy,
+                &mut exact_obj,
+            );
+            if exact_obj.is_positive() {
+                for (i, c) in cs.iter().enumerate() {
+                    cur_q[i] = c.q0;
+                    disc_rat[i] = BigRational::zero();
+                    disc_dy[i] = Dy::ZERO;
+                }
+                exact_guards.fill(BigRational::zero());
+                guard_dy.fill(Dy::ZERO);
+                exact_obj = BigRational::zero();
+                run_polish(
+                    &mut cur_q,
+                    &mut disc_rat,
+                    &mut disc_dy,
+                    &mut exact_guards,
+                    &mut guard_dy,
+                    &mut exact_obj,
+                );
+            }
+
+            // Independent from-scratch recomputation over BigRational.
+            let mut recomputed_guards = vec![BigRational::zero(); m];
+            for (r, row) in p.guards.iter().enumerate() {
+                let mut s = BigRational::zero();
+                for (i, jv) in row.iter().enumerate() {
+                    if !disc_rat[i].is_zero() && !jv.is_zero() {
+                        s += jv * &disc_rat[i];
+                    }
+                }
+                if s.is_negative() {
+                    return Err(format!("independent guard check failed on row {r}"));
+                }
+                recomputed_guards[r] = s;
+            }
+            let full_guard_vector_matches = recomputed_guards == exact_guards;
+            if !full_guard_vector_matches {
+                return Err("independent guard vector differs from incremental".into());
+            }
+            let recomputed_obj =
+                p.g.iter()
+                    .zip(&disc_rat)
+                    .fold(BigRational::zero(), |s, (gi, di)| s + gi * di);
+            if recomputed_obj != exact_obj {
+                return Err("independent objective differs from incremental".into());
+            }
+            let active_guards = recomputed_guards.iter().filter(|g| g.is_zero()).count();
+            let guard_min = recomputed_guards
+                .into_iter()
+                .min()
+                .unwrap_or_else(BigRational::zero);
+            let moved_coeffs = disc_rat.iter().filter(|d| !d.is_zero()).count();
+
+            return Ok(DiscreteLpResult {
+                delta_lp_basis: basis_iter0.expect("iter 0 ran"),
+                dual_y: dual_y_iter0,
+                codes: cur_q,
+                deltas: disc_rat,
+                objective: recomputed_obj,
+                guard_min,
+                active_guards,
+                moved_coeffs,
+                full_guard_vector_matches,
+                total_pivots,
+            });
+        }
+    }
+    Err("LP-guided margin loop did not reach a guard-feasible discrete assignment".into())
 }

@@ -566,13 +566,102 @@ fn exact_div(num: BigInt, d: &BigInt) -> Result<BigInt, String> {
     }
 }
 
-/// Solve `a·y = r` exactly: forward Bareiss (fraction-free) elimination with
+/// Solve `a·y = r` exactly: unit-row and unit-column reductions while the
+/// Bareiss divisor is 1, then forward Bareiss (fraction-free) elimination with
 /// row exchanges, then back substitution `y_i = (p·r_i − Σ_{j>i} U_ij·y_j) /
 /// U_ii` with `p` the last pivot, and `y / p` returned.
 fn bareiss_solve(mut a: Vec<Vec<BigInt>>, mut r: Vec<BigInt>) -> Result<Vec<BigRational>, String> {
     let m = r.len();
+    let mut col_perm: Vec<usize> = (0..m).collect();
     let mut prev = BigInt::one();
+    let one = BigInt::one();
+    let neg_one = -BigInt::one();
     for k in 0..m {
+        if prev == one {
+            let mut unit_row: Option<(usize, usize)> = None;
+            for (i, row) in a.iter().enumerate().take(m).skip(k) {
+                let mut nz_col = None;
+                let mut count = 0usize;
+                for (j, val) in row.iter().enumerate().take(m).skip(k) {
+                    if !val.is_zero() {
+                        nz_col = Some(j);
+                        count += 1;
+                        if count > 1 {
+                            break;
+                        }
+                    }
+                }
+                if count == 1 {
+                    let c = nz_col.expect("count == 1");
+                    if row[c] == one || row[c] == neg_one {
+                        unit_row = Some((i, c));
+                        break;
+                    }
+                }
+            }
+            if let Some((p_row, p_col)) = unit_row {
+                a.swap(k, p_row);
+                r.swap(k, p_row);
+                if p_col != k {
+                    for row in &mut a {
+                        row.swap(k, p_col);
+                    }
+                    col_perm.swap(k, p_col);
+                }
+                if a[k][k] == neg_one {
+                    a[k][k] = one.clone();
+                    r[k] = -&r[k];
+                }
+                let rk = r[k].clone();
+                for i in k + 1..m {
+                    if !a[i][k].is_zero() {
+                        r[i] = &r[i] - &a[i][k] * &rk;
+                        a[i][k] = BigInt::zero();
+                    }
+                }
+                continue;
+            }
+
+            let mut unit_col: Option<(usize, usize)> = None;
+            for j in k..m {
+                let mut nz_row = None;
+                let mut count = 0usize;
+                for (i, row) in a.iter().enumerate().take(m).skip(k) {
+                    if !row[j].is_zero() {
+                        nz_row = Some(i);
+                        count += 1;
+                        if count > 1 {
+                            break;
+                        }
+                    }
+                }
+                if count == 1 {
+                    let p = nz_row.expect("count == 1");
+                    if a[p][j] == one || a[p][j] == neg_one {
+                        unit_col = Some((p, j));
+                        break;
+                    }
+                }
+            }
+            if let Some((p_row, p_col)) = unit_col {
+                a.swap(k, p_row);
+                r.swap(k, p_row);
+                if p_col != k {
+                    for row in &mut a {
+                        row.swap(k, p_col);
+                    }
+                    col_perm.swap(k, p_col);
+                }
+                if a[k][k] == neg_one {
+                    for v in &mut a[k][k..m] {
+                        *v = -&*v;
+                    }
+                    r[k] = -&r[k];
+                }
+                continue;
+            }
+        }
+
         let p = (k..m)
             .find(|&i| !a[i][k].is_zero())
             .ok_or("singular basis")?;
@@ -589,13 +678,21 @@ fn bareiss_solve(mut a: Vec<Vec<BigInt>>, mut r: Vec<BigInt>) -> Result<Vec<BigR
         }
         prev = a[k][k].clone();
     }
-    let p = rat(&prev);
-    let mut y = vec![BigRational::zero(); m];
+    let mut z_perm = vec![BigInt::zero(); m];
     for i in (0..m).rev() {
-        let s = (i + 1..m).fold(&p * rat(&r[i]), |s, j| s - rat(&a[i][j]) * &y[j]);
-        y[i] = s / rat(&a[i][i]);
+        let mut s = &prev * &r[i];
+        for j in i + 1..m {
+            if !a[i][j].is_zero() && !z_perm[j].is_zero() {
+                s -= &a[i][j] * &z_perm[j];
+            }
+        }
+        z_perm[i] = exact_div(s, &a[i][i])?;
     }
-    Ok(y.into_iter().map(|v| v / &p).collect())
+    let mut y = vec![BigRational::zero(); m];
+    for (k, z) in z_perm.into_iter().enumerate() {
+        y[col_perm[k]] = BigRational::new(z, prev.clone());
+    }
+    Ok(y)
 }
 
 /// Exact optimality proof for `lp` from `basis` alone. Recomputes `x_B` and
@@ -692,14 +789,17 @@ pub fn certify_basis(lp: &Lp, basis: &Basis) -> Result<LpResult, String> {
     let col_pi = |j: usize| {
         cols[j]
             .iter()
+            .filter(|(k, _)| !pi[*k].is_zero())
             .fold(BigRational::zero(), |s, (k, a)| s + rat(a) * &pi[*k])
     };
 
     // Direct checks of both solves.
     let mut lhs = vec![BigRational::zero(); m];
     for &j in &basis.basic {
-        for (k, a) in &cols[j] {
-            lhs[*k] = &lhs[*k] + rat(a) * &x[j];
+        if !x[j].is_zero() {
+            for (k, a) in &cols[j] {
+                lhs[*k] = &lhs[*k] + rat(a) * &x[j];
+            }
         }
     }
     if lhs != rhs {
@@ -714,11 +814,19 @@ pub fn certify_basis(lp: &Lp, basis: &Basis) -> Result<LpResult, String> {
     // Every input row and bound, exactly.
     let xs: Vec<BigRational> = x[..n].to_vec();
     for (k, (a, bi)) in lp.rows.iter().enumerate() {
-        let v = a
+        let nb_sum = a
             .iter()
             .zip(&xs)
-            .filter(|(ai, _)| !ai.is_zero())
-            .fold(BigRational::zero(), |s, (ai, xi)| s + ai * xi);
+            .enumerate()
+            .filter(|(j, (ai, xi))| !is_basic[*j] && !ai.is_zero() && !xi.is_zero())
+            .fold(BigRational::zero(), |s, (_, (ai, xi))| s + ai * xi);
+        let b_sum = a
+            .iter()
+            .zip(&xs)
+            .enumerate()
+            .filter(|(j, (ai, xi))| is_basic[*j] && !ai.is_zero() && !xi.is_zero())
+            .fold(BigRational::zero(), |s, (_, (ai, xi))| s + ai * xi);
+        let v = nb_sum + b_sum;
         if v > *bi {
             return Err(format!("input row {k} violated"));
         }
