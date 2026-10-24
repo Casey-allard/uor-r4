@@ -39,14 +39,14 @@ pub const ORDINARY_LANE_LOOP: &str = r#"    W sum=0;U eligible=0;losses[candidat
     if(kind==GATE_KIND && index>=gate_count(s)){atomicExch(status,4u);return;}
     if(kind==GATE_KIND && candidate>=3)return;
     for(U row=0;row<s[4];++row){int q[MAX_WIDTH],baseline[MAX_WIDTH];U prediction,tr,ar;
-        if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,baseline,0)){atomicExch(status,2u);return;}
+        if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,2,0,0,baseline,0)){atomicExch(status,2u);return;}
         U arithmetic_status=0;
         W base=writer(baseline,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
         if(base==~(W)0){atomicExch(status,arithmetic_status?arithmetic_status:8u);return;}
         // The baseline fixes eligible rows. A virtual move cannot improve by
         // removing its supervised competitor; absent baseline comparisons skip.
         if(tr==0)continue;++eligible;
-        if(!read_vector(input,ids,routes,gates,plan,g,s,row,kind,index,candidate,q,0)){atomicExch(status,2u);return;}
+        if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,kind,index,candidate,q,0)){atomicExch(status,2u);return;}
         W cost=writer(q,table,g,s,targets[row],kind,index,candidate,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
         if(arithmetic_status){atomicExch(status,arithmetic_status);return;}
         if(cost==~(W)0 || tr==0){sum=~(W)0;break;}
@@ -70,11 +70,11 @@ __device__ bool rows_refused(const U* s,U kind,U index) {
     bool gated=s[8]==MODE_FLOCK || s[8]==MODE_RELATION;
     return (kind==GATE_KIND && !gated) || (kind==0 && gated) || (kind==GATE_KIND && index>=gate_count(s));
 }
-extern "C" __global__ void discrete_counterfactual_rows_baseline(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,U* base) {
+extern "C" __global__ void discrete_counterfactual_rows_baseline(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,const U* position_steps,U* base) {
     U row=blockIdx.x*blockDim.x+threadIdx.x;if(row>=s[4])return;
     int baseline[MAX_WIDTH];U prediction,tr,ar,arithmetic_status=0;
     U row_status=0,row_eligible=0;
-    if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,baseline,0))row_status=2u;
+    if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,2,0,0,baseline,0))row_status=2u;
     else {
         W loss=writer(baseline,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
         if(loss==~(W)0)row_status=arithmetic_status?arithmetic_status:8u;
@@ -82,7 +82,7 @@ extern "C" __global__ void discrete_counterfactual_rows_baseline(const int* tabl
     }
     base[row*2]=row_status;base[row*2+1]=row_eligible;
 }
-extern "C" __global__ void discrete_counterfactual_rows_eval(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,U kind,U index,const U* base,W* cost,U* flag) {
+extern "C" __global__ void discrete_counterfactual_rows_eval(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,const U* position_steps,U kind,U index,const U* base,W* cost,U* flag) {
     U pair=blockIdx.x*blockDim.x+threadIdx.x;U row=pair/16,candidate=pair%16;
     if(row>=s[4])return;
     U slot=row*16+candidate;cost[slot]=~(W)0;flag[slot]=0;
@@ -93,7 +93,7 @@ extern "C" __global__ void discrete_counterfactual_rows_eval(const int* table,co
     // baseline returned a loss; other rows are never consumed.
     if(base[row*2]!=0 || base[row*2+1]==0)return;
     int q[MAX_WIDTH];U prediction,tr,ar,arithmetic_status=0;
-    if(!read_vector(input,ids,routes,gates,plan,g,s,row,kind,index,candidate,q,0)){flag[slot]=2u;return;}
+    if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,kind,index,candidate,q,0)){flag[slot]=2u;return;}
     W loss=writer(q,table,g,s,targets[row],kind,index,candidate,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
     // The writer can return MAX before it stores token_rivals; tr is read only
     // after a returned loss (the reducer tests MAX first, as the ordinary does).

@@ -9,7 +9,7 @@
 //! types or literals (D32), no dense matrix multiplication (D25), and no
 //! smooth gates or normalized exponentials (D23) appear on this path.
 use crate::metadata::MAX_CONTEXT;
-use crate::{Error, Result};
+use crate::{Error, ReadSpec, Result, Spec};
 use serde::{Deserialize, Serialize};
 
 mod geometry {
@@ -46,6 +46,45 @@ pub enum PositionMode {
     IdentityControlV1,
 }
 
+impl PositionMode {
+    /// Optional device position word `s[14]`; zero is reserved for legacy BFS.
+    pub fn device_word(self) -> u32 {
+        match self {
+            Self::PrefixHolonomyV1 => 1,
+            Self::EndpointControlV1 => 2,
+            Self::IdentityControlV1 => 3,
+        }
+    }
+}
+
+/// Opt-in position configuration; absence preserves the legacy read exactly.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PositionConfig {
+    pub mode: PositionMode,
+    pub steps: PositionStepTable,
+}
+
+impl PositionConfig {
+    pub fn new(mode: PositionMode, steps: PositionStepTable) -> Self {
+        Self { mode, steps }
+    }
+
+    pub fn validate(&self, spec: Spec, read_spec: ReadSpec) -> Result<()> {
+        read_spec.validate(spec)?;
+        if read_spec == ReadSpec::Route {
+            return Err(invalid("position transport needs a Flock or Relation read"));
+        }
+        self.steps.validate()?;
+        if self.steps.blocks() != spec.blocks {
+            return Err(invalid(
+                "position step table blocks differ from the model spec",
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Whole-number step table assigning one of 16 legal `Cl(0,6)` move candidates
 /// (`0..16`) to each `(block, orbit_root)` pair.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,24 +97,31 @@ pub struct PositionStepTable {
 impl PositionStepTable {
     /// Construct and validate a step table for `blocks` 8D carrier blocks.
     pub fn new(blocks: u32, candidates: Vec<u8>) -> Result<Self> {
-        if !(2..=16).contains(&blocks) {
+        let table = Self { blocks, candidates };
+        table.validate()?;
+        Ok(table)
+    }
+
+    /// Validate constructor-built and deserialized tables identically.
+    pub fn validate(&self) -> Result<()> {
+        if !(2..=16).contains(&self.blocks) {
             return Err(invalid(
                 "position step table requires blocks in 2..=16 to match Spec",
             ));
         }
-        let expected = (blocks as usize) * ORBIT_ROOTS;
-        if candidates.len() != expected {
+        let expected = (self.blocks as usize) * ORBIT_ROOTS;
+        if self.candidates.len() != expected {
             return Err(invalid(format!(
                 "position step table requires {expected} entries (blocks * 16), got {}",
-                candidates.len()
+                self.candidates.len()
             )));
         }
-        if candidates.iter().any(|&c| c >= STEP_CANDIDATES) {
+        if self.candidates.iter().any(|&c| c >= STEP_CANDIDATES) {
             return Err(invalid(
                 "position step candidate must be in 0..16 (0 = identity, 1..=15 = generators)",
             ));
         }
-        Ok(Self { blocks, candidates })
+        Ok(())
     }
 
     /// Construct the all-identity step table for `blocks` carrier blocks.
@@ -474,6 +520,109 @@ mod tests {
             sorted_a, sorted_b,
             "shuffle must preserve the prefix token multiset"
         );
+    }
+
+    #[test]
+    fn cuda_legacy_ranking_preserves_raw_frame_cost() {
+        let source = include_str!("discrete.cu");
+        let helper = source
+            .split("__device__ bool positioned_root_cost")
+            .nth(1)
+            .unwrap();
+        assert!(
+            helper.contains("if(s[14]==0)root_cost(query,g,root,distance,hamming);"),
+            "legacy ranking must bypass transport and compare the raw root"
+        );
+        assert!(helper.contains("root_id(transported,g)"));
+        assert_eq!(
+            source
+                .matches("if(!positioned_root_cost(s,query_position")
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    fn cuda_position_arms_use_payload_roots_and_span_last() {
+        let source = include_str!("discrete.cu");
+        assert!(source.contains("int query_payload[8];for(U d=0;d<8;++d)query_payload[d]=u[d];"));
+        assert!(source.contains("int* query_position=s[14]==0?query_frame:query_payload;"));
+        assert!(source.contains("row,p,b,s,kind,index,candidate,fv"));
+        assert!(source.contains("row,last[node],b,s,kind,index,candidate,rv"));
+        assert_eq!(
+            source
+                .matches(
+                    "positioned_root_cost(s,query_position,g,transport[node],transport_root[node]"
+                )
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    fn cuda_snapshot_validation_launch_has_one_position_argument() {
+        let source = include_str!("device.rs");
+        let body = source
+            .split("pub fn from_snapshot")
+            .nth(1)
+            .unwrap()
+            .split("fn gpu_spec")
+            .next()
+            .unwrap();
+        assert!(!body.contains("&self.position_steps"));
+        assert!(body.contains(
+            ".arg(&spec)\n            .arg(&model.position_steps)\n            .arg(&mut status);"
+        ));
+        assert!(body.contains(".max(model.position_steps.len())"));
+    }
+
+    #[test]
+    fn position_config_validates_device_words_and_shapes() {
+        use crate::{ReadSpec, Spec};
+
+        let spec = Spec {
+            vocabulary: 4096,
+            blocks: 4,
+            context: 192,
+            kept_cells: 8,
+        };
+        let relation = ReadSpec::Relation { kept: 8, sweeps: 1 };
+        let config = PositionConfig::new(
+            PositionMode::PrefixHolonomyV1,
+            PositionStepTable::identity(4).unwrap(),
+        );
+        assert_eq!(config.mode.device_word(), 1);
+        assert_eq!(PositionMode::EndpointControlV1.device_word(), 2);
+        assert_eq!(PositionMode::IdentityControlV1.device_word(), 3);
+        config.validate(spec, relation).unwrap();
+        config.validate(spec, ReadSpec::Flock { kept: 8 }).unwrap();
+        assert!(config.validate(spec, ReadSpec::Route).is_err());
+
+        let wrong_blocks = PositionConfig::new(
+            PositionMode::EndpointControlV1,
+            PositionStepTable::identity(2).unwrap(),
+        );
+        assert!(wrong_blocks.validate(spec, relation).is_err());
+    }
+
+    #[test]
+    fn deserialized_position_table_is_revalidated() {
+        let mut candidates = vec![0u8; 64];
+        candidates[0] = 16;
+        let config: PositionConfig = serde_json::from_value(serde_json::json!({
+            "mode": "prefix_holonomy_v1",
+            "steps": {"blocks": 4, "candidates": candidates}
+        }))
+        .unwrap();
+        let spec = Spec {
+            vocabulary: 4096,
+            blocks: 4,
+            context: 192,
+            kept_cells: 8,
+        };
+        assert!(config
+            .validate(spec, ReadSpec::Relation { kept: 8, sweeps: 1 })
+            .is_err());
     }
 
     #[test]

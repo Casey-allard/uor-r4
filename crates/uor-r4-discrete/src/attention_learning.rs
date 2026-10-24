@@ -198,7 +198,9 @@ pub fn validate_config(config: &DriverConfig) -> Result<()> {
         || config.read_initialization != ReadInitialization::ActiveLeafV1
         || !config.normalization_mode.is_scale_matched_snap()
     {
-        return Err(invalid("attention requires K8, nearest-address objective, active-leaf initialization and interleaved read-every-8 schedule"));
+        return Err(invalid(
+            "attention requires K8, nearest-address objective, active-leaf initialization and interleaved read-every-8 schedule",
+        ));
     }
     Ok(())
 }
@@ -386,7 +388,9 @@ fn validate_transfer_source(plan: &AttentionPlan) -> Result<()> {
                     || transfer.mask.sha256 == source.mask.sha256
             })
     {
-        return Err(invalid("attention transfer must be separately pinned evaluation content and mask with at least 2000 eligible rows"));
+        return Err(invalid(
+            "attention transfer must be separately pinned evaluation content and mask with at least 2000 eligible rows",
+        ));
     }
     Ok(())
 }
@@ -495,7 +499,9 @@ fn validate_owner(plan: &AttentionPlan, pin: &FilePin, owner: &AttentionOwner) -
 #[cfg(any(feature = "cuda", test))]
 fn require_owner_terminal(lab_present: bool, stdin_tty: bool, stdout_tty: bool) -> Result<()> {
     if lab_present || !stdin_tty || !stdout_tty {
-        return Err(invalid("attention owner release is Casey-personal at a live terminal; every UOR_LAB value and all pilot delegations are refused"));
+        return Err(invalid(
+            "attention owner release is Casey-personal at a live terminal; every UOR_LAB value and all pilot delegations are refused",
+        ));
     }
     Ok(())
 }
@@ -536,9 +542,14 @@ pub fn owner_release_registration(
             "attention owner output and run-state directories must be fresh",
         ));
     }
-    let phrase = format!("I am Casey; release D4 for {} only through batch 16404 with the pinned DEV transfer and relation-off evaluations", plan.scope);
-    println!("{}\nType exactly: {phrase}\nAll other training scopes, M2 and Stage B remain HELD; Q4 is NOT_EXECUTABLE.",
-        serde_json::to_string_pretty(&plan).map_err(|e| invalid(e.to_string()))?);
+    let phrase = format!(
+        "I am Casey; release D4 for {} only through batch 16404 with the pinned DEV transfer and relation-off evaluations",
+        plan.scope
+    );
+    println!(
+        "{}\nType exactly: {phrase}\nAll other training scopes, M2 and Stage B remain HELD; Q4 is NOT_EXECUTABLE.",
+        serde_json::to_string_pretty(&plan).map_err(|e| invalid(e.to_string()))?
+    );
     std::io::stdout()
         .flush()
         .map_err(|e| invalid(e.to_string()))?;
@@ -693,7 +704,9 @@ impl Counters {
                 || counter.accepted_updates > counter.any_candidate_cost_differs_from_identity
                 || counter.any_candidate_cost_differs_from_identity > counter.attempted
             {
-                return Err(invalid("attention family counters disagree with absolute schedule or sensitivity ordering"));
+                return Err(invalid(
+                    "attention family counters disagree with absolute schedule or sensitivity ordering",
+                ));
             }
             // Every term is now bounded by the 16404-batch release.
             sum += counter.accepted_updates;
@@ -1524,6 +1537,7 @@ mod tests {
             read_initialization: ReadInitialization::ActiveLeafV1,
             normalization_mode:
                 crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
+            position: None,
             relation_learning_policy: training::RelationLearningPolicy::LearnV1,
             counterfactual_path: training::CounterfactualPath::LanesV1,
             codebook_initialization: training::CodebookInitialization::SeededDeviceV1,
@@ -1853,14 +1867,22 @@ mod tests {
             }
         };
         for config in [
-            &include_bytes!("../../../docs/labs/injective-attention-runbook-2026-10-19/evidence/injective-relation-seed1.json")[..],
-            &include_bytes!("../../../docs/labs/injective-attention-runbook-2026-10-19/evidence/injective-frozen-zero-seed1.json")[..],
+            &include_bytes!(
+                "../../../docs/labs/injective-attention-runbook-2026-10-19/evidence/injective-relation-seed1.json"
+            )[..],
+            &include_bytes!(
+                "../../../docs/labs/injective-attention-runbook-2026-10-19/evidence/injective-frozen-zero-seed1.json"
+            )[..],
         ] {
             assert_eq!(pinned(config)?, PRIME_ZETA_TABLE_FILE_SHA256);
         }
         for config in [
-            &include_bytes!("../../../docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json")[..],
-            &include_bytes!("../../../docs/labs/a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json")[..],
+            &include_bytes!(
+                "../../../docs/labs/a8-training-configs-2026-10-19/evidence/a8-relation-seed1.json"
+            )[..],
+            &include_bytes!(
+                "../../../docs/labs/a8-training-configs-2026-10-19/evidence/a8-frozen-zero-seed1.json"
+            )[..],
         ] {
             assert_eq!(pinned(config)?, A8_TABLE_FILE_SHA256);
         }

@@ -114,7 +114,7 @@ pub fn generate(source: &str) -> Result<String, String> {
             probe("++t[7];t[8]|=(W)1<<row;")
         ),
     )?;
-    let base_read = "if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,baseline,0)){atomicExch(status,2u);return;}";
+    let base_read = "if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,2,0,0,baseline,0)){atomicExch(status,2u);return;}";
     insert_once(
         &mut kernel,
         base_read,
@@ -148,7 +148,7 @@ pub fn generate(source: &str) -> Result<String, String> {
             probe("++t[9];t[10]|=(W)1<<row;}")
         ),
     )?;
-    let virtual_read = "if(!read_vector(input,ids,routes,gates,plan,g,s,row,kind,index,candidate,q,0)){atomicExch(status,2u);return;}";
+    let virtual_read = "if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,kind,index,candidate,q,0)){atomicExch(status,2u);return;}";
     insert_once(
         &mut kernel,
         virtual_read,

@@ -511,7 +511,11 @@ struct CachedRowTuple {
     m_roots: Vec<Vec<u32>>,
 }
 
-fn extract_cached_tuple(trace: &[u32], blocks: usize, stages: usize) -> Result<CachedRowTuple, u32> {
+fn extract_cached_tuple(
+    trace: &[u32],
+    blocks: usize,
+    stages: usize,
+) -> Result<CachedRowTuple, u32> {
     let mut u_roots = Vec::with_capacity(blocks);
     let mut found_per_level = Vec::with_capacity(blocks);
     let mut m_roots = Vec::with_capacity(blocks);
@@ -612,14 +616,8 @@ fn c0_cached_tuple_replay_equals_live_forward_and_refuses_absent_roots() {
     let tuple = extract_cached_tuple(&traced.trace, 2, 1).expect("valid tuple");
     for k0 in -3..=3 {
         for k1 in -3..=3 {
-            let live = flock_coupled_forward(
-                &fixture_t_prime(3, &[k0, k1]),
-                &window,
-                2,
-                0,
-                0,
-            )
-            .expect("live coupled forward");
+            let live = flock_coupled_forward(&fixture_t_prime(3, &[k0, k1]), &window, 2, 0, 0)
+                .expect("live coupled forward");
             let replayed = replay_cached_tuple(&tuple, &[k0, k1], 1);
             assert_eq!(replayed, live.vectors);
             let live_w = writer(&live.vectors, &base.tokens, base.kept_cells, 1);
@@ -671,9 +669,27 @@ fn x1_to_x5_and_x10_to_x12_integer_export_kernel_controls_match_literals() {
     }
     // Check the exact tie structure for K = +1 (`a + b`) and K = -1 (`a - b`) at n = 2.
     let (best_pos1, dist_pos1, ham_pos1) = snap(&[2, 2, 2, 0, 2, 0, 0, 0], 2);
-    assert_eq!((best_pos1, dist_pos1[0], dist_pos1[14], ham_pos1[0], ham_pos1[14]), (0, 8, 8, 4, 4));
+    assert_eq!(
+        (
+            best_pos1,
+            dist_pos1[0],
+            dist_pos1[14],
+            ham_pos1[0],
+            ham_pos1[14]
+        ),
+        (0, 8, 8, 4, 4)
+    );
     let (best_neg1, dist_neg1, ham_neg1) = snap(&[2, 2, -2, 0, -2, 0, 0, 0], 2);
-    assert_eq!((best_neg1, dist_neg1[0], dist_neg1[3], ham_neg1[0], ham_neg1[3]), (0, 8, 8, 4, 4));
+    assert_eq!(
+        (
+            best_neg1,
+            dist_neg1[0],
+            dist_neg1[3],
+            ham_neg1[0],
+            ham_neg1[3]
+        ),
+        (0, 8, 8, 4, 4)
+    );
 
     // X3: Magnitude flips the read (`K = +2` -> residual `[2,2,4,0,4,0,0,0]`, `n = 3`, `D(b) = 8`).
     let (best_p2, dist_p2, _) = snap(&[2, 2, 4, 0, 4, 0, 0, 0], 3);
@@ -743,10 +759,7 @@ fn x6_and_x11_refusals_and_relation_trit_bounds_hold() {
         Err(10)
     );
     // Gate count mismatch refused with status 10.
-    assert_eq!(
-        validate_coupled_fixture(&fixture_t_prime(3, &[0])),
-        Err(10)
-    );
+    assert_eq!(validate_coupled_fixture(&fixture_t_prime(3, &[0])), Err(10));
     // Flock and Route reject |g| > 1 with status 10.
     let bad_flock = CoupledFixture {
         mode: ReadMode::Flock { kept: 1 },
@@ -849,7 +862,8 @@ fn x8_empty_upper_level_and_x9_two_levels_at_once_match_derived_literals() {
     assert_eq!(&x8_out.trace[0..4], &[14, 0, 1, 0]);
     assert_eq!(&x8_out.trace[stride..stride + 4], &[0, 14, 1, 14]);
     // Level 1 trace shows `found = 0`, `consensus = ABSENT`, `eligible = 0`.
-    let lv1_b1 = &x8_out.trace[stride + TRACE_ROW + TRACE_LEVEL..stride + TRACE_ROW + 2 * TRACE_LEVEL];
+    let lv1_b1 =
+        &x8_out.trace[stride + TRACE_ROW + TRACE_LEVEL..stride + TRACE_ROW + 2 * TRACE_LEVEL];
     assert_eq!(&lv1_b1[0..4], &[5, 0, ABSENT, 0]);
 
     // X9: Two-stage length-4 fixture (`context = 4, kept = 1`, `tokens = [[A,A],[A,B]]`,
@@ -871,7 +885,8 @@ fn x8_empty_upper_level_and_x9_two_levels_at_once_match_derived_literals() {
     assert_eq!(x9_out.vectors, vec![A, B]);
     assert_eq!(&x9_out.trace[stride..stride + 4], &[0, 14, 4, 0]);
     let lv0_b1 = &x9_out.trace[stride + TRACE_ROW..stride + TRACE_ROW + TRACE_LEVEL];
-    let lv1_b1 = &x9_out.trace[stride + TRACE_ROW + TRACE_LEVEL..stride + TRACE_ROW + 2 * TRACE_LEVEL];
+    let lv1_b1 =
+        &x9_out.trace[stride + TRACE_ROW + TRACE_LEVEL..stride + TRACE_ROW + 2 * TRACE_LEVEL];
     assert_eq!(lv0_b1[1], 1); // found_0 = 1
     assert_eq!(lv0_b1[2], 14); // m_0 = B (14)
     assert_eq!(lv1_b1[1], 1); // found_1 = 1
@@ -1092,7 +1107,8 @@ fn f1_to_f7_offline_proxy_and_export_gap_controls_match_literals() {
     assert_eq!(float_snap_t_prime(k2), 14);
     let k2_int = k2.export_int(3);
     assert_eq!(k2_int, 2);
-    let int_out_k2 = flock_coupled_forward(&fixture_t_prime(3, &[0, k2_int]), &[1, 0], 2, 0, 0).unwrap();
+    let int_out_k2 =
+        flock_coupled_forward(&fixture_t_prime(3, &[0, k2_int]), &[1, 0], 2, 0, 0).unwrap();
     assert_eq!(root_id(&int_out_k2.vectors[1]), 14);
 
     // F5: Export-gap witness at `K = 7/5` (`1.4`), `n = 12/5` (`2.4`):
@@ -1135,7 +1151,7 @@ fn f1_to_f7_offline_proxy_and_export_gap_controls_match_literals() {
     // F6: D29 banned-operation scanner passes clean subgradient source and rejects seeded `expf(`.
     let clean_kernel_stub = "void c1_step(int n, int k_max) { int y = u + k * m; }";
     assert!(scan_offline_float_module_tokens(clean_kernel_stub).is_empty());
-    let seeded_bad = [ "int bad = ", concat!("ex", "pf"), "(x);" ].concat();
+    let seeded_bad = ["int bad = ", concat!("ex", "pf"), "(x);"].concat();
     assert_eq!(
         scan_offline_float_module_tokens(&seeded_bad),
         vec![concat!("ex", "pf").to_string()]

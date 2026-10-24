@@ -136,6 +136,7 @@ impl Device {
                         .arg(plan)
                         .arg(&self.geometry)
                         .arg(&spec)
+                        .arg(&self.position_steps)
                         .arg(&mut *base);
                     // SAFETY: the ordinary admitted inputs plus rows*2 writable record
                     // words; one thread per admitted row, no shared memory.
@@ -152,6 +153,7 @@ impl Device {
                         .arg(plan)
                         .arg(&self.geometry)
                         .arg(&spec)
+                        .arg(&self.position_steps)
                         .arg(&kind)
                         .arg(&index)
                         .arg(&*base)
@@ -187,6 +189,7 @@ impl Device {
                         .arg(&self.gates)
                         .arg(&self.geometry)
                         .arg(&spec)
+                        .arg(&self.position_steps)
                         .arg(&kind)
                         .arg(&index)
                         .arg(&mut proposal);

@@ -7,6 +7,7 @@ use crate::{
     },
     metadata::BinderPlan,
     normalization_mechanism::NormalizationMode,
+    position_mechanism::PositionConfig,
     Error, ObjectivePolicy, ReadInitialization, ReadSpec, Result, Spec,
 };
 use serde::{Deserialize, Serialize};
@@ -37,6 +38,7 @@ pub fn driver_source_sha256() -> String {
     bytes.extend_from_slice(include_bytes!("driver_qualification.rs"));
     bytes.extend_from_slice(include_bytes!("relation_qualification.rs"));
     bytes.extend_from_slice(include_bytes!("snapshot.rs"));
+    bytes.extend_from_slice(include_bytes!("position_mechanism.rs"));
     bytes.extend_from_slice(include_bytes!("main.rs"));
     corpus::sha256(&bytes)
 }
@@ -195,6 +197,8 @@ pub struct DriverConfig {
         skip_serializing_if = "NormalizationMode::is_scale_matched_snap"
     )]
     pub normalization_mode: NormalizationMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<PositionConfig>,
     #[serde(default, skip_serializing_if = "RelationLearningPolicy::is_learn")]
     pub relation_learning_policy: RelationLearningPolicy,
     #[serde(default, skip_serializing_if = "CounterfactualPath::is_lanes")]
@@ -241,6 +245,9 @@ impl DriverConfig {
         }
         if self.normalization_mode.device_word()? != 0 && self.read_spec == ReadSpec::Route {
             return Err(invalid("snap-scale control needs a Flock or Relation read"));
+        }
+        if let Some(position) = &self.position {
+            position.validate(self.spec, self.read_spec)?;
         }
         if self.relation_learning_policy == RelationLearningPolicy::FrozenZeroV1
             && (!matches!(self.read_spec, ReadSpec::Relation { .. })
@@ -567,7 +574,9 @@ impl PreparedDriver {
                 .iter()
                 .any(|trit| *trit != 0)
         {
-            return Err(invalid("frozen-zero Relation requires the complete gate inventory and every relation trit zero"));
+            return Err(invalid(
+                "frozen-zero Relation requires the complete gate inventory and every relation trit zero",
+            ));
         }
         Ok(())
     }
@@ -638,10 +647,10 @@ impl PreparedDriver {
         match (&cursor.block, k > 1) {
             (None, false) => {}
             (Some(_), false) => {
-                return Err(invalid("coordinate_block 1 cursor carries no block fields"))
+                return Err(invalid("coordinate_block 1 cursor carries no block fields"));
             }
             (None, true) => {
-                return Err(invalid("coordinate_block > 1 cursor requires block fields"))
+                return Err(invalid("coordinate_block > 1 cursor requires block fields"));
             }
             (Some(block), true) => {
                 if (block.o_vec, block.o_read) != self.family_cursors(cursor.completed_batches)? {
@@ -861,10 +870,19 @@ impl PreparedDriver {
                 .unwrap_or_else(|| json!(NormalizationMode::default())),
         )
         .map_err(|error| invalid(error.to_string()))?;
+        let position: Option<PositionConfig> = serde_json::from_value(
+            checkpoint
+                .model
+                .get("position")
+                .cloned()
+                .unwrap_or(Value::Null),
+        )
+        .map_err(|error| invalid(error.to_string()))?;
         if spec != self.config.spec
             || objective != self.config.objective_policy
             || initialization != self.config.read_initialization
             || normalization != self.config.normalization_mode
+            || position != self.config.position
             || mode != self.config.read_spec
             || checkpoint.model.get("seed").and_then(Value::as_u64)
                 != Some(u64::from(self.config.seed))
@@ -1077,6 +1095,7 @@ mod tests {
             objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             read_initialization: ReadInitialization::ZeroGatesV1,
             normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
+            position: None,
             relation_learning_policy: RelationLearningPolicy::LearnV1,
             counterfactual_path: CounterfactualPath::LanesV1,
             codebook_initialization: CodebookInitialization::SeededDeviceV1,
@@ -1618,6 +1637,52 @@ mod tests {
         assert!(unnormalized.validate().is_err());
         Ok(())
     }
+    #[test]
+    fn position_config_round_trips_and_checkpoint_mismatch_refuses() -> Result<()> {
+        use crate::position_mechanism::{PositionConfig, PositionMode, PositionStepTable};
+
+        let mut control = metadata_fixture(1, ReadSpec::Relation { kept: 2, sweeps: 1 })?;
+        control.config.position = Some(PositionConfig::new(
+            PositionMode::PrefixHolonomyV1,
+            PositionStepTable::identity(control.config.spec.blocks)?,
+        ));
+        control.config.validate()?;
+        control.lineage.config = control.config.clone();
+        let encoded = serde_json::to_value(&control.config).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(encoded["position"]["mode"], "prefix_holonomy_v1");
+        let decoded: DriverConfig =
+            serde_json::from_value(encoded).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(decoded, control.config);
+
+        let model = json!({"schema":crate::SCHEMA,"spec":control.config.spec,"read_spec":control.config.read_spec,"seed":1,"epoch":0,"source_sha256":"0".repeat(64),"kernel_sha256":"1".repeat(64),"geometry_sha256":"2".repeat(64)});
+        let checkpoint = DriverCheckpoint {
+            schema: CHECKPOINT_SCHEMA.into(),
+            lineage: control.lineage.clone(),
+            cursor: Cursor::initial(),
+            model_sha256: corpus::sha256(
+                &serde_json::to_vec(&model).map_err(|e| invalid(e.to_string()))?,
+            ),
+            model,
+        };
+        assert!(control.validate_checkpoint(&checkpoint).is_err());
+        let mut matched = checkpoint;
+        matched.model["position"] = serde_json::to_value(control.config.position.clone()).unwrap();
+        matched.model_sha256 = corpus::sha256(
+            &serde_json::to_vec(&matched.model).map_err(|e| invalid(e.to_string()))?,
+        );
+        control.validate_checkpoint(&matched)?;
+        let mut legacy = metadata_fixture(1, ReadSpec::Relation { kept: 2, sweeps: 1 })?;
+        legacy.lineage.config = legacy.config.clone();
+        assert!(legacy.validate_checkpoint(&matched).is_err());
+        assert_eq!(
+            serde_json::to_value(&legacy.config)
+                .unwrap()
+                .get("position"),
+            None
+        );
+        Ok(())
+    }
+
     fn frozen_relation_metadata_fixture() -> Result<PreparedDriver> {
         let mut driver = metadata_schedule_fixture(
             1,
@@ -2677,6 +2742,7 @@ impl PreparedDriver {
             || model.objective_policy() != self.config.objective_policy
             || model.read_initialization() != self.config.read_initialization
             || model.normalization_mode() != self.config.normalization_mode
+            || model.position() != self.config.position.as_ref()
             || model.binding().seed != self.config.seed
             || model.epoch()? != cursor.accepted_updates
         {
@@ -2690,12 +2756,13 @@ impl PreparedDriver {
         Ok(())
     }
     pub fn new_model(&self, ordinal: usize) -> Result<crate::device::Device> {
-        let model = crate::device::Device::new_with_normalization(
+        let model = crate::device::Device::new_with_position(
             self.config.spec,
             self.config.read_spec,
             self.config.objective_policy,
             self.config.read_initialization,
             self.config.normalization_mode,
+            self.config.position.clone(),
             self.config.seed,
             ordinal,
         )?;
@@ -3005,7 +3072,9 @@ impl PreparedDriver {
             || binding.source.tokens.sha256 == self.config.dev.tokens.sha256
             || binding.eligible_targets < 200
         {
-            return Err(invalid("transfer needs separately pinned evaluation content, the same vocabulary/BOS and at least200 eligible rows"));
+            return Err(invalid(
+                "transfer needs separately pinned evaluation content, the same vocabulary/BOS and at least200 eligible rows",
+            ));
         }
         Ok(())
     }

@@ -9,6 +9,7 @@ use crate::{
     metadata::{BinderPlan, ABSENT},
     normalization_mechanism::NormalizationMode,
     objective::{self, ExactRatio, HingeDistribution},
+    position_mechanism::PositionConfig,
     Error, Identity, ObjectivePolicy, Parameter, ReadInitialization, ReadSpec, Result, Spec,
     SCHEMA,
 };
@@ -278,6 +279,7 @@ pub struct Binding {
     pub objective_policy: ObjectivePolicy,
     pub read_initialization: ReadInitialization,
     pub normalization_mode: NormalizationMode,
+    pub position: Option<PositionConfig>,
     pub seed: u32,
     pub geometry_sha256: [u8; 32],
     pub source_sha256: [u8; 32],
@@ -410,6 +412,7 @@ fn source_sha256() -> [u8; 32] {
     source.update(SCHEMA.as_bytes());
     source.update(include_bytes!("device.rs"));
     source.update(include_bytes!("snapshot.rs"));
+    source.update(include_bytes!("position_mechanism.rs"));
     source.update(include_bytes!("discrete.cu"));
     source.update(include_bytes!("metadata.rs"));
     source.update(include_bytes!("lib.rs"));
@@ -712,6 +715,7 @@ pub struct Device {
     gates: CudaSlice<i32>,
     epoch: CudaSlice<u64>,
     geometry: CudaSlice<u32>,
+    position_steps: CudaSlice<u32>,
     metadata: BinderPlan,
     kernels: Kernels,
     binding: Binding,
@@ -744,6 +748,7 @@ fn make_binding(
     objective_policy: ObjectivePolicy,
     read_initialization: ReadInitialization,
     normalization_mode: NormalizationMode,
+    position: Option<PositionConfig>,
     seed: u32,
     geometry: &[u32],
 ) -> Result<Binding> {
@@ -757,6 +762,7 @@ fn make_binding(
         objective_policy,
         read_initialization,
         normalization_mode,
+        position,
         seed,
         geometry_sha256: geometry_digest(geometry),
         source_sha256: source_sha256(),
@@ -840,11 +846,37 @@ impl Device {
         seed: u32,
         ordinal: usize,
     ) -> Result<Self> {
+        Self::new_with_position(
+            spec,
+            read_spec,
+            objective_policy,
+            read_initialization,
+            normalization_mode,
+            None,
+            seed,
+            ordinal,
+        )
+    }
+
+    /// As `new_with_normalization`, with optional position transport `s[14]`.
+    pub fn new_with_position(
+        spec: Spec,
+        read_spec: ReadSpec,
+        objective_policy: ObjectivePolicy,
+        read_initialization: ReadInitialization,
+        normalization_mode: NormalizationMode,
+        position: Option<PositionConfig>,
+        seed: u32,
+        ordinal: usize,
+    ) -> Result<Self> {
         read_spec.validate(spec)?;
         read_initialization.validate(read_spec)?;
         let snap_word = normalization_mode.device_word()?;
         if snap_word != 0 && read_spec == ReadSpec::Route {
             return Err(invalid("snap-scale control needs a Flock or Relation read"));
+        }
+        if let Some(config) = &position {
+            config.validate(spec, read_spec)?;
         }
         let metadata = BinderPlan::new(spec.context as usize)?;
         let packed = packed_geometry();
@@ -857,6 +889,7 @@ impl Device {
             objective_policy,
             read_initialization,
             normalization_mode,
+            position,
             seed,
             &packed,
         )?;
@@ -885,6 +918,19 @@ impl Device {
                 .map_err(cuda)?,
         };
         let geometry = stream.clone_htod(&packed).map_err(cuda)?;
+        let position_words = binding
+            .position
+            .as_ref()
+            .map(|config| {
+                config
+                    .steps
+                    .export_words()
+                    .iter()
+                    .map(|&word| u32::from(word))
+                    .collect::<Vec<u32>>()
+            })
+            .unwrap_or_else(|| vec![0; spec.blocks as usize * 16]);
+        let position_steps = stream.clone_htod(&position_words).map_err(cuda)?;
         let width = spec.blocks as usize * 8;
         let mut table = stream
             .alloc_zeros::<i32>(spec.vocabulary as usize * width)
@@ -984,6 +1030,7 @@ impl Device {
             gates,
             epoch,
             geometry,
+            position_steps,
             metadata,
             kernels,
             binding,
@@ -1003,6 +1050,9 @@ impl Device {
     }
     pub fn normalization_mode(&self) -> NormalizationMode {
         self.binding.normalization_mode
+    }
+    pub fn position(&self) -> Option<&PositionConfig> {
+        self.binding.position.as_ref()
     }
     pub fn objective_policy(&self) -> ObjectivePolicy {
         self.binding.objective_policy
@@ -1073,6 +1123,7 @@ impl Device {
             .arg(&self.table)
             .arg(&self.geometry)
             .arg(&spec)
+            .arg(&self.position_steps)
             .arg(&mut cells)
             .arg(&mut status);
         // SAFETY: the admitted spec and geometry belong to this model; one
@@ -1099,6 +1150,7 @@ impl Device {
             objective_policy: self.objective_policy(),
             read_initialization: self.read_initialization(),
             normalization_mode: self.normalization_mode(),
+            position: self.binding.position.clone(),
             seed: self.binding.seed,
             epoch: self.epoch()?,
             table: self.stream.clone_dtoh(&self.table).map_err(cuda)?,
@@ -1141,12 +1193,13 @@ impl Device {
         }
         // Fresh process identity even for byte-identical reloads. No carried
         // batch/proposal from another model instance becomes valid by loading.
-        let mut model = Self::new_with_normalization(
+        let mut model = Self::new_with_position(
             snapshot.spec,
             snapshot.read_spec,
             snapshot.objective_policy,
             snapshot.read_initialization,
             snapshot.normalization_mode,
+            snapshot.position.clone(),
             snapshot.seed,
             ordinal,
         )?;
@@ -1159,7 +1212,8 @@ impl Device {
         let items = u32::try_from(
             (model.table.len() / 8)
                 .max(model.routes.len())
-                .max(model.gates.len()),
+                .max(model.gates.len())
+                .max(model.position_steps.len()),
         )
         .map_err(|_| invalid("snapshot validation inventory exceeds CUDA index bound"))?;
         let mut launch = model.stream.launch_builder(&model.kernels.validate);
@@ -1169,6 +1223,7 @@ impl Device {
             .arg(&model.gates)
             .arg(&model.geometry)
             .arg(&spec)
+            .arg(&model.position_steps)
             .arg(&mut status);
         // SAFETY: discrete_validate ABI, checked buffer shapes, fixed geometry
         // and spec. All table/root membership and route-state admission runs
@@ -1197,6 +1252,10 @@ impl Device {
                 self.objective_policy().word(),
                 self.binding.normalization_mode.device_word()?,
                 self.binding.read_initialization.route_bypass_word(),
+                self.binding
+                    .position
+                    .as_ref()
+                    .map_or(0, |config| config.mode.device_word()),
             ])
             .map_err(cuda)
     }
@@ -1260,7 +1319,9 @@ impl Device {
                     || w.iter().any(|x| x.token >= spec.vocabulary)
             })
         {
-            return Err(invalid("carry_windows requires 1..64 nonempty causal prefixes of length1..context with valid IDs"));
+            return Err(invalid(
+                "carry_windows requires 1..64 nonempty causal prefixes of length1..context with valid IDs",
+            ));
         }
         let mut padded = Vec::with_capacity(windows.len() * spec.context as usize);
         let mut identities = Vec::new();
@@ -1457,6 +1518,7 @@ impl Device {
             )
             .arg(&self.geometry)
             .arg(&spec)
+            .arg(&self.position_steps)
             .arg(&mut out)
             .arg(&mut predictions)
             .arg(&mut losses)
@@ -1529,6 +1591,7 @@ impl Device {
             )
             .arg(&self.geometry)
             .arg(&spec)
+            .arg(&self.position_steps)
             .arg(&mut top8)
             .arg(&mut metrics)
             .arg(&mut status);
@@ -1651,7 +1714,9 @@ impl Device {
                 .chain(eval_targets)
                 .any(|&id| id >= vocabulary)
         {
-            return Err(invalid("count reference requires vocabulary2..8192 and nonempty valid TRAIN/DEV target IDs"));
+            return Err(invalid(
+                "count reference requires vocabulary2..8192 and nonempty valid TRAIN/DEV target IDs",
+            ));
         }
         let _training_count = u32::try_from(training_targets.len())
             .map_err(|_| invalid("TRAIN count inventory exceeds CUDA index bound"))?;
@@ -1847,6 +1912,7 @@ impl Device {
             )
             .arg(&self.geometry)
             .arg(&spec)
+            .arg(&self.position_steps)
             .arg(&kind)
             .arg(&index)
             .arg(&mut losses)
@@ -1906,6 +1972,7 @@ impl Device {
             .arg(&self.gates)
             .arg(&self.geometry)
             .arg(&spec)
+            .arg(&self.position_steps)
             .arg(&kind)
             .arg(&index)
             .arg(&mut proposal);
@@ -1955,6 +2022,7 @@ impl Device {
             .arg(&mut self.gates)
             .arg(&self.geometry)
             .arg(&spec)
+            .arg(&self.position_steps)
             .arg(&proposal.data)
             .arg(&kind)
             .arg(&index)
@@ -2104,6 +2172,7 @@ mod snapshot_hash_tests {
             objective_policy: ObjectivePolicy::NearestAddressMarginV1,
             read_initialization: ReadInitialization::ZeroGatesV1,
             normalization_mode: NormalizationMode::ScaleMatchedSnapV1,
+            position: None,
             seed: 1,
             epoch: 0,
             table: vec![0; 16],

@@ -158,6 +158,7 @@ impl Device {
             .arg(plan)
             .arg(&self.geometry)
             .arg(&spec)
+            .arg(&self.position_steps)
             .arg(&mut base);
         // SAFETY: rows*2 base words; one thread per admitted row, as in the
         // row-parallel baseline (the identical kernel text).
@@ -174,6 +175,7 @@ impl Device {
             .arg(plan)
             .arg(&self.geometry)
             .arg(&spec)
+            .arg(&self.position_steps)
             .arg(&kind)
             .arg(&indices_device)
             .arg(&block)

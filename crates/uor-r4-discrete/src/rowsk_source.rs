@@ -46,7 +46,7 @@ const ROWSK: &str = r#"
 // Records, per coordinate c in 0..k (all one kind), at offset c*rows*16:
 //   cost[c*rows*16 + row*16 + lane], flag[...] as in the row-parallel eval.
 // losses[c*16 + lane]; status[c] is coordinate c's own status word.
-extern "C" __global__ void discrete_counterfactual_rowsk_eval(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,U kind,const U* indices,U k,const U* base,W* cost,U* flag) {
+extern "C" __global__ void discrete_counterfactual_rowsk_eval(const int* table,const U* routes,const int* gates,const U* ids,const int* input,const U* targets,const U* plan,const U* g,const U* s,const U* position_steps,U kind,const U* indices,U k,const U* base,W* cost,U* flag) {
     U per=s[4]*16;U pair=blockIdx.x*blockDim.x+threadIdx.x;
     if(per==0)return;
     U c=pair/per,rest=pair%per,row=rest/16,candidate=rest%16;
@@ -55,7 +55,7 @@ extern "C" __global__ void discrete_counterfactual_rowsk_eval(const int* table,c
     if(rows_refused(s,kind,index) || (kind==GATE_KIND && candidate>=3))return;
     if(base[row*2]!=0 || base[row*2+1]==0)return;
     int q[MAX_WIDTH];U prediction,tr,ar,arithmetic_status=0;
-    if(!read_vector(input,ids,routes,gates,plan,g,s,row,kind,index,candidate,q,0)){flag[slot]=2u;return;}
+    if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,kind,index,candidate,q,0)){flag[slot]=2u;return;}
     W loss=writer(q,table,g,s,targets[row],kind,index,candidate,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
     cost[slot]=loss;flag[slot]=(arithmetic_status&ROWS_STATUS_MASK)|(loss!=~(W)0 && tr!=0?ROWS_TR_BIT:0u);
 }

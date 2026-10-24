@@ -1,6 +1,7 @@
 //! Snapshot storage types and exact serialization hash domains; no model execution.
 
 use crate::normalization_mechanism::NormalizationMode;
+use crate::position_mechanism::PositionConfig;
 use crate::{Error, ObjectivePolicy, ReadInitialization, ReadSpec, Result, Spec};
 fn invalid(message: impl Into<String>) -> Error {
     Error::Invalid(message.into())
@@ -26,6 +27,8 @@ pub struct Snapshot {
         skip_serializing_if = "NormalizationMode::is_scale_matched_snap"
     )]
     pub normalization_mode: NormalizationMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<PositionConfig>,
     pub seed: u32,
     pub epoch: u64,
     pub table: Vec<i32>,
@@ -151,6 +154,28 @@ mod tests {
             default_domains.model_snapshot_sha256,
             control_domains.model_snapshot_sha256
         );
+    }
+
+    #[test]
+    fn optional_position_config_is_stored_and_reloaded() {
+        use crate::position_mechanism::{PositionConfig, PositionMode, PositionStepTable};
+
+        let mut value = stored();
+        value["read_spec"] = serde_json::to_value(crate::ReadSpec::Route).unwrap();
+        let mut snapshot: Snapshot = serde_json::from_value(value).unwrap();
+        assert_eq!(snapshot.position, None);
+        let default_text = serde_json::to_string(&snapshot).unwrap();
+        assert!(!default_text.contains("\"position\":"));
+
+        snapshot.position = Some(PositionConfig::new(
+            PositionMode::PrefixHolonomyV1,
+            PositionStepTable::identity(2).unwrap(),
+        ));
+        let text = serde_json::to_string(&snapshot).unwrap();
+        assert!(text.contains("\"mode\":\"prefix_holonomy_v1\""));
+        assert!(text.contains("\"candidates\":[0,0"));
+        let reloaded: Snapshot = serde_json::from_str(&text).unwrap();
+        assert_eq!(reloaded.position, snapshot.position);
     }
 
     #[test]

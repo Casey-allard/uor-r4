@@ -232,6 +232,11 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
             "D11 export refuses a non-default normalization_mode: the integer engine has no unit snap",
         ));
     }
+    if snapshot.position.is_some() {
+        return Err(invalid(
+            "D11 export refuses position transport: the integer engine has no position read",
+        ));
+    }
     let cells = validate_and_extract_cells(snapshot)?;
     let stages = BinderPlan::new(snapshot.spec.context as usize)?.stages() as u32;
     let (read_mode, read_kept, read_sweeps) = match snapshot.read_spec {
@@ -249,7 +254,7 @@ pub fn export_d11(snapshot: &Snapshot) -> Result<Vec<u8>> {
         ReadInitialization::RouteBypassV1 | ReadInitialization::RoutePermutedActionsV1 => {
             return Err(invalid(
                 "D11 export refuses a Route read-off or permuted control arm",
-            ))
+            ));
         }
     };
     let snapshot_bytes = serde_json::to_vec(snapshot).map_err(|e| invalid(e.to_string()))?;
@@ -391,7 +396,7 @@ pub fn import_d11(bytes: &[u8]) -> Result<Snapshot> {
         _ => {
             return Err(invalid(
                 "unsupported discrete read_mode/kept/sweeps in UORLUT01",
-            ))
+            ));
         }
     };
     read_spec.validate(spec)?;
@@ -471,6 +476,7 @@ pub fn import_d11(bytes: &[u8]) -> Result<Snapshot> {
         objective_policy,
         read_initialization,
         normalization_mode: crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
+        position: None,
         seed: header.shape.seed,
         epoch: header.shape.epoch,
         table,
@@ -539,6 +545,7 @@ mod tests {
             read_initialization,
             normalization_mode:
                 crate::normalization_mechanism::NormalizationMode::ScaleMatchedSnapV1,
+            position: None,
             seed: 7,
             epoch: 3,
             table: tokens.iter().flatten().flatten().copied().collect(),
@@ -600,6 +607,25 @@ mod tests {
             assert!(err.contains("Route read-off or permuted control"), "{err}");
         }
         // The default path is unchanged by the refusal.
+        assert_eq!(export_d11(&default).unwrap(), bytes);
+    }
+
+    #[test]
+    fn export_refuses_position_transport_until_serving_support_exists() {
+        use crate::position_mechanism::{PositionConfig, PositionMode, PositionStepTable};
+
+        let default = sample_snapshot(
+            ReadSpec::Flock { kept: 2 },
+            ReadInitialization::ActiveLeafV1,
+        );
+        let bytes = export_d11(&default).unwrap();
+        let mut positioned = default.clone();
+        positioned.position = Some(PositionConfig::new(
+            PositionMode::PrefixHolonomyV1,
+            PositionStepTable::identity(2).unwrap(),
+        ));
+        let error = export_d11(&positioned).unwrap_err().to_string();
+        assert!(error.contains("position"), "{error}");
         assert_eq!(export_d11(&default).unwrap(), bytes);
     }
 

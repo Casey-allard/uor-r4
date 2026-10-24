@@ -75,6 +75,7 @@ impl Device {
             gates: copy_i32(&self.gates)?,
             epoch: self.stream.clone_dtod(&self.epoch).map_err(cuda)?,
             geometry: copy_u32(&self.geometry)?,
+            position_steps: copy_u32(&self.position_steps)?,
             metadata: self.metadata.clone(),
             kernels: Kernels {
                 init: k.init.clone(),

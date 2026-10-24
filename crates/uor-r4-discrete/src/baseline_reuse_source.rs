@@ -69,7 +69,7 @@ const PRODUCERS: &str = r#"    // Host admission binds exactly one block of sixt
         int baseline[MAX_WIDTH];U prediction,tr,ar,arithmetic_status=0;
         U row_status=0,row_eligible=0;
         lane.words[0]|=(W)1<<row;++lane.words[1];
-        if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,baseline,0)){
+        if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,2,0,0,baseline,0)){
             row_status=2u;
         }else{
             W base=writer(baseline,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
@@ -87,7 +87,7 @@ const PRODUCERS: &str = r#"    // Host admission binds exactly one block of sixt
 "#;
 
 const BASELINE_LOOP: &str = r#"    for(U row=0;row<s[4];++row){int q[MAX_WIDTH],baseline[MAX_WIDTH];U prediction,tr,ar;
-        if(!read_vector(input,ids,routes,gates,plan,g,s,row,2,0,0,baseline,0)){atomicExch(status,2u);return;}
+        if(!read_vector(input,ids,routes,gates,plan,g,s,position_steps,row,2,0,0,baseline,0)){atomicExch(status,2u);return;}
         U arithmetic_status=0;
         W base=writer(baseline,table,g,s,targets[row],2,0,0,&prediction,&tr,&ar,0,0,0,0,&arithmetic_status);
         if(base==~(W)0){atomicExch(status,arithmetic_status?arithmetic_status:8u);return;}
