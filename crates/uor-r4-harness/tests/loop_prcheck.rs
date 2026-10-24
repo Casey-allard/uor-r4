@@ -1518,10 +1518,20 @@ fn review_record_counts_exact_head_records_from_allowed_labs() {
     let o = r.check_gh(&h, &fake(vec![free]));
     expect(&o, 1, "FAIL review-record", "fail: no counted record at");
 
-    // A code PR: a same-vendor APPROVE does not count; another vendor's does.
+    // A code PR (D66): the ORDER lab's own fresh-context APPROVE counts, as does another vendor's;
+    // the ORDER lab's record without `context: fresh` does not.
     let h = r.green_a(|r| r.write("crates/a/src/lib.rs", "//\n"));
     let o = r.check_gh(&h, &fake(vec![record_on(ORDER_A, "claude", &h, "APPROVE")]));
-    expect(&o, 1, "FAIL review-record", "(D46)");
+    expect(&o, 1, "PASS review-record", "counted");
+    let mut stale = record_on(ORDER_A, "claude", &h, "APPROVE");
+    let without = stale["body"]
+        .as_str()
+        .unwrap()
+        .replace("context: fresh\n", "");
+    assert_ne!(without, stale["body"].as_str().unwrap());
+    stale["body"] = serde_json::json!(without);
+    let o = r.check_gh(&h, &fake(vec![stale]));
+    expect(&o, 1, "FAIL review-record", "needs `context: fresh` (D66)");
     let o = r.check_gh(&h, &fake(vec![record_on(ORDER_A, "codex", &h, "APPROVE")]));
     expect(&o, 1, "PASS review-record", "counted");
 }

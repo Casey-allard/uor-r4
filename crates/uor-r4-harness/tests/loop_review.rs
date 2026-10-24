@@ -128,12 +128,47 @@ fn planted_fault_an_untagged_record_is_refused() {
 }
 
 #[test]
-fn planted_fault_a_same_vendor_record_outside_d59_is_refused() {
+fn planted_fault_a_same_lab_record_without_fresh_context_is_refused() {
     let out = run(&CODE_PR, &[body("claude", Verdict::Approve)]);
     assert!(!out.pass);
     assert!(!out.setup_pr);
-    assert!(has(&out, "not counted, same vendor"), "{:?}", out.details);
+    assert!(
+        has(&out, "needs `context: fresh` (D66)"),
+        "{:?}",
+        out.details
+    );
     assert!(run(&CODE_PR, &[body("codex", Verdict::Approve)]).pass);
+}
+
+#[test]
+fn another_lab_of_the_order_labs_vendor_is_still_refused_d66() {
+    // D66 counts the ORDER lab's own fresh record, not every lab of its vendor.
+    let rows = rows();
+    let mut vendors = vendors();
+    vendors.insert("anthro".to_string(), "anthropic".to_string());
+    let comments = [fresh("anthro", Verdict::Approve)];
+    let out = gate(&GateInput {
+        pr: PR,
+        head: HEAD,
+        order_path: ORDER_PATH,
+        order_lab: CODE_PR.order_lab,
+        order_item: CODE_PR.item,
+        setup_row: CODE_PR.setup_row,
+        rows: &rows,
+        vendors: &vendors,
+        d59_in_force: CODE_PR.d59,
+        doc_only: CODE_PR.doc_only,
+        comments: &comments,
+    });
+    assert!(!out.pass);
+    assert!(
+        has(
+            &out,
+            "is neither the ORDER lab claude nor of another vendor"
+        ),
+        "{:?}",
+        out.details
+    );
 }
 
 #[test]
@@ -218,7 +253,7 @@ fn the_item_must_be_the_harness_item_or_the_row_s_own() {
 }
 
 #[test]
-fn a_doc_only_pr_takes_a_fresh_same_lab_record() {
+fn a_fresh_same_lab_record_counts_on_any_pr_d66() {
     let doc = Case {
         doc_only: true,
         ..CODE_PR
@@ -235,9 +270,18 @@ fn a_doc_only_pr_takes_a_fresh_same_lab_record() {
     assert!(!out.pass);
     assert!(has(&out, "needs `context: fresh`"), "{:?}", out.details);
 
+    // D66: the review is part of the unit, so the same fresh record counts on a code PR too.
     let out = run(&CODE_PR, &[fresh]);
+    assert!(out.pass, "{:?}", out.details);
+    assert!(!out.setup_pr);
+
+    let out = run(&CODE_PR, &[body("claude", Verdict::Approve)]);
     assert!(!out.pass);
-    assert!(has(&out, "same vendor"), "{:?}", out.details);
+    assert!(
+        has(&out, "needs `context: fresh` (D66)"),
+        "{:?}",
+        out.details
+    );
 }
 
 #[test]
@@ -388,9 +432,12 @@ fn last_counted_approve_finds_the_standing_approval() {
         None
     );
     assert_eq!(approve_at(&CODE_PR, std::slice::from_ref(&note)), None);
-    // A same-vendor CHANGES on a code PR does not count, so the APPROVE before it stands.
+    // The ORDER lab's CHANGES without `context: fresh` does not count, so the APPROVE before it
+    // stands; with `context: fresh` it counts (D66) and blocks.
     let same = body("claude", Verdict::Changes);
-    assert_eq!(approve_at(&CODE_PR, &[approve, same]), Some(0));
+    assert_eq!(approve_at(&CODE_PR, &[approve.clone(), same]), Some(0));
+    let same_fresh = fresh("claude", Verdict::Changes);
+    assert_eq!(approve_at(&CODE_PR, &[approve, same_fresh]), None);
     // On a setup PR under D59, a later kimi CHANGES does not count; a later claude CHANGES does.
     let claude_ok = fresh("claude", Verdict::Approve);
     let kimi_no = fresh("kimi", Verdict::Changes);
@@ -425,7 +472,11 @@ fn the_switch_ends_d59_only_when_listed_and_ended() {
     let out = run(&off, &[body("claude", Verdict::Approve)]);
     assert!(out.setup_pr);
     assert!(!out.pass);
-    assert!(has(&out, "same vendor"), "{:?}", out.details);
+    assert!(
+        has(&out, "needs `context: fresh` (D66)"),
+        "{:?}",
+        out.details
+    );
     assert!(run(&off, &[body("codex", Verdict::Approve)]).pass);
 }
 
@@ -690,7 +741,7 @@ mod cli {
     }
 
     #[test]
-    fn a_same_lab_approve_on_a_code_pr_is_refused() {
+    fn a_same_lab_approve_without_fresh_context_on_a_code_pr_is_refused() {
         let r = Repo::new();
         let o = r.review(
             "claude",
@@ -698,32 +749,27 @@ mod cli {
             &APPROVE_HOST,
         );
         assert_eq!(o.status.code(), Some(1), "{}", text(&o));
-        assert!(text(&o).contains("same vendor"), "{}", text(&o));
+        assert!(
+            text(&o).contains("needs `context: fresh` (D66)"),
+            "{}",
+            text(&o)
+        );
         assert!(r.posts().is_empty());
     }
 
     #[test]
-    fn a_fresh_context_self_review_counts_on_a_doc_only_pr_only() {
+    fn a_fresh_context_self_review_counts_on_any_pr_d66() {
         let mut args = APPROVE_HOST.to_vec();
         args.extend(["--context", "fresh"]);
         let r = Repo::new();
         let o = r.review("claude", &fake(CODE_ORDER, &["docs/x.md"], &[]), &args);
         assert_eq!(o.status.code(), Some(0), "{}", text(&o));
         assert_eq!(r.posts().len(), 1);
+        // D66: the review is part of the unit, so it is posted on a code PR too.
         let r = Repo::new();
         let o = r.review("claude", &fake(CODE_ORDER, &[CODE_FILE], &[]), &args);
-        assert_eq!(o.status.code(), Some(1), "{}", text(&o));
-        assert!(
-            text(&o).contains("refused, this record would not count"),
-            "{}",
-            text(&o)
-        );
-        assert!(
-            text(&o).contains("not counted, same vendor"),
-            "{}",
-            text(&o)
-        );
-        assert!(r.posts().is_empty());
+        assert_eq!(o.status.code(), Some(0), "{}", text(&o));
+        assert_eq!(r.posts().len(), 1);
     }
 
     #[test]
@@ -808,12 +854,13 @@ fn a_claude_record_on_a_setup_pr_under_d59_needs_fresh_context() {
         out.details
     );
     assert!(run(&SETUP_PR, &[fresh("claude", Verdict::Approve)]).pass);
-    // Without D59 the fresh claim does not lift the vendor rule.
+    // Without D59, the ORDER lab's own fresh record counts by D66; another lab of its vendor
+    // still does not count.
     let off = Case {
         d59: false,
         ..SETUP_PR
     };
-    assert!(!run(&off, &[fresh("claude", Verdict::Approve)]).pass);
+    assert!(run(&off, &[fresh("claude", Verdict::Approve)]).pass);
 }
 
 #[test]

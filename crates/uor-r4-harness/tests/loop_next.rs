@@ -725,7 +725,7 @@ fn orders_of_two_labs_in_one_pr_are_refused_not_resolved() {
 }
 
 #[test]
-fn an_own_doc_only_pr_owes_a_fresh_self_review_and_an_own_code_pr_does_not() {
+fn an_own_pr_owes_a_fresh_self_review_doc_only_or_code_d66() {
     let r = Repo::new(&[]);
     let (mut p, f) = pr(13, "claude/d", "claude", "it-3");
     for path in ["docs/x.md", "docs/loop/tasks/it-3/claude-1/REPORT.md"] {
@@ -740,7 +740,8 @@ fn an_own_doc_only_pr_owes_a_fresh_self_review_and_an_own_code_pr_does_not() {
         vec![with_code(pr(13, "claude/d", "claude", "it-3"))],
         json!({}),
     ));
-    assert!(!decision(&o).contains("review #13"), "{o:?}");
+    // D66: the review is part of the unit, so an own code PR owes it too.
+    assert!(decision(&o).starts_with("GO review #13"), "{o:?}");
 }
 
 #[test]

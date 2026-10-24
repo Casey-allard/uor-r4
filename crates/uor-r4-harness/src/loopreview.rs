@@ -402,12 +402,14 @@ fn refusal(input: &GateInput, setup_pr: bool, r: &Record) -> Option<String> {
     if other_vendor {
         return None;
     }
-    if input.doc_only && r.lab == input.order_lab {
+    // D66: the review is part of the unit, so the ORDER lab's own fresh-context record counts on
+    // every PR, code included.
+    if r.lab == input.order_lab {
         return (!r.fresh_context)
-            .then(|| "a same-lab record on a doc-only PR needs `context: fresh`".to_string());
+            .then(|| "a same-lab record needs `context: fresh` (D66)".to_string());
     }
     Some(format!(
-        "same vendor: lab {} (vendor {lab_vendor:?}) is not of another vendor than the ORDER lab {} (vendor {order_vendor:?}) (D46)",
+        "same vendor: lab {} (vendor {lab_vendor:?}) is neither the ORDER lab {} nor of another vendor (vendor {order_vendor:?}) (D66)",
         r.lab, input.order_lab
     ))
 }
@@ -536,7 +538,7 @@ pub fn last_counted_approve(input: &GateInput) -> Option<usize> {
 }
 
 /// Whether a record from `lab` at this PR and head would count. The record is taken to carry
-/// `context: fresh`, which any reviewer may state, so on a doc-only PR the ORDER lab may review,
+/// `context: fresh`, which any reviewer may state, so the ORDER lab may review its own PR (D66),
 /// and on a setup PR under D59 claude may. A loop item whose ORDER names no valid setup row is
 /// owed no review until the ORDER is fixed.
 pub fn may_review(input: &GateInput, lab: &str) -> bool {
