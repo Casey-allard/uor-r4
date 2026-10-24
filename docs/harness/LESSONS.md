@@ -1,4 +1,4 @@
-<!-- rendered by uor-harness loop render from 1cb89e81a98cee372d948a17f608bed86a887ce5; do not edit -->
+<!-- rendered by uor-harness loop render from b249f659780dec8a4f333d5ed9c89a83e65dc6e1; do not edit -->
 # LESSONS
 
 Rendered from `docs/harness/mistakes/*.md` at the commit in the stamp above. A lesson is listed under its `id: L-NNN` line; ids are never invented.
