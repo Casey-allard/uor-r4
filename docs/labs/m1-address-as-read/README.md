@@ -32,15 +32,19 @@ The non-author `NOT_FIT` review (`ee2f61417`) listed five pinned prerequisites b
 
 The sheet now carries the two missing registered stop rules: a bar-miss is a negative for that exact configuration only (D22 §1), and integrity/panel-hash/checkpoint failures are instrument blockers. **No compute is cleared; the sheet remains `NOT_FIT` and the item stays `ready`.**
 
-## Registration cards for the oracle (deepseek-38, 2026-10-23)
+## Registration cards for the oracle (deepseek-38, 2026-10-23; historical snapshot)
+
+Later sections supersede this dated record's panel-selection, prerequisite and FIT-routing statements.
 
 The merged FIT review (`ee2f61417`) left two owner/PM prerequisites for the serving-time oracle. Two decision cards with recommendations are now filed on `#2028` and linked from `#2833`; the oracle sheet records them in its pin-status table:
 1. **Gain bar:** `27/40` stated-fact vs the single `19/40` baseline, `7/20` historical-version, `20/20` abstention, `0` wrong-value substitutions, held-out BPB within `0.01` on sealed fresh V2; derivation `27 + 7 + 20 = 54/80` (`#2028` comment `6356053677`).
 2. **Frozen 80-row panel:** `40` stated-fact / `20` historical-version / `20` abstention; the milestone's `>= 200` rows is the M3 decisive-run panel, not this oracle (`#2028` comment `6356054074`). The PM selects the data source and freezes/hashes the file.
 
-Both cards were then **registered as recommended** under Casey's standing direction at **2026-10-23T02:44:51Z** (`#2028` comment `6356136269`) — bar and panel composition — and the PM has since selected the deterministic source and frozen/hashed the panel. The panel is frozen (`panel-v2`, `369d8c24…`) and the sealed fresh-V2 BPB stream is pinned (`#3139`); the remaining prerequisites outside lab control are the held `m1-trunk-assembly-and-training` (`#2844`) checkpoint SHA-256, a fresh-context non-author FIT (every lab has authored sheet text or a panel; CHARTER §4.5 counts a fresh-context review as non-author), PM dispatch and Casey's typed release. No compute is cleared; the item stays `ready`.
+Both cards were then **registered as recommended** under Casey's standing direction at **2026-10-23T02:44:51Z** (`#2028` comment `6356136269`) — bar and panel composition — and the PM has since selected the deterministic source and frozen/hashed the panel. The panel is frozen (`panel-v2`, `369d8c24…`) and the sealed fresh-V2 BPB stream is pinned (`#3139`); the remaining prerequisites outside lab control are the held `m1-trunk-assembly-and-training` (`#2844`) checkpoint SHA-256, a fresh-context non-author FIT (every lab has authored sheet text or a panel; CHARTER §4.5 counts a fresh-context review as non-author), PM dispatch and Casey's approval in chat. No compute is cleared; the item stays `ready`.
 
-## PM panel freeze (kimi-33, 2026-10-24)
+## PM panel freeze (kimi-33, 2026-10-24; historical panel-v1 snapshot)
+
+The BPB-stream and panel prerequisites named in this dated panel-v1 record are superseded by the claude-71 and kimi-34/35 records below.
 
 - **Artifact:** `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v1.jsonl`, 80 rows / 21,364 bytes, SHA-256 `0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`; HF commit `59f964aa60b83b4684abaa34daddd0c6db768d4d`.
 - **Source:** deterministic synthetic versioned facts from `crates/uor-r4-object-store/src/bin/address-panel-freeze.rs`, not corpus text. The panel has 40 current stated-fact hits, 20 previous-version hits, 10 unwritten `Absent` rows and 10 capacity-1 `Evicted` rows at sequence 2, with unique prompts and addresses.
@@ -60,3 +64,8 @@ Both cards were then **registered as recommended** under Casey's standing direct
   - **Tests:** the 6 generator tests parse the emitted JSON. Each planted leak or state fault fails its test.
   - **Suite:** `cargo test -p uor-r4-object-store` gives 82 passed, 0 failed, 1 ignored.
 - **Unchanged:** the bar, the 19/40 baseline, the checkpoint (held `#2844`), `NOT_FIT` and every hold. The bar question is with the PM (#2833 `6380260939`).
+
+## Fresh-V2 BPB stream pin (kimi-34/35, 2026-10-24)
+
+- **Current state:** prerequisite 5 is PINNED. The sealed fresh-V2 `tokens.u16` is SHA-256 `0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8`; `response_mask.u8` is `a1cda5295547bb641b1ea71ba4ebabb58d58c40e6c048cda91f35a878fecbf5e`; the seal report is `df5d074ae09c743aa586e3463ffe87faca5703f44f7802bff8ac49ee2990395f`. These values are cross-checked against retained A8, dispatch and packet metadata, not raw-artifact rehashing.
+- **Unchanged:** the `0.01` tolerance remains registered at `2026-10-23T02:44:51Z`. The earlier PENDING entries above are dated snapshots. Only the held `#2844` checkpoint remains unpinned in the prerequisite table; `NOT_FIT`, the bar, panel and every hold stand, with no compute cleared.
