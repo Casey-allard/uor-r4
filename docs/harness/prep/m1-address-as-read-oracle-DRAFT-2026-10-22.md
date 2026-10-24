@@ -1,6 +1,10 @@
 # Serving-time address-as-read oracle over `uor-r4-object-store` (DRAFT)
 
-- **Status:** DRAFT pre-registration sheet for `#2833` (`m1-address-as-read`, Step 4). **FIT-reviewed by deepseek (non-author) on 2026-10-22: `NOT_FIT`** (see [Verdict](#verdict)); **no GPU run is cleared or started** until the remaining prerequisites in the Verdict are pinned (prerequisite 4 is pinned below) and Casey releases the run. **Sheet update 2026-10-22 (deepseek-33):** prerequisite 4 (consumer commit pin) is now pinned below; prerequisites 1–3 and part of 5 remain `PENDING (PM/owner)` and are listed in one table in the Verdict. **Sheet update 2026-10-23 (deepseek-38):** the bar and panel decision cards were filed, and the owner's standing direction registered both as recommended at **2026-10-23T02:44:51Z** (`#2028` comment `6356136269`; see [Registration](#registration-deepseek-38-2026-10-23)). The checkpoint pin stays `PENDING` (held `#2844`) and `NOT_FIT` stands with no compute cleared; the next FIT must come from a lab other than deepseek (deepseek has authored text in this sheet). **Sheet update 2026-10-24 (kimi-33):** the 80-row panel is now frozen and read back identically from `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v1.jsonl`, SHA-256 `0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`. The held checkpoint and the BPB stream's full digest remain `PENDING`; `NOT_FIT` still stands with no compute cleared.
+- **Status:** DRAFT pre-registration sheet for `#2833` (`m1-address-as-read`, Step 4). **FIT-reviewed by deepseek (non-author) on 2026-10-22: `NOT_FIT`** (see [Verdict](#verdict)); **no GPU run is cleared or started** until the remaining prerequisites in the Verdict are pinned (prerequisite 4 is pinned below) and Casey releases the run. **Sheet update 2026-10-22 (deepseek-33):** prerequisite 4 (consumer commit pin) is now pinned below; prerequisites 1–3 and part of 5 remain `PENDING (PM/owner)` and are listed in one table in the Verdict. **Sheet update 2026-10-23 (deepseek-38):** the bar and panel decision cards were filed, and the owner's standing direction registered both as recommended at **2026-10-23T02:44:51Z** (`#2028` comment `6356136269`; see [Registration](#registration-deepseek-38-2026-10-23)). The checkpoint pin stays `PENDING` (held `#2844`) and `NOT_FIT` stands with no compute cleared; the next FIT must come from a lab other than deepseek (deepseek has authored text in this sheet). **Sheet update 2026-10-24 (kimi-33):** the 80-row panel is now frozen and read back identically from `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v1.jsonl`, SHA-256 `0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`. The held checkpoint and the BPB stream's full digest remain `PENDING`; `NOT_FIT` still stands with no compute cleared. **Sheet update 2026-10-24 (claude-71):**
+- `panel-v1` is superseded as an unfit instrument. Each of its stated and historical prompts held its expected value, and each abstention prompt named its family, so a no-read arm could pass the bar (#3131 `6380260818`).
+- The pinned panel is now `panel-v2`, SHA-256 `369d8c24bb41e2d071485ecd1cbc7044092959ed5309ad70a8a5150a69a9e90c` (see [Panel repair](#panel-repair-claude-71-2026-10-24)).
+- antigravity, deepseek, kimi and claude have now each authored text in this sheet or a panel. The next FIT therefore comes from a fresh-context reviewer, which CHARTER §4.5 counts as non-author; the PM dispatches which lab runs it.
+- `NOT_FIT` stands, and no compute is cleared.
   - CPU consumer module (`uor_r4_object_store::address_read`) and finite CPU controls were delivered in `#2950` (`$0` GPU spend).
   - GPU evaluation of the serving-time oracle awaits a non-author `TEST FITNESS: FIT` review (CHARTER §4.5) and Casey's approval in chat; any trained form also requires a separate FIT review and a typed owner release (CHARTER §5.1).
 - **Line:** M1/M3 exact addressed memory (`#2029`, `#2031`, item `#2833`). **Lab:** antigravity.
@@ -34,7 +38,11 @@ Evaluated on one frozen checkpoint on RTX 5090 across three deterministic servin
 
 ## 5. Data split
 
-- **Frozen panel (PINNED, `panel-v1`):** `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v1.jsonl`, **80 rows / 21,364 bytes**, SHA-256 **`0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`**. The deterministic Rust generator is `crates/uor-r4-object-store/src/bin/address-panel-freeze.rs`; two generations were byte-identical, and every current, previous, absent and evicted expected read was verified through `AddressDirectory` and `Store` before upload and on remote readback. The composition is `40` stated-fact / `20` historical-version / `20` abstention (`10` unwritten + `10` evicted), with unique prompts and addresses. The registered 80-row oracle is distinct from the M3 decisive-run panel's `>= 200` rows (D22 §3); it is a bounded instrument panel, not a claim of decisive language power.
+- **Frozen panel (PINNED, `panel-v2`; `panel-v1` superseded):**
+  - **File:** `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v2.jsonl` (HF commit `bb81a8a33916bbc95ac192dce5b75c9ef5df1889`), **80 rows / 139,678 bytes**, SHA-256 **`369d8c24bb41e2d071485ecd1cbc7044092959ed5309ad70a8a5150a69a9e90c`**.
+  - **Generator:** `crates/uor-r4-object-store/src/bin/address-panel-freeze.rs`. Its tests replay every row's writes through `AddressDirectory` and `Store` from the emitted JSON. The remote readback is byte-identical.
+  - **panel-v1:** (`0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`, 21,364 bytes) stays in the store untouched and regenerates from commit `1a70a9ac3`. It is not used, because its prompts held their answers.
+  - **Composition:** unchanged. It is `40` stated-fact / `20` historical-version / `20` abstention (`10` unwritten + `10` evicted), with unique prompts and addresses. The registered 80-row oracle is distinct from the M3 decisive-run panel's `>= 200` rows (D22 §3); it is a bounded instrument panel, not a claim of decisive language power.
 - **Held-out BPB stream and tolerance (`PENDING — PM/owner`):** the sheet still needs the named, hashed held-out text stream and the source of the `0.01` BPB tolerance. Proposed lab definition for the PM: the held-out text stream is the same frozen evaluation stream used by the Arm A baseline, named by path and SHA-256 in the FIT-locked sheet; the `0.01` tolerance is accepted only if the PM sources it to a registered decision. Both remain `PENDING`.
 - **Reported metrics (separated per `exact-memory.md` Step 5):**
   1. **Oracle read accuracy (Arm C vs Arm A):** exact-match `check_pass` on the recalled fact rows when the true `PrimeAddress` is supplied.
@@ -66,7 +74,7 @@ Evaluated on one frozen checkpoint on RTX 5090 across three deterministic servin
   - `retries`: `0`.
   - `storage`: `< 1 MiB` evaluation report.
 - **Minimum test power (D22 §3):**
-  - Frozen panel of `>= 80` rows (`40` stated-fact / overwrite recall rows, `20` historical-version rows, `20` unwritten / evicted abstention rows) evaluated across all 3 arms (`Arm A`, `Arm B`, `Arm C`).
+  - Frozen panel of `>= 80` rows (`40` stated-fact rows, `20` historical-version rows, `20` unwritten / evicted abstention rows) evaluated across all 3 arms (`Arm A`, `Arm B`, `Arm C`).
 
 ## Verdict
 
@@ -75,7 +83,7 @@ Evaluated on one frozen checkpoint on RTX 5090 across three deterministic servin
 
 | # | Prerequisite | Status | Evidence / slot |
 |---|---|---|---|
-| 1 | Frozen, hashed 80-row panel and 80-vs-200 reconciliation | **FROZEN (kimi-33, 2026-10-24)** | `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v1.jsonl`, 80 rows / 21,364 B, SHA-256 `0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`; the registered 80-row oracle remains distinct from the M3 decisive-run panel's `>= 200` rows |
+| 1 | Frozen, hashed 80-row panel and 80-vs-200 reconciliation | **FROZEN (claude-71, 2026-10-24: `panel-v2`; kimi-33's `panel-v1` superseded)** | `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v2.jsonl`, 80 rows / 139,678 B, SHA-256 `369d8c24bb41e2d071485ecd1cbc7044092959ed5309ad70a8a5150a69a9e90c`; the registered 80-row oracle remains distinct from the M3 decisive-run panel's `>= 200` rows |
 | 2 | Candidate checkpoint SHA-256 | **PENDING — owner** | `m1-trunk-assembly-and-training` `#2844` is HELD; no SHA is invented |
 | 3 | Owner-registered bar with ISO-UTC time and one baseline | **REGISTERED (2026-10-23T02:44:51Z)** | registered as recommended (`#2028` comment `6356136269`): `27/40` vs the single `19/40` baseline, `7/20` historical, `20/20` abstention, `0` wrong values, BPB within `0.01` on fresh V2; derivation `27+7+20 = 54/80` |
 | 4 | Consumer commit pin | **PINNED** | commit `86eb68ebb`; 6 finite controls in `crates/uor-r4-object-store/tests/address_read.rs` |
@@ -86,6 +94,50 @@ Re-request FIT once the panel hash is frozen and the checkpoint SHA is pinned; t
 ### PM panel freeze (kimi-33, 2026-10-24)
 
 The PM-selected source is deterministic synthetic versioned facts, not corpus text. `address-panel-freeze` emits 80 canonical JSONL rows with unique prompts and prime addresses: 40 current stated-fact hits, 20 previous-version hits, 10 unwritten `Absent` rows and 10 capacity-1 `Evicted` rows at sequence 2. Each expected result is checked against `AddressDirectory` and `Store` during generation. Two runs produce identical bytes; the uploaded file is `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v1.jsonl` (`59f964aa60b83b4684abaa34daddd0c6db768d4d`), 21,364 bytes, SHA-256 `0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`, and remote readback is identical. This resolves only the panel-hash prerequisite; it does not change the bar, checkpoint, FIT verdict or any hold.
+
+### Panel repair (claude-71, 2026-10-24)
+
+`panel-v1` was an unfit instrument. Class: instrument, not a result. Each of its stated and historical rows was one prompt containing its own expected value, and each abstention prompt named its family ("Recall unwritten…", "Recall evicted…"), so a no-read model could score 40/40, 20/20 and 20/20 by copying (#3131 `6380260818`). Its Arm B primes were also constants unrelated to the prompt words.
+
+**How `panel-v2` rows work.** Each row is one dialogue:
+- **`writes`.** The row's stated facts in sequence order. Each write carries:
+  - its `sequence` and slot `version`;
+  - its lexicon `terms`, with their primes and the ordered `(entity, slot)` pair;
+  - its `statement` text;
+  - its stored `value`.
+
+  Values are 8 letters from SHA-256, so no value is derivable from a query's words.
+- **`capacity`.** The directory capacity.
+- **`query`.** "What is `<entity>` `<slot>`?", or for historical rows "What was `<entity>` `<slot>` before it changed?". Unwritten and evicted rows use the stated template, so a query's wording never says whether the right answer is to abstain.
+
+**Composition and design** (40 / 20 / 10 / 10):
+- **Stated rows** (40): the dialogue states the entity's four facts and a neighbour entity's four.
+- **Historical rows** (20): the dialogue overwrites a status slot between distractors.
+- **Unwritten rows** (10): the dialogue states three facts, and the query asks the fourth.
+- **Evicted rows** (10): capacity 4, and the fifth write evicts the target at sequence 5.
+
+**Evaluator protocol.**
+- Render the `writes[].statement` lines in order as the dialogue context, then the `query`.
+- Never show the model the scorer-only fields: `family`, `oracle_*`, `outcome`, `expected_bytes` and `evicted_at_sequence`.
+- **Arm C** reads `oracle_primes` and `oracle_ordered_pairs` with `version_select`.
+- **Arm B** derives its address from the query alone: split it on ASCII whitespace, trim trailing `?`, `.` and `,`, keep the lexicon words in order, take their primes, and pair each kept word with the next.
+
+**Tests.** The bin tests parse the emitted JSON and pin:
+- no query contains any value of its row, or a family word;
+- every query matches its template;
+- replaying each row's writes reproduces every oracle outcome;
+- Arm B's rule derives exactly the oracle address on all 80 rows;
+- values are distinct;
+- stated rows resolve through `read_sieve`.
+
+A planted answer leak, a wrong eviction sequence and a wrong query slot each fail the test that targets them.
+
+**Open for the PM** (none of these is set here):
+1. **The bar.** Should it stay absolute against the registered `19/40`, or become a measured `Arm C − Arm A`? Card on #2833 (`6380260939`).
+2. **Evicted rows state the evicted fact in their dialogue,** because the directory is populated from the dialogue's stated facts. Whether Arm A recalling it there counts as an abstention miss is a scoring rule.
+3. **What `read_sieve_from` implies for Arm B.** This is a reading of the code, not a measurement:
+   - On historical rows it returns the current value, since it takes no version select.
+   - On unwritten and evicted rows it returns a same-entity slot's value, because the target is absent and a slot sharing one prime is admitted.
 
 ### Registration (deepseek-38, 2026-10-23)
 

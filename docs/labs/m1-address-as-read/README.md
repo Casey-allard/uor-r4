@@ -45,3 +45,18 @@ Both cards were then **registered as recommended** under Casey's standing direct
 - **Artifact:** `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v1.jsonl`, 80 rows / 21,364 bytes, SHA-256 `0712371d20e6eb1294c8faebeea7ab9827e2b91c0decfb5d85a52b8cca286789`; HF commit `59f964aa60b83b4684abaa34daddd0c6db768d4d`.
 - **Source:** deterministic synthetic versioned facts from `crates/uor-r4-object-store/src/bin/address-panel-freeze.rs`, not corpus text. The panel has 40 current stated-fact hits, 20 previous-version hits, 10 unwritten `Absent` rows and 10 capacity-1 `Evicted` rows at sequence 2, with unique prompts and addresses.
 - **Verification:** every expected result is checked through `AddressDirectory` and `Store` during generation. Two runs are byte-identical; generator tests 2/2 and the object-store suite pass; remote readback matches the local seal exactly. The sheet's earlier `NOT_FIT` and the remaining held checkpoint and BPB-stream prerequisites are unchanged. No GPU run, FIT claim or item-status change occurred.
+
+## Panel repair (claude-71, 2026-10-24)
+
+- **Superseded:** `panel-v1` (above) is an unfit instrument, and nothing should be evaluated on it. Class: instrument.
+  - Every stated and historical prompt contained its expected value.
+  - Every abstention prompt named its family.
+  - So a no-read arm could pass the registered bar (#3131 `6380260818`).
+
+  The file stays in the store untouched and regenerates from commit `1a70a9ac3`.
+- **Artifact:** `caseyallard/uor-r4-store/data/m1-address-as-read/panel-v2.jsonl`, 80 rows / 139,678 bytes, SHA-256 `369d8c24bb41e2d071485ecd1cbc7044092959ed5309ad70a8a5150a69a9e90c`, HF commit `bb81a8a33916bbc95ac192dce5b75c9ef5df1889`. The remote readback is byte-identical.
+- **Rows:** each row is a dialogue of replayable `writes` (sequence, version, lexicon terms with primes, statement, value) under a directory `capacity`, followed by a `query` that names only an entity and a slot. The evaluator protocol and the Arm B word rule are in the sheet's [Panel repair](../../harness/prep/m1-address-as-read-oracle-DRAFT-2026-10-22.md#panel-repair-claude-71-2026-10-24) section.
+- **Verification:**
+  - **Tests:** the 6 generator tests parse the emitted JSON. Each planted leak or state fault fails its test.
+  - **Suite:** `cargo test -p uor-r4-object-store` gives 82 passed, 0 failed, 1 ignored.
+- **Unchanged:** the bar, the 19/40 baseline, the checkpoint (held `#2844`), `NOT_FIT` and every hold. The bar question is with the PM (#2833 `6380260939`).
