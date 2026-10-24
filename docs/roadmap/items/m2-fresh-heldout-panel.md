@@ -3,7 +3,7 @@ id: m2-fresh-heldout-panel
 title: Build a genuinely fresh held-out reply panel for M2
 milestone: M2
 area: evaluation
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
@@ -17,9 +17,9 @@ Without a fresh panel the M2 bar of 40% on genuinely fresh questions cannot be a
 
 ## What is missing
 
-The saved parent scored 437/512 on the frozen development panel but 0/128 on the opened transfer draw, and the audit calls the reply model a panel-fitting failure on rows already seen. The 128-row draw was opened, so it cannot serve as fresh again. A fresh 256-row panel (`m2-fresh256`) is fully staged and sealed: 256 rows / 128 opposite-role histories / 16 blocks, sealed artifacts (`plan.json 0ed1ab98…`, `inputs.json 1de2fc28…`, `labels.json 3b5c5477…`, `manifest.json 7c33f3f7…`), 0 exact/word/2-gram overlaps against all 74 historical literals, all four question-blind and role-swap controls at 0/128 pairs through the real tokenizer + FrozenAnswers + pair_id grader, and measured noise (single-model 16-block cluster SE 6.24 rows, 8.64 at the 40% bar). The owner registered the bar `pairs_both_complete_distinct >= 52/128` (single-row complete >= 104/256). The non-author FIT of construction/overlap/control/seal passed (deepseek-43); `frozen: false` only because the maintainer upload to the HF store is outstanding, and no candidate has been scored (NOT_RUN; M2 training stays HELD). The M2 bar needs at least 40% on fresh questions, with the existing graders unchanged.
+The saved parent scored 437/512 on the frozen development panel but 0/128 on the opened transfer draw, and the audit calls the reply model a panel-fitting failure on rows already seen. The 128-row draw was opened, so it cannot serve as fresh again. The replacement 256-row panel (`m2-fresh256`) is now frozen: 256 rows / 128 opposite-role histories / 16 blocks, 0 exact/word/2-gram overlaps against all 74 historical literals, all four question-blind and role-swap controls at 0/128 pairs through the real tokenizer + FrozenAnswers + pair_id grader, and measured noise (single-model 16-block cluster SE 6.24 rows, 8.64 at the 40% bar). The owner registered `pairs_both_complete_distinct >= 52/128` (single-row complete >= 104/256), and non-author construction/overlap/control/seal FIT passed (deepseek-43). All four artifacts are stored at HF commit `fb8c5e4fcd3568cc59be8be3073151295b98069c` and read back byte-identically. Panel construction is complete; no candidate has been scored (NOT_RUN; M2 training stays HELD). Remaining work is the pre-registered evaluation sheet, owner approval and actual scoring, with the existing graders unchanged.
 
-The frozen panel file (`docs/harness/panels/m2-reply512.json`) names the grader as the saved native learner's own complete-reply evaluator (`uor-r4-core::native_geometric` compiler, exact store, emitter). CHARTER §4.3 asks for at least 2 seeds or at least 200 fresh rows with bars no narrower than measured noise. The 128-row draw was below that; the staged panel states its measured noise.
+The frozen panel file (`docs/harness/panels/m2-reply512.json`) names the grader as the saved native learner's own complete-reply evaluator (`uor-r4-core::native_geometric` compiler, exact store, emitter). CHARTER §4.3 asks for at least 2 seeds or at least 200 fresh rows with bars no narrower than measured noise. The 128-row draw was below that; the sealed replacement panel states its measured noise.
 
 ## Done when
 
