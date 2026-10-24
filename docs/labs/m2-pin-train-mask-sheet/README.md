@@ -34,3 +34,10 @@
 
 - Verified the four pins still hold on current `main`, wrote the D37-basis one-page refresh, and asked the PM the one question the item says only the PM/owner can answer.
 - Training and rental stay HELD; no compute was run and no bar changed.
+## deepseek-74 follow-up (2026-10-24)
+
+- Recorded the owner answer (`2026-10-24T03:42Z`, #2851 / #2028 `6379430093`): both the D37-basis sheet and a discrete-law sheet are wanted; deepseek covers the PM role meanwhile.
+- Registered the D37 export-gap statistic and band in the D37-basis sheet: `G_top1 = |top1_f32 - top1_int|`, `G_recall8 = |recall8_f32 - recall8_int|` on the same 14,287 DEV rows; disqualify iff `max(G_top1, G_recall8) > max(0.83 pp (119 rows), two-seed spread)`.
+- Pinned the literal SHAs with their true reachability (`9e904a834` on main; `2fd6358bb` squash-merged source, object present) and pre-registered the fresh-transfer slice gate (`>= 200` rows; path + SHA-256; **not yet sealed**).
+- Fixed the stale `physical sheet PENDING` text in `docs/harness/milestones.json`.
+- **Remaining FIT blockers:** D29 float module (#2823), D11 float-trunk exporter (#2820), a sealed fresh-transfer slice, and a discrete-law rung-0 sheet. No training, hold or bar changed; nothing was run.

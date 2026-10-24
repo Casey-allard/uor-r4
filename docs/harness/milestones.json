@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Cache reconciled after protected masked TRAIN count-reference source PR2328 merge9e904a834 (source2fd6358bb); 11 finite controls PASS (9 metadata,2 CUDA) and Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet PENDING for Kimi mechanical pins/verdict restoration. GitHub and main authorities remain authoritative. Historical counts/headlines are not reset; all training holds remain.",
+  "note": "Cache reconciled after protected masked TRAIN count-reference source PR2328 merge9e904a834 (source2fd6358bb); 11 finite controls PASS (9 metadata,2 CUDA) and Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet refreshed on the D37 basis (m2-pin-train-mask-sheet-2026-10-23); owner answer recorded 2026-10-24T03:42Z (both the D37-basis sheet and a discrete-law sheet are wanted); remaining before FIT: D29 float module #2823, D11 exporter #2820 and a sealed fresh-transfer slice; GitHub and main authorities remain authoritative. Historical counts/headlines are not reset; all training holds remain.",
   "tracker": {
     "issue": 2028,
     "title": "[Roadmap] UOR-R4 - path to a native conversation and memory alpha"
@@ -92,7 +92,7 @@
           "note": "Projection PR2279 count8, head/writer PR2301 count9, complete-path PR2318 count10, metadata PR2319 count11; masked TRAIN-reference repair count12 in protected source PR2328 merge9e904a834; documentation closeout is the same integrated unit, no additional increment. No model-quality gain or headline reset; all prior source/results and training/M2 holds preserved."
         }
       ],
-      "next": "Masked TRAIN count-reference repair at2fd6358bb implemented; 11 finite controls PASS (9 metadata,2 CUDA), Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet PENDING. Protected PR2328 merge9e904a834 verified; next Kimi mechanical TRAIN-mask/SHA/CLI/source pins and FIT verdict restoration per PM6146134405; global training and separate M2 training/rental holds HELD. Full M2 learned intent/compiler, fresh transfer and D11 remain unqualified; no automatic campaign.",
+      "next": "Masked TRAIN count-reference repair at2fd6358bb implemented; 11 finite controls PASS (9 metadata,2 CUDA), Amendment5 independent Claude CONFIRM FIT6146716704; physical sheet refresh on the D37 basis is landed (m2-pin-train-mask-sheet-2026-10-23) and the owner answer (both sheets wanted) is recorded; remaining before FIT are the D29 float module #2823, the D11 exporter #2820 and a sealed fresh-transfer slice; global training and separate M2 training/rental holds HELD. Full M2 learned intent/compiler, fresh transfer and D11 remain unqualified; no automatic campaign.",
       "training_hold": true,
       "rental_hold": true,
       "projection_kernel_authorization": "Current Codex claim2029#6136794551 only; build and finite GPU tests authorized, completed, own pod deleted. Training remains held."
