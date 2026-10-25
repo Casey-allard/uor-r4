@@ -71,7 +71,7 @@ Rows marked "integer form" test the ACTIVE descendant, not the READY float form.
 
 The float form is READY, so these are the steps to make it ACTIVE.
 
-1. A new D37 sheet in a separately scanned float module (`#2891`, now unblocked by `#2886`), with a fresh test-fitness review, pre-run review, an export gap, and the shared writer and geometric head as dependencies.
+1. ~~A new D37 sheet in a separately scanned float module (`#2891`, now unblocked by `#2886`), with a fresh test-fitness review, pre-run review, an export gap, and the shared writer and geometric head as dependencies.~~ Pre-registered and cleared (`TEST FITNESS: FIT`, D68 `APPROVE`) in [`docs/harness/prep/spiralcore-fbs-offline-float-sheet-2026-10-25.md`](../harness/prep/spiralcore-fbs-offline-float-sheet-2026-10-25.md) (`antigravity-81`, `#2891`); GPU execution and D67 pre-run review follow next.
 2. ~~Show that the secant credit gives descent (a falling loss, or a comparison with a random-refit control) and that routing is stable.~~ Answered at 256-step micro-probe scale in `#2886` (`G-Fbs-Descent = PASS`, [record](../labs/r-secant-surrogate-descent/README.md)).
 3. Justify the total number of 8-dimensional blocks in advance, and record that each output block reads one atom, so a capacity comparison against a mixing projection is needed.
 4. Fresh transfer and D22 noise requirements for any KEEP, and tokens per second on the same GPU harness against the retired dense arm.
