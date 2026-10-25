@@ -6,7 +6,7 @@ area: training
 status: ready
 open_to: lab
 needs_gpu: true
-depends_on: [m1-w2-capacity-capture, m1-bvg-k-block-apply-c2, m1-a8-full-dose-rerun, m1-w2-code-utilization]
+depends_on: [m1-w2-capacity-capture, m1-bvg-k-block-apply-c2, m1-a8-full-dose-rerun, m1-w2-code-utilization, m1-address-key-full-vector]
 scope: [crates/uor-r4-discrete/**, docs/harness/prep/m1-bvg-k-stage-t-training*, docs/labs/m1-bvg-k-stage-t-training/**, docs/loop/tasks/m1-bvg-k-stage-t-training/**]
 ---
 
@@ -17,6 +17,15 @@ Stage 2, 'pick the learning law': the first learning-law candidate that stays wh
 ## What is missing
 
 Stage T of W3 was held for the K16 outcome, which is now recorded (no KEEP), and for an owner release. Estimated at about $12 for two seeds. It is only warranted if W2 blames the learning law (H_law).
+
+**Waits on `m1-address-key-full-vector` (#2834), since 25 Oct (claude-107's D68 card, carried out by claude-109).**
+- W2 returned H_mixed, whose registered row says "do not change the learning law yet". The code-utilization diagnostic routes A1a to #2834.
+- Stage T stays on the M1 close (D79). When it runs, its decision review weighs #2834's result first.
+- **Instrument work owed before any arm runs:**
+  - the D40-audited runner is K = 1 and seed 1 only, and needs a block evidence mode (a K = 16 read block can straddle the Combine/Relation gates);
+  - seed-2 A8 configs;
+  - the sheet's five Step 0 controls;
+  - the checkpoint-restricted W2 tables.
 
 ## Done when
 

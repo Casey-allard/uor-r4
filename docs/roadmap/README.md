@@ -47,7 +47,7 @@ These items are ready and open to anyone.
 |---|---|---|---|---|---|
 | [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | ready | anyone | no | [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | [#2833](https://github.com/UOR-Foundation/uor-r4/issues/2833) |
 | [Replace the 5-value address key with a full-vector metric](items/m1-address-key-full-vector.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md) | [#2834](https://github.com/UOR-Foundation/uor-r4/issues/2834) |
-| [Train the BVG-K batched-coordinate law on two seeds](items/m1-bvg-k-stage-t-training.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-block-apply-c2](items/m1-bvg-k-block-apply-c2.md), [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-w2-code-utilization](items/m1-w2-code-utilization.md) | [#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836) |
+| [Train the BVG-K batched-coordinate law on two seeds](items/m1-bvg-k-stage-t-training.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-block-apply-c2](items/m1-bvg-k-block-apply-c2.md), [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-w2-code-utilization](items/m1-w2-code-utilization.md), [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836) |
 | [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | ready | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md), [m1-fresh-panel-transfer](items/m1-fresh-panel-transfer.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
 | [Replace the full-vocabulary writer scan](items/m1-faster-writer.md) | ready | a lab | yes | none | [#2840](https://github.com/UOR-Foundation/uor-r4/issues/2840) |
 | [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
@@ -299,6 +299,7 @@ flowchart LR
   n_m1_a8_full_dose_rerun --> n_r_rank_objective_keeps_cells
   n_m1_a8_full_dose_rerun --> n_r_ranking_with_admission_intact
   n_m1_a8_registration_and_runbook_staging --> n_m1_a8_finite_cuda_qualification
+  n_m1_address_key_full_vector --> n_m1_bvg_k_stage_t_training
   n_m1_address_key_full_vector --> n_m1_wider_code_carrier
   n_m1_bvg_k_block_apply_c2 --> n_m1_bvg_k_stage_t_training
   n_m1_bvg_k_stage_t_training --> n_m1_close_saved_model

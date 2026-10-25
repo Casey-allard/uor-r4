@@ -58,7 +58,7 @@ DEV panel, with tokens/s reported. M1 closes on the saved-model path (D79).
 | 1 | `m1-w2-capacity-capture` (#2845) | nothing; FIT done | Stage T, `m1-address-key-full-vector` (#2834), `m1-w4-float-credit-sheet` (#2846; with step 4, and only if W2 gives H_law and W3 fails) | GPU run, pre-run review |
 | 2 | `m1-a8-finite-cuda-qualification` (#2830) | runbook staged (#3167) | `m1-a8-full-dose-rerun` (#2831) | GPU run, pre-run review |
 | 3 | `m1-bvg-k-block-apply-c2` (#2835) | C2 controls met | Stage T, with step 1 | the one-page Stage T sheet and its FIT |
-| 4 | `m1-bvg-k-stage-t-training` (#2836) | steps 1 and 3 | the M1 close; the trunk (M2) | GPU run, two seeds, about $12 |
+| 4 | `m1-bvg-k-stage-t-training` (#2836) | steps 1, 3 and 5, `m1-w2-code-utilization` (#3179), and `m1-address-key-full-vector` (#2834; claude-107's D68 card) | the M1 close; the trunk (M2) | GPU run, two seeds, about $12 |
 | 5 | `m1-a8-full-dose-rerun` (#2831) | step 2 | the M1 close | GPU run |
 | 6 | `m1-export-gap-and-toks` (#2839) | the exporter (done, #2838); its measured run needs a trained model from step 4 | `m1-fresh-panel-transfer` (#2841), the M1 close | export + tokens/s |
 | 7 | `m1-fresh-panel-transfer` (#2841) | step 6 | the M1 close | GPU scoring |
