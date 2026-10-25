@@ -3,11 +3,12 @@ id: m1-export-gap-and-toks
 title: Measure export gap and tokens per second on a trained model
 milestone: M1
 area: evaluation
-status: held
+status: ready
 open_to: lab
 needs_gpu: true
 depends_on: [m1-d11-exporter-discrete]
-scope: [crates/uor-r4-integer/**, docs/mechanisms/lut-serving.md, docs/harness/prep/m1-export-gap-and-toks*, docs/labs/m1-export-gap-and-toks/**]
+notebook: docs/research/notebook/m4-serving.md
+scope: [crates/uor-r4-integer/**, docs/mechanisms/lut-serving.md, docs/harness/prep/m1-export-gap-and-toks*, docs/labs/m1-export-gap-and-toks/**, docs/loop/tasks/m1-export-gap-and-toks/**, docs/research/notebook/m4-serving.md]
 ---
 
 ## Why it matters
@@ -18,7 +19,13 @@ M1 bar (d) is defined through the export, and M5 builds on the same measurement.
 
 Tokens per second for a model trained under today's rules has never been measured, and the export gap is unmeasured. Stage 4 needs both prompt-reading and reply-writing rates on a laptop, and integer top-1 scored through the D11 export on the DEV panel (14,287 rows in the K16 receipts, `docs/integration/NOW.md` line 78). The export-gap rule (D39 item 5) is: a float candidate is disqualified when its export gap exceeds the two-seed band on the same evaluator, fixed per sheet at FIT time. The numeric band is not yet registered.
 
-Two inputs do not exist yet. The exporter is the item `m1-d11-exporter-discrete`. A saved trained discrete model is also needed, from the A8 rerun (`m1-a8-full-dose-rerun`), BVG-K Stage T (`m1-bvg-k-stage-t-training`) or the trunk (`m1-trunk-assembly-and-training`). This item cannot run until both exist.
+**Both inputs now exist** (25 Oct; the D68 card in `docs/loop/tasks/infra-loop-harness/claude-113/DECISION.md`):
+- the exporter, `m1-d11-exporter-discrete`, is done;
+- the A8 rerun, `m1-a8-full-dose-rerun`, is done. It saved restored passing checkpoints in the store: Relation `continuation-01600.json`, which passed the TRAIN anchor floor only, and FrozenZero `continuation-05248.json`, which passed Q1 at batch 4,096. Both are under `results/antigravity/a8-full-dose-rerun-2026-10-25/`.
+
+The sheet, the instrument and the FIT can be prepared now.
+
+**The measured run waits on step 4.** PLAN.md step 6 says "its measured run needs a trained model from step 4", BVG-K Stage T (`m1-bvg-k-stage-t-training`). So the export gap and tokens per second are reported on step 4's saved model. An A8 checkpoint may serve only to qualify the instrument, never as the reported measurement.
 
 ## Done when
 
