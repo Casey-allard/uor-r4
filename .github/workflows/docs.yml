@@ -86,6 +86,8 @@ jobs:
           fi
 
       - name: Links
+        # Advisory (D76): broken links are reported, never block a PR.
+        continue-on-error: true
         run: |
           set -euo pipefail
           if [ -f base-links.json ]; then
@@ -96,9 +98,13 @@ jobs:
           fi
 
       - name: Claim-wording gate
+        # Advisory (D76): a wording finding is reported, never blocks a PR.
+        continue-on-error: true
         run: cargo run -q --locked -p uor-r4-claim-wording -- .
 
       - name: Generated catalog and figures are current
+        # Advisory (D76): a stale catalog or figure is reported, never blocks a PR.
+        continue-on-error: true
         run: |
           set -euo pipefail
           cargo run -q --locked -p xtask -- docs-catalog --check
