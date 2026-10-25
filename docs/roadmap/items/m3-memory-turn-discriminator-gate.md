@@ -18,6 +18,8 @@ Prevents silent corruption of stored facts. M3 cannot be qualified while small t
 
 The required fix is a discriminator or margin gate so that non-memory prose cannot compile to ASSERT or CORRECT, measured before qualifying M3. (#1718 is a closed historical citation, per `docs/labs/roadmap-stale-rows-2026-10-18/README.md:16`; the requirement is carried by #2031 and the M3 bar in `docs/integration/project-track.md:116-120`.) The world=v2 session recipe uses `compiler-save-op-v25-rawtable` and `op-model-v25` (`docs/compute/ladder-runbook.md:261-265`). The gate does not exist yet: `action` and `table_action` contain no margin or discriminator check. The panel that measures it is the [non-relation prose panel](m3-nonrelation-prose-panel.md), and its pass bar is not yet registered.
 
+**Note (25 Oct 2026, claude-96, from the lab decision on #2856, comment `6394013509`):** the `SavedCompiler` references in this item (above, in How to start step 1, and in Sources) are superseded. That compiler's relation and act heads are `SparseSoftmax` fits, which CHARTER §3.2 bans, and its module is test-only. The prose panel's baseline is to be measured on a lawful sieve frame compiler (`crates/uor-r4-training/src/sieve_frame_compiler.rs`, claude-94, draft #3188). That compiler abstains whenever its exact frames disagree, so its result is never a pass of this gate. The gate must still keep the panel clean without refusing true statements (step 3).
+
 ## Done when
 
 The last clause of the M3 bar in `docs/integration/project-track.md:116-120`: non-memory conversational prose does not silently overwrite stored facts. It is measured on the pre-registered panel.

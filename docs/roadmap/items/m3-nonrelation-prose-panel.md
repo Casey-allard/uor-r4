@@ -7,7 +7,7 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
-scope: [crates/uor-r4-training/**, data/**, docs/labs/m3-nonrelation-prose-panel/**]
+scope: [crates/uor-r4-training/**, data/**, docs/labs/m3-nonrelation-prose-panel/**, docs/research/notebook/m3-durable-memory.md]
 ---
 
 ## Why it matters
