@@ -2348,6 +2348,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-float-train"
+version = "0.1.0"
+dependencies = [
+ "candle-core",
+ "cudarc",
+ "half",
+ "hex",
+ "safetensors 0.7.0",
+ "serde",
+ "serde_json",
+ "sha2",
+ "uor-r4-core",
+]
+
+[[package]]
 name = "uor-r4-graph-certify"
 version = "0.1.0"
 dependencies = [

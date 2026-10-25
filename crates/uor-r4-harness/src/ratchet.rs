@@ -17,6 +17,12 @@ use std::path::{Path, PathBuf};
 
 /// Directories scanned, relative to the repository root (`*` matches one directory component).
 const SCAN_DIRS: [&str; 2] = ["crates", "docs/labs/*/instrument"];
+/// D37 item 6 scanned allowlist entry for the offline float training module.
+///
+/// Files under this crate are scanned by the D23 (`NormExp`) and D25 (`Matmul`) ratchets with a
+/// hard zero-site ceiling (and refused by `--update-baseline` even on an empty baseline), while
+/// explicitly allowlisted from D32 (`DiscreteFloat`).
+pub const D37_SCANNED_FLOAT_CRATES: [&str; 1] = ["crates/uor-r4-float-train/"];
 /// File suffixes scanned (the last extension, case-sensitive).
 const SUFFIXES: [&str; 4] = ["rs", "cu", "cuh", "wgsl"];
 
@@ -171,6 +177,12 @@ fn scan_roots(repo: &Path) -> Result<Vec<PathBuf>, RatchetError> {
             }
         }
     }
+    for entry in D37_SCANNED_FLOAT_CRATES {
+        let base = repo.join(entry.trim_end_matches('/'));
+        if base.is_dir() && !roots.contains(&base) {
+            roots.push(base);
+        }
+    }
     Ok(roots)
 }
 
@@ -217,7 +229,8 @@ fn source_files(repo: &Path) -> Result<Vec<(String, PathBuf)>, RatchetError> {
             }
         }
     }
-    out.sort();
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    out.dedup_by(|a, b| a.0 == b.0);
     Ok(out)
 }
 
@@ -527,9 +540,17 @@ fn matmul_sites(line: &str, number: usize, into: &mut Vec<Site>) {
     }
 }
 
+/// Whether `rel` belongs to the D37 scanned offline float training module.
+pub fn is_d37_float_scope(rel: &str) -> bool {
+    D37_SCANNED_FLOAT_CRATES
+        .iter()
+        .any(|prefix| rel.starts_with(prefix))
+}
+
 /// Whether `rel` belongs to the D32 discrete-model and standalone-instrument scope.
 fn is_discrete_scope(rel: &str) -> bool {
-    rel.starts_with("crates/uor-r4-discrete/") || rel.starts_with("docs/labs/")
+    !is_d37_float_scope(rel)
+        && (rel.starts_with("crates/uor-r4-discrete/") || rel.starts_with("docs/labs/"))
 }
 
 /// The D32 gated floating-point type and literal sites on one line of stripped code.
@@ -822,6 +843,7 @@ pub fn render_baseline(counts: &BTreeMap<String, u64>) -> String {
 }
 
 /// Files whose count rose above the baseline: (path, baseline, current).
+/// Paths inside `D37_SCANNED_FLOAT_CRATES` always enforce a strict zero ceiling (base = 0).
 pub fn growth(
     current: &BTreeMap<String, u64>,
     baseline: &BTreeMap<String, u64>,
@@ -829,7 +851,11 @@ pub fn growth(
     current
         .iter()
         .filter_map(|(p, &n)| {
-            let base = baseline.get(p).copied().unwrap_or(0);
+            let base = if is_d37_float_scope(p) {
+                0
+            } else {
+                baseline.get(p).copied().unwrap_or(0)
+            };
             (n > base).then(|| (p.clone(), base, n))
         })
         .collect()
@@ -869,6 +895,16 @@ pub fn update_baseline(
     // checkout" (review finding D2: it wrote from a shared primary, exit 0).
     crate::state::refuse_shared_checkout_at(repo, "the ratchet baseline")
         .map_err(RatchetError::Refused)?;
+    if matches!(kind, Kind::NormExp | Kind::Matmul) {
+        let d37_violations: Vec<(String, u64, u64)> = current
+            .iter()
+            .filter(|(p, &n)| is_d37_float_scope(p) && n > 0)
+            .map(|(p, &n)| (p.clone(), 0, n))
+            .collect();
+        if !d37_violations.is_empty() {
+            return Ok(Update::Refused(d37_violations));
+        }
+    }
     let old = load_baseline(repo, kind)?;
     let first = match (&old, kind) {
         (None, _) => true,
@@ -1124,5 +1160,50 @@ mod tests {
             Update::Refused(r) => assert_eq!(r, vec![("crates/x/src/a.rs".to_string(), 2, 3)]),
             other => panic!("a rise must be refused, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn d37_scanned_float_crate_is_scanned_for_d23_d25_with_zero_ceiling_and_allowlisted_from_d32() {
+        assert_eq!(D37_SCANNED_FLOAT_CRATES, ["crates/uor-r4-float-train/"]);
+        assert!(is_d37_float_scope("crates/uor-r4-float-train/src/lib.rs"));
+        assert!(!is_d37_float_scope("crates/uor-r4-training/src/lib.rs"));
+        assert!(!is_discrete_scope("crates/uor-r4-float-train/src/lib.rs"));
+
+        let clean_float = "pub fn step(x: f32) -> f32 { x * 0.5f32 }\n".to_string();
+        let dir = repo_with(
+            &[("crates/uor-r4-float-train/src/lib.rs", clean_float)],
+            None,
+        );
+        let d23 = scan(dir.path(), Kind::NormExp).expect("scan d23");
+        let d25 = scan(dir.path(), Kind::Matmul).expect("scan d25");
+        let d32 = scan(dir.path(), Kind::DiscreteFloat).expect("scan d32");
+        assert_eq!(d23.total(), 0);
+        assert_eq!(d25.total(), 0);
+        assert_eq!(d32.total(), 0);
+
+        let bad_d23 = format!("pub fn bad() {{ {}(); }}\n", D23_IDENT_FAMILIES[1]);
+        fs::write(
+            dir.path().join("crates/uor-r4-float-train/src/lib.rs"),
+            bad_d23,
+        )
+        .expect("write bad d23");
+        let d23_hit = scan(dir.path(), Kind::NormExp).expect("scan d23 hit");
+        assert_eq!(
+            d23_hit.counts.get("crates/uor-r4-float-train/src/lib.rs"),
+            Some(&1)
+        );
+        match update_baseline(dir.path(), Kind::NormExp, &d23_hit.counts).expect("update d23") {
+            Update::Refused(r) => assert_eq!(
+                r,
+                vec![("crates/uor-r4-float-train/src/lib.rs".to_string(), 0, 1)]
+            ),
+            other => panic!("D37 crate must refuse any D23 baseline site, got {other:?}"),
+        }
+        let mut forged_baseline = BTreeMap::new();
+        forged_baseline.insert("crates/uor-r4-float-train/src/lib.rs".to_string(), 5u64);
+        assert_eq!(
+            growth(&d23_hit.counts, &forged_baseline),
+            vec![("crates/uor-r4-float-train/src/lib.rs".to_string(), 0, 1)]
+        );
     }
 }

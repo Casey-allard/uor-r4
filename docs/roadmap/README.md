@@ -20,10 +20,10 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 34 |
+| ready | 33 |
 | held | 14 |
 | decision | 1 |
-| done | 43 |
+| done | 44 |
 | total | 92 |
 
 ## Start here
@@ -161,8 +161,8 @@ These items are ready and open to anyone.
 
 | Item | Status | Who can take it | GPU | Depends on | Issue |
 |---|---|---|---|---|---|
-| [Create the separate scanned D37 float training module](items/float-training-module.md) | ready | a lab | no | [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2823](https://github.com/UOR-Foundation/uor-r4/issues/2823) |
 | [Build the five-lab loop harness (the loop subcommands of uor-harness)](items/infra-loop-harness.md) | ready | a lab | no | none | [#2904](https://github.com/UOR-Foundation/uor-r4/issues/2904) |
+| [Create the separate scanned D37 float training module](items/float-training-module.md) | done | a lab | no | [owner-decision-float-path-scope](items/owner-decision-float-path-scope.md) | [#2823](https://github.com/UOR-Foundation/uor-r4/issues/2823) |
 | [Bench inbox rule: each lab reads the bench messages addressed to it](items/infra-bench-inbox-rule.md) | done | a lab | no | none | [#2955](https://github.com/UOR-Foundation/uor-r4/issues/2955) |
 | [Build the Tauri desktop client against the synthetic stand-in](items/infra-desktop-client-tauri.md) | done | anyone | no | [m7-studio-connect-wasm-engine](items/m7-studio-connect-wasm-engine.md) | [#2826](https://github.com/UOR-Foundation/uor-r4/issues/2826) |
 | [Record K16 normal close and final resource accounting](items/infra-k16-normal-close-accounting.md) | done | a lab | no | none | [#2827](https://github.com/UOR-Foundation/uor-r4/issues/2827) |

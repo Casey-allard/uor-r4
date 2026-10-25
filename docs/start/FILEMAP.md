@@ -49,6 +49,7 @@ fails, and so does a row whose path is gone. `uor-harness check`'s FILEMAP rule 
 | `crates/uor-r4-claim-wording/` | The claim-wording rule crate |
 | `crates/uor-r4-core/` | Core geometric types and anchors |
 | `crates/uor-r4-discrete/` | The discrete SpiralCore/FBS model and exporter |
+| `crates/uor-r4-float-train/` | The D37 scanned offline float training module (`24`-kernel geometric stack extract) |
 | `crates/uor-r4-graph-certify/` | Graph certification |
 | `crates/uor-r4-graph-cli/` | Graph CLI |
 | `crates/uor-r4-graph-compiler/` | Graph compiler |

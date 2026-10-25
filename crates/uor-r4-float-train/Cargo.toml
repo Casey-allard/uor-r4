@@ -1,0 +1,22 @@
+[package]
+name = "uor-r4-float-train"
+version = "0.1.0"
+edition = "2021"
+description = "D37 scanned offline float training module carrying the 24-kernel geometric stack extract with zero dependency on uor-r4-training"
+
+[features]
+default = []
+# Ahead-of-time nvcc compilation of src/cuda_stack.cu + src/spiralcore_fbs.cu into PTX (CHARTER §3.4 / D29).
+cuda = ["candle-core/cuda", "dep:cudarc"]
+metal = []
+
+[dependencies]
+candle-core = "0.9"
+cudarc = { version = "0.19.10", default-features = false, features = ["std", "driver", "f16", "cuda-version-from-build-system"], optional = true }
+half = "2.7"
+hex = "0.4"
+safetensors = "0.7"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+uor-r4-core = { path = "../uor-r4-core" }
