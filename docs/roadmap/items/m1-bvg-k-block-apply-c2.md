@@ -3,7 +3,7 @@ id: m1-bvg-k-block-apply-c2
 title: Draft the BVG-K Stage T pre-registration sheet (C2 has passed)
 milestone: M1
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [m1-a8-full-dose-rerun, m1-w2-code-utilization]
