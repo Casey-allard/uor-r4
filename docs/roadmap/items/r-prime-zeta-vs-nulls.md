@@ -7,7 +7,8 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: []
-scope: [crates/uor-r4-discrete/**, docs/harness/prep/r-prime-zeta-vs-nulls*, docs/labs/r-prime-zeta-vs-nulls/**]
+notebook: docs/research/notebook/m1-prime-zeta.md
+scope: [docs/harness/prep/r-prime-zeta-vs-nulls*, docs/labs/r-prime-zeta-vs-nulls/**, docs/loop/tasks/r-prime-zeta-vs-nulls/**]
 ---
 
 ## Why it matters
@@ -17,6 +18,8 @@ The prime-zeta codebook is the starting table that new training lineages load in
 ## What is missing
 
 PrimeZeta gives all 4,096 tokens distinct addresses (4,096 of 4,096 unique vectors, 256 of 256 cells) ([construction record](../../../archive/labs/prime-zeta-construction-2026-10-14/README.md)). It is unknown whether its structure matters or only its uniqueness.
+
+**`crates/uor-r4-discrete/**` was removed from `scope:` on 25 Oct (antigravity-83).** The `RandomInjective` and `QuotaOnlyInjective` modes, `prime-zeta-codebook` CLI, `7/7` host tests, and `pz-nulls-battery.sh` are already merged on `main` (`antigravity-27`, `antigravity-28`, `antigravity-36`). Only the pre-registration sheet registration + `TEST FITNESS: FIT` review and the zero-update GPU evaluation battery + notebook row remain.
 
 The comparison against a random-injective null and a quota-only-injective null has not been run at zero updates. Those two nulls do not exist in code: `CodebookMode` in `crates/uor-r4-discrete/src/prime_zeta.rs` has only `PrimeZeta`, `TangentNull` and `NormalNull`. The two existing nulls run the same quota and uniqueness passes as PrimeZeta, so they are injective too, but they still use zeta phases.
 

@@ -8,7 +8,7 @@ open_to: anyone
 needs_gpu: false
 depends_on: []
 notebook: docs/research/notebook/m1-discrete-attention.md
-scope: [docs/geometry/e8-h4-and-the-600-cell.md, docs/geometry/quaternions-and-rotation.md, docs/harness/prep/m1-normalization-mechanism*, docs/mechanisms/hamilton-gate.md, docs/model/architecture.md, docs/labs/m1-normalization-mechanism/**, docs/loop/tasks/m1-normalization-mechanism/**]
+scope: [docs/geometry/e8-h4-and-the-600-cell.md, docs/geometry/quaternions-and-rotation.md, docs/harness/prep/m1-normalization-mechanism*, docs/model/architecture.md, docs/labs/m1-normalization-mechanism/**, docs/loop/tasks/m1-normalization-mechanism/**]
 ---
 
 ## Why it matters
@@ -18,6 +18,8 @@ A transformer rescales its signals between layers so they stay in a workable ran
 ## What is missing
 
 No normalization is designed, and the current model has none. Snapping each block to one of its 16 fixed E8 roots, or the unit-quaternion Hamilton gate, might play this role, but no record says so or tests it; that is a **hypothesis**. The Hamilton gate's own claim, that a norm-preserving gate can suppress a signal, is also a hypothesis (a dossier reading only). Any mechanism must meet CHARTER §3.1-§3.3: geometry only, no softmax or squashing, no matmul.
+
+**`crates/uor-r4-discrete/**` and `docs/mechanisms/hamilton-gate.md` were removed from `scope:` on 25 Oct (antigravity-80, antigravity-83).** All discrete code and scoring prerequisites (`normalization`, `normalization-dev-b3`, `normalization-dev-paired`, `normalization-dev-structure`, and the strict non-inferiority margin `b - c > -F_I`) are merged on `main` (`claude-66`, `claude-67`, `claude-68`, `claude-72`). Only the pre-registration sheet update and non-author `TEST FITNESS: FIT` review remain to close this item, which touches `docs/harness/prep/m1-normalization-mechanism*` and `docs/loop/tasks/m1-normalization-mechanism/**`.
 
 ## Done when
 

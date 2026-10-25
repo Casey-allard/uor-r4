@@ -7,7 +7,8 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: []
-scope: [crates/uor-r4-discrete/**, docs/harness/prep/r-read-off-vs-read-on*, docs/labs/r-read-off-vs-read-on/**]
+notebook: docs/research/notebook/m1-discrete-attention.md
+scope: [docs/harness/prep/r-read-off-vs-read-on*, docs/labs/r-read-off-vs-read-on/**, docs/loop/tasks/r-read-off-vs-read-on/**]
 ---
 
 ## Why it matters
@@ -17,6 +18,8 @@ Route is the base read of every trained artifact, and Flock runs inside every Re
 ## What is missing
 
 Whether the Route and Flock reads add anything is untested. Route got only 20 proposals in 16,404 updates (0.12%; 16 of the 20 were accepted), so its own effect is unattributed ([attention state](../../labs/attention-state-2026-10-18/README.md)). The mechanism board lists the next step as a "Read-off versus read-on test with enough proposals". Flock passes its 6 finite controls, but its own value was never isolated; the two October control runs lost admission to learning moves before the read could be judged.
+
+**`crates/uor-r4-discrete/**` was removed from `scope:` on 25 Oct (antigravity-83).** The `RouteBypassV1` and `RoutePermutedActionsV1` kernel switches, `7/7` host controls (`read_off_ablation_controls.rs`), and staged battery (`read-off-battery.sh`) are already merged on `main` (`antigravity-45`, `antigravity-46`). Only the pre-registration sheet `TEST FITNESS: FIT` review and the zero-update GPU evaluation battery + notebook rows remain.
 
 This is a no-training comparison on existing checkpoints. Two gaps stand in the way:
 

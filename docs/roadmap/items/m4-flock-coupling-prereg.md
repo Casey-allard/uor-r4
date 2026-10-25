@@ -7,7 +7,8 @@ status: ready
 open_to: anyone
 needs_gpu: false
 depends_on: []
-scope: [docs/harness/prep/m4-flock-coupling-prereg*, crates/uor-r4-discrete/**, docs/mechanisms/flock-read.md, docs/labs/m4-flock-coupling-prereg/**]
+notebook: docs/research/notebook/m1-discrete-attention.md
+scope: [docs/harness/prep/m4-flock-coupling-prereg*, docs/mechanisms/flock-read.md, docs/labs/m4-flock-coupling-prereg/**, docs/loop/tasks/m4-flock-coupling-prereg/**]
 ---
 
 ## Why it matters
@@ -17,6 +18,8 @@ The Flock read is the model's attention replacement: it keeps a few nearest earl
 ## What is missing
 
 The M4 issue (18 October) names a draft C1 flock-coupling pre-registration, S1 flock transport mean plus S2 FBS tree (the Murmuration Read), gated on Rung 0 and owner hold release.
+
+**`crates/uor-r4-discrete/**` was removed from `scope:` on 25 Oct (antigravity-83).** The finite host controls (`crates/uor-r4-discrete/tests/flock_coupling_controls.rs`, `7/7` tests) are already merged on `main` (`antigravity-25`, `#3013`). Only the pre-registration sheet registration, non-author `TEST FITNESS: FIT` review, and notebook row remain to close this item.
 
 Is it still wanted? The mechanism board still lists the Flock read as ACTIVE (`docs/mechanisms/README.md:90`), and `docs/mechanisms/flock-read.md` names the C1 coupling sheet as its next step. So the 19 October renormalization kept it. Confirm that with the PM on the issue.
 
