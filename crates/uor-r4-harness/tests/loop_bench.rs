@@ -3,8 +3,10 @@
 //! has every `GIT_*` variable removed, and the repository sits inside its temp directory. The
 //! output is read with a small parser that follows the bench's own reading rules.
 
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
@@ -165,6 +167,109 @@ impl Repo {
         assert!(o.status.success(), "{o:?}");
         assert!(String::from_utf8_lossy(&o.stdout).contains("bench feed: wrote 5 files"));
         dir
+    }
+
+    /// A git command's trimmed stdout.
+    fn git_out(&self, args: &[&str]) -> String {
+        let o = clean(&mut Command::new("git"))
+            .args(args)
+            .current_dir(&self.root)
+            .output()
+            .expect("git runs");
+        assert!(o.status.success(), "git {args:?}: {o:?}");
+        String::from_utf8_lossy(&o.stdout).trim().to_string()
+    }
+
+    /// Pushes a new commit to `origin` from a second clone, so this checkout's `origin/main` is
+    /// stale until a fetch. Returns the new commit; each call makes another.
+    fn advance_origin(&self) -> String {
+        let tmp = self.tmp.path().canonicalize().unwrap();
+        let other = tmp.join("other");
+        let run = |dir: &Path, args: &[&str]| {
+            let o = clean(&mut Command::new("git"))
+                .args(args)
+                .current_dir(dir)
+                .output()
+                .expect("git runs");
+            assert!(o.status.success(), "git {args:?}: {o:?}");
+            String::from_utf8_lossy(&o.stdout).trim().to_string()
+        };
+        if !other.exists() {
+            run(&tmp, &["clone", "-q", "remote.git", "other"]);
+            assert!(other.starts_with(&tmp));
+            run(&other, &["config", "user.email", "t@example.invalid"]);
+            run(&other, &["config", "user.name", "t"]);
+        }
+        // Each call adds a line, so each call makes a new commit.
+        let new = other.join("NEW.md");
+        let text = std::fs::read_to_string(&new).unwrap_or_default();
+        std::fs::write(&new, format!("{text}main moves\n")).unwrap();
+        run(&other, &["add", "NEW.md"]);
+        run(&other, &["commit", "-q", "-m", "main moves"]);
+        run(&other, &["push", "-q", "origin", "HEAD:main"]);
+        run(&other, &["rev-parse", "HEAD"])
+    }
+
+    /// One `--every` cycle: starts the feed, waits for its first "wrote" line, then stops it.
+    /// Returns what it printed.
+    fn cycle(&self) -> String {
+        let f = self.tmp.path().join("bench-fake.json");
+        std::fs::write(&f, self.fake().to_string()).unwrap();
+        let mut cmd = Command::new(BIN);
+        clean(&mut cmd);
+        let mut child = cmd
+            .arg("--repo")
+            .arg(&self.root)
+            .args(["loop", "board", "--bench"])
+            .arg(self.out_dir())
+            .args(["--every", "30"])
+            .env("UOR_LOOP_BENCH_GH_FAKE", &f)
+            .current_dir(&self.root)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("uor-harness runs");
+        let stdout = child.stdout.take().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            for l in BufReader::new(stdout).lines().map_while(Result::ok) {
+                if tx.send(l).is_err() {
+                    break;
+                }
+            }
+        });
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let mut out = String::new();
+        let wrote = loop {
+            match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+                Ok(l) => {
+                    out.push_str(&l);
+                    out.push('\n');
+                    if l.contains("bench feed: wrote 5 files") {
+                        break true;
+                    }
+                }
+                Err(_) => break false,
+            }
+        };
+        let _ = child.kill();
+        let o = child.wait_with_output().unwrap();
+        assert!(
+            wrote,
+            "no cycle finished: {out}{}",
+            String::from_utf8_lossy(&o.stderr)
+        );
+        out
+    }
+
+    /// The first "What works now" row of STATE.md.
+    fn first_state_row(&self) -> Vec<String> {
+        let state = read(&self.out_dir(), "STATE.md");
+        let t = tables(&state)
+            .into_iter()
+            .find(|t| t.0 == "What works now")
+            .expect("a What works now table");
+        t.2[0].clone()
     }
 }
 
@@ -609,4 +714,145 @@ fn an_unreadable_row_sorts_with_needs_review() {
     assert!(rows[0][1].contains("#30"), "{rows:?}");
     assert!(rows[0][3].starts_with("ORDER unreadable"), "{rows:?}");
     assert_eq!(rows[1][3], "needs review", "{rows:?}");
+}
+
+#[test]
+fn every_cycle_moves_a_clean_detached_checkout_to_the_fetched_origin_main() {
+    let r = Repo::new();
+    let old = r.git_out(&["rev-parse", "HEAD"]);
+    r.git(&["checkout", "-q", "--detach"]);
+    r.advance_origin();
+    // A single run fetches, but never moves the checkout.
+    r.run_ok();
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), old);
+    // Main moves again; only the cycle's own fetch can see the new commit.
+    let new = r.advance_origin();
+    assert_ne!(
+        r.git_out(&["rev-parse", "origin/main"]),
+        new,
+        "not fetched yet"
+    );
+    let out = r.cycle();
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), new, "{out}");
+    assert_eq!(
+        r.git_out(&["rev-parse", "--symbolic-full-name", "HEAD"]),
+        "HEAD"
+    );
+    assert!(
+        out.contains(&format!(
+            "checkout moved from {} to origin/main",
+            &old[..12]
+        )),
+        "{out}"
+    );
+    assert_ne!(r.first_state_row()[0], "bench checkout");
+    // At origin/main already: nothing moves and nothing is said.
+    let out = r.cycle();
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), new);
+    assert!(!out.contains("checkout"), "{out}");
+}
+
+#[test]
+fn every_cycle_leaves_a_dirty_tree_and_says_so() {
+    let r = Repo::new();
+    let old = r.git_out(&["rev-parse", "HEAD"]);
+    r.git(&["checkout", "-q", "--detach"]);
+    r.advance_origin();
+    r.write("AGENTS.md", "a lab's unsaved edit\n");
+    let out = r.cycle();
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), old, "{out}");
+    assert_eq!(
+        std::fs::read_to_string(r.root.join("AGENTS.md")).unwrap(),
+        "a lab's unsaved edit\n"
+    );
+    assert!(
+        out.contains(&format!(
+            "checkout left at {}, not moved to origin/main: 1 uncommitted or untracked path\n",
+            &old[..12]
+        )),
+        "{out}"
+    );
+    let row = r.first_state_row();
+    assert_eq!(row[0], "bench checkout", "{row:?}");
+    assert!(
+        row[1].starts_with(&format!("blocked: left at `{}`", &old[..12])),
+        "{row:?}"
+    );
+    // An untracked file counts as dirty too.
+    r.git(&["checkout", "-q", "--", "AGENTS.md"]);
+    r.write("scratch.txt", "untracked\n");
+    let out = r.cycle();
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), old, "{out}");
+    assert!(out.contains("1 uncommitted or untracked path"), "{out}");
+}
+
+#[test]
+fn every_cycle_never_switches_a_named_branch() {
+    let r = Repo::new();
+    let old = r.git_out(&["rev-parse", "HEAD"]);
+    r.advance_origin();
+    let out = r.cycle();
+    assert_eq!(
+        r.git_out(&["symbolic-ref", "HEAD"]),
+        "refs/heads/main",
+        "{out}"
+    );
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), old, "{out}");
+    assert!(out.contains("HEAD is branch `main`"), "{out}");
+    let row = r.first_state_row();
+    assert_eq!(row[0], "bench checkout", "{row:?}");
+    assert!(row[1].ends_with("HEAD is branch `main`"), "{row:?}");
+}
+
+#[test]
+fn every_cycle_leaves_a_detached_head_with_commits_main_lacks() {
+    let r = Repo::new();
+    r.git(&["checkout", "-q", "--detach"]);
+    r.write("LOCAL.md", "a commit only this checkout has\n");
+    r.git(&["add", "LOCAL.md"]);
+    r.git(&["commit", "-q", "-m", "local"]);
+    let local = r.git_out(&["rev-parse", "HEAD"]);
+    r.advance_origin();
+    let out = r.cycle();
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), local, "{out}");
+    assert!(out.contains("1 commit not on origin/main"), "{out}");
+}
+
+#[test]
+fn every_cycle_leaves_a_checkout_mid_bisect() {
+    let r = Repo::new();
+    let old = r.git_out(&["rev-parse", "HEAD"]);
+    r.git(&["checkout", "-q", "--detach"]);
+    r.git(&["bisect", "start"]);
+    r.advance_origin();
+    let out = r.cycle();
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), old, "{out}");
+    assert!(out.contains("a bisect is in progress"), "{out}");
+}
+
+#[test]
+fn every_cycle_reports_a_move_that_a_failing_hook_follows() {
+    let r = Repo::new();
+    let old = r.git_out(&["rev-parse", "HEAD"]);
+    r.git(&["checkout", "-q", "--detach"]);
+    // git runs post-checkout after HEAD has moved, and its exit code becomes checkout's.
+    let hook = r.root.join(".git/hooks/post-checkout");
+    assert!(hook.starts_with(&r.root));
+    std::fs::create_dir_all(hook.parent().unwrap()).unwrap();
+    std::fs::write(&hook, "#!/bin/sh\nexit 2\n").unwrap();
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let new = r.advance_origin();
+    let out = r.cycle();
+    assert_eq!(r.git_out(&["rev-parse", "HEAD"]), new, "{out}");
+    assert!(
+        out.contains(&format!(
+            "checkout moved from {} to origin/main",
+            &old[..12]
+        )),
+        "{out}"
+    );
+    assert_ne!(r.first_state_row()[0], "bench checkout");
 }

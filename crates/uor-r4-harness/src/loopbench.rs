@@ -6,6 +6,11 @@
 //! open PRs with their ORDER and review record, lab presence, and each lab's local gate ledger.
 //! Every write is a temp file in DIR then a rename; `INBOX.md` is never touched.
 //!
+//! With `--every`, each cycle first moves the checkout the feed runs in to the fetched
+//! `origin/main`, since the bench's Git panel reads that checkout's HEAD (claude-111). Only a clean
+//! detached HEAD behind `origin/main` moves; a named branch, a dirty tree, an operation in progress
+//! or a commit `origin/main` lacks is left alone, and `STATE.md` says so.
+//!
 //! GitHub sits behind [`BenchGh`], which has read methods only, so the feed cannot write there.
 
 use std::collections::BTreeMap;
@@ -555,6 +560,74 @@ fn gates(root: &Path, labs: &BTreeMap<String, crate::labs::Lab>) -> String {
     best.values().map(|row| format!("{row}\n")).collect()
 }
 
+/// What a cycle's checkout step did to the checkout the feed runs in.
+enum Checkout {
+    /// HEAD was already the fetched `origin/main`.
+    Current,
+    /// HEAD moved forward from this commit to `origin/main`.
+    Moved(String),
+    /// HEAD was left at this commit, for this reason.
+    Left(String, String),
+}
+
+/// The files git keeps while an operation that a checkout would break is in progress.
+const IN_PROGRESS: [(&str, &str); 6] = [
+    ("MERGE_HEAD", "merge"),
+    ("rebase-merge", "rebase"),
+    ("rebase-apply", "rebase"),
+    ("CHERRY_PICK_HEAD", "cherry-pick"),
+    ("REVERT_HEAD", "revert"),
+    ("BISECT_LOG", "bisect"),
+];
+
+/// Moves the checkout at `root` to `main` (the fetched `origin/main`) when HEAD is detached, the
+/// tree is clean, no operation is in progress and HEAD is an ancestor of `main`; else leaves it.
+/// A named branch is never switched, so a lab's working branch never moves.
+fn sync_checkout(root: &Path, main: &str) -> Result<Checkout, String> {
+    let head = git(root, &["rev-parse", "HEAD"])?.trim().to_string();
+    let short = head.get(..12).unwrap_or(&head).to_string();
+    let left = |why: String| Ok(Checkout::Left(short.clone(), why));
+    let name = git(root, &["rev-parse", "--symbolic-full-name", "HEAD"])?;
+    if name.trim() != "HEAD" {
+        let branch = name.trim().trim_start_matches("refs/heads/");
+        return left(format!("HEAD is branch `{branch}`"));
+    }
+    for (marker, op) in IN_PROGRESS {
+        let p = git(root, &["rev-parse", "--git-path", marker])?;
+        if root.join(p.trim()).exists() {
+            return left(format!("a {op} is in progress"));
+        }
+    }
+    let s = |n: &str| if n == "1" { "" } else { "s" };
+    let dirty = git(root, &["status", "--porcelain"])?
+        .lines()
+        .count()
+        .to_string();
+    if dirty != "0" {
+        return left(format!(
+            "{dirty} uncommitted or untracked path{}",
+            s(&dirty)
+        ));
+    }
+    if head == main {
+        return Ok(Checkout::Current);
+    }
+    let ahead = git(root, &["rev-list", "--count", &format!("{main}..HEAD")])?;
+    let ahead = ahead.trim();
+    if ahead != "0" {
+        return left(format!("{ahead} commit{} not on origin/main", s(ahead)));
+    }
+    // A plain checkout, never forced: git itself refuses to overwrite a change made since the check.
+    // A failing post-checkout hook fails the command after HEAD has moved, so HEAD is read again.
+    if let Err(e) = git(root, &["checkout", "-q", "--detach", main]) {
+        if git(root, &["rev-parse", "HEAD"])?.trim() != main {
+            return Err(e);
+        }
+        eprintln!("uor-harness: loop board: bench feed: the checkout moved, but {e}");
+    }
+    Ok(Checkout::Moved(short))
+}
+
 fn write_atomic(dir: &Path, name: &str, text: &str) -> Result<(), String> {
     let tmp = dir.join(format!(".{name}.tmp-{}", std::process::id()));
     let put = std::fs::write(&tmp, text)
@@ -569,16 +642,28 @@ fn write_atomic(dir: &Path, name: &str, text: &str) -> Result<(), String> {
     put
 }
 
-/// One refresh: returns (lab PRs, items).
+/// One refresh: returns (lab PRs, items, what the checkout step did). The checkout step runs only
+/// when `sync` is set, which is each `--every` cycle.
 fn refresh(
     root: &Path,
     dir: &Path,
     board_gh: &dyn BoardGh,
     gh: &dyn BenchGh,
-) -> Result<(usize, usize), String> {
+    sync: bool,
+) -> Result<(usize, usize, Option<Checkout>), String> {
     git(root, &["fetch", "-q", "origin", "main"])?;
     let sha = git(root, &["rev-parse", "origin/main"])?.trim().to_string();
     let sha12 = sha.get(..12).unwrap_or(&sha).to_string();
+    // A failed step leaves the checkout as it was; the pages are still written.
+    let checkout = sync.then(|| {
+        sync_checkout(root, &sha).unwrap_or_else(|e| {
+            let head = git(root, &["rev-parse", "HEAD"])
+                .ok()
+                .and_then(|h| h.trim().get(..12).map(str::to_string))
+                .unwrap_or_else(|| "?".into());
+            Checkout::Left(head, format!("the checkout step failed: {e}"))
+        })
+    });
     let date = git(root, &["show", "-s", "--format=%cs", "origin/main"])?
         .trim()
         .to_string();
@@ -719,26 +804,31 @@ fn refresh(
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);
     let board = loopboard::build(&paths, &labs, Vec::new(), now_unix);
-    let mut state_rows: Vec<Vec<String>> = board
-        .labs
-        .iter()
-        .map(|r| match &r.presence {
-            Some(e) => vec![
-                format!("{} ({})", r.name, r.lab.client),
-                if e.row.doing.trim().is_empty() {
-                    e.state()
-                } else {
-                    e.row.doing.clone()
-                },
-                format!("presence, {}, {}", e.source, e.state()),
-            ],
-            None => vec![
-                format!("{} ({})", r.name, r.lab.client),
-                "no presence".into(),
-                "presence, none, -".into(),
-            ],
-        })
-        .collect();
+    // First, because the page shows only the first five rows of this table.
+    let mut state_rows: Vec<Vec<String>> = match &checkout {
+        Some(Checkout::Left(head, why)) => vec![vec![
+            "bench checkout".into(),
+            format!("blocked: left at `{head}`, not moved to origin/main: {why}"),
+            format!("the feed's checkout step, in {}", root.display()),
+        ]],
+        _ => Vec::new(),
+    };
+    state_rows.extend(board.labs.iter().map(|r| match &r.presence {
+        Some(e) => vec![
+            format!("{} ({})", r.name, r.lab.client),
+            if e.row.doing.trim().is_empty() {
+                e.state()
+            } else {
+                e.row.doing.clone()
+            },
+            format!("presence, {}, {}", e.source, e.state()),
+        ],
+        None => vec![
+            format!("{} ({})", r.name, r.lab.client),
+            "no presence".into(),
+            "presence, none, -".into(),
+        ],
+    }));
     let count = |s: &str| items.iter().filter(|i| i.status == s).count();
     state_rows.push(vec![
         "roadmap".into(),
@@ -760,7 +850,7 @@ fn refresh(
     write_atomic(dir, "DECISIONS.md", &decisions)?;
     write_atomic(dir, "STATE.md", &state)?;
     write_atomic(dir, ".gates.jsonl", &gates)?;
-    Ok((lab_prs.len(), items.len()))
+    Ok((lab_prs.len(), items.len(), checkout))
 }
 
 /// DIR made absolute and resolved through its nearest existing ancestor; `None` on a `..`.
@@ -790,7 +880,7 @@ fn resolve(root: &Path, dir: &Path) -> Option<PathBuf> {
 }
 
 /// `loop board --bench DIR [--every SECONDS]`. Exit 0 when written, 1 on a failed single run,
-/// 2 for a usage error or a refused DIR.
+/// 2 for a usage error or a refused DIR. Only `--every` runs the checkout step.
 pub fn cli(root: &Path, args: &[String]) -> u8 {
     let (mut dir, mut every) = (None, None);
     let mut it = args.iter();
@@ -870,11 +960,30 @@ pub fn cli(root: &Path, args: &[String]) -> u8 {
         },
     };
     loop {
-        match refresh(&root_abs, &dir, board_gh.as_ref(), gh.as_ref()) {
-            Ok((p, i)) => println!(
-                "bench feed: wrote 5 files at {} ({p} PRs, {i} items)",
-                crate::team::now_iso()
-            ),
+        match refresh(
+            &root_abs,
+            &dir,
+            board_gh.as_ref(),
+            gh.as_ref(),
+            every.is_some(),
+        ) {
+            Ok((p, i, checkout)) => {
+                match checkout {
+                    Some(Checkout::Moved(from)) => {
+                        println!("bench feed: checkout moved from {from} to origin/main")
+                    }
+                    Some(Checkout::Left(head, why)) => {
+                        println!(
+                            "bench feed: checkout left at {head}, not moved to origin/main: {why}"
+                        )
+                    }
+                    Some(Checkout::Current) | None => {}
+                }
+                println!(
+                    "bench feed: wrote 5 files at {} ({p} PRs, {i} items)",
+                    crate::team::now_iso()
+                )
+            }
             Err(e) => {
                 eprintln!("uor-harness: loop board: bench feed: {e}");
                 if every.is_none() {
