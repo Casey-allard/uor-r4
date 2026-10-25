@@ -11,7 +11,7 @@
 //! A turn compiles only when every frame that divides its signature and
 //! aligns exactly with its words names one expert and one value span.
 //! Anything else is `Unresolved`. The uniqueness test is the abstention gate;
-//! there is no score, probability, softmax or matrix product anywhere.
+//! the decision has no score, no probability and no matrix product.
 //!
 //! This module prepares data (tokenizing, the frame table, flat device
 //! arrays) and decodes stored decisions. The compile decision itself (sieve,
