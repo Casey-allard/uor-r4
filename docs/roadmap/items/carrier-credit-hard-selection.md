@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: []
 notebook: docs/research/notebook/m1-discrete-attention.md
-scope: [crates/uor-r4-discrete/**, docs/harness/prep/carrier-credit-hard-selection*, docs/labs/carrier-credit-hard-selection/**, docs/loop/tasks/carrier-credit-hard-selection/**]
+scope: [docs/harness/prep/carrier-credit-hard-selection*, docs/labs/carrier-credit-hard-selection/**, docs/loop/tasks/carrier-credit-hard-selection/**]
 ---
 
 ## Why it matters
@@ -24,6 +24,8 @@ Carrier credit sends learning credit back to the geometric objects that carried 
 A hard-selection credit step replaces the sampled choice with no softmax, on CUDA and integer-only, and the archived three-arm sheet's ON/OFF × two-seed design is rerun as a new pre-registered sheet with a fresh FIT on the live discrete learner (CHARTER §4.5; carrier-credit reopen condition 5), with model-blind in-batch controls, every registered arm run, and the result recorded on fresh rows.
 
 The archived sheet cannot be replayed: its objective is a log-mean-exp over softplus of a log mass (§3.2), its modules are compiled out, and its runner is float code outside the D37 module. Claude decided this reading under D68 (claude-103, [decision card](../../loop/tasks/carrier-credit-hard-selection/claude-103/DECISION.md)), with a fresh decision review.
+
+**`crates/uor-r4-discrete/**` was removed from `scope:` on 25 Oct (claude-105).** Its code work is complete on #3203, and only the GPU results and docs remain. `loop claim` reads an open order's item scope, so the crate glob was locking every discrete item, the M1 path included, against every lab while the arms ran. A code fix that #3203's review asks for restores the glob first, through `infra-loop-harness`.
 
 ## How to start
 
