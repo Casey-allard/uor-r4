@@ -3,7 +3,7 @@ id: e8-orbit-memory-sigmoid-free-iteration
 title: Build a sigmoid-free gate for E8 orbit memory and rerun it on GPU
 milestone: research
 area: mechanism
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: [float-training-module]
