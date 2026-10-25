@@ -604,8 +604,56 @@ fn lab_lane(root: &Path, lab: &str) -> Result<String, String> {
         })
 }
 
-/// The ready, scoped items on `origin/main` whose dependencies are all done: `(held, ready, waiting)`.
-fn ready_items(root: &Path) -> Result<(usize, Vec<String>, Vec<String>), String> {
+/// A ready item with its place in the ranking: the smallest milestone rank on its dependent path
+/// (M1 = 1 … M8 = 8, `research` = 9, `infra` = 10, other or missing = 11) and the number of
+/// not-done items that depend on it transitively.
+struct ReadyItem {
+    id: String,
+    rank: u8,
+    unblocks: usize,
+}
+
+impl ReadyItem {
+    fn path(&self) -> String {
+        match self.rank {
+            1..=8 => format!("M{} path", self.rank),
+            9 => "research path".to_string(),
+            10 => "infra path".to_string(),
+            _ => "no milestone".to_string(),
+        }
+    }
+}
+
+/// The rank of an item's `milestone:` frontmatter value.
+fn milestone_rank(text: &str) -> u8 {
+    let mut lines = text.lines();
+    if lines.next().map(str::trim) != Some("---") {
+        return 11;
+    }
+    for line in lines {
+        if line.trim() == "---" {
+            break;
+        }
+        if let Some(v) = line.strip_prefix("milestone:") {
+            let v = v.trim().trim_matches(|c| c == '"' || c == '\'');
+            return match v {
+                "research" => 9,
+                "infra" => 10,
+                _ => v
+                    .strip_prefix('M')
+                    .and_then(|n| n.parse::<u8>().ok())
+                    .filter(|n| (1..=8).contains(n))
+                    .unwrap_or(11),
+            };
+        }
+    }
+    11
+}
+
+/// The ready, scoped items on `origin/main` whose dependencies are all done: `(held, ready,
+/// waiting)`. `ready` is ranked by effective milestone rank, then unblock count descending, then
+/// id (CHARTER §5.10: take work in order of how many items it unblocks).
+fn ready_items(root: &Path) -> Result<(usize, Vec<ReadyItem>, Vec<String>), String> {
     git(root, &["fetch", "-q", "origin", "main"])
         .map_err(|e| format!("cannot fetch origin main: {e}"))?;
     let listing = git(
@@ -618,13 +666,32 @@ fn ready_items(root: &Path) -> Result<(usize, Vec<String>, Vec<String>), String>
         ],
     )?;
     let (mut held, mut ready, mut waiting) = (0usize, Vec::new(), Vec::new());
+    // Every readable item: its milestone rank and whether it is done; and who depends on whom.
+    let mut nodes: BTreeMap<String, (u8, bool)> = BTreeMap::new();
+    let mut dependents: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for id in listing
         .lines()
         .filter_map(|p| p.strip_prefix("docs/roadmap/items/")?.strip_suffix(".md"))
     {
-        let Ok(item) = crate::loopclaim::read_item(root, id) else {
+        let Some(text) = origin_file(root, &format!("docs/roadmap/items/{id}.md")) else {
             continue;
         };
+        let Ok(item) = crate::loopclaim::parse_item(&text) else {
+            continue;
+        };
+        nodes.insert(
+            id.to_string(),
+            (
+                milestone_rank(&text),
+                item.status.as_deref() == Some("done"),
+            ),
+        );
+        for dep in &item.depends_on {
+            dependents
+                .entry(dep.clone())
+                .or_default()
+                .push(id.to_string());
+        }
         match item.status.as_deref() {
             Some("held") => held += 1,
             Some("ready") if item.scope.is_some() => {
@@ -657,7 +724,40 @@ fn ready_items(root: &Path) -> Result<(usize, Vec<String>, Vec<String>), String>
             _ => {}
         }
     }
-    Ok((held, ready, waiting))
+    let mut ranked: Vec<ReadyItem> = ready
+        .into_iter()
+        .map(|id| {
+            let mut rank = nodes.get(&id).map_or(11, |n| n.0);
+            let mut unblocks = 0usize;
+            // Walk the transitive dependents once each; the visited set guards against cycles.
+            let mut seen = std::collections::BTreeSet::from([id.clone()]);
+            let mut stack = vec![id.clone()];
+            while let Some(cur) = stack.pop() {
+                for d in dependents.get(&cur).into_iter().flatten() {
+                    if seen.insert(d.clone()) {
+                        // A done dependent is walked through but lends no rank: an item whose
+                        // only milestone dependent has already closed ranks by its own milestone.
+                        if let Some(&(r, done)) = nodes.get(d) {
+                            if !done {
+                                rank = rank.min(r);
+                                unblocks += 1;
+                            }
+                        }
+                        stack.push(d.clone());
+                    }
+                }
+            }
+            ReadyItem { id, rank, unblocks }
+        })
+        .collect();
+    ranked.sort_by(|a, b| {
+        (a.rank, std::cmp::Reverse(a.unblocks), &a.id).cmp(&(
+            b.rank,
+            std::cmp::Reverse(b.unblocks),
+            &b.id,
+        ))
+    });
+    Ok((held, ranked, waiting))
 }
 /// The sources in the loop page's order, stopping at the first that decides.
 pub fn run(
@@ -949,7 +1049,7 @@ pub fn run(
             )),
             Ok((_, ready, _)) => {
                 let mut in_lane: Vec<(u32, String)> = Vec::new();
-                for id in ready {
+                for ReadyItem { id, .. } in ready {
                     if let Ok(item) = crate::loopclaim::read_item(root, id) {
                         if item.lane.as_deref() == Some(lane.as_str()) {
                             in_lane.push((item.rank.unwrap_or(u32::MAX), id.clone()));
@@ -992,13 +1092,18 @@ pub fn run(
         Err(why) => out.push(not_built("lane", &why)),
     }
     // 8. any: ready, scoped items whose dependencies are all done and that `loop claim` would
-    // accept, in id order.
+    // accept, ranked by effective milestone, then unblock count, then id.
     let (held, ready, waiting) = ready_state?;
     let mut refused = Vec::new();
-    for id in &ready {
+    for r in &ready {
+        let id = &r.id;
         match crate::loopclaim::check(root, lab, id, claim_gh) {
             Ok(()) => {
-                let reason = format!("item {id} is ready, scoped and claimable");
+                let reason = format!(
+                    "item {id} is ready, scoped and claimable ({}, unblocks {})",
+                    r.path(),
+                    r.unblocks
+                );
                 out.push(source("any", "work", reason.clone()));
                 return Ok((
                     out,
