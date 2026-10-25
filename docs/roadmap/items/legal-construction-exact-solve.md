@@ -3,7 +3,7 @@ id: legal-construction-exact-solve
 title: Solve the saved legal-construction case in exact arithmetic
 milestone: research
 area: mechanism
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
@@ -30,6 +30,8 @@ From the mechanism page and the archived record:
 ## Done when
 
 The saved 1,960-variable case is solved in exact arithmetic and the result is recorded as an optimal assignment with its objective, or as an infeasibility proof. Scoring that result on the real panel is a separate step.
+
+**Closed on its result (D78, owner, 24 Oct 2026).** On `attempt2` the exact solver holds a legal step that satisfies all 380 guards (objective `-94674498416698555/4503599627370496`, about -21.02196). It certifies that this step is within `0.00685092` (0.03259%) of the best possible (Unit 12, #3152). Optimality itself is unproven. The saved case is one step of the older M2 learner, and its gradient comes from that learner's banned pooled-ranking loss. So the effort moves to the live form of legal construction, the discrete block apply (`m1-bvg-k-block-apply-c2` and then Stage T, on the M1 path). Scoring the old step on a panel would be a new item, and it needs a compliant objective first.
 
 ## How to start
 

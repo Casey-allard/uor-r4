@@ -59,7 +59,7 @@ The full picture, with every number sourced: [where we are](docs/start/where-we-
 The first milestone (M1) has a new top-1 condition set by the owner (project lead Casey Allard) on 19 October 2026, alongside its existing conditions on reach (whether the right word is among the candidates the model opens at all), cell use and fresh-data transfer: **the model's
 whole-number top-1, measured through its integer export, must beat both count tables (1,226 and
 6,300) on each of two seeds, with tokens per second reported** ([charter](CHARTER.md) §4.8). The
-audit's shortest path to a first simple conversation has six stages, each released by the owner:
+audit's shortest path to a first simple conversation has six stages, each run on its own pre-run review (D67); the ordered steps are in [PLAN.md](PLAN.md):
 
 **0** run what is already FIT-reviewed and queued (a capacity test, W2) → **1** make the model's capacity measurable → **2** pick the
 learning law → **3** add the missing parts (a feed-forward layer, a recurrence) → **4** export and

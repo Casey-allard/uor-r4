@@ -7,7 +7,7 @@ starting point is in [where we are](docs/start/where-we-are.md).
 
 ![A road with six stops, Stage 0 to Stage 5, from "run what is already FIT'd" to "first conversation", with a "you are here" pin at Stage 0, owner-release gates between stops, and milestone flags M1 to M8 underneath, ending at the model file, the browser tab and the laptop app.](docs/figures/start/roadmap.svg)
 
-*The road from today to the products. Every gate needs an owner release.*
+*The road from today to the products. Each gate is a run on its own pre-run review (D67); the ordered steps are in [PLAN.md](PLAN.md).*
 
 | Milestone | Bar to close it | Status |
 |---|---|---|
@@ -23,6 +23,6 @@ starting point is in [where we are](docs/start/where-we-are.md).
 M1's integer top-1 condition was set by the owner on 19 October 2026 and replaces the earlier bar of
 0.90 bits per byte, which returns at a later milestone once the model gives probabilities
 ([charter](CHARTER.md) §4.8). The shortest path the audit proposes: **0** run the already FIT-reviewed capacity
-test (W2, queued, awaiting an owner release) → **1** make capacity measurable → **2** pick the learning law → **3** add the missing parts →
-**4** export and serve → **5** first simple conversation. Training is held until the owner releases
-each reviewed plan ([charter](CHARTER.md) §5.1). The live sequence is [NOW.md](docs/integration/NOW.md).
+test (W2, step 1 in PLAN.md) → **1** make capacity measurable → **2** pick the learning law → **3** add the missing parts →
+**4** export and serve → **5** first simple conversation. Training runs on each lab's own pre-run review
+(D67, [charter](CHARTER.md) §5.1). The one plan is [PLAN.md](PLAN.md) (D77).

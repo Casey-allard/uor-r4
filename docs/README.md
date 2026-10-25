@@ -42,7 +42,7 @@ sources.*
 | Learn the mathematics | [The geometry of UOR-R4](geometry/README.md): primes and zeta phases, golden integers, quaternions, E8/H4 and the 600-cell, SpiralCore, the Hopf map, VSA and Hamming distance |
 | Know what has been learned, and what is still open | [What the project knows](research/findings.md) and [what is still open](research/open-questions.md) |
 | Read how the project got here | [History](research/history.md) and the [research lines](research/lines/README.md) |
-| Follow results as they land | The [research notebooks](research/notebook/README.md), one page per line, and the live plan [NOW.md](integration/NOW.md) |
+| Follow results as they land | The [research notebooks](research/notebook/README.md), one page per line, and the one plan [PLAN.md](../PLAN.md) |
 | Know the rules and who decides | The [charter](../CHARTER.md), explained in [the rules in plain language](rules/README.md); old decisions in the [decision map](rules/decision-map.md); changes in the [rule change log](rules/changes.md) |
 | Find an old record | The [archive catalog](../archive/CATALOG.md): every dated record, kept byte-identical |
 | Know where files live and how the laptop is kept | [Workspace, storage and hygiene](labs/workspace.md) |
@@ -60,7 +60,7 @@ sources.*
 - **Rules** (`rules/`): the charter explained, where each old decision went, and the change log.
 
 Three directories stay at their old paths because code and tooling read them, and they are not part
-of the book: `integration/` (the live plan [NOW.md](integration/NOW.md) and the decision index),
+of the book: `integration/` (the one plan [PLAN.md](../PLAN.md) and the decision index),
 `harness/` (the research harness) and `labs/` (governance files and records dated 18 or 19 October
 2026). Records dated before 18 October 2026 have moved, unchanged, to [`archive/`](../archive/CATALOG.md).
 
@@ -92,7 +92,7 @@ a failed run closes one configuration, never a mechanism ([charter](../CHARTER.m
 
 - The repository front page: [README](../README.md).
 - The rules: [CHARTER](../CHARTER.md).
-- The live one-page plan: [NOW.md](integration/NOW.md); live tracker
+- The one plan: [PLAN.md](../PLAN.md); live tracker
   [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 - Code: the active model crate [`crates/uor-r4-discrete`](../crates/uor-r4-discrete/README.md) and the
   integer serving crate [`crates/uor-r4-integer`](../crates/uor-r4-integer/README.md).

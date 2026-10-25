@@ -1,6 +1,6 @@
 # Protected legal construction
 
-**Status: PARKED.** No legal move was ever scored on the real test panel. Every attempt either broke its own safety check after rounding or stopped on solver arithmetic. The line was archived by owner decision D21 and reopened by D22, and its goal now lives on in [discrete learning](./discrete-learning.md) ([direct construction record](../../archive/labs/direct-legal-construction-2026-10-09/README.md)).
+**Status: PARKED.** No legal move was ever scored on the real test panel. Every attempt either broke its own safety check after rounding or stopped on solver arithmetic. The line was archived by owner decision D21 and reopened by D22, and its goal now lives on in [discrete learning](./discrete-learning.md) ([direct construction record](../../archive/labs/direct-legal-construction-2026-10-09/README.md)). On 24 Oct the exact solve of the saved case (#2828) closed on its result (D78): a legal step that holds all 380 guards, certified within 0.03259% of optimal, with optimality itself unproven. Its live form is the discrete block apply on the M1 path ([`m1-bvg-k-block-apply-c2`](../roadmap/items/m1-bvg-k-block-apply-c2.md)).
 
 Labels used below: **proof** means derived from definitions or code, **measurement** means a recorded run, **hypothesis** means an untested idea. See [`docs/formal_vocabulary.md`](../formal_vocabulary.md).
 

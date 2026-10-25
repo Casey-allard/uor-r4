@@ -14,6 +14,13 @@ flowchart LR
 
 An entry gives the date, what changed, which charter clauses it touches, and who decided. The owner's own words are recorded verbatim when they are the reason. Old text is never edited or deleted: it moves unchanged to the `archive/` folder, and the live decision index keeps one line saying where each decision went (see the [decision map](decision-map.md)).
 
+## 25 October 2026: one plan, and the plan file renamed in the charter (D77)
+
+**Decided by:** the owner (Casey), in Claude's chat, 24 Oct, by 2026-10-25T00:03:59Z: "please reign in the project sprawl and get us back to a workable central source of truth we can run off of". He also wrote "our mandate should be enablement for moving forward and moving forward".
+
+1. **The plan file is `PLAN.md` (D77).** Clause 5.3 now reads "Labs self-direct from `PLAN.md`". Clause 5.8 places the approved sequences in `PLAN.md`. `NOW.md` was retired on 22 Oct, so the charter no longer points at it.
+2. No other clause changes. The holds released under D67 and the owner calls recorded as D78–D79 are decisions, not charter text.
+
 ## 24 October 2026: the single-lab rule (D65–D71)
 
 **Decided by:** the owner (Casey), in Claude's chat, after Claude's review of why the loop stalled. From 23 Oct 14:10Z to 24 Oct 13:43Z the labs merged 70 PRs and closed no issue. Then every lab stopped behind asks nobody answered, and when the owner restarted the laptop at 13:58Z nothing restarted the labs. Claude asked four design questions, each with options worded by Claude. The owner answered:
@@ -155,7 +162,7 @@ The owner answered eight questions. One line each, with the clause it changed:
 | Item | State | Source |
 |---|---|---|
 | Charter in force | Yes, since 19 October 2026. | `CHARTER.md` |
-| Entries in this log | 3 | this page |
+| Entries in this log | 9 | this page |
 | Open owner questions on the charter | None recorded at adoption: all 16 rows marked "owner decision needed" in the working rule map were resolved by the eight answers. | `charter-diff-notes.md` |
 
 ## Go deeper

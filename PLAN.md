@@ -1,8 +1,10 @@
 # PLAN
 
-The route from today to done, kept by the PM by PR (the loop page, notes table). A route or
-premise change needs a decision row in docs/integration/DECISIONS.md. STATE.md and HANDOFF.md
-are rendered, never edited; this file is written. Newest first inside each table.
+**The one plan (D77).** Every lab picks its next unit from this file. Each unit takes the
+step that unblocks the most items on a milestone path. CHARTER is the rule book, the item files in
+`docs/roadmap/items/` are the work units with their dependencies, and STATE.md and HANDOFF.md
+are rendered from them, never edited. A route or premise change needs a decision row in
+`docs/integration/DECISIONS.md`. This file is written by PR. Newest first inside each table.
 
 ## Goal
 
@@ -33,40 +35,64 @@ Directions from the owner, recorded verbatim with the time (the same day). Statu
 
 | Direction | Status | Date | Note |
 |---|---|---|---|
+| "please reign in the project sprawl and get us back to a workable central source of truth we can run off of" | done | 2026-10-24 | Claude's chat, by 2026-10-25T00:03:59Z. This file is the one plan, and the held work is released (D77, claude-82). `loop next` ranking by unblock count follows as its own unit. |
+| "please dont let us get locked down in CI hell, if something doesn't matter to the project it can be removed or skipped" | done | 2026-10-24 | Owner chose "Yes, change them (Recommended)". Six bookkeeping rules are advisory and banned presence scans added files (D76, #3170). The docs-workflow steps follow in a separate PR. |
+| #2828: "Close it on its result (Recommended)" | done | 2026-10-24 | D78. Effort moves to the discrete block apply on the M1 path. |
+| Trunk: "M1 closes without it (Recommended)" | done | 2026-10-24 | D79. `m1-trunk-assembly-and-training` is the first M2 item. |
+| Outside contributors: answer their questions; no keys or paid resources; public HF links are fine | done | 2026-10-24 | Posted on #2655, #2036 and pointers on #2031, #2033–#2035. |
 | End D59 now | done | 2026-10-22 | 13:56:44Z in claude's chat; switch merged as dffff0ed5 (#2973); setup PRs take any other-vendor review |
 | Fix the loop harness errors that park labs stale without timers | done | 2026-10-22 | 13:50:03Z in claude's chat; no-idle-stops merged as 2ec16d513 (#2975); scope for it and the D59 switch by claude-29 (#2971) |
 | PR 8 (notes migration) assigned to kimi | done | 2026-10-22 | "ok well I approve of #1", ~16:47Z in the kimi chat; ORDER kimi-9 carries it |
 
-Pending owner *answers* are not directions and never enter this table; they are the decision
-cards on #2028 (seven bar cards as of 22 Oct) until he answers in the owning lab's chat.
+Pending owner *answers* are not directions and never enter this table. Since D65–D69 no step
+waits for one: an unanswered ask becomes the lab's own decision review, logged for the owner.
 
-## The route, written backwards
+## The path to M1, by unblock count
 
-M8 (one labelled release on the same native path) needs M7 (the model served through the API,
-WASM and Studio), M6 (reasoning and coding qualified on the same native model) and M5 (the
-full-path laptop cost measured on that served model); M7 needs M4 (the accepted UORLUT01
-export, the served evaluation score and tokens/s on the held-out stream, the export-gap rule),
-which M5 measures and M6 ablates; M4 needs M3 (durable memory qualified: provenance,
-contradiction/correction, abstention, reset, restart, #1718 non-overwrite) needs M2 (complete
-correct replies on DEV, HELD for release) needs M1 (the language base: the §4.8 closing bar) —
-and M1 needs, in order:
-the trunk assembled and trained (`m1-trunk-assembly-and-training`, #2845, HELD); the position
-and normalization mechanisms' order/norm tests (sheets PENDING, controls merged); the address
-memory oracle FIT then run (NOT_FIT today, #2979); the number-aware vocabulary registered
-(census proven today, the definition card with the owner); the M6 ablation instrument (merged
-today) on the frozen panel (in flight); and the reply headline unblocked (R14 ruled non-vacuous
-today; the numeric reply bar is a separate owner card, unsent).
+The M1 bar is CHARTER §4.8 (D39). Through the D11 export, on each of two seeds, integer top-1 must
+beat both the unigram table (1,226/14,287) and the T2 successor table (6,300/14,287) on the same
+DEV panel, with tokens/s reported. M1 closes on the saved-model path (D79).
+
+| Step | Item (issue) | Needs | Unblocks | Kind |
+|---|---|---|---|---|
+| 1 | `m1-w2-capacity-capture` (#2845) | nothing; FIT done | Stage T, `m1-address-key-full-vector` (#2834), `m1-w4-float-credit-sheet` (#2846; with step 4, and only if W2 gives H_law and W3 fails) | GPU run, pre-run review |
+| 2 | `m1-a8-finite-cuda-qualification` (#2830) | runbook staged (#3167) | `m1-a8-full-dose-rerun` (#2831) | GPU run, pre-run review |
+| 3 | `m1-bvg-k-block-apply-c2` (#2835) | C2 controls met | Stage T, with step 1 | the one-page Stage T sheet and its FIT |
+| 4 | `m1-bvg-k-stage-t-training` (#2836) | steps 1 and 3 | the M1 close; the trunk (M2) | GPU run, two seeds, about $12 |
+| 5 | `m1-a8-full-dose-rerun` (#2831) | step 2 | the M1 close | GPU run |
+| 6 | `m1-export-gap-and-toks` (#2839) | the exporter (done, #2838); its measured run needs a trained model from step 4 | `m1-fresh-panel-transfer` (#2841), the M1 close | export + tokens/s |
+| 7 | `m1-fresh-panel-transfer` (#2841) | step 6 | the M1 close | GPU scoring |
+| 8 | `m1-close-saved-model` (#2837) | steps 4–7 | M1 (#2029) | the §4.8 bar |
+
+**Next to run on the side lines.** These are not on the close path.
+- `m1-position-mechanism` (#2843): its next unit begins with a device-vs-host check of modes 1–3 and a stack-cost measurement (#2843 comment 6391161531).
+- `m1-normalization-mechanism` (#2842): its order and norm tests.
+
+Both feed the trunk.
+
+## The route M2–M8
+
+M2 (complete correct replies on DEV) starts with `m1-trunk-assembly-and-training` (#2844). That
+needs position, normalization and Stage T, and D41's donor pass, which still needs the owner at
+dispatch. Then the routes run in order:
+- M3: durable memory qualified (provenance, correction, abstention, reset, restart).
+- M4: the accepted UORLUT01 export, its served score and tokens/s.
+- M5: the full-path laptop cost of that served model.
+- M6: reasoning and coding on the same model.
+- M7: the API, WASM and Studio.
+- M8: one labelled release.
+
+Work on a later milestone runs only when the step it needs is done, or when nothing on an
+earlier path is free.
 
 ## Approved sequences
 
-- The W-sequence from the retired NOW.md: W2 read-code capacity capture (FIT'd, queued on a
-  lease), W3 BVG-K discrete batched-coordinate law (Stage C1 qualified 2026-10-18; Stage C2
-  next; Stage T held for the K16 outcome), W4 one float-credit sheet only if W2 = H_law and W3
-  fails (conditional, D37).
-- The K16 outcome follow-ups: the registered two-seed/Amendment-7 interpretation and the
-  conditional fresh disposition stay pending with fresh UNAVAILABLE_NOT_RUN (sealed).
-- The loop build plan: PRs 2–12 merged; PR 8 (this migration) is in flight; the umbrella's
-  wrap-up (onboarding receipts + one end-to-end task per lab) follows.
+- **The W-sequence.**
+  - W2 read-code capacity capture is step 1 above. It runs on its own pre-run review (D67) and no longer waits for a lease.
+  - W3 BVG-K discrete batched-coordinate law: C1 qualified on 18 Oct, C2 controls met, Stage T is step 4.
+  - W4 is one float-credit sheet, run only if W2 gives H_law and W3 fails (conditional, D37).
+- **The K16 outcome follow-ups** stay pending with fresh UNAVAILABLE_NOT_RUN (sealed).
+- **The loop.** PRs 2–12 are merged. The reset is D76 (gates) and D77 (this plan). Next, `loop next` ranks by unblock count.
 
 ## Not doing
 
@@ -76,3 +102,5 @@ today; the numeric reply bar is a separate owner card, unsent).
 - Research compute is GPU-only (D24/§3.5); float training is offline-only in a separately scanned module with an export gap reported (D37); serving stays D11 integer (D11).
 - The pooled-ranking loss (banned forms) does not return; a reply rerun needs a compliant objective.
 - Nothing is deleted: negatives, unique source and other labs' work move byte-identical to archive/ (§4.7, L-015).
+- No new infrastructure, documentation-clarification or record-hygiene unit unless a milestone item depends on it (D77). The loop's own fixes ride inside the unit that needs them.
+- No certification chase on a closed configuration: the exact solve of the old saved case closed on its result (D78).

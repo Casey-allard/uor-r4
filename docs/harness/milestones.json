@@ -52,7 +52,7 @@
       ],
       "next": "Rung-0 sheet Amendment2 TEST FITNESS: FIT (design) — Claude 6159328025 confirmed on merged blob 6159394631, Codex 6159308818 exact-head 6159343268 (PR2415 5c189cf59). FIT lifts no hold. Execution gates in order: Codex implements+qualifies the admission diff (controller wiring, trained-checkpoint eval, per-kind sensitivity counters, P1/P2 pilot reporting) at e7d926fbe+only-that-diff; Claude reviews that exact diff; Kimi binds final executable/PTX/source identities + resource admission; owner alone releases D4. Pilot scope preserved: seed1, 1640 batches, VectorBlock 0..1639 only, Route NOT_RUN, ~1.784h/$1.62 UNVERIFIED known-component subtotal; fresh transfer UNAVAILABLE/NOT_RUN; full two-seed run is a later owner decision. M1 reply headline SUSPENDED under R14.",
       "project_manager": "kimi",
-      "training_hold": true
+      "training_hold": false
     },
     "m2": {
       "issue": 2030,
@@ -130,7 +130,7 @@
       "id": "M4",
       "title": "One served model: the chosen model through D11 integer serving and a CLI",
       "lab": "claude",
-      "status": "blocked-on-owner",
+      "status": "not-started",
       "headline": {
         "label": "softmax at runtime",
         "text": "softmax at runtime: yes",
@@ -170,7 +170,7 @@
         }
       ],
       "next": "Murmuration read (card #2032 6151093135, owner-approved 13 Oct): S1 flock transport mean + S2 FBS tree source and section-4 finite controls (FIT), then the decisive run after rung 0 and the owner hold release. Rung-0b rank read retired as evidence.",
-      "training_hold": true
+      "training_hold": false
     },
     "m5": {
       "issue": 2033,
