@@ -286,6 +286,8 @@ fn shapes_whose_read_caches_exceed_the_bound_are_rejected_before_allocation() {
         read_weights: None,
         read_binary: false,
         memory: None,
+        rec_gates: None,
+        gate: None,
     };
     // Dot reads cache an i32 key and value row per position: 2^28 bytes per
     // layer at this width and context, so sixteen layers reach the bound.
@@ -381,6 +383,8 @@ fn the_l2_read_serves_its_scale_and_offset_without_lifts_or_arcosh() {
         read_weights: None,
         read_binary: false,
         memory: None,
+        rec_gates: None,
+        gate: None,
     };
     assert_eq!(
         shape("l2").read_cache_bytes(),
@@ -2174,5 +2178,303 @@ fn read_learned_rank_invalid_tables_are_refused() {
         IntegerStackModel::parse(&binary).is_err(),
         "learned binary accepted"
     );
+}
 
+fn synthetic_float_trunk(seed: u64, read: &str) -> super::FloatTrunkSnapshot {
+    let mut rng = Lcg(seed);
+    let vocab = 32usize;
+    let d = 32usize;
+    let heads = 2usize;
+    let mlp = 32usize;
+    let context = 8usize;
+    let lanes = d / 4;
+    let gate_rows = lanes + d;
+
+    let rand_vec = |rng: &mut Lcg, len: usize, scale: f32| -> Vec<f32> {
+        (0..len)
+            .map(|_| {
+                let u = ((rng.next() % 2001) as i32 - 1000) as f32 / 1000.0;
+                u * scale
+            })
+            .collect()
+    };
+    let rand_pos = |rng: &mut Lcg, len: usize, base: f32, span: f32| -> Vec<f32> {
+        (0..len)
+            .map(|_| {
+                let u = (rng.next() % 1000) as f32 / 1000.0;
+                base + u * span
+            })
+            .collect()
+    };
+
+    let rec_layer = super::FloatTrunkLayer {
+        mixer_norm: rand_pos(&mut rng, d, 0.75, 0.5),
+        mixer: super::FloatTrunkMixer::Recurrence(super::FloatTrunkRecurrence {
+            rec_in: rand_vec(&mut rng, 2 * d * d, 0.25),
+            rec_gate: rand_vec(&mut rng, gate_rows * d, 0.25),
+            rec_out: rand_vec(&mut rng, d * d, 0.25),
+            conv_taps: rand_vec(&mut rng, 4 * d, 0.2),
+            conv_bias: rand_vec(&mut rng, d, 0.05),
+            gate_bias: rand_vec(&mut rng, gate_rows, 0.1),
+            decay: (0..lanes)
+                .map(|i| 0.0625 * (i as f32 + 0.5))
+                .collect(),
+        }),
+        mlp_norm: rand_pos(&mut rng, d, 0.75, 0.5),
+        gate: rand_vec(&mut rng, mlp * d, 0.25),
+        up: rand_vec(&mut rng, mlp * d, 0.25),
+        down: rand_vec(&mut rng, d * mlp, 0.25),
+    };
+
+    let read_layer = super::FloatTrunkLayer {
+        mixer_norm: rand_pos(&mut rng, d, 0.75, 0.5),
+        mixer: super::FloatTrunkMixer::Read(super::FloatTrunkRead {
+            query: rand_vec(&mut rng, d * d, 0.25),
+            key: rand_vec(&mut rng, d * d, 0.25),
+            value: rand_vec(&mut rng, d * d, 0.25),
+            null: rand_vec(&mut rng, heads * d, 0.2),
+            out: rand_vec(&mut rng, d * d, 0.25),
+            null_bias: vec![-0.05, 0.03],
+            age: (0..heads * context)
+                .map(|i| -0.02 * ((i % context) as f32))
+                .collect(),
+            beta: if read == "dot" {
+                Vec::new()
+            } else {
+                vec![0.5, 0.75]
+            },
+            offset: if read == "dot" {
+                Vec::new()
+            } else {
+                vec![0.125, 0.25]
+            },
+        }),
+        mlp_norm: rand_pos(&mut rng, d, 0.75, 0.5),
+        gate: rand_vec(&mut rng, mlp * d, 0.25),
+        up: rand_vec(&mut rng, mlp * d, 0.25),
+        down: rand_vec(&mut rng, d * mlp, 0.25),
+    };
+
+    super::FloatTrunkSnapshot {
+        vocab,
+        width: d,
+        heads,
+        mlp,
+        context,
+        read: read.to_owned(),
+        read_select: super::StackReadSelect { window: 4, k: 2 },
+        rms_eps: 1e-5,
+        embed: rand_vec(&mut rng, vocab * d, 0.5),
+        final_norm: rand_pos(&mut rng, d, 0.8, 0.4),
+        head: rand_vec(&mut rng, vocab * d, 0.35),
+        layers: vec![rec_layer, read_layer],
+    }
+}
+
+fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
+    let mut dot = 0.0f64;
+    let mut na = 0.0f64;
+    let mut nb = 0.0f64;
+    for (&x, &y) in a.iter().zip(b) {
+        let xf = f64::from(x);
+        let yf = f64::from(y);
+        dot += xf * yf;
+        na += xf * xf;
+        nb += yf * yf;
+    }
+    dot / (na.sqrt() * nb.sqrt()).max(1e-12)
+}
+
+#[test]
+fn float_trunk_export_matches_float_reference_across_full_vocabulary() {
+    for read in ["dot", "lorentz", "l2"] {
+        let snap = synthetic_float_trunk(20261027, read);
+        let bytes = super::export_float_trunk_uorlut01(&snap).expect("export float trunk");
+        // Determinism: exporting twice yields byte-for-bit identical UORLUT01 bytes.
+        assert_eq!(
+            bytes,
+            super::export_float_trunk_uorlut01(&snap).expect("export again"),
+            "exporter must be deterministic for {read}"
+        );
+
+        let container = super::format::Container::parse(&bytes).expect("parse container");
+        assert!(container.shape.rec_geometric());
+        assert!(container.shape.gate_hamilton());
+        assert_eq!(
+            super::stack_schema_for(&container.shape),
+            super::STACK_READ_SCHEMA
+        );
+
+        let model = IntegerStackModel::parse(&bytes).expect("parse float-trunk model");
+        // Verify every single-token input 0..vocab across the vocabulary.
+        let mut exact_top1 = 0usize;
+        for tok in 0..snap.vocab as u32 {
+            let float_logits = &snap
+                .forward_f32(&[tok], true)
+                .expect("float forward")[0];
+            let mut session = model.session();
+            let int_logits_q16 = session.step(tok).expect("int step");
+            let int_logits: Vec<f32> = int_logits_q16
+                .iter()
+                .map(|&v| (f64::from(v) * 2f64.powi(-16)) as f32)
+                .collect();
+
+            let cos = cosine_similarity(float_logits, &int_logits);
+            assert!(
+                cos > 0.999,
+                "{read} token {tok}: cosine similarity {cos} <= 0.999"
+            );
+            let float_winner = float_logits
+                .iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| a.total_cmp(b))
+                .map(|(i, _)| i)
+                .unwrap();
+            let int_winner = super::stack_argmax(int_logits_q16);
+            if float_winner == int_winner {
+                exact_top1 += 1;
+            }
+            let max_abs_diff = float_logits
+                .iter()
+                .zip(&int_logits)
+                .map(|(&f, &i)| (f - i).abs())
+                .fold(0.0f32, f32::max);
+            assert!(
+                max_abs_diff < 0.01,
+                "{read} token {tok}: max_abs_diff {max_abs_diff} >= 0.01"
+            );
+        }
+        assert_eq!(
+            exact_top1, snap.vocab,
+            "{read}: expected 32/32 top-1 agreement across vocabulary"
+        );
+
+        // Multi-token context prefix exercising causal conv history, quaternion
+        // recurrence carry, and flock rank read over 8 positions.
+        let seq = [0u32, 5, 11, 19, 3, 27, 14, 31];
+        let float_seq = snap.forward_f32(&seq, true).expect("float seq");
+        let mut session = model.session();
+        for (pos, &tok) in seq.iter().enumerate() {
+            let int_q16 = session.step(tok).expect("int seq step");
+            let int_f32: Vec<f32> = int_q16
+                .iter()
+                .map(|&v| (f64::from(v) * 2f64.powi(-16)) as f32)
+                .collect();
+            let cos = cosine_similarity(&float_seq[pos], &int_f32);
+            assert!(
+                cos > 0.999,
+                "{read} pos {pos}: cosine similarity {cos} <= 0.999"
+            );
+            let float_winner = float_seq[pos]
+                .iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| a.total_cmp(b))
+                .map(|(i, _)| i)
+                .unwrap();
+            assert_eq!(
+                super::stack_argmax(int_q16),
+                float_winner,
+                "{read} pos {pos}: multi-token top-1 mismatch"
+            );
+        }
+    }
+}
+
+#[test]
+fn float_trunk_validation_threads_and_session_roundtrip() {
+    use super::kernels::stack_isqrt;
+    use super::session::GEOMETRIC_KEEP_Q31;
+
+    for (idx, &keep) in GEOMETRIC_KEEP_Q31.iter().enumerate() {
+        let complement = (1u128 << 62) - (1u128 << (60 - 2 * idx));
+        assert_eq!(
+            keep,
+            stack_isqrt(complement) as u64,
+            "GEOMETRIC_KEEP_Q31[{idx}] mismatch"
+        );
+    }
+
+    let snap = synthetic_float_trunk(20261027, "lorentz");
+    let bytes = super::export_float_trunk_uorlut01(&snap).expect("export float trunk");
+
+    // Unquantized raw float reference (`quantized_weights = false`) runs cleanly and
+    // stays positively correlated with the quantized float reference.
+    let raw_f32 = snap.forward_f32(&[0], false).expect("raw float forward");
+    let q_f32 = snap.forward_f32(&[0], true).expect("quantized float forward");
+    assert_eq!(raw_f32.len(), 1);
+    assert_eq!(raw_f32[0].len(), snap.vocab);
+    assert!(raw_f32[0].iter().all(|v| v.is_finite()));
+    assert!(
+        cosine_similarity(&raw_f32[0], &q_f32[0]) > 0.5,
+        "raw f32 and 4-bit quantized f32 forward must stay positively correlated"
+    );
+
+    // Multi-threaded serving and session save/restore produce bit-identical integers.
+    let model_1 = IntegerStackModel::parse(&bytes).expect("parse 1-thread");
+    let mut model_2 = IntegerStackModel::parse(&bytes).expect("parse 2-thread");
+    model_2.set_threads(2).expect("set 2 threads");
+    let seq = [2u32, 7, 15, 23, 4, 18];
+    let out_1 = run(&model_1, &seq);
+    let out_2 = run(&model_2, &seq);
+    assert_eq!(out_1, out_2, "1-thread and 2-thread float-trunk outputs must match");
+
+    let mut s_full = model_1.session();
+    s_full.enable_snap_trace();
+    for &t in &seq[..3] {
+        s_full.step(t).expect("step first half");
+    }
+    let saved = s_full.save_state();
+    for &t in &seq[3..] {
+        s_full.step(t).expect("step second half");
+    }
+    let mut s_restored = model_1.session();
+    s_restored.enable_snap_trace();
+    s_restored.restore_state(&saved).expect("restore state");
+    for &t in &seq[3..] {
+        s_restored.step(t).expect("step restored second half");
+    }
+    assert!(
+        !s_full
+            .snap_trace()
+            .expect("snap trace enabled")
+            .is_empty()
+    );
+    assert_eq!(s_full.logits(), s_restored.logits());
+    assert_eq!(s_full.snap_trace(), s_restored.snap_trace());
+
+    // Invalid shape combinations are refused at parse time.
+    let bad_rec = with_header(&bytes, |h| {
+        h["shape"]["rec_gates"] = json!("unknown");
+    });
+    assert!(matches!(
+        IntegerStackModel::parse(&bad_rec),
+        Err(StackError::Shape(_))
+    ));
+    let bad_gate = with_header(&bytes, |h| {
+        h["shape"]["gate"] = json!("unknown_gate");
+    });
+    assert!(matches!(
+        IntegerStackModel::parse(&bad_gate),
+        Err(StackError::Shape(_))
+    ));
+    let no_rot = with_header(&bytes, |h| {
+        h["shape"]["rotation"] = json!(false);
+        h.as_object_mut().unwrap().remove("transport_snap");
+    });
+    assert!(matches!(
+        IntegerStackModel::parse(&no_rot),
+        Err(StackError::Shape(_))
+    ));
+    let no_snap = with_header(&bytes, |h| {
+        h.as_object_mut().unwrap().remove("transport_snap");
+    });
+    assert!(matches!(
+        IntegerStackModel::parse(&no_snap),
+        Err(StackError::TransportSnap(_))
+    ));
+
+    // Exporter refuses non-finite weights.
+    let mut bad_snap = snap.clone();
+    bad_snap.embed[0] = f32::NAN;
+    assert!(super::export_float_trunk_uorlut01(&bad_snap).is_err());
 }

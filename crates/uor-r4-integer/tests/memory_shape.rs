@@ -30,6 +30,8 @@ fn shape(memory: Option<StackMemory>) -> StackShape {
         read_weights: None,
         read_binary: false,
         memory,
+        rec_gates: None,
+        gate: None,
     }
 }
 

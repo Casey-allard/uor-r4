@@ -71,9 +71,11 @@ pub use flock::{
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
 pub use format::{
-    stack_schema_for, Fixed, StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape,
-    StackTransportSnap, GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_POINTER_SCHEMA,
-    STACK_READ_SCHEMA, STACK_SCHEMA,
+    decode_grid_code, encode_grid_code, export_float_trunk_uorlut01, stack_schema_for, Fixed,
+    FloatTrunkLayer, FloatTrunkMixer, FloatTrunkRead, FloatTrunkRecurrence, FloatTrunkSnapshot,
+    StackMemory, StackNumerics, StackPointer, StackReadSelect, StackShape, StackTransportSnap,
+    GROUP, MAGIC, MAX_POINTER_DIM, MAX_READ_SELECT, STACK_POINTER_SCHEMA, STACK_READ_SCHEMA,
+    STACK_SCHEMA,
 };
 pub use kernels::{stack_argmax, stack_memory_select, stack_snap_select, MAX_SELECT_SIDE};
 pub use session::{

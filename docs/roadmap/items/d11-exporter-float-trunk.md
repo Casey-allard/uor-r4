@@ -3,7 +3,7 @@ id: d11-exporter-float-trunk
 title: Write the D11 exporter for a D37 float trunk
 milestone: M4
 area: serving
-status: ready
+status: held
 open_to: lab
 needs_gpu: false
 depends_on: [float-training-module, m1-d11-exporter-discrete, owner-decision-float-path-scope]

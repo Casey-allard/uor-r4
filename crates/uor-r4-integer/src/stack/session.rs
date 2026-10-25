@@ -63,6 +63,26 @@ pub const CONVOLUTION_WIDTH: usize = 4;
 /// Training floors `1 - lambda^2 >= 1e-6` (Q62) and `keep = 1e-3` below it (Q31).
 const COMPLEMENT_FLOOR_Q62: u64 = 4_611_686_018_428;
 const KEEP_FLOOR_Q31: u64 = 2_147_484;
+/// Energy-preserving drive weights `isqrt((1 << 62) - (1 << (60 - 2 * i)))` in
+/// Q31 for the 16 dyadic recurrence rates `lambda_i = 2^-(i+1)` (`i = 0..16`).
+pub(super) const GEOMETRIC_KEEP_Q31: [u64; 16] = [
+    1_859_775_393,
+    2_079_292_101,
+    2_130_640_378,
+    2_143_285_239,
+    2_146_434_815,
+    2_147_221_487,
+    2_147_418_110,
+    2_147_467_263,
+    2_147_479_551,
+    2_147_482_623,
+    2_147_483_391,
+    2_147_483_583,
+    2_147_483_631,
+    2_147_483_643,
+    2_147_483_646,
+    2_147_483_647,
+];
 /// The rotation norm's epsilon, `1e-6`, at exponent -32.
 const ROTATION_EPSILON: u128 = 4_295;
 /// Exponents (matrix bases, the RMSNorm epsilon) are limited to this magnitude
@@ -81,6 +101,8 @@ struct Recurrence {
     gate_bias: Vec<i32>,
     /// Grid codes of `8 softplus(-decay)` per lane.
     rates: Vec<i16>,
+    /// Per-lane decay offsets at `RESIDUAL_EXP` (`geometric` mode).
+    decay_offset: Vec<i32>,
 }
 
 struct Read {
@@ -429,6 +451,11 @@ impl IntegerStackModel {
         for (l, kind) in shape.pattern.bytes().enumerate() {
             let name = |part: &str| format!("l{l}.{part}");
             let mixer = if kind == b'r' {
+                let (rates, decay_offset) = if shape.rec_geometric() {
+                    (Vec::new(), integers(&name("decay_offset"), shape.lanes())?)
+                } else {
+                    (codes(&name("decay_rate"), shape.lanes(), true)?, Vec::new())
+                };
                 Mixer::Recurrence(Box::new(Recurrence {
                     input: matrix(&name("rec_in"), 2 * d, d)?,
                     gates: matrix(&name("rec_gate"), shape.gate_rows(), d)?,
@@ -436,7 +463,8 @@ impl IntegerStackModel {
                     taps: codes(&name("conv_taps"), CONVOLUTION_WIDTH * d, false)?,
                     conv_bias: integers(&name("conv_bias"), d)?,
                     gate_bias: integers(&name("gate_bias"), shape.gate_rows())?,
-                    rates: codes(&name("decay_rate"), shape.lanes(), true)?,
+                    rates,
+                    decay_offset,
                 }))
             } else {
                 let scaled = shape.scaled();
@@ -499,9 +527,25 @@ impl IntegerStackModel {
         };
         // The embedding reads one row per token.
         weights += d as u64;
-        let exp_table = artifact.table_u32("exp")?;
-        let silu_table = artifact.table_i32("silu")?;
-        let gelu_table = artifact.table_i32("gelu")?;
+        let needs_exp =
+            !shape.rec_geometric() || shape.read_rank().is_none() || shape.pointer.is_some();
+        let needs_mlp_table = !shape.gate_hamilton();
+        let needs_rec_table = !shape.rec_geometric();
+        let exp_table = if needs_exp {
+            artifact.table_u32("exp")?
+        } else {
+            Vec::new()
+        };
+        let silu_table = if needs_mlp_table {
+            artifact.table_i32("silu")?
+        } else {
+            Vec::new()
+        };
+        let gelu_table = if needs_rec_table {
+            artifact.table_i32("gelu")?
+        } else {
+            Vec::new()
+        };
         let arcosh = if shape.needs_arcosh() {
             let table = artifact.table_u32("arcosh")?;
             if table.len() != ARCOSH_TABLE_LEN || table.windows(2).any(|w| w[0] > w[1]) {
@@ -520,10 +564,10 @@ impl IntegerStackModel {
             && (0..=8).contains(&n.silu_range_log2)
             && (0..=8).contains(&n.gelu_range_log2);
         let activation_len = |step: i32, range: i32| (2usize << (range - step)) + 1;
-        if exp_table.len() < 2
+        if (needs_exp && exp_table.len() < 2)
             || !steps_valid
-            || silu_table.len() != activation_len(n.silu_step_log2, n.silu_range_log2)
-            || gelu_table.len() != activation_len(n.gelu_step_log2, n.gelu_range_log2)
+            || (needs_mlp_table && silu_table.len() != activation_len(n.silu_step_log2, n.silu_range_log2))
+            || (needs_rec_table && gelu_table.len() != activation_len(n.gelu_step_log2, n.gelu_range_log2))
             || !(1..=1i64 << 31).contains(&n.score_scale_q30)
         {
             return Err(StackError::Numerics(
@@ -2409,9 +2453,34 @@ fn stack_map_task(task: &mut MapTask<'_>) {
     stack_map_pairs(true, task.m, task.pairs, task.x_exp, task.out);
 }
 
-/// `silu(gate) up` per MLP unit at exponent -32.
+/// `silu(gate) up` per MLP unit at exponent -32, or the icosian-snapped
+/// Hamilton product `q_snap(gate) (x) up` per 4-channel block when
+/// `shape.gate_hamilton()` is enabled.
 #[inline(never)]
 fn stack_swiglu(model: &IntegerStackModel, gate: &[i32], up: &[i32], out: &mut [i64]) {
+    if model.shape.gate_hamilton() {
+        for ((out_lane, g_lane), u_lane) in out
+            .chunks_exact_mut(4)
+            .zip(gate.chunks_exact(4))
+            .zip(up.chunks_exact(4))
+        {
+            let q = stack_snap_rotation(
+                [g_lane[0], g_lane[1], g_lane[2], g_lane[3]],
+                1u64 << 31,
+            );
+            let rhs = [
+                i64::from(u_lane[0]),
+                i64::from(u_lane[1]),
+                i64::from(u_lane[2]),
+                i64::from(u_lane[3]),
+            ];
+            let prod = stack_hamilton(q, rhs);
+            for (slot, &p) in out_lane.iter_mut().zip(&prod) {
+                *slot = std::hint::black_box(shift_wide(p, 15));
+            }
+        }
+        return;
+    }
     let n = &model.numerics;
     for ((o, &g), &u) in out.iter_mut().zip(gate).zip(up) {
         let a = stack_activation(g, &model.silu_table, n.silu_step_log2, n.silu_range_log2);
@@ -2466,7 +2535,7 @@ fn stack_recurrence(
     history.copy_within(..history.len() - core::hint::black_box(d), core::hint::black_box(d));
     history[..d].copy_from_slice(drive);
     let (decays, rotations) = b.gate_out.split_at(lanes);
-    let (wide, rates) = (&b.wide[..d], &r.rates[..]);
+    let (wide, rates, offsets) = (&b.wide[..d], &r.rates[..], &r.decay_offset[..]);
     let lanes_of = |first: usize, held: &mut [i64], trace: Option<&mut SnapTrace>| {
         // `first` is a channel index (four per lane); without learned
         // rotations there are no rotation logits.
@@ -2476,10 +2545,21 @@ fn stack_recurrence(
         } else {
             Some(rotations)
         };
-        let (Some(pushed), Some(decays), Some(rates), Some(rotations)) = (
+        let rates = if s.rec_geometric() {
+            Some(rates)
+        } else {
+            rates.get(lane..lane + count)
+        };
+        let offsets = if s.rec_geometric() {
+            offsets.get(lane..lane + count)
+        } else {
+            Some(offsets)
+        };
+        let (Some(pushed), Some(decays), Some(rates), Some(offsets), Some(rotations)) = (
             wide.get(first..first + channels),
             decays.get(lane..lane + count),
-            rates.get(lane..lane + count),
+            rates,
+            offsets,
             rotations,
         ) else {
             debug_assert!(
@@ -2488,7 +2568,7 @@ fn stack_recurrence(
             );
             return;
         };
-        stack_lanes(model, held, pushed, decays, rates, rotations, trace)
+        stack_lanes(model, held, pushed, decays, rates, offsets, rotations, trace)
     };
     match &mut b.snap_trace {
         // The opt-in snap trace records lanes in order, on one thread.
@@ -2500,11 +2580,34 @@ fn stack_recurrence(
         }
         None => lanes_of(0, state, None),
     }
-    // Output h gelu(g) at exponent -32, then the output map.
-    for ((o, &h), &g) in b.scratch.iter_mut().zip(state.iter()).zip(gate) {
-        let h = shift(h, RESIDUAL_EXP - STATE_EXP);
-        let g = stack_activation(g, &model.gelu_table, n.gelu_step_log2, n.gelu_range_log2);
-        *o = saturating_product(h, i64::from(g));
+    if s.rec_geometric() {
+        for ((out_lane, h_lane), g_lane) in b.scratch[..d]
+            .chunks_exact_mut(4)
+            .zip(state.chunks_exact(4))
+            .zip(gate.chunks_exact(4))
+        {
+            let q = stack_snap_rotation(
+                [g_lane[0], g_lane[1], g_lane[2], g_lane[3]],
+                1u64 << 31,
+            );
+            let rhs = [
+                shift(h_lane[0], RESIDUAL_EXP - STATE_EXP),
+                shift(h_lane[1], RESIDUAL_EXP - STATE_EXP),
+                shift(h_lane[2], RESIDUAL_EXP - STATE_EXP),
+                shift(h_lane[3], RESIDUAL_EXP - STATE_EXP),
+            ];
+            let prod = stack_hamilton(q, rhs);
+            for (slot, &p) in out_lane.iter_mut().zip(&prod) {
+                *slot = std::hint::black_box(shift_wide(p, 15));
+            }
+        }
+    } else {
+        // Output h gelu(g) at exponent -32, then the output map.
+        for ((o, &h), &g) in b.scratch.iter_mut().zip(state.iter()).zip(gate) {
+            let h = shift(h, RESIDUAL_EXP - STATE_EXP);
+            let g = stack_activation(g, &model.gelu_table, n.gelu_step_log2, n.gelu_range_log2);
+            *o = saturating_product(h, i64::from(g));
+        }
     }
     let act_exp = stack_quantize16(&b.scratch[..d], PRODUCT_EXP, &mut b.act[..d]);
     stack_activation_tables(&b.act[..d], &mut b.tables[..d]);
@@ -2518,35 +2621,46 @@ const LANE_TASK_LOG2: u32 = if cfg!(test) { 0 } else { 5 };
 /// The recurrence's per-lane transport: decay, drive weight, transition
 /// quaternion and state update, for the lanes of `state` (four channels
 /// each) from their convolved drive `wide`, decay logits `decays`, decay
-/// rates `rates` and raw rotations (four per lane; empty without learned
-/// rotations). Lanes are independent, so any split of them computes the same
-/// integers.
+/// rates `rates` (or geometric `offsets`) and raw rotations (four per lane;
+/// empty without learned rotations). Lanes are independent, so any split of
+/// them computes the same integers.
 #[inline(never)]
+#[allow(clippy::too_many_arguments)]
 fn stack_lanes(
     model: &IntegerStackModel,
     state: &mut [i64],
     wide: &[i64],
     decays: &[i32],
     rates: &[i16],
+    offsets: &[i32],
     rotations: &[i32],
     mut trace: Option<&mut SnapTrace>,
 ) {
     let (s, n) = (&model.shape, &model.numerics);
-    for (lane, ((held, pushed), (&decay, &rate))) in state
+    for (lane, ((held, pushed), &decay)) in state
         .chunks_exact_mut(4)
         .zip(wide.chunks_exact(4))
-        .zip(decays.iter().zip(rates))
+        .zip(decays.iter())
         .enumerate()
     {
         // Decay gate, decay and the drive's weight, all Q31.
-        let opening = stack_sigmoid_q31(i64::from(decay), &model.exp_table, n.exp_step_log2);
-        let exponent = grid_apply(opening as i64, rate).max(0);
-        let lambda = stack_exp_neg(exponent, GATE_EXP, &model.exp_table, n.exp_step_log2);
-        let complement = (1u64 << 62).saturating_sub(stack_mul_u64(lambda, lambda));
-        let keep = if complement < COMPLEMENT_FLOOR_Q62 {
-            KEEP_FLOOR_Q31
+        let (lambda, keep) = if s.rec_geometric() {
+            let offset = offsets.get(lane).copied().unwrap_or(0);
+            let s_q16 = decay.saturating_add(offset).clamp(0, 1 << 16);
+            let idx = ((s_q16 >> 12) as usize).min(15);
+            (1u64 << (30 - idx), GEOMETRIC_KEEP_Q31[idx])
         } else {
-            stack_isqrt(u128::from(complement)) as u64
+            let rate = rates.get(lane).copied().unwrap_or(0);
+            let opening = stack_sigmoid_q31(i64::from(decay), &model.exp_table, n.exp_step_log2);
+            let exponent = grid_apply(opening as i64, rate).max(0);
+            let lambda = stack_exp_neg(exponent, GATE_EXP, &model.exp_table, n.exp_step_log2);
+            let complement = (1u64 << 62).saturating_sub(stack_mul_u64(lambda, lambda));
+            let keep = if complement < COMPLEMENT_FLOOR_Q62 {
+                KEEP_FLOOR_Q31
+            } else {
+                stack_isqrt(u128::from(complement)) as u64
+            };
+            (lambda, keep)
         };
         let transition: [i64; 4] = if s.rotation {
             let at = lane << 2;
