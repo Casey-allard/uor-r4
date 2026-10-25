@@ -3,7 +3,7 @@ id: m1-w2-code-utilization
 title: Run the W2 code-utilization diagnostic on the stored capture
 milestone: M1
 area: evaluation
-status: ready
+status: done
 open_to: lab
 needs_gpu: false
 depends_on: [m1-w2-capacity-capture]
