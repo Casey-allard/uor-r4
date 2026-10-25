@@ -1553,3 +1553,101 @@ fn repair_order_antigravity_5_regressions() {
         "migrated CLAUDE.md must keep header/footer and wrap pointer in markers: {migrated}"
     );
 }
+
+/// Run git in `dir` with every `GIT_*` variable removed, so a suite run from a hook cannot write
+/// into the repository being committed to.
+fn git_in(dir: &Path, args: &[&str]) {
+    let mut cmd = Command::new("git");
+    cmd.args(args).current_dir(dir);
+    for (key, _) in std::env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            cmd.env_remove(&key);
+        }
+    }
+    let out = cmd.output().expect("git");
+    assert!(
+        out.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+/// #3189: new rows on the item's own notebook page are always allowed (docs/loop/README.md,
+/// "Scope, without a line cap"). The page is read from the item on `origin/main`, so a
+/// `notebook:` line the branch writes itself grants nothing.
+#[test]
+fn the_items_notebook_page_on_origin_main_is_always_writable() {
+    let fixture = make_uor_fixture("claude");
+    let root = fixture.path();
+    let item = root.join("docs/roadmap/items/infra-loop-pr09-client-adapters.md");
+    let text = fs::read_to_string(&item).expect("read item");
+    fs::write(
+        &item,
+        text.replace(
+            "needs_gpu: false\n",
+            "needs_gpu: false\nnotebook: docs/research/notebook/loop-guard.md\n",
+        ),
+    )
+    .expect("write item");
+    assert!(
+        !root.join(".git").exists(),
+        "the fixture must not sit inside a repository"
+    );
+    git_in(root, &["init", "-q", "-b", "main"]);
+    assert!(
+        root.join(".git").is_dir(),
+        "the repository is the fixture's own"
+    );
+    // `origin/main` holds the item; the ORDER is the branch's own, as in a real unit (an ORDER
+    // already on `origin/main` is a closed historical one and scopes nothing).
+    let order = root.join("docs/loop/tasks/infra-loop-harness/claude-1/ORDER.md");
+    let order_text = fs::read_to_string(&order).expect("read ORDER");
+    fs::remove_file(&order).expect("set the ORDER aside");
+    git_in(root, &["config", "user.email", "t@t"]);
+    git_in(root, &["config", "user.name", "t"]);
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-qm", "fixture"]);
+    git_in(root, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    git_in(root, &["checkout", "-qb", "claude/topic"]);
+    fs::write(&order, order_text).expect("write the branch's ORDER");
+    git_in(root, &["add", "-A"]);
+    git_in(root, &["commit", "-qm", "ORDER"]);
+
+    let edit = |rel: &str| {
+        json!({
+            "cwd": root.display().to_string(),
+            "tool_name": "Edit",
+            "tool_input": { "file_path": root.join(rel).display().to_string() }
+        })
+    };
+    let guard = |rel: &str| evaluate_guard(root, "claude", "claude", "PreToolUse", &edit(rel));
+    assert_eq!(
+        guard("docs/research/notebook/loop-guard.md"),
+        GuardOutcome::Allow,
+        "the item's notebook page on origin/main must be writable outside its scope"
+    );
+    assert!(
+        matches!(
+            guard("docs/research/notebook/other.md"),
+            GuardOutcome::Refused(_)
+        ),
+        "another notebook page stays outside the scope"
+    );
+
+    let text = fs::read_to_string(&item).expect("read item");
+    fs::write(
+        &item,
+        text.replace(
+            "notebook: docs/research/notebook/loop-guard.md",
+            "notebook: docs/research/notebook/other.md",
+        ),
+    )
+    .expect("rewrite item on the branch");
+    assert!(
+        matches!(
+            guard("docs/research/notebook/other.md"),
+            GuardOutcome::Refused(_)
+        ),
+        "a notebook line written only on the branch must not widen the guard"
+    );
+}

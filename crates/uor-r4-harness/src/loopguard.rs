@@ -2817,19 +2817,24 @@ fn check_repo_rel_write(
         let item_rel = item_id
             .as_ref()
             .map(|id| format!("docs/roadmap/items/{id}.md"));
+        // The item as it is on `origin/main`, so a branch cannot widen its own scope or name its
+        // own notebook page.
+        let item = item_id
+            .as_deref()
+            .and_then(|id| crate::loopclaim::read_item(&roots.worktree_root, id).ok());
+        // New rows on the item's notebook page are always allowed (docs/loop/README.md, "Scope,
+        // without a line cap"); `loop pr-check` enforces that the edit only appends.
+        let notebook = item.as_ref().and_then(|item| item.notebook.as_deref());
         let always_allowed = rel.starts_with(order_folder)
             || item_rel.as_deref() == Some(rel)
+            || notebook == Some(rel)
             || rel.starts_with("docs/harness/mistakes/")
             || rel == "docs/start/FILEMAP.md"
             || crate::loopclaim::SHARED_FILES.contains(&rel);
         if !always_allowed {
             // Collect scope globs from the item's `scope:` line (if present) and the ORDER's
             // `## Files in scope` / `## Scope` section.
-            let mut scope_globs = item_id
-                .as_deref()
-                .and_then(|id| crate::loopclaim::read_item(&roots.worktree_root, id).ok())
-                .and_then(|item| item.scope)
-                .unwrap_or_default();
+            let mut scope_globs = item.and_then(|item| item.scope).unwrap_or_default();
             if scope_globs.is_empty() {
                 scope_globs = parse_section_globs(&order_text, "Files in scope");
                 if scope_globs.is_empty() {
