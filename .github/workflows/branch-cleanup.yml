@@ -1,0 +1,96 @@
+name: branch cleanup
+
+# Deletes merged PR branches, because the repository keeps them (delete_branch_on_merge is off and
+# nobody here can change it). A branch is deleted only by an atomic compare-and-delete at the merged
+# PR's final head (`git push --force-with-lease=<ref>:<sha>`), so a push made after the merge is
+# never lost. Only plain names ([A-Za-z0-9._/-]) are eligible; main, gh-pages, gh-pages-preview,
+# open PR heads and open PR bases never are. Everything else is listed, never deleted. (#3175,
+# owner 25 Oct 2026)
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  merged-head:
+    name: delete the merged PR's branch
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete the head branch if it is still at the merged head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          case "$BRANCH" in main|gh-pages|gh-pages-preview) echo "kept: $BRANCH is protected"; exit 0;; esac
+          if ! printf '%s' "$BRANCH" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
+            echo "::warning::kept $BRANCH: not a plain branch name"; exit 0
+          fi
+          bases=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 500 --json baseRefName --jq '.[].baseRefName')
+          if printf '%s\n' "$bases" | grep -Fqx -- "$BRANCH"; then
+            echo "kept: $BRANCH is the base of an open PR"; exit 0
+          fi
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
+          git init -q del && cd del
+          if out=$(git -c http.extraheader="AUTHORIZATION: basic $AUTH" push -q \
+              --force-with-lease="refs/heads/${BRANCH}:${HEAD_SHA}" \
+              "https://github.com/${GITHUB_REPOSITORY}.git" ":refs/heads/${BRANCH}" 2>&1); then
+            echo "deleted: $BRANCH (was at $HEAD_SHA)"
+          elif printf '%s' "$out" | grep -Fq '(stale info)'; then
+            echo "::warning::kept $BRANCH: it is gone already or moved after the merged head $HEAD_SHA"
+          else
+            echo "::error::could not delete $BRANCH: $out"; exit 1
+          fi
+
+  sweep:
+    name: sweep merged branches, list the rest
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete merged PR branches still on the remote; list every other branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          printf '### Branch sweep\n\n' >> "$GITHUB_STEP_SUMMARY"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[] | "\(.name) \(.commit.sha)"' > branches.txt
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 500 \
+            --json headRefName,baseRefName --jq '.[] | .headRefName, .baseRefName' | sort -u > open-refs.txt
+          gh pr list --repo "$GITHUB_REPOSITORY" --state merged --limit 1000 \
+            --json headRefName,headRefOid,isCrossRepository \
+            --jq '.[] | select(.isCrossRepository | not) | "\(.headRefName) \(.headRefOid)"' > merged-heads.txt
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
+          git init -q del
+          deleted=0; kept=0; failed=0
+          while read -r name sha; do
+            case "$name" in main|gh-pages|gh-pages-preview) continue;; esac
+            if grep -Fqx -- "$name" open-refs.txt; then continue; fi
+            if ! printf '%s' "$name" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
+              echo "- kept \`$name\` (not a plain branch name): review it" >> "$GITHUB_STEP_SUMMARY"; kept=$((kept + 1)); continue
+            fi
+            if ! grep -Fqx -- "$name $sha" merged-heads.txt; then
+              echo "- kept \`$name\` (no open PR, not at a merged PR head): review it" >> "$GITHUB_STEP_SUMMARY"; kept=$((kept + 1)); continue
+            fi
+            if out=$(git -C del -c http.extraheader="AUTHORIZATION: basic $AUTH" push -q \
+                --force-with-lease="refs/heads/${name}:${sha}" \
+                "https://github.com/${GITHUB_REPOSITORY}.git" ":refs/heads/${name}" 2>&1); then
+              echo "- deleted \`$name\` (merged PR head ${sha:0:9})" >> "$GITHUB_STEP_SUMMARY"; deleted=$((deleted + 1))
+            elif printf '%s' "$out" | grep -Fq '(stale info)'; then
+              echo "- kept \`$name\` (moved since the listing)" >> "$GITHUB_STEP_SUMMARY"; kept=$((kept + 1))
+            else
+              echo "::error::could not delete $name: $out"; failed=$((failed + 1))
+            fi
+          done < branches.txt
+          printf '\ndeleted %s, kept %s for review, failed %s\n' "$deleted" "$kept" "$failed" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$failed" -eq 0 ]
