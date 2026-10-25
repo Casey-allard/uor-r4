@@ -3,7 +3,7 @@ id: read-binding-on-lawful-read
 title: Port read binding to a Flock or Relation read
 milestone: research
 area: mechanism
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
