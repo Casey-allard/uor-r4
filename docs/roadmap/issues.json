@@ -35,6 +35,7 @@
   "m1-bvg-k-block-apply-c2": 2835,
   "m1-bvg-k-stage-t-training": 2836,
   "m1-close-saved-model": 2837,
+  "m1-d11-artifact-scorer": 3248,
   "m1-d11-exporter-discrete": 2838,
   "m1-export-gap-and-toks": 2839,
   "m1-faster-writer": 2840,
