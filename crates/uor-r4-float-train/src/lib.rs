@@ -13,6 +13,7 @@ use std::fmt;
 pub mod cuda_stack_kernels;
 #[path = "geometric_stack_native.rs"]
 pub mod geometric_stack;
+pub mod hamilton_sheet;
 pub mod kernel_controls;
 pub mod native_starling_spec;
 pub mod native_vector_writer;

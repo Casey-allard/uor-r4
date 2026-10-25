@@ -1,0 +1,14 @@
+{
+  "active_16step_train_s": 0.549029487,
+  "dev_docs": 400,
+  "dev_eval_float_s": 3.073106308,
+  "dev_eval_int_s": 5.771800908,
+  "dev_scored_rows": 14287,
+  "dev_windows": 428,
+  "elapsed_seconds": 48.795594228,
+  "icosian_16step_train_s": 2.022296927,
+  "probe": "throughput-probe",
+  "projected_256_step_arm_seconds": 50.79538868,
+  "projected_full_8_runs_seconds": 406.36310944,
+  "under_one_hour_per_arm": true
+}

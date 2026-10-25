@@ -1005,7 +1005,12 @@ impl StackModel {
         let mixed = gate
             .contiguous()?
             .apply_op2(&up.contiguous()?, HamiltonGate)?;
-        self.linear(&mixed, p.layer(layer, "mlp.down.weight")?)
+        let down = self.linear(&mixed, p.layer(layer, "mlp.down.weight")?)?;
+        if crate::hamilton_sheet::is_capturing_gate_telemetry() {
+            let unrotated = self.linear(&up, p.layer(layer, "mlp.down.weight")?)?;
+            crate::hamilton_sheet::record_downstream_projection_norms(&down, &unrotated)?;
+        }
+        Ok(down)
     }
     pub fn forward(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
         self.head(&self.hidden(ids, batch, time)?)
@@ -1240,7 +1245,12 @@ impl StackModel {
         // by the gate's 4-lane quaternions ([`hamilton_gate`], OP1); the
         // historical mode keeps the tanh-GELU gate.
         let mixed = hamilton_gate(&gate, &state)?;
-        self.linear(&mixed, p.layer(layer, "rec.out.weight")?)
+        let out = self.linear(&mixed, p.layer(layer, "rec.out.weight")?)?;
+        if crate::hamilton_sheet::is_capturing_gate_telemetry() {
+            let unrotated = self.linear(&state, p.layer(layer, "rec.out.weight")?)?;
+            crate::hamilton_sheet::record_downstream_projection_norms(&out, &unrotated)?;
+        }
+        Ok(out)
     }
     pub fn save(&self, directory: &Path) -> Result<()> {
         self.config.validate_native_config()?;

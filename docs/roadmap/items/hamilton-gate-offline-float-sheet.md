@@ -3,7 +3,7 @@ id: hamilton-gate-offline-float-sheet
 title: Run a Hamilton gate offline-float sheet with language fit and export gap
 milestone: research
 area: mechanism
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [float-training-module, r-secant-surrogate-descent]

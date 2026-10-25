@@ -56,7 +56,7 @@ fn tensor(slice: CudaSlice<f32>, device: &CudaDevice, shape: &Shape) -> Tensor {
 fn u32_of(value: usize, what: &str) -> CResult<u32> {
     u32::try_from(value).map_err(|_| candle_core::Error::Msg(format!("CUDA {what} too large")))
 }
-pub(super) fn hamilton_gate_fwd(
+pub(crate) fn raw_hamilton_gate_fwd(
     s1: &CudaStorage,
     l1: &Layout,
     s2: &CudaStorage,
@@ -87,7 +87,18 @@ pub(super) fn hamilton_gate_fwd(
     )?;
     Ok((storage(out, device), l1.shape().clone()))
 }
-pub(super) fn hamilton_gate_bwd(
+pub(super) fn hamilton_gate_fwd(
+    s1: &CudaStorage,
+    l1: &Layout,
+    s2: &CudaStorage,
+    l2: &Layout,
+) -> Forward {
+    if let Some(res) = crate::hamilton_sheet::try_hamilton_gate_fwd_cuda(s1, l1, s2, l2)? {
+        return Ok(res);
+    }
+    raw_hamilton_gate_fwd(s1, l1, s2, l2)
+}
+pub(crate) fn raw_hamilton_gate_bwd(
     device: &CudaDevice,
     gate: &Tensor,
     up: &Tensor,
@@ -123,6 +134,17 @@ pub(super) fn hamilton_gate_bwd(
         tensor(d_gate, device, gate.shape()),
         tensor(d_up, device, up.shape()),
     ))
+}
+pub(super) fn hamilton_gate_bwd(
+    device: &CudaDevice,
+    gate: &Tensor,
+    up: &Tensor,
+    grad: &Tensor,
+) -> CResult<(Tensor, Tensor)> {
+    if let Some(res) = crate::hamilton_sheet::try_hamilton_gate_bwd_cuda(device, gate, up, grad)? {
+        return Ok(res);
+    }
+    raw_hamilton_gate_bwd(device, gate, up, grad)
 }
 fn spiralcore_fbs_device_plan(
     plan: &crate::spiralcore_fbs::ProjectionPlan,
@@ -229,6 +251,7 @@ fn spiralcore_fbs_device_error(device: &CudaDevice, flag: &CudaSlice<u32>) -> CR
         );
     }
     crate::secant_descent::record_cuda_error_check_ok();
+    crate::hamilton_sheet::record_cuda_error_check_ok();
     Ok(())
 }
 pub(crate) fn spiralcore_fbs_fwd(

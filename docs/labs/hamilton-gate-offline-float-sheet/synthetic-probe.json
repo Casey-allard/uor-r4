@@ -1,0 +1,50 @@
+{
+  "arms": {
+    "Hamilton_Active": {
+      "delta": 0.26503705978393555,
+      "loss_step0": 2.6028666496276855,
+      "loss_step4": 2.33782958984375,
+      "mean_downstream_gain": 0.9999999942880218,
+      "min_rho": 0.9999998119394812,
+      "q12_oracle_mismatches": 0,
+      "step0_d_gate_l2_norm": 0.4251743954343018
+    },
+    "Hamilton_IcosianHard": {
+      "delta": 0.1711108684539795,
+      "loss_step0": 2.737215518951416,
+      "loss_step4": 2.5661046504974365,
+      "mean_downstream_gain": 1.0000000018582111,
+      "min_rho": 0.9999998916974763,
+      "q12_oracle_mismatches": 0,
+      "step0_d_gate_l2_norm": 0.322304318418885
+    },
+    "IdentityGate_Control": {
+      "delta": 0.44136714935302734,
+      "loss_step0": 2.6726746559143066,
+      "loss_step4": 2.2313075065612793,
+      "mean_downstream_gain": 1.0,
+      "min_rho": 1.0,
+      "q12_oracle_mismatches": 0,
+      "step0_d_gate_l2_norm": 0.0
+    },
+    "RandomGate_Null": {
+      "delta": 0.0038089752197265625,
+      "loss_step0": 2.756505012512207,
+      "loss_step4": 2.7526960372924805,
+      "mean_downstream_gain": 1.0000000100373152,
+      "min_rho": 0.9999998956579581,
+      "q12_oracle_mismatches": 0,
+      "step0_d_gate_l2_norm": 0.0
+    }
+  },
+  "icosian_closure": {
+    "exact_root_self_recovery": 120,
+    "h4_coefficients_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+    "identity_index": 1,
+    "max_cayley_closure_distance": 1.1102230246251565e-16,
+    "max_unit_norm_error": 0.0,
+    "passed": true,
+    "root_count": 120
+  },
+  "probe": "synthetic-probe"
+}
