@@ -3,7 +3,7 @@ id: m1-normalization-mechanism
 title: Design a lawful normalization mechanism
 milestone: M1
 area: mechanism
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
