@@ -20,8 +20,8 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 38 |
-| held | 11 |
+| ready | 37 |
+| held | 12 |
 | decision | 1 |
 | done | 42 |
 | total | 92 |
@@ -143,7 +143,6 @@ These items are ready and open to anyone.
 | [De-confound the quaternion-transport ordering result](items/r-quaternion-transport-order.md) | ready | a lab | yes | [m1-position-mechanism](items/m1-position-mechanism.md) | [#2882](https://github.com/UOR-Foundation/uor-r4/issues/2882) |
 | [Compare read-off and read-on for Route and Flock on checkpoints](items/r-read-off-vs-read-on.md) | ready | a lab | yes | none | [#2885](https://github.com/UOR-Foundation/uor-r4/issues/2885) |
 | [Compare 4,096 and 16,384 tokenizer pieces](items/r-vocab-4096-vs-16384.md) | ready | a lab | yes | [m1-faster-writer](items/m1-faster-writer.md) | [#2887](https://github.com/UOR-Foundation/uor-r4/issues/2887) |
-| [Test discrete Hamming binding (VSA) on the current writer](items/r-vsa-hamming-binding.md) | ready | a lab | yes | none | [#2888](https://github.com/UOR-Foundation/uor-r4/issues/2888) |
 | [Port read binding to a Flock or Relation read](items/read-binding-on-lawful-read.md) | ready | a lab | yes | none | [#2889](https://github.com/UOR-Foundation/uor-r4/issues/2889) |
 | [Run the six-recurrence fit for the recurrence gates](items/recurrence-gates-six-recurrence-fit.md) | ready | a lab | yes | [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2890](https://github.com/UOR-Foundation/uor-r4/issues/2890) |
 | [Measure SpiralCore/FBS descent and tokens per second in a float sheet](items/spiralcore-fbs-offline-float-sheet.md) | ready | a lab | yes | [float-training-module](items/float-training-module.md), [r-secant-surrogate-descent](items/r-secant-surrogate-descent.md) | [#2891](https://github.com/UOR-Foundation/uor-r4/issues/2891) |
@@ -154,6 +153,7 @@ These items are ready and open to anyone.
 | [Design a rank objective that keeps cells occupied](items/r-rank-objective-keeps-cells.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | [#2883](https://github.com/UOR-Foundation/uor-r4/issues/2883) |
 | [Test ranking with admission intact](items/r-ranking-with-admission-intact.md) | held | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md) | [#2884](https://github.com/UOR-Foundation/uor-r4/issues/2884) |
 | [Check whether a secant surrogate gives descent for recurrence gates](items/r-secant-surrogate-descent.md) | held | a lab | yes | none | [#2886](https://github.com/UOR-Foundation/uor-r4/issues/2886) |
+| [Test discrete Hamming binding (VSA) on the current writer](items/r-vsa-hamming-binding.md) | held | a lab | yes | none | [#2888](https://github.com/UOR-Foundation/uor-r4/issues/2888) |
 | [Solve the saved legal-construction case in exact arithmetic](items/legal-construction-exact-solve.md) | done | anyone | no | none | [#2828](https://github.com/UOR-Foundation/uor-r4/issues/2828) |
 | [Rule on spin-native weights and ternary/XOR, or build a geometric alphabet](items/owner-ruling-spin-ternary-arithmetic.md) | done | a lab | no | none | [#2876](https://github.com/UOR-Foundation/uor-r4/issues/2876) |
 | [Settle whether a norm-preserving Hamilton gate can suppress a signal](items/r-hamilton-gate-suppression.md) | done | anyone | no | none | [#2879](https://github.com/UOR-Foundation/uor-r4/issues/2879) |

@@ -3,7 +3,7 @@ id: r-vsa-hamming-binding
 title: Test discrete Hamming binding (VSA) on the current writer
 milestone: research
 area: mechanism
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
