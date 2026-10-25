@@ -134,7 +134,7 @@ __device__ U position_step(const U* steps,U block,U root,const U* g) {
     U candidate=steps[block*16+root];
     return candidate==0?g[IDENTITY]:g[GENERATOR+candidate-1];
 }
-__device__ U position_action(const U* steps,const U* prefix,const U* g,const U* s,U block,U from_root,U query_root,U from_pos,U query_pos) {
+__device__ U position_action(const U* steps,const unsigned char* prefix,const U* g,const U* s,U block,U from_root,U query_root,U from_pos,U query_pos) {
     if(s[14]==0)return g[BFS+from_root*16+query_root];
     if(s[14]==1)return compose(g,prefix[query_pos],g[INVERSE+prefix[from_pos]]);
     if(s[14]==2)return compose(g,position_step(steps,block,query_root,g),g[INVERSE+position_step(steps,block,from_root,g)]);
@@ -177,14 +177,14 @@ __device__ bool flock_vector(const int* input,const U* ids,const int* gates,cons
         int* query_position=s[14]==0?query_frame:query_payload;
         U action_query=fq;
         if(s[14]==2){action_query=root_id(u,g);if(action_query==ABSENT)return false;}
-        U prefix[MAX_POSITIONS];
+        unsigned char prefix[MAX_POSITIONS];
         if(s[14]==1) {
             U acc=g[IDENTITY];
             for(U p=0;p<length;++p) {
                 int fv[8];input_block(input,ids,g,row,p,b,s,kind,index,candidate,fv);
                 U root=root_id(fv,g);if(root==ABSENT)return false;
                 acc=compose(g,position_step(position_steps,b,root,g),acc);
-                prefix[p]=acc;
+                prefix[p]=(unsigned char)acc;
             }
         }
         // Node frames and block-b payloads, children before parents.
@@ -204,14 +204,15 @@ __device__ bool flock_vector(const int* input,const U* ids,const int* gates,cons
                 U r=snap(sum,s[12]==1?1u:3u,g);for(U d=0;d<8;++d)payload[node*8+d]=(int)g[ROOT+r*8+d];
             }
         }
-        U transport_root[MAX_NODES],transport[MAX_NODES];
+        unsigned char transport_root[MAX_NODES],transport[MAX_NODES];
         for(U node=0;node<nodes;++node) {
-            transport_root[node]=frame[node];
+            U tr=frame[node];
             if(s[14]!=0) {
                 int rv[8];input_block(input,ids,g,row,last[node],b,s,kind,index,candidate,rv);
-                transport_root[node]=root_id(rv,g);if(transport_root[node]==ABSENT)return false;
+                tr=root_id(rv,g);if(tr==ABSENT)return false;
             }
-            transport[node]=position_action(position_steps,prefix,g,s,b,transport_root[node],action_query,last[node],length-1);
+            transport_root[node]=(unsigned char)tr;
+            transport[node]=(unsigned char)position_action(position_steps,prefix,g,s,b,tr,action_query,last[node],length-1);
         }
         int rel[MAX_NODES];
         for(U node=0;node<nodes;++node)rel[node]=0;

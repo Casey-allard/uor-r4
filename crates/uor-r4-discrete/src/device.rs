@@ -1186,6 +1186,11 @@ impl Device {
             != snapshot.spec.vocabulary as usize * snapshot.spec.blocks as usize * 8
             || snapshot.routes.len() != snapshot.spec.blocks as usize * metadata.stages()
             || snapshot.gates.len() != gate_count
+            || snapshot.position.as_ref().is_some_and(|config| {
+                snapshot.read_spec == ReadSpec::Route
+                    || config.steps.blocks() != snapshot.spec.blocks
+                    || config.steps.export_words().len() != snapshot.spec.blocks as usize * 16
+            })
         {
             return Err(invalid(
                 "snapshot codebook/route/gate allocation inventory differs",
@@ -1199,7 +1204,7 @@ impl Device {
             snapshot.objective_policy,
             snapshot.read_initialization,
             snapshot.normalization_mode,
-            snapshot.position.clone(),
+            None,
             snapshot.seed,
             ordinal,
         )?;
@@ -1207,6 +1212,16 @@ impl Device {
         model.routes = model.stream.clone_htod(&snapshot.routes).map_err(cuda)?;
         model.gates = model.stream.clone_htod(&snapshot.gates).map_err(cuda)?;
         model.epoch = model.stream.clone_htod(&[snapshot.epoch]).map_err(cuda)?;
+        if let Some(config) = snapshot.position {
+            let position_words: Vec<u32> = config
+                .steps
+                .export_words()
+                .iter()
+                .map(|&word| u32::from(word))
+                .collect();
+            model.position_steps = model.stream.clone_htod(&position_words).map_err(cuda)?;
+            model.binding.position = Some(config);
+        }
         let spec = model.gpu_spec(1)?;
         let mut status = model.stream.alloc_zeros::<u32>(1).map_err(cuda)?;
         let items = u32::try_from(
@@ -2445,6 +2460,369 @@ mod unit_snap_device_tests {
         );
         let reloaded_off = Device::from_snapshot(off_snap, 0)?;
         canonical_forward(&reloaded_off)?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod position_device_tests {
+    use super::*;
+    use crate::position_mechanism::{
+        apply_frame_to_root, relative_holonomy, PositionConfig, PositionMode, PositionStepTable,
+        ORBIT_ROOTS,
+    };
+
+    const SPEC: Spec = Spec {
+        vocabulary: 6,
+        blocks: 2,
+        context: 4,
+        kept_cells: 4,
+    };
+
+    fn patterned_table(blocks: u32) -> Result<PositionStepTable> {
+        let mut candidates = Vec::with_capacity((blocks as usize) * ORBIT_ROOTS);
+        for b in 0..blocks as usize {
+            for r in 0..ORBIT_ROOTS {
+                candidates.push(((b * 5 + r * 3) % 15 + 1) as u8);
+            }
+        }
+        PositionStepTable::new(blocks, candidates)
+    }
+
+    fn root_index_of(coords: &[i32]) -> Result<u8> {
+        let target: [i8; 8] = coords
+            .iter()
+            .map(|&v| i8::try_from(v).map_err(|_| invalid("coordinate outside i8")))
+            .collect::<Result<Vec<i8>>>()?
+            .try_into()
+            .map_err(|_| invalid("block slice is not 8 coordinates"))?;
+        geometry::ROOTS
+            .iter()
+            .position(|&candidate| candidate == target)
+            .map(|idx| idx as u8)
+            .ok_or_else(|| invalid("table block is not one of the 16 orbit roots"))
+    }
+
+    fn row_identities(tokens: &[u32], base_occ: u64) -> Vec<Identity> {
+        tokens
+            .iter()
+            .enumerate()
+            .map(|(idx, &token)| Identity {
+                token,
+                occurrence: base_occ + idx as u64,
+                record: 17,
+                version: 9,
+            })
+            .collect()
+    }
+
+    #[test]
+    #[ignore = "requires a CUDA GPU"]
+    fn position_modes_match_host_holonomy_and_carried_roots_in_flock_and_relation() -> Result<()> {
+        let steps = patterned_table(SPEC.blocks)?;
+        let id_steps = PositionStepTable::identity(SPEC.blocks)?;
+        let rows_tokens: [[u32; 4]; 2] = [[0, 1, 2, 3], [4, 2, 5, 1]];
+        let mut batch_identities = row_identities(&rows_tokens[0], 0);
+        batch_identities.extend(row_identities(&rows_tokens[1], 10));
+
+        for read_spec in [
+            ReadSpec::Flock { kept: 3 },
+            ReadSpec::Relation { kept: 3, sweeps: 1 },
+        ] {
+            let id_table_dev = Device::new_with_position(
+                SPEC,
+                read_spec,
+                ObjectivePolicy::NearestAddressMarginV1,
+                ReadInitialization::ActiveLeafV1,
+                NormalizationMode::ScaleMatchedSnapV1,
+                Some(PositionConfig::new(
+                    PositionMode::PrefixHolonomyV1,
+                    id_steps.clone(),
+                )),
+                7,
+                0,
+            )?;
+            let id_table_fwd =
+                id_table_dev.forward_traced(&id_table_dev.carry(&batch_identities)?, &[0, 1])?;
+
+            for mode in [
+                PositionMode::PrefixHolonomyV1,
+                PositionMode::EndpointControlV1,
+                PositionMode::IdentityControlV1,
+            ] {
+                let device = Device::new_with_position(
+                    SPEC,
+                    read_spec,
+                    ObjectivePolicy::NearestAddressMarginV1,
+                    ReadInitialization::ActiveLeafV1,
+                    NormalizationMode::ScaleMatchedSnapV1,
+                    Some(PositionConfig::new(mode, steps.clone())),
+                    7,
+                    0,
+                )?;
+                let snap = device.snapshot()?;
+                let carried = device.carry(&batch_identities)?;
+                let fwd = device.forward_traced(&carried, &[0, 1])?;
+                let eval = device.evaluate(&carried, &[0, 1])?;
+                assert_eq!(eval.aggregate.scored_rows, 2);
+                let prop = device.propose(&carried, &[0, 1], Parameter::Gate(0))?;
+                assert_eq!(prop.candidate_losses()?.len(), 16);
+
+                let trace = fwd
+                    .flock_trace()?
+                    .ok_or_else(|| invalid("missing flock trace"))?;
+                let stride = fwd
+                    .trace_stride()
+                    .ok_or_else(|| invalid("missing trace stride"))?;
+                let blocks = SPEC.blocks as usize;
+
+                for (row_idx, row_toks) in rows_tokens.iter().enumerate() {
+                    for block in 0..blocks {
+                        let window_roots: Vec<u8> = row_toks
+                            .iter()
+                            .map(|&tok| {
+                                let start = (tok as usize * blocks + block) * 8;
+                                root_index_of(&snap.table[start..start + 8])
+                            })
+                            .collect::<Result<Vec<u8>>>()?;
+                        let rec_base = (row_idx * blocks + block) * stride;
+                        let rec = &trace[rec_base..rec_base + stride];
+                        assert_eq!(
+                            rec[3],
+                            u32::from(window_roots[3]),
+                            "trace header rec[3] must equal the query payload root"
+                        );
+                        let lv0 = &rec[FLOCK_TRACE_HEADER_WORDS
+                            ..FLOCK_TRACE_HEADER_WORDS + FLOCK_TRACE_LEVEL_WORDS];
+                        let found = lv0[1] as usize;
+                        let eligible = lv0[3] as usize;
+                        assert_eq!(found, 3);
+                        assert_eq!(eligible, 3);
+                        for k in 0..found {
+                            let node = lv0[4 + k] as usize;
+                            assert!(node < 3, "level-0 leaf node must be in 0..3");
+                            let gpu_action = u8::try_from(lv0[12 + k])
+                                .map_err(|_| invalid("action out of u8"))?;
+                            let gpu_carried = u8::try_from(lv0[20 + k])
+                                .map_err(|_| invalid("carried root out of u8"))?;
+                            let expected_action =
+                                relative_holonomy(mode, &steps, block, &window_roots, node, 3)?;
+                            let (expected_carried, _) =
+                                apply_frame_to_root(expected_action, window_roots[node])?;
+                            assert_eq!(
+                                gpu_action, expected_action,
+                                "GPU action mismatch for mode {mode:?} row {row_idx} block {block} leaf {node}"
+                            );
+                            assert_eq!(
+                                gpu_carried, expected_carried,
+                                "GPU carried root mismatch for mode {mode:?} row {row_idx} block {block} leaf {node}"
+                            );
+                        }
+                    }
+                }
+
+                if mode == PositionMode::IdentityControlV1 {
+                    assert_eq!(
+                        fwd.vectors()?,
+                        id_table_fwd.vectors()?,
+                        "IdentityControlV1 with non-trivial table must match PrefixHolonomyV1 with identity table"
+                    );
+                    assert_eq!(
+                        trace,
+                        id_table_fwd
+                            .flock_trace()?
+                            .ok_or_else(|| invalid("missing id trace"))?
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires a CUDA GPU"]
+    fn prefix_holonomy_detects_interior_swap_on_device_while_endpoint_control_is_invariant(
+    ) -> Result<()> {
+        let swap_spec = Spec {
+            vocabulary: 4,
+            blocks: 2,
+            context: 4,
+            kept_cells: 4,
+        };
+        let steps = patterned_table(swap_spec.blocks)?;
+        let mut chosen_roots = [0u8, 1u8, 2u8, 3u8];
+        let mut found = false;
+        for r1 in 0..ORBIT_ROOTS as u8 {
+            for r2 in 0..ORBIT_ROOTS as u8 {
+                let win_ab = [0u8, r1, r2, 3u8];
+                let win_ba = [0u8, r2, r1, 3u8];
+                let h0_ab =
+                    relative_holonomy(PositionMode::PrefixHolonomyV1, &steps, 0, &win_ab, 0, 3)?;
+                let h0_ba =
+                    relative_holonomy(PositionMode::PrefixHolonomyV1, &steps, 0, &win_ba, 0, 3)?;
+                if h0_ab == h0_ba {
+                    continue;
+                }
+                let mut sum_ab = [0i32; 8];
+                let mut sum_ba = [0i32; 8];
+                for s in 0..3usize {
+                    let ha = relative_holonomy(
+                        PositionMode::PrefixHolonomyV1,
+                        &steps,
+                        0,
+                        &win_ab,
+                        s,
+                        3,
+                    )?;
+                    let hb = relative_holonomy(
+                        PositionMode::PrefixHolonomyV1,
+                        &steps,
+                        0,
+                        &win_ba,
+                        s,
+                        3,
+                    )?;
+                    let (_, ca) = apply_frame_to_root(ha, win_ab[s])?;
+                    let (_, cb) = apply_frame_to_root(hb, win_ba[s])?;
+                    for d in 0..8 {
+                        sum_ab[d] += i32::from(ca[d]);
+                        sum_ba[d] += i32::from(cb[d]);
+                    }
+                }
+                if sum_ab != sum_ba {
+                    chosen_roots = [0u8, r1, r2, 3u8];
+                    found = true;
+                    break;
+                }
+            }
+            if found {
+                break;
+            }
+        }
+        assert!(found, "must find interior swap witness");
+
+        let base_dev = Device::new_with_position(
+            swap_spec,
+            ReadSpec::Flock { kept: 3 },
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::ActiveLeafV1,
+            NormalizationMode::UnnormalizedControlV1,
+            Some(PositionConfig::new(
+                PositionMode::PrefixHolonomyV1,
+                steps.clone(),
+            )),
+            7,
+            0,
+        )?;
+        let mut hol_snap = base_dev.snapshot()?;
+        for (tok, &root) in chosen_roots.iter().enumerate() {
+            let coords = geometry::ROOTS[usize::from(root)];
+            for b in 0..swap_spec.blocks as usize {
+                let start = (tok * swap_spec.blocks as usize + b) * 8;
+                for d in 0..8 {
+                    hol_snap.table[start + d] = i32::from(coords[d]);
+                }
+            }
+        }
+        let mut end_snap = hol_snap.clone();
+        end_snap.position = Some(PositionConfig::new(
+            PositionMode::EndpointControlV1,
+            steps.clone(),
+        ));
+
+        let hol_dev = Device::from_snapshot(hol_snap, 0)?;
+        let end_dev = Device::from_snapshot(end_snap, 0)?;
+
+        let mut rows = row_identities(&[0, 1, 2, 3], 0);
+        rows.extend(row_identities(&[0, 2, 1, 3], 10));
+
+        let hol_fwd = hol_dev.forward_traced(&hol_dev.carry(&rows)?, &[0, 0])?;
+        let end_fwd = end_dev.forward_traced(&end_dev.carry(&rows)?, &[0, 0])?;
+
+        let end_vecs = end_fwd.vectors()?;
+        assert_eq!(
+            &end_vecs[0..16],
+            &end_vecs[16..32],
+            "EndpointControlV1 GPU output vectors must be invariant under an interior token swap when all leaves are kept"
+        );
+        let hol_vecs = hol_fwd.vectors()?;
+        assert_ne!(
+            &hol_vecs[0..16],
+            &hol_vecs[16..32],
+            "PrefixHolonomyV1 GPU output vectors must change under an interior token swap"
+        );
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires a CUDA GPU"]
+    fn from_snapshot_roundtrips_position_modes_and_cuda_validate_refuses_step_16() -> Result<()> {
+        let steps = patterned_table(SPEC.blocks)?;
+        let row = row_identities(&[0, 1, 2, 3], 0);
+
+        for mode in [
+            PositionMode::PrefixHolonomyV1,
+            PositionMode::EndpointControlV1,
+            PositionMode::IdentityControlV1,
+        ] {
+            let dev = Device::new_with_position(
+                SPEC,
+                ReadSpec::Flock { kept: 2 },
+                ObjectivePolicy::NearestAddressMarginV1,
+                ReadInitialization::ActiveLeafV1,
+                NormalizationMode::ScaleMatchedSnapV1,
+                Some(PositionConfig::new(mode, steps.clone())),
+                7,
+                0,
+            )?;
+            let before_fwd = dev.forward_traced(&dev.carry(&row)?, &[0])?;
+            let snap = dev.snapshot()?;
+            assert_eq!(
+                snap.position,
+                Some(PositionConfig::new(mode, steps.clone()))
+            );
+            let reloaded = Device::from_snapshot(snap, 0)?;
+            let after_fwd = reloaded.forward_traced(&reloaded.carry(&row)?, &[0])?;
+            assert_eq!(before_fwd.vectors()?, after_fwd.vectors()?);
+            assert_eq!(before_fwd.flock_trace()?, after_fwd.flock_trace()?);
+        }
+
+        let valid_dev = Device::new_with_position(
+            SPEC,
+            ReadSpec::Flock { kept: 2 },
+            ObjectivePolicy::NearestAddressMarginV1,
+            ReadInitialization::ActiveLeafV1,
+            NormalizationMode::ScaleMatchedSnapV1,
+            Some(PositionConfig::new(
+                PositionMode::PrefixHolonomyV1,
+                steps.clone(),
+            )),
+            7,
+            0,
+        )?;
+        let valid_snap = valid_dev.snapshot()?;
+        let mut json_val = serde_json::to_value(&valid_snap).map_err(|e| invalid(e.to_string()))?;
+        json_val["position"]["steps"]["candidates"][0] = serde_json::json!(16);
+        let malformed_snap: Snapshot =
+            serde_json::from_value(json_val).map_err(|e| invalid(e.to_string()))?;
+
+        match Device::from_snapshot(malformed_snap, 0) {
+            Err(Error::Invalid(msg)) => assert_eq!(
+                msg,
+                "discrete CUDA snapshot validation refused with status 10",
+                "malformed step candidate 16 must be refused by discrete_validate on CUDA with status 10"
+            ),
+            Err(other) => {
+                return Err(invalid(format!(
+                    "expected Invalid status 10 from CUDA validate, got {other}"
+                )))
+            }
+            Ok(_) => {
+                return Err(invalid(
+                    "Device::from_snapshot accepted step candidate 16",
+                ))
+            }
+        }
         Ok(())
     }
 }

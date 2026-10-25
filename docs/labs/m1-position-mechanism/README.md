@@ -78,3 +78,54 @@ Two runs gave byte-identical files, both printing `selected 1620` and the SHA-25
 **Negative gate:** dropping the distinctness check fails 3 of the 6 tests.
 
 This freeze clears no compute. The sheet still needs Kimi's non-author FIT, since Claude has now authored sheet text, plus the assembled trunk, PM dispatch and Casey's release.
+
+## 5. GPU finite qualification, `from_snapshot` CUDA status-10 refusal, and byte-packed stack / throughput measurement (antigravity-62, 2026-10-25)
+
+Resolves the post-`#3111` audit requirements in `#2843` comment `6391161531` and `PLAN.md` line 68 (`ORDER.md`: `docs/loop/tasks/m1-position-mechanism/antigravity-62/ORDER.md`, PR `#3205`, commit `77d7cb5681fe8c0f94d370316dc009505f5f1460`, D67 pre-run review `#2843` comment at `06b8f5843b428df54b834ddc56a2a53909f3cea0`).
+
+### 5.1 Environment & Artifact Provenance
+
+- **Pod / GPU:** `vast-57638243` (`1 x NVIDIA GeForce RTX 5090`, 32,607 MiB, driver `580.178.04`, compute capability `12.0`, `nvcc` 12.8 V12.8.93, `UOR_NVCC_ARCH=compute_120`).
+- **HF Store Archive:** `caseyallard/uor-r4-store:results/antigravity/m1-position-mechanism-2026-10-25` (40 files; `SHA256SUMS` digest `dc61c5edf29444996cd6a659ce476e00459d834bcea87ae8bb1f6ab37d8876c5`; tarball `2f49a3474182035dcc03fc6bfd288bfc68825d27a49f7dc71fb6a075726f8899`).
+- **Committed JSON Receipts:**
+  - [`position-qualify-build1.json`](position-qualify-build1.json) (`SHA-256: 0de22708f4b3c1e961f2e5469aa9f088e219fb16fd535e943988a1cf909106f8`)
+  - [`position-qualify-build2.json`](position-qualify-build2.json) (`SHA-256: 9d1072d3b7199c26b1ae3eb19f96c5ff69b107ce20121b365454625b61b7c4fe`)
+  - [`position-qualify-dc5f409b0.json`](position-qualify-dc5f409b0.json) (`SHA-256: 679512ff64b6f7ec0b762aefbf79947aca015a02d5991b35bf5ebca404c72281`)
+- **Two-Build Determinism (`77d7cb568` Build 1 vs Build 2):**
+  - `driver_source_sha256`: `31789abea8b955cb0e137257fc9e8b3e5eb42865fec7728396fa377c9d4228ea` (identical)
+  - `geometry_sha256`: `46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327` (identical)
+  - `kernel_sha256` (`discrete.ptx`): `be2b90a8ec7704be94db115c4627fef71467659c9623ff00503ea4fa56637699` (identical)
+  - `ordinary_sha256` (`ordinary.cubin`): `a150695dffeb4b5602fec112af539d9c17f60d6b09c2a6af6a5f7725c8bc8512` (identical)
+  - `vectors_sha256` across all 8 `(read_mode, position_mode)` arms: byte-for-byte identical between Build 1, Build 2, and `dc5f409b0`.
+
+### 5.2 Finite GPU Controls (`position_device_tests` & `position-qualify`)
+
+All finite GPU controls passed on the RTX 5090 (`cargo test --release --locked -p uor-r4-discrete --features cuda --lib position_device_tests -- --include-ignored`: `3 passed; 0 failed` in `0.33s`; `unit_snap_device_tests`: `3 passed; 0 failed` in `0.22s`; `position_mechanism::tests`: `10 passed; 0 failed`; `position_device_controls`: `3 passed; 0 failed`):
+
+1. **Device-vs-host exact match across modes `1..=3` in `Flock` and `Relation`:** Across 2 rows $\times$ 2 blocks $\times$ 3 leaves $\times$ 3 modes (`PrefixHolonomyV1` `s[14]=1`, `EndpointControlV1` `s[14]=2`, `IdentityControlV1` `s[14]=3`) $\times$ 2 read specs (`Flock { kept: 3 }`, `Relation { kept: 3, sweeps: 1 }`) = **72 leaf traces**, every GPU traced action `lv0[12 + k]` and carried root `lv0[20 + k]` matched the host finite algebraic reference (`relative_holonomy`, `apply_frame_to_root`) bit-for-bit, and `IdentityControlV1` with a non-trivial step table matched `PrefixHolonomyV1` with the all-zero identity step table in both output vectors and flock traces (`identity_control_matches_identity_table = true`).
+2. **Interior-order sensitivity on the GPU:** On a 4-token window `[0, r1, r2, 3]` vs `[0, r2, r1, 3]` with all 3 prefix leaves kept (`Flock { kept: 3 }`, `UnnormalizedControlV1`), `EndpointControlV1` produced identical GPU output vectors (`endpoint_control_interior_swap_invariant = true`) while `PrefixHolonomyV1` produced distinct GPU output vectors (`prefix_holonomy_interior_swap_sensitive = true`).
+3. **Snapshot roundtrip and device-side `status 10` refusal:** `Device::snapshot` $\to$ `Device::from_snapshot` roundtripped all 3 position modes with identical GPU vectors and traces (`snapshot_roundtrip_modes_verified = 3`), refused `ReadSpec::Route` with a position table (`route_position_refused = true`), and delegated `position_steps` candidate range validation (`< 16`) to `discrete_validate` on the GPU so a deserialized `Snapshot` with step candidate `16` was refused by CUDA kernel validation with `"discrete CUDA snapshot validation refused with status 10"`.
+
+### 5.3 Per-Thread `ptxas` Stack Compaction (`5844d911c` vs `dc5f409b0` vs `77d7cb568`)
+
+Compacting `prefix[243]`, `transport_root[364]`, and `transport[364]` in `flock_vector` (`crates/uor-r4-discrete/src/discrete.cu`) from 4-byte `U` (`3,884` B raw) to 1-byte `unsigned char` (`971` B raw, since frame indices are in `0..64` and root indices are in `0..16`) reduced compiled `sm_120` per-thread stack frames by **2,896 bytes (-11.4% to -11.6%)** across all three main kernels, with **0 register spill stores and 0 spill loads**:
+
+| Kernel entry (`sm_120`) | Pre-`#3111` (`5844d911c`) | `#3111` 32-bit `U` (`dc5f409b0`) | Compacted `unsigned char` (`77d7cb568`) | Delta vs `#3111` (`dc5f409b0`) | Delta vs Pre-`#3111` (`5844d911c`) | Spill stores / loads |
+|---|---:|---:|---:|---:|---:|---:|
+| `discrete_forward` | 21,056 B (80 regs) | 24,976 B (80 regs) | **22,080 B** (87 regs) | **-2,896 B (-11.60%)** | +1,024 B (+4.86%) | 0 B / 0 B |
+| `discrete_counterfactual` | 21,536 B (88 regs) | 25,456 B (96 regs) | **22,560 B** (96 regs) | **-2,896 B (-11.38%)** | +1,024 B (+4.75%) | 0 B / 0 B |
+| `discrete_evaluate` | 21,184 B (80 regs) | 25,104 B (93 regs) | **22,208 B** (93 regs) | **-2,896 B (-11.54%)** | +1,024 B (+4.83%) | 0 B / 0 B |
+
+### 5.4 RTX 5090 Throughput (`tokens/s`) at Full M1 Shape (`V=4096, B=4, C=192, K=8`, 64 rows $\times$ 10 iterations = 122,880 tokens/arm)
+
+| Read mode | Position mode (`s[14]`) | `#3111` (`dc5f409b0`) forward `tok/s` | Compacted (`77d7cb568` B1 / B2) forward `tok/s` | `#3111` (`dc5f409b0`) evaluate `tok/s` | Compacted (`77d7cb568` B1 / B2) evaluate `tok/s` | Output `vectors_sha256` (all builds) |
+|---|---|---:|---:|---:|---:|---|
+| `Flock (K=8)` | `legacy_bfs (0)` | 325,322 | **327,988 / 327,775** | 285,756 | **286,998 / 287,023** | `9dd7cdfe4aa180a4…` |
+| `Flock (K=8)` | `prefix_holonomy_v1 (1)` | 302,954 | **305,795 / 305,829** | 268,234 | **269,974 / 269,999** | `a267ccf13fc55e95…` |
+| `Flock (K=8)` | `endpoint_control_v1 (2)` | 309,736 | **312,159 / 312,080** | 273,494 | **274,899 / 274,925** | `9dd7cdfe4aa180a4…` |
+| `Flock (K=8)` | `identity_control_v1 (3)` | 312,850 | **315,313 / 315,203** | 275,868 | **277,328 / 277,317** | `9dd7cdfe4aa180a4…` |
+| `Relation (K=8, S=1)` | `legacy_bfs (0)` | 318,331 | **321,588 / 321,438** | 281,054 | **282,417 / 282,411** | `9dd7cdfe4aa180a4…` |
+| `Relation (K=8, S=1)` | `prefix_holonomy_v1 (1)` | 291,705 | **295,120 / 295,079** | 259,538 | **261,672 / 261,683** | `a267ccf13fc55e95…` |
+| `Relation (K=8, S=1)` | `endpoint_control_v1 (2)` | 297,933 | **301,073 / 300,930** | 264,455 | **266,329 / 266,321** | `9dd7cdfe4aa180a4…` |
+| `Relation (K=8, S=1)` | `identity_control_v1 (3)` | 300,908 | **304,054 / 303,947** | 266,800 | **268,637 / 268,641** | `9dd7cdfe4aa180a4…` |
+
