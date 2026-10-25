@@ -1,11 +1,11 @@
-# `r-read-off-vs-read-on` — Route & Flock Read-Off vs Read-On Comparison (`antigravity-45`..`antigravity-46`)
+# `r-read-off-vs-read-on` — Route & Flock Read-Off vs Read-On Comparison (`antigravity-45`..`antigravity-86`)
 
 - **Roadmap item:** [`docs/roadmap/items/r-read-off-vs-read-on.md`](../../roadmap/items/r-read-off-vs-read-on.md) ([`#2885`](https://github.com/UOR-Foundation/uor-r4/issues/2885))
-- **Pre-registration sheet:** [`docs/harness/prep/r-read-off-vs-read-on-DRAFT-2026-10-23.md`](../../harness/prep/r-read-off-vs-read-on-DRAFT-2026-10-23.md) (`DRAFT`, `TEST FITNESS: PENDING`)
+- **Pre-registration sheet:** [`docs/harness/prep/r-read-off-vs-read-on-DRAFT-2026-10-23.md`](../../harness/prep/r-read-off-vs-read-on-DRAFT-2026-10-23.md) (`REGISTERED` under D68, non-author `TEST FITNESS: FIT`, D67 pre-run `APPROVE`)
 - **Host finite controls:** [`crates/uor-r4-discrete/tests/read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs) (`7 / 7` unit tests pass on the host)
 - **Kernel & driver switch (`antigravity-46`):** [`crates/uor-r4-discrete/src/lib.rs`](../../../crates/uor-r4-discrete/src/lib.rs), [`discrete.cu`](../../../crates/uor-r4-discrete/src/discrete.cu), [`device.rs`](../../../crates/uor-r4-discrete/src/device.rs), [`training.rs`](../../../crates/uor-r4-discrete/src/training.rs), [`attention_preflight.rs`](../../../crates/uor-r4-discrete/src/attention_preflight.rs), and [`d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs)
-- **Staged battery & configs (`antigravity-46`):** [`docs/labs/r-read-off-vs-read-on/evidence/read-off-battery.sh`](evidence/read-off-battery.sh) and the 10 zero-update arm configs (`{a8,p8}-{r-on,r-off,r-perm,f-on,f-off}.json`)
-- **Status:** Steps 1–4 of [`docs/roadmap/items/r-read-off-vs-read-on.md`](../../roadmap/items/r-read-off-vs-read-on.md) are complete on the host. No GPU compute has been run (`needs_gpu: true` Step 5 execution awaits non-author `TEST FITNESS: FIT`, PM/owner registration on `#2885`, and Casey's approval in chat per CHARTER §4.5 / §5.1).
+- **Staged battery, configs & GPU summary (`antigravity-46`..`antigravity-86`):** [`docs/labs/r-read-off-vs-read-on/evidence/read-off-battery.sh`](evidence/read-off-battery.sh), the 10 zero-update arm configs (`{a8,p8}-{r-on,r-off,r-perm,f-on,f-off}.json`), and [`docs/labs/r-read-off-vs-read-on/evidence/summary.json`](evidence/summary.json) (sealed artifacts archived in `caseyallard/uor-r4-store:results/antigravity/r-read-off-vs-read-on-2026-10-25/`, tarball SHA-256 `cbd29504000c465a3837c735caa51b25566c175c3af14e49c06e5baa69f65e6e`)
+- **Status:** Complete (`Closes #2885`). All 10 zero-update GPU arms (`{a8, p8} x {r-on, r-off, r-perm, f-on, f-off}`) and all D31 instrument gates (`G-Qual`, `G-Repro`, `G-CrossMode`) passed on `1 x RTX 5090` (`vast-57708111`).
 
 ---
 
@@ -129,3 +129,65 @@ Per Step 4 of [`docs/roadmap/items/r-read-off-vs-read-on.md`](../../roadmap/item
 2. **Staged 10-arm zero-update configs & battery script (`docs/labs/r-read-off-vs-read-on/evidence/`):**
    - Ten `DriverConfig` files (`a8-r-on.json`, `a8-r-off.json`, `a8-r-perm.json`, `a8-f-on.json`, `a8-f-off.json`, `p8-r-on.json`, `p8-r-off.json`, `p8-r-perm.json`, `p8-f-on.json`, `p8-f-off.json`) are committed and verified by control `C7` (`c7_committed_ten_arm_battery_configs_are_valid_and_distinct` in [`read_off_ablation_controls.rs`](../../../crates/uor-r4-discrete/tests/read_off_ablation_controls.rs)).
    - [`docs/labs/r-read-off-vs-read-on/evidence/read-off-battery.sh`](evidence/read-off-battery.sh) runs `G-Qual` (`route_read_off_and_permuted_controls_run_and_refuse`), `init-corpus`, `eval-corpus`, and `attention-dev-b3` across all 10 arms, checks `G-Repro` (`4,244 / 1,351 / 133` on `a8-f-on` and `427 / 127 / 38` on `p8-f-on`) and `G-CrossMode` (`r-off == f-off` across all `14,287` rows on both `a8` and `p8`), and writes `FILES.sha256`.
+
+---
+
+## 4. GPU Evaluation Battery Results & Paired McNemar Classification (Step 5–6, `antigravity-86`)
+
+### 4.1 Provenance, Throughput & D31 Instrument Gates
+
+- **Hardware & build identity:** `1 x NVIDIA GeForce RTX 5090` (`vast-57708111`, driver `595.84`, `$0.908/h`, active GPU runtime `~15 min`, `~$0.23`), source head `d1eea395d64f1d95e753f6800bfaae9c69c2f212`, `discrete-stack` SHA-256 `00688b0daee690ddf3ee04a5a854b1a6e9ef90baced47b46e3164376f181bc61`, `address-cells-codebook` SHA-256 `c26ffb957e5f0d129923346f66f711f84c6c9a0a3159fcf67859aa9c56f83c7e`, CUDA kernel `sm_120` SHA-256 `0f9ccfa7b4748292f83a40227e30ea7b69c893a1649fa8afa3f7d547802429d6`, geometry SHA-256 `46ddbb76b7fbe6ac6222ea24779fc10055b1d6cea6a8da786895676fd29fe327`.
+- **Throughput (`tok/s` / `rows/s`):** Across the `14,287` scored DEV rows (`42,856` payload tokens across `224` 64-row batches, including checkpoint load and 26-MB JSON report serialization), each `Route` arm (`r-on`, `r-off`, `r-perm`) completed `eval-corpus` in `21–22 s` wall-clock (**`1,948–2,041 payload tok/s`**, `649–680 rows/s`), and each `Flock`/`Relation` arm (`f-on`, `f-off`) completed `eval-corpus` in `27–30 s` wall-clock (**`1,429–1,587 payload tok/s`**, `476–529 rows/s`).
+- **D31 Instrument Gates (all `PASS`):**
+  - **`G-Qual: PASS`** — CUDA device test `device::unit_snap_device_tests::route_read_off_and_permuted_controls_run_and_refuse` (`1 passed; 0 failed; finished in 0.94s` on RTX 5090 `vast-57715285`, `g-qual-device-test-r3.stdout` SHA-256 `722cc3b4c07eebd1af5cbb7b231c0e9b6144a3651db1b432431be7f81f75bc8c` after D66 review caught that passing unqualified `route_read_off_and_permuted_controls_run_and_refuse` with `--exact` in `r1`/`r2` filtered out `336` tests with `0 passed`) and host controls `C1`–`C7` (`7 / 7` pass).
+  - **`G-Repro: PASS`** — `a8-f-on` reproduced `4,244 / 14,287` full admitted, `1,351 / 3,847` `P_succ` admitted, `top1_correct = 133`, and `P_succ top1 = 62`; `p8-f-on` reproduced `427 / 14,287` full admitted, `127 / 3,847` `P_succ` admitted, and `top1_correct = 38` word-for-word. *(Instrument note: Attempt 1 `r-read-off-vs-read-on-20261025` completed all 10 arm evaluations cleanly, then exited `8` at the post-loop `G-Repro` shell check because `read-off-battery.sh` queried `.aggregate.top1_hits` instead of `.aggregate.top1_correct`. Per L-002, Attempt 1's directory was left untouched and Attempt 2 was run into a fresh exclusive root `r-read-off-vs-read-on-20261025-r2` (`FILES-r2.sha256` `41dab02c…`), where all 10 arms' `.aggregate` and `.batches` matched Attempt 1 bit-for-bit (`10 / 10`) and `G_REPRO: PASS` + `G_CROSSMODE: PASS` completed with `exit 0`.)*
+  - **`G-CrossMode: PASS` (`0 / 14,287` row discrepancies)** — On `A8` cp0, `a8-r-off` (`RouteBypassV1`) and `a8-f-off` (`ZeroGatesV1`) produced identical `.aggregate` (`ae81047c…`), `.batches` (`a10f646c…`), and `.b3` (`efc9a129…`) hashes across all `14,287` rows. On `P8` cp0, `p8-r-off` and `p8-f-off` produced identical `.aggregate` (`beae526e…`), `.batches` (`5fce2bb7…`), and `.b3` (`d00606aa…`) hashes across all `14,287` rows.
+
+### 4.2 Ten-Arm Zero-Update DEV Battery Summary (`14,287` Full / `3,847` `P_succ`)
+
+| Arm | Codebook (`accepted_updates = 0`) | `ReadSpec` / `ReadInitialization` | `b_3(Full)` (`/ 14,287`) | `b_3(P_succ)` (`/ 3,847`) | `top1(Full)` (`/ 14,287`) | `top1(P_succ)` (`/ 3,847`) | `top8(Full)` (`/ 14,287`) | `top8(P_succ)` (`/ 3,847`) | `address_hinge_sum` | `token_hinge_sum` | `eval_sha256` |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| **`a8-r-on`** | `A8` (`6600bdb1…`) | `Route` (`ZeroGatesV1`, `s[13]=0`) | `748` | `408` | `0` | `0` | `74` | `34` | `302,996` | `819,656` | `62edd218…` |
+| **`a8-r-off`** | `A8` (`6600bdb1…`) | `Route` (`RouteBypassV1`, `s[13]=1`) | `5,818` | `1,643` | `22` | `0` | `450` | `166` | `234,388` | `771,716` | `905d595e…` |
+| **`a8-r-perm`** | `A8` (`6600bdb1…`) | `Route` (`RoutePermutedActionsV1`) | `574` | `339` | `1` | `0` | `78` | `40` | `315,116` | `849,632` | `453f9767…` |
+| **`a8-f-on`** | `A8` (`6600bdb1…`) | `Relation(8,1)` (`ActiveLeafV1`) | `4,244` | `1,351` | **`133`** | **`62`** | **`513`** | **`202`** | `244,804` | `768,188` | `5980dd92…` |
+| **`a8-f-off`** | `A8` (`6600bdb1…`) | `Relation(8,1)` (`ZeroGatesV1`) | `5,818` | `1,643` | `22` | `0` | `450` | `166` | `234,388` | `771,716` | `a5f74d18…` |
+| **`p8-r-on`** | `P8` (`83c1380a…`) | `Route` (`ZeroGatesV1`, `s[13]=0`) | `263` | `84` | `3` | `0` | `25` | `7` | `314,364` | `793,312` | `0be21c79…` |
+| **`p8-r-off`** | `P8` (`83c1380a…`) | `Route` (`RouteBypassV1`, `s[13]=1`) | `415` | `118` | `22` | `0` | `30` | `1` | `314,256` | `858,848` | `f00ebf95…` |
+| **`p8-r-perm`** | `P8` (`83c1380a…`) | `Route` (`RoutePermutedActionsV1`) | `261` | `82` | `1` | `0` | `31` | `10` | `315,640` | `791,532` | `ab7d52ad…` |
+| **`p8-f-on`** | `P8` (`83c1380a…`) | `Relation(8,1)` (`ActiveLeafV1`) | **`427`** | **`127`** | **`38`** | **`9`** | **`95`** | **`30`** | `312,716` | `789,140` | `325aeba6…` |
+| **`p8-f-off`** | `P8` (`83c1380a…`) | `Relation(8,1)` (`ZeroGatesV1`) | `415` | `118` | `22` | `0` | `30` | `1` | `314,256` | `858,848` | `a89db1c7…` |
+
+### 4.3 Paired McNemar Contrasts ($F_I = \max(24, \lceil 2\sqrt{b+c}\rceil)$)
+
+| Contrast | Panel | Metric | $b$ (`Ref` only) | $c$ (`Ctrl` only) | Both Hit | $b - c$ | Floor $F_I$ | Registered 3-Branch Verdict (Classification: `mechanism`) |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| **`A8` `Flock` (`a8-f-on` vs `a8-f-off`)** | Full (`14,287`) | **`top1_correct`** | `120` | `9` | `13` | **`+111`** | `24` | **`READ_ADDS_SIGNAL`** (`6.05x`: `133` vs `22`) |
+| **`A8` `Flock` (`a8-f-on` vs `a8-f-off`)** | `P_succ` (`3,847`) | **`top1_correct`** | `62` | `0` | `0` | **`+62`** | `24` | **`READ_ADDS_SIGNAL`** (`62` vs `0`) |
+| **`A8` `Flock` (`a8-f-on` vs `a8-f-off`)** | Full (`14,287`) | **`top8_correct`** | `339` | `276` | `174` | **`+63`** | `50` | **`READ_ADDS_SIGNAL`** (`513` vs `450`) |
+| **`A8` `Flock` (`a8-f-on` vs `a8-f-off`)** | `P_succ` (`3,847`) | **`top8_correct`** | `126` | `90` | `76` | **`+36`** | `30` | **`READ_ADDS_SIGNAL`** (`202` vs `166`) |
+| **`A8` `Flock` (`a8-f-on` vs `a8-f-off`)** | Full (`14,287`) | `target_admitted` | `322` | `1,896` | `3,922` | `-1,574` | `95` | `READ_HURTS_ADMISSION_OR_RANKING` (`4,244` vs `5,818`) |
+| **`A8` `Flock` (`a8-f-on` vs `a8-f-off`)** | `P_succ` (`3,847`) | `target_admitted` | `137` | `429` | `1,214` | `-292` | `48` | `READ_HURTS_ADMISSION_OR_RANKING` (`1,351` vs `1,643`) |
+| **`P8` `Flock` (`p8-f-on` vs `p8-f-off`)** | Full (`14,287`) | **`top8_correct`** | `75` | `10` | `20` | **`+65`** | `24` | **`READ_ADDS_SIGNAL`** (`3.17x`: `95` vs `30`) |
+| **`P8` `Flock` (`p8-f-on` vs `p8-f-off`)** | `P_succ` (`3,847`) | **`top8_correct`** | `29` | `0` | `1` | **`+29`** | `24` | **`READ_ADDS_SIGNAL`** (`30.0x`: `30` vs `1`) |
+| **`P8` `Flock` (`p8-f-on` vs `p8-f-off`)** | Full / `P_succ` | `top1_correct` | `23` / `9` | `7` / `0` | `15` / `0` | `+16` / `+9` | `24` / `24` | `READ_INERT_AT_CHECKPOINT` (positive trend `38` vs `22`, `9` vs `0` below floor `24`) |
+| **`P8` `Flock` (`p8-f-on` vs `p8-f-off`)** | Full / `P_succ` | `target_admitted` | `237` / `77` | `225` / `68` | `190` / `50` | `+12` / `+9` | `43` / `25` | `READ_INERT_AT_CHECKPOINT` (`427` vs `415`, `127` vs `118`) |
+| **`A8` `Route` (`a8-r-on` vs `a8-r-off`)** | Full (`14,287`) | `target_admitted` | `349` | `5,419` | `399` | `-5,070` | `152` | `READ_HURTS_ADMISSION_OR_RANKING` (`748` vs `5,818`) |
+| **`A8` `Route` (`a8-r-on` vs `a8-r-off`)** | `P_succ` (`3,847`) | `target_admitted` | `207` | `1,442` | `201` | `-1,235` | `82` | `READ_HURTS_ADMISSION_OR_RANKING` (`408` vs `1,643`) |
+| **`A8` `Route` (`a8-r-on` vs `a8-r-off`)** | Full / `P_succ` | `top8_correct` | `73` / `33` | `449` / `165` | `1` / `1` | `-376` / `-132` | `46` / `29` | `READ_HURTS_ADMISSION_OR_RANKING` (`74` vs `450`, `34` vs `166`) |
+| **`A8` `Route` (`a8-r-on` vs `a8-r-off`)** | Full / `P_succ` | `top1_correct` | `0` / `0` | `22` / `0` | `0` / `0` | `-22` / `0` | `24` / `24` | `READ_INERT_AT_CHECKPOINT` (`0` vs `22`, `0` vs `0`) |
+| **`A8` `Route` (`a8-r-on` vs `a8-r-perm`)** | Full / `P_succ` | `target_admitted` | `355` / `171` | `181` / `102` | `393` / `237` | **`+174`** / **`+69`** | `47` / `34` | **`READ_ADDS_SIGNAL`** vs permuted (`748` vs `574`, `408` vs `339`), still `< R-Off` |
+| **`A8` `Route` (`a8-r-on` vs `a8-r-perm`)** | Full (`14,287`) | `top1` / `top8` | `0` / `41` | `1` / `45` | `0` / `33` | `-1` / `-4` | `24` / `24` | `READ_INERT_AT_CHECKPOINT` (`P_succ`: `0`/`24` vs `0`/`30`, `b-c = 0` / `-6`) |
+| **`P8` `Route` (`p8-r-on` vs `p8-r-off`)** | Full / `P_succ` | `target_admitted` | `250` / `76` | `402` / `110` | `13` / `8` | `-152` / `-34` | `52` / `28` | `READ_HURTS_ADMISSION_OR_RANKING` (`263` vs `415`, `84` vs `118`) |
+| **`P8` `Route` (`p8-r-on` vs `p8-r-off`)** | Full (`14,287`) | `top1` / `top8` | `3` / `25` | `22` / `30` | `0` / `0` | `-19` / `-5` | `24` / `24` | `READ_INERT_AT_CHECKPOINT` (`P_succ`: `0`/`7` vs `0`/`1`, `b-c = 0` / `+6`) |
+| **`P8` `Route` (`p8-r-on` vs `p8-r-perm`)** | Full (`14,287`) | `target_admitted` / `top1` / `top8` | `219` / `3` / `23` | `217` / `1` / `29` | `44` / `0` / `2` | `+2` / `+2` / `-6` | `42` / `24` / `24` | `READ_INERT_AT_CHECKPOINT` (`P_succ`: `b-c = +2` / `0` / `-3`, `F_I = 24`) |
+
+### 4.4 Mechanism Diagnosis & Architectural Conclusion
+
+1. **Why `Flock` (`ActiveLeafV1`) adds strong within-cell ranking signal (`READ_ADDS_SIGNAL` on `top1` and `top8`) while narrowing `A8` cell admission (`READ_HURTS_ADMISSION_OR_RANKING` on `target_admitted`):**
+   - Under `F-Off` / `R-Off` (`ZeroGatesV1` / `RouteBypassV1`), the read output is the unrouted last-position query vector $x_{\text{length}-1}$. Because `A8` (`address_structured_v1`) packs cell addresses by immediate predecessor co-occurrence ($x_{\text{length}-1} \to y$), pure $x_{\text{length}-1}$ achieves **`5,818 / 14,287` full DEV cell admission** (`1,643 / 3,847` on `P_succ`). However, without earlier context leaves, pure $x_{\text{length}-1}$ cannot break ties among the 16 tokens sharing an admitted cell on copy-successor rows: **`top1_hits_psucc` under `F-Off` is `0 / 3,847`** (`22 / 14,287` on full DEV).
+   - Turning `Flock` on (`ActiveLeafV1`, $u = x_{\text{length}-1} + m_0$) adds the snapped consensus of the $K=8$ nearest context leaves. On `1,896` boundary rows of `A8`, that perturbation shifts $u$ out of the predecessor-placed cell shortlist (`5,818 -> 4,244`, `b - c = -1,574`), yet inside the admitted cells it provides the context signal that breaks within-cell ties, lifting full-DEV `top1_correct` **`6.05x` from `22` to `133`** (`b - c = +111 > 24`, `READ_ADDS_SIGNAL`), `P_succ` `top1_correct` from **`0` to `62`** (`b - c = +62 > 24`, `READ_ADDS_SIGNAL`), and `top8_correct` on both `A8` (`+63` full, `+36` `P_succ`) and `P8` (`+65` full = `3.17x`, `+29` `P_succ` = `30.0x`, `READ_ADDS_SIGNAL`).
+2. **Why uncalibrated `Route` (`R-On`, `routes = 71cdce57…`) hurts admission (`READ_HURTS_ADMISSION_OR_RANKING`):**
+   - Unlike `Flock` (which adds context consensus to the query anchor $x_{\text{length}-1}$), `Route` replaces $x_{\text{length}-1}$ entirely with a single leaf `atom` transported along the ternary tree (`discrete.cu:75`). With uncalibrated checkpoint-0 `routes`, discarding the anchor $x_{\text{length}-1}$ collapses `A8` cell admission by `-5,070` rows (`5,818 -> 748`) and `top8_correct` by `-376` (`450 -> 74`), and on `P8` drops cell admission by `-152` rows (`415 -> 263`) while performing no better than the fixed-point-free group derangement `R-Perm` (`263` vs `261` admitted, `3` vs `1` top-1). Under D22 (`CHARTER.md` §4.1), this closes uncalibrated checkpoint-0 `Route` (`routes = 71cdce57…`), never the `route-read` mechanism.
+3. **Direct structural takeaway for M1 / M4:**
+   - Cell-shortlist admission on `A8` is best anchored on the unperturbed last-position carrier $x_{\text{length}-1}$ (`5,818 / 14,287` full, `1,643 / 3,847` `P_succ`), whereas within-cell token selection requires `Flock` context consensus (`133` vs `22` full top-1, `62` vs `0` `P_succ` top-1). Decoupling cell admission from `Flock` within-cell token ranking (`m4-flock-coupling-prereg`, `#2860`) or training with admission-anchor preservation (`#2831`, `#2836`) directly targets this split.

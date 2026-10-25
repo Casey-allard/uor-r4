@@ -2,16 +2,17 @@
 # Read-off vs read-on paired evaluation battery (zero updates, #2885).
 # Sheet: docs/harness/prep/r-read-off-vs-read-on-DRAFT-2026-10-23.md
 # Ten arms: {a8, p8} x {r-on, r-off, r-perm, f-on, f-off} at checkpoint 0.
-# No training, no apply, no owner phrase. Requires non-author FIT + Casey chat GO before pod execution.
+# No training, no apply, no owner phrase. Cleared by non-author FIT + D68 + D67 pre-run review.
 set -u
 SRC=$(ls -d /root/build/src-* | head -1)
 export CARGO_TARGET_DIR=/root/build/target-sm120 UOR_NVCC_ARCH=compute_120 PATH=/root/.cargo/bin:/usr/local/cuda/bin:$PATH
 B=$CARGO_TARGET_DIR/release
 D=/workspace/uor-r4/local/driver/data
 EV=$SRC/docs/labs/r-read-off-vs-read-on/evidence
-R=/workspace/uor-r4/runs/antigravity/r-read-off-vs-read-on-20261023
+R=${R_OUT:-/workspace/uor-r4/runs/antigravity/r-read-off-vs-read-on-20261025-r2}
 PZ=$D/injective/prime-zeta-v4096-b4-c192-k8.json
 A8T=$D/address-cells/address-structured-v1.json
+PZ_SPEC=$SRC/docs/labs/r-prime-zeta-vs-nulls/evidence/spec-v4096-b4-c192-k8.json
 mark() { echo "## $(date -u +%FT%TZ) $*"; }
 mkdir -p "$(dirname "$R")"
 mkdir "$R" || { echo "results dir not created exclusively: FAIL"; exit 1; }
@@ -23,13 +24,17 @@ cargo build -q --release --locked -p uor-r4-discrete --features cuda 2>&1 | grep
 "$B/discrete-stack" build-identity > "$R/build-identity.json" 2>&1; echo "build_identity_rc=$?"
 
 mark "G-Qual: CUDA device test route_read_off_and_permuted_controls_run_and_refuse"
-cargo test -q --release --locked -p uor-r4-discrete --features cuda --lib route_read_off_and_permuted_controls_run_and_refuse -- --ignored --exact > "$R/g-qual-device-test.stdout" 2>&1
+cargo test -q --release --locked -p uor-r4-discrete --features cuda --lib device::unit_snap_device_tests::route_read_off_and_permuted_controls_run_and_refuse -- --ignored --exact > "$R/g-qual-device-test.stdout" 2>&1
 rc=$?; echo "g_qual_rc=$rc"
-[ $rc -eq 0 ] && echo "G_QUAL: PASS" || { echo "G_QUAL: FAIL"; cat "$R/g-qual-device-test.stdout"; exit 2; }
+[ $rc -eq 0 ] && grep -q '1 passed; 0 failed' "$R/g-qual-device-test.stdout" && echo "G_QUAL: PASS" || { echo "G_QUAL: FAIL"; cat "$R/g-qual-device-test.stdout"; exit 2; }
 
-mark "verify or rebuild A8 table from TRAIN if missing"
+mark "verify or rebuild P8 and A8 tables if missing"
+mkdir -p "$D/injective" "$D/address-cells" "$R/tables"
+if [ ! -e "$PZ" ]; then
+  "$B/prime-zeta-codebook" "$PZ_SPEC" 0 "$R/tables/p8-rebuilt.json" "prime_zeta" > "$R/tables/p8.stdout" 2> "$R/tables/p8.stderr"
+  cp "$R/tables/p8-rebuilt.json" "$PZ"
+fi
 if [ ! -e "$A8T" ]; then
-  mkdir -p "$D/address-cells" "$R/tables"
   "$B/address-cells-codebook" "$EV/p8-f-on.json" "$R/tables/a8-rebuilt.json" structured > "$R/tables/a8.stdout" 2> "$R/tables/a8.stderr"
   cp "$R/tables/a8-rebuilt.json" "$A8T"
 fi
@@ -61,10 +66,10 @@ done
 mark "G-Repro: verify a8-f-on (4244/1351/133) and p8-f-on (427/127/38)"
 a8_full=$(jq -r '.b3.full.target_admitted' "$R/a8-f-on/b3/report.json")
 a8_psucc=$(jq -r '.b3.psucc.target_admitted' "$R/a8-f-on/b3/report.json")
-a8_top1=$(jq -r '.aggregate.top1_hits' "$R/a8-f-on/eval/report.json")
+a8_top1=$(jq -r '.aggregate.top1_correct' "$R/a8-f-on/eval/report.json")
 p8_full=$(jq -r '.b3.full.target_admitted' "$R/p8-f-on/b3/report.json")
 p8_psucc=$(jq -r '.b3.psucc.target_admitted' "$R/p8-f-on/b3/report.json")
-p8_top1=$(jq -r '.aggregate.top1_hits' "$R/p8-f-on/eval/report.json")
+p8_top1=$(jq -r '.aggregate.top1_correct' "$R/p8-f-on/eval/report.json")
 echo "a8-f-on=$a8_full/$a8_psucc/$a8_top1 p8-f-on=$p8_full/$p8_psucc/$p8_top1"
 [ "$a8_full" = 4244 ] && [ "$a8_psucc" = 1351 ] && [ "$a8_top1" = 133 ] && [ "$p8_full" = 427 ] && [ "$p8_psucc" = 127 ] && [ "$p8_top1" = 38 ] \
   && echo "G_REPRO: PASS" || { echo "G_REPRO: FAIL"; exit 8; }

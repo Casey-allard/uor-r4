@@ -3,7 +3,7 @@ id: r-read-off-vs-read-on
 title: Compare read-off and read-on for Route and Flock on checkpoints
 milestone: research
 area: evaluation
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: []

@@ -49,7 +49,7 @@ Let $\text{top1}_{\text{int}}^{(a,s)}$, $\text{top8}_{\text{int}}^{(a,s)}$, and 
   - `ft/dev/response_mask.u8`: SHA-256 `a838bb1a67e96572cb10a86b5a3587dda25f0190eaf85133026e04c281afb078` (`42,856` B, `14,287` eligible response targets).
   - `tokenizer.json`: SHA-256 `d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89` (`vocab_size = 4096`, `<|bos|> = 0`).
 
-## 6. Cost and run bounds
+## 6. Cost, stop, and run bounds
 
 - **Cost:** 1 leased `uor-pod` RTX 5090 instance (`--count 1 --gpu 5090`) inside the global `<= 4` pods and `<= $8.00/h` cap (`CHARTER.md` §5.4), `8` runs (`4` arms $\times$ `2` seeds $\times$ `256` steps) + `14,287`-row float and integer DEV evaluations replicated across two independent `nvcc` builds, `<= 25` minutes total wall time, target `~$0.60` (`<= $1.20` hard stop).
 - **Stop rule:** Stop immediately if `I-Finite-CUDA`, `I-DEV-Denominator`, `I-Icosian-Closure`, or `I-Q12-Int-Parity` fails, or if projected wall time exceeds `45` minutes.
@@ -60,3 +60,5 @@ Let $\text{top1}_{\text{int}}^{(a,s)}$, $\text{top8}_{\text{int}}^{(a,s)}$, and 
 - **Reviewer:** Fresh-context `research` subagent (`f9fe6674-84f8-4c79-895b-d07cfbe8c4b3`, non-author context reading only `CHARTER.md`, `PLAN.md`, `#2824`, `docs/mechanisms/hamilton-gate.md`, `#2879`, `#2886`, this sheet, and `src/hamilton_sheet.rs` at `a4b77ad5e`).
 - **Verdict:** **`TEST FITNESS: FIT`** | **`D68 DECISION REVIEW: APPROVE`** | **`D67 PRE-RUN REVIEW: APPROVE`**.
 - **Summary of review:** (1) Directly answers `#2824`'s done-when across all `14,287` eligible DEV response positions (`400` documents) in both continuous `f32` and 120-icosian + Q12 `i32` integer export mode; (2) defines `Hamilton_Active`, `Hamilton_IcosianHard`, `IdentityGate_Control`, `RandomGate_Null`, and `TrainUnigram_CountTable` (`1,226 / 14,287` top-1, `4,060 / 14,287` top-8) across 2 seeds (`1, 2`) with zero softmax/squashing/matmul (`CHARTER.md` §3.1–§3.3); (3) checks `I-Finite-CUDA`, `I-DEV-Denominator`, `I-Icosian-Closure`, and `I-Q12-Int-Parity` before any mechanism verdict (`CHARTER.md` §4.2); (4) enforces `CHARTER.md` §3.7 (export gap within the two-seed noise band) and §4.1 (any negative closes only the 256-step configuration, never the mechanism); and (5) passes all five D67 pre-run criteria inside the global GPU caps (`1x RTX 5090`, `<= 4` pods, `<= $8.00/h`).
+
+TEST FITNESS: FIT - research #2824 hamilton-gate-offline-float-sheet
