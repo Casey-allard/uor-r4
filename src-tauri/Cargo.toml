@@ -18,6 +18,10 @@ path = "src/lib.rs"
 name = "uor-desktop-client"
 path = "src/main.rs"
 
+[features]
+default = []
+gui = ["dep:tauri", "dep:tauri-build"]
+
 [dependencies]
 uor-r4-integer = { path = "../crates/uor-r4-integer", features = ["serving-wasm"] }
 uor-r4-object-store = { path = "../crates/uor-r4-object-store" }
@@ -25,6 +29,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10.8"
 hex = "0.4.3"
+tauri = { version = "2", optional = true }
+
+[build-dependencies]
+tauri-build = { version = "2", optional = true }
 
 [patch.crates-io]
 arrayref = { path = "../third_party/arrayref" }

@@ -142,6 +142,16 @@ fn main() {
         eprintln!("grant error: {err}");
         std::process::exit(1);
     }
+
+    #[cfg(feature = "gui")]
+    if !args.iter().any(|a| a == "--stdio") {
+        if let Err(err) = uor_r4_desktop_client::tauri_gui::run_tauri_gui(backend) {
+            eprintln!("tauri gui error: {err}");
+            std::process::exit(1);
+        }
+        return;
+    }
+
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     for line in stdin.lock().lines() {

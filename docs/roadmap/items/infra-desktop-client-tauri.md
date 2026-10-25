@@ -3,7 +3,7 @@ id: infra-desktop-client-tauri
 title: Build the Tauri desktop client against the synthetic stand-in
 milestone: infra
 area: serving
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: [m7-studio-connect-wasm-engine]

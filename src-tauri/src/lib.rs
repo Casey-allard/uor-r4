@@ -1908,3 +1908,335 @@ pub fn handle_studio_http_request(
     };
     (200, content_type, bytes)
 }
+
+/// Native Tauri v2 WebView shell (`--features gui`) wiring `#[tauri::command]` handlers and
+/// `tauri::Builder` over [`DesktopBackend`].
+#[cfg(feature = "gui")]
+pub mod tauri_gui {
+    use std::sync::{Arc, Mutex};
+    use serde_json::{json, Value};
+    use super::{dispatch_rpc_command, DesktopBackend};
+
+    /// Thread-safe managed state holding [`DesktopBackend`] inside a Tauri v2 application.
+    #[derive(Clone)]
+    pub struct TauriDesktopState {
+        inner: Arc<Mutex<DesktopBackend>>,
+    }
+
+    impl TauriDesktopState {
+        pub fn new(backend: DesktopBackend) -> Self {
+            Self {
+                inner: Arc::new(Mutex::new(backend)),
+            }
+        }
+
+        pub fn with_backend<T>(
+            &self,
+            f: impl FnOnce(&mut DesktopBackend) -> Result<T, String>,
+        ) -> Result<T, String> {
+            let mut guard = self
+                .inner
+                .lock()
+                .map_err(|_| "DesktopBackend mutex poisoned".to_string())?;
+            f(&mut guard)
+        }
+    }
+
+    /// Test helper that dispatches a command name and JSON payload through [`TauriDesktopState`].
+    pub fn invoke_tauri_command_for_test(
+        state: &TauriDesktopState,
+        cmd: &str,
+        args: Value,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| dispatch_rpc_command(b, cmd, &args))
+    }
+
+    #[tauri::command]
+    pub fn native_list_local_models(
+        state: tauri::State<'_, TauriDesktopState>,
+        model_dir: Option<String>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_list_local_models",
+                &json!({ "modelDir": model_dir }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_load_synthetic_standin(
+        state: tauri::State<'_, TauriDesktopState>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| dispatch_rpc_command(b, "native_load_synthetic_standin", &json!({})))
+    }
+
+    #[tauri::command]
+    pub fn native_load_model(
+        state: tauri::State<'_, TauriDesktopState>,
+        file_path: Option<String>,
+        bytes: Option<Vec<u8>>,
+        file_name: Option<String>,
+        expected_sha256: Option<String>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_load_model",
+                &json!({
+                    "filePath": file_path,
+                    "bytes": bytes,
+                    "fileName": file_name,
+                    "expectedSha256": expected_sha256,
+                }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_step_tokens(
+        state: tauri::State<'_, TauriDesktopState>,
+        conversation_id: Option<String>,
+        token_ids: Option<Vec<u32>>,
+        max_new_tokens: Option<usize>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_step_tokens",
+                &json!({
+                    "conversationId": conversation_id,
+                    "tokenIds": token_ids,
+                    "maxNewTokens": max_new_tokens,
+                }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_generate_prompt(
+        state: tauri::State<'_, TauriDesktopState>,
+        conversation_id: Option<String>,
+        prompt_text: String,
+        max_new_tokens: Option<usize>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_generate_prompt",
+                &json!({
+                    "conversationId": conversation_id,
+                    "promptText": prompt_text,
+                    "maxNewTokens": max_new_tokens,
+                }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_export_session(
+        state: tauri::State<'_, TauriDesktopState>,
+        conversation_id: Option<String>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_export_session",
+                &json!({ "conversationId": conversation_id }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_import_session(
+        state: tauri::State<'_, TauriDesktopState>,
+        conversation_id: String,
+        bytes: Vec<u8>,
+        last_token: Option<u32>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_import_session",
+                &json!({
+                    "conversationId": conversation_id,
+                    "bytes": bytes,
+                    "lastToken": last_token,
+                }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_reset_session(
+        state: tauri::State<'_, TauriDesktopState>,
+        conversation_id: Option<String>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_reset_session",
+                &json!({ "conversationId": conversation_id }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_save_session_durable(
+        state: tauri::State<'_, TauriDesktopState>,
+        user_id: Option<String>,
+        project_id: Option<String>,
+        conversation_id: Option<String>,
+        store_dir: Option<String>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_save_session_durable",
+                &json!({
+                    "userId": user_id,
+                    "projectId": project_id,
+                    "conversationId": conversation_id,
+                    "storeDir": store_dir,
+                }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_restore_session_durable(
+        state: tauri::State<'_, TauriDesktopState>,
+        user_id: Option<String>,
+        project_id: Option<String>,
+        conversation_id: Option<String>,
+        store_dir: Option<String>,
+        manifest_bytes: Option<Vec<u8>>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_restore_session_durable",
+                &json!({
+                    "userId": user_id,
+                    "projectId": project_id,
+                    "conversationId": conversation_id,
+                    "storeDir": store_dir,
+                    "manifestBytes": manifest_bytes,
+                }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_list_granted_folders(
+        state: tauri::State<'_, TauriDesktopState>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| dispatch_rpc_command(b, "native_list_granted_folders", &json!({})))
+    }
+
+    #[tauri::command]
+    pub fn native_read_file(
+        state: tauri::State<'_, TauriDesktopState>,
+        file_path: String,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(b, "native_read_file", &json!({ "filePath": file_path }))
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_write_file(
+        state: tauri::State<'_, TauriDesktopState>,
+        file_path: String,
+        content: String,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_write_file",
+                &json!({ "filePath": file_path, "content": content }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_list_directory(
+        state: tauri::State<'_, TauriDesktopState>,
+        folder_path: String,
+        max_depth: Option<usize>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_list_directory",
+                &json!({ "folderPath": folder_path, "maxDepth": max_depth }),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_git_status(
+        state: tauri::State<'_, TauriDesktopState>,
+        repo_path: String,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(b, "native_git_status", &json!({ "repoPath": repo_path }))
+        })
+    }
+
+    #[tauri::command]
+    pub fn native_run_terminal_command(
+        state: tauri::State<'_, TauriDesktopState>,
+        cwd: String,
+        command: String,
+        user_confirmed: Option<bool>,
+        confirmed_command: Option<String>,
+    ) -> Result<Value, String> {
+        state.with_backend(|b| {
+            dispatch_rpc_command(
+                b,
+                "native_run_terminal_command",
+                &json!({
+                    "cwd": cwd,
+                    "command": command,
+                    "userConfirmed": user_confirmed,
+                    "confirmedCommand": confirmed_command,
+                }),
+            )
+        })
+    }
+
+    /// Construct the configured [`tauri::Builder`] with managed [`TauriDesktopState`] and all
+    /// 16 `native_*` `#[tauri::command]` handlers registered.
+    pub fn build_tauri_app_builder(state: TauriDesktopState) -> tauri::Builder<tauri::Wry> {
+        tauri::Builder::default()
+            .manage(state)
+            .invoke_handler(tauri::generate_handler![
+                native_list_local_models,
+                native_load_synthetic_standin,
+                native_load_model,
+                native_step_tokens,
+                native_generate_prompt,
+                native_export_session,
+                native_import_session,
+                native_reset_session,
+                native_save_session_durable,
+                native_restore_session_durable,
+                native_list_granted_folders,
+                native_read_file,
+                native_write_file,
+                native_list_directory,
+                native_git_status,
+                native_run_terminal_command,
+            ])
+    }
+
+    /// Launch the native Tauri v2 desktop window wrapping `web/studio/`.
+    pub fn run_tauri_gui(backend: DesktopBackend) -> Result<(), String> {
+        let state = TauriDesktopState::new(backend);
+        build_tauri_app_builder(state)
+            .run(tauri::generate_context!())
+            .map_err(|e| e.to_string())
+    }
+}

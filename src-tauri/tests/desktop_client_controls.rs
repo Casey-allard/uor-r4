@@ -597,3 +597,65 @@ fn rpc_and_loopback_http_studio_host_serve_commands_and_static_assets() {
     assert_eq!(parsed["ok"], json!(true));
     assert_eq!(parsed["result"]["artifact_bytes"], json!(469_252));
 }
+
+#[cfg(feature = "gui")]
+#[test]
+fn tauri_gui_command_wrappers_and_builder_dispatch_through_shared_state() {
+    use uor_r4_desktop_client::tauri_gui::{
+        build_tauri_app_builder, invoke_tauri_command_for_test, TauriDesktopState,
+    };
+
+    let root = unique_temp_dir("tauri-gui-state");
+    let granted_dir = root.join("workspace");
+    fs::create_dir_all(&granted_dir).expect("create granted workspace");
+    let sample_file = granted_dir.join("note.txt");
+    fs::write(&sample_file, "tauri-v2-native-check\n").expect("write note.txt");
+
+    let mut backend = DesktopBackend::new(PinRegistry::with_synthetic_standin());
+    backend
+        .native_grant_folder(&granted_dir)
+        .expect("grant folder");
+    let state = TauriDesktopState::new(backend);
+
+    // 1. Verify Tauri Builder constructs cleanly with managed state and all registered #[tauri::command] handlers:
+    let _builder = build_tauri_app_builder(state.clone());
+
+    // 2. Load synthetic stand-in via #[tauri::command] wrapper:
+    let caps = invoke_tauri_command_for_test(
+        &state,
+        "native_load_synthetic_standin",
+        json!({}),
+    )
+    .expect("native_load_synthetic_standin via tauri_gui");
+    assert_eq!(caps["artifact_bytes"], json!(469_252));
+    assert_eq!(
+        caps["artifact_sha256"],
+        json!("d60f88d6e08ac60763b35484307f9425f702b9fead4615dd8cbe5fdbbced92df")
+    );
+
+    // 3. Step 4 tokens via #[tauri::command] wrapper:
+    let stepped = invoke_tauri_command_for_test(
+        &state,
+        "native_step_tokens",
+        json!({
+            "conversationId": "gui-test",
+            "tokenIds": [0],
+            "maxNewTokens": 4
+        }),
+    )
+    .expect("native_step_tokens via tauri_gui");
+    assert_eq!(stepped["receipt"]["token_ids"], json!([38, 9, 33, 8]));
+
+    // 4. Scoped file read via #[tauri::command] wrapper:
+    let read_out = invoke_tauri_command_for_test(
+        &state,
+        "native_read_file",
+        json!({
+            "filePath": sample_file.to_string_lossy()
+        }),
+    )
+    .expect("native_read_file via tauri_gui");
+    assert_eq!(read_out, json!("tauri-v2-native-check\n"));
+
+    let _ = fs::remove_dir_all(&root);
+}
