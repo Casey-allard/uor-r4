@@ -16,6 +16,13 @@ M2 is the first simple conversation: at least 256 of 512 saved questions and at 
 
 ## What is missing
 
+**State on 25 Oct 2026 (claude-99, #3196).** The question below is answered, and the D37 sheet is written. The D37 route waits on other items; the discrete-law route is open inside this one.
+- **The owner's answer** (24 Oct, #2028 comment `6379430093`): "I want both because we do not know which we will ultimately need." The D37-basis sheet `docs/harness/prep/m2-pin-train-mask-sheet-2026-10-23.md` is the successor to the Amendment 6 record, and a discrete-law rung-0 sheet is also wanted. That second sheet is this item's other route to its done-when, and it is not yet written.
+- **The sheet** pins the mask, the count and both source SHAs, re-verified on 25 Oct at `53b40ecd6`. It also registers the export-gap statistic and band (line 29). Its FIT is `NOT_FIT` (`antigravity-33`) until the separate D29-scanned float module and the D11 float-trunk exporter exist and are wired into its steps, and until its fresh-transfer slice is sealed.
+- **Two routes to the done-when, as the owner wants both.** The D37 sheet's FIT waits on `float-training-module` (#2823) and `d11-exporter-float-trunk` (#2820). The discrete-law route needs neither: it carries the mask checksum, the count and the source into a discrete-law sheet with its own non-author FIT. It does not gate the discrete M2 route (`m2-train-grounded-replies`) behind the float path.
+
+The text below is the item as first written.
+
 The record of the count reference (`archive/labs/count-reference-2026-10-13/README.md`) and the `next` text in `docs/harness/milestones.json` still say the physical sheet verdict is PENDING until the sheet adds four pins: the mechanical TRAIN-mask path and checksum, the expected count, the CLI, and the new source. **That text is stale on the pins.** Amendment 6 of the sheet (`docs/harness/prep/m1-rank-margin-rung0-2026-10-13.md`, commit `be5d8cd6e`, #2330) added them and restored the verdict to `TEST FITNESS: FIT` (independent Claude review, `#2029` comment 6146716704, at `9e904a834` plus Amendments 5 and 6). The sheet pins:
 
 - mask member `mw-balp/train/response_mask.u8` (7,512,797 bytes, SHA-256 `b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3`), taken from the parent archive `data/ft-balp.tar`;

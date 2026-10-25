@@ -73,6 +73,7 @@ geometric-stack train arch=geometric pattern=rrrrrr width=256 heads=4 stack_mlp=
 - count-reference implementation frozen at `2fd6358bbc52d2a202a872ad0954ebb12894606f` (11 finite controls: 9 metadata + 2 CUDA).
 - protected PR [#2328](https://github.com/UOR-Foundation/uor-r4/pull/2328) merge commit `9e904a83448c451f738d5c1d45224dfdf73eb84e` (count-predictor scope fix; the CLI counts response-masked TRAIN targets).
 - `9e904a83448c451f738d5c1d45224dfdf73eb84e` is an ancestor of the current `main`.
+- **Re-verified 25 Oct 2026 (claude-99) at `53b40ecd6`:** `mw-balp/train/response_mask.u8`, extracted from the HF store's `data/ft-balp.tar` (sha256 `b1d2211377a2e99d5977cc95d46875027023b08867488b1372185b3f62a1473f`), is `7,512,797` bytes with sha256 `b5e7352d67d6883a833155a5fd397a03f6d4f1b2649e3d4ec3e2ea7d95b949e3`. `9e904a83448c451f738d5c1d45224dfdf73eb84e` is an ancestor of `main`. The count reference `crates/uor-r4-training/examples/geometric-stack/native_rung0.rs` is byte-identical between `2fd6358bb` and `main`; the `geometric-stack` trainer around it has changed, so the CLI line is re-checked when the float module wires it in. This was a host check only: no build, no training.
 - `2fd6358bbc52d2a202a872ad0954ebb12894606f` is the frozen source commit whose change landed squashed in `9e904a834` (PR #2328); the commit object exists and is referenced by the retained count-reference archive, but it is **not** an ancestor of `main` itself, so a fresh checkout must use the merge commit for the landed source.
 
 ## TEST FITNESS line
