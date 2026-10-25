@@ -190,13 +190,13 @@ fn shared_files_pass_scope_beside_the_items_own_files() {
 }
 
 #[test]
-fn a_file_neither_shared_nor_in_scope_still_fails_scope() {
+fn a_file_neither_shared_nor_in_scope_still_warns_scope() {
     let r = Repo::new(&[("watch", Some(WATCH))]);
     let mut files = PR_FILES.to_vec();
     files.push("crates/uor-r4-harness/src/looparrive.rs");
     let o = r.pr_check(&r.pr("watch", &files));
     let out = stdout(&o);
-    assert!(scope_line(&o).starts_with("FAIL scope"), "{out}");
+    assert!(scope_line(&o).starts_with("WARN scope"), "{out}");
     assert!(
         out.contains("crates/uor-r4-harness/src/looparrive.rs is outside item watch's scope"),
         "{out}"
@@ -206,11 +206,11 @@ fn a_file_neither_shared_nor_in_scope_still_fails_scope() {
 }
 
 #[test]
-fn an_item_without_scope_still_fails_scope() {
+fn an_item_without_scope_still_warns_scope() {
     let r = Repo::new(&[("noscope", None)]);
     let o = r.pr_check(&r.pr("noscope", &["crates/uor-r4-harness/src/lib.rs"]));
     let out = stdout(&o);
-    assert!(scope_line(&o).starts_with("FAIL scope"), "{out}");
+    assert!(scope_line(&o).starts_with("WARN scope"), "{out}");
     assert!(out.contains("has no scope: at the base"), "{out}");
 }
 

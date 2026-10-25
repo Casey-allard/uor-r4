@@ -1599,10 +1599,17 @@ fn rule_banned_presence(pr: &Pr) -> RuleResult {
     for change in &pr.changes {
         let old = change.paths.first().map(String::as_str).unwrap_or("");
         let new = change.paths.last().map(String::as_str).unwrap_or("");
-        if change.status == 'A' || change.status == 'D' || !is_banned_source(new) {
+        if change.status == 'D' || !is_banned_source(new) {
             continue;
         }
-        let (Some(base), Some(head)) = (pr.at_base(old), pr.at_head(new)) else {
+        // An added file has no base, so every banned site it compiles is new (D76: the hard
+        // rules must see new files, not only edits).
+        let base = if change.status == 'A' {
+            Some(String::new())
+        } else {
+            pr.at_base(old)
+        };
+        let (Some(base), Some(head)) = (base, pr.at_head(new)) else {
             continue;
         };
         let mut was = banned_counts(&base, new);
@@ -2946,13 +2953,30 @@ fn default_head_ref(root: &Path, head: &str) -> String {
         .unwrap_or_default()
 }
 
-/// Every rule in [`RULES`] run against `pr`, in order; `loop queue` runs the same list.
+/// Rules whose findings print as WARN and never fail a PR (D76): they keep records tidy but
+/// guard neither a §3 constraint nor the review. `order`, `banned-presence`, `report`,
+/// `owner-paths`, `review-record` and `required-checks` stay hard.
+pub const ADVISORY: &[&str] = &[
+    "scope",
+    "commit-order",
+    "rule-sources",
+    "rendered-lock",
+    "read-path",
+    "filemap",
+];
+
+/// Every rule in [`RULES`] run against `pr`, in order; `loop queue` runs the same list. A FAIL
+/// from an [`ADVISORY`] rule comes back as WARN, its summary marked advisory.
 pub fn evaluate(pr: &Pr) -> Vec<RuleResult> {
     RULES
         .iter()
         .map(|(name, rule)| {
-            let r = rule(pr);
+            let mut r = rule(pr);
             debug_assert_eq!(&r.rule, name);
+            if r.verdict == Verdict::Fail && ADVISORY.contains(name) {
+                r.verdict = Verdict::Warn;
+                r.summary = format!("advisory (D76): {}", r.summary);
+            }
             r
         })
         .collect()

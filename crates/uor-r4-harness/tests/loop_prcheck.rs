@@ -491,8 +491,8 @@ fn commit_order_needs_the_order_commit_first_and_alone() {
     ]);
     expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL commit-order",
+        0,
+        "WARN commit-order",
         "changes crates/a/src/lib.rs before the commit that adds",
     );
 
@@ -503,8 +503,8 @@ fn commit_order_needs_the_order_commit_first_and_alone() {
     })]);
     expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL commit-order",
+        0,
+        "WARN commit-order",
         "also changes crates/a/x.rs, outside docs/loop/tasks/item-a/claude-1/",
     );
 }
@@ -526,7 +526,7 @@ fn commit_order_skips_a_merge_of_main_after_the_order_commit() {
 }
 
 #[test]
-fn commit_order_fails_an_evil_merge_before_the_order_commit() {
+fn commit_order_warns_on_an_evil_merge_before_the_order_commit() {
     let r = Repo::new();
     // E: an empty commit on the base.
     let e = r.commits(vec![Box::new(|_: &Repo| {})]);
@@ -547,14 +547,14 @@ fn commit_order_fails_an_evil_merge_before_the_order_commit() {
     let h = r.out(&["rev-parse", "HEAD"]);
     expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL commit-order",
+        0,
+        "WARN commit-order",
         "is a merge before the commit that adds docs/loop/tasks/item-a/claude-1/ORDER.md",
     );
 }
 
 #[test]
-fn commit_order_fails_an_order_re_pointed_after_its_commit() {
+fn commit_order_warns_on_an_order_re_pointed_after_its_commit() {
     let r = Repo::new();
     let h = r.green_a(|r| {
         r.write(
@@ -564,8 +564,8 @@ fn commit_order_fails_an_order_re_pointed_after_its_commit() {
     });
     expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL commit-order",
+        0,
+        "WARN commit-order",
         "`Item:` at the head differs from the ORDER as",
     );
     // Other ORDER edits after its commit stay allowed.
@@ -609,7 +609,7 @@ fn scope_sees_a_submodule_a_config_would_hide() {
     expect(
         &r.check(&h, &[]),
         1,
-        "FAIL scope",
+        "WARN scope",
         "sub is outside item item-a's scope",
     );
 }
@@ -839,7 +839,7 @@ fn order_fails_for_each_broken_condition() {
 }
 
 #[test]
-fn an_out_of_scope_change_fails_scope() {
+fn an_out_of_scope_change_warns_scope() {
     let r = Repo::new();
     let h = r.head(|r| {
         r.order_a();
@@ -848,13 +848,30 @@ fn an_out_of_scope_change_fails_scope() {
     expect(
         &r.check(&h, &[]),
         1,
-        "FAIL scope",
+        "WARN scope",
         "crates/b/x.rs is outside item item-a's scope",
     );
 }
 
+/// D76: an otherwise green PR with an out-of-scope file passes, and the scope finding still
+/// prints. Reverting the advisory demotion in `evaluate` turns this exit 0 into exit 1.
 #[test]
-fn scope_refuses_a_scopeless_item_a_crossing_glob_and_a_rename_out() {
+fn an_out_of_scope_change_warns_but_passes_d76() {
+    let r = Repo::new();
+    let h = r.green_a(|r| r.write("crates/b/x.rs", "\n"));
+    let o = r.check(&h, &[]);
+    expect(
+        &o,
+        0,
+        "WARN scope",
+        "crates/b/x.rs is outside item item-a's scope",
+    );
+    assert!(stdout(&o).contains("advisory (D76)"), "{}", stdout(&o));
+    assert!(stdout(&o).contains("verdict: PASS"), "{}", stdout(&o));
+}
+
+#[test]
+fn scope_warns_on_a_scopeless_item_a_crossing_glob_and_a_rename_out() {
     let r = Repo::new();
     let h = r.head(|r| {
         r.write(
@@ -865,7 +882,7 @@ fn scope_refuses_a_scopeless_item_a_crossing_glob_and_a_rename_out() {
     expect(
         &r.check(&h, &[]),
         1,
-        "FAIL scope",
+        "WARN scope",
         "item item-noscope has no scope: at the base",
     );
 
@@ -876,7 +893,7 @@ fn scope_refuses_a_scopeless_item_a_crossing_glob_and_a_rename_out() {
     expect(
         &r.check(&h, &[]),
         1,
-        "FAIL scope",
+        "WARN scope",
         "crates/ab/x.rs is outside",
     );
 
@@ -887,7 +904,7 @@ fn scope_refuses_a_scopeless_item_a_crossing_glob_and_a_rename_out() {
         r.git(&["mv", "crates/a/src/lib.rs", "crates/b/lib.rs"]);
     });
     let o = r.check(&h, &[]);
-    expect(&o, 1, "FAIL scope", "crates/b/lib.rs is outside");
+    expect(&o, 1, "WARN scope", "crates/b/lib.rs is outside");
     assert!(!stdout(&o).contains("crates/a/src/lib.rs is outside"));
 }
 
@@ -1020,7 +1037,7 @@ fn scope_always_allows_status_notebook_append_mistakes_and_filemap_rows() {
             r.order_a();
             edit(r);
         });
-        expect(&r.check(&h, &[]), 1, "FAIL scope", why);
+        expect(&r.check(&h, &[]), 1, "WARN scope", why);
     }
 }
 
@@ -1119,7 +1136,7 @@ fn a_bad_rev_exits_2_and_json_carries_the_verdict() {
 /// `rule-sources`: rule files and rule headings outside the base list fail; listed files and the
 /// exempt folders pass, and a PR cannot list its own new file.
 #[test]
-fn rule_sources_refuses_rules_outside_the_list() {
+fn rule_sources_warns_on_rules_outside_the_list() {
     let r = Repo::new();
     r.git(&["checkout", "-q", "--detach", &r.base]);
     r.write(
@@ -1144,14 +1161,14 @@ fn rule_sources_refuses_rules_outside_the_list() {
     expect(
         &o,
         1,
-        "FAIL rule-sources",
+        "WARN rule-sources",
         "docs/team/house-rules.md adds a rule-named file",
     );
     let o = on(Box::new(|r| r.write("docs/a.md", "# a\n\n## Team rules\n")));
     expect(
         &o,
         1,
-        "FAIL rule-sources",
+        "WARN rule-sources",
         "adds the rule heading `## Team rules`",
     );
     let o = on(Box::new(|r| {
@@ -1175,7 +1192,7 @@ fn rule_sources_refuses_rules_outside_the_list() {
     expect(
         &o,
         1,
-        "FAIL rule-sources",
+        "WARN rule-sources",
         "docs/team/house-rules.md adds a rule-named file",
     );
     for (text, heading) in [
@@ -1188,13 +1205,13 @@ fn rule_sources_refuses_rules_outside_the_list() {
     ] {
         let o = on(Box::new(move |r| r.write("docs/a.md", text)));
         let want = format!("adds the rule heading {heading}");
-        expect(&o, 1, "FAIL rule-sources", &want);
+        expect(&o, 1, "WARN rule-sources", &want);
     }
     let o = on(Box::new(|r| r.write("docs/x/HOUSE-RULES.MD", "x\n")));
     expect(
         &o,
         1,
-        "FAIL rule-sources",
+        "WARN rule-sources",
         "docs/x/HOUSE-RULES.MD adds a rule-named file",
     );
     // Moving a listed file's rule text to an unlisted path states it outside the list.
@@ -1204,7 +1221,7 @@ fn rule_sources_refuses_rules_outside_the_list() {
     expect(
         &o,
         1,
-        "FAIL rule-sources",
+        "WARN rule-sources",
         "docs/notes.md adds the rule heading `## Rules`",
     );
 }
@@ -1240,7 +1257,7 @@ fn rendered_lock_holds_the_views_to_kimi_render() {
     expect(
         &r.check_against(&base, &h, &[]),
         1,
-        "FAIL rendered-lock",
+        "WARN rendered-lock",
         "STATE.md changed",
     );
     let o = r.check_against(&base, &h, &["--head-ref", "kimi/render"]);
@@ -1258,7 +1275,7 @@ fn rendered_lock_holds_the_views_to_kimi_render() {
     expect(
         &r.check_against(&base, &h, &[]),
         1,
-        "FAIL rendered-lock",
+        "WARN rendered-lock",
         "AGENTS.md (lessons-top-ten markers) changed",
     );
 }
@@ -1297,7 +1314,7 @@ fn rendered_lock_passes_the_views_first_commit_only() {
     expect(
         &r.check_against(&r.base.clone(), &h, &[]),
         1,
-        "FAIL rendered-lock",
+        "WARN rendered-lock",
         "HANDOFF.md changed",
     );
 }
@@ -1305,7 +1322,7 @@ fn rendered_lock_passes_the_views_first_commit_only() {
 /// `read-path`: every over-budget item fails, grown or not, and so does a whole path above the
 /// 76,800 B line (the former warnings, raised to errors in loop PR 11).
 #[test]
-fn read_path_fails_every_over_budget_item_and_the_warning_line() {
+fn read_path_warns_on_every_over_budget_item_and_the_warning_line() {
     let lines = |n: usize| "x\n".repeat(n);
     let r = Repo::new();
     r.git(&["checkout", "-q", "--detach", &r.base]);
@@ -1320,7 +1337,7 @@ fn read_path_fails_every_over_budget_item_and_the_warning_line() {
     expect(
         &r.check_against(&base, &h, &[]),
         1,
-        "FAIL read-path",
+        "WARN read-path",
         "AGENTS.md is 81 lines (base 70)",
     );
 
@@ -1331,12 +1348,12 @@ fn read_path_fails_every_over_budget_item_and_the_warning_line() {
     r.git(&["commit", "-q", "-m", "agents"]);
     r.base = r.out(&["rev-parse", "HEAD"]);
     let h = r.green_a(|_| {});
-    expect(&r.check(&h, &[]), 1, "FAIL read-path", "but did not grow");
+    expect(&r.check(&h, &[]), 0, "WARN read-path", "but did not grow");
 
     let r = Repo::new();
     let big = order("claude", "item-a", &"y".repeat(5000));
     let h = r.green(ORDER_A, &big, |_| {});
-    expect(&r.check(&h, &[]), 1, "FAIL read-path", "the ORDER is 50");
+    expect(&r.check(&h, &[]), 0, "WARN read-path", "the ORDER is 50");
 
     // A path already over its total, which the PR does not touch, fails: the ORDER it adds is not
     // growth, and the former warning is an error now.
@@ -1348,7 +1365,7 @@ fn read_path_fails_every_over_budget_item_and_the_warning_line() {
     r.base = r.out(&["rev-parse", "HEAD"]);
     let h = r.green_a(|r| r.write("crates/a/src/lib.rs", "//\n"));
     let o = r.check(&h, &[]);
-    expect(&o, 1, "FAIL read-path", "but did not grow");
+    expect(&o, 0, "WARN read-path", "but did not grow");
 
     // A read-path file turned into a symlink fails.
     let r = Repo::new();
@@ -1359,8 +1376,8 @@ fn read_path_fails_every_over_budget_item_and_the_warning_line() {
     });
     expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL read-path",
+        0,
+        "WARN read-path",
         "AGENTS.md is a symlink at the head",
     );
 }
@@ -1372,7 +1389,7 @@ fn filemap_needs_a_row_per_directory_and_no_stale_rows() {
     let h = r.green_a(|r| {
         std::fs::remove_file(r.root.join("docs/start/FILEMAP.md")).unwrap();
     });
-    expect(&r.check(&h, &[]), 1, "N/A filemap", "does not exist yet");
+    expect(&r.check(&h, &[]), 0, "N/A filemap", "does not exist yet");
     let h = r.green_a(|_| {});
     expect(&r.check(&h, &[]), 0, "PASS filemap", "has a row for every");
     r.git(&["checkout", "-q", "--detach", &r.base]);
@@ -1386,8 +1403,8 @@ fn filemap_needs_a_row_per_directory_and_no_stale_rows() {
     let h = r.green_a(|r| r.write("crates/new/x.rs", "\n"));
     expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL filemap",
+        0,
+        "WARN filemap",
         "missing row: crates/new",
     );
     let h = r.green_a(|r| {
@@ -1406,8 +1423,8 @@ fn filemap_needs_a_row_per_directory_and_no_stale_rows() {
     });
     expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL filemap",
+        0,
+        "WARN filemap",
         "stale row: crates/gone",
     );
 }
@@ -1692,6 +1709,47 @@ fn the_d59_switch_is_read_at_the_merge_base() {
     );
     let o = r.check_gh(&h, &fake(vec![record("claude", &h, "APPROVE")]));
     expect(&o, 1, "PASS review-record", "counted");
+}
+
+/// D76: a new file that compiles banned code fails, like an edit does. Before D76 the rule
+/// skipped added files, so this exited 0.
+#[test]
+fn a_new_file_with_banned_code_fails_the_presence_rule() {
+    let r = Repo::new();
+    let h = r.green_a(|r| {
+        r.write("crates/a/src/fresh.rs", GATED_HEAD_UNGATED);
+    });
+    expect(
+        &r.check(&h, &[]),
+        1,
+        "FAIL banned-presence",
+        "D23 sites in compiled code rise",
+    );
+}
+
+/// D76 made `rendered-lock` and `read-path` advisory, and both used to catch some AGENTS.md
+/// edits. The project's own owner-path list must keep AGENTS.md (and the other owner files)
+/// under the hard `owner-paths` rule.
+#[test]
+fn the_project_owner_paths_still_cover_agents_charter_decisions_and_ci_d76() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../docs/harness/owner-paths.json");
+    let text = std::fs::read_to_string(&path).expect("read docs/harness/owner-paths.json");
+    let v: serde_json::Value = serde_json::from_str(&text).expect("owner-paths.json is JSON");
+    let listed: Vec<&str> = v["paths"]
+        .as_array()
+        .expect("paths array")
+        .iter()
+        .filter_map(|p| p["path"].as_str())
+        .collect();
+    for want in [
+        "AGENTS.md",
+        "CHARTER.md",
+        "docs/integration/DECISIONS.md",
+        ".github/**",
+    ] {
+        assert!(listed.contains(&want), "{want} missing from {listed:?}");
+    }
 }
 
 #[test]

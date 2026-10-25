@@ -448,8 +448,8 @@ mod chain {
         });
         expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL commit-order",
+        0,
+        "WARN commit-order",
         "adds the repair ORDER docs/loop/tasks/item-a/claude-2/ORDER.md but also changes crates/a/x.rs",
     );
 
@@ -460,8 +460,8 @@ mod chain {
         ]);
         expect(
         &r.check(&h, &[]),
-        1,
-        "FAIL commit-order",
+        0,
+        "WARN commit-order",
         "changes docs/loop/tasks/item-a/claude-2/ORDER.md before the commit that adds docs/loop/tasks/item-a/claude-1/ORDER.md",
     );
     }
@@ -481,7 +481,7 @@ mod chain {
         expect(
             &o,
             1,
-            "FAIL commit-order",
+            "WARN commit-order",
             "not one lab's repairs in one task folder",
         );
 
