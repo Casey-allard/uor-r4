@@ -3,7 +3,7 @@ id: r-full-epoch-revisit-schedules
 title: Test full-epoch and frequent-token revisit schedules
 milestone: research
 area: training
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
