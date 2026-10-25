@@ -1,0 +1,39 @@
+[package]
+name = "m1-d11-artifact-scorer-instrument"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: detached from the repository workspace on purpose, so this
+# instrument can never change what the workspace builds, takes no crate lock,
+# and keeps CUDA (later stages) out of the serving crate, which forbids unsafe
+# code (CHARTER §3.13). It reads uor-r4-discrete and uor-r4-integer with their
+# default features and never edits either.
+[workspace]
+
+# Build and test with an explicit `--target` (for example
+# `--target aarch64-apple-darwin` on the Mac, `--target x86_64-unknown-linux-gnu`
+# on a pod). uor-r4-core depends on uor-r4-integer and is a build-dependency of
+# uor-r4-discrete, so uor-r4-integer is built for build scripts and for this
+# crate. Its `cdylib` crate type drops the metadata hash from its output name,
+# and without `--target` the two builds collide on one file (cargo #6313), which
+# then fails as E0463. With `--target`, host and target builds use separate
+# directories.
+
+[[bin]]
+name = "d11-scorer"
+path = "src/main.rs"
+
+[features]
+default = []
+# The GPU scorer: nvcc builds src/scorer.cu ahead of time (UOR_NVCC_ARCH).
+cuda = ["dep:cudarc"]
+
+[dependencies]
+cudarc = { version = "=0.19.10", default-features = false, features = ["std", "driver", "cuda-12080", "dynamic-linking"], optional = true }
+serde_json = "1"
+uor-r4-discrete = { path = "../../../../crates/uor-r4-discrete" }
+uor-r4-integer = { path = "../../../../crates/uor-r4-integer" }
+
+[build-dependencies]
+cc = "1"

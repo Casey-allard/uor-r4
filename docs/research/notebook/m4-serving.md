@@ -1,6 +1,6 @@
 # Notebook: integer serving (M4)
 
-This notebook is for results about running the trained model cheaply: serving it with integers and lookup tables only, with no floating-point arithmetic and no multiply instruction (decision D11). It has no rows yet. No serving run since 12 October 2026 has produced a number against a bar, and the language base (M1) is not yet met.
+This notebook is for results about running the trained model cheaply: serving it with integers and lookup tables only, with no floating-point arithmetic and no multiply instruction (decision D11). Its first rows, from 25 October 2026, qualify the D11 artifact scorer, an instrument. No step-6 result, and no serving result against a registered bar, has a row yet, and the language base (M1) is not yet met.
 
 ## Results
 
@@ -8,9 +8,10 @@ Sources: [`archive/catalog.jsonl`](../../../archive/catalog.jsonl). Verdict word
 
 | Date | What ran | Number | Bar | Verdict | Artifact |
 |---|---|---|---|---|---|
-| | *No result rows yet.* | | | | |
+| 2026-10-25 | **GPU qualification of the D11 artifact scorer** (m1-d11-artifact-scorer, #3248, claude-116). The integer CUDA port of `evaluate_prefix` scored the 14,287-row DEV panel on the exported A8 FrozenZero `continuation-05248` artifact, on 1 RTX 5090 for 288 pod-seconds (about $0.08). The checkpoint is a stand-in, not step 6's. | Parity on 14,287 of 14,287 rows (read vector, admitted cells, top-8 and prediction), with 0 refused. The stand-in's totals are top-1 741, top-8 1,345 and admitted 4,251 of 14,287. They qualify the instrument only. They are not an export gap, because the checkpoint has no sealed `eval-corpus` DEV evaluation. | every row bit-identical to `evaluate_prefix`, fixed in the [prep sheet](../../harness/prep/m1-d11-artifact-scorer-2026-10-25.md) | positive (instrument qualification) | store `results/claude/d11-artifact-scorer-2026-10-25/pod/` (`SHA256SUMS`); [REPORT](../../loop/tasks/m1-d11-artifact-scorer/claude-116/REPORT.md) |
+| 2026-10-25 | **`toks` on the same exported artifact,** on the laptop (Apple M1, 4 performance cores, 16 GiB, macOS 27.0, AC power). It ran the step-6 protocol through `IntegerDiscreteModel`: 1 warmup and 20 timed runs, a 192-token prefill and a 64-token decode. | **Decode:** 13,259 tok/s median, which is 4,826 µs per 64 tokens; p95 13,176 tok/s. **Prefill:** 2,967,175 tok/s median, which is 64 µs per 192-token prompt; p95 2,765,893 tok/s. All 21 decode runs wrote the same reply. | none registered (qualification check) | inconclusive (no bar registered; it qualifies the protocol and is not step 6's measurement) | store `results/claude/d11-artifact-scorer-2026-10-25/laptop/toks-laptop.json` |
 
-## Why the table is empty
+## Before 25 October
 
 The audit catalog holds 42 records for this line. Between 12 October and 19 October 2026 it has one record, and that record is tooling, not a result:
 
