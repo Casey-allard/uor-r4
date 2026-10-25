@@ -3,7 +3,7 @@ id: native-geometric-reregister-hinge
 title: Re-register the native geometric engine with the hinge loss
 milestone: research
 area: training
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
