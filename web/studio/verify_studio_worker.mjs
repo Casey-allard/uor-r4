@@ -3,34 +3,25 @@
 // `web/studio/index.html` against the `crates/uor-r4-integer` (`serving-wasm`)
 // browser engine and the reference `docs/wasm-serving/verify.mjs` oracle.
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { buildArtifact } from './tools/make_tokenizer.mjs';
-import { validateTokenizerArtifact, tokenizerLabel, encodeBytesWithArtifact } from './assets/js/uor_tokenizer_artifact.js';
+import { buildArtifact, parseStackHeader } from './tools/make_tokenizer.mjs';
+import {
+    BYTE_BPE_MODE,
+    BYTE_MOD_MODE,
+    DEFAULT_STACK_TOKENIZER_ARTIFACT,
+    decodeTokenIdsWithArtifact,
+    encodeBytesWithArtifact,
+    encodeTextWithArtifact,
+    tokenizerLabel,
+    validateTokenizerArtifact,
+} from './assets/js/uor_tokenizer_artifact.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const wasmPath = process.env.UOR_WASM_PATH
-    || resolve(__dirname, 'pkg/uor_r4_integer_bg.wasm');
-const stackPath = process.env.UOR_STACK_PATH
-    || resolve(__dirname, 'pkg/synthetic-stack.lut');
-
-const wasmBytes = readFileSync(wasmPath);
-const stackBytes = readFileSync(stackPath);
-
-// The stack-bound tokenizer artifact is generated from the shipped stack at build
-// time (web/studio/tools/make_tokenizer.mjs). Write it next to the bundle so the
-// worker loads it exactly as it would in the browser; assert the fallback helpers
-// too, so the unbound path stays covered without a second worker process.
-const tokenizerArtifact = buildArtifact(stackBytes);
-assert(validateTokenizerArtifact(tokenizerArtifact, tokenizerArtifact.stack_sha256, tokenizerArtifact.vocab_size), 'generated tokenizer artifact must validate against the stack');
-assert(tokenizerLabel(tokenizerArtifact, tokenizerArtifact.vocab_size).includes('stand-in') && tokenizerLabel(tokenizerArtifact, tokenizerArtifact.vocab_size).includes('stack sha256'), 'generated tokenizer artifact must keep the stand-in label and name the stack digest');
-assert(tokenizerLabel(null, 40).includes('unbound'), 'missing artifact must fall back to the explicit unbound label');
-assert(JSON.stringify(encodeBytesWithArtifact(new Uint8Array([0, 1, 41]), 40, tokenizerArtifact)) === JSON.stringify([0, 1, 1]), 'stack-bound byte table encodes 41 mod 40 as 1');
-assert(JSON.stringify(encodeBytesWithArtifact(new Uint8Array([0, 1, 41]), 40, null)) === JSON.stringify([0, 1, 1]), 'unbound fallback encodes identically for the byte-mod stand-in');
-mkdirSync(resolve(__dirname, 'pkg'), { recursive: true });
-writeFileSync(resolve(__dirname, 'pkg/tokenizer.json'), JSON.stringify(tokenizerArtifact, null, 2) + '\n');
+const repoRoot = resolve(__dirname, '../..');
+const pkgDir = resolve(__dirname, 'pkg');
 
 function assert(cond, msg) {
     if (!cond) {
@@ -38,6 +29,118 @@ function assert(cond, msg) {
         process.exit(1);
     }
 }
+
+function ensureWasmAndSyntheticStack() {
+    const wasmFile = process.env.UOR_WASM_PATH || resolve(pkgDir, 'uor_r4_integer_bg.wasm');
+    const jsFile = resolve(dirname(wasmFile), 'uor_r4_integer.js');
+    const stackFile = process.env.UOR_STACK_PATH || resolve(pkgDir, 'synthetic-stack.lut');
+    const cargoBin = existsSync(`${process.env.HOME}/.cargo/bin/cargo`) ? `${process.env.HOME}/.cargo/bin/cargo` : 'cargo';
+    const wasmPackBin = existsSync(`${process.env.HOME}/.cargo/bin/wasm-pack`) ? `${process.env.HOME}/.cargo/bin/wasm-pack` : 'wasm-pack';
+    const targetDir = process.env.CARGO_TARGET_DIR || resolve(repoRoot, 'local/antigravity/target');
+    if (!existsSync(wasmFile) || !existsSync(jsFile)) {
+        mkdirSync(dirname(wasmFile), { recursive: true });
+        execFileSync(
+            wasmPackBin,
+            ['build', resolve(repoRoot, 'crates/uor-r4-integer'), '--target', 'web', '--no-opt', '--out-dir', dirname(wasmFile), '--', '--features', 'serving-wasm'],
+            { env: { ...process.env, CARGO_TARGET_DIR: targetDir, RUSTFLAGS: '-C target-feature=-simd128' }, stdio: 'inherit' },
+        );
+    }
+    if (!existsSync(stackFile)) {
+        mkdirSync(dirname(stackFile), { recursive: true });
+        execFileSync(
+            cargoBin,
+            ['run', '-p', 'uor-r4-integer', '--features', 'serving-wasm', '--bin', 'mk-synthetic-stack', '--', '5', stackFile],
+            { env: { ...process.env, CARGO_TARGET_DIR: targetDir }, stdio: 'inherit' },
+        );
+    }
+    return { wasmFile, stackFile };
+}
+
+const { wasmFile: wasmPath, stackFile: stackPath } = ensureWasmAndSyntheticStack();
+const wasmBytes = readFileSync(wasmPath);
+const stackBytes = readFileSync(stackPath);
+
+// Build and verify the stack-bound `mode: "byte-bpe"` tokenizer artifact, bundled
+// `DEFAULT_STACK_TOKENIZER_ARTIFACT`, rank-ordered merges, `uor-r4.lut-discrete/1`
+// header parsing, and legacy `byte-mod` + unbound fallbacks.
+const tokenizerArtifact = buildArtifact(stackBytes);
+assert(tokenizerArtifact.mode === BYTE_BPE_MODE, `expected default tokenizer mode "${BYTE_BPE_MODE}", got "${tokenizerArtifact.mode}"`);
+assert(
+    validateTokenizerArtifact(tokenizerArtifact, tokenizerArtifact.stack_sha256, tokenizerArtifact.vocab_size),
+    'generated byte-bpe tokenizer artifact must validate against the stack',
+);
+assert(
+    validateTokenizerArtifact(DEFAULT_STACK_TOKENIZER_ARTIFACT, tokenizerArtifact.stack_sha256, tokenizerArtifact.vocab_size),
+    'bundled DEFAULT_STACK_TOKENIZER_ARTIFACT must validate against the canonical seed-5 stack',
+);
+assert(
+    tokenizerLabel(tokenizerArtifact, tokenizerArtifact.vocab_size).includes('stack-bound byte-bpe tokenizer')
+        && !tokenizerLabel(tokenizerArtifact, tokenizerArtifact.vocab_size).includes('stand-in')
+        && tokenizerLabel(tokenizerArtifact, tokenizerArtifact.vocab_size).includes('stack sha256'),
+    `generated byte-bpe tokenizer artifact must replace the stand-in label and name the stack digest, got: ${tokenizerLabel(tokenizerArtifact, tokenizerArtifact.vocab_size)}`,
+);
+assert(
+    tokenizerLabel(null, 40).includes('unbound') && tokenizerLabel(null, 40).includes('stand-in'),
+    'missing artifact must fall back to the explicit unbound stand-in label',
+);
+assert(
+    JSON.stringify(encodeTextWithArtifact('<|bos|>User: 01\n', 40, tokenizerArtifact)) === JSON.stringify([0, 6, 7, 8, 9, 3, 4, 18, 19, 5]),
+    'stack-bound byte-bpe tokenizer must atomically match <|bos|> and map User: 01\\n to exact vocabulary IDs',
+);
+assert(
+    decodeTokenIdsWithArtifact([0, 6, 7, 8, 9, 3, 4, 18, 19, 5], tokenizerArtifact) === '<|bos|>User: 01\n',
+    'stack-bound byte-bpe tokenizer must decode token IDs back to exact UTF-8 text',
+);
+
+const discreteHeaderJson = new TextEncoder().encode(JSON.stringify({ schema: 'uor-r4.lut-discrete/1', shape: { vocabulary: 17, context: 64 } }));
+const discreteMock = new Uint8Array(16 + discreteHeaderJson.byteLength);
+discreteMock.set(new TextEncoder().encode('UORLUT01'), 0);
+new DataView(discreteMock.buffer).setBigUint64(8, BigInt(discreteHeaderJson.byteLength), true);
+discreteMock.set(discreteHeaderJson, 16);
+const parsedDiscrete = parseStackHeader(discreteMock);
+assert(parsedDiscrete.vocab_size === 17, `expected discrete vocab_size=17, got ${parsedDiscrete.vocab_size}`);
+
+const bpeMergeFixture = buildArtifact(discreteMock, {
+    sourceTokenizer: {
+        pre_tokenizer: { type: 'ByteLevel', add_prefix_space: false },
+        added_tokens: [0, 1, 2, 3, 4, 5, 6].map((id, idx) => ({
+            id,
+            content: ['<|bos|>', '<|eos|>', '<|unk|>', '<|system|>', '<|user|>', '<|assistant|>', '<|turn_end|>'][idx],
+        })),
+        model: {
+            type: 'BPE',
+            vocab: {
+                '<|bos|>': 0, '<|eos|>': 1, '<|unk|>': 2, '<|system|>': 3, '<|user|>': 4, '<|assistant|>': 5, '<|turn_end|>': 6,
+                H: 7, e: 8, l: 9, o: 10, He: 11, ll: 12, lo: 13, P: 14, i: 15, n: 16,
+            },
+            merges: ['H e', 'l l', 'l o'],
+        },
+    },
+});
+assert(
+    JSON.stringify(encodeTextWithArtifact('<|system|>Hello<|turn_end|>', 17, bpeMergeFixture)) === JSON.stringify([3, 11, 12, 10, 6]),
+    'rank-ordered BPE merges must merge "H e" (rank 0) and "l l" (rank 1) before "l o" (rank 2)',
+);
+assert(
+    decodeTokenIdsWithArtifact([3, 11, 12, 10, 6], bpeMergeFixture) === '<|system|>Hello<|turn_end|>',
+    'merged BPE pieces and atomic role tokens must round-trip losslessly',
+);
+
+const byteModArtifact = buildArtifact(stackBytes, { mode: BYTE_MOD_MODE });
+assert(
+    validateTokenizerArtifact(byteModArtifact, byteModArtifact.stack_sha256, byteModArtifact.vocab_size),
+    'legacy byte-mod artifact must validate when explicitly requested',
+);
+assert(
+    JSON.stringify(encodeBytesWithArtifact(new Uint8Array([0, 1, 41]), 40, byteModArtifact)) === JSON.stringify([0, 1, 1]),
+    'stack-bound byte-mod table encodes 41 mod 40 as 1',
+);
+assert(
+    JSON.stringify(encodeBytesWithArtifact(new Uint8Array([0, 1, 41]), 40, null)) === JSON.stringify([0, 1, 1]),
+    'unbound fallback encodes 41 mod 40 as 1',
+);
+mkdirSync(resolve(__dirname, 'pkg'), { recursive: true });
+writeFileSync(resolve(__dirname, 'pkg/tokenizer.json'), JSON.stringify(tokenizerArtifact, null, 2) + '\n');
 
 // 1. Intercept all network/beacon/event-stream APIs to enforce zero remote model calls.
 const remoteRequests = [];
@@ -195,7 +298,12 @@ assert(loadedMsg.action === 'model_loaded', `load_model failed: ${JSON.stringify
 assert(loadedMsg.capabilities.schema === 'uor-r4.lut-stack/1', `schema mismatch: ${loadedMsg.capabilities.schema}`);
 assert(loadedMsg.capabilities.synthetic === true, 'expected synthetic === true for mk-synthetic-stack artifact');
 assert(loadedMsg.capabilities.status_label === 'synthetic stand-in', `expected "synthetic stand-in", got "${loadedMsg.capabilities.status_label}"`);
-assert(loadedMsg.capabilities.tokenizer_label.includes('stand-in') && loadedMsg.capabilities.tokenizer_label.includes('stack sha256'), `expected a stand-in label naming the stack digest, got: ${loadedMsg.capabilities.tokenizer_label}`);
+assert(
+    loadedMsg.capabilities.tokenizer_label.includes('stack-bound byte-bpe tokenizer')
+        && !loadedMsg.capabilities.tokenizer_label.includes('stand-in')
+        && loadedMsg.capabilities.tokenizer_label.includes('stack sha256'),
+    `expected stack-bound byte-bpe tokenizer label naming the stack digest, got: ${loadedMsg.capabilities.tokenizer_label}`,
+);
 assert(loadedMsg.capabilities.weights_per_token === 15968, `expected weights_per_token=15968, got ${loadedMsg.capabilities.weights_per_token}`);
 assert(loadedMsg.capabilities.shape.vocab === 40 && loadedMsg.capabilities.shape.width === 32, 'shape mismatch');
 
@@ -228,6 +336,32 @@ await sendToWorker({
 });
 const exportedFull32 = await waitForMessage((m) => m.action === 'session_exported' && m.conversationId === 'conv_verify_full');
 assert(exportedFull32.bytes && exportedFull32.bytes.byteLength === 9782, `expected 9782 checkpoint bytes after 32 steps, got ${exportedFull32.bytes?.byteLength}`);
+
+// 3b. Run text-prompt generation (`messages: [{ role: 'user', content: '<|bos|>' }]`)
+// through the bound `byte-bpe` tokenizer: `<|bos|>` encodes atomically to `[0]`
+// (whereas `rawBytes[i] % 40` would have encoded `<|bos|>` into 7 bytes `[20, 4, 18, 31, 35, 4, 22]`),
+// and the 32 generated token IDs decode through the bound BPE vocabulary into exact text.
+await sendToWorker({
+    action: 'generate',
+    id: 'gen_bpe_text_32',
+    payload: {
+        conversationId: 'conv_verify_bpe_text',
+        messages: [{ role: 'user', content: '<|bos|>' }],
+        options: { max_new_tokens: 32 },
+    },
+});
+const genBpeText = await waitForMessage(
+    (m) => (m.action === 'generate_complete' || m.action === 'generate_error') && m.id === 'gen_bpe_text_32',
+);
+assert(genBpeText.action === 'generate_complete', `BPE text prompt generate failed: ${JSON.stringify(genBpeText)}`);
+assert(
+    JSON.stringify(genBpeText.tokenIds) === JSON.stringify(EXPECTED_32),
+    `BPE text prompt '<|bos|>' must encode atomically to [0] and produce EXPECTED_32, got ${JSON.stringify(genBpeText.tokenIds)}`,
+);
+assert(
+    genBpeText.fullText === decodeTokenIdsWithArtifact(EXPECTED_32, tokenizerArtifact),
+    `BPE text prompt decoded fullText mismatch: got "${genBpeText.fullText}", expected "${decodeTokenIdsWithArtifact(EXPECTED_32, tokenizerArtifact)}"`,
+);
 
 // 4. Mid-stream saveSession / restoreSession round-trip (16 + 16 tokens).
 await sendToWorker({
@@ -315,6 +449,42 @@ const genRaceDone = await waitForMessage((m) => m.action === 'generate_complete'
 assert(
     JSON.stringify(genRaceDone.tokenIds) === JSON.stringify(EXPECTED_32.slice(0, 16)),
     `mid-generation close/reset corrupted stream: ${JSON.stringify(genRaceDone.tokenIds)}`,
+);
+
+// 5b. Verify worker reload re-binding: reloading with `tokenizerArtifact: false`
+// drops to the explicit unbound stand-in label without stale per-worker cache,
+// and reloading again restores the bound `byte-bpe` tokenizer label.
+await sendToWorker({
+    action: 'load_model',
+    payload: {
+        bytes: stackBytes.buffer.slice(stackBytes.byteOffset, stackBytes.byteOffset + stackBytes.byteLength),
+        fileName: 'synthetic-stack.lut',
+        tokenizerArtifact: false,
+    },
+});
+const reloadedUnboundMsg = await waitForMessage(
+    (m) => m.action === 'model_loaded' || m.action === 'operation_error',
+);
+assert(
+    reloadedUnboundMsg.action === 'model_loaded'
+        && reloadedUnboundMsg.capabilities.tokenizer_label.includes('unbound'),
+    `expected unbound fallback label on tokenizerArtifact: false reload, got: ${JSON.stringify(reloadedUnboundMsg)}`,
+);
+
+await sendToWorker({
+    action: 'load_model',
+    payload: {
+        bytes: stackBytes.buffer.slice(stackBytes.byteOffset, stackBytes.byteOffset + stackBytes.byteLength),
+        fileName: 'synthetic-stack.lut',
+    },
+});
+const reloadedBoundMsg = await waitForMessage(
+    (m) => m.action === 'model_loaded' || m.action === 'operation_error',
+);
+assert(
+    reloadedBoundMsg.action === 'model_loaded'
+        && reloadedBoundMsg.capabilities.tokenizer_label === loadedMsg.capabilities.tokenizer_label,
+    `expected bound byte-bpe tokenizer label after re-load, got: ${JSON.stringify(reloadedBoundMsg)}`,
 );
 
 // 6. Verify static source invariants on uor_model_worker.js and index.html.

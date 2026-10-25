@@ -3,7 +3,7 @@ id: m7-studio-self-host-page-assets
 title: Verify the Studio's offline claim, retire the demo CDNs, bundle tokenizer
 milestone: M7
 area: serving
-status: ready
+status: done
 open_to: anyone
 needs_gpu: false
 depends_on: []
