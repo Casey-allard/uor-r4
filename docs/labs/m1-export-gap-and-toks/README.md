@@ -1,19 +1,19 @@
 # M1 Stage 4: Export Gap and Prompt-Reading / Reply-Writing Throughput (`m1-export-gap-and-toks`, #2839)
 
 - **Milestone / Issue:** M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029), item [`m1-export-gap-and-toks`](../../roadmap/items/m1-export-gap-and-toks.md) ([#2839](https://github.com/UOR-Foundation/uor-r4/issues/2839)).
-- **Lab:** `antigravity` (`antigravity-42`).
-- **Draft pre-registration sheet:** [`docs/harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md`](../../harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md) (`TEST FITNESS: PENDING`).
+- **Lab:** `antigravity` (`antigravity-42`, updated in `antigravity-74`).
+- **Pre-registration sheet:** [`docs/harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md`](../../harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md) (`TEST FITNESS: FIT`, D68 bar/dependency registration).
 
 ## 1. Dependency and readiness check (`How to start` step 1)
 
-[`docs/roadmap/items/m1-export-gap-and-toks.md`](../../roadmap/items/m1-export-gap-and-toks.md) names two required inputs before the Stage 4 evaluation and timing run can execute:
+[`docs/roadmap/items/m1-export-gap-and-toks.md`](../../roadmap/items/m1-export-gap-and-toks.md) and [`PLAN.md`](../../../PLAN.md) Step 6 name two required inputs before the Stage 4 evaluation and timing run can execute:
 
 1. **The discrete D11 exporter (`m1-d11-exporter-discrete`, [#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838)):** **COMPLETE (`status: done`, merged in `#2998`).**
    - [`crates/uor-r4-discrete/src/d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs) exports `DiscreteModel` snapshots into a single `UORLUT01` (`uor-r4.lut-discrete/1`) container with four 64-byte-aligned integer sections (`discrete.table` `i16`, `discrete.cells` `u32`, `discrete.routes` `u32`, `discrete.gates` `i32`) and zero 4-bit matrix sections.
    - [`crates/uor-r4-integer/src/discrete_d11.rs`](../../../crates/uor-r4-integer/src/discrete_d11.rs) (`IntegerDiscreteModel`) loads `uor-r4.lut-discrete/1` artifacts and evaluates `Route`, `Flock`, and `Relation` prefixes in pure integer arithmetic (`0` float, `0` mul/div on the audited serving symbols).
-2. **A saved trained discrete model (`m1-a8-full-dose-rerun`, `m1-bvg-k-stage-t-training`, or `m1-trunk-assembly-and-training`):** **NOT YET AVAILABLE (BLOCKED on HELD training under D40).**
-   - K16 (`docs/labs/k16-outcome-call-2026-10-19/README.md`) ended in `OCCUPANCY_COLLAPSE_TRIGGERED` with no `KEEP`, and A8 (`docs/labs/a8-dose-2026-10-19/README.md`) stopped at the Q1 admission-collapse diagnostic stop (`P_succ` `1,351 -> 551`).
-   - Per step 1 of `m1-export-gap-and-toks.md` ("do not start a run without both"), no GPU evaluation or laptop timing claim is executed in this unit; this unit delivers the Stage 4 design note and one-page draft pre-registration sheet (`How to start` step 2).
+2. **A saved trained discrete model from Step 4 (`m1-bvg-k-stage-t-training`, [#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836)):** **PENDING STEP 4 (`PLAN.md` line 63).**
+   - K16 (`docs/labs/k16-outcome-call-2026-10-19/README.md`) ended in `OCCUPANCY_COLLAPSE_TRIGGERED` with no `KEEP`, the ungated 19 Oct A8 run (`docs/labs/a8-dose-2026-10-19/README.md`) stopped at Q1 admission collapse (`P_succ` `1,351 -> 551`), and the gated 25 Oct A8 rerun (`docs/labs/m1-a8-full-dose-rerun/README.md`, `#2831`, PR `#3192`) passed `Q1` on `FrozenZero` (`DEV top1_correct = 871 / 14,287`, `b_3(P_succ) = 1,106 / 3,847`) before stopping on the `consecutive_full_rejections = 3` cadence-granularity diagnostic stop at batch `1,600` (`Relation`) / `5,248` (`FrozenZero`).
+   - Per `PLAN.md` Step 6 ("`the exporter (done, #2838); its measured run needs a trained model from step 4`") and Step 1 of `m1-export-gap-and-toks.md` ("do not start a run without both"), `m1-export-gap-and-toks` depends on [`m1-bvg-k-stage-t-training`](../../roadmap/items/m1-bvg-k-stage-t-training.md) (`#2836`) and will execute its GPU DEV export-gap verification and laptop throughput timing immediately after `#2836` produces its trained checkpoints.
 
 ## 2. Stage 4 design summary (`How to start` step 2)
 
@@ -35,5 +35,5 @@
 
 ## 3. Open prerequisites before execution
 
-1. Non-author `TEST FITNESS: FIT` review of [`docs/harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md`](../../harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md) (CHARTER §4.5).
-2. Availability of a saved trained discrete checkpoint (`uor-r4.discrete-spiralcore-fbs/2`) and owner/PM registration of the Stage 4 bar and release on `#2839` / `#2029` (CHARTER §5.1, §5.2).
+1. **Completed in `antigravity-74`:** Non-author `TEST FITNESS: FIT` review of [`docs/harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md`](../../harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md) (`CHARTER.md` §4.5) and D68 registration of the Stage 4 bar, two-seed noise band (`\Delta_{\text{noise,top1}} = 398`, `\Delta_{\text{noise,top8}} = 748`, `\Delta_{\text{noise,adm}} = 930`), and `m1-bvg-k-stage-t-training` (`#2836`) dependency (`CHARTER.md` §5.1).
+2. **Remaining prerequisite (`PLAN.md` Step 4 -> Step 6):** Completion of [`m1-bvg-k-stage-t-training`](../../roadmap/items/m1-bvg-k-stage-t-training.md) (`#2836`) to produce the two-seed trained discrete checkpoints (`uor-r4.discrete-spiralcore-fbs/2`), followed by a D67 pre-run review (`CHARTER.md` §5.1) for the Stage 4 GPU DEV evaluation and laptop throughput timing.

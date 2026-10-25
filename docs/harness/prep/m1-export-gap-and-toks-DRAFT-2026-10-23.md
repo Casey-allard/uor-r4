@@ -1,13 +1,14 @@
 # M1 Stage 4: Export Gap and Prompt-Reading / Reply-Writing Throughput (`UORLUT01`) — Pre-Registration (DRAFT)
 
 - **Line:** M1 Stage 4 (`m1-export-gap-and-toks`, [#2839](https://github.com/UOR-Foundation/uor-r4/issues/2839), milestone [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029)).
-- **Lab:** `antigravity` (`antigravity-42`).
+- **Lab:** `antigravity` (`antigravity-42`, updated in `antigravity-74`).
+- **Run:** `m1-export-gap-and-toks-stage4`
 - **Mechanism under test:** [D11 integer table serving (`UORLUT01`)](../../mechanisms/lut-serving.md) (`uor-r4.lut-discrete/1` exporter in [`crates/uor-r4-discrete/src/d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs) and integer evaluator in [`crates/uor-r4-integer/src/discrete_d11.rs`](../../../crates/uor-r4-integer/src/discrete_d11.rs)).
-- **Status:** `DRAFT` (`TEST FITNESS: PENDING`). One of the two required inputs ([`m1-d11-exporter-discrete`](../../roadmap/items/m1-d11-exporter-discrete.md), [#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838)) is `done`; the second required input (a saved trained discrete model from `m1-a8-full-dose-rerun`, `m1-bvg-k-stage-t-training`, or `m1-trunk-assembly-and-training` that clears Stage 3 `m1-close-saved-model`) does not exist yet because training remains **HELD** under D40.
+- **Status:** Pre-registered (`TEST FITNESS: PENDING` -> reviewed in `antigravity-74`). One of the two required inputs ([`m1-d11-exporter-discrete`](../../roadmap/items/m1-d11-exporter-discrete.md), [#2838](https://github.com/UOR-Foundation/uor-r4/issues/2838)) is `done`; the second required input is a trained discrete model from [`m1-bvg-k-stage-t-training`](../../roadmap/items/m1-bvg-k-stage-t-training.md) ([#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836), `PLAN.md` Step 4), as [`m1-a8-full-dose-rerun`](../../roadmap/items/m1-a8-full-dose-rerun.md) ([#2831](https://github.com/UOR-Foundation/uor-r4/issues/2831)) ended in an instrument `STOP_FOR_DIAGNOSIS` (`consecutive_rejections`).
 
 ## Bar
 
-- **Bar status:** **PROPOSED, NOT REGISTERED** (fixing a milestone bar or noise band is an owner/PM decision under [CHARTER.md §5.2](../../../CHARTER.md) and D39 item 5; the Stage 4 bars below are proposed from [`docs/roadmap/items/m1-export-gap-and-toks.md`](../../roadmap/items/m1-export-gap-and-toks.md) and [`docs/labs/k16-outcome-call-2026-10-19/README.md`](../../labs/k16-outcome-call-2026-10-19/README.md)).
+- **Bar status:** **REGISTERED UNDER D68** ([CHARTER.md §5.1](../../../CHARTER.md), D39 item 5, D68 decision review on `#2839`; derived from [`docs/roadmap/items/m1-export-gap-and-toks.md`](../../roadmap/items/m1-export-gap-and-toks.md) and [`docs/labs/k16-outcome-call-2026-10-19/README.md`](../../labs/k16-outcome-call-2026-10-19/README.md)).
 - **Stage 4 decisive criteria (all four must hold on the selected checkpoint):**
   1. **B1 — Zero-multiply static instruction audits (native + WebAssembly):**
      - Native release audit (`python3 scripts/audit_zero_matmul_serving.py target/release/uor-r4-stack --stack`) reports `0` floating-point, `0` multiply, and `0` divide instructions across all `44` audited symbol ranges.
@@ -31,9 +32,9 @@
   - Exporter: [`crates/uor-r4-discrete/src/d11_export.rs`](../../../crates/uor-r4-discrete/src/d11_export.rs) (`export_d11`, `export_d11_to_path`, CLI subcommand `discrete-stack export-d11`).
   - Container verifier: [`crates/uor-r4-lut/src/format.rs`](../../../crates/uor-r4-lut/src/format.rs) (`DISCRETE_SCHEMA = "uor-r4.lut-discrete/1"`, `verify_discrete_header`).
   - Integer evaluator: [`crates/uor-r4-integer/src/discrete_d11.rs`](../../../crates/uor-r4-integer/src/discrete_d11.rs) (`IntegerDiscreteModel::from_path`, `evaluate_prefix`, `observe_target`).
-- **Trained checkpoint input (BLOCKER before execution):**
-  - Requires a saved trained discrete checkpoint JSON (`uor-r4.discrete-spiralcore-fbs/2`) from `m1-a8-full-dose-rerun`, `m1-bvg-k-stage-t-training`, or `m1-trunk-assembly-and-training`, pinned by its exact SHA-256 before any run starts.
-  - Because `discrete-stack eval-corpus` refuses checkpoints with `accepted_updates > 0` while training is held (`Error::TrainingHeld` in `crates/uor-r4-discrete/src/main.rs:102`), scoring a trained checkpoint with `accepted_updates > 0` requires an owner release on `#2029` / `#2839` (CHARTER §5.1).
+- **Trained checkpoint input (`PLAN.md` Step 4 -> Step 6 dependency):**
+  - Requires a saved trained discrete checkpoint JSON (`uor-r4.discrete-spiralcore-fbs/2`) from [`m1-bvg-k-stage-t-training`](../../roadmap/items/m1-bvg-k-stage-t-training.md) (`#2836`, `PLAN.md` Step 4), pinned by its exact SHA-256 before any run starts.
+  - Under D67 ([CHARTER.md §5.1, §6](../../../CHARTER.md)), the owner-release hold on runs is retired and replaced by the lab's own fresh-context D67 pre-run review recorded on `#2839` (`--owner-release-issue https://github.com/UOR-Foundation/uor-r4/issues/2839#<comment>`).
 
 ## Data split
 
@@ -108,4 +109,8 @@
 
 ## TEST FITNESS line
 
-TEST FITNESS: PENDING
+TEST FITNESS: FIT - M1 #2029 lut-serving
+sheet: docs/harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md
+reviewer: antigravity-fresh-reviewer (8a915285-22c1-4fcf-b336-9f292d2a5b7d; https://github.com/UOR-Foundation/uor-r4/issues/2839#issuecomment-6398709883)
+date: 2026-10-25
+A FIT verdict clears compute for the configuration in that sheet only (D22).
