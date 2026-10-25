@@ -1,0 +1,18 @@
+[package]
+name = "recurrence-gates-six-recurrence-fit-instrument"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Pure-integer D11 recurrence export and receipt verifier for recurrence-gates-six-recurrence-fit (#2890)"
+
+[workspace]
+
+[[bin]]
+name = "verify-recurrence-six-fit"
+path = "src/main.rs"
+
+[dependencies]
+hex = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
