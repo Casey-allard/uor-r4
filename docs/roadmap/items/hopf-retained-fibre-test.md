@@ -3,7 +3,7 @@ id: hopf-retained-fibre-test
 title: Run the Hopf retained-fibre language test
 milestone: research
 area: mechanism
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
