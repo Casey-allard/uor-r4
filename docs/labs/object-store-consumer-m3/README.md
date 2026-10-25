@@ -28,20 +28,21 @@
 | `explicit_reset_and_strict_identity_scope_isolation` | Distinct `IdentityScope` triples (`user_id`, `project_id`, `session_id`) never leak facts across scopes; empty scope identifiers are refused; `reset_scope` wipes facts, antecedent, and `UR4SESS1` snapshot cleanly | PASS |
 | `hostile_or_corrupt_record_and_envelope_refused_fail_closed` | Tampered `UR4SESS1` magic/trailing bytes, tampered `UORMEM01` magic, truncated envelopes, forged manifest SHA-256 digests, and cross-scope manifest imports fail closed (`Err(Error::SchemaMismatch \| Error::IntegrityFailure \| Error::BindingMismatch)`) with zero state mutation | PASS |
 | `session_codec::tests::export_and_import_scope_round_trip_and_refuse_corrupt_envelope` | `uor_r4_integer::session_codec::export_scope` and `import_scope` round-trip `ScopedSessionIdent` + `SerializedStackSession` (`UR4SESS1`) inside a canonical `UORMEM01` envelope and reject corrupt magic/trailing bytes | PASS |
+| `m3_durable_memory_panel::panel_executes_through_durable_consumer_and_beats_no_memory_control` | Executes all 384 items of `m3-durable-memory-panel-v1.jsonl` through `DurableObjectMemoryStore` + `PinnedTokenizer` + `UR4SESS1` (`64/64` provenance, `64/64` correction current + `64/64` prior lineage, `128/128` abstention refusal, `64/64` `#1718` non-memory prose, `64/64` reset & scope isolation, `64/64` `UR4SESS1` restart/restore) against a paired `no-memory` negative control (`0/64` recall, `L-010`) | PASS |
 
-Full `uor-r4-object-store` suite: **73 passed, 0 failed** (up from 67 baseline tests).
+Full `uor-r4-object-store` suite: **77 passed, 0 failed, 1 ignored** (plus `5 passed, 0 failed` in `uor-r4-integer::session_codec`).
 
-## 3. Draft Pre-Registration for the M3 Durable-Memory Bars (`m3-memory`)
+## 3. Pre-Registration for the M3 Durable-Memory Bars (`m3-memory`)
 
-> **Status:** DRAFT — the panel is **frozen** (above) and the CHARTER §5.2 thresholds are **owner-registered** (2026-10-23T02:36:36Z, card `6339008955`; see §3). The sheet still awaits M1/M2 model selection, a non-author `TEST FITNESS: FIT` review of the frozen configuration, and a typed owner release before any on-model serving or GPU qualification run.
+> **Status:** FIT (`TEST FITNESS: FIT`, 2026-10-25) — the 384-item panel is **frozen and consumer-verified** (below) and the CHARTER §5.2 thresholds are **owner-registered** (2026-10-23T02:36:36Z, card `6339008955`; see §3). On-model execution awaits M1/M2 model selection (`status: held`).
 
 ### Frozen Panel and Hashing Protocol
 
-- **Panel identifier:** `m3-durable-memory-panel-v1` — **FROZEN (deepseek-62, 2026-10-24).**
-  - **File:** [`m3-durable-memory-panel-v1.jsonl`](m3-durable-memory-panel-v1.jsonl), 179,320 bytes, 384 canonical JSONL items (one object per line, 64 per sub-panel).
-  - **Whole-object SHA-256:** `01cb94df8a969450f76b00c2191548cbc0eb0fd823d9e929a1c4086853b440ad`.
-  - **Folded `Manifest::version()`:** `0b0616fa124b689f4ca95cb049237ed974a1bee0c3d0f395f6d3a2a9eb48fbee`.
-  - **Frozen by:** `crates/uor-r4-object-store/tests/m3_durable_memory_panel.rs`, which deterministically generates the panel, asserts the committed bytes are a fresh generation, folds them into `uor_r4_object_store::Store`, and re-checks both pins on every `cargo test -p uor-r4-object-store` run (the one-time writer is `#[ignore]`d).
+- **Panel identifier:** `m3-durable-memory-panel-v1` — **FROZEN & CONSUMER-VERIFIED (deepseek-62, 2026-10-24; repaired antigravity-57, 2026-10-25).**
+  - **File:** [`m3-durable-memory-panel-v1.jsonl`](m3-durable-memory-panel-v1.jsonl), 179,096 bytes, 384 canonical JSONL items (one object per line, 64 per sub-panel).
+  - **Whole-object SHA-256:** `582e38798e66432a79fec340a9f87d6f4cb1bfd8c3d2ab594f8e6e305694f9d1`.
+  - **Folded `Manifest::version()`:** `88c27b94526c32b0f06fed7fabeb7a2abcf0b31a2f2534517b8656240eddce70`.
+  - **Frozen and verified by:** `crates/uor-r4-object-store/tests/m3_durable_memory_panel.rs`, which deterministically generates the panel, asserts the committed bytes are a fresh generation, folds them into `uor_r4_object_store::Store`, re-checks both pins, and executes all 384 items through `DurableObjectMemoryStore` + `UR4SESS1` against a paired `no-memory` negative control (`L-010`) on every `cargo test -p uor-r4-object-store` run (`antigravity-57` repaired two instrument defects in the initial `deepseek-62` generator: `correction_entry` now revises the same `(name, "hometown")` slot so `prior_value` lineage is non-vacuous `64/64`, and `abstention_entry` `retracted` items now retract the asserted `(name, "hometown")` slot rather than an unstated slot).
 - **Composition (384 total scored turns across 6 sub-panels of 64 items each):**
   1. `provenance` (64 items): Multi-turn fact assertions followed by direct and pronoun-mediated queries requiring exact byte-span and token-occurrence quotation.
   2. `correction` (64 items): Two-step and three-step contradiction/revision chains (`FactAction::Assert` followed by `FactAction::Revise`) querying both the current value and the superseded value.
@@ -71,4 +72,10 @@ Full `uor-r4-object-store` suite: **73 passed, 0 failed** (up from 67 baseline t
 ### Stop Conditions
 
 - Abort immediately if any `restart_restore`, `non_memory_prose` (`#1718`), or `reset_isolation` item exhibits a single byte mismatch, silent fact overwrite, or cross-scope leak (these are structural invariants that must hold at $1.00$ on CPU controls before and during on-model evaluation).
-- Do not start the on-model `m3-memory` run until M1 is met, M2 is released, a non-author `TEST FITNESS: FIT` review of this frozen panel is recorded, and Casey types an owner release. (The frozen SHA-256 and `Manifest::version()` are now committed and re-checked by the test target.)
+- Do not start the on-model `m3-memory` run until M1 is met and M2 selects a candidate integer stack artifact (`status: held`, `#2873#issuecomment-6394411611`).
+
+### Non-Author `TEST FITNESS` Review (`CHARTER.md` §4.5)
+
+TEST FITNESS: FIT
+
+- Reviewed by fresh-context non-author reviewer (`antigravity` subagent `5822df5c-462f-417b-b6dd-56f3dd32660d`, [`#2873#issuecomment-6394411357`](https://github.com/UOR-Foundation/uor-r4/issues/2873#issuecomment-6394411357), 2026-10-25).

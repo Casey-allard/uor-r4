@@ -3,7 +3,7 @@ id: object-store-consumer-m3
 title: Wire the object store into the model and run the durable-memory bars
 milestone: M3
 area: architecture
-status: ready
+status: held
 open_to: anyone
 needs_gpu: false
 depends_on: []

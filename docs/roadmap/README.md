@@ -20,8 +20,8 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 51 |
-| held | 2 |
+| ready | 50 |
+| held | 3 |
 | decision | 1 |
 | done | 38 |
 | total | 92 |
@@ -43,7 +43,6 @@ These items are ready and open to anyone.
 | [Verify the Studio's offline claim, retire the demo CDNs, bundle tokenizer](items/m7-studio-self-host-page-assets.md) | M7 | [#3075](https://github.com/UOR-Foundation/uor-r4/issues/3075) |
 | [Independently verify the alpha on consumer hardware](items/m8-independent-verification.md) | M8 | [#2869](https://github.com/UOR-Foundation/uor-r4/issues/2869) |
 | [Prepare the checksummed alpha release package and install path](items/m8-release-packaging.md) | M8 | [#2870](https://github.com/UOR-Foundation/uor-r4/issues/2870) |
-| [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | M3 | [#2873](https://github.com/UOR-Foundation/uor-r4/issues/2873) |
 
 ## M1
 
@@ -90,7 +89,7 @@ These items are ready and open to anyone.
 |---|---|---|---|---|---|
 | [Add a memory-turn discriminator or margin gate](items/m3-memory-turn-discriminator-gate.md) | ready | a lab | yes | [m3-nonrelation-prose-panel](items/m3-nonrelation-prose-panel.md) | [#2855](https://github.com/UOR-Foundation/uor-r4/issues/2855) |
 | [Qualify durable memory on the selected native model](items/m3-qualify-memory.md) | ready | a lab | yes | [m2-train-grounded-replies](items/m2-train-grounded-replies.md), [m3-memory-turn-discriminator-gate](items/m3-memory-turn-discriminator-gate.md), [m3-policy-precedence-and-sieve-tests](items/m3-policy-precedence-and-sieve-tests.md) | [#2858](https://github.com/UOR-Foundation/uor-r4/issues/2858) |
-| [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | ready | anyone | no | none | [#2873](https://github.com/UOR-Foundation/uor-r4/issues/2873) |
+| [Wire the object store into the model and run the durable-memory bars](items/object-store-consumer-m3.md) | held | anyone | no | none | [#2873](https://github.com/UOR-Foundation/uor-r4/issues/2873) |
 | [Retire or complete legacy width-576 ChatSession persistence](items/m3-legacy-chatsession-persistence.md) | done | anyone | no | none | [#2854](https://github.com/UOR-Foundation/uor-r4/issues/2854) |
 | [Build a pre-registered non-relation prose panel](items/m3-nonrelation-prose-panel.md) | done | anyone | no | none | [#2856](https://github.com/UOR-Foundation/uor-r4/issues/2856) |
 | [Pin OpPolicy precedence and store-miss sieve coupling with tests](items/m3-policy-precedence-and-sieve-tests.md) | done | anyone | no | none | [#2857](https://github.com/UOR-Foundation/uor-r4/issues/2857) |
