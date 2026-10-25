@@ -20,11 +20,11 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 54 |
+| ready | 55 |
 | held | 1 |
 | decision | 1 |
 | done | 35 |
-| total | 91 |
+| total | 92 |
 
 ## Start here
 
@@ -62,6 +62,7 @@ These items are ready and open to anyone.
 | [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
 | [Design a lawful normalization mechanism](items/m1-normalization-mechanism.md) | ready | anyone | no | none | [#2842](https://github.com/UOR-Foundation/uor-r4/issues/2842) |
 | [Design a lawful position mechanism](items/m1-position-mechanism.md) | ready | anyone | no | none | [#2843](https://github.com/UOR-Foundation/uor-r4/issues/2843) |
+| [Run the W2 code-utilization diagnostic on the stored capture](items/m1-w2-code-utilization.md) | ready | a lab | no | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md) | [#3179](https://github.com/UOR-Foundation/uor-r4/issues/3179) |
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Prototype a wider code carrier (more roots or blocks)](items/m1-wider-code-carrier.md) | ready | a lab | yes | [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2847](https://github.com/UOR-Foundation/uor-r4/issues/2847) |
 | [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | done | a lab | no | none | [#2829](https://github.com/UOR-Foundation/uor-r4/issues/2829) |
@@ -236,6 +237,7 @@ flowchart LR
   n_m1_position_mechanism["m1-position-mechanism"]
   n_m1_trunk_assembly_and_training["m1-trunk-assembly-and-training"]
   n_m1_w2_capacity_capture["m1-w2-capacity-capture"]
+  n_m1_w2_code_utilization["m1-w2-code-utilization"]
   n_m1_w4_float_credit_sheet["m1-w4-float-credit-sheet"]
   n_m1_wider_code_carrier["m1-wider-code-carrier"]
   n_m2_donor_corpus_generation["m2-donor-corpus-generation"]
@@ -319,6 +321,7 @@ flowchart LR
   n_m1_trunk_assembly_and_training --> n_m6_causal_ablation_instrument
   n_m1_w2_capacity_capture --> n_m1_address_key_full_vector
   n_m1_w2_capacity_capture --> n_m1_bvg_k_stage_t_training
+  n_m1_w2_capacity_capture --> n_m1_w2_code_utilization
   n_m1_w2_capacity_capture --> n_m1_w4_float_credit_sheet
   n_m2_donor_corpus_generation --> n_m2_train_grounded_replies
   n_m2_fresh_heldout_panel --> n_m2_train_grounded_replies
