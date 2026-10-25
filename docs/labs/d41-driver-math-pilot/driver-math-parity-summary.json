@@ -1,0 +1,70 @@
+{
+  "schema": "uor-r4.d41-driver-math-parity-summary/1",
+  "item": "d41-driver-math-pilot",
+  "issue": 2821,
+  "date": "2026-10-25",
+  "driver_math_optimization_status": "QUALIFIED_ON_CUDA_STAGE_T_PENDING",
+  "donor_pilot_1m_status": "SHEET_AND_FIT_STAGED_HELD_ON_STAGE_T_AND_OWNER_DISPATCH",
+  "qualified_driver_math_components": {
+    "counterfactual_rows_parity": {
+      "record": "docs/labs/counterfactual-rows-parity-2026-10-18/README.md",
+      "attempt3_receipt_path": "docs/labs/counterfactual-rows-parity-2026-10-18/evidence/attempt3/rows-parity.json",
+      "attempt3_receipt_sha256": "be44d32ec5009055b5ad5dbc9a6f4de0e172e7b0be0d67ede90f32f08b33d70d",
+      "attempt4_receipt_path": "docs/labs/counterfactual-rows-parity-2026-10-18/evidence/attempt4/rows-parity.json",
+      "attempt4_receipt_sha256": "fedd5c6fde77326e3152c924e88d71c2d80d911ff55254921eb188a57e3df340",
+      "route_parity_cases": "684/684 PASS",
+      "flock_gate_parity_cases": "108/108 PASS",
+      "relation_gate_parity_cases": "288/288 PASS",
+      "k16_rank_hinge_parity_cases": "1368/1368 PASS",
+      "negative_sabotage_gate": "FAIL_AS_REQUIRED",
+      "speedup_ratio_x1000": {
+        "k8_route_vector_block": 55500,
+        "k8_relation_gate": 56600,
+        "k16_route_objective_a": 57000,
+        "k16_route_objective_r": 57300
+      }
+    },
+    "address_structured_cell_occupancy": {
+      "record": "docs/labs/address-cells-preflight-2026-10-19/README.md",
+      "grading_receipt_path": "docs/labs/address-cells-preflight-2026-10-19/evidence/grading.json",
+      "grading_receipt_sha256": "90c113adbcc2de7c2321a6c6fca9b89a7e72478f8123ae6e3a67dd6d3ee61bb3",
+      "occupied_cells": 256,
+      "distinct_vectors": 4096,
+      "tie_mass": 0,
+      "b3_init_psucc_admitted": 1351,
+      "b3_init_psucc_total": 3847,
+      "b3_init_full_admitted": 4244,
+      "b3_init_full_total": 14287,
+      "status": "PASS"
+    },
+    "bvgk_stage_c1_rowsk_scoring": {
+      "record": "docs/labs/bvgk-rowsk-scoring-2026-10-18/README.md",
+      "receipt_path": "docs/labs/bvgk-rowsk-scoring-2026-10-18/evidence/run1/clean/rowsk-qualification.json",
+      "receipt_sha256": "d5ec5348d64e2abd74a334319d4f78e6ed7b174b5a2fc0bb381505dc46e09e56",
+      "v2_scoring_parity_coordinates": "5130/5130 PASS",
+      "v6_block_refusals": "6/6 PASS",
+      "v2_neg_sabotage": "FAIL_AS_REQUIRED",
+      "k16_speedup_x1000": 16249,
+      "status": "PASS"
+    },
+    "bvgk_stage_c2_block_apply": {
+      "record": "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md",
+      "receipt_path": "docs/labs/injective-preflight-and-c2-qualify-2026-10-19/evidence/bvgk-c2-qualify-20261019/report/bvgk-qualification.json",
+      "receipt_sha256": "2fff942fa2b802e180c9bd87336692730d6beaf22f2c0bac8867afb0dea345f3",
+      "controls": {
+        "v0_source_identity": "PASS",
+        "rc_recarry_parity": "PASS",
+        "ut_jr_dc_v3_block_sweep": "PASS",
+        "rf_refusals": "PASS",
+        "c1r_c1_parity_rerun": "PASS"
+      },
+      "fixture_updates_applied": 3419,
+      "k16_joint_verify_speedup_x1000": 8000,
+      "status": "PASS"
+    }
+  },
+  "remaining_gates_before_donor_pilot": [
+    "M1 BVG-K Stage T training run (m1-bvg-k-stage-t-training, #2836) per PLAN.md M1->M2 sequence",
+    "Owner dispatch release for D41 openai/gpt-oss-120b donor pass per CHARTER.md §3.10 and §5.1"
+  ]
+}

@@ -3,7 +3,7 @@ id: d41-driver-math-pilot
 title: Optimize the driver math and run the ~1M-token pilot (D41 item 3)
 milestone: M2
 area: training
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: []
