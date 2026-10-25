@@ -52,7 +52,7 @@ These items are ready and open to anyone.
 |---|---|---|---|---|---|
 | [Run A8 admission-anchor controller CUDA qualification and restoration](items/m1-a8-finite-cuda-qualification.md) | ready | a lab | yes | [m1-a8-registration-and-runbook-staging](items/m1-a8-registration-and-runbook-staging.md) | [#2830](https://github.com/UOR-Foundation/uor-r4/issues/2830) |
 | [Run the full A8 dose with reach protected](items/m1-a8-full-dose-rerun.md) | ready | a lab | yes | [m1-a8-finite-cuda-qualification](items/m1-a8-finite-cuda-qualification.md) | [#2831](https://github.com/UOR-Foundation/uor-r4/issues/2831) |
-| [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | ready | anyone | no | none | [#2833](https://github.com/UOR-Foundation/uor-r4/issues/2833) |
+| [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | ready | anyone | no | [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | [#2833](https://github.com/UOR-Foundation/uor-r4/issues/2833) |
 | [Replace the 5-value address key with a full-vector metric](items/m1-address-key-full-vector.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md) | [#2834](https://github.com/UOR-Foundation/uor-r4/issues/2834) |
 | [Draft the BVG-K Stage T pre-registration sheet (C2 has passed)](items/m1-bvg-k-block-apply-c2.md) | ready | a lab | yes | none | [#2835](https://github.com/UOR-Foundation/uor-r4/issues/2835) |
 | [Train the BVG-K batched-coordinate law on two seeds](items/m1-bvg-k-stage-t-training.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-block-apply-c2](items/m1-bvg-k-block-apply-c2.md) | [#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836) |
@@ -225,6 +225,7 @@ flowchart LR
   n_m1_a8_finite_cuda_qualification["m1-a8-finite-cuda-qualification"]
   n_m1_a8_full_dose_rerun["m1-a8-full-dose-rerun"]
   n_m1_a8_registration_and_runbook_staging["m1-a8-registration-and-runbook-staging"]
+  n_m1_address_as_read["m1-address-as-read"]
   n_m1_address_key_full_vector["m1-address-key-full-vector"]
   n_m1_bvg_k_block_apply_c2["m1-bvg-k-block-apply-c2"]
   n_m1_bvg_k_stage_t_training["m1-bvg-k-stage-t-training"]
@@ -318,6 +319,7 @@ flowchart LR
   n_m1_normalization_mechanism --> n_m1_trunk_assembly_and_training
   n_m1_position_mechanism --> n_m1_trunk_assembly_and_training
   n_m1_position_mechanism --> n_r_quaternion_transport_order
+  n_m1_trunk_assembly_and_training --> n_m1_address_as_read
   n_m1_trunk_assembly_and_training --> n_m6_causal_ablation_instrument
   n_m1_w2_capacity_capture --> n_m1_address_key_full_vector
   n_m1_w2_capacity_capture --> n_m1_bvg_k_stage_t_training
