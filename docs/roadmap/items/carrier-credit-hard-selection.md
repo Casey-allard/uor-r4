@@ -7,7 +7,8 @@ status: ready
 open_to: lab
 needs_gpu: true
 depends_on: []
-scope: [docs/harness/prep/carrier-credit-hard-selection*, docs/labs/carrier-credit-hard-selection/**, docs/loop/tasks/carrier-credit-hard-selection/**]
+notebook: docs/research/notebook/m1-discrete-attention.md
+scope: [crates/uor-r4-discrete/**, docs/harness/prep/carrier-credit-hard-selection*, docs/labs/carrier-credit-hard-selection/**, docs/loop/tasks/carrier-credit-hard-selection/**]
 ---
 
 ## Why it matters
@@ -20,7 +21,9 @@ Carrier credit sends learning credit back to the geometric objects that carried 
 
 ## Done when
 
-A hard-selection credit step replaces the sampled choice with no softmax, and the three-arm sheet is rerun with the result recorded.
+A hard-selection credit step replaces the sampled choice with no softmax, on CUDA and integer-only, and the archived three-arm sheet's ON/OFF × two-seed design is rerun as a new pre-registered sheet with a fresh FIT on the live discrete learner (CHARTER §4.5; carrier-credit reopen condition 5), with model-blind in-batch controls, every registered arm run, and the result recorded on fresh rows.
+
+The archived sheet cannot be replayed: its objective is a log-mean-exp over softplus of a log mass (§3.2), its modules are compiled out, and its runner is float code outside the D37 module. Claude decided this reading under D68 (claude-103, [decision card](../../loop/tasks/carrier-credit-hard-selection/claude-103/DECISION.md)), with a fresh decision review.
 
 ## How to start
 
