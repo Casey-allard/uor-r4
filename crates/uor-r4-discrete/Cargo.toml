@@ -49,3 +49,11 @@ path = "src/bin/coverage-census.rs"
 [[bin]]
 name = "order-slice-freeze"
 path = "src/bin/order-slice-freeze.rs"
+
+[[bin]]
+name = "w2-capacity"
+path = "src/bin/w2-capacity.rs"
+
+[[bin]]
+name = "w2-assemble"
+path = "src/bin/w2-assemble.rs"

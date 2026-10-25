@@ -30,11 +30,15 @@ pub mod objective;
 pub mod order_slice;
 pub mod position_mechanism;
 pub mod proposal_timing;
+pub mod q4_import;
 pub mod rows_source;
 pub mod rowsk_source;
 pub mod snapshot;
 pub use objective::ObjectivePolicy;
 pub mod training;
+pub mod w2_capacity;
+pub mod w2_capture;
+pub mod w2_record;
 
 pub const SCHEMA: &str = "uor-r4.discrete-spiralcore-fbs/2";
 #[derive(Debug)]

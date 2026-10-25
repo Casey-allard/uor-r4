@@ -3,7 +3,7 @@ id: m1-w2-capacity-capture
 title: Run the W2 read-code capacity capture
 milestone: M1
 area: evaluation
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: []
