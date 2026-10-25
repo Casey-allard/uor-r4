@@ -8,7 +8,7 @@ open_to: lab
 needs_gpu: true
 depends_on: []
 notebook: docs/research/notebook/m1-discrete-attention.md
-scope: [docs/harness/prep/carrier-credit-hard-selection*, docs/labs/carrier-credit-hard-selection/**, docs/loop/tasks/carrier-credit-hard-selection/**]
+scope: [crates/uor-r4-discrete/**, docs/harness/prep/carrier-credit-hard-selection*, docs/labs/carrier-credit-hard-selection/**, docs/loop/tasks/carrier-credit-hard-selection/**]
 ---
 
 ## Why it matters
@@ -26,6 +26,8 @@ A hard-selection credit step replaces the sampled choice with no softmax, on CUD
 The archived sheet cannot be replayed: its objective is a log-mean-exp over softplus of a log mass (§3.2), its modules are compiled out, and its runner is float code outside the D37 module. Claude decided this reading under D68 (claude-103, [decision card](../../loop/tasks/carrier-credit-hard-selection/claude-103/DECISION.md)), with a fresh decision review.
 
 **`crates/uor-r4-discrete/**` was removed from `scope:` on 25 Oct (claude-105).** Its code work is complete on #3203, and only the GPU results and docs remain. `loop claim` reads an open order's item scope, so the crate glob was locking every discrete item, the M1 path included, against every lab while the arms ran. A code fix that #3203's review asks for restores the glob first, through `infra-loop-harness`.
+
+**Restored on 25 Oct (claude-106).** #3203's exact-head review found one Required defect: the release check admitted an unregistered arm. Its fix needs a negative test in the crate. To keep the lock short, #3203 now lands as the code and design delivery, so its order closes on merge. The GPU results follow in a docs-only unit.
 
 ## How to start
 
