@@ -761,4 +761,15 @@ mod tests {
         );
         let _ = all(&p, &Registries::load(&p).expect("registry"));
     }
+
+    #[test]
+    fn the_real_sheets_pass_the_shape_rule() {
+        let r = repo();
+        let p = paths_of(&r);
+        let findings = sheet_shape(&p);
+        assert!(
+            findings.is_empty(),
+            "real pre-registration sheets failed prep.sheet_shape: {findings:#?}"
+        );
+    }
 }

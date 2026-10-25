@@ -6,7 +6,7 @@
 - **Mechanisms:** [`docs/mechanisms/read-binding.md`](../../mechanisms/read-binding.md), [`docs/mechanisms/flock-read.md`](../../mechanisms/flock-read.md), [`docs/mechanisms/relation-read.md`](../../mechanisms/relation-read.md)
 - **Prior Evidence:** [`archive/labs/read-binding-powered-2026-10-11/README.md`](../../../archive/labs/read-binding-powered-2026-10-11/README.md), [`crates/uor-r4-discrete/src/discrete.cu`](../../../crates/uor-r4-discrete/src/discrete.cu)
 
-## 1. Mechanism Under Test
+## 1. Mechanism Under Test, Base Artifact, and Data Split
 
 We test **`DiscreteReadBindingHingeV1`**: porting read-binding supervision (`archive/labs/read-binding-powered-2026-10-11/README.md`) from its archived, banned softmax-mass formulation ($\mathcal{L}_{\text{bind}} = -\log(\max_h \sum_{j \in B} a_j^{(h)} + 10^{-6})$ on a 29M dense matmul float stack, banned by `CHARTER §3.2` `D23` and `§3.3` `D25`/`D30`) to the lawful `D32` integer `Flock` (`MODE_FLOCK = 1`, `s[8] = 1`) and `Relation` (`MODE_RELATION = 2`, `s[8] = 2`) reads in [`crates/uor-r4-discrete/src/discrete.cu`](../../../crates/uor-r4-discrete/src/discrete.cu) (`flock_vector`, lines 193–321).
 
@@ -29,7 +29,7 @@ with integer margin $m_{\text{bind}} = 2$ (one root-cost step in `MODE_FLOCK`, o
 $$L_{\text{total}}(\text{row}) = L_{\text{writer}}(\text{row}) + (H_{\text{bind}}(\text{row}) \ll \text{w\_bind\_shift}).$$
 At evaluation and D11 serving time, $H_{\text{bind}}$ is never evaluated (`binding_labels` sidecar is training-only): the exported `UORLUT01` integer artifact runs unaltered `Flock` or `Relation` reads with **zero** extra operations (`CHARTER §3.6`).
 
-### Four Matched Arms (Across 3 Seeds: `20261009`, `20261010`, `20261011`)
+### Four Matched Arms, Steps, and Minimum Test Power (Across 3 Seeds: `20261009`, `20261010`, `20261011`)
 1. **`Arm-0-Flock-Unbound` (`MODE_FLOCK = 1`, $H_{\text{bind}}$ off):** Unbound `Flock` read (`s[8] = 1, s[9] = 7`) trained with standard writer loss only ($L_{\text{writer}}$).
 2. **`Arm-1-Flock-Bound` (`MODE_FLOCK = 1`, $H_{\text{bind}}$ on, `w_bind_shift = 1`):** `Flock` read (`s[8] = 1, s[9] = 7`) trained with $L_{\text{writer}}(\text{row}) + (H_{\text{bind}}(\text{row}) \ll 1)$ from step 0.
 3. **`Arm-2-Relation-Unbound` (`MODE_RELATION = 2`, $H_{\text{bind}}$ off):** Unbound `Relation` read (`s[8] = 2, s[9] = 7, s[10] = 2`) trained with standard writer loss only ($L_{\text{writer}}$).
@@ -56,7 +56,7 @@ Evaluated on the held-out 120-item multi-fact memory panel (`40` items $\times$ 
 3. **Permuted-Sidecar Negative Control (Finite Qualification):** Swapping $B(\text{row}) \leftrightarrow C(\text{row})$ in a finite CUDA test must invert $R_{\min\text{-gap}}(B, C)$ and drive `discrete_counterfactual` to select the swapped span, proving the instrument is non-vacuous (`CHARTER §4.2`).
 4. **Deterministic Count-Table Baselines (`CHARTER §4.4`):** Unigram and `T2` successor count tables evaluated on the same 120-item panel.
 
-## 5. Stop Rule
+## 5. Cost and Stop Rule
 
 - **Instrument vs. Mechanism Classification (`CHARTER §4.1, §4.2`):** Before any GPU training run, finite CUDA unit tests must verify:
   1. Exact integer calculation of $R_b(i) = (\text{rel}_b[i] \ll 3) - d_{\text{pos}}(q_b, i)$ and $H_{\text{bind}}(\text{row})$ against a host integer reference on synthetic 3-fact rows (`100%` bit-exact match);

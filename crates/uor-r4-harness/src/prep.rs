@@ -38,19 +38,19 @@ pub const REQUIRED_BLOCKS: [(&str, &str); 8] = [
     ("fit", "TEST FITNESS line"),
 ];
 
-/// Which heading substring satisfies each block. `fit` is special: it needs a verdict line, not a
+/// Which heading substrings satisfy each block. `fit` is special: it needs a verdict line, not a
 /// heading, and is handled separately.
-fn heading_needle(key: &str) -> Option<&'static str> {
-    Some(match key {
-        "bar" => "bar",
-        "base" => "base",
-        "split" => "split",
-        "steps" => "step",
-        "stop" => "stop",
-        "cost" => "cost",
-        "power" => "power",
-        _ => return None,
-    })
+fn heading_needles(key: &str) -> &'static [&'static str] {
+    match key {
+        "bar" => &["bar"],
+        "base" => &["base"],
+        "split" => &["split"],
+        "steps" => &["step"],
+        "stop" => &["stop", "abort"],
+        "cost" => &["cost"],
+        "power" => &["power"],
+        _ => &[],
+    }
 }
 
 /// One `##`/`###`/`####` section of a sheet.
@@ -217,9 +217,11 @@ pub fn check_sheet(path: &Path, text: &str) -> SheetReport {
             let present = if *key == "fit" {
                 fitness != ABSENT
             } else {
-                let needle = heading_needle(key).unwrap_or("");
-                secs.iter()
-                    .any(|s| s.heading.to_ascii_lowercase().contains(needle))
+                let needles = heading_needles(key);
+                secs.iter().any(|s| {
+                    let h = s.heading.to_ascii_lowercase();
+                    needles.iter().any(|needle| h.contains(needle))
+                })
             };
             Block { key, name, present }
         })
@@ -331,6 +333,13 @@ TEST FITNESS: FIT
         let r = check_sheet(Path::new("s.md"), &text);
         assert!(!r.complete());
         assert_eq!(r.missing(), vec!["Cost"]);
+    }
+
+    #[test]
+    fn abort_heading_satisfies_stop_block() {
+        let text = COMPLETE.replace("## Stop rule", "## Cost, abort criteria, and dispatch gate");
+        let r = check_sheet(Path::new("s.md"), &text);
+        assert!(r.complete(), "missing: {:?}", r.missing());
     }
 
     /// NOT_FIT must not be read as FIT, and the verdict word is anchored.
