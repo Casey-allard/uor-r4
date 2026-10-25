@@ -20,8 +20,8 @@ Each item's GitHub issue is generated from its file by `cargo xtask roadmap sync
 
 | Status | Items |
 |---|---|
-| ready | 24 |
-| held | 15 |
+| ready | 23 |
+| held | 16 |
 | decision | 1 |
 | done | 52 |
 | total | 92 |
@@ -46,12 +46,12 @@ These items are ready and open to anyone.
 | [Build the address-as-read mechanism and an object-store consumer](items/m1-address-as-read.md) | ready | anyone | no | [m1-trunk-assembly-and-training](items/m1-trunk-assembly-and-training.md) | [#2833](https://github.com/UOR-Foundation/uor-r4/issues/2833) |
 | [Train the BVG-K batched-coordinate law on two seeds](items/m1-bvg-k-stage-t-training.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-block-apply-c2](items/m1-bvg-k-block-apply-c2.md), [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-w2-code-utilization](items/m1-w2-code-utilization.md), [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2836](https://github.com/UOR-Foundation/uor-r4/issues/2836) |
 | [Close M1 with one saved discrete model passing all five bars](items/m1-close-saved-model.md) | ready | a lab | yes | [m1-a8-full-dose-rerun](items/m1-a8-full-dose-rerun.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md), [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md), [m1-fresh-panel-transfer](items/m1-fresh-panel-transfer.md) | [#2837](https://github.com/UOR-Foundation/uor-r4/issues/2837) |
-| [Measure export gap and tokens per second on a trained model](items/m1-export-gap-and-toks.md) | ready | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2839](https://github.com/UOR-Foundation/uor-r4/issues/2839) |
 | [Replace the full-vocabulary writer scan](items/m1-faster-writer.md) | ready | a lab | yes | none | [#2840](https://github.com/UOR-Foundation/uor-r4/issues/2840) |
 | [Evaluate the gain on the fresh sealed panel](items/m1-fresh-panel-transfer.md) | ready | a lab | yes | [m1-export-gap-and-toks](items/m1-export-gap-and-toks.md) | [#2841](https://github.com/UOR-Foundation/uor-r4/issues/2841) |
 | [Design a lawful position mechanism](items/m1-position-mechanism.md) | ready | anyone | no | none | [#2843](https://github.com/UOR-Foundation/uor-r4/issues/2843) |
 | [Register and run one float-credit training sheet (W4)](items/m1-w4-float-credit-sheet.md) | ready | a lab | yes | [m1-w2-capacity-capture](items/m1-w2-capacity-capture.md), [m1-bvg-k-stage-t-training](items/m1-bvg-k-stage-t-training.md) | [#2846](https://github.com/UOR-Foundation/uor-r4/issues/2846) |
 | [Prototype a wider code carrier (more roots or blocks)](items/m1-wider-code-carrier.md) | ready | a lab | yes | [m1-address-key-full-vector](items/m1-address-key-full-vector.md) | [#2847](https://github.com/UOR-Foundation/uor-r4/issues/2847) |
+| [Measure export gap and tokens per second on a trained model](items/m1-export-gap-and-toks.md) | held | a lab | yes | [m1-d11-exporter-discrete](items/m1-d11-exporter-discrete.md) | [#2839](https://github.com/UOR-Foundation/uor-r4/issues/2839) |
 | [Diagnose A8 reach erosion from retained checkpoints](items/m1-a8-erosion-diagnosis.md) | done | a lab | no | none | [#2829](https://github.com/UOR-Foundation/uor-r4/issues/2829) |
 | [Run A8 admission-anchor controller CUDA qualification and restoration](items/m1-a8-finite-cuda-qualification.md) | done | a lab | yes | [m1-a8-registration-and-runbook-staging](items/m1-a8-registration-and-runbook-staging.md) | [#2830](https://github.com/UOR-Foundation/uor-r4/issues/2830) |
 | [Run the full A8 dose with reach protected](items/m1-a8-full-dose-rerun.md) | done | a lab | yes | [m1-a8-finite-cuda-qualification](items/m1-a8-finite-cuda-qualification.md) | [#2831](https://github.com/UOR-Foundation/uor-r4/issues/2831) |

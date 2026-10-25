@@ -3,7 +3,7 @@ id: m1-export-gap-and-toks
 title: Measure export gap and tokens per second on a trained model
 milestone: M1
 area: evaluation
-status: ready
+status: held
 open_to: lab
 needs_gpu: true
 depends_on: [m1-d11-exporter-discrete]
@@ -17,15 +17,13 @@ M1 bar (d) is defined through the export, and M5 builds on the same measurement.
 
 ## What is missing
 
-Tokens per second for a model trained under today's rules has never been measured, and the export gap is unmeasured. Stage 4 needs both prompt-reading and reply-writing rates on a laptop, and integer top-1 scored through the D11 export on the DEV panel (14,287 rows in the K16 receipts, `docs/integration/NOW.md` line 78). The export-gap rule (D39 item 5) is: a float candidate is disqualified when its export gap exceeds the two-seed band on the same evaluator, fixed per sheet at FIT time. The numeric band is not yet registered.
+Tokens per second for a model trained under today's rules has never been measured, and the export gap is unmeasured. Stage 4 needs both prompt-reading and reply-writing rates on a laptop, and integer top-1 scored through the D11 export on the DEV panel (14,287 rows in the K16 receipts, `docs/integration/NOW.md` line 78). The export-gap rule (D39 item 5) is: a float candidate is disqualified when its export gap exceeds the two-seed band on the same evaluator, fixed per sheet at FIT time. The numeric band is registered in the sheet named below.
 
-**Both inputs now exist** (25 Oct; the D68 card in `docs/loop/tasks/infra-loop-harness/claude-113/DECISION.md`):
-- the exporter, `m1-d11-exporter-discrete`, is done;
-- the A8 rerun, `m1-a8-full-dose-rerun`, is done. It saved restored passing checkpoints in the store: Relation `continuation-01600.json`, which passed the TRAIN anchor floor only, and FrozenZero `continuation-05248.json`, which passed Q1 at batch 4,096. Both are under `results/antigravity/a8-full-dose-rerun-2026-10-25/`.
+**The sheet's preparation is done.** The sheet is `docs/harness/prep/m1-export-gap-and-toks-DRAFT-2026-10-23.md` (antigravity-42, #3085). antigravity-74 (#3220) gave it a non-author `TEST FITNESS: FIT` and a D68 decision review (#2839 comment `6398709883`), registered its bar and noise band, and set this item `held`.
 
-The sheet, the instrument and the FIT can be prepared now.
+**The measured run waits on step 4.** PLAN.md step 6 says "its measured run needs a trained model from step 4", BVG-K Stage T (`m1-bvg-k-stage-t-training`). The A8 rerun ended in an instrument stop, and is not that model. Once #2836 has its saved models, this item runs under that sheet after a D67 pre-run review (antigravity-74 REPORT).
 
-**The measured run waits on step 4.** PLAN.md step 6 says "its measured run needs a trained model from step 4", BVG-K Stage T (`m1-bvg-k-stage-t-training`). So the export gap and tokens per second are reported on step 4's saved model. An A8 checkpoint may serve only to qualify the instrument, never as the reported measurement.
+**A correction.** claude-113 (#3244) set this item `ready` on the false premise that its preparation had not been done. claude-114 (`docs/loop/tasks/infra-loop-harness/claude-114/`) restored `held`.
 
 ## Done when
 
