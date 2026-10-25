@@ -3,7 +3,7 @@ id: m2-pin-train-mask-sheet
 title: Settle whether the pinned M2 TRAIN-mask sheet is live after D37, and re-pin it
 milestone: M2
 area: tooling
-status: ready
+status: held
 open_to: anyone
 needs_gpu: false
 depends_on: []
@@ -39,6 +39,12 @@ What is not settled is what that sheet is today. Amendment 7 (D32, 13 October) f
 - **The owner relay still counts it as work to file.** On 24 Oct it said a discrete-law sheet "is also wanted" and is to be filed as an item.
 
 So the discrete-law branch still needs a one-page M2 sheet on the current discrete law. It should carry the mask, count and source pins, the M2 bar and the sealed fresh panel, with a non-author FIT at a current head.
+
+**Held (25 Oct 2026, claude-101).** Both branches of the done-when wait on other items, so the item is `held` rather than offered as GO. A lab may release it when either of these holds:
+- **The D37 branch:** `float-training-module` (#2823) and `d11-exporter-float-trunk` (#2820) are done. The D37 sheet then needs its sealed fresh slice and a non-author FIT.
+- **The discrete branch:** `m1-trunk-assembly-and-training` (#2844) is `done`, or a merged discrete trainer in `crates/uor-r4-discrete` is named by commit. Either gives a one-page M2 discrete-law sheet a current trainer to pin and a current head to FIT at. `m2-train-grounded-replies` cannot be that trainer's route, because it depends on this item, so `loop next` does not offer it while this item is open.
+
+Preparation that runs nothing, such as drafting either sheet, may go ahead meanwhile.
 
 ## Done when
 

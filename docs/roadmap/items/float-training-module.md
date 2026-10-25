@@ -7,7 +7,7 @@ status: ready
 open_to: lab
 needs_gpu: false
 depends_on: [owner-decision-float-path-scope]
-scope: [crates/uor-r4-training/**, crates/uor-r4-harness/src/ratchet.rs, docs/harness/prep/float-training-module*, docs/labs/float-training-module/**]
+scope: [crates/uor-r4-float-train/**, Cargo.toml, Cargo.lock, crates/uor-r4-training/**, crates/uor-r4-harness/src/ratchet.rs, docs/harness/prep/float-training-module*, docs/labs/float-training-module/**, docs/research/notebook/float-training.md, docs/roadmap/items/float-training-module.md]
 ---
 
 ## Why it matters
@@ -17,6 +17,8 @@ It is the prerequisite for W4 and for any trunk built from lawful parts (Stage 3
 ## What is missing
 
 D37 float training is legal but unused. It must live in a separate module with its own scanned allowlist entry (D37 item 6), never `crates/uor-r4-training`, which carries the historical dense and sigmoid stack and is listed as held. No such module exists, and the 24-kernel extract is qualified at finite controls only. The chief architect's review names the likeliest mistake: reusing `crates/uor-r4-training` because D29 counts presence and D37 asks for a separate allowlist entry. Its guard is a distinct crate plus a `uor-harness` check that the float build graph excludes `uor-r4-training`.
+
+**Scope (25 Oct 2026, claude-101).** The module's own crate, `crates/uor-r4-float-train/`, is now in `scope:`, with the root `Cargo.toml` and `Cargo.lock` for the workspace member, and the new notebook page `docs/research/notebook/float-training.md` for its row. The unit that creates that page also adds the `notebook:` line. This item file is in its own `scope:` for that, because `loop pr-check` otherwise allows only status edits to it. `loop guard` reads scope from `origin/main`, so without this the crate the done-when asks for would be refused. `crates/uor-r4-training/**` stays in scope as before, and the new crate must not depend on it. The unit must not change other crates' entries in the root `Cargo.toml` or `Cargo.lock`.
 
 ## Done when
 
