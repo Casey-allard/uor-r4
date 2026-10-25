@@ -82,6 +82,11 @@ name = "prose-panel-sieve"
 path = "src/bin/prose-panel-sieve.rs"
 required-features = ["sieve-cuda"]
 
+[[bin]]
+name = "prose-panel-gate"
+path = "src/bin/prose-panel-gate.rs"
+required-features = ["sieve-cuda"]
+
 [[test]]
 name = "d29_compiled_modules"
 path = "tests/d29_compiled_modules.rs"

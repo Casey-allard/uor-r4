@@ -1,5 +1,26 @@
 # Lab Note: M3 Memory-Turn Discriminator and Margin Gate (`#2855`)
 
+> **25 Oct 2026 (claude-102, #3201): a lawful marker gate on the sieve compiler, measured on the GPU. The result is a negative for this configuration.** The `relation_compiler.rs` work below gates a `SparseSoftmax` compiler that CHARTER §3.2 bans. It is kept as history. The run's pieces:
+> - sheet: [`preregistration-marker-gate-2026-10-25.md`](preregistration-marker-gate-2026-10-25.md) (FIT `6395084106`, pre-run GO `6395098979`);
+> - code: `crates/uor-r4-training/src/sieve_marker_gate.rs`, the kernel `sieve_frame_compile_marked` in `src/sieve_frame.cu`, and the binary `src/bin/prose-panel-gate.rs`.
+>
+> **Negatives first.**
+> - **R1 fell to 406/462 (87.9%),** below the 95% floor. All 56 misses are "the surviving readings disagree", on 7 update templates whose frame carries a word the assert frame lacks: "Actually, … {v} now." and "Sorry, my lucky number is really {v}.". The marker reading (`actually`/`sorry` plus the assert frame) takes that word into the value, after it ("X now") or before it ("really X"), against the plain update frame's "X". The two readings name the same expert with different spans, so the gate refuses.
+> - **R2 stayed at 0/220,** all `Unresolved`. The unseen phrasings differ from the training frames in their core wording, not in a leading discourse marker, so this marker set reached none of them.
+>
+> **What held.**
+> - The panel stays clean: false_assert 0/50, false_overwrite 0/50, clean 50/50, with 0 surviving frames on any panel turn.
+> - 740,484 tokens/s (732 turns, 4,280 words, 5,780 µs).
+> - Finite CUDA controls: 12/12 for the sieve (lean build) and 14/14 for the gate (both builds).
+> - D29 passed on the lean and `cuda` builds (5 tests each).
+> - A second build gave byte-identical decisions (`66b01121…b936`).
+> - Pins: frame table `379c2ecc…`, marker table `cd793994…`, PTX `75e837bc6ff7704602912f890d9b99811713598d9b77643253f3d0c12dc06710`.
+> - One RTX 5090 (driver 580.178.04), pod `vast-57633156`, run ref `63cd966ad`. Outputs are in the HF store under `results/claude/prose-panel-gate-2026-10-25/` (`record.json` sha256 `771e15aa…930c`).
+>
+> **Reading (D22: this closes this configuration only).**
+> - The span disagreement is specific: a correction frame's own extra word falls inside the marker reading's 1–4 word value, after it ("X now") or before it ("really X"). A next configuration could keep the marker rule but bar base-frame words from the value, or let readings that agree on the expert resolve to the shorter span.
+> - R2 says the larger fact for this configuration: this marker set reached none of the unseen core wordings. This gate's real work is generalizing the core of the frame while keeping the panel clean.
+
 - **Roadmap item:** [`m3-memory-turn-discriminator-gate`](../../roadmap/items/m3-memory-turn-discriminator-gate.md) (`#2855`)
 - **Milestone:** M3 — Exact Memory & Grounded Sessions (`#2031`)
 - **Mechanism:** [`exact-memory`](../../mechanisms/exact-memory.md)

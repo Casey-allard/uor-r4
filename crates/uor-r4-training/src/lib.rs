@@ -7,7 +7,8 @@
 
 // Without a GPU feature (`cuda` or `sieve-cuda`) the crate forbids unsafe code.
 // With one, only the CUDA kernel launchers (`cuda_stack_kernels::cuda`,
-// `native_geometric_cuda_kernels` and `sieve_frame_compiler::device`) opt in.
+// `native_geometric_cuda_kernels`, `sieve_frame_compiler::device` and
+// `sieve_marker_gate::device`) opt in.
 #![cfg_attr(
     not(any(feature = "cuda", feature = "sieve-cuda")),
     forbid(unsafe_code)
@@ -190,6 +191,7 @@ pub mod relation_compiler;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod s8_panel_count;
 pub mod sieve_frame_compiler;
+pub mod sieve_marker_gate;
 pub mod spiralcore_fbs;
 #[cfg(any())] // Preserved historical module; excluded from the native qualification graph.
 pub mod stack_address;
