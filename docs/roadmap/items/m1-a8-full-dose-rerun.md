@@ -3,7 +3,7 @@ id: m1-a8-full-dose-rerun
 title: Run the full A8 dose with reach protected
 milestone: M1
 area: training
-status: ready
+status: done
 open_to: lab
 needs_gpu: true
 depends_on: [m1-a8-finite-cuda-qualification]

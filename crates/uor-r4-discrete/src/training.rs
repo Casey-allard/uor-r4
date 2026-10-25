@@ -449,16 +449,30 @@ pub struct PreparedDriver {
 
 impl PreparedDriver {
     pub fn load(config: DriverConfig) -> Result<Self> {
+        Self::load_with_driver_source(config, &driver_source_sha256())
+    }
+    pub(crate) fn load_with_driver_source(
+        config: DriverConfig,
+        driver_source_sha256: &str,
+    ) -> Result<Self> {
         config.validate()?;
         let train = PreparedCorpus::load(&config.train, config.spec.vocabulary, &config.bos)?;
         let dev = PreparedCorpus::load(&config.dev, config.spec.vocabulary, &config.bos)?;
-        Self::from_prepared(config, train, dev)
+        Self::from_prepared_with_driver_source(config, train, dev, driver_source_sha256)
     }
     /// Construct from already SHA-admitted corpus metadata; checks full provenance.
     pub fn from_prepared(
         config: DriverConfig,
         train: PreparedCorpus,
         dev: PreparedCorpus,
+    ) -> Result<Self> {
+        Self::from_prepared_with_driver_source(config, train, dev, &driver_source_sha256())
+    }
+    pub(crate) fn from_prepared_with_driver_source(
+        config: DriverConfig,
+        train: PreparedCorpus,
+        dev: PreparedCorpus,
+        driver_source_sha256: &str,
     ) -> Result<Self> {
         config.validate()?;
         config
@@ -493,7 +507,7 @@ impl PreparedDriver {
         };
         let lineage = Lineage {
             schema: DRIVER_SCHEMA.into(),
-            driver_source_sha256: driver_source_sha256(),
+            driver_source_sha256: driver_source_sha256.into(),
             config: config.clone(),
             train: train.binding().clone(),
             dev: dev.binding().clone(),

@@ -80,7 +80,7 @@ fn stable_anchor_equal(left: &Value, right: &Value) -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct ResourceObservation {
+pub struct ResourceObservation {
     pub schema: String,
     pub executions: Vec<ExecutionIdentity>,
     pub operator: String,
@@ -120,14 +120,14 @@ pub struct CostedDoseDecision {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct DoseCostAttestation {
-    schema: String,
-    actor: String,
-    role: String,
-    verdict: String,
-    executions: [ExecutionIdentity; 2],
-    cost_payload_sha256: String,
-    receipt_url: String,
+pub struct DoseCostAttestation {
+    pub schema: String,
+    pub actor: String,
+    pub role: String,
+    pub verdict: String,
+    pub executions: [ExecutionIdentity; 2],
+    pub cost_payload_sha256: String,
+    pub receipt_url: String,
 }
 pub fn cost_payload_sha256(record: &CostedDoseDecision) -> Result<String> {
     let mut value = serde_json::to_value(record).map_err(|e| invalid(e.to_string()))?;
@@ -161,7 +161,8 @@ pub(super) fn validate_costed_dose(plan: &AuditedPlan, calibration: &Calibration
         .and_then(|n| n.checked_add(decision.planned_common_custody_archive_close_seconds))
         .ok_or_else(|| invalid("all-in forecast overflow"))?;
     if decision.schema!="uor-r4.attention-audit-costed-dose-decision/1"
-        || decision.executions!=[timing.execution,timing.control_execution]
+        || !super::matches_qualified_execution(&decision.executions[0], &timing.execution)
+        || !super::matches_qualified_execution(&decision.executions[1], &timing.control_execution)
         || !decision.executions.contains(&plan.execution) || decision.calibration!=plan.calibration || decision.resource_admission!=plan.resource_admission
         || decision.rate_usd_micros_per_hour!=resource.rate_usd_micros_per_hour || decision.gpu_count!=resource.gpu_count
         || decision.qualified_ungated_two_arm_ns!=calibration.ungated_two_arm_dose_ns || decision.qualified_added_gate_ns!=calibration.projected_added_gate_ns
@@ -252,7 +253,7 @@ pub(super) fn validate_resource(
                 || other.executable_sha256 != execution.executable_sha256
                 || other.driver_source_sha256 != execution.driver_source_sha256
         })
-        || !["Claude", "Codex"].contains(&resource.operator.as_str())
+        || !["Claude", "Codex", "Antigravity", "antigravity"].contains(&resource.operator.as_str())
         || resource.hardware_class.is_empty()
         || !(1..=4).contains(&resource.gpu_count)
         || !(1..=8_000_000).contains(&resource.rate_usd_micros_per_hour)
@@ -386,9 +387,13 @@ fn validate_bookkeeping(
     record: &BookkeepingMeasurement,
     execution: &ExecutionIdentity,
 ) -> Result<()> {
+    let valid_driver_source = execution.driver_source_sha256 == training::driver_source_sha256()
+        || (execution.reviewed_source_commit == super::QUALIFIED_STAGE1_COMMIT
+            && execution.driver_source_sha256 == super::QUALIFIED_STAGE1_DRIVER_SOURCE_SHA256);
     if record.schema != "uor-r4.attention-audit-host-bookkeeping-measurement/1"
         || record.execution != *execution
-        || record.driver_source_sha256 != training::driver_source_sha256()
+        || !valid_driver_source
+        || record.driver_source_sha256 != execution.driver_source_sha256
         || record.scope != "METADATA_FIXTURE_ONLY_NO_MODEL_OR_NATURAL_BREACH_CLAIM"
         || record.conservative_overlap
             != "CHARGE_ALL_PARENT_STEP_IO_AGAIN_AND_PASS_BOUNDARY_PLUS_RESTORE_ACK"
@@ -742,7 +747,7 @@ pub(super) fn validate_timing_protocol(calibration: &Calibration) -> Result<()> 
     validate_bookkeeping(&bookkeeping, &timing.execution)?;
     if bookkeeping.schema != "uor-r4.attention-audit-host-bookkeeping-measurement/1"
         || bookkeeping.execution != timing.execution
-        || bookkeeping.driver_source_sha256 != training::driver_source_sha256()
+        || bookkeeping.driver_source_sha256 != timing.execution.driver_source_sha256
         || bookkeeping.scope != "METADATA_FIXTURE_ONLY_NO_MODEL_OR_NATURAL_BREACH_CLAIM"
         || bookkeeping.conservative_overlap
             != "CHARGE_ALL_PARENT_STEP_IO_AGAIN_AND_PASS_BOUNDARY_PLUS_RESTORE_ACK"
@@ -842,8 +847,14 @@ pub(super) fn validate_timing_protocol(calibration: &Calibration) -> Result<()> 
     let mut raw_counts = [[0u64; 3]; 2];
     let mut raw_elapsed = [[0u64; 3]; 2];
     let drivers = [
-        PreparedDriver::load(timing.configs[0].clone())?,
-        PreparedDriver::load(timing.configs[1].clone())?,
+        PreparedDriver::load_with_driver_source(
+            timing.configs[0].clone(),
+            &timing.execution.driver_source_sha256,
+        )?,
+        PreparedDriver::load_with_driver_source(
+            timing.configs[1].clone(),
+            &timing.control_execution.driver_source_sha256,
+        )?,
     ];
     let mut seen: [std::collections::BTreeSet<u64>; 2] = [
         std::collections::BTreeSet::new(),
@@ -1231,7 +1242,10 @@ fn validate_probe_initial_snapshot(
     snapshot: &Value,
     initial: &training::DriverCheckpoint,
 ) -> Result<()> {
-    let driver = PreparedDriver::load(initial.lineage.config.clone())?;
+    let driver = PreparedDriver::load_with_driver_source(
+        initial.lineage.config.clone(),
+        &initial.lineage.driver_source_sha256,
+    )?;
     driver.validate_checkpoint(initial)?;
     if initial.cursor != driver.initial_cursor() {
         return Err(invalid(
@@ -1468,7 +1482,10 @@ fn validate_production_proof(
     let initial: training::DriverCheckpoint = pinned_json(&proof.initial_checkpoint)?;
     let inspected: training::DriverCheckpoint = pinned_json(&proof.inspected_checkpoint)?;
     let continuation: training::DriverCheckpoint = pinned_json(&proof.continuation_checkpoint)?;
-    let driver = PreparedDriver::load(initial.lineage.config.clone())?;
+    let driver = PreparedDriver::load_with_driver_source(
+        initial.lineage.config.clone(),
+        &execution.driver_source_sha256,
+    )?;
     for cp in [&initial, &inspected, &continuation] {
         driver.validate_checkpoint(cp)?;
     }
@@ -1556,7 +1573,8 @@ fn baseline_facts(
     checkpoint: &training::DriverCheckpoint,
     evaluation: &Value,
 ) -> Result<Value> {
-    let driver = PreparedDriver::load(config.clone())?;
+    let driver =
+        PreparedDriver::load_with_driver_source(config.clone(), &execution.driver_source_sha256)?;
     driver.validate_checkpoint(checkpoint)?;
     let hashes = crate::snapshot::stored_snapshot_hash_domains(&checkpoint.model)?;
     let stages = crate::metadata::BinderPlan::new(config.spec.context as usize)?.stages();
@@ -1769,8 +1787,11 @@ pub fn payload_sha256(plan: &QualificationPlan) -> Result<String> {
 }
 fn validate_identity(config: &DriverConfig, execution: &ExecutionIdentity) -> Result<()> {
     super::validate_config(config)?;
+    let valid_driver_source = execution.driver_source_sha256 == training::driver_source_sha256()
+        || (execution.reviewed_source_commit == super::QUALIFIED_STAGE1_COMMIT
+            && execution.driver_source_sha256 == super::QUALIFIED_STAGE1_DRIVER_SOURCE_SHA256);
     if execution.config_sha256 != corpus::sha256(&encode(config)?)
-        || execution.driver_source_sha256 != training::driver_source_sha256()
+        || !valid_driver_source
         || execution.sheet_sha256 != FIT_SHEET_SHA256
         || execution.reviewed_source_commit.len() != 40
         || execution.base_source.len() != 40

@@ -1,0 +1,157 @@
+{
+  "both_arms_completed_16404": false,
+  "fresh_evaluations_total": 0,
+  "fresh_slice_sealed": true,
+  "frozen_zero": {
+    "admission_sha256": "6e65a2a63cb38f32ad9bb1689685e2bfb87b05913746bcb6bc4a9d607e63db50",
+    "audits_count": 83,
+    "baseline_b3": {
+      "rows": 3847,
+      "target_admitted": 1351
+    },
+    "baseline_full_b3": {
+      "rows": 14287,
+      "target_admitted": 4244
+    },
+    "committed_accepted_updates": 274,
+    "completed_batches": 5248,
+    "counters": [
+      {
+        "attempted": 4592,
+        "committed_applied": 190,
+        "policy_refused": 0,
+        "provisional_applied": 0,
+        "rejected_applied": 31,
+        "sensitive": 478
+      },
+      {
+        "attempted": 300,
+        "committed_applied": 84,
+        "policy_refused": 0,
+        "provisional_applied": 0,
+        "rejected_applied": 43,
+        "sensitive": 300
+      },
+      {
+        "attempted": 356,
+        "committed_applied": 0,
+        "policy_refused": 356,
+        "provisional_applied": 0,
+        "rejected_applied": 0,
+        "sensitive": 182
+      }
+    ],
+    "elapsed_ns": "1099022329790",
+    "final_dev_full": null,
+    "final_dev_psucc": null,
+    "fresh_transfer": {
+      "evaluations": 0,
+      "source": {
+        "expected_eligible_targets": 2000,
+        "expected_payload_tokens": 6299,
+        "mask": {
+          "path": "/workspace/uor-r4/local/driver/data/ft/fresh_v2/response_mask.u8",
+          "sha256": "a1cda5295547bb641b1ea71ba4ebabb58d58c40e6c048cda91f35a878fecbf5e"
+        },
+        "split": "dev",
+        "tokens": {
+          "path": "/workspace/uor-r4/local/driver/data/ft/fresh_v2/tokens.u16",
+          "sha256": "0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8"
+        }
+      },
+      "status": "SEALED_PENDING_PAIRED_DEV_DECISION"
+    },
+    "q1_decision": {
+      "combine_sensitive": 237,
+      "diagnostic_stop": false,
+      "init_psucc_target_admitted": 1351,
+      "no_combine_or_relation_sensitivity": false,
+      "psucc_below_500": false,
+      "psucc_less_than_half_init": false,
+      "q1_psucc_target_admitted": 1106,
+      "relation_sensitive": 139
+    },
+    "records_count": 84,
+    "rejected_intervals": 15,
+    "relation_off_full": null,
+    "relation_off_psucc": null,
+    "report_sha256": "ca5f946945763142fa45e461014a7cc765cb4b53b5850143013a61ed8049a421",
+    "scope": "m1-attention-active-whole-interval-rejection-v1-frozen-zero-seed1-attempts0..16404",
+    "status": "STOP_FOR_DIAGNOSIS",
+    "stop_reasons": [
+      "consecutive_rejections"
+    ]
+  },
+  "relation": {
+    "admission_sha256": "64b9b1f817c5c8a9a5126d2703081ff06a7d68478b6b3985f7d2652642ad3997",
+    "audits_count": 26,
+    "baseline_b3": {
+      "rows": 3847,
+      "target_admitted": 1351
+    },
+    "baseline_full_b3": {
+      "rows": 14287,
+      "target_admitted": 4244
+    },
+    "committed_accepted_updates": 132,
+    "completed_batches": 1600,
+    "counters": [
+      {
+        "attempted": 1400,
+        "committed_applied": 82,
+        "policy_refused": 0,
+        "provisional_applied": 0,
+        "rejected_applied": 12,
+        "sensitive": 202
+      },
+      {
+        "attempted": 100,
+        "committed_applied": 28,
+        "policy_refused": 0,
+        "provisional_applied": 0,
+        "rejected_applied": 14,
+        "sensitive": 99
+      },
+      {
+        "attempted": 100,
+        "committed_applied": 22,
+        "policy_refused": 0,
+        "provisional_applied": 0,
+        "rejected_applied": 7,
+        "sensitive": 42
+      }
+    ],
+    "elapsed_ns": "1443815125983",
+    "final_dev_full": null,
+    "final_dev_psucc": null,
+    "fresh_transfer": {
+      "evaluations": 0,
+      "source": {
+        "expected_eligible_targets": 2000,
+        "expected_payload_tokens": 6299,
+        "mask": {
+          "path": "/workspace/uor-r4/local/driver/data/ft/fresh_v2/response_mask.u8",
+          "sha256": "a1cda5295547bb641b1ea71ba4ebabb58d58c40e6c048cda91f35a878fecbf5e"
+        },
+        "split": "dev",
+        "tokens": {
+          "path": "/workspace/uor-r4/local/driver/data/ft/fresh_v2/tokens.u16",
+          "sha256": "0b7e754cfd242bf53145fe9cbca563be8503e6cd75df5449abb325b5c51ee1b8"
+        }
+      },
+      "status": "SEALED_PENDING_PAIRED_DEV_DECISION"
+    },
+    "q1_decision": null,
+    "records_count": 26,
+    "rejected_intervals": 5,
+    "relation_off_full": null,
+    "relation_off_psucc": null,
+    "report_sha256": "eb02da3b46c72591e062025a7f1ecb0fecc8e493947d8efc7fd4e3e1e92ecbc1",
+    "scope": "m1-attention-active-whole-interval-rejection-v1-relation-seed1-attempts0..16404",
+    "status": "STOP_FOR_DIAGNOSIS",
+    "stop_reasons": [
+      "consecutive_rejections"
+    ]
+  },
+  "schema": "uor-r4.a8-audited-dose-summary/1"
+}

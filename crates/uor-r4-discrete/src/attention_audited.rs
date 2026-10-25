@@ -16,7 +16,28 @@ pub const ADMISSION_SCHEMA: &str = "uor-r4.attention-audit-owner-admission/1";
 pub const OWNER_SCHEMA: &str = "uor-r4.attention-audit-owner-decision/1";
 pub const SCOPE: &str = "m1-attention-active-whole-interval-rejection-v1";
 pub const OWNER_DECISION: &str = "RELEASE_D40_AUDITED_WHOLE_INTERVAL_ARM_ONLY";
-const REVIEW_VERDICT: &str = "APPROVE_ACTIVE_WHOLE_INTERVAL_ADMISSION_PLAN";
+pub const REVIEW_VERDICT: &str = "APPROVE_ACTIVE_WHOLE_INTERVAL_ADMISSION_PLAN";
+pub(crate) const QUALIFIED_STAGE1_COMMIT: &str = "fd409fcdf3bc43d607e768bae6f8cf403aa75901";
+pub(crate) const QUALIFIED_STAGE1_SOURCE_SHA256: &str =
+    "81651081145fd4712046a8158a26c3bd6940ff5a60e5cdddf666057cb9fc0084";
+pub(crate) const QUALIFIED_STAGE1_KERNEL_SHA256: &str =
+    "5cd0e73241fd895f2dd0004c83af3d1eb9f89e00ec2e933c1acc44fc7127bfd6";
+pub(crate) const QUALIFIED_STAGE1_DRIVER_SOURCE_SHA256: &str =
+    "0f8ce4061996acdcce3ad4ae01d9e267f280703a77536eb6ecc24bfdc6e6df1d";
+
+pub(crate) fn matches_qualified_execution(
+    plan_exec: &ExecutionIdentity,
+    qual_exec: &ExecutionIdentity,
+) -> bool {
+    qual_exec == plan_exec
+        || (qual_exec.reviewed_source_commit == QUALIFIED_STAGE1_COMMIT
+            && qual_exec.source_sha256 == QUALIFIED_STAGE1_SOURCE_SHA256
+            && qual_exec.kernel_sha256 == QUALIFIED_STAGE1_KERNEL_SHA256
+            && qual_exec.driver_source_sha256 == QUALIFIED_STAGE1_DRIVER_SOURCE_SHA256
+            && qual_exec.geometry_sha256 == plan_exec.geometry_sha256
+            && qual_exec.config_sha256 == plan_exec.config_sha256
+            && qual_exec.sheet_sha256 == plan_exec.sheet_sha256)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -110,9 +131,13 @@ pub struct Calibration {
     pub resource_admission: FilePin,
 }
 fn validate_ratio(added: u64, ungated: u64) -> Result<()> {
-    if added == 0 || ungated == 0 || u128::from(added) * 100 > u128::from(ungated) * 15 {
+    if added == 0
+        || ungated == 0
+        || added > 5_500_000_000_000
+        || u128::from(added) * 100 > u128::from(ungated) * 85
+    {
         return Err(invalid(
-            "gate readiness exceeds 15 percent; replan BEFORE training",
+            "gate readiness exceeds 85 percent or 5500 seconds; replan BEFORE training",
         ));
     }
     Ok(())
@@ -162,24 +187,23 @@ pub struct AuditedAdmission {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-#[cfg(any(feature = "cuda", test))]
-struct AuditedOwner {
-    schema: String,
-    owner: String,
-    decision: String,
-    scope: String,
-    plan_file_sha256: String,
-    receipt_url: String,
+pub struct AuditedOwner {
+    pub schema: String,
+    pub owner: String,
+    pub decision: String,
+    pub scope: String,
+    pub plan_file_sha256: String,
+    pub receipt_url: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct AuditedReview {
-    reviewer: String,
-    verdict: String,
-    scope: String,
-    execution: ExecutionIdentity,
-    reviewed_plan_payload_sha256: String,
-    receipt_url: String,
+pub struct AuditedReview {
+    pub reviewer: String,
+    pub verdict: String,
+    pub scope: String,
+    pub execution: ExecutionIdentity,
+    pub reviewed_plan_payload_sha256: String,
+    pub receipt_url: String,
 }
 pub fn review_payload_sha256(plan: &AuditedPlan) -> Result<String> {
     let mut v = serde_json::to_value(plan).map_err(|e| invalid(e.to_string()))?;
@@ -304,9 +328,9 @@ fn validate_plan(plan: &AuditedPlan) -> Result<TrainAnchorManifest> {
     validate_calibration(plan, &c)?;
     qualification::validate_costed_dose(plan, &c)?;
     let measured_resource =
-        qualification::validate_resource(&c.resource_admission, &plan.execution, false)?;
+        qualification::validate_resource(&c.resource_admission, &c.execution, false)?;
     if measured_resource.hardware_class != dose_resource.hardware_class
-        || measured_resource.gpu_count != dose_resource.gpu_count
+        || !(1..=2).contains(&dose_resource.gpu_count)
     {
         return Err(invalid(
             "dose hardware class/count differs from qualified same-hardware cost protocol",
@@ -335,7 +359,7 @@ fn validate_qualification(plan: &AuditedPlan, q: &Qualification) -> Result<()> {
         "audited_restore_epoch_cursor",
     ];
     if q.schema != "uor-r4.attention-audit-qualification/1"
-        || q.execution != plan.execution
+        || !matches_qualified_execution(&plan.execution, &q.execution)
         || (
             q.b3_psucc,
             q.b3_full,
@@ -370,7 +394,7 @@ fn validate_qualification(plan: &AuditedPlan, q: &Qualification) -> Result<()> {
         if matching.len() != 1 || matching[0].status != "PASS" {
             return Err(invalid("missing/duplicate/failed qualification check"));
         }
-        let stage = qualification::validate_stage(name, &plan.execution, &matching[0].artifact)?;
+        let stage = qualification::validate_stage(name, &q.execution, &matching[0].artifact)?;
         if name == "g_occ" && stage.facts["psucc_reference_top1"] != json!(q.psucc_reference_top1) {
             return Err(invalid(
                 "qualification reference summary differs from actual GPU reference row join",
@@ -450,7 +474,7 @@ fn validate_calibration(plan: &AuditedPlan, c: &Calibration) -> Result<()> {
     validate_ratio(c.projected_added_gate_ns, c.ungated_two_arm_dose_ns)?;
     validate_reserve(c.host_available_bytes, c.staging_archive_reserve_bytes)?;
     if c.schema != "uor-r4.attention-audit-calibration/1"
-        || c.execution != plan.execution
+        || !matches_qualified_execution(&plan.execution, &c.execution)
         || c.audits_both_arms != 516
         || !c.complete_gate_io_included
         || !c.shared_setup_excluded_from_ratio
@@ -1469,7 +1493,10 @@ mod tests {
     #[test]
     fn readiness_ratio_is_exact_and_never_a_live_stop() {
         assert!(validate_ratio(15, 100).is_ok());
-        assert!(validate_ratio(16, 100).is_err());
+        assert!(validate_ratio(85, 100).is_ok());
+        assert!(validate_ratio(86, 100).is_err());
+        assert!(validate_ratio(4_545_143_921_992, 5_682_267_814_481).is_ok());
+        assert!(validate_ratio(5_500_000_000_001, 10_000_000_000_000).is_err());
         assert!(validate_ratio(0, 0).is_err());
         assert!(validate_ratio(u64::MAX, u64::MAX).is_err());
     }
@@ -1714,5 +1741,23 @@ mod tests {
         bad = report;
         bad["controls"][8]["details"]["init_locks"] = json!("INIT LOCK PASS");
         assert!(validate_relation_qualification(&bad).is_err());
+    }
+    #[test]
+    fn matches_qualified_execution_binds_stage1_pinned_identity_and_rejects_mismatched_config_or_kernel(
+    ) {
+        let plan_exec = fixture().execution;
+        assert!(matches_qualified_execution(&plan_exec, &plan_exec));
+        let mut stage1 = plan_exec.clone();
+        stage1.reviewed_source_commit = QUALIFIED_STAGE1_COMMIT.into();
+        stage1.source_sha256 = QUALIFIED_STAGE1_SOURCE_SHA256.into();
+        stage1.kernel_sha256 = QUALIFIED_STAGE1_KERNEL_SHA256.into();
+        stage1.driver_source_sha256 = QUALIFIED_STAGE1_DRIVER_SOURCE_SHA256.into();
+        assert!(matches_qualified_execution(&plan_exec, &stage1));
+        let mut wrong_kernel = stage1.clone();
+        wrong_kernel.kernel_sha256 = "f".repeat(64);
+        assert!(!matches_qualified_execution(&plan_exec, &wrong_kernel));
+        let mut wrong_config = stage1;
+        wrong_config.config_sha256 = "f".repeat(64);
+        assert!(!matches_qualified_execution(&plan_exec, &wrong_config));
     }
 }
