@@ -6,7 +6,7 @@ area: training
 status: ready
 open_to: lab
 needs_gpu: true
-depends_on: [m1-w2-capacity-capture, m1-bvg-k-block-apply-c2]
+depends_on: [m1-w2-capacity-capture, m1-bvg-k-block-apply-c2, m1-a8-full-dose-rerun, m1-w2-code-utilization]
 scope: [crates/uor-r4-discrete/**, docs/harness/prep/m1-bvg-k-stage-t-training*, docs/labs/m1-bvg-k-stage-t-training/**, docs/loop/tasks/m1-bvg-k-stage-t-training/**]
 ---
 

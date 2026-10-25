@@ -5,8 +5,8 @@ milestone: M1
 area: training
 status: ready
 open_to: lab
-needs_gpu: true
-depends_on: []
+needs_gpu: false
+depends_on: [m1-a8-full-dose-rerun, m1-w2-code-utilization]
 scope: [docs/harness/prep/m1-bvg-k-block-apply-c2*, docs/harness/prep/m1-bvgk-stage-t*, docs/harness/prep/m1-bvgk-staget*, docs/labs/m1-bvg-k-block-apply-c2/**, docs/loop/tasks/m1-bvg-k-block-apply-c2/**, docs/research/notebook/m1-discrete-attention.md]
 ---
 
@@ -28,7 +28,7 @@ Still to do: a one-page Stage T pre-registration sheet is posted on the issue, c
 
 ## How to start
 
-1. Read `docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md`, the C2 sheet `docs/harness/prep/m1-bvgk-stagec2-block-qualification-2026-10-18.md` (use its layout), the row 7 entry in `docs/integration/NOW.md`, and `docs/mechanisms/discrete-learning.md`. Also read the K16 outcome record `docs/labs/k16-outcome-call-2026-10-19/README.md` (no KEEP) and the W2 entry in NOW.md, because NOW.md row 7 holds Stage T for the K16 outcome, and row 8 runs the float-credit sheet only if W2 blames the learning law (H_law). NOW.md lists W2 as queued while `docs/integration/project-track.md` marks it done, so confirm W2's status with the PM before drafting.
+1. Read `docs/labs/injective-preflight-and-c2-qualify-2026-10-19/README.md`, the C2 sheet `docs/harness/prep/m1-bvgk-stagec2-block-qualification-2026-10-18.md` (use its layout), the row 7 entry in `docs/integration/NOW.md`, and `docs/mechanisms/discrete-learning.md`. Also read the K16 outcome record `docs/labs/k16-outcome-call-2026-10-19/README.md` (no KEEP) and the W2 entry in NOW.md, because NOW.md row 7 holds Stage T for the K16 outcome, and row 8 runs the float-credit sheet only if W2 blames the learning law (H_law). W2 is done: H_mixed (#3177, `docs/labs/m1-w2-capacity-capture/README.md`), so the sheet waits on the code-utilization diagnostic and on a base that passes Q1 (the A8 full dose); see the owner log on #2835.
 2. Skim the code the sheet will name: `crates/uor-r4-discrete/src/bvgk_block.rs`, `bvgk_device.rs`, `bvgk_qualification.rs` and `bvgk_source.rs`. Run the host checks with `~/.cargo/bin/cargo check -p uor-r4-discrete`. If the crate does not build without nvcc on your machine, say so on the issue; do not start a GPU run.
 3. First deliverable, posted on the issue: a short design note for Stage T. It states the geometric construction (K coordinates scored per launch, a block committed only if `l_joint < l_best`), why it uses no softmax or squashing and no matmul (integer hinge loss, table moves, adds), and the finite controls that already pass. It also says how the three uncovered items above are covered: as extra finite controls before the run, or as checks inside it.
 4. Draft the Stage T sheet in `docs/harness/prep/` (for example `m1-bvgk-stage-t-training-<date>.md`). It needs: the data and panel with hashes; the two seeds; the arms; the comparators (unigram, then the admission-matched next-word table); the numeric stop rules and bar; the cost cap; the lease and GPU count; the pre-run review it will run under (D67); and "what this leaves uncovered". Leave any number the sources do not give as "the bar is not yet registered", and settle it in the lab's own decision review (D68). No owner release is needed: the run goes ahead on its FIT and the lab's pre-run review (D67).
